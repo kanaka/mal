@@ -1,6 +1,7 @@
 module rec Types
   : sig
   type 'a with_meta = { value : 'a; meta : t }
+  and fn_rec = { f : (t list -> t); is_macro : bool }
   and t =
     | List of t list with_meta
     | Vector of t list with_meta
@@ -11,7 +12,7 @@ module rec Types
     | Nil
     | Bool of bool
     | String of string
-    | Fn of (t list -> t)
+    | Fn of fn_rec
   end = Types
 
 and MalValue
@@ -38,6 +39,7 @@ let list   x = Types.List   { Types.value = x; meta = Types.Nil }
 let map    x = Types.Map    { Types.value = x; meta = Types.Nil }
 let vector x = Types.Vector { Types.value = x; meta = Types.Nil }
 let symbol x = Types.Symbol { Types.value = x; meta = Types.Nil }
+let fn f = Types.Fn { Types.f = f; Types.is_macro = false }
 
 let rec list_into_map target source =
   match source with

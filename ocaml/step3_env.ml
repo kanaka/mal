@@ -1,6 +1,6 @@
 module T = Types.Types
 
-let num_fun f = T.Fn
+let num_fun f = Types.fn
   (function
     | [(T.Int a); (T.Int b)] -> T.Int (f a b)
     | _ -> raise (Invalid_argument "Numeric args required for this Mal builtin"))
@@ -47,7 +47,7 @@ and eval ast env =
           eval body sub_env)
     | T.List _ ->
       (match eval_ast ast env with
-         | T.List { T.value = ((T.Fn f) :: args) } -> f args
+         | T.List { T.value = ((T.Fn { T.f = f }) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 

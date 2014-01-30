@@ -41,7 +41,7 @@ and eval ast env =
         if Types.to_bool (eval test env) then (eval then_expr env) else T.Nil
     | T.List { T.value = [T.Symbol { T.value = "fn*" }; T.Vector { T.value = arg_names }; expr] }
     | T.List { T.value = [T.Symbol { T.value = "fn*" }; T.List   { T.value = arg_names }; expr] } ->
-        T.Fn
+        Types.fn
           (function args ->
             let sub_env = Env.make (Some env) in
               let rec bind_args a b =
@@ -56,7 +56,7 @@ and eval ast env =
               eval expr sub_env)
     | T.List _ ->
       (match eval_ast ast env with
-         | T.List { T.value = ((T.Fn f) :: args) } -> f args
+         | T.List { T.value = ((T.Fn { T.f = f }) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 

@@ -1,7 +1,7 @@
 module T = Types.Types
 let ns = Env.make None
 
-let num_fun t f = T.Fn
+let num_fun t f = Types.fn
   (function
     | [(T.Int a); (T.Int b)] -> t (f a b)
     | _ -> raise (Invalid_argument "Numeric args required for this Mal builtin"))
@@ -26,55 +26,66 @@ let init env = begin
   Env.set env (Types.symbol ">")  (num_fun mk_bool ( >  ));
   Env.set env (Types.symbol ">=") (num_fun mk_bool ( >= ));
 
-  Env.set env (Types.symbol "list") (T.Fn (function xs -> Types.list xs));
+  Env.set env (Types.symbol "list") (Types.fn (function xs -> Types.list xs));
   Env.set env (Types.symbol "list?")
-    (T.Fn (function [T.List _] -> T.Bool true | _ -> T.Bool false));
+    (Types.fn (function [T.List _] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "empty?")
-    (T.Fn (function [T.List {T.value = []}] -> T.Bool true | _ -> T.Bool false));
+    (Types.fn (function [T.List {T.value = []}] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "count")
-    (T.Fn (function [T.List {T.value = xs}] -> T.Int (List.length xs) | _ -> T.Int 0));
+    (Types.fn (function [T.List {T.value = xs}] -> T.Int (List.length xs) | _ -> T.Int 0));
   Env.set env (Types.symbol "=")
-    (T.Fn (function
-            | [T.List a; T.Vector b] -> T.Bool (a = b)
-            | [T.Vector a; T.List b] -> T.Bool (a = b)
-            | [a; b] -> T.Bool (a = b)
-            | _ -> T.Bool false));
+    (Types.fn (function
+                | [T.List a; T.Vector b] -> T.Bool (a = b)
+                | [T.Vector a; T.List b] -> T.Bool (a = b)
+                | [a; b] -> T.Bool (a = b)
+                | _ -> T.Bool false));
 
   Env.set env (Types.symbol "pr-str")
-    (T.Fn (function xs ->
+    (Types.fn (function xs ->
       T.String (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs))));
   Env.set env (Types.symbol "str")
-    (T.Fn (function xs ->
+    (Types.fn (function xs ->
       T.String (String.concat "" (List.map (fun s -> Printer.pr_str s false) xs))));
   Env.set env (Types.symbol "prn")
-    (T.Fn (function xs ->
+    (Types.fn (function xs ->
       print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs));
       T.Nil));
   Env.set env (Types.symbol "println")
-    (T.Fn (function xs ->
+    (Types.fn (function xs ->
       print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s false) xs));
       T.Nil));
 
   Env.set env (Types.symbol "compare")
-    (T.Fn (function [a; b] -> T.Int (compare a b) | _ -> T.Nil));
+    (Types.fn (function [a; b] -> T.Int (compare a b) | _ -> T.Nil));
   Env.set env (Types.symbol "with-meta")
-    (T.Fn (function [a; b] -> Reader.with_meta a b | _ -> T.Nil));
+    (Types.fn (function [a; b] -> Reader.with_meta a b | _ -> T.Nil));
   Env.set env (Types.symbol "meta")
-    (T.Fn (function [x] -> Printer.meta x | _ -> T.Nil));
+    (Types.fn (function [x] -> Printer.meta x | _ -> T.Nil));
 
   Env.set env (Types.symbol "read-string")
-    (T.Fn (function [T.String x] -> Reader.read_str x | _ -> T.Nil));
+    (Types.fn (function [T.String x] -> Reader.read_str x | _ -> T.Nil));
   Env.set env (Types.symbol "slurp")
-    (T.Fn (function [T.String x] -> T.String (Reader.slurp x) | _ -> T.Nil));
+    (Types.fn (function [T.String x] -> T.String (Reader.slurp x) | _ -> T.Nil));
 
   Env.set env (Types.symbol "cons")
-    (T.Fn (function [x; xs] -> Types.list (x :: (seq xs)) | _ -> T.Nil));
+    (Types.fn (function [x; xs] -> Types.list (x :: (seq xs)) | _ -> T.Nil));
   Env.set env (Types.symbol "concat")
-    (T.Fn (let rec concat =
-             function
-               | x :: y :: more -> concat ((Types.list ((seq x) @ (seq y))) :: more)
-               | [x] -> x
-               | [] -> Types.list []
-           in concat));
+    (Types.fn (let rec concat =
+                 function
+                 | x :: y :: more -> concat ((Types.list ((seq x) @ (seq y))) :: more)
+                 | [x] -> x
+                 | [] -> Types.list []
+               in concat));
+
+  Env.set env (Types.symbol "nth")
+    (Types.fn (function [xs; T.Int i] -> List.nth (seq xs) i | _ -> T.Nil));
+  Env.set env (Types.symbol "first")
+    (Types.fn (function
+                | [xs] -> (match seq xs with x :: _ -> x | _ -> T.Nil)
+                | _ -> T.Nil));
+  Env.set env (Types.symbol "rest")
+    (Types.fn (function
+                | [xs] -> Types.list (match seq xs with _ :: xs -> xs | _ -> [])
+                | _ -> T.Nil));
 end
 

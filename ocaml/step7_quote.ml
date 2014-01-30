@@ -53,7 +53,7 @@ and eval ast env =
         if Types.to_bool (eval test env) then (eval then_expr env) else T.Nil
     | T.List { T.value = [T.Symbol { T.value = "fn*" }; T.Vector { T.value = arg_names }; expr] }
     | T.List { T.value = [T.Symbol { T.value = "fn*" }; T.List   { T.value = arg_names }; expr] } ->
-        T.Fn
+        Types.fn
           (function args ->
             let sub_env = Env.make (Some env) in
               let rec bind_args a b =
@@ -71,7 +71,7 @@ and eval ast env =
        eval (quasiquote ast) env
     | T.List _ ->
       (match eval_ast ast env with
-         | T.List { T.value = ((T.Fn f) :: args) } -> f args
+         | T.List { T.value = ((T.Fn { T.f = f }) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 
@@ -87,7 +87,7 @@ let rec main =
                          then (List.map (fun x -> T.String x) (List.tl (List.tl (Array.to_list Sys.argv))))
                          else []));
     Env.set repl_env (Types.symbol "eval")
-            (T.Fn (function [ast] -> eval ast repl_env | _ -> T.Nil));
+            (Types.fn (function [ast] -> eval ast repl_env | _ -> T.Nil));
     let code = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
     in ignore (rep code repl_env);
     ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
