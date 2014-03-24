@@ -1,0 +1,112 @@
+;; Testing read of comments
+ ;; whole line comment (not an exception)
+1 ; comment after expression
+;=>1
+1; comment after expression
+;=>1
+
+
+;; Testing read of nil/true/false
+nil
+;=>nil
+true
+;=>true
+false
+;=>false
+
+
+;; Testing read of numbers
+1
+;=>1
+7
+;=>7
+  7   
+;=>7
+
+
+;; Testing read of symbols
++
+;=>+
+abc
+;=>abc
+   abc   
+;=>abc
+abc5
+;=>abc5
+abc-def
+;=>abc-def
+
+
+;; Testing read of strings
+"abc"
+;=>"abc"
+   "abc"   
+;=>"abc"
+"abc (with parens)"
+;=>"abc (with parens)"
+"abc\"def"
+;=>"abc\"def"
+;;;"abc\ndef"
+;;;;=>"abc\ndef"
+
+
+;; Testing read of lists
+(+ 1 2)
+;=>(+ 1 2)
+((3 4))
+;=>((3 4))
+(+ 1 (+ 2 3))
+;=>(+ 1 (+ 2 3))
+  ( +   1   (+   2 3   )   )  
+;=>(+ 1 (+ 2 3))
+
+
+;; Testing read of vectors
+[+ 1 2]
+;=>[+ 1 2]
+[[3 4]]
+;=>[[3 4]]
+[+ 1 [+ 2 3]]
+;=>[+ 1 [+ 2 3]]
+  [ +   1   [+   2 3   ]   ]  
+;=>[+ 1 [+ 2 3]]
+
+
+;; Testing read of hash maps
+{"abc" 1}
+;=>{"abc" 1}
+{"a" {"b" 2}}
+;=>{"a" {"b" 2}}
+{"a" {"b" {"c" 3}}}
+;=>{"a" {"b" {"c" 3}}}
+{  "a"  {"b"   {  "cde"     3   }  }}
+;=>{"a" {"b" {"cde" 3}}}
+
+
+;; Testing read of quoting
+'1
+;=>(quote 1)
+'(1 2 3)
+;=>(quote (1 2 3))
+`1
+;=>(quasiquote 1)
+`(1 2 3)
+;=>(quasiquote (1 2 3))
+~1
+;=>(unquote 1)
+~(1 2 3)
+;=>(unquote (1 2 3))
+~@(1 2 3)
+;=>(splice-unquote (1 2 3))
+
+
+;; Testing read of ^/metadata
+^{"a" 1} [1 2 3]
+;=>(with-meta [1 2 3] {"a" 1})
+
+
+;; Testing read of @/deref
+@a
+;=>(deref a)
+
+

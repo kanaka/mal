@@ -1,0 +1,94 @@
+;; Testing trivial macros
+(defmacro! one (fn* () 1))
+(one)
+;=>1
+(defmacro! two (fn* () 2))
+(two)
+;=>2
+
+;; Testing unless macros
+(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
+(unless false 7 8)
+;=>7
+(unless true 7 8)
+;=>8
+(defmacro! unless2 (fn* (pred a b) `(if (not ~pred) ~a ~b)))
+(unless2 false 7 8)
+;=>7
+(unless2 true 7 8)
+;=>8
+
+;; Testing macroexpand
+(macroexpand (unless2 2 3 4))
+;=>(if (not 2) 3 4)
+
+;;
+;; Loading core.mal
+(load-file "../core.mal")
+
+;; Testing and macro
+(and)
+;=>true
+(and 1)
+;=>1
+(and 1 2)
+;=>2
+(and 1 2 3)
+;=>3
+(and 1 2 3 4)
+;=>4
+(and 1 2 3 4 false)
+;=>false
+(and 1 2 3 4 false 5)
+;=>false
+
+;; Testing or macro
+(or)
+;=>nil
+(or 1)
+;=>1
+(or 1 2 3 4)
+;=>1
+(or false 2)
+;=>2
+(or false nil 3)
+;=>3
+(or false nil false false nil 4)
+;=>4
+(or false nil 3 false nil 4)
+;=>3
+
+;; Testing -> macro
+
+(-> 7)
+;=>7
+(-> (list 7 8 9) first)
+;=>7
+(-> (list 7 8 9) (first))
+;=>7
+(-> (list 7 8 9) first (+ 7))
+;=>14
+(-> (list 7 8 9) rest (rest) first (+ 7))
+;=>16
+
+;; Testing cond macro
+
+(cond)
+;=>nil
+(cond true 7)
+;=>7
+(cond true 7 true 8)
+;=>7
+(cond false 7 true 8)
+;=>8
+(cond false 7 false 8 "else" 9)
+;=>9
+(cond false 7 (= 2 2) 8 "else" 9)
+;=>8
+(cond false 7 false 8 false 9)
+;=>nil
+
+;Testing all EVAL of non-default locations
+(let* [x (or nil "yes")] x)
+;=>"yes"
+

@@ -1,0 +1,181 @@
+Step Notes:
+
+- step0_repl
+    - prompt, input, READ, EVAL, PRINT, output
+    - readline module
+        - display prompt, read line of input
+
+- use native eval in EVAL if available
+
+- libedit/GNU readline:
+    - use existing lib, wrap shell call or implement
+    - load history file on first call
+    - add non-blank lines to history
+    - append to history file
+
+- step1_read_print
+    - types module:
+        - add boxed types if no language equivalent:
+            - nil, true, false, symbol, integer, string, list
+        - pr_str:
+            - stringify boxed types to their Mal representations
+            - list/array is recursive
+    - reader module:
+        - stateful reader object
+            - alternative: mutate token list
+        - tokenize (use regex if available)
+            - standard regex pattern: "/[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"|;.*|[^\s\[\]{}('\"`,;)]*)/"
+        - read_str
+            - read_form(new Reader(tokenize(str)))
+        - read_form
+            - detect errors
+            - call read_list or read_atom
+        - read_list
+            - read_form until ')'
+            - return array (boxed)
+        - read_atom
+            - return scalar boxed type:
+                - nil, true, false, symbol, integer, string
+
+- vectors
+    - Basically: two array types that retain their boxed types, can be
+      challenging depending on the language (e.g. JS, PHP: no clean
+      way to derive new array types).
+    - types module:
+        - add vector boxed type
+            - derived from array if possible
+        - pr_str:
+            - vector is recursive
+        - sequential?
+    - reader module:
+        - read_vector:
+            - re-use read_list but with different constructor, delims
+
+- hash-maps
+    - reader module:
+        - re-use read_list function and apply that using hash-map
+          constructor
+    - types module:
+        - pr_str addition
+        - hash-map, map?, assoc, dissoc, get, contains?, keys,
+          vals (probably assoc! and dissoc! for internal)
+    - eval_map: eval the keys and values of hash_maps
+    - EVAL:
+        - if hash_map, call eval_map on it
+
+- step2_eval
+    - types module:
+        - first, rest, nth on list
+    - eval_ast:
+        - if symbol, return value of looking up in env
+        - if list, eval each item, return new list
+        - if vector support, eval each item, return new vector
+        - if hash_map support, eval each value, return new hash_map
+        - otherwise, just return unchanged ast
+    - EVAL/apply:
+        - if not a list, call eval_ast
+        - otherwise, apply first item to eval_ast of (rest ast)
+    - repl_env as simple one level assoc. array (or hash_map)
+        - store function as hash_map value
+
+- step3_env
+    - types module:
+        - Env type:
+            - find, set, get (no binds/exprs in constructor yet)
+        - may need function type if HashMap is strongly typed (e.g. Java)
+    - EVAL/apply:
+        - def! - mutate current environment
+        - let* - create new environment with bindings
+    - _ref sugar
+
+- step4_if_fn_do
+    - types module:
+        - function type (closure)
+        - add function printing to pr_str
+        - add binds/exprs handling to Env constructor with variable arity
+        - functions (exported via types_ns):
+            - move arith operations here
+            - comparison operations (including =)
+            - prn, pr_str, = (recursive)
+            - list, list?, count, empty?
+    - EVAL:
+        - do:
+        - if:
+        - fn*:
+            - simple if language supports closures
+    - define not using rep()
+
+
+- metadata
+    - 
+
+- step5_tco
+    - types module:
+        - function type:
+            - stores: func, exp, env, params
+            - func is EVAL in native mal case, otherwise reference to
+              platform function
+            - if metadata support, then store exp, env, params as
+              metadata
+        - update function printer to show function types
+    - EVAL:
+        - while loop around whole thing
+        - cases where we directly return result of EVAL, instead set
+          ast and env to what would be put in the EVAL, then loop.
+            - for apply case, set env to new Env based on properties
+              on the function
+
+- step6_file
+    - add read-string, eval, slurp, slurp-do platform wrappers
+    - define load-file function
+    - if files on command line, use load-file to run
+
+- step7_quote
+    - reader module:
+        - add reader macros to read_form for quote, unquote,
+          splice-unquote and quasiquote
+    - types module:
+        - add cons and concat functions
+    - add is_pair and quasiquote functions
+        - rewrite ast using cons/concat functions
+        - if vectors, use sequential? instead of list? in is_pair
+    - EVAL:
+        - add 'quote', 'quasiquote' cases
+
+- step8_macros
+    - types module:
+        - add first, rest functions
+    - add is_macro_call and macroexpand
+        - recursively macroexpand lists
+        - if applying a macro function, run it on the ast first before
+          continuing
+    - call macroexpand apply in EVAL
+    - EVAL:
+        - add 'defmacro!' and 'macroexpand'
+        - store ismacro property on function metadata
+
+- stepA_more
+    - types module:
+        - throw function
+        - map, apply functions
+        - symbol?, nil?, true?, false?
+        - conj, first, rest
+    - EVAL:
+        - try*/catch*: for normal exceptions, extracts string
+          otherwise extracts full value
+    - define cond and or macros using rep()
+
+- atoms
+    - reader module:
+        - @a reader macro -> (deref a)
+    - types module:
+        - pr_str case
+        - atom type, atom, atom?, deref, reset!, swap!
+
+- metadata
+    - types module:
+        - support meta property on symbols, hash-maps, lists, vectors,
+          functions, atoms
+        - add with-meta, meta functions
+    - reader module:
+        - ^ reader macro reads ^meta obj -> (with-meta obj meta)

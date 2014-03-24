@@ -1,0 +1,345 @@
+;; -----------------------------------------------------
+
+;; Testing string quoting
+
+""
+;=>""
+
+"abc"
+;=>"abc"
+
+"abc  def"
+;=>"abc  def"
+
+"\""
+;=>"\""
+
+
+;; Testing pr-str
+
+(pr-str)
+;=>""
+
+(pr-str "")
+;=>"\"\""
+
+(pr-str "abc")
+;=>"\"abc\""
+
+(pr-str "abc  def" "ghi jkl")
+;=>"\"abc  def\" \"ghi jkl\""
+
+(pr-str "\"")
+;=>"\"\\\"\""
+
+(pr-str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 \"abc\" \"\\\"\") \"def\""
+
+
+;; Testing str
+
+(str)
+;=>""
+
+(str "")
+;=>""
+
+(str "abc")
+;=>"abc"
+
+(str "\"")
+;=>"\""
+
+(str 1 "abc" 3)
+;=>"1abc3"
+
+(str "abc  def" "ghi jkl")
+;=>"abc  defghi jkl"
+
+;;; TODO: get this working properly
+;;;(str (list 1 2 "abc" "\"") "def")
+;;;;=>"(1 2 \"abc\" \"\\\"\")def"
+
+
+;; Testing prn
+(prn)
+; 
+;=>nil
+
+(prn "")
+; ""
+;=>nil
+
+(prn "abc")
+; "abc"
+;=>nil
+
+(prn "abc  def" "ghi jkl")
+; "abc  def" "ghi jkl"
+
+(prn "\"")
+; "\""
+;=>nil
+
+(prn (list 1 2 "abc" "\"") "def")
+; (1 2 "abc" "\"") "def"
+;=>nil
+
+
+;; Testing println
+(println)
+; 
+;=>nil
+
+(println "")
+; 
+;=>nil
+
+(println "abc")
+; abc
+;=>nil
+
+(println "abc  def" "ghi jkl")
+; abc  def ghi jkl
+
+(println "\"")
+; "
+;=>nil
+
+(println (list 1 2 "abc" "\"") "def")
+; (1 2 abc ") def
+;=>nil
+
+;; -----------------------------------------------------
+
+
+;; Testing list functions
+(list)
+;=>()
+(list? (list))
+;=>true
+(empty? (list))
+;=>true
+(empty? (list 1))
+;=>false
+(list 1 2 3)
+;=>(1 2 3)
+(count (list 1 2 3))
+;=>3
+(if (> (count (list 1 2 3)) 3) "yes" "no")
+;=>"no"
+(if (>= (count (list 1 2 3)) 3) "yes" "no")
+;=>"yes"
+
+
+;; Testing if form
+(if true 7 8)
+;=>7
+(if false 7 8)
+;=>8
+(if true (+ 1 7) (+ 1 8))
+;=>8
+(if false (+ 1 7) (+ 1 8))
+;=>9
+(if nil 7 8)
+;=>8
+(if 0 7 8)
+;=>7
+(if "" 7 8)
+;=>7
+(if (list) 7 8)
+;=>7
+(if (list 1 2 3) 7 8)
+;=>7
+(if [] 7 8)
+;=>7
+
+
+;; Testing 1-way if form
+(if false (+ 1 7))
+;=>nil
+(if nil 8 7)
+;=>7
+(if true (+ 1 7))
+;=>8
+
+
+;; Testing basic conditionals
+(= 2 1)
+;=>false
+(= 1 1)
+;=>true
+(= 1 2)
+;=>false
+(= 1 (+ 1 1))
+;=>false
+(= 2 (+ 1 1))
+;=>true
+
+(> 2 1)
+;=>true
+(> 1 1)
+;=>false
+(> 1 2)
+;=>false
+
+(>= 2 1)
+;=>true
+(>= 1 1)
+;=>true
+(>= 1 2)
+;=>false
+
+(< 2 1)
+;=>false
+(< 1 1)
+;=>false
+(< 1 2)
+;=>true
+
+(<= 2 1)
+;=>false
+(<= 1 1)
+;=>true
+(<= 1 2)
+;=>true
+
+
+;; Testing equality
+(= 1 1)
+;=>true
+(= 0 0)
+;=>true
+(= 1 0)
+;=>false
+(= "" "")
+;=>true
+(= "abc" "")
+;=>false
+(= "" "abc")
+;=>false
+(= "abc" "def")
+;=>false
+
+(= (list) (list))
+;=>true
+(= (list 1 2) (list 1 2))
+;=>true
+(= (list 1) (list))
+;=>false
+(= (list) (list 1))
+;=>false
+(= 0 (list))
+;=>false
+(= (list) 0)
+;=>false
+(= (list) "")
+;=>false
+(= "" (list))
+;=>false
+
+(= [] (list))
+;=>true
+(= (list 1 2) [1 2])
+;=>true
+(= (list 1) [])
+;=>false
+(= [] [1])
+;=>false
+(= 0 [])
+;=>false
+(= [] 0)
+;=>false
+(= [] "")
+;=>false
+(= "" [])
+;=>false
+
+
+;; Testing builtin and user defined functions
+(+ 1 2)
+;=>3
+( (fn* (a b) (+ b a)) 3 4)
+;=>7
+( (fn* () 4) )
+;=>4
+
+
+;; Testing closures
+( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+;=>12
+
+(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))
+(def! plus5 (gen-plus5))
+(plus5 7)
+;=>12
+
+(def! gen-plusX (fn* (x) (fn* (b) (+ x b))))
+(def! plus7 (gen-plusX 7))
+(plus7 8)
+;=>15
+
+
+;; Testing variable length arguments
+
+( (fn* (& more) (count more)) 1 2 3)
+;=>3
+( (fn* (& more) (count more)) 1)
+;=>1
+( (fn* (& more) (count more)) )
+;=>0
+( (fn* (a & more) (count more)) 1 2 3)
+;=>2
+( (fn* (a & more) (count more)) 1)
+;=>0
+
+
+;; Testing language defined not function
+(not false)
+;=>true
+(not true)
+;=>false
+(not "a")
+;=>false
+(not 0)
+;=>false
+
+
+;; Testing do form
+(do (prn "prn output1"))
+; "prn output1"
+;=>nil
+(do (prn "prn output2") 7)
+; "prn output2"
+;=>7
+(do (prn "prn output1") (prn "prn output2") (+ 1 2))
+; "prn output1"
+; "prn output2"
+;=>3
+
+(do (def! a 6) 7 (+ a 8))
+;=>14
+a
+;=>6
+
+
+;; Testing recursive sumdown function
+(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(sumdown 1)
+;=>1
+(sumdown 2)
+;=>3
+(sumdown 6)
+;=>21
+
+
+;; Testing recursive fibonacci function
+(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(fib 1)
+;=>1
+(fib 2)
+;=>2
+(fib 4)
+;=>5
+(fib 10)
+;=>89

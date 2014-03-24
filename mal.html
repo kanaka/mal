@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <title>Building a Lisp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <link href='http://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css">
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.2/underscore-min.js"></script>
+  <!--<script>Josh = {Debug: true };</script>-->
+  <script src="js/josh.js/js/killring.js"></script>
+  <script src="js/josh.js/js/history.js"></script>
+  <script src="js/josh.js/js/readline.js"></script>
+  <script src="js/josh.js/js/shell.js"></script>
+  <script src="js/josh_readline.js"></script>
+  <style type="text/css">
+    #shell-panel {
+      height: 400px;
+      width: 100%;
+      background-color: #002f05;
+      color: #00fe00;
+      padding: 20px 20px 20px 20px;
+      font-family: 'Source Code Pro';
+      overflow: scroll;
+      overflow-x: hidden;
+      overflow-y: scroll;
+      border: 1px dashed #E6EBE0;
+    }
+
+    #shell-cli .prompt {
+      font-weight: bold;
+    }</style>
+</head>
+<body>
+    <div class="wrapper">
+
+        <section>
+            <h1>Building a Lisp</h1>
+
+            <div id="shell-panel">
+                <div>Lisp REPL</div>
+                <div id="shell-view"></div>
+            </div>
+        </section>
+    </div>
+
+  <script src="js/mal_web.js"></script>
+</body>
+</html>

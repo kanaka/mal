@@ -1,0 +1,17 @@
+;; Testing load-file
+
+(load-file "../tests/inc.mal")
+(inc1 7)
+;=>8
+(inc2 7)
+;=>9
+(inc3 9)
+;=>12
+
+(load-file "../tests/incB.mal")
+; "incB.mal finished"
+;=>"incB.mal return string"
+(inc4 7)
+;=>11
+(inc5 7)
+;=>12

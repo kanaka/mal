@@ -1,0 +1,38 @@
+;; Testing REPL_ENV
+(+ 1 2)
+;=>3
+(/ (- (+ 5 (* 2 3)) 3) 4)
+;=>2
+
+
+;; Testing def!
+(def! x 3)
+;=>3
+x
+;=>3
+(def! x 4)
+;=>4
+x
+;=>4
+(def! y (+ 1 7))
+;=>8
+y
+;=>8
+
+
+;; Testing let*
+(let* (z 9) z)
+;=>9
+(let* (x 9) x)
+;=>9
+x
+;=>4
+(let* (z (+ 2 3)) (+ 1 z))
+;=>6
+(let* (p (+ 2 3) q (+ 2 p)) (+ p q))
+;=>12
+
+
+;; Testing vector evaluation
+(let* (a 5 b 6) [3 4 a [b 7] 8])
+;=>[3 4 5 [6 7] 8]

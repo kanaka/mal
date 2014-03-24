@@ -1,0 +1,294 @@
+;;
+;; Testing try*/catch*
+
+(try* (abc 1 2) (catch* exc (prn exc))))
+; "'abc' not found"
+;=>nil
+
+;;;TODO: fix so long lines don't trigger ANSI escape codes
+;;;(try* (throw {"data" "foo"}) (catch* exc (do (prn "exc is:" exc) 7)))
+;;;; "exc is:" {"data" "foo"}
+;;;;=>7
+
+(try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
+; "exc:" "my exception"
+;=>7
+
+
+;;
+;; Testing builtin functions
+
+(symbol? 'abc)
+;=>true
+(symbol? "abc")
+;=>false
+
+(nil? nil)
+;=>true
+(nil? true)
+;=>false
+
+(true? true)
+;=>true
+(true? false)
+;=>false
+(true? true?)
+;=>false
+
+(false? false)
+;=>true
+(false? true)
+;=>false
+
+(sequential? (list 1 2 3))
+;=>true
+(sequential? [15])
+;=>true
+(sequential? sequential?)
+;=>false
+(sequential? nil)
+;=>false
+(sequential? "abc")
+;=>false
+
+
+;; Testing apply function
+(apply + (list 2 3))
+;=>5
+(apply + 4 (list 5))
+;=>9
+(apply prn (list 1 2 "3" (list)))
+; 1 2 "3" ()
+;=>nil
+
+
+;; Testing map function
+(def! nums (list 1 2 3))
+(def! double (fn* (a) (* 2 a)))
+(double 3)
+;=>6
+(map double nums) 
+;=>(2 4 6)
+
+
+;; Testing concat function
+(concat)
+;=>()
+(concat (list 1 2))
+;=>(1 2)
+(concat (list 1 2) (list 3 4))
+;=>(1 2 3 4)
+(concat (list 1 2) (list 3 4) (list 5 6))
+;=>(1 2 3 4 5 6)
+(concat [1 2] (list 3 4) [5 6])
+;=>(1 2 3 4 5 6)
+(concat (concat))
+;=>()
+
+;; Testing cons function
+(cons 1 (list))
+;=>(1)
+(cons 1 (list 2))
+;=>(1 2)
+(cons 1 (list 2 3))
+;=>(1 2 3)
+(cons (list 1) (list 2 3))
+;=>((1) 2 3)
+(cons [1] [2 3])
+;=>([1] 2 3)
+(cons 1 [2 3])
+;=>(1 2 3)
+
+;; Testing conj function
+(conj (list) 1)
+;=>(1)
+(conj (list 1) 2)
+;=>(1 2)
+(conj (list 2 3) 4)
+;=>(2 3 4)
+(conj (list 2 3) 4 5 6)
+;=>(2 3 4 5 6)
+(conj (list 1) (list 2 3))
+;=>(1 (2 3))
+(conj [1 2] [3 4] )
+;=>(1 2 [3 4])
+
+;; Testing first/rest functions
+(first '())
+;=>nil
+(first '(6))
+;=>6
+(first '(7 8 9))
+;=>7
+(first [])
+;=>nil
+(first [10])
+;=>10
+(first [10 11 12])
+;=>10
+
+(rest '())
+;=>()
+(rest '(6))
+;=>()
+(rest '(7 8 9))
+;=>(8 9)
+(rest [])
+;=>()
+(rest [10])
+;=>()
+(rest [10 11 12])
+;=>(11 12)
+
+
+
+;;
+;; Testing hash-maps
+(hash-map "a" 1)
+;=>{"a" 1}
+
+{"a" 1}
+;=>{"a" 1}
+
+(assoc {} "a" 1)
+;=>{"a" 1}
+
+(def! hm1 (hash-map))
+;=>{}
+
+(map? hm1)
+;=>true
+(map? 1)
+;=>false
+(map? [])
+;=>false
+
+(get hm1 "a")
+;=>nil
+
+(contains? hm1 "a")
+;=>false
+
+(def! hm2 (assoc hm1 "a" 1))
+;=>{"a" 1}
+
+(get hm1 "a")
+;=>nil
+
+(contains? hm1 "a")
+;=>false
+
+(get hm2 "a")
+;=>1
+
+(contains? hm2 "a")
+;=>true
+
+(keys hm2)
+;=>("a")
+
+(vals hm2)
+;=>(1)
+
+(def! hm3 (assoc hm2 "b" 2))
+(count (keys hm3))
+;=>2
+(count (vals hm3))
+;=>2
+
+(dissoc hm3 "a")
+;=>{"b" 2}
+
+(dissoc hm3 "a" "b")
+;=>{}
+
+(count (keys hm3))
+;=>2
+
+
+;;
+;; Testing metadata
+(meta [1 2 3])
+;=>nil
+
+(with-meta [1 2 3] {"a" 1})
+;=>[1 2 3]
+
+(meta (with-meta [1 2 3] {"a" 1}))
+;=>{"a" 1}
+
+(def! lst (with-meta [4 5 6] {"b" 2}))
+;=>[4 5 6]
+
+(def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
+(meta f-wm)
+;=>{"abc" 1}
+
+
+;;
+;; Testing atoms
+
+(def! inc3 (fn* (a) (+ 3 a)))
+
+(def! a (atom 2))
+;=>(atom 2)
+
+;;;(type a)
+;;;;=>"atom"
+
+(deref a)
+;=>2
+
+@a
+;=>2
+
+(reset! a 3)
+;=>3
+
+@a
+;=>3
+
+(swap! a inc3)
+;=>6
+
+@a
+;=>6
+
+(swap! a (fn* (a) a))
+;=>6
+
+(swap! a (fn* (a) (* 2 a)))
+;=>12
+
+
+;;
+;; Testing read-str and eval
+(read-string "[1 2 (3 4) nil]")
+;=>[1 2 (3 4) nil]
+
+(eval (read-string "(+ 4 5)"))
+;=>9
+
+;;
+;; Testing readline
+(readline "mal-user> ")
+"hello"
+;=>"\"hello\""
+
+;;
+;; Testing macros cond and or
+(cond 1 2 3 4)
+;=>2
+(cond false 2 3 4)
+;=>4
+(cond false 2 false 4)
+;=>nil
+
+(or)
+;=>nil
+(or 1)
+;=>1
+(or 1 2)
+;=>1
+(or nil 2)
+;=>2

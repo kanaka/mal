@@ -1,0 +1,133 @@
+(load-file "../mal/types.mal")
+(load-file "../mal/env.mal")
+
+;; read
+(def! READ (fn* [strng]
+  (read-string strng)))
+
+
+;; eval
+(def! is-pair (fn* [x]
+  (if (sequential? x)
+    (if (> (count x) 0)
+      true))))
+
+(def! QUASIQUOTE (fn* [ast]
+  (cond
+    (not (is-pair ast))
+    (list 'quote ast)
+
+    (= 'unquote (first ast))
+    (nth ast 1)
+
+    (if (is-pair (first ast))
+      (if (= 'splice-unquote (first (first ast)))
+        true))
+    (list 'concat (nth (first ast) 1) (QUASIQUOTE (rest ast)))
+
+    "else"
+    (list 'cons (QUASIQUOTE (first ast)) (QUASIQUOTE (rest ast))))))
+
+(def! eval-ast (fn* [ast env] (do
+  ;;(do (prn "eval-ast" ast "/" (keys env)) )
+  (cond
+    (symbol? ast) (env-get env ast)
+
+    (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
+
+    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+
+    (map? ast)    (apply hash-map
+                      (apply concat
+                        (map (fn* [k] [k (EVAL (get ast k) env)])
+                             (keys ast))))
+
+    "else"        ast))))
+
+(def! LET (fn* [env args]
+  (if (> (count args) 0)
+    (do
+      (env-set env (nth args 0) (EVAL (nth args 1) env))
+      (LET env (rest (rest args)))))))
+
+(def! EVAL (fn* [ast env] (do
+  ;;(do (prn "EVAL" ast "/" (keys @env)) )
+  (if (not (list? ast))
+    (eval-ast ast env)
+
+    ;; apply list
+    (let* [a0 (first ast)]
+      (cond
+        (= 'def! a0)
+        (env-set env (nth ast 1) (EVAL (nth ast 2) env))
+
+        (= 'let* a0)
+        (let* [let-env (new-env env)]
+          (do
+            (LET let-env (nth ast 1))
+            (EVAL (nth ast 2) let-env)))
+
+        (= 'quote a0)
+        (nth ast 1)
+
+        (= 'quasiquote a0)
+        (let* [a1 (nth ast 1)]
+          (EVAL (QUASIQUOTE a1) env))
+
+        (= 'do a0)
+        (let* [el (eval-ast (rest ast) env)]
+          (nth el (- (count el) 1)))
+
+        (= 'if a0)
+        (let* [cond (EVAL (nth ast 1) env)]
+          (if (or (= cond nil) (= cond false))
+            (if (> (count ast) 3)
+              (EVAL (nth ast 3) env)
+              nil)
+            (EVAL (nth ast 2) env)))
+      
+        (= 'fn* a0)
+        (fn* [& args]
+          (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
+
+        "else"
+        (let* [el (eval-ast ast env)
+              f (first el)
+              args (rest el)]
+          (apply f args))))))))
+
+
+;; print
+(def! PRINT (fn* [exp] (pr-str exp)))
+
+;; repl
+(def! repl-env (new-env))
+(def! rep (fn* [strng]
+  (PRINT (EVAL (READ strng), repl-env))))
+
+(def! _ref (fn* [k v] (env-set repl-env k v)))
+
+;; Import types related functions
+(map (fn* [data] (_ref (nth data 0) (nth data 1))) types_ns)
+
+;; Defined using the language itself
+(_ref 'read-string read-string)
+(_ref 'eval (fn* [ast] (EVAL ast repl-env)))
+(_ref 'slurp slurp)
+(_ref 'slurp-do slurp-do)
+
+(rep "(def! not (fn* [a] (if a false true)))")
+(rep "(def! load-file (fn* [f] (eval (read-string (slurp-do f)))))")
+
+(def! -main (fn* [] 
+  (let* [line (readline "mal-user> ")]
+    (if line
+      (do
+        (if (not (= "" line))
+          (try*
+            (let* [res (rep line)]
+              (println res))
+            (catch* exc
+              (println "Uncaught exception:" exc))))
+        (-main))))))
+(-main)

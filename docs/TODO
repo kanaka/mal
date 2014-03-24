@@ -1,0 +1,95 @@
+All:
+    - multi-line read
+    - loop/recur ?
+    - hash-maps with non-string keys
+    - gensym reader inside quasiquote
+    - "intern" symbols, strings and numbers. Simplify equality
+      comparision.
+    - Contact Peter Norvig about license
+
+    - synchronize function/definitions order/names in files
+    - move Env into separate file (maybe)?
+    - more metadata tests
+    - more hash_map tests
+        - hash-map with space in key string (make)
+    - more interop tests
+    - support metadata on symbol, hash-map, list, vector, function, atom
+
+    - unindent tco while loop for step5-A
+
+---------------------------------------------
+
+JS:
+
+Python:
+
+Clojure:
+
+C:
+    - come up with better way to do 20 vararg code
+
+Bash:
+
+PHP:
+
+Make:
+    - Norvig2: TCO/recur?
+    - allow '_' in make variable names
+    - errors should propagate up from within load-file
+
+
+Mal:
+    - line numbers in errors
+    - step6: command line arguments
+    - step 5
+    - step 9
+
+Java:
+    - vectors, hash-maps, metadata
+    - step 9
+    - mvn exec:java -Dexec.mainClass="mal.step6_file" -Dexec.args="incC.mal"
+
+Rust:
+    - http://www.rustforrubyists.com/book/index.html
+    - http://static.rust-lang.org/doc/0.9/complement-cheatsheet.html
+    - http://pzol.github.io/getting_rusty/
+    - readline:
+        - http://redbrain.co.uk/2013/11/09/rust-and-readline-c-ffi/
+        - http://www.reddit.com/r/rust/comments/1q9pqc/rust_cffi_and_readline/
+        - https://github.com/dbp/rustrepl
+    - hash-map:
+        - http://static.rust-lang.org/doc/master/std/hashmap/index.html
+        - http://static.rust-lang.org/doc/master/std/hashmap/struct.HashMap.html
+    - vector/list:
+        - http://static.rust-lang.org/doc/master/std/vec/index.html
+    - steps 2-A
+
+
+Others (based on redmonk languages from Jan 2014): ?
+    http://sogrady-media.redmonk.com/sogrady/files/2014/01/lang-rank-114-wm.png
+    
+    - Tier 1
+        * JavaScript
+        * Java
+        * PHP
+        ? C#
+        * Python
+        ? C++
+        - Ruby
+        * C
+        - Objective-C
+        - Perl 
+        * Shell
+
+    - Tier 2
+        * Clojure
+        ? Go
+        ? Assembly
+        ? Fortan
+        ? Dart
+        ? D
+
+    - Tier 3
+        ? Pascal
+        - Rust
+    - 
