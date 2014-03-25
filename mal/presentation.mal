@@ -77,13 +77,15 @@
     "- tail call optimization"
     "  -  except GNU make implementation (no iteration)"
     "- macros (quote, unquote, quasiquote, splice-quote)"
-    "- almost 300 unit tests")
+    "- almost 300 unit tests"
+    "- REPL with readline (GNU readline or libedit)")
    (list
     (title "things it does not have")
     "- performance"
     "- namespaces"
     "- keywords"
-    "- GC (in bash, make, C implmentations)")
+    "- GC (in bash, make, C implmentations)"
+    "- lots of other things")
    (list
     (title "why?")
     "- because!")
@@ -92,8 +94,8 @@
     "- because!"
     "- gherkin was an inspiration to higher levels of crazy"
     "- evolved into learning tool"
-    "- each implementation broken into small 10 steps"
-    "- way to learn about Lisp and also the target language")
+    "- way to learn about Lisp and also the target language"
+    "- each implementation broken into small 10 steps")
    (list
     (title "thanks to:")
     "- Peter Norvig: inspiration: lispy"
