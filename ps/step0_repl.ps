@@ -1,0 +1,44 @@
+% read
+/READ {
+    % just "return" the input string
+    /str exch def
+    str
+} def
+
+
+% eval
+/EVAL {
+    % just "return" the "ast"
+    /env exch def
+    /ast exch def
+    ast
+} def
+
+
+% print
+/PRINT {
+    % just "return" the expression
+    /exp exch def
+    exp
+} def
+
+
+% repl
+/REP {
+    READ (stub env) EVAL PRINT
+} def
+
+{ % loop
+    (user> ) print flush
+
+    %(%lineedit) (r) file 99 string readline
+    (%stdin) (r) file 99 string readline
+
+    not { exit } if  % exit if EOF
+
+    %(\ngot line: ) print dup print (\n) print flush
+    REP print (\n) print
+} bind loop
+
+(\n) print  % final newline before exit for cleanliness
+quit
