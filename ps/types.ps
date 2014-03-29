@@ -67,3 +67,53 @@
     %pstack
     %(pr_str2 stack ^^^\n) print
 } def
+
+
+% list operations
+/_first { 0 get } def
+/_rest { dup length 1 sub 1 exch getinterval } def
+/_nth { get } def
+
+
+%
+% Env implementation
+%
+/env_new { 1 dict begin
+    /outer exch def
+    << 
+        /__outer__ outer
+    >>
+end } def
+
+/env_find { 2 dict begin
+    /key exch def
+    /env exch def
+    env key known { %if key in env
+        env
+    }{ env /__outer__ get null ne { %elseif __outer__ not null
+        env /__outer__ get   key env_find
+    }{ %else
+        null
+    } ifelse } ifelse
+end } def
+
+/env_set { 3 dict begin
+    /func dup xcheck def
+    /val exch cvlit def
+    /key exch def
+    /env exch def
+    env key val func { cvx } if put
+    val func { cvx } if
+end } def
+
+/env_get { 2 dict begin
+    /key exch def
+    /env exch def
+    env key env_find
+    dup null eq {
+        (Error: ') print key 99 string cvs print (' not found\n) print
+        error
+    }{
+        key get
+    } ifelse
+end } def

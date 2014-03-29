@@ -14,7 +14,7 @@
     /ast exch def
     %(eval_ast: ) print ast ==
     /nametype ast type eq { %if symbol
-        env ast get
+        env ast env_get
     }{ /arraytype ast type eq { %elseif list
         [
             ast {
@@ -26,18 +26,37 @@
     } ifelse } ifelse
 end } def
 
-/EVAL { 3 dict begin
+/EVAL { 10 dict begin
     /env exch def
     /ast exch def
     %(EVAL: ) print ast ==
     /arraytype ast type ne { %if not a list
         ast env eval_ast
     }{ %else apply the list
-        /el ast env eval_ast def
-        el _rest % args array
-        el _first % function
-        %(vvv\n) print pstack (^^^\n) print
-        exec % apply function to args
+        /a0 ast 0 get def
+        /def! a0 eq { %if def!
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            env a1  a2 env EVAL  env_set
+        }{ /let* a0 eq { %if let*
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            /let_env env env_new def
+            0 2 a1 length 1 sub { %for each pair
+                /idx exch def
+                let_env
+                    a1 idx get
+                    a1 idx 1 add get let_env EVAL
+                    env_set
+            } for
+            a2 let_env EVAL
+        }{
+            /el ast env eval_ast def
+            el _rest % args array
+            el _first cvx % function
+            %(vvv\n) print pstack (^^^\n) print
+            exec % apply function to args
+        } ifelse } ifelse
     } ifelse
 end } def
 
@@ -51,14 +70,15 @@ end } def
 
 
 % repl
-/repl_env <<
-    (+) { dup 0 get exch 1 get add }
-    (-) { dup 0 get exch 1 get sub }
-    (*) { dup 0 get exch 1 get mul }
-    (/) { dup 0 get exch 1 get idiv }
->> def
+/repl_env null env_new def
 
 /REP { READ repl_env EVAL PRINT } def
+/_ref { repl_env 3 1 roll env_set pop } def
+
+(+) { dup 0 get exch 1 get add } _ref
+(-) { dup 0 get exch 1 get sub } _ref
+(*) { dup 0 get exch 1 get mul } _ref
+(/) { dup 0 get exch 1 get idiv } _ref
 
 /stdin (%stdin) (r) file def 
 
