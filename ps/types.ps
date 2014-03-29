@@ -43,7 +43,7 @@
         func? { ( } >) }{ (\)) } ifelse
         concatenate
     }{ /integertype obj type eq { % if number
-        /slen obj 10 idiv 1 add def
+        /slen obj 10 add log ceiling cvi def
         obj 10 slen string cvrs
     }{ /stringtype obj type eq { % if string
         print_readably {
@@ -79,7 +79,7 @@ end } def
         { concatenate delim concatenate } forall
         dup length delim length sub 0 exch getinterval % strip off final delim
     } if
-} def
+end } def
 
 % objA objB -> _equal? -> bool
 /_equal? { 6 dict begin
