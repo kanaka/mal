@@ -86,7 +86,8 @@
         exit % EOF
     }{
         /ch str idx get def  % current character
-        ch 48 ge ch 57 le and 45 ch eq or { %if number
+        %ch 48 ge ch 57 le and 45 ch eq or { %if number
+        ch 48 ge ch 57 le and { %if number
             str idx read_number
         }{ ch 34 eq { %elseif double-quote
             str idx read_string

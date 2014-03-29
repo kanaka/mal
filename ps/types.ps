@@ -1,7 +1,5 @@
 (in types.ps\n) print
 
-/MAX_SYM_SIZE 256
-
 % concatenate: concatenate two strings or two arrays
 % From Thinking in PostScript 1990 Reid
 % (string1) (string2) concatenate string3
@@ -23,6 +21,14 @@
     dup 4 -1 roll length 4 -1 roll putinterval
     % stack: new
 } bind def
+
+% reverse: array1 -> reverse -> array2
+/reverse {
+    [ exch
+    aload % push array onto stack
+    length -1 0 { 1 roll } for % reverse
+    ]
+} def
 
 /pr_str {
     %(in pr_str\n) print

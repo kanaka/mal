@@ -1,0 +1,78 @@
+(types.ps) run
+(reader.ps) run
+
+% read
+/READ {
+    /str exch def
+    str read_str
+} def
+
+
+% eval
+/eval_ast { 2 dict begin
+    /env exch def
+    /ast exch def
+    /nametype ast type eq { %if symbol
+        env ast get
+    }{ /arraytype ast type eq { %elseif list
+        [
+            ast {
+                env EVAL
+            } forall
+        ]
+    }{ % else
+        ast
+    } ifelse } ifelse
+end } def
+
+/EVAL { 5 dict begin
+    /env exch def
+    /ast exch def
+    /arraytype ast type ne { %if not a list
+        ast env eval_ast
+    }{ %else apply the list
+        /el ast env eval_ast def
+        el 1 el length 1 sub getinterval % args array
+        el 0 get cvx % function
+        %(vvv\n) print pstack (^^^\n) print
+        exec % apply function to args
+    } ifelse
+end } def
+
+
+% print
+/PRINT {
+    /exp exch def
+    %(printing: ) print exp ==
+    exp pr_str
+} def
+
+
+% repl
+/repl_env <<
+    (+) { dup 0 get exch 1 get add }
+    (-) { dup 0 get exch 1 get sub }
+    (*) { dup 0 get exch 1 get mul }
+    (/) { dup 0 get exch 1 get idiv }
+>> def
+
+/REP {
+    READ repl_env EVAL PRINT
+} def
+
+/stdin (%stdin) (r) file def 
+
+{ % loop
+    (user> ) print flush
+
+    %(%lineedit) (r) file 99 string readline
+    stdin 99 string readline
+
+    not { exit } if  % exit if EOF
+
+    %(\ngot line: ) print dup print (\n) print flush
+    REP print (\n) print
+} bind loop
+
+(\n) print  % final newline before exit for cleanliness
+quit
