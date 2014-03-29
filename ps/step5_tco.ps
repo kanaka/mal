@@ -26,9 +26,13 @@
     } ifelse } ifelse
 end } def
 
-/EVAL { 9 dict begin
+/EVAL { 13 dict begin
+    { %loop (TCO) 
+
     /env exch def
     /ast exch def
+    /loop? false def
+
     %(EVAL: ) print ast ==
     /arraytype ast type ne { %if not a list
         ast env eval_ast
@@ -51,19 +55,25 @@ end } def
             } for
             a2 let_env EVAL
         }{ /do a0 eq { %if do
-            /el ast _rest env eval_ast def
-            el el length 1 sub get % return last value
+            ast length 2 ge { %if ast has more than 2 elements
+                ast 1 ast length 1 sub getinterval env eval_ast
+            } if
+            ast ast length 1 sub get % last ast becomes new ast
+            env
+            /loop? true def % loop
         }{ /if a0 eq { %if if
             /a1 ast 1 get def
             /cond a1 env EVAL def
             cond null eq cond false eq or { % if cond is nil or false
                 ast length 3 gt { %if false branch (a3) provided
-                    ast 3 get env EVAL % EVAL false branch (a3)
+                    ast 3 get env % new ast is false branch (a3)
+                    /loop? true def
                 }{
                     null
                 } ifelse
             }{
-                ast 2 get env EVAL % EVAL true branch (a2)
+                ast 2 get env % new ast is true branch (a2)
+                /loop? true def
             } ifelse
         }{ /fn* a0 eq { %if fn*
             /a1 ast 1 get def
@@ -88,12 +98,24 @@ end } def
             dup 3 env put % insert closed over env into position 3
         }{
             /el ast env eval_ast def
-            el _rest % args array
-            el _first cvx % function
-            %(vvv\n) print pstack (^^^\n) print
-            exec % apply function to args
+            el _first 0 get /user_defined eq { %if userdefined function
+                /PARAMS el _first 1 get def
+                /AST    el _first 2 get def
+                /ENV    el _first 3 get def
+                AST % new ast is one stored in function
+                ENV PARAMS el _rest env_new % new environment 
+                /loop? true def
+            }{ %else (regular procedure/function)
+                el _rest % args array
+                el _first cvx % function
+                %(vvv\n) print pstack (^^^\n) print
+                exec % apply function to args
+            } ifelse
         } ifelse } ifelse } ifelse } ifelse } ifelse
     } ifelse
+
+    loop? not { exit } if
+    } loop % TCO
 end } def
 
 

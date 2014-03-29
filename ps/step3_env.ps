@@ -26,7 +26,7 @@
     } ifelse } ifelse
 end } def
 
-/EVAL { 10 dict begin
+/EVAL { 8 dict begin
     /env exch def
     /ast exch def
     %(EVAL: ) print ast ==
@@ -83,7 +83,6 @@ end } def
 { % loop
     (user> ) print flush
 
-    %(%lineedit) (r) file 99 string readline
     stdin 99 string readline
 
     not { exit } if  % exit if EOF
