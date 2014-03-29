@@ -3,7 +3,7 @@
               [net.n01se.clojure-jna :as jna]))
 
 (defonce history-loaded (atom nil))
-(def HISTORY-FILE "/home/joelm/.mal-history")
+(def HISTORY-FILE (str (System/getProperty "user.home") "/.mal-history"))
 
 ;;
 ;; Uncomment one of the following readline libraries

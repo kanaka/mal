@@ -1,6 +1,6 @@
 <?php
 
-$HISTORY_FILE = "/home/joelm/.mal-history";
+$HISTORY_FILE = $_SERVER['HOME'] . "/.mal-history";
 
 function mal_readline($prompt) {
     global $HISTORY_FILE;

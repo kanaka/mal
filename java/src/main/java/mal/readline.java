@@ -19,8 +19,12 @@ class readline {
     public enum Mode { JNA, JAVA }
     static Mode mode = Mode.JNA;
 
-    static String HISTORY_FILE = "/home/joelm/.mal-history";
+    static String HISTORY_FILE = null;
     static Boolean historyLoaded = false;
+
+    static {
+        HISTORY_FILE = System.getProperty("user.home") + "/.mal-history";
+    }
 
     public static class EOFException extends Exception {
     }
