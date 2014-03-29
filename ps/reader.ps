@@ -63,8 +63,8 @@
     /cnt 0 def
     { % loop
         idx str length ge { %if EOF
-            (Error: unexpected EOF reading string\n) print
-            error
+            (unexpected EOF reading string)
+            throw
         } if
         /ch str idx get def  % current character
         /idx idx 1 add def
@@ -119,8 +119,8 @@
     { % loop
         str idx read_spaces /idx exch def pop
         str length idx le { %if EOF
-            (Error: unexpected EOF reading list\n) print
-            error
+            (unexpected EOF reading list)
+            throw
         } if
         /ch str idx get def  % current character
         ch 41 eq { exit } if % ')' is end of list
@@ -159,9 +159,13 @@
     /ch str idx get def  % current character
     ch 40 eq { %if (
         str idx read_list
+    }{ ch 91 eq { %elseif [
+        (unexpected '[') throw
+    }{ ch 93 eq { %elseif ]
+        (unexpected ']') throw
     }{ % else
         str idx read_atom
-    } ifelse
+    } ifelse } ifelse } ifelse
 
     %(stack vvv\n) print
     %pstack

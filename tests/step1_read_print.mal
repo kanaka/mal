@@ -60,7 +60,6 @@ abc-def
   ( +   1   (+   2 3   )   )  
 ;=>(+ 1 (+ 2 3))
 
-
 ;; Testing read of vectors
 [+ 1 2]
 ;=>[+ 1 2]
@@ -70,7 +69,6 @@ abc-def
 ;=>[+ 1 [+ 2 3]]
   [ +   1   [+   2 3   ]   ]  
 ;=>[+ 1 [+ 2 3]]
-
 
 ;; Testing read of hash maps
 {"abc" 1}
@@ -109,4 +107,11 @@ abc-def
 @a
 ;=>(deref a)
 
-
+;;
+;; Testing reader errors
+(1 2
+; expected ')', got EOF
+[1 2
+; expected ']', got EOF
+"abc
+; expected '"', got EOF

@@ -17,6 +17,7 @@ All:
     - Print full exception when test gets EOF from expect
     - Note that bash 4, Java 1.7, php 5.3 required
     - Break out language eval into step0.5
+    - regular expression matching in runtest
 
 ---------------------------------------------
 

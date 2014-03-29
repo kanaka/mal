@@ -12,7 +12,10 @@ def READ(str):
 # eval
 def eval_ast(ast, env):
     if symbol_Q(ast):
-        return env[ast]
+        try:
+            return env[ast]
+        except:
+            raise Exception("'" + ast + "' not found")
     elif list_Q(ast):
         return new_list(*map(lambda a: EVAL(a, env), ast))
     elif vector_Q(ast):

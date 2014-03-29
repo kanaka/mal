@@ -28,29 +28,29 @@
     aload % push array onto stack
     length -1 0 { 1 roll } for % reverse
     ]
-} def
+} bind def
 
-/pr_str {
-    %(in pr_str\n) print
-    /obj exch def
+/_pr_str { 4 dict begin
+    /print_readably exch def
+    dup
+    /func? exch xcheck def % executable function
+    /obj exch cvlit def
     /arraytype obj type eq { % if list
         % accumulate an array of strings
-        (\()
-        obj length 0 gt { %if any elements
-            [
-                obj {
-                    pr_str
-                } forall
-            ]
-            { concatenate ( ) concatenate } forall
-            dup length 1 sub 0 exch getinterval % strip off final space
-        } if
-        (\)) concatenate
+        func? { (<fn* { ) }{ (\() } ifelse
+        obj ( ) print_readably _pr_str_args
+        concatenate
+        func? { ( } >) }{ (\)) } ifelse
+        concatenate
     }{ /integertype obj type eq { % if number
         /slen obj 10 idiv 1 add def
         obj 10 slen string cvrs
     }{ /stringtype obj type eq { % if string
-        (") obj (") concatenate concatenate
+        print_readably {
+            (") obj (") concatenate concatenate
+        }{
+            obj
+        } ifelse
     }{ null obj eq { % if nil
         (nil)
     }{ true obj eq { % if true
@@ -58,18 +58,79 @@
     }{ false obj eq { % if false
         (false)
     }{ /nametype obj type eq { % if symbol
-        obj obj length string cvs
+        obj dup length string cvs
     }{
         (<unknown>) 
     } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+end } def
 
-    %(pr_str2 stack vvv\n) print
-    %pstack
-    %(pr_str2 stack ^^^\n) print
+% array delim print_readably -> _pr_str_args -> new_string
+/_pr_str_args { 3 dict begin
+    /print_readably exch def
+    /delim exch def
+    /args exch def
+    ()
+    args length 0 gt { %if any elements
+        [
+            args { %foreach argument in array
+                print_readably _pr_str
+            } forall 
+        ]
+        { concatenate delim concatenate } forall
+        dup length delim length sub 0 exch getinterval % strip off final delim
+    } if
 } def
 
 
+%
+% errors/exceptions
+%
+
+% data -> throw ->
+% Takes an arbitrary data and puts it in $error:/errorinfo. Then calls
+% stop to transfer control to end of nearest stopped context.
+/throw {
+    $error exch /errorinfo exch put
+    $error /command /throw put
+    stop
+} def
+
+/errorinfo? {
+    $error /errorinfo known { % if set
+        $error /errorinfo get null ne {
+            true
+        }{
+            false
+        } ifelse
+    }{
+        false
+    } ifelse
+} def
+
+/get_error_data {
+    errorinfo? { %if
+        $error /errorinfo get
+    }{
+        $error /errorname get 255 string cvs
+        (: ) 
+        $error /command get 99 string cvs
+        ( at )
+        $error /position get 10 99 string cvrs
+        concatenate
+        concatenate
+        concatenate
+        concatenate
+    } ifelse
+} def
+
+
+
+%
 % list operations
+%
+/_list? {
+    dup xcheck not exch type /arraytype eq and
+} def
 /_first { 0 get } def
 /_rest { dup length 1 sub 1 exch getinterval } def
 /_nth { get } def
@@ -78,10 +139,24 @@
 %
 % Env implementation
 %
-/env_new { 1 dict begin
+% outer binds exprs -> env_new -> new_env
+/env_new { 3 dict begin
+    %(in env_new\n) print
+    /exprs exch def
+    /binds exch def
     /outer exch def
     << 
         /__outer__ outer
+        0 1 binds length 1 sub {
+            /idx exch def
+            binds idx get (&) eq { %if &
+                binds idx 1 add get % key
+                exprs idx   exprs length idx sub   getinterval % value
+                exit
+            } if
+            binds idx get % key
+            exprs idx get % value
+        } for
     >>
 end } def
 
@@ -97,13 +172,14 @@ end } def
     } ifelse } ifelse
 end } def
 
-/env_set { 3 dict begin
-    /func dup xcheck def
+/env_set { 4 dict begin
+    dup
+    /func? exch xcheck def % executable function
     /val exch cvlit def
     /key exch def
     /env exch def
-    env key val func { cvx } if put
-    val func { cvx } if
+    env key val func? { cvx } if put
+    val func? { cvx } if
 end } def
 
 /env_get { 2 dict begin
@@ -111,8 +187,11 @@ end } def
     /env exch def
     env key env_find
     dup null eq {
-        (Error: ') print key 99 string cvs print (' not found\n) print
-        error
+        (')
+        key 99 string cvs
+        (' not found)
+        concatenate concatenate
+        throw
     }{
         key get
     } ifelse

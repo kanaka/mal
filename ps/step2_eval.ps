@@ -14,7 +14,12 @@
     /ast exch def
     %(eval_ast: ) print ast ==
     /nametype ast type eq { %if symbol
-        env ast get
+        env ast known {
+            env ast get
+        }{
+            (') ast pr_str (' not found)
+            concatenate concatenate throw
+        } ifelse
     }{ /arraytype ast type eq { %elseif list
         [
             ast {
@@ -44,9 +49,7 @@ end } def
 
 % print
 /PRINT {
-    /exp exch def
-    %(printing: ) print exp ==
-    exp pr_str
+    pr_str
 } def
 
 
@@ -71,7 +74,13 @@ end } def
     not { exit } if  % exit if EOF
 
     %(\ngot line: ) print dup print (\n) print flush
-    REP print (\n) print
+    { %try
+        REP print (\n) print
+    } stopped {
+        (Error: ) print
+        get_error_data pr_str print (\n) print
+        clear
+    } if
 } bind loop
 
 (\n) print  % final newline before exit for cleanliness

@@ -36,6 +36,11 @@ Step Notes:
         - read_atom
             - return scalar boxed type:
                 - nil, true, false, symbol, integer, string
+    - repl loop
+        - catch errors, print them and continue
+        - impls without exception handling will need to have a global
+          variable with checks for it at the beginning of critical
+          code sections
 
 - vectors
     - Basically: two array types that retain their boxed types, can be
@@ -103,7 +108,9 @@ Step Notes:
         - if:
         - fn*:
             - simple if language supports closures
-    - define not using rep()
+            - otherwise needs a way of representing functions that can
+              have associated metadata
+    - define "not" using REP/RE
 
 
 - metadata

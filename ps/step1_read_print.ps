@@ -9,19 +9,17 @@
 
 
 % eval
-/EVAL {
+/EVAL { 2 dict begin
     % just "return" the "ast"
     /env exch def
     /ast exch def
     ast
-} def
+end } def
 
 
 % print
 /PRINT {
-    /exp exch def
-    %(printing: ) print exp ==
-    exp pr_str
+    pr_str
 } def
 
 
@@ -39,7 +37,13 @@
     not { exit } if  % exit if EOF
 
     %(\ngot line: ) print dup print (\n) print flush
-    REP print (\n) print
+    { %try
+        REP print (\n) print
+    } stopped {
+        (Error: ) print
+        get_error_data pr_str print (\n) print
+        clear
+    } if
 } bind loop
 
 (\n) print  % final newline before exit for cleanliness

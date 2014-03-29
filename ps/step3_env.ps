@@ -41,7 +41,7 @@ end } def
         }{ /let* a0 eq { %if let*
             /a1 ast 1 get def
             /a2 ast 2 get def
-            /let_env env env_new def
+            /let_env env [ ] [ ] env_new def
             0 2 a1 length 1 sub { %for each pair
                 /idx exch def
                 let_env
@@ -63,14 +63,12 @@ end } def
 
 % print
 /PRINT {
-    /exp exch def
-    %(printing: ) print exp ==
-    exp pr_str
+    pr_str
 } def
 
 
 % repl
-/repl_env null env_new def
+/repl_env null [ ] [ ] env_new def
 
 /REP { READ repl_env EVAL PRINT } def
 /_ref { repl_env 3 1 roll env_set pop } def
@@ -91,7 +89,13 @@ end } def
     not { exit } if  % exit if EOF
 
     %(\ngot line: ) print dup print (\n) print flush
-    REP print (\n) print
+    { %try
+        REP print (\n) print
+    } stopped {
+        (Error: ) print
+        get_error_data pr_str print (\n) print
+        clear
+    } if
 } bind loop
 
 (\n) print  % final newline before exit for cleanliness
