@@ -1,0 +1,48 @@
+(types.ps) run
+(reader.ps) run
+
+% read
+/READ {
+    /str exch def
+    str read_str
+} def
+
+
+% eval
+/EVAL {
+    % just "return" the "ast"
+    /env exch def
+    /ast exch def
+    ast
+} def
+
+
+% print
+/PRINT {
+    /exp exch def
+    %(printing: ) print exp ==
+    exp pr_str
+} def
+
+
+% repl
+/REP {
+    READ (stub env) EVAL PRINT
+} def
+
+/stdin (%stdin) (r) file def 
+
+{ % loop
+    (user> ) print flush
+
+    %(%lineedit) (r) file 99 string readline
+    stdin 99 string readline
+
+    not { exit } if  % exit if EOF
+
+    %(\ngot line: ) print dup print (\n) print flush
+    REP print (\n) print
+} bind loop
+
+(\n) print  % final newline before exit for cleanliness
+quit

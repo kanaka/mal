@@ -8,7 +8,7 @@ MAL_IMPL = js
 # Settings
 #
 
-IMPLS = bash c clojure java js make php python mal
+IMPLS = bash c clojure java js make php python ps mal
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -38,6 +38,7 @@ js_STEP_TO_PROG = js/$($(1)).js
 make_STEP_TO_PROG = make/$($(1)).mk
 php_STEP_TO_PROG = php/$($(1)).php
 python_STEP_TO_PROG = python/$($(1)).py
+ps_STEP_TO_PROG = ps/$($(1)).ps
 mal_STEP_TO_PROG = mal/$($(1)).mal
 
 
@@ -49,6 +50,7 @@ js_RUNTEST = ../runtest.py $(4) ../$(1) -- node ../$(2) $(5)
 make_RUNTEST = ../runtest.py $(4) ../$(1) -- make -f ../$(2) $(5)
 php_RUNTEST = ../runtest.py $(4) ../$(1) -- php ../$(2) $(5)
 python_RUNTEST = ../runtest.py $(4) ../$(1) -- python ../$(2) $(5)
+ps_RUNTEST = ../runtest.py $(4) ../$(1) -- gs -q -dNODISPLAY ../$(2) $(5)
 mal_RUNTEST = $(call $(MAL_IMPL)_RUNTEST,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),stepA,--start-timeout 30 --test-timeout 120,../$(2))
 
 

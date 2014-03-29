@@ -1,0 +1,179 @@
+(in reader\n) print
+
+
+/token_delim (;,"` \n{}\(\)[]) def
+/token_number (0123456789-) def
+
+% read_number: read a single number from string/idx
+% string idx -> read_number -> number string new_idx
+/read_number {
+    %(in read_number\n) print
+    /idx exch def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { exit } if % EOF, break loop
+        /ch str idx get def  % current character
+        ch 48 ge ch 57 le and 45 ch eq or { %if number
+            /cnt cnt 1 add def
+        }{ % else
+            exit
+        } ifelse
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str start cnt getinterval cvi % the matched number
+    str idx % return: number string new_idx
+} def
+
+
+% read_symbol: read a single symbol from string/idx
+% string idx -> read_symbol -> name string new_idx
+/read_symbol {
+    %(in read_symbol\n) print
+    /idx exch def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { exit } if % EOF, break loop
+        /ch str idx 1 getinterval def
+        token_delim ch search { % if token delimeter
+            pop pop pop exit
+        }{ % else not a delim
+            pop
+            /cnt cnt 1 add def
+        } ifelse
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str start cnt getinterval cvn % the matched symbol
+    str idx % return: symbol string new_idx
+} def
+
+
+% read_string: read a single string from string/idx
+% string idx -> read_string -> new_string string new_idx
+/read_string {
+    %(in read_string\n) print
+    /idx exch 1 add def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { %if EOF
+            (Error: unexpected EOF reading string\n) print
+            error
+        } if
+        /ch str idx get def  % current character
+        /idx idx 1 add def
+        ch 34 eq { exit } if % '"' is end of string
+        /cnt cnt 1 add def
+    } loop
+    str start cnt getinterval % the matched string
+    str idx % return: new_string string new_idx
+} def
+
+
+% read_atom: read a single atom from string/idx
+% string idx -> read_atom -> int string new_idx
+/read_atom {
+    %(in read_atom\n) print
+    /idx exch def
+    /str exch def
+    str length idx le { % ifelse
+        exit % EOF
+    }{
+        /ch str idx get def  % current character
+        ch 48 ge ch 57 le and 45 ch eq or { %if number
+            str idx read_number
+        }{ ch 34 eq { %elseif double-quote
+            str idx read_string
+        }{
+            str idx read_symbol
+            /idx exch def pop
+            dup /nil eq { %if nil
+                pop null str idx
+            }{ dup /true eq { %elseif true
+                pop true str idx
+            }{ dup /false eq { %elseif false
+                pop false str idx
+            }{ %else
+                str idx % return the original symbol/name
+            } ifelse } ifelse } ifelse
+        } ifelse } ifelse
+    }ifelse
+
+    % return: atom string new_idx
+} def
+
+% read_list: read a single list from string/idx
+% string idx -> read_list -> list string new_idx
+/read_list {
+    %(in read_list\n) print
+    /idx exch 1 add def
+    /str exch def
+    [
+    { % loop
+        str idx read_spaces /idx exch def pop
+        str length idx le { %if EOF
+            (Error: unexpected EOF reading list\n) print
+            error
+        } if
+        /ch str idx get def  % current character
+        ch 41 eq { exit } if % ')' is end of list
+        str idx read_form /idx exch def pop
+    } loop
+    ]
+    str idx 1 add
+} def
+
+% read_spaces: advance idx to the first non-whitespace
+% string idx -> read_form -> string new_idx
+/read_spaces {
+    %(in read_spaces\n) print
+    /idx exch def
+    /str exch def
+    { % loop
+        str length idx le { exit } if % EOF, break loop
+        /ch str idx get def  % current character
+        % if not whitespace then exit
+        ch 32 ne ch 10 ne ch 44 ne and and { exit } if
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str idx % return: string new_idx
+} def
+
+% read_form: read the next form from string start at idx
+% string idx -> read_form -> ast string new_idx
+/read_form {
+    %(in read_form\n) print
+    read_spaces
+    /idx exch def
+    /str exch def
+
+    idx str length ge { exit } if % EOF, break loop
+    /ch str idx get def  % current character
+    ch 40 eq { %if (
+        str idx read_list
+    }{ % else
+        str idx read_atom
+    } ifelse
+
+    %(stack vvv\n) print
+    %pstack
+    %(stack ^^^\n) print
+
+    % return: ast string new_idx
+} def
+
+% string -> read_str -> ast
+/read_str {
+    %(in read_str\n) print
+    0  % current index into the string
+    read_form
+
+    pop pop  % drop the string, idx. return: ast
+} def

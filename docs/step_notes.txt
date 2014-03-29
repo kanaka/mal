@@ -23,7 +23,7 @@ Step Notes:
     - reader module:
         - stateful reader object
             - alternative: mutate token list
-        - tokenize (use regex if available)
+        - tokenize (if regex available)
             - standard regex pattern: "/[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"|;.*|[^\s\[\]{}('\"`,;)]*)/"
         - read_str
             - read_form(new Reader(tokenize(str)))
