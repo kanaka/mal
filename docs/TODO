@@ -3,9 +3,6 @@ All:
     - loop/recur ?
     - hash-maps with non-string keys
     - gensym reader inside quasiquote
-    - "intern" symbols, strings and numbers. Simplify equality
-      comparision.
-    - Contact Peter Norvig about license
 
     - synchronize function/definitions order/names in files
     - move Env into separate file (maybe)?
@@ -16,6 +13,10 @@ All:
     - support metadata on symbol, hash-map, list, vector, function, atom
 
     - unindent tco while loop for step5-A
+
+    - Print full exception when test gets EOF from expect
+    - Note that bash 4, Java 1.7, php 5.3 required
+    - Break out language eval into step0.5
 
 ---------------------------------------------
 
@@ -33,21 +34,21 @@ Bash:
 PHP:
 
 Make:
-    - Norvig2: TCO/recur?
     - allow '_' in make variable names
     - errors should propagate up from within load-file
 
 
 Mal:
     - line numbers in errors
-    - step6: command line arguments
-    - step 5
-    - step 9
+    - step6_file: command line arguments
+    - step5_tco
+    - step9_interop
 
 Java:
-    - vectors, hash-maps, metadata
-    - step 9
-    - mvn exec:java -Dexec.mainClass="mal.step6_file" -Dexec.args="incC.mal"
+    - step9_interop
+
+Postscript:
+    - step 1-A
 
 Rust:
     - http://www.rustforrubyists.com/book/index.html
@@ -92,4 +93,3 @@ Others (based on redmonk languages from Jan 2014): ?
     - Tier 3
         ? Pascal
         - Rust
-    - 
