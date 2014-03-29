@@ -47,7 +47,7 @@ node stepX_YYY.js
 
 Running the mal implementation of mal involves running stepA of one of
 the other implementations and passing the mal step to run as a command
-line parameter.
+line argument.
 
 ```
 cd IMPL
