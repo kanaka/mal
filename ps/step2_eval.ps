@@ -49,7 +49,7 @@ end } def
 
 % print
 /PRINT {
-    pr_str
+    true _pr_str
 } def
 
 
@@ -74,11 +74,12 @@ end } def
     not { exit } if  % exit if EOF
 
     %(\ngot line: ) print dup print (\n) print flush
+
     { %try
         REP print (\n) print
     } stopped {
         (Error: ) print
-        get_error_data pr_str print (\n) print
+        get_error_data false _pr_str print (\n) print
         clear
     } if
 } bind loop

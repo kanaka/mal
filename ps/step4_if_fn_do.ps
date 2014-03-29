@@ -50,13 +50,47 @@ end } def
                     env_set
             } for
             a2 let_env EVAL
+        }{ /do a0 eq { %if do
+            /el ast _rest env eval_ast def
+            el el length 1 sub get % return last value
+        }{ /if a0 eq { %if if
+            /a1 ast 1 get def
+            /cond a1 env EVAL def
+            cond null eq cond false eq or { % if cond is nil or false
+                ast length 3 gt { %if false branch (a3) provided
+                    ast 3 get env EVAL % EVAL false branch (a3)
+                }{
+                    null
+                } ifelse
+            }{
+                ast 2 get env EVAL % EVAL true branch (a2)
+            } ifelse
+        }{ /fn* a0 eq { %if fn*
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            { 4 dict begin
+                /A1  __a1__  def % close over positino 4
+                /A2  __a2__  def % close over position 7
+                /ENV __env__ def % close over position 10
+                /args exch def
+                %(inside fn*:\n) print
+                %(  A1: ) print A1 ==
+                %(  A2: ) print A2 ==
+                %(  ENV: ) print ENV ==
+                %(  args: ) print args ==
+                A2   ENV A1 args env_new   EVAL
+            end }
+            dup length array copy cvx % make an actual copy/new instance
+            dup 4 a1 put   % insert closed over a1 into position 4
+            dup 7 a2 put   % insert closed over a1 into position 7
+            dup 10 env put % insert closed over a1 into position 10
         }{
             /el ast env eval_ast def
             el _rest % args array
             el _first cvx % function
             %(vvv\n) print pstack (^^^\n) print
             exec % apply function to args
-        } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse } ifelse
     } ifelse
 end } def
 
@@ -70,13 +104,13 @@ end } def
 % repl
 /repl_env null [ ] [ ] env_new def
 
+/RE { READ repl_env EVAL } def
 /REP { READ repl_env EVAL PRINT } def
 /_ref { repl_env 3 1 roll env_set pop } def
 
-(+) { dup 0 get exch 1 get add } _ref
-(-) { dup 0 get exch 1 get sub } _ref
-(*) { dup 0 get exch 1 get mul } _ref
-(/) { dup 0 get exch 1 get idiv } _ref
+types_ns { _ref } forall
+
+(\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 
 /stdin (%stdin) (r) file def 
 

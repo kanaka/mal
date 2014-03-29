@@ -81,6 +81,38 @@ end } def
     } if
 } def
 
+% objA objB -> _equal? -> bool
+/_equal? { 6 dict begin
+    /b exch def
+    /a exch def
+    /ota a type def
+    /otb b type def
+
+    a type b type eq
+    a _list? b _list? and
+    or not { %if type mismatch and not sequential
+        false
+    }{
+        a _list? { %if list
+            /ret true def
+            a length b length eq not { %if length mismatch
+                /ret false def
+            }{ %else (length is the same)
+                0 1 a length 1 sub {
+                    /idx exch def
+                    a idx get b idx get _equal? not { %if not items _equal?
+                        /ret false def
+                        exit
+                    } if
+                } for
+            } ifelse
+            ret
+        }{ %else not a list
+            a b eq
+        } ifelse
+    } ifelse
+end } def
+
 
 %
 % errors/exceptions
@@ -196,3 +228,26 @@ end } def
         key get
     } ifelse
 end } def
+
+%
+% types_ns is namespace of type functions
+%
+/types_ns <<
+    (pr-str)  { ( ) true _pr_str_args }
+    (str)     { () false _pr_str_args }
+    (prn)     { ( ) true _pr_str_args print (\n) print null }
+    (println) { () false _pr_str_args print (\n) print null }
+    (=)       { dup 0 get exch 1 get _equal? }
+    (<)       { dup 0 get exch 1 get lt }
+    (<=)      { dup 0 get exch 1 get le }
+    (>)       { dup 0 get exch 1 get gt }
+    (>=)      { dup 0 get exch 1 get ge }
+    (+)       { dup 0 get exch 1 get add }
+    (-)       { dup 0 get exch 1 get sub }
+    (*)       { dup 0 get exch 1 get mul }
+    (/)       { dup 0 get exch 1 get idiv }
+    (list)    { }
+    (list?)   { 0 get _list? }
+    (empty?)  { 0 get length 0 eq }
+    (count)   { 0 get length }
+>> def
