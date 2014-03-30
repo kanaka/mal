@@ -1,0 +1,172 @@
+(types.ps) run
+(reader.ps) run
+
+% read
+/READ {
+    /str exch def
+    str read_str
+} def
+
+
+% eval
+/eval_ast { 2 dict begin
+    /env exch def
+    /ast exch def
+    %(eval_ast: ) print ast ==
+    /nametype ast type eq { %if symbol
+        env ast env_get
+    }{ /arraytype ast type eq { %elseif list
+        [
+            ast {
+                env EVAL
+            } forall
+        ]
+    }{ % else
+        ast
+    } ifelse } ifelse
+end } def
+
+/EVAL { 13 dict begin
+    { %loop (TCO) 
+
+    /env exch def
+    /ast exch def
+    /loop? false def
+
+    %(EVAL: ) print ast ==
+    /arraytype ast type ne { %if not a list
+        ast env eval_ast
+    }{ %else apply the list
+        /a0 ast 0 get def
+        /def! a0 eq { %if def!
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            env a1  a2 env EVAL  env_set
+        }{ /let* a0 eq { %if let*
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            /let_env env [ ] [ ] env_new def
+            0 2 a1 length 1 sub { %for each pair
+                /idx exch def
+                let_env
+                    a1 idx get
+                    a1 idx 1 add get let_env EVAL
+                    env_set
+            } for
+            a2 let_env EVAL
+        }{ /do a0 eq { %if do
+            ast length 2 ge { %if ast has more than 2 elements
+                ast 1 ast length 1 sub getinterval env eval_ast
+            } if
+            ast ast length 1 sub get % last ast becomes new ast
+            env
+            /loop? true def % loop
+        }{ /if a0 eq { %if if
+            /a1 ast 1 get def
+            /cond a1 env EVAL def
+            cond null eq cond false eq or { % if cond is nil or false
+                ast length 3 gt { %if false branch (a3) provided
+                    ast 3 get env % new ast is false branch (a3)
+                    /loop? true def
+                }{
+                    null
+                } ifelse
+            }{
+                ast 2 get env % new ast is true branch (a2)
+                /loop? true def
+            } ifelse
+        }{ /fn* a0 eq { %if fn*
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            {   /user_defined  % mark this as user defined
+                __PARAMS__ __AST__ __ENV__ % closed over variables
+                4 dict begin
+                /ENV    exch def % closed over above, pos 3
+                /AST    exch def % closed over above, pos 2
+                /PARAMS exch def % closed over above, pos 1
+                /args   exch def
+                %(inside fn*:\n) print
+                %(  A1: ) print A1 ==
+                %(  A2: ) print A2 ==
+                %(  ENV: ) print ENV ==
+                %(  args: ) print args ==
+                AST   ENV PARAMS args env_new   EVAL
+            end }
+            dup length array copy cvx % make an actual copy/new instance
+            dup 1 a1 put  % insert closed over a1 into position 1
+            dup 2 a2 put  % insert closed over a2 into position 2
+            dup 3 env put % insert closed over env into position 3
+        }{
+            /el ast env eval_ast def
+            el _first 0 get /user_defined eq { %if userdefined function
+                /PARAMS el _first 1 get def
+                /AST    el _first 2 get def
+                /ENV    el _first 3 get def
+                AST % new ast is one stored in function
+                ENV PARAMS el _rest env_new % new environment 
+                /loop? true def
+            }{ %else (regular procedure/function)
+                el _rest % args array
+                el _first cvx % function
+                %(vvv\n) print pstack (^^^\n) print
+                exec % apply function to args
+            } ifelse
+        } ifelse } ifelse } ifelse } ifelse } ifelse
+    } ifelse
+
+    loop? not { exit } if
+    } loop % TCO
+end } def
+
+
+% print
+/PRINT {
+    true _pr_str
+} def
+
+
+% repl
+/repl_env null [ ] [ ] env_new def
+
+/RE { READ repl_env EVAL } def
+/REP { READ repl_env EVAL PRINT } def
+/_ref { repl_env 3 1 roll env_set pop } def
+
+types_ns { _ref } forall
+
+(read-string) { 0 get read_str } _ref
+(eval) { 0 get repl_env EVAL } _ref
+/slurp { (r) file dup bytesavailable string readstring pop } def
+(slurp) { 0 get slurp } _ref
+
+(\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
+(\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
+
+/stdin (%stdin) (r) file def 
+
+userdict /ARGUMENTS known { %if command line arguments
+    ARGUMENTS {
+        (\(load-file ") exch ("\)) concatenate concatenate RE pop
+    } forall
+    quit
+} if
+{ % loop
+    (user> ) print flush
+
+    stdin 99 string readline
+
+    not { exit } if  % exit if EOF
+
+    %(\ngot line: ) print dup print (\n) print flush
+
+    { %try
+        REP print (\n) print
+    } stopped {
+        (Error: ) print
+        get_error_data false _pr_str print (\n) print
+        clear
+    } if
+} bind loop
+
+(\n) print  % final newline before exit for cleanliness
+quit
