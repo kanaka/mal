@@ -133,7 +133,7 @@ Step Notes:
               on the function
 
 - step6_file
-    - add read-string, eval, slurp, slurp-do platform wrappers
+    - add read-string, eval, slurp platform wrappers
     - define load-file function
     - if files on command line, use load-file to run
 

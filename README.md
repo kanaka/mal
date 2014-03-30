@@ -53,6 +53,9 @@ bash stepX_YYY.sh
 
 ### C
 
+The C implementation of mal requires the following libraries: glib,
+libffi6 and either the libedit or GNU readline library.
+
 ```
 cd c
 make
@@ -80,6 +83,7 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 
 ```
 cd js
+npm update
 node stepX_YYY.js
 ```
 
