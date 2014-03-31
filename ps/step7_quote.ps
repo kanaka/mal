@@ -9,6 +9,34 @@
 
 
 % eval
+% is_pair?: ast -> is_pair? -> bool
+% return true if non-empty list, otherwise false
+/is_pair? { 
+    dup _list? { length 0 gt }{ pop false } ifelse
+} def
+
+% ast -> quasiquote -> new_ast
+/quasiquote { 3 dict begin
+    /ast exch def
+    ast is_pair? not { %if not is_pair?
+        /quote ast 2 _list
+    }{ 
+        /a0 ast 0 get def
+        a0 /unquote eq { %if a0 unquote symbol
+            ast 1 get
+        }{ a0 is_pair? { %elseif a0 is_pair?
+            /a00 a0 0 get def
+            a00 /splice-unquote eq { %if splice-unquote
+                /concat a0 1 get ast _rest quasiquote 3 _list
+            }{ %else not splice-unquote
+                /cons a0 quasiquote ast _rest quasiquote 3 _list
+            } ifelse
+        }{ % else not a0 is_pair?
+            /cons a0 quasiquote ast _rest quasiquote 3 _list
+        } ifelse } ifelse
+    } ifelse
+end } def
+
 /eval_ast { 2 dict begin
     /env exch def
     /ast exch def
@@ -54,6 +82,10 @@ end } def
                     env_set
             } for
             a2 let_env EVAL
+        }{ /quote a0 eq { %if quote
+            ast 1 get
+        }{ /quasiquote a0 eq { %if quasiquote
+            ast 1 get quasiquote   env EVAL
         }{ /do a0 eq { %if do
             ast length 2 ge { %if ast has more than 2 elements
                 ast 1 ast length 1 sub getinterval env eval_ast
@@ -106,7 +138,7 @@ end } def
                 el _first cvx % function
                 exec % apply function to args
             } ifelse
-        } ifelse } ifelse } ifelse } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
     } ifelse
 
     loop? not { exit } if
@@ -129,10 +161,24 @@ end } def
 
 types_ns { _ref } forall
 
+(read-string) { 0 get read_str } _ref
+(eval) { 0 get repl_env EVAL } _ref
+/slurp { (r) file dup bytesavailable string readstring pop } def
+(slurp) { 0 get slurp } _ref
+
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
+(\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 
 /stdin (%stdin) (r) file def 
 
+userdict /ARGUMENTS known { %if command line arguments
+    ARGUMENTS length 0 gt { %if more than 0 arguments
+        ARGUMENTS {
+            (\(load-file ") exch ("\)) concatenate concatenate RE pop
+        } forall
+        quit
+    } if
+} if
 { % loop
     (user> ) print flush
 

@@ -113,9 +113,16 @@ end } def
     } ifelse
 end } def
 
+%
+% Symbols
+%
+/_symbol? {
+    type /nametype eq
+} def
+
 
 %
-% errors/exceptions
+% Errors/Exceptions
 %
 
 % data -> throw ->
@@ -160,12 +167,27 @@ end } def
 %
 % list operations
 %
+/_list {
+    array astore
+} def
 /_list? {
     dup xcheck not exch type /arraytype eq and
 } def
 /_first { 0 get } def
 /_rest { dup length 1 sub 1 exch getinterval } def
 /_nth { get } def
+
+/_cons {
+    /lst exch def
+    /elem exch def
+    lst length 1 add array
+    dup 0 elem put % first element
+    dup 1 lst putinterval % rest of the elements
+} def
+
+/_concat {
+    concatenate
+} def
 
 
 %
@@ -246,8 +268,10 @@ end } def
     (-)       { dup 0 get exch 1 get sub }
     (*)       { dup 0 get exch 1 get mul }
     (/)       { dup 0 get exch 1 get idiv }
-    (list)    { }
+    (list)    { dup pop } % noop
     (list?)   { 0 get _list? }
+    (cons)    { dup 0 get exch 1 get _cons }
+    (concat)  { dup 0 get exch 1 get _concat }
     (empty?)  { 0 get length 0 eq }
     (count)   { 0 get length }
 >> def

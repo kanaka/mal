@@ -138,16 +138,16 @@ Step Notes:
     - if files on command line, use load-file to run
 
 - step7_quote
-    - reader module:
-        - add reader macros to read_form for quote, unquote,
-          splice-unquote and quasiquote
-    - types module:
-        - add cons and concat functions
     - add is_pair and quasiquote functions
         - rewrite ast using cons/concat functions
         - if vectors, use sequential? instead of list? in is_pair
     - EVAL:
         - add 'quote', 'quasiquote' cases
+    - types module:
+        - add cons and concat functions
+    - reader module:
+        - add reader macros to read_form for quote, unquote,
+          splice-unquote and quasiquote
 
 - step8_macros
     - types module:

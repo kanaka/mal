@@ -13,9 +13,9 @@
     /env exch def
     /ast exch def
     %(eval_ast: ) print ast ==
-    /nametype ast type eq { %if symbol
+    ast _symbol? { %if symbol
         env ast env_get
-    }{ /arraytype ast type eq { %elseif list
+    }{ ast _list? { %elseif list
         [
             ast {
                 env EVAL
@@ -30,7 +30,7 @@ end } def
     /env exch def
     /ast exch def
     %(EVAL: ) print ast ==
-    /arraytype ast type ne { %if not a list
+    ast _list? not { %if not a list
         ast env eval_ast
     }{ %else apply the list
         /a0 ast 0 get def
@@ -54,7 +54,6 @@ end } def
             /el ast env eval_ast def
             el _rest % args array
             el _first cvx % function
-            %(vvv\n) print pstack (^^^\n) print
             exec % apply function to args
         } ifelse } ifelse
     } ifelse

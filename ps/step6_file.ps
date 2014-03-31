@@ -13,9 +13,9 @@
     /env exch def
     /ast exch def
     %(eval_ast: ) print ast ==
-    /nametype ast type eq { %if symbol
+    ast _symbol? { %if symbol
         env ast env_get
-    }{ /arraytype ast type eq { %elseif list
+    }{ ast _list? { %elseif list
         [
             ast {
                 env EVAL
@@ -34,7 +34,7 @@ end } def
     /loop? false def
 
     %(EVAL: ) print ast ==
-    /arraytype ast type ne { %if not a list
+    ast _list? not { %if not a list
         ast env eval_ast
     }{ %else apply the list
         /a0 ast 0 get def
@@ -84,12 +84,8 @@ end } def
                 /ENV    exch def % closed over above, pos 3
                 /AST    exch def % closed over above, pos 2
                 /PARAMS exch def % closed over above, pos 1
+                pop % remove the type
                 /args   exch def
-                %(inside fn*:\n) print
-                %(  A1: ) print A1 ==
-                %(  A2: ) print A2 ==
-                %(  ENV: ) print ENV ==
-                %(  args: ) print args ==
                 AST   ENV PARAMS args env_new   EVAL
             end }
             dup length array copy cvx % make an actual copy/new instance
@@ -108,7 +104,6 @@ end } def
             }{ %else (regular procedure/function)
                 el _rest % args array
                 el _first cvx % function
-                %(vvv\n) print pstack (^^^\n) print
                 exec % apply function to args
             } ifelse
         } ifelse } ifelse } ifelse } ifelse } ifelse
@@ -145,10 +140,12 @@ types_ns { _ref } forall
 /stdin (%stdin) (r) file def 
 
 userdict /ARGUMENTS known { %if command line arguments
-    ARGUMENTS {
-        (\(load-file ") exch ("\)) concatenate concatenate RE pop
-    } forall
-    quit
+    ARGUMENTS length 0 gt { %if more than 0 arguments
+        ARGUMENTS {
+            (\(load-file ") exch ("\)) concatenate concatenate RE pop
+        } forall
+        quit
+    } if
 } if
 { % loop
     (user> ) print flush
@@ -164,6 +161,8 @@ userdict /ARGUMENTS known { %if command line arguments
     } stopped {
         (Error: ) print
         get_error_data false _pr_str print (\n) print
+        $error /newerror false put
+        $error /errorinfo null put
         clear
     } if
 } bind loop

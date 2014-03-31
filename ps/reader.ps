@@ -149,7 +149,7 @@
 
 % read_form: read the next form from string start at idx
 % string idx -> read_form -> ast string new_idx
-/read_form {
+/read_form { 3 dict begin
     %(in read_form\n) print
     read_spaces
     /idx exch def
@@ -157,22 +157,39 @@
 
     idx str length ge { exit } if % EOF, break loop
     /ch str idx get def  % current character
-    ch 40 eq { %if (
+    ch 39 eq { %if '\''
+        /idx idx 1 add def
+        str idx read_form
+        3 -1 roll   /quote exch 2 _list   3 1 roll
+    }{ ch 96 eq { %if '`'
+        /idx idx 1 add def
+        str idx read_form
+        3 -1 roll   /quasiquote exch 2 _list   3 1 roll
+    }{ ch 126 eq { %if '~'
+        /idx idx 1 add def
+        /ch str idx get def  % current character
+        ch 64 eq { %if '~@'
+            /idx idx 1 add def
+            str idx read_form
+            3 -1 roll   /splice-unquote exch 2 _list   3 1 roll
+        }{ %else just '~'
+            str idx read_form
+            3 -1 roll   /unquote exch 2 _list   3 1 roll
+        } ifelse
+    }{ ch 40 eq { %if '('
         str idx read_list
-    }{ ch 91 eq { %elseif [
+    }{ ch 41 eq { %elseif ')'
+        (unexpected '\)') throw
+    }{ ch 91 eq { %elseif '['
         (unexpected '[') throw
-    }{ ch 93 eq { %elseif ]
+    }{ ch 93 eq { %elseif ']'
         (unexpected ']') throw
     }{ % else
         str idx read_atom
-    } ifelse } ifelse } ifelse
-
-    %(stack vvv\n) print
-    %pstack
-    %(stack ^^^\n) print
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 
     % return: ast string new_idx
-} def
+end } def
 
 % string -> read_str -> ast
 /read_str {
