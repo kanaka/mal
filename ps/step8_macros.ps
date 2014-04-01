@@ -37,6 +37,35 @@
     } ifelse
 end } def
 
+/is_macro_call? { 3 dict begin
+    /env exch def
+    /ast exch def
+    ast _list? {
+        /a0 ast 0 get def
+        a0 _symbol? { %if a0 is symbol
+            env a0 env_find null ne { %if a0 is in env
+                env a0 env_get _mal_function? { %if user defined function
+                    env a0 env_get /macro? get true eq %if marked as macro
+                }{ false } ifelse
+            }{ false } ifelse
+        }{ false } ifelse
+    }{ false } ifelse
+end } def
+
+/macroexpand { 3 dict begin
+    /env exch def
+    /ast exch def
+    {
+        ast env is_macro_call? {
+            /mac env   ast 0 get   env_get def
+            /ast ast _rest mac fload EVAL def
+        }{
+            exit
+        } ifelse
+    } loop 
+    ast
+end } def
+
 /eval_ast { 2 dict begin
     /env exch def
     /ast exch def
@@ -65,6 +94,10 @@ end } def
     ast _list? not { %if not a list
         ast env eval_ast
     }{ %else apply the list
+      /ast ast env macroexpand def
+      ast _list? not { %if no longer a list
+          ast
+      }{ %else still a list
         /a0 ast 0 get def
         /def! a0 eq { %if def!
             /a1 ast 1 get def
@@ -87,6 +120,14 @@ end } def
             ast 1 get
         }{ /quasiquote a0 eq { %if quasiquote
             ast 1 get quasiquote   env EVAL
+        }{ /defmacro! a0 eq { %if defmacro!
+            /a1 ast 1 get def
+            /a2 ast 2 get def
+            a2 env EVAL
+            dup /macro? true put % set macro flag
+            env exch a1 exch env_set % def! it
+        }{ /macroexpand a0 eq { %if defmacro!
+            ast 1 get env macroexpand
         }{ /do a0 eq { %if do
             ast length 2 gt { %if ast has more than 2 elements
                 ast 1 ast length 2 sub getinterval env eval_ast pop
@@ -113,6 +154,7 @@ end } def
             /a2 ast 2 get def
             <<
                 /type /_maltype_function % user defined function
+                /macro? false % macro flag, false by default
                 /params null % close over parameters
                 /ast null    % close over ast
                 /env null    % close over environment
@@ -129,7 +171,8 @@ end } def
             }{ %else (regular procedure/function)
                 el _rest el _first exec % apply function to args
             } ifelse
-        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+      } ifelse
     } ifelse
 
     loop? not { exit } if
@@ -156,6 +199,8 @@ types_ns { _ref } forall
 (eval) { 0 get repl_env EVAL } _ref
 /slurp { (r) file dup bytesavailable string readstring pop } def
 (slurp) { 0 get slurp } _ref
+(pstack) { (vvv\n) print pstack (^^^\n) print } _ref
+(p1) { 1 index true _pr_str print (\n) print } _ref
 
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop

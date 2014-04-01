@@ -33,7 +33,7 @@ end } def
     /ast exch def
     /loop? false def
 
-    %(EVAL: ) print ast ==
+    %(EVAL: ) print ast true _pr_str print (\n) print
     ast _list? not { %if not a list
         ast env eval_ast
     }{ %else apply the list
@@ -52,11 +52,12 @@ end } def
                     a1 idx get
                     a1 idx 1 add get let_env EVAL
                     env_set
+                    pop % discard the return value
             } for
             a2 let_env EVAL
         }{ /do a0 eq { %if do
-            ast length 2 ge { %if ast has more than 2 elements
-                ast 1 ast length 1 sub getinterval env eval_ast
+            ast length 2 gt { %if ast has more than 2 elements
+                ast 1 ast length 2 sub getinterval env eval_ast pop
             } if
             ast ast length 1 sub get % last ast becomes new ast
             env
@@ -65,46 +66,36 @@ end } def
             /a1 ast 1 get def
             /cond a1 env EVAL def
             cond null eq cond false eq or { % if cond is nil or false
-                ast length 3 gt { %if false branch (a3) provided
-                    ast 3 get env % new ast is false branch (a3)
+                ast length 3 gt { %if false branch with a3
+                    ast 3 get env
                     /loop? true def
-                }{
+                }{ % else false branch with no a3
                     null
                 } ifelse
-            }{
-                ast 2 get env % new ast is true branch (a2)
+            }{ % true branch
+                ast 2 get env
                 /loop? true def
             } ifelse
         }{ /fn* a0 eq { %if fn*
             /a1 ast 1 get def
             /a2 ast 2 get def
-            {   /user_defined  % mark this as user defined
-                __PARAMS__ __AST__ __ENV__ % closed over variables
-                4 dict begin
-                /ENV    exch def % closed over above, pos 3
-                /AST    exch def % closed over above, pos 2
-                /PARAMS exch def % closed over above, pos 1
-                pop % remove the type
-                /args   exch def
-                AST   ENV PARAMS args env_new   EVAL
-            end }
-            dup length array copy cvx % make an actual copy/new instance
-            dup 1 a1 put  % insert closed over a1 into position 1
-            dup 2 a2 put  % insert closed over a2 into position 2
-            dup 3 env put % insert closed over env into position 3
+            <<
+                /type /_maltype_function % user defined function
+                /params null % close over parameters
+                /ast null    % close over ast
+                /env null    % close over environment
+            >>
+            dup length dict copy % make an actual copy/new instance
+            dup /params a1 put  % insert closed over a1 into position 2
+            dup /ast a2 put  % insert closed over a2 into position 3
+            dup /env env put % insert closed over env into position 4
         }{
             /el ast env eval_ast def
-            el _first 0 get /user_defined eq { %if userdefined function
-                /PARAMS el _first 1 get def
-                /AST    el _first 2 get def
-                /ENV    el _first 3 get def
-                AST % new ast is one stored in function
-                ENV PARAMS el _rest env_new % new environment 
+            el _first _mal_function? { % if user defined function
+                el _rest el _first fload % stack: ast new_env
                 /loop? true def
             }{ %else (regular procedure/function)
-                el _rest % args array
-                el _first cvx % function
-                exec % apply function to args
+                el _rest el _first exec % apply function to args
             } ifelse
         } ifelse } ifelse } ifelse } ifelse } ifelse
     } ifelse

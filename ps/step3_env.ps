@@ -48,13 +48,12 @@ end } def
                     a1 idx get
                     a1 idx 1 add get let_env EVAL
                     env_set
+                    pop % discard the return value
             } for
             a2 let_env EVAL
         }{
             /el ast env eval_ast def
-            el _rest % args array
-            el _first cvx % function
-            exec % apply function to args
+            el _rest el _first exec % apply function to args
         } ifelse } ifelse
     } ifelse
 end } def

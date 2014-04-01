@@ -35,9 +35,16 @@
     dup
     /func? exch xcheck def % executable function
     /obj exch cvlit def
-    /arraytype obj type eq { % if list
+    obj _mal_function? { % if user defined function
+        (<\(fn* )
+        obj /params get print_readably _pr_str
+        ( )
+        obj /ast get print_readably _pr_str
+        (\)>)
+        concatenate concatenate concatenate concatenate
+    }{ /arraytype obj type eq { % if list or code block
         % accumulate an array of strings
-        func? { (<fn* { ) }{ (\() } ifelse
+        func? { (<builtin_fn* { ) }{ (\() } ifelse
         obj ( ) print_readably _pr_str_args
         concatenate
         func? { ( } >) }{ (\)) } ifelse
@@ -61,7 +68,7 @@
         obj dup length string cvs
     }{
         (<unknown>) 
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 end } def
 
 % array delim print_readably -> _pr_str_args -> new_string
@@ -120,6 +127,25 @@ end } def
     type /nametype eq
 } def
 
+%
+% Functions
+%
+/_mal_function? {
+    dup type /dicttype eq {
+        /type get /_maltype_function eq
+    }{
+        pop false
+    } ifelse
+} def
+
+% args mal_function -> fload -> ast new_env
+% fload: sets up arguments on the stack for an EVAL call
+/fload {
+    dup /ast get 3 1 roll    % stack: ast args mal_function
+    dup /env get 3 1 roll    % stack: ast env args mal_function
+    /params get exch         % stack: ast env params args
+    env_new                  % stack: ast new_env
+} def
 
 %
 % Errors/Exceptions
@@ -274,4 +300,7 @@ end } def
     (concat)  { dup 0 get exch 1 get _concat }
     (empty?)  { 0 get length 0 eq }
     (count)   { 0 get length }
+    (nth)     { dup 0 get exch 1 get _nth }
+    (first)   { 0 get _first }
+    (rest)    { 0 get _rest }
 >> def
