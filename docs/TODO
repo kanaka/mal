@@ -6,21 +6,16 @@ All:
 
     - synchronize function/definitions order/names in files
     - move Env into separate file (maybe)?
-    - more metadata tests
-    - more hash_map tests
+    - more metadata, hash_map, interop tests
         - hash-map with space in key string (make)
-    - more interop tests
-    - support metadata on symbol, hash-map, list, vector, function, atom
+    - metadata on collections: list, vector, hash-map, function, atom
     - regular expression matching in runtest
-
     - Print full exception when test gets EOF from expect
-    - Note that bash 4, Java 1.7, php 5.3 required
-    - Break out language eval into step0.5
 
+    - Break out impl eval into step0.5
     - unindent tco while loop for step5-A
-    - use str instead of slurp-do
     - move printing from type to printer
-    - fix conj list vs. vector behavior
+    - split types into types and core
 
 ---------------------------------------------
 

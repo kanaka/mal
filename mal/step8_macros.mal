@@ -105,7 +105,7 @@
             (= 'macroexpand a0)
             (let* [a1 (nth ast 1)]
               (MACROEXPAND a1 env))
-    
+
             (= 'do a0)
             (let* [el (eval-ast (rest ast) env)]
               (nth el (- (count el) 1)))
@@ -146,10 +146,9 @@
 (_ref 'read-string read-string)
 (_ref 'eval (fn* [ast] (EVAL ast repl-env)))
 (_ref 'slurp slurp)
-(_ref 'slurp-do slurp-do)
 
 (rep "(def! not (fn* [a] (if a false true)))")
-(rep "(def! load-file (fn* [f] (eval (read-string (slurp-do f)))))")
+(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 (def! -main (fn* [] 
   (let* [line (readline "mal-user> ")]

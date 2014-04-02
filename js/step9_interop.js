@@ -148,13 +148,10 @@ _ref('eval', function(ast) { return EVAL(ast, repl_env); });
 _ref('slurp', function(f) {
     return require('fs').readFileSync(f, 'utf-8');
 });
-_ref('slurp-do', function(f) {
-    return '(do ' + require('fs').readFileSync(f, 'utf-8') + ')';
-});
 
 // Defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
-rep("(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))");
+rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
     for (var i=2; i < process.argv.length; i++) {

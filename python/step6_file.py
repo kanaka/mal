@@ -88,11 +88,10 @@ for name, val in types_ns.items(): _ref(name, val)
 _ref('read-string', read_str)
 _ref('eval', lambda ast: EVAL(ast, repl_env))
 _ref('slurp', lambda file: open(file).read())
-_ref('slurp-do', lambda file: "(do" + open(file).read() + ")") 
 
 # Defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
-REP("(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))")
+REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')

@@ -260,16 +260,19 @@ _eval () {
     EVAL "${1}" "${REPL_ENV}"
 }
 _fref "eval" _eval
-slurp () { string "$(cat "${ANON["${1}"]}")"; }
+slurp () {
+    local lines
+    mapfile lines < "${ANON["${1}"]}"
+    local text="${lines[*]}"; text=${text//$'\n' /$'\n'}
+    string "${text}"
+}
 _fref "slurp" slurp
-slurp_do () { string "(do $(cat "${ANON["${1}"]}"))"; }
-_fref "slurp-do" slurp_do
 
 # Defined using the language itself
 REP "(def! not (fn* (a) (if a false true)))"
 REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
 REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) \`(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
-REP "(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))"
+REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 
 if [[ "${1}" ]]; then
     echo "${@}"

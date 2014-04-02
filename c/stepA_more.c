@@ -342,22 +342,11 @@ void init_repl_env() {
     }
     _ref("slurp", slurp, 1);
 
-    MalVal *slurp_do(MalVal *path) {
-        assert_type(path, MAL_STRING, "slurp of non-string");
-        char *data = slurp_raw(path->val.string),
-             *wrapped_data;
-        if (!data || mal_error) { return NULL; }
-        wrapped_data = g_strdup_printf("(do %s)", data);
-        free(data);
-        return malval_new_string(wrapped_data);
-    }
-    _ref("slurp-do", slurp_do, 1);
-
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");
     RE(repl_env, "", "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
     RE(repl_env, "", "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
     RE(repl_env, "",
-       "(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))");
+       "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 }
 
 int main(int argc, char *argv[])

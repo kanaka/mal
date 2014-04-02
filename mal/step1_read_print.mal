@@ -11,7 +11,7 @@
 
 ;; repl
 (def! rep (fn* [strng]
-  (PRINT (EVAL (READ strng), {}))))
+  (PRINT (EVAL (READ strng) {}))))
 
 (def! -main (fn* [] 
   (let* [line (readline "mal-user> ")]

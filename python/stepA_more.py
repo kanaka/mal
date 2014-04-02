@@ -146,13 +146,12 @@ _ref('readline', lambda prompt: mal_readline.readline(prompt))
 _ref('read-string', read_str)
 _ref('eval', lambda ast: EVAL(ast, repl_env))
 _ref('slurp', lambda file: open(file).read())
-_ref('slurp-do', lambda file: "(do" + open(file).read() + ")") 
 
 # Defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
-REP("(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))")
+REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')

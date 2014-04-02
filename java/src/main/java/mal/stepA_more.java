@@ -279,18 +279,11 @@ public class stepA_more {
                 return new MalString(slurp(fname));
             }
         });
-        _ref(repl_env, "slurp-do", new MalFunction() {
-            public MalVal apply(MalList args) throws MalThrowable {
-                String fname = ((MalString)args.nth(0)).getValue();
-                return new MalString("(do " + slurp(fname) + ")");
-            }
-        });
 
         RE(repl_env, "(def! not (fn* (a) (if a false true)))");
         RE(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
         RE(repl_env, "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
-
-        RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))");
+        RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
         
         Integer fileIdx = 0;
         if (args.length > 0 && args[0].equals("--raw")) {

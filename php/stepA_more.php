@@ -179,15 +179,12 @@ _ref('eval', function($ast) {
 _ref('slurp', function($f) {
     return file_get_contents($f);
 });
-_ref('slurp-do', function($f) {
-    return "(do " . file_get_contents($f) . ")";
-});
 
 // Defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
-rep("(def! load-file (fn* (f) (eval (read-string (slurp-do f)))))");
+rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 if (count($argv) > 1) {
     for ($i=1; $i < count($argv); $i++) {

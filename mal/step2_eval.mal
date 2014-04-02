@@ -43,7 +43,7 @@
                 "*" * 
                 "/" /})
 (def! rep (fn* [strng]
-  (PRINT (EVAL (READ strng), repl-env))))
+  (PRINT (EVAL (READ strng) repl-env))))
 
 (def! -main (fn* [] 
   (let* [line (readline "mal-user> ")]

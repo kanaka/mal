@@ -102,7 +102,7 @@
 (def repl-env (types/env))
 (defn rep
   [strng]
-  (PRINT (EVAL (READ strng), repl-env)))
+  (PRINT (EVAL (READ strng) repl-env)))
 
 (defn _ref [k,v] (types/env-set repl-env k v))
 
@@ -113,10 +113,9 @@
 (_ref 'read-string reader/read-string)
 (_ref 'eval (fn [ast] (EVAL ast repl-env)))
 (_ref 'slurp slurp)
-(_ref 'slurp-do (fn [f] (str "(do " (slurp f) ")")))
 
 (rep "(def! not (fn* [a] (if a false true)))")
-(rep "(def! load-file (fn* [f] (eval (read-string (slurp-do f)))))")
+(rep "(def! load-file (fn* [f] (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 (defn -main [& args]
   (if args

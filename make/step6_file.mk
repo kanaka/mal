@@ -110,13 +110,11 @@ $(call _ref,read-string,$(call function,$$(call READ_STR,$$(1))))
 $(call _ref,eval,$(call function,$$(call EVAL,$$(1),$$(REPL_ENV))))
 
 _slurp = $(call string,$(call _read_file,$(1)))
-_slurp_do = $(call string,(do $(call _read_file,$(1))))
 $(call _ref,slurp,$(call function,$$(call _slurp,$$(call str_decode,$$($$(1)_value)))))
-$(call _ref,slurp-do,$(call function,$$(call _slurp_do,$$(call str_decode,$$($$(1)_value)))))
 
 # Defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
-$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (slurp-do f))))) ))
+$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 
 # Load and eval any files specified on the command line
 $(if $(MAKECMDGOALS),\

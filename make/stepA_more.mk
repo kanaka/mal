@@ -170,15 +170,13 @@ $(call _ref,read-string,$(call function,$$(call READ_STR,$$(1))))
 $(call _ref,eval,$(call function,$$(call EVAL,$$(1),$$(REPL_ENV))))
 
 _slurp = $(call string,$(call _read_file,$(1)))
-_slurp_do = $(call string,(do $(call _read_file,$(1))))
 $(call _ref,slurp,$(call function,$$(call _slurp,$$(call str_decode,$$($$(1)_value)))))
-$(call _ref,slurp-do,$(call function,$$(call _slurp_do,$$(call str_decode,$$($$(1)_value)))))
 
 # Defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
 $(call do,$(call REP, (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs))))))) ))
 $(call do,$(call REP, (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs)))))))) ))
-$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (slurp-do f))))) ))
+$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 
 # Load and eval any files specified on the command line
 $(if $(MAKECMDGOALS),\
