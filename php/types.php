@@ -338,12 +338,11 @@ function concat() {
 function conj($src) {
     $args = array_slice(func_get_args(), 1);
     $tmp = $src->getArrayCopy();
-    foreach ($args as $arg) {
-        $tmp[] = $arg;
-    }
     if (list_Q($src)) {
+        foreach ($args as $arg) { array_unshift($tmp, $arg); }
         $s = new ListClass();
     } else {
+        foreach ($args as $arg) { $tmp[] = $arg; }
         $s = new VectorClass();
     }
     $s->exchangeArray($tmp);
@@ -368,8 +367,10 @@ function nth($seq, $idx) {
     return $seq[$idx];
 }
 
-function apply($f, $args) {
-    return $f->apply($args->getArrayCopy());
+function apply($f) {
+    $args = array_slice(func_get_args(), 1);
+    $last_arg = array_pop($args)->getArrayCopy();
+    return $f->apply(array_merge($args, $last_arg));
 }
 
 function map($f, $seq) {
@@ -480,7 +481,7 @@ $types_ns = array(
     'first'=>  function ($a) { return first($a); },
     'rest'=>   function ($a) { return rest($a); },
     'nth'=>    function ($a, $b) { return nth($a, $b); },
-    'apply'=>  function ($a, $b) { return apply($a, $b); },
+    'apply'=>  function () { return call_user_func_array('apply', func_get_args()); },
     'map'=>    function ($a, $b) { return map($a, $b); }
 );
 

@@ -128,7 +128,7 @@ true? () { _true? "${1}" && r="${__true}" || r="${__false}"; }
 true_pr_str () { r="true"; }
 
 _false? () { [[ ${1} =~ ^fals_ ]]; }
-false? () { _false? "${1}" && r="${__false}" || r="${__false}"; }
+false? () { _false? "${1}" && r="${__true}" || r="${__false}"; }
 false_pr_str () { r="false"; }
 
 
@@ -516,10 +516,18 @@ conj () {
     local obj="${1}"; shift
     local obj_data="${ANON["${obj}"]}"
     __new_obj_like "${obj}"
-    ANON["${r}"]="${obj_data:+${obj_data} }${*}"
+    if _list? "${obj}"; then
+        ANON["${r}"]="${obj_data:+${obj_data}}"
+        for elem in ${@}; do
+            ANON["${r}"]="${elem} ${ANON["${r}"]}"
+        done
+
+    else
+        ANON["${r}"]="${obj_data:+${obj_data} }${*}"
+    fi
 }
 
-# conj that mutates in place
+# conj that mutates in place (and always appends)
 conj! () {
     local obj="${1}"; shift
     local obj_data="${ANON["${obj}"]}"
@@ -541,6 +549,7 @@ count () {
 first () {
     local temp="${ANON["${1}"]}"
     r="${temp%% *}"
+    [ "${r}" ] || r="${__nil}"
 }
 
 last () {
@@ -559,7 +568,7 @@ _slice () {
 # element
 rest () {
     local temp="${ANON["${1}"]}"
-    __new_obj_like "${1}"
+    __new_obj list
     if [[ "${temp#* }" == "${temp}" ]]; then
         ANON["${r}"]=
     else
@@ -568,9 +577,8 @@ rest () {
 }
 
 apply () {
-    local f="${ANON["${1}"]}"
-    local args="${2}"
-    local items="${ANON["${2}"]}"
+    local f="${ANON["${1}"]}"; shift
+    local items="${@:1:$(( ${#@} -1 ))} ${ANON["${!#}"]}"
     eval ${f%%@*} ${items}
 }
 

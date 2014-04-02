@@ -103,15 +103,24 @@
 (conj (list) 1)
 ;=>(1)
 (conj (list 1) 2)
-;=>(1 2)
+;=>(2 1)
 (conj (list 2 3) 4)
-;=>(2 3 4)
+;=>(4 2 3)
 (conj (list 2 3) 4 5 6)
-;=>(2 3 4 5 6)
+;=>(6 5 4 2 3)
 (conj (list 1) (list 2 3))
-;=>(1 (2 3))
-(conj [1 2] [3 4] )
-;=>(1 2 [3 4])
+;=>((2 3) 1)
+
+(conj [] 1)
+;=>[1]
+(conj [1] 2)
+;=>[1 2]
+(conj [2 3] 4)
+;=>[2 3 4]
+(conj [2 3] 4 5 6)
+;=>[2 3 4 5 6]
+(conj [1] [2 3])
+;=>[1 [2 3]]
 
 ;; Testing first/rest functions
 (first '())
@@ -190,6 +199,9 @@
 (vals hm2)
 ;=>(1)
 
+(count (keys (assoc hm2 "b" 2 "c" 3)))
+;=>3
+
 (def! hm3 (assoc hm2 "b" 2))
 (count (keys hm3))
 ;=>2
@@ -263,8 +275,8 @@
 
 ;;
 ;; Testing read-str and eval
-(read-string "[1 2 (3 4) nil]")
-;=>[1 2 (3 4) nil]
+(read-string "(1 2 (3 4) nil)")
+;=>(1 2 (3 4) nil)
 
 (eval (read-string "(+ 4 5)"))
 ;=>9

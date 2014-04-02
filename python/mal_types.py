@@ -200,7 +200,10 @@ def concat(*lsts): return List(chain(*lsts))
 
 # retains metadata
 def conj(lst, *args):
-    new_lst = List(lst + list(args))
+    if list_Q(lst): 
+        new_lst = List(list(reversed(list(args))) + lst)
+    else:
+        new_lst = Vector(lst + list(args))
     if hasattr(lst, "__meta__"):
         new_lst.__meta__ = lst.__meta__
     return new_lst

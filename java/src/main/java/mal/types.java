@@ -716,12 +716,21 @@ public class types {
 
     static MalFunction conj = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            MalList lst = new MalList();
-            lst.value.addAll(((MalList)a.nth(0)).value);
-            for(Integer i=1; i<a.size(); i++) {
-                lst.value.add(a.nth(i));
+            MalList src_seq = (MalList)a.nth(0), new_seq;
+            if (a.nth(0) instanceof MalVector) {
+                new_seq = new MalVector();
+                new_seq.value.addAll(src_seq.value);
+                for(Integer i=1; i<a.size(); i++) {
+                    new_seq.value.add(a.nth(i));
+                }
+            } else {
+                new_seq = new MalList();
+                new_seq.value.addAll(src_seq.value);
+                for(Integer i=1; i<a.size(); i++) {
+                    new_seq.value.add(0, a.nth(i));
+                }
             }
-            return (MalVal) lst;
+            return (MalVal) new_seq;
         }
     };
 

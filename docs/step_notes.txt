@@ -168,12 +168,18 @@ Step Notes:
         - throw function
         - apply, map functions: should not directly call EVAL, which
           requires the function object to be runnable
-        - symbol?, nil?, true?, false?, sequential? (if not already)
-        - conj, first, rest
     - EVAL:
         - try*/catch*: for normal exceptions, extracts string
           otherwise extracts full value
-    - define cond and or macros using rep()
+
+- Extra defintions needed for self-hosting
+    - types module:
+        - symbol?, nil?, true?, false?, sequential? (if not already)
+        - first, rest
+    - define cond and or macros using REP/RE
+
+- Other misc:
+    - conj function
 
 - atoms
     - reader module:

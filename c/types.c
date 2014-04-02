@@ -556,23 +556,41 @@ MalVal *_hash_map(int count, ...) {
     return hm;
 }
 
-MalVal *hash_map(MalVal *args) {
-    assert_type(args, MAL_LIST|MAL_VECTOR,
-                "hash-map called with non-sequential arguments");
-    assert((args->val.array->len % 2) == 0,
-           "odd number of parameters to hash-map");
-    GHashTable *htable = g_hash_table_new(g_str_hash, g_str_equal);
-    MalVal *hm = malval_new_hash_map(htable);
+MalVal *_assoc_BANG(MalVal* hm, MalVal *args) {
+    assert((_count(args) % 2) == 0,
+           "odd number of parameters to assoc!");
+    GHashTable *htable = hm->val.hash_table;
     int i;
     MalVal *k, *v;
-    for(i=0; i< args->val.array->len; i+=2) {
+    for (i=0; i<_count(args); i+=2) {
         k = g_array_index(args->val.array, MalVal*, i);
         assert_type(k, MAL_STRING,
-                    "hash-map called with non-string key");
+                    "assoc! called with non-string key");
         v = g_array_index(args->val.array, MalVal*, i+1);
         g_hash_table_insert(htable, k->val.string, v);
     }
     return hm;
+}
+
+MalVal *_dissoc_BANG(MalVal* hm, MalVal *args) {
+    GHashTable *htable = hm->val.hash_table;
+    int i;
+    MalVal *k, *v;
+    for (i=0; i<_count(args); i++) {
+        k = g_array_index(args->val.array, MalVal*, i);
+        assert_type(k, MAL_STRING,
+                    "dissoc! called with non-string key");
+        g_hash_table_remove(htable, k->val.string);
+    }
+    return hm;
+}
+
+MalVal *hash_map(MalVal *args) {
+    assert_type(args, MAL_LIST|MAL_VECTOR,
+                "hash-map called with non-sequential arguments");
+    GHashTable *htable = g_hash_table_new(g_str_hash, g_str_equal);
+    MalVal *hm = malval_new_hash_map(htable);
+    return _assoc_BANG(hm, args);
 }
 
 int _hash_map_Q(MalVal *seq) {
@@ -580,20 +598,20 @@ int _hash_map_Q(MalVal *seq) {
 }
 MalVal *hash_map_Q(MalVal *seq) { return _hash_map_Q(seq) ? &mal_true : &mal_false; }
 
-// TODO: support multiple key/values
-MalVal *assoc(MalVal *hm, MalVal *key, MalVal *val) {
-    GHashTable *htable = g_hash_table_copy(hm->val.hash_table);
-    MalVal *new_hm = malval_new_hash_map(htable);
-    g_hash_table_insert(htable, key->val.string, val);
-    return new_hm;
+MalVal *assoc(MalVal *args) {
+    assert_type(args, MAL_LIST|MAL_VECTOR,
+                "assoc called with non-sequential arguments");
+    assert(_count(args) >= 2,
+           "assoc needs at least 2 arguments");
+    GHashTable *htable = g_hash_table_copy(_nth(args,0)->val.hash_table);
+    MalVal *hm = malval_new_hash_map(htable);
+    return _assoc_BANG(hm, rest(args));
 }
 
-// TODO: support multiple keys
-MalVal *dissoc(MalVal *hm, MalVal *key) {
-    GHashTable *htable = g_hash_table_copy(hm->val.hash_table);
-    MalVal *new_hm = malval_new_hash_map(htable);
-    g_hash_table_remove(htable, key->val.string);
-    return new_hm;
+MalVal *dissoc(MalVal* args) {
+    GHashTable *htable = g_hash_table_copy(_nth(args,0)->val.hash_table);
+    MalVal *hm = malval_new_hash_map(htable);
+    return _dissoc_BANG(hm, rest(args));
 }
 
 MalVal *keys(MalVal *obj) {
@@ -849,10 +867,19 @@ MalVal *sconj(MalVal *args) {
     int i, len = _count(src_lst) + _count(args) - 1;
     GArray *new_arr = g_array_sized_new(TRUE, TRUE, sizeof(MalVal*),
                                         len);
-    for (i=1; i<len; i++) {
-        g_array_append_val(new_arr, g_array_index(args->val.array, MalVal*, i));
+    // Copy in src_lst
+    for (i=0; i<_count(src_lst); i++) {
+        g_array_append_val(new_arr, g_array_index(src_lst->val.array, MalVal*, i));
     }
-    return malval_new_list(MAL_LIST, new_arr);
+    // Conj extra args
+    for (i=1; i<_count(args); i++) {
+        if (src_lst->type & MAL_LIST) {
+            g_array_prepend_val(new_arr, g_array_index(args->val.array, MalVal*, i));
+        } else {
+            g_array_append_val(new_arr, g_array_index(args->val.array, MalVal*, i));
+        }
+    }
+    return malval_new_list(src_lst->type, new_arr);
 }
 
 MalVal *first(MalVal *seq) {
@@ -887,6 +914,27 @@ MalVal *_nth(MalVal *seq, int idx) {
 }
 MalVal *nth(MalVal *seq, MalVal *idx) {
     return _nth(seq, idx->val.intnum);
+}
+
+MalVal *sapply(MalVal *args) {
+    assert_type(args, MAL_LIST|MAL_VECTOR,
+                "apply called with non-sequential");
+    MalVal *f = _nth(args, 0);
+    MalVal *last_arg = _nth(args, _count(args)-1); 
+    assert_type(last_arg, MAL_LIST|MAL_VECTOR,
+                "last argument to apply is non-sequential");
+    int i, len = _count(args) - 2 + _count(last_arg);
+    GArray *new_arr = g_array_sized_new(TRUE, TRUE, sizeof(MalVal*),
+                                        len);
+    // Initial arguments
+    for (i=1; i<_count(args)-1; i++) {
+        g_array_append_val(new_arr, g_array_index(args->val.array, MalVal*, i));
+    }
+    // Add arguments from last_arg
+    for (i=0; i<_count(last_arg); i++) {
+        g_array_append_val(new_arr, g_array_index(last_arg->val.array, MalVal*, i));
+    }
+    return apply(f, malval_new_list(MAL_LIST, new_arr));
 }
 
 MalVal *_map2(MalVal *(*func)(void*, void*), MalVal *lst, void *arg2) {
@@ -1007,8 +1055,8 @@ types_ns_entry types_ns[49] = {
     {"<=", (void*(*)(void*))int_lte, 2},
     {"hash-map", (void*(*)(void*))hash_map, -1},
     {"map?", (void*(*)(void*))hash_map_Q, 1},
-    {"assoc", (void*(*)(void*))assoc, 3},
-    {"dissoc", (void*(*)(void*))dissoc, 2},
+    {"assoc", (void*(*)(void*))assoc, -1},
+    {"dissoc", (void*(*)(void*))dissoc, -1},
     {"get", (void*(*)(void*))get, 2},
     {"contains?", (void*(*)(void*))contains_Q, 2},
     {"keys", (void*(*)(void*))keys, 1},
@@ -1033,6 +1081,6 @@ types_ns_entry types_ns[49] = {
     {"last", (void*(*)(void*))last, 1},
     {"rest", (void*(*)(void*))rest, 1},
     {"nth", (void*(*)(void*))nth, 2},
-    {"apply", (void*(*)(void*))apply, 2},
+    {"apply", (void*(*)(void*))sapply, -1},
     {"map", (void*(*)(void*))map, 2},
     };

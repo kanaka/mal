@@ -181,7 +181,10 @@ apply = $(call $(1)_value,$($(2)_value))
 
 # Takes a space separated arguments and invokes the first argument
 # (function object) using the remaining arguments.
-sapply = $(call $(word 1,$(1))_value,$($(word 2,$(1))_value))
+sapply = $(call $(word 1,$(1))_value,\
+	        $(strip \
+                  $(wordlist 2,$(call gmsl_subtract,$(words $(1)),1),$(1)) \
+                  $($(word $(words $(1)),$(1))_value)))
 
 #
 # hash maps (associative arrays)
@@ -203,17 +206,22 @@ _assoc_seq! = $(call _assoc!,$(1),$(call str_decode,$($(word 1,$(2))_value)),$(w
 _assoc! = $(foreach k,$(subst =,$(__equal),$(2)),$(if $(call _undefined?,$(1)_$(k)_value),$(eval $(1)_size := $(call gmsl_plus,$($(1)_size),1)),)$(eval $(1)_$(k)_value := $(3))$(1))
 
 # set a key/value in a copy of the hash map
-# TODO: multiple arguments
-assoc = $(foreach hm,$(call _clone_obj,$(word 1,$(1))),$(call _assoc!,$(hm),$(call str_decode,$($(word 2,$(1))_value)),$(word 3,$(1))))
+assoc = $(word 1,\
+          $(foreach hm,$(call _clone_obj,$(word 1,$(1))),\
+            $(hm) \
+            $(call _assoc_seq!,$(hm),$(wordlist 2,$(words $(1)),$(1)))))
 
 # unset a key in the hash map
 _dissoc! = $(foreach k,$(subst =,$(__equal),$(2)),$(if $(call _undefined?,$(1)_$(k)_value),,$(eval $(1)_$(k)_value := $(__undefined))$(eval $(1)_size := $(call gmsl_subtract,$($(1)_size),1))))$(1)
 
-# unset a key in a copy of the hash map
-# TODO: this could be made more efficient by not copying the key in
-# the first place
-# TODO: multiple arguments
-dissoc = $(foreach hm,$(call _clone_obj,$(word 1,$(1))),$(call _dissoc!,$(hm),$(call str_decode,$($(word 2,$(1))_value))))
+# unset keys in a copy of the hash map
+# TODO: this could be made more efficient by copying only the
+#       keys that not being removed.
+dissoc = $(word 1,\
+           $(foreach hm,$(call _clone_obj,$(word 1,$(1))),\
+             $(hm) \
+             $(foreach key,$(wordlist 2,$(words $(1)),$(1)),\
+               $(call _dissoc!,$(hm),$(call str_decode,$($(key)_value))))))
 
 keys = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $(foreach v,$(call __get_obj_values,$(1)),$(call string,$(word 4,$(subst _, ,$(v)))))))
 
@@ -322,7 +330,13 @@ empty? = $(if $(call _EQ,0,$(if $(call _hash_map?,$(1)),$($(1)_size),$(words $($
 
 concat = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list)_value := $(strip $(foreach lst,$1,$(call __get_obj_values,$(lst)))))))
 
-conj = $(word 1,$(foreach new_list,$(call __new_obj_like,$(word 1,$(1))),$(new_list) $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value) $(wordlist 2,$(words $(1)),$(1))))))
+conj = $(word 1,$(foreach new_list,$(call __new_obj_like,$(word 1,$(1))),\
+                  $(new_list) \
+                  $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value))) \
+                  $(if $(call _list?,$(new_list)),\
+                    $(foreach elem,$(wordlist 2,$(words $(1)),$(1)),\
+                      $(eval $(new_list)_value := $(strip $(elem) $($(new_list)_value)))),\
+                    $(eval $(new_list)_value := $(strip $($(new_list)_value) $(wordlist 2,$(words $(1)),$(1)))))))
 
 # conj that mutates a sequence in-place to append the call arguments
 _conj! = $(eval $(1)_value := $(strip $($(1)_value) $2 $3 $4 $5 $6 $7 $8 $9 $(10) $(11) $(12) $(13) $(14) $(15) $(16) $(17) $(18) $(19) $(20)))$(1)
@@ -339,7 +353,9 @@ slast = $(word $(words $($(1)_value)),$($(1)_value))
 
 # Creates a new vector/list of the everything after but the first
 # element
-srest = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list)_value := $(wordlist 2,$(words $($(1)_value)),$($(1)_value)))))
+srest = $(word 1,$(foreach new_list,$(call _list),\
+                   $(new_list) \
+                   $(eval $(new_list)_value := $(wordlist 2,$(words $($(1)_value)),$($(1)_value)))))
 
 # maps a make function over a list object, using mutating _conj!
 _smap = $(word 1,\
@@ -358,7 +374,7 @@ _smap_vec = $(word 1,\
 # Map a function object over a list object
 smap = $(strip\
          $(foreach func,$(word 1,$(1)),\
-	   $(foreach lst,$(word 2,$(1)),\
+           $(foreach lst,$(word 2,$(1)),\
              $(foreach type,$(word 2,$(subst _, ,$(lst))),\
                $(foreach new_hcode,$(call __new_obj_hash_code),\
                  $(foreach sz,$(words $(call __get_obj_values,$(lst))),\
@@ -372,7 +388,7 @@ smap = $(strip\
 _equal? = $(strip \
             $(foreach ot1,$(call _obj_type,$(1)),$(foreach ot2,$(call _obj_type,$(2)),\
               $(if $(or $(call _EQ,$(ot1),$(ot2)),\
-		        $(and $(call _sequential?,$(1)),$(call _sequential?,$(2)))),\
+                        $(and $(call _sequential?,$(1)),$(call _sequential?,$(2)))),\
                 $(if $(or $(call _string?,$(1)),$(call _symbol?,$(1)),$(call _number?,$(1))),\
                   $(call _EQ,$($(1)_value),$($(2)_value)),\
                 $(if $(or $(call _vector?,$(1)),$(call _list?,$(1)),$(call _hash_map?,$(1))),\

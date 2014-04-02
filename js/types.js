@@ -2,6 +2,9 @@
 var types = {};
 if (typeof module === 'undefined') {
     var exports = types;
+} else {
+    // map output/print to console.log
+    var print = exports.print = function () { console.log.apply(console, arguments); };
 }
 
 // General utility functions
@@ -112,13 +115,13 @@ function str() {
 }
 
 function prn() {
-    console.log.apply(console, Array.prototype.map.call(arguments,function(exp) {
+    print.apply({}, Array.prototype.map.call(arguments,function(exp) {
         return _pr_str(exp, true);
     }));
 }
 
 function println() {
-    console.log.apply(console, Array.prototype.map.call(arguments,function(exp) {
+    print.apply({}, Array.prototype.map.call(arguments,function(exp) {
         return _pr_str(exp, false);
     }));
 }
@@ -325,7 +328,13 @@ function concat(lst) {
 }
 
 function conj(lst) {
-    return lst.concat(Array.prototype.slice.call(arguments, 1));
+    if (list_Q(lst)) {
+        return Array.prototype.slice.call(arguments, 1).reverse().concat(lst);
+    } else {
+        var v = lst.concat(Array.prototype.slice.call(arguments, 1));
+        v.__isvector__ = true;
+        return v;
+    }
 }
 
 function first(lst) { return lst[0]; }
