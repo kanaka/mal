@@ -2,6 +2,8 @@
 (reader.ps) run
 
 % read
+/_readline { print flush (%stdin) (r) file 99 string readline } def
+
 /READ {
     /str exch def
     str read_str
@@ -26,23 +28,19 @@ end } def
 % repl
 /REP { READ (stub env) EVAL PRINT } def
 
-/stdin (%stdin) (r) file def 
-
 { % loop
-    (user> ) print flush
-
-    stdin 99 string readline
-
+    (user> ) _readline
     not { exit } if  % exit if EOF
-
-    %(\ngot line: ) print dup print (\n) print flush
 
     { %try
         REP print (\n) print
     } stopped {
         (Error: ) print
         get_error_data false _pr_str print (\n) print
+        $error /newerror false put
+        $error /errorinfo null put
         clear
+        cleardictstack
     } if
 } bind loop
 

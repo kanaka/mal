@@ -7,7 +7,7 @@
 /concatenate { %def
     dup type 2 index type 2 copy ne { %if
         pop pop
-        errordict begin (concatentate) typecheck end
+        errordict begin (concatenate) typecheck end
     }{ %else
         /stringtype ne exch /arraytype ne and {
             errordict begin (concatenate) typecheck end
@@ -120,6 +120,11 @@ end } def
     } ifelse
 end } def
 
+/_nil? { null eq } def
+/_true? { true eq } def
+/_false? { false eq } def
+
+
 %
 % Symbols
 %
@@ -146,6 +151,10 @@ end } def
     /params get exch         % stack: ast env params args
     env_new                  % stack: ast new_env
 } def
+
+% function_or_block -> callable -> block
+% if this is a user defined mal function, get its executable block
+/callable { dup _mal_function? { /data get } if } def
 
 %
 % Errors/Exceptions
@@ -199,8 +208,6 @@ end } def
 /_list? {
     dup xcheck not exch type /arraytype eq and
 } def
-/_first { 0 get } def
-/_rest { dup length 1 sub 1 exch getinterval } def
 /_nth { get } def
 
 /_cons {
@@ -211,9 +218,71 @@ end } def
     dup 1 lst putinterval % rest of the elements
 } def
 
-/_concat {
-    concatenate
+/concat { % replaces matric concat
+    dup length 0 eq { %if just concat
+        0 _list
+    }{ dup length 1 eq { %elseif concat of single item
+        0 get % noop
+    }{ % else
+        [] exch
+        {
+            concatenate
+        } forall
+    } ifelse } ifelse
 } def
+
+%
+% Sequence operations
+%
+/_first {
+    dup length 0 gt { 0 get }{ pop null } ifelse
+} def
+/_rest {
+    dup length 0 gt {
+        dup length 1 sub 1 exch getinterval
+    }{
+        pop 0 array
+    } ifelse
+} def
+
+% [function args... arg_list] -> apply -> result
+/apply { 1 dict begin
+    /args exch def
+    args 0 get callable % make sure function is callable
+    args 1 args length 2 sub getinterval
+    args args length 1 sub get
+    concatenate args 0 get % stack: args function
+    exec
+end } def
+
+% function list -> _map -> new_list
+/_map { 1 dict begin
+    /args exch def
+    callable % make sure function is callable
+    %/new_list args length array def
+    args {
+        1 array astore
+        exch dup 3 1 roll % stack: fn arg fn
+        exec exch % stack: result fn
+    } forall 
+    pop % remove the function
+    args length array astore
+end } def
+
+/_sequential? { _list? } def
+
+/conj { 5 dict begin
+    /args exch def
+    /src_list args 0 get def
+    /new_len src_list length   args length 1 sub   add def
+    /new_list new_len array def
+    new_list   new_len src_list length sub   src_list putinterval
+    args length 1 sub -1 1 {
+        /idx exch def
+        new_list   args length idx sub 1 sub   args idx get   put
+    } for
+    new_list
+end } def
 
 
 %
@@ -286,6 +355,10 @@ end } def
     (prn)     { ( ) true _pr_str_args print (\n) print null }
     (println) { () false _pr_str_args print (\n) print null }
     (=)       { dup 0 get exch 1 get _equal? }
+    (symbol?) { 0 get _symbol? }
+    (nil?)    { 0 get _nil? }
+    (true?)   { 0 get _true? }
+    (false?)  { 0 get _false? }
     (<)       { dup 0 get exch 1 get lt }
     (<=)      { dup 0 get exch 1 get le }
     (>)       { dup 0 get exch 1 get gt }
@@ -294,13 +367,18 @@ end } def
     (-)       { dup 0 get exch 1 get sub }
     (*)       { dup 0 get exch 1 get mul }
     (/)       { dup 0 get exch 1 get idiv }
+    (throw)   { 0 get throw }
     (list)    { dup pop } % noop
     (list?)   { 0 get _list? }
     (cons)    { dup 0 get exch 1 get _cons }
-    (concat)  { dup 0 get exch 1 get _concat }
+    (concat)  { concat }
+    (sequential?) { 0 get _sequential? }
     (empty?)  { 0 get length 0 eq }
     (count)   { 0 get length }
     (nth)     { dup 0 get exch 1 get _nth }
     (first)   { 0 get _first }
     (rest)    { 0 get _rest }
+    (apply)   { apply }
+    (map)     { dup 0 get exch 1 get _map }
+    (conj)    { conj }
 >> def

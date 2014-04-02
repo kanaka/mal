@@ -2,6 +2,8 @@
 (reader.ps) run
 
 % read
+/_readline { print flush (%stdin) (r) file 99 string readline } def
+
 /READ {
     /str exch def
     str read_str
@@ -84,18 +86,21 @@ end } def
                 /params null % close over parameters
                 /ast null    % close over ast
                 /env null    % close over environment
+                /data { __self__ fload EVAL }
             >>
             dup length dict copy % make an actual copy/new instance
             dup /params a1 put  % insert closed over a1 into position 2
             dup /ast a2 put  % insert closed over a2 into position 3
             dup /env env put % insert closed over env into position 4
+            dup   dup /data get   exch 0 exch put % insert self reference
         }{
             /el ast env eval_ast def
-            el _first _mal_function? { % if user defined function
-                el _rest el _first fload % stack: ast new_env
+            el _rest el _first % stack: ast function
+            dup _mal_function? { % if user defined function
+                fload % stack: ast new_env
                 /loop? true def
             }{ %else (regular procedure/function)
-                el _rest el _first exec % apply function to args
+                exec % apply function to args
             } ifelse
         } ifelse } ifelse } ifelse } ifelse } ifelse
     } ifelse
@@ -128,8 +133,6 @@ types_ns { _ref } forall
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 
-/stdin (%stdin) (r) file def 
-
 userdict /ARGUMENTS known { %if command line arguments
     ARGUMENTS length 0 gt { %if more than 0 arguments
         ARGUMENTS {
@@ -139,13 +142,8 @@ userdict /ARGUMENTS known { %if command line arguments
     } if
 } if
 { % loop
-    (user> ) print flush
-
-    stdin 99 string readline
-
+    (user> ) _readline
     not { exit } if  % exit if EOF
-
-    %(\ngot line: ) print dup print (\n) print flush
 
     { %try
         REP print (\n) print
@@ -155,6 +153,7 @@ userdict /ARGUMENTS known { %if command line arguments
         $error /newerror false put
         $error /errorinfo null put
         clear
+        cleardictstack
     } if
 } bind loop
 

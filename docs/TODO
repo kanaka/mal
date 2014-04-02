@@ -13,13 +13,14 @@ All:
     - support metadata on symbol, hash-map, list, vector, function, atom
     - regular expression matching in runtest
 
-    - unindent tco while loop for step5-A
     - Print full exception when test gets EOF from expect
     - Note that bash 4, Java 1.7, php 5.3 required
     - Break out language eval into step0.5
-    - use str instead of slurp-do
 
-    - move interop to step6 and use interop for slurp?
+    - unindent tco while loop for step5-A
+    - use str instead of slurp-do
+    - move printing from type to printer
+    - fix conj list vs. vector behavior
 
 ---------------------------------------------
 
@@ -54,7 +55,7 @@ Java:
 Postscript:
     - negative numbers
     - quotes/backslashes in strings
-    - step 7-A
+    - vectors, hash-maps, metadata, atoms
 
 Rust:
     - http://www.rustforrubyists.com/book/index.html

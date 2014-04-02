@@ -151,6 +151,48 @@ end } def
             ast ast length 1 sub get % last ast becomes new ast
             env
             /loop? true def % loop
+        }{ /try* a0 eq { %if try*
+            { %try
+                countdictstack /dictcnt exch def
+                count /stackcnt exch def
+                %(here1:\n) print pstack
+                ast 1 get env EVAL
+                %(here2\n) print
+            } stopped { %catch
+                %(here3:\n) print pstack
+                % clean up the dictionary stack
+                1 1 countdictstack dictcnt sub { %foreach added dict
+                    %(popping dict\n) print
+                    pop end % pop idx and pop dict
+                    %(new ast: ) print ast true _pr_str print (\n) print
+                } for
+                % clean up the operand stack
+                %(op stack cleanup: ) print count stackcnt sub ==
+                count 1 exch 1 exch stackcnt sub { %foreach added operand
+                    %(op stack: ) print pstack
+                    pop pop % pop idx and operand
+                    %(popped op stack\n) print pstack
+                } for
+                % get error data and reset $error dict
+                /errdata get_error_data def
+                $error /newerror false put
+                $error /errorinfo null put
+
+                ast length 3 lt { %if no third (catch*) form
+                    errdata throw
+                } if
+                %(here4: ) print ast true _pr_str print (\n) print
+                ast 2 get 0 get (catch*) eq not { %if third form not catch*
+                    (No catch* in throw form) throw
+                } if
+                %(here5: ) print ast 2 get 2 get true _pr_str print (\n) print
+                ast 2 get 2 get
+                %(here5: ) print ast 2 get 1 get true _pr_str print (\n) print
+                %(here6: ) print errdata true _pr_str print (\n) print
+                env [ ast 2 get 1 get ] [ errdata ] env_new
+                %(here7:\n) print pstack
+                EVAL
+            } if
         }{ /if a0 eq { %if if
             /a1 ast 1 get def
             /cond a1 env EVAL def
@@ -190,7 +232,7 @@ end } def
             }{ %else (regular procedure/function)
                 exec % apply function to args
             } ifelse
-        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
       } ifelse
     } ifelse
 
@@ -214,12 +256,15 @@ end } def
 
 types_ns { _ref } forall
 
+(readline) { 0 get _readline not { null } if } _ref
 (read-string) { 0 get read_str } _ref
 (eval) { 0 get repl_env EVAL } _ref
 /slurp { (r) file dup bytesavailable string readstring pop } def
 (slurp) { 0 get slurp } _ref
 
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
+(\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop
+(\(defmacro! or \(fn* \(& xs\) \(if \(empty? xs\) nil \(if \(= 1 \(count xs\)\) \(first xs\) `\(let* \(or_FIXME ~\(first xs\)\) \(if or_FIXME or_FIXME \(or ~@\(rest xs\)\)\)\)\)\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 
 userdict /ARGUMENTS known { %if command line arguments

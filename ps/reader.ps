@@ -184,9 +184,13 @@
         (unexpected '[') throw
     }{ ch 93 eq { %elseif ']'
         (unexpected ']') throw
+    }{ ch 123 eq { %elseif '{'
+        (unexpected '{') throw
+    }{ ch 125 eq { %elseif '}'
+        (unexpected '}') throw
     }{ % else
         str idx read_atom
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 
     % return: ast string new_idx
 end } def

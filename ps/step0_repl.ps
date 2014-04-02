@@ -1,4 +1,6 @@
 % read
+/_readline { print flush (%stdin) (r) file 99 string readline } def
+
 /READ {
     % just "return" the input string
     /str exch def
@@ -26,16 +28,9 @@
 % repl
 /REP { READ (stub env) EVAL PRINT } def
 
-/stdin (%stdin) (r) file def 
-
 { % loop
-    (user> ) print flush
-
-    stdin 99 string readline
-
+    (user> ) _readline
     not { exit } if  % exit if EOF
-
-    %(\ngot line: ) print dup print (\n) print flush
 
     REP print (\n) print
 } bind loop

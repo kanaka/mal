@@ -2,6 +2,8 @@
 (reader.ps) run
 
 % read
+/_readline { print flush (%stdin) (r) file 99 string readline } def
+
 /READ {
     /str exch def
     str read_str
@@ -39,7 +41,8 @@ end } def
         ast env eval_ast
     }{ %else apply the list
         /el ast env eval_ast def
-        el _rest el _first exec % apply function to args
+        el _rest el _first % stack: ast function
+        exec % apply function to args
     } ifelse
 end } def
 
@@ -60,23 +63,19 @@ end } def
 
 /REP { READ repl_env EVAL PRINT } def
 
-/stdin (%stdin) (r) file def 
-
 { % loop
-    (user> ) print flush
-
-    stdin 99 string readline
-
+    (user> ) _readline
     not { exit } if  % exit if EOF
-
-    %(\ngot line: ) print dup print (\n) print flush
 
     { %try
         REP print (\n) print
     } stopped {
         (Error: ) print
         get_error_data false _pr_str print (\n) print
+        $error /newerror false put
+        $error /errorinfo null put
         clear
+        cleardictstack
     } if
 } bind loop
 

@@ -161,11 +161,14 @@ Step Notes:
         - add 'defmacro!' and 'macroexpand'
         - store ismacro property on function metadata
 
+- step9_interop
+
 - stepA_more
     - types module:
         - throw function
-        - map, apply functions
-        - symbol?, nil?, true?, false?
+        - apply, map functions: should not directly call EVAL, which
+          requires the function object to be runnable
+        - symbol?, nil?, true?, false?, sequential? (if not already)
         - conj, first, rest
     - EVAL:
         - try*/catch*: for normal exceptions, extracts string
