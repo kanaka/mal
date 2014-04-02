@@ -3,8 +3,7 @@ TESTS =
 
 
 SOURCES = src/main/java/mal/types.java src/main/java/mal/readline.java \
-	  src/main/java/mal/reader.java src/main/java/mal/Env.java \
-	  src/main/java/mal/step5_tco.java
+	  src/main/java/mal/reader.java src/main/java/mal/stepA_more.java
 
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats
