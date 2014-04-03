@@ -2,7 +2,7 @@
 TESTS =
 
 
-SOURCES = types.mal env.mal stepA_more.mal
+SOURCES = env.mal core.mal stepA_more.mal
 
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats

@@ -3,6 +3,7 @@
 INTERACTIVE=${INTERACTIVE-yes}
 
 source $(dirname $0)/reader.sh
+source $(dirname $0)/printer.sh
 
 # READ: read and parse input
 READ () {

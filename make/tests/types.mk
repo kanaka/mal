@@ -63,9 +63,9 @@ $(call assert_eq,a string value - a string (with parens),$(call str_decode,$($(c
 
 $(info Testing function objects)
 
-$(call assert_eq,function,$(call _obj_type,$(call function,abc)),\
+$(call assert_eq,function,$(call _obj_type,$(call _function,abc)),\
     (type (function abc)) is not 'function')
-FN1 := $(call function,arg1:'$$(word 1,$$(1))' arg2:'$$(word 2,$$(1))')
+FN1 := $(call _function,arg1:'$$(word 1,$$(1))' arg2:'$$(word 2,$$(1))')
 $(call assert_eq,$(__true),$(call function?,$(FN1)))
 $(call assert_eq,arg1:'A' arg2:'B',$(call apply,$(FN1),$(call list,A B)))
 
@@ -113,7 +113,7 @@ $(call assert_eq,A,$(call sfirst,$(call _nth,$(L4),1)),\
 
 $(info Testing hash_maps)
 
-X := $(call hash_map)
+X := $(call _hash_map)
 $(call assert_eq,$(__true),$(call hash_map?,$(X)),\
     (hash_map? $$(X)))
 $(call assert_eq,$(__false),$(call vector?,$(X)),\
@@ -130,7 +130,7 @@ $(call assert_eq,value of X a,$(call _get,$(X),a),\
 $(call assert_eq,$(__true),$(call contains?,$(X) $(mykey)),\
     (contains? $$(X),a))
 
-Y := $(call hash_map)
+Y := $(call _hash_map)
 $(call assert_eq,0,$(call _count,$(Y)),\
     (_count $$(Y)))
 $(call do,$(call _assoc!,$(Y),a,value of Y a))
@@ -241,7 +241,7 @@ $(info Testing smap function)
 L5 := $(call _conj!,$(call list),$(call number,1) $(call number,2) $(call number,3))
 inc = $(call number_plus,$(call number,1) $(1))
 $(call assert_eq,(2 3 4),$(call _pr_str,$(call _smap,inc,$(L5))))
-inc_func := $(call function,$$(call number_plus,$$(call number,1) $$(1)))
+inc_func := $(call _function,$$(call number_plus,$$(call number,1) $$(1)))
 $(call assert_eq,(2 3 4),$(call _pr_str,$(call smap,$(inc_func) $(L5))))
 
 

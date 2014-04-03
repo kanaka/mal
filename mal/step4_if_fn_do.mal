@@ -1,5 +1,5 @@
-(load-file "../mal/types.mal")
 (load-file "../mal/env.mal")
+(load-file "../mal/core.mal")
 
 ;; read
 (def! READ (fn* [strng]
@@ -79,8 +79,8 @@
 
 (def! _ref (fn* [k v] (env-set repl-env k v)))
 
-;; Import types related functions
-(map (fn* [data] (_ref (nth data 0) (nth data 1))) types_ns)
+;; Import core namespace functions
+(map (fn* [data] (_ref (nth data 0) (nth data 1))) core_ns)
 
 ;; Defined using the language itself
 (rep "(def! not (fn* [a] (if a false true)))")

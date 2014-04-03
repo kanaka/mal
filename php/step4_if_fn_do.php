@@ -3,6 +3,9 @@
 require_once 'readline.php';
 require_once 'types.php';
 require_once 'reader.php';
+require_once 'printer.php';
+require_once 'env.php';
+require_once 'core.php';
 
 // read
 function READ($str) {
@@ -11,18 +14,18 @@ function READ($str) {
 
 // eval
 function eval_ast($ast, $env) {
-    if (symbol_Q($ast)) {
+    if (_symbol_Q($ast)) {
         return $env->get($ast->value);
-    } elseif (list_Q($ast) || vector_Q($ast)) {
-        if (list_Q($ast)) {
-            $el = new_list();
+    } elseif (_sequential_Q($ast)) {
+        if (_list_Q($ast)) {
+            $el = _list();
         } else {
-            $el = new_vector();
+            $el = _vector();
         }
         foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
         return $el;
-    } elseif (hash_map_Q($ast)) {
-        $new_hm = new_hash_map();
+    } elseif (_hash_map_Q($ast)) {
+        $new_hm = _hash_map();
         foreach (array_keys($ast->getArrayCopy()) as $key) {
             $new_hm[$key] = MAL_EVAL($ast[$key], $env);
         }
@@ -34,13 +37,13 @@ function eval_ast($ast, $env) {
 
 function MAL_EVAL($ast, $env) {
     #echo "MAL_EVAL: " . _pr_str($ast) . "\n";
-    if (!list_Q($ast)) {
+    if (!_list_Q($ast)) {
         return eval_ast($ast, $env);
     }
 
     // apply list
     $a0 = $ast[0];
-    $a0v = (symbol_Q($a0) ? $a0->value : $a0);
+    $a0v = (_symbol_Q($a0) ? $a0->value : $a0);
     switch ($a0v) {
     case "def!":
         $res = MAL_EVAL($ast[2], $env);
@@ -88,8 +91,8 @@ function rep($str) {
     return MAL_PRINT(MAL_EVAL(READ($str), $repl_env));
 }
 function _ref($k, $v) { global $repl_env; $repl_env->set($k, $v); }
-// Import types functions
-foreach ($types_ns as $k=>$v) { _ref($k, $v); }
+// Import core functions
+foreach ($core_ns as $k=>$v) { _ref($k, $v); }
 
 // Defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");

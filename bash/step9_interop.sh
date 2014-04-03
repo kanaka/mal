@@ -3,6 +3,9 @@
 INTERACTIVE=${INTERACTIVE-yes}
 
 source $(dirname $0)/reader.sh
+source $(dirname $0)/printer.sh
+source $(dirname $0)/core.sh
+source $(dirname $0)/env.sh
 
 # READ: read and parse input
 READ () {
@@ -20,8 +23,8 @@ IS_PAIR () {
 
 QUASIQUOTE () {
     if ! IS_PAIR "${1}"; then
-        symbol quote
-        list "${r}" "${1}"
+        _symbol quote
+        _list "${r}" "${1}"
         return
     else
         _nth "${1}" 0; local a0="${r}"
@@ -31,20 +34,20 @@ QUASIQUOTE () {
         elif IS_PAIR "${a0}"; then
             _nth "${a0}" 0; local a00="${r}"
             if [[ "${ANON["${a00}"]}" == "splice-unquote" ]]; then
-                symbol concat; local a="${r}"
+                _symbol concat; local a="${r}"
                 _nth "${a0}" 1; local b="${r}"
                 rest "${1}"
                 QUASIQUOTE "${r}"; local c="${r}"
-                list "${a}" "${b}" "${c}"
+                _list "${a}" "${b}" "${c}"
                 return
             fi
         fi
     fi
-    symbol cons; local a="${r}"
+    _symbol cons; local a="${r}"
     QUASIQUOTE "${a0}"; local b="${r}"
     rest "${1}"
     QUASIQUOTE "${r}"; local c="${r}"
-    list "${a}" "${b}" "${c}"
+    _list "${a}" "${b}" "${c}"
     return
 }
 
@@ -83,17 +86,17 @@ EVAL_AST () {
         ENV_GET "${env}" "${val}"
         return ;;
     list)
-        _map_with_type list EVAL "${ast}" "${env}" ;;
+        _map_with_type _list EVAL "${ast}" "${env}" ;;
     vector)
-        _map_with_type vector EVAL "${ast}" "${env}" ;;
+        _map_with_type _vector EVAL "${ast}" "${env}" ;;
     hash_map)
         local res="" val="" hm="${ANON["${ast}"]}"
-        hash_map; local new_hm="${r}"
+        _hash_map; local new_hm="${r}"
         eval local keys="\${!${hm}[@]}"
         for key in ${keys}; do
             eval val="\${${hm}[\"${key}\"]}"
             EVAL "${val}" "${env}"
-            assoc! "${new_hm}" "${key}" "${r}"
+            _assoc! "${new_hm}" "${key}" "${r}"
         done
         r="${new_hm}" ;;
     *)
@@ -160,7 +163,7 @@ EVAL () {
               while read line; do
                   output="${output}${line}\n"
               done < <(eval ${ANON["${r}"]})
-              string "${output}"
+              _string "${output}"
               return ;;
         do)   _count "${ast}"
               _slice "${ast}" 1 $(( ${r} - 2 ))
@@ -186,9 +189,9 @@ EVAL () {
               fi
               # Continue loop
               ;;
-        fn*)  new_function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
-                            EVAL \"${a2}\" \"\${r}\"" \
-                           "${a2}" "${env}" "${a1}"
+        fn*)  _function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
+                         EVAL \"${a2}\" \"\${r}\"" \
+                        "${a2}" "${env}" "${a1}"
               return ;;
         *)    EVAL_AST "${ast}" "${env}"
               [[ "${__ERROR}" ]] && r= && return 1
@@ -210,6 +213,7 @@ EVAL () {
     esac
     done
 }
+
 # PRINT:
 PRINT () {
     if [[ "${__ERROR}" ]]; then
@@ -230,22 +234,20 @@ REP () {
     PRINT "${r}"
 }
 
-_fref () { new_function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
+_fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
 
 # Import types functions
-for n in "${!types_ns[@]}"; do _fref "${n}" "${types_ns["${n}"]}"; done
+for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 
 read_string () { READ_STR "${ANON["${1}"]}"; }
 _fref "read-string" read_string
-_eval () {
-    EVAL "${1}" "${REPL_ENV}"
-}
+_eval () { EVAL "${1}" "${REPL_ENV}"; }
 _fref "eval" _eval
 slurp () {
     local lines
     mapfile lines < "${ANON["${1}"]}"
     local text="${lines[*]}"; text=${text//$'\n' /$'\n'}
-    string "${text}"
+    _string "${text}"
 }
 _fref "slurp" slurp
 

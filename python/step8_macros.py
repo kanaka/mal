@@ -1,31 +1,36 @@
 import sys, traceback
 import mal_readline
-from mal_types import (pr_str, sequential_Q, symbol_Q, coll_Q, list_Q,
-                       vector_Q, hash_map_Q, new_symbol, new_function,
-                       new_list, new_vector, new_hash_map, Env, types_ns)
-from reader import (read_str, Blank)
+import mal_types as types
+import reader, printer
+from env import Env
+import core
 
 # read
 def READ(str):
-    return read_str(str)
+    return reader.read_str(str)
 
 # eval
 def is_pair(x):
-    return sequential_Q(x) and len(x) > 0
+    return types._sequential_Q(x) and len(x) > 0
 
 def quasiquote(ast):
     if not is_pair(ast):
-        return new_list(new_symbol("quote"), ast)
+        return types._list(types._symbol("quote"),
+                           ast)
     elif ast[0] == 'unquote':
         return ast[1]
     elif is_pair(ast[0]) and ast[0][0] == 'splice-unquote':
-        return new_list(new_symbol("concat"), ast[0][1], quasiquote(ast[1:]))
+        return types._list(types._symbol("concat"),
+                           ast[0][1],
+                           quasiquote(ast[1:]))
     else:
-        return new_list(new_symbol("cons"), quasiquote(ast[0]), quasiquote(ast[1:]))
+        return types._list(types._symbol("cons"),
+                           quasiquote(ast[0]),
+                           quasiquote(ast[1:]))
 
 def is_macro_call(ast, env):
-    return (list_Q(ast) and
-            symbol_Q(ast[0]) and
+    return (types._list_Q(ast) and
+            types._symbol_Q(ast[0]) and
             env.find(ast[0]) and
             hasattr(env.get(ast[0]), '_ismacro_'))
 
@@ -36,33 +41,33 @@ def macroexpand(ast, env):
     return ast
 
 def eval_ast(ast, env):
-    if symbol_Q(ast):
+    if types._symbol_Q(ast):
         return env.get(ast)
-    elif list_Q(ast):
-        return new_list(*map(lambda a: EVAL(a, env), ast))
-    elif vector_Q(ast):
-        return new_vector(*map(lambda a: EVAL(a, env), ast))
-    elif hash_map_Q(ast):
+    elif types._list_Q(ast):
+        return types._list(*map(lambda a: EVAL(a, env), ast))
+    elif types._vector_Q(ast):
+        return types._vector(*map(lambda a: EVAL(a, env), ast))
+    elif types._hash_map_Q(ast):
         keyvals = []
         for k in ast.keys():
             keyvals.append(EVAL(k, env))
             keyvals.append(EVAL(ast[k], env))
-        return new_hash_map(*keyvals)
+        return types._hash_map(*keyvals)
     else:
         return ast  # primitive value, return unchanged
 
 def EVAL(ast, env):
     while True:
         #print("EVAL %s" % ast)
-        if not list_Q(ast):
+        if not types._list_Q(ast):
             return eval_ast(ast, env)
-    
+
         # apply list
         ast = macroexpand(ast, env)
-        if not list_Q(ast): return ast
+        if not types._list_Q(ast): return ast
         if len(ast) == 0: return ast
+        a0 = ast[0]
 
-        a0 = ast[0] 
         if "def!" == a0:
             a1, a2 = ast[1], ast[2]
             res = EVAL(a2, env)
@@ -98,7 +103,7 @@ def EVAL(ast, env):
             # Continue loop (TCO)
         elif "fn*" == a0:
             a1, a2 = ast[1], ast[2]
-            return new_function(EVAL, a2, env, a1)
+            return types._function(EVAL, Env, a2, env, a1)
         else:
             el = eval_ast(ast, env)
             f = el[0]
@@ -111,7 +116,7 @@ def EVAL(ast, env):
 
 # print
 def PRINT(exp):
-    return pr_str(exp)
+    return printer._pr_str(exp)
 
 # repl
 repl_env = Env()
@@ -120,9 +125,9 @@ def REP(str):
 def _ref(k,v): repl_env.set(k, v)
 
 # Import types functions
-for name, val in types_ns.items(): _ref(name, val)
+for name, val in core.ns.items(): _ref(name, val)
 
-_ref('read-string', read_str)
+_ref('read-string', reader.read_str)
 _ref('eval', lambda ast: EVAL(ast, repl_env))
 _ref('slurp', lambda file: open(file).read())
 
@@ -139,6 +144,6 @@ else:
             if line == None: break
             if line == "": continue
             print(REP(line))
-        except Blank: continue
+        except reader.Blank: continue
         except Exception as e:
             print "".join(traceback.format_exception(*sys.exc_info()))

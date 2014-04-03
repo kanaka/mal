@@ -1,5 +1,6 @@
 var types = require('./types');
 var reader = require('./reader');
+var printer = require('./printer');
 if (typeof module !== 'undefined') {
     var readline = require('./node_readline');
 }
@@ -11,15 +12,15 @@ function READ(str) {
 
 // eval
 function eval_ast(ast, env) {
-    if (types.symbol_Q(ast)) {
+    if (types._symbol_Q(ast)) {
         return env[ast];
-    } else if (types.list_Q(ast)) {
+    } else if (types._list_Q(ast)) {
         return ast.map(function(a) { return EVAL(a, env); });
-    } else if (types.vector_Q(ast)) {
+    } else if (types._vector_Q(ast)) {
         var v = ast.map(function(a) { return EVAL(a, env); });
         v.__isvector__ = true;
         return v;
-    } else if (types.hash_map_Q(ast)) {
+    } else if (types._hash_map_Q(ast)) {
         var new_hm = {};
         for (k in ast) {
             new_hm[EVAL(k, env)] = EVAL(ast[k], env);
@@ -31,7 +32,7 @@ function eval_ast(ast, env) {
 }
 
 function _EVAL(ast, env) {
-    if (!types.list_Q(ast)) {
+    if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
 
@@ -47,7 +48,7 @@ function EVAL(ast, env) {
 
 // print
 function PRINT(exp) {
-    return types._pr_str(exp, true);
+    return printer._pr_str(exp, true);
 }
 
 // repl

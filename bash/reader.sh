@@ -2,20 +2,23 @@
 # mal (Make Lisp) Parser/Reader
 #
 
+if [ -z "${__mal_readerr_included__}" ]; then
+__mal_readerr_included=true
+
 source $(dirname $0)/types.sh
 
 READ_ATOM () {
     local token=${__reader_tokens[${__reader_idx}]}
     __reader_idx=$(( __reader_idx + 1 ))
     case "${token}" in
-        [0-9]*) number "${token}" ;;
+        [0-9]*) _number "${token}" ;;
         \"*)    token="${token:1:-1}"
                 token="${token//\\\"/\"}"
-                string "${token}" ;;
+                _string "${token}" ;;
         nil)    r="${__nil}" ;;
         true)   r="${__true}" ;;
         false)  r="${__false}" ;;
-        *)      symbol "${token}" ;;
+        *)      _symbol "${token}" ;;
     esac
 }
 
@@ -54,39 +57,39 @@ READ_FORM () {
     local token=${__reader_tokens[${__reader_idx}]}
     case "${token}" in
         \')     __reader_idx=$(( __reader_idx + 1 ))
-                symbol quote; local q="${r}"
+                _symbol quote; local q="${r}"
                 READ_FORM; local f="${r}"
-                list "${q}" "${f}" ;;
+                _list "${q}" "${f}" ;;
         \`)     __reader_idx=$(( __reader_idx + 1 ))
-                symbol quasiquote; local q="${r}"
+                _symbol quasiquote; local q="${r}"
                 READ_FORM; local f="${r}"
-                list "${q}" "${f}" ;;
+                _list "${q}" "${f}" ;;
         \~)     __reader_idx=$(( __reader_idx + 1 ))
-                symbol unquote; local q="${r}"
+                _symbol unquote; local q="${r}"
                 READ_FORM; local f="${r}"
-                list "${q}" "${f}" ;;
+                _list "${q}" "${f}" ;;
         \~\@)   __reader_idx=$(( __reader_idx + 1 ))
-                symbol splice-unquote; local q="${r}"
+                _symbol splice-unquote; local q="${r}"
                 READ_FORM; local f="${r}"
-                list "${q}" "${f}" ;;
+                _list "${q}" "${f}" ;;
         ^)      __reader_idx=$(( __reader_idx + 1 ))
-                symbol with-meta; local wm="${r}"
+                _symbol with-meta; local wm="${r}"
                 READ_FORM; local meta="${r}"
                 READ_FORM; local obj="${r}"
-                list "${wm}" "${obj}" "${meta}" ;;
+                _list "${wm}" "${obj}" "${meta}" ;;
         @)     __reader_idx=$(( __reader_idx + 1 ))
-                symbol deref; local d="${r}"
+                _symbol deref; local d="${r}"
                 READ_FORM; local f="${r}"
-                list "${d}" "${f}" ;;
+                _list "${d}" "${f}" ;;
         \))     _error "unexpected ')'" ;; 
         \()     READ_SEQ "(" ")"
-                list ${r} ;;
+                _list ${r} ;;
         \])     _error "unexpected ']'" ;; 
         \[)     READ_SEQ "[" "]"
-                vector ${r} ;;
+                _vector ${r} ;;
         \})     _error "unexpected '}'" ;; 
         \{)     READ_SEQ "{" "}"
-                hash_map ${r} ;;
+                _hash_map ${r} ;;
         *)      READ_ATOM
     esac
 }
@@ -151,3 +154,5 @@ READLINE () {
     history -s -- "${r}"
     history -a "${READLINE_HISTORY_FILE}"
 }
+
+fi

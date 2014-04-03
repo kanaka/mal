@@ -1,7 +1,7 @@
 
 TESTS =
 
-SOURCES = types.ps reader.ps step8_macros.ps
+SOURCES = types.ps reader.ps printer.ps env.ps core.ps stepA_more.ps
 
 .PHONY: stats tests $(TESTS)
 

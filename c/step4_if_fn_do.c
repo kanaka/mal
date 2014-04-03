@@ -4,6 +4,7 @@
 #include "types.h"
 #include "readline.h"
 #include "reader.h"
+#include "core.h"
 
 // Declarations
 MalVal *EVAL(MalVal *ast, Env *env);
@@ -139,7 +140,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                *args = rest(el);
         assert_type(f, MAL_FUNCTION_C|MAL_FUNCTION_MAL,
                     "cannot apply '%s'", _pr_str(f,1));
-        return apply(f, args);
+        return _apply(f, args);
     }
 }
 
@@ -179,9 +180,9 @@ void init_repl_env() {
     repl_env = new_env(NULL, NULL, NULL);
 
     int i;
-    for(i=0; i< (sizeof(types_ns) / sizeof(types_ns[0])); i++) {
-        MalVal *(*f)(MalVal *) = (MalVal*(*)(MalVal*))types_ns[i].func;
-        _ref(types_ns[i].name, f, types_ns[i].arg_cnt);
+    for(i=0; i< (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
+        MalVal *(*f)(MalVal *) = (MalVal*(*)(MalVal*))core_ns[i].func;
+        _ref(core_ns[i].name, f, core_ns[i].arg_cnt);
     }
 
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");

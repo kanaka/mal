@@ -40,7 +40,7 @@ function read_atom (reader) {
     } else if (token === "false") {
         return false;
     } else {
-        return types.symbol(token); // symbol
+        return types._symbol(token); // symbol
     }
 }
 
@@ -66,13 +66,13 @@ function read_list(reader, start, end) {
 // read vector of tokens
 function read_vector(reader) {
     var lst = read_list(reader, '[', ']');
-    return types.vector.apply(types.vector, lst);
+    return types._vector.apply(null, lst);
 }
 
 // read hash-map key/value pairs
 function read_hash_map(reader) {
     var lst = read_list(reader, '{', '}');
-    return types.hash_map.apply(types.hash_map, lst);
+    return types._hash_map.apply(null, lst);
 }
 
 function read_form(reader) {
@@ -81,18 +81,18 @@ function read_form(reader) {
     // reader macros/transforms
     case ';': return null; // Ignore comments
     case '\'': reader.next();
-               return [types.symbol('quote'), read_form(reader)];
+               return [types._symbol('quote'), read_form(reader)];
     case '`': reader.next();
-              return [types.symbol('quasiquote'), read_form(reader)];
+              return [types._symbol('quasiquote'), read_form(reader)];
     case '~': reader.next();
-              return [types.symbol('unquote'), read_form(reader)];
+              return [types._symbol('unquote'), read_form(reader)];
     case '~@': reader.next();
-               return [types.symbol('splice-unquote'), read_form(reader)];
+               return [types._symbol('splice-unquote'), read_form(reader)];
     case '^': reader.next();
               var meta = read_form(reader);
-              return [types.symbol('with-meta'), read_form(reader), meta];
+              return [types._symbol('with-meta'), read_form(reader), meta];
     case '@': reader.next();
-              return [types.symbol('deref'), read_form(reader)];
+              return [types._symbol('deref'), read_form(reader)];
 
     // list
     case ')': throw new Error("unexpected ')'");

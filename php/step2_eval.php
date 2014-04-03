@@ -3,6 +3,7 @@
 require_once 'readline.php';
 require_once 'types.php';
 require_once 'reader.php';
+require_once 'printer.php';
 
 // read
 function READ($str) {
@@ -11,18 +12,18 @@ function READ($str) {
 
 // eval
 function eval_ast($ast, $env) {
-    if (symbol_Q($ast)) {
+    if (_symbol_Q($ast)) {
         return $env[$ast->value];
-    } elseif (list_Q($ast) || vector_Q($ast)) {
-        if (list_Q($ast)) {
-            $el = new_list();
+    } elseif (_sequential_Q($ast)) {
+        if (_list_Q($ast)) {
+            $el = _list();
         } else {
-            $el = new_vector();
+            $el = _vector();
         }
         foreach ($ast as $a) { $el[] = MAL_EVAL($a, $env); }
         return $el;
-    } elseif (hash_map_Q($ast)) {
-        $new_hm = new_hash_map();
+    } elseif (_hash_map_Q($ast)) {
+        $new_hm = _hash_map();
         foreach (array_keys($ast->getArrayCopy()) as $key) {
             $new_hm[$key] = MAL_EVAL($ast[$key], $env);
         }
@@ -33,7 +34,7 @@ function eval_ast($ast, $env) {
 }
 
 function MAL_EVAL($ast, $env) {
-    if (!list_Q($ast)) {
+    if (!_list_Q($ast)) {
         return eval_ast($ast, $env);
     }
 

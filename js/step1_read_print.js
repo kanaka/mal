@@ -1,5 +1,6 @@
 var types = require('./types');
 var reader = require('./reader');
+var printer = require('./printer');
 if (typeof module !== 'undefined') {
     var readline = require('./node_readline');
 }
@@ -16,7 +17,7 @@ function EVAL(ast, env) {
 
 // print
 function PRINT(exp) {
-    return types._pr_str(exp, true);
+    return printer._pr_str(exp, true);
 }
 
 // repl

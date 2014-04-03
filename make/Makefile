@@ -1,7 +1,8 @@
 
 TESTS = tests/types.mk tests/reader.mk tests/step9_interop.mk
 
-SOURCES = util.mk readline.mk gmsl.mk types.mk reader.mk stepA_more.mk
+SOURCES = util.mk readline.mk gmsl.mk types.mk reader.mk printer.mk \
+	  env.mk core.mk stepA_more.mk
 
 mal.mk: $(SOURCES)
 	echo "#!/usr/bin/make -f" > $@

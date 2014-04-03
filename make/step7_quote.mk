@@ -4,6 +4,9 @@
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(_TOP_DIR)types.mk
 include $(_TOP_DIR)reader.mk
+include $(_TOP_DIR)printer.mk
+include $(_TOP_DIR)env.mk
+include $(_TOP_DIR)core.mk
 
 SHELL := /bin/bash
 INTERACTIVE ?= yes
@@ -20,12 +23,12 @@ IS_PAIR = $(if $(call _EQ,list,$(call _obj_type,$(1))),$(if $(call _EQ,0,$(call 
 define QUASIQUOTE
 $(strip \
   $(if $(call _NOT,$(call IS_PAIR,$(1))),\
-    $(call list,$(call symbol,quote) $(1)),\
+    $(call _list,$(call _symbol,quote) $(1)),\
     $(if $(call _EQ,unquote,$($(call _nth,$(1),0)_value)),\
       $(call _nth,$(1),1),\
       $(if $(and $(call IS_PAIR,$(call _nth,$(1),0)),$(call _EQ,splice-unquote,$($(call _nth,$(call _nth,$(1),0),0)_value))),\
-        $(call list,$(call symbol,concat) $(call _nth,$(call _nth,$(1),0),1) $(call QUASIQUOTE,$(call srest,$(1)))),\
-        $(call list,$(call symbol,cons) $(call QUASIQUOTE,$(call _nth,$(1),0)) $(call QUASIQUOTE,$(call srest,$(1))))))))
+        $(call _list,$(call _symbol,concat) $(call _nth,$(call _nth,$(1),0),1) $(call QUASIQUOTE,$(call srest,$(1)))),\
+        $(call _list,$(call _symbol,cons) $(call QUASIQUOTE,$(call _nth,$(1),0)) $(call QUASIQUOTE,$(call srest,$(1))))))))
 endef
 
 define LET
@@ -88,7 +91,7 @@ $(if $(__ERROR),,\
     $(if $(call _EQ,fn*,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
-          $(call function,$$(call EVAL,$(a2),$$(call ENV,$(2),$(a1),$$1))))),\
+          $(call _function,$$(call EVAL,$(a2),$$(call ENV,$(2),$(a1),$$1))))),\
       $(foreach el,$(call EVAL_AST,$(1),$(2)),\
         $(and $(EVAL_DEBUG),$(info invoke: $(call _pr_str,$(el))))\
         $(foreach f,$(call sfirst,$(el)),\
@@ -117,17 +120,17 @@ REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call
 
 # Setup the environment
 _ref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(if $(2),$(2),$(1))))
-_fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call function,$$(call $(2),$$1))))
+_fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call _function,$$(call $(2),$$1))))
 
-# Import types functions
-_import_types = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_types,$(wordlist 3,$(words $(1)),$(1))),)
-$(call _import_types,$(types_ns))
+# Import core namespace
+_import_core = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_core,$(wordlist 3,$(words $(1)),$(1))),)
+$(call _import_core,$(core_ns))
 
-$(call _ref,read-string,$(call function,$$(call READ_STR,$$(1))))
-$(call _ref,eval,$(call function,$$(call EVAL,$$(1),$$(REPL_ENV))))
+$(call _ref,read-string,$(call _function,$$(call READ_STR,$$(1))))
+$(call _ref,eval,$(call _function,$$(call EVAL,$$(1),$$(REPL_ENV))))
 
-_slurp = $(call string,$(call _read_file,$(1)))
-$(call _ref,slurp,$(call function,$$(call _slurp,$$(call str_decode,$$($$(1)_value)))))
+_slurp = $(call _string,$(call _read_file,$(1)))
+$(call _ref,slurp,$(call _function,$$(call _slurp,$$(call str_decode,$$($$(1)_value)))))
 
 # Defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))

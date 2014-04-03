@@ -5,6 +5,7 @@ import java.io.IOException;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
+import mal.printer;
 
 public class step1_read_print {
     // read
@@ -19,7 +20,7 @@ public class step1_read_print {
 
     // print
     public static String PRINT(MalVal exp) {
-        return types._pr_str(exp, true);
+        return printer._pr_str(exp, true);
     }
 
     // REPL
@@ -30,7 +31,7 @@ public class step1_read_print {
     public static void main(String[] args) throws MalThrowable {
         String prompt = "user> ";
 
-        if (args[0].equals("--raw")) {
+        if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;
         }
         while (true) {

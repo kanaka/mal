@@ -4,6 +4,7 @@
 #include "types.h"
 #include "readline.h"
 #include "reader.h"
+#include "core.h"
 
 // Declarations
 MalVal *EVAL(MalVal *ast, Env *env);

@@ -3,6 +3,9 @@
 INTERACTIVE=${INTERACTIVE-yes}
 
 source $(dirname $0)/reader.sh
+source $(dirname $0)/printer.sh
+source $(dirname $0)/core.sh
+source $(dirname $0)/env.sh
 
 # READ: read and parse input
 READ () {
@@ -20,17 +23,17 @@ EVAL_AST () {
         ENV_GET "${env}" "${val}"
         return ;;
     list)
-        _map_with_type list EVAL "${ast}" "${env}" ;;
+        _map_with_type _list EVAL "${ast}" "${env}" ;;
     vector)
-        _map_with_type vector EVAL "${ast}" "${env}" ;;
+        _map_with_type _vector EVAL "${ast}" "${env}" ;;
     hash_map)
         local res="" val="" hm="${ANON["${ast}"]}"
-        hash_map; local new_hm="${r}"
+        _hash_map; local new_hm="${r}"
         eval local keys="\${!${hm}[@]}"
         for key in ${keys}; do
             eval val="\${${hm}[\"${key}\"]}"
             EVAL "${val}" "${env}"
-            assoc! "${new_hm}" "${key}" "${r}"
+            _assoc! "${new_hm}" "${key}" "${r}"
         done
         r="${new_hm}" ;;
     *)

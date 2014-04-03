@@ -181,7 +181,7 @@ MalVal *read_list(Reader *reader, MalType type, char start, char end) {
 
 MalVal *read_hash_map(Reader *reader) {
     MalVal *lst = read_list(reader, MAL_LIST, '{', '}');
-    MalVal *hm = hash_map(lst);
+    MalVal *hm = _hash_map(lst);
     malval_free(lst);
     return hm;
 }
@@ -207,34 +207,34 @@ MalVal *read_form(Reader *reader) {
         break;
     case '\'':
         reader_next(reader);
-        form = _list(2, malval_new_symbol("quote"),
-                        read_form(reader));
+        form = _listX(2, malval_new_symbol("quote"),
+                         read_form(reader));
         break;
     case '`':
         reader_next(reader);
-        form = _list(2, malval_new_symbol("quasiquote"),
-                        read_form(reader));
+        form = _listX(2, malval_new_symbol("quasiquote"),
+                         read_form(reader));
         break;
     case '~':
         reader_next(reader);
         if (token[1] == '@') {
-            form = _list(2, malval_new_symbol("splice-unquote"),
-                            read_form(reader));
+            form = _listX(2, malval_new_symbol("splice-unquote"),
+                             read_form(reader));
         } else {
-            form = _list(2, malval_new_symbol("unquote"),
-                            read_form(reader));
+            form = _listX(2, malval_new_symbol("unquote"),
+                             read_form(reader));
         };
         break;
     case '^':
         reader_next(reader);
         MalVal *meta = read_form(reader);
-        form = _list(3, malval_new_symbol("with-meta"),
-                        read_form(reader), meta);
+        form = _listX(3, malval_new_symbol("with-meta"),
+                         read_form(reader), meta);
         break;
     case '@':
         reader_next(reader);
-        form = _list(2, malval_new_symbol("deref"),
-                        read_form(reader));
+        form = _listX(2, malval_new_symbol("deref"),
+                         read_form(reader));
         break;
 
 

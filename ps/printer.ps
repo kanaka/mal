@@ -1,0 +1,61 @@
+(in types.ps\n) print
+
+% requires types.ps to be included first
+
+/_pr_str { 4 dict begin
+    /print_readably exch def
+    dup
+    /func? exch xcheck def % executable function
+    /obj exch cvlit def
+    obj _mal_function? { % if user defined function
+        (<\(fn* )
+        obj /params get print_readably _pr_str
+        ( )
+        obj /ast get print_readably _pr_str
+        (\)>)
+        concatenate concatenate concatenate concatenate
+    }{ /arraytype obj type eq { % if list or code block
+        % accumulate an array of strings
+        func? { (<builtin_fn* { ) }{ (\() } ifelse
+        obj ( ) print_readably _pr_str_args
+        concatenate
+        func? { ( } >) }{ (\)) } ifelse
+        concatenate
+    }{ /integertype obj type eq { % if number
+        /slen obj 10 add log ceiling cvi def
+        obj 10 slen string cvrs
+    }{ /stringtype obj type eq { % if string
+        print_readably {
+            (") obj (") concatenate concatenate
+        }{
+            obj
+        } ifelse
+    }{ null obj eq { % if nil
+        (nil)
+    }{ true obj eq { % if true
+        (true)
+    }{ false obj eq { % if false
+        (false)
+    }{ /nametype obj type eq { % if symbol
+        obj dup length string cvs
+    }{
+        (<unknown>) 
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+end } def
+
+% array delim print_readably -> _pr_str_args -> new_string
+/_pr_str_args { 3 dict begin
+    /print_readably exch def
+    /delim exch def
+    /args exch def
+    ()
+    args length 0 gt { %if any elements
+        [
+            args { %foreach argument in array
+                print_readably _pr_str
+            } forall 
+        ]
+        { concatenate delim concatenate } forall
+        dup length delim length sub 0 exch getinterval % strip off final delim
+    } if
+end } def

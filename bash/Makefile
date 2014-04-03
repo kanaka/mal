@@ -1,6 +1,6 @@
 TESTS = tests/types.sh tests/reader.sh
 
-SOURCES = types.sh reader.sh stepA_more.sh
+SOURCES = types.sh reader.sh printer.sh env.sh core.sh stepA_more.sh
 
 all: mal.sh
 

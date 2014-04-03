@@ -9,6 +9,9 @@ import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
+import mal.printer;
+import mal.env.Env;
+import mal.core;
 
 public class step4_if_fn_do {
     // read
@@ -23,8 +26,8 @@ public class step4_if_fn_do {
             return env.get(sym.getName());
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
-            MalList new_lst = types._list_Q(ast) ? new MalList()
-                                                 : (MalList)new MalVector();
+            MalList new_lst = ast.list_Q() ? new MalList()
+                                           : (MalList)new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
@@ -45,8 +48,8 @@ public class step4_if_fn_do {
     public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
         MalVal a0, a1,a2, a3, res;
         MalList el;
-        //System.out.println("EVAL: " + types._pr_str(orig_ast, true));
-        if (!(types._list_Q(orig_ast))) {
+        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+        if (!orig_ast.list_Q()) {
             return eval_ast(orig_ast, env);
         }
 
@@ -76,7 +79,7 @@ public class step4_if_fn_do {
             }
             return EVAL(a2, let_env);
         case "do":
-            el = (MalList)eval_ast(types._rest(ast), env);
+            el = (MalList)eval_ast(ast.rest(), env);
             return el.nth(el.size()-1);
         case "if":
             a1 = ast.nth(1);
@@ -106,13 +109,13 @@ public class step4_if_fn_do {
         default:
             el = (MalList)eval_ast(ast, env);
             MalFunction f = (MalFunction)el.nth(0);
-            return f.apply(types._rest(el));
+            return f.apply(el.rest());
         }
     }
 
     // print
     public static String PRINT(MalVal exp) {
-        return types._pr_str(exp, true);
+        return printer._pr_str(exp, true);
     }
 
     // REPL
@@ -127,13 +130,13 @@ public class step4_if_fn_do {
         String prompt = "user> ";
 
         Env repl_env = new Env(null);
-        for (String key : types.types_ns.keySet()) {
-            _ref(repl_env, key, types.types_ns.get(key));
+        for (String key : core.ns.keySet()) {
+            _ref(repl_env, key, core.ns.get(key));
         }
 
         RE(repl_env, "(def! not (fn* (a) (if a false true)))");
         
-        if (args[0].equals("--raw")) {
+        if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;
         }
         while (true) {

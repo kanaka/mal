@@ -3,6 +3,9 @@
 INTERACTIVE=${INTERACTIVE-yes}
 
 source $(dirname $0)/reader.sh
+source $(dirname $0)/printer.sh
+source $(dirname $0)/core.sh
+source $(dirname $0)/env.sh
 
 # READ: read and parse input
 READ () {
@@ -20,17 +23,17 @@ EVAL_AST () {
         ENV_GET "${env}" "${val}"
         return ;;
     list)
-        _map_with_type list EVAL "${ast}" "${env}" ;;
+        _map_with_type _list EVAL "${ast}" "${env}" ;;
     vector)
-        _map_with_type vector EVAL "${ast}" "${env}" ;;
+        _map_with_type _vector EVAL "${ast}" "${env}" ;;
     hash_map)
         local res="" val="" hm="${ANON["${ast}"]}"
-        hash_map; local new_hm="${r}"
+        _hash_map; local new_hm="${r}"
         eval local keys="\${!${hm}[@]}"
         for key in ${keys}; do
             eval val="\${${hm}[\"${key}\"]}"
             EVAL "${val}" "${env}"
-            assoc! "${new_hm}" "${key}" "${r}"
+            _assoc! "${new_hm}" "${key}" "${r}"
         done
         r="${new_hm}" ;;
     *)
@@ -96,9 +99,9 @@ EVAL () {
               fi
               # Continue loop
               ;;
-        fn*)  new_function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
-                            EVAL \"${a2}\" \"\${r}\"" \
-                           "${a2}" "${env}" "${a1}"
+        fn*)  _function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
+                         EVAL \"${a2}\" \"\${r}\"" \
+                        "${a2}" "${env}" "${a1}"
               return ;;
         *)    EVAL_AST "${ast}" "${env}"
               [[ "${__ERROR}" ]] && r= && return 1
@@ -141,10 +144,10 @@ REP () {
     PRINT "${r}"
 }
 
-_fref () { new_function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
+_fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
 
 # Import types functions
-for n in "${!types_ns[@]}"; do _fref "${n}" "${types_ns["${n}"]}"; done
+for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 
 # Defined using the language itself
 REP "(def! not (fn* (a) (if a false true)))"

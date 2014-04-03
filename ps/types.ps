@@ -1,5 +1,7 @@
 (in types.ps\n) print
 
+% General functions
+
 % concatenate: concatenate two strings or two arrays
 % From Thinking in PostScript 1990 Reid
 % (string1) (string2) concatenate string3
@@ -29,64 +31,6 @@
     length -1 0 { 1 roll } for % reverse
     ]
 } bind def
-
-/_pr_str { 4 dict begin
-    /print_readably exch def
-    dup
-    /func? exch xcheck def % executable function
-    /obj exch cvlit def
-    obj _mal_function? { % if user defined function
-        (<\(fn* )
-        obj /params get print_readably _pr_str
-        ( )
-        obj /ast get print_readably _pr_str
-        (\)>)
-        concatenate concatenate concatenate concatenate
-    }{ /arraytype obj type eq { % if list or code block
-        % accumulate an array of strings
-        func? { (<builtin_fn* { ) }{ (\() } ifelse
-        obj ( ) print_readably _pr_str_args
-        concatenate
-        func? { ( } >) }{ (\)) } ifelse
-        concatenate
-    }{ /integertype obj type eq { % if number
-        /slen obj 10 add log ceiling cvi def
-        obj 10 slen string cvrs
-    }{ /stringtype obj type eq { % if string
-        print_readably {
-            (") obj (") concatenate concatenate
-        }{
-            obj
-        } ifelse
-    }{ null obj eq { % if nil
-        (nil)
-    }{ true obj eq { % if true
-        (true)
-    }{ false obj eq { % if false
-        (false)
-    }{ /nametype obj type eq { % if symbol
-        obj dup length string cvs
-    }{
-        (<unknown>) 
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
-end } def
-
-% array delim print_readably -> _pr_str_args -> new_string
-/_pr_str_args { 3 dict begin
-    /print_readably exch def
-    /delim exch def
-    /args exch def
-    ()
-    args length 0 gt { %if any elements
-        [
-            args { %foreach argument in array
-                print_readably _pr_str
-            } forall 
-        ]
-        { concatenate delim concatenate } forall
-        dup length delim length sub 0 exch getinterval % strip off final delim
-    } if
-end } def
 
 % objA objB -> _equal? -> bool
 /_equal? { 6 dict begin
@@ -120,54 +64,22 @@ end } def
     } ifelse
 end } def
 
-/_nil? { null eq } def
-/_true? { true eq } def
-/_false? { false eq } def
+/_sequential? { _list? } def
 
-
-%
-% Symbols
-%
-/_symbol? {
-    type /nametype eq
+/_first {
+    dup length 0 gt { 0 get }{ pop null } ifelse
 } def
-
-%
-% Functions
-%
-/_mal_function? {
-    dup type /dicttype eq {
-        /type get /_maltype_function eq
+/_rest {
+    dup length 0 gt {
+        dup length 1 sub 1 exch getinterval
     }{
-        pop false
+        pop 0 array
     } ifelse
 } def
 
-% args mal_function -> fload -> ast new_env
-% fload: sets up arguments on the stack for an EVAL call
-/fload {
-    dup /ast get 3 1 roll    % stack: ast args mal_function
-    dup /env get 3 1 roll    % stack: ast env args mal_function
-    /params get exch         % stack: ast env params args
-    env_new                  % stack: ast new_env
-} def
 
-% function_or_block -> callable -> block
-% if this is a user defined mal function, get its executable block
-/callable { dup _mal_function? { /data get } if } def
 
-%
 % Errors/Exceptions
-%
-
-% data -> throw ->
-% Takes an arbitrary data and puts it in $error:/errorinfo. Then calls
-% stop to transfer control to end of nearest stopped context.
-/throw {
-    $error exch /errorinfo exch put
-    $error /command /throw put
-    stop
-} def
 
 /errorinfo? {
     $error /errorinfo known { % if set
@@ -198,10 +110,46 @@ end } def
 } def
 
 
+% Scalars
 
-%
-% list operations
-%
+/_nil? { null eq } def
+/_true? { true eq } def
+/_false? { false eq } def
+
+
+% Symbols
+
+/_symbol? {
+    type /nametype eq
+} def
+
+
+% Functions
+
+/_mal_function? {
+    dup type /dicttype eq {
+        /type get /_maltype_function eq
+    }{
+        pop false
+    } ifelse
+} def
+
+% args mal_function -> fload -> ast new_env
+% fload: sets up arguments on the stack for an EVAL call
+/fload {
+    dup /ast get 3 1 roll    % stack: ast args mal_function
+    dup /env get 3 1 roll    % stack: ast env args mal_function
+    /params get exch         % stack: ast env params args
+    env_new                  % stack: ast new_env
+} def
+
+% function_or_block -> callable -> block
+% if this is a user defined mal function, get its executable block
+/callable { dup _mal_function? { /data get } if } def
+
+
+% Lists
+
 /_list {
     array astore
 } def
@@ -210,175 +158,3 @@ end } def
 } def
 /_nth { get } def
 
-/_cons {
-    /lst exch def
-    /elem exch def
-    lst length 1 add array
-    dup 0 elem put % first element
-    dup 1 lst putinterval % rest of the elements
-} def
-
-/concat { % replaces matric concat
-    dup length 0 eq { %if just concat
-        0 _list
-    }{ dup length 1 eq { %elseif concat of single item
-        0 get % noop
-    }{ % else
-        [] exch
-        {
-            concatenate
-        } forall
-    } ifelse } ifelse
-} def
-
-%
-% Sequence operations
-%
-/_first {
-    dup length 0 gt { 0 get }{ pop null } ifelse
-} def
-/_rest {
-    dup length 0 gt {
-        dup length 1 sub 1 exch getinterval
-    }{
-        pop 0 array
-    } ifelse
-} def
-
-% [function args... arg_list] -> apply -> result
-/apply { 1 dict begin
-    /args exch def
-    args 0 get callable % make sure function is callable
-    args 1 args length 2 sub getinterval
-    args args length 1 sub get
-    concatenate args 0 get % stack: args function
-    exec
-end } def
-
-% function list -> _map -> new_list
-/_map { 1 dict begin
-    /args exch def
-    callable % make sure function is callable
-    %/new_list args length array def
-    args {
-        1 array astore
-        exch dup 3 1 roll % stack: fn arg fn
-        exec exch % stack: result fn
-    } forall 
-    pop % remove the function
-    args length array astore
-end } def
-
-/_sequential? { _list? } def
-
-/conj { 5 dict begin
-    /args exch def
-    /src_list args 0 get def
-    /new_len src_list length   args length 1 sub   add def
-    /new_list new_len array def
-    new_list   new_len src_list length sub   src_list putinterval
-    args length 1 sub -1 1 {
-        /idx exch def
-        new_list   args length idx sub 1 sub   args idx get   put
-    } for
-    new_list
-end } def
-
-
-%
-% Env implementation
-%
-% outer binds exprs -> env_new -> new_env
-/env_new { 3 dict begin
-    %(in env_new\n) print
-    /exprs exch def
-    /binds exch def
-    /outer exch def
-    << 
-        /__outer__ outer
-        0 1 binds length 1 sub {
-            /idx exch def
-            binds idx get (&) eq { %if &
-                binds idx 1 add get % key
-                exprs idx   exprs length idx sub   getinterval % value
-                exit
-            } if
-            binds idx get % key
-            exprs idx get % value
-        } for
-    >>
-end } def
-
-/env_find { 2 dict begin
-    /key exch def
-    /env exch def
-    env key known { %if key in env
-        env
-    }{ env /__outer__ get null ne { %elseif __outer__ not null
-        env /__outer__ get   key env_find
-    }{ %else
-        null
-    } ifelse } ifelse
-end } def
-
-/env_set { 4 dict begin
-    dup
-    /func? exch xcheck def % executable function
-    /val exch cvlit def
-    /key exch def
-    /env exch def
-    env key val func? { cvx } if put
-    val func? { cvx } if
-end } def
-
-/env_get { 2 dict begin
-    /key exch def
-    /env exch def
-    env key env_find
-    dup null eq {
-        (')
-        key 99 string cvs
-        (' not found)
-        concatenate concatenate
-        throw
-    }{
-        key get
-    } ifelse
-end } def
-
-%
-% types_ns is namespace of type functions
-%
-/types_ns <<
-    (pr-str)  { ( ) true _pr_str_args }
-    (str)     { () false _pr_str_args }
-    (prn)     { ( ) true _pr_str_args print (\n) print null }
-    (println) { () false _pr_str_args print (\n) print null }
-    (=)       { dup 0 get exch 1 get _equal? }
-    (symbol?) { 0 get _symbol? }
-    (nil?)    { 0 get _nil? }
-    (true?)   { 0 get _true? }
-    (false?)  { 0 get _false? }
-    (<)       { dup 0 get exch 1 get lt }
-    (<=)      { dup 0 get exch 1 get le }
-    (>)       { dup 0 get exch 1 get gt }
-    (>=)      { dup 0 get exch 1 get ge }
-    (+)       { dup 0 get exch 1 get add }
-    (-)       { dup 0 get exch 1 get sub }
-    (*)       { dup 0 get exch 1 get mul }
-    (/)       { dup 0 get exch 1 get idiv }
-    (throw)   { 0 get throw }
-    (list)    { dup pop } % noop
-    (list?)   { 0 get _list? }
-    (cons)    { dup 0 get exch 1 get _cons }
-    (concat)  { concat }
-    (sequential?) { 0 get _sequential? }
-    (empty?)  { 0 get length 0 eq }
-    (count)   { 0 get length }
-    (nth)     { dup 0 get exch 1 get _nth }
-    (first)   { 0 get _first }
-    (rest)    { 0 get _rest }
-    (apply)   { apply }
-    (map)     { dup 0 get exch 1 get _map }
-    (conj)    { conj }
->> def

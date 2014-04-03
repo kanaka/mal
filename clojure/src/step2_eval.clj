@@ -1,10 +1,8 @@
 (ns step2-eval
     (:require [clojure.repl]
-              [types]
               [readline]
-              [reader]))
-
-(declare EVAL)
+              [reader]
+              [printer]))
 
 ;; read
 (defn READ [& [strng]]
@@ -12,6 +10,7 @@
     (reader/read-string strng)))
 
 ;; eval
+(declare EVAL)
 (defn eval-ast [ast env]
   (cond
     (symbol? ast) (or (get env ast)

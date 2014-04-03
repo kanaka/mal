@@ -7,59 +7,17 @@ if (typeof module === 'undefined') {
     var print = exports.print = function () { console.log.apply(console, arguments); };
 }
 
-// General utility functions
+// General fucnctions
 
-// Clone a function
-Function.prototype.clone = function() {
-    var that = this;
-    var temp = function () { return that.apply(this, arguments); };
-    for( key in this ) {
-        temp[key] = this[key];
-    }
-    return temp;
-};
-
-function _clone (obj) {
-    var new_obj;
-    switch (obj_type(obj)) {
-    case 'list':
-        new_obj = obj.slice(0);
-        break;
-    case 'vector':
-        new_obj = obj.slice(0);
-        new_obj.__isvector__ = true;
-        break;
-    case 'hash-map':
-        new_obj = {};
-        for (var k in obj) {
-            if (obj.hasOwnProperty(k)) { new_obj[k] = obj[k]; }
-        }
-        break;
-    case 'function':
-        new_obj = obj.clone();
-        break;
-    default:
-        throw new Error("clone of non-collection: " + obj_type(obj));
-    }
-    return new_obj;
-}
-
-
-
-
-function nil_Q(a) { return a === null ? true : false; }
-function true_Q(a) { return a === true ? true : false; }
-function false_Q(a) { return a === false ? true : false; }
-
-function obj_type(obj) {
-    if      (symbol_Q(obj)) {   return 'symbol'; }
-    else if (list_Q(obj)) {     return 'list'; }
-    else if (vector_Q(obj)) {   return 'vector'; }
-    else if (hash_map_Q(obj)) { return 'hash-map'; }
-    else if (nil_Q(obj)) {      return 'nil'; }
-    else if (true_Q(obj)) {     return 'true'; }
-    else if (false_Q(obj)) {    return 'false'; }
-    else if (atom_Q(obj)) {     return 'atom'; }
+function _obj_type(obj) {
+    if      (_symbol_Q(obj)) {   return 'symbol'; }
+    else if (_list_Q(obj)) {     return 'list'; }
+    else if (_vector_Q(obj)) {   return 'vector'; }
+    else if (_hash_map_Q(obj)) { return 'hash-map'; }
+    else if (_nil_Q(obj)) {      return 'nil'; }
+    else if (_true_Q(obj)) {     return 'true'; }
+    else if (_false_Q(obj)) {    return 'false'; }
+    else if (_atom_Q(obj)) {     return 'atom'; }
     else {
         switch (typeof(obj)) {
         case 'number':   return 'number';
@@ -70,82 +28,12 @@ function obj_type(obj) {
     }
 }
 
-function _pr_str(obj, print_readably) {
-    if (typeof print_readably === 'undefined') { print_readably = true; }
-    var _r = print_readably;
-    var ot = obj_type(obj);
-    switch (ot) {
-    case 'list':
-        var ret = obj.map(function(e) { return _pr_str(e,_r); });
-        return "(" + ret.join(' ') + ")";
-    case 'vector':
-        var ret = obj.map(function(e) { return _pr_str(e,_r); });
-        return "[" + ret.join(' ') + "]";
-    case 'hash-map':
-        var ret = [];
-        for (var k in obj) {
-            ret.push(_pr_str(k,_r), _pr_str(obj[k],_r));
-        }
-        return "{" + ret.join(' ') + "}";
-    case 'string':
-        if (print_readably) {
-            return '"' + obj.replace(/\\/, "\\\\").replace(/"/g, '\\"') + '"';
-        } else {
-            return obj;
-        }
-    case 'nil':
-        return "nil";
-    case 'atom':
-        return "(atom " + _pr_str(obj.val,_r) + ")";
-    default:
-        return obj.toString();
-    }
-}
-
-function pr_str() {
-    return Array.prototype.map.call(arguments,function(exp) {
-        return _pr_str(exp, true);
-    }).join(" ");
-}
-
-function str() {
-    return Array.prototype.map.call(arguments,function(exp) {
-        return _pr_str(exp, false);
-    }).join("");
-}
-
-function prn() {
-    print.apply({}, Array.prototype.map.call(arguments,function(exp) {
-        return _pr_str(exp, true);
-    }));
-}
-
-function println() {
-    print.apply({}, Array.prototype.map.call(arguments,function(exp) {
-        return _pr_str(exp, false);
-    }));
-}
-
-function with_meta(obj, m) {
-    var new_obj = _clone(obj);
-    new_obj.__meta__ = m;
-    return new_obj;
-}
-
-function meta(obj) {
-    // TODO: support symbols and atoms
-    if ((!sequential_Q(obj)) &&
-        (!(hash_map_Q(obj))) &&
-        (!(function_Q(obj)))) {
-        throw new Error("attempt to get metadata from: " + obj_type(obj));
-    }
-    return obj.__meta__;
-}
+function _sequential_Q(lst) { return _list_Q(lst) || _vector_Q(lst); }
 
 
-function equal_Q (a, b) {
-    var ota = obj_type(a), otb = obj_type(b);
-    if (!(ota === otb || (sequential_Q(a) && sequential_Q(b)))) {
+function _equal_Q (a, b) {
+    var ota = _obj_type(a), otb = _obj_type(b);
+    if (!(ota === otb || (_sequential_Q(a) && _sequential_Q(b)))) {
         return false;
     }
     switch (ota) {
@@ -154,7 +42,7 @@ function equal_Q (a, b) {
     case 'vector':
         if (a.length !== b.length) { return false; }
         for (var i=0; i<a.length; i++) {
-            if (! equal_Q(a[i], b[i])) { return false; }
+            if (! _equal_Q(a[i], b[i])) { return false; }
         }
         return true;
     case 'hash-map':
@@ -172,6 +60,37 @@ function equal_Q (a, b) {
 }
 
 
+function _clone (obj) {
+    var new_obj;
+    switch (_obj_type(obj)) {
+    case 'list':
+        new_obj = obj.slice(0);
+        break;
+    case 'vector':
+        new_obj = obj.slice(0);
+        new_obj.__isvector__ = true;
+        break;
+    case 'hash-map':
+        new_obj = {};
+        for (var k in obj) {
+            if (obj.hasOwnProperty(k)) { new_obj[k] = obj[k]; }
+        }
+        break;
+    case 'function':
+        new_obj = obj.clone();
+        break;
+    default:
+        throw new Error("clone of non-collection: " + _obj_type(obj));
+    }
+    return new_obj;
+}
+
+
+// Scalars
+function _nil_Q(a) { return a === null ? true : false; }
+function _true_Q(a) { return a === true ? true : false; }
+function _false_Q(a) { return a === false ? true : false; }
+
 
 // Symbols
 function Symbol(name) {
@@ -179,68 +98,61 @@ function Symbol(name) {
     return this;
 }
 Symbol.prototype.toString = function() { return this.value; }
-
-function symbol(name) { return new Symbol(name); }
-
-function symbol_Q(obj) { return obj instanceof Symbol; }
+function _symbol(name) { return new Symbol(name); }
+function _symbol_Q(obj) { return obj instanceof Symbol; }
 
 
 // Functions
-function new_function(func, exp, env, params) {
+function _function(Eval, Env, exp, env, params) {
     var f = function() {
         // TODO: figure out why this throws with 'and' macro
         //throw new Error("Attempt to invoke mal function directly");
-        return func(exp, new Env(env, params, arguments));
+        return Eval(exp, new Env(env, params, arguments));
     };
     f.__meta__ = {exp: exp, env: env, params: params};
     return f;
-
 }
-function function_Q(f) { return typeof f == "function"; }
+function _function_Q(obj) { return typeof obj == "function"; }
+Function.prototype.clone = function() {
+    var that = this;
+    var temp = function () { return that.apply(this, arguments); };
+    for( key in this ) {
+        temp[key] = this[key];
+    }
+    return temp;
+};
 
 
-
-// Errors/Exceptions
-function mal_throw(exc) { throw exc; }
+// Lists
+function _list() { return Array.prototype.slice.call(arguments, 0); }
+function _list_Q(obj) { return Array.isArray(obj) && !obj.__isvector__; }
 
 
 // Vectors
-function vector() {
+function _vector() {
     var v = Array.prototype.slice.call(arguments, 0);
     v.__isvector__ = true;
     return v;
 }
+function _vector_Q(obj) { return Array.isArray(obj) && obj.__isvector__; }
 
-function vector_Q(v) { return Array.isArray(v) && v.__isvector__; }
-
-
-// Lists
-
-function list() {
-    return Array.prototype.slice.call(arguments, 0);
-}
-
-function list_Q(lst) { return Array.isArray(lst) && !lst.__isvector__; }
 
 
 // Hash Maps
-
-function hash_map() {
+function _hash_map() {
     if (arguments.length % 2 === 1) {
         throw new Error("Odd number of hash map arguments");
     }
     var args = [{}].concat(Array.prototype.slice.call(arguments, 0));
-    return assoc_BANG.apply(null, args);
+    return _assoc_BANG.apply(null, args);
 }
-
-function hash_map_Q(hm) {
+function _hash_map_Q(hm) {
     return typeof hm === "object" &&
            !Array.isArray(hm) &&
-           !(hm === null) && 
+           !(hm === null) &&
            !(hm instanceof Atom);
 }
-
-function assoc_BANG(hm) {
+function _assoc_BANG(hm) {
     if (arguments.length % 2 !== 1) {
         throw new Error("Odd number of assoc arguments");
     }
@@ -258,14 +170,7 @@ function assoc_BANG(hm) {
     }
     return hm;
 }
-
-function assoc(src_hm) {
-    var hm = _clone(src_hm);
-    var args = [hm].concat(Array.prototype.slice.call(arguments, 1));
-    return assoc_BANG.apply(null, args);
-}
-
-function dissoc_BANG(hm) {
+function _dissoc_BANG(hm) {
     for (var i=1; i<arguments.length; i++) {
         var ktoken = arguments[i];
         delete hm[ktoken];
@@ -273,166 +178,32 @@ function dissoc_BANG(hm) {
     return hm;
 }
 
-function dissoc(src_hm) {
-    var hm = _clone(src_hm);
-    var args = [hm].concat(Array.prototype.slice.call(arguments, 1));
-    return dissoc_BANG.apply(null, args);
-}
-
-function get(hm, key) {
-    if (key in hm) {
-        return hm[key];
-    } else {
-        return null;
-    }
-}
-
-function contains_Q(hm, key) {
-    if (key in hm) { return true; } else { return false; }
-}
-
-function keys(hm) { return Object.keys(hm); }
-function vals(hm) { return Object.keys(hm).map(function(k) { return hm[k]; }); }
-
 
 // Atoms
 function Atom(val) { this.val = val; }
-function atom(val) { return new Atom(val); }
-function atom_Q(atm) { return atm instanceof Atom; }
-function deref(atm) { return atm.val; }
-function reset_BANG(atm, val) { return atm.val = val; }
-function swap_BANG(atm, f) {
-    var args = [atm.val].concat(Array.prototype.slice.call(arguments, 2));
-    atm.val = f.apply(f, args);
-    return atm.val;
-}
+function _atom(val) { return new Atom(val); }
+function _atom_Q(atm) { return atm instanceof Atom; }
 
 
-// Sequence operations
-function sequential_Q(lst) { return list_Q(lst) || vector_Q(lst); }
-
-function nth(lst, idx) { return lst[idx]; }
-
-function count(s) {
-    if (Array.isArray(s)) { return s.length; }
-    else {                  return Object.keys(s).length; }
-}
-
-function empty_Q(lst) { return lst.length === 0; }
-
-function cons(a, b) { return [a].concat(b); }
-
-function concat(lst) {
-    lst = lst || [];
-    return lst.concat.apply(lst, Array.prototype.slice.call(arguments, 1));
-}
-
-function conj(lst) {
-    if (list_Q(lst)) {
-        return Array.prototype.slice.call(arguments, 1).reverse().concat(lst);
-    } else {
-        var v = lst.concat(Array.prototype.slice.call(arguments, 1));
-        v.__isvector__ = true;
-        return v;
-    }
-}
-
-function first(lst) { return lst[0]; }
-
-function rest(lst) { return lst.slice(1); }
-
-
-
-// General list related functions
-function apply(f) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    return f.apply(f, args.slice(0, args.length-1).concat(args[args.length-1]));
-}
-
-function map(f, lst) {
-    return lst.map(function(el){ return f(el); });
-}
-
-
-// Env implementation
-function Env(outer, binds, exprs) {
-    this.data = {};
-    this.outer = outer || null;
-
-    if (binds && exprs) {
-        // Returns a new Env with symbols in binds bound to
-        // corresponding values in exprs
-        // TODO: check types of binds and exprs and compare lengths
-        for (var i=0; i<binds.length;i++) {
-            if (binds[i].value === "&") {
-                // variable length arguments
-                this.data[binds[i+1].value] = Array.prototype.slice.call(exprs, i);
-                break;
-            } else {
-                this.data[binds[i].value] = exprs[i];
-            }
-        }
-    }
-    return this;
-}
-Env.prototype.find = function (key) {
-    if (key in this.data) { return this; }
-    else if (this.outer) {  return this.outer.find(key); }
-    else { return null; }
-};
-Env.prototype.set = function(key, value) { this.data[key] = value; return value; },
-Env.prototype.get = function(key) {
-    var env = this.find(key);
-    if (!env) { throw new Error("'" + key + "' not found"); }
-    return env.data[key];
-};
-
-// types.ns is namespace of type functions
-var ns = {'pr-str': pr_str, 'str': str, 'prn': prn, 'println': println,
-          'with-meta': with_meta, 'meta': meta,
-          type: obj_type, '=': equal_Q,
-          symbol: symbol, 'symbol?': symbol_Q,
-          'nil?': nil_Q, 'true?': true_Q, 'false?': false_Q,
-          '<'  : function(a,b){return a<b;},
-          '<=' : function(a,b){return a<=b;},
-          '>'  : function(a,b){return a>b;},
-          '>=' : function(a,b){return a>=b;},
-          '+'  : function(a,b){return a+b;},
-          '-'  : function(a,b){return a-b;},
-          '*'  : function(a,b){return a*b;},
-          '/'  : function(a,b){return a/b;},
-          'throw': mal_throw,
-          'list': list, 'list?': list_Q,
-          'vector': vector, 'vector?': vector_Q,
-          'hash-map': hash_map, 'map?': hash_map_Q,
-          'assoc': assoc, 'dissoc': dissoc, 'get': get,
-          'contains?': contains_Q, 'keys': keys, 'vals': vals,
-          'atom': atom, 'atom?': atom_Q,
-          "deref": deref, "reset!": reset_BANG, "swap!": swap_BANG,
-          'sequential?': sequential_Q, 'cons': cons, 'nth': nth,
-          'empty?': empty_Q, 'count': count, 'concat': concat,
-          'conj': conj, 'first': first, 'rest': rest,
-          'apply': apply, 'map': map};
-
-exports.ns = types.ns = ns;
-exports._pr_str = types._pr_str = _pr_str;
-exports.prn = types.prn = prn;
-exports.Env = types.Env = Env;
-
-exports.symbol = types.symbol = symbol;
-exports.symbol_Q = types.symbol_Q = symbol_Q;
-exports.hash_map = types.hash_map = hash_map;
-exports.hash_map_Q = types.hash_map_Q = hash_map_Q;
-exports.new_function = types.new_function = new_function;
-exports.list = types.list = list;
-exports.list_Q = types.list_Q = list_Q;
-exports.vector = types.vector = vector;
-exports.vector_Q = types.vector_Q = vector_Q;
-
-exports.sequential_Q = types.sequential_Q = sequential_Q;
-exports.cons = types.cons = cons;
-exports.concat = types.concat = concat;
-exports.first = types.first = first;
-exports.rest = types.rest = rest;
-exports.apply = types.apply = apply;
-exports.map = types.map = map;
+// Exports
+exports._obj_type = types._obj_type = _obj_type;
+exports._sequential_Q = types._sequential_Q = _sequential_Q;
+exports._equal_Q = types._equal_Q = _equal_Q;
+exports._clone = types._clone = _clone;
+exports._nil_Q = types._nil_Q = _nil_Q;
+exports._true_Q = types._true_Q = _true_Q;
+exports._false_Q = types._false_Q = _false_Q;
+exports._symbol = types._symbol = _symbol;
+exports._symbol_Q = types._symbol_Q = _symbol_Q;
+exports._function = types._function = _function;
+exports._function_Q = types._function_Q = _function_Q;
+exports._list = types._list = _list;
+exports._list_Q = types._list_Q = _list_Q;
+exports._vector = types._vector = _vector;
+exports._vector_Q = types._vector_Q = _vector_Q;
+exports._hash_map = types._hash_map = _hash_map;
+exports._hash_map_Q = types._hash_map_Q = _hash_map_Q;
+exports._assoc_BANG = types._assoc_BANG = _assoc_BANG;
+exports._dissoc_BANG = types._dissoc_BANG = _dissoc_BANG;
+exports._atom = types._atom = _atom;
+exports._atom_Q = types._atom_Q = _atom_Q;

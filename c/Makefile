@@ -6,8 +6,10 @@ LDFLAGS += -g
 
 TESTS =
 
-SOURCES = types.h types.c readline.h readline.c reader.h reader.c \
-          interop.h interop.c stepA_more.c
+SOURCES = readline.h readline.c types.h types.c \
+          reader.h reader.c printer.h printer.c \
+          env.c core.h core.c interop.h interop.c \
+          stepA_more.c
 
 #####################
 
@@ -16,8 +18,8 @@ SRCS = step0_repl.c step1_read_print.c step2_eval.c step3_env.c \
        step8_macros.c step9_interop.c stepA_more.c
 OBJS = $(SRCS:%.c=%.o)
 BINS = $(OBJS:%.o=%)
-OTHER_OBJS = types.o readline.o reader.o interop.o
-OTHER_HDRS = types.h readline.h reader.h interop.h
+OTHER_OBJS = types.o readline.o reader.o printer.o env.o core.o interop.o
+OTHER_HDRS = types.h readline.h reader.h printer.h       core.h interop.h
 
 GLIB_CFLAGS ?= $(shell pkg-config --cflags glib-2.0)
 GLIB_LDFLAGS ?= $(shell pkg-config --libs glib-2.0)

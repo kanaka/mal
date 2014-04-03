@@ -1,10 +1,10 @@
 (ns step4-if-fn-do
     (:require [clojure.repl]
-              [types]
               [readline]
-              [reader]))
-
-(declare EVAL)
+              [reader]
+              [printer]
+              [env]
+              [core]))
 
 ;; read
 (defn READ [& [strng]]
@@ -12,9 +12,10 @@
     (reader/read-string strng)))
 
 ;; eval
+(declare EVAL)
 (defn eval-ast [ast env]
   (cond
-    (symbol? ast) (types/env-get env ast)
+    (symbol? ast) (env/env-get env ast)
    
     (seq? ast)    (doall (map #(EVAL % env) ast))
 
@@ -34,12 +35,12 @@
     (let [[a0 a1 a2 a3] ast]
       (condp = a0
         'def!
-        (types/env-set env a1 (EVAL a2 env))
+        (env/env-set env a1 (EVAL a2 env))
 
         'let*
-        (let [let-env (types/env env)]
+        (let [let-env (env/env env)]
           (doseq [[b e] (partition 2 a1)]
-            (types/env-set let-env b (EVAL e let-env)))
+            (env/env-set let-env b (EVAL e let-env)))
           (EVAL a2 let-env))
 
         'do
@@ -55,7 +56,7 @@
 
         'fn*
         (fn [& args]
-          (EVAL a2 (types/env env a1 args)))
+          (EVAL a2 (env/env env a1 args)))
 
         ;; apply
         (let [el (eval-ast ast env)
@@ -67,15 +68,15 @@
 (defn PRINT [exp] (pr-str exp))
 
 ;; repl
-(def repl-env (types/env))
+(def repl-env (env/env))
 (defn rep
   [strng]
   (PRINT (EVAL (READ strng), repl-env)))
 
-(defn _ref [k,v] (types/env-set repl-env k v))
+(defn _ref [k,v] (env/env-set repl-env k v))
 
 ;; Import types related functions
-(doseq [[k v] types/types_ns] (_ref k v))
+(doseq [[k v] core/core_ns] (_ref k v))
 
 ;; Defined using the language itself
 (rep "(def! not (fn* [a] (if a false true)))")

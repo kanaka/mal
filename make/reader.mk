@@ -55,10 +55,10 @@ endef
 define READ_ATOM
 $(foreach ch,$(word 1,$($(1))),\
   $(if $(filter $(NUMBERS),$(ch)),\
-    $(call number,$(call READ_NUMBER,$(1))),\
+    $(call _number,$(call READ_NUMBER,$(1))),\
   $(if $(filter $(DQUOTE),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call _string,$(strip $(call READ_STRING,$(1))))\
+    $(call __string,$(strip $(call READ_STRING,$(1))))\
     $(eval $(if $(filter $(DQUOTE),$(word 1,$($(1)))),\
            $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
            $(call _error,Expected '$(DQUOTE)' in; $($(1))))),\
@@ -69,7 +69,7 @@ $(foreach ch,$(word 1,$($(1))),\
       $(__true),\
     $(if $(call _EQ,false,$(sym)),\
       $(__false),\
-      $(call symbol,$(sym)))))))))
+      $(call _symbol,$(sym)))))))))
 endef
 
 # read and return tokens until $(2) found
@@ -111,28 +111,28 @@ $(foreach ch,$(word 1,$($(1))),\
     $(call DROP_UNTIL,$(1),$(_NL)),\
   $(if $(filter $(SQUOTE),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call list,$(call symbol,quote) $(strip $(call READ_FORM,$(1)))),\
+    $(call _list,$(call _symbol,quote) $(strip $(call READ_FORM,$(1)))),\
   $(if $(filter $(QQUOTE),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call list,$(call symbol,quasiquote) $(strip $(call READ_FORM,$(1)))),\
+    $(call _list,$(call _symbol,quasiquote) $(strip $(call READ_FORM,$(1)))),\
   $(if $(filter $(UNQUOTE),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call list,$(call symbol,unquote) $(strip $(call READ_FORM,$(1)))),\
+    $(call _list,$(call _symbol,unquote) $(strip $(call READ_FORM,$(1)))),\
   $(if $(filter $(_SUQ),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call list,$(call symbol,splice-unquote) $(strip $(call READ_FORM,$(1)))),\
+    $(call _list,$(call _symbol,splice-unquote) $(strip $(call READ_FORM,$(1)))),\
   $(if $(filter $(CARET),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
     $(foreach meta,$(strip $(call READ_FORM,$(1))),\
-      $(call list,$(call symbol,with-meta) $(strip $(call READ_FORM,$(1))) $(meta))),\
+      $(call _list,$(call _symbol,with-meta) $(strip $(call READ_FORM,$(1))) $(meta))),\
   $(if $(filter $(ATSIGN),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(call list,$(call symbol,deref) $(strip $(call READ_FORM,$(1)))),\
+    $(call _list,$(call _symbol,deref) $(strip $(call READ_FORM,$(1)))),\
   $(if $(filter $(_RC),$(ch)),\
     $(call _error,Unexpected '$(RCURLY)'),\
   $(if $(filter $(_LC),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
-    $(foreach thm,$(call hash_map),\
+    $(foreach thm,$(call _hash_map),\
       $(call do,$(call _assoc_seq!,$(thm),$(strip $(call READ_UNTIL,$(1),$(_RC),$(RCURLY)))))\
       $(eval $(if $(filter $(_RC),$(word 1,$($(1)))),\
                $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\

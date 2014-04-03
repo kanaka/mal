@@ -4,6 +4,9 @@
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(_TOP_DIR)types.mk
 include $(_TOP_DIR)reader.mk
+include $(_TOP_DIR)printer.mk
+include $(_TOP_DIR)env.mk
+include $(_TOP_DIR)core.mk
 
 SHELL := /bin/bash
 INTERACTIVE ?= yes

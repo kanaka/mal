@@ -2,7 +2,8 @@
 TESTS =
 
 
-SOURCES = mal_types.py mal_readline.py reader.py stepA_more.py
+SOURCES = mal_readline.py mal_types.py reader.py printer.py \
+          env.py core.py stepA_more.py
 
 #all: mal.sh
 #

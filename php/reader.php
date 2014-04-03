@@ -10,9 +10,11 @@ class Reader {
         $this->position = 0;
     }
     public function next() {
+        if ($this->position >= count($this->tokens)) { return null; }
         return $this->tokens[$this->position++];
     }
     public function peek() {
+        if ($this->position >= count($this->tokens)) { return null; }
         return $this->tokens[$this->position];
     }
 }
@@ -45,18 +47,18 @@ function read_atom($reader) {
     } elseif ($token === "false") {
         return false;
     } else {
-        return new_symbol($token);
+        return _symbol($token);
     }
 }
 
-function read_list($reader, $constr='new_list', $start='(', $end=')') {
+function read_list($reader, $constr='_list', $start='(', $end=')') {
     $ast = $constr();
     $token = $reader->next();
     if ($token !== $start) {
         throw new Exception("expected '" . $start . "'");
     }
     while (($token = $reader->peek()) !== $end) {
-        if ($token === "") {
+        if ($token === "" || $token === null) {
             throw new Exception("expected '" . $end . "', got EOF");
         }
         $ast[] = read_form($reader);
@@ -66,39 +68,39 @@ function read_list($reader, $constr='new_list', $start='(', $end=')') {
 }
 
 function read_hash_map($reader) {
-    $lst = read_list($reader, 'new_list', '{', '}');
-    return call_user_func_array('new_hash_map', $lst->getArrayCopy());
+    $lst = read_list($reader, '_list', '{', '}');
+    return call_user_func_array('_hash_map', $lst->getArrayCopy());
 }
 
 function read_form($reader) {
     $token = $reader->peek();
     switch ($token) {
     case '\'': $reader->next();
-               return new_list(new_symbol('quote'),
+               return _list(_symbol('quote'),
                                read_form($reader));
     case '`':  $reader->next();
-               return new_list(new_symbol('quasiquote'),
+               return _list(_symbol('quasiquote'),
                                read_form($reader));
     case '~':  $reader->next();
-               return new_list(new_symbol('unquote'),
+               return _list(_symbol('unquote'),
                                read_form($reader));
     case '~@': $reader->next();
-               return new_list(new_symbol('splice-unquote'),
+               return _list(_symbol('splice-unquote'),
                                read_form($reader));
     case '^':  $reader->next();
                $meta = read_form($reader);
-               return new_list(new_symbol('with-meta'),
+               return _list(_symbol('with-meta'),
                                read_form($reader),
                                $meta);
 
     case '@':  $reader->next();
-               return new_list(new_symbol('deref'),
+               return _list(_symbol('deref'),
                                read_form($reader));
 
     case ')': throw new Exception("unexpected ')'");
     case '(': return read_list($reader);
     case ']': throw new Exception("unexpected ']'");
-    case '[': return read_list($reader, 'new_vector', '[', ']');
+    case '[': return read_list($reader, '_vector', '[', ']');
     case '}': throw new Exception("unexpected '}'");
     case '{': return read_hash_map($reader);
 

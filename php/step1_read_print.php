@@ -3,6 +3,7 @@
 require_once 'readline.php';
 require_once 'types.php';
 require_once 'reader.php';
+require_once 'printer.php';
 
 // read
 function READ($str) {

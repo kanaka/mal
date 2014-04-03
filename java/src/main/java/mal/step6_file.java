@@ -12,6 +12,9 @@ import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
+import mal.printer;
+import mal.env.Env;
+import mal.core;
 
 public class step6_file {
     // read
@@ -26,8 +29,8 @@ public class step6_file {
             return env.get(sym.getName());
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
-            MalList new_lst = types._list_Q(ast) ? new MalList()
-                                                 : (MalList)new MalVector();
+            MalList new_lst = ast.list_Q() ? new MalList()
+                                           : (MalList)new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
@@ -46,20 +49,20 @@ public class step6_file {
     }
 
     public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
-        MalVal a1,a2, a3, res;
+        MalVal a0, a1,a2, a3, res;
         MalList el;
 
         while (true) {
 
-        //System.out.println("EVAL: " + types._pr_str(orig_ast, true));
-        if (!(types._list_Q(orig_ast))) {
+        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+        if (!orig_ast.list_Q()) {
             return eval_ast(orig_ast, env);
         }
 
         // apply list
         MalList ast = (MalList)orig_ast;
         if (ast.size() == 0) { return ast; }
-        MalVal a0 = ast.nth(0);
+        a0 = ast.nth(0);
         String a0sym = a0 instanceof MalSymbol ? ((MalSymbol)a0).getName()
                                                : "__<*fn*>__";
         switch (a0sym) {
@@ -104,7 +107,7 @@ public class step6_file {
             final MalList a1f = (MalList)ast.nth(1);
             final MalVal a2f = ast.nth(2);
             final Env cur_env = env;
-            return new MalFunction (a2f, (mal.types.Env)env, a1f) {
+            return new MalFunction (a2f, (mal.env.Env)env, a1f) {
                 public MalVal apply(MalList args) throws MalThrowable {
                     return EVAL(a2f, new Env(cur_env, a1f, args));
                 }
@@ -117,7 +120,7 @@ public class step6_file {
                 orig_ast = fnast;
                 env = new Env(f.getEnv(), f.getParams(), el.slice(1));
             } else {
-                return f.apply(types._rest(el));
+                return f.apply(el.rest());
             }
         }
 
@@ -126,7 +129,7 @@ public class step6_file {
 
     // print
     public static String PRINT(MalVal exp) {
-        return types._pr_str(exp, true);
+        return printer._pr_str(exp, true);
     }
 
     // REPL
@@ -149,8 +152,8 @@ public class step6_file {
         String prompt = "user> ";
 
         final Env repl_env = new Env(null);
-        for (String key : types.types_ns.keySet()) {
-            _ref(repl_env, key, types.types_ns.get(key));
+        for (String key : core.ns.keySet()) {
+            _ref(repl_env, key, core.ns.get(key));
         }
         _ref(repl_env, "read-string", new MalFunction() {
             public MalVal apply(MalList args) throws MalThrowable {

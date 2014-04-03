@@ -4,6 +4,9 @@
 _TOP_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(_TOP_DIR)types.mk
 include $(_TOP_DIR)reader.mk
+include $(_TOP_DIR)printer.mk
+include $(_TOP_DIR)env.mk
+include $(_TOP_DIR)core.mk
 
 SHELL := /bin/bash
 INTERACTIVE ?= yes
@@ -71,7 +74,7 @@ $(if $(__ERROR),,\
     $(if $(call _EQ,fn*,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
-          $(call function,$$(call EVAL,$(a2),$$(call ENV,$(2),$(a1),$$1))))),\
+          $(call _function,$$(call EVAL,$(a2),$$(call ENV,$(2),$(a1),$$1))))),\
       $(foreach el,$(call EVAL_AST,$(1),$(2)),\
         $(and $(EVAL_DEBUG),$(info invoke: $(call _pr_str,$(el))))\
         $(foreach f,$(call sfirst,$(el)),\
@@ -99,11 +102,11 @@ REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
 REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
 
 # Setup the environment
-_fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call function,$$(call $(2),$$1))))
+_fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call _function,$$(call $(2),$$1))))
 
-# Import types functions
-_import_types = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_types,$(wordlist 3,$(words $(1)),$(1))),)
-$(call _import_types,$(types_ns))
+# Import core namespace
+_import_core = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_core,$(wordlist 3,$(words $(1)),$(1))),)
+$(call _import_core,$(core_ns))
 
 # Defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))

@@ -39,8 +39,8 @@ assert_eq $LINENO ${__true} "string? ${STR2}"
 
 
 echo "Testing function objects"
-assert_eq $LINENO "function" "new_function \"echo hello\"; _obj_type \$r"
-new_function "r=\"arg1:'\$1' arg2:'\$2'\""; FN1="${r}"
+assert_eq $LINENO "function" "_function \"echo hello\"; _obj_type \$r"
+_function "r=\"arg1:'\$1' arg2:'\$2'\""; FN1="${r}"
 assert_eq $LINENO ${__true} "function? ${FN1}"
 assert_eq $LINENO "arg1:'A' arg2:'B'" "${ANON["${FN1}"]} A B"
 
@@ -105,7 +105,7 @@ echo "Testing _map/map function"
 list; conj "${r}" 1 2 3; L5="${r}"
 inc () { r=$(( ${1} + 1)); }
 assert_eq $LINENO "2 3 4" "_map inc ${L5}; r=\${ANON[\$r]}"
-new_function "r=\$(( \$1 + 1 ));"; inc_func="${r}"
+_function "r=\$(( \$1 + 1 ));"; inc_func="${r}"
 assert_eq $LINENO "2 3 4" "map ${inc_func} ${L5}; r=\${ANON[\$r]}"
 
 

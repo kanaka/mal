@@ -1,5 +1,8 @@
 var types = require('./types');
 var reader = require('./reader');
+var printer = require('./printer');
+var Env = require('./env').Env;
+var core = require('./core');
 if (typeof module !== 'undefined') {
     var readline = require('./node_readline');
 }
@@ -11,15 +14,15 @@ function READ(str) {
 
 // eval
 function eval_ast(ast, env) {
-    if (types.symbol_Q(ast)) {
+    if (types._symbol_Q(ast)) {
         return env.get(ast);
-    } else if (types.list_Q(ast)) {
+    } else if (types._list_Q(ast)) {
         return ast.map(function(a) { return EVAL(a, env); });
-    } else if (types.vector_Q(ast)) {
+    } else if (types._vector_Q(ast)) {
         var v = ast.map(function(a) { return EVAL(a, env); });
         v.__isvector__ = true;
         return v;
-    } else if (types.hash_map_Q(ast)) {
+    } else if (types._hash_map_Q(ast)) {
         var new_hm = {};
         for (k in ast) {
             new_hm[EVAL(k, env)] = EVAL(ast[k], env);
@@ -31,7 +34,7 @@ function eval_ast(ast, env) {
 }
 
 function _EVAL(ast, env) {
-    if (!types.list_Q(ast)) {
+    if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
 
@@ -42,7 +45,7 @@ function _EVAL(ast, env) {
         var res = EVAL(a2, env);
         return env.set(a1, res);
     case "let*":
-        var let_env = new types.Env(env);
+        var let_env = new Env(env);
         for (var i=0; i < a1.length; i+=2) {
             let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
         }
@@ -59,7 +62,7 @@ function _EVAL(ast, env) {
         }
     case "fn*":
         return function() {
-            return EVAL(a2, new types.Env(env, a1, arguments));
+            return EVAL(a2, new Env(env, a1, arguments));
         };
     default:
         var el = eval_ast(ast, env), f = el[0];
@@ -74,16 +77,16 @@ function EVAL(ast, env) {
 
 // print
 function PRINT(exp) {
-    return types._pr_str(exp, true);
+    return printer._pr_str(exp, true);
 }
 
 // repl
-var repl_env = new types.Env();
+var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
 _ref = function (k,v) { repl_env.set(k, v); }
 
-// Import types functions
-for (var n in types.ns) { repl_env.set(n, types.ns[n]); }
+// Import core functions
+for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
 
 // Defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");

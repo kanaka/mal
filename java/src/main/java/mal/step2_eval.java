@@ -9,6 +9,7 @@ import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
+import mal.printer;
 
 public class step2_eval {
     // read
@@ -23,8 +24,8 @@ public class step2_eval {
             return (MalVal)env.get(sym.getName());
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
-            MalList new_lst = types._list_Q(ast) ? new MalList()
-                                                 : (MalList)new MalVector();
+            MalList new_lst = ast.list_Q() ? new MalList()
+                                           : (MalList)new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
@@ -44,8 +45,8 @@ public class step2_eval {
 
     public static MalVal EVAL(MalVal orig_ast, HashMap env) throws MalThrowable {
         MalVal a0;
-        //System.out.println("EVAL: " + types._pr_str(orig_ast, true));
-        if (!(types._list_Q(orig_ast))) {
+        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+        if (!orig_ast.list_Q()) {
             return eval_ast(orig_ast, env);
         }
 
@@ -55,17 +56,20 @@ public class step2_eval {
         a0 = ast.nth(0);
         if (!(a0 instanceof MalSymbol)) {
             throw new MalError("attempt to apply on non-symbol '"
-                    + types._pr_str(a0,true) + "'");
+                    + printer._pr_str(a0,true) + "'");
         }
-        MalVal args = eval_ast(types._rest(ast), env);
+        MalVal args = eval_ast(ast.rest(), env);
         MalSymbol fsym = (MalSymbol)a0;
         ILambda f = (ILambda)env.get(fsym.getName());
+        if (f == null) {
+            throw new MalError("'" + fsym.getName() + "' not found");
+        }
         return f.apply((MalList)args);
     }
 
     // print
     public static String PRINT(MalVal exp) {
-        return types._pr_str(exp, true);
+        return printer._pr_str(exp, true);
     }
 
     // REPL
@@ -110,7 +114,7 @@ public class step2_eval {
         repl_env.put("*", new multiply());
         repl_env.put("/", new divide());
 
-        if (args[0].equals("--raw")) {
+        if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;
         }
         while (true) {

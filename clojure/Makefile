@@ -1,7 +1,8 @@
 
 TESTS =
 
-SOURCES = src/types.clj src/readline.clj src/reader.clj src/stepA_more.clj
+SOURCES = src/readline.clj src/reader.clj src/printer.clj \
+	  src/env.clj src/core.clj src/stepA_more.clj
 
 all:
 

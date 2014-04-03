@@ -3,10 +3,32 @@
 
 #include <glib.h>
 
-// State
 
 struct MalVal; // pre-declare
+
+
+// Env (implentation in env.c)
+
+typedef struct Env {
+    struct Env *outer;
+    GHashTable *table;
+} Env;
+
+Env *new_env(Env *outer, struct MalVal* binds, struct MalVal *exprs);
+Env *env_find(Env *env, char *key);
+struct MalVal *env_get(Env *env, char *key);
+Env *env_set(Env *env, char *key, struct MalVal *val);
+
+
+// Utility functiosn
+void g_hash_table_print(GHashTable *hash_table);
+GHashTable *g_hash_table_copy(GHashTable *src_table);
+
+
+// Errors/exceptions
+
 extern struct MalVal *mal_error;
+void _error(const char *fmt, ...);
 
 #define abort(format, ...) \
     { _error(format, ##__VA_ARGS__); return NULL; }
@@ -23,6 +45,7 @@ extern struct MalVal *mal_error;
         return NULL; \
     }
 
+
 typedef enum {
     MAL_NIL = 1,
     MAL_TRUE = 2,
@@ -38,10 +61,6 @@ typedef enum {
     MAL_FUNCTION_C = 2048,
     MAL_FUNCTION_MAL = 4096,
 } MalType;
-
-
-// Predeclare Env
-typedef struct Env Env;
 
 typedef struct MalVal {
     MalType type;
@@ -112,51 +131,24 @@ MalVal *malval_new_float(gdouble val);
 MalVal *malval_new_string(char *val);
 MalVal *malval_new_symbol(char *val);
 MalVal *malval_new_list(MalType type, GArray *val);
+MalVal *malval_new_hash_map(GHashTable *val);
+MalVal *malval_new_atom(MalVal *val);
 MalVal *malval_new_function(void *(*func)(void *), int arg_cnt, MalVal* metadata);
 
-MalVal *hash_map(MalVal *args);
-void _error(const char *fmt, ...);
-MalVal *_list(int count, ...);
+MalVal *_listX(int count, ...);
+MalVal *_list(MalVal *args);
+MalVal *_vector(MalVal *args);
+MalVal *_hash_map(MalVal *args);
+MalVal *_assoc_BANG(MalVal* hm, MalVal *args);
+MalVal *_dissoc_BANG(MalVal* hm, MalVal *args);
 
-MalVal *apply(MalVal *f, MalVal *el);
+MalVal *_apply(MalVal *f, MalVal *el);
 
 char *_pr_str(MalVal *args, int print_readably);
 
-MalVal *first(MalVal* seq);
-MalVal *last(MalVal* seq);
 MalVal *_slice(MalVal *seq, int start, int end);
 MalVal *_nth(MalVal *seq, int idx);
-MalVal *rest(MalVal *seq);
 
 MalVal *_map2(MalVal *(*func)(void*, void*), MalVal *lst, void *arg2);
-
-// These are just used by step2 and step3 before then type_ns environment is
-// imported
-
-MalVal *int_plus(MalVal *a, MalVal *b);
-MalVal *int_minus(MalVal *a, MalVal *b);
-MalVal *int_multiply(MalVal *a, MalVal *b);
-MalVal *int_divide(MalVal *a, MalVal *b);
-
-// Env
-
-typedef struct Env {
-    struct Env *outer;
-    GHashTable *table;
-} Env;
-
-Env *new_env(Env *outer, MalVal* binds, MalVal *exprs);
-Env *env_find(Env *env, char *key);
-MalVal *env_get(Env *env, char *key);
-Env *env_set(Env *env, char *key, MalVal *val);
-
-// namespace of type functions
-typedef struct {
-    char *name;
-    void *(*func)(void*);
-    int arg_cnt;
-} types_ns_entry;
-
-extern types_ns_entry types_ns[49];
 
 #endif

@@ -6,6 +6,7 @@
 #include "types.h"
 #include "readline.h"
 #include "reader.h"
+#include "core.h"
 #include "interop.h"
 
 // Declarations
@@ -36,7 +37,7 @@ int is_pair(MalVal *x) {
 
 MalVal *quasiquote(MalVal *ast) {
     if (!is_pair(ast)) {
-        return _list(2, malval_new_symbol("quote"), ast);
+        return _listX(2, malval_new_symbol("quote"), ast);
     } else {
         MalVal *a0 = _nth(ast, 0);
         if ((a0->type & MAL_SYMBOL) &&
@@ -46,14 +47,14 @@ MalVal *quasiquote(MalVal *ast) {
             MalVal *a00 = _nth(a0, 0);
             if ((a00->type & MAL_SYMBOL) &&
                 strcmp("splice-unquote", a00->val.string) == 0) {
-                return _list(3, malval_new_symbol("concat"),
-                                _nth(a0, 1),
-                                quasiquote(rest(ast)));
+                return _listX(3, malval_new_symbol("concat"),
+                                 _nth(a0, 1),
+                                 quasiquote(rest(ast)));
             }
         }
-        return _list(3, malval_new_symbol("cons"),
-                        quasiquote(a0),
-                        quasiquote(rest(ast)));
+        return _listX(3, malval_new_symbol("cons"),
+                         quasiquote(a0),
+                         quasiquote(rest(ast)));
     }
 }
 
@@ -91,8 +92,8 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
 
 MalVal *EVAL(MalVal *ast, Env *env) {
     while (TRUE) {
-        //g_print("EVAL: %s\n", _pr_str(ast,1));
         if (!ast || mal_error) return NULL;
+        //g_print("EVAL: %s\n", _pr_str(ast,1));
         if (ast->type != MAL_LIST) {
             return eval_ast(ast, env);
         }
@@ -183,7 +184,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                 env = new_env(f->val.func.env, f->val.func.args, args);
                 // Continue loop
             } else {
-                return apply(f, args);
+                return _apply(f, args);
             }
         }
     }
@@ -245,9 +246,9 @@ void init_repl_env() {
     repl_env = new_env(NULL, NULL, NULL);
 
     int i;
-    for(i=0; i< (sizeof(types_ns) / sizeof(types_ns[0])); i++) {
-        MalVal *(*f)(MalVal *) = (MalVal*(*)(MalVal*))types_ns[i].func;
-        _ref(types_ns[i].name, f, types_ns[i].arg_cnt);
+    for(i=0; i< (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
+        MalVal *(*f)(MalVal *) = (MalVal*(*)(MalVal*))core_ns[i].func;
+        _ref(core_ns[i].name, f, core_ns[i].arg_cnt);
     }
 
     MalVal *read_string(MalVal *str) {

@@ -1,5 +1,5 @@
 import re
-from mal_types import (new_symbol, Symbol, new_hash_map, List, new_list, Vector)
+from mal_types import (_symbol, _list, _vector, _hash_map)
 
 class Blank(Exception): pass
 
@@ -32,7 +32,7 @@ def read_atom(reader):
     elif token == "nil":            return None
     elif token == "true":           return True
     elif token == "false":          return False
-    else:                           return Symbol(token)
+    else:                           return _symbol(token)
 
 def read_sequence(reader, typ=list, start='(', end=')'):
     ast = typ()
@@ -49,13 +49,13 @@ def read_sequence(reader, typ=list, start='(', end=')'):
 
 def read_hash_map(reader):
     lst = read_sequence(reader, list, '{', '}')
-    return new_hash_map(*lst)
+    return _hash_map(*lst)
 
 def read_list(reader):
-    return read_sequence(reader, List, '(', ')')
+    return read_sequence(reader, _list, '(', ')')
 
 def read_vector(reader):
-    return read_sequence(reader, Vector, '[', ']')
+    return read_sequence(reader, _vector, '[', ']')
 
 def read_form(reader):
     token = reader.peek()
@@ -65,23 +65,23 @@ def read_form(reader):
         return None
     elif token == '\'':
         reader.next()
-        return new_list(Symbol('quote'), read_form(reader))
+        return _list(_symbol('quote'), read_form(reader))
     elif token == '`':
         reader.next()
-        return new_list(Symbol('quasiquote'), read_form(reader))
+        return _list(_symbol('quasiquote'), read_form(reader))
     elif token == '~':
         reader.next()
-        return new_list(Symbol('unquote'), read_form(reader))
+        return _list(_symbol('unquote'), read_form(reader))
     elif token == '~@':
         reader.next()
-        return new_list(Symbol('splice-unquote'), read_form(reader))
+        return _list(_symbol('splice-unquote'), read_form(reader))
     elif token == '^':
         reader.next()
         meta = read_form(reader)
-        return new_list(Symbol('with-meta'), read_form(reader), meta)
+        return _list(_symbol('with-meta'), read_form(reader), meta)
     elif token == '@':
         reader.next()
-        return new_list(Symbol('deref'), read_form(reader))
+        return _list(_symbol('deref'), read_form(reader))
 
     # list
     elif token == ')': raise Exception("unexpected ')'")

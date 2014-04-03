@@ -1,8 +1,8 @@
 (ns step1-read-print
     (:require [clojure.repl]
-              [types]
               [readline]
-              [reader]))
+              [reader]
+              [printer]))
 
 ;; read
 (defn READ [& [strng]]

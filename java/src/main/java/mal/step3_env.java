@@ -9,6 +9,9 @@ import java.util.Iterator;
 import mal.types.*;
 import mal.readline;
 import mal.reader;
+import mal.printer;
+import mal.env.Env;
+import mal.core;
 
 public class step3_env {
     // read
@@ -23,8 +26,8 @@ public class step3_env {
             return env.get(sym.getName());
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
-            MalList new_lst = types._list_Q(ast) ? new MalList()
-                                                 : (MalList)new MalVector();
+            MalList new_lst = ast.list_Q() ? new MalList()
+                                           : (MalList)new MalVector();
             for (MalVal mv : (List<MalVal>)old_lst.value) {
                 new_lst.conj_BANG(EVAL(mv, env));
             }
@@ -44,8 +47,8 @@ public class step3_env {
 
     public static MalVal EVAL(MalVal orig_ast, Env env) throws MalThrowable {
         MalVal a0, a1,a2, res;
-        //System.out.println("EVAL: " + types._pr_str(orig_ast, true));
-        if (!(types._list_Q(orig_ast))) {
+        //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+        if (!orig_ast.list_Q()) {
             return eval_ast(orig_ast, env);
         }
 
@@ -55,7 +58,7 @@ public class step3_env {
         a0 = ast.nth(0);
         if (!(a0 instanceof MalSymbol)) {
             throw new MalError("attempt to apply on non-symbol '"
-                    + types._pr_str(a0,true) + "'");
+                    + printer._pr_str(a0,true) + "'");
         }
 
         switch (((MalSymbol)a0).getName()) {
@@ -78,7 +81,7 @@ public class step3_env {
             }
             return EVAL(a2, let_env);
         default:
-            MalVal args = eval_ast(types._rest(ast), env);
+            MalVal args = eval_ast(ast.rest(), env);
             MalSymbol fsym = (MalSymbol)a0;
             ILambda f = (ILambda)env.get(fsym.getName());
             return f.apply((MalList)args);
@@ -87,7 +90,7 @@ public class step3_env {
 
     // print
     public static String PRINT(MalVal exp) {
-        return types._pr_str(exp, true);
+        return printer._pr_str(exp, true);
     }
 
     // REPL
@@ -102,12 +105,12 @@ public class step3_env {
         String prompt = "user> ";
 
         Env repl_env = new Env(null);
-        _ref(repl_env, "+", types.add);
-        _ref(repl_env, "-", types.subtract);
-        _ref(repl_env, "*", types.multiply);
-        _ref(repl_env, "/", types.divide);
+        _ref(repl_env, "+", core.add);
+        _ref(repl_env, "-", core.subtract);
+        _ref(repl_env, "*", core.multiply);
+        _ref(repl_env, "/", core.divide);
 
-        if (args[0].equals("--raw")) {
+        if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;
         }
         while (true) {
