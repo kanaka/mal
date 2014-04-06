@@ -50,7 +50,6 @@ Java:
 Postscript:
     - negative numbers
     - quotes/backslashes in strings
-    - vectors, hash-maps, metadata, atoms
 
 Rust:
     - http://www.rustforrubyists.com/book/index.html

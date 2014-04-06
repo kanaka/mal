@@ -1,19 +1,36 @@
-(in types.ps\n) print
+(in printer.ps\n) print
 
 % requires types.ps to be included first
 
+% ast print_readably -> _pr_str -> string
 /_pr_str { 4 dict begin
     /print_readably exch def
     dup
     /func? exch xcheck def % executable function
     /obj exch cvlit def
-    obj _mal_function? { % if user defined function
+    obj _sequential? {
+        obj _list? { (\() (\)) }{ ([) (]) } ifelse
+        obj /data get ( ) print_readably _pr_str_args
+        exch concatenate concatenate
+    }{ obj _hash_map? {
+        ({)
+        % get array of contents with keys stringified
+        [ obj /data get { exch dup length string cvs exch } forall ]
+        ( ) print_readably _pr_str_args
+        concatenate
+        (}) concatenate
+    }{ obj _mal_function? { % if user defined function
         (<\(fn* )
         obj /params get print_readably _pr_str
         ( )
         obj /ast get print_readably _pr_str
         (\)>)
         concatenate concatenate concatenate concatenate
+    }{ obj _atom? { % if atom
+        (\(atom ) 
+        obj /data get print_readably _pr_str
+        (\))
+        concatenate concatenate
     }{ /arraytype obj type eq { % if list or code block
         % accumulate an array of strings
         func? { (<builtin_fn* { ) }{ (\() } ifelse
@@ -39,8 +56,8 @@
     }{ /nametype obj type eq { % if symbol
         obj dup length string cvs
     }{
-        (<unknown>) 
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+        (<unknown>)  
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 end } def
 
 % array delim print_readably -> _pr_str_args -> new_string

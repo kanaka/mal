@@ -17,7 +17,7 @@
 % is_pair?: ast -> is_pair? -> bool
 % return true if non-empty list, otherwise false
 /is_pair? { 
-    dup _list? { length 0 gt }{ pop false } ifelse
+    dup _list? { _count 0 gt }{ pop false } ifelse
 } def
 
 % ast -> quasiquote -> new_ast
@@ -26,13 +26,13 @@
     ast is_pair? not { %if not is_pair?
         /quote ast 2 _list
     }{ 
-        /a0 ast 0 get def
+        /a0 ast 0 _nth def
         a0 /unquote eq { %if a0 unquote symbol
-            ast 1 get
+            ast 1 _nth
         }{ a0 is_pair? { %elseif a0 is_pair?
-            /a00 a0 0 get def
+            /a00 a0 0 _nth def
             a00 /splice-unquote eq { %if splice-unquote
-                /concat a0 1 get ast _rest quasiquote 3 _list
+                /concat a0 1 _nth ast _rest quasiquote 3 _list
             }{ %else not splice-unquote
                 /cons a0 quasiquote ast _rest quasiquote 3 _list
             } ifelse
@@ -46,7 +46,7 @@ end } def
     /env exch def
     /ast exch def
     ast _list? {
-        /a0 ast 0 get def
+        /a0 ast 0 _nth def
         a0 _symbol? { %if a0 is symbol
             env a0 env_find null ne { %if a0 is in env
                 env a0 env_get _mal_function? { %if user defined function
@@ -62,7 +62,7 @@ end } def
     /ast exch def
     {
         ast env is_macro_call? {
-            /mac env   ast 0 get   env_get def
+            /mac env   ast 0 _nth   env_get def
             /ast ast _rest mac fload EVAL def
         }{
             exit
@@ -77,15 +77,21 @@ end } def
     %(eval_ast: ) print ast ==
     ast _symbol? { %if symbol
         env ast env_get
-    }{ ast _list? { %elseif list
+    }{ ast _sequential? { %elseif list or vector
         [
-            ast {
+            ast /data get { %forall items
                 env EVAL
             } forall
-        ]
+        ] ast _list? { _list_from_array }{ _vector_from_array } ifelse
+    }{ ast _hash_map? { %elseif list or vector
+        <<
+            ast /data get { %forall entries
+                env EVAL
+            } forall
+        >> _hash_map_from_dict
     }{ % else
         ast
-    } ifelse } ifelse
+    } ifelse } ifelse } ifelse
 end } def
 
 /EVAL { 13 dict begin
@@ -103,39 +109,39 @@ end } def
       ast _list? not { %if no longer a list
           ast
       }{ %else still a list
-        /a0 ast 0 get def
+        /a0 ast 0 _nth def
         /def! a0 eq { %if def!
-            /a1 ast 1 get def
-            /a2 ast 2 get def
+            /a1 ast 1 _nth def
+            /a2 ast 2 _nth def
             env a1  a2 env EVAL  env_set
         }{ /let* a0 eq { %if let*
-            /a1 ast 1 get def
-            /a2 ast 2 get def
-            /let_env env [ ] [ ] env_new def
-            0 2 a1 length 1 sub { %for each pair
+            /a1 ast 1 _nth def
+            /a2 ast 2 _nth def
+            /let_env env null null env_new def
+            0 2 a1 _count 1 sub { %for each pair
                 /idx exch def
                 let_env
-                    a1 idx get
-                    a1 idx 1 add get let_env EVAL
+                    a1 idx _nth
+                    a1 idx 1 add _nth let_env EVAL
                     env_set
                     pop % discard the return value
             } for
             a2 let_env EVAL
         }{ /quote a0 eq { %if quote
-            ast 1 get
+            ast 1 _nth
         }{ /quasiquote a0 eq { %if quasiquote
-            ast 1 get quasiquote   env EVAL
+            ast 1 _nth quasiquote   env EVAL
         }{ /defmacro! a0 eq { %if defmacro!
-            /a1 ast 1 get def
-            /a2 ast 2 get def
+            /a1 ast 1 _nth def
+            /a2 ast 2 _nth def
             a2 env EVAL
             dup /macro? true put % set macro flag
             env exch a1 exch env_set % def! it
         }{ /macroexpand a0 eq { %if defmacro!
-            ast 1 get env macroexpand
+            ast 1 _nth env macroexpand
         }{ /ps* a0 eq { %if ps*
             count /stackcnt exch def
-            ast 1 get
+            ast 1 _nth
             {
                 token not { exit } if
                 exch
@@ -148,21 +154,18 @@ end } def
                 null % return nil
             } ifelse
         }{ /do a0 eq { %if do
-            ast length 2 gt { %if ast has more than 2 elements
-                ast 1 ast length 2 sub getinterval env eval_ast pop
+            ast _count 2 gt { %if ast has more than 2 elements
+                ast 1 ast _count 2 sub _slice env eval_ast pop
             } if
-            ast ast length 1 sub get % last ast becomes new ast
+            ast ast _count 1 sub _nth % last ast becomes new ast
             env
             /loop? true def % loop
         }{ /try* a0 eq { %if try*
             { %try
                 countdictstack /dictcnt exch def
                 count /stackcnt exch def
-                %(here1:\n) print pstack
-                ast 1 get env EVAL
-                %(here2\n) print
+                ast 1 _nth env EVAL
             } stopped { %catch
-                %(here3:\n) print pstack
                 % clean up the dictionary stack
                 1 1 countdictstack dictcnt sub { %foreach added dict
                     %(popping dict\n) print
@@ -170,7 +173,6 @@ end } def
                     %(new ast: ) print ast true _pr_str print (\n) print
                 } for
                 % clean up the operand stack
-                %(op stack cleanup: ) print count stackcnt sub ==
                 count 1 exch 1 exch stackcnt sub { %foreach added operand
                     %(op stack: ) print pstack
                     pop pop % pop idx and operand
@@ -181,40 +183,38 @@ end } def
                 $error /newerror false put
                 $error /errorinfo null put
 
-                ast length 3 lt { %if no third (catch*) form
+                ast _count 3 lt { %if no third (catch*) form
                     errdata throw
                 } if
-                %(here4: ) print ast true _pr_str print (\n) print
-                ast 2 get 0 get (catch*) eq not { %if third form not catch*
-                    (No catch* in throw form) throw
+                ast 2 _nth 0 _nth (catch*) eq not { %if third form not catch*
+                    (No catch* in throw form) _throw
                 } if
-                %(here5: ) print ast 2 get 2 get true _pr_str print (\n) print
-                ast 2 get 2 get
-                %(here5: ) print ast 2 get 1 get true _pr_str print (\n) print
-                %(here6: ) print errdata true _pr_str print (\n) print
-                env [ ast 2 get 1 get ] [ errdata ] env_new
-                %(here7:\n) print pstack
+                ast 2 _nth 2 _nth
+                env
+                    ast 2 _nth 1 _nth 1 _list
+                    errdata 1 _list
+                    env_new
                 EVAL
             } if
         }{ /if a0 eq { %if if
-            /a1 ast 1 get def
+            /a1 ast 1 _nth def
             /cond a1 env EVAL def
             cond null eq cond false eq or { % if cond is nil or false
-                ast length 3 gt { %if false branch with a3
-                    ast 3 get env
+                ast _count 3 gt { %if false branch with a3
+                    ast 3 _nth env
                     /loop? true def
                 }{ % else false branch with no a3
                     null
                 } ifelse
             }{ % true branch
-                ast 2 get env
+                ast 2 _nth env
                 /loop? true def
             } ifelse
         }{ /fn* a0 eq { %if fn*
-            /a1 ast 1 get def
-            /a2 ast 2 get def
+            /a1 ast 1 _nth def
+            /a2 ast 2 _nth def
             <<
-                /type /_maltype_function % user defined function
+                /_maltype_ /function % user defined function
                 /macro? false % macro flag, false by default
                 /params null % close over parameters
                 /ast null    % close over ast
@@ -251,7 +251,7 @@ end } def
 
 
 % repl
-/repl_env null [ ] [ ] env_new def
+/repl_env null null null env_new def
 
 /RE { READ repl_env EVAL } def
 /REP { READ repl_env EVAL PRINT } def
@@ -259,11 +259,11 @@ end } def
 
 core_ns { _ref } forall
 
-(readline) { 0 get _readline not { null } if } _ref
-(read-string) { 0 get read_str } _ref
-(eval) { 0 get repl_env EVAL } _ref
+(readline) { 0 _nth _readline not { null } if } _ref
+(read-string) { 0 _nth read_str } _ref
+(eval) { 0 _nth repl_env EVAL } _ref
 /slurp { (r) file dup bytesavailable string readstring pop } def
-(slurp) { 0 get slurp } _ref
+(slurp) { 0 _nth slurp } _ref
 
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop

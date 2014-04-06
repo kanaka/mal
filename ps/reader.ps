@@ -64,8 +64,7 @@
     /cnt 0 def
     { % loop
         idx str length ge { %if EOF
-            (unexpected EOF reading string)
-            throw
+            (unexpected EOF reading string) _throw
         } if
         /ch str idx get def  % current character
         /idx idx 1 add def
@@ -110,21 +109,21 @@
     % return: atom string new_idx
 } def
 
-% read_list: read a single list from string/idx
-% string idx -> read_list -> list string new_idx
-/read_list {
-    %(in read_list\n) print
+% read_until: read a list from string/idx until stopchar is found
+% string idx stopchar -> read_until -> list string new_idx
+/read_until {
+    %(in read_until\n) print
+    /stopchar exch def
     /idx exch 1 add def
     /str exch def
     [
     { % loop
         str idx read_spaces /idx exch def pop
         str length idx le { %if EOF
-            (unexpected EOF reading list)
-            throw
+            (unexpected EOF reading list) _throw
         } if
         /ch str idx get def  % current character
-        ch 41 eq { exit } if % ')' is end of list
+        ch stopchar eq { exit } if % stop at stopchar
         str idx read_form /idx exch def pop
     } loop
     ]
@@ -156,9 +155,21 @@
     /idx exch def
     /str exch def
 
-    idx str length ge { exit } if % EOF, break loop
+    idx str length ge { (unexpected EOF) _throw } if % EOF
     /ch str idx get def  % current character
-    ch 39 eq { %if '\''
+    ch 59 eq { %if ';'
+        { % loop
+            /idx idx 1 add def % increment idx
+            str length idx le { exit } if % EOF, break loop
+            /ch str idx get def  % current character
+            % if newline then add 1 more idx and exit
+            ch 10 eq {
+                /idx idx 1 add def
+                exit
+            } if
+        } loop
+        str idx read_form % recur to get next form
+    }{ ch 39 eq { %if '\''
         /idx idx 1 add def
         str idx read_form
         3 -1 roll   /quote exch 2 _list   3 1 roll
@@ -177,21 +188,32 @@
             str idx read_form
             3 -1 roll   /unquote exch 2 _list   3 1 roll
         } ifelse
+    }{ ch 94 eq { %if '^'
+        /idx idx 1 add def
+        str idx read_form read_form % stack: meta form str idx
+        4 2 roll exch   /with-meta 3 1 roll 3 _list   3 1 roll
+    }{ ch 64 eq { %if '@'
+        /idx idx 1 add def
+        str idx read_form
+        3 -1 roll   /deref exch 2 _list   3 1 roll
     }{ ch 40 eq { %if '('
-        str idx read_list
+        str idx 41 read_until
+        3 -1 roll   _list_from_array   3 1 roll
     }{ ch 41 eq { %elseif ')'
-        (unexpected '\)') throw
-    }{ ch 91 eq { %elseif '['
-        (unexpected '[') throw
+        (unexpected '\)') _throw
+    }{ ch 91 eq { %if '('
+        str idx 93 read_until
+        3 -1 roll   _vector_from_array   3 1 roll
     }{ ch 93 eq { %elseif ']'
-        (unexpected ']') throw
+        (unexpected ']') _throw
     }{ ch 123 eq { %elseif '{'
-        (unexpected '{') throw
+        str idx 125 read_until
+        3 -1 roll   _hash_map_from_array   3 1 roll
     }{ ch 125 eq { %elseif '}'
-        (unexpected '}') throw
+        (unexpected '}') _throw
     }{ % else
         str idx read_atom
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 
     % return: ast string new_idx
 end } def

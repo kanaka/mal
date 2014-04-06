@@ -40,18 +40,18 @@
     /otb b type def
 
     a type b type eq
-    a _list? b _list? and
+    a _sequential? b _sequential? and
     or not { %if type mismatch and not sequential
         false
     }{
-        a _list? { %if list
+        a _sequential? { %if list
             /ret true def
-            a length b length eq not { %if length mismatch
+            a _count b _count eq not { %if length mismatch
                 /ret false def
             }{ %else (length is the same)
-                0 1 a length 1 sub {
+                0 1 a _count 1 sub {
                     /idx exch def
-                    a idx get b idx get _equal? not { %if not items _equal?
+                    a idx _nth b idx _nth _equal? not { %if not items _equal?
                         /ret false def
                         exit
                     } if
@@ -64,22 +64,54 @@
     } ifelse
 end } def
 
-/_sequential? { _list? } def
+
+% Low-level sequence operations
+
+/_sequential? { dup _list? exch _vector? or } def
+
+/_count { /data get length } def
 
 /_first {
+    /data get
     dup length 0 gt { 0 get }{ pop null } ifelse
 } def
+
+% seq start count -> _slice -> new_seq
+/_slice {
+    3 -1 roll /data get 3 1 roll % stack: array start count
+    getinterval
+    _list_from_array
+} def
+
+% seq idx -> _nth -> ith_item
+/_nth {
+    exch /data get % stack: idx array
+    dup length 0 gt { exch get }{ pop pop null } ifelse
+} def
+
+% seq -> _rest -> rest_seq
 /_rest {
+    /data get
     dup length 0 gt {
         dup length 1 sub 1 exch getinterval
     }{
         pop 0 array
     } ifelse
+    _list_from_array
 } def
 
 
 
 % Errors/Exceptions
+
+% data -> _throw ->
+% Takes arbitrary data and puts it in $error:/errorinfo. Then calls
+% stop to transfer control to end of nearest stopped context.
+/_throw {
+    $error exch /errorinfo exch put
+    $error /command /throw put
+    stop
+} def
 
 /errorinfo? {
     $error /errorinfo known { % if set
@@ -128,7 +160,7 @@ end } def
 
 /_mal_function? {
     dup type /dicttype eq {
-        /type get /_maltype_function eq
+        /_maltype_ get /function eq
     }{
         pop false
     } ifelse
@@ -150,11 +182,103 @@ end } def
 
 % Lists
 
+% array -> _list_from_array -> mal_list
+/_list_from_array {
+    <<
+        /data 3 -1 roll  % grab the array argument
+        /_maltype_ /list
+        /meta null
+    >>
+} def
+% elem... cnt -> _list -> mal_list
 /_list {
-    array astore
+    array astore _list_from_array
 } def
 /_list? {
-    dup xcheck not exch type /arraytype eq and
+    dup type /dicttype eq {
+        /_maltype_ get /list eq
+    }{
+        pop false
+    } ifelse
 } def
-/_nth { get } def
 
+
+% Vectors
+
+% array -> _vector_from_array -> mal_vector
+/_vector_from_array {
+    <<
+        /data 3 -1 roll  % grab the array argument
+        /_maltype_ /vector
+        /meta null
+    >>
+} def
+% elem... cnt -> _vector -> mal_vector
+/_vector {
+    array astore _vector_from_array
+} def
+/_vector? {
+    dup type /dicttype eq {
+        /_maltype_ get /vector eq
+    }{
+        pop false
+    } ifelse
+} def
+
+
+% Hash Maps
+
+% dict -> _hash_map_from_dict -> mal_hash_map
+/_hash_map_from_dict {
+    <<
+        /data 3 -1 roll
+        /_maltype_ /hash_map
+        /meta null
+    >>
+} def
+% array -> _hash_map_from_array -> mal_hash_map
+/_hash_map_from_array {
+    <<
+        /data <<
+            4 -1 roll  % grab the array argument
+            aload pop  % unpack the array
+        >>
+        /_maltype_ /hash_map
+        /meta null
+    >>
+} def
+% elem... cnt -> _hash_map -> mal_hash_map
+/_hash_map {
+    array astore _hash_map_from_array
+} def
+/_hash_map? {
+    dup type /dicttype eq {
+        /_maltype_ get /hash_map eq
+    }{
+        pop false
+    } ifelse
+} def
+
+
+% Atoms
+
+% obj -> atom -> new_atom
+/_atom {
+    <<
+        /data 3 -1 roll
+        /_maltype_ /atom
+        /meta null
+    >>
+} def
+
+/_atom? {
+    dup type /dicttype eq {
+        /_maltype_ get /atom eq
+    }{
+        pop false
+    } ifelse
+} def
+
+
+
+% Sequence operations

@@ -20,24 +20,31 @@
         env ast known {
             env ast get
         }{
-            (') ast pr_str (' not found)
-            concatenate concatenate throw
+            (') ast false _pr_str (' not found)
+            concatenate concatenate _throw
         } ifelse
-    }{ ast _list? { %elseif list
+    }{ ast _sequential? { %elseif list or vector
         [
-            ast {
+            ast /data get { %forall items
                 env EVAL
             } forall
-        ]
+        ] ast _list? { _list_from_array }{ _vector_from_array } ifelse
+    }{ ast _hash_map? { %elseif list or vector
+        <<
+            ast /data get { %forall entries
+                env EVAL
+            } forall
+        >> _hash_map_from_dict
     }{ % else
         ast
-    } ifelse } ifelse
+    } ifelse } ifelse } ifelse
 end } def
 
 /EVAL { 3 dict begin
     /env exch def
     /ast exch def
-    %(EVAL: ) print ast ==
+
+    %(EVAL: ) print ast true _pr_str print (\n) print
     ast _list? not { %if not a list
         ast env eval_ast
     }{ %else apply the list
@@ -56,10 +63,10 @@ end } def
 
 % repl
 /repl_env <<
-    (+) { dup 0 get exch 1 get add }
-    (-) { dup 0 get exch 1 get sub }
-    (*) { dup 0 get exch 1 get mul }
-    (/) { dup 0 get exch 1 get idiv }
+    (+) { dup 0 _nth exch 1 _nth add }
+    (-) { dup 0 _nth exch 1 _nth sub }
+    (*) { dup 0 _nth exch 1 _nth mul }
+    (/) { dup 0 _nth exch 1 _nth idiv }
 >> def
 
 /REP { READ repl_env EVAL PRINT } def
