@@ -1,6 +1,3 @@
-[submodule "josh.js"]
-	path = js/josh.js
-	url = https://github.com/sdether/josh.js/
 [submodule "js/josh.js"]
 	path = js/josh.js
-	url = https://github.com/sdether/josh.js
+	url = git://github.com/sdether/josh.js
