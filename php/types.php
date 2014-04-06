@@ -167,7 +167,9 @@ function _dissoc_BANG($hm) {
     $args = func_get_args();
     for ($i=1; $i<count($args); $i++) {
         $ktoken = $args[$i];
-        unset($hm[$ktoken]);
+        if ($hm && $hm->offsetExists($ktoken)) {
+            unset($hm[$ktoken]);
+        }
     }
     return $hm;
 }

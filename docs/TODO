@@ -2,20 +2,14 @@ All:
     - multi-line read
     - loop/recur ?
     - hash-maps with non-string keys
+    - hash-map with space in key string (make)
     - gensym reader inside quasiquote
 
-    - synchronize function/definitions order/names in files
-    - move Env into separate file (maybe)?
-    - more metadata, hash_map, interop tests
-        - hash-map with space in key string (make)
-    - metadata on collections: list, vector, hash-map, function, atom
+    - more interop tests
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
 
     - Break out impl eval into step0.5
-    - unindent tco while loop for step5-A
-    - move printing from type to printer
-    - split types into types and core
 
 ---------------------------------------------
 
@@ -49,7 +43,6 @@ Java:
 
 Postscript:
     - negative numbers
-    - quotes/backslashes in strings
 
 Rust:
     - http://www.rustforrubyists.com/book/index.html

@@ -359,7 +359,8 @@ MalVal *with_meta(MalVal *obj, MalVal *meta) {
 }
 
 MalVal *meta(MalVal *obj) {
-    assert_type(obj, MAL_LIST|MAL_VECTOR|MAL_HASH_MAP|MAL_FUNCTION_C|MAL_FUNCTION_MAL,
+    assert_type(obj, MAL_LIST|MAL_VECTOR|MAL_HASH_MAP|
+                     MAL_FUNCTION_C|MAL_FUNCTION_MAL|MAL_ATOM,
                 "attempt to get metadata from non-collection type");
     if (obj->metadata == NULL) {
         return &mal_nil;

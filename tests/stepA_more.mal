@@ -232,6 +232,16 @@
 (meta (with-meta [1 2 3] {"a" 1}))
 ;=>{"a" 1}
 
+(meta (with-meta (list 1 2 3) {"a" 1}))
+;=>{"a" 1}
+
+(meta (with-meta {"abc" 123} {"a" 1}))
+;=>{"a" 1}
+
+;;; Not actually supported by Clojure
+;;;(meta (with-meta (atom 7) {"a" 1}))
+;;;;=>{"a" 1}
+
 (def! lst (with-meta [4 5 6] {"b" 2}))
 ;=>[4 5 6]
 
@@ -239,9 +249,9 @@
 (meta f-wm)
 ;=>{"abc" 1}
 
-(def! f-wm2 ^"str meta" (fn* [a] (+ 1 a)))
+(def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
 (meta f-wm2)
-;=>"str meta"
+;=>{"abc" 1}
 
 
 ;;
