@@ -1,9 +1,9 @@
-var types = require('./types');
-var reader = require('./reader');
-var printer = require('./printer');
-var Env = require('./env').Env;
 if (typeof module !== 'undefined') {
+    var types = require('./types');
     var readline = require('./node_readline');
+    var reader = require('./reader');
+    var printer = require('./printer');
+    var Env = require('./env').Env;
 }
 
 // read
@@ -80,7 +80,8 @@ if (typeof require === 'undefined') {
     readline.rlwrap(function(line) { return rep(line); },
                     function(exc) {
                         if (exc instanceof reader.BlankException) { return; }
-                        if (exc.stack) { console.log(exc.stack); } else { console.log(exc); }
+                        if (exc.stack) { printer.println(exc.stack); }
+                        else           { printer.println(exc); }
                     });
 } else if (require.main === module) {
     // Synchronous node.js commandline mode
@@ -88,10 +89,11 @@ if (typeof require === 'undefined') {
         var line = readline.readline("user> ");
         if (line === null) { break; }
         try {
-            if (line) { console.log(rep(line)); }
+            if (line) { printer.println(rep(line)); }
         } catch (exc) {
             if (exc instanceof reader.BlankException) { continue; }
-            if (exc.stack) { console.log(exc.stack); } else { console.log(exc); }
+            if (exc.stack) { printer.println(exc.stack); }
+            else           { printer.println(exc); }
         }
     }
 } else {

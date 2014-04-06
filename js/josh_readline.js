@@ -90,6 +90,7 @@ var Josh = Josh || {};
         help: _.template("<div><div><strong>Commands:</strong></div><% _.each(commands, function(cmd) { %><div>&nbsp;<%- cmd %></div><% }); %></div>"),
         bad_command: _.template('<div><strong>Unrecognized command:&nbsp;</strong><%=cmd%></div>'),
         input_cmd: _.template('<div id="<%- id %>"><span class="prompt"></span>&nbsp;<span class="input"><span class="left"/><span class="cursor"/><span class="right"/></span></div>'),
+        empty_input_cmd: _.template('<div id="<%- id %>"></div>'),
         input_search: _.template('<div id="<%- id %>">(reverse-i-search)`<span class="searchterm"></span>\':&nbsp;<span class="input"><span class="left"/><span class="cursor"/><span class="right"/></span></div>'),
         suggest: _.template("<div><% _.each(suggestions, function(suggestion) { %><div><%- suggestion %></div><% }); %></div>")
       },
@@ -167,6 +168,19 @@ var Josh = Josh || {};
         self.render();
         _console.log('refreshed ' + _input_id);
 
+      },
+      println: function(text) {
+        var lines = text.split(/\n/);
+        for (var i=0; i<lines.length; i++) {
+          var line = lines[i];
+          if (line == "\\n") {
+              continue;
+          }
+          $(id(_input_id)).after(line);
+          $(id(_input_id) + ' .input .cursor').css('textDecoration', '');
+          $(id(_input_id)).removeAttr('id');
+          $(id(_shell_view_id)).append(self.templates.empty_input_cmd({id:_input_id}));
+        }
       },
       scrollToBottom: function() {
         _panel.animate({scrollTop: _view.height()}, 0);
@@ -394,9 +408,13 @@ readline.rlwrap = function(action) {
                             action: action});
     var promptCounter = 0;
     shell.onNewPrompt(function(callback) {
-    promptCounter++;
-    //callback("[" + promptCounter + "] $");
-    callback("user>");
+        promptCounter++;
+        callback("user>");
     });
     shell.activate();
+
+    // map output/print to josh.js output
+    readline.println = function () {
+        shell.println(Array.prototype.slice.call(arguments).join(" "));
+    };
 }

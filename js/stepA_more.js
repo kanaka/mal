@@ -1,10 +1,10 @@
-var types = require('./types');
-var reader = require('./reader');
-var printer = require('./printer');
-var Env = require('./env').Env;
-var core = require('./core');
 if (typeof module !== 'undefined') {
+    var types = require('./types');
     var readline = require('./node_readline');
+    var reader = require('./reader');
+    var printer = require('./printer');
+    var Env = require('./env').Env;
+    var core = require('./core');
 }
 
 // read
@@ -67,7 +67,7 @@ function eval_ast(ast, env) {
 function _EVAL(ast, env) {
     while (true) {
 
-    //console.log("EVAL:", types._pr_str(ast, true));
+    //printer.println("EVAL:", types._pr_str(ast, true));
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
@@ -181,7 +181,8 @@ if (typeof process !== 'undefined' && process.argv.length > 2) {
     readline.rlwrap(function(line) { return rep(line); },
                     function(exc) {
                         if (exc instanceof reader.BlankException) { return; }
-                        if (exc.stack) { console.log(exc.stack); } else { console.log(exc); }
+                        if (exc.stack) { printer.println(exc.stack); }
+                        else           { printer.println(exc); }
                     });
 } else if (require.main === module) {
     // Synchronous node.js commandline mode
@@ -189,10 +190,11 @@ if (typeof process !== 'undefined' && process.argv.length > 2) {
         var line = readline.readline("user> ");
         if (line === null) { break; }
         try {
-            if (line) { console.log(rep(line)); }
+            if (line) { printer.println(rep(line)); }
         } catch (exc) {
             if (exc instanceof reader.BlankException) { continue; }
-            if (exc.stack) { console.log(exc.stack); } else { console.log(exc); }
+            if (exc.stack) { printer.println(exc.stack); }
+            else           { printer.println(exc); }
         }
     }
 } else {

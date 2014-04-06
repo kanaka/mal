@@ -35,4 +35,5 @@ exports.readline = rlwrap.readline = function(prompt) {
     }
 
     return line;
-}
+};
+var readline = exports;

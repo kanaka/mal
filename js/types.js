@@ -2,9 +2,6 @@
 var types = {};
 if (typeof module === 'undefined') {
     var exports = types;
-} else {
-    // map output/print to console.log
-    var print = exports.print = function () { console.log.apply(console, arguments); };
 }
 
 // General fucnctions

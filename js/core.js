@@ -25,13 +25,13 @@ function str() {
 }
 
 function prn() {
-    printer.print.apply({}, Array.prototype.map.call(arguments,function(exp) {
+    printer.println.apply({}, Array.prototype.map.call(arguments,function(exp) {
         return printer._pr_str(exp, true);
     }));
 }
 
 function println() {
-    printer.print.apply({}, Array.prototype.map.call(arguments,function(exp) {
+    printer.println.apply({}, Array.prototype.map.call(arguments,function(exp) {
         return printer._pr_str(exp, false);
     }));
 }

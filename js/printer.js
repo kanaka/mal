@@ -3,9 +3,14 @@ var printer = {};
 if (typeof module !== 'undefined') {
     var types = require('./types');
     // map output/print to console.log
-    var print = exports.print = function () { console.log.apply(console, arguments); };
+    printer.println = exports.println = function () {
+        console.log.apply(console, arguments);
+    };
 } else {
     var exports = printer;
+    printer.println = function() {
+        readline.println.apply(null, arguments); // josh_readline.js
+    }
 }
 
 function _pr_str(obj, print_readably) {
@@ -27,7 +32,9 @@ function _pr_str(obj, print_readably) {
         return "{" + ret.join(' ') + "}";
     case 'string':
         if (print_readably) {
-            return '"' + obj.replace(/\\/, "\\\\").replace(/"/g, '\\"') + '"';
+            return '"' + obj.replace(/\\/, "\\\\")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, "\\n") + '"'; // string
         } else {
             return obj;
         }
