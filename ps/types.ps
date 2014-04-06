@@ -3,7 +3,7 @@
 % General functions
 
 % concatenate: concatenate two strings or two arrays
-% From Thinking in PostScript 1990 Reid
+% From Thinking in PostScript 1990 Reid, Example 11.7
 % (string1) (string2) concatenate string3
 % array1 array2 concatenate array3
 /concatenate { %def
@@ -31,6 +31,30 @@
     length -1 0 { 1 roll } for % reverse
     ]
 } bind def
+
+% string1 string2 string3 -> replace -> string4
+% Return a string4 with all occurrences of string2 in string1 replaced
+% with string3
+/replace { 4 dict begin
+    /repstr exch def
+    /needle exch def
+    /haystack exch def
+    /result () def
+    { % loop
+        haystack needle search
+        { %if found
+            % stack: post match pre
+            repstr concatenate 3 1 roll pop % stack: pre+ post
+            /haystack exch def % stack: pre+
+            result exch concatenate /result exch def
+        }{
+            result exch concatenate /result exch def
+            exit
+        } ifelse
+    } loop
+    result
+end } def
+
 
 % objA objB -> _equal? -> bool
 /_equal? { 6 dict begin

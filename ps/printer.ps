@@ -43,7 +43,10 @@
         obj 10 slen string cvrs
     }{ /stringtype obj type eq { % if string
         print_readably {
-            (") obj (") concatenate concatenate
+            (")
+            obj (\\) (\\\\) replace
+                (") (\\") replace
+            (") concatenate concatenate
         }{
             obj
         } ifelse

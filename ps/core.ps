@@ -216,7 +216,7 @@ end } def
     (pr-str)  { /data get ( ) true _pr_str_args }
     (str)     { /data get () false _pr_str_args }
     (prn)     { /data get ( ) true _pr_str_args print (\n) print null }
-    (println) { /data get () false _pr_str_args print (\n) print null }
+    (println) { /data get ( ) false _pr_str_args print (\n) print null }
     (<)       { dup 0 _nth exch 1 _nth lt }
     (<=)      { dup 0 _nth exch 1 _nth le }
     (>)       { dup 0 _nth exch 1 _nth gt }
