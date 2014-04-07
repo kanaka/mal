@@ -52,7 +52,7 @@ namespace Mal {
 
         public static MalVal read_atom(Reader rdr) {
             string token = rdr.next();
-            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^""(.*)""$|(^[^""]*$)";
+            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*"")$|(^[^""]*$)";
             Regex regex = new Regex(pattern);
             Match match = regex.Match(token);
             //Console.WriteLine("token: ^" + token + "$");
@@ -68,8 +68,11 @@ namespace Mal {
             } else if (match.Groups[5].Value != String.Empty) {
                 return Mal.types.False;
             } else if (match.Groups[6].Value != String.Empty) {
-                //return new MalString(StringEscapeUtils.unescapeJson(match.Groups[6]));
-                return new Mal.types.MalString(match.Groups[6].Value);
+                string str = match.Groups[6].Value;
+                str = str.Substring(1, str.Length-2)
+                    .Replace("\\\"", "\"")
+                    .Replace("\\n", "\n");
+                return new Mal.types.MalString(str);
             } else if (match.Groups[7].Value != String.Empty) {
                 return new Mal.types.MalSymbol(match.Groups[7].Value);
             } else {

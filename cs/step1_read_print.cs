@@ -4,7 +4,7 @@ using Mal;
 using MalVal = Mal.types.MalVal;
 
 namespace Mal {
-    class step1_repl {
+    class step1_read_print {
         // read
         static MalVal READ(string str) {
             return reader.read_str(str);

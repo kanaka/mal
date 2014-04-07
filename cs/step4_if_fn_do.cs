@@ -13,7 +13,7 @@ using MalFunction = Mal.types.MalFunction;
 using Env = Mal.env.Env;
 
 namespace Mal {
-    class step3_env {
+    class step4_if_fn_do {
         // read
         static MalVal READ(string str) {
             return reader.read_str(str);
@@ -45,7 +45,7 @@ namespace Mal {
 
 
         static MalVal EVAL(MalVal orig_ast, Env env) {
-            MalVal a0, a1, a2, res;
+            MalVal a0, a1, a2, a3, res;
             MalList el;
             //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
             if (!orig_ast.list_Q()) {
@@ -56,12 +56,11 @@ namespace Mal {
             MalList ast = (MalList)orig_ast;
             if (ast.size() == 0) { return ast; }
             a0 = ast.nth(0);
-            if (!(a0 is MalSymbol)) {
-                throw new Mal.types.MalError("attempt to apply on non-symbol '"
-                        + Mal.printer._pr_str(a0,true) + "'");
-            }
 
-            switch (((MalSymbol)a0).getName()) {
+            String a0sym = a0 is MalSymbol ? ((MalSymbol)a0).getName()
+                                           : "__<*fn*>__";
+
+            switch (a0sym) {
             case "def!":
                 a1 = ast.nth(1);
                 a2 = ast.nth(2);
@@ -80,6 +79,31 @@ namespace Mal {
                     let_env.set(key.getName(), EVAL(val, let_env));
                 }
                 return EVAL(a2, let_env);
+            case "do":
+                el = (MalList)eval_ast(ast.rest(), env);
+                return el.nth(el.size()-1);
+            case "if":
+                a1 = ast.nth(1);
+                MalVal cond = EVAL(a1, env);
+                if (cond == Mal.types.Nil || cond == Mal.types.False) {
+                    // eval false slot form
+                    if (ast.size() > 3) {
+                        a3 = ast.nth(3);
+                        return EVAL(a3, env);
+                    } else {
+                        return Mal.types.Nil;
+                    }
+                } else {
+                    // eval true slot form
+                    a2 = ast.nth(2);
+                    return EVAL(a2, env);
+                }
+            case "fn*":
+                MalList a1f = (MalList)ast.nth(1);
+                MalVal a2f = ast.nth(2);
+                Env cur_env = env;
+                return new MalFunction(
+                    args => EVAL(a2f, new Env(cur_env, a1f, args)) );
             default:
                 el = (MalList)eval_ast(ast, env);
                 var f = (MalFunction)el.nth(0);
@@ -100,24 +124,15 @@ namespace Mal {
             return env.set(name, mv);
         }
 
-        static public MalFunction plus = new MalFunction(
-                a => (MalInteger)a[0] + (MalInteger)a[1] );
-        static public MalFunction minus = new MalFunction(
-                a => (MalInteger)a[0] - (MalInteger)a[1] );
-        static public MalFunction multiply = new MalFunction(
-                a => (MalInteger)a[0] * (MalInteger)a[1] );
-        static public MalFunction divide = new MalFunction(
-                a => (MalInteger)a[0] / (MalInteger)a[1] );
-
-
         static void Main(string[] args) {
             string prompt = "user> ";
             
             var repl_env = new Mal.env.Env(null);
-            _ref(repl_env, "+", plus);
-            _ref(repl_env, "-", minus);
-            _ref(repl_env, "*", multiply);
-            _ref(repl_env, "/", divide);
+            foreach (var entry in Mal.core.ns) {
+                _ref(repl_env, entry.Key, entry.Value);
+            }
+
+            RE(repl_env, "(def! not (fn* (a) (if a false true)))");
 
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;

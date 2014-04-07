@@ -12,7 +12,7 @@ using MalHashMap = Mal.types.MalHashMap;
 using MalFunction = Mal.types.MalFunction;
 
 namespace Mal {
-    class step1_repl {
+    class step1_eval {
         // read
         static MalVal READ(string str) {
             return reader.read_str(str);
@@ -74,40 +74,23 @@ namespace Mal {
             return EVAL(READ(str), env);
         }
 
-        class plus : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).add(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-        class minus : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).subtract(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-        class multiply : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).multiply(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-        class divide : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).divide(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-
+        static public MalFunction plus = new MalFunction(
+                a => (MalInteger)a[0] + (MalInteger)a[1] );
+        static public MalFunction minus = new MalFunction(
+                a => (MalInteger)a[0] - (MalInteger)a[1] );
+        static public MalFunction multiply = new MalFunction(
+                a => (MalInteger)a[0] * (MalInteger)a[1] );
+        static public MalFunction divide = new MalFunction(
+                a => (MalInteger)a[0] / (MalInteger)a[1] );
 
         static void Main(string[] args) {
             string prompt = "user> ";
             
             var repl_env = new Dictionary<string, MalVal> {
-                { "+", new plus() },
-                { "-", new minus() },
-                { "*", new multiply() },
-                { "/", new divide() },
+                {"+", plus},
+                {"-", minus},
+                {"*", multiply},
+                {"/", divide},
             };
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;

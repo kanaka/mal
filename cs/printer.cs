@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Mal;
 using MalVal = Mal.types.MalVal;
 using MalList = Mal.types.MalList;
@@ -33,12 +34,14 @@ namespace Mal {
             return mv.ToString(print_readably);
         }
 
-        /*
         public static string _pr_str_args(MalList args, String sep,
                                           bool print_readably) {
-            return join(args.getList(), sep, print_readably);
+            return join(args.getValue(), sep, print_readably);
         }
-        */
+
+        public static string escapeString(string str) {
+            return Regex.Escape(str);
+        }
 
     }
 }

@@ -4,6 +4,9 @@ using Mal;
 
 namespace Mal {
     public class types {
+        //
+        // Exceptiosn/Errors
+        //
         public class MalThrowable : Exception {
             public MalThrowable() : base() { }
             public MalThrowable(string msg) : base(msg) {  }
@@ -23,6 +26,41 @@ namespace Mal {
                 this.value = new MalString(value);
             }
             public MalVal getValue() { return value; }
+        }
+
+        //
+        // General functions
+        //
+
+        public static bool _equal_Q(MalVal a, MalVal b) {
+            Type ota = a.GetType(), otb = b.GetType();
+            if (!((ota == otb) ||
+                (a is MalList && b is MalList))) {
+                return false;
+            } else {
+                if (a is MalInteger) {
+                    return ((MalInteger)a).getValue() ==
+                        ((MalInteger)b).getValue();
+                } else if (a is MalSymbol) {
+                    return ((MalSymbol)a).getName() ==
+                        ((MalSymbol)b).getName();
+                } else if (a is MalString) {
+                    return ((MalString)a).getValue() ==
+                        ((MalString)b).getValue();
+                } else if (a is MalList) {
+                    if (((MalList)a).size() != ((MalList)b).size()) {
+                        return false;
+                    }
+                    for (int i=0; i<((MalList)a).size(); i++) {
+                        if (! _equal_Q(((MalList)a)[i], ((MalList)b)[i])) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
+                    return a == b;
+                }
+            }
         }
 
 
@@ -63,29 +101,29 @@ namespace Mal {
             public override string ToString(bool print_readably) {
                 return value.ToString();
             }
-            public MalInteger add(MalInteger other) {
-                return new MalInteger(value + other.getValue());
+            public static MalConstant operator <(MalInteger a, MalInteger b) {
+                return a.getValue() < b.getValue() ? True : False;
             }
-            public MalInteger subtract(MalInteger other) {
-                return new MalInteger(value - other.getValue());
+            public static MalConstant operator <=(MalInteger a, MalInteger b) {
+                return a.getValue() <= b.getValue() ? True : False;
             }
-            public MalInteger multiply(MalInteger other) {
-                return new MalInteger(value * other.getValue());
+            public static MalConstant operator >(MalInteger a, MalInteger b) {
+                return a.getValue() > b.getValue() ? True : False;
             }
-            public MalInteger divide(MalInteger other) {
-                return new MalInteger(value / other.getValue());
+            public static MalConstant operator >=(MalInteger a, MalInteger b) {
+                return a.getValue() >= b.getValue() ? True : False;
             }
-            public MalConstant lt(MalInteger other) {
-                return (value < other.getValue()) ? True : False;
+            public static MalInteger operator +(MalInteger a, MalInteger b) {
+                return new MalInteger(a.getValue() + b.getValue());
             }
-            public MalConstant lte(MalInteger other) {
-                return (value <= other.getValue()) ? True : False;
+            public static MalInteger operator -(MalInteger a, MalInteger b) {
+                return new MalInteger(a.getValue() - b.getValue());
             }
-            public MalConstant gt(MalInteger other) {
-                return (value > other.getValue()) ? True : False;
+            public static MalInteger operator *(MalInteger a, MalInteger b) {
+                return new MalInteger(a.getValue() * b.getValue());
             }
-            public MalConstant gte(MalInteger other) {
-                return (value >= other.getValue()) ? True : False;
+            public static MalInteger operator /(MalInteger a, MalInteger b) {
+                return new MalInteger(a.getValue() / b.getValue());
             }
         }
 
@@ -114,8 +152,9 @@ namespace Mal {
             }
             public override string ToString(bool print_readably) {
                 if (print_readably) {
-                    //return "\"" + printer.escapeString(value) + "\"";
-                    return "\"" + value + "\"";
+                    return "\"" + value.Replace("\\", "\\\\")
+                        .Replace("\"", "\\\"")
+                        .Replace("\n", "\\n") + "\"";
                 } else {
                     return value;
                 }
@@ -160,6 +199,9 @@ namespace Mal {
 
             public int size() { return value.Count; }
             public MalVal nth(int idx) { return value[idx]; }
+            public MalVal this[int idx] {
+                get { return value[idx]; }
+            }
             public MalList rest() {
                 if (size() > 0) {
                     return new MalList(value.GetRange(1, value.Count-1));
@@ -229,7 +271,7 @@ namespace Mal {
             public override string ToString() {
                 return "{" + printer.join(value, " ", true) + "}";
             }
-            public override string ToString(Boolean print_readably) {
+            public override string ToString(bool print_readably) {
                 return "{" + printer.join(value, " ", print_readably) + "}";
             }
 
@@ -247,9 +289,15 @@ namespace Mal {
             }
         }
 
-        public abstract class MalFunction : MalVal {
-            public abstract MalVal apply(MalList args);
-        }
+        public class MalFunction : MalVal {
+            Func<MalList, MalVal> value = null;
+            public MalFunction(Func<MalList, MalVal> f) {
+                value = f;
+            }
 
+            public MalVal apply(MalList args) {
+                return value(args);
+            }
+        }
     }
 }
