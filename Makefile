@@ -8,7 +8,7 @@ MAL_IMPL = js
 # Settings
 #
 
-IMPLS = bash c clojure java js make php python ps mal
+IMPLS = bash c clojure cs java js make php python ps mal
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -33,6 +33,7 @@ STEP_TEST_FILES = $(strip $(wildcard $(1)/tests/$($(2)).mal) $(wildcard tests/$(
 bash_STEP_TO_PROG = bash/$($(1)).sh
 c_STEP_TO_PROG = c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
+cs_STEP_TO_PROG = cs/$($(1)).exe
 java_STEP_TO_PROG = java/src/main/java/mal/$($(1)).java
 js_STEP_TO_PROG = js/$($(1)).js
 make_STEP_TO_PROG = make/$($(1)).mk
@@ -45,6 +46,8 @@ mal_STEP_TO_PROG = mal/$($(1)).mal
 bash_RUNTEST = ../runtest.py $(4) ../$(1) -- bash ../$(2) $(5)
 c_RUNTEST = ../runtest.py $(4) ../$(1) -- ../$(2) $(5)
 clojure_RUNTEST = ../runtest.py $(4) ../$(1) -- lein with-profile +$(3) trampoline run $(5)
+cs_RUNTEST = ../runtest.py --redirect $(4) ../$(1) -- mono --debug ../$(2) --raw $(5)
+#cs_RUNTEST = ../runtest.py --redirect $(4) ../$(1) -- mono --debug ../$(2) $(5)
 java_RUNTEST = ../runtest.py $(4) ../$(1) -- mvn -quiet exec:java -Dexec.mainClass="mal.$($(3))" -Dexec.args="--raw$(if $(5), $(5),)"
 js_RUNTEST = ../runtest.py $(4) ../$(1) -- node ../$(2) $(5)
 make_RUNTEST = ../runtest.py $(4) ../$(1) -- make -f ../$(2) $(5)

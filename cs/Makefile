@@ -2,37 +2,32 @@
 
 TESTS =
 
-SOURCES = readline.h readline.c types.h types.c \
-          reader.h reader.c printer.h printer.c \
-          env.c core.h core.c interop.h interop.c \
-          stepA_more.c
+SOURCES = readline.cs types.cs reader.cs printer.cs \
+	  step0_repl.cs step1_read_print.cs
+OTHER_SOURCES = getline.cs
 
 #####################
 
-SRCS = step0_repl.cs
-OBJS = $(SRCS:%.cs=%.exe)
-BINS = $(OBJS:%.o=%)
-OTHER_OBJS = getline.dll
+FLAGS = -debug+
+
+OBJS =
+LIB_SRCS = $(filter-out step%,$(OTHER_SOURCES) $(SOURCES))
 
 #####################
 
-all: $(BINS) mal.exe
+all: mal.exe $(patsubst %.cs,%.exe,$(filter step%,$(SOURCES)))
 
-mal.exe: $(word $(words $(OBJS)),$(OBJS))
+mal.exe: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES)))
 	cp $< $@
 
-$(OTHER_OBJS): %.dll: %.cs
-	mcs -target:library -out:$@ $+
+mal.dll: $(LIB_SRCS)
+	mcs $(FLAGS) -target:library $+ -out:$@
 
-$(OBJS): %.exe: %.cs  $(OTHER_OBJS)
-	mcs $(foreach lib,$(OTHER_OBJS),-r:$(lib)) $(@:%.exe=%.cs)
-
-#$(patsubst %.o,%,$(filter step%,$(OBJS))): $(OTHER_OBJS)
-#$(BINS): %: %.o
-#	gcc $+ -o $@ $(LDFLAGS)
+%.exe: %.cs mal.dll
+	mcs $(FLAGS) -r:mal.dll $<
 
 clean:
-	rm -f $(OBJS) $(OTHER_OBJS) mal.exe
+	rm -f *.dll *.exe *.mbd
 
 .PHONY: stats tests $(TESTS)
 

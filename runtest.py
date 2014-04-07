@@ -18,6 +18,8 @@ parser.add_argument('--start-timeout', default=10, type=int,
         help="default timeout for initial prompt")
 parser.add_argument('--test-timeout', default=20, type=int,
         help="default timeout for each individual test action")
+parser.add_argument('--redirect', action='store_true',
+        help="Run implementation in bash and redirect output to /dev/null")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -30,7 +32,12 @@ test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-p = spawn(args.mal_cmd[0], args.mal_cmd[1:])
+if args.redirect:
+    # Redirect to try and force raw mode (no ASCII codes)
+    p = spawn('/bin/bash -c "' + " ".join(args.mal_cmd) + ' |tee /dev/null"')
+else:
+    p = spawn(args.mal_cmd[0], args.mal_cmd[1:])
+
 
 test_idx = 0
 def read_test(data):

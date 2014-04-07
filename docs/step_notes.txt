@@ -17,9 +17,6 @@ Step Notes:
     - types module:
         - add boxed types if no language equivalent:
             - nil, true, false, symbol, integer, string, list
-        - pr_str:
-            - stringify boxed types to their Mal representations
-            - list/array is recursive
     - reader module:
         - stateful reader object
             - alternative: mutate token list
@@ -36,6 +33,10 @@ Step Notes:
         - read_atom
             - return scalar boxed type:
                 - nil, true, false, symbol, integer, string
+    - printer module:
+        - _pr_str:
+            - stringify boxed types to their Mal representations
+            - list/array is recursive
     - repl loop
         - catch errors, print them and continue
         - impls without exception handling will need to have a global

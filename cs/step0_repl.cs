@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Mono.Terminal;
+using Mal;
 
 namespace Mal {
     class step0_repl {
@@ -26,12 +26,11 @@ namespace Mal {
 
         static void Main(string[] args) {
             string prompt = "user> ";
-            LineEditor lineedit = new LineEditor("Mal");
 
             while (true) {
                 string line;
                 try {
-                    line = lineedit.Edit(prompt, "");
+                    line = Mal.readline.Readline(prompt);
                     if (line == null) { break; }
                 } catch (IOException e) {
                     Console.WriteLine("IOException: " + e.Message);
