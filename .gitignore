@@ -19,6 +19,7 @@ c/step9_interop
 c/stepA_more
 cs/*.exe
 cs/*.dll
+cs/*.mdb
 clojure/target
 clojure/.lein-repl-history
 java/target/

@@ -3,7 +3,7 @@
 TESTS =
 
 SOURCES = readline.cs types.cs reader.cs printer.cs \
-	  step0_repl.cs step1_read_print.cs
+	  step0_repl.cs step1_read_print.cs step2_eval.cs
 OTHER_SOURCES = getline.cs
 
 #####################

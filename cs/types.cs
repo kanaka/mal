@@ -16,7 +16,10 @@ namespace Mal {
 
         public abstract class MalVal {
             // Default is just to call regular toString()
-            public abstract string ToString(bool print_readably);
+            public virtual string ToString(bool print_readably) {
+                return "<unknown>";
+            }
+            public virtual bool list_Q() { return false; }
         }
 
         public class MalConstant : MalVal {
@@ -127,6 +130,7 @@ namespace Mal {
             }
 
             public List<MalVal> getValue() { return value; }
+            public override bool list_Q() { return true; }
 
             public override string ToString() {
                 return start + printer.join(value, " ", true) + end;
@@ -140,6 +144,16 @@ namespace Mal {
                     value.Add(mvs[i]);
                 }
                 return this;
+            }
+
+            public int size() { return value.Count; }
+            public MalVal nth(int idx) { return value[idx]; }
+            public MalVal rest() {
+                if (size() > 0) {
+                    return new MalList(value.GetRange(1, value.Count-1));
+                } else {
+                    return new MalList();
+                }
             }
         }
 
@@ -164,6 +178,7 @@ namespace Mal {
                 return (MalVector)this.MemberwiseClone();
             }
 
+            public override bool list_Q() { return false; }
         }
 
         public class MalHashMap : MalVal {
@@ -185,6 +200,8 @@ namespace Mal {
                 return (MalHashMap)this.MemberwiseClone();
             }
 
+            public Dictionary<string, MalVal> getValue() { return value; }
+
             public override string ToString() {
                 return "{" + printer.join(value, " ", true) + "}";
             }
@@ -204,6 +221,10 @@ namespace Mal {
                 }
                 return this;
             }
+        }
+
+        public abstract class MalFunction : MalVal {
+            public abstract MalVal apply(MalList args);
         }
 
     }
