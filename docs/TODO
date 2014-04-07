@@ -19,6 +19,15 @@ Bash:
 C:
     - come up with better way to do 20 vararg code
 
+C#:
+    - http://msdn.microsoft.com/en-us/library/ms228362.aspx
+    - http://www.tutorialspoint.com/csharp
+    - Readline:
+        - http://stackoverflow.com/questions/2024170/is-there-a-net-library-similar-to-gnu-readline
+        - http://tirania.org/blog/archive/2008/Aug-26.html
+        - https://github.com/deveel/deveelrl
+
+
 Clojure:
 
 Java:

@@ -17,6 +17,8 @@ c/step7_quote
 c/step8_macros
 c/step9_interop
 c/stepA_more
+cs/*.exe
+cs/*.dll
 clojure/target
 clojure/.lein-repl-history
 java/target/
