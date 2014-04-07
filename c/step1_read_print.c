@@ -66,7 +66,7 @@ int main()
     // REPL loop
     for(;;) {
         exp = RE(NULL, prompt, NULL);
-        if (mal_error && strcmp("EOF", mal_error) == 0) {
+        if (mal_error && strcmp("EOF", mal_error->val.string) == 0) {
             return 0;
         }
         output = PRINT(exp);
