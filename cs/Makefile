@@ -2,20 +2,22 @@
 
 TESTS =
 
-SOURCES = readline.cs types.cs reader.cs printer.cs \
-	  step0_repl.cs step1_read_print.cs step2_eval.cs
+SOURCES = readline.cs types.cs reader.cs printer.cs env.cs core.cs \
+	  step3_env.cs
+
 OTHER_SOURCES = getline.cs
 
 #####################
 
-FLAGS = -debug+
+SRCS =  step0_repl.cs step1_read_print.cs step2_eval.cs step3_env.cs
 
-OBJS =
 LIB_SRCS = $(filter-out step%,$(OTHER_SOURCES) $(SOURCES))
+
+FLAGS = -debug+
 
 #####################
 
-all: mal.exe $(patsubst %.cs,%.exe,$(filter step%,$(SOURCES)))
+all: mal.exe $(patsubst %.cs,%.exe,$(SRCS))
 
 mal.exe: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES)))
 	cp $< $@

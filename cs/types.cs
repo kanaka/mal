@@ -13,6 +13,18 @@ namespace Mal {
         }
         public class MalContinue : MalThrowable { }
 
+        // Thrown by throw function
+        public class MalException : MalThrowable {
+            MalVal value;
+            public MalException(MalVal value) {
+                this.value = value;
+            }
+            public MalException(string value) {
+                this.value = new MalString(value);
+            }
+            public MalVal getValue() { return value; }
+        }
+
 
         public abstract class MalVal {
             // Default is just to call regular toString()
@@ -148,13 +160,20 @@ namespace Mal {
 
             public int size() { return value.Count; }
             public MalVal nth(int idx) { return value[idx]; }
-            public MalVal rest() {
+            public MalList rest() {
                 if (size() > 0) {
                     return new MalList(value.GetRange(1, value.Count-1));
                 } else {
                     return new MalList();
                 }
             }
+            public virtual MalList slice(int start) {
+                return new MalList(value.GetRange(start, value.Count-start));
+            }
+            public virtual MalList slice(int start, int end) {
+                return new MalList(value.GetRange(start, end-start));
+            }
+
         }
 
         public class MalVector : MalList {
@@ -179,6 +198,11 @@ namespace Mal {
             }
 
             public override bool list_Q() { return false; }
+
+            public override MalList slice(int start, int end) {
+                var val = this.getValue();
+                return new MalVector(val.GetRange(start, val.Count-start));
+            }
         }
 
         public class MalHashMap : MalVal {

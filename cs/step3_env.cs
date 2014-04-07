@@ -10,6 +10,7 @@ using MalList = Mal.types.MalList;
 using MalVector = Mal.types.MalVector;
 using MalHashMap = Mal.types.MalHashMap;
 using MalFunction = Mal.types.MalFunction;
+using Env = Mal.env.Env;
 
 namespace Mal {
     class step1_repl {
@@ -19,10 +20,10 @@ namespace Mal {
         }
 
         // eval
-        static MalVal eval_ast(MalVal ast, Dictionary<string, MalVal> env) {
+        static MalVal eval_ast(MalVal ast, Env env) {
             if (ast is MalSymbol) {
                 MalSymbol sym = (MalSymbol)ast;
-                return (MalVal)env[sym.getName()];
+                return env.get(sym.getName());
             } else if (ast is MalList) {
                 MalList old_lst = (MalList)ast;
                 MalList new_lst = ast.list_Q() ? new MalList()
@@ -43,8 +44,8 @@ namespace Mal {
         }
 
 
-        static MalVal EVAL(MalVal orig_ast, Dictionary<string, MalVal> env) {
-            MalVal a0;
+        static MalVal EVAL(MalVal orig_ast, Env env) {
+            MalVal a0, a1, a2, res;
             //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
             if (!orig_ast.list_Q()) {
                 return eval_ast(orig_ast, env);
@@ -58,10 +59,31 @@ namespace Mal {
                 throw new Mal.types.MalError("attempt to apply on non-symbol '"
                         + Mal.printer._pr_str(a0,true) + "'");
             }
-            var el = (MalList)eval_ast(ast, env);
-            var f = (MalFunction)el.nth(0);
-            return f.apply(el.rest());
 
+            switch (((MalSymbol)a0).getName()) {
+            case "def!":
+                a1 = ast.nth(1);
+                a2 = ast.nth(2);
+                res = EVAL(a2, env);
+                env.set(((MalSymbol)a1).getName(), res);
+                return res;
+            case "let*":
+                a1 = ast.nth(1);
+                a2 = ast.nth(2);
+                MalSymbol key;
+                MalVal val;
+                Env let_env = new Env(env);
+                for(int i=0; i<((MalList)a1).size(); i+=2) {
+                    key = (MalSymbol)((MalList)a1).nth(i);
+                    val = ((MalList)a1).nth(i+1);
+                    let_env.set(key.getName(), EVAL(val, let_env));
+                }
+                return EVAL(a2, let_env);
+            default:
+                var el = (MalList)eval_ast(ast, env);
+                var f = (MalFunction)el.nth(0);
+                return f.apply(el.rest());
+            }
         }
 
         // print
@@ -70,49 +92,25 @@ namespace Mal {
         }
 
         // REPL
-        static MalVal RE(Dictionary<string, MalVal> env, string str) {
+        static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
         }
-
-        class plus : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).add(
-                        ((MalInteger)args.nth(1)));
-            }
+        public static Env _ref(Env env, string name, MalVal mv) {
+            return env.set(name, mv);
         }
-        class minus : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).subtract(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-        class multiply : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).multiply(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-        class divide : MalFunction {
-            public override MalVal apply(MalList args) {
-                return ((MalInteger)args.nth(0)).divide(
-                        ((MalInteger)args.nth(1)));
-            }
-        }
-
 
         static void Main(string[] args) {
             string prompt = "user> ";
             
-            var repl_env = new Dictionary<string, MalVal> {
-                { "+", new plus() },
-                { "-", new minus() },
-                { "*", new multiply() },
-                { "/", new divide() },
-            };
+            var repl_env = new Mal.env.Env(null);
+            _ref(repl_env, "+", new Mal.core.plus() );
+            _ref(repl_env, "-", new Mal.core.minus() );
+            _ref(repl_env, "*", new Mal.core.multiply() );
+            _ref(repl_env, "/", new Mal.core.divide() );
+
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
             }
-
             while (true) {
                 string line;
                 try {
@@ -129,8 +127,8 @@ namespace Mal {
                 } catch (Mal.reader.ParseError e) {
                     Console.WriteLine(e.Message);
                     continue;
-                } catch (Mal.types.MalError e) {
-                    Console.WriteLine("Error: " + e.Message);
+                } catch (Mal.types.MalException e) {
+                    Console.WriteLine("Error: " + e.getValue());
                     continue;
                 } catch (Exception e) {
                     Console.WriteLine("Error: " + e.Message);
