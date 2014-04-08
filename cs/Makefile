@@ -3,14 +3,15 @@
 TESTS =
 
 SOURCES = readline.cs types.cs reader.cs printer.cs env.cs core.cs \
-	  step7_quote.cs
+	  step8_macros.cs
 
 OTHER_SOURCES = getline.cs
 
 #####################
 
 SRCS = step0_repl.cs step1_read_print.cs step2_eval.cs step3_env.cs \
-       step4_if_fn_do.cs step5_tco.cs step6_file.cs step7_quote.cs
+       step4_if_fn_do.cs step5_tco.cs step6_file.cs step7_quote.cs \
+       step8_macros.cs
 
 LIB_SRCS = $(filter-out step%,$(OTHER_SOURCES) $(SOURCES))
 

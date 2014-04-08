@@ -295,6 +295,7 @@ namespace Mal {
             MalVal ast = null;
             Mal.env.Env env = null;
             MalList fparams;
+            bool macro = false;
             public MalFunction(Func<MalList, MalVal> fn) {
                 this.fn = fn;
             }
@@ -325,6 +326,9 @@ namespace Mal {
             public Mal.env.Env genEnv(MalList args) {
                 return new Mal.env.Env(env, fparams, args);
             }
+            public bool isMacro() { return macro; }
+            public void setMacro() { macro = true; }
+
         }
     }
 }

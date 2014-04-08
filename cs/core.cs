@@ -36,6 +36,9 @@ namespace Mal {
         static public MalFunction list_Q = new MalFunction(
             a => a[0].GetType() == typeof(MalList) ? True : False);
 
+        static MalFunction nth = new MalFunction(
+            a => ((MalList)a[0])[ ((MalInteger)a[1]).getValue() ]);
+
         static MalFunction cons = new MalFunction(
             a => {
                 var lst = new List<MalVal>();
@@ -80,7 +83,8 @@ namespace Mal {
 
             {"cons", cons},
             {"concat", concat},
-            {"first", new MalFunction(a => ((MalList)a[0]).nth(0))},
+            {"nth", nth},
+            {"first", new MalFunction(a => ((MalList)a[0])[0])},
             {"rest",  new MalFunction(a => ((MalList)a[0]).rest())},
             {"empty?", new MalFunction(
                 a => ((MalList)a[0]).size() == 0 ? True : False)},
