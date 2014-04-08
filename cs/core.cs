@@ -36,6 +36,26 @@ namespace Mal {
         static public MalFunction list_Q = new MalFunction(
             a => a[0].GetType() == typeof(MalList) ? True : False);
 
+        static MalFunction cons = new MalFunction(
+            a => {
+                var lst = new List<MalVal>();
+                lst.Add(a[0]);
+                lst.AddRange(((MalList)a[1]).getValue());
+                return (MalVal)new MalList(lst);
+            });
+
+        static MalFunction concat = new MalFunction(
+            a => {
+                if (a.size() == 0) { return new MalList(); }
+                var lst = new List<MalVal>();
+                lst.AddRange(((MalList)a[0]).getValue());
+                for(int i=1; i<a.size(); i++) {
+                    lst.AddRange(((MalList)a[i]).getValue());
+                }
+                return (MalVal)new MalList(lst);
+            });
+
+
 
 
         static public Dictionary<string, MalVal> ns =
@@ -57,12 +77,15 @@ namespace Mal {
 
             {"list",  new MalFunction(a => new MalList(a.getValue()))},
             {"list?", list_Q},
+
+            {"cons", cons},
+            {"concat", concat},
             {"first", new MalFunction(a => ((MalList)a[0]).nth(0))},
             {"rest",  new MalFunction(a => ((MalList)a[0]).rest())},
-            {"count", new MalFunction(
-                a => new MalInteger(((MalList)a[0]).size()))},
             {"empty?", new MalFunction(
                 a => ((MalList)a[0]).size() == 0 ? True : False)},
+            {"count", new MalFunction(
+                a => new MalInteger(((MalList)a[0]).size()))},
         };
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Mal;
 using MalVal = Mal.types.MalVal;
+using MalSymbol = Mal.types.MalSymbol;
 using MalList = Mal.types.MalList;
 using MalVector = Mal.types.MalVector;
 using MalHashMap = Mal.types.MalHashMap;
@@ -109,13 +110,28 @@ namespace Mal {
             if (token == null) { throw new MalContinue(); }
             MalVal form = null;
 
-            switch (token[0]) {
-                case '(': form = read_list(rdr, new MalList(), '(' , ')'); break;
-                case ')': throw new ParseError("unexpected ')'");
-                case '[': form = read_list(rdr, new MalVector(), '[' , ']'); break;
-                case ']': throw new ParseError("unexpected ']'");
-                case '{': form = read_hash_map(rdr); break;
-                case '}': throw new ParseError("unexpected '}'");
+            switch (token) {
+                case "'": rdr.next();
+                    return new MalList(new MalSymbol("quote"),
+                                       read_form(rdr));
+                case "`": rdr.next();
+                    return new MalList(new MalSymbol("quasiquote"),
+                                       read_form(rdr));
+                case "~":
+                    rdr.next();
+                    return new MalList(new MalSymbol("unquote"),
+                                       read_form(rdr));
+                case "~@":
+                    rdr.next();
+                    return new MalList(new MalSymbol("splice-unquote"),
+                                       read_form(rdr));
+
+                case "(": form = read_list(rdr, new MalList(), '(' , ')'); break;
+                case ")": throw new ParseError("unexpected ')'");
+                case "[": form = read_list(rdr, new MalVector(), '[' , ']'); break;
+                case "]": throw new ParseError("unexpected ']'");
+                case "{": form = read_hash_map(rdr); break;
+                case "}": throw new ParseError("unexpected '}'");
                 default:  form = read_atom(rdr); break;
             }
             return form;

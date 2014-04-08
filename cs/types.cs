@@ -173,6 +173,7 @@ namespace Mal {
                 value = val;
             }
             public MalList(params MalVal[] mvs) {
+                value = new List<MalVal>();
                 conj_BANG(mvs);
             }
 
