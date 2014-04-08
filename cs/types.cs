@@ -67,7 +67,7 @@ namespace Mal {
         public abstract class MalVal {
             // Default is just to call regular toString()
             public virtual string ToString(bool print_readably) {
-                return "<unknown>";
+                return this.ToString();
             }
             public virtual bool list_Q() { return false; }
         }
@@ -290,13 +290,39 @@ namespace Mal {
         }
 
         public class MalFunction : MalVal {
-            Func<MalList, MalVal> value = null;
-            public MalFunction(Func<MalList, MalVal> f) {
-                value = f;
+            Func<MalList, MalVal> fn = null;
+            MalVal ast = null;
+            Mal.env.Env env = null;
+            MalList fparams;
+            public MalFunction(Func<MalList, MalVal> fn) {
+                this.fn = fn;
+            }
+            public MalFunction(MalVal ast, Mal.env.Env env, MalList fparams,
+                               Func<MalList, MalVal> fn) {
+                this.fn = fn;
+                this.ast = ast;
+                this.env = env;
+                this.fparams = fparams;
+            }
+
+            public override string ToString() {
+                if (ast != null) {
+                    return "<fn* " + Mal.printer._pr_str(fparams,true) +
+                           " " + Mal.printer._pr_str(ast, true) + ">";
+                } else {
+                    return "<builtin_function " + fn.ToString() + ">";
+                }
             }
 
             public MalVal apply(MalList args) {
-                return value(args);
+                return fn(args);
+            }
+
+            public MalVal getAst() { return ast; }
+            public Mal.env.Env getEnv() { return env; }
+            public MalList getFParams() { return fparams; }
+            public Mal.env.Env genEnv(MalList args) {
+                return new Mal.env.Env(env, fparams, args);
             }
         }
     }

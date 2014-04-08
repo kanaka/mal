@@ -130,7 +130,8 @@ Step Notes:
         - while loop around whole thing
         - cases where we directly return result of EVAL, instead set
           ast and env to what would be put in the EVAL, then loop.
-            - for apply case, set env to new Env based on properties
+            - do, if, "apply"
+            - for "apply" case, set env to new Env based on properties
               on the function
 
 - step6_file
