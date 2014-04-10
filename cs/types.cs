@@ -65,17 +65,24 @@ namespace Mal {
 
 
         public abstract class MalVal {
+            MalVal meta = Nil;
+            public virtual MalVal copy() {
+                return (MalVal)this.MemberwiseClone();
+            }
+
             // Default is just to call regular toString()
             public virtual string ToString(bool print_readably) {
                 return this.ToString();
             }
+            public MalVal getMeta() { return meta; }
+            public MalVal setMeta(MalVal m) { meta = m; return this; }
             public virtual bool list_Q() { return false; }
         }
 
         public class MalConstant : MalVal {
             string value;
             public MalConstant(string name) { value = name; }
-            public MalConstant copy() { return this; }
+            public new MalConstant copy() { return this; }
 
             public override string ToString() {
                 return value;
@@ -92,7 +99,7 @@ namespace Mal {
         public class MalInteger : MalVal {
             int value;
             public MalInteger(int v) { value = v; }
-            public MalInteger copy() { return this; }
+            public new MalInteger copy() { return this; }
 
             public int getValue() { return value; }
             public override string ToString() {
@@ -130,7 +137,7 @@ namespace Mal {
         public class MalSymbol : MalVal {
             string value;
             public MalSymbol(string v) { value = v; }
-            public MalSymbol copy() { return this; }
+            public new MalSymbol copy() { return this; }
 
             public string getName() { return value; }
             public override string ToString() {
@@ -144,7 +151,7 @@ namespace Mal {
         public class MalString : MalVal {
             string value;
             public MalString(string v) { value = v; }
-            public MalString copy() { return this; }
+            public new MalString copy() { return this; }
 
             public string getValue() { return value; }
             public override string ToString() {
@@ -175,10 +182,6 @@ namespace Mal {
             public MalList(params MalVal[] mvs) {
                 value = new List<MalVal>();
                 conj_BANG(mvs);
-            }
-
-            public MalList copy() {
-                return (MalList)this.MemberwiseClone();
             }
 
             public List<MalVal> getValue() { return value; }
@@ -232,15 +235,6 @@ namespace Mal {
                 start = "[";
                 end = "]";
             }
-            /*
-            public MalVector(MalVal[] mvs) : base(mvs.ToArray()) {
-                start = "[";
-                end = "]";
-            }
-            */
-            public new MalVector copy() {
-                return (MalVector)this.MemberwiseClone();
-            }
 
             public override bool list_Q() { return false; }
 
@@ -259,7 +253,7 @@ namespace Mal {
                 value = new Dictionary<String, MalVal>();
                 assoc_BANG(lst);
             }
-            public MalHashMap copy() {
+            public new MalHashMap copy() {
                 var new_self = (MalHashMap)this.MemberwiseClone();
                 new_self.value = new Dictionary<string, MalVal>(value);
                 return new_self;
@@ -289,6 +283,20 @@ namespace Mal {
             }
         }
 
+        public class MalAtom : MalVal {
+            MalVal value;
+            public MalAtom(MalVal value) { this.value = value; }
+            //public MalAtom copy() { return new MalAtom(value); }
+            public MalVal getValue() { return value; }
+            public MalVal setValue(MalVal value) { return this.value = value; }
+            public override string ToString() {
+                return "(atom " + printer._pr_str(value, true) + ")";
+            }
+            public override string ToString(Boolean print_readably) {
+                return "(atom " + printer._pr_str(value, print_readably) + ")";
+            }
+        }
+
         public class MalFunction : MalVal {
             Func<MalList, MalVal> fn = null;
             MalVal ast = null;
@@ -304,9 +312,6 @@ namespace Mal {
                 this.ast = ast;
                 this.env = env;
                 this.fparams = fparams;
-            }
-            public MalFunction copy() {
-                return (MalFunction)this.MemberwiseClone();
             }
 
             public override string ToString() {

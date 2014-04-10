@@ -249,6 +249,13 @@
 (meta f-wm)
 ;=>{"abc" 1}
 
+(meta (with-meta f-wm "new_meta"))
+;=>"new_meta"
+
+(meta f-wm)
+;=>{"abc" 1}
+
+
 (def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
 (meta f-wm2)
 ;=>{"abc" 1}
@@ -289,8 +296,11 @@
 (swap! a (fn* (a) (* 2 a)))
 ;=>12
 
+(swap! a (fn* (a b) (* a b)) 10)
+;=>120
+
 (swap! a + 3)
-;=>15
+;=>123
 
 ;;
 ;; Testing read-str and eval

@@ -125,6 +125,14 @@ namespace Mal {
                     rdr.next();
                     return new MalList(new MalSymbol("splice-unquote"),
                                        read_form(rdr));
+                case "^": rdr.next();
+                    MalVal meta = read_form(rdr);
+                    return new MalList(new MalSymbol("with-meta"),
+                                       read_form(rdr),
+                                       meta);
+                case "@": rdr.next();
+                    return new MalList(new MalSymbol("deref"),
+                                       read_form(rdr));
 
                 case "(": form = read_list(rdr, new MalList(), '(' , ')'); break;
                 case ")": throw new ParseError("unexpected ')'");

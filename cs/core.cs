@@ -8,6 +8,7 @@ using MalString = Mal.types.MalString;
 using MalList = Mal.types.MalList;
 using MalVector = Mal.types.MalVector;
 using MalHashMap = Mal.types.MalHashMap;
+using MalAtom = Mal.types.MalAtom;
 using MalFunction = Mal.types.MalFunction;
 
 namespace Mal {
@@ -189,6 +190,34 @@ namespace Mal {
             });
 
 
+        // Metadata functions
+        static MalFunction meta = new MalFunction(
+            a => a[0].getMeta());
+
+        static MalFunction with_meta = new MalFunction(
+            a => ((MalVal)a[0]).copy().setMeta(a[1]));
+
+
+        // Atom functions
+        static MalFunction atom_Q = new MalFunction(
+            a => a[0] is MalAtom ? True : False);
+
+        static MalFunction deref = new MalFunction(
+            a => ((MalAtom)a[0]).getValue());
+
+        static MalFunction reset_BANG = new MalFunction(
+            a => ((MalAtom)a[0]).setValue(a[1]));
+
+        static MalFunction swap_BANG = new MalFunction(
+            a => {
+                MalAtom atm = (MalAtom)a[0];
+                MalFunction f = (MalFunction)a[1];
+                var new_lst = new List<MalVal>();
+                new_lst.Add(atm.getValue());
+                new_lst.AddRange(((MalList)a.slice(2)).getValue());
+                return atm.setValue(f.apply(new MalList(new_lst)));
+            });
+
 
 
         static public Dictionary<string, MalVal> ns =
@@ -237,6 +266,14 @@ namespace Mal {
             {"conj", conj},
             {"apply", apply},
             {"map", map},
+
+            {"with-meta", with_meta},
+            {"meta", meta},
+            {"atom", new MalFunction(a => new MalAtom(a[0]))},
+            {"atom?", atom_Q},
+            {"deref", deref},
+            {"reset!", reset_BANG},
+            {"swap!", swap_BANG},
         };
     }
 }

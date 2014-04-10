@@ -22,7 +22,7 @@ step8 = step8_macros
 step9 = step9_interop
 stepA = stepA_more
 
-EXCLUDE_TESTS = test^make^step5 test^mal^step0 test^mal^step5 test^mal^step9 test^java^step9
+EXCLUDE_TESTS = test^make^step5 test^mal^step0 test^mal^step5 test^mal^step9 test^java^step9 test^cs^step9
 
 #
 # Utility functions
