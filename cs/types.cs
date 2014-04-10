@@ -199,9 +199,11 @@ namespace Mal {
             }
 
             public int size() { return value.Count; }
-            public MalVal nth(int idx) { return value[idx]; }
+            public MalVal nth(int idx) {
+                return value.Count > 0 ? value[idx] : Nil;
+            }
             public MalVal this[int idx] {
-                get { return value[idx]; }
+                get { return value.Count > 0 ? value[idx] : Nil; }
             }
             public MalList rest() {
                 if (size() > 0) {
@@ -255,16 +257,12 @@ namespace Mal {
             }
             public MalHashMap(MalList lst) {
                 value = new Dictionary<String, MalVal>();
-                assoc_BANG(lst.getValue().ToArray());
+                assoc_BANG(lst);
             }
-            /*
-            public MalHashMap(params MalVal[] mvs) {
-                value = new Dictionary<String, MalVal>();
-                assoc_BANG(mvs);
-            }
-            */
             public MalHashMap copy() {
-                return (MalHashMap)this.MemberwiseClone();
+                var new_self = (MalHashMap)this.MemberwiseClone();
+                new_self.value = new Dictionary<string, MalVal>(value);
+                return new_self;
             }
 
             public Dictionary<string, MalVal> getValue() { return value; }
@@ -276,15 +274,16 @@ namespace Mal {
                 return "{" + printer.join(value, " ", print_readably) + "}";
             }
 
-            /*
-            public Set _entries() {
-                return value.entrySet();
+            public MalHashMap assoc_BANG(MalList lst) {
+                for (int i=0; i<lst.size(); i+=2) {
+                    value[((MalString)lst[i]).getValue()] = lst[i+1];
+                }
+                return this;
             }
-            */
-            
-            public MalHashMap assoc_BANG(params MalVal[] mvs) {
-                for (int i=0; i<mvs.Length; i+=2) {
-                    value.Add(((MalString)mvs[i]).getValue(), mvs[i+1]);
+
+            public MalHashMap dissoc_BANG(MalList lst) {
+                for (int i=0; i<lst.size(); i++) {
+                    value.Remove(((MalString)lst[i]).getValue());
                 }
                 return this;
             }
@@ -305,6 +304,9 @@ namespace Mal {
                 this.ast = ast;
                 this.env = env;
                 this.fparams = fparams;
+            }
+            public MalFunction copy() {
+                return (MalFunction)this.MemberwiseClone();
             }
 
             public override string ToString() {
