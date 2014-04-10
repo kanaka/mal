@@ -4,6 +4,16 @@
 (defn mal_throw [obj]
   (throw (ex-info "mal exception" {:data obj})))
 
+;; Metadata
+;; - store metadata at :meta key of the real metadata
+(defn mal_with_meta [obj m]
+  (let [new-meta (assoc (meta obj) :meta m)]
+    (with-meta obj new-meta)))
+
+(defn mal_meta [obj]
+  (:meta (meta obj)))
+
+
 ;; Atoms
 (defn atom? [atm]
   (= (type atm) clojure.lang.Atom))
@@ -54,8 +64,8 @@
    ['apply apply]
    ['map #(doall (map %1 %2))] 
 
-   ['with-meta with-meta]
-   ['meta meta]
+   ['with-meta mal_with_meta]
+   ['meta mal_meta]
    ['atom atom]
    ['atom? atom?]
    ['deref deref]

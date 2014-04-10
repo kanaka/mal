@@ -19,7 +19,7 @@
 ;; repl
 (defn rep
   [strng]
-  (PRINT (EVAL (READ strng), {})))
+  (PRINT (EVAL (READ strng) {})))
 
 (defn -main [& args]
   (loop []

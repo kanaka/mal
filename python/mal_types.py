@@ -38,11 +38,16 @@ def _symbol(str): return Symbol(str)
 def _symbol_Q(exp): return type(exp) == Symbol
 
 # Functions
-def _function(Eval, Env, exp, env, params):
-    def f(*args):
-        return Eval(exp, Env(env, params, args))
-    f.__meta__ = {"exp": exp, "env": env, "params": params}
-    return f
+def _function(Eval, Env, ast, env, params):
+    def gen_fn():
+        def fn(*args):
+            return Eval(ast, Env(env, params, args))
+        fn.__meta__ = None
+        fn.__ast__ = ast
+        fn.__gen_env__ = lambda args: Env(env, params, args)
+        fn.__copy__ = gen_fn
+        return fn
+    return gen_fn()
 def _function_Q(f): return type(f) == type(function_Q)
 
 # lists

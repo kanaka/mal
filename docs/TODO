@@ -80,10 +80,11 @@ Future Implementations:
             * JavaScript
             * Java
             * PHP
-            - C#
+            * C#
             * Python
             - C++
             - Ruby
+                - http://www.ruby-doc.org/stdlib-1.9.3/libdoc/readline/rdoc/Readline.html
             * C
             - Objective-C
             - Perl 
@@ -116,8 +117,6 @@ Future Implementations:
                 - https://github.com/tpope/timl
             - Common Lisp
             - Rust
-
-        - Tier 4
             - M (OpenM/MUMPS)
             - Factor (Stack-based)
 

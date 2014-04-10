@@ -226,11 +226,17 @@
 (meta [1 2 3])
 ;=>nil
 
+(meta (fn* (a) a))
+;=>nil
+
 (with-meta [1 2 3] {"a" 1})
 ;=>[1 2 3]
 
 (meta (with-meta [1 2 3] {"a" 1}))
 ;=>{"a" 1}
+
+(meta (with-meta [1 2 3] "abc"))
+;=>"abc"
 
 (meta (with-meta (list 1 2 3) {"a" 1}))
 ;=>{"a" 1}
@@ -242,16 +248,23 @@
 ;;;(meta (with-meta (atom 7) {"a" 1}))
 ;;;;=>{"a" 1}
 
-(def! lst (with-meta [4 5 6] {"b" 2}))
+(def! l-wm (with-meta [4 5 6] {"b" 2}))
 ;=>[4 5 6]
+(meta l-wm)
+;=>{"b" 2}
+
+(meta (with-meta l-wm {"new_meta" 123}))
+;=>{"new_meta" 123}
+(meta l-wm)
+;=>{"b" 2}
+
 
 (def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
 (meta f-wm)
 ;=>{"abc" 1}
 
-(meta (with-meta f-wm "new_meta"))
-;=>"new_meta"
-
+(meta (with-meta f-wm {"new_meta" 123}))
+;=>{"new_meta" 123}
 (meta f-wm)
 ;=>{"abc" 1}
 
@@ -259,6 +272,22 @@
 (def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
 (meta f-wm2)
 ;=>{"abc" 1}
+
+;;
+;; Make sure closures and metadata co-exist
+(def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
+(def! plus7 (gen-plusX 7))
+(def! plus8 (gen-plusX 8))
+(plus7 8)
+;=>15
+(meta plus7)
+;=>{"meta" 1}
+(meta plus8)
+;=>{"meta" 1}
+(meta (with-meta plus7 {"meta" 2}))
+;=>{"meta" 2}
+(meta plus8)
+;=>{"meta" 1}
 
 
 ;;

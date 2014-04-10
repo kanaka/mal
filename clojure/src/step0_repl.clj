@@ -12,13 +12,12 @@
   (eval (read-string ast)))
 
 ;; print
-(defn PRINT [exp]
-  exp)
+(defn PRINT [exp] exp)
 
 ;; repl
 (defn rep [strng] (PRINT (EVAL (READ strng), {})))
 
-(defn -main [& args] 
+(defn -main [& args]
   (loop []
     (let [line (readline/readline "user> ")]
       (when line

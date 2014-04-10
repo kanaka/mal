@@ -85,7 +85,10 @@ def mapf(f, lst): return List(map(f, lst))
 
 # Metadata functions
 def with_meta(obj, meta):
-    new_obj = copy.copy(obj)
+    if type(obj) == type(lambda x:x):
+        new_obj = obj.__copy__()
+    else:
+        new_obj = copy.copy(obj)
     new_obj.__meta__ = meta
     return new_obj
 

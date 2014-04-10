@@ -116,10 +116,9 @@ def EVAL(ast, env):
         else:
             el = eval_ast(ast, env)
             f = el[0]
-            if hasattr(f, '__meta__') and f.__meta__.has_key("exp"):
-                m = f.__meta__
-                ast = m['exp']
-                env = Env(m['env'], m['params'], el[1:])
+            if hasattr(f, '__ast__'):
+                ast = f.__ast__
+                env = f.__gen_env__(el[1:])
             else:
                 return f(*el[1:])
 

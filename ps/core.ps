@@ -172,7 +172,7 @@ end } def
 
 % [obj] -> meta -> meta
 /meta {
-    0 _nth /meta get
+    0 _nth dup /meta known { /meta get }{ null } ifelse
 } def
 
 

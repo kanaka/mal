@@ -46,7 +46,7 @@
                '/ /})
 (defn rep
   [strng]
-  (PRINT (EVAL (READ strng), repl-env)))
+  (PRINT (EVAL (READ strng) repl-env)))
 
 (defn -main [& args]
   (loop []

@@ -69,9 +69,9 @@ function _EVAL(ast, env) {
         return types._function(EVAL, Env, a2, env, a1);
     default:
         var el = eval_ast(ast, env), f = el[0], meta = f.__meta__;
-        if (meta && meta.exp) {
-            ast = meta.exp;
-            env = new Env(meta.env, meta.params, el.slice(1));
+        if (f.__ast__) {
+            ast = f.__ast__;
+            env = f.__gen_env__(el.slice(1));
         } else {
             return f.apply(f, el.slice(1));
         }

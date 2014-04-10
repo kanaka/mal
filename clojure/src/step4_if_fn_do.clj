@@ -71,7 +71,7 @@
 (def repl-env (env/env))
 (defn rep
   [strng]
-  (PRINT (EVAL (READ strng), repl-env)))
+  (PRINT (EVAL (READ strng) repl-env)))
 
 (defn _ref [k,v] (env/env-set repl-env k v))
 

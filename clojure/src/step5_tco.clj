@@ -58,11 +58,12 @@
               (recur a2 env)))
   
           'fn*
-          ^{:expression a2
-            :environment env
-            :parameters a1}
-          (fn [& args]
-            (EVAL a2 (env/env env a1 args)))
+          (with-meta
+            (fn [& args]
+              (EVAL a2 (env/env env a1 args)))
+            {:expression a2
+             :environment env
+             :parameters a1})
   
           ;; apply
           (let [el (eval-ast ast env)
@@ -80,7 +81,7 @@
 (def repl-env (env/env))
 (defn rep
   [strng]
-  (PRINT (EVAL (READ strng), repl-env)))
+  (PRINT (EVAL (READ strng) repl-env)))
 
 (defn _ref [k,v] (env/env-set repl-env k v))
 

@@ -122,16 +122,14 @@ function MAL_EVAL($ast, $env) {
         break;
     case "fn*":
         return _function('MAL_EVAL', 'native',
-                         _hash_map('exp', $ast[2],
-                                   'env', $env,
-                                   'params', $ast[1]));
+                         $ast[2], $env, $ast[1]);
     default:
         $el = eval_ast($ast, $env);
         $f = $el[0];
         $args = array_slice($el->getArrayCopy(), 1);
         if ($f->type === 'native') {
-            $ast = $f->meta['exp'];
-            $env = new Env($f->meta['env'], $f->meta['params'], $args);
+            $ast = $f->ast;
+            $env = $f->gen_env($args);
         } else {
             return $f->apply($args);
         }
