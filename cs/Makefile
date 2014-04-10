@@ -1,5 +1,7 @@
 #####################
 
+DEBUG =
+
 TESTS =
 
 SOURCES = readline.cs types.cs reader.cs printer.cs env.cs core.cs \
@@ -15,7 +17,7 @@ SRCS = step0_repl.cs step1_read_print.cs step2_eval.cs step3_env.cs \
 
 LIB_SRCS = $(filter-out step%,$(OTHER_SOURCES) $(SOURCES))
 
-FLAGS = -debug+
+FLAGS = $(if $(strip $(DEBUG)),-debug+,)
 
 #####################
 

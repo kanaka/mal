@@ -3,18 +3,19 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemetated from scratch in 10 different languages:
+language. Mal is implemetated from scratch in 11 different languages:
 
-* Javascript
-* Python
-* Clojure
-* C
-* Java
-* PHP
 * Bash shell
+* C
+* C#
+* Clojure
+* Java
+* Javascript
 * GNU Make
 * mal itself
-* Postscript (in-progress)
+* PHP
+* Postscript
+* Python
 
 
 Mal is also a learning tool. Each implentation of mal is separated
@@ -61,6 +62,19 @@ cd c
 make
 ./stepX_YYY
 ```
+
+### C#
+
+The C# implementation of mal has been tested on Linux using the Mono
+C# compiler (mcs) and the Mono runtime (version 2.10.8.1). Both are
+required to build and run the C# implementation.
+
+```
+cd cs
+make
+mono ./stepX_YYY
+```
+
 
 ### Clojure
 
