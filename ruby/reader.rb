@@ -59,6 +59,10 @@ def read_form(rdr)
     token = rdr.peek
     return case rdr.peek
         when ";" then  nil
+        when "'" then  rdr.next; List.new [:quote, read_form(rdr)]
+        when "`" then  rdr.next; List.new [:quasiquote, read_form(rdr)]
+        when "~" then  rdr.next; List.new [:unquote, read_form(rdr)]
+        when "~@" then rdr.next; List.new [:"splice-unquote", read_form(rdr)]
         when "(" then  read_list(rdr, List, "(", ")")
         when ")" then  raise "unexpected ')'"
         when "[" then  read_list(rdr, Vector, "[", "]")
