@@ -2,8 +2,10 @@
 TESTS =
 
 
-SOURCES = mal_readline.py mal_types.py reader.py printer.py \
-          env.py core.py stepA_more.py
+SOURCES_BASE = mal_readline.py mal_types.py reader.py printer.py
+SOURCES_LISP = env.py core.py stepA_more.py
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+
 
 #all: mal.sh
 #
@@ -19,6 +21,8 @@ SOURCES = mal_readline.py mal_types.py reader.py printer.py \
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)

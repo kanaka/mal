@@ -1,8 +1,9 @@
 
 TESTS = tests/types.mk tests/reader.mk tests/step9_interop.mk
 
-SOURCES = util.mk readline.mk gmsl.mk types.mk reader.mk printer.mk \
-	  env.mk core.mk stepA_more.mk
+SOURCES_BASE = util.mk readline.mk gmsl.mk types.mk reader.mk printer.mk
+SOURCES_LISP = env.mk core.mk stepA_more.mk
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 mal.mk: $(SOURCES)
 	echo "#!/usr/bin/make -f" > $@
@@ -15,6 +16,8 @@ clean:
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)

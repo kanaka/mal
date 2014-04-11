@@ -1,11 +1,15 @@
 
 TESTS =
 
-SOURCES = types.ps reader.ps printer.ps env.ps core.ps stepA_more.ps
+SOURCES_BASE = types.ps reader.ps printer.ps
+SOURCES_LISP = env.ps core.ps stepA_more.ps
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)

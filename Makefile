@@ -67,6 +67,7 @@ ALL_TESTS = $(filter-out $(EXCLUDE_TESTS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
 
 IMPL_STATS = $(foreach impl,$(IMPLS),stats^$(impl))
+IMPL_STATS_LISP = $(foreach impl,$(IMPLS),stats-lisp^$(impl))
 
 #
 # Build rules
@@ -107,4 +108,12 @@ $(IMPL_STATS):
 	  echo "Stats for $(impl):"; \
 	  $(MAKE) --no-print-directory -C $(impl) stats)
 
+.SECONDEXPANSION:
+$(IMPL_STATS_LISP):
+	@echo "----------------------------------------------"; \
+	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Stats (lisp only) for $(impl):"; \
+	  $(MAKE) --no-print-directory -C $(impl) stats-lisp)
+
 stats: $(IMPL_STATS)
+stats-lisp: $(IMPL_STATS_LISP)

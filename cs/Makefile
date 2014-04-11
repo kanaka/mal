@@ -4,8 +4,9 @@ DEBUG =
 
 TESTS =
 
-SOURCES = readline.cs types.cs reader.cs printer.cs env.cs core.cs \
-	  stepA_more.cs
+SOURCES_BASE = readline.cs types.cs reader.cs printer.cs
+SOURCES_LISP = env.cs core.cs stepA_more.cs
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 OTHER_SOURCES = getline.cs
 
@@ -38,6 +39,8 @@ clean:
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)

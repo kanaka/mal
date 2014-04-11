@@ -1,14 +1,17 @@
 
 TESTS =
 
-SOURCES = src/readline.clj src/reader.clj src/printer.clj \
-	  src/env.clj src/core.clj src/stepA_more.clj
+SOURCES_BASE = src/readline.clj src/reader.clj src/printer.clj
+SOURCES_LISP = src/env.clj src/core.clj src/stepA_more.clj
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:
 
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)

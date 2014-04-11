@@ -2,19 +2,16 @@
 TESTS =
 
 
-SOURCES = src/main/java/mal/readline.java src/main/java/mal/types.java \
-          src/main/java/mal/reader.java src/main/java/mal/printer.java \
-          src/main/java/mal/env.java src/main/java/mal/core.java \
-          src/main/java/mal/stepA_more.java
+SOURCES_BASE = src/main/java/mal/readline.java src/main/java/mal/types.java \
+               src/main/java/mal/reader.java src/main/java/mal/printer.java
+SOURCES_LISP = src/main/java/mal/env.java src/main/java/mal/core.java \
+               src/main/java/mal/stepA_more.java
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats
 
 stats: $(SOURCES)
 	@wc $^
-
-#tests: $(TESTS)
-#
-#$(TESTS):
-#	@echo "Running $@"; \
-#	python $@ || exit 1; \
+stats-lisp: $(SOURCES_LISP)
+	@wc $^

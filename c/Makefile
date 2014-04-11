@@ -6,10 +6,12 @@ LDFLAGS += -g
 
 TESTS =
 
-SOURCES = readline.h readline.c types.h types.c \
-          reader.h reader.c printer.h printer.c \
-          env.c core.h core.c interop.h interop.c \
-          stepA_more.c
+SOURCES_BASE = readline.h readline.c types.h types.c \
+               reader.h reader.c printer.h printer.c \
+               interop.h interop.c
+SOURCES_LISP = env.c core.h core.c stepA_more.c
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+
 
 #####################
 
@@ -54,6 +56,8 @@ clean:
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)

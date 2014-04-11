@@ -1,8 +1,9 @@
 
 TESTS = tests/types.js tests/reader.js tests/step5_tco.js
 
-SOURCES = node_readline.js types.js reader.js printer.js \
-	  env.js core.js stepA_more.js
+SOURCES_BASE = node_readline.js types.js reader.js printer.js
+SOURCES_LISP = env.js core.js stepA_more.js
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 WEB_SOURCES = $(SOURCES:node_readline.js=josh_readline.js)
 
 all: mal.js mal_web.js
@@ -21,6 +22,8 @@ clean:
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
 	@wc $^
 
 tests: $(TESTS)
