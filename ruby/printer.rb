@@ -9,9 +9,7 @@ def _pr_str(obj, print_readably=true)
             "[" + obj.map{|x| _pr_str(x, _r)}.join(" ") + "]"
         when String
             if _r
-                "\"" + obj.gsub(/\\/, "\\\\") \
-                          .gsub(/"/, "\\\\\"") \
-                          .gsub(/\n/, "\\\\n") + "\""
+                obj.inspect  # escape special characters
             else
                 obj
             end

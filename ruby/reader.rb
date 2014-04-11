@@ -21,7 +21,7 @@ def tokenize(str)
 end
 
 def parse_str(t)
-    return t[1..-2].gsub(/\\"/, "\"").gsub(/\\n/, "\n")
+    return t[1..-2].gsub(/\\"/, '"').gsub(/\\n/, "\n") # unescape
 end
 
 def read_atom(rdr)

@@ -3,6 +3,7 @@ require "types"
 require "reader"
 require "printer"
 require "env"
+require "core"
 
 # read
 def READ(str)
@@ -39,6 +40,21 @@ def EVAL(ast, env)
             let_env.set(a, EVAL(e, let_env))
         end
         return EVAL(a2, let_env)
+    when :do
+        el = eval_ast(ast.drop(1), env)
+        return el.last
+    when :if
+        cond = EVAL(a1, env)
+        if not cond
+            return nil if a3 == nil
+            return EVAL(a3, env)
+        else
+            return EVAL(a2, env)
+        end
+    when :"fn*"
+        return lambda {|*args|
+            EVAL(a2, Env.new(env, a1, args))
+        }
     else
         el = eval_ast(ast, env)
         f = el[0]
@@ -53,13 +69,15 @@ end
 
 # repl
 repl_env = Env.new
+RE = lambda {|str| EVAL(READ(str), repl_env) }
 REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
 _ref = lambda {|k,v| repl_env.set(k, v) }
 
-_ref[:+, lambda {|a,b| a + b}]
-_ref[:-, lambda {|a,b| a - b}]
-_ref[:*, lambda {|a,b| a * b}]
-_ref[:/, lambda {|a,b| a / b}]
+# Import core functions
+$core_ns.each &_ref
+
+# Defined using the language itself
+RE["(def! not (fn* (a) (if a false true)))"]
 
 while line = Readline.readline("user> ", true)
     begin

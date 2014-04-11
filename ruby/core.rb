@@ -1,0 +1,20 @@
+$core_ns = {
+    :"=" =>       lambda {|a,b| a == b},
+    :"pr-str" =>  lambda {|*a| a.map {|e| _pr_str(e, true)}.join(" ")},
+    :"str" =>     lambda {|*a| a.map {|e| _pr_str(e, false)}.join("")},
+    :"prn" =>     lambda {|*a| puts(a.map {|e| _pr_str(e, true)}.join(" "))},
+    :"println" => lambda {|*a| puts(a.map {|e| _pr_str(e, false)}.join(" "))},
+    :< =>         lambda {|a,b| a < b},
+    :<= =>        lambda {|a,b| a <= b},
+    :> =>         lambda {|a,b| a > b},
+    :>= =>        lambda {|a,b| a >= b},
+    :+ =>         lambda {|a,b| a + b},
+    :- =>         lambda {|a,b| a - b},
+    :* =>         lambda {|a,b| a * b},
+    :/ =>         lambda {|a,b| a / b},
+    :list =>      lambda {|*a| List.new a},
+    :list? =>     lambda {|*a| a[0].is_a? List},
+    :empty? =>    lambda {|a| a.size == 0},
+    :count =>     lambda {|a| a.size},
+}
+

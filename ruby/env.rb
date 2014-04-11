@@ -3,6 +3,15 @@ class Env
     def initialize(outer=nil, binds=[], exprs=[])
         @data = {}
         @outer = outer
+        binds.each_index do |i|
+            if binds[i] == :"&"
+                data[binds[i+1]] = exprs.drop(i)
+                break
+            else
+                data[binds[i]] = exprs[i]
+            end
+        end
+        return self
     end
 
     def find(key)
