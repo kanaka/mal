@@ -71,34 +71,6 @@
 ;=>(2 4 6)
 
 
-;; Testing concat function
-(concat)
-;=>()
-(concat (list 1 2))
-;=>(1 2)
-(concat (list 1 2) (list 3 4))
-;=>(1 2 3 4)
-(concat (list 1 2) (list 3 4) (list 5 6))
-;=>(1 2 3 4 5 6)
-(concat [1 2] (list 3 4) [5 6])
-;=>(1 2 3 4 5 6)
-(concat (concat))
-;=>()
-
-;; Testing cons function
-(cons 1 (list))
-;=>(1)
-(cons 1 (list 2))
-;=>(1 2)
-(cons 1 (list 2 3))
-;=>(1 2 3)
-(cons (list 1) (list 2 3))
-;=>((1) 2 3)
-(cons [1] [2 3])
-;=>([1] 2 3)
-(cons 1 [2 3])
-;=>(1 2 3)
-
 ;; Testing conj function
 (conj (list) 1)
 ;=>(1)
@@ -121,33 +93,6 @@
 ;=>[2 3 4 5 6]
 (conj [1] [2 3])
 ;=>[1 [2 3]]
-
-;; Testing first/rest functions
-(first '())
-;=>nil
-(first '(6))
-;=>6
-(first '(7 8 9))
-;=>7
-(first [])
-;=>nil
-(first [10])
-;=>10
-(first [10 11 12])
-;=>10
-
-(rest '())
-;=>()
-(rest '(6))
-;=>()
-(rest '(7 8 9))
-;=>(8 9)
-(rest [])
-;=>()
-(rest [10])
-;=>()
-(rest [10 11 12])
-;=>(11 12)
 
 
 

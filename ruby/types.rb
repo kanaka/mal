@@ -14,12 +14,14 @@ class Function < Proc
     attr_accessor :ast
     attr_accessor :env
     attr_accessor :params
+    attr_accessor :is_macro
 
     def initialize(ast=nil, env=nil, params=nil, &block)
         super()
         @ast = ast
         @env = env
         @params = params
+        @is_macro = false
     end
 
     def gen_env(args)
