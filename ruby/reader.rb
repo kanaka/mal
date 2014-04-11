@@ -17,7 +17,9 @@ end
 
 def tokenize(str)
     re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
-    return str.scan(re).map{|m| m[0]}.select{|m| m != ""}
+    return str.scan(re).map{|m| m[0]}.select{ |t|
+        t != "" && t[0..0] != ";"
+    }
 end
 
 def parse_str(t)
@@ -69,6 +71,7 @@ end
 
 def read_str(str)
     tokens = tokenize(str)
+    return nil if tokens.size == 0
     return read_form(Reader.new(tokens))
 end
 
