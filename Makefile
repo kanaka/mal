@@ -8,7 +8,7 @@ MAL_IMPL = js
 # Settings
 #
 
-IMPLS = bash c clojure cs java js make php python ps mal
+IMPLS = bash c clojure cs java js make mal php ps python ruby
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -37,24 +37,25 @@ cs_STEP_TO_PROG = cs/$($(1)).exe
 java_STEP_TO_PROG = java/src/main/java/mal/$($(1)).java
 js_STEP_TO_PROG = js/$($(1)).js
 make_STEP_TO_PROG = make/$($(1)).mk
-php_STEP_TO_PROG = php/$($(1)).php
-python_STEP_TO_PROG = python/$($(1)).py
-ps_STEP_TO_PROG = ps/$($(1)).ps
 mal_STEP_TO_PROG = mal/$($(1)).mal
+php_STEP_TO_PROG = php/$($(1)).php
+ps_STEP_TO_PROG = ps/$($(1)).ps
+python_STEP_TO_PROG = python/$($(1)).py
+ruby_STEP_TO_PROG = ruby/$($(1)).rb
 
 
 bash_RUNTEST = ../runtest.py $(4) ../$(1) -- bash ../$(2) $(5)
 c_RUNTEST = ../runtest.py $(4) ../$(1) -- ../$(2) $(5)
 clojure_RUNTEST = ../runtest.py $(4) ../$(1) -- lein with-profile +$(3) trampoline run $(5)
 cs_RUNTEST = ../runtest.py --redirect $(4) ../$(1) -- mono --debug ../$(2) --raw $(5)
-#cs_RUNTEST = ../runtest.py --redirect $(4) ../$(1) -- mono --debug ../$(2) $(5)
 java_RUNTEST = ../runtest.py $(4) ../$(1) -- mvn -quiet exec:java -Dexec.mainClass="mal.$($(3))" -Dexec.args="--raw$(if $(5), $(5),)"
 js_RUNTEST = ../runtest.py $(4) ../$(1) -- node ../$(2) $(5)
 make_RUNTEST = ../runtest.py $(4) ../$(1) -- make -f ../$(2) $(5)
-php_RUNTEST = ../runtest.py $(4) ../$(1) -- php ../$(2) $(5)
-python_RUNTEST = ../runtest.py $(4) ../$(1) -- python ../$(2) $(5)
-ps_RUNTEST = ../runtest.py $(4) ../$(1) -- gs -q -dNODISPLAY ../$(2) $(5)
 mal_RUNTEST = $(call $(MAL_IMPL)_RUNTEST,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),stepA,--start-timeout 30 --test-timeout 120,../$(2))
+php_RUNTEST = ../runtest.py $(4) ../$(1) -- php ../$(2) $(5)
+ps_RUNTEST = ../runtest.py $(4) ../$(1) -- gs -q -dNODISPLAY ../$(2) $(5)
+python_RUNTEST = ../runtest.py $(4) ../$(1) -- python ../$(2) $(5)
+ruby_RUNTEST = ../runtest.py $(4) ../$(1) -- ruby ../$(2) $(5)
 
 
 # Derived lists
