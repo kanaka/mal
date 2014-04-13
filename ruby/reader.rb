@@ -63,11 +63,15 @@ def read_form(rdr)
         when "`" then  rdr.next; List.new [:quasiquote, read_form(rdr)]
         when "~" then  rdr.next; List.new [:unquote, read_form(rdr)]
         when "~@" then rdr.next; List.new [:"splice-unquote", read_form(rdr)]
+        when "^" then  rdr.next; meta = read_form(rdr);
+                       List.new [:"with-meta", read_form(rdr), meta]
+        when "@" then  rdr.next; List.new [:deref, read_form(rdr)]
+
         when "(" then  read_list(rdr, List, "(", ")")
         when ")" then  raise "unexpected ')'"
         when "[" then  read_list(rdr, Vector, "[", "]")
         when "]" then  raise "unexpected ']'" 
-        when "{" then  raise "unexpected '{'" 
+        when "{" then  Hash[read_list(rdr, List, "{", "}").each_slice(2).to_a]
         when "}" then  raise "unexpected '}'" 
         else           read_atom(rdr)
     end

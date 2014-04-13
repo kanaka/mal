@@ -7,12 +7,18 @@ def _pr_str(obj, print_readably=true)
             "(" + obj.map{|x| _pr_str(x, _r)}.join(" ") + ")"
         when Vector
             "[" + obj.map{|x| _pr_str(x, _r)}.join(" ") + "]"
+        when Hash
+            ret = []
+            obj.each{|k,v| ret.push(_pr_str(k,_r), _pr_str(v,_r))}
+            "{" + ret.join(" ") + "}"
         when String
             if _r
                 obj.inspect  # escape special characters
             else
                 obj
             end
+        when Atom
+            "(atom " + _pr_str(obj.val, true) + ")"
         when nil
             "nil"
         else
