@@ -5,6 +5,7 @@ All:
     - hash-map with space in key string (make)
     - keyword type
     - gensym reader inside quasiquote
+    - can let* and quasiquote be TCO'd ?
 
     - more interop tests
     - regular expression matching in runtest
@@ -20,18 +21,13 @@ C:
     - come up with better way to do 20 vararg code
 
 C#:
-    - http://msdn.microsoft.com/en-us/library/ms228362.aspx
-    - http://www.tutorialspoint.com/csharp
-    - Readline:
-        - http://stackoverflow.com/questions/2024170/is-there-a-net-library-similar-to-gnu-readline
-        - http://tirania.org/blog/archive/2008/Aug-26.html
-        - https://github.com/deveel/deveelrl
-
+    - step9_interop
 
 Clojure:
 
 Java:
     - step9_interop
+    - store ILambda in function (like c#)?
 
 Javascript:
 
@@ -50,9 +46,12 @@ PHP:
 
 Postscript:
     - negative numbers
-    - debug self-hosting of mal step1 
+    - fix self-hosting of mal step1 
 
 Python:
+
+Ruby:
+
 
 ---------------------------------------------
 
@@ -63,6 +62,10 @@ Future Implementations:
         - http://www.rustforrubyists.com/book/index.html
         - http://static.rust-lang.org/doc/0.9/complement-cheatsheet.html
         - http://pzol.github.io/getting_rusty/
+        - release notes:
+            - https://github.com/mozilla/rust/wiki/Doc-detailed-release-notes
+        - this week in rust:
+            - http://cmr.github.io/
         - readline:
             - http://redbrain.co.uk/2013/11/09/rust-and-readline-c-ffi/
             - http://www.reddit.com/r/rust/comments/1q9pqc/rust_cffi_and_readline/
@@ -72,6 +75,8 @@ Future Implementations:
             - http://static.rust-lang.org/doc/master/std/hashmap/struct.HashMap.html
         - vector/list:
             - http://static.rust-lang.org/doc/master/std/vec/index.html
+        - example code:
+            - https://github.com/dradtke/rust-dominion/blob/master/dominion/mod.rs
 
     - Redmonk languages from Jan 2014:
         http://sogrady-media.redmonk.com/sogrady/files/2014/01/lang-rank-114-wm.png

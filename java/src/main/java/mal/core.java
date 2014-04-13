@@ -162,9 +162,7 @@ public class core {
         }
     };
 
-    //
-    // Hash map operations
-    //
+    // HashMap functions
     static MalFunction new_hash_map = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
             return new MalHashMap(a);
@@ -271,42 +269,22 @@ public class core {
 
     static MalFunction cons = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            MalList lst = new MalList();
-            lst.value.addAll(((MalList)a.nth(1)).value);
-            lst.value.add(0, a.nth(0));
-            return (MalVal) lst;
+            List<MalVal> lst = new ArrayList<MalVal>();
+            lst.add(a.nth(0));
+            lst.addAll(((MalList)a.nth(1)).getList());
+            return (MalVal)new MalList(lst);
         }
     };
 
     static MalFunction concat = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
             if (a.size() == 0) { return new MalList(); }
-            MalList lst = new MalList();
-            lst.value.addAll(((MalList)a.nth(0)).value);
+            List<MalVal> lst = new ArrayList<MalVal>();
+            lst.addAll(((MalList)a.nth(0)).value);
             for(Integer i=1; i<a.size(); i++) {
-                lst.value.addAll(((MalList)a.nth(i)).value);
+                lst.addAll(((MalList)a.nth(i)).value);
             }
-            return (MalVal) lst;
-        }
-    };
-
-    static MalFunction conj = new MalFunction() {
-        public MalVal apply(MalList a) throws MalThrowable {
-            MalList src_seq = (MalList)a.nth(0), new_seq;
-            if (a.nth(0) instanceof MalVector) {
-                new_seq = new MalVector();
-                new_seq.value.addAll(src_seq.value);
-                for(Integer i=1; i<a.size(); i++) {
-                    new_seq.value.add(a.nth(i));
-                }
-            } else {
-                new_seq = new MalList();
-                new_seq.value.addAll(src_seq.value);
-                for(Integer i=1; i<a.size(); i++) {
-                    new_seq.value.add(0, a.nth(i));
-                }
-            }
-            return (MalVal) new_seq;
+            return (MalVal)new MalList(lst);
         }
     };
 
@@ -328,6 +306,26 @@ public class core {
         public MalVal apply(MalList a) throws MalThrowable {
             Integer idx = ((MalInteger)a.nth(1)).getValue();
             return ((MalList)a.nth(0)).nth(idx);
+        }
+    };
+
+    static MalFunction conj = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            MalList src_seq = (MalList)a.nth(0), new_seq;
+            if (a.nth(0) instanceof MalVector) {
+                new_seq = new MalVector();
+                new_seq.value.addAll(src_seq.value);
+                for(Integer i=1; i<a.size(); i++) {
+                    new_seq.value.add(a.nth(i));
+                }
+            } else {
+                new_seq = new MalList();
+                new_seq.value.addAll(src_seq.value);
+                for(Integer i=1; i<a.size(); i++) {
+                    new_seq.value.add(0, a.nth(i));
+                }
+            }
+            return (MalVal) new_seq;
         }
     };
 

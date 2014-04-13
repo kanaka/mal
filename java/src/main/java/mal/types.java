@@ -355,6 +355,9 @@ public class types {
         public MalVal getAst() { return ast; }
         public Env getEnv() { return env; }
         public MalList getParams() { return params; }
+        public Env genEnv(MalList args) {
+            return new Env(env, params, args);
+        }
         public Boolean isMacro() { return macro; }
         public void setMacro() { macro = true; }
     }

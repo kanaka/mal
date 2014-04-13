@@ -3,7 +3,7 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemetated from scratch in 11 different languages:
+language. Mal is implemetated from scratch in 12 different languages:
 
 * Bash shell
 * C
@@ -16,6 +16,7 @@ language. Mal is implemetated from scratch in 11 different languages:
 * PHP
 * Postscript
 * Python
+* Ruby
 
 
 Mal is also a learning tool. Each implentation of mal is separated
@@ -139,4 +140,11 @@ gs -q -dNODISPLAY stepX_YYY.ps
 ```
 cd python
 python stepX_YYY.py
+```
+
+### Ruby (1.8)
+
+```
+cd ruby
+ruby stepX_YYY.rb
 ```

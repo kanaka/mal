@@ -149,7 +149,7 @@ public class step7_quote {
             MalVal fnast = f.getAst();
             if (fnast != null) {
                 orig_ast = fnast;
-                env = new Env(f.getEnv(), f.getParams(), el.slice(1));
+                env = f.genEnv(el.slice(1));
             } else {
                 return f.apply(el.rest());
             }
@@ -188,6 +188,10 @@ public class step7_quote {
         }
         _ref(repl_env, "read-string", new MalFunction() {
             public MalVal apply(MalList args) throws MalThrowable {
+                try {
+                    return reader.read_str(((MalString)args.nth(0)).getValue());
+                } catch (MalContinue c) {
+                    return types.Nil;
                 return reader.read_str(((MalString)args.nth(0)).getValue());
             }
         });

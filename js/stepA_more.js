@@ -23,9 +23,13 @@ function quasiquote(ast) {
     } else if (ast[0].value === 'unquote') {
         return ast[1];
     } else if (is_pair(ast[0]) && ast[0][0].value === 'splice-unquote') {
-        return [types._symbol("concat"), ast[0][1], quasiquote(ast.slice(1))];
+        return [types._symbol("concat"),
+                ast[0][1],
+                quasiquote(ast.slice(1))];
     } else {
-        return [types._symbol("cons"), quasiquote(ast[0]), quasiquote(ast.slice(1))];
+        return [types._symbol("cons"),
+                quasiquote(ast[0]),
+                quasiquote(ast.slice(1))];
     }
 }
 
@@ -129,7 +133,7 @@ function _EVAL(ast, env) {
     case "fn*":
         return types._function(EVAL, Env, a2, env, a1);
     default:
-        var el = eval_ast(ast, env), f = el[0], meta = f.__meta__;
+        var el = eval_ast(ast, env), f = el[0];
         if (f.__ast__) {
             ast = f.__ast__;
             env = f.__gen_env__(el.slice(1));

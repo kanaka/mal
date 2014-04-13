@@ -187,7 +187,7 @@ public class step8_macros {
             MalVal fnast = f.getAst();
             if (fnast != null) {
                 orig_ast = fnast;
-                env = new Env(f.getEnv(), f.getParams(), el.slice(1));
+                env = f.genEnv(el.slice(1));
             } else {
                 return f.apply(el.rest());
             }
@@ -226,7 +226,11 @@ public class step8_macros {
         }
         _ref(repl_env, "read-string", new MalFunction() {
             public MalVal apply(MalList args) throws MalThrowable {
-                return reader.read_str(((MalString)args.nth(0)).getValue());
+                try {
+                    return reader.read_str(((MalString)args.nth(0)).getValue());
+                } catch (MalContinue c) {
+                    return types.Nil;
+                }
             }
         });
         _ref(repl_env, "eval", new MalFunction() {
