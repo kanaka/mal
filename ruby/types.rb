@@ -31,8 +31,11 @@ def sequential?(obj)
     return obj.is_a?(List) || obj.is_a?(Vector)
 end
 
-class Function < Proc
+class Proc # re-open and add meta
     attr_accessor :meta
+end
+
+class Function < Proc
     attr_accessor :ast
     attr_accessor :env
     attr_accessor :params

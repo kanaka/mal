@@ -18,12 +18,18 @@ def eval_ast(ast, env)
             List.new ast.map{|a| EVAL(a, env)}
         when Vector
             Vector.new ast.map{|a| EVAL(a, env)}
+        when Hash
+            new_hm = {}
+            ast.each{|k,v| new_hm[EVAL(k,env)] = EVAL(v, env)}
+            new_hm
         else 
             ast
     end
 end
 
 def EVAL(ast, env)
+    #puts "EVAL: #{_pr_str(ast, true)}"
+
     if not ast.is_a? List
         return eval_ast(ast, env)
     end

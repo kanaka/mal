@@ -11,20 +11,19 @@ def READ(str)
 end
 
 # eval
-def is_pair(x)
+def pair?(x)
     return sequential?(x) && x.size > 0
 end
 
 def quasiquote(ast)
-    if not is_pair(ast)
-        return List.new([:quote, ast])
+    if not pair?(ast)
+        return List.new [:quote, ast]
     elsif ast[0] == :unquote
         return ast[1]
-    elsif is_pair(ast[0]) && ast[0][0] == :"splice-unquote"
-        #p "xxx:", ast, List.new([:concat, ast[0][1], quasiquote(ast.drop(1))])
-        return List.new([:concat, ast[0][1], quasiquote(ast.drop(1))])
+    elsif pair?(ast[0]) && ast[0][0] == :"splice-unquote"
+        return List.new [:concat, ast[0][1], quasiquote(ast.drop(1))]
     else
-        return List.new([:cons, quasiquote(ast[0]), quasiquote(ast.drop(1))])
+        return List.new [:cons, quasiquote(ast[0]), quasiquote(ast.drop(1))]
     end
 end
 
@@ -52,6 +51,10 @@ def eval_ast(ast, env)
             List.new ast.map{|a| EVAL(a, env)}
         when Vector
             Vector.new ast.map{|a| EVAL(a, env)}
+        when Hash
+            new_hm = {}
+            ast.each{|k,v| new_hm[EVAL(k,env)] = EVAL(v, env)}
+            new_hm
         else 
             ast
     end
@@ -159,7 +162,6 @@ _ref[:slurp, lambda {|f| File.read(f) }]
 RE["(def! not (fn* (a) (if a false true)))"]
 RE["(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"]
 RE["(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"]
-
 RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
 
 p Dir.pwd
