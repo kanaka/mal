@@ -46,7 +46,7 @@ PHP:
 
 Postscript:
     - negative numbers
-    - fix self-hosting of mal step1 
+    - self-hosting issues in steps 8,A
 
 Python:
 
@@ -88,8 +88,7 @@ Future Implementations:
             * C#
             * Python
             - C++
-            - Ruby
-                - http://www.ruby-doc.org/stdlib-1.9.3/libdoc/readline/rdoc/Readline.html
+            * Ruby
             * C
             - Objective-C
             - Perl 

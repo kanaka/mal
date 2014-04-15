@@ -57,7 +57,7 @@
               (EVAL (nth ast 3) env)
               nil)
             (EVAL (nth ast 2) env)))
-      
+
         (= 'fn* a0)
         (fn* [& args]
           (EVAL (nth ast 2) (new-env env (nth ast 1) args)))
