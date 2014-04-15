@@ -182,6 +182,8 @@ MalVal *get(MalVal *obj, MalVal *key) {
         } else {
             return &mal_nil;
         }
+    case MAL_NIL:
+        return &mal_nil;
     default:
         abort("get called on unsupported type %d", obj->type);
     }

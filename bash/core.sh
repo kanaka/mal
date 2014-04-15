@@ -145,7 +145,9 @@ _get () {
         local obj="${ANON["${1}"]}"
         eval r="\${${obj}[\"${2}\"]}" ;;
     list|vector)
-        _nth "${1}" "${2}"
+        _nth "${1}" "${2}" ;;
+    nil)
+        r="${__nil}" ;;
     esac
 }
 get () {

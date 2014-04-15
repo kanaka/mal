@@ -39,7 +39,7 @@ def dissoc(src_hm, *keys):
     return hm
 
 def get(hm, key):
-    if key in hm:
+    if hm and key in hm:
         return hm[key]
     else:
         return None

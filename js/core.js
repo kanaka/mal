@@ -51,7 +51,7 @@ function dissoc(src_hm) {
 }
 
 function get(hm, key) {
-    if (key in hm) {
+    if (hm != null && key in hm) {
         return hm[key];
     } else {
         return null;

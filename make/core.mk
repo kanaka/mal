@@ -102,9 +102,11 @@ vals = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $
 # retrieve the value of a string key object from the hash map, or
 # retrive a vector by number object index
 get = $(strip \
-        $(if $(call _hash_map?,$(word 1,$(1))),\
-          $(call _get,$(word 1,$(1)),$(call str_decode,$($(word 2,$(1))_value))),\
-          $(call _get,$(word 1,$(1)),$(call int_decode,$($(word 2,$(1))_value)))))
+        $(if $(call _nil?,$(word 1,$(1))),\
+          $(__nil),\
+          $(if $(call _hash_map?,$(word 1,$(1))),\
+            $(call _get,$(word 1,$(1)),$(call str_decode,$($(word 2,$(1))_value))),\
+            $(call _get,$(word 1,$(1)),$(call int_decode,$($(word 2,$(1))_value))))))
 
 contains? = $(if $(call _contains?,$(word 1,$(1)),$(call str_decode,$($(word 2,$(1))_value))),$(__true),$(__false))
 

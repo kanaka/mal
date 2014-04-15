@@ -87,8 +87,12 @@ namespace Mal {
         static MalFunction get = new MalFunction(
             a => {
                 string key = ((MalString)a[1]).getValue();
-                var dict = ((MalHashMap)a[0]).getValue();
-                return dict.ContainsKey(key) ? dict[key] : Nil;
+                if (a[0] == Nil) {
+                    return Nil;
+                } else {
+                    var dict = ((MalHashMap)a[0]).getValue();
+                    return dict.ContainsKey(key) ? dict[key] : Nil;
+                }
             });
 
         static MalFunction keys = new MalFunction(

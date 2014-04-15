@@ -161,7 +161,7 @@ public class step6_file {
                     return reader.read_str(((MalString)args.nth(0)).getValue());
                 } catch (MalContinue c) {
                     return types.Nil;
-                return reader.read_str(((MalString)args.nth(0)).getValue());
+                }
             }
         });
         _ref(repl_env, "eval", new MalFunction() {

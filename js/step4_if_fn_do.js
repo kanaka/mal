@@ -34,6 +34,7 @@ function eval_ast(ast, env) {
 }
 
 function _EVAL(ast, env) {
+    //printer.println("EVAL:", types._pr_str(ast, true));
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }

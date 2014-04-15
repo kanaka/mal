@@ -205,13 +205,17 @@ public class core {
 
     static MalFunction get = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            String key = ((MalString)a.nth(1)).getValue();
-            MalHashMap mhm = (MalHashMap)a.nth(0);
-            HashMap<String,MalVal> hm = (HashMap<String,MalVal>)mhm.value;
-            if (hm.containsKey(key)) {
-                return hm.get(key);
-            } else {
+            if (a.nth(0) == Nil) {
                 return Nil;
+            } else {
+                String key = ((MalString)a.nth(1)).getValue();
+                MalHashMap mhm = (MalHashMap)a.nth(0);
+                HashMap<String,MalVal> hm = (HashMap<String,MalVal>)mhm.value;
+                if (hm.containsKey(key)) {
+                    return hm.get(key);
+                } else {
+                    return Nil;
+                }
             }
         }
     };

@@ -27,7 +27,7 @@ $core_ns = {
     :map? =>      lambda {|a| a.is_a? Hash},
     :assoc =>     lambda {|*a| a[0].merge(Hash[a.drop(1).each_slice(2).to_a])},
     :dissoc =>    lambda {|*a| h = a[0].clone; a.drop(1).each{|k| h.delete k}; h},
-    :get =>       lambda {|a,b| a[b]},
+    :get =>       lambda {|a,b| return nil if a == nil; a[b]},
     :contains? => lambda {|a,b| a.key? b},
     :keys =>      lambda {|a| List.new a.keys},
     :vals =>      lambda {|a| List.new a.values},
