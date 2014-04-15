@@ -179,7 +179,7 @@ end } def
 /meta {
     0 _nth % stack: obj
     dup type /dicttype eq { %if dictionary
-        dup /meta known { /meta get }{ null } ifelse
+        dup /meta known { /meta get }{ pop null } ifelse
     }{ %else
         pop null % no meta on non-collections
     } ifelse
