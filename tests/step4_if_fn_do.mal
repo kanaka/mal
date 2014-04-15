@@ -264,6 +264,9 @@
 ( (fn* () 4) )
 ;=>4
 
+( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)
+;=>8
+
 
 ;; Testing closures
 ( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)

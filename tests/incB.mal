@@ -12,3 +12,6 @@
 
 (prn "incB.mal finished")
 "incB.mal return string"
+
+;; ending comment
+

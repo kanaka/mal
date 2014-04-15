@@ -7,7 +7,7 @@
 
 % read_number: read a single number from string/idx
 % string idx -> read_number -> number string new_idx
-/read_number {
+/read_number { 5 dict begin
     %(in read_number\n) print
     /idx exch def
     /str exch def
@@ -26,12 +26,12 @@
 
     str start cnt getinterval cvi % the matched number
     str idx % return: number string new_idx
-} def
+end } def
 
 
 % read_symbol: read a single symbol from string/idx
 % string idx -> read_symbol -> name string new_idx
-/read_symbol {
+/read_symbol { 5 dict begin
     %(in read_symbol\n) print
     /idx exch def
     /str exch def
@@ -51,12 +51,12 @@
 
     str start cnt getinterval cvn % the matched symbol
     str idx % return: symbol string new_idx
-} def
+end } def
 
 
 % read_string: read a single string from string/idx
 % string idx -> read_string -> new_string string new_idx
-/read_string {
+/read_string { 5 dict begin
     %(in read_string\n) print
     /idx exch 1 add def
     /str exch def
@@ -80,12 +80,12 @@
     str start cnt getinterval % the matched string
     (\\") (") replace
     str idx % return: new_string string new_idx
-} def
+end } def
 
 
 % read_atom: read a single atom from string/idx
 % string idx -> read_atom -> int string new_idx
-/read_atom {
+/read_atom { 3 dict begin
     %(in read_atom\n) print
     /idx exch def
     /str exch def
@@ -114,11 +114,11 @@
     }ifelse
 
     % return: atom string new_idx
-} def
+end } def
 
 % read_until: read a list from string/idx until stopchar is found
 % string idx stopchar -> read_until -> list string new_idx
-/read_until {
+/read_until { 3 dict begin
     %(in read_until\n) print
     /stopchar exch def
     /idx exch 1 add def
@@ -135,24 +135,40 @@
     } loop
     ]
     str idx 1 add
-} def
+end } def
 
 % read_spaces: advance idx to the first non-whitespace
 % string idx -> read_form -> string new_idx
-/read_spaces {
+/read_spaces { 3 dict begin
     %(in read_spaces\n) print
     /idx exch def
     /str exch def
     { % loop
         str length idx le { exit } if % EOF, break loop
         /ch str idx get def  % current character
+        %(left1.1:) print str idx str length idx sub getinterval print (\n) print
+        % eliminate comments
+        ch 59 eq { %if ';'
+            { % loop
+                /idx idx 1 add def % increment idx
+                str length idx le { exit } if % EOF, break loop
+                /ch str idx get def  % current character
+                %(left1.2:) print str idx str length idx sub getinterval print (\n) print
+                % if newline then we are done
+                ch 10 eq { exit } if
+            } loop
+            /idx idx 1 add def
+            str length idx le { exit } if % EOF, break loop
+            /ch str idx get def  % current character
+        } if
         % if not whitespace then exit
         ch 32 ne ch 10 ne ch 44 ne and and { exit } if
         /idx idx 1 add def % increment idx
     } loop
 
+    %(left1.3:) print str idx str length idx sub getinterval print (\n) print
     str idx % return: string new_idx
-} def
+end } def
 
 % read_form: read the next form from string start at idx
 % string idx -> read_form -> ast string new_idx
@@ -162,21 +178,12 @@
     /idx exch def
     /str exch def
 
-    idx str length ge { (unexpected EOF) _throw } if % EOF
+    %idx str length ge { (unexpected EOF) _throw } if % EOF
+    idx str length ge { null str idx }{ %if EOF
+
     /ch str idx get def  % current character
-    ch 59 eq { %if ';'
-        { % loop
-            /idx idx 1 add def % increment idx
-            str length idx le { exit } if % EOF, break loop
-            /ch str idx get def  % current character
-            % if newline then add 1 more idx and exit
-            ch 10 eq {
-                /idx idx 1 add def
-                exit
-            } if
-        } loop
-        str idx read_form % recur to get next form
-    }{ ch 39 eq { %if '\''
+    %(LEFT2.1:) print str idx str length idx sub getinterval print (\n) print
+    ch 39 eq { %if '\''
         /idx idx 1 add def
         str idx read_form
         3 -1 roll   /quote exch 2 _list   3 1 roll
@@ -204,23 +211,28 @@
         str idx read_form
         3 -1 roll   /deref exch 2 _list   3 1 roll
     }{ ch 40 eq { %if '('
-        str idx 41 read_until
+        str idx 41 read_until dup /idx exch def
+        %(LEFT2.2:) print str idx str length idx sub getinterval print (\n) print
         3 -1 roll   _list_from_array   3 1 roll
+        %(LEFT2.3:) print str idx str length idx sub getinterval print (\n) print
     }{ ch 41 eq { %elseif ')'
         (unexpected '\)') _throw
-    }{ ch 91 eq { %if '('
-        str idx 93 read_until
+    }{ ch 91 eq { %if '['
+        str idx 93 read_until dup /idx exch def
+        %(LEFT2.4:) print str idx str length idx sub getinterval print (\n) print
         3 -1 roll   _vector_from_array   3 1 roll
     }{ ch 93 eq { %elseif ']'
         (unexpected ']') _throw
     }{ ch 123 eq { %elseif '{'
-        str idx 125 read_until
+        str idx 125 read_until dup /idx exch def
         3 -1 roll   _hash_map_from_array   3 1 roll
     }{ ch 125 eq { %elseif '}'
         (unexpected '}') _throw
     }{ % else
         str idx read_atom
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+
+    } ifelse % not EOF
 
     % return: ast string new_idx
 end } def

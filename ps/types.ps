@@ -182,9 +182,55 @@ end } def
 
 % Functions
 
-/_mal_function? {
+% block -> _function -> boxed_function
+/_function {
+    <<
+        /_maltype_ /function
+        %/data 5 -1 roll cvlit
+        /data 5 -1 roll
+    >>
+    %%dup length dict copy
+} def
+
+% ast env params -> _mal_function -> boxed_mal_function
+/_mal_function { 
+    <<
+        /_maltype_ /mal_function % user defined function
+        /macro? false % macro flag, false by default
+        /params null % close over parameters
+        /ast null    % close over ast
+        /env null    % close over environment
+        /data { __self__ fload EVAL }  % forward reference to EVAL
+              dup length array copy cvx % actual copy/new instance of block
+    >>
+    % make an actual copy/new instance of dict
+    dup length dict copy % stack: ast env params mal_fn
+    % "Close over" parameters
+    dup 3 -1 roll     % stack: ast env mal_fn mal_fn params
+    /params exch put  % stack: ast env mal_fn
+    dup 3 -1 roll     % stack: ast mal_fn mal_fn env
+    /env exch put     % stack: ast mal_fn
+    dup 3 -1 roll     % stack: mal_fn mal_fn ast
+    /ast exch put     % stack: mal_fn
+
+    % insert self reference into position 0 of data
+    dup /data get     % stack: mal_fn data
+    1 index           % stack: mal_fn data mal_fn
+    0 exch            % stack: mal_fn data 0 mal_fn
+    put               % stack: mal_fn
+} def
+
+/_function? {
     dup type /dicttype eq {
         /_maltype_ get /function eq
+    }{
+        pop false
+    } ifelse
+} def
+
+/_mal_function? {
+    dup type /dicttype eq {
+        /_maltype_ get /mal_function eq
     }{
         pop false
     } ifelse
@@ -199,9 +245,18 @@ end } def
     env_new                  % stack: ast new_env
 } def
 
-% function_or_block -> callable -> block
-% if this is a user defined mal function, get its executable block
-/callable { dup _mal_function? { /data get } if } def
+% function_or_mal_function -> callable -> block
+% if this is a function or mal_function, get its executable block
+/callable {
+    dup _mal_function? { %if mal_function
+        /data get
+    }{ dup _function? { %else if function
+        /data get
+    }{ %else something invalid
+        (callable called on non-function!\n) print quit
+        cvx
+    } ifelse } ifelse
+} def
 
 
 % Lists

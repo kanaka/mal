@@ -5,9 +5,8 @@
 % ast print_readably -> _pr_str -> string
 /_pr_str { 4 dict begin
     /print_readably exch def
-    dup
-    /func? exch xcheck def % executable function
-    /obj exch cvlit def
+    dup xcheck { (Cannot print proc: ) print dup == quit } if % assert
+    /obj exch def
     obj _sequential? {
         obj _list? { (\() (\)) }{ ([) (]) } ifelse
         obj /data get ( ) print_readably _pr_str_args
@@ -19,7 +18,13 @@
         ( ) print_readably _pr_str_args
         concatenate
         (}) concatenate
-    }{ obj _mal_function? { % if user defined function
+    }{ obj _function? { % if builtin function
+        (<\(builtin_fn* {)
+        obj /data get dup length array copy cvlit
+        ( ) print_readably _pr_str_args
+        (}>)
+        concatenate concatenate
+    }{ obj _mal_function? { % if user defined mal_function
         (<\(fn* )
         obj /params get print_readably _pr_str
         ( )
@@ -33,10 +38,10 @@
         concatenate concatenate
     }{ /arraytype obj type eq { % if list or code block
         % accumulate an array of strings
-        func? { (<builtin_fn* { ) }{ (\() } ifelse
+        (\()
         obj ( ) print_readably _pr_str_args
         concatenate
-        func? { ( } >) }{ (\)) } ifelse
+        (\))
         concatenate
     }{ /integertype obj type eq { % if number
         /slen obj 10 add log ceiling cvi def
@@ -60,7 +65,7 @@
         obj dup length string cvs
     }{
         (<unknown>)  
-    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
+    } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
 end } def
 
 % array delim print_readably -> _pr_str_args -> new_string
@@ -72,10 +77,26 @@ end } def
     args length 0 gt { %if any elements
         [
             args { %foreach argument in array
-                print_readably _pr_str
+                dup xcheck { %if executable
+                    255 string cvs
+                }{
+                    print_readably _pr_str
+                } ifelse
             } forall 
         ]
         { concatenate delim concatenate } forall
         dup length delim length sub 0 exch getinterval % strip off final delim
     } if
 end } def
+
+% utility function
+/print_dict {
+    (DICT contents:\n) print
+    {
+        (  - ) print
+        exch dup length string cvs print % key
+        (: ) print
+        ==
+    } forall
+} def
+

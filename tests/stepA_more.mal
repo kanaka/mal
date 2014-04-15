@@ -117,6 +117,9 @@
 (map? [])
 ;=>false
 
+(get nil "a")
+;=>nil
+
 (get hm1 "a")
 ;=>nil
 
@@ -172,6 +175,9 @@
 ;=>nil
 
 (meta (fn* (a) a))
+;=>nil
+
+(meta +)
 ;=>nil
 
 (with-meta [1 2 3] {"a" 1})
@@ -275,6 +281,15 @@
 
 (swap! a + 3)
 ;=>123
+
+;; Testing swap!/closure interaction
+(def! inc-it (fn* (a) (+ 1 a)))
+(def! atm (atom 7))
+(def! f (fn* [] (swap! atm inc-it)))
+(f)
+;=>8
+(f)
+;=>9
 
 ;;
 ;; Testing read-str and eval

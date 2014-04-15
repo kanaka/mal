@@ -163,28 +163,18 @@ end } def
         }{ /fn* a0 eq { %if fn*
             /a1 ast 1 _nth def
             /a2 ast 2 _nth def
-            <<
-                /_maltype_ /function % user defined function
-                /macro? false % macro flag, false by default
-                /params null % close over parameters
-                /ast null    % close over ast
-                /env null    % close over environment
-                /data { __self__ fload EVAL }
-            >>
-            dup length dict copy % make an actual copy/new instance
-            dup /params a1 put  % insert closed over a1 into position 2
-            dup /ast a2 put  % insert closed over a2 into position 3
-            dup /env env put % insert closed over env into position 4
-            dup   dup /data get   exch 0 exch put % insert self reference
+            a2 env a1 _mal_function
         }{
             /el ast env eval_ast def
             el _rest el _first % stack: ast function
-            dup _mal_function? { % if user defined function
+            dup _mal_function? { %if user defined function
                 fload % stack: ast new_env
                 /loop? true def
+            }{ dup _function? { %else if builtin function
+                /data get exec
             }{ %else (regular procedure/function)
-                exec % apply function to args
-            } ifelse
+                (cannot apply native proc!\n) print quit
+            } ifelse } ifelse
         } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
       } ifelse
     } ifelse
@@ -205,7 +195,7 @@ end } def
 
 /RE { READ repl_env EVAL } def
 /REP { READ repl_env EVAL PRINT } def
-/_ref { repl_env 3 1 roll env_set pop } def
+/_ref { _function repl_env 3 1 roll env_set pop } def
 
 core_ns { _ref } forall
 

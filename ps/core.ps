@@ -40,12 +40,17 @@ end } def
 
 % [hashmap key] -> hash_map_get -> value
 /hash_map_get {
-    dup 0 _nth /data get % stack: args dict
-    exch 1 _nth % stack: dict key
-    2 copy known { %if has key
-        get
-    }{
+    dup 0 _nth % stack: args hash_map
+    dup null eq { %if hash_map is a nil
         pop pop null
+    }{ %else hash_map is not a nil
+        /data get % stack: args dict
+        exch 1 _nth % stack: dict key
+        2 copy known { %if has key
+            get
+        }{
+            pop pop null
+        } ifelse
     } ifelse
 } def
 
@@ -172,7 +177,12 @@ end } def
 
 % [obj] -> meta -> meta
 /meta {
-    0 _nth dup /meta known { /meta get }{ null } ifelse
+    0 _nth % stack: obj
+    dup type /dicttype eq { %if dictionary
+        dup /meta known { /meta get }{ null } ifelse
+    }{ %else
+        pop null % no meta on non-collections
+    } ifelse
 } def
 
 
@@ -196,7 +206,7 @@ end } def
     [ atm /data get ] 
     args 2 args _count 2 sub _slice /data get
     concatenate _list_from_array
-    args 1 _nth callable % make sure function is callable
+    args 1 _nth callable % extract proc
     exec
     /new_val exch def
     atm /data new_val put
