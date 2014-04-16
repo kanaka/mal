@@ -8,6 +8,7 @@ All:
     - can let* and quasiquote be TCO'd ?
 
     - more interop tests
+    - test metadata on builtin functions (i.e. +)
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
 
@@ -50,6 +51,7 @@ Postscript:
 Python:
 
 Ruby:
+    - use same history file
 
 
 ---------------------------------------------
