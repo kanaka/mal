@@ -92,7 +92,7 @@ end } def
 % [listA listB] -> concat -> [listA... listB...]
 /concat { % replaces matric concat
     dup _count 0 eq { %if just concat
-        0 _list
+        pop 0 _list
     }{ dup _count 1 eq { %elseif concat of single item
         0 _nth % noop
     }{ % else
@@ -129,7 +129,7 @@ end } def
         } for
         new_arr _list_from_array
     }{ %else vector
-        src_arr new_arr copy
+        src_arr new_arr copy pop
         1 1 args _count 1 sub {
             /idx exch def
             new_arr   src_arr length idx add 1 sub   args idx _nth   put
