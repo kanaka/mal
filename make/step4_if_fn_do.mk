@@ -101,14 +101,12 @@ REPL_ENV := $(call ENV)
 REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
 REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
 
-# Setup the environment
+# core.mk: defined using Make
 _fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call _function,$$(call $(2),$$1))))
-
-# Import core namespace
 _import_core = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_core,$(wordlist 3,$(words $(1)),$(1))),)
 $(call _import_core,$(core_ns))
 
-# Defined in terms of the language itself
+# core.mal: defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
 
 # Call the read-eval-print loop

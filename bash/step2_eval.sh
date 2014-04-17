@@ -4,11 +4,10 @@ INTERACTIVE=${INTERACTIVE-yes}
 
 source $(dirname $0)/reader.sh
 source $(dirname $0)/printer.sh
-source $(dirname $0)/core.sh
 
 # READ: read and parse input
 READ () {
-    READLINE
+    [ "${1}" ] && r="${1}" || READLINE
     READ_STR "${r}"
 }
 
@@ -56,8 +55,8 @@ EVAL () {
     EVAL_AST "${ast}" "${env}"
     [[ "${__ERROR}" ]] && return 1
     local el="${r}"
-    first "${el}"; local f="${r}"
-    rest "${el}"; local args="${ANON["${r}"]}"
+    _first "${el}"; local f="${r}"
+    _rest "${el}"; local args="${ANON["${r}"]}"
     #echo "invoke: ${f} ${args}"
     eval ${f} ${args}
 }
@@ -76,15 +75,20 @@ PRINT () {
 # REPL: read, eval, print, loop
 declare -A REPL_ENV
 REP () {
-    READ_STR "${1}"
+    READ "${1}" || return 1
     EVAL "${r}" REPL_ENV
     PRINT "${r}"
 }
 
-REPL_ENV["+"]=num_plus
-REPL_ENV["-"]=num_minus
-REPL_ENV["__STAR__"]=num_multiply
-REPL_ENV["/"]=num_divide
+plus     () { r=$(( ${ANON["${1}"]} + ${ANON["${2}"]} )); _number "${r}"; }
+minus    () { r=$(( ${ANON["${1}"]} - ${ANON["${2}"]} )); _number "${r}"; }
+multiply () { r=$(( ${ANON["${1}"]} * ${ANON["${2}"]} )); _number "${r}"; }
+divide   () { r=$(( ${ANON["${1}"]} / ${ANON["${2}"]} )); _number "${r}"; }
+
+REPL_ENV["+"]=plus
+REPL_ENV["-"]=minus
+REPL_ENV["__STAR__"]=multiply
+REPL_ENV["/"]=divide
 
 if [[ -n "${INTERACTIVE}" ]]; then
     while true; do

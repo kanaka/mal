@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using MalVal = Mal.types.MalVal;
 using MalConstant = Mal.types.MalConstant;
@@ -53,6 +54,21 @@ namespace Mal {
                 Console.WriteLine(printer._pr_str_args(a, " ", false));
                 return Nil;
             } );
+
+        static public MalFunction mal_readline = new MalFunction(
+            a => {
+                var line = readline.Readline(((MalString)a[0]).getValue());
+                if (line == null) { return types.Nil; }
+                else {              return new MalString(line); }
+            } );
+
+        static public MalFunction read_string = new MalFunction(
+            a => reader.read_str(((MalString)a[0]).getValue()));
+
+        static public MalFunction slurp = new MalFunction(
+            a => new MalString(File.ReadAllText(
+                        ((MalString)a[0]).getValue())));
+
 
         // List/Vector functions
         static public MalFunction list_Q = new MalFunction(
@@ -233,10 +249,14 @@ namespace Mal {
             {"true?", true_Q},
             {"false?", false_Q},
             {"symbol?", symbol_Q},
+
             {"pr-str", pr_str},
             {"str", str},
             {"prn", prn},
             {"println", println},
+            {"readline", mal_readline},
+            {"read-string", read_string},
+            {"slurp", slurp},
             {"<",  new MalFunction(a => (MalInteger)a[0] <  (MalInteger)a[1])},
             {"<=", new MalFunction(a => (MalInteger)a[0] <= (MalInteger)a[1])},
             {">",  new MalFunction(a => (MalInteger)a[0] >  (MalInteger)a[1])},

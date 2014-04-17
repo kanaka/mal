@@ -11,7 +11,6 @@ import mal.readline;
 import mal.reader;
 import mal.printer;
 import mal.env.Env;
-import mal.core;
 
 public class step3_env {
     // read
@@ -97,18 +96,37 @@ public class step3_env {
     public static MalVal RE(Env env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }
-    public static Env _ref(Env env, String name, MalVal mv) {
-        return env.set(name, mv);
-    }
+
+    static MalFunction add = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).add((MalInteger)a.nth(1));
+        }
+    };
+    static MalFunction subtract = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).subtract((MalInteger)a.nth(1));
+        }
+    };
+    static MalFunction multiply = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).multiply((MalInteger)a.nth(1));
+        }
+    };
+    static MalFunction divide = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).divide((MalInteger)a.nth(1));
+        }
+    };
+
 
     public static void main(String[] args) throws MalThrowable {
         String prompt = "user> ";
 
         Env repl_env = new Env(null);
-        _ref(repl_env, "+", core.add);
-        _ref(repl_env, "-", core.subtract);
-        _ref(repl_env, "*", core.multiply);
-        _ref(repl_env, "/", core.divide);
+        repl_env.set("+", add);
+        repl_env.set("-", subtract);
+        repl_env.set("*", multiply);
+        repl_env.set("/", divide);
 
         if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;
@@ -128,11 +146,11 @@ public class step3_env {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
                 continue;
-            } catch (MalError e) {
-                System.out.println("Error: " + e.getMessage());
-                continue;
             } catch (reader.ParseError e) {
                 System.out.println(e.getMessage());
+                continue;
+            } catch (MalError e) {
+                System.out.println("Error: " + e.getMessage());
                 continue;
             }
         }

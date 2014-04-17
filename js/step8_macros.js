@@ -141,20 +141,16 @@ function PRINT(exp) {
 // repl
 var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
-_ref = function (k,v) { repl_env.set(k, v); }
 
-// Import core functions
+// core.js: defined using javascript
 for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
+repl_env.set('eval', function(ast) { return EVAL(ast, repl_env); });
 
-_ref('read-string', reader.read_str);
-_ref('eval', function(ast) { return EVAL(ast, repl_env); });
-_ref('slurp', function(f) {
-    return require('fs').readFileSync(f, 'utf-8');
-});
-
-// Defined using the language itself
+// core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
+rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
     for (var i=2; i < process.argv.length; i++) {

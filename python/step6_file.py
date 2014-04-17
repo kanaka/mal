@@ -79,16 +79,12 @@ def PRINT(exp):
 repl_env = Env()
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
-def _ref(k,v): repl_env.set(k, v)
 
-# Import types functions
-for name, val in core.ns.items(): _ref(name, val)
+# core.py: defined using python
+for k, v in core.ns.items(): repl_env.set(k, v)
+repl_env.set('eval', lambda ast: EVAL(ast, repl_env))
 
-_ref('read-string', reader.read_str)
-_ref('eval', lambda ast: EVAL(ast, repl_env))
-_ref('slurp', lambda file: open(file).read())
-
-# Defined using the language itself
+# core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 

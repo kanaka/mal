@@ -69,12 +69,11 @@ function PRINT(exp) {
 // repl
 var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
-_ref = function (k,v) { repl_env.set(k, v); }
 
-_ref('+', function(a,b){return a+b;});
-_ref('-', function(a,b){return a-b;});
-_ref('*', function(a,b){return a*b;});
-_ref('/', function(a,b){return a/b;});
+repl_env.set('+', function(a,b){return a+b;});
+repl_env.set('-', function(a,b){return a-b;});
+repl_env.set('*', function(a,b){return a*b;});
+repl_env.set('/', function(a,b){return a/b;});
 
 if (typeof require === 'undefined') {
     // Asynchronous browser mode

@@ -60,12 +60,11 @@ end
 # repl
 repl_env = Env.new
 REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
-_ref = lambda {|k,v| repl_env.set(k, v) }
 
-_ref[:+, lambda {|a,b| a + b}]
-_ref[:-, lambda {|a,b| a - b}]
-_ref[:*, lambda {|a,b| a * b}]
-_ref[:/, lambda {|a,b| a / b}]
+repl_env.set(:+, lambda {|a,b| a + b})
+repl_env.set(:-, lambda {|a,b| a - b})
+repl_env.set(:*, lambda {|a,b| a * b})
+repl_env.set(:/, lambda {|a,b| a / b})
 
 while line = Readline.readline("user> ", true)
     begin

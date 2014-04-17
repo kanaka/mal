@@ -57,12 +57,11 @@ def PRINT(exp):
 repl_env = Env()
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
-def _ref(k,v): repl_env.set(k, v)
 
-_ref('+', lambda a,b: a+b)
-_ref('-', lambda a,b: a-b)
-_ref('*', lambda a,b: a*b)
-_ref('/', lambda a,b: int(a/b))
+repl_env.set('+', lambda a,b: a+b)
+repl_env.set('-', lambda a,b: a-b)
+repl_env.set('*', lambda a,b: a*b)
+repl_env.set('/', lambda a,b: int(a/b))
 
 while True:
     try:

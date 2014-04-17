@@ -86,11 +86,10 @@ REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
 REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
 
 # Setup the environment
-_ref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(if $(2),$(2),$(1))))
-$(call _ref,+,number_plus)
-$(call _ref,-,number_subtract)
-$(call _ref,*,number_multiply)
-$(call _ref,/,number_divide)
+REPL_ENV := $(call ENV_SET,$(REPL_ENV),+,number_plus)
+REPL_ENV := $(call ENV_SET,$(REPL_ENV),-,number_subtract)
+REPL_ENV := $(call ENV_SET,$(REPL_ENV),*,number_multiply)
+REPL_ENV := $(call ENV_SET,$(REPL_ENV),/,number_divide)
 
 # Call the read-eval-print loop
 $(if $(strip $(INTERACTIVE)),$(call REPL))

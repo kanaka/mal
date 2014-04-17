@@ -77,42 +77,36 @@ public class step2_eval {
         return EVAL(READ(str), env);
     }
 
-    static interface ILambda {
-        public MalVal apply(MalList args);
-    }
-    static class plus implements ILambda {
-        public MalVal apply(MalList args) {
-            return ((MalInteger)args.nth(0)).add(
-                    ((MalInteger)args.nth(1)));
+    static MalFunction add = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).add((MalInteger)a.nth(1));
         }
-    }
-    static class minus implements ILambda {
-        public MalVal apply(MalList args) {
-            return ((MalInteger)args.nth(0)).subtract(
-                    ((MalInteger)args.nth(1)));
+    };
+    static MalFunction subtract = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).subtract((MalInteger)a.nth(1));
         }
-    }
-    static class multiply implements ILambda {
-        public MalVal apply(MalList args) {
-            return ((MalInteger)args.nth(0)).multiply(
-                    ((MalInteger)args.nth(1)));
+    };
+    static MalFunction multiply = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).multiply((MalInteger)a.nth(1));
         }
-    }
-    static class divide implements ILambda {
-        public MalVal apply(MalList args) {
-            return ((MalInteger)args.nth(0)).divide(
-                    ((MalInteger)args.nth(1)));
+    };
+    static MalFunction divide = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return ((MalInteger)a.nth(0)).divide((MalInteger)a.nth(1));
         }
-    }
+    };
+
 
     public static void main(String[] args) throws MalThrowable {
         String prompt = "user> ";
 
         HashMap repl_env = new HashMap();
-        repl_env.put("+", new plus());
-        repl_env.put("-", new minus());
-        repl_env.put("*", new multiply());
-        repl_env.put("/", new divide());
+        repl_env.put("+", add);
+        repl_env.put("-", subtract);
+        repl_env.put("*", multiply);
+        repl_env.put("/", divide);
 
         if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;
@@ -132,11 +126,11 @@ public class step2_eval {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
                 continue;
-            } catch (MalError e) {
-                System.out.println("Error: " + e.getMessage());
-                continue;
             } catch (reader.ParseError e) {
                 System.out.println(e.getMessage());
+                continue;
+            } catch (MalError e) {
+                System.out.println("Error: " + e.getMessage());
                 continue;
             }
         }

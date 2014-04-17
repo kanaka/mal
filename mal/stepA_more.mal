@@ -148,21 +148,15 @@
 (def! rep (fn* [strng]
   (PRINT (EVAL (READ strng) repl-env))))
 
-(def! _ref (fn* [k v] (env-set repl-env k v)))
+;; core.mal: defined directly using mal
+(map (fn* [data] (env-set repl-env (nth data 0) (nth data 1))) core_ns)
+(env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
 
-;; Import core namespace functions
-(map (fn* [data] (_ref (nth data 0) (nth data 1))) core_ns)
-
-;; Defined using the language itself
-(_ref 'readline readline)
-(_ref 'read-string read-string)
-(_ref 'eval (fn* [ast] (EVAL ast repl-env)))
-(_ref 'slurp slurp)
-
+;; core.mal: defined using the new language itself 
 (rep "(def! not (fn* [a] (if a false true)))")
+(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
-(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 (def! -main (fn* [] 
   (let* [line (readline "mal-user> ")]

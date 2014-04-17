@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include "types.h"
 #include "readline.h"
 #include "reader.h"
-#include "core.h"
 
 // Declarations
 MalVal *EVAL(MalVal *ast, GHashTable *env);
@@ -54,7 +54,7 @@ MalVal *eval_ast(MalVal *ast, GHashTable *env) {
             MalVal *new_val = EVAL((MalVal *)value, env);
             g_array_append_val(seq->val.array, new_val);
         }
-        return hash_map(seq);
+        return _hash_map(seq);
     } else {
         //g_print("EVAL scalar: %s\n", _pr_str(ast,1));
         return ast;
@@ -62,8 +62,8 @@ MalVal *eval_ast(MalVal *ast, GHashTable *env) {
 }
 
 MalVal *EVAL(MalVal *ast, GHashTable *env) {
-    //g_print("EVAL: %s\n", _pr_str(ast,1));
     if (!ast || mal_error) return NULL;
+    //g_print("EVAL: %s\n", _pr_str(ast,1));
     if (ast->type != MAL_LIST) {
         return eval_ast(ast, env);
     }
@@ -76,7 +76,7 @@ MalVal *EVAL(MalVal *ast, GHashTable *env) {
     assert_type(a0, MAL_SYMBOL, "Cannot invoke %s", _pr_str(a0,1));
     MalVal *el = eval_ast(ast, env);
     if (!el || mal_error) { return NULL; }
-    MalVal *(*f)(void *, void*) = (MalVal *(*)(void*, void*))first(el);
+    MalVal *(*f)(void *, void*) = (MalVal *(*)(void*, void*))_first(el);
     //g_print("eval_invoke el: %s\n", _pr_str(el,1));
     return f(_nth(el, 1), _nth(el, 2));
 }
@@ -109,8 +109,14 @@ MalVal *RE(GHashTable *env, char *prompt, char *str) {
 // Setup the initial REPL environment
 GHashTable *repl_env;
 
+
 void init_repl_env() {
     repl_env = g_hash_table_new(g_str_hash, g_str_equal);
+
+    WRAP_INTEGER_OP(plus,+)
+    WRAP_INTEGER_OP(minus,-)
+    WRAP_INTEGER_OP(multiply,*)
+    WRAP_INTEGER_OP(divide,/)
 
     g_hash_table_insert(repl_env, "+", int_plus);
     g_hash_table_insert(repl_env, "-", int_minus);

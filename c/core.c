@@ -2,9 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "types.h"
 #include "core.h"
+#include "reader.h"
 #include "printer.h"
 
 // Errors/Exceptions
@@ -80,17 +83,49 @@ MalVal *println(MalVal *args) {
     return &mal_nil;
 }
 
+MalVal *mal_readline(MalVal *str) {
+    assert_type(str, MAL_STRING, "readline of non-string");
+    char * line = _readline(str->val.string);
+    if (line) { return malval_new_string(line); }
+    else      { return &mal_nil; }
+}
+
+MalVal *read_string(MalVal *str) {
+    assert_type(str, MAL_STRING, "read_string of non-string");
+    return read_str(str->val.string);
+}
+
+char *slurp_raw(char *path) {
+    char *data;
+    struct stat fst;
+    int fd = open(path, O_RDONLY),
+        sz;
+    if (fd < 0) {
+        abort("slurp failed to open '%s'", path);
+    }
+    if (fstat(fd, &fst) < 0) {
+        abort("slurp failed to stat '%s'", path);
+    }
+    data = malloc(fst.st_size+1);
+    sz = read(fd, data, fst.st_size);
+    if (sz < fst.st_size) {
+        abort("slurp failed to read '%s'", path);
+    }
+    data[sz] = '\0';
+    return data;
+}
+MalVal *slurp(MalVal *path) {
+    assert_type(path, MAL_STRING, "slurp of non-string");
+    char *data = slurp_raw(path->val.string);
+    if (!data || mal_error) { return NULL; }
+    return malval_new_string(data);
+}
+
+
+
 
 // Number functions
 
-#define WRAP_INTEGER_OP(name, op) \
-    MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
-        return malval_new_integer(a->val.intnum op b->val.intnum); \
-    }
-#define WRAP_INTEGER_CMP_OP(name, op) \
-    MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
-        return a->val.intnum op b->val.intnum ? &mal_true : &mal_false; \
-    }
 WRAP_INTEGER_OP(plus,+)
 WRAP_INTEGER_OP(minus,-)
 WRAP_INTEGER_OP(multiply,*)
@@ -115,7 +150,6 @@ MalVal *vector_Q(MalVal *seq) { return _vector_Q(seq) ? &mal_true : &mal_false; 
 
 // Hash map functions
 
-MalVal *hash_map(MalVal *args) { return _hash_map(args); }
 MalVal *hash_map_Q(MalVal *seq) { return _hash_map_Q(seq) ? &mal_true : &mal_false; }
 
 MalVal *assoc(MalVal *args) {
@@ -123,15 +157,15 @@ MalVal *assoc(MalVal *args) {
                 "assoc called with non-sequential arguments");
     assert(_count(args) >= 2,
            "assoc needs at least 2 arguments");
-    GHashTable *htable = g_hash_table_copy(first(args)->val.hash_table);
+    GHashTable *htable = g_hash_table_copy(_first(args)->val.hash_table);
     MalVal *hm = malval_new_hash_map(htable);
-    return _assoc_BANG(hm, rest(args));
+    return _assoc_BANG(hm, _rest(args));
 }
 
 MalVal *dissoc(MalVal* args) {
-    GHashTable *htable = g_hash_table_copy(first(args)->val.hash_table);
+    GHashTable *htable = g_hash_table_copy(_first(args)->val.hash_table);
     MalVal *hm = malval_new_hash_map(htable);
-    return _dissoc_BANG(hm, rest(args));
+    return _dissoc_BANG(hm, _rest(args));
 }
 
 MalVal *keys(MalVal *obj) {
@@ -249,19 +283,6 @@ MalVal *nth(MalVal *seq, MalVal *idx) {
     return _nth(seq, idx->val.intnum);
 }
 
-MalVal *first(MalVal *seq) {
-    assert_type(seq, MAL_LIST|MAL_VECTOR,
-                "first called with non-sequential");
-    if (_count(seq) == 0) {
-        return &mal_nil;
-    }
-    return g_array_index(seq->val.array, MalVal*, 0);
-}
-
-MalVal *rest(MalVal *seq) {
-    return _slice(seq, 1, _count(seq));
-}
-
 MalVal *empty_Q(MalVal *seq) {
     assert_type(seq, MAL_LIST|MAL_VECTOR,
                 "empty? called with non-sequential");
@@ -296,20 +317,11 @@ MalVal *sconj(MalVal *args) {
     return malval_new_list(src_lst->type, new_arr);
 }
 
-MalVal *last(MalVal *seq) {
-    assert_type(seq, MAL_LIST|MAL_VECTOR,
-                "last called with non-sequential");
-    if (_count(seq) == 0) {
-        return &mal_nil;
-    }
-    return g_array_index(seq->val.array, MalVal*, _count(seq)-1);
-}
-
 MalVal *apply(MalVal *args) {
     assert_type(args, MAL_LIST|MAL_VECTOR,
                 "apply called with non-sequential");
     MalVal *f = _nth(args, 0);
-    MalVal *last_arg = last(args);
+    MalVal *last_arg = _last(args);
     assert_type(last_arg, MAL_LIST|MAL_VECTOR,
                 "last argument to apply is non-sequential");
     int i, len = _count(args) - 2 + _count(last_arg);
@@ -410,7 +422,7 @@ MalVal *swap_BANG(MalVal *args) {
 
 
 
-core_ns_entry core_ns[50] = {
+core_ns_entry core_ns[53] = {
     {"=", (void*(*)(void*))equal_Q, 2},
     {"throw", (void*(*)(void*))throw, 1},
     {"nil?", (void*(*)(void*))nil_Q, 1},
@@ -418,10 +430,14 @@ core_ns_entry core_ns[50] = {
     {"false?", (void*(*)(void*))false_Q, 1},
     {"symbol", (void*(*)(void*))symbol, 1},
     {"symbol?", (void*(*)(void*))symbol_Q, 1},
+
     {"pr-str", (void*(*)(void*))pr_str, -1},
     {"str", (void*(*)(void*))str, -1},
     {"prn", (void*(*)(void*))prn, -1},
     {"println", (void*(*)(void*))println, -1},
+    {"readline", (void*(*)(void*))mal_readline, 1},
+    {"read-string", (void*(*)(void*))read_string, 1},
+    {"slurp", (void*(*)(void*))slurp, 1},
     {"<", (void*(*)(void*))int_lt, 2},
     {"<=", (void*(*)(void*))int_lte, 2},
     {">", (void*(*)(void*))int_gt, 2},
@@ -435,7 +451,7 @@ core_ns_entry core_ns[50] = {
     {"list?", (void*(*)(void*))list_Q, 1},
     {"vector", (void*(*)(void*))vector, -1},
     {"vector?", (void*(*)(void*))vector_Q, 1},
-    {"hash-map", (void*(*)(void*))hash_map, -1},
+    {"hash-map", (void*(*)(void*))_hash_map, -1},
     {"map?", (void*(*)(void*))hash_map_Q, 1},
     {"assoc", (void*(*)(void*))assoc, -1},
     {"dissoc", (void*(*)(void*))dissoc, -1},
@@ -448,9 +464,9 @@ core_ns_entry core_ns[50] = {
     {"cons", (void*(*)(void*))cons, 2},
     {"concat", (void*(*)(void*))concat, -1},
     {"nth", (void*(*)(void*))nth, 2},
-    {"first", (void*(*)(void*))first, 1},
-    {"rest", (void*(*)(void*))rest, 1},
-    {"last", (void*(*)(void*))last, 1},
+    {"first", (void*(*)(void*))_first, 1},
+    {"rest", (void*(*)(void*))_rest, 1},
+    {"last", (void*(*)(void*))_last, 1},
     {"empty?", (void*(*)(void*))empty_Q, 1},
     {"count", (void*(*)(void*))count, 1},
     {"conj", (void*(*)(void*))sconj, -1},

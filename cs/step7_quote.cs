@@ -14,7 +14,7 @@ using MalFunction = Mal.types.MalFunction;
 using Env = Mal.env.Env;
 
 namespace Mal {
-    class step4_if_fn_do {
+    class step7_quote {
         // read
         static MalVal READ(string str) {
             return reader.read_str(str);
@@ -164,26 +164,18 @@ namespace Mal {
         static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
         }
-        public static Env _ref(Env env, string name, MalVal mv) {
-            return env.set(name, mv);
-        }
-
 
         static void Main(string[] args) {
             string prompt = "user> ";
             
-            var repl_env = new Mal.env.Env(null);
-            foreach (var entry in Mal.core.ns) {
-                _ref(repl_env, entry.Key, entry.Value);
+            // core.cs: defined using C#
+            var repl_env = new env.Env(null);
+            foreach (var entry in core.ns) {
+                repl_env.set(entry.Key, entry.Value);
             }
-            _ref(repl_env, "read-string", new MalFunction(
-                    a => reader.read_str(((MalString)a[0]).getValue())));
-            _ref(repl_env, "eval", new MalFunction(
-                    a => EVAL(a[0], repl_env)));
-            _ref(repl_env, "slurp", new MalFunction(
-                    a => new MalString(File.ReadAllText(
-                            ((MalString)a[0]).getValue()))));
+            repl_env.set("eval", new MalFunction(a => EVAL(a[0], repl_env)));
 
+            // core.mal: defined using the language itself
             RE(repl_env, "(def! not (fn* (a) (if a false true)))");
             RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
@@ -210,12 +202,6 @@ namespace Mal {
                 try {
                     Console.WriteLine(PRINT(RE(repl_env, line)));
                 } catch (Mal.types.MalContinue) {
-                    continue;
-                } catch (Mal.reader.ParseError e) {
-                    Console.WriteLine(e.Message);
-                    continue;
-                } catch (Mal.types.MalException e) {
-                    Console.WriteLine("Error: " + e.getValue());
                     continue;
                 } catch (Exception e) {
                     Console.WriteLine("Error: " + e.Message);

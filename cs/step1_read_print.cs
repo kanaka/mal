@@ -31,7 +31,6 @@ namespace Mal {
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
             }
-
             while (true) {
                 string line;
                 try {
@@ -45,13 +44,10 @@ namespace Mal {
                     Console.WriteLine(PRINT(RE(null, line)));
                 } catch (Mal.types.MalContinue) {
                     continue;
-            } catch (Mal.types.MalError e) {
+                } catch (Exception e) {
                     Console.WriteLine("Error: " + e.Message);
+                    Console.WriteLine(e.StackTrace);
                     continue;
-                } catch (Mal.reader.ParseError e) {
-                    Console.WriteLine(e.Message);
-                    continue;
-
                 }
             }
         }

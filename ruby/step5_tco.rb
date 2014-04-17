@@ -86,12 +86,12 @@ end
 repl_env = Env.new
 RE = lambda {|str| EVAL(READ(str), repl_env) }
 REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
-_ref = lambda {|k,v| repl_env.set(k, v) }
 
-# Import core functions
-$core_ns.each &_ref
+# core.rb: defined using ruby
+$core_ns.each do |k,v| repl_env.set(k,v) end
+repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
 
-# Defined using the language itself
+# core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
 
 while line = Readline.readline("user> ", true)

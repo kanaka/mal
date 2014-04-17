@@ -124,8 +124,8 @@ MalVal *malval_new_atom(MalVal *val) {
 }
 
 
-MalVal *malval_new_function(void *(*func)(void *), int arg_cnt, MalVal* metadata) {
-    MalVal *mv = malval_new(MAL_FUNCTION_C, metadata);
+MalVal *malval_new_function(void *(*func)(void *), int arg_cnt) {
+    MalVal *mv = malval_new(MAL_FUNCTION_C, NULL);
     mv->func_arg_cnt = arg_cnt;
     assert(mv->func_arg_cnt <= 20,
             "native function restricted to 20 args (%d given)",
@@ -420,12 +420,36 @@ int _sequential_Q(MalVal *seq) {
 
 MalVal *_nth(MalVal *seq, int idx) {
     assert_type(seq, MAL_LIST|MAL_VECTOR,
-                "nth called with non-sequential");
+                "_nth called with non-sequential");
     if (idx >= _count(seq)) {
         return &mal_nil;
     }
     return g_array_index(seq->val.array, MalVal*, idx);
 }
+
+MalVal *_first(MalVal *seq) {
+    assert_type(seq, MAL_LIST|MAL_VECTOR,
+                "_first called with non-sequential");
+    if (_count(seq) == 0) {
+        return &mal_nil;
+    }
+    return g_array_index(seq->val.array, MalVal*, 0);
+}
+
+MalVal *_last(MalVal *seq) {
+    assert_type(seq, MAL_LIST|MAL_VECTOR,
+                "_last called with non-sequential");
+    if (_count(seq) == 0) {
+        return &mal_nil;
+    }
+    return g_array_index(seq->val.array, MalVal*, _count(seq)-1);
+}
+
+
+MalVal *_rest(MalVal *seq) {
+    return _slice(seq, 1, _count(seq));
+}
+
 
 MalVal *_map2(MalVal *(*func)(void*, void*), MalVal *lst, void *arg2) {
     MalVal *e, *el;

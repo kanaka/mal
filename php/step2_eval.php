@@ -55,6 +55,7 @@ function rep($str) {
     global $repl_env;
     return MAL_PRINT(MAL_EVAL(READ($str), $repl_env));
 }
+
 $repl_env['+'] = function ($a, $b) { return intval($a + $b,10); };
 $repl_env['-'] = function ($a, $b) { return intval($a - $b,10); };
 $repl_env['*'] = function ($a, $b) { return intval($a * $b,10); };

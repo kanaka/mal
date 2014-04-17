@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include "types.h"
 #include "readline.h"
 #include "reader.h"
-#include "core.h"
 
 // Declarations
 MalVal *EVAL(MalVal *ast, Env *env);
@@ -53,7 +53,7 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
             MalVal *new_val = EVAL((MalVal *)value, env);
             g_array_append_val(seq->val.array, new_val);
         }
-        return hash_map(seq);
+        return _hash_map(seq);
     } else {
         //g_print("EVAL scalar: %s\n", _pr_str(ast,1));
         return ast;
@@ -61,8 +61,8 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
 }
 
 MalVal *EVAL(MalVal *ast, Env *env) {
-    //g_print("EVAL: %s\n", _pr_str(ast,1));
     if (!ast || mal_error) return NULL;
+    //g_print("EVAL: %s\n", _pr_str(ast,1));
     if (ast->type != MAL_LIST) {
         return eval_ast(ast, env);
     }
@@ -102,7 +102,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         //g_print("eval apply\n");
         MalVal *el = eval_ast(ast, env);
         if (!el || mal_error) { return NULL; }
-        MalVal *(*f)(void *, void*) = (MalVal *(*)(void*, void*))first(el);
+        MalVal *(*f)(void *, void*) = (MalVal *(*)(void*, void*))_first(el);
         return f(_nth(el, 1), _nth(el, 2));
     }
 }
@@ -137,6 +137,11 @@ Env *repl_env;
 
 void init_repl_env() {
     repl_env = new_env(NULL, NULL, NULL);
+
+    WRAP_INTEGER_OP(plus,+)
+    WRAP_INTEGER_OP(minus,-)
+    WRAP_INTEGER_OP(multiply,*)
+    WRAP_INTEGER_OP(divide,/)
 
     env_set(repl_env, "+", (MalVal *)int_plus);
     env_set(repl_env, "-", (MalVal *)int_minus);

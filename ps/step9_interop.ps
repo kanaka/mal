@@ -209,17 +209,17 @@ end } def
 
 /RE { READ repl_env EVAL } def
 /REP { READ repl_env EVAL PRINT } def
+
+% core.ps: defined using postscript
 /_ref { _function repl_env 3 1 roll env_set pop } def
-
 core_ns { _ref } forall
-
-(read-string) { 0 _nth read_str } _ref
 (eval) { 0 _nth repl_env EVAL } _ref
-/slurp { (r) file dup bytesavailable string readstring pop } def
-(slurp) { 0 _nth slurp } _ref
 
+% core.mal: defined using the language itself
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
+(\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop
+(\(defmacro! or \(fn* \(& xs\) \(if \(empty? xs\) nil \(if \(= 1 \(count xs\)\) \(first xs\) `\(let* \(or_FIXME ~\(first xs\)\) \(if or_FIXME or_FIXME \(or ~@\(rest xs\)\)\)\)\)\)\)\)) RE pop
 
 userdict /ARGUMENTS known { %if command line arguments
     ARGUMENTS length 0 gt { %if more than 0 arguments

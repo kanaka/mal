@@ -6,6 +6,7 @@ if [ -z "${__mal_core_included__}" ]; then
 __mal_core_included=true
 
 source $(dirname $0)/types.sh
+source $(dirname $0)/reader.sh
 source $(dirname $0)/printer.sh
 
 # Exceptions/Errors
@@ -87,6 +88,21 @@ println () {
     r="${__nil}"; 
 }
 
+readline () {
+    READLINE "${ANON["${1}"]}" && _string "${r}" || r="${__nil}"
+}
+
+read_string () {
+    READ_STR "${ANON["${1}"]}"
+}
+
+slurp () {
+    local lines
+    mapfile lines < "${ANON["${1}"]}"
+    local text="${lines[*]}"; text=${text//$'\n' /$'\n'}
+    _string "${text}"
+}
+
 
 # Function functions
 function? () { _function? "${1}" && r="${__true}" || r="${__false}"; }
@@ -155,11 +171,6 @@ get () {
     [[ "${r}" ]] || r="${__nil}"
 }
 
-_contains? () {
-    local obj="${ANON["${1}"]}"
-    #echo "_contains? ${1} ${2} -> \${${obj}[\"${2}\"]+isset}"
-    eval [[ "\${${obj}[\"${2}\"]+isset}" ]]
-}
 contains? () { _contains? "${1}" "${ANON["${2}"]}" && r="${__true}" || r="${__false}"; }
 
 keys () {
@@ -213,29 +224,6 @@ concat () {
 
 nth () {
     _nth "${1}" "${ANON["${2}"]}"
-}
-
-first () {
-    local temp="${ANON["${1}"]}"
-    r="${temp%% *}"
-    [ "${r}" ] || r="${__nil}"
-}
-
-# Creates a new vector/list of the everything after but the first
-# element
-rest () {
-    local temp="${ANON["${1}"]}"
-    _list
-    if [[ "${temp#* }" == "${temp}" ]]; then
-        ANON["${r}"]=
-    else
-        ANON["${r}"]="${temp#* }"
-    fi
-}
-
-last () {
-    local temp="${ANON["${1}"]}"
-    r="${temp##* }"
 }
 
 empty? () { _empty? "${1}" && r="${__true}" || r="${__false}"; }
@@ -323,10 +311,14 @@ declare -A core_ns=(
     [true?]=true?
     [false?]=false?
     [symbol?]=symbol?
+
     [pr-str]=pr_str
     [str]=str
     [prn]=prn
     [println]=println
+    [readline]=readline
+    [read-string]=read_string
+    [slurp]=slurp
     [<]=num_lt
     [<=]=num_lte
     [>]=num_gt
@@ -353,8 +345,8 @@ declare -A core_ns=(
     [cons]=cons
     [concat]=concat
     [nth]=nth
-    [first]=first
-    [rest]=rest
+    [first]=_first
+    [rest]=_rest
     [empty?]=empty?
     [count]=count
     [conj]=conj

@@ -106,16 +106,12 @@ end
 repl_env = Env.new
 RE = lambda {|str| EVAL(READ(str), repl_env) }
 REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
-_ref = lambda {|k,v| repl_env.set(k, v) }
 
-# Import core functions
-$core_ns.each &_ref
+# core.rb: defined using ruby
+$core_ns.each do |k,v| repl_env.set(k,v) end
+repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
 
-_ref[:"read-string", lambda {|str| read_str str}]
-_ref[:eval, lambda {|ast| EVAL(ast, repl_env)}]
-_ref[:slurp, lambda {|f| File.read(f) }]
-
-# Defined using the language itself
+# core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
 RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
 

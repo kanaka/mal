@@ -81,8 +81,8 @@ end } def
 /repl_env null null null env_new def
 
 /REP { READ repl_env EVAL PRINT } def
-/_ref { repl_env 3 1 roll env_set pop } def
 
+/_ref { repl_env 3 1 roll env_set pop } def
 (+) { dup 0 _nth exch 1 _nth add } _ref
 (-) { dup 0 _nth exch 1 _nth sub } _ref
 (*) { dup 0 _nth exch 1 _nth mul } _ref

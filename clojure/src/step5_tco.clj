@@ -83,12 +83,11 @@
   [strng]
   (PRINT (EVAL (READ strng) repl-env)))
 
-(defn _ref [k,v] (env/env-set repl-env k v))
+;; core.clj: defined using Clojure
+(doseq [[k v] core/core_ns] (env/env-set repl-env k v))
+(env/env-set repl-env 'eval (fn [ast] (EVAL ast repl-env)))
 
-;; Import types related functions
-(doseq [[k v] core/core_ns] (_ref k v))
-
-;; Defined using the language itself
+;; core.mal: defined using the language itself
 (rep "(def! not (fn* [a] (if a false true)))")
 
 (defn -main [& args]

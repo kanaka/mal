@@ -1,6 +1,8 @@
 <?php
 
 require_once 'types.php';
+require_once 'readline.php';
+require_once 'reader.php';
 require_once 'printer.php';
 
 // Error/Exception functions
@@ -169,11 +171,15 @@ $core_ns = array(
     'false?'=> function ($a) { return _false_Q($a); },
     'symbol'=> function () { return call_user_func_array('_symbol', func_get_args()); },
     'symbol?'=> function ($a) { return _symbol_Q($a); },
+
     'string?'=> function ($a) { return _string_Q($a); },
     'pr-str'=> function () { return call_user_func_array('pr_str', func_get_args()); },
     'str'=>    function () { return call_user_func_array('str', func_get_args()); },
     'prn'=>    function () { return call_user_func_array('prn', func_get_args()); },
     'println'=>function () { return call_user_func_array('println', func_get_args()); },
+    'readline'=>function ($a) { return mal_readline($a); },
+    'read-string'=>function ($a) { return read_str($a); },
+    'slurp'=>  function ($a) { return file_get_contents($a); },
     '<'=>      function ($a, $b) { return $a < $b; },
     '<='=>     function ($a, $b) { return $a <= $b; },
     '>'=>      function ($a, $b) { return $a > $b; },

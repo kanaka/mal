@@ -132,18 +132,15 @@
   [strng]
   (PRINT (EVAL (READ strng) repl-env)))
 
-(defn _ref [k,v] (env/env-set repl-env k v))
+;; core.clj: defined using Clojure
+(doseq [[k v] core/core_ns] (env/env-set repl-env k v))
+(env/env-set repl-env 'eval (fn [ast] (EVAL ast repl-env)))
 
-;; Import types related functions
-(doseq [[k v] core/core_ns] (_ref k v))
-
-;; Defined using the language itself
-(_ref 'read-string reader/read-string)
-(_ref 'eval (fn [ast] (EVAL ast repl-env)))
-(_ref 'slurp slurp)
-
+;; core.mal: defined using the language itself
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* [f] (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+(rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+(rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
 (defn -main [& args]
   (if args

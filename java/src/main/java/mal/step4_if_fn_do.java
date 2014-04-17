@@ -122,18 +122,18 @@ public class step4_if_fn_do {
     public static MalVal RE(Env env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }
-    public static Env _ref(Env env, String name, MalVal mv) {
-        return env.set(name, mv);
-    }
 
     public static void main(String[] args) throws MalThrowable {
         String prompt = "user> ";
 
         Env repl_env = new Env(null);
+
+        // core.java: defined using Java
         for (String key : core.ns.keySet()) {
-            _ref(repl_env, key, core.ns.get(key));
+            repl_env.set(key, core.ns.get(key));
         }
 
+        // core.mal: defined using the language itself
         RE(repl_env, "(def! not (fn* (a) (if a false true)))");
         
         if (args.length > 0 && args[0].equals("--raw")) {

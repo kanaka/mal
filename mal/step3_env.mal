@@ -60,11 +60,10 @@
 (def! rep (fn* [strng]
   (PRINT (EVAL (READ strng) repl-env))))
 
-(def! _ref (fn* [k v] (env-set repl-env k v)))
-(_ref "+" +)
-(_ref "-" -)
-(_ref "*" *)
-(_ref "/" /)
+(env-set repl-env "+" +)
+(env-set repl-env "-" -)
+(env-set repl-env "*" *)
+(env-set repl-env "/" /)
 
 (def! -main (fn* [] 
   (let* [line (readline "mal-user> ")]

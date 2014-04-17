@@ -3,6 +3,8 @@ from itertools import chain
 
 import mal_types as types
 from mal_types import List, Vector
+import mal_readline
+import reader
 import printer
 
 # Errors/Exceptions
@@ -112,10 +114,14 @@ ns = {
         'false?': types._false_Q,
         'symbol': types._symbol,
         'symbol?': types._symbol_Q,
+
         'pr-str': pr_str,
         'str': do_str,
         'prn': prn,
         'println': println,
+        'readline': lambda prompt: mal_readline.readline(prompt),
+        'read-string': reader.read_str,
+        'slurp': lambda file: open(file).read(),
         '<':  lambda a,b: a<b,
         '<=': lambda a,b: a<=b,
         '>':  lambda a,b: a>b,

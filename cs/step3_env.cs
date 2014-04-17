@@ -55,7 +55,7 @@ namespace Mal {
             // apply list
             MalList ast = (MalList)orig_ast;
             if (ast.size() == 0) { return ast; }
-            a0 = ast.nth(0);
+            a0 = ast[0];
             if (!(a0 is MalSymbol)) {
                 throw new Mal.types.MalError("attempt to apply on non-symbol '"
                         + Mal.printer._pr_str(a0,true) + "'");
@@ -63,26 +63,26 @@ namespace Mal {
 
             switch (((MalSymbol)a0).getName()) {
             case "def!":
-                a1 = ast.nth(1);
-                a2 = ast.nth(2);
+                a1 = ast[1];
+                a2 = ast[2];
                 res = EVAL(a2, env);
                 env.set(((MalSymbol)a1).getName(), res);
                 return res;
             case "let*":
-                a1 = ast.nth(1);
-                a2 = ast.nth(2);
+                a1 = ast[1];
+                a2 = ast[2];
                 MalSymbol key;
                 MalVal val;
                 Env let_env = new Env(env);
                 for(int i=0; i<((MalList)a1).size(); i+=2) {
-                    key = (MalSymbol)((MalList)a1).nth(i);
-                    val = ((MalList)a1).nth(i+1);
+                    key = (MalSymbol)((MalList)a1)[i];
+                    val = ((MalList)a1)[i+1];
                     let_env.set(key.getName(), EVAL(val, let_env));
                 }
                 return EVAL(a2, let_env);
             default:
                 el = (MalList)eval_ast(ast, env);
-                var f = (MalFunction)el.nth(0);
+                var f = (MalFunction)el[0];
                 return f.apply(el.rest());
             }
         }
@@ -95,9 +95,6 @@ namespace Mal {
         // REPL
         static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
-        }
-        public static Env _ref(Env env, string name, MalVal mv) {
-            return env.set(name, mv);
         }
 
         static public MalFunction plus = new MalFunction(
@@ -114,10 +111,10 @@ namespace Mal {
             string prompt = "user> ";
             
             var repl_env = new Mal.env.Env(null);
-            _ref(repl_env, "+", plus);
-            _ref(repl_env, "-", minus);
-            _ref(repl_env, "*", multiply);
-            _ref(repl_env, "/", divide);
+            repl_env.set("+", plus);
+            repl_env.set("-", minus);
+            repl_env.set("*", multiply);
+            repl_env.set("/", divide);
 
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
@@ -135,14 +132,9 @@ namespace Mal {
                     Console.WriteLine(PRINT(RE(repl_env, line)));
                 } catch (Mal.types.MalContinue) {
                     continue;
-                } catch (Mal.reader.ParseError e) {
-                    Console.WriteLine(e.Message);
-                    continue;
-                } catch (Mal.types.MalException e) {
-                    Console.WriteLine("Error: " + e.getValue());
-                    continue;
                 } catch (Exception e) {
                     Console.WriteLine("Error: " + e.Message);
+                    Console.WriteLine(e.StackTrace);
                     continue;
                 }
             }

@@ -53,13 +53,13 @@ namespace Mal {
             // apply list
             MalList ast = (MalList)orig_ast;
             if (ast.size() == 0) { return ast; }
-            a0 = ast.nth(0);
+            a0 = ast[0];
             if (!(a0 is MalSymbol)) {
                 throw new Mal.types.MalError("attempt to apply on non-symbol '"
                         + Mal.printer._pr_str(a0,true) + "'");
             }
             var el = (MalList)eval_ast(ast, env);
-            var f = (MalFunction)el.nth(0);
+            var f = (MalFunction)el[0];
             return f.apply(el.rest());
 
         }
@@ -92,10 +92,10 @@ namespace Mal {
                 {"*", multiply},
                 {"/", divide},
             };
+
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
             }
-
             while (true) {
                 string line;
                 try {
@@ -109,14 +109,9 @@ namespace Mal {
                     Console.WriteLine(PRINT(RE(repl_env, line)));
                 } catch (Mal.types.MalContinue) {
                     continue;
-                } catch (Mal.reader.ParseError e) {
-                    Console.WriteLine(e.Message);
-                    continue;
-                } catch (Mal.types.MalError e) {
-                    Console.WriteLine("Error: " + e.Message);
-                    continue;
                 } catch (Exception e) {
                     Console.WriteLine("Error: " + e.Message);
+                    Console.WriteLine(e.StackTrace);
                     continue;
                 }
             }

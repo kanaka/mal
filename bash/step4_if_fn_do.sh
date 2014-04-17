@@ -4,12 +4,12 @@ INTERACTIVE=${INTERACTIVE-yes}
 
 source $(dirname $0)/reader.sh
 source $(dirname $0)/printer.sh
-source $(dirname $0)/core.sh
 source $(dirname $0)/env.sh
+source $(dirname $0)/core.sh
 
 # READ: read and parse input
 READ () {
-    READLINE
+    [ "${1}" ] && r="${1}" || READLINE
     READ_STR "${r}"
 }
 
@@ -74,10 +74,10 @@ EVAL () {
               done
               EVAL "${a2}" "${let_env}"
               return ;;
-        do)   rest "${ast}"
+        do)   _rest "${ast}"
               EVAL_AST "${r}" "${env}"
               [[ "${__ERROR}" ]] && r= && return 1
-              last "${r}"
+              _last "${r}"
               return ;;
         if)   EVAL "${a1}" "${env}"
               if [[ "${r}" == "${__false}" || "${r}" == "${__nil}" ]]; then
@@ -99,8 +99,8 @@ EVAL () {
         *)    EVAL_AST "${ast}" "${env}"
               [[ "${__ERROR}" ]] && r= && return 1
               local el="${r}"
-              first "${el}"; local f="${ANON["${r}"]}"
-              rest "${el}"; local args="${ANON["${r}"]}"
+              _first "${el}"; local f="${ANON["${r}"]}"
+              _rest "${el}"; local args="${ANON["${r}"]}"
               #echo "invoke: ${f} ${args}"
               eval ${f} ${args}
               return ;;
@@ -122,17 +122,16 @@ PRINT () {
 ENV; REPL_ENV="${r}"
 REP () {
     r=
-    READ_STR "${1}"
-    EVAL "${r}" ${REPL_ENV}
+    READ "${1}" || return 1
+    EVAL "${r}" "${REPL_ENV}"
     PRINT "${r}"
 }
 
+# core.sh: defined using bash
 _fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
-
-# Import types functions
 for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 
-# Defined using the language itself
+# core.mal: defined using the language itself
 REP "(def! not (fn* (a) (if a false true)))"
 
 if [[ -n "${INTERACTIVE}" ]]; then

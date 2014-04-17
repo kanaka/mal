@@ -19,10 +19,11 @@ namespace Mal {
         // Thrown by throw function
         public class MalException : MalThrowable {
             MalVal value;
+            //string Message;
             public MalException(MalVal value) {
                 this.value = value;
             }
-            public MalException(string value) {
+            public MalException(string value) :base(value) {
                 this.value = new MalString(value);
             }
             public MalVal getValue() { return value; }

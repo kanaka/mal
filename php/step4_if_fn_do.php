@@ -90,11 +90,13 @@ function rep($str) {
     global $repl_env;
     return MAL_PRINT(MAL_EVAL(READ($str), $repl_env));
 }
-function _ref($k, $v) { global $repl_env; $repl_env->set($k, $v); }
-// Import core functions
-foreach ($core_ns as $k=>$v) { _ref($k, $v); }
 
-// Defined using the language itself
+// core.php: defined using PHP
+foreach ($core_ns as $k=>$v) {
+    $repl_env->set($k, _function($v));
+}
+
+// core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 
 do {

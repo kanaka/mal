@@ -185,6 +185,11 @@ _hash_map () {
 }
 _hash_map? () { [[ ${1} =~ ^hmap_ ]]; }
 
+_contains? () {
+    local obj="${ANON["${1}"]}"
+    eval [[ "\${${obj}[\"${2}\"]+isset}" ]]
+}
+
 _copy_hash_map () {
     local orig_obj="${ANON["${1}"]}"
     _hash_map
@@ -242,6 +247,30 @@ _nth () {
     local temp=(${ANON["${1}"]})
     r=${temp[${2}]}
 }
+
+_first () {
+    local temp="${ANON["${1}"]}"
+    r="${temp%% *}"
+    [ "${r}" ] || r="${__nil}"
+}
+
+_last () {
+    local temp="${ANON["${1}"]}"
+    r="${temp##* }"
+}
+
+# Creates a new vector/list of the everything after but the first
+# element
+_rest () {
+    local temp="${ANON["${1}"]}"
+    _list
+    if [[ "${temp#* }" == "${temp}" ]]; then
+        ANON["${r}"]=
+    else
+        ANON["${r}"]="${temp#* }"
+    fi
+}
+
 
 _empty? () { [[ -z "${ANON["${1}"]}" ]]; }
 

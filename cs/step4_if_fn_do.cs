@@ -55,58 +55,58 @@ namespace Mal {
             // apply list
             MalList ast = (MalList)orig_ast;
             if (ast.size() == 0) { return ast; }
-            a0 = ast.nth(0);
+            a0 = ast[0];
 
             String a0sym = a0 is MalSymbol ? ((MalSymbol)a0).getName()
                                            : "__<*fn*>__";
 
             switch (a0sym) {
             case "def!":
-                a1 = ast.nth(1);
-                a2 = ast.nth(2);
+                a1 = ast[1];
+                a2 = ast[2];
                 res = EVAL(a2, env);
                 env.set(((MalSymbol)a1).getName(), res);
                 return res;
             case "let*":
-                a1 = ast.nth(1);
-                a2 = ast.nth(2);
+                a1 = ast[1];
+                a2 = ast[2];
                 MalSymbol key;
                 MalVal val;
                 Env let_env = new Env(env);
                 for(int i=0; i<((MalList)a1).size(); i+=2) {
-                    key = (MalSymbol)((MalList)a1).nth(i);
-                    val = ((MalList)a1).nth(i+1);
+                    key = (MalSymbol)((MalList)a1)[i];
+                    val = ((MalList)a1)[i+1];
                     let_env.set(key.getName(), EVAL(val, let_env));
                 }
                 return EVAL(a2, let_env);
             case "do":
                 el = (MalList)eval_ast(ast.rest(), env);
-                return el.nth(el.size()-1);
+                return el[el.size()-1];
             case "if":
-                a1 = ast.nth(1);
+                a1 = ast[1];
                 MalVal cond = EVAL(a1, env);
                 if (cond == Mal.types.Nil || cond == Mal.types.False) {
                     // eval false slot form
                     if (ast.size() > 3) {
-                        a3 = ast.nth(3);
+                        a3 = ast[3];
                         return EVAL(a3, env);
                     } else {
                         return Mal.types.Nil;
                     }
                 } else {
                     // eval true slot form
-                    a2 = ast.nth(2);
+                    a2 = ast[2];
                     return EVAL(a2, env);
                 }
             case "fn*":
-                MalList a1f = (MalList)ast.nth(1);
-                MalVal a2f = ast.nth(2);
+                MalList a1f = (MalList)ast[1];
+                MalVal a2f = ast[2];
                 Env cur_env = env;
                 return new MalFunction(
                     args => EVAL(a2f, new Env(cur_env, a1f, args)) );
             default:
                 el = (MalList)eval_ast(ast, env);
-                var f = (MalFunction)el.nth(0);
+                var f = (MalFunction)el[0];
                 return f.apply(el.rest());
             }
         }
@@ -120,18 +120,17 @@ namespace Mal {
         static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
         }
-        public static Env _ref(Env env, string name, MalVal mv) {
-            return env.set(name, mv);
-        }
 
         static void Main(string[] args) {
             string prompt = "user> ";
             
-            var repl_env = new Mal.env.Env(null);
-            foreach (var entry in Mal.core.ns) {
-                _ref(repl_env, entry.Key, entry.Value);
+            // core.cs: defined using C#
+            var repl_env = new env.Env(null);
+            foreach (var entry in core.ns) {
+                repl_env.set(entry.Key, entry.Value);
             }
 
+            // core.mal: defined using the language itself
             RE(repl_env, "(def! not (fn* (a) (if a false true)))");
 
             if (args.Length > 0 && args[0] == "--raw") {
@@ -150,14 +149,9 @@ namespace Mal {
                     Console.WriteLine(PRINT(RE(repl_env, line)));
                 } catch (Mal.types.MalContinue) {
                     continue;
-                } catch (Mal.reader.ParseError e) {
-                    Console.WriteLine(e.Message);
-                    continue;
-                } catch (Mal.types.MalException e) {
-                    Console.WriteLine("Error: " + e.getValue());
-                    continue;
                 } catch (Exception e) {
                     Console.WriteLine("Error: " + e.Message);
+                    Console.WriteLine(e.StackTrace);
                     continue;
                 }
             }

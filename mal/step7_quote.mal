@@ -105,16 +105,11 @@
 (def! rep (fn* [strng]
   (PRINT (EVAL (READ strng) repl-env))))
 
-(def! _ref (fn* [k v] (env-set repl-env k v)))
+;; core.mal: defined directly using mal
+(map (fn* [data] (env-set repl-env (nth data 0) (nth data 1))) core_ns)
+(env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
 
-;; Import core namespace functions
-(map (fn* [data] (_ref (nth data 0) (nth data 1))) core_ns)
-
-;; Defined using the language itself
-(_ref 'read-string read-string)
-(_ref 'eval (fn* [ast] (EVAL ast repl-env)))
-(_ref 'slurp slurp)
-
+;; core.mal: defined using the new language itself 
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 

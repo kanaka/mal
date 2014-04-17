@@ -160,26 +160,17 @@ REPL_ENV := $(call ENV)
 REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
 REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
 
-# Setup the environment
-_ref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(if $(2),$(2),$(1))))
+# core.mk: defined using Make
 _fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call _function,$$(call $(2),$$1))))
-
-# Import core namespace
 _import_core = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_core,$(wordlist 3,$(words $(1)),$(1))),)
 $(call _import_core,$(core_ns))
+REPL_ENV := $(call ENV_SET,$(REPL_ENV),eval,$(call _function,$$(call EVAL,$$(1),$$(REPL_ENV))))
 
-$(call _ref,readline,$(call _function,$$(foreach res,$$(call _string,$$(call READLINE,"$$(call str_decode,$$($$(1)_value))")),$$(if $$(READLINE_EOF),$$(__nil),$$(res)))))
-$(call _ref,read-string,$(call _function,$$(call READ_STR,$$(1))))
-$(call _ref,eval,$(call _function,$$(call EVAL,$$(1),$$(REPL_ENV))))
-
-_slurp = $(call _string,$(call _read_file,$(1)))
-$(call _ref,slurp,$(call _function,$$(call _slurp,$$(call str_decode,$$($$(1)_value)))))
-
-# Defined in terms of the language itself
+# core.mal: defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
+$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 $(call do,$(call REP, (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs))))))) ))
 $(call do,$(call REP, (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs)))))))) ))
-$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 
 # Load and eval any files specified on the command line
 $(if $(MAKECMDGOALS),\

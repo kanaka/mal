@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include "types.h"
 #include "readline.h"
 #include "reader.h"
@@ -53,7 +54,7 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
             MalVal *new_val = EVAL((MalVal *)value, env);
             g_array_append_val(seq->val.array, new_val);
         }
-        return hash_map(seq);
+        return _hash_map(seq);
     } else {
         //g_print("EVAL scalar: %s\n", _pr_str(ast,1));
         return ast;
@@ -61,8 +62,8 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
 }
 
 MalVal *EVAL(MalVal *ast, Env *env) {
-    //g_print("EVAL: %s\n", _pr_str(ast,1));
     if (!ast || mal_error) return NULL;
+    //g_print("EVAL: %s\n", _pr_str(ast,1));
     if (ast->type != MAL_LIST) {
         return eval_ast(ast, env);
     }
@@ -102,8 +103,8 @@ MalVal *EVAL(MalVal *ast, Env *env) {
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("do", a0->val.string) == 0) {
         //g_print("eval apply do\n");
-        MalVal *el = eval_ast(rest(ast), env);
-        return last(el);
+        MalVal *el = eval_ast(_rest(ast), env);
+        return _last(el);
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("if", a0->val.string) == 0) {
         //g_print("eval apply if\n");
@@ -136,8 +137,8 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         //g_print("eval apply\n");
         MalVal *el = eval_ast(ast, env);
         if (!el || mal_error) { return NULL; }
-        MalVal *f = first(el),
-               *args = rest(el);
+        MalVal *f = _first(el),
+               *args = _rest(el);
         assert_type(f, MAL_FUNCTION_C|MAL_FUNCTION_MAL,
                     "cannot apply '%s'", _pr_str(f,1));
         return _apply(f, args);
@@ -173,18 +174,16 @@ MalVal *RE(Env *env, char *prompt, char *str) {
 Env *repl_env;
 
 void init_repl_env() {
-    void _ref(char *name, MalVal*(*func)(MalVal*), int arg_cnt) {
-        void *(*f)(void *) = (void*(*)(void*))func;
-        env_set(repl_env, name, malval_new_function(f, arg_cnt, NULL));
-    }
     repl_env = new_env(NULL, NULL, NULL);
 
+    // core.c: defined using C
     int i;
     for(i=0; i< (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
-        MalVal *(*f)(MalVal *) = (MalVal*(*)(MalVal*))core_ns[i].func;
-        _ref(core_ns[i].name, f, core_ns[i].arg_cnt);
+        env_set(repl_env, core_ns[i].name,
+                malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
 
+    // core.mal: defined using the language itself
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");
 }
 

@@ -72,12 +72,11 @@ function rep($str) {
     global $repl_env;
     return MAL_PRINT(MAL_EVAL(READ($str), $repl_env));
 }
-function _ref($k, $v) { global $repl_env; $repl_env->set($k, $v); }
 
-_ref('+', function ($a, $b) { return intval($a + $b,10); });
-_ref('-', function ($a, $b) { return intval($a - $b,10); });
-_ref('*', function ($a, $b) { return intval($a * $b,10); });
-_ref('/', function ($a, $b) { return intval($a / $b,10); });
+$repl_env->set('+', function ($a, $b) { return intval($a + $b,10); });
+$repl_env->set('-', function ($a, $b) { return intval($a - $b,10); });
+$repl_env->set('*', function ($a, $b) { return intval($a * $b,10); });
+$repl_env->set('/', function ($a, $b) { return intval($a / $b,10); });
 
 do {
     try {

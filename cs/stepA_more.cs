@@ -3,7 +3,6 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using Mal;
-using MalException = Mal.types.MalException;
 using MalVal = Mal.types.MalVal;
 using MalString = Mal.types.MalString;
 using MalSymbol = Mal.types.MalSymbol;
@@ -161,8 +160,8 @@ namespace Mal {
                         a2 = ast[2];
                         MalVal a20 = ((MalList)a2)[0];
                         if (((MalSymbol)a20).getName() == "catch*") {
-                            if (e is MalException) {
-                                exc = ((MalException)e).getValue();
+                            if (e is Mal.types.MalException) {
+                                exc = ((Mal.types.MalException)e).getValue();
                             } else {
                                 exc = new MalString(e.StackTrace);
                             }
@@ -180,12 +179,12 @@ namespace Mal {
             case "if":
                 a1 = ast[1];
                 MalVal cond = EVAL(a1, env);
-                if (cond == types.Nil || cond == types.False) {
+                if (cond == Mal.types.Nil || cond == Mal.types.False) {
                     // eval false slot form
                     if (ast.size() > 3) {
                         orig_ast = ast[3];
                     } else {
-                        return types.Nil;
+                        return Mal.types.Nil;
                     }
                 } else {
                     // eval true slot form
@@ -223,40 +222,26 @@ namespace Mal {
         static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
         }
-        public static Env _ref(Env env, string name, MalVal mv) {
-            return env.set(name, mv);
-        }
-
 
         static void Main(string[] args) {
             string prompt = "user> ";
             
+            // core.cs: defined using C#
             var repl_env = new env.Env(null);
             foreach (var entry in core.ns) {
-                _ref(repl_env, entry.Key, entry.Value);
+                repl_env.set(entry.Key, entry.Value);
             }
-            _ref(repl_env, "readline", new MalFunction(
-                a => {
-                    var line = readline.Readline(((MalString)a[0]).getValue());
-                    if (line == null) { return types.Nil; }
-                    else {              return new MalString(line); }
-                }));
-            _ref(repl_env, "read-string", new MalFunction(
-                a => reader.read_str(((MalString)a[0]).getValue())));
-            _ref(repl_env, "eval", new MalFunction(
-                a => EVAL(a[0], repl_env)));
-            _ref(repl_env, "slurp", new MalFunction(
-                a => new MalString(File.ReadAllText(
-                          ((MalString)a[0]).getValue()))));
+            repl_env.set("eval", new MalFunction(a => EVAL(a[0], repl_env)));
 
+            // core.mal: defined using the language itself
             RE(repl_env, "(def! not (fn* (a) (if a false true)))");
+            RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
             RE(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
             RE(repl_env, "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
-            RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
             int fileIdx = 0;
             if (args.Length > 0 && args[0] == "--raw") {
-                readline.mode = readline.Mode.Raw;
+                Mal.readline.mode = Mal.readline.Mode.Raw;
                 fileIdx = 1;
             }
             if (args.Length > fileIdx) {
@@ -268,7 +253,7 @@ namespace Mal {
             while (true) {
                 string line;
                 try {
-                    line = readline.Readline(prompt);
+                    line = Mal.readline.Readline(prompt);
                     if (line == null) { break; }
                 } catch (IOException e) {
                     Console.WriteLine("IOException: " + e.Message);
@@ -276,12 +261,9 @@ namespace Mal {
                 }
                 try {
                     Console.WriteLine(PRINT(RE(repl_env, line)));
-                } catch (types.MalContinue) {
+                } catch (Mal.types.MalContinue) {
                     continue;
-                } catch (reader.ParseError e) {
-                    Console.WriteLine(e.Message);
-                    continue;
-                } catch (MalException e) {
+                } catch (Mal.types.MalException e) {
                     Console.WriteLine("Error: " +
                             printer._pr_str(e.getValue(), false));
                     continue;

@@ -148,21 +148,16 @@ end
 repl_env = Env.new
 RE = lambda {|str| EVAL(READ(str), repl_env) }
 REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
-_ref = lambda {|k,v| repl_env.set(k, v) }
 
-# Import core functions
-$core_ns.each &_ref
+# core.rb: defined using ruby
+$core_ns.each do |k,v| repl_env.set(k,v) end
+repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
 
-_ref[:"readline", lambda {|prompt| Readline.readline(prompt,true)}]
-_ref[:"read-string", lambda {|str| read_str str}]
-_ref[:eval, lambda {|ast| EVAL(ast, repl_env)}]
-_ref[:slurp, lambda {|f| File.read(f) }]
-
-# Defined using the language itself
+# core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
+RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
 RE["(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"]
 RE["(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"]
-RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
 
 if ARGV.size > 0
     ARGV.each {|f|

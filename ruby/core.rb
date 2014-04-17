@@ -1,3 +1,7 @@
+require "readline"
+require "reader"
+require "printer"
+
 $core_ns = {
     :"=" =>       lambda {|a,b| a == b},
     :throw =>     lambda {|a| raise MalException.new(a), "Mal Exception"},
@@ -6,10 +10,14 @@ $core_ns = {
     :false? =>    lambda {|a| a == false},
     :symbol? =>   lambda {|a| a.is_a? Symbol},
     :symbol? =>   lambda {|a| a.is_a? Symbol},
+
     :"pr-str" =>  lambda {|*a| a.map {|e| _pr_str(e, true)}.join(" ")},
-    :"str" =>     lambda {|*a| a.map {|e| _pr_str(e, false)}.join("")},
-    :"prn" =>     lambda {|*a| puts(a.map {|e| _pr_str(e, true)}.join(" "))},
-    :"println" => lambda {|*a| puts(a.map {|e| _pr_str(e, false)}.join(" "))},
+    :str =>       lambda {|*a| a.map {|e| _pr_str(e, false)}.join("")},
+    :prn =>       lambda {|*a| puts(a.map {|e| _pr_str(e, true)}.join(" "))},
+    :println =>   lambda {|*a| puts(a.map {|e| _pr_str(e, false)}.join(" "))},
+    :readline =>  lambda {|a| Readline.readline(a,true)},
+    :"read-string" => lambda {|a| read_str(a)},
+    :slurp =>     lambda {|a| File.read(a)},
     :< =>         lambda {|a,b| a < b},
     :<= =>        lambda {|a,b| a <= b},
     :> =>         lambda {|a,b| a > b},

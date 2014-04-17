@@ -57,11 +57,10 @@
   [strng]
   (PRINT (EVAL (READ strng) repl-env)))
 
-(defn _ref [k,v] (env/env-set repl-env k v))
-(_ref '+ +)
-(_ref '- -)
-(_ref '* *)
-(_ref '/ /)
+(env/env-set repl-env '+ +)
+(env/env-set repl-env '- -)
+(env/env-set repl-env '* *)
+(env/env-set repl-env '/ /)
 
 
 (defn -main [& args]

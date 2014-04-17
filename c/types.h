@@ -133,8 +133,19 @@ MalVal *malval_new_symbol(char *val);
 MalVal *malval_new_list(MalType type, GArray *val);
 MalVal *malval_new_hash_map(GHashTable *val);
 MalVal *malval_new_atom(MalVal *val);
-MalVal *malval_new_function(void *(*func)(void *), int arg_cnt, MalVal* metadata);
+MalVal *malval_new_function(void *(*func)(void *), int arg_cnt);
 
+// Numbers
+#define WRAP_INTEGER_OP(name, op) \
+    MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
+        return malval_new_integer(a->val.intnum op b->val.intnum); \
+    }
+#define WRAP_INTEGER_CMP_OP(name, op) \
+    MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
+        return a->val.intnum op b->val.intnum ? &mal_true : &mal_false; \
+    }
+
+// Collections
 MalVal *_listX(int count, ...);
 MalVal *_list(MalVal *args);
 MalVal *_vector(MalVal *args);
@@ -148,6 +159,9 @@ char *_pr_str(MalVal *args, int print_readably);
 
 MalVal *_slice(MalVal *seq, int start, int end);
 MalVal *_nth(MalVal *seq, int idx);
+MalVal *_first(MalVal *seq);
+MalVal *_rest(MalVal *seq);
+MalVal *_last(MalVal *seq);
 
 MalVal *_map2(MalVal *(*func)(void*, void*), MalVal *lst, void *arg2);
 

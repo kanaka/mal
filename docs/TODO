@@ -7,8 +7,7 @@ All:
     - gensym reader inside quasiquote
     - can let* and quasiquote be TCO'd ?
 
-    - more interop tests
-    - test metadata on builtin functions (i.e. +)
+    - per impl tests for step5_tco, step9_interop (if possible)
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
 

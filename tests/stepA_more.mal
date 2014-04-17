@@ -313,21 +313,3 @@
 (readline "mal-user> ")
 "hello"
 ;=>"\"hello\""
-
-;;
-;; Testing macros cond and or
-(cond 1 2 3 4)
-;=>2
-(cond false 2 3 4)
-;=>4
-(cond false 2 false 4)
-;=>nil
-
-(or)
-;=>nil
-(or 1)
-;=>1
-(or 1 2)
-;=>1
-(or nil 2)
-;=>2

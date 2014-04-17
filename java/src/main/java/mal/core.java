@@ -7,8 +7,14 @@ import java.util.Map;
 import java.util.HashMap;
 import com.google.common.collect.ImmutableMap;
 
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+import java.io.File;
+
 import mal.types.*;
 import mal.printer;
+import mal.readline;
 
 public class core {
     // Local references for convenience
@@ -81,6 +87,41 @@ public class core {
     static MalFunction equal_Q = new MalFunction() {
         public MalVal apply(MalList args) throws MalThrowable {
             return types._equal_Q(args.nth(0), args.nth(1)) ? True : False;
+        }
+    };
+
+    static MalFunction mal_readline = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            String prompt = ((MalString)args.nth(0)).getValue();
+            try {
+                return new MalString(readline.readline(prompt));
+            } catch (IOException e) {
+                throw new MalException(new MalString(e.getMessage()));
+            } catch (readline.EOFException e) {
+                throw new MalException(new MalString(e.getMessage()));
+            }
+        }
+    };
+
+    static MalFunction read_string = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            try {
+                return reader.read_str(((MalString)args.nth(0)).getValue());
+            } catch (MalContinue c) {
+                return types.Nil;
+            }
+        }
+    };
+
+    static MalFunction slurp = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            String fname = ((MalString)args.nth(0)).getValue();
+            try {
+                return new MalString(
+                    new Scanner(new File(fname)).useDelimiter("\\Z").next());
+            } catch (FileNotFoundException e) {
+                throw new MalError(e.getMessage());
+            }
         }
     };
 
@@ -423,10 +464,14 @@ public class core {
         .put("true?",     true_Q)
         .put("false?",    false_Q)
         .put("symbol?",   symbol_Q)
+
         .put("pr-str",    pr_str)
         .put("str",       str)
         .put("prn",       prn)
         .put("println",   println)
+        .put("readline",  mal_readline)
+        .put("read-string", read_string)
+        .put("slurp",     slurp)
         .put("<",         lt)
         .put("<=",        lte)
         .put(">",         gt)

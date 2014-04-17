@@ -223,10 +223,14 @@ end } def
     (true?)   { 0 _nth _true? }
     (false?)  { 0 _nth _false? }
     (symbol?) { 0 _nth _symbol? }
+
     (pr-str)  { /data get ( ) true _pr_str_args }
     (str)     { /data get () false _pr_str_args }
     (prn)     { /data get ( ) true _pr_str_args print (\n) print null }
     (println) { /data get ( ) false _pr_str_args print (\n) print null }
+    (readline) { 0 _nth _readline not { pop null } if }
+    (read-string) { 0 _nth read_str }
+    (slurp)   { 0 _nth (r) file dup bytesavailable string readstring pop }
     (<)       { dup 0 _nth exch 1 _nth lt }
     (<=)      { dup 0 _nth exch 1 _nth le }
     (>)       { dup 0 _nth exch 1 _nth gt }

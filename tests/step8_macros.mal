@@ -146,7 +146,7 @@
 (cond false 7 false 8 false 9)
 ;=>nil
 
-;Testing all EVAL of non-default locations
+;; Testing all EVAL of non-default locations
 (let* [x (or nil "yes")] x)
 ;=>"yes"
 

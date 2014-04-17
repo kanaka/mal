@@ -122,22 +122,16 @@ function rep($str) {
     global $repl_env;
     return MAL_PRINT(MAL_EVAL(READ($str), $repl_env));
 }
-function _ref($k, $v) {
-    global $repl_env;
+
+// core.php: defined using PHP
+foreach ($core_ns as $k=>$v) {
     $repl_env->set($k, _function($v));
 }
-// Import core functions
-foreach ($core_ns as $k=>$v) { _ref($k, $v); }
-
-_ref('read-string', 'read_str');
-_ref('eval', function($ast) {
+$repl_env->set('eval', _function(function($ast) {
     global $repl_env; return MAL_EVAL($ast, $repl_env);
-});
-_ref('slurp', function($f) {
-    return file_get_contents($f);
-});
+}));
 
-// Defined using the language itself
+// core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
@@ -145,21 +139,22 @@ if (count($argv) > 1) {
     for ($i=1; $i < count($argv); $i++) {
         rep('(load-file "' . $argv[$i] . '")');
     }
-} else {
-    do {
-        try {
-            $line = mal_readline("user> ");
-            if ($line === NULL) { break; }
-            if ($line !== "") {
-                print(rep($line));
-            }
-        } catch (BlankException $e) {
-            continue;
-        } catch (Exception $e) {
-            echo "Error: " . $e->getMessage() . "\n";
-            echo $e->getTraceAsString() . "\n";
-        }
-    } while (true);
+    exit(0);
 }
+
+do {
+    try {
+        $line = mal_readline("user> ");
+        if ($line === NULL) { break; }
+        if ($line !== "") {
+            print(rep($line));
+        }
+    } catch (BlankException $e) {
+        continue;
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage() . "\n";
+        echo $e->getTraceAsString() . "\n";
+    }
+} while (true);
 
 ?> 

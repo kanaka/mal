@@ -4,6 +4,8 @@ if (typeof module === 'undefined') {
     var exports = core;
 } else {
     var types = require('./types'),
+        readline = require('./node_readline'),
+        reader = require('./reader'),
         printer = require('./printer');
 }
 
@@ -34,6 +36,10 @@ function println() {
     printer.println.apply({}, Array.prototype.map.call(arguments,function(exp) {
         return printer._pr_str(exp, false);
     }));
+}
+
+function slurp(f) {
+    return require('fs').readFileSync(f, 'utf-8');
 }
 
 
@@ -144,10 +150,14 @@ var ns = {'type': types._obj_type,
           'false?': types._false_Q,
           'symbol': types._symbol,
           'symbol?': types._symbol_Q,
+
           'pr-str': pr_str,
           'str': str,
           'prn': prn,
           'println': println,
+          'readline': readline.readline,
+          'read-string': reader.read_str,
+          'slurp': slurp,
           '<'  : function(a,b){return a<b;},
           '<=' : function(a,b){return a<=b;},
           '>'  : function(a,b){return a>b;},

@@ -1,4 +1,5 @@
-(ns core)
+(ns core
+  (:require [readline]))
 
 ;; Errors/exceptions
 (defn mal_throw [obj]
@@ -26,10 +27,14 @@
    ['true? true?]
    ['false? false?]
    ['symbol? symbol?]
+
    ['pr-str pr-str]
    ['str str]
    ['prn prn]
    ['println println]
+   ['readline readline/readline]
+   ['read-string reader/read-string]
+   ['slurp slurp]
    ['< <]
    ['<= <=]
    ['> >]

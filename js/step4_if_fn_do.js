@@ -84,12 +84,12 @@ function PRINT(exp) {
 // repl
 var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
-_ref = function (k,v) { repl_env.set(k, v); }
 
-// Import core functions
+// core.js: defined using javascript
 for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
+repl_env.set('eval', function(ast) { return EVAL(ast, repl_env); });
 
-// Defined using the language itself
+// core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 
 if (typeof require === 'undefined') {
