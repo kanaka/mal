@@ -1,7 +1,11 @@
-import os, readline as pyreadline
+import os, sys, readline as pyreadline
 
 history_loaded = False
 histfile = os.path.expanduser("~/.mal-history")
+if sys.version_info[0] >= 3:
+    rl = input
+else:
+    rl = raw_input
 
 def readline(prompt="user> "):
     if not history_loaded:
@@ -15,7 +19,7 @@ def readline(prompt="user> "):
             pass
 
     try:
-        line = raw_input(prompt)
+        line = rl(prompt)
         pyreadline.add_history(line)
         with open(histfile, "a") as hf:
             hf.write(line + "\n")

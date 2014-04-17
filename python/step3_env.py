@@ -62,7 +62,7 @@ def _ref(k,v): repl_env.set(k, v)
 _ref('+', lambda a,b: a+b)
 _ref('-', lambda a,b: a-b)
 _ref('*', lambda a,b: a*b)
-_ref('/', lambda a,b: a/b)
+_ref('/', lambda a,b: int(a/b))
 
 while True:
     try:
@@ -72,4 +72,4 @@ while True:
         print(REP(line))
     except reader.Blank: continue
     except Exception as e:
-        print "".join(traceback.format_exception(*sys.exc_info()))
+        print("".join(traceback.format_exception(*sys.exc_info())))

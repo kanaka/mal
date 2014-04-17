@@ -1,3 +1,9 @@
+import sys, copy, types as pytypes
+if sys.version_info[0] >= 3:
+    str_types = [str]
+else:
+    str_types = [str, unicode]
+
 # General functions
 
 def _equal_Q(a, b):
@@ -26,11 +32,26 @@ def _equal_Q(a, b):
 
 def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
 
+def _clone(obj):
+    #if type(obj) == type(lambda x:x):
+    if type(obj) == pytypes.FunctionType:
+        if obj.__code__:
+            return pytypes.FunctionType(
+                    obj.__code__, obj.__globals__, name = obj.__name__,
+                    argdefs = obj.__defaults__, closure = obj.__closure__)
+        else:
+            return pytypes.FunctionType(
+                    obj.func_code, obj.func_globals, name = obj.func_name,
+                    argdefs = obj.func_defaults, closure = obj.func_closure)
+    else:
+        return copy.copy(obj)
+
+
 # Scalars
 def _nil_Q(exp):    return exp is None
 def _true_Q(exp):   return exp is True
 def _false_Q(exp):  return exp is False
-def _string_Q(exp): return type(exp) in [str, unicode]
+def _string_Q(exp): return type(exp) in str_types
 
 # Symbols
 class Symbol(str): pass
@@ -39,15 +60,12 @@ def _symbol_Q(exp): return type(exp) == Symbol
 
 # Functions
 def _function(Eval, Env, ast, env, params):
-    def gen_fn():
-        def fn(*args):
-            return Eval(ast, Env(env, params, args))
-        fn.__meta__ = None
-        fn.__ast__ = ast
-        fn.__gen_env__ = lambda args: Env(env, params, args)
-        fn.__copy__ = gen_fn
-        return fn
-    return gen_fn()
+    def fn(*args):
+        return Eval(ast, Env(env, params, args))
+    fn.__meta__ = None
+    fn.__ast__ = ast
+    fn.__gen_env__ = lambda args: Env(env, params, args)
+    return fn
 def _function_Q(f): return type(f) == type(function_Q)
 
 # lists

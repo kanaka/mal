@@ -135,7 +135,7 @@ cd ps
 gs -q -dNODISPLAY stepX_YYY.ps
 ```
 
-### Python 2.X
+### Python (2 or 3)
 
 ```
 cd python

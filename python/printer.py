@@ -13,7 +13,7 @@ def _pr_str(obj, print_readably=True):
         return "{" + " ".join(ret) + "}"
     elif types._string_Q(obj):
         if print_readably:
-            return '"' + obj.encode('unicode_escape').replace('"', '\\"') + '"'
+            return '"' + obj.encode('unicode_escape').decode('latin1').replace('"', '\\"') + '"'
         else:
             return obj
     elif types._nil_Q(obj):

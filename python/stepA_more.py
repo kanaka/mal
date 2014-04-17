@@ -89,7 +89,10 @@ def EVAL(ast, env):
         elif 'macroexpand' == a0:
             return macroexpand(ast[1], env)
         elif "py!*" == a0:
-            exec compile(ast[1], '', 'single') in globals()
+            if sys.version_info[0] >= 3:
+                exec(compile(ast[1], '', 'single'), globals())
+            else:
+                exec(compile(ast[1], '', 'single') in globals())
             return None
         elif "py*" == a0:
             return eval(ast[1])
@@ -103,7 +106,7 @@ def EVAL(ast, env):
                 try:
                     return EVAL(a1, env);
                 except Exception as exc:
-                    exc = exc.message
+                    exc = exc.args[0]
                     catch_env = Env(env, [a2[1]], [exc])
                     return EVAL(a2[2], catch_env)
             else:
@@ -168,4 +171,4 @@ else:
             print(REP(line))
         except reader.Blank: continue
         except Exception as e:
-            print "".join(traceback.format_exception(*sys.exc_info()))
+            print("".join(traceback.format_exception(*sys.exc_info())))

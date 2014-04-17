@@ -48,7 +48,7 @@ def REP(str):
 repl_env['+'] = lambda a,b: a+b
 repl_env['-'] = lambda a,b: a-b
 repl_env['*'] = lambda a,b: a*b
-repl_env['/'] = lambda a,b: a/b
+repl_env['/'] = lambda a,b: int(a/b)
 
 while True:
     try:
@@ -58,4 +58,4 @@ while True:
         print(REP(line))
     except reader.Blank: continue
     except Exception as e:
-        print "".join(traceback.format_exception(*sys.exc_info()))
+        print("".join(traceback.format_exception(*sys.exc_info())))

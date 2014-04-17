@@ -209,7 +209,7 @@
 (meta l-wm)
 ;=>{"b" 2}
 
-
+;; Testing metadata on functions
 (def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
 (meta f-wm)
 ;=>{"abc" 1}
@@ -223,6 +223,15 @@
 (def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
 (meta f-wm2)
 ;=>{"abc" 1}
+
+;; Testing metadata on builtin functions
+(meta +)
+;=>nil
+(def! f-wm3 ^{"def" 2} +)
+(meta f-wm3)
+;=>{"def" 2}
+(meta +)
+;=>nil
 
 ;;
 ;; Make sure closures and metadata co-exist

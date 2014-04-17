@@ -4,6 +4,8 @@
 
 MAL_IMPL = js
 
+PYTHON = python
+
 #
 # Settings
 #
@@ -54,7 +56,7 @@ make_RUNTEST = ../runtest.py $(4) ../$(1) -- make -f ../$(2) $(5)
 mal_RUNTEST = $(call $(MAL_IMPL)_RUNTEST,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),stepA,--start-timeout 30 --test-timeout 120,../$(2))
 php_RUNTEST = ../runtest.py $(4) ../$(1) -- php ../$(2) $(5)
 ps_RUNTEST = ../runtest.py $(4) ../$(1) -- "gs -q -dNODISPLAY -- ../$(2) $(5)"
-python_RUNTEST = ../runtest.py $(4) ../$(1) -- python ../$(2) $(5)
+python_RUNTEST = ../runtest.py $(4) ../$(1) -- $(PYTHON) ../$(2) $(5)
 ruby_RUNTEST = ../runtest.py $(4) ../$(1) -- ruby ../$(2) $(5)
 
 

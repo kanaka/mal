@@ -154,4 +154,4 @@ else:
             print(REP(line))
         except reader.Blank: continue
         except Exception as e:
-            print "".join(traceback.format_exception(*sys.exc_info()))
+            print("".join(traceback.format_exception(*sys.exc_info())))
