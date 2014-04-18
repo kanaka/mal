@@ -1,4 +1,5 @@
-require "readline"
+$: << File.expand_path(File.dirname(__FILE__))
+require "mal_readline"
 
 # read
 def READ(str)
@@ -20,6 +21,6 @@ def REP(str)
     return PRINT(EVAL(READ(str), {}))
 end
 
-while line = Readline.readline("user> ", true)
+while line = _readline("user> ")
     puts REP(line)
 end

@@ -1,4 +1,5 @@
-require "readline"
+$: << File.expand_path(File.dirname(__FILE__))
+require "mal_readline"
 require "types"
 require "reader"
 require "printer"
@@ -94,7 +95,7 @@ repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
 # core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
 
-while line = Readline.readline("user> ", true)
+while line = _readline("user> ")
     begin
         puts REP[line]
     rescue Exception => e

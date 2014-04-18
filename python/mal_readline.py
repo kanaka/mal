@@ -8,7 +8,9 @@ else:
     rl = raw_input
 
 def readline(prompt="user> "):
+    global history_loaded
     if not history_loaded:
+        history_loaded = True
         try:
             with open(histfile, "r") as hf:
                 for line in hf.readlines():

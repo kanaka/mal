@@ -17,13 +17,13 @@ All:
 ---------------------------------------------
 
 Bash:
+    - explore using ${!prefix*} syntax (more like make impl)
 
 C:
     - come up with better way to do 20 vararg code
 
 C#:
     - step9_interop
-    - use same history file
 
 Clojure:
 
@@ -36,7 +36,6 @@ Javascript:
 Make:
     - allow '_' in make variable names
     - errors should propagate up from within load-file
-
 
 Mal:
     - line numbers in errors
@@ -52,8 +51,6 @@ Postscript:
 Python:
 
 Ruby:
-    - save history and use same history file
-    - setup require search path
 
 
 ---------------------------------------------

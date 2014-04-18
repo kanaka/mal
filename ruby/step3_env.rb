@@ -1,4 +1,5 @@
-require "readline"
+$: << File.expand_path(File.dirname(__FILE__))
+require "mal_readline"
 require "types"
 require "reader"
 require "printer"
@@ -66,7 +67,7 @@ repl_env.set(:-, lambda {|a,b| a - b})
 repl_env.set(:*, lambda {|a,b| a * b})
 repl_env.set(:/, lambda {|a,b| a / b})
 
-while line = Readline.readline("user> ", true)
+while line = _readline("user> ")
     begin
         puts REP[line]
     rescue Exception => e

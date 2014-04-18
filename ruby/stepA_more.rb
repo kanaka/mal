@@ -1,4 +1,5 @@
-require "readline"
+$: << File.expand_path(File.dirname(__FILE__))
+require "mal_readline"
 require "types"
 require "reader"
 require "printer"
@@ -166,7 +167,7 @@ if ARGV.size > 0
     }
     exit 0
 end
-while line = Readline.readline("user> ", true)
+while line = _readline("user> ")
     begin
         puts REP[line]
     rescue Exception => e

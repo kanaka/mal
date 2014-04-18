@@ -895,8 +895,9 @@ namespace Mono.Terminal {
 					throw new ArgumentException ("size");
 
 				if (app != null){
-					string dir = Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData);
+					string dir = Environment.GetFolderPath (Environment.SpecialFolder.Personal);
 					//Console.WriteLine (dir);
+					/*
 					if (!Directory.Exists (dir)){
 						try {
 							Directory.CreateDirectory (dir);
@@ -906,6 +907,8 @@ namespace Mono.Terminal {
 					}
 					if (app != null)
 						histfile = Path.Combine (dir, app) + ".history";
+					*/
+					histfile = Path.Combine (dir, ".mal-history");
 				}
 				
 				history = new string [size];
