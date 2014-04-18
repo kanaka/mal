@@ -81,3 +81,19 @@
             `(~(first form) ~@(rest form) ~x)
             (list form x))
           `(->> (->> ~x ~form) ~@more))))))
+
+(if (= "make" *host-language*)
+  (defmacro! time
+    (fn* (exp)
+      `(let* [start_FIXME (time-secs)
+              ret_FIXME ~exp]
+        (do
+          (prn (str "Elapsed time: " (- (time-secs) start_FIXME) "000 msecs"))
+          ret_FIXME))))
+  (defmacro! time
+    (fn* (exp)
+      `(let* [start_FIXME (time-ms)
+              ret_FIXME ~exp]
+        (do
+          (prn (str "Elapsed time: " (- (time-ms) start_FIXME) " msecs"))
+          ret_FIXME)))))

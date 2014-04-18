@@ -36,6 +36,11 @@ namespace Mal {
             a => a[0] is MalSymbol ? True : False);
 
 
+        // Number functions
+        static MalFunction time_ms = new MalFunction(
+            a => new MalInteger((int)(
+                DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond)));
+
         // String functions
         static public MalFunction pr_str = new MalFunction(
             a => new MalString(printer._pr_str_args(a, " ", true)) );
@@ -265,6 +270,7 @@ namespace Mal {
             {"-",  new MalFunction(a => (MalInteger)a[0] -  (MalInteger)a[1])},
             {"*",  new MalFunction(a => (MalInteger)a[0] *  (MalInteger)a[1])},
             {"/",  new MalFunction(a => (MalInteger)a[0] /  (MalInteger)a[1])},
+            {"time-ms", time_ms},
 
             {"list",  new MalFunction(a => new MalList(a.getValue()))},
             {"list?", list_Q},

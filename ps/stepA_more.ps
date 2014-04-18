@@ -17,7 +17,7 @@
 % is_pair?: ast -> is_pair? -> bool
 % return true if non-empty list, otherwise false
 /is_pair? { 
-    dup _list? { _count 0 gt }{ pop false } ifelse
+    dup _sequential? { _count 0 gt }{ pop false } ifelse
 } def
 
 % ast -> quasiquote -> new_ast
@@ -252,6 +252,7 @@ core_ns { _ref } forall
 (eval) { 0 _nth repl_env EVAL } _ref
 
 % core.mal: defined using the language itself
+(\(def! *host-language* "postscript"\)) RE pop
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 (\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop

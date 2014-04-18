@@ -1,0 +1,12 @@
+(load-file "../core.mal")
+
+;;(prn "Start: basic math/recursion test")
+
+(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+
+(time (do
+  (sumdown 10)
+  (fib 12)))
+
+;;(prn "Done: basic math/recursion test")

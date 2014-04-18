@@ -26,6 +26,7 @@ $core_ns = {
     :- =>         lambda {|a,b| a - b},
     :* =>         lambda {|a,b| a * b},
     :/ =>         lambda {|a,b| a / b},
+    :"time-ms" => lambda {|| (Time.now.to_f * 1000).to_i},
 
     :list =>      lambda {|*a| List.new a},
     :list? =>     lambda {|*a| a[0].is_a? List},

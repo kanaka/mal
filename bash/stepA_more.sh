@@ -14,7 +14,7 @@ READ () {
 }
 
 IS_PAIR () {
-    if _list? "${1}"; then
+    if _sequential? "${1}"; then
         _count "${1}"
         [[ "${r}" > 0 ]] && return 0
     fi
@@ -254,8 +254,11 @@ _fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
 for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 _eval () { EVAL "${1}" "${REPL_ENV}"; }
 _fref "eval" _eval
+_time_ms () { local ms=$(date +%s%3N); _number "${ms}"; }
+_fref "time-ms" _time_ms
 
 # core.mal: defined using the language itself
+REP "(def! *host-language* \"bash\")"
 REP "(def! not (fn* (a) (if a false true)))"
 REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"

@@ -5,7 +5,12 @@
 (defn mal_throw [obj]
   (throw (ex-info "mal exception" {:data obj})))
 
-;; Metadata
+;; Number functions
+
+(defn time-ms []
+  (System/currentTimeMillis))
+
+;; Metadata functions
 ;; - store metadata at :meta key of the real metadata
 (defn mal_with_meta [obj m]
   (let [new-meta (assoc (meta obj) :meta m)]
@@ -14,8 +19,7 @@
 (defn mal_meta [obj]
   (:meta (meta obj)))
 
-
-;; Atoms
+;; Atom functions
 (defn atom? [atm]
   (= (type atm) clojure.lang.Atom))
 
@@ -43,6 +47,7 @@
    ['- -]
    ['* *]
    ['/ /]
+   ['time-ms time-ms]
   
    ['list list]
    ['list? seq?]

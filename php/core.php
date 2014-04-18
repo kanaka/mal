@@ -37,6 +37,12 @@ function println() {
 }
 
 
+// Number functions
+function time_ms() {
+    return intval(microtime(1) * 1000);
+}
+
+
 // Hash Map functions
 function assoc($src_hm) {
     $args = func_get_args();
@@ -188,6 +194,7 @@ $core_ns = array(
     '-'=>      function ($a, $b) { return intval($a - $b,10); },
     '*'=>      function ($a, $b) { return intval($a * $b,10); },
     '/'=>      function ($a, $b) { return intval($a / $b,10); },
+    'time-ms'=>function () { return time_ms(); },
 
     'list'=>   function () { return call_user_func_array('_list', func_get_args()); },
     'list?'=>  function ($a) { return _list_Q($a); },

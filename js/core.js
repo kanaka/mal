@@ -43,6 +43,10 @@ function slurp(f) {
 }
 
 
+// Number functions
+function time_ms() { return new Date().getTime(); }
+
+
 // Hash Map functions
 function assoc(src_hm) {
     var hm = types._clone(src_hm);
@@ -166,6 +170,7 @@ var ns = {'type': types._obj_type,
           '-'  : function(a,b){return a-b;},
           '*'  : function(a,b){return a*b;},
           '/'  : function(a,b){return a/b;},
+          "time-ms": time_ms,
 
           'list': types._list,
           'list?': types._list_Q,

@@ -135,6 +135,15 @@ WRAP_INTEGER_CMP_OP(gte,>=)
 WRAP_INTEGER_CMP_OP(lt,<)
 WRAP_INTEGER_CMP_OP(lte,<=)
 
+MalVal *time_ms(MalVal *_) {
+    struct timeval tv;
+    long msecs;
+    gettimeofday(&tv, NULL);
+    msecs = tv.tv_sec * 1000 + tv.tv_usec/1000.0 + 0.5;
+
+    return malval_new_integer(msecs);
+}
+
 
 // List functions
 
@@ -422,7 +431,7 @@ MalVal *swap_BANG(MalVal *args) {
 
 
 
-core_ns_entry core_ns[53] = {
+core_ns_entry core_ns[54] = {
     {"=", (void*(*)(void*))equal_Q, 2},
     {"throw", (void*(*)(void*))throw, 1},
     {"nil?", (void*(*)(void*))nil_Q, 1},
@@ -446,6 +455,7 @@ core_ns_entry core_ns[53] = {
     {"-", (void*(*)(void*))int_minus, 2},
     {"*", (void*(*)(void*))int_multiply, 2},
     {"/", (void*(*)(void*))int_divide, 2},
+    {"time-ms", (void*(*)(void*))time_ms, 0},
 
     {"list", (void*(*)(void*))list, -1},
     {"list?", (void*(*)(void*))list_Q, 1},

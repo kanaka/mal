@@ -56,6 +56,12 @@ num_gte      () { r=$(( ${ANON["${1}"]} >= ${ANON["${2}"]} )); _num_bool "${r}";
 num_lt       () { r=$(( ${ANON["${1}"]} <  ${ANON["${2}"]} )); _num_bool "${r}"; }
 num_lte      () { r=$(( ${ANON["${1}"]} <= ${ANON["${2}"]} )); _num_bool "${r}"; }
 
+# return number of milliseconds since epoch
+time_ms () {
+    local ms=$(date +%s%3N)
+    _number "${ms}"
+}
+
 
 # String functions
 
@@ -280,7 +286,7 @@ meta () {
 }
 
 
-# atoms
+# Atom functions
 
 atom? () { _atom? "${1}" && r="${__true}" || r="${__false}"; }
 deref () {
@@ -327,6 +333,7 @@ declare -A core_ns=(
     [-]=num_minus
     [__STAR__]=num_multiply
     [/]=num_divide
+    [time-ms]=time_ms
 
     [list]=_list
     [list?]=list?

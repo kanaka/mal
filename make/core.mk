@@ -48,6 +48,8 @@ number_subtract = $(call _pnumber,$(call int_subtract,$($(word 1,$(1))_value),$(
 number_multiply = $(call _pnumber,$(call int_multiply,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
 number_divide = $(call _pnumber,$(call int_divide,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
 
+time_secs = $(call _number,$(shell echo $$(( $$(date +%s) % 65536 ))))
+
 
 # String functions
 
@@ -229,6 +231,7 @@ core_ns = type obj_type \
           - number_subtract \
           * number_multiply \
           / number_divide \
+          time-secs time_secs \
           \
           list _list \
           list? list? \

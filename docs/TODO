@@ -12,6 +12,7 @@ All:
     - Print full exception when test gets EOF from expect
 
     - Break out impl eval into step0.5
+    - Fix quasiquoting of vectors
 
 ---------------------------------------------
 
@@ -22,6 +23,7 @@ C:
 
 C#:
     - step9_interop
+    - use same history file
 
 Clojure:
 
@@ -50,7 +52,8 @@ Postscript:
 Python:
 
 Ruby:
-    - use same history file
+    - save history and use same history file
+    - setup require search path
 
 
 ---------------------------------------------

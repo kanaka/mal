@@ -298,6 +298,7 @@ void init_repl_env() {
             malval_new_function((void*(*)(void *))do_eval, 1));
 
     // core.mal: defined using the language itself
+    RE(repl_env, "", "(def! *host-language* \"c\")");
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");
     RE(repl_env, "",
        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");

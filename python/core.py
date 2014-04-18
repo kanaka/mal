@@ -1,4 +1,4 @@
-import copy
+import copy, time
 from itertools import chain
 
 import mal_types as types
@@ -130,6 +130,7 @@ ns = {
         '-':  lambda a,b: a-b,
         '*':  lambda a,b: a*b,
         '/':  lambda a,b: int(a/b),
+        'time-ms': lambda : int(time.time() * 1000),
 
         'list': types._list,
         'list?': types._list_Q,

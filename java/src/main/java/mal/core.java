@@ -117,8 +117,10 @@ public class core {
         public MalVal apply(MalList args) throws MalThrowable {
             String fname = ((MalString)args.nth(0)).getValue();
             try {
+                // Scanner drops final newline, so add it back
                 return new MalString(
-                    new Scanner(new File(fname)).useDelimiter("\\Z").next());
+                    new Scanner(new File(fname)).useDelimiter("\\Z").next()
+                                + "\n");
             } catch (FileNotFoundException e) {
                 throw new MalError(e.getMessage());
             }
@@ -166,6 +168,12 @@ public class core {
     static MalFunction gte = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
             return ((MalInteger)a.nth(0)).gte((MalInteger)a.nth(1));
+        }
+    };
+
+    static MalFunction time_ms = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            return new MalInteger((int)System.currentTimeMillis());
         }
     };
 
@@ -480,6 +488,7 @@ public class core {
         .put("-",         subtract)
         .put("*",         multiply)
         .put("/",         divide)
+        .put("time-ms",   time_ms)
 
         .put("list",      new_list)
         .put("list?",     list_Q)

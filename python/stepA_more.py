@@ -58,7 +58,7 @@ def eval_ast(ast, env):
 
 def EVAL(ast, env):
     while True:
-        #print("EVAL %s" % ast)
+        #print("EVAL %s" % printer._pr_str(ast))
         if not types._list_Q(ast):
             return eval_ast(ast, env)
 
@@ -150,6 +150,7 @@ for k, v in core.ns.items(): repl_env.set(k, v)
 repl_env.set('eval', lambda ast: EVAL(ast, repl_env))
 
 # core.mal: defined using the language itself
+REP("(def! *host-language* \"python\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")

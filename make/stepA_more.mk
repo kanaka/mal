@@ -18,7 +18,7 @@ $(if $(READLINE_EOF)$(__ERROR),,$(call READ_STR,$(if $(1),$(1),$(call READLINE,"
 endef
 
 # EVAL: evaluate the parameter
-IS_PAIR = $(if $(call _EQ,list,$(call _obj_type,$(1))),$(if $(call _EQ,0,$(call _count,$(1))),,true),)
+IS_PAIR = $(if $(call _sequential?,$(1)),$(if $(call _EQ,0,$(call _count,$(1))),,true),)
 
 define QUASIQUOTE
 $(strip \
@@ -167,6 +167,7 @@ $(call _import_core,$(core_ns))
 REPL_ENV := $(call ENV_SET,$(REPL_ENV),eval,$(call _function,$$(call EVAL,$$(1),$$(REPL_ENV))))
 
 # core.mal: defined in terms of the language itself
+$(call do,$(call REP, (def! *host-language* "make") ))
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
 $(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 $(call do,$(call REP, (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs))))))) ))

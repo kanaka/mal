@@ -14,7 +14,7 @@ READ () {
 }
 
 IS_PAIR () {
-    if _list? "${1}"; then
+    if _sequential? "${1}"; then
         _count "${1}"
         [[ "${r}" > 0 ]] && return 0
     fi

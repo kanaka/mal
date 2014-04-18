@@ -18,7 +18,7 @@ $(if $(READLINE_EOF)$(__ERROR),,$(call READ_STR,$(if $(1),$(1),$(call READLINE,"
 endef
 
 # EVAL: evaluate the parameter
-IS_PAIR = $(if $(call _EQ,list,$(call _obj_type,$(1))),$(if $(call _EQ,0,$(call _count,$(1))),,true),)
+IS_PAIR = $(if $(call _sequential?,$(1)),$(if $(call _EQ,0,$(call _count,$(1))),,true),)
 
 define QUASIQUOTE
 $(strip \

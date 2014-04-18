@@ -17,7 +17,7 @@
 % is_pair?: ast -> is_pair? -> bool
 % return true if non-empty list, otherwise false
 /is_pair? { 
-    dup _list? { _count 0 gt }{ pop false } ifelse
+    dup _sequential? { _count 0 gt }{ pop false } ifelse
 } def
 
 % ast -> quasiquote -> new_ast
