@@ -41,6 +41,9 @@ Mal:
     - step5_tco
     - step9_interop
 
+Perl:
+    - object exceptions: http://perldoc.perl.org/functions/die.html
+
 PHP:
 
 Postscript:

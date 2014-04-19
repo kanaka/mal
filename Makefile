@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure cs java js make mal php ps python ruby
+IMPLS = bash c clojure cs java js make mal perl php ps python ruby
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -41,6 +41,7 @@ java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 js_STEP_TO_PROG =      js/$($(1)).js
 make_STEP_TO_PROG =    make/$($(1)).mk
 mal_STEP_TO_PROG =     mal/$($(1)).mal
+perl_STEP_TO_PROG =    perl/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
 ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
@@ -55,6 +56,7 @@ java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.arg
 js_RUNSTEP =      node ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
+perl_RUNSTEP =    perl ../$(2) $(3)
 php_RUNSTEP =     php ../$(2) $(3)
 ps_RUNSTEP =      $(4)gs -q -dNODISPLAY -- ../$(2) $(3)$(4)
 python_RUNSTEP =  $(PYTHON) ../$(2) $(3)
