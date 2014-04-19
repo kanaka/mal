@@ -8,6 +8,9 @@
 (inc3 9)
 ;=>12
 
+;;
+;; -------- Optional Functionality --------
+
 (load-file "../tests/incB.mal")
 ; "incB.mal finished"
 ;=>"incB.mal return string"

@@ -14,6 +14,9 @@
 (abc 1 2 3)
 ; .*\'abc\' not found.*
 
+;;
+;; -------- Optional Functionality --------
+
 ;; Testing evaluation within collection literals
 [1 2 (+ 1 2)]
 ;=>[1 2 3]

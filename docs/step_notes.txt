@@ -43,6 +43,8 @@ Step Notes:
           variable with checks for it at the beginning of critical
           code sections
 
+- comments
+
 - vectors
     - Basically: two array types that retain their boxed types, can be
       challenging depending on the language (e.g. JS, PHP: no clean

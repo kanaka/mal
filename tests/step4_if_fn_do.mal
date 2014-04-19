@@ -151,8 +151,6 @@
 ;=>7
 (if (list 1 2 3) 7 8)
 ;=>7
-(if [] 7 8)
-;=>7
 
 
 ;; Testing 1-way if form
@@ -236,23 +234,6 @@
 (= (list) "")
 ;=>false
 (= "" (list))
-;=>false
-
-(= [] (list))
-;=>true
-(= (list 1 2) [1 2])
-;=>true
-(= (list 1) [])
-;=>false
-(= [] [1])
-;=>false
-(= 0 [])
-;=>false
-(= [] 0)
-;=>false
-(= [] "")
-;=>false
-(= "" [])
 ;=>false
 
 
@@ -346,3 +327,29 @@ a
 ;=>5
 (fib 10)
 ;=>89
+
+;;
+;; -------- Optional Functionality --------
+
+;; Testing vector truthiness
+(if [] 7 8)
+;=>7
+
+;; Testing vector equality
+(= [] (list))
+;=>true
+(= (list 1 2) [1 2])
+;=>true
+(= (list 1) [])
+;=>false
+(= [] [1])
+;=>false
+(= 0 [])
+;=>false
+(= [] 0)
+;=>false
+(= [] "")
+;=>false
+(= "" [])
+;=>false
+

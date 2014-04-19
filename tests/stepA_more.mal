@@ -40,18 +40,6 @@
 (false? true)
 ;=>false
 
-(sequential? (list 1 2 3))
-;=>true
-(sequential? [15])
-;=>true
-(sequential? sequential?)
-;=>false
-(sequential? nil)
-;=>false
-(sequential? "abc")
-;=>false
-
-
 ;; Testing apply function
 (apply + (list 2 3))
 ;=>5
@@ -70,6 +58,35 @@
 (map double nums) 
 ;=>(2 4 6)
 
+;;
+;; Testing read-str and eval
+(read-string "(1 2 (3 4) nil)")
+;=>(1 2 (3 4) nil)
+
+(eval (read-string "(+ 4 5)"))
+;=>9
+
+;;
+;; Testing readline
+(readline "mal-user> ")
+"hello"
+;=>"\"hello\""
+
+;;
+;; -------- Optional Functionality --------
+
+;; Testing sequential? function
+
+(sequential? (list 1 2 3))
+;=>true
+(sequential? [15])
+;=>true
+(sequential? sequential?)
+;=>false
+(sequential? nil)
+;=>false
+(sequential? "abc")
+;=>false
 
 ;; Testing conj function
 (conj (list) 1)
@@ -94,7 +111,8 @@
 (conj [1] [2 3])
 ;=>[1 [2 3]]
 
-
+(map? [])
+;=>false
 
 ;;
 ;; Testing hash-maps
@@ -114,7 +132,7 @@
 ;=>true
 (map? 1)
 ;=>false
-(map? [])
+(map? "abc")
 ;=>false
 
 (get nil "a")
@@ -300,16 +318,3 @@
 (f)
 ;=>9
 
-;;
-;; Testing read-str and eval
-(read-string "(1 2 (3 4) nil)")
-;=>(1 2 (3 4) nil)
-
-(eval (read-string "(+ 4 5)"))
-;=>9
-
-;;
-;; Testing readline
-(readline "mal-user> ")
-"hello"
-;=>"\"hello\""

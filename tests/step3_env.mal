@@ -32,6 +32,8 @@ x
 (let* (p (+ 2 3) q (+ 2 p)) (+ p q))
 ;=>12
 
+;;
+;; -------- Optional Functionality --------
 
 ;; Testing vector evaluation
 (let* (a 5 b 6) [3 4 a [b 7] 8])
