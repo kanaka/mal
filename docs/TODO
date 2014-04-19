@@ -29,7 +29,6 @@ Clojure:
 
 Java:
     - step9_interop
-    - store ILambda in function (like c#)?
 
 Javascript:
 

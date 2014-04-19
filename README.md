@@ -121,6 +121,17 @@ cd make
 make -f stepX_YYY.mk
 ```
 
+### Perl 5
+
+For readline line editing support, install Term::ReadLine::Perl or
+Term::ReadLine::Gnu from CPAN.
+
+```
+cd perl
+perl stepX_YYY.pl
+```
+
+
 ### PHP 5.3
 
 ```
