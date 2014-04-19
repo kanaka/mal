@@ -21,13 +21,16 @@
   [strng]
   (PRINT (EVAL (READ strng) {})))
 
+;; repl loop
+(defn repl-loop []
+  (let [line (readline/readline "user> ")]
+    (when line
+      (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
+        (try
+          (println (rep line))
+          (catch Throwable e
+            (clojure.repl/pst e))))
+      (recur))))
+
 (defn -main [& args]
-  (loop []
-    (let [line (readline/readline "user> ")]
-      (when line
-        (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
-          (try
-            (println (rep line))
-            (catch Throwable e
-              (clojure.repl/pst e))))
-        (recur)))))
+  (repl-loop))

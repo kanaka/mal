@@ -247,9 +247,10 @@ end } def
 /REP { READ repl_env EVAL PRINT } def
 
 % core.ps: defined using postscript
-/_ref { _function repl_env 3 1 roll env_set pop } def
-core_ns { _ref } forall
-(eval) { 0 _nth repl_env EVAL } _ref
+/_ref { repl_env 3 1 roll env_set pop } def
+core_ns { _function _ref } forall
+(eval) { 0 _nth repl_env EVAL } _function _ref
+(*ARGV*) [ ] _list_from_array _ref
 
 % core.mal: defined using the language itself
 (\(def! *host-language* "postscript"\)) RE pop
@@ -260,13 +261,17 @@ core_ns { _ref } forall
 
 userdict /ARGUMENTS known { %if command line arguments
     ARGUMENTS length 0 gt { %if more than 0 arguments
-        ARGUMENTS {
-            (\(load-file ") exch ("\)) concatenate concatenate RE pop
-        } forall
+        (*ARGV*) ARGUMENTS 1 ARGUMENTS length 1 sub getinterval
+        _list_from_array _ref
+        ARGUMENTS 0 get 
+        (\(load-file ") exch ("\)) concatenate concatenate RE pop
         quit
     } if
 } if
-{ % loop
+
+% repl loop
+(\(println \(str "Mal [" *host-language* "]"\)\)) RE pop
+{ %loop
     (user> ) _readline
     not { exit } if  % exit if EOF
 

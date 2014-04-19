@@ -148,6 +148,7 @@ def REP(str):
 # core.py: defined using python
 for k, v in core.ns.items(): repl_env.set(k, v)
 repl_env.set('eval', lambda ast: EVAL(ast, repl_env))
+repl_env.set('*ARGV*', types._list(*sys.argv[2:]))
 
 # core.mal: defined using the language itself
 REP("(def! *host-language* \"python\")")
@@ -158,13 +159,16 @@ REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first x
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')
-else:
-    while True:
-        try:
-            line = mal_readline.readline("user> ")
-            if line == None: break
-            if line == "": continue
-            print(REP(line))
-        except reader.Blank: continue
-        except Exception as e:
-            print("".join(traceback.format_exception(*sys.exc_info())))
+    sys.exit(0)
+
+# repl loop
+REP("(println (str \"Mal [\" *host-language* \"]\"))")
+while True:
+    try:
+        line = mal_readline.readline("user> ")
+        if line == None: break
+        if line == "": continue
+        print(REP(line))
+    except reader.Blank: continue
+    except Exception as e:
+        print("".join(traceback.format_exception(*sys.exc_info())))

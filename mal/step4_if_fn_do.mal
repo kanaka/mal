@@ -83,15 +83,18 @@
 ;; core.mal: defined using the new language itself 
 (rep "(def! not (fn* [a] (if a false true)))")
 
-(def! -main (fn* [] 
+;; repl loop
+(def! repl-loop (fn* []
   (let* [line (readline "mal-user> ")]
     (if line
       (do
         (if (not (= "" line))
           (try*
-            (let* [res (rep line)]
-              (println res))
+            (println (rep line))
             (catch* exc
               (println "Uncaught exception:" exc))))
-        (-main))))))
+        (repl-loop))))))
+
+(def! -main (fn* [& args] 
+  (repl-loop)))
 (-main)

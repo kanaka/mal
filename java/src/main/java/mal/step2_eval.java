@@ -72,7 +72,7 @@ public class step2_eval {
         return printer._pr_str(exp, true);
     }
 
-    // REPL
+    // repl
     public static MalVal RE(HashMap env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }

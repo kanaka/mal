@@ -109,5 +109,5 @@ $(call _import_core,$(core_ns))
 # core.mal: defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
 
-# Call the read-eval-print loop
+# repl loop
 $(if $(strip $(INTERACTIVE)),$(call REPL))

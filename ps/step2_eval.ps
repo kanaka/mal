@@ -71,7 +71,8 @@ end } def
 
 /REP { READ repl_env EVAL PRINT } def
 
-{ % loop
+% repl loop
+{ %loop
     (user> ) _readline
     not { exit } if  % exit if EOF
 

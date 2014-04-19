@@ -24,6 +24,7 @@ function PRINT(exp) {
 var re = function(str) { return EVAL(READ(str), {}); };
 var rep = function(str) { return PRINT(EVAL(READ(str), {})); };
 
+// repl loop
 if (typeof require === 'undefined') {
     // Asynchronous browser mode
     readline.rlwrap(function(line) { return rep(line); },

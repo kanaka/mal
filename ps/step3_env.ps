@@ -88,7 +88,8 @@ end } def
 (*) { dup 0 _nth exch 1 _nth mul } _ref
 (/) { dup 0 _nth exch 1 _nth idiv } _ref
 
-{ % loop
+% repl loop
+{ %loop
     (user> ) _readline
     not { exit } if  % exit if EOF
 

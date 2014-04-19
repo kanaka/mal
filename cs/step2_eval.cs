@@ -69,7 +69,7 @@ namespace Mal {
             return printer._pr_str(exp, true);
         }
 
-        // REPL
+        // repl
         static MalVal RE(Dictionary<string, MalVal> env, string str) {
             return EVAL(READ(str), env);
         }

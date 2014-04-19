@@ -67,6 +67,7 @@ repl_env.set(:-, lambda {|a,b| a - b})
 repl_env.set(:*, lambda {|a,b| a * b})
 repl_env.set(:/, lambda {|a,b| a / b})
 
+# repl loop
 while line = _readline("user> ")
     begin
         puts REP[line]

@@ -81,11 +81,11 @@ REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
 
 # core.rb: defined using ruby
 $core_ns.each do |k,v| repl_env.set(k,v) end
-repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
 
 # core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
 
+# repl loop
 while line = _readline("user> ")
     begin
         puts REP[line]

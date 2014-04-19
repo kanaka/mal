@@ -182,18 +182,25 @@ MalVal *RE(Env *env, char *prompt, char *str) {
 // Setup the initial REPL environment
 Env *repl_env;
 
-void init_repl_env() {
+void init_repl_env(int argc, char *argv[]) {
     repl_env = new_env(NULL, NULL, NULL);
 
     // core.c: defined using C
     int i;
-    for(i=0; i< (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
+    for(i=0; i < (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
         env_set(repl_env, core_ns[i].name,
                 malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
     MalVal *do_eval(MalVal *ast) { return EVAL(ast, repl_env); }
     env_set(repl_env, "eval",
             malval_new_function((void*(*)(void *))do_eval, 1));
+
+    MalVal *_argv = _listX(0);
+    for (i=2; i < argc; i++) {
+        MalVal *arg = malval_new_string(argv[i]);
+        g_array_append_val(_argv->val.array, arg);
+    }
+    env_set(repl_env, "*ARGV*", _argv);
 
     // core.mal: defined using the language itself
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");
@@ -209,7 +216,7 @@ int main(int argc, char *argv[])
 
     // Set the initial prompt and environment
     snprintf(prompt, sizeof(prompt), "user> ");
-    init_repl_env();
+    init_repl_env(argc, argv);
  
     if (argc > 1) {
         char *cmd = g_strdup_printf("(load-file \"%s\")", argv[1]);
@@ -217,7 +224,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // REPL loop
+    // repl loop
     for(;;) {
         exp = RE(repl_env, prompt, NULL);
         if (mal_error && strcmp("EOF", mal_error->val.string) == 0) {

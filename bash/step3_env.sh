@@ -1,17 +1,16 @@
 #!/bin/bash
 
-INTERACTIVE=${INTERACTIVE-yes}
-
 source $(dirname $0)/reader.sh
 source $(dirname $0)/printer.sh
 source $(dirname $0)/env.sh
 
-# READ: read and parse input
+# read
 READ () {
     [ "${1}" ] && r="${1}" || READLINE
     READ_STR "${r}"
 }
 
+# eval
 EVAL_AST () {
     local ast="${1}" env="${2}"
     #_pr_str "${ast}"; echo "EVAL_AST '${ast}:${r} / ${env}'"
@@ -40,7 +39,6 @@ EVAL_AST () {
     esac
 }
 
-# EVAL: evaluate the parameter
 EVAL () {
     local ast="${1}" env="${2}"
     r=
@@ -84,7 +82,7 @@ EVAL () {
     esac
 }
 
-# PRINT:
+# print
 PRINT () {
     if [[ "${__ERROR}" ]]; then
         _pr_str "${__ERROR}" yes
@@ -95,7 +93,7 @@ PRINT () {
     fi
 }
 
-# REPL: read, eval, print, loop
+# repl
 ENV; REPL_ENV="${r}"
 REP () {
     r=
@@ -114,9 +112,8 @@ ENV_SET "${REPL_ENV}" "-" minus
 ENV_SET "${REPL_ENV}" "__STAR__" multiply
 ENV_SET "${REPL_ENV}" "/" divide
 
-if [[ -n "${INTERACTIVE}" ]]; then
-    while true; do
-        READLINE "user> " || exit "$?"
-        [[ "${r}" ]] && REP "${r}" && echo "${r}"
-    done
-fi
+# repl loop
+while true; do
+    READLINE "user> " || exit "$?"
+    [[ "${r}" ]] && REP "${r}" && echo "${r}"
+done

@@ -80,20 +80,26 @@
 ;; core.mal: defined directly using mal
 (map (fn* [data] (env-set repl-env (nth data 0) (nth data 1))) core_ns)
 (env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
+(env-set repl-env '*ARGV* (rest *ARGV*))
 
 ;; core.mal: defined using the new language itself 
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
-(def! -main (fn* [] 
+;; repl loop
+(def! repl-loop (fn* []
   (let* [line (readline "mal-user> ")]
     (if line
       (do
         (if (not (= "" line))
           (try*
-            (let* [res (rep line)]
-              (println res))
+            (println (rep line))
             (catch* exc
               (println "Uncaught exception:" exc))))
-        (-main))))))
-(-main)
+        (repl-loop))))))
+
+(def! -main (fn* [& args] 
+  (if (> (count args) 0)
+    (rep (str "(load-file \"" (first args) "\")"))
+    (repl-loop))))
+(apply -main *ARGV*)

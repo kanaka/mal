@@ -24,10 +24,12 @@ def REP(str)
     return PRINT(EVAL(READ(str), {}))
 end
 
+# repl loop
 while line = _readline("user> ")
     begin
         puts REP(line)
     rescue Exception => e
-        puts "Error: %{e}" 
+        puts "Error: #{e}" 
+        puts "\t#{e.backtrace.join("\n\t")}"
     end
 end

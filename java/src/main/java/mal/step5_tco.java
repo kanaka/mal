@@ -129,7 +129,7 @@ public class step5_tco {
         return printer._pr_str(exp, true);
     }
 
-    // REPL
+    // repl
     public static MalVal RE(Env env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }

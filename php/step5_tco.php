@@ -108,6 +108,7 @@ foreach ($core_ns as $k=>$v) {
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 
+// repl loop
 do {
     try {
         $line = mal_readline("user> ");
@@ -123,4 +124,4 @@ do {
     }
 } while (true);
 
-?> 
+?>

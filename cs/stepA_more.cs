@@ -218,7 +218,7 @@ namespace Mal {
             return printer._pr_str(exp, true);
         }
 
-        // REPL
+        // repl
         static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
         }
@@ -232,6 +232,11 @@ namespace Mal {
                 repl_env.set(entry.Key, entry.Value);
             }
             repl_env.set("eval", new MalFunction(a => EVAL(a[0], repl_env)));
+            MalList _argv = new MalList();
+            for (int i=1; i < args.Length; i++) {
+                _argv.conj_BANG(new MalString(args[i]));
+            }
+            repl_env.set("*ARGV*", _argv);
 
             // core.mal: defined using the language itself
             RE(repl_env, "(def! *host-language* \"c#\")");
@@ -246,11 +251,12 @@ namespace Mal {
                 fileIdx = 1;
             }
             if (args.Length > fileIdx) {
-                for(int i=fileIdx; i<args.Length; i++) {
-                    RE(repl_env, "(load-file \"" + args[i] + "\")");
-                }
+                RE(repl_env, "(load-file \"" + args[fileIdx] + "\")");
                 return;
             }
+            
+            // repl loop
+            RE(repl_env, "(println (str \"Mal [\" *host-language* \"]\"))");
             while (true) {
                 string line;
                 try {

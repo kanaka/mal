@@ -64,7 +64,7 @@ int main()
     // Set the initial prompt
     snprintf(prompt, sizeof(prompt), "user> ");
  
-    // REPL loop
+    // repl loop
     for(;;) {
         exp = RE(NULL, prompt, NULL);
         if (mal_error && strcmp("EOF", mal_error->val.string) == 0) {

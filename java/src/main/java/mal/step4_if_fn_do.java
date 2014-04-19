@@ -118,7 +118,7 @@ public class step4_if_fn_do {
         return printer._pr_str(exp, true);
     }
 
-    // REPL
+    // repl
     public static MalVal RE(Env env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }

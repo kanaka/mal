@@ -78,6 +78,7 @@ $repl_env->set('-', function ($a, $b) { return intval($a - $b,10); });
 $repl_env->set('*', function ($a, $b) { return intval($a * $b,10); });
 $repl_env->set('/', function ($a, $b) { return intval($a / $b,10); });
 
+// repl loop
 do {
     try {
         $line = mal_readline("user> ");
@@ -93,4 +94,4 @@ do {
     }
 } while (true);
 
-?> 
+?>

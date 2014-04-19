@@ -23,7 +23,7 @@ public class step1_read_print {
         return printer._pr_str(exp, true);
     }
 
-    // REPL
+    // repl
     public static MalVal RE(String env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }

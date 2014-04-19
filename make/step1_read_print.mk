@@ -28,5 +28,5 @@ endef
 REP = $(call PRINT,$(strip $(call EVAL,$(strip $(call READ,$(1))),$(REPL_ENV))))
 REPL = $(info $(call REP,$(call READLINE,"user> ")))$(if $(READLINE_EOF),,$(call REPL))
 
-# Call the read-eval-print loop
+# repl loop
 $(if $(strip $(INTERACTIVE)),$(call REPL))

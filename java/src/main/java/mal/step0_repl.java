@@ -20,7 +20,7 @@ public class step0_repl {
         return exp;
     }
 
-    // REPL
+    // repl
     public static String RE(String env, String str) {
         return EVAL(READ(str), env);
     }

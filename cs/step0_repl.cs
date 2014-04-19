@@ -19,7 +19,7 @@ namespace Mal {
             return exp;
         }
 
-        // REPL
+        // repl
         static string RE(string env, string str) {
             return EVAL(READ(str), env);
         }

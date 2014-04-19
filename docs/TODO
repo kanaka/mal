@@ -39,7 +39,6 @@ Make:
 
 Mal:
     - line numbers in errors
-    - step6_file: command line arguments
     - step5_tco
     - step9_interop
 
@@ -49,6 +48,7 @@ Postscript:
     - negative numbers
 
 Python:
+    - error: python ../python/stepA_more.py ../mal/stepA_more.mal ../mal/stepA_more.mal
 
 Ruby:
 

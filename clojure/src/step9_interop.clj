@@ -138,6 +138,7 @@
 ;; core.clj: defined using Clojure
 (doseq [[k v] core/core_ns] (env/env-set repl-env k v))
 (env/env-set repl-env 'eval (fn [ast] (EVAL ast repl-env)))
+(env/env-set repl-env '*ARGV* ())
 
 ;; core.mal: defined using the language itself
 (rep "(def! not (fn* [a] (if a false true)))")
@@ -145,15 +146,19 @@
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
+;; repl loop
+(defn repl-loop []
+  (let [line (readline/readline "user> ")]
+    (when line
+      (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
+        (try
+          (println (rep line))
+          (catch Throwable e
+            (clojure.repl/pst e))))
+      (recur))))
+
 (defn -main [& args]
+  (env/env-set repl-env '*ARGV* (rest args))
   (if args
     (rep (str "(load-file \"" (first args) "\")"))
-    (loop []
-      (let [line (readline/readline "user> ")]
-        (when line
-          (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
-            (try
-              (println (rep line))
-              (catch Throwable e
-                (clojure.repl/pst e))))
-          (recur))))))
+    (repl-loop)))

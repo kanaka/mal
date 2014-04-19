@@ -165,6 +165,8 @@ _fref = $(eval REPL_ENV := $(call ENV_SET,$(REPL_ENV),$(1),$(call _function,$$(c
 _import_core = $(if $(strip $(1)),$(call _fref,$(word 1,$(1)),$(word 2,$(1)))$(call _import_core,$(wordlist 3,$(words $(1)),$(1))),)
 $(call _import_core,$(core_ns))
 REPL_ENV := $(call ENV_SET,$(REPL_ENV),eval,$(call _function,$$(call EVAL,$$(1),$$(REPL_ENV))))
+_argv := $(call _list)
+REPL_ENV := $(call ENV_SET,$(REPL_ENV),*ARGV*,$(_argv))
 
 # core.mal: defined in terms of the language itself
 $(call do,$(call REP, (def! *host-language* "make") ))
@@ -175,11 +177,15 @@ $(call do,$(call REP, (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (co
 
 # Load and eval any files specified on the command line
 $(if $(MAKECMDGOALS),\
-  $(foreach file,$(MAKECMDGOALS),$(call do,$(call REP, (load-file "$(file)") )))\
+  $(foreach arg,$(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)),\
+    $(call do,$(call _conj!,$(_argv),$(call _string,$(arg)))))\
+  $(call do,$(call REP, (load-file "$(word 1,$(MAKECMDGOALS))") )) \
   $(eval INTERACTIVE :=),)
 .PHONY: none $(MAKECMDGOALS)
 none $(MAKECMDGOALS):
 	@true
 
-# Call the read-eval-print loop
-$(if $(strip $(INTERACTIVE)),$(call REPL))
+# repl loop
+$(if $(strip $(INTERACTIVE)),\
+  $(call do,$(call REP, (println (str "Mal [" *host-language* "]")) )) \
+  $(call REPL))

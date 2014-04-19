@@ -91,5 +91,5 @@ REPL_ENV := $(call ENV_SET,$(REPL_ENV),-,number_subtract)
 REPL_ENV := $(call ENV_SET,$(REPL_ENV),*,number_multiply)
 REPL_ENV := $(call ENV_SET,$(REPL_ENV),/,number_divide)
 
-# Call the read-eval-print loop
+# repl loop
 $(if $(strip $(INTERACTIVE)),$(call REPL))

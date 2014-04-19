@@ -69,5 +69,5 @@ $(call do,$(call _assoc!,$(REPL_ENV),-,number_subtract))
 $(call do,$(call _assoc!,$(REPL_ENV),*,number_multiply))
 $(call do,$(call _assoc!,$(REPL_ENV),/,number_divide))
 
-# Call the read-eval-print loop
+# repl loop
 $(if $(strip $(INTERACTIVE)),$(call REPL))

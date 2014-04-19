@@ -92,7 +92,7 @@ namespace Mal {
             return printer._pr_str(exp, true);
         }
 
-        // REPL
+        // repl
         static MalVal RE(Env env, string str) {
             return EVAL(READ(str), env);
         }
@@ -119,6 +119,8 @@ namespace Mal {
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
             }
+            
+            // repl loop
             while (true) {
                 string line;
                 try {

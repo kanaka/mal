@@ -113,13 +113,14 @@ end } def
 /REP { READ repl_env EVAL PRINT } def
 
 % core.ps: defined using postscript
-/_ref { _function repl_env 3 1 roll env_set pop } def
-core_ns { _ref } forall
+/_ref { repl_env 3 1 roll env_set pop } def
+core_ns { _function _ref } forall
 
 % core.mal: defined using the language itself
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 
-{ % loop
+% repl loop
+{ %loop
     (user> ) _readline
     not { exit } if  % exit if EOF
 

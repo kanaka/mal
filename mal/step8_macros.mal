@@ -140,6 +140,7 @@
 ;; core.mal: defined directly using mal
 (map (fn* [data] (env-set repl-env (nth data 0) (nth data 1))) core_ns)
 (env-set repl-env 'eval (fn* [ast] (EVAL ast repl-env)))
+(env-set repl-env '*ARGV* (rest *ARGV*))
 
 ;; core.mal: defined using the new language itself 
 (rep "(def! not (fn* [a] (if a false true)))")
@@ -147,15 +148,20 @@
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
-(def! -main (fn* [] 
+;; repl loop
+(def! repl-loop (fn* []
   (let* [line (readline "mal-user> ")]
     (if line
       (do
         (if (not (= "" line))
           (try*
-            (let* [res (rep line)]
-              (println res))
+            (println (rep line))
             (catch* exc
               (println "Uncaught exception:" exc))))
-        (-main))))))
-(-main)
+        (repl-loop))))))
+
+(def! -main (fn* [& args] 
+  (if (> (count args) 0)
+    (rep (str "(load-file \"" (first args) "\")"))
+    (repl-loop))))
+(apply -main *ARGV*)

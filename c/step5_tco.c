@@ -187,7 +187,7 @@ void init_repl_env() {
 
     // core.c: defined using C
     int i;
-    for(i=0; i< (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
+    for(i=0; i < (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
         env_set(repl_env, core_ns[i].name,
                 malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
@@ -206,7 +206,7 @@ int main()
     snprintf(prompt, sizeof(prompt), "user> ");
     init_repl_env();
  
-    // REPL loop
+    // repl loop
     for(;;) {
         exp = RE(repl_env, prompt, NULL);
         if (mal_error && strcmp("EOF", mal_error->val.string) == 0) {

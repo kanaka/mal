@@ -71,7 +71,7 @@ function eval_ast(ast, env) {
 function _EVAL(ast, env) {
     while (true) {
 
-    //printer.println("EVAL:", types._pr_str(ast, true));
+    //printer.println("EVAL:", printer._pr_str(ast, true));
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
@@ -145,6 +145,7 @@ var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
 // core.js: defined using javascript
 for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
 repl_env.set('eval', function(ast) { return EVAL(ast, repl_env); });
+repl_env.set('*ARGV*', []);
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
@@ -153,10 +154,13 @@ rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
-    for (var i=2; i < process.argv.length; i++) {
-        rep('(load-file "' + process.argv[i] + '")');
-    }
-} else if (typeof require === 'undefined') {
+    repl_env.set('*ARGV*', process.argv.slice(3));
+    rep('(load-file "' + process.argv[2] + '")');
+    process.exit(0);
+}
+
+// repl loop
+if (typeof require === 'undefined') {
     // Asynchronous browser mode
     readline.rlwrap(function(line) { return rep(line); },
                     function(exc) {

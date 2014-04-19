@@ -138,6 +138,7 @@ REP = lambda {|str| PRINT(EVAL(READ(str), repl_env)) }
 # core.rb: defined using ruby
 $core_ns.each do |k,v| repl_env.set(k,v) end
 repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
+repl_env.set(:"*ARGV*", List.new(ARGV.slice(1,ARGV.length) || []))
 
 # core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
@@ -146,11 +147,11 @@ RE["(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (>
 RE["(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"]
 
 if ARGV.size > 0
-    ARGV.each {|f|
-        RE["(load-file \"" + f + "\")"]
-    }
+    RE["(load-file \"" + ARGV[0] + "\")"]
     exit 0
 end
+
+# repl loop
 while line = _readline("user> ")
     begin
         puts REP[line]

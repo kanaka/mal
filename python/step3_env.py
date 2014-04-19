@@ -26,7 +26,7 @@ def eval_ast(ast, env):
         return ast  # primitive value, return unchanged
 
 def EVAL(ast, env):
-        #print("EVAL %s" % ast)
+        #print("EVAL %s" % printer._pr_str(ast))
         if not types._list_Q(ast):
             return eval_ast(ast, env)
 
@@ -63,6 +63,7 @@ repl_env.set('-', lambda a,b: a-b)
 repl_env.set('*', lambda a,b: a*b)
 repl_env.set('/', lambda a,b: int(a/b))
 
+# repl loop
 while True:
     try:
         line = mal_readline.readline("user> ")

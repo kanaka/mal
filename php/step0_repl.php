@@ -22,6 +22,7 @@ function rep($str) {
     return MAL_PRINT(MAL_EVAL(READ($str), array()));
 }
 
+// repl loop
 do {
     $line = mal_readline("user> ");
     if ($line === NULL) { break; }
@@ -30,4 +31,4 @@ do {
     }
 } while (true);
 
-?> 
+?>

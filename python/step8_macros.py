@@ -58,7 +58,7 @@ def eval_ast(ast, env):
 
 def EVAL(ast, env):
     while True:
-        #print("EVAL %s" % ast)
+        #print("EVAL %s" % printer._pr_str(ast))
         if not types._list_Q(ast):
             return eval_ast(ast, env)
 
@@ -125,6 +125,7 @@ def REP(str):
 # core.py: defined using python
 for k, v in core.ns.items(): repl_env.set(k, v)
 repl_env.set('eval', lambda ast: EVAL(ast, repl_env))
+repl_env.set('*ARGV*', types._list(*sys.argv[2:]))
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
@@ -134,13 +135,15 @@ REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first x
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')
-else:
-    while True:
-        try:
-            line = mal_readline.readline("user> ")
-            if line == None: break
-            if line == "": continue
-            print(REP(line))
-        except reader.Blank: continue
-        except Exception as e:
-            print("".join(traceback.format_exception(*sys.exc_info())))
+    sys.exit(0)
+
+# repl loop
+while True:
+    try:
+        line = mal_readline.readline("user> ")
+        if line == None: break
+        if line == "": continue
+        print(REP(line))
+    except reader.Blank: continue
+    except Exception as e:
+        print("".join(traceback.format_exception(*sys.exc_info())))

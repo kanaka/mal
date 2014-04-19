@@ -55,6 +55,7 @@ repl_env[:-] = lambda {|a,b| a - b}
 repl_env[:*] = lambda {|a,b| a * b}
 repl_env[:/] = lambda {|a,b| a / b}
 
+# repl loop
 while line = _readline("user> ")
     begin
         puts REP[line]

@@ -1,17 +1,15 @@
 #!/bin/bash
 
-INTERACTIVE=${INTERACTIVE-yes}
-
 source $(dirname $0)/reader.sh
 source $(dirname $0)/printer.sh
 
-# READ: read and parse input
+# read
 READ () {
     [ "${1}" ] && r="${1}" || READLINE
     READ_STR "${r}"
 }
 
-# EVAL: just return the input
+# eval
 EVAL () {
     local ast="${1}"
     local env="${2}"
@@ -20,7 +18,7 @@ EVAL () {
     r="${ast}"
 }
 
-# PRINT:
+# print
 PRINT () {
     if [[ "${__ERROR}" ]]; then
         _pr_str "${__ERROR}" yes
@@ -31,16 +29,15 @@ PRINT () {
     fi
 }
 
-# REPL: read, eval, print, loop
+# repl
 REP () {
     READ "${1}" || return 1
     EVAL "${r}"
     PRINT "${r}"
 }
 
-if [[ -n "${INTERACTIVE}" ]]; then
-    while true; do
-        READLINE "user> " || exit "$?"
-        [[ "${r}" ]] && REP "${r}" && echo "${r}"
-    done
-fi
+# repl loop
+while true; do
+    READLINE "user> " || exit "$?"
+    [[ "${r}" ]] && REP "${r}" && echo "${r}"
+done

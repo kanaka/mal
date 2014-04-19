@@ -160,7 +160,7 @@ public class step7_quote {
         return printer._pr_str(exp, true);
     }
 
-    // REPL
+    // repl
     public static MalVal RE(Env env, String str) throws MalThrowable {
         return EVAL(READ(str), env);
     }
@@ -179,6 +179,12 @@ public class step7_quote {
                 return EVAL(args.nth(0), repl_env);
             }
         });
+        MalList _argv = new MalList();
+        for (Integer i=1; i < args.length; i++) {
+            _argv.conj_BANG(new MalString(args[i]));
+        }
+        repl_env.set("*ARGV*", _argv);
+
 
         // core.mal: defined using the language itself
         RE(repl_env, "(def! not (fn* (a) (if a false true)))");
@@ -190,9 +196,7 @@ public class step7_quote {
             fileIdx = 1;
         }
         if (args.length > fileIdx) {
-            for(Integer i=fileIdx; i<args.length; i++) {
-                RE(repl_env, "(load-file \"" + args[i] + "\")");
-            }
+            RE(repl_env, "(load-file \"" + args[fileIdx] + "\")");
             return;
         }
         while (true) {

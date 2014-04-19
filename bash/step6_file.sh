@@ -1,18 +1,17 @@
 #!/bin/bash
 
-INTERACTIVE=${INTERACTIVE-yes}
-
 source $(dirname $0)/reader.sh
 source $(dirname $0)/printer.sh
 source $(dirname $0)/env.sh
 source $(dirname $0)/core.sh
 
-# READ: read and parse input
+# read
 READ () {
     [ "${1}" ] && r="${1}" || READLINE
     READ_STR "${r}"
 }
 
+# eval
 EVAL_AST () {
     local ast="${1}" env="${2}"
     #_pr_str "${ast}"; echo "EVAL_AST '${ast}:${r} / ${env}'"
@@ -41,7 +40,6 @@ EVAL_AST () {
     esac
 }
 
-# EVAL: evaluate the parameter
 EVAL () {
     local ast="${1}" env="${2}"
     while true; do
@@ -124,7 +122,7 @@ EVAL () {
     done
 }
 
-# PRINT:
+# print
 PRINT () {
     if [[ "${__ERROR}" ]]; then
         _pr_str "${__ERROR}" yes
@@ -135,7 +133,7 @@ PRINT () {
     fi
 }
 
-# REPL: read, eval, print, loop
+# repl
 ENV; REPL_ENV="${r}"
 REP () {
     r=
@@ -149,17 +147,22 @@ _fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
 for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 _eval () { EVAL "${1}" "${REPL_ENV}"; }
 _fref "eval" _eval
+_list; argv="${r}"
+for _arg in "${@:2}"; do _string "${_arg}"; _conj! "${argv}" "${r}"; done
+ENV_SET "${REPL_ENV}" "__STAR__ARGV__STAR__" "${argv}";
 
 # core.mal: defined using the language itself
 REP "(def! not (fn* (a) (if a false true)))"
 REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 
+# load/run file from command line (then exit)
 if [[ "${1}" ]]; then
-    echo "${@}"
-    REP "(load-file \"${1}\")" && echo "${r}"
-elif [[ -n "${INTERACTIVE}" ]]; then
-    while true; do
-        READLINE "user> " || exit "$?"
-        [[ "${r}" ]] && REP "${r}" && echo "${r}"
-    done
-fi
+    REP "(load-file \"${1}\")"
+    exit 0
+fi 
+
+# repl loop
+while true; do
+    READLINE "user> " || exit "$?"
+    [[ "${r}" ]] && REP "${r}" && echo "${r}"
+done

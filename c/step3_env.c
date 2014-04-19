@@ -159,7 +159,7 @@ int main()
     snprintf(prompt, sizeof(prompt), "user> ");
     init_repl_env();
  
-    // REPL loop
+    // repl loop
     for(;;) {
         exp = RE(repl_env, prompt, NULL);
         if (mal_error && strcmp("EOF", mal_error->val.string) == 0) {

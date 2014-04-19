@@ -22,6 +22,7 @@ def PRINT(exp):
 def REP(str):
     return PRINT(EVAL(READ(str), {}))
 
+# repl loop
 while True:
     try:
         line = mal_readline.readline("user> ")
@@ -29,4 +30,4 @@ while True:
         if line == "": continue
         print(REP(line))
     except Exception as e:
-        print "".join(traceback.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
+        print("".join(traceback.format_exception(*sys.exc_info())))

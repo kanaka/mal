@@ -34,7 +34,7 @@ mal.dll: $(LIB_SRCS)
 	mcs $(FLAGS) -r:mal.dll $<
 
 clean:
-	rm -f *.dll *.exe *.mbd
+	rm -f *.dll *.exe *.mdb
 
 .PHONY: stats tests $(TESTS)
 

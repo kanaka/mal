@@ -21,6 +21,7 @@ def REP(str)
     return PRINT(EVAL(READ(str), {}))
 end
 
+# repl loop
 while line = _readline("user> ")
     puts REP(line)
 end

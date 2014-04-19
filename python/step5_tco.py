@@ -28,7 +28,7 @@ def eval_ast(ast, env):
 
 def EVAL(ast, env):
     while True:
-        #print("EVAL %s" % ast)
+        #print("EVAL %s" % printer._pr_str(ast))
         if not types._list_Q(ast):
             return eval_ast(ast, env)
 
@@ -86,6 +86,7 @@ for k, v in core.ns.items(): repl_env.set(k, v)
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
 
+# repl loop
 while True:
     try:
         line = mal_readline.readline("user> ")

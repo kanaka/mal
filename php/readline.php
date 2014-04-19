@@ -31,4 +31,4 @@ function mal_readline($prompt) {
     return $line;
 }
 
-?> 
+?>

@@ -16,10 +16,12 @@
 
 ;; repl
 (defn rep [strng] (PRINT (EVAL (READ strng), {})))
+;; repl loop
+(defn repl-loop []
+  (let [line (readline/readline "user> ")]
+    (when line
+      (println (rep line))
+      (recur))))
 
 (defn -main [& args]
-  (loop []
-    (let [line (readline/readline "user> ")]
-      (when line
-        (println (rep line))
-        (recur)))))
+  (repl-loop))

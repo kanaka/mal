@@ -20,7 +20,7 @@ namespace Mal {
             return printer._pr_str(exp, true);
         }
 
-        // REPL
+        // repl
         static MalVal RE(string env, string str) {
             return EVAL(READ(str), env);
         }

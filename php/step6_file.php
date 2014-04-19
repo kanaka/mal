@@ -107,18 +107,22 @@ foreach ($core_ns as $k=>$v) {
 $repl_env->set('eval', _function(function($ast) {
     global $repl_env; return MAL_EVAL($ast, $repl_env);
 }));
+$_argv = _list();
+for ($i=2; $i < count($argv); $i++) {
+    $_argv->append($argv[$i]);
+}
+$repl_env->set('*ARGV*', $_argv);
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 if (count($argv) > 1) {
-    for ($i=1; $i < count($argv); $i++) {
-        rep('(load-file "' . $argv[$i] . '")');
-    }
+    rep('(load-file "' . $argv[1] . '")');
     exit(0);
 }
 
+// repl loop
 do {
     try {
         $line = mal_readline("user> ");
@@ -134,4 +138,4 @@ do {
     }
 } while (true);
 
-?> 
+?>

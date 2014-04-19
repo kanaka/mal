@@ -33,7 +33,7 @@ function eval_ast(ast, env) {
 }
 
 function _EVAL(ast, env) {
-    //printer.println("EVAL:", types._pr_str(ast, true));
+    //printer.println("EVAL:", printer._pr_str(ast, true));
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
@@ -75,6 +75,7 @@ repl_env.set('-', function(a,b){return a-b;});
 repl_env.set('*', function(a,b){return a*b;});
 repl_env.set('/', function(a,b){return a/b;});
 
+// repl loop
 if (typeof require === 'undefined') {
     // Asynchronous browser mode
     readline.rlwrap(function(line) { return rep(line); },
