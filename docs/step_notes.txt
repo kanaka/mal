@@ -89,24 +89,31 @@ Step Notes:
 
 - step3_env
     - types module:
-        - Env type:
-            - find, set, get (no binds/exprs in constructor yet)
         - may need function type if HashMap is strongly typed (e.g. Java)
+    - env type:
+        - find, set, get (no binds/exprs in constructor yet)
     - EVAL/apply:
         - def! - mutate current environment
         - let* - create new environment with bindings
-    - _ref sugar
 
 - step4_if_fn_do
     - types module:
-        - function type (closure)
+        - function type if no closures in impl language
+        - _equal_Q function (recursive)
+    - reader module
+        - string unescaping
+    - printer module
+        - print_readably option for pr_str
         - add function printing to pr_str
+        - string escaping in pr_str
+    - core module (export via core_ns):
+        - export equal_Q from types as =
+        - move arith operations here
+        - add arith comparison functions
+        - pr_str, str, prn, println
+        - list, list?, count, empty?
+    - env module:
         - add binds/exprs handling to Env constructor with variable arity
-        - functions (exported via types_ns):
-            - move arith operations here
-            - comparison operations (including =)
-            - prn, pr_str, = (recursive)
-            - list, list?, count, empty?
     - EVAL:
         - do:
         - if:
@@ -115,10 +122,6 @@ Step Notes:
             - otherwise needs a way of representing functions that can
               have associated metadata
     - define "not" using REP/RE
-
-
-- metadata
-    - 
 
 - step5_tco
     - types module:

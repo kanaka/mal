@@ -3,13 +3,13 @@ use warnings;
 use readline qw(readline);
 use feature qw(switch);
 
-use reader qw(read_str);
-use printer qw(_pr_str);
+use reader;
+use printer;
 
 # read
 sub READ {
     my $str = shift;
-    return read_str($str);
+    return reader::read_str($str);
 }
 
 # eval
@@ -21,7 +21,7 @@ sub EVAL {
 # print
 sub PRINT {
     my $exp = shift;
-    return _pr_str($exp);
+    return printer::_pr_str($exp);
 }
 
 # repl

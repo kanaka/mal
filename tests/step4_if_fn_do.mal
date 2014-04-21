@@ -1,117 +1,5 @@
 ;; -----------------------------------------------------
 
-;; Testing string quoting
-
-""
-;=>""
-
-"abc"
-;=>"abc"
-
-"abc  def"
-;=>"abc  def"
-
-"\""
-;=>"\""
-
-
-;; Testing pr-str
-
-(pr-str)
-;=>""
-
-(pr-str "")
-;=>"\"\""
-
-(pr-str "abc")
-;=>"\"abc\""
-
-(pr-str "abc  def" "ghi jkl")
-;=>"\"abc  def\" \"ghi jkl\""
-
-(pr-str "\"")
-;=>"\"\\\"\""
-
-(pr-str (list 1 2 "abc" "\"") "def")
-;=>"(1 2 \"abc\" \"\\\"\") \"def\""
-
-
-;; Testing str
-
-(str)
-;=>""
-
-(str "")
-;=>""
-
-(str "abc")
-;=>"abc"
-
-(str "\"")
-;=>"\""
-
-(str 1 "abc" 3)
-;=>"1abc3"
-
-(str "abc  def" "ghi jkl")
-;=>"abc  defghi jkl"
-
-;;; TODO: get this working properly
-;;;(str (list 1 2 "abc" "\"") "def")
-;;;;=>"(1 2 \"abc\" \"\\\"\")def"
-
-
-;; Testing prn
-(prn)
-; 
-;=>nil
-
-(prn "")
-; ""
-;=>nil
-
-(prn "abc")
-; "abc"
-;=>nil
-
-(prn "abc  def" "ghi jkl")
-; "abc  def" "ghi jkl"
-
-(prn "\"")
-; "\""
-;=>nil
-
-(prn (list 1 2 "abc" "\"") "def")
-; (1 2 "abc" "\"") "def"
-;=>nil
-
-
-;; Testing println
-(println)
-; 
-;=>nil
-
-(println "")
-; 
-;=>nil
-
-(println "abc")
-; abc
-;=>nil
-
-(println "abc  def" "ghi jkl")
-; abc  def ghi jkl
-
-(println "\"")
-; "
-;=>nil
-
-(println (list 1 2 "abc" "\"") "def")
-; (1 2 abc ") def
-;=>nil
-
-;; -----------------------------------------------------
-
 
 ;; Testing list functions
 (list)
@@ -327,6 +215,118 @@ a
 ;=>5
 (fib 10)
 ;=>89
+
+;; -----------------------------------------------------
+
+;; Testing string quoting
+
+""
+;=>""
+
+"abc"
+;=>"abc"
+
+"abc  def"
+;=>"abc  def"
+
+"\""
+;=>"\""
+
+
+;; Testing pr-str
+
+(pr-str)
+;=>""
+
+(pr-str "")
+;=>"\"\""
+
+(pr-str "abc")
+;=>"\"abc\""
+
+(pr-str "abc  def" "ghi jkl")
+;=>"\"abc  def\" \"ghi jkl\""
+
+(pr-str "\"")
+;=>"\"\\\"\""
+
+(pr-str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 \"abc\" \"\\\"\") \"def\""
+
+
+;; Testing str
+
+(str)
+;=>""
+
+(str "")
+;=>""
+
+(str "abc")
+;=>"abc"
+
+(str "\"")
+;=>"\""
+
+(str 1 "abc" 3)
+;=>"1abc3"
+
+(str "abc  def" "ghi jkl")
+;=>"abc  defghi jkl"
+
+;;; TODO: get this working properly
+;;;(str (list 1 2 "abc" "\"") "def")
+;;;;=>"(1 2 \"abc\" \"\\\"\")def"
+
+
+;; Testing prn
+(prn)
+; 
+;=>nil
+
+(prn "")
+; ""
+;=>nil
+
+(prn "abc")
+; "abc"
+;=>nil
+
+(prn "abc  def" "ghi jkl")
+; "abc  def" "ghi jkl"
+
+(prn "\"")
+; "\""
+;=>nil
+
+(prn (list 1 2 "abc" "\"") "def")
+; (1 2 "abc" "\"") "def"
+;=>nil
+
+
+;; Testing println
+(println)
+; 
+;=>nil
+
+(println "")
+; 
+;=>nil
+
+(println "abc")
+; abc
+;=>nil
+
+(println "abc  def" "ghi jkl")
+; abc  def ghi jkl
+
+(println "\"")
+; "
+;=>nil
+
+(println (list 1 2 "abc" "\"") "def")
+; (1 2 abc ") def
+;=>nil
 
 ;;
 ;; -------- Optional Functionality --------

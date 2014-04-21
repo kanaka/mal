@@ -31,7 +31,7 @@ function _pr_str(obj, print_readably) {
         }
         return "{" + ret.join(' ') + "}";
     case 'string':
-        if (print_readably) {
+        if (_r) {
             return '"' + obj.replace(/\\/, "\\\\")
                 .replace(/"/g, '\\"')
                 .replace(/\n/g, "\\n") + '"'; // string

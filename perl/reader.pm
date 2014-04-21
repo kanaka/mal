@@ -30,7 +30,12 @@ sub read_atom {
     my $token = $rdr->next();
     given ($token) {
         when(/^-?[0-9]+$/) { return Integer->new($token) }
-        when(/^"/) { return String->new(substr $token, 1, -1) }
+        when(/^"/) {
+            my $str = substr $token, 1, -1;
+            $str =~ s/\\"/"/g;
+            $str =~ s/\\n/\n/g;
+            return String->new($str)
+        }
         when(/^nil$/) { return $nil }
         when(/^true$/) { return $true }
         when(/^false$/) { return $false }
