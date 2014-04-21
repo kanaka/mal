@@ -26,6 +26,7 @@ sub _pr_str {
             return '{' . join(' ', @elems) . '}';
         }
         when(/^String/) { return '"' . $$obj . '"'; }
+        when(/^CODE/)   { return '<builtin_fn* ' . $obj . '>'; }
         default         { return $$obj; }
     }
 }

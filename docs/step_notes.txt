@@ -30,7 +30,7 @@ Step Notes:
         - read_list
             - read_form until ')'
             - return array (boxed)
-        - read_atom
+        - read_atom (not atom type)
             - return scalar boxed type:
                 - nil, true, false, symbol, integer, string
     - printer module:
@@ -73,6 +73,7 @@ Step Notes:
 
 - step2_eval
     - types module:
+        - symbol?, list? (if no simple idiomatic impl type check)
         - first, rest, nth on list
     - eval_ast:
         - if symbol, return value of looking up in env

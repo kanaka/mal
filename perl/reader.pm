@@ -22,7 +22,7 @@ use Data::Dumper;
 sub tokenize {
     my($str) = @_;
     my @tokens = $str =~ /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
-    return grep {not /^;|^$/} @tokens;
+    return grep {! /^;|^$/} @tokens;
 }
 
 sub read_atom {
