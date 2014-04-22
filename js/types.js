@@ -4,6 +4,8 @@ if (typeof module === 'undefined') {
     var exports = types;
 }
 
+types.Env = require('./env').Env;
+
 // General fucnctions
 
 function _obj_type(obj) {
@@ -204,3 +206,4 @@ exports._assoc_BANG = types._assoc_BANG = _assoc_BANG;
 exports._dissoc_BANG = types._dissoc_BANG = _dissoc_BANG;
 exports._atom = types._atom = _atom;
 exports._atom_Q = types._atom_Q = _atom_Q;
+exports.Env = types.Env

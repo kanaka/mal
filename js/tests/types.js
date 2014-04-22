@@ -1,7 +1,9 @@
 common = require('./common.js');
 var assert_eq = common.assert_eq;
+var core = require('../core.js');
 var types = require('../types.js');
-var symbol = types.symbol,
+types.ns = core.ns
+var symbol = types.ns['symbol'],
     hash_map = types.ns['hash-map'],
     hash_map_Q = types.ns['map?'],
     assoc = types.ns['assoc'],

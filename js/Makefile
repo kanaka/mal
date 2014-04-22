@@ -6,7 +6,10 @@ SOURCES_LISP = env.js core.js stepA_more.js
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 WEB_SOURCES = $(SOURCES:node_readline.js=josh_readline.js)
 
-all: mal.js mal_web.js
+all: node_modules mal.js mal_web.js
+
+node_modules:
+	npm install
 
 mal.js: $(SOURCES)
 	echo "#!/usr/bin/env node" > $@

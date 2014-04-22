@@ -20,7 +20,10 @@ exports.readline = rlwrap.readline = function(prompt) {
 
     if (!rl_history_loaded) {
         rl_history_loaded = true;
-        var lines = fs.readFileSync(HISTORY_FILE).toString().split("\n");
+        var lines = [];
+        if (fs.existsSync(HISTORY_FILE)) {
+            lines = fs.readFileSync(HISTORY_FILE).toString().split("\n");
+        }
         // Max of 2000 lines
         lines = lines.slice(Math.max(lines.length - 2000, 0));
         for (var i=0; i<lines.length; i++) {
