@@ -5,7 +5,7 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q
                     $nil $true $false
-                    _list_Q);
+                    _symbol_Q _list_Q);
 
 use Data::Dumper;
 
@@ -18,8 +18,6 @@ sub _sequential_Q {
 sub _equal_Q {
     my ($a, $b) = @_;
     my ($ota, $otb) = (ref $a, ref $b);
-    #my $ota = ref $a;
-    #my $otb = ref $b;
     if (!(($ota eq $otb) || (_sequential_Q($a) && _sequential_Q($b)))) {
         return 0;
     }
@@ -75,7 +73,7 @@ our $false = False->new();
     sub new  { my $class = shift; bless \$_[0] => $class }
 }
 
-sub _symbol_Q { ref $_[0] =~ /^Symbol/ }
+sub _symbol_Q { (ref $_[0]) =~ /^Symbol/ }
 
 
 {
@@ -101,6 +99,8 @@ sub _list_Q { (ref $_[0]) =~ /^List/ }
 {
     package Vector;
     sub new  { my $class = shift; bless $_[0], $class }
+    sub rest { my @arr = @{$_[0]}; List->new([@arr[1..$#arr]]); }
+    sub slice { my @arr = @{$_[0]}; List->new([@arr[$_[1]..$_[2]]]); }
 }
 
 sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
@@ -124,15 +124,16 @@ sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
         bless {'eval'=>$eval,
                'ast'=>$ast,
                'env'=>$env,
-               'params'=>$params}, $class
+               'params'=>$params,
+               'ismacro'=>0}, $class
     }
     sub gen_env {
-        my %self = %{$_[0]};
-        return Env->new($self{env}, $self{params}, $_[1]);
+        my $self = $_[0];
+        return Env->new($self->{env}, $self->{params}, $_[1]);
     }
     sub apply {
-        my %self = %{$_[0]};
-        return &{ $self{eval} }($self{ast}, gen_env($_[1]));
+        my $self = $_[0];
+        return &{ $self->{eval} }($self->{ast}, gen_env($self, $_[1]));
     }
 }
 

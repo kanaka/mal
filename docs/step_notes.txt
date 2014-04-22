@@ -162,16 +162,18 @@ Step Notes:
           splice-unquote and quasiquote
 
 - step8_macros
-    - types module:
-        - add first, rest functions
+    - types
+        - capability to store ismacro property in function
+    - core module:
+        - add first, rest, nth functions
     - add is_macro_call and macroexpand
         - recursively macroexpand lists
         - if applying a macro function, run it on the ast first before
           continuing
-    - call macroexpand apply in EVAL
+    - call macroexpand apply in EVAL before apply
     - EVAL:
         - add 'defmacro!' and 'macroexpand'
-        - store ismacro property on function metadata
+        - set ismacro property on function
 
 - step9_interop
 

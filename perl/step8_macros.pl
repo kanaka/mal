@@ -4,7 +4,7 @@ use readline qw(readline);
 use feature qw(switch);
 use Data::Dumper;
 
-use types qw($nil $true $false _sequential_Q _symbol_Q);
+use types qw($nil $true $false _sequential_Q _symbol_Q _list_Q);
 use reader;
 use printer;
 use env;
@@ -40,6 +40,29 @@ sub quasiquote {
     }
 }
 
+sub is_macro_call {
+    my ($ast, $env) = @_;
+    if (_list_Q($ast) &&
+        _symbol_Q($ast->[0]) &&
+        $env->find(${$ast->[0]})) {
+        my ($f) = $env->get(${$ast->[0]});
+        if ((ref $f) =~ /^Function/) {
+            return $f->{ismacro};
+        }
+    }
+    return 0;
+}
+
+sub macroexpand {
+    my ($ast, $env) = @_;
+    while (is_macro_call($ast, $env)) {
+        my $mac = $env->get(${$ast->[0]});
+        $ast = $mac->apply($ast->rest());
+    }
+    return $ast;
+}
+
+
 sub eval_ast {
     my($ast, $env) = @_;
     given (ref $ast) {
@@ -62,11 +85,14 @@ sub EVAL {
     while (1) {
 
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! ((ref $ast) =~ /^List/)) {
+    if (! _list_Q($ast)) {
         return eval_ast($ast, $env);
     }
 
     # apply list
+    $ast = macroexpand($ast, $env);
+    if (! _list_Q($ast)) { return $ast; }
+
     my ($a0, $a1, $a2, $a3) = @$ast;
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
         when (/^def!$/) {
@@ -85,6 +111,14 @@ sub EVAL {
         }
         when (/^quasiquote$/) {
             return EVAL(quasiquote($a1), $env);
+        }
+        when (/^defmacro!$/) {
+            my $func = EVAL($a2, $env);
+            $func->{ismacro} = 1;
+            return $env->set($$a1, $func);
+        }
+        when (/^macroexpand$/) {
+            return macroexpand($a1, $env);
         }
         when (/^do$/) {
             eval_ast($ast->slice(1, $#{$ast}-1), $env);

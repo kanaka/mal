@@ -48,11 +48,19 @@ sub cons {
 }
 
 sub concat {
-    my ($a, $b) = @_;
+    if (scalar(@_) == 0) { return List->new([]); }
+    my ($a) = shift;
     my @new_arr = @{$a};
-    push @new_arr, @$b;
+    map { push @new_arr, @$_ } @_;
     List->new(\@new_arr);
 }
+
+sub nth { my ($seq,$i) = @_; return scalar(@$seq) > $i ? $seq->[$i] : $nil; }
+
+sub first { my ($seq) = @_; return scalar(@$seq) > 0 ? $seq->[0] : $nil; }
+
+sub rest { return $_[0]->rest(); }
+
 
 
 our $core_ns = {
@@ -76,8 +84,11 @@ our $core_ns = {
     'list'  => sub { $_[0] },
     'list?' => sub { _list_Q($_[0][0]) ? $true : $false },
 
+    'nth' => sub { nth($_[0][0], ${$_[0][1]}) },
+    'first' => sub { first($_[0][0]) },
+    'rest' => sub { rest($_[0][0]) },
     'cons' => sub { cons($_[0][0], $_[0][1]) },
-    'concat' => sub { concat($_[0][0], $_[0][1]) },
+    'concat' => sub { concat(@{$_[0]}) },
     'empty?' => sub { scalar(@{$_[0][0]}) == 0 ? $true : $false },
     'count' => sub { Integer->new(scalar(@{$_[0][0]})) },
 };
