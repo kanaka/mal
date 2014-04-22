@@ -5,6 +5,7 @@ use Exporter 'import';
 our @EXPORT_OK = qw($core_ns);
 
 use types qw(_sequential_Q _equal_Q $nil $true $false _list_Q);
+use reader qw(read_str);
 use printer qw(_pr_str);
 
 use Data::Dumper;
@@ -29,6 +30,13 @@ sub println {
     return $nil
 }
 
+sub slurp {
+    my ($fname) = ${$_[0]}; 
+    open my $F, '<', $fname or die "error opening '$fname'";
+    my $data = do { local $/; <$F> };
+    String->new($data)
+}
+
 
 our $core_ns = {
     '=' =>  sub { _equal_Q($_[0][0], $_[0][1]) ? $true : $false },
@@ -37,6 +45,8 @@ our $core_ns = {
     'str' =>     sub { str($_[0]) },
     'prn' =>     sub { prn($_[0]) },
     'println' => sub { println($_[0]) },
+    'read-string' => sub { read_str(${$_[0][0]}) },
+    'slurp' =>   sub { slurp($_[0][0]) },
     '<' =>  sub { ${$_[0][0]} < ${$_[0][1]} ? $true : $false },
     '<=' => sub { ${$_[0][0]} <= ${$_[0][1]} ? $true : $false },
     '>' =>  sub { ${$_[0][0]} > ${$_[0][1]} ? $true : $false },

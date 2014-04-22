@@ -142,9 +142,12 @@ Step Notes:
               on the function
 
 - step6_file
-    - add read-string, eval, slurp platform wrappers
-    - define load-file function
-    - if files on command line, use load-file to run
+    - core module:
+        - read-string, slurp functions
+    - define eval and load-file functions
+    - set *ARGV*
+    - if files on command line, use load-file to run first argument
+      using rest as arguments
 
 - step7_quote
     - add is_pair and quasiquote functions
@@ -152,7 +155,7 @@ Step Notes:
         - if vectors, use sequential? instead of list? in is_pair
     - EVAL:
         - add 'quote', 'quasiquote' cases
-    - types module:
+    - core module:
         - add cons and concat functions
     - reader module:
         - add reader macros to read_form for quote, unquote,
@@ -173,13 +176,15 @@ Step Notes:
 - step9_interop
 
 - stepA_more
-    - types module:
+    - core module:
         - throw function
         - apply, map functions: should not directly call EVAL, which
           requires the function object to be runnable
+        - readline
     - EVAL:
         - try*/catch*: for normal exceptions, extracts string
           otherwise extracts full value
+    - set and print *host-language*
 
 - Extra defintions needed for self-hosting
     - types module:

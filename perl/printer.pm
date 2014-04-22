@@ -31,7 +31,7 @@ sub _pr_str {
                 my $str = $$obj;
                 $str =~ s/\\/\\\\/g;
                 $str =~ s/"/\\"/g;
-                $str =~ s/\n/\\n"/g;
+                $str =~ s/\n/\\n/g;
                 return '"' . $str . '"';
             } else {
                 return $$obj;
