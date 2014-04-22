@@ -1,6 +1,10 @@
 common = require('./common.js');
 types = require('../types');
 reader = require('../reader');
+var core = require('../core.js');
+types.ns = core.ns
+
+
 var assert_eq = common.assert_eq,
     read_str = reader.read_str,
     nth = types.ns.nth;
@@ -13,7 +17,7 @@ assert_eq('abc',read_str('"abc"'));
 assert_eq('a string (with parens)',read_str('"a string (with parens)"'));
 
 console.log("Testing read of symbols");
-assert(types.symbol_Q(read_str('abc')));
+assert(types._symbol_Q(read_str('abc')));
 assert_eq('abc',read_str('abc').value);
 assert_eq('.',read_str('.').value);
 
