@@ -35,6 +35,9 @@ sub eval_ast {
 
 sub EVAL {
     my($ast, $env) = @_;
+
+    while (1) {
+
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
     if (! ((ref $ast) =~ /^List/)) {
         return eval_ast($ast, $env);
@@ -55,30 +58,33 @@ sub EVAL {
             return EVAL($a2, $let_env);
         }
         when (/^do$/) {
-            my $el = eval_ast($ast->rest(), $env);
-            return $el->[$#{$el}];
+            eval_ast($ast->slice(1, $#{$ast}-1), $env);
+            $ast = $ast->[$#{$ast}];
         }
         when (/^if$/) {
             my $cond = EVAL($a1, $env);
             if ($cond eq $nil || $cond eq $false) {
-                return $a3 ? EVAL($a3, $env) : $nil;
+                $ast = $a3 ? $a3 : $nil;
             } else {
-                return EVAL($a2, $env);
+                $ast = $a2;
             }
         }
         when (/^fn\*$/) {
-            return sub {
-                #print "running fn*\n";
-                my $args = $_[0];
-                return EVAL($a2, Env->new($env, $a1, $args));
-            };
+            return Function->new(\&EVAL, $a2, $env, $a1);
         }
         default {
             my $el = eval_ast($ast, $env);
             my $f = $el->[0];
-            return &{ $f }($el->rest());
+            if ((ref $f) =~ /^Function/) {
+                $ast = $f->{ast};
+                $env = $f->gen_env($el->rest());
+            } else {
+                return &{ $f }($el->rest());
+            }
         }
     }
+
+    } # TCO while loop
 }
 
 # print

@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+use warnings FATAL => qw(all);
 use readline qw(readline);
 use feature qw(switch);
 

@@ -1,6 +1,6 @@
 package printer;
 use strict;
-use warnings;
+use warnings FATAL => qw(all);
 use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw( _pr_str );
@@ -36,6 +36,10 @@ sub _pr_str {
             } else {
                 return $$obj;
             }
+        }
+        when(/^Function/) {
+            return '<fn* ' . _pr_str($obj->{params}) .
+                   ' ' . _pr_str($obj->{ast}) . '>';
         }
         when(/^CODE/)   { return '<builtin_fn* ' . $obj . '>'; }
         default         { return $$obj; }

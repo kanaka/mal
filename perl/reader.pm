@@ -1,7 +1,7 @@
 package reader;
 use feature qw(switch);
 use strict;
-use warnings;
+use warnings FATAL => qw(all);
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 

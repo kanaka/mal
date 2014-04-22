@@ -125,13 +125,14 @@ Step Notes:
 
 - step5_tco
     - types module:
-        - function type:
+        - mal function type:
             - stores: func, exp, env, params
             - func is EVAL in native mal case, otherwise reference to
               platform function
             - if metadata support, then store exp, env, params as
               metadata
-        - update function printer to show function types
+    - printer
+        - add printing of mal function type
     - EVAL:
         - while loop around whole thing
         - cases where we directly return result of EVAL, instead set

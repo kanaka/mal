@@ -1,6 +1,6 @@
 package core;
 use strict;
-use warnings;
+use warnings FATAL => qw(all);
 use Exporter 'import';
 our @EXPORT_OK = qw($core_ns);
 

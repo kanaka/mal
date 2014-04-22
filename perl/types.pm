@@ -1,6 +1,6 @@
 package types;
 use strict;
-use warnings;
+use warnings FATAL => qw(all);
 use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q
@@ -90,6 +90,7 @@ sub _symbol_Q { ref $_[0] =~ /^Symbol/ }
     package List;
     sub new  { my $class = shift; bless $_[0], $class }
     sub rest { my @arr = @{$_[0]}; List->new([@arr[1..$#arr]]); }
+    sub slice { my @arr = @{$_[0]}; List->new([@arr[$_[1]..$_[2]]]); }
 }
 
 sub _list_Q { (ref $_[0]) =~ /^List/ }
@@ -110,6 +111,29 @@ sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
 {
     package HashMap;
     sub new  { my $class = shift; bless $_[0], $class }
+}
+
+
+# Functions
+
+{
+    package Function;
+    sub new  {
+        my $class = shift;
+        my ($eval, $ast, $env, $params) = @_;
+        bless {'eval'=>$eval,
+               'ast'=>$ast,
+               'env'=>$env,
+               'params'=>$params}, $class
+    }
+    sub gen_env {
+        my %self = %{$_[0]};
+        return Env->new($self{env}, $self{params}, $_[1]);
+    }
+    sub apply {
+        my %self = %{$_[0]};
+        return &{ $self{eval} }($self{ast}, gen_env($_[1]));
+    }
 }
 
 1;
