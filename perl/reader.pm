@@ -78,13 +78,21 @@ sub read_form {
     my($rdr) = @_;
     my $token = $rdr->peek();
     given ($token) {
-        when(')') { die "unexpected ')'"; }
-        when('(') { return read_list($rdr, 'List'); }
-        when(']') { die "unexpected ']'"; }
-        when('[') { return read_list($rdr, 'Vector', '[', ']'); }
-        when('}') { die "unexpected '}'"; }
-        when('{') { return read_list($rdr, 'HashMap', '{', '}'); }
-        default  { return read_atom($rdr); }
+        when("'") { $rdr->next(); List->new([Symbol->new('quote'),
+                                             read_form($rdr)]) }
+        when('`') { $rdr->next(); List->new([Symbol->new('quasiquote'),
+                                             read_form($rdr)]) }
+        when('~') { $rdr->next(); List->new([Symbol->new('unquote'),
+                                             read_form($rdr)]) }
+        when('~@') { $rdr->next(); List->new([Symbol->new('splice-unquote'),
+                                              read_form($rdr)]) }
+        when(')') { die "unexpected ')'" }
+        when('(') { return read_list($rdr, 'List') }
+        when(']') { die "unexpected ']'" }
+        when('[') { return read_list($rdr, 'Vector', '[', ']') }
+        when('}') { die "unexpected '}'" }
+        when('{') { return read_list($rdr, 'HashMap', '{', '}') }
+        default  { return read_atom($rdr) }
     }
 }
 

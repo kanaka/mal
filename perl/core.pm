@@ -38,6 +38,23 @@ sub slurp {
 }
 
 
+# List functions
+
+sub cons {
+    my ($a, $b) = @_;
+    my @new_arr = @{[$a]};
+    push @new_arr, @$b;
+    List->new(\@new_arr);
+}
+
+sub concat {
+    my ($a, $b) = @_;
+    my @new_arr = @{$a};
+    push @new_arr, @$b;
+    List->new(\@new_arr);
+}
+
+
 our $core_ns = {
     '=' =>  sub { _equal_Q($_[0][0], $_[0][1]) ? $true : $false },
 
@@ -58,6 +75,9 @@ our $core_ns = {
 
     'list'  => sub { $_[0] },
     'list?' => sub { _list_Q($_[0][0]) ? $true : $false },
+
+    'cons' => sub { cons($_[0][0], $_[0][1]) },
+    'concat' => sub { concat($_[0][0], $_[0][1]) },
     'empty?' => sub { scalar(@{$_[0][0]}) == 0 ? $true : $false },
     'count' => sub { Integer->new(scalar(@{$_[0][0]})) },
 };
