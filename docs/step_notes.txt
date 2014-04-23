@@ -176,6 +176,8 @@ Step Notes:
         - set ismacro property on function
 
 - step9_interop
+    - convert returned data to mal data
+        - recursive, similar to pr_str
 
 - stepA_more
     - core module:
@@ -183,16 +185,16 @@ Step Notes:
         - apply, map functions: should not directly call EVAL, which
           requires the function object to be runnable
         - readline
+        - nil?, true?, false? 
     - EVAL:
         - try*/catch*: for normal exceptions, extracts string
           otherwise extracts full value
     - set and print *host-language*
+    - define cond and or macros using REP/RE
 
 - Extra defintions needed for self-hosting
-    - types module:
-        - symbol?, nil?, true?, false?, sequential? (if not already)
-        - first, rest
-    - define cond and or macros using REP/RE
+    - core module:
+        - symbol?, sequential? (if not already)
 
 - Other misc:
     - conj function

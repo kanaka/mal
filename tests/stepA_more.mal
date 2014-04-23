@@ -1,14 +1,17 @@
 ;;
 ;; Testing try*/catch*
 
-(try* (abc 1 2) (catch* exc (prn exc))))
-; "'abc' not found"
+(try* (abc 1 2) (catch* exc (prn "exc is:" exc))))
+; "exc is:" "'abc' not found"
 ;=>nil
 
-;;;TODO: fix so long lines don't trigger ANSI escape codes
-;;;(try* (throw {"data" "foo"}) (catch* exc (do (prn "exc is:" exc) 7)))
-;;;; "exc is:" {"data" "foo"}
-;;;;=>7
+;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
+(throw {"data" "foo"}) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
+"exc is:" {"data" "foo"} ;;;;=>7
+
+(try* (throw {"data" "foo"}) (catch* exc (do (prn "err:" exc) 7)))
+; "err:" {"data" "foo"}
+;=>7
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
 ; "exc:" "my exception"

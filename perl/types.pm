@@ -5,7 +5,8 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q
                     $nil $true $false
-                    _symbol_Q _list_Q);
+                    _symbol_Q _nil_Q _true_Q _false_Q _list_Q
+                    _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG);
 
 use Data::Dumper;
 
@@ -62,6 +63,11 @@ our $nil =   Nil->new();
 our $true =  True->new();
 our $false = False->new();
 
+sub _nil_Q   { return $_[0] eq $nil }
+sub _true_Q  { return $_[0] eq $true }
+sub _false_Q { return $_[0] eq $false }
+
+
 {
     package Integer;
     sub new  { my $class = shift; bless \$_[0] => $class }
@@ -112,6 +118,33 @@ sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
     package HashMap;
     sub new  { my $class = shift; bless $_[0], $class }
 }
+
+sub _hash_map {
+    my $hsh = {};
+    return _assoc_BANG($hsh, @_);
+}
+
+sub _assoc_BANG {
+    my $hsh = shift;
+    my @lst = @_;
+    for(my $i=0; $i<scalar(@lst); $i+=2) {
+        my $str = $lst[$i];
+        $hsh->{$$str} = $lst[$i+1];
+    }
+    return HashMap->new($hsh);
+}
+
+sub _dissoc_BANG {
+    my $hsh = shift;
+    my @lst = @_;
+    for(my $i=0; $i<scalar(@lst); $i++) {
+        my $str = $lst[$i];
+        delete $hsh->{$$str};
+    }
+    return HashMap->new($hsh);
+}
+
+sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
 
 
 # Functions

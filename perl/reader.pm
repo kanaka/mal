@@ -5,7 +5,7 @@ use warnings FATAL => qw(all);
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
-use types qw($nil $true $false);
+use types qw($nil $true $false _hash_map);
 
 use Data::Dumper;
 
@@ -65,12 +65,7 @@ sub read_list {
     } elsif ($class eq 'Vector') {
         return Vector->new(\@lst);
     } else {
-        my $hsh = {};
-        for(my $i=0; $i<$#lst; $i+=2) {
-            my $str = $lst[$i];
-            $hsh->{$$str} = $lst[$i+1];
-        }
-        return HashMap->new($hsh);
+        return _hash_map(@lst);
     }
 }
 
