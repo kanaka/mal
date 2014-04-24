@@ -1,15 +1,17 @@
 common = require('./common.js');
 var assert_eq = common.assert_eq;
 var types = require('../types.js');
-var symbol = types.symbol,
-    hash_map = types.ns['hash-map'],
-    hash_map_Q = types.ns['map?'],
-    assoc = types.ns['assoc'],
-    dissoc = types.ns['dissoc'],
-    get = types.ns['get'],
-    contains_Q = types.ns['contains?'],
-    count = types.ns['count'],
-    equal_Q = types.ns['='];
+var core = require('../core.js');
+var env = require('../env.js');
+var symbol = types._symbol,
+    hash_map = core.ns['hash-map'],
+    hash_map_Q = core.ns['map?'],
+    assoc = core.ns['assoc'],
+    dissoc = core.ns['dissoc'],
+    get = core.ns['get'],
+    contains_Q = core.ns['contains?'],
+    count = core.ns['count'],
+    equal_Q = core.ns['='];
 
 
 console.log("Testing hash_maps");
@@ -73,7 +75,7 @@ assert_eq(false, equal_Q(L10, L6));
 
 
 console.log("Testing ENV (1 level)")
-env1 = new types.Env();
+env1 = new env.Env();
 assert_eq('val_a',env1.set('a','val_a'));
 assert_eq('val_b',env1.set('b','val_b'));
 assert_eq('val_eq',env1.set('=','val_eq'));
@@ -82,7 +84,7 @@ assert_eq('val_b',env1.get('b'));
 assert_eq('val_eq',env1.get('='));
 
 console.log("Testing ENV (2 levels)");
-env2 = new types.Env(env1);
+env2 = new env.Env(env1);
 assert_eq('val_b2',env2.set('b','val_b2'));
 assert_eq('val_c',env2.set('c','val_c'));
 assert_eq(env1,env2.find('a'));
