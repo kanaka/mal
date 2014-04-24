@@ -71,8 +71,10 @@ EVAL () {
                   ENV_SET "${let_env}" "${ANON["${let_pairs[${idx}]}"]}" "${r}"
                   idx=$(( idx + 2))
               done
-              EVAL "${a2}" "${let_env}"
-              return ;;
+              ast="${a2}"
+              env="${let_env}"
+              # Continue loop
+              ;;
         do)   _count "${ast}"
               _slice "${ast}" 1 $(( ${r} - 2 ))
               EVAL_AST "${r}" "${env}"

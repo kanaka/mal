@@ -52,7 +52,9 @@ function _EVAL(ast, env) {
         for (var i=0; i < a1.length; i+=2) {
             let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
         }
-        return EVAL(a2, let_env);
+        ast = a2;
+        env = let_env;
+        break;
     case "do":
         eval_ast(ast.slice(1, -1), env);
         ast = ast[ast.length-1];

@@ -77,11 +77,14 @@ def EVAL(ast, env):
             let_env = Env(env)
             for i in range(0, len(a1), 2):
                 let_env.set(a1[i], EVAL(a1[i+1], let_env))
-            return EVAL(a2, let_env)
+            ast = a2
+            env = let_env
+            # Continue loop (TCO)
         elif "quote" == a0:
             return ast[1]
         elif "quasiquote" == a0:
-            return EVAL(quasiquote(ast[1]), env)
+            ast = quasiquote(ast[1]);
+            # Continue loop (TCO)
         elif 'defmacro!' == a0:
             func = EVAL(ast[2], env)
             func._ismacro_ = True

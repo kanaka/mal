@@ -6,8 +6,9 @@
 ;=>nil
 
 ;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
-(throw {"data" "foo"}) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
-"exc is:" {"data" "foo"} ;;;;=>7
+;;;(try* (throw {"data" "foo"}) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
+;;;; "exc is:" {"data" "foo"} ;;;;=>7
+;;;;=>7
 
 (try* (throw {"data" "foo"}) (catch* exc (do (prn "err:" exc) 7)))
 ; "err:" {"data" "foo"}
@@ -69,8 +70,9 @@
 (read-string "7 ;; comment")
 ;=>7
 
+;;; Differing output, but make sure no fatal error
 (read-string ";; comment")
-;=>nil
+
 
 (eval (read-string "(+ 4 5)"))
 ;=>9

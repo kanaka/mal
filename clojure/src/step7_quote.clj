@@ -60,13 +60,13 @@
           (let [let-env (env/env env)]
             (doseq [[b e] (partition 2 a1)]
               (env/env-set let-env b (EVAL e let-env)))
-            (EVAL a2 let-env))
+            (recur a2 let-env))
 
           'quote
           a1
 
           'quasiquote
-          (EVAL (quasiquote a1) env)
+          (recur (quasiquote a1) env)
   
           'do
           (do (eval-ast (->> ast (drop-last) (drop 1)) env)

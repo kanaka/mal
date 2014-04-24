@@ -93,11 +93,15 @@ end } def
                     env_set
                     pop % discard the return value
             } for
-            a2 let_env EVAL
+            a2
+            let_env
+            /loop? true def % loop
         }{ /quote a0 eq { %if quote
             ast 1 _nth
         }{ /quasiquote a0 eq { %if quasiquote
-            ast 1 _nth quasiquote   env EVAL
+            ast 1 _nth quasiquote
+            env
+            /loop? true def % loop
         }{ /do a0 eq { %if do
             ast _count 2 gt { %if ast has more than 2 elements
                 ast 1 ast _count 2 sub _slice env eval_ast pop

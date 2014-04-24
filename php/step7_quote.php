@@ -75,15 +75,18 @@ function MAL_EVAL($ast, $env) {
         for ($i=0; $i < count($a1); $i+=2) {
             $let_env->set($a1[$i]->value, MAL_EVAL($a1[$i+1], $let_env));
         }
-        return MAL_EVAL($ast[2], $let_env);
+        $ast = $ast[2];
+        $env = $let_env;
+        break; // Continue loop (TCO)
     case "quote":
         return $ast[1];
     case "quasiquote":
-        return MAL_EVAL(quasiquote($ast[1]), $env);
+        $ast = quasiquote($ast[1]);
+        break; // Continue loop (TCO)
     case "do":
         eval_ast($ast->slice(1, -1), $env);
         $ast = $ast[count($ast)-1];
-        break;
+        break; // Continue loop (TCO)
     case "if":
         $cond = MAL_EVAL($ast[1], $env);
         if ($cond === NULL || $cond === false) {
@@ -92,7 +95,7 @@ function MAL_EVAL($ast, $env) {
         } else {
             $ast = $ast[2];
         }
-        break;
+        break; // Continue loop (TCO)
     case "fn*":
         return _function('MAL_EVAL', 'native',
                          $ast[2], $env, $ast[1]);
@@ -103,6 +106,7 @@ function MAL_EVAL($ast, $env) {
         if ($f->type === 'native') {
             $ast = $f->ast;
             $env = $f->gen_env($args);
+            // Continue loop (TCO)
         } else {
             return $f->apply($args);
         }

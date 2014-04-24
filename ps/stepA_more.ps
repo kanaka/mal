@@ -126,11 +126,15 @@ end } def
                     env_set
                     pop % discard the return value
             } for
-            a2 let_env EVAL
+            a2
+            let_env
+            /loop? true def % loop
         }{ /quote a0 eq { %if quote
             ast 1 _nth
         }{ /quasiquote a0 eq { %if quasiquote
-            ast 1 _nth quasiquote   env EVAL
+            ast 1 _nth quasiquote
+            env
+            /loop? true def % loop
         }{ /defmacro! a0 eq { %if defmacro!
             /a1 ast 1 _nth def
             /a2 ast 2 _nth def

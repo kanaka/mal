@@ -5,7 +5,6 @@ All:
     - hash-map with space in key string (make)
     - keyword type
     - gensym reader inside quasiquote
-    - quasiquote be TCO'd ?
 
     - per impl tests for step5_tco, step9_interop (if possible)
     - regular expression matching in runtest
@@ -14,15 +13,15 @@ All:
     - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
 
-    - TCO for let*
-
 ---------------------------------------------
 
 Bash:
     - explore using ${!prefix*} syntax (more like make impl)
+    - GC
 
 C:
     - come up with better way to do 20 vararg code
+    - GC
 
 C#:
     - step9_interop
@@ -44,7 +43,6 @@ Mal:
     - step9_interop
 
 Perl:
-    - object exceptions: http://perldoc.perl.org/functions/die.html
 
 PHP:
 
@@ -95,7 +93,7 @@ Future Implementations:
             * Ruby
             * C
             - Objective-C
-            - Perl 
+            * Perl 
             * Shell (Bash 4)
 
         - Tier 2

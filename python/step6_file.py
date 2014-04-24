@@ -45,7 +45,9 @@ def EVAL(ast, env):
             let_env = Env(env)
             for i in range(0, len(a1), 2):
                 let_env.set(a1[i], EVAL(a1[i+1], let_env))
-            return EVAL(a2, let_env)
+            ast = a2
+            env = let_env
+            # Continue loop (TCO)
         elif "do" == a0:
             eval_ast(ast[1:-1], env)
             ast = ast[-1]

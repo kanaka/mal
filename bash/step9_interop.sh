@@ -136,15 +136,18 @@ EVAL () {
                   ENV_SET "${let_env}" "${ANON["${let_pairs[${idx}]}"]}" "${r}"
                   idx=$(( idx + 2))
               done
-              EVAL "${a2}" "${let_env}"
-              return ;;
+              ast="${a2}"
+              env="${let_env}"
+              # Continue loop
+              ;;
         quote)
               r="${a1}"
               return ;;
         quasiquote)
               QUASIQUOTE "${a1}"
-              EVAL "${r}" "${env}"
-              return ;;
+              ast="${r}"
+              # Continue loop
+              ;;
         defmacro!)
               local k="${ANON["${a1}"]}"
               EVAL "${a2}" "${env}"

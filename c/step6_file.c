@@ -101,7 +101,9 @@ MalVal *EVAL(MalVal *ast, Env *env) {
             assert_type(key, MAL_SYMBOL, "let* bind to non-symbol");
             env_set(let_env, key->val.string, EVAL(val, let_env));
         }
-        return EVAL(a2, let_env);
+        ast = a2;
+        env = let_env;
+        // Continue loop
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("do", a0->val.string) == 0) {
         //g_print("eval apply do\n");

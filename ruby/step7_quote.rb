@@ -64,21 +64,22 @@ def EVAL(ast, env)
         a1.each_slice(2) do |a,e|
             let_env.set(a, EVAL(e, let_env))
         end
-        return EVAL(a2, let_env)
+        env = let_env
+        ast = a2 # Continue loop (TCO)
     when :quote
         return a1
     when :quasiquote
-        return EVAL(quasiquote(a1), env)
+        ast = quasiquote(a1); # Continue loop (TCO)
     when :do
         eval_ast(ast[1..-2], env)
-        ast = ast.last
+        ast = ast.last # Continue loop (TCO)
     when :if
         cond = EVAL(a1, env)
         if not cond
             return nil if a3 == nil
-            ast = a3
+            ast = a3 # Continue loop (TCO)
         else
-            ast = a2
+            ast = a2 # Continue loop (TCO)
         end
     when :"fn*"
         return Function.new(a2, env, a1) {|*args|
@@ -89,7 +90,7 @@ def EVAL(ast, env)
         f = el[0]
         if f.class == Function
             ast = f.ast
-            env = f.gen_env(el.drop(1))
+            env = f.gen_env(el.drop(1)) # Continue loop (TCO)
         else
             return f[*el.drop(1)]
         end

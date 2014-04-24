@@ -107,6 +107,7 @@ function _function(Eval, Env, ast, env, params) {
     fn.__meta__ = null;
     fn.__ast__ = ast;
     fn.__gen_env__ = function(args) { return new Env(env, params, args); };
+    fn._ismacro_ = false;
     return fn;
 }
 function _function_Q(obj) { return typeof obj == "function"; }
@@ -131,7 +132,7 @@ function _vector() {
     v.__isvector__ = true;
     return v;
 }
-function _vector_Q(obj) { return Array.isArray(obj) && obj.__isvector__; }
+function _vector_Q(obj) { return Array.isArray(obj) && !!obj.__isvector__; }
 
 
 

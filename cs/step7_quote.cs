@@ -109,11 +109,14 @@ namespace Mal {
                     val = ((MalList)a1)[i+1];
                     let_env.set(key.getName(), EVAL(val, let_env));
                 }
-                return EVAL(a2, let_env);
+                orig_ast = a2;
+                env = let_env;
+                break;
             case "quote":
                 return ast[1];
             case "quasiquote":
-                return EVAL(quasiquote(ast[1]), env);
+                orig_ast = quasiquote(ast[1]);
+                break;
             case "do":
                 eval_ast(ast.slice(1, ast.size()-1), env);
                 orig_ast = ast[ast.size()-1];

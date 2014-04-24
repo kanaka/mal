@@ -137,11 +137,14 @@ public class stepA_more {
                 val = ((MalList)a1).nth(i+1);
                 let_env.set(key.getName(), EVAL(val, let_env));
             }
-            return EVAL(a2, let_env);
+            orig_ast = a2;
+            env = let_env;
+            break;
         case "quote":
             return ast.nth(1);
         case "quasiquote":
-            return EVAL(quasiquote(ast.nth(1)), env);
+            orig_ast = quasiquote(ast.nth(1));
+            break;
         case "defmacro!":
             a1 = ast.nth(1);
             a2 = ast.nth(2);

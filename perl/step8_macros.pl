@@ -117,12 +117,14 @@ sub EVAL {
             }
             $ast = $a2;
             $env = $let_env;
+            # Continue loop (TCO)
         }
         when (/^quote$/) {
             return $a1;
         }
         when (/^quasiquote$/) {
-            return EVAL(quasiquote($a1), $env);
+            $ast = quasiquote($a1);
+            # Continue loop (TCO)
         }
         when (/^defmacro!$/) {
             my $func = EVAL($a2, $env);
@@ -135,6 +137,7 @@ sub EVAL {
         when (/^do$/) {
             eval_ast($ast->slice(1, $#{$ast->{val}}-1), $env);
             $ast = $ast->nth($#{$ast->{val}});
+            # Continue loop (TCO)
         }
         when (/^if$/) {
             my $cond = EVAL($a1, $env);
@@ -143,6 +146,7 @@ sub EVAL {
             } else {
                 $ast = $a2;
             }
+            # Continue loop (TCO)
         }
         when (/^fn\*$/) {
             return Function->new(\&EVAL, $a2, $env, $a1);
@@ -153,6 +157,7 @@ sub EVAL {
             if ((ref $f) =~ /^Function/) {
                 $ast = $f->{ast};
                 $env = $f->gen_env($el->rest());
+                # Continue loop (TCO)
             } else {
                 return &{ $f }($el->rest());
             }
