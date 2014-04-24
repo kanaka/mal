@@ -1,6 +1,6 @@
 use strict;
 use warnings FATAL => qw(all);
-use readline qw(readline);
+use readline qw(mal_readline);
 use feature qw(switch);
 use Data::Dumper;
 
@@ -19,23 +19,23 @@ sub READ {
 # eval
 sub is_pair {
     my ($x) = @_;
-    return _sequential_Q($x) && scalar(@$x) > 0;
+    return _sequential_Q($x) && scalar(@{$x->{val}}) > 0;
 }
 
 sub quasiquote {
     my ($ast) = @_;
     if (!is_pair($ast)) {
         return List->new([Symbol->new("quote"), $ast]);
-    } elsif (_symbol_Q($ast->[0]) && ${$ast->[0]} eq 'unquote') {
-        return $ast->[1];
-    } elsif (is_pair($ast->[0]) && _symbol_Q($ast->[0][0]) &&
-             ${$ast->[0][0]} eq 'splice-unquote') {
+    } elsif (_symbol_Q($ast->nth(0)) && ${$ast->nth(0)} eq 'unquote') {
+        return $ast->nth(1);
+    } elsif (is_pair($ast->nth(0)) && _symbol_Q($ast->nth(0)->nth(0)) &&
+             ${$ast->nth(0)->nth(0)} eq 'splice-unquote') {
         return List->new([Symbol->new("concat"),
-                          $ast->[0][1],
+                          $ast->nth(0)->nth(1),
                           quasiquote($ast->rest())]);
     } else {
         return List->new([Symbol->new("cons"),
-                          quasiquote($ast->[0]),
+                          quasiquote($ast->nth(0)),
                           quasiquote($ast->rest())]);
     }
 }
@@ -43,9 +43,9 @@ sub quasiquote {
 sub is_macro_call {
     my ($ast, $env) = @_;
     if (_list_Q($ast) &&
-        _symbol_Q($ast->[0]) &&
-        $env->find(${$ast->[0]})) {
-        my ($f) = $env->get(${$ast->[0]});
+        _symbol_Q($ast->nth(0)) &&
+        $env->find(${$ast->nth(0)})) {
+        my ($f) = $env->get(${$ast->nth(0)});
         if ((ref $f) =~ /^Function/) {
             return $f->{ismacro};
         }
@@ -56,7 +56,7 @@ sub is_macro_call {
 sub macroexpand {
     my ($ast, $env) = @_;
     while (is_macro_call($ast, $env)) {
-        my $mac = $env->get(${$ast->[0]});
+        my $mac = $env->get(${$ast->nth(0)});
         $ast = $mac->apply($ast->rest());
     }
     return $ast;
@@ -70,8 +70,19 @@ sub eval_ast {
             $env->get($$ast);
         }
         when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @$ast;
+            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
             return List->new(\@lst);
+        }
+        when (/^Vector/) {
+            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            return Vector->new(\@lst);
+        }
+        when (/^HashMap/) {
+            my $new_hm = {};
+            foreach my $k (keys($ast->{val})) {
+                $new_hm->{$k} = EVAL($ast->get($k), $env);
+            }
+            return HashMap->new($new_hm);
         }
         default {
             return $ast;
@@ -93,7 +104,7 @@ sub EVAL {
     $ast = macroexpand($ast, $env);
     if (! _list_Q($ast)) { return $ast; }
 
-    my ($a0, $a1, $a2, $a3) = @$ast;
+    my ($a0, $a1, $a2, $a3) = @{$ast->{val}};
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
         when (/^def!$/) {
             my $res = EVAL($a2, $env);
@@ -101,10 +112,11 @@ sub EVAL {
         }
         when (/^let\*$/) {
             my $let_env = Env->new($env);
-            for(my $i=0; $i < scalar(@{$a1}); $i+=2) {
-                $let_env->set(${$a1->[$i]}, EVAL($a1->[$i+1], $let_env));
+            for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
+                $let_env->set(${$a1->nth($i)}, EVAL($a1->nth($i+1), $let_env));
             }
-            return EVAL($a2, $let_env);
+            $ast = $a2;
+            $env = $let_env;
         }
         when (/^quote$/) {
             return $a1;
@@ -121,8 +133,8 @@ sub EVAL {
             return macroexpand($a1, $env);
         }
         when (/^do$/) {
-            eval_ast($ast->slice(1, $#{$ast}-1), $env);
-            $ast = $ast->[$#{$ast}];
+            eval_ast($ast->slice(1, $#{$ast->{val}}-1), $env);
+            $ast = $ast->nth($#{$ast->{val}});
         }
         when (/^if$/) {
             my $cond = EVAL($a1, $env);
@@ -137,7 +149,7 @@ sub EVAL {
         }
         default {
             my $el = eval_ast($ast, $env);
-            my $f = $el->[0];
+            my $f = $el->nth(0);
             if ((ref $f) =~ /^Function/) {
                 $ast = $f->{ast};
                 $env = $f->gen_env($el->rest());
@@ -165,7 +177,7 @@ sub REP {
 
 # core.pl: defined using perl
 foreach my $n (%$core_ns) { $repl_env->set($n, $core_ns->{$n}); }
-$repl_env->set('eval', sub { EVAL($_[0][0], $repl_env); });
+$repl_env->set('eval', sub { EVAL($_[0]->nth(0), $repl_env); });
 my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set('*ARGV*', List->new(\@_argv));
 
@@ -173,20 +185,31 @@ $repl_env->set('*ARGV*', List->new(\@_argv));
 REP("(def! not (fn* (a) (if a false true)))");
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
-if ($#ARGV > 0) {
+if (scalar(@ARGV) > 0) {
     REP("(load-file \"" . $ARGV[0] . "\")");
     exit 0;
 }
 while (1) {
-    my $line = readline("user> ");
+    my $line = mal_readline("user> ");
     if (! defined $line) { last; }
-    eval {
-        use autodie; # always "throw" errors
-        print(REP($line), "\n");
-        1;
-    }; 
-    if (my $err = $@) {
-        chomp $err;
-        print "Error: $err\n";
-    }
+    do {
+        local $@;
+        my $ret;
+        eval {
+            use autodie; # always "throw" errors
+            print(REP($line), "\n");
+            1;
+        } or do {
+            my $err = $@;
+            given (ref $err) {
+                when (/^BlankException/) {
+                    # ignore and continue
+                }
+                default {
+                    chomp $err;
+                    print "Error: $err\n";
+                }
+            }
+        };
+    };
 }

@@ -5,7 +5,7 @@ All:
     - hash-map with space in key string (make)
     - keyword type
     - gensym reader inside quasiquote
-    - can let* and quasiquote be TCO'd ?
+    - quasiquote be TCO'd ?
 
     - per impl tests for step5_tco, step9_interop (if possible)
     - regular expression matching in runtest
@@ -13,6 +13,8 @@ All:
 
     - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
+
+    - TCO for let*
 
 ---------------------------------------------
 

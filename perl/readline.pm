@@ -6,7 +6,7 @@ package readline;
 use strict;
 use warnings;
 use Exporter 'import';
-our @EXPORT_OK = qw( readline );
+our @EXPORT_OK = qw( mal_readline );
 
 use Term::ReadLine;
 
@@ -16,7 +16,7 @@ $_rl->ornaments(0);
 my $OUT = $_rl->OUT || \*STDOUT;
 my $_history_loaded = 0;
 
-sub readline {
+sub mal_readline {
     my($prompt) = @_;
     my $line = undef;
     if (! $_history_loaded) {

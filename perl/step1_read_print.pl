@@ -1,6 +1,6 @@
 use strict;
 use warnings FATAL => qw(all);
-use readline qw(readline);
+use readline qw(mal_readline);
 use feature qw(switch);
 
 use reader;
@@ -31,15 +31,26 @@ sub REP {
 }
 
 while (1) {
-    my $line = readline("user> ");
+    my $line = mal_readline("user> ");
     if (! defined $line) { last; }
-    eval {
-        use autodie; # always "throw" errors
-        print(REP($line), "\n");
-        1;
-    }; 
-    if (my $err = $@) {
-        chomp $err;
-        print "Error: $err\n";
-    }
+    do {
+        local $@;
+        my $ret;
+        eval {
+            use autodie; # always "throw" errors
+            print(REP($line), "\n");
+            1;
+        } or do {
+            my $err = $@;
+            given (ref $err) {
+                when (/^BlankException/) {
+                    # ignore and continue
+                }
+                default {
+                    chomp $err;
+                    print "Error: $err\n";
+                }
+            }
+        };
+    };
 }

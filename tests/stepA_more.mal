@@ -66,6 +66,12 @@
 (read-string "(1 2 (3 4) nil)")
 ;=>(1 2 (3 4) nil)
 
+(read-string "7 ;; comment")
+;=>7
+
+(read-string ";; comment")
+;=>nil
+
 (eval (read-string "(+ 4 5)"))
 ;=>9
 
@@ -90,6 +96,15 @@
 ;=>false
 (sequential? "abc")
 ;=>false
+
+;; Testing vector functions
+
+(vector? [10 11])
+;=>true
+(vector? '(12 13))
+;=>false
+(vector 3 4 5)
+;=>[3 4 5]
 
 ;; Testing conj function
 (conj (list) 1)
@@ -196,9 +211,6 @@
 ;=>nil
 
 (meta (fn* (a) a))
-;=>nil
-
-(meta +)
 ;=>nil
 
 (with-meta [1 2 3] {"a" 1})

@@ -1,10 +1,10 @@
 use strict;
 use warnings FATAL => qw(all);
-use readline qw(readline);
+use readline qw(mal_readline);
 use feature qw(switch);
 use Data::Dumper;
 
-use types qw($nil $true $false);
+use types qw($nil $true $false _list_Q);
 use reader;
 use printer;
 use env;
@@ -24,8 +24,19 @@ sub eval_ast {
             $env->get($$ast);
         }
         when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @$ast;
+            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
             return List->new(\@lst);
+        }
+        when (/^Vector/) {
+            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            return Vector->new(\@lst);
+        }
+        when (/^HashMap/) {
+            my $new_hm = {};
+            foreach my $k (keys($ast->{val})) {
+                $new_hm->{$k} = EVAL($ast->get($k), $env);
+            }
+            return HashMap->new($new_hm);
         }
         default {
             return $ast;
@@ -36,12 +47,12 @@ sub eval_ast {
 sub EVAL {
     my($ast, $env) = @_;
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! ((ref $ast) =~ /^List/)) {
+    if (! _list_Q($ast)) {
         return eval_ast($ast, $env);
     }
 
     # apply list
-    my ($a0, $a1, $a2, $a3) = @$ast;
+    my ($a0, $a1, $a2, $a3) = @{$ast->{val}};
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
         when (/^def!$/) {
             my $res = EVAL($a2, $env);
@@ -49,14 +60,14 @@ sub EVAL {
         }
         when (/^let\*$/) {
             my $let_env = Env->new($env);
-            for(my $i=0; $i < scalar(@{$a1}); $i+=2) {
-                $let_env->set(${$a1->[$i]}, EVAL($a1->[$i+1], $let_env));
+            for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
+                $let_env->set(${$a1->nth($i)}, EVAL($a1->nth($i+1), $let_env));
             }
             return EVAL($a2, $let_env);
         }
         when (/^do$/) {
             my $el = eval_ast($ast->rest(), $env);
-            return $el->[$#{$el}];
+            return $el->nth($#{$el->{val}});
         }
         when (/^if$/) {
             my $cond = EVAL($a1, $env);
@@ -75,7 +86,7 @@ sub EVAL {
         }
         default {
             my $el = eval_ast($ast, $env);
-            my $f = $el->[0];
+            my $f = $el->nth(0);
             return &{ $f }($el->rest());
         }
     }
@@ -101,15 +112,26 @@ foreach my $n (%$core_ns) { $repl_env->set($n, $core_ns->{$n}); }
 REP("(def! not (fn* (a) (if a false true)))");
 
 while (1) {
-    my $line = readline("user> ");
+    my $line = mal_readline("user> ");
     if (! defined $line) { last; }
-    eval {
-        use autodie; # always "throw" errors
-        print(REP($line), "\n");
-        1;
-    }; 
-    if (my $err = $@) {
-        chomp $err;
-        print "Error: $err\n";
-    }
+    do {
+        local $@;
+        my $ret;
+        eval {
+            use autodie; # always "throw" errors
+            print(REP($line), "\n");
+            1;
+        } or do {
+            my $err = $@;
+            given (ref $err) {
+                when (/^BlankException/) {
+                    # ignore and continue
+                }
+                default {
+                    chomp $err;
+                    print "Error: $err\n";
+                }
+            }
+        };
+    };
 }

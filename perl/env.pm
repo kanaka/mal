@@ -4,23 +4,23 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-use Data::Dumper;
 
 {
     package Env;
+    use Data::Dumper;
     sub new  {
         my ($class,$outer,$binds,$exprs) = @_;
         my $data = { __outer__ => $outer };
         if ($binds) {
-            for (my $i=0; $i<scalar(@{$binds}); $i++) {
-                if (${$binds->[$i]} eq "&") {
+            for (my $i=0; $i<scalar(@{$binds->{val}}); $i++) {
+                if (${$binds->nth($i)} eq "&") {
                     # variable length arguments
-                    my @earr = @$exprs; # get the array
+                    my @earr = @{$exprs->{val}}; # get the array
                     my @new_arr = @earr[$i..$#earr]; # slice it
-                    $data->{${$binds->[$i+1]}} = List->new(\@new_arr);
+                    $data->{${$binds->nth($i+1)}} = List->new(\@new_arr);
                     last;
                 } else {
-                    $data->{${$binds->[$i]}} = $exprs->[$i];
+                    $data->{${$binds->nth($i)}} = $exprs->nth($i);
                 }
             }
         }

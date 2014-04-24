@@ -7,21 +7,23 @@ our @EXPORT_OK = qw( _pr_str );
 
 use types qw($nil $true $false);
 
+use Data::Dumper;
+
 sub _pr_str {
     my($obj, $print_readably) = @_;
     my($_r) = (defined $print_readably) ? $print_readably : 1;
     given (ref $obj) {
         when(/^List/) {
-            return '(' . join(' ', map {_pr_str($_, $_r)} @$obj) . ')';
+            return '(' . join(' ', map {_pr_str($_, $_r)} @{$obj->{val}}) . ')';
         }
         when(/^Vector/) {
-            return '[' . join(' ', map {_pr_str($_, $_r)} @$obj) . ']';
+            return '[' . join(' ', map {_pr_str($_, $_r)} @{$obj->{val}}) . ']';
         }
         when(/^HashMap/) {
             my @elems = ();
-            foreach my $key (keys %$obj) {
+            foreach my $key (keys $obj->{val}) {
                 push(@elems, _pr_str(String->new($key), $_r));
-                push(@elems, _pr_str($obj->{$key}, $_r));
+                push(@elems, _pr_str($obj->{val}->{$key}, $_r));
             }
 
             return '{' . join(' ', @elems) . '}';
@@ -40,6 +42,9 @@ sub _pr_str {
         when(/^Function/) {
             return '<fn* ' . _pr_str($obj->{params}) .
                    ' ' . _pr_str($obj->{ast}) . '>';
+        }
+        when(/^Atom/) {
+            return '(atom ' . _pr_str($obj->{val}) . ")";
         }
         when(/^CODE/)   { return '<builtin_fn* ' . $obj . '>'; }
         default         { return $$obj; }

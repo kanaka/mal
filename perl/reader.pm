@@ -81,6 +81,12 @@ sub read_form {
                                              read_form($rdr)]) }
         when('~@') { $rdr->next(); List->new([Symbol->new('splice-unquote'),
                                               read_form($rdr)]) }
+        when('^') { $rdr->next(); my $meta = read_form($rdr);
+                    List->new([Symbol->new('with-meta'),
+                               read_form($rdr), $meta]) }
+        when('@') { $rdr->next(); List->new([Symbol->new('deref'),
+                                              read_form($rdr)]) }
+
         when(')') { die "unexpected ')'" }
         when('(') { return read_list($rdr, 'List') }
         when(']') { die "unexpected ']'" }
@@ -94,7 +100,8 @@ sub read_form {
 sub read_str {
     my($str) = @_;
     my @tokens = tokenize($str);
-    #print join(" / ", @tokens) . "\n";
+    #print "tokens: " . Dumper(\@tokens);
+    if (scalar(@tokens) == 0) { die BlankException->new(); }
     return read_form(Reader->new(\@tokens));
 }
 

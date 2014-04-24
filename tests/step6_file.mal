@@ -1,3 +1,16 @@
+;; Testing read-string, eval and slurp
+
+(read-string "(+ 2 3)")
+;=>(+ 2 3)
+
+(eval (read-string "(+ 2 3)"))
+;=>5
+
+;;; TODO: fix newline matching so that this works
+;;;(slurp "../tests/test.txt")
+;;;;=>"A line of text\n"
+
+
 ;; Testing load-file
 
 (load-file "../tests/inc.mal")

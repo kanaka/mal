@@ -78,14 +78,18 @@ Step Notes:
     - eval_ast:
         - if symbol, return value of looking up in env
         - if list, eval each item, return new list
-        - if vector support, eval each item, return new vector
-        - if hash_map support, eval each value, return new hash_map
         - otherwise, just return unchanged ast
     - EVAL/apply:
         - if not a list, call eval_ast
         - otherwise, apply first item to eval_ast of (rest ast)
     - repl_env as simple one level assoc. array (or hash_map)
         - store function as hash_map value
+
+- vectors
+    - eval each item, return new vector
+
+- hash-maps
+    - eval each value, return new hash_map
 
 - step3_env
     - types module:
@@ -195,6 +199,8 @@ Step Notes:
 - Extra defintions needed for self-hosting
     - core module:
         - symbol?, sequential? (if not already)
+        - vector, vector?
+
 
 - Other misc:
     - conj function
@@ -202,14 +208,16 @@ Step Notes:
 - atoms
     - reader module:
         - @a reader macro -> (deref a)
-    - types module:
+    - core module:
         - pr_str case
         - atom type, atom, atom?, deref, reset!, swap!
 
 - metadata
-    - types module:
-        - support meta property on symbols, hash-maps, lists, vectors,
-          functions, atoms
-        - add with-meta, meta functions
     - reader module:
         - ^ reader macro reads ^meta obj -> (with-meta obj meta)
+    - types module:
+        - support meta property on collections: lists, vectors,
+          hash-maps, functions, atoms
+            - clone/copy of collections
+    - core module:
+        - add with-meta, meta functions

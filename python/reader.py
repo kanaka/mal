@@ -100,5 +100,5 @@ def read_form(reader):
 
 def read_str(str):
     tokens = tokenize(str)
-    if len(tokens) == 0: raise Blank
+    if len(tokens) == 0: raise Blank("Blank Line")
     return read_form(Reader(tokens))

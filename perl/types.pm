@@ -3,10 +3,11 @@ use strict;
 use warnings FATAL => qw(all);
 use feature qw(switch);
 use Exporter 'import';
-our @EXPORT_OK = qw(_sequential_Q _equal_Q
+our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
                     $nil $true $false
-                    _symbol_Q _nil_Q _true_Q _false_Q _list_Q
-                    _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG);
+                    _symbol_Q _nil_Q _true_Q _false_Q _list_Q _vector_Q
+                    _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG
+                    _atom_Q);
 
 use Data::Dumper;
 
@@ -27,21 +28,52 @@ sub _equal_Q {
             return $$a eq $$b;
         }
         when (/^List/ || /^Vector/) {
-            if (! scalar(@$a) == scalar(@$b)) {
+            if (! scalar(@{$a->{val}}) == scalar(@{$b->{val}})) {
                 return 0;
             }
-            for (my $i=0; $i<scalar(@$a); $i++) {
-                if (! _equal_Q($a->[$i], $b->[$i])) {
+            for (my $i=0; $i<scalar(@{$a->{val}}); $i++) {
+                if (! _equal_Q($a->nth($i), $b->nth($i))) {
                     return 0;
                 }
             }
             return 1;
+        }
+        when (/^HashMap/) {
+            die "TODO: Hash map comparison\n";
         }
         default {
             return $$a eq $$b;
         }
     }
     return 0;
+}
+
+sub _clone {
+    my ($obj) = @_;
+    given (ref $obj) {
+        when (/^List/) {
+            return List->new( [ @{$obj->{val}} ] );
+        }
+        when (/^Vector/) {
+            return Vector->new( [ @{$obj->{val}} ] );
+        }
+        when (/^HashMap/) {
+            return Vector->new( { %{$obj->{val}} } );
+        }
+        when (/^Function/) {
+            return Function->new_from_hash( { %{$obj} } );
+        }
+        default {
+            die "Clone of non-collection\n";
+        }
+    }
+}
+
+# Errors/Exceptions
+
+{
+    package BlankException;
+    sub new { my $class = shift; bless String->new("Blank Line") => $class }
 }
 
 # Scalars
@@ -92,9 +124,11 @@ sub _symbol_Q { (ref $_[0]) =~ /^Symbol/ }
 
 {
     package List;
-    sub new  { my $class = shift; bless $_[0], $class }
-    sub rest { my @arr = @{$_[0]}; List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]}; List->new([@arr[$_[1]..$_[2]]]); }
+    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub nth { $_[0]->{val}->[$_[1]]; }
+    #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
+    sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
+    sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
 }
 
 sub _list_Q { (ref $_[0]) =~ /^List/ }
@@ -104,9 +138,11 @@ sub _list_Q { (ref $_[0]) =~ /^List/ }
 
 {
     package Vector;
-    sub new  { my $class = shift; bless $_[0], $class }
-    sub rest { my @arr = @{$_[0]}; List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]}; List->new([@arr[$_[1]..$_[2]]]); }
+    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub nth { $_[0]->{val}->[$_[1]]; }
+    #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
+    sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
+    sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
 }
 
 sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
@@ -116,7 +152,8 @@ sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
 
 {
     package HashMap;
-    sub new  { my $class = shift; bless $_[0], $class }
+    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub get { $_[0]->{val}->{$_[1]}; }
 }
 
 sub _hash_map {
@@ -154,12 +191,14 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
     sub new  {
         my $class = shift;
         my ($eval, $ast, $env, $params) = @_;
-        bless {'eval'=>$eval,
+        bless {'meta'=>$nil,
+               'eval'=>$eval,
                'ast'=>$ast,
                'env'=>$env,
                'params'=>$params,
                'ismacro'=>0}, $class
     }
+    sub new_from_hash { my $class = shift; bless $_[0], $class }
     sub gen_env {
         my $self = $_[0];
         return Env->new($self->{env}, $self->{params}, $_[1]);
@@ -169,5 +208,15 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
         return &{ $self->{eval} }($self->{ast}, gen_env($self, $_[1]));
     }
 }
+
+
+# Atoms
+
+{
+    package Atom;
+    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+}
+
+sub _atom_Q { (ref $_[0]) =~ /^Atom/ }
 
 1;
