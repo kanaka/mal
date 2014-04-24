@@ -160,3 +160,51 @@ python stepX_YYY.py
 cd ruby
 ruby stepX_YYY.rb
 ```
+
+## Running tests
+
+The are nearly 400 generic Mal tests (for all implementations) in the
+`tests/` directory. Each step has a corresponding test file containing
+tests specific to that step. The `runtest.py` test harness uses
+pexpect to launch a Mal step implementation and then feeds the tests
+one at a time to the implementation and compares the output/return
+value to the expected output/return value.
+
+To simplify the process of running tests, a top level Makefile is
+provided with convenient test targets.
+
+* To run all the tests across all implementations (be prepared to wait):
+
+```
+make test
+```
+
+* To run all tests against a single implementation:
+
+```
+make test^IMPL
+
+# e.g.
+make test^clojure
+make test^js
+```
+
+* To run tests for a single step against all implementations:
+
+```
+make test^stepX
+
+# e.g.
+make test^step2
+make test^step7
+```
+
+* To run a specifc step against a single implementation:
+
+```
+make test^IMPL^stepX
+
+# e.g
+make test^ruby^step3
+make test^ps^step4
+```
