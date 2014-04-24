@@ -16,17 +16,36 @@ $_rl->ornaments(0);
 my $OUT = $_rl->OUT || \*STDOUT;
 my $_history_loaded = 0;
 
+my $history_file = $ENV{"HOME"} . "/.mal-history";
+
+sub save_line {
+    my ($line) = @_;
+    open(my $fh, '>>', $history_file) or return;
+    say $fh $line;
+    close $fh;
+}
+
+sub load_history {
+    open my $fh, $history_file or return;
+
+    while(my $line = <$fh>)  {   
+        chomp $line;
+        $_rl->addhistory($line) if $line =~ /\S/;
+    }
+
+    close $fh;
+}
+
 sub mal_readline {
     my($prompt) = @_;
     my $line = undef;
     if (! $_history_loaded) {
         $_history_loaded = 1;
-        # TODO: load history
+        load_history();
     }
 
     if (defined ($line = $_rl->readline($prompt))) {
-        $_rl->addhistory($line) if $line =~ /\S/;
-        # TODO: save history
+        save_line($line);
         return $line;
     } else {
         return undef;
