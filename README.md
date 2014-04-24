@@ -65,7 +65,7 @@ make
 ./stepX_YYY
 ```
 
-### C#
+### C# ###
 
 The C# implementation of mal has been tested on Linux using the Mono
 C# compiler (mcs) and the Mono runtime (version 2.10.8.1). Both are
@@ -122,7 +122,7 @@ cd make
 make -f stepX_YYY.mk
 ```
 
-### Perl 5
+### Perl 5.8
 
 For readline line editing support, install Term::ReadLine::Perl or
 Term::ReadLine::Gnu from CPAN.
