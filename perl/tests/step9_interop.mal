@@ -1,0 +1,22 @@
+;; Testing types returned from pl*
+
+(pl* "123")
+;=>123
+
+(pl* "\"abc\"")
+;=>"abc"
+
+(pl* "{'abc'=>123}")
+;=>{"abc" 123}
+
+(pl* "['abc', 123]")
+;=>("abc" 123)
+
+(pl* "2+3")
+;=>5
+
+;; Testing eval of print statement
+
+(pl* "print 'hello\n';")
+; hello
+;=>1
