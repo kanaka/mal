@@ -3,6 +3,7 @@ use strict;
 use warnings FATAL => qw(all);
 use Exporter 'import';
 our @EXPORT_OK = qw($core_ns);
+use Time::HiRes qw(time);
 
 use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
@@ -183,6 +184,7 @@ our $core_ns = {
     '-' =>  sub { Integer->new(${$_[0]->nth(0)} - ${$_[0]->nth(1)}) },
     '*' =>  sub { Integer->new(${$_[0]->nth(0)} * ${$_[0]->nth(1)}) },
     '/' =>  sub { Integer->new(${$_[0]->nth(0)} / ${$_[0]->nth(1)}) },
+    'time-ms' => sub { Integer->new(int(time()*1000)) },
 
     'list'  => sub { List->new($_[0]->{val}) },
     'list?' => sub { _list_Q($_[0]->nth(0)) ? $true : $false },
