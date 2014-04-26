@@ -1,28 +1,9 @@
-html, body {
-  background-color: #333;
-  color: white;
-  font-family: monospace;
-  margin: 0;
-  padding: 0;
-}
+/* Outer console element */
 #console {
-  height: 400px;
-  width: 750px;
-  position:relative;
-  background-color: black;
-  border: 2px solid #CCC;
-  margin: 0 auto;
-  margin-top: 50px;
 }
+/* The inner console element. */
 .jqconsole {
-  padding: 10px;
-  padding-bottom: 10px;
-}
-.jqconsole-cursor {
-  background-color: #999;
-}
-.jqconsole-blurred .jqconsole-cursor {
-  background-color: #666;
+  background-color: black;;
 }
 .jqconsole-prompt {
   color: #0d0;
@@ -37,6 +18,33 @@ html, body {
 .jqconsole-old-input {
   color: #bb0;
   font-weight: normal;
+}
+.jqconsole-output {
+  font-weight: lighter;
+  font-family:monospace;
+  color: grey;
+}
+.jqconsole-return {
+  font-weight: normal;
+  font-family:monospace;
+  color: white;
+}
+.jqconsole-error {
+  font-weight: normal;
+  font-family:monospace;
+  color: red;
+}
+/* The cursor. */
+.jqconsole-cursor {
+  font-weight: normal;
+  font-family:monospace;
+  background-color: #BDB;
+}
+/* The cursor color when the console looses focus. */
+.jqconsole-blurred .jqconsole-cursor {
+  font-weight: normal;
+  font-family:monospace;
+  background-color: #444;
 }
 .brace {
   color: #00FFFF;
