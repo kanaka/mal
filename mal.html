@@ -1,52 +1,81 @@
-<!doctype html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="chrome=1">
-  <title>Make a Lisp</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <link href='http://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
-  <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css">
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-  <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.2/underscore-min.js"></script>
-  <!--<script>Josh = {Debug: true };</script>-->
-  <script src="js/josh.js/js/killring.js"></script>
-  <script src="js/josh.js/js/history.js"></script>
-  <script src="js/josh.js/js/readline.js"></script>
-  <script src="js/josh.js/js/shell.js"></script>
-  <script src="js/josh_readline.js"></script>
-  <style type="text/css">
-    #shell-panel {
-      height: 400px;
-      width: 100%;
-      background-color: #002f05;
-      color: #00fe00;
-      padding: 20px 20px 20px 20px;
-      font-family: 'Source Code Pro';
-      overflow: scroll;
-      overflow-x: hidden;
-      overflow-y: scroll;
-      border: 1px dashed #E6EBE0;
-    }
+  <head>
+    <link rel="stylesheet" href="js/web/ansi.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="js/web/console.css" type="text/css" media="all" />
+  </head>
+  <body>
+    <div id="console"></div>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/web/jqconsole.min.js"></script>
+    <script src="js/web/mal.js"></script>
+    <script>
+      $(function() {
+        // Creating the console.
+        window.jqconsole = $('#console').jqconsole(null, 'user> ');
 
-    #shell-cli .prompt {
-      font-weight: bold;
-    }</style>
-</head>
-<body>
-    <div class="wrapper">
+        printer.println = function () {
+          var str = Array.prototype.join.call(arguments, " ")
+          jqconsole.Write(str + "\n");
+        }
 
-        <section>
-            <h1>Make a Lisp</h1>
+        rep("(println (str \"Mal [\" *host-language* \"]\"))");
 
-            <div id="shell-panel">
-                <div>Lisp REPL</div>
-                <div id="shell-view"></div>
-            </div>
-        </section>
-    </div>
+        // Abort prompt on Ctrl+C.
+        jqconsole.RegisterShortcut('C', function() {
+          jqconsole.AbortPrompt();
+          handler();
+        });
+        // Move to line start Ctrl+A.
+        jqconsole.RegisterShortcut('A', function() {
+          jqconsole.MoveToStart();
+          handler();
+        });
+        // Move to line end Ctrl+E.
+        jqconsole.RegisterShortcut('E', function() {
+          jqconsole.MoveToEnd();
+          handler();
+        });
+        jqconsole.RegisterMatching('{', '}', 'brace');
+        jqconsole.RegisterMatching('(', ')', 'paren');
+        jqconsole.RegisterMatching('[', ']', 'bracket');
+        jqconsole.RegisterMatching('"', '"', 'dquote');
+        // Handle a command.
+        var handler = function(line) {
+          if (line) {
+            try {
+              jqconsole.Write(rep(line) + '\n');
+            } catch (exc) {
+              if (exc instanceof reader.BlankException) { return; }
+              if (exc.stack) {
+                jqconsole.Write(exc.stack + '\n');
+              } else {
+                jqconsole.Write(exc + '\n');
+              }
+            }
+          }
+          jqconsole.Prompt(true, handler);
+          /*
+          jqconsole.Prompt(true, handler, function(command) {
+            // Continue line if can't compile the command.
+            try {
+              Function(command);
+            } catch (e) {
+              if (/[\[\{\(]$/.test(command)) {
+                return 1;
+              } else {
+                return 0;
+              }
+            }
+            return false;
+          });
+        */
+        };
 
-  <script src="js/mal_web.js"></script>
-</body>
+        // Initiate the first prompt.
+        handler();
+      });
+    </script>
+  </body>
 </html>

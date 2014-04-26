@@ -32,6 +32,7 @@ Java:
     - step9_interop
 
 Javascript:
+    - switch to himera page/styling for online console
 
 Make:
     - allow '_' in make variable names

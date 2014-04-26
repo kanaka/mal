@@ -1,0 +1,55 @@
+html, body {
+  background-color: #333;
+  color: white;
+  font-family: monospace;
+  margin: 0;
+  padding: 0;
+}
+#console {
+  height: 400px;
+  width: 750px;
+  position:relative;
+  background-color: black;
+  border: 2px solid #CCC;
+  margin: 0 auto;
+  margin-top: 50px;
+}
+.jqconsole {
+  padding: 10px;
+  padding-bottom: 10px;
+}
+.jqconsole-cursor {
+  background-color: #999;
+}
+.jqconsole-blurred .jqconsole-cursor {
+  background-color: #666;
+}
+.jqconsole-prompt {
+  color: #0d0;
+}
+.jqconsole-old-prompt {
+  color: #0b0;
+  font-weight: normal;
+}
+.jqconsole-input {
+  color: #dd0;
+}
+.jqconsole-old-input {
+  color: #bb0;
+  font-weight: normal;
+}
+.brace {
+  color: #00FFFF;
+}
+.paren {
+  color: #FF00FF;
+}
+.bracket {
+  color: #FFFF00;
+}
+.dquote {
+  color: #FF8888;
+}
+.jqconsole-composition {
+  background-color: red;
+}

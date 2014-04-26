@@ -181,17 +181,9 @@ if (typeof process !== 'undefined' && process.argv.length > 2) {
 }
 
 // repl loop
-rep("(println (str \"Mal [\" *host-language* \"]\"))");
-if (typeof require === 'undefined') {
-    // Asynchronous browser mode
-    readline.rlwrap(function(line) { return rep(line); },
-                    function(exc) {
-                        if (exc instanceof reader.BlankException) { return; }
-                        if (exc.stack) { printer.println(exc.stack); }
-                        else           { printer.println(exc); }
-                    });
-} else if (require.main === module) {
+if (typeof require !== 'undefined' && require.main === module) {
     // Synchronous node.js commandline mode
+    rep("(println (str \"Mal [\" *host-language* \"]\"))");
     while (true) {
         var line = readline.readline("user> ");
         if (line === null) { break; }
@@ -203,6 +195,4 @@ if (typeof require === 'undefined') {
             else           { printer.println(exc); }
         }
     }
-} else {
-    exports.rep = rep;
 }

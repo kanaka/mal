@@ -6,11 +6,6 @@ if (typeof module !== 'undefined') {
     printer.println = exports.println = function () {
         console.log.apply(console, arguments);
     };
-} else {
-    var exports = printer;
-    printer.println = function() {
-        readline.println.apply(null, arguments); // josh_readline.js
-    }
 }
 
 function _pr_str(obj, print_readably) {

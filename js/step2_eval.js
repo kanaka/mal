@@ -62,15 +62,7 @@ repl_env['*'] = function(a,b){return a*b;};
 repl_env['/'] = function(a,b){return a/b;};
 
 // repl loop
-if (typeof require === 'undefined') {
-    // Asynchronous browser mode
-    readline.rlwrap(function(line) { return rep(line); },
-                    function(exc) {
-                        if (exc instanceof reader.BlankException) { return; }
-                        if (exc.stack) { printer.println(exc.stack); }
-                        else           { printer.println(exc); }
-                    });
-} else if (require.main === module) {
+if (typeof require !== 'undefined' && require.main === module) {
     // Synchronous node.js commandline mode
     while (true) {
         var line = readline.readline("user> ");
@@ -83,6 +75,4 @@ if (typeof require === 'undefined') {
             else           { printer.println(exc); }
         }
     }
-} else {
-    exports.rep = rep;
 }
