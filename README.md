@@ -10,7 +10,7 @@ language. Mal is implemented from scratch in 13 different languages:
 * C#
 * Clojure
 * Java
-* Javascript
+* Javascript ([Online Demo](http://kanaka.github.io/mal))
 * GNU Make
 * mal itself
 * Perl
