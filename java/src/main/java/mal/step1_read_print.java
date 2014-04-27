@@ -49,11 +49,11 @@ public class step1_read_print {
                 System.out.println(PRINT(RE(null, line)));
             } catch (MalContinue e) {
                 continue;
-            } catch (MalError e) {
-                System.out.println("Error: " + e.getMessage());
+            } catch (MalThrowable t) {
+                System.out.println("Error: " + t.getMessage());
                 continue;
-            } catch (reader.ParseError e) {
-                System.out.println(e.getMessage());
+            } catch (Throwable t) {
+                System.out.println("Uncaught " + t + ": " + t.getMessage());
                 continue;
             }
         }

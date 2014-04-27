@@ -164,7 +164,7 @@ EVAL () {
               while read line; do
                   output="${output}${line}\n"
               done < <(eval ${ANON["${r}"]})
-              _string "${output}"
+              _string "${output%\\n}"
               return ;;
         try*) MACROEXPAND "${a1}" "${env}"
               EVAL "${r}" "${env}"

@@ -24,7 +24,19 @@ step8 = step8_macros
 step9 = step9_interop
 stepA = stepA_more
 
-EXCLUDE_TESTS = test^make^step5 test^mal^step0 test^mal^step5 test^mal^step9 test^java^step9 test^cs^step9
+EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
+EXCLUDE_TESTS += test^c^step5    # segfault
+EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
+EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
+EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
+EXCLUDE_TESTS += test^php^step5  # test completes, even at 100,000
+EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
+
+# interop tests now implemented yet
+EXCLUDE_TESTS += test^cs^step9 test^java^step9 test^mal^step9 \
+		 test^php^step9 test^ps^step9 test^python^step9 \
+		 test^ruby^step9
+
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
 #

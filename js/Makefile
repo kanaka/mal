@@ -1,5 +1,5 @@
 
-TESTS = tests/types.js tests/reader.js tests/step5_tco.js
+TESTS = tests/types.js tests/reader.js
 
 SOURCES_BASE = node_readline.js types.js reader.js printer.js
 SOURCES_LISP = env.js core.js stepA_more.js

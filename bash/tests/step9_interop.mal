@@ -1,0 +1,17 @@
+;; Testing basic bash interop
+
+(sh* "echo 7")
+;=>"7"
+
+(sh* "echo >&2 hello")
+; hello
+;=>""
+
+(sh* "foo=8; echo ${foo}")
+;=>"8"
+
+(sh* "for x in a b c; do echo -n \"X${x}Y \"; done; echo")
+;=>"XaY XbY XcY"
+
+(sh* "for x in 1 2 3; do echo -n \"$((1+$x)) \"; done; echo")
+;=>"2 3 4"

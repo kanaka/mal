@@ -102,7 +102,7 @@ $(if $(__ERROR),,\
     $(if $(call _EQ,make*,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(and $(EVAL_DEBUG),$(info make*: $$(eval __result := $(call str_decode,$(value $(a1)_value)))))\
-        $(eval __result := $(call str_decode,$(value $(a1)_value)))$(call READ_STR,$(__result))),\
+        $(eval __result := $(call str_decode,$(value $(a1)_value)))$(call _string,$(__result))),\
     $(if $(call _EQ,try*,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach res,$(call EVAL,$(a1),$(2)),\
@@ -181,11 +181,12 @@ $(if $(MAKECMDGOALS),\
     $(call do,$(call _conj!,$(_argv),$(call _string,$(arg)))))\
   $(call do,$(call REP, (load-file "$(word 1,$(MAKECMDGOALS))") )) \
   $(eval INTERACTIVE :=),)
-.PHONY: none $(MAKECMDGOALS)
-none $(MAKECMDGOALS):
-	@true
 
 # repl loop
 $(if $(strip $(INTERACTIVE)),\
   $(call do,$(call REP, (println (str "Mal [" *host-language* "]")) )) \
   $(call REPL))
+
+.PHONY: none $(MAKECMDGOALS)
+none $(MAKECMDGOALS):
+	@true

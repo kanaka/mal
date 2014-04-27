@@ -161,9 +161,10 @@ $(if $(MAKECMDGOALS),\
     $(call do,$(call _conj!,$(_argv),$(call _string,$(arg)))))\
   $(call do,$(call REP, (load-file "$(word 1,$(MAKECMDGOALS))") )) \
   $(eval INTERACTIVE :=),)
-.PHONY: none $(MAKECMDGOALS)
-none $(MAKECMDGOALS):
-	@true
 
 # repl loop
 $(if $(strip $(INTERACTIVE)),$(call REPL))
+
+.PHONY: none $(MAKECMDGOALS)
+none $(MAKECMDGOALS):
+	@true

@@ -287,14 +287,14 @@ public class stepA_more {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
                 continue;
-            } catch (reader.ParseError e) {
-                System.out.println(e.getMessage());
-                continue;
             } catch (MalException e) {
                 System.out.println("Error: " + printer._pr_str(e.getValue(), false));
                 continue;
             } catch (MalThrowable t) {
                 System.out.println("Error: " + t.getMessage());
+                continue;
+            } catch (Throwable t) {
+                System.out.println("Uncaught " + t + ": " + t.getMessage());
                 continue;
             }
         }

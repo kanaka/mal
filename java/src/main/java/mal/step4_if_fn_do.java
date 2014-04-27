@@ -154,11 +154,11 @@ public class step4_if_fn_do {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
                 continue;
-            } catch (reader.ParseError e) {
-                System.out.println(e.getMessage());
-                continue;
             } catch (MalThrowable t) {
                 System.out.println("Error: " + t.getMessage());
+                continue;
+            } catch (Throwable t) {
+                System.out.println("Uncaught " + t + ": " + t.getMessage());
                 continue;
             }
         }

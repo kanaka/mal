@@ -1,0 +1,17 @@
+;; Testing basic clojure interop
+
+(clj* "7")
+;=>7
+
+(clj* "\"abc\"")
+;=>"abc"
+
+(clj* "{\"abc\" 123}")
+;=>{"abc" 123}
+
+(clj* "(prn \"foo\")")
+; "foo"
+;=>nil
+
+(clj* "(for [x [1 2 3]] (+ 1 x))")
+;=>(2 3 4)
