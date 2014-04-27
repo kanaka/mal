@@ -39,7 +39,18 @@ function println() {
 }
 
 function slurp(f) {
-    return require('fs').readFileSync(f, 'utf-8');
+    if (typeof require !== 'undefined') {
+        return require('fs').readFileSync(f, 'utf-8');
+    } else {
+        var req = new XMLHttpRequest();
+        req.open("GET", f, false);
+        req.send();
+        if (req.status == 200) {
+            return req.responseText;
+        } else {
+            throw new Error("Failed to slurp file: " + f);
+        }
+    }
 }
 
 

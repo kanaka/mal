@@ -208,6 +208,8 @@ this software.
 
       rep("(println (str \"Mal [\" *host-language* \"]\"))");
 
+      jq_load_history(jqconsole);
+
       // Abort prompt on Ctrl+C.
       jqconsole.RegisterShortcut('C', function() {
         jqconsole.AbortPrompt();
@@ -240,6 +242,7 @@ this software.
               jqconsole.Write(exc + '\n', 'jqconsole-error');
             }
           }
+          jq_save_history(jqconsole);
         }
         jqconsole.Prompt(true, handler);
         /*
