@@ -144,7 +144,7 @@ php stepX_YYY.php
 
 ```
 cd ps
-gs -q -dNODISPLAY stepX_YYY.ps
+gs -q -dNODISPLAY -I./ stepX_YYY.ps
 ```
 
 ### Python (2 or 3)

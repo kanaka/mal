@@ -1,7 +1,8 @@
-(types.ps) run
-(reader.ps) run
-(printer.ps) run
-(env.ps) run
+/runlibfile where { pop }{ /runlibfile { run } def } ifelse % 
+(types.ps) runlibfile
+(reader.ps) runlibfile
+(printer.ps) runlibfile
+(env.ps) runlibfile
 
 % read
 /_readline { print flush (%stdin) (r) file 99 string readline } def
