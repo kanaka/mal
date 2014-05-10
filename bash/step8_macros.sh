@@ -221,7 +221,7 @@ PRINT () {
 ENV; REPL_ENV="${r}"
 REP () {
     r=
-    READ "${1}" || return 1
+    READ "${1}"
     EVAL "${r}" "${REPL_ENV}"
     PRINT "${r}"
 }

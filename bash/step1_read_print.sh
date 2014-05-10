@@ -31,7 +31,7 @@ PRINT () {
 
 # repl
 REP () {
-    READ "${1}" || return 1
+    READ "${1}"
     EVAL "${r}"
     PRINT "${r}"
 }

@@ -113,7 +113,7 @@ TOKENIZE () {
             chunk=$(( chunk + ${chunksz} ))
         fi
         (( ${#str} == 0 )) && break
-        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|(\"(\\.|[^\\\"])*\")|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@]+)|^[,]|^[[:space:]]+ ]]
+        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|(\"(\\.|[^\\\"])*\")|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@\,]+)|^[,]|^[[:space:]]+ ]]
         match=${BASH_REMATCH[0]}
         str="${str:${#match}}"
         token="${match//$'\n'/}"
@@ -123,9 +123,8 @@ TOKENIZE () {
             idx=$(( idx + 1 ))
         fi
         if [ -z "${match}" ]; then
-            echo >&2 "Tokenizing error at: ${str:0:50}"
             _error "Tokenizing error at: ${str:0:50}"
-            break
+            return 1
         fi
     done
 }
@@ -134,7 +133,7 @@ TOKENIZE () {
 # read in r.
 READ_STR () {
     declare -a __reader_tokens
-    TOKENIZE "${*}"  # sets __reader_tokens
+    TOKENIZE "${*}" || return 1  # sets __reader_tokens
     #set | grep ^__reader_tokens
     if [ -z "${__reader_tokens[k]}" ]; then
         r=
