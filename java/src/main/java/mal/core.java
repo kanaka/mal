@@ -98,7 +98,7 @@ public class core {
             } catch (IOException e) {
                 throw new MalException(new MalString(e.getMessage()));
             } catch (readline.EOFException e) {
-                throw new MalException(new MalString(e.getMessage()));
+                return Nil;
             }
         }
     };

@@ -60,7 +60,7 @@ str     = $(call _string,$(call _pr_str_mult,$(1),,))
 prn     = $(info $(call _pr_str_mult,$(1),yes, ))
 println = $(info $(subst \n,$(NEWLINE),$(call _pr_str_mult,$(1),, )))
 
-readline= $(foreach res,$(call _string,$(call READLINE,"$(call str_decode,$($(1)_value))")),$(if $(READLINE_EOF),$(__nil),$(res)))
+readline= $(foreach res,$(call _string,$(call READLINE,"$(call str_decode,$($(1)_value))")),$(if $(READLINE_EOF),$(eval READLINE_EOF :=)$(__nil),$(res)))
 read_str= $(call READ_STR,$(1))
 slurp   = $(call _string,$(call _read_file,$(call str_decode,$($(1)_value))))
 
