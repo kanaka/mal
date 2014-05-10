@@ -13,6 +13,10 @@ All:
     - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
 
+    - Get self-host working at earlier step:
+        - Move try* to step6
+        - Remove macros from mal
+
 ---------------------------------------------
 
 Bash:
@@ -30,8 +34,11 @@ Clojure:
 
 Java:
     - step9_interop
+    - Use gradle instead of mvn
+        http://blog.paralleluniverse.co/2014/05/01/modern-java/
 
 Javascript:
+    - interop: callbacks using Mal functions
 
 Make:
     - allow '_' in make variable names
@@ -43,11 +50,12 @@ Mal:
     - step9_interop
 
 Perl:
+    - fix metadata on native functions
 
 PHP:
 
 Postscript:
-    - negative numbers
+    - add negative numbers
 
 Python:
     - error: python ../python/stepA_more.py ../mal/stepA_more.mal ../mal/stepA_more.mal
