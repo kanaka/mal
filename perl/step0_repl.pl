@@ -1,6 +1,8 @@
 use strict;
 use warnings FATAL => qw(all);
-use readline qw(readline);
+use File::Basename;
+use lib dirname (__FILE__);
+use readline qw(mal_readline);
 
 # read
 sub READ {
@@ -27,7 +29,7 @@ sub REP {
 }
 
 while (1) {
-    my $line = readline("user> ");
+    my $line = mal_readline("user> ");
     if (! defined $line) { last; }
     print(REP($line), "\n");
 }

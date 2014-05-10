@@ -1,5 +1,7 @@
 use strict;
 use warnings FATAL => qw(all);
+use File::Basename;
+use lib dirname (__FILE__);
 use readline qw(mal_readline);
 use feature qw(switch);
 use Data::Dumper;
