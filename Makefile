@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure cs java js make mal perl php ps python ruby
+IMPLS = bash c clojure cs go java js make mal perl php ps python ruby
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -49,6 +49,7 @@ bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+go_STEP_TO_PROG =      go/$($(1))
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 js_STEP_TO_PROG =      js/$($(1)).js
 make_STEP_TO_PROG =    make/$($(1)).mk
@@ -64,6 +65,7 @@ bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
 clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
+go_RUNSTEP =      ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.args="--raw$(if $(3), $(3),)"
 js_RUNSTEP =      node ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
