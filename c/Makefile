@@ -53,7 +53,7 @@ $(BINS): %: %.o
 clean:
 	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) mal
 
-.PHONY: stats tests $(TESTS)
+.PHONY: stats stats-lisp tests $(TESTS)
 
 stats: $(SOURCES)
 	@wc $^

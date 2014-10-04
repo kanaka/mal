@@ -4,6 +4,19 @@ Step Notes:
     - prompt, input, READ, EVAL, PRINT, output
     - readline module
         - display prompt, read line of input
+    - Details:
+        - get your language compiler/interpreter running
+        - create step0_repl.EXT
+            - loop that reads input, calls rep, writes output, exits
+              on EOF/Ctrl-D
+            - rep calls PRINT(EVAL(READ(str)))
+            - READ, EVAL, PRINT just return input parameter
+        - modify toplevel Makefile
+            - add language (directory name) to IMPLS
+            - add <lang>_STEP_TO_PROG entry
+            - add <lang>_RUNSTEP entry
+        - for a compiled language, add <lang>/Makefile
+            - targets: all, step*, stats, stats-lisp, 
 
 - use native eval in EVAL if available
 
