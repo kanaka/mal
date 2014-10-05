@@ -73,8 +73,8 @@ abc-def
 ;=>{"a" {"b" {"cde" 3}}}
 
 ;; Test commas as whitespace
-[1 2, 3,,,,],,
-;=>[1 2 3]
+(1 2, 3,,,,),,
+;=>(1 2 3)
 
 ;;
 ;; Testing reader errors

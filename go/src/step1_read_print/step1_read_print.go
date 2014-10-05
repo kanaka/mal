@@ -11,6 +11,7 @@ import (
 import (
     "types"
     "reader"
+    "printer"
 )
 
 // read
@@ -25,7 +26,7 @@ func EVAL(ast types.MalType, env string) (types.MalType, error) {
 
 // print
 func PRINT(exp types.MalType) (types.MalType, error) {
-    return exp, nil
+    return printer.Pr_str(exp, true), nil
 }
 
 // repl
@@ -55,6 +56,6 @@ func main() {
             fmt.Printf("Error: %v\n", e)
             continue
         }
-        fmt.Printf("%#v\n", out)
+        fmt.Printf("%v\n", out)
     }
 }

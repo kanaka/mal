@@ -29,7 +29,7 @@ func (tr *TokenReader) next() *string {
 }
 
 func (tr *TokenReader) peek() *string {
-    if tr.position > len(tr.tokens) { return nil }
+    if tr.position >= len(tr.tokens) { return nil }
     return &tr.tokens[tr.position]
 }
 
@@ -79,8 +79,9 @@ func read_list(rdr Reader) (types.MalType, error) {
         return nil, errors.New("expected '('")
     }
     token = rdr.peek()
-    for ; token != nil && *token != ")" ; token = rdr.peek() {
+    for ; true ; token = rdr.peek() {
         if token == nil { return nil, errors.New("exepected ')', got EOF") }
+        if *token == ")" { break }
         f, e := read_form(rdr)
         if e != nil { return nil, e }
         ast_list = append(ast_list, f)
