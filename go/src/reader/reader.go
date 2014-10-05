@@ -70,18 +70,18 @@ func read_atom(rdr Reader) (types.MalType, error) {
     return token, nil
 }
 
-func read_list(rdr Reader) (types.MalType, error) {
+func read_list(rdr Reader, start string, end string) (types.MalType, error) {
     token := rdr.next()
     if token == nil { return nil, errors.New("read_list underflow") }
 
     ast_list := []types.MalType{}
-    if *token != "(" {
-        return nil, errors.New("expected '('")
+    if *token != start {
+        return nil, errors.New("expected '" + start + "'")
     }
     token = rdr.peek()
     for ; true ; token = rdr.peek() {
-        if token == nil { return nil, errors.New("exepected ')', got EOF") }
-        if *token == ")" { break }
+        if token == nil { return nil, errors.New("exepected '" + end + "', got EOF") }
+        if *token == end { break }
         f, e := read_form(rdr)
         if e != nil { return nil, e }
         ast_list = append(ast_list, f)
@@ -90,12 +90,46 @@ func read_list(rdr Reader) (types.MalType, error) {
     return types.List{ast_list}, nil
 }
 
+func read_vector(rdr Reader) (types.MalType, error) {
+    lst, e := read_list(rdr, "[", "]")
+    if e != nil { return nil, e }
+    vec := types.Vector{lst.(types.List).Val}
+    return vec, nil
+}
+
+func read_hash_map(rdr Reader) (types.MalType, error) {
+    mal_lst, e := read_list(rdr, "{", "}")
+    lst := mal_lst.(types.List).Val
+    if e != nil { return nil, e }
+    if len(lst) % 2 == 1 {
+        return nil, errors.New("Odd number of hash map arguments")
+    }
+    m := map[string]types.MalType{}
+    for i := 0; i < len(lst); i+=2 {
+        str, ok := lst[i].(string)
+        if !ok {
+            return nil, errors.New("expected hash-map key string")
+        }
+        m[str] = lst[i+1]
+    }
+    return m, nil
+}
+
 func read_form(rdr Reader) (types.MalType, error) {
     token := rdr.peek()
     if token == nil { return nil, errors.New("read_form underflow") }
     switch (*token) {
+    // list
     case ")": return nil, errors.New("unexpected ')'")
-    case "(": return read_list(rdr)
+    case "(": return read_list(rdr, "(", ")")
+
+    // vector
+    case "]": return nil, errors.New("unexpected ']'")
+    case "[": return read_vector(rdr)
+
+    // hash-map
+    case "}": return nil, errors.New("unexpected '}'")
+    case "{": return read_hash_map(rdr)
     default:  return read_atom(rdr)
     }
     return read_atom(rdr)

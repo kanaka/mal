@@ -15,3 +15,7 @@ type List struct {
     Val []MalType
 }
 
+type Vector struct {
+    Val []MalType
+}
+
