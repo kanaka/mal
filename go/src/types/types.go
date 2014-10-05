@@ -1,5 +1,9 @@
 package types
 
+import (
+    "errors"
+)
+
 //type Error interface {
 //    error
 //}
@@ -40,6 +44,14 @@ func Vector_Q(obj MalType) bool {
     switch obj.(type) {
     case Vector: return true
     default:     return false
+    }
+}
+
+func GetSlice(seq MalType) ([]MalType, error) {
+    switch obj := seq.(type) {
+    case List:   return obj.Val, nil
+    case Vector: return obj.Val, nil
+    default: return nil, errors.New("GetSlice called on non-sequence")
     }
 }
 
