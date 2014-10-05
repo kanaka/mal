@@ -36,6 +36,28 @@ func eval_ast(ast MalType, env map[string]MalType) (MalType, error) {
             lst = append(lst, exp)
         }
         return List{lst}, nil
+    } else if Vector_Q(ast) {
+        lst := []MalType{}
+        for _, a := range ast.(Vector).Val {
+            exp, e := EVAL(a, env)
+            if e != nil { return nil, e }
+            lst = append(lst, exp)
+        }
+        return Vector{lst}, nil
+    } else if Hash_Map_Q(ast) {
+        m := ast.(map[string]MalType)
+        new_hm := map[string]MalType{}
+        for k, v := range m {
+            ke, e1 := EVAL(k, env)
+            if e1 != nil { return nil, e1 }
+            if _, ok := ke.(string); !ok {
+                return nil, errors.New("non string hash-map key")
+            }
+            kv, e2 := EVAL(v, env)
+            if e2 != nil { return nil, e2 }
+            new_hm[ke.(string)] = kv
+        }
+        return new_hm, nil
     } else {
         return ast, nil
     }

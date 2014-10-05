@@ -34,3 +34,19 @@ func List_Q(obj MalType) bool {
     default:   return false
     }
 }
+
+// Vectors
+func Vector_Q(obj MalType) bool {
+    switch obj.(type) {
+    case Vector: return true
+    default:     return false
+    }
+}
+
+// Hash Maps
+func Hash_Map_Q(obj MalType) bool {
+    switch obj.(type) {
+    case map[string]MalType: return true
+    default:                 return false
+    }
+}
