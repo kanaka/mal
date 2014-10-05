@@ -5,6 +5,7 @@ import (
     //"io"
     "fmt"
     "os"
+    "strings"
 )
 
 // read
@@ -33,6 +34,7 @@ func main() {
     for {
         fmt.Print("user> ");
         text, err := reader.ReadString('\n');
+        text = strings.TrimRight(text, "\n");
         if (err != nil) {
             return
         }
