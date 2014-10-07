@@ -14,6 +14,7 @@ import (
     "reader"
     "printer"
     . "env"
+    "core"
 )
 
 // read
@@ -62,7 +63,9 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
 }
 
 func EVAL(ast MalType, env EnvType) (MalType, error) {
-    //fmt.Printf("EVAL: %#v\n", ast)
+    for {
+
+    //fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
     switch ast.(type) {
     case List: // continue
     default:   return eval_ast(ast, env)
@@ -99,14 +102,46 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             if e != nil { return nil, e }
             let_env.Set(arr1[i].(Symbol).Val, exp)
         }
-        return EVAL(a2, let_env)
+        ast = a2
+        env = let_env
+    case "do":
+        lst := ast.(List).Val
+        _, e := eval_ast(List{lst[1:len(lst)-1]}, env) 
+        if e != nil { return nil, e }
+        if len(lst) == 1 { return nil, nil }
+        ast = lst[len(lst)-1]
+    case "if":
+        cond, e := EVAL(a1, env)
+        if e != nil { return nil, e }
+        if cond == nil || cond == false {
+            if len(ast.(List).Val) >= 4 {
+                ast = ast.(List).Val[3]
+            } else {
+                return nil, nil
+            }
+        } else {
+            ast = a2
+        }
+    case "fn*":
+        fn := MalFunc{EVAL, a2, env, a1}
+        return fn, nil
     default:
         el, e := eval_ast(ast, env)
         if e != nil { return nil, e }
-        f, ok := el.(List).Val[0].(func([]MalType)(MalType, error))
-        if !ok { return nil, errors.New("attempt to call non-function") }
-        return f(el.(List).Val[1:])
+        f := el.(List).Val[0]
+        if MalFunc_Q(f) {
+            fn := f.(MalFunc)
+            ast = fn.Exp
+            env, e = NewEnv(fn.Env, fn.Params.(List).Val, el.(List).Val[1:])
+            if e != nil { return nil, e }
+        } else {
+            fn, ok := f.(func([]MalType)(MalType, error))
+            if !ok { return nil, errors.New("attempt to call non-function") }
+            return fn(el.(List).Val[1:])
+        }
     }
+
+    } // TCO loop
 }
 
 // print
@@ -129,14 +164,10 @@ func rep(str string) (MalType, error) {
 }
 
 func main() {
-    repl_env.Set("+", func(a []MalType) (MalType, error) {
-        return a[0].(int) + a[1].(int), nil })
-    repl_env.Set("-", func(a []MalType) (MalType, error) {
-        return a[0].(int) - a[1].(int), nil })
-    repl_env.Set("*", func(a []MalType) (MalType, error) {
-        return a[0].(int) * a[1].(int), nil })
-    repl_env.Set("/", func(a []MalType) (MalType, error) {
-        return a[0].(int) / a[1].(int), nil })
+    for k, v := range core.NS {
+        repl_env.Set(k, v)
+    }
+    rep("(def! not (fn* (a) (if a false true)))")
 
     rdr := bufio.NewReader(os.Stdin);
     // repl loop

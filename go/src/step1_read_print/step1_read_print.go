@@ -9,34 +9,35 @@ import (
 )
 
 import (
-    "types"
+    . "types"
     "reader"
     "printer"
 )
 
 // read
-func READ(str string) (types.MalType, error) {
+func READ(str string) (MalType, error) {
     return reader.Read_str(str)
 }
 
 // eval
-func EVAL(ast types.MalType, env string) (types.MalType, error) {
+func EVAL(ast MalType, env string) (MalType, error) {
     return ast, nil
 }
 
 // print
-func PRINT(exp types.MalType) (types.MalType, error) {
+func PRINT(exp MalType) (string, error) {
     return printer.Pr_str(exp, true), nil
 }
 
 // repl
-func rep(str string) (types.MalType, error) {
-    var exp types.MalType
+func rep(str string) (MalType, error) {
+    var exp MalType
+    var res string
     var e error
     if exp, e = READ(str); e != nil { return nil, e }
     if exp, e = EVAL(exp, ""); e != nil { return nil, e }
-    if exp, e = PRINT(exp); e != nil { return nil, e }
-    return exp, nil
+    if res, e = PRINT(exp); e != nil { return nil, e }
+    return res, nil
 }
 
 func main() {
@@ -49,7 +50,7 @@ func main() {
         if (err != nil) {
             return
         }
-        var out types.MalType
+        var out MalType
         var e error
         if out, e = rep(text); e != nil {
             if e.Error() == "<empty line>" { continue }

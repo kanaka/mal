@@ -233,9 +233,9 @@ Step Notes:
 - step5_tco
     - types module:
         - mal function type:
-            - stores: func, exp, env, params
-            - func is EVAL in native mal case, otherwise reference to
-              platform function
+            - stores: eval, exp, env, params
+            - eval is EVAL in native mal case (needed for map function
+              later), otherwise reference to platform function
             - if metadata support, then store exp, env, params as
               metadata
     - printer
@@ -245,8 +245,19 @@ Step Notes:
         - cases where we directly return result of EVAL, instead set
           ast and env to what would be put in the EVAL, then loop.
             - do, if, "apply"
-            - for "apply" case, set env to new Env based on properties
-              on the function
+            - "apply"
+                - if mal function type
+                    - set env to new Env based on properties on the function
+                - if native function, same as before
+    - Details:
+        - types.EXT
+            - create Mal function type to store eval, exp, env, params
+        - cp step4_if_fn_do.EXT to step5_tco.EXT
+            - wrap EVAL in infinite while loop
+            - in let*, do, and if:
+                - set ast and env and loop (no return)
+            - in fn* create Mal function type
+
 
 - step6_file
     - core module:

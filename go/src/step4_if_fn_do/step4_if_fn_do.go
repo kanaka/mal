@@ -23,7 +23,7 @@ func READ(str string) (MalType, error) {
 }
 
 // eval
-func eval_ast(ast MalType, env Env) (MalType, error) {
+func eval_ast(ast MalType, env EnvType) (MalType, error) {
     //fmt.Printf("eval_ast: %#v\n", ast)
     if Symbol_Q(ast) {
         return env.Get(ast.(Symbol).Val)
@@ -62,8 +62,8 @@ func eval_ast(ast MalType, env Env) (MalType, error) {
     }
 }
 
-func EVAL(ast MalType, env Env) (MalType, error) {
-    //fmt.Printf("EVAL: %#v\n", ast)
+func EVAL(ast MalType, env EnvType) (MalType, error) {
+    //fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
     switch ast.(type) {
     case List: // continue
     default:   return eval_ast(ast, env)
@@ -88,7 +88,7 @@ func EVAL(ast MalType, env Env) (MalType, error) {
         if e != nil { return nil, e }
         return env.Set(a1.(Symbol).Val, res), nil
     case "let*":
-        let_env, e := NewEnv(&env, nil, nil)
+        let_env, e := NewEnv(env, nil, nil)
         if e != nil { return nil, e }
         arr1, e := GetSlice(a1)
         if e != nil { return nil, e }
@@ -96,11 +96,11 @@ func EVAL(ast MalType, env Env) (MalType, error) {
             if !Symbol_Q(arr1[i]) {
                 return nil, errors.New("non-symbol bind value")
             }
-            exp, e := EVAL(arr1[i+1], *let_env)
+            exp, e := EVAL(arr1[i+1], let_env)
             if e != nil { return nil, e }
             let_env.Set(arr1[i].(Symbol).Val, exp)
         }
-        return EVAL(a2, *let_env)
+        return EVAL(a2, let_env)
     case "do":
         el, e := eval_ast(List{ast.(List).Val[1:]}, env) 
         if e != nil { return nil, e }
@@ -123,9 +123,9 @@ func EVAL(ast MalType, env Env) (MalType, error) {
         return func(arguments []MalType) (MalType, error) {
             a1s, e := GetSlice(a1)
             if e != nil { return nil, e }
-            new_env, e := NewEnv(&env, a1s, arguments)
+            new_env, e := NewEnv(env, a1s, arguments)
             if e != nil { return nil, e }
-            return EVAL(a2, *new_env)
+            return EVAL(a2, new_env)
         }, nil
     default:
         el, e := eval_ast(ast, env)
@@ -137,7 +137,7 @@ func EVAL(ast MalType, env Env) (MalType, error) {
 }
 
 // print
-func PRINT(exp MalType) (MalType, error) {
+func PRINT(exp MalType) (string, error) {
     return printer.Pr_str(exp, true), nil
 }
 
@@ -147,11 +147,12 @@ var repl_env, _ = NewEnv(nil, nil, nil)
 // repl
 func rep(str string) (MalType, error) {
     var exp MalType
+    var res string
     var e error
     if exp, e = READ(str); e != nil { return nil, e }
-    if exp, e = EVAL(exp, *repl_env); e != nil { return nil, e }
-    if exp, e = PRINT(exp); e != nil { return nil, e }
-    return exp, nil
+    if exp, e = EVAL(exp, repl_env); e != nil { return nil, e }
+    if res, e = PRINT(exp); e != nil { return nil, e }
+    return res, nil
 }
 
 func main() {

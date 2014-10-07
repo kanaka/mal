@@ -4,7 +4,7 @@ if (typeof module === 'undefined') {
     var exports = types;
 }
 
-// General fucnctions
+// General functions
 
 function _obj_type(obj) {
     if      (_symbol_Q(obj)) {   return 'symbol'; }

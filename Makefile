@@ -29,6 +29,7 @@ EXCLUDE_TESTS += test^c^step5    # segfault
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
 EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
+EXCLUDE_TESTS += test^go^step5   # test completes, even at 100,000
 EXCLUDE_TESTS += test^php^step5  # test completes, even at 100,000
 EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 

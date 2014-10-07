@@ -79,7 +79,7 @@ func EVAL(ast MalType, env map[string]MalType) (MalType, error) {
 }
 
 // print
-func PRINT(exp MalType) (MalType, error) {
+func PRINT(exp MalType) (string, error) {
     return printer.Pr_str(exp, true), nil
 }
 
@@ -101,11 +101,12 @@ var repl_env = map[string]MalType{
 // repl
 func rep(str string) (MalType, error) {
     var exp MalType
+    var res string
     var e error
     if exp, e = READ(str); e != nil { return nil, e }
     if exp, e = EVAL(exp, repl_env); e != nil { return nil, e }
-    if exp, e = PRINT(exp); e != nil { return nil, e }
-    return exp, nil
+    if res, e = PRINT(exp); e != nil { return nil, e }
+    return res, nil
 }
 
 func main() {

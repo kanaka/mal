@@ -6,26 +6,25 @@ import (
     //"fmt"
 )
 
-//type Error interface {
-//    error
-//}
+//import (
+//    "env"
+//)
 
 type MalType interface {
 }
 
+type EnvType interface {
+    //Find(key string) *EnvType
+    Find(key string) EnvType
+    Set(key string, value MalType) MalType
+    Get(key string) (MalType, error)
+}
+
+// Symbols
 type Symbol struct {
     Val string
 }
 
-type List struct {
-    Val []MalType
-}
-
-type Vector struct {
-    Val []MalType
-}
-
-// Symbols
 func Symbol_Q(obj MalType) bool {
     switch obj.(type) {
     case Symbol: return true
@@ -33,7 +32,28 @@ func Symbol_Q(obj MalType) bool {
     }
 }
 
+
+// Functions
+type MalFunc struct {
+    Eval   func(MalType, EnvType) (MalType, error)
+    Exp    MalType
+    Env    EnvType
+    Params MalType
+}
+
+func MalFunc_Q(obj MalType) bool {
+    switch obj.(type) {
+    case MalFunc: return true
+    default:      return false
+    }
+}
+
+
 // Lists
+type List struct {
+    Val []MalType
+}
+
 func List_Q(obj MalType) bool {
     switch obj.(type) {
     case List: return true
@@ -42,6 +62,10 @@ func List_Q(obj MalType) bool {
 }
 
 // Vectors
+type Vector struct {
+    Val []MalType
+}
+
 func Vector_Q(obj MalType) bool {
     switch obj.(type) {
     case Vector: return true
