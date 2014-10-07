@@ -32,6 +32,11 @@ C#:
 
 Clojure:
 
+Go:
+    - use reflect to simplify several points
+    - consider variable arguments in places where it makes sense
+        https://gobyexample.com/variadic-functions
+
 Java:
     - step9_interop
     - Use gradle instead of mvn

@@ -30,6 +30,7 @@ Step Notes:
     - types module:
         - add boxed types if no language equivalent:
             - nil, true, false, symbol, integer, string, list
+        - error types if necessary
     - reader module:
         - stateful reader object
             - alternative: mutate token list
@@ -46,15 +47,42 @@ Step Notes:
         - read_atom (not atom type)
             - return scalar boxed type:
                 - nil, true, false, symbol, integer, string
+            - skip unquoting
     - printer module:
         - _pr_str:
             - stringify boxed types to their Mal representations
             - list/array is recursive
+            - skip quoting
     - repl loop
         - catch errors, print them and continue
         - impls without exception handling will need to have a global
           variable with checks for it at the beginning of critical
           code sections
+    - Details:
+        - copy step0_repl.EXT to step1_read_print.EXT
+            - modify Makefile if compiled
+            - call reader.read_str from READ
+            - pass through type returned from read_str through
+              READ/EVAL/PRINT
+        - create reader.EXT
+            - if regex support (much easier) then tokenize with this:
+                /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g
+            - add read_str:
+                - call tokenize
+                - handle blank line (exceptions, return code, global
+                  depending on lang features)
+            - read_str -> read_form -> {read_list, read_atom}
+                - mutable reader thing
+        - create printer.EXT
+            - _pr_str function which basically reverses read_str and
+              returns a string representation
+        - run `make test^EXT^step1`. Much of the basics should pass up
+          to vectors
+        - implement read_hash_map (can refactor read_list)
+        - import read_vector 
+            - probably want to define types for List and Vector in
+              types.EXT that extend or wrap native arrays
+        - run `make test^EXT^step1`. All mandatory should pass
 
 - comments
 
@@ -95,8 +123,23 @@ Step Notes:
     - EVAL/apply:
         - if not a list, call eval_ast
         - otherwise, apply first item to eval_ast of (rest ast)
-    - repl_env as simple one level assoc. array (or hash_map)
+    - repl_env as simple one level hash map (assoc. array)
         - store function as hash_map value
+    - Details:
+        - copy step1_read_print.EXT to step2_eval.EXT
+        - create repl_env hash_map) with +, -, *, /
+            - store anon func as values if possible
+        - types.EXT
+            - implement symbol? (symbol_Q) and list? (list_Q)
+        - add env param to EVAL and add to rep EVAL call
+        - EVAL
+            - if not list call eval_ast
+            - otherwise eval_ast, and call first arg with rest
+        - eval_ast
+            - if symbol?, lookup in env
+            - if List, EVAL each and return eval's list
+            - otherwise, return original
+        - optional: handle vector and hash-map in eval_ast
 
 - vectors
     - eval each item, return new vector
@@ -112,6 +155,22 @@ Step Notes:
     - EVAL/apply:
         - def! - mutate current environment
         - let* - create new environment with bindings
+    - Details:
+        - cp step2_eval.EXT to step3_env.EXT
+        - add env.EXT if lang support file dep cycles, otherwise, add
+          to types.EXT
+            - Env type
+            - find, get, set methods/functions
+        - use Env type instead of map/assoc. array
+        - eval_ast: use method for lookup
+        - EVAL:
+            - switch on first symbol
+                - def!
+                    - set env[a1] to EVAL(a2, env)
+                - let*
+                    - loop through let building up let_env
+                    - EVAL(a2, let_env)
+                - move apply to default
 
 - step4_if_fn_do
     - types module:
@@ -139,6 +198,37 @@ Step Notes:
             - otherwise needs a way of representing functions that can
               have associated metadata
     - define "not" using REP/RE
+    - Details:
+        - cp step3_env.EXT to step4_env.EXT
+            - modify Makefile if compiled
+        - env.EXT
+            - add binds and exprs args. Create new environments with
+              exprs bound to binds. If & symbol, bind rest of exprs to
+              next bind symbol
+        - EVAL:
+            - do:
+                - eval_ast [1:], then return last eval'd element
+            - if
+                - EVAL(a1)
+                    - if true EVAL(a2)
+                    - else EVAL(a3), unless no a3 then return nil
+            - fn*
+                - if available use function closures to return a new
+                  native function that calls EVAL(a2, Env(env, a1, fargs))
+        - core.EXT
+            - create ns object to hold core namespace
+            - move numeric operators here
+            - add compison operators
+            - add list, list?, empty?, count, not
+        - run make test^EXT^step4
+        - implement equal?/equal_Q in types.EXT and refer in core.ns
+        - implement not as rep("(def! not (fn* (a) (if a false true)))")
+        - run make test^EXT^step4: should pass everything except
+          string routines
+        - implement: pr-str, str, prn, println in core.EXT and
+          refer in core.ns
+            - should leverage pr-str from printer.EXT
+            - add reader/printer string quote/unquote
 
 - step5_tco
     - types module:

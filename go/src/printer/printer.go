@@ -9,20 +9,21 @@ import (
     "types"
 )
 
-func _pr_list(lst []types.MalType, pr bool, start string, end string) string {
+func Pr_list(lst []types.MalType, pr bool,
+             start string, end string, join string) string {
     str_list := make([]string, 0, len(lst))
     for _, e := range lst {
         str_list = append(str_list, Pr_str(e, pr))
     }
-    return start + strings.Join(str_list, " ") + end
+    return start + strings.Join(str_list, join) + end
 }
 
 func Pr_str(obj types.MalType, print_readably bool) string {
     switch tobj := obj.(type) {
     case types.List:
-        return _pr_list(tobj.Val, print_readably, "(", ")")
+        return Pr_list(tobj.Val, print_readably, "(", ")", " ")
     case types.Vector:
-        return _pr_list(tobj.Val, print_readably, "[", "]")
+        return Pr_list(tobj.Val, print_readably, "[", "]", " ")
     case map[string]types.MalType:
         str_list := make([]string, 0, len(tobj)*2)
         for k, v := range tobj {
@@ -32,10 +33,13 @@ func Pr_str(obj types.MalType, print_readably bool) string {
         return "{" + strings.Join(str_list, " ") + "}"
     case string:
         if print_readably {
-            // TODO: quote backslash, quote, and newline
-            return `"` + fmt.Sprintf("%v", obj) + `"`
+            return `"` + strings.Replace(
+                           strings.Replace(
+                             strings.Replace(tobj,`\`,`\\`, -1),
+                             `"`, `\"`, -1),
+                           "\n", `\n`, -1) + `"`
         } else {
-            return fmt.Sprintf("%v", obj)
+            return tobj
         }
     case types.Symbol:
         return tobj.Val

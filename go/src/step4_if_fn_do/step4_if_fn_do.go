@@ -14,6 +14,7 @@ import (
     "reader"
     "printer"
     . "env"
+    "core"
 )
 
 // read
@@ -100,6 +101,32 @@ func EVAL(ast MalType, env Env) (MalType, error) {
             let_env.Set(arr1[i].(Symbol).Val, exp)
         }
         return EVAL(a2, *let_env)
+    case "do":
+        el, e := eval_ast(List{ast.(List).Val[1:]}, env) 
+        if e != nil { return nil, e }
+        lst := el.(List).Val
+        if len(lst) == 0 { return nil, nil }
+        return lst[len(lst)-1], nil
+    case "if":
+        cond, e := EVAL(a1, env)
+        if e != nil { return nil, e }
+        if cond == nil || cond == false {
+            if len(ast.(List).Val) >= 4 {
+                return EVAL(ast.(List).Val[3], env)
+            } else {
+                return nil, nil
+            }
+        } else {
+            return EVAL(a2, env)
+        }
+    case "fn*":
+        return func(arguments []MalType) (MalType, error) {
+            a1s, e := GetSlice(a1)
+            if e != nil { return nil, e }
+            new_env, e := NewEnv(&env, a1s, arguments)
+            if e != nil { return nil, e }
+            return EVAL(a2, *new_env)
+        }, nil
     default:
         el, e := eval_ast(ast, env)
         if e != nil { return nil, e }
@@ -128,14 +155,10 @@ func rep(str string) (MalType, error) {
 }
 
 func main() {
-    repl_env.Set("+", func(a []MalType) (MalType, error) {
-        return a[0].(int) + a[1].(int), nil })
-    repl_env.Set("-", func(a []MalType) (MalType, error) {
-        return a[0].(int) - a[1].(int), nil })
-    repl_env.Set("*", func(a []MalType) (MalType, error) {
-        return a[0].(int) * a[1].(int), nil })
-    repl_env.Set("/", func(a []MalType) (MalType, error) {
-        return a[0].(int) / a[1].(int), nil })
+    for k, v := range core.NS {
+        repl_env.Set(k, v)
+    }
+    rep("(def! not (fn* (a) (if a false true)))")
 
     rdr := bufio.NewReader(os.Stdin);
     // repl loop

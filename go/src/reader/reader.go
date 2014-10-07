@@ -4,6 +4,7 @@ import (
     "errors"
     "regexp"
     "strconv"
+    "strings"
     //"fmt"
 )
 
@@ -56,8 +57,10 @@ func read_atom(rdr Reader) (types.MalType, error) {
         }
         return i, nil
     } else if (*token)[0] == '"' {
-        // TODO: unquote newline and quotes
-        return (*token)[1:len(*token)-1], nil
+        str := (*token)[1:len(*token)-1]
+        return strings.Replace(
+                 strings.Replace(str, `\"`, `"`, -1),
+                 `\n`, "\n", -1), nil
     } else if *token == "nil" {
         return nil, nil
     } else if *token == "true" {
