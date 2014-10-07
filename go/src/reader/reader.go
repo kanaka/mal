@@ -40,7 +40,7 @@ func tokenize (str string) []string {
     results := make([]string, 0, 1)
     re := regexp.MustCompile(`[\s,]*(~@|[\[\]{}()'~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('",;)]*)`)
     for _, group := range re.FindAllStringSubmatch(str, -1) {
-        if group[1] == "" { continue }
+        if (group[1] == "") || (group[1][0] == ';') { continue }
         results = append(results, group[1])
     }
     return results

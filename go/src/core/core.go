@@ -2,11 +2,13 @@ package core
 
 import (
     "errors"
+    "io/ioutil"
     "fmt"
 )
 
 import (
     . "types"
+    "reader"
     "printer"
 )
 
@@ -29,6 +31,12 @@ func prn(a []MalType) (MalType, error) {
 func println(a []MalType) (MalType, error) {
     fmt.Println(printer.Pr_list(a, false, "", "", " "))
     return nil, nil
+}
+
+func slurp(a []MalType) (MalType, error) {
+    b, e := ioutil.ReadFile(a[0].(string))
+    if e != nil { return nil, e }
+    return string(b), nil
 }
 
 
@@ -62,6 +70,9 @@ var NS = map[string]MalType{
     "str": func(a []MalType) (MalType, error) { return str(a) },
     "prn": func(a []MalType) (MalType, error) { return prn(a) },
     "println": func(a []MalType) (MalType, error) { return println(a) },
+    "read-string":  func(a []MalType) (MalType, error) {
+            return reader.Read_str(a[0].(string)) },
+    "slurp": slurp,
 
     "<": func(a []MalType) (MalType, error) {
             return a[0].(int) < a[1].(int), nil },

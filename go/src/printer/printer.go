@@ -49,6 +49,8 @@ func Pr_str(obj types.MalType, print_readably bool) string {
         return "(fn* " +
                Pr_str(tobj.Params, true) + " " +
                Pr_str(tobj.Exp, true) + ")"
+    case func([]types.MalType)(types.MalType, error):
+        return fmt.Sprintf("<function %v>", obj)
     default:
         return fmt.Sprintf("%v", obj)
     }

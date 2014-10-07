@@ -257,6 +257,11 @@ Step Notes:
             - in let*, do, and if:
                 - set ast and env and loop (no return)
             - in fn* create Mal function type
+        - if compiled, update Makefile
+        - in apply, test if Mal function type:
+            - if so, generate new env from stored env, args and callee
+              params
+            - set ast to stored ast
 
 
 - step6_file
@@ -266,6 +271,23 @@ Step Notes:
     - set *ARGV*
     - if files on command line, use load-file to run first argument
       using rest as arguments
+    - Details:
+        - cp step5_tco.EXT to step6_file.EXT
+        - if compiled update Makefile
+        - add eval to repl_env
+        - add empty *ARGV* list to repl_env
+        - in core.ns:
+            - implement slurp
+            - wrap printer.read-str as read-string
+        - implement load-file using rep
+        - test:
+            (load-file "../tests/inc.mal")
+            (inc3 10)
+        - implement command line execution
+        - test:
+            ./step6_file ../tests/incA.mal
+            =>9
+        - implement comments in reader.EXT (ignore in tokenize)
 
 - step7_quote
     - add is_pair and quasiquote functions

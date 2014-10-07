@@ -168,9 +168,24 @@ func main() {
     for k, v := range core.NS {
         repl_env.Set(k, v)
     }
+    repl_env.Set("eval", func(a []MalType) (MalType, error) {
+        return EVAL(a[0], repl_env) })
+    repl_env.Set("*ARGV*", List{})
 
     // core.mal: defined using the language itself
     rep("(def! not (fn* (a) (if a false true)))")
+    rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+
+    // called with mal script to load and eval
+    if len(os.Args) > 1 {
+        args := make([]MalType, 0, len(os.Args)-2)
+        for _,a := range os.Args[2:] {
+            args = append(args, a)
+        }
+        repl_env.Set("*ARGV*", List{args})
+        rep("(load-file \"" + os.Args[1] + "\")")
+        os.Exit(0)
+    }
 
     rdr := bufio.NewReader(os.Stdin);
     // repl loop

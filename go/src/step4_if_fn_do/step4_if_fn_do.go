@@ -156,9 +156,12 @@ func rep(str string) (MalType, error) {
 }
 
 func main() {
+    // core.go: defined using go
     for k, v := range core.NS {
         repl_env.Set(k, v)
     }
+
+    // core.mal: defined using the language itself
     rep("(def! not (fn* (a) (if a false true)))")
 
     rdr := bufio.NewReader(os.Stdin);
