@@ -42,6 +42,20 @@ func slurp(a []MalType) (MalType, error) {
 
 // Sequence functions
 
+func cons(a []MalType) (MalType, error) {
+    val := a[0]
+    lst, e := GetSlice(a[1]); if e != nil { return nil, e }
+
+    return List{append([]MalType{val}, lst...)}, nil
+}
+
+func concat(a []MalType) (MalType, error) {
+    lst1, e := GetSlice(a[0]); if e != nil { return nil, e }
+    lst2, e := GetSlice(a[1]); if e != nil { return nil, e }
+
+    return List{append(lst1, lst2...)}, nil
+}
+
 func empty_Q(a []MalType) (MalType, error) {
     switch obj := a[0].(type) {
     case List:   return len(obj.Val) == 0, nil
@@ -96,6 +110,8 @@ var NS = map[string]MalType{
     "list?": func(a []MalType) (MalType, error) {
             return List_Q(a[0]), nil },
 
+    "cons": cons,
+    "concat": concat,
     "empty?": empty_Q,
     "count": count,
     }

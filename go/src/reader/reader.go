@@ -9,7 +9,7 @@ import (
 )
 
 import (
-    "types"
+    . "types"
 )
 
 type Reader interface {
@@ -38,7 +38,10 @@ func (tr *TokenReader) peek() *string {
 
 func tokenize (str string) []string {
     results := make([]string, 0, 1)
-    re := regexp.MustCompile(`[\s,]*(~@|[\[\]{}()'~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('",;)]*)`)
+    // Work around lack of quoting in backtick
+    re := regexp.MustCompile(`[\s,]*(~@|[\[\]{}()'` + "`" +
+                             `~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"` + "`" + 
+                             `,;)]*)`)
     for _, group := range re.FindAllStringSubmatch(str, -1) {
         if (group[1] == "") || (group[1][0] == ';') { continue }
         results = append(results, group[1])
@@ -46,7 +49,7 @@ func tokenize (str string) []string {
     return results
 }
 
-func read_atom(rdr Reader) (types.MalType, error) {
+func read_atom(rdr Reader) (MalType, error) {
     token := rdr.next()
     if token == nil { return nil, errors.New("read_atom underflow") }
     if match, _ := regexp.MatchString(`^-?[0-9]+$`, *token); match {
@@ -68,16 +71,16 @@ func read_atom(rdr Reader) (types.MalType, error) {
     } else if *token == "false" {
         return false, nil
     } else {
-        return types.Symbol{*token}, nil
+        return Symbol{*token}, nil
     }
     return token, nil
 }
 
-func read_list(rdr Reader, start string, end string) (types.MalType, error) {
+func read_list(rdr Reader, start string, end string) (MalType, error) {
     token := rdr.next()
     if token == nil { return nil, errors.New("read_list underflow") }
 
-    ast_list := []types.MalType{}
+    ast_list := []MalType{}
     if *token != start {
         return nil, errors.New("expected '" + start + "'")
     }
@@ -90,24 +93,24 @@ func read_list(rdr Reader, start string, end string) (types.MalType, error) {
         ast_list = append(ast_list, f)
     }
     rdr.next()
-    return types.List{ast_list}, nil
+    return List{ast_list}, nil
 }
 
-func read_vector(rdr Reader) (types.MalType, error) {
+func read_vector(rdr Reader) (MalType, error) {
     lst, e := read_list(rdr, "[", "]")
     if e != nil { return nil, e }
-    vec := types.Vector{lst.(types.List).Val}
+    vec := Vector{lst.(List).Val}
     return vec, nil
 }
 
-func read_hash_map(rdr Reader) (types.MalType, error) {
+func read_hash_map(rdr Reader) (MalType, error) {
     mal_lst, e := read_list(rdr, "{", "}")
-    lst := mal_lst.(types.List).Val
+    lst := mal_lst.(List).Val
     if e != nil { return nil, e }
     if len(lst) % 2 == 1 {
         return nil, errors.New("Odd number of hash map arguments")
     }
-    m := map[string]types.MalType{}
+    m := map[string]MalType{}
     for i := 0; i < len(lst); i+=2 {
         str, ok := lst[i].(string)
         if !ok {
@@ -118,10 +121,24 @@ func read_hash_map(rdr Reader) (types.MalType, error) {
     return m, nil
 }
 
-func read_form(rdr Reader) (types.MalType, error) {
+func read_form(rdr Reader) (MalType, error) {
     token := rdr.peek()
     if token == nil { return nil, errors.New("read_form underflow") }
     switch (*token) {
+
+    case `'`:  rdr.next();
+               form, e := read_form(rdr); if e != nil { return nil, e }
+               return List{[]MalType{Symbol{"quote"}, form}}, nil
+    case "`":  rdr.next();
+               form, e := read_form(rdr); if e != nil { return nil, e }
+               return List{[]MalType{Symbol{"quasiquote"}, form}}, nil
+    case `~`:  rdr.next();
+               form, e := read_form(rdr); if e != nil { return nil, e }
+               return List{[]MalType{Symbol{"unquote"}, form}}, nil
+    case `~@`: rdr.next();
+               form, e := read_form(rdr); if e != nil { return nil, e }
+               return List{[]MalType{Symbol{"splice-unquote"}, form}}, nil
+
     // list
     case ")": return nil, errors.New("unexpected ')'")
     case "(": return read_list(rdr, "(", ")")
@@ -138,7 +155,7 @@ func read_form(rdr Reader) (types.MalType, error) {
     return read_atom(rdr)
 }
 
-func Read_str(str string) (types.MalType, error) {
+func Read_str(str string) (MalType, error) {
     var tokens = tokenize(str);
     if len(tokens) == 0 {
         return nil, errors.New("<empty line>")

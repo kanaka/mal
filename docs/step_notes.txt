@@ -300,6 +300,15 @@ Step Notes:
     - reader module:
         - add reader macros to read_form for quote, unquote,
           splice-unquote and quasiquote
+    - Details:
+        - cp step6_file.EXT to step6_quote.EXT
+        - if compiled update Makefile
+        - add is_pair and quasiquote
+        - add quote and quasiquote cases to EVAL
+        - implement reader macros (', `, ~, ~@) in reader
+        - retest make test^go^step1
+        - implement cons and concat in core.EXT
+        - retest test^go^step7
 
 - step8_macros
     - types

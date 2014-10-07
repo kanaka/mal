@@ -4,13 +4,13 @@ export GOPATH := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 SOURCES_BASE = src/types/types.go src/reader/reader.go src/printer/printer.go \
 	       src/env/env.go src/core/core.go
-SOURCES_LISP = src/step6_file/step6_file.go
+SOURCES_LISP = src/step7_quote/step7_quote.go
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
 SRCS = step0_repl.go step1_read_print.go step2_eval.go step3_env.go \
-       step4_if_fn_do.go step5_tco.go step6_file.go
+       step4_if_fn_do.go step5_tco.go step6_file.go step7_quote.go
 BINS = $(SRCS:%.go=%)
 
 #####################
