@@ -50,11 +50,34 @@ func cons(a []MalType) (MalType, error) {
 }
 
 func concat(a []MalType) (MalType, error) {
-    lst1, e := GetSlice(a[0]); if e != nil { return nil, e }
-    lst2, e := GetSlice(a[1]); if e != nil { return nil, e }
-
-    return List{append(lst1, lst2...)}, nil
+    if len(a) == 0 { return List{}, nil }
+    slc1, e := GetSlice(a[0]); if e != nil { return nil, e }
+    for i := 1; i < len(a); i+=1 {
+        slc2, e := GetSlice(a[i]); if e != nil { return nil, e }
+        slc1 = append(slc1, slc2...)
+    }
+    return List{slc1}, nil
 }
+
+func nth(a []MalType) (MalType, error) {
+    slc, e := GetSlice(a[0]); if e != nil { return nil, e }
+    idx := a[1].(int)
+    return slc[idx], nil
+}
+
+func first(a []MalType) (MalType, error) {
+    if len(a) == 0 { return nil, nil }
+    slc, e := GetSlice(a[0]); if e != nil { return nil, e }
+    if len(slc) == 0 { return nil, nil }
+    return slc[0], nil
+}
+
+func rest(a []MalType) (MalType, error) {
+    slc, e := GetSlice(a[0]); if e != nil { return nil, e }
+    if len(slc) == 0 { return List{}, nil }
+    return List{slc[1:]}, nil
+}
+
 
 func empty_Q(a []MalType) (MalType, error) {
     switch obj := a[0].(type) {
@@ -112,6 +135,9 @@ var NS = map[string]MalType{
 
     "cons": cons,
     "concat": concat,
+    "nth": nth,
+    "first": first,
+    "rest": rest,
     "empty?": empty_Q,
     "count": count,
     }

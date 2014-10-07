@@ -35,10 +35,12 @@ func Symbol_Q(obj MalType) bool {
 
 // Functions
 type MalFunc struct {
-    Eval   func(MalType, EnvType) (MalType, error)
-    Exp    MalType
-    Env    EnvType
-    Params MalType
+    Eval    func(MalType, EnvType) (MalType, error)
+    Exp     MalType
+    Env     EnvType
+    Params  MalType
+    IsMacro bool
+    GenEnv  func(EnvType, []MalType, []MalType) (EnvType, error)
 }
 
 func MalFunc_Q(obj MalType) bool {
@@ -46,6 +48,23 @@ func MalFunc_Q(obj MalType) bool {
     case MalFunc: return true
     default:      return false
     }
+}
+
+func (f MalFunc) SetMacro() MalType {
+    f.IsMacro = true
+    return f
+}
+
+func (f MalFunc) GetMacro() bool {
+    return f.IsMacro
+}
+
+func (f MalFunc) Apply(a []MalType) (MalType, error) {
+    slc, e := GetSlice(f.Params)
+    if e != nil { return nil, e }
+    env, e := f.GenEnv(f.Env, slc, a)
+    if e != nil { return nil, e }
+    return f.Eval(f.Exp, env)
 }
 
 

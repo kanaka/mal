@@ -156,7 +156,9 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             ast = a2
         }
     case "fn*":
-        fn := MalFunc{EVAL, a2, env, a1}
+        fn := MalFunc{EVAL, a2, env, a1, false,
+            func(outer EnvType, binds []MalType, exprs []MalType) (EnvType, error) {
+                return NewEnv(outer, binds, exprs) }}
         return fn, nil
     default:
         el, e := eval_ast(ast, env)
