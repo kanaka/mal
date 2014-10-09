@@ -23,6 +23,63 @@ func READ(str string) (MalType, error) {
 }
 
 // eval
+func is_pair(x MalType) bool {
+    slc, e := GetSlice(x)
+    if e != nil { return false }
+    return len(slc) > 0
+}
+
+func quasiquote(ast MalType) MalType {
+    if !is_pair(ast) {
+        return List{[]MalType{Symbol{"quote"}, ast}}
+    } else {
+        slc, _ := GetSlice(ast)
+        a0 := slc[0]
+        if Symbol_Q(a0) && (a0.(Symbol).Val == "unquote") {
+            return slc[1]
+        } else if is_pair(a0) {
+            slc0, _ := GetSlice(a0)
+            a00 := slc0[0]
+            if Symbol_Q(a00) && (a00.(Symbol).Val == "splice-unquote") {
+                return List{[]MalType{Symbol{"concat"},
+                                      slc0[1],
+                                      quasiquote(List{slc[1:]})}}
+            }
+        }
+        return List{[]MalType{Symbol{"cons"},
+                              quasiquote(a0),
+                              quasiquote(List{slc[1:]})}}
+    }
+}
+
+func is_macro_call(ast MalType, env EnvType) bool {
+    if List_Q(ast) {
+        slc, _ := GetSlice(ast)
+        a0 := slc[0]
+        if Symbol_Q(a0) && env.Find(a0.(Symbol).Val) != nil {
+            mac, e := env.Get(a0.(Symbol).Val)
+            if e != nil { return false }
+            if MalFunc_Q(mac) {
+                return mac.(MalFunc).GetMacro()
+            }
+        }
+    }
+    return false
+}
+
+func macroexpand(ast MalType, env EnvType)  (MalType, error) {
+    var mac MalType
+    var e error
+    for ; is_macro_call(ast, env) ; {
+        slc, _ := GetSlice(ast)
+        a0 := slc[0]
+        mac, e = env.Get(a0.(Symbol).Val); if e != nil { return nil, e }
+        fn := mac.(MalFunc)
+        ast, e = Apply(fn, slc[1:]); if e != nil { return nil, e }
+    }
+    return ast, nil
+}
+
 func eval_ast(ast MalType, env EnvType) (MalType, error) {
     //fmt.Printf("eval_ast: %#v\n", ast)
     if Symbol_Q(ast) {
@@ -63,6 +120,7 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
 }
 
 func EVAL(ast MalType, env EnvType) (MalType, error) {
+    var e error
     for {
 
     //fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
@@ -72,6 +130,9 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
     }
 
     // apply list
+    ast, e = macroexpand(ast, env); if e != nil { return nil, e }
+    if (!List_Q(ast)) { return ast, nil }
+
     a0 := ast.(List).Val[0]
     var a1 MalType = nil; var a2 MalType = nil
     switch len(ast.(List).Val) {
@@ -104,6 +165,39 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
         }
         ast = a2
         env = let_env
+    case "quote":
+        return a1, nil
+    case "quasiquote":
+        ast = quasiquote(a1)
+    case "defmacro!":
+        fn, e := EVAL(a2, env)
+        fn = fn.(MalFunc).SetMacro()
+        if e != nil { return nil, e }
+        return env.Set(a1.(Symbol).Val, fn), nil
+    case "macroexpand":
+        return macroexpand(a1, env)
+    case "try*":        
+        var exc MalType
+        exp, e := EVAL(a1, env)
+        if e == nil {
+            return exp, nil
+        } else {
+            if a2 != nil && List_Q(a2) {
+                a2s, _ := GetSlice(a2)
+                if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
+                    switch e.(type) {
+                    case MalError: exc = e.(MalError).Obj
+                    default:       exc = e.Error()
+                    }
+                    binds := NewList(a2s[1])
+                    new_env, e := NewEnv(env, binds, NewList(exc))
+                    if e != nil { return nil, e }
+                    exp, e = EVAL(a2s[2], new_env)
+                    if e == nil { return exp, nil }
+                }
+            }
+            return nil, e
+        }
     case "do":
         lst := ast.(List).Val
         _, e := eval_ast(List{lst[1:len(lst)-1]}, env) 

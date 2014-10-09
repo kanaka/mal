@@ -121,9 +121,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
         }
     case "fn*":
         return func(arguments []MalType) (MalType, error) {
-            a1s, e := GetSlice(a1)
-            if e != nil { return nil, e }
-            new_env, e := NewEnv(env, a1s, arguments)
+            new_env, e := NewEnv(env, a1, List{arguments})
             if e != nil { return nil, e }
             return EVAL(a2, new_env)
         }, nil

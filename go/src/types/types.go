@@ -3,13 +3,20 @@ package types
 import (
     "reflect"
     "errors"
-    //"fmt"
+    "fmt"
 )
 
-//import (
-//    "env"
-//)
+// Errors/Exceptions
+type MalError struct {
+    Obj MalType
+}
 
+func (e MalError) Error() string {
+    return fmt.Sprintf("%#v", e.Obj)
+}
+
+
+// General types
 type MalType interface {
 }
 
@@ -18,6 +25,28 @@ type EnvType interface {
     Find(key string) EnvType
     Set(key string, value MalType) MalType
     Get(key string) (MalType, error)
+}
+
+// Scalars
+func Nil_Q(obj MalType) bool {
+    switch obj.(type) {
+    case nil: return true
+    default:  return false
+    }
+}
+
+func True_Q(obj MalType) bool {
+    switch tobj := obj.(type) {
+    case bool: return tobj == true
+    default:   return false
+    }
+}
+
+func False_Q(obj MalType) bool {
+    switch tobj := obj.(type) {
+    case bool: return tobj == false
+    default:   return false
+    }
 }
 
 // Symbols
@@ -40,7 +69,7 @@ type MalFunc struct {
     Env     EnvType
     Params  MalType
     IsMacro bool
-    GenEnv  func(EnvType, []MalType, []MalType) (EnvType, error)
+    GenEnv  func(EnvType, MalType, MalType) (EnvType, error)
 }
 
 func MalFunc_Q(obj MalType) bool {
@@ -59,18 +88,29 @@ func (f MalFunc) GetMacro() bool {
     return f.IsMacro
 }
 
-func (f MalFunc) Apply(a []MalType) (MalType, error) {
-    slc, e := GetSlice(f.Params)
-    if e != nil { return nil, e }
-    env, e := f.GenEnv(f.Env, slc, a)
-    if e != nil { return nil, e }
-    return f.Eval(f.Exp, env)
+// Take either a MalFunc or regular function and apply it to the
+// arguments
+func Apply(f_mt MalType, a []MalType) (MalType, error) {
+    switch f := f_mt.(type) {
+    case MalFunc:
+        env, e := f.GenEnv(f.Env, f.Params, List{a})
+        if e != nil { return nil, e }
+        return f.Eval(f.Exp, env)
+    case func([]MalType)(MalType, error):
+        return f(a)
+    default:
+        return nil, errors.New("Invalid function to Apply")
+    }
 }
 
 
 // Lists
 type List struct {
     Val []MalType
+}
+
+func NewList(a ...MalType) MalType {
+    return List{a}
 }
 
 func List_Q(obj MalType) bool {
@@ -115,7 +155,7 @@ func _obj_type(obj MalType) string {
 }
 
 func Sequential_Q(seq MalType) bool {
-    //fmt.Printf("here1 %#v\n", reflect.TypeOf(seq).Name())
+    if seq == nil { return false }
     return (reflect.TypeOf(seq).Name() == "List") ||
            (reflect.TypeOf(seq).Name() == "Vector")
 }

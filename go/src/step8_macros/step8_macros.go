@@ -75,7 +75,7 @@ func macroexpand(ast MalType, env EnvType)  (MalType, error) {
         a0 := slc[0]
         mac, e = env.Get(a0.(Symbol).Val); if e != nil { return nil, e }
         fn := mac.(MalFunc)
-        ast, e = fn.Apply(slc[1:]); if e != nil { return nil, e }
+        ast, e = Apply(fn, slc[1:]); if e != nil { return nil, e }
     }
     return ast, nil
 }
@@ -195,9 +195,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             ast = a2
         }
     case "fn*":
-        fn := MalFunc{EVAL, a2, env, a1, false,
-            func(outer EnvType, binds []MalType, exprs []MalType) (EnvType, error) {
-                return NewEnv(outer, binds, exprs) }}
+        fn := MalFunc{EVAL, a2, env, a1, false, NewEnv}
         return fn, nil
     default:
         el, e := eval_ast(ast, env)
@@ -206,7 +204,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
         if MalFunc_Q(f) {
             fn := f.(MalFunc)
             ast = fn.Exp
-            env, e = NewEnv(fn.Env, fn.Params.(List).Val, el.(List).Val[1:])
+            env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:]})
             if e != nil { return nil, e }
         } else {
             fn, ok := f.(func([]MalType)(MalType, error))

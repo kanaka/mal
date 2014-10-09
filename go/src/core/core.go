@@ -12,6 +12,11 @@ import (
     "printer"
 )
 
+// Errors/Exceptions
+func throw(a []MalType) (MalType, error) {
+    return nil, MalError{a[0]}
+}
+
 
 // String functions
 
@@ -97,11 +102,46 @@ func count(a []MalType) (MalType, error) {
     }
 }
 
+func apply(a []MalType) (MalType, error) {
+    if len(a) < 2 { return nil, errors.New("apply requires at least 2 args") }
+    f := a[0]
+    args := []MalType{}
+    for _, b := range a[1:len(a)-1] {
+        args = append(args, b)
+    }
+    last, e := GetSlice(a[len(a)-1]); if e != nil { return nil, e }
+    args = append(args, last...)
+    return Apply(f, args)
+}
+
+func do_map(a []MalType) (MalType, error) {
+    if len(a) != 2 { return nil, errors.New("map requires 2 args") }
+    f := a[0]
+    results := []MalType{}
+    args, e := GetSlice(a[1]); if e != nil { return nil, e }
+    for _, arg := range args {
+        res, e := Apply(f, []MalType{arg})
+        results = append(results, res)
+        if e != nil { return nil, e }
+    }
+    return List{results}, nil
+}
+
+
 
 // core namespace
 var NS = map[string]MalType{
     "=": func(a []MalType) (MalType, error) {
             return Equal_Q(a[0], a[1]), nil },
+    "throw": throw,
+    "nil?": func(a []MalType) (MalType, error) {
+            return Nil_Q(a[0]), nil },
+    "true?": func(a []MalType) (MalType, error) {
+            return True_Q(a[0]), nil },
+    "false?": func(a []MalType) (MalType, error) {
+            return False_Q(a[0]), nil },
+    "symbol?":  func(a []MalType) (MalType, error) {
+            return Symbol_Q(a[0]), nil },
 
     "pr-str": func(a []MalType) (MalType, error) { return pr_str(a) },
     "str": func(a []MalType) (MalType, error) { return str(a) },
@@ -133,6 +173,8 @@ var NS = map[string]MalType{
     "list?": func(a []MalType) (MalType, error) {
             return List_Q(a[0]), nil },
 
+    "sequential?":  func(a []MalType) (MalType, error) {
+            return Sequential_Q(a[0]), nil },
     "cons": cons,
     "concat": concat,
     "nth": nth,
@@ -140,4 +182,6 @@ var NS = map[string]MalType{
     "rest": rest,
     "empty?": empty_Q,
     "count": count,
+    "apply": apply,
+    "map": do_map,
     }
