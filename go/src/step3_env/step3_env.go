@@ -1,15 +1,13 @@
 package main
 
 import (
-    "bufio"
-    //"io"
     "fmt"
-    "os"
     "strings"
     "errors"
 )
 
 import (
+    "readline"
     . "types"
     "reader"
     "printer"
@@ -138,11 +136,9 @@ func main() {
     repl_env.Set("/", func(a []MalType) (MalType, error) {
         return a[0].(int) / a[1].(int), nil })
 
-    rdr := bufio.NewReader(os.Stdin);
     // repl loop
     for {
-        fmt.Print("user> ");
-        text, err := rdr.ReadString('\n');
+        text, err := readline.Readline("user> ")
         text = strings.TrimRight(text, "\n");
         if (err != nil) {
             return

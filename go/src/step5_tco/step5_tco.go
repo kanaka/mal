@@ -1,15 +1,13 @@
 package main
 
 import (
-    "bufio"
-    //"io"
     "fmt"
-    "os"
     "strings"
     "errors"
 )
 
 import (
+    "readline"
     . "types"
     "reader"
     "printer"
@@ -172,11 +170,9 @@ func main() {
     // core.mal: defined using the language itself
     rep("(def! not (fn* (a) (if a false true)))")
 
-    rdr := bufio.NewReader(os.Stdin);
     // repl loop
     for {
-        fmt.Print("user> ");
-        text, err := rdr.ReadString('\n');
+        text, err := readline.Readline("user> ")
         text = strings.TrimRight(text, "\n");
         if (err != nil) {
             return

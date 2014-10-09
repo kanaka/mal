@@ -2,7 +2,8 @@ export GOPATH := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 #####################
 
-SOURCES_BASE = src/types/types.go src/reader/reader.go src/printer/printer.go \
+SOURCES_BASE = src/types/types.go src/readline/readline.go \
+	       src/reader/reader.go src/printer/printer.go \
 	       src/env/env.go src/core/core.go
 SOURCES_LISP = src/stepA_more/stepA_more.go
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)

@@ -10,6 +10,7 @@ import (
     . "types"
     "reader"
     "printer"
+    "readline"
 )
 
 // Errors/Exceptions
@@ -150,6 +151,8 @@ var NS = map[string]MalType{
     "read-string":  func(a []MalType) (MalType, error) {
             return reader.Read_str(a[0].(string)) },
     "slurp": slurp,
+    "readline": func(a []MalType) (MalType, error) {
+            return readline.Readline(a[0].(string)) },
 
     "<": func(a []MalType) (MalType, error) {
             return a[0].(int) < a[1].(int), nil },
