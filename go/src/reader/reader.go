@@ -105,20 +105,8 @@ func read_vector(rdr Reader) (MalType, error) {
 
 func read_hash_map(rdr Reader) (MalType, error) {
     mal_lst, e := read_list(rdr, "{", "}")
-    lst := mal_lst.(List).Val
     if e != nil { return nil, e }
-    if len(lst) % 2 == 1 {
-        return nil, errors.New("Odd number of hash map arguments")
-    }
-    m := map[string]MalType{}
-    for i := 0; i < len(lst); i+=2 {
-        str, ok := lst[i].(string)
-        if !ok {
-            return nil, errors.New("expected hash-map key string")
-        }
-        m[str] = lst[i+1]
-    }
-    return m, nil
+    return NewHashMap(mal_lst)
 }
 
 func read_form(rdr Reader) (MalType, error) {

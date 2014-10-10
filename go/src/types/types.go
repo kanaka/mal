@@ -62,6 +62,15 @@ func Symbol_Q(obj MalType) bool {
 }
 
 
+// Strings
+func String_Q(obj MalType) bool {
+    switch obj.(type) {
+    case string: return true
+    default:     return false
+    }
+}
+
+
 // Functions
 type MalFunc struct {
     Eval    func(MalType, EnvType) (MalType, error)
@@ -141,7 +150,24 @@ func GetSlice(seq MalType) ([]MalType, error) {
 }
 
 // Hash Maps
-func Hash_Map_Q(obj MalType) bool {
+func NewHashMap(seq MalType) (MalType, error) {
+    lst, e := GetSlice(seq)
+    if e != nil { return nil, e }
+    if len(lst) % 2 == 1 {
+        return nil, errors.New("Odd number of arguments to NewHashMap")
+    }
+    m := map[string]MalType{}
+    for i := 0; i < len(lst); i+=2 {
+        str, ok := lst[i].(string)
+        if !ok {
+            return nil, errors.New("expected hash-map key string")
+        }
+        m[str] = lst[i+1]
+    }
+    return m, nil
+}
+
+func HashMap_Q(obj MalType) bool {
     switch obj.(type) {
     case map[string]MalType: return true
     default:                 return false

@@ -46,6 +46,72 @@ func slurp(a []MalType) (MalType, error) {
 }
 
 
+// Hash Map functions
+func assoc(a []MalType) (MalType, error) {
+    if len(a) <3 { return nil, errors.New("assoc requires at least 3 arguments") }
+    if (len(a) % 2 != 1) { return nil, errors.New("assoc requires odd number of arguments") }
+    if !HashMap_Q(a[0]) { return nil, errors.New("assoc called on non-hash map") }
+    old_hm := a[0].(map[string]MalType)
+    new_hm := map[string]MalType{}
+    // copy
+    for k, v := range old_hm { new_hm[k] = v }
+    for i := 1; i < len(a); i+=2 {
+        key := a[i]
+        if !String_Q(key) { return nil, errors.New("assoc called with non-string key") }
+        new_hm[key.(string)] = a[i+1]
+    }
+    return new_hm, nil
+}
+
+func dissoc(a []MalType) (MalType, error) {
+    if len(a) <2 { return nil, errors.New("dissoc requires at least 3 arguments") }
+    if !HashMap_Q(a[0]) { return nil, errors.New("dissoc called on non-hash map") }
+    old_hm := a[0].(map[string]MalType)
+    new_hm := map[string]MalType{}
+    // copy
+    for k, v := range old_hm { new_hm[k] = v }
+    for i := 1; i < len(a); i+=1 {
+        key := a[i]
+        if !String_Q(key) { return nil, errors.New("dissoc called with non-string key") }
+        delete(new_hm,key.(string))
+    }
+    return new_hm, nil
+}
+
+func get(a []MalType) (MalType, error) {
+    if len(a) != 2 { return nil, errors.New("get requires 2 arguments") }
+    if Nil_Q(a[0]) { return nil, nil }
+    if !HashMap_Q(a[0]) { return nil, errors.New("get called on non-hash map") }
+    if !String_Q(a[1]) { return nil, errors.New("get called with non-string key") }
+    return a[0].(map[string]MalType)[a[1].(string)], nil
+}
+
+func contains_Q(hm MalType, key MalType) (MalType, error) {
+    if Nil_Q(hm) { return nil, nil }
+    if !HashMap_Q(hm) { return nil, errors.New("get called on non-hash map") }
+    if !String_Q(key) { return nil, errors.New("get called with non-string key") }
+    _, ok := hm.(map[string]MalType)[key.(string)]
+    return ok, nil
+}
+
+func keys(a []MalType) (MalType, error) {
+    if !HashMap_Q(a[0]) { return nil, errors.New("keys called on non-hash map") }
+    slc := []MalType{}
+    for k, _ := range a[0].(map[string]MalType) {
+        slc = append(slc, k)
+    }
+    return List{slc}, nil
+}
+func vals(a []MalType) (MalType, error) {
+    if !HashMap_Q(a[0]) { return nil, errors.New("keys called on non-hash map") }
+    slc := []MalType{}
+    for _, v := range a[0].(map[string]MalType) {
+        slc = append(slc, v)
+    }
+    return List{slc}, nil
+}
+
+
 // Sequence functions
 
 func cons(a []MalType) (MalType, error) {
@@ -98,6 +164,7 @@ func count(a []MalType) (MalType, error) {
     switch obj := a[0].(type) {
     case List:   return len(obj.Val), nil
     case Vector: return len(obj.Val), nil
+    case map[string]MalType: return len(obj), nil
     case nil:    return 0, nil
     default: return nil, errors.New("Count called on non-sequence")
     }
@@ -175,6 +242,21 @@ var NS = map[string]MalType{
             return List{a}, nil },
     "list?": func(a []MalType) (MalType, error) {
             return List_Q(a[0]), nil },
+    "vector": func(a []MalType) (MalType, error) {
+            return Vector{a}, nil },
+    "vector?": func(a []MalType) (MalType, error) {
+            return Vector_Q(a[0]), nil },
+    "hash-map": func(a []MalType) (MalType, error) {
+            return NewHashMap(List{a}) },
+    "map?": func(a []MalType) (MalType, error) {
+            return HashMap_Q(a[0]), nil },
+    "assoc": assoc,
+    "dissoc": dissoc,
+    "get": get,
+    "contains?": func(a []MalType) (MalType, error) {
+            return contains_Q(a[0], a[1]) },
+    "keys": keys,
+    "vals": vals,
 
     "sequential?":  func(a []MalType) (MalType, error) {
             return Sequential_Q(a[0]), nil },

@@ -42,7 +42,7 @@ func eval_ast(ast MalType, env map[string]MalType) (MalType, error) {
             lst = append(lst, exp)
         }
         return Vector{lst}, nil
-    } else if Hash_Map_Q(ast) {
+    } else if HashMap_Q(ast) {
         m := ast.(map[string]MalType)
         new_hm := map[string]MalType{}
         for k, v := range m {
