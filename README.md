@@ -57,8 +57,8 @@ bash stepX_YYY.sh
 
 ### C
 
-The C implementation of mal requires the following libraries: glib,
-libffi6 and either the libedit or GNU readline library.
+The C implementation of mal requires the following libraries (lib and
+header packages): glib, libffi6 and either the libedit or GNU readline library.
 
 ```
 cd c
@@ -96,6 +96,8 @@ make
 
 
 ### Java 1.7
+
+The Java implementation of mal requires maven2 to build.
 
 ```
 cd java
@@ -145,12 +147,18 @@ perl stepX_YYY.pl
 
 ### PHP 5.3
 
+The PHP implementation of mal requires the php command line interface
+to run.
+
 ```
 cd php
 php stepX_YYY.php
 ```
 
 ### Postscript Level 2/3
+
+The Postscript implementation of mal requires ghostscript to run. It
+has been tested with ghostscript 9.10.
 
 ```
 cd ps

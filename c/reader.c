@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <glib/gregex.h>
-#include <glib-object.h>
+//#include <glib/gregex.h>
+//#include <glib-object.h>
+#include <glib.h>
 
 #include "types.h"
 #include "reader.h"

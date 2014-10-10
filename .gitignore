@@ -16,14 +16,15 @@ c/step5_tco
 c/step6_file
 c/step7_quote
 c/step8_macros
-c/step9_interop
-c/stepA_more
+c/step9_try
+c/stepA_interop
 cs/*.exe
 cs/*.dll
 cs/*.mdb
 clojure/target
 clojure/.lein-repl-history
 go/step*
+go/mal
 java/target/
 java/dependency-reduced-pom.xml
 rust/step0_repl
@@ -35,5 +36,5 @@ rust/step5_tco
 rust/step6_file
 rust/step7_quote
 rust/step8_macros
-rust/step9_interop
-rust/stepA_more
+rust/step9_try
+rust/stepA_interop

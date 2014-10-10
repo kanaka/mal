@@ -18,8 +18,8 @@
              :step6 {:main step6-file}
              :step7 {:main step7-quote}
              :step8 {:main step8-macros}
-             :step9 {:main step9-interop}
-             :stepA {:main stepA-more}}
+             :step9 {:main step9-try}
+             :stepA {:main stepA-interop}}
 
    :main stepA-more)
 

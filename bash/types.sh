@@ -104,7 +104,7 @@ _false? () { [[ ${1} =~ ^fals_ ]]; }
 _symbol () {
     __new_obj_hash_code
     r="symb_${r}"
-    ANON["${r}"]="${1//$'\*'/__STAR__}"
+    ANON["${r}"]="${1//\*/__STAR__}"
 }
 _symbol? () { [[ ${1} =~ ^symb_ ]]; }
 
@@ -124,7 +124,7 @@ _number? () { [[ ${1} =~ ^numb_ ]]; }
 _string () {
     __new_obj_hash_code
     r="strn_${r}"
-    ANON["${r}"]="${1//$'\*'/__STAR__}"
+    ANON["${r}"]="${1//\*/__STAR__}"
 }
 _string? () { [[ ${1} =~ ^strn_ ]]; }
 
@@ -173,7 +173,7 @@ _hash_map () {
     __new_obj_hash_code
     local name="hmap_${r}"
     local obj="${__obj_magic}_${name}"
-    declare -A -g ${obj}
+    declare -A -g ${obj}; eval "${obj}=()"
     ANON["${name}"]="${obj}"
 
     while [[ "${1}" ]]; do

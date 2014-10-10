@@ -21,8 +21,8 @@ step5 = step5_tco
 step6 = step6_file
 step7 = step7_quote
 step8 = step8_macros
-step9 = step9_interop
-stepA = stepA_more
+step9 = step9_try
+stepA = stepA_interop
 
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault
@@ -34,9 +34,9 @@ EXCLUDE_TESTS += test^php^step5  # test completes, even at 100,000
 EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 
 # interop tests now implemented yet
-EXCLUDE_TESTS += test^cs^step9 test^java^step9 test^mal^step9 \
-		 test^mal^step0 test^php^step9 test^ps^step9 \
-		 test^python^step9 test^ruby^step9
+EXCLUDE_TESTS += test^cs^stepA test^java^stepA test^mal^stepA \
+		 test^mal^step0 test^php^stepA test^ps^stepA \
+		 test^python^stepA test^ruby^stepA
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
@@ -73,7 +73,7 @@ make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 perl_RUNSTEP =    perl ../$(2) $(3)
 php_RUNSTEP =     php ../$(2) $(3)
-ps_RUNSTEP =      $(4)gs -q -dNODISPLAY -- ../$(2) $(3)$(4)
+ps_RUNSTEP =      $(4)gs -q -I./ -dNODISPLAY -- ../$(2) $(3)$(4)
 python_RUNSTEP =  $(PYTHON) ../$(2) $(3)
 ruby_RUNSTEP =    ruby ../$(2) $(3)
 

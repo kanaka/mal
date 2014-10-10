@@ -181,10 +181,26 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         MalVal *a1 = _nth(ast, 1);
         return macroexpand(a1, env);
     } else if ((a0->type & MAL_SYMBOL) &&
-               strcmp(".", a0->val.string) == 0) {
-        //g_print("eval apply .\n");
-        MalVal *el = eval_ast(_slice(ast, 1, _count(ast)), env);
-        return invoke_native(el);
+               strcmp("try*", a0->val.string) == 0) {
+        //g_print("eval apply try*\n");
+        MalVal *a1 = _nth(ast, 1);
+        MalVal *a2 = _nth(ast, 2);
+        MalVal *res = EVAL(a1, env);
+        if (!mal_error) { return res; }
+        MalVal *a20 = _nth(a2, 0);
+        if (strcmp("catch*", a20->val.string) == 0) {
+            MalVal *a21 = _nth(a2, 1);
+            MalVal *a22 = _nth(a2, 2);
+            Env *catch_env = new_env(env,
+                                     _listX(1, a21),
+                                     _listX(1, mal_error));
+            //malval_free(mal_error);
+            mal_error = NULL;
+            res = EVAL(a22, catch_env);
+            return res;
+        } else {
+            return &mal_nil;
+        }
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("do", a0->val.string) == 0) {
         //g_print("eval apply do\n");
@@ -287,6 +303,7 @@ void init_repl_env(int argc, char *argv[]) {
     env_set(repl_env, "*ARGV*", _argv);
 
     // core.mal: defined using the language itself
+    RE(repl_env, "", "(def! *host-language* \"c\")");
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");
     RE(repl_env, "",
        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
@@ -311,6 +328,7 @@ int main(int argc, char *argv[])
     }
 
     // repl loop
+    RE(repl_env, "", "(println (str \"Mal [\" *host-language* \"]\"))");
     for(;;) {
         exp = RE(repl_env, prompt, NULL);
         if (mal_error && strcmp("EOF", mal_error->val.string) == 0) {

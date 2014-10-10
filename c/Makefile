@@ -9,7 +9,7 @@ TESTS =
 SOURCES_BASE = readline.h readline.c types.h types.c \
                reader.h reader.c printer.h printer.c \
                interop.h interop.c
-SOURCES_LISP = env.c core.h core.c stepA_more.c
+SOURCES_LISP = env.c core.h core.c stepA_interop.c
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 
@@ -17,7 +17,7 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 SRCS = step0_repl.c step1_read_print.c step2_eval.c step3_env.c \
        step4_if_fn_do.c step5_tco.c step6_file.c step7_quote.c \
-       step8_macros.c step9_interop.c stepA_more.c
+       step8_macros.c step9_try.c stepA_interop.c
 OBJS = $(SRCS:%.c=%.o)
 BINS = $(OBJS:%.o=%)
 OTHER_OBJS = types.o readline.o reader.o printer.o env.o core.o interop.o

@@ -1,0 +1,21 @@
+% ps_val -> ps2mal -> mal_val
+/ps2mal {
+    % convert a PS value to a Mal value (recursively)
+    [ exch
+        { %forall returned values
+            dup ==
+            dup type /arraytype eq {
+                (here1\n) print 
+                _list_from_array
+            }{ dup type /dicttype eq {
+                (here2\n) print
+                _hash_map_from_dict
+            }{
+                (here3\n) print
+                % no-op
+            } ifelse } ifelse
+        } forall 
+    ]
+    (here4\n) print 
+} def
+

@@ -1,0 +1,27 @@
+;; Testing basic ruby interop
+
+(rb* "7")
+;=>7
+
+(rb* "'7'")
+;=>"7"
+
+(rb* "[7,8,9]")
+;=>(7 8 9)
+
+(rb* "{\"abc\" => 789}")
+;=>{"abc" 789}
+
+(rb* "print 'hello\n'")
+; hello
+;=>nil
+
+(rb* "$foo=8;")
+(rb* "$foo")
+;=>8
+
+(rb* "['a','b','c'].map{|x| 'X'+x+'Y'}.join(' ')")
+;=>"XaY XbY XcY"
+
+(rb* "[1,2,3].map{|x| 1+x}")
+;=>(2 3 4)

@@ -108,8 +108,24 @@ function MAL_EVAL($ast, $env) {
         return $env->set($ast[1]->value, $func);
     case "macroexpand":
         return macroexpand($ast[1], $env);
-    case "php*":
-        return eval($ast[1]);
+    case "try*":
+        $a1 = $ast[1];
+        $a2 = $ast[2];
+        if ($a2[0]->value === "catch*") {
+            try {
+                return MAL_EVAL($a1, $env);
+            } catch (Error $e) {
+                $catch_env = new Env($env, array($a2[1]),
+                                            array($e->obj));
+                return MAL_EVAL($a2[2], $catch_env);
+            } catch (Exception $e) {
+                $catch_env = new Env($env, array($a2[1]),
+                                            array($e->getMessage()));
+                return MAL_EVAL($a2[2], $catch_env);
+            }
+        } else {
+            return MAL_EVAL($a1, $env);
+        }
     case "do":
         eval_ast($ast->slice(1, -1), $env);
         $ast = $ast[count($ast)-1];
@@ -168,6 +184,7 @@ for ($i=2; $i < count($argv); $i++) {
 $repl_env->set('*ARGV*', $_argv);
 
 // core.mal: defined using the language itself
+rep("(def! *host-language* \"php\")");
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
@@ -179,6 +196,7 @@ if (count($argv) > 1) {
 }
 
 // repl loop
+rep("(println (str \"Mal [\" *host-language* \"]\"))");
 do {
     try {
         $line = mal_readline("user> ");

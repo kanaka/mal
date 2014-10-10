@@ -1,5 +1,6 @@
 use strict;
 use warnings FATAL => qw(all);
+no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
 use readline qw(mal_readline);
@@ -137,8 +138,32 @@ sub EVAL {
         when (/^macroexpand$/) {
             return macroexpand($a1, $env);
         }
-        when (/^pl\*$/) {
-            return pl_to_mal(eval(${$a1}));
+        when (/^try\*$/) {
+            do {
+                local $@;
+                my $ret;
+                eval {
+                    use autodie; # always "throw" errors
+                    $ret = EVAL($a1, $env);
+                     1;
+                } or do {
+                    my $err = $@;
+                    if ($a2 && ${$a2->nth(0)} eq "catch\*") {
+                        my $exc;
+                        if (ref $err) {
+                            $exc = $err;
+                        } else {
+                            $exc = String->new(substr $err, 0, -1);
+                        }
+                        return EVAL($a2->nth(2), Env->new($env,
+                                                        List->new([$a2->nth(1)]), 
+                                                        List->new([$exc])));
+                    } else {
+                        die $err;
+                    }
+                };
+                return $ret;
+            };
         }
         when (/^do$/) {
             eval_ast($ast->slice(1, $#{$ast->{val}}-1), $env);
@@ -193,13 +218,18 @@ my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set('*ARGV*', List->new(\@_argv));
 
 # core.mal: defined using the language itself
+REP("(def! *host-language* \"javascript\")");
 REP("(def! not (fn* (a) (if a false true)))");
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
+REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
+
 
 if (scalar(@ARGV) > 0) {
     REP("(load-file \"" . $ARGV[0] . "\")");
     exit 0;
 }
+REP("(println (str \"Mal [\" *host-language* \"]\"))");
 while (1) {
     my $line = mal_readline("user> ");
     if (! defined $line) { last; }

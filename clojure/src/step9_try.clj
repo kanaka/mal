@@ -1,4 +1,4 @@
-(ns step9-interop
+(ns step9-try
     (:refer-clojure :exclude [macroexpand])
     (:require [clojure.repl]
               [readline]
@@ -94,9 +94,20 @@
               'macroexpand
               (macroexpand a1 env)
       
-              'clj*
-              (eval (reader/read-string a1))
-      
+              'try*
+              (if (= 'catch* (nth a2 0))
+                (try
+                  (EVAL a1 env)
+                  (catch clojure.lang.ExceptionInfo ei
+                    (EVAL (nth a2 2) (env/env env
+                                              [(nth a2 1)]
+                                              [(:data (ex-data ei))])))
+                  (catch Throwable t
+                    (EVAL (nth a2 2) (env/env env
+                                              [(nth a2 1)]
+                                              [(.getMessage t)]))))
+                (EVAL a1 env))
+    
               'do
               (do (eval-ast (->> ast (drop-last) (drop 1)) env)
                   (recur (last ast) env))
@@ -141,6 +152,7 @@
 (env/env-set repl-env '*ARGV* ())
 
 ;; core.mal: defined using the language itself
+(rep "(def! *host-language* \"clojure\")")
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* [f] (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -161,4 +173,6 @@
   (env/env-set repl-env '*ARGV* (rest args))
   (if args
     (rep (str "(load-file \"" (first args) "\")"))
-    (repl-loop)))
+    (do
+      (rep "(println (str \"Mal [\" *host-language* \"]\"))")
+      (repl-loop))))

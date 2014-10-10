@@ -104,12 +104,17 @@ function _EVAL(ast, env) {
         return env.set(a1, func);
     case 'macroexpand':
         return macroexpand(a1, env);
-    case "js*":
-        return eval(a1.toString());
-    case ".":
-        var el = eval_ast(ast.slice(2), env),
-            f = eval(a1.toString());
-        return f.apply(f, el);
+    case "try*":
+        try {
+            return EVAL(a1, env);
+        } catch (exc) {
+            if (a2 && a2[0].value === "catch*") {
+                if (exc instanceof Error) { exc = exc.message; }
+                return EVAL(a2[2], new Env(env, [a2[1]], [exc]));
+            } else {
+                throw exc;
+            }
+        }
     case "do":
         eval_ast(ast.slice(1, -1), env);
         ast = ast[ast.length-1];
@@ -157,6 +162,7 @@ repl_env.set('eval', function(ast) { return EVAL(ast, repl_env); });
 repl_env.set('*ARGV*', []);
 
 // core.mal: defined using the language itself
+rep("(def! *host-language* \"javascript\")")
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
@@ -171,6 +177,7 @@ if (typeof process !== 'undefined' && process.argv.length > 2) {
 // repl loop
 if (typeof require !== 'undefined' && require.main === module) {
     // Synchronous node.js commandline mode
+    rep("(println (str \"Mal [\" *host-language* \"]\"))");
     while (true) {
         var line = readline.readline("user> ");
         if (line === null) { break; }

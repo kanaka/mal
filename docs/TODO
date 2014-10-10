@@ -6,7 +6,7 @@ All:
     - keyword type
     - gensym reader inside quasiquote
 
-    - per impl tests for step5_tco, step9_interop (if possible)
+    - per impl tests for step5_tco (if possible)
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
 
@@ -16,6 +16,8 @@ All:
     - Get self-host working at earlier step:
         - Move try* to step6
         - Remove macros from mal
+
+    - Implement/fix interop: C#, Java, Mal, PHP, Postscript, Ruby
 
 ---------------------------------------------
 
@@ -28,7 +30,6 @@ C:
     - GC
 
 C#:
-    - step9_interop
 
 Clojure:
 
@@ -37,7 +38,6 @@ Go:
         https://gobyexample.com/variadic-functions
 
 Java:
-    - step9_interop
     - Use gradle instead of mvn
         http://blog.paralleluniverse.co/2014/05/01/modern-java/
 
@@ -51,7 +51,6 @@ Make:
 Mal:
     - line numbers in errors
     - step5_tco
-    - step9_interop
 
 Perl:
     - fix metadata on native functions
@@ -62,7 +61,8 @@ Postscript:
     - add negative numbers
 
 Python:
-    - error: python ../python/stepA_more.py ../mal/stepA_more.mal ../mal/stepA_more.mal
+    - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
+    - interop tests
 
 Ruby:
 

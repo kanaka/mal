@@ -157,14 +157,20 @@ EVAL () {
         macroexpand)
               MACROEXPAND "${a1}" "${env}"
               return ;;
-        sh*)  MACROEXPAND "${a1}" "${env}"
+        try*) MACROEXPAND "${a1}" "${env}"
               EVAL "${r}" "${env}"
-              local output=""
-              local line=""
-              while read line; do
-                  output="${output}${line}\n"
-              done < <(eval ${ANON["${r}"]})
-              _string "${output%\\n}"
+              [[ -z "${__ERROR}" ]] && return
+              _nth "${a2}" 0; local a20="${r}"
+              if [ "${ANON["${a20}"]}" == "catch__STAR__" ]; then
+                  _nth "${a2}" 1; local a21="${r}"
+                  _nth "${a2}" 2; local a22="${r}"
+                  _list "${a21}"; local binds="${r}"
+                  ENV "${env}" "${binds}" "${__ERROR}"
+                  local try_env="${r}"
+                  __ERROR=
+                  MACROEXPAND "${a22}" "${try_env}"
+                  EVAL "${r}" "${try_env}"
+              fi  # if no catch* clause, just propagate __ERROR
               return ;;
         do)   _count "${ast}"
               _slice "${ast}" 1 $(( ${r} - 2 ))
@@ -245,6 +251,7 @@ for _arg in "${@:2}"; do _string "${_arg}"; _conj! "${argv}" "${r}"; done
 ENV_SET "${REPL_ENV}" "__STAR__ARGV__STAR__" "${argv}";
 
 # core.mal: defined using the language itself
+REP "(def! *host-language* \"bash\")"
 REP "(def! not (fn* (a) (if a false true)))"
 REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
@@ -257,6 +264,7 @@ if [[ "${1}" ]]; then
 fi 
 
 # repl loop
+REP "(println (str \"Mal [\" *host-language* \"]\"))"
 while true; do
     READLINE "user> " || exit "$?"
     [[ "${r}" ]] && REP "${r}" && echo "${r}"

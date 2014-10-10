@@ -99,10 +99,21 @@ $(if $(__ERROR),,\
             $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),)))),\
     $(if $(call _EQ,macroexpand,$($(a0)_value)),\
       $(call MACROEXPAND,$(call _nth,$(1),1),$(2)),\
-    $(if $(call _EQ,make*,$($(a0)_value)),\
+    $(if $(call _EQ,try*,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
-        $(and $(EVAL_DEBUG),$(info make*: $$(eval __result := $(call str_decode,$(value $(a1)_value)))))\
-        $(eval __result := $(call str_decode,$(value $(a1)_value)))$(call _string,$(__result))),\
+        $(foreach res,$(call EVAL,$(a1),$(2)),\
+          $(if $(__ERROR),\
+            $(foreach a2,$(call _nth,$(1),2),\
+              $(foreach a20,$(call _nth,$(a2),0),\
+                $(if $(call _EQ,catch*,$($(a20)_value)),\
+                  $(foreach a21,$(call _nth,$(a2),1),\
+                    $(foreach a22,$(call _nth,$(a2),2),\
+                      $(foreach binds,$(call _list,$(a21)),\
+                        $(foreach catch_env,$(call ENV,$(2),$(binds),$(__ERROR)),\
+			  $(eval __ERROR :=)\
+                          $(call EVAL,$(a22),$(catch_env)))))),\
+                  $(res)))),\
+            $(res)))),\
     $(if $(call _EQ,do,$($(a0)_value)),\
       $(call slast,$(call EVAL_AST,$(call srest,$(1)),$(2))),\
     $(if $(call _EQ,if,$($(a0)_value)),\
@@ -154,6 +165,7 @@ _argv := $(call _list)
 REPL_ENV := $(call ENV_SET,$(REPL_ENV),*ARGV*,$(_argv))
 
 # core.mal: defined in terms of the language itself
+$(call do,$(call REP, (def! *host-language* "make") ))
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
 $(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 $(call do,$(call REP, (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs))))))) ))
@@ -167,7 +179,9 @@ $(if $(MAKECMDGOALS),\
   $(eval INTERACTIVE :=),)
 
 # repl loop
-$(if $(strip $(INTERACTIVE)),$(call REPL))
+$(if $(strip $(INTERACTIVE)),\
+  $(call do,$(call REP, (println (str "Mal [" *host-language* "]")) )) \
+  $(call REPL))
 
 .PHONY: none $(MAKECMDGOALS)
 none $(MAKECMDGOALS):

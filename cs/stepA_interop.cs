@@ -14,7 +14,7 @@ using MalFunction = Mal.types.MalFunction;
 using Env = Mal.env.Env;
 
 namespace Mal {
-    class stepA_more {
+    class stepA_interop {
         // read
         static MalVal READ(string str) {
             return reader.read_str(str);

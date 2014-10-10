@@ -97,12 +97,17 @@ def EVAL(ast, env):
             else:
                 exec(compile(ast[1], '', 'single') in globals())
             return None
-        elif "py*" == a0:
-            return eval(ast[1])
-        elif "." == a0:
-            el = eval_ast(ast[2:], env)
-            f = eval(ast[1])
-            return f(*el)
+        elif "try*" == a0:
+            a1, a2 = ast[1], ast[2]
+            if a2[0] == "catch*":
+                try:
+                    return EVAL(a1, env);
+                except Exception as exc:
+                    exc = exc.args[0]
+                    catch_env = Env(env, [a2[1]], [exc])
+                    return EVAL(a2[2], catch_env)
+            else:
+                return EVAL(a1, env);
         elif "do" == a0:
             eval_ast(ast[1:-1], env)
             ast = ast[-1]
@@ -143,6 +148,7 @@ repl_env.set('eval', lambda ast: EVAL(ast, repl_env))
 repl_env.set('*ARGV*', types._list(*sys.argv[2:]))
 
 # core.mal: defined using the language itself
+REP("(def! *host-language* \"python\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -153,6 +159,7 @@ if len(sys.argv) >= 2:
     sys.exit(0)
 
 # repl loop
+REP("(println (str \"Mal [\" *host-language* \"]\"))")
 while True:
     try:
         line = mal_readline.readline("user> ")

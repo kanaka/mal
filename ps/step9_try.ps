@@ -144,20 +144,6 @@ end } def
             env exch a1 exch env_set % def! it
         }{ /macroexpand a0 eq { %if defmacro!
             ast 1 _nth env macroexpand
-        }{ /ps* a0 eq { %if ps*
-            count /stackcnt exch def
-            ast 1 _nth
-            {
-                token not { exit } if
-                exch
-            } loop
-            exec
-            count stackcnt gt { % if new operands on stack
-                % return an list of new operands
-                count stackcnt sub array astore
-            }{
-                null % return nil
-            } ifelse
         }{ /do a0 eq { %if do
             ast _count 2 gt { %if ast has more than 2 elements
                 ast 1 ast _count 2 sub _slice env eval_ast pop
@@ -165,6 +151,42 @@ end } def
             ast ast _count 1 sub _nth % last ast becomes new ast
             env
             /loop? true def % loop
+        }{ /try* a0 eq { %if try*
+            { %try
+                countdictstack /dictcnt exch def
+                count /stackcnt exch def
+                ast 1 _nth env EVAL
+            } stopped { %catch
+                % clean up the dictionary stack
+                1 1 countdictstack dictcnt sub { %foreach added dict
+                    %(popping dict\n) print
+                    pop end % pop idx and pop dict
+                    %(new ast: ) print ast true _pr_str print (\n) print
+                } for
+                % clean up the operand stack
+                count 1 exch 1 exch stackcnt sub { %foreach added operand
+                    %(op stack: ) print pstack
+                    pop pop % pop idx and operand
+                    %(popped op stack\n) print pstack
+                } for
+                % get error data and reset $error dict
+                /errdata get_error_data def
+                $error /newerror false put
+                $error /errorinfo null put
+
+                ast _count 3 lt { %if no third (catch*) form
+                    errdata throw
+                } if
+                ast 2 _nth 0 _nth (catch*) eq not { %if third form not catch*
+                    (No catch* in throw form) _throw
+                } if
+                ast 2 _nth 2 _nth
+                env
+                    ast 2 _nth 1 _nth 1 _list
+                    errdata 1 _list
+                    env_new
+                EVAL
+            } if
         }{ /if a0 eq { %if if
             /a1 ast 1 _nth def
             /cond a1 env EVAL def
@@ -222,6 +244,7 @@ core_ns { _function _ref } forall
 (*ARGV*) [ ] _list_from_array _ref
 
 % core.mal: defined using the language itself
+(\(def! *host-language* "postscript"\)) RE pop
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 (\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop
@@ -238,6 +261,7 @@ userdict /ARGUMENTS known { %if command line arguments
 } if
 
 % repl loop
+(\(println \(str "Mal [" *host-language* "]"\)\)) RE pop
 { %loop
     (user> ) _readline
     not { exit } if  % exit if EOF

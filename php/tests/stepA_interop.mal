@@ -1,0 +1,25 @@
+;; Testing basic php interop
+
+(php* "return 7;")
+;=>7
+
+(php* "return '7';")
+;=>"7"
+
+(php* "return array(7,8,9);")
+;=>(7 8 9)
+
+(php* "return array(\"abc\" => 789);")
+;=>{"abc" 789}
+
+(php* "print \"hello\n\";")
+; hello
+;=>nil
+
+(php* "global $foo; $foo=8;")
+(php* "global $foo; return $foo;")
+;=>8
+
+(php* "global $f; $f = function($v) { return 1+$v; };")
+(php* "global $f; return array_map($f, array(1,2,3));")
+;=>(2 3 4)
