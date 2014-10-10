@@ -228,9 +228,9 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:],nil})
             if e != nil { return nil, e }
         } else {
-            fn, ok := f.(func([]MalType)(MalType, error))
+            fn, ok := f.(Func)
             if !ok { return nil, errors.New("attempt to call non-function") }
-            return fn(el.(List).Val[1:])
+            return fn.Fn(el.(List).Val[1:])
         }
     }
 
@@ -259,15 +259,18 @@ func rep(str string) (MalType, error) {
 func main() {
     // core.go: defined using go
     for k, v := range core.NS {
-        repl_env.Set(k, v)
+        repl_env.Set(k, Func{v.(func([]MalType)(MalType,error)),nil})
     }
-    repl_env.Set("eval", func(a []MalType) (MalType, error) {
-        return EVAL(a[0], repl_env) })
+    repl_env.Set("eval", Func{func(a []MalType) (MalType, error) {
+        return EVAL(a[0], repl_env) },nil})
     repl_env.Set("*ARGV*", List{})
 
     // core.mal: defined using the language itself
+    rep("(def! *host-language* \"go\")")
     rep("(def! not (fn* (a) (if a false true)))")
     rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+    rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+    rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
     // called with mal script to load and eval
     if len(os.Args) > 1 {
@@ -276,11 +279,15 @@ func main() {
             args = append(args, a)
         }
         repl_env.Set("*ARGV*", List{args,nil})
-        rep("(load-file \"" + os.Args[1] + "\")")
+        if _,e := rep("(load-file \"" + os.Args[1] + "\")"); e != nil {
+            fmt.Printf("Error: %v\n", e)
+            os.Exit(1)
+        }
         os.Exit(0)
     }
 
     // repl loop
+    rep("(println (str \"Mal [\" *host-language* \"]\"))")
     for {
         text, err := readline.Readline("user> ")
         text = strings.TrimRight(text, "\n");

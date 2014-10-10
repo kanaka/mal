@@ -23,6 +23,7 @@ cs/*.dll
 cs/*.mdb
 clojure/target
 clojure/.lein-repl-history
+go/step*
 java/target/
 java/dependency-reduced-pom.xml
 rust/step0_repl

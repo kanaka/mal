@@ -167,9 +167,9 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:],nil})
             if e != nil { return nil, e }
         } else {
-            fn, ok := f.(func([]MalType)(MalType, error))
+            fn, ok := f.(Func)
             if !ok { return nil, errors.New("attempt to call non-function") }
-            return fn(el.(List).Val[1:])
+            return fn.Fn(el.(List).Val[1:])
         }
     }
 
@@ -198,10 +198,10 @@ func rep(str string) (MalType, error) {
 func main() {
     // core.go: defined using go
     for k, v := range core.NS {
-        repl_env.Set(k, v)
+        repl_env.Set(k, Func{v.(func([]MalType)(MalType,error)),nil})
     }
-    repl_env.Set("eval", func(a []MalType) (MalType, error) {
-        return EVAL(a[0], repl_env) })
+    repl_env.Set("eval", Func{func(a []MalType) (MalType, error) {
+        return EVAL(a[0], repl_env) },nil})
     repl_env.Set("*ARGV*", List{})
 
     // core.mal: defined using the language itself
@@ -215,7 +215,10 @@ func main() {
             args = append(args, a)
         }
         repl_env.Set("*ARGV*", List{args,nil})
-        rep("(load-file \"" + os.Args[1] + "\")")
+        if _,e := rep("(load-file \"" + os.Args[1] + "\")"); e != nil {
+            fmt.Printf("Error: %v\n", e)
+            os.Exit(1)
+        }
         os.Exit(0)
     }
 

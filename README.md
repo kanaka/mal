@@ -3,12 +3,13 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 13 different languages:
+language. Mal is implemented from scratch in 14 different languages:
 
 * Bash shell
 * C
 * C#
 * Clojure
+* Go
 * Java
 * Javascript ([Online Demo](http://kanaka.github.io/mal))
 * GNU Make
@@ -84,6 +85,15 @@ mono ./stepX_YYY
 cd clojure
 lein with-profile +stepX trampoline run
 ```
+
+### Go
+
+```
+cd go
+make
+./stepX_YYY
+```
+
 
 ### Java 1.7
 

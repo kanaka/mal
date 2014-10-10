@@ -65,6 +65,16 @@ func String_Q(obj MalType) bool {
 
 
 // Functions
+type Func struct {
+    Fn      func([]MalType) (MalType, error)
+    Meta    MalType
+}
+
+func Func_Q(obj MalType) bool {
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "Func"
+}
+
 type MalFunc struct {
     Eval    func(MalType, EnvType) (MalType, error)
     Exp     MalType
@@ -97,6 +107,8 @@ func Apply(f_mt MalType, a []MalType) (MalType, error) {
         env, e := f.GenEnv(f.Env, f.Params, List{a,nil})
         if e != nil { return nil, e }
         return f.Eval(f.Exp, env)
+    case Func:
+        return f.Fn(a)
     case func([]MalType)(MalType, error):
         return f(a)
     default:
@@ -206,18 +218,25 @@ func Equal_Q(a MalType, b MalType) bool {
     }
     //av := reflect.ValueOf(a); bv := reflect.ValueOf(b)
     //fmt.Printf("here2: %#v\n", reflect.TypeOf(a).Name())
-    switch reflect.TypeOf(a).Name() {
-    case "Symbol":
+    //switch reflect.TypeOf(a).Name() {
+    switch a.(type) {
+    case Symbol:
         return a.(Symbol).Val == b.(Symbol).Val
-    case "List":   fallthrough
-    case "Vector":
+    case List:
         as,_ := GetSlice(a); bs,_ := GetSlice(b)
         if len(as) != len(bs) { return false }
         for i := 0; i < len(as); i+=1 {
             if !Equal_Q(as[i], bs[i]) { return false }
         }
         return true
-    case "HashMap":
+    case Vector:
+        as,_ := GetSlice(a); bs,_ := GetSlice(b)
+        if len(as) != len(bs) { return false }
+        for i := 0; i < len(as); i+=1 {
+            if !Equal_Q(as[i], bs[i]) { return false }
+        }
+        return true
+    case HashMap:
         return false
     default:
         return a == b

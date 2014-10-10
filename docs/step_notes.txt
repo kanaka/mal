@@ -323,10 +323,23 @@ Step Notes:
     - EVAL:
         - add 'defmacro!' and 'macroexpand'
         - set ismacro property on function
+    - Details:
+        - cp step7_quote.EXT to step8_macros.EXT
+        - if compiled update Makefile
+        - add isMacro property to Mal Function type
+            - may need to go back and adjust step5-7
+        - implement is_macro_call and macroexpand
+        - call macroexpand on ast before apply in EVAL
+        - add defmacro! and macroexpand to EVAL switch
+        - make test^go^step8 should pass some basic macros
+        - add first, rest and nth to core.ns
+        - make test^go^step8 should now pass
 
 - step9_interop
     - convert returned data to mal data
         - recursive, similar to pr_str
+    - Details:
+        - can be done after stepA_more
 
 - stepA_more
     - core module:
@@ -340,6 +353,33 @@ Step Notes:
           otherwise extracts full value
     - set and print *host-language*
     - define cond and or macros using REP/RE
+    - Details:
+        - cp step8_macros.EXT to stepA_more.EXT
+        - if compiled update Makefile
+        - core.ns implement nil?, true?, false?, symbol?, sequential?,
+          vector, vector?
+        - add mal error type which wraps normal mal type
+            - in core.ns add throw which wraps type in mal error type
+              and throws/raises/sets exception
+        - add try*/catch* support to EVAL
+            - if mal error type, bind to catch* bind symbol
+            - otherwise, bind string of error to catch* bind symbol
+        - implement apply, map in core.ns
+        - make test^go^stepA
+        - implement readline.EXT
+            - provide option (e.g. commented out) to link with GNU
+              readline (GPL) or libedit (BSD)
+        - add hash-map functions: hash-map, map?, assoc, dissoc, get,
+          contains?, keys, vals
+        - add metadata support to List, Vector, HashMap, and Functions
+            - add reader macro
+            - may need to box HashMap and native functions
+        - add atom type, reader macro and functions: with_meta, meta
+        - get `make test^go^stepA` to fully pass
+        - get `./stepA_more ../mal/step1_read_print` to pass
+            - continue for each mal step until ../mal/stepA_more
+            - Now self-hosting!
+
 
 - Extra defintions needed for self-hosting
     - core module:

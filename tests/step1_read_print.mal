@@ -78,6 +78,7 @@ abc-def
 
 ;;
 ;; Testing reader errors
+;;; TODO: fix these so they fail correctly
 (1 2
 ; expected ')', got EOF
 [1 2

@@ -33,7 +33,6 @@ C#:
 Clojure:
 
 Go:
-    - use reflect to simplify several points
     - consider variable arguments in places where it makes sense
         https://gobyexample.com/variadic-functions
 
@@ -110,6 +109,7 @@ Future Implementations:
             * Shell (Bash 4)
 
         - Tier 2
+            - R
             - Scala
             - Haskell
             * Clojure
@@ -142,4 +142,8 @@ Future Implementations:
     - Others:
         - Forth (Stack-based)
         - BF (Crazy)
+        - TeX/LaTeX
+            - Basic interpreter in TeX: http://ctanhg.scharrer-online.de/pkg/basix.html
+            - Cheat Sheet: http://www.stdout.org/~winston/latex/latexsheet.pd
+            - latex '\nonstopmode\input' blah.tex
 

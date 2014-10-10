@@ -195,6 +195,34 @@ func do_map(a []MalType) (MalType, error) {
     return List{results,nil}, nil
 }
 
+func conj(a []MalType) (MalType, error) {
+    if len(a) <2 { return nil, errors.New("conj requires at least 2 arguments") }
+    switch seq := a[0].(type) {
+    case List:
+        new_slc := []MalType{}
+        for i := len(a)-1 ; i > 0 ; i-=1 {
+            new_slc = append(new_slc, a[i])
+        }
+        return List{append(new_slc, seq.Val...),nil}, nil
+    case Vector:
+        new_slc := seq.Val
+        for _, x := range a[1:] {
+            new_slc = append(new_slc, x)
+        }
+        return Vector{new_slc,nil}, nil
+    }
+
+    if !HashMap_Q(a[0]) { return nil, errors.New("dissoc called on non-hash map") }
+    new_hm := copy_hash_map(a[0].(HashMap))
+    for i := 1; i < len(a); i+=1 {
+        key := a[i]
+        if !String_Q(key) { return nil, errors.New("dissoc called with non-string key") }
+        delete(new_hm.Val,key.(string))
+    }
+    return new_hm, nil
+}
+
+
 
 // Metadata functions
 func with_meta(a []MalType) (MalType, error) {
@@ -204,6 +232,7 @@ func with_meta(a []MalType) (MalType, error) {
     case List:    return List{tobj.Val,m}, nil
     case Vector:  return Vector{tobj.Val,m}, nil
     case HashMap: return HashMap{tobj.Val,m}, nil
+    case Func: return Func{tobj.Fn,m}, nil
     case MalFunc: fn := tobj; fn.Meta = m; return fn, nil
     default: return nil, errors.New("with-meta not supported on type")
     }
@@ -215,6 +244,7 @@ func meta(a []MalType) (MalType, error) {
     case List:    return tobj.Meta, nil
     case Vector:  return tobj.Meta, nil
     case HashMap: return tobj.Meta, nil
+    case Func:    return tobj.Meta, nil
     case MalFunc: return tobj.Meta, nil
     default: return nil, errors.New("meta not supported on type")
     }
@@ -319,11 +349,14 @@ var NS = map[string]MalType{
     "count": count,
     "apply": apply,
     "map": do_map,
+    "conj": conj,
 
     "with-meta": with_meta,
     "meta": meta,
     "atom": func(a []MalType) (MalType, error) {
             return &Atom{a[0],nil}, nil },
+    "atom?": func(a []MalType) (MalType, error) {
+            return Atom_Q(a[0]), nil },
     "deref": deref,
     "reset!": reset_BANG,
     "swap!": swap_BANG,
