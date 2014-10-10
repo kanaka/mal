@@ -93,13 +93,13 @@ func read_list(rdr Reader, start string, end string) (MalType, error) {
         ast_list = append(ast_list, f)
     }
     rdr.next()
-    return List{ast_list}, nil
+    return List{ast_list,nil}, nil
 }
 
 func read_vector(rdr Reader) (MalType, error) {
     lst, e := read_list(rdr, "[", "]")
     if e != nil { return nil, e }
-    vec := Vector{lst.(List).Val}
+    vec := Vector{lst.(List).Val,nil}
     return vec, nil
 }
 
@@ -116,16 +116,23 @@ func read_form(rdr Reader) (MalType, error) {
 
     case `'`:  rdr.next();
                form, e := read_form(rdr); if e != nil { return nil, e }
-               return List{[]MalType{Symbol{"quote"}, form}}, nil
+               return List{[]MalType{Symbol{"quote"}, form},nil}, nil
     case "`":  rdr.next();
                form, e := read_form(rdr); if e != nil { return nil, e }
-               return List{[]MalType{Symbol{"quasiquote"}, form}}, nil
+               return List{[]MalType{Symbol{"quasiquote"}, form},nil}, nil
     case `~`:  rdr.next();
                form, e := read_form(rdr); if e != nil { return nil, e }
-               return List{[]MalType{Symbol{"unquote"}, form}}, nil
+               return List{[]MalType{Symbol{"unquote"}, form},nil}, nil
     case `~@`: rdr.next();
                form, e := read_form(rdr); if e != nil { return nil, e }
-               return List{[]MalType{Symbol{"splice-unquote"}, form}}, nil
+               return List{[]MalType{Symbol{"splice-unquote"}, form},nil}, nil
+    case `^`:  rdr.next();
+               meta, e := read_form(rdr); if e != nil { return nil, e }
+               form, e := read_form(rdr); if e != nil { return nil, e }
+               return List{[]MalType{Symbol{"with-meta"}, form,meta},nil}, nil
+    case `@`:  rdr.next();
+               form, e := read_form(rdr); if e != nil { return nil, e }
+               return List{[]MalType{Symbol{"deref"}, form},nil}, nil
 
     // list
     case ")": return nil, errors.New("unexpected ')'")

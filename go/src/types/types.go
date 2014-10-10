@@ -29,10 +29,7 @@ type EnvType interface {
 
 // Scalars
 func Nil_Q(obj MalType) bool {
-    switch obj.(type) {
-    case nil: return true
-    default:  return false
-    }
+    if obj == nil { return true } else { return false }
 }
 
 func True_Q(obj MalType) bool {
@@ -55,19 +52,15 @@ type Symbol struct {
 }
 
 func Symbol_Q(obj MalType) bool {
-    switch obj.(type) {
-    case Symbol: return true
-    default:     return false
-    }
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "Symbol"
 }
 
 
 // Strings
 func String_Q(obj MalType) bool {
-    switch obj.(type) {
-    case string: return true
-    default:     return false
-    }
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "string"
 }
 
 
@@ -79,13 +72,12 @@ type MalFunc struct {
     Params  MalType
     IsMacro bool
     GenEnv  func(EnvType, MalType, MalType) (EnvType, error)
+    Meta    MalType
 }
 
 func MalFunc_Q(obj MalType) bool {
-    switch obj.(type) {
-    case MalFunc: return true
-    default:      return false
-    }
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "MalFunc"
 }
 
 func (f MalFunc) SetMacro() MalType {
@@ -102,7 +94,7 @@ func (f MalFunc) GetMacro() bool {
 func Apply(f_mt MalType, a []MalType) (MalType, error) {
     switch f := f_mt.(type) {
     case MalFunc:
-        env, e := f.GenEnv(f.Env, f.Params, List{a})
+        env, e := f.GenEnv(f.Env, f.Params, List{a,nil})
         if e != nil { return nil, e }
         return f.Eval(f.Exp, env)
     case func([]MalType)(MalType, error):
@@ -116,29 +108,27 @@ func Apply(f_mt MalType, a []MalType) (MalType, error) {
 // Lists
 type List struct {
     Val []MalType
+    Meta MalType
 }
 
 func NewList(a ...MalType) MalType {
-    return List{a}
+    return List{a,nil}
 }
 
 func List_Q(obj MalType) bool {
-    switch obj.(type) {
-    case List: return true
-    default:   return false
-    }
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "List"
 }
 
 // Vectors
 type Vector struct {
     Val []MalType
+    Meta MalType
 }
 
 func Vector_Q(obj MalType) bool {
-    switch obj.(type) {
-    case Vector: return true
-    default:     return false
-    }
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "Vector"
 }
 
 func GetSlice(seq MalType) ([]MalType, error) {
@@ -150,6 +140,11 @@ func GetSlice(seq MalType) ([]MalType, error) {
 }
 
 // Hash Maps
+type HashMap struct {
+    Val map[string]MalType
+    Meta MalType
+}
+
 func NewHashMap(seq MalType) (MalType, error) {
     lst, e := GetSlice(seq)
     if e != nil { return nil, e }
@@ -164,19 +159,37 @@ func NewHashMap(seq MalType) (MalType, error) {
         }
         m[str] = lst[i+1]
     }
-    return m, nil
+    return HashMap{m,nil}, nil
 }
 
 func HashMap_Q(obj MalType) bool {
+    if obj == nil { return false }
+    return reflect.TypeOf(obj).Name() == "HashMap"
+}
+
+// Atoms
+type Atom struct {
+    Val  MalType
+    Meta MalType
+}
+func (a *Atom) Set(val MalType) MalType {
+    a.Val= val
+    return a
+}
+
+func Atom_Q(obj MalType) bool {
     switch obj.(type) {
-    case map[string]MalType: return true
-    default:                 return false
+    case *Atom: return true
+    default:    return false
     }
 }
+
+
 
 // General functions
 
 func _obj_type(obj MalType) string {
+    if obj == nil { return "nil" }
     return reflect.TypeOf(obj).Name()
 }
 
@@ -204,7 +217,7 @@ func Equal_Q(a MalType, b MalType) bool {
             if !Equal_Q(as[i], bs[i]) { return false }
         }
         return true
-    case "map[string]MalType":
+    case "HashMap":
         return false
     default:
         return a == b

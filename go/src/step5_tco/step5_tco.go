@@ -32,7 +32,7 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
             if e != nil { return nil, e }
             lst = append(lst, exp)
         }
-        return List{lst}, nil
+        return List{lst,nil}, nil
     } else if Vector_Q(ast) {
         lst := []MalType{}
         for _, a := range ast.(Vector).Val {
@@ -40,11 +40,11 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
             if e != nil { return nil, e }
             lst = append(lst, exp)
         }
-        return Vector{lst}, nil
+        return Vector{lst,nil}, nil
     } else if HashMap_Q(ast) {
-        m := ast.(map[string]MalType)
-        new_hm := map[string]MalType{}
-        for k, v := range m {
+        m := ast.(HashMap)
+        new_hm := HashMap{map[string]MalType{},nil}
+        for k, v := range m.Val {
             ke, e1 := EVAL(k, env)
             if e1 != nil { return nil, e1 }
             if _, ok := ke.(string); !ok {
@@ -52,7 +52,7 @@ func eval_ast(ast MalType, env EnvType) (MalType, error) {
             }
             kv, e2 := EVAL(v, env)
             if e2 != nil { return nil, e2 }
-            new_hm[ke.(string)] = kv
+            new_hm.Val[ke.(string)] = kv
         }
         return new_hm, nil
     } else {
@@ -104,7 +104,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
         env = let_env
     case "do":
         lst := ast.(List).Val
-        _, e := eval_ast(List{lst[1:len(lst)-1]}, env) 
+        _, e := eval_ast(List{lst[1:len(lst)-1],nil}, env) 
         if e != nil { return nil, e }
         if len(lst) == 1 { return nil, nil }
         ast = lst[len(lst)-1]
@@ -121,7 +121,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             ast = a2
         }
     case "fn*":
-        fn := MalFunc{EVAL, a2, env, a1, false, NewEnv}
+        fn := MalFunc{EVAL, a2, env, a1, false, NewEnv, nil}
         return fn, nil
     default:
         el, e := eval_ast(ast, env)
@@ -130,7 +130,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
         if MalFunc_Q(f) {
             fn := f.(MalFunc)
             ast = fn.Exp
-            env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:]})
+            env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:],nil})
             if e != nil { return nil, e }
         } else {
             fn, ok := f.(func([]MalType)(MalType, error))

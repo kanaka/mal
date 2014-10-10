@@ -24,9 +24,9 @@ func Pr_str(obj types.MalType, print_readably bool) string {
         return Pr_list(tobj.Val, print_readably, "(", ")", " ")
     case types.Vector:
         return Pr_list(tobj.Val, print_readably, "[", "]", " ")
-    case map[string]types.MalType:
-        str_list := make([]string, 0, len(tobj)*2)
-        for k, v := range tobj {
+    case types.HashMap:
+        str_list := make([]string, 0, len(tobj.Val)*2)
+        for k, v := range tobj.Val {
             str_list = append(str_list, Pr_str(k, print_readably))
             str_list = append(str_list, Pr_str(v, print_readably))
         }
@@ -51,6 +51,9 @@ func Pr_str(obj types.MalType, print_readably bool) string {
                Pr_str(tobj.Exp, true) + ")"
     case func([]types.MalType)(types.MalType, error):
         return fmt.Sprintf("<function %v>", obj)
+    case *types.Atom:
+        return "(atom " +
+               Pr_str(tobj.Val, true) + ")"
     default:
         return fmt.Sprintf("%v", obj)
     }
