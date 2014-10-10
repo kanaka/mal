@@ -37,8 +37,8 @@ The mal (make a lisp) steps are:
 * step6_file
 * step7_quote
 * step8_macros
-* step9_interop
-* stepA_more
+* step9_try
+* stepA_interop
 
 
 Mal was presented publicly for the first time in a lightning talk at

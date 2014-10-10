@@ -335,13 +335,7 @@ Step Notes:
         - add first, rest and nth to core.ns
         - make test^go^step8 should now pass
 
-- step9_interop
-    - convert returned data to mal data
-        - recursive, similar to pr_str
-    - Details:
-        - can be done after stepA_more
-
-- stepA_more
+- stepA_try
     - core module:
         - throw function
         - apply, map functions: should not directly call EVAL, which
@@ -354,7 +348,7 @@ Step Notes:
     - set and print *host-language*
     - define cond and or macros using REP/RE
     - Details:
-        - cp step8_macros.EXT to stepA_more.EXT
+        - cp step8_macros.EXT to stepA_try.EXT
         - if compiled update Makefile
         - core.ns implement nil?, true?, false?, symbol?, sequential?,
           vector, vector?
@@ -376,8 +370,8 @@ Step Notes:
             - may need to box HashMap and native functions
         - add atom type, reader macro and functions: with_meta, meta
         - get `make test^go^stepA` to fully pass
-        - get `./stepA_more ../mal/step1_read_print` to pass
-            - continue for each mal step until ../mal/stepA_more
+        - get `./stepA_try ../mal/step1_read_print` to pass
+            - continue for each mal step until ../mal/stepA_try
             - Now self-hosting!
 
 
@@ -386,9 +380,6 @@ Step Notes:
         - symbol?, sequential? (if not already)
         - vector, vector?
 
-
-- Other misc:
-    - conj function
 
 - atoms
     - reader module:
@@ -406,3 +397,12 @@ Step Notes:
             - clone/copy of collections
     - core module:
         - add with-meta, meta functions
+
+- Other misc:
+    - conj function
+
+- stepA_interop
+    - convert returned data to mal data
+        - recursive, similar to pr_str
+    - Details:
+
