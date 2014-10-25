@@ -14,9 +14,15 @@ pub enum MalType {
     List(Vec<MalVal>),
     Vector(Vec<MalVal>),
     HashMap(collections::HashMap<String, MalVal>),
+    Func(fn(Vec<MalVal>) -> MalRet),
+    //Func(fn(&[MalVal]) -> MalRet),
+    //Func(|Vec<MalVal>|:'a -> MalRet),
 }
 
 pub type MalVal = Rc<MalType>;
+
+pub type MalRet = Result<MalVal,String>;
+
 
 impl MalType {
     pub fn pr_str(&self, print_readably: bool) -> String {
@@ -44,8 +50,11 @@ impl MalType {
                 }
                 res.push_str(")")
             }
-/*
-*/
+            // TODO: better function representation
+            //Func(ref v) => {
+            Func(_) => {
+                res.push_str(format!("#<function ...>").as_slice())
+            }
             /*
             Vector(ref v) => {
                 let mut first = true;

@@ -4,20 +4,19 @@
 extern crate regex_macros;
 extern crate regex;
 
-use std::rc::Rc;
-use types::{MalVal,List,Vector,Int,Nil};
+use types::{MalVal,MalRet};
 mod readline;
 mod types;
 mod reader;
 mod printer;
 
 // read
-fn read(str: String) -> Result<MalVal,String> {
+fn read(str: String) -> MalRet {
     reader::read_str(str)
 }
 
 // eval
-fn eval(ast: MalVal) -> Result<MalVal,String> {
+fn eval(ast: MalVal) -> MalRet {
     Ok(ast)
 }
 

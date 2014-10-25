@@ -6,7 +6,7 @@
 extern crate pcre;
 
 use std::rc::Rc;
-use types::{MalVal,Nil,True,False,Int,Strn,Sym,List};
+use types::{MalVal,MalRet,Nil,True,False,Int,Strn,Sym,List};
 use self::pcre::Pcre;
 use super::printer::unescape_str;
 
@@ -54,7 +54,7 @@ fn tokenize(str :String) -> Vec<String> {
     results
 }
 
-fn read_atom(rdr : &mut Reader) -> Result<MalVal,String> {
+fn read_atom(rdr : &mut Reader) -> MalRet {
     let otoken = rdr.next();
     //println!("read_atom: {}", otoken);
     if otoken.is_none() { return Err("read_atom underflow".to_string()); }
@@ -77,7 +77,7 @@ fn read_atom(rdr : &mut Reader) -> Result<MalVal,String> {
     }
 }
 
-fn read_list(rdr : &mut Reader) -> Result<MalVal,String> {
+fn read_list(rdr : &mut Reader) -> MalRet {
     let otoken = rdr.next();
     if otoken.is_none() { return Err("read_atom underflow".to_string()); }
     let stoken = otoken.unwrap();
@@ -103,7 +103,7 @@ fn read_list(rdr : &mut Reader) -> Result<MalVal,String> {
     Ok(Rc::new(List(ast_vec)))
 }
 
-fn read_form(rdr : &mut Reader) -> Result<MalVal,String> {
+fn read_form(rdr : &mut Reader) -> MalRet {
     let otoken = rdr.peek();
     //println!("read_form: {}", otoken);
     let stoken = otoken.unwrap();
@@ -115,7 +115,7 @@ fn read_form(rdr : &mut Reader) -> Result<MalVal,String> {
     }
 }
 
-pub fn read_str(str :String) -> Result<MalVal,String> {
+pub fn read_str(str :String) -> MalRet {
     let tokens = tokenize(str);
     if tokens.len() == 0 {
         return Err("<empty line>".to_string());
