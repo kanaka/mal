@@ -60,6 +60,19 @@ abc-def
 (1 2, 3,,,,),,
 ;=>(1 2 3)
 
+;;
+;; Testing reader errors
+;;; TODO: fix these so they fail correctly
+(1 2
+; expected ')', got EOF
+[1 2
+; expected ']', got EOF
+"abc
+; expected '"', got EOF
+
+;;
+;; -------- Optional Functionality --------
+
 ;; Testing read of vectors
 [+ 1 2]
 ;=>[+ 1 2]
@@ -79,19 +92,6 @@ abc-def
 ;=>{"a" {"b" {"c" 3}}}
 {  "a"  {"b"   {  "cde"     3   }  }}
 ;=>{"a" {"b" {"cde" 3}}}
-
-;;
-;; Testing reader errors
-;;; TODO: fix these so they fail correctly
-(1 2
-; expected ')', got EOF
-[1 2
-; expected ']', got EOF
-"abc
-; expected '"', got EOF
-
-;;
-;; -------- Optional Functionality --------
 
 ;; Testing read of comments
  ;; whole line comment (not an exception)

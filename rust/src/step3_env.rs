@@ -4,9 +4,8 @@
 extern crate regex_macros;
 extern crate regex;
 
-use std::rc::Rc;
-
-use types::{MalVal,MalRet,Int,Sym,List,Vector,Func};
+use types::{MalVal,MalRet,Int,Sym,List,Vector,Func,
+            _int,list,func};
 use env::{Env,env_new,env_set,env_get};
 mod readline;
 mod types;
@@ -36,7 +35,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(Rc::new(List(ast_vec)))
+            Ok(list(ast_vec))
         },
         _ => {
             Ok(ast)
@@ -45,6 +44,8 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
 }
 
 fn eval(ast: MalVal, env: Env) -> MalRet {
+    //println!("eval: {}, {}", ast, env.borrow());
+    //println!("eval: {}", ast);
     let ast2 = ast.clone();
     match *ast2 {
         List(_) => (),  // continue
@@ -54,6 +55,9 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
     // apply list
     match *ast2 {
         List(ref args) => {
+            if args.len() == 0 { 
+                return Ok(ast);
+            }
             let ref a0 = *args[0];
             match *a0 {
                 Sym(ref a0sym) => {
@@ -162,7 +166,7 @@ fn rep(str: String, env: Env) -> Result<String,String> {
 fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
     match *a[0] {
         Int(a0) => match *a[1] {
-            Int(a1) => Ok(Rc::new(Int(f(a0,a1)))),
+            Int(a1) => Ok(_int(f(a0,a1))),
             _ => Err("second arg must be an int".to_string()),
         },
         _ => Err("first arg must be an int".to_string()),
@@ -175,10 +179,10 @@ fn div(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i/j }, a) }
 
 fn main() {
     let repl_env = env_new(None);
-    env_set(&repl_env, "+".to_string(), Rc::new(Func(add)));
-    env_set(&repl_env, "-".to_string(), Rc::new(Func(sub)));
-    env_set(&repl_env, "*".to_string(), Rc::new(Func(mul)));
-    env_set(&repl_env, "/".to_string(), Rc::new(Func(div)));
+    env_set(&repl_env, "+".to_string(), func(add));
+    env_set(&repl_env, "-".to_string(), func(sub));
+    env_set(&repl_env, "*".to_string(), func(mul));
+    env_set(&repl_env, "/".to_string(), func(div));
 
     loop {
         let line = readline::mal_readline("user> ");

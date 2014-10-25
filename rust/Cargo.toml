@@ -39,3 +39,6 @@ name = "step5_tco"
 
 [[bin]]
 name = "step6_file"
+
+[[bin]]
+name = "step7_quote"

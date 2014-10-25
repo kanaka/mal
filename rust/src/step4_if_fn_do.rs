@@ -4,10 +4,9 @@
 extern crate regex_macros;
 extern crate regex;
 
-use std::rc::Rc;
-
-use types::{MalVal,MalRet,MalFunc,MalFuncData,
-            Nil,False,Sym,List,Vector,Func};
+use types::{MalVal,MalRet,MalFunc,
+            Nil,False,Sym,List,Vector,Func,
+            _nil,list,malfunc};
 use env::{Env,env_new,env_bind,env_set,env_get};
 mod readline;
 mod types;
@@ -38,7 +37,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(Rc::new(List(ast_vec)))
+            Ok(list(ast_vec))
         },
         _ => {
             Ok(ast)
@@ -116,7 +115,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                             return eval(a2, let_env.clone());
                         },
                         "do" => {
-                            let el = Rc::new(List(args.slice(1,args.len()).to_vec()));
+                            let el = list(args.slice(1,args.len()-1).to_vec());
                             match eval_ast(el, env.clone()) {
                                 Err(e) => return Err(e),
                                 Ok(el) => {
@@ -140,7 +139,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                                         let a3 = (*args)[3].clone();
                                         return eval(a3, env.clone());
                                     } else {
-                                        return Ok(Rc::new(Nil));
+                                        return Ok(_nil());
                                     }
                                 },
                                 _ => {
@@ -152,10 +151,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                         "fn*" => {
                             let a1 = (*args)[1].clone();
                             let a2 = (*args)[2].clone();
-                            return Ok(Rc::new(MalFunc(MalFuncData{
-                                exp: a2,
-                                env: env.clone(),
-                                params: a1})));
+                            return Ok(malfunc(a2, env.clone(), a1));
                         },
                         _ => ()
                     }
@@ -180,10 +176,9 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                                 Func(f) => f(args.slice(1,args.len()).to_vec()),
                                 MalFunc(ref mf) => {
                                     let mfc = mf.clone();
-                                    let alst = List(args.slice(1,args.len()).to_vec());
+                                    let alst = list(args.slice(1,args.len()).to_vec());
                                     let new_env = env_new(Some(mfc.env.clone()));
-                                    match env_bind(&new_env, mfc.params,
-                                                             Rc::new(alst)) {
+                                    match env_bind(&new_env, mfc.params, alst) {
                                         Ok(_) => eval(mfc.exp, new_env),
                                         Err(e) => Err(e),
                                     }

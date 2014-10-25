@@ -4,10 +4,10 @@
 extern crate regex_macros;
 extern crate regex;
 
-use std::rc::Rc;
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,Nil,Int,Sym,List,Func};
+use types::{MalVal,MalRet,Int,Sym,List,Func,
+            _nil,_int,list,func};
 mod readline;
 mod types;
 mod env;
@@ -25,7 +25,7 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
         Sym(ref sym) => {
             match env.find_copy(sym) {
                 Some(mv) => Ok(mv),
-                None     => Ok(Rc::new(Nil)),
+                None     => Ok(_nil()),
             }
         },
         List(ref a) => {
@@ -37,7 +37,7 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(Rc::new(List(ast_vec)))
+            Ok(list(ast_vec))
         },
         _ => {
             Ok(ast.clone())
@@ -98,7 +98,7 @@ fn rep(str: String, env: &HashMap<String,MalVal>) -> Result<String,String> {
 fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
     match *a[0] {
         Int(a0) => match *a[1] {
-            Int(a1) => Ok(Rc::new(Int(f(a0,a1)))),
+            Int(a1) => Ok(_int(f(a0,a1))),
             _ => Err("second arg must be an int".to_string()),
         },
         _ => Err("first arg must be an int".to_string()),
@@ -111,10 +111,10 @@ fn div(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i/j }, a) }
 
 fn main() {
     let mut repl_env : HashMap<String,MalVal> = HashMap::new();
-    repl_env.insert("+".to_string(), Rc::new(Func(add)));
-    repl_env.insert("-".to_string(), Rc::new(Func(sub)));
-    repl_env.insert("*".to_string(), Rc::new(Func(mul)));
-    repl_env.insert("/".to_string(), Rc::new(Func(div)));
+    repl_env.insert("+".to_string(), func(add));
+    repl_env.insert("-".to_string(), func(sub));
+    repl_env.insert("*".to_string(), func(mul));
+    repl_env.insert("/".to_string(), func(div));
 
     loop {
         let line = readline::mal_readline("user> ");

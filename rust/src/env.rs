@@ -1,11 +1,12 @@
+#![allow(dead_code)]
+
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 
-use types::{MalVal,MalRet,Nil,Sym,List};
+use types::{MalVal,MalRet,Sym,List,_nil,list};
 
-#[allow(dead_code)]
 struct EnvType {
     data: HashMap<String,MalVal>,
     outer: Option<Env>,
@@ -13,12 +14,10 @@ struct EnvType {
 
 pub type Env = Rc<RefCell<EnvType>>;
 
-#[allow(dead_code)]
 pub fn env_new(outer: Option<Env>) -> Env {
     Rc::new(RefCell::new(EnvType{data: HashMap::new(), outer: outer}))
 }
 
-#[allow(dead_code)]
 pub fn env_bind(env: &Env,
                 mbinds: MalVal,
                 mexprs: MalVal) -> Result<Env,String> {
@@ -46,7 +45,7 @@ pub fn env_bind(env: &Env,
                         match **sym {
                             Sym(ref s) => {
                                 let rest = exprs.slice(i-1,exprs.len()).to_vec();
-                                env_set(env, s.clone(), Rc::new(List(rest)));
+                                env_set(env, s.clone(), list(rest));
                             }
                             _ => return Err("& bind to non-symbol".to_string()),
                         }
@@ -60,7 +59,6 @@ pub fn env_bind(env: &Env,
     }
 }
 
-#[allow(dead_code)]
 pub fn env_find(env: Env, key: String) -> Option<Env> {
     if env.borrow().data.contains_key(&key) {
         Some(env)
@@ -72,7 +70,6 @@ pub fn env_find(env: Env, key: String) -> Option<Env> {
     }
 }
 
-#[allow(dead_code)]
 pub fn env_root(env: &Env) -> Env {
     match env.borrow().outer {
         Some(ref ei) => env_root(ei),
@@ -80,18 +77,16 @@ pub fn env_root(env: &Env) -> Env {
     }
 }
 
-#[allow(dead_code)]
 pub fn env_set(env: &Env, key: String, val: MalVal) {
     env.borrow_mut().data.insert(key, val.clone());
 }
 
-#[allow(dead_code)]
 pub fn env_get(env: Env, key: String) -> MalRet {
     match env_find(env, key.clone()) {
         Some(e) => {
             match e.borrow().data.find_copy(&key) {
                 Some(v) => Ok(v),
-                None => Ok(Rc::new(Nil)),
+                None => Ok(_nil()),
             }
         },
         None    => Err("'".to_string() + key + "' not found".to_string()),

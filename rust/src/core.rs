@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 
-use std::rc::Rc;
+extern crate time;
 use std::collections::HashMap;
 use std::io::File;
 
-use types::{MalVal,MalRet,Func,True,False,Int,Strn,List,Nil};
+use types::{MalVal,MalRet,Int,Strn,List,
+            _nil,_true,_false,_int,string,list,func};
 use reader;
 use printer;
 
@@ -15,28 +16,28 @@ fn equal_q(a:Vec<MalVal>) -> MalRet {
         return Err("Wrong arity to equal? call".to_string());
     }
     match a[0] == a[1] {
-        true => Ok(Rc::new(True)),
-        false => Ok(Rc::new(False)),
+        true => Ok(_true()),
+        false => Ok(_false()),
     }
 }
 
 // String routines
 fn pr_str(a:Vec<MalVal>) -> MalRet {
-    Ok(Rc::new(Strn(printer::pr_list(&a, true, "", "", " "))))
+    Ok(string(printer::pr_list(&a, true, "", "", " ")))
 }
 
 fn str(a:Vec<MalVal>) -> MalRet {
-    Ok(Rc::new(Strn(printer::pr_list(&a, false, "", "", ""))))
+    Ok(string(printer::pr_list(&a, false, "", "", "")))
 }
 
 fn prn(a:Vec<MalVal>) -> MalRet {
     println!("{}", printer::pr_list(&a, true, "", "", " "))
-    Ok(Rc::new(Nil))
+    Ok(_nil())
 }
 
 fn println(a:Vec<MalVal>) -> MalRet {
     println!("{}", printer::pr_list(&a, false, "", "", " "))
-    Ok(Rc::new(Nil))
+    Ok(_nil())
 }
 
 fn read_string(a:Vec<MalVal>) -> MalRet {
@@ -50,7 +51,7 @@ fn slurp(a:Vec<MalVal>) -> MalRet {
     match *a[0] {
         Strn(ref a0) => {
             match File::open(&Path::new(a0.as_slice())).read_to_string() {
-                Ok(s) => Ok(Rc::new(Strn(s))),
+                Ok(s) => Ok(string(s)),
                 Err(e) => Err(e.to_string()),
             }
         },
@@ -63,7 +64,7 @@ fn slurp(a:Vec<MalVal>) -> MalRet {
 fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
     match *a[0] {
         Int(a0) => match *a[1] {
-            Int(a1) => Ok(Rc::new(Int(f(a0,a1)))),
+            Int(a1) => Ok(_int(f(a0,a1))),
             _ => Err("second arg must be an int".to_string()),
         },
         _ => Err("first arg must be an int".to_string()),
@@ -75,10 +76,9 @@ fn bool_op(f: |i:int,j:int|-> bool, a:Vec<MalVal>) -> MalRet {
         Int(a0) => match *a[1] {
             Int(a1) => {
                 match f(a0,a1) {
-                    true => Ok(Rc::new(True)),
-                    false => Ok(Rc::new(False)), 
+                    true => Ok(_true()),
+                    false => Ok(_false()), 
                 }
-                //Ok(Rc::new(Int(f(a0,a1)))),
             },
             _ => Err("second arg must be an int".to_string()),
         },
@@ -96,20 +96,50 @@ pub fn lte(a:Vec<MalVal>) -> MalRet { bool_op(|i,j| { i<=j }, a) }
 pub fn gt (a:Vec<MalVal>) -> MalRet { bool_op(|i,j| { i>j }, a) }
 pub fn gte(a:Vec<MalVal>) -> MalRet { bool_op(|i,j| { i>=j }, a) }
 
+#[allow(unused_variable)]
+pub fn time_ms(a:Vec<MalVal>) -> MalRet {
+    //let x = time::now();
+    let now = time::get_time();
+    let now_ms = (now.sec * 1000).to_int().unwrap() + (now.nsec.to_int().unwrap() / 1000000);
+    Ok(_int(now_ms))
+}
+
 
 // Sequence functions
-pub fn list(a:Vec<MalVal>) -> MalRet {
-    Ok(Rc::new(List(a)))
-}
+pub fn _list(a:Vec<MalVal>) -> MalRet { Ok(list(a)) }
 
 pub fn list_q(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return Err("Wrong arity to list? call".to_string());
     }
     match *a[0].clone() {
-        List(_) => Ok(Rc::new(True)),
-        _ => Ok(Rc::new(False)),
+        List(_) => Ok(_true()),
+        _ => Ok(_false()),
     }
+}
+
+pub fn cons(a:Vec<MalVal>) -> MalRet {
+    match *a[1] {
+        List(ref v) => {
+            let mut new_v = v.clone();
+            new_v.insert(0, a[0].clone());
+            Ok(list(new_v))
+        },
+        _ => Err("Second arg to cons not a sequence".to_string()),
+    }
+}
+
+pub fn concat(a:Vec<MalVal>) -> MalRet {
+    let mut new_v:Vec<MalVal> = vec![];
+    for lst in a.iter() {
+        match **lst {
+            List(ref l) => {
+                new_v.push_all(l.as_slice());
+            },
+            _ => return Err("concat called with non-sequence".to_string()),
+        }
+    }
+    Ok(list(new_v))
 }
 
 pub fn count(a:Vec<MalVal>) -> MalRet {
@@ -118,7 +148,7 @@ pub fn count(a:Vec<MalVal>) -> MalRet {
     }
     match *a[0].clone() {
         List(ref lst) => {
-            Ok(Rc::new(Int(lst.len().to_int().unwrap())))
+            Ok(_int(lst.len().to_int().unwrap()))
         },
         _ => Err("count called on non-sequence".to_string()),
     }
@@ -131,8 +161,8 @@ pub fn empty_q(a:Vec<MalVal>) -> MalRet {
     match *a[0].clone() {
         List(ref lst) => {
             match lst.len() {
-                0 => Ok(Rc::new(True)),
-                _ => Ok(Rc::new(False)),
+                0 => Ok(_true()),
+                _ => Ok(_false()),
             }
         },
         _ => Err("empty? called on non-sequence".to_string()),
@@ -144,28 +174,31 @@ pub fn empty_q(a:Vec<MalVal>) -> MalRet {
 pub fn ns() -> HashMap<String,MalVal> {
     let mut ns: HashMap<String,MalVal> = HashMap::new();;
 
-    ns.insert("=".to_string(), Rc::new(Func(equal_q)));
+    ns.insert("=".to_string(), func(equal_q));
 
-    ns.insert("pr-str".to_string(), Rc::new(Func(pr_str)));
-    ns.insert("str".to_string(), Rc::new(Func(str)));
-    ns.insert("prn".to_string(), Rc::new(Func(prn)));
-    ns.insert("println".to_string(), Rc::new(Func(println)));
-    ns.insert("read-string".to_string(), Rc::new(Func(read_string)));
-    ns.insert("slurp".to_string(), Rc::new(Func(slurp)));
+    ns.insert("pr-str".to_string(), func(pr_str));
+    ns.insert("str".to_string(), func(str));
+    ns.insert("prn".to_string(), func(prn));
+    ns.insert("println".to_string(), func(println));
+    ns.insert("read-string".to_string(), func(read_string));
+    ns.insert("slurp".to_string(), func(slurp));
 
-    ns.insert("<".to_string(),  Rc::new(Func(lt)));
-    ns.insert("<=".to_string(), Rc::new(Func(lte)));
-    ns.insert(">".to_string(),  Rc::new(Func(gt)));
-    ns.insert(">=".to_string(), Rc::new(Func(gte)));
-    ns.insert("+".to_string(), Rc::new(Func(add)));
-    ns.insert("-".to_string(), Rc::new(Func(sub)));
-    ns.insert("*".to_string(), Rc::new(Func(mul)));
-    ns.insert("/".to_string(), Rc::new(Func(div)));
+    ns.insert("<".to_string(),  func(lt));
+    ns.insert("<=".to_string(), func(lte));
+    ns.insert(">".to_string(),  func(gt));
+    ns.insert(">=".to_string(), func(gte));
+    ns.insert("+".to_string(), func(add));
+    ns.insert("-".to_string(), func(sub));
+    ns.insert("*".to_string(), func(mul));
+    ns.insert("/".to_string(), func(div));
+    ns.insert("time-ms".to_string(), func(time_ms));
 
-    ns.insert("list".to_string(), Rc::new(Func(list)));
-    ns.insert("list?".to_string(), Rc::new(Func(list_q)));
-    ns.insert("empty?".to_string(), Rc::new(Func(empty_q)));
-    ns.insert("count".to_string(), Rc::new(Func(count)));
+    ns.insert("list".to_string(), func(_list));
+    ns.insert("list?".to_string(), func(list_q));
+    ns.insert("cons".to_string(), func(cons));
+    ns.insert("concat".to_string(), func(concat));
+    ns.insert("empty?".to_string(), func(empty_q));
+    ns.insert("count".to_string(), func(count));
 
     return ns;
 }

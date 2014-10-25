@@ -5,8 +5,8 @@
 
 extern crate pcre;
 
-use std::rc::Rc;
-use types::{MalVal,MalRet,Nil,True,False,Int,Strn,Sym,List};
+use types::{MalVal,MalRet,
+            _nil,_true,_false,_int,symbol,string,list};
 use self::pcre::Pcre;
 use super::printer::unescape_str;
 
@@ -62,18 +62,18 @@ fn read_atom(rdr : &mut Reader) -> MalRet {
     let token = stoken.as_slice();
     if regex!(r"^-?[0-9]+$").is_match(token) {
         let num : Option<int> = from_str(token);
-        Ok(Rc::new(Int(num.unwrap())))
+        Ok(_int(num.unwrap()))
     } else if regex!(r#"^".*"$"#).is_match(token) {
         let new_str = token.slice(1,token.len()-1);
-        Ok(Rc::new(Strn(unescape_str(new_str))))
+        Ok(string(unescape_str(new_str)))
     } else if token == "nil" {
-        Ok(Rc::new(Nil))
+        Ok(_nil())
     } else if token == "true" {
-        Ok(Rc::new(True))
+        Ok(_true())
     } else if token == "false" {
-        Ok(Rc::new(False))
+        Ok(_false())
     } else {
-        Ok(Rc::new(Sym(String::from_str(token))))
+        Ok(symbol(token))
     }
 }
 
@@ -99,8 +99,7 @@ fn read_list(rdr : &mut Reader) -> MalRet {
     }
     rdr.next();
 
-    //ast_vec.push(Rc::new(Nil));
-    Ok(Rc::new(List(ast_vec)))
+    Ok(list(ast_vec))
 }
 
 fn read_form(rdr : &mut Reader) -> MalRet {
@@ -109,6 +108,35 @@ fn read_form(rdr : &mut Reader) -> MalRet {
     let stoken = otoken.unwrap();
     let token = stoken.as_slice();
     match token {
+        "'" => {
+            let _ = rdr.next();
+            match read_form(rdr) {
+                Ok(f) => Ok(list(vec![symbol("quote"), f])),
+                Err(e) => Err(e),
+            }
+        },
+        "`" => {
+            let _ = rdr.next();
+            match read_form(rdr) {
+                Ok(f) => Ok(list(vec![symbol("quasiquote"), f])),
+                Err(e) => Err(e),
+            }
+        },
+        "~" => {
+            let _ = rdr.next();
+            match read_form(rdr) {
+                Ok(f) => Ok(list(vec![symbol("unquote"), f])),
+                Err(e) => Err(e),
+            }
+        },
+        "~@" => {
+            let _ = rdr.next();
+            match read_form(rdr) {
+                Ok(f) => Ok(list(vec![symbol("splice-unquote"), f])),
+                Err(e) => Err(e),
+            }
+        },
+
         ")" => Err("unexected ')'".to_string()),
         "(" => read_list(rdr),
         _   => read_atom(rdr)

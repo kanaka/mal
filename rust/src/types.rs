@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::rc::Rc;
 use std::collections;
 use std::fmt;
@@ -110,4 +112,23 @@ impl fmt::Show for MalType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.pr_str(true))
     }
+}
+
+// Convenience constructor functions
+pub fn _nil() -> MalVal { Rc::new(Nil) }
+pub fn _true() -> MalVal { Rc::new(True) }
+pub fn _false() -> MalVal { Rc::new(False) }
+pub fn _int(i: int) -> MalVal { Rc::new(Int(i)) }
+
+pub fn symbol(strn: &str) -> MalVal { Rc::new(Sym(strn.to_string())) }
+pub fn strn(strn: &str) -> MalVal { Rc::new(Strn(strn.to_string())) }
+pub fn string(strn: String) -> MalVal { Rc::new(Strn(strn)) }
+
+pub fn list(lst: Vec<MalVal>) -> MalVal { Rc::new(List(lst)) }
+
+pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
+    Rc::new(Func(f))
+}
+pub fn malfunc(exp: MalVal, env: Env, params: MalVal) -> MalVal {
+    Rc::new(MalFunc(MalFuncData{ exp: exp, env: env, params: params}))
 }

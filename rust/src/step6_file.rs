@@ -4,11 +4,11 @@
 extern crate regex_macros;
 extern crate regex;
 
-use std::rc::Rc;
 use std::os;
 
-use types::{MalVal,MalRet,MalFunc,MalFuncData,
-            Nil,False,Sym,Strn,List,Vector,Func};
+use types::{MalVal,MalRet,MalFunc,
+            Nil,False,Sym,List,Vector,Func,
+            _nil,string,list,malfunc};
 use env::{Env,env_new,env_bind,env_root,env_set,env_get};
 mod readline;
 mod types;
@@ -39,7 +39,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(Rc::new(List(ast_vec)))
+            Ok(list(ast_vec))
         },
         _ => {
             Ok(ast)
@@ -122,13 +122,12 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                             continue 'tco;
                         },
                         "do" => {
-                            let el = Rc::new(List(args.slice(1,args.len()-1).to_vec()));
+                            let el = list(args.slice(1,args.len()-1).to_vec());
                             match eval_ast(el, env.clone()) {
                                 Err(e) => return Err(e),
                                 Ok(_) => {
                                     let ref last = args[args.len()-1];
                                     ast = last.clone();
-                                    env = env.clone();
                                     continue 'tco;
                                 },
                             }
@@ -145,7 +144,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                                         env = env.clone();
                                         continue 'tco;
                                     } else {
-                                        return Ok(Rc::new(Nil));
+                                        return Ok(_nil());
                                     }
                                 },
                                 _ => {
@@ -159,10 +158,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         "fn*" => {
                             let a1 = (*args)[1].clone();
                             let a2 = (*args)[2].clone();
-                            return Ok(Rc::new(MalFunc(MalFuncData{
-                                exp: a2,
-                                env: env.clone(),
-                                params: a1})));
+                            return Ok(malfunc(a2, env.clone(), a1));
                         },
                         "eval" => {
                             let a1 = (*args)[1].clone();
@@ -198,10 +194,9 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                                 Func(f) => f(args.slice(1,args.len()).to_vec()),
                                 MalFunc(ref mf) => {
                                     let mfc = mf.clone();
-                                    let alst = List(args.slice(1,args.len()).to_vec());
+                                    let alst = list(args.slice(1,args.len()).to_vec());
                                     let new_env = env_new(Some(mfc.env.clone()));
-                                    match env_bind(&new_env, mfc.params,
-                                                             Rc::new(alst)) {
+                                    match env_bind(&new_env, mfc.params, alst) {
                                         Ok(_) => {
                                             ast = mfc.exp;
                                             env = new_env;
@@ -247,7 +242,7 @@ fn main() {
     let repl_env = env_new(None);
     for (k, v) in core::ns().into_iter() { env_set(&repl_env, k, v); }
     // see eval() for definition of "eval"
-    env_set(&repl_env, "*ARGV*".to_string(), Rc::new(List(vec![])));
+    env_set(&repl_env, "*ARGV*".to_string(), list(vec![]));
 
     // core.mal: defined using the language itself
     let _ = rep("(def! not (fn* (a) (if a false true)))".to_string(),
@@ -259,9 +254,9 @@ fn main() {
     let args = os::args();
     if args.len() > 1 {
         let mv_args = args.slice(2,args.len()).iter()
-            .map(|a| Rc::new(Strn(a.clone())))
+            .map(|a| string(a.to_string()))
             .collect::<Vec<MalVal>>();
-        env_set(&repl_env, "*ARGV*".to_string(), Rc::new(List(mv_args)));
+        env_set(&repl_env, "*ARGV*".to_string(), list(mv_args));
         match rep("(load-file \"".to_string() + args[1] + "\")".to_string(),
                   repl_env.clone()) {
             Ok(_) => {
