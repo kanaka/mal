@@ -7,6 +7,7 @@ extern crate regex;
 use types::{MalVal,MalRet};
 mod readline;
 mod types;
+mod env;
 mod reader;
 mod printer;
 

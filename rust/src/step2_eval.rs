@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use types::{MalVal,MalRet,Nil,Int,Sym,List,Func};
 mod readline;
 mod types;
+mod env;
 mod reader;
 mod printer;
 

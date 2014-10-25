@@ -6,13 +6,15 @@ extern crate regex;
 
 use std::rc::Rc;
 
-use types::{MalVal,MalRet,Int,Sym,List,Vector,Func};
-use env::{Env,env_new,env_set,env_get};
+use types::{MalVal,MalRet,MalFunc,MalFuncData,
+            Nil,False,Sym,List,Vector,Func};
+use env::{Env,env_new,env_bind,env_set,env_get};
 mod readline;
 mod types;
 mod reader;
 mod printer;
 mod env;
+mod core;
 
 // read
 fn read(str: String) -> MalRet {
@@ -45,6 +47,8 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
 }
 
 fn eval(ast: MalVal, env: Env) -> MalRet {
+    //println!("eval: {}, {}", ast, env.borrow());
+    //println!("eval: {}", ast);
     let ast2 = ast.clone();
     match *ast2 {
         List(_) => (),  // continue
@@ -54,6 +58,9 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
     // apply list
     match *ast2 {
         List(ref args) => {
+            if args.len() == 0 { 
+                return Ok(ast);
+            }
             let ref a0 = *args[0];
             match *a0 {
                 Sym(ref a0sym) => {
@@ -108,13 +115,55 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                             }
                             return eval(a2, let_env.clone());
                         },
+                        "do" => {
+                            let el = Rc::new(List(args.slice(1,args.len()).to_vec()));
+                            match eval_ast(el, env.clone()) {
+                                Err(e) => return Err(e),
+                                Ok(el) => {
+                                    match *el {
+                                        List(ref lst) => {
+                                            let ref last = lst[lst.len()-1];
+                                            return Ok(last.clone());
+                                        }
+                                        _ => (),
+                                    }
+                                },
+                            }
+                        },
+                        "if" => {
+                            let a1 = (*args)[1].clone();
+                            let cond = eval(a1, env.clone());
+                            if cond.is_err() { return cond; }
+                            match *cond.unwrap() {
+                                False | Nil => {
+                                    if args.len() >= 4 {
+                                        let a3 = (*args)[3].clone();
+                                        return eval(a3, env.clone());
+                                    } else {
+                                        return Ok(Rc::new(Nil));
+                                    }
+                                },
+                                _ => {
+                                    let a2 = (*args)[2].clone();
+                                    return eval(a2, env.clone());
+                                },
+                            }
+                        },
+                        "fn*" => {
+                            let a1 = (*args)[1].clone();
+                            let a2 = (*args)[2].clone();
+                            return Ok(Rc::new(MalFunc(MalFuncData{
+                                exp: a2,
+                                env: env.clone(),
+                                params: a1})));
+                        },
                         _ => ()
                     }
                 }
                 _ => (),
             }
             // function call
-            match eval_ast(ast, env) {
+            match eval_ast(ast, env.clone()) {
                 Err(e) => Err(e),
                 Ok(el) => {
                     match *el {
@@ -129,6 +178,16 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                             let args2 = args.clone();
                             match *args2[0] {
                                 Func(f) => f(args.slice(1,args.len()).to_vec()),
+                                MalFunc(ref mf) => {
+                                    let mfc = mf.clone();
+                                    let alst = List(args.slice(1,args.len()).to_vec());
+                                    let new_env = env_new(Some(mfc.env.clone()));
+                                    match env_bind(&new_env, mfc.params,
+                                                             Rc::new(alst)) {
+                                        Ok(_) => return eval(mfc.exp, new_env),
+                                        Err(e) => return Err(e),
+                                    }
+                                },
                                 _ => Err("attempt to call non-function".to_string()),
                             }
                         }
@@ -159,26 +218,12 @@ fn rep(str: String, env: Env) -> Result<String,String> {
     }
 }
 
-fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
-    match *a[0] {
-        Int(a0) => match *a[1] {
-            Int(a1) => Ok(Rc::new(Int(f(a0,a1)))),
-            _ => Err("second arg must be an int".to_string()),
-        },
-        _ => Err("first arg must be an int".to_string()),
-    }
-}
-fn add(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i+j }, a) }
-fn sub(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i-j }, a) }
-fn mul(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i*j }, a) }
-fn div(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i/j }, a) }
-
 fn main() {
     let repl_env = env_new(None);
-    env_set(&repl_env, "+".to_string(), Rc::new(Func(add)));
-    env_set(&repl_env, "-".to_string(), Rc::new(Func(sub)));
-    env_set(&repl_env, "*".to_string(), Rc::new(Func(mul)));
-    env_set(&repl_env, "/".to_string(), Rc::new(Func(div)));
+    for (k, v) in core::ns().into_iter() { env_set(&repl_env, k, v); }
+
+    let _ = rep("(def! not (fn* (a) (if a false true)))".to_string(),
+                repl_env.clone());
 
     loop {
         let line = readline::mal_readline("user> ");

@@ -9,22 +9,27 @@ authors = [ "Your name <you@example.com>" ]
 
 git = "https://github.com/kanaka/rust-pcre"
 
+
+#[profile.dev]
+#
+#debug = true
+
+
 [[bin]]
 
 name = "exp"
 
 [[bin]]
-
 name = "step0_repl"
 
 [[bin]]
-
 name = "step1_read_print"
 
 [[bin]]
-
 name = "step2_eval"
 
 [[bin]]
-
 name = "step3_env"
+
+[[bin]]
+name = "step4_if_fn_do"
