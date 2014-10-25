@@ -46,10 +46,13 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
     }
 }
 
-fn eval(ast: MalVal, env: Env) -> MalRet {
+fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
+    'tco: loop {
+
     //println!("eval: {}, {}", ast, env.borrow());
     //println!("eval: {}", ast);
     let ast2 = ast.clone();
+    let ast3 = ast.clone();
     match *ast2 {
         List(_) => (),  // continue
         _ => return eval_ast(ast2, env),
@@ -59,7 +62,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
     match *ast2 {
         List(ref args) => {
             if args.len() == 0 { 
-                return Ok(ast);
+                return Ok(ast3);
             }
             let ref a0 = *args[0];
             match *a0 {
@@ -113,20 +116,19 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                                 },
                                 _ => return Err("let* with non-list bindings".to_string()),
                             }
-                            return eval(a2, let_env.clone());
+                            ast = a2;
+                            env = let_env.clone();
+                            continue 'tco;
                         },
                         "do" => {
-                            let el = Rc::new(List(args.slice(1,args.len()).to_vec()));
+                            let el = Rc::new(List(args.slice(1,args.len()-1).to_vec()));
                             match eval_ast(el, env.clone()) {
                                 Err(e) => return Err(e),
-                                Ok(el) => {
-                                    match *el {
-                                        List(ref lst) => {
-                                            let ref last = lst[lst.len()-1];
-                                            return Ok(last.clone());
-                                        }
-                                        _ => (),
-                                    }
+                                Ok(_) => {
+                                    let ref last = args[args.len()-1];
+                                    ast = last.clone();
+                                    env = env.clone();
+                                    continue 'tco;
                                 },
                             }
                         },
@@ -138,14 +140,18 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                                 False | Nil => {
                                     if args.len() >= 4 {
                                         let a3 = (*args)[3].clone();
-                                        return eval(a3, env.clone());
+                                        ast = a3;
+                                        env = env.clone();
+                                        continue 'tco;
                                     } else {
                                         return Ok(Rc::new(Nil));
                                     }
                                 },
                                 _ => {
                                     let a2 = (*args)[2].clone();
-                                    return eval(a2, env.clone());
+                                    ast = a2;
+                                    env = env.clone();
+                                    continue 'tco;
                                 },
                             }
                         },
@@ -163,7 +169,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                 _ => (),
             }
             // function call
-            return match eval_ast(ast, env.clone()) {
+            return match eval_ast(ast3, env.clone()) {
                 Err(e) => Err(e),
                 Ok(el) => {
                     match *el {
@@ -184,7 +190,11 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                                     let new_env = env_new(Some(mfc.env.clone()));
                                     match env_bind(&new_env, mfc.params,
                                                              Rc::new(alst)) {
-                                        Ok(_) => eval(mfc.exp, new_env),
+                                        Ok(_) => {
+                                            ast = mfc.exp;
+                                            env = new_env;
+                                            continue 'tco;
+                                        },
                                         Err(e) => Err(e),
                                     }
                                 },
@@ -196,7 +206,9 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                 }
             }
         }
-        _ => Err("Expected list".to_string()),
+        _ => return Err("Expected list".to_string()),
+    }
+
     }
 }
 

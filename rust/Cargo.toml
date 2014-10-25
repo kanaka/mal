@@ -33,3 +33,6 @@ name = "step3_env"
 
 [[bin]]
 name = "step4_if_fn_do"
+
+[[bin]]
+name = "step5_tco"

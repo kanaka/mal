@@ -114,7 +114,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                 _ => (),
             }
             // function call
-            match eval_ast(ast, env) {
+            return match eval_ast(ast, env) {
                 Err(e) => Err(e),
                 Ok(el) => {
                     match *el {
