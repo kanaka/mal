@@ -6,6 +6,7 @@ extern crate regex;
 
 use std::rc::Rc;
 use std::collections::HashMap;
+
 use types::{MalVal,MalRet,Nil,Int,Sym,List,Func};
 mod readline;
 mod types;
@@ -21,7 +22,7 @@ fn read(str: String) -> MalRet {
 fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
     match *ast {
         Sym(ref sym) => {
-            match (*env).find_copy(sym) {
+            match env.find_copy(sym) {
                 Some(mv) => Ok(mv),
                 None     => Ok(Rc::new(Nil)),
             }

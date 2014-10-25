@@ -24,3 +24,7 @@ name = "step1_read_print"
 [[bin]]
 
 name = "step2_eval"
+
+[[bin]]
+
+name = "step3_env"

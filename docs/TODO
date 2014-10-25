@@ -80,6 +80,10 @@ Future Implementations:
         - http://www.rustforrubyists.com/book/index.html
         - http://pzol.github.io/getting_rusty/
 
+        - http://featherweightmusings.blogspot.com/2014/05/rust-for-c-programmers-part-6-rc-gc-and.html
+        - http://pzol.github.io/getting_rusty/posts/20140417_destructuring_in_rust/ (destructuring)
+        - http://featherweightmusings.blogspot.com/2014/07/rust-for-c-programmers-part-8.html (destructuring)
+        - http://featherweightmusings.blogspot.co.nz/2014/07/rust-for-c-programmers-part-9.html (destructuruing and matching)
         - http://blog.thiago.me/notes-about-rust-modules/
         - http://doc.rust-lang.org/std/io/io
         - https://github.com/shaleh/rust-readline/blob/master/src/lib.rs
