@@ -1,0 +1,22 @@
+[package]
+
+name = "Mal"
+version = "0.0.1"
+authors = [ "Your name <you@example.com>" ]
+
+
+[dependencies.cadencemarseille-pcre]
+
+git = "https://github.com/kanaka/rust-pcre"
+
+[[bin]]
+
+name = "exp"
+
+[[bin]]
+
+name = "step0_repl"
+
+[[bin]]
+
+name = "step1_read_print"

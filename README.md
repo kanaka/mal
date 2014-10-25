@@ -3,7 +3,7 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 14 different languages:
+language. Mal is implemented from scratch in 15 different languages:
 
 * Bash shell
 * C
@@ -19,6 +19,7 @@ language. Mal is implemented from scratch in 14 different languages:
 * Postscript
 * Python
 * Ruby
+* Rust
 
 
 Mal is also a learning tool. Each implentation of mal is separated
@@ -177,6 +178,17 @@ python stepX_YYY.py
 ```
 cd ruby
 ruby stepX_YYY.rb
+```
+
+### Rust (0.13)
+
+The rust implementation of mal requires the rust compiler and build
+tool (cargo) to build.
+
+```
+cd rust
+cargo build
+./target/stepX_YYY
 ```
 
 ## Running tests

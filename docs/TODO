@@ -73,24 +73,18 @@ Ruby:
 Future Implementations:
 
     - Rust:
+        - http://doc.rust-lang.org/index.html
+        - http://doc.rust-lang.org/intro.html
+        - http://doc.rust-lang.org/guide.html
+        - http://rustbyexample.com/index.html
         - http://www.rustforrubyists.com/book/index.html
-        - http://static.rust-lang.org/doc/0.9/complement-cheatsheet.html
         - http://pzol.github.io/getting_rusty/
-        - release notes:
-            - https://github.com/mozilla/rust/wiki/Doc-detailed-release-notes
-        - this week in rust:
-            - http://cmr.github.io/
-        - readline:
-            - http://redbrain.co.uk/2013/11/09/rust-and-readline-c-ffi/
-            - http://www.reddit.com/r/rust/comments/1q9pqc/rust_cffi_and_readline/
-            - https://github.com/dbp/rustrepl
-        - hash-map:
-            - http://static.rust-lang.org/doc/master/std/hashmap/index.html
-            - http://static.rust-lang.org/doc/master/std/hashmap/struct.HashMap.html
-        - vector/list:
-            - http://static.rust-lang.org/doc/master/std/vec/index.html
-        - example code:
-            - https://github.com/dradtke/rust-dominion/blob/master/dominion/mod.rs
+
+        - http://blog.thiago.me/notes-about-rust-modules/
+        - http://doc.rust-lang.org/std/io/io
+        - https://github.com/shaleh/rust-readline/blob/master/src/lib.rs
+        - http://stackoverflow.com/questions/23942627/does-rust-0-10-have-a-rl-package
+        - http://blog.skylight.io/rust-means-never-having-to-close-a-socket/
 
     - Redmonk languages from Jan 2014:
         http://sogrady-media.redmonk.com/sogrady/files/2014/01/lang-rank-114-wm.png

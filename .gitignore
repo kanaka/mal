@@ -27,14 +27,6 @@ go/step*
 go/mal
 java/target/
 java/dependency-reduced-pom.xml
-rust/step0_repl
-rust/step1_read_print
-rust/step2_eval
-rust/step3_env
-rust/step4_if_fn_do
-rust/step5_tco
-rust/step6_file
-rust/step7_quote
-rust/step8_macros
-rust/step9_try
-rust/stepA_interop
+rust/target/
+rust/Cargo.lock
+rust/.cargo

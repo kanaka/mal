@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure cs go java js make mal perl php ps python ruby
+IMPLS = bash c clojure cs go java js make mal perl php ps python ruby rust
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -60,6 +60,7 @@ php_STEP_TO_PROG =     php/$($(1)).php
 ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
+rust_STEP_TO_PROG =    rust/target/$($(1))
 
 
 bash_RUNSTEP =    bash ../$(2) $(3)
@@ -76,6 +77,7 @@ php_RUNSTEP =     php ../$(2) $(3)
 ps_RUNSTEP =      $(4)gs -q -I./ -dNODISPLAY -- ../$(2) $(3)$(4)
 python_RUNSTEP =  $(PYTHON) ../$(2) $(3)
 ruby_RUNSTEP =    ruby ../$(2) $(3)
+rust_RUNSTEP =    ../$(2) $(3)
 
 # Extra options to pass to runtest.py
 cs_TEST_OPTS =  --redirect
