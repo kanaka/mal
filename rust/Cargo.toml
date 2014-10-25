@@ -36,3 +36,6 @@ name = "step4_if_fn_do"
 
 [[bin]]
 name = "step5_tco"
+
+[[bin]]
+name = "step6_file"

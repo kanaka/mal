@@ -215,11 +215,12 @@ Step Notes:
             - fn*
                 - if available use function closures to return a new
                   native function that calls EVAL(a2, Env(env, a1, fargs))
+                - otherwise, store exp, params and env in a structure
         - core.EXT
             - create ns object to hold core namespace
             - move numeric operators here
-            - add compison operators
-            - add list, list?, empty?, count, not
+            - add comparison operators
+            - add list, list?, empty?, count
         - run make test^EXT^step4
         - implement equal?/equal_Q in types.EXT and refer in core.ns
         - implement not as rep("(def! not (fn* (a) (if a false true)))")
@@ -275,10 +276,13 @@ Step Notes:
         - cp step5_tco.EXT to step6_file.EXT
         - if compiled update Makefile
         - add eval to repl_env
+            - if no (or limited closures) may have to add an "eval"
+              case to EVAL and use function which gets root of
+              environment to env.EXT (see rust).
         - add empty *ARGV* list to repl_env
         - in core.ns:
-            - implement slurp
             - wrap printer.read-str as read-string
+            - implement slurp
         - implement load-file using rep
         - test:
             (load-file "../tests/inc.mal")

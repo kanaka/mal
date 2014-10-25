@@ -2,8 +2,10 @@
 
 use std::rc::Rc;
 use std::collections::HashMap;
+use std::io::File;
 
 use types::{MalVal,MalRet,Func,True,False,Int,Strn,List,Nil};
+use reader;
 use printer;
 
 // General functions
@@ -36,6 +38,26 @@ fn println(a:Vec<MalVal>) -> MalRet {
     println!("{}", printer::pr_list(&a, false, "", "", " "))
     Ok(Rc::new(Nil))
 }
+
+fn read_string(a:Vec<MalVal>) -> MalRet {
+    match *a[0] {
+        Strn(ref a0) => reader::read_str(a0.to_string()),
+        _ => Err("read_string called with non-string".to_string()),
+    }
+}
+
+fn slurp(a:Vec<MalVal>) -> MalRet {
+    match *a[0] {
+        Strn(ref a0) => {
+            match File::open(&Path::new(a0.as_slice())).read_to_string() {
+                Ok(s) => Ok(Rc::new(Strn(s))),
+                Err(e) => Err(e.to_string()),
+            }
+        },
+        _ => Err("slurp called with non-string".to_string()),
+    }
+}
+
 
 // Numeric functions
 fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
@@ -128,6 +150,8 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("str".to_string(), Rc::new(Func(str)));
     ns.insert("prn".to_string(), Rc::new(Func(prn)));
     ns.insert("println".to_string(), Rc::new(Func(println)));
+    ns.insert("read-string".to_string(), Rc::new(Func(read_string)));
+    ns.insert("slurp".to_string(), Rc::new(Func(slurp)));
 
     ns.insert("<".to_string(),  Rc::new(Func(lt)));
     ns.insert("<=".to_string(), Rc::new(Func(lte)));

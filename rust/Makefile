@@ -1,13 +1,15 @@
 #####################
 
 SOURCES_BASE = src/types.rs src/readline.rs \
-	       src/reader.rs src/printer.rs
-SOURCES_LISP = src/step3_env.rs
+	       src/reader.rs src/printer.rs \
+	       src/env.rs src/core.rs
+SOURCES_LISP = src/step6_file.rs
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
-SRCS = step0_repl.rs step1_read_print.rs step2_eval.rs step3_env.rs
+SRCS = step0_repl.rs step1_read_print.rs step2_eval.rs step3_env.rs \
+       step4_if_fn_do.rs step5_tco.rs step6_file.rs
 BINS = $(SRCS:%.rs=target/%)
 
 #####################
