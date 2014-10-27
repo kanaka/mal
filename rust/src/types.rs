@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::collections;
 use std::fmt;
 use super::printer::{escape_str,pr_list};
-use super::env::Env;
+use super::env::{Env,env_new,env_bind};
 
 #[deriving(Clone)]
 pub enum MalType {
@@ -29,11 +29,12 @@ pub type MalRet = Result<MalVal,String>;
 
 #[deriving(Clone)]
 pub struct MalFuncData {
-    pub exp:    MalVal,
-    pub env:    Env,
-    pub params: MalVal,
+    pub eval:     fn(MalVal, Env) -> MalRet,
+    pub exp:      MalVal,
+    pub env:      Env,
+    pub params:   MalVal,
+    pub is_macro: bool,
 }
-
 
 impl MalType {
     pub fn pr_str(&self, print_readably: bool) -> String {
@@ -86,6 +87,22 @@ impl MalType {
         res
     }
 
+    pub fn apply(&self, args:Vec<MalVal>) -> MalRet {
+        match *self {
+            Func(f) => f(args),
+            MalFunc(ref mf) => {
+                let mfc = mf.clone();
+                let alst = list(args);
+                let new_env = env_new(Some(mfc.env.clone()));
+                match env_bind(&new_env, mfc.params, alst) {
+                    Ok(_) => (mfc.eval)(mfc.exp, new_env),
+                    Err(e) => Err(e),
+                }
+            },
+            _ => Err("attempt to call non-function".to_string()),
+        }
+
+    }
 }
 
 impl PartialEq for MalType {
@@ -114,6 +131,7 @@ impl fmt::Show for MalType {
     }
 }
 
+
 // Convenience constructor functions
 pub fn _nil() -> MalVal { Rc::new(Nil) }
 pub fn _true() -> MalVal { Rc::new(True) }
@@ -129,6 +147,11 @@ pub fn list(lst: Vec<MalVal>) -> MalVal { Rc::new(List(lst)) }
 pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
     Rc::new(Func(f))
 }
-pub fn malfunc(exp: MalVal, env: Env, params: MalVal) -> MalVal {
-    Rc::new(MalFunc(MalFuncData{ exp: exp, env: env, params: params}))
+pub fn malfunc(eval: fn(MalVal, Env) -> MalRet,
+               exp: MalVal, env: Env, params: MalVal) -> MalVal {
+    Rc::new(MalFunc(MalFuncData{eval: eval, exp: exp, env: env,
+                                params: params, is_macro: false}))
+}
+pub fn malfuncd(mfd: MalFuncData) -> MalVal {
+    Rc::new(MalFunc(mfd))
 }

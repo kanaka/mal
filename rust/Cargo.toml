@@ -21,24 +21,19 @@ name = "exp"
 
 [[bin]]
 name = "step0_repl"
-
 [[bin]]
 name = "step1_read_print"
-
 [[bin]]
 name = "step2_eval"
-
 [[bin]]
 name = "step3_env"
-
 [[bin]]
 name = "step4_if_fn_do"
-
 [[bin]]
 name = "step5_tco"
-
 [[bin]]
 name = "step6_file"
-
 [[bin]]
 name = "step7_quote"
+[[bin]]
+name = "step8_macros"

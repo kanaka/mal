@@ -217,7 +217,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                         "fn*" => {
                             let a1 = (*args)[1].clone();
                             let a2 = (*args)[2].clone();
-                            return Ok(malfunc(a2, env.clone(), a1));
+                            return Ok(malfunc(eval, a2, env.clone(), a1));
                         },
                         "eval" => {
                             let a1 = (*args)[1].clone();
@@ -241,13 +241,6 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                 Ok(el) => {
                     match *el {
                         List(ref args) => {
-                            // TODO: make this work
-                            //match args.as_slice() {
-                            //    [&Func(f), rest..] => {
-                            //        (*f)(rest.to_vec())
-                            //    },
-                            //    _ => Err("attempt to call non-function".to_string()),
-                            //}
                             let args2 = args.clone();
                             match *args2[0] {
                                 Func(f) => f(args.slice(1,args.len()).to_vec()),

@@ -4,10 +4,10 @@
 extern crate regex_macros;
 extern crate regex;
 
-use types::{MalVal,MalRet,MalFunc,
-            Nil,False,Sym,List,Vector,Func,
+use types::{MalVal,MalRet,
+            Nil,False,Sym,List,Vector,
             _nil,list,malfunc};
-use env::{Env,env_new,env_bind,env_set,env_get};
+use env::{Env,env_new,env_set,env_get};
 mod readline;
 mod types;
 mod reader;
@@ -115,7 +115,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                             return eval(a2, let_env.clone());
                         },
                         "do" => {
-                            let el = list(args.slice(1,args.len()-1).to_vec());
+                            let el = list(args.slice(1,args.len()).to_vec());
                             match eval_ast(el, env.clone()) {
                                 Err(e) => return Err(e),
                                 Ok(el) => {
@@ -151,7 +151,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                         "fn*" => {
                             let a1 = (*args)[1].clone();
                             let a2 = (*args)[2].clone();
-                            return Ok(malfunc(a2, env.clone(), a1));
+                            return Ok(malfunc(eval, a2, env.clone(), a1));
                         },
                         _ => ()
                     }
@@ -164,27 +164,8 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                 Ok(el) => {
                     match *el {
                         List(ref args) => {
-                            // TODO: make this work
-                            //match args.as_slice() {
-                            //    [&Func(f), rest..] => {
-                            //        (*f)(rest.to_vec())
-                            //    },
-                            //    _ => Err("attempt to call non-function".to_string()),
-                            //}
-                            let args2 = args.clone();
-                            match *args2[0] {
-                                Func(f) => f(args.slice(1,args.len()).to_vec()),
-                                MalFunc(ref mf) => {
-                                    let mfc = mf.clone();
-                                    let alst = list(args.slice(1,args.len()).to_vec());
-                                    let new_env = env_new(Some(mfc.env.clone()));
-                                    match env_bind(&new_env, mfc.params, alst) {
-                                        Ok(_) => eval(mfc.exp, new_env),
-                                        Err(e) => Err(e),
-                                    }
-                                },
-                                _ => Err("attempt to call non-function".to_string()),
-                            }
+                            let ref f = args.clone()[0];
+                            f.apply(args.slice(1,args.len()).to_vec())
                         }
                         _ => Err("Invalid apply".to_string()),
                     }

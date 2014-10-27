@@ -6,7 +6,7 @@ extern crate regex;
 
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,Int,Sym,List,Func,
+use types::{MalVal,MalRet,Int,Sym,List,
             _nil,_int,list,func};
 mod readline;
 mod types;
@@ -58,18 +58,8 @@ fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
         Ok(el) => {
             match *el {
                 List(ref args) => {
-                    // TODO: make this work
-                    //match args.as_slice() {
-                    //    [&Func(f), rest..] => {
-                    //        (*f)(rest.to_vec())
-                    //    },
-                    //    _ => Err("attempt to call non-function".to_string()),
-                    //}
-                    let args2 = args.clone();
-                    match *args2[0] {
-                        Func(f) => f(args.slice(1,args.len()).to_vec()),
-                        _ => Err("attempt to call non-function".to_string()),
-                    }
+                    let ref f = args.clone()[0];
+                    f.apply(args.slice(1,args.len()).to_vec())
                 }
                 _ => Err("Invalid apply".to_string()),
             }

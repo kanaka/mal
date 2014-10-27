@@ -142,6 +142,64 @@ pub fn concat(a:Vec<MalVal>) -> MalRet {
     Ok(list(new_v))
 }
 
+pub fn nth(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 2 {
+        return Err("Wrong arity to nth call".to_string());
+    }
+    let a0 = a[0].clone();
+    let a1 = a[1].clone();
+    let seq = match *a0 {
+        List(ref v) => v,
+        _ => return Err("nth called with non-sequence".to_string()),
+    };
+    let idx = match *a1 {
+        Int(i) => {
+            match i.to_uint() {
+                Some(ui) => ui,
+                None => return Ok(_nil()),
+            }
+        },
+        _ => return Err("nth called with non-integer index".to_string()),
+    };
+    if idx >= seq.len() {
+        Ok(_nil())
+    } else {
+        Ok(seq[idx].clone())
+    }
+}
+
+pub fn first(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return Err("Wrong arity to first call".to_string());
+    }
+    let a0 = a[0].clone();
+    let seq = match *a0 {
+        List(ref v) => v,
+        _ => return Err("first called with non-sequence".to_string()),
+    };
+    if seq.len() == 0 {
+        Ok(_nil())
+    } else {
+        Ok(seq[0].clone())
+    }
+}
+
+pub fn rest(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return Err("Wrong arity to rest call".to_string());
+    }
+    let a0 = a[0].clone();
+    let seq = match *a0 {
+        List(ref v) => v,
+        _ => return Err("rest called with non-sequence".to_string()),
+    };
+    if seq.len() == 0 {
+        Ok(list(vec![]))
+    } else {
+        Ok(list(seq.slice(1,seq.len()).to_vec()))
+    }
+}
+
 pub fn count(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return Err("Wrong arity to count call".to_string());
@@ -198,6 +256,9 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("cons".to_string(), func(cons));
     ns.insert("concat".to_string(), func(concat));
     ns.insert("empty?".to_string(), func(empty_q));
+    ns.insert("nth".to_string(), func(nth));
+    ns.insert("first".to_string(), func(first));
+    ns.insert("rest".to_string(), func(rest));
     ns.insert("count".to_string(), func(count));
 
     return ns;

@@ -1,4 +1,5 @@
 (load-file "../core.mal")
+(load-file "../perf.mal")
 
 ;;(prn "Start: basic macros performance test")
 

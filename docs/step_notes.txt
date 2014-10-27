@@ -307,10 +307,10 @@ Step Notes:
     - Details:
         - cp step6_file.EXT to step6_quote.EXT
         - if compiled update Makefile
-        - add is_pair and quasiquote
-        - add quote and quasiquote cases to EVAL
         - implement reader macros (', `, ~, ~@) in reader
         - retest make test^go^step1
+        - add is_pair and quasiquote
+        - add quote and quasiquote cases to EVAL
         - implement cons and concat in core.EXT
         - retest test^go^step7
 
@@ -336,7 +336,7 @@ Step Notes:
         - call macroexpand on ast before apply in EVAL
         - add defmacro! and macroexpand to EVAL switch
         - make test^go^step8 should pass some basic macros
-        - add first, rest and nth to core.ns
+        - add nth, first, and rest to core.ns
         - make test^go^step8 should now pass
 
 - stepA_try
