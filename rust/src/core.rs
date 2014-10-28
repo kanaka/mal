@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::File;
 
 use types::{MalVal,MalRet,err_val,err_str,err_string,
-            Int,Strn,List,Vector,Hash_Map,
+            Nil,Int,Strn,List,Vector,Hash_Map,
             _nil,_true,_false,_int,string,list,func};
 use types;
 use readline;
@@ -126,6 +126,36 @@ pub fn time_ms(a:Vec<MalVal>) -> MalRet {
 
 
 // Hash Map functions
+pub fn assoc(a:Vec<MalVal>) -> MalRet {
+    if a.len() < 3 {
+        return err_str("Wrong arity to assoc call");
+    }
+    match *a[0] {
+        Hash_Map(ref hm) => {
+            types::_assoc(hm, a.slice(1,a.len()).to_vec())
+        },
+        Nil => {
+            types::hash_mapv(a.slice(1,a.len()).to_vec())
+        }
+        _ => return err_str("assoc onto non-hash map"),
+    }
+}
+
+pub fn dissoc(a:Vec<MalVal>) -> MalRet {
+    if a.len() < 2 {
+        return err_str("Wrong arity to dissoc call");
+    }
+    match *a[0] {
+        Hash_Map(ref hm) => {
+            types::_dissoc(hm, a.slice(1,a.len()).to_vec())
+        },
+        Nil => {
+            Ok(_nil())
+        }
+        _ => return err_str("dissoc onto non-hash map"),
+    }
+}
+
 pub fn get(a:Vec<MalVal>) -> MalRet {
     if a.len() != 2 {
         return err_str("Wrong arity to get call");
@@ -133,7 +163,8 @@ pub fn get(a:Vec<MalVal>) -> MalRet {
     let a0 = a[0].clone();
     let hm: &HashMap<String,MalVal> = match *a0 {
         Hash_Map(ref hm) => hm,
-        _ => return err_str("get of non-hash map"),
+        Nil => return Ok(_nil()),
+        _ => return err_str("get on non-hash map"),
     };
     match *a[1] {
         Strn(ref key) => {
@@ -144,6 +175,63 @@ pub fn get(a:Vec<MalVal>) -> MalRet {
         },
         _ => return err_str("get with non-string key"),
     }
+}
+
+pub fn contains_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 2 {
+        return err_str("Wrong arity to contains? call");
+    }
+    let a0 = a[0].clone();
+    let hm: &HashMap<String,MalVal> = match *a0 {
+        Hash_Map(ref hm) => hm,
+        Nil => return Ok(_false()),
+        _ => return err_str("contains? on non-hash map"),
+    };
+    match *a[1] {
+        Strn(ref key) => {
+            match hm.contains_key(key) {
+                true  => Ok(_true()),
+                false => Ok(_false()),
+            }
+        },
+        _ => return err_str("contains? with non-string key"),
+    }
+}
+
+pub fn keys(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to keys call");
+    }
+    let a0 = a[0].clone();
+    let hm: &HashMap<String,MalVal> = match *a0 {
+        Hash_Map(ref hm) => hm,
+        Nil => return Ok(_nil()),
+        _ => return err_str("contains? on non-hash map"),
+    };
+    if hm.len() == 0 { return Ok(_nil()); }
+    let mut keys = vec![];
+    for k in hm.keys() {
+        keys.push(string(k.to_string()));
+    }
+    Ok(list(keys))
+}
+
+pub fn vals(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to values call");
+    }
+    let a0 = a[0].clone();
+    let hm: &HashMap<String,MalVal> = match *a0 {
+        Hash_Map(ref hm) => hm,
+        Nil => return Ok(_nil()),
+        _ => return err_str("contains? on non-hash map"),
+    };
+    if hm.len() == 0 { return Ok(_nil()); }
+    let mut vals = vec![];
+    for k in hm.values() {
+        vals.push(k.clone());
+    }
+    Ok(list(vals))
 }
 
 
@@ -329,7 +417,12 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("vector?".to_string(), func(types::vector_q));
     ns.insert("hash-map".to_string(), func(types::hash_mapv));
     ns.insert("map?".to_string(), func(types::hash_map_q));
+    ns.insert("assoc".to_string(), func(assoc));
+    ns.insert("dissoc".to_string(), func(dissoc));
     ns.insert("get".to_string(), func(get));
+    ns.insert("contains?".to_string(), func(contains_q));
+    ns.insert("keys".to_string(), func(keys));
+    ns.insert("vals".to_string(), func(vals));
 
     ns.insert("sequential?".to_string(), func(types::sequential_q));
     ns.insert("cons".to_string(), func(cons));

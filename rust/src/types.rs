@@ -245,12 +245,12 @@ pub fn vector_q(a:Vec<MalVal>) -> MalRet {
 
 // Hash Maps
 pub fn hash_map(hm: HashMap<String,MalVal>) -> MalVal { Rc::new(Hash_Map(hm)) }
-pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
-    if seq.len() % 2 == 1 {
-        return err_str("odd number of elements to hash-map");
+pub fn _assoc(hm: &HashMap<String,MalVal>, a:Vec<MalVal>) -> MalRet {
+    if a.len() % 2 == 1 {
+        return err_str("odd number of hash-map keys/values");
     }
-    let mut new_hm: HashMap<String,MalVal> = HashMap::new();
-    let mut it = seq.iter();
+    let mut new_hm = hm.clone();
+    let mut it = a.iter();
     loop {
         let k = match it.next() {
             Some(mv) => match *mv.clone() {
@@ -264,6 +264,25 @@ pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
     }
     Ok(Rc::new(Hash_Map(new_hm)))
 }
+pub fn _dissoc(hm: &HashMap<String,MalVal>, a:Vec<MalVal>) -> MalRet {
+    let mut new_hm = hm.clone();
+    let mut it = a.iter();
+    loop {
+        let k = match it.next() {
+            Some(mv) => match *mv.clone() {
+                Strn(ref s) => s.to_string(),
+                _ => return err_str("key is not a string in hash-map call"),
+            },
+            None => break,
+        };
+        new_hm.remove(&k);
+    }
+    Ok(Rc::new(Hash_Map(new_hm)))
+}
+pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
+    let new_hm: HashMap<String,MalVal> = HashMap::new();
+    _assoc(&new_hm, seq)
+}
 pub fn hash_map_q(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to map? call");
@@ -274,6 +293,7 @@ pub fn hash_map_q(a:Vec<MalVal>) -> MalRet {
     }
 }
 
+// Functions
 pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
     Rc::new(Func(f))
 }
