@@ -95,8 +95,6 @@ def EVAL(ast, env)
         return env.set(a1, func)
     when :macroexpand
         return macroexpand(a1, env)
-    when :"rb*"
-        return eval(a1)
     when :"try*"
         begin
             return EVAL(a1, env)

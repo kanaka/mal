@@ -97,6 +97,21 @@ def EVAL(ast, env)
         return macroexpand(a1, env)
     when :"rb*"
         return eval(a1)
+    when :"try*"
+        begin
+            return EVAL(a1, env)
+        rescue Exception => exc
+            if exc.is_a? MalException
+                exc = exc.data
+            else
+                exc = exc.message
+            end
+            if a2 && a2[0] == :"catch*"
+                return EVAL(a2[2], Env.new(env, [a2[1]], [exc]))
+            else
+                raise esc
+            end
+        end
     when :do
         eval_ast(ast[1..-2], env)
         ast = ast.last # Continue loop (TCO)
@@ -142,6 +157,7 @@ repl_env.set(:eval, lambda {|ast| EVAL(ast, repl_env)})
 repl_env.set(:"*ARGV*", List.new(ARGV.slice(1,ARGV.length) || []))
 
 # core.mal: defined using the language itself
+RE["(def! *host-language* \"ruby\")"]
 RE["(def! not (fn* (a) (if a false true)))"]
 RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
 RE["(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"]
@@ -153,6 +169,7 @@ if ARGV.size > 0
 end
 
 # repl loop
+RE["(println (str \"Mal [\" *host-language* \"]\"))"]
 while line = _readline("user> ")
     begin
         puts REP[line]

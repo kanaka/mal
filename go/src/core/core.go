@@ -4,6 +4,7 @@ import (
     "errors"
     "io/ioutil"
     "fmt"
+    "time"
 )
 
 import (
@@ -43,6 +44,11 @@ func slurp(a []MalType) (MalType, error) {
     b, e := ioutil.ReadFile(a[0].(string))
     if e != nil { return nil, e }
     return string(b), nil
+}
+
+// Number functions
+func time_ms(a []MalType) (MalType, error) {
+    return int(time.Now().UnixNano() / int64(time.Millisecond)), nil
 }
 
 
@@ -87,7 +93,7 @@ func get(a []MalType) (MalType, error) {
 }
 
 func contains_Q(hm MalType, key MalType) (MalType, error) {
-    if Nil_Q(hm) { return nil, nil }
+    if Nil_Q(hm) { return false, nil }
     if !HashMap_Q(hm) { return nil, errors.New("get called on non-hash map") }
     if !String_Q(key) { return nil, errors.New("get called with non-string key") }
     _, ok := hm.(HashMap).Val[key.(string)]
@@ -317,6 +323,7 @@ var NS = map[string]MalType{
             return a[0].(int) * a[1].(int), nil },
     "/": func(a []MalType) (MalType, error) {
             return a[0].(int) / a[1].(int), nil },
+    "time-ms": time_ms,
 
     "list": func(a []MalType) (MalType, error) {
             return List{a,nil}, nil },

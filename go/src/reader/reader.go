@@ -79,11 +79,11 @@ func read_atom(rdr Reader) (MalType, error) {
 func read_list(rdr Reader, start string, end string) (MalType, error) {
     token := rdr.next()
     if token == nil { return nil, errors.New("read_list underflow") }
-
-    ast_list := []MalType{}
     if *token != start {
         return nil, errors.New("expected '" + start + "'")
     }
+
+    ast_list := []MalType{}
     token = rdr.peek()
     for ; true ; token = rdr.peek() {
         if token == nil { return nil, errors.New("exepected '" + end + "', got EOF") }
