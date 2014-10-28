@@ -4,8 +4,10 @@
 extern crate regex_macros;
 extern crate regex;
 
-use types::{MalVal,MalRet,Int,Sym,List,Vector,
-            _int,list,func};
+use std::collections::HashMap;
+
+use types::{MalVal,MalRet,Int,Sym,List,Vector,Hash_Map,
+            _int,list,vector,hash_map,func};
 use env::{Env,env_new,env_set,env_get};
 mod readline;
 mod types;
@@ -26,7 +28,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
         Sym(ref sym) => {
             env_get(env.clone(), sym.clone())
         },
-        List(ref a) => {
+        List(ref a) | Vector(ref a) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
                 let mv2 = mv.clone();
@@ -35,7 +37,18 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(list(ast_vec))
+            Ok(match *ast { List(_) => list(ast_vec),
+                            _       => vector(ast_vec) })
+        },
+        Hash_Map(ref hm) => {
+            let mut new_hm: HashMap<String,MalVal> = HashMap::new();
+            for (key, value) in hm.iter() {
+                match eval(value.clone(), env.clone()) {
+                    Ok(mv) => { new_hm.insert(key.to_string(), mv); },
+                    Err(e) => return Err(e),
+                }
+            }
+            Ok(hash_map(new_hm))
         },
         _ => {
             Ok(ast)

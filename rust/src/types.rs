@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
 use std::rc::Rc;
-use std::collections;
+use std::collections::HashMap;
 use std::fmt;
 use super::printer::{escape_str,pr_list};
 use super::env::{Env,env_new,env_bind};
 
 #[deriving(Clone)]
+#[allow(non_camel_case_types)]
 pub enum MalType {
     Nil,
     True,
@@ -16,7 +17,7 @@ pub enum MalType {
     Sym(String),
     List(Vec<MalVal>),
     Vector(Vec<MalVal>),
-    HashMap(collections::HashMap<String, MalVal>),
+    Hash_Map(HashMap<String, MalVal>),
     Func(fn(Vec<MalVal>) -> MalRet),
     //Func(fn(&[MalVal]) -> MalRet),
     //Func(|Vec<MalVal>|:'a -> MalRet),
@@ -59,19 +60,22 @@ impl MalType {
             Vector(ref v) => {
                 res = pr_list(v, _r, "[", "]", " ")
             },
-            HashMap(ref v) => {
+            Hash_Map(ref v) => {
                 let mut first = true;
                 res.push_str("{");
                 for (key, value) in v.iter() {
                     if first { first = false; } else { res.push_str(" "); }
-                    res.push_str(key.as_slice());
+                    if print_readably {
+                        res.push_str(escape_str(key.as_slice()).as_slice())
+                    } else {
+                        res.push_str(key.as_slice())
+                    }
                     res.push_str(" ");
                     res.push_str(value.pr_str(_r).as_slice());
                 }
                 res.push_str("}")
             },
             // TODO: better native function representation
-            //Func(ref v) => {
             Func(_) => {
                 res.push_str(format!("#<function ...>").as_slice())
             },
@@ -79,10 +83,8 @@ impl MalType {
                 res.push_str(format!("(fn* {} {})", mf.params, mf.exp).as_slice())
             },
             /*
-
-//            Atom(ref v) => v.fmt(f),
+            Atom(ref v) => v.fmt(f),
             */
-            //_ => { res.push_str("#<unknown type>") },
         };
         res
     }
@@ -115,8 +117,10 @@ impl PartialEq for MalType {
             (&Strn(ref a), &Strn(ref b)) => a == b,
             (&Sym(ref a), &Sym(ref b)) => a == b,
             (&List(ref a), &List(ref b)) |
-            (&Vector(ref a), &Vector(ref b)) => a == b,
-            (&HashMap(ref a), &HashMap(ref b)) => a == b,
+            (&Vector(ref a), &Vector(ref b)) |
+            (&List(ref a), &Vector(ref b)) |
+            (&Vector(ref a), &List(ref b)) => a == b,
+            (&Hash_Map(ref a), &Hash_Map(ref b)) => a == b,
             // TODO: fix this
             (&Func(_), &Func(_)) => false,
             (&MalFunc(_), &MalFunc(_)) => false,
@@ -142,7 +146,29 @@ pub fn symbol(strn: &str) -> MalVal { Rc::new(Sym(strn.to_string())) }
 pub fn strn(strn: &str) -> MalVal { Rc::new(Strn(strn.to_string())) }
 pub fn string(strn: String) -> MalVal { Rc::new(Strn(strn)) }
 
-pub fn list(lst: Vec<MalVal>) -> MalVal { Rc::new(List(lst)) }
+pub fn list(seq: Vec<MalVal>) -> MalVal { Rc::new(List(seq)) }
+pub fn vector(seq: Vec<MalVal>) -> MalVal { Rc::new(Vector(seq)) }
+pub fn hash_map(hm: HashMap<String,MalVal>) -> MalVal { Rc::new(Hash_Map(hm)) }
+
+pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
+    if seq.len() % 2 == 1 {
+        return Err("odd number of elements to hash-map".to_string());
+    }
+    let mut new_hm: HashMap<String,MalVal> = HashMap::new();
+    let mut it = seq.iter();
+    loop {
+        let k = match it.next() {
+            Some(mv) => match *mv.clone() {
+                Strn(ref s) => s.to_string(),
+                _ => return Err("key is not a string in hash-map call".to_string()),
+            },
+            None => break,
+        };
+        let v = it.next().unwrap();
+        new_hm.insert(k, v.clone());
+    }
+    Ok(Rc::new(Hash_Map(new_hm)))
+}
 
 pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
     Rc::new(Func(f))

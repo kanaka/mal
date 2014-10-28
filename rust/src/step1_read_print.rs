@@ -45,7 +45,11 @@ fn main() {
         match line { None => break, _ => () }
         match rep(line.unwrap()) {
             Ok(str)  => println!("{}", str),
-            Err(str) => println!("Error: {}", str),
+            Err(str) => {
+                if str.as_slice() != "<empty line>" {
+                    println!("Error: {}", str)
+                }
+            }
         }
     }
 }

@@ -6,8 +6,8 @@ extern crate regex;
 
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,Int,Sym,List,
-            _nil,_int,list,func};
+use types::{MalVal,MalRet,Int,Sym,List,Vector,Hash_Map,
+            _nil,_int,list,vector,hash_map,func};
 mod readline;
 mod types;
 mod env;
@@ -28,16 +28,26 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
                 None     => Ok(_nil()),
             }
         },
-        List(ref a) => {
+        List(ref a) | Vector(ref a) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
-                let mv2 = mv.clone();
-                match eval(mv2, env) {
-                    Ok(mv) => { ast_vec.push(mv); },
-                    Err(e) => { return Err(e); },
+                match eval(mv.clone(), env) {
+                    Ok(mv) => ast_vec.push(mv),
+                    Err(e) => return Err(e),
                 }
             }
-            Ok(list(ast_vec))
+            Ok(match *ast { List(_) => list(ast_vec),
+                            _       => vector(ast_vec) })
+        },
+        Hash_Map(ref hm) => {
+            let mut new_hm: HashMap<String,MalVal> = HashMap::new();
+            for (key, value) in hm.iter() {
+                match eval(value.clone(), env) {
+                    Ok(mv) => { new_hm.insert(key.to_string(), mv); },
+                    Err(e) => return Err(e),
+                }
+            }
+            Ok(hash_map(new_hm))
         },
         _ => {
             Ok(ast.clone())

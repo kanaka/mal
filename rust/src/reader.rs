@@ -6,7 +6,7 @@
 extern crate pcre;
 
 use types::{MalVal,MalRet,
-            _nil,_true,_false,_int,symbol,string,list};
+            _nil,_true,_false,_int,symbol,string,list,vector,hash_mapv};
 use self::pcre::Pcre;
 use super::printer::unescape_str;
 
@@ -48,6 +48,7 @@ fn tokenize(str :String) -> Vec<String> {
         if opt_m.is_none() { break; }
         let m = opt_m.unwrap();
         if m.group(1) == "" { break; }
+        if m.group(1).starts_with(";") { continue; }
 
         results.push((*m.group(1)).to_string());
     }
@@ -77,20 +78,26 @@ fn read_atom(rdr : &mut Reader) -> MalRet {
     }
 }
 
-fn read_list(rdr : &mut Reader) -> MalRet {
+fn read_seq(rdr : &mut Reader, start: &str, end: &str) -> Result<Vec<MalVal>,String> {
     let otoken = rdr.next();
-    if otoken.is_none() { return Err("read_atom underflow".to_string()); }
+    if otoken.is_none() {
+        return Err("read_atom underflow".to_string());
+    }
     let stoken = otoken.unwrap();
     let token = stoken.as_slice();
-    if token != "(" { return Err("expected '('".to_string()); }
+    if token != start {
+        return Err("expected '".to_string() + start.to_string() + "'".to_string());
+    }
 
     let mut ast_vec : Vec<MalVal> = vec![];
     loop {
         let otoken = rdr.peek();
-        if otoken.is_none() { return Err("expected ')', got EOF".to_string()); }
+        if otoken.is_none() {
+            return Err("expected '".to_string() + end.to_string() + "', got EOF".to_string());
+        }
         let stoken = otoken.unwrap();
         let token = stoken.as_slice();
-        if token == ")" { break; }
+        if token == end { break; }
 
         match read_form(rdr) {
             Ok(mv) => ast_vec.push(mv),
@@ -99,7 +106,28 @@ fn read_list(rdr : &mut Reader) -> MalRet {
     }
     rdr.next();
 
-    Ok(list(ast_vec))
+    Ok(ast_vec)
+}
+
+fn read_list(rdr : &mut Reader) -> MalRet {
+    match read_seq(rdr, "(", ")") {
+        Ok(seq) => Ok(list(seq)),
+        Err(e) => Err(e),
+    }
+}
+
+fn read_vector(rdr : &mut Reader) -> MalRet {
+    match read_seq(rdr, "[", "]") {
+        Ok(seq) => Ok(vector(seq)),
+        Err(e) => Err(e),
+    }
+}
+
+fn read_hash_map(rdr : &mut Reader) -> MalRet {
+    match read_seq(rdr, "{", "}") {
+        Ok(seq) => hash_mapv(seq),
+        Err(e) => Err(e),
+    }
 }
 
 fn read_form(rdr : &mut Reader) -> MalRet {
@@ -139,6 +167,13 @@ fn read_form(rdr : &mut Reader) -> MalRet {
 
         ")" => Err("unexected ')'".to_string()),
         "(" => read_list(rdr),
+
+        "]" => Err("unexected ']'".to_string()),
+        "[" => read_vector(rdr),
+
+        "}" => Err("unexected '}'".to_string()),
+        "{" => read_hash_map(rdr),
+
         _   => read_atom(rdr)
     }
 }

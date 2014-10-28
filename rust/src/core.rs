@@ -4,7 +4,7 @@ extern crate time;
 use std::collections::HashMap;
 use std::io::File;
 
-use types::{MalVal,MalRet,Int,Strn,List,
+use types::{MalVal,MalRet,Int,Strn,List,Vector,
             _nil,_true,_false,_int,string,list,func};
 use reader;
 use printer;
@@ -120,7 +120,7 @@ pub fn list_q(a:Vec<MalVal>) -> MalRet {
 
 pub fn cons(a:Vec<MalVal>) -> MalRet {
     match *a[1] {
-        List(ref v) => {
+        List(ref v) | Vector(ref v) => {
             let mut new_v = v.clone();
             new_v.insert(0, a[0].clone());
             Ok(list(new_v))
@@ -133,7 +133,7 @@ pub fn concat(a:Vec<MalVal>) -> MalRet {
     let mut new_v:Vec<MalVal> = vec![];
     for lst in a.iter() {
         match **lst {
-            List(ref l) => {
+            List(ref l) | Vector(ref l) => {
                 new_v.push_all(l.as_slice());
             },
             _ => return Err("concat called with non-sequence".to_string()),
@@ -149,7 +149,7 @@ pub fn nth(a:Vec<MalVal>) -> MalRet {
     let a0 = a[0].clone();
     let a1 = a[1].clone();
     let seq = match *a0 {
-        List(ref v) => v,
+        List(ref v) | Vector(ref v) => v,
         _ => return Err("nth called with non-sequence".to_string()),
     };
     let idx = match *a1 {
@@ -174,7 +174,7 @@ pub fn first(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let seq = match *a0 {
-        List(ref v) => v,
+        List(ref v) | Vector(ref v) => v,
         _ => return Err("first called with non-sequence".to_string()),
     };
     if seq.len() == 0 {
@@ -190,7 +190,7 @@ pub fn rest(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let seq = match *a0 {
-        List(ref v) => v,
+        List(ref v) | Vector(ref v) => v,
         _ => return Err("rest called with non-sequence".to_string()),
     };
     if seq.len() == 0 {
@@ -205,8 +205,8 @@ pub fn count(a:Vec<MalVal>) -> MalRet {
         return Err("Wrong arity to count call".to_string());
     }
     match *a[0].clone() {
-        List(ref lst) => {
-            Ok(_int(lst.len().to_int().unwrap()))
+        List(ref v) | Vector(ref v) => {
+            Ok(_int(v.len().to_int().unwrap()))
         },
         _ => Err("count called on non-sequence".to_string()),
     }
@@ -217,8 +217,8 @@ pub fn empty_q(a:Vec<MalVal>) -> MalRet {
         return Err("Wrong arity to empty? call".to_string());
     }
     match *a[0].clone() {
-        List(ref lst) => {
-            match lst.len() {
+        List(ref v) | Vector(ref v) => {
+            match v.len() {
                 0 => Ok(_true()),
                 _ => Ok(_false()),
             }
