@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 
-use types::{MalVal,MalRet,Sym,List,_nil,list,err_string};
+use types::{MalVal,MalRet,Sym,List,Vector,_nil,list,err_string};
 
 struct EnvType {
     data: HashMap<String,MalVal>,
@@ -23,9 +23,9 @@ pub fn env_bind(env: &Env,
                 mexprs: MalVal) -> Result<Env,String> {
     let mut variadic = false;
     match *mbinds {
-        List(ref binds) => {
+        List(ref binds) | Vector(ref binds) => {
             match *mexprs {
-                List(ref exprs) => {
+                List(ref exprs) | Vector(ref exprs) => {
                     let mut it = binds.iter().enumerate();
                     for (i, b) in it {
                         match **b {

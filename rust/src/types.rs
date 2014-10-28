@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use super::printer::{escape_str,pr_list};
@@ -22,6 +23,7 @@ pub enum MalType {
     //Func(fn(&[MalVal]) -> MalRet),
     //Func(|Vec<MalVal>|:'a -> MalRet),
     MalFunc(MalFuncData),
+    Atom(RefCell<MalVal>),
 }
 
 pub type MalVal = Rc<MalType>;
@@ -63,6 +65,7 @@ pub struct MalFuncData {
     pub env:      Env,
     pub params:   MalVal,
     pub is_macro: bool,
+    pub meta:     MalVal,
 }
 
 impl MalType {
@@ -110,9 +113,9 @@ impl MalType {
             MalFunc(ref mf) => {
                 res.push_str(format!("(fn* {} {})", mf.params, mf.exp).as_slice())
             },
-            /*
-            Atom(ref v) => v.fmt(f),
-            */
+            Atom(ref v) => {
+                res = format!("(atom {})", v.borrow());
+            },
         };
         res
     }
@@ -299,11 +302,24 @@ pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
 }
 pub fn malfunc(eval: fn(MalVal, Env) -> MalRet,
                exp: MalVal, env: Env, params: MalVal) -> MalVal {
-    Rc::new(MalFunc(MalFuncData{eval: eval, exp: exp, env: env,
-                                params: params, is_macro: false}))
+    Rc::new(MalFunc(MalFuncData{eval: eval,
+                                exp: exp,
+                                env: env,
+                                params: params,
+                                is_macro: false,
+                                meta: _nil()}))
 }
 pub fn malfuncd(mfd: MalFuncData) -> MalVal {
     Rc::new(MalFunc(mfd))
+}
+
+
+// Atoms
+pub fn atom(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to atom call");
+    }
+    Ok(Rc::new(Atom(RefCell::new(a[0].clone()))))
 }
 
 

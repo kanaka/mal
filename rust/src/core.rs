@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::File;
 
 use types::{MalVal,MalRet,err_val,err_str,err_string,
-            Nil,Int,Strn,List,Vector,Hash_Map,
+            Nil,Int,Strn,List,Vector,Hash_Map,Atom,
             _nil,_true,_false,_int,string,list,func};
 use types;
 use readline;
@@ -382,6 +382,59 @@ pub fn map(a:Vec<MalVal>) -> MalRet {
 }
 
 
+// Atom funcions
+fn deref(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to deref call");
+    }
+    match *a[0].clone() {
+        Atom(ref val) => {
+            let val_cell = val.borrow();
+            Ok(val_cell.clone())
+        },
+        _ => err_str("deref called on non-atom"),
+    }
+}
+
+fn reset_bang(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 2 {
+        return err_str("Wrong arity to map call");
+    }
+    let a1 = a[1].clone();
+    match *a[0].clone() {
+        Atom(ref val) => {
+            let mut val_cell = val.borrow_mut();
+            let atm_mv = val_cell.deref_mut();
+            *atm_mv = a1.clone();
+            Ok(a1)
+        },
+        _ => err_str("reset! called on non-atom"),
+    }
+}
+
+fn swap_bang(a:Vec<MalVal>) -> MalRet {
+    if a.len() < 2 {
+        return err_str("Wrong arity to swap_q call");
+    }
+    let f = a[1].clone();
+    match *a[0].clone() {
+        Atom(ref val) => {
+            let mut val_cell = val.borrow_mut();
+            let atm_mv = val_cell.deref_mut();
+            let mut args = a.slice(2,a.len()).to_vec();
+            args.insert(0, atm_mv.clone());
+            match f.apply(args) {
+                Ok(new_mv) => {
+                    *atm_mv = new_mv.clone();
+                    Ok(new_mv)
+                }
+                Err(e) => Err(e),
+            }
+        },
+        _ => err_str("swap! called on non-atom"),
+    }
+}
+
 
 pub fn ns() -> HashMap<String,MalVal> {
     let mut ns: HashMap<String,MalVal> = HashMap::new();;
@@ -434,6 +487,11 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("count".to_string(), func(count));
     ns.insert("apply".to_string(), func(apply));
     ns.insert("map".to_string(), func(map));
+
+    ns.insert("atom".to_string(), func(types::atom));
+    ns.insert("deref".to_string(), func(deref));
+    ns.insert("reset!".to_string(), func(reset_bang));
+    ns.insert("swap!".to_string(), func(swap_bang));
 
     return ns;
 }

@@ -353,3 +353,8 @@ a
 (= "" [])
 ;=>false
 
+;; Testing vector parameter lists
+( (fn* [] 4) )
+;=>4
+( (fn* [f x] (f x)) (fn* [a] (+ 1 a)) 7)
+;=>8

@@ -166,6 +166,13 @@ fn read_form(rdr : &mut Reader) -> MalRet {
                 Err(e) => Err(e),
             }
         },
+        "@" => {
+            let _ = rdr.next();
+            match read_form(rdr) {
+                Ok(f) => Ok(list(vec![symbol("deref"), f])),
+                Err(e) => Err(e),
+            }
+        },
 
         ")" => err_str("unexected ')'"),
         "(" => read_list(rdr),

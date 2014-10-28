@@ -28,5 +28,6 @@ go/mal
 java/target/
 java/dependency-reduced-pom.xml
 rust/target/
+rust/mal
 rust/Cargo.lock
 rust/.cargo
