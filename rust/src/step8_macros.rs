@@ -26,7 +26,7 @@ fn read(str: String) -> MalRet {
 // eval
 fn is_pair(x: MalVal) -> bool {
     match *x {
-        List(ref lst) => lst.len() > 0,
+        List(ref lst,_) => lst.len() > 0,
         _ => false,
     }
 }
@@ -37,7 +37,7 @@ fn quasiquote(ast: MalVal) -> MalVal {
     }
 
     match *ast.clone() {
-        List(ref args) => {
+        List(ref args,_) => {
             let ref a0 = args[0];
             match **a0 {
                 Sym(ref s) => {
@@ -50,7 +50,7 @@ fn quasiquote(ast: MalVal) -> MalVal {
             }
             if is_pair(a0.clone()) {
                 match **a0 {
-                    List(ref a0args) => {
+                    List(ref a0args,_) => {
                         let a00 = a0args[0].clone();
                         match *a00 {
                             Sym(ref s) => {
@@ -77,7 +77,7 @@ fn quasiquote(ast: MalVal) -> MalVal {
 
 fn is_macro_call(ast: MalVal, env: Env) -> bool {
     match *ast {
-        List(ref lst) => {
+        List(ref lst,_) => {
             let ref a0 = *lst[0];
             match *a0 {
                 Sym(ref a0sym) => {
@@ -85,7 +85,7 @@ fn is_macro_call(ast: MalVal, env: Env) -> bool {
                         match env_get(env, a0sym.to_string()) {
                             Ok(f) => {
                                 match *f {
-                                    MalFunc(ref mfd) => {
+                                    MalFunc(ref mfd,_) => {
                                         mfd.is_macro
                                     },
                                     _ => false,
@@ -108,7 +108,7 @@ fn macroexpand(mut ast: MalVal, env: Env) -> MalRet {
     while is_macro_call(ast.clone(), env.clone()) {
         let ast2 = ast.clone();
         let args = match *ast2 {
-            List(ref args) => args,
+            List(ref args,_) => args,
             _ => break,
         };
         let ref a0 = args[0];
@@ -122,7 +122,7 @@ fn macroexpand(mut ast: MalVal, env: Env) -> MalRet {
             _ => break,
         };
         match *mf {
-            MalFunc(_) => {
+            MalFunc(_,_) => {
                 match mf.apply(args.slice(1,args.len()).to_vec()) {
                     Ok(r) => ast = r,
                     Err(e) => return Err(e),
@@ -141,7 +141,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
         Sym(ref sym) => {
             env_get(env.clone(), sym.clone())
         },
-        List(ref a) | Vector(ref a) => {
+        List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
                 let mv2 = mv.clone();
@@ -150,10 +150,10 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(match *ast { List(_) => list(ast_vec),
+            Ok(match *ast { List(_,_) => list(ast_vec),
                             _       => vector(ast_vec) })
         },
-        Hash_Map(ref hm) => {
+        Hash_Map(ref hm,_) => {
             let mut new_hm: HashMap<String,MalVal> = HashMap::new();
             for (key, value) in hm.iter() {
                 match eval(value.clone(), env.clone()) {
@@ -176,7 +176,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
     //println!("eval: {}", ast);
     let mut ast2 = ast.clone();
     match *ast2 {
-        List(_) => (),  // continue
+        List(_,_) => (),  // continue
         _ => return eval_ast(ast2, env),
     }
 
@@ -188,13 +188,13 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
         Err(e) => return Err(e),
     }
     match *ast2 {
-        List(_) => (),  // continue
+        List(_,_) => (),  // continue
         _ => return Ok(ast2),
     }
     let ast3 = ast2.clone();
 
     let (args, a0sym) = match *ast2 {
-        List(ref args) => {
+        List(ref args,_) => {
             if args.len() == 0 { 
                 return Ok(ast3);
             }
@@ -232,7 +232,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
             let a1 = (*args)[1].clone();
             let a2 = (*args)[2].clone();
             match *a1 {
-                List(ref binds) | Vector(ref binds) => {
+                List(ref binds,_) | Vector(ref binds,_) => {
                     let mut it = binds.iter();
                     while it.len() >= 2 {
                         let b = it.next().unwrap();
@@ -274,12 +274,12 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
             match eval(a2, env.clone()) {
                 Ok(r) => {
                     match *r {
-                        MalFunc(ref mfd) => {
+                        MalFunc(ref mfd,_) => {
                             match *a1 {
                                 Sym(ref s) => {
                                     let mut new_mfd = mfd.clone();
                                     new_mfd.is_macro = true;
-                                    let mf = malfuncd(new_mfd);
+                                    let mf = malfuncd(new_mfd,_nil());
                                     env_set(&env.clone(), s.clone(), mf.clone());
                                     return Ok(mf);
                                 },
@@ -335,7 +335,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
         "fn*" => {
             let a1 = (*args)[1].clone();
             let a2 = (*args)[2].clone();
-            return Ok(malfunc(eval, a2, env.clone(), a1));
+            return Ok(malfunc(eval, a2, env.clone(), a1, _nil()));
         },
         "eval" => {
             let a1 = (*args)[1].clone();
@@ -353,12 +353,12 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                 Err(e) => Err(e),
                 Ok(el) => {
                     let args = match *el {
-                        List(ref args) => args,
+                        List(ref args,_) => args,
                         _ => return err_str("Invalid apply"),
                     };
                     match *args.clone()[0] {
-                        Func(f) => f(args.slice(1,args.len()).to_vec()),
-                        MalFunc(ref mf) => {
+                        Func(f,_) => f(args.slice(1,args.len()).to_vec()),
+                        MalFunc(ref mf,_) => {
                             let mfc = mf.clone();
                             let alst = list(args.slice(1,args.len()).to_vec());
                             let new_env = env_new(Some(mfc.env.clone()));

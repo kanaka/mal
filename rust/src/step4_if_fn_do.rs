@@ -30,7 +30,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
         Sym(ref sym) => {
             env_get(env.clone(), sym.clone())
         },
-        List(ref a) | Vector(ref a) => {
+        List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
                 let mv2 = mv.clone();
@@ -39,10 +39,10 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
                     Err(e) => { return Err(e); },
                 }
             }
-            Ok(match *ast { List(_) => list(ast_vec),
+            Ok(match *ast { List(_,_) => list(ast_vec),
                             _       => vector(ast_vec) })
         },
-        Hash_Map(ref hm) => {
+        Hash_Map(ref hm,_) => {
             let mut new_hm: HashMap<String,MalVal> = HashMap::new();
             for (key, value) in hm.iter() {
                 match eval(value.clone(), env.clone()) {
@@ -63,18 +63,18 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
     //println!("eval: {}", ast);
     let ast2 = ast.clone();
     match *ast2 {
-        List(_) => (),  // continue
+        List(_,_) => (),  // continue
         _ => return eval_ast(ast2, env),
     }
 
     // apply list
     match *ast2 {
-        List(_) => (),  // continue
+        List(_,_) => (),  // continue
         _ => return Ok(ast2),
     }
 
     let (args, a0sym) = match *ast2 {
-        List(ref args) => {
+        List(ref args,_) => {
             if args.len() == 0 { 
                 return Ok(ast);
             }
@@ -112,7 +112,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
             let a1 = (*args)[1].clone();
             let a2 = (*args)[2].clone();
             match *a1 {
-                List(ref binds) | Vector(ref binds) => {
+                List(ref binds,_) | Vector(ref binds,_) => {
                     let mut it = binds.iter();
                     while it.len() >= 2 {
                         let b = it.next().unwrap();
@@ -144,7 +144,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                 Err(e) => return Err(e),
                 Ok(el) => {
                     match *el {
-                        List(ref lst) => {
+                        List(ref lst,_) => {
                             let ref last = lst[lst.len()-1];
                             return Ok(last.clone());
                         }
@@ -177,14 +177,14 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
         "fn*" => {
             let a1 = (*args)[1].clone();
             let a2 = (*args)[2].clone();
-            return Ok(malfunc(eval, a2, env.clone(), a1));
+            return Ok(malfunc(eval, a2, env.clone(), a1, _nil()));
         },
         _ => { // function call
             return match eval_ast(ast, env.clone()) {
                 Err(e) => Err(e),
                 Ok(el) => {
                     let args = match *el {
-                        List(ref args) => args,
+                        List(ref args,_) => args,
                         _ => return err_str("Invalid apply"),
                     };
                     let ref f = args.clone()[0];

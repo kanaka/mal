@@ -166,6 +166,18 @@ fn read_form(rdr : &mut Reader) -> MalRet {
                 Err(e) => Err(e),
             }
         },
+        "^" => {
+            let _ = rdr.next();
+            match read_form(rdr) {
+                Ok(meta) => {
+                    match read_form(rdr) {
+                        Ok(f) => Ok(list(vec![symbol("with-meta"), f, meta])),
+                        Err(e) => Err(e),
+                    }
+                },
+                Err(e) => Err(e),
+            }
+        },
         "@" => {
             let _ = rdr.next();
             match read_form(rdr) {

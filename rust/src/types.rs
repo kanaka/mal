@@ -16,13 +16,13 @@ pub enum MalType {
     Int(int),
     Strn(String),
     Sym(String),
-    List(Vec<MalVal>),
-    Vector(Vec<MalVal>),
-    Hash_Map(HashMap<String, MalVal>),
-    Func(fn(Vec<MalVal>) -> MalRet),
+    List(Vec<MalVal>, MalVal),
+    Vector(Vec<MalVal>, MalVal),
+    Hash_Map(HashMap<String, MalVal>, MalVal),
+    Func(fn(Vec<MalVal>) -> MalRet, MalVal),
     //Func(fn(&[MalVal]) -> MalRet),
     //Func(|Vec<MalVal>|:'a -> MalRet),
-    MalFunc(MalFuncData),
+    MalFunc(MalFuncData, MalVal),
     Atom(RefCell<MalVal>),
 }
 
@@ -65,7 +65,6 @@ pub struct MalFuncData {
     pub env:      Env,
     pub params:   MalVal,
     pub is_macro: bool,
-    pub meta:     MalVal,
 }
 
 impl MalType {
@@ -85,13 +84,13 @@ impl MalType {
                     res.push_str(v.as_slice())
                 }
             },
-            List(ref v) => {
+            List(ref v,_) => {
                 res = pr_list(v, _r, "(", ")", " ")
             },
-            Vector(ref v) => {
+            Vector(ref v,_) => {
                 res = pr_list(v, _r, "[", "]", " ")
             },
-            Hash_Map(ref v) => {
+            Hash_Map(ref v,_) => {
                 let mut first = true;
                 res.push_str("{");
                 for (key, value) in v.iter() {
@@ -107,10 +106,10 @@ impl MalType {
                 res.push_str("}")
             },
             // TODO: better native function representation
-            Func(_) => {
+            Func(_,_) => {
                 res.push_str(format!("#<function ...>").as_slice())
             },
-            MalFunc(ref mf) => {
+            MalFunc(ref mf,_) => {
                 res.push_str(format!("(fn* {} {})", mf.params, mf.exp).as_slice())
             },
             Atom(ref v) => {
@@ -122,8 +121,8 @@ impl MalType {
 
     pub fn apply(&self, args:Vec<MalVal>) -> MalRet {
         match *self {
-            Func(f) => f(args),
-            MalFunc(ref mf) => {
+            Func(f,_) => f(args),
+            MalFunc(ref mf,_) => {
                 let mfc = mf.clone();
                 let alst = list(args);
                 let new_env = env_new(Some(mfc.env.clone()));
@@ -147,14 +146,14 @@ impl PartialEq for MalType {
             (&Int(ref a), &Int(ref b)) => a == b,
             (&Strn(ref a), &Strn(ref b)) => a == b,
             (&Sym(ref a), &Sym(ref b)) => a == b,
-            (&List(ref a), &List(ref b)) |
-            (&Vector(ref a), &Vector(ref b)) |
-            (&List(ref a), &Vector(ref b)) |
-            (&Vector(ref a), &List(ref b)) => a == b,
-            (&Hash_Map(ref a), &Hash_Map(ref b)) => a == b,
+            (&List(ref a,_), &List(ref b,_)) |
+            (&Vector(ref a,_), &Vector(ref b,_)) |
+            (&List(ref a,_), &Vector(ref b,_)) |
+            (&Vector(ref a,_), &List(ref b,_)) => a == b,
+            (&Hash_Map(ref a,_), &Hash_Map(ref b,_)) => a == b,
             // TODO: fix this
-            (&Func(_), &Func(_)) => false,
-            (&MalFunc(_), &MalFunc(_)) => false,
+            (&Func(_,_), &Func(_,_)) => false,
+            (&MalFunc(_,_), &MalFunc(_,_)) => false,
             _ => return false,
         } 
     }
@@ -221,33 +220,44 @@ pub fn strn(strn: &str) -> MalVal { Rc::new(Strn(strn.to_string())) }
 pub fn string(strn: String) -> MalVal { Rc::new(Strn(strn)) }
 
 // Lists
-pub fn list(seq: Vec<MalVal>) -> MalVal { Rc::new(List(seq)) }
+pub fn list(seq: Vec<MalVal>) -> MalVal { Rc::new(List(seq,_nil())) }
+pub fn listm(seq: Vec<MalVal>, meta: MalVal) -> MalVal {
+    Rc::new(List(seq,meta))
+}
 pub fn listv(seq:Vec<MalVal>) -> MalRet { Ok(list(seq)) }
 pub fn list_q(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to list? call");
     }
     match *a[0].clone() {
-        List(_) => Ok(_true()),
+        List(_,_) => Ok(_true()),
         _ => Ok(_false()),
     }
 }
 
 // Vectors
-pub fn vector(seq: Vec<MalVal>) -> MalVal { Rc::new(Vector(seq)) }
+pub fn vector(seq: Vec<MalVal>) -> MalVal { Rc::new(Vector(seq,_nil())) }
+pub fn vectorm(seq: Vec<MalVal>, meta: MalVal) -> MalVal {
+    Rc::new(Vector(seq,meta))
+}
 pub fn vectorv(seq: Vec<MalVal>) -> MalRet { Ok(vector(seq)) }
 pub fn vector_q(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to vector? call");
     }
     match *a[0].clone() {
-        Vector(_) => Ok(_true()),
+        Vector(_,_) => Ok(_true()),
         _         => Ok(_false()),
     }
 }
 
 // Hash Maps
-pub fn hash_map(hm: HashMap<String,MalVal>) -> MalVal { Rc::new(Hash_Map(hm)) }
+pub fn hash_map(hm: HashMap<String,MalVal>) -> MalVal {
+    Rc::new(Hash_Map(hm,_nil()))
+}
+pub fn hash_mapm(hm: HashMap<String,MalVal>, meta: MalVal) -> MalVal {
+    Rc::new(Hash_Map(hm,meta))
+}
 pub fn _assoc(hm: &HashMap<String,MalVal>, a:Vec<MalVal>) -> MalRet {
     if a.len() % 2 == 1 {
         return err_str("odd number of hash-map keys/values");
@@ -265,7 +275,7 @@ pub fn _assoc(hm: &HashMap<String,MalVal>, a:Vec<MalVal>) -> MalRet {
         let v = it.next().unwrap();
         new_hm.insert(k, v.clone());
     }
-    Ok(Rc::new(Hash_Map(new_hm)))
+    Ok(Rc::new(Hash_Map(new_hm,_nil())))
 }
 pub fn _dissoc(hm: &HashMap<String,MalVal>, a:Vec<MalVal>) -> MalRet {
     let mut new_hm = hm.clone();
@@ -280,7 +290,7 @@ pub fn _dissoc(hm: &HashMap<String,MalVal>, a:Vec<MalVal>) -> MalRet {
         };
         new_hm.remove(&k);
     }
-    Ok(Rc::new(Hash_Map(new_hm)))
+    Ok(Rc::new(Hash_Map(new_hm,_nil())))
 }
 pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
     let new_hm: HashMap<String,MalVal> = HashMap::new();
@@ -291,26 +301,31 @@ pub fn hash_map_q(a:Vec<MalVal>) -> MalRet {
         return err_str("Wrong arity to map? call");
     }
     match *a[0].clone() {
-        Hash_Map(_) => Ok(_true()),
-        _           => Ok(_false()),
+        Hash_Map(_,_) => Ok(_true()),
+        _             => Ok(_false()),
     }
 }
 
 // Functions
-pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
-    Rc::new(Func(f))
+pub fn func(f: fn(Vec<MalVal>) -> MalRet) -> MalVal {
+    Rc::new(Func(f, _nil()))
+}
+pub fn funcm(f: fn(Vec<MalVal>) -> MalRet, meta: MalVal) -> MalVal {
+    Rc::new(Func(f, meta))
 }
 pub fn malfunc(eval: fn(MalVal, Env) -> MalRet,
-               exp: MalVal, env: Env, params: MalVal) -> MalVal {
+               exp: MalVal,
+               env: Env,
+               params: MalVal,
+               meta: MalVal) -> MalVal {
     Rc::new(MalFunc(MalFuncData{eval: eval,
                                 exp: exp,
                                 env: env,
                                 params: params,
-                                is_macro: false,
-                                meta: _nil()}))
+                                is_macro: false},meta))
 }
-pub fn malfuncd(mfd: MalFuncData) -> MalVal {
-    Rc::new(MalFunc(mfd))
+pub fn malfuncd(mfd: MalFuncData, meta: MalVal) -> MalVal {
+    Rc::new(MalFunc(mfd,meta))
 }
 
 
@@ -329,7 +344,7 @@ pub fn sequential_q(a:Vec<MalVal>) -> MalRet {
         return err_str("Wrong arity to sequential? call");
     }
     match *a[0].clone() {
-        List(_) | Vector(_) => Ok(_true()),
+        List(_,_) | Vector(_,_) => Ok(_true()),
         _                   => Ok(_false()),
     }
 }

@@ -29,7 +29,7 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
                 None     => Ok(_nil()),
             }
         },
-        List(ref a) | Vector(ref a) => {
+        List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
                 match eval(mv.clone(), env) {
@@ -37,10 +37,10 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
                     Err(e) => return Err(e),
                 }
             }
-            Ok(match *ast { List(_) => list(ast_vec),
+            Ok(match *ast { List(_,_) => list(ast_vec),
                             _       => vector(ast_vec) })
         },
-        Hash_Map(ref hm) => {
+        Hash_Map(ref hm,_) => {
             let mut new_hm: HashMap<String,MalVal> = HashMap::new();
             for (key, value) in hm.iter() {
                 match eval(value.clone(), env) {
@@ -59,7 +59,7 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
 fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
     let ast2 = ast.clone();
     match *ast2 {
-        List(_) => (),  // continue
+        List(_,_) => (),  // continue
         _ => return eval_ast(ast2, env),
     }
 
@@ -68,7 +68,7 @@ fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
         Err(e) => Err(e),
         Ok(el) => {
             match *el {
-                List(ref args) => {
+                List(ref args,_) => {
                     let ref f = args.clone()[0];
                     f.apply(args.slice(1,args.len()).to_vec())
                 }

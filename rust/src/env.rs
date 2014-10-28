@@ -23,9 +23,9 @@ pub fn env_bind(env: &Env,
                 mexprs: MalVal) -> Result<Env,String> {
     let mut variadic = false;
     match *mbinds {
-        List(ref binds) | Vector(ref binds) => {
+        List(ref binds,_) | Vector(ref binds,_) => {
             match *mexprs {
-                List(ref exprs) | Vector(ref exprs) => {
+                List(ref exprs,_) | Vector(ref exprs,_) => {
                     let mut it = binds.iter().enumerate();
                     for (i, b) in it {
                         match **b {

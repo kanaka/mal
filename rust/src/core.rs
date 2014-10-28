@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use std::io::File;
 
 use types::{MalVal,MalRet,err_val,err_str,err_string,
-            Nil,Int,Strn,List,Vector,Hash_Map,Atom,
-            _nil,_true,_false,_int,string,list,func};
+            Nil,Int,Strn,List,Vector,Hash_Map,Func,MalFunc,Atom,
+            _nil,_true,_false,_int,string,
+            list,listm,vectorm,hash_mapm,func,funcm,malfuncd};
 use types;
 use readline;
 use reader;
@@ -131,7 +132,7 @@ pub fn assoc(a:Vec<MalVal>) -> MalRet {
         return err_str("Wrong arity to assoc call");
     }
     match *a[0] {
-        Hash_Map(ref hm) => {
+        Hash_Map(ref hm,_) => {
             types::_assoc(hm, a.slice(1,a.len()).to_vec())
         },
         Nil => {
@@ -146,7 +147,7 @@ pub fn dissoc(a:Vec<MalVal>) -> MalRet {
         return err_str("Wrong arity to dissoc call");
     }
     match *a[0] {
-        Hash_Map(ref hm) => {
+        Hash_Map(ref hm,_) => {
             types::_dissoc(hm, a.slice(1,a.len()).to_vec())
         },
         Nil => {
@@ -162,7 +163,7 @@ pub fn get(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let hm: &HashMap<String,MalVal> = match *a0 {
-        Hash_Map(ref hm) => hm,
+        Hash_Map(ref hm,_) => hm,
         Nil => return Ok(_nil()),
         _ => return err_str("get on non-hash map"),
     };
@@ -183,7 +184,7 @@ pub fn contains_q(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let hm: &HashMap<String,MalVal> = match *a0 {
-        Hash_Map(ref hm) => hm,
+        Hash_Map(ref hm,_) => hm,
         Nil => return Ok(_false()),
         _ => return err_str("contains? on non-hash map"),
     };
@@ -204,7 +205,7 @@ pub fn keys(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let hm: &HashMap<String,MalVal> = match *a0 {
-        Hash_Map(ref hm) => hm,
+        Hash_Map(ref hm,_) => hm,
         Nil => return Ok(_nil()),
         _ => return err_str("contains? on non-hash map"),
     };
@@ -222,7 +223,7 @@ pub fn vals(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let hm: &HashMap<String,MalVal> = match *a0 {
-        Hash_Map(ref hm) => hm,
+        Hash_Map(ref hm,_) => hm,
         Nil => return Ok(_nil()),
         _ => return err_str("contains? on non-hash map"),
     };
@@ -238,7 +239,7 @@ pub fn vals(a:Vec<MalVal>) -> MalRet {
 // Sequence functions
 pub fn cons(a:Vec<MalVal>) -> MalRet {
     match *a[1] {
-        List(ref v) | Vector(ref v) => {
+        List(ref v,_) | Vector(ref v,_) => {
             let mut new_v = v.clone();
             new_v.insert(0, a[0].clone());
             Ok(list(new_v))
@@ -251,7 +252,7 @@ pub fn concat(a:Vec<MalVal>) -> MalRet {
     let mut new_v:Vec<MalVal> = vec![];
     for lst in a.iter() {
         match **lst {
-            List(ref l) | Vector(ref l) => {
+            List(ref l,_) | Vector(ref l,_) => {
                 new_v.push_all(l.as_slice());
             },
             _ => return err_str("concat called with non-sequence"),
@@ -267,7 +268,7 @@ pub fn nth(a:Vec<MalVal>) -> MalRet {
     let a0 = a[0].clone();
     let a1 = a[1].clone();
     let seq = match *a0 {
-        List(ref v) | Vector(ref v) => v,
+        List(ref v,_) | Vector(ref v,_) => v,
         _ => return err_str("nth called with non-sequence"),
     };
     let idx = match *a1 {
@@ -292,7 +293,7 @@ pub fn first(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let seq = match *a0 {
-        List(ref v) | Vector(ref v) => v,
+        List(ref v,_) | Vector(ref v,_) => v,
         _ => return err_str("first called with non-sequence"),
     };
     if seq.len() == 0 {
@@ -308,7 +309,7 @@ pub fn rest(a:Vec<MalVal>) -> MalRet {
     }
     let a0 = a[0].clone();
     let seq = match *a0 {
-        List(ref v) | Vector(ref v) => v,
+        List(ref v,_) | Vector(ref v,_) => v,
         _ => return err_str("rest called with non-sequence"),
     };
     if seq.len() == 0 {
@@ -323,7 +324,7 @@ pub fn empty_q(a:Vec<MalVal>) -> MalRet {
         return err_str("Wrong arity to empty? call");
     }
     match *a[0].clone() {
-        List(ref v) | Vector(ref v) => {
+        List(ref v,_) | Vector(ref v,_) => {
             match v.len() {
                 0 => Ok(_true()),
                 _ => Ok(_false()),
@@ -338,7 +339,7 @@ pub fn count(a:Vec<MalVal>) -> MalRet {
         return err_str("Wrong arity to count call");
     }
     match *a[0].clone() {
-        List(ref v) | Vector(ref v) => {
+        List(ref v,_) | Vector(ref v,_) => {
             Ok(_int(v.len().to_int().unwrap()))
         },
         _ => err_str("count called on non-sequence"),
@@ -352,7 +353,7 @@ pub fn apply(a:Vec<MalVal>) -> MalRet {
     let ref f = a[0];
     let mut args = a.slice(1,a.len()-1).to_vec();
     match *a[a.len()-1] {
-        List(ref v) | Vector(ref v) => {
+        List(ref v,_) | Vector(ref v,_) => {
             args.push_all(v.as_slice());
             f.apply(args)
         },
@@ -368,7 +369,7 @@ pub fn map(a:Vec<MalVal>) -> MalRet {
     let ref f = a[0].clone();
     let seq = a[1].clone();
     match *seq {
-        List(ref v) | Vector(ref v) => {
+        List(ref v,_) | Vector(ref v,_) => {
             for mv in v.iter() {
                 match f.apply(vec![mv.clone()]) {
                     Ok(res) => results.push(res),
@@ -382,7 +383,38 @@ pub fn map(a:Vec<MalVal>) -> MalRet {
 }
 
 
-// Atom funcions
+// Metadata functions
+fn with_meta(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 2 {
+        return err_str("Wrong arity to with-meta call");
+    }
+    let mv = a[0].clone();
+    let meta = a[1].clone();
+    match *mv {
+        List(ref v,_) => Ok(listm(v.clone(),meta)),
+        Vector(ref v,_) => Ok(vectorm(v.clone(),meta)),
+        Hash_Map(ref hm,_) => Ok(hash_mapm(hm.clone(),meta)),
+        MalFunc(ref mfd,_) => Ok(malfuncd(mfd.clone(),meta)),
+        Func(f,_) => Ok(funcm(f,meta)),
+        _ => err_str("type does not support metadata"),
+    }
+}
+
+fn meta(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to meta call");
+    }
+    match *a[0].clone() {
+        List(_,ref meta) |
+        Vector(_,ref meta) |
+        Hash_Map(_,ref meta) |
+        MalFunc(_,ref meta) |
+        Func(_,ref meta) => Ok(meta.clone()),
+        _ => err_str("type does not support metadata"),
+    }
+}
+
+// Atom functions
 fn deref(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to deref call");
@@ -488,6 +520,8 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("apply".to_string(), func(apply));
     ns.insert("map".to_string(), func(map));
 
+    ns.insert("with-meta".to_string(), func(with_meta));
+    ns.insert("meta".to_string(), func(meta));
     ns.insert("atom".to_string(), func(types::atom));
     ns.insert("deref".to_string(), func(deref));
     ns.insert("reset!".to_string(), func(reset_bang));
