@@ -16,10 +16,6 @@ git = "https://github.com/kanaka/rust-pcre"
 
 
 [[bin]]
-
-name = "exp"
-
-[[bin]]
 name = "step0_repl"
 [[bin]]
 name = "step1_read_print"

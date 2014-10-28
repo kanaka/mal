@@ -187,6 +187,8 @@ tool (cargo) to build.
 
 ```
 cd rust
+# Need patched pcre lib (should be temporary)
+git clone https://github.com/kanaka/rust-pcre cadencemarseille-pcre
 cargo build
 ./target/stepX_YYY
 ```
