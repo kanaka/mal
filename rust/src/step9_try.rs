@@ -26,7 +26,7 @@ fn read(str: String) -> MalRet {
 // eval
 fn is_pair(x: MalVal) -> bool {
     match *x {
-        List(ref lst,_) => lst.len() > 0,
+        List(ref lst,_) | Vector(ref lst,_) => lst.len() > 0,
         _ => false,
     }
 }
@@ -37,7 +37,7 @@ fn quasiquote(ast: MalVal) -> MalVal {
     }
 
     match *ast.clone() {
-        List(ref args,_) => {
+        List(ref args,_) | Vector(ref args,_) => {
             let ref a0 = args[0];
             match **a0 {
                 Sym(ref s) => {
@@ -50,7 +50,7 @@ fn quasiquote(ast: MalVal) -> MalVal {
             }
             if is_pair(a0.clone()) {
                 match **a0 {
-                    List(ref a0args,_) => {
+                    List(ref a0args,_) | Vector(ref a0args,_) => {
                         let a00 = a0args[0].clone();
                         match *a00 {
                             Sym(ref s) => {
