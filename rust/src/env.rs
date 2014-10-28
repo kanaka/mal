@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 
-use types::{MalVal,MalRet,Sym,List,_nil,list};
+use types::{MalVal,MalRet,Sym,List,_nil,list,err_string};
 
 struct EnvType {
     data: HashMap<String,MalVal>,
@@ -89,7 +89,7 @@ pub fn env_get(env: Env, key: String) -> MalRet {
                 None => Ok(_nil()),
             }
         },
-        None    => Err("'".to_string() + key + "' not found".to_string()),
+        None    => err_string("'".to_string() + key + "' not found".to_string()),
     }
 }
 

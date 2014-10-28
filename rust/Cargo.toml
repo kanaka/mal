@@ -37,3 +37,5 @@ name = "step6_file"
 name = "step7_quote"
 [[bin]]
 name = "step8_macros"
+[[bin]]
+name = "step9_try"

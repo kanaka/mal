@@ -4,7 +4,7 @@
 extern crate regex_macros;
 extern crate regex;
 
-use types::{MalVal,MalRet};
+use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal};
 mod readline;
 mod types;
 mod env;
@@ -26,7 +26,7 @@ fn print(exp: MalVal) -> String {
     exp.pr_str(true)
 }
 
-fn rep(str: String) -> Result<String,String> {
+fn rep(str: String) -> Result<String,MalError> {
     match read(str) {
         Err(e) => Err(e),
         Ok(ast) => {
@@ -45,11 +45,8 @@ fn main() {
         match line { None => break, _ => () }
         match rep(line.unwrap()) {
             Ok(str)  => println!("{}", str),
-            Err(str) => {
-                if str.as_slice() != "<empty line>" {
-                    println!("Error: {}", str)
-                }
-            }
+            Err(ErrMalVal(_)) => (),  // Blank line
+            Err(ErrString(s)) => println!("Error: {}", s),
         }
     }
 }

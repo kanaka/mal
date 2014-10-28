@@ -6,13 +6,14 @@ extern crate regex;
 
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,Int,Sym,List,Vector,Hash_Map,
+use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal,err_str,
+            Int,Sym,List,Vector,Hash_Map,
             _nil,_int,list,vector,hash_map,func};
 mod readline;
 mod types;
-mod env;
 mod reader;
 mod printer;
+mod env; // because types uses env
 
 // read
 fn read(str: String) -> MalRet {
@@ -71,7 +72,7 @@ fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
                     let ref f = args.clone()[0];
                     f.apply(args.slice(1,args.len()).to_vec())
                 }
-                _ => Err("Invalid apply".to_string()),
+                _ => err_str("Invalid apply"),
             }
         }
     }
@@ -82,8 +83,8 @@ fn print(exp: MalVal) -> String {
     exp.pr_str(true)
 }
 
-fn rep(str: String, env: &HashMap<String,MalVal>) -> Result<String,String> {
-    match read(str) {
+fn rep(str: &str, env: &HashMap<String,MalVal>) -> Result<String,MalError> {
+    match read(str.to_string()) {
         Err(e) => Err(e),
         Ok(ast) => {
             //println!("read: {}", ast);
@@ -99,9 +100,9 @@ fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
     match *a[0] {
         Int(a0) => match *a[1] {
             Int(a1) => Ok(_int(f(a0,a1))),
-            _ => Err("second arg must be an int".to_string()),
+            _ => err_str("second arg must be an int"),
         },
-        _ => Err("first arg must be an int".to_string()),
+        _ => err_str("first arg must be an int"),
     }
 }
 fn add(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i+j }, a) }
@@ -119,9 +120,10 @@ fn main() {
     loop {
         let line = readline::mal_readline("user> ");
         match line { None => break, _ => () }
-        match rep(line.unwrap(), &repl_env) {
+        match rep(line.unwrap().as_slice(), &repl_env) {
             Ok(str)  => println!("{}", str),
-            Err(str) => println!("Error: {}", str),
+            Err(ErrMalVal(_)) => (),  // Blank line
+            Err(ErrString(s)) => println!("Error: {}", s),
         }
     }
 }

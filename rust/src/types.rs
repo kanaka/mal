@@ -26,7 +26,35 @@ pub enum MalType {
 
 pub type MalVal = Rc<MalType>;
 
-pub type MalRet = Result<MalVal,String>;
+#[deriving(Show)]
+pub enum MalError {
+    ErrString(String),
+    ErrMalVal(MalVal),
+}
+
+pub type MalRet = Result<MalVal,MalError>;
+
+
+pub fn err_string(s: String) -> MalRet {
+    Err(ErrString(s))
+}
+
+pub fn err_str(s: &str) -> MalRet {
+    Err(ErrString(s.to_string()))
+}
+
+pub fn err_val(mv: MalVal) -> MalRet {
+    Err(ErrMalVal(mv))
+}
+
+/*
+pub enum MalRet {
+    Val(MalVal),
+    MalErr(MalVal),
+    StringErr(String),
+}
+*/
+
 
 #[deriving(Clone)]
 pub struct MalFuncData {
@@ -98,10 +126,10 @@ impl MalType {
                 let new_env = env_new(Some(mfc.env.clone()));
                 match env_bind(&new_env, mfc.params, alst) {
                     Ok(_) => (mfc.eval)(mfc.exp, new_env),
-                    Err(e) => Err(e),
+                    Err(e) => err_string(e),
                 }
             },
-            _ => Err("attempt to call non-function".to_string()),
+            _ => err_str("attempt to call non-function"),
         }
 
     }
@@ -136,23 +164,90 @@ impl fmt::Show for MalType {
 }
 
 
-// Convenience constructor functions
+// Scalars
 pub fn _nil() -> MalVal { Rc::new(Nil) }
+pub fn nil_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to nil? call");
+    }
+    match *a[0].clone() {
+        Nil => Ok(_true()),
+        _   => Ok(_false()),
+    }
+}
+
 pub fn _true() -> MalVal { Rc::new(True) }
+pub fn true_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to true? call");
+    }
+    match *a[0].clone() {
+        True => Ok(_true()),
+        _    => Ok(_false()),
+    }
+}
+
 pub fn _false() -> MalVal { Rc::new(False) }
+pub fn false_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to false? call");
+    }
+    match *a[0].clone() {
+        False => Ok(_true()),
+        _     => Ok(_false()),
+    }
+}
+
 pub fn _int(i: int) -> MalVal { Rc::new(Int(i)) }
 
+
+// Symbols
 pub fn symbol(strn: &str) -> MalVal { Rc::new(Sym(strn.to_string())) }
+pub fn symbol_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to symbol? call");
+    }
+    match *a[0].clone() {
+        Sym(_) => Ok(_true()),
+        _      => Ok(_false()),
+    }
+}
+
+// Strings
 pub fn strn(strn: &str) -> MalVal { Rc::new(Strn(strn.to_string())) }
 pub fn string(strn: String) -> MalVal { Rc::new(Strn(strn)) }
 
+// Lists
 pub fn list(seq: Vec<MalVal>) -> MalVal { Rc::new(List(seq)) }
-pub fn vector(seq: Vec<MalVal>) -> MalVal { Rc::new(Vector(seq)) }
-pub fn hash_map(hm: HashMap<String,MalVal>) -> MalVal { Rc::new(Hash_Map(hm)) }
+pub fn listv(seq:Vec<MalVal>) -> MalRet { Ok(list(seq)) }
+pub fn list_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to list? call");
+    }
+    match *a[0].clone() {
+        List(_) => Ok(_true()),
+        _ => Ok(_false()),
+    }
+}
 
+// Vectors
+pub fn vector(seq: Vec<MalVal>) -> MalVal { Rc::new(Vector(seq)) }
+pub fn vectorv(seq: Vec<MalVal>) -> MalRet { Ok(vector(seq)) }
+pub fn vector_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to vector? call");
+    }
+    match *a[0].clone() {
+        Vector(_) => Ok(_true()),
+        _         => Ok(_false()),
+    }
+}
+
+// Hash Maps
+pub fn hash_map(hm: HashMap<String,MalVal>) -> MalVal { Rc::new(Hash_Map(hm)) }
 pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
     if seq.len() % 2 == 1 {
-        return Err("odd number of elements to hash-map".to_string());
+        return err_str("odd number of elements to hash-map");
     }
     let mut new_hm: HashMap<String,MalVal> = HashMap::new();
     let mut it = seq.iter();
@@ -160,7 +255,7 @@ pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
         let k = match it.next() {
             Some(mv) => match *mv.clone() {
                 Strn(ref s) => s.to_string(),
-                _ => return Err("key is not a string in hash-map call".to_string()),
+                _ => return err_str("key is not a string in hash-map call"),
             },
             None => break,
         };
@@ -168,6 +263,15 @@ pub fn hash_mapv(seq: Vec<MalVal>) -> MalRet {
         new_hm.insert(k, v.clone());
     }
     Ok(Rc::new(Hash_Map(new_hm)))
+}
+pub fn hash_map_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to map? call");
+    }
+    match *a[0].clone() {
+        Hash_Map(_) => Ok(_true()),
+        _           => Ok(_false()),
+    }
 }
 
 pub fn func(f: fn(Vec<MalVal>) -> MalRet ) -> MalVal {
@@ -180,4 +284,16 @@ pub fn malfunc(eval: fn(MalVal, Env) -> MalRet,
 }
 pub fn malfuncd(mfd: MalFuncData) -> MalVal {
     Rc::new(MalFunc(mfd))
+}
+
+
+// General functions
+pub fn sequential_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to sequential? call");
+    }
+    match *a[0].clone() {
+        List(_) | Vector(_) => Ok(_true()),
+        _                   => Ok(_false()),
+    }
 }
