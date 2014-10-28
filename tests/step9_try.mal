@@ -156,8 +156,17 @@
 (contains? hm2 "a")
 ;=>true
 
+
+;;; TODO: fix. Clojure returns nil but this breaks mal impl
+(keys hm1)
+;=>()
+
 (keys hm2)
 ;=>("a")
+
+;;; TODO: fix. Clojure returns nil but this breaks mal impl
+(vals hm1)
+;=>()
 
 (vals hm2)
 ;=>(1)

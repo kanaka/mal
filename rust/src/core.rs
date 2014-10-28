@@ -7,7 +7,7 @@ use std::io::File;
 use types::{MalVal,MalRet,err_val,err_str,err_string,
             Nil,Int,Strn,List,Vector,Hash_Map,Func,MalFunc,Atom,
             _nil,_true,_false,_int,string,
-            list,listm,vectorm,hash_mapm,func,funcm,malfuncd};
+            list,vector,listm,vectorm,hash_mapm,func,funcm,malfuncd};
 use types;
 use readline;
 use reader;
@@ -209,7 +209,7 @@ pub fn keys(a:Vec<MalVal>) -> MalRet {
         Nil => return Ok(_nil()),
         _ => return err_str("contains? on non-hash map"),
     };
-    if hm.len() == 0 { return Ok(_nil()); }
+    //if hm.len() == 0 { return Ok(_nil()); }
     let mut keys = vec![];
     for k in hm.keys() {
         keys.push(string(k.to_string()));
@@ -227,7 +227,7 @@ pub fn vals(a:Vec<MalVal>) -> MalRet {
         Nil => return Ok(_nil()),
         _ => return err_str("contains? on non-hash map"),
     };
-    if hm.len() == 0 { return Ok(_nil()); }
+    //if hm.len() == 0 { return Ok(_nil()); }
     let mut vals = vec![];
     for k in hm.values() {
         vals.push(k.clone());
@@ -382,6 +382,30 @@ pub fn map(a:Vec<MalVal>) -> MalRet {
     Ok(list(results))
 }
 
+pub fn conj(a:Vec<MalVal>) -> MalRet {
+    if a.len() < 2 {
+        return err_str("Wrong arity to conj call");
+    }
+    let mut new_v:Vec<MalVal> = vec![];
+    match *a[0].clone() {
+        List(ref l,_) => {
+            new_v.push_all(l.as_slice());
+            for mv in a.iter().skip(1) {
+                new_v.insert(0,mv.clone());
+            }
+            Ok(list(new_v))
+        },
+        Vector(ref l,_) => {
+            new_v.push_all(l.as_slice());
+            for mv in a.iter().skip(1) {
+                new_v.push(mv.clone());
+            }
+            Ok(vector(new_v))
+        },
+        _ => return err_str("conj called with non-sequence"),
+    }
+}
+
 
 // Metadata functions
 fn with_meta(a:Vec<MalVal>) -> MalRet {
@@ -519,10 +543,12 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("count".to_string(), func(count));
     ns.insert("apply".to_string(), func(apply));
     ns.insert("map".to_string(), func(map));
+    ns.insert("conj".to_string(), func(conj));
 
     ns.insert("with-meta".to_string(), func(with_meta));
     ns.insert("meta".to_string(), func(meta));
     ns.insert("atom".to_string(), func(types::atom));
+    ns.insert("atom?".to_string(), func(types::atom_q));
     ns.insert("deref".to_string(), func(deref));
     ns.insert("reset!".to_string(), func(reset_bang));
     ns.insert("swap!".to_string(), func(swap_bang));

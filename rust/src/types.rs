@@ -247,7 +247,7 @@ pub fn vector_q(a:Vec<MalVal>) -> MalRet {
     }
     match *a[0].clone() {
         Vector(_,_) => Ok(_true()),
-        _         => Ok(_false()),
+        _           => Ok(_false()),
     }
 }
 
@@ -330,6 +330,15 @@ pub fn malfuncd(mfd: MalFuncData, meta: MalVal) -> MalVal {
 
 
 // Atoms
+pub fn atom_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to atom? call");
+    }
+    match *a[0].clone() {
+        Atom(_) => Ok(_true()),
+        _       => Ok(_false()),
+    }
+}
 pub fn atom(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to atom call");
@@ -345,6 +354,6 @@ pub fn sequential_q(a:Vec<MalVal>) -> MalRet {
     }
     match *a[0].clone() {
         List(_,_) | Vector(_,_) => Ok(_true()),
-        _                   => Ok(_false()),
+        _                       => Ok(_false()),
     }
 }

@@ -39,3 +39,5 @@ name = "step7_quote"
 name = "step8_macros"
 [[bin]]
 name = "step9_try"
+[[bin]]
+name = "stepA_interop"

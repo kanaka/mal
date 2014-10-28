@@ -38,7 +38,7 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
                 }
             }
             Ok(match *ast { List(_,_) => list(ast_vec),
-                            _       => vector(ast_vec) })
+                            _         => vector(ast_vec) })
         },
         Hash_Map(ref hm,_) => {
             let mut new_hm: HashMap<String,MalVal> = HashMap::new();
