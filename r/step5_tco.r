@@ -3,6 +3,7 @@ if(!exists("..types..")) source("types.r")
 if(!exists("..reader..")) source("reader.r")
 if(!exists("..printer..")) source("printer.r")
 if(!exists("..env..")) source("env.r")
+if(!exists("..core..")) source("core.r")
 
 READ <- function(str) {
     return(read_str(str))
@@ -21,6 +22,8 @@ eval_ast <- function(ast, env) {
 }
 
 EVAL <- function(ast, env) {
+    repeat {
+
     #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
     if (!.list_q(ast)) {
         return(eval_ast(ast, env))
@@ -29,23 +32,45 @@ EVAL <- function(ast, env) {
     # apply list
     switch(paste("l",length(ast),sep=""),
            l0={ return(ast) },
-           l1={ a0 <- ast[[1]]; a1 <- NULL; a2 <- NULL },
+           l1={ a0 <- ast[[1]]; a1 <- NULL;     a2 <- NULL },
            l2={ a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- NULL },
-           { a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- ast[[3]] })
-    a0sym <- as.character(a0)
+              { a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- ast[[3]] })
+    if (length(a0) > 1) a0sym <- "__<*fn*>__"
+    else                a0sym <- as.character(a0)
     if (a0sym == "def!") {
-        res <- EVAL(ast[[3]], env)
+        res <- EVAL(a2, env)
         return(Env.set(env, a1, res))
     } else if (a0sym == "let*") {
         let_env <- new.Env(env)
         for(i in seq(1,length(a1),2)) {
             Env.set(let_env, a1[[i]], EVAL(a1[[i+1]], let_env))
         }
-        return(EVAL(a2, let_env))
+        ast <- a2
+        env <- let_env
+    } else if (a0sym == "do") {
+        eval_ast(slice(ast,2,length(ast)-1), env)
+        ast <- ast[[length(ast)]]
+    } else if (a0sym == "if") {
+        cond <- EVAL(a1, env)
+        if (.nil_q(cond) || identical(cond, FALSE)) {
+            if (length(ast) < 4) return(NULL)
+            ast <- ast[[4]]
+        } else {
+            ast <- a2
+        }
+    } else if (a0sym == "fn*") {
+        return(malfunc(a2, env, a1))
     } else {
         el <- eval_ast(ast, env)
         f <- el[[1]]
-        return(do.call(f,slice(el,2)))
+        if (class(f) == "MalFunc") {
+            ast <- f$ast
+            env <- f$gen_env(slice(el,2))
+        } else {
+            return(do.call(f,slice(el,2)))
+        }
+    }
+
     }
 }
 
@@ -54,12 +79,14 @@ PRINT <- function(exp) {
 }
 
 repl_env <- new.Env()
-Env.set(repl_env, "+", function(a,b) a+b)
-Env.set(repl_env, "-", function(a,b) a-b)
-Env.set(repl_env, "*", function(a,b) a*b)
-Env.set(repl_env, "/", function(a,b) a/b)
-
 rep <- function(str) return(PRINT(EVAL(READ(str), repl_env)))
+
+# core.r: defined using R
+for(k in names(core_ns)) { Env.set(repl_env, k, core_ns[[k]]) }
+
+# core.mal: defined using the language itself
+. <- rep("(def! not (fn* (a) (if a false true)))")
+
 
 repeat {
     line <- readline("user> ")

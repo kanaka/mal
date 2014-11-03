@@ -3,6 +3,7 @@ if(!exists("..types..")) source("types.r")
 if(!exists("..reader..")) source("reader.r")
 if(!exists("..printer..")) source("printer.r")
 if(!exists("..env..")) source("env.r")
+if(!exists("..core..")) source("core.r")
 
 READ <- function(str) {
     return(read_str(str))
@@ -32,7 +33,8 @@ EVAL <- function(ast, env) {
            l1={ a0 <- ast[[1]]; a1 <- NULL; a2 <- NULL },
            l2={ a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- NULL },
            { a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- ast[[3]] })
-    a0sym <- as.character(a0)
+    if (length(a0) > 1) a0sym <- "__<*fn*>__"
+    else                a0sym <- as.character(a0)
     if (a0sym == "def!") {
         res <- EVAL(ast[[3]], env)
         return(Env.set(env, a1, res))
@@ -42,6 +44,21 @@ EVAL <- function(ast, env) {
             Env.set(let_env, a1[[i]], EVAL(a1[[i+1]], let_env))
         }
         return(EVAL(a2, let_env))
+    } else if (a0sym == "do") {
+        el <- eval_ast(slice(ast,2), env)
+        return(el[[length(el)]])
+    } else if (a0sym == "if") {
+        cond <- EVAL(a1, env)
+        if (.nil_q(cond) || identical(cond, FALSE)) {
+            if (length(ast) < 4) return(nil)
+            return(EVAL(ast[[4]], env))
+        } else {
+            return(EVAL(a2, env))
+        }
+    } else if (a0sym == "fn*") {
+        return(function(...) {
+            EVAL(a2, new.Env(env, a1, list(...)))
+        })
     } else {
         el <- eval_ast(ast, env)
         f <- el[[1]]
@@ -54,12 +71,14 @@ PRINT <- function(exp) {
 }
 
 repl_env <- new.Env()
-Env.set(repl_env, "+", function(a,b) a+b)
-Env.set(repl_env, "-", function(a,b) a-b)
-Env.set(repl_env, "*", function(a,b) a*b)
-Env.set(repl_env, "/", function(a,b) a/b)
-
 rep <- function(str) return(PRINT(EVAL(READ(str), repl_env)))
+
+# core.r: defined using R
+for(k in names(core_ns)) { Env.set(repl_env, k, core_ns[[k]]) }
+
+# core.mal: defined using the language itself
+. <- rep("(def! not (fn* (a) (if a false true)))")
+
 
 repeat {
     line <- readline("user> ")

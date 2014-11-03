@@ -1,8 +1,48 @@
 ..types.. <- TRUE
 
+if(!exists("..env..")) source("env.r")
+
 # General type related functions
-concat <- function(...) {
-    paste(..., collapse="", sep="")
+concat <- function(..., sep="")  paste(..., collapse="", sep=sep)
+concatl <- function(lst, sep="") paste(lst, collapse=sep, sep=sep)
+
+slice <- function(seq, start=1, end=-1) {
+    if (end == -1) end <- length(seq)
+    if (start > length(seq)) lst <- list() else lst <- seq[start:end]
+    switch(class(seq),
+        list={ new.listl(lst) },
+        List={ new.listl(lst) },
+        Vector={ new.vectorl(lst) },
+        { throw("slice called on non-sequence") })
+}
+
+.sequential_q <- function(obj) .list_q(obj) || .vector_q(obj)
+
+.equal_q <- function(a,b) {
+    ota <- class(a); otb <- class(b)
+    if (!((ota == otb) || (.sequential_q(a) && .sequential_q(b)))) {
+        return(FALSE)
+    }
+    switch(ota,
+    "List"={
+        if (length(a) != length(b)) return(FALSE)
+        if (length(a) == 0) return(TRUE)
+        for(i in seq(length(a))) {
+            if (!.equal_q(a[[i]],b[[i]])) return(FALSE)
+        }
+        TRUE
+    },
+    "Vector"={
+        if (length(a) != length(b)) return(FALSE)
+        if (length(a) == 0) return(TRUE)
+        for(i in seq(length(a))) {
+            if (!.equal_q(a[[i]],b[[i]])) return(FALSE)
+        }
+        TRUE
+    },
+    {
+        a == b
+    })
 }
 
 # Errors/exceptions
@@ -21,6 +61,20 @@ get_error <- function(e) {
     } else {
         estr
     }
+}
+
+# Scalars
+nil <- structure("malnil", class="nil")
+.nil_q <- function(obj) "nil" == class(obj)
+
+# Functions
+
+malfunc <- function(ast, env, params) {
+    gen_env <- function(args) new.Env(env, params, args)
+    structure(list(ast=ast,
+                   env=env,
+                   params=params,
+                   gen_env=gen_env), class="MalFunc")
 }
 
 # Lists

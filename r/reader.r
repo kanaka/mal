@@ -41,9 +41,11 @@ read_atom <- function(rdr) {
     if (re_match("^-?[0-9][0-9.]*$", token)) {
         as.numeric(token)
     } else if (substr(token,1,1) == "\"") {
-        substr(token, 2, nchar(token)-1)
+        gsub("\\\\n", "\\n",
+             gsub("\\\\\"", "\"",
+                  substr(token, 2, nchar(token)-1)))
     } else if (token == "nil") {
-        NULL
+        nil
     } else if (token == "true") {
         TRUE
     } else if (token == "false") {
@@ -88,7 +90,7 @@ read_form <- function(rdr) {
 
 read_str <- function(str) {
     tokens <- tokenize(str)
-    if (length(tokens) == 0) return(NULL)
+    if (length(tokens) == 0) return(nil)
     return(read_form(new.Reader(tokens)))
 }
 

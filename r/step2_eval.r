@@ -20,11 +20,10 @@ eval_ast <- function(ast, env) {
 }
 
 EVAL <- function(ast, env) {
-    #cat("EVAL: ", .pr_str(ast,true), "\n", sep="")
+    #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
     if (!.list_q(ast)) {
         return(eval_ast(ast, env))
     }
-
 
     # apply list
     el <- eval_ast(ast, env)
