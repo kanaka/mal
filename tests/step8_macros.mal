@@ -15,6 +15,13 @@
 ;=>(8 9)
 
 
+;; Testing non-macro function
+(not (= 1 1))
+;=>false
+;;; This should fail if it is a macro
+(not (= 1 2))
+;=>true
+
 
 ;; Testing trivial macros
 (defmacro! one (fn* () 1))

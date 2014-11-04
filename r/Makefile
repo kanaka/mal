@@ -1,7 +1,7 @@
 TESTS =
 
 SOURCES_BASE = readline.r types.r reader.r printer.r
-SOURCES_LISP = env.r core.r step9_try.r
+SOURCES_LISP = env.r core.r stepA_interop.r
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: libs

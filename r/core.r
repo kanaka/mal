@@ -24,6 +24,11 @@ println <- function(...) {
     nil
 }
 
+do_readline <- function(prompt) {
+    l <- readline(prompt)
+    if (is.null(l)) nil else l
+}
+
 # Hash Map functions
 do_get <- function(hm,k) {
     if (class(hm) == "nil") return(nil)
@@ -62,7 +67,25 @@ do_apply <- function(f, ...) {
 }
 
 map <- function(f, seq) {
-    new.listl(lapply(seq, function(el) fapply(f, el)))
+    new.listl(lapply(seq, function(el) fapply(f, list(el))))
+}
+
+conj <- function(obj, ...) {
+    p <- list(...)
+    new_obj <- .clone(obj)
+    if (.list_q(obj)) {
+        if (length(p) > 0) {
+            for(l in p) new_obj <- append(list(l), new_obj)
+        }
+        new.listl(new_obj)
+    } else if (.vector_q(obj)) {
+        if (length(p) > 0) {
+            for(l in p) new_obj <- append(new_obj, list(l))
+        }
+        new.vectorl(new_obj)
+    } else {
+        throw("conj called on non-sequence")
+    }
 }
 
 # Metadata functions
@@ -75,6 +98,18 @@ with_meta <- function(obj, m) {
 meta <- function(obj) {
     m <- attr(obj, "meta")
     if (is.null(m)) nil else m
+}
+
+# Atom functions
+deref <- function(atm) atm$val
+reset_bang <- function (atm, val) { atm$val <- val; val }
+swap_bang <- function (atm, f, ...) {
+    p <- list(...)
+    args <- list(atm$val)
+    if (length(p) > 0) {
+        for(l in p) args[[length(args)+1]] <- l
+    }
+    atm$val <- fapply(f, args)
 }
 
 core_ns <- list(
@@ -91,7 +126,7 @@ core_ns <- list(
     "str"=str,
     "prn"=prn,
     "println"=println,
-    "readline"=readline,
+    "readline"=do_readline,
     "read-string"=function(str) read_str(str),
     "slurp"=function(path) readChar(path, file.info(path)$size),
     "<"=function(a,b) a<b,
@@ -126,7 +161,13 @@ core_ns <- list(
     "count"=function(a) length(a),
     "apply"=do_apply,
     "map"=map,
+    "conj"=conj,
 
     "with-meta"=with_meta,
-    "meta"=meta
+    "meta"=meta,
+    "atom"=new.atom,
+    "atom?"=.atom_q,
+    "deref"=deref,
+    "reset!"=reset_bang,
+    "swap!"=swap_bang
 )

@@ -42,10 +42,11 @@ if(!exists("..types..")) source("types.r")
         "logical"={ tolower(exp) },
         "MalFunc"={
             paste("(fn* ", .pr_str(exp$params,TRUE),
-                  " ", .pr_str(exp$ast, FALSE), ")", sep="")
+                  " ", .pr_str(exp$ast, TRUE), ")", sep="")
         },
         "function"={ "<#function>" },
+        "Atom"={
+            paste("(atom ", .pr_str(exp$val,TRUE), ")", sep="")
+        },
         { toString(exp) })
 }
-
-

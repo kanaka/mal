@@ -122,12 +122,18 @@ rep <- function(str) return(PRINT(EVAL(READ(str), repl_env)))
 # core.r: defined using R
 for(k in names(core_ns)) { Env.set(repl_env, k, core_ns[[k]]) }
 Env.set(repl_env, "eval", function(ast) EVAL(ast, repl_env))
-Env.set(repl_env, "*ARGV*", function(ast) EVAL(ast, repl_env))
+Env.set(repl_env, "*ARGV*", new.list())
 
 # core.mal: defined using the language itself
 . <- rep("(def! not (fn* (a) (if a false true)))")
 . <- rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) > 0) {
+    Env.set(repl_env, "*ARGV*", new.listl(slice(list(args),2)))
+    . <- rep(concat("(load-file \"", args[[1]], "\")"))
+    quit(save="no", status=0)
+}
 
 repeat {
     line <- readline("user> ")

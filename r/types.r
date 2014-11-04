@@ -8,7 +8,7 @@ concatl <- function(lst, sep="") paste(lst, collapse=sep, sep=sep)
 
 slice <- function(seq, start=1, end=-1) {
     if (end == -1) end <- length(seq)
-    if (start > length(seq)) lst <- list() else lst <- seq[start:end]
+    if (start > end) lst <- list() else lst <- seq[start:end]
     switch(class(seq),
         list={ new.listl(lst) },
         List={ new.listl(lst) },
@@ -91,7 +91,7 @@ malfunc <- function(eval, ast, env, params) {
                    env=env,
                    params=params,
                    gen_env=gen_env,
-                   ismacro=TRUE), class="MalFunc")
+                   ismacro=FALSE), class="MalFunc")
 }
 .malfunc_q <- function(obj) "MalFunc" == class(obj)
 
@@ -143,3 +143,12 @@ new.hash_mapl <- function(lst) {
     hm
 }
 .hash_map_q <- function(obj) "HashMap" == class(obj)
+
+# Atoms
+new.atom <- function(val) {
+    atm <- new.env()
+    class(atm) <- "Atom"
+    atm$val <- .clone(val)
+    atm
+}
+.atom_q <- function(obj) "Atom" == class(obj)

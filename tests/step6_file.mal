@@ -22,6 +22,11 @@
 ;=>12
 
 ;;
+;; Testing that (do (do)) not broken by TCO
+(do (do 1 2))
+;=>2
+
+;;
 ;; -------- Optional Functionality --------
 
 (load-file "../tests/incB.mal")

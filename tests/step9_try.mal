@@ -61,6 +61,8 @@
 ;=>6
 (map double nums) 
 ;=>(2 4 6)
+(map (fn* [x] (symbol? x)) (list 1 (symbol "two") "three"))
+;=>(false true false)
 
 ;;
 ;; Testing read-str and eval
