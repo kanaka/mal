@@ -15,6 +15,13 @@ eval_ast <- function(ast, env) {
         new.listl(lapply(ast, function(a) EVAL(a, env)))
     } else if (.vector_q(ast)) {
         new.vectorl(lapply(ast, function(a) EVAL(a, env)))
+    } else if (.hash_map_q(ast)) {
+        lst <- list()
+        for(k in ls(ast)) {
+            lst[[length(lst)+1]] = k
+            lst[[length(lst)+1]] = EVAL(ast[[k]], env)
+        }
+        new.hash_mapl(lst)
     } else {
         ast
     }
@@ -29,9 +36,9 @@ EVAL <- function(ast, env) {
     # apply list
     switch(paste("l",length(ast),sep=""),
            l0={ return(ast) },
-           l1={ a0 <- ast[[1]]; a1 <- NULL; a2 <- NULL },
+           l1={ a0 <- ast[[1]]; a1 <- NULL;     a2 <- NULL },
            l2={ a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- NULL },
-           { a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- ast[[3]] })
+              { a0 <- ast[[1]]; a1 <- ast[[2]]; a2 <- ast[[3]] })
     a0sym <- as.character(a0)
     if (a0sym == "def!") {
         res <- EVAL(ast[[3]], env)

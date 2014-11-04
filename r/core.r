@@ -6,18 +6,33 @@ if(!exists("..printer..")) source("printer.r")
 
 # String functions
 
-pr_str <- function(...) .pr_list(..., print_readably=TRUE, join=" ")
+pr_str <- function(...)
+    .pr_list(list(...), print_readably=TRUE, join=" ")
 
-str <- function(...) .pr_list(..., print_readably=FALSE, join="")
+str <- function(...)
+    .pr_list(list(...), print_readably=FALSE, join="")
 
 prn <- function(...) {
-    cat(.pr_list(..., print_readably=TRUE, join=" ")); cat("\n")
+    cat(.pr_list(list(...), print_readably=TRUE, join=" "))
+    cat("\n")
     nil
 }
 
 println <- function(...) {
-    cat(.pr_list(..., print_readably=FALSE, join=" ")); cat("\n")
+    cat(.pr_list(list(...), print_readably=FALSE, join=" "))
+    cat("\n")
     nil
+}
+
+# Hash Map functions
+do_get <- function(hm,k) {
+    if (class(hm) == "nil") return(nil)
+    v <- hm[[k]]
+    if (is.null(v)) nil else v
+}
+contains_q <-function(hm,k) {
+    if (class(hm) == "nil") return(FALSE)
+    if (is.null(hm[[k]])) FALSE else TRUE
 }
 
 # Sequence functions
@@ -50,6 +65,18 @@ map <- function(f, seq) {
     new.listl(lapply(seq, function(el) fapply(f, el)))
 }
 
+# Metadata functions
+with_meta <- function(obj, m) {
+    new_obj <- .clone(obj)
+    attr(new_obj, "meta") <- m
+    new_obj
+}
+
+meta <- function(obj) {
+    m <- attr(obj, "meta")
+    if (is.null(m)) nil else m
+}
+
 core_ns <- list(
     "="=function(a,b) .equal_q(a,b),
     "throw"=function(err) throw(err),
@@ -80,8 +107,14 @@ core_ns <- list(
     "list?"=function(a) .list_q(a),
     "vector"=new.vector,
     "vector?"=function(a) .vector_q(a),
-    "empty?"=function(a) .sequential_q(a) && length(a) == 0,
-    "count"=function(a) length(a),
+    "hash-map"=new.hash_map,
+    "map?"=function(a) .hash_map_q(a),
+    "assoc"=function(hm,...) .assoc(hm,list(...)),
+    "dissoc"=function(hm,...) .dissoc(hm,list(...)),
+    "get"=do_get,
+    "contains?"=contains_q,
+    "keys"=function(hm) new.listl(ls(hm)),
+    "vals"=function(hm) new.listl(lapply(ls(hm), function(x) hm[[x]])),
 
     "sequential?"=.sequential_q,
     "cons"=cons,
@@ -89,6 +122,11 @@ core_ns <- list(
     "nth"=function(a,b) if (length(a) < b+1) nil else a[[b+1]],
     "first"=function(a) if (length(a) < 1) nil else a[[1]], 
     "rest"=function(a) new.listl(slice(a,2)),
+    "empty?"=function(a) .sequential_q(a) && length(a) == 0,
+    "count"=function(a) length(a),
     "apply"=do_apply,
-    "map"=map
+    "map"=map,
+
+    "with-meta"=with_meta,
+    "meta"=meta
 )

@@ -59,6 +59,13 @@ eval_ast <- function(ast, env) {
         new.listl(lapply(ast, function(a) EVAL(a, env)))
     } else if (.vector_q(ast)) {
         new.vectorl(lapply(ast, function(a) EVAL(a, env)))
+    } else if (.hash_map_q(ast)) {
+        lst <- list()
+        for(k in ls(ast)) {
+            lst[[length(lst)+1]] = k
+            lst[[length(lst)+1]] = EVAL(ast[[k]], env)
+        }
+        new.hash_mapl(lst)
     } else {
         ast
     }

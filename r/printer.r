@@ -2,8 +2,8 @@
 
 if(!exists("..types..")) source("types.r")
 
-.pr_list <- function(..., print_readably=TRUE, join="") {
-    concatl(lapply(list(...),
+.pr_list <- function(lst, print_readably=TRUE, join="") {
+    concatl(lapply(lst,
                    function(e) .pr_str(e, print_readably)), sep=join)
 }
 
@@ -11,14 +11,20 @@ if(!exists("..types..")) source("types.r")
     pr <- print_readably
     switch(class(exp),
         "List"={
-            data <- paste(lapply(exp, function(e) .pr_str(e, pr)),
-                          sep="", collapse=" ")
-            paste("(", data, ")", sep="", collapse="")
+            paste("(", .pr_list(exp, pr, " "), ")", sep="", collapse="")
         },
         "Vector"={
-            data <- paste(lapply(exp, function(e) .pr_str(e, pr)),
-                          sep=" ", collapse=" ")
-            paste("[", data, "]", sep="", collapse="")
+            paste("[", .pr_list(exp, pr, " "), "]", sep="", collapse="")
+        },
+        "HashMap"={
+            hlst <- list()
+            if (length(exp) > 0) {
+                for(k in ls(exp)) {
+                    hlst[[length(hlst)+1]] <- k
+                    hlst[[length(hlst)+1]] <- exp[[k]]
+                }
+            }
+            paste("{", .pr_list(hlst, pr, " "), "}", sep="", collapse="")
         },
         "character"={
             if (print_readably) {

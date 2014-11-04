@@ -89,6 +89,13 @@ read_form <- function(rdr) {
     } else if (token == "~@") {
         . <- Reader.next(rdr);
         new.list(new.symbol("splice-unquote"), read_form(rdr))
+    } else if (token == "^") {
+        . <- Reader.next(rdr)
+        m <- read_form(rdr)
+        new.list(new.symbol("with-meta"), read_form(rdr), m)
+    } else if (token == "@") {
+        . <- Reader.next(rdr);
+        new.list(new.symbol("deref"), read_form(rdr))
     } else if (token == ")") {
         throw("unexpected ')'")
     } else if (token == "(") {
@@ -97,6 +104,10 @@ read_form <- function(rdr) {
         throw("unexpected ']'")
     } else if (token == "[") {
         new.vectorl(read_seq(rdr, "[", "]"))
+    } else if (token == "}") {
+        throw("unexpected '}'")
+    } else if (token == "{") {
+        new.hash_mapl(read_seq(rdr, "{", "}"))
     } else {
         read_atom(rdr)
     }

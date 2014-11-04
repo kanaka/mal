@@ -45,6 +45,17 @@ slice <- function(seq, start=1, end=-1) {
     })
 }
 
+.clone <- function(obj) {
+    if (.hash_map_q(obj)) {
+        new_obj <- new.env()
+        for(k in ls(obj, all.names=TRUE)) new_obj[[k]] = obj[[k]]
+        class(new_obj) <- "HashMap"
+    } else {
+        new_obj <- obj
+    }
+    new_obj
+}
+
 # Errors/exceptions
 thrown_error = new.env()
 thrown_error$val = NULL
@@ -96,26 +107,39 @@ fapply <- function(mf, args) {
 }
 
 # Lists
-new.list <- function(...) {
-    lst <- list(...)
-    class(lst) <- "List"
-    lst
-}
-new.listl <- function(lst) {
-    class(lst) <- "List"
-    lst
-}
+new.list <- function(...) new.listl(list(...))
+new.listl <- function(lst) { class(lst) <- "List"; lst }
 .list_q <- function(obj) "List" == class(obj)
 
 # Vectors
-new.vector <- function(...) {
-    lst <- list(...)
-    class(lst) <- "Vector"
-    lst
-}
-new.vectorl <- function(lst) {
-    class(lst) <- "Vector"
-    lst
-}
+new.vector <- function(...) new.vectorl(list(...))
+new.vectorl <- function(lst) { class(lst) <- "Vector"; lst }
 .vector_q <- function(obj) "Vector" == class(obj)
 
+# Hash Maps
+new.hash_map <- function(...) new.hash_mapl(list(...))
+new.hash_mapl <- function(lst) {
+    .assoc(new.env(), lst)
+}
+.assoc <- function(src_hm, lst) {
+    hm <- .clone(src_hm)
+    if (length(lst) > 0) {
+        for(i in seq(1,length(lst),2)) {
+            hm[[lst[[i]]]] <- lst[[i+1]]
+        }
+    }
+    class(hm) <- "HashMap"
+    hm
+}
+.dissoc <- function(src_hm, lst) {
+    hm <- .clone(src_hm)
+    if (length(lst) > 0) {
+        for(k in lst) {
+            remove(list=c(k), envir=hm)
+        }
+    }
+    ls(hm)
+    class(hm) <- "HashMap"
+    hm
+}
+.hash_map_q <- function(obj) "HashMap" == class(obj)
