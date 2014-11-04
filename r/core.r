@@ -137,6 +137,7 @@ core_ns <- list(
     "-"=function(a,b) a-b,
     "*"=function(a,b) a*b,
     "/"=function(a,b) a/b,
+    "time-ms"=function() round(as.numeric(Sys.time())*1000),
 
     "list"=new.list,
     "list?"=function(a) .list_q(a),

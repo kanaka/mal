@@ -64,6 +64,10 @@ Python:
     - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
     - interop tests
 
+R:
+    - readline history
+    - tracebacks in errors
+
 Ruby:
 
 
@@ -90,6 +94,11 @@ Future Implementations:
         - http://stackoverflow.com/questions/23942627/does-rust-0-10-have-a-rl-package
         - http://blog.skylight.io/rust-means-never-having-to-close-a-socket/
 
+    - R
+        - https://stat.ethz.ch/R-manual/R-devel/library/base/html/readline.html
+        - http://dssm.unipa.it/CRAN/web/packages/rdyncall/rdyncall.pdf
+        - http://www.dyncall.org/docs/FFI.pdf
+
     - Redmonk languages from Jan 2014:
         http://sogrady-media.redmonk.com/sogrady/files/2014/01/lang-rank-114-wm.png
     
@@ -97,24 +106,24 @@ Future Implementations:
             * JavaScript
             * Java
             * PHP
-            * C#
             * Python
+            * C#
             - C++
             * Ruby
             * C
             - Objective-C
-            * Perl 
             * Shell (Bash 4)
+            * Perl
 
         - Tier 2
             - R
             - Scala
             - Haskell
-            * Clojure
-            - CoffeeScript
             - Visual Basic
+            - CoffeeScript
+            * Clojure
             - Groovy
-            - Go
+            * Go
             - Lua
             - Erlang
             - Emacs Lisp

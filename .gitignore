@@ -31,3 +31,4 @@ rust/target/
 rust/mal
 rust/Cargo.lock
 rust/.cargo
+r/lib

@@ -3,7 +3,7 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 15 different languages:
+language. Mal is implemented from scratch in 16 different languages:
 
 * Bash shell
 * C
@@ -18,6 +18,7 @@ language. Mal is implemented from scratch in 15 different languages:
 * PHP
 * Postscript
 * Python
+* R
 * Ruby
 * Rust
 
@@ -171,6 +172,16 @@ gs -q -dNODISPLAY -I./ stepX_YYY.ps
 ```
 cd python
 python stepX_YYY.py
+```
+
+### R
+
+The R implementation of mal requires R (r-base-core) to run.
+
+```
+cd r
+make libs
+Rscript stepX_YYY.rb
 ```
 
 ### Ruby (1.8)
