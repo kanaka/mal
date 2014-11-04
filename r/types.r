@@ -66,17 +66,33 @@ get_error <- function(e) {
 # Scalars
 nil <- structure("malnil", class="nil")
 .nil_q <- function(obj) "nil" == class(obj)
+.true_q <- function(obj) "logical" == class(obj) && obj == TRUE
+.false_q <- function(obj) "logical" == class(obj) && obj == FALSE
 new.symbol <- function(name) structure(name, class="Symbol")
 .symbol_q <- function(obj) "Symbol" == class(obj)
 
 # Functions
 
-malfunc <- function(ast, env, params) {
+malfunc <- function(eval, ast, env, params) {
     gen_env <- function(args) new.Env(env, params, args)
-    structure(list(ast=ast,
+    structure(list(eval=eval,
+                   ast=ast,
                    env=env,
                    params=params,
-                   gen_env=gen_env), class="MalFunc")
+                   gen_env=gen_env,
+                   ismacro=TRUE), class="MalFunc")
+}
+.malfunc_q <- function(obj) "MalFunc" == class(obj)
+
+fapply <- function(mf, args) {
+    if (class(mf) == "MalFunc") {
+        ast <- mf$ast
+        env <- mf$gen_env(args)
+        mf$eval(ast, env)
+    } else {
+        #print(args)
+        do.call(mf,args)
+    }
 }
 
 # Lists

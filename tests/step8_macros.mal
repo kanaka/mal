@@ -114,14 +114,17 @@
 ;;
 ;; -------- Optional Functionality --------
 
-;; Testing cons, concat, first, rest with vectors
+;; Testing nth, first, rest with vectors
 
-(cons [1] [2 3])
-;=>([1] 2 3)
-(cons 1 [2 3])
-;=>(1 2 3)
-(concat [1 2] (list 3 4) [5 6])
-;=>(1 2 3 4 5 6)
+(nth [] 0)
+;=>nil
+(nth [1] 0)
+;=>1
+(nth [1 2] 1)
+;=>2
+(nth [1 2] 2)
+;=>nil
+
 (first [])
 ;=>nil
 (first [10])

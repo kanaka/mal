@@ -53,13 +53,13 @@ EVAL <- function(ast, env) {
     } else if (a0sym == "if") {
         cond <- EVAL(a1, env)
         if (.nil_q(cond) || identical(cond, FALSE)) {
-            if (length(ast) < 4) return(NULL)
+            if (length(ast) < 4) return(nil)
             ast <- ast[[4]]
         } else {
             ast <- a2
         }
     } else if (a0sym == "fn*") {
-        return(malfunc(a2, env, a1))
+        return(malfunc(EVAL, a2, env, a1))
     } else {
         el <- eval_ast(ast, env)
         f <- el[[1]]

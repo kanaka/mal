@@ -1,3 +1,19 @@
+TESTS =
+
+SOURCES_BASE = readline.r types.r reader.r printer.r
+SOURCES_LISP = env.r core.r step9_try.r
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+
+all: libs
+
+.PHONY: stats tests $(TESTS)
+
+stats: $(SOURCES)
+	@wc $^
+stats-lisp: $(SOURCES_LISP)
+	@wc $^
+
+
 .PHONY:
 libs: lib/rdyncall
 

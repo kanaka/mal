@@ -38,8 +38,10 @@ re_match <- function(re, str) { length(grep(re, c(str))) > 0 }
 
 read_atom <- function(rdr) {
     token <- Reader.next(rdr)
-    if (re_match("^-?[0-9][0-9.]*$", token)) {
-        as.numeric(token)
+    if (re_match("^-?[0-9]+$", token)) {
+        as.integer(token)
+    } else if (re_match("^-?[0-9][0-9.]*$", token)) {
+        as.double(token)
     } else if (substr(token,1,1) == "\"") {
         gsub("\\\\n", "\\n",
              gsub("\\\\\"", "\"",

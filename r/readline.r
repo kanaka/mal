@@ -7,7 +7,7 @@ rllib <- dynfind(c("readline"))
 rl <- .dynsym(rllib,"readline")
 
 readline <- function(prompt) {
-    res <- .dyncall(rl, "Z)p", "user> ")
+    res <- .dyncall(rl, "Z)p", prompt)
     if (is.nullptr(res)) {
         return(NULL)
     } else {

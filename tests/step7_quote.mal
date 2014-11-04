@@ -99,6 +99,15 @@
 ;;
 ;; -------- Optional Functionality --------
 
+;; Testing cons, concat, first, rest with vectors
+
+(cons [1] [2 3])
+;=>([1] 2 3)
+(cons 1 [2 3])
+;=>(1 2 3)
+(concat [1 2] (list 3 4) [5 6])
+;=>(1 2 3 4 5 6)
+
 ;; Testing unquote with vectors
 (def! a 8)
 ;=>8
@@ -114,3 +123,4 @@
 ;=>(1 1 "b" "d" 3)
 ;;; TODO: fix this
 ;;;;=>[1 1 "b" "d" 3]
+

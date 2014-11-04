@@ -23,8 +23,7 @@ println <- function(...) {
 # Sequence functions
 cons <- function(a,b) {
     new_lst <- append(list(a), b)
-    class(new_lst) <- "List"
-    new_lst
+    new.listl(new_lst)
 }
 
 do_concat <- function(...) {
@@ -32,17 +31,40 @@ do_concat <- function(...) {
     for(l in list(...)) {
         new_lst <- append(new_lst, l)
     }
-    class(new_lst) <- "List"
-    new_lst
+    new.listl(new_lst)
+}
+
+do_apply <- function(f, ...) {
+    p <- list(...)
+    args <- list()
+    if (length(p) > 1) {
+        for(l in slice(p, 1, length(p)-1)) {
+            args[[length(args)+1]] <- l
+        }
+    }
+    args <- append(args, p[[length(p)]])
+    fapply(f, args)
+}
+
+map <- function(f, seq) {
+    new.listl(lapply(seq, function(el) fapply(f, el)))
 }
 
 core_ns <- list(
     "="=function(a,b) .equal_q(a,b),
+    "throw"=function(err) throw(err),
+    "nil?"=.nil_q,
+    "true?"=.true_q,
+    "false?"=.false_q,
+    "symbol?"=.symbol_q,
+    "symbol"=new.symbol,
+    "symbol?"=.symbol_q,
 
     "pr-str"=pr_str,
     "str"=str,
     "prn"=prn,
     "println"=println,
+    "readline"=readline,
     "read-string"=function(str) read_str(str),
     "slurp"=function(path) readChar(path, file.info(path)$size),
     "<"=function(a,b) a<b,
@@ -54,11 +76,19 @@ core_ns <- list(
     "*"=function(a,b) a*b,
     "/"=function(a,b) a/b,
 
-    "list"=function(...) new.list(...),
+    "list"=new.list,
     "list?"=function(a) .list_q(a),
+    "vector"=new.vector,
+    "vector?"=function(a) .vector_q(a),
     "empty?"=function(a) .sequential_q(a) && length(a) == 0,
     "count"=function(a) length(a),
 
+    "sequential?"=.sequential_q,
     "cons"=cons,
-    "concat"=do_concat
+    "concat"=do_concat,
+    "nth"=function(a,b) if (length(a) < b+1) nil else a[[b+1]],
+    "first"=function(a) if (length(a) < 1) nil else a[[1]], 
+    "rest"=function(a) new.listl(slice(a,2)),
+    "apply"=do_apply,
+    "map"=map
 )
