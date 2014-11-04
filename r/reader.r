@@ -27,7 +27,7 @@ tokenize <- function(str) {
     res <- list()
     i <- 1
     for(v in m[[1]]) {
-        if (v == "") next
+        if (v == "" || substr(v,1,1) == ";") next
         res[[i]] <- v
         i <- i+1
     }
@@ -51,7 +51,7 @@ read_atom <- function(rdr) {
     } else if (token == "false") {
         FALSE
     } else {
-        as.symbol(token)
+        new.symbol(token)
     }
 }
 
@@ -75,7 +75,19 @@ read_seq <- function(rdr, start="(", end=")") {
 
 read_form <- function(rdr) {
     token <- Reader.peek(rdr)
-    if (token == ")") {
+    if (token == "'") {
+        . <- Reader.next(rdr);
+        new.list(new.symbol("quote"), read_form(rdr))
+    } else if (token == "`") {
+        . <- Reader.next(rdr);
+        new.list(new.symbol("quasiquote"), read_form(rdr))
+    } else if (token == "~") {
+        . <- Reader.next(rdr);
+        new.list(new.symbol("unquote"), read_form(rdr))
+    } else if (token == "~@") {
+        . <- Reader.next(rdr);
+        new.list(new.symbol("splice-unquote"), read_form(rdr))
+    } else if (token == ")") {
         throw("unexpected ')'")
     } else if (token == "(") {
         new.listl(read_seq(rdr))

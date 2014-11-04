@@ -5,8 +5,33 @@ if(!exists("..printer..")) source("printer.r")
 if(!exists("..env..")) source("env.r")
 if(!exists("..core..")) source("core.r")
 
+# read
 READ <- function(str) {
     return(read_str(str))
+}
+
+# eval
+is_pair <- function(x) {
+    .sequential_q(x) && length(x) > 0
+}
+
+quasiquote <- function(ast) {
+    if (!is_pair(ast)) {
+        new.list(new.symbol("quote"),
+                 ast)
+    } else if (.symbol_q(ast[[1]]) && ast[[1]] == "unquote") {
+        ast[[2]]
+    } else if (is_pair(ast[[1]]) &&
+               .symbol_q(ast[[1]][[1]]) &&
+               ast[[1]][[1]] == "splice-unquote") {
+        new.list(new.symbol("concat"),
+                 ast[[1]][[2]],
+                 quasiquote(slice(ast, 2)))
+    } else {
+        new.list(new.symbol("cons"),
+                 quasiquote(ast[[1]]),
+                 quasiquote(slice(ast, 2)))
+    }
 }
 
 eval_ast <- function(ast, env) {
@@ -47,6 +72,10 @@ EVAL <- function(ast, env) {
         }
         ast <- a2
         env <- let_env
+    } else if (a0sym == "quote") {
+        return(a1)
+    } else if (a0sym == "quasiquote") {
+        ast <- quasiquote(a1)
     } else if (a0sym == "do") {
         eval_ast(slice(ast,2,length(ast)-1), env)
         ast <- ast[[length(ast)]]
@@ -74,18 +103,23 @@ EVAL <- function(ast, env) {
     }
 }
 
+# print
 PRINT <- function(exp) {
     return(.pr_str(exp, TRUE))
 }
 
+# repl loop
 repl_env <- new.Env()
 rep <- function(str) return(PRINT(EVAL(READ(str), repl_env)))
 
 # core.r: defined using R
 for(k in names(core_ns)) { Env.set(repl_env, k, core_ns[[k]]) }
+Env.set(repl_env, "eval", function(ast) EVAL(ast, repl_env))
+Env.set(repl_env, "*ARGV*", function(ast) EVAL(ast, repl_env))
 
 # core.mal: defined using the language itself
 . <- rep("(def! not (fn* (a) (if a false true)))")
+. <- rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 
 repeat {

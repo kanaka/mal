@@ -31,6 +31,7 @@ if(!exists("..types..")) source("types.r")
                 exp
             }
         },
+        "Symbol"={ exp },
         "nil"={ "nil" },
         "logical"={ tolower(exp) },
         "MalFunc"={

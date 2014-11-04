@@ -66,6 +66,8 @@ get_error <- function(e) {
 # Scalars
 nil <- structure("malnil", class="nil")
 .nil_q <- function(obj) "nil" == class(obj)
+new.symbol <- function(name) structure(name, class="Symbol")
+.symbol_q <- function(obj) "Symbol" == class(obj)
 
 # Functions
 

@@ -7,9 +7,9 @@ new.Env <- function(outer=emptyenv(), binds=list(), exprs=list()) {
 
     if (length(binds) > 0) {
         for(i in seq(length(binds))) {
-            b <- as.character(binds[[i]])
+            b <- binds[[i]]
             if (b == "&") {
-                e[[as.character(binds[[i+1]])]] <-
+                e[[binds[[i+1]]]] <-
                     slice(exprs, i, length(exprs))
                 break
             } else {
@@ -21,7 +21,6 @@ new.Env <- function(outer=emptyenv(), binds=list(), exprs=list()) {
 }
 
 Env.find <- function(e, key) {
-    key <- as.character(key)
     if (exists(key, envir=e, inherits=FALSE)) {
         e
     } else if (!identical(parent.env(e), emptyenv())) {
@@ -32,13 +31,11 @@ Env.find <- function(e, key) {
 }
 
 Env.set <- function(e, key, val) {
-    key <- as.character(key)
     e[[key]] <- val
     invisible(val)
 }
 
 Env.get <- function(e, key) {
-    key <- as.character(key)
     e <- Env.find(e, key)
     if (.nil_q(e)) throw(concat("'", key, "' not found"))
     e[[key]]

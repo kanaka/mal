@@ -10,7 +10,7 @@ READ <- function(str) {
 }
 
 eval_ast <- function(ast, env) {
-    if (is.symbol(ast)) {
+    if (.symbol_q(ast)) {
         Env.get(env, ast)
     } else if (.list_q(ast)) {
         new.listl(lapply(ast, function(a) EVAL(a, env)))
