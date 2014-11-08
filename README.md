@@ -3,12 +3,13 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 16 different languages:
+language. Mal is implemented from scratch in 17 different languages:
 
 * Bash shell
 * C
 * C#
 * Clojure
+* CoffeeScript
 * Go
 * Java
 * Javascript ([Online Demo](http://kanaka.github.io/mal))
@@ -86,6 +87,14 @@ mono ./stepX_YYY
 ```
 cd clojure
 lein with-profile +stepX trampoline run
+```
+
+### CoffeeScript
+
+```
+sudo npm install -g coffee-script
+cd coffee
+coffee ./stepX_YYY
 ```
 
 ### Go

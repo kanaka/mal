@@ -1,4 +1,14 @@
-;; Testing first function
+;; Testing nth, first and rest functions
+
+(nth '() 0)
+;=>nil
+(nth '(1) 0)
+;=>1
+(nth '(1 2) 1)
+;=>2
+(nth '(1 2) 2)
+;=>nil
+
 (first '())
 ;=>nil
 (first '(6))
@@ -6,7 +16,6 @@
 (first '(7 8 9))
 ;=>7
 
-;; Testing rest function
 (rest '())
 ;=>()
 (rest '(6))

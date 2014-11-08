@@ -3,6 +3,7 @@ make/mal.mk
 js/node_modules
 js/mal.js
 js/mal_web.js
+coffee/node_modules
 bash/mal.sh
 c/*.o
 *.pyc

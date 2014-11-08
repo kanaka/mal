@@ -1,0 +1,24 @@
+;; Testing basic bash interop
+
+(js* "7")
+;=>7
+
+(js* "'7'")
+;=>"7"
+
+(js* "[7,8,9]")
+;=>(7 8 9)
+
+(js* "console.log('hello');")
+; hello
+;=>nil
+
+(js* "foo=8;")
+(js* "foo;")
+;=>8
+
+(js* "['a','b','c'].map(function(x){return 'X'+x+'Y'}).join(' ')")
+;=>"XaY XbY XcY"
+
+(js* "[1,2,3].map(function(x){return 1+x})")
+;=>(2 3 4)

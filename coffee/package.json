@@ -1,0 +1,9 @@
+{
+    "name": "mal",
+    "version": "0.0.1",
+    "description": "Make a Lisp (mal) language implemented in CoffeeScript",
+    "dependencies": {
+        "ffi": "1.2.x",
+        "coffee-script": "~1.8"
+    }
+}
