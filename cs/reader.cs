@@ -61,7 +61,7 @@ namespace Mal {
                 throw new ParseError("unrecognized token '" + token + "'");
             }
             if (match.Groups[1].Value != String.Empty) {
-                return new Mal.types.MalInteger(int.Parse(match.Groups[1].Value));
+                return new Mal.types.MalInt(int.Parse(match.Groups[1].Value));
             } else if (match.Groups[3].Value != String.Empty) {
                 return Mal.types.Nil;
             } else if (match.Groups[4].Value != String.Empty) {

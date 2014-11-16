@@ -39,9 +39,9 @@ namespace Mal {
                 (a is MalList && b is MalList))) {
                 return false;
             } else {
-                if (a is MalInteger) {
-                    return ((MalInteger)a).getValue() ==
-                        ((MalInteger)b).getValue();
+                if (a is MalInt) {
+                    return ((MalInt)a).getValue() ==
+                        ((MalInt)b).getValue();
                 } else if (a is MalSymbol) {
                     return ((MalSymbol)a).getName() ==
                         ((MalSymbol)b).getName();
@@ -97,10 +97,10 @@ namespace Mal {
         static public MalConstant True = new MalConstant("true");
         static public MalConstant False = new MalConstant("false");
 
-        public class MalInteger : MalVal {
+        public class MalInt : MalVal {
             int value;
-            public MalInteger(int v) { value = v; }
-            public new MalInteger copy() { return this; }
+            public MalInt(int v) { value = v; }
+            public new MalInt copy() { return this; }
 
             public int getValue() { return value; }
             public override string ToString() {
@@ -109,35 +109,36 @@ namespace Mal {
             public override string ToString(bool print_readably) {
                 return value.ToString();
             }
-            public static MalConstant operator <(MalInteger a, MalInteger b) {
+            public static MalConstant operator <(MalInt a, MalInt b) {
                 return a.getValue() < b.getValue() ? True : False;
             }
-            public static MalConstant operator <=(MalInteger a, MalInteger b) {
+            public static MalConstant operator <=(MalInt a, MalInt b) {
                 return a.getValue() <= b.getValue() ? True : False;
             }
-            public static MalConstant operator >(MalInteger a, MalInteger b) {
+            public static MalConstant operator >(MalInt a, MalInt b) {
                 return a.getValue() > b.getValue() ? True : False;
             }
-            public static MalConstant operator >=(MalInteger a, MalInteger b) {
+            public static MalConstant operator >=(MalInt a, MalInt b) {
                 return a.getValue() >= b.getValue() ? True : False;
             }
-            public static MalInteger operator +(MalInteger a, MalInteger b) {
-                return new MalInteger(a.getValue() + b.getValue());
+            public static MalInt operator +(MalInt a, MalInt b) {
+                return new MalInt(a.getValue() + b.getValue());
             }
-            public static MalInteger operator -(MalInteger a, MalInteger b) {
-                return new MalInteger(a.getValue() - b.getValue());
+            public static MalInt operator -(MalInt a, MalInt b) {
+                return new MalInt(a.getValue() - b.getValue());
             }
-            public static MalInteger operator *(MalInteger a, MalInteger b) {
-                return new MalInteger(a.getValue() * b.getValue());
+            public static MalInt operator *(MalInt a, MalInt b) {
+                return new MalInt(a.getValue() * b.getValue());
             }
-            public static MalInteger operator /(MalInteger a, MalInteger b) {
-                return new MalInteger(a.getValue() / b.getValue());
+            public static MalInt operator /(MalInt a, MalInt b) {
+                return new MalInt(a.getValue() / b.getValue());
             }
         }
 
         public class MalSymbol : MalVal {
             string value;
             public MalSymbol(string v) { value = v; }
+            public MalSymbol(MalString v) { value = v.getValue(); }
             public new MalSymbol copy() { return this; }
 
             public string getName() { return value; }
@@ -298,16 +299,16 @@ namespace Mal {
             }
         }
 
-        public class MalFunction : MalVal {
+        public class MalFunc : MalVal {
             Func<MalList, MalVal> fn = null;
             MalVal ast = null;
             Mal.env.Env env = null;
             MalList fparams;
             bool macro = false;
-            public MalFunction(Func<MalList, MalVal> fn) {
+            public MalFunc(Func<MalList, MalVal> fn) {
                 this.fn = fn;
             }
-            public MalFunction(MalVal ast, Mal.env.Env env, MalList fparams,
+            public MalFunc(MalVal ast, Mal.env.Env env, MalList fparams,
                                Func<MalList, MalVal> fn) {
                 this.fn = fn;
                 this.ast = ast;

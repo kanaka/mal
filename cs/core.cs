@@ -3,14 +3,14 @@ using System.IO;
 using System.Collections.Generic;
 using MalVal = Mal.types.MalVal;
 using MalConstant = Mal.types.MalConstant;
-using MalInteger = Mal.types.MalInteger;
+using MalInt = Mal.types.MalInt;
 using MalSymbol = Mal.types.MalSymbol;
 using MalString = Mal.types.MalString;
 using MalList = Mal.types.MalList;
 using MalVector = Mal.types.MalVector;
 using MalHashMap = Mal.types.MalHashMap;
 using MalAtom = Mal.types.MalAtom;
-using MalFunction = Mal.types.MalFunction;
+using MalFunc = Mal.types.MalFunc;
 
 namespace Mal {
     public class core {
@@ -19,93 +19,93 @@ namespace Mal {
         static MalConstant False = Mal.types.False;
 
         // Errors/Exceptions
-        static public MalFunction mal_throw = new MalFunction(
+        static public MalFunc mal_throw = new MalFunc(
             a => { throw new Mal.types.MalException(a[0]); });
 
         // Scalar functions
-        static MalFunction nil_Q = new MalFunction(
+        static MalFunc nil_Q = new MalFunc(
             a => a[0] == Nil ? True : False);
 
-        static MalFunction true_Q = new MalFunction(
+        static MalFunc true_Q = new MalFunc(
             a => a[0] == True ? True : False);
 
-        static MalFunction false_Q = new MalFunction(
+        static MalFunc false_Q = new MalFunc(
             a => a[0] == False ? True : False);
 
-        static MalFunction symbol_Q = new MalFunction(
+        static MalFunc symbol_Q = new MalFunc(
             a => a[0] is MalSymbol ? True : False);
 
 
         // Number functions
-        static MalFunction time_ms = new MalFunction(
-            a => new MalInteger((int)(
+        static MalFunc time_ms = new MalFunc(
+            a => new MalInt((int)(
                 DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond)));
 
         // String functions
-        static public MalFunction pr_str = new MalFunction(
+        static public MalFunc pr_str = new MalFunc(
             a => new MalString(printer._pr_str_args(a, " ", true)) );
 
-        static public MalFunction str = new MalFunction(
+        static public MalFunc str = new MalFunc(
             a => new MalString(printer._pr_str_args(a, "", false)) );
 
-        static public MalFunction prn = new MalFunction(
+        static public MalFunc prn = new MalFunc(
             a => { 
                 Console.WriteLine(printer._pr_str_args(a, " ", true));
                 return Nil;
             } );
 
-        static public MalFunction println = new MalFunction(
+        static public MalFunc println = new MalFunc(
             a => {
                 Console.WriteLine(printer._pr_str_args(a, " ", false));
                 return Nil;
             } );
 
-        static public MalFunction mal_readline = new MalFunction(
+        static public MalFunc mal_readline = new MalFunc(
             a => {
                 var line = readline.Readline(((MalString)a[0]).getValue());
                 if (line == null) { return types.Nil; }
                 else {              return new MalString(line); }
             } );
 
-        static public MalFunction read_string = new MalFunction(
+        static public MalFunc read_string = new MalFunc(
             a => reader.read_str(((MalString)a[0]).getValue()));
 
-        static public MalFunction slurp = new MalFunction(
+        static public MalFunc slurp = new MalFunc(
             a => new MalString(File.ReadAllText(
                         ((MalString)a[0]).getValue())));
 
 
         // List/Vector functions
-        static public MalFunction list_Q = new MalFunction(
+        static public MalFunc list_Q = new MalFunc(
             a => a[0].GetType() == typeof(MalList) ? True : False);
 
-        static public MalFunction vector_Q = new MalFunction(
+        static public MalFunc vector_Q = new MalFunc(
             a => a[0].GetType() == typeof(MalVector) ? True : False);
 
         // HashMap functions
-        static public MalFunction hash_map_Q = new MalFunction(
+        static public MalFunc hash_map_Q = new MalFunc(
             a => a[0].GetType() == typeof(MalHashMap) ? True : False);
 
-        static MalFunction contains_Q = new MalFunction(
+        static MalFunc contains_Q = new MalFunc(
             a => {
                 string key = ((MalString)a[1]).getValue();
                 var dict = ((MalHashMap)a[0]).getValue();
                 return dict.ContainsKey(key) ? True : False;
             });
 
-        static MalFunction assoc = new MalFunction(
+        static MalFunc assoc = new MalFunc(
             a => {
                 var new_hm = ((MalHashMap)a[0]).copy();
                 return new_hm.assoc_BANG((MalList)a.slice(1));
             });
 
-        static MalFunction dissoc = new MalFunction(
+        static MalFunc dissoc = new MalFunc(
             a => {
                 var new_hm = ((MalHashMap)a[0]).copy();
                 return new_hm.dissoc_BANG((MalList)a.slice(1));
             });
 
-        static MalFunction get = new MalFunction(
+        static MalFunc get = new MalFunc(
             a => {
                 string key = ((MalString)a[1]).getValue();
                 if (a[0] == Nil) {
@@ -116,7 +116,7 @@ namespace Mal {
                 }
             });
 
-        static MalFunction keys = new MalFunction(
+        static MalFunc keys = new MalFunc(
             a => {
                 var dict = ((MalHashMap)a[0]).getValue();
                 MalList key_lst = new MalList();
@@ -126,7 +126,7 @@ namespace Mal {
                 return key_lst;
             });
 
-        static MalFunction vals = new MalFunction(
+        static MalFunc vals = new MalFunc(
             a => {
                 var dict = ((MalHashMap)a[0]).getValue();
                 MalList val_lst = new MalList();
@@ -137,10 +137,10 @@ namespace Mal {
             });
 
         // Sequence functions
-        static public MalFunction sequential_Q = new MalFunction(
+        static public MalFunc sequential_Q = new MalFunc(
             a => a[0] is MalList ? True : False);
 
-        static MalFunction cons = new MalFunction(
+        static MalFunc cons = new MalFunc(
             a => {
                 var lst = new List<MalVal>();
                 lst.Add(a[0]);
@@ -148,7 +148,7 @@ namespace Mal {
                 return (MalVal)new MalList(lst);
             });
 
-        static MalFunction concat = new MalFunction(
+        static MalFunc concat = new MalFunc(
             a => {
                 if (a.size() == 0) { return new MalList(); }
                 var lst = new List<MalVal>();
@@ -159,22 +159,22 @@ namespace Mal {
                 return (MalVal)new MalList(lst);
             });
 
-        static MalFunction nth = new MalFunction(
-            a => ((MalList)a[0])[ ((MalInteger)a[1]).getValue() ]);
+        static MalFunc nth = new MalFunc(
+            a => ((MalList)a[0])[ ((MalInt)a[1]).getValue() ]);
 
-        static MalFunction first = new MalFunction(
+        static MalFunc first = new MalFunc(
             a => ((MalList)a[0])[0]);
 
-        static MalFunction rest = new MalFunction(
+        static MalFunc rest = new MalFunc(
             a => ((MalList)a[0]).rest());
 
-        static MalFunction empty_Q = new MalFunction(
+        static MalFunc empty_Q = new MalFunc(
             a => ((MalList)a[0]).size() == 0 ? True : False);
 
-        static MalFunction count = new MalFunction(
-            a => new MalInteger(((MalList)a[0]).size()));
+        static MalFunc count = new MalFunc(
+            a => new MalInt(((MalList)a[0]).size()));
 
-        static MalFunction conj = new MalFunction(
+        static MalFunc conj = new MalFunc(
             a => {
                 var src_lst = ((MalList)a[0]).getValue();
                 var new_lst = new List<MalVal>();
@@ -194,18 +194,18 @@ namespace Mal {
 
 
         // General list related functions
-        static MalFunction apply = new MalFunction(
+        static MalFunc apply = new MalFunc(
             a => {
-                var f = (MalFunction)a[0];
+                var f = (MalFunc)a[0];
                 var lst = new List<MalVal>();
                 lst.AddRange(a.slice(1,a.size()-1).getValue());
                 lst.AddRange(((MalList)a[a.size()-1]).getValue());
                 return f.apply(new MalList(lst));
             });
 
-        static MalFunction map = new MalFunction(
+        static MalFunc map = new MalFunc(
             a => {
-                MalFunction f = (MalFunction) a[0];
+                MalFunc f = (MalFunc) a[0];
                 var src_lst = ((MalList)a[1]).getValue();
                 var new_lst = new List<MalVal>();
                 for(int i=0; i<src_lst.Count; i++) {
@@ -216,27 +216,27 @@ namespace Mal {
 
 
         // Metadata functions
-        static MalFunction meta = new MalFunction(
+        static MalFunc meta = new MalFunc(
             a => a[0].getMeta());
 
-        static MalFunction with_meta = new MalFunction(
+        static MalFunc with_meta = new MalFunc(
             a => ((MalVal)a[0]).copy().setMeta(a[1]));
 
 
         // Atom functions
-        static MalFunction atom_Q = new MalFunction(
+        static MalFunc atom_Q = new MalFunc(
             a => a[0] is MalAtom ? True : False);
 
-        static MalFunction deref = new MalFunction(
+        static MalFunc deref = new MalFunc(
             a => ((MalAtom)a[0]).getValue());
 
-        static MalFunction reset_BANG = new MalFunction(
+        static MalFunc reset_BANG = new MalFunc(
             a => ((MalAtom)a[0]).setValue(a[1]));
 
-        static MalFunction swap_BANG = new MalFunction(
+        static MalFunc swap_BANG = new MalFunc(
             a => {
                 MalAtom atm = (MalAtom)a[0];
-                MalFunction f = (MalFunction)a[1];
+                MalFunc f = (MalFunc)a[1];
                 var new_lst = new List<MalVal>();
                 new_lst.Add(atm.getValue());
                 new_lst.AddRange(((MalList)a.slice(2)).getValue());
@@ -247,12 +247,13 @@ namespace Mal {
 
         static public Dictionary<string, MalVal> ns =
                   new Dictionary<string, MalVal> {
-            {"=",  new MalFunction(
+            {"=",  new MalFunc(
                 a => Mal.types._equal_Q(a[0], a[1]) ? True : False)},
             {"throw", mal_throw},
             {"nil?", nil_Q},
             {"true?", true_Q},
             {"false?", false_Q},
+            {"symbol", new MalFunc(a => new MalSymbol((MalString)a[0]))},
             {"symbol?", symbol_Q},
 
             {"pr-str", pr_str},
@@ -262,21 +263,21 @@ namespace Mal {
             {"readline", mal_readline},
             {"read-string", read_string},
             {"slurp", slurp},
-            {"<",  new MalFunction(a => (MalInteger)a[0] <  (MalInteger)a[1])},
-            {"<=", new MalFunction(a => (MalInteger)a[0] <= (MalInteger)a[1])},
-            {">",  new MalFunction(a => (MalInteger)a[0] >  (MalInteger)a[1])},
-            {">=", new MalFunction(a => (MalInteger)a[0] >= (MalInteger)a[1])},
-            {"+",  new MalFunction(a => (MalInteger)a[0] +  (MalInteger)a[1])},
-            {"-",  new MalFunction(a => (MalInteger)a[0] -  (MalInteger)a[1])},
-            {"*",  new MalFunction(a => (MalInteger)a[0] *  (MalInteger)a[1])},
-            {"/",  new MalFunction(a => (MalInteger)a[0] /  (MalInteger)a[1])},
+            {"<",  new MalFunc(a => (MalInt)a[0] <  (MalInt)a[1])},
+            {"<=", new MalFunc(a => (MalInt)a[0] <= (MalInt)a[1])},
+            {">",  new MalFunc(a => (MalInt)a[0] >  (MalInt)a[1])},
+            {">=", new MalFunc(a => (MalInt)a[0] >= (MalInt)a[1])},
+            {"+",  new MalFunc(a => (MalInt)a[0] +  (MalInt)a[1])},
+            {"-",  new MalFunc(a => (MalInt)a[0] -  (MalInt)a[1])},
+            {"*",  new MalFunc(a => (MalInt)a[0] *  (MalInt)a[1])},
+            {"/",  new MalFunc(a => (MalInt)a[0] /  (MalInt)a[1])},
             {"time-ms", time_ms},
 
-            {"list",  new MalFunction(a => new MalList(a.getValue()))},
+            {"list",  new MalFunc(a => new MalList(a.getValue()))},
             {"list?", list_Q},
-            {"vector",  new MalFunction(a => new MalVector(a.getValue()))},
+            {"vector",  new MalFunc(a => new MalVector(a.getValue()))},
             {"vector?", vector_Q},
-            {"hash-map",  new MalFunction(a => new MalHashMap(a))},
+            {"hash-map",  new MalFunc(a => new MalHashMap(a))},
             {"map?", hash_map_Q},
             {"contains?", contains_Q},
             {"assoc", assoc},
@@ -299,7 +300,7 @@ namespace Mal {
 
             {"with-meta", with_meta},
             {"meta", meta},
-            {"atom", new MalFunction(a => new MalAtom(a[0]))},
+            {"atom", new MalFunc(a => new MalAtom(a[0]))},
             {"atom?", atom_Q},
             {"deref", deref},
             {"reset!", reset_BANG},

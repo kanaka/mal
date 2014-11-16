@@ -21,27 +21,26 @@ namespace Mal {
         }
 
         // repl
-        static MalVal RE(string env, string str) {
-            return EVAL(READ(str), env);
-        }
-
         static void Main(string[] args) {
-            string prompt = "user> ";
-            
+            Func<string, MalVal> RE = (string str) => EVAL(READ(str), "");
+
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
             }
+
+            // repl loop
             while (true) {
                 string line;
                 try {
-                    line = Mal.readline.Readline(prompt);
+                    line = Mal.readline.Readline("user> ");
                     if (line == null) { break; }
+                    if (line == "") { continue; }
                 } catch (IOException e) {
                     Console.WriteLine("IOException: " + e.Message);
                     break;
                 }
                 try {
-                    Console.WriteLine(PRINT(RE(null, line)));
+                    Console.WriteLine(PRINT(RE(line)));
                 } catch (Mal.types.MalContinue) {
                     continue;
                 } catch (Exception e) {

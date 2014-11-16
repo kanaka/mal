@@ -5,11 +5,11 @@ using System.Collections.Generic;
 using Mal;
 using MalVal = Mal.types.MalVal;
 using MalSymbol = Mal.types.MalSymbol;
-using MalInteger = Mal.types.MalInteger;
+using MalInt = Mal.types.MalInt;
 using MalList = Mal.types.MalList;
 using MalVector = Mal.types.MalVector;
 using MalHashMap = Mal.types.MalHashMap;
-using MalFunction = Mal.types.MalFunction;
+using MalFunc = Mal.types.MalFunc;
 using Env = Mal.env.Env;
 
 namespace Mal {
@@ -82,7 +82,7 @@ namespace Mal {
                 return EVAL(a2, let_env);
             default:
                 el = (MalList)eval_ast(ast, env);
-                var f = (MalFunction)el[0];
+                var f = (MalFunc)el[0];
                 return f.apply(el.rest());
             }
         }
@@ -93,45 +93,31 @@ namespace Mal {
         }
 
         // repl
-        static MalVal RE(Env env, string str) {
-            return EVAL(READ(str), env);
-        }
-
-        static public MalFunction plus = new MalFunction(
-                a => (MalInteger)a[0] + (MalInteger)a[1] );
-        static public MalFunction minus = new MalFunction(
-                a => (MalInteger)a[0] - (MalInteger)a[1] );
-        static public MalFunction multiply = new MalFunction(
-                a => (MalInteger)a[0] * (MalInteger)a[1] );
-        static public MalFunction divide = new MalFunction(
-                a => (MalInteger)a[0] / (MalInteger)a[1] );
-
-
         static void Main(string[] args) {
-            string prompt = "user> ";
-            
             var repl_env = new Mal.env.Env(null);
-            repl_env.set("+", plus);
-            repl_env.set("-", minus);
-            repl_env.set("*", multiply);
-            repl_env.set("/", divide);
+            Func<string, MalVal> RE = (string str) => EVAL(READ(str), repl_env);
+            repl_env.set("+", new MalFunc(a => (MalInt)a[0] + (MalInt)a[1]) );
+            repl_env.set("-", new MalFunc(a => (MalInt)a[0] - (MalInt)a[1]) );
+            repl_env.set("*", new MalFunc(a => (MalInt)a[0] * (MalInt)a[1]) );
+            repl_env.set("/", new MalFunc(a => (MalInt)a[0] / (MalInt)a[1]) );
 
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
             }
-            
+
             // repl loop
             while (true) {
                 string line;
                 try {
-                    line = Mal.readline.Readline(prompt);
+                    line = Mal.readline.Readline("user> ");
                     if (line == null) { break; }
+                    if (line == "") { continue; }
                 } catch (IOException e) {
                     Console.WriteLine("IOException: " + e.Message);
                     break;
                 }
                 try {
-                    Console.WriteLine(PRINT(RE(repl_env, line)));
+                    Console.WriteLine(PRINT(RE(line)));
                 } catch (Mal.types.MalContinue) {
                     continue;
                 } catch (Exception e) {
