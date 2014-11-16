@@ -13,7 +13,7 @@ Imports MalFunc = Mal.types.MalFunc
 Imports MalEnv = Mal.env.Env
 
 Namespace Mal
-    class step7_quote
+    Class step7_quote
         ' read
         Shared Function READ(str As String) As MalVal
             Return reader.read_str(str)
@@ -202,8 +202,13 @@ Namespace Mal
                 repl_env.do_set(entry.Key, entry.Value)
             Next
             repl_env.do_set("eval", new MalFunc(AddressOf do_eval))
+            Dim fileIdx As Integer = 1
+            If args.Length > 1 AndAlso args(1) = "--raw" Then
+                Mal.readline.SetMode(Mal.readline.Modes.Raw)
+                fileIdx = 2
+            End If
             Dim argv As New MalList()
-            For i As Integer = 0 To args.Length()-1
+            For i As Integer = fileIdx+1 To args.Length-1
                 argv.conj_BANG(new MalString(args(i)))
             Next
             repl_env.do_set("*ARGV*", argv)
@@ -212,11 +217,6 @@ Namespace Mal
             REP("(def! not (fn* (a) (if a false true)))")
             REP("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))")
 
-            Dim fileIdx As Integer = 1
-            If args.Length > 1 AndAlso args(1) = "--raw" Then
-                Mal.readline.SetMode(Mal.readline.Modes.Raw)
-                fileIdx = 2
-            End If
             If args.Length > fileIdx Then
                 REP("(load-file """ & args(fileIdx) & """)")
                 return 0
@@ -245,5 +245,5 @@ Namespace Mal
                 End Try
             Loop While True
         End function
-    end class
+    End Class
 End Namespace

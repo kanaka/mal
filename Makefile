@@ -89,7 +89,7 @@ vb_RUNSTEP =      mono ../$(2) --raw $(3)
 
 # Extra options to pass to runtest.py
 cs_TEST_OPTS =  --redirect
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
+mal_TEST_OPTS = --redirect --start-timeout 60 --test-timeout 120
 vb_TEST_OPTS =  --redirect
 
 

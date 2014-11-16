@@ -12,7 +12,7 @@ Imports MalFunc = Mal.types.MalFunc
 Imports MalEnv = Mal.env.Env
 
 Namespace Mal
-    class step5_tco
+    Class step5_tco
         ' read
         Shared Function READ(str As String) As MalVal
             Return reader.read_str(str)
@@ -194,5 +194,5 @@ Namespace Mal
                 End Try
             Loop While True
         End function
-    end class
+    End Class
 End Namespace

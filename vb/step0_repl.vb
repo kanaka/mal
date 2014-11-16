@@ -2,7 +2,7 @@ Imports System
 Imports Mal
 
 Namespace Mal
-    class step0_repl
+    Class step0_repl
         ' read
         Shared Function READ(str As String) As String
             Return str
@@ -39,5 +39,5 @@ Namespace Mal
             Loop While True
             Return 0
         End function
-    end class
+    End Class
 End Namespace

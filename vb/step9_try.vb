@@ -263,24 +263,23 @@ Namespace Mal
                 repl_env.do_set(entry.Key, entry.Value)
             Next
             repl_env.do_set("eval", new MalFunc(AddressOf do_eval))
-            Dim argv As New MalList()
-            For i As Integer = 0 To args.Length()-1
-                argv.conj_BANG(new MalString(args(i)))
-            Next
-            repl_env.do_set("*ARGV*", argv)
-
-            ' core.mal: defined using the language itself
-            REP("(def! *host-language* ""VB.NET"")")
-            REP("(def! not (fn* (a) (if a false true)))")
-            REP("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))")
-            REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons 'cond (rest (rest xs)))))))")
-            REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
-
             Dim fileIdx As Integer = 1
             If args.Length > 1 AndAlso args(1) = "--raw" Then
                 Mal.readline.SetMode(Mal.readline.Modes.Raw)
                 fileIdx = 2
             End If
+            Dim argv As New MalList()
+            For i As Integer = fileIdx+1 To args.Length-1
+                argv.conj_BANG(new MalString(args(i)))
+            Next
+            repl_env.do_set("*ARGV*", argv)
+
+            ' core.mal: defined using the language itself
+            REP("(def! not (fn* (a) (if a false true)))")
+            REP("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))")
+            REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons 'cond (rest (rest xs)))))))")
+            REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
+
             If args.Length > fileIdx Then
                 REP("(load-file """ & args(fileIdx) & """)")
                 return 0
@@ -288,7 +287,6 @@ Namespace Mal
 
             ' repl loop
             Dim line As String
-            REP("(println (str ""Mal ["" *host-language* ""]""))")
             Do
                 Try
                     line = Mal.readline.Readline("user> ")

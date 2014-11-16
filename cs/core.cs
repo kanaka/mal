@@ -38,8 +38,7 @@ namespace Mal {
 
         // Number functions
         static MalFunc time_ms = new MalFunc(
-            a => new MalInt((int)(
-                DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond)));
+            a => new MalInt(DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond));
 
         // String functions
         static public MalFunc pr_str = new MalFunc(
@@ -160,7 +159,7 @@ namespace Mal {
             });
 
         static MalFunc nth = new MalFunc(
-            a => ((MalList)a[0])[ ((MalInt)a[1]).getValue() ]);
+            a => ((MalList)a[0])[ (int)((MalInt)a[1]).getValue() ]);
 
         static MalFunc first = new MalFunc(
             a => ((MalList)a[0])[0]);

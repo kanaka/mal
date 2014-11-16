@@ -98,11 +98,11 @@ namespace Mal {
         static public MalConstant False = new MalConstant("false");
 
         public class MalInt : MalVal {
-            int value;
-            public MalInt(int v) { value = v; }
+            Int64 value;
+            public MalInt(Int64 v) { value = v; }
             public new MalInt copy() { return this; }
 
-            public int getValue() { return value; }
+            public Int64 getValue() { return value; }
             public override string ToString() {
                 return value.ToString();
             }
@@ -205,10 +205,10 @@ namespace Mal {
 
             public int size() { return value.Count; }
             public MalVal nth(int idx) {
-                return value.Count > 0 ? value[idx] : Nil;
+                return value.Count > idx ? value[idx] : Nil;
             }
             public MalVal this[int idx] {
-                get { return value.Count > 0 ? value[idx] : Nil; }
+                get { return value.Count > idx ? value[idx] : Nil; }
             }
             public MalList rest() {
                 if (size() > 0) {

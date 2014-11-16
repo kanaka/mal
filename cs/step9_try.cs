@@ -231,31 +231,29 @@ namespace Mal {
                 repl_env.set(entry.Key, entry.Value);
             }
             repl_env.set("eval", new MalFunc(a => EVAL(a[0], repl_env)));
+            int fileIdx = 1;
+            if (args.Length > 0 && args[0] == "--raw") {
+                Mal.readline.mode = Mal.readline.Mode.Raw;
+                fileIdx = 2;
+            }
             MalList _argv = new MalList();
-            for (int i=1; i < args.Length; i++) {
+            for (int i=fileIdx; i < args.Length; i++) {
                 _argv.conj_BANG(new MalString(args[i]));
             }
             repl_env.set("*ARGV*", _argv);
 
             // core.mal: defined using the language itself
-            RE("(def! *host-language* \"c#\")");
             RE("(def! not (fn* (a) (if a false true)))");
             RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
             RE("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
             RE("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 
-            int fileIdx = 0;
-            if (args.Length > 0 && args[0] == "--raw") {
-                Mal.readline.mode = Mal.readline.Mode.Raw;
-                fileIdx = 1;
-            }
             if (args.Length > fileIdx) {
                 RE("(load-file \"" + args[fileIdx] + "\")");
                 return;
             }
 
             // repl loop
-            RE("(println (str \"Mal [\" *host-language* \"]\"))");
             while (true) {
                 string line;
                 try {

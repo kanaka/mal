@@ -12,7 +12,7 @@ using MalHashMap = Mal.types.MalHashMap;
 using MalFunc = Mal.types.MalFunc;
 
 namespace Mal {
-    class step1_eval {
+    class step2_eval {
         // read
         static MalVal READ(string str) {
             return reader.read_str(str);

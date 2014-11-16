@@ -4,7 +4,7 @@ Imports Mal
 Imports MalVal = Mal.types.MalVal
 
 Namespace Mal
-    class step1_read_print
+    Class step1_read_print
         ' read
         Shared Function READ(str As String) As MalVal
             Return reader.read_str(str)
@@ -55,5 +55,5 @@ Namespace Mal
                 End Try
             Loop While True
         End function
-    end class
+    End Class
 End Namespace
