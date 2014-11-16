@@ -4,6 +4,7 @@
    ["nil?" nil?]
    ["true?" true?]
    ["false?" false?]
+   ["symbol" symbol]
    ["symbol?" symbol?]
 
    ["pr-str" pr-str]

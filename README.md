@@ -3,7 +3,7 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 17 different languages:
+language. Mal is implemented from scratch in 18 different languages:
 
 * Bash shell
 * C
@@ -22,6 +22,7 @@ language. Mal is implemented from scratch in 17 different languages:
 * R
 * Ruby
 * Rust
+* Visual Basic.NET
 
 
 Mal is also a learning tool. Each implementation of mal is separated
@@ -78,7 +79,7 @@ required to build and run the C# implementation.
 ```
 cd cs
 make
-mono ./stepX_YYY
+mono ./stepX_YYY.exe
 ```
 
 
@@ -212,6 +213,20 @@ git clone https://github.com/kanaka/rust-pcre cadencemarseille-pcre
 cargo build
 ./target/stepX_YYY
 ```
+
+### Visual Basic.NET ###
+
+The VB.NET implementation of mal has been tested on Linux using the Mono
+VB compiler (vbnc) and the Mono runtime (version 2.10.8.1). Both are
+required to build and run the VB.NET implementation.
+
+```
+cd vb
+make
+mono ./stepX_YYY.exe
+```
+
+
 
 ## Running tests
 

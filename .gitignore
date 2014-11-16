@@ -33,3 +33,5 @@ rust/mal
 rust/Cargo.lock
 rust/.cargo
 r/lib
+vb/*.exe
+vb/*.dll

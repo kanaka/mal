@@ -11,7 +11,7 @@ PYTHON = python
 #
 
 IMPLS = bash c clojure coffee cs go java js make mal perl php ps \
-	python r ruby rust
+	python r ruby rust vb
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -65,6 +65,7 @@ python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/$($(1))
+vb_STEP_TO_PROG =      vb/$($(1)).exe
 
 
 bash_RUNSTEP =    bash ../$(2) $(3)
@@ -84,10 +85,12 @@ python_RUNSTEP =  $(PYTHON) ../$(2) $(3)
 r_RUNSTEP =       Rscript ../$(2) $(3)
 ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
+vb_RUNSTEP =      mono ../$(2) --raw $(3)
 
 # Extra options to pass to runtest.py
 cs_TEST_OPTS =  --redirect
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
+vb_TEST_OPTS =  --redirect
 
 
 # Derived lists
