@@ -35,3 +35,5 @@ rust/.cargo
 r/lib
 vb/*.exe
 vb/*.dll
+scala/target
+scala/project

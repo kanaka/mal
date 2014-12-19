@@ -122,6 +122,10 @@ Future Implementations:
         - http://groovy-lang.org/learn.html
         - http://groovy-lang.org/structure.html
 
+    - Scala
+        - aptitude install scala
+        - http://learnxinyminutes.com/docs/scala/
+
     - Visual Basic
         aptitude install mono-vbnc
 

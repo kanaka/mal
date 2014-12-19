@@ -22,6 +22,7 @@ language. Mal is implemented from scratch in 18 different languages:
 * R
 * Ruby
 * Rust
+* Scala
 * Visual Basic.NET
 
 
@@ -212,6 +213,18 @@ cd rust
 git clone https://github.com/kanaka/rust-pcre cadencemarseille-pcre
 cargo build
 ./target/stepX_YYY
+```
+
+### Scala ###
+
+Install scala and sbt (http://www.scala-sbt.org/0.13/tutorial/Installing-sbt-on-Linux.html):
+
+```
+cd scala
+sbt 'run-main stepX_YYY'
+    # OR
+sbt compile
+scala -classpath target/scala*/classes stepX_YYY
 ```
 
 ### Visual Basic.NET ###

@@ -11,7 +11,7 @@ PYTHON = python
 #
 
 IMPLS = bash c clojure coffee cs go java js make mal perl php ps \
-	python r ruby rust vb
+	python r ruby rust scala vb
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -65,6 +65,7 @@ python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/$($(1))
+scala_STEP_TO_PROG =   scala/$($(1)).scala
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 
 
@@ -85,6 +86,7 @@ python_RUNSTEP =  $(PYTHON) ../$(2) $(3)
 r_RUNSTEP =       Rscript ../$(2) $(3)
 ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
+scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 
 # Extra options to pass to runtest.py
