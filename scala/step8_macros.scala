@@ -1,5 +1,6 @@
+import types.{MalList, _list, _list_Q, MalVector, MalHashMap,
+              Func, MalFunction}
 import env.Env
-import types.Function
 
 object step8_macros {
   // read
@@ -9,39 +10,39 @@ object step8_macros {
 
   // eval
   def is_pair(x: Any): Boolean = {
-    types._sequential_Q(x) && types._toIter(x).length > 0
+    types._sequential_Q(x) && x.asInstanceOf[MalList].value.length > 0
   }
 
   def quasiquote(ast: Any): Any = {
     if (!is_pair(ast)) {
-      return List(Symbol("quote"), ast)
+      return _list(Symbol("quote"), ast)
     } else {
-      val a0 = types._toList(ast)(0)
+      val a0 = ast.asInstanceOf[MalList](0)
       if (types._symbol_Q(a0) &&
           a0.asInstanceOf[Symbol].name == "unquote") {
-        return types._toList(ast)(1)
+        return ast.asInstanceOf[MalList](1)
       } else if (is_pair(a0)) {
-        val a00 = types._toList(a0)(0)
+        val a00 = a0.asInstanceOf[MalList](0)
         if (types._symbol_Q(a00) &&
             a00.asInstanceOf[Symbol].name == "splice-unquote") {
-          return List(Symbol("concat"),
-                      types._toList(a0)(1),
-                      quasiquote(types._toList(ast).drop(1)))
+          return _list(Symbol("concat"),
+                       a0.asInstanceOf[MalList](1),
+                       quasiquote(ast.asInstanceOf[MalList].drop(1)))
         }
       }
-      return List(Symbol("cons"),
-                  quasiquote(a0),
-                  quasiquote(types._toList(ast).drop(1)))
+      return _list(Symbol("cons"),
+                   quasiquote(a0),
+                   quasiquote(ast.asInstanceOf[MalList].drop(1)))
     }
   }
 
   def is_macro_call(ast: Any, env: Env): Boolean = {
     ast match {
-      case l: List[Any] => {
-        if (types._symbol_Q(l(0)) &&
-            env.find(l(0).asInstanceOf[Symbol]) != null) {
-          env.get(l(0).asInstanceOf[Symbol]) match {
-            case f: Function => return f.ismacro
+      case ml: MalList => {
+        if (types._symbol_Q(ml(0)) &&
+            env.find(ml(0).asInstanceOf[Symbol]) != null) {
+          env.get(ml(0).asInstanceOf[Symbol]) match {
+            case f: MalFunction => return f.ismacro
             case _ => return false
           }
         }
@@ -54,10 +55,10 @@ object step8_macros {
   def macroexpand(orig_ast: Any, env: Env): Any = {
     var ast = orig_ast;
     while (is_macro_call(ast, env)) {
-      ast.asInstanceOf[List[Any]] match {
+      ast.asInstanceOf[MalList].value match {
         case f :: args => {
           val mac = env.get(f.asInstanceOf[Symbol])
-          ast = mac.asInstanceOf[Function](args)
+          ast = mac.asInstanceOf[MalFunction](args)
         }
         case _ => throw new Exception("macroexpand: invalid call")
       }
@@ -68,10 +69,10 @@ object step8_macros {
   def eval_ast(ast: Any, env: Env): Any = {
     ast match {
       case s : Symbol    => env.get(s)
-      case l: List[Any]  => l.map(EVAL(_, env))
-      case v: Array[Any] => v.map(EVAL(_, env)).toArray
-      case m: Map[String @unchecked,Any @unchecked] => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}.toMap
+      case v: MalVector  => v.map(EVAL(_, env))
+      case l: MalList    => l.map(EVAL(_, env))
+      case m: MalHashMap => {
+        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
@@ -82,20 +83,20 @@ object step8_macros {
    while (true) {
 
     //println("EVAL: " + printer._pr_str(ast,true))
-    if (!ast.isInstanceOf[List[Any]])
+    if (!_list_Q(ast))
       return eval_ast(ast, env)
 
     // apply list
     ast = macroexpand(ast, env)
-    if (!ast.isInstanceOf[List[Any]]) return ast
+    if (!_list_Q(ast)) return ast
 
-    ast.asInstanceOf[List[Any]] match {
+    ast.asInstanceOf[MalList].value match {
       case Symbol("def!") :: a1 :: a2 :: Nil => {
         return env.set(a1.asInstanceOf[Symbol], EVAL(a2, env))
       }
       case Symbol("let*") :: a1 :: a2 :: Nil => {
         val let_env = new Env(env)
-        for (g <- types._toIter(a1).grouped(2)) {
+        for (g <- a1.asInstanceOf[MalList].value.grouped(2)) {
           let_env.set(g(0).asInstanceOf[Symbol],EVAL(g(1),let_env))
         }
         env = let_env
@@ -109,15 +110,15 @@ object step8_macros {
       }
       case Symbol("defmacro!") :: a1 :: a2 :: Nil => {
         val f = EVAL(a2, env)
-        f.asInstanceOf[Function].ismacro = true
+        f.asInstanceOf[MalFunction].ismacro = true
         return env.set(a1.asInstanceOf[Symbol], f)
       }
       case Symbol("macroexpand") :: a1 :: Nil => {
         return macroexpand(a1, env)
       }
       case Symbol("do") :: rest => {
-        eval_ast(rest.slice(0,rest.length-1), env)
-        ast = ast.asInstanceOf[List[Any]].last  // continue loop (TCO)
+        eval_ast(_list(rest.slice(0,rest.length-1):_*), env)
+        ast = ast.asInstanceOf[MalList].value.last  // continue loop (TCO)
       }
       case Symbol("if") :: a1 :: a2 :: rest => {
         val cond = EVAL(a1, env)
@@ -129,7 +130,7 @@ object step8_macros {
         }
       }
       case Symbol("fn*") :: a1 :: a2 :: Nil => {
-        return new Function(a2, env, types._toList(a1),
+        return new MalFunction(a2, env, a1.asInstanceOf[MalList],
           (args: List[Any]) => {
             EVAL(a2, new Env(env, types._toIter(a1), args.iterator))
           }
@@ -137,14 +138,14 @@ object step8_macros {
       }
       case _ => {
         // function call
-        eval_ast(ast, env) match {
+        eval_ast(ast, env).asInstanceOf[MalList].value match {
           case f :: el => {
             f match {
-              case fn: Function => {
+              case fn: MalFunction => {
                 env = fn.gen_env(el) 
                 ast = fn.ast  // continue loop (TCO)
               }
-              case fn: ((List[Any]) => Any) @unchecked => {
+              case fn: Func => {
                 return fn(el)
               }
               case _ => {
@@ -170,9 +171,11 @@ object step8_macros {
     val REP = (str: String) => PRINT(EVAL(READ(str), repl_env))
 
     // core.scala: defined using scala
-    core.ns.map{case (k: String,v: Any) => { repl_env.set(Symbol(k), v) }}
-    repl_env.set(Symbol("eval"), (a: List[Any]) => EVAL(a(0), repl_env))
-    repl_env.set(Symbol("*ARGV*"), args.slice(1,args.length).toList)
+    core.ns.map{case (k: String,v: Any) => {
+      repl_env.set(Symbol(k), new Func(v))
+    }}
+    repl_env.set(Symbol("eval"), new Func((a: List[Any]) => EVAL(a(0), repl_env)))
+    repl_env.set(Symbol("*ARGV*"), _list(args.slice(1,args.length):_*))
 
     // core.mal: defined using the language itself
     REP("(def! not (fn* (a) (if a false true)))")

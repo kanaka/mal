@@ -3,7 +3,7 @@
 ## Description
 
 Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 18 different languages:
+language. Mal is implemented from scratch in 19 different languages:
 
 * Bash shell
 * C
@@ -243,7 +243,7 @@ mono ./stepX_YYY.exe
 
 ## Running tests
 
-The are nearly 400 generic Mal tests (for all implementations) in the
+The are nearly 500 generic Mal tests (for all implementations) in the
 `tests/` directory. Each step has a corresponding test file containing
 tests specific to that step. The `runtest.py` test harness uses
 pexpect to launch a Mal step implementation and then feeds the tests

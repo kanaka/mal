@@ -27,6 +27,13 @@
 ;=>2
 
 ;;
+;; Testing that *ARGV* exists and is an empty list
+(list? *ARGV*)
+;=>true
+*ARGV*
+;=>()
+
+;;
 ;; -------- Optional Functionality --------
 
 (load-file "../tests/incB.mal")

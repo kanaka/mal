@@ -1,3 +1,5 @@
+import types.{MalList, _list, _list_Q, MalVector, MalHashMap,
+              Func, MalFunction}
 import env.Env
 
 object step5_tco {
@@ -10,10 +12,10 @@ object step5_tco {
   def eval_ast(ast: Any, env: Env): Any = {
     ast match {
       case s : Symbol    => env.get(s)
-      case l: List[Any]  => l.map(EVAL(_, env))
-      case v: Array[Any] => v.map(EVAL(_, env)).toArray
-      case m: Map[String @unchecked,Any @unchecked] => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}.toMap
+      case v: MalVector  => v.map(EVAL(_, env))
+      case l: MalList    => l.map(EVAL(_, env))
+      case m: MalHashMap => {
+        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
@@ -24,25 +26,25 @@ object step5_tco {
    while (true) {
 
     //println("EVAL: " + printer._pr_str(ast,true))
-    if (!ast.isInstanceOf[List[Any]])
+    if (!_list_Q(ast))
       return eval_ast(ast, env)
 
     // apply list
-    ast.asInstanceOf[List[Any]] match {
+    ast.asInstanceOf[MalList].value match {
       case Symbol("def!") :: a1 :: a2 :: Nil => {
         return env.set(a1.asInstanceOf[Symbol], EVAL(a2, env))
       }
       case Symbol("let*") :: a1 :: a2 :: Nil => {
         val let_env = new Env(env)
-        for (g <- types._toIter(a1).grouped(2)) {
+        for (g <- a1.asInstanceOf[MalList].value.grouped(2)) {
           let_env.set(g(0).asInstanceOf[Symbol],EVAL(g(1),let_env))
         }
         env = let_env
         ast = a2   // continue loop (TCO)
       }
       case Symbol("do") :: rest => {
-        eval_ast(rest.slice(1,rest.length-1), env)
-        ast = ast.asInstanceOf[List[Any]].last  // continue loop (TCO)
+        eval_ast(_list(rest.slice(0,rest.length-1):_*), env)
+        ast = ast.asInstanceOf[MalList].value.last  // continue loop (TCO)
       }
       case Symbol("if") :: a1 :: a2 :: rest => {
         val cond = EVAL(a1, env)
@@ -54,7 +56,7 @@ object step5_tco {
         }
       }
       case Symbol("fn*") :: a1 :: a2 :: Nil => {
-        return new types.Function(a2, env, a1.asInstanceOf[List[Any]],
+        return new MalFunction(a2, env, a1.asInstanceOf[MalList],
           (args: List[Any]) => {
             EVAL(a2, new Env(env, types._toIter(a1), args.iterator))
           }
@@ -62,18 +64,18 @@ object step5_tco {
       }
       case _ => {
         // function call
-        eval_ast(ast, env) match {
+        eval_ast(ast, env).asInstanceOf[MalList].value match {
           case f :: el => {
             f match {
-              case fn: types.Function => {
+              case fn: MalFunction => {
                 env = fn.gen_env(el) 
                 ast = fn.ast  // continue loop (TCO)
               }
-              case fn: ((List[Any]) => Any) @unchecked => {
+              case fn: Func => {
                 return fn(el)
               }
               case _ => {
-                throw new Exception("attempt to call non-function")
+                throw new Exception("attempt to call non-function: " + f)
               }
             }
           }
@@ -95,7 +97,9 @@ object step5_tco {
     val REP = (str: String) => PRINT(EVAL(READ(str), repl_env))
 
     // core.scala: defined using scala
-    core.ns.map{case (k: String,v: Any) => { repl_env.set(Symbol(k), v) }}
+    core.ns.map{case (k: String,v: Any) => {
+      repl_env.set(Symbol(k), new Func(v))
+    }}
 
     // core.mal: defined using the language itself
     REP("(def! not (fn* (a) (if a false true)))")

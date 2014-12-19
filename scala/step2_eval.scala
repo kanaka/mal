@@ -1,4 +1,4 @@
-import reader.tokenize
+import types.{MalList, _list_Q, MalVector, MalHashMap, MalFunction}
 
 object step2_eval {
   // read
@@ -10,10 +10,10 @@ object step2_eval {
   def eval_ast(ast: Any, env: Map[Symbol,Any]): Any = {
     ast match {
       case s : Symbol    => env(s)
-      case l: List[Any]  => l.map(EVAL(_, env))
-      case v: Array[Any] => v.map(EVAL(_, env)).toArray
-      case m: Map[String @unchecked,Any @unchecked] => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}.toMap
+      case v: MalVector  => v.map(EVAL(_, env))
+      case l: MalList    => l.map(EVAL(_, env))
+      case m: MalHashMap => {
+        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
@@ -21,15 +21,15 @@ object step2_eval {
 
   def EVAL(ast: Any, env: Map[Symbol,Any]): Any = {
     //println("EVAL: " + printer._pr_str(ast,true))
-    if (!ast.isInstanceOf[List[Any]])
+    if (!_list_Q(ast))
       return eval_ast(ast, env)
 
     // apply list
-    eval_ast(ast, env) match {
+    eval_ast(ast, env).asInstanceOf[MalList].value match {
       case f :: el => {
         var fn: List[Any] => Any = null
         try {
-          fn = f.asInstanceOf[(List[Any]) => Any]
+          fn = f.asInstanceOf[List[Any] => Any]
         } catch {
           case _: Throwable =>
             throw new Exception("attempt to call non-function")
@@ -48,10 +48,10 @@ object step2_eval {
   // repl
   def main(args: Array[String]) = {
     val repl_env: Map[Symbol,Any] = Map(
-      '+ -> ((a: List[Any]) => a(0).asInstanceOf[Int] + a(1).asInstanceOf[Int]),
-      '- -> ((a: List[Any]) => a(0).asInstanceOf[Int] - a(1).asInstanceOf[Int]),
-      '* -> ((a: List[Any]) => a(0).asInstanceOf[Int] * a(1).asInstanceOf[Int]),
-      '/ -> ((a: List[Any]) => a(0).asInstanceOf[Int] / a(1).asInstanceOf[Int]))
+      '+ -> ((a: List[Any]) => a(0).asInstanceOf[Long] + a(1).asInstanceOf[Long]),
+      '- -> ((a: List[Any]) => a(0).asInstanceOf[Long] - a(1).asInstanceOf[Long]),
+      '* -> ((a: List[Any]) => a(0).asInstanceOf[Long] * a(1).asInstanceOf[Long]),
+      '/ -> ((a: List[Any]) => a(0).asInstanceOf[Long] / a(1).asInstanceOf[Long]))
     val REP = (str: String) => {
       PRINT(EVAL(READ(str), repl_env))
     }

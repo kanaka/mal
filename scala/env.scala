@@ -1,3 +1,5 @@
+import types._list
+
 import scala.collection.mutable
 
 object env {
@@ -9,7 +11,7 @@ object env {
       binds.foreach(b => {
         val k = b.asInstanceOf[Symbol]
         if (k == '&) {
-          data(binds.next().asInstanceOf[Symbol]) = exprs.toList
+          data(binds.next().asInstanceOf[Symbol]) = _list(exprs.toSeq:_*)
         } else {
           data(k) = exprs.next()
         }

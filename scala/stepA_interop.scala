@@ -2,7 +2,7 @@ import types.{MalList, _list, _list_Q, MalVector, MalHashMap,
               Func, MalFunction}
 import env.Env
 
-object step9_try {
+object stepA_interop {
   // read
   def READ(str: String): Any = {
     reader.read_str(str)
@@ -198,6 +198,7 @@ object step9_try {
     repl_env.set(Symbol("*ARGV*"), _list(args.slice(1,args.length):_*))
 
     // core.mal: defined using the language itself
+    REP("(def! *host-language* \"scala\")")
     REP("(def! not (fn* (a) (if a false true)))")
     REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
     REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -210,6 +211,7 @@ object step9_try {
     }
 
     // repl loop
+    REP("(println (str \"Mal [\" *host-language* \"]\"))")
     var line:String = null
     while ({line = readLine("user> "); line != null}) {
       try {

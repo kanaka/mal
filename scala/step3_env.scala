@@ -1,3 +1,4 @@
+import types.{MalList, _list_Q, MalVector, MalHashMap, MalFunction}
 import env.Env
 
 object step3_env {
@@ -10,10 +11,10 @@ object step3_env {
   def eval_ast(ast: Any, env: Env): Any = {
     ast match {
       case s : Symbol    => env.get(s)
-      case l: List[Any]  => l.map(EVAL(_, env))
-      case v: Array[Any] => v.map(EVAL(_, env)).toArray
-      case m: Map[String @unchecked,Any @unchecked] => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}.toMap
+      case v: MalVector  => v.map(EVAL(_, env))
+      case l: MalList    => l.map(EVAL(_, env))
+      case m: MalHashMap => {
+        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
@@ -21,29 +22,24 @@ object step3_env {
 
   def EVAL(ast: Any, env: Env): Any = {
     //println("EVAL: " + printer._pr_str(ast,true))
-    if (!ast.isInstanceOf[List[Any]])
+    if (!_list_Q(ast))
       return eval_ast(ast, env)
 
     // apply list
-    ast.asInstanceOf[List[Any]] match {
+    ast.asInstanceOf[MalList].value match {
       case Symbol("def!") :: a1 :: a2 :: Nil => {
         return env.set(a1.asInstanceOf[Symbol], EVAL(a2, env))
       }
       case Symbol("let*") :: a1 :: a2 :: Nil => {
         val let_env = new Env(env)
-        val it: Iterator[Any] = a1 match {
-          case l: List[Any] => l.iterator
-          case v: Array[Any] => v.iterator
-          case _ => throw new Exception("let* non-sequence bindings")
-        }
-        for (g <- it.grouped(2)) {
+        for (g <- a1.asInstanceOf[MalList].value.grouped(2)) {
           let_env.set(g(0).asInstanceOf[Symbol],EVAL(g(1),let_env))
         }
         return EVAL(a2, let_env)
       }
       case _ => {
         // function call
-        eval_ast(ast, env) match {
+        eval_ast(ast, env).asInstanceOf[MalList].value match {
           case f :: el => {
             var fn: List[Any] => Any = null
             try {
@@ -68,10 +64,10 @@ object step3_env {
   // repl
   def main(args: Array[String]) = {
     val repl_env: Env = new Env()
-    repl_env.set('+, (a: List[Any]) => a(0).asInstanceOf[Int] + a(1).asInstanceOf[Int])
-    repl_env.set('-, (a: List[Any]) => a(0).asInstanceOf[Int] - a(1).asInstanceOf[Int])
-    repl_env.set('*, (a: List[Any]) => a(0).asInstanceOf[Int] * a(1).asInstanceOf[Int])
-    repl_env.set('/, (a: List[Any]) => a(0).asInstanceOf[Int] / a(1).asInstanceOf[Int])
+    repl_env.set('+, (a: List[Any]) => a(0).asInstanceOf[Long] + a(1).asInstanceOf[Long])
+    repl_env.set('-, (a: List[Any]) => a(0).asInstanceOf[Long] - a(1).asInstanceOf[Long])
+    repl_env.set('*, (a: List[Any]) => a(0).asInstanceOf[Long] * a(1).asInstanceOf[Long])
+    repl_env.set('/, (a: List[Any]) => a(0).asInstanceOf[Long] / a(1).asInstanceOf[Long])
     val REP = (str: String) => {
       PRINT(EVAL(READ(str), repl_env))
     }
@@ -81,7 +77,7 @@ object step3_env {
       try {
         println(REP(line))
       } catch {
-        case e : Exception => {
+        case e : Throwable => {
           println("Error: " + e.getMessage)
           println("    " + e.getStackTrace.mkString("\n    "))
         }

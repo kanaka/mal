@@ -1,5 +1,7 @@
 import scala.util.matching.Regex
 
+import types.{MalList, _list, MalVector, _vector, MalHashMap, _hash_map}
+
 object reader {
 
   class Reader (tokens: Array[String]) {
@@ -34,7 +36,7 @@ object reader {
     val re_str =  """^"(.*)"$""".r
     val re_key = """^:(.*)$""".r
     return token match {
-      case re_int(i) => i.toInt       // integer
+      case re_int(i) => i.toLong      // integer
       case re_flt(f) => f.toDouble    // float
       case re_str(s) => parse_str(s)  // string
       case re_key(k) => "\u029e" + k  // keyword
@@ -46,8 +48,8 @@ object reader {
   }
 
   def read_list(rdr: Reader,
-                start: String = "(", end: String = ")"): List[Any] = {
-    var ast: List[Any] = List()
+                start: String = "(", end: String = ")"): MalList = {
+    var ast: MalList = _list()
     var token = rdr.next()
     if (token != start) throw new Exception("expected '" + start + "', got EOF")
     while ({token = rdr.peek(); token != end}) {
@@ -60,19 +62,19 @@ object reader {
 
   def read_form(rdr: Reader): Any = {
     return rdr.peek() match {
-      case "'"  => { rdr.next; List(Symbol("quote"), read_form(rdr)) }
-      case "`"  => { rdr.next; List(Symbol("quasiquote"), read_form(rdr)) }
-      case "~"  => { rdr.next; List(Symbol("unquote"), read_form(rdr)) }
-      case "~@" => { rdr.next; List(Symbol("splice-unquote"), read_form(rdr)) }
+      case "'"  => { rdr.next; _list(Symbol("quote"), read_form(rdr)) }
+      case "`"  => { rdr.next; _list(Symbol("quasiquote"), read_form(rdr)) }
+      case "~"  => { rdr.next; _list(Symbol("unquote"), read_form(rdr)) }
+      case "~@" => { rdr.next; _list(Symbol("splice-unquote"), read_form(rdr)) }
       case "^"  => { rdr.next; val meta = read_form(rdr);
-                     List(Symbol("with-meta"), read_form(rdr), meta) }
-      case "@"  => { rdr.next; List(Symbol("deref"), read_form(rdr)) }
+                     _list(Symbol("with-meta"), read_form(rdr), meta) }
+      case "@"  => { rdr.next; _list(Symbol("deref"), read_form(rdr)) }
 
       case "("  => read_list(rdr)
       case ")"  => throw new Exception("unexpected ')')")
-      case "["  => read_list(rdr, "[", "]").toArray
+      case "["  => _vector(read_list(rdr, "[", "]").value:_*)
       case "]"  => throw new Exception("unexpected ']')")
-      case "{"  => types._hash_map(read_list(rdr, "{", "}"))
+      case "{"  => _hash_map(read_list(rdr, "{", "}").value:_*)
       case "}"  => throw new Exception("unexpected '}')")
       case _    => read_atom(rdr)
     }
