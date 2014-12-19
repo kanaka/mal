@@ -53,6 +53,13 @@ class SymbolClass {
 function _symbol($name) { return new SymbolClass($name); }
 function _symbol_Q($obj) { return ($obj instanceof SymbolClass); }
 
+// Keywords
+function _keyword($name) { return chr(0x7f).$name; }
+function _keyword_Q($obj) {
+    return is_string($obj) && strpos($obj, chr(0x7f)) === 0;
+}
+
+
 
 // Functions
 class FunctionClass {

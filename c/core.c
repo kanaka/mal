@@ -40,7 +40,23 @@ MalVal *symbol(MalVal *args) {
     return args;
 }
 
-MalVal *symbol_Q(MalVal *seq) { return seq->type & MAL_SYMBOL ? &mal_true : &mal_false; }
+MalVal *symbol_Q(MalVal *seq) {
+    return seq->type & MAL_SYMBOL ? &mal_true : &mal_false; }
+
+
+// Keyword functions
+
+MalVal *keyword(MalVal *args) {
+    assert_type(args, MAL_STRING,
+                "keyword called with non-string value");
+    return malval_new_keyword(args->val.string);
+}
+
+MalVal *keyword_Q(MalVal *seq) {
+    return seq->type & MAL_STRING && seq->val.string[0] == '\x7f'
+        ? &mal_true
+        : &mal_false;
+}
 
 
 // String functions
@@ -431,7 +447,7 @@ MalVal *swap_BANG(MalVal *args) {
 
 
 
-core_ns_entry core_ns[54] = {
+core_ns_entry core_ns[56] = {
     {"=", (void*(*)(void*))equal_Q, 2},
     {"throw", (void*(*)(void*))throw, 1},
     {"nil?", (void*(*)(void*))nil_Q, 1},
@@ -439,6 +455,8 @@ core_ns_entry core_ns[54] = {
     {"false?", (void*(*)(void*))false_Q, 1},
     {"symbol", (void*(*)(void*))symbol, 1},
     {"symbol?", (void*(*)(void*))symbol_Q, 1},
+    {"keyword", (void*(*)(void*))keyword, 1},
+    {"keyword?", (void*(*)(void*))keyword_Q, 1},
 
     {"pr-str", (void*(*)(void*))pr_str, -1},
     {"str", (void*(*)(void*))str, -1},

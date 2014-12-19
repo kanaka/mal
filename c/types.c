@@ -105,6 +105,12 @@ MalVal *malval_new_symbol(char *val) {
     return mv;
 }
 
+MalVal *malval_new_keyword(char *val) {
+    MalVal *mv = malval_new(MAL_STRING, NULL);
+    mv->val.string = g_strdup_printf("\x7f%s", val);
+    return mv;
+}
+
 MalVal *malval_new_list(MalType type, GArray *val) {
     MalVal *mv = malval_new(type, NULL);
     mv->val.array = val;
@@ -422,7 +428,7 @@ MalVal *_nth(MalVal *seq, int idx) {
     assert_type(seq, MAL_LIST|MAL_VECTOR,
                 "_nth called with non-sequential");
     if (idx >= _count(seq)) {
-        return &mal_nil;
+        abort("nth: index out of range");
     }
     return g_array_index(seq->val.array, MalVal*, idx);
 }

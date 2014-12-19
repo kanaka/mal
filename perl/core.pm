@@ -7,7 +7,8 @@ use Time::HiRes qw(time);
 
 use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
-             _symbol_Q _nil_Q _true_Q _false_Q _list_Q _vector_Q
+             _nil_Q _true_Q _false_Q
+             _symbol _symbol_Q _keyword _keyword_Q _list_Q _vector_Q
              _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
@@ -101,11 +102,26 @@ sub concat {
     List->new(\@new_arr);
 }
 
-sub nth { my ($seq,$i) = @_; return scalar(@{$seq->{val}}) > $i ? $seq->nth($i) : $nil; }
+sub nth {
+    my ($seq,$i) = @_;
+    if (@{$seq->{val}} > $i) {
+        return scalar($seq->nth($i));
+    } else {
+        die "nth: index out of bounds";
+    }
+}
 
 sub first { my ($seq) = @_; return scalar(@{$seq->{val}}) > 0 ? $seq->nth(0) : $nil; }
 
 sub rest { return $_[0]->rest(); }
+
+sub count {
+    if (_nil_Q($_[0])) {
+        return Integer->new(0);
+    } else {
+        return Integer->new(scalar(@{$_[0]->{val}}))
+    }
+}
 
 sub apply {
     my @all_args = @{$_[0]->{val}};
@@ -167,7 +183,10 @@ our $core_ns = {
     'nil?' => sub { _nil_Q($_[0]->nth(0)) ? $true : $false },
     'true?' => sub { _true_Q($_[0]->nth(0)) ? $true : $false },
     'false?' => sub { _false_Q($_[0]->nth(0)) ? $true : $false },
+    'symbol'  => sub { Symbol->new(${$_[0]->nth(0)}) },
     'symbol?' => sub { _symbol_Q($_[0]->nth(0)) ? $true : $false },
+    'keyword'  => sub { _keyword(${$_[0]->nth(0)}) },
+    'keyword?' => sub { _keyword_Q($_[0]->nth(0)) ? $true : $false },
 
     'pr-str' =>  sub { pr_str($_[0]) },
     'str' =>     sub { str($_[0]) },
@@ -206,7 +225,7 @@ our $core_ns = {
     'cons' => sub { cons($_[0]->nth(0), $_[0]->nth(1)) },
     'concat' => sub { concat(@{$_[0]->{val}}) },
     'empty?' => sub { scalar(@{$_[0]->nth(0)->{val}}) == 0 ? $true : $false },
-    'count' => sub { Integer->new(scalar(@{$_[0]->nth(0)->{val}})) },
+    'count' => sub { count($_[0]->nth(0)) },
     'apply' => sub { apply($_[0]) },
     'map' => sub { mal_map($_[0]->nth(0), $_[0]->nth(1)) },
     'conj' => sub { die "not implemented\n"; },

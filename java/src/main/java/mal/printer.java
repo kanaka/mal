@@ -24,7 +24,10 @@ public class printer {
                               String delim, Boolean print_readably) {
         ArrayList<String> strs = new ArrayList<String>();
         for (Map.Entry<String, MalVal> entry : value.entrySet()) {
-            if (print_readably) {
+            if (entry.getKey().length() > 0 &&
+                entry.getKey().charAt(0) == '\u029e') {
+                strs.add(":" + entry.getKey().substring(1));
+            } else if (print_readably) {
                 strs.add("\"" + entry.getKey().toString() + "\"");
             } else {
                 strs.add(entry.getKey().toString());

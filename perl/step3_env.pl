@@ -3,7 +3,7 @@ use warnings FATAL => qw(all);
 no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
-use readline qw(mal_readline);
+use readline qw(mal_readline set_rl_mode);
 use feature qw(switch);
 use Data::Dumper;
 
@@ -23,7 +23,7 @@ sub eval_ast {
     my($ast, $env) = @_;
     given (ref $ast) {
         when (/^Symbol/) {
-            $env->get($$ast);
+            $env->get($ast);
         }
         when (/^List/) {
             my @lst = map {EVAL($_, $env)} @{$ast->{val}};
@@ -58,12 +58,12 @@ sub EVAL {
     given ($$a0) {
         when (/^def!$/) {
             my $res = EVAL($a2, $env);
-            return $env->set($$a1, $res);
+            return $env->set($a1, $res);
         }
         when (/^let\*$/) {
             my $let_env = Env->new($env);
             for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
-                $let_env->set(${$a1->nth($i)}, EVAL($a1->nth($i+1), $let_env));
+                $let_env->set($a1->nth($i), EVAL($a1->nth($i+1), $let_env));
             }
             return EVAL($a2, $let_env);
         }
@@ -88,11 +88,14 @@ sub REP {
     return PRINT(EVAL(READ($str), $repl_env));
 }
 
-$repl_env->set('+', sub { Integer->new(${$_[0]->nth(0)} + ${$_[0]->nth(1)}) } );
-$repl_env->set('-', sub { Integer->new(${$_[0]->nth(0)} - ${$_[0]->nth(1)}) } );
-$repl_env->set('*', sub { Integer->new(${$_[0]->nth(0)} * ${$_[0]->nth(1)}) } );
-$repl_env->set('/', sub { Integer->new(${$_[0]->nth(0)} / ${$_[0]->nth(1)}) } );
+$repl_env->set(Symbol->new('+'), sub { Integer->new(${$_[0]->nth(0)} + ${$_[0]->nth(1)}) } );
+$repl_env->set(Symbol->new('-'), sub { Integer->new(${$_[0]->nth(0)} - ${$_[0]->nth(1)}) } );
+$repl_env->set(Symbol->new('*'), sub { Integer->new(${$_[0]->nth(0)} * ${$_[0]->nth(1)}) } );
+$repl_env->set(Symbol->new('/'), sub { Integer->new(${$_[0]->nth(0)} / ${$_[0]->nth(1)}) } );
 
+if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+    set_rl_mode("raw");
+}
 while (1) {
     my $line = mal_readline("user> ");
     if (! defined $line) { last; }

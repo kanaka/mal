@@ -134,6 +134,7 @@ public class types {
     public static class MalSymbol extends MalVal {
         String value;
         public MalSymbol(String v) { value = v; }
+        public MalSymbol(MalString v) { value = v.getValue(); }
         public MalSymbol copy() throws MalThrowable { return this; }
 
         public String getName() { return value; }
@@ -152,7 +153,9 @@ public class types {
             return "\"" + value + "\"";
         }
         public String toString(Boolean print_readably) {
-            if (print_readably) {
+            if (value.length() > 0 && value.charAt(0) == '\u029e') {
+                return ":" + value.substring(1);
+            } else if (print_readably) {
                 return "\"" + printer.escapeString(value) + "\"";
             } else {
                 return value;

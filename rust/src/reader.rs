@@ -68,6 +68,8 @@ fn read_atom(rdr : &mut Reader) -> MalRet {
     } else if regex!(r#"^".*"$"#).is_match(token) {
         let new_str = token.slice(1,token.len()-1);
         Ok(string(unescape_str(new_str)))
+    } else if regex!(r#"^:"#).is_match(token) {
+        Ok(string("\u029e".to_string() + token.slice(1,token.len())))
     } else if token == "nil" {
         Ok(_nil())
     } else if token == "true" {

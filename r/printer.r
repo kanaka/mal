@@ -27,7 +27,9 @@ if(!exists("..types..")) source("types.r")
             paste("{", .pr_list(hlst, pr, " "), "}", sep="", collapse="")
         },
         "character"={
-            if (print_readably) {
+            if (substring(exp,1,1) == "\u029e") {
+                concat(":", substring(exp,2))
+            } else if (print_readably) {
                 paste("\"",
                       gsub("\\n", "\\\\n",
                            gsub("\\\"", "\\\\\"",

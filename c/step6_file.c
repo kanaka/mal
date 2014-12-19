@@ -33,7 +33,7 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
     if (!ast || mal_error) return NULL;
     if (ast->type == MAL_SYMBOL) {
         //g_print("EVAL symbol: %s\n", ast->val.string);
-        return env_get(env, ast->val.string);
+        return env_get(env, ast);
     } else if ((ast->type == MAL_LIST) || (ast->type == MAL_VECTOR)) {
         //g_print("EVAL sequential: %s\n", _pr_str(ast,1));
         MalVal *el = _map2((MalVal *(*)(void*, void*))EVAL, ast, env);
@@ -82,7 +82,8 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         MalVal *a1 = _nth(ast, 1),
                *a2 = _nth(ast, 2);
         MalVal *res = EVAL(a2, env);
-        env_set(env, a1->val.string, res);
+        if (mal_error) return NULL;
+        env_set(env, a1, res);
         return res;
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("let*", a0->val.string) == 0) {
@@ -99,7 +100,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
             key = g_array_index(a1->val.array, MalVal*, i);
             val = g_array_index(a1->val.array, MalVal*, i+1);
             assert_type(key, MAL_SYMBOL, "let* bind to non-symbol");
-            env_set(let_env, key->val.string, EVAL(val, let_env));
+            env_set(let_env, key, EVAL(val, let_env));
         }
         ast = a2;
         env = let_env;
@@ -118,8 +119,9 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         if (!cond || mal_error) return NULL;
         if (cond->type & (MAL_FALSE|MAL_NIL)) {
             // eval false slot form
-            ast = _nth(ast, 3);
-            if (!ast) {
+            if (ast->val.array->len > 3) {
+                ast = _nth(ast, 3);
+            } else {
                 return &mal_nil;
             }
         } else {
@@ -190,11 +192,13 @@ void init_repl_env(int argc, char *argv[]) {
     // core.c: defined using C
     int i;
     for(i=0; i < (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
-        env_set(repl_env, core_ns[i].name,
+        env_set(repl_env,
+                malval_new_symbol(core_ns[i].name),
                 malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
     MalVal *do_eval(MalVal *ast) { return EVAL(ast, repl_env); }
-    env_set(repl_env, "eval",
+    env_set(repl_env,
+            malval_new_symbol("eval"),
             malval_new_function((void*(*)(void *))do_eval, 1));
 
     MalVal *_argv = _listX(0);
@@ -202,7 +206,7 @@ void init_repl_env(int argc, char *argv[]) {
         MalVal *arg = malval_new_string(argv[i]);
         g_array_append_val(_argv->val.array, arg);
     }
-    env_set(repl_env, "*ARGV*", _argv);
+    env_set(repl_env, malval_new_symbol("*ARGV*"), _argv);
 
     // core.mal: defined using the language itself
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");

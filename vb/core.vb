@@ -69,6 +69,24 @@ Namespace Mal
             End If
         End Function
 
+        Shared Function keyword(a As MalList) As MalVal
+            Dim s As String = DirectCast(a(0),MalString).getValue()
+            return new MalString(ChrW(&H029e) & s)
+        End Function
+
+        Shared Function keyword_Q(a As MalList) As MalVal
+            If TypeOf a(0) Is MalString Then
+                Dim s As String = DirectCast(a(0),MalString).getValue()
+                If s.Substring(0,1) = Strings.ChrW(&H029e) Then
+                    return MalTrue
+                Else
+                    return MalFalse
+                End If
+            Else
+                return MalFalse
+            End If
+        End Function
+
 
         ' Number functions
         Shared Function lt(a As MalList) As MalVal
@@ -258,7 +276,13 @@ Namespace Mal
         End Function
 
         Shared Function nth(a As MalList) As MalVal
-            return DirectCast(a(0),MalList)( DirectCast(a(1),MalInt).getValue() )
+            Dim idx As Integer = DirectCast(a(1),MalInt).getValue()
+            If (idx < DirectCast(a(0),MalList).size()) Then
+                return DirectCast(a(0),MalList)( idx )
+            Else
+                throw new Mal.types.MalException(
+                    "nth: index out of range")
+            End If
         End Function
 
         Shared Function first(a As MalList) As MalVal
@@ -278,7 +302,11 @@ Namespace Mal
         End Function
 
         Shared Function count(a As MalList) As MalVal
-            return new MalInt(DirectCast(a(0),MalList).size())
+            If a(0) Is Nil Then
+                return new MalInt(0)
+            Else
+                return new MalInt(DirectCast(a(0),MalList).size())
+            End If
         End Function
 
         Shared Function conj(a As MalList) As MalVal
@@ -371,6 +399,8 @@ Namespace Mal
             ns.Add("false?", New MalFunc(AddressOf false_Q))
             ns.Add("symbol", new MalFunc(AddressOf symbol))
             ns.Add("symbol?", New MalFunc(AddressOf symbol_Q))
+            ns.Add("keyword", new MalFunc(AddressOf keyword))
+            ns.Add("keyword?", New MalFunc(AddressOf keyword_Q))
 
             ns.Add("pr-str",New MalFunc(AddressOf pr_str))
             ns.Add("str", New MalFunc(AddressOf str))

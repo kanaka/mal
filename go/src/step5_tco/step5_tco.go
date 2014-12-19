@@ -24,7 +24,7 @@ func READ(str string) (MalType, error) {
 func eval_ast(ast MalType, env EnvType) (MalType, error) {
     //fmt.Printf("eval_ast: %#v\n", ast)
     if Symbol_Q(ast) {
-        return env.Get(ast.(Symbol).Val)
+        return env.Get(ast.(Symbol))
     } else if List_Q(ast) {
         lst := []MalType{}
         for _, a := range ast.(List).Val {
@@ -86,7 +86,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
     case "def!":
         res, e := EVAL(a2, env)
         if e != nil { return nil, e }
-        return env.Set(a1.(Symbol).Val, res), nil
+        return env.Set(a1.(Symbol), res), nil
     case "let*":
         let_env, e := NewEnv(env, nil, nil)
         if e != nil { return nil, e }
@@ -98,7 +98,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
             }
             exp, e := EVAL(arr1[i+1], let_env)
             if e != nil { return nil, e }
-            let_env.Set(arr1[i].(Symbol).Val, exp)
+            let_env.Set(arr1[i].(Symbol), exp)
         }
         ast = a2
         env = let_env
@@ -164,7 +164,7 @@ func rep(str string) (MalType, error) {
 func main() {
     // core.go: defined using go
     for k, v := range core.NS {
-        repl_env.Set(k, Func{v.(func([]MalType)(MalType,error)),nil})
+        repl_env.Set(Symbol{k}, Func{v.(func([]MalType)(MalType,error)),nil})
     }
 
     // core.mal: defined using the language itself

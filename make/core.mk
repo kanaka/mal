@@ -32,7 +32,12 @@ false? = $(if $(call _false?,$(1)),$(__true),$(__false))
 
 
 # Symbol functions
+symbol = $(call _symbol,$(call str_decode,$($(1)_value)))
 symbol? = $(if $(call _symbol?,$(1)),$(__true),$(__false))
+
+# Keyword functions
+keyword = $(call _keyword,$(call str_decode,$($(1)_value)))
+keyword? = $(if $(call _keyword?,$(1)),$(__true),$(__false))
 
 
 # Number functions
@@ -98,10 +103,9 @@ assoc = $(word 1,\
 dissoc = $(word 1,\
            $(foreach hm,$(call _clone_obj,$(word 1,$(1))),\
              $(hm) \
-             $(foreach key,$(wordlist 2,$(words $(1)),$(1)),\
-               $(call _dissoc!,$(hm),$(call str_decode,$($(key)_value))))))
+             $(call _dissoc_seq!,$(hm),$(wordlist 2,$(words $(1)),$(1)))))
 
-keys = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $(foreach v,$(call __get_obj_values,$(1)),$(call _string,$(word 4,$(subst _, ,$(v)))))))
+keys = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $(foreach v,$(call __get_obj_values,$(1)),$(foreach vval,$(word 4,$(subst _, ,$(v))),$(if $(filter $(__keyword)%,$(vval)),$(call _keyword,$(patsubst $(__keyword)%,%,$(vval))),$(call _string,$(vval)))))))
 
 vals = $(foreach new_list,$(call _list),$(new_list)$(eval $(new_list)_value := $(foreach v,$(call __get_obj_values,$(1)),$($(v)))))
 
@@ -127,7 +131,10 @@ cons = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list)_
 
 concat = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list)_value := $(strip $(foreach lst,$1,$(call __get_obj_values,$(lst)))))))
 
-nth = $(word $(call gmsl_plus,1,$(call int_decode,$($(word 2,$(1))_value))),$($(word 1,$(1))_value))
+nth = $(strip \
+        $(if $(call int_lt,$($(word 2,$(1))_value),$(call int_encode,$(call _count,$(word 1,$(1))))),\
+          $(word $(call gmsl_plus,1,$(call int_decode,$($(word 2,$(1))_value))),$($(word 1,$(1))_value)),\
+          $(call _error,nth: index out of range)))
 
 sfirst = $(word 1,$($(1)_value))
 
@@ -209,8 +216,10 @@ core_ns = type obj_type \
           nil? nil? \
           true? true? \
           false? false? \
-          symbol _symbol \
+          symbol symbol \
           symbol? symbol? \
+          keyword keyword \
+          keyword? keyword? \
           function? function? \
           string? string? \
           \

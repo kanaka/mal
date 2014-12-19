@@ -95,7 +95,10 @@ function concat(lst) {
     return lst.concat.apply(lst, Array.prototype.slice.call(arguments, 1));
 }
 
-function nth(lst, idx) { return lst[idx]; }
+function nth(lst, idx) {
+    if (idx < lst.length) { return lst[idx]; }
+    else                  { throw new Error("nth: index out of range"); }
+}
 
 function first(lst) { return lst[0]; }
 
@@ -105,7 +108,8 @@ function empty_Q(lst) { return lst.length === 0; }
 
 function count(s) {
     if (Array.isArray(s)) { return s.length; }
-    else {                  return Object.keys(s).length; }
+    else if (s === null)  { return 0; }
+    else                  { return Object.keys(s).length; }
 }
 
 function conj(lst) {
@@ -165,6 +169,8 @@ var ns = {'type': types._obj_type,
           'false?': types._false_Q,
           'symbol': types._symbol,
           'symbol?': types._symbol_Q,
+          'keyword': types._keyword,
+          'keyword?': types._keyword_Q,
 
           'pr-str': pr_str,
           'str': str,

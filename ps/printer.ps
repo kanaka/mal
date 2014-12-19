@@ -45,13 +45,24 @@
         /slen obj 10 add log ceiling cvi def
         obj 10 slen string cvrs
     }{ /stringtype obj type eq { % if string
-        print_readably {
-            (")
-            obj (\\) (\\\\) replace
-                (") (\\") replace
-            (") concatenate concatenate
-        }{
-            obj
+        obj length 0 gt { % if string length > 0
+            obj 0 get 127 eq { %if starts with 0x7f (keyword)
+                obj dup length string copy
+                dup 0 58 put % 58 is ':'
+            }{ print_readably {
+                (")
+                obj (\\) (\\\\) replace
+                    (") (\\") replace
+                (") concatenate concatenate
+            }{
+                obj
+            } ifelse } ifelse
+        }{ % else empty string
+            print_readably {
+                ("")
+            }{
+                obj
+            } ifelse
         } ifelse
     }{ null obj eq { % if nil
         (nil)

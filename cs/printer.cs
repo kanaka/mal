@@ -20,7 +20,9 @@ namespace Mal {
                                 string delim, bool print_readably) {
             List<string> strs = new List<string>();
             foreach (KeyValuePair<string, MalVal> entry in value) {
-                if (print_readably) {
+                if (entry.Key.Length > 0 && entry.Key[0] == '\u029e') {
+                    strs.Add(":" + entry.Key.Substring(1));
+                } else if (print_readably) {
                     strs.Add("\"" + entry.Key.ToString() + "\"");
                 } else {
                     strs.Add(entry.Key.ToString());

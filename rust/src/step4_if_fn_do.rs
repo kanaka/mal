@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal,err_str,
             Nil,False,Sym,List,Vector,Hash_Map,
-            _nil,list,vector,hash_map,malfunc};
+            symbol,_nil,list,vector,hash_map,malfunc};
 use env::{Env,env_new,env_set,env_get};
 mod readline;
 mod types;
@@ -27,8 +27,8 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
     let ast2 = ast.clone();
     match *ast2 {
     //match *ast {
-        Sym(ref sym) => {
-            env_get(env.clone(), sym.clone())
+        Sym(_) => {
+            env_get(env.clone(), ast)
         },
         List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
@@ -95,8 +95,8 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
             match res {
                 Ok(r) => {
                     match *a1 {
-                        Sym(ref s) => {
-                            env_set(&env.clone(), s.clone(), r.clone());
+                        Sym(_) => {
+                            env_set(&env.clone(), a1.clone(), r.clone());
                             return Ok(r);
                         },
                         _ => {
@@ -118,10 +118,10 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                         let b = it.next().unwrap();
                         let exp = it.next().unwrap();
                         match **b {
-                            Sym(ref bstr) => {
+                            Sym(_) => {
                                 match eval(exp.clone(), let_env.clone()) {
                                     Ok(r) => {
-                                        env_set(&let_env, bstr.clone(), r);
+                                        env_set(&let_env, b.clone(), r);
                                     },
                                     Err(e) => {
                                         return Err(e);
@@ -216,7 +216,9 @@ fn rep(str: &str, env: Env) -> Result<String,MalError> {
 fn main() {
     // core.rs: defined using rust
     let repl_env = env_new(None);
-    for (k, v) in core::ns().into_iter() { env_set(&repl_env, k, v); }
+    for (k, v) in core::ns().into_iter() {
+        env_set(&repl_env, symbol(k.as_slice()), v);
+    }
 
     // core.mal: defined using the language itself
     let _ = rep("(def! not (fn* (a) (if a false true)))", repl_env.clone());

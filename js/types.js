@@ -19,7 +19,7 @@ function _obj_type(obj) {
         switch (typeof(obj)) {
         case 'number':   return 'number';
         case 'function': return 'function';
-        case 'string':   return 'string';
+        case 'string': return obj[0] == '\u029e' ? 'keyword' : 'string';
         default: throw new Error("Unknown type '" + typeof(obj) + "'");
         }
     }
@@ -99,6 +99,13 @@ function _symbol(name) { return new Symbol(name); }
 function _symbol_Q(obj) { return obj instanceof Symbol; }
 
 
+// Keywords
+function _keyword(name) { return "\u029e" + name; }
+function _keyword_Q(obj) {
+    return typeof obj === 'string' && obj[0] === '\u029e';
+}
+
+
 // Functions
 function _function(Eval, Env, ast, env, params) {
     var fn = function() {
@@ -148,6 +155,7 @@ function _hash_map_Q(hm) {
     return typeof hm === "object" &&
            !Array.isArray(hm) &&
            !(hm === null) &&
+           !(hm instanceof Symbol) &&
            !(hm instanceof Atom);
 }
 function _assoc_BANG(hm) {
@@ -157,10 +165,6 @@ function _assoc_BANG(hm) {
     for (var i=1; i<arguments.length; i+=2) {
         var ktoken = arguments[i],
             vtoken = arguments[i+1];
-        // TODO: support more than string keys
-        //if (list_Q(ktoken) && hash_map_Q(ktoken)) {
-        //    throw new Error("expected hash-map key atom, got collection");
-        //}
         if (typeof ktoken !== "string") {
             throw new Error("expected hash-map key string, got: " + (typeof ktoken));
         }
@@ -193,6 +197,8 @@ exports._true_Q = types._true_Q = _true_Q;
 exports._false_Q = types._false_Q = _false_Q;
 exports._symbol = types._symbol = _symbol;
 exports._symbol_Q = types._symbol_Q = _symbol_Q;
+exports._keyword = types._keyword = _keyword;
+exports._keyword_Q = types._keyword_Q = _keyword_Q;
 exports._function = types._function = _function;
 exports._function_Q = types._function_Q = _function_Q;
 exports._list = types._list = _list;

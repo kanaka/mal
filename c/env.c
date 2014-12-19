@@ -25,10 +25,10 @@ Env *new_env(Env *outer, MalVal* binds, MalVal *exprs) {
             if (i > exprs_len) { break; }
             if (_nth(binds, i)->val.string[0] == '&') {
                 varargs = 1;
-                env_set(e, _nth(binds, i+1)->val.string, _slice(exprs, i, _count(exprs)));
+                env_set(e, _nth(binds, i+1), _slice(exprs, i, _count(exprs)));
                 break;
             } else {
-              env_set(e, _nth(binds, i)->val.string, _nth(exprs, i));
+              env_set(e, _nth(binds, i), _nth(exprs, i));
             }
         }
         assert(varargs || (binds_len == exprs_len),
@@ -39,8 +39,8 @@ Env *new_env(Env *outer, MalVal* binds, MalVal *exprs) {
     return e;
 }
 
-Env *env_find(Env *env, char *key) {
-    void *val = g_hash_table_lookup(env->table, key);
+Env *env_find(Env *env, MalVal *key) {
+    void *val = g_hash_table_lookup(env->table, key->val.string);
     if (val) {
         return env;
     } else if (env->outer) {
@@ -50,13 +50,13 @@ Env *env_find(Env *env, char *key) {
     }
 }
 
-MalVal *env_get(Env *env, char *key) {
+MalVal *env_get(Env *env, MalVal *key) {
     Env *e = env_find(env, key);
-    assert(e, "'%s' not found", key);
-    return g_hash_table_lookup(e->table, key);
+    assert(e, "'%s' not found", key->val.string);
+    return g_hash_table_lookup(e->table, key->val.string);
 }
 
-Env *env_set(Env *env, char *key, MalVal *val) {
-    g_hash_table_insert(env->table, key, val);
+Env *env_set(Env *env, MalVal *key, MalVal *val) {
+    g_hash_table_insert(env->table, key->val.string, val);
     return env;
 }

@@ -281,7 +281,7 @@ pub fn nth(a:Vec<MalVal>) -> MalRet {
         _ => return err_str("nth called with non-integer index"),
     };
     if idx >= seq.len() {
-        Ok(_nil())
+        return err_str("nth: index out of range")
     } else {
         Ok(seq[idx].clone())
     }
@@ -342,6 +342,7 @@ pub fn count(a:Vec<MalVal>) -> MalRet {
         List(ref v,_) | Vector(ref v,_) => {
             Ok(_int(v.len().to_int().unwrap()))
         },
+        Nil => Ok(_int(0)),
         _ => err_str("count called on non-sequence"),
     }
 }
@@ -500,7 +501,10 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("nil?".to_string(), func(types::nil_q));
     ns.insert("true?".to_string(), func(types::true_q));
     ns.insert("false?".to_string(), func(types::false_q));
+    ns.insert("symbol".to_string(), func(types::_symbol));
     ns.insert("symbol?".to_string(), func(types::symbol_q));
+    ns.insert("keyword".to_string(), func(types::_keyword));
+    ns.insert("keyword?".to_string(), func(types::keyword_q));
 
     ns.insert("pr-str".to_string(), func(pr_str));
     ns.insert("str".to_string(), func(str));

@@ -21,8 +21,7 @@ Namespace Mal
         ' eval
         Shared Function eval_ast(ast As MalVal, env As MalEnv) As MalVal
             If TypeOf ast Is MalSymbol Then
-                Dim sym As MalSymbol = DirectCast(ast, MalSymbol)
-                return env.do_get(sym.getName())
+                return env.do_get(DirectCast(ast, MalSymbol))
             Else If TypeOf ast Is MalList Then
                 Dim old_lst As MalList = DirectCast(ast, MalList)
                 Dim new_lst As MalList
@@ -85,7 +84,7 @@ Namespace Mal
                 Dim a1 As MalVal = ast(1)
                 Dim a2 As MalVal = ast(2)
                 Dim res As MalVal = EVAL(a2, env)
-                env.do_set(DirectCast(a1,MalSymbol).getName(), res)
+                env.do_set(DirectCast(a1,MalSymbol), res)
                 return res
             Case "let*"
                 Dim a1 As MalVal = ast(1)
@@ -96,7 +95,7 @@ Namespace Mal
                 For i As Integer = 0 To (DirectCast(a1,MalList)).size()-1 Step 2
                     key = DirectCast(DirectCast(a1,MalList)(i),MalSymbol)
                     val = DirectCast(a1,MalList)(i+1)
-                    let_env.do_set(key.getName(), EVAL(val, let_env))
+                    let_env.do_set(key, EVAL(val, let_env))
                 Next
                 orig_ast = a2
                 env = let_env
@@ -161,7 +160,7 @@ Namespace Mal
 
             ' core.vb: defined using VB.NET
             For Each entry As KeyValuePair(Of String,MalVal) In core.ns()
-                repl_env.do_set(entry.Key, entry.Value)
+                repl_env.do_set(new MalSymbol(entry.Key), entry.Value)
             Next
 
             ' core.mal: defined using the language itself

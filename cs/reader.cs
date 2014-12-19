@@ -53,7 +53,7 @@ namespace Mal {
 
         public static MalVal read_atom(Reader rdr) {
             string token = rdr.next();
-            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*"")$|(^[^""]*$)";
+            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*"")$|:(.*)|(^[^""]*$)";
             Regex regex = new Regex(pattern);
             Match match = regex.Match(token);
             //Console.WriteLine("token: ^" + token + "$");
@@ -75,7 +75,9 @@ namespace Mal {
                     .Replace("\\n", "\n");
                 return new Mal.types.MalString(str);
             } else if (match.Groups[7].Value != String.Empty) {
-                return new Mal.types.MalSymbol(match.Groups[7].Value);
+                return new Mal.types.MalString("\u029e" + match.Groups[7].Value);
+            } else if (match.Groups[8].Value != String.Empty) {
+                return new Mal.types.MalSymbol(match.Groups[8].Value);
             } else {
                 throw new ParseError("unrecognized '" + match.Groups[0] + "'");
             }

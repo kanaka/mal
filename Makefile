@@ -78,7 +78,7 @@ java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.arg
 js_RUNSTEP =      node ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
-perl_RUNSTEP =    perl ../$(2) $(3)
+perl_RUNSTEP =    perl ../$(2) --raw $(3)
 php_RUNSTEP =     php ../$(2) $(3)
 ps_RUNSTEP =      $(4)gs -q -I./ -dNODISPLAY -- ../$(2) $(3)$(4)
 python_RUNSTEP =  $(PYTHON) ../$(2) $(3)

@@ -36,8 +36,8 @@ function quasiquote(ast) {
 function is_macro_call(ast, env) {
     return types._list_Q(ast) &&
            types._symbol_Q(ast[0]) &&
-           env.find(ast[0].value) &&
-           env.get(ast[0].value)._ismacro_;
+           env.find(ast[0]) &&
+           env.get(ast[0])._ismacro_;
 }
 
 function macroexpand(ast, env) {
@@ -88,7 +88,7 @@ function _EVAL(ast, env) {
     case "let*":
         var let_env = new Env(env);
         for (var i=0; i < a1.length; i+=2) {
-            let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
+            let_env.set(a1[i], EVAL(a1[i+1], let_env));
         }
         ast = a2;
         env = let_env;
@@ -146,9 +146,10 @@ var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
 
 // core.js: defined using javascript
-for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
-repl_env.set('eval', function(ast) { return EVAL(ast, repl_env); });
-repl_env.set('*ARGV*', []);
+for (var n in core.ns) { repl_env.set(types._symbol(n), core.ns[n]); }
+repl_env.set(types._symbol('eval'), function(ast) {
+    return EVAL(ast, repl_env); });
+repl_env.set(types._symbol('*ARGV*'), []);
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
@@ -157,7 +158,7 @@ rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
-    repl_env.set('*ARGV*', process.argv.slice(3));
+    repl_env.set(types._symbol('*ARGV*'), process.argv.slice(3));
     rep('(load-file "' + process.argv[2] + '")');
     process.exit(0);
 }

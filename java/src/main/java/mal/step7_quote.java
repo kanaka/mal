@@ -49,8 +49,7 @@ public class step7_quote {
 
     public static MalVal eval_ast(MalVal ast, Env env) throws MalThrowable {
         if (ast instanceof MalSymbol) {
-            MalSymbol sym = (MalSymbol)ast;
-            return env.get(sym.getName());
+            return env.get((MalSymbol)ast);
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
             MalList new_lst = ast.list_Q() ? new MalList()
@@ -94,7 +93,7 @@ public class step7_quote {
             a1 = ast.nth(1);
             a2 = ast.nth(2);
             res = EVAL(a2, env);
-            env.set(((MalSymbol)a1).getName(), res);
+            env.set(((MalSymbol)a1), res);
             return res;
         case "let*":
             a1 = ast.nth(1);
@@ -105,7 +104,7 @@ public class step7_quote {
             for(int i=0; i<((MalList)a1).size(); i+=2) {
                 key = (MalSymbol)((MalList)a1).nth(i);
                 val = ((MalList)a1).nth(i+1);
-                let_env.set(key.getName(), EVAL(val, let_env));
+                let_env.set(key, EVAL(val, let_env));
             }
             orig_ast = a2;
             env = let_env;
@@ -175,9 +174,9 @@ public class step7_quote {
 
         // core.java: defined using Java
         for (String key : core.ns.keySet()) {
-            repl_env.set(key, core.ns.get(key));
+            repl_env.set(new MalSymbol(key), core.ns.get(key));
         }
-        repl_env.set("eval", new MalFunction() {
+        repl_env.set(new MalSymbol("eval"), new MalFunction() {
             public MalVal apply(MalList args) throws MalThrowable {
                 return EVAL(args.nth(0), repl_env);
             }
@@ -186,7 +185,7 @@ public class step7_quote {
         for (Integer i=1; i < args.length; i++) {
             _argv.conj_BANG(new MalString(args[i]));
         }
-        repl_env.set("*ARGV*", _argv);
+        repl_env.set(new MalSymbol("*ARGV*"), _argv);
 
 
         // core.mal: defined using the language itself

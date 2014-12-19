@@ -49,9 +49,30 @@ public class core {
             return args.nth(0) == False ? True : False;
         }
     };
+    static MalFunction symbol = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            return new MalSymbol((MalString)args.nth(0));
+        }
+    };
     static MalFunction symbol_Q = new MalFunction() {
         public MalVal apply(MalList args) throws MalThrowable {
             return args.nth(0) instanceof MalSymbol ? True : False;
+        }
+    };
+    static MalFunction keyword = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            return new MalString(
+                    "\u029e" + ((MalString)args.nth(0)).getValue());
+        }
+    };
+    static MalFunction keyword_Q = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            if (args.nth(0) instanceof MalString &&
+                (((MalString)args.nth(0)).getValue().charAt(0) == '\u029e')) {
+                return True;
+            } else {
+                return False;
+            }
         }
     };
 
@@ -304,7 +325,11 @@ public class core {
 
     static MalFunction count = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            return new MalInteger(((MalList)a.nth(0)).size());
+            if (a.nth(0) == Nil) {
+                return new MalInteger(0);
+            } else {
+                return new MalInteger(((MalList)a.nth(0)).size());
+            }
         }
     };
 
@@ -358,7 +383,11 @@ public class core {
     static MalFunction nth = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
             Integer idx = ((MalInteger)a.nth(1)).getValue();
-            return ((MalList)a.nth(0)).nth(idx);
+            if (idx < ((MalList)a.nth(0)).size()) {
+                return ((MalList)a.nth(0)).nth(idx);
+            } else {
+                throw new MalError("nth: index out of range");
+            }
         }
     };
 
@@ -471,7 +500,10 @@ public class core {
         .put("nil?",      nil_Q)
         .put("true?",     true_Q)
         .put("false?",    false_Q)
+        .put("symbol",    symbol)
         .put("symbol?",   symbol_Q)
+        .put("keyword",   keyword)
+        .put("keyword?",  keyword_Q)
 
         .put("pr-str",    pr_str)
         .put("str",       str)

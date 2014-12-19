@@ -32,7 +32,9 @@ func Pr_str(obj types.MalType, print_readably bool) string {
         }
         return "{" + strings.Join(str_list, " ") + "}"
     case string:
-        if print_readably {
+        if strings.HasPrefix(tobj, "\u029e") {
+            return ":" + tobj[2:len(tobj)]
+        } else if print_readably {
             return `"` + strings.Replace(
                            strings.Replace(
                              strings.Replace(tobj,`\`,`\\`, -1),

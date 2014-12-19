@@ -51,7 +51,7 @@ public class reader {
     public static MalVal read_atom(Reader rdr)
             throws ParseError {
         String token = rdr.next();
-        Pattern pattern = Pattern.compile("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|(^[^\"]*$)");
+        Pattern pattern = Pattern.compile("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|:(.*)|(^[^\"]*$)");
         Matcher matcher = pattern.matcher(token);
         if (!matcher.find()) {
             throw new ParseError("unrecognized token '" + token + "'");
@@ -67,7 +67,9 @@ public class reader {
         } else if (matcher.group(6) != null) {
             return new MalString(StringEscapeUtils.unescapeJson(matcher.group(6)));
         } else if (matcher.group(7) != null) {
-            return new MalSymbol(matcher.group(7));
+            return new MalString("\u029e" + matcher.group(7));
+        } else if (matcher.group(8) != null) {
+            return new MalSymbol(matcher.group(8));
         } else {
             throw new ParseError("unrecognized '" + matcher.group(0) + "'");
         }

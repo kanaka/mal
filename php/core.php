@@ -97,7 +97,11 @@ function concat() {
 }
 
 function nth($seq, $idx) {
-    return $seq[$idx];
+    if ($idx < $seq->count()) {
+        return $seq[$idx];
+    } else {
+        throw new Exception("nth: index out of range");
+    }
 }
 
 function first($seq) {
@@ -177,6 +181,8 @@ $core_ns = array(
     'false?'=> function ($a) { return _false_Q($a); },
     'symbol'=> function () { return call_user_func_array('_symbol', func_get_args()); },
     'symbol?'=> function ($a) { return _symbol_Q($a); },
+    'keyword'=> function () { return call_user_func_array('_keyword', func_get_args()); },
+    'keyword?'=> function ($a) { return _keyword_Q($a); },
 
     'string?'=> function ($a) { return _string_Q($a); },
     'pr-str'=> function () { return call_user_func_array('pr_str', func_get_args()); },

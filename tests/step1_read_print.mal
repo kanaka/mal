@@ -73,6 +73,12 @@ abc-def
 ;;
 ;; -------- Optional Functionality --------
 
+;; Testing keywords
+:kw
+;=>:kw
+(:kw1 :kw2 :kw3)
+;=>(:kw1 :kw2 :kw3)
+
 ;; Testing read of vectors
 [+ 1 2]
 ;=>[+ 1 2]
@@ -92,6 +98,7 @@ abc-def
 ;=>{"a" {"b" {"c" 3}}}
 {  "a"  {"b"   {  "cde"     3   }  }}
 ;=>{"a" {"b" {"cde" 3}}}
+;=>{:a {:b {:cde 3}}}
 
 ;; Testing read of comments
  ;; whole line comment (not an exception)

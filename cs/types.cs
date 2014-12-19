@@ -160,7 +160,9 @@ namespace Mal {
                 return "\"" + value + "\"";
             }
             public override string ToString(bool print_readably) {
-                if (print_readably) {
+                if (value.Length > 0 && value[0] == '\u029e') {
+                    return ":" + value.Substring(1);
+                } else if (print_readably) {
                     return "\"" + value.Replace("\\", "\\\\")
                         .Replace("\"", "\\\"")
                         .Replace("\n", "\\n") + "\"";

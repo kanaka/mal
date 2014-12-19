@@ -47,7 +47,7 @@ function _EVAL(ast, env) {
     case "let*":
         var let_env = new Env(env);
         for (var i=0; i < a1.length; i+=2) {
-            let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
+            let_env.set(a1[i], EVAL(a1[i+1], let_env));
         }
         return EVAL(a2, let_env);
     default:
@@ -70,10 +70,10 @@ function PRINT(exp) {
 var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
 
-repl_env.set('+', function(a,b){return a+b;});
-repl_env.set('-', function(a,b){return a-b;});
-repl_env.set('*', function(a,b){return a*b;});
-repl_env.set('/', function(a,b){return a/b;});
+repl_env.set(types._symbol('+'), function(a,b){return a+b;});
+repl_env.set(types._symbol('-'), function(a,b){return a-b;});
+repl_env.set(types._symbol('*'), function(a,b){return a*b;});
+repl_env.set(types._symbol('/'), function(a,b){return a/b;});
 
 // repl loop
 if (typeof require !== 'undefined' && require.main === module) {

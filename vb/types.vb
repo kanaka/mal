@@ -232,7 +232,9 @@ namespace Mal
                 return """" & value & """"
             End Function
             Public Overrides Function ToString(print_readably As Boolean) As String
-                If print_readably Then
+                If value.Length > 0 AndAlso value(0) = ChrW(&H029e) Then
+                    return ":" & value.Substring(1)
+                Else If print_readably Then
                     return """" & _
                            value.Replace("\", "\\") _
                                 .Replace("""", "\""") _

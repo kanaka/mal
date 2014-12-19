@@ -31,7 +31,7 @@ class Env {
         }
     }
     public function find($key) {
-        if (array_key_exists($key, $this->data)) {
+        if (array_key_exists($key->value, $this->data)) {
             return $this;
         } elseif ($this->outer) {
             return $this->outer->find($key);
@@ -40,15 +40,15 @@ class Env {
         }
     }
     public function set($key, $value) {
-        $this->data[$key] = $value;
+        $this->data[$key->value] = $value;
         return $value;
     }
     public function get($key) {
         $env = $this->find($key);
         if (!$env) {
-            throw new Exception("'" . $key . "' not found");
+            throw new Exception("'" . $key->value . "' not found");
         } else {
-            return $env->data[$key];
+            return $env->data[$key->value];
         }
     }
 }

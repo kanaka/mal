@@ -78,7 +78,10 @@ impl MalType {
             Int(v) => res.push_str(v.to_string().as_slice()),
             Sym(ref v) => res.push_str((*v).as_slice()),
             Strn(ref v) => {
-                if print_readably {
+                if v.as_slice().starts_with("\u029e") {
+                    res.push_str(":");
+                    res.push_str(v.as_slice().slice(2,v.len()))
+                } else if print_readably {
                     res.push_str(escape_str((*v).as_slice()).as_slice())
                 } else {
                     res.push_str(v.as_slice())
@@ -95,7 +98,10 @@ impl MalType {
                 res.push_str("{");
                 for (key, value) in v.iter() {
                     if first { first = false; } else { res.push_str(" "); }
-                    if print_readably {
+                    if key.as_slice().starts_with("\u029e") {
+                        res.push_str(":");
+                        res.push_str(key.as_slice().slice(2,key.len()))
+                    } else if print_readably {
                         res.push_str(escape_str(key.as_slice()).as_slice())
                     } else {
                         res.push_str(key.as_slice())
@@ -205,6 +211,17 @@ pub fn _int(i: int) -> MalVal { Rc::new(Int(i)) }
 
 // Symbols
 pub fn symbol(strn: &str) -> MalVal { Rc::new(Sym(strn.to_string())) }
+pub fn _symbol(a: Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to symbol call");
+    }
+    match *a[0].clone() {
+        Strn(ref s) => {
+            Ok(Rc::new(Sym(s.to_string())))
+        },
+        _ => return err_str("symbol called on non-string"),
+    }
+}
 pub fn symbol_q(a:Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to symbol? call");
@@ -214,6 +231,35 @@ pub fn symbol_q(a:Vec<MalVal>) -> MalRet {
         _      => Ok(_false()),
     }
 }
+
+// Keywords
+pub fn _keyword(a: Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to keyword call");
+    }
+    match *a[0].clone() {
+        Strn(ref s) => {
+            Ok(Rc::new(Strn("\u029e".to_string() + s.to_string())))
+        },
+        _ => return err_str("keyword called on non-string"),
+    }
+}
+pub fn keyword_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to keyword? call");
+    }
+    match *a[0].clone() {
+        Strn(ref s) => {
+            if s.as_slice().starts_with("\u029e") {
+                Ok(_true())
+            } else {
+                Ok(_false())
+            }
+        },
+        _ => Ok(_false()),
+    }
+}
+
 
 // Strings
 pub fn strn(strn: &str) -> MalVal { Rc::new(Strn(strn.to_string())) }

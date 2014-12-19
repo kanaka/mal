@@ -22,8 +22,7 @@ public class step5_tco {
     // eval
     public static MalVal eval_ast(MalVal ast, Env env) throws MalThrowable {
         if (ast instanceof MalSymbol) {
-            MalSymbol sym = (MalSymbol)ast;
-            return env.get(sym.getName());
+            return env.get((MalSymbol)ast);
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
             MalList new_lst = ast.list_Q() ? new MalList()
@@ -67,7 +66,7 @@ public class step5_tco {
             a1 = ast.nth(1);
             a2 = ast.nth(2);
             res = EVAL(a2, env);
-            env.set(((MalSymbol)a1).getName(), res);
+            env.set(((MalSymbol)a1), res);
             return res;
         case "let*":
             a1 = ast.nth(1);
@@ -78,7 +77,7 @@ public class step5_tco {
             for(int i=0; i<((MalList)a1).size(); i+=2) {
                 key = (MalSymbol)((MalList)a1).nth(i);
                 val = ((MalList)a1).nth(i+1);
-                let_env.set(key.getName(), EVAL(val, let_env));
+                let_env.set(key, EVAL(val, let_env));
             }
             orig_ast = a2;
             env = let_env;
@@ -143,7 +142,7 @@ public class step5_tco {
 
         // core.java: defined using Java
         for (String key : core.ns.keySet()) {
-            repl_env.set(key, core.ns.get(key));
+            repl_env.set(new MalSymbol(key), core.ns.get(key));
         }
 
         // core.mal: defined using the language itself

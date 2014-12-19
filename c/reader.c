@@ -122,7 +122,7 @@ MalVal *read_atom(Reader *reader) {
     token = reader_next(reader);
     //g_print("read_atom token: %s\n", token);
     
-    regex = g_regex_new ("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|(^[^\"]*$)", 0, 0, &err);   
+    regex = g_regex_new ("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|:(.*)|(^[^\"]*$)", 0, 0, &err);
     g_regex_match (regex, token, 0, &matchInfo);
 
     if (g_match_info_fetch_pos(matchInfo, 1, &pos, NULL) && pos != -1) {
@@ -145,8 +145,11 @@ MalVal *read_atom(Reader *reader) {
         char *str_tmp = replace_str(g_match_info_fetch(matchInfo, 6), "\\\"", "\"");
         atom = malval_new_string(str_tmp);
     } else if (g_match_info_fetch_pos(matchInfo, 7, &pos, NULL) && pos != -1) {
+        //g_print("read_atom keyword\n");
+        atom = malval_new_keyword(g_match_info_fetch(matchInfo, 7));
+    } else if (g_match_info_fetch_pos(matchInfo, 8, &pos, NULL) && pos != -1) {
         //g_print("read_atom symbol\n");
-        atom = malval_new_symbol(g_match_info_fetch(matchInfo, 7));
+        atom = malval_new_symbol(g_match_info_fetch(matchInfo, 8));
     } else {
         malval_free(atom);
         atom = NULL;

@@ -143,12 +143,11 @@ def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
 # core.py: defined using python
-for k, v in core.ns.items(): repl_env.set(k, v)
-repl_env.set('eval', lambda ast: EVAL(ast, repl_env))
-repl_env.set('*ARGV*', types._list(*sys.argv[2:]))
+for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
+repl_env.set(types._symbol('eval'), lambda ast: EVAL(ast, repl_env))
+repl_env.set(types._symbol('*ARGV*'), types._list(*sys.argv[2:]))
 
 # core.mal: defined using the language itself
-REP("(def! *host-language* \"python\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -159,7 +158,6 @@ if len(sys.argv) >= 2:
     sys.exit(0)
 
 # repl loop
-REP("(println (str \"Mal [\" *host-language* \"]\"))")
 while True:
     try:
         line = mal_readline.readline("user> ")

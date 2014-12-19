@@ -10,6 +10,7 @@ include $(_TOP_DIR)gmsl.mk
 
 SEMI := ;
 COMMA := ,
+COLON := :
 LCURLY := {
 RCURLY := }
 LPAREN := (

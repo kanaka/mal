@@ -140,7 +140,11 @@ func concat(a []MalType) (MalType, error) {
 func nth(a []MalType) (MalType, error) {
     slc, e := GetSlice(a[0]); if e != nil { return nil, e }
     idx := a[1].(int)
-    return slc[idx], nil
+    if idx < len(slc) {
+        return slc[idx], nil
+    } else {
+        return nil, errors.New("nth: index out of range")
+    }
 }
 
 func first(a []MalType) (MalType, error) {
@@ -294,8 +298,14 @@ var NS = map[string]MalType{
             return True_Q(a[0]), nil },
     "false?": func(a []MalType) (MalType, error) {
             return False_Q(a[0]), nil },
+    "symbol":  func(a []MalType) (MalType, error) {
+            return Symbol{a[0].(string)}, nil },
     "symbol?":  func(a []MalType) (MalType, error) {
             return Symbol_Q(a[0]), nil },
+    "keyword":  func(a []MalType) (MalType, error) {
+            return NewKeyword(a[0].(string)) },
+    "keyword?":  func(a []MalType) (MalType, error) {
+            return Keyword_Q(a[0]), nil },
 
     "pr-str": func(a []MalType) (MalType, error) { return pr_str(a) },
     "str": func(a []MalType) (MalType, error) { return str(a) },

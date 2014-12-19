@@ -32,6 +32,7 @@ def read_atom(rdr)
         when /^-?[0-9]+$/ then       token.to_i # integer
         when /^-?[0-9][0-9.]*$/ then token.to_f # float
         when /^"/ then               parse_str(token) # string
+        when /^:/ then               "\u029e" + token[1..-1] # keyword
         when "nil" then              nil
         when "true" then             true
         when "false" then            false

@@ -21,8 +21,7 @@ public class step3_env {
     // eval
     public static MalVal eval_ast(MalVal ast, Env env) throws MalThrowable {
         if (ast instanceof MalSymbol) {
-            MalSymbol sym = (MalSymbol)ast;
-            return env.get(sym.getName());
+            return env.get((MalSymbol)ast);
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
             MalList new_lst = ast.list_Q() ? new MalList()
@@ -65,7 +64,7 @@ public class step3_env {
             a1 = ast.nth(1);
             a2 = ast.nth(2);
             res = EVAL(a2, env);
-            env.set(((MalSymbol)a1).getName(), res);
+            env.set(((MalSymbol)a1), res);
             return res;
         case "let*":
             a1 = ast.nth(1);
@@ -76,13 +75,12 @@ public class step3_env {
             for(int i=0; i<((MalList)a1).size(); i+=2) {
                 key = (MalSymbol)((MalList)a1).nth(i);
                 val = ((MalList)a1).nth(i+1);
-                let_env.set(key.getName(), EVAL(val, let_env));
+                let_env.set(key, EVAL(val, let_env));
             }
             return EVAL(a2, let_env);
         default:
             MalVal args = eval_ast(ast.rest(), env);
-            MalSymbol fsym = (MalSymbol)a0;
-            ILambda f = (ILambda)env.get(fsym.getName());
+            ILambda f = (ILambda)env.get((MalSymbol)a0);
             return f.apply((MalList)args);
         }
     }
@@ -123,10 +121,10 @@ public class step3_env {
         String prompt = "user> ";
 
         Env repl_env = new Env(null);
-        repl_env.set("+", add);
-        repl_env.set("-", subtract);
-        repl_env.set("*", multiply);
-        repl_env.set("/", divide);
+        repl_env.set(new MalSymbol("+"), add);
+        repl_env.set(new MalSymbol("-"), subtract);
+        repl_env.set(new MalSymbol("*"), multiply);
+        repl_env.set(new MalSymbol("/"), divide);
 
         if (args.length > 0 && args[0].equals("--raw")) {
             readline.mode = readline.Mode.JAVA;

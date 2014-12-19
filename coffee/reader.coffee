@@ -1,7 +1,5 @@
 types = require "./types.coffee"
-[_symbol, _vector, _hash_map] = [types._symbol,
-                                 types._vector,
-                                 types._hash_map]
+_symbol = types._symbol
 
 
 class Reader
@@ -28,6 +26,7 @@ read_atom = (rdr) ->
     token.slice(1, token.length-1)
       .replace(/\\"/g, '"')
       .replace(/\\n/g, "\n")
+  else if token[0] == ':' then types._keyword(token[1..])
   else if token == "nil" then null
   else if token == "true" then true
   else if token == "false" then false
@@ -44,10 +43,10 @@ read_list = (rdr, start='(', end=')') ->
   ast
 
 read_vector = (rdr) ->
-  _vector(read_list(rdr, '[', ']')...)
+  types._vector(read_list(rdr, '[', ']')...)
 
 read_hash_map = (rdr) ->
-  _hash_map(read_list(rdr, '{', '}')...)
+  types._hash_map(read_list(rdr, '{', '}')...)
 
 read_form = (rdr) ->
   token = rdr.peek()

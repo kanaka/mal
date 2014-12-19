@@ -173,9 +173,32 @@ end } def
 
 % Symbols
 
+/_symbol {
+    dup length string copy cvn
+} def
+
 /_symbol? {
     type /nametype eq
 } def
+
+
+% Keywords
+
+/_keyword { 1 dict begin
+    /str exch def
+    str length 1 add string % str2
+    dup 1 str putinterval
+    dup 0 127 put % TODO: something like (\x029e) would be better
+end } def
+
+/_keyword? {
+    dup type /stringtype eq {
+        0 get 127 eq
+    }{
+        false
+    } ifelse
+} def
+
 
 
 % Functions

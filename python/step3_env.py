@@ -58,10 +58,10 @@ repl_env = Env()
 def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
-repl_env.set('+', lambda a,b: a+b)
-repl_env.set('-', lambda a,b: a-b)
-repl_env.set('*', lambda a,b: a*b)
-repl_env.set('/', lambda a,b: int(a/b))
+repl_env.set(types._symbol('+'), lambda a,b: a+b)
+repl_env.set(types._symbol('-'), lambda a,b: a-b)
+repl_env.set(types._symbol('*'), lambda a,b: a*b)
+repl_env.set(types._symbol('/'), lambda a,b: int(a/b))
 
 # repl loop
 while True:

@@ -15,9 +15,9 @@ typedef struct Env {
 } Env;
 
 Env *new_env(Env *outer, struct MalVal* binds, struct MalVal *exprs);
-Env *env_find(Env *env, char *key);
-struct MalVal *env_get(Env *env, char *key);
-Env *env_set(Env *env, char *key, struct MalVal *val);
+Env *env_find(Env *env, struct MalVal *key);
+struct MalVal *env_get(Env *env, struct MalVal *key);
+Env *env_set(Env *env, struct MalVal *key, struct MalVal *val);
 
 
 // Utility functiosn
@@ -130,6 +130,7 @@ MalVal *malval_new_integer(gint64 val);
 MalVal *malval_new_float(gdouble val);
 MalVal *malval_new_string(char *val);
 MalVal *malval_new_symbol(char *val);
+MalVal *malval_new_keyword(char *val);
 MalVal *malval_new_list(MalType type, GArray *val);
 MalVal *malval_new_hash_map(GHashTable *val);
 MalVal *malval_new_atom(MalVal *val);

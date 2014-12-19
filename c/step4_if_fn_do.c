@@ -33,7 +33,7 @@ MalVal *eval_ast(MalVal *ast, Env *env) {
     if (!ast || mal_error) return NULL;
     if (ast->type == MAL_SYMBOL) {
         //g_print("EVAL symbol: %s\n", ast->val.string);
-        return env_get(env, ast->val.string);
+        return env_get(env, ast);
     } else if ((ast->type == MAL_LIST) || (ast->type == MAL_VECTOR)) {
         //g_print("EVAL sequential: %s\n", _pr_str(ast,1));
         MalVal *el = _map2((MalVal *(*)(void*, void*))EVAL, ast, env);
@@ -80,7 +80,8 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         MalVal *a1 = _nth(ast, 1),
                *a2 = _nth(ast, 2);
         MalVal *res = EVAL(a2, env);
-        env_set(env, a1->val.string, res);
+        if (mal_error) return NULL;
+        env_set(env, a1, res);
         return res;
     } else if ((a0->type & MAL_SYMBOL) &&
                strcmp("let*", a0->val.string) == 0) {
@@ -97,7 +98,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
             key = g_array_index(a1->val.array, MalVal*, i);
             val = g_array_index(a1->val.array, MalVal*, i+1);
             assert_type(key, MAL_SYMBOL, "let* bind to non-symbol");
-            env_set(let_env, key->val.string, EVAL(val, let_env));
+            env_set(let_env, key, EVAL(val, let_env));
         }
         return EVAL(a2, let_env);
     } else if ((a0->type & MAL_SYMBOL) &&
@@ -110,12 +111,11 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         //g_print("eval apply if\n");
         MalVal *a1 = _nth(ast, 1);
         MalVal *cond = EVAL(a1, env);
-        if (!ast || mal_error) return NULL;
+        if (!cond || mal_error) return NULL;
         if (cond->type & (MAL_FALSE|MAL_NIL)) {
             // eval false slot form
-            MalVal *a3 = _nth(ast, 3);
-            if (a3) {
-                return EVAL(a3, env);
+            if (ast->val.array->len > 3) {
+                return EVAL(_nth(ast, 3), env);
             } else {
                 return &mal_nil;
             }
@@ -179,7 +179,8 @@ void init_repl_env() {
     // core.c: defined using C
     int i;
     for(i=0; i < (sizeof(core_ns) / sizeof(core_ns[0])); i++) {
-        env_set(repl_env, core_ns[i].name,
+        env_set(repl_env,
+                malval_new_symbol(core_ns[i].name),
                 malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
 

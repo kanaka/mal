@@ -35,6 +35,8 @@ function read_atom (reader) {
         return token.slice(1,token.length-1) 
             .replace(/\\"/g, '"')
             .replace(/\\n/g, "\n"); // string
+    } else if (token[0] === ":") {
+        return types._keyword(token.slice(1));
     } else if (token === "nil") {
         return null;
     } else if (token === "true") {

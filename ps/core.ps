@@ -87,8 +87,8 @@ end } def
     _list_from_array
 end } def
 
-% [listA listB] -> concat -> [listA... listB...]
-/concat { % replaces matric concat
+% [listA listB] -> do_concat -> [listA... listB...]
+/do_concat {
     dup _count 0 eq { %if just concat
         pop 0 _list
     }{ dup _count 1 eq { %elseif concat of single item
@@ -100,6 +100,15 @@ end } def
         } forall
         _list_from_array
     } ifelse } ifelse
+} def
+
+% [obj] -> do_count -> number
+/do_count {
+    0 _nth dup _nil? {
+        pop 0
+    }{
+        _count
+    } ifelse
 } def
 
 % [obj ...] -> first -> obj
@@ -220,7 +229,10 @@ end } def
     (nil?)    { 0 _nth _nil? }
     (true?)   { 0 _nth _true? }
     (false?)  { 0 _nth _false? }
+    (symbol)  { 0 _nth _symbol }
     (symbol?) { 0 _nth _symbol? }
+    (keyword) { 0 _nth _keyword }
+    (keyword?) { 0 _nth _keyword? }
 
     (pr-str)  { /data get ( ) true _pr_str_args }
     (str)     { /data get () false _pr_str_args }
@@ -254,12 +266,12 @@ end } def
 
     (sequential?) { 0 _nth _sequential? }
     (cons)    { cons }
-    (concat)  { concat }
+    (concat)  { do_concat }
     (nth)     { dup 0 _nth exch 1 _nth _nth }
     (first)   { first }
     (rest)    { rest }
     (empty?)  { 0 _nth _count 0 eq }
-    (count)   { 0 _nth _count }
+    (count)   { do_count }
     (conj)    { conj }
     (apply)   { apply }
     (map)     { map }

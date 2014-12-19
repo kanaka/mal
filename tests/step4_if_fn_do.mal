@@ -14,6 +14,10 @@
 ;=>(1 2 3)
 (count (list 1 2 3))
 ;=>3
+(count (list))
+;=>0
+(count nil)
+;=>0
 (if (> (count (list 1 2 3)) 3) "yes" "no")
 ;=>"no"
 (if (>= (count (list 1 2 3)) 3) "yes" "no")
@@ -334,6 +338,14 @@ a
 
 ;;
 ;; -------- Optional Functionality --------
+
+;; Testing keywords
+(= :abc :abc)
+;=>true
+(= :abc :def)
+;=>false
+(= :abc ":abc")
+;=>false
 
 ;; Testing vector truthiness
 (if [] 7 8)

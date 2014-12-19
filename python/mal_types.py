@@ -58,6 +58,13 @@ class Symbol(str): pass
 def _symbol(str): return Symbol(str)
 def _symbol_Q(exp): return type(exp) == Symbol
 
+# Keywords
+# A specially prefixed string
+def _keyword(str):
+    if str[0] == u"\u029e": return str
+    else:                   return u"\u029e" + str
+def _keyword_Q(exp): return _string_Q(exp) and exp[0] == u"\u029e"
+
 # Functions
 def _function(Eval, Env, ast, env, params):
     def fn(*args):

@@ -35,6 +35,19 @@ namespace Mal {
         static MalFunc symbol_Q = new MalFunc(
             a => a[0] is MalSymbol ? True : False);
 
+        static MalFunc keyword = new MalFunc(
+            a => new MalString("\u029e" + ((MalString)a[0]).getValue()));
+
+        static MalFunc keyword_Q = new MalFunc(
+            a => {
+                if (a[0] is MalString &&
+                    ((MalString)a[0]).getValue()[0] == '\u029e') {
+                    return True;
+                } else {
+                    return False;
+                }
+            } );
+
 
         // Number functions
         static MalFunc time_ms = new MalFunc(
@@ -159,7 +172,15 @@ namespace Mal {
             });
 
         static MalFunc nth = new MalFunc(
-            a => ((MalList)a[0])[ (int)((MalInt)a[1]).getValue() ]);
+            a => {
+                var idx = (int)((MalInt)a[1]).getValue();
+                if (idx < ((MalList)a[0]).size()) {
+                    return ((MalList)a[0])[idx];
+                } else {
+                    throw new Mal.types.MalException(
+                        "nth: index out of range");
+                }
+            });
 
         static MalFunc first = new MalFunc(
             a => ((MalList)a[0])[0]);
@@ -171,7 +192,11 @@ namespace Mal {
             a => ((MalList)a[0]).size() == 0 ? True : False);
 
         static MalFunc count = new MalFunc(
-            a => new MalInt(((MalList)a[0]).size()));
+            a => {
+                return (a[0] == Nil)
+                    ? new MalInt(0)
+                    :new MalInt(((MalList)a[0]).size());
+            });
 
         static MalFunc conj = new MalFunc(
             a => {
@@ -254,6 +279,8 @@ namespace Mal {
             {"false?", false_Q},
             {"symbol", new MalFunc(a => new MalSymbol((MalString)a[0]))},
             {"symbol?", symbol_Q},
+            {"keyword", keyword},
+            {"keyword?", keyword_Q},
 
             {"pr-str", pr_str},
             {"str", str},

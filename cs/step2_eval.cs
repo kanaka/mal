@@ -45,7 +45,7 @@ namespace Mal {
 
         static MalVal EVAL(MalVal orig_ast, Dictionary<string, MalVal> env) {
             MalVal a0;
-            //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+            //Console.WriteLine("EVAL: " + printer._pr_str(orig_ast, true));
             if (!orig_ast.list_Q()) {
                 return eval_ast(orig_ast, env);
             }

@@ -52,6 +52,32 @@ end } def
 end } def
 
 
+% read_keyword: read a single keyword from string/idx
+% string idx -> read_keyword -> name string new_idx
+/read_keyword { 5 dict begin
+    %(in read_keyword\n) print
+    /idx exch def
+    /str exch def
+    /start idx def
+    /cnt 0 def
+    { % loop
+        idx str length ge { exit } if % EOF, break loop
+        /ch str idx 1 getinterval def
+        token_delim ch search { % if token delimeter
+            pop pop pop exit
+        }{ % else not a delim
+            pop
+            /cnt cnt 1 add def
+        } ifelse
+        /idx idx 1 add def % increment idx
+    } loop
+
+    str start cnt getinterval % the matched keyword string
+    dup 0 127 put % TODO: something like (\x029e) would be better
+    str idx % return: keyword string new_idx
+end } def
+
+
 % read_string: read a single string from string/idx
 % string idx -> read_string -> new_string string new_idx
 /read_string { 5 dict begin
@@ -94,8 +120,10 @@ end } def
         %ch 48 ge ch 57 le and 45 ch eq or { %if number
         ch 48 ge ch 57 le and { %if number
             str idx read_number
-        }{ ch 34 eq { %elseif double-quote
+        }{ ch 34 eq { %elseif double-quote (string)
             str idx read_string
+        }{ ch 58 eq { %elseif colon (keyword)
+            str idx read_keyword
         }{
             str idx read_symbol
             /idx exch def pop
@@ -108,7 +136,7 @@ end } def
             }{ %else
                 str idx % return the original symbol/name
             } ifelse } ifelse } ifelse
-        } ifelse } ifelse
+        } ifelse } ifelse } ifelse
     }ifelse
 
     % return: atom string new_idx

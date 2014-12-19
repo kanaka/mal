@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal,err_str,
             Int,Sym,List,Vector,Hash_Map,
-            _int,list,vector,hash_map,func};
+            symbol,_int,list,vector,hash_map,func};
 use env::{Env,env_new,env_set,env_get};
 mod readline;
 mod types;
@@ -26,8 +26,8 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
     let ast2 = ast.clone();
     match *ast2 {
     //match *ast {
-        Sym(ref sym) => {
-            env_get(env.clone(), sym.clone())
+        Sym(_) => {
+            env_get(env.clone(), ast)
         },
         List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
@@ -94,8 +94,8 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
             match res {
                 Ok(r) => {
                     match *a1 {
-                        Sym(ref s) => {
-                            env_set(&env.clone(), s.clone(), r.clone());
+                        Sym(_) => {
+                            env_set(&env.clone(), a1.clone(), r.clone());
                             return Ok(r);
                         },
                         _ => {
@@ -117,10 +117,10 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                         let b = it.next().unwrap();
                         let exp = it.next().unwrap();
                         match **b {
-                            Sym(ref bstr) => {
+                            Sym(_) => {
                                 match eval(exp.clone(), let_env.clone()) {
                                     Ok(r) => {
-                                        env_set(&let_env, bstr.clone(), r);
+                                        env_set(&let_env, b.clone(), r);
                                     },
                                     Err(e) => {
                                         return Err(e);
@@ -187,10 +187,10 @@ fn div(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i/j }, a) }
 
 fn main() {
     let repl_env = env_new(None);
-    env_set(&repl_env, "+".to_string(), func(add));
-    env_set(&repl_env, "-".to_string(), func(sub));
-    env_set(&repl_env, "*".to_string(), func(mul));
-    env_set(&repl_env, "/".to_string(), func(div));
+    env_set(&repl_env, symbol("+"), func(add));
+    env_set(&repl_env, symbol("-"), func(sub));
+    env_set(&repl_env, symbol("*"), func(mul));
+    env_set(&repl_env, symbol("/"), func(div));
 
     loop {
         let line = readline::mal_readline("user> ");

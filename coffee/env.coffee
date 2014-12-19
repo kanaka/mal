@@ -12,13 +12,20 @@ exports.Env = class Env
         else
           @data[b.name] = exprs[i]
   find: (key) ->
-    if key of @data then @
+    if not types._symbol_Q(key)
+      throw new Error("env.find key must be symbol")
+    if key.name of @data then @
     else if @outer then @outer.find(key)
     else null
-  set: (key, value) -> @data[key] = value
+  set: (key, value) ->
+    if not types._symbol_Q(key)
+      throw new Error("env.set key must be symbol")
+    @data[key.name] = value
   get: (key) ->
+    if not types._symbol_Q(key)
+      throw new Error("env.get key must be symbol")
     env = @find(key)
-    throw new Error("'" + key + "' not found") if !env
-    env.data[key]
+    throw new Error("'" + key.name + "' not found") if !env
+    env.data[key.name]
 
 # vim: ts=2:sw=2

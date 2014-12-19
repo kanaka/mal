@@ -10,7 +10,7 @@ READ = (str) -> reader.read_str str
 
 # eval
 eval_ast = (ast, env) ->
-  if types._symbol_Q(ast) then env.get ast.name
+  if types._symbol_Q(ast) then env.get ast
   else if types._list_Q(ast) then ast.map((a) -> EVAL(a, env))
   else if types._vector_Q(ast)
     types._vector(ast.map((a) -> EVAL(a, env))...)
@@ -29,11 +29,11 @@ EVAL = (ast, env) ->
   [a0, a1, a2, a3] = ast
   switch a0.name
     when "def!"
-      return env.set(a1.name, EVAL(a2, env))
+      return env.set(a1, EVAL(a2, env))
     when "let*"
       let_env = new Env(env)
       for k,i in a1 when i %% 2 == 0
-        let_env.set(a1[i].name, EVAL(a1[i+1], let_env))
+        let_env.set(a1[i], EVAL(a1[i+1], let_env))
       ast = a2
       env = let_env
     when "do"
@@ -64,16 +64,16 @@ repl_env = new Env()
 rep = (str) -> PRINT(EVAL(READ(str), repl_env))
 
 # core.coffee: defined using CoffeeScript
-repl_env.set k, v for k,v of core.ns
-repl_env.set 'eval', (ast) -> EVAL(ast, repl_env)
-repl_env.set '*ARGV*', []
+repl_env.set types._symbol(k), v for k,v of core.ns
+repl_env.set types._symbol('eval'), (ast) -> EVAL(ast, repl_env)
+repl_env.set types._symbol('*ARGV*'), []
 
 # core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 if process? && process.argv.length > 2
-  repl_env.set '*ARGV*', process.argv[3..]
+  repl_env.set types._symbol('*ARGV*'), process.argv[3..]
   rep('(load-file "' + process.argv[2] + '")')
   process.exit 0
 

@@ -88,6 +88,24 @@
 ;;
 ;; -------- Optional Functionality --------
 
+;; Testing symbol and keyword functions
+(symbol? :abc)
+;=>false
+(symbol? 'abc)
+;=>true
+(symbol? "abc")
+;=>false
+(symbol? (symbol "abc"))
+;=>true
+(keyword? :abc)
+;=>true
+(keyword? 'abc)
+;=>false
+(keyword? "abc")
+;=>false
+(keyword? (keyword "abc"))
+;=>true
+
 ;; Testing sequential? function
 
 (sequential? (list 1 2 3))
@@ -110,7 +128,15 @@
 (vector 3 4 5)
 ;=>[3 4 5]
 
+(map? {})
+;=>true
+(map? '())
+;=>false
 (map? [])
+;=>false
+(map? 'abc)
+;=>false
+(map? :abc)
 ;=>false
 
 ;;
@@ -193,6 +219,26 @@
 
 (count (keys hm3))
 ;=>2
+
+;; Testing keywords as hash-map keys
+(get {:abc 123} :abc)
+;=>123
+(contains? {:abc 123} :abc)
+;=>true
+(contains? {:abcd 123} :abc)
+;=>false
+(assoc {} :bcd 234)
+;=>{:bcd 234}
+(dissoc {:cde 345 :fgh 456} :cde)
+;=>{:fgh 456}
+(keyword? (nth (keys {:abc 123 :def 456}) 0))
+;=>true
+;;; TODO: support : in strings in make impl
+;;;(keyword? (nth (keys {":abc" 123 ":def" 456}) 0))
+;;;;=>false
+(keyword? (nth (vals {"a" :abc "b" :def}) 0))
+;=>true
+
 
 
 ;;

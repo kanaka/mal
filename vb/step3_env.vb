@@ -21,8 +21,7 @@ Namespace Mal
         ' eval
         Shared Function eval_ast(ast As MalVal, env As MalEnv) As MalVal
             If TypeOf ast Is MalSymbol Then
-                Dim sym As MalSymbol = DirectCast(ast, MalSymbol)
-                return env.do_get(sym.getName())
+                return env.do_get(DirectCast(ast, MalSymbol))
             Else If TypeOf ast Is MalList Then
                 Dim old_lst As MalList = DirectCast(ast, MalList)
                 Dim new_lst As MalList
@@ -66,7 +65,7 @@ Namespace Mal
                 Dim a1 As MalVal = ast(1)
                 Dim a2 As MalVal = ast(2)
                 Dim res As MalVal = EVAL(a2, env)
-                env.do_set(DirectCast(a1,MalSymbol).getName(), res)
+                env.do_set(DirectCast(a1,MalSymbol), res)
                 return res
             Case "let*"
                 Dim a1 As MalVal = ast(1)
@@ -77,7 +76,7 @@ Namespace Mal
                 For i As Integer = 0 To (DirectCast(a1,MalList)).size()-1 Step 2
                     key = DirectCast(DirectCast(a1,MalList)(i),MalSymbol)
                     val = DirectCast(a1,MalList)(i+1)
-                    let_env.do_set(key.getName(), EVAL(val, let_env))
+                    let_env.do_set(key, EVAL(val, let_env))
                 Next
                 return EVAL(a2, let_env)
             Case Else
@@ -119,10 +118,10 @@ Namespace Mal
             Dim args As String() = Environment.GetCommandLineArgs()
 
             repl_env = New MalEnv(Nothing)
-            repl_env.do_set("+", New MalFunc(AddressOf add))
-            repl_env.do_set("-", New MalFunc(AddressOf minus))
-            repl_env.do_set("*", New MalFunc(AddressOf mult))
-            repl_env.do_set("/", New MalFunc(AddressOf div))
+            repl_env.do_set(new MalSymbol("+"), New MalFunc(AddressOf add))
+            repl_env.do_set(new MalSymbol("-"), New MalFunc(AddressOf minus))
+            repl_env.do_set(new MalSymbol("*"), New MalFunc(AddressOf mult))
+            repl_env.do_set(new MalSymbol("/"), New MalFunc(AddressOf div))
 
 
             If args.Length > 1 AndAlso args(1) = "--raw" Then

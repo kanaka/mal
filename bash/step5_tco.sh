@@ -18,8 +18,7 @@ EVAL_AST () {
     _obj_type "${ast}"; local ot="${r}"
     case "${ot}" in
     symbol)
-        local val="${ANON["${ast}"]}"
-        ENV_GET "${env}" "${val}"
+        ENV_GET "${env}" "${ast}"
         return ;;
     list)
         _map_with_type _list EVAL "${ast}" "${env}" ;;
@@ -57,10 +56,9 @@ EVAL () {
     _nth "${ast}" 1; local a1="${r}"
     _nth "${ast}" 2; local a2="${r}"
     case "${ANON["${a0}"]}" in
-        def!) local k="${ANON["${a1}"]}"
-              #echo "def! ${k} to ${a2} in ${env}"
-              EVAL "${a2}" "${env}"
-              ENV_SET "${env}" "${k}" "${r}"
+        def!) EVAL "${a2}" "${env}"
+              [[ "${__ERROR}" ]] && return 1
+              ENV_SET "${env}" "${a1}" "${r}"
               return ;;
         let*) ENV "${env}"; local let_env="${r}"
               local let_pairs=(${ANON["${a1}"]})
@@ -68,7 +66,7 @@ EVAL () {
               #echo "let: [${let_pairs[*]}] for ${a2}"
               while [[ "${let_pairs["${idx}"]}" ]]; do
                   EVAL "${let_pairs[$(( idx + 1))]}" "${let_env}"
-                  ENV_SET "${let_env}" "${ANON["${let_pairs[${idx}]}"]}" "${r}"
+                  ENV_SET "${let_env}" "${let_pairs[${idx}]}" "${r}"
                   idx=$(( idx + 2))
               done
               ast="${a2}"
@@ -84,6 +82,7 @@ EVAL () {
               # Continue loop
               ;;
         if)   EVAL "${a1}" "${env}"
+              [[ "${__ERROR}" ]] && return 1
               if [[ "${r}" == "${__false}" || "${r}" == "${__nil}" ]]; then
                   # eval false form
                   _nth "${ast}" 3; local a3="${r}"
@@ -145,7 +144,11 @@ REP () {
 }
 
 # core.sh: defined using bash
-_fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
+_fref () {
+    _symbol "${1}"; local sym="${r}"
+    _function "${2} \"\${@}\""
+    ENV_SET "${REPL_ENV}" "${sym}" "${r}"
+}
 for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 
 # core.mal: defined using the language itself

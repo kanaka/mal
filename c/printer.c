@@ -5,7 +5,8 @@
 
 char *_pr_str_hash_map(MalVal *obj, int print_readably) {
     int start = 1;
-    char *repr = NULL, *repr_tmp1 = NULL, *repr_tmp2 = NULL;
+    char *repr = NULL, *repr_tmp1 = NULL, *repr_tmp2 = NULL,
+         *key2 = NULL;
     GHashTableIter iter;
     gpointer key, value;
 
@@ -14,14 +15,20 @@ char *_pr_str_hash_map(MalVal *obj, int print_readably) {
     g_hash_table_iter_init (&iter, obj->val.hash_table);
     while (g_hash_table_iter_next (&iter, &key, &value)) {
         //g_print ("%s/%p ", (const char *) key, (void *) value);
+        if (((char*)key)[0] == '\x7f') {
+            key2 = g_strdup_printf("%s", (char*)key);
+            key2[0] = ':';
+        } else {
+            key2 = g_strdup_printf("\"%s\"", (char*)key);
+        }
 
         repr_tmp1 = _pr_str((MalVal*)value, print_readably);
         if (start) {
             start = 0;
-            repr = g_strdup_printf("{\"%s\" %s", (char *)key, repr_tmp1);
+            repr = g_strdup_printf("{%s %s", (char*)key2, repr_tmp1);
         } else {
             repr_tmp2 = repr;
-            repr = g_strdup_printf("%s \"%s\" %s", repr_tmp2, (char *)key, repr_tmp1);
+            repr = g_strdup_printf("%s %s %s", repr_tmp2, (char*)key2, repr_tmp1);
             free(repr_tmp2);
         }
         free(repr_tmp1);
@@ -70,7 +77,11 @@ char *_pr_str(MalVal *obj, int print_readably) {
         repr = g_strdup_printf("false");
         break;
     case MAL_STRING:
-        if (print_readably) {
+        if (obj->val.string[0] == '\x7f') {
+            // Keyword
+            repr = g_strdup_printf("%s", obj->val.string);
+            repr[0] = ':';
+        } else if (print_readably) {
             char *repr_tmp = g_strescape(obj->val.string, "");
             repr = g_strdup_printf("\"%s\"", repr_tmp);
             free(repr_tmp);
@@ -121,7 +132,7 @@ char *_pr_str_args(MalVal *args, char *sep, int print_readably) {
     assert_type(args, MAL_LIST|MAL_VECTOR,
                 "_pr_str called with non-sequential args");
     int i;
-    char *repr = g_strdup_printf(""),
+    char *repr = g_strdup_printf("%s", ""),
          *repr2 = NULL;
     for (i=0; i<_count(args); i++) {
         MalVal *obj = g_array_index(args->val.array, MalVal*, i);

@@ -34,7 +34,7 @@ pub fn env_bind(env: &Env,
                                     variadic = true;
                                     break;
                                 } else {
-                                    env_set(env, strn.clone(), exprs[i].clone());
+                                    env_set(env, b.clone(), exprs[i].clone());
                                 }
                             }
                             _ => return Err("non-symbol bind".to_string()),
@@ -43,9 +43,9 @@ pub fn env_bind(env: &Env,
                     if variadic {
                         let (i, sym) = it.next().unwrap();
                         match **sym {
-                            Sym(ref s) => {
+                            Sym(_) => {
                                 let rest = exprs.slice(i-1,exprs.len()).to_vec();
-                                env_set(env, s.clone(), list(rest));
+                                env_set(env, sym.clone(), list(rest));
                             }
                             _ => return Err("& bind to non-symbol".to_string()),
                         }
@@ -59,14 +59,19 @@ pub fn env_bind(env: &Env,
     }
 }
 
-pub fn env_find(env: Env, key: String) -> Option<Env> {
-    if env.borrow().data.contains_key(&key) {
-        Some(env)
-    } else {
-        match env.borrow().outer {
-            Some(ref e) => env_find(e.clone(), key),
-            None => None,
-        }
+pub fn env_find(env: Env, key: MalVal) -> Option<Env> {
+    match *key {
+        Sym(ref k) => {
+            if env.borrow().data.contains_key(k) {
+                Some(env)
+            } else {
+                match env.borrow().outer {
+                    Some(ref e) => env_find(e.clone(), key.clone()),
+                    None => None,
+                }
+            }
+        },
+        _ => None
     }
 }
 
@@ -77,19 +82,29 @@ pub fn env_root(env: &Env) -> Env {
     }
 }
 
-pub fn env_set(env: &Env, key: String, val: MalVal) {
-    env.borrow_mut().data.insert(key, val.clone());
+pub fn env_set(env: &Env, key: MalVal, val: MalVal) {
+    match *key {
+        Sym(ref k) => {
+            env.borrow_mut().data.insert(k.to_string(), val.clone());
+        },
+        _ => {},
+    }
 }
 
-pub fn env_get(env: Env, key: String) -> MalRet {
-    match env_find(env, key.clone()) {
-        Some(e) => {
-            match e.borrow().data.find_copy(&key) {
-                Some(v) => Ok(v),
-                None => Ok(_nil()),
+pub fn env_get(env: Env, key: MalVal) -> MalRet {
+    match *key {
+        Sym(ref k) => {
+            match env_find(env, key.clone()) {
+                Some(e) => {
+                    match e.borrow().data.find_copy(k) {
+                        Some(v) => Ok(v),
+                        None => Ok(_nil()),
+                    }
+                },
+                None    => err_string("'".to_string() + k.to_string() + "' not found".to_string()),
             }
-        },
-        None    => err_string("'".to_string() + key + "' not found".to_string()),
+        }
+        _ => err_string("env_get called with non-symbol key".to_string()),
     }
 }
 

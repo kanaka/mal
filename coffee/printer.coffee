@@ -16,6 +16,7 @@ exports._pr_str = _pr_str = (obj, print_readably=true) ->
                            .replace(/"/g, '\\"')
                            .replace(/\n/g, '\\n')) + '"'
       else obj
+    when 'keyword' then ":" + obj.slice(1)
     when 'symbol' then obj.name
     when 'nil' then 'nil'
     when 'atom' then "(atom " + _pr_str(obj.val,_r) + ")"

@@ -46,6 +46,13 @@ cons <- function(a,b) {
     new.listl(new_lst)
 }
 
+nth <- function(a,b) {
+    if (b < length(a))
+        a[[b+1]]
+    else
+        throw("nth: index out of range")
+}
+
 do_concat <- function(...) {
     new_lst <- list()
     for(l in list(...)) {
@@ -118,9 +125,10 @@ core_ns <- list(
     "nil?"=.nil_q,
     "true?"=.true_q,
     "false?"=.false_q,
-    "symbol?"=.symbol_q,
     "symbol"=new.symbol,
     "symbol?"=.symbol_q,
+    "keyword"=new.keyword,
+    "keyword?"=.keyword_q,
 
     "pr-str"=pr_str,
     "str"=str,
@@ -155,11 +163,11 @@ core_ns <- list(
     "sequential?"=.sequential_q,
     "cons"=cons,
     "concat"=do_concat,
-    "nth"=function(a,b) if (length(a) < b+1) nil else a[[b+1]],
+    "nth"=nth,
     "first"=function(a) if (length(a) < 1) nil else a[[1]], 
     "rest"=function(a) new.listl(slice(a,2)),
     "empty?"=function(a) .sequential_q(a) && length(a) == 0,
-    "count"=function(a) length(a),
+    "count"=function(a) if (.nil_q(a)) 0 else length(a),
     "apply"=do_apply,
     "map"=map,
     "conj"=conj,

@@ -22,7 +22,9 @@ Namespace Mal
                              print_readably As Boolean) As String
             Dim strs As New List(Of String)
             For Each entry As KeyValuePair(Of String, MalVal) In value
-                If print_readably Then
+                If entry.Key.Length > 0 and entry.Key(0) = ChrW(&H029e) Then
+                    strs.Add(":" & entry.Key.Substring(1))
+                Else If print_readably Then
                     strs.Add("""" & entry.Key.ToString() & """")
                 Else
                     strs.Add(entry.Key.ToString())

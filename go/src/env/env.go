@@ -35,8 +35,8 @@ func NewEnv(outer EnvType, binds_mt MalType, exprs_mt MalType) (EnvType, error) 
     return env, nil
 }
 
-func (e Env) Find(key string) EnvType {
-    if _, ok := e.data[key]; ok {
+func (e Env) Find(key Symbol) EnvType {
+    if _, ok := e.data[key.Val]; ok {
         return e
     } else if (e.outer != nil) {
         return e.outer.Find(key)
@@ -45,15 +45,15 @@ func (e Env) Find(key string) EnvType {
     }
 }
 
-func (e Env) Set(key string, value MalType) MalType {
-    e.data[key] = value
+func (e Env) Set(key Symbol, value MalType) MalType {
+    e.data[key.Val] = value
     return value
 }
 
-func (e Env) Get(key string) (MalType, error) {
+func (e Env) Get(key Symbol) (MalType, error) {
     env := e.Find(key)
     if env == nil {
-        return nil, errors.New("'" + key + "' not found")
+        return nil, errors.New("'" + key.Val + "' not found")
     }
-    return env.(Env).data[key], nil
+    return env.(Env).data[key.Val], nil
 }

@@ -83,7 +83,7 @@ def REP(str):
     return PRINT(EVAL(READ(str), repl_env))
 
 # core.py: defined using python
-for k, v in core.ns.items(): repl_env.set(k, v)
+for k, v in core.ns.items(): repl_env.set(types._symbol(k), v)
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")

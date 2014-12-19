@@ -23,8 +23,7 @@ namespace Mal {
         // eval
         static MalVal eval_ast(MalVal ast, Env env) {
             if (ast is MalSymbol) {
-                MalSymbol sym = (MalSymbol)ast;
-                return env.get(sym.getName());
+                return env.get((MalSymbol)ast);
             } else if (ast is MalList) {
                 MalList old_lst = (MalList)ast;
                 MalList new_lst = ast.list_Q() ? new MalList()
@@ -51,7 +50,7 @@ namespace Mal {
 
             while (true) {
 
-            //System.out.println("EVAL: " + printer._pr_str(orig_ast, true));
+            //Console.WriteLine("EVAL: " + printer._pr_str(orig_ast, true));
             if (!orig_ast.list_Q()) {
                 return eval_ast(orig_ast, env);
             }
@@ -69,7 +68,7 @@ namespace Mal {
                 a1 = ast[1];
                 a2 = ast[2];
                 res = EVAL(a2, env);
-                env.set(((MalSymbol)a1).getName(), res);
+                env.set((MalSymbol)a1, res);
                 return res;
             case "let*":
                 a1 = ast[1];
@@ -80,7 +79,7 @@ namespace Mal {
                 for(int i=0; i<((MalList)a1).size(); i+=2) {
                     key = (MalSymbol)((MalList)a1)[i];
                     val = ((MalList)a1)[i+1];
-                    let_env.set(key.getName(), EVAL(val, let_env));
+                    let_env.set(key, EVAL(val, let_env));
                 }
                 orig_ast = a2;
                 env = let_env;
@@ -138,9 +137,10 @@ namespace Mal {
             
             // core.cs: defined using C#
             foreach (var entry in core.ns) {
-                repl_env.set(entry.Key, entry.Value);
+                repl_env.set(new MalSymbol(entry.Key), entry.Value);
             }
-            repl_env.set("eval", new MalFunc(a => EVAL(a[0], repl_env)));
+            repl_env.set(new MalSymbol("eval"), new MalFunc(
+                        a => EVAL(a[0], repl_env)));
             int fileIdx = 1;
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
@@ -150,7 +150,7 @@ namespace Mal {
             for (int i=fileIdx; i < args.Length; i++) {
                 _argv.conj_BANG(new MalString(args[i]));
             }
-            repl_env.set("*ARGV*", _argv);
+            repl_env.set(new MalSymbol("*ARGV*"), _argv);
 
             // core.mal: defined using the language itself
             RE("(def! not (fn* (a) (if a false true)))");

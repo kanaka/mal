@@ -46,6 +46,8 @@ read_atom <- function(rdr) {
         gsub("\\\\n", "\\n",
              gsub("\\\\\"", "\"",
                   substr(token, 2, nchar(token)-1)))
+    } else if (substr(token,1,1) == ":") {
+        new.keyword(substring(token,2))
     } else if (token == "nil") {
         nil
     } else if (token == "true") {

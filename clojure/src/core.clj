@@ -5,11 +5,6 @@
 (defn mal_throw [obj]
   (throw (ex-info "mal exception" {:data obj})))
 
-;; Number functions
-
-(defn time-ms []
-  (System/currentTimeMillis))
-
 ;; Metadata functions
 ;; - store metadata at :meta key of the real metadata
 (defn mal_with_meta [obj m]
@@ -19,10 +14,6 @@
 (defn mal_meta [obj]
   (:meta (meta obj)))
 
-;; Atom functions
-(defn atom? [atm]
-  (= (type atm) clojure.lang.Atom))
-
 ;; core_ns is core namespaces functions
 (def core_ns
   [['= =]
@@ -30,7 +21,10 @@
    ['nil? nil?]
    ['true? true?]
    ['false? false?]
+   ['symbol symbol]
    ['symbol? symbol?]
+   ['keyword keyword]
+   ['keyword? keyword?]
 
    ['pr-str pr-str]
    ['str str]
@@ -47,7 +41,7 @@
    ['- -]
    ['* *]
    ['/ /]
-   ['time-ms time-ms]
+   ['time-ms (fn time-ms [] (System/currentTimeMillis))]
   
    ['list list]
    ['list? seq?]
@@ -59,8 +53,8 @@
    ['dissoc dissoc]
    ['get get]
    ['contains? contains?]
-   ['keys keys]
-   ['vals vals]
+   ['keys (fn [hm] (let [ks (keys hm)] (if (nil? ks) '() ks)))]
+   ['vals (fn [hm] (let [vs (vals hm)] (if (nil? vs) '() vs)))]
    
    ['sequential? sequential?]
    ['cons cons]
@@ -77,7 +71,7 @@
    ['with-meta mal_with_meta]
    ['meta mal_meta]
    ['atom atom]
-   ['atom? atom?]
+   ['atom? (fn atom? [atm] (= (type atm) clojure.lang.Atom))]
    ['deref deref]
    ['reset! reset!]
    ['swap! swap!]])

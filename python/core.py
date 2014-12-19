@@ -60,7 +60,9 @@ def cons(x, seq): return List([x]) + List(seq)
 
 def concat(*lsts): return List(chain(*lsts))
 
-def nth(lst, idx): return lst[idx]
+def nth(lst, idx):
+    if idx < len(lst): return lst[idx]
+    else: throw("nth: index out of range")
 
 def first(lst): return lst[0]
 
@@ -68,7 +70,9 @@ def rest(lst): return List(lst[1:])
 
 def empty_Q(lst): return len(lst) == 0
 
-def count(lst): return len(lst)
+def count(lst):
+    if types._nil_Q(lst): return 0
+    else: return len(lst)
 
 # retains metadata
 def conj(lst, *args):
@@ -114,6 +118,8 @@ ns = {
         'false?': types._false_Q,
         'symbol': types._symbol,
         'symbol?': types._symbol_Q,
+        'keyword': types._keyword,
+        'keyword?': types._keyword_Q,
 
         'pr-str': pr_str,
         'str': do_str,

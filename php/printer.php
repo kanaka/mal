@@ -23,7 +23,9 @@ function _pr_str($obj, $print_readably=True) {
         }
         return "{" . implode(" ", $ret) . "}";
     } elseif (is_string($obj)) {
-        if ($print_readably) {
+        if (strpos($obj, chr(0x7f)) === 0) {
+            return ":".substr($obj,1);
+        } elseif ($print_readably) {
             $obj = preg_replace('/"/', '\\"', preg_replace('/\\\\/', '\\\\\\\\', $obj));
             return '"' . $obj . '"';
         } else {

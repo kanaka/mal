@@ -16,7 +16,8 @@ E._obj_type = _obj_type = (obj) ->
     switch typeof obj
       when 'number'   then 'number'
       when 'function' then 'function'
-      when 'string'   then 'string'
+      when 'string'
+        if obj[0] == '\u029e' then 'keyword' else 'string'
       else throw new Error "Unknown type '" + typeof(obj) + "'"
 
 E._sequential_Q = _sequential_Q = (o) -> _list_Q(o) or _vector_Q(o)
@@ -69,6 +70,11 @@ class Symbol
 E._symbol = (str) -> new Symbol str
 E._symbol_Q = _symbol_Q = (o) -> o instanceof Symbol
 
+# Keywords
+E._keyword = _keyword = (str) -> "\u029e" + str
+E._keyword_Q = _keyword_Q = (o) ->
+  typeof o == 'string' && o[0] == "\u029e"
+
 # Functions
 E._function = (evalfn, ast, env, params) ->
   fn = (args...) -> evalfn(ast, new Env(env, params, args))
@@ -103,6 +109,7 @@ E._dissoc_BANG = (hm, args...) ->
 E._hash_map_Q = _hash_map_Q = (o) ->
   typeof o == "object" && !Array.isArray(o) &&
                           !(o == null) &&
+                          !(o instanceof Symbol) &&
                           !(o instanceof Atom)
 
 

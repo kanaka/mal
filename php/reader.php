@@ -40,6 +40,8 @@ function read_atom($reader) {
         $str = substr($token, 1, -1);
         $str = preg_replace('/\\\\"/', '"', $str);
         return $str;
+    } elseif ($token[0] === ":") {
+        return _keyword(substr($token,1));
     } elseif ($token === "nil") {
         return NULL;
     } elseif ($token === "true") {

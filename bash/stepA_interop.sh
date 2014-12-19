@@ -54,9 +54,11 @@ IS_MACRO_CALL () {
     if ! _list? "${1}"; then return 1; fi
     _nth "${1}" 0; local a0="${r}"
     if _symbol? "${a0}"; then
-        ENV_FIND "${2}" "${ANON["${a0}"]}_ismacro_"
+        ENV_FIND "${2}" "${a0}"
         if [[ "${r}" ]]; then
-            return 0
+            ENV_GET "${2}" "${a0}"
+            [ "${ANON["${r}_ismacro_"]}" ]
+            return $?
         fi
     fi
     return 1
@@ -66,7 +68,7 @@ MACROEXPAND () {
     local ast="${1}" env="${2}"
     while IS_MACRO_CALL "${ast}" "${env}"; do
         _nth "${ast}" 0; local a0="${r}"
-        ENV_GET "${env}" "${ANON["${a0}"]}"; local mac="${ANON["${r}"]}"
+        ENV_GET "${env}" "${a0}"; local mac="${ANON["${r}"]}"
         _rest "${ast}"
         ${mac%%@*} ${ANON["${r}"]}
         ast="${r}"
@@ -81,8 +83,7 @@ EVAL_AST () {
     _obj_type "${ast}"; local ot="${r}"
     case "${ot}" in
     symbol)
-        local val="${ANON["${ast}"]}"
-        ENV_GET "${env}" "${val}"
+        ENV_GET "${env}" "${ast}"
         return ;;
     list)
         _map_with_type _list EVAL "${ast}" "${env}" ;;
@@ -122,10 +123,9 @@ EVAL () {
     _nth "${ast}" 1; local a1="${r}"
     _nth "${ast}" 2; local a2="${r}"
     case "${ANON["${a0}"]}" in
-        def!) local k="${ANON["${a1}"]}"
-              #echo "def! ${k} to ${a2} in ${env}"
-              EVAL "${a2}" "${env}"
-              ENV_SET "${env}" "${k}" "${r}"
+        def!) EVAL "${a2}" "${env}"
+              [[ "${__ERROR}" ]] && return 1
+              ENV_SET "${env}" "${a1}" "${r}"
               return ;;
         let*) ENV "${env}"; local let_env="${r}"
               local let_pairs=(${ANON["${a1}"]})
@@ -133,7 +133,7 @@ EVAL () {
               #echo "let: [${let_pairs[*]}] for ${a2}"
               while [[ "${let_pairs["${idx}"]}" ]]; do
                   EVAL "${let_pairs[$(( idx + 1))]}" "${let_env}"
-                  ENV_SET "${let_env}" "${ANON["${let_pairs[${idx}]}"]}" "${r}"
+                  ENV_SET "${let_env}" "${let_pairs[${idx}]}" "${r}"
                   idx=$(( idx + 2))
               done
               ast="${a2}"
@@ -149,16 +149,15 @@ EVAL () {
               # Continue loop
               ;;
         defmacro!)
-              local k="${ANON["${a1}"]}"
               EVAL "${a2}" "${env}"
-              ENV_SET "${env}" "${k}" "${r}" 
-              ENV_SET "${env}" "${k}_ismacro_" "yes"
+              [[ "${__ERROR}" ]] && return 1
+              ANON["${r}_ismacro_"]="yes"
+              ENV_SET "${env}" "${a1}" "${r}"
               return ;;
         macroexpand)
               MACROEXPAND "${a1}" "${env}"
               return ;;
-        sh*)  MACROEXPAND "${a1}" "${env}"
-              EVAL "${r}" "${env}"
+        sh*)  EVAL "${a1}" "${env}"
               local output=""
               local line=""
               while read line; do
@@ -166,8 +165,7 @@ EVAL () {
               done < <(eval ${ANON["${r}"]})
               _string "${output%\\n}"
               return ;;
-        try*) MACROEXPAND "${a1}" "${env}"
-              EVAL "${r}" "${env}"
+        try*) EVAL "${a1}" "${env}"
               [[ -z "${__ERROR}" ]] && return
               _nth "${a2}" 0; local a20="${r}"
               if [ "${ANON["${a20}"]}" == "catch__STAR__" ]; then
@@ -177,8 +175,7 @@ EVAL () {
                   ENV "${env}" "${binds}" "${__ERROR}"
                   local try_env="${r}"
                   __ERROR=
-                  MACROEXPAND "${a22}" "${try_env}"
-                  EVAL "${r}" "${try_env}"
+                  EVAL "${a22}" "${try_env}"
               fi  # if no catch* clause, just propagate __ERROR
               return ;;
         do)   _count "${ast}"
@@ -190,6 +187,7 @@ EVAL () {
               # Continue loop
               ;;
         if)   EVAL "${a1}" "${env}"
+              [[ "${__ERROR}" ]] && return 1
               if [[ "${r}" == "${__false}" || "${r}" == "${__nil}" ]]; then
                   # eval false form
                   _nth "${ast}" 3; local a3="${r}"
@@ -251,13 +249,18 @@ REP () {
 }
 
 # core.sh: defined using bash
-_fref () { _function "${2} \"\${@}\""; ENV_SET "${REPL_ENV}" "${1}" "${r}"; }
+_fref () {
+    _symbol "${1}"; local sym="${r}"
+    _function "${2} \"\${@}\""
+    ENV_SET "${REPL_ENV}" "${sym}" "${r}"
+}
 for n in "${!core_ns[@]}"; do _fref "${n}" "${core_ns["${n}"]}"; done
 _eval () { EVAL "${1}" "${REPL_ENV}"; }
 _fref "eval" _eval
 _list; argv="${r}"
 for _arg in "${@:2}"; do _string "${_arg}"; _conj! "${argv}" "${r}"; done
-ENV_SET "${REPL_ENV}" "__STAR__ARGV__STAR__" "${argv}";
+_symbol "__STAR__ARGV__STAR__"
+ENV_SET "${REPL_ENV}" "${r}" "${argv}";
 
 # core.mal: defined using the language itself
 REP "(def! *host-language* \"bash\")"

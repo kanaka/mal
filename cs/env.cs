@@ -26,8 +26,8 @@ namespace Mal {
                 }
             }
             
-            public Env find(string key) {
-                if (data.ContainsKey(key)) {
+            public Env find(MalSymbol key) {
+                if (data.ContainsKey(key.getName())) {
                     return this;
                 } else if (outer != null) {
                     return outer.find(key);
@@ -36,18 +36,18 @@ namespace Mal {
                 }
             }
 
-            public MalVal get(string key) {
+            public MalVal get(MalSymbol key) {
                 Env e = find(key);
                 if (e == null) {
                     throw new Mal.types.MalException(
-                            "'" + key + "' not found");
+                            "'" + key.getName() + "' not found");
                 } else {
-                    return e.data[key];
+                    return e.data[key.getName()];
                 }
             }
 
-            public Env set(string key, MalVal value) {
-                data[key] = value;
+            public Env set(MalSymbol key, MalVal value) {
+                data[key.getName()] = value;
                 return this;
             }
         }

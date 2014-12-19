@@ -52,6 +52,17 @@ $(foreach ch,$(word 1,$($(1))),\
     ))
 endef
 
+define READ_KEYWORD
+$(foreach ch,$(word 1,$($(1))),\
+  $(if $(ch),\
+    $(if $(filter $(_TOKEN_DELIMS),$(ch)),\
+      ,\
+      $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
+      $(and $(READER_DEBUG),$(info READ_KEYWORD ch: $(ch) | $($(1))))\
+      $(ch)$(strip $(call READ_KEYWORD,$(1)))),\
+    ))
+endef
+
 define READ_ATOM
 $(foreach ch,$(word 1,$($(1))),\
   $(if $(filter $(NUMBERS),$(ch)),\
@@ -62,6 +73,9 @@ $(foreach ch,$(word 1,$($(1))),\
     $(eval $(if $(filter $(DQUOTE),$(word 1,$($(1)))),\
            $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
            $(call _error,Expected '$(DQUOTE)' in; $($(1))))),\
+  $(if $(filter $(COLON),$(ch)),\
+    $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
+    $(call _keyword,$(call READ_KEYWORD,$(1))),\
   $(foreach sym,$(call READ_SYMBOL,$(1)),\
     $(if $(call _EQ,nil,$(sym)),\
       $(__nil),\
@@ -69,7 +83,7 @@ $(foreach ch,$(word 1,$($(1))),\
       $(__true),\
     $(if $(call _EQ,false,$(sym)),\
       $(__false),\
-      $(call _symbol,$(sym)))))))))
+      $(call _symbol,$(sym))))))))))
 endef
 
 # read and return tokens until $(2) found

@@ -34,7 +34,7 @@ function quasiquote($ast) {
 
 function eval_ast($ast, $env) {
     if (_symbol_Q($ast)) {
-        return $env->get($ast->value);
+        return $env->get($ast);
     } elseif (_sequential_Q($ast)) {
         if (_list_Q($ast)) {
             $el = _list();
@@ -68,12 +68,12 @@ function MAL_EVAL($ast, $env) {
     switch ($a0v) {
     case "def!":
         $res = MAL_EVAL($ast[2], $env);
-        return $env->set($ast[1]->value, $res);
+        return $env->set($ast[1], $res);
     case "let*":
         $a1 = $ast[1];
         $let_env = new Env($env);
         for ($i=0; $i < count($a1); $i+=2) {
-            $let_env->set($a1[$i]->value, MAL_EVAL($a1[$i+1], $let_env));
+            $let_env->set($a1[$i], MAL_EVAL($a1[$i+1], $let_env));
         }
         $ast = $ast[2];
         $env = $let_env;
@@ -129,16 +129,16 @@ function rep($str) {
 
 // core.php: defined using PHP
 foreach ($core_ns as $k=>$v) {
-    $repl_env->set($k, _function($v));
+    $repl_env->set(_symbol($k), _function($v));
 }
-$repl_env->set('eval', _function(function($ast) {
+$repl_env->set(_symbol('eval'), _function(function($ast) {
     global $repl_env; return MAL_EVAL($ast, $repl_env);
 }));
 $_argv = _list();
 for ($i=2; $i < count($argv); $i++) {
     $_argv->append($argv[$i]);
 }
-$repl_env->set('*ARGV*', $_argv);
+$repl_env->set(_symbol('*ARGV*'), $_argv);
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");

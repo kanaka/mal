@@ -26,15 +26,27 @@ function Env(outer, binds, exprs) {
     return this;
 }
 Env.prototype.find = function (key) {
-    if (key in this.data) { return this; }
+    if (!key.constructor || key.constructor.name !== 'Symbol') {
+        throw new Error("env.find key must be a symbol")
+    }
+    if (key.value in this.data) { return this; }
     else if (this.outer) {  return this.outer.find(key); }
     else { return null; }
 };
-Env.prototype.set = function(key, value) { this.data[key] = value; return value; },
+Env.prototype.set = function(key, value) {
+    if (!key.constructor || key.constructor.name !== 'Symbol') {
+        throw new Error("env.set key must be a symbol")
+    }
+    this.data[key.value] = value;
+    return value;
+};
 Env.prototype.get = function(key) {
+    if (!key.constructor || key.constructor.name !== 'Symbol') {
+        throw new Error("env.get key must be a symbol")
+    }
     var env = this.find(key);
-    if (!env) { throw new Error("'" + key + "' not found"); }
-    return env.data[key];
+    if (!env) { throw new Error("'" + key.value + "' not found"); }
+    return env.data[key.value];
 };
 
 exports.Env = env.Env = Env;

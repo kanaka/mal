@@ -44,7 +44,7 @@ ENV () {
 
 # Find the environment with the key set and return the environment
 ENV_FIND () {
-    if _contains? "${1}" "${2}"; then
+    if _contains? "${1}" "${ANON["${2}"]}"; then
         r="${1}"
     else
         local obj="${ANON["${1}"]}"
@@ -63,16 +63,18 @@ ENV_FIND () {
 ENV_GET () {
     ENV_FIND "${1}" "${2}"
     local env="${r}"
+    local key="${ANON["${2}"]}"
     if [[ "${r}" ]]; then
         local obj="${ANON["${env}"]}"
-        eval r="\${${obj}["${2}"]}"
+        eval r="\${${obj}["${key}"]}"
     else
-        _error "'${2}' not found"
+        _error "'${key}' not found"
     fi
 }
 
 ENV_SET () {
-    _assoc! "${1}" "${2}" "${3}"
+    local key="${ANON["${2}"]}"
+    _assoc! "${1}" "${key}" "${3}"
 }
 
 fi

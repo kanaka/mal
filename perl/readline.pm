@@ -1,12 +1,12 @@
 # To get readline line editing functionality, please install
-# Term::ReadLine::Gnu (GPL) or Term::ReadLine::Perl (GPL, Artistic)
-# from CPAN.
+# Term::ReadKey and either Term::ReadLine::Gnu (GPL) or
+# Term::ReadLine::Perl (GPL, Artistic) from CPAN.
 
 package readline;
 use strict;
 use warnings;
 use Exporter 'import';
-our @EXPORT_OK = qw( mal_readline );
+our @EXPORT_OK = qw( mal_readline set_rl_mode );
 
 use Term::ReadLine;
 
@@ -36,6 +36,13 @@ sub load_history {
     close $fh;
 }
 
+my $rl_mode = "terminal";
+
+sub set_rl_mode {
+    my($mode) = @_;
+    $rl_mode = $mode;
+}
+
 sub mal_readline {
     my($prompt) = @_;
     my $line = undef;
@@ -44,11 +51,21 @@ sub mal_readline {
         load_history();
     }
 
-    if (defined ($line = $_rl->readline($prompt))) {
-        save_line($line);
-        return $line;
+    if ($rl_mode eq "terminal") {
+        if (defined ($line = $_rl->readline($prompt))) {
+            save_line($line);
+            return $line;
+        } else {
+            return undef;
+        }
     } else {
-        return undef;
+        print "$prompt";
+        if (defined ($line = readline(*STDIN))) {
+            save_line($line);
+            return $line;
+        } else {
+            return undef;
+        }
     }
 }
 1;

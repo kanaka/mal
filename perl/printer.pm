@@ -30,7 +30,9 @@ sub _pr_str {
             return '{' . join(' ', @elems) . '}';
         }
         when(/^String/) {
-            if ($_r) {
+            if ($$obj =~ /^\x{029e}/) {
+                return ':' . substr($$obj,1);
+            } elsif ($_r) {
                 my $str = $$obj;
                 $str =~ s/\\/\\\\/g;
                 $str =~ s/"/\\"/g;

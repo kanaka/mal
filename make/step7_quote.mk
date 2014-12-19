@@ -70,7 +70,8 @@ $(if $(__ERROR),,\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
           $(foreach res,$(call EVAL,$(a2),$(2)),\
-            $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),)))),\
+            $(if $(__ERROR),,\
+              $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),))))),\
     $(if $(call _EQ,let*,$($(a0)_value)),\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\

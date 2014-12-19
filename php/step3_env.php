@@ -14,7 +14,7 @@ function READ($str) {
 // eval
 function eval_ast($ast, $env) {
     if (_symbol_Q($ast)) {
-        return $env->get($ast->value);
+        return $env->get($ast);
     } elseif (_sequential_Q($ast)) {
         if (_list_Q($ast)) {
             $el = _list();
@@ -46,12 +46,12 @@ function MAL_EVAL($ast, $env) {
     switch ($a0v) {
     case "def!":
         $res = MAL_EVAL($ast[2], $env);
-        return $env->set($ast[1]->value, $res);
+        return $env->set($ast[1], $res);
     case "let*":
         $a1 = $ast[1];
         $let_env = new Env($env);
         for ($i=0; $i < count($a1); $i+=2) {
-            $let_env->set($a1[$i]->value, MAL_EVAL($a1[$i+1], $let_env));
+            $let_env->set($a1[$i], MAL_EVAL($a1[$i+1], $let_env));
         }
         return MAL_EVAL($ast[2], $let_env);
     default:
@@ -73,10 +73,10 @@ function rep($str) {
     return MAL_PRINT(MAL_EVAL(READ($str), $repl_env));
 }
 
-$repl_env->set('+', function ($a, $b) { return intval($a + $b,10); });
-$repl_env->set('-', function ($a, $b) { return intval($a - $b,10); });
-$repl_env->set('*', function ($a, $b) { return intval($a * $b,10); });
-$repl_env->set('/', function ($a, $b) { return intval($a / $b,10); });
+$repl_env->set(_symbol('+'), function ($a, $b) { return intval($a + $b,10); });
+$repl_env->set(_symbol('-'), function ($a, $b) { return intval($a - $b,10); });
+$repl_env->set(_symbol('*'), function ($a, $b) { return intval($a * $b,10); });
+$repl_env->set(_symbol('/'), function ($a, $b) { return intval($a / $b,10); });
 
 // repl loop
 do {

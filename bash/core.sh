@@ -41,6 +41,11 @@ false? () { _false? "${1}" && r="${__true}" || r="${__false}"; }
 symbol? () { _symbol? "${1}" && r="${__true}" || r="${__false}"; }
 
 
+# Keyword functions
+
+keyword? () { _keyword? "${1}" && r="${__true}" || r="${__false}"; }
+
+
 # Number functions
 
 number? () { _number? "${1}" && r="${__true}" || r="${__false}"; }
@@ -230,6 +235,10 @@ concat () {
 
 nth () {
     _nth "${1}" "${ANON["${2}"]}"
+    if [ -z "${r}" ]; then
+        _error "nth: index out of bounds"
+        return
+    fi
 }
 
 empty? () { _empty? "${1}" && r="${__true}" || r="${__false}"; }
@@ -316,7 +325,10 @@ declare -A core_ns=(
     [nil?]=nil?
     [true?]=true?
     [false?]=false?
+    [symbol]=_symbol
     [symbol?]=symbol?
+    [keyword]=_keyword
+    [keyword?]=keyword?
 
     [pr-str]=pr_str
     [str]=str

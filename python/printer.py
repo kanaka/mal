@@ -12,7 +12,9 @@ def _pr_str(obj, print_readably=True):
             ret.extend((_pr_str(k), _pr_str(obj[k],_r)))
         return "{" + " ".join(ret) + "}"
     elif types._string_Q(obj):
-        if print_readably:
+        if len(obj) > 0 and obj[0] == u'\u029e':
+            return ':' + obj[1:]
+        elif print_readably:
             return '"' + obj.encode('unicode_escape').decode('latin1').replace('"', '\\"') + '"'
         else:
             return obj

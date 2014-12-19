@@ -15,6 +15,7 @@ READ_ATOM () {
         \"*)    token="${token:1:-1}"
                 token="${token//\\\"/\"}"
                 _string "${token}" ;;
+        :*)     _keyword "${token:1}" ;;
         nil)    r="${__nil}" ;;
         true)   r="${__true}" ;;
         false)  r="${__false}" ;;
@@ -135,7 +136,7 @@ READ_STR () {
     declare -a __reader_tokens
     TOKENIZE "${*}" || return 1  # sets __reader_tokens
     #set | grep ^__reader_tokens
-    if [ -z "${__reader_tokens[k]}" ]; then
+    if [ -z "${__reader_tokens[0]}" ]; then
         r=
         return 1  # No tokens
     fi

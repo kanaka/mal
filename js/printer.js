@@ -26,13 +26,17 @@ function _pr_str(obj, print_readably) {
         }
         return "{" + ret.join(' ') + "}";
     case 'string':
-        if (_r) {
-            return '"' + obj.replace(/\\/, "\\\\")
+        if (obj[0] === '\u029e') {
+            return ':' + obj.slice(1);
+        } else if (_r) {
+            return '"' + obj.replace(/\\/g, "\\\\")
                 .replace(/"/g, '\\"')
                 .replace(/\n/g, "\\n") + '"'; // string
         } else {
             return obj;
         }
+    case 'keyword':
+        return ':' + obj.slice(1);
     case 'nil':
         return "nil";
     case 'atom':

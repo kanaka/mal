@@ -28,20 +28,20 @@ use Exporter 'import';
     }
     sub find {
         my ($self, $key) = @_;
-        if (exists $self->{$key}) { return $self; }
+        if (exists $self->{$$key}) { return $self; }
         elsif ($self->{__outer__}) { return $self->{__outer__}->find($key); }
         else { return undef; }
     }
     sub set {
         my ($self, $key, $value) = @_;
-        $self->{$key} = $value;
+        $self->{$$key} = $value;
         return $value
     }
     sub get {
         my ($self, $key) = @_;
         my $env = $self->find($key);
-        die "'" . $key . "' not found\n" unless $env;
-        return $env->{$key};
+        die "'" . $$key . "' not found\n" unless $env;
+        return $env->{$$key};
     }
 }
 

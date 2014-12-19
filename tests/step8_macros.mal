@@ -1,13 +1,13 @@
 ;; Testing nth, first and rest functions
 
-(nth '() 0)
-;=>nil
 (nth '(1) 0)
 ;=>1
 (nth '(1 2) 1)
 ;=>2
-(nth '(1 2) 2)
-;=>nil
+(def! x "x")
+(def! x (nth '(1 2) 2))
+x
+;=>"x"
 
 (first '())
 ;=>nil
@@ -132,14 +132,14 @@
 
 ;; Testing nth, first, rest with vectors
 
-(nth [] 0)
-;=>nil
 (nth [1] 0)
 ;=>1
 (nth [1 2] 1)
 ;=>2
-(nth [1 2] 2)
-;=>nil
+(def! x "x")
+(def! x (nth [1 2] 2))
+x
+;=>"x"
 
 (first [])
 ;=>nil

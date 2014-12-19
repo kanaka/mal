@@ -54,8 +54,8 @@ public class step9_try {
         if (ast instanceof MalList) {
             MalVal a0 = ((MalList)ast).nth(0);
             if (a0 instanceof MalSymbol &&
-                env.find(((MalSymbol)a0).getName()) != null) {
-                MalVal mac = env.get(((MalSymbol)a0).getName());
+                env.find(((MalSymbol)a0)) != null) {
+                MalVal mac = env.get(((MalSymbol)a0));
                 if (mac instanceof MalFunction &&
                     ((MalFunction)mac).isMacro()) {
                     return true;
@@ -69,7 +69,7 @@ public class step9_try {
             throws MalThrowable {
         while (is_macro_call(ast, env)) {
             MalSymbol a0 = (MalSymbol)((MalList)ast).nth(0);
-            MalFunction mac = (MalFunction) env.get(a0.getName());
+            MalFunction mac = (MalFunction) env.get(a0);
             ast = mac.apply(((MalList)ast).rest());
         }
         return ast;
@@ -77,8 +77,7 @@ public class step9_try {
 
     public static MalVal eval_ast(MalVal ast, Env env) throws MalThrowable {
         if (ast instanceof MalSymbol) {
-            MalSymbol sym = (MalSymbol)ast;
-            return env.get(sym.getName());
+            return env.get((MalSymbol)ast);
         } else if (ast instanceof MalList) {
             MalList old_lst = (MalList)ast;
             MalList new_lst = ast.list_Q() ? new MalList()
@@ -124,7 +123,7 @@ public class step9_try {
             a1 = ast.nth(1);
             a2 = ast.nth(2);
             res = EVAL(a2, env);
-            env.set(((MalSymbol)a1).getName(), res);
+            env.set(((MalSymbol)a1), res);
             return res;
         case "let*":
             a1 = ast.nth(1);
@@ -135,7 +134,7 @@ public class step9_try {
             for(int i=0; i<((MalList)a1).size(); i+=2) {
                 key = (MalSymbol)((MalList)a1).nth(i);
                 val = ((MalList)a1).nth(i+1);
-                let_env.set(key.getName(), EVAL(val, let_env));
+                let_env.set(key, EVAL(val, let_env));
             }
             orig_ast = a2;
             env = let_env;
@@ -150,7 +149,7 @@ public class step9_try {
             a2 = ast.nth(2);
             res = EVAL(a2, env);
             ((MalFunction)res).setMacro();
-            env.set(((MalSymbol)a1).getName(), res);
+            env.set((MalSymbol)a1, res);
             return res;
         case "macroexpand":
             a1 = ast.nth(1);
@@ -239,9 +238,9 @@ public class step9_try {
 
         // core.java: defined using Java
         for (String key : core.ns.keySet()) {
-            repl_env.set(key, core.ns.get(key));
+            repl_env.set(new MalSymbol(key), core.ns.get(key));
         }
-        repl_env.set("eval", new MalFunction() {
+        repl_env.set(new MalSymbol("eval"), new MalFunction() {
             public MalVal apply(MalList args) throws MalThrowable {
                 return EVAL(args.nth(0), repl_env);
             }
@@ -250,11 +249,10 @@ public class step9_try {
         for (Integer i=1; i < args.length; i++) {
             _argv.conj_BANG(new MalString(args[i]));
         }
-        repl_env.set("*ARGV*", _argv);
+        repl_env.set(new MalSymbol("*ARGV*"), _argv);
 
 
         // core.mal: defined using the language itself
-        RE(repl_env, "(def! *host-language* \"java\")");
         RE(repl_env, "(def! not (fn* (a) (if a false true)))");
         RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
         RE(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
@@ -271,7 +269,6 @@ public class step9_try {
         }
 
         // repl loop
-        RE(repl_env, "(println (str \"Mal [\" *host-language* \"]\"))");
         while (true) {
             String line;
             try {

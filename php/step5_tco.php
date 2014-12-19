@@ -15,7 +15,7 @@ function READ($str) {
 // eval
 function eval_ast($ast, $env) {
     if (_symbol_Q($ast)) {
-        return $env->get($ast->value);
+        return $env->get($ast);
     } elseif (_sequential_Q($ast)) {
         if (_list_Q($ast)) {
             $el = _list();
@@ -49,12 +49,12 @@ function MAL_EVAL($ast, $env) {
     switch ($a0v) {
     case "def!":
         $res = MAL_EVAL($ast[2], $env);
-        return $env->set($ast[1]->value, $res);
+        return $env->set($ast[1], $res);
     case "let*":
         $a1 = $ast[1];
         $let_env = new Env($env);
         for ($i=0; $i < count($a1); $i+=2) {
-            $let_env->set($a1[$i]->value, MAL_EVAL($a1[$i+1], $let_env));
+            $let_env->set($a1[$i], MAL_EVAL($a1[$i+1], $let_env));
         }
         $ast = $ast[2];
         $env = $let_env;
@@ -105,7 +105,7 @@ function rep($str) {
 
 // core.php: defined using PHP
 foreach ($core_ns as $k=>$v) {
-    $repl_env->set($k, _function($v));
+    $repl_env->set(_symbol($k), _function($v));
 }
 
 // core.mal: defined using the language itself

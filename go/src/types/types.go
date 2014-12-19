@@ -4,6 +4,7 @@ import (
     "reflect"
     "errors"
     "fmt"
+    "strings"
 )
 
 // Errors/Exceptions
@@ -21,10 +22,9 @@ type MalType interface {
 }
 
 type EnvType interface {
-    //Find(key string) *EnvType
-    Find(key string) EnvType
-    Set(key string, value MalType) MalType
-    Get(key string) (MalType, error)
+    Find(key Symbol) EnvType
+    Set(key Symbol, value MalType) MalType
+    Get(key Symbol) (MalType, error)
 }
 
 // Scalars
@@ -54,6 +54,20 @@ type Symbol struct {
 func Symbol_Q(obj MalType) bool {
     if obj == nil { return false }
     return reflect.TypeOf(obj).Name() == "Symbol"
+}
+
+
+// Keywords
+func NewKeyword(s string) (MalType, error) {
+    return "\u029e" + s, nil;
+}
+
+func Keyword_Q(obj MalType) bool {
+    if obj == nil { return false }
+    switch s := obj.(type) {
+    case string: return strings.HasPrefix(s, "\u029e")
+    default: return false
+    }
 }
 
 

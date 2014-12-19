@@ -32,6 +32,8 @@ exports.ns = {
   'false?': types._false_Q,
   'symbol': types._symbol,
   'symbol?': types._symbol_Q,
+  'keyword': types._keyword,
+  'keyword?': types._keyword_Q,
 
   'pr-str': (a...) -> a.map((exp) -> _pr_str(exp,true)).join(" "),
   'str': (a...) -> a.map((exp) -> _pr_str(exp,false)).join(""),
@@ -66,11 +68,12 @@ exports.ns = {
   'sequential?': types._sequential_Q,
   'cons': (a,b) -> [a].concat(b),
   'concat': (a=[],b...) -> a.concat(b...),
-  'nth': (a,b) -> if a.length > b then a[b] else null,
+  'nth': (a,b) -> if a.length > b then a[b] else
+    throw new Error "nth: index out of bounds",
   'first': (a) -> if a.length > 0 then a[0] else null,
   'rest': (a) -> a[1..],
   'empty?': (a) -> a.length == 0,
-  'count': (a) -> a.length,
+  'count': (a) -> if a == null then 0 else a.length,
   'apply': (a,b...) -> a(b[0..-2].concat(b[b.length-1])...),
   'map': (a,b) -> b.map((x) -> a(x)),
   'conj': conj,

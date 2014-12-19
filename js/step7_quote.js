@@ -70,7 +70,7 @@ function _EVAL(ast, env) {
     case "let*":
         var let_env = new Env(env);
         for (var i=0; i < a1.length; i+=2) {
-            let_env.set(a1[i].value, EVAL(a1[i+1], let_env));
+            let_env.set(a1[i], EVAL(a1[i+1], let_env));
         }
         ast = a2;
         env = let_env;
@@ -122,9 +122,10 @@ var repl_env = new Env();
 var rep = function(str) { return PRINT(EVAL(READ(str), repl_env)); };
 
 // core.js: defined using javascript
-for (var n in core.ns) { repl_env.set(n, core.ns[n]); }
-repl_env.set('eval', function(ast) { return EVAL(ast, repl_env); });
-repl_env.set('*ARGV*', []);
+for (var n in core.ns) { repl_env.set(types._symbol(n), core.ns[n]); }
+repl_env.set(types._symbol('eval'), function(ast) {
+    return EVAL(ast, repl_env); });
+repl_env.set(types._symbol('*ARGV*'), []);
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");

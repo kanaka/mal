@@ -3,7 +3,7 @@ use warnings FATAL => qw(all);
 no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
-use readline qw(mal_readline);
+use readline qw(mal_readline set_rl_mode);
 use feature qw(switch);
 use Data::Dumper;
 
@@ -24,7 +24,7 @@ sub eval_ast {
     my($ast, $env) = @_;
     given (ref $ast) {
         when (/^Symbol/) {
-            $env->get($$ast);
+            $env->get($ast);
         }
         when (/^List/) {
             my @lst = map {EVAL($_, $env)} @{$ast->{val}};
@@ -62,12 +62,12 @@ sub EVAL {
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
         when (/^def!$/) {
             my $res = EVAL($a2, $env);
-            return $env->set($$a1, $res);
+            return $env->set($a1, $res);
         }
         when (/^let\*$/) {
             my $let_env = Env->new($env);
             for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
-                $let_env->set(${$a1->nth($i)}, EVAL($a1->nth($i+1), $let_env));
+                $let_env->set($a1->nth($i), EVAL($a1->nth($i+1), $let_env));
             }
             $ast = $a2;
             $env = $let_env;
@@ -120,15 +120,21 @@ sub REP {
 }
 
 # core.pl: defined using perl
-foreach my $n (%$core_ns) { $repl_env->set($n, $core_ns->{$n}); }
-$repl_env->set('eval', sub { EVAL($_[0]->nth(0), $repl_env); });
+foreach my $n (%$core_ns) {
+    $repl_env->set(Symbol->new($n), $core_ns->{$n});
+}
+$repl_env->set(Symbol->new('eval'), sub { EVAL($_[0]->nth(0), $repl_env); });
 my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
-$repl_env->set('*ARGV*', List->new(\@_argv));
+$repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))");
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
+if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+    set_rl_mode("raw");
+    shift @ARGV;
+}
 if (scalar(@ARGV) > 0) {
     REP("(load-file \"" . $ARGV[0] . "\")");
     exit 0;
