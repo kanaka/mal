@@ -10,8 +10,8 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cs go java js make mal perl php ps \
-	python r ruby rust scala vb
+IMPLS = bash c clojure coffee cs go haskell java js make mal perl \
+	php ps python r ruby rust scala vb
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -55,6 +55,7 @@ coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 cs_STEP_TO_PROG =      cs/$($(1)).exe
 go_STEP_TO_PROG =      go/$($(1))
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
+haskell_STEP_TO_PROG = haskell/$($(1))
 js_STEP_TO_PROG =      js/$($(1)).js
 make_STEP_TO_PROG =    make/$($(1)).mk
 mal_STEP_TO_PROG =     mal/$($(1)).mal
@@ -75,6 +76,7 @@ clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
 coffee_RUNSTEP =  coffee ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
 go_RUNSTEP =      ../$(2) $(3)
+haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.args="--raw$(if $(3), $(3),)"
 js_RUNSTEP =      node ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)

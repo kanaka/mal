@@ -2,8 +2,9 @@
 
 ## Description
 
-Mal is an interpreter for a subset of the Clojure programming
-language. Mal is implemented from scratch in 19 different languages:
+Mal is an Clojure inspired Lisp interpreter.
+
+Mal is implemented in 20 different languages:
 
 * Bash shell
 * C
@@ -11,6 +12,7 @@ language. Mal is implemented from scratch in 19 different languages:
 * Clojure
 * CoffeeScript
 * Go
+* Haskell
 * Java
 * Javascript ([Online Demo](http://kanaka.github.io/mal))
 * GNU Make
@@ -26,10 +28,10 @@ language. Mal is implemented from scratch in 19 different languages:
 * Visual Basic.NET
 
 
-Mal is also a learning tool. Each implementation of mal is separated
-into 11 incremental, self-contained (and testable) steps that
-demonstrate core concepts of Lisp. The last step is capable of
-self-hosting (running the mal implemenation of mal).
+Mal is a learning tool. Each implementation of mal is separated into 11
+incremental, self-contained (and testable) steps that demonstrate core
+concepts of Lisp. The last step is capable of self-hosting (running
+the mal implemenation of mal).
 
 The mal (make a lisp) steps are:
 
@@ -103,6 +105,17 @@ coffee ./stepX_YYY
 
 ```
 cd go
+make
+./stepX_YYY
+```
+
+
+### Haskell
+
+Install the Haskell compiler (ghc/ghci) and the Haskell platform.
+
+```
+cd haskell
 make
 ./stepX_YYY
 ```

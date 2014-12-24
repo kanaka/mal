@@ -46,6 +46,8 @@ Go:
     - consider variable arguments in places where it makes sense
         https://gobyexample.com/variadic-functions
 
+Haskell:
+
 Java:
     - Use gradle instead of mvn
         http://blog.paralleluniverse.co/2014/05/01/modern-java/
