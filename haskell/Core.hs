@@ -20,6 +20,12 @@ run_1 f args = do
          (x:[]) -> return $ f x
          _ -> error $ "function takes a single argument"
 
+run_2 :: (MalVal -> MalVal -> MalVal) -> [MalVal] -> IO MalVal
+run_2 f args = do
+    case args of
+         (x:y:[]) -> return $ f x y
+         _ -> error $ "function takes a two arguments"
+
 
 -- String functions
 
@@ -73,6 +79,29 @@ hash_map args = do
 
 -- Sequence functions
 
+cons x Nil = MalList [x]
+cons x (MalList lst) = MalList $ x:lst
+cons x (MalVector lst) = MalList $ x:lst
+
+concat1 a (MalList lst) = a ++ lst
+concat1 a (MalVector lst) = a ++ lst
+do_concat args = return $ MalList $ foldl concat1 [] args
+
+nth args = do
+    case args of
+        (MalList lst):(MalNumber idx):[] ->
+            if idx < length lst then return $ lst !! idx
+            else error "nth: index out of range"
+        (MalVector lst):(MalNumber idx):[] ->
+            if idx < length lst then return $ lst !! idx
+            else error "nth: index out of range"
+
+first (MalList lst) = if length lst > 0 then lst !! 0 else Nil
+first (MalVector lst) = if length lst > 0 then lst !! 0 else Nil
+
+rest (MalList lst) = MalList $ drop 1 lst
+rest (MalVector lst) = MalList $ drop 1 lst
+
 empty_Q Nil            = MalTrue
 empty_Q (MalList [])   = MalTrue
 empty_Q (MalVector []) = MalTrue
@@ -109,5 +138,10 @@ ns = [
     ("hash-map", _func $ hash_map),
     ("map?",     _func $ run_1 $ _hash_map_Q),
     
+    ("cons", _func $ run_2 $ cons),
+    ("concat", _func $ do_concat),
+    ("nth", _func nth),
+    ("first", _func $ run_1 $ first),
+    ("rest", _func $ run_1 $ rest),
     ("empty?", _func $ run_1 $ empty_Q) ,
     ("count", _func $ run_1 $ count)]

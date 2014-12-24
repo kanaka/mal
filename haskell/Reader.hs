@@ -3,7 +3,7 @@ module Reader
 where
 
 import Text.ParserCombinators.Parsec (
-    Parser, parse, space, char, digit, letter,
+    Parser, parse, space, char, digit, letter, try,
     (<|>), oneOf, noneOf, many, many1, skipMany, skipMany1, sepEndBy)
 import qualified Data.Map as Map
 import Control.Monad (liftM)
@@ -38,7 +38,6 @@ read_number = liftM (MalNumber . read) $ many1 digit
 read_string :: Parser MalVal
 read_string = do
     char '"'
---    x <- stringChars
     x <- many (escaped <|> noneOf "\\\"")
     char '"'
     return $ MalString x
@@ -87,14 +86,48 @@ read_hash_map = do
     char '}'
     return $ MalHashMap $ Map.fromList $ _pairs x
 
+read_quote :: Parser MalVal
+read_quote = do
+    char '\''
+    x <- read_form
+    return $ MalList [MalSymbol "quote", x]
+
+read_quasiquote :: Parser MalVal
+read_quasiquote = do
+    char '`'
+    x <- read_form
+    return $ MalList [MalSymbol "quasiquote", x]
+
+read_splice_unquote :: Parser MalVal
+read_splice_unquote = do
+    char '~'
+    char '@'
+    x <- read_form
+    return $ MalList [MalSymbol "splice-unquote", x]
+
+read_unquote :: Parser MalVal
+read_unquote = do
+    char '~'
+    x <- read_form
+    return $ MalList [MalSymbol "unquote", x]
+
+
+read_macro :: Parser MalVal
+read_macro = read_quote
+         <|> read_quasiquote
+         <|> try read_splice_unquote <|> read_unquote
 
 read_form :: Parser MalVal
 read_form =  do
     ignored
-    x <- read_atom <|> read_list <|> read_vector <|> read_hash_map
+    x <- read_macro
+     <|> read_list
+     <|> read_vector
+     <|> read_hash_map
+     <|> read_atom
     return $ x
 
 read_str :: String -> IO MalVal
 read_str str = case parse read_form "Mal" str of
-    Left err -> error $ "Blah: " ++ (show err)
+    Left err -> error $ show err
     Right val -> return val

@@ -1,5 +1,5 @@
 module Env
-( Env, env_new, null_env, env_bind, env_get, env_set )
+( Env, env_new, null_env, env_bind, env_find, env_get, env_set )
 where
 
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)

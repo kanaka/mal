@@ -24,7 +24,8 @@ data MalVal = Nil
             | MalFunc      {fn :: Fn,
                             ast :: MalVal,
                             env :: Env,
-                            params :: MalVal}
+                            params :: MalVal,
+                            macro :: Bool}
 
 _equal_Q Nil Nil = True
 _equal_Q MalFalse MalFalse = True
@@ -82,7 +83,8 @@ catchAny = CE.catch
 
 _func fn = Func $ Fn fn
 _malfunc ast env params fn = MalFunc {fn=(Fn fn), ast=ast,
-                                      env=env, params=params}
+                                      env=env, params=params,
+                                      macro=False}
 
 -- Lists
 

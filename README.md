@@ -112,7 +112,8 @@ make
 
 ### Haskell
 
-Install the Haskell compiler (ghc/ghci) and the Haskell platform.
+Install the Haskell compiler (ghc/ghci), the Haskell platform and
+either the editline package (BSD) or the readline package (GPL).
 
 ```
 cd haskell
