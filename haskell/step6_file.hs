@@ -1,3 +1,4 @@
+import System.Environment (getArgs)
 import Control.Monad (when, mapM)
 import Control.Monad.Error (throwError)
 import qualified Data.Map as Map
@@ -7,7 +8,8 @@ import Readline (readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
-import Env (Env, env_new, env_get, env_set)
+import Env (Env, env_new, env_bind, env_get, env_set)
+import Core as Core
 
 -- read
 mal_read :: String -> IO MalVal
@@ -52,11 +54,47 @@ apply_ast ast@(MalList (MalSymbol "let*" : args)) env = do
             let_bind let_env a1
             eval a2 let_env
          _ -> error $ "invalid let*"
+apply_ast ast@(MalList (MalSymbol "do" : args)) env = do
+    case args of
+         ([]) -> return Nil
+         _  -> do
+            el <- eval_ast (MalList args) env
+            case el of
+                 (MalList el) -> return $ last el
+            
+apply_ast ast@(MalList (MalSymbol "if" : args)) env = do
+    case args of
+         (a1 : a2 : a3 : []) -> do
+            cond <- eval a1 env
+            if cond == MalFalse || cond == Nil
+                then eval a3 env
+                else eval a2 env
+         (a1 : a2 : []) -> do
+            cond <- eval a1 env
+            if cond == MalFalse || cond == Nil
+                then return Nil
+                else eval a2 env
+         _ -> error $ "invalid if"
+apply_ast ast@(MalList (MalSymbol "fn*" : args)) env = do
+    let params = case args of
+                     ((MalList lst) : _)   -> lst
+                     ((MalVector lst) : _) -> lst in
+        case args of
+             (a1 : a2 : []) -> do
+                return $ (_malfunc a2 env a1 (\args -> do
+                    fn_env1 <- env_new $ Just env
+                    fn_env2 <- (env_bind fn_env1 params args)
+                    eval a2 fn_env2))
+             _ -> error $ "invalid fn*"
 apply_ast ast@(MalList _) env = do
     el <- eval_ast ast env
     case el of
          (MalList (Func (Fn f) : rest)) ->
             f $ rest
+         (MalList (MalFunc {ast=ast, env=fn_env, params=(MalList params)} : rest)) -> do
+            fn_env1 <- env_new $ Just fn_env
+            fn_env2 <- (env_bind fn_env1 params rest)
+            eval ast fn_env2
          el ->
             error $ "invalid apply: " ++ (show el)
 
@@ -72,18 +110,6 @@ mal_print :: MalVal -> String
 mal_print exp = show exp
 
 -- repl
-add args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a + b
-    _ -> error $ "illegal arguments to +"
-sub args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a - b
-    _ -> error $ "illegal arguments to -"
-mult args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a * b
-    _ -> error $ "illegal arguments to *"
-divd args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a `div` b
-    _ -> error $ "illegal arguments to /"
 
 rep :: Env -> String -> IO String
 rep env line = do
@@ -104,10 +130,23 @@ repl_loop env = do
             repl_loop env
 
 main = do
+    args <- getArgs
     load_history
+
     repl_env <- env_new Nothing
-    env_set repl_env (MalSymbol "+") $ _func add
-    env_set repl_env (MalSymbol "-") $ _func sub
-    env_set repl_env (MalSymbol "*") $ _func mult
-    env_set repl_env (MalSymbol "/") $ _func divd
-    repl_loop repl_env
+
+    -- core.hs: defined using Haskell
+    (mapM (\(k,v) -> (env_set repl_env (MalSymbol k) v)) Core.ns)
+    env_set repl_env (MalSymbol "eval") (_func (\[ast] -> eval ast repl_env))
+    env_set repl_env (MalSymbol "*ARGV*") (MalList [])
+
+    -- core.mal: defined using the language itself
+    rep repl_env "(def! not (fn* (a) (if a false true)))"
+    rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+
+    if length args > 0 then do
+        env_set repl_env (MalSymbol "*ARGV*") (MalList (map MalString (drop 1 args)))
+        rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")" 
+        return ()
+    else 
+        repl_loop repl_env

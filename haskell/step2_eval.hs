@@ -1,9 +1,9 @@
-import System.IO (hGetLine, hFlush, hIsEOF, stdin, stdout)
 import Control.Monad (when, mapM)
 import Control.Monad.Error (throwError)
 import qualified Data.Map as Map
 import qualified Data.Traversable as DT
 
+import Readline (readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
@@ -33,8 +33,8 @@ apply_ast :: MalVal -> (Map.Map String MalVal) -> IO MalVal
 apply_ast ast@(MalList _) env = do
     el <- eval_ast ast env
     case el of
-         (MalList (MalFunc (FuncT f) : rest)) ->
-            return $ f $ MalList rest
+         (MalList (Func (Fn f) : rest)) ->
+            f $ rest
          el ->
             error $ "invalid apply: " ++ (show el)
 
@@ -51,23 +51,23 @@ mal_print exp = show exp
 
 -- repl
 add args = case args of
-    (MalList [MalNumber a, MalNumber b]) -> MalNumber $ a + b
+    [MalNumber a, MalNumber b] -> return $ MalNumber $ a + b
     _ -> error $ "illegal arguments to +"
 sub args = case args of
-    (MalList [MalNumber a, MalNumber b]) -> MalNumber $ a - b
+    [MalNumber a, MalNumber b] -> return $ MalNumber $ a - b
     _ -> error $ "illegal arguments to -"
 mult args = case args of
-    (MalList [MalNumber a, MalNumber b]) -> MalNumber $ a * b
+    [MalNumber a, MalNumber b] -> return $ MalNumber $ a * b
     _ -> error $ "illegal arguments to *"
 divd args = case args of
-    (MalList [MalNumber a, MalNumber b]) -> MalNumber $ a `div` b
+    [MalNumber a, MalNumber b] -> return $ MalNumber $ a `div` b
     _ -> error $ "illegal arguments to /"
 
 repl_env :: Map.Map String MalVal
-repl_env = Map.fromList [("+", _malfunc add),
-                         ("-", _malfunc sub),
-                         ("*", _malfunc mult),
-                         ("/", _malfunc divd)]
+repl_env = Map.fromList [("+", _func add),
+                         ("-", _func sub),
+                         ("*", _func mult),
+                         ("/", _func divd)]
 
 rep :: String -> IO String
 rep line = do
@@ -77,17 +77,16 @@ rep line = do
 
 repl_loop :: IO ()
 repl_loop = do
-    putStr "user> "
-    hFlush stdout
-    ineof <- hIsEOF stdin
-    when (not ineof) $ do
-        line <- hGetLine stdin
-        if null line
-            then repl_loop
-            else do
-                out <- catchAny (rep line) $ \e -> do
-                    return $ "Error: " ++ (show e)
-                putStrLn out
-                repl_loop
+    line <- readline "user> "
+    case line of
+        Nothing -> return ()
+        Just "" -> repl_loop
+        Just str -> do
+            out <- catchAny (rep str) $ \e -> do
+                return $ "Error: " ++ (show e)
+            putStrLn out
+            repl_loop
 
-main = repl_loop
+main = do
+    load_history
+    repl_loop

@@ -1,5 +1,6 @@
-import System.IO (hGetLine, hFlush, hIsEOF, stdin, stdout)
 import Control.Monad
+
+import Readline (readline, load_history)
 
 -- read
 mal_read str = str
@@ -14,15 +15,14 @@ mal_print exp = exp
 rep line = mal_print $ eval (mal_read line) ""
 
 repl_loop = do
-    putStr "user> "
-    hFlush stdout
-    ineof <- hIsEOF stdin
-    when (not ineof) $ do
-        line <- hGetLine stdin
-        if null line
-            then repl_loop
-            else do
-                putStrLn $ rep line
-                repl_loop
+    line <- readline "user> "
+    case line of
+        Nothing -> return ()
+        Just "" -> repl_loop
+        Just str -> do
+            putStrLn $ rep str
+            repl_loop
 
-main = repl_loop
+main = do
+    load_history
+    repl_loop

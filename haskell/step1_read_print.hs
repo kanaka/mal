@@ -1,7 +1,7 @@
-import System.IO (hGetLine, hFlush, hIsEOF, stdin, stdout)
 import Control.Monad (when)
 import Control.Monad.Error (throwError)
 
+import Readline (readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
@@ -26,17 +26,16 @@ rep line = do
 
 repl_loop :: IO ()
 repl_loop = do
-    putStr "user> "
-    hFlush stdout
-    ineof <- hIsEOF stdin
-    when (not ineof) $ do
-        line <- hGetLine stdin
-        if null line
-            then repl_loop
-            else do
-                out <- catchAny (rep line) $ \e -> do
-                    return $ "Error: " ++ (show e)
-                putStrLn out
-                repl_loop
+    line <- readline "user> "
+    case line of
+        Nothing -> return ()
+        Just "" -> repl_loop
+        Just str -> do
+            out <- catchAny (rep str) $ \e -> do
+                return $ "Error: " ++ (show e)
+            putStrLn out
+            repl_loop
 
-main = repl_loop
+main = do
+    load_history
+    repl_loop
