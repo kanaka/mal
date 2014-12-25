@@ -3,6 +3,8 @@ module Printer
 where
 
 import qualified Data.Map as Map
+import Data.IORef (readIORef)
+import System.IO.Unsafe (unsafePerformIO)
 
 import Types
 
@@ -30,15 +32,15 @@ _pr_str _     (MalString ('\x029e':str)) = ":" ++ str
 _pr_str True  (MalString str) = "\"" ++ concatMap unescape str ++ "\""
 _pr_str False (MalString str) = str
 _pr_str _     (MalSymbol name) = name
-_pr_str _     (MalKeyword name) = ":" ++ name
 _pr_str _     (MalNumber num) = show num
 _pr_str _     (MalTrue) = "true"
 _pr_str _     (MalFalse) = "false"
 _pr_str _     (Nil) = "nil"
-_pr_str pr    (MalList items) = "(" ++ (_pr_list pr " " items) ++ ")"
-_pr_str pr    (MalVector items) = "[" ++ (_pr_list pr " " items) ++ "]"
-_pr_str pr    (MalHashMap m) = "{" ++ (_pr_list pr " " (_flatTuples $ Map.assocs m)) ++ "}"
-_pr_str _     (Func f) = "#<function>"
+_pr_str pr    (MalList items _) = "(" ++ (_pr_list pr " " items) ++ ")"
+_pr_str pr    (MalVector items _) = "[" ++ (_pr_list pr " " items) ++ "]"
+_pr_str pr    (MalHashMap m _) = "{" ++ (_pr_list pr " " (_flatTuples $ Map.assocs m)) ++ "}"
+_pr_str pr    (MalAtom r _) = "(atom " ++ (_pr_str pr (unsafePerformIO (readIORef r))) ++ ")"
+_pr_str _     (Func f _) = "#<function>"
 _pr_str _     (MalFunc {ast=ast, env=fn_env, params=params}) = "(fn* " ++ (show params) ++ " " ++ (show ast) ++ ")"
 
 instance Show MalVal where show = _pr_str True

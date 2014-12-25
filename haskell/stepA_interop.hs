@@ -220,6 +220,7 @@ main = do
     env_set repl_env (MalSymbol "*ARGV*") (MalList [] Nil)
 
     -- core.mal: defined using the language itself
+    rep repl_env "(def! *host-language* \"haskell\")"
     rep repl_env "(def! not (fn* (a) (if a false true)))"
     rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
     rep repl_env "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
@@ -229,5 +230,6 @@ main = do
         env_set repl_env (MalSymbol "*ARGV*") (MalList (map MalString (drop 1 args)) Nil)
         rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")" 
         return ()
-    else 
+    else do
+        rep repl_env "(println (str \"Mal [\" *host-language* \"]\"))"
         repl_loop repl_env

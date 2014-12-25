@@ -18,22 +18,22 @@ eval_ast (MalSymbol sym) env = do
     case Map.lookup sym env of
          Nothing -> error $ "'" ++ sym ++ "' not found"
          Just v  -> return v
-eval_ast ast@(MalList lst) env = do
+eval_ast ast@(MalList lst m) env = do
     new_lst <- mapM (\x -> (eval x env)) lst
-    return $ MalList new_lst
-eval_ast ast@(MalVector lst) env = do
+    return $ MalList new_lst m
+eval_ast ast@(MalVector lst m) env = do
     new_lst <- mapM (\x -> (eval x env)) lst
-    return $ MalVector new_lst
-eval_ast ast@(MalHashMap lst) env = do
+    return $ MalVector new_lst m
+eval_ast ast@(MalHashMap lst m) env = do
     new_hm <- DT.mapM (\x -> (eval x env)) lst
-    return $ MalHashMap new_hm
+    return $ MalHashMap new_hm m
 eval_ast ast env = return ast
 
 apply_ast :: MalVal -> (Map.Map String MalVal) -> IO MalVal
-apply_ast ast@(MalList _) env = do
+apply_ast ast@(MalList _ _) env = do
     el <- eval_ast ast env
     case el of
-         (MalList (Func (Fn f) : rest)) ->
+         (MalList ((Func (Fn f) _) : rest) _) ->
             f $ rest
          el ->
             error $ "invalid apply: " ++ (show el)
@@ -41,7 +41,7 @@ apply_ast ast@(MalList _) env = do
 eval :: MalVal -> (Map.Map String MalVal) -> IO MalVal
 eval ast env = do
     case ast of
-         (MalList lst) -> apply_ast ast env
+         (MalList _ _) -> apply_ast ast env
          _             -> eval_ast ast env
 
 
@@ -50,18 +50,14 @@ mal_print :: MalVal -> String
 mal_print exp = show exp
 
 -- repl
-add args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a + b
-    _ -> error $ "illegal arguments to +"
-sub args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a - b
-    _ -> error $ "illegal arguments to -"
-mult args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a * b
-    _ -> error $ "illegal arguments to *"
-divd args = case args of
-    [MalNumber a, MalNumber b] -> return $ MalNumber $ a `div` b
-    _ -> error $ "illegal arguments to /"
+add [MalNumber a, MalNumber b] = return $ MalNumber $ a + b
+add _ = error $ "illegal arguments to +"
+sub [MalNumber a, MalNumber b] = return $ MalNumber $ a - b
+sub _ = error $ "illegal arguments to -"
+mult [MalNumber a, MalNumber b] = return $ MalNumber $ a * b
+mult _ = error $ "illegal arguments to *"
+divd [MalNumber a, MalNumber b] = return $ MalNumber $ a `div` b
+divd _ = error $ "illegal arguments to /"
 
 repl_env :: Map.Map String MalVal
 repl_env = Map.fromList [("+", _func add),

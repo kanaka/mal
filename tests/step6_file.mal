@@ -21,6 +21,7 @@
 (inc3 9)
 ;=>12
 
+;;; TODO: really a step5 test
 ;;
 ;; Testing that (do (do)) not broken by TCO
 (do (do 1 2))
@@ -36,6 +37,7 @@
 ;;
 ;; -------- Optional Functionality --------
 
+;; Testing comments in a file
 (load-file "../tests/incB.mal")
 ; "incB.mal finished"
 ;=>"incB.mal return string"
@@ -43,3 +45,13 @@
 ;=>11
 (inc5 7)
 ;=>12
+
+;;; TODO: really a step5 test
+;; Testing that vector params not broken by TCO
+(def! g (fn* [] 78))
+(g)
+;=>78
+(def! g (fn* [a] (+ a 78)))
+(g 3)
+;=>81
+

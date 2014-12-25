@@ -1,6 +1,9 @@
 module Types
 (MalVal (..), Fn (..), EnvData (..), Env,
- catchAny, _pairs, _func, _malfunc, _list_Q, _vector_Q, _hash_map_Q)
+ _get_call, _to_list,
+ catchAny, _func, _malfunc,
+ _nil_Q, _true_Q, _false_Q, _symbol_Q, _keyword_Q,
+ _list_Q, _vector_Q, _hash_map_Q, _atom_Q)
 where
 
 import Data.IORef (IORef)
@@ -16,16 +19,17 @@ data MalVal = Nil
             | MalNumber   Int
             | MalString   String
             | MalSymbol   String
-            | MalKeyword  String
-            | MalList     [MalVal]
-            | MalVector   [MalVal]
-            | MalHashMap  (Map.Map String MalVal)
-            | Func         Fn
-            | MalFunc      {fn :: Fn,
-                            ast :: MalVal,
-                            env :: Env,
-                            params :: MalVal,
-                            macro :: Bool}
+            | MalList     [MalVal] MalVal
+            | MalVector   [MalVal] MalVal
+            | MalHashMap  (Map.Map String MalVal) MalVal
+            | MalAtom     (IORef MalVal) MalVal
+            | Func        Fn MalVal
+            | MalFunc     {fn :: Fn,
+                           ast :: MalVal,
+                           env :: Env,
+                           params :: MalVal,
+                           macro :: Bool,
+                           meta :: MalVal}
 
 _equal_Q Nil Nil = True
 _equal_Q MalFalse MalFalse = True
@@ -33,11 +37,11 @@ _equal_Q MalTrue MalTrue = True
 _equal_Q (MalNumber a) (MalNumber b) = a == b
 _equal_Q (MalString a) (MalString b) = a == b
 _equal_Q (MalSymbol a) (MalSymbol b) = a == b
-_equal_Q (MalKeyword a) (MalKeyword b) = a == b
-_equal_Q (MalList a) (MalList b) = a == b
-_equal_Q (MalList a) (MalVector b) = a == b
-_equal_Q (MalVector a) (MalList b) = a == b
-_equal_Q (MalHashMap a) (MalHashMap b) = a == b
+_equal_Q (MalList a _) (MalList b _) = a == b
+_equal_Q (MalList a _) (MalVector b _) = a == b
+_equal_Q (MalVector a _) (MalList b _) = a == b
+_equal_Q (MalHashMap a _) (MalHashMap b _) = a == b
+_equal_Q (MalAtom a _) (MalAtom b _) = a == b
 _equal_Q _ _ = False
 
 instance Eq MalVal where
@@ -55,23 +59,13 @@ type Env = IORef EnvData
 
 -- General functions --
 
-_obj_type :: MalVal     -> String
-_obj_type (Nil)          = "nil"
-_obj_type (MalFalse)     = "false"
-_obj_type (MalTrue)      = "true"
-_obj_type (MalNumber _)  = "number"
-_obj_type (MalString _)  = "string"
-_obj_type (MalSymbol _)  = "symbol"
-_obj_type (MalList _)    = "list"
-_obj_type (MalVector _)  = "vector"
-_obj_type (MalHashMap _) = "hashmap"
-_obj_type (Func _)       = "function"
+_get_call ((Func (Fn f) _) : _) = return f
+_get_call (MalFunc {fn=(Fn f)} : _) = return f
+_get_call _ = error $ "first parameter is not a function "
 
--- TODO: propagate error properly
-_pairs [x] = error "Odd number of elements to _pairs"
-_pairs [] = []
-_pairs (MalString x:y:xs) = (x,y):_pairs xs
-_pairs (MalKeyword x:y:xs) = ("\x029e" ++ x,y):_pairs xs
+_to_list (MalList lst _) = return lst
+_to_list (MalVector lst _) = return lst
+_to_list _ = error $ "expected a MalList or MalVector"
 
 -- Errors
 
@@ -81,23 +75,48 @@ catchAny = CE.catch
 
 -- Functions
 
-_func fn = Func $ Fn fn
+_func fn = Func (Fn fn) Nil
+_func_meta fn meta = Func (Fn fn) meta
+
 _malfunc ast env params fn = MalFunc {fn=(Fn fn), ast=ast,
                                       env=env, params=params,
-                                      macro=False}
+                                      macro=False, meta=Nil}
+_malfunc_meta ast env params fn meta = MalFunc {fn=(Fn fn), ast=ast,
+                                                env=env, params=params,
+                                                macro=False, meta=meta}
+
+-- Scalars
+_nil_Q Nil = MalTrue
+_nil_Q _   = MalFalse
+
+_true_Q MalTrue = MalTrue
+_true_Q _       = MalFalse
+
+_false_Q MalFalse = MalTrue
+_false_Q _        = MalFalse
+
+_symbol_Q (MalSymbol _) = MalTrue
+_symbol_Q _             = MalFalse
+
+_keyword_Q (MalString ('\x029e':_)) = MalTrue
+_keyword_Q _                        = MalFalse
 
 -- Lists
 
-_list_Q (MalList _) = MalTrue
-_list_Q _           = MalFalse
+_list_Q (MalList _ _) = MalTrue
+_list_Q _             = MalFalse
 
 -- Vectors
 
-_vector_Q (MalVector _) = MalTrue
-_vector_Q _             = MalFalse
+_vector_Q (MalVector _ _) = MalTrue
+_vector_Q _               = MalFalse
 
 -- Hash Maps
 
-_hash_map_Q (MalHashMap _) = MalTrue
-_hash_map_Q _              = MalFalse
+_hash_map_Q (MalHashMap _ _) = MalTrue
+_hash_map_Q _                = MalFalse
 
+-- Atoms
+
+_atom_Q (MalAtom _ _) = MalTrue
+_atom_Q _             = MalFalse

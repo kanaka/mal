@@ -57,7 +57,7 @@ read_keyword :: Parser MalVal
 read_keyword = do
     char ':'
     x <- many (letter <|> digit <|> symbol)
-    return $ MalKeyword x
+    return $ MalString $ "\x029e" ++ x
 
 read_atom :: Parser MalVal
 read_atom =  read_number
@@ -70,52 +70,74 @@ read_list = do
     char '('
     x <- sepEndBy read_form ignored
     char ')'
-    return $ MalList x
+    return $ MalList x Nil
 
 read_vector :: Parser MalVal
 read_vector = do
     char '['
     x <- sepEndBy read_form ignored
     char ']'
-    return $ MalVector x
+    return $ MalVector x Nil
+
+-- TODO: propagate error properly
+_pairs [x] = error "Odd number of elements to _pairs"
+_pairs [] = []
+_pairs (MalString x:y:xs) = (x,y):_pairs xs
 
 read_hash_map :: Parser MalVal
 read_hash_map = do
     char '{'
     x <- sepEndBy read_form ignored
     char '}'
-    return $ MalHashMap $ Map.fromList $ _pairs x
+    return $ MalHashMap (Map.fromList $ _pairs x) Nil
 
+-- reader macros
 read_quote :: Parser MalVal
 read_quote = do
     char '\''
     x <- read_form
-    return $ MalList [MalSymbol "quote", x]
+    return $ MalList [MalSymbol "quote", x] Nil
 
 read_quasiquote :: Parser MalVal
 read_quasiquote = do
     char '`'
     x <- read_form
-    return $ MalList [MalSymbol "quasiquote", x]
+    return $ MalList [MalSymbol "quasiquote", x] Nil
 
 read_splice_unquote :: Parser MalVal
 read_splice_unquote = do
     char '~'
     char '@'
     x <- read_form
-    return $ MalList [MalSymbol "splice-unquote", x]
+    return $ MalList [MalSymbol "splice-unquote", x] Nil
 
 read_unquote :: Parser MalVal
 read_unquote = do
     char '~'
     x <- read_form
-    return $ MalList [MalSymbol "unquote", x]
+    return $ MalList [MalSymbol "unquote", x] Nil
 
+read_deref :: Parser MalVal
+read_deref = do
+    char '@'
+    x <- read_form
+    return $ MalList [MalSymbol "deref", x] Nil
+
+read_with_meta :: Parser MalVal
+read_with_meta = do
+    char '^'
+    m <- read_form
+    x <- read_form
+    return $ MalList [MalSymbol "with-meta", x, m] Nil
 
 read_macro :: Parser MalVal
 read_macro = read_quote
          <|> read_quasiquote
          <|> try read_splice_unquote <|> read_unquote
+         <|> read_deref
+         <|> read_with_meta
+
+--
 
 read_form :: Parser MalVal
 read_form =  do

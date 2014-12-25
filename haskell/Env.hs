@@ -31,7 +31,7 @@ env_bind envRef binds exprs = do
             _ <- mapM (\(b,e) -> env_set envRef b e) $
                 zip (take idx binds) (take idx exprs)
             _ <- env_set envRef (binds !! (idx + 1))
-                                (MalList (drop idx exprs))
+                                (MalList (drop idx exprs) Nil)
             return envRef
 
 {-
