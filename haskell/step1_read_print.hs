@@ -1,5 +1,5 @@
-import Control.Monad (when)
-import Control.Monad.Error (throwError)
+import System.IO (hFlush, stdout)
+import Control.Monad.Error (runErrorT)
 
 import Readline (readline, load_history)
 import Types
@@ -7,7 +7,7 @@ import Reader (read_str)
 import Printer (_pr_str)
 
 -- read
-mal_read :: String -> IO MalVal
+mal_read :: String -> IOThrows MalVal
 mal_read str = read_str str
 
 -- eval
@@ -19,7 +19,7 @@ mal_print :: MalVal -> String
 mal_print exp = show exp
 
 -- repl
-rep :: String -> IO String
+rep :: String -> IOThrows String
 rep line = do
     ast <- mal_read line
     return $ mal_print (eval ast "")
@@ -31,9 +31,13 @@ repl_loop = do
         Nothing -> return ()
         Just "" -> repl_loop
         Just str -> do
-            out <- catchAny (rep str) $ \e -> do
-                return $ "Error: " ++ (show e)
+            res <- runErrorT $ rep str
+            out <- case res of
+                Left (StringError str) -> return $ "Error: " ++ str
+                Left (MalValError mv) -> return $ "Error: " ++ (show mv)
+                Right val -> return val
             putStrLn out
+            hFlush stdout
             repl_loop
 
 main = do

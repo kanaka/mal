@@ -34,17 +34,6 @@ env_bind envRef binds exprs = do
                                 (MalList (drop idx exprs) Nil)
             return envRef
 
-{-
-isBound :: Env -> MalVal -> IO Bool
---isBound envRef var = readIORef envRef >>= return . maybe False (const True) . lookup var
-isBound envRef (MalSymbol key) = do
-    e <- readIORef envRef
-    case e of
-        EnvPair (o,m) -> case Map.lookup key m of
-                              Nothing -> return False
-                              Just _  -> return True
--}
-
 env_find :: Env -> MalVal -> IO (Maybe Env)
 env_find envRef sym@(MalSymbol key) = do
     e <- readIORef envRef
@@ -55,16 +44,16 @@ env_find envRef sym@(MalSymbol key) = do
                                                 Just o  -> env_find o sym
                                Just val -> return $ Just envRef
 
-env_get :: Env -> MalVal -> IO MalVal
+env_get :: Env -> MalVal -> IOThrows MalVal
 env_get envRef sym@(MalSymbol key) = do
     e1 <- liftIO $ env_find envRef sym
     case e1 of
-         Nothing   -> error $ "'" ++ key ++ "' not found"
+         Nothing   -> throwStr $ "'" ++ key ++ "' not found"
          Just eRef -> do
             e2 <- liftIO $ readIORef eRef
             case e2 of
                 EnvPair (o,m) -> case Map.lookup key m of
-                                      Nothing  -> error $ "env_get error"
+                                      Nothing  -> throwStr $ "env_get error"
                                       Just val -> return val
 
 

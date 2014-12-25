@@ -113,7 +113,9 @@ make
 ### Haskell
 
 Install the Haskell compiler (ghc/ghci), the Haskell platform and
-either the editline package (BSD) or the readline package (GPL).
+either the editline package (BSD) or the readline package (GPL). On
+Ubuntu these packages are: ghc, haskell-platform,
+libghc-readline-dev/libghc-editline-dev
 
 ```
 cd haskell

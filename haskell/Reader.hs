@@ -149,7 +149,7 @@ read_form =  do
      <|> read_atom
     return $ x
 
-read_str :: String -> IO MalVal
+read_str :: String -> IOThrows MalVal
 read_str str = case parse read_form "Mal" str of
-    Left err -> error $ show err
+    Left err -> throwStr $ show err
     Right val -> return val

@@ -10,6 +10,8 @@ import qualified System.Console.Readline as RL
 
 import System.Directory (getHomeDirectory)
 
+import System.IO (hGetLine, hFlush, hIsEOF, stdin, stdout)
+
 history_file = do
     home <- getHomeDirectory
     return $ home ++ "/.mal-history"

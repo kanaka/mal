@@ -1,4 +1,4 @@
-import Control.Monad
+import System.IO (hFlush, stdout)
 
 import Readline (readline, load_history)
 

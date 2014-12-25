@@ -1,7 +1,7 @@
 module Types
-(MalVal (..), Fn (..), EnvData (..), Env,
- _get_call, _to_list,
- catchAny, _func, _malfunc,
+(MalVal (..), MalError (..), IOThrows (..), Fn (..), EnvData (..), Env,
+ throwStr, throwMalVal, _get_call, _to_list,
+ _func, _malfunc,
  _nil_Q, _true_Q, _false_Q, _symbol_Q, _keyword_Q,
  _list_Q, _vector_Q, _hash_map_Q, _atom_Q)
 where
@@ -9,10 +9,11 @@ where
 import Data.IORef (IORef)
 import qualified Data.Map as Map
 import Control.Exception as CE
+import Control.Monad.Error (ErrorT, Error, noMsg, strMsg, throwError)
 
 
 -- Base Mal types --
-newtype Fn = Fn ([MalVal] -> IO MalVal)
+newtype Fn = Fn ([MalVal] -> IOThrows MalVal)
 data MalVal = Nil
             | MalFalse
             | MalTrue
@@ -48,6 +49,20 @@ instance Eq MalVal where
     x == y = _equal_Q x y
 
 
+--- Errors/Exceptions ---
+
+data MalError = StringError String
+              | MalValError MalVal
+
+type IOThrows = ErrorT MalError IO
+
+instance Error MalError where
+    noMsg = StringError "An error has occurred"
+    strMsg = StringError
+
+throwStr str = throwError $ StringError str
+throwMalVal mv = throwError $ MalValError mv
+
 -- Env types --
 -- Note: Env functions are in Env module
 data EnvData = EnvPair (Maybe Env, (Map.Map String MalVal))
@@ -61,17 +76,16 @@ type Env = IORef EnvData
 
 _get_call ((Func (Fn f) _) : _) = return f
 _get_call (MalFunc {fn=(Fn f)} : _) = return f
-_get_call _ = error $ "first parameter is not a function "
+_get_call _ = throwStr "_get_call first parameter is not a function "
 
 _to_list (MalList lst _) = return lst
 _to_list (MalVector lst _) = return lst
-_to_list _ = error $ "expected a MalList or MalVector"
+_to_list _ = throwStr "_to_list expected a MalList or MalVector"
 
 -- Errors
 
-catchAny :: IO a -> (CE.SomeException -> IO a) -> IO a
-catchAny = CE.catch
-
+--catchAny :: IO a -> (CE.SomeException -> IO a) -> IO a
+--catchAny = CE.catch
 
 -- Functions
 
