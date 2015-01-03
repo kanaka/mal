@@ -166,7 +166,6 @@ Env.set(repl_env, "eval", function(ast) EVAL(ast, repl_env))
 Env.set(repl_env, "*ARGV*", new.list())
 
 # core.mal: defined using the language itself
-. <- rep("(def! *host-language* \"R\")")
 . <- rep("(def! not (fn* (a) (if a false true)))")
 . <- rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 . <- rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -184,7 +183,6 @@ if (length(args) > 0) {
     quit(save="no", status=0)
 }
 
-. <- rep("(println (str \"Mal [\" *host-language* \"]\"))")
 repeat {
     line <- readline("user> ")
     if (is.null(line)) { cat("\n"); break }

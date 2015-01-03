@@ -339,7 +339,7 @@ Step Notes:
         - add nth, first, and rest to core.ns
         - make test^go^step8 should now pass
 
-- stepA_try
+- step9_try
     - core module:
         - throw function
         - apply, map functions: should not directly call EVAL, which

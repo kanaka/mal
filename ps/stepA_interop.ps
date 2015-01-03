@@ -150,8 +150,10 @@ end } def
             {
                 token not { exit } if
                 exch
+                count stackcnt sub 1 roll % send leftover string to bottom
+                exec
+                count stackcnt sub -1 roll % bring leftover string to top
             } loop
-            exec
             count stackcnt gt { % if new operands on stack
                 % return an list of new operands
                 count stackcnt sub array astore

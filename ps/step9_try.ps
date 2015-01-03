@@ -244,7 +244,6 @@ core_ns { _function _ref } forall
 (*ARGV*) [ ] _list_from_array _ref
 
 % core.mal: defined using the language itself
-(\(def! *host-language* "postscript"\)) RE pop
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 (\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop
@@ -261,7 +260,6 @@ userdict /ARGUMENTS known { %if command line arguments
 } if
 
 % repl loop
-(\(println \(str "Mal [" *host-language* "]"\)\)) RE pop
 { %loop
     (user> ) _readline
     not { exit } if  % exit if EOF

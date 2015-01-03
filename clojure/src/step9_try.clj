@@ -152,7 +152,6 @@
 (env/env-set repl-env '*ARGV* ())
 
 ;; core.mal: defined using the language itself
-(rep "(def! *host-language* \"clojure\")")
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* [f] (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -174,5 +173,4 @@
   (if args
     (rep (str "(load-file \"" (first args) "\")"))
     (do
-      (rep "(println (str \"Mal [\" *host-language* \"]\"))")
       (repl-loop))))

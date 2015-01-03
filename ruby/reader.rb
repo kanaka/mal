@@ -31,7 +31,7 @@ def read_atom(rdr)
     return case token
         when /^-?[0-9]+$/ then       token.to_i # integer
         when /^-?[0-9][0-9.]*$/ then token.to_f # float
-        when /^"/ then               parse_str(token) # string
+        when /^".*"$/ then           parse_str(token) # string
         when /^:/ then               "\u029e" + token[1..-1] # keyword
         when "nil" then              nil
         when "true" then             true
@@ -57,7 +57,6 @@ def read_list(rdr, klass, start="(", last =")")
 end
 
 def read_form(rdr)
-    token = rdr.peek
     return case rdr.peek
         when ";" then  nil
         when "'" then  rdr.next; List.new [:quote, read_form(rdr)]

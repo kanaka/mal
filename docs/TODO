@@ -1,14 +1,21 @@
 All:
-    - add license file
-    - add re (with rep) and use that (to avoid printing)
-    - keyword type (with hash-map key support)
-    - remove conj and sequential? as necessary elements
+    * keyword type (with hash-map key support)
+    - change perf test to run for 10 seconds and then calculate number
+      of iterations per second
     - redefine (defmacro!) as (def! (macro*))
+    - runtest expect fixes:
+        - stop using expect, so we can drop --raw option
+        - fix long lines in runtext/expect
+    - add license file
+    - add re (use in rep) everywhere and use that (to avoid printing)
+    - move conj and sequential? to core.mal
     - Move *host-language* from step9 to stepA
     - Implement/fix interop: C#, Java, Mal, PHP, Postscript, Ruby
-    - fix long lines in runtext/expect
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
+
+    - protocols!
+        - https://github.com/pixie-lang/pixie
 
     - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
@@ -36,8 +43,10 @@ C:
     - GC
 
 C#:
+    - fix command line arg processing (doesn't run file specified)
 
 Clojure:
+    - make indent consistent across steps (e.g. step5, step8)
 
 CoffeeScript:
     - make target to compile to JS
@@ -47,6 +56,8 @@ Go:
         https://gobyexample.com/variadic-functions
 
 Haskell:
+    - TCO using seq/bang patterns:
+      http://stackoverflow.com/questions/9149183/tail-optimization-guarantee-loop-encoding-in-haskell
 
 Java:
     - Use gradle instead of mvn
@@ -56,6 +67,8 @@ Javascript:
     - interop: callbacks using Mal functions
 
 Make:
+    - large number handling (move away from peano)
+        - then fix time-ms/perf.mal
     - allow '_' in make variable names
     - Fix: make -f stepA_interop.mk ../mal/step6_file.mal
         (slurp "../tests/incA.mal")
@@ -74,31 +87,24 @@ PHP:
 
 Postscript:
     - add negative numbers
+    - fix blank line after comments
 
 Python:
     - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
     - interop tests
 
 R:
+    - Links:
+        - https://stat.ethz.ch/R-manual/R-devel/library/base/html/readline.html
+        - http://dssm.unipa.it/CRAN/web/packages/rdyncall/rdyncall.pdf
+        - http://www.dyncall.org/docs/FFI.pdf
     - tracebacks in errors
+    - fix running from different directory
 
 Ruby:
 
 Rust:
-    - use built-in regex once fixed:
-        https://github.com/rust-lang/rust/issues/18034
-        https://github.com/rust-lang/rust/issues/18035
-
-VB.Net
-    - convert readline.cs to readline.vb
-
-
----------------------------------------------
-
-
-Future Implementations:
-
-    * Rust:
+    - Links:
         - http://doc.rust-lang.org/index.html
         - http://doc.rust-lang.org/intro.html
         - http://doc.rust-lang.org/guide.html
@@ -115,30 +121,60 @@ Future Implementations:
         - https://github.com/shaleh/rust-readline/blob/master/src/lib.rs
         - http://stackoverflow.com/questions/23942627/does-rust-0-10-have-a-rl-package
         - http://blog.skylight.io/rust-means-never-having-to-close-a-socket/
-    * R
-        - https://stat.ethz.ch/R-manual/R-devel/library/base/html/readline.html
-        - http://dssm.unipa.it/CRAN/web/packages/rdyncall/rdyncall.pdf
-        - http://www.dyncall.org/docs/FFI.pdf
+    - use built-in regex once fixed:
+        https://github.com/rust-lang/rust/issues/18034
+        https://github.com/rust-lang/rust/issues/18035
+
+Racket
+    - metadata on collections
+
+Scala
+    - aptitude install scala
+    - http://learnxinyminutes.com/docs/scala/
+    - readline
+
+VB.Net
+    - aptitude install mono-vbnc
+    - http://www.codeproject.com/Articles/9978/Complete-Comparison-for-VB-NET-and-C
+    - http://msdn.microsoft.com/en-us/library/8hb2a397.aspx
+    - convert readline.cs to readline.vb
+
+
+---------------------------------------------
+
+
+Future Implementations:
+
+    - Ada (gnat)
+        - http://rosettacode.org/wiki/Regular_expressions#Ada
+
+    - C++
 
     - Groovy
         - http://groovy-lang.org/learn.html
         - http://groovy-lang.org/structure.html
 
-    - Scala
-        - aptitude install scala
-        - http://learnxinyminutes.com/docs/scala/
+    - Erlang
 
-    - Visual Basic
-        aptitude install mono-vbnc
+    - F#
+
+    - Haxe
+        - http://api.haxe.org/
+        - http://haxe.us/haxe_tutorial.html
+
+    - Lua
+
+    - Objective-C:
+
+    - Pascal:
+        sudo aptitude install fp-compiler-2.6.2
 
     - VimL
         - https://github.com/tpope/timl
+
+    - Tcl
 
     - TeX/LaTeX
         - Basic interpreter in TeX: http://ctanhg.scharrer-online.de/pkg/basix.html
         - Cheat Sheet: http://www.stdout.org/~winston/latex/latexsheet.pd
         - latex '\nonstopmode\input' blah.tex
-
-    - VB.Net
-        http://www.codeproject.com/Articles/9978/Complete-Comparison-for-VB-NET-and-C
-        http://msdn.microsoft.com/en-us/library/8hb2a397.aspx
