@@ -35,6 +35,12 @@ x
 ;;
 ;; -------- Optional Functionality --------
 
+;; Testing let* with vector bindings
+(let* [z 9] z)
+;=>9
+(let* [p (+ 2 3) q (+ 2 p)] (+ p q))
+;=>12
+
 ;; Testing vector evaluation
 (let* (a 5 b 6) [3 4 a [b 7] 8])
 ;=>[3 4 5 [6 7] 8]

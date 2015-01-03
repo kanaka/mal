@@ -60,6 +60,22 @@ abc-def
 (1 2, 3,,,,),,
 ;=>(1 2 3)
 
+;; Testing read of quoting
+'1
+;=>(quote 1)
+'(1 2 3)
+;=>(quote (1 2 3))
+`1
+;=>(quasiquote 1)
+`(1 2 3)
+;=>(quasiquote (1 2 3))
+~1
+;=>(unquote 1)
+~(1 2 3)
+;=>(unquote (1 2 3))
+~@(1 2 3)
+;=>(splice-unquote (1 2 3))
+
 ;;
 ;; Testing reader errors
 ;;; TODO: fix these so they fail correctly
@@ -106,23 +122,6 @@ abc-def
 ;=>1
 1; comment after expression
 ;=>1
-
-;; Testing read of quoting
-'1
-;=>(quote 1)
-'(1 2 3)
-;=>(quote (1 2 3))
-`1
-;=>(quasiquote 1)
-`(1 2 3)
-;=>(quasiquote (1 2 3))
-~1
-;=>(unquote 1)
-~(1 2 3)
-;=>(unquote (1 2 3))
-~@(1 2 3)
-;=>(splice-unquote (1 2 3))
-
 
 ;; Testing read of ^/metadata
 ^{"a" 1} [1 2 3]

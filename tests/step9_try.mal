@@ -1,6 +1,9 @@
 ;;
 ;; Testing try*/catch*
 
+(try* 123 (catch* e 456))
+;=>123
+
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc))))
 ; "exc is:" "'abc' not found"
 ;=>nil
@@ -10,8 +13,8 @@
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
 
-(try* (throw ["data" "foo"]) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" ["data" "foo"]
+(try* (throw (list "data" "foo")) (catch* exc (do (prn "err:" exc) 7)))
+; "err:" ("data" "foo")
 ;=>7
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
@@ -61,7 +64,7 @@
 ;=>6
 (map double nums) 
 ;=>(2 4 6)
-(map (fn* [x] (symbol? x)) (list 1 (symbol "two") "three"))
+(map (fn* (x) (symbol? x)) (list 1 (symbol "two") "three"))
 ;=>(false true false)
 
 ;;
@@ -86,7 +89,8 @@
 ;=>"\"hello\""
 
 ;;
-;; -------- Optional Functionality --------
+;; ------- Optional Functionality ----------
+;; ------- (Needed for self-hosting) -------
 
 ;; Testing symbol and keyword functions
 (symbol? :abc)
@@ -118,6 +122,11 @@
 ;=>false
 (sequential? "abc")
 ;=>false
+
+
+;; Testing map function with vectors
+(map (fn* (a) (* 2 a)) [1 2 3])
+;=>(2 4 6)
 
 ;; Testing vector functions
 
@@ -242,58 +251,21 @@
 
 
 ;;
-;; Testing conj function
-(conj (list) 1)
-;=>(1)
-(conj (list 1) 2)
-;=>(2 1)
-(conj (list 2 3) 4)
-;=>(4 2 3)
-(conj (list 2 3) 4 5 6)
-;=>(6 5 4 2 3)
-(conj (list 1) (list 2 3))
-;=>((2 3) 1)
-
-(conj [] 1)
-;=>[1]
-(conj [1] 2)
-;=>[1 2]
-(conj [2 3] 4)
-;=>[2 3 4]
-(conj [2 3] 4 5 6)
-;=>[2 3 4 5 6]
-(conj [1] [2 3])
-;=>[1 [2 3]]
+;; Testing metadata on functions
 
 ;;
-;; Testing metadata
-(meta [1 2 3])
-;=>nil
+;; Testing metadata on mal functions
 
 (meta (fn* (a) a))
 ;=>nil
 
-(with-meta [1 2 3] {"a" 1})
-;=>[1 2 3]
+(meta (with-meta (fn* (a) a) {"b" 1}))
+;=>{"b" 1}
 
-(meta (with-meta [1 2 3] {"a" 1}))
-;=>{"a" 1}
-
-(meta (with-meta [1 2 3] "abc"))
+(meta (with-meta (fn* (a) a) "abc"))
 ;=>"abc"
 
-(meta (with-meta (list 1 2 3) {"a" 1}))
-;=>{"a" 1}
-
-(meta (with-meta {"abc" 123} {"a" 1}))
-;=>{"a" 1}
-
-;;; Not actually supported by Clojure
-;;;(meta (with-meta (atom 7) {"a" 1}))
-;;;;=>{"a" 1}
-
-(def! l-wm (with-meta [4 5 6] {"b" 2}))
-;=>[4 5 6]
+(def! l-wm (with-meta (fn* (a) a) {"b" 2}))
 (meta l-wm)
 ;=>{"b" 2}
 
@@ -312,19 +284,9 @@
 (meta f-wm)
 ;=>{"abc" 1}
 
-
 (def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
 (meta f-wm2)
 ;=>{"abc" 1}
-
-;; Testing metadata on builtin functions
-(meta +)
-;=>nil
-(def! f-wm3 ^{"def" 2} +)
-(meta f-wm3)
-;=>{"def" 2}
-(meta +)
-;=>nil
 
 ;;
 ;; Make sure closures and metadata co-exist
@@ -392,4 +354,79 @@
 ;=>8
 (f)
 ;=>9
+
+
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+;;
+;; Testing conj function
+(conj (list) 1)
+;=>(1)
+(conj (list 1) 2)
+;=>(2 1)
+(conj (list 2 3) 4)
+;=>(4 2 3)
+(conj (list 2 3) 4 5 6)
+;=>(6 5 4 2 3)
+(conj (list 1) (list 2 3))
+;=>((2 3) 1)
+
+(conj [] 1)
+;=>[1]
+(conj [1] 2)
+;=>[1 2]
+(conj [2 3] 4)
+;=>[2 3 4]
+(conj [2 3] 4 5 6)
+;=>[2 3 4 5 6]
+(conj [1] [2 3])
+;=>[1 [2 3]]
+
+
+;;
+;; Testing metadata on collections
+
+(meta [1 2 3])
+;=>nil
+
+(with-meta [1 2 3] {"a" 1})
+;=>[1 2 3]
+
+(meta (with-meta [1 2 3] {"a" 1}))
+;=>{"a" 1}
+
+(meta (with-meta [1 2 3] "abc"))
+;=>"abc"
+
+(meta (with-meta (list 1 2 3) {"a" 1}))
+;=>{"a" 1}
+
+(meta (with-meta {"abc" 123} {"a" 1}))
+;=>{"a" 1}
+
+;;; Not actually supported by Clojure
+;;;(meta (with-meta (atom 7) {"a" 1}))
+;;;;=>{"a" 1}
+
+(def! l-wm (with-meta [4 5 6] {"b" 2}))
+;=>[4 5 6]
+(meta l-wm)
+;=>{"b" 2}
+
+(meta (with-meta l-wm {"new_meta" 123}))
+;=>{"new_meta" 123}
+(meta l-wm)
+;=>{"b" 2}
+
+;;
+;; Testing metadata on builtin functions
+(meta +)
+;=>nil
+(def! f-wm3 ^{"def" 2} +)
+(meta f-wm3)
+;=>{"def" 2}
+(meta +)
+;=>nil
 

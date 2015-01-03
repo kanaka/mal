@@ -1,0 +1,38 @@
+--- step3_env -----------------------------------
+import types, reader, printer, env
+
+READ(str): return reader.read_str(str)
+
+eval_ast(ast,env):
+  switch type(ast):
+    symbol:      return env.get(ast)
+    list,vector: return ast.map((x) -> EVAL(x,env))
+    hash:        return ast.map((k,v) -> list(k, EVAL(v,env)))
+    _default_:   return ast
+
+EVAL(ast,env):
+    if not list?(ast): return eval_ast(ast, env)
+    switch ast[0]:
+      'def!:        return env.set(ast[1], EVAL(ast[2], env))
+      'let*:        return EVAL(ast[2], ...)
+      _default_:    f, args = eval_ast(ast, env)
+                    return apply(f, args)
+
+PRINT(exp): return printer.pr_str(exp)
+
+repl_env = new Env()
+rep(str): return PRINT(EVAL(READ(str),repl_env))
+
+repl_env.set('+, add_fn)
+    ...
+
+main loop:
+  try:      println(rep(readline("user> ")))
+  catch e:  println("Error: ", e)
+
+--- env module ----------------------------------
+class Env (outer=null)
+    data = hash_map()
+  set(k,v): return data.set(k,v)
+  find(k): return data.has(k) ? this : (if outer ? find(outer) : null)
+  get(k): return data.find(k).get(k) OR raise "'" + k + "' not found"

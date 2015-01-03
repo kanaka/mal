@@ -1,0 +1,14 @@
+--- step1_read_print ----------------------------
+import reader, printer
+
+READ(str): return reader.read_str(str)
+
+EVAL(ast,env): return ast
+
+PRINT(exp): return printer.pr_str(exp)
+
+rep(str): return PRINT(EVAL(READ(str),""))
+
+main loop:
+  try:      println(rep(readline("user> ")))
+  catch e:  println("Error: ", e)

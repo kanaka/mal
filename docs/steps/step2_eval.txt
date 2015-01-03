@@ -1,0 +1,25 @@
+--- step2_eval ----------------------------------
+import types, reader, printer
+
+READ(str): return reader.read_str(str)
+
+eval_ast(ast,env):
+  switch type(ast):
+    symbol:      return lookup(env, ast) OR raise "'" + ast + "' not found"
+    list,vector: return ast.map((x) -> EVAL(x,env))
+    hash:        return ast.map((k,v) -> list(k, EVAL(v,env)))
+    _default_:   return ast
+
+EVAL(ast,env):
+    if not list?(ast): return eval_ast(ast, env)
+    f, args = eval_ast(ast, env)
+    return apply(f, args)
+
+PRINT(exp): return printer.pr_str(exp)
+
+repl_env = {'+: add_fn, ...}
+rep(str): return PRINT(EVAL(READ(str),repl_env))
+
+main loop:
+  try:      println(rep(readline("user> ")))
+  catch e:  println("Error: ", e)

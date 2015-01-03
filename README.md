@@ -4,7 +4,7 @@
 
 Mal is an Clojure inspired Lisp interpreter.
 
-Mal is implemented in 20 different languages:
+Mal is implemented in 21 different languages:
 
 * Bash shell
 * C
@@ -22,6 +22,7 @@ Mal is implemented in 20 different languages:
 * Postscript
 * Python
 * R
+* Racket
 * Ruby
 * Rust
 * Scala
@@ -208,7 +209,17 @@ The R implementation of mal requires R (r-base-core) to run.
 ```
 cd r
 make libs
-Rscript stepX_YYY.rb
+Rscript stepX_YYY.r
+```
+
+### Racket (5.3)
+
+The Racket implementation of mal requires the Racket
+compiler/interpreter to run.
+
+```
+cd racket
+./stepX_YYY.rb
 ```
 
 ### Ruby (1.8)

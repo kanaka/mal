@@ -1,0 +1,11 @@
+--- step0_repl ----------------------------------
+READ(str): return str
+
+EVAL(ast,any): return ast
+
+PRINT(exp): return exp
+
+rep(str): return PRINT(EVAL(READ(str),""))
+
+main loop: println(rep(readline("user> ")))
+

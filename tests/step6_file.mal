@@ -46,6 +46,11 @@
 (inc5 7)
 ;=>12
 
+;; Testing map literal across multiple lines in a file
+(load-file "../tests/incC.mal")
+mymap
+;=>{"a" 1}
+
 ;;; TODO: really a step5 test
 ;; Testing that vector params not broken by TCO
 (def! g (fn* [] 78))

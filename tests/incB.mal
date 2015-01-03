@@ -3,10 +3,6 @@
 (def! inc5 (fn* (a)  ;; a comment after code
   (+ 5 a)))
 
-;; Test map split across lines
-(def! mymap {"a"
-             1})
-
 (prn "incB.mal finished")
 "incB.mal return string"
 
