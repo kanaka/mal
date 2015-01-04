@@ -40,6 +40,8 @@ abc-def
 ;=>"abc\"def"
 ;;;"abc\ndef"
 ;;;;=>"abc\ndef"
+""
+;=>""
 
 
 ;; Testing read of lists

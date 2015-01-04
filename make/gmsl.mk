@@ -47,66 +47,13 @@ __mal_gmsl_included := true
 #
 # ----------------------------------------------------------------------------
 
-
-# Numbers
-__gmsl_sixteen := x x x x x x x x x x x x x x x x
-__gmsl_input_int := $(foreach a,$(__gmsl_sixteen),         \
-                        $(foreach b,$(__gmsl_sixteen),     \
-                            $(foreach c,$(__gmsl_sixteen), \
-                                $(__gmsl_sixteen)))))
-
-int_decode = $(words $1)
-int_encode = $(wordlist 1,$1,$(__gmsl_input_int))
-
-__gmsl_int_wrap = $(call int_decode,$(call $1,$(call int_encode,$2),$(call int_encode,$3)))
-
-int_plus = $(strip $1 $2)
-int_subtract = $(strip $(if $(call int_gte,$1,$2), \
-                $(filter-out xx,$(join $1,$2)),    \
-                $(warning Subtraction underflow)))
-int_multiply = $(strip $(foreach a,$1,$2))
-# _error function must be provided to report/catch division by zero
-int_divide = $(strip $(if $2,                                              \
-                 $(if $(call int_gte,$1,$2),                               \
-                     x $(call int_divide,$(call int_subtract,$1,$2),$2),), \
-                 $(call _error,Division by zero)))
-
-int_max = $(subst xx,x,$(join $1,$2))
-int_min = $(subst xx,x,$(filter xx,$(join $1,$2)))
-int_gt = $(strip $(filter-out $(words $2),$(words $(call int_max,$1,$2))))
-int_gte = $(strip $(call int_gt,$1,$2)$(call int_eq,$1,$2))
-int_lt = $(strip $(filter-out $(words $1),$(words $(call int_max,$1,$2))))
-int_lte = $(strip $(call int_lt,$1,$2)$(call int_eq,$1,$2))
-int_eq = $(strip $(filter $(words $1),$(words $2)))
-int_ne = $(strip $(filter-out $(words $1),$(words $2)))
-
-gmsl_plus = $(call __gmsl_int_wrap,int_plus,$1,$2)
-gmsl_subtract = $(call __gmsl_int_wrap,int_subtract,$1,$2)
-gmsl_multiply = $(call __gmsl_int_wrap,int_multiply,$1,$2)
-gmsl_divide = $(call __gmsl_int_wrap,int_divide,$1,$2)
-
-
 # Strings
 
-__gmsl_characters := A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
-__gmsl_characters += a b c d e f g h i j k l m n o p q r s t u v w x y z
-__gmsl_characters += 0 1 2 3 4 5 6 7 8 9
-__gmsl_characters += ` ~ ! @ \# $$ % ^ & * ( ) - _ = +
-__gmsl_characters += { } [ ] \ : ; ' " < > , . / ? |
-__syntax_highlight_protect = #"'`
-
-
-__gmsl_space := 
-__gmsl_space +=
-
-gmsl_strlen = $(strip $(eval __temp := $(subst $(__gmsl_space),x,$1)) \
-                $(foreach a,$(__gmsl_characters),$(eval __temp := $$(subst $$a,x,$(__temp)))) \
-                $(eval __temp := $(subst x,x ,$(__temp))) \
-                $(words $(__temp)))
-
-gmsl_merge = $(strip $(if $2, \
-               $(if $(call _EQ,1,$(words $2)), \
-                  $2,$(firstword $2)$1$(call gmsl_merge,$1,$(wordlist 2,$(words $2),$2)))))
+gmsl_characters := A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+gmsl_characters += a b c d e f g h i j k l m n o p q r s t u v w x y z
+gmsl_characters += 0 1 2 3 4 5 6 7 8 9
+gmsl_characters += ` ~ ! @ \# $$ % ^ & * ( ) - _ = +
+gmsl_characters += { } [ ] \ : ; ' " < > , . / ? |
 
 gmsl_pairmap = $(strip \
                  $(if $2$3,$(call $1,$(word 1,$2),$(word 1,$3))     \

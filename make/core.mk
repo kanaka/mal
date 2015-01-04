@@ -43,18 +43,17 @@ keyword? = $(if $(call _keyword?,$(1)),$(__true),$(__false))
 # Number functions
 number? = $(if $(call _number?,$(1)),$(__true),$(__false))
 
-number_lt = $(if $(call int_lt,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
-number_lte = $(if $(call int_lte,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
-number_gt = $(if $(call int_gt,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
-number_gte = $(if $(call int_gte,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
+number_lt = $(if $(call int_lt_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
+number_lte = $(if $(call int_lte_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
+number_gt = $(if $(call int_gt_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
+number_gte = $(if $(call int_gte_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)),$(__true),$(__false))
 
-number_plus = $(call _pnumber,$(call int_plus,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
-number_subtract = $(call _pnumber,$(call int_subtract,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
-number_multiply = $(call _pnumber,$(call int_multiply,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
-number_divide = $(call _pnumber,$(call int_divide,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
+number_plus = $(call _pnumber,$(call int_add_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
+number_subtract = $(call _pnumber,$(call int_sub_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
+number_multiply = $(call _pnumber,$(call int_mult_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
+number_divide = $(call _pnumber,$(call int_div_encoded,$($(word 1,$(1))_value),$($(word 2,$(1))_value)))
 
-time_secs = $(call _number,$(shell echo $$(( $$(date +%s) % 65536 ))))
-
+time_ms = $(call _number,$(shell echo $$(date +%s%3N)))
 
 # String functions
 
@@ -70,7 +69,7 @@ read_str= $(call READ_STR,$(1))
 slurp   = $(call _string,$(call _read_file,$(call str_decode,$($(1)_value))))
 
 subs = $(strip \
-         $(foreach start,$(call gmsl_plus,1,$(call int_decode,$($(word 2,$(1))_value))),\
+         $(foreach start,$(call int_add,1,$(call int_decode,$($(word 2,$(1))_value))),\
            $(foreach end,$(if $(3),$(call int_decode,$($(3)_value)),$(words $($(word 1,$(1))_value))),\
              $(call _string,$(wordlist $(start),$(end),$($(word 1,$(1))_value))))))
 
@@ -133,7 +132,7 @@ concat = $(word 1,$(foreach new_list,$(call _list),$(new_list) $(eval $(new_list
 
 nth = $(strip \
         $(if $(call int_lt,$($(word 2,$(1))_value),$(call int_encode,$(call _count,$(word 1,$(1))))),\
-          $(word $(call gmsl_plus,1,$(call int_decode,$($(word 2,$(1))_value))),$($(word 1,$(1))_value)),\
+          $(word $(call int_add,1,$(call int_decode,$($(word 2,$(1))_value))),$($(word 1,$(1))_value)),\
           $(call _error,nth: index out of range)))
 
 sfirst = $(word 1,$($(1)_value))
@@ -162,7 +161,7 @@ srest = $(word 1,$(foreach new_list,$(call _list),\
 # (function object) using the remaining arguments.
 sapply = $(call $(word 1,$(1))_value,\
                 $(strip \
-                  $(wordlist 2,$(call gmsl_subtract,$(words $(1)),1),$(1)) \
+                  $(wordlist 2,$(call int_sub,$(words $(1)),1),$(1)) \
                   $($(word $(words $(1)),$(1))_value)))
 
 # Map a function object over a list object
@@ -240,7 +239,7 @@ core_ns = type obj_type \
           - number_subtract \
           * number_multiply \
           / number_divide \
-          time-secs time_secs \
+          time-ms time_ms \
           \
           list _list \
           list? list? \
