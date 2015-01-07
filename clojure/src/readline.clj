@@ -27,7 +27,8 @@
   (def load-history (jna/to-fn Integer readline/read_history)))
 
 (defn readline [prompt & [lib]]
-  (if (not @history-loaded)
+  (when (not @history-loaded)
+    (reset! history-loaded true)
     (load-history HISTORY-FILE))
   (let [line (readline-call prompt)]
     (when line
