@@ -1,5 +1,6 @@
 All:
     * keyword type (with hash-map key support)
+    * Move *host-language* from step9 to stepA
     - change perf test to run for 10 seconds and then calculate number
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
@@ -9,7 +10,6 @@ All:
     - add license file
     - add re (use in rep) everywhere and use that (to avoid printing)
     - move conj and sequential? to core.mal
-    - Move *host-language* from step9 to stepA
     - Implement/fix interop: C#, Java, Mal, PHP, Postscript, Ruby
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
@@ -27,7 +27,6 @@ All:
     - multi-line REPL read
     - loop/recur ?
     - hash-maps with non-string keys
-    - hash-map with space in key string (make)
     - gensym reader inside quasiquote
 
     - per impl tests for step5_tco (if possible)
@@ -67,9 +66,10 @@ Javascript:
     - interop: callbacks using Mal functions
 
 Make:
-    - large number handling (move away from peano)
-        - then fix time-ms/perf.mal
+    * large number handling (move away from peano)
+        * then fix time-ms/perf.mal
     - allow '_' in make variable names
+    - hash-map with space in key string
     - Fix: make -f stepA_interop.mk ../mal/step6_file.mal
         (slurp "../tests/incA.mal")
         (read-string "(+ 2 3)")
@@ -92,6 +92,7 @@ Postscript:
 Python:
     - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
     - interop tests
+    - python3 compatibility
 
 R:
     - Links:
