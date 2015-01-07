@@ -1,4 +1,15 @@
 import sys, copy, types as pytypes
+
+# python 3.0 differences
+if sys.hexversion > 0x3000000:
+    def u(x):
+        return x
+else:
+    import codecs
+    def u(x):
+        return codecs.unicode_escape_decode(x)[0]
+
+
 if sys.version_info[0] >= 3:
     str_types = [str]
 else:
@@ -61,9 +72,10 @@ def _symbol_Q(exp): return type(exp) == Symbol
 # Keywords
 # A specially prefixed string
 def _keyword(str):
-    if str[0] == u"\u029e": return str
-    else:                   return u"\u029e" + str
-def _keyword_Q(exp): return _string_Q(exp) and exp[0] == u"\u029e"
+    if str[0] == u("\u029e"): return str
+    else:                     return u("\u029e") + str
+def _keyword_Q(exp):
+    return _string_Q(exp) and exp[0] == u("\u029e")
 
 # Functions
 def _function(Eval, Env, ast, env, params):
