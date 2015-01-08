@@ -22,7 +22,7 @@ language. Mal is implemented from scratch in 15 different languages:
 * Rust
 
 
-Mal is also a learning tool. Each implentation of mal is separated
+Mal is also a learning tool. Each implementation of mal is separated
 into 11 incremental, self-contained (and testable) steps that
 demonstrate core concepts of Lisp. The last step is capable of
 self-hosting (running the mal implemenation of mal).
