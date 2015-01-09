@@ -4,7 +4,7 @@
 
 Mal is an Clojure inspired Lisp interpreter.
 
-Mal is implemented in 21 different languages:
+Mal is implemented in 22 different languages:
 
 * Bash shell
 * C
@@ -15,6 +15,7 @@ Mal is implemented in 21 different languages:
 * Haskell
 * Java
 * Javascript ([Online Demo](http://kanaka.github.io/mal))
+* Lua
 * GNU Make
 * mal itself
 * Perl
@@ -148,6 +149,17 @@ npm update
 node stepX_YYY.js
 ```
 
+### Lua
+
+Running the Lua implementations of mal requires lua 5.1 or later,
+luarocks and the lua-rex-pcre library installed.
+
+```
+cd lua
+make  # to build and link linenoise.so
+./stepX_YYY.lua
+```
+
 ### Mal
 
 Running the mal implementation of mal involves running stepA of one of
@@ -211,7 +223,7 @@ The R implementation of mal requires R (r-base-core) to run.
 
 ```
 cd r
-make libs
+make libs  # to download and build rdyncall
 Rscript stepX_YYY.r
 ```
 

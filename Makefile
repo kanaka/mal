@@ -10,8 +10,8 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cs go haskell java js make mal perl \
-	php ps python r racket ruby rust scala vb
+IMPLS = bash c clojure coffee cs go haskell java js lua make mal \
+	perl php ps python r racket ruby rust scala vb
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -57,6 +57,7 @@ go_STEP_TO_PROG =      go/$($(1))
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 haskell_STEP_TO_PROG = haskell/$($(1))
 js_STEP_TO_PROG =      js/$($(1)).js
+lua_STEP_TO_PROG =     lua/$($(1)).lua
 make_STEP_TO_PROG =    make/$($(1)).mk
 mal_STEP_TO_PROG =     mal/$($(1)).mal
 perl_STEP_TO_PROG =    perl/$($(1)).pl
@@ -80,6 +81,7 @@ go_RUNSTEP =      ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.args="--raw$(if $(3), $(3),)"
 js_RUNSTEP =      node ../$(2) $(3)
+lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 perl_RUNSTEP =    perl ../$(2) --raw $(3)

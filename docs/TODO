@@ -1,18 +1,22 @@
 All:
+    - test to check args set properly
+    - test to make sure slurp captures final newline
+    - make sure errors propagate/print properly when self-hosted
+
     - change perf test to run for 10 seconds and then calculate number
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
     - runtest expect fixes:
         - stop using expect, so we can drop --raw option
         - fix long lines in runtext/expect
-    - add re (use in rep) everywhere and use that (to avoid printing)
-    - move conj and sequential? to core.mal
-    - Implement/fix interop
     - regular expression matching in runtest
+    - add re (use in rep) everywhere and use that (to avoid printing)
+    - Implement/fix interop
     - Print full exception when test gets EOF from expect
 
     - protocols!
         - https://github.com/pixie-lang/pixie
+        - http://www.toccata.io/2015/01/Mapping/
 
     - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
@@ -23,10 +27,9 @@ All:
 
     - multi-line REPL read
     - loop/recur ?
-    - hash-maps with non-string keys
     - gensym reader inside quasiquote
 
-    - per impl tests for step5_tco (if possible)
+    - per impl tests for step5_tco
 
 ---------------------------------------------
 
@@ -37,15 +40,19 @@ Bash:
 C:
     - come up with better way to do 20 vararg code
     - GC
+    - fix mal/clojurewest2014.mal
 
 C#:
     - fix command line arg processing (doesn't run file specified)
+    - accumulates line breaks with mal/clojurewest2014.mal
 
 Clojure:
     - make indent consistent across steps (e.g. step5, step8)
+    - fix mal/clojurewest2014.mal
 
 CoffeeScript:
     - make target to compile to JS
+    - fix "user> " prompt with mal/clojurewest2014.mal
 
 Go:
     - consider variable arguments in places where it makes sense
@@ -54,13 +61,19 @@ Go:
 Haskell:
     - TCO using seq/bang patterns:
       http://stackoverflow.com/questions/9149183/tail-optimization-guarantee-loop-encoding-in-haskell
+    - immediately exits mal/clojurewest2014.mal
 
 Java:
     - Use gradle instead of mvn
         http://blog.paralleluniverse.co/2014/05/01/modern-java/
+    - MAL formatting is a bit off with mal/clojurewest2014.mal
 
 Javascript:
     - interop: callbacks using Mal functions
+    - fix "user> " prompt with mal/clojurewest2014.mal
+
+Lua:
+    - time-ms should get actual milliseconds
 
 Make:
     - allow '_' in make variable names
@@ -69,6 +82,7 @@ Make:
         (slurp "../tests/incA.mal")
         (read-string "(+ 2 3)")
     - errors should propagate up from within load-file
+    - GC: expore using "undefined" directive in Make 3.82
 
 Mal:
     - line numbers in errors
@@ -79,19 +93,25 @@ Perl:
     - implement conj
 
 PHP:
+    - formatting messed up with mal/clojurewest2014.mal
 
 Postscript:
     - add negative numbers
     - fix blank line after comments
+    - fix command line arg processing (doesn't run file specified)
+    - formatting messed up with mal/clojurewest2014.mal
 
 Python:
     - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
     - interop tests
-    - python3 compatibility
 
 R:
     - tracebacks in errors
     - fix running from different directory
+    - formatting messed up with mal/clojurewest2014.mal
+
+Racket
+    - metadata on collections
 
 Ruby:
 
@@ -99,12 +119,12 @@ Rust:
     - use built-in regex once fixed:
         https://github.com/rust-lang/rust/issues/18034
         https://github.com/rust-lang/rust/issues/18035
-
-Racket
-    - metadata on collections
+    - fix 'make all' invocation of cargo build
+    - formatting messed up with mal/clojurewest2014.mal
 
 Scala
     - readline
+    - fix exception when finished running something on command line
 
 VB.Net
     - convert readline.cs to readline.vb
@@ -131,8 +151,6 @@ Future Implementations:
     - Haxe
         - http://api.haxe.org/
         - http://haxe.us/haxe_tutorial.html
-
-    - Lua
 
     - Objective-C:
 

@@ -274,7 +274,6 @@
 (meta l-wm)
 ;=>{"b" 2}
 
-;; Testing metadata on functions
 (def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
 (meta f-wm)
 ;=>{"abc" 1}
