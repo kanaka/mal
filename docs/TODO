@@ -1,16 +1,13 @@
 All:
-    * keyword type (with hash-map key support)
-    * Move *host-language* from step9 to stepA
     - change perf test to run for 10 seconds and then calculate number
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
     - runtest expect fixes:
         - stop using expect, so we can drop --raw option
         - fix long lines in runtext/expect
-    - add license file
     - add re (use in rep) everywhere and use that (to avoid printing)
     - move conj and sequential? to core.mal
-    - Implement/fix interop: C#, Java, Mal, PHP, Postscript, Ruby
+    - Implement/fix interop
     - regular expression matching in runtest
     - Print full exception when test gets EOF from expect
 
@@ -66,8 +63,6 @@ Javascript:
     - interop: callbacks using Mal functions
 
 Make:
-    * large number handling (move away from peano)
-        * then fix time-ms/perf.mal
     - allow '_' in make variable names
     - hash-map with space in key string
     - Fix: make -f stepA_interop.mk ../mal/step6_file.mal
@@ -95,33 +90,12 @@ Python:
     - python3 compatibility
 
 R:
-    - Links:
-        - https://stat.ethz.ch/R-manual/R-devel/library/base/html/readline.html
-        - http://dssm.unipa.it/CRAN/web/packages/rdyncall/rdyncall.pdf
-        - http://www.dyncall.org/docs/FFI.pdf
     - tracebacks in errors
     - fix running from different directory
 
 Ruby:
 
 Rust:
-    - Links:
-        - http://doc.rust-lang.org/index.html
-        - http://doc.rust-lang.org/intro.html
-        - http://doc.rust-lang.org/guide.html
-        - http://rustbyexample.com/index.html
-        - http://www.rustforrubyists.com/book/index.html
-        - http://pzol.github.io/getting_rusty/
-
-        - http://featherweightmusings.blogspot.com/2014/05/rust-for-c-programmers-part-6-rc-gc-and.html
-        - http://pzol.github.io/getting_rusty/posts/20140417_destructuring_in_rust/ (destructuring)
-        - http://featherweightmusings.blogspot.com/2014/07/rust-for-c-programmers-part-8.html (destructuring)
-        - http://featherweightmusings.blogspot.co.nz/2014/07/rust-for-c-programmers-part-9.html (destructuruing and matching)
-        - http://blog.thiago.me/notes-about-rust-modules/
-        - http://doc.rust-lang.org/std/io/io
-        - https://github.com/shaleh/rust-readline/blob/master/src/lib.rs
-        - http://stackoverflow.com/questions/23942627/does-rust-0-10-have-a-rl-package
-        - http://blog.skylight.io/rust-means-never-having-to-close-a-socket/
     - use built-in regex once fixed:
         https://github.com/rust-lang/rust/issues/18034
         https://github.com/rust-lang/rust/issues/18035
@@ -130,14 +104,9 @@ Racket
     - metadata on collections
 
 Scala
-    - aptitude install scala
-    - http://learnxinyminutes.com/docs/scala/
     - readline
 
 VB.Net
-    - aptitude install mono-vbnc
-    - http://www.codeproject.com/Articles/9978/Complete-Comparison-for-VB-NET-and-C
-    - http://msdn.microsoft.com/en-us/library/8hb2a397.aspx
     - convert readline.cs to readline.vb
 
 

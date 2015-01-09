@@ -104,6 +104,9 @@ coffee ./stepX_YYY
 
 ### Go
 
+You Go implementation of mal requires that go is installed on on the
+path. The implementation has been tested with Go 1.3.1.
+
 ```
 cd go
 make
@@ -315,3 +318,9 @@ make test^IMPL^stepX
 make test^ruby^step3
 make test^ps^step4
 ```
+
+## License
+
+Mal (make-a-lisp) is licensed under the MPL 2.0 (Mozilla Public
+License 2.0). See LICENSE.txt for more details.
+

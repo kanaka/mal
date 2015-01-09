@@ -1,10 +1,7 @@
---- step7_quote ---------------------------------
+--- step5_tco -----------------------------------
 import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
-
-pair?(ast): return ... // true if non-empty sequence
-quasiquote(ast): return ... // quasiquote
 
 eval_ast(ast,env):
   switch type(ast):
@@ -19,8 +16,6 @@ EVAL(ast,env):
     switch ast[0]:
       'def!:        return env.set(ast[1], EVAL(ast[2], env))
       'let*:        env = ...; ast = ast[2] // TCO
-      'quote:       return ast[1]
-      'quasiquote:  ast = quasiquote(ast[1]) // TCO
       'do:          ast = eval_ast(ast[1..-1], env)[-1] // TCO
       'if:          EVAL(ast[1], env) ? ast = ast[2] : ast = ast[3] // TCO
       'fn*:         return new MalFunc(...)
@@ -35,14 +30,9 @@ rep(str): return PRINT(EVAL(READ(str),repl_env))
 
 ;; core.EXT: defined using Racket
 core.ns.map((k,v) -> (repl_env.set(k, v)))
-repl_env.set('eval, (ast) -> EVAL(ast, repl-env))
-repl_env.set('*ARGV*, cmdline_args[1..])
 
 ;; core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))")
-rep("(def! load-file (fn* (f) ...))")
-
-if cmdline_args: rep("(load-file \"" + args[0] + "\")"); exit 0
 
 main loop:
   try:      println(rep(readline("user> ")))
@@ -57,7 +47,7 @@ class Env (outer=null,binds=[],exprs=[])
   set(k,v): return data.set(k,v)
   find(k): return data.has(k) ? this : (if outer ? find(outer) : null)
   get(k): return data.find(k).get(k) OR raise "'" + k + "' not found"
-    
+
 --- core module ---------------------------------
 ns = {'=:        equal?,
       'nil?:     nil?,
@@ -69,8 +59,6 @@ ns = {'=:        equal?,
       'str:      (a) -> a.map(|s| pr_str(e,false)).join("")),
       'prn:      (a) -> println(a.map(|s| pr_str(e,true)).join(" ")),
       'println:  (a) -> println(a.map(|s| pr_str(e,false)).join(" ")),
-      'read-string: read_str,
-      'slurp     read-file,
 
       '<:        lt,
       '<=:       lte,
@@ -86,7 +74,5 @@ ns = {'=:        equal?,
       'hash-map: hash_map,
       'map?:     hash_map?,
 
-      'cons:     (a) -> concat([a[0]], a[1]),
-      'concat:   (a) -> reduce(concat, [], a),
       'empty?:   empty?,
       'count:    count}

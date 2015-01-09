@@ -1,4 +1,4 @@
---- step9_try -----------------------------------
+--- stepA_interop -------------------------------
 import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
@@ -45,6 +45,7 @@ repl_env.set('eval, (ast) -> EVAL(ast, repl-env))
 repl_env.set('*ARGV*, cmdline_args[1..])
 
 ;; core.mal: defined using the language itself
+rep("(def! *host-language* \"racket\")")
 rep("(def! not (fn* (a) (if a false true)))")
 rep("(def! load-file (fn* (f) ...))")
 rep("(defmacro! cond (fn* (& xs) ...))")
@@ -52,6 +53,7 @@ rep("(defmacro! or (fn* (& xs) ...))")
 
 if cmdline_args: rep("(load-file \"" + args[0] + "\")"); exit 0
 
+rep("(println (str \"Mal [\" *host-language* \"]\"))")
 main loop:
   try:      println(rep(readline("user> ")))
   catch e:  println("Error: ", e)
@@ -65,7 +67,7 @@ class Env (outer=null,binds=[],exprs=[])
   set(k,v): return data.set(k,v)
   find(k): return data.has(k) ? this : (if outer ? find(outer) : null)
   get(k): return data.find(k).get(k) OR raise "'" + k + "' not found"
-    
+
 --- core module ---------------------------------
 ns = {'=:        equal?,
       'throw:    throw,
@@ -92,6 +94,7 @@ ns = {'=:        equal?,
       '-:        sub,
       '*:        mult,
       '/:        div,
+      'time-ms   cur-epoch-millis,
 
       'list:     list,
       'list?:    list?,
