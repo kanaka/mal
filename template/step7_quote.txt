@@ -25,8 +25,8 @@ EVAL(ast,env):
       'if:          EVAL(ast[1], env) ? ast = ast[2] : ast = ast[3] // TCO
       'fn*:         return new MalFunc(...)
       _default_:    f, args = eval_ast(ast, env)
-                    if malfunc?(ast[0]): ast = ast[0].fn; env = ... // TCO
-                    else:                return apply(f, args)
+                    if malfunc?(f): ast = f.fn; env = ... // TCO
+                    else:           return apply(f, args)
 
 PRINT(exp): return printer.pr_str(exp)
 
@@ -60,10 +60,6 @@ class Env (outer=null,binds=[],exprs=[])
 
 --- core module ---------------------------------
 ns = {'=:        equal?,
-      'nil?:     nil?,
-      'true?:    true?,
-      'false?:   false?,
-      'symbol?:  symbol?,
 
       'pr-str:   (a) -> a.map(|s| pr_str(e,true)).join(" ")),
       'str:      (a) -> a.map(|s| pr_str(e,false)).join("")),
@@ -83,8 +79,6 @@ ns = {'=:        equal?,
 
       'list:     list,
       'list?:    list?,
-      'hash-map: hash_map,
-      'map?:     hash_map?,
 
       'cons:     (a) -> concat([a[0]], a[1]),
       'concat:   (a) -> reduce(concat, [], a),
