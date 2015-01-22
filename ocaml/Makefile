@@ -2,18 +2,20 @@ STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml
 MODULES = types.ml reader.ml printer.ml
 LIBS = str.cma 
 
-BINS = $(STEPS:%.ml=%)
+STEP_BINS = $(STEPS:%.ml=%)
+LAST_STEP_BIN = $(word $(words $(STEP_BINS)),$(STEP_BINS))
+MODULE_BINS = $(MODULES:%.ml=%.cmo)
 
-all: $(BINS) mal
+all: $(STEP_BINS) mal
 
-mal: $(word $(words $(BINS)),$(BINS))
+mal: $(LAST_STEP_BIN)
 	cp $< $@
 
 repl: $(MODULES)
-	rlwrap ocaml $(LIBS) $(MODULES:%.ml=%.cmo)
+	rlwrap ocaml $(LIBS) $(MODULE_BINS)
 
-$(BINS): %: %.ml $(MODULES)
+$(STEP_BINS): %: %.ml $(MODULES)
 	ocamlc $(LIBS) $(MODULES) $< -o $@
 
 clean:
-	rm -f $(BINS) mal *.cmi *.cmo
+	rm -f $(STEP_BINS) mal *.cmi *.cmo

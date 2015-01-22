@@ -12,7 +12,7 @@ let num_fun f = Types.Fn
     | [(Types.Int a); (Types.Int b)] -> Types.Int (f a b)
     | _ -> raise (Invalid_argument "Numeric args required for this Mal builtin"))
 
-let env = ref (List.fold_left (fun a b -> b a) Env.empty
+let repl_env = ref (List.fold_left (fun a b -> b a) Env.empty
   [ Env.add "+" (num_fun ( + ));
     Env.add "-" (num_fun ( - ));
     Env.add "*" (num_fun ( * ));
@@ -41,7 +41,7 @@ let rec main =
       print_string "user> ";
       let line = read_line () in
         try
-          print_endline (rep line env);
+          print_endline (rep line repl_env);
         with End_of_file -> ()
          | Invalid_argument x ->
              output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
