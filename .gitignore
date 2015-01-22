@@ -29,6 +29,7 @@ go/mal
 java/target/
 java/dependency-reduced-pom.xml
 ocaml/*.cmi
+ocaml/*.cmo
 ocaml/*.swp
 rust/target/
 rust/mal
