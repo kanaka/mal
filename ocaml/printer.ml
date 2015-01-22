@@ -13,3 +13,4 @@ let rec pr_str mal_obj =
                         ^ (Str.global_replace (Str.regexp "\"") "\\\"" s)
                         ^ "\""
     | Types.MalList xs -> "(" ^ (join " " (List.map pr_str xs)) ^ ")"
+    | Types.Fn f -> "<fn>"

@@ -3,7 +3,7 @@ let find_re re str =
     (List.filter (function | Str.Delim x -> true | Str.Text x -> false)
       (Str.full_split re str)) ;;
 
-let token_re = (Str.regexp "~@\\|[][{}()'`~^@]\\|\"\\(\\\\.\\|[^\"]\\)*\"\\|;.*\\|[^][ 	\n{}('\"`,;)]*")
+let token_re = (Str.regexp "~@\\|[][{}()'`~^@]\\|\"\\(\\\\.\\|[^\"]\\)*\"\\|;.*\\|[^][  \n{}('\"`,;)]*")
 
 type reader = {
   form : Types.mal_type;
@@ -36,11 +36,11 @@ let rec read_list list_reader =
             raise End_of_file;
     | token :: tokens ->
       if Str.string_match (Str.regexp "[])}]") token 0 then
-	{list_form = list_reader.list_form; tokens = tokens}
+        {list_form = list_reader.list_form; tokens = tokens}
       else
-	let reader = read_form list_reader.tokens in
+        let reader = read_form list_reader.tokens in
           read_list {list_form = list_reader.list_form @ [reader.form];
-	             tokens = reader.tokens}
+                     tokens = reader.tokens}
 and read_quote sym tokens =
   let reader = read_form tokens in
     {form = Types.MalList [ Types.Symbol sym; reader.form ];
@@ -50,17 +50,15 @@ and read_form all_tokens =
     | [] -> raise End_of_file;
     | token :: tokens ->
       match token with
-        | "'" -> read_quote "quote" tokens
-        | "`" -> read_quote "quasiquote" tokens
-        | "~" -> read_quote "unquote" tokens
+        | "'"  -> read_quote "quote" tokens
+        | "`"  -> read_quote "quasiquote" tokens
+        | "~"  -> read_quote "unquote" tokens
         | "~@" -> read_quote "splice-unquote" tokens
-        | _ ->
-          match token.[0] with
-           | '[' | '(' | '{' -> let list_reader =
-              read_list {list_form = []; tokens = tokens} in
-	        {form = Types.MalList list_reader.list_form;
-                 tokens = list_reader.tokens}
-           | _ -> {form = read_atom token; tokens = tokens}
+        | "[" | "(" | "{" -> let list_reader =
+           read_list {list_form = []; tokens = tokens} in
+             {form = Types.MalList list_reader.list_form;
+              tokens = list_reader.tokens}
+        | _ -> {form = read_atom token; tokens = tokens}
 
 let read_str str = (read_form (List.filter ((<>) "") (find_re token_re str))).form
 

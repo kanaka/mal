@@ -6,3 +6,4 @@ type mal_type =
   | Nil
   | Bool of bool
   | String of string
+  | Fn of (mal_type list -> mal_type)
