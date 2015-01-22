@@ -28,6 +28,8 @@ go/step*
 go/mal
 java/target/
 java/dependency-reduced-pom.xml
+ocaml/*.cmi
+ocaml/*.swp
 rust/target/
 rust/mal
 rust/Cargo.lock
