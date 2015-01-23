@@ -1,5 +1,5 @@
-STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml
-MODULES = types.ml reader.ml printer.ml
+STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml step3_env.ml
+MODULES = types.ml reader.ml printer.ml env.ml
 LIBS = str.cma 
 
 STEP_BINS = $(STEPS:%.ml=%)
