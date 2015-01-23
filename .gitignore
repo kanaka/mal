@@ -31,6 +31,9 @@ java/dependency-reduced-pom.xml
 ocaml/*.cmi
 ocaml/*.cmo
 ocaml/*.swp
+ocaml/*.cmx
+ocaml/*.o
+ocaml/mal_lib.*
 rust/target/
 rust/mal
 rust/Cargo.lock
