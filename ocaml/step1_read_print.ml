@@ -1,6 +1,6 @@
 let read str = Reader.read_str str
 let eval ast any = ast
-let print exp = Printer.pr_str exp
+let print exp = Printer.pr_str exp true
 let rep str = print (eval (read str) "")
 
 let rec main =

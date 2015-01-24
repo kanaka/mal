@@ -30,15 +30,15 @@ and eval ast env =
         Types.Fn
           (function args ->
             let sub_env = Env.make (Some env) in
-              let rec bind_args = (fun a b ->
+              let rec bind_args a b =
                 (match a, b with
                   | [Types.Symbol "&"; name], args -> Env.set sub_env name (Types.MalList args);
                   | (name :: names), (arg :: args) ->
                       Env.set sub_env name arg;
                       bind_args names args;
                   | [], [] -> ()
-                  | _ -> raise (Invalid_argument "Bad param count in fn call")))
-              in (bind_args arg_names args);
+                  | _ -> raise (Invalid_argument "Bad param count in fn call"))
+              in bind_args arg_names args;
               eval expr sub_env)
     | Types.MalList _ ->
       (match eval_ast ast env with
@@ -47,7 +47,7 @@ and eval ast env =
     | _ -> eval_ast ast env
 
 let read str = Reader.read_str str
-let print exp = Printer.pr_str exp
+let print exp = Printer.pr_str exp true
 let rep str env = print (eval (read str) env)
 
 let rec main =

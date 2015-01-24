@@ -1,5 +1,6 @@
-STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml step3_env.ml
-MODULES = types.ml reader.ml printer.ml env.ml
+STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml step3_env.ml \
+        step4_if_fn_do.ml
+MODULES = types.ml reader.ml printer.ml env.ml core.ml
 LIBS = str.cmxa
 MAL_LIB = mal_lib.cmxa
 

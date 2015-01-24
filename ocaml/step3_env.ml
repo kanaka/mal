@@ -39,7 +39,7 @@ and eval ast env =
     | _ -> eval_ast ast env
 
 let read str = Reader.read_str str
-let print exp = Printer.pr_str exp
+let print exp = Printer.pr_str exp true
 let rep str env = print (eval (read str) env)
 
 let rec main =
