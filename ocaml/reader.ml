@@ -54,9 +54,17 @@ and read_form all_tokens =
         | "`"  -> read_quote "quasiquote" tokens
         | "~"  -> read_quote "unquote" tokens
         | "~@" -> read_quote "splice-unquote" tokens
-        | "[" | "(" | "{" -> let list_reader =
+        | "(" -> let list_reader =
            read_list {list_form = []; tokens = tokens} in
              {form = Types.List list_reader.list_form;
+              tokens = list_reader.tokens}
+        | "{" -> let list_reader =
+           read_list {list_form = []; tokens = tokens} in
+             {form = Types.Map list_reader.list_form;
+              tokens = list_reader.tokens}
+        | "[" -> let list_reader =
+           read_list {list_form = []; tokens = tokens} in
+             {form = Types.Vector list_reader.list_form;
               tokens = list_reader.tokens}
         | _ -> {form = read_atom token; tokens = tokens}
 
