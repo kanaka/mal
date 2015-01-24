@@ -3,14 +3,14 @@ let repl_env = Env.make (Some Core.ns)
 let rec eval_ast ast env =
   match ast with
     | Types.Symbol s -> Env.get env ast
-    | Types.MalList xs -> Types.MalList (List.map (fun x -> eval x env) xs)
+    | Types.List xs -> Types.List (List.map (fun x -> eval x env) xs)
     | _ -> ast
 and eval ast env =
   match ast with
-    | Types.MalList [(Types.Symbol "def!"); key; expr] ->
+    | Types.List [(Types.Symbol "def!"); key; expr] ->
         let value = (eval expr env) in
           Env.set env key value; value
-    | Types.MalList [(Types.Symbol "let*"); (Types.MalList bindings); body] ->
+    | Types.List [(Types.Symbol "let*"); (Types.List bindings); body] ->
         (let sub_env = Env.make (Some env) in
           let rec bind_pairs = (function
             | sym :: expr :: more ->
@@ -20,19 +20,19 @@ and eval ast env =
             | [] -> ())
             in bind_pairs bindings;
           eval body sub_env)
-    | Types.MalList ((Types.Symbol "do") :: body) ->
+    | Types.List ((Types.Symbol "do") :: body) ->
         List.fold_left (fun x expr -> eval expr env) Types.Nil body
-    | Types.MalList [Types.Symbol "if"; test; then_expr; else_expr] ->
+    | Types.List [Types.Symbol "if"; test; then_expr; else_expr] ->
         if Types.to_bool (eval test env) then (eval then_expr env) else (eval else_expr env)
-    | Types.MalList [Types.Symbol "if"; test; then_expr] ->
+    | Types.List [Types.Symbol "if"; test; then_expr] ->
         if Types.to_bool (eval test env) then (eval then_expr env) else Types.Nil
-    | Types.MalList [Types.Symbol "fn*"; Types.MalList arg_names; expr] ->
+    | Types.List [Types.Symbol "fn*"; Types.List arg_names; expr] ->
         Types.Fn
           (function args ->
             let sub_env = Env.make (Some env) in
               let rec bind_args a b =
                 (match a, b with
-                  | [Types.Symbol "&"; name], args -> Env.set sub_env name (Types.MalList args);
+                  | [Types.Symbol "&"; name], args -> Env.set sub_env name (Types.List args);
                   | (name :: names), (arg :: args) ->
                       Env.set sub_env name arg;
                       bind_args names args;
@@ -40,9 +40,9 @@ and eval ast env =
                   | _ -> raise (Invalid_argument "Bad param count in fn call"))
               in bind_args arg_names args;
               eval expr sub_env)
-    | Types.MalList _ ->
+    | Types.List _ ->
       (match eval_ast ast env with
-         | Types.MalList ((Types.Fn f) :: args) -> f args
+         | Types.List ((Types.Fn f) :: args) -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 

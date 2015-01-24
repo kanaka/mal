@@ -15,14 +15,14 @@ end
 let rec eval_ast ast env =
   match ast with
     | Types.Symbol s -> Env.get env ast
-    | Types.MalList xs -> Types.MalList (List.map (fun x -> eval x env) xs)
+    | Types.List xs -> Types.List (List.map (fun x -> eval x env) xs)
     | _ -> ast
 and eval ast env =
   match ast with
-    | Types.MalList [(Types.Symbol "def!"); key; expr] ->
+    | Types.List [(Types.Symbol "def!"); key; expr] ->
         let value = (eval expr env) in
           Env.set env key value; value
-    | Types.MalList [(Types.Symbol "let*"); (Types.MalList bindings); body] ->
+    | Types.List [(Types.Symbol "let*"); (Types.List bindings); body] ->
         (let sub_env = Env.make (Some env) in
           let rec bind_pairs = (function
             | sym :: expr :: more ->
@@ -32,9 +32,9 @@ and eval ast env =
             | [] -> ())
             in bind_pairs bindings;
           eval body sub_env)
-    | Types.MalList _ ->
+    | Types.List _ ->
       (match eval_ast ast env with
-         | Types.MalList ((Types.Fn f) :: args) -> f args
+         | Types.List ((Types.Fn f) :: args) -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 

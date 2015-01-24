@@ -1,5 +1,5 @@
 type mal_type =
-  | MalList of mal_type list
+  | List of mal_type list
   | Int of int
   | Symbol of string
   | Keyword of string

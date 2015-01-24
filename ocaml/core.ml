@@ -18,13 +18,13 @@ let init env = begin
   Env.set env (Types.Symbol ">")  (num_fun mk_bool ( >  ));
   Env.set env (Types.Symbol ">=") (num_fun mk_bool ( >= ));
 
-  Env.set env (Types.Symbol "list") (Types.Fn (function xs -> Types.MalList xs));
+  Env.set env (Types.Symbol "list") (Types.Fn (function xs -> Types.List xs));
   Env.set env (Types.Symbol "list?")
-    (Types.Fn (function [Types.MalList _] -> Types.Bool true | _ -> Types.Bool false));
+    (Types.Fn (function [Types.List _] -> Types.Bool true | _ -> Types.Bool false));
   Env.set env (Types.Symbol "empty?")
-    (Types.Fn (function [Types.MalList []] -> Types.Bool true | _ -> Types.Bool false));
+    (Types.Fn (function [Types.List []] -> Types.Bool true | _ -> Types.Bool false));
   Env.set env (Types.Symbol "count")
-    (Types.Fn (function [Types.MalList xs] -> Types.Int (List.length xs) | _ -> Types.Int 0));
+    (Types.Fn (function [Types.List xs] -> Types.Int (List.length xs) | _ -> Types.Int 0));
   Env.set env (Types.Symbol "=")
     (Types.Fn (function [a; b] -> Types.Bool (a = b) | _ -> Types.Bool false));
 

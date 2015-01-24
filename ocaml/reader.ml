@@ -43,7 +43,7 @@ let rec read_list list_reader =
                      tokens = reader.tokens}
 and read_quote sym tokens =
   let reader = read_form tokens in
-    {form = Types.MalList [ Types.Symbol sym; reader.form ];
+    {form = Types.List [ Types.Symbol sym; reader.form ];
      tokens = reader.tokens}
 and read_form all_tokens =
   match all_tokens with
@@ -56,7 +56,7 @@ and read_form all_tokens =
         | "~@" -> read_quote "splice-unquote" tokens
         | "[" | "(" | "{" -> let list_reader =
            read_list {list_form = []; tokens = tokens} in
-             {form = Types.MalList list_reader.list_form;
+             {form = Types.List list_reader.list_form;
               tokens = list_reader.tokens}
         | _ -> {form = read_atom token; tokens = tokens}
 

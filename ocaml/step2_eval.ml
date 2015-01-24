@@ -23,12 +23,12 @@ let rec eval_ast ast env =
     | Types.Symbol s ->
         (try Env.find s !env
          with Not_found -> raise (Invalid_argument ("Symbol '" ^ s ^ "' not found")))
-    | Types.MalList xs -> Types.MalList (List.map (fun x -> eval x env) xs)
+    | Types.List xs -> Types.List (List.map (fun x -> eval x env) xs)
     | _ -> ast
 and eval ast env =
   let result = eval_ast ast env in
     match result with
-      | Types.MalList ((Types.Fn f) :: args) -> (f args)
+      | Types.List ((Types.Fn f) :: args) -> (f args)
       | _ -> result
 
 let read str = Reader.read_str str
