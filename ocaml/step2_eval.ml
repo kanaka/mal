@@ -1,3 +1,5 @@
+module T = Types.Types
+
 module Env =
   Map.Make (
     String
@@ -7,9 +9,9 @@ module Env =
     end)*)
     )
 
-let num_fun f = Types.Fn
+let num_fun f = T.Fn
   (function
-    | [(Types.Int a); (Types.Int b)] -> Types.Int (f a b)
+    | [(T.Int a); (T.Int b)] -> T.Int (f a b)
     | _ -> raise (Invalid_argument "Numeric args required for this Mal builtin"))
 
 let repl_env = ref (List.fold_left (fun a b -> b a) Env.empty
@@ -20,15 +22,15 @@ let repl_env = ref (List.fold_left (fun a b -> b a) Env.empty
 
 let rec eval_ast ast env =
   match ast with
-    | Types.Symbol s ->
+    | T.Symbol { T.value = s } ->
         (try Env.find s !env
          with Not_found -> raise (Invalid_argument ("Symbol '" ^ s ^ "' not found")))
-    | Types.List xs -> Types.List (List.map (fun x -> eval x env) xs)
+    | T.List { T.value = xs } -> Types.list (List.map (fun x -> eval x env) xs)
     | _ -> ast
 and eval ast env =
   let result = eval_ast ast env in
     match result with
-      | Types.List ((Types.Fn f) :: args) -> (f args)
+      | T.List { T.value = ((T.Fn f) :: args) } -> (f args)
       | _ -> result
 
 let read str = Reader.read_str str

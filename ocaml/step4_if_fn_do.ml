@@ -1,16 +1,18 @@
+module T = Types.Types
+
 let repl_env = Env.make (Some Core.ns)
 
 let rec eval_ast ast env =
   match ast with
-    | Types.Symbol s -> Env.get env ast
-    | Types.List xs -> Types.List (List.map (fun x -> eval x env) xs)
+    | T.Symbol s -> Env.get env ast
+    | T.List { T.value = xs } -> Types.list (List.map (fun x -> eval x env) xs)
     | _ -> ast
 and eval ast env =
   match ast with
-    | Types.List [(Types.Symbol "def!"); key; expr] ->
+    | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
-    | Types.List [(Types.Symbol "let*"); (Types.List bindings); body] ->
+    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List { T.value = bindings }); body] } ->
         (let sub_env = Env.make (Some env) in
           let rec bind_pairs = (function
             | sym :: expr :: more ->
@@ -20,19 +22,19 @@ and eval ast env =
             | [] -> ())
             in bind_pairs bindings;
           eval body sub_env)
-    | Types.List ((Types.Symbol "do") :: body) ->
-        List.fold_left (fun x expr -> eval expr env) Types.Nil body
-    | Types.List [Types.Symbol "if"; test; then_expr; else_expr] ->
+    | T.List { T.value = ((T.Symbol { T.value = "do" }) :: body) } ->
+        List.fold_left (fun x expr -> eval expr env) T.Nil body
+    | T.List { T.value = [T.Symbol { T.value = "if" }; test; then_expr; else_expr] } ->
         if Types.to_bool (eval test env) then (eval then_expr env) else (eval else_expr env)
-    | Types.List [Types.Symbol "if"; test; then_expr] ->
-        if Types.to_bool (eval test env) then (eval then_expr env) else Types.Nil
-    | Types.List [Types.Symbol "fn*"; Types.List arg_names; expr] ->
-        Types.Fn
+    | T.List { T.value = [T.Symbol { T.value = "if" }; test; then_expr] } ->
+        if Types.to_bool (eval test env) then (eval then_expr env) else T.Nil
+    | T.List { T.value = [T.Symbol { T.value = "fn*" }; T.List { T.value = arg_names }; expr] } ->
+        T.Fn
           (function args ->
             let sub_env = Env.make (Some env) in
               let rec bind_args a b =
                 (match a, b with
-                  | [Types.Symbol "&"; name], args -> Env.set sub_env name (Types.List args);
+                  | [T.Symbol { T.value = "&" }; name], args -> Env.set sub_env name (Types.list args);
                   | (name :: names), (arg :: args) ->
                       Env.set sub_env name arg;
                       bind_args names args;
@@ -40,9 +42,9 @@ and eval ast env =
                   | _ -> raise (Invalid_argument "Bad param count in fn call"))
               in bind_args arg_names args;
               eval expr sub_env)
-    | Types.List _ ->
+    | T.List _ ->
       (match eval_ast ast env with
-         | Types.List ((Types.Fn f) :: args) -> f args
+         | T.List { T.value = ((T.Fn f) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 

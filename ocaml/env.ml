@@ -1,3 +1,4 @@
+module T = Types.Types
 module Data = Map.Make (String)
 
 type env = {
@@ -9,12 +10,12 @@ let make outer = { outer = outer; data = ref Data.empty }
 
 let set env sym value =
   match sym with
-    | Types.Symbol key -> env.data := Data.add key value !(env.data)
+    | T.Symbol { T.value = key } -> env.data := Data.add key value !(env.data)
     | _ -> raise (Invalid_argument "set requires a Symbol for its key")
 
 let rec find env sym =
   match sym with
-    | Types.Symbol key -> 
+    | T.Symbol { T.value = key } ->
         (if Data.mem key !(env.data) then
            Some env
          else
@@ -25,9 +26,8 @@ let rec find env sym =
 
 let get env sym =
   match sym with
-    | Types.Symbol key -> 
+    | T.Symbol { T.value = key } ->
       (match find env sym with
          | Some found_env -> Data.find key !(found_env.data)
          | None -> raise (Invalid_argument ("Symbol '" ^ key ^ "' not found")))
     | _ -> raise (Invalid_argument "get requires a Symbol for its key")
- 

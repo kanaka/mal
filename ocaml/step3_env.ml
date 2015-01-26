@@ -1,28 +1,30 @@
-let num_fun f = Types.Fn
+module T = Types.Types
+
+let num_fun f = T.Fn
   (function
-    | [(Types.Int a); (Types.Int b)] -> Types.Int (f a b)
+    | [(T.Int a); (T.Int b)] -> T.Int (f a b)
     | _ -> raise (Invalid_argument "Numeric args required for this Mal builtin"))
 
 let repl_env = Env.make None
 
 let init_repl env = begin
-  Env.set env (Types.Symbol "+") (num_fun ( + ));
-  Env.set env (Types.Symbol "-") (num_fun ( - ));
-  Env.set env (Types.Symbol "*") (num_fun ( * ));
-  Env.set env (Types.Symbol "/") (num_fun ( / ));
+  Env.set env (Types.symbol "+") (num_fun ( + ));
+  Env.set env (Types.symbol "-") (num_fun ( - ));
+  Env.set env (Types.symbol "*") (num_fun ( * ));
+  Env.set env (Types.symbol "/") (num_fun ( / ));
 end
 
 let rec eval_ast ast env =
   match ast with
-    | Types.Symbol s -> Env.get env ast
-    | Types.List xs -> Types.List (List.map (fun x -> eval x env) xs)
+    | T.Symbol s -> Env.get env ast
+    | T.List { T.value = xs } -> Types.list (List.map (fun x -> eval x env) xs)
     | _ -> ast
 and eval ast env =
   match ast with
-    | Types.List [(Types.Symbol "def!"); key; expr] ->
+    | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
-    | Types.List [(Types.Symbol "let*"); (Types.List bindings); body] ->
+    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List { T.value = bindings }); body] } ->
         (let sub_env = Env.make (Some env) in
           let rec bind_pairs = (function
             | sym :: expr :: more ->
@@ -32,9 +34,9 @@ and eval ast env =
             | [] -> ())
             in bind_pairs bindings;
           eval body sub_env)
-    | Types.List _ ->
+    | T.List _ ->
       (match eval_ast ast env with
-         | Types.List ((Types.Fn f) :: args) -> f args
+         | T.List { T.value = ((T.Fn f) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 

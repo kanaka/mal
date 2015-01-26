@@ -1,46 +1,50 @@
+module T = Types.Types
 let ns = Env.make None
 
-let num_fun t f = Types.Fn
+let num_fun t f = T.Fn
   (function
-    | [(Types.Int a); (Types.Int b)] -> t (f a b)
+    | [(T.Int a); (T.Int b)] -> t (f a b)
     | _ -> raise (Invalid_argument "Numeric args required for this Mal builtin"))
 
-let mk_int x = Types.Int x
-let mk_bool x = Types.Bool x
+let mk_int x = T.Int x
+let mk_bool x = T.Bool x
 
 let init env = begin
-  Env.set env (Types.Symbol "+")  (num_fun mk_int  ( +  ));
-  Env.set env (Types.Symbol "-")  (num_fun mk_int  ( -  ));
-  Env.set env (Types.Symbol "*")  (num_fun mk_int  ( *  ));
-  Env.set env (Types.Symbol "/")  (num_fun mk_int  ( /  ));
-  Env.set env (Types.Symbol "<")  (num_fun mk_bool ( <  ));
-  Env.set env (Types.Symbol "<=") (num_fun mk_bool ( <= ));
-  Env.set env (Types.Symbol ">")  (num_fun mk_bool ( >  ));
-  Env.set env (Types.Symbol ">=") (num_fun mk_bool ( >= ));
+  Env.set env (Types.symbol "+")  (num_fun mk_int  ( +  ));
+  Env.set env (Types.symbol "-")  (num_fun mk_int  ( -  ));
+  Env.set env (Types.symbol "*")  (num_fun mk_int  ( *  ));
+  Env.set env (Types.symbol "/")  (num_fun mk_int  ( /  ));
+  Env.set env (Types.symbol "<")  (num_fun mk_bool ( <  ));
+  Env.set env (Types.symbol "<=") (num_fun mk_bool ( <= ));
+  Env.set env (Types.symbol ">")  (num_fun mk_bool ( >  ));
+  Env.set env (Types.symbol ">=") (num_fun mk_bool ( >= ));
 
-  Env.set env (Types.Symbol "list") (Types.Fn (function xs -> Types.List xs));
-  Env.set env (Types.Symbol "list?")
-    (Types.Fn (function [Types.List _] -> Types.Bool true | _ -> Types.Bool false));
-  Env.set env (Types.Symbol "empty?")
-    (Types.Fn (function [Types.List []] -> Types.Bool true | _ -> Types.Bool false));
-  Env.set env (Types.Symbol "count")
-    (Types.Fn (function [Types.List xs] -> Types.Int (List.length xs) | _ -> Types.Int 0));
-  Env.set env (Types.Symbol "=")
-    (Types.Fn (function [a; b] -> Types.Bool (a = b) | _ -> Types.Bool false));
+  Env.set env (Types.symbol "list") (T.Fn (function xs -> Types.list xs));
+  Env.set env (Types.symbol "list?")
+    (T.Fn (function [T.List _] -> T.Bool true | _ -> T.Bool false));
+  Env.set env (Types.symbol "empty?")
+    (T.Fn (function [T.List {T.value = []}] -> T.Bool true | _ -> T.Bool false));
+  Env.set env (Types.symbol "count")
+    (T.Fn (function [T.List {T.value = xs}] -> T.Int (List.length xs) | _ -> T.Int 0));
+  Env.set env (Types.symbol "=")
+    (T.Fn (function [a; b] -> T.Bool (a = b) | _ -> T.Bool false));
 
-  Env.set env (Types.Symbol "pr-str")
-    (Types.Fn (function xs ->
-      Types.String (Printer.join " " (List.map (fun s -> Printer.pr_str s true) xs))));
-  Env.set env (Types.Symbol "str")
-    (Types.Fn (function xs ->
-      Types.String (Printer.join "" (List.map (fun s -> Printer.pr_str s false) xs))));
-  Env.set env (Types.Symbol "prn")
-    (Types.Fn (function xs ->
+  Env.set env (Types.symbol "pr-str")
+    (T.Fn (function xs ->
+      T.String (Printer.join " " (List.map (fun s -> Printer.pr_str s true) xs))));
+  Env.set env (Types.symbol "str")
+    (T.Fn (function xs ->
+      T.String (Printer.join "" (List.map (fun s -> Printer.pr_str s false) xs))));
+  Env.set env (Types.symbol "prn")
+    (T.Fn (function xs ->
       print_endline (Printer.join " " (List.map (fun s -> Printer.pr_str s true) xs));
-      Types.Nil));
-  Env.set env (Types.Symbol "println")
-    (Types.Fn (function xs ->
+      T.Nil));
+  Env.set env (Types.symbol "println")
+    (T.Fn (function xs ->
       print_endline (Printer.join " " (List.map (fun s -> Printer.pr_str s false) xs));
-      Types.Nil));
+      T.Nil));
+
+  Env.set env (Types.symbol "compare")
+    (T.Fn (function [a; b] -> T.Int (compare a b)));
 end
 

@@ -1,3 +1,6 @@
+module T = Types.Types
+        (* ^file ^module *)
+
 let find_re re str =
   List.map (function | Str.Delim x -> x | Str.Text x -> "impossible!")
     (List.filter (function | Str.Delim x -> true | Str.Text x -> false)
@@ -17,17 +20,17 @@ type list_reader = {
 
 let read_atom token =
   match token with
-    | "nil" -> Types.Nil
-    | "true" -> Types.Bool true
-    | "false" -> Types.Bool false
+    | "nil" -> T.Nil
+    | "true" -> T.Bool true
+    | "false" -> T.Bool false
     | _ ->
     match token.[0] with
-      | '0'..'9' -> Types.Int (int_of_string token)
-      | '"' -> Types.String (Str.global_replace (Str.regexp "\\\\\\(.\\)")
+      | '0'..'9' -> T.Int (int_of_string token)
+      | '"' -> T.String (Str.global_replace (Str.regexp "\\\\\\(.\\)")
                                                 "\\1"
                                                 (String.sub token 1 ((String.length token) - 2)))
-      | ':' -> Types.Keyword (Str.replace_first (Str.regexp "^:") "" token)
-      | _ -> Types.Symbol token
+      | ':' -> T.Keyword (Str.replace_first (Str.regexp "^:") "" token)
+      | _ -> Types.symbol token
 
 let rec read_list list_reader =
   match list_reader.tokens with
@@ -43,7 +46,7 @@ let rec read_list list_reader =
                      tokens = reader.tokens}
 and read_quote sym tokens =
   let reader = read_form tokens in
-    {form = Types.List [ Types.Symbol sym; reader.form ];
+    {form = Types.list [ Types.symbol sym; reader.form ];
      tokens = reader.tokens}
 and read_form all_tokens =
   match all_tokens with
@@ -54,17 +57,18 @@ and read_form all_tokens =
         | "`"  -> read_quote "quasiquote" tokens
         | "~"  -> read_quote "unquote" tokens
         | "~@" -> read_quote "splice-unquote" tokens
+        | "@"  -> read_quote "deref" tokens
         | "(" -> let list_reader =
            read_list {list_form = []; tokens = tokens} in
-             {form = Types.List list_reader.list_form;
+             {form = Types.list list_reader.list_form;
               tokens = list_reader.tokens}
         | "{" -> let list_reader =
            read_list {list_form = []; tokens = tokens} in
-             {form = Types.Map list_reader.list_form;
+             {form = Types.list_into_map Types.MalMap.empty list_reader.list_form;
               tokens = list_reader.tokens}
         | "[" -> let list_reader =
            read_list {list_form = []; tokens = tokens} in
-             {form = Types.Vector list_reader.list_form;
+             {form = Types.vector list_reader.list_form;
               tokens = list_reader.tokens}
         | _ -> {form = read_atom token; tokens = tokens}
 
