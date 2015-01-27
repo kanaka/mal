@@ -3,6 +3,14 @@ module T = Types.Types
 let join sep xs =
   List.fold_left (fun a x -> if a = "" then x else a ^ sep ^ x) "" xs
 
+let meta obj =
+  match obj with
+    | T.List   { T.meta = meta } -> meta
+    | T.Map    { T.meta = meta } -> meta
+    | T.Vector { T.meta = meta } -> meta
+    | T.Symbol { T.meta = meta } -> meta
+    | _ -> T.Nil
+
 let rec pr_str mal_obj print_readably =
   let r = print_readably in
     match mal_obj with

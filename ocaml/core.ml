@@ -45,6 +45,10 @@ let init env = begin
       T.Nil));
 
   Env.set env (Types.symbol "compare")
-    (T.Fn (function [a; b] -> T.Int (compare a b)));
+    (T.Fn (function [a; b] -> T.Int (compare a b) | _ -> T.Nil));
+  Env.set env (Types.symbol "with-meta")
+    (T.Fn (function [a; b] -> Reader.with_meta a b | _ -> T.Nil));
+  Env.set env (Types.symbol "meta")
+    (T.Fn (function [x] -> Printer.meta x | _ -> T.Nil));
 end
 
