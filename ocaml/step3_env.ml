@@ -17,14 +17,25 @@ end
 let rec eval_ast ast env =
   match ast with
     | T.Symbol s -> Env.get env ast
-    | T.List { T.value = xs } -> Types.list (List.map (fun x -> eval x env) xs)
+    | T.List { T.value = xs; T.meta = meta }
+      -> T.List { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+    | T.Vector { T.value = xs; T.meta = meta }
+      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+    | T.Map { T.value = xs; T.meta = meta }
+      -> T.Map {T.meta = meta;
+                T.value = (Types.MalMap.fold
+                             (fun k v m
+                              -> Types.MalMap.add (eval k env) (eval v env) m)
+                             xs
+                             Types.MalMap.empty)}
     | _ -> ast
 and eval ast env =
   match ast with
     | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
-    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List { T.value = bindings }); body] } ->
+    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
+    | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List   { T.value = bindings }); body] } ->
         (let sub_env = Env.make (Some env) in
           let rec bind_pairs = (function
             | sym :: expr :: more ->

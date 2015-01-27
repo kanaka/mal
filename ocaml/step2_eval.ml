@@ -23,9 +23,19 @@ let repl_env = ref (List.fold_left (fun a b -> b a) Env.empty
 let rec eval_ast ast env =
   match ast with
     | T.Symbol { T.value = s } ->
-        (try Env.find s !env
-         with Not_found -> raise (Invalid_argument ("Symbol '" ^ s ^ "' not found")))
-    | T.List { T.value = xs } -> Types.list (List.map (fun x -> eval x env) xs)
+       (try Env.find s !env
+        with Not_found -> raise (Invalid_argument ("Symbol '" ^ s ^ "' not found")))
+    | T.List { T.value = xs; T.meta = meta }
+      -> T.List { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+    | T.Vector { T.value = xs; T.meta = meta }
+      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+    | T.Map { T.value = xs; T.meta = meta }
+      -> T.Map {T.meta = meta;
+                T.value = (Types.MalMap.fold
+                             (fun k v m
+                              -> Types.MalMap.add (eval k env) (eval v env) m)
+                             xs
+                             Types.MalMap.empty)}
     | _ -> ast
 and eval ast env =
   let result = eval_ast ast env in

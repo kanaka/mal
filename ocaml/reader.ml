@@ -69,7 +69,9 @@ and read_form all_tokens =
         | "^"  ->
            let meta = read_form tokens in
            let value = read_form meta.tokens in
-             {form = with_meta value.form meta.form; tokens = value.tokens}
+             {(*form = with_meta value.form meta.form;*)
+              form = Types.list [Types.symbol "with-meta"; value.form; meta.form];
+              tokens = value.tokens}
         | "(" ->
            let list_reader = read_list {list_form = []; tokens = tokens} in
              {form = Types.list list_reader.list_form;

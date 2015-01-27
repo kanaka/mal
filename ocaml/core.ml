@@ -27,7 +27,11 @@ let init env = begin
   Env.set env (Types.symbol "count")
     (T.Fn (function [T.List {T.value = xs}] -> T.Int (List.length xs) | _ -> T.Int 0));
   Env.set env (Types.symbol "=")
-    (T.Fn (function [a; b] -> T.Bool (a = b) | _ -> T.Bool false));
+    (T.Fn (function
+            | [T.List a; T.Vector b] -> T.Bool (a = b)
+            | [T.Vector a; T.List b] -> T.Bool (a = b)
+            | [a; b] -> T.Bool (a = b)
+            | _ -> T.Bool false));
 
   Env.set env (Types.symbol "pr-str")
     (T.Fn (function xs ->
