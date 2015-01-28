@@ -6,6 +6,11 @@ let find_re re str =
     (List.filter (function | Str.Delim x -> true | Str.Text x -> false)
       (Str.full_split re str)) ;;
 
+let gsub re f str =
+  String.concat
+    "" (List.map (function | Str.Delim x -> f x | Str.Text x -> x)
+                 (Str.full_split re str))
+
 let token_re = (Str.regexp "~@\\|[][{}()'`~^@]\\|\"\\(\\\\.\\|[^\"]\\)*\"\\|;.*\\|[^][  \n{}('\"`,;)]*")
 
 type reader = {
@@ -26,9 +31,11 @@ let read_atom token =
     | _ ->
     match token.[0] with
       | '0'..'9' -> T.Int (int_of_string token)
-      | '"' -> T.String (Str.global_replace (Str.regexp "\\\\\\(.\\)")
-                                                "\\1"
-                                                (String.sub token 1 ((String.length token) - 2)))
+      | '"' -> T.String (gsub (Str.regexp "\\\\.")
+                              (function
+                                | "\\n" -> "\n"
+                                | x -> String.sub x 1 1)
+                              (String.sub token 1 ((String.length token) - 2)))
       | ':' -> T.Keyword (Str.replace_first (Str.regexp "^:") "" token)
       | _ -> Types.symbol token
 

@@ -19,7 +19,11 @@ let rec pr_str mal_obj print_readably =
       | T.Bool false -> "false"
       | T.String s ->
           if r
-          then  "\"" ^ (Str.global_replace (Str.regexp "\\([\"\\]\\)") "\\\\\\1" s) ^ "\""
+          then  "\"" ^ (Reader.gsub (Str.regexp "\\([\"\\\n]\\)")
+                                    (function
+                                      | "\n" -> "\\n"
+                                      | x -> "\\" ^ x)
+                                    s) ^ "\""
           else s
       | T.List { T.value = xs } ->
           "(" ^ (String.concat " " (List.map (fun s -> pr_str s r) xs)) ^ ")"
