@@ -1,8 +1,5 @@
 module T = Types.Types
 
-let join sep xs =
-  List.fold_left (fun a x -> if a = "" then x else a ^ sep ^ x) "" xs
-
 let meta obj =
   match obj with
     | T.List   { T.meta = meta } -> meta
@@ -25,9 +22,9 @@ let rec pr_str mal_obj print_readably =
           then  "\"" ^ (Str.global_replace (Str.regexp "\\([\"\\]\\)") "\\\\\\1" s) ^ "\""
           else s
       | T.List { T.value = xs } ->
-          "(" ^ (join " " (List.map (fun s -> pr_str s r) xs)) ^ ")"
+          "(" ^ (String.concat " " (List.map (fun s -> pr_str s r) xs)) ^ ")"
       | T.Vector { T.value = xs } ->
-          "[" ^ (join " " (List.map (fun s -> pr_str s r) xs)) ^ "]"
+          "[" ^ (String.concat " " (List.map (fun s -> pr_str s r) xs)) ^ "]"
       | T.Map { T.value = xs } ->
          (Types.MalMap.fold (fun k v s -> s ^ (if s = "" then "{" else ", ") ^ (pr_str k r)
                                           ^ " " ^ (pr_str v r)) xs "")

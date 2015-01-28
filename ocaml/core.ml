@@ -35,17 +35,17 @@ let init env = begin
 
   Env.set env (Types.symbol "pr-str")
     (T.Fn (function xs ->
-      T.String (Printer.join " " (List.map (fun s -> Printer.pr_str s true) xs))));
+      T.String (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs))));
   Env.set env (Types.symbol "str")
     (T.Fn (function xs ->
-      T.String (Printer.join "" (List.map (fun s -> Printer.pr_str s false) xs))));
+      T.String (String.concat "" (List.map (fun s -> Printer.pr_str s false) xs))));
   Env.set env (Types.symbol "prn")
     (T.Fn (function xs ->
-      print_endline (Printer.join " " (List.map (fun s -> Printer.pr_str s true) xs));
+      print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s true) xs));
       T.Nil));
   Env.set env (Types.symbol "println")
     (T.Fn (function xs ->
-      print_endline (Printer.join " " (List.map (fun s -> Printer.pr_str s false) xs));
+      print_endline (String.concat " " (List.map (fun s -> Printer.pr_str s false) xs));
       T.Nil));
 
   Env.set env (Types.symbol "compare")
