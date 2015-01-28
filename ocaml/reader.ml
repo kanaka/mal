@@ -1,10 +1,17 @@
 module T = Types.Types
         (* ^file ^module *)
 
+let slurp filename =
+  let chan = open_in filename in
+  let b = Buffer.create 27 in
+  Buffer.add_channel b chan (in_channel_length chan) ;
+  close_in chan ;
+  Buffer.contents b
+
 let find_re re str =
   List.map (function | Str.Delim x -> x | Str.Text x -> "impossible!")
     (List.filter (function | Str.Delim x -> true | Str.Text x -> false)
-      (Str.full_split re str)) ;;
+      (Str.full_split re str))
 
 let gsub re f str =
   String.concat
