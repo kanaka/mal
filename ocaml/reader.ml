@@ -47,18 +47,21 @@ let with_meta obj meta =
     | T.Symbol { T.value = value } -> T.Symbol { T.value = value; T.meta = meta };
     | _ -> raise (Invalid_argument "metadata not supported on this type")
 
-let rec read_list list_reader =
+let rec read_list eol list_reader =
   match list_reader.tokens with
-    | [] -> output_string stderr "expected ')', got EOF\n";
+    | [] -> output_string stderr ("expected '" ^ eol ^ "', got EOF\n");
             flush stderr;
             raise End_of_file;
     | token :: tokens ->
-      if Str.string_match (Str.regexp "[])}]") token 0 then
+      if Str.string_match (Str.regexp eol) token 0 then
         {list_form = list_reader.list_form; tokens = tokens}
+      else if token.[0] = ';' then
+        read_list eol { list_form = list_reader.list_form;
+                        tokens = tokens }
       else
         let reader = read_form list_reader.tokens in
-          read_list {list_form = list_reader.list_form @ [reader.form];
-                     tokens = reader.tokens}
+          read_list eol {list_form = list_reader.list_form @ [reader.form];
+                         tokens = reader.tokens}
 and read_quote sym tokens =
   let reader = read_form tokens in
     {form = Types.list [ Types.symbol sym; reader.form ];
@@ -80,18 +83,20 @@ and read_form all_tokens =
               form = Types.list [Types.symbol "with-meta"; value.form; meta.form];
               tokens = value.tokens}
         | "(" ->
-           let list_reader = read_list {list_form = []; tokens = tokens} in
+           let list_reader = read_list ")" {list_form = []; tokens = tokens} in
              {form = Types.list list_reader.list_form;
               tokens = list_reader.tokens}
         | "{" ->
-           let list_reader = read_list {list_form = []; tokens = tokens} in
+           let list_reader = read_list "}" {list_form = []; tokens = tokens} in
              {form = Types.list_into_map Types.MalMap.empty list_reader.list_form;
               tokens = list_reader.tokens}
         | "[" ->
-           let list_reader = read_list {list_form = []; tokens = tokens} in
+           let list_reader = read_list "]" {list_form = []; tokens = tokens} in
              {form = Types.vector list_reader.list_form;
               tokens = list_reader.tokens}
-        | _ -> {form = read_atom token; tokens = tokens}
+        | _ -> if token.[0] = ';'
+               then read_form tokens
+               else {form = read_atom token; tokens = tokens}
 
 let read_str str = (read_form (List.filter ((<>) "") (find_re token_re str))).form
 
