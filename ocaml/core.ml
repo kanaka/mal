@@ -9,6 +9,13 @@ let num_fun t f = T.Fn
 let mk_int x = T.Int x
 let mk_bool x = T.Bool x
 
+let seq = function
+  | T.List   { T.value = xs } -> xs
+  | T.Vector { T.value = xs } -> xs
+  | T.Map    { T.value = xs } ->
+     Types.MalMap.fold (fun k v list -> k :: v :: list) xs []
+  | _ -> []
+
 let init env = begin
   Env.set env (Types.symbol "+")  (num_fun mk_int  ( +  ));
   Env.set env (Types.symbol "-")  (num_fun mk_int  ( -  ));
@@ -54,5 +61,20 @@ let init env = begin
     (T.Fn (function [a; b] -> Reader.with_meta a b | _ -> T.Nil));
   Env.set env (Types.symbol "meta")
     (T.Fn (function [x] -> Printer.meta x | _ -> T.Nil));
+
+  Env.set env (Types.symbol "read-string")
+    (T.Fn (function [T.String x] -> Reader.read_str x | _ -> T.Nil));
+  Env.set env (Types.symbol "slurp")
+    (T.Fn (function [T.String x] -> T.String (Reader.slurp x) | _ -> T.Nil));
+
+  Env.set env (Types.symbol "cons")
+    (T.Fn (function [x; xs] -> Types.list (x :: (seq xs)) | _ -> T.Nil));
+  Env.set env (Types.symbol "concat")
+    (T.Fn (let rec concat =
+             function
+               | x :: y :: more -> concat ((Types.list ((seq x) @ (seq y))) :: more)
+               | [x] -> x
+               | [] -> Types.list []
+           in concat));
 end
 
