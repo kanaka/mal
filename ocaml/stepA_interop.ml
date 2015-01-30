@@ -14,28 +14,38 @@ let rec quasiquote ast =
        Types.list [Types.symbol "cons"; quasiquote head; quasiquote (Types.list tail) ]
     | ast -> Types.list [Types.symbol "quote"; ast]
 
-let rec macroexpand ast env =
+let kw_macro = T.Keyword "macro"
+
+let is_macro_call ast env =
   match ast with
   | T.List { T.value = s :: args } ->
      (match (try Env.get env s with _ -> T.Nil) with
-      | T.Fn { T.value = f; T.is_macro = true } -> macroexpand (f args) env
-      | _ -> ast)
-  | _ -> ast
+      | T.Fn { T.meta = T.Map { T.value = meta } }
+        -> Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta)
+      | _ -> false)
+  | _ -> false
+
+let rec macroexpand ast env =
+  if is_macro_call ast env
+  then match ast with
+       | T.List { T.value = s :: args } ->
+          (match (try Env.get env s with _ -> T.Nil) with
+           | T.Fn { T.value = f } -> macroexpand (f args) env
+           | _ -> ast)
+       | _ -> ast
+  else ast
 
 let rec eval_ast ast env =
   match ast with
     | T.Symbol s -> Env.get env ast
     | T.List { T.value = xs; T.meta = meta }
       -> T.List { T.value = (List.map (fun x -> eval x env) xs);
-                  T.meta = meta;
-                  T.is_macro = false}
+                  T.meta = meta }
     | T.Vector { T.value = xs; T.meta = meta }
       -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
-                    T.meta = meta;
-                    T.is_macro = false}
+                    T.meta = meta }
     | T.Map { T.value = xs; T.meta = meta }
       -> T.Map {T.meta = meta;
-                T.is_macro = false;
                 T.value = (Types.MalMap.fold
                              (fun k v m
                               -> Types.MalMap.add (eval k env) (eval v env) m)
@@ -50,8 +60,8 @@ and eval ast env =
     | T.List { T.value = [(T.Symbol { T.value = "defmacro!" }); key; expr] } ->
        (match (eval expr env) with
           | T.Fn { T.value = f; T.meta = meta } ->
-             let fn = T.Fn { T.value = f; is_macro = true; meta = meta } in
-             Env.set env key fn; fn
+             let fn = T.Fn { T.value = f; meta = Core.assoc [meta; kw_macro; (T.Bool true)]}
+             in Env.set env key fn; fn
           | _ -> raise (Invalid_argument "devmacro! value must be a fn"))
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List   { T.value = bindings }); body] } ->

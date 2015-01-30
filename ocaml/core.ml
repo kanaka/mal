@@ -18,34 +18,30 @@ let seq = function
 
 let rec assoc = function
   | c :: k :: v :: (_ :: _ as xs) -> assoc ((assoc [c; k; v]) :: xs)
+  | [T.Nil; k; v] -> Types.map (Types.MalMap.add k v Types.MalMap.empty)
   | [T.Map { T.value = m; T.meta = meta }; k; v]
     -> T.Map { T.value = (Types.MalMap.add k v m);
-               T.meta = meta;
-               T.is_macro = false}
+               T.meta = meta }
   | _ -> T.Nil
 
 let rec dissoc = function
   | c :: x :: (_ :: _ as xs) -> dissoc ((dissoc [c; x]) :: xs)
   | [T.Map { T.value = m; T.meta = meta }; k]
     -> T.Map { T.value = (Types.MalMap.remove k m);
-               T.meta = meta;
-               T.is_macro = false}
+               T.meta = meta }
   | _ -> T.Nil
 
 let rec conj = function
   | c :: x :: (_ :: _ as xs) -> conj ((conj [c; x]) :: xs)
   | [T.Map { T.value = c; T.meta = meta }; T.Vector { T.value = [k; v] }]
     -> T.Map { T.value = (Types.MalMap.add k v c);
-               T.meta = meta;
-               T.is_macro = false}
+               T.meta = meta }
   | [T.List { T.value = c; T.meta = meta }; x ]
     -> T.List { T.value = x :: c;
-                T.meta = meta;
-                T.is_macro = false}
+                T.meta = meta }
   | [T.Vector { T.value = c; T.meta = meta }; x ]
     -> T.Vector { T.value = c @ [x];
-                  T.meta = meta;
-                  T.is_macro = false}
+                  T.meta = meta }
   | _ -> T.Nil
 
 let init env = begin

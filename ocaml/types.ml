@@ -1,6 +1,6 @@
 module rec Types
   : sig
-  type 'a with_meta = { value : 'a; meta : t; is_macro : bool }
+  type 'a with_meta = { value : 'a; meta : t }
   and t =
     | List of t list with_meta
     | Vector of t list with_meta
@@ -37,11 +37,11 @@ let to_bool x = match x with
 
 type mal_type = MalValue.t
 
-let list   x = Types.List   { Types.value = x; meta = Types.Nil; Types.is_macro = false }
-let map    x = Types.Map    { Types.value = x; meta = Types.Nil; Types.is_macro = false }
-let vector x = Types.Vector { Types.value = x; meta = Types.Nil; Types.is_macro = false }
-let symbol x = Types.Symbol { Types.value = x; meta = Types.Nil; Types.is_macro = false }
-let fn     f = Types.Fn     { Types.value = f; meta = Types.Nil; Types.is_macro = false }
+let list   x = Types.List   { Types.value = x; meta = Types.Nil }
+let map    x = Types.Map    { Types.value = x; meta = Types.Nil }
+let vector x = Types.Vector { Types.value = x; meta = Types.Nil }
+let symbol x = Types.Symbol { Types.value = x; meta = Types.Nil }
+let fn     f = Types.Fn     { Types.value = f; meta = Types.Nil }
 
 let rec list_into_map target source =
   match source with

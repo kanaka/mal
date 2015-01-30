@@ -19,15 +19,12 @@ let rec eval_ast ast env =
     | T.Symbol s -> Env.get env ast
     | T.List { T.value = xs; T.meta = meta }
       -> T.List { T.value = (List.map (fun x -> eval x env) xs);
-                  T.meta = meta;
-                  T.is_macro = false}
+                  T.meta = meta }
     | T.Vector { T.value = xs; T.meta = meta }
       -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
-                    T.meta = meta;
-                    T.is_macro = false}
+                    T.meta = meta }
     | T.Map { T.value = xs; T.meta = meta }
       -> T.Map {T.meta = meta;
-                T.is_macro = false;
                 T.value = (Types.MalMap.fold
                              (fun k v m
                               -> Types.MalMap.add (eval k env) (eval v env) m)
