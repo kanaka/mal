@@ -1,4 +1,4 @@
---- stepA_interop -------------------------------
+--- step8_macros --------------------------------
 import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)
@@ -6,7 +6,7 @@ READ(str): return reader.read_str(str)
 pair?(ast): return ... // true if non-empty sequence
 quasiquote(ast): return ... // quasiquote
 
-macro?(ast, env): return ... // true if macro function
+macro?(ast, env): return ... // true if macro call
 macroexpand(ast, env): return ... // recursive macro expansion
 
 eval_ast(ast,env):
@@ -30,7 +30,6 @@ EVAL(ast,env):
       'quasiquote:  ast = quasiquote(ast[1]) // TCO
       'defmacro!:   return ... // like def!, but set macro property
       'macroexpand: return macroexpand(ast[1], env)
-      'try*:        return ... // try/catch native and malval exceptions
       'do:          ast = eval_ast(ast[1..-1], env)[-1] // TCO
       'if:          EVAL(ast[1], env) ? ast = ast[2] : ast = ast[3] // TCO
       'fn*:         return new MalFunc(...)
@@ -49,7 +48,6 @@ repl_env.set('eval, (ast) -> EVAL(ast, repl-env))
 repl_env.set('*ARGV*, cmdline_args[1..])
 
 ;; core.mal: defined using the language itself
-rep("(def! *host-language* \"racket\")")
 rep("(def! not (fn* (a) (if a false true)))")
 rep("(def! load-file (fn* (f) ...))")
 rep("(defmacro! cond (fn* (& xs) ...))")
@@ -57,7 +55,6 @@ rep("(defmacro! or (fn* (& xs) ...))")
 
 if cmdline_args: rep("(load-file \"" + args[0] + "\")"); exit 0
 
-rep("(println (str \"Mal [\" *host-language* \"]\"))")
 main loop:
   try:      println(rep(readline("user> ")))
   catch e:  println("Error: ", e)
@@ -74,22 +71,12 @@ class Env (outer=null,binds=[],exprs=[])
 
 --- core module ---------------------------------
 ns = {'=:        equal?,
-      'throw:    throw,
-
-      'nil?:     nil?,
-      'true?:    true?,
-      'false?:   false?,
-      'symbol:   symbol,
-      'symbol?:  symbol?,
-      'keyword:  keyword,
-      'keyword?: keyword?,
 
       'pr-str:   (a) -> a.map(|s| pr_str(e,true)).join(" ")),
       'str:      (a) -> a.map(|s| pr_str(e,false)).join("")),
       'prn:      (a) -> println(a.map(|s| pr_str(e,true)).join(" ")),
       'println:  (a) -> println(a.map(|s| pr_str(e,false)).join(" ")),
       'read-string: read_str,
-      'readline: readline,
       'slurp     read-file,
 
       '<:        lt,
@@ -103,33 +90,11 @@ ns = {'=:        equal?,
 
       'list:     list,
       'list?:    list?,
-      'vector:   vector,
-      'vector?:  vector?,
-      'hash-map: hash_map,
-      'map?:     hash_map?,
-      'assoc:    assoc,
-      'dissoc:   dissoc,
-      'get:      get,
-      'contains?: contains?,
-      'keys:     keys,
-      'vals:     vals,
 
-      'sequential? sequential?,
       'cons:     (a) -> concat([a[0]], a[1]),
       'concat:   (a) -> reduce(concat, [], a),
       'nth:      (a) -> a[0][a[1]] OR raise "nth: index out of range",
       'first:    (a) -> a[0][0] OR nil,
       'rest:     (a) -> a[0][1..] OR list(),
       'empty?:   empty?,
-      'count:    count,
-      'apply:    apply,
-      'map:      map,
-      'conj:     conj,
-
-      'meta:     (a) -> a[0].meta,
-      'with-meta: (a) -> a[0].with_meta(a[1]),
-      'atom:     (a) -> new Atom(a[0]),
-      'atom?:    (a) -> type(a[0]) == "atom",
-      'deref:    (a) -> a[0].val,
-      'reset!:   (a) -> a[0].val = a[1],
-      'swap!:    swap!}
+      'count:    count}

@@ -30,24 +30,24 @@ Mal is implemented in 22 different languages:
 * Visual Basic.NET
 
 
-Mal is a learning tool. Each implementation of mal is separated into 11
+Mal is a [learning tool](process/guide.md). Each implementation of mal is separated into 11
 incremental, self-contained (and testable) steps that demonstrate core
 concepts of Lisp. The last step is capable of self-hosting (running
 the mal implemenation of mal).
 
 The mal (make a lisp) steps are:
 
-* step0_repl
-* step1_read_print
-* step2_eval
-* step3_env
-* step4_if_fn_do
-* step5_tco
-* step6_file
-* step7_quote
-* step8_macros
-* step9_try
-* stepA_interop
+* [step0_repl](process/guide.md#step0)
+* [step1_read_print](process/guide.md#step1)
+* [step2_eval](process/guide.md#step2)
+* [step3_env](process/guide.md#step3)
+* [step4_if_fn_do](process/guide.md#step4)
+* [step5_tco](process/guide.md#step5)
+* [step6_file](process/guide.md#step6)
+* [step7_quote](process/guide.md#step7)
+* [step8_macros](process/guide.md#step8)
+* [step9_try](process/guide.md#step9)
+* [stepA_interop](process/guide.md#stepA)
 
 
 Mal was presented publicly for the first time in a lightning talk at
