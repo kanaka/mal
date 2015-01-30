@@ -28,4 +28,10 @@ $(STEP_BINS): %: %.ml $(MAL_LIB)
 clean:
 	rm -f $(STEP_BINS) mal mal_lib.* *.cmo *.cmx *.cmi *.o
 
-.PHONY: all repl clean
+stats: $(MODULES) stepA_interop.ml
+	@wc $^
+
+stats-lisp: env.ml core.ml stepA_interop.ml
+	@wc $^
+
+.PHONY: all repl clean stats stats-lisp
