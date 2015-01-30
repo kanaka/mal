@@ -1,4 +1,5 @@
 All:
+    - rename stepA_interop to stepA_mal
     - test to check args set properly
     - test to make sure slurp captures final newline
     - make sure errors propagate/print properly when self-hosted
@@ -14,10 +15,21 @@ All:
     - Implement/fix interop
     - Print full exception when test gets EOF from expect
 
+    - metadata on symbols
+    - metadata as a map only. ^ merges metadata in the reader itself.
+      Line numbers in metadata from reader.
     - protocols!
         - https://github.com/pixie-lang/pixie
         - http://www.toccata.io/2015/01/Mapping/
-
+    - namespaces
+        - environments first class: *ENV*, *outer* defined by env-new
+        - namespaces is *namespaces* map in environment which maps namespace
+          names to other environments.
+        - def! become an alias for (env-set! *ENV* 'sym value)
+        - Namespace lookup: go up the environment hierarchy until
+          a *namespaces* map is found with the namespace name being
+          looked up. Then the symbol would be looked up starting in
+          the namespace environment. Need protocols first probably.
     - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
 
@@ -39,7 +51,7 @@ Bash:
 
 C:
     - come up with better way to do 20 vararg code
-    - GC
+    - GC: use http://www.hboehm.info/gc/
     - fix mal/clojurewest2014.mal
 
 C#:

@@ -833,6 +833,8 @@ the changes that will be made during this step:
 diff -urp ../process/step5_tco.txt ../process/step6_file.txt
 ```
 
+* Copy `step5_tco.qx` to `step6_file.qx`.
+
 * Add two new string functions to the core namespaces:
   * `read-string`: this function just exposes the `read_str` function
     from the reader. If your mal string type is not the same as your
@@ -909,12 +911,6 @@ add supporting core functions `cons` and `concat`. The two quote forms
 add a powerful abstraction for manipulating mal code itself
 (meta-programming).
 
-Compare the pseudocode for step 6 and step 7 to get a basic idea of
-the changes that will be made during this step:
-```
-diff -urp ../process/step6_file.txt ../process/step7_quote.txt
-```
-
 The `quote` special form indicates to the evaluator (`EVAL`) that the
 parameter should not be evaluated (yet). At first glance, this might
 not seem particular useful but an example of what this enables is the
@@ -951,6 +947,14 @@ result of evaluation is put in place into the quasiquoted list. The
 the evaluated value must be a list which is then "spliced" into the
 quasiquoted list. The true power of the quasiquote form will be
 manifest when it used together with macros (in the next step).
+
+Compare the pseudocode for step 6 and step 7 to get a basic idea of
+the changes that will be made during this step:
+```
+diff -urp ../process/step6_file.txt ../process/step7_quote.txt
+```
+
+* Copy `step6_file.qx` to `step7_quote.qx`.
 
 * Before implementing the quoting forms, you will need to implement
 * some supporting functions in the core namespace:
@@ -1057,6 +1061,9 @@ the changes that will be made during this step:
 diff -urp ../process/step7_quote.txt ../process/step8_macros.txt
 ```
 
+* Copy `step7_quote.qx` to `step8_macros.qx`.
+
+
 You might think that the infinite power of macros would require some
 sort of complex mechanism, but the implementation is actually fairly
 simple.
@@ -1121,6 +1128,40 @@ make test^quux^step8
   to define these macros:
   * `cond`: "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
   * `or`: "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+
+
+<a name="step9"></a>
+
+### Step 9: Try
+
+![step9_try architecture](step9_try.png)
+
+Compare the pseudocode for step 8 and step 9 to get a basic idea of
+the changes that will be made during this step:
+```
+diff -urp ../process/step8_macros.txt ../process/step9_try.txt
+```
+
+* Copy `step8_macros.qx` to `step9_try.qx`.
+
+* TODO/TBD
+
+
+<a name="step9"></a>
+
+### Step A: Interop and Self-hosting
+
+![stepA_interop architecture](stepA_interop.png)
+
+Compare the pseudocode for step 9 and step A to get a basic idea of
+the changes that will be made during this step:
+```
+diff -urp ../process/step9_try.txt ../process/stepA_interop.txt
+```
+
+* Copy `step9_try.qx` to `stepA_interop.qx`.
+
+* TODO/TBD
 
 
 ## TODO:

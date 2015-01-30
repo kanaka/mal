@@ -351,6 +351,16 @@ a
 (if [] 7 8)
 ;=>7
 
+;; Testing vector functions
+(count [1 2 3])
+;=>3
+(empty? [1 2 3])
+;=>false
+(empty? [])
+;=>true
+(list? [4 5 6])
+;=>false
+
 ;; Testing vector equality
 (= [] (list))
 ;=>true
