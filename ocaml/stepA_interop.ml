@@ -140,19 +140,20 @@ let rec main =
 
     if Array.length Sys.argv > 1 then
       ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env)
-    else
-      ignore (rep "(println (str \"Mal [\" *host-language* \"]\"))" repl_env);
-      while true do
-        print_string "user> ";
-        let line = read_line () in
-        try
-          print_endline (rep line repl_env);
-        with End_of_file -> ()
-           | Invalid_argument x ->
-              output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
-              flush stderr
-           | _ ->
-              output_string stderr ("Erroringness!\n");
-              flush stderr
-      done
+    else begin
+        ignore (rep "(println (str \"Mal [\" *host-language* \"]\"))" repl_env);
+        while true do
+          print_string "user> ";
+          let line = read_line () in
+          try
+            print_endline (rep line repl_env);
+          with End_of_file -> ()
+             | Invalid_argument x ->
+                output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
+                flush stderr
+             | _ ->
+                output_string stderr ("Erroringness!\n");
+                flush stderr
+        done
+      end
   with End_of_file -> ()
