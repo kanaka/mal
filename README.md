@@ -18,6 +18,7 @@ Mal is implemented in 22 different languages:
 * Lua
 * GNU Make
 * mal itself
+* OCaml
 * Perl
 * PHP
 * Postscript
@@ -177,6 +178,14 @@ IMPL_STEPA_CMD ../mal/stepX_YYY.mal
 ```
 cd make
 make -f stepX_YYY.mk
+```
+
+### OCaml 4.01.0
+
+```
+cd ocaml
+make
+./stepX_YYY
 ```
 
 ### Perl 5.8
