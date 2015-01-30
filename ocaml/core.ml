@@ -197,4 +197,7 @@ let init env = begin
   Env.set env (Types.symbol "swap!")
           (Types.fn (function T.Atom x :: T.Fn { T.value = f } :: args
                               -> let v = f (!x :: args) in x := v; v | _ -> T.Nil));
+
+  Env.set env (Types.symbol "time-ms")
+          (Types.fn (function _ -> T.Int (truncate (1000.0 *. Unix.gettimeofday ()))));
 end
