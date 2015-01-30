@@ -49,6 +49,9 @@ let rec conj = function
   | _ -> T.Nil
 
 let init env = begin
+  Env.set env (Types.symbol "throw")
+          (Types.fn (function [ast] -> raise (Types.MalExn ast) | _ -> T.Nil));
+
   Env.set env (Types.symbol "+")  (num_fun mk_int  ( +  ));
   Env.set env (Types.symbol "-")  (num_fun mk_int  ( -  ));
   Env.set env (Types.symbol "*")  (num_fun mk_int  ( *  ));
@@ -67,7 +70,10 @@ let init env = begin
   Env.set env (Types.symbol "empty?")
     (Types.fn (function [T.List {T.value = []}] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "count")
-    (Types.fn (function [T.List {T.value = xs}] -> T.Int (List.length xs) | _ -> T.Int 0));
+    (Types.fn (function
+                | [T.List   {T.value = xs}]
+                | [T.Vector {T.value = xs}] -> T.Int (List.length xs)
+                | _ -> T.Int 0));
   Env.set env (Types.symbol "=")
     (Types.fn (function
                 | [T.List a; T.Vector b] -> T.Bool (a = b)
@@ -184,6 +190,8 @@ let init env = begin
                 | _ -> T.Bool false));
   Env.set env (Types.symbol "conj") (Types.fn conj);
 
+  Env.set env (Types.symbol "atom?")
+          (Types.fn (function [T.Atom _] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "atom")
           (Types.fn (function [x] -> T.Atom (ref x) | _ -> T.Nil));
   Env.set env (Types.symbol "deref")
