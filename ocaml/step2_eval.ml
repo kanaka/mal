@@ -26,11 +26,16 @@ let rec eval_ast ast env =
        (try Env.find s !env
         with Not_found -> raise (Invalid_argument ("Symbol '" ^ s ^ "' not found")))
     | T.List { T.value = xs; T.meta = meta }
-      -> T.List { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+      -> T.List { T.value = (List.map (fun x -> eval x env) xs);
+                  T.meta = meta;
+                  T.is_macro = false}
     | T.Vector { T.value = xs; T.meta = meta }
-      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
+                    T.meta = meta;
+                    T.is_macro = false}
     | T.Map { T.value = xs; T.meta = meta }
       -> T.Map {T.meta = meta;
+                T.is_macro = false;
                 T.value = (Types.MalMap.fold
                              (fun k v m
                               -> Types.MalMap.add (eval k env) (eval v env) m)
@@ -40,7 +45,7 @@ let rec eval_ast ast env =
 and eval ast env =
   let result = eval_ast ast env in
     match result with
-      | T.List { T.value = ((T.Fn { T.f = f }) :: args) } -> (f args)
+      | T.List { T.value = ((T.Fn { T.value = f }) :: args) } -> (f args)
       | _ -> result
 
 let read str = Reader.read_str str

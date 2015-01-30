@@ -6,6 +6,7 @@ let meta obj =
     | T.Map    { T.meta = meta } -> meta
     | T.Vector { T.meta = meta } -> meta
     | T.Symbol { T.meta = meta } -> meta
+    | T.Fn     { T.meta = meta } -> meta
     | _ -> T.Nil
 
 let rec pr_str mal_obj print_readably =
@@ -30,7 +31,8 @@ let rec pr_str mal_obj print_readably =
       | T.Vector { T.value = xs } ->
           "[" ^ (String.concat " " (List.map (fun s -> pr_str s r) xs)) ^ "]"
       | T.Map { T.value = xs } ->
-         (Types.MalMap.fold (fun k v s -> s ^ (if s = "" then "{" else ", ") ^ (pr_str k r)
-                                          ^ " " ^ (pr_str v r)) xs "")
+         "{" ^ (Types.MalMap.fold (fun k v s -> s ^ (if s = "" then "" else ", ") ^ (pr_str k r)
+                                                ^ " " ^ (pr_str v r)) xs "")
          ^ "}"
       | T.Fn f -> "#<fn>"
+      | T.Atom x -> "(atom " ^ (pr_str !x r) ^ ")"

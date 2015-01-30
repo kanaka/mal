@@ -29,5 +29,5 @@ let get env sym =
     | T.Symbol { T.value = key } ->
       (match find env sym with
          | Some found_env -> Data.find key !(found_env.data)
-         | None -> raise (Invalid_argument ("Symbol '" ^ key ^ "' not found")))
+         | None -> raise (Invalid_argument ("'" ^ key ^ "' not found")))
     | _ -> raise (Invalid_argument "get requires a Symbol for its key")

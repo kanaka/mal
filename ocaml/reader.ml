@@ -48,10 +48,11 @@ let read_atom token =
 
 let with_meta obj meta =
   match obj with
-    | T.List   { T.value = value } -> T.List   { T.value = value; T.meta = meta };
-    | T.Map    { T.value = value } -> T.Map    { T.value = value; T.meta = meta };
-    | T.Vector { T.value = value } -> T.Vector { T.value = value; T.meta = meta };
-    | T.Symbol { T.value = value } -> T.Symbol { T.value = value; T.meta = meta };
+    | T.List   { T.value = v } -> T.List   { T.value = v; T.meta = meta; T.is_macro = false };
+    | T.Map    { T.value = v } -> T.Map    { T.value = v; T.meta = meta; T.is_macro = false };
+    | T.Vector { T.value = v } -> T.Vector { T.value = v; T.meta = meta; T.is_macro = false };
+    | T.Symbol { T.value = v } -> T.Symbol { T.value = v; T.meta = meta; T.is_macro = false };
+    | T.Fn     { T.value = v } -> T.Fn     { T.value = v; T.meta = meta; T.is_macro = false };
     | _ -> raise (Invalid_argument "metadata not supported on this type")
 
 let rec read_list eol list_reader =

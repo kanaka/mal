@@ -2,6 +2,26 @@ module T = Types.Types
 
 let repl_env = Env.make (Some Core.ns)
 
+let rec quasiquote ast =
+  match ast with
+    | T.List   { T.value = [T.Symbol {T.value = "unquote"}; ast] } -> ast
+    | T.Vector { T.value = [T.Symbol {T.value = "unquote"}; ast] } -> ast
+    | T.List   { T.value = T.List { T.value = [T.Symbol {T.value = "splice-unquote"}; head]} :: tail }
+    | T.Vector { T.value = T.List { T.value = [T.Symbol {T.value = "splice-unquote"}; head]} :: tail } ->
+       Types.list [Types.symbol "concat"; head; quasiquote (Types.list tail)]
+    | T.List   { T.value = head :: tail }
+    | T.Vector { T.value = head :: tail } ->
+       Types.list [Types.symbol "cons"; quasiquote head; quasiquote (Types.list tail) ]
+    | ast -> Types.list [Types.symbol "quote"; ast]
+
+let rec macroexpand ast env =
+  match ast with
+  | T.List { T.value = s :: args } ->
+     (match (try Env.get env s with _ -> T.Nil) with
+      | T.Fn { T.value = f; T.is_macro = true } -> macroexpand (f args) env
+      | _ -> ast)
+  | _ -> ast
+
 let rec eval_ast ast env =
   match ast with
     | T.Symbol s -> Env.get env ast
@@ -23,10 +43,16 @@ let rec eval_ast ast env =
                              Types.MalMap.empty)}
     | _ -> ast
 and eval ast env =
-  match ast with
+  match macroexpand ast env with
     | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
+    | T.List { T.value = [(T.Symbol { T.value = "defmacro!" }); key; expr] } ->
+       (match (eval expr env) with
+          | T.Fn { T.value = f; T.meta = meta } ->
+             let fn = T.Fn { T.value = f; is_macro = true; meta = meta } in
+             Env.set env key fn; fn
+          | _ -> raise (Invalid_argument "devmacro! value must be a fn"))
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.List   { T.value = bindings }); body] } ->
         (let sub_env = Env.make (Some env) in
@@ -59,11 +85,30 @@ and eval ast env =
                   | _ -> raise (Invalid_argument "Bad param count in fn call"))
               in bind_args arg_names args;
               eval expr sub_env)
-    | T.List _ ->
+    | T.List { T.value = [T.Symbol { T.value = "quote" }; ast] } -> ast
+    | T.List { T.value = [T.Symbol { T.value = "quasiquote" }; ast] } ->
+       eval (quasiquote ast) env
+    | T.List { T.value = [T.Symbol { T.value = "macroexpand" }; ast] } ->
+       macroexpand ast env
+    | T.List { T.value = [T.Symbol { T.value = "throw" }; ast] } ->
+       raise (Types.MalExn (eval ast env))
+    | T.List { T.value = [T.Symbol { T.value = "try*" }; scary ;
+                          T.List { T.value = [T.Symbol { T.value = "catch*" };
+                                              local ; handler]}]} ->
+       (try (eval scary env)
+        with exn ->
+           let value = match exn with
+             | Types.MalExn value -> value
+             | Invalid_argument msg -> T.String msg
+             | _ -> (T.String "OCaml exception") in
+           let sub_env = Env.make (Some env) in
+           Env.set sub_env local value;
+           eval handler sub_env)
+    | T.List _ as ast ->
       (match eval_ast ast env with
          | T.List { T.value = ((T.Fn { T.value = f }) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
-    | _ -> eval_ast ast env
+    | ast -> eval_ast ast env
 
 let read str = Reader.read_str str
 let print exp = Printer.pr_str exp true
@@ -78,9 +123,11 @@ let rec main =
                          else []));
     Env.set repl_env (Types.symbol "eval")
             (Types.fn (function [ast] -> eval ast repl_env | _ -> T.Nil));
-    let code = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
-    in print_endline code; ignore (rep code repl_env);
+
+    ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" repl_env);
     ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
+    ignore (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" repl_env);
+    ignore (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" repl_env);
 
     if Array.length Sys.argv > 1 then
       ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env)
@@ -93,6 +140,9 @@ let rec main =
         with End_of_file -> ()
            | Invalid_argument x ->
               output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
+              flush stderr
+           | _ ->
+              output_string stderr ("Erroringness!\n");
               flush stderr
       done
   with End_of_file -> ()

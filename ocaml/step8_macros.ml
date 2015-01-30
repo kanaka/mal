@@ -18,7 +18,7 @@ let rec macroexpand ast env =
   match ast with
   | T.List { T.value = s :: args } ->
      (match (try Env.get env s with _ -> T.Nil) with
-      | T.Fn { T.f = f; T.is_macro = true } -> macroexpand (f args) env
+      | T.Fn { T.value = f; T.is_macro = true } -> macroexpand (f args) env
       | _ -> ast)
   | _ -> ast
 
@@ -26,11 +26,16 @@ let rec eval_ast ast env =
   match ast with
     | T.Symbol s -> Env.get env ast
     | T.List { T.value = xs; T.meta = meta }
-      -> T.List { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+      -> T.List { T.value = (List.map (fun x -> eval x env) xs);
+                  T.meta = meta;
+                  T.is_macro = false}
     | T.Vector { T.value = xs; T.meta = meta }
-      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
+                    T.meta = meta;
+                    T.is_macro = false}
     | T.Map { T.value = xs; T.meta = meta }
       -> T.Map {T.meta = meta;
+                T.is_macro = false;
                 T.value = (Types.MalMap.fold
                              (fun k v m
                               -> Types.MalMap.add (eval k env) (eval v env) m)
@@ -44,8 +49,8 @@ and eval ast env =
           Env.set env key value; value
     | T.List { T.value = [(T.Symbol { T.value = "defmacro!" }); key; expr] } ->
        (match (eval expr env) with
-          | T.Fn { T.f = f } ->
-             let fn = T.Fn { T.f = f; is_macro = true } in
+          | T.Fn { T.value = f; T.meta = meta } ->
+             let fn = T.Fn { T.value = f; is_macro = true; meta = meta } in
              Env.set env key fn; fn
           | _ -> raise (Invalid_argument "devmacro! value must be a fn"))
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
@@ -87,7 +92,7 @@ and eval ast env =
        macroexpand ast env
     | T.List _ as ast ->
       (match eval_ast ast env with
-         | T.List { T.value = ((T.Fn { T.f = f }) :: args) } -> f args
+         | T.List { T.value = ((T.Fn { T.value = f }) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | ast -> eval_ast ast env
 

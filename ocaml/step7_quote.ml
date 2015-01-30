@@ -18,11 +18,16 @@ let rec eval_ast ast env =
   match ast with
     | T.Symbol s -> Env.get env ast
     | T.List { T.value = xs; T.meta = meta }
-      -> T.List { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+      -> T.List { T.value = (List.map (fun x -> eval x env) xs);
+                  T.meta = meta;
+                  T.is_macro = false}
     | T.Vector { T.value = xs; T.meta = meta }
-      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs); T.meta = meta }
+      -> T.Vector { T.value = (List.map (fun x -> eval x env) xs);
+                    T.meta = meta;
+                    T.is_macro = false}
     | T.Map { T.value = xs; T.meta = meta }
       -> T.Map {T.meta = meta;
+                T.is_macro = false;
                 T.value = (Types.MalMap.fold
                              (fun k v m
                               -> Types.MalMap.add (eval k env) (eval v env) m)
@@ -71,7 +76,7 @@ and eval ast env =
        eval (quasiquote ast) env
     | T.List _ ->
       (match eval_ast ast env with
-         | T.List { T.value = ((T.Fn { T.f = f }) :: args) } -> f args
+         | T.List { T.value = ((T.Fn { T.value = f }) :: args) } -> f args
          | _ -> raise (Invalid_argument "Cannot invoke non-function"))
     | _ -> eval_ast ast env
 
