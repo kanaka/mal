@@ -32,9 +32,9 @@ them in rough order of importance:
 
 In addition, the following will make your task especially easy:
 
-* Dynamic typing / boxed types (specifically, you store different
-  data type in the sequential and associative structures and the
-  language keeps track of the type for you)
+* Dynamic typing / boxed types (specifically, the ability to store
+  different data types in the sequential and associative structures
+  and the language keeps track of the type for you)
 * Compound data types support arbitrary runtime "hidden" data
   (metadata, metatables, dynamic fields attributes)
 
@@ -50,6 +50,10 @@ instead of just borrowing mine. On the other hand, if your goal is to
 add new implementations to mal as efficiently as possible, then you
 SHOULD find the most similar target language implementation and refer
 to it frequently.
+
+If you want a fairly long list of programming languages with an
+approximate measure of popularity, try the [Programming Language
+Popularity Chart](http://langpop.corger.nl/)
 
 
 ## Getting started
@@ -1117,7 +1121,6 @@ make test^quux^step8
   to define these macros:
   * `cond`: "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
   * `or`: "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
-
 
 
 ## TODO:
