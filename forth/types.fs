@@ -7,52 +7,12 @@
     swap cr ." | got " . cr ." | expected " . cr
   endif ;
 
-\ === classic lisp list === /
-: cons { addr val -- new-list-address }
-  2 cells allocate throw
-  dup addr val rot 2! ;
-
-: cdr ( addr -- next-addr )
-  cell+ @ ;
-
-: int-pr ( num -- )
-  s>d <# #s #> type ;
-
-: prn ( list-address -- )
-  ." (" 2@ int-pr
-  begin
-    space 2@ int-pr
-    dup 0=
-  until
-  .\" )\n" ;
-
-0 1 cons 2 cons 3 cons 4 cons
-prn
-
-
-\ === mutable vector === /
-\ Singly-linked list, with an "object" pair that points to both ends.
-\ This allows fast append and fast iteration from beginning to end,
-\ like a vector.  ...but buys simplicity with mutability
-: new-mutvec ( -- mutvec-addr )
-  2 cells allocate throw
-  dup 0 0 rot 2! ;
-
-: mutvec-append { mutvec-addr value -- }
-  2 cells allocate throw    \ new pair
-  dup nil value rot 2!      \ put value in new pair
-  dup mutvec-addr @
-    ?dup 0= if mutvec-addr endif
-    cell+ !                 \ update old tail
-  mutvec-addr !             \ update object
-  ;
-
-new-mutvec
-dup 5 mutvec-append
-dup 4 mutvec-append
-dup 3 mutvec-append
-dup 2 mutvec-append
-cdr prn
+: safe-type ( str-addr str-len -- )
+    dup 256 > if
+        drop 256 type ." ...<lots more>" type
+    else
+        type
+    endif ;
 
 
 \ === mutable string buffer === /
@@ -85,35 +45,14 @@ cdr prn
   str-addr buf-addr buf-str-len + str-len cmove
   buf-addr new-len ;
 
-
+\ define a function to append a space
 bl c,
 here constant space-str
 : a-space space-str 1 str-append ;
 
-new-str
-s" hello there" str-append a-space
-s" is this getting ...." str-append a-space
-s\" interesting yet?\n" str-append
-type
-
-\ A rewrite of the list-printer above, but now using string buffer:
-: int-pr-str2 ( num -- str-addr str-len )
+: int>str ( num -- str-addr str-len )
   s>d <# #s #> ;
 
-: pr-str2 ( strbuf str-len list-address -- )
-  -rot s" (" str-append rot
-  2@ 2swap rot int-pr-str2 str-append
-  begin
-    a-space
-    rot 2@ 2swap rot int-pr-str2 str-append
-    2 pick 0=
-  until
-  s" )" str-append rot drop ;
-
-new-str
-0 1 cons 2 cons 3 cons 4 cons
-pr-str2 type
-cr
 
 \ === deftype* -- protocol-enabled structs === /
 \ Each type has MalTypeType% struct allocated on the stack, with
@@ -151,18 +90,29 @@ end-struct MalTypeType%
 
 MalType% deftype* constant MalDefault
 
+\ nil type and instance to support extending protocols to it
+MalType% deftype* constant MalNil
+MalNil new constant mal-nil
+
 \ Example and tests
 
 MalType%
-  cell% field obj-list/car
-  cell% field obj-list/cdr
-deftype* constant ObjList
+  cell% field MalList/car
+  cell% field MalList/cdr
+deftype* constant MalList
 
-ObjList new
-ObjList new
+: MalList/conj { val coll -- list }
+    MalList new ( list )
+    val over MalList/car ! ( list )
+    coll over MalList/cdr ! ( list )
+    ;
+
+MalList new
+MalList new
 = 0 test=
 
-ObjList new dup obj-list/car 5 swap ! obj-list/car @   5 test=
+MalList new dup MalList/car 5 swap ! MalList/car @   5 test=
+
 
 \ === sorted-array === /
 \ Here are a few utility functions useful for creating and maintaining
@@ -252,7 +202,7 @@ dup 5 cells + @  20 test=
 
   pxt array-find ( type idx found? )
   dup 0= if \ No implementation found for this method; check for a default
-    2drop MalDefault MalTypeType-methods 2@ swap
+    2drop drop MalDefault dup MalTypeType-methods 2@ swap
     dup 0= if ." No implementation found for this method, and no protocols extended to MalDefault" 1 throw endif
     pxt array-find ( type idx found? )
   endif
@@ -280,72 +230,107 @@ dup 5 cells + @  20 test=
       type MalTypeType-methods dup @ 1+ dup rot ! ( new-count )
       1- dup type MalTypeType-method-keys @ idx pxt array-insert ( old-count new-array )
         type MalTypeType-method-keys ! ( old-count )
-      \ cr ." before: " ObjList MalTypeType-method-vals @ @ . cr
+      \ cr ." before: " MalList MalTypeType-method-vals @ @ . cr
       type MalTypeType-method-vals @ idx ixt array-insert ( new-array )
         type MalTypeType-method-vals !
-      \ cr ." after: " ObjList MalTypeType-method-vals @ @ . cr
+      \ cr ." after: " MalList MalTypeType-method-vals @ @ . cr
     endif
   endif
   type
   ;
 
-\ Examples of making new protocol methods (without a protocol to group them yet!)
-: pr-str [ latestxt ] literal execute-method ;
-: conj   [ latestxt ] literal execute-method ;
 
-\ Examples of extending existing protocol methods to existing type
-MalDefault ' pr-str :noname s" #<MalObject>" ; extend-method*
-ObjList ' pr-str :noname drop s" #<ObjList>" ; extend-method*
-ObjList ' conj :noname ." not yet done" ; extend-method*
+\ def-protocol-method pr-str   ...can be written:
+\ : pr-str ( obj -- str ) [ latestxt ] literal execute-method ;
+: def-protocol-method ( "name" -- )
+    create latestxt ,
+  does> ( ??? obj xt-ref -- ??? )
+    @ execute-method ;
 
-\ Run some protocol methods!
-ObjList new pr-str type
-ObjList new conj
+: extend ( type -- type pxt <noname...>)
+    parse-name find-name name>int ( type pxt )
+    :noname
+    ;
+
+: ;; ( type pxt <noname...> -- type )
+    [compile] ; ( type pxt ixt )
+    extend-method*
+    ; immediate
 
 (
-  method-count 1+ to method-count
-
+\ These whole-protocol names are only needed for 'satisfies?':
 protocol IPrintable
-  method% pr-str
+  def-protocol-method pr-str
 end-protocol
-)
 
-(
-ObjList IPrintable extend
-
+MalList IPrintable extend
   ' pr-str :noname drop s" <unprintable>" ; extend-method*
 
   extend-method pr-str
-    drop s" <unprintable>" ;
+    drop s" <unprintable>" ;;
 end-extend
 )
 
-\ new-obj
+\ Examples of making new protocol methods (without a protocol to group them yet!)
+def-protocol-method pr-buf ( str-addr str-len this -- str-addr str-len )
+def-protocol-method conj ( obj this -- this )
 
-\ new-instance
+: pr-str { obj }
+    new-str obj pr-buf ;
+
+\ Examples of extending existing protocol methods to existing type
+MalDefault
+  extend pr-buf
+    { this }
+    s" #<MalObject" str-append a-space
+    this int>str str-append
+    s" >" str-append ;;
+  extend conj   ( obj this -- this )
+    swap drop ;;
+drop
+
+MalNil
+  extend pr-buf
+    drop s" nil" str-append ;;
+  ' conj ' MalList/conj extend-method*
+drop
+
+MalList
+  extend pr-buf
+    -rot s" (" str-append ( list str-addr str-len )
+    rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf
+    begin ( list str-addr str-len )
+      2 pick mal-nil <>
+    while
+      a-space
+      rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf
+    repeat
+    s" )" str-append rot drop ;;
+  ' conj ' MalList/conj extend-method*
+drop
 
 
-\ maybe useful for debugging?
-: p dup . ;
-: @p dup @ dup . ;
+MalType%
+  cell% field MalInt/int
+deftype* constant MalInt
 
-(
+MalInt
+  extend pr-buf
+    MalInt/int @ int>str str-append ;;
+drop
 
-create buff 128 allot
-
-." user> "
-
-buff 128 stdin read-line throw
-
-buff c@ .
-buff 5 + c@ .
-
-S" Hello" dup . type
+: MalInt. { int -- mal-int }
+    MalInt new dup MalInt/int int swap ! ;
 
 
-)
+\ Run some protocol methods!
 
+mal-nil
+42 MalInt. mal-nil conj
+10 MalInt. mal-nil conj conj
+20 MalInt. swap conj
+23 MalInt. mal-nil conj conj conj
 
-cr
+pr-str safe-type cr
+
 bye
-." Done loading" cr
