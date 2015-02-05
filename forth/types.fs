@@ -330,7 +330,4 @@ mal-nil
 10 MalInt. mal-nil conj conj
 20 MalInt. swap conj
 23 MalInt. mal-nil conj conj conj
-
-pr-str safe-type cr
-
-bye
+pr-str s" (nil (20 (42) 10) 23)" str= -1 test=
