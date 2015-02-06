@@ -1,4 +1,4 @@
-s" types.fs" included
+require types.fs
 
 : read ;
 : eval ;
