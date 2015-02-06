@@ -23,7 +23,7 @@ require types.fs
   begin
     1 lshift 2dup <
   until
-  swap drop ;
+  nip ;
 
 : str-append { buf-addr buf-str-len str-addr str-len }
   buf-str-len str-len +
@@ -43,7 +43,7 @@ here constant space-str
 : a-space space-str 1 str-append ;
 
 : str-append-char ( buf-addr buf-str-len char -- buf-addr buf-str-len )
-    pad ! pad 1 str-append ; \ refactoring str-append could perhaps make this faster
+    pad ! pad 1 str-append ;
 
 : int>str ( num -- str-addr str-len )
   s>d <# #s #> ;
@@ -93,4 +93,38 @@ MalSymbol
     dup MalSymbol/sym-addr @
     swap MalSymbol/sym-len @
     str-append ;;
+drop
+
+: insert-\ ( str-addr str-len insert-idx -- str-addr str-len )
+    -rot 0 str-append-char { addr len }
+    dup   dup addr +   dup 1+  ( i i from to )
+    rot len swap - cmove> ( i ) \ shift " etc to the right
+    addr + [char] \ swap c! \ escape it!
+    addr len
+    ;
+
+MalString
+  extend pr-buf
+    dup MalString/str-addr @
+    swap MalString/str-len @
+    { addr len }
+
+    s\" \"" str-append
+    0 ( i )
+    begin
+        dup addr + c@ ( i char )
+        dup [char] " = over [char] \ = or if ( i char )
+            drop dup addr len rot insert-\ to len to addr
+            1+
+        else
+            10 = if ( i ) \ newline?
+                dup addr len rot insert-\ to len to addr
+                dup addr + 1+ [char] n swap c!
+                1+
+            endif
+        endif
+        1+
+    dup len = until
+    drop addr len str-append
+    s\" \"" str-append ;;
 drop

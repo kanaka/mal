@@ -22,7 +22,7 @@
       endif
     else
       key > if         ( start end middle )
-        swap drop      ( start middle )
+        nip            ( start middle )
       else
         -rot 2drop dup ( middle middle )
       endif
@@ -187,7 +187,7 @@ def-protocol-method conj ( obj this -- this )
 \ Examples of extending existing protocol methods to existing type
 MalDefault
   extend conj   ( obj this -- this )
-    swap drop ;;
+    nip ;;
 drop
 
 MalNil
@@ -217,3 +217,14 @@ deftype* constant MalSymbol
     str-addr sym MalSymbol/sym-addr !
     str-len  sym MalSymbol/sym-len  !
     sym ;
+
+MalType%
+  cell% field MalString/str-addr
+  cell% field MalString/str-len
+deftype* constant MalString
+
+: MalString. { str-addr str-len -- mal-str }
+    MalString new { str }
+    str-addr str MalString/str-addr !
+    str-len  str MalString/str-len  !
+    str ;

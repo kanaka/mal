@@ -26,6 +26,7 @@ create buff 128 allot
 \ cr
 \ pr-str safe-type cr
 \ new-str s" hello" str-append char ! str-append-char safe-type
+\ s\" he\nllo" MalString. pr-str safe-type cr
 
 read-lines
 cr
