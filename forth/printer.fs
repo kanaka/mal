@@ -70,16 +70,17 @@ MalNil
     drop s" nil" str-append ;;
 drop
 
+: pr-buf-list-item ( list str-addr str-len -- list str-addr str-len)
+    rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf ;
+
 : pr-buf-list ( list str-addr str-len -- str-addr str-len)
-    rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf
+    pr-buf-list-item
     begin ( list str-addr str-len )
       2 pick mal-nil <>
     while
-      a-space
-      rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf
+      a-space pr-buf-list-item
     repeat
     rot drop ;
-
 
 MalList
   extend pr-buf
@@ -94,6 +95,21 @@ MalVector
     -rot s" [" str-append ( list str-addr str-len )
     pr-buf-list
     s" ]" str-append ;;
+drop
+
+MalMap
+  extend pr-buf
+    MalMap/list @
+    -rot s" {" str-append ( list str-addr str-len )
+    pr-buf-list-item a-space pr-buf-list-item
+    begin ( list str-addr str-len )
+      2 pick mal-nil <>
+    while
+      s" , " str-append
+      pr-buf-list-item a-space pr-buf-list-item
+    repeat
+    rot drop
+    s" }" str-append ;;
 drop
 
 MalInt

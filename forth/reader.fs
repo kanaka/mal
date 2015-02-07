@@ -126,6 +126,7 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
         dup mal-digit? if read-int else
         dup [char] ( = if [char] ) read-list else
         dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
+        dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
         dup [char] " = if read-string-literal else
         dup [char] ; = if read-comment else
         dup [char] @ = if drop adv-str s" deref" read-wrapped else
@@ -137,8 +138,15 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
             else s" unquote" read-wrapped
             endif
         else
+        dup [char] ^ = if
+            drop adv-str
+            read-form { meta } read-form { obj }
+            meta mal-nil conj
+            obj swap conj
+            s" with-meta" MalSymbol. swap conj
+        else
             read-symbol-str MalSymbol.
-        endif endif endif endif endif endif endif endif endif
+        endif endif endif endif endif endif endif endif endif endif endif
         dup skip-elem =
     while drop repeat ;
 ' read-form2 is read-form
