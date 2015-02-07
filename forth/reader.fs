@@ -1,6 +1,8 @@
 require types.fs
 require printer.fs
 
+-2 constant skip-elem
+
 \ Drop a char off the front of string by advancing the addr and
 \ decrementing the length, and fetch next char
 : adv-str ( str-addr str-len -- str-addr str-len char )
@@ -10,7 +12,11 @@ require printer.fs
 
 : skip-spaces ( str-addr str-len char -- str-addr str-len non-space-char )
     begin
-        dup bl =
+        dup bl = if
+            -1
+        else
+            dup [char] , =
+        endif
     while ( str-addr str-len space-char )
         drop adv-str
     repeat ;
@@ -50,21 +56,52 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     until
     int MalInt. ;
 
-: read-symbol-str ( str-addr str-len sym-char -- str-addr str-len sym-addr sym-len )
+: read-comment ( str-addr str-len sym-char -- str-addr str-len char skim-elem )
+    drop
+    begin
+        adv-str = 10
+    until
+    adv-str skip-elem ;
+
+: read-symbol-str ( str-addr str-len sym-char -- str-addr str-len char sym-addr sym-len )
     new-str { sym-addr sym-len }
-    begin ( str-addr srt-len sym-char )
+    begin ( str-addr str-len sym-char )
         sym-addr sym-len rot str-append-char to sym-len to sym-addr
         adv-str dup sym-char? 0=
     until
     sym-addr sym-len ;
 
+: read-string-literal ( in-addr in-len quote-char -- in-addr in-len mal-string )
+    new-str { out-addr out-len }
+    drop \ drop leading quote
+    begin ( in-addr in-len )
+        adv-str over 0= if
+            2drop s\" expected '\"', got EOF\n" safe-type 1 throw
+        endif
+        dup [char] " <>
+    while
+        dup [char] \ = if
+            drop adv-str
+            dup [char] n = if drop 10 endif
+            dup [char] r = if drop 13 endif
+        endif
+        out-addr out-len rot str-append-char to out-len to out-addr
+    repeat
+    drop adv-str \ skip trailing quote
+    out-addr out-len MalString. ;
+
 : read-list ( str-addr str-len open-paren-char -- str-addr str-len non-paren-char mal-list )
     \ push objects onto "dictionary" -- maybe not the best stack for this?
-    0 { len }
+    0 { close-char len }
     drop adv-str
     begin ( str-addr str-len char )
         skip-spaces ( str-addr str-len non-space-char )
-        dup [char] ) <>
+        over 0= if
+            drop 2drop
+            s\" expected '" close-char str-append-char
+            s\" ', got EOF" str-append safe-type 1 throw
+        endif
+        dup close-char <>
     while ( str-addr str-len non-space-non-paren-char )
         read-form , len 1+ to len
     repeat
@@ -78,15 +115,33 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     loop
     ;
 
-: read-form2 ( str-addr str-len char -- str-addr str-len mal-obj )
-    skip-spaces
-    dup mal-digit? if read-int else
-        dup [char] ( = if read-list else
+: read-wrapped ( buf-addr buf-len quote-char sym-addr sym-len -- buf-addr buf-len char mal-list )
+    MalSymbol. { sym } ( buf-addr buf-len char )
+    read-form mal-nil conj ( buf-addr buf-len char mal-list )
+    sym swap conj ;
+
+: read-form2 ( str-addr str-len char -- str-addr str-len char mal-obj )
+    begin
+        skip-spaces
+        dup mal-digit? if read-int else
+        dup [char] ( = if [char] ) read-list else
+        dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
+        dup [char] " = if read-string-literal else
+        dup [char] ; = if read-comment else
+        dup [char] @ = if drop adv-str s" deref" read-wrapped else
+        dup [char] ' = if drop adv-str s" quote" read-wrapped else
+        dup [char] ` = if drop adv-str s" quasiquote" read-wrapped else
+        dup [char] ~ = if
+            drop adv-str
+            dup [char] @ = if drop adv-str s" splice-unquote" read-wrapped
+            else s" unquote" read-wrapped
+            endif
+        else
             read-symbol-str MalSymbol.
-        endif
-    endif
-    ;
+        endif endif endif endif endif endif endif endif endif
+        dup skip-elem =
+    while drop repeat ;
 ' read-form2 is read-form
 
 : read-str ( str-addr str-len - mal-obj )
-    over c@ read-form -rot 2drop ;
+    over c@ read-form { obj } drop 2drop obj ;

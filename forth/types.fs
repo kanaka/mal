@@ -184,6 +184,10 @@ deftype* constant MalList
 
 def-protocol-method conj ( obj this -- this )
 
+MalType%
+  cell% field MalVector/list
+deftype* constant MalVector
+
 \ Examples of extending existing protocol methods to existing type
 MalDefault
   extend conj   ( obj this -- this )

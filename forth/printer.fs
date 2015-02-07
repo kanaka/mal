@@ -70,9 +70,7 @@ MalNil
     drop s" nil" str-append ;;
 drop
 
-MalList
-  extend pr-buf
-    -rot s" (" str-append ( list str-addr str-len )
+: pr-buf-list ( list str-addr str-len -- str-addr str-len)
     rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf
     begin ( list str-addr str-len )
       2 pick mal-nil <>
@@ -80,7 +78,22 @@ MalList
       a-space
       rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf
     repeat
-    s" )" str-append rot drop ;;
+    rot drop ;
+
+
+MalList
+  extend pr-buf
+    -rot s" (" str-append ( list str-addr str-len )
+    pr-buf-list
+    s" )" str-append ;;
+drop
+
+MalVector
+  extend pr-buf
+    MalVector/list @
+    -rot s" [" str-append ( list str-addr str-len )
+    pr-buf-list
+    s" ]" str-append ;;
 drop
 
 MalInt
@@ -112,19 +125,27 @@ MalString
     s\" \"" str-append
     0 ( i )
     begin
+        dup len <
+    while
         dup addr + c@ ( i char )
         dup [char] " = over [char] \ = or if ( i char )
             drop dup addr len rot insert-\ to len to addr
             1+
         else
-            10 = if ( i ) \ newline?
-                dup addr len rot insert-\ to len to addr
+            dup 10 = if ( i ) \ newline?
+                drop dup addr len rot insert-\ to len to addr
                 dup addr + 1+ [char] n swap c!
                 1+
+            else
+                13 = if ( i ) \ return?
+                    dup addr len rot insert-\ to len to addr
+                    dup addr + 1+ [char] r swap c!
+                    1+
+                endif
             endif
         endif
         1+
-    dup len = until
+    repeat
     drop addr len str-append
     s\" \"" str-append ;;
 drop

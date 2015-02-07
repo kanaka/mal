@@ -18,7 +18,10 @@ create buff 128 allot
       buff 128 stdin read-line throw
     while
       buff swap
-      rep safe-type cr
+      ['] rep
+      \ execute safe-type
+      catch 0= if safe-type endif
+      cr
     repeat ;
 
 \ s" 1   (42 1 (2 12 8)) 35" swap 1+ swap .s read-str .s
