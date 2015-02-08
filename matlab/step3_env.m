@@ -1,4 +1,4 @@
-function step2_eval(varargin), main(varargin), end
+function step3_env(varargin), main(varargin), end
 
 % read
 function ret = READ(str)
@@ -9,7 +9,7 @@ end
 function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
-        ret = env(ast.name);
+        ret = env.get(ast);
     case 'cell'
         ret = {};
         for i=1:length(ast)
@@ -27,10 +27,26 @@ function ret = EVAL(ast, env)
     end
 
     % apply
-    el = eval_ast(ast, env);
-    f = el{1};
-    args = el(2:end);
-    ret = f(args{:});
+    if isa(ast{1},'types.Symbol')
+        a1sym = ast{1}.name;
+    else
+        a1sym = '_@$fn$@_';
+    end
+    switch (a1sym)
+    case 'def!'
+        ret = env.set(ast{2}, EVAL(ast{3}, env));
+    case 'let*'
+        let_env = Env(env);
+        for i=1:2:length(ast{2})
+            let_env.set(ast{2}{i}, EVAL(ast{2}{i+1}, let_env));
+        end
+        ret = EVAL(ast{3}, let_env);
+    otherwise
+        el = eval_ast(ast, env);
+        f = el{1};
+        args = el(2:end);
+        ret = f(args{:});
+    end
 end
 
 % print
@@ -44,11 +60,11 @@ function ret = rep(str, env)
 end
 
 function main(args)
-    repl_env = containers.Map();
-    repl_env('+') = @(a,b) a+b;
-    repl_env('-') = @(a,b) a-b;
-    repl_env('*') = @(a,b) a*b;
-    repl_env('/') = @(a,b) floor(a/b);
+    repl_env = Env(false);
+    repl_env.set(types.Symbol('+'), @(a,b) a+b);
+    repl_env.set(types.Symbol('-'), @(a,b) a-b);
+    repl_env.set(types.Symbol('*'), @(a,b) a*b);
+    repl_env.set(types.Symbol('/'), @(a,b) floor(a/b));
 
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
     while (true)
