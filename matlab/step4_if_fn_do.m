@@ -78,11 +78,16 @@ end
 
 function main(args)
     repl_env = Env(false);
+
+    % core.m: defined using matlab
     ns = core.ns(); ks = ns.keys();
     for i=1:length(ks)
         k = ks{i};
         repl_env.set(types.Symbol(k), ns(k));
     end
+
+    % core.mal: defined using the langauge itself
+    rep('(def! not (fn* (a) (if a false true)))', repl_env);
 
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
     while (true)

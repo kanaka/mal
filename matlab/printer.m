@@ -8,7 +8,14 @@ classdef printer
             case 'double'
                 str = num2str(obj);
             case 'char'
-                str = strcat('"', obj, '"');
+                if print_readably
+                    str = strrep(obj, '\', '\\');
+                    str = strrep(str, '"', '\"');
+                    str = strrep(str, char(10), '\n');
+                    str = strcat('"', str, '"');
+                else
+                    str = obj;
+                end
             case 'cell'
                 strs = cellfun(@(x) printer.pr_str(x, print_readably), ...
                                obj, 'UniformOutput', false);
