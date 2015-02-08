@@ -11,7 +11,7 @@ PYTHON = python
 #
 
 IMPLS = bash c clojure coffee cs go haskell java js lua make mal \
-	ocaml perl php ps python r racket ruby rust scala vb
+	ocaml matlab perl php ps python r racket ruby rust scala vb
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -62,6 +62,7 @@ lua_STEP_TO_PROG =     lua/$($(1)).lua
 make_STEP_TO_PROG =    make/$($(1)).mk
 mal_STEP_TO_PROG =     mal/$($(1)).mal
 ocaml_STEP_TO_PROG =   ocaml/$($(1))
+matlab_STEP_TO_PROG =  matlab/$($(1)).m
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
 ps_STEP_TO_PROG =      ps/$($(1)).ps
@@ -87,6 +88,7 @@ lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
+matlab_RUNSTEP =  matlab -nodisplay -nosplash -nodesktop -nojvm -r "run('../$(2)');quit;"
 perl_RUNSTEP =    perl ../$(2) --raw $(3)
 php_RUNSTEP =     php ../$(2) $(3)
 ps_RUNSTEP =      $(4)gs -q -I./ -dNODISPLAY -- ../$(2) $(3)$(4)
