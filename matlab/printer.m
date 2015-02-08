@@ -13,6 +13,8 @@ classdef printer
                 strs = cellfun(@(x) printer.pr_str(x, print_readably), ...
                                obj, 'UniformOutput', false);
                 str = strcat('(', strjoin(strs, ' '), ')');
+            case 'types.Nil'
+                str = 'nil';
             case 'logical'
                 if eq(obj, true)
                     str = 'true';

@@ -4,10 +4,24 @@ classdef Env < handle
         outer
     end
     methods
-        function env = Env(outer)
+        function env = Env(outer, binds, exprs)
             env.data = containers.Map();
             env.outer = outer;
+
+            if nargin > 1
+                env = Env(outer);
+                for i=1:length(binds)
+                    k = binds{i}.name;
+                    if strcmp(k, '&')
+                        env.data(binds{i+1}.name) = exprs(i:end);
+                        break;
+                    else
+                        env.data(k) = exprs{i};
+                    end
+                end
+            end
         end
+
         function ret = set(env, k, v)
             env.data(k.name) = v;
             ret = v;

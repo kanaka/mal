@@ -14,7 +14,8 @@ classdef reader
                 atm = str2double(token);
             elseif strcmp(token(1), '"')
                 atm = token(2:length(token)-1);
-            %else if token eq 'nil'
+            elseif strcmp(token, 'nil')
+                atm = types.nil;
             elseif strcmp(token, 'true')
                 atm = true;
             elseif strcmp(token, 'false')
