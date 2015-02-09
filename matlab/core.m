@@ -1,5 +1,10 @@
 classdef core
     methods(Static)
+        function ret = throw(obj)
+            ret = types.nil;
+            throw(types.MalException(obj));
+        end
+
         function str = pr_str(varargin)
             strs = cellfun(@(s) printer.pr_str(s,true), varargin, ...
                     'UniformOutput', false);
@@ -47,15 +52,40 @@ classdef core
             ret = seq{idx+1};
         end
 
+        function ret = apply(varargin)
+            f = varargin{1};
+            if isa(f, 'types.Function')
+                f = f.fn;
+            end
+            first_args = varargin(2:end-1);
+            rest_args = varargin{end};
+            args = [first_args rest_args];
+            ret = f(args{:});
+        end
+
+        function ret = map(f, lst)
+            if isa(f, 'types.Function')
+                f = f.fn;
+            end
+            ret = cellfun(@(x) f(x), lst, 'UniformOutput', false);
+        end
+
         function n = ns()
             n = containers.Map();
             n('=') =  @types.equal;
+            n('throw') = @core.throw;
+            n('nil?') = @(a) isa(a, 'types.Nil');
+            n('true?') = @(a) isa(a, 'logical') && a == true;
+            n('false?') = @(a) isa(a, 'logical') && a == false;
+            n('symbol') = @(a) types.Symbol(a);
+            n('symbol?') = @(a) isa(a, 'types.Symbol');
 
             n('pr-str') = @core.pr_str;
             n('str') = @core.do_str;
             n('prn') = @core.prn;
             n('println') = @core.println;
             n('read-string') = @reader.read_str;
+            n('readline') = @(p) input(p, 's');
             n('slurp') = @fileread;
 
             n('<') =  @(a,b) a<b;
@@ -77,6 +107,8 @@ classdef core
             n('rest') = @(a) a(2:end);
             n('empty?') = @(a) length(a) == 0;
             n('count') = @(a) length(a);
+            n('apply') = @core.apply;
+            n('map') = @core.map;
         end
     end
 end

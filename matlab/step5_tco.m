@@ -62,13 +62,13 @@ function ret = EVAL(ast, env)
         end
     case 'fn*'
         fn = @(varargin) EVAL(ast{3}, Env(env, ast{2}, varargin));
-        ret = Function(fn, ast{3}, env, ast{2});
+        ret = types.Function(fn, ast{3}, env, ast{2});
         return;
     otherwise
         el = eval_ast(ast, env);
         f = el{1};
         args = el(2:end);
-        if isa(f, 'Function')
+        if isa(f, 'types.Function')
             env = Env(f.env, f.params, args);
             ast = f.ast; % TCO
         else

@@ -1,4 +1,4 @@
-function step7_quote(varargin), main(varargin), end
+function step9_try(varargin), main(varargin), end
 
 % read
 function ret = READ(str)
@@ -28,6 +28,24 @@ function ret = quasiquote(ast)
     end
 end
 
+function ret = is_macro_call(ast, env)
+    if iscell(ast) && isa(ast{1}, 'types.Symbol') && ...
+       ~islogical(env.find(ast{1}))
+        f = env.get(ast{1});
+        ret = isa(f,'Function') && f.is_macro;
+    else
+        ret = false;
+    end
+end
+
+function ret = macroexpand(ast, env)
+    while is_macro_call(ast, env)
+        mac = env.get(ast{1});
+        ast = mac.fn(ast{2:end});
+    end
+    ret = ast;
+end
+
 function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
@@ -50,6 +68,12 @@ function ret = EVAL(ast, env)
     end
 
     % apply
+    ast = macroexpand(ast, env);
+    if ~iscell(ast)
+        ret = ast;
+        return;
+    end
+
     if isa(ast{1},'types.Symbol')
         a1sym = ast{1}.name;
     else
@@ -71,6 +95,30 @@ function ret = EVAL(ast, env)
         return;
     case 'quasiquote'
         ast = quasiquote(ast{2}); % TCO
+    case 'defmacro!'
+        ret = env.set(ast{2}, EVAL(ast{3}, env));
+        ret.is_macro = true;
+        return;
+    case 'macroexpand'
+        ret = macroexpand(ast{2}, env);
+        return;
+    case 'try*'
+        try
+            ret = EVAL(ast{2}, env);
+            return;
+        catch e
+            if length(ast) > 2 && strcmp(ast{3}{1}.name, 'catch*')
+                if isa(e, 'types.MalException')
+                    exc = e.obj;
+                else
+                    exc = e.message;
+                end
+                ret = EVAL(ast{3}{3}, Env(env, {ast{3}{2}}, {exc}));
+                return;
+            else
+                throw(e);
+            end
+        end
     case 'do'
         el = eval_ast(ast(2:end-1), env);
         ast = ast{end}; % TCO
@@ -131,6 +179,8 @@ function main(args)
     % core.mal: defined using the langauge itself
     rep('(def! not (fn* (a) (if a false true)))', repl_env);
     rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))"', repl_env);
+    rep('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))', repl_env);
+    rep('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))', repl_env);
 
     if ~isempty(args)
         rep(strcat('(load-file "', args{1}, '")'), repl_env);
@@ -144,7 +194,11 @@ function main(args)
         try
             fprintf('%s\n', rep(line, repl_env));
         catch err
-            fprintf('Error: %s\n', err.message);
+            if isa(err, 'types.MalException')
+                fprintf('Error: %s\n', printer.pr_str(err.obj, true));
+            else
+                fprintf('Error: %s\n', err.message);
+            end
             fprintf('%s\n', getReport(err, 'extended'));
         end
     end
