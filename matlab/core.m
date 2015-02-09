@@ -23,6 +23,14 @@ classdef core
             ret = types.nil;
         end
 
+        function ret = concat(varargin)
+            if nargin == 0
+                ret = {};
+            else
+                ret = cat(2,varargin{:});
+            end
+        end
+
         function n = ns()
             n = containers.Map();
             n('=') =  @types.equal;
@@ -45,6 +53,9 @@ classdef core
 
             n('list') = @(varargin) varargin;
             n('list?') = @iscell;
+
+            n('cons') = @(a,b) [{a}, b];
+            n('concat') = @core.concat;
             n('empty?') = @(a) length(a) == 0;
             n('count') = @(a) length(a);
         end

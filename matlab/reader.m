@@ -49,7 +49,19 @@ classdef reader
         function ast = read_form(rdr)
             %fprintf('in read_form\n');
             token = rdr.peek();
-            switch token(1)
+            switch token
+            case ''''
+                rdr.next();
+                ast = {types.Symbol('quote'), reader.read_form(rdr)};
+            case '`'
+                rdr.next();
+                ast = {types.Symbol('quasiquote'), reader.read_form(rdr)};
+            case '~'
+                rdr.next();
+                ast = {types.Symbol('unquote'), reader.read_form(rdr)};
+            case '~@'
+                rdr.next();
+                ast = {types.Symbol('splice-unquote'), reader.read_form(rdr)};
             case ')'
                 error('unexpected '')''');
             case '('
