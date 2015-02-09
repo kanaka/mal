@@ -2,9 +2,11 @@
 classdef reader
     methods (Static = true)
         function tokens = tokenize(str)
-            re = '[\s,]*(~@|[\[\]{}()''`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}(''"`,;)]*)';
+            re = '[\s,]*(~@|[\[\]{}()''`~^@]|"(?:\\.|[^\\"])*"|;[^\n]*|[^\s\[\]{}(''"`,;)]*)';
             % extract the capture group (to ignore spaces and commas)
             tokens = cellfun(@(x) x(1), regexp(str, re, 'tokens'));
+            comments = cellfun(@(x) length(x) > 0 && x(1) == ';', tokens);
+            tokens = tokens(~comments);
         end
       
         function atm = read_atom(rdr)

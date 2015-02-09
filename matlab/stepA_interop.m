@@ -1,4 +1,4 @@
-function step9_try(varargin), main(varargin), end
+function stepA_interop(varargin), main(varargin), end
 
 % read
 function ret = READ(str)
@@ -177,6 +177,7 @@ function main(args)
     repl_env.set(types.Symbol('*ARGV*'), args(2:end));
 
     % core.mal: defined using the langauge itself
+    rep('(def! *host-language* "matlab")', repl_env);
     rep('(def! not (fn* (a) (if a false true)))', repl_env);
     rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))"', repl_env);
     rep('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))', repl_env);
@@ -188,6 +189,7 @@ function main(args)
     end
 
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
+    rep('(println (str "Mal [" *host-language* "]"))', repl_env);
     while (true)
         line = input('user> ', 's');
         if strcmp(strtrim(line),''), continue, end

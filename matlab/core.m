@@ -28,6 +28,11 @@ classdef core
             ret = types.nil;
         end
 
+        function ret = time_ms()
+            secs = now-repmat(datenum('1970-1-1 00:00:00'),size(now));
+            ret = floor(secs.*repmat(24*3600.0*1000,size(now)));
+        end
+
         function ret = concat(varargin)
             if nargin == 0
                 ret = {};
@@ -96,6 +101,7 @@ classdef core
             n('-') =  @(a,b) a-b;
             n('*') =  @(a,b) a*b;
             n('/') =  @(a,b) floor(a/b);
+            n('time-ms') = @core.time_ms;
 
             n('list') = @(varargin) varargin;
             n('list?') = @iscell;

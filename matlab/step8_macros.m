@@ -32,7 +32,7 @@ function ret = is_macro_call(ast, env)
     if iscell(ast) && isa(ast{1}, 'types.Symbol') && ...
        ~islogical(env.find(ast{1}))
         f = env.get(ast{1});
-        ret = isa(f,'Function') && f.is_macro;
+        ret = isa(f,'types.Function') && f.is_macro;
     else
         ret = false;
     end
