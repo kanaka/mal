@@ -31,6 +31,9 @@ classdef core
             n('str') = @core.do_str;
             n('prn') = @core.prn;
             n('println') = @core.println;
+            n('read-string') = @reader.read_str;
+            n('slurp') = @fileread;
+
             n('<') =  @(a,b) a<b;
             n('<=') = @(a,b) a<=b;
             n('>') =  @(a,b) a>b;
