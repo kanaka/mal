@@ -21,7 +21,7 @@ function ret = eval_ast(ast, env)
 end
 
 function ret = EVAL(ast, env)
-    if ~iscell(ast),
+    if ~iscell(ast)
         ret = eval_ast(ast, env);
         return;
     end

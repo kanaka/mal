@@ -31,6 +31,22 @@ classdef core
             end
         end
 
+        function ret = first(seq)
+            if length(seq) < 1
+                ret = types.nil;
+            else
+                ret = seq{1};
+            end
+        end
+
+        function ret = nth(seq, idx)
+            if idx+1 > length(seq)
+                throw(MException('Range:nth', ...
+                                 'nth: index out of range'))
+            end
+            ret = seq{idx+1};
+        end
+
         function n = ns()
             n = containers.Map();
             n('=') =  @types.equal;
@@ -56,6 +72,9 @@ classdef core
 
             n('cons') = @(a,b) [{a}, b];
             n('concat') = @core.concat;
+            n('nth') = @core.nth;
+            n('first') = @core.first;
+            n('rest') = @(a) a(2:end);
             n('empty?') = @(a) length(a) == 0;
             n('count') = @(a) length(a);
         end

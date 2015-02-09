@@ -74,6 +74,10 @@ rust_STEP_TO_PROG =    rust/target/$($(1))
 scala_STEP_TO_PROG =   scala/$($(1)).scala
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 
+# Needed some argument munging
+COMMA = ,
+noop =
+SPACE = $(noop) $(noop)
 
 bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
@@ -88,7 +92,8 @@ lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
-matlab_RUNSTEP =  matlab -nodisplay -nosplash -nodesktop -nojvm -r "run('../$(2)');quit;"
+matlab_args =     $(subst $(SPACE),$(COMMA),$(patsubst %,'%',$(strip $(1))))
+matlab_RUNSTEP =  matlab -nodisplay -nosplash -nodesktop -nojvm -r "$($(1))($(call matlab_args,$(4)));quit;"
 perl_RUNSTEP =    perl ../$(2) --raw $(3)
 php_RUNSTEP =     php ../$(2) $(3)
 ps_RUNSTEP =      $(4)gs -q -I./ -dNODISPLAY -- ../$(2) $(3)$(4)

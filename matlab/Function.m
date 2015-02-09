@@ -4,6 +4,7 @@ classdef Function < handle
         ast
         env
         params
+        is_macro = false
     end
     methods
         function f = Function(fn, ast, env, params)

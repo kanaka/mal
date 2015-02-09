@@ -22,7 +22,7 @@ end
 
 function ret = EVAL(ast, env)
   while true
-    if ~iscell(ast),
+    if ~iscell(ast)
         ret = eval_ast(ast, env);
         return;
     end
