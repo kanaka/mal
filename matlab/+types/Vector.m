@@ -11,5 +11,10 @@ classdef Vector < types.List
             ret = types.Vector(obj.data{2:end});
         end
 
+        function ret = clone(obj)
+            ret = types.Vector();
+            ret.data = obj.data;
+            ret.meta = obj.meta;
+        end
     end
 end

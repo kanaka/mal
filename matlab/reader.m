@@ -85,6 +85,16 @@ classdef reader
                 rdr.next();
                 ast = types.List(types.Symbol('splice-unquote'), ...
                                  reader.read_form(rdr));
+            case '^'
+                rdr.next();
+                meta = reader.read_form(rdr);
+                ast = types.List(types.Symbol('with-meta'), ...
+                                 reader.read_form(rdr), meta);
+            case '@'
+                rdr.next();
+                ast = types.List(types.Symbol('deref'), ...
+                                 reader.read_form(rdr));
+
             case ')'
                 error('unexpected '')''');
             case '('

@@ -33,6 +33,12 @@ classdef List < handle
             ret = types.List(obj.data{start:end});
         end
 
+        function ret = clone(obj)
+            ret = types.List();
+            ret.data = obj.data;
+            ret.meta = obj.meta;
+        end
+
 %        function varargout = subsref(vec, S)
 %            % This doesn't work for ranges
 %            [varargout{1:nargout}] = builtin('subsref', vec.data, S);

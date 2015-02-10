@@ -45,6 +45,8 @@ classdef printer
                 else
                     str = 'false';
                 end
+            case 'types.Atom'
+                str = sprintf('(atom %s)', printer.pr_str(obj.val,true));
             otherwise
                 str = '#<unknown>';
             end

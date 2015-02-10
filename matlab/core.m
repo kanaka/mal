@@ -124,6 +124,35 @@ classdef core
             ret = types.List(cells{:});
         end
 
+        function new_obj = with_meta(obj, meta)
+            new_obj = clone(obj);
+            new_obj.meta = meta;
+        end
+
+        function meta = meta(obj)
+            switch class(obj)
+            case {'types.List', 'types.Vector',
+                  'types.HashMap', 'types.Function'}
+                meta = obj.meta;
+            otherwise
+                meta = types.nil;
+            end
+        end
+
+        function ret = reset_BANG(atm, val)
+            atm.val = val;
+            ret = val;
+        end
+
+        function ret = swap_BANG(atm, f, varargin)
+            args = [{atm.val} varargin];
+            if isa(f, 'types.Function')
+                f = f.fn;
+            end
+            atm.val = f(args{:});
+            ret = atm.val;
+        end
+
         function n = ns()
             n = containers.Map();
             n('=') =  @types.equal;
@@ -177,6 +206,14 @@ classdef core
             n('count') = @(a) length(a);
             n('apply') = @core.apply;
             n('map') = @core.map;
+
+            n('with-meta') = @core.with_meta;
+            n('meta') = @core.meta;
+            n('atom') = @types.Atom;
+            n('atom?') = @(a) isa(a, 'types.Atom');
+            n('deref') = @(a) a.val;
+            n('reset!') = @core.reset_BANG;
+            n('swap!') = @core.swap_BANG;
         end
     end
 end
