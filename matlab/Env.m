@@ -11,12 +11,12 @@ classdef Env < handle
             if nargin > 1
                 env = Env(outer);
                 for i=1:length(binds)
-                    k = binds{i}.name;
+                    k = binds.get(i).name;
                     if strcmp(k, '&')
-                        env.data(binds{i+1}.name) = exprs(i:end);
+                        env.data(binds.get(i+1).name) = exprs.slice(i);
                         break;
                     else
-                        env.data(k) = exprs{i};
+                        env.data(k) = exprs.get(i);
                     end
                 end
             end

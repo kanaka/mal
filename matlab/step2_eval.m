@@ -10,10 +10,22 @@ function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
         ret = env(ast.name);
-    case 'cell'
-        ret = {};
+    case 'types.List'
+        ret = types.List();
         for i=1:length(ast)
-            ret{end+1} = EVAL(ast{i}, env);
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.Vector'
+        ret = types.Vector();
+        for i=1:length(ast)
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.HashMap'
+        ret = types.HashMap();
+        ks = ast.keys();
+        for i=1:length(ks)
+            k = ks{i};
+            ret.set(EVAL(k, env), EVAL(ast.get(k), env));
         end
     otherwise
         ret = ast;
@@ -21,15 +33,15 @@ function ret = eval_ast(ast, env)
 end
 
 function ret = EVAL(ast, env)
-    if ~iscell(ast)
+    if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
 
     % apply
     el = eval_ast(ast, env);
-    f = el{1};
-    args = el(2:end);
+    f = el.get(1);
+    args = el.data(2:end);
     ret = f(args{:});
 end
 

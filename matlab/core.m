@@ -33,20 +33,68 @@ classdef core
             ret = floor(secs.*repmat(24*3600.0*1000,size(now)));
         end
 
+        function new_hm = assoc(hm, varargin)
+            new_hm = clone(hm);
+            for i=1:2:length(varargin)
+                new_hm.set(varargin{i}, varargin{i+1});
+            end
+        end
+
+        function new_hm = dissoc(hm, varargin)
+            new_hm = clone(hm);
+            ks = intersect(hm.keys(),varargin);
+            remove(new_hm.data, ks);
+        end
+
+        function ret = get(hm, key)
+            if hm == types.nil
+                ret = types.nil;
+            else
+                if hm.data.isKey(key)
+                    ret = hm.data(key);
+                else
+                    ret = types.nil;
+                end
+            end
+        end
+
+        function ret = keys(hm)
+            ks = hm.keys();
+            ret = types.List(ks{:});
+        end
+
+        function ret = vals(hm)
+            vs = hm.values();
+            ret = types.List(vs{:});
+        end
+
+        function ret = cons(a, seq)
+            cella = [{a}, seq.data];
+            ret = types.List(cella{:});
+        end
+
         function ret = concat(varargin)
             if nargin == 0
-                ret = {};
+                cella = {};
             else
-                ret = cat(2,varargin{:});
+                cells = cellfun(@(x) x.data, varargin, ...
+                                'UniformOutput', false);
+                cella = cat(2,cells{:});
             end
+            ret = types.List(cella{:});
         end
 
         function ret = first(seq)
             if length(seq) < 1
                 ret = types.nil;
             else
-                ret = seq{1};
+                ret = seq.get(1);
             end
+        end
+
+        function ret = rest(seq)
+            cella = seq.data(2:end);
+            ret = types.List(cella{:});
         end
 
         function ret = nth(seq, idx)
@@ -54,7 +102,7 @@ classdef core
                 throw(MException('Range:nth', ...
                                  'nth: index out of range'))
             end
-            ret = seq{idx+1};
+            ret = seq.get(idx+1);
         end
 
         function ret = apply(varargin)
@@ -63,7 +111,7 @@ classdef core
                 f = f.fn;
             end
             first_args = varargin(2:end-1);
-            rest_args = varargin{end};
+            rest_args = varargin{end}.data;
             args = [first_args rest_args];
             ret = f(args{:});
         end
@@ -72,7 +120,8 @@ classdef core
             if isa(f, 'types.Function')
                 f = f.fn;
             end
-            ret = cellfun(@(x) f(x), lst, 'UniformOutput', false);
+            cells = cellfun(@(x) f(x), lst.data, 'UniformOutput', false);
+            ret = types.List(cells{:});
         end
 
         function n = ns()
@@ -84,6 +133,8 @@ classdef core
             n('false?') = @(a) isa(a, 'logical') && a == false;
             n('symbol') = @(a) types.Symbol(a);
             n('symbol?') = @(a) isa(a, 'types.Symbol');
+            n('keyword') = @types.keyword;
+            n('keyword?') = @types.keyword_Q;
 
             n('pr-str') = @core.pr_str;
             n('str') = @core.do_str;
@@ -103,14 +154,25 @@ classdef core
             n('/') =  @(a,b) floor(a/b);
             n('time-ms') = @core.time_ms;
 
-            n('list') = @(varargin) varargin;
-            n('list?') = @iscell;
+            n('list') = @(varargin) types.List(varargin{:});
+            n('list?') = @types.list_Q;
+            n('vector') = @(varargin) types.Vector(varargin{:});
+            n('vector?') = @types.vector_Q;
+            n('hash-map') = @(varargin) types.HashMap(varargin{:});
+            n('map?') = @types.hash_map_Q;
+            n('assoc') = @core.assoc;
+            n('dissoc') = @core.dissoc;
+            n('get') = @core.get;
+            n('contains?') = @(a,b) a.data.isKey(b);
+            n('keys') = @core.keys;
+            n('vals') = @core.vals;
 
-            n('cons') = @(a,b) [{a}, b];
+            n('sequential?') = @types.sequential_Q;
+            n('cons') = @core.cons;
             n('concat') = @core.concat;
             n('nth') = @core.nth;
             n('first') = @core.first;
-            n('rest') = @(a) a(2:end);
+            n('rest') = @core.rest;
             n('empty?') = @(a) length(a) == 0;
             n('count') = @(a) length(a);
             n('apply') = @core.apply;

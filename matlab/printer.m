@@ -8,18 +8,35 @@ classdef printer
             case 'double'
                 str = num2str(obj);
             case 'char'
-                if print_readably
-                    str = strrep(obj, '\', '\\');
-                    str = strrep(str, '"', '\"');
-                    str = strrep(str, char(10), '\n');
-                    str = strcat('"', str, '"');
+                if types.keyword_Q(obj)
+                    str = strcat(':', obj(2:end));
                 else
-                    str = obj;
+                    if print_readably
+                        str = strrep(obj, '\', '\\');
+                        str = strrep(str, '"', '\"');
+                        str = strrep(str, char(10), '\n');
+                        str = strcat('"', str, '"');
+                    else
+                        str = obj;
+                    end
                 end
-            case 'cell'
+            case 'types.List'
                 strs = cellfun(@(x) printer.pr_str(x, print_readably), ...
-                               obj, 'UniformOutput', false);
+                               obj.data, 'UniformOutput', false);
                 str = strcat('(', strjoin(strs, ' '), ')');
+            case 'types.Vector'
+                strs = cellfun(@(x) printer.pr_str(x, print_readably), ...
+                               obj.data, 'UniformOutput', false);
+                str = strcat('[', strjoin(strs, ' '), ']');
+            case 'types.HashMap'
+                strs = {};
+                ks = obj.keys();
+                for i=1:length(ks)
+                    k = ks{i};
+                    strs{end+1} = printer.pr_str(k, print_readably);
+                    strs{end+1} = printer.pr_str(obj.get(k), print_readably);
+                end
+                str = strcat('{', strjoin(strs, ' '), '}');
             case 'types.Nil'
                 str = 'nil';
             case 'logical'

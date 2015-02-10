@@ -7,31 +7,32 @@ end
 
 % eval
 function ret = is_pair(ast)
-    ret = iscell(ast) && length(ast) > 0;
+    ret = types.sequential_Q(ast) && length(ast) > 0;
 end
 
 function ret = quasiquote(ast)
     if ~is_pair(ast)
-        ret = {types.Symbol('quote'), ast};
-    elseif isa(ast{1},'types.Symbol') && ...
-           strcmp(ast{1}.name, 'unquote')
-        ret = ast{2};
-    elseif is_pair(ast{1}) && isa(ast{1}{1},'types.Symbol') && ...
-           strcmp(ast{1}{1}.name, 'splice-unquote')
-        ret = {types.Symbol('concat'), ...
-               ast{1}{2}, ...
-               quasiquote(ast(2:end))};
+        ret = types.List(types.Symbol('quote'), ast);
+    elseif isa(ast.get(1),'types.Symbol') && ...
+           strcmp(ast.get(1).name, 'unquote')
+        ret = ast.get(2);
+    elseif is_pair(ast.get(1)) && ...
+           isa(ast.get(1).get(1),'types.Symbol') && ...
+           strcmp(ast.get(1).get(1).name, 'splice-unquote')
+        ret = types.List(types.Symbol('concat'), ...
+                         ast.get(1).get(2), ...
+                         quasiquote(ast.slice(2)));
     else
-        ret = {types.Symbol('cons'), ...
-               quasiquote(ast{1}), ...
-               quasiquote(ast(2:end))};
+        ret = types.List(types.Symbol('cons'), ...
+                         quasiquote(ast.get(1)), ...
+                         quasiquote(ast.slice(2)));
     end
 end
 
 function ret = is_macro_call(ast, env)
-    if iscell(ast) && isa(ast{1}, 'types.Symbol') && ...
-       ~islogical(env.find(ast{1}))
-        f = env.get(ast{1});
+    if types.list_Q(ast) && isa(ast.get(1), 'types.Symbol') && ...
+       ~islogical(env.find(ast.get(1)))
+        f = env.get(ast.get(1));
         ret = isa(f,'types.Function') && f.is_macro;
     else
         ret = false;
@@ -40,8 +41,9 @@ end
 
 function ret = macroexpand(ast, env)
     while is_macro_call(ast, env)
-        mac = env.get(ast{1});
-        ast = mac.fn(ast{2:end});
+        mac = env.get(ast.get(1));
+        args = ast.slice(2);
+        ast = mac.fn(args.data{:});
     end
     ret = ast;
 end
@@ -50,10 +52,22 @@ function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
         ret = env.get(ast);
-    case 'cell'
-        ret = {};
+    case 'types.List'
+        ret = types.List();
         for i=1:length(ast)
-            ret{end+1} = EVAL(ast{i}, env);
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.Vector'
+        ret = types.Vector();
+        for i=1:length(ast)
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.HashMap'
+        ret = types.HashMap();
+        ks = ast.keys();
+        for i=1:length(ks)
+            k = ks{i};
+            ret.set(EVAL(k, env), EVAL(ast.get(k), env));
         end
     otherwise
         ret = ast;
@@ -62,92 +76,95 @@ end
 
 function ret = EVAL(ast, env)
   while true
-    if ~iscell(ast)
+    if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
 
     % apply
     ast = macroexpand(ast, env);
-    if ~iscell(ast)
+    if ~types.list_Q(ast)
         ret = ast;
         return;
     end
 
-    if isa(ast{1},'types.Symbol')
-        a1sym = ast{1}.name;
+    if isa(ast.get(1),'types.Symbol')
+        a1sym = ast.get(1).name;
     else
         a1sym = '_@$fn$@_';
     end
     switch (a1sym)
     case 'def!'
-        ret = env.set(ast{2}, EVAL(ast{3}, env));
+        ret = env.set(ast.get(2), EVAL(ast.get(3), env));
         return;
     case 'let*'
         let_env = Env(env);
-        for i=1:2:length(ast{2})
-            let_env.set(ast{2}{i}, EVAL(ast{2}{i+1}, let_env));
+        for i=1:2:length(ast.get(2))
+            let_env.set(ast.get(2).get(i), EVAL(ast.get(2).get(i+1), let_env));
         end
         env = let_env;
-        ast = ast{3}; % TCO
+        ast = ast.get(3); % TCO
     case 'quote'
-        ret = ast{2};
+        ret = ast.get(2);
         return;
     case 'quasiquote'
-        ast = quasiquote(ast{2}); % TCO
+        ast = quasiquote(ast.get(2)); % TCO
     case 'defmacro!'
-        ret = env.set(ast{2}, EVAL(ast{3}, env));
+        ret = env.set(ast.get(2), EVAL(ast.get(3), env));
         ret.is_macro = true;
         return;
     case 'macroexpand'
-        ret = macroexpand(ast{2}, env);
+        ret = macroexpand(ast.get(2), env);
         return;
     case 'try*'
         try
-            ret = EVAL(ast{2}, env);
+            ret = EVAL(ast.get(2), env);
             return;
         catch e
-            if length(ast) > 2 && strcmp(ast{3}{1}.name, 'catch*')
+            if length(ast) > 2 && strcmp(ast.get(3).get(1).name, 'catch*')
                 if isa(e, 'types.MalException')
                     exc = e.obj;
                 else
                     exc = e.message;
                 end
-                ret = EVAL(ast{3}{3}, Env(env, {ast{3}{2}}, {exc}));
+                catch_env = Env(env, types.List(ast.get(3).get(2)), ...
+                                types.List(exc));
+                ret = EVAL(ast.get(3).get(3), catch_env);
                 return;
             else
                 throw(e);
             end
         end
     case 'do'
-        el = eval_ast(ast(2:end-1), env);
-        ast = ast{end}; % TCO
+        el = eval_ast(ast.slice(2,length(ast)-1), env);
+        ast = ast.get(length(ast)); % TCO
     case 'if'
-        cond = EVAL(ast{2}, env);
+        cond = EVAL(ast.get(2), env);
         if strcmp(class(cond), 'types.Nil') || ...
            (islogical(cond) && cond == false)
            if length(ast) > 3
-               ast = ast{4}; % TCO
+               ast = ast.get(4); % TCO
             else
                ret = types.nil;
                return;
             end
         else
-            ast = ast{3}; % TCO
+            ast = ast.get(3); % TCO
         end
     case 'fn*'
-        fn = @(varargin) EVAL(ast{3}, Env(env, ast{2}, varargin));
-        ret = types.Function(fn, ast{3}, env, ast{2});
+        fn = @(varargin) EVAL(ast.get(3), Env(env, ast.get(2), ...
+                                              types.List(varargin{:})));
+        ret = types.Function(fn, ast.get(3), env, ast.get(2));
         return;
     otherwise
         el = eval_ast(ast, env);
-        f = el{1};
-        args = el(2:end);
+        f = el.get(1);
+        args = el.slice(2);
         if isa(f, 'types.Function')
             env = Env(f.env, f.params, args);
             ast = f.ast; % TCO
         else
-            ret = f(args{:});
+            ret = f(args.data{:});
             return
         end
     end
@@ -174,7 +191,8 @@ function main(args)
         repl_env.set(types.Symbol(k), ns(k));
     end
     repl_env.set(types.Symbol('eval'), @(a) EVAL(a, repl_env));
-    repl_env.set(types.Symbol('*ARGV*'), args(2:end));
+    rest_args = args(2:end);
+    repl_env.set(types.Symbol('*ARGV*'), types.List(rest_args{:}));
 
     % core.mal: defined using the langauge itself
     rep('(def! *host-language* "matlab")', repl_env);

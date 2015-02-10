@@ -10,10 +10,22 @@ function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
         ret = env.get(ast);
-    case 'cell'
-        ret = {};
+    case 'types.List'
+        ret = types.List();
         for i=1:length(ast)
-            ret{end+1} = EVAL(ast{i}, env);
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.Vector'
+        ret = types.Vector();
+        for i=1:length(ast)
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.HashMap'
+        ret = types.HashMap();
+        ks = ast.keys();
+        for i=1:length(ks)
+            k = ks{i};
+            ret.set(EVAL(k, env), EVAL(ast.get(k), env));
         end
     otherwise
         ret = ast;
@@ -21,30 +33,30 @@ function ret = eval_ast(ast, env)
 end
 
 function ret = EVAL(ast, env)
-    if ~iscell(ast)
+    if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
 
     % apply
-    if isa(ast{1},'types.Symbol')
-        a1sym = ast{1}.name;
+    if isa(ast.get(1),'types.Symbol')
+        a1sym = ast.get(1).name;
     else
         a1sym = '_@$fn$@_';
     end
     switch (a1sym)
     case 'def!'
-        ret = env.set(ast{2}, EVAL(ast{3}, env));
+        ret = env.set(ast.get(2), EVAL(ast.get(3), env));
     case 'let*'
         let_env = Env(env);
-        for i=1:2:length(ast{2})
-            let_env.set(ast{2}{i}, EVAL(ast{2}{i+1}, let_env));
+        for i=1:2:length(ast.get(2))
+            let_env.set(ast.get(2).get(i), EVAL(ast.get(2).get(i+1), let_env));
         end
-        ret = EVAL(ast{3}, let_env);
+        ret = EVAL(ast.get(3), let_env);
     otherwise
         el = eval_ast(ast, env);
-        f = el{1};
-        args = el(2:end);
+        f = el.get(1);
+        args = el.data(2:end);
         ret = f(args{:});
     end
 end

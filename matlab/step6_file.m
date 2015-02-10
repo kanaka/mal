@@ -10,10 +10,22 @@ function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
         ret = env.get(ast);
-    case 'cell'
-        ret = {};
+    case 'types.List'
+        ret = types.List();
         for i=1:length(ast)
-            ret{end+1} = EVAL(ast{i}, env);
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.Vector'
+        ret = types.Vector();
+        for i=1:length(ast)
+            ret.append(EVAL(ast.get(i), env));
+        end
+    case 'types.HashMap'
+        ret = types.HashMap();
+        ks = ast.keys();
+        for i=1:length(ks)
+            k = ks{i};
+            ret.set(EVAL(k, env), EVAL(ast.get(k), env));
         end
     otherwise
         ret = ast;
@@ -22,57 +34,58 @@ end
 
 function ret = EVAL(ast, env)
   while true
-    if ~iscell(ast)
+    if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
 
     % apply
-    if isa(ast{1},'types.Symbol')
-        a1sym = ast{1}.name;
+    if isa(ast.get(1),'types.Symbol')
+        a1sym = ast.get(1).name;
     else
         a1sym = '_@$fn$@_';
     end
     switch (a1sym)
     case 'def!'
-        ret = env.set(ast{2}, EVAL(ast{3}, env));
+        ret = env.set(ast.get(2), EVAL(ast.get(3), env));
         return;
     case 'let*'
         let_env = Env(env);
-        for i=1:2:length(ast{2})
-            let_env.set(ast{2}{i}, EVAL(ast{2}{i+1}, let_env));
+        for i=1:2:length(ast.get(2))
+            let_env.set(ast.get(2).get(i), EVAL(ast.get(2).get(i+1), let_env));
         end
         env = let_env;
-        ast = ast{3}; % TCO
+        ast = ast.get(3); % TCO
     case 'do'
-        el = eval_ast(ast(2:end-1), env);
-        ast = ast{end}; % TCO
+        el = eval_ast(ast.slice(2,length(ast)-1), env);
+        ast = ast.get(length(ast)); % TCO
     case 'if'
-        cond = EVAL(ast{2}, env);
+        cond = EVAL(ast.get(2), env);
         if strcmp(class(cond), 'types.Nil') || ...
            (islogical(cond) && cond == false)
            if length(ast) > 3
-               ast = ast{4}; % TCO
+               ast = ast.get(4); % TCO
             else
                ret = types.nil;
                return;
             end
         else
-            ast = ast{3}; % TCO
+            ast = ast.get(3); % TCO
         end
     case 'fn*'
-        fn = @(varargin) EVAL(ast{3}, Env(env, ast{2}, varargin));
-        ret = types.Function(fn, ast{3}, env, ast{2});
+        fn = @(varargin) EVAL(ast.get(3), Env(env, ast.get(2), ...
+                                              types.List(varargin{:})));
+        ret = types.Function(fn, ast.get(3), env, ast.get(2));
         return;
     otherwise
         el = eval_ast(ast, env);
-        f = el{1};
-        args = el(2:end);
+        f = el.get(1);
+        args = el.slice(2);
         if isa(f, 'types.Function')
             env = Env(f.env, f.params, args);
             ast = f.ast; % TCO
         else
-            ret = f(args{:});
+            ret = f(args.data{:});
             return
         end
     end
@@ -99,7 +112,8 @@ function main(args)
         repl_env.set(types.Symbol(k), ns(k));
     end
     repl_env.set(types.Symbol('eval'), @(a) EVAL(a, repl_env));
-    repl_env.set(types.Symbol('*ARGV*'), args(2:end));
+    rest_args = args(2:end);
+    repl_env.set(types.Symbol('*ARGV*'), types.List(rest_args{:}));
 
     % core.mal: defined using the langauge itself
     rep('(def! not (fn* (a) (if a false true)))', repl_env);

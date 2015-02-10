@@ -18,6 +18,8 @@ classdef reader
                 atm = token(2:length(token)-1);
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
+            elseif strcmp(token(1), ':')
+                atm = types.keyword(token);
             elseif strcmp(token, 'nil')
                 atm = types.nil;
             elseif strcmp(token, 'true')
@@ -29,23 +31,38 @@ classdef reader
             end
         end
 
-        function lst = read_list(rdr)
-            %fprintf('in read_list\n');
-            lst = {};
+        function seq = read_seq(rdr, start, last)
+            %fprintf('in read_seq\n');
+            seq = {};
             token = rdr.next();
-            if not(strcmp(token, '('))
-                error('expected ''(''');
+            if not(strcmp(token, start))
+                error(strcat('expected ''', start, ''''));
             end
             token = rdr.peek();
             while true
                 if eq(token, false)
-                    error('expected '')''');
+                    error(strcat('expected ''', last, ''''));
                 end
-                if strcmp(token, ')'), break, end
-                lst{length(lst)+1} = reader.read_form(rdr);
+                if strcmp(token, last), break, end
+                seq{end+1} = reader.read_form(rdr);
                 token = rdr.peek();
             end
             rdr.next();
+        end
+
+        function lst = read_list(rdr)
+            seq = reader.read_seq(rdr, '(', ')');
+            lst = types.List(seq{:});
+        end
+
+        function vec = read_vector(rdr)
+            seq = reader.read_seq(rdr, '[', ']');
+            vec = types.Vector(seq{:});
+        end
+
+        function map = read_hash_map(rdr)
+            seq = reader.read_seq(rdr, '{', '}');
+            map = types.HashMap(seq{:});
         end
 
         function ast = read_form(rdr)
@@ -54,20 +71,32 @@ classdef reader
             switch token
             case ''''
                 rdr.next();
-                ast = {types.Symbol('quote'), reader.read_form(rdr)};
+                ast = types.List(types.Symbol('quote'), ...
+                                 reader.read_form(rdr));
             case '`'
                 rdr.next();
-                ast = {types.Symbol('quasiquote'), reader.read_form(rdr)};
+                ast = types.List(types.Symbol('quasiquote'), ...
+                                 reader.read_form(rdr));
             case '~'
                 rdr.next();
-                ast = {types.Symbol('unquote'), reader.read_form(rdr)};
+                ast = types.List(types.Symbol('unquote'), ...
+                                 reader.read_form(rdr));
             case '~@'
                 rdr.next();
-                ast = {types.Symbol('splice-unquote'), reader.read_form(rdr)};
+                ast = types.List(types.Symbol('splice-unquote'), ...
+                                 reader.read_form(rdr));
             case ')'
                 error('unexpected '')''');
             case '('
                 ast = reader.read_list(rdr);
+            case ']'
+                error('unexpected '']''');
+            case '['
+                ast = reader.read_vector(rdr);
+            case '}'
+                error('unexpected ''}''');
+            case '{'
+                ast = reader.read_hash_map(rdr);
             otherwise
                 ast = reader.read_atom(rdr);
             end
