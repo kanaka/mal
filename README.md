@@ -4,7 +4,7 @@
 
 Mal is an Clojure inspired Lisp interpreter.
 
-Mal is implemented in 23 different languages:
+Mal is implemented in 24 different languages:
 
 * Bash shell
 * C
@@ -18,6 +18,7 @@ Mal is implemented in 23 different languages:
 * Lua
 * GNU Make
 * mal itself
+* MATLAB
 * OCaml
 * Perl
 * PHP
@@ -152,7 +153,7 @@ node stepX_YYY.js
 
 ### Lua
 
-Running the Lua implementations of mal requires lua 5.1 or later,
+Running the Lua implementation of mal requires lua 5.1 or later,
 luarocks and the lua-rex-pcre library installed.
 
 ```
@@ -186,6 +187,21 @@ make -f stepX_YYY.mk
 cd ocaml
 make
 ./stepX_YYY
+```
+
+### MATLAB
+
+The MATLAB implementation of mal has been tested with MATLAB version
+R2014a on Linux. Note that MATLAB is a commercial product. It should
+be fairly simple to support GNU Octave once it support classdef object
+syntax.
+
+```
+cd matlab
+./stepX_YYY
+matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY();quit;"
+    # OR with command line arguments
+matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY('arg1','arg2');quit;"
 ```
 
 ### Perl 5.8
