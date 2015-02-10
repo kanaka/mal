@@ -76,6 +76,7 @@ end
 
 function ret = EVAL(ast, env)
   while true
+    %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
     if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
@@ -182,7 +183,7 @@ function main(args)
     rep('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))', repl_env);
 
     if ~isempty(args)
-        rep(strcat('(load-file "', args{1}, '")'), repl_env);
+        rep(sprintf('(load-file "%s")', args{1}), repl_env);
         quit;
     end
 

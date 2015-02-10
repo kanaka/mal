@@ -45,8 +45,8 @@ classdef types
         end
 
         function ret = keyword(str)
-            ret = strcat(native2unicode(hex2dec('029e'),'UTF-8'), ...
-                         str(2:end));
+            ret = sprintf('%s%s', native2unicode(hex2dec('029e'),'UTF-8'), ...
+                          str(2:end));
         end
         function ret = keyword_Q(obj)
             ret = length(obj) > 1 && ...

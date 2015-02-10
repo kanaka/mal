@@ -33,6 +33,7 @@ function ret = eval_ast(ast, env)
 end
 
 function ret = EVAL(ast, env)
+    %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
     if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;

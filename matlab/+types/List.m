@@ -30,7 +30,7 @@ classdef List < handle
             if nargin < 3
                 last = length(obj.data);
             end
-            ret = types.List(obj.data{start:end});
+            ret = types.List(obj.data{start:last});
         end
 
         function ret = clone(obj)

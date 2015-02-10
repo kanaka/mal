@@ -43,7 +43,7 @@ classdef Env < handle
                 ret = fenv.data(k.name);
             else
                 throw(MException('ENV:notfound', ...
-                                 strcat('''', k.name, ''' not found')));
+                                 sprintf('''%s'' not found', k.name)));
             end
         end
     end

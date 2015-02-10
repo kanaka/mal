@@ -34,6 +34,7 @@ end
 
 function ret = EVAL(ast, env)
   while true
+    %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
     if ~types.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
@@ -120,7 +121,7 @@ function main(args)
     rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))"', repl_env);
 
     if ~isempty(args)
-        rep(strcat('(load-file "', args{1}, '")'), repl_env);
+        rep(sprintf('(load-file "%s")', args{1}), repl_env);
         quit;
     end
 

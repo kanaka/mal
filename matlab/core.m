@@ -206,6 +206,7 @@ classdef core
             n('count') = @(a) length(a);
             n('apply') = @core.apply;
             n('map') = @core.map;
+            n('conj') = @(x) disp('not implemented yet');
 
             n('with-meta') = @core.with_meta;
             n('meta') = @core.meta;
