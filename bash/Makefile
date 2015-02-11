@@ -6,7 +6,7 @@ all: mal.sh
 
 mal.sh: $(SOURCES)
 	cat $+ > $@
-	echo "#!/bin/bash" > $@
+	echo "#!/usr/bin/env bash" > $@
 	cat $+ | grep -v "^source " >> $@
 	chmod +x $@
 
