@@ -1,0 +1,21 @@
+["do",
+
+["load-file", ["`", "miniMAL-core.json"]],
+
+["def", "READ", ["fn", ["strng"],
+    "strng"]],
+
+["def", "EVAL", ["fn", ["ast", "env"],
+    "ast"]],
+
+["def", "PRINT", ["fn", ["exp"],
+    "exp"]],
+
+["def", "rep", ["fn", ["strng"],
+    ["PRINT", ["EVAL", ["READ", "strng"], null]]]],
+
+["repl", ["`", "user> "], "rep"],
+
+null
+
+]
