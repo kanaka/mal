@@ -17,7 +17,7 @@
     ["`", "true"],
   ["if", ["=", false, "exp"],
     ["`", "false"],
-  ["if", ["=", ["`", "Symbol"], ["get", "exp", ["`", "type"]]],
+  ["if", ["symbol?", "exp"],
     ["get", "exp", ["`", "val"]],
   ["str", ["`", "#<unknown: "], "exp", ["`", ">"]]]]]]]]]]],
 

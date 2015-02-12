@@ -40,8 +40,7 @@
       true,
     ["if", ["=", ["`", "false"], "token"],
       false,
-    ["hash-map", ["`", "type"], ["`", "Symbol"],
-                 ["`", "val"], "token"]]]]]]]]],
+    ["symbol", "token"]]]]]]]]],
 
 ["def", "read-list-entries", ["fn", ["rdr"],
   ["let", ["tok", ["rdr-peek", "rdr"]],

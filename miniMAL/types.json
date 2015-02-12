@@ -1,0 +1,13 @@
+["do",
+
+["def", "symbol", ["fn", ["name"],
+  ["hash-map", ["`", "type"], ["`", "Symbol"],
+               ["`", "val"], "name"]]],
+
+["def", "symbol?", ["fn", ["obj"],
+  ["if", ["=", ["`", "Symbol"], ["get", "obj", ["`", "type"]]],
+    true,
+    false]]],
+
+null
+]
