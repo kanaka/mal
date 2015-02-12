@@ -5,9 +5,11 @@
                ["`", "val"], "name"]]],
 
 ["def", "symbol?", ["fn", ["obj"],
-  ["if", ["=", ["`", "Symbol"], ["get", "obj", ["`", "type"]]],
-    true,
-    false]]],
+  ["if", ["=", "obj", null],
+    false,
+    ["if", ["=", ["`", "Symbol"], ["get", "obj", ["`", "type"]]],
+      true,
+      false]]]],
 
 null
 ]

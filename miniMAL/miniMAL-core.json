@@ -77,6 +77,16 @@
 
 ["def", "apply", ["fn", ["a", "b"], [".", "a", ["`", "apply"], "a", "b"]]],
 
+["def", "or", ["~", ["fn", ["&", "xs"],
+    ["if", ["empty?", "xs"],
+      null,
+      ["if", ["=", 1, ["count", "xs"]],
+        ["first", "xs"],
+        ["list", ["`", "let"], ["list", ["`", "or_FIXME"], ["first", "xs"]],
+          ["list", ["`", "if"], ["`", "or_FIXME"],
+            ["`", "or_FIXME"],
+            ["concat", ["`", ["or"]], ["rest", "xs"]]]]]]]]],
+
 ["def", "typeof", ["fn", ["a"], ["js", ["str", ["`", "typeof "], ["pr-str", "a"]]]]],
 
 ["def", "repl", ["fn",["prompt", "rep"],
