@@ -90,7 +90,8 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     drop adv-str \ skip trailing quote
     out-addr out-len MalString. ;
 
-: read-list ( str-addr str-len open-paren-char -- str-addr str-len non-paren-char mal-list )
+: read-list ( str-addr str-len open-paren-char close-paren-char
+              -- str-addr str-len non-paren-char mal-list )
     \ push objects onto "dictionary" -- maybe not the best stack for this?
     0 { close-char len }
     drop adv-str
@@ -112,7 +113,25 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     len 0 ?do
         0 cell - allot
         here @ swap conj
-    loop
+    loop ;
+
+: read-array ( str-addr str-len open-paren-char close-paren-char
+                 -- str-addr str-len non-paren-char mal-array )
+    here { close-char old-here }
+    drop adv-str
+    begin ( str-addr str-len char )
+        skip-spaces ( str-addr str-len non-space-char )
+        over 0= if
+            drop 2drop
+            s\" expected '" close-char str-append-char
+            s\" ', got EOF" str-append safe-type 1 throw
+        endif
+        dup close-char <>
+    while ( str-addr str-len non-space-non-paren-char )
+            read-form ,
+    repeat
+    drop adv-str
+    old-here here>MalArray
     ;
 
 : read-wrapped ( buf-addr buf-len quote-char sym-addr sym-len -- buf-addr buf-len char mal-list )
@@ -124,11 +143,12 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     begin
         skip-spaces
         dup mal-digit? if read-int else
-        dup [char] ( = if [char] ) read-list else
-        dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
+        dup [char] ( = if [char] ) read-array else
+        dup [char] [ = if [char] ] read-array MalVector new tuck MalVector/list ! else
         dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
         dup [char] " = if read-string-literal else
         dup [char] ; = if read-comment else
+        dup [char] : = if drop adv-str read-symbol-str MalKeyword. else
         dup [char] @ = if drop adv-str s" deref" read-wrapped else
         dup [char] ' = if drop adv-str s" quote" read-wrapped else
         dup [char] ` = if drop adv-str s" quasiquote" read-wrapped else
@@ -146,7 +166,7 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
             s" with-meta" MalSymbol. swap conj
         else
             read-symbol-str MalSymbol.
-        endif endif endif endif endif endif endif endif endif endif endif
+        endif endif endif endif endif endif endif endif endif endif endif endif
         dup skip-elem =
     while drop repeat ;
 ' read-form2 is read-form

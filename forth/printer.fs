@@ -2,7 +2,7 @@ require types.fs
 
 : safe-type ( str-addr str-len -- )
     dup 256 > if
-        drop 256 type ." ...<lots more>" type
+        drop 256 type ." ...<lots more>"
     else
         type
     endif ;
@@ -52,6 +52,8 @@ here constant space-str
 \ === printer protocol and implementations === /
 
 def-protocol-method pr-buf ( str-addr str-len this -- str-addr str-len )
+def-protocol-method pr-seq-buf ( str-addr str-len this -- str-addr str-len )
+def-protocol-method pr-pairs-buf ( str-addr str-len this -- str-addr str-len )
 
 : pr-str { obj }
     new-str obj pr-buf ;
@@ -73,27 +75,59 @@ drop
 : pr-buf-list-item ( list str-addr str-len -- list str-addr str-len)
     rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf ;
 
-: pr-buf-list ( list str-addr str-len -- str-addr str-len)
-    pr-buf-list-item
+MalList
+  extend pr-buf
+    -rot s" (" str-append ( list str-addr str-len )
+    rot pr-seq-buf
+    s" )" str-append ;;
+  extend pr-seq-buf
+    \ currently assumes list chain through to the end
+    -rot pr-buf-list-item
     begin ( list str-addr str-len )
       2 pick mal-nil <>
     while
       a-space pr-buf-list-item
     repeat
-    rot drop ;
+    rot drop ;;
+  extend pr-pairs-buf
+    -rot pr-buf-list-item a-space pr-buf-list-item
+    begin ( list str-addr str-len )
+      2 pick mal-nil <>
+    while
+      s" , " str-append
+      pr-buf-list-item a-space pr-buf-list-item
+    repeat
+    rot drop ;;
+drop
 
-MalList
+MalArray
   extend pr-buf
     -rot s" (" str-append ( list str-addr str-len )
-    pr-buf-list
+    rot pr-seq-buf
     s" )" str-append ;;
+  extend pr-seq-buf { ary }
+    ary MalArray/start @ { start }
+    start @ pr-buf
+    ary MalArray/count @ 1 ?do
+        a-space
+        start i cells + @ pr-buf
+    loop ;;
+  extend pr-pairs-buf { ary }
+    ary MalArray/start @ { start }
+    start @ pr-buf a-space start cell+ @ pr-buf
+    ary MalArray/count @ 2 / 1 ?do
+        s" , " str-append
+        a-space
+        start i 2 * cells + @ pr-buf a-space
+        start i 2 * 1+ cells + @ pr-buf
+    loop ;;
 drop
 
 MalVector
   extend pr-buf
     MalVector/list @
     -rot s" [" str-append ( list str-addr str-len )
-    pr-buf-list
+    rot pr-seq-buf
     s" ]" str-append ;;
 drop
 
@@ -101,14 +135,7 @@ MalMap
   extend pr-buf
     MalMap/list @
     -rot s" {" str-append ( list str-addr str-len )
-    pr-buf-list-item a-space pr-buf-list-item
-    begin ( list str-addr str-len )
-      2 pick mal-nil <>
-    while
-      s" , " str-append
-      pr-buf-list-item a-space pr-buf-list-item
-    repeat
-    rot drop
+    rot pr-pairs-buf
     s" }" str-append ;;
 drop
 
@@ -117,11 +144,20 @@ MalInt
     MalInt/int @ int>str str-append ;;
 drop
 
+MalFn
+  extend pr-buf
+    drop s" #<fn>" str-append ;;
+drop
+
 MalSymbol
   extend pr-buf
-    dup MalSymbol/sym-addr @
-    swap MalSymbol/sym-len @
-    str-append ;;
+    unpack-sym str-append ;;
+drop
+
+MalKeyword
+  extend pr-buf { kw }
+    s" :" str-append
+    kw unpack-keyword str-append ;;
 drop
 
 : insert-\ ( str-addr str-len insert-idx -- str-addr str-len )

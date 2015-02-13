@@ -51,3 +51,31 @@ mal-nil
 20 MalInt. swap conj
 23 MalInt. mal-nil conj conj conj
 pr-str s" (nil (20 (42) 10) 23)" str= -1 test=
+
+\ map tests
+
+s" one" MalString. s" one" MalString. mal= -1 test=
+s" one" MalString. s" x" MalString. mal= 0 test=
+
+MalMap/Empty
+s" one" MalString. s" first" MalString. rot assoc
+s" two" MalString. s" second" MalString. rot assoc
+s" three" MalString. s" third" MalString. rot assoc
+
+dup 99 s" two" MalString. rot get s" second" MalString. mal= -1 test=
+dup 99 s" none" MalString. rot get 99 test=
+drop
+
+\ eval tests
+
+require step2_eval.fs
+
+mal-nil
+    1 MalInt. swap conj
+    2 MalInt. swap conj
+    3 MalInt. swap conj
+~~
+mal-eval
+~~
+
+bye

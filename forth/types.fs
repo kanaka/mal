@@ -65,6 +65,8 @@ struct
   cell% field MalTypeType-methods
   cell% field MalTypeType-method-keys
   cell% field MalTypeType-method-vals
+  cell% field MalTypeType-name-addr
+  cell% field MalTypeType-name-len
 end-struct MalTypeType%
 
 : new ( MalTypeType -- obj )
@@ -79,12 +81,31 @@ end-struct MalTypeType%
   dup MalTypeType-methods     0   swap !   ( MalTypeType )
   dup MalTypeType-method-keys nil swap !   ( MalTypeType )
   dup MalTypeType-method-vals nil swap !   ( MalTypeType )
+  dup MalTypeType-name-len    0   swap !   ( MalTypeType )
   ;
 
-MalType% deftype* constant MalDefault
+: deftype ( struct-align struct-len R:type-name -- )
+    parse-name { orig-name-addr name-len }
+    \ parse-name uses temporary space, so copy into dictionary stack:
+    here { name-addr } name-len allot
+    orig-name-addr name-addr name-len cmove
+
+    \ allot and initialize type structure
+    deftype* { mt }
+    name-addr mt MalTypeType-name-addr !
+    name-len  mt MalTypeType-name-len  !
+    \ ." Defining " mt MalTypeType-name-addr @ mt MalTypeType-name-len @ type cr
+    mt name-addr name-len nextname 1 0 const-does> ;
+
+: type-name ( mal-type )
+    dup  MalTypeType-name-addr @ ( mal-type name-addr )
+    swap MalTypeType-name-len @ ( name-addr name-len )
+    ;
+
+MalType% deftype MalDefault
 
 \ nil type and instance to support extending protocols to it
-MalType% deftype* constant MalNil
+MalType% deftype MalNil
 MalNil new constant mal-nil
 
 \ === protocol methods === /
@@ -104,7 +125,15 @@ MalNil new constant mal-nil
     dup 0= if ." No implementation found for this method, and no protocols extended to MalDefault" 1 throw endif
     pxt array-find ( type idx found? )
   endif
-  0= if ." No implementation found" 1 throw endif
+  0= if ( type idx )
+      2drop
+      ." No protocol fn '"
+      pxt >name name>string type
+      ." ' extended to type '"
+      obj mal-type @ type-name type
+      ." '"
+      1 throw
+  endif
 
   cells swap MalTypeType-method-vals @ + @ ( xt )
   obj swap execute
@@ -174,7 +203,7 @@ end-extend
 MalType%
   cell% field MalList/car
   cell% field MalList/cdr
-deftype* constant MalList
+deftype MalList
 
 : MalList/conj { val coll -- list }
     MalList new ( list )
@@ -182,24 +211,77 @@ deftype* constant MalList
     coll over MalList/cdr ! ( list )
     ;
 
+MalType%
+  cell% field MalArray/count
+  cell% field MalArray/start
+deftype MalArray
+
+: here>MalArray ( old-here -- mal-array )
+    here over - { bytes } ( old-here )
+    MalArray new bytes ( old-here mal-array bytes )
+    allocate throw dup { target } over MalArray/start ! ( old-here mal-array )
+    bytes cell / over MalArray/count ! ( old-here mal-array )
+    swap target bytes cmove ( mal-array )
+    0 bytes - allot \ pop array contents from dictionary stack
+    ;
+
 def-protocol-method conj ( obj this -- this )
+def-protocol-method assoc ( k v this -- this )
+def-protocol-method get ( not-found k this -- value )
+def-protocol-method mal= ( a b -- bool )
+def-protocol-method as-native ( obj --  )
+def-protocol-method invoke ( argv argc mal-fn -- ... )
 
 MalType%
   cell% field MalVector/list
-deftype* constant MalVector
+deftype MalVector
 
 MalType%
   cell% field MalMap/list
-deftype* constant MalMap
+deftype MalMap
+
+MalMap new mal-nil over MalMap/list ! constant MalMap/Empty
+
+MalMap
+  extend conj ( kv map -- map )
+    MalMap/list @ \ get list
+    over MalList/cdr @ MalList/car @ conj \ add value
+    swap MalList/car @ conj \ add key
+    MalMap new MalMap/list ! \ put back in map
+    ;;
+  extend assoc ( k v map -- map )
+    MalMap/list @ \ get list
+    conj conj
+    MalMap new dup -rot MalMap/list ! \ put back in map
+    ;;
+  extend get ( not-found k map -- value )
+    -rot { not-found k }
+    MalMap/list @ \ get list
+    begin
+        dup MalList/cdr @
+        swap MalList/car @ k mal= if
+            MalList/car @ -1 \ found it
+        else
+            MalList/cdr @
+            dup mal-nil = if
+                not-found -1
+            else
+                0
+            endif
+        endif
+    until ;;
+drop
 
 \ Examples of extending existing protocol methods to existing type
 MalDefault
   extend conj   ( obj this -- this )
     nip ;;
+  extend as-native ;; ( obj -- obj )
 drop
 
 MalNil
   ' conj ' MalList/conj extend-method*
+  extend as-native drop 0 ;;
 drop
 
 MalList
@@ -209,30 +291,113 @@ drop
 
 MalType%
   cell% field MalInt/int
-deftype* constant MalInt
+deftype MalInt
 
 : MalInt. { int -- mal-int }
     MalInt new dup MalInt/int int swap ! ;
+
+MalInt
+  extend as-native ( mal-int -- int )
+    MalInt/int @ ;;
+drop
 
 MalType%
   cell% field MalSymbol/sym-addr
   cell% field MalSymbol/sym-len
   cell% field MalSymbol/meta
-deftype* constant MalSymbol
+deftype MalSymbol
 
 : MalSymbol. { str-addr str-len -- mal-sym }
     MalSymbol new { sym }
     str-addr sym MalSymbol/sym-addr !
     str-len  sym MalSymbol/sym-len  !
+    MalMap/Empty sym MalSymbol/meta  !
     sym ;
+
+: unpack-sym ( mal-string -- addr len )
+    dup MalSymbol/sym-addr @
+    swap MalSymbol/sym-len @ ;
+
+MalSymbol
+  extend mal= ( other this -- bool )
+    over mal-type @ MalSymbol = if
+        unpack-sym rot unpack-sym str=
+    else
+        2drop 0
+    endif ;;
+  ' as-native ' unpack-sym extend-method*
+drop
+
+MalType%
+  cell% field MalKeyword/str-addr
+  cell% field MalKeyword/str-len
+deftype MalKeyword
+
+: unpack-keyword ( mal-keyword -- addr len )
+    dup MalKeyword/str-addr @
+    swap MalKeyword/str-len @ ;
+
+MalKeyword
+  extend mal= ( other this -- bool )
+    over mal-type @ MalKeyword = if
+        unpack-keyword rot unpack-keyword str=
+    else
+        2drop 0
+    endif ;;
+  ' as-native ' unpack-keyword extend-method*
+  extend invoke { argv argc kw -- val }
+    argc 1 > if argv cell+ @ else mal-nil endif \ not-found
+    kw \ key
+    argv @ \ map
+    get ;;
+drop
+
+: MalKeyword. { str-addr str-len -- mal-keyword }
+    MalKeyword new { kw }
+    str-addr kw MalKeyword/str-addr !
+    str-len  kw MalKeyword/str-len  !
+    kw ;
 
 MalType%
   cell% field MalString/str-addr
   cell% field MalString/str-len
-deftype* constant MalString
+deftype MalString
 
 : MalString. { str-addr str-len -- mal-str }
     MalString new { str }
     str-addr str MalString/str-addr !
     str-len  str MalString/str-len  !
     str ;
+
+: unpack-str ( mal-string -- addr len )
+    dup MalString/str-addr @
+    swap MalString/str-len @ ;
+
+MalString
+  extend mal= ( other this -- bool )
+    over mal-type @ MalString = if
+        unpack-str rot unpack-str str=
+    else
+        2drop 0
+    endif ;;
+  ' as-native ' unpack-str extend-method*
+drop
+
+
+MalType%
+  cell% field MalFn/xt
+  cell% field MalFn/meta
+deftype MalFn
+
+: MalFn. { xt -- mal-fn }
+    MalFn new { mal-fn }
+    xt mal-fn MalFn/xt !
+    MalMap/Empty mal-fn MalFn/meta  !
+    mal-fn ;
+
+MalFn
+  extend invoke ( ... mal-fn -- ... )
+    MalFn/xt @ execute ;;
+  extend as-native
+    MalFn/xt @ ;;
+drop
