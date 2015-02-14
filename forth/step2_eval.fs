@@ -44,38 +44,25 @@ MalSymbol
     endif ;;
 drop
 
-MalArray
-  extend mal-eval { env ary -- val }
+MalList
+  extend mal-eval { env list -- val }
     \ Pass args on dictionary stack (!)
-    \ TODO: consider allocate and free of a real MalArray instead
+    \ TODO: consider allocate and free of a real MalList instead
     here { val-start }
-    ary MalArray/start @ { expr-start }
-    ary MalArray/count @ 0 ?do
+    list MalList/start @ { expr-start }
+    list MalList/count @ 0 ?do
         env expr-start i cells + @ mal-eval ,
     loop
     val-start cell+  here val-start - cell / 1-  val-start @  ( argv argc MalFn )
     invoke
     val-start here - allot ;;
-  extend mal-eval-ast { env ary -- ary }
+  extend mal-eval-ast { env list -- list }
     here
-    ary MalArray/start @ { expr-start }
-    ary MalArray/count @ 0 ?do
+    list MalList/start @ { expr-start }
+    list MalList/count @ 0 ?do
         env expr-start i cells + @ mal-eval ,
     loop
-    here>MalArray ;;
-drop
-
-MalList
-  extend mal-eval-ast { env list -- ary }
-    here
-    list
-    begin ( list )
-        dup mal-nil <>
-    while
-        env over MalList/car @ mal-eval ,
-        MalList/cdr @
-    repeat
-    drop here>MalArray ;;
+    here>MalList ;;
 drop
 
 MalVector

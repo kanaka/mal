@@ -108,21 +108,32 @@ MalType% deftype MalDefault
 MalType% deftype MalNil
 MalNil new constant mal-nil
 
+: not-object? ( obj -- bool )
+    dup 7 and 0 <> if
+        drop -1
+    else
+        1000000 <
+    endif ;
+
 \ === protocol methods === /
 
 \ Used by protocol methods to find the appropriate implementation of
 \ themselves for the given object, and then execute that implementation.
 : execute-method { obj pxt -- }
+  obj not-object? if
+      ." Refusing to invoke protocol fn '"
+      pxt >name name>string type
+      ." ' on non-object: " obj .
+      1 throw
+  endif
   obj mal-type @ dup MalTypeType-methods 2@ swap ( type methods method-keys )
   dup 0= if \ No protocols extended to this type; check for a default
     2drop drop MalDefault MalTypeType-methods 2@ swap
   endif
-  dup 0= if ." No protocols extended to this type or MalDefault" 1 throw endif
 
   pxt array-find ( type idx found? )
   dup 0= if \ No implementation found for this method; check for a default
     2drop drop MalDefault dup MalTypeType-methods 2@ swap
-    dup 0= if ." No implementation found for this method, and no protocols extended to MalDefault" 1 throw endif
     pxt array-find ( type idx found? )
   endif
   0= if ( type idx )
@@ -157,10 +168,8 @@ MalNil new constant mal-nil
       type MalTypeType-methods dup @ 1+ dup rot ! ( new-count )
       1- dup type MalTypeType-method-keys @ idx pxt array-insert ( old-count new-array )
         type MalTypeType-method-keys ! ( old-count )
-      \ cr ." before: " MalList MalTypeType-method-vals @ @ . cr
       type MalTypeType-method-vals @ idx ixt array-insert ( new-array )
         type MalTypeType-method-vals !
-      \ cr ." after: " MalList MalTypeType-method-vals @ @ . cr
     endif
   endif
   type
@@ -205,7 +214,7 @@ def-protocol-method assoc ( k v this -- this )
 def-protocol-method get ( not-found k this -- value )
 def-protocol-method mal= ( a b -- bool )
 def-protocol-method as-native ( obj --  )
-def-protocol-method to-array ( obj -- mal-array )
+def-protocol-method to-list ( obj -- mal-list )
 
 : m= ( a b -- bool )
     2dup = if
@@ -215,78 +224,67 @@ def-protocol-method to-array ( obj -- mal-array )
     endif ;
 
 MalType%
-  cell% field MalList/car
-  cell% field MalList/cdr
+  cell% field MalList/count
+  cell% field MalList/start
 deftype MalList
 
-: MalList/conj { val coll -- list }
-    MalList new ( list )
-    val over MalList/car ! ( list )
-    coll over MalList/cdr ! ( list )
-    ;
-
-MalType%
-  cell% field MalArray/count
-  cell% field MalArray/start
-deftype MalArray
-
-: here>MalArray ( old-here -- mal-array )
+: here>MalList ( old-here -- mal-list )
     here over - { bytes } ( old-here )
-    MalArray new bytes ( old-here mal-array bytes )
-    allocate throw dup { target } over MalArray/start ! ( old-here mal-array )
-    bytes cell / over MalArray/count ! ( old-here mal-array )
-    swap target bytes cmove ( mal-array )
-    0 bytes - allot \ pop array contents from dictionary stack
+    MalList new bytes ( old-here mal-list bytes )
+    allocate throw dup { target } over MalList/start ! ( old-here mal-list )
+    bytes cell / over MalList/count ! ( old-here mal-list )
+    swap target bytes cmove ( mal-list )
+    0 bytes - allot \ pop list contents from dictionary stack
     ;
 
-MalArray
-  extend to-array ;;
-  extend conj { elem old-ary -- ary }
-    old-ary MalArray/count @ 1+ { new-count }
+MalList
+  extend to-list ;;
+  extend conj { elem old-list -- list }
+    old-list MalList/count @ 1+ { new-count }
     new-count cells allocate throw { new-start }
     elem new-start !
     new-count 1 > if
-      old-ary MalArray/start @   new-start cell+   new-count 1- cells  cmove
+      old-list MalList/start @   new-start cell+   new-count 1- cells  cmove
     endif
 
-    MalArray new
-    new-count over MalArray/count !
-    new-start over MalArray/start ! ;;
+    MalList new
+    new-count over MalList/count !
+    new-start over MalList/start ! ;;
 drop
 
-MalArray new 0 over MalArray/count ! constant MalArray/Empty
+MalList new 0 over MalList/count ! constant MalList/Empty
 
 MalType%
   cell% field MalVector/list
 deftype MalVector
 
 MalVector
-  extend to-array
-    MalVector/list @ to-array ;;
+  extend to-list
+    MalVector/list @ to-list ;;
 drop
 
 MalType%
   cell% field MalMap/list
 deftype MalMap
 
-MalMap new MalArray/Empty over MalMap/list ! constant MalMap/Empty
+MalMap new MalList/Empty over MalMap/list ! constant MalMap/Empty
 
 MalMap
   extend conj ( kv map -- map )
     MalMap/list @ \ get list
-    over MalArray/start @ cell+ @ swap conj \ add value
-    swap MalArray/start @ @ swap conj \ add key
+    over MalList/start @ cell+ @ swap conj \ add value
+    swap MalList/start @ @ swap conj \ add key
     MalMap new dup -rot MalMap/list ! \ put back in map
     ;;
   extend assoc ( k v map -- map )
     MalMap/list @ \ get list
-    conj conj 
+    conj conj
     MalMap new dup -rot MalMap/list ! \ put back in map
     ;;
   extend get { not-found k map -- value }
     map MalMap/list @
-    dup MalArray/start @ { start }
-    MalArray/count @ { count }
+    dup MalList/start @ { start }
+    MalList/count @ { count }
     0
     begin
         dup count >= if
@@ -309,12 +307,9 @@ MalDefault
 drop
 
 MalNil
-  ' conj ' MalList/conj extend-method*
+  extend conj ( item nil -- mal-list )
+    drop MalList/Empty conj ;;
   extend as-native drop 0 ;;
-drop
-
-MalList
-  ' conj ' MalList/conj extend-method*
 drop
 
 

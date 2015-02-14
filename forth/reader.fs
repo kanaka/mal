@@ -91,32 +91,7 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     out-addr out-len MalString. ;
 
 : read-list ( str-addr str-len open-paren-char close-paren-char
-              -- str-addr str-len non-paren-char mal-list )
-    \ push objects onto "dictionary" -- maybe not the best stack for this?
-    0 { close-char len }
-    drop adv-str
-    begin ( str-addr str-len char )
-        skip-spaces ( str-addr str-len non-space-char )
-        over 0= if
-            drop 2drop
-            s\" expected '" close-char str-append-char
-            s\" ', got EOF" str-append safe-type 1 throw
-        endif
-        dup close-char <>
-    while ( str-addr str-len non-space-non-paren-char )
-        read-form , len 1+ to len
-    repeat
-    drop adv-str
-
-    \ pop objects out of "dictionary" into MalList
-    mal-nil
-    len 0 ?do
-        0 cell - allot
-        here @ swap conj
-    loop ;
-
-: read-array ( str-addr str-len open-paren-char close-paren-char
-                 -- str-addr str-len non-paren-char mal-array )
+                  -- str-addr str-len non-paren-char mal-list )
     here { close-char old-here }
     drop adv-str
     begin ( str-addr str-len char )
@@ -131,22 +106,22 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
             read-form ,
     repeat
     drop adv-str
-    old-here here>MalArray
+    old-here here>MalList
     ;
 
 : read-wrapped ( buf-addr buf-len quote-char sym-addr sym-len -- buf-addr buf-len char mal-list )
     here { old-here }
     MalSymbol. , ( buf-addr buf-len char )
     read-form , ( buf-addr buf-len char )
-    old-here here>MalArray ;
+    old-here here>MalList ;
 
 : read-form2 ( str-addr str-len char -- str-addr str-len char mal-obj )
     begin
         skip-spaces
         dup mal-digit? if read-int else
-        dup [char] ( = if [char] ) read-array else
-        dup [char] [ = if [char] ] read-array MalVector new tuck MalVector/list ! else
-        dup [char] { = if [char] } read-array MalMap new tuck MalMap/list ! else
+        dup [char] ( = if [char] ) read-list else
+        dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
+        dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
         dup [char] " = if read-string-literal else
         dup [char] ; = if read-comment else
         dup [char] : = if drop adv-str read-symbol-str MalKeyword. else

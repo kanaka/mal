@@ -36,13 +36,6 @@ dup 4 cells + @  15 test=
 dup 5 cells + @  20 test=
 
 
-\ MalType tests
-
-MalList new   MalList new   = 0 test=
-
-MalList new dup MalList/car 5 swap ! MalList/car @   5 test=
-
-
 \ Protocol tests
 
 mal-nil
@@ -52,9 +45,11 @@ mal-nil
 23 MalInt. mal-nil conj conj conj
 pr-str s" (nil (20 (42) 10) 23)" str= -1 test=
 
-\ MalArray tests
+1500 MalInt. 1500 MalInt. test=
 
-here 1 MalInt. , 2 MalInt. , 3 MalInt. , here>MalArray
+\ MalList tests
+
+here 1 MalInt. , 2 MalInt. , 3 MalInt. , here>MalList
 4 MalInt. swap conj
 5 MalInt. swap conj
 pr-str s" (5 4 1 2 3)" str= -1 test=

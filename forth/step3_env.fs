@@ -32,13 +32,13 @@ MalFn
   extend invoke ( ... mal-fn -- ... )
     MalFn/xt @ execute ;;
 
-  extend invoke+ { env ary this -- ary }
+  extend invoke+ { env list this -- list }
     \ Pass args on dictionary stack (!)
-    \ TODO: consider allocate and free of a real MalArray instead
+    \ TODO: consider allocate and free of a real MalList instead
     \ Normal list, evaluate and invoke
     here { val-start }
-    ary MalArray/start @ { expr-start }
-    ary MalArray/count @ 1 ?do
+    list MalList/start @ { expr-start }
+    list MalList/count @ 1 ?do
         env expr-start i cells + @ mal-eval ,
     loop
     val-start  here val-start - cell /  this  ( argv argc MalFn )
@@ -47,28 +47,28 @@ MalFn
 drop
 
 SpecialOp
-  extend invoke+ ( env ary this -- ary )
+  extend invoke+ ( env list this -- list )
     SpecialOp/xt @ execute ;;
 drop
 
-s" quote" MalSymbol. :noname ( env ary -- form )
-    nip MalArray/start @ cell+ @
+s" quote" MalSymbol. :noname ( env list -- form )
+    nip MalList/start @ cell+ @
 ; SpecialOp. repl-env env/set
 
-s" def!" MalSymbol. :noname { env ary -- }
-    ary MalArray/start @ cell+ { arg0 }
+s" def!" MalSymbol. :noname { env list -- }
+    list MalList/start @ cell+ { arg0 }
     arg0 @ ( key )
     env arg0 cell+ @ mal-eval dup { val } ( key val )
     env env/set
     val
 ; SpecialOp. repl-env env/set
 
-s" let*" MalSymbol. :noname { old-env ary -- }
+s" let*" MalSymbol. :noname { old-env list -- }
     old-env MalEnv. { env }
-    ary MalArray/start @ cell+ dup { arg0 }
-    @ to-array
-    dup MalArray/start @ { bindings-start } ( ary )
-    MalArray/count @ 0 +do
+    list MalList/start @ cell+ dup { arg0 }
+    @ to-list
+    dup MalList/start @ { bindings-start } ( list )
+    MalList/count @ 0 +do
         bindings-start i cells + dup @ swap cell+ @ ( sym expr )
         env swap mal-eval
         env env/set
@@ -89,31 +89,18 @@ MalSymbol
     endif ;;
 drop
 
-MalArray
-  extend mal-eval { env ary -- val }
-    env ary MalArray/start @ @ mal-eval
-    env ary rot invoke+ ;;
+MalList
+  extend mal-eval { env list -- val }
+    env list MalList/start @ @ mal-eval
+    env list rot invoke+ ;;
 
-  extend mal-eval-ast { env ary -- ary }
+  extend mal-eval-ast { env list -- list }
     here
-    ary MalArray/start @ { expr-start }
-    ary MalArray/count @ 0 ?do
+    list MalList/start @ { expr-start }
+    list MalList/count @ 0 ?do
         env expr-start i cells + @ mal-eval ,
     loop
-    here>MalArray ;;
-drop
-
-MalList
-  extend mal-eval-ast { env list -- ary }
-    here
-    list
-    begin ( list )
-        dup mal-nil <>
-    while
-        env over MalList/car @ mal-eval ,
-        MalList/cdr @
-    repeat
-    drop here>MalArray ;;
+    here>MalList ;;
 drop
 
 MalVector

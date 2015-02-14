@@ -72,50 +72,22 @@ MalNil
     drop s" nil" str-append ;;
 drop
 
-: pr-buf-list-item ( list str-addr str-len -- list str-addr str-len)
-    rot dup MalList/cdr @ swap MalList/car @ 2swap rot pr-buf ;
-
 MalList
   extend pr-buf
     -rot s" (" str-append ( list str-addr str-len )
     rot pr-seq-buf
     s" )" str-append ;;
-  extend pr-seq-buf
-    \ currently assumes list chain through to the end
-    -rot pr-buf-list-item
-    begin ( list str-addr str-len )
-      2 pick mal-nil <>
-    while
-      a-space pr-buf-list-item
-    repeat
-    rot drop ;;
-  extend pr-pairs-buf
-    -rot pr-buf-list-item a-space pr-buf-list-item
-    begin ( list str-addr str-len )
-      2 pick mal-nil <>
-    while
-      s" , " str-append
-      pr-buf-list-item a-space pr-buf-list-item
-    repeat
-    rot drop ;;
-drop
-
-MalArray
-  extend pr-buf
-    -rot s" (" str-append ( list str-addr str-len )
-    rot pr-seq-buf
-    s" )" str-append ;;
-  extend pr-seq-buf { ary }
-    ary MalArray/start @ { start }
+  extend pr-seq-buf { list }
+    list MalList/start @ { start }
     start @ pr-buf
-    ary MalArray/count @ 1 ?do
+    list MalList/count @ 1 ?do
         a-space
         start i cells + @ pr-buf
     loop ;;
-  extend pr-pairs-buf { ary }
-    ary MalArray/start @ { start }
+  extend pr-pairs-buf { list }
+    list MalList/start @ { start }
     start @ pr-buf a-space start cell+ @ pr-buf
-    ary MalArray/count @ 2 / 1 ?do
+    list MalList/count @ 2 / 1 ?do
         s" , " str-append
         a-space
         start i 2 * cells + @ pr-buf a-space
