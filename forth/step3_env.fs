@@ -13,26 +13,29 @@ s" -" MalSymbol.  :noname args-as-native - MalInt. ; MalFn.  repl-env env/set
 s" *" MalSymbol.  :noname args-as-native * MalInt. ; MalFn.  repl-env env/set
 s" /" MalSymbol.  :noname args-as-native / MalInt. ; MalFn.  repl-env env/set
 
+\ Fully evalutate any Mal object:
 def-protocol-method mal-eval ( env ast -- val )
-def-protocol-method mal-eval-ast ( env ast -- val )
-def-protocol-method invoke+ ( env arty -- ... )
+
+\ Invoke an object, given whole env and unevaluated argument forms:
 def-protocol-method invoke ( argv argc mal-fn -- ... )
 
 MalDefault extend mal-eval nip ;; drop
 
 MalKeyword
-  extend invoke { argv argc kw -- val }
-    argc 1 > if argv cell+ @ else mal-nil endif \ not-found
-    kw \ key
-    argv @ \ map
-    get ;;
+  extend invoke { env list kw -- val }
+    0   kw   env list MalList/start @ cell+ @ mal-eval   get
+    ?dup 0= if
+        \ compute not-found value
+        list MalList/count @ 1 > if
+            env  list MalList/start @ 2 cells + @  mal-eval
+        else
+            mal-nil
+        endif
+    endif ;;
 drop
 
 MalFn
-  extend invoke ( ... mal-fn -- ... )
-    MalFn/xt @ execute ;;
-
-  extend invoke+ { env list this -- list }
+  extend invoke { env list this -- list }
     \ Pass args on dictionary stack (!)
     \ TODO: consider allocate and free of a real MalList instead
     \ Normal list, evaluate and invoke
@@ -42,12 +45,12 @@ MalFn
         env expr-start i cells + @ mal-eval ,
     loop
     val-start  here val-start - cell /  this  ( argv argc MalFn )
-    invoke
+    MalFn/xt @ execute
     val-start here - allot ;;
 drop
 
 SpecialOp
-  extend invoke+ ( env list this -- list )
+  extend invoke ( env list this -- list )
     SpecialOp/xt @ execute ;;
 drop
 
@@ -89,18 +92,18 @@ MalSymbol
     endif ;;
 drop
 
-MalList
-  extend mal-eval { env list -- val }
-    env list MalList/start @ @ mal-eval
-    env list rot invoke+ ;;
-
-  extend mal-eval-ast { env list -- list }
+: mal-eval-ast { env list -- list }
     here
     list MalList/start @ { expr-start }
     list MalList/count @ 0 ?do
         env expr-start i cells + @ mal-eval ,
     loop
-    here>MalList ;;
+    here>MalList ;
+
+MalList
+  extend mal-eval { env list -- val }
+    env list MalList/start @ @ mal-eval
+    env list rot invoke ;;
 drop
 
 MalVector
