@@ -2,7 +2,7 @@ require printer.fs
 
 \ === basic testing util === /
 : test=
-  2dup = if
+  2dup m= if
     2drop
   else
     cr ." assert failed on line " sourceline# .
@@ -52,19 +52,37 @@ mal-nil
 23 MalInt. mal-nil conj conj conj
 pr-str s" (nil (20 (42) 10) 23)" str= -1 test=
 
+\ MalArray tests
+
+here 1 MalInt. , 2 MalInt. , 3 MalInt. , here>MalArray
+4 MalInt. swap conj
+5 MalInt. swap conj
+pr-str s" (5 4 1 2 3)" str= -1 test=
+
 \ map tests
 
-s" one" MalString. s" one" MalString. mal= -1 test=
-s" one" MalString. s" x" MalString. mal= 0 test=
+s" one" MalString. s" one" MalString. test=
+s" one" MalString. s" x" MalString. m= 0 test=
+
+MalMap/Empty
+1000 MalInt. 1100 rot assoc
+2000 MalInt. 2100 rot assoc
+3000 MalInt. 3100 rot assoc
+
+dup 99 2000 MalInt. rot get 2100 test=
+dup 99 4000 MalInt. rot get 99 test=
+drop
 
 MalMap/Empty
 s" one" MalString. s" first" MalString. rot assoc
 s" two" MalString. s" second" MalString. rot assoc
 s" three" MalString. s" third" MalString. rot assoc
 
-dup 99 s" two" MalString. rot get s" second" MalString. mal= -1 test=
+dup 99 s" two" MalString. rot get s" second" MalString. test=
 dup 99 s" none" MalString. rot get 99 test=
 drop
+
+99 MalInt. 10 MalInt. MalMap/Empty get 99 MalInt. test=
 
 \ eval tests
 
@@ -74,8 +92,6 @@ mal-nil
     1 MalInt. swap conj
     2 MalInt. swap conj
     3 MalInt. swap conj
-~~
 mal-eval
-~~
 
 bye

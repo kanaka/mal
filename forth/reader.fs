@@ -135,9 +135,10 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     ;
 
 : read-wrapped ( buf-addr buf-len quote-char sym-addr sym-len -- buf-addr buf-len char mal-list )
-    MalSymbol. { sym } ( buf-addr buf-len char )
-    read-form mal-nil conj ( buf-addr buf-len char mal-list )
-    sym swap conj ;
+    here { old-here }
+    MalSymbol. , ( buf-addr buf-len char )
+    read-form , ( buf-addr buf-len char )
+    old-here here>MalArray ;
 
 : read-form2 ( str-addr str-len char -- str-addr str-len char mal-obj )
     begin
@@ -145,7 +146,7 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
         dup mal-digit? if read-int else
         dup [char] ( = if [char] ) read-array else
         dup [char] [ = if [char] ] read-array MalVector new tuck MalVector/list ! else
-        dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
+        dup [char] { = if [char] } read-array MalMap new tuck MalMap/list ! else
         dup [char] " = if read-string-literal else
         dup [char] ; = if read-comment else
         dup [char] : = if drop adv-str read-symbol-str MalKeyword. else

@@ -15,8 +15,22 @@ value repl-env
 
 def-protocol-method mal-eval ( env ast -- val )
 def-protocol-method mal-eval-ast ( env ast -- val )
+def-protocol-method invoke ( argv argc mal-fn -- ... )
 
 MalDefault extend mal-eval nip ;; drop
+
+MalKeyword
+  extend invoke { argv argc kw -- val }
+    argc 1 > if argv cell+ @ else mal-nil endif \ not-found
+    kw \ key
+    argv @ \ map
+    get ;;
+drop
+
+MalFn
+  extend invoke ( ... mal-fn -- ... )
+    MalFn/xt @ execute ;;
+drop
 
 MalSymbol
   extend mal-eval { env sym -- val }

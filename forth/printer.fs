@@ -149,6 +149,11 @@ MalFn
     drop s" #<fn>" str-append ;;
 drop
 
+SpecialOp
+  extend pr-buf
+    drop s" #<op>" str-append ;;
+drop
+
 MalSymbol
   extend pr-buf
     unpack-sym str-append ;;

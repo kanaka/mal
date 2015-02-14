@@ -200,6 +200,20 @@ end-extend
 
 \ === Mal types and protocols === /
 
+def-protocol-method conj ( obj this -- this )
+def-protocol-method assoc ( k v this -- this )
+def-protocol-method get ( not-found k this -- value )
+def-protocol-method mal= ( a b -- bool )
+def-protocol-method as-native ( obj --  )
+def-protocol-method to-array ( obj -- mal-array )
+
+: m= ( a b -- bool )
+    2dup = if
+        2drop -1
+    else
+        mal=
+    endif ;
+
 MalType%
   cell% field MalList/car
   cell% field MalList/cdr
@@ -225,48 +239,63 @@ deftype MalArray
     0 bytes - allot \ pop array contents from dictionary stack
     ;
 
-def-protocol-method conj ( obj this -- this )
-def-protocol-method assoc ( k v this -- this )
-def-protocol-method get ( not-found k this -- value )
-def-protocol-method mal= ( a b -- bool )
-def-protocol-method as-native ( obj --  )
-def-protocol-method invoke ( argv argc mal-fn -- ... )
+MalArray
+  extend to-array ;;
+  extend conj { elem old-ary -- ary }
+    old-ary MalArray/count @ 1+ { new-count }
+    new-count cells allocate throw { new-start }
+    elem new-start !
+    new-count 1 > if
+      old-ary MalArray/start @   new-start cell+   new-count 1- cells  cmove
+    endif
+
+    MalArray new
+    new-count over MalArray/count !
+    new-start over MalArray/start ! ;;
+drop
+
+MalArray new 0 over MalArray/count ! constant MalArray/Empty
 
 MalType%
   cell% field MalVector/list
 deftype MalVector
 
+MalVector
+  extend to-array
+    MalVector/list @ to-array ;;
+drop
+
 MalType%
   cell% field MalMap/list
 deftype MalMap
 
-MalMap new mal-nil over MalMap/list ! constant MalMap/Empty
+MalMap new MalArray/Empty over MalMap/list ! constant MalMap/Empty
 
 MalMap
   extend conj ( kv map -- map )
     MalMap/list @ \ get list
-    over MalList/cdr @ MalList/car @ conj \ add value
-    swap MalList/car @ conj \ add key
-    MalMap new MalMap/list ! \ put back in map
+    over MalArray/start @ cell+ @ swap conj \ add value
+    swap MalArray/start @ @ swap conj \ add key
+    MalMap new dup -rot MalMap/list ! \ put back in map
     ;;
   extend assoc ( k v map -- map )
     MalMap/list @ \ get list
-    conj conj
+    conj conj 
     MalMap new dup -rot MalMap/list ! \ put back in map
     ;;
-  extend get ( not-found k map -- value )
-    -rot { not-found k }
-    MalMap/list @ \ get list
+  extend get { not-found k map -- value }
+    map MalMap/list @
+    dup MalArray/start @ { start }
+    MalArray/count @ { count }
+    0
     begin
-        dup MalList/cdr @
-        swap MalList/car @ k mal= if
-            MalList/car @ -1 \ found it
+        dup count >= if
+            drop not-found -1
         else
-            MalList/cdr @
-            dup mal-nil = if
-                not-found -1
+            start over cells + @ k m= if
+                start swap cells + cell+ @ -1 \ found it ( value -1 )
             else
-                0
+                2 + 0
             endif
         endif
     until ;;
@@ -297,6 +326,13 @@ deftype MalInt
     MalInt new dup MalInt/int int swap ! ;
 
 MalInt
+  extend mal= ( other this -- bool )
+    over mal-type @ MalInt = if
+        MalInt/int @ swap MalInt/int @ =
+    else
+        2drop 0
+    endif ;;
+
   extend as-native ( mal-int -- int )
     MalInt/int @ ;;
 drop
@@ -345,11 +381,6 @@ MalKeyword
         2drop 0
     endif ;;
   ' as-native ' unpack-keyword extend-method*
-  extend invoke { argv argc kw -- val }
-    argc 1 > if argv cell+ @ else mal-nil endif \ not-found
-    kw \ key
-    argv @ \ map
-    get ;;
 drop
 
 : MalKeyword. { str-addr str-len -- mal-keyword }
@@ -396,8 +427,14 @@ deftype MalFn
     mal-fn ;
 
 MalFn
-  extend invoke ( ... mal-fn -- ... )
-    MalFn/xt @ execute ;;
   extend as-native
     MalFn/xt @ ;;
 drop
+
+
+MalType%
+  cell% field SpecialOp/xt
+deftype SpecialOp
+
+: SpecialOp.
+    SpecialOp new swap over SpecialOp/xt ! ;
