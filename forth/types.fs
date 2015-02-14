@@ -84,11 +84,15 @@ end-struct MalTypeType%
   dup MalTypeType-name-len    0   swap !   ( MalTypeType )
   ;
 
+\ parse-name uses temporary space, so copy into dictionary stack:
+: parse-allot-name { -- new-str-addr str-len }
+    parse-name { str-addr str-len }
+    here { new-str-addr } str-len allot
+    str-addr new-str-addr str-len cmove
+    new-str-addr str-len ;
+
 : deftype ( struct-align struct-len R:type-name -- )
-    parse-name { orig-name-addr name-len }
-    \ parse-name uses temporary space, so copy into dictionary stack:
-    here { name-addr } name-len allot
-    orig-name-addr name-addr name-len cmove
+    parse-allot-name { name-addr name-len }
 
     \ allot and initialize type structure
     deftype* { mt }
@@ -183,14 +187,15 @@ MalNil new constant mal-nil
   does> ( ??? obj xt-ref -- ??? )
     @ execute-method ;
 
-: extend ( type -- type pxt <noname...>)
+: extend ( type -- type pxt install-xt <noname...>)
     parse-name find-name name>int ( type pxt )
+    ['] extend-method*
     :noname
     ;
 
 : ;; ( type pxt <noname...> -- type )
-    [compile] ; ( type pxt ixt )
-    extend-method*
+    [compile] ; ( type pxt install-xt ixt )
+    swap execute
     ; immediate
 
 (

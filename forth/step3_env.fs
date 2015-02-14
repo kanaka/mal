@@ -54,19 +54,26 @@ SpecialOp
     SpecialOp/xt @ execute ;;
 drop
 
-s" quote" MalSymbol. :noname ( env list -- form )
-    nip MalList/start @ cell+ @
-; SpecialOp. repl-env env/set
+: install-special ( symbol xt )
+    SpecialOp. repl-env env/set ;
 
-s" def!" MalSymbol. :noname { env list -- }
+: defspecial
+    parse-allot-name MalSymbol.
+    ['] install-special
+    :noname
+    ;
+
+defspecial quote ( env list -- form )
+    nip MalList/start @ cell+ @ ;;
+
+defspecial def! { env list -- }
     list MalList/start @ cell+ { arg0 }
     arg0 @ ( key )
     env arg0 cell+ @ mal-eval dup { val } ( key val )
     env env/set
-    val
-; SpecialOp. repl-env env/set
+    val ;;
 
-s" let*" MalSymbol. :noname { old-env list -- }
+defspecial let* { old-env list -- }
     old-env MalEnv. { env }
     list MalList/start @ cell+ dup { arg0 }
     @ to-list
@@ -78,7 +85,7 @@ s" let*" MalSymbol. :noname { old-env list -- }
     2 +loop
     env arg0 cell+ @ mal-eval
     \ TODO: dec refcount of env
-; SpecialOp. repl-env env/set
+    ;;
 
 MalSymbol
   extend mal-eval { env sym -- val }
