@@ -8,9 +8,18 @@
             ["`", "join"], ["`", " "]],
       ["`", ")"]],
   ["if", ["=", ["`", "string"], ["type", "exp"]],
-    ["str", ["`", "\""], "exp", ["`", "\""]], 
+    ["if", "print_readably",
+      ["str", ["`", "\""],
+              [".",
+                [".",
+                  [".", "exp",
+                        ["`", "replace"], ["RegExp", ["`", "\\\\"], ["`", "g"]], ["`", "\\\\"]],
+                  ["`", "replace"], ["RegExp", ["`", "\""], ["`", "g"]], ["`", "\\\""]],
+                ["`", "replace"], ["RegExp", ["`", "\n"], ["`", "g"]], ["`", "\\n"]],
+              ["`", "\""]],
+      "exp"],
   ["if", ["=", ["`", "number"], ["type", "exp"]],
-    "exp", 
+    "exp",
   ["if", ["=", null, "exp"],
     ["`", "nil"],
   ["if", ["=", true, "exp"],
@@ -20,6 +29,10 @@
   ["if", ["symbol?", "exp"],
     ["get", "exp", ["`", "val"]],
   ["str", ["`", "#<unknown: "], "exp", ["`", ">"]]]]]]]]]]],
+
+["def", "pr-list", ["fn", ["lst", "print_readably", "sep"],
+  [".", ["map", ["fn", ["s"], ["pr-str", "s", "print_readably"]], "lst"],
+        ["`", "join"], "sep"]]],
 
 null
 ]

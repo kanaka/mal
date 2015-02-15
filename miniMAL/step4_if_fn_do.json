@@ -5,9 +5,9 @@
 ["load-file", ["`", "reader.json"]],
 ["load-file", ["`", "printer.json"]],
 ["load-file", ["`", "env.json"]],
+["load-file", ["`", "core.json"]],
 
-["def", "READ", ["fn", ["strng"],
-  ["read-str", "strng"]]],
+["def", "READ", ["fn", ["strng"], ["read-str", "strng"]]],
 
 ["def", "eval-ast", ["fn", ["ast", "env"],
   ["if", ["symbol?", "ast"],
@@ -66,12 +66,13 @@
     ["catch", "exc",
       ["str", ["`", "Error: "], [".", "exc", ["`", "toString"]]]]]]],
 
-["env-set", "repl-env", ["symbol", ["`", "+"]], "+"],
-["env-set", "repl-env", ["symbol", ["`", "-"]], "-"],
-["env-set", "repl-env", ["symbol", ["`", "*"]], "*"],
-["def", "div", ["fn", ["a", "b"], ["parseInt", ["/", "a", "b"]]]],
-["env-set", "repl-env", ["symbol", ["`", "/"]], "div"],
+["`", "core.mal: defined using miniMAL"],
+["map", ["fn", ["k"], ["env-set", "repl-env",
+                                  ["symbol", "k"],
+                                  ["get", "core-ns", "k"]]],
+        ["keys", "core-ns"]],
 
+["`", "core.mal: defined using mal itself"],
 ["rep", ["`", "(def! not (fn* (a) (if a false true)))"]],
 
 ["repl", ["`", "user> "], "rep"],

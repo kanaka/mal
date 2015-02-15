@@ -11,5 +11,21 @@
       true,
       false]]]],
 
+["def", "_cmp_seqs", ["fn", ["a", "b"],
+  ["if", ["not", ["=", ["count", "a"], ["count", "b"]]],
+    false,
+    ["if", ["empty?", "a"],
+      true,
+      ["if", ["equal?", ["get", "a", 0], ["get", "b", 0]],
+        ["_cmp_seqs", ["rest", "a"], ["rest", "b"]],
+        false]]]]],
+
+["def", "equal?", ["fn", ["a", "b"],
+  ["if", ["list?", "a"],
+    ["if", ["list?", "b"],
+      ["_cmp_seqs", "a", "b"],
+      false],
+    ["=", "a", "b"]]]],
+
 null
 ]
