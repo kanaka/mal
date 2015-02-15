@@ -125,6 +125,8 @@ MalType% deftype MalFalse MalFalse new constant mal-false
 
 \ === protocol methods === /
 
+0 constant trace
+
 \ Used by protocol methods to find the appropriate implementation of
 \ themselves for the given object, and then execute that implementation.
 : execute-method { obj pxt -- }
@@ -153,10 +155,10 @@ MalType% deftype MalFalse MalFalse new constant mal-false
       ." '"
       1 throw
   endif
+  trace if ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type cr endif
 
   cells swap MalTypeType-method-vals @ + @ ( xt )
-  obj swap execute
-  ;
+  obj swap execute ;
 
 \ Extend a type with a protocol method. This mutates the MalTypeType
 \ object that represents the MalType being extended.
@@ -313,13 +315,15 @@ deftype MalVector
 
 MalVector
   extend to-list
-    MalVector/list @ to-list ;;
+    MalVector/list @ ;;
   extend empty?
     MalVector/list @
     MalList/count @ 0= mal-bool ;;
   extend mal-count
     MalVector/list @
     MalList/count @ MalInt. ;;
+  extend mal=
+    MalVector/list @ swap m= ;;
 drop
 
 MalType%

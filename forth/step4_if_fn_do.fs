@@ -116,23 +116,40 @@ defspecial if { env list -- val }
         env arg0 cell+ @ mal-eval
     endif ;;
 
+s" &" MalSymbol. constant &-sym
+
 MalUserFn
   extend invoke { call-env list mal-fn -- list }
     call-env list eval-rest { mem-token argv argc }
 
-    mal-fn MalUserFn/formal-args @ dup { f-args-list }
-    MalList/count @ argc 2dup = if
-        2drop
-    else
-        ." Argument mismatch on user fn. Got " . ." but expected " . cr
-        1 throw
-    endif
+    mal-fn MalUserFn/formal-args @ { f-args-list }
+    \ \ This isn't correct for fns with & in their f-args-list:
+    \ f-args-list MalList/count @ argc 2dup = if
+    \     2drop
+    \ else
+    \     ." Argument mismatch on user fn. Got " . ." but expected " . cr
+    \     1 throw
+    \ endif
 
     mal-fn MalUserFn/env @ MalEnv. { env }
 
     f-args-list MalList/start @ { f-args }
+    f-args-list MalList/count @ ?dup 0= if else
+        \ pass nil for last arg, unless overridden below
+        1- cells f-args + @ mal-nil env env/set
+    endif
     argc 0 ?do
         f-args i cells + @
+        dup &-sym m= if
+            drop
+            f-args i 1+ cells + @ ( more-args-symbol )
+            MalList new ( sym more-args )
+            argc i - dup { c } over MalList/count !
+            c cells allocate throw dup { start } over MalList/start !
+            argv i cells +  start  c cells  cmove
+            env env/set
+            leave
+        endif
         argv i cells + @
         env env/set
     loop
