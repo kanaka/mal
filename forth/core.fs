@@ -48,8 +48,8 @@ defcore not
         endif
     endif ;;
 
-: pr-str-multi ( argv argc )
-    ?dup 0= if drop s" "
+: pr-str-multi ( readably? argv argc )
+    ?dup 0= if drop 0 0
     else
         { argv argc }
         new-str
@@ -60,8 +60,17 @@ defcore not
         loop
     endif ;
 
-defcore prn pr-str-multi type cr mal-nil ;;
-defcore pr-str pr-str-multi MalString. ;;
-
-defcore str drop @ pr-str MalString. ;;
-defcore println pr-str-multi 10 str-append-char MalString. ;;
+defcore prn true -rot pr-str-multi type cr drop mal-nil ;;
+defcore pr-str true -rot pr-str-multi MalString. nip ;;
+defcore println false -rot pr-str-multi type cr drop mal-nil ;;
+defcore str ( argv argc )
+    dup 0= if
+        MalString.
+    else
+        { argv argc }
+        false new-str
+        argc 0 ?do
+            argv i cells + @ pr-buf
+        loop
+        MalString. nip
+    endif ;;

@@ -118,7 +118,7 @@ MalType% deftype MalFalse MalFalse new constant mal-false
 
 : not-object? ( obj -- bool )
     dup 7 and 0 <> if
-        drop -1
+        drop true
     else
         1000000 <
     endif ;
@@ -232,7 +232,7 @@ def-protocol-method mal-count ( obj -- mal-int )
 
 : m= ( a b -- bool )
     2dup = if
-        2drop -1
+        2drop true
     else
         mal=
     endif ;
@@ -293,16 +293,16 @@ MalList
     else
         2dup MalList/count @ swap MalList/count @ over = if ( list-a list-b count )
             -rot MalList/start @ swap MalList/start @ { start-b start-a }
-            -1 swap ( return-val count )
+            true swap ( return-val count )
             0 ?do
                 start-a i cells + @
                 start-b i cells + @
                 m= if else
-                    drop 0 leave
+                    drop false leave
                 endif
             loop
         else
-            drop 2drop 0
+            drop 2drop false
         endif
     endif ;;
 drop
@@ -351,12 +351,12 @@ MalMap
     0
     begin
         dup count >= if
-            drop not-found -1
+            drop not-found true
         else
             start over cells + @ k m= if
-                start swap cells + cell+ @ -1 \ found it ( value -1 )
+                start swap cells + cell+ @ true \ found it ( value true )
             else
-                2 + 0
+                2 + false
             endif
         endif
     until ;;

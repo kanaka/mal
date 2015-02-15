@@ -51,12 +51,12 @@ here constant space-str
 
 \ === printer protocol and implementations === /
 
-def-protocol-method pr-buf ( str-addr str-len this -- str-addr str-len )
-def-protocol-method pr-seq-buf ( str-addr str-len this -- str-addr str-len )
-def-protocol-method pr-pairs-buf ( str-addr str-len this -- str-addr str-len )
+def-protocol-method pr-buf ( readably? str-addr str-len this -- str-addr str-len )
+def-protocol-method pr-seq-buf ( readably? str-addr str-len this -- str-addr str-len )
+def-protocol-method pr-pairs-buf ( readably? str-addr str-len this -- str-addr str-len )
 
 : pr-str { obj }
-    new-str obj pr-buf ;
+    true new-str obj pr-buf rot drop ;
 
 \ Examples of extending existing protocol methods to existing type
 MalDefault
@@ -138,12 +138,7 @@ drop
     addr len
     ;
 
-MalString
-  extend pr-buf
-    dup MalString/str-addr @
-    swap MalString/str-len @
-    { addr len }
-
+: escape-str { addr len }
     s\" \"" str-append
     0 ( i )
     begin
@@ -169,5 +164,15 @@ MalString
         1+
     repeat
     drop addr len str-append
-    s\" \"" str-append ;;
+    s\" \"" str-append ;
+
+MalString
+  extend pr-buf
+    dup MalString/str-addr @
+    swap MalString/str-len @
+    4 pick if
+        escape-str
+    else
+        str-append
+    endif ;;
 drop
