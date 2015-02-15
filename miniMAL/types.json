@@ -1,16 +1,5 @@
 ["do",
 
-["def", "symbol", ["fn", ["name"],
-  ["hash-map", ["`", "type"], ["`", "Symbol"],
-               ["`", "val"], "name"]]],
-
-["def", "symbol?", ["fn", ["obj"],
-  ["if", ["=", "obj", null],
-    false,
-    ["if", ["=", ["`", "Symbol"], ["get", "obj", ["`", "type"]]],
-      true,
-      false]]]],
-
 ["def", "_cmp_seqs", ["fn", ["a", "b"],
   ["if", ["not", ["=", ["count", "a"], ["count", "b"]]],
     false,
@@ -26,6 +15,31 @@
       ["_cmp_seqs", "a", "b"],
       false],
     ["=", "a", "b"]]]],
+
+["def", "symbol", ["fn", ["name"],
+  ["hash-map", ["`", "type"], ["`", "Symbol"],
+               ["`", "val"], "name"]]],
+
+["def", "symbol?", ["fn", ["obj"],
+  ["if", ["=", "obj", null],
+    false,
+    ["if", ["=", ["`", "Symbol"], ["get", "obj", ["`", "type"]]],
+      true,
+      false]]]],
+
+["def", "malfunc", ["fn", ["fn", "ast", "env", "params"],
+  ["hash-map", ["`", "type"], ["`", "MalFunc"],
+               ["`", "fn"], "fn",
+               ["`", "ast"], "ast",
+               ["`", "env"], "env",
+               ["`", "params"], "params"]]],
+
+["def", "malfunc?", ["fn", ["obj"],
+  ["if", ["=", "obj", null],
+    false,
+    ["if", ["=", ["`", "MalFunc"], ["get", "obj", ["`", "type"]]],
+      true,
+      false]]]],
 
 null
 ]
