@@ -25,19 +25,28 @@ MalKeyword
     endif ;;
 drop
 
-MalFn
-  extend invoke { env list this -- list }
+\ eval all but the first item of list, storing in temporary memory
+\ that should be freed with free-eval-rest when done.
+: eval-rest { env list -- mem-token argv argc }
     \ Pass args on dictionary stack (!)
     \ TODO: consider allocate and free of a real MalList instead
     \ Normal list, evaluate and invoke
     here { val-start }
-    list MalList/start @ { expr-start }
-    list MalList/count @ 1 ?do
+    list MalList/start @ cell+ { expr-start }
+    list MalList/count @ 1- dup { argc } 0 ?do
         env expr-start i cells + @ mal-eval ,
     loop
-    val-start  here val-start - cell /  this  ( argv argc MalFn )
-    dup MalFn/xt @ execute
-    val-start here - allot ;;
+    val-start  val-start  argc ;
+
+: free-eval-rest ( mem-token/val-start -- )
+    here - allot ;
+
+MalNativeFn
+  extend invoke ( env list this -- list )
+    MalNativeFn/xt @ { xt }
+    eval-rest ( mem-token argv argc )
+    xt execute ( mem-token return-val )
+    swap free-eval-rest ;;
 drop
 
 SpecialOp
@@ -107,8 +116,11 @@ defspecial if { env list -- val }
         env arg0 cell+ @ mal-eval
     endif ;;
 
-: user-fn { argv argc mal-fn -- return-val }
-    mal-fn MalFn/formal-args @ dup { f-args-list }
+MalUserFn
+  extend invoke { call-env list mal-fn -- list }
+    call-env list eval-rest { mem-token argv argc }
+
+    mal-fn MalUserFn/formal-args @ dup { f-args-list }
     MalList/count @ argc 2dup = if
         2drop
     else
@@ -116,7 +128,7 @@ defspecial if { env list -- val }
         1 throw
     endif
 
-    mal-fn MalFn/env @ MalEnv. { env }
+    mal-fn MalUserFn/env @ MalEnv. { env }
 
     f-args-list MalList/start @ { f-args }
     argc 0 ?do
@@ -125,14 +137,16 @@ defspecial if { env list -- val }
         env env/set
     loop
 
-    env   mal-fn MalFn/body @   mal-eval ;
+    env   mal-fn MalUserFn/body @   mal-eval
+
+    mem-token free-eval-rest ;;
 
 defspecial fn* { env list -- val }
     list MalList/start @ cell+ { arg0 }
-    ['] user-fn MalFn.
-    env over MalFn/env !
-    arg0 @ to-list over MalFn/formal-args !
-    arg0 cell+ @ over MalFn/body ! ;;
+    MalUserFn new
+    env over MalUserFn/env !
+    arg0 @ to-list over MalUserFn/formal-args !
+    arg0 cell+ @ over MalUserFn/body ! ;;
 
 MalSymbol
   extend mal-eval { env sym -- val }

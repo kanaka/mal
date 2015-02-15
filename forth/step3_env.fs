@@ -8,10 +8,10 @@ require env.fs
     loop ;
 
 0 MalEnv. constant repl-env
-s" +" MalSymbol.  :noname args-as-native + MalInt. ; MalFn.  repl-env env/set
-s" -" MalSymbol.  :noname args-as-native - MalInt. ; MalFn.  repl-env env/set
-s" *" MalSymbol.  :noname args-as-native * MalInt. ; MalFn.  repl-env env/set
-s" /" MalSymbol.  :noname args-as-native / MalInt. ; MalFn.  repl-env env/set
+s" +" MalSymbol.  :noname args-as-native + MalInt. ; MalNativeFn.  repl-env env/set
+s" -" MalSymbol.  :noname args-as-native - MalInt. ; MalNativeFn.  repl-env env/set
+s" *" MalSymbol.  :noname args-as-native * MalInt. ; MalNativeFn.  repl-env env/set
+s" /" MalSymbol.  :noname args-as-native / MalInt. ; MalNativeFn.  repl-env env/set
 
 \ Fully evalutate any Mal object:
 def-protocol-method mal-eval ( env ast -- val )
@@ -34,7 +34,7 @@ MalKeyword
     endif ;;
 drop
 
-MalFn
+MalNativeFn
   extend invoke { env list this -- list }
     \ Pass args on dictionary stack (!)
     \ TODO: consider allocate and free of a real MalList instead
@@ -44,8 +44,8 @@ MalFn
     list MalList/count @ 1 ?do
         env expr-start i cells + @ mal-eval ,
     loop
-    val-start  here val-start - cell /  this  ( argv argc MalFn )
-    MalFn/xt @ execute
+    val-start  here val-start - cell /  this  ( argv argc MalNativeFn )
+    MalNativeFn/xt @ execute
     val-start here - allot ;;
 drop
 

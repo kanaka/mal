@@ -7,10 +7,10 @@ require printer.fs
     loop ;
 
 MalMap/Empty
-    s" +" MalSymbol. :noname args-as-native + MalInt. ; MalFn. rot assoc
-    s" -" MalSymbol. :noname args-as-native - MalInt. ; MalFn. rot assoc
-    s" *" MalSymbol. :noname args-as-native * MalInt. ; MalFn. rot assoc
-    s" /" MalSymbol. :noname args-as-native / MalInt. ; MalFn. rot assoc
+    s" +" MalSymbol. :noname args-as-native + MalInt. ; MalNativeFn. rot assoc
+    s" -" MalSymbol. :noname args-as-native - MalInt. ; MalNativeFn. rot assoc
+    s" *" MalSymbol. :noname args-as-native * MalInt. ; MalNativeFn. rot assoc
+    s" /" MalSymbol. :noname args-as-native / MalInt. ; MalNativeFn. rot assoc
 value repl-env
 
 def-protocol-method mal-eval ( env ast -- val )
@@ -27,9 +27,9 @@ MalKeyword
     get ;;
 drop
 
-MalFn
+MalNativeFn
   extend invoke ( ... mal-fn -- ... )
-    MalFn/xt @ execute ;;
+    MalNativeFn/xt @ execute ;;
 drop
 
 MalSymbol
@@ -53,7 +53,7 @@ MalList
     list MalList/count @ 0 ?do
         env expr-start i cells + @ mal-eval ,
     loop
-    val-start cell+  here val-start - cell / 1-  val-start @  ( argv argc MalFn )
+    val-start cell+  here val-start - cell / 1-  val-start @  ( argv argc MalNativeFn )
     invoke
     val-start here - allot ;;
   extend mal-eval-ast { env list -- list }

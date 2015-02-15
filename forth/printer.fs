@@ -62,7 +62,9 @@ def-protocol-method pr-pairs-buf ( str-addr str-len this -- str-addr str-len )
 MalDefault
   extend pr-buf
     { this }
-    s" #<MalObject" str-append a-space
+    s" #<" str-append
+    this mal-type @ type-name str-append
+    a-space
     this int>str str-append
     s" >" str-append ;;
 drop
@@ -115,16 +117,6 @@ drop
 MalInt
   extend pr-buf
     MalInt/int @ int>str str-append ;;
-drop
-
-MalFn
-  extend pr-buf
-    drop s" #<fn>" str-append ;;
-drop
-
-SpecialOp
-  extend pr-buf
-    drop s" #<op>" str-append ;;
 drop
 
 MalSymbol

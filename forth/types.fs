@@ -460,23 +460,29 @@ drop
 
 
 MalType%
-  cell% field MalFn/xt
-  cell% field MalFn/meta
-  cell% field MalFn/env
-  cell% field MalFn/formal-args
-  cell% field MalFn/body
-deftype MalFn
+  cell% field MalNativeFn/xt
+  cell% field MalNativeFn/meta
+deftype MalNativeFn
 
-: MalFn. { xt -- mal-fn }
-    MalFn new { mal-fn }
-    xt mal-fn MalFn/xt !
-    MalMap/Empty mal-fn MalFn/meta  !
+: MalNativeFn. { xt -- mal-fn }
+    MalNativeFn new { mal-fn }
+    xt mal-fn MalNativeFn/xt !
+    MalMap/Empty mal-fn MalNativeFn/meta  !
     mal-fn ;
 
-MalFn
+MalNativeFn
   extend as-native
-    MalFn/xt @ ;;
+    MalNativeFn/xt @ ;;
 drop
+
+
+MalType%
+  cell% field MalUserFn/meta
+  cell% field MalUserFn/env
+  cell% field MalUserFn/formal-args
+  cell% field MalUserFn/var-arg
+  cell% field MalUserFn/body
+deftype MalUserFn
 
 
 MalType%
