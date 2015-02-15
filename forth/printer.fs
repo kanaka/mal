@@ -67,10 +67,9 @@ MalDefault
     s" >" str-append ;;
 drop
 
-MalNil
-  extend pr-buf
-    drop s" nil" str-append ;;
-drop
+MalNil   extend pr-buf drop s" nil"   str-append ;; drop
+MalTrue  extend pr-buf drop s" true"  str-append ;; drop
+MalFalse extend pr-buf drop s" false" str-append ;; drop
 
 MalList
   extend pr-buf
@@ -78,12 +77,14 @@ MalList
     rot pr-seq-buf
     s" )" str-append ;;
   extend pr-seq-buf { list }
-    list MalList/start @ { start }
-    start @ pr-buf
-    list MalList/count @ 1 ?do
-        a-space
-        start i cells + @ pr-buf
-    loop ;;
+    list MalList/count @ 0 > if
+        list MalList/start @ { start }
+        start @ pr-buf
+        list MalList/count @ 1 ?do
+            a-space
+            start i cells + @ pr-buf
+        loop
+    endif ;;
   extend pr-pairs-buf { list }
     list MalList/start @ { start }
     start @ pr-buf a-space start cell+ @ pr-buf

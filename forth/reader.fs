@@ -141,8 +141,13 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
             obj swap conj
             s" with-meta" MalSymbol. swap conj
         else
-            read-symbol-str MalSymbol.
-        endif endif endif endif endif endif endif endif endif endif endif endif
+            read-symbol-str
+            2dup s" true" str= if 2drop mal-true
+            else 2dup s" false" str= if 2drop mal-false
+            else 2dup s" nil" str= if 2drop mal-nil
+            else
+              MalSymbol.
+        endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif
         dup skip-elem =
     while drop repeat ;
 ' read-form2 is read-form

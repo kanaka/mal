@@ -109,8 +109,12 @@ end-struct MalTypeType%
 MalType% deftype MalDefault
 
 \ nil type and instance to support extending protocols to it
-MalType% deftype MalNil
-MalNil new constant mal-nil
+MalType% deftype MalNil   MalNil   new constant mal-nil
+MalType% deftype MalTrue  MalTrue  new constant mal-true
+MalType% deftype MalFalse MalFalse new constant mal-false
+
+: mal-bool
+    0= if mal-false else mal-true endif ;
 
 : not-object? ( obj -- bool )
     dup 7 and 0 <> if
@@ -219,7 +223,10 @@ def-protocol-method assoc ( k v this -- this )
 def-protocol-method get ( not-found k this -- value )
 def-protocol-method mal= ( a b -- bool )
 def-protocol-method as-native ( obj --  )
+
 def-protocol-method to-list ( obj -- mal-list )
+def-protocol-method empty? ( obj -- mal-bool )
+def-protocol-method mal-count ( obj -- mal-int )
 
 : m= ( a b -- bool )
     2dup = if
@@ -227,6 +234,27 @@ def-protocol-method to-list ( obj -- mal-list )
     else
         mal=
     endif ;
+
+
+MalType%
+  cell% field MalInt/int
+deftype MalInt
+
+: MalInt. { int -- mal-int }
+    MalInt new dup MalInt/int int swap ! ;
+
+MalInt
+  extend mal= ( other this -- bool )
+    over mal-type @ MalInt = if
+        MalInt/int @ swap MalInt/int @ =
+    else
+        2drop 0
+    endif ;;
+
+  extend as-native ( mal-int -- int )
+    MalInt/int @ ;;
+drop
+
 
 MalType%
   cell% field MalList/count
@@ -255,6 +283,26 @@ MalList
     MalList new
     new-count over MalList/count !
     new-start over MalList/start ! ;;
+  extend empty? MalList/count @ 0= mal-bool ;;
+  extend mal-count MalList/count @ MalInt. ;;
+  extend mal=
+    swap to-list dup 0= if
+        nip
+    else
+        2dup MalList/count @ swap MalList/count @ over = if ( list-a list-b count )
+            -rot MalList/start @ swap MalList/start @ { start-b start-a }
+            -1 swap ( return-val count )
+            0 ?do
+                start-a i cells + @
+                start-b i cells + @
+                m= if else
+                    drop 0 leave
+                endif
+            loop
+        else
+            drop 2drop 0
+        endif
+    endif ;;
 drop
 
 MalList new 0 over MalList/count ! constant MalList/Empty
@@ -266,6 +314,12 @@ deftype MalVector
 MalVector
   extend to-list
     MalVector/list @ to-list ;;
+  extend empty?
+    MalVector/list @
+    MalList/count @ 0= mal-bool ;;
+  extend mal-count
+    MalVector/list @
+    MalList/count @ MalInt. ;;
 drop
 
 MalType%
@@ -302,6 +356,12 @@ MalMap
             endif
         endif
     until ;;
+  extend empty?
+    MalMap/list @
+    MalList/count @ 0= mal-bool ;;
+  extend mal-count
+    MalMap/list @
+    MalList/count @ 2 / MalInt. ;;
 drop
 
 \ Examples of extending existing protocol methods to existing type
@@ -309,32 +369,16 @@ MalDefault
   extend conj   ( obj this -- this )
     nip ;;
   extend as-native ;; ( obj -- obj )
+  extend to-list drop 0 ;;
 drop
 
 MalNil
   extend conj ( item nil -- mal-list )
     drop MalList/Empty conj ;;
   extend as-native drop 0 ;;
-drop
-
-
-MalType%
-  cell% field MalInt/int
-deftype MalInt
-
-: MalInt. { int -- mal-int }
-    MalInt new dup MalInt/int int swap ! ;
-
-MalInt
-  extend mal= ( other this -- bool )
-    over mal-type @ MalInt = if
-        MalInt/int @ swap MalInt/int @ =
-    else
-        2drop 0
-    endif ;;
-
-  extend as-native ( mal-int -- int )
-    MalInt/int @ ;;
+  extend empty? drop mal-true ;;
+  extend mal-count drop 0 MalInt. ;;
+  extend mal= drop mal-nil = ;;
 drop
 
 MalType%
@@ -418,6 +462,9 @@ drop
 MalType%
   cell% field MalFn/xt
   cell% field MalFn/meta
+  cell% field MalFn/env
+  cell% field MalFn/formal-args
+  cell% field MalFn/body
 deftype MalFn
 
 : MalFn. { xt -- mal-fn }
