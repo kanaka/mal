@@ -52,7 +52,9 @@
             ["`", " "],
             ["pr-str", ["get", "exp", ["`", "ast"]]],
             ["`", ")"]],
-  ["str", ["`", "#<unknown: "], "exp", ["`", ">"]]]]]]]]]]]]]],
+  ["if", ["atom?", "exp"],
+    ["str", ["`", "(atom "], ["get", "exp", ["`", "val"]], ["`", ")"]],
+  ["str", ["`", "#<unknown: "], "exp", ["`", ">"]]]]]]]]]]]]]]],
 
 ["def", "pr-list", ["fn", ["lst", "print_readably", "sep"],
   [".", ["map", ["fn", ["s"], ["pr-str", "s", "print_readably"]], "lst"],

@@ -161,7 +161,7 @@
 ["rep", ["`", "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"]],
 
 ["if", ["not", ["empty?", "*ARGV*"]],
-  ["rep", ["str", ["`", "(load-file \""], ["get", "*ARGV*", 0], ["`", "\")"]]],
+  ["println", ["rep", ["str", ["`", "(load-file \""], ["get", "*ARGV*", 0], ["`", "\")"]]]],
   ["do",
     ["rep", ["`", "(println (str \"Mal [\" *host-language* \"]\"))"]],
     ["repl", ["`", "user> "], "rep"]]],

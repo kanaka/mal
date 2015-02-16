@@ -69,6 +69,16 @@
       null],
     null]]],
 
+["def", "reset!", ["fn", ["atm", "val"],
+  ["set", "atm", ["`", "val"], "val"]]],
+
+["def", "swap!", ["fn", ["atm", "f", "&", "args"],
+  ["let", ["fn", ["if", ["malfunc?", "f"], ["get", "f", ["`", "fn"]], "f"],
+           "fargs", ["cons", ["get", "atm", ["`", "val"]], "args"],
+           "val", ["apply", "fn", "fargs"]],
+  ["do",
+    ["set", "atm", ["`", "val"], "val"],
+    "val"]]]],
 
 ["def", "core-ns",
   ["hash-map",
@@ -128,11 +138,17 @@
    ["`", "first"], "_first",
    ["`", "rest"], ["fn", ["a"], ["rest", "a"]],
    ["`", "empty?"], "empty?",
-   ["`", "count"],  "_count",
-   ["`", "apply"],  "_apply",
-   ["`", "map"],  "_map",
+   ["`", "count"], "_count",
+   ["`", "apply"], "_apply",
+   ["`", "map"], "_map",
+   ["`", "conj"], null,
 
    ["`", "with-meta"], "with_meta",
-   ["`", "meta"], "meta"]],
+   ["`", "meta"], "meta",
+   ["`", "atom"], "atom",
+   ["`", "atom?"], "atom?",
+   ["`", "deref"], ["fn", ["a"], ["get", "a", ["`", "val"]]],
+   ["`", "reset!"], "reset!",
+   ["`", "swap!"], "swap!"]],
 
 null]
