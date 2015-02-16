@@ -14,7 +14,9 @@
     ["if", ["list?", "b"],
       ["_cmp_seqs", "a", "b"],
       false],
-    ["=", "a", "b"]]]],
+  ["if", ["symbol?", "a"],
+    ["=", ["get", "a", ["`", "val"]], ["get", "b", ["`", "val"]]],
+    ["=", "a", "b"]]]]],
 
 ["def", "symbol", ["fn", ["name"],
   ["hash-map", ["`", "type"], ["`", "Symbol"],

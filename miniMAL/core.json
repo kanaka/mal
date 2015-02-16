@@ -36,6 +36,8 @@
    ["`", "list"],   "list",
    ["`", "list?"],  "list?",
 
+   ["`", "cons"], "cons",
+   ["`", "concat"], "concat",
    ["`", "empty?"], "empty?",
    ["`", "count"],  "_count"]],
 
