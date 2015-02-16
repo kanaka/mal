@@ -58,6 +58,8 @@
 ;=>9
 (apply prn (list 1 2 "3" (list)))
 ; 1 2 "3" ()
+(apply prn 1 2 (list "3" (list)))
+; 1 2 "3" ()
 ;=>nil
 
 
