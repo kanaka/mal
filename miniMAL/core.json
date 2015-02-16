@@ -11,6 +11,24 @@
 ["def", "time-ms", ["fn", [],
   [".", ["new", "Date"], ["`", "getTime"]]]],
 
+
+["def", "assoc", ["fn", ["src-hm", "&", "kvs"],
+  ["let", ["hm", ["clone", "src-hm"]],
+    ["assocs!", "hm", "kvs"]]]],
+
+["def", "dissoc", ["fn", ["src-hm", "&", "ks"],
+  ["let", ["hm", ["clone", "src-hm"]],
+    ["do",
+      ["map", ["fn", ["k"], ["del", "hm", "k"]], "ks"],
+      "hm"]]]],
+
+["def", "_get", ["fn", ["obj", "key"],
+  ["if", ["nil?", "obj"],
+    null,
+    ["if", ["contains?", "obj", "key"],
+      ["get", "obj", "key"],
+      null]]]],
+
 ["def", "_count", ["fn", ["a"],
   ["if", ["=", null, "a"],
     0,
@@ -46,6 +64,8 @@
    ["`", "false?"], "false?",
    ["`", "symbol"], "symbol",
    ["`", "symbol?"], "symbol?",
+   ["`", "keyword"], "keyword",
+   ["`", "keyword?"], "keyword?",
 
    ["`", "pr-str"],  ["fn", ["&", "a"], ["pr-list", "a", true, ["`", " "]]],
    ["`", "str"],     ["fn", ["&", "a"], ["pr-list", "a", false, ["`", ""]]],
@@ -72,9 +92,20 @@
    ["`", "/"],  "div",
    ["`", "time-ms"], "time-ms",
 
-   ["`", "list"],   "list",
-   ["`", "list?"],  "list?",
+   ["`", "list"], "list",
+   ["`", "list?"], "list?",
+   ["`", "vector"], "vector",
+   ["`", "vector?"], "vector?",
+   ["`", "hash-map"], "hash-map",
+   ["`", "assoc"], "assoc",
+   ["`", "dissoc"], "dissoc",
+   ["`", "map?"], "map?",
+   ["`", "get"], "_get",
+   ["`", "contains?"], "contains?",
+   ["`", "keys"], "keys",
+   ["`", "vals"], "vals",
 
+   ["`", "sequential?"], "sequential?",
    ["`", "cons"], "cons",
    ["`", "concat"], "concat",
    ["`", "nth"], "_nth",

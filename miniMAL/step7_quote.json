@@ -10,7 +10,7 @@
 ["def", "READ", ["fn", ["strng"], ["read-str", "strng"]]],
 
 ["def", "pair?", ["fn", ["x"],
-  ["if", ["list?", "x"],
+  ["if", ["sequential?", "x"],
     ["if", [">", ["count", "x"], 0], true, false],
     false]]],
 
@@ -34,7 +34,17 @@
     ["env-get", "env", "ast"],
   ["if", ["list?", "ast"],
     ["map", ["fn", ["x"], ["EVAL", "x", "env"]], "ast"],
-  "ast"]]]],
+  ["if", ["vector?", "ast"],
+    ["vectorl", ["map", ["fn", ["x"], ["EVAL", "x", "env"]], "ast"]],
+  ["if", ["map?", "ast"],
+    ["let", ["new-hm", ["hash-map"]],
+      ["do",
+        ["map", ["fn", ["k"], ["set", "new-hm",
+                                ["EVAL", "k", "env"],
+                                ["EVAL", ["get", "ast", "k"], "env"]]],
+                ["keys", "ast"]],
+        "new-hm"]],
+  "ast"]]]]]],
 
 ["def", "LET", ["fn", ["env", "args"],
   ["if", [">", ["count", "args"], 0],

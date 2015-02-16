@@ -42,15 +42,6 @@
 
 ["def", "list", ["fn", ["&", "a"], "a"]],
 ["def", "list?", ["fn", ["a"], [".", "Array", ["`", "isArray"], "a"]]],
-["def", "assoc!", ["fn", ["a", "b", "c"], ["do", ["set", "a", "b", "c"], "a"]]],
-["def", "assocs!",  ["fn", ["hm", "kvs"],
-    ["if", ["empty?", "kvs"],
-      "hm",
-      ["do",
-        ["assoc!", "hm", ["get", "kvs", 0], ["get", "kvs", 1]],
-        ["assocs!", "hm", ["slice", "kvs", 2]]]]]],
-["def", "hash-map", ["fn", ["&", "a"],
-  ["assocs!", ["new", "Object"], "a"]]],
 ["def", "get", ["fn", ["a", "b"], [".-", "a", "b"]]],
 ["def", "set", ["fn", ["a", "b", "c"], [".-", "a", "b", "c"]]],
 ["def", "contains?", ["fn", ["a", "b"], [".", "a", ["`", "hasOwnProperty"], "b"]]],
@@ -97,7 +88,7 @@
           ["`", "or_FIXME"],
           ["concat", ["`", ["or"]], ["rest", "xs"]]]]]]]]],
 
-["def", "typeof", ["fn", ["a"], ["js", ["str", ["`", "typeof "], ["pr-str", "a"]]]]],
+
 
 ["def", "repl", ["fn",["prompt", "rep"],
   ["let", ["r", ["require", ["`", "repl"]],
@@ -113,6 +104,5 @@
     [".", "r", ["`", "start"], "opts"]]]],
 
 null
-
 ]
 

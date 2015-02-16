@@ -1,5 +1,6 @@
 ["do",
 
+["`", "Utility Functions"],
 ["def", "_cmp_seqs", ["fn", ["a", "b"],
   ["if", ["not", ["=", ["count", "a"], ["count", "b"]]],
     false,
@@ -10,24 +11,99 @@
         false]]]]],
 
 ["def", "equal?", ["fn", ["a", "b"],
-  ["if", ["list?", "a"],
-    ["if", ["list?", "b"],
+  ["if", ["sequential?", "a"],
+    ["if", ["sequential?", "b"],
       ["_cmp_seqs", "a", "b"],
       false],
   ["if", ["symbol?", "a"],
     ["=", ["get", "a", ["`", "val"]], ["get", "b", ["`", "val"]]],
     ["=", "a", "b"]]]]],
 
-["def", "symbol", ["fn", ["name"],
-  ["hash-map", ["`", "type"], ["`", "Symbol"],
-               ["`", "val"], "name"]]],
+["def", "clone", ["fn", ["obj"],
+  ["if", ["list?", "obj"],
+    ["slice", "obj", 0],
+  ["if", ["vector?", "obj"],
+    ["let", ["new-obj", ["slice", "obj", 0]],
+      ["do",
+        ["set", "new-obj", "__vector?__", true],
+        "new-obj"]],
+  ["if", ["map?", "obj"],
+    ["let", ["new-obj", ["hash-map"]],
+      ["do",
+        ["map", ["fn", ["k"],
+                  ["if", [".", "obj", ["`", "hasOwnProperty"], "k"],
+                    ["set", "new-obj", "k", ["get", "obj", "k"]],
+                    null]],
+                ["keys", "obj"]],
+        "new-obj"]],
+    ["throw", "clone of unsupported type"]]]]]],
 
-["def", "symbol?", ["fn", ["obj"],
-  ["if", ["=", "obj", null],
-    false,
-    ["if", ["=", ["`", "Symbol"], ["get", "obj", ["`", "type"]]],
+["def", "assoc!", ["fn", ["a", "b", "c"], ["do", ["set", "a", "b", "c"], "a"]]],
+["def", "assocs!",  ["fn", ["hm", "kvs"],
+    ["if", ["empty?", "kvs"],
+      "hm",
+      ["do",
+        ["assoc!", "hm", ["get", "kvs", 0], ["get", "kvs", 1]],
+        ["assocs!", "hm", ["slice", "kvs", 2]]]]]],
+
+
+["def", "Symbol", ["fn", [], null]],
+["def", "symbol", ["fn", ["name"],
+  ["assoc!", ["new", "Symbol"], ["`", "val"], "name"]]],
+
+["def", "symbol?", ["fn", ["a"],
+  ["isa", "a", "Symbol"]]],
+
+
+["def", "keyword", ["fn", ["name"],
+  ["str", ["`", "\u029e"], "name"]]],
+
+["def", "keyword?", ["fn", ["kw"],
+  ["and", ["=", ["`", "string"], ["type", "kw"]],
+          ["=", ["`", "\u029e"], ["get", "kw", 0]]]]],
+
+
+["`", "Override some list defs to account for Vectors"],
+["def", "sequential?", ["fn", ["a"],
+  [".", "Array", ["`", "isArray"], "a"]]],
+
+["def", "list?", ["fn", ["a"],
+  ["if", [".", "Array", ["`", "isArray"], "a"],
+    ["if", [".-", "a", ["`", "__vector?__"]],
+      false,
+      true],
+    false]]],
+
+["def", "empty?", ["fn", ["a"],
+  ["if", ["sequential?", "a"],
+    ["if", ["=", 0, [".-", "a", ["`", "length"]]],
       true,
-      false]]]],
+      false],
+    ["=", "a", null]]]],
+
+
+["def", "vectorl", ["fn", ["lst"],
+  ["let", ["vec", ["slice", "lst", 0]],
+    ["do",
+      ["set", "vec", ["`", "__vector?__"], true],
+      "vec"]]]],
+
+["def", "vector", ["fn", ["&", "args"], ["vectorl", "args"]]],
+
+["def", "vector?", ["fn", ["a"],
+  ["if", [".", "Array", ["`", "isArray"], "a"],
+    ["if", [".-", "a", ["`", "__vector?__"]],
+      true,
+      false],
+    false]]],
+
+
+["def", "HashMap", ["fn", [], null]],
+["def", "hash-map", ["fn", ["&", "a"],
+  ["assocs!", ["new", "HashMap"], "a"]]],
+["def", "map?", ["fn", ["a"],
+  ["isa", "a", "HashMap"]]],
+
 
 ["def", "malfunc", ["fn", ["fn", "ast", "env", "params"],
   ["hash-map", ["`", "type"], ["`", "MalFunc"],
