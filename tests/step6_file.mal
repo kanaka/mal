@@ -1,3 +1,9 @@
+;;; TODO: really a step5 test
+;;
+;; Testing that (do (do)) not broken by TCO
+(do (do 1 2))
+;=>2
+
 ;; Testing read-string, eval and slurp
 
 (read-string "(+ 2 3)")
@@ -20,12 +26,6 @@
 ;=>9
 (inc3 9)
 ;=>12
-
-;;; TODO: really a step5 test
-;;
-;; Testing that (do (do)) not broken by TCO
-(do (do 1 2))
-;=>2
 
 ;;
 ;; Testing that *ARGV* exists and is an empty list

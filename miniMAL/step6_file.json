@@ -79,11 +79,18 @@
                                   ["symbol", "k"],
                                   ["get", "core-ns", "k"]]],
         ["keys", "core-ns"]],
+["env-set", "repl-env", ["symbol", ["`", "eval"]],
+                        ["fn", ["ast"], ["EVAL", "ast", "repl-env"]]],
+["env-set", "repl-env", ["symbol", ["`", "*ARGV*"]],
+                        ["slice", "*ARGV*", 1]],
 
 ["`", "core.mal: defined using mal itself"],
 ["rep", ["`", "(def! not (fn* (a) (if a false true)))"]],
+["rep", ["`", "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]],
 
-["repl", ["`", "user> "], "rep"],
+["if", ["not", ["empty?", "*ARGV*"]],
+  ["rep", ["str", ["`", "(load-file \""], ["get", "*ARGV*", 0], ["`", "\")"]]],
+  ["repl", ["`", "user> "], "rep"]],
 
 null
 

@@ -21,6 +21,8 @@
                        ["do",
                          ["println", ["pr-list", "a", false, ["`", " "]]],
                          null]],
+   ["`", "read-string"], "read-str",
+   ["`", "slurp"], "slurp",
 
    ["`", "<"],  "<",
    ["`", "<="], "<=",
