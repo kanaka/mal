@@ -34,7 +34,8 @@
                ["`", "fn"], "fn",
                ["`", "ast"], "ast",
                ["`", "env"], "env",
-               ["`", "params"], "params"]]],
+               ["`", "params"], "params",
+               ["`", "macro?"], false]]],
 
 ["def", "malfunc?", ["fn", ["obj"],
   ["if", ["=", "obj", null],

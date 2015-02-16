@@ -7,6 +7,16 @@
     0,
     ["count", "a"]]]],
 
+["def", "_nth", ["fn", ["seq", "idx"],
+  ["if", [">=", "idx", ["count", "seq"]],
+    ["throw", "nth: index out of range"],
+    ["nth", "seq", "idx"]]]],
+
+["def", "_first", ["fn", ["seq"],
+  ["if", ["empty?", "seq"],
+    null,
+    ["first", "seq"]]]],
+
 ["def", "core-ns",
   ["hash-map",
    ["`", "="],  "equal?",
@@ -38,6 +48,9 @@
 
    ["`", "cons"], "cons",
    ["`", "concat"], "concat",
+   ["`", "nth"], "_nth",
+   ["`", "first"], "_first",
+   ["`", "rest"], ["fn", ["a"], ["rest", "a"]],
    ["`", "empty?"], "empty?",
    ["`", "count"],  "_count"]],
 
