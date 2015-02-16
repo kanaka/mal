@@ -152,7 +152,7 @@ MalType% deftype MalFalse MalFalse new constant mal-false
       pxt >name name>string type
       ." ' extended to type '"
       obj mal-type @ type-name type
-      ." '"
+      ." '" cr
       1 throw
   endif
   trace if ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type cr endif
