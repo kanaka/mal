@@ -88,6 +88,15 @@
       ["do",
         ["rdr-next", "rdr"],
         ["list", ["symbol", ["`", "splice-unquote"]], ["read-form", "rdr"]]],
+    ["if", ["=", ["`", "^"], "token"],
+      ["do",
+        ["rdr-next", "rdr"],
+        ["let", ["meta", ["read-form", "rdr"]],
+          ["list", ["symbol", ["`", "with-meta"]], ["read-form", "rdr"], "meta"]]],
+    ["if", ["=", ["`", "@"], "token"],
+      ["do",
+        ["rdr-next", "rdr"],
+        ["list", ["symbol", ["`", "deref"]], ["read-form", "rdr"]]],
 
     ["if", ["=", ["`", ")"], "token"],
       ["throw", ["`", "unexpected ')'"]],
@@ -104,7 +113,7 @@
     ["if", ["=", ["`", "{"], "token"],
       ["apply", "hash-map", ["read-list", "rdr", ["`", "{"], ["`", "}"]]],
 
-    ["read-atom", "rdr"]]]]]]]]]]]]]],
+    ["read-atom", "rdr"]]]]]]]]]]]]]]]],
 
 ["def", "read-str", ["fn", ["strn"],
   ["let", ["tokens", ["tokenize", "strn"],

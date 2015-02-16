@@ -54,6 +54,22 @@
   ["let", ["fn", ["if", ["malfunc?", "f"], ["get", "f", ["`", "fn"]], "f"]],
     ["map", "fn", "seq"]]]],
 
+["def", "with_meta", ["fn", ["obj", "m"],
+  ["let", ["new-obj", ["clone", "obj"]],
+    ["do",
+      ["set", "new-obj", ["`", "__meta__"], "m"],
+      "new-obj"]]]],
+
+["def", "meta", ["fn", ["obj"],
+  ["if", ["or", ["sequential?", "obj"],
+                ["map?", "obj"],
+                ["malfunc?", "obj"]],
+    ["if", ["contains?", "obj", ["`", "__meta__"]],
+      ["get", "obj", ["`", "__meta__"]],
+      null],
+    null]]],
+
+
 ["def", "core-ns",
   ["hash-map",
    ["`", "="], "equal?",
@@ -114,6 +130,9 @@
    ["`", "empty?"], "empty?",
    ["`", "count"],  "_count",
    ["`", "apply"],  "_apply",
-   ["`", "map"],  "_map"]],
+   ["`", "map"],  "_map",
+
+   ["`", "with-meta"], "with_meta",
+   ["`", "meta"], "meta"]],
 
 null]
