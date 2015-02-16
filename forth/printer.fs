@@ -28,7 +28,7 @@ require types.fs
 : str-append { buf-addr buf-str-len str-addr str-len }
   buf-str-len str-len +
   { new-len }
-  new-len str-base-size > if
+  new-len str-base-size >= if
     buf-str-len new-len xor buf-str-len > if
       buf-addr new-len round-up resize throw
       to buf-addr
