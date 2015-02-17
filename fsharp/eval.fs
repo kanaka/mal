@@ -4,9 +4,7 @@ module Eval
 
     type Env = Map<string, Node>
 
-    let errFuncExpected () = EvalError("expected function")
-    let errNodeExpected () = EvalError("expected node")
-    let errSymbolExpected () = EvalError("expected symbol")
+    let errExpected tok = EvalError(sprintf "expected %s" tok)
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
@@ -15,21 +13,55 @@ module Eval
         | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
         | node -> node
 
-    and def env = function
-        | symb::node::[] -> 
-            match symb with
+    and defBang env = function
+        | sym::node::[] -> 
+            match sym with
             | Symbol(sym) -> 
                 let node = eval env node 
                 Env.set env sym node
                 node
-            | _ -> raise <| errSymbolExpected ()
-        | _ -> raise <| Core.errArity () 
+            | _ -> raise <| errExpected "symbol"
+        | _ -> raise <| Core.errArity ()
+
+    and setListBinding env = function
+        | sym::form::rest ->
+            let s = match sym with | Symbol(s) -> s | _ -> raise <| errExpected "symbol"
+            let form = eval env form
+            Env.set env s form
+            setListBinding env rest
+        | [] -> ()
+        | _ -> raise <| errExpected "even nodes"
+
+    and setVectorBinding env (nodes : Node array) =
+        if nodes.Length % 2 = 1 then raise <| errExpected "even nodes"
+        let rec loop pos =
+            if pos < nodes.Length then
+                let s = match nodes.[pos] with 
+                        | Symbol(s) -> s 
+                        | _ -> raise <| errExpected "symbol"
+                let form = eval env <| nodes.[pos + 1]
+                Env.set env s form
+                loop (pos + 2)
+            else
+                ()
+        loop 0
+
+    and letStar env = function
+        | bindings::form::[] ->
+            let newEnv = Env.makeNew env
+            match bindings with
+            | List(lst) -> setListBinding newEnv lst
+            | Vector(vec) -> setVectorBinding newEnv vec
+            | _ -> raise <| errExpected "list or vector"
+            eval newEnv form
+        | _ -> raise <| Core.errArity ()
 
     and eval env = function
-        | List(Symbol("def!")::rest) -> def env rest
+        | List(Symbol("def!")::rest) -> defBang env rest
+        | List(Symbol("let*")::rest) -> letStar env rest
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
             | List(Func({F = f})::rest) -> f rest
-            | _ -> raise <| errFuncExpected ()
+            | _ -> raise <| errExpected "function"
         | node -> node |> eval_ast env

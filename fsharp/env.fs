@@ -43,3 +43,4 @@ module Env
             |> ofList
         [ env ]
 
+    let makeNew (env : EnvChain) = (makeEmpty ())::env
