@@ -380,6 +380,7 @@ MalDefault
     nip ;;
   extend as-native ;; ( obj -- obj )
   extend to-list drop 0 ;;
+  extend empty? drop mal-true ;;
 drop
 
 MalNil

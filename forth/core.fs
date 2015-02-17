@@ -77,3 +77,22 @@ defcore str ( argv argc )
 
 defcore read-string drop @ unpack-str read-str ;;
 defcore slurp drop @ unpack-str slurp-file MalString. ;;
+
+defcore cons ( argv[item,coll] argc )
+    drop dup @ swap cell+ @ ( item coll )
+    to-list conj ;;
+
+defcore concat { lists argc }
+    0   lists argc cells +  lists  +do ( count )
+        i @ to-list MalList/count @ +
+    cell +loop { count }
+    count cells allocate throw { start }
+    start   lists argc cells +  lists  +do ( target )
+        i @ to-list MalList/count @ cells  2dup  i @ to-list MalList/start @  -rot  ( target bytes src target bytes )
+        cmove ( target bytes )
+        + ( new-target )
+    cell +loop
+    drop
+    MalList new
+    start over MalList/start !
+    count over MalList/count ! ;;

@@ -98,9 +98,15 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     drop adv-str
     old-here here>MalList ;
 
+s" deref"          MalSymbol. constant deref-sym
+s" quote"          MalSymbol. constant quote-sym
+s" quasiquote"     MalSymbol. constant quasiquote-sym
+s" splice-unquote" MalSymbol. constant splice-unquote-sym
+s" unquote"        MalSymbol. constant unquote-sym
+
 : read-wrapped ( buf-addr buf-len quote-char sym-addr sym-len -- buf-addr buf-len char mal-list )
     here { old-here }
-    MalSymbol. , ( buf-addr buf-len char )
+    , ( buf-addr buf-len char )
     read-form , ( buf-addr buf-len char )
     old-here here>MalList ;
 
@@ -112,13 +118,13 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
     dup [char] " = if read-string-literal else
     dup [char] : = if drop adv-str read-symbol-str MalKeyword. else
-    dup [char] @ = if drop adv-str s" deref" read-wrapped else
-    dup [char] ' = if drop adv-str s" quote" read-wrapped else
-    dup [char] ` = if drop adv-str s" quasiquote" read-wrapped else
+    dup [char] @ = if drop adv-str deref-sym read-wrapped else
+    dup [char] ' = if drop adv-str quote-sym read-wrapped else
+    dup [char] ` = if drop adv-str quasiquote-sym read-wrapped else
     dup [char] ~ = if
         drop adv-str
-        dup [char] @ = if drop adv-str s" splice-unquote" read-wrapped
-        else s" unquote" read-wrapped
+        dup [char] @ = if drop adv-str splice-unquote-sym read-wrapped
+        else unquote-sym read-wrapped
         endif
     else
     dup [char] ^ = if
