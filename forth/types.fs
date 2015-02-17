@@ -1,3 +1,5 @@
+require str.fs
+
 \ === sorted-array === /
 \ Here are a few utility functions useful for creating and maintaining
 \ the deftype* method tables. The keys array is kept in sorted order,
@@ -131,10 +133,8 @@ MalType% deftype MalFalse MalFalse new constant mal-false
 \ themselves for the given object, and then execute that implementation.
 : execute-method { obj pxt -- }
   obj not-object? if
-      ." Refusing to invoke protocol fn '"
-      pxt >name name>string type
-      ." ' on non-object: " obj .
-      1 throw
+      0 0 obj int>str s" ' on non-object: " pxt >name name>string
+      s" Refusing to invoke protocol fn '" ...throw-str
   endif
   obj mal-type @ dup MalTypeType-methods 2@ swap ( type methods method-keys )
   dup 0= if \ No protocols extended to this type; check for a default
@@ -148,12 +148,8 @@ MalType% deftype MalFalse MalFalse new constant mal-false
   endif
   0= if ( type idx )
       2drop
-      ." No protocol fn '"
-      pxt >name name>string type
-      ." ' extended to type '"
-      obj mal-type @ type-name type
-      ." '" cr
-      1 throw
+      0 0 s" '" obj mal-type @ type-name s" ' extended to type '"
+      pxt >name name>string s" No protocol fn '" ...throw-str
   endif
   trace if ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type cr endif
 
@@ -449,11 +445,12 @@ MalType%
   cell% field MalString/str-len
 deftype MalString
 
-: MalString. { str-addr str-len -- mal-str }
+: MalString.0 { str-addr str-len -- mal-str }
     MalString new { str }
     str-addr str MalString/str-addr !
     str-len  str MalString/str-len  !
     str ;
+' MalString.0 is MalString.
 
 : unpack-str ( mal-string -- addr len )
     dup MalString/str-addr @

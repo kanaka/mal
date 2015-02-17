@@ -98,11 +98,16 @@ defcore concat { lists argc }
     count over MalList/count ! ;;
 
 defcore nth ( argv[coll,i] argc )
-    over ( argv argc argv )
-    cell+ @ MalInt/int @ ( argv argc count )
-    swap over <= if ." nth out of bounds" cr 1 throw endif ( argv count )
-    cells swap ( c-offset argv )
-    @ to-list MalList/start @ + @ ;;
+    drop dup @ to-list ( argv list )
+    swap cell+ @ MalInt/int @ ( list i )
+    over MalList/count @ ( list i count )
+    2dup >= if { i count }
+        0 0
+        new-str i int>str str-append s\" \040>= " count int>str
+        s" nth out of bounds: " ...throw-str
+    endif drop ( list i )
+    cells swap ( c-offset list )
+    MalList/start @ + @ ;;
 
 defcore first ( argv[coll] argc )
     drop @ to-list

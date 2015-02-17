@@ -66,7 +66,7 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     drop \ drop leading quote
     begin ( in-addr in-len )
         adv-str over 0= if
-            2drop s\" expected '\"', got EOF\n" safe-type 1 throw
+            2drop 0 0 s\" expected '\"', got EOF" ...throw-str
         endif
         dup [char] " <>
     while
@@ -87,9 +87,9 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     begin ( str-addr str-len char )
         skip-spaces ( str-addr str-len non-space-char )
         over 0= if
-            drop 2drop
-            s\" expected '" close-char str-append-char
-            s\" ', got EOF" str-append safe-type 1 throw
+            drop 2drop 0 0 s" ', got EOF"
+            close-char pad ! pad 1
+            s" expected '" ...throw-str
         endif
         dup close-char <>
     while ( str-addr str-len non-space-non-paren-char )
