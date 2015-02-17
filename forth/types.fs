@@ -488,7 +488,7 @@ drop
 
 
 MalType%
-  cell% field MalUserFn/meta
+  cell% field MalUserFn/is-macro?
   cell% field MalUserFn/env
   cell% field MalUserFn/formal-args
   cell% field MalUserFn/var-arg
