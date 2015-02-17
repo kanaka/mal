@@ -130,40 +130,17 @@ MalKeyword
     kw unpack-keyword str-append ;;
 drop
 
-: insert-\ ( str-addr str-len insert-idx -- str-addr str-len )
-    -rot 0 str-append-char { addr len }
-    dup   dup addr +   dup 1+  ( i i from to )
-    rot len swap - cmove> ( i ) \ shift " etc to the right
-    addr + [char] \ swap c! \ escape it!
-    addr len
-    ;
-
 : escape-str { addr len }
     s\" \"" str-append
-    0 ( i )
-    begin
-        dup len <
-    while
-        dup addr + c@ ( i char )
-        dup [char] " = over [char] \ = or if ( i char )
-            drop dup addr len rot insert-\ to len to addr
-            1+
-        else
-            dup 10 = if ( i ) \ newline?
-                drop dup addr len rot insert-\ to len to addr
-                dup addr + 1+ [char] n swap c!
-                1+
-            else
-                13 = if ( i ) \ return?
-                    dup addr len rot insert-\ to len to addr
-                    dup addr + 1+ [char] r swap c!
-                    1+
-                endif
-            endif
-        endif
-        1+
-    repeat
-    drop addr len str-append
+    addr len +  addr  ?do
+        i c@ case
+            [char] " of s\" \\\"" str-append endof
+            [char] \ of s\" \\\\" str-append endof
+            10 of s\" \\n" str-append endof
+            13 of s\" \\r" str-append endof
+            -rot i 1 str-append rot
+        endcase
+    loop
     s\" \"" str-append ;
 
 MalString

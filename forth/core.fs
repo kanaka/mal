@@ -74,3 +74,6 @@ defcore str ( argv argc )
         loop
         MalString. nip
     endif ;;
+
+defcore read-string drop @ unpack-str read-str ;;
+defcore slurp drop @ unpack-str slurp-file MalString. ;;

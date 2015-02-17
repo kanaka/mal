@@ -1,25 +1,12 @@
 require types.fs
 require printer.fs
 
--2 constant skip-elem
-
 \ Drop a char off the front of string by advancing the addr and
 \ decrementing the length, and fetch next char
 : adv-str ( str-addr str-len -- str-addr str-len char )
     swap 1+ swap 1-
     dup 0= if 0 ( eof )
     else over c@ endif ;
-
-: skip-spaces ( str-addr str-len char -- str-addr str-len non-space-char )
-    begin
-        dup bl = if
-            -1
-        else
-            dup [char] , =
-        endif
-    while ( str-addr str-len space-char )
-        drop adv-str
-    repeat ;
 
 : mal-digit? ( char -- flag )
     dup [char] 9 <= if
@@ -30,21 +17,31 @@ require printer.fs
 
 : char-in-str? ( char str-addr str-len )
     rot { needle }
-    begin ( str-addr str-len )
-        adv-str needle = if
-            2drop -1 -1 \ success! drop and exit
+    false -rot
+    over + swap ?do
+        i c@ needle = if drop true leave endif
+    loop ;
+
+: sym-char? ( char -- flag )
+    s\" \n\r\t\000[]{}()'\"`,; " char-in-str? 0= ;
+
+: skip-spaces ( str-addr str-len char -- str-addr str-len non-space-char )
+    begin
+        begin
+            dup s\" \n\r\t, " char-in-str?
+        while ( str-addr str-len space-char )
+            drop adv-str
+        repeat
+        dup [char] ; = if
+            drop
+            begin
+                adv-str s\" \n\r\000" char-in-str?
+            until
+            adv-str false
         else
-            dup 0= if
-                2drop 0 -1 \ str consumed, char not found.
-            else
-                0 \ continue
-            endif
+            true
         endif
     until ;
-
-s\" []{}()'\"`,; " constant non-sym-chars-len constant non-sym-chars
-: sym-char? ( char -- flag )
-    non-sym-chars non-sym-chars-len char-in-str? 0= ;
 
 defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
 
@@ -55,13 +52,6 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
         adv-str dup mal-digit? 0= ( str-addr str-len digit-char )
     until
     int MalInt. ;
-
-: read-comment ( str-addr str-len sym-char -- str-addr str-len char skim-elem )
-    drop
-    begin
-        adv-str = 10
-    until
-    adv-str skip-elem ;
 
 : read-symbol-str ( str-addr str-len sym-char -- str-addr str-len char sym-addr sym-len )
     new-str { sym-addr sym-len }
@@ -106,8 +96,7 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
             read-form ,
     repeat
     drop adv-str
-    old-here here>MalList
-    ;
+    old-here here>MalList ;
 
 : read-wrapped ( buf-addr buf-len quote-char sym-addr sym-len -- buf-addr buf-len char mal-list )
     here { old-here }
@@ -116,40 +105,36 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
     old-here here>MalList ;
 
 : read-form2 ( str-addr str-len char -- str-addr str-len char mal-obj )
-    begin
-        skip-spaces
-        dup mal-digit? if read-int else
-        dup [char] ( = if [char] ) read-list else
-        dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
-        dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
-        dup [char] " = if read-string-literal else
-        dup [char] ; = if read-comment else
-        dup [char] : = if drop adv-str read-symbol-str MalKeyword. else
-        dup [char] @ = if drop adv-str s" deref" read-wrapped else
-        dup [char] ' = if drop adv-str s" quote" read-wrapped else
-        dup [char] ` = if drop adv-str s" quasiquote" read-wrapped else
-        dup [char] ~ = if
-            drop adv-str
-            dup [char] @ = if drop adv-str s" splice-unquote" read-wrapped
-            else s" unquote" read-wrapped
-            endif
+    skip-spaces
+    dup mal-digit? if read-int else
+    dup [char] ( = if [char] ) read-list else
+    dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
+    dup [char] { = if [char] } read-list MalMap new tuck MalMap/list ! else
+    dup [char] " = if read-string-literal else
+    dup [char] : = if drop adv-str read-symbol-str MalKeyword. else
+    dup [char] @ = if drop adv-str s" deref" read-wrapped else
+    dup [char] ' = if drop adv-str s" quote" read-wrapped else
+    dup [char] ` = if drop adv-str s" quasiquote" read-wrapped else
+    dup [char] ~ = if
+        drop adv-str
+        dup [char] @ = if drop adv-str s" splice-unquote" read-wrapped
+        else s" unquote" read-wrapped
+        endif
+    else
+    dup [char] ^ = if
+        drop adv-str
+        read-form { meta } read-form { obj }
+        meta mal-nil conj
+        obj swap conj
+        s" with-meta" MalSymbol. swap conj
+    else
+        read-symbol-str
+        2dup s" true" str= if 2drop mal-true
+        else 2dup s" false" str= if 2drop mal-false
+        else 2dup s" nil" str= if 2drop mal-nil
         else
-        dup [char] ^ = if
-            drop adv-str
-            read-form { meta } read-form { obj }
-            meta mal-nil conj
-            obj swap conj
-            s" with-meta" MalSymbol. swap conj
-        else
-            read-symbol-str
-            2dup s" true" str= if 2drop mal-true
-            else 2dup s" false" str= if 2drop mal-false
-            else 2dup s" nil" str= if 2drop mal-nil
-            else
-              MalSymbol.
-        endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif
-        dup skip-elem =
-    while drop repeat ;
+          MalSymbol.
+    endif endif endif endif endif endif endif endif endif endif endif endif endif endif ;
 ' read-form2 is read-form
 
 : read-str ( str-addr str-len - mal-obj )

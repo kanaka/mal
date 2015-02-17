@@ -309,6 +309,12 @@ drop
 
 MalList new 0 over MalList/count ! constant MalList/Empty
 
+: MalList/rest { list -- list }
+    MalList new
+    list MalList/start @   cell+   over MalList/start !
+    list MalList/count @   1-      over MalList/count ! ;
+
+
 MalType%
   cell% field MalVector/list
 deftype MalVector
