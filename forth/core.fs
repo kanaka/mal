@@ -202,12 +202,16 @@ defcore apply { argv argc -- val }
     more-args MalList/start @   final-argv list0len cells +  final-argc list0len - cells  cmove
     final-argv final-argc argv @  invoke ;;
 
+defcore throw ( argv argc -- )
+    drop @ to exception-object
+    1 throw ;;
 
 defcore map?     drop @ mal-type @ MalMap     = mal-bool ;;
 defcore list?    drop @ mal-type @ MalList    = mal-bool ;;
 defcore vector?  drop @ mal-type @ MalVector  = mal-bool ;;
 defcore keyword? drop @ mal-type @ MalKeyword = mal-bool ;;
 defcore symbol?  drop @ mal-type @ MalSymbol  = mal-bool ;;
+defcore atom?    drop @ mal-type @ Atom       = mal-bool ;;
 defcore true?    drop @ mal-true  = mal-bool ;;
 defcore false?   drop @ mal-false = mal-bool ;;
 defcore nil?     drop @ mal-nil   = mal-bool ;;
@@ -216,3 +220,5 @@ defcore sequential? drop @ sequential? ;;
 
 defcore keyword  drop @ unpack-str MalKeyword. ;;
 defcore symbol   drop @ unpack-str MalSymbol. ;;
+
+defcore time-ms 2drop utime d>s 1000 / MalInt. ;;

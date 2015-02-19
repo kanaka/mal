@@ -317,21 +317,25 @@ MalList
   extend empty? MalList/count @ 0= mal-bool ;;
   extend mal-count MalList/count @ MalInt. ;;
   extend mal=
-    swap to-list dup 0= if
-        nip
+    over mal-nil = if
+        2drop false
     else
-        2dup MalList/count @ swap MalList/count @ over = if ( list-a list-b count )
-            -rot MalList/start @ swap MalList/start @ { start-b start-a }
-            true swap ( return-val count )
-            0 ?do
-                start-a i cells + @
-                start-b i cells + @
-                m= if else
-                    drop false leave
-                endif
-            loop
+        swap to-list dup 0= if
+            nip
         else
-            drop 2drop false
+            2dup MalList/count @ swap MalList/count @ over = if ( list-a list-b count )
+                -rot MalList/start @ swap MalList/start @ { start-b start-a }
+                true swap ( return-val count )
+                0 ?do
+                    start-a i cells + @
+                    start-b i cells + @
+                    m= if else
+                        drop false leave
+                    endif
+                loop
+            else
+                drop 2drop false
+            endif
         endif
     endif ;;
 drop
@@ -434,6 +438,7 @@ MalDefault
   extend to-list drop 0 ;;
   extend empty? drop mal-true ;;
   extend sequential? drop mal-false ;;
+  extend mal= = ;;
 drop
 
 MalNil

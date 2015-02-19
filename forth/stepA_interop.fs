@@ -219,21 +219,19 @@ s" &" MalSymbol. constant &-sym
 MalUserFn
   extend eval-invoke { call-env list mal-fn -- list }
     mal-fn MalUserFn/is-macro? @ if
-        list MalList/start @ cell+  list MalList/count @ 1-
+        list MalList/start @ cell+  \ argv
+        list MalList/count @ 1-     \ argc
+        mal-fn new-user-fn-env { env }
+        env   mal-fn MalUserFn/body @   eval
+        call-env swap TCO-eval
     else
         call-env list eval-rest
-    endif
-    mal-fn invoke ;;
+        mal-fn invoke
+    endif ;;
 
   extend invoke ( argv argc mal-fn )
     dup { mal-fn } new-user-fn-env { env }
-
-    mal-fn MalUserFn/is-macro? @ if
-        env   mal-fn MalUserFn/body @   eval
-        env swap TCO-eval
-    else
-        env   mal-fn MalUserFn/body @   TCO-eval
-    endif ;;
+    env   mal-fn MalUserFn/body @   TCO-eval ;;
 drop
 
 defspecial fn* { env list -- val }
@@ -339,16 +337,18 @@ defcore map ( argv argc -- list )
     here>MalList ;;
 
 defcore readline ( argv argc -- mal-string )
-    drop @ unpack-str type
+    drop @ unpack-str type stdout flush-file drop
     buff 128 stdin read-line throw
-    if buff swap MalString. else mal-nil endif ;;
+    if buff swap MalString. else drop mal-nil endif ;;
 
+s\" (def! *host-language* \"forth\")" rep drop
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep drop
 s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep drop
 s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep drop
 s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
 
 : repl ( -- )
+    s\" (println (str \"Mal [\" *host-language* \"]\"))" rep drop
     begin
       ." user> "
       stack-leak-detect
@@ -356,7 +356,7 @@ s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
     while ( num-bytes-read )
       buff swap ( str-addr str-len )
       ['] rep
-      execute ['] nop \ uncomment to see stack traces
+      \ execute ['] nop \ uncomment to see stack traces
       catch ?dup 0= if
           safe-type cr
           stack-leak-detect <> if ." --stack leak--" cr endif
@@ -366,7 +366,7 @@ s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
               s" forth-errno" MalKeyword. errno MalInt. MalMap/Empty assoc
               to exception-object
           endif
-          ." Uncaught exception: "
+          ." Uncaught mal or forth exception: "
           exception-object pr-str safe-type cr
       endif
     repeat ;
