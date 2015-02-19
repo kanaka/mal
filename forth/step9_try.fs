@@ -5,10 +5,13 @@ require core.fs
 core MalEnv. constant repl-env
 
 \ Fully evalutate any Mal object:
-def-protocol-method mal-eval ( env ast -- val )
+\ def-protocol-method mal-eval ( env ast -- val )
 
 \ Invoke an object, given whole env and unevaluated argument forms:
-def-protocol-method invoke ( argv argc mal-fn -- ... )
+\ def-protocol-method eval-invoke ( env list obj -- ... )
+
+\ Invoke a function, given parameter values
+\ def-protocol-method invoke ( argv argc mal-fn -- ... )
 
 99999999 constant TCO-eval
 
@@ -28,12 +31,21 @@ def-protocol-method invoke ( argv argc mal-fn -- ... )
 MalDefault extend mal-eval nip ;; drop \ By default, evalutate to yourself
 
 MalKeyword
-  extend invoke { env list kw -- val }
+  extend eval-invoke { env list kw -- val }
     0   kw   env list MalList/start @ cell+ @ eval   get
     ?dup 0= if
         \ compute not-found value
         list MalList/count @ 1 > if
             env  list MalList/start @ 2 cells + @  TCO-eval
+        else
+            mal-nil
+        endif
+    endif ;;
+  extend invoke { argv argc kw -- val }
+    0   kw   argv @   get
+    ?dup 0= if
+        argc 1 > if
+            argv cell+ @
         else
             mal-nil
         endif
@@ -52,14 +64,15 @@ drop
     target argc ;
 
 MalNativeFn
-  extend invoke ( env list this -- list )
-    MalNativeFn/xt @ { xt }
-    eval-rest ( argv argc )
-    xt execute ( return-val ) ;;
+  extend eval-invoke { env list this -- list }
+    env list eval-rest ( argv argc )
+    this invoke ;;
+  extend invoke ( argv argc this -- val )
+    MalNativeFn/xt @ execute ;;
 drop
 
 SpecialOp
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     SpecialOp/xt @ execute ;;
 drop
 
@@ -191,12 +204,11 @@ s" &" MalSymbol. constant &-sym
         f-args i cells + @
         dup &-sym m= if
             drop
-            f-args i 1+ cells + @ ( more-args-symbol )
-            MalList new ( sym more-args )
-            argc i - dup { c } over MalList/count !
-            c cells allocate throw dup { start } over MalList/start !
+            argc i - { c }
+            c cells allocate throw { start }
             argv i cells +  start  c cells  cmove
-            env env/set
+            f-args i 1+ cells + @ ( more-args-symbol )
+            start c MalList. env env/set
             leave
         endif
         argv i cells + @
@@ -205,13 +217,16 @@ s" &" MalSymbol. constant &-sym
     env ;
 
 MalUserFn
-  extend invoke { call-env list mal-fn -- list }
+  extend eval-invoke { call-env list mal-fn -- list }
     mal-fn MalUserFn/is-macro? @ if
         list MalList/start @ cell+  list MalList/count @ 1-
     else
         call-env list eval-rest
     endif
-    mal-fn new-user-fn-env { env }
+    mal-fn invoke ;;
+
+  extend invoke ( argv argc mal-fn )
+    dup { mal-fn } new-user-fn-env { env }
 
     mal-fn MalUserFn/is-macro? @ if
         env   mal-fn MalUserFn/body @   eval
@@ -224,6 +239,7 @@ drop
 defspecial fn* { env list -- val }
     list MalList/start @ cell+ { arg0 }
     MalUserFn new
+    false over MalUserFn/is-macro? !
     env over MalUserFn/env !
     arg0 @ to-list over MalUserFn/formal-args !
     arg0 cell+ @ over MalUserFn/body ! ;;
@@ -280,7 +296,7 @@ drop
 MalList
   extend mal-eval { env list -- val }
     env list MalList/start @ @ eval
-    env list rot invoke ;;
+    env list rot eval-invoke ;;
 drop
 
 MalVector
@@ -311,12 +327,30 @@ defcore eval ( argv argc )
     repeat
     2drop here>MalList ;
 
+create buff 128 allot
+77777777777 constant stack-leak-detect
+
+: nop ;
+
+defcore map ( argv argc -- list )
+    drop dup @ swap cell+ @ to-list { fn list }
+    here
+    list MalList/start @   list MalList/count @  cells   over + swap   +do
+        i 1 fn invoke
+        dup TCO-eval = if drop eval endif
+        ,
+    cell +loop
+    here>MalList ;;
+
+defcore readline ( argv argc -- mal-string )
+    drop @ unpack-str type
+    buff 128 stdin read-line throw
+    if buff swap MalString. else mal-nil endif ;;
+
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep drop
 s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep drop
 s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep drop
-
-create buff 128 allot
-77777777777 constant stack-leak-detect
+s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
 
 : repl ( -- )
     begin
@@ -326,7 +360,7 @@ create buff 128 allot
     while ( num-bytes-read )
       buff swap ( str-addr str-len )
       ['] rep
-      \ execute type
+      execute ['] nop \ uncomment to see stack traces
       catch ?dup 0= if
           safe-type cr
           stack-leak-detect <> if ." --stack leak--" cr endif
@@ -358,3 +392,5 @@ create buff 128 allot
 main
 cr
 bye
+
+4

@@ -24,14 +24,16 @@ defcore <= args-as-native <= mal-bool ;;
 defcore >= args-as-native >= mal-bool ;;
 
 defcore list { argv argc }
-    MalList new { list }
     argc cells allocate throw { start }
     argv  start  argc cells  cmove
-    argc  list MalList/count !
-    start list MalList/start !
-    list ;;
+    start argc MalList. ;;
 
-defcore list? drop @ mal-type @ MalList = mal-bool ;;
+defcore vector { argv argc }
+    argc cells allocate throw { start }
+    argv  start  argc cells  cmove
+    start argc MalList.
+    MalVector new swap over MalVector/list ! ;;
+
 defcore empty? drop @ empty? ;;
 defcore count drop @ mal-count ;;
 
@@ -83,19 +85,66 @@ defcore cons ( argv[item,coll] argc )
     to-list conj ;;
 
 defcore concat { lists argc }
-    0   lists argc cells +  lists  +do ( count )
-        i @ to-list MalList/count @ +
-    cell +loop { count }
-    count cells allocate throw { start }
-    start   lists argc cells +  lists  +do ( target )
-        i @ to-list MalList/count @ cells  2dup  i @ to-list MalList/start @  -rot  ( target bytes src target bytes )
-        cmove ( target bytes )
-        + ( new-target )
-    cell +loop
-    drop
     MalList new
-    start over MalList/start !
-    count over MalList/count ! ;;
+    lists over MalList/start !
+    argc over MalList/count !
+    MalList/concat ;;
+
+defcore conj { argv argc }
+    argv @ ( coll )
+    argc 1 ?do
+        argv i cells + @ swap conj
+    loop ;;
+
+defcore assoc { argv argc }
+    argv @ ( coll )
+    argv argc cells +  argv cell+  +do
+        i @ \ key
+        i cell+ @ \ val
+        rot assoc
+    2 cells +loop ;;
+
+defcore keys ( argv argc )
+    drop @ MalMap/list @
+    dup MalList/start @ swap MalList/count @ { start count }
+    here
+    start count cells +  start  +do
+        i @ ,
+    2 cells +loop
+    here>MalList ;;
+
+defcore vals ( argv argc )
+    drop @ MalMap/list @
+    dup MalList/start @ swap MalList/count @ { start count }
+    here
+    start count cells +  start cell+  +do
+        i @ ,
+    2 cells +loop
+    here>MalList ;;
+
+defcore dissoc { argv argc }
+    argv @ \ coll
+    argv argc cells +  argv cell+  +do
+        i @ swap dissoc
+    cell +loop ;;
+
+defcore hash-map { argv argc }
+    MalMap/Empty
+    argc cells argv +  argv  +do
+        i @  i cell+ @  rot  assoc
+    2 cells +loop ;;
+
+defcore get { argv argc }
+    argc 3 < if mal-nil else argv cell+ cell+ @ endif
+    argv cell+ @ \ key
+    argv @ \ coll
+    get ;;
+
+defcore contains? { argv argc }
+    0
+    argv cell+ @ \ key
+    argv @ \ coll
+    get 0 <> mal-bool ;;
 
 defcore nth ( argv[coll,i] argc )
     drop dup @ to-list ( argv list )
@@ -119,3 +168,51 @@ defcore first ( argv[coll] argc )
 
 defcore rest ( argv[coll] argc )
     drop @ to-list MalList/rest ;;
+
+defcore meta ( argv[obj] argc )
+    drop @ mal-meta @
+    ?dup 0= if mal-nil endif ;;
+
+defcore with-meta ( argv[obj,meta] argc )
+    drop ( argv )
+    dup cell+ @  swap @  ( meta obj )
+    dup mal-type @ MalTypeType-struct @ ( meta obj obj-size )
+    dup allocate throw { new-obj } ( meta obj obj-size )
+    new-obj swap cmove ( meta )
+    new-obj mal-meta ! ( )
+    new-obj ;;
+
+defcore atom ( argv[val] argc )
+    drop @ Atom. ;;
+
+defcore deref ( argv[atom] argc )
+    drop @ Atom/val @ ;;
+
+defcore reset! ( argv[atom,val] argc )
+    drop dup cell+ @ ( argv val )
+    dup -rot swap @ Atom/val ! ;;
+
+defcore apply { argv argc -- val }
+    \ argv is (fn args... more-args)
+    argv argc 1- cells + @ to-list { more-args }
+    argc 2 - { list0len }
+    more-args MalList/count @ list0len + { final-argc }
+    final-argc cells allocate throw { final-argv }
+    argv cell+   final-argv   list0len cells   cmove
+    more-args MalList/start @   final-argv list0len cells +  final-argc list0len - cells  cmove
+    final-argv final-argc argv @  invoke ;;
+
+
+defcore map?     drop @ mal-type @ MalMap     = mal-bool ;;
+defcore list?    drop @ mal-type @ MalList    = mal-bool ;;
+defcore vector?  drop @ mal-type @ MalVector  = mal-bool ;;
+defcore keyword? drop @ mal-type @ MalKeyword = mal-bool ;;
+defcore symbol?  drop @ mal-type @ MalSymbol  = mal-bool ;;
+defcore true?    drop @ mal-true  = mal-bool ;;
+defcore false?   drop @ mal-false = mal-bool ;;
+defcore nil?     drop @ mal-nil   = mal-bool ;;
+
+defcore sequential? drop @ sequential? ;;
+
+defcore keyword  drop @ unpack-str MalKeyword. ;;
+defcore symbol   drop @ unpack-str MalSymbol. ;;

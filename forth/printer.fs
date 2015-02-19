@@ -5,7 +5,6 @@ require types.fs
 
 def-protocol-method pr-buf ( readably? str-addr str-len this -- str-addr str-len )
 def-protocol-method pr-seq-buf ( readably? str-addr str-len this -- str-addr str-len )
-def-protocol-method pr-pairs-buf ( readably? str-addr str-len this -- str-addr str-len )
 
 : pr-str { obj }
     true new-str obj pr-buf rot drop ;
@@ -39,15 +38,6 @@ MalList
             start i cells + @ pr-buf
         loop
     endif ;;
-  extend pr-pairs-buf { list }
-    list MalList/start @ { start }
-    start @ pr-buf a-space start cell+ @ pr-buf
-    list MalList/count @ 2 / 1 ?do
-        s" , " str-append
-        a-space
-        start i 2 * cells + @ pr-buf a-space
-        start i 2 * 1+ cells + @ pr-buf
-    loop ;;
 drop
 
 MalVector
@@ -62,7 +52,17 @@ MalMap
   extend pr-buf
     MalMap/list @
     -rot s" {" str-append ( list str-addr str-len )
-    rot pr-pairs-buf
+    rot { list }
+    list MalList/count @ { count }
+    count 0 > if
+        list MalList/start @ { start }
+        start @ pr-buf a-space start cell+ @ pr-buf
+        count 2 / 1 ?do
+            s" , " str-append
+            start i 2 * cells + @ pr-buf a-space
+            start i 2 * 1+ cells + @ pr-buf
+        loop
+    endif
     s" }" str-append ;;
 drop
 
@@ -104,4 +104,11 @@ MalString
     else
         str-append
     endif ;;
+drop
+
+Atom
+  extend pr-buf { this }
+    s" (atom " str-append
+    this Atom/val @ pr-buf
+    s" )" str-append ;;
 drop

@@ -59,6 +59,7 @@ require str.fs
 
 struct
   cell% field mal-type
+  cell% field mal-meta
   \ cell% field ref-count \ Ha, right.
 end-struct MalType%
 
@@ -74,6 +75,7 @@ end-struct MalTypeType%
 : new ( MalTypeType -- obj )
   dup MalTypeType-struct 2@ %allocate throw ( MalTypeType obj ) \ create struct
   dup -rot mal-type !                       ( obj ) \ set struct's type pointer to this type
+  nil over mal-meta !
   ;
 
 : deftype* ( struct-align struct-len -- MalTypeType )
@@ -218,6 +220,7 @@ end-extend
 
 def-protocol-method conj ( obj this -- this )
 def-protocol-method assoc ( k v this -- this )
+def-protocol-method dissoc ( k this -- this )
 def-protocol-method get ( not-found k this -- value )
 def-protocol-method mal= ( a b -- bool )
 def-protocol-method as-native ( obj --  )
@@ -225,6 +228,20 @@ def-protocol-method as-native ( obj --  )
 def-protocol-method to-list ( obj -- mal-list )
 def-protocol-method empty? ( obj -- mal-bool )
 def-protocol-method mal-count ( obj -- mal-int )
+def-protocol-method sequential? ( obj -- mal-bool )
+
+
+\ Fully evalutate any Mal object:
+def-protocol-method mal-eval ( env ast -- val )
+
+\ Invoke an object, given whole env and unevaluated argument forms:
+def-protocol-method eval-invoke ( env list obj -- ... )
+
+\ Invoke a function, given parameter values
+def-protocol-method invoke ( argv argc mal-fn -- ... )
+
+
+
 
 : m= ( a b -- bool )
     2dup = if
@@ -259,6 +276,11 @@ MalType%
   cell% field MalList/start
 deftype MalList
 
+: MalList. ( start count -- mal-list )
+    MalList new
+    swap over MalList/count ! ( start list )
+    swap over MalList/start ! ( list ) ;
+
 : here>MalList ( old-here -- mal-list )
     here over - { bytes } ( old-here )
     MalList new bytes ( old-here mal-list bytes )
@@ -268,8 +290,22 @@ deftype MalList
     0 bytes - allot \ pop list contents from dictionary stack
     ;
 
+: MalList/concat ( list-of-lists )
+    dup MalList/start @ swap MalList/count @ { lists argc }
+    0   lists argc cells +  lists  +do ( count )
+        i @ to-list MalList/count @ +
+    cell +loop { count }
+    count cells allocate throw { start }
+    start   lists argc cells +  lists  +do ( target )
+        i @ to-list MalList/count @ cells  2dup  i @ to-list MalList/start @  -rot  ( target bytes src target bytes )
+        cmove ( target bytes )
+        + ( new-target )
+    cell +loop
+    drop start count MalList. ;
+
 MalList
   extend to-list ;;
+  extend sequential? drop mal-true ;;
   extend conj { elem old-list -- list }
     old-list MalList/count @ 1+ { new-count }
     new-count cells allocate throw { new-start }
@@ -277,10 +313,7 @@ MalList
     new-count 1 > if
       old-list MalList/start @   new-start cell+   new-count 1- cells  cmove
     endif
-
-    MalList new
-    new-count over MalList/count !
-    new-start over MalList/start ! ;;
+    new-start new-count MalList. ;;
   extend empty? MalList/count @ 0= mal-bool ;;
   extend mal-count MalList/count @ MalInt. ;;
   extend mal=
@@ -306,9 +339,9 @@ drop
 MalList new 0 over MalList/count ! constant MalList/Empty
 
 : MalList/rest { list -- list }
-    MalList new
-    list MalList/start @   cell+   over MalList/start !
-    list MalList/count @   1-      over MalList/count ! ;
+    list MalList/start @   cell+
+    list MalList/count @   1-
+    MalList. ;
 
 
 MalType%
@@ -316,6 +349,7 @@ MalType%
 deftype MalVector
 
 MalVector
+  extend sequential? drop mal-true ;;
   extend to-list
     MalVector/list @ ;;
   extend empty?
@@ -326,6 +360,15 @@ MalVector
     MalList/count @ MalInt. ;;
   extend mal=
     MalVector/list @ swap m= ;;
+  extend conj
+    MalVector/list @ { elem old-list }
+    old-list MalList/count @ { old-count }
+    old-count 1+ cells allocate throw { new-start }
+    elem new-start old-count cells + !
+    old-list MalList/start @   new-start old-count cells  cmove
+    new-start   old-count 1+  MalList.
+    MalVector new swap
+    over MalVector/list ! ;;
 drop
 
 MalType%
@@ -346,6 +389,19 @@ MalMap
     conj conj
     MalMap new dup -rot MalMap/list ! \ put back in map
     ;;
+  extend dissoc { k map -- map }
+    map MalMap/list @
+    dup MalList/start @ swap MalList/count @ { start count }
+    map \ return original if key not found
+    count 0 +do
+        start i cells + @ k mal= if
+            drop here
+            start i MalList. ,
+            start i 2 + cells +  count i - 2 - MalList. ,
+            here>MalList MalList/concat
+            MalMap new dup -rot MalMap/list ! \ put back in map
+        endif
+    2 +loop ;;
   extend get { not-found k map -- value }
     map MalMap/list @
     dup MalList/start @ { start }
@@ -377,12 +433,15 @@ MalDefault
   extend as-native ;; ( obj -- obj )
   extend to-list drop 0 ;;
   extend empty? drop mal-true ;;
+  extend sequential? drop mal-false ;;
 drop
 
 MalNil
   extend conj ( item nil -- mal-list )
     drop MalList/Empty conj ;;
   extend as-native drop 0 ;;
+  extend get drop 2drop mal-nil ;;
+  extend to-list drop MalList/Empty ;;
   extend empty? drop mal-true ;;
   extend mal-count drop 0 MalInt. ;;
   extend mal= drop mal-nil = ;;
@@ -499,3 +558,9 @@ deftype SpecialOp
 
 : SpecialOp.
     SpecialOp new swap over SpecialOp/xt ! ;
+
+MalType%
+  cell% field Atom/val
+deftype Atom
+
+: Atom. Atom new swap over Atom/val ! ;
