@@ -43,6 +43,8 @@
 ;=>7
 (if (list 1 2 3) 7 8)
 ;=>7
+(= (list) nil)
+;=>false
 
 
 ;; Testing 1-way if form
