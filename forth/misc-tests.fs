@@ -20,6 +20,7 @@ create za 2 , 6 , 7 , 10 , 15 , 80 , 81 ,
 7 za 8  array-find   0 test= 3 test=
 7 za 100 array-find  0 test= 7 test=
 7 za 1 array-find    0 test= 0 test=
+6 za 81 array-find   0 test= 6 test=
 
 10 new-array
 1 swap 0  5 array-insert

@@ -30,8 +30,11 @@ require str.fs
       endif
     endif
   2dup = until
-  cells a-addr + @ key =
-  ;
+  dup a-length = if
+      drop false
+  else
+      cells a-addr + @ key =
+  endif ;
 
 \ Create a new array, one cell in length, initialized the provided value
 : new-array { value -- array }
@@ -170,7 +173,9 @@ MalType% deftype MalFalse MalFalse new constant mal-false
   else
     pxt array-find { idx found? }
     found? if \ overwrite
-      ." Warning: overwriting protocol method implementation"
+      ." Warning: overwriting protocol method implementation '"
+        pxt >name name>string safe-type ." ' on " type type-name safe-type ." , " idx . found? . cr
+
       type MalTypeType-method-vals @ idx cells + ixt !
     else \ resize
       type MalTypeType-methods dup @ 1+ dup rot ! ( new-count )
