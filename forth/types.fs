@@ -448,7 +448,7 @@ MalNil
   extend conj ( item nil -- mal-list )
     drop MalList/Empty conj ;;
   extend as-native drop 0 ;;
-  extend get drop 2drop mal-nil ;;
+  extend get 2drop ;;
   extend to-list drop MalList/Empty ;;
   extend empty? drop mal-true ;;
   extend mal-count drop 0 MalInt. ;;
