@@ -241,8 +241,6 @@ def-protocol-method eval-invoke ( env list obj -- ... )
 def-protocol-method invoke ( argv argc mal-fn -- ... )
 
 
-
-
 : m= ( a b -- bool )
     2dup = if
         2drop true

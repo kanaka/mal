@@ -13,23 +13,43 @@ MalMap/Empty
     s" /" MalSymbol. :noname args-as-native / MalInt. ; MalNativeFn. rot assoc
 value repl-env
 
-def-protocol-method mal-eval ( env ast -- val )
-def-protocol-method mal-eval-ast ( env ast -- val )
-def-protocol-method invoke ( argv argc mal-fn -- ... )
+: read read-str ;
+: eval ( env obj ) mal-eval ;
+: print
+    \ ." Type: " dup mal-type @ type-name safe-type cr
+    pr-str ;
 
-MalDefault extend mal-eval nip ;; drop
+MalDefault extend mal-eval nip ;; drop \ By default, evalutate to yourself
 
 MalKeyword
-  extend invoke { argv argc kw -- val }
-    argc 1 > if argv cell+ @ else mal-nil endif \ not-found
-    kw \ key
-    argv @ \ map
-    get ;;
+  extend eval-invoke { env list kw -- val }
+    0   kw   env list MalList/start @ cell+ @ eval   get
+    ?dup 0= if
+        \ compute not-found value
+        list MalList/count @ 1 > if
+            env  list MalList/start @ 2 cells + @  eval
+        else
+            mal-nil
+        endif
+    endif ;;
 drop
 
+\ eval all but the first item of list
+: eval-rest { env list -- argv argc }
+    list MalList/start @ cell+ { expr-start }
+    list MalList/count @ 1- { argc }
+    argc cells allocate throw { target }
+    argc 0 ?do
+        env expr-start i cells + @ eval
+        target i cells + !
+    loop
+    target argc ;
+
 MalNativeFn
-  extend invoke ( ... mal-fn -- ... )
-    MalNativeFn/xt @ execute ;;
+  extend eval-invoke ( env list this -- list )
+    MalNativeFn/xt @ { xt }
+    eval-rest ( argv argc )
+    xt execute ( return-val ) ;;
 drop
 
 MalSymbol
@@ -44,62 +64,52 @@ MalSymbol
     endif ;;
 drop
 
-MalList
-  extend mal-eval { env list -- val }
-    \ Pass args on dictionary stack (!)
-    \ TODO: consider allocate and free of a real MalList instead
-    here { val-start }
-    list MalList/start @ { expr-start }
-    list MalList/count @ 0 ?do
-        env expr-start i cells + @ mal-eval ,
-    loop
-    val-start cell+  here val-start - cell / 1-  val-start @  ( argv argc MalNativeFn )
-    invoke
-    val-start here - allot ;;
-  extend mal-eval-ast { env list -- list }
+: eval-ast { env list -- list }
     here
     list MalList/start @ { expr-start }
     list MalList/count @ 0 ?do
-        env expr-start i cells + @ mal-eval ,
+        env expr-start i cells + @ eval ,
     loop
-    here>MalList ;;
+    here>MalList ;
+
+MalList
+  extend mal-eval { env list -- val }
+    env list MalList/start @ @ eval
+    env list rot eval-invoke ;;
 drop
 
 MalVector
   extend mal-eval ( env vector -- vector )
-    MalVector/list @ mal-eval-ast
+    MalVector/list @ eval-ast
     MalVector new swap over MalVector/list ! ;;
 drop
 
 MalMap
   extend mal-eval ( env map -- map )
-    MalMap/list @ mal-eval-ast
+    MalMap/list @ eval-ast
     MalMap new swap over MalMap/list ! ;;
 drop
 
-: read read-str ;
-: eval ( env obj ) mal-eval ;
-: print
-    \ ." Type: " dup mal-type @ type-name safe-type cr
-    pr-str ;
-
-: rep ( str -- val )
+: rep ( str-addr str-len -- str-addr str-len )
     read
     repl-env swap eval
     print ;
 
 create buff 128 allot
+77777777777 constant stack-leak-detect
 
 : read-lines
     begin
       ." user> "
+      stack-leak-detect
       buff 128 stdin read-line throw
-    while
-      buff swap
+    while ( num-bytes-read )
+      buff swap ( str-addr str-len )
       ['] rep
       \ execute safe-type
-      catch 0= if safe-type else ." Caught error" endif
+      catch ?dup 0= if safe-type else ." Caught error " . endif
       cr
+      stack-leak-detect <> if ." --stack leak--" cr endif
     repeat ;
 
 read-lines

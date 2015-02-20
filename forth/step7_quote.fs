@@ -4,12 +4,6 @@ require core.fs
 
 core MalEnv. constant repl-env
 
-\ Fully evalutate any Mal object:
-def-protocol-method mal-eval ( env ast -- val )
-
-\ Invoke an object, given whole env and unevaluated argument forms:
-def-protocol-method invoke ( argv argc mal-fn -- ... )
-
 99999999 constant TCO-eval
 
 : read read-str ;
@@ -28,7 +22,7 @@ def-protocol-method invoke ( argv argc mal-fn -- ... )
 MalDefault extend mal-eval nip ;; drop \ By default, evalutate to yourself
 
 MalKeyword
-  extend invoke { env list kw -- val }
+  extend eval-invoke { env list kw -- val }
     0   kw   env list MalList/start @ cell+ @ eval   get
     ?dup 0= if
         \ compute not-found value
@@ -52,14 +46,14 @@ drop
     target argc ;
 
 MalNativeFn
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     MalNativeFn/xt @ { xt }
     eval-rest ( argv argc )
     xt execute ( return-val ) ;;
 drop
 
 SpecialOp
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     SpecialOp/xt @ execute ;;
 drop
 
@@ -121,8 +115,7 @@ defspecial def! { env list -- val }
     list MalList/start @ cell+ { arg0 }
     arg0 @ ( key )
     env arg0 cell+ @ eval dup { val } ( key val )
-    env env/set
-    val ;;
+    env env/set val ;;
 
 defspecial let* { old-env list -- val }
     old-env MalEnv. { env }
@@ -172,7 +165,7 @@ defspecial if { env list -- val }
 s" &" MalSymbol. constant &-sym
 
 MalUserFn
-  extend invoke { call-env list mal-fn -- list }
+  extend eval-invoke { call-env list mal-fn -- list }
     call-env list eval-rest { argv argc }
 
     mal-fn MalUserFn/formal-args @ { f-args-list }
@@ -232,7 +225,7 @@ drop
 MalList
   extend mal-eval { env list -- val }
     env list MalList/start @ @ eval
-    env list rot invoke ;;
+    env list rot eval-invoke ;;
 drop
 
 MalVector
@@ -250,7 +243,7 @@ drop
 defcore eval ( argv argc )
   drop @ repl-env swap eval ;;
 
-: rep ( str-addr str-len -- val )
+: rep ( str-addr str-len -- str-addr str-len )
     read
     repl-env swap eval
     print ;
@@ -263,21 +256,21 @@ defcore eval ( argv argc )
     repeat
     2drop here>MalList ;
 
-s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep drop
-
 create buff 128 allot
 77777777777 constant stack-leak-detect
+
+s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
 
 : repl ( -- )
     begin
       ." user> "
       stack-leak-detect
       buff 128 stdin read-line throw
-    while
-      buff swap
+    while ( num-bytes-read )
+      buff swap ( str-addr str-len )
       ['] rep
-      execute type
-      \ catch ?dup 0= if safe-type else ." Caught error " . endif
+      \ execute type
+      catch ?dup 0= if safe-type else ." Caught error " . endif
       cr
       stack-leak-detect <> if ." --stack leak--" cr endif
     repeat ;

@@ -4,12 +4,6 @@ require core.fs
 
 core MalEnv. constant repl-env
 
-\ Fully evalutate any Mal object:
-def-protocol-method mal-eval ( env ast -- val )
-
-\ Invoke an object, given whole env and unevaluated argument forms:
-def-protocol-method invoke ( argv argc mal-fn -- ... )
-
 99999999 constant TCO-eval
 
 : read read-str ;
@@ -28,7 +22,7 @@ def-protocol-method invoke ( argv argc mal-fn -- ... )
 MalDefault extend mal-eval nip ;; drop \ By default, evalutate to yourself
 
 MalKeyword
-  extend invoke { env list kw -- val }
+  extend eval-invoke { env list kw -- val }
     0   kw   env list MalList/start @ cell+ @ eval   get
     ?dup 0= if
         \ compute not-found value
@@ -52,14 +46,14 @@ drop
     target argc ;
 
 MalNativeFn
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     MalNativeFn/xt @ { xt }
     eval-rest ( argv argc )
     xt execute ( return-val ) ;;
 drop
 
 SpecialOp
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     SpecialOp/xt @ execute ;;
 drop
 
@@ -205,7 +199,7 @@ s" &" MalSymbol. constant &-sym
     env ;
 
 MalUserFn
-  extend invoke { call-env list mal-fn -- list }
+  extend eval-invoke { call-env list mal-fn -- list }
     mal-fn MalUserFn/is-macro? @ if
         list MalList/start @ cell+  list MalList/count @ 1-
     else
@@ -259,7 +253,7 @@ drop
 MalList
   extend mal-eval { env list -- val }
     env list MalList/start @ @ eval
-    env list rot invoke ;;
+    env list rot eval-invoke ;;
 drop
 
 MalVector
@@ -277,7 +271,7 @@ drop
 defcore eval ( argv argc )
   drop @ repl-env swap eval ;;
 
-: rep ( str-addr str-len -- val )
+: rep ( str-addr str-len -- str-addr str-len )
     read
     repl-env swap eval
     print ;
@@ -290,12 +284,12 @@ defcore eval ( argv argc )
     repeat
     2drop here>MalList ;
 
-s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep drop
-s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep drop
-s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep drop
-
 create buff 128 allot
 77777777777 constant stack-leak-detect
+
+s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
+s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep 2drop
+s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep 2drop
 
 : repl ( -- )
     begin

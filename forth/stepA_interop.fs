@@ -4,15 +4,6 @@ require core.fs
 
 core MalEnv. constant repl-env
 
-\ Fully evalutate any Mal object:
-\ def-protocol-method mal-eval ( env ast -- val )
-
-\ Invoke an object, given whole env and unevaluated argument forms:
-\ def-protocol-method eval-invoke ( env list obj -- ... )
-
-\ Invoke a function, given parameter values
-\ def-protocol-method invoke ( argv argc mal-fn -- ... )
-
 99999999 constant TCO-eval
 
 : read read-str ;
@@ -308,7 +299,7 @@ drop
 defcore eval ( argv argc )
   drop @ repl-env swap eval ;;
 
-: rep ( str-addr str-len -- val )
+: rep ( str-addr str-len -- str-addr str-len )
     read
     repl-env swap eval
     print ;
@@ -341,14 +332,14 @@ defcore readline ( argv argc -- mal-string )
     buff 128 stdin read-line throw
     if buff swap MalString. else drop mal-nil endif ;;
 
-s\" (def! *host-language* \"forth\")" rep drop
-s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep drop
-s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep drop
-s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep drop
-s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
+s\" (def! *host-language* \"forth\")" rep 2drop
+s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
+s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep 2drop
+s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep 2drop
+s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep 2drop
 
 : repl ( -- )
-    s\" (println (str \"Mal [\" *host-language* \"]\"))" rep drop
+    s\" (println (str \"Mal [\" *host-language* \"]\"))" rep 2drop
     begin
       ." user> "
       stack-leak-detect
@@ -366,7 +357,7 @@ s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
               s" forth-errno" MalKeyword. errno MalInt. MalMap/Empty assoc
               to exception-object
           endif
-          ." Uncaught mal or forth exception: "
+          ." Uncaught exception: "
           exception-object pr-str safe-type cr
       endif
     repeat ;
@@ -388,5 +379,3 @@ s\" (def! swap! (fn* [a f & args] (reset! a (apply f @a args))))" rep drop
 main
 cr
 bye
-
-4

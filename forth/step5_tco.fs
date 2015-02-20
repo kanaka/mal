@@ -4,17 +4,12 @@ require core.fs
 
 core MalEnv. constant repl-env
 
-\ Fully evalutate any Mal object:
-def-protocol-method mal-eval ( env ast -- val )
-
-\ Invoke an object, given whole env and unevaluated argument forms:
-def-protocol-method invoke ( argv argc mal-fn -- ... )
-
 99999999 constant TCO-eval
 
 : read read-str ;
 : eval ( env obj )
     begin
+        \ ." eval-> " dup pr-str safe-type cr
         mal-eval
         dup TCO-eval =
     while
@@ -27,7 +22,7 @@ def-protocol-method invoke ( argv argc mal-fn -- ... )
 MalDefault extend mal-eval nip ;; drop \ By default, evalutate to yourself
 
 MalKeyword
-  extend invoke { env list kw -- val }
+  extend eval-invoke { env list kw -- val }
     0   kw   env list MalList/start @ cell+ @ eval   get
     ?dup 0= if
         \ compute not-found value
@@ -39,32 +34,26 @@ MalKeyword
     endif ;;
 drop
 
-\ eval all but the first item of list, storing in temporary memory
-\ that should be freed with free-eval-rest when done.
-: eval-rest { env list -- mem-token argv argc }
-    \ Pass args on dictionary stack (!)
-    \ TODO: consider allocate and free of a real MalList instead
-    \ Normal list, evaluate and invoke
-    here { val-start }
+\ eval all but the first item of list
+: eval-rest { env list -- argv argc }
     list MalList/start @ cell+ { expr-start }
-    list MalList/count @ 1- dup { argc } 0 ?do
-        env expr-start i cells + @ eval ,
+    list MalList/count @ 1- { argc }
+    argc cells allocate throw { target }
+    argc 0 ?do
+        env expr-start i cells + @ eval
+        target i cells + !
     loop
-    val-start  val-start  argc ;
-
-: free-eval-rest ( mem-token/val-start -- )
-    here - allot ;
+    target argc ;
 
 MalNativeFn
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     MalNativeFn/xt @ { xt }
-    eval-rest ( mem-token argv argc )
-    xt execute ( mem-token return-val )
-    swap free-eval-rest ;;
+    eval-rest ( argv argc )
+    xt execute ( return-val ) ;;
 drop
 
 SpecialOp
-  extend invoke ( env list this -- list )
+  extend eval-invoke ( env list this -- list )
     SpecialOp/xt @ execute ;;
 drop
 
@@ -84,8 +73,7 @@ defspecial def! { env list -- val }
     list MalList/start @ cell+ { arg0 }
     arg0 @ ( key )
     env arg0 cell+ @ eval dup { val } ( key val )
-    env env/set
-    val ;;
+    env env/set val ;;
 
 defspecial let* { old-env list -- val }
     old-env MalEnv. { env }
@@ -135,8 +123,8 @@ defspecial if { env list -- val }
 s" &" MalSymbol. constant &-sym
 
 MalUserFn
-  extend invoke { call-env list mal-fn -- list }
-    call-env list eval-rest { mem-token argv argc }
+  extend eval-invoke { call-env list mal-fn -- list }
+    call-env list eval-rest { argv argc }
 
     mal-fn MalUserFn/formal-args @ { f-args-list }
     mal-fn MalUserFn/env @ MalEnv. { env }
@@ -162,9 +150,8 @@ MalUserFn
         env env/set
     loop
 
-    env   mal-fn MalUserFn/body @   TCO-eval
-
-    mem-token free-eval-rest ;;
+    env   mal-fn MalUserFn/body @   TCO-eval ;;
+drop
 
 defspecial fn* { env list -- val }
     list MalList/start @ cell+ { arg0 }
@@ -196,7 +183,7 @@ drop
 MalList
   extend mal-eval { env list -- val }
     env list MalList/start @ @ eval
-    env list rot invoke ;;
+    env list rot eval-invoke ;;
 drop
 
 MalVector
@@ -211,7 +198,7 @@ MalMap
     MalMap new swap over MalMap/list ! ;;
 drop
 
-: rep ( str -- val )
+: rep ( str-addr str-len -- str-addr str-len )
     read
     repl-env swap eval
     print ;
@@ -224,8 +211,8 @@ create buff 128 allot
       ." user> "
       stack-leak-detect
       buff 128 stdin read-line throw
-    while
-      buff swap
+    while ( num-bytes-read )
+      buff swap ( str-addr str-len )
       ['] rep
       \ execute safe-type
       catch ?dup 0= if safe-type else ." Caught error " . endif
