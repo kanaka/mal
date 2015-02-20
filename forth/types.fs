@@ -132,38 +132,60 @@ MalType% deftype MalFalse MalFalse new constant mal-false
 
 \ === protocol methods === /
 
-0 constant trace
+struct
+    cell% field call-site/type
+    cell% field call-site/xt
+end-struct call-site%
 
 \ Used by protocol methods to find the appropriate implementation of
 \ themselves for the given object, and then execute that implementation.
-: execute-method { obj pxt -- }
+: execute-method { obj pxt call-site -- }
   obj not-object? if
       0 0 obj int>str s" ' on non-object: " pxt >name name>string
       s" Refusing to invoke protocol fn '" ...throw-str
   endif
-  obj mal-type @ dup MalTypeType-methods 2@ swap ( type methods method-keys )
-  dup 0= if \ No protocols extended to this type; check for a default
-    2drop drop MalDefault MalTypeType-methods 2@ swap
-  endif
+  \ ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type ." , cs " call-site .
 
-  pxt array-find ( type idx found? )
-  dup 0= if \ No implementation found for this method; check for a default
-    2drop drop MalDefault dup MalTypeType-methods 2@ swap
-    pxt array-find ( type idx found? )
-  endif
-  0= if ( type idx )
-      2drop
-      0 0 s" '" obj mal-type @ type-name s" ' extended to type '"
-      pxt >name name>string s" No protocol fn '" ...throw-str
-  endif
-  trace if ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type cr endif
+  obj mal-type @ ( type )
+  dup call-site call-site/type @ = if
+      \ ." hit!" cr
+      drop
+      call-site call-site/xt @
+  else
+      \ ." miss!" cr
+      dup MalTypeType-methods 2@ swap ( type methods method-keys )
+      dup 0= if \ No protocols extended to this type; check for a default
+          2drop drop MalDefault MalTypeType-methods 2@ swap
+      endif
 
-  cells swap MalTypeType-method-vals @ + @ ( xt )
+      pxt array-find ( type idx found? )
+      dup 0= if \ No implementation found for this method; check for a default
+          2drop drop MalDefault dup MalTypeType-methods 2@ swap
+          pxt array-find ( type idx found? )
+      endif
+      0= if ( type idx )
+          2drop
+          0 0 s" '" obj mal-type @ type-name s" ' extended to type '"
+          pxt >name name>string s" No protocol fn '" ...throw-str
+      endif
+
+      cells over MalTypeType-method-vals @ + @ ( type xt )
+      swap call-site call-site/type ! ( xt )
+      dup call-site call-site/xt ! ( xt )
+  endif
   obj swap execute ;
 
 \ Extend a type with a protocol method. This mutates the MalTypeType
 \ object that represents the MalType being extended.
 : extend-method* { type pxt ixt -- type }
+  \ ." Extend '" pxt dup . >name name>string safe-type ." ' to " type type-name safe-type ." , "
+  \ type MalTypeType-methods 2@ ( method-keys methods )
+  \   0 ?do
+  \       dup i cells + @ >name name>string safe-type ." , "
+  \       \ dup i cells + @ .
+  \   loop
+  \   drop cr
+
   type MalTypeType-methods 2@ swap ( methods method-keys )
   dup 0= if \ no protocols extended to this type
     2drop
@@ -189,12 +211,28 @@ MalType% deftype MalFalse MalFalse new constant mal-false
   ;
 
 
-\ def-protocol-method pr-str   ...can be written:
-\ : pr-str ( obj -- str ) [ latestxt ] literal execute-method ;
-: def-protocol-method ( "name" -- )
-    create latestxt ,
-  does> ( ??? obj xt-ref -- ??? )
-    @ execute-method ;
+\ Define a new protocol function.  For example:
+\   def-protocol-method pr-str
+\ When called as above, defines a new word 'pr-str' and stores there its
+\ own xt (known as pxt). When a usage of pr-str is compiled, it
+\ allocates a call-site object on the heap and injects a reference to
+\ both that and the pxt into the compilation, along with a call to
+\ execute-method. Thus when pr-str runs, execute-method can check the
+\ call-site object to see if the type of the target object is the same
+\ as the last call for this site. If so, it executes the implementation
+\ immediately. Otherwise, it searches the target type's method list and
+\ if necessary MalDefault's method list. If an implementation of pxt is
+\ found, it is cached in the call-site, and then executed.
+: make-call-site { pxt -- }
+    pxt postpone literal \ transfer pxt into call site
+    call-site% %allocate throw dup postpone literal \ allocate call-site, push reference
+    \ dup ." Make cs '" pxt >name name>string type ." ' " . cr
+    0 swap call-site/type !
+    postpone execute-method ;
+
+: def-protocol-method ( parse: name -- )
+    : latestxt postpone literal postpone make-call-site postpone ; immediate
+    ;
 
 : extend ( type -- type pxt install-xt <noname...>)
     parse-name find-name name>int ( type pxt )

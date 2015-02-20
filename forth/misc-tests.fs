@@ -39,6 +39,7 @@ dup 5 cells + @  20 test=
 
 \ Protocol tests
 
+: t1
 mal-nil
 42 MalInt. mal-nil conj
 10 MalInt. mal-nil conj conj
@@ -80,14 +81,20 @@ drop
 
 99 MalInt. 10 MalInt. MalMap/Empty get 99 MalInt. test=
 
+;
+t1
+
 \ eval tests
 
 require step2_eval.fs
 
+: t2
 mal-nil
     1 MalInt. swap conj
     2 MalInt. swap conj
     3 MalInt. swap conj
 mal-eval
+;
+t2
 
 bye
