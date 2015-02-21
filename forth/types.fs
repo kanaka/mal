@@ -422,6 +422,17 @@ deftype MalMap
 
 MalMap new MalList/Empty over MalMap/list ! constant MalMap/Empty
 
+: MalMap/get-addr ( k map -- addr-or-nil )
+    MalMap/list @
+    dup MalList/start @
+    swap MalList/count @ { k start count }
+    nil ( addr )
+    count cells start +  start +do
+        i @ k m= if
+            drop i cell+ leave
+        endif
+    [ 2 cells ] literal +loop ;
+
 MalMap
   extend conj ( kv map -- map )
     MalMap/list @ \ get list
@@ -447,22 +458,9 @@ MalMap
             MalMap new dup -rot MalMap/list ! \ put back in map
         endif
     2 +loop ;;
-  extend get { not-found k map -- value }
-    map MalMap/list @
-    dup MalList/start @ { start }
-    MalList/count @ { count }
-    0
-    begin
-        dup count >= if
-            drop not-found true
-        else
-            start over cells + @ k m= if
-                start swap cells + cell+ @ true \ found it ( value true )
-            else
-                2 + false
-            endif
-        endif
-    until ;;
+  extend get ( not-found k map -- value )
+    MalMap/get-addr ( not-found addr-or-nil )
+    dup 0= if drop else nip @ endif ;;
   extend empty?
     MalMap/list @
     MalList/count @ 0= mal-bool ;;
@@ -495,14 +493,12 @@ drop
 MalType%
   cell% field MalSymbol/sym-addr
   cell% field MalSymbol/sym-len
-  cell% field MalSymbol/meta
 deftype MalSymbol
 
 : MalSymbol. { str-addr str-len -- mal-sym }
     MalSymbol new { sym }
     str-addr sym MalSymbol/sym-addr !
-    str-len  sym MalSymbol/sym-len  !
-    MalMap/Empty sym MalSymbol/meta  !
+    str-len  sym MalSymbol/sym-len !
     sym ;
 
 : unpack-sym ( mal-string -- addr len )
@@ -574,13 +570,11 @@ drop
 
 MalType%
   cell% field MalNativeFn/xt
-  cell% field MalNativeFn/meta
 deftype MalNativeFn
 
 : MalNativeFn. { xt -- mal-fn }
     MalNativeFn new { mal-fn }
     xt mal-fn MalNativeFn/xt !
-    MalMap/Empty mal-fn MalNativeFn/meta  !
     mal-fn ;
 
 

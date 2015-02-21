@@ -270,10 +270,12 @@ defspecial . { env coll -- rtn-list }
 
 MalSymbol
   extend mal-eval { env sym -- val }
-    0 sym env get
+    sym env env/get-addr
     dup 0= if
         drop
         0 0 s" ' not found" sym as-native s" '" ...throw-str
+    else
+        @
     endif ;;
 drop
 
