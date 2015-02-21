@@ -116,6 +116,7 @@ abc-def
 ;=>{"a" {"b" {"c" 3}}}
 {  "a"  {"b"   {  "cde"     3   }  }}
 ;=>{"a" {"b" {"cde" 3}}}
+{  :a  {:b   {  :cde     3   }  }}
 ;=>{:a {:b {:cde 3}}}
 
 ;; Testing read of comments

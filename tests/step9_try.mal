@@ -21,6 +21,10 @@
 ; "exc:" "my exception"
 ;=>7
 
+;;; Test that throw is a function:
+(try* (map throw [7]) (catch* exc exc))
+;=>7
+
 
 ;;
 ;; Testing builtin functions
