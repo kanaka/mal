@@ -61,7 +61,7 @@ MalSymbol
     dup 0= if
         drop
         ." Symbol '"
-        sym as-native safe-type
+        sym pr-str safe-type
         ." ' not found." cr
         1 throw
     endif ;;

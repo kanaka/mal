@@ -272,6 +272,8 @@ def-protocol-method to-list ( obj -- mal-list )
 def-protocol-method empty? ( obj -- mal-bool )
 def-protocol-method mal-count ( obj -- mal-int )
 def-protocol-method sequential? ( obj -- mal-bool )
+def-protocol-method get-map-hint ( obj -- hint )
+def-protocol-method set-map-hint! ( hint obj -- )
 
 
 \ Fully evalutate any Mal object:
@@ -426,12 +428,27 @@ MalMap new MalList/Empty over MalMap/list ! constant MalMap/Empty
     MalMap/list @
     dup MalList/start @
     swap MalList/count @ { k start count }
-    nil ( addr )
-    count cells start +  start +do
-        i @ k m= if
-            drop i cell+ leave
+    true \ need to search?
+    k get-map-hint { hint-idx }
+    hint-idx -1 <> if
+        hint-idx count < if
+            hint-idx cells start + { key-addr }
+            key-addr @ k m= if
+                key-addr cell+
+                nip false
+            endif
         endif
-    [ 2 cells ] literal +loop ;
+    endif
+    if \ search
+        nil ( addr )
+        count cells start +  start  +do
+            i @ k m= if
+                drop i
+                dup start - cell / k set-map-hint!
+                cell+ leave
+            endif
+        [ 2 cells ] literal +loop
+    endif ;
 
 MalMap
   extend conj ( kv map -- map )
@@ -443,7 +460,7 @@ MalMap
   extend assoc ( k v map -- map )
     MalMap/list @ \ get list
     conj conj
-    MalMap new dup -rot MalMap/list ! \ put back in map
+    MalMap new tuck MalMap/list ! \ put back in map
     ;;
   extend dissoc { k map -- map }
     map MalMap/list @
@@ -477,6 +494,8 @@ MalDefault
   extend empty? drop mal-true ;;
   extend sequential? drop mal-false ;;
   extend mal= = ;;
+  extend get-map-hint drop -1 ;;
+  extend set-map-hint! 2drop ;;
 drop
 
 MalNil
@@ -493,12 +512,14 @@ drop
 MalType%
   cell% field MalSymbol/sym-addr
   cell% field MalSymbol/sym-len
+  cell% field MalSymbol/map-hint
 deftype MalSymbol
 
 : MalSymbol. { str-addr str-len -- mal-sym }
     MalSymbol new { sym }
     str-addr sym MalSymbol/sym-addr !
     str-len  sym MalSymbol/sym-len !
+    -1       sym MalSymbol/map-hint !
     sym ;
 
 : unpack-sym ( mal-string -- addr len )
@@ -512,6 +533,8 @@ MalSymbol
     else
         2drop 0
     endif ;;
+  extend get-map-hint MalSymbol/map-hint @ ;;
+  extend set-map-hint! MalSymbol/map-hint ! ;;
   extend as-native ( this )
     unpack-sym evaluate ;;
 drop

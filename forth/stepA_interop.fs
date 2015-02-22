@@ -273,7 +273,7 @@ MalSymbol
     sym env env/get-addr
     dup 0= if
         drop
-        0 0 s" ' not found" sym as-native s" '" ...throw-str
+        0 0 s" ' not found" sym pr-str s" '" ...throw-str
     else
         @
     endif ;;

@@ -162,13 +162,13 @@ defspecial fn* { env list -- val }
 
 MalSymbol
   extend mal-eval { env sym -- val }
-    0 sym env get
+    sym env env/get-addr
     dup 0= if
         drop
-        ." Symbol '"
-        sym as-native safe-type
-        ." ' not found." cr
+        ." Symbol '" sym pr-str safe-type ." ' not found." cr
         1 throw
+    else
+        @
     endif ;;
 drop
 
