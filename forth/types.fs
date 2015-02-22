@@ -437,7 +437,6 @@ drop
 MalDefault
   extend conj   ( obj this -- this )
     nip ;;
-  extend as-native ;; ( obj -- obj )
   extend to-list drop 0 ;;
   extend empty? drop mal-true ;;
   extend sequential? drop mal-false ;;
@@ -447,7 +446,7 @@ drop
 MalNil
   extend conj ( item nil -- mal-list )
     drop MalList/Empty conj ;;
-  extend as-native drop 0 ;;
+  extend as-native drop nil ;;
   extend get 2drop ;;
   extend to-list drop MalList/Empty ;;
   extend empty? drop mal-true ;;
@@ -479,7 +478,8 @@ MalSymbol
     else
         2drop 0
     endif ;;
-  ' as-native ' unpack-sym extend-method*
+  extend as-native ( this )
+    unpack-sym evaluate ;;
 drop
 
 MalType%
@@ -544,11 +544,6 @@ deftype MalNativeFn
     xt mal-fn MalNativeFn/xt !
     MalMap/Empty mal-fn MalNativeFn/meta  !
     mal-fn ;
-
-MalNativeFn
-  extend as-native
-    MalNativeFn/xt @ ;;
-drop
 
 
 MalType%

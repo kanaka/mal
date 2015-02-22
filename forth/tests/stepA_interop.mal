@@ -1,0 +1,41 @@
+;; Basic interop
+(. 5 'MalInt.)
+;=>5
+(. 11 31 '+ 'MalInt.)
+;=>42
+(. "greetings" 'MalString.)
+;=>"greetings"
+(. "hello" 'type 'cr 'mal-nil)
+; hello
+;=>nil
+
+;; Interop on non-literals
+(. (+ 15 27) 'MalInt.)
+;=>42
+(let* [a 17] (. a 25 '+ 'MalInt.))
+;=>42
+(let* [a "hello"] (. a 1 '- 'MalString.))
+;=>"hell"
+
+;; Use of annoyingly-named forth words
+(. 1 'MalInt. (symbol ",") 'here (symbol "@"))
+;=>1
+(let* (i 'MalInt.) (. 5 i))
+;=>5
+(let* (comma (symbol ",") fetch (symbol "@")) (. 'here 42 'MalInt. comma fetch))
+;=>42
+
+;; Multiple .-forms interacting via heap memory and mal locals
+(def! string-parts (fn* (s) (. s 'MalInt. 'swap 'MalInt. 'here '-rot (symbol ",") (symbol ",") 'here>MalList)))
+(first (rest (string-parts "sketchy")))
+;=>7
+(def! prn-chars (fn* (start count) (if (> count 0) (do (prn (. start 1 'MalString.)) (prn-chars (+ start 1) (- count 1))))))
+(let* (msg (string-parts "sketchy")) (prn-chars (first msg) (first (rest msg))))
+; "s"
+; "k"
+; "e"
+; "t"
+; "c"
+; "h"
+; "y"
+;=>nil

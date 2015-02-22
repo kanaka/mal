@@ -261,6 +261,13 @@ defspecial try* { env list -- val }
         catch-env  catch0 cell+ @  TCO-eval
     endif ;;
 
+defspecial . { env coll -- rtn-list }
+    depth { old-depth }
+    coll to-list dup MalList/count @ swap MalList/start @ { count start }
+    count cells start +  start cell+  +do
+        env i @ eval as-native
+    cell +loop ;;
+
 MalSymbol
   extend mal-eval { env sym -- val }
     0 sym env get
