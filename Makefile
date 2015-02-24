@@ -110,9 +110,10 @@ scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 
 # Extra options to pass to runtest.py
-cs_TEST_OPTS =  --redirect
-mal_TEST_OPTS = --redirect --start-timeout 60 --test-timeout 120
-vb_TEST_OPTS =  --redirect
+cs_TEST_OPTS =     --redirect
+fsharp_TEST_OPTS = --redirect
+mal_TEST_OPTS =    --redirect --start-timeout 60 --test-timeout 120
+vb_TEST_OPTS =     --redirect
 
 
 # Derived lists
