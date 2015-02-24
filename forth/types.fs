@@ -132,38 +132,60 @@ MalType% deftype MalFalse MalFalse new constant mal-false
 
 \ === protocol methods === /
 
-0 constant trace
+struct
+    cell% field call-site/type
+    cell% field call-site/xt
+end-struct call-site%
 
 \ Used by protocol methods to find the appropriate implementation of
 \ themselves for the given object, and then execute that implementation.
-: execute-method { obj pxt -- }
+: execute-method { obj pxt call-site -- }
   obj not-object? if
       0 0 obj int>str s" ' on non-object: " pxt >name name>string
       s" Refusing to invoke protocol fn '" ...throw-str
   endif
-  obj mal-type @ dup MalTypeType-methods 2@ swap ( type methods method-keys )
-  dup 0= if \ No protocols extended to this type; check for a default
-    2drop drop MalDefault MalTypeType-methods 2@ swap
-  endif
+  \ ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type ." , cs " call-site .
 
-  pxt array-find ( type idx found? )
-  dup 0= if \ No implementation found for this method; check for a default
-    2drop drop MalDefault dup MalTypeType-methods 2@ swap
-    pxt array-find ( type idx found? )
-  endif
-  0= if ( type idx )
-      2drop
-      0 0 s" '" obj mal-type @ type-name s" ' extended to type '"
-      pxt >name name>string s" No protocol fn '" ...throw-str
-  endif
-  trace if ." Calling '" pxt >name name>string type ." ' on " obj mal-type @ type-name type cr endif
+  obj mal-type @ ( type )
+  dup call-site call-site/type @ = if
+      \ ." hit!" cr
+      drop
+      call-site call-site/xt @
+  else
+      \ ." miss!" cr
+      dup MalTypeType-methods 2@ swap ( type methods method-keys )
+      dup 0= if \ No protocols extended to this type; check for a default
+          2drop drop MalDefault MalTypeType-methods 2@ swap
+      endif
 
-  cells swap MalTypeType-method-vals @ + @ ( xt )
+      pxt array-find ( type idx found? )
+      dup 0= if \ No implementation found for this method; check for a default
+          2drop drop MalDefault dup MalTypeType-methods 2@ swap
+          pxt array-find ( type idx found? )
+      endif
+      0= if ( type idx )
+          2drop
+          0 0 s" '" obj mal-type @ type-name s" ' extended to type '"
+          pxt >name name>string s" No protocol fn '" ...throw-str
+      endif
+
+      cells over MalTypeType-method-vals @ + @ ( type xt )
+      swap call-site call-site/type ! ( xt )
+      dup call-site call-site/xt ! ( xt )
+  endif
   obj swap execute ;
 
 \ Extend a type with a protocol method. This mutates the MalTypeType
 \ object that represents the MalType being extended.
 : extend-method* { type pxt ixt -- type }
+  \ ." Extend '" pxt dup . >name name>string safe-type ." ' to " type type-name safe-type ." , "
+  \ type MalTypeType-methods 2@ ( method-keys methods )
+  \   0 ?do
+  \       dup i cells + @ >name name>string safe-type ." , "
+  \       \ dup i cells + @ .
+  \   loop
+  \   drop cr
+
   type MalTypeType-methods 2@ swap ( methods method-keys )
   dup 0= if \ no protocols extended to this type
     2drop
@@ -189,12 +211,28 @@ MalType% deftype MalFalse MalFalse new constant mal-false
   ;
 
 
-\ def-protocol-method pr-str   ...can be written:
-\ : pr-str ( obj -- str ) [ latestxt ] literal execute-method ;
-: def-protocol-method ( "name" -- )
-    create latestxt ,
-  does> ( ??? obj xt-ref -- ??? )
-    @ execute-method ;
+\ Define a new protocol function.  For example:
+\   def-protocol-method pr-str
+\ When called as above, defines a new word 'pr-str' and stores there its
+\ own xt (known as pxt). When a usage of pr-str is compiled, it
+\ allocates a call-site object on the heap and injects a reference to
+\ both that and the pxt into the compilation, along with a call to
+\ execute-method. Thus when pr-str runs, execute-method can check the
+\ call-site object to see if the type of the target object is the same
+\ as the last call for this site. If so, it executes the implementation
+\ immediately. Otherwise, it searches the target type's method list and
+\ if necessary MalDefault's method list. If an implementation of pxt is
+\ found, it is cached in the call-site, and then executed.
+: make-call-site { pxt -- }
+    pxt postpone literal \ transfer pxt into call site
+    call-site% %allocate throw dup postpone literal \ allocate call-site, push reference
+    \ dup ." Make cs '" pxt >name name>string type ." ' " . cr
+    0 swap call-site/type !
+    postpone execute-method ;
+
+: def-protocol-method ( parse: name -- )
+    : latestxt postpone literal postpone make-call-site postpone ; immediate
+    ;
 
 : extend ( type -- type pxt install-xt <noname...>)
     parse-name find-name name>int ( type pxt )
@@ -234,6 +272,8 @@ def-protocol-method to-list ( obj -- mal-list )
 def-protocol-method empty? ( obj -- mal-bool )
 def-protocol-method mal-count ( obj -- mal-int )
 def-protocol-method sequential? ( obj -- mal-bool )
+def-protocol-method get-map-hint ( obj -- hint )
+def-protocol-method set-map-hint! ( hint obj -- )
 
 
 \ Fully evalutate any Mal object:
@@ -384,6 +424,32 @@ deftype MalMap
 
 MalMap new MalList/Empty over MalMap/list ! constant MalMap/Empty
 
+: MalMap/get-addr ( k map -- addr-or-nil )
+    MalMap/list @
+    dup MalList/start @
+    swap MalList/count @ { k start count }
+    true \ need to search?
+    k get-map-hint { hint-idx }
+    hint-idx -1 <> if
+        hint-idx count < if
+            hint-idx cells start + { key-addr }
+            key-addr @ k m= if
+                key-addr cell+
+                nip false
+            endif
+        endif
+    endif
+    if \ search
+        nil ( addr )
+        count cells start +  start  +do
+            i @ k m= if
+                drop i
+                dup start - cell / k set-map-hint!
+                cell+ leave
+            endif
+        [ 2 cells ] literal +loop
+    endif ;
+
 MalMap
   extend conj ( kv map -- map )
     MalMap/list @ \ get list
@@ -394,7 +460,7 @@ MalMap
   extend assoc ( k v map -- map )
     MalMap/list @ \ get list
     conj conj
-    MalMap new dup -rot MalMap/list ! \ put back in map
+    MalMap new tuck MalMap/list ! \ put back in map
     ;;
   extend dissoc { k map -- map }
     map MalMap/list @
@@ -409,22 +475,9 @@ MalMap
             MalMap new dup -rot MalMap/list ! \ put back in map
         endif
     2 +loop ;;
-  extend get { not-found k map -- value }
-    map MalMap/list @
-    dup MalList/start @ { start }
-    MalList/count @ { count }
-    0
-    begin
-        dup count >= if
-            drop not-found true
-        else
-            start over cells + @ k m= if
-                start swap cells + cell+ @ true \ found it ( value true )
-            else
-                2 + false
-            endif
-        endif
-    until ;;
+  extend get ( not-found k map -- value )
+    MalMap/get-addr ( not-found addr-or-nil )
+    dup 0= if drop else nip @ endif ;;
   extend empty?
     MalMap/list @
     MalList/count @ 0= mal-bool ;;
@@ -437,17 +490,18 @@ drop
 MalDefault
   extend conj   ( obj this -- this )
     nip ;;
-  extend as-native ;; ( obj -- obj )
   extend to-list drop 0 ;;
   extend empty? drop mal-true ;;
   extend sequential? drop mal-false ;;
   extend mal= = ;;
+  extend get-map-hint drop -1 ;;
+  extend set-map-hint! 2drop ;;
 drop
 
 MalNil
   extend conj ( item nil -- mal-list )
     drop MalList/Empty conj ;;
-  extend as-native drop 0 ;;
+  extend as-native drop nil ;;
   extend get 2drop ;;
   extend to-list drop MalList/Empty ;;
   extend empty? drop mal-true ;;
@@ -458,14 +512,14 @@ drop
 MalType%
   cell% field MalSymbol/sym-addr
   cell% field MalSymbol/sym-len
-  cell% field MalSymbol/meta
+  cell% field MalSymbol/map-hint
 deftype MalSymbol
 
 : MalSymbol. { str-addr str-len -- mal-sym }
     MalSymbol new { sym }
     str-addr sym MalSymbol/sym-addr !
-    str-len  sym MalSymbol/sym-len  !
-    MalMap/Empty sym MalSymbol/meta  !
+    str-len  sym MalSymbol/sym-len !
+    -1       sym MalSymbol/map-hint !
     sym ;
 
 : unpack-sym ( mal-string -- addr len )
@@ -479,7 +533,10 @@ MalSymbol
     else
         2drop 0
     endif ;;
-  ' as-native ' unpack-sym extend-method*
+  extend get-map-hint MalSymbol/map-hint @ ;;
+  extend set-map-hint! MalSymbol/map-hint ! ;;
+  extend as-native ( this )
+    unpack-sym evaluate ;;
 drop
 
 MalType%
@@ -536,19 +593,12 @@ drop
 
 MalType%
   cell% field MalNativeFn/xt
-  cell% field MalNativeFn/meta
 deftype MalNativeFn
 
 : MalNativeFn. { xt -- mal-fn }
     MalNativeFn new { mal-fn }
     xt mal-fn MalNativeFn/xt !
-    MalMap/Empty mal-fn MalNativeFn/meta  !
     mal-fn ;
-
-MalNativeFn
-  extend as-native
-    MalNativeFn/xt @ ;;
-drop
 
 
 MalType%
