@@ -4,7 +4,7 @@
 
 Mal is an Clojure inspired Lisp interpreter.
 
-Mal is implemented in 25 different languages:
+Mal is implemented in 26 different languages:
 
 * Bash shell
 * C
@@ -20,6 +20,7 @@ Mal is implemented in 25 different languages:
 * GNU Make
 * mal itself
 * MATLAB
+* [miniMAL](https://github.com/kanaka/miniMAL)
 * OCaml
 * Perl
 * PHP
@@ -210,6 +211,21 @@ cd matlab
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY();quit;"
     # OR with command line arguments
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY('arg1','arg2');quit;"
+```
+
+### miniMAL
+
+[miniMAL](https://github.com/kanaka/miniMAL) is small Lisp interpreter
+implemented in less than 1024 bytes of JavaScript. To run the miniMAL
+implementation of mal you need to download/install the miniMAL
+interpreter (which requires Node.js).
+```
+# Download miniMAL itself
+git clone https://github.com/kanaka/miniMAL ../miniMAL.git
+export PATH=`pwd`/miniMAL.git:$PATH
+# Now run mal implementated in miniMAL
+cd miniMAL
+miniMAL ./stepX_YYY
 ```
 
 ### Perl 5.8
