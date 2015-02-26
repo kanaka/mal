@@ -88,6 +88,9 @@
           ["`", "or_FIXME"],
           ["concat", ["`", ["or"]], ["rest", "xs"]]]]]]]]],
 
+["def", "classOf", ["fn", ["a"],
+  [".", [".-", [".-", "Object", ["`", "prototype"]], ["`", "toString"]],
+        ["`", "call"], "a"]]],
 
 
 ["def", "repl", ["fn",["prompt", "rep"],

@@ -75,7 +75,7 @@
   ["str", ["`", "\u029e"], "name"]]],
 
 ["def", "keyword?", ["fn", ["kw"],
-  ["and", ["=", ["`", "string"], ["type", "kw"]],
+  ["and", ["=", ["`", "[object String]"], ["classOf", "kw"]],
           ["=", ["`", "\u029e"], ["get", "kw", 0]]]]],
 
 
