@@ -4,15 +4,59 @@ module Reader
 
     let private accToStr acc =
         String(acc |> List.rev |> Array.ofList)
-
-    let rec private WhileWhiteSpace (chars : char list) = 
+    
+    let rec private whileWhiteSpace (chars : char list) = 
         match chars with
-        | ch::rest when Char.IsWhiteSpace(ch) -> WhileWhiteSpace rest
+        | ch::rest when Char.IsWhiteSpace(ch) -> whileWhiteSpace rest
         | rest -> rest
-
+    
     let private (|IsWhiteSpace|_|) = function
-        | ch::rest when Char.IsWhiteSpace(ch) -> Some(WhileWhiteSpace rest)
+        | ch::rest when Char.IsWhiteSpace(ch) -> Some(whileWhiteSpace rest)
         | _ -> None
+
+    let private (|IsPunct|_|) = function
+        | '['::rest -> Some("[", rest)
+        | ']'::rest -> Some("]", rest)
+        | '{'::rest -> Some("{", rest)
+        | '}'::rest -> Some("}", rest)
+        | '('::rest -> Some("(", rest)
+        | ')'::rest -> Some(")", rest)
+        | '\''::rest -> Some("\'", rest)
+        | '`'::rest -> Some("`", rest)
+        | '~'::rest -> Some("~", rest)
+        | '^'::rest -> Some("^", rest)
+        | '@'::rest -> Some("@", rest)
+        | _ -> None
+
+    let private (|IsString|_|) (chars : char list) =
+        let rec readStrBody (acc : char list) (chars : char list) =
+            match chars with
+            | '\\'::ch::rest -> readStrBody (ch::'\\'::acc) rest
+            | '"'::rest -> Some(accToStr ('"'::acc), rest)
+            | '\\'::rest -> None // throw exception here?
+            | ch::rest -> readStrBody (ch::acc) rest
+            | _ -> None // throw exception here?
+
+        match chars with
+        | '"'::rest -> readStrBody ('"'::[]) rest
+        | _ -> None 
+
+    let rec private getNextToken chars =
+        match chars with
+        | IsWhiteSpace rest -> getNextToken rest
+        | '~'::'@'::rest -> Some("~@", rest)
+        | IsPunct (tok, rest) -> Some(tok, rest)
+        | IsString (tok, rest) -> Some(tok, rest)
+        | _ -> None
+
+    let rec readTokens chars =
+        seq {
+            match getNextToken chars with
+            | Some(tok, rest)
+                -> yield tok
+                   yield! readTokens rest
+            | _ -> ()
+        }
 
     let rec private WhileInt64 acc (chars : char list) =
         match chars with
