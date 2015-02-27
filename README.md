@@ -286,7 +286,7 @@ cd racket
 ./stepX_YYY.rb
 ```
 
-### Ruby (1.8)
+### Ruby (1.9+)
 
 ```
 cd ruby

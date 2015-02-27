@@ -1,5 +1,4 @@
-$: << File.expand_path(File.dirname(__FILE__))
-require "mal_readline"
+require_relative "mal_readline"
 
 # read
 def READ(str)

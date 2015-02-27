@@ -1,4 +1,4 @@
-require "env"
+require_relative "env"
 
 class MalException < StandardError
   attr_reader :data
