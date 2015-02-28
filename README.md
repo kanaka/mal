@@ -2,7 +2,7 @@
 
 ## Description
 
-Mal is an Clojure inspired Lisp interpreter.
+Mal is a Clojure inspired Lisp interpreter.
 
 Mal is implemented in 26 different languages:
 
