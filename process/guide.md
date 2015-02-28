@@ -352,7 +352,7 @@ and each step will give progressively more bang for the buck.
 * Add support for the other basic data type to your reader and printer
   functions: string, nil, true, and false. These become mandatory at
   step 4. When a string is read, a slash followed by a doublequote is
-  translatd into a plain doublequote character and a slash followed by
+  translated into a plain doublequote character and a slash followed by
   "n" is translated into a newline. To properly print a string (for
   step 4 string functions), the `pr_str` function needs another
   parameter called `print_readably`. When `print_readably` is true,
