@@ -1,10 +1,9 @@
-$: << File.expand_path(File.dirname(__FILE__))
-require "mal_readline"
-require "types"
-require "reader"
-require "printer"
-require "env"
-require "core"
+require_relative "mal_readline"
+require_relative "types"
+require_relative "reader"
+require_relative "printer"
+require_relative "env"
+require_relative "core"
 
 # read
 def READ(str)
