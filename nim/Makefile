@@ -6,7 +6,7 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
-SRCS = step0_repl.nim step1_read_print.nim
+SRCS = step0_repl.nim step1_read_print.nim step2_eval.nim
 BINS = $(SRCS:%.nim=%)
 
 #####################

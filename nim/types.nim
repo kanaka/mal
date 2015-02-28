@@ -1,7 +1,7 @@
 import tables
 
 type
-  MalTypeKind* = enum Nil, Number, Symbol, List, Vector, HashMap
+  MalTypeKind* = enum Nil, Number, Symbol, List, Vector, HashMap, Fun
 
   MalType* = object
     case kind*: MalTypeKind
@@ -11,6 +11,7 @@ type
     of List:    list*:     seq[MalType]
     of Vector:  vector*:   seq[MalType]
     of HashMap: hash_map*: TableRef[string, MalType]
+    of Fun:     fun*:      proc(xs: varargs[MalType]): MalType
 
 # Convenience procs
 const nilObj*: MalType = MalType(kind: Nil)
@@ -31,3 +32,5 @@ proc hash_map*(xs: varargs[MalType]): MalType =
   result = MalType(kind: HashMap, hash_map: newTable[string, MalType]())
   for i in countup(0, xs.high, 2):
     result.hash_map[xs[i].symbol] = xs[i+1]
+
+proc fun*(x: proc(xs: varargs[MalType]): MalType): MalType = MalType(kind: Fun, fun: x)
