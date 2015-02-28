@@ -95,7 +95,7 @@ go_RUNSTEP =      ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.args="--raw$(if $(3), $(3),)"
 js_RUNSTEP =      node ../$(2) $(3)
-lua_RUNSTEP =     ../$(2) $(3)
+lua_RUNSTEP =     ../$(2) --raw $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
