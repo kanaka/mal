@@ -11,7 +11,7 @@ proc eval_ast(ast: MalType, env: var Env): MalType =
   of List:
     result = list ast.list.mapIt(MalType, it.eval(env))
   of Vector:
-    result = vector ast.vector.mapIt(MalType, it.eval(env))
+    result = vector ast.list.mapIt(MalType, it.eval(env))
   of HashMap:
     result = hash_map()
     for k, v in ast.hash_map.pairs:
@@ -34,12 +34,9 @@ proc eval(ast: MalType, env: var Env): MalType =
       var letEnv: Env
       letEnv.deepCopy(env)
       case a1.kind
-      of List:
+      of List, Vector:
         for i in countup(0, a1.list.high, 2):
           letEnv.set(a1.list[i].symbol, a1.list[i+1].eval(letEnv))
-      of Vector:
-        for i in countup(0, a1.vector.high, 2):
-          letEnv.set(a1.vector[i].symbol, a1.vector[i+1].eval(letEnv))
       else: discard
       result = a2.eval(letEnv)
     else:
