@@ -68,8 +68,8 @@ git clone git@github.com:YOUR_NAME/mal.git
 cd mal
 ```
 
-* Make a new directory for your implementation. For example, if you
-* language is called "quux":
+* Make a new directory for your implementation. For example, if your
+language is called "quux":
 ```
 mkdir quux
 ```
