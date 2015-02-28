@@ -96,7 +96,11 @@ def EVAL(ast, env)
     when :macroexpand
         return macroexpand(a1, env)
     when :"rb*"
-        return eval(a1)
+        res = eval(a1)
+        return case res
+            when Array; List.new res
+            else; res
+        end
     when :"try*"
         begin
             return EVAL(a1, env)

@@ -1,4 +1,6 @@
 All:
+    - Finish guide.md
+
     - rename stepA_interop to stepA_mal
     - test to check args set properly
     - test to make sure slurp captures final newline
@@ -57,6 +59,8 @@ C:
 C#:
     - fix command line arg processing (doesn't run file specified)
     - accumulates line breaks with mal/clojurewest2014.mal
+    - step9_interop:
+      http://www.ckode.dk/programming/eval-in-c-yes-its-possible/
 
 Clojure:
     - make indent consistent across steps (e.g. step5, step8)
@@ -166,6 +170,10 @@ Future Implementations:
     - Haxe
         - http://api.haxe.org/
         - http://haxe.us/haxe_tutorial.html
+
+    - Julia
+
+    - Nim
 
     - Objective-C:
 

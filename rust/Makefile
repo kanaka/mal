@@ -8,18 +8,21 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
-SRCS = step0_repl.rs step1_read_print.rs step2_eval.rs step3_env.rs \
+SRCS = step1_read_print.rs step2_eval.rs step3_env.rs \
        step4_if_fn_do.rs step5_tco.rs step6_file.rs step7_quote.rs \
        step8_macros.rs step9_try.rs stepA_interop.rs
 BINS = $(SRCS:%.rs=target/%)
 
 #####################
 
-all: $(BINS) mal
+all: mal
 
 mal: ${SOURCES_BASE} $(word $(words ${SOURCES_LISP}),${SOURCES_LISP})
 	cargo build
 	cp $(word $(words ${BINS}),${BINS})  $@
+
+#$(BINS): target/%: src/%.rs
+#	cargo build $*
 
 clean:
 	cargo clean

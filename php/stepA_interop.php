@@ -109,7 +109,19 @@ function MAL_EVAL($ast, $env) {
     case "macroexpand":
         return macroexpand($ast[1], $env);
     case "php*":
-        return eval($ast[1]);
+        $res = eval($ast[1]);
+        switch (gettype($res)) {
+        case "array":
+            if ($res !== array_values($res)) {
+                $new_res = _hash_map();
+                $new_res->exchangeArray($res);
+                return $new_res;
+            } else {
+                return call_user_func_array('_list', $res);
+            }
+        default:
+            return $res;
+        }
     case "try*":
         $a1 = $ast[1];
         $a2 = $ast[2];
