@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 
 import os, sys, re
-import argparse, time
+import argparse
 
-import pty
-from subprocess import Popen, STDOUT, PIPE
-from select import select
+# http://pexpect.sourceforge.net/pexpect.html
+from pexpect import spawn, EOF, TIMEOUT
 
 # TODO: do we need to support '\n' too
 sep = "\r\n"
-#sep = "\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
@@ -31,53 +29,16 @@ parser.add_argument('mal_cmd', nargs="*",
         help="Mal implementation command line. Use '--' to "
              "specify a Mal command line with dashed options.")
 
-class Runner():
-    def __init__(self, args, redirect=False):
-        print "args: %s" % repr(args)
-        if redirect:
-            print "using redirect"
-            self.p = Popen(args, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-            self.stdin = self.p.stdin
-            self.stdout = self.p.stdout
-        else:
-            # provide tty to get 'interactive' readline to work
-            master, slave = pty.openpty()
-            self.p = Popen(args, bufsize=0, stdin=slave, stdout=slave, stderr=STDOUT)
-            self.stdin = os.fdopen(master, 'r+b', 0)
-            self.stdout = self.stdin
-
-        #print "started"
-        self.buf = ""
-        self.last_prompt = ""
-
-    def read_to_prompt(self, prompts, timeout):
-        end_time = time.time() + timeout
-        while time.time() < end_time:
-            [outs,_,_] = select([self.stdin], [], [], 1)
-            if self.stdin in outs:
-                new_data = self.stdin.read(1)
-                #print "new_data: '%s'" % new_data
-                self.buf += new_data
-                for prompt in prompts:
-                    regexp = re.compile(prompt)
-                    match = regexp.search(self.buf)
-                    if match:
-                        end = match.end()
-                        buf = self.buf[0:end-len(prompt)]
-                        self.buf = self.buf[end:]
-                        self.last_prompt = prompt
-                        return buf
-        return None
-
-    def write(self, str):
-        self.stdout.write(str)
-
 args = parser.parse_args(sys.argv[1:])
 test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, redirect=args.redirect)
+if args.redirect:
+    # Redirect to try and force raw mode (no ASCII codes)
+    p = spawn('/bin/bash -c "' + " ".join(args.mal_cmd) + ' |tee /dev/null"')
+else:
+    p = spawn(args.mal_cmd[0], args.mal_cmd[1:])
 
 
 test_idx = 0
@@ -120,13 +81,11 @@ def read_test(data):
 
 def assert_prompt(timeout):
     # Wait for the initial prompt
-    header = r.read_to_prompt(['user> ', 'mal-user> '], timeout=timeout)
-    if not header == None:
-        if header:
-            print "Started with:\n%s" % header
-    else:
+    idx = p.expect(['user> ', 'mal-user> ', EOF, TIMEOUT],
+                timeout=timeout)
+    if idx not in [0,1]:
         print "Did not get 'user> ' or 'mal-user> ' prompt"
-        print "    Got      : %s" % repr(r.buf)
+        print "    Got      : %s" % repr(p.before)
         sys.exit(1)
 
 
@@ -136,7 +95,7 @@ assert_prompt(args.start_timeout)
 # Send the pre-eval code if any
 if args.pre_eval:
     sys.stdout.write("RUNNING pre-eval: %s" % args.pre_eval)
-    p.write(args.pre_eval)
+    p.sendline(args.pre_eval)
     assert_prompt(args.test_timeout)
 
 fail_cnt = 0
@@ -149,21 +108,24 @@ while test_data:
     sys.stdout.flush()
     expected = "%s%s%s%s" % (form, sep, out, ret)
 
-    r.write(form + "\n")
+    p.sendline(form)
     try:
-        res = r.read_to_prompt(['\r\nuser> ', '\nuser> ',
-                                '\r\nmal-user> ', '\nmal-user> '],
-                                timeout=args.test_timeout)
+        idx = p.expect(['\r\nuser> ', '\nuser> ',
+                        '\r\nmal-user> ', '\nmal-user> '],
+                       timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if ret == "*" or res == expected:
+        if ret == "*" or p.before == expected:
             print " -> SUCCESS"
         else:
             print " -> FAIL (line %d):" % line_num
             print "    Expected : %s" % repr(expected)
-            print "    Got      : %s" % repr(res)
+            print "    Got      : %s" % repr(p.before)
             fail_cnt += 1
-    except:
-        print "Got Exception"
+    except EOF:
+        print "Got EOF"
+        sys.exit(1)
+    except TIMEOUT:
+        print "Got TIMEOUT, received: %s" % repr(p.before)
         sys.exit(1)
 
 if fail_cnt > 0:

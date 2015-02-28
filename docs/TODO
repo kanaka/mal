@@ -9,8 +9,8 @@ All:
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
     - runtest expect fixes:
-        - stop using expect, so we can drop --raw option
-        - fix long lines in runtext/expect
+        * stop using expect, so we can drop --raw option
+        - fix long line splitting in runtest
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - Implement/fix interop
