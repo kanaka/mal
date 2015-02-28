@@ -321,7 +321,7 @@ manually try some simple inputs:
   * `   abc   ` -> `abc`
   * `(123 456)` -> `(123 456)`
   * `(  123   456 789   )   ` -> `(123 456 789)`
-  * `(  + 2   (+  3  4)  )  ` -> `(+ 2 (* 3 4))`
+  * `(  + 2   (*  3  4)  )  ` -> `(+ 2 (* 3 4))`
 
 To verify that your code is doing more than just eliminating extra
 spaces (and not failing), you can instrument your `reader.qx` functions.
