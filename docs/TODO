@@ -9,8 +9,8 @@ All:
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
     - runtest expect fixes:
-        - fix C#, VB and Lua
         * stop using expect, so we can drop --raw option
+        - fix C#, VB
         - fix long line splitting in runtest
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)

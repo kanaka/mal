@@ -72,6 +72,12 @@ class Runner():
     def write(self, str):
         self.stdout.write(str)
 
+    def cleanup(self):
+        if self.p:
+            self.p.terminate()
+            self.p = None
+
+
 args = parser.parse_args(sys.argv[1:])
 test_data = args.test_file.read().split('\n')
 
@@ -127,6 +133,7 @@ def assert_prompt(timeout):
     else:
         print "Did not get 'user> ' or 'mal-user> ' prompt"
         print "    Got      : %s" % repr(r.buf)
+        r.cleanup()
         sys.exit(1)
 
 
@@ -164,7 +171,9 @@ while test_data:
             fail_cnt += 1
     except:
         print "Got Exception"
+        r.cleanup()
         sys.exit(1)
+r.cleanup()
 
 if fail_cnt > 0:
     print "FAILURES: %d" % fail_cnt
