@@ -15,7 +15,7 @@ So jump right in (er ... start the climb)!
 
 You might already have a language in mind that you want to use.
 Technically speaking, mal can be implemented in any sufficiently
-complete programming (i.e. Turing complete), however, there are a few
+complete programming language (i.e. Turing complete), however, there are a few
 language features that can make the task MUCH easier. Here are some of
 them in rough order of importance:
 
