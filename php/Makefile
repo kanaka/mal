@@ -2,7 +2,7 @@
 TESTS =
 
 SOURCES_BASE = readline.php types.php reader.php printer.php
-SOURCES_LISP = env.php core.php stepA_interop.php
+SOURCES_LISP = env.php core.php stepA_mal.php
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 .PHONY: stats tests $(TESTS)

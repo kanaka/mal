@@ -1,4 +1,4 @@
-function stepA_interop(varargin), main(varargin), end
+function stepA_mal(varargin), main(varargin), end
 
 % read
 function ret = READ(str)

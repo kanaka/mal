@@ -24,7 +24,7 @@ step6 = step6_file
 step7 = step7_quote
 step8 = step8_macros
 step9 = step9_try
-stepA = stepA_interop
+stepA = stepA_mal
 
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault

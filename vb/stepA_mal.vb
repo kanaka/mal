@@ -13,7 +13,7 @@ Imports MalFunc = Mal.types.MalFunc
 Imports MalEnv = Mal.env.Env
 
 Namespace Mal
-    Class stepA_interop
+    Class stepA_mal
         ' read
         Shared Function READ(str As String) As MalVal
             Return reader.read_str(str)

@@ -1,7 +1,6 @@
 All:
     - Finish guide.md
 
-    - rename stepA_interop to stepA_mal
     - test to check args set properly
     - test to make sure slurp captures final newline
     - make sure errors propagate/print properly when self-hosted
@@ -94,7 +93,7 @@ Lua:
 Make:
     - allow '_' in make variable names
     - hash-map with space in key string
-    - Fix: make -f stepA_interop.mk ../mal/step6_file.mal
+    - Fix: make -f stepA_mal.mk ../mal/step6_file.mal
         (slurp "../tests/incA.mal")
         (read-string "(+ 2 3)")
     - errors should propagate up from within load-file
@@ -121,7 +120,7 @@ Postscript:
     - formatting messed up with mal/clojurewest2014.mal
 
 Python:
-    - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
+    - error: python ../python/stepA_mal.py ../mal/stepA_mal.mal ../mal/stepA_mal.mal
     - interop tests
 
 R:

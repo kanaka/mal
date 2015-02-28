@@ -2,7 +2,7 @@
 TESTS = tests/types.js tests/reader.js
 
 SOURCES_BASE = node_readline.js types.js reader.js printer.js
-SOURCES_LISP = env.js core.js stepA_interop.js
+SOURCES_LISP = env.js core.js stepA_mal.js
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 WEB_SOURCES = $(SOURCES:node_readline.js=jq_readline.js)
 

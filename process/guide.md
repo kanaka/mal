@@ -1151,15 +1151,15 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 ### Step A: Interop and Self-hosting
 
-![stepA_interop architecture](stepA_interop.png)
+![stepA_mal architecture](stepA_mal.png)
 
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try.txt ../process/stepA_interop.txt
+diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 ```
 
-* Copy `step9_try.qx` to `stepA_interop.qx`.
+* Copy `step9_try.qx` to `stepA_mal.qx`.
 
 * TODO/TBD
 
