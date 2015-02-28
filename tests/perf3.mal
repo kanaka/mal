@@ -1,0 +1,28 @@
+(load-file "../core.mal")
+(load-file "../perf.mal")
+
+;;(prn "Start: basic macros/atom test")
+
+(def! atm (atom (list 0 1 2 3 4 5 6 7 8 9)))
+
+(println "iters/s:"
+  (run-fn-for
+    (fn* []
+      (do
+        (or false nil false nil false nil false nil false nil (first @atm))
+        (cond false 1 nil 2 false 3 nil 4 false 5 nil 6 "else" (first @atm))
+        (-> (deref atm) rest rest rest rest rest rest first)
+        (swap! atm (fn* [a] (concat (rest a) (list (first a)))))))
+    10))
+
+;;(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+;;(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+;;
+;;(println "iters/s:"
+;;  (run-fn-for
+;;    (fn* []
+;;      (do 
+;;        (sumdown 10)
+;;        (fib 12)))
+;;    3))
+;;(prn "Done: basic macros/atom test")
