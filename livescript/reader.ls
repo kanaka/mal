@@ -1,6 +1,7 @@
 require! {
     LiveScript
     'prelude-ls': {map, zip, partition}
+    './builtins.ls': {NIL, TRUE, FALSE}
 }
 
 {MalMap, MalList, MalVec} = require './types.ls'
@@ -57,10 +58,6 @@ keys-and-vals = (xs) ->
 
 ks-vs = partition (.1) >> (% 2) >> (is 0)
 discard-indices = map (map (.0))
-
-NIL = {type: \NIL, value: null}
-TRUE = {type: \BOOL, value: true}
-FALSE = {type: \BOOL, value: false}
 
 read-atom = (r) ->
     switch t = r.next!

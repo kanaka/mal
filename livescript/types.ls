@@ -71,7 +71,7 @@ export class MalMap
 
     equals: (b) ->
         return false unless b.type is \MAP
-        my-keys = @keys
+        my-keys = @keys()
         their-keys = b.keys()
         return false unless my-keys.length is their-keys.length
         all ((k) ~> mal-eql @get(k), b.get(k)), my-keys

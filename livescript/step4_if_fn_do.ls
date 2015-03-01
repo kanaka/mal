@@ -1,19 +1,13 @@
 require! {
     LiveScript
     readline
+    './core.ls': core
     './env.ls': {create-env}
     './types.ls': {Builtin}
     './logic.ls': {eval-mal}
     './reader.ls': {read-str}
     './printer.ls': {pr-str}
     'prelude-ls': {id}
-}
-
-BUILTINS = {
-    '+': (new Builtin ([x, y]) -> {type: \INT, value: x.value + y.value})
-    '-': (new Builtin ([x, y]) -> {type: \INT, value: x.value - y.value})
-    '*': (new Builtin ([x, y]) -> {type: \INT, value: x.value * y.value})
-    '/': (new Builtin ([x, y]) -> {type: \INT, value: x.value / y.value})
 }
 
 {stdin, stdout} = process
@@ -25,7 +19,7 @@ print-mal = (ast) ->
 
 rep = (expr, env) -> expr |> read-mal |> (eval-mal env) |> print-mal
 
-env = create-env BUILTINS
+env = create-env core.ns
 stdin.set-encoding \utf8
 rl = readline.create-interface input: stdin, output: stdout
 rl.set-prompt 'user> '

@@ -3,20 +3,22 @@ require! LiveScript
 require! 'prelude-ls': {map}
 require! './builtins.ls': {truthy, is-seq}
 require! './printer.ls': {pr-str}
-require! './env': {create-env}
+require! './env': {create-env, bind-value}
 
-{Lambda, MalList, MalVec} = require './types.ls'
+{Lambda, MalList, MalVec, MalMap} = require './types.ls'
 
 SPECIALS = <[ do let def! fn* fn if ]>
 
 export eval-mal = (env, ast) -->
     if is-special-form ast
         return handle-special-form env, ast
+    ev = eval-mal env
 
     evaluated = switch ast.type
         | \SYM => env[ast.value] or throw new Error "Undefined symbol: #{ ast.value }"
-        | \LIST => new MalList map (eval-mal env), ast.value
-        | \VEC => new MalVec map (eval-mal env), ast.value
+        | \LIST => new MalList map ev, ast.value
+        | \VEC => new MalVec map ev, ast.value
+        | \MAP => new MalMap [[(ev k), (ev ast.get(k))] for k in ast.keys()]
         | otherwise => ast
     if evaluated.type is \LIST
         apply-ast env, evaluated.value
@@ -52,9 +54,7 @@ do-if = (env, [test, when-true, when-false]:forms) ->
 do-def = (env, [key, value]:forms) ->
     unless forms.length is 2
         throw new Error "Expected 2 arguments to def, got #{ forms.length }"
-    if key.type isnt \SYM
-        throw new Error "Not a symbol: #{ pr-str key }"
-    env[key.value] = eval-mal env, value
+    bind-value env, key, eval-mal env, value
 
 do-let = (outer, [bindings, ...bodies]) ->
     env = create-env outer
@@ -64,10 +64,8 @@ do-let = (outer, [bindings, ...bodies]) ->
         throw new Error "There must be an even number of bindings"
 
     for i in [0 til bindings.value.length - 1 by 2]
-        name = bindings.value[i]
-        unless name.type is \SYM
-            throw new Error "Cannot destructure - bindings must be symbols"
-        env[name.value] = eval-mal env, bindings.value[i + 1]
+        do-def env, [bindings.value[i], bindings.value[i + 1]]
+
     do-do env, bodies
 
 do-do = (env, bodies) ->
