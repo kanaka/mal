@@ -1,5 +1,6 @@
 require! {
     LiveScript
+    './env.ls': env
     'prelude-ls': {all, find, map, zip}
 }
 {atomic-types, mal-eql, is-atom, is-nil} = require './builtins.ls'
@@ -9,6 +10,14 @@ export class Builtin
     (@fn) ->
 
     type: \BUILTIN
+
+export class Lambda
+
+    (@env, @names, @body) ->
+
+    closure: (exprs) -> env.create-env @env, @names, exprs
+
+    type: \LAMBDA
 
 export class MalMap
 

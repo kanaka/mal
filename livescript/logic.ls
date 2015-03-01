@@ -1,13 +1,13 @@
 require! LiveScript
 
 require! 'prelude-ls': {map}
-require! './builtins.ls': {is-seq}
+require! './builtins.ls': {truthy, is-seq}
 require! './printer.ls': {pr-str}
 require! './env': {create-env}
 
-{MalList, MalVec} = require './types.ls'
+{Lambda, MalList, MalVec} = require './types.ls'
 
-SPECIALS = <[ do let def! ]>
+SPECIALS = <[ do let def! fn* fn if ]>
 
 export eval-mal = (env, ast) -->
     if is-special-form ast
@@ -19,7 +19,7 @@ export eval-mal = (env, ast) -->
         | \VEC => new MalVec map (eval-mal env), ast.value
         | otherwise => ast
     if evaluated.type is \LIST
-        apply-ast evaluated.value
+        apply-ast env, evaluated.value
     else
         evaluated
 
@@ -34,9 +34,24 @@ handle-special-form = (env, {value: [form, ...args]}) ->
         | 'do' => do-do env, args
         | 'let' => do-let env, args
         | 'def!' => do-def env, args
+        | 'fn', 'fn*' => do-fn env, args
+        | 'if' => do-if env, args
         | _ => throw new Error "Unknown form: #{ form.value }"
 
-do-def = (env, [key, value]) ->
+do-fn = (env, [names, ...bodies]) ->
+    unless is-seq names
+        throw new Error "Names must be a sequence, got: #{ pr-str names }"
+    new Lambda env, names.value.slice(), bodies
+
+do-if = (env, [test, when-true, when-false]:forms) ->
+    unless forms.length is 3
+        throw new Error "Expected 3 arguments to if, got #{ forms.length }"
+    ret = eval-mal env, test
+    eval-mal env, (if (truthy ret) then when-true else when-false)
+
+do-def = (env, [key, value]:forms) ->
+    unless forms.length is 2
+        throw new Error "Expected 2 arguments to def, got #{ forms.length }"
     if key.type isnt \SYM
         throw new Error "Not a symbol: #{ pr-str key }"
     env[key.value] = eval-mal env, value
@@ -60,8 +75,9 @@ do-do = (env, bodies) ->
         ret = eval-mal env, body
     return ret
 
-apply-ast = ([fn, ...args]) ->
-    if fn.type not in [\BUILTIN, \LAMBDA]
-        throw new Error "Not a function: #{ pr-str fn }"
-    fn.fn args
+apply-ast = (env, [fn, ...args]) ->
+    switch fn.type
+        | \BUILTIN => fn.fn args
+        | \LAMBDA => do-do (fn.closure map (eval-mal env), args), fn.body
+        | _ => throw new Error "Not a function: #{ pr-str fn }"
 
