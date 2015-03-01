@@ -22,6 +22,16 @@ proc read_str(xs: varargs[MalType]): MalType =
 proc slurp(xs: varargs[MalType]): MalType =
   str readFile(xs[0].str)
 
+proc cons(xs: varargs[MalType]): MalType =
+  result = list(xs[0])
+  for x in xs[1].list: result.list.add x
+
+proc concat(xs: varargs[MalType]): MalType =
+  result = list()
+  for x in xs:
+    for i in x.list:
+      result.list.add i
+
 template wrapNumberFun(op: expr): expr =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
 
@@ -57,4 +67,6 @@ let ns* = {
 
   "read-string": fun read_str,
   "slurp": fun slurp,
+  "cons": fun cons,
+  "concat": fun concat,
 }
