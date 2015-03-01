@@ -5,6 +5,16 @@ require! {
 }
 {atomic-types, mal-eql, is-atom, is-nil} = require './builtins.ls'
 
+keywords = {}
+keyword-array = Array 1000
+keyword-counter = 0
+
+export keyword-by-value = (i) -> keyword-array[i]
+
+export keyword = (name) -> keywords[name] ?= do ->
+    value = keyword-counter++
+    keyword-array[value] = {type: \KEYWORD, value, name}
+
 export class Builtin
     
     (@fn) ->
@@ -52,7 +62,7 @@ export class MalMap
         ks = []
         for type, store of m.stores
             for k, v of store
-                ks.push {type, value: k}
+                ks.push (if type is \KEYWORD then (keyword-by-value k) else {type, value: k})
         ks ++ (if m._nil then [NIL] else [])
 
     type: \MAP

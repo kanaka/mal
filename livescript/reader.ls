@@ -4,12 +4,13 @@ require! {
     './builtins.ls': {NIL, TRUE, FALSE}
 }
 
-{MalMap, MalList, MalVec} = require './types.ls'
+{keyword, MalMap, MalList, MalVec} = require './types.ls'
 
 THE_ONE_TRUE_REGEX = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g
 INTEGER = /^-?[1-9][0-9]*$/
 FLOAT = /^-?[0-9]+(\.[0-9]*)?$/
 STRING = /^"(\\n|\\t|\\"|\\\\|[^\\])*"$/
+KEYWORD = /^:[\S]+$/
 
 [START_LIST, END_LIST] = ['(', ')']
 [START_VEC, END_VEC]   = ['[', ']']
@@ -68,6 +69,7 @@ read-atom = (r) ->
             | INTEGER.test t => {type: \INT,   value: (parseInt t, 10)}
             | FLOAT.test t   => {type: \FLOAT, value: (parseFloat t)}
             | STRING.test t   => {type: \STRING, value: JSON.parse(t)}
+            | KEYWORD.test t => keyword t.slice 1
             | _              => {type: \SYM,   value: t}
 
 tokenise = (str) ->

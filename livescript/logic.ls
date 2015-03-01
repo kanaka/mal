@@ -1,13 +1,13 @@
 require! LiveScript
 
-require! 'prelude-ls': {map}
-require! './builtins.ls': {truthy, is-seq}
+require! 'prelude-ls': {map, fold}
+require! './builtins.ls': {NIL, truthy, is-seq}
 require! './printer.ls': {pr-str}
 require! './env': {create-env, bind-value}
 
 {Lambda, MalList, MalVec, MalMap} = require './types.ls'
 
-SPECIALS = <[ do let def! fn* fn defn if ]>
+SPECIALS = <[ do let def! fn* fn defn if or and ]>
 
 export eval-mal = (env, ast) -->
     if is-special-form ast
@@ -39,7 +39,20 @@ handle-special-form = (env, {value: [form, ...args]}) ->
         | 'fn', 'fn*' => do-fn env, args
         | 'defn' => do-def env, [args[0], (do-fn env, args.slice(1))]
         | 'if' => do-if env, args
+        | 'or' => do-or env, args
+        | 'and' => do-and env, args
         | _ => throw new Error "Unknown form: #{ form.value }"
+
+do-or = (env, exprs) ->
+    return NIL unless exprs.length
+    for e in exprs
+        v = eval-mal env, e
+        return v if truthy v
+    return v
+
+do-and = (env, [e, ...es]) ->
+    combine = (a, b) -> if truthy a then (eval-mal env, b) else a
+    fold combine, e, es
 
 do-fn = (env, [names, ...bodies]) ->
     unless is-seq names
