@@ -12,6 +12,7 @@ module Printer
             | Vector(nodes)
                 -> acc.Append("[") |> ignore
                    pr_vector "" nodes 0
+            | Map(map) -> pr_map map
             | Symbol(symbol) -> acc.Append(symbol) |> ignore
             | Number(num) -> acc.Append(num) |> ignore
 
@@ -29,6 +30,17 @@ module Printer
                 pr_vector " " nodes (i + 1)
             else
                 acc.Append("]") |> ignore
+
+        and pr_map map =
+            let mapPrinter (prefix : string) key value =
+                acc.Append(prefix) |> ignore
+                pr_node key
+                acc.Append(" ") |> ignore
+                pr_node value
+                " "
+            acc.Append("{") |> ignore
+            Map.fold mapPrinter "" map |> ignore
+            acc.Append("}") |> ignore
         
         pr_node data
         acc.ToString()

@@ -114,43 +114,64 @@ module Reader
                        readList [] tok state
         | Some("[") -> let tok, state = readToken state
                        readVector (MutableList()) tok state
+        | Some("{") -> let tok, state = readToken state
+                       readMap [] tok state
         | Some("'") -> wrapForm (fun form -> List([Symbol("quote"); form])) state
         | Some("`") -> wrapForm (fun form -> List([Symbol("quasiquote"); form])) state
         | Some("~") -> wrapForm (fun form -> List([Symbol("unquote"); form])) state
         | Some("~@") -> wrapForm (fun form -> List([Symbol("splice-unquote"); form])) state
-        | _ -> let atom = readAtom tok
-               atom, state
+        | None -> None, state
+        | _ -> (readAtom tok, state)
 
     and wrapForm f state = 
         let tok, state = readToken state
-        let form, state = readForm tok state
-        (f form), state
+        match readForm tok state with
+        | Some(form), state -> Some(f form), state
+        | None, _ -> raise (ReaderError("Expected form, got EOF"))
 
     and readList acc tok state =
         match tok with
-        | Some(")") -> List(acc |> List.rev), state
+        | Some(")") -> Some(List(acc |> List.rev)), state
         | None -> raise (ReaderError("expected ')', got EOF"))
-        | _ -> let form, state = readForm tok state
-               let tok, state = readToken state
-               readList (form::acc) tok state
+        | _ -> match readForm tok state with
+               | Some(form), state ->
+                    let tok, state = readToken state
+                    readList (form::acc) tok state
+               | None, _ -> raise (ReaderError("expected ')', got EOF"))
 
     and readVector acc tok state =
         match tok with
-        | Some("]") -> Vector(acc.ToArray()), state
+        | Some("]") -> Some(Vector(acc.ToArray())), state
         | None -> raise (ReaderError("expected ']', got EOF"))
-        | _ -> let form, state = readForm tok state
-               acc.Add(form)
-               let tok, state = readToken state
-               readVector acc tok state
+        | _ -> match readForm tok state with
+               | Some(form), state ->
+                    acc.Add(form)
+                    let tok, state = readToken state
+                    readVector acc tok state
+               | None, _ -> raise (ReaderError("expected ']', got EOF"))
+
+    and readMap acc tok state =
+        match tok with
+        | Some("}") -> Some(Map(acc |> List.rev |> Map.ofList)), state
+        | None -> raise (ReaderError("Expected '}', got EOF"))
+        | _ -> match readForm tok state with
+               | Some(key), state ->
+                    let tok, state = readToken state
+                    match readForm tok state with
+                    | Some(v), state ->
+                        let tok, state = readToken state
+                        readMap ((key, v)::acc) tok state
+                    | None, _ -> raise (ReaderError("Expected '}', got EOF"))
+               | None, _ -> raise (ReaderError("Expected '}', got EOF"))
 
     and readAtom tok =
         match tok with
-        | Some(str) when Char.IsDigit(str.[0]) -> readNumber str
-        | Some(str) -> readSymbol str
-        | _ -> raise (Exception())
+        | Some(str) when Char.IsDigit(str.[0]) -> Some(readNumber str)
+        | Some(str) -> Some(readSymbol str)
+        | None -> None
         
     let read_str str =
         let input = str |> List.ofSeq
         let tok, state = readToken { Stack = []; Chars = input }
-        let output, rest = readForm tok state
-        output
+        let v, rest = readForm tok state
+        v

@@ -9,7 +9,7 @@ module REPL
 
     let read input =
         try
-            Some(Reader.read_str input)
+            Reader.read_str input
         with
         | Reader.ReaderError(msg) ->
             msg |> printfn "%s"

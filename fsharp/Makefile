@@ -1,6 +1,6 @@
 #####################
 
-DEBUG =
+DEBUG = 
 
 TESTS =
 
@@ -14,20 +14,20 @@ TERMINAL_SOURCES = terminal.cs
 
 SRCS = step0_repl.fs step1_read_print.fs
 
-FLAGS = $(if $(strip $(DEBUG)),-debug+,)
-
+FSFLAGS = $(if $(strip $(DEBUG)),--debug+,)
+CSFLAGS = $(if $(strip $(DEBUG)),-debug+,)
 #####################
 
 all: $(patsubst %.fs,%.exe,$(SRCS))
 
 Mono.Terminal.dll: $(TERMINAL_SOURCES)
-	mcs $(FLAGS) -target:library $+ -out:$@
+	mcs $(CSFLAGS) -target:library $+ -out:$@
 
 mal.dll: $(SOURCES) Mono.Terminal.dll
-	fsharpc $(FLAGS) -o $@ -r Mono.Terminal.dll -a $(SOURCES)
+	fsharpc $(FSFLAGS) -o $@ -r Mono.Terminal.dll -a $(SOURCES)
 
 %.exe: %.fs mal.dll
-	fsharpc $(FLAGS) -o $@ -r mal.dll $<
+	fsharpc $(FSFLAGS) -o $@ -r mal.dll $<
 
 clean:
 	rm -f *.dll *.exe *.mdb
