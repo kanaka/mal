@@ -32,7 +32,6 @@ type
     data*: Table[string, MalType]
     outer*: Env
 
-# Convenience procs
 const nilObj* = MalType(kind: Nil)
 const trueObj* = MalType(kind: True)
 const falseObj* = MalType(kind: False)
@@ -71,8 +70,9 @@ proc macro_q*(x: MalType): bool =
   else: x.malfun.is_macro
 
 proc getFun*(x: MalType): FunType =
-  if x.kind == Fun: x.fun
-  else: x.malfun.fn
+  if x.kind == Fun: result = x.fun
+  elif x.kind == MalFun: result = x.malfun.fn
+  else: echo x.kind
 
 proc fun*(x: proc(xs: varargs[MalType]): MalType, is_macro = false): MalType =
   MalType(kind: Fun, fun: x, is_macro: is_macro)
@@ -139,7 +139,8 @@ proc `==`*(x, y: MalType): bool =
   of Symbol, String: x.str      == y.str
   of List, Vector:   x.list     == y.list
   of HashMap:        x.hash_map == y.hash_map
-  of Fun:            x.fun      == y.fun
+  of Fun:            x.fun      == y.fun and
+                     x.is_macro == y.is_macro
   of MalFun:         x.malfun   == y.malfun
   of Atom:           x.val      == y.val
 

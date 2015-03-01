@@ -1,14 +1,14 @@
-import strutils, rdstdin, tables, algorithm, types, printer, reader
+import strutils, rdstdin, tables, algorithm, times, types, printer, reader
 
 type MalError* = object of Exception
   t*: MalType
 
 # String functions
 proc pr_str(xs: varargs[MalType]): MalType =
-  str(xs.map(proc(x: MalType): string = x.pr_str(true)).join(" ").replace("\\", "\\\\"))
+  str(xs.map(proc(x: MalType): string = x.pr_str(true)).join(" "))
 
 proc do_str(xs: varargs[MalType]): MalType =
-  str(xs.map(proc(x: MalType): string = x.pr_str(false)).join.replace("\\", "\\\\"))
+  str(xs.map(proc(x: MalType): string = x.pr_str(false)).join)
 
 proc prn(xs: varargs[MalType]): MalType =
   echo xs.map(proc(x: MalType): string = x.pr_str(true)).join(" ")
@@ -43,23 +43,27 @@ proc nth(xs: varargs[MalType]): MalType =
   else: raise newException(ValueError, "nth: index out of range")
 
 proc first(xs: varargs[MalType]): MalType =
-  if xs[0].list.len > 0: xs[0].list[0]
+  if xs[0].kind in {List, Vector} and xs[0].list.len > 0:
+    xs[0].list[0]
   else: nilObj
 
 proc rest(xs: varargs[MalType]): MalType =
-  if xs[0].list.len > 0: list xs[0].list[1 .. -1]
+  if xs[0].kind in {List, Vector} and xs[0].list.len > 0:
+    list xs[0].list[1 .. -1]
   else: list()
 
 proc throw(xs: varargs[MalType]): MalType =
   raise (ref MalError)(t: list xs)
 
 proc assoc(xs: varargs[MalType]): MalType =
-  result.deepCopy xs[0]
+  result = hash_map()
+  result.hash_map[] = xs[0].hash_map[]
   for i in countup(1, xs.high, 2):
     result.hash_map[xs[i].str] = xs[i+1]
 
 proc dissoc(xs: varargs[MalType]): MalType =
-  result.deepCopy xs[0]
+  result = hash_map()
+  result.hash_map[] = xs[0].hash_map[]
   for i in 1 .. xs.high:
     if result.hash_map.hasKey(xs[i].str): result.hash_map.del(xs[i].str)
 
@@ -130,6 +134,9 @@ proc swap_bang(xs: varargs[MalType]): MalType =
     args.add xs[i]
   xs[0].val[] = xs[1].getFun()(args)
   result = xs[0].val[]
+
+proc time_ms(xs: varargs[MalType]): MalType =
+  number int(epochTime() * 1000)
 
 template wrapNumberFun(op: expr): expr =
   fun proc(xs: varargs[MalType]): MalType =
@@ -203,4 +210,6 @@ let ns* = {
   "deref": fun deref,
   "reset!": fun reset_bang,
   "swap!": fun swap_bang,
+
+  "time-ms": fun time_ms,
 }
