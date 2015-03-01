@@ -2,10 +2,12 @@ import tables, strutils
 
 type
   MalTypeKind* = enum Nil, True, False, Number, Symbol, String,
-    List, Vector, HashMap, Fun, MalFun
+    List, Vector, HashMap, Fun, MalFun, Atom
+
+  FunType = proc(a: varargs[MalType]): MalType
 
   MalFunType* = ref object
-    fn*:       proc(a: varargs[MalType]): MalType
+    fn*:       FunType
     ast*:      MalType
     params*:   MalType
     env*:      Env
@@ -19,9 +21,12 @@ type
     of List, Vector:     list*:     seq[MalType]
     of HashMap:          hash_map*: TableRef[string, MalType]
     of Fun:
-                         fun*:      proc(xs: varargs[MalType]): MalType
+                         fun*:      FunType
                          is_macro*: bool
     of MalFun:           malfun*:   MalFunType
+    of Atom:             val*:      ref MalType
+
+    meta*: ref MalType
 
   Env* = ref object
     data*: Table[string, MalType]
@@ -40,6 +45,11 @@ proc str*(x: string): MalType {.procvar.} = MalType(kind: String, str: x)
 
 proc keyword*(x: string): MalType = MalType(kind: String, str: "\xff" & x)
 
+proc atom*(x: MalType): MalType =
+  result = MalType(kind: Atom)
+  new result.val
+  result.val[] = x
+
 proc list*(xs: varargs[MalType]): MalType {.procvar.} =
   result = MalType(kind: List, list: @[])
   for x in xs: result.list.add x
@@ -52,13 +62,17 @@ proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
   result = MalType(kind: HashMap, hash_map: newTable[string, MalType]())
   for i in countup(0, xs.high, 2):
     let s = case xs[i].kind
-    of String: "\"" & xs[i].str & "\""
+    of String: xs[i].str
     else: xs[i].str
     result.hash_map[s] = xs[i+1]
 
 proc macro_q*(x: MalType): bool =
   if x.kind == Fun: x.is_macro
   else: x.malfun.is_macro
+
+proc getFun*(x: MalType): FunType =
+  if x.kind == Fun: x.fun
+  else: x.malfun.fn
 
 proc fun*(x: proc(xs: varargs[MalType]): MalType, is_macro = false): MalType =
   MalType(kind: Fun, fun: x, is_macro: is_macro)
@@ -68,7 +82,7 @@ proc malfun*(fn: auto, ast, params: MalType,
   MalType(kind: MalFun, malfun: MalFunType(fn: fn, ast: ast, params: params,
     env: env, is_macro: is_macro))
 
-proc boolObj(b: bool): MalType =
+proc boolObj*(b: bool): MalType =
   if b: trueObj else: falseObj
 
 proc list_q*(xs: varargs[MalType]): MalType {.procvar.} =
@@ -77,11 +91,41 @@ proc list_q*(xs: varargs[MalType]): MalType {.procvar.} =
 proc vector_q*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0].kind == Vector
 
+proc seq_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind in {List, Vector}
+
 proc hash_map_q*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0].kind == HashMap
 
 proc empty_q*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0].list.len == 0
+
+proc nil_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind == Nil
+
+proc true_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind == True
+
+proc false_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind == False
+
+proc symbol*(xs: varargs[MalType]): MalType {.procvar.} =
+  symbol(xs[0].str)
+
+proc symbol_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind == Symbol
+
+proc keyword*(xs: varargs[MalType]): MalType {.procvar.} =
+  keyword(xs[0].str)
+
+proc keyword_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj(xs[0].kind == String and xs[0].str[0] == '\xff')
+
+proc atom*(xs: varargs[MalType]): MalType {.procvar.} =
+  atom(xs[0])
+
+proc atom_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind == Atom
 
 proc count*(xs: varargs[MalType]): MalType {.procvar.} =
   number if xs[0].kind == Nil: 0 else: xs[0].list.len
@@ -97,6 +141,7 @@ proc `==`*(x, y: MalType): bool =
   of HashMap:        x.hash_map == y.hash_map
   of Fun:            x.fun      == y.fun
   of MalFun:         x.malfun   == y.malfun
+  of Atom:           x.val      == y.val
 
 proc equal*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0] == xs[1]
