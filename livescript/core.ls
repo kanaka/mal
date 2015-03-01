@@ -19,6 +19,8 @@ ns['empty?'] = new Builtin ([x]) ->
     | is-seq x => bool x.value.length is 0
     | _ => throw new Error 'Not a sequence'
 
+ns['nil?'] = new Builtin ([x]) -> bool is-nil x
+
 ns['count'] = new Builtin ([x]) ->
     | is-nil x => int 0
     | is-seq x => int x.value.length
@@ -45,6 +47,11 @@ ns['get'] = new Builtin ([m, k]:args) ->
     throw new Error 'Two arguments expected' unless args.length is 2
     throw new Error 'Not a map' unless m.type is \MAP
     (m.get k) or NIL
+
+ns['has-key?'] = new Builtin ([m, k]:args) ->
+    throw new Error 'Two arguments expected' unless args.length is 2
+    throw new Error 'Not a map' unless m.type is \MAP
+    bool (m.get k)?
 
 assoc-num-op = (op, zero, toMal) -> new Builtin (nums) ->
     throw new Error 'Expected at least two numbers' unless nums.length > 1

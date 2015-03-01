@@ -77,7 +77,7 @@ export class MalMap
         | is-atom k => get-atom @, k
         | otherwise => get-entry(@, k)?.value
 
-    keys: -> (map (.0), @entries) ++ (atomic-keys @)
+    keys: -> (map (.key), @entries) ++ (atomic-keys @)
 
     equals: (b) ->
         return false unless b.type is \MAP

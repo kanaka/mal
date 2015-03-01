@@ -7,7 +7,7 @@ require! './env': {create-env, bind-value}
 
 {Lambda, MalList, MalVec, MalMap} = require './types.ls'
 
-SPECIALS = <[ do let def! fn* fn defn if or and ]>
+SPECIALS = <[ do let def! def fn* fn defn if or and ]>
 
 export eval-mal = (env, ast) -->
     if is-special-form ast
