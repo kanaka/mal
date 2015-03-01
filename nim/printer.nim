@@ -6,6 +6,7 @@ proc pr_str*(m: MalType, pr = true): string =
   of True:    result = "true"
   of False:   result = "false"
   of Fun:     result = "#<function>"
+  of MalFun:  result = "#<malfun>"
   of Symbol:  result = m.symbol
   of String:
     if m.str.len > 0 and m.str[0] == '\xff':

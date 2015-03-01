@@ -1,9 +1,5 @@
 import tables, types
 
-type Env* = ref object
-  data: Table[string, MalType]
-  outer: Env
-
 proc initEnv*(outer: Env = nil, binds, exprs: MalType = nilObj): Env =
   result = Env(data: initTable[string, MalType](), outer: outer)
 

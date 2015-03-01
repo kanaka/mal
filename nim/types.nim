@@ -2,7 +2,13 @@ import tables, strutils
 
 type
   MalTypeKind* = enum Nil, True, False, Number, Symbol, String,
-    List, Vector, HashMap, Fun
+    List, Vector, HashMap, Fun, MalFun
+
+  MalFunType* = ref object
+    fn*:     proc(a: varargs[MalType]): MalType
+    ast*:    MalType
+    params*: MalType
+    env*:    Env
 
   MalType* = object
     case kind*: MalTypeKind
@@ -13,6 +19,11 @@ type
     of List, Vector: list*:     seq[MalType]
     of HashMap:      hash_map*: TableRef[string, MalType]
     of Fun:          fun*:      proc(xs: varargs[MalType]): MalType
+    of MalFun:       malfun*:   MalFunType
+
+  Env* = ref object
+    data*: Table[string, MalType]
+    outer*: Env
 
 # Convenience procs
 const nilObj* = MalType(kind: Nil)
@@ -41,6 +52,11 @@ proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
     result.hash_map[xs[i].symbol] = xs[i+1]
 
 proc fun*(x: proc(xs: varargs[MalType]): MalType): MalType = MalType(kind: Fun, fun: x)
+
+proc malfun*(fn: auto, ast, params: MalType,
+  env: Env): MalType =
+  MalType(kind: MalFun,
+    malfun: MalFunType(fn: fn, ast: ast, params: params, env: env))
 
 proc boolObj(b: bool): MalType =
   if b: trueObj else: falseObj
@@ -71,6 +87,7 @@ proc `==`*(x, y: MalType): bool =
   of List, Vector: x.list     == y.list
   of HashMap:      x.hash_map == y.hash_map
   of Fun:          x.fun      == y.fun
+  of MalFun:       x.malfun   == y.malfun
 
 proc equal*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0] == xs[1]
