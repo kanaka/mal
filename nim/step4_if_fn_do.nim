@@ -7,7 +7,7 @@ proc eval(ast: MalType, env: var Env): MalType
 proc eval_ast(ast: MalType, env: var Env): MalType =
   case ast.kind
   of Symbol:
-    result = env.get(ast.symbol)
+    result = env.get(ast.str)
   of List:
     result = list ast.list.mapIt(MalType, it.eval(env))
   of Vector:
@@ -25,12 +25,12 @@ proc eval(ast: MalType, env: var Env): MalType =
     let a0 = ast.list[0]
     case a0.kind
     of Symbol:
-      case a0.symbol
+      case a0.str
       of "def!":
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        result = env.set(a1.symbol, a2.eval(env))
+        result = env.set(a1.str, a2.eval(env))
 
       of "let*":
         let
@@ -42,7 +42,7 @@ proc eval(ast: MalType, env: var Env): MalType =
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
-            letEnv.set(a1.list[i].symbol, a1.list[i+1].eval(letEnv))
+            letEnv.set(a1.list[i].str, a1.list[i+1].eval(letEnv))
         else: discard
         result = a2.eval(letEnv)
 

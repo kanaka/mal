@@ -1,4 +1,4 @@
-import strutils, types, printer
+import strutils, types, printer, reader
 
 # String functions
 proc pr_str(xs: varargs[MalType]): MalType =
@@ -15,6 +15,12 @@ proc println(xs: varargs[MalType]): MalType =
   let line = xs.map(proc(x: MalType): string = x.pr_str(false)).join(" ")
   echo line.replace("\\n", "\n")
   result = nilObj
+
+proc read_str(xs: varargs[MalType]): MalType =
+  read_str(xs[0].str)
+
+proc slurp(xs: varargs[MalType]): MalType =
+  str readFile(xs[0].str)
 
 template wrapNumberFun(op: expr): expr =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
@@ -48,4 +54,7 @@ let ns* = {
   "str": fun do_str,
   "prn": fun prn,
   "println": fun println,
+
+  "read-string": fun read_str,
+  "slurp": fun slurp,
 }

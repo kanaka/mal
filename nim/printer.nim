@@ -7,7 +7,7 @@ proc pr_str*(m: MalType, pr = true): string =
   of False:   result = "false"
   of Fun:     result = "#<function>"
   of MalFun:  result = "#<malfun>"
-  of Symbol:  result = m.symbol
+  of Symbol:  result = m.str
   of String:
     if m.str.len > 0 and m.str[0] == '\xff':
               result = ":" & m.str[1 .. m.str.high]

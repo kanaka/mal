@@ -7,9 +7,9 @@ proc eval(ast: MalType, env: Table[string, MalType]): MalType
 proc eval_ast(ast: MalType, env: Table[string, MalType]): MalType =
   case ast.kind
   of Symbol:
-    if not env.hasKey(ast.symbol):
-      raise newException(ValueError, "'" & ast.symbol & "' not found")
-    result = env[ast.symbol]
+    if not env.hasKey(ast.str):
+      raise newException(ValueError, "'" & ast.str & "' not found")
+    result = env[ast.str]
   of List:
     result = list ast.list.mapIt(MalType, it.eval(env))
   of Vector:

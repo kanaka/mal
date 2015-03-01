@@ -13,13 +13,12 @@ type
   MalType* = object
     case kind*: MalTypeKind
     of Nil, True, False: nil
-    of Number:       number*:   int
-    of Symbol:       symbol*:   string
-    of String:       str*:      string
-    of List, Vector: list*:     seq[MalType]
-    of HashMap:      hash_map*: TableRef[string, MalType]
-    of Fun:          fun*:      proc(xs: varargs[MalType]): MalType
-    of MalFun:       malfun*:   MalFunType
+    of Number:           number*:   int
+    of String, Symbol:   str*:      string
+    of List, Vector:     list*:     seq[MalType]
+    of HashMap:          hash_map*: TableRef[string, MalType]
+    of Fun:              fun*:      proc(xs: varargs[MalType]): MalType
+    of MalFun:           malfun*:   MalFunType
 
   Env* = ref object
     data*: Table[string, MalType]
@@ -32,9 +31,9 @@ const falseObj* = MalType(kind: False)
 
 proc number*(x: int): MalType = MalType(kind: Number, number: x)
 
-proc symbol*(x: string): MalType = MalType(kind: Symbol, symbol: x)
+proc symbol*(x: string): MalType = MalType(kind: Symbol, str: x)
 
-proc str*(x: string): MalType = MalType(kind: String, str: x)
+proc str*(x: string): MalType {.procvar.} = MalType(kind: String, str: x)
 
 proc keyword*(x: string): MalType = MalType(kind: String, str: "\xff" & x)
 
@@ -49,7 +48,10 @@ proc vector*(xs: varargs[MalType]): MalType {.procvar.} =
 proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
   result = MalType(kind: HashMap, hash_map: newTable[string, MalType]())
   for i in countup(0, xs.high, 2):
-    result.hash_map[xs[i].symbol] = xs[i+1]
+    let s = case xs[i].kind
+    of String: "\"" & xs[i].str & "\""
+    else: xs[i].str
+    result.hash_map[s] = xs[i+1]
 
 proc fun*(x: proc(xs: varargs[MalType]): MalType): MalType = MalType(kind: Fun, fun: x)
 
@@ -81,13 +83,12 @@ proc `==`*(x, y: MalType): bool =
     if x.kind != y.kind: return false
   result = case x.kind
   of Nil, True, False: true
-  of Number:       x.number   == y.number
-  of Symbol:       x.symbol   == y.symbol
-  of String:       x.str      == y.str
-  of List, Vector: x.list     == y.list
-  of HashMap:      x.hash_map == y.hash_map
-  of Fun:          x.fun      == y.fun
-  of MalFun:       x.malfun   == y.malfun
+  of Number:         x.number   == y.number
+  of Symbol, String: x.str      == y.str
+  of List, Vector:   x.list     == y.list
+  of HashMap:        x.hash_map == y.hash_map
+  of Fun:            x.fun      == y.fun
+  of MalFun:         x.malfun   == y.malfun
 
 proc equal*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0] == xs[1]

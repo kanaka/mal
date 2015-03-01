@@ -1,4 +1,4 @@
-import rdstdin, tables, sequtils, types, reader, printer, env, core
+import rdstdin, tables, sequtils, os, types, reader, printer, env, core
 
 proc read(str: string): MalType = str.read_str
 
@@ -95,18 +95,28 @@ var repl_env = initEnv()
 
 for k, v in ns.items:
   repl_env.set(k, v)
+repl_env.set("eval", fun(proc(xs: varargs[MalType]): MalType = eval(xs[0], repl_env)))
+var ps = commandLineParams()
+repl_env.set("*ARGV*", list((if paramCount() > 1: ps[1..ps.high] else: @[]).map(str)))
+
 
 # core.nim: defined using nim
-proc rep(str: string): string =
+proc rep(str: string): string {.discardable.} =
   str.read.eval(repl_env).print
 
 # core.mal: defined using mal itself
-discard rep "(def! not (fn* (a) (if a false true)))"
+rep "(def! not (fn* (a) (if a false true)))"
+rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+
+if paramCount() >= 1:
+  rep "(load-file \"" & paramStr(1) & "\")"
+  quit()
 
 while true:
   try:
     let line = readLineFromStdin("user> ")
     echo line.rep
+  except Blank: discard
   except:
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

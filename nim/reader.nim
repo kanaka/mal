@@ -4,9 +4,12 @@ var
   tokenRE = re"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"""
   intRE   = re"-?[0-9]+$"
 
-type Reader = object
-  tokens: seq[string]
-  position: int
+type
+  Blank* = object of Exception
+
+  Reader = object
+    tokens: seq[string]
+    position: int
 
 proc next(r: var Reader): string =
   if r.position >= r.tokens.len:
@@ -22,7 +25,8 @@ proc peek(r: Reader): string =
 proc tokenize(str: string): seq[string] =
   result = @[]
   for match in str.findIter(tokenRE):
-    result.add match.captures[0]
+    if match.captures[0][0] != ';':
+      result.add match.captures[0]
 
 proc read_form(r: var Reader): MalType
 
@@ -99,4 +103,6 @@ proc read_form(r: var Reader): MalType =
 
 proc read_str*(str: string): MalType =
   var r = Reader(tokens: str.tokenize)
+  if r.tokens.len == 0:
+    raise newException(Blank, "Blank line")
   r.read_form
