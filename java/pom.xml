@@ -47,7 +47,7 @@
                 </executions>
                 <configuration>
                     <!--
-                    <mainClass>mal.stepA_interop</mainClass>
+                    <mainClass>mal.stepA_mal</mainClass>
                     <arguments>
                         <argument>foo</argument>
                         <argument>bar</argument>
@@ -69,7 +69,7 @@
                             <transformers>
                                 <transformer
                                     implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>mal.stepA_interop</mainClass>
+                                    <mainClass>mal.stepA_mal</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

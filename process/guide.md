@@ -15,7 +15,7 @@ So jump right in (er ... start the climb)!
 
 You might already have a language in mind that you want to use.
 Technically speaking, mal can be implemented in any sufficiently
-complete programming (i.e. Turing complete), however, there are a few
+complete programming language (i.e. Turing complete), however, there are a few
 language features that can make the task MUCH easier. Here are some of
 them in rough order of importance:
 
@@ -68,8 +68,8 @@ git clone git@github.com:YOUR_NAME/mal.git
 cd mal
 ```
 
-* Make a new directory for your implementation. For example, if you
-* language is called "quux":
+* Make a new directory for your implementation. For example, if your
+language is called "quux":
 ```
 mkdir quux
 ```
@@ -321,7 +321,7 @@ manually try some simple inputs:
   * `   abc   ` -> `abc`
   * `(123 456)` -> `(123 456)`
   * `(  123   456 789   )   ` -> `(123 456 789)`
-  * `(  + 2   (+  3  4)  )  ` -> `(+ 2 (* 3 4))`
+  * `(  + 2   (*  3  4)  )  ` -> `(+ 2 (* 3 4))`
 
 To verify that your code is doing more than just eliminating extra
 spaces (and not failing), you can instrument your `reader.qx` functions.
@@ -352,7 +352,7 @@ and each step will give progressively more bang for the buck.
 * Add support for the other basic data type to your reader and printer
   functions: string, nil, true, and false. These become mandatory at
   step 4. When a string is read, a slash followed by a doublequote is
-  translatd into a plain doublequote character and a slash followed by
+  translated into a plain doublequote character and a slash followed by
   "n" is translated into a newline. To properly print a string (for
   step 4 string functions), the `pr_str` function needs another
   parameter called `print_readably`. When `print_readably` is true,
@@ -1151,15 +1151,15 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 ### Step A: Interop and Self-hosting
 
-![stepA_interop architecture](stepA_interop.png)
+![stepA_mal architecture](stepA_mal.png)
 
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try.txt ../process/stepA_interop.txt
+diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 ```
 
-* Copy `step9_try.qx` to `stepA_interop.qx`.
+* Copy `step9_try.qx` to `stepA_mal.qx`.
 
 * TODO/TBD
 

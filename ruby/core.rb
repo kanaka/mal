@@ -1,6 +1,6 @@
 require "readline"
-require "reader"
-require "printer"
+require_relative "reader"
+require_relative "printer"
 
 $core_ns = {
     :"=" =>       lambda {|a,b| a == b},

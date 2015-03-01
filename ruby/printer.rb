@@ -1,4 +1,4 @@
-require "types"
+require_relative "types"
 
 def _pr_str(obj, print_readably=true)
     _r = print_readably

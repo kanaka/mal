@@ -23,12 +23,14 @@ end
 function prn(...)
     print(table.concat(
         utils.map(function(e) return _pr_str(e, true) end, arg), " "))
+    io.flush()
     return Nil
 end
 
 function println(...)
     print(table.concat(
         utils.map(function(e) return _pr_str(e, false) end, arg), " "))
+    io.flush()
     return Nil
 end
 

@@ -101,6 +101,11 @@ repl_env:set(types.Symbol:new('*ARGV*'), types.List:new(types.slice(arg,2)))
 rep("(def! not (fn* (a) (if a false true)))")
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
+if #arg > 0 and arg[1] == "--raw" then
+    readline.raw = true
+    table.remove(arg,1)
+end
+
 if #arg > 0 then
     rep("(load-file \""..arg[1].."\")")
     os.exit(0)

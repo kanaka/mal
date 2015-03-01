@@ -2,7 +2,7 @@
 
 ## Description
 
-Mal is an Clojure inspired Lisp interpreter.
+Mal is a Clojure inspired Lisp interpreter.
 
 Mal is implemented in 26 different languages:
 
@@ -51,7 +51,7 @@ The mal (make a lisp) steps are:
 * [step7_quote](process/guide.md#step7)
 * [step8_macros](process/guide.md#step8)
 * [step9_try](process/guide.md#step9)
-* [stepA_interop](process/guide.md#stepA)
+* [stepA_mal](process/guide.md#stepA)
 
 
 Mal was presented publicly for the first time in a lightning talk at
@@ -286,7 +286,7 @@ cd racket
 ./stepX_YYY.rb
 ```
 
-### Ruby (1.8)
+### Ruby (1.9+)
 
 ```
 cd ruby

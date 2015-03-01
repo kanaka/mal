@@ -1,10 +1,9 @@
-$: << File.expand_path(File.dirname(__FILE__))
-require "mal_readline"
-require "types"
-require "reader"
-require "printer"
-require "env"
-require "core"
+require_relative "mal_readline"
+require_relative "types"
+require_relative "reader"
+require_relative "printer"
+require_relative "env"
+require_relative "core"
 
 # read
 def READ(str)
@@ -96,7 +95,11 @@ def EVAL(ast, env)
     when :macroexpand
         return macroexpand(a1, env)
     when :"rb*"
-        return eval(a1)
+        res = eval(a1)
+        return case res
+            when Array; List.new res
+            else; res
+        end
     when :"try*"
         begin
             return EVAL(a1, env)
