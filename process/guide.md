@@ -483,7 +483,7 @@ the changes that will be made during this step:
 diff -urp ../process/step2_eval.txt ../process/step3_env.txt
 ```
 
-* Copy `step2_eval.qx` to `step2_env.qx`.
+* Copy `step2_eval.qx` to `step3_env.qx`.
 
 * Create `env.qx` to hold the environment definition.
 
