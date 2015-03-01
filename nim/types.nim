@@ -5,10 +5,11 @@ type
     List, Vector, HashMap, Fun, MalFun
 
   MalFunType* = ref object
-    fn*:     proc(a: varargs[MalType]): MalType
-    ast*:    MalType
-    params*: MalType
-    env*:    Env
+    fn*:       proc(a: varargs[MalType]): MalType
+    ast*:      MalType
+    params*:   MalType
+    env*:      Env
+    is_macro*: bool
 
   MalType* = object
     case kind*: MalTypeKind
@@ -17,7 +18,9 @@ type
     of String, Symbol:   str*:      string
     of List, Vector:     list*:     seq[MalType]
     of HashMap:          hash_map*: TableRef[string, MalType]
-    of Fun:              fun*:      proc(xs: varargs[MalType]): MalType
+    of Fun:
+                         fun*:      proc(xs: varargs[MalType]): MalType
+                         is_macro*: bool
     of MalFun:           malfun*:   MalFunType
 
   Env* = ref object
@@ -53,12 +56,17 @@ proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
     else: xs[i].str
     result.hash_map[s] = xs[i+1]
 
-proc fun*(x: proc(xs: varargs[MalType]): MalType): MalType = MalType(kind: Fun, fun: x)
+proc macro_q*(x: MalType): bool =
+  if x.kind == Fun: x.is_macro
+  else: x.malfun.is_macro
+
+proc fun*(x: proc(xs: varargs[MalType]): MalType, is_macro = false): MalType =
+  MalType(kind: Fun, fun: x, is_macro: is_macro)
 
 proc malfun*(fn: auto, ast, params: MalType,
-  env: Env): MalType =
-  MalType(kind: MalFun,
-    malfun: MalFunType(fn: fn, ast: ast, params: params, env: env))
+             env: Env, is_macro = false): MalType =
+  MalType(kind: MalFun, malfun: MalFunType(fn: fn, ast: ast, params: params,
+    env: env, is_macro: is_macro))
 
 proc boolObj(b: bool): MalType =
   if b: trueObj else: falseObj

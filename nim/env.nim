@@ -15,7 +15,7 @@ proc set*(e: var Env, key: string, value: MalType): MalType {.discardable.} =
   e.data[key] = value
   value
 
-proc find(e: Env, key: string): Env =
+proc find*(e: Env, key: string): Env =
   if e.data.hasKey(key): return e
   if e.outer != nil:     return e.outer.find(key)
 

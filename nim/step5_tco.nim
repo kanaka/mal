@@ -26,7 +26,7 @@ proc eval(ast: MalType, env: var Env): MalType =
     case f.kind
     of MalFun:
       ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. -1]))
+      env = initEnv(env, f.malfun.params, list(el.list[1 .. -1]))
     else:
       return f.fun(el.list[1 .. -1])
 
@@ -49,11 +49,14 @@ proc eval(ast: MalType, env: var Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
+        var let_env = Env(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
-            env.set(a1.list[i].str, a1.list[i+1].eval(env))
-        else: discard
+            let_env.set(a1.list[i].str, a1.list[i+1].eval(let_env))
+        else: raise newException(ValueError, "Illegal kind in let*")
+        ast = a2
+        env = let_env
         # Continue loop (TCO)
 
       of "do":

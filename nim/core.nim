@@ -32,6 +32,18 @@ proc concat(xs: varargs[MalType]): MalType =
     for i in x.list:
       result.list.add i
 
+proc nth(xs: varargs[MalType]): MalType =
+  if xs[1].number < xs[0].list.len: return xs[0].list[xs[1].number]
+  else: raise newException(ValueError, "nth: index out of range")
+
+proc first(xs: varargs[MalType]): MalType =
+  if xs[0].list.len > 0: xs[0].list[0]
+  else: nilObj
+
+proc rest(xs: varargs[MalType]): MalType =
+  if xs[0].list.len > 0: list xs[0].list[1 .. -1]
+  else: list()
+
 template wrapNumberFun(op: expr): expr =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
 
@@ -69,4 +81,8 @@ let ns* = {
   "slurp": fun slurp,
   "cons": fun cons,
   "concat": fun concat,
+
+  "nth": fun nth,
+  "first": fun first,
+  "rest": fun rest,
 }

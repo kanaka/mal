@@ -16,6 +16,16 @@ proc quasiquote(ast: MalType): MalType =
   else:
     return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. -1])))
 
+proc is_macro_call(ast: MalType, env: Env): bool =
+  ast.kind == List and ast.list[0].kind == Symbol and
+    env.find(ast.list[0].str) != nil and env.get(ast.list[0].str).macro_q
+
+proc macroexpand(ast: MalType, env: Env): MalType =
+  result = ast
+  while result.is_macro_call(env):
+    let mac = env.get(result.list[0].str)
+    result = mac.malfun.fn(result.list[1 .. -1]).macroexpand(env)
+
 proc eval(ast: MalType, env: var Env): MalType
 
 proc eval_ast(ast: MalType, env: var Env): MalType =
@@ -46,8 +56,11 @@ proc eval(ast: MalType, env: var Env): MalType =
 
   var ast = ast
   while true:
-    if ast.kind != List:
-      return ast.eval_ast(env)
+    if ast.kind != List: return ast.eval_ast(env)
+
+    ast = ast.macroexpand(env)
+    if ast.kind != List: return ast
+    if ast.list.len == 0: return ast
 
     let a0 = ast.list[0]
     case a0.kind
@@ -79,6 +92,14 @@ proc eval(ast: MalType, env: var Env): MalType =
       of "quasiquote":
         ast = ast.list[1].quasiquote
         # Continue loop (TCO)
+
+      of "defmacro!":
+        var fun = ast.list[2].eval(env)
+        fun.malfun.is_macro = true
+        return env.set(ast.list[1].str, fun)
+
+      of "macroexpand":
+        return ast.list[1].macroexpand(env)
 
       of "do":
         let last = ast.list.high
@@ -131,6 +152,8 @@ proc rep(str: string): string {.discardable.} =
 # core.mal: defined using mal itself
 rep "(def! not (fn* (a) (if a false true)))"
 rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 
 if paramCount() >= 1:
   rep "(load-file \"" & paramStr(1) & "\")"
