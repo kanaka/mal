@@ -8,6 +8,7 @@ package readline
 // free()
 #include <stdlib.h>
 // readline()
+#include <stdio.h> // FILE *
 #include <readline/readline.h>
 // add_history()
 #include <readline/history.h>
@@ -25,29 +26,32 @@ import (
 )
 
 var HISTORY_FILE = ".mal-history"
+var history_path string
 
-var rl_history_loaded = false
-
-func Readline(prompt string) (string, error) {
-	history_path := filepath.Join(os.Getenv("HOME"), "/", HISTORY_FILE)
-
-	if !rl_history_loaded {
-		rl_history_loaded = true
-		content, e := ioutil.ReadFile(history_path)
-		if e != nil {
-			return "", e
-		}
-
-		for _, add_line := range strings.Split(string(content), "\n") {
-			if add_line == "" {
-				continue
-			}
-			c_add_line := C.CString(add_line)
-			C.add_history(c_add_line)
-			C.free(unsafe.Pointer(c_add_line))
-		}
+func loadHistory(filename string) error {
+	content, err := ioutil.ReadFile(history_path)
+	if err != nil {
+		return err
 	}
 
+	for _, add_line := range strings.Split(string(content), "\n") {
+		if add_line == "" {
+			continue
+		}
+		c_add_line := C.CString(add_line)
+		C.add_history(c_add_line)
+		C.free(unsafe.Pointer(c_add_line))
+	}
+
+	return nil
+}
+
+func init() {
+	history_path = filepath.Join(os.Getenv("HOME"), HISTORY_FILE)
+	loadHistory(history_path)
+}
+
+func Readline(prompt string) (string, error) {
 	c_prompt := C.CString(prompt)
 	defer C.free(unsafe.Pointer(c_prompt))
 
