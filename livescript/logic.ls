@@ -7,7 +7,7 @@ require! './env': {create-env, bind-value}
 
 {Lambda, MalList, MalVec, MalMap} = require './types.ls'
 
-SPECIALS = <[ do let def! fn* fn if ]>
+SPECIALS = <[ do let def! fn* fn defn if ]>
 
 export eval-mal = (env, ast) -->
     if is-special-form ast
@@ -35,8 +35,9 @@ handle-special-form = (env, {value: [form, ...args]}) ->
     switch form.value
         | 'do' => do-do env, args
         | 'let' => do-let env, args
-        | 'def!' => do-def env, args
+        | 'def!', 'def' => do-def env, args
         | 'fn', 'fn*' => do-fn env, args
+        | 'defn' => do-def env, [args[0], (do-fn env, args.slice(1))]
         | 'if' => do-if env, args
         | _ => throw new Error "Unknown form: #{ form.value }"
 
