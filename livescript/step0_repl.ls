@@ -14,7 +14,7 @@ rep = print-mal << eval-mal << print-mal
 
 stdin.set-encoding \utf8
 rl = readline.create-interface input: stdin, output: stdout
-rl.set-prompt 'MAL > '
+rl.set-prompt 'user> '
 rl.on \line, (mal) ->
     console.log rep mal
     rl.prompt()

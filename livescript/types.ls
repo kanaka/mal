@@ -4,6 +4,12 @@ require! {
 }
 {atomic-types, mal-eql, is-atom, is-nil} = require './builtins.ls'
 
+export class Builtin
+    
+    (@fn) ->
+
+    type: \BUILTIN
+
 export class MalMap
 
     (pairs = []) ->
