@@ -22,8 +22,8 @@ parser.add_argument('--test-timeout', default=20, type=int,
         help="default timeout for each individual test action")
 parser.add_argument('--pre-eval', default=None, type=str,
         help="Mal code to evaluate prior to running the test")
-parser.add_argument('--redirect', action='store_true',
-        help="Run implementation in bash and redirect output to /dev/null")
+parser.add_argument('--mono', action='store_true',
+        help="Use workarounds Mono/.Net Console misbehaviors")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -32,17 +32,11 @@ parser.add_argument('mal_cmd', nargs="*",
              "specify a Mal command line with dashed options.")
 
 class Runner():
-    def __init__(self, args, redirect=False):
-        self.redirect = redirect
+    def __init__(self, args, mono=False):
+        self.mono = mono
         print "args: %s" % repr(args)
-        if redirect:
-            #cmd = '/bin/bash -c "' + " ".join(args) + ' |tee /dev/null"'
-            #cmd = " ".join(args) + ' |tee /dev/null'
-            #cmd = " ".join(args) + ' |tee /tmp/joel'
-            #print "using redirect cmd: '%s'" % cmd
+        if mono:
             self.p = Popen(args, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-            #self.p = Popen(cmd, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
-            #self.p = Popen(["/bin/bash", "-c", cmd], bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
             self.stdin = self.p.stdin
             self.stdout = self.p.stdout
         else:
@@ -63,7 +57,10 @@ class Runner():
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
                 #print "new_data: '%s'" % new_data
-                self.buf += new_data
+                if self.mono:
+                    self.buf += new_data.replace("\n", "\r\n")
+                else:
+                    self.buf += new_data
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
@@ -77,7 +74,7 @@ class Runner():
 
     def writeline(self, str):
         self.stdin.write(str + "\n")
-        if self.redirect:
+        if self.mono:
             # Simulate echo
             self.buf += str + "\r\n"
 
@@ -92,7 +89,7 @@ test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, redirect=args.redirect)
+r = Runner(args.mal_cmd, mono=args.mono)
 
 
 test_idx = 0
