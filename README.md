@@ -34,10 +34,11 @@ Mal is implemented in 26 different languages:
 * Visual Basic.NET
 
 
-Mal is a [learning tool](process/guide.md). Each implementation of mal is separated into 11
-incremental, self-contained (and testable) steps that demonstrate core
-concepts of Lisp. The last step is capable of self-hosting (running
-the mal implemenation of mal).
+Mal is a learning tool. See the ([make-a-lisp process
+guide](process/guide.md).  Each implementation of mal is separated
+into 11 incremental, self-contained (and testable) steps that
+demonstrate core concepts of Lisp. The last step is capable of
+self-hosting (running the mal implemenation of mal).
 
 The mal (make a lisp) steps are:
 
@@ -334,12 +335,14 @@ mono ./stepX_YYY.exe
 
 ## Running tests
 
-The are nearly 500 generic Mal tests (for all implementations) in the
-`tests/` directory. Each step has a corresponding test file containing
-tests specific to that step. The `runtest.py` test harness uses
-pexpect to launch a Mal step implementation and then feeds the tests
-one at a time to the implementation and compares the output/return
-value to the expected output/return value.
+### Functional tests
+
+The are nearly 500 generic functional tests (for all implementations)
+in the `tests/` directory. Each step has a corresponding test file
+containing tests specific to that step. The `runtest.py` test harness
+uses pexpect to launch a Mal step implementation and then feeds the
+tests one at a time to the implementation and compares the
+output/return value to the expected output/return value.
 
 To simplify the process of running tests, a top level Makefile is
 provided with convenient test targets.
@@ -370,7 +373,7 @@ make test^step2
 make test^step7
 ```
 
-* To run a specifc step against a single implementation:
+* To run tests for a specifc step against a single implementation:
 
 ```
 make test^IMPL^stepX
@@ -379,6 +382,56 @@ make test^IMPL^stepX
 make test^ruby^step3
 make test^ps^step4
 ```
+
+### Self-hosted functional tests
+
+* To run the functional tests in self-hosted mode, you specify `mal`
+  as the test implementation and use the `MAL_IMPL` make variable
+  to change the underlying host language (default is JavaScript):
+```
+make MAL_IMPL=IMPL test^mal^step2
+
+# e.g.
+make test^mal^step2   # js is default
+make MAL_IMPL=ruby test^mal^step2
+make MAL_IMPL=python test^mal^step2
+```
+
+
+### Performance tests
+
+* To run performance tests against a single implementation:
+```
+make perf^IMPL
+
+# e.g.
+make perf^js
+```
+
+* To run performance tests against all implementations:
+```
+make perf
+```
+
+### Generating language statistics
+
+* To report line and byte stastics for a single implementation:
+```
+make stats^IMPL
+
+# e.g.
+make stats^js
+```
+
+* To report line and bytes stastics for general Lisp code (env, core
+  and stepA):
+```
+make stats-lisp^IMPL
+
+# e.g.
+make stats-lisp^js
+```
+
 
 ## License
 
