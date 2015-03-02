@@ -35,8 +35,10 @@ class Runner():
     def __init__(self, args, redirect=False):
         print "args: %s" % repr(args)
         if redirect:
-            print "using redirect"
-            self.p = Popen(args, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+            #cmd = '/bin/bash -c "' + " ".join(args) + ' |tee /dev/null"'
+            cmd = " ".join(args) + ' |tee /dev/null'
+            print "using redirect cmd: '%s'" % cmd
+            self.p = Popen(cmd, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
             self.stdin = self.p.stdin
             self.stdout = self.p.stdout
         else:
@@ -74,7 +76,7 @@ class Runner():
 
     def cleanup(self):
         if self.p:
-            self.p.terminate()
+            self.p.kill()
             self.p = None
 
 
