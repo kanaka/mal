@@ -104,6 +104,7 @@ compared/described:
 * http://learnxinyminutes.com/
 * http://hyperpolyglot.org/
 * http://rosettacode.org/
+* http://rigaux.org/language-study/syntax-across-languages/
 
 Do not let yourself be bogged down by specific problems. While the
 make-a-lisp process is structured as a series of steps, the reality is
