@@ -43,7 +43,7 @@ EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
 EXCLUDE_TESTS += test^cs^stepA test^go^stepA test^haskell^stepA \
 		 test^java^stepA test^mal^stepA test^mal^step0 \
 		 test^php^stepA test^ps^stepA test^python^stepA \
-		 test^ruby^stepA
+		 test^ruby^stepA test^rust^stepA test^vb^stepA
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 

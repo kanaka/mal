@@ -1,4 +1,4 @@
-(ns stepA-interop
+(ns stepA-mal
     (:refer-clojure :exclude [macroexpand])
     (:require [clojure.repl]
               [readline]
