@@ -33,12 +33,16 @@ parser.add_argument('mal_cmd', nargs="*",
 
 class Runner():
     def __init__(self, args, redirect=False):
+        self.redirect = redirect
         print "args: %s" % repr(args)
         if redirect:
             #cmd = '/bin/bash -c "' + " ".join(args) + ' |tee /dev/null"'
-            cmd = " ".join(args) + ' |tee /dev/null'
-            print "using redirect cmd: '%s'" % cmd
-            self.p = Popen(cmd, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
+            #cmd = " ".join(args) + ' |tee /dev/null'
+            #cmd = " ".join(args) + ' |tee /tmp/joel'
+            #print "using redirect cmd: '%s'" % cmd
+            self.p = Popen(args, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+            #self.p = Popen(cmd, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
+            #self.p = Popen(["/bin/bash", "-c", cmd], bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
             self.stdin = self.p.stdin
             self.stdout = self.p.stdout
         else:
@@ -55,9 +59,9 @@ class Runner():
     def read_to_prompt(self, prompts, timeout):
         end_time = time.time() + timeout
         while time.time() < end_time:
-            [outs,_,_] = select([self.stdin], [], [], 1)
-            if self.stdin in outs:
-                new_data = self.stdin.read(1)
+            [outs,_,_] = select([self.stdout], [], [], 1)
+            if self.stdout in outs:
+                new_data = self.stdout.read(1)
                 #print "new_data: '%s'" % new_data
                 self.buf += new_data
                 for prompt in prompts:
@@ -71,8 +75,11 @@ class Runner():
                         return buf
         return None
 
-    def write(self, str):
-        self.stdout.write(str)
+    def writeline(self, str):
+        self.stdin.write(str + "\n")
+        if self.redirect:
+            # Simulate echo
+            self.buf += str + "\r\n"
 
     def cleanup(self):
         if self.p:
@@ -158,7 +165,7 @@ while test_data:
     sys.stdout.flush()
     expected = "%s%s%s%s" % (form, sep, out, ret)
 
-    r.write(form + "\n")
+    r.writeline(form)
     try:
         res = r.read_to_prompt(['\r\nuser> ', '\nuser> ',
                                 '\r\nmal-user> ', '\nmal-user> '],
