@@ -5,12 +5,12 @@ All:
     - test to make sure slurp captures final newline
     - make sure errors propagate/print properly when self-hosted
 
-    - change perf test to run for 10 seconds and then calculate number
+    * change perf test to run for 10 seconds and then calculate number
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
     - runtest expect fixes:
         * stop using expect, so we can drop --raw option
-        - fix C#, VB
+        * fix C#, VB
         - fix long line splitting in runtest
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
@@ -85,7 +85,7 @@ Java:
     - MAL formatting is a bit off with mal/clojurewest2014.mal
 
 Javascript:
-    - interop: callbacks using Mal functions
+    - interop: adopt techniques from miniMAL
     - fix "user> " prompt with mal/clojurewest2014.mal
 
 Lua:

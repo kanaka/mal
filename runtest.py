@@ -3,7 +3,7 @@
 import os, sys, re
 import argparse, time
 
-import pty
+import pty, signal, atexit
 from subprocess import Popen, STDOUT, PIPE
 from select import select
 
@@ -33,16 +33,24 @@ parser.add_argument('mal_cmd', nargs="*",
 
 class Runner():
     def __init__(self, args, mono=False):
+        #print "args: %s" % repr(args)
         self.mono = mono
-        print "args: %s" % repr(args)
+
+        # Cleanup child process on exit
+        atexit.register(self.cleanup)
+
         if mono:
-            self.p = Popen(args, bufsize=0, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+            self.p = Popen(args, bufsize=0,
+                           stdin=PIPE, stdout=PIPE, stderr=STDOUT,
+                           preexec_fn=os.setsid)
             self.stdin = self.p.stdin
             self.stdout = self.p.stdout
         else:
             # provide tty to get 'interactive' readline to work
             master, slave = pty.openpty()
-            self.p = Popen(args, bufsize=0, stdin=slave, stdout=slave, stderr=STDOUT)
+            self.p = Popen(args, bufsize=0,
+                           stdin=slave, stdout=slave, stderr=STDOUT,
+                           preexec_fn=os.setsid)
             self.stdin = os.fdopen(master, 'r+b', 0)
             self.stdout = self.stdin
 
@@ -79,8 +87,9 @@ class Runner():
             self.buf += str + "\r\n"
 
     def cleanup(self):
+        #print "cleaning up"
         if self.p:
-            self.p.kill()
+            os.killpg(self.p.pid, signal.SIGTERM)
             self.p = None
 
 
@@ -139,7 +148,6 @@ def assert_prompt(timeout):
     else:
         print "Did not get 'user> ' or 'mal-user> ' prompt"
         print "    Got      : %s" % repr(r.buf)
-        r.cleanup()
         sys.exit(1)
 
 
@@ -177,9 +185,7 @@ while test_data:
             fail_cnt += 1
     except:
         print "Got Exception"
-        r.cleanup()
         sys.exit(1)
-r.cleanup()
 
 if fail_cnt > 0:
     print "FAILURES: %d" % fail_cnt
