@@ -220,11 +220,11 @@ implemented in less than 1024 bytes of JavaScript. To run the miniMAL
 implementation of mal you need to download/install the miniMAL
 interpreter (which requires Node.js).
 ```
-# Download miniMAL itself
-git clone https://github.com/kanaka/miniMAL ../miniMAL.git
-export PATH=`pwd`/miniMAL.git:$PATH
-# Now run mal implementated in miniMAL
 cd miniMAL
+# Download miniMAL and dependencies
+npm install
+export PATH=`pwd`/node_modules/minimal-lisp/:$PATH
+# Now run mal implementation in miniMAL
 miniMAL ./stepX_YYY
 ```
 
