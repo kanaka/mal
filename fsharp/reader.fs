@@ -120,6 +120,8 @@ module Reader
         | Some("`") -> wrapForm (fun form -> List([Symbol("quasiquote"); form])) state
         | Some("~") -> wrapForm (fun form -> List([Symbol("unquote"); form])) state
         | Some("~@") -> wrapForm (fun form -> List([Symbol("splice-unquote"); form])) state
+        | Some("@") -> wrapForm (fun form -> List([Symbol("deref"); form])) state
+        | Some("^") -> readMeta state
         | None -> None, state
         | _ -> (readAtom tok, state)
 
@@ -163,6 +165,18 @@ module Reader
                         readMap ((key, v)::acc) tok state
                     | None, _ -> raise (ReaderError("Expected '}', got EOF"))
                | None, _ -> raise (ReaderError("Expected '}', got EOF"))
+
+    and readMeta state =
+        let tok, state = readToken state
+        match tok with
+        | Some("{") -> 
+            let tok, state = readToken state
+            let meta, state = readMap [] tok state
+            let tok, state = readToken state
+            match readForm tok state with
+            | Some(form), state -> Some(List([Symbol("with-meta"); form; meta.Value])), state
+            | None, _ -> raise (ReaderError("Expected form, got EOF"))
+        | _ -> raise (ReaderError("Expected map, got EOF"))
 
     and readAtom tok =
         match tok with
