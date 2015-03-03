@@ -1,6 +1,7 @@
 require! {
     LiveScript
     readline
+    './repl.ls': {run-repl}
     './env.ls': {create-env}
     './types.ls': {Builtin}
     './logic.ls': {eval-mal}
@@ -13,7 +14,7 @@ BUILTINS = {
     '+': (new Builtin ([x, y]) -> {type: \INT, value: x.value + y.value})
     '-': (new Builtin ([x, y]) -> {type: \INT, value: x.value - y.value})
     '*': (new Builtin ([x, y]) -> {type: \INT, value: x.value * y.value})
-    '/': (new Builtin ([x, y]) -> {type: \INT, value: x.value / y.value})
+    '/': (new Builtin ([x, y]) -> {type: \INT, value: Math.round(x.value / y.value)})
 }
 
 {stdin, stdout} = process
@@ -23,21 +24,6 @@ read-mal = read-str
 print-mal = (ast) ->
     if ast? then pr-str ast else null
 
-rep = (expr, env) -> expr |> read-mal |> (eval-mal env) |> print-mal
+rep = (env, expr) --> expr |> read-mal |> (eval-mal env) |> print-mal
 
-env = create-env BUILTINS
-stdin.set-encoding \utf8
-rl = readline.create-interface input: stdin, output: stdout
-rl.set-prompt 'user> '
-rl.on \line, (mal) ->
-    if mal
-        try
-            ret = rep mal, env
-            console.log(ret) if ret?
-        catch e
-            console.error e.stack
-    rl.prompt()
-rl.on \close, ->
-    console.log '\nGoodbye!'
-    process.exit!
-rl.prompt()
+run-repl rep create-env BUILTINS
