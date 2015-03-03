@@ -1110,6 +1110,37 @@ Now go to the top level, run the step 8 tests:
 make test^quux^step8
 ```
 
+There is a reasonably good chance that the macro tests will not pass
+the first time. Although the implementation of macros is fairly
+simple, debugging runtime bugs with macros can be fairly tricky. If
+you do run into subtle problems that are difficult to solve, let me
+recommend a couple of approaches:
+
+* Use the macroexpand special form to eliminate one of the layers of
+  indirection (to expand but skip evaluate). This will often reveal
+  the source of the issue.
+* Add a debug print statement to the top of your main `eval` function
+  (inside the TCO loop) to print the current value of `ast` (hint use
+  `pr_str` to get easier to debug output). Pull up the step8
+  implementation from another language and uncomment its `eval`
+  function (yes, I give you permission to violate the rule this once).
+  Run the two side-by-side. The first difference is likely to point to
+  the bug.
+
+Congratulations! You now have a Lisp interpreter with a super power
+that most non-Lisp languages can only dream of (I have it on good
+authority that languages dream when you are not using them). If you
+are not already familiar with Lisp macros, I suggest the following
+excercise: write a recursive macro that handles postfixed mal code
+(with the function as the last parameter instead of the first). Or
+not. I have not actually done so myself, but I have heard it is an
+interesting excercise.
+
+In the next step you will add try/catch style exception handling to
+your implementation in addition to some new core functions. After
+step9 you will be very close to having a fully self-hosting mal
+implementation. Let us continue!
+
 
 ### Optional
 
