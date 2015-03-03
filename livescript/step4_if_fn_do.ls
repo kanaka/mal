@@ -20,7 +20,6 @@ print-mal = (ast) ->
 rep = (expr, env) -> expr |> read-mal |> (eval-mal env) |> print-mal
 
 env = create-env core.ns
-stdin.set-encoding \utf8
 rl = readline.create-interface input: stdin, output: stdout
 rl.set-prompt 'user> '
 rl.on \line, (mal) ->

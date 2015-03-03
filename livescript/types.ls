@@ -5,15 +5,34 @@ require! {
 }
 {atomic-types, mal-eql, is-atom, is-nil} = require './builtins.ls'
 
+DEREF = {type: \SYM, value: 'deref'}
+QUOTE = {type: \SYM, value: 'quote'}
+QUASIQUOTE = {type: \SYM, value: 'quasiquote'}
+UNQUOTE = {type: \SYM, value: 'unquote'}
+SPLICE_UNQUOTE = {type: \SYM, value: 'splice-unquote'}
+WITH_META = {type: \SYM, value: 'with-meta'}
+
 keywords = {}
 keyword-array = Array 1000
 keyword-counter = 0
 
-export keyword-by-value = (i) -> keyword-array[i]
+keyword-by-value = (i) -> keyword-array[i]
 
 export keyword = (name) -> keywords[name] ?= do ->
     value = keyword-counter++
     keyword-array[value] = {type: \KEYWORD, value, name}
+
+export deref = (name) -> new MalList [DEREF, {type: \SYM, value: name}]
+
+export quote = (form) -> new MalList [QUOTE, form]
+
+export quasiquote = (form) -> new MalList [QUASIQUOTE, form]
+
+export unquote = (form) -> new MalList [UNQUOTE, form]
+
+export splice-unquote = (form) -> new MalList [SPLICE_UNQUOTE, form]
+
+export with-meta = (meta, data) -> new MalList [WITH_META, data, meta]
 
 export class Builtin
     

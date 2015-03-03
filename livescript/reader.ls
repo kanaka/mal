@@ -2,9 +2,12 @@ require! {
     LiveScript
     'prelude-ls': {map, zip, partition}
     './builtins.ls': {NIL, TRUE, FALSE}
+    './types.ls': {
+        quasiquote, quote, unquote, splice-unquote,
+        deref, keyword, with-meta,
+        MalMap, MalList, MalVec
+    }
 }
-
-{keyword, MalMap, MalList, MalVec} = require './types.ls'
 
 THE_ONE_TRUE_REGEX = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g
 INTEGER = /^-?[1-9][0-9]*$/
@@ -12,6 +15,12 @@ FLOAT = /^-?[0-9]+(\.[0-9]*)?$/
 STRING = /^"(\\n|\\t|\\"|\\\\|[^\\])*"$/
 KEYWORD = /^:[\S]+$/
 
+QUOTE = '\''
+DEREF = '@'
+QUASIQUOTE = '`'
+UNQUOTE = '~'
+SPLICE_UNQUOTE = '~@'
+WITH_META = '^'
 [START_LIST, END_LIST] = ['(', ')']
 [START_VEC, END_VEC]   = ['[', ']']
 [START_MAP, END_MAP]   = ['{', '}']
@@ -19,16 +28,44 @@ KEYWORD = /^:[\S]+$/
 EOF = {} # Unique token
 
 export read-str = (str) ->
-    tokens = tokenise str
-    read-form new Reader tokens.concat [EOF]
+    read-form new Reader str
     
 read-form = (reader) ->
+    if process.env.DEBUG
+        console.log reader.position, reader.peek!
     switch reader.peek!
         | START_LIST => read-list reader
         | START_VEC => read-vec reader
         | START_MAP => read-map reader
         | EOF => null
+        | QUOTE => read-quote reader
+        | QUASIQUOTE => read-quasiquote reader
+        | UNQUOTE => read-unquote reader
+        | SPLICE_UNQUOTE => read-splice-unquote reader
+        | WITH_META => read-with-meta reader
+        | DEREF => read-deref reader
         | otherwise => read-atom reader
+
+read-special = (token, wrap, r) -->
+    throw new Error unless token is r.next!
+    wrap read-form r
+
+read-quote = read-special QUOTE, quote
+read-quasiquote = read-special QUASIQUOTE, quasiquote
+read-unquote = read-special UNQUOTE, unquote
+read-splice-unquote = read-special SPLICE_UNQUOTE, splice-unquote
+
+read-with-meta = (r) ->
+    throw new Error unless WITH_META is r.next!
+    meta = read-form r
+    if r.peek! is EOF
+        throw new MalSyntaxError "Expected form for meta-data, got EOF"
+    data = read-form r
+    with-meta meta, data
+
+read-deref = (r) ->
+    throw new Error unless DEREF is r.next!
+    deref r.next!
 
 read-seq = (Coll, start, end, r) -->
     value = []
@@ -76,7 +113,7 @@ tokenise = (str) ->
     tokens = str.match THE_ONE_TRUE_REGEX
     [trim t for t in tokens when t and (not /^\s*;/.test t)]
 
-function trim s then s?.replace /(^\s+|\s+$)/g, ''
+function trim s then s?.replace /(^[\s,]+|\s+$)/g, ''
 
 class MalSyntaxError extends Error
 
@@ -86,13 +123,15 @@ class MalSyntaxError extends Error
 
 class Reader
 
-    (tokens) -> @tokens = tokens
+    (str) -> @tokens = (tokenise str) ++ [EOF]
     
     position: 0
 
     next: -> @tokens[@position++]
 
     peek: -> @tokens[@position]
+
+    done: -> @position >= @tokens.length
 
 unless module.parent
     examples = [

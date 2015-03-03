@@ -7,6 +7,9 @@
     "es6-collections": "^0.5.1",
     "prelude-ls": "^1.1.1"
   },
+  "config": {
+    "human": true
+  },
   "scripts": {
     "lsc": "lsc"
   }
