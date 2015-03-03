@@ -17,3 +17,4 @@ export mal-eql = (a, b) ->
 export NIL = {type: \NIL, value: null}
 export TRUE = {type: \BOOL, value: true}
 export FALSE = {type: \BOOL, value: false}
+export DO = {type: \SYM, value: 'do'}

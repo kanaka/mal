@@ -34,6 +34,8 @@ export splice-unquote = (form) -> new MalList [SPLICE_UNQUOTE, form]
 
 export with-meta = (meta, data) -> new MalList [WITH_META, data, meta]
 
+export string = (s) -> type: \STRING, value: s
+
 export class Builtin
     
     (@fn) ->

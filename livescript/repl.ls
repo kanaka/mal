@@ -16,6 +16,8 @@ export run-repl = (rep) ->
             console.log(ret) if ret?
         catch e
             console.error e
+            if e?.stack
+                console.error e.stack
 
         stdin.write 'user> '
         # rl.prompt()

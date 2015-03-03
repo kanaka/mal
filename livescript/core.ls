@@ -1,14 +1,15 @@
 require! LiveScript
 
-require! 'prelude-ls': {all, fold, fold1, map}
-require! './types.ls': {Builtin, Lambda, MalList, MalVec}
+require! 'prelude-ls': {join, sum, all, fold, fold1, map}
+require! './types.ls': {string, Builtin, Lambda, MalList, MalVec}
 require! './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
-require! './printer.ls': {str}
+require! './printer.ls': {str, pr-str}
 
 export ns = {}
 
 bool = (value) -> type: \BOOL, value: value
 int = (value) -> type: \INT, value: value
+float = (value) -> type: \FLOAT, value: value
 
 ns.list = new Builtin (elems) -> new MalList elems
 
@@ -72,9 +73,19 @@ ns['<='] = comparator (<=)
 ns['>'] = comparator (>)
 ns['>='] = comparator (>=)
 ns['+'] = int-op (+), 0
-ns['-'] = int-op (-), 0
 ns['*'] = int-op (*), 1
-ns['/'] = new Builtin ([x, y]) -> int x.value / y.value
+ns['/'] = new Builtin ([x, y]) ->
+    if x.type is \INT and y.type is \INT
+        int Math.round x.value / y.value
+    else
+        float x.value / y.value
+
+ns['-'] = new Builtin ([x, ...ys]:args) ->
+    val = x.value - sum map (.value), ys
+    if all (-> it.type is \INT), args
+        int val
+    else
+        float val
 
 ns['print'] = new Builtin (exprs) ->
     for e in exprs
@@ -82,7 +93,14 @@ ns['print'] = new Builtin (exprs) ->
     NIL
 
 ns['println'] = new Builtin (exprs) ->
-    for e in exprs
-        console.log str e
+    console.log join '',  (map str, exprs)
+    NIL
+
+ns['pr-str'] = new Builtin string . (join ' ') . (map pr-str)
+
+ns['str'] = new Builtin string . (join '') . (map str)
+
+ns['prn'] = new Builtin (exprs) ->
+    console.log join ' ',  (map pr-str, exprs)
     NIL
 
