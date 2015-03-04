@@ -35,10 +35,6 @@ ocaml/*.swp
 ocaml/*.cmx
 ocaml/*.o
 ocaml/mal_lib.*
-rust/target/
-rust/mal
-rust/Cargo.lock
-rust/.cargo
 r/lib
 vb/*.exe
 vb/*.dll

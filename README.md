@@ -30,7 +30,6 @@ Mal is implemented in 27 different languages:
 * R
 * Racket
 * Ruby
-* Rust
 * Scala
 * Visual Basic.NET
 
@@ -306,19 +305,6 @@ cd racket
 ```
 cd ruby
 ruby stepX_YYY.rb
-```
-
-### Rust (0.13)
-
-The rust implementation of mal requires the rust compiler and build
-tool (cargo) to build.
-
-```
-cd rust
-# Need patched pcre lib (should be temporary)
-git clone https://github.com/kanaka/rust-pcre cadencemarseille-pcre
-cargo build --release
-./target/stepX_YYY
 ```
 
 ### Scala ###
