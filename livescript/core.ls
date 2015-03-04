@@ -2,7 +2,7 @@ require! {
     LiveScript
     fs
     'prelude-ls': {join, sum, all, fold, fold1, map}
-    './types.ls': {string, Builtin, Lambda, MalList, MalVec}
+    './types.ls': {string, Builtin, Lambda, MalList, MalVec, MalMap}
     './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
     './printer.ls': {str, pr-str}
     './reader.ls': {read-str}
@@ -18,10 +18,24 @@ ns.list = new Builtin (elems) -> new MalList elems
 
 ns['list?'] = new Builtin ([x]) -> bool x.type is \LIST
 
+ns['typeof?'] = new Builtin ([x]) -> string x.type
+
+ns['empty'] = new Builtin ([x]) -> switch x.type
+    | \LIST => new MalList []
+    | \VEC => new MalVec []
+    | \MAP => new MalMap []
+    | \STRING => string ""
+    | _ => throw new Error("Bad argument to empty: #{ pr-str x }")
+
 ns['empty?'] = new Builtin ([x]) ->
     | is-nil x => bool true
-    | is-seq x => bool x.value.length is 0
+    | (is-seq x) or (x.type is \STRING) => bool x.value.length is 0
     | _ => throw new Error 'Not a sequence'
+
+ns['range'] = new Builtin ([min, max]:args) ->
+    if args.length is 1
+        [min, max] = [{value: 0}, min]
+    new MalList [min.value to max.value].map int
 
 ns['nil?'] = new Builtin ([x]) -> bool is-nil x
 
@@ -86,6 +100,12 @@ ns['/'] = new Builtin ([x, y]) ->
         int Math.round x.value / y.value
     else
         float x.value / y.value
+
+ns['%'] = new Builtin ([x, y]) ->
+    if x.type is \INT and y.type is \INT
+        int x.value % y.value
+    else
+        float x.value % y.value
 
 ns['-'] = new Builtin ([x, ...ys]:args) ->
     val = x.value - sum map (.value), ys

@@ -22,7 +22,7 @@ bind-all = (env, names = [], exprs = []) ->
             vals = exprs.slice i
             name = names[++i]
             throw new Error "No binding provided when slurping" unless name
-            bind-value env, name, (new types.MalVec vals)
+            bind-value env, name, (new types.MalList vals)
             slurped = true
         else
             value = exprs[i]

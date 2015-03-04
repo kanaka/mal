@@ -1,2 +1,18 @@
 (do
+    (defn even? [x] (= 0 (% x 2)))
+    (defn odd? [x] (= 0 (% (- x 1) 2)))
+
+    (defn filter
+          [f xs]
+          (if (empty? xs)
+              xs
+              (let [[x & xss] xs
+                    tail (filter f xss)]
+                   (if (f x) (cons x tail) tail))))
+    (defn map
+          [f xs]
+          (if (empty? xs)
+              xs
+              (let [[x & xss] xs] (cons (f x) (map f xss)))))
+
     (def! not (fn* [x] (if x false true))))

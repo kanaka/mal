@@ -17,6 +17,7 @@ evaluate = (env, ast) -> switch ast.type
     | otherwise => ast
 
 export eval-mal = (env, ast) --> while true
+    return null unless ast?
     return (evaluate env, ast) if ast.type isnt \LIST
     if is-macro ast
         [env, ast] = expand-macro env, ast
@@ -29,6 +30,7 @@ export eval-mal = (env, ast) --> while true
             | 'defn' => return do-defn env, args
             | 'or' => return do-or env, args
             | 'and' => return do-and env, args
+            | 'quote' => return args[0]
             | 'let', 'let*' => [env, ast] = do-let env, args
             | 'do' => ast = do-do env, args
             | 'if' => ast = do-if env, args # should be macro
