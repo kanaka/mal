@@ -18,7 +18,7 @@ all: $(BINS) mal
 mal: $(word $(words $(BINS)),$(BINS))
 	cp $< $@
 
-$(BINS):
+$(BINS): %: %.nim
 	nim -d:release c $@
 
 clean:

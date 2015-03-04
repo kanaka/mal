@@ -1,6 +1,6 @@
 import nre, optional_t, strutils, types
 
-var
+let
   tokenRE = re"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"""
   intRE   = re"-?[0-9]+$"
 

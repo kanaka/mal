@@ -26,7 +26,7 @@ proc macroexpand(ast: MalType, env: Env): MalType =
     let mac = env.get(result.list[0].str)
     result = mac.malfun.fn(result.list[1 .. -1]).macroexpand(env)
 
-proc eval(ast: MalType, env: var Env): MalType
+proc eval(ast: MalType, env: Env): MalType
 
 proc eval_ast(ast: MalType, env: var Env): MalType =
   case ast.kind
@@ -43,18 +43,20 @@ proc eval_ast(ast: MalType, env: var Env): MalType =
   else:
     result = ast
 
-proc eval(ast: MalType, env: var Env): MalType =
+proc eval(ast: MalType, env: Env): MalType =
+  var ast = ast
+  var env = env
+
   template defaultApply =
     let el = ast.eval_ast(env)
     let f = el.list[0]
     case f.kind
     of MalFun:
       ast = f.malfun.ast
-      env = initEnv(env, f.malfun.params, list(el.list[1 .. -1]))
+      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. -1]))
     else:
       return f.fun(el.list[1 .. -1])
 
-  var ast = ast
   while true:
     if ast.kind != List: return ast.eval_ast(env)
 
@@ -104,7 +106,7 @@ proc eval(ast: MalType, env: var Env): MalType =
       of "do":
         let last = ast.list.high
         let el = (list ast.list[1 .. <last]).eval_ast(env)
-        ast = ast.list[last].eval(env)
+        ast = ast.list[last]
         # Continue loop (TCO)
 
       of "if":
@@ -126,7 +128,7 @@ proc eval(ast: MalType, env: var Env): MalType =
         let fn = proc(a: varargs[MalType]): MalType =
           var newEnv = initEnv(env2, a1, list(a))
           a2.eval(newEnv)
-        return malfun(fn, a2, a1, env2)
+        return malfun(fn, a2, a1, env)
 
       else:
         defaultApply()

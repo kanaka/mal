@@ -57,21 +57,22 @@ proc throw(xs: varargs[MalType]): MalType =
 
 proc assoc(xs: varargs[MalType]): MalType =
   result = hash_map()
-  result.hash_map[] = xs[0].hash_map[]
+  result.hash_map = xs[0].hash_map
   for i in countup(1, xs.high, 2):
     result.hash_map[xs[i].str] = xs[i+1]
 
 proc dissoc(xs: varargs[MalType]): MalType =
   result = hash_map()
-  result.hash_map[] = xs[0].hash_map[]
+  result.hash_map = xs[0].hash_map
   for i in 1 .. xs.high:
     if result.hash_map.hasKey(xs[i].str): result.hash_map.del(xs[i].str)
 
 proc get(xs: varargs[MalType]): MalType =
   if xs[0].kind == HashMap:
-    xs[0].hash_map[xs[1].str]
-  else:
-    nilObj
+    result = xs[0].hash_map[xs[1].str]
+    if not result.isNil: return
+
+  result = nilObj
 
 proc contains_q(xs: varargs[MalType]): MalType =
   boolObj xs[0].hash_map.hasKey(xs[1].str)
@@ -113,27 +114,27 @@ proc map(xs: varargs[MalType]): MalType =
     result.list.add xs[0].getFun()(xs[1].list[i])
 
 proc with_meta(xs: varargs[MalType]): MalType =
-  result = xs[0]
-  new result.meta
-  result.meta[] = xs[1]
+  new result
+  result[] = xs[0][]
+  result.meta = xs[1]
 
 proc meta(xs: varargs[MalType]): MalType =
-  if xs[0].meta != nil: xs[0].meta[]
+  if not xs[0].meta.isNil: xs[0].meta
   else: nilObj
 
 proc deref(xs: varargs[MalType]): MalType =
-  xs[0].val[]
+  xs[0].val
 
 proc reset_bang(xs: varargs[MalType]): MalType =
-  xs[0].val[] = xs[1]
-  result = xs[0].val[]
+  xs[0].val = xs[1]
+  result = xs[0].val
 
 proc swap_bang(xs: varargs[MalType]): MalType =
-  var args = @[xs[0].val[]]
+  var args = @[xs[0].val]
   for i in 2 .. xs.high:
     args.add xs[i]
-  xs[0].val[] = xs[1].getFun()(args)
-  result = xs[0].val[]
+  xs[0].val = xs[1].getFun()(args)
+  result = xs[0].val
 
 proc time_ms(xs: varargs[MalType]): MalType =
   number int(epochTime() * 1000)
