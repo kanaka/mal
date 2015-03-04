@@ -36,7 +36,7 @@ EXCLUDE_TESTS += test^php^step5  # test completes, even at 100,000
 EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
 EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
-#EXCLUDE_TESTS += test^nim^step5   # test completes, even at 100,000
+EXCLUDE_TESTS += test^nim^step5   # test completes, even at 100,000
 
 # interop tests now implemented yet
 EXCLUDE_TESTS += test^cs^stepA test^java^stepA test^mal^stepA \
@@ -111,8 +111,7 @@ ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
 scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
-#nim_RUNSTEP =     ../$(2) $(3)
-nim_RUNSTEP =     nim -d:release --deadcodeelim:off c -r ../$(2) $(3)
+nim_RUNSTEP =     ../$(2) $(3)
 
 # Extra options to pass to runtest.py
 cs_TEST_OPTS =  --redirect
