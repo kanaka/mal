@@ -125,7 +125,7 @@ proc eval(ast: MalType, env: Env): MalType =
       of "do":
         let last = ast.list.high
         let el = (list ast.list[1 .. <last]).eval_ast(env)
-        ast = ast.list[last].eval(env)
+        ast = ast.list[last]
         # Continue loop (TCO)
 
       of "if":

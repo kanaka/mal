@@ -13,7 +13,7 @@ proc pr_str*(m: MalType, pr = true): string =
   of False:   result = "false"
   of Fun:     result = "#<function>"
   of MalFun:  result = "#<malfun>"
-  of Atom:    result = "(atom " & m.val[].pr_str & ")"
+  of Atom:    result = "(atom " & m.val.pr_str & ")"
   of Symbol:  result = m.str
   of String:  result = m.str.str_handle(pr)
   of Number:  result = $m.number

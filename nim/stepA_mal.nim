@@ -175,10 +175,11 @@ rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
 rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 rep "(def! *host-language* \"nim\")"
 
-rep "(println (str \"Mal [\" *host-language* \"]\"))"
 if paramCount() >= 1:
   rep "(load-file \"" & paramStr(1) & "\")"
   quit()
+
+rep "(println (str \"Mal [\" *host-language* \"]\"))"
 
 while true:
   try:

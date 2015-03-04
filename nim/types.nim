@@ -13,28 +13,28 @@ type
     env*:      Env
     is_macro*: bool
 
-  MalType* = object
+  MalType* = ref object
     case kind*: MalTypeKind
     of Nil, True, False: nil
     of Number:           number*:   int
     of String, Symbol:   str*:      string
     of List, Vector:     list*:     seq[MalType]
-    of HashMap:          hash_map*: TableRef[string, MalType]
+    of HashMap:          hash_map*: Table[string, MalType]
     of Fun:
                          fun*:      FunType
                          is_macro*: bool
     of MalFun:           malfun*:   MalFunType
-    of Atom:             val*:      ref MalType
+    of Atom:             val*:      MalType
 
-    meta*: ref MalType
+    meta*: MalType
 
   Env* = ref object
     data*: Table[string, MalType]
     outer*: Env
 
-const nilObj* = MalType(kind: Nil)
-const trueObj* = MalType(kind: True)
-const falseObj* = MalType(kind: False)
+let nilObj* = MalType(kind: Nil)
+let trueObj* = MalType(kind: True)
+let falseObj* = MalType(kind: False)
 
 proc number*(x: int): MalType = MalType(kind: Number, number: x)
 
@@ -46,19 +46,18 @@ proc keyword*(x: string): MalType = MalType(kind: String, str: "\xff" & x)
 
 proc atom*(x: MalType): MalType =
   result = MalType(kind: Atom)
-  new result.val
-  result.val[] = x
+  result.val = x
 
 proc list*(xs: varargs[MalType]): MalType {.procvar.} =
-  result = MalType(kind: List, list: @[])
-  for x in xs: result.list.add x
+  result = MalType(kind: List, list: newSeq[MalType](xs.len))
+  for i, x in xs: result.list[i] = x
 
 proc vector*(xs: varargs[MalType]): MalType {.procvar.} =
-  result = MalType(kind: Vector, list: @[])
-  for x in xs: result.list.add x
+  result = MalType(kind: Vector, list: newSeq[MalType](xs.len))
+  for i, x in xs: result.list[i] = x
 
 proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
-  result = MalType(kind: HashMap, hash_map: newTable[string, MalType]())
+  result = MalType(kind: HashMap, hash_map: initTable[string, MalType]())
   for i in countup(0, xs.high, 2):
     let s = case xs[i].kind
     of String: xs[i].str
@@ -66,13 +65,14 @@ proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
     result.hash_map[s] = xs[i+1]
 
 proc macro_q*(x: MalType): bool =
-  if x.kind == Fun: x.is_macro
-  else: x.malfun.is_macro
+  if x.kind == Fun: result = x.is_macro
+  elif x.kind == MalFun: result = x.malfun.is_macro
+  else: raise newException(ValueError, "no function")
 
 proc getFun*(x: MalType): FunType =
   if x.kind == Fun: result = x.fun
   elif x.kind == MalFun: result = x.malfun.fn
-  else: echo x.kind
+  else: raise newException(ValueError, "no function")
 
 proc fun*(x: proc(xs: varargs[MalType]): MalType, is_macro = false): MalType =
   MalType(kind: Fun, fun: x, is_macro: is_macro)
