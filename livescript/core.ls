@@ -49,7 +49,7 @@ ns['='] = new Builtin ([x, ...xs]:args) ->
     bool all (-> mal-eql x, it), xs
 
 ns['cons'] = new Builtin ([x, xs]:args) ->
-    throw new Error 'Two arguments expected' unless args.length is 2
+    throw new Error "Two arguments expected to cons, got: #{ args.length }" unless args.length is 2
     throw new Error 'Collection must be sequence' unless is-seq xs
     elems = [x] ++ xs.value
     switch xs.type

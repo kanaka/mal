@@ -1,11 +1,11 @@
 require! LiveScript
 
 require! 'prelude-ls': {map, fold}
-require! './builtins.ls': {DO, NIL, truthy, is-seq}
+require! './builtins.ls': {DO, NIL, truthy, is-seq, mal-eql}
 require! './printer.ls': {pr-str}
 require! './env': {create-env, bind-value}
 
-{Lambda, MalList, MalVec, MalMap} = require './types.ls'
+{sym, Lambda, MalList, MalVec, MalMap} = require './types.ls'
 
 SPECIALS = <[ do let let* def! def fn* fn defn if or and ]>
 
@@ -31,6 +31,8 @@ export eval-mal = (env, ast) --> while true
             | 'or' => return do-or env, args
             | 'and' => return do-and env, args
             | 'quote' => return args[0]
+            | 'quasiquote' => ast = do-quasi-quote args[0]
+            | 'unquote' => ast = args[0]
             | 'let', 'let*' => [env, ast] = do-let env, args
             | 'do' => ast = do-do env, args
             | 'if' => ast = do-if env, args # should be macro
@@ -48,6 +50,21 @@ export eval-mal = (env, ast) --> while true
 do-defn = (env, [name, ...fn-def]) -> do-def env, [name, (do-fn env, fn-def)]
 
 is-macro = -> false
+
+is-pair = (form) -> (is-seq form) and form.value.length
+
+make-call = (name, ...args) -> new MalList [(sym name)] ++ args
+
+do-quasi-quote = (ast) ->
+    | not is-pair ast => make-call \quote, ast
+    | _ =>
+        [head, ...tail] = ast.value
+        throw new Error("NO FST: #{ JSON.stringify(ast) }") unless head
+        switch
+            | mal-eql (sym \unquote), head => tail[0]
+            | (is-pair head) and mal-eql (sym 'splice-unquote'), head.value[0] =>
+                make-call \concat, head.value[1], (do-quasi-quote new MalList tail)
+            | _ => make-call \cons, (do-quasi-quote head), (do-quasi-quote new MalList tail)
 
 do-or = (env, exprs) ->
     return NIL unless exprs.length
