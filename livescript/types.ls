@@ -36,6 +36,8 @@ export with-meta = (meta, data) -> new MalList [WITH_META, data, meta]
 
 export string = (s) -> type: \STRING, value: s
 
+export sym = (s) -> type: \SYM, value: s
+
 export class Builtin
     
     (@fn) ->
