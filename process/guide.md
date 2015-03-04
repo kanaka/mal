@@ -162,10 +162,11 @@ This step is basically just creating a skeleton of your interpreter.
   language is a statically typed) and `rep` calls them in order
   passing the return to the input of the next.
 
-* Add a main loop that repeatedly prints a prompt, gets a line of
-  input from the user, calls `rep` with that line of input, and then
-  prints out the result from `rep`. It should also exit when you send
-  it an EOF (often Ctrl-D).
+* Add a main loop that repeatedly prints a prompt (needs to be
+  "user> " for later tests to pass), gets a line of input from the
+  user, calls `rep` with that line of input, and then prints out the
+  result from `rep`. It should also exit when you send it an EOF
+  (often Ctrl-D).
 
 * If you are using a compiled (ahead-of-time rather than just-in-time)
   language, then create a Makefile (or appropriate project definition
@@ -367,7 +368,7 @@ and each step will give progressively more bang for the buck.
   * keyword: just a string stored with unicode prefix (or char 127 if
     no unicode support).
   * vector: can be implemented with same underlying type as list if
-    there is some mechanism for marking/distringuishing from a list.
+    there is some mechanism for marking/distinguishing from a list.
   * hash-map: only need to implement string keys (which enables
     keyword keys since they are just special strings).
 
