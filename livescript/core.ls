@@ -34,13 +34,17 @@ ns['='] = new Builtin ([x, ...xs]:args) ->
     throw new Error 'Expected at least two arguments' unless args.length > 1
     bool all (-> mal-eql x, it), xs
 
-ns['conj'] = new Builtin ([x, xs]:args) ->
+ns['cons'] = new Builtin ([x, xs]:args) ->
     throw new Error 'Two arguments expected' unless args.length is 2
     throw new Error 'Collection must be sequence' unless is-seq xs
     elems = [x] ++ xs.value
     switch xs.type
         | \VEC => new MalVec elems
         | \LIST => new MalList elems
+
+ns['concat'] = new Builtin (xss) ->
+    throw new Error("Arguments must be sequences") unless all is-seq, xss
+    new MalList fold (++), [], map (.value), xss
 
 ns['name'] = new Builtin ([x]:args) ->
     throw new Error 'One argument expected' unless args.length is 1
