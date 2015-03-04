@@ -1,42 +1,42 @@
 package main
 
 import (
-    "fmt"
-    "strings"
+	"fmt"
+	"strings"
 )
 
 import (
-    "readline"
+	"readline"
 )
 
 // read
 func READ(str string) string {
-    return str
+	return str
 }
 
 // eval
 func EVAL(ast string, env string) string {
-    return ast
+	return ast
 }
 
 // print
 func PRINT(exp string) string {
-    return exp
+	return exp
 }
 
 // repl
 func rep(str string) string {
-    return PRINT(EVAL(READ(str), ""))
+	return PRINT(EVAL(READ(str), ""))
 }
 
 func main() {
-    // repl loop
-    for {
-        text, err := readline.Readline("user> ")
-        text = strings.TrimRight(text, "\n");
-        if (err != nil) {
-            return
-        }
-        fmt.Println(rep(text))
-    }
+	// repl loop
+	for {
+		text, err := readline.Readline("user> ")
+		text = strings.TrimRight(text, "\n")
+		if err != nil {
+			return
+		}
+		fmt.Println(rep(text))
+	}
 }
