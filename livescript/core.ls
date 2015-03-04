@@ -1,9 +1,12 @@
-require! LiveScript
-
-require! 'prelude-ls': {join, sum, all, fold, fold1, map}
-require! './types.ls': {string, Builtin, Lambda, MalList, MalVec}
-require! './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
-require! './printer.ls': {str, pr-str}
+require! {
+    LiveScript
+    fs
+    'prelude-ls': {join, sum, all, fold, fold1, map}
+    './types.ls': {string, Builtin, Lambda, MalList, MalVec}
+    './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
+    './printer.ls': {str, pr-str}
+    './reader.ls': {read-str}
+}
 
 export ns = {}
 
@@ -104,3 +107,16 @@ ns['prn'] = new Builtin (exprs) ->
     console.log join ' ',  (map pr-str, exprs)
     NIL
 
+ns['read-string'] = new Builtin ([str]:args) ->
+    throw new Error("Too many arguments to read-string") if args.length > 1
+    throw new Error("No string to read") unless str?
+    throw new Error("Argument must be a string") unless str.type is \STRING
+    read-str str.value
+
+ns['slurp'] = new Builtin ([filename, encoding]:args) ->
+    throw new Error("Too many arguments to slurp") if args.length > 2
+    throw new Error("No filename to read") unless str?
+    throw new Error("Filename must be a string") unless filename.type is \STRING
+    throw new Error("Encoding must be a string") if (encoding and encoding.type isnt \STRING)
+    encoding ?= {value: 'utf8'}
+    string fs.readFileSync filename.value, encoding.value
