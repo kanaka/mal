@@ -6,8 +6,15 @@ require! {
 
 USER_IS_HUMAN = !!(process.env.HUMAN or process.env.npm_package_config_human)
 
-export run-repl = (rep) ->
-    rl = readline.create-interface terminal: USER_IS_HUMAN, input: stdin, output: stdout
+export run-repl = (rep, env = {}) ->
+
+    rl = readline.create-interface {
+        terminal: USER_IS_HUMAN
+        input: stdin
+        output: stdout
+        completer: (current-names-completer env)
+    }
+
     rl.set-prompt 'user> '
 
     rl.on \line, (mal) ->
@@ -27,3 +34,10 @@ export run-repl = (rep) ->
         process.exit!
 
     rl.prompt()
+
+current-names-completer = (env, partial-line) -->
+    matches = partial-line?.match /\w+$/
+    return [[], partial-line] unless matches
+    [current-symbol] = matches
+    hits = [k for k of env when 0 is k.indexOf current-symbol]
+    [hits, current-symbol]

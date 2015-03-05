@@ -33,4 +33,4 @@ let environment = create-env core.ns
     if filename
         eval-mal environment, new MalList [(sym "load-file"), (string filename)]
     else
-        run-repl rep environment
+        run-repl (rep environment), environment
