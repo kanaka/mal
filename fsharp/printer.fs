@@ -5,42 +5,59 @@ module Printer
 
     let pr_str data =
         let acc = StringBuilder()
+        let appendStr (str : string) = acc.Append(str) |> ignore
         let rec pr_node = function
-            | List(nodes) 
-                -> acc.Append("(") |> ignore
-                   pr_list "" nodes
-            | Vector(nodes)
-                -> acc.Append("[") |> ignore
-                   pr_vector "" nodes 0
+            | Nil -> appendStr "nil"
+            | List(nodes) -> pr_list nodes
+            | Vector(nodes) -> pr_vector nodes
             | Map(map) -> pr_map map
-            | Symbol(symbol) -> acc.Append(symbol) |> ignore
+            | Symbol(symbol) -> appendStr symbol
+            | Keyword(keyword) -> appendStr ":"; appendStr keyword
             | Number(num) -> acc.Append(num) |> ignore
+            | String(str) -> pr_str str
+            | Bool(true) -> appendStr "true"
+            | Bool(false) -> appendStr "false"
 
-        and pr_list prefix = function
-            | head::rest 
-                -> acc.Append(prefix) |> ignore
-                   pr_node head
-                   pr_list " " rest
-            | [] -> acc.Append(")") |> ignore
+        and pr prefix node =
+            appendStr prefix
+            pr_node node
+            " "
 
-        and pr_vector prefix nodes i =
-            if i < nodes.Length then
-                acc.Append(prefix) |> ignore
-                pr_node nodes.[i]
-                pr_vector " " nodes (i + 1)
-            else
-                acc.Append("]") |> ignore
+        and pr_str str =
+            let appendChar = function
+                | '\t' -> appendStr "\\t"
+                | '\b' -> appendStr "\\b"
+                | '\n' -> appendStr "\\n"
+                | '\r' -> appendStr "\\r"
+                | '\f' -> appendStr "\\f"
+                | '\'' -> appendStr "\\'"
+                | '"' -> appendStr "\\\""
+                | '\\' -> appendStr "\\\\"
+                | ch -> acc.Append(ch) |> ignore
+            appendStr "\""
+            str |> Seq.iter appendChar
+            appendStr "\""
+
+        and pr_list nodes =
+            appendStr "("
+            nodes |> List.fold pr "" |> ignore
+            appendStr ")"
+
+        and pr_vector nodes =
+            appendStr "["
+            nodes |> Seq.fold pr "" |> ignore
+            appendStr "]"           
 
         and pr_map map =
-            let mapPrinter (prefix : string) key value =
-                acc.Append(prefix) |> ignore
+            let pr prefix key value =
+                appendStr prefix
                 pr_node key
-                acc.Append(" ") |> ignore
+                appendStr " "
                 pr_node value
                 " "
-            acc.Append("{") |> ignore
-            Map.fold mapPrinter "" map |> ignore
-            acc.Append("}") |> ignore
+            appendStr "{"
+            map |> Map.fold pr "" |> ignore
+            appendStr "}"
         
         pr_node data
         acc.ToString()

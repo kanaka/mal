@@ -1,19 +1,13 @@
 module REPL
     open System
 
-    type OptionBuilder() =
-        member x.Bind(v, f) = Option.bind f v
-        member x.Return v = Some v
-        member x.ReturnFrom o = o
-        member x.Zero() = Some ()
-
     let read input =
         try
             Reader.read_str input
         with
-        | Reader.ReaderError(msg) ->
-            msg |> printfn "%s"
-            None
+        | Tokenizer.ReaderError(msg) ->
+            printfn "%s" msg
+            []
 
     let eval ast =
         Some(ast)
@@ -24,11 +18,11 @@ module REPL
         |> printfn "%s"
 
     let rep input =
-        OptionBuilder() {
-            let! ast = read input
-            let! value = eval ast
-            print value
-        } |> ignore
+        read input
+        |> Seq.ofList
+        |> Seq.map (fun form -> eval form)
+        |> Seq.filter Option.isSome
+        |> Seq.iter (fun value -> print value.Value)
 
     let getReadlineMode (args : string array) =
         if args.Length > 0 && args.[0] = "--raw" then
