@@ -3,7 +3,7 @@ TESTS =
 
 
 SOURCES_BASE = mal_readline.py mal_types.py reader.py printer.py
-SOURCES_LISP = env.py core.py stepA_interop.py
+SOURCES_LISP = env.py core.py stepA_mal.py
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 

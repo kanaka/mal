@@ -185,6 +185,11 @@ function print_exception(exc)
     end
 end
 
+if #arg > 0 and arg[1] == "--raw" then
+    readline.raw = true
+    table.remove(arg,1)
+end
+
 if #arg > 0 then
     xpcall(function() rep("(load-file \""..arg[1].."\")") end,
            print_exception)

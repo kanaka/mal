@@ -5,6 +5,8 @@ local M = {}
 local history_loaded = false
 local history_file = os.getenv("HOME") .. "/.mal-history"
 
+M.raw = false
+
 function M.readline(prompt)
     if not history_loaded then
         history_loaded = true
@@ -13,7 +15,12 @@ function M.readline(prompt)
         end
     end
 
-    line = LN.linenoise(prompt)
+    if M.raw then
+        io.write(prompt); io.flush();
+        line = io.read()
+    else
+        line = LN.linenoise(prompt)
+    end
     if line then
         LN.historyadd(line)
         local f = io.open(history_file, "a")

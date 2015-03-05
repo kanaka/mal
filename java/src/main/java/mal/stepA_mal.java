@@ -15,7 +15,7 @@ import mal.printer;
 import mal.env.Env;
 import mal.core;
 
-public class stepA_interop {
+public class stepA_mal {
     // read
     public static MalVal READ(String str) throws MalThrowable {
         return reader.read_str(str);

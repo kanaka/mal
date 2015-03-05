@@ -12,7 +12,7 @@ PYTHON = python
 
 IMPLS = bash c clojure coffee cs forth go haskell java js lua make mal \
 	ocaml matlab miniMAL perl php ps python r racket ruby rust \
-	scala vb livescript
+	scala vb nim livescript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -24,23 +24,27 @@ step6 = step6_file
 step7 = step7_quote
 step8 = step8_macros
 step9 = step9_try
-stepA = stepA_interop
+stepA = stepA_mal
 
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
+EXCLUDE_TESTS += test^haskell^step5 # test completes
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
 EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
 EXCLUDE_TESTS += test^go^step5   # test completes, even at 100,000
 EXCLUDE_TESTS += test^php^step5  # test completes, even at 100,000
+EXCLUDE_TESTS += test^racket^step5 # test completes
 EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
 EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
+EXCLUDE_TESTS += test^nim^step5   # test completes, even at 100,000
 
 # interop tests now implemented yet
-EXCLUDE_TESTS += test^cs^stepA test^java^stepA test^mal^stepA \
-		 test^mal^step0 test^php^stepA test^ps^stepA \
-		 test^python^stepA test^ruby^stepA
+EXCLUDE_TESTS += test^cs^stepA test^go^stepA test^haskell^stepA \
+		 test^java^stepA test^mal^stepA test^mal^step0 \
+		 test^php^stepA test^ps^stepA test^python^stepA \
+		 test^ruby^stepA test^rust^stepA test^vb^stepA
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
@@ -73,10 +77,11 @@ python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
 racket_STEP_TO_PROG =  racket/$($(1)).rkt
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
-rust_STEP_TO_PROG =    rust/target/$($(1))
+rust_STEP_TO_PROG =    rust/target/release/$($(1))
 scala_STEP_TO_PROG =   scala/$($(1)).scala
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 livescript_STEP_TO_PROG = livescript/$($(1)).ls
+nim_STEP_TO_PROG =     nim/$($(1))
 
 # Needed some argument munging
 COMMA = ,
@@ -93,7 +98,7 @@ go_RUNSTEP =      ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.args="--raw$(if $(3), $(3),)"
 js_RUNSTEP =      node ../$(2) $(3)
-lua_RUNSTEP =     ../$(2) $(3)
+lua_RUNSTEP =     ../$(2) --raw $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
@@ -111,12 +116,12 @@ rust_RUNSTEP =    ../$(2) $(3)
 scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 livescript_RUNSTEP = ../livescript/node_modules/.bin/lsc ../$(2) $(3)
+nim_RUNSTEP =     ../$(2) $(3)
 
 # Extra options to pass to runtest.py
-cs_TEST_OPTS =  --redirect
-mal_TEST_OPTS = --redirect --start-timeout 60 --test-timeout 120
-vb_TEST_OPTS =  --redirect
-
+cs_TEST_OPTS =  --mono
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
+vb_TEST_OPTS =  --mono
 
 # Derived lists
 STEPS = $(sort $(filter step%,$(.VARIABLES)))
@@ -195,5 +200,7 @@ $(IMPL_PERF):
 	  echo 'Running: $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf1.mal)'; \
           $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf1.mal); \
 	  echo 'Running: $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf2.mal)'; \
-          $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf2.mal))
+          $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf2.mal); \
+	  echo 'Running: $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf3.mal)'; \
+          $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf3.mal))
 

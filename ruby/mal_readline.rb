@@ -4,7 +4,7 @@ $history_loaded = false
 $histfile = "#{ENV['HOME']}/.mal-history"
 
 def _readline(prompt)
-    if not $history_loaded
+    if !$history_loaded && File.exist?($histfile)
         $history_loaded = true
         File.readlines($histfile).each {|l| Readline::HISTORY.push(l.chomp)}
     end

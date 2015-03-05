@@ -1,4 +1,4 @@
---- stepA_interop -------------------------------
+--- stepA_mal -------------------------------
 import types, reader, printer, env, core
 
 READ(str): return reader.read_str(str)

@@ -15,7 +15,7 @@ So jump right in (er ... start the climb)!
 
 You might already have a language in mind that you want to use.
 Technically speaking, mal can be implemented in any sufficiently
-complete programming (i.e. Turing complete), however, there are a few
+complete programming language (i.e. Turing complete), however, there are a few
 language features that can make the task MUCH easier. Here are some of
 them in rough order of importance:
 
@@ -68,8 +68,8 @@ git clone git@github.com:YOUR_NAME/mal.git
 cd mal
 ```
 
-* Make a new directory for your implementation. For example, if you
-* language is called "quux":
+* Make a new directory for your implementation. For example, if your
+language is called "quux":
 ```
 mkdir quux
 ```
@@ -104,6 +104,7 @@ compared/described:
 * http://learnxinyminutes.com/
 * http://hyperpolyglot.org/
 * http://rosettacode.org/
+* http://rigaux.org/language-study/syntax-across-languages/
 
 Do not let yourself be bogged down by specific problems. While the
 make-a-lisp process is structured as a series of steps, the reality is
@@ -161,10 +162,11 @@ This step is basically just creating a skeleton of your interpreter.
   language is a statically typed) and `rep` calls them in order
   passing the return to the input of the next.
 
-* Add a main loop that repeatedly prints a prompt, gets a line of
-  input from the user, calls `rep` with that line of input, and then
-  prints out the result from `rep`. It should also exit when you send
-  it an EOF (often Ctrl-D).
+* Add a main loop that repeatedly prints a prompt (needs to be
+  "user> " for later tests to pass), gets a line of input from the
+  user, calls `rep` with that line of input, and then prints out the
+  result from `rep`. It should also exit when you send it an EOF
+  (often Ctrl-D).
 
 * If you are using a compiled (ahead-of-time rather than just-in-time)
   language, then create a Makefile (or appropriate project definition
@@ -321,7 +323,7 @@ manually try some simple inputs:
   * `   abc   ` -> `abc`
   * `(123 456)` -> `(123 456)`
   * `(  123   456 789   )   ` -> `(123 456 789)`
-  * `(  + 2   (+  3  4)  )  ` -> `(+ 2 (* 3 4))`
+  * `(  + 2   (*  3  4)  )  ` -> `(+ 2 (* 3 4))`
 
 To verify that your code is doing more than just eliminating extra
 spaces (and not failing), you can instrument your `reader.qx` functions.
@@ -352,7 +354,7 @@ and each step will give progressively more bang for the buck.
 * Add support for the other basic data type to your reader and printer
   functions: string, nil, true, and false. These become mandatory at
   step 4. When a string is read, a slash followed by a doublequote is
-  translatd into a plain doublequote character and a slash followed by
+  translated into a plain doublequote character and a slash followed by
   "n" is translated into a newline. To properly print a string (for
   step 4 string functions), the `pr_str` function needs another
   parameter called `print_readably`. When `print_readably` is true,
@@ -366,7 +368,7 @@ and each step will give progressively more bang for the buck.
   * keyword: just a string stored with unicode prefix (or char 127 if
     no unicode support).
   * vector: can be implemented with same underlying type as list if
-    there is some mechanism for marking/distringuishing from a list.
+    there is some mechanism for marking/distinguishing from a list.
   * hash-map: only need to implement string keys (which enables
     keyword keys since they are just special strings).
 
@@ -483,7 +485,7 @@ the changes that will be made during this step:
 diff -urp ../process/step2_eval.txt ../process/step3_env.txt
 ```
 
-* Copy `step2_eval.qx` to `step2_env.qx`.
+* Copy `step2_eval.qx` to `step3_env.qx`.
 
 * Create `env.qx` to hold the environment definition.
 
@@ -1109,6 +1111,37 @@ Now go to the top level, run the step 8 tests:
 make test^quux^step8
 ```
 
+There is a reasonably good chance that the macro tests will not pass
+the first time. Although the implementation of macros is fairly
+simple, debugging runtime bugs with macros can be fairly tricky. If
+you do run into subtle problems that are difficult to solve, let me
+recommend a couple of approaches:
+
+* Use the macroexpand special form to eliminate one of the layers of
+  indirection (to expand but skip evaluate). This will often reveal
+  the source of the issue.
+* Add a debug print statement to the top of your main `eval` function
+  (inside the TCO loop) to print the current value of `ast` (hint use
+  `pr_str` to get easier to debug output). Pull up the step8
+  implementation from another language and uncomment its `eval`
+  function (yes, I give you permission to violate the rule this once).
+  Run the two side-by-side. The first difference is likely to point to
+  the bug.
+
+Congratulations! You now have a Lisp interpreter with a super power
+that most non-Lisp languages can only dream of (I have it on good
+authority that languages dream when you are not using them). If you
+are not already familiar with Lisp macros, I suggest the following
+excercise: write a recursive macro that handles postfixed mal code
+(with the function as the last parameter instead of the first). Or
+not. I have not actually done so myself, but I have heard it is an
+interesting excercise.
+
+In the next step you will add try/catch style exception handling to
+your implementation in addition to some new core functions. After
+step9 you will be very close to having a fully self-hosting mal
+implementation. Let us continue!
+
 
 ### Optional
 
@@ -1151,15 +1184,15 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 ### Step A: Interop and Self-hosting
 
-![stepA_interop architecture](stepA_interop.png)
+![stepA_mal architecture](stepA_mal.png)
 
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try.txt ../process/stepA_interop.txt
+diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 ```
 
-* Copy `step9_try.qx` to `stepA_interop.qx`.
+* Copy `step9_try.qx` to `stepA_mal.qx`.
 
 * TODO/TBD
 

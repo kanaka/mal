@@ -5,6 +5,7 @@ if (typeof module !== 'undefined') {
     var printer = require('./printer');
     var Env = require('./env').Env;
     var core = require('./core');
+    var interop = require('./interop');
 }
 
 // read
@@ -108,8 +109,11 @@ function _EVAL(ast, env) {
         return eval(a1.toString());
     case ".":
         var el = eval_ast(ast.slice(2), env),
-            f = eval(a1.toString());
-        return f.apply(f, el);
+            r = interop.resolve_js(a1.toString()),
+            obj = r[0], f = r[1];
+        var res = f.apply(obj, el);
+        console.log("DEBUG3:", res);
+        return interop.js_to_mal(res);
     case "try*":
         try {
             return EVAL(a1, env);

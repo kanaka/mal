@@ -2,7 +2,7 @@ import types.{MalList, _list, _list_Q, MalVector, MalHashMap,
               Func, MalFunction}
 import env.Env
 
-object stepA_interop {
+object stepA_mal {
   // read
   def READ(str: String): Any = {
     reader.read_str(str)

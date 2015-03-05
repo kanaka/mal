@@ -1,6 +1,6 @@
-% ps_val -> ps2mal -> mal_val
+% [ ps_val1...] -> ps2mal -> [ mal_val1...]
 /ps2mal {
-    % convert a PS value to a Mal value (recursively)
+    % convert returned values to Mal types
     [ exch
         { %forall returned values
             dup ==
