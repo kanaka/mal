@@ -1,19 +1,12 @@
-// support precompiled regexes in reader.rs
-#![feature(phase)]
-#[phase(plugin)]
-extern crate regex_macros;
-extern crate regex;
+extern crate mal;
 
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal,err_str,
-            Int,Sym,List,Vector,Hash_Map,
-            _nil,_int,list,vector,hash_map,func};
-mod readline;
-mod types;
-mod reader;
-mod printer;
-mod env; // because types uses env
+use mal::types::{MalVal, MalRet, MalError, err_str};
+use mal::types::{_nil, list, vector, hash_map, _int, func};
+use mal::types::MalType::{Sym, List, Vector, Hash_Map, Int};
+use mal::types::MalError::{ErrString, ErrMalVal};
+use mal::{readline, reader};
 
 // read
 fn read(str: String) -> MalRet {
@@ -24,8 +17,8 @@ fn read(str: String) -> MalRet {
 fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
     match *ast {
         Sym(ref sym) => {
-            match env.find_copy(sym) {
-                Some(mv) => Ok(mv),
+            match env.get(sym) {
+                Some(mv) => Ok(mv.clone()),
                 None     => Ok(_nil()),
             }
         },
@@ -70,7 +63,7 @@ fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
             match *el {
                 List(ref args,_) => {
                     let ref f = args.clone()[0];
-                    f.apply(args.slice(1,args.len()).to_vec())
+                    f.apply(args[1..].to_vec())
                 }
                 _ => err_str("Invalid apply"),
             }
@@ -96,7 +89,9 @@ fn rep(str: &str, env: &HashMap<String,MalVal>) -> Result<String,MalError> {
     }
 }
 
-fn int_op(f: |i:int,j:int|-> int, a:Vec<MalVal>) -> MalRet {
+fn int_op<F>(f: F, a:Vec<MalVal>) -> MalRet
+    where F: FnOnce(isize, isize) -> isize
+{
     match *a[0] {
         Int(a0) => match *a[1] {
             Int(a1) => Ok(_int(f(a0,a1))),
@@ -120,7 +115,7 @@ fn main() {
     loop {
         let line = readline::mal_readline("user> ");
         match line { None => break, _ => () }
-        match rep(line.unwrap().as_slice(), &repl_env) {
+        match rep(&line.unwrap(), &repl_env) {
             Ok(str)  => println!("{}", str),
             Err(ErrMalVal(_)) => (),  // Blank line
             Err(ErrString(s)) => println!("Error: {}", s),

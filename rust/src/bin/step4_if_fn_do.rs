@@ -1,21 +1,13 @@
-// support precompiled regexes in reader.rs
-#![feature(phase)]
-#[phase(plugin)]
-extern crate regex_macros;
-extern crate regex;
+extern crate mal;
 
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal,err_str,
-            Nil,False,Sym,List,Vector,Hash_Map,
-            symbol,_nil,list,vector,hash_map,malfunc};
-use env::{Env,env_new,env_set,env_get};
-mod readline;
-mod types;
-mod reader;
-mod printer;
-mod env;
-mod core;
+use mal::types::{MalVal, MalRet, MalError, err_str};
+use mal::types::{symbol, _nil, list, vector, hash_map, malfunc};
+use mal::types::MalType::{Nil, False, Sym, List, Vector, Hash_Map};
+use mal::types::MalError::{ErrString, ErrMalVal};
+use mal::{readline, reader, core};
+use mal::env::{env_set, env_get, env_new, Env};
 
 // read
 fn read(str: String) -> MalRet {
@@ -27,9 +19,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
     let ast2 = ast.clone();
     match *ast2 {
     //match *ast {
-        Sym(_) => {
-            env_get(env.clone(), ast)
-        },
+        Sym(_) => env_get(&env, &ast),
         List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
@@ -75,12 +65,12 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
 
     let (args, a0sym) = match *ast2 {
         List(ref args,_) => {
-            if args.len() == 0 { 
+            if args.len() == 0 {
                 return Ok(ast);
             }
             let ref a0 = *args[0];
             match *a0 {
-                Sym(ref a0sym) => (args, a0sym.as_slice()),
+                Sym(ref a0sym) => (args, &a0sym[..]),
                 _ => (args, "__<fn*>__"),
             }
         },
@@ -139,7 +129,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
             return eval(a2, let_env.clone());
         },
         "do" => {
-            let el = list(args.slice(1,args.len()).to_vec());
+            let el = list(args[1..].to_vec());
             return match eval_ast(el, env.clone()) {
                 Err(e) => return Err(e),
                 Ok(el) => {
@@ -188,7 +178,7 @@ fn eval(ast: MalVal, env: Env) -> MalRet {
                         _ => return err_str("Invalid apply"),
                     };
                     let ref f = args.clone()[0];
-                    f.apply(args.slice(1,args.len()).to_vec())
+                    f.apply(args[1..].to_vec())
                 }
             };
         },
@@ -217,7 +207,7 @@ fn main() {
     // core.rs: defined using rust
     let repl_env = env_new(None);
     for (k, v) in core::ns().into_iter() {
-        env_set(&repl_env, symbol(k.as_slice()), v);
+        env_set(&repl_env, symbol(&k), v);
     }
 
     // core.mal: defined using the language itself
@@ -226,7 +216,7 @@ fn main() {
     loop {
         let line = readline::mal_readline("user> ");
         match line { None => break, _ => () }
-        match rep(line.unwrap().as_slice(), repl_env.clone()) {
+        match rep(&line.unwrap(), repl_env.clone()) {
             Ok(str)  => println!("{}", str),
             Err(ErrMalVal(_)) => (),  // Blank line
             Err(ErrString(s)) => println!("Error: {}", s),
