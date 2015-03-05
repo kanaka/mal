@@ -7,10 +7,11 @@ use std::env as stdenv;
 
 use mal::types::{MalVal, MalRet, MalError, err_str};
 use mal::types::{symbol, _nil, string, list, vector, hash_map, malfunc, malfuncd};
-use mal::types::MalType::{Nil, False, Sym, List, Vector, Hash_Map, Func, MalFunc};
 use mal::types::MalError::{ErrString, ErrMalVal};
+use mal::types::MalType::{Nil, False, Sym, List, Vector, Hash_Map, Func, MalFunc};
 use mal::{readline, reader, core};
 use mal::env::{env_set, env_get, env_new, env_bind, env_find, env_root, Env};
+
 
 // read
 fn read(str: String) -> MalRet {

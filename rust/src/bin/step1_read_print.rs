@@ -19,24 +19,18 @@ fn print(exp: MalVal) -> String {
     exp.pr_str(true)
 }
 
-fn rep(str: String) -> Result<String,MalError> {
-    match read(str) {
-        Err(e) => Err(e),
-        Ok(ast) => {
-            //println!("read: {}", ast);
-            match eval(ast) {
-                Err(e)  => Err(e),
-                Ok(exp) => Ok(print(exp)),
-            }
-        }
-    }
+fn rep(str: &str) -> Result<String,MalError> {
+    let ast = try!(read(str.to_string()));
+    //println!("read: {}", ast);
+    let exp = try!(eval(ast));
+    Ok(print(exp))
 }
 
 fn main() {
     loop {
         let line = readline::mal_readline("user> ");
         match line { None => break, _ => () }
-        match rep(line.unwrap()) {
+        match rep(&line.unwrap()) {
             Ok(str)  => println!("{}", str),
             Err(ErrMalVal(_)) => (),  // Blank line
             Err(ErrString(s)) => println!("Error: {}", s),

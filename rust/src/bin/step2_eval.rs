@@ -2,10 +2,10 @@ extern crate mal;
 
 use std::collections::HashMap;
 
-use mal::types::{MalVal, MalRet, MalError, err_str};
-use mal::types::{_nil, list, vector, hash_map, _int, func};
-use mal::types::MalType::{Sym, List, Vector, Hash_Map, Int};
+use mal::types::{MalVal, MalRet, MalError, err_str, err_string};
+use mal::types::{list, vector, hash_map, _int, func};
 use mal::types::MalError::{ErrString, ErrMalVal};
+use mal::types::MalType::{Sym, List, Vector, Hash_Map, Int};
 use mal::{readline, reader};
 
 // read
@@ -19,55 +19,45 @@ fn eval_ast(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
         Sym(ref sym) => {
             match env.get(sym) {
                 Some(mv) => Ok(mv.clone()),
-                None     => Ok(_nil()),
+                //None     => Ok(_nil()),
+                None     => err_string(format!("'{}' not found", sym)),
             }
         },
         List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
             for mv in a.iter() {
-                match eval(mv.clone(), env) {
-                    Ok(mv) => ast_vec.push(mv),
-                    Err(e) => return Err(e),
-                }
+                let mv2 = mv.clone();
+                ast_vec.push(try!(eval(mv2, env)));
             }
             Ok(match *ast { List(_,_) => list(ast_vec),
                             _         => vector(ast_vec) })
-        },
+        }
         Hash_Map(ref hm,_) => {
             let mut new_hm: HashMap<String,MalVal> = HashMap::new();
             for (key, value) in hm.iter() {
-                match eval(value.clone(), env) {
-                    Ok(mv) => { new_hm.insert(key.to_string(), mv); },
-                    Err(e) => return Err(e),
-                }
+                new_hm.insert(key.to_string(),
+                              try!(eval(value.clone(), env)));
             }
             Ok(hash_map(new_hm))
-        },
-        _ => {
-            Ok(ast.clone())
         }
+        _ => Ok(ast.clone()),
     }
 }
 
 fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
-    let ast2 = ast.clone();
-    match *ast2 {
+    //println!("eval: {}", ast);
+    match *ast {
         List(_,_) => (),  // continue
-        _ => return eval_ast(ast2, env),
+        _ => return eval_ast(ast, env),
     }
 
     // apply list
-    match eval_ast(ast, env) {
-        Err(e) => Err(e),
-        Ok(el) => {
-            match *el {
-                List(ref args,_) => {
-                    let ref f = args.clone()[0];
-                    f.apply(args[1..].to_vec())
-                }
-                _ => err_str("Invalid apply"),
-            }
-        }
+    match *try!(eval_ast(ast, env)) {
+        List(ref args,_) => {
+            let ref f = args.clone()[0];
+            f.apply(args[1..].to_vec())
+        },
+        _ => return err_str("Expected list"),
     }
 }
 
@@ -77,16 +67,10 @@ fn print(exp: MalVal) -> String {
 }
 
 fn rep(str: &str, env: &HashMap<String,MalVal>) -> Result<String,MalError> {
-    match read(str.to_string()) {
-        Err(e) => Err(e),
-        Ok(ast) => {
-            //println!("read: {}", ast);
-            match eval(ast, env) {
-                Err(e)  => Err(e),
-                Ok(exp) => Ok(print(exp)),
-            }
-        }
-    }
+    let ast = try!(read(str.to_string()));
+    //println!("read: {}", ast);
+    let exp = try!(eval(ast, env));
+    Ok(print(exp))
 }
 
 fn int_op<F>(f: F, a:Vec<MalVal>) -> MalRet
