@@ -278,7 +278,7 @@ Step Notes:
         - add eval to repl_env
             - if no (or limited closures) may have to add an "eval"
               case to EVAL and use function which gets root of
-              environment to env.EXT (see rust).
+              environment to env.EXT
         - add empty *ARGV* list to repl_env
         - in core.ns:
             - wrap printer.read-str as read-string

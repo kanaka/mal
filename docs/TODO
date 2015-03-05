@@ -134,13 +134,6 @@ Racket
 
 Ruby:
 
-Rust:
-    - use built-in regex once fixed:
-        https://github.com/rust-lang/rust/issues/18034
-        https://github.com/rust-lang/rust/issues/18035
-    - fix 'make all' invocation of cargo build
-    - formatting messed up with mal/clojurewest2014.mal
-
 Scala
     - readline
     - fix exception when finished running something on command line
