@@ -308,7 +308,7 @@ cd ruby
 ruby stepX_YYY.rb
 ```
 
-### Rust (0.13)
+### Rust (1.0.0 nightly)
 
 The rust implementation of mal requires the rust compiler and build
 tool (cargo) to build.
