@@ -41,7 +41,7 @@ fn quasiquote(ast: MalVal) -> MalVal {
                 match **a0 {
                     List(ref a0args,_) | Vector(ref a0args,_) => {
                         match *a0args[0] {
-                            Sym(ref s) if *s == "split-unqoute" => {
+                            Sym(ref s) if *s == "splice-unquote" => {
                                 return list(vec![symbol("concat"),
                                                  a0args[1].clone(),
                                                  quasiquote(list(args[1..].to_vec()))])
