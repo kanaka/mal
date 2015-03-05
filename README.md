@@ -162,6 +162,17 @@ npm update
 node stepX_YYY.js
 ```
 
+### LiveScript
+
+LiveScript is a compile to JS language and uses the node.js/NPM build chain.
+Install node.js to get started.
+
+```
+cd livescript
+npm update
+npm lsc -- stepX_YYY.lsc
+```
+
 ### Lua
 
 Running the Lua implementation of mal requires lua 5.1 or later,
@@ -344,7 +355,6 @@ cd vb
 make
 mono ./stepX_YYY.exe
 ```
-
 
 
 ## Running tests
