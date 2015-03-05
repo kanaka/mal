@@ -39,7 +39,7 @@ Mal is a learning tool. See the ([make-a-lisp process
 guide](process/guide.md)).  Each implementation of mal is separated
 into 11 incremental, self-contained (and testable) steps that
 demonstrate core concepts of Lisp. The last step is capable of
-self-hosting (running the mal implemenation of mal).
+self-hosting (running the mal implementation of mal).
 
 The mal (make a lisp) steps are:
 
