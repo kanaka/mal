@@ -3,9 +3,9 @@ require! LiveScript
 require! 'prelude-ls': {map, fold}
 require! './builtins.ls': {DO, NIL, truthy, is-seq, mal-eql}
 require! './printer.ls': {pr-str}
-require! './env': {create-env, bind-value}
+require! './env': {create-env, bind-value, get-value}
 
-{sym, Lambda, MalList, MalVec, MalMap} = require './types.ls'
+{sym, Macro, Lambda, MalList, MalVec, MalMap} = require './types.ls'
 
 SPECIALS = <[ do let let* def! def fn* fn defn if or and ]>
 
@@ -19,37 +19,53 @@ evaluate = (env, ast) -> switch ast.type
 export eval-mal = (env, ast) --> while true
     return null unless ast?
     return (evaluate env, ast) if ast.type isnt \LIST
-    if is-macro ast
-        [env, ast] = expand-macro env, ast
-    else
-        [form, ...args] = ast.value
-        throw new Error("Empty call") unless form?
-        switch form.value
-            | 'def!', 'def' => return do-def env, args
-            | 'fn', 'fn*' => return do-fn env, args
-            | 'defn' => return do-defn env, args
-            | 'or' => return do-or env, args
-            | 'and' => return do-and env, args
-            | 'quote' => return args[0]
-            | 'quasiquote' => ast = do-quasi-quote args[0]
-            | 'unquote' => ast = args[0]
-            | 'let', 'let*' => [env, ast] = do-let env, args
-            | 'do' => ast = do-do env, args
-            | 'if' => ast = do-if env, args # should be macro
-            | _ => 
-                # Here we must be evaluating a call.
-                application = evaluate env, ast
-                [fn, ...args] = application.value
-                if fn.type is \BUILTIN
-                    return fn.fn args # Cannot thunk.
-                else if fn.type is \LAMBDA
-                    [env, ast] = [(fn.closure args), (wrap-do fn.body)]
-                else
-                    throw new Error "Tried to call non-callable: #{ pr-str fn }"
 
-do-defn = (env, [name, ...fn-def]) -> do-def env, [name, (do-fn env, fn-def)]
+    ast = expand-macro env, ast
+    return ast if ast.type isnt \LIST
 
-is-macro = -> false
+    [form, ...args] = ast.value
+    throw new Error("Empty call") unless form?
+    switch form.value
+        | 'def!', 'def' => return do-def env, args
+        | 'defmacro!' => return do-fn-to-macro env, args
+        | 'defmacro' => return do-defmacro env, args
+        | 'macroexpand' => return expand-macro env, args[0]
+        | 'fn', 'fn*' => return do-fn env, args
+        | 'defn' => return do-defn env, args
+        | 'quote' => return args[0]
+        | 'quasiquote' => ast = do-quasi-quote args[0]
+        | 'unquote' => ast = args[0]
+        | 'let', 'let*' => [env, ast] = do-let env, args
+        | 'do' => ast = do-do env, args
+        | 'if' => ast = do-if env, args # should be macro
+        | _ => 
+            # Here we must be evaluating a call.
+            application = evaluate env, ast
+            [fn, ...args] = application.value
+            if fn.type is \BUILTIN
+                return fn.fn args # Cannot thunk.
+            else if fn.type is \LAMBDA
+                [env, ast] = apply-fn fn, args
+            else
+                throw new Error "Tried to call non-callable: #{ pr-str fn }"
+
+apply-fn = (fn, args) -> [(fn.closure args), (wrap-do fn.body)]
+
+expand-macro = (env, ast) ->
+    while is-macro-call env, ast
+        [name, ...args] = ast.value
+        [env, do-form] = apply-fn (get-value env, name), args
+        ast = eval-mal env, do-do env, do-form.value.slice(1)
+    ast
+
+do-defn = (env, [name, ...fn]) -> do-def env, [name, (do-fn env, fn)]
+
+do-defmacro = (env, [name, ...fn]) -> do-def env, [name, (do-macro env, fn)]
+
+is-macro-call = (env, ast) ->
+    (ast?.type is \LIST) and (is-macro env, ast.value[0])
+
+is-macro = (env, symbol) -> (get-value env, symbol)?.type is \MACRO
 
 is-pair = (form) -> (is-seq form) and form.value.length
 
@@ -82,6 +98,11 @@ do-fn = (env, [names, ...bodies]) ->
         throw new Error "Names must be a sequence, got: #{ pr-str names }"
     new Lambda env, names.value.slice(), bodies
 
+do-macro = (env, [names, ...bodies]) ->
+    unless is-seq names
+        throw new Error "Names must be a sequence, got: #{ pr-str names }"
+    new Macro env, names.value.slice(), bodies
+
 do-if = (env, [test, when-true, when-false]:forms) ->
     unless forms.length in [2, 3]
         throw new Error "Expected 2 or 3 arguments to if, got #{ forms.length }"
@@ -93,6 +114,11 @@ do-def = (env, [key, value]:forms) ->
     unless forms.length is 2
         throw new Error "Expected 2 arguments to def, got #{ forms.length }"
     bind-value env, key, eval-mal env, value
+
+# Form that takes a function definition, eg: (defmacro! name (fn* [] ))
+do-fn-to-macro = (env, [key, value]) ->
+    macro = do-macro env, value.value.slice(1)
+    bind-value env, key, macro
 
 wrap-do = (bodies) -> new MalList [DO].concat bodies
 

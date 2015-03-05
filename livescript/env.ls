@@ -37,6 +37,11 @@ export bind-value = (env, key, value) -->
         | \MAP => destructure-map env, key, value
         | otherwise => throw new Error "Cannot bind to #{ that }: #{ pr-str key }"
 
+export get-value = (env, key) ->
+    switch key.type
+        | \SYM => env[key.value]
+        | otherwise => null
+
 destructure-seq = (env, key, value) -->
     unless is-seq value
         throw new Error "Expected sequence - got #{ value.type }"

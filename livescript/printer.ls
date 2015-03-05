@@ -11,6 +11,7 @@ export pr-str = (ast) ->
         | \KEYWORD => ":#{ ast.name }"
         | \BUILTIN => '#NATIVE-FUNCTION'
         | \LAMBDA => "(fn [#{ ast.names.map(pr-str).join ' ' }] #{ ast.body.map(pr-str).join ' ' })"
+        | \MACRO => "(macro [#{ ast.names.map(pr-str).join ' ' }] #{ ast.body.map(pr-str).join ' ' })"
         | \STRING => JSON.stringify(ast.value)
         | \LIST => "(#{ ast.value.map(pr-str).join ' ' })"
         | \VEC => "[#{ ast.value.map(pr-str).join ' ' }]"

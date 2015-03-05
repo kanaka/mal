@@ -15,4 +15,16 @@
               xs
               (let [[x & xss] xs] (cons (f x) (map f xss)))))
 
+    (defn rest
+          [xs]
+          (if (empty? xs)
+               xs
+              (let [[x & xss] xs] xss)))
+
+    (defn first
+          [xs]
+          (if (empty? xs)
+               nil
+              (let [[x] xs] x)))
+
     (def! not (fn* [x] (if x false true))))

@@ -52,6 +52,10 @@ export class Lambda
 
     type: \LAMBDA
 
+export class Macro extends Lambda
+
+    type: \MACRO
+
 export class MalMap
 
     (pairs = []) ->

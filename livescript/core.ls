@@ -2,7 +2,7 @@ require! {
     LiveScript
     fs
     'prelude-ls': {join, sum, all, fold, fold1, map}
-    './types.ls': {string, Builtin, Lambda, MalList, MalVec, MalMap}
+    './types.ls': {sym, keyword, string, Builtin, Lambda, MalList, MalVec, MalMap}
     './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
     './printer.ls': {str, pr-str}
     './reader.ls': {read-str}
@@ -32,12 +32,36 @@ ns['empty?'] = new Builtin ([x]) ->
     | (is-seq x) or (x.type is \STRING) => bool x.value.length is 0
     | _ => throw new Error 'Not a sequence'
 
+ns['nth'] = new Builtin ([xs, n]) ->
+    throw new Error("Index must be an integer, got #{ n.type }") unless n.type is \INT
+    throw new Error("Collection must be indexable, got #{ xs.type }") unless is-seq xs
+    throw new Error("Index out of range") unless 0 <= n.value < xs.value.length
+    xs.value[n.value]
+
 ns['range'] = new Builtin ([min, max]:args) ->
     if args.length is 1
         [min, max] = [{value: 0}, min]
     new MalList [min.value to max.value].map int
 
 ns['nil?'] = new Builtin ([x]) -> bool is-nil x
+
+ns['symbol'] = new Builtin ([x]:args) ->
+    throw new Error("Expected one argument to symbol, got #{ args.length }") unless args.length is 1
+    throw new Error("Argument must be a string") unless x.type is \STRING
+    sym x.value
+
+ns['symbol?'] = new Builtin ([x]:args) ->
+    throw new Error("Expected one argument to symbol?, got #{ args.length }") unless args.length is 1
+    bool x.type is \SYM
+
+ns['keyword'] = new Builtin ([x]:args) ->
+    throw new Error("Expected one argument to symbol, got #{ args.length }") unless args.length is 1
+    throw new Error("Argument must be a string") unless x.type is \STRING
+    keyword x.value
+
+ns['keyword?'] = new Builtin ([x]:args) ->
+    throw new Error("Expected one argument to symbol?, got #{ args.length }") unless args.length is 1
+    bool x.type is \KEYWORD
 
 ns['count'] = new Builtin ([x]) ->
     | is-nil x => int 0
@@ -144,3 +168,5 @@ ns['slurp'] = new Builtin ([filename, encoding]:args) ->
     throw new Error("Encoding must be a string") if (encoding and encoding.type isnt \STRING)
     encoding ?= {value: 'utf8'}
     string fs.readFileSync filename.value, encoding.value
+
+ns['throw'] = new Builtin ([msg]) -> throw new Error(msg)
