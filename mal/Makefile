@@ -2,7 +2,7 @@
 TESTS =
 
 SOURCES_BASE =
-SOURCES_LISP = env.mal core.mal stepA_interop.mal
+SOURCES_LISP = env.mal core.mal stepA_mal.mal
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #.PHONY: stats tests $(TESTS)

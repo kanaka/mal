@@ -2,7 +2,7 @@ use strict;
 use warnings FATAL => qw(all);
 use File::Basename;
 use lib dirname (__FILE__);
-use readline qw(mal_readline);
+use readline qw(mal_readline set_rl_mode);
 
 # read
 sub READ {
@@ -28,6 +28,9 @@ sub REP {
     return PRINT(EVAL(READ($str), {}));
 }
 
+if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+    set_rl_mode("raw");
+}
 while (1) {
     my $line = mal_readline("user> ");
     if (! defined $line) { last; }

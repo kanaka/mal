@@ -1,0 +1,23 @@
+;; Testing basic ps interop
+
+(ps* "7")
+;=>(7)
+
+(ps* "(7)")
+;=>("7")
+
+(ps* "7 8 9 3 array astore")
+;=>((7 8 9))
+
+(ps* "1 1 eq")
+;=>(true)
+
+(ps* "/sym")
+;=>sym
+
+(ps* "1 1 eq { (yep) }{ (nope) } ifelse")
+;=>("yep")
+
+(ps* "1 0 eq { (yep) }{ (nope) } ifelse")
+;=>("nope")
+

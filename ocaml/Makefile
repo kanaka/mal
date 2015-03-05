@@ -1,6 +1,6 @@
 STEPS = step0_repl.ml step1_read_print.ml step2_eval.ml step3_env.ml \
         step4_if_fn_do.ml step5_tco.ml step6_file.ml step7_quote.ml \
-	step8_macros.ml step9_try.ml stepA_interop.ml
+	step8_macros.ml step9_try.ml stepA_mal.ml
 MODULES = types.ml reader.ml printer.ml env.ml core.ml
 LIBS = str.cmxa unix.cmxa
 MAL_LIB = mal_lib.cmxa
@@ -28,10 +28,10 @@ $(STEP_BINS): %: %.ml $(MAL_LIB)
 clean:
 	rm -f $(STEP_BINS) mal mal_lib.* *.cmo *.cmx *.cmi *.o
 
-stats: $(MODULES) stepA_interop.ml
+stats: $(MODULES) stepA_mal.ml
 	@wc $^
 
-stats-lisp: env.ml core.ml stepA_interop.ml
+stats-lisp: env.ml core.ml stepA_mal.ml
 	@wc $^
 
 .PHONY: all repl clean stats stats-lisp

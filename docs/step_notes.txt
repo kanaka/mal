@@ -405,7 +405,7 @@ Step Notes:
 - Other misc:
     - conj function
 
-- stepA_interop
+- stepA_mal
     - convert returned data to mal data
         - recursive, similar to pr_str
     - Details:

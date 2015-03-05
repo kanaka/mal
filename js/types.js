@@ -79,6 +79,10 @@ function _clone (obj) {
     default:
         throw new Error("clone of non-collection: " + _obj_type(obj));
     }
+    Object.defineProperty(new_obj, "__meta__", {
+        enumerable: false,
+        writable: true
+    });
     return new_obj;
 }
 

@@ -1,0 +1,27 @@
+["do",
+
+["load-file", ["`", "miniMAL-core.json"]],
+["load-file", ["`", "types.json"]],
+["load-file", ["`", "reader.json"]],
+["load-file", ["`", "printer.json"]],
+
+["def", "READ", ["fn", ["strng"],
+  ["read-str", "strng"]]],
+
+["def", "EVAL", ["fn", ["ast", "env"],
+  "ast"]],
+
+["def", "PRINT", ["fn", ["exp"],
+  ["pr-str", "exp", true]]],
+
+["def", "rep", ["fn", ["strng"],
+  ["try",
+    ["PRINT", ["EVAL", ["READ", "strng"], null]],
+    ["catch", "exc",
+      ["str", ["`", "Error: "], "exc"]]]]],
+
+["repl", ["`", "user> "], "rep"],
+
+null
+
+]

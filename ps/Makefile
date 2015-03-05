@@ -2,7 +2,7 @@
 TESTS =
 
 SOURCES_BASE = types.ps reader.ps printer.ps
-SOURCES_LISP = env.ps core.ps stepA_interop.ps
+SOURCES_LISP = env.ps core.ps stepA_mal.ps
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 .PHONY: stats tests $(TESTS)

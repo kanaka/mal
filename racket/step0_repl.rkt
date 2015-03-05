@@ -1,7 +1,7 @@
 #!/usr/bin/env racket
 #lang racket
 
-(require "types.rkt")
+(require "readline.rkt" "types.rkt")
 
 ;; read
 (define (READ str)

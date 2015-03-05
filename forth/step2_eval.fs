@@ -6,12 +6,15 @@ require printer.fs
         argv i cells + @ as-native
     loop ;
 
+: env-assoc ( map sym-str-addr sym-str-len xt )
+    -rot MalSymbol. swap MalNativeFn. rot assoc ;
+
 MalMap/Empty
-    s" +" MalSymbol. :noname args-as-native + MalInt. ; MalNativeFn. rot assoc
-    s" -" MalSymbol. :noname args-as-native - MalInt. ; MalNativeFn. rot assoc
-    s" *" MalSymbol. :noname args-as-native * MalInt. ; MalNativeFn. rot assoc
-    s" /" MalSymbol. :noname args-as-native / MalInt. ; MalNativeFn. rot assoc
-value repl-env
+    s" +" :noname args-as-native + MalInt. ; env-assoc
+    s" -" :noname args-as-native - MalInt. ; env-assoc
+    s" *" :noname args-as-native * MalInt. ; env-assoc
+    s" /" :noname args-as-native / MalInt. ; env-assoc
+constant repl-env
 
 : read read-str ;
 : eval ( env obj ) mal-eval ;
@@ -58,7 +61,7 @@ MalSymbol
     dup 0= if
         drop
         ." Symbol '"
-        sym as-native safe-type
+        sym pr-str safe-type
         ." ' not found." cr
         1 throw
     endif ;;

@@ -19,7 +19,7 @@
              :step7 {:main step7-quote}
              :step8 {:main step8-macros}
              :step9 {:main step9-try}
-             :stepA {:main stepA-interop}}
+             :stepA {:main stepA-mal}}
 
    :main stepA-more)
 

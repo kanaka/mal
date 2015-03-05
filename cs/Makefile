@@ -5,7 +5,7 @@ DEBUG =
 TESTS =
 
 SOURCES_BASE = readline.cs types.cs reader.cs printer.cs
-SOURCES_LISP = env.cs core.cs stepA_interop.cs
+SOURCES_LISP = env.cs core.cs stepA_mal.cs
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 OTHER_SOURCES = getline.cs
@@ -14,7 +14,7 @@ OTHER_SOURCES = getline.cs
 
 SRCS = step0_repl.cs step1_read_print.cs step2_eval.cs step3_env.cs \
        step4_if_fn_do.cs step5_tco.cs step6_file.cs step7_quote.cs \
-       step8_macros.cs step9_try.cs stepA_interop.cs
+       step8_macros.cs step9_try.cs stepA_mal.cs
 
 LIB_SRCS = $(filter-out step%,$(OTHER_SOURCES) $(SOURCES))
 

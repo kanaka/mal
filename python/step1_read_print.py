@@ -12,6 +12,7 @@ def EVAL(ast, env):
         #print("EVAL %s" % printer._pr_str(ast))
         return ast
 
+# print
 def PRINT(exp):
     return printer._pr_str(exp)
 

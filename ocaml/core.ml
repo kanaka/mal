@@ -64,7 +64,10 @@ let init env = begin
   Env.set env (Types.symbol "vector?")
     (Types.fn (function [T.Vector _] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "empty?")
-    (Types.fn (function [T.List {T.value = []}] -> T.Bool true | _ -> T.Bool false));
+    (Types.fn (function
+                | [T.List   {T.value = []}] -> T.Bool true
+                | [T.Vector {T.value = []}] -> T.Bool true
+                | _ -> T.Bool false));
   Env.set env (Types.symbol "count")
     (Types.fn (function
                 | [T.List   {T.value = xs}]

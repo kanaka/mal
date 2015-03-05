@@ -1,15 +1,17 @@
 All:
-    - rename stepA_interop to stepA_mal
+    - Finish guide.md
+
     - test to check args set properly
     - test to make sure slurp captures final newline
     - make sure errors propagate/print properly when self-hosted
 
-    - change perf test to run for 10 seconds and then calculate number
+    * change perf test to run for 10 seconds and then calculate number
       of iterations per second
     - redefine (defmacro!) as (def! (macro*))
     - runtest expect fixes:
-        - stop using expect, so we can drop --raw option
-        - fix long lines in runtext/expect
+        * stop using expect, so we can drop --raw option
+        * fix C#, VB
+        - fix long line splitting in runtest
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - Implement/fix interop
@@ -57,6 +59,8 @@ C:
 C#:
     - fix command line arg processing (doesn't run file specified)
     - accumulates line breaks with mal/clojurewest2014.mal
+    - step9_interop:
+      http://www.ckode.dk/programming/eval-in-c-yes-its-possible/
 
 Clojure:
     - make indent consistent across steps (e.g. step5, step8)
@@ -81,7 +85,7 @@ Java:
     - MAL formatting is a bit off with mal/clojurewest2014.mal
 
 Javascript:
-    - interop: callbacks using Mal functions
+    - interop: adopt techniques from miniMAL
     - fix "user> " prompt with mal/clojurewest2014.mal
 
 Lua:
@@ -90,7 +94,7 @@ Lua:
 Make:
     - allow '_' in make variable names
     - hash-map with space in key string
-    - Fix: make -f stepA_interop.mk ../mal/step6_file.mal
+    - Fix: make -f stepA_mal.mk ../mal/step6_file.mal
         (slurp "../tests/incA.mal")
         (read-string "(+ 2 3)")
     - errors should propagate up from within load-file
@@ -99,6 +103,9 @@ Make:
 Mal:
     - line numbers in errors
     - step5_tco
+
+miniMAL:
+    - figure out why {} literals are "static"/persistent
 
 Perl:
     - fix metadata on native functions
@@ -114,7 +121,7 @@ Postscript:
     - formatting messed up with mal/clojurewest2014.mal
 
 Python:
-    - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
+    - error: python ../python/stepA_mal.py ../mal/stepA_mal.mal ../mal/stepA_mal.mal
     - interop tests
 
 R:
@@ -163,6 +170,10 @@ Future Implementations:
     - Haxe
         - http://api.haxe.org/
         - http://haxe.us/haxe_tutorial.html
+
+    - Julia
+
+    - Nim
 
     - Objective-C:
 

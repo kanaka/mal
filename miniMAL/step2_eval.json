@@ -1,0 +1,60 @@
+["do",
+
+["load-file", ["`", "miniMAL-core.json"]],
+["load-file", ["`", "types.json"]],
+["load-file", ["`", "reader.json"]],
+["load-file", ["`", "printer.json"]],
+
+["def", "READ", ["fn", ["strng"],
+  ["read-str", "strng"]]],
+
+["def", "eval-ast", ["fn", ["ast", "env"],
+  ["if", ["symbol?", "ast"],
+    ["let", ["sym", ["get", "ast", ["`", "val"]]],
+      ["if", ["contains?", "env", "sym"],
+        ["get", "env", "sym"],
+        ["throw", ["str", ["`", "'"], "sym", ["`", "' not found"]]]]],
+  ["if", ["list?", "ast"],
+    ["map", ["fn", ["x"], ["EVAL", "x", "env"]], "ast"],
+  ["if", ["vector?", "ast"],
+    ["vectorl", ["map", ["fn", ["x"], ["EVAL", "x", "env"]], "ast"]],
+  ["if", ["map?", "ast"],
+    ["let", ["new-hm", ["hash-map"]],
+      ["do",
+        ["map", ["fn", ["k"], ["set", "new-hm",
+                                ["EVAL", "k", "env"],
+                                ["EVAL", ["get", "ast", "k"], "env"]]],
+                ["keys", "ast"]],
+        "new-hm"]],
+  "ast"]]]]]],
+
+["def", "EVAL", ["fn", ["ast", "env"],
+  ["if", ["not", ["list?", "ast"]],
+        ["eval-ast", "ast", "env"],
+        ["let", ["el", ["eval-ast", "ast", "env"],
+                 "f", ["first", "el"],
+                 "args", ["rest", "el"]],
+          ["apply", "f", "args"]]]]],
+
+["def", "PRINT", ["fn", ["exp"],
+  ["pr-str", "exp", true]]],
+
+
+["def", "repl-env",
+  ["hash-map",
+    ["`", "+"], "+",
+    ["`", "-"], "-",
+    ["`", "*"], "*",
+    ["`", "/"], ["fn", ["a", "b"], ["parseInt", ["/", "a", "b"]]]]],
+
+["def", "rep", ["fn", ["strng"],
+  ["try",
+    ["PRINT", ["EVAL", ["READ", "strng"], "repl-env"]],
+    ["catch", "exc",
+      ["str", ["`", "Error: "], [".", "exc", ["`", "toString"]]]]]]],
+
+["repl", ["`", "user> "], "rep"],
+
+null
+
+]

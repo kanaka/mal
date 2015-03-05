@@ -156,6 +156,11 @@ rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\"))
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
+if #arg > 0 and arg[1] == "--raw" then
+    readline.raw = true
+    table.remove(arg,1)
+end
+
 if #arg > 0 then
     rep("(load-file \""..arg[1].."\")")
     os.exit(0)

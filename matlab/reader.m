@@ -115,7 +115,7 @@ classdef reader
         function ast = read_str(str)
             %fprintf('in read_str\n');
             tokens = reader.tokenize(str);
-            rdr = Reader(tokens);
+            rdr = types.Reader(tokens);
             ast = reader.read_form(rdr);
         end
     end

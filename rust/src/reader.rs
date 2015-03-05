@@ -1,20 +1,14 @@
-//#![feature(phase)]
-//#[phase(plugin)]
-//extern crate regex_macros;
-//extern crate regex;
-
-extern crate pcre;
-
-use types::{MalVal,MalRet,ErrString,ErrMalVal,
-            _nil,_true,_false,_int,symbol,string,list,vector,hash_mapv,
-            err_str,err_string,err_val};
-use self::pcre::Pcre;
+use std::borrow::ToOwned;
+use types::MalError::{ErrString, ErrMalVal};
+use types::{MalVal, MalRet,
+            _nil, _true, _false, _int, symbol, string, list, vector, hash_mapv,
+            err_str, err_string, err_val};
 use super::printer::unescape_str;
 
-#[deriving(Show, Clone)]
+#[derive(Debug, Clone)]
 struct Reader {
-    tokens   : Vec<String>,
-    position : uint,
+    tokens: Vec<String>,
+    position: usize,
 }
 
 impl Reader {
@@ -35,23 +29,14 @@ impl Reader {
     }
 }
 
-fn tokenize(str :String) -> Vec<String> {
+fn tokenize(str: String) -> Vec<String> {
     let mut results = vec![];
-
-    let re = match Pcre::compile(r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"###) {
-        Err(_) => { fail!("failed to compile regex") },
-        Ok(re) => re
-    };
-
-    let mut it = re.matches(str.as_slice());
-    loop {
-        let opt_m = it.next();
-        if opt_m.is_none() { break; }
-        let m = opt_m.unwrap();
-        if m.group(1) == "" { break; }
-        if m.group(1).starts_with(";") { continue; }
-
-        results.push((*m.group(1)).to_string());
+    let re = regex!(r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"###);
+    for cap in re.captures_iter(&str) {
+        let group = cap.at(1).unwrap_or("");
+        if group == "" { break; }
+        if group.starts_with(";") { continue; }
+        results.push(group.to_owned());
     }
     results
 }
@@ -61,15 +46,15 @@ fn read_atom(rdr : &mut Reader) -> MalRet {
     //println!("read_atom: {}", otoken);
     if otoken.is_none() { return err_str("read_atom underflow"); }
     let stoken = otoken.unwrap();
-    let token = stoken.as_slice();
+    let token = &stoken[..];
     if regex!(r"^-?[0-9]+$").is_match(token) {
-        let num : Option<int> = from_str(token);
+        let num : Option<isize> = token.parse().ok();
         Ok(_int(num.unwrap()))
     } else if regex!(r#"^".*"$"#).is_match(token) {
-        let new_str = token.slice(1,token.len()-1);
+        let new_str = &token[1..token.len()-1];
         Ok(string(unescape_str(new_str)))
     } else if regex!(r#"^:"#).is_match(token) {
-        Ok(string("\u029e".to_string() + token.slice(1,token.len())))
+        Ok(string(format!("\u{29e}{}", &token[1..])))
     } else if token == "nil" {
         Ok(_nil())
     } else if token == "true" {
@@ -87,19 +72,19 @@ fn read_seq(rdr : &mut Reader, start: &str, end: &str) -> Result<Vec<MalVal>,Str
         return Err("read_atom underflow".to_string());
     }
     let stoken = otoken.unwrap();
-    let token = stoken.as_slice();
+    let token = &stoken[..];
     if token != start {
-        return Err("expected '".to_string() + start.to_string() + "'".to_string());
+        return Err(format!("expected '{}'", start))
     }
 
     let mut ast_vec : Vec<MalVal> = vec![];
     loop {
         let otoken = rdr.peek();
         if otoken.is_none() {
-            return Err("expected '".to_string() + end.to_string() + "', got EOF".to_string());
+            return Err(format!("expected '{}', got EOF", end));
         }
         let stoken = otoken.unwrap();
-        let token = stoken.as_slice();
+        let token = &stoken[..];
         if token == end { break; }
 
         match read_form(rdr) {
@@ -138,7 +123,7 @@ fn read_form(rdr : &mut Reader) -> MalRet {
     let otoken = rdr.peek();
     //println!("read_form: {}", otoken);
     let stoken = otoken.unwrap();
-    let token = stoken.as_slice();
+    let token = &stoken[..];
     match token {
         "'" => {
             let _ = rdr.next();

@@ -18,6 +18,10 @@ function rep(str)
     return PRINT(EVAL(READ(str),""))
 end
 
+if #arg > 0 and arg[1] == "--raw" then
+    readline.raw = true
+end
+
 while true do
     line = readline.readline("user> ")
     if not line then break end
