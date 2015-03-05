@@ -1,5 +1,6 @@
-use readline::mal_readline;
-mod readline;
+extern crate mal;
+
+use mal::readline::mal_readline;
 
 // read
 fn read(str: String) -> String {

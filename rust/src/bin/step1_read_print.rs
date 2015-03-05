@@ -1,15 +1,8 @@
-// support precompiled regexes in reader.rs
-#![feature(phase)]
-#[phase(plugin)]
-extern crate regex_macros;
-extern crate regex;
+extern crate mal;
 
-use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal};
-mod readline;
-mod types;
-mod env;
-mod reader;
-mod printer;
+use mal::types::{MalVal, MalRet, MalError};
+use mal::types::MalError::{ErrString, ErrMalVal};
+use mal::{readline, reader};
 
 // read
 fn read(str: String) -> MalRet {

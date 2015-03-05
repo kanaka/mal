@@ -315,10 +315,7 @@ tool (cargo) to build.
 
 ```
 cd rust
-# Need patched pcre lib (should be temporary)
-git clone https://github.com/kanaka/rust-pcre cadencemarseille-pcre
-cargo build --release
-./target/stepX_YYY
+cargo run --release --bin stepX_YYY
 ```
 
 ### Scala ###

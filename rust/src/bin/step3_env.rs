@@ -1,21 +1,13 @@
-// support precompiled regexes in reader.rs
-#![feature(phase)]
-#[phase(plugin)]
-extern crate regex_macros;
-extern crate regex;
+extern crate mal;
 
 use std::collections::HashMap;
 
-use types::{MalVal,MalRet,MalError,ErrString,ErrMalVal,err_str,
-            Nil,False,Sym,List,Vector,Hash_Map,Func,MalFunc,
-            symbol,_nil,list,vector,hash_map,malfunc};
-use env::{Env,env_new,env_bind,env_set,env_get};
-mod readline;
-mod types;
-mod reader;
-mod printer;
-mod env;
-mod core;
+use mal::types::{MalVal, MalRet, MalError, err_str};
+use mal::types::{symbol, _int, list, vector, hash_map, func};
+use mal::types::MalError::{ErrString, ErrMalVal};
+use mal::types::MalType::{Int, Sym, List, Vector, Hash_Map};
+use mal::env::{Env, env_new, env_set, env_get};
+use mal::{readline, reader};
 
 // read
 fn read(str: String) -> MalRet {
@@ -28,7 +20,7 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
     match *ast2 {
     //match *ast {
         Sym(_) => {
-            env_get(env.clone(), ast)
+            env_get(&env, &ast)
         },
         List(ref a,_) | Vector(ref a,_) => {
             let mut ast_vec : Vec<MalVal> = vec![];
@@ -58,13 +50,10 @@ fn eval_ast(ast: MalVal, env: Env) -> MalRet {
     }
 }
 
-fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
-    'tco: loop {
-
+fn eval(ast: MalVal, env: Env) -> MalRet {
     //println!("eval: {}, {}", ast, env.borrow());
     //println!("eval: {}", ast);
     let ast2 = ast.clone();
-    let ast3 = ast.clone();
     match *ast2 {
         List(_,_) => (),  // continue
         _ => return eval_ast(ast2, env),
@@ -78,12 +67,12 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
 
     let (args, a0sym) = match *ast2 {
         List(ref args,_) => {
-            if args.len() == 0 { 
-                return Ok(ast3);
+            if args.len() == 0 {
+                return Ok(ast);
             }
             let ref a0 = *args[0];
             match *a0 {
-                Sym(ref a0sym) => (args, a0sym.as_slice()),
+                Sym(ref a0sym) => (args, &a0sym[..]),
                 _ => (args, "__<fn*>__"),
             }
         },
@@ -139,81 +128,21 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
                 },
                 _ => return err_str("let* with non-list bindings"),
             }
-            ast = a2;
-            env = let_env.clone();
-            continue 'tco;
-        },
-        "do" => {
-            let el = list(args.slice(1,args.len()-1).to_vec());
-            match eval_ast(el, env.clone()) {
-                Err(e) => return Err(e),
-                Ok(_) => {
-                    let ref last = args[args.len()-1];
-                    ast = last.clone();
-                    continue 'tco;
-                },
-            }
-        },
-        "if" => {
-            let a1 = (*args)[1].clone();
-            let cond = eval(a1, env.clone());
-            match cond {
-                Err(e) => return Err(e),
-                Ok(c) => match *c {
-                    False | Nil => {
-                        if args.len() >= 4 {
-                            let a3 = (*args)[3].clone();
-                            ast = a3;
-                            env = env.clone();
-                            continue 'tco;
-                        } else {
-                            return Ok(_nil());
-                        }
-                    },
-                    _ => {
-                        let a2 = (*args)[2].clone();
-                        ast = a2;
-                        env = env.clone();
-                        continue 'tco;
-                    },
-                }
-            }
-        },
-        "fn*" => {
-            let a1 = (*args)[1].clone();
-            let a2 = (*args)[2].clone();
-            return Ok(malfunc(eval, a2, env.clone(), a1, _nil()));
+            return eval(a2, let_env.clone());
         },
         _ => { // function call
-            return match eval_ast(ast3, env.clone()) {
+            return match eval_ast(ast, env) {
                 Err(e) => Err(e),
                 Ok(el) => {
                     let args = match *el {
                         List(ref args,_) => args,
                         _ => return err_str("Invalid apply"),
                     };
-                    match *args.clone()[0] {
-                        Func(f,_) => f(args.slice(1,args.len()).to_vec()),
-                        MalFunc(ref mf,_) => {
-                            let mfc = mf.clone();
-                            let alst = list(args.slice(1,args.len()).to_vec());
-                            let new_env = env_new(Some(mfc.env.clone()));
-                            match env_bind(&new_env, mfc.params, alst) {
-                                Ok(_) => {
-                                    ast = mfc.exp;
-                                    env = new_env;
-                                    continue 'tco;
-                                },
-                                Err(e) => err_str(e.as_slice()),
-                            }
-                        },
-                        _ => err_str("attempt to call non-function"),
-                    }
+                    let ref f = args.clone()[0];
+                    f.apply(args[1..].to_vec())
                 }
-            }
+            };
         },
-    }
-
     }
 }
 
@@ -235,20 +164,33 @@ fn rep(str: &str, env: Env) -> Result<String,MalError> {
     }
 }
 
-fn main() {
-    // core.rs: defined using rust
-    let repl_env = env_new(None);
-    for (k, v) in core::ns().into_iter() {
-        env_set(&repl_env, symbol(k.as_slice()), v);
+fn int_op<F>(f: F, a:Vec<MalVal>) -> MalRet
+    where F: FnOnce(isize, isize) -> isize
+{
+    match *a[0] {
+        Int(a0) => match *a[1] {
+            Int(a1) => Ok(_int(f(a0,a1))),
+            _ => err_str("second arg must be an int"),
+        },
+        _ => err_str("first arg must be an int"),
     }
+}
+fn add(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i+j }, a) }
+fn sub(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i-j }, a) }
+fn mul(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i*j }, a) }
+fn div(a:Vec<MalVal>) -> MalRet { int_op(|i,j| { i/j }, a) }
 
-    // core.mal: defined using the language itself
-    let _ = rep("(def! not (fn* (a) (if a false true)))", repl_env.clone());
+fn main() {
+    let repl_env = env_new(None);
+    env_set(&repl_env, symbol("+"), func(add));
+    env_set(&repl_env, symbol("-"), func(sub));
+    env_set(&repl_env, symbol("*"), func(mul));
+    env_set(&repl_env, symbol("/"), func(div));
 
     loop {
         let line = readline::mal_readline("user> ");
         match line { None => break, _ => () }
-        match rep(line.unwrap().as_slice(), repl_env.clone()) {
+        match rep(&line.unwrap(), repl_env.clone()) {
             Ok(str)  => println!("{}", str),
             Err(ErrMalVal(_)) => (),  // Blank line
             Err(ErrString(s)) => println!("Error: {}", s),
