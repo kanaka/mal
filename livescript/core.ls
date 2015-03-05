@@ -39,6 +39,8 @@ ns['nth'] = new Builtin ([xs, n]) ->
     xs.value[n.value]
 
 ns['range'] = new Builtin ([min, max]:args) ->
+    if args.length > 2 or not args.length
+        throw new Error("Wrong number of arguments to range, got #{ args.length }") 
     if args.length is 1
         [min, max] = [{value: 0}, min]
     new MalList [min.value to max.value].map int
@@ -55,13 +57,22 @@ ns['symbol?'] = new Builtin ([x]:args) ->
     bool x.type is \SYM
 
 ns['keyword'] = new Builtin ([x]:args) ->
-    throw new Error("Expected one argument to symbol, got #{ args.length }") unless args.length is 1
+    throw new Error("Expected one argument to keyword, got #{ args.length }") unless args.length is 1
     throw new Error("Argument must be a string") unless x.type is \STRING
     keyword x.value
 
 ns['keyword?'] = new Builtin ([x]:args) ->
-    throw new Error("Expected one argument to symbol?, got #{ args.length }") unless args.length is 1
+    throw new Error("Expected one argument to keyword?, got #{ args.length }") unless args.length is 1
     bool x.type is \KEYWORD
+
+ns['vector'] = new Builtin ([x]:args) ->
+    throw new Error("Expected one argument to vector, got #{ args.length }") unless args.length is 1
+    throw new Error("Argument must be a sequence") unless is-seq x
+    new MalVec x.value
+
+ns['vector?'] = new Builtin ([x]:args) ->
+    throw new Error("Expected one argument to vector?, got #{ args.length }") unless args.length is 1
+    bool x.type is \VEC
 
 ns['count'] = new Builtin ([x]) ->
     | is-nil x => int 0
@@ -72,13 +83,17 @@ ns['='] = new Builtin ([x, ...xs]:args) ->
     throw new Error 'Expected at least two arguments' unless args.length > 1
     bool all (-> mal-eql x, it), xs
 
+# Add an element to the beginning of a sequence.
 ns['cons'] = new Builtin ([x, xs]:args) ->
     throw new Error "Two arguments expected to cons, got: #{ args.length }" unless args.length is 2
     throw new Error 'Collection must be sequence' unless is-seq xs
-    elems = [x] ++ xs.value
-    switch xs.type
-        | \VEC => new MalVec elems
-        | \LIST => new MalList elems
+    xs.cons x
+
+# Add an element at the end of a sequence.
+ns['conj'] = new Builtin ([xs, x]:args) ->
+    throw new Error "Two arguments expected to cons, got: #{ args.length }" unless args.length is 2
+    throw new Error 'Collection must be sequence' unless is-seq xs
+    xs.conj x
 
 ns['concat'] = new Builtin (xss) ->
     throw new Error("Arguments must be sequences") unless all is-seq, xss

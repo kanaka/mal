@@ -1,25 +1,39 @@
 (do
+
     (defn even? [x] (= 0 (% x 2)))
+
     (defn odd? [x] (= 0 (% (- x 1) 2)))
 
+    (defn compose [f g] (fn [x] (f (g x))))
+
+    (defn fold
+          [f init xs] ;; Tail-recursive implementation
+          (let [loop (fn [ret xs]
+                         (if (empty? xs)
+                             ret
+                             (let [[x & xss] xs]
+                                  (loop (f ret x) xss))))]
+                (loop init xs)))
+
     (defn filter
-          [f xs]
-          (if (empty? xs)
-              xs
-              (let [[x & xss] xs
-                    tail (filter f xss)]
-                   (if (f x) (cons x tail) tail))))
+          [f xs] ;; Tail-recursive implementation.
+          (let [loop (fn [xs ret]
+                         (if (empty? xs)
+                            ret
+                            (loop (rest xs)
+                                  (if (f (first xs))
+                                      (conj ret (first xs)) ret))))]
+                (loop xs [])))
+
     (defn map
-          [f xs]
-          (if (empty? xs)
-              xs
-              (let [[x & xss] xs] (cons (f x) (map f xss)))))
+          [f xs] ;; map in terms of fold
+          (fold (fn [acc x] (conj acc (f x))) [] xs))
 
     (defn rest
           [xs]
           (if (empty? xs)
                xs
-              (let [[x & xss] xs] xss)))
+              (let [[_ & xss] xs] xss)))
 
     (defn first
           [xs]
@@ -27,4 +41,26 @@
                nil
               (let [[x] xs] x)))
 
-    (def! not (fn* [x] (if x false true))))
+    (defn load-file [f]
+          (eval (read-string (str "(do " (slurp f) ")" ))))
+
+    (defmacro or [& xs]
+        (if (empty? xs)
+            nil
+            (if (= 1 (count xs))
+                (first xs)
+                `(let* [or_FIXME ~(first xs)]
+                        (if or_FIXME or_FIXME (or ~@(rest xs)))))))
+
+    (defmacro cond [& xs]
+        (let [c (count xs)]
+             (if (> c 0)
+                 (let [[fst snd & rst] xs]
+                      (list 'if
+                            fst
+                            snd
+                            (if (= 1 (count rst))
+                                (first rst)
+                                (cons 'cond rst)))))))
+
+    (defn not [x] (if x false true)))
