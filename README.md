@@ -170,7 +170,7 @@ Install node.js to get started.
 ```
 cd livescript
 npm update
-npm lsc -- stepX_YYY.lsc
+npm run lsc -- stepX_YYY.lsc
 ```
 
 ### Lua
