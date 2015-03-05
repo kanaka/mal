@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cs forth go haskell java js lua make mal \
+IMPLS = ada bash c clojure coffee cs forth go haskell java js lua make mal \
 	ocaml matlab miniMAL perl php ps python r racket ruby rust \
 	scala vb nim
 
@@ -54,6 +54,7 @@ EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
 STEP_TEST_FILES = $(strip $(wildcard $(1)/tests/$($(2)).mal) $(wildcard tests/$($(2)).mal))
 
+ada_STEP_TO_PROG =     ada/$($(1))
 bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
@@ -87,6 +88,7 @@ COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
 
+ada_RUNSTEP =     ../$(2) $(3)
 bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
 clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
