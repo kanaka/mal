@@ -38,7 +38,7 @@ export eval-mal = (env, ast) --> while true
         | 'let', 'let*' => [env, ast] = do-let env, args
         | 'do' => ast = do-do env, args
         | 'if' => ast = do-if env, args # should be macro
-        | _ => 
+        | _ =>
             # Here we must be evaluating a call.
             application = evaluate env, ast
             [fn, ...args] = application.value
