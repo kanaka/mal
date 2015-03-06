@@ -8,7 +8,7 @@
 ;;; no try* yet, so test completion of side-effects
 (def! res1 nil)
 ;=>nil
-(def! res1 (sum-to 10000)))
+(def! res1 (sum-to 10000))
 res1
 ;=>nil
 
