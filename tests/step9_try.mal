@@ -13,8 +13,8 @@
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
 
-(try* (throw (list "data" "foo")) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" ("data" "foo")
+(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+; "err:" (1 2 3)
 ;=>7
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
