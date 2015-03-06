@@ -4,6 +4,7 @@ export function is-atom val then val.type in atomic-types
 export function is-nil val then val.type is \NIL
 export function is-seq val then val.type in [\LIST, \VEC]
 export function is-number val then val.type in [\INT, \FLOAT]
+export function is-callable val then val?.type in [\BUILTIN, \LAMBDA]
 
 export truthy = (val) ->
     | val.type in [\NIL, \BOOL] => !! val.value

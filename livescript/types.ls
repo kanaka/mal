@@ -38,8 +38,10 @@ export string = (s) -> type: \STRING, value: s
 
 export sym = (s) -> type: \SYM, value: s
 
+export int = (i) -> type: \INT, value: i
+
 export class Builtin
-    
+
     (@fn) ->
 
     type: \BUILTIN
@@ -124,7 +126,15 @@ export class MalList
         return false if b.value.length isnt @value.length
         all (-> mal-eql it[0], it[1]), (zip @value, b.value)
 
+    construct: (elems = []) -> new MalList elems
+
+    cons: (x) -> @construct [x] ++ @value
+
+    conj: (x) -> @construct @value ++ [x]
+
 export class MalVec extends MalList
 
     type: \VEC
+
+    construct: (elems = []) -> new MalVec elems
 
