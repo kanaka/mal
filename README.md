@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 27 different languages:
+Mal is implemented in 28 different languages:
 
 * Bash shell
 * C
@@ -16,6 +16,7 @@ Mal is implemented in 27 different languages:
 * Haskell
 * Java
 * Javascript ([Online Demo](http://kanaka.github.io/mal))
+* LiveScript
 * Lua
 * GNU Make
 * mal itself
