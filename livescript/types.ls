@@ -122,7 +122,7 @@ export class MalList
     type: \LIST
 
     equals: (b) ->
-        return false unless b.type is @type
+        return false unless b instanceof MalList
         return false if b.value.length isnt @value.length
         all (-> mal-eql it[0], it[1]), (zip @value, b.value)
 

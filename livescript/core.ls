@@ -2,7 +2,7 @@ require! {
     LiveScript
     fs
     'prelude-ls': {join, sum, all, fold, fold1, map}
-    './types.ls': {sym, keyword, string, Builtin, Lambda, MalList, MalVec, MalMap}
+    './types.ls': {sym, int, keyword, string, Builtin, Lambda, MalList, MalVec, MalMap}
     './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
     './printer.ls': {str, pr-str}
     './reader.ls': {read-str}
@@ -11,12 +11,13 @@ require! {
 export ns = {}
 
 bool = (value) -> type: \BOOL, value: value
-int = (value) -> type: \INT, value: value
 float = (value) -> type: \FLOAT, value: value
 
 ns.list = new Builtin (elems) -> new MalList elems
 
 ns['list?'] = new Builtin ([x]) -> bool x.type is \LIST
+
+ns['seq?'] = new Builtin bool . is-seq . (.0)
 
 ns['typeof?'] = new Builtin ([x]) -> string x.type
 
@@ -159,7 +160,7 @@ ns['print'] = new Builtin (exprs) ->
     NIL
 
 ns['println'] = new Builtin (exprs) ->
-    console.log join '',  (map str, exprs)
+    console.log join ' ', (map str, exprs)
     NIL
 
 ns['pr-str'] = new Builtin string . (join ' ') . (map pr-str)

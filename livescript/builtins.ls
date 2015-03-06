@@ -12,6 +12,7 @@ export truthy = (val) ->
 
 export mal-eql = (a, b) ->
     | is-atom a => a.type is b.type and a.value is b.value
+    | (is-seq a) and (is-seq b) => a.equals b
     | a.type is b.type => a.equals b
     | otherwise => false
 
