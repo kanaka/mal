@@ -11,7 +11,7 @@ def EVAL(ast, env):
     try:
         return eval(ast)
     except SyntaxError:
-        exec compile(ast, '', 'single') in globals()
+        exec(compile(ast, '', 'single'), globals())
         return None
 
 # print
