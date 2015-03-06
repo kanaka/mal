@@ -1,6 +1,7 @@
 #![feature(io, fs, core, std_misc, collections)]
 
 extern crate libc;
+extern crate pcre;
 extern crate regex;
 extern crate time;
 
