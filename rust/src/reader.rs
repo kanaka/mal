@@ -1,8 +1,8 @@
+use std::borrow::ToOwned;
 use types::MalError::{ErrString, ErrMalVal};
 use types::{MalVal, MalRet,
             _nil, _true, _false, _int, symbol, string, list, vector, hash_mapv,
             err_str, err_string, err_val};
-use pcre::Pcre;
 use super::printer::unescape_str;
 
 #[derive(Debug, Clone)]
@@ -31,21 +31,12 @@ impl Reader {
 
 fn tokenize(str: String) -> Vec<String> {
     let mut results = vec![];
-
-    let re = match Pcre::compile(r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"###) {
-        Err(_) => { panic!("failed to compile regex") },
-        Ok(re) => re
-    };
-
-    let mut it = re.matches(&str);
-    loop {
-        let opt_m = it.next();
-        if opt_m.is_none() { break; }
-        let m = opt_m.unwrap();
-        if m.group(1) == "" { break; }
-        if m.group(1).starts_with(";") { continue; }
-
-        results.push((*m.group(1)).to_string());
+    let re = regex!(r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"###);
+    for cap in re.captures_iter(&str) {
+        let group = cap.at(1).unwrap_or("");
+        if group == "" { break; }
+        if group.starts_with(";") { continue; }
+        results.push(group.to_owned());
     }
     results
 }
