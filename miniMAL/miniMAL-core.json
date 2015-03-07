@@ -101,10 +101,11 @@
                         ["println", ["rep", "line"]],
                         ["cb"]]]],
            "opts", {"ignoreUndefined": true,
-                    "terminal": false},
-           "opts", ["assoc!", "opts", ["`", "prompt"], "prompt"],
-           "opts", ["assoc!", "opts", ["`", "eval"], "evl"]],
-    [".", "r", ["`", "start"], "opts"]]]],
+                    "terminal": false}],
+    ["do",
+      [".-", "opts", ["`", "prompt"], "prompt"],
+      [".-", "opts", ["`", "eval"], "evl"],
+      [".", "r", ["`", "start"], "opts"]]]]],
 
 null
 ]
