@@ -112,16 +112,16 @@ that building a lisp interpreter is more like a branching tree. If you
 get stuck on tail call optimization, or hash-maps, move on to other
 things. You will often have a stroke of inspiration for a problem as
 you work through other functionality. I have tried to structure this
-guide and the tests to make clear which things are optional or can be
-deferred until later.
+guide and the tests to make clear which things can be deferred until
+later.
 
-An aside on optional bits: when you run the tests for a given step,
-the last tests are often marked with an "optional" header. This
-indicates that these are tests for functionality that is not critical
-to finish a basic mal implementation. Many of the steps in this
-process guide also have an "Optional" section, however, it is not
-quite the same meaning. Those sections do include the functionality
-that is marked as optional in the tests, but they also include
+An aside on deferrable/optional bits: when you run the tests for
+a given step, the last tests are often marked with an "optional"
+header. This indicates that these are tests for functionality that is
+not critical to finish a basic mal implementation. Many of the steps
+in this process guide have a "Deferrable" section, however, it is not
+quite the same meaning. Those sections include the functionality that
+is marked as optional in the tests, but they also include
 functionality that becomes mandatory at a later step. In other words,
 this is a "make your own Lisp adventure".
 
@@ -182,7 +182,7 @@ Congratulations! You have just completed the first step of the
 make-a-lisp process.
 
 
-#### Optional:
+#### Deferrable:
 
 * Add full line editing and command history support to your
   interpreter REPL. Many languages have a library/module that provide
@@ -342,7 +342,7 @@ that you have now just completed one of the most difficult steps. It
 is down hill from here. The remaining steps will probably be easier
 and each step will give progressively more bang for the buck.
 
-#### Optional:
+#### Deferrable:
 
 
 * Add error checking to your reader functions to make sure parens
@@ -692,7 +692,7 @@ with lexical scope, side-effects (if you implement the string
 functions), etc. However, our little interpreter has not quite reach
 Lisp-ness yet. The next several steps will take
 
-#### Optional:
+#### Deferrable:
 
 * Implement Clojure-style variadic function parameters. Modify the
   constructor/initializer for environments, so that if a "&" symbol is
@@ -706,7 +706,7 @@ Lisp-ness yet. The next several steps will take
 
 * Implement the strings functions in `core.qx`. To implement these
   functions, you will need to implement the string support in the
-  reader and printer (optional section of step 1). Each of the string
+  reader and printer (deferrable section of step 1). Each of the string
   functions takes multiple mal values, prints them (`pr_str`) and
   joins them together into a new string.
   * `pr-str`: calls `pr_str` on each argument with `print_readably`
@@ -774,7 +774,9 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 * The return value from the `fn*` special form will now become an
   object/structure with attributes that allow the default invoke case
   of `EVAL` to do TCO on mal functions. Those attributes are:
-  * `fn`: the original function value return in step 4
+  * `fn`: the original function value return in step 4 (this is
+    actually deferrable until step 9 when it is needed for the `map`
+    and `apply` core functions).
   * `ast`: the second `ast` argument (third list element) representing
     the body of the function.
   * `params`: the first `ast` argument (second list element)
@@ -887,7 +889,7 @@ flesh them out over the next few steps to support quoting (step 7) and
 macros (step 8).
 
 
-#### Optional:
+#### Deferrable:
 
 * Add the ability to run another mal program from the command line.
   Prior to the REPL loop, check if your mal implementation is called
@@ -1012,7 +1014,7 @@ complete, and quoting sets the stage for the next very exiting step:
 macros.
 
 
-#### Optional
+#### Deferrable
 
 * The full names for the quoting forms are fairly verbose. Most Lisp
   languages have a short-hand syntax and Mal is no exception. These
@@ -1143,7 +1145,7 @@ step9 you will be very close to having a fully self-hosting mal
 implementation. Let us continue!
 
 
-### Optional
+### Deferrable
 
 * Add the following new core functions which are frequently used in
   macro functions:
@@ -1177,7 +1179,10 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
 
-* TODO/TBD
+* TODO/TBD.
+  * In step 5, if you did not add original function (`fn`) to the
+    returned structure returned from `fn*`, the you will need to do so
+    now.
 
 
 <a name="step9"></a>
