@@ -524,10 +524,10 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     evaluated second parameter as the value.
   * symbol "let*": create a new environment using the current
     environment as the outer value and then use the first parameter as
-    a list of new bindings in the "let" environment. Take the second
+    a list of new bindings in the "let*" environment. Take the second
     element of the binding list, call `EVAL` using the new "let*"
     environment as the evaluation environment, then call `set` on the
-    "let" environment using the first binding list element as the key
+    "let*" environment using the first binding list element as the key
     and the evaluated second element as the value. This is repeated
     for each odd/even pair in the binding list. Note in particular,
     the bindings earlier in the list can be referred to by later
