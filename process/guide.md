@@ -136,8 +136,11 @@ a textual diff/comparison tool to compare the previous pseudocode step
 with the one you are working on. The architecture images have changes
 from the previous step highlighted in red.
 
-If you get stuck, find the same step or functionality in a different
-implementation language.
+If you get completely stuck and are feeling like giving up, then you
+should "cheat" by referring to the same step or functionality in
+a existing implementation language. You are here to learn, not to take
+a test, so do not feel bad about it. Okay, you should feel a little
+bit bad about it.
 
 
 ## The Make-A-Lisp Process
@@ -172,9 +175,12 @@ This step is basically just creating a skeleton of your interpreter.
   language, then create a Makefile (or appropriate project definition
   file) in your directory.
 
-Run your new program and make sure that it echos each line that you
-type. Because step0 is so trivial, there are no automated tests to run
-for it.
+It is time to run your first tests. This will check that your program
+does input and output in a way that can be captured by the test
+harness. Go to the top level and run the following:
+```
+make test^quux^step0
+```
 
 Add and then commit your new `step0_repl.qx` and `Makefile` to git.
 
@@ -468,7 +474,7 @@ You now have a simple prefix notation calculator!
 In step 2 you were already introduced to REPL environment (`repl_env`)
 where the basic numeric functions were stored and looked up. In this
 step you will add the ability to create new environments (`let*`) and
-modify exiting environments (`def!`).
+modify existing environments (`def!`).
 
 A Lisp environment is an associative data structure that maps symbols (the
 keys) to values. But Lisp environments have an additional important
