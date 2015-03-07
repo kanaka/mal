@@ -4,16 +4,14 @@ require! {
     './builtins.ls': {NIL, TRUE, FALSE}
     './types.ls': {
         quasiquote, quote, unquote, splice-unquote,
-        deref, keyword, with-meta,
+        deref, with-meta,
+        string, int, float, sym, keyword,
         MalMap, MalList, MalVec
     }
 }
 
-THE_ONE_TRUE_REGEX = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g
 INTEGER = /^-?([1-9][0-9]*|0)$/
 FLOAT = /^-?[0-9]+(\.[0-9]*)?$/
-STRING = /^"(\\n|\\t|\\"|\\\\|[^\\])*"$/
-KEYWORD = /^:[\S]+$/
 
 QUOTE = '\''
 DEREF = '@'
@@ -29,15 +27,15 @@ EOF = {} # Unique token
 
 export read-str = (str) ->
     read-form new Reader str
-    
+
 read-form = (reader) ->
     if process.env.DEBUG
         console.log reader.position, reader.peek!
     switch reader.peek!
+        | EOF => null
         | START_LIST => read-list reader
         | START_VEC => read-vec reader
         | START_MAP => read-map reader
-        | EOF => null
         | QUOTE => read-quote reader
         | QUASIQUOTE => read-quasiquote reader
         | UNQUOTE => read-unquote reader
@@ -70,12 +68,11 @@ read-deref = (r) ->
 read-seq = (Coll, start, end, r) -->
     value = []
     # Check and advance
-    throw new MalSyntaxError "Expected #{ start }" unless start is r.next!
-    while r.peek! isnt end
+    throw new MalSyntaxError "Expected #{ start }" unless start is r.peek!
+    while r.next! isnt end
         if r.peek! is EOF
-            throw new MalSyntaxError "Expected #{ end }"
+            throw new MalSyntaxError "Expected #{ end }, at #{ r.index }, got #{ JSON.stringify r.current }"
         value.push read-form r
-    r.next! # Advance past the closing paren
     new Coll value
 
 read-list = read-seq MalList, START_LIST, END_LIST
@@ -98,22 +95,16 @@ ks-vs = partition (.1) >> (% 2) >> (is 0)
 discard-indices = map (map (.0))
 
 read-atom = (r) ->
-    switch t = r.next!
+    t = r.peek!
+    if t is EOF
+        throw new Error "EOF in ATOM"
+    throw new Error("Illegal atom: #{ JSON.stringify t }") unless t?.type
+    return t unless t.type is \SYM # done by reader.
+    switch t.value # Read out built in constants.
         | \nil   => NIL
         | \true  => TRUE
         | \false => FALSE
-        | _      => switch
-            | INTEGER.test t => {type: \INT,   value: (parseInt t, 10)}
-            | FLOAT.test t   => {type: \FLOAT, value: (parseFloat t)}
-            | STRING.test t   => {type: \STRING, value: JSON.parse(t)}
-            | KEYWORD.test t => keyword t.slice 1
-            | _              => {type: \SYM,   value: t}
-
-tokenise = (str) ->
-    tokens = str.match THE_ONE_TRUE_REGEX
-    [trim t for t in tokens when t and (not /^\s*;/.test t)]
-
-function trim s then s?.replace /(^[\s,]+|\s+$)/g, ''
+        | _ => t
 
 class MalSyntaxError extends Error
 
@@ -121,17 +112,140 @@ class MalSyntaxError extends Error
 
     (@message) ->
 
-class Reader
+export class Reader
 
-    (str) -> @tokens = (tokenise str) ++ [EOF]
-    
-    position: 0
+    (@str) ->
 
-    next: -> @tokens[@position++]
+    index: 0
 
-    peek: -> @tokens[@position]
+    incr: 1
 
-    done: -> @position >= @tokens.length
+    position: -1
+
+    current: null
+
+    next: ->
+        @advance! unless @done!
+        @current
+
+    peek: ->
+        @advance! if @position is -1
+        @current
+
+    done: -> @peek! is EOF
+
+    advance: ->
+        # Skip whitespace.
+        while is-whitespace @read-current-char!
+            @advance-index!
+
+        if @index >= @str.length
+            return @current = EOF
+
+        beginning = @index
+        char = @read-current-char!
+        @position++
+        @current = switch char
+            | EOF => char
+            | <[ { } ( ) [ ] ' ` ~ ~@ @ ^ ]> => @advance-index!; char
+            | ':' => keyword @read-kw!
+            | '"' => string @read-string!
+            | _ => switch
+                | is-numeric char =>
+                    num = @read-number!
+                    switch
+                        | (not /\d/.test num) => sym num + @read-symbol!
+                        | INTEGER.test num => int parseInt num, 10
+                        | FLOAT.test num => float parseFloat num
+                        | _ => throw new Error("Illegal numeric token at #{ beginning }: #{ num }")
+                | is-symbolic char => sym @read-symbol!
+                | _ => throw new Error("Unexpected token: #{ char }")
+
+    advance-index: ->
+        @index += @incr
+        @incr = 1
+
+    read-kw: ->
+        char = @read-current-char!
+        throw new Error('Not a keyword') unless char is ':'
+        @advance-index!
+        @read-symbol!
+
+    read-string: ->
+        chars = []
+        ch = @read-current-char!
+        throw new Error('Not a string') unless ch is '"'
+        @advance-index!
+        ch = @read-current-char!
+        while ch isnt '"'
+            if ch is '\\'
+                @advance-index!
+                next-ch = @read-current-char!
+                if next-ch in <[ n t " ' \ ]>
+                    chars.push unescape next-ch
+                else
+                    throw new Error("Unexpected escape: \\#{ next-ch }")
+            else
+                chars.push ch
+            ch = @read-next-char!
+        @advance-index!
+        chars.join ''
+
+    read-symbol: -> @read-all is-symbolic
+
+    read-number: -> @read-all is-numeric
+
+    read-all: (test) ->
+        chars = []
+        ch = @read-current-char!
+        while test ch
+            chars.push ch
+            ch = @read-next-char!
+        return chars.join ''
+
+    read-next-char: ->
+        @advance-index!
+        ch = @read-current-char!
+
+    read-current-char: ->
+        i = @index
+        [char, incr] = get-whole-char @str, i
+        @incr = incr # save the increment for the next step.
+        char
+
+function unescape char then switch char
+    | 'n' => '\n'
+    | 't' => '\t'
+    | _ => char
+
+function is-whitespace char then /^(\s|,)*$/.test char
+
+function is-symbolic char then (/^[\w\d]+$/.test char) or (char in <[ $ ! _ % & \ * + - / : < = > ? @ ^ _ ~ . ]>)
+
+function is-numeric char then /^[\d\.-]+$/.test char
+
+function get-whole-char str, i then
+    throw new Error('Index out of bounds: i < 0') if i < 0
+    code = str.charCodeAt i
+    switch
+        | isNaN code => [EOF, 1] # Not found - end of input.
+        | (code < 0xD800) or (0xDFFF < code)  => [str.charAt(i), 1] # Normal character 
+        | 0xD800 <= code <= 0xDBFF => [(high-surrogate str, i), 2]
+        | _ => [(low-surrogate str, i), 2]
+
+function high-surrogate str, i then
+    j = i + 1
+    next = str.charCodeAt j
+    throw new Error('High surrogate without following low surrogate') if str.length <= j
+    throw new Error('High surrogate without following low surrogate') if (0xDC00 > next) or (next > 0xDFFF)
+    str.charAt(i) + str.charAt(j)
+
+function low-surrogate str, i then
+    throw new Error('Low surrogate without preceding high surrogate') if i is 0
+    prev = str.charCodeAt(i - 1);
+    throw new Error('Low surrogate without preceding high surrogate') if (0xD800 > prev) or (prev > 0xDBFF)
+    # Return the next character instead
+    str.charAt(i + 1)
 
 unless module.parent
     examples = [

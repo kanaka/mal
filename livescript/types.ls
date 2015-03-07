@@ -40,6 +40,8 @@ export sym = (s) -> type: \SYM, value: s
 
 export int = (i) -> type: \INT, value: i
 
+export float = (f) -> type: \FLOAT, value: f
+
 export class Builtin
 
     (@fn) ->
