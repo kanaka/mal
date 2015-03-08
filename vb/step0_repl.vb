@@ -24,11 +24,16 @@ Namespace Mal
         End Function
 
         Shared Function Main As Integer
-            Dim prompt As String = "user> "
-            Dim line As String
+            Dim args As String() = Environment.GetCommandLineArgs()
 
+            If args.Length > 1 AndAlso args(1) = "--raw" Then
+                Mal.readline.SetMode(Mal.readline.Modes.Raw)
+            End If
+
+            ' repl loop
+            Dim line As String
             Do
-                line = Mal.readline.Readline(prompt)
+                line = Mal.readline.Readline("user> ")
                 If line is Nothing Then
                     Exit Do
                 End If

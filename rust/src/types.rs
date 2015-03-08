@@ -7,28 +7,29 @@ use std::fmt;
 use super::printer::{escape_str,pr_list};
 use super::env::{Env,env_new,env_bind};
 
-#[deriving(Clone)]
+use self::MalType::*;
+use self::MalError::*;
+
+#[derive(Clone)]
 #[allow(non_camel_case_types)]
 pub enum MalType {
     Nil,
     True,
     False,
-    Int(int),
+    Int(isize),
     Strn(String),
     Sym(String),
     List(Vec<MalVal>, MalVal),
     Vector(Vec<MalVal>, MalVal),
     Hash_Map(HashMap<String, MalVal>, MalVal),
     Func(fn(Vec<MalVal>) -> MalRet, MalVal),
-    //Func(fn(&[MalVal]) -> MalRet),
-    //Func(|Vec<MalVal>|:'a -> MalRet),
     MalFunc(MalFuncData, MalVal),
     Atom(RefCell<MalVal>),
 }
 
 pub type MalVal = Rc<MalType>;
 
-#[deriving(Show)]
+#[derive(Debug)]
 pub enum MalError {
     ErrString(String),
     ErrMalVal(MalVal),
@@ -49,16 +50,7 @@ pub fn err_val(mv: MalVal) -> MalRet {
     Err(ErrMalVal(mv))
 }
 
-/*
-pub enum MalRet {
-    Val(MalVal),
-    MalErr(MalVal),
-    StringErr(String),
-}
-*/
-
-
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct MalFuncData {
     pub eval:     fn(MalVal, Env) -> MalRet,
     pub exp:      MalVal,
@@ -70,59 +62,51 @@ pub struct MalFuncData {
 impl MalType {
     pub fn pr_str(&self, print_readably: bool) -> String {
         let _r = print_readably;
-        let mut res = String::new();
         match *self {
-            Nil => res.push_str("nil"),
-            True => res.push_str("true"),
-            False => res.push_str("false"),
-            Int(v) => res.push_str(v.to_string().as_slice()),
-            Sym(ref v) => res.push_str((*v).as_slice()),
+            Nil => "nil".to_string(),
+            True => "true".to_string(),
+            False => "false".to_string(),
+            Int(v) => v.to_string(),
+            Sym(ref v) => v.clone(),
             Strn(ref v) => {
-                if v.as_slice().starts_with("\u029e") {
-                    res.push_str(":");
-                    res.push_str(v.as_slice().slice(2,v.len()))
+                if v.starts_with("\u{29e}") {
+                    format!(":{}", &v[2..])
                 } else if print_readably {
-                    res.push_str(escape_str((*v).as_slice()).as_slice())
+                    escape_str(v)
                 } else {
-                    res.push_str(v.as_slice())
+                    v.clone()
                 }
             },
             List(ref v,_) => {
-                res = pr_list(v, _r, "(", ")", " ")
+                pr_list(v, _r, "(", ")", " ")
             },
             Vector(ref v,_) => {
-                res = pr_list(v, _r, "[", "]", " ")
+                pr_list(v, _r, "[", "]", " ")
             },
             Hash_Map(ref v,_) => {
-                let mut first = true;
+                let mut res = String::new();
                 res.push_str("{");
-                for (key, value) in v.iter() {
-                    if first { first = false; } else { res.push_str(" "); }
-                    if key.as_slice().starts_with("\u029e") {
+                for (i, (key, value)) in v.iter().enumerate() {
+                    if i != 0 { res.push_str(" "); }
+                    if key.starts_with("\u{29e}") {
                         res.push_str(":");
-                        res.push_str(key.as_slice().slice(2,key.len()))
+                        res.push_str(&key[2..])
                     } else if print_readably {
-                        res.push_str(escape_str(key.as_slice()).as_slice())
+                        res.push_str(&escape_str(key))
                     } else {
-                        res.push_str(key.as_slice())
+                        res.push_str(key)
                     }
                     res.push_str(" ");
-                    res.push_str(value.pr_str(_r).as_slice());
+                    res.push_str(&value.pr_str(_r));
                 }
-                res.push_str("}")
+                res.push_str("}");
+                res
             },
             // TODO: better native function representation
-            Func(_,_) => {
-                res.push_str(format!("#<function ...>").as_slice())
-            },
-            MalFunc(ref mf,_) => {
-                res.push_str(format!("(fn* {} {})", mf.params, mf.exp).as_slice())
-            },
-            Atom(ref v) => {
-                res = format!("(atom {})", v.borrow());
-            },
-        };
-        res
+            Func(_, _) => format!("#<function ...>"),
+            MalFunc(ref mf,_) => format!("(fn* {:?} {:?})", mf.params, mf.exp),
+            Atom(ref v) => format!("(atom {:?})", &**v.borrow()),
+        }
     }
 
     pub fn apply(&self, args:Vec<MalVal>) -> MalRet {
@@ -161,11 +145,11 @@ impl PartialEq for MalType {
             (&Func(_,_), &Func(_,_)) => false,
             (&MalFunc(_,_), &MalFunc(_,_)) => false,
             _ => return false,
-        } 
+        }
     }
 }
 
-impl fmt::Show for MalType {
+impl fmt::Debug for MalType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.pr_str(true))
     }
@@ -206,7 +190,7 @@ pub fn false_q(a:Vec<MalVal>) -> MalRet {
     }
 }
 
-pub fn _int(i: int) -> MalVal { Rc::new(Int(i)) }
+pub fn _int(i: isize) -> MalVal { Rc::new(Int(i)) }
 
 
 // Symbols
@@ -237,11 +221,9 @@ pub fn _keyword(a: Vec<MalVal>) -> MalRet {
     if a.len() != 1 {
         return err_str("Wrong arity to keyword call");
     }
-    match *a[0].clone() {
-        Strn(ref s) => {
-            Ok(Rc::new(Strn("\u029e".to_string() + s.to_string())))
-        },
-        _ => return err_str("keyword called on non-string"),
+    match *a[0] {
+        Strn(ref s) => Ok(Rc::new(Strn(format!("\u{29e}{}", s)))),
+        _ => err_str("keyword called on non-string"),
     }
 }
 pub fn keyword_q(a:Vec<MalVal>) -> MalRet {
@@ -250,7 +232,7 @@ pub fn keyword_q(a:Vec<MalVal>) -> MalRet {
     }
     match *a[0].clone() {
         Strn(ref s) => {
-            if s.as_slice().starts_with("\u029e") {
+            if s.starts_with("\u{29e}") {
                 Ok(_true())
             } else {
                 Ok(_false())

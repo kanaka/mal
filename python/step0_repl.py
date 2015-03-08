@@ -7,12 +7,8 @@ def READ(str):
 
 # eval
 def EVAL(ast, env):
-    # try it as an expression then a statement
-    try:
-        return eval(ast)
-    except SyntaxError:
-        exec compile(ast, '', 'single') in globals()
-        return None
+        #print("EVAL %s" % printer._pr_str(ast))
+        return ast
 
 # print
 def PRINT(exp):

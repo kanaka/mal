@@ -9,12 +9,12 @@ function READ($str) {
 
 // eval
 function MAL_EVAL($ast, $env) {
-    return eval($ast);
+    return $ast;
 }
 
 // print
 function MAL_PRINT($exp) {
-    return var_export($exp, true) . "\n";
+    return $exp;
 }
 
 // repl
@@ -26,8 +26,8 @@ function rep($str) {
 do {
     $line = mal_readline("user> ");
     if ($line === NULL) { break; }
-    if (!empty($line)) {
-        print(rep($line));
+    if ($line !== "") {
+        print(rep($line) . "\n");
     }
 } while (true);
 

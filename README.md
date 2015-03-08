@@ -36,11 +36,11 @@ Mal is implemented in 28 different languages:
 * Visual Basic.NET
 
 
-Mal is a learning tool. See the ([make-a-lisp process
-guide](process/guide.md)).  Each implementation of mal is separated
-into 11 incremental, self-contained (and testable) steps that
-demonstrate core concepts of Lisp. The last step is capable of
-self-hosting (running the mal implemenation of mal).
+Mal is a learning tool. See the [make-a-lisp process
+guide](process/guide.md). Each implementation of mal is separated into
+11 incremental, self-contained (and testable) steps that demonstrate
+core concepts of Lisp. The last step is capable of self-hosting
+(running the mal implementation of mal).
 
 The mal (make a lisp) steps are:
 
@@ -320,17 +320,14 @@ cd ruby
 ruby stepX_YYY.rb
 ```
 
-### Rust (0.13)
+### Rust (1.0.0 nightly)
 
 The rust implementation of mal requires the rust compiler and build
 tool (cargo) to build.
 
 ```
 cd rust
-# Need patched pcre lib (should be temporary)
-git clone https://github.com/kanaka/rust-pcre cadencemarseille-pcre
-cargo build --release
-./target/stepX_YYY
+cargo run --release --bin stepX_YYY
 ```
 
 ### Scala ###

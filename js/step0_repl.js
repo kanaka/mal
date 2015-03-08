@@ -1,5 +1,6 @@
 if (typeof module !== 'undefined') {
     var readline = require('./node_readline');
+    var printer = require('./printer');
 }
 
 // read
@@ -9,7 +10,7 @@ function READ(str) {
 
 // eval
 function EVAL(ast, env) {
-    return eval(ast);
+    return ast;
 }
 
 // print

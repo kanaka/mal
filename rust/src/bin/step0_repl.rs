@@ -1,5 +1,6 @@
-use readline::mal_readline;
-mod readline;
+extern crate mal;
+
+use mal::readline;
 
 // read
 fn read(str: String) -> String {
@@ -18,7 +19,7 @@ fn print(exp: String) -> String {
 
 fn main() {
     loop {
-        let line = mal_readline("user> ");
+        let line = readline::mal_readline("user> ");
         match line { None => break, _ => () }
         println!("{}", print(eval(read(line.unwrap()))));
     }
