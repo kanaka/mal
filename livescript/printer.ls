@@ -7,10 +7,9 @@ export pr-str = (ast, escape = true) ->
     f = if escape then pr-str else str
     switch ast.type
         | \NIL => 'nil'
-        | \SYM => ast.value
-        | \INT, \FLOAT, \BOOL => String(ast.value)
+        | \INT, \FLOAT, \BOOL, \SYM => String(ast.value)
         | \KEYWORD => ":#{ ast.name }"
-        | \BUILTIN => '#NATIVE-FUNCTION'
+        | \BUILTIN => '(fn [& args] #NATIVE-FUNCTION)'
         | \LAMBDA => "(fn [#{ ast.names.map(f).join ' ' }] #{ ast.body.map(f).join ' ' })"
         | \MACRO => "(macro [#{ ast.names.map(f).join ' ' }] #{ ast.body.map(f).join ' ' })"
         | \STRING => JSON.stringify(ast.value)

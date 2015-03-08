@@ -19,7 +19,7 @@ export run-repl = (rep, env = {}) ->
 
     rl.on \line, (mal) ->
         if rl._fragment
-            mal = "#{ rl._fragment } #{ mal }"
+            mal = rl._fragment + mal
             rl._fragment = null
 
         if /\S/.test mal

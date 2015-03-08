@@ -58,6 +58,8 @@ export class Lambda
 
 export class Macro extends Lambda
 
+    @fromLambda = ({env, names, body}) -> new Macro env, names, body
+
     type: \MACRO
 
 export class MalMap

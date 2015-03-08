@@ -55,10 +55,12 @@ read-unquote = read-special UNQUOTE, unquote
 read-splice-unquote = read-special SPLICE_UNQUOTE, splice-unquote
 
 read-with-meta = (r) ->
-    throw new Error unless WITH_META is r.next!
+    throw new Error unless WITH_META is r.peek!
+    r.next!
     meta = read-form r
     if r.peek! is EOF
         throw new MalSyntaxError "Expected form for meta-data, got EOF"
+    r.next!
     data = read-form r
     with-meta meta, data
 
@@ -72,7 +74,7 @@ read-seq = (Coll, start, end, r) -->
     throw new MalSyntaxError "Expected #{ start }" unless start is r.peek!
     while r.next! isnt end
         if r.peek! is EOF
-            throw new IncompleteSequenceError "Expected #{ end }, at #{ r.index }, got #{ r.current }"
+            throw new IncompleteSequenceError end, r.current, r.index
         value.push read-form r
     new Coll value
 
@@ -117,7 +119,8 @@ class IncompleteSequenceError extends MalSyntaxError
 
     name: 'IncompleteSequenceError'
 
-    (@message) ->
+    (wanted, got, index) ->
+        @message = "Expected '#{ wanted }', got #{ got } at #{ index }"
 
 export class Reader
 
@@ -202,18 +205,20 @@ export class Reader
         @advance-index!
         ch = @read-current-char!
         while ch isnt '"'
-            if ch is '\\'
-                @advance-index!
-                next-ch = @read-current-char!
-                if next-ch in <[ n t " ' \ ]>
-                    chars.push unescape next-ch
-                else
-                    throw new Error("Unexpected escape: \\#{ next-ch }")
-            else
-                chars.push ch
+            switch ch
+                | EOF => throw new IncompleteSequenceError '"', EOF, @index
+                | '\\' => chars.push @read-escape!
+                | _ => chars.push ch
             ch = @read-next-char!
         @advance-index!
         chars.join ''
+
+    read-escape: ->
+        next-ch = @read-next-char!
+        if next-ch in <[ n t " ' \ ]>
+            unescape next-ch
+        else
+            throw new Error("Illegal escape: \\#{ next-ch }")
 
     read-symbol: -> @read-all is-symbolic
 
