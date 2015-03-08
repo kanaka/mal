@@ -22,7 +22,7 @@ export keyword = (name) -> keywords[name] ?= do ->
     value = keyword-counter++
     keyword-array[value] = {type: \KEYWORD, value, name}
 
-export deref = (name) -> new MalList [DEREF, {type: \SYM, value: name}]
+export deref = (ref) -> new MalList [DEREF, ref]
 
 export quote = (form) -> new MalList [QUOTE, form]
 

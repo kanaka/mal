@@ -19,6 +19,7 @@ QUASIQUOTE = '`'
 UNQUOTE = '~'
 SPLICE_UNQUOTE = '~@'
 WITH_META = '^'
+
 [START_LIST, END_LIST] = ['(', ')']
 [START_VEC, END_VEC]   = ['[', ']']
 [START_MAP, END_MAP]   = ['{', '}']
@@ -45,7 +46,7 @@ read-form = (reader) ->
         | otherwise => read-atom reader
 
 read-special = (token, wrap, r) -->
-    throw new Error unless token is r.next!
+    r.next!
     wrap read-form r
 
 read-quote = read-special QUOTE, quote
@@ -62,8 +63,8 @@ read-with-meta = (r) ->
     with-meta meta, data
 
 read-deref = (r) ->
-    throw new Error unless DEREF is r.next!
-    deref r.next!
+    r.next!
+    deref read-form r
 
 read-seq = (Coll, start, end, r) -->
     value = []
@@ -155,7 +156,14 @@ export class Reader
         @position++
         @current = switch char = @read-current-char!
             | EOF => char
-            | <[ { } ( ) [ ] ' ` ~ ~@ @ ^ ]> => @advance-index!; char
+            | <[ { } ( ) [ ] ' ` @ ^ ]> => @advance-index!; char
+            | '~' => # can be either ~ or ~@
+                next-ch = @read-next-char!
+                if next-ch is '@'
+                    @advance-index!
+                    '~@'
+                else
+                    char
             | ':' => keyword @read-kw!
             | '"' => string @read-string!
             | _ => switch
