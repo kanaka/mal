@@ -8,7 +8,7 @@ require! {
     './reader.ls': {read-str}
     './printer.ls': {pr-str}
     './types.ls': {
-        int, sym, string,
+        int, sym, string, atom,
         Builtin, Lambda, Macro,
         MalList, MalVec, MalMap
     }
@@ -34,6 +34,7 @@ EVAL = (env, ast) --> while true
         | 'macroexpand' => return expand-macro env, args[0]
         | 'meta'        => return get-meta env, args
         | 'with-meta'   => return do-with-meta env, args
+        | 'atom'        => return create-atom env, args
         | 'let*', 'let' => [env, ast] = do-let env, args
         | 'do'          => [env, ast] = do-do env, args
         | 'if'          => [env, ast] = do-if env, args
@@ -52,6 +53,10 @@ eval-expr = (env, expr) --> switch expr.type
     | \VEC => new MalVec expr.value.map EVAL env
     | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
     | _ => expr
+
+## Atoms
+
+create-atom = (env, [arg]) -> atom EVAL env, arg
 
 ## Meta-data
 
@@ -191,7 +196,7 @@ print-mal = (ast) -> if ast? then pr-str ast else null
 
 rep = (env, expr) --> expr |> read-mal |> (EVAL env) |> print-mal
 
-core-mal = fs.readFileSync __dirname + '/core.8.mal', 'utf8'
+core-mal = fs.readFileSync __dirname + '/core.9.mal', 'utf8'
 
 let env = create-env core.ns
     evaluate = EVAL env

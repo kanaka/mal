@@ -42,6 +42,14 @@ export int = (i) -> type: \INT, value: i
 
 export float = (f) -> type: \FLOAT, value: f
 
+export atom = (val) -> new Atom val
+
+class Atom
+
+    (@value) ->
+
+    type: \ATOM
+
 export class Builtin
 
     (@fn) ->

@@ -185,3 +185,13 @@ ns['slurp'] = new Builtin ([filename, encoding]:args) ->
     string fs.readFileSync filename.value, encoding.value
 
 ns['throw'] = new Builtin ([msg]) -> throw new Error(msg)
+
+ns['deref'] = new Builtin ([atom]) ->
+    unless atom.type is \ATOM
+        throw new Error("Expected a reference, got #{ atom.type }")
+    atom.value
+
+ns['reset!'] = new Builtin ([atom, new-value]) ->
+    unless atom.type is \ATOM
+        throw new Error("Expected a reference, got #{ atom.type }")
+    atom.value = (new-value or NIL)

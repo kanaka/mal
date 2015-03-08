@@ -16,6 +16,7 @@ export pr-str = (ast, escape = true) ->
         | \LIST => "(#{ ast.value.map(f).join ' ' })"
         | \VEC => "[#{ ast.value.map(f).join ' ' }]"
         | \MAP => "{#{ ast.keys().map((k) -> "#{ f k } #{ f ast.get k }").join ' ' }}"
+        | \ATOM => "(atom #{ f ast.value })"
 
 export str = (ast) -> switch ast.type
     | \STRING => ast.value
