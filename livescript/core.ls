@@ -41,7 +41,7 @@ ns['nth'] = new Builtin ([xs, n]) ->
 
 ns['range'] = new Builtin ([min, max]:args) ->
     if args.length > 2 or not args.length
-        throw new Error("Wrong number of arguments to range, got #{ args.length }") 
+        throw new Error("Wrong number of arguments to range, got #{ args.length }")
     if args.length is 1
         [min, max] = [{value: 0}, min]
     new MalList [min.value to max.value].map int
@@ -91,10 +91,9 @@ ns['cons'] = new Builtin ([x, xs]:args) ->
     xs.cons x
 
 # Add an element at the end of a sequence.
-ns['conj'] = new Builtin ([xs, x]:args) ->
-    throw new Error "Two arguments expected to cons, got: #{ args.length }" unless args.length is 2
+ns['conj'] = new Builtin ([xs, ...additions]) ->
     throw new Error 'Collection must be sequence' unless is-seq xs
-    xs.conj x
+    fold ((coll, e) -> coll.conj e), xs, additions
 
 ns['concat'] = new Builtin (xss) ->
     throw new Error("Arguments must be sequences") unless all is-seq, xss

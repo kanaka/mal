@@ -141,7 +141,7 @@ export class MalList
     # Cons always returns a list.
     cons: (x) -> new MalList [x] ++ @value
 
-    conj: (x) -> @construct @value ++ [x]
+    conj: (x) -> @construct [x] ++ @value
 
 export class MalVec extends MalList
 
@@ -149,3 +149,4 @@ export class MalVec extends MalList
 
     construct: (elems = []) -> new MalVec elems
 
+    conj: (x) -> @construct @value ++ [x]
