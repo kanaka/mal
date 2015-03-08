@@ -1,9 +1,8 @@
-# Fully functional MAL implementation in LiveScript
+# MAL implementation in LiveScript
 
 require! {
     LiveScript
     fs
-    readline
     './repl.ls': {run-repl}
     './core.ls': core
     './env.ls': {create-env}
@@ -11,26 +10,23 @@ require! {
     './logic.ls': {eval-mal}
     './reader.ls': {read-str}
     './printer.ls': {pr-str}
-    'prelude-ls': {id}
 }
-
-{stdin, stdout} = process
 
 read-mal = read-str
 
-print-mal = (ast) ->
-    if ast? then pr-str ast else null
+print-mal = (ast) -> if ast? then pr-str ast else null
 
 rep = (env, expr) --> expr |> read-mal |> (eval-mal env) |> print-mal
 
 core-mal = fs.readFileSync __dirname + '/core.mal', 'utf8'
 
-let environment = create-env core.ns
-    environment['eval'] = new Builtin (eval-mal environment) . (.0)
-    eval-mal environment, (read-str core-mal)
+let env = create-env core.ns
+    evaluate = eval-mal env
+    env['eval'] = new Builtin evaluate . (.0)
+    evaluate (read-str core-mal)
     [filename, ...args] = process.argv.slice(2)
-    environment['*ARGV*'] = new MalList args.map(string)
+    env['*ARGV*'] = new MalList args.map(string)
     if filename
-        eval-mal environment, new MalList [(sym "load-file"), (string filename)]
+        evaluate new MalList [(sym "load-file"), (string filename)]
     else
-        run-repl (rep environment), environment
+        run-repl (rep env), env

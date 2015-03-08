@@ -1,142 +1,159 @@
-require! LiveScript
+require! {
+    LiveScript
+    fs
+    './builtins.ls': {NIL, DO, truthy, is-seq, is-callable, mal-eql}
+    './env.ls': {bind-value, get-value, create-env}
+    './printer.ls': {pr-str}
+    './types.ls': {
+        int, sym, string,
+        Builtin, Lambda, Macro,
+        MalList, MalVec, MalMap
+    }
+}
 
-require! 'prelude-ls': {map, fold}
-require! './builtins.ls': {DO, NIL, truthy, is-seq, mal-eql}
-require! './printer.ls': {pr-str}
-require! './env': {create-env, bind-value, get-value}
-
-{sym, Macro, Lambda, MalList, MalVec, MalMap} = require './types.ls'
-
-SPECIALS = <[ do let let* def! def fn* fn defn if or and ]>
-
-evaluate = (env, ast) -> switch ast.type
-    | \SYM => env[ast.value] or throw new Error "Undefined symbol: #{ ast.value }"
-    | \LIST => new MalList map (eval-mal env), ast.value
-    | \VEC => new MalVec map (eval-mal env), ast.value
-    | \MAP => new MalMap [[(eval-mal env, k), (eval-mal env, ast.get(k))] for k in ast.keys()]
-    | otherwise => ast
+## The core logic of MAL
 
 export eval-mal = (env, ast) --> while true
-    return null unless ast?
-    return (evaluate env, ast) if ast.type isnt \LIST
+    return null unless ast? # pass nulls through (empty repl lines).
+    return (eval-expr env, ast) unless ast.type is \LIST
 
     ast = expand-macro env, ast
     return ast if ast.type isnt \LIST
 
     [form, ...args] = ast.value
-    throw new Error("Empty call") unless form?
+    throw new Error "Empty call" unless form?
+
     switch form.value
-        | 'def!', 'def' => return do-def env, args
-        | 'defmacro!' => return do-fn-to-macro env, args
-        | 'defmacro' => return do-defmacro env, args
+        | 'def!', 'def' => return do-define env, args
+        | 'fn*',  'fn'  => return do-fn env, args
+        | 'quote'       => return args[0]
+        | 'defmacro!'   => return do-defmacro env, args
         | 'macroexpand' => return expand-macro env, args[0]
-        | 'fn', 'fn*' => return do-fn env, args
-        | 'defn' => return do-defn env, args
-        | 'quote' => return args[0]
-        | 'quasiquote' => ast = do-quasi-quote args[0]
-        | 'unquote' => ast = args[0]
-        | 'let', 'let*' => [env, ast] = do-let env, args
-        | 'do' => ast = do-do env, args
-        | 'if' => ast = do-if env, args # should be macro
-        | _ =>
-            # Here we must be evaluating a call.
-            application = evaluate env, ast
-            [fn, ...args] = application.value
-            if fn.type is \BUILTIN
-                return fn.fn args # Cannot thunk.
-            else if fn.type is \LAMBDA
-                [env, ast] = apply-fn fn, args
+        | 'let*', 'let' => [env, ast] = do-let env, args
+        | 'do'          => [env, ast] = do-do env, args
+        | 'if'          => [env, ast] = do-if env, args
+        | 'unquote'     => ast = args[0]
+        | 'quasiquote'  => ast = do-quasi-quote args[0]
+        | _             =>
+            ret = do-call env, ast
+            if ret.type is \THUNK # TCO - stay in loop.
+                {env, ast} = ret
             else
-                throw new Error "Tried to call non-callable: #{ pr-str fn }"
+                return ret
 
-apply-fn = (fn, args) -> [(fn.closure args), (wrap-do fn.body)]
+eval-expr = (env, expr) --> switch expr.type
+    | \SYM => get-sym env, expr
+    | \LIST => new MalList expr.value.map EVAL env
+    | \VEC => new MalVec expr.value.map EVAL env
+    | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
+    | _ => expr
 
-expand-macro = (env, ast) ->
-    while is-macro-call env, ast
-        [name, ...args] = ast.value
-        [env, do-form] = apply-fn (get-value env, name), args
-        ast = eval-mal env, do-do env, do-form.value.slice(1)
-    ast
+## Read symbols from the environment, complain if they aren't there.
 
-do-defn = (env, [name, ...fn]) -> do-def env, [name, (do-fn env, fn)]
+get-sym = (env, k) ->
+    (get-value env, k) or (throw new Error "Undefined symbol: #{ pr-str k }")
 
-do-defmacro = (env, [name, ...fn]) -> do-def env, [name, (do-macro env, fn)]
+## quasiquoting.
 
-is-macro-call = (env, ast) ->
-    (ast?.type is \LIST) and (is-macro env, ast.value[0])
+UNQUOTE = sym 'unquote'
+SPLICE_UQ = sym 'splice-unquote'
 
-is-macro = (env, symbol) -> (get-value env, symbol)?.type is \MACRO
+do-quasi-quote = (ast) ->
+    return (make-call \quote, ast) unless is-pair ast
+    [head, ...tail] = ast.value
+    throw new Error("Empty call") unless head
+    switch
+        | mal-eql UNQUOTE, head => tail[0]
+        | (is-pair head) and mal-eql SPLICE_UQ, head.value[0] =>
+            make-call \concat, head.value[1], (do-quasi-quote new MalList tail)
+        | _ => make-call \cons, (do-quasi-quote head), (do-quasi-quote new MalList tail)
 
 is-pair = (form) -> (is-seq form) and form.value.length
 
 make-call = (name, ...args) -> new MalList [(sym name)] ++ args
 
-do-quasi-quote = (ast) ->
-    | not is-pair ast => make-call \quote, ast
-    | _ =>
-        [head, ...tail] = ast.value
-        throw new Error("NO FST: #{ JSON.stringify(ast) }") unless head
-        switch
-            | mal-eql (sym \unquote), head => tail[0]
-            | (is-pair head) and mal-eql (sym 'splice-unquote'), head.value[0] =>
-                make-call \concat, head.value[1], (do-quasi-quote new MalList tail)
-            | _ => make-call \cons, (do-quasi-quote head), (do-quasi-quote new MalList tail)
+## Function application
 
-do-or = (env, exprs) ->
-    return NIL unless exprs.length
-    for e in exprs
-        v = eval-mal env, e
-        return v if truthy v
-    return v
+do-call = (env, ast) ->
+    [fn, ...args] = (.value) eval-expr env, ast
+    switch fn.type
+        | \BUILTIN => fn.fn args # Cannot thunk.
+        | \LAMBDA => apply-fn fn, args
+        | _ => throw new Error "Cannot call #{ pr-str fn }"
 
-do-and = (env, [e, ...es]) ->
-    combine = (a, b) -> if truthy a then (eval-mal env, b) else a
-    fold combine, (eval-mal env, e), es
+apply-fn = (fn, args) -> thunk (fn.closure args), (wrap-do fn.body)
 
-do-fn = (env, [names, ...bodies]) ->
-    unless is-seq names
-        throw new Error "Names must be a sequence, got: #{ pr-str names }"
-    new Lambda env, names.value.slice(), bodies
+thunk = (env, ast) -> {env, ast, type: \THUNK}
 
-do-macro = (env, [names, ...bodies]) ->
-    unless is-seq names
-        throw new Error "Names must be a sequence, got: #{ pr-str names }"
-    new Macro env, names.value.slice(), bodies
+wrap-do = (exprs) -> new MalList [DO] ++ exprs
 
-do-if = (env, [test, when-true, when-false]:forms) ->
-    unless forms.length in [2, 3]
-        throw new Error "Expected 2 or 3 arguments to if, got #{ forms.length }"
-    when-false ?= NIL
-    ret = eval-mal env, test
-    if (truthy ret) then when-true else when-false
+## Binding names to the environment.
 
-do-def = (env, [key, value]:forms) ->
-    unless forms.length is 2
-        throw new Error "Expected 2 arguments to def, got #{ forms.length }"
-    bind-value env, key, eval-mal env, value
+do-define = (env, [name, value]:args) ->
+    unless args.length is 2
+        throw new Error "Expected 2 arguments to def, got #{ args.length } in (def! #{ args.map(pr-str).join(' ') })"
+    bind-value env, name, EVAL env, value
+
+## Macro machinery
 
 # Form that takes a function definition, eg: (defmacro! name (fn* [] ))
-do-fn-to-macro = (env, [key, value]) ->
-    macro = do-macro env, value.value.slice(1)
-    bind-value env, key, macro
+do-defmacro = (env, [key, value]:args) ->
+    unless args.length is 2
+        throw new Error "Expected 2 arguments to defmacro!, got #{ args.length } in (defmacro! #{ args.map(pr-str).join(' ') })"
+    unless key.type is \SYM
+        throw new Error "name must be a symbol, got: #{ key.type }"
+    fn = EVAL env, value
+    unless fn instanceof Lambda
+        throw new Error("Value must be a function: got #{ pr-str fn } [#{ fn.type }]")
+    bind-value env, key, Macro.fromLambda fn
 
-wrap-do = (bodies) -> new MalList [DO].concat bodies
+expand-macro = (env, ast) ->
+    while is-macro-call env, ast
+        [name, ...args] = ast.value
+        {env, ast: body} = apply-fn (get-value env, name), args
+        ast = EVAL env, body
+    ast
 
-# Returns a new environment and a do-wrapped body.
+is-macro = (env, symbol) -> (get-value env, symbol)?.type is \MACRO
+
+is-macro-call = (env, ast) ->
+    (ast?.type is \LIST) and (is-macro env, ast.value[0])
+
+## Let form - sequential bindings
+
 do-let = (outer, [bindings, ...bodies]) ->
-    env = create-env outer
+    inner = create-env outer
     unless is-seq bindings
         throw new Error "Bindings must be a sequence, got: #{ pr-str bindings }"
-    if bindings.value.length % 2
-        throw new Error "There must be an even number of bindings"
 
+    # Set values on the inner environment.
     for i in [0 til bindings.value.length - 1 by 2]
-        do-def env, [bindings.value[i], bindings.value[i + 1]]
+        do-define inner, [bindings.value[i], bindings.value[i + 1]]
 
-    [env, (wrap-do bodies)]
+    # TCO - set env to inner, wrap bodies in do.
+    [inner, (wrap-do bodies)]
 
-do-do = (env, [...heads, last]) ->
-    for body in heads
-        ret = eval-mal env, body
-    return last
+## multiple forms wrapped in do.
 
+do-do = (env, [...bodies, last]) ->
+
+    for body in bodies
+        EVAL env, body
+
+    return [env, last]
+
+## Function definition
+
+do-fn = (env, [names, ...body]) ->
+    unless is-seq names
+        throw new Error "Names must be a sequence, got: #{ pr-str names }"
+    new Lambda env, names.value, body
+
+# Basic conditional form.
+
+do-if = (env, [test, when-true, when-false]:args) ->
+    unless 2 <= args.length <= 3
+        throw new Error("Wrong number of arguments to if. Expected 2-3, got #{ args.length }")
+    when-false ?= NIL
+    passed-test = truthy EVAL env, test
+    [env, (if passed-test then when-true else when-false)]

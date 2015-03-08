@@ -1,5 +1,13 @@
 (do
 
+    ;; Define functions with more convenience.
+    (defmacro! defn (fn* [name bindings & body]
+        `(def ~name (fn* ~bindings ~@body))))
+
+    ;; Define macros with more convenience
+    (defmacro! defmacro (fn* [name bindings & body]
+        `(defmacro! ~name (fn* ~bindings ~@body))))
+
     (defn even? [x] (= 0 (% x 2)))
 
     (defn odd? [x] (= 0 (% (- x 1) 2)))
@@ -32,7 +40,7 @@
     (defn rest
           [xs]
           (if (empty? xs)
-               xs
+              (list)
               (let [[_ & xss] xs] xss)))
 
     (defn first
