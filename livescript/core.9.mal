@@ -10,12 +10,6 @@
 
     (def! false? (fn* [x] (= x false)))
 
-    (def! apply (fn* [f & args]
-        (let [arglist (last args)
-              inits (initial args)
-              combined (map (fn [x] (list 'quote x)) (concat inits arglist))]
-            (eval (cons f combined)))))
-
     (def! fold (fn*
           [f init xs] ;; Tail-recursive implementation
           (let [loop (fn [ret xs]
@@ -72,6 +66,15 @@
     ;; Define macros with more convenience
     (defmacro! defmacro (fn* [name bindings & body]
         `(defmacro! ~name (fn* ~bindings ~@body))))
+
+    (defn apply [f & args]
+        (let [arglist (last args)
+              inits (initial args)
+              combined (map (fn [x] (list 'quote x)) (concat inits arglist))]
+            (eval (cons f combined))))
+
+    (defn partial [f & xs]
+        (fn [& ys] (apply f (concat xs ys))))
 
     (defmacro! or (fn* [& xs]
         (if (empty? xs)
