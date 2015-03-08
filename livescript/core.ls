@@ -1,13 +1,15 @@
 require! {
     LiveScript
     fs
+    readline
+    'es6-promise': {Promise}
     'prelude-ls': {join, sum, all, fold, fold1, map}
     './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql, to-pairs}
     './printer.ls': {str, pr-str}
     './reader.ls': {read-str}
     './types.ls': {
         sym, int, keyword, string, atom,
-        Builtin, Lambda, MalList, MalVec, MalMap, UserError
+        Builtin, Lambda, MalList, MalVec, MalMap, UserError, JSObject
     }
 }
 
@@ -32,7 +34,8 @@ ns['list?'] = new Builtin ([x]) -> bool x.type is \LIST
 
 ns['seq?'] = new Builtin bool . is-seq . (.0)
 
-ns['typeof?'] = new Builtin ([x]) -> string x.type
+ns['typeof?'] = new Builtin ([x]) ->
+    string x.type
 
 ns['empty'] = new Builtin ([x]) -> switch x.type
     | \LIST => new MalList []
@@ -248,3 +251,16 @@ ns['reset!'] = new Builtin ([atom, new-value]) ->
     unless atom.type is \ATOM
         throw new Error("Expected a reference, got #{ atom.type }")
     atom.value = (new-value or NIL)
+
+ns['promise'] = new Builtin ([value]) -> Promise.resolve value
+
+ns['-readline'] = new Builtin ([prompt]) -> new Promise (resolve, reject) ->
+    rl = readline.createInterface {
+        input: process.stdin
+        output: process.stdout
+        terminal: false
+    }
+    rl.question prompt.value, (result) ->
+        resolve string result
+        rl.close()
+    rl.on \close, -> (resolve NIL)

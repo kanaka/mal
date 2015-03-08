@@ -2,7 +2,7 @@ require! {
     LiveScript
     fs
     'es6-promise': {Promise}
-    'prelude-ls': {any},
+    'prelude-ls': {any, fold},
     './repl.ls': {run-repl}
     './builtins.ls': {NIL, DO, truthy, is-seq, is-callable, mal-eql}
     './core.ls': core
@@ -102,29 +102,27 @@ make-call = (name, ...args) -> new MalList [(sym name)] ++ args
 
 ## Function application
 
-is-promise = (.then)
+is-promise = (x) -> x.then?
 
 do-call = (env, ast) ->
-    if any is-promise, ast.value
-        thenned <- Promise.all(ast.value).then
-        do-call env, new MalList thenned
-
     [fn, ...args] = (.value) eval-expr env, ast
+    if any is-promise, args
+        thenned <- Promise.all(args).then!
+        call-with-evaled-args fn, thenned
+    else
+        call-with-evaled-args fn, args
+
+call-with-evaled-args = (fn, args) ->
     try
         switch fn.type
             | \BUILTIN => fn.fn args # Cannot thunk.
-            | \KEYWORD => EVAL env, (new MalList [(sym 'get')] ++ args ++ [fn])
+            | \KEYWORD => env.get.fn args ++ [fn]
             | \LAMBDA => apply-fn fn, args
             | _ => throw new Error "Cannot call #{ pr-str fn }"
     catch e
         if e.name is \UserError
             throw e
-        name = ast.value[0]
-        fn-name = if name.type is \SYM
-            name.value
-        else
-            "anonymous function"
-        throw new Error "Error calling #{ fn-name }: #{ e.message }"
+        throw new Error "Error calling function: #{ e.message }"
 
 apply-fn = (fn, args) -> thunk (fn.closure args), (wrap-do fn.body)
 
@@ -180,12 +178,20 @@ do-let = (outer, [bindings, ...bodies]) ->
 
 ## multiple forms wrapped in do.
 
+# Guarantees sequencing in the presence of promises
 do-do = (env, [...bodies, last]) ->
 
-    for body in bodies
-        EVAL env, body
+    combine = (ret, b) ->
+        if is-promise ret
+            ret.then -> EVAL env, b
+        else
+            EVAL env, b
 
-    return [env, last]
+    do-ret = fold combine, {}, bodies
+    if is-promise do-ret
+        [env, do-ret.then -> last]
+    else
+        [env, last]
 
 ## Function definition
 

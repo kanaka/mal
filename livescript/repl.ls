@@ -15,30 +15,47 @@ export run-repl = (rep, env = {}) ->
         completer: (current-names-completer env)
     }
 
-    rl.set-prompt 'user> '
+    rl.setPrompt 'user> '
 
     rl.on \line, (mal) ->
         if rl._fragment
             mal = rl._fragment + mal
             rl._fragment = null
 
+        if mal is \exit
+            return rl.close()
+
         if /\S/.test mal
             try
                 ret = rep mal
-                console.log(ret) if ret?
-            catch e
-                if USER_IS_HUMAN and (e.name is \IncompleteSequenceError)
-                    rl._fragment = mal + '\n'
+                if ret?.then
+                    ret.then (handle-response rl), (handle-error rl, mal)
                 else
-                    console.error e.stack ? e
-
-        stdin.write if rl._fragment then '   >> ' else 'user> '
+                    handle-response rl, ret
+            catch e
+                handle-error rl, mal, e
+        else
+            re-prompt rl
 
     rl.on \close, ->
         console.log '\nGoodbye!'
         process.exit!
 
-    rl.prompt()
+    re-prompt rl
+
+re-prompt = (rl) ->
+    stdin.write if rl._fragment then '  ..> ' else 'user> '
+
+handle-response = (rl, ret) -->
+    console.log(ret) if ret?
+    re-prompt rl
+
+handle-error = (rl, mal, e) -->
+    if USER_IS_HUMAN and (e.name is \IncompleteSequenceError)
+        rl._fragment = mal + '\n'
+    else
+        console.error e.stack ? e
+    re-prompt rl
 
 current-names-completer = (env, partial-line) -->
     matches = partial-line?.match /\w+$/

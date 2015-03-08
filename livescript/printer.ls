@@ -4,9 +4,6 @@ require! LiveScript
 
 
 export pr-str = (ast, escape = true) ->
-    if ast.then # Handle promised values.
-        return ast.then (x) -> pr-str x, escape
-
     f = if escape then pr-str else str
     switch ast.type
         | \NIL => 'nil'
@@ -20,7 +17,9 @@ export pr-str = (ast, escape = true) ->
         | \VEC => "[#{ ast.value.map(f).join ' ' }]"
         | \MAP => "{#{ ast.pairs().map((p) -> "#{ f p.key } #{ f p.value }").join ' ' }}"
         | \ATOM => "(atom #{ f ast.value })"
+        | \JSOBJECT => "(js-obj #{ ast.value })"
 
-export str = (ast) -> switch ast.type
-    | \STRING => ast.value
-    | _ => pr-str ast, false
+export str = (ast) ->
+    switch ast.type
+        | \STRING => ast.value
+        | _ => pr-str ast, false
