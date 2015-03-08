@@ -15,7 +15,7 @@ export pr-str = (ast, escape = true) ->
         | \STRING => JSON.stringify(ast.value)
         | \LIST => "(#{ ast.value.map(f).join ' ' })"
         | \VEC => "[#{ ast.value.map(f).join ' ' }]"
-        | \MAP => "{#{ ast.keys().map((k) -> "#{ f k } #{ f ast.get k }").join ' ' }}"
+        | \MAP => "{#{ ast.pairs().map((p) -> "#{ f p.key } #{ f p.value }").join ' ' }}"
         | \ATOM => "(atom #{ f ast.value })"
 
 export str = (ast) -> switch ast.type

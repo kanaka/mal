@@ -1,3 +1,8 @@
+require! {
+    LiveScript
+    'prelude-ls': {map, zip, partition}
+}
+
 export atomic-types = <[ NIL BOOL INT FLOAT SYM STRING KEYWORD ]>
 
 export function is-atom val then val.type in atomic-types
@@ -20,3 +25,12 @@ export NIL = {type: \NIL, value: null}
 export TRUE = {type: \BOOL, value: true}
 export FALSE = {type: \BOOL, value: false}
 export DO = {type: \SYM, value: 'do'}
+
+# [k, v, k, v...] -> [[k, v]]
+export to-pairs = (xs) -> zip.apply null, keys-and-vals xs
+# [k, v, k, v...] -> [[k], [v]]
+keys-and-vals = (xs) ->
+    [0 to xs.length] |> (zip xs) |> ks-vs |> discard-indices
+
+ks-vs = partition (.1) >> (% 2) >> (is 0)
+discard-indices = map (map (.0))

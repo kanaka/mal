@@ -6,6 +6,16 @@
 
     (def! compose (fn* [f g] (fn [x] (f (g x)))))
 
+    (def! true? (fn* [x] (= x true)))
+
+    (def! false? (fn* [x] (= x false)))
+
+    (def! apply (fn* [f & args]
+        (let [arglist (last args)
+              inits (initial args)
+              combined (map (fn [x] (list 'quote x)) (concat inits arglist))]
+            (eval (cons f combined)))))
+
     (def! fold (fn*
           [f init xs] ;; Tail-recursive implementation
           (let [loop (fn [ret xs]
@@ -14,6 +24,17 @@
                              (let [[x & xss] xs]
                                   (loop (f ret x) xss))))]
                 (loop init xs))))
+
+    (def! foldr (fn*
+          [f init xs]
+          (let [loop (fn [ret xs]
+                         (if (empty? xs)
+                             ret
+                             (let [x (last xs)
+                                   xss (initial xs)]
+                                   (loop (f x ret) xss))))]
+                (loop init xs))))
+                                   
 
     (def! filter (fn*
           [f xs] ;; Tail-recursive implementation.
@@ -27,7 +48,7 @@
 
     (def! map (fn*
           [f xs] ;; map in terms of fold
-          (fold (fn [acc x] (conj acc (f x))) [] xs)))
+          (fold (fn [acc x] (concat acc [(f x)])) '() xs)))
 
     (def! rest (fn*
           [xs]

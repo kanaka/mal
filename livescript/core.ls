@@ -3,7 +3,7 @@ require! {
     fs
     'prelude-ls': {join, sum, all, fold, fold1, map}
     './types.ls': {sym, int, keyword, string, Builtin, Lambda, MalList, MalVec, MalMap}
-    './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql}
+    './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql, to-pairs}
     './printer.ls': {str, pr-str}
     './reader.ls': {read-str}
 }
@@ -99,6 +99,12 @@ ns['concat'] = new Builtin (xss) ->
     throw new Error("Arguments must be sequences") unless all is-seq, xss
     new MalList fold (++), [], map (.value), xss
 
+ns['last'] = new Builtin ([xs]) ->
+    xs.value[xs.value.length - 1] or NIL
+
+ns['initial'] = new Builtin ([xs]) ->
+    new MalList xs.value.slice(0, xs.value.length - 1)
+
 ns['name'] = new Builtin ([x]:args) ->
     throw new Error 'One argument expected' unless args.length is 1
     throw new Error 'Not a keyword' unless x.type is \KEYWORD
@@ -106,17 +112,47 @@ ns['name'] = new Builtin ([x]:args) ->
 
 ns['get'] = new Builtin ([m, k]:args) ->
     throw new Error 'Two arguments expected' unless args.length is 2
-    throw new Error 'Not a map' unless m.type is \MAP
-    (m.get k) or NIL
+    switch m.type
+        | \NIL => NIL
+        | \MAP => (m.get k) or NIL
+        | _ => throw new Error "Cannot get from #{ pr-str m }"
 
 ns['has-key?'] = new Builtin ([m, k]:args) ->
     throw new Error 'Two arguments expected' unless args.length is 2
     throw new Error 'Not a map' unless m.type is \MAP
     bool (m.get k)?
 
+ns['keys'] = new Builtin ([m]) ->
+    new MalList m.keys()
+
+ns['vals'] = new Builtin ([m]) ->
+    new MalList [m.get k for k in m.keys()]
+
+ns['contains?'] = new Builtin ([coll, e]) ->
+    throw new Error("Not a collection") unless coll.type in <[ VEC LIST MAP ]>
+    bool coll.contains e
+
+ns['assoc'] = new Builtin ([m, k, v]) ->
+    m.assoc k, v
+
+ns['dissoc'] = new Builtin ([m, ...ks]) ->
+    m.dissoc ks
+
+ns['hash-map'] = new Builtin ([m, ...vals]) ->
+    new MalMap to-pairs vals
+
+ns['map?'] = new Builtin ([m]) ->
+    bool m.type is \MAP
+
+ns['vector'] = new Builtin (args) ->
+    new MalVec args
+
+ns['sequential?'] = new Builtin ([x]) ->
+    bool is-seq x
+
 assoc-num-op = (op, zero, toMal) -> new Builtin (nums) ->
     throw new Error 'Expected at least two numbers' unless nums.length > 1
-    throw new Error "Expected numbers" unless all is-number nums
+    throw new Error "Expected numbers" unless all is-number, nums
     toMal fold op, zero, (map (.value),  nums)
 
 int-op = (op, zero) -> assoc-num-op op, zero, int

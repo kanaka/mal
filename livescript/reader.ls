@@ -1,7 +1,6 @@
 require! {
     LiveScript
-    'prelude-ls': {map, zip, partition}
-    './builtins.ls': {NIL, TRUE, FALSE}
+    './builtins.ls': {to-pairs, NIL, TRUE, FALSE}
     './types.ls': {
         quasiquote, quote, unquote, splice-unquote,
         deref, with-meta,
@@ -87,15 +86,6 @@ read-map = (r) ->
     if vs.length % 2
         throw new MalSyntaxError 'Maps must have even number of elements'
     new MalMap (to-pairs vs)
-
-# [k, v, k, v...] -> [[k, v]]
-to-pairs = (xs) -> zip.apply null, keys-and-vals xs
-# [k, v, k, v...] -> [[k], [v]]
-keys-and-vals = (xs) ->
-    [0 to xs.length] |> (zip xs) |> ks-vs |> discard-indices
-
-ks-vs = partition (.1) >> (% 2) >> (is 0)
-discard-indices = map (map (.0))
 
 read-atom = (r) ->
     t = r.peek!

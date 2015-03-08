@@ -1,8 +1,9 @@
 require! {
     LiveScript
     './env.ls': env
-    'prelude-ls': {all, find, map, zip}
+    'prelude-ls': {any, all, find, map, zip}
 }
+
 {atomic-types, mal-eql, is-atom, is-nil} = require './builtins.ls'
 
 DEREF = {type: \SYM, value: 'deref'}
@@ -76,9 +77,11 @@ export class Macro extends Lambda
 
     type: \MACRO
 
+DELETED = {}
+
 export class MalMap
 
-    (pairs = []) ->
+    (pairs = [], @parent = null) ->
         @stores = {}
         @entries = []
         for t in atomic-types
@@ -91,11 +94,11 @@ export class MalMap
         m.stores[k.type][k.value] = v
 
     get-atom = (m, k) ->
-        m.stores[k.type][k.value]
+        m?.stores[k.type][k.value]
 
     entry-eql = (k, entry) --> mal-eql k, entry.key
 
-    get-entry = (m, k) -> find (entry-eql k), m.entries
+    get-entry = (m, k) -> find (entry-eql k), (m?.entries ? [])
 
     set-nil = (m, v) -> m._nil = v
 
@@ -112,6 +115,9 @@ export class MalMap
                 ks.push (if type is \KEYWORD then (keyword-by-value k) else {type, value: k})
         ks ++ (if m._nil then [NIL] else [])
 
+    atomic-pairs = (m) ->
+        [{key: k, value: (get-atom m, k)} for k in (atomic-keys m)]
+
     type: \MAP
 
     set: (k, v) ->
@@ -119,12 +125,29 @@ export class MalMap
         | is-atom k => set-atom @, k, v
         | otherwise => set-obj @, k, v
 
-    get: (k) ->
-        | is-nil k => @_nil
-        | is-atom k => get-atom @, k
-        | otherwise => get-entry(@, k)?.value
+    _get: (k) ->
+        | is-nil k => @_nil or @parent?._nil
+        | is-atom k => (get-atom @, k) or (get-atom @parent, k)
+        | otherwise => ((get-entry @, k) or (get-entry @parent, k))?.value
 
-    keys: -> (map (.key), @entries) ++ (atomic-keys @)
+    get: (k) ->
+        v = @_get k
+        if v is DELETED then null else v
+
+    pairs: ->
+        es = @entries ++ (atomic-pairs @)
+        inherited = (@parent?.pairs() ? []).filter (e) ->
+            not any (mal-eql e.key, _), map (.key), es
+        [p for p in (es ++ inherited) when p.value isnt DELETED]
+
+    keys: -> [p.key for p in @pairs()]
+
+    values: -> [p.value for p in @pairs()]
+
+    contains: (k) ->
+        v = @_get k
+        return false if v is DELETED
+        v? or @parent?.contains(k)
 
     equals: (b) ->
         return false unless b.type is \MAP
@@ -132,6 +155,10 @@ export class MalMap
         their-keys = b.keys()
         return false unless my-keys.length is their-keys.length
         all ((k) ~> mal-eql @get(k), b.get(k)), my-keys
+
+    assoc: (k, v) -> new MalMap [[k, v]], @
+
+    dissoc: (ks) -> new MalMap [[k, DELETED] for k in ks], @
 
 export class MalList
 
@@ -150,6 +177,8 @@ export class MalList
     cons: (x) -> new MalList [x] ++ @value
 
     conj: (x) -> @construct [x] ++ @value
+
+    contains: (e) -> any (mal-eql e _), @value
 
 export class MalVec extends MalList
 
