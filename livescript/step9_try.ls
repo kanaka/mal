@@ -8,7 +8,7 @@ require! {
     './reader.ls': {read-str}
     './printer.ls': {pr-str}
     './types.ls': {
-        int, sym, string, atom,
+        int, sym, string,
         Builtin, Lambda, Macro,
         MalList, MalVec, MalMap
     }
@@ -32,9 +32,7 @@ EVAL = (env, ast) --> while true
         | 'quote'       => return args[0]
         | 'defmacro!'   => return do-defmacro env, args
         | 'macroexpand' => return expand-macro env, args[0]
-        | 'meta'        => return get-meta env, args
-        | 'with-meta'   => return do-with-meta env, args
-        | 'atom'        => return create-atom env, args
+        | 'try*'        => return do-try-catch env, args
         | 'let*', 'let' => [env, ast] = do-let env, args
         | 'do'          => [env, ast] = do-do env, args
         | 'if'          => [env, ast] = do-if env, args
@@ -54,26 +52,22 @@ eval-expr = (env, expr) --> switch expr.type
     | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
     | _ => expr
 
-## Atoms
+FN = sym 'fn*'
 
-create-atom = (env, [arg]) -> atom EVAL env, arg
-
-## Meta-data
-
-get-meta = (env, [arg]) ->
-    thing = EVAL env, arg
-    (thing.meta or NIL)
-
-do-with-meta = (env, [form, metadata]) ->
-    val = EVAL env, form
-    data = EVAL env, (metadata or NIL)
-    val.meta = data
-    return val
+do-try-catch = (env, [...try-forms, catch-form]) ->
+    [catch-sym, ename, ...catch-bodies] = catch-form.value
+    try
+        EVAL env, (wrap-do try-forms)
+    catch e
+        exc = if e.name is 'UserError' then e.data else string e.message
+        e-env = create-env env
+        bind-value e-env, ename, (exc or NIL)
+        EVAL e-env, (wrap-do catch-bodies)
 
 ## Read symbols from the environment, complain if they aren't there.
 
 get-sym = (env, k) ->
-    (get-value env, k) or (throw new Error "Undefined symbol: #{ pr-str k }")
+    (get-value env, k) or (throw new Error "'#{ pr-str k }' not found")
 
 ## quasiquoting.
 
@@ -104,6 +98,8 @@ do-call = (env, ast) ->
             | \LAMBDA => apply-fn fn, args
             | _ => throw new Error "Cannot call #{ pr-str fn }"
     catch e
+        if e.name is \UserError
+            throw e
         name = ast.value[0]
         fn-name = if name.type is \SYM
             name.value

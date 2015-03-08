@@ -156,7 +156,7 @@ export class MalMap
         return false unless my-keys.length is their-keys.length
         all ((k) ~> mal-eql @get(k), b.get(k)), my-keys
 
-    assoc: (k, v) -> new MalMap [[k, v]], @
+    assoc: (pairs = []) -> new MalMap pairs, @
 
     dissoc: (ks) -> new MalMap [[k, DELETED] for k in ks], @
 
@@ -187,3 +187,9 @@ export class MalVec extends MalList
     construct: (elems = []) -> new MalVec elems
 
     conj: (x) -> @construct @value ++ [x]
+
+export class UserError extends Error
+
+    (@data) ->
+
+    name: 'UserError'

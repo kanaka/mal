@@ -2,16 +2,29 @@ require! {
     LiveScript
     fs
     'prelude-ls': {join, sum, all, fold, fold1, map}
-    './types.ls': {sym, int, keyword, string, Builtin, Lambda, MalList, MalVec, MalMap}
     './builtins.ls': {NIL, is-number, is-nil, is-seq, mal-eql, to-pairs}
     './printer.ls': {str, pr-str}
     './reader.ls': {read-str}
+    './types.ls': {
+        sym, int, keyword, string, atom,
+        Builtin, Lambda, MalList, MalVec, MalMap, UserError
+    }
 }
 
 export ns = {}
 
-bool = (value) -> type: \BOOL, value: value
+bool = (value) -> type: \BOOL, value: !!value
 float = (value) -> type: \FLOAT, value: value
+
+ns['meta'] = new Builtin ([thing]) ->
+    thing.meta or NIL
+
+ns['with-meta'] = new Builtin ([val, metadata]) ->
+    proxy = Object.create val
+    proxy.meta = (metadata or NIL)
+    return proxy
+
+ns['atom'] = new Builtin ([value]) -> atom value
 
 ns.list = new Builtin (elems) -> new MalList elems
 
@@ -132,13 +145,17 @@ ns['contains?'] = new Builtin ([coll, e]) ->
     throw new Error("Not a collection") unless coll.type in <[ VEC LIST MAP ]>
     bool coll.contains e
 
-ns['assoc'] = new Builtin ([m, k, v]) ->
-    m.assoc k, v
+ns['assoc'] = new Builtin ([m, ...vals]) ->
+    if vals.length % 2
+        throw new Error 'Maps must have an even number of elements'
+    m.assoc to-pairs vals
 
 ns['dissoc'] = new Builtin ([m, ...ks]) ->
     m.dissoc ks
 
-ns['hash-map'] = new Builtin ([m, ...vals]) ->
+ns['hash-map'] = new Builtin ([...vals]) ->
+    if vals.length % 2
+        throw new Error 'Maps must have an even number of elements'
     new MalMap to-pairs vals
 
 ns['map?'] = new Builtin ([m]) ->
@@ -220,7 +237,7 @@ ns['slurp'] = new Builtin ([filename, encoding]:args) ->
     encoding ?= {value: 'utf8'}
     string fs.readFileSync filename.value, encoding.value
 
-ns['throw'] = new Builtin ([msg]) -> throw new Error(msg)
+ns['throw'] = new Builtin ([data]) -> throw new UserError(data)
 
 ns['deref'] = new Builtin ([atom]) ->
     unless atom.type is \ATOM

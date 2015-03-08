@@ -84,7 +84,7 @@ read-vec = read-seq MalVec, START_VEC, END_VEC
 read-map = (r) ->
     {value:vs} = read-seq MalList, START_MAP, END_MAP, r
     if vs.length % 2
-        throw new MalSyntaxError 'Maps must have even number of elements'
+        throw new MalSyntaxError 'Maps must have an even number of elements'
     new MalMap (to-pairs vs)
 
 read-atom = (r) ->
