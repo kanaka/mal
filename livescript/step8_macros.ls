@@ -79,10 +79,18 @@ make-call = (name, ...args) -> new MalList [(sym name)] ++ args
 
 do-call = (env, ast) ->
     [fn, ...args] = (.value) eval-expr env, ast
-    switch fn.type
-        | \BUILTIN => fn.fn args # Cannot thunk.
-        | \LAMBDA => apply-fn fn, args
-        | _ => throw new Error "Cannot call #{ pr-str fn }"
+    try
+        switch fn.type
+            | \BUILTIN => fn.fn args # Cannot thunk.
+            | \LAMBDA => apply-fn fn, args
+            | _ => throw new Error "Cannot call #{ pr-str fn }"
+    catch e
+        name = ast.value[0]
+        fn-name = if name.type is \SYM
+            name.value
+        else
+            "anonymous function"
+        throw new Error "Error calling #{ fn-name }: #{ e.message }"
 
 apply-fn = (fn, args) -> thunk (fn.closure args), (wrap-do fn.body)
 

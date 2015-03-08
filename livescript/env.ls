@@ -26,9 +26,17 @@ bind-all = (env, names = [], exprs = []) ->
             slurped = true
         else
             value = exprs[i]
-            throw new Error "Missing binding for #{ pr-str name }" unless value
+            unless value
+                throw new MalArgumentError "Missing binding for #{ pr-str name }" 
             bind-value env, name, value
         i++
+
+class MalArgumentError extends Error
+
+    (@message) ->
+
+    name: \MalArgumentError
+
 
 export bind-value = (env, key, value) -->
     switch key.type

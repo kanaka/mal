@@ -43,9 +43,9 @@ export eval-mal = (env, ast) --> while true
 
 eval-expr = (env, expr) --> switch expr.type
     | \SYM => get-sym env, expr
-    | \LIST => new MalList expr.value.map EVAL env
-    | \VEC => new MalVec expr.value.map EVAL env
-    | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
+    | \LIST => new MalList expr.value.map eval-mal env
+    | \VEC => new MalVec expr.value.map eval-mal env
+    | \MAP => new MalMap [[(eval-mal env, k), (eval-mal env, expr.get(k))] for k in expr.keys()]
     | _ => expr
 
 ## Read symbols from the environment, complain if they aren't there.
@@ -76,10 +76,18 @@ make-call = (name, ...args) -> new MalList [(sym name)] ++ args
 
 do-call = (env, ast) ->
     [fn, ...args] = (.value) eval-expr env, ast
-    switch fn.type
-        | \BUILTIN => fn.fn args # Cannot thunk.
-        | \LAMBDA => apply-fn fn, args
-        | _ => throw new Error "Cannot call #{ pr-str fn }"
+    try
+        switch fn.type
+            | \BUILTIN => fn.fn args # Cannot thunk.
+            | \LAMBDA => apply-fn fn, args
+            | _ => throw new Error "Cannot call #{ pr-str fn }"
+    catch e
+        name = ast.value[0]
+        fn-name = if name.type is \SYM
+            name.value
+        else
+            "anonymous function"
+        throw new Error "Error calling #{ fn-name }: #{ e.message }"
 
 apply-fn = (fn, args) -> thunk (fn.closure args), (wrap-do fn.body)
 
@@ -92,7 +100,7 @@ wrap-do = (exprs) -> new MalList [DO] ++ exprs
 do-define = (env, [name, value]:args) ->
     unless args.length is 2
         throw new Error "Expected 2 arguments to def, got #{ args.length } in (def! #{ args.map(pr-str).join(' ') })"
-    bind-value env, name, EVAL env, value
+    bind-value env, name, eval-mal env, value
 
 ## Macro machinery
 
@@ -102,7 +110,7 @@ do-defmacro = (env, [key, value]:args) ->
         throw new Error "Expected 2 arguments to defmacro!, got #{ args.length } in (defmacro! #{ args.map(pr-str).join(' ') })"
     unless key.type is \SYM
         throw new Error "name must be a symbol, got: #{ key.type }"
-    fn = EVAL env, value
+    fn = eval-mal env, value
     unless fn instanceof Lambda
         throw new Error("Value must be a function: got #{ pr-str fn } [#{ fn.type }]")
     bind-value env, key, Macro.fromLambda fn
@@ -111,7 +119,7 @@ expand-macro = (env, ast) ->
     while is-macro-call env, ast
         [name, ...args] = ast.value
         {env, ast: body} = apply-fn (get-value env, name), args
-        ast = EVAL env, body
+        ast = eval-mal env, body
     ast
 
 is-macro = (env, symbol) -> (get-value env, symbol)?.type is \MACRO
@@ -138,7 +146,7 @@ do-let = (outer, [bindings, ...bodies]) ->
 do-do = (env, [...bodies, last]) ->
 
     for body in bodies
-        EVAL env, body
+        eval-mal env, body
 
     return [env, last]
 
@@ -155,5 +163,5 @@ do-if = (env, [test, when-true, when-false]:args) ->
     unless 2 <= args.length <= 3
         throw new Error("Wrong number of arguments to if. Expected 2-3, got #{ args.length }")
     when-false ?= NIL
-    passed-test = truthy EVAL env, test
+    passed-test = truthy eval-mal env, test
     [env, (if passed-test then when-true else when-false)]

@@ -52,7 +52,13 @@ export class Lambda
 
     (@env, @names, @body) ->
 
-    closure: (exprs) -> env.create-env @env, @names, exprs
+    closure: (exprs) ->
+        try
+            env.create-env @env, @names, exprs
+        catch e
+            if e.name is \MalArgumentError
+                throw new Error "Not enough arguments to function: #{ e.message }"
+            throw e
 
     type: \LAMBDA
 
