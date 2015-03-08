@@ -130,7 +130,8 @@ export class MalList
 
     construct: (elems = []) -> new MalList elems
 
-    cons: (x) -> @construct [x] ++ @value
+    # Cons always returns a list.
+    cons: (x) -> new MalList [x] ++ @value
 
     conj: (x) -> @construct @value ++ [x]
 
