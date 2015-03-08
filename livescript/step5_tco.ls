@@ -1,6 +1,5 @@
 require! {
     LiveScript
-    readline
     './repl.ls': {run-repl}
     './builtins.ls': {NIL, DO, truthy, is-seq, is-callable}
     './types.ls': {int, Builtin, Lambda, MalList, MalVec, MalMap}
@@ -8,7 +7,6 @@ require! {
     './env.ls': {get-value, create-env}
     './reader.ls': {read-str}
     './printer.ls': {pr-str}
-    'prelude-ls': {id}
 }
 
 read-mal = read-str

@@ -1,7 +1,6 @@
 require! {
     LiveScript
     fs
-    readline
     './repl.ls': {run-repl}
     './builtins.ls': {NIL, DO, truthy, is-seq, is-callable, mal-eql}
     './core.ls': core

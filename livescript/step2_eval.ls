@@ -1,13 +1,11 @@
 require! {
     LiveScript
-    readline
     './repl.ls': {run-repl}
     './builtins.ls': {is-callable}
     './types.ls': {int, Builtin, MalList, MalVec, MalMap}
     './env.ls': {get-value}
     './reader.ls': {read-str}
     './printer.ls': {pr-str}
-    'prelude-ls': {id}
 }
 
 ENV = {
