@@ -29,6 +29,7 @@ export eval-mal = (env, ast) --> while true
         | 'quote'       => return args[0]
         | 'defmacro!'   => return do-defmacro env, args
         | 'macroexpand' => return expand-macro env, args[0]
+        | 'try*'        => return do-try-catch env, args
         | 'let*', 'let' => [env, ast] = do-let env, args
         | 'do'          => [env, ast] = do-do env, args
         | 'if'          => [env, ast] = do-if env, args
@@ -47,6 +48,26 @@ eval-expr = (env, expr) --> switch expr.type
     | \VEC => new MalVec expr.value.map eval-mal env
     | \MAP => new MalMap [[(eval-mal env, k), (eval-mal env, expr.get(k))] for k in expr.keys()]
     | _ => expr
+
+## Try-catch
+
+do-try-catch = (env, [...try-forms, catch-form]) ->
+    if (is-pair catch-form) and (mal-eql catch-form.value[0], (sym 'catch*'))
+        [_, ename, ...catch-bodies] = catch-form.value
+    else
+        try-forms.push catch-form
+        catch-form = null
+
+    try
+        EVAL env, (wrap-do try-forms)
+    catch e
+        if catch-form?
+            exc = if e.name is 'UserError' then e.data else string e.message
+            e-env = create-env env
+            bind-value e-env, ename, (exc or NIL)
+            EVAL e-env, (wrap-do catch-bodies)
+        else
+            NIL
 
 ## Read symbols from the environment, complain if they aren't there.
 

@@ -52,17 +52,25 @@ eval-expr = (env, expr) --> switch expr.type
     | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
     | _ => expr
 
-FN = sym 'fn*'
+## Try-catch
 
 do-try-catch = (env, [...try-forms, catch-form]) ->
-    [catch-sym, ename, ...catch-bodies] = catch-form.value
+    if (is-pair catch-form) and (mal-eql catch-form.value[0], (sym 'catch*'))
+        [_, ename, ...catch-bodies] = catch-form.value
+    else
+        try-forms.push catch-form
+        catch-form = null
+
     try
         EVAL env, (wrap-do try-forms)
     catch e
-        exc = if e.name is 'UserError' then e.data else string e.message
-        e-env = create-env env
-        bind-value e-env, ename, (exc or NIL)
-        EVAL e-env, (wrap-do catch-bodies)
+        if catch-form?
+            exc = if e.name is 'UserError' then e.data else string e.message
+            e-env = create-env env
+            bind-value e-env, ename, (exc or NIL)
+            EVAL e-env, (wrap-do catch-bodies)
+        else
+            NIL
 
 ## Read symbols from the environment, complain if they aren't there.
 
