@@ -1,6 +1,8 @@
 require! {
     LiveScript
     fs
+    'es6-promise': {Promise}
+    'prelude-ls': {any},
     './repl.ls': {run-repl}
     './builtins.ls': {NIL, DO, truthy, is-seq, is-callable, mal-eql}
     './core.ls': core
@@ -10,7 +12,7 @@ require! {
     './types.ls': {
         int, sym, string,
         Builtin, Lambda, Macro,
-        MalList, MalVec, MalMap
+        MalList, MalVec, MalMap, JSObject
     }
 }
 
@@ -45,12 +47,14 @@ EVAL = (env, ast) --> while true
             else
                 return ret
 
-eval-expr = (env, expr) --> switch expr.type
-    | \SYM => get-sym env, expr
-    | \LIST => new MalList expr.value.map EVAL env
-    | \VEC => new MalVec expr.value.map EVAL env
-    | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
-    | _ => expr
+eval-expr = (env, expr) -->
+    return (expr.then EVAL env) if expr.then?
+    switch expr.type
+        | \SYM => get-sym env, expr
+        | \LIST => new MalList expr.value.map EVAL env
+        | \VEC => new MalVec expr.value.map EVAL env
+        | \MAP => new MalMap [[(EVAL env, k), (EVAL env, expr.get(k))] for k in expr.keys()]
+        | _ => expr
 
 ## Try-catch
 
@@ -98,11 +102,18 @@ make-call = (name, ...args) -> new MalList [(sym name)] ++ args
 
 ## Function application
 
+is-promise = (.then)
+
 do-call = (env, ast) ->
+    if any is-promise, ast.value
+        thenned <- Promise.all(ast.value).then
+        do-call env, new MalList thenned
+
     [fn, ...args] = (.value) eval-expr env, ast
     try
         switch fn.type
             | \BUILTIN => fn.fn args # Cannot thunk.
+            | \KEYWORD => EVAL env, (new MalList [(sym 'get')] ++ args ++ [fn])
             | \LAMBDA => apply-fn fn, args
             | _ => throw new Error "Cannot call #{ pr-str fn }"
     catch e
@@ -208,6 +219,8 @@ let env = create-env core.ns
     evaluate (read-str core-mal)
     [filename, ...args] = process.argv.slice(2)
     env['*ARGV*'] = new MalList args.map(string)
+    env['*STDIN*'] = new JSObject process.stdin
+    env['*STDOUT*'] = new JSObject process.stdout
     if filename
         evaluate new MalList [(sym "load-file"), (string filename)]
     else

@@ -193,3 +193,9 @@ export class UserError extends Error
     (@data) ->
 
     name: 'UserError'
+
+export class JSObject
+
+    (@value) ->
+
+    type: \JSOBJECT

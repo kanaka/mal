@@ -4,6 +4,9 @@ require! LiveScript
 
 
 export pr-str = (ast, escape = true) ->
+    if ast.then # Handle promised values.
+        return ast.then (x) -> pr-str x, escape
+
     f = if escape then pr-str else str
     switch ast.type
         | \NIL => 'nil'
