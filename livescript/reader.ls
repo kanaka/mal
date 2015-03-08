@@ -23,7 +23,7 @@ WITH_META = '^'
 [START_VEC, END_VEC]   = ['[', ']']
 [START_MAP, END_MAP]   = ['{', '}']
 
-EOF = {} # Unique token
+EOF = {toString: -> 'EOF'} # Unique token
 
 export read-str = (str) ->
     read-form new Reader str
@@ -71,7 +71,7 @@ read-seq = (Coll, start, end, r) -->
     throw new MalSyntaxError "Expected #{ start }" unless start is r.peek!
     while r.next! isnt end
         if r.peek! is EOF
-            throw new MalSyntaxError "Expected #{ end }, at #{ r.index }, got #{ JSON.stringify r.current }"
+            throw new IncompleteSequenceError "Expected #{ end }, at #{ r.index }, got #{ r.current }"
         value.push read-form r
     new Coll value
 
@@ -112,6 +112,12 @@ class MalSyntaxError extends Error
 
     (@message) ->
 
+class IncompleteSequenceError extends MalSyntaxError
+
+    name: 'IncompleteSequenceError'
+
+    (@message) ->
+
 export class Reader
 
     (@str) ->
@@ -142,10 +148,12 @@ export class Reader
         if @index >= @str.length
             return @current = EOF
 
+        while ';' is @read-current-char!
+            @consume-comment!
+
         beginning = @index
-        char = @read-current-char!
         @position++
-        @current = switch char
+        @current = switch char = @read-current-char!
             | EOF => char
             | <[ { } ( ) [ ] ' ` ~ ~@ @ ^ ]> => @advance-index!; char
             | ':' => keyword @read-kw!
@@ -161,7 +169,15 @@ export class Reader
                 | is-symbolic char => sym @read-symbol!
                 | _ => throw new Error("Unexpected token: #{ char }")
 
-    advance-index: ->
+    consume-comment: ->
+        # Advance up to the next new-line
+        until @read-current-char! in ['\n', EOF]
+            @advance-index!
+        # Consume all following whitespace
+        while is-whitespace @read-current-char!
+            @advance-index!
+
+    advance-index: -> if @index < @str.length
         @index += @incr
         @incr = 1
 
@@ -208,6 +224,7 @@ export class Reader
         ch = @read-current-char!
 
     read-current-char: ->
+        return EOF if @index >= @str.length
         i = @index
         [char, incr] = get-whole-char @str, i
         @incr = incr # save the increment for the next step.
@@ -218,11 +235,14 @@ function unescape char then switch char
     | 't' => '\t'
     | _ => char
 
-function is-whitespace char then /^(\s|,)*$/.test char
+function is-whitespace char then
+    (EOF isnt char) and /^(\s|,)*$/.test char
 
-function is-symbolic char then (/^[\w\d]+$/.test char) or (char in <[ $ ! _ % & \ * + - / : < = > ? @ ^ _ ~ . ]>)
+function is-symbolic char then
+    (EOF isnt char) and (/^[\w\d]+$/.test char) or (char in <[ $ ! _ % & \ * + - / : < = > ? @ ^ _ ~ . ]>)
 
-function is-numeric char then /^[\d\.-]+$/.test char
+function is-numeric char then
+    (EOF isnt char) and /^[\d\.-]+$/.test char
 
 function get-whole-char str, i then
     throw new Error('Index out of bounds: i < 0') if i < 0

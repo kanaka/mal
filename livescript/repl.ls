@@ -18,16 +18,21 @@ export run-repl = (rep, env = {}) ->
     rl.set-prompt 'user> '
 
     rl.on \line, (mal) ->
-        try
-            ret = rep mal
-            console.log(ret) if ret?
-        catch e
-            console.error e
-            if e?.stack
-                console.error e.stack
+        if rl._fragment
+            mal = "#{ rl._fragment } #{ mal }"
+            rl._fragment = null
 
-        stdin.write 'user> '
-        # rl.prompt()
+        if /\S/.test mal
+            try
+                ret = rep mal
+                console.log(ret) if ret?
+            catch e
+                if USER_IS_HUMAN and (e.name is \IncompleteSequenceError)
+                    rl._fragment = mal + '\n'
+                else
+                    console.error e.stack ? e
+
+        stdin.write if rl._fragment then '   >> ' else 'user> '
 
     rl.on \close, ->
         console.log '\nGoodbye!'
