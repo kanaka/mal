@@ -1,5 +1,6 @@
 require! {
     LiveScript
+    './printer.ls': printer
     'prelude-ls': {map, zip, partition}
 }
 

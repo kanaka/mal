@@ -2,7 +2,6 @@ require! LiveScript
 
 {is-nil, is-atom} = require './builtins.ls'
 
-
 export pr-str = (ast, escape = true) ->
     f = if escape then pr-str else str
     switch ast.type

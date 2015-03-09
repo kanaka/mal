@@ -1,10 +1,11 @@
 require! {
     LiveScript
     './env.ls': env
-    'prelude-ls': {any, all, find, map, zip}
+    './printer.ls': {pr-str}
+    'prelude-ls': {fold, any, all, find, map, zip}
 }
 
-{atomic-types, mal-eql, is-atom, is-nil} = require './builtins.ls'
+{NIL, FALSE, TRUE, atomic-types, mal-eql, is-atom, is-seq, is-nil} = require './builtins.ls'
 
 DEREF = {type: \SYM, value: 'deref'}
 QUOTE = {type: \SYM, value: 'quote'}
@@ -160,6 +161,10 @@ export class MalMap
 
     dissoc: (ks) -> new MalMap [[k, DELETED] for k in ks], @
 
+    to-js-map: ->
+        pairs = atomic-pairs @
+        fold ((o, p) -> o[p.key.value] = p.value.value; o), {}, pairs
+
 export class MalList
 
     (@value) ->
@@ -199,3 +204,32 @@ export class JSObject
     (@value) ->
 
     type: \JSOBJECT
+
+export instantiate = (name, args) -->
+    cls = global[name]
+    xs = [to-js-val a for a in args]
+    Temp = ->
+    Temp.prototype = cls.prototype
+    inst = new Temp
+    ret = cls.apply inst, xs
+    if (Object(ret) is ret) then ret else inst
+
+export call-js-meth = (method, args) -->
+    [invocant, ...xs] = args.map to-js-val
+    invocant[method].apply invocant, xs
+
+export to-js-val = (mal-val) ->
+    | is-atom mal-val => mal-val.value
+    | is-seq mal-val => mal-val.value.map to-js-val
+    | mal-val.type is \MAP  => mal-val.to-js-map!
+    | mal-val.type is \JSOBJECT => mal-val.value
+    | _ => throw new Error "Cannot convert to js-value: #{ pr-str mal-val }"
+
+export from-js = (js-val) ->
+    | not js-val? => NIL
+    | js-val is true => TRUE
+    | js-val is false => FALSE
+    | Array.isArray js-val => new MalVec js-val.map from-js
+    | \string is typeof js-val => {type: \STRING, value: js-val}
+    | \number is typeof js-val => {type: (if js-val % 1 then \FLOAT else \INT), value: js-val}
+    | _ => new JSObject js-val

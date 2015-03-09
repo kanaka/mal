@@ -1,7 +1,7 @@
 require! LiveScript
 
 require! 'prelude-ls': {zip}
-require! './builtins.ls': {is-seq, mal-eql}
+require! './builtins.ls': builtins
 require! './types.ls': types
 require! './printer.ls': {pr-str}
 
@@ -17,7 +17,7 @@ bind-all = (env, names = [], exprs = []) ->
     slurped = false
     i = 0
     while name = names[i]
-        if mal-eql name, AMP
+        if builtins.mal-eql name, AMP
             throw new Error 'Can only slurp once' if slurped
             vals = exprs.slice i
             name = names[++i]
@@ -27,7 +27,7 @@ bind-all = (env, names = [], exprs = []) ->
         else
             value = exprs[i]
             unless value
-                throw new MalArgumentError "Missing binding for #{ pr-str name }" 
+                throw new MalArgumentError "Missing binding for #{ pr-str name }"
             bind-value env, name, value
         i++
 
@@ -47,11 +47,26 @@ export bind-value = (env, key, value) -->
 
 export get-value = (env, key) ->
     switch key.type
-        | \SYM => env[key.value]
+        | \SYM =>
+            if /^js\/\S+/.test key.value
+                obj = global[key.value.slice(3)]
+                if obj? then (new types.JSObject obj) else null
+            if /\S+\/\S+/.test key.value
+                [obj, prop] = key.value.split '/'
+                new types.JSObject global[obj][prop]
+            else if /^\.\S+/.test key.value
+                fn = types.from-js . (types.call-js-meth key.value.slice 1)
+                new types.Builtin fn
+            else if /\S+\.$/.test key.value
+                constr = key.value.slice 0, (key.value.length - 1)
+                fn = types.from-js . (types.instantiate constr)
+                new types.Builtin fn
+            else
+                env[key.value]
         | otherwise => null
 
 destructure-seq = (env, key, value) -->
-    unless is-seq value
+    unless builtins.is-seq value
         throw new Error "Expected sequence - got #{ value.type }"
     bind-all env, key.value, value.value
 
