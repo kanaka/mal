@@ -510,7 +510,7 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     key is found up the outer chain, then throws/raises a "not found"
     error.
 
-* Update `step2_env.qx` to use the new `Env` type to create the
+* Update `step3_env.qx` to use the new `Env` type to create the
   repl_env (with a `nil` outer value) and use the `set` method to add
   the numeric functions.
 
