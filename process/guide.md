@@ -695,8 +695,9 @@ make test^quux^step4
 Your mal implementation is already beginning to look like a real
 language. You have flow control, conditionals, user-defined functions
 with lexical scope, side-effects (if you implement the string
-functions), etc. However, our little interpreter has not quite reach
-Lisp-ness yet. The next several steps will take
+functions), etc. However, our little interpreter has not quite reached
+Lisp-ness yet. The next several steps will take your implementation
+from a neat toy to a full featured language.
 
 #### Deferrable:
 
