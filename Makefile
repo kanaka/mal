@@ -10,9 +10,9 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp cs forth go haskell java julia js \
-	lua make mal ocaml matlab miniMAL nim perl php ps python \
-	r racket ruby rust scala swift vb
+IMPLS = bash c clojure coffee cpp cs factor forth go haskell java \
+	julia js lua make mal ocaml matlab miniMAL nim perl php ps \
+	python r racket ruby rust scala swift vb
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -57,6 +57,7 @@ clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 cpp_STEP_TO_PROG =     cpp/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 go_STEP_TO_PROG =      go/$($(1))
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
@@ -86,6 +87,7 @@ vb_STEP_TO_PROG =      vb/$($(1)).exe
 COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
+export FACTOR_ROOTS := src
 
 bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
@@ -93,6 +95,7 @@ clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
 coffee_RUNSTEP =  coffee ../$(2) $(3)
 cpp_RUNSTEP =     ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
+factor_RUNSTEP =  factor ../$(2) $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
 go_RUNSTEP =      ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
