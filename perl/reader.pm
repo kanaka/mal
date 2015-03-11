@@ -75,18 +75,18 @@ sub read_form {
     my($rdr) = @_;
     my $token = $rdr->peek();
     given ($token) {
-        when("'") { $rdr->next(); List->new([Symbol->new('quote'),
+        when("'") { $rdr->next(); my $q = 'quote';      List->new([Symbol->new($q),
                                              read_form($rdr)]) }
-        when('`') { $rdr->next(); List->new([Symbol->new('quasiquote'),
+        when('`') { $rdr->next(); my $q = 'quasiquote'; List->new([Symbol->new($q),
                                              read_form($rdr)]) }
-        when('~') { $rdr->next(); List->new([Symbol->new('unquote'),
+        when('~') { $rdr->next(); my $q = 'unquote';    List->new([Symbol->new($q),
                                              read_form($rdr)]) }
-        when('~@') { $rdr->next(); List->new([Symbol->new('splice-unquote'),
+        when('~@') { $rdr->next(); my $q = 'splice-unquote'; List->new([Symbol->new($q),
                                               read_form($rdr)]) }
-        when('^') { $rdr->next(); my $meta = read_form($rdr);
-                    List->new([Symbol->new('with-meta'),
+        when('^') { $rdr->next(); my $meta = read_form($rdr); my $q = 'with-meta';
+                    List->new([Symbol->new($q),
                                read_form($rdr), $meta]) }
-        when('@') { $rdr->next(); List->new([Symbol->new('deref'),
+        when('@') { $rdr->next(); my $q = 'deref'; List->new([Symbol->new($q),
                                               read_form($rdr)]) }
 
         when(')') { die "unexpected ')'" }
