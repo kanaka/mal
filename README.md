@@ -411,6 +411,12 @@ make MAL_IMPL=python test^mal^step2
 
 ### Performance tests
 
+Warning: These performance tests are neither statistically valid nor
+comprehensive; runtime performance is a not a primary goal of mal. If
+you draw any serious conclusions from these performance tests, then
+please contact me about some amazing oceanfront property in Kansas
+that I'm willing to sell you for cheap.
+
 * To run performance tests against a single implementation:
 ```
 make perf^IMPL

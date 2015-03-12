@@ -124,17 +124,18 @@ vb_TEST_OPTS =  --mono
 
 # Derived lists
 STEPS = $(sort $(filter step%,$(.VARIABLES)))
-IMPL_TESTS = $(foreach impl,$(IMPLS),test^$(impl))
+DO_IMPLS = $(filter-out $(SKIP_IMPLS),$(IMPLS))
+IMPL_TESTS = $(foreach impl,$(DO_IMPLS),test^$(impl))
 STEP_TESTS = $(foreach step,$(STEPS),test^$(step))
 ALL_TESTS = $(filter-out $(EXCLUDE_TESTS),\
               $(strip $(sort \
-                $(foreach impl,$(IMPLS),\
+                $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
 
-IMPL_STATS = $(foreach impl,$(IMPLS),stats^$(impl))
-IMPL_STATS_LISP = $(foreach impl,$(IMPLS),stats-lisp^$(impl))
+IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
+IMPL_STATS_LISP = $(foreach impl,$(DO_IMPLS),stats-lisp^$(impl))
 
-IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(IMPLS),perf^$(impl)))
+IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl)))
 
 #
 # Build rules

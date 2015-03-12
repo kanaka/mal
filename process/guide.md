@@ -1179,9 +1179,12 @@ implementation. Let us continue!
 ![step9_try architecture](step9_try.png)
 
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
-the changes that will be made during this step:
+the changes that will be made during this step. This step is currently
+divided into two sections because some of the functions in the second
+step will be moving to step A in the future:
 ```
 diff -urp ../process/step8_macros.txt ../process/step9_try.txt
+diff -urp ../process/step9_try.txt ../process/step9_try2.txt
 ```
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
@@ -1192,7 +1195,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
     now.
 
 
-<a name="step9"></a>
+<a name="stepA"></a>
 
 ### Step A: Interop and Self-hosting
 
@@ -1201,12 +1204,13 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
+diff -urp ../process/step9_try2.txt ../process/stepA_mal.txt
 ```
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
 
 * TODO/TBD
+  * Self-hosted tests
 
 
 ## TODO:
