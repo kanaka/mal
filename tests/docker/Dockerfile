@@ -127,6 +127,9 @@ RUN apt-get -y install mono-vbnc
 # TODO: move this up with Clojure
 ENV LEIN_JVM_OPTS -Duser.home=/mal
 
+# MATLAB is proprietary/licensed. Maybe someday with Octave.
+ENV SKIP_IMPLS matlab
+
 ENV DEBIAN_FRONTEND newt
 ENV HOME /
 
