@@ -10,7 +10,13 @@ module REPL
             []
 
     let eval ast =
-        Some(ast)
+        let env = Eval.makeEnv ()
+        try
+            Some(Eval.eval env ast)
+        with
+        | Types.EvalError(msg) ->
+            printfn "%s" msg
+            None
 
     let print v =
         v
@@ -20,9 +26,8 @@ module REPL
     let rep input =
         read input
         |> Seq.ofList
-        |> Seq.map (fun form -> eval form)
-        |> Seq.filter Option.isSome
-        |> Seq.iter (fun value -> print value.Value)
+        |> Seq.choose (fun form -> eval form)
+        |> Seq.iter (fun value -> print value)
 
     let getReadlineMode (args : string array) =
         if args.Length > 0 && args.[0] = "--raw" then

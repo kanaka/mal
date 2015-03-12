@@ -4,7 +4,7 @@ DEBUG =
 
 TESTS =
 
-SOURCES_BASE = types.fs tokenizer.fs reader.fs printer.fs readline.fs
+SOURCES_BASE = types.fs tokenizer.fs reader.fs eval.fs printer.fs readline.fs
 SOURCES_LISP =
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
@@ -12,7 +12,7 @@ TERMINAL_SOURCES = terminal.cs
 
 #####################
 
-SRCS = step0_repl.fs step1_read_print.fs
+SRCS = step0_repl.fs step1_read_print.fs step2_eval.fs
 
 FSFLAGS = $(if $(strip $(DEBUG)),--debug+,)
 CSFLAGS = $(if $(strip $(DEBUG)),-debug+,)

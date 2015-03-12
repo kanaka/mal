@@ -1,9 +1,8 @@
 module Tokenizer
 
     open System
+    open Types
     
-    exception ReaderError of string
-
     type Token =
         | EOF
         | OpenBracket | CloseBracket
