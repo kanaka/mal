@@ -45,8 +45,10 @@ int append_to_history() {
 #else
     HIST_ENTRY *he = history_get(history_length-1);
     FILE *fp = fopen(hf, "a");
-    fprintf(fp, "%s\n", he->line);
-    fclose(fp);
+    if (fp) {
+        fprintf(fp, "%s\n", he->line);
+        fclose(fp);
+    }
 #endif
     free(hf);
 }

@@ -8,7 +8,7 @@ __mal_types_included=true
 declare -A ANON
 
 __obj_magic=__5bal7
-__keyw=$(echo -en "\u029e")
+__keyw=$(echo -en "\xCA\x9E") # \u029E
 __obj_hash_code=${__obj_hash_code:-0}
 
 __new_obj_hash_code () {

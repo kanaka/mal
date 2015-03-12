@@ -10,11 +10,13 @@
 (define HISTORY-FILE (format "~a/.mal-history" (find-system-path 'home-dir)))
 
 (define (load-history path)
-  (map 
-    (lambda (line) (readline:add-history line))
-    (string-split
-      (port->string (open-input-file path))
-      #px"\n")))
+  (with-handlers
+    ([exn:fail? (lambda (e) #t)])
+    (map
+      (lambda (line) (readline:add-history line))
+      (string-split
+        (port->string (open-input-file path))
+        #px"\n"))))
 
 (define (readline prompt)
   (when (not history-loaded)
@@ -25,8 +27,10 @@
       nil
       (begin
         (readline:add-history line)
-        (with-output-to-file
-          HISTORY-FILE
-          (lambda () (printf "~a~n" line))
-          #:exists 'append)
+        (with-handlers
+          ([exn:fail? (lambda (e) #t)])
+          (with-output-to-file
+            HISTORY-FILE
+            (lambda () (printf "~a~n" line))
+            #:exists 'append))
         line))))

@@ -59,7 +59,7 @@ sub eval_ast {
         }
         when (/^HashMap/) {
             my $new_hm = {};
-            foreach my $k (keys($ast->{val})) {
+            foreach my $k (keys( %{ $ast->{val} })) {
                 $new_hm->{$k} = EVAL($ast->get($k), $env);
             }
             return HashMap->new($new_hm);

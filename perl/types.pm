@@ -102,13 +102,13 @@ sub _false_Q { return $_[0] eq $false }
 
 {
     package Integer;
-    sub new  { my $class = shift; bless \$_[0] => $class }
+    sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
 
 
 {
     package Symbol;
-    sub new  { my $class = shift; bless \$_[0] => $class }
+    sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
 sub _symbol_Q { (ref $_[0]) =~ /^Symbol/ }
 
