@@ -1,12 +1,12 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: io readline kernel system reader printer ;
+USING: io readline kernel system reader printer continuations ;
 IN: step1_read_print
 
 : READ ( str -- maltype ) read-str ;
 : EVAL ( maltype -- maltype ) ;
 : PRINT ( maltype -- str ) pr-str ;
-: rep ( x -- x ) READ EVAL PRINT ;
+: rep ( x -- x ) [ READ EVAL PRINT ] [ nip ] recover ;
 
 : main-loop ( -- )
             [ 1 ]
