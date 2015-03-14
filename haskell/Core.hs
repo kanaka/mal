@@ -37,6 +37,7 @@ throw _ = throwStr "illegal arguments to throw"
 symbol (MalString str:[]) = return $ MalSymbol str
 symbol _ = throwStr "symbol called with non-string"
 
+keyword (MalString ('\x029e':str):[]) = return $ MalString $ "\x029e" ++ str
 keyword (MalString str:[]) = return $ MalString $ "\x029e" ++ str
 keyword _ = throwStr "keyword called with non-string"
 

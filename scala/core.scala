@@ -133,7 +133,8 @@ object core {
   def do_map(a: List[Any]): Any = {
     a match {
       case f :: seq :: Nil => {
-        seq.asInstanceOf[MalList].map(x => types._apply(f,List(x)))
+        var res = seq.asInstanceOf[MalList].map(x => types._apply(f,List(x)));
+        _list(res.value:_*)
       }
       case _ => throw new Exception("invalid map call")
     }

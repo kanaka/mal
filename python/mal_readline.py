@@ -17,7 +17,7 @@ def readline(prompt="user> "):
                     pyreadline.add_history(line.rstrip("\r\n"))
                     pass
         except IOError:
-            print("Could not open %s" % histfile)
+            #print("Could not open %s" % histfile)
             pass
 
     try:

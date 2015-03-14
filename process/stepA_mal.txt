@@ -125,6 +125,7 @@ ns = {'=:        equal?,
       'count:    count,
       'apply:    apply,
       'map:      map,
+
       'conj:     conj,
 
       'meta:     (a) -> a[0].meta,

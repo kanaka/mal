@@ -1,16 +1,15 @@
 All:
     - Finish guide.md
-    - Split metadata, atoms, readline into stepA
 
-    - test *ARGV* gets set properly
+    - test that *ARGV* gets set properly
     - test to make sure slurp captures final newline
-    - runtest expect fixes:
-        - fix long line splitting in runtest
-    - Give runtest knowledge of optional and report differently
+    - fix long line splitting in runtest
+    - Give runtest knowledge of optional tests and report as non-fatal
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - per impl tests for step5_tco, or at least a better way of
       enabling/disabling/tweaking per implementation
+    - fix stepA failures: lua matlab miniMAL perl racket
 
 Other ideas for All:
     - propagate/print errors when self-hosted
@@ -33,10 +32,6 @@ Other ideas for All:
           looked up. Then the symbol would be looked up starting in
           the namespace environment. Need protocols first probably.
     - Fix quasiquoting of vectors
-
-    - Get self-host working at earlier step:
-        - Move try* to step6
-        - Remove macros from mal
 
     - multi-line REPL read
     - loop/recur ?

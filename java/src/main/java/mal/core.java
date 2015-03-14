@@ -61,8 +61,13 @@ public class core {
     };
     static MalFunction keyword = new MalFunction() {
         public MalVal apply(MalList args) throws MalThrowable {
-            return new MalString(
-                    "\u029e" + ((MalString)args.nth(0)).getValue());
+            if (args.nth(0) instanceof MalString &&
+                (((MalString)args.nth(0)).getValue().charAt(0) == '\u029e')) {
+                return (MalString)args.nth(0);
+            } else {
+                return new MalString(
+                        "\u029e" + ((MalString)args.nth(0)).getValue());
+            }
         }
     };
     static MalFunction keyword_Q = new MalFunction() {

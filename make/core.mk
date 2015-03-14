@@ -168,7 +168,7 @@ sapply = $(call $(word 1,$(1))_value,\
 smap = $(strip\
          $(foreach func,$(word 1,$(1)),\
            $(foreach lst,$(word 2,$(1)),\
-             $(foreach type,$(word 2,$(subst _, ,$(lst))),\
+             $(foreach type,list,\
                $(foreach new_hcode,$(call __new_obj_hash_code),\
                  $(foreach sz,$(words $(call __get_obj_values,$(lst))),\
                    $(eval $(__obj_magic)_$(type)_$(new_hcode)_value := $(strip \

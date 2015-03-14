@@ -1179,18 +1179,15 @@ implementation. Let us continue!
 ![step9_try architecture](step9_try.png)
 
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
-the changes that will be made during this step. This step is currently
-divided into two sections because some of the functions in the second
-step will be moving to step A in the future:
+the changes that will be made during this step:
 ```
 diff -urp ../process/step8_macros.txt ../process/step9_try.txt
-diff -urp ../process/step9_try.txt ../process/step9_try2.txt
 ```
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
 
 * TODO/TBD.
-  * In step 5, if you did not add original function (`fn`) to the
+  * In step 5, if you did not add the original function (`fn`) to the
     returned structure returned from `fn*`, the you will need to do so
     now.
 
@@ -1204,7 +1201,7 @@ diff -urp ../process/step9_try.txt ../process/step9_try2.txt
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
 ```
-diff -urp ../process/step9_try2.txt ../process/stepA_mal.txt
+diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 ```
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
