@@ -770,8 +770,8 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
     `EVAL`) to be the second `ast` argument. Continue at the beginning
     of the loop (no return).
   * `do`: change the `eval_ast` call to evaluate all the parameters
-    the except for the last (2nd list element up to but not
-    including last). Set `ast` to the last element of `ast`. Continue
+    except for the last (2nd list element up to but not including
+    last). Set `ast` to the last element of `ast`. Continue
     at the beginning of the loop (`env` stays unchanged).
   * `if`: the condition continues to be evaluated, however, rather
     than evaluating the true or false branch, `ast` is set to the
@@ -781,21 +781,21 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 * The return value from the `fn*` special form will now become an
   object/structure with attributes that allow the default invoke case
   of `EVAL` to do TCO on mal functions. Those attributes are:
-  * `fn`: the original function value return in step 4 (this is
-    actually deferrable until step 9 when it is needed for the `map`
-    and `apply` core functions).
   * `ast`: the second `ast` argument (third list element) representing
     the body of the function.
   * `params`: the first `ast` argument (second list element)
     representing the parameter names of the function.
   * `env`: the current value of the `env` parameter of `EVAL`.
+  * `fn`: the original function value (i.e. what was return by `fn*`
+    in step 4). Note that this is deferrable until step 9 when it is
+    needed for the `map` and `apply` core functions).
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
   Continue to call `eval_ast` on `ast`. The first element is `f`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
-  * before (in step 4).
+    before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
     as the `outer` and `binds` arguments and rest `ast` arguments
