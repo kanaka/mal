@@ -625,8 +625,8 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
 
 * Add the following special forms to `EVAL`.
 
-  * `do`: Evaluate the all the elements of the list and return the
-    final element (evaluated).
+  * `do`: Evaluate the all the elements of the list using `eval_ast`
+    and return the final evaluated element.
   * `if`: Evaluate the first parameter (second element). If the result
     (condition) is anything other than `nil` or `false`, then evaluate
     the second parammeter (third element of the list) and return the
