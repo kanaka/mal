@@ -1,0 +1,8 @@
+(do 
+    (let [name (-readline "name? ")
+          age (-readline "age? ")
+          report (fn [n, a]
+                    (println "name = " n)
+                    (println "age = " a))]
+        (report name age))
+    (println "done"))

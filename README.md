@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 27 different languages:
+Mal is implemented in 28 different languages:
 
 * Bash shell
 * C
@@ -16,6 +16,7 @@ Mal is implemented in 27 different languages:
 * Haskell
 * Java
 * Javascript ([Online Demo](http://kanaka.github.io/mal))
+* LiveScript
 * Lua
 * GNU Make
 * mal itself
@@ -160,6 +161,17 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 cd js
 npm update
 node stepX_YYY.js
+```
+
+### LiveScript
+
+LiveScript is a compile to JS language and uses the node.js/NPM build chain.
+Install node.js to get started.
+
+```
+cd livescript
+npm update
+npm run lsc -- stepX_YYY.lsc
 ```
 
 ### Lua
@@ -341,7 +353,6 @@ cd vb
 make
 mono ./stepX_YYY.exe
 ```
-
 
 
 ## Running tests

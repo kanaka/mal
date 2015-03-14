@@ -1,0 +1,47 @@
+(do
+
+    (def! even? (fn* [x] (= 0 (% x 2))))
+
+    (def! odd? (fn* [x] (= 0 (% (- x 1) 2))))
+
+    (def! compose (fn* [f g] (fn [x] (f (g x)))))
+
+    (def! fold (fn*
+          [f init xs] ;; Tail-recursive implementation
+          (let [loop (fn [ret xs]
+                         (if (empty? xs)
+                             ret
+                             (let [[x & xss] xs]
+                                  (loop (f ret x) xss))))]
+                (loop init xs))))
+
+    (def! filter (fn*
+          [f xs] ;; Tail-recursive implementation.
+          (let [loop (fn [xs ret]
+                         (if (empty? xs)
+                            ret
+                            (loop (rest xs)
+                                  (if (f (first xs))
+                                      (conj ret (first xs)) ret))))]
+                (loop xs []))))
+
+    (def! map (fn*
+          [f xs] ;; map in terms of fold
+          (fold (fn [acc x] (conj acc (f x))) [] xs)))
+
+    (def! rest (fn*
+          [xs]
+          (if (empty? xs)
+               xs
+              (let [[_ & xss] xs] xss))))
+
+    (def! first (fn*
+          [xs]
+          (if (empty? xs)
+               nil
+              (let [[x] xs] x))))
+
+    (def! load-file (fn* [f]
+          (eval (read-string (str "(do " (slurp f) ")" )))))
+
+    (def! not (fn* [x] (if x false true))))
