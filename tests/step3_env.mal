@@ -32,6 +32,16 @@ x
 (let* (p (+ 2 3) q (+ 2 p)) (+ p q))
 ;=>12
 
+;; Testing outer environment
+(def! a 4)
+;=>4
+(let* (q 9) q)
+;=>9
+(let* (q 9) a)
+;=>4
+(let* (z 2) (let* (q 9) a))
+;=>4
+
 ;;
 ;; -------- Optional Functionality --------
 
