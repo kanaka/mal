@@ -170,17 +170,20 @@ package body Reader is
    -- Parsing
    function Read_Form return Types.Mal_Type_Access;
 
-   function Read_List return Types.Mal_Type_Access is
+   function Read_List (LT : Types.List_Types)
+   return Types.Mal_Type_Access is
       use Types;
       List_MT, MTA : Mal_Type_Access;
+      Close : Character := Types.Closing (LT);
    begin
       List_MT := new Mal_Type'
                        (Sym_Type => List, 
+                        List_Type => LT,
                         The_List => Lists.Empty_List);
       loop
          MTA := Read_Form;
          exit when MTA = null or else
-                   MTA.all = (Sym_Type => Sym, Symbol => ')');
+                   MTA.all = (Sym_Type => Sym, Symbol => Close);
          Lists.Append (List_MT.The_List, MTA);
       end loop;
       return List_MT;
@@ -201,7 +204,11 @@ package body Reader is
       if MT.Sym_Type = Sym then
 
          if MT.Symbol = '(' then
-            return Read_List;
+            return Read_List (List_List);
+         elsif MT.Symbol = '[' then
+            return Read_List (Vector_List);
+         elsif MT.Symbol = '{' then
+            return Read_List (Hashed_List);
          elsif MT.Symbol = ACL.Apostrophe then
             return new Mal_Type'
               (Sym_Type => Unitary,
