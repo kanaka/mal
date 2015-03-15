@@ -61,6 +61,12 @@ Clojure West 2014 (unfortunately there is no video). See
 mal/clojurewest2014.mal for the presentation that was given at the
 conference (yes the presentation is a mal program).
 
+If you are interesting in creating a mal implementation (or just
+interested in using mal for something), please stop by the #mal
+channel on freenode. In addition to the [make-a-lisp process
+guide](process/guide.md) there is also a [mal/make-a-lisp
+FAQ](docs/FAQ.md) where I attempt to answer some common questions.
+
 ## Building/running implementations
 
 ### Bash 4
