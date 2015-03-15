@@ -858,12 +858,18 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
     unmarshall (extract) the string parameter to get the raw file name
     string and marshall (wrap) the result back to a mal string type.
 
-* In your main program, add a new `eval` (symbol) entry to your REPL
-  environment. The value of the new entry is a regular function
-  closure with a single argument `ast`. The closure calls the real
-  `EVAL` function using the `ast` as the first argument and the REPL
-  environment (closed over from outside) as the second argument.  The
-  result of the `EVAL` call is returned.
+* In your main program, add a new symbol "eval" to your REPL
+  environment. The value of this new entry is a function that takes
+  a single argument `ast`. The closure calls the your `EVAL` function
+  using the `ast` as the first argument and the REPL environment
+  (closed over from outside) as the second argument. The result of
+  the `EVAL` call is returned. This simple but powerful addition
+  allows your program to treat mal data as a mal program. For example,
+  you can now to this: 
+```
+(def! mal-prog (list + 1 2))
+(eval mal-prog)
+```
 
 * Define a `load-file` function using mal itself. In your main
   program call the `rep` function with this string:
@@ -889,11 +895,22 @@ make test^quux^step6
 ```
 
 Congratulations, you now have a full-fledged scripting language that
-can run other mal programs. However, the set of functions that are
-available (from `core.qx`) is fairly limited. The bulk of the
-functions you will add are described in step 9, but you will begin to
-flesh them out over the next few steps to support quoting (step 7) and
-macros (step 8).
+can run other mal programs. The `slurp` function loads a file as
+a string, the `read-string` function calls the mal reader to turn that
+stirng into data, and the `eval` function takes data and evaluates it
+as a normal mal program. However, it is important to note that the
+`eval` function is not just for running external programs. Because mal
+programs are regular mal data structures, you can dynamically generate
+or manipulate those data structures before calling `eval` on them.
+This isomorphisism (same shape) between data and programs is known as
+"homoiconicity". Lisp languages are homoiconic and this property
+distinguishes them from most other programming languages.
+
+You mal implementation is quite powerful already but the set of
+functions that are available (from `core.qx`) is fairly limited. The
+bulk of the functions you will add are described in step 9 and step A,
+but you will begin to flesh them out over the next few steps to
+support quoting (step 7) and macros (step 8).
 
 
 #### Deferrable:
@@ -906,7 +923,7 @@ macros (step 8).
 
 * Add the rest of the command line arguments to your REPL environment
   so that programs that are run with `load-file` have access to their
-  calling environmnet. Add a new "*ARGV*" (symbol) entry to your REPL
+  calling environmnet. Add a new "\*ARGV\*" (symbol) entry to your REPL
   environment. The value of this entry should be the rest of the
   command line arguments as a mal list value.
 
