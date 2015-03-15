@@ -8,21 +8,22 @@
 In November of 2013, Alan Dipert gave a [lightning talk at
 Clojure/conj](https://www.youtube.com/watch?v=bmHTFo2Rf2w#t=28m55s)
 about [gherkin](https://github.com/alandipert/gherkin), a Lisp
-implemented in bash. The question his presentation raised for me was
-whether the same could be done using GNU Make macro language.
+implemented in bash. His presentation led me to ask myself the qestion
+of whether a Lisp could be created using the GNU Make macro language.
+As you have probably guessed, the answer to that question is yes.
 
 Interestingly, the current pedagogical/educational purpose of mal
 happened due to a semantic naming accident (naming is such a fraught
-task in computer science). As I recall, the name "mal" was original
-a reference to "MAke Lisp". I do not remember precisely why
-I continued to create more implementations of mal in other languages
-(except that it was fun), but after the challenge of the make
-implementation, many of the others were relatively easy. At some point
-during that process, I realized that the multiple implementations and
-incremental steps (which was originally just for my own clarify) was
-a useful learning tool and so the "mal" name became a double entendre
-for "Make, A Lisp" and "make-a-lisp" (and eventually just the latter
-given that the make implementation is just a small part of the whole).
+task in computer science). If I am remembering correctly, the name
+"mal" original meant "MAke Lisp". I do not remember precisely why
+I continued to create more implementations, apart from the fact that
+it was a fun challenge, but after the make implementation, many of the
+others were relatively easy. At some point during that process,
+I realized that the multiple implementations and incremental steps
+(which was originally just for my own clarity) was a useful learning
+tool and so the "mal" name became a double entendre for "Make, A Lisp"
+and "make-a-lisp" (and eventually just the latter given that the make
+implementation is now just a small part of the whole).
 
 
 ### Why is some code split into steps and some code not?
