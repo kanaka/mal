@@ -298,7 +298,7 @@ compiler/interpreter to run.
 
 ```
 cd racket
-./stepX_YYY.rb
+./stepX_YYY.rkt
 ```
 
 ### Ruby (1.9+)
