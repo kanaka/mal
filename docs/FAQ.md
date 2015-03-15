@@ -1,5 +1,30 @@
 # Mal/Make-a-Lisp FAQ
 
+### Why did you create mal/make-a-lisp?
+### OR Why the name "mal"?
+### OR Why?
+### OR Wat?
+
+In November of 2013, Alan Dipert gave a [lightning talk at
+Clojure/conj](https://www.youtube.com/watch?v=bmHTFo2Rf2w#t=28m55s)
+about [gherkin](https://github.com/alandipert/gherkin), a Lisp
+implemented in bash. The question his presentation raised for me was
+whether the same could be done using GNU Make macro language.
+
+Interestingly, the current pedagogical/educational purpose of mal
+happened due to a semantic naming accident (naming is such a fraught
+task in computer science). As I recall, the name "mal" was original
+a reference to "MAke Lisp". I do not remember precisely why
+I continued to create more implementations of mal in other languages
+(except that it was fun), but after the challenge of the make
+implementation, many of the others were relatively easy. At some point
+during that process, I realized that the multiple implementations and
+incremental steps (which was originally just for my own clarify) was
+a useful learning tool and so the "mal" name became a double entendre
+for "Make, A Lisp" and "make-a-lisp" (and eventually just the latter
+given that the make implementation is just a small part of the whole).
+
+
 ### Why is some code split into steps and some code not?
 
 The split between code that goes in steps and code that goes into other files
@@ -79,3 +104,57 @@ reader/printer before you can begin using/testing the step. The
 compromise I have settled on for now is to put extra detail in the
 process guide for step1 and to be clear that many of the types are
 deferrable until later. But I am always open to suggestions.
+
+
+### Will you add my new implementation?
+
+Absolutely! I want mal to have a idiomatic implementation in every
+programming language.
+
+Here are a few guidelines for getting your implementation accepted
+into the main repository:
+
+* Your implementation needs to be complete enough to self-host. This
+  means that all the tests should pass in both direct and self-hosted modes:
+  ```bash
+  make test^[IMPL_NAME]
+  make MAL_IMPL=[IMPL_NAME] test^mal
+  ```
+  You do not need to pass the final optional tests for stepA that are
+  marked as optional and not needed for self-hosting.
+
+* Your implementation should follow the existing mal steps and
+  structure: Lisp-centric code in the step files, other code in
+  reader, printer, env, and core files. I encourage you to create
+  implementations that take mal in new directions for your own
+  learning and experimentation, but for it to be included in the main
+  repository I ask that it follows the steps and structure.
+
+* Your implementation should stick as much as possible to the accepted
+  idioms and conventions in that language. Try to create an
+  implementation that will not make an expert in that language say
+  "Woah, that's a strange way of doing things". And on that topic,
+  I make no guarantees that the existing implementations are
+  particularly idiomatic in their target languages (improvements are
+  welcome). However, if it is clear to me that your implementation is
+  not idiomatic in a given language then I will probably ask you to
+  improve it first.
+   
+* If you are creating a new implementation for an existing
+  implementation, then it is less likely that I will replace the
+  existing implementation with your new one. If you can make
+  a compelling argument that your implementation is more idiomatic or
+  significantly better than the existing implementation then I may
+  replace it. However, a better option would be to work with the me
+  and the original author (if it was not me) to improve the existing
+  implementation. This also implies that if somebody submits a high
+  quality implementation to me before you, your implementation may not
+  get merged. However, if you have alternate implementation and it
+  follows the rest of the guidelines, I am definitely willing to link
+  to it in the list of implementations.
+
+* You do not need to implement line editing (i.e. readline)
+  functionality for your implementation, however, it is a nice
+  convenience for users of your implementation and I personally find
+  it saves a lot of time when I am creating a new implementation to
+  have line edit support early on in the REPL.
