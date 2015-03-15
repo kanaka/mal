@@ -1,8 +1,12 @@
-all:	step0_repl
+all:	step0_repl step1_read_print
 
 
 step0_repl:	step0_repl.adb
-	gnatmake -f -g -o $@ $<
+	gnatmake -g -P$@
+
+step1_read_print:	step1_read_print.adb types.ad[bs] reader.ad[bs] \
+			printer.ad[bs]
+	gnatmake -g -P$@
 
 clean:
-	rm -f b~* *.o *.ali step0_repl
+	rm -f obj/* step0_repl step1_read_print
