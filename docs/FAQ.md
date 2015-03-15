@@ -1,4 +1,4 @@
-## Questions and Answers about mal and the make-a-lisp process
+# Mal/Make-a-Lisp FAQ
 
 ### Why is some code split into steps and some code not?
 
