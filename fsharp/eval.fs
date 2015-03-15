@@ -4,41 +4,23 @@ module Eval
 
     type Env = Map<string, Node>
 
-    let int64op nodes op st =
-        let f s node =
-            match node with
-            | Number(n) -> op s n
-            | _ -> raise (EvalError("argument mismatch"))
-        nodes
-        |> List.fold f st
-        |> Number
-
-    let add nodes = int64op nodes (fun a b -> a + b) 0L
-    let sub nodes = 
-        match nodes with
-        | [] -> raise (EvalError("wrong number of args"))
-        | Number(first)::[] -> Number(-first)
-        | Number(first)::rest -> int64op rest (fun a b -> a - b) first
-        | _ -> raise (EvalError("argument mismatch"))
-    let mul nodes = int64op nodes (fun a b -> a * b) 1L
-    let div nodes = 
-        match nodes with
-        | [] -> raise (EvalError("wrong number of args"))
-        | Number(first)::[] -> Number(1L / first)
-        | Number(first)::rest -> int64op rest (fun a b -> a / b) first
-        | _ -> raise (EvalError("argument mismatch"))
+    let errFuncExpected () = EvalError("expected function")
+    let errNotFound s = EvalError(sprintf "'%s' not found" s)
+    
+    let wrap tag name func =
+        name, Func({ Tag = tag; Name = name; F = func })
 
     let makeEnv () =
-        [ "+", Func({ Tag = 1; Name = "+"; F = add });
-          "-", Func({ Tag = 2; Name = "-"; F = sub });
-          "*", Func({ Tag = 3; Name = "*"; F = mul });
-          "/", Func({ Tag = 4; Name = "/"; F = div }) ]
+        [ wrap 1 "+" Core.add;
+          wrap 2 "-" Core.subtract;
+          wrap 3 "*" Core.multiply;
+          wrap 4 "/" Core.divide ]
         |> Map.ofList
 
     let lookup (env : Env) sym =
         match env.TryFind sym with
         | Some(f) -> f
-        | None -> raise (EvalError(sprintf "'%s' not found" sym))
+        | None -> raise <| errNotFound sym
 
     let rec eval_ast env = function
         | Symbol(sym) -> lookup env sym
@@ -52,5 +34,5 @@ module Eval
             let resolved = node |> eval_ast env
             match resolved with
             | List(Func({F = f})::rest) -> f rest
-            | _ -> raise (EvalError(sprintf "Expected function"))
+            | _ -> raise <| errFuncExpected ()
         | node -> node |> eval_ast env

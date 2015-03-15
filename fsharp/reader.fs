@@ -6,6 +6,9 @@ module Reader
     type MutableList = System.Collections.Generic.List<Node>
     let inline addToMutableList (lst:MutableList) item = lst.Add(item); lst
 
+    let errExpectedButEOF tok = ReaderError(sprintf "Expected %s, got EOF" tok)
+    let errInvalid () = ReaderError("Invalid token")
+
     let quote = Symbol("quote")
     let quasiquote = Symbol("quasiquote")
     let unquote = Symbol("unquote")
@@ -28,42 +31,42 @@ module Reader
     and wrapForm node tokens = 
         match readForm tokens with
         | Some(form), rest -> Some(List([node; form])), rest
-        | None, _ -> raise (ReaderError("Expected form, got EOF"))
+        | None, _ -> raise <| errExpectedButEOF "form"
 
     and readList acc = function
         | CloseParen::rest -> Some(List(acc |> List.rev)), rest
-        | [] -> raise (ReaderError("expected ')', got EOF"))
+        | [] -> raise <| errExpectedButEOF "')'"
         | tokens -> 
             match readForm tokens with
             | Some(form), rest -> readList (form::acc) rest
-            | None, _ -> raise (ReaderError("expected ')', got EOF"))
+            | None, _ -> raise <| errExpectedButEOF "')'"
 
     and readVector acc = function
         | CloseBracket::rest -> Some(Vector(acc.ToArray())), rest
-        | [] -> raise (ReaderError("expected ']', got EOF"))
+        | [] -> raise <| errExpectedButEOF "']'"
         | tokens -> 
             match readForm tokens with
             | Some(form), rest -> readVector (addToMutableList acc form) rest
-            | None, _ -> raise (ReaderError("expected ']', got EOF"))
+            | None, _ -> raise <| errExpectedButEOF "']'"
 
     and readMap acc = function
         | CloseBrace::rest -> Some(Map(acc |> List.rev |> Map.ofList)), rest
-        | [] -> raise (ReaderError("Expected '}', got EOF"))
+        | [] -> raise <| errExpectedButEOF "'}'"
         | tokens -> 
             match readForm tokens with
             | Some(key), rest ->
                 match readForm rest with
                 | Some(v), rest -> readMap ((key, v)::acc) rest
-                | None, _ -> raise (ReaderError("Expected '}', got EOF"))
-            | None, _ -> raise (ReaderError("Expected '}', got EOF"))
+                | None, _ -> raise <| errExpectedButEOF "'}'"
+            | None, _ -> raise <| errExpectedButEOF "'}'"
 
     and readMeta = function
         | OpenBrace::rest ->
             let meta, rest = readMap [] rest
             match readForm rest with
             | Some(form), rest -> Some(List([withMeta; form; meta.Value])), rest
-            | None, _ -> raise (ReaderError("Expected form, got EOF"))
-        | _ -> raise (ReaderError("Expected map, got EOF"))
+            | None, _ -> raise <| errExpectedButEOF "form"
+        | _ -> raise <| errExpectedButEOF "map"
 
     and readAtom = function
         | Token("nil")::rest -> Some(Nil), rest
@@ -74,7 +77,7 @@ module Reader
         | Tokenizer.Number(num)::rest -> Some(Number(Int64.Parse(num))), rest
         | Token(sym)::rest -> Some(Symbol(sym)), rest
         | [] -> None, []
-        | _ -> raise (ReaderError("Invalid token"))
+        | _ -> raise <| errInvalid ()
         
     let rec readForms acc = function
         | [] -> List.rev acc
