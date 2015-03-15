@@ -99,7 +99,10 @@ class Runner():
     def cleanup(self):
         #print "cleaning up"
         if self.p:
-            os.killpg(self.p.pid, signal.SIGTERM)
+            try:
+                os.killpg(self.p.pid, signal.SIGTERM)
+            except OSError:
+                pass
             self.p = None
 
 
@@ -193,8 +196,13 @@ while test_data:
             print("    Expected : %s" % repr(expected))
             print("    Got      : %s" % repr(res))
             fail_cnt += 1
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt.")
+        print("Output so far:\n%s" % r.buf)
+        sys.exit(1)
     except:
-        print("Got Exception")
+        _, exc, _ = sys.exc_info()
+        print("\nException: %s" % repr(exc.message))
         sys.exit(1)
 
 if fail_cnt > 0:
