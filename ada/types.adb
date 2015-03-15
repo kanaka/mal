@@ -50,8 +50,6 @@ package body Types is
             return To_String (T.The_String);
          when Atom =>
             return To_String (T.The_Atom);
-         when EOLine =>
-            return "";
       end case;
    end To_String;
 
