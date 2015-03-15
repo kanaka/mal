@@ -34,7 +34,7 @@ package body Reader is
      Tokenizer.Get(Opentoken.Recognizer.Keyword.Get ("true"));
 
    False_Recognizer : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Keyword.Get ("false"));
+     Tokenizer.Get (Opentoken.Recognizer.Keyword.Get ("false"));
 
    ID_Recognizer   : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Identifier.Get);
@@ -42,8 +42,12 @@ package body Reader is
    Int_Recognizer  : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Integer.Get);
 
-   String_Recognizer  : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.String.Get);
+   -- Use the C style for escaped strings.
+   String_Recognizer : constant Tokenizer.Recognizable_Token :=
+     Tokenizer.Get
+       (Opentoken.Recognizer.String.Get
+         (Escapeable => True, 
+          Double_Delimiter => False));
 
    -- Atom definition
    Start_Chars : Ada.Strings.Maps.Character_Set :=
