@@ -50,6 +50,18 @@ package body Types is
             return To_String (T.The_String);
          when Atom =>
             return To_String (T.The_Atom);
+         when Unitary =>
+            case T.The_Function is
+               when Quote =>
+                  return "(quote " & To_String (T.The_Operand.all) & ")";
+               when Unquote =>
+                  return "(unquote " & To_String (T.The_Operand.all) & ")";
+               when Quasiquote =>
+                  return "(quasiquote " & To_String (T.The_Operand.all) & ")";
+               when Splice_Unquote =>
+                  return
+                    "(splice-unquote " & To_String (T.The_Operand.all) & ")";
+            end case;
       end case;
    end To_String;
 

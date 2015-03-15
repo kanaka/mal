@@ -16,8 +16,10 @@ with Opentoken.Token.Enumerated.Analyzer;
 
 package body Reader is
 
+   package ACL renames Ada.Characters.Latin_1;
+
    type Lexemes is (Int, Sym,
-                    Nil, True_Tok, False_Tok, Exp_Tok,
+                    Nil, True_Tok, False_Tok, Exp_Tok, Splice_Unq,
                     Str, Atom,
                     Whitespace, Comment);
 
@@ -26,6 +28,9 @@ package body Reader is
 
    Exp_Recognizer   : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("**"));
+
+   Splice_Unq_Recognizer   : constant Tokenizer.Recognizable_Token :=
+     Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("~@"));
 
    Nil_Recognizer   : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Keyword.Get ("nil"));
@@ -69,9 +74,7 @@ package body Reader is
      Tokenizer.Get (Opentoken.Recognizer.Single_Character_Set.Get (Lisp_Syms));
 
    Lisp_Whitespace : constant Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.To_Set (Ada.Characters.Latin_1.HT &
-                              Ada.Characters.Latin_1.Space &
-                              Ada.Characters.Latin_1.Comma);
+     Ada.Strings.Maps.To_Set (ACL.HT & ACL.Space & ACL.Comma);
 
    Whitesp_Recognizer : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get (Opentoken.Recognizer.Character_Set.Get (Lisp_Whitespace));
@@ -80,17 +83,17 @@ package body Reader is
      Tokenizer.Get(Opentoken.Recognizer.Line_Comment.Get (";"));
 
    Syntax : constant Tokenizer.Syntax :=
-     (Int           => Int_Recognizer,
-      Sym => Sym_Recognizer,
-      Nil           => Nil_Recognizer,
-      True_Tok      => True_Recognizer,
-      False_Tok     => False_Recognizer,
-      Exp_Tok       => Exp_Recognizer,
-      Str           => String_Recognizer,
-      Atom          => Atom_Recognizer,
-      Whitespace    => Whitesp_Recognizer,
-      Comment       => Comment_Recognizer  --,
-     );
+     (Int        => Int_Recognizer,
+      Sym        => Sym_Recognizer,
+      Nil        => Nil_Recognizer,
+      True_Tok   => True_Recognizer,
+      False_Tok  => False_Recognizer,
+      Exp_Tok    => Exp_Recognizer,
+      Splice_Unq => Splice_Unq_Recognizer,
+      Str        => String_Recognizer,
+      Atom       => Atom_Recognizer,
+      Whitespace => Whitesp_Recognizer,
+      Comment    => Comment_Recognizer);
 
    Input_Feeder : aliased OpenToken.Text_Feeder.String.Instance;
 
@@ -143,6 +146,11 @@ package body Reader is
               (Sym_Type => Types.Atom,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
+         when Splice_Unq =>
+            Res := new Types.Mal_Type'
+              (Sym_Type => Types.Unitary,
+               The_Function => Types.Splice_Unquote,
+               The_Operand => null);
          when Str =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Str,
@@ -163,17 +171,17 @@ package body Reader is
    function Read_Form return Types.Mal_Type_Access;
 
    function Read_List return Types.Mal_Type_Access is
-      use types;
-      List_MT, MTA : Types.Mal_Type_Access;
+      use Types;
+      List_MT, MTA : Mal_Type_Access;
    begin
-      List_MT := new Types.Mal_Type'
-                       (Sym_Type => Types.List, 
-                        The_List => Types.Lists.Empty_List);
+      List_MT := new Mal_Type'
+                       (Sym_Type => List, 
+                        The_List => Lists.Empty_List);
       loop
          MTA := Read_Form;
          exit when MTA = null or else
                    MTA.all = (Sym_Type => Sym, Symbol => ')');
-         Types.Lists.Append (List_MT.The_List, MTA);
+         Lists.Append (List_MT.The_List, MTA);
       end loop;
       return List_MT;
    end Read_List;
@@ -183,12 +191,46 @@ package body Reader is
       use Types;
       MT : Types.Mal_Type_Access;
    begin
+
       MT := Get_Token;
-      if MT.all = (Sym_Type => Sym, Symbol => '(') then
-         return Read_List;
+
+      if MT = null then
+         return null;
+      end if;
+
+      if MT.Sym_Type = Sym then
+
+         if MT.Symbol = '(' then
+            return Read_List;
+         elsif MT.Symbol = ACL.Apostrophe then
+            return new Mal_Type'
+              (Sym_Type => Unitary,
+               The_Function => Quote,
+               The_Operand => Read_Form);
+         elsif MT.Symbol = ACL.Grave then
+            return new Mal_Type'
+              (Sym_Type => Unitary,
+               The_Function => Quasiquote,
+               The_Operand => Read_Form);
+         elsif MT.Symbol = ACL.Tilde then
+            return new Mal_Type'
+              (Sym_Type => Unitary,
+               The_Function => Unquote,
+               The_Operand => Read_Form);
+         else
+            return MT;
+         end if;
+
+      elsif MT.Sym_Type = Unitary and then
+            MT.The_Function = Splice_Unquote then
+         return new Mal_Type'
+           (Sym_Type => Unitary,
+            The_Function => Splice_Unquote,
+            The_Operand => Read_Form);
       else
          return MT;
       end if;
+
    end Read_Form;
 
 
