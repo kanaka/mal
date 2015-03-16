@@ -35,11 +35,13 @@ module REPL
             Readline.Mode.Terminal
 
     [<EntryPoint>]
-    let rec main args =
+    let main args =
         let mode = getReadlineMode args
         let env = Env.makeRootEnv ()
-        match Readline.read "user> " mode with
-        | null -> 0
-        | input -> 
-            rep env input
-            main args
+        let rec loop () =
+            match Readline.read "user> " mode with
+            | null -> 0
+            | input ->
+                rep env input
+                loop ()
+        loop ()

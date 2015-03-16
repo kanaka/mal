@@ -5,31 +5,28 @@ module Eval
     type Env = Map<string, Node>
 
     let errFuncExpected () = EvalError("expected function")
-    let errNotFound s = EvalError(sprintf "'%s' not found" s)
-    
-    let wrap tag name func =
-        name, Func({ Tag = tag; Name = name; F = func })
-
-    let makeEnv () =
-        [ wrap 1 "+" Core.add;
-          wrap 2 "-" Core.subtract;
-          wrap 3 "*" Core.multiply;
-          wrap 4 "/" Core.divide ]
-        |> Map.ofList
-
-    let lookup (env : Env) sym =
-        match env.TryFind sym with
-        | Some(f) -> f
-        | None -> raise <| errNotFound sym
+    let errNodeExpected () = EvalError("expected node")
+    let errSymbolExpected () = EvalError("expected symbol")
 
     let rec eval_ast env = function
-        | Symbol(sym) -> lookup env sym
+        | Symbol(sym) -> Env.get env sym
         | List(lst) -> lst |> List.map (eval env) |> List
         | Vector(arr) -> arr |> Array.map (eval env) |> Vector
         | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
         | node -> node
 
+    and def env = function
+        | symb::node::[] -> 
+            match symb with
+            | Symbol(sym) -> 
+                let node = eval env node 
+                Env.set env sym node
+                node
+            | _ -> raise <| errSymbolExpected ()
+        | _ -> raise <| Core.errArity () 
+
     and eval env = function
+        | List(Symbol("def!")::rest) -> def env rest
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
