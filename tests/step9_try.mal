@@ -51,7 +51,7 @@
 (false? true)
 ;=>false
 
-;; Testing apply function
+;; Testing apply function with core functions
 (apply + (list 2 3))
 ;=>5
 (apply + 4 (list 5))
@@ -62,6 +62,11 @@
 ; 1 2 "3" ()
 ;=>nil
 
+;; Testing apply function with user functions
+(apply (fn* (a b) (+ a b)) (list 2 3))
+;=>5
+(apply (fn* (a b) (+ a b)) 4 (list 5))
+;=>9
 
 ;; Testing map function
 (def! nums (list 1 2 3))
