@@ -5,6 +5,37 @@ package body Types is
 
    package ACL renames Ada.Characters.Latin_1;
 
+
+   function Opening (LT : List_Types) return Character is
+      Res : Character;
+   begin
+      case LT is
+         when List_List =>
+            Res := '(';
+         when Vector_List =>
+            Res := '[';
+         when Hashed_List =>
+            Res := '{';
+      end case;
+      return Res;
+   end Opening;
+
+
+   function Closing (LT : List_Types) return Character is
+      Res : Character;
+   begin
+      case LT is
+         when List_List =>
+            Res := ')';
+         when Vector_List =>
+            Res := ']';
+         when Hashed_List =>
+            Res := '}';
+      end case;
+      return Res;
+   end Closing;
+
+
    function To_String (T : Mal_Type) return String is
       use Ada.Strings.Unbounded;
    begin
@@ -16,7 +47,17 @@ package body Types is
                if Res (1) = ' ' then
                  return Res (2..Res'Last);
                else
-                 return "int> " & Res;
+                 return Res;
+               end if;
+            end;
+         when Floating =>
+            declare
+               Res : String := Float'Image (T.Float_Val);
+            begin
+               if Res (1) = ' ' then
+                 return Res (2..Res'Last);
+               else
+                 return Res;
                end if;
             end;
          when List =>
@@ -27,9 +68,11 @@ package body Types is
                use type Lists.Cursor;
                First_Pass : Boolean := True;
             begin
+
                if Lists.Is_Empty (T.The_List) then
-                  return "()";
+                  return Opening (T.List_Type) & Closing (T.List_Type);
                end if;
+
                C := Lists.First (T.The_List);
                loop
                   if First_Pass then
@@ -41,7 +84,9 @@ package body Types is
                exit when C = Lists.Last (T.The_List);
                   C := Lists.Next (C);
                end loop;
-               return "(" & To_String (UBS) & ")";
+               return Opening (T.List_Type) &
+                      To_String (UBS) &
+                      Closing (T.List_Type);
             end;
          when Sym =>
             return "" & T.Symbol;

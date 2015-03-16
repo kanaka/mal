@@ -8,6 +8,7 @@ with Opentoken.Recognizer.Identifier;
 with Opentoken.Recognizer.Integer;
 with Opentoken.Recognizer.Keyword;
 with Opentoken.Recognizer.Line_Comment;
+with Opentoken.Recognizer.Real;
 with Opentoken.Recognizer.Separator;
 with Opentoken.Recognizer.Single_Character_Set;
 with Opentoken.Recognizer.String;
@@ -18,7 +19,7 @@ package body Reader is
 
    package ACL renames Ada.Characters.Latin_1;
 
-   type Lexemes is (Int, Sym,
+   type Lexemes is (Int, Float_Tok, Sym,
                     Nil, True_Tok, False_Tok, Exp_Tok, Splice_Unq,
                     Str, Atom,
                     Whitespace, Comment);
@@ -46,6 +47,9 @@ package body Reader is
 
    Int_Recognizer  : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Integer.Get);
+
+   Float_Recognizer  : constant Tokenizer.Recognizable_Token :=
+     Tokenizer.Get(Opentoken.Recognizer.Real.Get);
 
    -- Use the C style for escaped strings.
    String_Recognizer : constant Tokenizer.Recognizable_Token :=
@@ -84,6 +88,7 @@ package body Reader is
 
    Syntax : constant Tokenizer.Syntax :=
      (Int        => Int_Recognizer,
+      Float_Tok  => Float_Recognizer,
       Sym        => Sym_Recognizer,
       Nil        => Nil_Recognizer,
       True_Tok   => True_Recognizer,
@@ -123,6 +128,10 @@ package body Reader is
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Int,
                Int_Val => Integer'Value (Get_Token_String));
+         when Float_Tok =>
+            Res := new Types.Mal_Type'
+              (Sym_Type => Types.Floating,
+               Float_Val => Float'Value (Get_Token_String));
          when Sym =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Sym, Symbol => Get_Token_Char);

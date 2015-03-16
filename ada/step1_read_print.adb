@@ -7,10 +7,8 @@ with Types;
 procedure Step1_Read_Print is
 
    function Read (Param : String) return Types.Mal_Type_Access is
-   --function Read return Types.Mal_Type_Access is
    begin
       return Reader.Read_Str (Param);
-      --return Reader.Read_Str;
    end Read;
 
    function Eval (Param : Types.Mal_Type_Access) return Types.Mal_Type_Access is
@@ -24,7 +22,6 @@ procedure Step1_Read_Print is
    end Print;
 
    function Rep (Param : String) return String is
-   --function Rep return String is
      AST : Types.Mal_Type_Access := Read (Param);
      Eval_Str : Types.Mal_Type_Access := Eval (AST);
      Print_Str : String := Print (Eval_Str);

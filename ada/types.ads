@@ -14,14 +14,21 @@ package Types is
        (Element_Type => Mal_Type_Access,
         "=" => "=");
 
-   type Sym_Types is (Int, List, Sym, Str, Atom, Unitary);
+   type Sym_Types is (Int, Floating, List, Sym, Str, Atom, Unitary);
 
    type Unitary_Functions is (Quote, Unquote, Quasiquote, Splice_Unquote);
+
+   type List_Types is (List_List, Vector_List, Hashed_List);
+   function Opening (LT : List_Types) return Character;
+   function Closing (LT : List_Types) return Character;
 
    type Mal_Type (Sym_Type : Sym_Types) is record
       case Sym_Type is
          when Int => Int_Val : Integer;
-         when List => The_List : Lists.List;
+         when Floating => Float_Val : Float;
+         when List =>
+            List_Type : List_Types;
+            The_List : Lists.List;
          when Sym => Symbol : Character;
          when Str => The_String : Ada.Strings.Unbounded.Unbounded_String;
          when Atom => The_Atom : Ada.Strings.Unbounded.Unbounded_String;
