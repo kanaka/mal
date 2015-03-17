@@ -2,14 +2,10 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: io readline kernel system reader printer continuations  arrays locals assocs sequences
        combinators accessors fry quotations math malenv namespaces grouping hashtables lists
-       types ;
+       types splitting core ;
 
 IN: step4_if_fn_do
 
-CONSTANT: repl-bindings H{ { "+" [ + ] }
-                           { "-" [ - ] }
-                           { "*" [ * ] }
-                           { "/" [ / ] } }
 SYMBOL: repl-env
 
 DEFER: EVAL
@@ -39,10 +35,14 @@ DEFER: EVAL
     } cond ;
 
 :: eval-fn* ( params env -- maltype )
-    [ datastack params first [ name>> ] map [ length tail* ] keep swap zip >hashtable
-      env swap <malenv>
-      params second swap
-      EVAL ] ;
+    params first [ name>> ] map [ "&" ] split { } suffix first2
+    '[ datastack _ [ length cut-slice ] keep ! head tail firstparams
+       swap [ swap zip ] dip ! bindalist tail
+       _ dup empty? [ 2drop ] [ first swap >array 2array suffix ] if
+       >hashtable
+       env swap <malenv>
+       params second swap
+       EVAL ] ;
 
 : READ ( str -- maltype ) read-str ;
 :: EVAL ( maltype env -- maltype )
@@ -63,12 +63,13 @@ DEFER: EVAL
 : rep ( x -- x ) [ READ repl-env get EVAL PRINT ] [ nip ] recover ;
 
 : main-loop ( -- )
-            f repl-bindings <malenv> repl-env set
             [ 1 ]
             [ "user> " readline
               [ 0 exit ] unless*
               rep print flush ]
             while ;
 
-MAIN: main-loop
+f ns <malenv> repl-env set-global
+"(def! not (fn* (a) (if a false true)))" rep drop
 
+MAIN: main-loop
