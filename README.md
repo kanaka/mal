@@ -35,11 +35,11 @@ Mal is implemented in 27 different languages:
 * Visual Basic.NET
 
 
-Mal is a learning tool. See the ([make-a-lisp process
-guide](process/guide.md)).  Each implementation of mal is separated
-into 11 incremental, self-contained (and testable) steps that
-demonstrate core concepts of Lisp. The last step is capable of
-self-hosting (running the mal implementation of mal).
+Mal is a learning tool. See the [make-a-lisp process
+guide](process/guide.md). Each implementation of mal is separated into
+11 incremental, self-contained (and testable) steps that demonstrate
+core concepts of Lisp. The last step is capable of self-hosting
+(running the mal implementation of mal).
 
 The mal (make a lisp) steps are:
 
@@ -60,6 +60,12 @@ Mal was presented publicly for the first time in a lightning talk at
 Clojure West 2014 (unfortunately there is no video). See
 mal/clojurewest2014.mal for the presentation that was given at the
 conference (yes the presentation is a mal program).
+
+If you are interesting in creating a mal implementation (or just
+interested in using mal for something), please stop by the #mal
+channel on freenode. In addition to the [make-a-lisp process
+guide](process/guide.md) there is also a [mal/make-a-lisp
+FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 ## Building/running implementations
 
@@ -298,7 +304,7 @@ compiler/interpreter to run.
 
 ```
 cd racket
-./stepX_YYY.rb
+./stepX_YYY.rkt
 ```
 
 ### Ruby (1.9+)
@@ -411,6 +417,12 @@ make MAL_IMPL=python test^mal^step2
 
 ### Performance tests
 
+Warning: These performance tests are neither statistically valid nor
+comprehensive; runtime performance is a not a primary goal of mal. If
+you draw any serious conclusions from these performance tests, then
+please contact me about some amazing oceanfront property in Kansas
+that I'm willing to sell you for cheap.
+
 * To run performance tests against a single implementation:
 ```
 make perf^IMPL
@@ -442,6 +454,44 @@ make stats-lisp^IMPL
 # e.g.
 make stats-lisp^js
 ```
+
+## Docker test environment
+
+There is a Dockerfile included in the `tests/docker` directory that
+builds a docker image based on Ubuntu Utopic that contains everything
+needed to run tests against all the implementations (except for MATLAB
+which is proprietary/licensed).
+
+Build the the docker image using a provided script. WARNING: this will
+likely take over an hour to build from scratch and use more 3 GB of disk:
+```bash
+./tests/docker-build.sh
+```
+
+Launch a docker container from that image built above. This will
+volume mount the mal directory to `/mal` and then give you a bash
+prompt in the container. You can then run individual mal
+implementations and tests:
+```bash
+./tests/docker-run.sh
+```
+
+You can also specify a command to run within the container. For
+example, to run step2 tests for every implementation (except MATLAB):
+```bash
+./tests/docker-run.sh make SKIP_IMPLS="matlab" test^step2
+```
+
+**Notes**:
+* JVM-based language implementations (Java, Clojure, Scala): you will
+  need to run these implementations once manually first before you can
+  run tests because runtime dependencies need to be downloaded to
+  avoid the tests timing out. These dependencies are download to
+  dot-files in the /mal directory so they will persist between runs.
+* Compiled languages: if you host system is different enough from
+  Ubuntu Utopic then you may need to re-compile your compiled
+  languages from within the container to avoid linker version
+  mismatches.
 
 
 ## License

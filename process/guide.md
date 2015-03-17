@@ -510,7 +510,7 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     key is found up the outer chain, then throws/raises a "not found"
     error.
 
-* Update `step2_env.qx` to use the new `Env` type to create the
+* Update `step3_env.qx` to use the new `Env` type to create the
   repl_env (with a `nil` outer value) and use the `set` method to add
   the numeric functions.
 
@@ -625,8 +625,8 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
 
 * Add the following special forms to `EVAL`.
 
-  * `do`: Evaluate the all the elements of the list and return the
-    final element (evaluated).
+  * `do`: Evaluate the all the elements of the list using `eval_ast`
+    and return the final evaluated element.
   * `if`: Evaluate the first parameter (second element). If the result
     (condition) is anything other than `nil` or `false`, then evaluate
     the second parammeter (third element of the list) and return the
@@ -695,8 +695,9 @@ make test^quux^step4
 Your mal implementation is already beginning to look like a real
 language. You have flow control, conditionals, user-defined functions
 with lexical scope, side-effects (if you implement the string
-functions), etc. However, our little interpreter has not quite reach
-Lisp-ness yet. The next several steps will take
+functions), etc. However, our little interpreter has not quite reached
+Lisp-ness yet. The next several steps will take your implementation
+from a neat toy to a full featured language.
 
 #### Deferrable:
 
@@ -769,8 +770,8 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
     `EVAL`) to be the second `ast` argument. Continue at the beginning
     of the loop (no return).
   * `do`: change the `eval_ast` call to evaluate all the parameters
-    the except for the last (2nd list element up to but not
-    including last). Set `ast` to the last element of `ast`. Continue
+    except for the last (2nd list element up to but not including
+    last). Set `ast` to the last element of `ast`. Continue
     at the beginning of the loop (`env` stays unchanged).
   * `if`: the condition continues to be evaluated, however, rather
     than evaluating the true or false branch, `ast` is set to the
@@ -780,21 +781,21 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 * The return value from the `fn*` special form will now become an
   object/structure with attributes that allow the default invoke case
   of `EVAL` to do TCO on mal functions. Those attributes are:
-  * `fn`: the original function value return in step 4 (this is
-    actually deferrable until step 9 when it is needed for the `map`
-    and `apply` core functions).
   * `ast`: the second `ast` argument (third list element) representing
     the body of the function.
   * `params`: the first `ast` argument (second list element)
     representing the parameter names of the function.
   * `env`: the current value of the `env` parameter of `EVAL`.
+  * `fn`: the original function value (i.e. what was return by `fn*`
+    in step 4). Note that this is deferrable until step 9 when it is
+    needed for the `map` and `apply` core functions).
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
   Continue to call `eval_ast` on `ast`. The first element is `f`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
-  * before (in step 4).
+    before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
     as the `outer` and `binds` arguments and rest `ast` arguments
@@ -857,12 +858,18 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
     unmarshall (extract) the string parameter to get the raw file name
     string and marshall (wrap) the result back to a mal string type.
 
-* In your main program, add a new `eval` (symbol) entry to your REPL
-  environment. The value of the new entry is a regular function
-  closure with a single argument `ast`. The closure calls the real
-  `EVAL` function using the `ast` as the first argument and the REPL
-  environment (closed over from outside) as the second argument.  The
-  result of the `EVAL` call is returned.
+* In your main program, add a new symbol "eval" to your REPL
+  environment. The value of this new entry is a function that takes
+  a single argument `ast`. The closure calls the your `EVAL` function
+  using the `ast` as the first argument and the REPL environment
+  (closed over from outside) as the second argument. The result of
+  the `EVAL` call is returned. This simple but powerful addition
+  allows your program to treat mal data as a mal program. For example,
+  you can now to this: 
+```
+(def! mal-prog (list + 1 2))
+(eval mal-prog)
+```
 
 * Define a `load-file` function using mal itself. In your main
   program call the `rep` function with this string:
@@ -888,11 +895,22 @@ make test^quux^step6
 ```
 
 Congratulations, you now have a full-fledged scripting language that
-can run other mal programs. However, the set of functions that are
-available (from `core.qx`) is fairly limited. The bulk of the
-functions you will add are described in step 9, but you will begin to
-flesh them out over the next few steps to support quoting (step 7) and
-macros (step 8).
+can run other mal programs. The `slurp` function loads a file as
+a string, the `read-string` function calls the mal reader to turn that
+stirng into data, and the `eval` function takes data and evaluates it
+as a normal mal program. However, it is important to note that the
+`eval` function is not just for running external programs. Because mal
+programs are regular mal data structures, you can dynamically generate
+or manipulate those data structures before calling `eval` on them.
+This isomorphisism (same shape) between data and programs is known as
+"homoiconicity". Lisp languages are homoiconic and this property
+distinguishes them from most other programming languages.
+
+You mal implementation is quite powerful already but the set of
+functions that are available (from `core.qx`) is fairly limited. The
+bulk of the functions you will add are described in step 9 and step A,
+but you will begin to flesh them out over the next few steps to
+support quoting (step 7) and macros (step 8).
 
 
 #### Deferrable:
@@ -905,7 +923,7 @@ macros (step 8).
 
 * Add the rest of the command line arguments to your REPL environment
   so that programs that are run with `load-file` have access to their
-  calling environmnet. Add a new "*ARGV*" (symbol) entry to your REPL
+  calling environmnet. Add a new "\*ARGV\*" (symbol) entry to your REPL
   environment. The value of this entry should be the rest of the
   command line arguments as a mal list value.
 
@@ -1186,12 +1204,12 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 * Copy `step8_macros.qx` to `step9_try.qx`.
 
 * TODO/TBD.
-  * In step 5, if you did not add original function (`fn`) to the
+  * In step 5, if you did not add the original function (`fn`) to the
     returned structure returned from `fn*`, the you will need to do so
     now.
 
 
-<a name="step9"></a>
+<a name="stepA"></a>
 
 ### Step A: Interop and Self-hosting
 
@@ -1206,6 +1224,7 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 * Copy `step9_try.qx` to `stepA_mal.qx`.
 
 * TODO/TBD
+  * Self-hosted tests
 
 
 ## TODO:

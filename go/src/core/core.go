@@ -417,7 +417,11 @@ var NS = map[string]MalType{
 		return Symbol_Q(a[0]), nil
 	},
 	"keyword": func(a []MalType) (MalType, error) {
-		return NewKeyword(a[0].(string))
+                if Keyword_Q(a[0]) {
+                    return a[0], nil
+                } else {
+                    return NewKeyword(a[0].(string))
+                }
 	},
 	"keyword?": func(a []MalType) (MalType, error) {
 		return Keyword_Q(a[0]), nil

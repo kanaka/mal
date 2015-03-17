@@ -38,10 +38,14 @@ false? () { _false? "${1}" && r="${__true}" || r="${__false}"; }
 
 # Symbol functions
 
+symbol () { _symbol "${ANON["${1}"]}"; }
+
 symbol? () { _symbol? "${1}" && r="${__true}" || r="${__false}"; }
 
 
 # Keyword functions
+
+keyword () { _keyword "${ANON["${1}"]}"; }
 
 keyword? () { _keyword? "${1}" && r="${__true}" || r="${__false}"; }
 
@@ -325,9 +329,9 @@ declare -A core_ns=(
     [nil?]=nil?
     [true?]=true?
     [false?]=false?
-    [symbol]=_symbol
+    [symbol]=symbol
     [symbol?]=symbol?
-    [keyword]=_keyword
+    [keyword]=keyword
     [keyword?]=keyword?
 
     [pr-str]=pr_str

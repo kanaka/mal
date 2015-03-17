@@ -6,7 +6,7 @@ Imports Mal
 namespace Mal
     Public Class types
         '
-        ' Exceptiosn/Errors
+        ' Exceptions/Errors
         '
         Public Class MalThrowable
             Inherits Exception

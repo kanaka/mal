@@ -24,8 +24,10 @@ parser.add_argument('--test-timeout', default=20, type=int,
         help="default timeout for each individual test action")
 parser.add_argument('--pre-eval', default=None, type=str,
         help="Mal code to evaluate prior to running the test")
+parser.add_argument('--no-pty', action='store_true',
+        help="Use direct pipes instead of pseudo-tty")
 parser.add_argument('--mono', action='store_true',
-        help="Use workarounds Mono/.Net Console misbehaviors")
+        help="Use workarounds Mono/.Net Console misbehaviors, implies --no-pty")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -34,14 +36,16 @@ parser.add_argument('mal_cmd', nargs="*",
              "specify a Mal command line with dashed options.")
 
 class Runner():
-    def __init__(self, args, mono=False):
+    def __init__(self, args, no_pty=False, mono=False):
         #print "args: %s" % repr(args)
+        if mono: no_pty = True
+        self.no_pty = no_pty
         self.mono = mono
 
         # Cleanup child process on exit
         atexit.register(self.cleanup)
 
-        if mono:
+        if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                            preexec_fn=os.setsid)
@@ -68,7 +72,7 @@ class Runner():
                 new_data = self.stdout.read(1)
                 #print "new_data: '%s'" % new_data
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
-                if self.mono:
+                if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
                     self.buf += new_data
@@ -95,7 +99,10 @@ class Runner():
     def cleanup(self):
         #print "cleaning up"
         if self.p:
-            os.killpg(self.p.pid, signal.SIGTERM)
+            try:
+                os.killpg(self.p.pid, signal.SIGTERM)
+            except OSError:
+                pass
             self.p = None
 
 
@@ -104,7 +111,7 @@ test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, mono=args.mono)
+r = Runner(args.mal_cmd, no_pty=args.no_pty, mono=args.mono)
 
 
 test_idx = 0
@@ -189,8 +196,13 @@ while test_data:
             print("    Expected : %s" % repr(expected))
             print("    Got      : %s" % repr(res))
             fail_cnt += 1
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt.")
+        print("Output so far:\n%s" % r.buf)
+        sys.exit(1)
     except:
-        print("Got Exception")
+        _, exc, _ = sys.exc_info()
+        print("\nException: %s" % repr(exc.message))
         sys.exit(1)
 
 if fail_cnt > 0:

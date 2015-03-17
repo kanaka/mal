@@ -84,7 +84,9 @@ new.symbol <- function(name) structure(name, class="Symbol")
 .symbol_q <- function(obj) "Symbol" == class(obj)
 new.keyword <- function(name) concat("\u029e", name)
 .keyword_q <- function(obj) {
-    "character" == class(obj) && "\u029e" == substr(obj,1,1)
+    "character" == class(obj) &&
+        ("\u029e" == substr(obj,1,1) ||
+         "<U+029E>" == substring(obj,1,8))
 }
 
 # Functions

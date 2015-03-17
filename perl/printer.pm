@@ -22,7 +22,8 @@ sub _pr_str {
         }
         when(/^HashMap/) {
             my @elems = ();
-            foreach my $key (keys $obj->{val}) {
+
+            foreach my $key (keys %{ $obj->{val} }) {
                 push(@elems, _pr_str(String->new($key), $_r));
                 push(@elems, _pr_str($obj->{val}->{$key}, $_r));
             }
