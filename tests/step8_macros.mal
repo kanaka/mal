@@ -67,6 +67,8 @@ x
 ;=>4
 (or false nil 3 false nil 4)
 ;=>3
+(or (or false 4))
+;=>4
 
 ;; Testing cond macro
 

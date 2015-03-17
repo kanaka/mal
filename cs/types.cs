@@ -5,7 +5,7 @@ using Mal;
 namespace Mal {
     public class types {
         //
-        // Exceptiosn/Errors
+        // Exceptions/Errors
         //
         public class MalThrowable : Exception {
             public MalThrowable() : base() { }

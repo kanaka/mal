@@ -4,10 +4,20 @@
 (do (do 1 2))
 ;=>2
 
+;;
 ;; Testing read-string, eval and slurp
+(read-string "(1 2 (3 4) nil)")
+;=>(1 2 (3 4) nil)
 
 (read-string "(+ 2 3)")
 ;=>(+ 2 3)
+
+(read-string "7 ;; comment")
+;=>7
+
+;;; Differing output, but make sure no fatal error
+(read-string ";; comment")
+
 
 (eval (read-string "(+ 2 3)"))
 ;=>5

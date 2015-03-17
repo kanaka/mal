@@ -7,6 +7,8 @@ import pty, signal, atexit
 from subprocess import Popen, STDOUT, PIPE
 from select import select
 
+IS_PY_3 = sys.version_info[0] == 3
+
 # TODO: do we need to support '\n' too
 sep = "\r\n"
 #sep = "\n"
@@ -22,8 +24,10 @@ parser.add_argument('--test-timeout', default=20, type=int,
         help="default timeout for each individual test action")
 parser.add_argument('--pre-eval', default=None, type=str,
         help="Mal code to evaluate prior to running the test")
+parser.add_argument('--no-pty', action='store_true',
+        help="Use direct pipes instead of pseudo-tty")
 parser.add_argument('--mono', action='store_true',
-        help="Use workarounds Mono/.Net Console misbehaviors")
+        help="Use workarounds Mono/.Net Console misbehaviors, implies --no-pty")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -32,14 +36,16 @@ parser.add_argument('mal_cmd', nargs="*",
              "specify a Mal command line with dashed options.")
 
 class Runner():
-    def __init__(self, args, mono=False):
+    def __init__(self, args, no_pty=False, mono=False):
         #print "args: %s" % repr(args)
+        if mono: no_pty = True
+        self.no_pty = no_pty
         self.mono = mono
 
         # Cleanup child process on exit
         atexit.register(self.cleanup)
 
-        if mono:
+        if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                            preexec_fn=os.setsid)
@@ -65,7 +71,8 @@ class Runner():
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
                 #print "new_data: '%s'" % new_data
-                if self.mono:
+                new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
+                if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
                     self.buf += new_data
@@ -81,15 +88,21 @@ class Runner():
         return None
 
     def writeline(self, str):
-        self.stdin.write(str + "\n")
+        def _to_bytes(s):
+            return bytes(s, "utf-8") if IS_PY_3 else s
+
+        self.stdin.write(_to_bytes(str + "\n"))
         if self.mono:
             # Simulate echo
-            self.buf += str + "\r\n"
+            self.buf += _to_bytes(str + "\r\n")
 
     def cleanup(self):
         #print "cleaning up"
         if self.p:
-            os.killpg(self.p.pid, signal.SIGTERM)
+            try:
+                os.killpg(self.p.pid, signal.SIGTERM)
+            except OSError:
+                pass
             self.p = None
 
 
@@ -98,7 +111,7 @@ test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, mono=args.mono)
+r = Runner(args.mal_cmd, no_pty=args.no_pty, mono=args.mono)
 
 
 test_idx = 0
@@ -113,10 +126,10 @@ def read_test(data):
         elif line[0:3] == ";;;":       # ignore comment
             continue
         elif line[0:2] == ";;":        # output comment
-            print line[3:]
+            print(line[3:])
             continue
         elif line[0:2] == ";":         # unexpected comment
-            print "Test data error at line %d:\n%s" % (test_idx, line)
+            print("Test data error at line %d:\n%s" % (test_idx, line))
             return None, None, None, test_idx
         form = line   # the line is a form to send
 
@@ -144,10 +157,10 @@ def assert_prompt(timeout):
     header = r.read_to_prompt(['user> ', 'mal-user> '], timeout=timeout)
     if not header == None:
         if header:
-            print "Started with:\n%s" % header
+            print("Started with:\n%s" % header)
     else:
-        print "Did not get 'user> ' or 'mal-user> ' prompt"
-        print "    Got      : %s" % repr(r.buf)
+        print("Did not get 'user> ' or 'mal-user> ' prompt")
+        print("    Got      : %s" % repr(r.buf))
         sys.exit(1)
 
 
@@ -177,17 +190,22 @@ while test_data:
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if ret == "*" or res == expected:
-            print " -> SUCCESS"
+            print(" -> SUCCESS")
         else:
-            print " -> FAIL (line %d):" % line_num
-            print "    Expected : %s" % repr(expected)
-            print "    Got      : %s" % repr(res)
+            print(" -> FAIL (line %d):" % line_num)
+            print("    Expected : %s" % repr(expected))
+            print("    Got      : %s" % repr(res))
             fail_cnt += 1
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt.")
+        print("Output so far:\n%s" % r.buf)
+        sys.exit(1)
     except:
-        print "Got Exception"
+        _, exc, _ = sys.exc_info()
+        print("\nException: %s" % repr(exc.message))
         sys.exit(1)
 
 if fail_cnt > 0:
-    print "FAILURES: %d" % fail_cnt
+    print("FAILURES: %d" % fail_cnt)
     sys.exit(2)
 sys.exit(0)

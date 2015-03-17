@@ -4,15 +4,15 @@
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    strng))
+  strng)
 
 ;; eval
 (defn EVAL [ast env]
-  (eval (read-string ast)))
+  ast)
 
 ;; print
-(defn PRINT [exp] exp)
+(defn PRINT [exp]
+  exp)
 
 ;; repl
 (defn rep [strng] (PRINT (EVAL (READ strng), {})))

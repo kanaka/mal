@@ -25,13 +25,17 @@ namespace Mal {
         }
 
         static void Main(string[] args) {
-            string prompt = "user> ";
+            if (args.Length > 0 && args[0] == "--raw") {
+                Mal.readline.mode = Mal.readline.Mode.Raw;
+            }
 
+            // repl loop
             while (true) {
                 string line;
                 try {
-                    line = Mal.readline.Readline(prompt);
+                    line = Mal.readline.Readline("user> ");
                     if (line == null) { break; }
+                    if (line == "") { continue; }
                 } catch (IOException e) {
                     Console.WriteLine("IOException: " + e.Message);
                     break;

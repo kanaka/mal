@@ -3,7 +3,7 @@
 SOURCES_BASE = src/types.rs src/readline.rs \
 	       src/reader.rs src/printer.rs \
 	       src/env.rs src/core.rs
-SOURCES_LISP = src/env.rs src/core.rs src/stepA_mal.rs
+SOURCES_LISP = src/env.rs src/core.rs src/bin/stepA_mal.rs
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
@@ -28,7 +28,7 @@ clean:
 	cargo clean
 	rm -f mal
 
-.PHONY: stats stats-lisp
+.PHONY: stats stats-lisp mal
 
 stats: $(SOURCES)
 	@wc $^

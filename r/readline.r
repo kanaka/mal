@@ -25,16 +25,20 @@ readline <- function(prompt) {
     if (!.state$rl_history_loaded) {
         .state$rl_history_loaded <- TRUE
 
-        lines <- scan(HISTORY_FILE, what="", sep="\n", quiet=TRUE)
-        for(add_line in lines) {
-            .dyncall(.call_add_history, "Z)v", add_line)
+        if (file.access(HISTORY_FILE, 4) == 0) {
+            lines <- scan(HISTORY_FILE, what="", sep="\n", quiet=TRUE)
+            for(add_line in lines) {
+                .dyncall(.call_add_history, "Z)v", add_line)
+            }
         }
     }
 
     line <- .readline(prompt)
     if (is.null(line)) return(NULL)
     .dyncall(.call_add_history, "Z)v", line)
-    write(line, file=HISTORY_FILE, append=TRUE)
+    if (file.access(HISTORY_FILE, 2) == 0) {
+        write(line, file=HISTORY_FILE, append=TRUE)
+    }
 
     line
 }

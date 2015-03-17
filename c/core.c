@@ -49,7 +49,11 @@ MalVal *symbol_Q(MalVal *seq) {
 MalVal *keyword(MalVal *args) {
     assert_type(args, MAL_STRING,
                 "keyword called with non-string value");
-    return malval_new_keyword(args->val.string);
+    if (args->val.string[0] == '\x7f') {
+        return args;
+    } else {
+        return malval_new_keyword(args->val.string);
+    }
 }
 
 MalVal *keyword_Q(MalVal *seq) {

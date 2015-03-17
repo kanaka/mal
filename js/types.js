@@ -104,7 +104,13 @@ function _symbol_Q(obj) { return obj instanceof Symbol; }
 
 
 // Keywords
-function _keyword(name) { return "\u029e" + name; }
+function _keyword(obj) {
+    if (typeof obj === 'string' && obj[0] === '\u029e') {
+        return obj;
+    } else {
+        return "\u029e" + obj;
+    }
+}
 function _keyword_Q(obj) {
     return typeof obj === 'string' && obj[0] === '\u029e';
 }

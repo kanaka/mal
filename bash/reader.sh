@@ -149,10 +149,10 @@ READ_STR () {
 READLINE_EOF=
 READLINE_HISTORY_FILE=${HOME}/.mal-history
 READLINE () {
-    history -r "${READLINE_HISTORY_FILE}"
+    history -r "${READLINE_HISTORY_FILE}" 2>/dev/null || true
     read -r -e -p "${1}" r || return "$?"
     history -s -- "${r}"
-    history -a "${READLINE_HISTORY_FILE}"
+    history -a "${READLINE_HISTORY_FILE}" 2>/dev/null || true
 }
 
 fi

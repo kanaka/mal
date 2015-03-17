@@ -1,39 +1,10 @@
 [package]
 
-name = "Mal"
+name = "mal"
 version = "0.0.1"
 authors = [ "Your name <you@example.com>" ]
 
-
-[dependencies.cadencemarseille-pcre]
-
-git = "https://github.com/kanaka/rust-pcre"
-
-
-#[profile.dev]
-#
-#debug = true
-
-
-[[bin]]
-name = "step0_repl"
-[[bin]]
-name = "step1_read_print"
-[[bin]]
-name = "step2_eval"
-[[bin]]
-name = "step3_env"
-[[bin]]
-name = "step4_if_fn_do"
-[[bin]]
-name = "step5_tco"
-[[bin]]
-name = "step6_file"
-[[bin]]
-name = "step7_quote"
-[[bin]]
-name = "step8_macros"
-[[bin]]
-name = "step9_try"
-[[bin]]
-name = "stepA_mal"
+[dependencies]
+time = "0.1"
+regex = "0.1"
+libc = "0.1"

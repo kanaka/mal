@@ -1,17 +1,3 @@
-;; Test recursive non-tail call function
-
-(def! sum-to (fn* (n) (if (= n 0) 0 (+ n (sum-to (- n 1))))))
-
-(sum-to 10)
-;=>55
-
-;;; no try* yet, so test completion of side-effects
-(def! res1 nil)
-;=>nil
-(def! res1 (sum-to 10000)))
-res1
-;=>nil
-
 ;; Testing recursive tail-call function
 
 (def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
@@ -24,4 +10,21 @@ res1
 (def! res2 (sum2 10000 0))
 res2
 ;=>50005000
+
+
+;; Test recursive non-tail call function
+
+(def! sum-to (fn* (n) (if (= n 0) 0 (+ n (sum-to (- n 1))))))
+
+(sum-to 10)
+;=>55
+
+;;; no try* yet, so test completion of side-effects
+(def! res1 nil)
+;=>nil
+;;; For implementations without their own TCO this should fail and
+;;; leave res1 unchanged
+(def! res1 (sum-to 10000))
+res1
+;=>nil
 
