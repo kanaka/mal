@@ -1,5 +1,7 @@
 # Mal/Make-a-Lisp FAQ
 
+<a name="why_mal"></a>
+
 ### Why did you create mal/make-a-lisp?
 ### OR Why the name "mal"?
 ### OR Why?
@@ -25,6 +27,8 @@ tool and so the "mal" name became a double entendre for "Make, A Lisp"
 and "make-a-lisp" (and eventually just the latter given that the make
 implementation is now just a small part of the whole).
 
+
+<a name="code_split"></a>
 
 ### Why is some code split into steps and some code not?
 
@@ -57,6 +61,9 @@ represent the core of what makes something a Lisp, the rest of the
 modules are just language specific details (they may be the harder
 than the Lisp part, but that is due to the nature of the target
 language not because of Lisp functionality per se).
+
+
+<a name="steps"></a>
 
 ### Why are the mal/make-a-lisp steps structured the way they are?
 
@@ -107,6 +114,8 @@ process guide for step1 and to be clear that many of the types are
 deferrable until later. But I am always open to suggestions.
 
 
+<a name="add_implementation"></a>
+
 ### Will you add my new implementation?
 
 Absolutely! I want mal to have a idiomatic implementation in every
@@ -125,11 +134,13 @@ into the main repository:
   marked as optional and not needed for self-hosting.
 
 * Your implementation should follow the existing mal steps and
-  structure: Lisp-centric code in the step files, other code in
-  reader, printer, env, and core files. I encourage you to create
-  implementations that take mal in new directions for your own
-  learning and experimentation, but for it to be included in the main
-  repository I ask that it follows the steps and structure.
+  structure: Lisp-centric code (eval, eval_ast, quasiquote,
+  macroexpand) in the step files, other code in reader, printer, env,
+  and core files. See [code layout rationale](#code_split) above.
+  I encourage you to create implementations that take mal in new
+  directions for your own learning and experimentation, but for it to
+  be included in the main repository I ask that it follows the steps
+  and structure.
 
 * Your implementation should stick as much as possible to the accepted
   idioms and conventions in that language. Try to create an
