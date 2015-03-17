@@ -58,7 +58,7 @@ sub _clone {
             return Vector->new( [ @{$obj->{val}} ] );
         }
         when (/^HashMap/) {
-            return Vector->new( { %{$obj->{val}} } );
+            return HashMap->new( { %{$obj->{val}} } );
         }
         when (/^Function/) {
             return Function->new_from_hash( { %{$obj} } );
