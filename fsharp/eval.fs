@@ -6,6 +6,17 @@ module Eval
 
     let errExpected tok = EvalError(sprintf "expected %s" tok)
 
+    let mapPairs f (source : seq<_>) =
+        use iter = source.GetEnumerator()
+        let rec loop () =
+            if iter.MoveNext() then
+                let first = iter.Current
+                if not (iter.MoveNext()) then raise <| errExpected "even node count"
+                let second = iter.Current
+                f first second
+                loop ()
+        loop ()
+
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
         | List(lst) -> lst |> List.map (eval env) |> List
@@ -23,35 +34,20 @@ module Eval
             | _ -> raise <| errExpected "symbol"
         | _ -> raise <| Core.errArity ()
 
-    and setListBinding env = function
-        | sym::form::rest ->
-            let s = match sym with | Symbol(s) -> s | _ -> raise <| errExpected "symbol"
-            let form = eval env form
-            Env.set env s form
-            setListBinding env rest
-        | [] -> ()
-        | _ -> raise <| errExpected "even nodes"
-
-    and setVectorBinding env (nodes : Node array) =
-        if nodes.Length % 2 = 1 then raise <| errExpected "even nodes"
-        let rec loop pos =
-            if pos < nodes.Length then
-                let s = match nodes.[pos] with 
-                        | Symbol(s) -> s 
-                        | _ -> raise <| errExpected "symbol"
-                let form = eval env <| nodes.[pos + 1]
-                Env.set env s form
-                loop (pos + 2)
-            else
-                ()
-        loop 0
+    and setBinding env first second =
+        let s = match first with 
+                | Symbol(s) -> s 
+                | _ -> raise <| errExpected "symbol"
+        let form = eval env second
+        Env.set env s form
 
     and letStar env = function
         | bindings::form::[] ->
             let newEnv = Env.makeNew env
+            let binder = setBinding newEnv
             match bindings with
-            | List(lst) -> setListBinding newEnv lst
-            | Vector(vec) -> setVectorBinding newEnv vec
+            | List(lst) -> lst |> mapPairs binder
+            | Vector(vec) -> vec |> mapPairs binder
             | _ -> raise <| errExpected "list or vector"
             eval newEnv form
         | _ -> raise <| Core.errArity ()
