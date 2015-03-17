@@ -59,8 +59,11 @@ package body Reader is
           Double_Delimiter => False));
 
    -- Atom definition
+   -- Note Start_Chars includes : for keywords.
    Start_Chars : Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.Constants.Letter_Set;
+     Ada.Strings.Maps."or"
+       (Ada.Strings.Maps.Constants.Letter_Set,
+        Ada.Strings.Maps.To_Set (':'));
 
    Body_Chars : Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps."or"
