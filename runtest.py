@@ -26,8 +26,6 @@ parser.add_argument('--pre-eval', default=None, type=str,
         help="Mal code to evaluate prior to running the test")
 parser.add_argument('--no-pty', action='store_true',
         help="Use direct pipes instead of pseudo-tty")
-parser.add_argument('--mono', action='store_true',
-        help="Use workarounds Mono/.Net Console misbehaviors, implies --no-pty")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -36,19 +34,21 @@ parser.add_argument('mal_cmd', nargs="*",
              "specify a Mal command line with dashed options.")
 
 class Runner():
-    def __init__(self, args, no_pty=False, mono=False):
+    def __init__(self, args, no_pty=False):
         #print "args: %s" % repr(args)
-        if mono: no_pty = True
         self.no_pty = no_pty
-        self.mono = mono
 
         # Cleanup child process on exit
         atexit.register(self.cleanup)
 
+        self.p = None
+        env = os.environ
+        env['TERM'] = 'dumb'
         if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
-                           preexec_fn=os.setsid)
+                           preexec_fn=os.setsid,
+                           env=env)
             self.stdin = self.p.stdin
             self.stdout = self.p.stdout
         else:
@@ -56,7 +56,8 @@ class Runner():
             master, slave = pty.openpty()
             self.p = Popen(args, bufsize=0,
                            stdin=slave, stdout=slave, stderr=STDOUT,
-                           preexec_fn=os.setsid)
+                           preexec_fn=os.setsid,
+                           env=env)
             self.stdin = os.fdopen(master, 'r+b', 0)
             self.stdout = self.stdin
 
@@ -92,9 +93,6 @@ class Runner():
             return bytes(s, "utf-8") if IS_PY_3 else s
 
         self.stdin.write(_to_bytes(str + "\n"))
-        if self.mono:
-            # Simulate echo
-            self.buf += _to_bytes(str + "\r\n")
 
     def cleanup(self):
         #print "cleaning up"
@@ -111,7 +109,7 @@ test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, no_pty=args.no_pty, mono=args.mono)
+r = Runner(args.mal_cmd, no_pty=args.no_pty)
 
 
 test_idx = 0
