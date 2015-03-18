@@ -37,7 +37,7 @@ package body Types is
    end Closing;
 
 
-   function To_String (T : Mal_Type) return String is
+   function Mal_Type_To_String (T : Mal_Type) return String is
       use Ada.Strings.Unbounded;
    begin
       case T.Sym_Type is
@@ -111,6 +111,18 @@ package body Types is
          when Error =>
             return To_String (T.Error_Msg);
       end case;
+   end Mal_Type_To_String;
+
+
+   function To_String (T : Mal_Type) return String is
+   begin
+      if T.Meta /= null then
+         return "(with-meta " &
+                Mal_Type_To_String (T) & " " &
+                Mal_Type_To_String (T.Meta.all) & ")";
+      else
+         return Mal_Type_To_String (T);
+      end if;
    end To_String;
 
 

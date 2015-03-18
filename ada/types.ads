@@ -23,6 +23,7 @@ package Types is
    function Closing (LT : List_Types) return Character;
 
    type Mal_Type (Sym_Type : Sym_Types) is record
+      Meta : Mal_Type_Access;
       case Sym_Type is
          when Int => Int_Val : Integer;
          when Floating => Float_Val : Float;

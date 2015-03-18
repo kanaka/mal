@@ -139,47 +139,58 @@ package body Reader is
          when Int =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Int,
+               Meta => null,
                Int_Val => Integer'Value (Get_Token_String));
          when Float_Tok =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Floating,
+               Meta => null,
                Float_Val => Float'Value (Get_Token_String));
          when Sym =>
             Res := new Types.Mal_Type'
-              (Sym_Type => Types.Sym, Symbol => Get_Token_Char);
+              (Sym_Type => Types.Sym,
+               Meta => null,
+               Symbol => Get_Token_Char);
          when Nil =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Atom,
+               Meta => null,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
          when True_Tok =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Atom,
+               Meta => null,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
          when False_Tok =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Atom,
+               Meta => null,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
          when Exp_Tok =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Atom,
+               Meta => null,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
          when Splice_Unq =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Unitary,
+               Meta => null,
                The_Function => Types.Splice_Unquote,
                The_Operand => null);
          when Str =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Str,
+               Meta => null,
                The_String => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
          when Atom =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Atom,
+               Meta => null,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
                         (Get_Token_String));
          when Whitespace | Comment => null;
@@ -228,12 +239,13 @@ package body Reader is
    begin
       List_MT := new Mal_Type'
                        (Sym_Type => List, 
+                        Meta => null,
                         List_Type => LT,
                         The_List => Lists.Empty_List);
       loop
          MTA := Read_Form;
          exit when MTA = null or else
-                   MTA.all = (Sym_Type => Sym, Symbol => Close);
+                   (MTA.Sym_Type = Sym and then MTA.Symbol = Close);
          Lists.Append (List_MT.The_List, MTA);
       end loop;
       return List_MT;
@@ -244,6 +256,7 @@ package body Reader is
         end if;
         return new Mal_Type'
           (Sym_Type => Types.Error,
+           Meta => null,
            Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
                           ("expected '" & Close & "'"));
    end Read_List;
@@ -269,19 +282,31 @@ package body Reader is
             return Read_List (Vector_List);
          elsif MT.Symbol = '{' then
             return Read_List (Hashed_List);
+         elsif MT.Symbol = '^' then
+            declare
+               Meta, Obj : Mal_Type_Access;
+            begin
+               Meta := Read_Form;
+               Obj := Read_Form;
+               Obj.Meta := Meta;
+               return Obj;
+            end;
          elsif MT.Symbol = ACL.Apostrophe then
             return new Mal_Type'
               (Sym_Type => Unitary,
+               Meta => null,
                The_Function => Quote,
                The_Operand => Read_Form);
          elsif MT.Symbol = ACL.Grave then
             return new Mal_Type'
               (Sym_Type => Unitary,
+               Meta => null,
                The_Function => Quasiquote,
                The_Operand => Read_Form);
          elsif MT.Symbol = ACL.Tilde then
             return new Mal_Type'
               (Sym_Type => Unitary,
+               Meta => null,
                The_Function => Unquote,
                The_Operand => Read_Form);
          else
@@ -293,6 +318,7 @@ package body Reader is
 
          return new Mal_Type'
            (Sym_Type => Unitary,
+            Meta => null,
             The_Function => Splice_Unquote,
             The_Operand => Read_Form);
 
@@ -304,13 +330,26 @@ package body Reader is
       when String_Error =>
         return new Mal_Type'
           (Sym_Type => Types.Error,
+           Meta => null,
            Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
                           ("expected '""'"));
    end Read_Form;
 
 
    function Read_Str (S : String) return Types.Mal_Type_Access is
+      I, Str_Len : Natural := S'Length;
    begin
+      -- Filter out lines consisting of only whitespace and/or comments
+      I := 1;
+      while I <= Str_Len and then
+            Ada.Strings.Maps.Is_In (S (I), Lisp_Whitespace) loop
+         I := I + 1;
+      end loop;
+      if I > Str_Len or else S (I) = ';' then
+         return null;
+      end if;
+       
+       
       Analyzer.Reset;
       Input_Feeder.Set (S);
       Saved_Line (1..S'Length) := S;  -- Needed for error recovery
