@@ -17,7 +17,7 @@ RUN apt-get -y install make wget curl git
 RUN apt-get -y install gcc pkg-config 
 
 # Deps for Java-based languages (Clojure, Scala, Java)
-RUN apt-get -y install openjdk-7-jre-headless
+RUN apt-get -y install openjdk-7-jdk
 ENV MAVEN_OPTS -Duser.home=/mal
 
 # Deps for Mono-based languages (C#, VB.Net)
@@ -44,6 +44,7 @@ ADD https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein \
     /usr/local/bin/lein
 RUN sudo chmod 0755 /usr/local/bin/lein
 ENV LEIN_HOME /mal/.lein
+ENV LEIN_JVM_OPTS -Duser.home=/mal
 
 # CoffeeScript
 RUN npm install -g coffee-script
@@ -123,9 +124,6 @@ ENV SBT_OPTS -Duser.home=/mal
 
 # VB.Net
 RUN apt-get -y install mono-vbnc
-
-# TODO: move this up with Clojure
-ENV LEIN_JVM_OPTS -Duser.home=/mal
 
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
 ENV SKIP_IMPLS matlab
