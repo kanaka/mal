@@ -22,14 +22,22 @@ procedure Step1_Read_Print is
    end Print;
 
    function Rep (Param : String) return String is
-     AST : Types.Mal_Type_Access := Read (Param);
-     Eval_Str : Types.Mal_Type_Access := Eval (AST);
-     Print_Str : String := Print (Eval_Str);
+     use types;
+     AST, Evaluated_AST : Mal_Type_Access;
    begin
-     return Print_Str;
+
+     AST := Read (Param);
+
+     if AST = null then
+        return "";
+     else
+        Evaluated_AST := Eval (AST);
+        return Print (Evaluated_AST);
+     end if;
+
    end Rep; 
 
-   S : String (1..1024);
+   S : String (1..Reader.Max_Line_Len);
    Last : Natural;
 
 begin
@@ -37,7 +45,7 @@ begin
    loop
       Ada.Text_IO.Put ("user> ");
       Ada.Text_IO.Get_Line (S, Last);
-      Ada.Text_IO.Put_Line (Rep (S(1..Last)));
+      Ada.Text_IO.Put_Line (Rep (S (1..Last)));
    end loop;
 
 exception

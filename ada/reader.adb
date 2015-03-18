@@ -1,5 +1,6 @@
 with Ada.IO_Exceptions;
 with Ada.Characters.Latin_1;
+with Ada.Exceptions;
 with Ada.Strings.Maps.Constants;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -109,6 +110,12 @@ package body Reader is
      Tokenizer.Initialize (Syntax, Input_Feeder'access);
 
 
+   -- This is raised if an invalid character is encountered
+   Lexical_Error : exception;
+
+   -- The unterminated string error
+   String_Error : exception;
+
    function Get_Token_String return String is
    begin
       return Tokenizer.Lexeme (Analyzer);
@@ -121,6 +128,8 @@ package body Reader is
       return S(S'First);
    end Get_Token_Char;
 
+
+   Saved_Line : String (1..Max_Line_Len);
 
    function Get_Token return Types.Mal_Type_Access is
       Res : Types.Mal_Type_Access;
@@ -176,6 +185,35 @@ package body Reader is
          when Whitespace | Comment => null;
       end case;
       return Res;
+
+   exception
+
+      when E : OpenToken.Syntax_Error =>
+
+-- Extra debug info
+--         declare
+--            Err_Pos : Integer := Analyzer.Column + 1;
+--         begin
+--            for J in 1..Err_Pos + 5 loop
+--               Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, ' ');
+--            end loop;
+--            Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, "^");
+--         end;
+
+--         Ada.Text_IO.Put_Line
+--           (Ada.Text_IO.Standard_Error,
+--            Ada.Exceptions.Exception_Information (E));
+
+         declare
+            Col : Integer := Analyzer.Column;
+         begin
+            if Saved_Line (Col) ='"' then
+               raise String_Error;
+            else
+               raise Lexical_Error;
+            end if;
+         end;
+
    end Get_Token;
 
 
@@ -199,6 +237,15 @@ package body Reader is
          Lists.Append (List_MT.The_List, MTA);
       end loop;
       return List_MT;
+   exception
+      when Lexical_Error =>
+        if List_MT /= null then
+           Delete_Tree (List_MT);
+        end if;
+        return new Mal_Type'
+          (Sym_Type => Types.Error,
+           Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
+                          ("expected '" & Close & "'"));
    end Read_List;
 
 
@@ -215,6 +262,7 @@ package body Reader is
 
       if MT.Sym_Type = Sym then
 
+         -- Listy things and quoting...
          if MT.Symbol = '(' then
             return Read_List (List_List);
          elsif MT.Symbol = '[' then
@@ -242,14 +290,22 @@ package body Reader is
 
       elsif MT.Sym_Type = Unitary and then
             MT.The_Function = Splice_Unquote then
+
          return new Mal_Type'
            (Sym_Type => Unitary,
             The_Function => Splice_Unquote,
             The_Operand => Read_Form);
+
       else
          return MT;
       end if;
 
+   exception
+      when String_Error =>
+        return new Mal_Type'
+          (Sym_Type => Types.Error,
+           Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
+                          ("expected '""'"));
    end Read_Form;
 
 
@@ -257,13 +313,8 @@ package body Reader is
    begin
       Analyzer.Reset;
       Input_Feeder.Set (S);
+      Saved_Line (1..S'Length) := S;  -- Needed for error recovery
       return Read_Form;
-   exception
-      when OPENTOKEN.SYNTAX_ERROR =>
-         Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error,
-            "Lexical error at char " & Integer'Image (Analyzer.Line));
-         raise Ada.IO_Exceptions.End_Error;
    end Read_Str;
    
 

@@ -14,7 +14,7 @@ package Types is
        (Element_Type => Mal_Type_Access,
         "=" => "=");
 
-   type Sym_Types is (Int, Floating, List, Sym, Str, Atom, Unitary);
+   type Sym_Types is (Int, Floating, List, Sym, Str, Atom, Unitary, Error);
 
    type Unitary_Functions is (Quote, Unquote, Quasiquote, Splice_Unquote);
 
@@ -35,9 +35,12 @@ package Types is
          when Unitary =>
             The_Function : Unitary_Functions;
             The_Operand : Mal_Type_Access;
+         when Error => Error_Msg : Ada.Strings.Unbounded.Unbounded_String;
       end case;
    end record;
 
    function To_String (T : Mal_Type) return String;
+
+   procedure Delete_Tree (MTA : in out Mal_Type_Access);
 
 end Types;

@@ -1,5 +1,6 @@
 with Ada.Characters.Latin_1;
 with Ada.Text_IO;
+with Ada.Unchecked_Deallocation;
 
 package body Types is
 
@@ -107,7 +108,43 @@ package body Types is
                   return
                     "(splice-unquote " & To_String (T.The_Operand.all) & ")";
             end case;
+         when Error =>
+            return To_String (T.Error_Msg);
       end case;
    end To_String;
+
+
+   procedure Free is
+     new Ada.Unchecked_Deallocation (Mal_Type, Mal_Type_Access);
+
+   procedure Delete_Tree (MTA : in out Mal_Type_Access) is
+   begin
+      if MTA /= null then
+         case MTA.Sym_Type is
+            when List =>
+               declare
+                  C, D : Lists.Cursor;
+                  Tmp : Mal_Type_Access;
+               begin
+                  C := MTA.The_List.First;
+                  while Lists.Has_Element (C) loop
+                     -- Delete item at this position in list.
+                     Tmp := Lists.Element (C);
+                     Delete_Tree (Tmp); -- must be variable (out param)
+                     -- Access and save the next cursor pos.
+                     D := Lists.Next (C);
+                     -- Delete this item position from list.
+                     Lists.Delete (MTA.The_List, C);
+                     -- Restore the next cursor position.
+                     C := D;
+                  end loop;
+               end;
+            when Unitary =>
+               Delete_Tree (MTA.The_Operand);
+            when others => Free (MTA);
+         end case;
+      end if;
+   end Delete_Tree;
+
 
 end Types;
