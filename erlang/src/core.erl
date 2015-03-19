@@ -9,7 +9,7 @@
 %% Numeric functions
 %%
 
-int_op(F, [A0,A1|[]]) ->
+int_op(F, [A0,A1]) ->
     case A0 of
         {integer, I0} ->
             case A1 of
@@ -35,9 +35,8 @@ int_div(Args) ->
     {integer, int_op(fun(I, J) -> I div J end, Args)}.
 
 ns() ->
-    #{
-        "+" => fun int_add/1,
-        "-" => fun int_sub/1,
-        "*" => fun int_mul/1,
-        "/" => fun int_div/1
-    }.
+    E1 = env:new(undefined),
+    E2 = env:set(E1, {symbol, "+"}, fun int_add/1),
+    E3 = env:set(E2, {symbol, "-"}, fun int_sub/1),
+    E4 = env:set(E3, {symbol, "*"}, fun int_mul/1),
+    env:set(E4, {symbol, "/"}, fun int_div/1).

@@ -100,7 +100,7 @@ list_to_map(L) ->
 
 list_to_map([], AccIn) ->
     AccIn;
-list_to_map([_H|[]], _AccIn) ->
+list_to_map([_H], _AccIn) ->
     {error, "odd number of hash-map keys/values"};
 list_to_map([K,V|T], AccIn) ->
     list_to_map(T, maps:put(K, V, AccIn)).
