@@ -48,6 +48,7 @@ class Runner():
         env = os.environ
         env['TERM'] = 'dumb'
         env['INPUTRC'] = '/dev/null'
+        env['PERL_RL'] = 'false'
         if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
