@@ -12,7 +12,7 @@ PYTHON = python
 
 IMPLS = bash c clojure coffee cs forth go haskell java js lua make mal \
 	ocaml matlab miniMAL nim perl php ps python r racket ruby rust \
-	scala vb
+	scala vb guile
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -41,6 +41,7 @@ EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
 EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
 EXCLUDE_TESTS += test^vb^step5   # completes at 10,000
+EXCLUDE_TESTS += test^guile^step5
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
@@ -77,6 +78,7 @@ ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/release/$($(1))
 scala_STEP_TO_PROG =   scala/$($(1)).scala
 vb_STEP_TO_PROG =      vb/$($(1)).exe
+guile_STEP_TO_PROG =   guile/$($(1)).scm
 
 # Needed some argument munging
 COMMA = ,
@@ -111,6 +113,8 @@ ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
 scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
+# needs TERM=dumb to work with readline
+guile_RUNSTEP =   guile ../$(2) $(3)
 
 # Extra options to pass to runtest.py
 cs_TEST_OPTS =  --mono
