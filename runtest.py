@@ -47,6 +47,7 @@ class Runner():
         self.p = None
         env = os.environ
         env['TERM'] = 'dumb'
+        env['INPUTRC'] = '/dev/null'
         if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
