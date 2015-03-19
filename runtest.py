@@ -69,6 +69,10 @@ class Runner():
                            stdin=slave, stdout=slave, stderr=STDOUT,
                            preexec_fn=os.setsid,
                            env=env)
+            # Now close slave so that we will get an exception from
+            # read when the child exits early
+            # http://stackoverflow.com/questions/11165521
+            os.close(slave)
             self.stdin = os.fdopen(master, 'r+b', 0)
             self.stdout = self.stdin
 
@@ -82,8 +86,8 @@ class Runner():
             [outs,_,_] = select([self.stdout], [], [], 1)
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
-                #print "new_data: '%s'" % new_data
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
+                #print "new_data: '%s'" % new_data
                 if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
@@ -205,13 +209,10 @@ while test_data:
             print("    Expected : %s" % repr(expected))
             print("    Got      : %s" % repr(res))
             fail_cnt += 1
-    except KeyboardInterrupt:
-        print("\nKeyboard interrupt.")
-        print("Output so far:\n%s" % r.buf)
-        sys.exit(1)
     except:
         _, exc, _ = sys.exc_info()
-        print("\nException: %s" % repr(exc.message))
+        print("\nException: %s" % repr(exc))
+        print("Output before exception:\n%s" % r.buf)
         sys.exit(1)
 
 if fail_cnt > 0:
