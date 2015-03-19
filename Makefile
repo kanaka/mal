@@ -93,9 +93,9 @@ cs_RUNSTEP =      mono ../$(2) --raw $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
 go_RUNSTEP =      ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
-java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" -Dexec.args="--raw$(if $(3), $(3),)"
+java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
 js_RUNSTEP =      node ../$(2) $(3)
-lua_RUNSTEP =     ../$(2) --raw $(3)
+lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,$(1),$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
@@ -117,9 +117,7 @@ vb_RUNSTEP =      mono ../$(2) --raw $(3)
 guile_RUNSTEP =   guile ../$(2) $(3)
 
 # Extra options to pass to runtest.py
-cs_TEST_OPTS =  --mono
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
-vb_TEST_OPTS =  --mono
 
 
 # Derived lists
