@@ -107,6 +107,9 @@ package body Types is
                when Splice_Unquote =>
                   return
                     "(splice-unquote " & To_String (T.The_Operand.all) & ")";
+               when Deref =>
+                  return
+                    "(deref " & To_String (T.The_Operand.all) & ")";
             end case;
          when Error =>
             return To_String (T.Error_Msg);

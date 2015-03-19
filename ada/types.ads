@@ -16,7 +16,8 @@ package Types is
 
    type Sym_Types is (Int, Floating, List, Sym, Str, Atom, Unitary, Error);
 
-   type Unitary_Functions is (Quote, Unquote, Quasiquote, Splice_Unquote);
+   type Unitary_Functions is
+     (Quote, Unquote, Quasiquote, Splice_Unquote, Deref);
 
    type List_Types is (List_List, Vector_List, Hashed_List);
    function Opening (LT : List_Types) return Character;

@@ -309,6 +309,12 @@ package body Reader is
                Meta => null,
                The_Function => Unquote,
                The_Operand => Read_Form);
+         elsif MT.Symbol = ACL.Commercial_At then
+            return new Mal_Type'
+              (Sym_Type => Unitary,
+               Meta => null,
+               The_Function => Deref,
+               The_Operand => Read_Form);
          else
             return MT;
          end if;
