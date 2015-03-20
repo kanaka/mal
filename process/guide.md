@@ -370,16 +370,37 @@ and each step will give progressively more bang for the buck.
   true.
 
 * Add support for the other mal types: keyword, vector, hash-map, and
-  atom. TODO/TBD
-  * keyword: just a string stored with unicode prefix (or char 127 if
-    no unicode support).
-  * vector: can be implemented with same underlying type as list if
-    there is some mechanism for marking/distinguishing from a list.
-  * hash-map: only need to implement string keys (which enables
-    keyword keys since they are just special strings).
+  atom.
+  * keyword: a keyword is a token that begins with a colon. A keyword
+    can just be stored as a string with special unicode prefix like
+    0x29E (or char 0xff/127 if the target language does not have good
+    unicode support) and the printer translates strings with that
+    prefix back to the keyword representation. This makes it easy to
+    use keywords as hash map keys in most languages. You can also
+    store keywords as a unique data type, but you will need to make
+    sure they can be used as hash map keys (which may involve doing
+    a similar prefixed translation anyways).
+  * vector: a vector can be implemented with same underlying
+    type as a list as long as there is some mechanism to keep track of
+    the difference. You can use the same reader function for both
+    lists and vectors by adding parameters for the starting and ending
+    tokens.
+  * hash-map: a hash-map is an associative data structure that maps
+    strings to other mal values. If you implement keywords as prefixed
+    strings, then you only need a native associative data structure
+    which supports string keys. Clojure allows any value to be a hash
+    map key, but the base functionality in mal is to support strings
+    and keyword keys. Because of the representation of hash-maps as
+    an alternating sequence of keys and values, you can probably use
+    the same reader function for hash-maps as lists and vectors with
+    parameters to indicate the starting and ending tokens. The odd
+    tokens are then used for keys with the corresponding even tokens
+    as the values.
 
-* Add support for reader macros which are special forms that are
-  transformed into other forms during the read phase.
+* Add support for reader macros which are forms that are
+  transformed into other forms during the read phase. Refer to
+  `tests/step1_read_print.mal` for the form that these macros should
+  take (they are just simple transformations of the token stream).
 
 * Add comment support to your reader. The tokenizer should ignore
   tokens that start with ";". Your `read_str` function will need to
@@ -1195,6 +1216,12 @@ implementation. Let us continue!
 
 ![step9_try architecture](step9_try.png)
 
+In this step you will implement the final mal special form for
+error/exception handling: `try*/catch*`. You will also add several core
+functions to you implementation. In particular, you will enhance the
+functional programming pedigree of you implementation by adding the
+`apply` and `map` core functions.
+
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
 the changes that will be made during this step:
 ```
@@ -1203,10 +1230,74 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 * Copy `step8_macros.qx` to `step9_try.qx`.
 
-* TODO/TBD.
-  * In step 5, if you did not add the original function (`fn`) to the
-    returned structure returned from `fn*`, the you will need to do so
-    now.
+* Add the `try*/catch*` special form to the EVAL function. The
+  try catch form looks like this: `(try* A (catch* B C))`. The form
+  `A` is evaluated, if it throws an exception, then form `C` is
+  evaluated with a new environment that binds the symbol B to the
+  value of the exception that was thrown.
+  * If your target language has built-in try/catch style exception
+    handling then you are already 90% of the way done. Add a
+    (native language) try/catch block that calls evaluates `A` within
+    the try block and catches all exceptions. If an exception is
+    caught, then translate it to a mal type/value. For native
+    exceptions this is either the message string or a mal hash-map
+    that contains the message string and other attributes of the
+    exception. When a regular mal types/values is used as an
+    exception, you will probably need to store it within a native
+    exception type in order to be able to convey/transport it using
+    the native try/catch mechanism. Then you will extract the mal
+    type/value from the native exception. Create a new mal environment
+    that binds B to the value of the exception. Finally, evaluate `C`
+    using that new environment.
+  * If your target language does not have built-in try/catch style
+    exception handling then you have some extra work to do. One of the
+    most straightforward approaches is to create a a global error
+    variable that stores the thrown mal type/value. The complication
+    is that there are a bunch of places where you must check to see if
+    the global error state is set and return without proceeding. The
+    rule of thumb is that this check should happen at the top of your
+    EVAL function and also right after any call to EVAL (and after any
+    function call that might happen to call EVAL further down the
+    chain). Yes, it is ugly, but you were warned in the section on
+    picking a language.
+
+* Add the `throw` core function. 
+  * If your language supports try/catch style exception handling, then
+    this function takes a mal type/value and throws/raises it as an
+    exception. In order to do this, you may need to create a custom
+    exception object that wraps a mal value/type.
+  * If your language does not support try/catch style exception
+    handling, then set the global error state to the mal type/value.
+
+* Add the `apply` and `map` core functions. In step 5, if you did not
+  add the original function (`fn`) to the structure returned from
+  `fn*`, the you will need to do so now. TODO/TBD.
+
+* Add some type predicates core functions. In Lisp, predicates are
+  functions that return true/false (or true value/nil) and typically
+  end in "?" or "p". TODO/TBD.
+  * `nil?`
+  * `true?`
+  * `false?`
+  * `symbol?`
+
+### Deferrable
+
+* Add the following new core functions TODO/TBD.
+  * `symbol`
+  * `keyword`
+  * `keyword?`
+  * `vector`
+  * `vector?`
+  * `hash-map`
+  * `map?`
+  * `assoc`
+  * `dissoc`
+  * `get`
+  * `contains?`
+  * `keys`
+  * `vals`
+  * `sequential?`
 
 
 <a name="stepA"></a>
@@ -1230,12 +1321,8 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 ## TODO:
 
 * simplify: "X argument (list element Y)" -> ast[Y]
-* step 8 summary (power of macros, warning about macros, almost to
-  self-hosting)
 * step 9
 * step A
-* more info on hash-map and keyword implementation. Hash-maps just
-  need to support string keys.
 * list of types with metadata: list, vector, hash-map, mal functions
 * more clarity about when to peek and poke in read_list and read_form
 * tokenizer: use first group rather than whole match (to eliminate
