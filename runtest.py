@@ -194,7 +194,12 @@ while test_data:
         break
     sys.stdout.write("TEST: %s -> [%s,%s]" % (form, repr(out), repr(ret)))
     sys.stdout.flush()
-    expected = "%s%s%s%s" % (form, sep, out, ret)
+
+    # The repeated form is to get around an occasional OS X issue
+    # where the form is repeated.
+    # https://github.com/kanaka/mal/issues/30
+    expected = ["%s%s%s%s" % (form, sep, out, ret),
+                "%s%s%s%s%s%s" % (form, sep, form, sep, out, ret)]
 
     r.writeline(form)
     try:
@@ -202,7 +207,7 @@ while test_data:
                                 '\r\nmal-user> ', '\nmal-user> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if ret == "*" or res == expected:
+        if ret == "*" or res in expected:
             print(" -> SUCCESS")
         else:
             print(" -> FAIL (line %d):" % line_num)
