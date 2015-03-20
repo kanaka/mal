@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <glib.h>
 
 #ifdef USE_READLINE
   #include <readline/readline.h>
