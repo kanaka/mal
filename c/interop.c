@@ -1,11 +1,18 @@
+#include <string.h>
 #include <dlfcn.h>
-#include <ffi.h>
+#if OSX
+  #include <ffi/ffi.h>
+#else
+  #include <ffi.h>
+#endif
+
 #include "types.h"
 
 
 GHashTable *loaded_dls = NULL;
 
 int get_byte_size(char *type) {
+    return 0;
 }
 
 typedef struct Raw64 {

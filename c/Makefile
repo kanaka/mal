@@ -26,6 +26,11 @@ OTHER_HDRS = types.h readline.h reader.h printer.h       core.h interop.h
 GLIB_CFLAGS ?= $(shell pkg-config --cflags glib-2.0)
 GLIB_LDFLAGS ?= $(shell pkg-config --libs glib-2.0)
 
+
+ifeq ($(shell uname -s),Darwin)
+CFLAGS +=-DOSX=1
+endif
+
 ifeq (,$(USE_READLINE))
 RL_LIBRARY ?= edit
 else

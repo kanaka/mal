@@ -125,7 +125,7 @@ extern MalVal mal_false;
 // Mal visible functions are "exported" in types_ns
 
 MalVal *malval_new(MalType type, MalVal *metadata);
-int malval_free(MalVal *mv);
+void malval_free(MalVal *mv);
 MalVal *malval_new_integer(gint64 val);
 MalVal *malval_new_float(gdouble val);
 MalVal *malval_new_string(char *val);
@@ -138,11 +138,11 @@ MalVal *malval_new_function(void *(*func)(void *), int arg_cnt);
 
 // Numbers
 #define WRAP_INTEGER_OP(name, op) \
-    MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
+    static MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
         return malval_new_integer(a->val.intnum op b->val.intnum); \
     }
 #define WRAP_INTEGER_CMP_OP(name, op) \
-    MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
+    static MalVal *int_ ## name(MalVal *a, MalVal *b)     { \
         return a->val.intnum op b->val.intnum ? &mal_true : &mal_false; \
     }
 
@@ -163,6 +163,14 @@ MalVal *_nth(MalVal *seq, int idx);
 MalVal *_first(MalVal *seq);
 MalVal *_rest(MalVal *seq);
 MalVal *_last(MalVal *seq);
+int _count(MalVal *obj);
+
+int _atom_Q(MalVal *exp);
+int _sequential_Q(MalVal *seq);
+int _list_Q(MalVal *seq);
+int _vector_Q(MalVal *seq);
+int _hash_map_Q(MalVal *seq);
+int _equal_Q(MalVal *a, MalVal *b);
 
 MalVal *_map2(MalVal *(*func)(void*, void*), MalVal *lst, void *arg2);
 
