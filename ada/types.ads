@@ -23,11 +23,14 @@ package Types is
    function Opening (LT : List_Types) return Character;
    function Closing (LT : List_Types) return Character;
 
+   subtype Mal_Float is Float;
+   subtype Mal_Integer is Integer;
+
    type Mal_Type (Sym_Type : Sym_Types) is record
       Meta : Mal_Type_Access;
       case Sym_Type is
-         when Int => Int_Val : Integer;
-         when Floating => Float_Val : Float;
+         when Int => Int_Val : Mal_Integer;
+         when Floating => Float_Val : Mal_Float;
          when List =>
             List_Type : List_Types;
             The_List : Lists.List;

@@ -43,7 +43,7 @@ package body Types is
       case T.Sym_Type is
          when Int =>
             declare
-               Res : String := Integer'Image (T.Int_Val);
+               Res : String := Mal_Integer'Image (T.Int_Val);
             begin
                if Res (1) = ' ' then
                  return Res (2..Res'Last);
@@ -53,7 +53,7 @@ package body Types is
             end;
          when Floating =>
             declare
-               Res : String := Float'Image (T.Float_Val);
+               Res : String := Mal_Float'Image (T.Float_Val);
             begin
                if Res (1) = ' ' then
                  return Res (2..Res'Last);

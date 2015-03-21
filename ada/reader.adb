@@ -140,12 +140,12 @@ package body Reader is
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Int,
                Meta => null,
-               Int_Val => Integer'Value (Get_Token_String));
+               Int_Val => Types.Mal_Integer'Value (Get_Token_String));
          when Float_Tok =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Floating,
                Meta => null,
-               Float_Val => Float'Value (Get_Token_String));
+               Float_Val => Types.Mal_Float'Value (Get_Token_String));
          when Sym =>
             Res := new Types.Mal_Type'
               (Sym_Type => Types.Sym,
