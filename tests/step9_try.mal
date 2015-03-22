@@ -56,24 +56,15 @@
 ;=>5
 (apply + 4 (list 5))
 ;=>9
-(apply + 4 [5])
-;=>9
 (apply prn (list 1 2 "3" (list)))
 ; 1 2 "3" ()
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
-(apply prn 1 2 ["3" 4])
-; 1 2 "3" 4
-;=>nil
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
 ;=>5
 (apply (fn* (a b) (+ a b)) 4 (list 5))
-;=>9
-(apply (fn* (a b) (+ a b)) [2 3])
-;=>5
-(apply (fn* (a b) (+ a b)) 4 [5])
 ;=>9
 
 ;; Testing map function
@@ -128,6 +119,18 @@
 ;=>false
 (sequential? "abc")
 ;=>false
+
+;; Testing apply function with core functions and arguments in vector
+(apply + 4 [5])
+;=>9
+(apply prn 1 2 ["3" 4])
+; 1 2 "3" 4
+;=>nil
+;; Testing apply function with user functions and arguments in vector
+(apply (fn* (a b) (+ a b)) [2 3])
+;=>5
+(apply (fn* (a b) (+ a b)) 4 [5])
+;=>9
 
 
 ;; Testing map function with vectors
