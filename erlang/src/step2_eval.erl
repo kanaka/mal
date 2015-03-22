@@ -7,7 +7,12 @@
 -export([main/1]).
 
 main(_) ->
-    Env = core:ns(),
+    Env = #{
+        "+" => fun core:int_add/1,
+        "-" => fun core:int_sub/1,
+        "*" => fun core:int_mul/1,
+        "/" => fun core:int_div/1
+    },
     loop(Env).
 
 loop(Env) ->
@@ -38,15 +43,13 @@ read(String) ->
         {error, Reason} -> io:format("error: ~s~n", [Reason]), nil
     end.
 
+eval({list, List}, Env) ->
+    case eval_ast({list, List}, Env) of
+        {list, [F|Args]} -> erlang:apply(F, [Args]);
+        _ -> {error, "expected a list"}
+    end;
 eval(Value, Env) ->
-    case Value of
-        {list, _List} ->
-            case eval_ast(Value, Env) of
-                {list, [F|Args]} -> erlang:apply(F, [Args]);
-                _ -> {error, "expected a list"}
-            end;
-        _ -> eval_ast(Value, Env)
-    end.
+    eval_ast(Value, Env).
 
 eval_ast(Value, Env) ->
     EvalList = fun(Elem) ->

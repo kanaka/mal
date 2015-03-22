@@ -1,12 +1,13 @@
 #####################
 
-SOURCES_BASE = src/step0_repl.erl src/step1_read_print.erl src/step2_eval.erl src/step3_env.erl
-SOURCES_LISP = src/core.erl src/env.erl src/reader.erl
+SOURCES_BASE = src/step0_repl.erl src/step1_read_print.erl src/step2_eval.erl src/step3_env.erl \
+	src/step4_if_fn_do.erl
+SOURCES_LISP = src/core.erl src/env.erl src/printer.erl src/reader.erl src/types.erl
 SOURCES = $(SOURCES_BASE) $(word $(words $(SOURCES_LISP)),${SOURCES_LISP})
 
 #####################
 
-SRCS = step0_repl.erl step1_read_print.erl step2_eval.erl step3_env.erl
+SRCS = step0_repl.erl step1_read_print.erl step2_eval.erl step3_env.erl step4_if_fn_do.erl
 BINS = $(SRCS:%.erl=%)
 
 #####################

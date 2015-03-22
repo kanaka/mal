@@ -125,7 +125,7 @@ read_meta(Reader) ->
             case read_form(Reader2) of
                 {ok, Reader3} ->
                     X = Reader3#reader.tree,
-                    Result = {list, [{symbol, 'with-meta'}, X, M]},
+                    Result = {list, [{symbol, "with-meta"}, X, M]},
                     {ok, #reader{tokens=Reader3#reader.tokens, tree=Result}};
                 {error, Reason} -> {error, Reason}
             end;
@@ -214,7 +214,6 @@ lex_string([$\\,Escaped|Rest], String) ->
     % unescape the string while building it
     case Escaped of
         [] -> {error, "end of string reached in escape"};
-        % TODO: should probably only allow \" and \n
         _  -> lex_string(Rest, [Escaped|String])
     end;
 lex_string([$"|Rest], String) ->

@@ -1,13 +1,16 @@
 %%%
-%%% Step 3: env
+%%% Step 4: if, fn, do
 %%%
 
--module(step3_env).
+-module(step4_if_fn_do).
 
 -export([main/1]).
 
 main(_) ->
-    loop(core:ns()).
+    % define the not function using mal itself
+    AST = read("(def! not (fn* (a) (if a false true)))"),
+    {_Result, Env} = eval(AST, core:ns()),
+    loop(Env).
 
 loop(Env) ->
     case io:get_line(standard_io, "user> ") of
@@ -45,11 +48,46 @@ eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
     {Result, Env};
 eval({list, [{symbol, "let*"}|_]}, _Env) ->
     throw("let* requires exactly two arguments");
+eval({list, [{symbol, "do"}|Args]}, Env) ->
+    {{list, Results}, E2} = eval_ast({list, Args}, Env),
+    {lists:last(Results), E2};
+eval({list, [{symbol, "if"}, Test, Consequent|Alternate]}, Env) ->
+    EvalAlternate = fun(Alt) ->
+        case Alt of
+            []  -> {nil, Env};
+            [A] -> eval(A, Env);
+            _   -> throw("if takes 2 or 3 arguments")
+        end
+    end,
+    case eval(Test, Env) of
+        {false, _E2} -> EvalAlternate(Alternate);
+        {nil, _E2}   -> EvalAlternate(Alternate);
+        _            -> eval(Consequent, Env)
+    end;
+eval({list, [{symbol, "if"}|_]}, _Env) ->
+    throw("if requires test and consequent");
+eval({list, [{symbol, "fn*"}, {vector, Binds}, Body]}, Env) ->
+    {{closure, Binds, Body, Env}, Env};
+eval({list, [{symbol, "fn*"}, {list, Binds}, Body]}, Env) ->
+    {{closure, Binds, Body, Env}, Env};
+eval({list, [{symbol, "fn*"}|_]}, _Env) ->
+    throw("fn* requires 2 arguments");
 eval({list, List}, Env) ->
     case eval_ast({list, List}, Env) of
+        {{list, [{closure, Binds, Body, CE}|A]}, E2} ->
+            % args may be a single element or a list, so
+            % always make it a list and then flatten it
+            CA = lists:flatten([A]),
+            % hack to permit a closure to know its own
+            % name, from the child environment
+            Bound = env:bind(CE, Binds, CA),
+            BoundWithFallback = env:fallback(Bound, E2),
+            {Result, _E} = eval(Body, BoundWithFallback),
+            % discard the environment from the closure
+            {Result, Env};
         {{list, [{function, F}|A]}, E2} ->
             {erlang:apply(F, [A]), E2};
-        _ -> throw("expected a list with a function")
+        _ -> throw("expected a list")
     end;
 eval(Value, Env) ->
     eval_ast(Value, Env).

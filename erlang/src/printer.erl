@@ -4,7 +4,7 @@
 
 -module(printer).
 
--export([pr_str/2]).
+-export([pr_str/2, pr_list/5]).
 
 -spec pr_str(term(), true|false) -> string().
 pr_str(Value, Readably) ->
@@ -13,20 +13,25 @@ pr_str(Value, Readably) ->
 		true -> "true";
 		false -> "false";
         {integer, Num} -> integer_to_list(Num);
-        {string, String} -> io_lib:format("~s", [escape_str(String, Readably)]);
-        {keyword, Keyword} -> io_lib:format("~s", [[$:|Keyword]]);
-        {symbol, Symbol} -> io_lib:format("~s", [Symbol]);
-        {list, List} -> pr_list(List, $(, $), Readably);
-        {vector, Vector} -> pr_list(Vector, $[, $], Readably);
-        {map, Map} -> pr_map(Map, Readably)
+        {string, String} when Readably == true -> escape_str(String);
+        {string, String} when Readably == false -> String;
+        {keyword, Keyword} -> [$:|Keyword];
+        {symbol, Symbol} -> Symbol;
+        {list, List} -> pr_list(List, "(", ")", " ", Readably);
+        {vector, Vector} -> pr_list(Vector, "[", "]", " ", Readably);
+        {map, Map} -> pr_map(Map, Readably);
+        {closure, _Binds, _Body, _Env} -> "#<function>";
+        {function, _Func} -> "#<builtin>";
+        {error, Reason} -> io_lib:format("error: ~s", [Reason])
 	end.
 
-pr_list(Seq, Start, End, Readably) ->
+-spec pr_list([term()], string(), string(), string(), boolean()) -> string().
+pr_list(Seq, Start, End, Join, Readably) ->
     Print = fun(Elem) ->
         pr_str(Elem, Readably)
     end,
-    L = string:join(lists:map(Print, Seq), " "),
-    io_lib:format("~c~s~c", [Start, L, End]).
+    L = string:join(lists:map(Print, Seq), Join),
+    Start ++ L ++ End.
 
 pr_map(Map, Readably) ->
     PrintKV = fun({Key, Value}) ->
@@ -37,14 +42,13 @@ pr_map(Map, Readably) ->
     L = string:join(lists:map(PrintKV, maps:to_list(Map)), " "),
     io_lib:format("{~s}", [L]).
 
-escape_str(String, false) ->
-    "\"" ++ String ++ "\"";
-escape_str(String, true) ->
+escape_str(String) ->
     Escape = fun(C, AccIn) ->
         case C of
             $"  -> [C, $\\|AccIn];
+            $\\ -> [C, $\\|AccIn];
             $\n -> [C, $\\|AccIn];
             _   -> [C|AccIn]
         end
     end,
-    escape_str(lists:reverse(lists:foldl(Escape, [], String)), false).
+    "\"" ++ lists:reverse(lists:foldl(Escape, [], String)) ++ "\"".
