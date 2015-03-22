@@ -131,68 +131,79 @@ package body Reader is
 
    Saved_Line : String (1..Max_Line_Len);
 
-   function Get_Token return Types.Mal_Type_Access is
-      Res : Types.Mal_Type_Access;
+   function Get_Token return Types.Smart_Pointer is
+      use Types;
+      Res : Types.Smart_Pointer;
    begin
       Tokenizer.Find_Next (Analyzer);
       case Tokenizer.ID (Analyzer) is
          when Int =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Int,
-               Meta => null,
-               Int_Val => Types.Mal_Integer'Value (Get_Token_String));
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
+               Int_Val => Types.Mal_Integer'Value (Get_Token_String)));
          when Float_Tok =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Floating,
-               Meta => null,
-               Float_Val => Types.Mal_Float'Value (Get_Token_String));
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
+               Float_Val => Types.Mal_Float'Value (Get_Token_String)));
          when Sym =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Sym,
-               Meta => null,
-               Symbol => Get_Token_Char);
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
+               Symbol => Get_Token_Char));
          when Nil =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Atom,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String));
+                        (Get_Token_String)));
          when True_Tok =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Atom,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String));
+                        (Get_Token_String)));
          when False_Tok =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Atom,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String));
+                        (Get_Token_String)));
          when Exp_Tok =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Atom,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String));
+                        (Get_Token_String)));
          when Splice_Unq =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Unitary,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Function => Types.Splice_Unquote,
-               The_Operand => null);
+               The_Operand => Null_Smart_Pointer));
          when Str =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Str,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_String => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String));
+                        (Get_Token_String)));
          when Atom =>
-            Res := new Types.Mal_Type'
+            Res := New_Ptr (new Types.Mal_Type'
               (Sym_Type => Types.Atom,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String));
+                        (Get_Token_String)));
          when Whitespace | Comment => null;
       end case;
       return Res;
@@ -229,48 +240,55 @@ package body Reader is
 
 
    -- Parsing
-   function Read_Form return Types.Mal_Type_Access;
+   function Read_Form return Types.Smart_Pointer;
 
    function Read_List (LT : Types.List_Types)
-   return Types.Mal_Type_Access is
+   return Types.Smart_Pointer is
       use Types;
-      List_MT, MTA : Mal_Type_Access;
+      List_MT, MTA : Smart_Pointer;
       Close : Character := Types.Closing (LT);
    begin
-      List_MT := new Mal_Type'
+      List_MT := New_Ptr (new Mal_Type'
                        (Sym_Type => List, 
-                        Meta => null,
+                        Ref_Count => 1,
+                        Meta => Null_Smart_Pointer,
                         List_Type => LT,
-                        The_List => Lists.Empty_List);
+                        The_List => Lists.Empty_List));
       loop
          MTA := Read_Form;
-         exit when MTA = null or else
-                   (MTA.Sym_Type = Sym and then MTA.Symbol = Close);
-         Lists.Append (List_MT.The_List, MTA);
+         exit when MTA = Null_Smart_Pointer or else
+                   (Deref (MTA).Sym_Type = Sym and then
+                    Deref (MTA).Symbol = Close);
+         Lists.Append (Deref (List_MT).The_List, MTA);
       end loop;
       return List_MT;
    exception
       when Lexical_Error =>
-        if List_MT /= null then
-           Delete_Tree (List_MT);
-        end if;
-        return new Mal_Type'
+
+        -- List_MT about to go out of scope but its a Smart_Pointer
+        -- so it is automatically garbage collected.
+
+        return New_Ptr (new Mal_Type'
           (Sym_Type => Types.Error,
-           Meta => null,
+           Ref_Count => 1,
+           Meta => Null_Smart_Pointer,
            Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
-                          ("expected '" & Close & "'"));
+                          ("expected '" & Close & "'")));
    end Read_List;
 
 
-   function Read_Form return Types.Mal_Type_Access is
+   function Read_Form return Types.Smart_Pointer is
       use Types;
-      MT : Types.Mal_Type_Access;
+      MTS : Smart_Pointer;
+      MT : Mal_Type_Accessor;
    begin
 
-      MT := Get_Token;
+      MTS := Get_Token;
 
+      MT := Deref (MTS);
+ 
       if MT = null then
-         return null;
+         return Null_Smart_Pointer;
       end if;
 
       if MT.Sym_Type = Sym then
@@ -284,65 +302,71 @@ package body Reader is
             return Read_List (Hashed_List);
          elsif MT.Symbol = '^' then
             declare
-               Meta, Obj : Mal_Type_Access;
+               Meta, Obj : Smart_Pointer;
             begin
                Meta := Read_Form;
                Obj := Read_Form;
-               Obj.Meta := Meta;
+               Deref (Obj).Meta := Meta;
                return Obj;
             end;
          elsif MT.Symbol = ACL.Apostrophe then
-            return new Mal_Type'
+            return New_Ptr (new Mal_Type'
               (Sym_Type => Unitary,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Function => Quote,
-               The_Operand => Read_Form);
+               The_Operand => Read_Form));
          elsif MT.Symbol = ACL.Grave then
-            return new Mal_Type'
+            return New_Ptr (new Mal_Type'
               (Sym_Type => Unitary,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Function => Quasiquote,
-               The_Operand => Read_Form);
+               The_Operand => Read_Form));
          elsif MT.Symbol = ACL.Tilde then
-            return new Mal_Type'
+            return New_Ptr (new Mal_Type'
               (Sym_Type => Unitary,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Function => Unquote,
-               The_Operand => Read_Form);
+               The_Operand => Read_Form));
          elsif MT.Symbol = ACL.Commercial_At then
-            return new Mal_Type'
+            return New_Ptr (new Mal_Type'
               (Sym_Type => Unitary,
-               Meta => null,
+               Ref_Count => 1,
+               Meta => Null_Smart_Pointer,
                The_Function => Deref,
-               The_Operand => Read_Form);
+               The_Operand => Read_Form));
          else
-            return MT;
+            return MTS;
          end if;
 
       elsif MT.Sym_Type = Unitary and then
             MT.The_Function = Splice_Unquote then
 
-         return new Mal_Type'
+         return New_Ptr (new Mal_Type'
            (Sym_Type => Unitary,
-            Meta => null,
+            Ref_Count => 1,
+            Meta => Null_Smart_Pointer,
             The_Function => Splice_Unquote,
-            The_Operand => Read_Form);
+            The_Operand => Read_Form));
 
       else
-         return MT;
+         return MTS;
       end if;
 
    exception
       when String_Error =>
-        return new Mal_Type'
+        return New_Ptr (new Mal_Type'
           (Sym_Type => Types.Error,
-           Meta => null,
+           Ref_Count => 1,
+           Meta => Null_Smart_Pointer,
            Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
-                          ("expected '""'"));
+                          ("expected '""'")));
    end Read_Form;
 
 
-   function Read_Str (S : String) return Types.Mal_Type_Access is
+   function Read_Str (S : String) return Types.Smart_Pointer is
       I, Str_Len : Natural := S'Length;
    begin
       -- Filter out lines consisting of only whitespace and/or comments
@@ -352,7 +376,7 @@ package body Reader is
          I := I + 1;
       end loop;
       if I > Str_Len or else S (I) = ';' then
-         return null;
+         return Types.Null_Smart_Pointer;
       end if;
        
        

@@ -6,29 +6,29 @@ with Types;
 
 procedure Step1_Read_Print is
 
-   function Read (Param : String) return Types.Mal_Type_Access is
+   function Read (Param : String) return Types.Smart_Pointer is
    begin
       return Reader.Read_Str (Param);
    end Read;
 
-   function Eval (Param : Types.Mal_Type_Access) return Types.Mal_Type_Access is
+   function Eval (Param : Types.Smart_Pointer) return Types.Smart_Pointer is
    begin
       return Param;
    end Eval;
 
-   function Print (Param : Types.Mal_Type_Access) return String is
+   function Print (Param : Types.Smart_Pointer) return String is
    begin
       return Printer.Pr_Str (Param);
    end Print;
 
    function Rep (Param : String) return String is
      use types;
-     AST, Evaluated_AST : Mal_Type_Access;
+     AST, Evaluated_AST : Smart_Pointer;
    begin
 
      AST := Read (Param);
 
-     if AST = null then
+     if AST = Null_Smart_Pointer then
         return "";
      else
         Evaluated_AST := Eval (AST);

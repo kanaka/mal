@@ -1,12 +1,12 @@
 package body Printer is
 
-   function Pr_Str (M : Types.Mal_Type_Access) return String is
+   function Pr_Str (M : Types.Smart_Pointer) return String is
       use Types;
    begin
-     if M = null then
+     if M.Pointer = null then
         return "";
      else
-        return To_String (M.all);
+        return To_String (Types.Deref(M).all);
      end if;
    end Pr_Str;
 

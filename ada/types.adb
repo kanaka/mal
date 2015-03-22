@@ -7,6 +7,40 @@ package body Types is
    package ACL renames Ada.Characters.Latin_1;
 
 
+   -- Smart Pointers section.
+
+   overriding procedure Adjust (Object : in out Smart_Pointer) is
+   begin
+      if Object.Pointer /= null then
+         Object.Pointer.Ref_Count := Object.Pointer.Ref_Count + 1;
+      end if;
+   end Adjust;
+
+   procedure Free is
+     new Ada.Unchecked_Deallocation (Mal_Type, Mal_Type_Accessor);
+
+   overriding procedure Finalize (Object : in out Smart_Pointer) is
+   begin
+      if Object.Pointer /= null then
+         Object.Pointer.Ref_Count := Object.Pointer.Ref_Count - 1;
+         if Object.Pointer.Ref_Count = 0 then
+            Free (Object.Pointer);
+         end if;
+      end if;
+   end Finalize;
+
+   function New_Ptr (Mal_Type : Mal_Type_Accessor) return Smart_Pointer is
+   begin
+      return Smart_Pointer'
+         (Ada.Finalization.Controlled with Pointer => Mal_Type);
+   end New_Ptr;
+
+   function Deref (Ptr : Smart_Pointer) return Mal_Type_Accessor is
+   begin
+      return Ptr.Pointer;
+   end Deref;
+
+
    function Opening (LT : List_Types) return Character is
       Res : Character;
    begin
@@ -81,7 +115,7 @@ package body Types is
                   else
                      Append (UBS, " ");
                   end if;
-                  UBStrings.Append (UBS, To_String (Lists.Element (C).all));
+                  UBStrings.Append (UBS, To_String (Deref (Lists.Element (C)).all));
                exit when C = Lists.Last (T.The_List);
                   C := Lists.Next (C);
                end loop;
@@ -99,17 +133,17 @@ package body Types is
          when Unitary =>
             case T.The_Function is
                when Quote =>
-                  return "(quote " & To_String (T.The_Operand.all) & ")";
+                  return "(quote " & To_String (Deref (T.The_Operand).all) & ")";
                when Unquote =>
-                  return "(unquote " & To_String (T.The_Operand.all) & ")";
+                  return "(unquote " & To_String (Deref (T.The_Operand).all) & ")";
                when Quasiquote =>
-                  return "(quasiquote " & To_String (T.The_Operand.all) & ")";
+                  return "(quasiquote " & To_String (Deref (T.The_Operand).all) & ")";
                when Splice_Unquote =>
                   return
-                    "(splice-unquote " & To_String (T.The_Operand.all) & ")";
+                    "(splice-unquote " & To_String (Deref (T.The_Operand).all) & ")";
                when Deref =>
                   return
-                    "(deref " & To_String (T.The_Operand.all) & ")";
+                    "(deref " & To_String (Deref (T.The_Operand).all) & ")";
             end case;
          when Error =>
             return To_String (T.Error_Msg);
@@ -119,47 +153,14 @@ package body Types is
 
    function To_String (T : Mal_Type) return String is
    begin
-      if T.Meta /= null then
+      if T.Meta /= Null_Smart_Pointer then
          return "(with-meta " &
                 Mal_Type_To_String (T) & " " &
-                Mal_Type_To_String (T.Meta.all) & ")";
+                Mal_Type_To_String (Deref (T.Meta).all) & ")";
       else
          return Mal_Type_To_String (T);
       end if;
    end To_String;
-
-
-   procedure Free is
-     new Ada.Unchecked_Deallocation (Mal_Type, Mal_Type_Access);
-
-   procedure Delete_Tree (MTA : in out Mal_Type_Access) is
-   begin
-      if MTA /= null then
-         case MTA.Sym_Type is
-            when List =>
-               declare
-                  C, D : Lists.Cursor;
-                  Tmp : Mal_Type_Access;
-               begin
-                  C := MTA.The_List.First;
-                  while Lists.Has_Element (C) loop
-                     -- Delete item at this position in list.
-                     Tmp := Lists.Element (C);
-                     Delete_Tree (Tmp); -- must be variable (out param)
-                     -- Access and save the next cursor pos.
-                     D := Lists.Next (C);
-                     -- Delete this item position from list.
-                     Lists.Delete (MTA.The_List, C);
-                     -- Restore the next cursor position.
-                     C := D;
-                  end loop;
-               end;
-            when Unitary =>
-               Delete_Tree (MTA.The_Operand);
-            when others => Free (MTA);
-         end case;
-      end if;
-   end Delete_Tree;
 
 
 end Types;
