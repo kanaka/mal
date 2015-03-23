@@ -13,14 +13,16 @@ loop(Env) ->
     case io:get_line(standard_io, "user> ") of
         eof -> io:format("~n");
         {error, Reason} -> exit(Reason);
-        Line -> loop(rep(string:strip(Line, both, $\n), Env))
+        Line ->
+            rep(string:strip(Line, both, $\n), Env),
+            loop(Env)
     end.
 
 rep(Input, Env) ->
     try eval(read(Input), Env) of
-        {Result, E} -> print(Result), E
+        Result -> print(Result)
     catch
-        throw:Reason -> io:format("error: ~s~n", [Reason]), Env
+        throw:Reason -> io:format("error: ~s~n", [Reason])
     end.
 
 read(Input) ->
@@ -29,55 +31,38 @@ read(Input) ->
         {error, Reason} -> throw(Reason)
     end.
 
-eval({list, []}, Env) ->
-    {[], Env};
-eval({list, [{symbol, "def!"}, A1, A2]}, Env) ->
-    case A1 of
-        {symbol, _A1} ->
-            {Atwo, E2} = eval(A2, Env),
-            {Atwo, env:set(E2, A1, Atwo)};
-        _ -> throw("def! called with non-symbol")
-    end;
+eval({list, []}, _Env) ->
+    [];
+eval({list, [{symbol, "def!"}, {symbol, A1}, A2]}, Env) ->
+    Result = eval(A2, Env),
+    env:set(Env, {symbol, A1}, Result),
+    Result;
+eval({list, [{symbol, "def!"}, _A1, _A2]}, _Env) ->
+    throw("def! called with non-symbol");
 eval({list, [{symbol, "def!"}|_]}, _Env) ->
     throw("def! requires exactly two arguments");
 eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
-    {Result, _E} = eval(A2, let_star(Env, A1)),
-    {Result, Env};
+    NewEnv = env:new(Env),
+    let_star(NewEnv, A1),
+    eval(A2, NewEnv);
 eval({list, [{symbol, "let*"}|_]}, _Env) ->
     throw("let* requires exactly two arguments");
 eval({list, List}, Env) ->
     case eval_ast({list, List}, Env) of
-        {{list, [{function, F}|A]}, E2} ->
-            {erlang:apply(F, [A]), E2};
+        {list, [{function, F}|A]} -> erlang:apply(F, [A]);
         _ -> throw("expected a list with a function")
     end;
 eval(Value, Env) ->
     eval_ast(Value, Env).
 
-eval_ast(Value, Env) ->
-    EvalList = fun(Elem, AccIn) ->
-        {List, E} = AccIn,
-        {Result, E2} = eval(Elem, E),
-        {[Result|List], E2}
-    end,
-    EvalMap = fun(Key, Val, AccIn) ->
-        {Map, E} = AccIn,
-        {Result, E2} = eval(Val, E),
-        {maps:put(Key, Result, Map), E2}
-    end,
-    case Value of
-        {symbol, _Sym} -> {env:get(Env, Value), Env};
-        {list, L} ->
-            {Results, E2} = lists:foldl(EvalList, {[], Env}, L),
-            {{list, lists:reverse(Results)}, E2};
-        {vector, V} ->
-            {Results, E2} = lists:foldl(EvalList, {[], Env}, V),
-            {{vector, lists:reverse(Results)}, E2};
-        {map, M} ->
-            {Results, E2} = maps:fold(EvalMap, {#{}, Env}, M),
-            {{map, Results}, E2};
-        _ -> {Value, Env}
-    end.
+eval_ast({symbol, _Sym}=Value, Env) ->
+    env:get(Env, Value);
+eval_ast({Type, Seq}, Env) when Type == list orelse Type == vector ->
+    {Type, lists:map(fun(Elem) -> eval(Elem, Env) end, Seq)};
+eval_ast({map, M}, Env) ->
+    {map, maps:map(fun(_Key, Val) -> eval(Val, Env) end, M)};
+eval_ast(Value, _Env) ->
+    Value.
 
 print(Value) ->
     case Value of
@@ -88,23 +73,18 @@ print(Value) ->
 let_star(Env, Bindings) ->
     % (let* (p (+ 2 3) q (+ 2 p)) (+ p q))
     % ;=>12
-    Bind = fun({Name, Expr}, E) ->
+    Bind = fun({Name, Expr}) ->
         case Name of
-            {symbol, _Sym} ->
-                {Value, E2} = eval(Expr, E),
-                env:set(E2, Name, Value);
+            {symbol, _Sym} -> env:set(Env, Name, eval(Expr, Env));
             _ -> throw("let* with non-symbol binding")
         end
     end,
-    BindAll = fun(List) ->
-        case list_to_proplist(List) of
-            {error, Reason} -> throw(Reason);
-            Props -> lists:foldl(Bind, Env, Props)
-        end
-    end,
     case Bindings of
-        {list, Binds} -> BindAll(Binds);
-        {vector, Binds} -> BindAll(Binds);
+        {Type, Binds} when Type == list orelse Type == vector ->
+            case list_to_proplist(Binds) of
+                {error, Reason} -> throw(Reason);
+                Props -> lists:foreach(Bind, Props)
+            end;
         _ -> throw("let* with non-list bindings")
     end.
 

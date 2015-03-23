@@ -1,8 +1,8 @@
 %%%
-%%% Step 4: if, fn, do
+%%% Step 5: Tail call optimization
 %%%
 
--module(step4_if_fn_do).
+-module(step5_tco).
 
 -export([main/1]).
 
@@ -51,8 +51,8 @@ eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
 eval({list, [{symbol, "let*"}|_]}, _Env) ->
     throw("let* requires exactly two arguments");
 eval({list, [{symbol, "do"}|Args]}, Env) ->
-    {list, Results} = eval_ast({list, Args}, Env),
-    lists:last(Results);
+    eval_ast({list, lists:droplast(Args)}, Env),
+    eval({list, lists:last(Args)}, Env);
 eval({list, [{symbol, "if"}, Test, Consequent|Alternate]}, Env) ->
     case eval(Test, Env) of
         Cond when Cond == false orelse Cond == nil ->

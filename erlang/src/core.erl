@@ -133,7 +133,9 @@ ns() ->
         "prn" => fun prn/1,
         "str" => fun str/1
     },
-    SetEnv = fun(K, V, AccIn) ->
-        env:set(AccIn, {symbol, K}, types:func(V))
+    Env = env:new(undefined),
+    SetEnv = fun(K, V) ->
+        env:set(Env, {symbol, K}, types:func(V))
     end,
-    maps:fold(SetEnv, env:new(undefined), Builtins).
+    maps:map(SetEnv, Builtins),
+    Env.

@@ -1,88 +1,137 @@
 %%%
-%%% Environement
+%%% Environment
+%%%
+%%% We need an "object" to represent the environment: something whose state can
+%%% change over time, while keeping a single, unchanging reference to that
+%%% object. This is done in Erlang using lightweight processes. Fortunately, OTP
+%%% makes this easy.
 %%%
 
 -module(env).
+-behavior(gen_server).
 
--export([new/0, new/1, bind/3, set/3, get/2, fallback/2]).
+-export([new/1, bind/3, get/2, set/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(env, {outer, data, fallback=undefined}).
+-record(state, {outer, data}).
 
 %%
 %% Public API
 %%
 
--spec new() -> Env
-    when Env :: #env{}.
-new() ->
-    new(undefined).
-
--spec new(Outer) -> Env
-    when Outer :: #env{},
-         Env   :: #env{}.
+-spec new(Outer) -> Pid
+    when Outer :: #state{},
+         Pid   :: pid().
+% @doc Pass 'undefined' for Outer if no parent environment.
 new(Outer) ->
-	#env{outer=Outer, data=#{}}.
-
--spec bind(Env1, Names, Values) -> Env2
-    when Env1   :: #env{},
-         Names  :: [term()],
-         Values :: [term()],
-         Env2   :: #env{}.
-bind(Env, [], []) ->
-    Env;
-bind(Env, [{symbol, "&"},Name], Values) ->
-    set(Env, Name, {list, Values});
-bind(Env, [Name|Ntail], [Value|Vtail]) ->
-    bind(set(Env, Name, Value), Ntail, Vtail).
-
--spec set(Env1, Key, Value) -> Env2
-    when Env1  :: #env{},
-         Key   :: {symbol, term()},
-         Value :: term(),
-         Env2  :: #env{}.
-set(Env, Key, Value) ->
-    case Key of
-        {symbol, Name} ->
-            Map = maps:put(Name, Value, Env#env.data),
-            #env{outer=Env#env.outer, data=Map};
-        _ -> throw("env:set/3 called with non-symbol key")
+    case gen_server:start(?MODULE, [Outer], []) of
+        {ok, Pid} -> Pid;
+        {error, Reason} -> throw(Reason)
     end.
 
--spec get(Env, Key) -> Value
-    when Env   :: #env{},
+-spec bind(Pid, Names, Values) -> ok
+    when Pid    :: pid(),
+         Names  :: [term()],
+         Values :: [term()].
+bind(Pid, Names, Values) ->
+    gen_server:call(Pid, {bind, Names, Values}).
+
+-spec get(Pid, Key) -> Value
+    when Pid   :: pid(),
          Key   :: {symbol, term()},
          Value :: term().
-get(Env, Key) ->
-    case Key of
-        {symbol, Name} ->
-        	case find(Env, Name) of
-                nil -> throw(io_lib:format("'~s' not found", [Name]));
-                E   -> maps:get(Name, E#env.data)
-            end;
-        _ -> throw("env:get/2 called with non-symbol key")
-    end.
+get(Pid, {symbol, Name}) ->
+	case gen_server:call(Pid, {get, Name}) of
+        {ok, Value} -> Value;
+        {error, Reason} -> throw(Reason)
+    end;
+get(_Pid, _Key) ->
+    throw("env:get/2 called with non-symbol key").
 
--spec fallback(Env1, Fallback) -> Env2
-    when Env1     :: #env{},
-         Fallback :: #env{},
-         Env2     :: #env{}.
-fallback(Env, Fallback) ->
-    #env{outer=Env#env.outer, data=Env#env.data, fallback=Fallback}.
+-spec set(Pid, Key, Value) -> ok
+    when Pid   :: pid(),
+         Key   :: {symbol, term()},
+         Value :: term().
+set(Pid, {symbol, Name}, Value) ->
+    gen_server:call(Pid, {set, Name, Value});
+set(_Env, _Key, _Value) ->
+    throw("env:set/3 called with non-symbol key").
+
+%%
+%% gen_server callbacks
+%%
+
+init([]) ->
+    init([undefined]);
+init([Outer]) ->
+    {ok, #state{outer=Outer, data=#{}}}.
+
+handle_call({bind, Names, Values}, _From, State) ->
+    NewEnv = env_bind(State, Names, Values),
+    {reply, ok, NewEnv};
+handle_call({find, Name}, _From, State) ->
+    {reply, env_find(State, Name), State};
+handle_call({get, Name}, _From, State) ->
+    {reply, env_get(State, Name), State};
+handle_call({set, Name, Value}, _From, State) ->
+    {reply, ok, env_set(State, Name, Value)};
+handle_call(terminate, _From, State) ->
+    {stop, normal, ok, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(Msg, State) ->
+    error_logger:info_msg("unexpected message: ~p~n", [Msg]),
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
 %%
 %% Internal functions
 %%
 
-find(Env, Name) ->
-    case maps:is_key(Name, Env#env.data) of
+env_find(Env, Name) ->
+    case maps:is_key(Name, Env#state.data) of
         true  -> Env;
         false ->
-            case Env#env.outer of
-                undefined ->
-                    case Env#env.fallback of
-                        undefined -> nil;
-                        Fallback  -> find(Fallback, Name)
-                    end;
-                Outer     -> find(Outer, Name)
+            case Env#state.outer of
+                undefined -> nil;
+                Outer     -> gen_server:call(Outer, {find, Name})
             end
     end.
+
+-spec env_bind(Env1, Names, Values) -> Env2
+    when Env1   :: #state{},
+         Names  :: [term()],
+         Values :: [term()],
+         Env2   :: #state{}.
+env_bind(Env, [], []) ->
+    Env;
+env_bind(Env, [{symbol, "&"}, {symbol, Name}], Values) ->
+    env_set(Env, Name, {list, Values});
+env_bind(Env, [{symbol, Name}|Ntail], [Value|Vtail]) ->
+    env_bind(env_set(Env, Name, Value), Ntail, Vtail).
+
+-spec env_get(Env, Key) -> {ok, Value} | {error, string()}
+    when Env   :: #state{},
+         Key   :: {symbol, term()},
+         Value :: term().
+env_get(Env, Name) ->
+    case env_find(Env, Name) of
+        nil -> {error, io_lib:format("'~s' not found", [Name])};
+        E   -> {ok, maps:get(Name, E#state.data)}
+    end.
+
+-spec env_set(Env1, Key, Value) -> Env2
+    when Env1  :: #state{},
+         Key   :: {symbol, term()},
+         Value :: term(),
+         Env2  :: #state{}.
+env_set(Env, Name, Value) ->
+    Map = maps:put(Name, Value, Env#state.data),
+    #state{outer=Env#state.outer, data=Map}.
