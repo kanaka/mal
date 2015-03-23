@@ -1283,21 +1283,51 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 ### Deferrable
 
-* Add the following new core functions TODO/TBD.
-  * `symbol`
-  * `keyword`
-  * `keyword?`
-  * `vector`
-  * `vector?`
-  * `hash-map`
-  * `map?`
-  * `assoc`
-  * `dissoc`
-  * `get`
-  * `contains?`
-  * `keys`
-  * `vals`
-  * `sequential?`
+* Add the following new core functions:
+  * `symbol`: takes a string and returns a new symbol with the string
+    as its name.
+  * `keyword`: takes a string and returns a keyword with the same name
+    (usually just be prepending the special keyword
+    unicode symbol). This function should also detect if the argument
+    is already a keyword and just return it.
+  * `keyword?`: takes a single argument and returns true (mal true
+    value) if the argument is a keyword, otherwise returns false (mal
+    false value).
+  * `vector`: takes a variable number of arguments and returns
+    a vector containing those arguments.
+  * `vector?`: takes a single argument and returns true (mal true
+    value) if the argument is a vector, otherwise returns false (mal
+    false value).
+  * `hash-map`: takes a variable but even number of arguments and
+    returns a new mal hash-map value with keys from the odd arguments
+    and values from the even arguments respectively. This is basically
+    the functional form of the `{}` reader literal syntax.
+  * `map?`: takes a single argument and returns true (mal true
+    value) if the argument is a hash-map, otherwise returns false (mal
+    false value).
+  * `assoc`: takes a hash-map as the first argument and the remaining
+    arguments are odd/even key/value pairs to "associate" (merge) into
+    the hash-map. Note that the original hash-map is unchanged
+    (remember, mal values are immutable), and a new hash-map
+    containing the old hash-maps key/values plus the merged key/value
+    arguments is returned.
+  * `dissoc`: takes a hash-map and a list of keys to remove from the
+    hash-map. Again, note that the original hash-map is unchanged and
+    a new hash-map with the keys removed is returned. Key arguments
+    that do not exist in the hash-map are ignored.
+  * `get`: takes a hash-map and a key and returns the value of looking
+    up that key in the hash-map. If the key is not found in the
+    hash-map then nil is returned.
+  * `contains?`: takes a hash-map and a key and returns true (mal true
+    value) if the key exists in the hash-map and false (mal false
+    value) otherwise.
+  * `keys`: takes a hash-map and returns a list (mal list value) of
+    all the keys in the hash-map.
+  * `vals`: takes a hash-map and returns a list (mal list value) of
+    all the values in the hash-map.
+  * `sequential?`: takes a single arguments and returns true (mal true
+    value) if it is a list or a vector, otherwise returns false (mal
+    false value).
 
 
 <a name="stepA"></a>
