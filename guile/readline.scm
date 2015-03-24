@@ -15,6 +15,10 @@
 
 ;;(use-modules (ice-9 readline))
 
+(library (readline)
+  (export readline)
+  (import (guile)))
+
 (define mal-history
   (format #f "~a/.mal-history" (getenv "HOME")))
 
