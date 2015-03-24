@@ -336,6 +336,14 @@ sbt compile
 scala -classpath target/scala*/classes stepX_YYY
 ```
 
+### Swift
+
+```
+cd swift
+make
+./stepX_YYY
+```
+
 ### Visual Basic.NET ###
 
 The VB.NET implementation of mal has been tested on Linux using the Mono
