@@ -126,7 +126,8 @@ ENV SBT_OPTS -Duser.home=/mal
 RUN apt-get -y install mono-vbnc
 
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
-ENV SKIP_IMPLS matlab
+# Swift is XCode/OS X only
+ENV SKIP_IMPLS matlab swift
 
 ENV DEBIAN_FRONTEND newt
 ENV HOME /
