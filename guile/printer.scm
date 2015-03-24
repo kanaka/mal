@@ -27,7 +27,7 @@
      (cond
       ((string-match "^\u029e(.*)" obj)
        => (lambda (m) (format #f ":~a" (match:substring m 1))))
-      (else (format #f (if readable? "~s" "~a") obj))))
+      (else (if readable? (format #f "\"~a\"" obj) obj))))
     ((? number?) obj)
     ((? symbol?) obj)
     ((? atom?) (format #f "(atom ~a)" (atom-val obj)))

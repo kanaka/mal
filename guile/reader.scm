@@ -15,7 +15,8 @@
 
 (library (reader)
          (export read_str)
-         (import (guile) (pcre) (ice-9 match) (ice-9 regex) (types)))
+         (import (guile) (pcre) (ice-9 match)
+                 (ice-9 regex) (types) (ice-9 format)))
 
 (define (make-Reader tokens)
   (lambda (cmd)
@@ -34,38 +35,46 @@
   (pcre-search *token-re* str))
 
 (define (delim-read reader delim)
-  (let lp((next (reader 'next)) (ret '()))
+  (let lp((next (reader 'peek)) (ret '()))
     (cond
      ((null? next) (throw 'parse-error (format #f "expect '~a'!" delim)))
-     ((string=? next delim) (reverse ret))
+     ((string=? next delim) (reader 'next) (reverse ret))
      (else
-      (let ((n (reader 'next)))
-        (lp n (cons (read_form reader) ret)))))))
+      (let* ((cur (read_form reader))
+             (n (reader 'peek)))
+        (lp n (cons cur ret)))))))
 
 (define (read_list reader)
-  (if (string=? ")" (reader 'next))
-      '()
-      (delim-read reader ")")))
+  (cond
+   ((string=? ")" (reader 'peek))
+    (reader 'next)
+    '())
+   (else (delim-read reader ")"))))
 
 (define (read_vector reader)
-  (if (string=? "]" (reader 'next))
-      #()
-      (list->vector (delim-read reader "]"))))
+  (cond
+   ((string=? "]" (reader 'peek))
+    (reader 'next)
+    #())
+   (else (list->vector (delim-read reader "]")))))
 
 (define (read_hashmap reader)
   (define ht (make-hash-table))
   (define lst (delim-read reader "}"))
-  (if (string=? "}" (reader 'next))
-      ht
-      (let lp((k (car lst)))
-        (cond
-         ((null? k) ht)
-         (else
-          (let ((v (reader 'next)))
-            (when (null? v)
-                  (throw 'parse-error "read_hashmap: lack of value" k))
-            (hash-set! ht k v)
-            (lp (reader 'next))))))))
+  (cond
+   ((string=? "}" (reader 'peek))
+    (reader 'next)
+    ht)
+   (else
+    (let lp((k (car lst)))
+      (cond
+       ((null? k) ht)
+       (else
+        (let ((v (reader 'next)))
+          (when (null? v)
+                (throw 'parse-error "read_hashmap: lack of value" k))
+          (hash-set! ht k v)
+          (lp (reader 'next)))))))))
 
 (define (read_atom reader)
   (let ((token (reader 'next)))
@@ -93,11 +102,11 @@
     ("^" (next) (let ((meta (more))) `(with-meta ,(more) ,meta)))
     ("@" (next) `(deref ,(more)))
     (")" (next) (throw 'parse-error "unexpected ')'"))
-    ("(" (read_list reader))
+    ("(" (next) (read_list reader))
     ("]" (throw 'parse-error "unexpected ']'"))
-    ("[" (read_vector reader))
+    ("[" (next) (read_vector reader))
     ("}" (throw 'parse-error "unexpected '}'"))
-    ("{" (read_hashmap reader))
+    ("{" (next) (read_hashmap reader))
     (else (read_atom reader))))
 
 (define (read_str str)
