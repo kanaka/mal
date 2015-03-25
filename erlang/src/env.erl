@@ -10,7 +10,7 @@
 -module(env).
 -behavior(gen_server).
 
--export([new/1, bind/3, get/2, set/3]).
+-export([new/1, bind/3, get/2, set/3, root/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {outer, data}).
@@ -57,6 +57,12 @@ set(Pid, {symbol, Name}, Value) ->
 set(_Env, _Key, _Value) ->
     throw("env:set/3 called with non-symbol key").
 
+-spec root(Pid1) -> Pid2
+    when Pid1 :: pid(),
+         Pid2 :: pid().
+root(Pid) ->
+    gen_server:call(Pid, root).
+
 %%
 %% gen_server callbacks
 %%
@@ -75,6 +81,8 @@ handle_call({get, Name}, _From, State) ->
     {reply, env_get(State, Name), State};
 handle_call({set, Name, Value}, _From, State) ->
     {reply, ok, env_set(State, Name, Value)};
+handle_call(root, _From, State) ->
+    {reply, env_root(State), State};
 handle_call(terminate, _From, State) ->
     {stop, normal, ok, State}.
 
@@ -135,3 +143,12 @@ env_get(Env, Name) ->
 env_set(Env, Name, Value) ->
     Map = maps:put(Name, Value, Env#state.data),
     #state{outer=Env#state.outer, data=Map}.
+
+-spec env_root(Env1) -> Env2
+    when Env1 :: #state{},
+         Env2 :: #state{}.
+env_root(Env) ->
+    case Env#state.outer of
+        undefined -> self();
+        Outer     -> gen_server:call(Outer, root)
+    end.

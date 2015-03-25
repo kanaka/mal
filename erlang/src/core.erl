@@ -113,6 +113,22 @@ println(Args) ->
     io:format("~s~n", [printer:pr_list(Args, "", "", " ", false)]),
     nil.
 
+read_string([{string, Input}]) ->
+    case reader:read_str(Input) of
+        {ok, AST} -> AST;
+        {error, Reason} -> {error, Reason}
+    end;
+read_string(_) ->
+    {error, "read-string requires a single string argument"}.
+
+slurp([{string, Filepath}]) ->
+    case file:read_file(Filepath) of
+        {ok, Binary} -> {string, binary_to_list(Binary)};
+        {error, Reason} -> {error, Reason}
+    end;
+slurp(_) ->
+    {error, "slurp called with non-string"}.
+
 ns() ->
     Builtins = #{
         "*" => fun int_mul/1,
@@ -131,6 +147,8 @@ ns() ->
         "pr-str" => fun pr_str/1,
         "println" => fun println/1,
         "prn" => fun prn/1,
+        "read-string" => fun read_string/1,
+        "slurp" => fun slurp/1,
         "str" => fun str/1
     },
     Env = env:new(undefined),

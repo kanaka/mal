@@ -1,13 +1,26 @@
 %%%
-%%% Step 3: env
+%%% Step 6: File and evil
 %%%
 
--module(step3_env).
+-module(step6_file).
 
 -export([main/1]).
 
-main(_) ->
-    loop(core:ns()).
+main([File|Args]) ->
+    Env = init(),
+    env:set(Env, {symbol, "*ARGV*"}, {list, Args}),
+    rep("(load-file \"" ++ File ++ "\")", Env);
+main([]) ->
+    Env = init(),
+    env:set(Env, {symbol, "*ARGV*"}, {list, []}),
+    loop(Env).
+
+init() ->
+    Env = core:ns(),
+    % define the load-file and not functions using mal itself
+    eval(read("(def! not (fn* (a) (if a false true)))"), Env),
+    eval(read("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"), Env),
+    Env.
 
 loop(Env) ->
     case io:get_line(standard_io, "user> ") of
@@ -47,10 +60,44 @@ eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
     eval(A2, NewEnv);
 eval({list, [{symbol, "let*"}|_]}, _Env) ->
     throw("let* requires exactly two arguments");
+eval({list, [{symbol, "do"}|Args]}, Env) ->
+    eval_ast({list, lists:droplast(Args)}, Env),
+    eval(lists:last(Args), Env);
+eval({list, [{symbol, "if"}, Test, Consequent|Alternate]}, Env) ->
+    case eval(Test, Env) of
+        Cond when Cond == false orelse Cond == nil ->
+            case Alternate of
+                []  -> nil;
+                [A] -> eval(A, Env);
+                _   -> throw("if takes 2 or 3 arguments")
+            end;
+        _ -> eval(Consequent, Env)
+    end;
+eval({list, [{symbol, "if"}|_]}, _Env) ->
+    throw("if requires test and consequent");
+eval({list, [{symbol, "fn*"}, {vector, Binds}, Body]}, Env) ->
+    {closure, Binds, Body, Env};
+eval({list, [{symbol, "fn*"}, {list, Binds}, Body]}, Env) ->
+    {closure, Binds, Body, Env};
+eval({list, [{symbol, "fn*"}|_]}, _Env) ->
+    throw("fn* requires 2 arguments");
+eval({list, [{symbol, "eval"}, AST]}, Env) ->
+    % Must use the root environment so the variables set within the parsed
+    % expression will be visible within the repl.
+    eval(eval(AST, Env), env:root(Env));
+eval({list, [{symbol, "eval"}|_]}, _Env) ->
+    throw("eval requires 1 argument");
 eval({list, List}, Env) ->
     case eval_ast({list, List}, Env) of
+        {list, [{closure, Binds, Body, CE}|A]} ->
+            % The args may be a single element or a list, so always make it
+            % a list and then flatten it so it becomes a list.
+            NewEnv = env:new(CE),
+            env:bind(NewEnv, Binds, lists:flatten([A])),
+            eval(Body, NewEnv);
         {list, [{function, F}|A]} -> erlang:apply(F, [A]);
-        _ -> throw("expected a list with a function")
+        {list, [{error, Reason}]} -> {error, Reason};
+        _ -> throw("expected a list")
     end;
 eval(Value, Env) ->
     eval_ast(Value, Env).
@@ -71,8 +118,6 @@ print(Value) ->
     io:format("~s~n", [printer:pr_str(Value, true)]).
 
 let_star(Env, Bindings) ->
-    % (let* (p (+ 2 3) q (+ 2 p)) (+ p q))
-    % ;=>12
     Bind = fun({Name, Expr}) ->
         case Name of
             {symbol, _Sym} -> env:set(Env, Name, eval(Expr, Env));

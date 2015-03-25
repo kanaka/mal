@@ -52,7 +52,7 @@ eval({list, [{symbol, "let*"}|_]}, _Env) ->
     throw("let* requires exactly two arguments");
 eval({list, [{symbol, "do"}|Args]}, Env) ->
     eval_ast({list, lists:droplast(Args)}, Env),
-    eval({list, lists:last(Args)}, Env);
+    eval(lists:last(Args), Env);
 eval({list, [{symbol, "if"}, Test, Consequent|Alternate]}, Env) ->
     case eval(Test, Env) of
         Cond when Cond == false orelse Cond == nil ->
@@ -94,11 +94,11 @@ eval_ast({map, M}, Env) ->
 eval_ast(Value, _Env) ->
     Value.
 
+print(none) ->
+    % if nothing meaningful was entered, print nothing at all
+    ok;
 print(Value) ->
-    case Value of
-        none -> ok;  % if nothing meaningful was entered, print nothing at all
-        _ -> io:format("~s~n", [printer:pr_str(Value, true)])
-    end.
+    io:format("~s~n", [printer:pr_str(Value, true)]).
 
 let_star(Env, Bindings) ->
     Bind = fun({Name, Expr}) ->

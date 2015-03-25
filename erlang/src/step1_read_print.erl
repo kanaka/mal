@@ -29,8 +29,8 @@ read(String) ->
 eval(Value) ->
     Value.
 
+print(none) ->
+    % if nothing meaningful was entered, print nothing at all
+    ok;
 print(Value) ->
-    case Value of
-        none -> ok;  % if nothing meaningful was entered, print nothing at all
-        _ -> io:format("~s~n", [printer:pr_str(Value, true)])
-    end.
+    io:format("~s~n", [printer:pr_str(Value, true)]).
