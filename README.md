@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 27 different languages:
+Mal is implemented in 28 different languages:
 
 * Bash shell
 * C
@@ -32,6 +32,7 @@ Mal is implemented in 27 different languages:
 * Ruby
 * Rust
 * Scala
+* Swift
 * Visual Basic.NET
 
 
@@ -334,6 +335,17 @@ sbt 'run-main stepX_YYY'
     # OR
 sbt compile
 scala -classpath target/scala*/classes stepX_YYY
+```
+
+### Swift
+
+The Swift implemenation of mal requires the Swift compiler (XCode) to
+build.
+
+```
+cd swift
+make
+./stepX_YYY
 ```
 
 ### Visual Basic.NET ###

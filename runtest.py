@@ -69,6 +69,10 @@ class Runner():
                            stdin=slave, stdout=slave, stderr=STDOUT,
                            preexec_fn=os.setsid,
                            env=env)
+            # Now close slave so that we will get an exception from
+            # read when the child exits early
+            # http://stackoverflow.com/questions/11165521
+            os.close(slave)
             self.stdin = os.fdopen(master, 'r+b', 0)
             self.stdout = self.stdin
 
@@ -82,8 +86,8 @@ class Runner():
             [outs,_,_] = select([self.stdout], [], [], 1)
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
-                #print "new_data: '%s'" % new_data
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
+                #print "new_data: '%s'" % new_data
                 if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
@@ -190,7 +194,12 @@ while test_data:
         break
     sys.stdout.write("TEST: %s -> [%s,%s]" % (form, repr(out), repr(ret)))
     sys.stdout.flush()
-    expected = "%s%s%s%s" % (form, sep, out, ret)
+
+    # The repeated form is to get around an occasional OS X issue
+    # where the form is repeated.
+    # https://github.com/kanaka/mal/issues/30
+    expected = ["%s%s%s%s" % (form, sep, out, ret),
+                "%s%s%s%s%s%s" % (form, sep, form, sep, out, ret)]
 
     r.writeline(form)
     try:
@@ -198,20 +207,17 @@ while test_data:
                                 '\r\nmal-user> ', '\nmal-user> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if ret == "*" or res == expected:
+        if ret == "*" or res in expected:
             print(" -> SUCCESS")
         else:
             print(" -> FAIL (line %d):" % line_num)
             print("    Expected : %s" % repr(expected))
             print("    Got      : %s" % repr(res))
             fail_cnt += 1
-    except KeyboardInterrupt:
-        print("\nKeyboard interrupt.")
-        print("Output so far:\n%s" % r.buf)
-        sys.exit(1)
     except:
         _, exc, _ = sys.exc_info()
-        print("\nException: %s" % repr(exc.message))
+        print("\nException: %s" % repr(exc))
+        print("Output before exception:\n%s" % r.buf)
         sys.exit(1)
 
 if fail_cnt > 0:
