@@ -114,7 +114,7 @@ rust_RUNSTEP =    ../$(2) $(3)
 scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 # needs TERM=dumb to work with readline
-guile_RUNSTEP =   guile ../$(2) $(3)
+guile_RUNSTEP =   guile -L ../guile ../$(2) $(3)
 
 # Extra options to pass to runtest.py
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
