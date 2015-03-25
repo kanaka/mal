@@ -29,6 +29,10 @@
   (and continue? (REPL)))
 
 (define (REPL)
-  (LOOP (PRINT (EVAL (READ) ""))))
+  (LOOP
+   (catch 'mal-error
+          (lambda () (PRINT (EVAL (READ) '())))
+          (lambda (k . e)
+            (format #t "Error: ~a~%" (car e))))))
 
 (REPL)

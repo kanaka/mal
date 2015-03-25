@@ -17,12 +17,25 @@
   (export pr_str)
   (import (guile) (types) (ice-9 match) (ice-9 regex)))
 
+(define (print-hashmap hm p)
+  (call-with-output-string
+   (lambda (port)
+     (display "{" port)
+     (for-each
+      (lambda (h)
+        (format port "~a ~a" (car h) (cdr h)))
+      (hash-map->list
+       (lambda (k v)
+         (cons (p k) (p v)))
+       hm))
+     (display "}" port))))
+
 (define (pr_str obj readable?)
   (define (%pr_str o) (pr_str o readable?))
   (match obj
     ((? list?) (format #f "(~{~a~^ ~})" (map %pr_str obj)))
     ((? vector?) (format #f "[~{~a~^ ~}]" (map %pr_str (vector->list obj))))
-    ((? hash-table?) (format #f "{~{~a~^ ~}}" (map %pr_str (hash-map->list list obj))))
+    ((? hash-table?) (print-hashmap obj %pr_str))
     ((? string?)
      (cond
       ((string-match "^\u029e(.*)" obj)

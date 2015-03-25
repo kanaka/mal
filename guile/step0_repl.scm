@@ -28,6 +28,6 @@
   (and continue? (REPL)))
 
 (define (REPL)
-  (LOOP (PRINT (EVAL (READ) ""))))
+  (LOOP (PRINT (EVAL (READ) '()))))
 
 (REPL)

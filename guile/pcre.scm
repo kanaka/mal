@@ -120,14 +120,16 @@
   (define len (string-length str))
   (let lp((i 0) (ret '()))
     (cond
-     ((>= i len) (and ret (reverse ret)))
+     ((>= i len) (reverse ret))
      (else
       (pcre-match pcre str #:study-options study-options #:exec-options exec-options #:offset i)
       (if (<= (pcre-matched pcre) 0)
-          (lp len #f)
+          (lp len ret)
           (let ((hit (trim (pcre-get-substring pcre 1)))
                 (sublen (string-length (pcre-get-substring pcre 0))))
-            (lp (+ i sublen) (cons hit ret))))))))
+            (if (zero? sublen)
+                (lp len ret)
+                (lp (+ i sublen) (cons hit ret)))))))))
 
 (define (pcre-free pcre)
   (and (not (null-pointer? (pcre-code pcre)))

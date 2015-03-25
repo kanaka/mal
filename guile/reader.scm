@@ -15,7 +15,7 @@
 
 (library (reader)
          (export read_str)
-         (import (guile) (pcre) (ice-9 match)
+         (import (guile) (pcre) (ice-9 match) (srfi srfi-1)
                  (ice-9 regex) (types) (ice-9 format)))
 
 (define (make-Reader tokens)
@@ -32,12 +32,13 @@
   (new-pcre "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;[^\n]*|[^\\s\\[\\]{}('\"`,;)]*)"))
 
 (define (tokenizer str)
-  (pcre-search *token-re* str))
+  (filter (lambda (s) (and (not (string-null? s)) (not (string=? (substring s 0 1) ";"))))
+          (pcre-search *token-re* str)))
 
 (define (delim-read reader delim)
   (let lp((next (reader 'peek)) (ret '()))
     (cond
-     ((null? next) (throw 'parse-error (format #f "expect '~a'!" delim)))
+     ((null? next) (throw 'mal-error (format #f "expected '~a'" delim)))
      ((string=? next delim) (reader 'next) (reverse ret))
      (else
       (let* ((cur (read_form reader))
@@ -62,27 +63,28 @@
   (define ht (make-hash-table))
   (define lst (delim-read reader "}"))
   (cond
-   ((string=? "}" (reader 'peek))
-    (reader 'next)
-    ht)
+   ((null? lst) ht)
    (else
     (let lp((k (car lst)))
       (cond
        ((null? k) ht)
        (else
-        (let ((v (reader 'next)))
-          (when (null? v)
-                (throw 'parse-error "read_hashmap: lack of value" k))
+        (when (null? (cdr lst))
+              (throw 'mal-error "read_hashmap: lack of value" k))
+        (let ((v (cadr lst)))
           (hash-set! ht k v)
-          (lp (reader 'next)))))))))
+          (lp (cddr lst)))))))))
 
 (define (read_atom reader)
   (let ((token (reader 'next)))
     (cond
      ((string-match "^-?[0-9][0-9.]*$" token)
       => (lambda (m) (string->number (match:substring m 0))))
-     ((string-match "^\"(.*)\"$" token)
-      => (lambda (m) (match:substring m 1)))
+     ((string-match "^\"(.*)(.)$" token)
+      => (lambda (m)
+           (if (string=? "\"" (match:substring m 2))
+               (match:substring m 1)
+               (throw 'mal-error "expected '\"'"))))
      ((string-match "^:(.*)" token)
       => (lambda (m) (_keyword (match:substring m 1))))
      ((string=? "nil" token) nil)
@@ -101,15 +103,16 @@
     ("~@" (next) (list 'splice-unquote (more)))
     ("^" (next) (let ((meta (more))) `(with-meta ,(more) ,meta)))
     ("@" (next) `(deref ,(more)))
-    (")" (next) (throw 'parse-error "unexpected ')'"))
+    (")" (next) (throw 'mal-error "unexpected ')'"))
     ("(" (next) (read_list reader))
-    ("]" (throw 'parse-error "unexpected ']'"))
+    ("]" (throw 'mal-error "unexpected ']'"))
     ("[" (next) (read_vector reader))
-    ("}" (throw 'parse-error "unexpected '}'"))
+    ("}" (throw 'mal-error "unexpected '}'"))
     ("{" (next) (read_hashmap reader))
     (else (read_atom reader))))
 
 (define (read_str str)
   (if (eof-object? str)
       str
-      (read_form (make-Reader (tokenizer str)))))
+      (let ((tokens (tokenizer str)))
+        (read_form (make-Reader (if (null? tokens) (list str) tokens))))))
