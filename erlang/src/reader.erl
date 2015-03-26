@@ -93,8 +93,8 @@ read_seq_tail(Reader, CloseChar, CloseDelim, AccIn) ->
     end.
 
 % Convert a list of key/value pairs into a map. The elements are not
-% tuples; the keys are the even numbered members, and the values are the
-% odd numbered members. Fails if list has an odd number of members.
+% tuples; the keys are the odd numbered members, and the values are the
+% even numbered members. Fails if list has an odd number of members.
 list_to_map(L) ->
     list_to_map(L, #{}).
 

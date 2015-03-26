@@ -5,24 +5,21 @@
 -module(core).
 -compile(export_all).
 
-count([Args]) ->
-    case Args of
-        {list, List} -> {integer, length(List)};
-        {vector, List} -> {integer, length(List)};
-        nil -> {integer, 0};
-        _ -> {error, "count called on non-sequence"}
-    end;
+count([{Type, List}]) when Type == list orelse Type == vector ->
+    {integer, length(List)};
+count([nil]) ->
+    {integer, 0};
+count([_]) ->
+    {error, "count called on non-sequence"};
 count([]) ->
     {error, "count called with no arguments"};
 count(_) ->
     {error, "count expects one list argument"}.
 
-empty_q([Args]) ->
-    case Args of
-        {list, List} -> length(List) == 0;
-        {vector, List} -> length(List) == 0;
-        _ -> {error, "empty? called on non-sequence"}
-    end;
+empty_q([{Type, List}]) when Type == list orelse Type == vector ->
+    length(List) == 0;
+empty_q([_]) ->
+    {error, "empty? called on non-sequence"};
 empty_q([]) ->
     {error, "empty? called with no arguments"};
 empty_q(_) ->
@@ -129,6 +126,27 @@ slurp([{string, Filepath}]) ->
 slurp(_) ->
     {error, "slurp called with non-string"}.
 
+cons([Elem, {Type, List}]) when Type == list orelse Type == vector ->
+    {list, [Elem|List]};
+cons([_,_]) ->
+    {error, "second argument to cons must be a sequence"};
+cons(_) ->
+    {error, "cons expects two arguments"}.
+
+concat(Args) ->
+    PushAll = fun(Elem, AccIn) ->
+        case Elem of
+            {Type, List} when Type == list orelse Type == vector ->
+                AccIn ++ List;
+            _ -> throw("concat called with non-sequence")
+        end
+    end,
+    try lists:foldl(PushAll, [], Args) of
+        Result -> {list, Result}
+    catch
+        throw:Reason -> {error, Reason}
+    end.
+
 ns() ->
     Builtins = #{
         "*" => fun int_mul/1,
@@ -140,6 +158,8 @@ ns() ->
         "=" => fun equal_q/1,
         ">" => fun bool_gt/1,
         ">=" => fun bool_gte/1,
+        "concat" => fun concat/1,
+        "cons" => fun cons/1,
         "count" => fun count/1,
         "empty?" => fun empty_q/1,
         "list" => fun types:list/1,
