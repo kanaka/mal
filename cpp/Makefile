@@ -18,7 +18,7 @@ DEBUG=-ggdb
 CXXFLAGS=-O3 -Wall $(DEBUG) $(INCPATHS) -std=c++11
 LDFLAGS=-O3 $(DEBUG) $(LIBPATHS) -L. -lreadline -lhistory
 
-LIBSOURCES=ReadLine.cpp String.cpp
+LIBSOURCES=Reader.cpp ReadLine.cpp String.cpp Types.cpp
 LIBOBJS=$(LIBSOURCES:%.cpp=%.o)
 
 MAINS=$(wildcard step*.cpp)
