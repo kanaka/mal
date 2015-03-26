@@ -1,9 +1,14 @@
 module Printer
     open System.Text
-    open Reader
     open Types
 
-    let pr_str data =
+    type Profile = { Pretty : bool; Separator : string }
+    let pr_str_profile = { Pretty = true; Separator = " " }
+    let str_profile = { Pretty = false; Separator = "" }
+    let prn_profile = { Pretty = true; Separator = " " }
+    let println_profile = { Pretty = false; Separator = " " }
+    
+    let print profile nodes =
         let acc = StringBuilder()
         let appendStr (str : string) = acc.Append(str) |> ignore
         let rec pr_node = function
@@ -14,17 +19,20 @@ module Printer
             | Symbol(symbol) -> appendStr symbol
             | Keyword(keyword) -> appendStr ":"; appendStr keyword
             | Number(num) -> acc.Append(num) |> ignore
-            | String(str) -> pr_str str
+            | String(str) when profile.Pretty -> pr_str_pretty str
+            | String(str) -> appendStr str
             | Bool(true) -> appendStr "true"
             | Bool(false) -> appendStr "false"
             | Func({ Tag = tag; F = _}) -> pr_func tag
 
-        and pr prefix node =
+        and pr separator prefix node =
             appendStr prefix
             pr_node node
-            " "
+            separator
 
-        and pr_str str =
+        and std_pr = pr " "
+
+        and pr_str_pretty str =
             let appendChar = function
                 | '\t' -> appendStr "\\t"
                 | '\b' -> appendStr "\\b"
@@ -44,12 +52,12 @@ module Printer
 
         and pr_list nodes =
             appendStr "("
-            nodes |> List.fold pr "" |> ignore
+            nodes |> List.fold std_pr  "" |> ignore
             appendStr ")"
 
         and pr_vector nodes =
             appendStr "["
-            nodes |> Seq.fold pr "" |> ignore
+            nodes |> Seq.fold std_pr "" |> ignore
             appendStr "]"           
 
         and pr_map map =
@@ -63,5 +71,10 @@ module Printer
             map |> Map.fold pr "" |> ignore
             appendStr "}"
         
-        pr_node data
+        nodes |> Seq.fold (pr profile.Separator) "" |> ignore
         acc.ToString()
+
+    let pr_str : seq<Node> -> string = print pr_str_profile
+    let str : seq<Node> -> string = print str_profile
+    let prn : seq<Node> -> string = print prn_profile
+    let println : seq<Node> -> string = print println_profile

@@ -53,7 +53,11 @@ module Env
               wrap "<" Core.lt;
               wrap "<=" Core.le;
               wrap ">=" Core.ge;
-              wrap ">" Core.gt ]
+              wrap ">" Core.gt;
+              wrap "pr-str" Core.pr_str;
+              wrap "str" Core.str;
+              wrap "prn" Core.prn;
+              wrap "println" Core.println ]
             |> ofList
         [ env ]
 

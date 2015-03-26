@@ -19,6 +19,7 @@ module REPL
 
     let print v =
         v
+        |> Seq.singleton
         |> Printer.pr_str
         |> printfn "%s"
 

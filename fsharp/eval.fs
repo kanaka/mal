@@ -24,11 +24,11 @@ module Eval
         | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
         | node -> node
 
-    and defBang env = function
-        | sym::node::[] -> 
+    and defBangForm env = function
+        | [sym; form] ->
             match sym with
-            | Symbol(sym) -> 
-                let node = eval env node 
+            | Symbol(sym) ->
+                let node = eval env form
                 Env.set env sym node
                 node
             | _ -> raise <| errExpected "symbol"
@@ -41,8 +41,8 @@ module Eval
         let form = eval env second
         Env.set env s form
 
-    and letStar env = function
-        | bindings::form::[] ->
+    and letStarForm env = function
+        | [bindings; form] ->
             let newEnv = Env.makeNew env
             let binder = setBinding newEnv
             match bindings with
@@ -52,9 +52,28 @@ module Eval
             eval newEnv form
         | _ -> raise <| Core.errArity ()
 
+    and ifForm env = function
+        | [condForm; trueForm; falseForm] -> ifForm3 env condForm trueForm falseForm
+        | [condForm; trueForm] -> ifForm3 env condForm trueForm Nil
+        | _ -> raise <| Core.errArity ()
+
+    and ifForm3 env condForm trueForm falseForm =
+        match eval env condForm with
+        | Bool(false) | Nil -> eval env falseForm
+        | _ -> eval env trueForm
+
+    and doForm env = function
+        | [a] -> eval env a
+        | a::rest ->
+            eval env a |> ignore
+            doForm env rest
+        | _ -> raise <| Core.errArity ()
+
     and eval env = function
-        | List(Symbol("def!")::rest) -> defBang env rest
-        | List(Symbol("let*")::rest) -> letStar env rest
+        | List(Symbol("def!")::rest) -> defBangForm env rest
+        | List(Symbol("let*")::rest) -> letStarForm env rest
+        | List(Symbol("if")::rest) -> ifForm env rest
+        | List(Symbol("do")::rest) -> doForm env rest
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with

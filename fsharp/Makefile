@@ -4,8 +4,8 @@ DEBUG =
 
 TESTS =
 
-SOURCES_BASE = types.fs core.fs tokenizer.fs reader.fs env.fs eval.fs \
-               printer.fs readline.fs
+SOURCES_BASE = types.fs printer.fs core.fs tokenizer.fs reader.fs env.fs \
+               eval.fs readline.fs
 SOURCES_LISP =
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
