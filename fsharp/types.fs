@@ -16,23 +16,27 @@ module Types
         | Bool of bool
         | Func of F
     and
-        // Compare only on Tag and Name since functions are not IComparable
+        // Compare only on Tag since functions are not IComparable
         [<CustomEquality; CustomComparison>]
-        F = { Tag : int; Name : string; F : Node list -> Node }
+        F = { Tag : int; F : Node list -> Node }
 
             override x.Equals(yobj) =
                 match yobj with
-                | :? F as y -> x.Tag = y.Tag && x.Name = y.Name
+                | :? F as y -> x.Tag = y.Tag
                 | _ -> false
 
-            override x.GetHashCode() =
-                ((hash x.Tag) * 397) ^^^ (hash x.Name)
+            override x.GetHashCode() = hash x.Tag
 
             interface System.IComparable with
                 member x.CompareTo yobj =
                     match yobj with
-                    | :? F as y -> 
-                        let a = compare x.Tag y.Tag
-                        if a <> 0 then a
-                        else compare x.Name y.Name
+                    | :? F as y -> compare x.Tag y.Tag
                     | _ -> invalidArg "yobj" "Cannot compare values of different types."
+
+    let TRUE = Bool(true)
+    let SomeTRUE = Some(TRUE)
+    let FALSE = Bool(false)
+    let SomeFALSE = Some(FALSE)
+    let NIL = Nil
+    let SomeNIL = Some(NIL)
+    let ZERO = Number(0L)

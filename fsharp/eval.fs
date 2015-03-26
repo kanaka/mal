@@ -6,7 +6,7 @@ module Eval
 
     let errExpected tok = EvalError(sprintf "expected %s" tok)
 
-    let mapPairs f (source : seq<_>) =
+    let iterPairs f (source : seq<_>) =
         use iter = source.GetEnumerator()
         let rec loop () =
             if iter.MoveNext() then
@@ -46,8 +46,8 @@ module Eval
             let newEnv = Env.makeNew env
             let binder = setBinding newEnv
             match bindings with
-            | List(lst) -> lst |> mapPairs binder
-            | Vector(vec) -> vec |> mapPairs binder
+            | List(lst) -> lst |> iterPairs binder
+            | Vector(vec) -> vec |> iterPairs binder
             | _ -> raise <| errExpected "list or vector"
             eval newEnv form
         | _ -> raise <| Core.errArity ()

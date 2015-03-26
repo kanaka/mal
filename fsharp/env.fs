@@ -33,13 +33,27 @@ module Env
         | Some(v) -> v
         | None -> raise <| errSymbolNotFound key
 
+    let makeFunc =
+        let counter = ref 0
+        let getNext () = System.Threading.Interlocked.Increment(counter)
+        fun f -> Func({ Tag = getNext (); F = f }) 
+
     let makeRootEnv () =
-        let wrap tag name func = name, Func({ Tag = tag; Name = name; F = func })
+        let wrap name f = name, makeFunc f
         let env =
-            [ wrap 1 "+" Core.add;
-              wrap 2 "-" Core.subtract;
-              wrap 3 "*" Core.multiply;
-              wrap 4 "/" Core.divide ]
+            [ wrap "+" Core.add;
+              wrap "-" Core.subtract;
+              wrap "*" Core.multiply;
+              wrap "/" Core.divide;
+              wrap "list" Core.list;
+              wrap "list?" Core.isList;
+              wrap "empty?" Core.isEmpty;
+              wrap "count" Core.count;
+              wrap "=" Core.eq;
+              wrap "<" Core.lt;
+              wrap "<=" Core.le;
+              wrap ">=" Core.ge;
+              wrap ">" Core.gt ]
             |> ofList
         [ env ]
 

@@ -13,7 +13,8 @@ TERMINAL_SOURCES = terminal.cs
 
 #####################
 
-SRCS = step0_repl.fs step1_read_print.fs step2_eval.fs step3_env.fs
+SRCS = step0_repl.fs step1_read_print.fs step2_eval.fs step3_env.fs \
+       step4_if_fn_do.fs
 
 FSFLAGS = $(if $(strip $(DEBUG)),--debug+,)
 CSFLAGS = $(if $(strip $(DEBUG)),-debug+,)

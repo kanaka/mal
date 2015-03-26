@@ -69,9 +69,9 @@ module Reader
         | _ -> raise <| errExpectedButEOF "map"
 
     and readAtom = function
-        | Token("nil")::rest -> Some(Nil), rest
-        | Token("true")::rest -> Some(Bool(true)), rest
-        | Token("false")::rest -> Some(Bool(false)), rest
+        | Token("nil")::rest -> SomeNIL, rest
+        | Token("true")::rest -> SomeTRUE, rest
+        | Token("false")::rest -> SomeFALSE, rest
         | Tokenizer.String(str)::rest -> Some(String(str)), rest
         | Tokenizer.Keyword(kw)::rest -> Some(Keyword(kw)), rest
         | Tokenizer.Number(num)::rest -> Some(Number(Int64.Parse(num))), rest

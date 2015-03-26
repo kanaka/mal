@@ -17,7 +17,7 @@ module Printer
             | String(str) -> pr_str str
             | Bool(true) -> appendStr "true"
             | Bool(false) -> appendStr "false"
-            | Func({ Tag = tag; Name = name; F = _}) -> pr_func tag name
+            | Func({ Tag = tag; F = _}) -> pr_func tag
 
         and pr prefix node =
             appendStr prefix
@@ -39,8 +39,8 @@ module Printer
             str |> Seq.iter appendChar
             appendStr "\""
 
-        and pr_func tag name =
-           sprintf "#<%d %s>" tag name |> appendStr 
+        and pr_func tag =
+           sprintf "#<func %d>" tag |> appendStr 
 
         and pr_list nodes =
             appendStr "("
