@@ -63,7 +63,7 @@ mal/clojurewest2014.mal for the presentation that was given at the
 conference (yes the presentation is a mal program).
 
 If you are interesting in creating a mal implementation (or just
-interested in using mal for something), please stop by the #mal
+interested in using mal for something), please drop by the #mal
 channel on freenode. In addition to the [make-a-lisp process
 guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
@@ -369,9 +369,9 @@ mono ./stepX_YYY.exe
 The are nearly 500 generic functional tests (for all implementations)
 in the `tests/` directory. Each step has a corresponding test file
 containing tests specific to that step. The `runtest.py` test harness
-uses pexpect to launch a Mal step implementation and then feeds the
-tests one at a time to the implementation and compares the
-output/return value to the expected output/return value.
+launches a Mal step implementation and then feeds the tests one at
+a time to the implementation and compares the output/return value to
+the expected output/return value.
 
 To simplify the process of running tests, a top level Makefile is
 provided with convenient test targets.
@@ -500,7 +500,7 @@ example, to run step2 tests for every implementation (except MATLAB):
   run tests because runtime dependencies need to be downloaded to
   avoid the tests timing out. These dependencies are download to
   dot-files in the /mal directory so they will persist between runs.
-* Compiled languages: if you host system is different enough from
+* Compiled languages: if your host system is different enough from
   Ubuntu Utopic then you may need to re-compile your compiled
   languages from within the container to avoid linker version
   mismatches.
