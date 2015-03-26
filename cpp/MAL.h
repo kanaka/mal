@@ -11,10 +11,16 @@
 class malValue;
 typedef RefCountedPtr<malValue>  malValuePtr;
 typedef std::vector<malValuePtr> malValueVec;
+typedef malValueVec::iterator    malValueIter;
+
+class malEnv;
 
 // step*.cpp
-extern malValuePtr EVAL(malValuePtr ast);
-extern String rep(const String& input);
+extern malValuePtr APPLY(malValuePtr op,
+                         malValueIter argsBegin, malValueIter argsEnd,
+                         malEnv& env);
+extern malValuePtr EVAL(malValuePtr ast, malEnv& env);
+extern String rep(const String& input, malEnv& env);
 
 // Reader.cpp
 extern malValuePtr readStr(const String& input);

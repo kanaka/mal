@@ -19,8 +19,20 @@ public:
         TRACE_OBJECT("Destroying malValue %p\n", this);
     }
 
+    virtual malValuePtr eval(malEnv& env);
+
     virtual String print(bool readably) const = 0;
 };
+
+template<class T>
+T* value_cast(malValuePtr obj, const char* typeName) {
+    T* dest = dynamic_cast<T*>(obj.ptr());
+    ASSERT(dest != NULL, "%s is not a %s", obj->print(true).c_str(), typeName);
+    return dest;
+}
+
+#define VALUE_CAST(Type, Value)    value_cast<Type>(Value, #Type)
+#define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))
 
 class malConstant : public malValue {
 public:
@@ -39,6 +51,8 @@ public:
     virtual String print(bool readably) const {
         return std::to_string(m_value);
     }
+
+    int value() const { return m_value; }
 
 private:
     const int m_value;
@@ -77,6 +91,8 @@ class malSymbol : public malStringBase {
 public:
     malSymbol(const String& token)
         : malStringBase(token) { }
+
+    virtual malValuePtr eval(malEnv& env);
 };
 
 class malSequence : public malValue {
@@ -85,6 +101,12 @@ public:
     virtual ~malSequence();
 
     virtual String print(bool readably) const;
+
+    malValueVec* evalItems(malEnv& env) const;
+    int count() const { return m_items->size(); }
+
+    malValueIter begin() const { return m_items->begin(); }
+    malValueIter end()   const { return m_items->end(); }
 
 private:
     malValueVec* const m_items;
@@ -95,20 +117,31 @@ public:
     malList(malValueVec* items) : malSequence(items) { }
 
     virtual String print(bool readably) const;
+    virtual malValuePtr eval(malEnv& env);
 };
 
 class malVector : public malSequence {
 public:
     malVector(malValueVec* items) : malSequence(items) { }
 
+    virtual malValuePtr eval(malEnv& env);
     virtual String print(bool readably) const;
+};
+
+class malApplicable : public malValue {
+public:
+    malApplicable() { }
+
+    virtual malValuePtr apply(malValueIter argsBegin,
+                               malValueIter argsEnd,
+                               malEnv& env) const = 0;
 };
 
 class malHash : public malValue {
 public:
     typedef std::map<String, malValuePtr> Map;
 
-    malHash(malValueVec* items);
+    malHash(malValueIter argsBegin, malValueIter argsEnd);
 
     virtual String print(bool readably) const;
 
@@ -116,9 +149,35 @@ private:
     const Map m_map;
 };
 
+class malBuiltIn : public malApplicable {
+public:
+    typedef malValuePtr (ApplyFunc)(const String& name,
+                                    malValueIter argsBegin,
+                                    malValueIter argsEnd,
+                                    malEnv& env);
+
+    malBuiltIn(const String& name, ApplyFunc* handler)
+    : m_name(name), m_handler(handler) { }
+
+    virtual malValuePtr apply(malValueIter argsBegin,
+                              malValueIter argsEnd,
+                              malEnv& env) const;
+
+    virtual String print(bool readably) const {
+        return STRF("#builtin-function(%s)", m_name.c_str());
+    }
+
+    String name() const { return m_name; }
+
+private:
+    const String m_name;
+    ApplyFunc* m_handler;
+};
+
 namespace mal {
+    malValuePtr builtin(const String& name, malBuiltIn::ApplyFunc handler);
     malValuePtr falseValue();
-    malValuePtr hash(malValueVec* items);
+    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd);
     malValuePtr integer(int value);
     malValuePtr integer(const String& token);
     malValuePtr keyword(const String& token);

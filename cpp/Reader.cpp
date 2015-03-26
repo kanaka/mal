@@ -115,8 +115,9 @@ static malValuePtr readForm(Tokeniser& tokeniser)
     if (token == "{") {
         tokeniser.next();
         std::unique_ptr<malValueVec> items(new malValueVec);
+        items->push_back(mal::symbol("hash-map"));
         readList(tokeniser, items.get(), "}");
-        return mal::hash(items.release());
+        return mal::list(items.release());
     }
     return readAtom(tokeniser);
 }

@@ -11,6 +11,9 @@ String PRINT(malValuePtr ast);
 
 static ReadLine s_readLine("~/.mal-history");
 
+static String rep(const String& input);
+static malValuePtr EVAL(malValuePtr ast);
+
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
@@ -31,7 +34,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-String rep(const String& input)
+static String rep(const String& input)
 {
     return PRINT(EVAL(READ(input)));
 }
@@ -41,7 +44,7 @@ malValuePtr READ(const String& input)
     return readStr(input);
 }
 
-malValuePtr EVAL(malValuePtr ast)
+static malValuePtr EVAL(malValuePtr ast)
 {
     return ast;
 }
@@ -49,4 +52,15 @@ malValuePtr EVAL(malValuePtr ast)
 String PRINT(malValuePtr ast)
 {
     return ast->print(true);
+}
+
+// These have been added after step 1 to keep the linker happy.
+malValuePtr EVAL(malValuePtr ast, malEnv&)
+{
+    return ast;
+}
+
+malValuePtr APPLY(malValuePtr ast, malValueIter, malValueIter, malEnv&)
+{
+    return ast;
 }
