@@ -97,3 +97,14 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
 
     return handler->apply(argsBegin, argsEnd, env);
 }
+
+// Added to keep the linker happy at step A
+malValuePtr readline(const String& prompt)
+{
+    String input;
+    if (s_readLine.get(prompt, input)) {
+        return mal::string(input);
+    }
+    return mal::nilValue();
+}
+

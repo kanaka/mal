@@ -14,6 +14,8 @@ static void installFunctions(malEnvPtr env);
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
 static void safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
+static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env);
+static void installMacros(malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
@@ -24,6 +26,7 @@ int main(int argc, char* argv[])
     malEnvPtr replEnv(new malEnv);
     installCore(replEnv);
     installFunctions(replEnv);
+    installMacros(replEnv);
     makeArgv(replEnv, argc - 2, argv + 2);
     if (argc > 1) {
         String filename = escape(argv[1]);
@@ -78,6 +81,12 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             return ast->eval(env);
         }
 
+        ast = macroExpand(ast, env);
+        list = DYNAMIC_CAST(malList, ast);
+        if (!list || (list->count() == 0)) {
+            return ast->eval(env);
+        }
+
         // From here on down we are evaluating a non-empty list.
         // First handle the special forms.
         if (const malSymbol* symbol = DYNAMIC_CAST(malSymbol, list->item(0))) {
@@ -88,6 +97,15 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 checkArgsIs("def!", 2, argCount);
                 const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
                 return env->set(id->value(), EVAL(list->item(2), env));
+            }
+
+            if (special == "defmacro!") {
+                checkArgsIs("defmacro!", 2, argCount);
+
+                const malSymbol* id = VALUE_CAST(malSymbol, list->item(1));
+                malValuePtr body = EVAL(list->item(2), env);
+                const malLambda* lambda = VALUE_CAST(malLambda, body);
+                return env->set(id->value(), mal::macro(*lambda));
             }
 
             if (special == "do") {
@@ -142,6 +160,11 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 continue; // TCO
             }
 
+            if (special == "macroexpand") {
+                checkArgsIs("macroexpand", 1, argCount);
+                return macroExpand(list->item(1), env);
+            }
+
             if (special == "quasiquote") {
                 checkArgsIs("quasiquote", 1, argCount);
                 ast = quasiquote(list->item(1));
@@ -151,6 +174,47 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             if (special == "quote") {
                 checkArgsIs("quote", 1, argCount);
                 return list->item(1);
+            }
+
+            if (special == "try*") {
+                checkArgsIs("try*", 2, argCount);
+                malValuePtr tryBody = list->item(1);
+                const malList* catchBlock = VALUE_CAST(malList, list->item(2));
+
+                checkArgsIs("catch*", 2, catchBlock->count() - 1);
+                ASSERT(VALUE_CAST(malSymbol,
+                    catchBlock->item(0))->value() == "catch*",
+                    "catch block must begin with catch*");
+
+                // We don't need excSym at this scope, but we want to check
+                // that the catch block is valid always, not just in case of
+                // an exception.
+                const malSymbol* excSym =
+                    VALUE_CAST(malSymbol, catchBlock->item(1));
+
+                malValuePtr excVal;
+
+                try {
+                    ast = EVAL(tryBody, env);
+                }
+                catch(String& s) {
+                    excVal = mal::string(s);
+                }
+                catch (malEmptyInputException&) {
+                    // Not an error, continue as if we got nil
+                    ast = mal::nilValue();
+                }
+                catch(malValuePtr& o) {
+                    excVal = o;
+                };
+
+                if (excVal) {
+                    // we got some exception
+                    env = malEnvPtr(new malEnv(env));
+                    env->set(excSym->value(), excVal);
+                    ast = catchBlock->item(2);
+                }
+                continue; // TCO
             }
         }
 
@@ -228,23 +292,42 @@ static malValuePtr quasiquote(malValuePtr obj)
     }
 }
 
-static const char* malFunctionTable[] = {
-    "(def! list (fn* (& items) items))",
-    "(def! not (fn* (cond) (if cond false true)))",
-    "(def! >= (fn* (a b) (<= b a)))",
-    "(def! < (fn* (a b) (not (<= b a))))",
-    "(def! > (fn* (a b) (not (<= a b))))",
-    "(def! load-file (fn* (filename) \
-        (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
+static const malLambda* isMacroApplication(malValuePtr obj, malEnvPtr env)
+{
+    if (const malSequence* seq = isPair(obj)) {
+        if (malSymbol* sym = DYNAMIC_CAST(malSymbol, seq->first())) {
+            if (malEnvPtr symEnv = env->find(sym->value())) {
+                malValuePtr value = sym->eval(symEnv);
+                if (malLambda* lambda = DYNAMIC_CAST(malLambda, value)) {
+                    return lambda->isMacro() ? lambda : NULL;
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
+static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
+{
+    while (const malLambda* macro = isMacroApplication(obj, env)) {
+        const malSequence* seq = STATIC_CAST(malSequence, obj);
+        obj = macro->apply(seq->begin() + 1, seq->end(), env);
+    }
+    return obj;
+}
+
+static const char* macroTable[] = {
+    "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
+    "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))",
 };
 
-static void installFunctions(malEnvPtr env) {
-    for (int i = 0; i < ARRAY_SIZE(malFunctionTable); i++) {
-        rep(malFunctionTable[i], env);
+static void installMacros(malEnvPtr env)
+{
+    for (int i = 0; i < ARRAY_SIZE(macroTable); i++) {
+        rep(macroTable[i], env);
     }
 }
 
-// Added to keep the linker happy at step A
 malValuePtr readline(const String& prompt)
 {
     String input;
@@ -254,3 +337,22 @@ malValuePtr readline(const String& prompt)
     return mal::nilValue();
 }
 
+static const char* malFunctionTable[] = {
+    "(def! list (fn* (& items) items))",
+    "(def! not (fn* (cond) (if cond false true)))",
+    "(def! >= (fn* (a b) (<= b a)))",
+    "(def! < (fn* (a b) (not (<= b a))))",
+    "(def! > (fn* (a b) (not (<= a b))))",
+    "(def! load-file (fn* (filename) \
+        (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
+    "(def! map (fn* (f xs) (if (empty? xs) xs \
+        (cons (f (first xs)) (map f (rest xs))))))",
+    "(def! swap! (fn* (atom f & args) (reset! atom (apply f @atom args))))",
+    "(def! *host-language* \"sdt-cpp\")",
+};
+
+static void installFunctions(malEnvPtr env) {
+    for (int i = 0; i < ARRAY_SIZE(malFunctionTable); i++) {
+        rep(malFunctionTable[i], env);
+    }
+}

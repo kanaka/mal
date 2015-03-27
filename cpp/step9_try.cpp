@@ -345,3 +345,14 @@ static void installFunctions(malEnvPtr env) {
         rep(malFunctionTable[i], env);
     }
 }
+
+// Added to keep the linker happy at step A
+malValuePtr readline(const String& prompt)
+{
+    String input;
+    if (s_readLine.get(prompt, input)) {
+        return mal::string(input);
+    }
+    return mal::nilValue();
+}
+
