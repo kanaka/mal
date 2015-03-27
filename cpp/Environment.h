@@ -8,6 +8,11 @@
 class malEnv : public RefCounted {
 public:
     malEnv(malEnvPtr outer = NULL);
+    malEnv(malEnvPtr outer,
+           const StringVec& bindings,
+           malValueIter argsBegin,
+           malValueIter argsEnd);
+
     ~malEnv();
 
     malValuePtr get(const String& symbol);

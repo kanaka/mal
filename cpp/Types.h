@@ -19,9 +19,16 @@ public:
         TRACE_OBJECT("Destroying malValue %p\n", this);
     }
 
+    bool isTrue() const;
+
+    bool isEqualTo(const malValue* rhs) const;
+
     virtual malValuePtr eval(malEnvPtr env);
 
     virtual String print(bool readably) const = 0;
+
+protected:
+    virtual bool doIsEqualTo(const malValue* rhs) const = 0;
 };
 
 template<class T>
@@ -41,6 +48,10 @@ public:
 
     virtual String print(bool readably) const { return m_name; }
 
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return this == rhs; // these are singletons
+    }
+
 private:
     const String m_name;
 };
@@ -54,6 +65,10 @@ public:
     }
 
     int value() const { return m_value; }
+
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return m_value == static_cast<const malInteger*>(rhs)->m_value;
+    }
 
 private:
     const int m_value;
@@ -80,12 +95,20 @@ public:
     virtual String print(bool readably) const;
 
     String escapedValue() const;
+
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return value() == static_cast<const malString*>(rhs)->value();
+    }
 };
 
 class malKeyword : public malStringBase {
 public:
     malKeyword(const String& token)
         : malStringBase(token) { }
+
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return value() == static_cast<const malKeyword*>(rhs)->value();
+    }
 };
 
 class malSymbol : public malStringBase {
@@ -94,21 +117,29 @@ public:
         : malStringBase(token) { }
 
     virtual malValuePtr eval(malEnvPtr env);
+
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return value() == static_cast<const malSymbol*>(rhs)->value();
+    }
 };
 
 class malSequence : public malValue {
 public:
     malSequence(malValueVec* items);
+    malSequence(malValueIter begin, malValueIter end);
     virtual ~malSequence();
 
     virtual String print(bool readably) const;
 
     malValueVec* evalItems(malEnvPtr env) const;
     int count() const { return m_items->size(); }
+    bool isEmpty() const { return m_items->empty(); }
     malValuePtr item(int index) const { return (*m_items)[index]; }
 
     malValueIter begin() const { return m_items->begin(); }
     malValueIter end()   const { return m_items->end(); }
+
+    virtual bool doIsEqualTo(const malValue* rhs) const;
 
 private:
     malValueVec* const m_items;
@@ -117,6 +148,8 @@ private:
 class malList : public malSequence {
 public:
     malList(malValueVec* items) : malSequence(items) { }
+    malList(malValueIter begin, malValueIter end)
+        : malSequence(begin, end) { }
 
     virtual String print(bool readably) const;
     virtual malValuePtr eval(malEnvPtr env);
@@ -147,6 +180,8 @@ public:
 
     virtual String print(bool readably) const;
 
+    virtual bool doIsEqualTo(const malValue* rhs) const;
+
 private:
     const Map m_map;
 };
@@ -169,6 +204,10 @@ public:
         return STRF("#builtin-function(%s)", m_name.c_str());
     }
 
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return this == rhs; // these are singletons
+    }
+
     String name() const { return m_name; }
 
 private:
@@ -176,14 +215,42 @@ private:
     ApplyFunc* m_handler;
 };
 
+class malLambda : public malApplicable {
+public:
+    malLambda(const StringVec& bindings, malValuePtr body, malEnvPtr env);
+
+    virtual malValuePtr apply(malValueIter argsBegin,
+                              malValueIter argsEnd,
+                              malEnvPtr env) const;
+
+    malValuePtr getBody() const { return m_body; }
+    malEnvPtr makeEnv(malValueIter argsBegin, malValueIter argsEnd) const;
+
+    virtual bool doIsEqualTo(const malValue* rhs) const {
+        return this == rhs; // do we need to do a deep inspection?
+    }
+
+    virtual String print(bool readably) const {
+        return STRF("#user-function(%p)", this);
+    }
+
+private:
+    const StringVec   m_bindings;
+    const malValuePtr m_body;
+    const malEnvPtr   m_env;
+};
+
 namespace mal {
+    malValuePtr boolean(bool value);
     malValuePtr builtin(const String& name, malBuiltIn::ApplyFunc handler);
     malValuePtr falseValue();
     malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd);
     malValuePtr integer(int value);
     malValuePtr integer(const String& token);
     malValuePtr keyword(const String& token);
+    malValuePtr lambda(const StringVec&, malValuePtr, malEnvPtr);
     malValuePtr list(malValueVec* items);
+    malValuePtr list(malValueIter begin, malValueIter end);
     malValuePtr list(malValuePtr a);
     malValuePtr list(malValuePtr a, malValuePtr b);
     malValuePtr list(malValuePtr a, malValuePtr b, malValuePtr c);

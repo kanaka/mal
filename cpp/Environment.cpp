@@ -9,6 +9,27 @@ malEnv::malEnv(malEnvPtr outer)
     TRACE_ENV("Creating malEnv %p, outer=%p\n", this, m_outer.ptr());
 }
 
+malEnv::malEnv(malEnvPtr outer, const StringVec& bindings,
+               malValueIter argsBegin, malValueIter argsEnd)
+: m_outer(outer)
+{
+    TRACE_ENV("Creating malEnv %p, outer=%p\n", this, m_outer.ptr());
+    int n = bindings.size();
+    auto it = argsBegin;
+    for (int i = 0; i < n; i++) {
+        if (bindings[i] == "&") {
+            ASSERT(i == n - 2, "There must be one parameter after the &");
+
+            set(bindings[n-1], mal::list(it, argsEnd));
+            return;
+        }
+        ASSERT(it != argsEnd, "Not enough parameters");
+        set(bindings[i], *it);
+        ++it;
+    }
+    ASSERT(it == argsEnd, "Too many parameters");
+}
+
 malEnv::~malEnv()
 {
     TRACE_ENV("Destroying malEnv %p, outer=%p\n", this, m_outer.ptr());
