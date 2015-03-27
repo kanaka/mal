@@ -141,6 +141,9 @@ public:
 
     virtual bool doIsEqualTo(const malValue* rhs) const;
 
+    malValuePtr first() const;
+    virtual malValuePtr rest() const;
+
 private:
     malValueVec* const m_items;
 };

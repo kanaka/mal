@@ -281,6 +281,11 @@ malValueVec* malSequence::evalItems(malEnvPtr env) const
     return items;
 }
 
+malValuePtr malSequence::first() const
+{
+    return count() == 0 ? mal::nilValue() : item(0);
+}
+
 String malSequence::print(bool readably) const
 {
     String str;
@@ -295,6 +300,12 @@ String malSequence::print(bool readably) const
         str += (*it)->print(readably);
     }
     return str;
+}
+
+malValuePtr malSequence::rest() const
+{
+    malValueIter start = (count() > 0) ? begin() + 1 : end();
+    return mal::list(start, end());
 }
 
 String malString::escapedValue() const

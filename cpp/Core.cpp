@@ -90,6 +90,38 @@ BUILTIN("=")
     return mal::boolean(lhs->isEqualTo(rhs));
 }
 
+BUILTIN("concat")
+{
+    int count = 0;
+    for (auto it = argsBegin; it != argsEnd; ++it) {
+        const malSequence* seq = VALUE_CAST(malSequence, *it);
+        count += seq->count();
+    }
+
+    malValueVec* items = new malValueVec(count);
+    int offset = 0;
+    for (auto it = argsBegin; it != argsEnd; ++it) {
+        const malSequence* seq = STATIC_CAST(malSequence, *it);
+        std::copy(seq->begin(), seq->end(), items->begin() + offset);
+        offset += seq->count();
+    }
+
+    return mal::list(items);
+}
+
+BUILTIN("cons")
+{
+    CHECK_ARGS_IS(2);
+    malValuePtr first = *argsBegin++;
+    ARG(malSequence, rest);
+
+    malValueVec* items = new malValueVec(1 + rest->count());
+    items->at(0) = first;
+    std::copy(rest->begin(), rest->end(), items->begin() + 1);
+
+    return mal::list(items);
+}
+
 BUILTIN("count")
 {
     CHECK_ARGS_IS(1);
