@@ -74,7 +74,7 @@ MalVal *malval_new(MalType type, MalVal *metadata) {
 }
 
 // 
-int malval_free(MalVal *mv) {
+void malval_free(MalVal *mv) {
     // TODO: free collection items
     if (!(mv->type & (MAL_NIL|MAL_TRUE|MAL_FALSE))) {
         free(mv);

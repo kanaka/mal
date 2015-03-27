@@ -12,9 +12,9 @@ proc quasiquote(ast: MalType): MalType =
     return ast.list[1]
   elif ast.list[0].is_pair and ast.list[0].list[0] == symbol "splice-unquote":
     return list(symbol "concat", ast.list[0].list[1],
-      quasiquote(list ast.list[1 .. -1]))
+      quasiquote(list ast.list[1 .. ^1]))
   else:
-    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. -1])))
+    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
 
 proc is_macro_call(ast: MalType, env: Env): bool =
   ast.kind == List and ast.list.len > 0 and ast.list[0].kind == Symbol and
@@ -24,7 +24,7 @@ proc macroexpand(ast: MalType, env: Env): MalType =
   result = ast
   while result.is_macro_call(env):
     let mac = env.get(result.list[0].str)
-    result = mac.malfun.fn(result.list[1 .. -1]).macroexpand(env)
+    result = mac.malfun.fn(result.list[1 .. ^1]).macroexpand(env)
 
 proc eval(ast: MalType, env: Env): MalType
 
@@ -53,9 +53,9 @@ proc eval(ast: MalType, env: Env): MalType =
     case f.kind
     of MalFun:
       ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. -1]))
+      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. ^1]))
     else:
-      return f.fun(el.list[1 .. -1])
+      return f.fun(el.list[1 .. ^1])
 
   while true:
     if ast.kind != List: return ast.eval_ast(env)

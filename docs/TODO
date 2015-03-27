@@ -3,7 +3,6 @@ All:
 
     - test that *ARGV* gets set properly
     - test to make sure slurp captures final newline
-    - fix long line splitting in runtest
     - Give runtest knowledge of optional tests and report as non-fatal
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)

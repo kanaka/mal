@@ -4,10 +4,11 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 27 different languages:
+Mal is implemented in 30 different languages:
 
 * Bash shell
 * C
+* C++
 * C#
 * Clojure
 * CoffeeScript
@@ -15,7 +16,8 @@ Mal is implemented in 27 different languages:
 * Go
 * Haskell
 * Java
-* Javascript ([Online Demo](http://kanaka.github.io/mal))
+* JavaScript ([Online Demo](http://kanaka.github.io/mal))
+* Julia
 * Lua
 * GNU Make
 * mal itself
@@ -32,6 +34,7 @@ Mal is implemented in 27 different languages:
 * Ruby
 * Rust
 * Scala
+* Swift
 * Visual Basic.NET
 
 
@@ -62,7 +65,7 @@ mal/clojurewest2014.mal for the presentation that was given at the
 conference (yes the presentation is a mal program).
 
 If you are interesting in creating a mal implementation (or just
-interested in using mal for something), please stop by the #mal
+interested in using mal for something), please drop by the #mal
 channel on freenode. In addition to the [make-a-lisp process
 guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
@@ -86,6 +89,23 @@ cd c
 make
 ./stepX_YYY
 ```
+
+### C++
+
+*The C++ implementation was created by [Stephen Thirlwall (sdt)](https://github.com/sdt)*
+
+The C++ implementation of mal requires g++-4.9 or clang++-3.5 and
+a readline compatible library to build. See the `cpp/README.md` for
+more details:
+
+```
+cd cpp
+make
+    # OR
+make CXX=clang++-3.5
+./stepX_YYY
+```
+
 
 ### C# ###
 
@@ -116,6 +136,8 @@ coffee ./stepX_YYY
 ```
 
 ### Forth
+
+*The Forth implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
 
 ```
 cd forth
@@ -160,12 +182,21 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 ```
 
-### Javascript/Node
+### JavaScript/Node
 
 ```
 cd js
 npm update
 node stepX_YYY.js
+```
+
+### Julia
+
+The Julia implementation of mal has been tested with Julia 0.3.7.
+
+```
+cd julia
+julia stepX_YYY.jl
 ```
 
 ### Lua
@@ -200,6 +231,8 @@ make -f stepX_YYY.mk
 
 ### Nim 0.10.3
 
+*The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
+
 Running the Nim implementation of mal requires Nim's current devel branch
 (0.10.3) or later, and the nre library installed.
 
@@ -212,6 +245,8 @@ nimble build
 ```
 
 ### OCaml 4.01.0
+
+*The OCaml implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
 
 ```
 cd ocaml
@@ -336,6 +371,19 @@ sbt compile
 scala -classpath target/scala*/classes stepX_YYY
 ```
 
+### Swift
+
+*The Swift implementation was created by [Keith Rollin](https://github.com/keith-rollin)*
+
+The Swift implemenation of mal requires the Swift compiler (XCode) to
+build.
+
+```
+cd swift
+make
+./stepX_YYY
+```
+
 ### Visual Basic.NET ###
 
 The VB.NET implementation of mal has been tested on Linux using the Mono
@@ -357,9 +405,9 @@ mono ./stepX_YYY.exe
 The are nearly 500 generic functional tests (for all implementations)
 in the `tests/` directory. Each step has a corresponding test file
 containing tests specific to that step. The `runtest.py` test harness
-uses pexpect to launch a Mal step implementation and then feeds the
-tests one at a time to the implementation and compares the
-output/return value to the expected output/return value.
+launches a Mal step implementation and then feeds the tests one at
+a time to the implementation and compares the output/return value to
+the expected output/return value.
 
 To simplify the process of running tests, a top level Makefile is
 provided with convenient test targets.
@@ -488,7 +536,7 @@ example, to run step2 tests for every implementation (except MATLAB):
   run tests because runtime dependencies need to be downloaded to
   avoid the tests timing out. These dependencies are download to
   dot-files in the /mal directory so they will persist between runs.
-* Compiled languages: if you host system is different enough from
+* Compiled languages: if your host system is different enough from
   Ubuntu Utopic then you may need to re-compile your compiled
   languages from within the container to avoid linker version
   mismatches.

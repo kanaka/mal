@@ -12,9 +12,9 @@ proc quasiquote(ast: MalType): MalType =
     return ast.list[1]
   elif ast.list[0].is_pair and ast.list[0].list[0] == symbol "splice-unquote":
     return list(symbol "concat", ast.list[0].list[1],
-      quasiquote(list ast.list[1 .. -1]))
+      quasiquote(list ast.list[1 .. ^1]))
   else:
-    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. -1])))
+    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
 
 proc eval(ast: MalType, env: var Env): MalType
 
@@ -42,9 +42,9 @@ proc eval(ast: MalType, env: var Env): MalType =
     case f.kind
     of MalFun:
       ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. -1]))
+      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. ^1]))
     else:
-      return f.fun(el.list[1 .. -1])
+      return f.fun(el.list[1 .. ^1])
 
   while true:
     if ast.kind != List: return ast.eval_ast(env)

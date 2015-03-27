@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "types.h"
@@ -109,14 +110,13 @@ MalVal *RE(GHashTable *env, char *prompt, char *str) {
 // Setup the initial REPL environment
 GHashTable *repl_env;
 
+WRAP_INTEGER_OP(plus,+)
+WRAP_INTEGER_OP(minus,-)
+WRAP_INTEGER_OP(multiply,*)
+WRAP_INTEGER_OP(divide,/)
 
 void init_repl_env() {
     repl_env = g_hash_table_new(g_str_hash, g_str_equal);
-
-    WRAP_INTEGER_OP(plus,+)
-    WRAP_INTEGER_OP(minus,-)
-    WRAP_INTEGER_OP(multiply,*)
-    WRAP_INTEGER_OP(divide,/)
 
     g_hash_table_insert(repl_env, "+", int_plus);
     g_hash_table_insert(repl_env, "-", int_minus);

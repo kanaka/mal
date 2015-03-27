@@ -17,7 +17,7 @@ RUN apt-get -y install make wget curl git
 RUN apt-get -y install gcc pkg-config 
 
 # Deps for Java-based languages (Clojure, Scala, Java)
-RUN apt-get -y install openjdk-7-jre-headless
+RUN apt-get -y install openjdk-7-jdk
 ENV MAVEN_OPTS -Duser.home=/mal
 
 # Deps for Mono-based languages (C#, VB.Net)
@@ -39,11 +39,15 @@ RUN apt-get -y install bash
 RUN apt-get -y install libglib2.0 libglib2.0-dev
 RUN apt-get -y install libffi-dev libreadline-dev libedit2 libedit-dev
 
+# C++
+RUN apt-get -y install g++-4.9 libreadline-dev
+
 # Clojure
 ADD https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein \
     /usr/local/bin/lein
 RUN sudo chmod 0755 /usr/local/bin/lein
 ENV LEIN_HOME /mal/.lein
+ENV LEIN_JVM_OPTS -Duser.home=/mal
 
 # CoffeeScript
 RUN npm install -g coffee-script
@@ -81,13 +85,13 @@ RUN luarocks install linenoise
 RUN npm install -g minimal-lisp
 
 # Nim
-RUN git clone -b devel git://github.com/Araq/Nim.git /tmp/Nim
-RUN cd /tmp/Nim && git clone -b devel --depth 1 git://github.com/nim-lang/csources
-RUN cd /tmp/Nim/csources && sh build.sh
-RUN cd /tmp/Nim && bin/nim c koch
-RUN cd /tmp/Nim && ./koch boot -d:release
-RUN cd /tmp/Nim && ./koch install /usr/local/bin
-RUN rm -r /tmp/Nim
+RUN git clone -b devel git://github.com/Araq/Nim.git /tmp/Nim \
+    && cd /tmp/Nim && git clone -b devel --depth 1 git://github.com/nim-lang/csources \
+    && cd /tmp/Nim/csources && sh build.sh \
+    && cd /tmp/Nim && bin/nim c koch \
+    && ./koch boot -d:release \
+    && ./koch install /usr/local/bin \
+    && rm -r /tmp/Nim
 
 # OCaml
 RUN apt-get -y install ocaml-batteries-included
@@ -124,11 +128,16 @@ ENV SBT_OPTS -Duser.home=/mal
 # VB.Net
 RUN apt-get -y install mono-vbnc
 
-# TODO: move this up with Clojure
-ENV LEIN_JVM_OPTS -Duser.home=/mal
+# TODO: move this up
+# Julia
+RUN apt-add-repository -y ppa:staticfloat/juliareleases
+RUN apt-get -y update
+RUN apt-get -y install julia
+
 
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
-ENV SKIP_IMPLS matlab
+# Swift is XCode/OS X only
+ENV SKIP_IMPLS matlab swift
 
 ENV DEBIAN_FRONTEND newt
 ENV HOME /

@@ -28,9 +28,9 @@ proc eval(ast: MalType, env: var Env): MalType =
     case f.kind
     of MalFun:
       ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. -1]))
+      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. ^1]))
     else:
-      return f.fun(el.list[1 .. -1])
+      return f.fun(el.list[1 .. ^1])
 
   while true:
     if ast.kind != List: return ast.eval_ast(env)
