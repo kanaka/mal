@@ -70,6 +70,10 @@ namespace mal {
         return malValuePtr(new malList(items));
     }
 
+    malValuePtr macro(const malLambda& lambda) {
+        return malValuePtr(new malLambda(lambda, true));
+    };
+
     malValuePtr nilValue() {
         static malValuePtr c(new malConstant("nil"));
         return malValuePtr(c);
@@ -179,6 +183,16 @@ malLambda::malLambda(const StringVec& bindings,
 : m_bindings(bindings)
 , m_body(body)
 , m_env(env)
+, m_isMacro(false)
+{
+
+}
+
+malLambda::malLambda(const malLambda& that, bool isMacro)
+: m_bindings(that.m_bindings)
+, m_body(that.m_body)
+, m_env(that.m_env)
+, m_isMacro(isMacro)
 {
 
 }

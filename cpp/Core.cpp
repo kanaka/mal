@@ -147,9 +147,28 @@ BUILTIN("eval")
     return EVAL(*argsBegin, env->getRoot());
 }
 
+BUILTIN("first")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malSequence, seq);
+    return seq->first();
+}
+
 BUILTIN("hash-map")
 {
     return mal::hash(argsBegin, argsEnd);
+}
+
+BUILTIN("nth")
+{
+    CHECK_ARGS_IS(2);
+    ARG(malSequence, seq);
+    ARG(malInteger,  index);
+
+    int i = index->value();
+    ASSERT(i >= 0 && i < seq->count(), "Index out of range");
+
+    return seq->item(i);
 }
 
 BUILTIN("pr-str")
@@ -175,6 +194,13 @@ BUILTIN("read-string")
     ARG(malString, str);
 
     return readStr(str->value());
+}
+
+BUILTIN("rest")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malSequence, seq);
+    return seq->rest();
 }
 
 BUILTIN("slurp")
