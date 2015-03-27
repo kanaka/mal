@@ -19,7 +19,7 @@ public:
         TRACE_OBJECT("Destroying malValue %p\n", this);
     }
 
-    virtual malValuePtr eval(malEnv& env);
+    virtual malValuePtr eval(malEnvPtr env);
 
     virtual String print(bool readably) const = 0;
 };
@@ -33,6 +33,7 @@ T* value_cast(malValuePtr obj, const char* typeName) {
 
 #define VALUE_CAST(Type, Value)    value_cast<Type>(Value, #Type)
 #define DYNAMIC_CAST(Type, Value)  (dynamic_cast<Type*>((Value).ptr()))
+#define STATIC_CAST(Type, Value)   (static_cast<Type*>((Value).ptr()))
 
 class malConstant : public malValue {
 public:
@@ -92,7 +93,7 @@ public:
     malSymbol(const String& token)
         : malStringBase(token) { }
 
-    virtual malValuePtr eval(malEnv& env);
+    virtual malValuePtr eval(malEnvPtr env);
 };
 
 class malSequence : public malValue {
@@ -102,8 +103,9 @@ public:
 
     virtual String print(bool readably) const;
 
-    malValueVec* evalItems(malEnv& env) const;
+    malValueVec* evalItems(malEnvPtr env) const;
     int count() const { return m_items->size(); }
+    malValuePtr item(int index) const { return (*m_items)[index]; }
 
     malValueIter begin() const { return m_items->begin(); }
     malValueIter end()   const { return m_items->end(); }
@@ -117,14 +119,14 @@ public:
     malList(malValueVec* items) : malSequence(items) { }
 
     virtual String print(bool readably) const;
-    virtual malValuePtr eval(malEnv& env);
+    virtual malValuePtr eval(malEnvPtr env);
 };
 
 class malVector : public malSequence {
 public:
     malVector(malValueVec* items) : malSequence(items) { }
 
-    virtual malValuePtr eval(malEnv& env);
+    virtual malValuePtr eval(malEnvPtr env);
     virtual String print(bool readably) const;
 };
 
@@ -134,7 +136,7 @@ public:
 
     virtual malValuePtr apply(malValueIter argsBegin,
                                malValueIter argsEnd,
-                               malEnv& env) const = 0;
+                               malEnvPtr env) const = 0;
 };
 
 class malHash : public malValue {
@@ -154,14 +156,14 @@ public:
     typedef malValuePtr (ApplyFunc)(const String& name,
                                     malValueIter argsBegin,
                                     malValueIter argsEnd,
-                                    malEnv& env);
+                                    malEnvPtr env);
 
     malBuiltIn(const String& name, ApplyFunc* handler)
     : m_name(name), m_handler(handler) { }
 
     virtual malValuePtr apply(malValueIter argsBegin,
                               malValueIter argsEnd,
-                              malEnv& env) const;
+                              malEnvPtr env) const;
 
     virtual String print(bool readably) const {
         return STRF("#builtin-function(%s)", m_name.c_str());

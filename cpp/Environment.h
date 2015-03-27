@@ -5,16 +5,19 @@
 
 #include <map>
 
-class malEnv {
+class malEnv : public RefCounted {
 public:
-    malEnv() {}
+    malEnv(malEnvPtr outer = NULL);
+    ~malEnv();
 
     malValuePtr get(const String& symbol);
+    malEnvPtr   find(const String& symbol);
     malValuePtr set(const String& symbol, malValuePtr value);
 
 private:
     typedef std::map<String, malValuePtr> Map;
     Map m_map;
+    malEnvPtr m_outer;
 };
 
 #endif // INCLUDE_ENVIRONMENT_H

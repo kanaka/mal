@@ -55,12 +55,12 @@ String PRINT(malValuePtr ast)
 }
 
 // These have been added after step 1 to keep the linker happy.
-malValuePtr EVAL(malValuePtr ast, malEnv&)
+malValuePtr EVAL(malValuePtr ast, malEnvPtr)
 {
     return ast;
 }
 
-malValuePtr APPLY(malValuePtr ast, malValueIter, malValueIter, malEnv&)
+malValuePtr APPLY(malValuePtr ast, malValueIter, malValueIter, malEnvPtr)
 {
     return ast;
 }

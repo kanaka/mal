@@ -18,12 +18,12 @@ int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    malEnv replEnv;
-    replEnv.set("+", mal::builtin("+", &builtIn_add));
-    replEnv.set("-", mal::builtin("-", &builtIn_sub));
-    replEnv.set("*", mal::builtin("+", &builtIn_mul));
-    replEnv.set("/", mal::builtin("/", &builtIn_div));
-    replEnv.set("hash-map", mal::builtin("hash-map", &builtIn_hash_map));
+    malEnvPtr replEnv(new malEnv);
+    replEnv->set("+", mal::builtin("+", &builtIn_add));
+    replEnv->set("-", mal::builtin("-", &builtIn_sub));
+    replEnv->set("*", mal::builtin("+", &builtIn_mul));
+    replEnv->set("/", mal::builtin("/", &builtIn_div));
+    replEnv->set("hash-map", mal::builtin("hash-map", &builtIn_hash_map));
     while (s_readLine.get(prompt, input)) {
         String out;
         try {
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-String rep(const String& input, malEnv& env)
+String rep(const String& input, malEnvPtr env)
 {
     return PRINT(EVAL(READ(input), env));
 }
@@ -50,7 +50,7 @@ malValuePtr READ(const String& input)
     return readStr(input);
 }
 
-malValuePtr EVAL(malValuePtr ast, malEnv& env)
+malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
     return ast->eval(env);
 }
@@ -61,7 +61,7 @@ String PRINT(malValuePtr ast)
 }
 
 malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
-                  malEnv& env)
+                  malEnvPtr env)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
     ASSERT(handler != NULL, "\"%s\" is not applicable", op->print(true).c_str());
@@ -79,7 +79,7 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
 
 
 static malValuePtr builtIn_add(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnv& env)
+    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
 {
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
@@ -88,7 +88,7 @@ static malValuePtr builtIn_add(const String& name,
 }
 
 static malValuePtr builtIn_sub(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnv& env)
+    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
 {
         int argCount = CHECK_ARGS_BETWEEN(1, 2);
         ARG(malInteger, lhs);
@@ -100,7 +100,7 @@ static malValuePtr builtIn_sub(const String& name,
 }
 
 static malValuePtr builtIn_mul(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnv& env)
+    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
 {
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
@@ -109,7 +109,7 @@ static malValuePtr builtIn_mul(const String& name,
 }
 
 static malValuePtr builtIn_div(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnv& env)
+    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
 {
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
@@ -119,7 +119,7 @@ static malValuePtr builtIn_div(const String& name,
 }
 
 static malValuePtr builtIn_hash_map(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnv& env)
+    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
 {
     return mal::hash(argsBegin, argsEnd);
 }
