@@ -7,6 +7,10 @@ module Env
 
     let errSymbolNotFound s = EvalError(sprintf "'%s' not found" s)
     let errNoEnvironment () = EvalError("no environment")
+    let errTooManyValues () = EvalError("too many values")
+    let errNotEnoughValues () = EvalError("not enough values")
+    let errExpectedSymbol () = EvalError("expected symbol")
+    let errOnlyOneSymbol () = EvalError("only one symbol after &")
 
     let makeEmpty () = Env()
 
@@ -61,4 +65,19 @@ module Env
             |> ofList
         [ env ]
 
-    let makeNew (env : EnvChain) = (makeEmpty ())::env
+    let makeNew outer symbols nodes =
+        let env = (makeEmpty ())::outer
+        let rec loop symbols nodes =
+            match symbols, nodes with
+            | [Symbol("&"); Symbol(s)], nodes ->
+                set env s (List nodes)
+                env
+            | Symbol("&")::_, _ -> raise <| errOnlyOneSymbol ()
+            | Symbol(s)::symbols, n::nodes -> 
+                set env s n
+                loop symbols nodes
+            | [], [] -> env
+            | _, [] -> raise <| errNotEnoughValues ()
+            | [], _ -> raise <| errTooManyValues ()
+            | _, _ -> raise <| errExpectedSymbol ()
+        loop symbols nodes

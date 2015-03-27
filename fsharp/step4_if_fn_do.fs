@@ -23,10 +23,14 @@ module REPL
         |> Printer.pr_str
         |> printfn "%s"
 
-    let rep env input =
+    let re env input =
         read input
         |> Seq.ofList
         |> Seq.choose (fun form -> eval env form)
+
+    let rep env input =
+        input
+        |> re env
         |> Seq.iter (fun value -> print value)
 
     let getReadlineMode (args : string array) =
@@ -39,6 +43,9 @@ module REPL
     let main args =
         let mode = getReadlineMode args
         let env = Env.makeRootEnv ()
+
+        re env "(def! not (fn* (a) (if a false true)))" |> Seq.iter ignore
+
         let rec loop () =
             match Readline.read "user> " mode with
             | null -> 0

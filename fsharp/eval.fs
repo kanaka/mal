@@ -43,7 +43,7 @@ module Eval
 
     and letStarForm env = function
         | [bindings; form] ->
-            let newEnv = Env.makeNew env
+            let newEnv = Env.makeNew env [] []
             let binder = setBinding newEnv
             match bindings with
             | List(lst) -> lst |> iterPairs binder
@@ -69,11 +69,24 @@ module Eval
             doForm env rest
         | _ -> raise <| Core.errArity ()
 
+    and fnStarForm outer nodes =
+        let makeFunc binds body =
+            Env.makeFunc (fun nodes ->
+                let inner = Env.makeNew outer binds nodes
+                eval inner body)
+
+        match nodes with
+        | [List(binds); body] -> makeFunc binds body
+        | [Vector(binds); body] -> makeFunc (List.ofArray binds) body
+        | [_; _] -> raise <| errExpected "bindings of list or vector"
+        | _ -> raise <| Core.errArity ()
+
     and eval env = function
         | List(Symbol("def!")::rest) -> defBangForm env rest
         | List(Symbol("let*")::rest) -> letStarForm env rest
         | List(Symbol("if")::rest) -> ifForm env rest
         | List(Symbol("do")::rest) -> doForm env rest
+        | List(Symbol("fn*")::rest) -> fnStarForm env rest
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
