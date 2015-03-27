@@ -161,6 +161,8 @@ public:
 class malVector : public malSequence {
 public:
     malVector(malValueVec* items) : malSequence(items) { }
+    malVector(malValueIter begin, malValueIter end)
+        : malSequence(begin, end) { }
 
     virtual malValuePtr eval(malEnvPtr env);
     virtual String print(bool readably) const;
@@ -180,6 +182,14 @@ public:
     typedef std::map<String, malValuePtr> Map;
 
     malHash(malValueIter argsBegin, malValueIter argsEnd);
+    malHash(const malHash::Map& map);
+
+    malValuePtr assoc(malValueIter argsBegin, malValueIter argsEnd) const;
+    malValuePtr dissoc(malValueIter argsBegin, malValueIter argsEnd) const;
+    bool contains(malValuePtr key) const;
+    malValuePtr get(malValuePtr key) const;
+    malValuePtr keys() const;
+    malValuePtr values() const;
 
     virtual String print(bool readably) const;
 
@@ -252,6 +262,7 @@ namespace mal {
     malValuePtr builtin(const String& name, malBuiltIn::ApplyFunc handler);
     malValuePtr falseValue();
     malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd);
+    malValuePtr hash(const malHash::Map& map);
     malValuePtr integer(int value);
     malValuePtr integer(const String& token);
     malValuePtr keyword(const String& token);
@@ -267,6 +278,7 @@ namespace mal {
     malValuePtr symbol(const String& token);
     malValuePtr trueValue();
     malValuePtr vector(malValueVec* items);
+    malValuePtr vector(malValueIter begin, malValueIter end);
 };
 
 #endif // INCLUDE_TYPES_H

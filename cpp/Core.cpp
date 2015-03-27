@@ -42,6 +42,12 @@ static StaticList<malBuiltIn*> handlers;
         return mal::boolean(DYNAMIC_CAST(type, *argsBegin)); \
     }
 
+#define BUILTIN_IS(op, constant) \
+    BUILTIN(op) { \
+        CHECK_ARGS_IS(1); \
+        return mal::boolean(*argsBegin == mal::constant()); \
+    }
+
 #define BUILTIN_INTOP(op, checkDivByZero) \
     BUILTIN(#op) { \
         CHECK_ARGS_IS(2); \
@@ -53,12 +59,21 @@ static StaticList<malBuiltIn*> handlers;
         return mal::integer(lhs->value() op rhs->value()); \
     }
 
+BUILTIN_ISA("keyword?",     malKeyword);
 BUILTIN_ISA("list?",        malList);
+BUILTIN_ISA("map?",         malHash);
+BUILTIN_ISA("sequential?",  malSequence);
+BUILTIN_ISA("symbol?",      malSymbol);
+BUILTIN_ISA("vector?",      malVector);
 
 BUILTIN_INTOP(+,            false);
 BUILTIN_INTOP(/,            true);
 BUILTIN_INTOP(*,            false);
 BUILTIN_INTOP(%,            true);
+
+BUILTIN_IS("true?",         trueValue);
+BUILTIN_IS("false?",        falseValue);
+BUILTIN_IS("nil?",          nilValue);
 
 BUILTIN("-")
 {
@@ -88,6 +103,31 @@ BUILTIN("=")
     const malValue* rhs = (*argsBegin++).ptr();
 
     return mal::boolean(lhs->isEqualTo(rhs));
+}
+
+BUILTIN("apply")
+{
+    CHECK_ARGS_AT_LEAST(2);
+    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+
+    // Copy the first N-1 arguments in.
+    malValueVec args(argsBegin, argsEnd-1);
+
+    // Then append the argument as a list.
+    const malSequence* lastArg = VALUE_CAST(malSequence, *(argsEnd-1));
+    for (int i = 0; i < lastArg->count(); i++) {
+        args.push_back(lastArg->item(i));
+    }
+
+    return APPLY(op, args.begin(), args.end(), env->getRoot());
+}
+
+BUILTIN("assoc")
+{
+    CHECK_ARGS_AT_LEAST(1);
+    ARG(malHash, hash);
+
+    return hash->assoc(argsBegin, argsEnd);
 }
 
 BUILTIN("concat")
@@ -122,6 +162,16 @@ BUILTIN("cons")
     return mal::list(items);
 }
 
+BUILTIN("contains?")
+{
+    CHECK_ARGS_IS(2);
+    if (*argsBegin == mal::nilValue()) {
+        return *argsBegin;
+    }
+    ARG(malHash, hash);
+    return mal::boolean(hash->contains(*argsBegin));
+}
+
 BUILTIN("count")
 {
     CHECK_ARGS_IS(1);
@@ -131,6 +181,14 @@ BUILTIN("count")
 
     ARG(malSequence, seq);
     return mal::integer(seq->count());
+}
+
+BUILTIN("dissoc")
+{
+    CHECK_ARGS_AT_LEAST(1);
+    ARG(malHash, hash);
+
+    return hash->dissoc(argsBegin, argsEnd);
 }
 
 BUILTIN("empty?")
@@ -154,9 +212,33 @@ BUILTIN("first")
     return seq->first();
 }
 
+BUILTIN("get")
+{
+    CHECK_ARGS_IS(2);
+    if (*argsBegin == mal::nilValue()) {
+        return *argsBegin;
+    }
+    ARG(malHash, hash);
+    return hash->get(*argsBegin);
+}
+
 BUILTIN("hash-map")
 {
     return mal::hash(argsBegin, argsEnd);
+}
+
+BUILTIN("keys")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malHash, hash);
+    return hash->keys();
+}
+
+BUILTIN("keyword")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malString, token);
+    return mal::keyword(":" + token->value());
 }
 
 BUILTIN("nth")
@@ -225,6 +307,31 @@ BUILTIN("slurp")
 BUILTIN("str")
 {
     return mal::string(printValues(argsBegin, argsEnd, "", false));
+}
+
+BUILTIN("symbol")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malString, token);
+    return mal::symbol(token->value());
+}
+
+BUILTIN("throw")
+{
+    CHECK_ARGS_IS(1);
+    throw *argsBegin;
+}
+
+BUILTIN("vals")
+{
+    CHECK_ARGS_IS(1);
+    ARG(malHash, hash);
+    return hash->values();
+}
+
+BUILTIN("vector")
+{
+    return mal::vector(argsBegin, argsEnd);
 }
 
 void installCore(malEnvPtr env) {

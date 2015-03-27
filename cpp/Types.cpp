@@ -20,6 +20,10 @@ namespace mal {
         return malValuePtr(c);
     };
 
+    malValuePtr hash(const malHash::Map& map) {
+        return malValuePtr(new malHash(map));
+    }
+
     malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd) {
         return malValuePtr(new malHash(argsBegin, argsEnd));
     }
@@ -95,6 +99,10 @@ namespace mal {
     malValuePtr vector(malValueVec* items) {
         return malValuePtr(new malVector(items));
     };
+
+    malValuePtr vector(malValueIter begin, malValueIter end) {
+        return malValuePtr(new malVector(begin, end));
+    };
 };
 
 malValuePtr malBuiltIn::apply(malValueIter argsBegin,
@@ -140,6 +148,70 @@ malHash::malHash(malValueIter argsBegin, malValueIter argsEnd)
 : m_map(createMap(argsBegin, argsEnd))
 {
 
+}
+
+malHash::malHash(const malHash::Map& map)
+: m_map(map)
+{
+
+}
+
+malValuePtr
+malHash::assoc(malValueIter argsBegin, malValueIter argsEnd) const
+{
+    ASSERT(std::distance(argsBegin, argsEnd) % 2 == 0,
+            "assoc requires an even-sized list");
+
+    malHash::Map map(m_map);
+    return mal::hash(addToMap(map, argsBegin, argsEnd));
+}
+
+bool malHash::contains(malValuePtr key) const
+{
+    auto it = m_map.find(makeHashKey(key));
+    return it != m_map.end();
+}
+
+malValuePtr
+malHash::dissoc(malValueIter argsBegin, malValueIter argsEnd) const
+{
+    malHash::Map map(m_map);
+    for (auto it = argsBegin; it != argsEnd; ++it) {
+        String key = makeHashKey(*it);
+        map.erase(key);
+    }
+    return mal::hash(map);
+}
+
+malValuePtr malHash::get(malValuePtr key) const
+{
+    auto it = m_map.find(makeHashKey(key));
+    return it == m_map.end() ? mal::nilValue() : it->second;
+}
+
+malValuePtr malHash::keys() const
+{
+    malValueVec* keys = new malValueVec();
+    keys->reserve(m_map.size());
+    for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
+        if (it->first[0] == '"') {
+            keys->push_back(mal::string(unescape(it->first)));
+        }
+        else {
+            keys->push_back(mal::keyword(it->first));
+        }
+    }
+    return mal::list(keys);
+}
+
+malValuePtr malHash::values() const
+{
+    malValueVec* keys = new malValueVec();
+    keys->reserve(m_map.size());
+    for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
+        keys->push_back(it->second);
+    }
+    return mal::list(keys);
 }
 
 String malHash::print(bool readably) const
