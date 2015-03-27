@@ -36,7 +36,7 @@ module Env
     let makeFunc =
         let counter = ref 0
         let getNext () = System.Threading.Interlocked.Increment(counter)
-        fun f -> Func({ Tag = getNext (); F = f }) 
+        fun f -> Func(getNext (), f)
 
     let makeRootEnv () =
         let wrap name f = name, makeFunc f

@@ -77,6 +77,6 @@ module Eval
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
-            | List(Func({F = f})::rest) -> f rest
+            | List(Func(_, f)::rest) -> f rest
             | _ -> raise <| errExpected "function"
         | node -> node |> eval_ast env

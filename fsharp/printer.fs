@@ -23,7 +23,7 @@ module Printer
             | String(str) -> appendStr str
             | Bool(true) -> appendStr "true"
             | Bool(false) -> appendStr "false"
-            | Func({ Tag = tag; F = _}) -> pr_func tag
+            | Func(tag, _) -> pr_func tag
 
         and pr separator prefix node =
             appendStr prefix

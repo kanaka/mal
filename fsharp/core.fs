@@ -15,21 +15,6 @@ module Core
     let inline twoNodeOp (f : Node -> Node -> Node) = function
         | [a; b] -> f a b
         | _ -> raise <| errArity ()
-
-    let forall2 pred (source1 : seq<Node>) (source2 : seq<Node>) =
-        let e1 = source1.GetEnumerator()
-        let e2 = source2.GetEnumerator()
-        let rec loop () =
-            match e1.MoveNext(), e2.MoveNext() with
-            | false, false -> true
-            | false, true
-            | true, false -> false
-            | true, true ->
-                if not (pred e1.Current e2.Current) then
-                    false
-                else
-                    loop ()
-        loop ()
  
     let add = twoNumberOp (fun a b -> a + b |> Number)
     let subtract = twoNumberOp (fun a b -> a - b |> Number)
@@ -39,15 +24,7 @@ module Core
     let le = twoNodeOp (fun a b -> a <= b |> toBool)
     let ge = twoNodeOp (fun a b -> a >= b |> toBool)
     let gt = twoNodeOp (fun a b -> a > b |> toBool)
-
-    let rec nodeEquals a b =
-        match a, b with
-        | List(a), Vector(b) -> forall2 nodeEquals a b
-        | Vector(a), List(b) -> forall2 nodeEquals a b
-        | List(a), List(b) -> forall2 nodeEquals a b
-        | Vector(a), Vector(b) -> forall2 nodeEquals a b
-        | a, b -> a = b
-    let eq = twoNodeOp (fun a b -> nodeEquals a b |> toBool)
+    let eq = twoNodeOp (fun a b -> a = b |> toBool)
 
     let list nodes = List(nodes)
     let isList = function
