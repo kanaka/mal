@@ -197,6 +197,8 @@ malEnvPtr malLambda::makeEnv(malValueIter argsBegin, malValueIter argsEnd) const
 
 malValuePtr malList::eval(malEnvPtr env)
 {
+    // Note, this isn't actually called since the TCO updates, but
+    // is required for the earlier steps, so don't get rid of it.
     if (count() == 0) {
         return malValuePtr(this);
     }

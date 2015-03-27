@@ -18,6 +18,7 @@ public:
     malValuePtr get(const String& symbol);
     malEnvPtr   find(const String& symbol);
     malValuePtr set(const String& symbol, malValuePtr value);
+    malEnvPtr   getRoot();
 
 private:
     typedef std::map<String, malValuePtr> Map;

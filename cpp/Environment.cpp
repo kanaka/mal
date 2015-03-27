@@ -61,3 +61,13 @@ malValuePtr malEnv::set(const String& symbol, malValuePtr value)
     m_map[symbol] = value;
     return value;
 }
+
+malEnvPtr malEnv::getRoot()
+{
+    // Work our way down the the global environment.
+    for (malEnvPtr env = this; ; env = env->m_outer) {
+        if (!env->m_outer) {
+            return env;
+        }
+    }
+}
