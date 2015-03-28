@@ -91,6 +91,8 @@ make
 
 ### C++
 
+*The C++ implementation was created by [Stephen Thirlwall (sdt)](https://github.com/sdt)*
+
 The C++ implementation of mal requires g++-4.9 or clang++-3.5 and
 a readline compatible library to build. See the `cpp/README.md` for
 more details:
@@ -133,6 +135,8 @@ coffee ./stepX_YYY
 ```
 
 ### Forth
+
+*The Forth implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
 
 ```
 cd forth
@@ -217,6 +221,8 @@ make -f stepX_YYY.mk
 
 ### Nim 0.10.3
 
+*The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
+
 Running the Nim implementation of mal requires Nim's current devel branch
 (0.10.3) or later, and the nre library installed.
 
@@ -229,6 +235,8 @@ nimble build
 ```
 
 ### OCaml 4.01.0
+
+*The OCaml implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
 
 ```
 cd ocaml
@@ -354,6 +362,8 @@ scala -classpath target/scala*/classes stepX_YYY
 ```
 
 ### Swift
+
+*The Swift implementation was created by [Keith Rollin](https://github.com/keith-rollin)*
 
 The Swift implemenation of mal requires the Swift compiler (XCode) to
 build.
