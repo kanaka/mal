@@ -193,13 +193,15 @@ malHash::dissoc(malValueIter argsBegin, malValueIter argsEnd) const
 
 malValuePtr malHash::eval(malEnvPtr env)
 {
-    if (!m_isEvaluated) {
-        for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
-            it->second = EVAL(it->second, env);
-        }
-        m_isEvaluated = true;
+    if (m_isEvaluated) {
+        return malValuePtr(this);
     }
-    return malValuePtr(this);
+
+    malHash::Map map;
+    for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
+        map[it->first] = EVAL(it->second, env);
+    }
+    return mal::hash(map);
 }
 
 malValuePtr malHash::get(malValuePtr key) const

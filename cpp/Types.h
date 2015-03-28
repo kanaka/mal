@@ -254,8 +254,8 @@ public:
     WITH_META(malHash);
 
 private:
-    Map m_map;
-    bool m_isEvaluated;
+    const Map m_map;
+    const bool m_isEvaluated;
 };
 
 class malBuiltIn : public malApplicable {
