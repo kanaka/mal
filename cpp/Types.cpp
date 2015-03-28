@@ -126,7 +126,7 @@ static String makeHashKey(malValuePtr key)
     else if (const malKeyword* kkey = DYNAMIC_CAST(malKeyword, key)) {
         return kkey->print(true);
     }
-    ASSERT(false, "%s is not a string or keyword", key->print(true).c_str());
+    MAL_FAIL("%s is not a string or keyword", key->print(true).c_str());
 }
 
 static malHash::Map addToMap(malHash::Map& map,
@@ -143,7 +143,7 @@ static malHash::Map addToMap(malHash::Map& map,
 
 static malHash::Map createMap(malValueIter argsBegin, malValueIter argsEnd)
 {
-    ASSERT(std::distance(argsBegin, argsEnd) % 2 == 0,
+    MAL_CHECK(std::distance(argsBegin, argsEnd) % 2 == 0,
             "hash-map requires an even-sized list");
 
     malHash::Map map;
@@ -167,7 +167,7 @@ malHash::malHash(const malHash::Map& map)
 malValuePtr
 malHash::assoc(malValueIter argsBegin, malValueIter argsEnd) const
 {
-    ASSERT(std::distance(argsBegin, argsEnd) % 2 == 0,
+    MAL_CHECK(std::distance(argsBegin, argsEnd) % 2 == 0,
             "assoc requires an even-sized list");
 
     malHash::Map map(m_map);

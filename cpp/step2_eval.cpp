@@ -63,7 +63,8 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
                   malEnvPtr env)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
-    ASSERT(handler != NULL, "\"%s\" is not applicable", op->print(true).c_str());
+    MAL_CHECK(handler != NULL,
+              "\"%s\" is not applicable", op->print(true).c_str());
 
     return handler->apply(argsBegin, argsEnd, env);
 }
@@ -113,6 +114,6 @@ static malValuePtr builtIn_div(const String& name,
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
         ARG(malInteger, rhs);
-        ASSERT(rhs->value() != 0, "Division by zero"); \
+        MAL_CHECK(rhs->value() != 0, "Division by zero"); \
         return mal::integer(lhs->value() / rhs->value());
 }

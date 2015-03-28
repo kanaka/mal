@@ -182,7 +182,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
                 const malList* catchBlock = VALUE_CAST(malList, list->item(2));
 
                 checkArgsIs("catch*", 2, catchBlock->count() - 1);
-                ASSERT(VALUE_CAST(malSymbol,
+                MAL_CHECK(VALUE_CAST(malSymbol,
                     catchBlock->item(0))->value() == "catch*",
                     "catch block must begin with catch*");
 
@@ -241,7 +241,8 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
                   malEnvPtr env)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
-    ASSERT(handler != NULL, "\"%s\" is not applicable", op->print(true).c_str());
+    MAL_CHECK(handler != NULL,
+              "\"%s\" is not applicable", op->print(true).c_str());
 
     return handler->apply(argsBegin, argsEnd, env);
 }

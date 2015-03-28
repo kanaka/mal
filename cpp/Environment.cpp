@@ -18,16 +18,16 @@ malEnv::malEnv(malEnvPtr outer, const StringVec& bindings,
     auto it = argsBegin;
     for (int i = 0; i < n; i++) {
         if (bindings[i] == "&") {
-            ASSERT(i == n - 2, "There must be one parameter after the &");
+            MAL_CHECK(i == n - 2, "There must be one parameter after the &");
 
             set(bindings[n-1], mal::list(it, argsEnd));
             return;
         }
-        ASSERT(it != argsEnd, "Not enough parameters");
+        MAL_CHECK(it != argsEnd, "Not enough parameters");
         set(bindings[i], *it);
         ++it;
     }
-    ASSERT(it == argsEnd, "Too many parameters");
+    MAL_CHECK(it == argsEnd, "Too many parameters");
 }
 
 malEnv::~malEnv()
@@ -53,7 +53,7 @@ malValuePtr malEnv::get(const String& symbol)
             return it->second;
         }
     }
-    ASSERT(false, "'%s' not found", symbol.c_str());
+    MAL_FAIL("'%s' not found", symbol.c_str());
 }
 
 malValuePtr malEnv::set(const String& symbol, malValuePtr value)

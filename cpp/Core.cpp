@@ -55,7 +55,7 @@ static StaticList<malBuiltIn*> handlers;
         ARG(malInteger, lhs); \
         ARG(malInteger, rhs); \
         if (checkDivByZero) { \
-            ASSERT(rhs->value() != 0, "Division by zero"); \
+            MAL_CHECK(rhs->value() != 0, "Division by zero"); \
         } \
         return mal::integer(lhs->value() op rhs->value()); \
     }
@@ -281,7 +281,7 @@ BUILTIN("nth")
     ARG(malInteger,  index);
 
     int i = index->value();
-    ASSERT(i >= 0 && i < seq->count(), "Index out of range");
+    MAL_CHECK(i >= 0 && i < seq->count(), "Index out of range");
 
     return seq->item(i);
 }
@@ -341,7 +341,7 @@ BUILTIN("slurp")
     std::ios_base::openmode openmode =
         std::ios::ate | std::ios::in | std::ios::binary;
     std::ifstream file(filename->value().c_str(), openmode);
-    ASSERT(!file.fail(), "Cannot open %s", filename->value().c_str());
+    MAL_CHECK(!file.fail(), "Cannot open %s", filename->value().c_str());
 
     String data;
     data.reserve(file.tellg());

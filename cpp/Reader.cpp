@@ -22,16 +22,12 @@ public:
     Tokeniser(const String& input);
 
     String peek() const {
-        //TODO: need to split ASSERT into ASSERT & MALCHECK
-        //      most are MALCHECK's, this is an internal error
-        ASSERT(!eof(), "Tokeniser reading past EOF in peek");
+        ASSERT(!eof(), "Tokeniser reading past EOF in peek\n");
         return m_token;
     }
 
     String next() {
-        //TODO: need to split ASSERT into ASSERT & MALCHECK
-        //      most are MALCHECK's, this is an internal error
-        ASSERT(!eof(), "Tokeniser reading past EOF in next");
+        ASSERT(!eof(), "Tokeniser reading past EOF in next\n");
         String ret = peek();
         nextToken();
         return ret;
@@ -73,10 +69,10 @@ bool Tokeniser::matchRegex(const Regex& regex)
         return false;
     }
 
-    ASSERT(match.size() == 1, "Should only have one submatch, not %d",
+    ASSERT(match.size() == 1, "Should only have one submatch, not %lu\n",
                               match.size());
-    ASSERT(match.position(0) == 0, "Need to match first character");
-    ASSERT(match.length(0) > 0, "Need to match a non-empty string");
+    ASSERT(match.position(0) == 0, "Need to match first character\n");
+    ASSERT(match.length(0) > 0, "Need to match a non-empty string\n");
 
     // Don't advance  m_iter now, do it after we've consumed the token in
     // next().  If we do it now, we hit eof() when there's still one token left.
@@ -102,10 +98,10 @@ void Tokeniser::nextToken()
 
     String mismatch(m_iter, m_end);
     if (mismatch[0] == '"') {
-        ASSERT(false, "Expected \", got EOF");
+        MAL_CHECK(false, "Expected \", got EOF");
     }
     else {
-        ASSERT(false, "Unexpected \"%s\"", mismatch.c_str());
+        MAL_CHECK(false, "Unexpected \"%s\"", mismatch.c_str());
     }
 }
 
@@ -133,10 +129,10 @@ malValuePtr readStr(const String& input)
 
 static malValuePtr readForm(Tokeniser& tokeniser)
 {
-    ASSERT(!tokeniser.eof(), "Expected form, got EOF");
+    MAL_CHECK(!tokeniser.eof(), "Expected form, got EOF");
     String token = tokeniser.peek();
 
-    ASSERT(!std::regex_match(token, closeRegex),
+    MAL_CHECK(!std::regex_match(token, closeRegex),
             "Unexpected \"%s\"", token.c_str());
 
     if (token == "(") {
@@ -217,7 +213,7 @@ static void readList(Tokeniser& tokeniser, malValueVec* items,
                       const String& end)
 {
     while (1) {
-        ASSERT(!tokeniser.eof(), "Expected \"%s\", got EOF", end.c_str());
+        MAL_CHECK(!tokeniser.eof(), "Expected \"%s\", got EOF", end.c_str());
         if (tokeniser.peek() == end) {
             tokeniser.next();
             return;

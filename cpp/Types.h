@@ -41,7 +41,8 @@ protected:
 template<class T>
 T* value_cast(malValuePtr obj, const char* typeName) {
     T* dest = dynamic_cast<T*>(obj.ptr());
-    ASSERT(dest != NULL, "%s is not a %s", obj->print(true).c_str(), typeName);
+    MAL_CHECK(dest != NULL, "%s is not a %s",
+              obj->print(true).c_str(), typeName);
     return dest;
 }
 

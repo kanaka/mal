@@ -1,6 +1,9 @@
 #ifndef INCLUDE_DEBUG_H
 #define INCLUDE_DEBUG_H
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #define DEBUG_TRACE                    1
 //#define DEBUG_OBJECT_LIFETIMES         1
 //#define DEBUG_ENV_LIFETIMES            1
@@ -27,5 +30,16 @@
 #else
     #define TRACE_ENV NOTRACE
 #endif
+
+#define _ASSERT(file, line, condition, ...) \
+    if (!(condition)) { \
+        printf("Assertion failed at %s(%d): ", file, line); \
+        printf(__VA_ARGS__); \
+        exit(1); \
+    } else { }
+
+
+#define ASSERT(condition, ...) \
+    _ASSERT(__FILE__, __LINE__, condition, __VA_ARGS__)
 
 #endif // INCLUDE_DEBUG_H

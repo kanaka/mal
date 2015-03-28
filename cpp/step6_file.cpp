@@ -165,7 +165,8 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
                   malEnvPtr env)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
-    ASSERT(handler != NULL, "\"%s\" is not applicable", op->print(true).c_str());
+    MAL_CHECK(handler != NULL,
+              "\"%s\" is not applicable", op->print(true).c_str());
 
     return handler->apply(argsBegin, argsEnd, env);
 }
