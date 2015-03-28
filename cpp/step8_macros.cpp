@@ -282,8 +282,8 @@ static const char* macroTable[] = {
 
 static void installMacros(malEnvPtr env)
 {
-    for (int i = 0; i < ARRAY_SIZE(macroTable); i++) {
-        rep(macroTable[i], env);
+    for (auto &macro : macroTable) {
+        rep(macro, env);
     }
 }
 
@@ -298,8 +298,8 @@ static const char* malFunctionTable[] = {
 };
 
 static void installFunctions(malEnvPtr env) {
-    for (int i = 0; i < ARRAY_SIZE(malFunctionTable); i++) {
-        rep(malFunctionTable[i], env);
+    for (auto &function : malFunctionTable) {
+        rep(function, env);
     }
 }
 

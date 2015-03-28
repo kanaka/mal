@@ -174,18 +174,16 @@ static malValuePtr readAtom(Tokeniser& tokeniser)
         { "~@",  "splice-unquote" },
         { "~",   "unquote" },
     };
-    const ReaderMacro* macroTableEnd = macroTable + ARRAY_SIZE(macroTable);
 
     struct Constant {
         const char* token;
         malValuePtr value;
     };
-    Constant constTable[] = {
+    Constant constantTable[] = {
         { "false",  mal::falseValue()  },
         { "nil",    mal::nilValue()          },
         { "true",   mal::trueValue()   },
     };
-    const Constant* constTableEnd = constTable + ARRAY_SIZE(constTable);
 
     String token = tokeniser.next();
     if (token[0] == '"') {
@@ -200,14 +198,14 @@ static malValuePtr readAtom(Tokeniser& tokeniser)
         // Note that meta and value switch places
         return mal::list(mal::symbol("with-meta"), value, meta);
     }
-    for (Constant* it = constTable; it != constTableEnd; ++it) {
-        if (token == it->token) {
-            return it->value;
+    for (auto &constant : constantTable) {
+        if (token == constant.token) {
+            return constant.value;
         }
     }
-    for (ReaderMacro *it = macroTable; it < macroTableEnd; ++it) {
-        if (token == it->token) {
-            return processMacro(tokeniser, it->symbol);
+    for (auto &macro : macroTable) {
+        if (token == macro.token) {
+            return processMacro(tokeniser, macro.symbol);
         }
     }
     if (std::regex_match(token, intRegex)) {

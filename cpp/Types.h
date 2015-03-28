@@ -6,8 +6,6 @@
 #include <exception>
 #include <map>
 
-#define ARRAY_SIZE(a)   (sizeof(a)/(sizeof(*(a))))
-
 class malEmptyInputException : public std::exception { };
 
 class malValue : public RefCounted {

@@ -239,8 +239,8 @@ static const char* malFunctionTable[] = {
 };
 
 static void installFunctions(malEnvPtr env) {
-    for (int i = 0; i < ARRAY_SIZE(malFunctionTable); i++) {
-        rep(malFunctionTable[i], env);
+    for (auto &function : malFunctionTable) {
+        rep(function, env);
     }
 }
 
