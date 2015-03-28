@@ -1,83 +1,224 @@
-with Ada.Containers.Doubly_Linked_Lists;
-with Ada.Finalization;
+-- This started out as a simple public variant record.
+-- Then smart pointers were added.  They were part of the Mal_Type and
+-- were required to be public because of the dependencies and
+-- how the variant record was public.  Not very Ada-like.
+-- The third version bites the bullet and delares Mal_Type as tagged.
+-- Smart pointers are an OO version in a separate package.
+-- The Doubly_Linked_Lists have been replaced with a tree-like list instead...
+
+-- WARNING!  This code contains:
+-- Recursive data structures.
+-- Object-based smart pointers.
+-- Object-oriented code.
+-- And strong-typing!
+
+-- Chris M Moore 25/03/2015
+
 with Ada.Strings.Unbounded;
+with Smart_Pointers;
 
 package Types is
 
-   package UBStrings renames Ada.Strings.Unbounded;
+   -- Some simple types.  Not supposed to use the standard types directly.
+
+   subtype Mal_Float is Float;
+   subtype Mal_Integer is Integer;
+   subtype Mal_String is String;
+
+   -- Start off with the top-level abstract type.
+
+   subtype Smart_Pointer is Smart_Pointers.Smart_Pointer;
+
+   type Sym_Types is (Int, Floating, List, Sym, Str, Atom,
+                      Unitary, Node, Error);
+
+   type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
+
+   function Sym_Type (T : Mal_Type) return Sym_Types is abstract;
+
+   function Get_Meta (T : Mal_Type) return Smart_Pointer;
+
+   procedure Set_Meta (T : in out Mal_Type'Class; SP : Smart_Pointer);
+
+   function To_String (T : Mal_Type'Class) return Mal_String;
+
+   type Mal_Ptr is access all Mal_Type'Class;
+
+   -- A helper function that just view converts the smart pointer to
+   -- a Mal_Type'Class pointer.
+   function Deref (S : Smart_Pointer) return Mal_Ptr;
+
+   -- A helper function to detect null smart pointers.
+   function Is_Null (S : Smart_Pointer) return Boolean;
+
+   -- Derived types.  All boilerplate from here.
+
+   type Int_Mal_Type is new Mal_Type with private;
+
+   function New_Int_Mal_Type (Int : Mal_Integer) return Smart_Pointer;
+
+   overriding function Sym_Type (T : Int_Mal_Type) return Sym_Types;
+
+   function Get_Int_Val (T : Int_Mal_Type) return Mal_Integer;
 
 
-   -- There's a horrible dependency problem as Smart Pointers are used
-   -- within Mal_Type. If you start using private types then the compiler
-   -- complains that its being used in Mal_Type before it's been fully
-   -- declared.  So that's the reason for all the public types below.
-   -- I'm not intending to play with any of the exposed internals...
+   type Float_Mal_Type is new Mal_Type with private;
 
-   -- Alternatively you could use private types and then specify all
-   -- the operations including those for lists.  Good luck with that.
+   function New_Float_Mal_Type (Floating : Mal_Float) return Smart_Pointer;
+
+   overriding function Sym_Type (T : Float_Mal_Type) return Sym_Types;
+
+   function Get_Float_Val (T : Float_Mal_Type) return Mal_Float;
 
 
-   -- Smart Pointers section.
+   type Sym_Mal_Type is new Mal_Type with private;
 
-   type Mal_Type;
+   function New_Sym_Mal_Type (Sym : Character) return Smart_Pointer;
 
-   type Mal_Type_Accessor is access Mal_Type;
+   overriding function Sym_Type (T : Sym_Mal_Type) return Sym_Types;
 
-   type Smart_Pointer is new Ada.Finalization.Controlled with record
-      Pointer : Mal_Type_Accessor;
-   end record;
+   function Symbol (T : Sym_Mal_Type) return Character;
 
-   overriding procedure Adjust (Object : in out Smart_Pointer);
 
-   overriding procedure Finalize (Object : in out Smart_Pointer);
+   type String_Mal_Type is new Mal_Type with private;
 
-   function New_Ptr (Mal_Type : Mal_Type_Accessor) return Smart_Pointer;
+   function New_String_Mal_Type (Str : Mal_String) return Smart_Pointer;
 
-   function Deref (Ptr : Smart_Pointer) return Mal_Type_Accessor;
+   overriding function Sym_Type (T : String_Mal_Type) return Sym_Types;
 
-   Null_Smart_Pointer : constant Smart_Pointer :=
-      (Ada.Finalization.Controlled with Pointer => null);
+   function Get_String (T : String_Mal_Type) return Mal_String;
 
-   -- Lists of Smart Pointers.
 
-   package Lists is
-     new Ada.Containers.Doubly_Linked_Lists
-       (Element_Type => Smart_Pointer,
-        "=" => "=");
+   type Atom_Mal_Type is new Mal_Type with private;
 
-   -- Now we get to what the smart pointers are pointing to...
+   function New_Atom_Mal_Type (Str : Mal_String) return Smart_Pointer;
 
-   type Sym_Types is (Int, Floating, List, Sym, Str, Atom, Unitary, Error);
+   overriding function Sym_Type (T : Atom_Mal_Type) return Sym_Types;
+
+   function Get_Atom (T : Atom_Mal_Type) return Mal_String;
+
+
+   type Error_Mal_Type is new Mal_Type with private;
+
+   function New_Error_Mal_Type (Str : Mal_String) return Smart_Pointer;
+
+   overriding function Sym_Type (T : Error_Mal_Type) return Sym_Types;
+
 
    type Unitary_Functions is
      (Quote, Unquote, Quasiquote, Splice_Unquote, Deref);
+
+   type Unitary_Mal_Type is new Mal_Type with private;
+
+   function New_Unitary_Mal_Type (Func : Unitary_Functions; Op : Smart_Pointer)
+   return Smart_Pointer;
+
+   overriding function Sym_Type (T : Unitary_Mal_Type) return Sym_Types;
+
+   function Get_Func (T : Unitary_Mal_Type) return Unitary_Functions;
+
+   function Get_Op (T : Unitary_Mal_Type) return Smart_Pointer;
+
+
+   -- Lists.
 
    type List_Types is (List_List, Vector_List, Hashed_List);
    function Opening (LT : List_Types) return Character;
    function Closing (LT : List_Types) return Character;
 
-   subtype Mal_Float is Float;
-   subtype Mal_Integer is Integer;
+   type List_Mal_Type is new Mal_Type with private;
 
-   type Mal_Type (Sym_Type : Sym_Types) is record
-      Ref_Count : Natural := 1;
+   function New_List_Mal_Type (List_Type : List_Types)
+   return Smart_Pointer;
+
+   overriding function Sym_Type (T : List_Mal_Type) return Sym_Types;
+
+   procedure Append (To_List : in out List_Mal_Type; Op : Smart_Pointer);
+
+   type List_Ptr is access all List_Mal_Type;
+
+   function Deref_List (SP : Smart_Pointer) return List_Ptr;
+
+private
+
+   type Mal_Type is abstract new Smart_Pointers.Base_Class with record
       Meta : Smart_Pointer;
-      case Sym_Type is
-         when Int => Int_Val : Mal_Integer;
-         when Floating => Float_Val : Mal_Float;
-         when List =>
-            List_Type : List_Types;
-            The_List : Lists.List;
-         when Sym => Symbol : Character;
-         when Str => The_String : Ada.Strings.Unbounded.Unbounded_String;
-         when Atom => The_Atom : Ada.Strings.Unbounded.Unbounded_String;
-         when Unitary =>
-            The_Function : Unitary_Functions;
-            The_Operand : Smart_Pointer;
-         when Error => Error_Msg : Ada.Strings.Unbounded.Unbounded_String;
-      end case;
    end record;
 
-   function To_String (T : Mal_Type) return String;
+   -- Not allowed to be abstract and private.  RM 3.9.3(10)
+   -- So if you call this it'll just raise an exception.
+   function To_Str (T : Mal_Type) return Mal_String; -- is abstract;
+
+   type Int_Mal_Type is new Mal_Type with record
+      Int_Val : Mal_Integer;
+   end record;
+
+   overriding function To_Str (T : Int_Mal_Type) return Mal_String;
+
+   type Float_Mal_Type is new Mal_Type with record
+      Float_Val : Mal_Float;
+   end record;
+
+   overriding function To_Str (T : Float_Mal_Type) return Mal_String;
+
+   type Sym_Mal_Type is new Mal_Type with record
+      Symbol : Character;
+   end record;
+
+   overriding function To_Str (T : Sym_Mal_Type) return Mal_String;
+
+   type String_Mal_Type is new Mal_Type with record
+      The_String : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   overriding function To_Str (T : String_Mal_Type) return Mal_String;
+
+   type Atom_Mal_Type is new Mal_Type with record
+      The_Atom : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   overriding function To_Str (T : Atom_Mal_Type) return Mal_String;
+
+   type Error_Mal_Type is new Mal_Type with record
+      Error_Msg : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   overriding function To_Str (T : Error_Mal_Type) return Mal_String;
+
+   type Unitary_Mal_Type is new Mal_Type with record
+      The_Function : Unitary_Functions;
+      The_Operand : Smart_Pointer;
+   end record;
+
+   overriding function To_Str (T : Unitary_Mal_Type) return Mal_String;
+
+
+   -- Nodes have to be a differnt type from a List;
+   -- otherwise how do you represent a list within a list?
+   type Node_Mal_Type is new Mal_Type with record
+      Left, Right : Smart_Pointer;
+   end record;
+
+   function New_Node_Mal_Type
+     (Left, Right : Smart_Pointer := Smart_Pointers.Null_Smart_pointer)
+   return Smart_Pointer;
+
+   overriding function Sym_Type (T : Node_Mal_Type) return Sym_Types;
+
+   procedure Append (To_List : in out Node_Mal_Type; Op : Smart_Pointer);
+
+   overriding function To_Str (T : Node_Mal_Type) return Mal_String;
+
+   type Node_Ptr is access all Node_Mal_Type;
+
+   function Deref_Node (SP : Smart_Pointer) return Node_Ptr;
+
+
+   type List_Mal_Type is new Mal_Type with record
+      List_Type : List_Types;
+      The_List : Smart_Pointer;
+   end record;
+
+   overriding function To_Str (T : List_Mal_Type) return Mal_String;
 
 end Types;

@@ -22,13 +22,12 @@ procedure Step1_Read_Print is
    end Print;
 
    function Rep (Param : String) return String is
-     use types;
-     AST, Evaluated_AST : Smart_Pointer;
+     AST, Evaluated_AST : Types.Smart_Pointer;
    begin
 
      AST := Read (Param);
 
-     if AST = Null_Smart_Pointer then
+     if Types.Is_Null (AST) then
         return "";
      else
         Evaluated_AST := Eval (AST);

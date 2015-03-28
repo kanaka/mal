@@ -15,6 +15,7 @@ with Opentoken.Recognizer.Single_Character_Set;
 with Opentoken.Recognizer.String;
 with OpenToken.Text_Feeder.String;
 with Opentoken.Token.Enumerated.Analyzer;
+with Smart_Pointers;
 
 package body Reader is
 
@@ -116,6 +117,7 @@ package body Reader is
    -- The unterminated string error
    String_Error : exception;
 
+
    function Get_Token_String return String is
    begin
       return Tokenizer.Lexeme (Analyzer);
@@ -125,10 +127,11 @@ package body Reader is
    function Get_Token_Char return Character is
       S : String := Tokenizer.Lexeme (Analyzer);
    begin
-      return S(S'First);
+      return S (S'First);
    end Get_Token_Char;
 
 
+   -- Saved_Line is needed to detect the unterminated string error.
    Saved_Line : String (1..Max_Line_Len);
 
    function Get_Token return Types.Smart_Pointer is
@@ -138,72 +141,29 @@ package body Reader is
       Tokenizer.Find_Next (Analyzer);
       case Tokenizer.ID (Analyzer) is
          when Int =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Int,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               Int_Val => Types.Mal_Integer'Value (Get_Token_String)));
+            Res := New_Int_Mal_Type
+              (Int => Mal_Integer'Value (Get_Token_String));
          when Float_Tok =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Floating,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               Float_Val => Types.Mal_Float'Value (Get_Token_String)));
+            Res := New_Float_Mal_Type
+              (Floating => Mal_Float'Value (Get_Token_String));
          when Sym =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Sym,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               Symbol => Get_Token_Char));
+            Res := New_Sym_Mal_Type (Sym => Get_Token_Char);
          when Nil =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Atom,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String)));
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when True_Tok =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Atom,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String)));
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when False_Tok =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Atom,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String)));
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when Exp_Tok =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Atom,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String)));
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when Splice_Unq =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Unitary,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Function => Types.Splice_Unquote,
-               The_Operand => Null_Smart_Pointer));
+            Res := New_Unitary_Mal_Type
+              (Func => Splice_Unquote,
+               Op => Smart_Pointers.Null_Smart_Pointer);
          when Str =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Str,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_String => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String)));
+            Res := New_String_Mal_Type (Str => Get_Token_String);
          when Atom =>
-            Res := New_Ptr (new Types.Mal_Type'
-              (Sym_Type => Types.Atom,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Atom => Ada.Strings.Unbounded.To_Unbounded_String
-                        (Get_Token_String)));
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when Whitespace | Comment => null;
       end case;
       return Res;
@@ -244,112 +204,89 @@ package body Reader is
 
    function Read_List (LT : Types.List_Types)
    return Types.Smart_Pointer is
+
       use Types;
-      List_MT, MTA : Smart_Pointer;
+      List_SP, MTA : Smart_Pointer;
+      List_P : List_Ptr;
       Close : Character := Types.Closing (LT);
+
    begin
-      List_MT := New_Ptr (new Mal_Type'
-                       (Sym_Type => List, 
-                        Ref_Count => 1,
-                        Meta => Null_Smart_Pointer,
-                        List_Type => LT,
-                        The_List => Lists.Empty_List));
+
+      List_SP := New_List_Mal_Type (List_Type => LT);
+
+      -- Need to append to a variable so...
+      List_P := Deref_List (List_SP);
+
       loop
          MTA := Read_Form;
-         exit when MTA = Null_Smart_Pointer or else
+         exit when Is_Null (MTA) or else
                    (Deref (MTA).Sym_Type = Sym and then
-                    Deref (MTA).Symbol = Close);
-         Lists.Append (Deref (List_MT).The_List, MTA);
+                    Sym_Mal_Type (Deref (MTA).all).Symbol = Close);
+         Append (List_P.all, MTA);
       end loop;
-      return List_MT;
+      return List_SP;
    exception
       when Lexical_Error =>
 
         -- List_MT about to go out of scope but its a Smart_Pointer
         -- so it is automatically garbage collected.
 
-        return New_Ptr (new Mal_Type'
-          (Sym_Type => Types.Error,
-           Ref_Count => 1,
-           Meta => Null_Smart_Pointer,
-           Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
-                          ("expected '" & Close & "'")));
+        return New_Error_Mal_Type (Str => "expected '" & Close & "'");
+
    end Read_List;
 
 
    function Read_Form return Types.Smart_Pointer is
       use Types;
       MTS : Smart_Pointer;
-      MT : Mal_Type_Accessor;
+      Symbol : Character;
    begin
 
       MTS := Get_Token;
 
-      MT := Deref (MTS);
- 
-      if MT = null then
-         return Null_Smart_Pointer;
+      if Is_Null (MTS) then
+         return Smart_Pointers.Null_Smart_Pointer;
       end if;
 
-      if MT.Sym_Type = Sym then
+      if Deref (MTS).Sym_Type = Sym then
 
+         Symbol := Sym_Mal_Type (Deref (MTS).all).Symbol;
          -- Listy things and quoting...
-         if MT.Symbol = '(' then
+         if Symbol = '(' then
             return Read_List (List_List);
-         elsif MT.Symbol = '[' then
+         elsif Symbol = '[' then
             return Read_List (Vector_List);
-         elsif MT.Symbol = '{' then
+         elsif Symbol = '{' then
             return Read_List (Hashed_List);
-         elsif MT.Symbol = '^' then
+         elsif Symbol = '^' then
             declare
                Meta, Obj : Smart_Pointer;
             begin
                Meta := Read_Form;
                Obj := Read_Form;
-               Deref (Obj).Meta := Meta;
+               declare
+                  MT : Mal_Ptr := Deref (Obj);
+               begin
+                  Set_Meta (MT.all, Meta);
+               end;
                return Obj;
             end;
-         elsif MT.Symbol = ACL.Apostrophe then
-            return New_Ptr (new Mal_Type'
-              (Sym_Type => Unitary,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Function => Quote,
-               The_Operand => Read_Form));
-         elsif MT.Symbol = ACL.Grave then
-            return New_Ptr (new Mal_Type'
-              (Sym_Type => Unitary,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Function => Quasiquote,
-               The_Operand => Read_Form));
-         elsif MT.Symbol = ACL.Tilde then
-            return New_Ptr (new Mal_Type'
-              (Sym_Type => Unitary,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Function => Unquote,
-               The_Operand => Read_Form));
-         elsif MT.Symbol = ACL.Commercial_At then
-            return New_Ptr (new Mal_Type'
-              (Sym_Type => Unitary,
-               Ref_Count => 1,
-               Meta => Null_Smart_Pointer,
-               The_Function => Deref,
-               The_Operand => Read_Form));
+         elsif Symbol = ACL.Apostrophe then
+            return New_Unitary_Mal_Type (Func => Quote, Op => Read_Form);
+         elsif Symbol = ACL.Grave then
+            return New_Unitary_Mal_Type (Func => Quasiquote, Op => Read_Form);
+         elsif Symbol = ACL.Tilde then
+            return New_Unitary_Mal_Type (Func => Unquote, Op => Read_Form);
+         elsif Symbol = ACL.Commercial_At then
+            return New_Unitary_Mal_Type (Func => Deref, Op => Read_Form);
          else
             return MTS;
          end if;
 
-      elsif MT.Sym_Type = Unitary and then
-            MT.The_Function = Splice_Unquote then
+      elsif Deref(MTS).Sym_Type = Unitary and then
+            Unitary_Mal_Type (Deref (MTS).all).Get_Func = Splice_Unquote then
 
-         return New_Ptr (new Mal_Type'
-           (Sym_Type => Unitary,
-            Ref_Count => 1,
-            Meta => Null_Smart_Pointer,
-            The_Function => Splice_Unquote,
-            The_Operand => Read_Form));
+         return New_Unitary_Mal_Type (Func => Splice_Unquote, Op => Read_Form);
 
       else
          return MTS;
@@ -357,12 +294,7 @@ package body Reader is
 
    exception
       when String_Error =>
-        return New_Ptr (new Mal_Type'
-          (Sym_Type => Types.Error,
-           Ref_Count => 1,
-           Meta => Null_Smart_Pointer,
-           Error_Msg => Ada.Strings.Unbounded.To_Unbounded_String
-                          ("expected '""'")));
+        return New_Error_Mal_Type (Str => "expected '""'");
    end Read_Form;
 
 
@@ -376,9 +308,8 @@ package body Reader is
          I := I + 1;
       end loop;
       if I > Str_Len or else S (I) = ';' then
-         return Types.Null_Smart_Pointer;
+         return Smart_Pointers.Null_Smart_Pointer;
       end if;
-       
        
       Analyzer.Reset;
       Input_Feeder.Set (S);

@@ -1,12 +1,11 @@
 package body Printer is
 
    function Pr_Str (M : Types.Smart_Pointer) return String is
-      use Types;
    begin
-     if M.Pointer = null then
+     if Types.Is_Null (M) then
         return "";
      else
-        return To_String (Types.Deref(M).all);
+        return Types.To_String (Types.Deref (M).all);
      end if;
    end Pr_Str;
 
