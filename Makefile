@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cs forth go haskell java js lua make mal \
+IMPLS = bash c clojure coffee cpp cs forth go haskell java js lua make mal \
 	ocaml matlab miniMAL nim perl php ps python r racket ruby rust \
 	scala swift vb
 
@@ -28,6 +28,7 @@ stepA = stepA_mal
 
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault
+EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
 EXCLUDE_TESTS += test^haskell^step5 # test completes
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
@@ -54,6 +55,7 @@ bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
+cpp_STEP_TO_PROG =     cpp/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 go_STEP_TO_PROG =      go/$($(1))
@@ -88,6 +90,7 @@ bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
 clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
 coffee_RUNSTEP =  coffee ../$(2) $(3)
+cpp_RUNSTEP =     ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
 go_RUNSTEP =      ../$(2) $(3)
@@ -139,6 +142,10 @@ IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl
 
 # Build a program in 'c' directory
 c/%:
+	$(MAKE) -C $(dir $(@)) $(notdir $(@))
+
+# Build a program in 'cpp' directory
+cpp/%:
 	$(MAKE) -C $(dir $(@)) $(notdir $(@))
 
 # Allow test, test^STEP, test^IMPL, and test^IMPL^STEP
