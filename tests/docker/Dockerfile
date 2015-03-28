@@ -39,6 +39,9 @@ RUN apt-get -y install bash
 RUN apt-get -y install libglib2.0 libglib2.0-dev
 RUN apt-get -y install libffi-dev libreadline-dev libedit2 libedit-dev
 
+# C++
+RUN apt-get -y install g++-4.9 libreadline-dev
+
 # Clojure
 ADD https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein \
     /usr/local/bin/lein
