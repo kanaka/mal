@@ -4,11 +4,17 @@
 #include <regex>
 
 typedef std::regex              Regex;
-typedef std::sregex_iterator    RegexIter;
 
-static const Regex tokenRegex("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\\s\\[\\]{}('\"`,;)]+)");
 static const Regex intRegex("^[-+]?\\d+$");
 static const Regex closeRegex("[\\)\\]}]");
+
+static const Regex whitespaceRegex("[\\s,]+|;.*");
+static const Regex tokenRegexes[] = {
+    Regex("~@"),
+    Regex("[\\[\\]{}()'`~^@]"),
+    Regex("\"(?:\\\\.|[^\\\\\"])*\""),
+    Regex("[^\\s\\[\\]{}('\"`,;)]+"),
+};
 
 class Tokeniser
 {
@@ -16,16 +22,18 @@ public:
     Tokeniser(const String& input);
 
     String peek() const {
+        //TODO: need to split ASSERT into ASSERT & MALCHECK
+        //      most are MALCHECK's, this is an internal error
         ASSERT(!eof(), "Tokeniser reading past EOF in peek");
-        return m_iter->str(1);
+        return m_token;
     }
 
     String next() {
+        //TODO: need to split ASSERT into ASSERT & MALCHECK
+        //      most are MALCHECK's, this is an internal error
         ASSERT(!eof(), "Tokeniser reading past EOF in next");
         String ret = peek();
-        checkPrefix();
-        ++m_iter;
-        skipWhitespace();
+        nextToken();
         return ret;
     }
 
@@ -35,45 +43,76 @@ public:
 
 private:
     void skipWhitespace();
-    void checkPrefix();
+    void nextToken();
 
-    RegexIter   m_iter;
-    RegexIter   m_end;
+    bool matchRegex(const Regex& regex);
+
+    typedef String::const_iterator StringIter;
+
+    String      m_token;
+    StringIter  m_iter;
+    StringIter  m_end;
 };
 
 Tokeniser::Tokeniser(const String& input)
-: m_iter(input.begin(), input.end(), tokenRegex)
-, m_end()
+:   m_iter(input.begin())
+,   m_end(input.end())
 {
+    nextToken();
+}
+
+bool Tokeniser::matchRegex(const Regex& regex)
+{
+    if (eof()) {
+        return false;
+    }
+
+    std::smatch match;
+    auto flags = std::regex_constants::match_continuous;
+    if (!std::regex_search(m_iter, m_end, match, regex, flags)) {
+        return false;
+    }
+
+    ASSERT(match.size() == 1, "Should only have one submatch, not %d",
+                              match.size());
+    ASSERT(match.position(0) == 0, "Need to match first character");
+    ASSERT(match.length(0) > 0, "Need to match a non-empty string");
+
+    // Don't advance  m_iter now, do it after we've consumed the token in
+    // next().  If we do it now, we hit eof() when there's still one token left.
+    m_token = match.str(0);
+
+    return true;
+}
+
+void Tokeniser::nextToken()
+{
+    m_iter += m_token.size();
+
     skipWhitespace();
-}
-
-static bool isWhitespace(const String& token)
-{
-    return token.empty() || (token[0] == ';');
-}
-
-void Tokeniser::checkPrefix()
-{
-    // This is the unmatched portion before the match.
-    auto prefix = m_iter->prefix();
-
-    if (prefix.length() == 0) {
+    if (eof()) {
         return;
     }
 
-    const String& text = prefix.str();
-    if (text == "\"") {
+    for (auto &it : tokenRegexes) {
+        if (matchRegex(it)) {
+            return;
+        }
+    }
+
+    String mismatch(m_iter, m_end);
+    if (mismatch[0] == '"') {
         ASSERT(false, "Expected \", got EOF");
     }
-    ASSERT(false, "Unexpected \"%s\"", text.c_str());
+    else {
+        ASSERT(false, "Unexpected \"%s\"", mismatch.c_str());
+    }
 }
 
 void Tokeniser::skipWhitespace()
 {
-    while (!eof() && isWhitespace(peek())) {
-        checkPrefix();
-        ++m_iter;
+    while (matchRegex(whitespaceRegex)) {
+        m_iter += m_token.size();
     }
 }
 
