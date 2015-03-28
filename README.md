@@ -4,10 +4,11 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 28 different languages:
+Mal is implemented in 29 different languages:
 
 * Bash shell
 * C
+* C++
 * C#
 * Clojure
 * CoffeeScript
@@ -87,6 +88,21 @@ cd c
 make
 ./stepX_YYY
 ```
+
+### C++
+
+The C++ implementation of mal requires g++-4.9 or clang++-3.5 and
+a readline compatible library to build. See the `cpp/README.md` for
+more details:
+
+```
+cd cpp
+make
+    # OR
+make CXX=clang++-3.5
+./stepX_YYY
+```
+
 
 ### C# ###
 
