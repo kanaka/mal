@@ -8,7 +8,7 @@ ifeq ($(uname_S),Darwin)
 	LIBPATHS=-L$(READLINE)/lib
 else
 	# Ubuntu 14.10 / docker
-	CXX=clang++-3.5
+	CXX=g++-4.9
 endif
 
 LD=$(CXX)
@@ -35,7 +35,7 @@ all: $(TARGETS)
 	$(CXX) $(CXXFLAGS) -MM *.cpp > .deps
 
 $(TARGETS): %: %.o libmal.a
-	$(LD) $(LDFLAGS) $^ -o $@
+	$(LD) $^ -o $@ $(LDFLAGS)
 
 libmal.a: $(LIBOBJS)
 	$(AR) rcs $@ $^
