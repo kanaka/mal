@@ -28,6 +28,7 @@ stepA = stepA_mal
 
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault
+EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
 EXCLUDE_TESTS += test^haskell^step5 # test completes
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
