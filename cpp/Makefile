@@ -47,3 +47,14 @@ clean:
 	rm -rf *.o $(TARGETS) libmal.a .deps
 
 -include .deps
+
+
+### Stats
+
+.PHONY: stats stats-lisp
+
+stats: $(LIBSOURCES) stepA_mal.cpp
+	@wc $^
+
+stats-lisp: Core.cpp Environment.cpp stepA_mal.cpp
+	@wc $^
