@@ -1,0 +1,46 @@
+#!/usr/bin/env julia
+
+import reader
+import printer
+
+# READ
+function READ(str)
+    reader.read_str(str)
+end
+
+# EVAL
+function EVAL(ast, env)
+    ast
+end
+
+# PRINT
+function PRINT(exp)
+    printer.pr_str(exp)
+end
+
+# REPL
+function REP(str)
+    return PRINT(EVAL(READ(str), {}))
+end
+
+while true
+    print("user> ")
+    flush(STDOUT)
+    line = readline(STDIN)
+    if line == ""
+        break
+    end
+    line = chomp(line)
+    try
+        println(REP(line))
+    catch e
+        if isa(e, ErrorException)
+            println("Error: $(e.msg)")
+        else
+            println("Error: $(string(e))")
+        end
+        bt = catch_backtrace()
+        Base.show_backtrace(STDERR, bt)
+        println()
+    end
+end
