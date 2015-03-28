@@ -22,6 +22,7 @@ pr_str(Value, Readably) ->
         {map, Map} -> pr_map(Map, Readably);
         {closure, _Binds, _Body, _Env} -> "#<function>";
         {function, _Func} -> "#<builtin>";
+        {macro, _Binds, _Body, _Env} -> "#<macro>";
         {error, Reason} -> io_lib:format("error: ~s", [Reason])
 	end.
 

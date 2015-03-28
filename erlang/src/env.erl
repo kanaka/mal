@@ -10,7 +10,7 @@
 -module(env).
 -behavior(gen_server).
 
--export([new/1, bind/3, get/2, set/3, root/1]).
+-export([new/1, bind/3, find/2, get/2, set/3, root/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {outer, data}).
@@ -36,9 +36,16 @@ new(Outer) ->
 bind(Pid, Names, Values) ->
     gen_server:call(Pid, {bind, Names, Values}).
 
+-spec find(Pid1, Key) -> Pid2
+    when Pid1 :: pid(),
+         Key  :: {symbol, string()},
+         Pid2 :: pid() | nil.
+find(Pid, {symbol, Name}) ->
+    gen_server:call(Pid, {find_pid, Name}).
+
 -spec get(Pid, Key) -> Value
     when Pid   :: pid(),
-         Key   :: {symbol, term()},
+         Key   :: {symbol, string()},
          Value :: term().
 get(Pid, {symbol, Name}) ->
 	case gen_server:call(Pid, {get, Name}) of
@@ -50,7 +57,7 @@ get(_Pid, _Key) ->
 
 -spec set(Pid, Key, Value) -> ok
     when Pid   :: pid(),
-         Key   :: {symbol, term()},
+         Key   :: {symbol, string()},
          Value :: term().
 set(Pid, {symbol, Name}, Value) ->
     gen_server:call(Pid, {set, Name, Value});
@@ -75,8 +82,10 @@ init([Outer]) ->
 handle_call({bind, Names, Values}, _From, State) ->
     NewEnv = env_bind(State, Names, Values),
     {reply, ok, NewEnv};
-handle_call({find, Name}, _From, State) ->
+handle_call({find_env, Name}, _From, State) ->
     {reply, env_find(State, Name), State};
+handle_call({find_pid, Name}, _From, State) ->
+    {reply, pid_find(State, Name), State};
 handle_call({get, Name}, _From, State) ->
     {reply, env_get(State, Name), State};
 handle_call({set, Name, Value}, _From, State) ->
@@ -103,13 +112,23 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %%
 
+pid_find(Env, Name) ->
+    case maps:is_key(Name, Env#state.data) of
+        true  -> self();
+        false ->
+            case Env#state.outer of
+                undefined -> nil;
+                Outer     -> gen_server:call(Outer, {find_pid, Name})
+            end
+    end.
+
 env_find(Env, Name) ->
     case maps:is_key(Name, Env#state.data) of
         true  -> Env;
         false ->
             case Env#state.outer of
                 undefined -> nil;
-                Outer     -> gen_server:call(Outer, {find, Name})
+                Outer     -> gen_server:call(Outer, {find_env, Name})
             end
     end.
 
@@ -127,7 +146,7 @@ env_bind(Env, [{symbol, Name}|Ntail], [Value|Vtail]) ->
 
 -spec env_get(Env, Key) -> {ok, Value} | {error, string()}
     when Env   :: #state{},
-         Key   :: {symbol, term()},
+         Key   :: {symbol, string()},
          Value :: term().
 env_get(Env, Name) ->
     case env_find(Env, Name) of
@@ -137,7 +156,7 @@ env_get(Env, Name) ->
 
 -spec env_set(Env1, Key, Value) -> Env2
     when Env1  :: #state{},
-         Key   :: {symbol, term()},
+         Key   :: {symbol, string()},
          Value :: term(),
          Env2  :: #state{}.
 env_set(Env, Name, Value) ->

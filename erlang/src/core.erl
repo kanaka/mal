@@ -25,6 +25,39 @@ empty_q([]) ->
 empty_q(_) ->
     {error, "empty? expects one list argument"}.
 
+nth([{Type, List}, {integer, Index}]) when Type == list orelse Type == vector ->
+    try lists:nth(Index+1, List) of
+        Result -> Result
+    catch
+        error:_Error -> {error, "nth: index out of range"}
+    end;
+nth([_]) ->
+    {error, "nth expects two arguments"}.
+
+first([{Type, [First|_Rest]}]) when Type == list orelse Type == vector ->
+    First;
+first([{Type, []}]) when Type == list orelse Type == vector ->
+    nil;
+first([nil]) ->
+    nil;
+first([_]) ->
+    {error, "first called on non-sequence"};
+first([]) ->
+    {error, "first called with no arguments"};
+first(_) ->
+    {error, "first expects one list argument"}.
+
+rest([{Type, [_First|Rest]}]) when Type == list orelse Type == vector ->
+    {list, Rest};
+rest([{Type, []}]) when Type == list orelse Type == vector ->
+    {list, []};
+rest([_]) ->
+    {error, "rest called on non-sequence"};
+rest([]) ->
+    {error, "rest called with no arguments"};
+rest(_) ->
+    {error, "rest expects one list argument"}.
+
 equal_q(Args) ->
     case Args of
         [nil, nil] -> true;
@@ -162,12 +195,15 @@ ns() ->
         "cons" => fun cons/1,
         "count" => fun count/1,
         "empty?" => fun empty_q/1,
+        "first" => fun first/1,
         "list" => fun types:list/1,
         "list?" => fun types:list_p/1,
+        "nth" => fun nth/1,
         "pr-str" => fun pr_str/1,
         "println" => fun println/1,
         "prn" => fun prn/1,
         "read-string" => fun read_string/1,
+        "rest" => fun rest/1,
         "slurp" => fun slurp/1,
         "str" => fun str/1
     },
