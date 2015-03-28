@@ -249,7 +249,7 @@ BUILTIN("get")
 
 BUILTIN("hash-map")
 {
-    return mal::hash(argsBegin, argsEnd);
+    return mal::hash(argsBegin, argsEnd, true);
 }
 
 BUILTIN("keys")

@@ -24,12 +24,14 @@ namespace mal {
         return malValuePtr(c);
     };
 
+
     malValuePtr hash(const malHash::Map& map) {
         return malValuePtr(new malHash(map));
     }
 
-    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd) {
-        return malValuePtr(new malHash(argsBegin, argsEnd));
+    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd,
+                     bool isEvaluated) {
+        return malValuePtr(new malHash(argsBegin, argsEnd, isEvaluated));
     }
 
     malValuePtr integer(int value) {
@@ -148,14 +150,16 @@ static malHash::Map createMap(malValueIter argsBegin, malValueIter argsEnd)
     return addToMap(map, argsBegin, argsEnd);
 }
 
-malHash::malHash(malValueIter argsBegin, malValueIter argsEnd)
+malHash::malHash(malValueIter argsBegin, malValueIter argsEnd, bool isEvaluated)
 : m_map(createMap(argsBegin, argsEnd))
+, m_isEvaluated(isEvaluated)
 {
 
 }
 
 malHash::malHash(const malHash::Map& map)
 : m_map(map)
+, m_isEvaluated(true)
 {
 
 }
@@ -185,6 +189,17 @@ malHash::dissoc(malValueIter argsBegin, malValueIter argsEnd) const
         map.erase(key);
     }
     return mal::hash(map);
+}
+
+malValuePtr malHash::eval(malEnvPtr env)
+{
+    if (!m_isEvaluated) {
+        for (auto it = m_map.begin(), end = m_map.end(); it != end; ++it) {
+            it->second = EVAL(it->second, env);
+        }
+        m_isEvaluated = true;
+    }
+    return malValuePtr(this);
 }
 
 malValuePtr malHash::get(malValuePtr key) const

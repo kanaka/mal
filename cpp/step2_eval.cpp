@@ -12,7 +12,7 @@ String PRINT(malValuePtr ast);
 
 static ReadLine s_readLine("~/.mal-history");
 static malBuiltIn::ApplyFunc
-    builtIn_add, builtIn_sub, builtIn_mul, builtIn_div, builtIn_hash_map;
+    builtIn_add, builtIn_sub, builtIn_mul, builtIn_div;
 
 int main(int argc, char* argv[])
 {
@@ -23,7 +23,6 @@ int main(int argc, char* argv[])
     replEnv->set("-", mal::builtin("-", &builtIn_sub));
     replEnv->set("*", mal::builtin("+", &builtIn_mul));
     replEnv->set("/", mal::builtin("/", &builtIn_div));
-    replEnv->set("hash-map", mal::builtin("hash-map", &builtIn_hash_map));
     while (s_readLine.get(prompt, input)) {
         String out;
         try {
@@ -116,10 +115,4 @@ static malValuePtr builtIn_div(const String& name,
         ARG(malInteger, rhs);
         ASSERT(rhs->value() != 0, "Division by zero"); \
         return mal::integer(lhs->value() / rhs->value());
-}
-
-static malValuePtr builtIn_hash_map(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
-{
-    return mal::hash(argsBegin, argsEnd);
 }

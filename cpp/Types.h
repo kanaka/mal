@@ -234,14 +234,15 @@ class malHash : public malValue {
 public:
     typedef std::map<String, malValuePtr> Map;
 
-    malHash(malValueIter argsBegin, malValueIter argsEnd);
+    malHash(malValueIter argsBegin, malValueIter argsEnd, bool isEvaluated);
     malHash(const malHash::Map& map);
     malHash(const malHash& that, malValuePtr meta)
-        : malValue(meta), m_map(that.m_map) { }
+    : malValue(meta), m_map(that.m_map), m_isEvaluated(that.m_isEvaluated) { }
 
     malValuePtr assoc(malValueIter argsBegin, malValueIter argsEnd) const;
     malValuePtr dissoc(malValueIter argsBegin, malValueIter argsEnd) const;
     bool contains(malValuePtr key) const;
+    malValuePtr eval(malEnvPtr env);
     malValuePtr get(malValuePtr key) const;
     malValuePtr keys() const;
     malValuePtr values() const;
@@ -253,7 +254,8 @@ public:
     WITH_META(malHash);
 
 private:
-    const Map m_map;
+    Map m_map;
+    bool m_isEvaluated;
 };
 
 class malBuiltIn : public malApplicable {
@@ -351,7 +353,8 @@ namespace mal {
     malValuePtr boolean(bool value);
     malValuePtr builtin(const String& name, malBuiltIn::ApplyFunc handler);
     malValuePtr falseValue();
-    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd);
+    malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd,
+                     bool isEvaluated);
     malValuePtr hash(const malHash::Map& map);
     malValuePtr integer(int value);
     malValuePtr integer(const String& token);
