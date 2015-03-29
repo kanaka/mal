@@ -24,9 +24,11 @@ ns = {
     symbol("*") => *,
     :/ => div,
 
-    :list => (a...) -> [a...],
+    :list => (a...) -> Any[a...],
     symbol("list?") => (a) -> isa(a, Array),
 
+    :cons => (a,b) -> [Any[a], Any[b...]],
+    :concat => (a...) -> [a...],
     symbol("empty?") => isempty,
     :count => (a) -> a == nothing ? 0 : length(a),
     }

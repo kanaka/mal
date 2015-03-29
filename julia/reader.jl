@@ -79,7 +79,20 @@ end
 
 function read_form(rdr)
     token = peek(rdr)
-    if token == ")"
+    if token == "'"
+        next(rdr)
+        [[:quote], Any[read_form(rdr)]]
+    elseif token == "`"
+        next(rdr)
+        [[:quasiquote], Any[read_form(rdr)]]
+    elseif token == "~"
+        next(rdr)
+        [[:unquote], Any[read_form(rdr)]]
+    elseif token == "~@"
+        next(rdr)
+        [[symbol("splice-unquote")], Any[read_form(rdr)]]
+
+    elseif token == ")"
         error("unexpected ')'")
     elseif token == "("
         read_list(rdr)
