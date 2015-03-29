@@ -41,6 +41,7 @@ let INDENT_TEMPLATE = "|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|"
+var indent = String()
 
 let kSymbolArgv             = MalSymbol(symbol: "*ARGV*")
 let kSymbolConcat           = MalSymbol(symbol: "concat")
@@ -255,13 +256,14 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
 // forms and function calls.
 //
 func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
-    var x = EVAL_Counter()
+    let x = EVAL_Counter()
     if EVAL_level > EVAL_leval_max {
         return MalError(message: "Recursing too many levels (> \(EVAL_leval_max))")
     }
 
-    let indent = INDENT_TEMPLATE.substringToIndex(
-        advance(INDENT_TEMPLATE.startIndex, EVAL_level, INDENT_TEMPLATE.endIndex))
+    if DEBUG_EVAL {
+        indent = prefix(INDENT_TEMPLATE, EVAL_level)
+    }
 
     while true {
         if is_error(ast) { return ast }
