@@ -1,5 +1,7 @@
 module printer
 
+import types
+
 export pr_str
 
 function pr_str(obj, print_readably=true)
@@ -22,6 +24,8 @@ function pr_str(obj, print_readably=true)
         end
     elseif obj == nothing
         "nil"
+    elseif typeof(obj) == types.MalFunc
+        "(fn* $(pr_str(obj.params,true)) $(pr_str(obj.ast,true)))"
     else
         string(obj)
     end
