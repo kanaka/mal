@@ -15,6 +15,20 @@ function Env(outer)
     Env(outer, Dict())
 end
 
+function Env(outer, binds, exprs)
+    e = Env(outer, Dict())
+    for i=1:length(binds)
+        if binds[i] == :&
+            e.data[binds[i+1]] = exprs[i:end]
+            break
+        else
+            e.data[binds[i]] = exprs[i]
+        end
+    end
+    e
+end
+
+
 function set(env::Env, k::Symbol, v)
     env.data[k] = v
 end
