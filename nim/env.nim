@@ -6,7 +6,7 @@ proc initEnv*(outer: Env = nil, binds, exprs: MalType = nilObj): Env =
   if binds.kind in {List, Vector}:
     for i, e in binds.list:
       if e.str == "&":
-        result.data[binds.list[i+1].str] = list(exprs.list[i .. -1])
+        result.data[binds.list[i+1].str] = list(exprs.list[i .. ^1])
         break
       else:
         result.data[e.str] = exprs.list[i]

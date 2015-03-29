@@ -49,7 +49,7 @@ proc first(xs: varargs[MalType]): MalType =
 
 proc rest(xs: varargs[MalType]): MalType =
   if xs[0].kind in {List, Vector} and xs[0].list.len > 0:
-    list xs[0].list[1 .. -1]
+    list xs[0].list[1 .. ^1]
   else: list()
 
 proc throw(xs: varargs[MalType]): MalType =
