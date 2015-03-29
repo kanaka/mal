@@ -2,6 +2,7 @@
 
 import reader
 import printer
+using env
 
 # READ
 function READ(str)
@@ -11,7 +12,7 @@ end
 # EVAL
 function eval_ast(ast, env)
     if typeof(ast) == Symbol
-        env[ast]
+        get(env,ast)
     elseif isa(ast, Array) || isa(ast, Tuple)
         map((x) -> EVAL(x,env), ast)
     else
@@ -25,9 +26,19 @@ function EVAL(ast, env)
     end
 
     # apply
-    el = eval_ast(ast, env)
-    f, args = el[1], el[2:end]
-    f(args...)
+    if     :def! == ast[1]
+        set(env, ast[2], EVAL(ast[3], env))
+    elseif symbol("let*") == ast[1]
+        let_env = Env(env) 
+        for i = 1:2:length(ast[2])
+            set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))    
+        end
+        EVAL(ast[3], let_env)
+    else
+        el = eval_ast(ast, env)
+        f, args = el[1], el[2:end]
+        f(args...)
+    end
 end
 
 # PRINT
@@ -36,10 +47,11 @@ function PRINT(exp)
 end
 
 # REPL
-repl_env = {:+ => +,
-            :- => -,
-            :* => *,
-            :/ => div}
+repl_env = Env(nothing,
+               {:+ => +,
+                :- => -,
+                :* => *,
+                :/ => div})
 function REP(str)
     return PRINT(EVAL(READ(str), repl_env))
 end
