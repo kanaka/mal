@@ -25,7 +25,7 @@ proc eval(ast: MalType, env: Table[string, MalType]): MalType =
   case ast.kind
   of List:
     let el = ast.eval_ast(env)
-    el.list[0].fun(el.list[1 .. -1])
+    el.list[0].fun(el.list[1 .. ^1])
   else:
     ast.eval_ast(env)
 

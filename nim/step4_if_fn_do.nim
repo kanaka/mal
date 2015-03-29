@@ -47,7 +47,7 @@ proc eval(ast: MalType, env: var Env): MalType =
         result = a2.eval(letEnv)
 
       of "do":
-        let el = (list ast.list[1 .. -1]).eval_ast(env)
+        let el = (list ast.list[1 .. ^1]).eval_ast(env)
         result = el.list[el.list.high]
 
       of "if":
@@ -72,11 +72,11 @@ proc eval(ast: MalType, env: var Env): MalType =
 
       else:
         let el = ast.eval_ast(env)
-        result = el.list[0].fun(el.list[1 .. -1])
+        result = el.list[0].fun(el.list[1 .. ^1])
 
     else:
       let el = ast.eval_ast(env)
-      result = el.list[0].fun(el.list[1 .. -1])
+      result = el.list[0].fun(el.list[1 .. ^1])
 
   else:
     result = ast.eval_ast(env)
