@@ -23,7 +23,15 @@
   (define (_get k)
     (or (hash-ref _env k) (and (not (_nil? outer)) ((outer 'find) k))))
   (define (_find k) (_get k))
-  (for-each (lambda (b e) (hash-set! _env b e)) binds exprs)
+  (let lp((b binds) (e exprs))
+    (cond
+     ((null? b) #t)
+     ((eq? (car b) '&) (hash-set! _env (cadr b) e)) ; handle varglist
+     (else ; normal binding
+      (when (not (symbol? (car b)))
+        (throw 'mal-error "Invalid binding key!" (car b)))
+      (hash-set! _env (car b) (car e))
+      (lp (cdr b) (cdr e)))))
   (lambda (cmd)
     (case cmd
       ((set) _set)
