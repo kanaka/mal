@@ -17,13 +17,13 @@
   (export make-Env)
   (import (guile) (types)))
 
-(define* (make-Env #:key (outer nil) (bindings '()))
+(define* (make-Env #:key (outer nil) (binds '()) (exprs '()))
   (define _env (make-hash-table))
   (define (_set k v) (hash-set! _env k v))
   (define (_get k)
     (or (hash-ref _env k) (and (not (_nil? outer)) ((outer 'find) k))))
   (define (_find k) (_get k))
-  (for-each (lambda (b) (hash-set! _env (car b) (cdr b))) bindings)
+  (for-each (lambda (b e) (hash-set! _env b e)) binds exprs)
   (lambda (cmd)
     (case cmd
       ((set) _set)

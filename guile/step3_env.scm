@@ -14,16 +14,17 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (import (readline) (reader) (printer) (ice-9 match) (srfi srfi-43)
-        (ice-9 receive) (env))
+        (srfi srfi-1) (ice-9 receive) (env))
 
 (define *primitives*
-  `((+ . ,+)
-    (- . ,-)
-    (* . ,*)
-    (/ . ,/)))
+  `((+ ,+)
+    (- ,-)
+    (* ,*)
+    (/ ,/)))
 
 (define *toplevel*
-  (make-Env #:bindings *primitives*)) 
+  (receive (b e) (unzip2 *primitives*) 
+    (make-Env #:binds b #:exprs e)))
 
 (define (READ)
   (read_str (readline "user> ")))
