@@ -14,10 +14,15 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (library (types)
-  (export *eof* _keyword _keyword?
+  (export string-sub *eof*
+          _keyword _keyword?
           nil _nil?
+          cond-true?
           atom atom? atom-val atom-val-set!)
-  (import (guile) (rnrs)))
+  (import (guile) (rnrs) (ice-9 regex)))
+
+(define (string-sub str p1 p2)
+  (regexp-substitute/global #f p1 str 'pre p2 'post))
 
 (define *eof* (call-with-input-string "" read))
 
@@ -30,5 +35,8 @@
 (define nil 'nil)
 
 (define (_nil? obj) (eq? nil obj))
+
+(define (cond-true? obj)
+  (and (not (_nil? obj)) obj))
 
 (define-record-type atom (fields (mutable val)))
