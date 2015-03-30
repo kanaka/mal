@@ -41,8 +41,8 @@
 (define (eval_func ast env)
   (define expr (eval_ast ast env))
   (match expr
-    ((func args ...)
-     (apply func args))
+    (((? procedure? proc) args ...)
+     (apply proc args))
     (else 'mal-error (format #f "'~a' is not a valid form to apply!" expr))))
 
 (define (EVAL ast env)
