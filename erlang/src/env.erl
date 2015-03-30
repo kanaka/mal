@@ -26,7 +26,7 @@
 new(Outer) ->
     case gen_server:start(?MODULE, [Outer], []) of
         {ok, Pid} -> Pid;
-        {error, Reason} -> throw(Reason)
+        {error, Reason} -> error(Reason)
     end.
 
 -spec bind(Pid, Names, Values) -> ok
@@ -50,10 +50,10 @@ find(Pid, {symbol, Name}) ->
 get(Pid, {symbol, Name}) ->
 	case gen_server:call(Pid, {get, Name}) of
         {ok, Value} -> Value;
-        {error, Reason} -> throw(Reason)
+        {error, Reason} -> error(Reason)
     end;
 get(_Pid, _Key) ->
-    throw("env:get/2 called with non-symbol key").
+    error("env:get/2 called with non-symbol key").
 
 -spec set(Pid, Key, Value) -> ok
     when Pid   :: pid(),
@@ -62,7 +62,7 @@ get(_Pid, _Key) ->
 set(Pid, {symbol, Name}, Value) ->
     gen_server:call(Pid, {set, Name, Value});
 set(_Env, _Key, _Value) ->
-    throw("env:set/3 called with non-symbol key").
+    error("env:set/3 called with non-symbol key").
 
 -spec root(Pid1) -> Pid2
     when Pid1 :: pid(),

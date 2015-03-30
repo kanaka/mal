@@ -35,13 +35,13 @@ rep(Input, Env) ->
     try eval(read(Input), Env) of
         Result -> print(Result)
     catch
-        throw:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason -> io:format("error: ~s~n", [Reason])
     end.
 
 read(Input) ->
     case reader:read_str(Input) of
         {ok, Value} -> Value;
-        {error, Reason} -> throw(Reason)
+        {error, Reason} -> error(Reason)
     end.
 
 eval({list, []}, _Env) ->
@@ -51,15 +51,15 @@ eval({list, [{symbol, "def!"}, {symbol, A1}, A2]}, Env) ->
     env:set(Env, {symbol, A1}, Result),
     Result;
 eval({list, [{symbol, "def!"}, _A1, _A2]}, _Env) ->
-    throw("def! called with non-symbol");
+    error("def! called with non-symbol");
 eval({list, [{symbol, "def!"}|_]}, _Env) ->
-    throw("def! requires exactly two arguments");
+    error("def! requires exactly two arguments");
 eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
     NewEnv = env:new(Env),
     let_star(NewEnv, A1),
     eval(A2, NewEnv);
 eval({list, [{symbol, "let*"}|_]}, _Env) ->
-    throw("let* requires exactly two arguments");
+    error("let* requires exactly two arguments");
 eval({list, [{symbol, "do"}|Args]}, Env) ->
     eval_ast({list, lists:droplast(Args)}, Env),
     eval(lists:last(Args), Env);
@@ -69,27 +69,27 @@ eval({list, [{symbol, "if"}, Test, Consequent|Alternate]}, Env) ->
             case Alternate of
                 []  -> nil;
                 [A] -> eval(A, Env);
-                _   -> throw("if takes 2 or 3 arguments")
+                _   -> error("if takes 2 or 3 arguments")
             end;
         _ -> eval(Consequent, Env)
     end;
 eval({list, [{symbol, "if"}|_]}, _Env) ->
-    throw("if requires test and consequent");
+    error("if requires test and consequent");
 eval({list, [{symbol, "fn*"}, {vector, Binds}, Body]}, Env) ->
-    {closure, Binds, Body, Env};
+    {closure, fun eval/2, Binds, Body, Env};
 eval({list, [{symbol, "fn*"}, {list, Binds}, Body]}, Env) ->
-    {closure, Binds, Body, Env};
+    {closure, fun eval/2, Binds, Body, Env};
 eval({list, [{symbol, "fn*"}|_]}, _Env) ->
-    throw("fn* requires 2 arguments");
+    error("fn* requires 2 arguments");
 eval({list, [{symbol, "eval"}, AST]}, Env) ->
     % Must use the root environment so the variables set within the parsed
     % expression will be visible within the repl.
     eval(eval(AST, Env), env:root(Env));
 eval({list, [{symbol, "eval"}|_]}, _Env) ->
-    throw("eval requires 1 argument");
+    error("eval requires 1 argument");
 eval({list, List}, Env) ->
     case eval_ast({list, List}, Env) of
-        {list, [{closure, Binds, Body, CE}|A]} ->
+        {list, [{closure, _Eval, Binds, Body, CE}|A]} ->
             % The args may be a single element or a list, so always make it
             % a list and then flatten it so it becomes a list.
             NewEnv = env:new(CE),
@@ -97,7 +97,7 @@ eval({list, List}, Env) ->
             eval(Body, NewEnv);
         {list, [{function, F}|A]} -> erlang:apply(F, [A]);
         {list, [{error, Reason}]} -> {error, Reason};
-        _ -> throw("expected a list")
+        _ -> error("expected a list")
     end;
 eval(Value, Env) ->
     eval_ast(Value, Env).
@@ -121,16 +121,16 @@ let_star(Env, Bindings) ->
     Bind = fun({Name, Expr}) ->
         case Name of
             {symbol, _Sym} -> env:set(Env, Name, eval(Expr, Env));
-            _ -> throw("let* with non-symbol binding")
+            _ -> error("let* with non-symbol binding")
         end
     end,
     case Bindings of
         {Type, Binds} when Type == list orelse Type == vector ->
             case list_to_proplist(Binds) of
-                {error, Reason} -> throw(Reason);
+                {error, Reason} -> error(Reason);
                 Props -> lists:foreach(Bind, Props)
             end;
-        _ -> throw("let* with non-list bindings")
+        _ -> error("let* with non-list bindings")
     end.
 
 list_to_proplist(L) ->

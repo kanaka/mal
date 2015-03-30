@@ -4,7 +4,7 @@
 
 -module(reader).
 
--export([read_str/1]).
+-export([read_str/1, list_to_map/1]).
 
 -record(reader, {
     tokens=[],  % the input tokens remaining
@@ -136,14 +136,14 @@ read_atom(Reader) ->
     {Token, Reader1} = next(Reader),
     Result = case Token of
         {integer, Value} -> {integer, list_to_integer(Value)};
-        {string, String} -> {string, String};
-        {keyword, Keyword} -> {keyword, Keyword};
+        {string, _String} -> Token;
+        {keyword, _Keyword} -> Token;
         {symbol, Symbol} ->
             case Symbol of
                 "true" -> true;
                 "false" -> false;
                 "nil" -> nil;
-                _ -> {symbol, Symbol}
+                _ -> Token
             end
     end,
     {ok, #reader{tokens=Reader1#reader.tokens, tree=Result}}.

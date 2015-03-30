@@ -34,7 +34,7 @@ rep(Input, Env) ->
     try eval(AST, Env) of
         Result -> print(Result)
     catch
-        throw:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason -> io:format("error: ~s~n", [Reason])
     end.
 
 read(String) ->
@@ -62,7 +62,7 @@ eval_ast(Value, Env) ->
         {symbol, Sym} ->
             case maps:is_key(Sym, Env) of
                 true  -> maps:get(Sym, Env);
-                false -> throw(io_lib:format("'~s' not found", [Sym]))
+                false -> error(io_lib:format("'~s' not found", [Sym]))
             end;
         {list, L}   -> {list, lists:map(EvalList, L)};
         {vector, V} -> {vector, lists:map(EvalList, V)};

@@ -22,13 +22,13 @@ rep(Input, Env) ->
     try eval(read(Input), Env) of
         Result -> print(Result)
     catch
-        throw:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason -> io:format("error: ~s~n", [Reason])
     end.
 
 read(Input) ->
     case reader:read_str(Input) of
         {ok, Value} -> Value;
-        {error, Reason} -> throw(Reason)
+        {error, Reason} -> error(Reason)
     end.
 
 eval({list, []}, _Env) ->
@@ -38,19 +38,19 @@ eval({list, [{symbol, "def!"}, {symbol, A1}, A2]}, Env) ->
     env:set(Env, {symbol, A1}, Result),
     Result;
 eval({list, [{symbol, "def!"}, _A1, _A2]}, _Env) ->
-    throw("def! called with non-symbol");
+    error("def! called with non-symbol");
 eval({list, [{symbol, "def!"}|_]}, _Env) ->
-    throw("def! requires exactly two arguments");
+    error("def! requires exactly two arguments");
 eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
     NewEnv = env:new(Env),
     let_star(NewEnv, A1),
     eval(A2, NewEnv);
 eval({list, [{symbol, "let*"}|_]}, _Env) ->
-    throw("let* requires exactly two arguments");
+    error("let* requires exactly two arguments");
 eval({list, List}, Env) ->
     case eval_ast({list, List}, Env) of
         {list, [{function, F}|A]} -> erlang:apply(F, [A]);
-        _ -> throw("expected a list with a function")
+        _ -> error("expected a list with a function")
     end;
 eval(Value, Env) ->
     eval_ast(Value, Env).
@@ -76,16 +76,16 @@ let_star(Env, Bindings) ->
     Bind = fun({Name, Expr}) ->
         case Name of
             {symbol, _Sym} -> env:set(Env, Name, eval(Expr, Env));
-            _ -> throw("let* with non-symbol binding")
+            _ -> error("let* with non-symbol binding")
         end
     end,
     case Bindings of
         {Type, Binds} when Type == list orelse Type == vector ->
             case list_to_proplist(Binds) of
-                {error, Reason} -> throw(Reason);
+                {error, Reason} -> error(Reason);
                 Props -> lists:foreach(Bind, Props)
             end;
-        _ -> throw("let* with non-list bindings")
+        _ -> error("let* with non-list bindings")
     end.
 
 list_to_proplist(L) ->

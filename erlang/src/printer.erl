@@ -20,7 +20,7 @@ pr_str(Value, Readably) ->
         {list, List} -> pr_list(List, "(", ")", " ", Readably);
         {vector, Vector} -> pr_list(Vector, "[", "]", " ", Readably);
         {map, Map} -> pr_map(Map, Readably);
-        {closure, _Binds, _Body, _Env} -> "#<function>";
+        {closure, _Eval, _Binds, _Body, _Env} -> "#<function>";
         {function, _Func} -> "#<builtin>";
         {macro, _Binds, _Body, _Env} -> "#<macro>";
         {error, Reason} -> io_lib:format("error: ~s", [Reason])

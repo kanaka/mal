@@ -5,6 +5,21 @@
 -module(core).
 -compile(export_all).
 
+nil_p([Arg]) ->
+    Arg == nil;
+nil_p(_) ->
+    {error, "nil? takes a single argument"}.
+
+true_p([Arg]) ->
+    Arg == true;
+true_p(_) ->
+    {error, "true? takes a single argument"}.
+
+false_p([Arg]) ->
+    Arg == false;
+false_p(_) ->
+    {error, "false? takes a single argument"}.
+
 count([{Type, List}]) when Type == list orelse Type == vector ->
     {integer, length(List)};
 count([nil]) ->
@@ -171,14 +186,51 @@ concat(Args) ->
         case Elem of
             {Type, List} when Type == list orelse Type == vector ->
                 AccIn ++ List;
-            _ -> throw("concat called with non-sequence")
+            _ -> error("concat called with non-sequence")
         end
     end,
     try lists:foldl(PushAll, [], Args) of
         Result -> {list, Result}
     catch
-        throw:Reason -> {error, Reason}
+        error:Reason -> {error, Reason}
     end.
+
+mal_throw([Reason]) ->
+    throw(Reason);
+mal_throw(_) ->
+    {error, "throw expects a list with one argument"}.
+
+map_f([{closure, Eval, Binds, Body, CE}, {Type, Args}]) when Type == list orelse Type == vector ->
+    Apply = fun(Arg) ->
+        NewEnv = env:new(CE),
+        env:bind(NewEnv, Binds, [Arg]),
+        Eval(Body, NewEnv)
+    end,
+    {list, lists:map(Apply, Args)};
+map_f([{function, F}, {Type, Args}]) when Type == list orelse Type == vector ->
+    {list, [erlang:apply(F, [[Arg]]) || Arg <- Args]};
+map_f(_) ->
+    {error, "map expects a function and list argument"}.
+
+process_args(Args) ->
+    % Convert the apply arguments into a flat list, such that no element
+    % consists of {list,...} or {vector,...} (i.e. just [A, B, C, ...]).
+    Delist = fun(Elem) ->
+        case Elem of
+            {T, L} when T == list orelse T == vector -> L;
+            _ -> Elem
+        end
+    end,
+    lists:flatten(lists:map(Delist, lists:flatten(Args))).
+
+apply_f([{closure, Eval, Binds, Body, CE}|Args]) ->
+    NewEnv = env:new(CE),
+    env:bind(NewEnv, Binds, process_args(Args)),
+    Eval(Body, NewEnv);
+apply_f([{function, F}|Args]) ->
+    erlang:apply(F, [process_args(Args)]);
+apply_f(_) ->
+    {error, "apply expects a function followed by arguments"}.
 
 ns() ->
     Builtins = #{
@@ -191,21 +243,42 @@ ns() ->
         "=" => fun equal_q/1,
         ">" => fun bool_gt/1,
         ">=" => fun bool_gte/1,
+        "apply" => fun apply_f/1,
+        "assoc" => fun types:assoc/1,
         "concat" => fun concat/1,
         "cons" => fun cons/1,
+        "contains?" => fun types:contains_p/1,
         "count" => fun count/1,
+        "dissoc" => fun types:dissoc/1,
         "empty?" => fun empty_q/1,
+        "false?" => fun false_p/1,
         "first" => fun first/1,
+        "get" => fun types:map_get/1,
+        "hash-map" => fun types:hash_map/1,
+        "keys" => fun types:map_keys/1,
+        "keyword" => fun types:keyword/1,
+        "keyword?" => fun types:keyword_p/1,
         "list" => fun types:list/1,
         "list?" => fun types:list_p/1,
+        "map" => fun map_f/1,
+        "map?" => fun types:map_p/1,
+        "nil?" => fun nil_p/1,
         "nth" => fun nth/1,
         "pr-str" => fun pr_str/1,
         "println" => fun println/1,
         "prn" => fun prn/1,
         "read-string" => fun read_string/1,
         "rest" => fun rest/1,
+        "sequential?" => fun types:sequential_p/1,
         "slurp" => fun slurp/1,
-        "str" => fun str/1
+        "str" => fun str/1,
+        "symbol" => fun types:symbol/1,
+        "symbol?" => fun types:symbol_p/1,
+        "throw" => fun mal_throw/1,
+        "true?" => fun true_p/1,
+        "vals" => fun types:map_values/1,
+        "vector" => fun types:vector/1,
+        "vector?" => fun types:vector_p/1
     },
     Env = env:new(undefined),
     SetEnv = fun(K, V) ->
