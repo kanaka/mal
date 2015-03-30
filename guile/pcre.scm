@@ -69,7 +69,7 @@
    (mutable extra)))
    
 (define (%new-pcre)
-  (make-pcre (make-blob-pointer uint64) ; errptr
+  (make-pcre (make-blob-pointer (sizeof ptrdiff_t)) ; errptr
              #f #f 0 #f #f))
 
 (define* (new-pcre re #:optional (options 0))
@@ -107,7 +107,7 @@
   (let ((strptr (pcre-strptr pcre))
         (ovector (pcre-ovector pcre))
         (matched (pcre-matched pcre))
-        (buf (make-blob-pointer uint64)))
+        (buf (make-blob-pointer (sizeof ptrdiff_t))))
     (%pcre-get-substring strptr ovector matched index buf)
     (let ((ret (pointer->string (dereference-pointer buf))))
       (set-pointer-finalizer! (dereference-pointer buf) %pcre-free-substring)
