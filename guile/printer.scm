@@ -31,8 +31,15 @@
      (display "}" port))))
 
 (define (pr_str obj readable?)
+  (define (->str s)
+    (string-sub
+     (string-sub
+      (string-sub s "\\\\" "\\\\")
+      "\"" "\\\"")
+     "\n" "\\\n"))
   (define (%pr_str o) (pr_str o readable?))
   (match obj
+    ((? procedure?) "#<function>")
     ((? list?) (format #f "(~{~a~^ ~})" (map %pr_str obj)))
     ((? vector?) (format #f "[~{~a~^ ~}]" (map %pr_str (vector->list obj))))
     ((? hash-table?) (print-hashmap obj %pr_str))
@@ -40,11 +47,11 @@
      (cond
       ((string-match "^\u029e(.*)" obj)
        => (lambda (m) (format #f ":~a" (match:substring m 1))))
-      (else (if readable? (format #f "\"~a\"" obj) obj))))
+      (else (if readable? (format #f "\"~a\"" (->str obj)) obj))))
     ((? number?) obj)
     ((? symbol?) obj)
     ((? atom?) (format #f "(atom ~a)" (atom-val obj)))
     ((? _nil?) nil)
     (#t "true")
     (#f "false")
-    (else (display obj))))
+    (else (format #f "~a" obj))))
