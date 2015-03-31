@@ -101,7 +101,7 @@
              ((null? body) (throw 'mal-error "fn*: bad lambda in form " ast))
              ((= 1 (length body)) (tco-loop (car body) nenv))
              (else
-              (let ((mexpr (take rest (1- (length body))))
+              (let ((mexpr (take body (1- (length body))))
                     (tail-call (car (take-right body 1))))
                 (eval_seq mexpr nenv)
                 (tco-loop tail-call nenv)))))))
@@ -123,4 +123,9 @@
           (lambda (k . e)
             (format #t "Error: ~a~%" (car e))))))
 
-(REPL)
+;; NOTE: we have to reduce stack size to pass step5 test
+((@ (system vm vm) call-with-stack-overflow-handler)
+ 1024
+ (lambda () (REPL))
+ (lambda k (throw 'mal-error "stack overflow")))
+

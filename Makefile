@@ -41,7 +41,7 @@ EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
 EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
 EXCLUDE_TESTS += test^vb^step5   # completes at 10,000
-EXCLUDE_TESTS += test^guile^step5 # completes on 2.1+, even at 1,000,000
+#EXCLUDE_TESTS += test^guile^step5 # completes on 2.1+, even at 1,000,000
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
