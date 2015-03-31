@@ -28,4 +28,6 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "println" [ f " " pr-str-stack print nil ] }
                 { "read-string" [ first read-str ] }
                 { "slurp" [ first utf8 file-contents ] }
+                { "cons" [ first2 swap prefix dup array? [ >array ] unless ] }
+                { "concat" [ concat dup array? [ >array ] unless ] }
              }
