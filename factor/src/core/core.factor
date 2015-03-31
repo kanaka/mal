@@ -1,27 +1,29 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: kernel math sequences arrays lists printer locals io strings ;
+USING: kernel math sequences arrays lists printer locals io strings malenv ;
 
 IN: core
 
-:: pr-str-stack ( printer-quot glue -- str )
-    datastack printer-quot map glue join ; inline
+:: pr-str-stack ( exprs readably? glue -- str )
+    exprs [ readably? (pr-str) ] map glue join ;
 
-CONSTANT: ns H{ { "+" [ + ] }
-                { "-" [ - ] }
-                { "*" [ * ] }
-                { "/" [ / ] }
-                { "list" [ datastack >array ] }
-                { "list?" [ array? ] }
-                { "empty?" [ empty? ] }
-                { "count" [ dup nil? [ drop 0 ] [ length ] if ] }
-                { "=" [ 2dup [ [ sequence? ] [ string? not ] bi and ] bi@ and [ sequence= ] [ = ] if ] }
-                { "<" [ < ] }
-                { ">" [ > ] }
-                { ">=" [ >= ] }
-                { "<=" [ <= ] }
-                { "pr-str" [ [ t (pr-str) ] " " pr-str-stack ] }
-                { "str" [ [ f (pr-str) ] "" pr-str-stack ] }
-                { "prn" [ [ t (pr-str) ] " " pr-str-stack print nil ] }
-                { "println" [ [ f (pr-str) ] " " pr-str-stack print nil ] }
+CONSTANT: empty-env T{ malenv f H{ } }
+
+CONSTANT: ns H{ { "+" [ first2 + ] }
+                { "-" [ first2 - ] }
+                { "*" [ first2 * ] }
+                { "/" [ first2 / ] }
+                { "list" [ >array ] }
+                { "list?" [ first array? ] }
+                { "empty?" [ first empty? ] }
+                { "count" [ first dup nil? [ drop 0 ] [ length ] if ] }
+                { "=" [ first2 2dup [ [ sequence? ] [ string? not ] bi and ] bi@ and [ sequence= ] [ = ] if ] }
+                { "<" [ first2 < ] }
+                { ">" [ first2 > ] }
+                { ">=" [ first2 >= ] }
+                { "<=" [ first2 <= ] }
+                { "pr-str" [ t " " pr-str-stack ] }
+                { "str" [ f "" pr-str-stack ] }
+                { "prn" [ t " " pr-str-stack print nil ] }
+                { "println" [ f " " pr-str-stack print nil ] }
              }

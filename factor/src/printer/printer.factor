@@ -23,7 +23,7 @@ IN: printer
         { [ dup hashtable? ] [ unzip
                                [ [ readably? (pr-str) ] bi@ " " glue ] [ " " glue ] 2map-reduce
                                "{" "}" surround ] }
-        { [ dup callable? ]  [ drop "#<fn>" ] }
+        { [ dup fn? ]        [ drop "#<fn>" ] }
         { [ dup t = ]        [ drop "true" ] }
         { [ dup f = ]        [ drop "false" ] }
         { [ dup nil = ]      [ drop "nil" ] }

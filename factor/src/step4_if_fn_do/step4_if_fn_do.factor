@@ -35,14 +35,32 @@ DEFER: EVAL
     } cond ;
 
 :: eval-fn* ( params env -- maltype )
-    params first [ name>> ] map [ "&" ] split { } suffix first2
-    '[ datastack _ [ length cut-slice ] keep ! head tail firstparams
-       swap [ swap zip ] dip ! bindalist tail
-       _ dup empty? [ 2drop ] [ first swap >array 2array suffix ] if
-       >hashtable
-       env swap <malenv>
-       params second swap
-       EVAL ] ;
+    env params first [ name>> ] map params second <fn> ;
+
+: args-split ( bindlist -- bindlist restbinding/f )
+    [ "&" ] split dup length 1 >
+    [ first2 first ]
+    [ first f ]
+    if ;
+
+:: make-bindings ( args bindlist restbinding/f -- bindingshash )
+    bindlist
+    args bindlist length cut-slice
+    [ zip ] dip
+    restbinding/f
+    [ swap >array 2array suffix ]
+    [ drop ]
+    if*
+    >hashtable ;
+
+: apply ( args fn -- maltype )
+    {
+        { [ dup fn? ]
+          [ [ exprs>> nip ] [ env>> nip ] [ binds>> args-split make-bindings ] 2tri <malenv>
+          EVAL ] }
+        { [ dup callable? ] [ call( x -- y ) ] }
+        [ drop "not a fn" throw ]
+    } cond ;
 
 : READ ( str -- maltype ) read-str ;
 :: EVAL ( maltype env -- maltype )
@@ -54,8 +72,7 @@ DEFER: EVAL
           { [ "do" over symeq? ]   [ drop env eval-ast last ] }
           { [ "if" over symeq? ]   [ drop env eval-if ] }
           { [ "fn*" over symeq? ]  [ drop env eval-fn* ] }
-          { [ env EVAL dup callable? ] [ [ env eval-ast ] dip  with-datastack last ] }
-          [ drop "not a fn" throw ]
+          [ prefix [ env EVAL ] map unclip apply ]
       } cond ]
     [ env eval-ast ]
     if ;
@@ -68,6 +85,7 @@ DEFER: EVAL
               [ 0 exit ] unless*
               rep print flush ]
             while ;
+
 
 f ns <malenv> repl-env set-global
 "(def! not (fn* (a) (if a false true)))" rep drop
