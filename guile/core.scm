@@ -14,8 +14,10 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (library (core)
-  (export core.ns)
-  (import (guile) (rnrs) (types) (reader) (printer)))
+  (export core.ns ->list)
+  (import (guile) (rnrs) (types) (reader) (printer) (ice-9 match)))
+
+(define (->list o) ((if (vector? o) vector->list identity) o))
 
 (define (_count obj)
   (cond
@@ -27,8 +29,7 @@
 
 ;; Well, strange spec...
 (define (_equal? o1 o2)
-  (define (-> o) (if (vector? o) (vector->list o) o))
-  (equal? (-> o1) (-> o2)))
+  (equal? (->list o1) (->list o2)))
 
 (define (pr-str . args)
   (define (pr x) (pr_str x #t))
@@ -52,6 +53,12 @@
     (throw 'mal-error "File/dir doesn't exist" filename))
   (call-with-input-file filename get-string-all))
 
+(define (_cons x y)
+  (cons x (->list y)))
+
+(define (concat . args)
+  (apply append (map ->list args)))
+
 (define *primitives*
   `((list        ,list)
     (list?       ,list?)
@@ -73,6 +80,8 @@
     (println     ,println)
     (read-string ,read_str)
     (slurp       ,slurp)
+    (cons        ,_cons)
+    (concat      ,concat)
 
 ))
 
