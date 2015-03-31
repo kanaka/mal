@@ -1,6 +1,6 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: kernel math sequences arrays lists printer locals io strings malenv ;
+USING: kernel math sequences arrays lists printer locals io strings malenv reader io.files io.encodings.utf8 ;
 
 IN: core
 
@@ -26,4 +26,6 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "str" [ f "" pr-str-stack ] }
                 { "prn" [ t " " pr-str-stack print nil ] }
                 { "println" [ f " " pr-str-stack print nil ] }
+                { "read-string" [ first read-str ] }
+                { "slurp" [ first utf8 file-contents ] }
              }
