@@ -31,25 +31,25 @@ read(Input) ->
         {error, Reason} -> error(Reason)
     end.
 
-eval({list, []}, _Env) ->
-    [];
-eval({list, [{symbol, "def!"}, {symbol, A1}, A2]}, Env) ->
+eval({list, [], _Meta}=AST, _Env) ->
+    AST;
+eval({list, [{symbol, "def!"}, {symbol, A1}, A2], _Meta}, Env) ->
     Result = eval(A2, Env),
     env:set(Env, {symbol, A1}, Result),
     Result;
-eval({list, [{symbol, "def!"}, _A1, _A2]}, _Env) ->
+eval({list, [{symbol, "def!"}, _A1, _A2], _Meta}, _Env) ->
     error("def! called with non-symbol");
-eval({list, [{symbol, "def!"}|_]}, _Env) ->
+eval({list, [{symbol, "def!"}|_], _Meta}, _Env) ->
     error("def! requires exactly two arguments");
-eval({list, [{symbol, "let*"}, A1, A2]}, Env) ->
+eval({list, [{symbol, "let*"}, A1, A2], _Meta}, Env) ->
     NewEnv = env:new(Env),
     let_star(NewEnv, A1),
     eval(A2, NewEnv);
-eval({list, [{symbol, "let*"}|_]}, _Env) ->
+eval({list, [{symbol, "let*"}|_], _Meta}, _Env) ->
     error("let* requires exactly two arguments");
-eval({list, List}, Env) ->
-    case eval_ast({list, List}, Env) of
-        {list, [{function, F}|A]} -> erlang:apply(F, [A]);
+eval({list, List, Meta}, Env) ->
+    case eval_ast({list, List, Meta}, Env) of
+        {list, [{function, F, _MF}|A], _M1} -> erlang:apply(F, [A]);
         _ -> error("expected a list with a function")
     end;
 eval(Value, Env) ->
@@ -57,10 +57,10 @@ eval(Value, Env) ->
 
 eval_ast({symbol, _Sym}=Value, Env) ->
     env:get(Env, Value);
-eval_ast({Type, Seq}, Env) when Type == list orelse Type == vector ->
-    {Type, lists:map(fun(Elem) -> eval(Elem, Env) end, Seq)};
-eval_ast({map, M}, Env) ->
-    {map, maps:map(fun(_Key, Val) -> eval(Val, Env) end, M)};
+eval_ast({Type, Seq, _Meta}, Env) when Type == list orelse Type == vector ->
+    {Type, lists:map(fun(Elem) -> eval(Elem, Env) end, Seq), nil};
+eval_ast({map, M, _Meta}, Env) ->
+    {map, maps:map(fun(_Key, Val) -> eval(Val, Env) end, M), nil};
 eval_ast(Value, _Env) ->
     Value.
 
@@ -80,7 +80,7 @@ let_star(Env, Bindings) ->
         end
     end,
     case Bindings of
-        {Type, Binds} when Type == list orelse Type == vector ->
+        {Type, Binds, _Meta} when Type == list orelse Type == vector ->
             case list_to_proplist(Binds) of
                 {error, Reason} -> error(Reason);
                 Props -> lists:foreach(Bind, Props)

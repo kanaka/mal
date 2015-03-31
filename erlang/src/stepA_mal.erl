@@ -1,8 +1,8 @@
 %%%
-%%% Step 7: Quoting
+%%% Step A: Mutation, Self-hosting and Interop
 %%%
 
--module(step7_quote).
+-module(stepA_mal).
 
 -export([main/1]).
 
@@ -13,13 +13,16 @@ main([File|Args]) ->
 main([]) ->
     Env = init(),
     env:set(Env, {symbol, "*ARGV*"}, {list, [], nil}),
+    eval(read("(println (str \"Mal [\" *host-language* \"]\"))"), Env),
     loop(Env).
 
 init() ->
     Env = core:ns(),
-    % define the load-file and not functions using mal itself
+    eval(read("(def! *host-language* \"Erlang\")"), Env),
     eval(read("(def! not (fn* (a) (if a false true)))"), Env),
     eval(read("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"), Env),
+    eval(read("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"), Env),
+    eval(read("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME \~(first xs)) (if or_FIXME or_FIXME (or \~@(rest xs))))))))"), Env),
     Env.
 
 loop(Env) ->
@@ -35,7 +38,9 @@ rep(Input, Env) ->
     try eval(read(Input), Env) of
         Result -> print(Result)
     catch
-        error:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason ->
+            io:format("error: ~s~n", [Reason])
+            % io:format("Backtrace: ~p~n", [erlang:get_stacktrace()])
     end.
 
 read(Input) ->
@@ -44,26 +49,40 @@ read(Input) ->
         {error, Reason} -> error(Reason)
     end.
 
-eval({list, [], _Meta}=AST, _Env) ->
+eval(Value, Env) ->
+    case Value of
+        {list, _L1, _M1} ->
+            case macroexpand(Value, Env) of
+                {list, _L2, _M2} = List -> eval_list(List, Env);
+                AST -> AST
+            end;
+        _ -> eval_ast(Value, Env)
+    end.
+
+eval_list({list, [], _Meta}=AST, _Env) ->
     AST;
-eval({list, [{symbol, "def!"}, {symbol, A1}, A2], _Meta}, Env) ->
+eval_list({list, [{symbol, "def!"}, {symbol, A1}, A2], _Meta}, Env) ->
     Result = eval(A2, Env),
-    env:set(Env, {symbol, A1}, Result),
-    Result;
-eval({list, [{symbol, "def!"}, _A1, _A2], _Meta}, _Env) ->
+    case Result of
+        {error, _R1} -> Result;
+        _ ->
+            env:set(Env, {symbol, A1}, Result),
+            Result
+    end;
+eval_list({list, [{symbol, "def!"}, _A1, _A2], _Meta}, _Env) ->
     error("def! called with non-symbol");
-eval({list, [{symbol, "def!"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "def!"}|_], _Meta}, _Env) ->
     error("def! requires exactly two arguments");
-eval({list, [{symbol, "let*"}, A1, A2], _Meta}, Env) ->
+eval_list({list, [{symbol, "let*"}, A1, A2], _Meta}, Env) ->
     NewEnv = env:new(Env),
     let_star(NewEnv, A1),
     eval(A2, NewEnv);
-eval({list, [{symbol, "let*"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "let*"}|_], _Meta}, _Env) ->
     error("let* requires exactly two arguments");
-eval({list, [{symbol, "do"}|Args], _Meta}, Env) ->
+eval_list({list, [{symbol, "do"}|Args], _Meta}, Env) ->
     eval_ast({list, lists:droplast(Args), nil}, Env),
     eval(lists:last(Args), Env);
-eval({list, [{symbol, "if"}, Test, Consequent|Alternate], _Meta}, Env) ->
+eval_list({list, [{symbol, "if"}, Test, Consequent|Alternate], _Meta}, Env) ->
     case eval(Test, Env) of
         Cond when Cond == false orelse Cond == nil ->
             case Alternate of
@@ -73,31 +92,63 @@ eval({list, [{symbol, "if"}, Test, Consequent|Alternate], _Meta}, Env) ->
             end;
         _ -> eval(Consequent, Env)
     end;
-eval({list, [{symbol, "if"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "if"}|_], _Meta}, _Env) ->
     error("if requires test and consequent");
-eval({list, [{symbol, "fn*"}, {vector, Binds, _M1}, Body], _Meta}, Env) ->
+eval_list({list, [{symbol, "fn*"}, {vector, Binds, _M1}, Body], _Meta}, Env) ->
     {closure, fun eval/2, Binds, Body, Env, nil};
-eval({list, [{symbol, "fn*"}, {list, Binds, _M1}, Body], _Meta}, Env) ->
+eval_list({list, [{symbol, "fn*"}, {list, Binds, _M1}, Body], _Meta}, Env) ->
     {closure, fun eval/2, Binds, Body, Env, nil};
-eval({list, [{symbol, "fn*"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "fn*"}|_], _Meta}, _Env) ->
     error("fn* requires 2 arguments");
-eval({list, [{symbol, "eval"}, AST], _Meta}, Env) ->
+eval_list({list, [{symbol, "eval"}, AST], _Meta}, Env) ->
     % Must use the root environment so the variables set within the parsed
     % expression will be visible within the repl.
     eval(eval(AST, Env), env:root(Env));
-eval({list, [{symbol, "eval"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "eval"}|_], _Meta}, _Env) ->
     error("eval requires 1 argument");
-eval({list, [{symbol, "quote"}, AST], _Meta}, _Env) ->
+eval_list({list, [{symbol, "quote"}, AST], _Meta}, _Env) ->
     AST;
-eval({list, [{symbol, "quote"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "quote"}|_], _Meta}, _Env) ->
     error("quote requires 1 argument");
-eval({list, [{symbol, "quasiquote"}, AST], _Meta}, Env) ->
+eval_list({list, [{symbol, "quasiquote"}, AST], _Meta}, Env) ->
     eval(quasiquote(AST), Env);
-eval({list, [{symbol, "quasiquote"}|_], _Meta}, _Env) ->
+eval_list({list, [{symbol, "quasiquote"}|_], _Meta}, _Env) ->
     error("quasiquote requires 1 argument");
-eval({list, List, Meta}, Env) ->
+eval_list({list, [{symbol, "defmacro!"}, {symbol, A1}, A2], _Meta}, Env) ->
+    case eval(A2, Env) of
+        {closure, _Eval, Binds, Body, CE, _MC} ->
+            Result = {macro, Binds, Body, CE},
+            env:set(Env, {symbol, A1}, Result),
+            Result;
+        Result -> env:set(Env, {symbol, A1}, Result), Result
+    end,
+    Result;
+eval_list({list, [{symbol, "defmacro!"}, _A1, _A2], _Meta}, _Env) ->
+    error("defmacro! called with non-symbol");
+eval_list({list, [{symbol, "defmacro!"}|_], _Meta}, _Env) ->
+    error("defmacro! requires exactly two arguments");
+eval_list({list, [{symbol, "macroexpand"}, Macro], _Meta}, Env) ->
+    macroexpand(Macro, Env);
+eval_list({list, [{symbol, "macroexpand"}], _Meta}, _Env) ->
+    error("macroexpand requires 1 argument");
+eval_list({list, [{symbol, "try*"}, A, {list, [{symbol, "catch*"}, B, C], _M1}], _M2}, Env) ->
+    try eval(A, Env) of
+        Result -> Result
+    catch
+        error:Reason ->
+            NewEnv = env:new(Env),
+            env:bind(NewEnv, [B], [{string, Reason}]),
+            eval(C, NewEnv);
+        throw:Reason ->
+            NewEnv = env:new(Env),
+            env:bind(NewEnv, [B], [Reason]),
+            eval(C, NewEnv)
+    end;
+eval_list({list, [{symbol, "try*"}|_], _Meta}, _Env) ->
+    error("try*/catch* must be of the form (try* A (catch* B C))");
+eval_list({list, List, Meta}, Env) ->
     case eval_ast({list, List, Meta}, Env) of
-        {list, [{closure, _Eval, Binds, Body, CE, _M1}|A], _M2} ->
+        {list, [{closure, _Eval, Binds, Body, CE, _MC}|A], _M2} ->
             % The args may be a single element or a list, so always make it
             % a list and then flatten it so it becomes a list.
             NewEnv = env:new(CE),
@@ -106,9 +157,7 @@ eval({list, List, Meta}, Env) ->
         {list, [{function, F, _MF}|A], _M3} -> erlang:apply(F, [A]);
         {list, [{error, Reason}], _M4} -> {error, Reason};
         _ -> error("expected a list")
-    end;
-eval(Value, Env) ->
-    eval_ast(Value, Env).
+    end.
 
 eval_ast({symbol, _Sym}=Value, Env) ->
     env:get(Env, Value);
@@ -176,3 +225,27 @@ quasiquote(AST) ->
     % 1. if is_pair of ast is false: return a new list containing:
     %    a symbol named "quote" and ast.
     {list, [{symbol, "quote"}, AST], nil}.
+
+is_macro_call({list, [{symbol, Name}|_], _Meta}, Env) ->
+    case env:find(Env, {symbol, Name}) of
+        nil -> false;
+        Env2 ->
+            case env:get(Env2, {symbol, Name}) of
+                {macro, _Binds, _Body, _ME} -> true;
+                _ -> false
+            end
+    end;
+is_macro_call(_AST, _Env) ->
+    false.
+
+macroexpand(AST, Env) ->
+    case is_macro_call(AST, Env) of
+        true ->
+            {list, [Name|A], _Meta} = AST,
+            {macro, Binds, Body, ME} = env:get(Env, Name),
+            NewEnv = env:new(ME),
+            env:bind(NewEnv, Binds, lists:flatten([A])),
+            NewAST = eval(Body, NewEnv),
+            macroexpand(NewAST, Env);
+        false -> AST
+    end.

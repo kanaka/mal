@@ -140,7 +140,7 @@ env_find(Env, Name) ->
 env_bind(Env, [], []) ->
     Env;
 env_bind(Env, [{symbol, "&"}, {symbol, Name}], Values) ->
-    env_set(Env, Name, {list, Values});
+    env_set(Env, Name, {list, Values, nil});
 env_bind(Env, [{symbol, Name}|Ntail], [Value|Vtail]) ->
     env_bind(env_set(Env, Name, Value), Ntail, Vtail).
 

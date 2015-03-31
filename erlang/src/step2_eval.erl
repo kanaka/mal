@@ -43,9 +43,9 @@ read(String) ->
         {error, Reason} -> io:format("error: ~s~n", [Reason]), nil
     end.
 
-eval({list, List}, Env) ->
-    case eval_ast({list, List}, Env) of
-        {list, [F|Args]} -> erlang:apply(F, [Args]);
+eval({list, List, Meta}, Env) ->
+    case eval_ast({list, List, Meta}, Env) of
+        {list, [F|Args], _M} -> erlang:apply(F, [Args]);
         _ -> {error, "expected a list"}
     end;
 eval(Value, Env) ->
@@ -64,10 +64,10 @@ eval_ast(Value, Env) ->
                 true  -> maps:get(Sym, Env);
                 false -> error(io_lib:format("'~s' not found", [Sym]))
             end;
-        {list, L}   -> {list, lists:map(EvalList, L)};
-        {vector, V} -> {vector, lists:map(EvalList, V)};
-        {map, M}    -> {map, maps:map(EvalMap, M)};
-        _           -> Value
+        {list, L, Meta}   -> {list, lists:map(EvalList, L), Meta};
+        {vector, V, Meta} -> {vector, lists:map(EvalList, V), Meta};
+        {map, M, Meta}    -> {map, maps:map(EvalMap, M), Meta};
+        _ -> Value
     end.
 
 print(none) ->

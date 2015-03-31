@@ -12,16 +12,22 @@ pr_str(Value, Readably) ->
 		nil -> "nil";
 		true -> "true";
 		false -> "false";
+        {atom, Atom} ->
+            AtomStr = pr_str(atom:deref(Atom), Readably),
+            io_lib:format("(atom ~s)", [AtomStr]);
         {integer, Num} -> integer_to_list(Num);
         {string, String} when Readably == true -> escape_str(String);
         {string, String} when Readably == false -> String;
         {keyword, Keyword} -> [$:|Keyword];
         {symbol, Symbol} -> Symbol;
-        {list, List} -> pr_list(List, "(", ")", " ", Readably);
-        {vector, Vector} -> pr_list(Vector, "[", "]", " ", Readably);
-        {map, Map} -> pr_map(Map, Readably);
-        {closure, _Eval, _Binds, _Body, _Env} -> "#<function>";
-        {function, _Func} -> "#<builtin>";
+        {list, List, _Meta} -> pr_list(List, "(", ")", " ", Readably);
+        {vector, Vector, _Meta} -> pr_list(Vector, "[", "]", " ", Readably);
+        {map, Map, _Meta} -> pr_map(Map, Readably);
+        {closure, _Eval, Binds, Body, _Env, _Meta} ->
+            BindsStr = pr_str({list, Binds, nil}, Readably),
+            BodyStr = pr_str(Body, Readably),
+            io_lib:format("(fn* ~s ~s)", [BindsStr, BodyStr]);
+        {function, _Func, _Meta} -> "#<function>";
         {macro, _Binds, _Body, _Env} -> "#<macro>";
         {error, Reason} -> io_lib:format("error: ~s", [Reason])
 	end.

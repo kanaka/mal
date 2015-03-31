@@ -53,10 +53,13 @@ read_vector(Reader) ->
 read_map(Reader) ->
     case read_seq(Reader, $}, open_map, close_map, map) of
         {ok, Reader1} ->
-            {map, Map} = Reader1#reader.tree,
-            NewMap = list_to_map(Map),
-            Tokens = Reader1#reader.tokens,
-            {ok, #reader{tokens=Tokens, tree={map, NewMap}}};
+            {map, Map, Meta} = Reader1#reader.tree,
+            case list_to_map(Map) of
+                {error, Reason} -> {error, Reason};
+                NewMap ->
+                    Tokens = Reader1#reader.tokens,
+                    {ok, #reader{tokens=Tokens, tree={map, NewMap, Meta}}}
+            end;
         {error, Reason} -> {error, Reason}
     end.
 
@@ -67,7 +70,7 @@ read_seq(Reader, CloseChar, OpenDelim, CloseDelim, Type) ->
             case read_seq_tail(Reader1, CloseChar, CloseDelim, []) of
                 {ok, Reader2} ->
                     % prepend our type tag to the result
-                    Result = {Type, Reader2#reader.tree},
+                    Result = {Type, Reader2#reader.tree, nil},
                     Reader3 = #reader{tokens=Reader2#reader.tokens, tree=Result},
                     {ok, Reader3};
                 {error, Reason} -> {error, Reason}
@@ -111,7 +114,7 @@ read_quoted(Reader, Token) ->
     {_T, Reader1} = next(Reader),
     case read_form(Reader1) of
         {ok, Reader2} ->
-            Result = {list, [{symbol, atom_to_list(Token)}, Reader2#reader.tree]},
+            Result = {list, [{symbol, atom_to_list(Token)}, Reader2#reader.tree], nil},
             {ok, #reader{tokens=Reader2#reader.tokens, tree=Result}};
         {error, Reason} -> {error, Reason}
     end.
@@ -125,7 +128,7 @@ read_meta(Reader) ->
             case read_form(Reader2) of
                 {ok, Reader3} ->
                     X = Reader3#reader.tree,
-                    Result = {list, [{symbol, "with-meta"}, X, M]},
+                    Result = {list, [{symbol, "with-meta"}, X, M], nil},
                     {ok, #reader{tokens=Reader3#reader.tokens, tree=Result}};
                 {error, Reason} -> {error, Reason}
             end;

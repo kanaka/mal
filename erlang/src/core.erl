@@ -20,7 +20,7 @@ false_p([Arg]) ->
 false_p(_) ->
     {error, "false? takes a single argument"}.
 
-count([{Type, List}]) when Type == list orelse Type == vector ->
+count([{Type, List, _Meta}]) when Type == list orelse Type == vector ->
     {integer, length(List)};
 count([nil]) ->
     {integer, 0};
@@ -31,7 +31,7 @@ count([]) ->
 count(_) ->
     {error, "count expects one list argument"}.
 
-empty_q([{Type, List}]) when Type == list orelse Type == vector ->
+empty_q([{Type, List, _Meta}]) when Type == list orelse Type == vector ->
     length(List) == 0;
 empty_q([_]) ->
     {error, "empty? called on non-sequence"};
@@ -40,18 +40,20 @@ empty_q([]) ->
 empty_q(_) ->
     {error, "empty? expects one list argument"}.
 
-nth([{Type, List}, {integer, Index}]) when Type == list orelse Type == vector ->
+nth([{Type, List, _Meta}, {integer, Index}]) when Type == list orelse Type == vector ->
     try lists:nth(Index+1, List) of
         Result -> Result
     catch
-        error:_Error -> {error, "nth: index out of range"}
+        error:_Error ->
+            % raise rather than returning an {error}
+            error("nth: index out of range")
     end;
 nth([_]) ->
     {error, "nth expects two arguments"}.
 
-first([{Type, [First|_Rest]}]) when Type == list orelse Type == vector ->
+first([{Type, [First|_Rest], _Meta}]) when Type == list orelse Type == vector ->
     First;
-first([{Type, []}]) when Type == list orelse Type == vector ->
+first([{Type, [], _Meta}]) when Type == list orelse Type == vector ->
     nil;
 first([nil]) ->
     nil;
@@ -62,10 +64,10 @@ first([]) ->
 first(_) ->
     {error, "first expects one list argument"}.
 
-rest([{Type, [_First|Rest]}]) when Type == list orelse Type == vector ->
-    {list, Rest};
-rest([{Type, []}]) when Type == list orelse Type == vector ->
-    {list, []};
+rest([{Type, [_First|Rest], _Meta}]) when Type == list orelse Type == vector ->
+    {list, Rest, nil};
+rest([{Type, [], _Meta}]) when Type == list orelse Type == vector ->
+    {list, [], nil};
 rest([_]) ->
     {error, "rest called on non-sequence"};
 rest([]) ->
@@ -82,13 +84,11 @@ equal_q(Args) ->
         [{string, S}, {string, T}] -> S == T;
         [{keyword, K}, {keyword, J}] -> K == J;
         [{symbol, S}, {symbol, T}] -> S == T;
-        [{list, L1}, {list, L2}] -> L1 == L2;
-        [{vector, L1}, {vector, L2}] -> L1 == L2;
-        [{list, L1}, {vector, L2}] -> L1 == L2;
-        [{vector, L1}, {list, L2}] -> L1 == L2;
-        [{map, M1}, {map, M2}] -> M1 == M2;
-        [{closure, _C1}, {closure, _C2}] -> false;
-        [{function, _F1}, {function, _F2}] -> false;
+        [{list, L1, _M1}, {list, L2, _M2}] -> L1 == L2;
+        [{vector, L1, _M1}, {vector, L2, _M2}] -> L1 == L2;
+        [{list, L1, _M1}, {vector, L2, _M2}] -> L1 == L2;
+        [{vector, L1, _M1}, {list, L2, _M2}] -> L1 == L2;
+        [{map, M1, _M1}, {map, M2, _M2}] -> M1 == M2;
         [_A, _B] -> false;
         _ -> {error, "equal? expects two arguments"}
     end.
@@ -160,11 +160,12 @@ println(Args) ->
 
 read_string([{string, Input}]) ->
     case reader:read_str(Input) of
+        {ok, none} -> nil;
         {ok, AST} -> AST;
         {error, Reason} -> {error, Reason}
     end;
 read_string(_) ->
-    {error, "read-string requires a single string argument"}.
+    {error, "read-string expects a single string argument"}.
 
 slurp([{string, Filepath}]) ->
     case file:read_file(Filepath) of
@@ -174,23 +175,33 @@ slurp([{string, Filepath}]) ->
 slurp(_) ->
     {error, "slurp called with non-string"}.
 
-cons([Elem, {Type, List}]) when Type == list orelse Type == vector ->
-    {list, [Elem|List]};
+cons([Elem, {Type, List, _Meta}]) when Type == list orelse Type == vector ->
+    {list, [Elem|List], nil};
 cons([_,_]) ->
     {error, "second argument to cons must be a sequence"};
 cons(_) ->
     {error, "cons expects two arguments"}.
 
+conj([{Type, _List, _Meta}]) when Type == list orelse Type == vector ->
+    {error, "conj expects additional arguments"};
+conj([{list, List, _Meta}|Args]) ->
+    {list, lists:foldl(fun(Elem, AccIn) -> [Elem|AccIn] end, List, Args), nil};
+conj([{vector, List, _Meta}|Args]) ->
+    % why is vector backward from list?
+    {vector, List ++ Args, nil};
+conj(_) ->
+    {error, "conj expects a list and one or more arguments"}.
+
 concat(Args) ->
     PushAll = fun(Elem, AccIn) ->
         case Elem of
-            {Type, List} when Type == list orelse Type == vector ->
+            {Type, List, _Meta} when Type == list orelse Type == vector ->
                 AccIn ++ List;
             _ -> error("concat called with non-sequence")
         end
     end,
     try lists:foldl(PushAll, [], Args) of
-        Result -> {list, Result}
+        Result -> {list, Result, nil}
     catch
         error:Reason -> {error, Reason}
     end.
@@ -200,37 +211,53 @@ mal_throw([Reason]) ->
 mal_throw(_) ->
     {error, "throw expects a list with one argument"}.
 
-map_f([{closure, Eval, Binds, Body, CE}, {Type, Args}]) when Type == list orelse Type == vector ->
+map_f([{closure, Eval, Binds, Body, CE, _M1}, {Type, Args, _M2}]) when Type == list orelse Type == vector ->
     Apply = fun(Arg) ->
         NewEnv = env:new(CE),
         env:bind(NewEnv, Binds, [Arg]),
         Eval(Body, NewEnv)
     end,
-    {list, lists:map(Apply, Args)};
-map_f([{function, F}, {Type, Args}]) when Type == list orelse Type == vector ->
-    {list, [erlang:apply(F, [[Arg]]) || Arg <- Args]};
+    {list, lists:map(Apply, Args), nil};
+map_f([{function, F, _M}, {Type, Args, _Meta}]) when Type == list orelse Type == vector ->
+    {list, [erlang:apply(F, [[Arg]]) || Arg <- Args], nil};
 map_f(_) ->
     {error, "map expects a function and list argument"}.
 
-process_args(Args) ->
+flatten_args(Args) ->
     % Convert the apply arguments into a flat list, such that no element
     % consists of {list,...} or {vector,...} (i.e. just [A, B, C, ...]).
     Delist = fun(Elem) ->
         case Elem of
-            {T, L} when T == list orelse T == vector -> L;
+            {T, L, _M} when T == list orelse T == vector -> L;
             _ -> Elem
         end
     end,
     lists:flatten(lists:map(Delist, lists:flatten(Args))).
 
-apply_f([{closure, Eval, Binds, Body, CE}|Args]) ->
+apply_f([{closure, Eval, Binds, Body, CE, _M1}|Args]) ->
     NewEnv = env:new(CE),
-    env:bind(NewEnv, Binds, process_args(Args)),
+    env:bind(NewEnv, Binds, flatten_args(Args)),
     Eval(Body, NewEnv);
-apply_f([{function, F}|Args]) ->
-    erlang:apply(F, [process_args(Args)]);
+apply_f([{function, F, _M}|Args]) ->
+    erlang:apply(F, [flatten_args(Args)]);
 apply_f(_) ->
     {error, "apply expects a function followed by arguments"}.
+
+readline([{string, Prompt}]) ->
+    case io:get_line(standard_io, Prompt) of
+        % When user presses Ctrl-d it seems like io:get_line/2 cannot be
+        % called again, and we seem unable to signal to MAL to terminate,
+        % so just error out.
+        eof -> exit(goodbye);
+        {error, Reason} -> {error, Reason};
+        Line -> {string, string:strip(Line, both, $\n)}
+    end;
+readline(_) ->
+    {error, "readline expects a string argument"}.
+
+time_ms(_) ->
+    {Mega, Sec, _Micro} = os:timestamp(),
+    {integer, Mega * 1000000 + Sec}.
 
 ns() ->
     Builtins = #{
@@ -245,10 +272,14 @@ ns() ->
         ">=" => fun bool_gte/1,
         "apply" => fun apply_f/1,
         "assoc" => fun types:assoc/1,
+        "atom" => fun types:atom/1,
+        "atom?" => fun types:atom_p/1,
         "concat" => fun concat/1,
+        "conj" => fun conj/1,
         "cons" => fun cons/1,
         "contains?" => fun types:contains_p/1,
         "count" => fun count/1,
+        "deref" => fun types:deref/1,
         "dissoc" => fun types:dissoc/1,
         "empty?" => fun empty_q/1,
         "false?" => fun false_p/1,
@@ -262,23 +293,29 @@ ns() ->
         "list?" => fun types:list_p/1,
         "map" => fun map_f/1,
         "map?" => fun types:map_p/1,
+        "meta" => fun types:meta/1,
         "nil?" => fun nil_p/1,
         "nth" => fun nth/1,
         "pr-str" => fun pr_str/1,
         "println" => fun println/1,
         "prn" => fun prn/1,
         "read-string" => fun read_string/1,
+        "readline" => fun readline/1,
+        "reset!" => fun types:reset/1,
         "rest" => fun rest/1,
         "sequential?" => fun types:sequential_p/1,
         "slurp" => fun slurp/1,
         "str" => fun str/1,
+        "swap!" => fun types:swap/1,
         "symbol" => fun types:symbol/1,
         "symbol?" => fun types:symbol_p/1,
         "throw" => fun mal_throw/1,
+        "time-ms" => fun time_ms/1,
         "true?" => fun true_p/1,
         "vals" => fun types:map_values/1,
         "vector" => fun types:vector/1,
-        "vector?" => fun types:vector_p/1
+        "vector?" => fun types:vector_p/1,
+        "with-meta" => fun types:with_meta/1
     },
     Env = env:new(undefined),
     SetEnv = fun(K, V) ->
