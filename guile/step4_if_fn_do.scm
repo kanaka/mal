@@ -80,7 +80,7 @@
       (else (if (null? els) nil (EVAL (car els) env)))))
     (('fn* params body ...) ; function definition
      (lambda args
-       (eval_seq body (make-Env #:outer env #:binds params #:exprs args))))
+       (eval_seq body (make-Env #:outer env #:binds (->list params) #:exprs args))))
     ((? list?) (eval_func ast env)) ; function calling
     (else (eval_ast ast env))))
 

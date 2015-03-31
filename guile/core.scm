@@ -25,16 +25,34 @@
 
 (define (_empty? obj) (zero? (_count obj)))
 
+;; Well, strange spec...
+(define (_equal? o1 o2)
+  (define (-> o) (if (vector? o) (vector->list o) o))
+  (equal? (-> o1) (-> o2)))
+
 (define (pr-str . args)
   (define (pr x) (pr_str x #t))
   (string-join (map pr args) " "))
+
+(define (str . args)
+  (define (pr x) (pr_str x #f))
+  (string-join (map pr args) ""))
+
+(define (prn . args)
+  (format #t "~a~%" (apply pr-str args))
+  nil)  
+
+(define (println . args)
+  (define (pr x) (pr_str x #f))
+  (format #t "~{~a~^ ~}~%" (map pr args) " ")
+  nil)
 
 (define *primitives*
   `((list    ,list)
     (list?   ,list?)
     (empty?  ,_empty?)
     (count   ,_count)
-    (=       ,equal?)
+    (=       ,_equal?)
     (<       ,<)
     (<=      ,<=)
     (>       ,>)
@@ -45,6 +63,9 @@
     (/       ,/)
     (not     ,not)
     (pr-str  ,pr-str)
+    (str     ,str)
+    (prn     ,prn)
+    (println ,println)
 
 ))
 
