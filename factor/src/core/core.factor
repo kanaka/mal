@@ -1,7 +1,8 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: kernel math sequences arrays lists printer locals io strings malenv reader io.files io.encodings.utf8
-       fry types combinators.short-circuit vectors hashtables assocs hash-sets sets grouping namespaces accessors ;
+       fry types combinators.short-circuit vectors hashtables assocs hash-sets sets grouping namespaces accessors
+       combinators readline ;
 
 IN: core
 
@@ -30,8 +31,8 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "<=" [ first2 <= ] }
                 { "pr-str" [ t " " pr-str-stack ] }
                 { "str" [ f "" pr-str-stack ] }
-                { "prn" [ t " " pr-str-stack print nil ] }
-                { "println" [ f " " pr-str-stack print nil ] }
+                { "prn" [ t " " pr-str-stack print flush nil ] }
+                { "println" [ f " " pr-str-stack print flush nil ] }
                 { "read-string" [ first read-str ] }
                 { "slurp" [ first utf8 file-contents ] }
                 { "cons" [ first2 swap prefix to-array ] }
@@ -60,4 +61,15 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "keys" [ first keys ] }
                 { "vals" [ first values ] }
                 { "sequential?" [ first { [ vector? ] [ array? ] } 1|| ] }
+
+                { "readline" [ first readline ] }
+                { "meta" [ first dup fn? [ meta>> ] [ drop f ] if [ nil ] unless* ] }
+                { "with-meta" [ first2 over fn? [ [ clone ] dip >>meta ] when ] }
+                { "atom" [ first <malatom> ] }
+                { "atom?" [ first malatom? ] }
+                { "deref" [ first val>> ] }
+                { "reset!" [ first2 >>val val>> ] }
+                { "swap!" [ { [ first ] [ second ] [ 2 tail ] [ first val>> ] } cleave
+                            prefix swap mal-apply get call( args fn -- maltype ) >>val val>> ] }
+                { "conj" [ unclip swap over array? [ reverse prepend ] [ append ] if ] }
              }

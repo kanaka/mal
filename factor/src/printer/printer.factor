@@ -27,6 +27,7 @@ IN: printer
         { [ dup t = ]        [ drop "true" ] }
         { [ dup f = ]        [ drop "false" ] }
         { [ dup nil = ]      [ drop "nil" ] }
+        { [ dup malatom? ]   [ val>> readably? (pr-str) "(atom " ")" surround ] }
         [ summary ]
     } cond ;
 
