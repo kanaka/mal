@@ -29,8 +29,7 @@
     ((? _nil? obj) obj)
     ((? symbol? sym)
      (or ((env 'get) sym)
-         ;; delay eval is good design here
-         (lambda _ (throw 'mal-error (format #f "procedure '~a' not found" sym)))))
+         (throw 'mal-error (format #f "'~a' not found" sym))))
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
@@ -61,15 +60,21 @@
        ((null? next) (values (reverse k) (reverse v)))
        ((null? (cdr next)) (throw 'mal-error "let*: Invalid binding form" kvs)) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
-  (define (_quasiquote obj e)
+  ;; (define (_quasiquote ast)
+  ;;   (define (non-pair? x) (not (pair? x)))
+  ;;   (match ast
+  ;;     ((? non-pair?) `(quote ,ast))
+  ;;     (('unquote unq) unq)
+  ;;     (((? pair? p) ('splice-unquote unqsp) rest ...)
+  ;;      `(concat ,p ,unqsp ,(_quasiquote rest)))
+  ;;     (else `(cons ,(_quasiquote (car ast)) ,(_quasiquote (cdr ast))))))
+  (define (_quasiquote obj)
     (match obj
-      (((? pair? p) ('unquote unq) rest ...) `(,@p ,(EVAL unq e) ,@rest))
-      ((x ('unquote unq) rest ...) `(,x ,(EVAL unq e) ,@rest))
-      (('unquote unq) (EVAL unq e))
-      (((? pair? p) ('splice-unquote unqsp) rest ...) `(,@p ,@(EVAL unqsp e) ,@rest))
-      ((x ('splice-unquote unqsp) rest ...) `(,x ,@(EVAL unqsp e) ,@rest))
-      (('splice-unquote unqsp) (EVAL unqsp e))
-      (else obj)))
+      ((('unquote unq) rest ...) `(cons ,unq ,(_quasiquote rest)))
+      (('unquote unq) unq)
+      ((('splice-unquote unqsp) rest ...) `(concat ,unqsp ,(_quasiquote rest)))
+      ((head rest ...) (list 'cons (list 'quote head) (_quasiquote rest)))
+      (else `(quote ,obj))))
   ;; NOTE: I wish I can use (while #t ...) for that, but this is not Lispy, which means
   ;;       it'll bring some trouble in control flow. We have to use continuations to return
   ;;       and use non-standard `break' feature. In a word, not elegant at all.
@@ -80,7 +85,7 @@
   (let tco-loop((ast ast) (env env))
     (match ast
       (('quote obj) obj)
-      (('quasiquote obj) (_quasiquote (->list obj) env))
+      (('quasiquote obj) (EVAL (_quasiquote (->list obj)) env))
       (('def! k v) ((env 'set) k (EVAL v env)))
       (('let* kvs body)
        (let* ((new-env (make-Env #:outer env))
