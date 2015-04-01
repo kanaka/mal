@@ -17,23 +17,23 @@ function eval_ast(ast, env)
         get(env,ast)
     elseif isa(ast, Array) || isa(ast, Tuple)
         map((x) -> EVAL(x,env), ast)
+    elseif isa(ast, Dict)
+        [EVAL(x[1],env) => EVAL(x[2], env) for x=ast]
     else
         ast
     end
 end
 
 function EVAL(ast, env)
-    if !isa(ast, Array)
-        return eval_ast(ast, env)
-    end
+    if !isa(ast, Array) return eval_ast(ast, env) end
 
     # apply
     if     :def! == ast[1]
         set(env, ast[2], EVAL(ast[3], env))
     elseif symbol("let*") == ast[1]
-        let_env = Env(env) 
+        let_env = Env(env)
         for i = 1:2:length(ast[2])
-            set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))    
+            set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
         end
         EVAL(ast[3], let_env)
     elseif :do == ast[1]

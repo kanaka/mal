@@ -50,6 +50,8 @@ function eval_ast(ast, env)
         get(env,ast)
     elseif isa(ast, Array) || isa(ast, Tuple)
         map((x) -> EVAL(x,env), ast)
+    elseif isa(ast, Dict)
+        [EVAL(x[1],env) => EVAL(x[2], env) for x=ast]
     else
         ast
     end

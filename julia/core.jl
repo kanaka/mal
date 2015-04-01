@@ -82,13 +82,13 @@ ns = {
 
     :conj => nothing,
 
-    :meta => (a) -> a.meta,
+    :meta => (a) -> isa(a,types.MalFunc) ? a.meta : nothing,
     symbol("with-meta") => with_meta,
     :atom => (a) -> types.Atom(a),
     symbol("atom?") => (a) -> isa(a,types.Atom),
     :deref => (a) -> a.val,
     :reset! => (a,b) -> a.val = b,
-    :swap! => (a,b,c...) -> a.val = do_apply(b, a.val, c...),
+    :swap! => (a,b,c...) -> a.val = do_apply(b, a.val, c),
     }
 
 end

@@ -30,6 +30,8 @@ function pr_str(obj, print_readably=true)
         "(fn* $(pr_str(obj.params,true)) $(pr_str(obj.ast,true)))"
     elseif typeof(obj) == types.Atom
         "(atom $(pr_str(obj.val,true)))"
+    elseif typeof(obj) == Function
+        "#<native function: $(string(obj))>"
     else
         string(obj)
     end
