@@ -27,9 +27,7 @@
   (define (_eval x) (EVAL x env))
   (match ast
     ((? _nil? obj) obj)
-    ((? symbol? sym)
-     (or (env-has sym env)
-         (throw 'mal-error (format #f "'~a' not found" sym))))
+    ((? symbol? sym) (env-has sym env))
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)

@@ -19,7 +19,9 @@
 
 (define (env-has sym env)
   (let ((v ((env 'get) sym)))
-    (if (equal? v '*mal-null*) #f v)))
+    (if (equal? v '*mal-null*)
+        (throw 'mal-error (format #f "'~a' not found" sym))
+        v)))
 
 (define* (make-Env #:key (outer nil) (binds '()) (exprs '()))
   (define _env (make-hash-table))
