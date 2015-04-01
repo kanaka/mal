@@ -128,6 +128,13 @@ ENV SBT_OPTS -Duser.home=/mal
 # VB.Net
 RUN apt-get -y install mono-vbnc
 
+# TODO: move this up
+# Julia
+RUN apt-add-repository -y ppa:staticfloat/juliareleases
+RUN apt-get -y update
+RUN apt-get -y install julia
+
+
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
 # Swift is XCode/OS X only
 ENV SKIP_IMPLS matlab swift
