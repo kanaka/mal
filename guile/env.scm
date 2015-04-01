@@ -14,15 +14,25 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (library (env)
-  (export make-Env)
+  (export make-Env env-has)
   (import (guile) (types)))
+
+(define (env-has sym env)
+  (let ((v ((env 'get) sym)))
+    (if (equal? v '*mal-null*) #f v)))
 
 (define* (make-Env #:key (outer nil) (binds '()) (exprs '()))
   (define _env (make-hash-table))
   (define (_set k v) (hash-set! _env k v))
   (define (_get k)
-    (or (hash-ref _env k) (and (not (_nil? outer)) ((outer 'find) k))))
+    (let ((v (hash-ref _env k '*mal-null*)))
+      (if (equal? v '*mal-null*)
+          (and (not (_nil? outer)) ((outer 'get) k))
+          v)))
   (define (_find k) (_get k))
+  (define (_show)
+    (hash-for-each (lambda (k v) (format #t "~a : ~a~%" k v)) _env)
+    (and (not (_nil? outer)) ((outer 'show))))
   (let lp((b binds) (e exprs))
     (cond
      ((null? b) #t)
@@ -37,4 +47,5 @@
       ((set) _set)
       ((find) _find)
       ((get) _get)
+      ((show) _show)
       (else (throw 'mal-error "BUG: Invalid cmd" cmd)))))

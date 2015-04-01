@@ -18,7 +18,7 @@
 
 (define *toplevel*
   (receive (b e) (unzip2 core.ns)
-    (make-Env #:binds b #:exprs e)))
+    (make-Env #:binds b #:exprs (map (lambda (x) (make-callable #f x)) e))))
 
 (define (READ)
   (read_str (readline "user> ")))
@@ -28,7 +28,7 @@
   (match ast
     ((? _nil? obj) obj)
     ((? symbol? sym)
-     (or ((env 'get) sym)
+     (or (env-has sym env)
          (throw 'mal-error (format #f "'~a' not found" sym))))
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
@@ -38,11 +38,13 @@
     (else ast)))
 
 (define (eval_func ast env)
-  (define expr (eval_ast ast env))
-  (match expr
-    (((? procedure? proc) args ...)
-     (apply proc args))
-    (else 'mal-error (format #f "'~a' is not a valid form to apply!" expr))))
+  (define (_eval o) (EVAL o env))
+  (define (func? x) (and=> ((env 'get) x) is-func?))
+  (cond
+   ((func? (car ast))
+    => (lambda (f)
+         (apply (callable-closure f) (map _eval (cdr ast)))))
+   (else 'mal-error (format #f "'~a' is not a valid form to apply!" ast))))
 
 (define (eval_seq ast env)
   (cond
