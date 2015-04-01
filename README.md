@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 29 different languages:
+Mal is implemented in 30 different languages:
 
 * Bash shell
 * C
@@ -16,7 +16,8 @@ Mal is implemented in 29 different languages:
 * Go
 * Haskell
 * Java
-* Javascript ([Online Demo](http://kanaka.github.io/mal))
+* JavaScript ([Online Demo](http://kanaka.github.io/mal))
+* Julia
 * Lua
 * GNU Make
 * mal itself
@@ -181,12 +182,21 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 ```
 
-### Javascript/Node
+### JavaScript/Node
 
 ```
 cd js
 npm update
 node stepX_YYY.js
+```
+
+### Julia
+
+The Julia implementation of mal has been tested with Julia 0.3.7.
+
+```
+cd julia
+julia stepX_YYY.jl
 ```
 
 ### Lua
