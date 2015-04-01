@@ -85,6 +85,24 @@ function EVAL(ast, env)
         return set(env, ast[2], func)
     elseif :macroexpand == ast[1]
         return macroexpand(ast[2], env)
+    elseif symbol("try*") == ast[1]
+        try
+            return EVAL(ast[2], env)
+        catch exc
+            e = string(exc)
+            if isa(exc, MalException)
+                e = exc.malval
+            elseif isa(exc, ErrorException)
+                e = exc.msg
+            else
+                e = string(e)
+            end
+            if length(ast) > 2 && ast[3][1] == symbol("catch*")
+                return EVAL(ast[3][3], Env(env, {ast[3][2]}, {e}))
+            else
+                rethrow(exc)
+            end
+        end
     elseif :do == ast[1]
         eval_ast(ast[2:end-1], env)
         ast = ast[end]
@@ -137,6 +155,7 @@ set(repl_env, :eval, (ast) -> EVAL(ast, repl_env))
 set(repl_env, symbol("*ARGV*"), ARGS[2:end])
 
 # core.mal: defined using the language itself
+REP("(def! *host-language* \"julia\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -148,6 +167,7 @@ if length(ARGS) > 0
     exit(0)
 end
 
+REP("(println (str \"Mal [\" *host-language* \"]\"))")
 while true
     line = readline_mod.do_readline("user> ")
     if line === nothing break end

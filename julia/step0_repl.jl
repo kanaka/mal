@@ -1,5 +1,7 @@
 #!/usr/bin/env julia
 
+import readline_mod
+
 # READ
 function READ(str)
     str
@@ -21,12 +23,7 @@ function REP(str)
 end
 
 while true
-    print("user> ")
-    flush(STDOUT)
-    line = readline(STDIN)
-    if line == ""
-        break
-    end
-    line = chomp(line)
+    line = readline_mod.do_readline("user> ")
+    if line === nothing break end
     println(REP(line))
 end

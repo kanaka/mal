@@ -3,9 +3,9 @@ module core
 import types
 import reader
 using printer
+import readline_mod
 
 export ns
-
 
 function concat(args...)
     res = {}
@@ -19,6 +19,12 @@ function do_apply(f, all_args...)
     fn = isa(f,types.MalFunc) ? f.fn : f
     args = concat(all_args[1:end-1], all_args[end])
     fn(args...)
+end
+
+function with_meta(obj, meta)
+    new_obj = types.copy(obj)
+    new_obj.meta = meta
+    new_obj
 end
 
 ns = {
@@ -38,6 +44,7 @@ ns = {
     :prn => (a...) -> println(join(map((e)->pr_str(e, true),a)," ")),
     :println => (a...) -> println(join(map((e)->pr_str(e, false),a)," ")),
     symbol("read-string") => (a) -> reader.read_str(a),
+    :readline => readline_mod.do_readline,
     :slurp => (a) -> readall(open(a)),
 
     :< => <,
@@ -72,6 +79,16 @@ ns = {
     :count => (a) -> a == nothing ? 0 : length(a),
     :apply => do_apply,
     :map => (a,b) -> isa(a,types.MalFunc) ? {map(a.fn,b)...} : {map(a,b)...},
+
+    :conj => nothing,
+
+    :meta => (a) -> a.meta,
+    symbol("with-meta") => with_meta,
+    :atom => (a) -> types.Atom(a),
+    symbol("atom?") => (a) -> isa(a,types.Atom),
+    :deref => (a) -> a.val,
+    :reset! => (a,b) -> a.val = b,
+    :swap! => (a,b,c...) -> a.val = do_apply(b, a.val, c...),
     }
 
 end

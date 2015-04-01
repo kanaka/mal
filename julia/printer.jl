@@ -28,6 +28,8 @@ function pr_str(obj, print_readably=true)
         "nil"
     elseif typeof(obj) == types.MalFunc
         "(fn* $(pr_str(obj.params,true)) $(pr_str(obj.ast,true)))"
+    elseif typeof(obj) == types.Atom
+        "(atom $(pr_str(obj.val,true)))"
     else
         string(obj)
     end

@@ -28,7 +28,7 @@ end
 function tokenize(str)
     re = r"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"|;.*|[^\s\[\]{}('\"`,;)]*)"
     tokens = map((m) -> m.captures[1], eachmatch(re, str))
-    filter((t) -> t != "", tokens)
+    filter((t) -> t != "" && t[1] != ';', tokens)
 end
 
 function read_atom(rdr)
@@ -95,6 +95,13 @@ function read_form(rdr)
     elseif token == "~@"
         next(rdr)
         [[symbol("splice-unquote")], Any[read_form(rdr)]]
+    elseif token == "^"
+        next(rdr)
+        meta = read_form(rdr)
+        [[symbol("with-meta")], Any[read_form(rdr)], Any[meta]]
+    elseif token == "@"
+        next(rdr)
+        [[symbol("deref")], Any[read_form(rdr)]]
 
     elseif token == ")"
         error("unexpected ')'")

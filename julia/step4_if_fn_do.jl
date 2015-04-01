@@ -1,5 +1,6 @@
 #!/usr/bin/env julia
 
+import readline_mod
 import reader
 import printer
 using env
@@ -75,13 +76,8 @@ repl_env = Env(nothing, core.ns)
 REP("(def! not (fn* (a) (if a false true)))")
 
 while true
-    print("user> ")
-    flush(STDOUT)
-    line = readline(STDIN)
-    if line == ""
-        break
-    end
-    line = chomp(line)
+    line = readline_mod.do_readline("user> ")
+    if line === nothing break end
     try
         println(REP(line))
     catch e

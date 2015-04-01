@@ -1,6 +1,8 @@
 module types
 
-export MalException, MalFunc, sequential_Q, equal_Q, hash_map
+export MalException, MalFunc, sequential_Q, equal_Q, hash_map, Atom
+
+import Base.copy
 
 type MalException <: Exception
     malval
@@ -12,11 +14,16 @@ type MalFunc
     env
     params
     ismacro
+    meta
 end
 
 # ismacro default to false
 function MalFunc(fn, ast, env, params)
-    MalFunc(fn, ast, env, params, false)
+    MalFunc(fn, ast, env, params, false, nothing)
+end
+
+function copy(f::MalFunc)
+    MalFunc(f.fn, f.ast, f.env, f.params, f.ismacro, f.meta)
 end
 
 function sequential_Q(obj)
@@ -45,6 +52,10 @@ function hash_map(lst...)
         hm[lst[i]] = lst[i+1]
     end
     hm
+end
+
+type Atom
+    val
 end
 
 end
