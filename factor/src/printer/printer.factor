@@ -21,7 +21,7 @@ IN: printer
         { [ dup array? ]     [ [ readably? (pr-str) ] map " " join "(" ")" surround ] }
         { [ dup vector? ]    [ [ readably? (pr-str) ] map " " join "[" "]" surround ] }
         { [ dup hashtable? ] [ unzip
-                               [ [ readably? (pr-str) ] bi@ " " glue ] [ " " glue ] 2map-reduce
+                               [ [ readably? (pr-str) ] bi@ " " glue ] 2map " " join
                                "{" "}" surround ] }
         { [ dup fn? ]        [ drop "#<fn>" ] }
         { [ dup t = ]        [ drop "true" ] }

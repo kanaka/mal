@@ -39,4 +39,4 @@ M: malenv clear-assoc ( assoc -- )
     data>> clear-assoc ;
 
 : get-or-throw ( key assoc -- value )
-    ?at [ dup name>> "no variable " prepend throw ] unless ;
+    ?at [ dup name>> "'" dup surround " not found" append throw ] unless ;

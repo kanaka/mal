@@ -1,8 +1,11 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: kernel math sequences arrays lists printer locals io strings malenv reader io.files io.encodings.utf8 ;
+USING: kernel math sequences arrays lists printer locals io strings malenv reader io.files io.encodings.utf8
+       fry types combinators.short-circuit vectors hashtables assocs hash-sets sets grouping namespaces accessors ;
 
 IN: core
+
+SYMBOL: mal-apply
 
 :: pr-str-stack ( exprs readably? glue -- str )
     exprs [ readably? (pr-str) ] map glue join ;
@@ -36,4 +39,25 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "nth" [ first2 swap nth ] }
                 { "first" [ first dup empty? [ drop nil ] [ first ] if ] }
                 { "rest" [ first dup empty? [ drop { } ] [ rest to-array ] if ] }
+                { "throw" [ first throw ] }
+                { "apply" [ unclip [ unclip-last append ] dip mal-apply get call( args fn -- maltype ) ] }
+                { "map" [ first2 swap '[ 1array _ mal-apply get call( args fn -- maltype ) ] map to-array ] }
+                { "nil?" [ first nil? ] }
+                { "true?" [ first t = ] }
+                { "false?" [ first f = ] }
+                { "symbol" [ first <malsymbol> ] }
+                { "symbol?" [ first malsymbol? ] }
+                { "keyword" [ first dup 1 head "\u00029e" = [ "\u00029e" prepend ] unless ] }
+                { "keyword?" [ first { [ string? ] [ 1 head "\u00029e" = ] } 1&& ] }
+                { "vector" [ >vector ] }
+                { "vector?" [ first vector? ] }
+                { "hash-map" [ 2 group parse-hashtable ] }
+                { "map?" [ first hashtable? ] }
+                { "assoc" [ unclip swap 2 group parse-hashtable assoc-union ] }
+                { "dissoc" [ unclip swap >hash-set '[ drop _ in? not ] assoc-filter ] }
+                { "get" [ first2 swap dup nil? [ nip ] [ ?at [ drop nil ] unless ] if ] }
+                { "contains?" [ first2 swap dup nil? [ nip ] [ ?at nip ] if ] }
+                { "keys" [ first keys ] }
+                { "vals" [ first values ] }
+                { "sequential?" [ first { [ vector? ] [ array? ] } 1|| ] }
              }
