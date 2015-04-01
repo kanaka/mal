@@ -15,8 +15,23 @@ function concat(args...)
     res
 end
 
+function do_apply(f, all_args...)
+    fn = isa(f,types.MalFunc) ? f.fn : f
+    args = concat(all_args[1:end-1], all_args[end])
+    fn(args...)
+end
+
 ns = {
     symbol("=") => (a,b) -> types.equal_Q(a, b),
+    :throw => (a) -> throw(types.MalException(a)),
+
+    symbol("nil?") => (a) -> a === nothing,
+    symbol("true?") => (a) -> a === true,
+    symbol("false?") => (a) -> a === false,
+    symbol("symbol") => (a) -> symbol(a),
+    symbol("symbol?") => (a) -> typeof(a) === Symbol,
+    symbol("keyword") => (a) -> a[1] == '\u029e' ? a : "\u029e$(a)",
+    symbol("keyword?") => (a) -> isa(a,String) && a[1] == '\u029e',
 
     symbol("pr-str") => (a...) -> join(map((e)->pr_str(e, true),a)," "),
     :str => (a...) -> join(map((e)->pr_str(e, false),a),""),
@@ -36,7 +51,18 @@ ns = {
 
     :list => (a...) -> Any[a...],
     symbol("list?") => (a) -> isa(a, Array),
+    :vector => (a...) -> tuple(a...),
+    symbol("vector?") => (a) -> isa(a, Tuple),
+    symbol("hash-map") => types.hash_map,
+    symbol("map?") => (a) -> isa(a, Dict),
+    :assoc => (a, b...) -> merge(a, types.hash_map(b...)),
+    :dissoc => (a, b...) -> foldl((x,y) -> delete!(x,y),copy(a), b),
+    :get => (a,b) -> a === nothing ? nothing : get(a,b,nothing),
+    symbol("contains?") => haskey,
+    :keys => (a) -> {keys(a)...},
+    :vals => (a) -> {values(a)...},
 
+    symbol("sequential?") => types.sequential_Q,
     :cons => (a,b) -> [Any[a], Any[b...]],
     :concat => concat,
     :nth => (a,b) -> b+1 > length(a) ? error("nth: index out of range") : a[b+1],
@@ -44,6 +70,8 @@ ns = {
     :rest => (a) -> Any[a[2:end]...],
     symbol("empty?") => isempty,
     :count => (a) -> a == nothing ? 0 : length(a),
+    :apply => do_apply,
+    :map => (a,b) -> isa(a,types.MalFunc) ? {map(a.fn,b)...} : {map(a,b)...},
     }
 
 end

@@ -2,6 +2,8 @@ module reader
 
 export read_str
 
+import types
+
 type Reader
     tokens
     position::Int64
@@ -40,6 +42,8 @@ function read_atom(rdr)
             replace(token[2:end-1],
                     "\\\"", "\""),
             "\\n", "\n")
+    elseif token[1] == ':'
+        "\u029e$(token[2:end])"
     elseif token == "nil"
         nothing
     elseif token == "true"
@@ -74,7 +78,7 @@ end
 
 function read_hash_map(rdr)
     lst = read_list(rdr, "{", "}")
-    [x[1] => x[2] for x=reshape(lst, (2, div(length(lst), 2)))]
+    types.hash_map(lst...)
 end
 
 function read_form(rdr)

@@ -14,15 +14,15 @@ function eval_ast(ast, env)
         env[ast]
     elseif isa(ast, Array) || isa(ast, Tuple)
         map((x) -> EVAL(x,env), ast)
+    elseif isa(ast, Dict)
+        [EVAL(x[1],env) => EVAL(x[2], env) for x=ast]
     else
         ast
     end
 end
 
 function EVAL(ast, env)
-    if !isa(ast, Array)
-        return eval_ast(ast, env)
-    end
+    if !isa(ast, Array) return eval_ast(ast, env) end
 
     # apply
     el = eval_ast(ast, env)

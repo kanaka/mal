@@ -1,6 +1,10 @@
 module types
 
-export MalFunc
+export MalException, MalFunc, sequential_Q, equal_Q, hash_map
+
+type MalException <: Exception
+    malval
+end
 
 type MalFunc
     fn::Function
@@ -28,9 +32,19 @@ function equal_Q(a, b)
 
     if sequential_Q(a)
         tuple(a...) == tuple(b...)
+    elseif isa(a,String)
+        a == b
     else
         a === b
     end
+end
+
+function hash_map(lst...)
+    hm = Dict()
+    for i = 1:2:length(lst)
+        hm[lst[i]] = lst[i+1]
+    end
+    hm
 end
 
 end
