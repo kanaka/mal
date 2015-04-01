@@ -28,9 +28,8 @@
   (match ast
     ((? _nil? obj) obj)
     ((? symbol? sym)
-     (or ((env 'get) sym)
-         ;; delay eval is good design here
-         (lambda _ (throw 'mal-error (format #f "'~a' not found" sym)))))
+     (or (env-has sym env)
+         (throw 'mal-error (format #f "'~a' not found" sym))))
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
