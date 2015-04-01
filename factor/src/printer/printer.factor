@@ -1,7 +1,7 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: types vectors math math.parser kernel accessors sequences combinators strings arrays lists
-       hashtables assocs combinators.short-circuit regexp quotations locals ;
+       hashtables assocs combinators.short-circuit regexp quotations locals summary ;
 IN: printer
 
 :: pr-str-str ( str readably?  -- str )
@@ -27,6 +27,7 @@ IN: printer
         { [ dup t = ]        [ drop "true" ] }
         { [ dup f = ]        [ drop "false" ] }
         { [ dup nil = ]      [ drop "nil" ] }
+        [ summary ]
     } cond ;
 
 : pr-str ( maltype -- str )

@@ -7,6 +7,9 @@ IN: core
 :: pr-str-stack ( exprs readably? glue -- str )
     exprs [ readably? (pr-str) ] map glue join ;
 
+: to-array ( seq -- array )
+    dup array? [ >array ] unless ;
+
 CONSTANT: empty-env T{ malenv f H{ } }
 
 CONSTANT: ns H{ { "+" [ first2 + ] }
@@ -28,6 +31,9 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "println" [ f " " pr-str-stack print nil ] }
                 { "read-string" [ first read-str ] }
                 { "slurp" [ first utf8 file-contents ] }
-                { "cons" [ first2 swap prefix dup array? [ >array ] unless ] }
-                { "concat" [ concat dup array? [ >array ] unless ] }
+                { "cons" [ first2 swap prefix to-array ] }
+                { "concat" [ concat to-array ] }
+                { "nth" [ first2 swap nth ] }
+                { "first" [ first dup empty? [ drop nil ] [ first ] if ] }
+                { "rest" [ first dup empty? [ drop { } ] [ rest to-array ] if ] }
              }

@@ -11,6 +11,10 @@ C: <malsymbol> malsymbol
 
 TUPLE: fn { env malenv read-only }
           { binds sequence read-only }
-          { exprs read-only } ;
+          { exprs read-only }
+          { is-macro boolean } ;
 
-C: <fn> fn
+C: (<fn>) fn
+
+: <fn> ( env binds exprs -- fn )
+    f (<fn>) ;
