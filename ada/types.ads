@@ -30,7 +30,7 @@ package Types is
    subtype Smart_Pointer is Smart_Pointers.Smart_Pointer;
 
    type Sym_Types is (Int, Floating, List, Sym, Str, Atom,
-                      Unitary, Node, Error);
+                      Unitary, Node, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
 
@@ -61,6 +61,10 @@ package Types is
 
    function Get_Int_Val (T : Int_Mal_Type) return Mal_Integer;
 
+   type Int_Ptr is access all Int_Mal_Type;
+
+   function Deref_Int (SP : Smart_Pointer) return Int_Ptr;
+
 
    type Float_Mal_Type is new Mal_Type with private;
 
@@ -70,6 +74,10 @@ package Types is
 
    function Get_Float_Val (T : Float_Mal_Type) return Mal_Float;
 
+   type Float_Ptr is access all Float_Mal_Type;
+
+   function Deref_Float (SP : Smart_Pointer) return Float_Ptr;
+
 
    type Sym_Mal_Type is new Mal_Type with private;
 
@@ -78,6 +86,10 @@ package Types is
    overriding function Sym_Type (T : Sym_Mal_Type) return Sym_Types;
 
    function Symbol (T : Sym_Mal_Type) return Character;
+
+   type Sym_Ptr is access all Sym_Mal_Type;
+
+   function Deref_Sym (S : Smart_Pointer) return Sym_Ptr;
 
 
    type String_Mal_Type is new Mal_Type with private;
@@ -128,16 +140,66 @@ package Types is
 
    type List_Mal_Type is new Mal_Type with private;
 
-   function New_List_Mal_Type (List_Type : List_Types)
+   function New_List_Mal_Type
+     (List_Type : List_Types;
+      The_First_Node : Smart_Pointer := Smart_Pointers.Null_Smart_Pointer)
    return Smart_Pointer;
 
    overriding function Sym_Type (T : List_Mal_Type) return Sym_Types;
 
+   function Get_List_Type (L : List_Mal_Type) return List_Types;
+
    procedure Append (To_List : in out List_Mal_Type; Op : Smart_Pointer);
+
+   -- Get the first item in the list:
+   function Car (L : List_Mal_Type) return Smart_Pointer;
+
+   -- Get the rest of the list (second item onwards)
+   function Cdr (L : List_Mal_Type) return List_Mal_Type;
+
+   type Func_Access is access
+     function (Elem : Types.Smart_Pointer)
+     return Smart_Pointer;
+
+   function Map
+     (Func_Ptr : Func_Access;
+      L : List_Mal_Type)
+   return Types.Smart_Pointer;
+
+   type Binary_Func_Access is access
+     function (A, B : Types.Smart_Pointer)
+     return Smart_Pointer;
+
+   function Reduce
+     (Func_Ptr : Binary_Func_Access;
+      L : List_Mal_Type)
+   return Types.Smart_Pointer;
+
+   function Null_List (L : List_Types) return List_Mal_Type;
 
    type List_Ptr is access all List_Mal_Type;
 
    function Deref_List (SP : Smart_Pointer) return List_Ptr;
+
+
+   type Lambda_Mal_Type is new Mal_Type with private;
+
+   type Func_Type is (Prim_Binary, Mal_Func);
+   function New_Lambda_Mal_Type
+--     (Body : Smart_Pointer := Smart_Pointers.Null_Smart_pointer)
+       (Bin : Binary_Func_Access;
+        Rep : Mal_String)
+   return Smart_Pointer;
+
+   overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types;
+
+   -- primitive functions on Smart_Pointer,
+--   function "+" (A, B : Smart_Pointer) return Smart_Pointer;
+
+   generic
+      with function Int_Op (A, B : Types.Mal_Integer) return Types.Mal_Integer;
+      with function Float_Op (A, B : Types.Mal_Float) return Types.Mal_Float;
+   function Op (A, B : Types.Smart_Pointer) return Types.Smart_Pointer;
 
 private
 
@@ -207,6 +269,11 @@ private
 
    procedure Append (To_List : in out Node_Mal_Type; Op : Smart_Pointer);
 
+   function Map_Nodes
+    (Func_Ptr : Func_Access;
+     L : Node_Mal_Type)
+   return Types.Smart_Pointer;
+
    overriding function To_Str (T : Node_Mal_Type) return Mal_String;
 
    type Node_Ptr is access all Node_Mal_Type;
@@ -220,5 +287,14 @@ private
    end record;
 
    overriding function To_Str (T : List_Mal_Type) return Mal_String;
+
+
+   type Lambda_Mal_Type is new Mal_Type with record
+       Bin : Binary_Func_Access;
+       Rep : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   overriding function To_Str (T : Lambda_Mal_Type) return Mal_String;
+
 
 end Types;
