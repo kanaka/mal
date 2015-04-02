@@ -31,6 +31,7 @@ package body Evaluation is
                   when others => null;
                end case;
            end;
+         when Error => return Func;
          when others => null;
       end case;
       return Smart_Pointers.Null_Smart_Pointer;
@@ -44,7 +45,23 @@ package body Evaluation is
    begin
       case Deref (Ast).Sym_Type is
          when Sym =>
-            return Envs.Get ("" & Deref_Sym (Ast).Symbol);
+            declare
+              Sym : Mal_String (1..1) := Deref_Sym (Ast).Symbol & "";
+            begin
+               return Envs.Get (Sym);
+            exception
+               when Envs.Not_Found =>
+                  return New_Error_Mal_Type ("'" &  Sym & "' not found");
+            end;
+         when Atom =>
+            declare
+              Sym : Mal_String := Deref_Atom (Ast).Get_Atom;
+            begin
+               return Envs.Get (Sym);
+            exception
+               when Envs.Not_Found =>
+                  return New_Error_Mal_Type ("'" &  Sym & "' not found");
+            end;
          when List =>
             return Map (Eval'Access, Deref_List (Ast).all);
          when others =>

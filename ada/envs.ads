@@ -4,9 +4,14 @@ with Smart_Pointers;
 
 package Envs is
 
+   -- Set adds an element to the current environment
    procedure Set (Key : String; SP : Smart_Pointers.Smart_Pointer);
 
+   -- Get finds a key in the current env.  If it can't be found it looks
+   -- in a previous env.  If it runs out of envs, Not Found is raised.
    function Get (Key : String) return Smart_Pointers.Smart_Pointer;
+
+   Not_Found : exception;
 
    -- Create a New_Env. THe previous one is pushed to the stack and the
    -- new one becomes the current one.

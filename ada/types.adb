@@ -176,6 +176,11 @@ package body Types is
       return Ada.Strings.Unbounded.To_String (T.The_Atom);
    end Get_Atom;
 
+   function Deref_Atom (S : Smart_Pointer) return Atom_Ptr is
+   begin
+      return Atom_Ptr (Smart_Pointers.Deref (S));
+   end Deref_Atom;
+
    overriding function To_Str (T : Atom_Mal_Type) return Mal_String is
    begin
       return Ada.Strings.Unbounded.To_String (T.The_Atom);

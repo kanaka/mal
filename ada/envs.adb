@@ -18,7 +18,11 @@ package body Envs is
    begin
       C := Find (Current.The_Map,
                  Ada.Strings.Unbounded.To_Unbounded_String (Key));
-      return Element (C);
+      if C = No_Element then
+         raise Not_Found;
+      else
+         return Element (C);
+      end if;
    end Get;
 
 

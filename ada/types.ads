@@ -109,6 +109,11 @@ package Types is
 
    function Get_Atom (T : Atom_Mal_Type) return Mal_String;
 
+   type Atom_Ptr is access all Atom_Mal_Type;
+
+   function Deref_Atom (S : Smart_Pointer) return Atom_Ptr;
+
+
 
    type Error_Mal_Type is new Mal_Type with private;
 
