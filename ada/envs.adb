@@ -3,23 +3,23 @@ with Unchecked_Deallocation;
 package body Envs is
 
 
-   procedure Add (Key : String; SP : Smart_Pointers.Smart_Pointer) is
+   procedure Set (Key : String; SP : Smart_Pointers.Smart_Pointer) is
    begin
       String_Mal_Hash.Include
         (Container => Current.The_Map,
          Key       => Ada.Strings.Unbounded.To_Unbounded_String (Key),
          New_Item  => SP);
-   end Add;
+   end Set;
 
 
-   function Lookup (Key : String) return Smart_Pointers.Smart_Pointer is
+   function Get (Key : String) return Smart_Pointers.Smart_Pointer is
       use String_Mal_Hash;
       C : Cursor;
    begin
       C := Find (Current.The_Map,
                  Ada.Strings.Unbounded.To_Unbounded_String (Key));
       return Element (C);
-   end Lookup;
+   end Get;
 
 
    function String_Hash (Key : Ada.Strings.Unbounded.Unbounded_String)

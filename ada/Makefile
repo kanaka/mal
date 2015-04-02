@@ -10,8 +10,8 @@ step1_read_print:	step1_read_print.adb types.ad[bs] reader.ad[bs] \
 			printer.ad[bs] smart_pointers.ad[bs]
 	gnatmake -g -P$@
 
-step2_eval:	step2_eval.adb types.ad[bs] reader.ad[bs] \
-		printer.ad[bs] smart_pointers.ad[bs] evaluation.ad[bs]
+step2_eval:	step2_eval.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
+		smart_pointers.ad[bs] envs.ad[bs] evaluation.ad[bs]
 	gnatmake -g -P$@
 
 clean:

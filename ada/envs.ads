@@ -4,9 +4,9 @@ with Smart_Pointers;
 
 package Envs is
 
-   procedure Add (Key : String; SP : Smart_Pointers.Smart_Pointer);
+   procedure Set (Key : String; SP : Smart_Pointers.Smart_Pointer);
 
-   function Lookup (Key : String) return Smart_Pointers.Smart_Pointer;
+   function Get (Key : String) return Smart_Pointers.Smart_Pointer;
 
    -- Create a New_Env. THe previous one is pushed to the stack and the
    -- new one becomes the current one.

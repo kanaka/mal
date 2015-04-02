@@ -44,7 +44,7 @@ package body Evaluation is
    begin
       case Deref (Ast).Sym_Type is
          when Sym =>
-            return Envs.Lookup ("" & Deref_Sym (Ast).Symbol);
+            return Envs.Get ("" & Deref_Sym (Ast).Symbol);
          when List =>
             return Map (Eval'Access, Deref_List (Ast).all);
          when others =>
