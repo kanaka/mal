@@ -135,6 +135,15 @@ cd coffee
 coffee ./stepX_YYY
 ```
 
+### Factor
+
+*The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
+
+```
+cd factor
+FACTOR_ROOTS=src factor -run=stepX_YYY
+```
+
 ### Forth
 
 *The Forth implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
