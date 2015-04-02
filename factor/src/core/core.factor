@@ -2,7 +2,7 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: kernel math sequences arrays lists printer locals io strings malenv reader io.files io.encodings.utf8
        fry types combinators.short-circuit vectors hashtables assocs hash-sets sets grouping namespaces accessors
-       combinators readline ;
+       combinators readline system ;
 
 IN: core
 
@@ -72,4 +72,5 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "swap!" [ { [ first ] [ second ] [ 2 tail ] [ first val>> ] } cleave
                             prefix swap mal-apply get call( args fn -- maltype ) >>val val>> ] }
                 { "conj" [ unclip swap over array? [ reverse prepend ] [ append ] if ] }
+                { "time-ms" [ drop nano-count 1000000 / >integer ] }
              }

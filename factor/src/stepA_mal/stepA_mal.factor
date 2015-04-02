@@ -2,7 +2,7 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: io readline kernel system reader printer continuations arrays locals assocs sequences
        combinators accessors fry quotations math malenv namespaces grouping hashtables lists
-       types core command-line combinators.short-circuit splitting prettyprint ;
+       types core command-line combinators.short-circuit splitting strings prettyprint ;
 
 IN: stepA_mal
 
@@ -69,11 +69,11 @@ DEFER: EVAL
         { [ dup fn? ]
           [ [ exprs>> nip ] [ env>> nip ] [ binds>> args-split make-bindings ] 2tri <malenv> ] }
         { [ dup callable? ] [ call( x -- y ) f ] }
-        [ drop "not a fn" throw ]
+        [ . . "not a fn" throw ]
     } cond ;
 
 : is-pair? ( maltype -- bool )
-    { [ sequence? ] [ empty? not ] } 1&& ;
+    { [ sequence? ] [ string? not ] [ empty? not ] } 1&& ;
 
 : quasiquote ( maltype -- maltype )
     {

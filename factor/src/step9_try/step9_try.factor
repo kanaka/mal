@@ -93,7 +93,7 @@ DEFER: EVAL
 : macro-expand ( maltype env -- maltype )
     [ 2dup is-macro-call ]
     [ [ unclip ] dip get-or-throw apply [ EVAL ] keep ]
-    while dop ;
+    while drop ;
 
 : READ ( str -- maltype ) read-str ;
 : EVAL ( maltype env -- maltype )
