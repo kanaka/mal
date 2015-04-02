@@ -38,8 +38,8 @@ module Core
         | _ -> FALSE
 
     let count = function
-        | [List(a)] -> a |> List.fold (fun cnt _ -> cnt + 1L) 0L |> Number
-        | [Vector(v)] -> v.Length |> int64 |> Number
+        | [List(lst)] -> lst |> List.length |> int64 |> Number
+        | [Vector(vec)] -> vec |> Array.length |> int64 |> Number
         | [Nil] -> ZERO
         | [_] -> raise <| errArgMismatch ()
         | _ -> raise <| errArity ()
