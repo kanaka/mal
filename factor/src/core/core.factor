@@ -24,7 +24,7 @@ CONSTANT: ns H{ { "+" [ first2 + ] }
                 { "list?" [ first array? ] }
                 { "empty?" [ first empty? ] }
                 { "count" [ first dup nil? [ drop 0 ] [ length ] if ] }
-                { "=" [ first2 2dup [ [ sequence? ] [ string? not ] bi and ] bi@ and [ sequence= ] [ = ] if ] }
+                { "=" [ first2 2dup [ { [ ] [ sequence? ] [ string? not ] } 1&& ] bi@ and [ sequence= ] [ = ] if ] }
                 { "<" [ first2 < ] }
                 { ">" [ first2 > ] }
                 { ">=" [ first2 >= ] }

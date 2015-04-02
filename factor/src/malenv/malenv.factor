@@ -12,7 +12,7 @@ TUPLE: malenv
 INSTANCE: malenv assoc
 
 C: <malenv> malenv
-: new-env ( outer -- malenv ) H{ } malenv boa ;
+: new-env ( outer -- malenv ) H{ } clone malenv boa ;
 
 M:: malenv at* ( key assoc -- value/f ? )
     key name>> assoc data>> at*
