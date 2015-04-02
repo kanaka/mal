@@ -62,6 +62,8 @@
    (catch 'mal-error
           (lambda () (PRINT (EVAL (READ) *toplevel*)))
           (lambda (k . e)
-            (format #t "Error: ~a~%" (car e))))))
+            (if (string=? (car e) "blank line")
+                (display "")
+                (format #t "Error: ~a~%" (car e)))))))
 
 (REPL)

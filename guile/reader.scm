@@ -100,7 +100,7 @@
   (define (next) (reader 'next))
   (define (more) (read_form reader))
   (match (reader 'peek)
-    (() *eof*) ; FIXME: what should be returned?
+    (() (throw 'mal-error "blank line")) ; FIXME: what should be returned?
     ("'" (next) (list 'quote (more)))
     ("`" (next) (list 'quasiquote (more)))
     ("~" (next) (list 'unquote (more)))
@@ -113,6 +113,7 @@
     ("[" (next) (read_vector reader))
     ("}" (throw 'mal-error "unexpected '}'"))
     ("{" (next) (read_hashmap reader))
+    ("" (next) (read_form reader))
     (else (read_atom reader))))
 
 (define (read_str str)
