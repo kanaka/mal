@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 30 different languages:
+Mal is implemented in 31 different languages:
 
 * Bash shell
 * C
@@ -12,6 +12,7 @@ Mal is implemented in 30 different languages:
 * C#
 * Clojure
 * CoffeeScript
+* Factor
 * Forth
 * Go
 * Haskell
@@ -139,6 +140,9 @@ coffee ./stepX_YYY
 
 *The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
 
+The Factor implementation of mal has been tested with Factor 0.97
+([factorcode.org](factorcode.org)).
+
 ```
 cd factor
 FACTOR_ROOTS=src factor -run=stepX_YYY
@@ -155,7 +159,7 @@ gforth stepX_YYY.fs
 
 ### Go
 
-You Go implementation of mal requires that go is installed on on the
+The Go implementation of mal requires that go is installed on on the
 path. The implementation has been tested with Go 1.3.1.
 
 ```
