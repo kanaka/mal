@@ -14,12 +14,17 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (library (types)
-  (export string-sub *eof*
+  (export string-sub *eof* non-list?
           _keyword _keyword?
           nil _nil?
           cond-true?
-          atom atom? atom-val atom-val-set!)
-  (import (guile) (rnrs) (ice-9 regex)))
+          atom atom? atom-val atom-val-set!
+          make-callable callable? callable-is_macro
+          callable-is_macro-set! callable-closure
+          is-func? is-macro? make-func callable-apply)
+  (import (guile) (rnrs) (ice-9 regex) (ice-9 session)))
+
+(define (non-list? x) (not (list? x)))
 
 (define (string-sub str p1 p2)
   (regexp-substitute/global #f p1 str 'pre p2 'post))
@@ -27,7 +32,7 @@
 (define *eof* (call-with-input-string "" read))
 
 (define (_keyword? k)
-  (and (string? k) (string-match "^\u029e")))
+  (and (string? k) (string-match "^\u029e" k)))
 
 (define (_keyword str)
   (string-append "\u029e" str))
@@ -40,3 +45,22 @@
   (and (not (_nil? obj)) obj))
 
 (define-record-type atom (fields (mutable val)))
+
+(define-record-type callable
+  (fields
+   (mutable is_macro)
+   closure))
+
+(define (make-func closure) (make-callable #f closure))
+
+(define (callable-apply c arglst)
+  (define closure (callable-closure c))
+  (apply closure arglst))
+
+(define (callable-check c b)
+  (and (callable? c)
+       (eq? (callable-is_macro c) b)
+       c))
+
+(define (is-func? sym) (callable-check sym #f))
+(define (is-macro? sym) (callable-check sym #t))

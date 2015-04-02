@@ -59,6 +59,24 @@
 (define (concat . args)
   (apply append (map ->list args)))
 
+(define (_nth lst n)
+  (define ll (->list lst))
+  (when (>= n (length ll))
+    (throw 'mal-error "nth: index out of range"))
+  (list-ref ll n))
+
+(define (_first lst)
+  (define ll (->list lst))
+  (if (null? ll)
+      nil
+      (car ll)))
+
+(define (_rest lst)
+  (define ll (->list lst))
+  (if (null? ll)
+      '()
+      (cdr ll)))
+
 (define *primitives*
   `((list        ,list)
     (list?       ,list?)
@@ -82,6 +100,9 @@
     (slurp       ,slurp)
     (cons        ,_cons)
     (concat      ,concat)
+    (nth         ,_nth)
+    (first       ,_first)
+    (rest        ,_rest)
 
 ))
 

@@ -39,7 +39,8 @@
      "\n" "\\\n"))
   (define (%pr_str o) (pr_str o readable?))
   (match obj
-    ((? procedure?) "#<function>")
+    ((? is-func?) "#<function>")
+    ((? is-macro?) "#<macro>")
     ((? list?) (format #f "(~{~a~^ ~})" (map %pr_str obj)))
     ((? vector?) (format #f "[~{~a~^ ~}]" (map %pr_str (vector->list obj))))
     ((? hash-table?) (print-hashmap obj %pr_str))
