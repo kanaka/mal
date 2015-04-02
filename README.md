@@ -137,7 +137,7 @@ coffee ./stepX_YYY
 
 ### Factor
 
-*The Nim implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
+*The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
 
 ```
 cd factor
