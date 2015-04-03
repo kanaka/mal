@@ -18,7 +18,7 @@
 
 (define *toplevel*
   (receive (b e) (unzip2 core.ns)
-    (make-Env #:binds b #:exprs (map (lambda (x) (make-callable #f x)) e))))
+    (make-Env #:binds b #:exprs (map (lambda (x) (make-func x)) e))))
 
 (define (READ)
   (read_str (readline "user> ")))

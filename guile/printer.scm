@@ -25,7 +25,7 @@
       (string-join
        (hash-map->list
         (lambda (k v)
-          (format #f "~a ~a" (pr_str k #t) v))
+          (format #f "~a ~a" (pr_str k #t) (pr_str v #t)))
         hm)
        " ")
       port)
