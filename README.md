@@ -158,6 +158,14 @@ cd forth
 gforth stepX_YYY.fs
 ```
 
+### GNU Guile 2.1+
+Guile implementation was created by @NalaGinrut.
+
+```
+cd guile
+guile -L ./ stepX_YYY.scm
+```
+
 ### Go
 
 The Go implementation of mal requires that go is installed on on the
