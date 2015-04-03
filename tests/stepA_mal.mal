@@ -10,6 +10,13 @@
 "hello"
 ;=>"\"hello\""
 
+;;
+;; Testing *host-language*
+;;; each impl is different, but this should return false
+;;; rather than throwing an exception
+(= "something bogus" *host-language*)
+;=>false
+
 
 ;;
 ;; ------- Optional Functionality ----------
