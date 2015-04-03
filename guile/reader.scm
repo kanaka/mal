@@ -65,15 +65,17 @@
   (cond
    ((null? lst) ht)
    (else
-    (let lp((k (car lst)))
+    (let lp((next lst))
       (cond
-       ((null? k) ht)
+       ((null? next) ht)
        (else
-        (when (null? (cdr lst))
-              (throw 'mal-error "read_hashmap: lack of value" k))
-        (let ((v (cadr lst)))
+        (when (null? (cdr next))
+          (throw 'mal-error
+                 (format #f "read_hashmap: '~a' lack of value" (car next))))
+        (let ((k (car next))
+              (v (cadr next)))
           (hash-set! ht k v)
-          (lp (cddr lst)))))))))
+          (lp (cddr next)))))))))
 
 (define (read_atom reader)
   (define (->str s)
@@ -90,7 +92,7 @@
                (->str (match:substring m 1))
                (throw 'mal-error "expected '\"'"))))
      ((string-match "^:(.*)" token)
-      => (lambda (m) (_keyword (match:substring m 1))))
+      => (lambda (m) (string->keyword (match:substring m 1))))
      ((string=? "nil" token) nil)
      ((string=? "true" token) #t)
      ((string=? "false" token) #f)

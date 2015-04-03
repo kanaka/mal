@@ -42,7 +42,7 @@
   (match expr
     (((? procedure? proc) args ...)
      (apply proc args))
-    (else 'mal-error (format #f "'~a' is not a valid form to apply!" expr))))
+    (else (throw 'mal-error (format #f "'~a' not found" (car expr))))))
 
 (define (EVAL ast env)
   (match ast

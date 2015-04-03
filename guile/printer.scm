@@ -21,13 +21,14 @@
   (call-with-output-string
    (lambda (port)
      (display "{" port)
-     (for-each
-      (lambda (h)
-        (format port "~a ~a" (car h) (cdr h)))
-      (hash-map->list
-       (lambda (k v)
-         (cons (p k) (p v)))
-       hm))
+     (display
+      (string-join
+       (hash-map->list
+        (lambda (k v)
+          (format #f "~a ~a" (pr_str k #t) v))
+        hm)
+       " ")
+      port)
      (display "}" port))))
 
 (define (pr_str obj readable?)

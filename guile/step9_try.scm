@@ -37,7 +37,8 @@
 
 (define (eval_func ast env)
   (define (_eval o) (EVAL o env))
-  (define (func? x) (and=> ((env 'get) x) is-func?))
+  (define (func? x) (and=> (env-check x env) is-func?))
+  ;;(format #t "AAA: ~a~%" (func? (car ast)))
   (cond
    ((func? (car ast))
     => (lambda (c)
@@ -60,6 +61,8 @@
   (cond
    ((is_macro_call ast env)
     => (lambda (c)
+         ;;(format #t "AAA: ~a, ~a~%" ast (_macroexpand (callable-apply c (cdr ast)) env))
+         ;;(format #t "BBB: ~a~%" (_macroexpand (callable-apply c (cdr ast)) env))
          ;; NOTE: Macros are normal-order, so we shouldn't eval args here.
          ;;       Or it's applicable-order.
          (_macroexpand (callable-apply c (cdr ast)) env)))
@@ -88,6 +91,7 @@
   ;;       TCO in Scheme to implement TCO, but it's the same principle with normal loop.
   ;;       If you're Lispy enough, there's no recursive at all while you saw named let loop.
   (let tco-loop((ast ast) (env env)) ; expand as possible
+    ;;(format #t "CCC: ~a === ~a~%" ast (_macroexpand ast env))
     (let ((ast (_macroexpand ast env)))
       (match ast
         ((? non-list?) (eval_ast ast env))
@@ -133,6 +137,13 @@
                       (tail-call (car (take-right body 1))))
                   (eval_seq mexpr nenv)
                   (tco-loop tail-call nenv))))))))
+        (('try* A ('catch* B C))
+         (catch
+          #t
+          (lambda () (EVAL A env))
+          (lambda e
+            (let ((nenv (make-Env #:outer env #:binds (list B) #:exprs (cdr e))))
+              (EVAL C nenv)))))
         (else (eval_func ast env))))))
 
 (define (EVAL-string str)
@@ -157,6 +168,7 @@
 
 ;; initialization
 ((*toplevel* 'set) 'eval (make-func (lambda (ast) (EVAL ast *toplevel*))))
+((*toplevel* 'set) 'throw (make-func (lambda (val) (throw 'mal-error val))))
 ((*toplevel* 'set) '*ARGV* '())
 (EVAL-string "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (EVAL-string "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")

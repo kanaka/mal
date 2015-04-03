@@ -41,11 +41,11 @@
 
 (define (prn . args)
   (format #t "~a~%" (apply pr-str args))
-  nil)  
+  nil)
 
 (define (println . args)
   (define (pr x) (pr_str x #f))
-  (format #t "~{~a~^ ~}~%" (map pr args) " ")
+  (format #t "~{~a~^ ~}~%" (map pr args))
   nil)
 
 (define (slurp filename)
@@ -77,6 +77,64 @@
       '()
       (cdr ll)))
 
+(define (_map f lst) (map (callable-closure f) (->list lst)))
+
+(define (_apply f . args)
+  (define ll
+    (let lp((next (->list args)) (ret '()))
+      (cond
+       ((null? next) (reverse ret))
+       (else
+        (let ((n (->list (car next))))
+          (lp (cdr next) (if (list? n)
+                             (append (reverse n) ret)
+                             (cons n ret))))))))
+    (apply (callable-closure f) ll))
+
+(define (->symbol x)
+  ((if (symbol? x) identity string->symbol) x))
+
+(define (->keyword x)
+  ((if (_keyword? x) identity string->keyword) x))
+
+(define* (list->hash-map lst #:optional (ht (make-hash-table)))
+  (cond
+   ((null? lst) ht)
+   (else
+    (let lp((next lst))
+      (cond
+       ((null? next) ht)
+       (else
+        (when (null? (cdr next))
+          (throw 'mal-error
+                 (format #f "hash-map: '~a' lack of value" (car next))))
+        (let ((k (car next))
+              (v (cadr next)))
+          (hash-set! ht k v)
+          (lp (cddr next)))))))))
+
+(define (_hash-map . lst) (list->hash-map lst))
+
+(define (_assoc ht . lst) (list->hash-map lst (hash-table-clone ht)))
+
+(define (_get ht k)
+  (if (_nil? ht)
+      nil
+      (hash-ref ht k nil)))
+
+(define (_dissoc ht . lst)
+  (define ht2 (hash-table-clone ht))
+  (for-each (lambda (k) (hash-remove! ht2 k)) lst)
+  ht2)
+
+(define (_keys ht) (hash-map->list (lambda (k v) k) ht))
+
+(define (_vals ht) (hash-map->list (lambda (k v) v) ht))
+
+(define (_contains? ht k) (if (hash-ref ht k) #t #f))
+
+(define (_sequential? o) (or (list? o) (vector? o)))
+
 (define *primitives*
   `((list        ,list)
     (list?       ,list?)
@@ -103,7 +161,26 @@
     (nth         ,_nth)
     (first       ,_first)
     (rest        ,_rest)
-
+    (map         ,_map)
+    (apply       ,_apply)
+    (nil?        ,_nil?)
+    (true?       ,(lambda (x) (eq? x #t)))
+    (false?      ,(lambda (x) (eq? x #f)))
+    (symbol?     ,symbol?)
+    (symbol      ,->symbol)
+    (keyword     ,->keyword)
+    (keyword?    ,_keyword?)
+    (vector?     ,vector?)
+    (vector      ,vector)
+    (hash-map    ,_hash-map)
+    (map?        ,hash-table?)
+    (assoc       ,_assoc)
+    (get         ,_get)
+    (dissoc      ,_dissoc)
+    (keys        ,_keys)
+    (vals        ,_vals)
+    (contains?   ,_contains?)
+    (sequential? ,_sequential?)
 ))
 
 ;; Well, we have to rename it to this strange name...

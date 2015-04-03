@@ -15,27 +15,31 @@
 
 (library (types)
   (export string-sub *eof* non-list?
-          _keyword _keyword?
+          string->keyword _keyword?
           nil _nil?
           cond-true?
           atom atom? atom-val atom-val-set!
           make-callable callable? callable-is_macro
           callable-is_macro-set! callable-closure
-          is-func? is-macro? make-func callable-apply)
+          is-func? is-macro? make-func callable-apply
+          hash-table-clone)
   (import (guile) (rnrs) (ice-9 regex) (ice-9 session)))
 
 (define (non-list? x) (not (list? x)))
+
 
 (define (string-sub str p1 p2)
   (regexp-substitute/global #f p1 str 'pre p2 'post))
 
 (define *eof* (call-with-input-string "" read))
 
-(define (_keyword? k)
-  (and (string? k) (string-match "^\u029e" k)))
-
-(define (_keyword str)
+(define (string->keyword str)
+  (when (not (string? str))
+    (throw 'mal-error (format #f "string->keyword: '~a' is not a string" str)))
   (string-append "\u029e" str))
+
+(define (_keyword? k)
+  (and (string? k) (if (string-match "^\u029e" k) #t #f)))
 
 (define nil 'nil)
 
@@ -55,6 +59,7 @@
 
 (define (callable-apply c arglst)
   (define closure (callable-closure c))
+  ;;(format #t "ZZZ: ~a~%" `(apply ,closure ,arglst))
   (apply closure arglst))
 
 (define (callable-check c b)
@@ -62,5 +67,10 @@
        (eq? (callable-is_macro c) b)
        c))
 
-(define (is-func? sym) (callable-check sym #f))
-(define (is-macro? sym) (callable-check sym #t))
+(define (is-func? c) (callable-check c #f))
+(define (is-macro? c) (callable-check c #t))
+
+(define (hash-table-clone ht)
+  (define cht (make-hash-table))
+  (hash-for-each (lambda (k v) (hash-set! cht k v)) ht)
+  cht)

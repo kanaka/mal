@@ -42,7 +42,7 @@
    ((func? (car ast))
     => (lambda (f)
          (apply (callable-closure f) (map _eval (cdr ast)))))
-   (else 'mal-error (format #f "'~a' is not a valid form to apply!" ast))))
+   (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
 (define (eval_seq ast env)
   (cond
