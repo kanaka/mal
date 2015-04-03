@@ -99,9 +99,15 @@
      (else (string->symbol token)))))
 
 (define (read_form reader)
+  (define (clean x)
+    (if (string? x)
+        (string-trim-both
+         x
+         (lambda (c) (char-set-contains? char-set:whitespace c)))
+        x)) 
   (define (next) (reader 'next))
   (define (more) (read_form reader))
-  (match (reader 'peek)
+  (match (clean (reader 'peek)) 
     (() (throw 'mal-error "blank line")) ; FIXME: what should be returned?
     ("'" (next) (list 'quote (more)))
     ("`" (next) (list 'quasiquote (more)))
@@ -121,5 +127,10 @@
 (define (read_str str)
   (if (eof-object? str)
       str
-      (let ((tokens (tokenizer str)))
-        (read_form (make-Reader (if (null? tokens) (list str) tokens))))))
+      (let* ((tokens (tokenizer str))
+             (t (if (null? tokens)
+                    (if (char=? (string-ref str 0) #\;)
+                        '()
+                        (list str))
+                    tokens)))
+        (read_form (make-Reader t)))))
