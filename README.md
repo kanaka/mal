@@ -21,6 +21,7 @@ Mal is implemented in 31 different languages:
 * Julia
 * Lua
 * GNU Make
+* GNU Guile
 * mal itself
 * MATLAB
 * [miniMAL](https://github.com/kanaka/miniMAL)
