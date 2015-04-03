@@ -15,7 +15,7 @@
 
 (library (core)
   (export core.ns ->list)
-  (import (guile) (rnrs) (types) (reader) (printer) (ice-9 match)))
+  (import (guile) (rnrs) (types) (reader) (printer) (ice-9 match) (readline)))
 
 (define (->list o) ((if (vector? o) vector->list identity) o))
 
@@ -135,6 +135,40 @@
 
 (define (_sequential? o) (or (list? o) (vector? o)))
 
+(define (_meta c)
+  (if (callable? c)
+      (callable-meta-info c)
+      (or (object-property c 'meta) nil)))
+
+(define (_with-meta c ht)
+  (cond
+   ((callable? c)
+    (let ((cc (make-callable ht
+                             (callable-unbox c)
+                             (callable-is_macro c)
+                             (callable-closure c))))
+      cc))
+   (else
+    (let ((cc (box c)))
+      (set-object-property! cc 'meta ht)
+      cc))))
+
+;; Apply closure 'c' with atom-val as one of arguments, then
+;; set the result as the new val of atom. 
+(define (_swap! atom c . rest)
+  (let* ((args (cons (atom-val atom) rest))
+         (val (callable-apply c args)))
+    (atom-val-set! atom val)
+    val))
+
+(define (_conj lst . args)
+  (cond
+   ((vector? lst)
+    (list->vector (append (->list lst) args)))
+   ((list? lst)
+    (append (reverse args) (->list lst)))
+   (else (throw 'mal-error (format #f "conj: '~a' is not list/vector" lst)))))
+
 (define *primitives*
   `((list        ,list)
     (list?       ,list?)
@@ -181,7 +215,14 @@
     (vals        ,_vals)
     (contains?   ,_contains?)
     (sequential? ,_sequential?)
-))
+    (readline    ,readline)
+    (meta        ,_meta)
+    (with-meta   ,_with-meta)
+    (atom        ,make-atom)
+    (deref       ,atom-val)
+    (reset!      ,atom-val-set!)
+    (swap!       ,_swap!)
+    (conj        ,_conj)))
 
 ;; Well, we have to rename it to this strange name...
 (define core.ns *primitives*)

@@ -18,11 +18,13 @@
           string->keyword _keyword?
           nil _nil?
           cond-true?
-          atom atom? atom-val atom-val-set!
+          make-atom atom? atom-val atom-val-set!
           make-callable callable? callable-is_macro
           callable-is_macro-set! callable-closure
           is-func? is-macro? make-func callable-apply
-          hash-table-clone)
+          callable-unbox-set! callable-unbox
+          callable-meta-info hash-table-clone
+          box? box unbox)
   (import (guile) (rnrs) (ice-9 regex) (ice-9 session)))
 
 (define (non-list? x) (not (list? x)))
@@ -52,15 +54,17 @@
 
 (define-record-type callable
   (fields
+   meta-info
+   (mutable unbox)
    (mutable is_macro)
    closure))
 
-(define (make-func closure) (make-callable #f closure))
+(define (make-func closure) (make-callable nil #t #f closure))
 
 (define (callable-apply c arglst)
   (define closure (callable-closure c))
   ;;(format #t "ZZZ: ~a~%" `(apply ,closure ,arglst))
-  (apply closure arglst))
+  (apply closure (if (callable-unbox c) (map unbox arglst) arglst)))
 
 (define (callable-check c b)
   (and (callable? c)
@@ -74,3 +78,9 @@
   (define cht (make-hash-table))
   (hash-for-each (lambda (k v) (hash-set! cht k v)) ht)
   cht)
+
+(define-record-type box (fields val))
+
+(define (box o) (make-box o))
+(define (unbox o)
+  (if (box? o) (box-val o) o))

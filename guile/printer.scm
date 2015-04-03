@@ -14,8 +14,8 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (library (printer)
-  (export pr_str)
-  (import (guile) (types) (ice-9 match) (ice-9 regex)))
+         (export pr_str)
+         (import (guile) (types) (ice-9 match) (ice-9 regex)))
 
 (define (print-hashmap hm p)
   (call-with-output-string
@@ -40,6 +40,7 @@
      "\n" "\\\n"))
   (define (%pr_str o) (pr_str o readable?))
   (match obj
+    ((? box?) (pr_str (unbox obj) readable?))
     ((? is-func?) "#<function>")
     ((? is-macro?) "#<macro>")
     ((? list?) (format #f "(~{~a~^ ~})" (map %pr_str obj)))
