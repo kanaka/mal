@@ -160,7 +160,7 @@
 
 (define (PRINT exp)
   (and (not (eof-object? exp))
-       ;;(add-history str)
+       (add-history (object->string exp))
        (format #t "~a~%" (pr_str exp #t))))
 
 (define (LOOP continue?)
