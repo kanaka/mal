@@ -10,9 +10,9 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cs forth go haskell java js lua make mal \
-	ocaml matlab miniMAL nim perl php ps python r racket ruby rust \
-	scala swift vb guile
+IMPLS = bash c clojure coffee cpp cs factor forth go haskell java \
+	julia js lua make mal ocaml matlab miniMAL nim perl php ps \
+	python r racket ruby rust scala swift vb guile
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -28,6 +28,7 @@ stepA = stepA_mal
 
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault
+EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
 EXCLUDE_TESTS += test^haskell^step5 # test completes
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
@@ -41,7 +42,6 @@ EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
 EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
 EXCLUDE_TESTS += test^vb^step5   # completes at 10,000
-#EXCLUDE_TESTS += test^guile^step5 # completes on 2.1+, even at 1,000,000
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
@@ -55,11 +55,14 @@ bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
+cpp_STEP_TO_PROG =     cpp/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 go_STEP_TO_PROG =      go/$($(1))
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 haskell_STEP_TO_PROG = haskell/$($(1))
+julia_STEP_TO_PROG =   julia/$($(1)).jl
 js_STEP_TO_PROG =      js/$($(1)).js
 lua_STEP_TO_PROG =     lua/$($(1)).lua
 make_STEP_TO_PROG =    make/$($(1)).mk
@@ -85,16 +88,20 @@ guile_STEP_TO_PROG =   guile/$($(1)).scm
 COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
+export FACTOR_ROOTS := src
 
 bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
 clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
 coffee_RUNSTEP =  coffee ../$(2) $(3)
+cpp_RUNSTEP =     ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
+factor_RUNSTEP =  factor ../$(2) $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
 go_RUNSTEP =      ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
+julia_RUNSTEP =   ../$(2) $(3)
 js_RUNSTEP =      node ../$(2) $(3)
 lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
@@ -143,6 +150,10 @@ IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl
 
 # Build a program in 'c' directory
 c/%:
+	$(MAKE) -C $(dir $(@)) $(notdir $(@))
+
+# Build a program in 'cpp' directory
+cpp/%:
 	$(MAKE) -C $(dir $(@)) $(notdir $(@))
 
 # Allow test, test^STEP, test^IMPL, and test^IMPL^STEP

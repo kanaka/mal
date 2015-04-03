@@ -153,17 +153,18 @@ into the main repository:
   improve it first.
    
 * If you are creating a new implementation for an existing
-  implementation, then it is less likely that I will replace the
-  existing implementation with your new one. If you can make
-  a compelling argument that your implementation is more idiomatic or
-  significantly better than the existing implementation then I may
-  replace it. However, a better option would be to work with the me
-  and the original author (if it was not me) to improve the existing
-  implementation. This also implies that if somebody submits a high
-  quality implementation to me before you, your implementation may not
-  get merged. However, if you have alternate implementation and it
-  follows the rest of the guidelines, I am definitely willing to link
-  to it in the list of implementations.
+  implementation (or somebody beats you to the punch while you are
+  working on it), there is still a chance I will merge your
+  implementation. If you can make a compelling argument that your
+  implementation is more idiomatic or significantly better than the
+  existing implementation then I may replace the existing one.
+  However, if your approach is different or unique from the existing
+  implementation, there is still a good chance I will merge your
+  implementation side-by-side with the existing one. In that case
+  I will add your github username as a suffix to the language
+  implementation directory. At the very least, even if I decide not to
+  merge your implementation, I am certainly willing to link to you
+  implementation once it is completed.
 
 * You do not need to implement line editing (i.e. readline)
   functionality for your implementation, however, it is a nice

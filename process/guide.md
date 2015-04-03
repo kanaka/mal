@@ -188,7 +188,7 @@ Congratulations! You have just completed the first step of the
 make-a-lisp process.
 
 
-#### Deferrable:
+#### Optional:
 
 * Add full line editing and command history support to your
   interpreter REPL. Many languages have a library/module that provide
@@ -1271,15 +1271,40 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 * Add the `apply` and `map` core functions. In step 5, if you did not
   add the original function (`fn`) to the structure returned from
-  `fn*`, the you will need to do so now. TODO/TBD.
+  `fn*`, the you will need to do so now.
+  * `apply`: takes at least two arguments. The first argument is
+    a function and the last argument is list (or vector). The
+    arguments between the function and the last arguemnt (if there are
+    any) are concatenated with the final argument to create the
+    arguments that are used to call the function. The apply
+    function allows a function to be called with arguments that are
+    contained in a list (or vector). In other words, `(apply F A B [C
+    D])` is equivalent to `(F A B C D)`.
+  * `map`: takes a function and a list (or vector) and evaluates the
+    function against every element of the list (or vector) one at
+    a time and returns the results as a list.
 
 * Add some type predicates core functions. In Lisp, predicates are
   functions that return true/false (or true value/nil) and typically
-  end in "?" or "p". TODO/TBD.
-  * `nil?`
-  * `true?`
-  * `false?`
-  * `symbol?`
+  end in "?" or "p".
+  * `nil?`: takes a single argument and returns true (mal true value)
+    if the argument is nil (mal nil value).
+  * `true?`: takes a single argument and returns true (mal true value)
+    if the argument is a true value (mal true value).
+  * `false?`: takes a single argument and returns true (mal true
+    value) if the argument is a false value (mal false value).
+  * `symbol?`: takes a single argument and returns true (mal true
+    value) if the argument is a symbol (mal symbol value).
+
+Now go to the top level, run the step 9 tests:
+```
+make test^quux^step9
+```
+
+Your mal implementation is now essentially a fully featured Lisp
+interpreter. But if you stop now you will miss one of the most
+satisfying and enlightening aspects of creating a mal implementation:
+self-hosting.
 
 ### Deferrable
 
@@ -1332,9 +1357,24 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 <a name="stepA"></a>
 
-### Step A: Interop and Self-hosting
+### Step A: Mutation, Self-hosting and Interop
 
 ![stepA_mal architecture](stepA_mal.png)
+
+You have reached the final step of your mal implementation. This step
+is kind of a catchall for things that did not fit into other steps.
+But most importantly, the changes you make in this step will unlock
+the magical power known as "self-hosting". You might have noticed
+that one of the languages that mal is implemented in is "mal". Any mal
+implementation that is complete enough can run the mal implementation
+of mal. You might need to pull out your hammock and ponder this for
+a while if you have never built a compiler or interpreter before. Look
+at the step source files for the mal implementation of mal (it is not
+cheating now that you have reached step A).
+
+If you deferred the implementation of keywords, vectors and hash-maps,
+now is the time to go back and implement them if you want your
+implementation to self-host.
 
 Compare the pseudocode for step 9 and step A to get a basic idea of
 the changes that will be made during this step:
@@ -1344,15 +1384,76 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
 
-* TODO/TBD
-  * Self-hosted tests
+* Add meta-data support to mal functions. TODO. Should be separate
+  from the function macro flag.
+
+* Add atom data type and supporting core functions. This is the only
+  mal data type/value that is mutable. TODO
+
+* Add the `readline` core function. TODO
+
+
+Now go to the top level, run the step 9 tests:
+```
+make test^quux^step9
+```
+
+Once you have passed all the non-optional step A tests, it is time to
+try self-hosting. Run your step A implementation as normal, but use
+the file argument mode you added in step 6 to run a each of the step
+from the mal implementation:
+```
+./stepA_mal.qx ../mal/step1_read_print.mal
+./stepA_mal.qx ../mal/step2_eval.mal
+...
+./stepA_mal.qx ../mal/step9_try.mal
+./stepA_mal.qx ../mal/stepA_mal.mal
+```
+
+There is a very good change that you will encounter an error at some
+point while trying to run the mal in mal implementation steps above.
+Debugging failures that happen while self-hosting is MUCH more
+difficult and mind bending. One of the best approaches I have
+personally found is to add prn statements to the mal implemenation 
+step (not your own implementation of mal) that is causing problems.
+
+Another approach I have frequently used is to pull out the code from
+the mal implementation that is causing the problem and simplify it
+step by step until you have a simple piece of mal code that still
+reproduces the problem. Once the reproducer is simple enough you will
+probably know where in your own implementation that problem is likely
+to be. Please add your simple reproducer as a test case so that future
+implementers will fix similar issues in their code before they get to
+self-hosting when it is much more difficult to track down and fix.
+
+Once you can manually run all the self-hosted steps, it is time to run
+all the tests in self-hosted mode:
+```
+make MAL_IMPL=quux test^mal
+```
+
+When you run into problems (which you almost certainly will), use the
+same process described above to debug them.
+
+Congratulations!!! When all the tests pass, you should pause for
+a moment and consider what you have accomplished. You have implemented
+a Lisp interpreter that is powerful and complete enough to run a large
+mal program which is itself an implementation of the mal language. You
+might even be asking if you can continue the "inception" by using your
+implementation to run a mal implementation which itself runs the mal
+implementation.
+
+### Optional
+
+* Add metadata support to composite data types, symbols and native
+  functions. TODO
+* `time-ms` TODO
+* `conj` TODO
 
 
 ## TODO:
 
 * simplify: "X argument (list element Y)" -> ast[Y]
-* step 9
-* step A
 * list of types with metadata: list, vector, hash-map, mal functions
 * more clarity about when to peek and poke in read_list and read_form
 * tokenizer: use first group rather than whole match (to eliminate

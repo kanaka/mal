@@ -39,6 +39,9 @@ RUN apt-get -y install bash
 RUN apt-get -y install libglib2.0 libglib2.0-dev
 RUN apt-get -y install libffi-dev libreadline-dev libedit2 libedit-dev
 
+# C++
+RUN apt-get -y install g++-4.9 libreadline-dev
+
 # Clojure
 ADD https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein \
     /usr/local/bin/lein
@@ -124,6 +127,13 @@ ENV SBT_OPTS -Duser.home=/mal
 
 # VB.Net
 RUN apt-get -y install mono-vbnc
+
+# TODO: move this up
+# Julia
+RUN apt-add-repository -y ppa:staticfloat/juliareleases
+RUN apt-get -y update
+RUN apt-get -y install julia
+
 
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
 # Swift is XCode/OS X only
