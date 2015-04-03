@@ -70,7 +70,7 @@ package body Reader is
    Body_Chars : Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps."or"
        (Ada.Strings.Maps.Constants.Alphanumeric_Set,
-        Ada.Strings.Maps.To_Set ('-'));
+        Ada.Strings.Maps.To_Set ("-!"));
 
    Atom_Recognizer  : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get
@@ -134,9 +134,9 @@ package body Reader is
    -- Saved_Line is needed to detect the unterminated string error.
    Saved_Line : String (1..Max_Line_Len);
 
-   function Get_Token return Types.Smart_Pointer is
+   function Get_Token return Types.Mal_Handle is
       use Types;
-      Res : Types.Smart_Pointer;
+      Res : Types.Mal_Handle;
    begin
       Tokenizer.Find_Next (Analyzer);
       case Tokenizer.ID (Analyzer) is
@@ -200,13 +200,13 @@ package body Reader is
 
 
    -- Parsing
-   function Read_Form return Types.Smart_Pointer;
+   function Read_Form return Types.Mal_Handle;
 
    function Read_List (LT : Types.List_Types)
-   return Types.Smart_Pointer is
+   return Types.Mal_Handle is
 
       use Types;
-      List_SP, MTA : Smart_Pointer;
+      List_SP, MTA : Mal_Handle;
       List_P : List_Ptr;
       Close : Character := Types.Closing (LT);
 
@@ -228,7 +228,7 @@ package body Reader is
    exception
       when Lexical_Error =>
 
-        -- List_MT about to go out of scope but its a Smart_Pointer
+        -- List_MT about to go out of scope but its a Mal_Handle
         -- so it is automatically garbage collected.
 
         return New_Error_Mal_Type (Str => "expected '" & Close & "'");
@@ -236,9 +236,9 @@ package body Reader is
    end Read_List;
 
 
-   function Read_Form return Types.Smart_Pointer is
+   function Read_Form return Types.Mal_Handle is
       use Types;
-      MTS : Smart_Pointer;
+      MTS : Mal_Handle;
       Symbol : Character;
    begin
 
@@ -260,7 +260,7 @@ package body Reader is
             return Read_List (Hashed_List);
          elsif Symbol = '^' then
             declare
-               Meta, Obj : Smart_Pointer;
+               Meta, Obj : Mal_Handle;
             begin
                Meta := Read_Form;
                Obj := Read_Form;
@@ -298,7 +298,7 @@ package body Reader is
    end Read_Form;
 
 
-   function Read_Str (S : String) return Types.Smart_Pointer is
+   function Read_Str (S : String) return Types.Mal_Handle is
       I, Str_Len : Natural := S'Length;
    begin
       -- Filter out lines consisting of only whitespace and/or comments

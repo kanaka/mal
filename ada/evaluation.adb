@@ -12,8 +12,8 @@ package body Evaluation is
    function "/" is new Types.Op ("/", "/");
 
 
-   function Apply (Func : Types.Smart_Pointer; Args : Types.List_Mal_Type)
-   return Types.Smart_Pointer is
+   function Apply (Func : Types.Mal_Handle; Args : Types.List_Mal_Type)
+   return Types.Mal_Handle is
       use Types;
    begin
 --Ada.Text_IO.Put_Line ("Applying " & To_String (Deref (Func).all) & " to " & Args.To_String);
@@ -39,8 +39,8 @@ package body Evaluation is
 
 
    function Eval_Ast
-     (Ast : Types.Smart_Pointer)
-   return Types.Smart_Pointer is
+     (Ast : Types.Mal_Handle)
+   return Types.Mal_Handle is
       use Types;
    begin
       case Deref (Ast).Sym_Type is
@@ -69,8 +69,8 @@ package body Evaluation is
       end case;
    end Eval_Ast;
 
-   function Eval (Param : Types.Smart_Pointer)
-   return Types.Smart_Pointer is
+   function Eval (Param : Types.Mal_Handle)
+   return Types.Mal_Handle is
       use Types;
    begin
 --Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
@@ -78,7 +78,7 @@ package body Evaluation is
          Deref_List (Param).all.Get_List_Type = List_List then
          declare
             Evaled_List : Types.List_Mal_Type;
-            Func : Types.Smart_Pointer;
+            Func : Types.Mal_Handle;
             Args : Types.List_Mal_Type;
          begin
             Evaled_List := Deref_List (Eval_Ast (Param)).all;

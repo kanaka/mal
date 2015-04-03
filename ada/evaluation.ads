@@ -2,7 +2,7 @@ with Types;
 
 package Evaluation is
 
-   function Eval (Param : Types.Smart_Pointer)
-   return Types.Smart_Pointer;
+   function Eval (Param : Types.Mal_Handle)
+   return Types.Mal_Handle;
 
 end Evaluation;

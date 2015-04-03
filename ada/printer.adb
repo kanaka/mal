@@ -1,6 +1,6 @@
 package body Printer is
 
-   function Pr_Str (M : Types.Smart_Pointer) return String is
+   function Pr_Str (M : Types.Mal_Handle) return String is
    begin
      if Types.Is_Null (M) then
         return "";

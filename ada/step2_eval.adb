@@ -8,7 +8,7 @@ with Types;
 
 procedure Step2_Eval is
 
-   function Read (Param : String) return Types.Smart_Pointer is
+   function Read (Param : String) return Types.Mal_Handle is
    begin
       return Reader.Read_Str (Param);
    end Read;
@@ -18,13 +18,13 @@ procedure Step2_Eval is
    -- at it.  Thus it must be at library level.  See evaluation.ads
 
 
-   function Print (Param : Types.Smart_Pointer) return String is
+   function Print (Param : Types.Mal_Handle) return String is
    begin
       return Printer.Pr_Str (Param);
    end Print;
 
    function Rep (Param : String) return String is
-     AST, Evaluated_AST : Types.Smart_Pointer;
+     AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
      AST := Read (Param);
