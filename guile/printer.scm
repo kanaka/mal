@@ -40,7 +40,7 @@
      "\n" "\\\n"))
   (define (%pr_str o) (pr_str o readable?))
   (match obj
-    ((? box?) (pr_str (unbox obj) readable?))
+    ((? box?) (%pr_str (unbox obj)))
     ((? is-func?) "#<function>")
     ((? is-macro?) "#<macro>")
     ((? list?) (format #f "(~{~a~^ ~})" (map %pr_str obj)))
@@ -53,7 +53,7 @@
       (else (if readable? (format #f "\"~a\"" (->str obj)) obj))))
     ;;((? number?) (format #f "~a" obj))
     ;;((? symbol?) (format #f "~a" obj))
-    ((? atom?) (format #f "(atom ~a)" (atom-val obj)))
+    ((? atom?) (format #f "(atom ~a)" (%pr_str (atom-val obj))))
     ;;((? _nil?) (format #f "~a" nil))
     (#t "true")
     (#f "false")

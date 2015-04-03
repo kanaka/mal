@@ -40,8 +40,14 @@
 
 (define (eval_func ast env)
   (define (_eval o) (EVAL o env))
-  (define (func? x) (and=> (env-check x env) is-func?))
-  ;;(format #t "AAA: ~a~%" (func? (car ast)))
+  (define (func? x)
+    (let ((f (if (list? x)
+                 (EVAL x env)
+                 x)))
+      (if (callable? f)
+          f
+          (and=> (env-check f env) is-func?))))
+  ;;(format #t "AAA: ~a~%" (EVAL (car ast) env))
   (cond
    ((func? (car ast))
     => (lambda (c)
