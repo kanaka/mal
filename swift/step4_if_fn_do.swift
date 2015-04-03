@@ -9,9 +9,11 @@
 
 import Foundation
 
+// Symbols used in this module.
+//
 let kSymbolDef              = MalSymbol(symbol: "def!")
 let kSymbolDo               = MalSymbol(symbol: "do")
-let kSymbolFunction         = MalSymbol(symbol: "fn*")
+let kSymbolFn               = MalSymbol(symbol: "fn*")
 let kSymbolIf               = MalSymbol(symbol: "if")
 let kSymbolLet              = MalSymbol(symbol: "let*")
 
@@ -71,138 +73,166 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
     return ast
 }
 
+// EVALuate "def!".
+//
+func eval_def(list: MalSequence, env: Environment) -> MalVal {
+    if list.count != 3 {
+        return MalError(message: "expected 2 arguments to def!, got \(list.count - 1)")
+    }
+    let arg1 = list[1]
+    let arg2 = list[2]
+    if !is_symbol(arg1) {
+        return MalError(message: "expected symbol for first argument to def!")
+    }
+    let sym = arg1 as MalSymbol
+    let value = EVAL(arg2, env)
+    if is_error(value) { return value }
+    return env.set(sym, value)
+}
+
+// EVALuate "let*".
+//
+func eval_let(list: MalSequence, env: Environment) -> MalVal {
+    if list.count != 3 {
+        return MalError(message: "expected 2 arguments to let*, got \(list.count - 1)")
+    }
+    let arg1 = list[1]
+    let arg2 = list[2]
+    if !is_sequence(arg1) {
+        return MalError(message: "expected list for first argument to let*")
+    }
+    let bindings = arg1 as MalSequence
+    if bindings.count % 2 == 1 {
+        return MalError(message: "expected even number of elements in bindings to let*, got \(bindings.count)")
+    }
+    var new_env = Environment(outer: env)
+    for var index = 0; index < bindings.count; index += 2 {
+        let binding_name = bindings[index]
+        let binding_value = bindings[index + 1]
+
+        if !is_symbol(binding_name) {
+            return MalError(message: "expected symbol for first element in binding pair")
+        }
+        let binding_symbol = binding_name as MalSymbol
+        let evaluated_value = EVAL(binding_value, new_env)
+        if is_error(evaluated_value) { return evaluated_value }
+        new_env.set(binding_symbol, evaluated_value)
+    }
+    return EVAL(arg2, new_env)
+}
+
+// EVALuate "do".
+//
+func eval_do(list: MalSequence, env: Environment) -> MalVal {
+    let evaluated_ast = eval_ast(list.rest(), env)
+    if is_error(evaluated_ast) { return evaluated_ast }
+    let evaluated_seq = evaluated_ast as MalSequence
+    return evaluated_seq.last()
+}
+
+// EVALuate "if".
+//
+func eval_if(list: MalSequence, env: Environment) -> MalVal {
+    if list.count < 3 {
+        return MalError(message: "expected at least 2 arguments to if, got \(list.count - 1)")
+    }
+    let cond_result = EVAL(list[1], env)
+    var new_ast = MalVal()
+    if is_truthy(cond_result) {
+        new_ast = list[2]
+    } else if list.count == 4 {
+        new_ast = list[3]
+    } else {
+        return MalNil()
+    }
+    return EVAL(new_ast, env)
+}
+
+// EVALuate "fn*".
+//
+func eval_fn(list: MalSequence, env: Environment) -> MalVal {
+    if list.count != 3 {
+        return MalError(message: "expected 2 arguments to fn*, got \(list.count - 1)")
+    }
+    if !is_sequence(list[1]) {
+        return MalError(message: "expected list or vector for first argument to fn*")
+    }
+    return MalClosure(eval: EVAL, args:list[1] as MalSequence, body:list[2], env:env)
+}
+
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
 func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
         if is_error(ast) { return ast }
 
-        // Special handling if it's a list.
+        if !is_list(ast) {
 
-        if is_list(ast) {
-            var list = ast as MalList
+            // Not a list -- just evaluate and return.
 
-            if list.isEmpty {
-                return ast
-            }
-
-            let arg1 = list.first()
-            if is_symbol(arg1) {
-                let fn_symbol = arg1 as MalSymbol
-
-                // Check for special forms, where we want to check the operation
-                // before evaluating all of the parameters.
-
-                if fn_symbol == kSymbolDef {
-                    if list.count != 3 {
-                        return MalError(message: "expected 2 arguments to def!, got \(list.count - 1)")
-                    }
-                    let arg1 = list[1]
-                    let arg2 = list[2]
-                    if !is_symbol(arg1) {
-                        return MalError(message: "expected symbol for first argument to def!")
-                    }
-                    let sym = arg1 as MalSymbol
-                    let value = EVAL(arg2, env)
-                    if is_error(value) { return value }
-                    return env.set(sym, value)
-                } else if fn_symbol == kSymbolLet {
-                    if list.count != 3 {
-                        return MalError(message: "expected 2 arguments to let*, got \(list.count - 1)")
-                    }
-                    let arg1 = list[1]
-                    let arg2 = list[2]
-                    if !is_sequence(arg1) {
-                        return MalError(message: "expected list for first argument to let*")
-                    }
-                    let bindings = arg1 as MalSequence
-                    if bindings.count % 2 == 1 {
-                        return MalError(message: "expected even number of elements in bindings to let*, got \(bindings.count)")
-                    }
-                    var new_env = Environment(outer: env)
-                    for var index = 0; index < bindings.count; index += 2 {
-                        let binding_name = bindings[index]
-                        let binding_value = bindings[index + 1]
-
-                        if !is_symbol(binding_name) {
-                            return MalError(message: "expected symbol for first element in binding pair")
-                        }
-                        let binding_symbol = binding_name as MalSymbol
-                        let evaluated_value = EVAL(binding_value, new_env)
-                        if is_error(evaluated_value) { return evaluated_value }
-                        new_env.set(binding_symbol, evaluated_value)
-                    }
-                    return EVAL(arg2, new_env)
-                } else if fn_symbol == kSymbolDo {
-                    let evaluated_ast = eval_ast(list.rest(), env)
-                    if is_error(evaluated_ast) { return evaluated_ast }
-                    let evaluated_seq = evaluated_ast as MalSequence
-                    return evaluated_seq.last()
-                } else if fn_symbol == kSymbolIf {
-                    if list.count < 3 {
-                        return MalError(message: "expected at least 2 arguments to if, got \(list.count - 1)")
-                    }
-                    let cond_result = EVAL(list[1], env)
-                    var new_ast = MalVal()
-                    if is_truthy(cond_result) {
-                        new_ast = list[2]
-                    } else if list.count == 4 {
-                        new_ast = list[3]
-                    } else {
-                        return MalNil()
-                    }
-                    return EVAL(new_ast, env)
-                } else if fn_symbol == kSymbolFunction {
-                    if list.count != 3 {
-                        return MalError(message: "expected 2 arguments to fn*, got \(list.count - 1)")
-                    }
-                    if !is_sequence(list[1]) {
-                        return MalError(message: "expected list or vector for first argument to fn*")
-                    }
-                    return MalClosure(eval: EVAL, args:list[1] as MalSequence, body:list[2], env:env)
-                }
-            }
-
-            // Standard list to be applied. Evaluate all the elements first.
-
-            let eval = eval_ast(ast, env)
-            if is_error(eval) { return eval }
-
-            // The result had better be a list and better be non-empty.
-
-            let eval_list = eval as MalList
-            if eval_list.isEmpty {
-                return eval_list
-            }
-
-            // Get the first element of the list and execute it.
-
-            let first = eval_list.first()
-            let rest = eval_list.rest()
-
-            if is_builtin(first) {
-                let fn = first as MalBuiltin
-                let answer = fn.apply(rest)
-                return answer
-            } else if is_closure(first) {
-                let fn = first as MalClosure
-                var new_env = Environment(outer: fn.env)
-                let result = new_env.set_bindings(fn.args, with_exprs:rest)
-                if is_error(result) { return result }
-                let answer = EVAL(fn.body, new_env)
-                return answer
-            }
-
-            // The first element wasn't a function to be executed. Return an
-            // error saying so.
-
-            return MalError(message: "first list item does not evaluate to a function: \(first)")
+            let answer = eval_ast(ast, env)
+            return answer
         }
 
-        // Not a list -- just evaluate and return.
+        // Special handling if it's a list.
 
-        let answer = eval_ast(ast, env)
-        return answer
+        var list = ast as MalList
+
+        if list.isEmpty {
+            return list
+        }
+
+        // Check for special forms, where we want to check the operation
+        // before evaluating all of the parameters.
+
+        let arg0 = list.first()
+        if is_symbol(arg0) {
+            let fn_symbol = arg0 as MalSymbol
+
+            switch fn_symbol {
+                case kSymbolDef:            return eval_def(list, env)
+                case kSymbolLet:            return eval_let(list, env)
+                case kSymbolDo:             return eval_do(list, env)
+                case kSymbolIf:             return eval_if(list, env)
+                case kSymbolFn:             return eval_fn(list, env)
+                default:                    break
+            }
+        }
+
+        // Standard list to be applied. Evaluate all the elements first.
+
+        let eval = eval_ast(ast, env)
+        if is_error(eval) { return eval }
+
+        // The result had better be a list and better be non-empty.
+
+        let eval_list = eval as MalList
+        if eval_list.isEmpty {
+            return eval_list
+        }
+
+        // Get the first element of the list and execute it.
+
+        let first = eval_list.first()
+        let rest = eval_list.rest()
+
+        if is_builtin(first) {
+            let fn = first as MalBuiltin
+            let answer = fn.apply(rest)
+            return answer
+        } else if is_closure(first) {
+            let fn = first as MalClosure
+            var new_env = Environment(outer: fn.env)
+            let result = new_env.set_bindings(fn.args, with_exprs:rest)
+            if is_error(result) { return result }
+            let answer = EVAL(fn.body, new_env)
+            return answer
+        }
+
+        // The first element wasn't a function to be executed. Return an
+        // error saying so.
+
+        return MalError(message: "first list item does not evaluate to a function: \(first)")
 }
 
 // Convert the value into a human-readable string for printing.

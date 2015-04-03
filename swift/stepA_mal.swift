@@ -30,6 +30,9 @@ let TCO = true
 //
 let DEBUG_EVAL = false
 
+// String used to prefix information logged in EVAL. Increasing lengths of the
+// string are used the more EVAL is recursed.
+//
 let INDENT_TEMPLATE = "|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
@@ -41,8 +44,13 @@ let INDENT_TEMPLATE = "|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|"
+
+// Holds the prefix of INDENT_TEMPLATE used for actual logging.
+//
 var indent = String()
 
+// Symbols used in this module.
+//
 let kSymbolArgv             = MalSymbol(symbol: "*ARGV*")
 let kSymbolCatch            = MalSymbol(symbol: "catch*")
 let kSymbolConcat           = MalSymbol(symbol: "concat")
@@ -51,11 +59,11 @@ let kSymbolDef              = MalSymbol(symbol: "def!")
 let kSymbolDefMacro         = MalSymbol(symbol: "defmacro!")
 let kSymbolDo               = MalSymbol(symbol: "do")
 let kSymbolEval             = MalSymbol(symbol: "eval")
-let kSymbolFunction         = MalSymbol(symbol: "fn*")
+let kSymbolFn               = MalSymbol(symbol: "fn*")
 let kSymbolIf               = MalSymbol(symbol: "if")
 let kSymbolLet              = MalSymbol(symbol: "let*")
 let kSymbolMacroExpand      = MalSymbol(symbol: "macroexpand")
-let kSymbolQuasiquote       = MalSymbol(symbol: "quasiquote")
+let kSymbolQuasiQuote       = MalSymbol(symbol: "quasiquote")
 let kSymbolQuote            = MalSymbol(symbol: "quote")
 let kSymbolSpliceUnquote    = MalSymbol(symbol: "splice-unquote")
 let kSymbolUnquote          = MalSymbol(symbol: "unquote")
@@ -254,6 +262,202 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
     return ast
 }
 
+enum TCOVal {
+    case NoResult
+    case Return(MalVal)
+    case Continue(MalVal, Environment)
+
+    init() { self = .NoResult }
+    init(_ result: MalVal) { self = .Return(result) }
+    init(_ ast: MalVal, _ env: Environment) { self = .Continue(ast, env) }
+    init(_ e: String) { self = .Return(MalError(message: e)) }
+}
+
+// EVALuate "def!" and "defmacro!".
+//
+func eval_def(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count != 3 {
+        return TCOVal("expected 2 arguments to def!, got \(list.count - 1)")
+    }
+    let arg0 = list[0] as MalSymbol
+    let arg1 = list[1]
+    let arg2 = list[2]
+    if !is_symbol(arg1) {
+        return TCOVal("expected symbol for first argument to def!")
+    }
+    let sym = arg1 as MalSymbol
+    let value = EVAL(arg2, env)
+    if is_error(value) { return TCOVal(value) }
+    if arg0 == kSymbolDefMacro {
+        if is_closure(value) {
+            let as_closure = value as MalClosure
+            as_closure.is_macro = true
+        } else {
+            return TCOVal("expected closure, got \(value)")
+        }
+    }
+    return TCOVal(env.set(sym, value))
+}
+
+// EVALuate "let*".
+//
+func eval_let(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count != 3 {
+        return TCOVal("expected 2 arguments to let*, got \(list.count - 1)")
+    }
+    let arg1 = list[1]
+    let arg2 = list[2]
+    if !is_sequence(arg1) {
+        return TCOVal("expected list for first argument to let*")
+    }
+    let bindings = arg1 as MalSequence
+    if bindings.count % 2 == 1 {
+        return TCOVal("expected even number of elements in bindings to let*, got \(bindings.count)")
+    }
+    var new_env = Environment(outer: env)
+    for var index = 0; index < bindings.count; index += 2 {
+        let binding_name = bindings[index]
+        let binding_value = bindings[index + 1]
+
+        if !is_symbol(binding_name) {
+            return TCOVal("expected symbol for first element in binding pair")
+        }
+        let binding_symbol = binding_name as MalSymbol
+        let evaluated_value = EVAL(binding_value, new_env)
+        if is_error(evaluated_value) { return TCOVal(evaluated_value) }
+        new_env.set(binding_symbol, evaluated_value)
+    }
+    if TCO {
+        return TCOVal(arg2, new_env)
+    }
+    return TCOVal(EVAL(arg2, new_env))
+}
+
+// EVALuate "do".
+//
+func eval_do(list: MalSequence, env: Environment) -> TCOVal {
+    if TCO {
+        let eval = eval_ast(MalList(slice: list[1..<list.count-1]), env)
+        if is_error(eval) { return TCOVal(eval) }
+        return TCOVal(list.last(), env)
+    }
+
+    let evaluated_ast = eval_ast(list.rest(), env)
+    if is_error(evaluated_ast) { return TCOVal(evaluated_ast) }
+    let evaluated_seq = evaluated_ast as MalSequence
+    return TCOVal(evaluated_seq.last())
+}
+
+// EVALuate "if".
+//
+func eval_if(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count < 3 {
+        return TCOVal("expected at least 2 arguments to if, got \(list.count - 1)")
+    }
+    let cond_result = EVAL(list[1], env)
+    var new_ast = MalVal()
+    if is_truthy(cond_result) {
+        new_ast = list[2]
+    } else if list.count == 4 {
+        new_ast = list[3]
+    } else {
+        return TCOVal(MalNil())
+    }
+    if TCO {
+        return TCOVal(new_ast, env)
+    }
+    return TCOVal(EVAL(new_ast, env))
+}
+
+// EVALuate "fn*".
+//
+func eval_fn(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count != 3 {
+        return TCOVal("expected 2 arguments to fn*, got \(list.count - 1)")
+    }
+    if !is_sequence(list[1]) {
+        return TCOVal("expected list or vector for first argument to fn*")
+    }
+    return TCOVal(MalClosure(eval: EVAL, args:list[1] as MalSequence, body:list[2], env:env))
+}
+
+// EVALuate "quote".
+//
+func eval_quote(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count >= 2 {
+        return TCOVal(list[1])
+    }
+    return TCOVal(MalNil())
+}
+
+// EVALuate "quasiquote".
+//
+func eval_quasiquote(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count >= 2 {
+        if TCO {
+            return TCOVal(quasiquote(list[1]), env)
+        }
+        return TCOVal(EVAL(quasiquote(list[1]), env))
+    }
+    return TCOVal("Expected non-nil parameter to 'quasiquote'")
+}
+
+// EVALuate "macroexpand".
+//
+func eval_macroexpand(list: MalSequence, env: Environment) -> TCOVal {
+    if list.count >= 2 {
+        return TCOVal(macroexpand(list[1], env))
+    }
+    return TCOVal("Expected parameter to 'macroexpand'")
+}
+
+// EVALuate "try*" (and "catch*").
+//
+func eval_try(list: MalSequence, env: Environment) -> TCOVal {
+    // This is a subset of the Clojure try/catch:
+    //
+    //      (try* expr (catch exception-name expr))
+
+    if list.count < 2 {
+        println("try*: no body parameter")
+        return TCOVal(MalNil()) // No body parameter
+    }
+    let res = EVAL(list[1], env)
+    if !is_error(res) { return TCOVal(res) }
+    if list.count < 3 {
+        println("try*: no catch parameter")
+        return TCOVal(MalNil()) // No catch parameter
+    }
+    if !is_sequence(list[2]) {
+        println("try*: second parameter to 'try' is not a sequence")
+        return TCOVal(MalNil()) // Second parameter to 'try' is not a sequence
+    }
+    let catch_list = list[2] as MalSequence
+    if catch_list.count < 3 {
+        println("try*: not enough catch parameters")
+        return TCOVal(MalNil()) // Not enough catch parameters
+    }
+    if !is_symbol(catch_list[0]) {
+        println("try*: first parameter in catch list is not a symbol")
+        return TCOVal(MalNil()) // First parameter in catch list is not a symbol
+    }
+    let catch_symbol = catch_list[0] as MalSymbol
+    if catch_symbol != kSymbolCatch {
+        println("try*: first parameter in catch list is not 'catch'")
+        return TCOVal(MalNil()) // First parameter in catch list is not 'catch'
+    }
+    if !is_symbol(catch_list[1]) {
+        println("try*: first parameter to 'catch' is not a symbol")
+        return TCOVal(MalNil()) // First parameter to 'catch' is not a symbol
+    }
+    let catch_name = catch_list[1] as MalSymbol
+    let catch_expr = catch_list[2]
+    let catch_env = Environment(outer: env)
+    let error = res as MalError
+    catch_env.set_bindings(MalList(objects: catch_name), with_exprs: MalList(objects: error.value))
+    return TCOVal(EVAL(catch_expr, catch_env))
+}
+
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
@@ -271,234 +475,99 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
         if is_error(ast) { return ast }
         if DEBUG_EVAL { println("\(indent)>   \(ast)") }
 
-        // Special handling if it's a list.
+        if !is_list(ast) {
 
-        if is_list(ast) {
-            var list = ast as MalList
-            ast = macroexpand(ast, env)
-            if !is_list(ast) { return ast }
-            list = ast as MalList
+            // Not a list -- just evaluate and return.
 
-            if DEBUG_EVAL { println("\(indent)>.  \(list)") }
-
-            if list.isEmpty {
-                return ast
-            }
-
-            let arg1 = list.first()
-            if is_symbol(arg1) {
-                let fn_symbol = arg1 as MalSymbol
-
-                // Check for special forms, where we want to check the operation
-                // before evaluating all of the parameters.
-
-                if fn_symbol == kSymbolDef || fn_symbol == kSymbolDefMacro {
-                    if list.count != 3 {
-                        return MalError(message: "expected 2 arguments to def!, got \(list.count - 1)")
-                    }
-                    let arg1 = list[1]
-                    let arg2 = list[2]
-                    if !is_symbol(arg1) {
-                        return MalError(message: "expected symbol for first argument to def!")
-                    }
-                    let sym = arg1 as MalSymbol
-                    let value = EVAL(arg2, env)
-                    if is_error(value) { return value }
-                    if fn_symbol == kSymbolDefMacro {
-                        if is_closure(value) {
-                            let as_closure = value as MalClosure
-                            as_closure.is_macro = true
-                        } else {
-                            return MalError(message: "expected closure, got \(value)")
-                        }
-                    }
-                    return env.set(sym, value)
-                } else if fn_symbol == kSymbolLet {
-                    if list.count != 3 {
-                        return MalError(message: "expected 2 arguments to let*, got \(list.count - 1)")
-                    }
-                    let arg1 = list[1]
-                    let arg2 = list[2]
-                    if !is_sequence(arg1) {
-                        return MalError(message: "expected list for first argument to let*")
-                    }
-                    let bindings = arg1 as MalSequence
-                    if bindings.count % 2 == 1 {
-                        return MalError(message: "expected even number of elements in bindings to let*, got \(bindings.count)")
-                    }
-                    var new_env = Environment(outer: env)
-                    for var index = 0; index < bindings.count; index += 2 {
-                        let binding_name = bindings[index]
-                        let binding_value = bindings[index + 1]
-
-                        if !is_symbol(binding_name) {
-                            return MalError(message: "expected symbol for first element in binding pair")
-                        }
-                        let binding_symbol = binding_name as MalSymbol
-                        let evaluated_value = EVAL(binding_value, new_env)
-                        if is_error(evaluated_value) { return evaluated_value }
-                        new_env.set(binding_symbol, evaluated_value)
-                    }
-                    if TCO {
-                        env = new_env
-                        ast = arg2
-                        continue
-                    }
-                    return EVAL(arg2, new_env)
-                } else if fn_symbol == kSymbolDo {
-                    if TCO {
-                        let eval = eval_ast(MalList(slice: list[1..<list.count-1]), env)
-                        if is_error(eval) { return eval }
-                        ast = list.last()
-                        continue
-                    }
-
-                    let evaluated_ast = eval_ast(list.rest(), env)
-                    if is_error(evaluated_ast) { return evaluated_ast }
-                    let evaluated_seq = evaluated_ast as MalSequence
-                    return evaluated_seq.last()
-                } else if fn_symbol == kSymbolIf {
-                    if list.count < 3 {
-                        return MalError(message: "expected at least 2 arguments to if, got \(list.count - 1)")
-                    }
-                    let cond_result = EVAL(list[1], env)
-                    var new_ast = MalVal()
-                    if is_truthy(cond_result) {
-                        new_ast = list[2]
-                    } else if list.count == 4 {
-                        new_ast = list[3]
-                    } else {
-                        return MalNil()
-                    }
-                    if TCO {
-                        ast = new_ast
-                        continue
-                    }
-                    return EVAL(new_ast, env)
-                } else if fn_symbol == kSymbolFunction {
-                    if list.count != 3 {
-                        return MalError(message: "expected 2 arguments to fn*, got \(list.count - 1)")
-                    }
-                    if !is_sequence(list[1]) {
-                        return MalError(message: "expected list or vector for first argument to fn*")
-                    }
-                    return MalClosure(eval: EVAL, args:list[1] as MalSequence, body:list[2], env:env)
-                } else if fn_symbol == kSymbolQuote {
-                    if list.count >= 2 {
-                        return list[1]
-                    }
-                    return MalNil()
-                } else if fn_symbol == kSymbolQuasiquote {
-                    if list.count >= 2 {
-                        if TCO {
-                            ast = quasiquote(list[1])
-                            continue
-                        }
-                        return EVAL(quasiquote(list[1]), env)
-                    }
-                    return MalError(message: "Expected non-nil parameter to 'quasiquote'")
-                } else if fn_symbol == kSymbolMacroExpand {
-                    if list.count >= 2 {
-                        return macroexpand(list[1], env)
-                    }
-                    return MalError(message: "Expected parameter to 'macroexpand'")
-                } else if fn_symbol == kSymbolTry {
-
-                    // This is a subset of the Clojure try/catch:
-                    //
-                    //      (try* expr (catch exception-name expr))
-
-                    if list.count < 2 {
-                        println("try*: no body parameter")
-                        return MalNil() // No body parameter
-                    }
-                    let res = EVAL(list[1], env)
-                    if !is_error(res) { return res }
-                    if list.count < 3 {
-                        println("try*: no catch parameter")
-                        return MalNil() // No catch parameter
-                    }
-                    if !is_sequence(list[2]) {
-                        println("try*: second parameter to 'try' is not a sequence")
-                        return MalNil() // Second parameter to 'try' is not a sequence
-                    }
-                    let catch_list = list[2] as MalSequence
-                    if catch_list.count < 3 {
-                        println("try*: not enough catch parameters")
-                        return MalNil() // Not enough catch parameters
-                    }
-                    if !is_symbol(catch_list[0]) {
-                        println("try*: first parameter in catch list is not a symbol")
-                        return MalNil() // First parameter in catch list is not a symbol
-                    }
-                    let catch_symbol = catch_list[0] as MalSymbol
-                    if catch_symbol != kSymbolCatch {
-                        println("try*: first parameter in catch list is not 'catch'")
-                        return MalNil() // First parameter in catch list is not 'catch'
-                    }
-                    if !is_symbol(catch_list[1]) {
-                        println("try*: first parameter to 'catch' is not a symbol")
-                        return MalNil() // First parameter to 'catch' is not a symbol
-                    }
-                    let catch_name = catch_list[1] as MalSymbol
-                    let catch_expr = catch_list[2]
-                    let catch_env = Environment(outer: env)
-                    let error = res as MalError
-                    catch_env.set_bindings(MalList(objects: catch_name), with_exprs: MalList(objects: error.value))
-                    return EVAL(catch_expr, catch_env)
-                }
-            }
-
-            // Standard list to be applied. Evaluate all the elements first.
-
-            let eval = eval_ast(ast, env)
-            if is_error(eval) { return eval }
-
-            // The result had better be a list and better be non-empty.
-
-            let eval_list = eval as MalList
-            if eval_list.isEmpty {
-                return eval_list
-            }
-
-            if DEBUG_EVAL { println("\(indent)>>  \(eval)") }
-
-            // Get the first element of the list and execute it.
-
-            let first = eval_list.first()
-            let rest = eval_list.rest()
-
-            if is_builtin(first) {
-                let fn = first as MalBuiltin
-                let answer = fn.apply(rest)
-                if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
-                return answer
-            } else if is_closure(first) {
-                let fn = first as MalClosure
-                var new_env = Environment(outer: fn.env)
-                let result = new_env.set_bindings(fn.args, with_exprs:rest)
-                if is_error(result) { return result }
-                if TCO {
-                    env = new_env
-                    ast = fn.body
-                    continue
-                }
-                let answer = EVAL(fn.body, new_env)
-                if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
-                return answer
-            }
-
-            // The first element wasn't a function to be executed. Return an
-            // error saying so.
-
-            return MalError(message: "first list item does not evaluate to a function: \(first)")
+            let answer = eval_ast(ast, env)
+            if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
+            return answer
         }
 
-        // Not a list -- just evaluate and return.
+        // Special handling if it's a list.
 
-        let answer = eval_ast(ast, env)
-        if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
-        return answer
+        var list = ast as MalList
+        ast = macroexpand(ast, env)
+        if !is_list(ast) { return ast }
+        list = ast as MalList
+
+        if DEBUG_EVAL { println("\(indent)>.  \(list)") }
+
+        if list.isEmpty {
+            return list
+        }
+
+        // Check for special forms, where we want to check the operation
+        // before evaluating all of the parameters.
+
+        let arg0 = list.first()
+        if is_symbol(arg0) {
+            var res: TCOVal
+            let fn_symbol = arg0 as MalSymbol
+
+            switch fn_symbol {
+                case kSymbolDef:            res = eval_def(list, env)
+                case kSymbolDefMacro:       res = eval_def(list, env)
+                case kSymbolLet:            res = eval_let(list, env)
+                case kSymbolDo:             res = eval_do(list, env)
+                case kSymbolIf:             res = eval_if(list, env)
+                case kSymbolFn:             res = eval_fn(list, env)
+                case kSymbolQuote:          res = eval_quote(list, env)
+                case kSymbolQuasiQuote:     res = eval_quasiquote(list, env)
+                case kSymbolMacroExpand:    res = eval_macroexpand(list, env)
+                case kSymbolTry:            res = eval_try(list, env)
+                default:                    res = TCOVal()
+            }
+            switch res {
+                case let .Return(result):               return result
+                case let .Continue(new_ast, new_env):   ast = new_ast; env = new_env; continue
+                case .NoResult:                         break
+            }
+        }
+
+        // Standard list to be applied. Evaluate all the elements first.
+
+        let eval = eval_ast(ast, env)
+        if is_error(eval) { return eval }
+
+        // The result had better be a list and better be non-empty.
+
+        let eval_list = eval as MalList
+        if eval_list.isEmpty {
+            return eval_list
+        }
+
+        if DEBUG_EVAL { println("\(indent)>>  \(eval)") }
+
+        // Get the first element of the list and execute it.
+
+        let first = eval_list.first()
+        let rest = eval_list.rest()
+
+        if is_builtin(first) {
+            let fn = first as MalBuiltin
+            let answer = fn.apply(rest)
+            if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
+            return answer
+        } else if is_closure(first) {
+            let fn = first as MalClosure
+            var new_env = Environment(outer: fn.env)
+            let result = new_env.set_bindings(fn.args, with_exprs:rest)
+            if is_error(result) { return result }
+            if TCO {
+                env = new_env
+                ast = fn.body
+                continue
+            }
+            let answer = EVAL(fn.body, new_env)
+            if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
+            return answer
+        }
+
+        // The first element wasn't a function to be executed. Return an
+        // error saying so.
+
+        return MalError(message: "first list item does not evaluate to a function: \(first)")
     }
 }
 

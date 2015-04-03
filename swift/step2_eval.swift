@@ -71,48 +71,49 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
 func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
         if is_error(ast) { return ast }
 
-        // Special handling if it's a list.
+        if !is_list(ast) {
 
-        if is_list(ast) {
-            var list = ast as MalList
+            // Not a list -- just evaluate and return.
 
-            if list.isEmpty {
-                return ast
-            }
-
-            // Standard list to be applied. Evaluate all the elements first.
-
-            let eval = eval_ast(ast, env)
-            if is_error(eval) { return eval }
-
-            // The result had better be a list and better be non-empty.
-
-            let eval_list = eval as MalList
-            if eval_list.isEmpty {
-                return eval_list
-            }
-
-            // Get the first element of the list and execute it.
-
-            let first = eval_list.first()
-            let rest = eval_list.rest()
-
-            if is_builtin(first) {
-                let fn = first as MalBuiltin
-                let answer = fn.apply(rest)
-                return answer
-            }
-
-            // The first element wasn't a function to be executed. Return an
-            // error saying so.
-
-            return MalError(message: "first list item does not evaluate to a function: \(first)")
+            let answer = eval_ast(ast, env)
+            return answer
         }
 
-        // Not a list -- just evaluate and return.
+        // Special handling if it's a list.
 
-        let answer = eval_ast(ast, env)
-        return answer
+        var list = ast as MalList
+
+        if list.isEmpty {
+            return list
+        }
+
+        // Standard list to be applied. Evaluate all the elements first.
+
+        let eval = eval_ast(ast, env)
+        if is_error(eval) { return eval }
+
+        // The result had better be a list and better be non-empty.
+
+        let eval_list = eval as MalList
+        if eval_list.isEmpty {
+            return eval_list
+        }
+
+        // Get the first element of the list and execute it.
+
+        let first = eval_list.first()
+        let rest = eval_list.rest()
+
+        if is_builtin(first) {
+            let fn = first as MalBuiltin
+            let answer = fn.apply(rest)
+            return answer
+        }
+
+        // The first element wasn't a function to be executed. Return an
+        // error saying so.
+
+        return MalError(message: "first list item does not evaluate to a function: \(first)")
 }
 
 // Convert the value into a human-readable string for printing.
