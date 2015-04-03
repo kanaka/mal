@@ -57,7 +57,12 @@ package body Evaluation is
             declare
               Sym : Mal_String := Deref_Atom (Ast).Get_Atom;
             begin
-               return Envs.Get (Sym);
+               -- if keyword...
+               if Sym(1) = ':' then
+                  return Ast;
+               else
+                  return Envs.Get (Sym);
+               end if;
             exception
                when Envs.Not_Found =>
                   return New_Error_Mal_Type ("'" &  Sym & "' not found");
