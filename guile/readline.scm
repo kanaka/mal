@@ -16,16 +16,17 @@
 ;;(use-modules (ice-9 readline))
 
 (library (readline)
-  (export readline add-history)
+  (export _readline)
   (import (guile) (ice-9 readline)))
 
 (define mal-history
   (format #f "~a/.mal-history" (getenv "HOME")))
 
 (setenv "GUILE_HISTORY" mal-history)
-
+(readline-set! bounce-parens 0)
 (activate-readline)
 
-;;(define (readline prompt)
-;;  (display prompt)
-;;  ((@ (ice-9 rdelim) read-line) (current-input-port)))
+(define (_readline prompt)
+  (let ((str (readline prompt)))
+    (add-history str)
+    str))

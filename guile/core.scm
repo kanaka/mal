@@ -215,7 +215,7 @@
     (vals        ,_vals)
     (contains?   ,_contains?)
     (sequential? ,_sequential?)
-    (readline    ,readline)
+    (readline    ,_readline)
     (meta        ,_meta)
     (with-meta   ,_with-meta)
     (atom        ,make-atom)

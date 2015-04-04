@@ -27,7 +27,7 @@
     (make-Env #:binds b #:exprs e)))
 
 (define (READ)
-  (read_str (readline "user> ")))
+  (read_str (_readline "user> ")))
 
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
@@ -69,7 +69,6 @@
 
 (define (PRINT exp)
   (and (not (eof-object? exp))
-       ;;(add-history str)
        (format #t "~a~%" (pr_str exp #t))))
 
 (define (LOOP continue?)

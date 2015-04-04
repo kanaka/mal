@@ -15,13 +15,12 @@
 
 (import (readline))
 
-(define (READ) (readline "user> "))
+(define (READ) (_readline "user> "))
 
 (define (EVAL ast env) ast)
 
 (define (PRINT str)
   (and (not (eof-object? str))
-       ;;(add-history str)
        (format #t "~a~%" str)))
 
 (define (LOOP continue?)
