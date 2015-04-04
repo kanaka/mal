@@ -28,5 +28,5 @@
 
 (define (_readline prompt)
   (let ((str (readline prompt)))
-    (add-history str)
+    (and (not (eof-object? str)) (add-history str))
     str))
