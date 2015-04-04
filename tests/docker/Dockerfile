@@ -134,6 +134,16 @@ RUN apt-add-repository -y ppa:staticfloat/juliareleases
 RUN apt-get -y update
 RUN apt-get -y install julia
 
+# Erlang R17 (so I can use maps)
+RUN apt-get -y install build-essential libncurses5-dev libssl-dev
+ADD http://www.erlang.org/download/otp_src_17.5.tar.gz /tmp/
+RUN tar -C /tmp -zxf /tmp/otp_src_17.5.tar.gz
+RUN cd /tmp/otp_src_17.5 && ./configure && make && make install
+RUN rm -rf /tmp/otp_src_17.5
+# Rebar for building the Erlang implementation
+RUN git clone -q https://github.com/rebar/rebar.git
+RUN cd rebar && ./bootstrap && cp rebar /usr/local/bin
+RUN rm -rf rebar
 
 # MATLAB is proprietary/licensed. Maybe someday with Octave.
 # Swift is XCode/OS X only
