@@ -164,6 +164,8 @@
         #f
         str)))
 
+(define (_not o) (or (_nil? o) (not o)))
+
 (define *primitives*
   `((list        ,list)
     (list?       ,list?)
@@ -178,7 +180,7 @@
     (-           ,-)
     (*           ,*)
     (/           ,/)
-    (not         ,not)
+    (not         ,_not)
     (pr-str      ,pr-str)
     (str         ,str)
     (prn         ,prn)
