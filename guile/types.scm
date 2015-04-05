@@ -77,9 +77,7 @@
 (define (is-macro? c) (callable-check c #t))
 
 (define (hash-table-clone ht)
-  (define cht (make-hash-table))
-  (hash-for-each (lambda (k v) (hash-set! cht k v)) ht)
-  cht)
+  (list->hash-map (hash-fold (lambda (k v p) (cons k (cons v p))) '() ht)))
 
 (define-record-type box (fields val))
 

@@ -116,7 +116,11 @@
 
 (define (_vals ht) (hash-map->list (lambda (k v) v) ht))
 
-(define (_contains? ht k) (if (hash-ref ht k) #t #f))
+(define (_contains? ht k)
+  (let ((v (hash-ref ht k '*mal-null*)))
+    (if (eq? v '*mal-null*)
+        #f
+        #t)))
 
 (define (_sequential? o) (or (list? o) (vector? o)))
 

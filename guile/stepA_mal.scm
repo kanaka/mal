@@ -47,12 +47,11 @@
       (if (callable? f)
           f
           (and=> (env-check f env) is-func?))))
-  ;;(if (eq? (car ast) 'atom) (format #t "FFF: ~a~%" (map _eval (cdr ast))))
   (cond
    ((func? (car ast))
     => (lambda (c)
-       ;;  (if (eq? (car ast) 'atom) (format #t "FFF: ~a~%"   (pr_str (map _eval (cdr ast)) #t)))
-;;(_macroexpand (callable-apply c (map _eval (cdr ast))) env)))
+         ;;(if (eq? (car ast) 'not) (format #t "AAA: ~a~%" ast))
+
          (callable-apply c (map _eval (cdr ast)))))
    (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
@@ -93,7 +92,6 @@
       ((('splice-unquote unqsp) rest ...) `(concat ,unqsp ,(_quasiquote rest)))
       ((head rest ...) (list 'cons (_quasiquote head) (_quasiquote rest)))
       (else `(quote ,obj))))
-  ;;(format #t "EEE: ~a~%" ast)
   ;; NOTE: I wish I can use (while #t ...) for that, but this is not Lispy, which means
   ;;       it'll bring some trouble in control flow. We have to use continuations to return
   ;;       and use non-standard `break' feature. In a word, not elegant at all.
@@ -102,10 +100,9 @@
   ;;       TCO in Scheme to implement TCO, but it's the same principle with normal loop.
   ;;       If you're Lispy enough, there's no recursive at all while you saw named let loop.
   (let tco-loop((ast ast) (env env)) ; expand as possible
-    ;;(format #t "CCC: ~a === ~a~%" ast (_macroexpand ast env))
     (let ((ast (_macroexpand ast env)))
       (match ast
-        ((? non-list?) #;(if (hash-table? ast)(format #t "MMR: ~a~%" ast)) (eval_ast ast env))
+        ((? non-list?) (eval_ast ast env))
         (('defmacro! k v)
          (let ((c (EVAL v env)))
            (callable-is_macro-set! c #t)
