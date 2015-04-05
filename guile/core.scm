@@ -50,7 +50,7 @@
 
 (define (slurp filename)
   (when (not (file-exists? filename))
-    (throw 'mal-error "File/dir doesn't exist" filename))
+    (throw 'mal-error (format #f "File/dir '~a' doesn't exist" filename)))
   (call-with-input-file filename get-string-all))
 
 (define (_cons x y)
@@ -67,6 +67,7 @@
 
 (define (_first lst)
   (define ll (->list lst))
+  ;;(format #t "FFF: ~a, ~a~%" ll (if (not (null? ll)) (car ll) ll))
   (if (null? ll)
       nil
       (car ll)))
@@ -96,22 +97,6 @@
 
 (define (->keyword x)
   ((if (_keyword? x) identity string->keyword) x))
-
-(define* (list->hash-map lst #:optional (ht (make-hash-table)))
-  (cond
-   ((null? lst) ht)
-   (else
-    (let lp((next lst))
-      (cond
-       ((null? next) ht)
-       (else
-        (when (null? (cdr next))
-          (throw 'mal-error
-                 (format #f "hash-map: '~a' lack of value" (car next))))
-        (let ((k (car next))
-              (v (cadr next)))
-          (hash-set! ht k v)
-          (lp (cddr next)))))))))
 
 (define (_hash-map . lst) (list->hash-map lst))
 
@@ -145,12 +130,12 @@
    ((callable? c)
     (let ((cc (make-callable ht
                              (callable-unbox c)
-                             (callable-is_macro c)
+                             (and (hash-table? ht) (hash-ref ht "ismacro"))
                              (callable-closure c))))
       cc))
    (else
     (let ((cc (box c)))
-      (set-object-property! cc 'meta ht)
+          (set-object-property! cc 'meta ht)
       cc))))
 
 ;; Apply closure 'c' with atom-val as one of arguments, then
@@ -168,6 +153,12 @@
    ((list? lst)
     (append (reverse args) (->list lst)))
    (else (throw 'mal-error (format #f "conj: '~a' is not list/vector" lst)))))
+
+(define (__readline prompt)
+  (let ((str (_readline prompt)))
+    (if (eof-object? str)
+        #f
+        str)))
 
 (define *primitives*
   `((list        ,list)
@@ -215,10 +206,11 @@
     (vals        ,_vals)
     (contains?   ,_contains?)
     (sequential? ,_sequential?)
-    (readline    ,_readline)
+    (readline    ,__readline)
     (meta        ,_meta)
     (with-meta   ,_with-meta)
     (atom        ,make-atom)
+    (atom?       ,atom?)
     (deref       ,atom-val)
     (reset!      ,atom-val-set!)
     (swap!       ,_swap!)

@@ -28,13 +28,13 @@
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
   (match ast
-    ((? _nil? obj) obj)
     ((? symbol? sym) (env-has sym env))
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
-     (hash-for-each (lambda (k v) (hash-set! ht k (_eval v))) ht)
-     ht)
+     ;; NOTE: we must allocate a new hashmap here to avoid any side-effects, or
+     ;;       there'll be strange bugs!!!
+     (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
     ((? thunk?) (unbox ast))
     (else ast)))
 
@@ -47,10 +47,12 @@
       (if (callable? f)
           f
           (and=> (env-check f env) is-func?))))
-  ;;(format #t "AAA: ~a~%" (EVAL (car ast) env))
+  ;;(if (eq? (car ast) 'atom) (format #t "FFF: ~a~%" (map _eval (cdr ast))))
   (cond
    ((func? (car ast))
     => (lambda (c)
+       ;;  (if (eq? (car ast) 'atom) (format #t "FFF: ~a~%"   (pr_str (map _eval (cdr ast)) #t)))
+;;(_macroexpand (callable-apply c (map _eval (cdr ast))) env)))
          (callable-apply c (map _eval (cdr ast)))))
    (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
@@ -70,8 +72,6 @@
   (cond
    ((is_macro_call ast env)
     => (lambda (c)
-         ;;(format #t "AAA: ~a, ~a~%" ast (_macroexpand (callable-apply c (cdr ast)) env))
-         ;;(format #t "BBB: ~a~%" (_macroexpand (callable-apply c (cdr ast)) env))
          ;; NOTE: Macros are normal-order, so we shouldn't eval args here.
          ;;       Or it's applicable-order.
          (_macroexpand (callable-apply c (cdr ast)) env)))
@@ -83,7 +83,8 @@
       (cond
        ;; NOTE: reverse is very important here!
        ((null? next) (values (reverse k) (reverse v)))
-       ((null? (cdr next)) (throw 'mal-error "let*: Invalid binding form" kvs)) 
+       ((null? (cdr next))
+        (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (define (_quasiquote obj)
     (match obj
@@ -92,6 +93,7 @@
       ((('splice-unquote unqsp) rest ...) `(concat ,unqsp ,(_quasiquote rest)))
       ((head rest ...) (list 'cons (_quasiquote head) (_quasiquote rest)))
       (else `(quote ,obj))))
+  ;;(format #t "EEE: ~a~%" ast)
   ;; NOTE: I wish I can use (while #t ...) for that, but this is not Lispy, which means
   ;;       it'll bring some trouble in control flow. We have to use continuations to return
   ;;       and use non-standard `break' feature. In a word, not elegant at all.
@@ -103,7 +105,7 @@
     ;;(format #t "CCC: ~a === ~a~%" ast (_macroexpand ast env))
     (let ((ast (_macroexpand ast env)))
       (match ast
-        ((? non-list?) (eval_ast ast env))
+        ((? non-list?) #;(if (hash-table? ast)(format #t "MMR: ~a~%" ast)) (eval_ast ast env))
         (('defmacro! k v)
          (let ((c (EVAL v env)))
            (callable-is_macro-set! c #t)
@@ -120,7 +122,8 @@
            (tco-loop body new-env)))
         (('do rest ...)
          (cond
-          ((null? rest) (throw 'mal-error "do: Invalid form!" rest))
+          ((null? rest)
+           (throw 'mal-error (format #f "do: Invalid form! '~a'" rest)))
           ((= 1 (length rest)) (tco-loop (car rest) env))
           (else
            (let ((mexpr (take rest (1- (length rest))))
@@ -131,7 +134,8 @@
          (cond
           ((and (not (null? els)) (not (null? (cdr els))))
            ;; Invalid `if' form
-           (throw 'mal-error "if: failed to match any pattern in form " ast))
+           (throw 'mal-error
+                  (format #f "if: failed to match any pattern in form '~a'" ast)))
           ((cond-true? (EVAL cnd env)) (tco-loop thn env))
           (else (if (null? els) nil (tco-loop (car els) env)))))
         (('fn* params body ...) ; function definition
@@ -139,7 +143,8 @@
           (lambda args
             (let ((nenv (make-Env #:outer env #:binds (->list params) #:exprs args)))
               (cond
-               ((null? body) (throw 'mal-error "fn*: bad lambda in form " ast))
+               ((null? body)
+                (throw 'mal-error (format #f "fn*: bad lambda in form '~a'" ast)))
                ((= 1 (length body)) (tco-loop (car body) nenv))
                (else
                 (let ((mexpr (take body (1- (length body))))
@@ -150,9 +155,13 @@
          (catch
           #t
           (lambda () (EVAL A env))
-          (lambda e
-            (let ((nenv (make-Env #:outer env #:binds (list B) #:exprs (cdr e))))
-              (EVAL C nenv)))))
+          (lambda (k . e)
+            (case k
+              ((mal-error)
+               (let ((nenv (make-Env #:outer env #:binds (list B) #:exprs e)))
+                 (EVAL C nenv)))
+              ;; TODO: add backtrace
+              (else (print-exception (current-output-port) #f k e))))))
         (else (eval_func ast env))))))
 
 (define (EVAL-string str)
@@ -167,12 +176,15 @@
 
 (define (REPL)
   (LOOP
-   (catch 'mal-error
+   (catch #t
           (lambda () (PRINT (EVAL (READ) *toplevel*)))
           (lambda (k . e)
-            (if (string=? (car e) "blank line")
-                (display "")
-                (format #t "Error: ~a~%" (car e)))))))
+            (case k
+              ((mal-error)
+               (if (string=? (car e) "blank line")
+                   (display "")
+                   (format #t "Error: ~a~%" (car e))))
+              (else (print-exception (current-output-port) #f k e)))))))
 
 ;; initialization
 ((*toplevel* 'set) 'eval (make-func (lambda (ast) (EVAL ast *toplevel*))))
@@ -182,5 +194,9 @@
 (EVAL-string "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (EVAL-string "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 (EVAL-string "(def! *host-language* \"guile\")")
-(EVAL-string "(println (str \"Mal [\" *host-language* \"]\"))")
-(REPL)
+(EVAL-string "(println (str \"Mal (\" *host-language* \")\"))")
+
+(let ((args (cdr (command-line))))
+  (if (> (length args) 0)
+      (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args)
+      (REPL)))

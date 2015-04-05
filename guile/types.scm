@@ -16,7 +16,7 @@
 (library (types)
   (export string-sub *eof* non-list?
           string->keyword _keyword?
-          nil _nil?
+          nil _nil? list->hash-map
           cond-true?
           make-atom atom? atom-val atom-val-set!
           make-callable callable? callable-is_macro
@@ -43,9 +43,11 @@
 (define (_keyword? k)
   (and (string? k) (if (string-match "^\u029e" k) #t #f)))
 
-(define nil 'nil)
+(define-record-type mal-nil)
 
-(define (_nil? obj) (eq? nil obj))
+(define nil (make-mal-nil))
+
+(define (_nil? obj) (mal-nil? obj))
 
 (define (cond-true? obj)
   (and (not (_nil? obj)) obj))
@@ -63,7 +65,7 @@
 
 (define (callable-apply c arglst)
   (define closure (callable-closure c))
-  ;;(format #t "ZZZ: ~a~%" `(apply ,closure ,arglst))
+  (define -> (if (callable-unbox c) unbox identity))
   (apply closure (if (callable-unbox c) (map unbox arglst) arglst)))
 
 (define (callable-check c b)
@@ -84,3 +86,19 @@
 (define (box o) (make-box o))
 (define (unbox o)
   (if (box? o) (box-val o) o))
+
+(define* (list->hash-map lst #:optional (ht (make-hash-table)))
+  (cond
+   ((null? lst) ht)
+   (else
+    (let lp((next lst))
+      (cond
+       ((null? next) ht)
+       (else
+        (when (null? (cdr next))
+          (throw 'mal-error
+                 (format #f "hash-map: '~a' lack of value" (car next))))
+        (let ((k (car next))
+              (v (cadr next)))
+          (hash-set! ht k v)
+          (lp (cddr next)))))))))

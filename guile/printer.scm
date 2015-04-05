@@ -54,7 +54,7 @@
     ;;((? number?) (format #f "~a" obj))
     ;;((? symbol?) (format #f "~a" obj))
     ((? atom?) (format #f "(atom ~a)" (%pr_str (atom-val obj))))
-    ;;((? _nil?) (format #f "~a" nil))
+    ((? _nil?) "nil")
     (#t "true")
     (#f "false")
     (else (format #f "~a" obj))))

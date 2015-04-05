@@ -31,13 +31,7 @@
 
 (define* (make-Env #:key (outer nil) (binds '()) (exprs '()))
   (define _env (make-hash-table))
-  (define (_set k v)
-    (let ((v0 (_get k)))
-      ;;(format #t "ZZZ: ~a~%" v0)
-      ;;(or (equal? v0 '*mal-null*)
-      ;;    (format #t "side-effect! ~a:~a -> ~a~%"
-      ;;            k v0 v))
-      (hash-set! _env k v)))
+  (define (_set k v) (hash-set! _env k v))
   (define (_get k)
     (let ((v (hash-ref _env k '*mal-null*)))
       (if (equal? v '*mal-null*)
@@ -56,7 +50,7 @@
      ((eq? (car b) '&) (hash-set! _env (cadr b) e)) ; handle varglist
      (else ; normal binding
       (when (not (symbol? (car b)))
-        (throw 'mal-error "Invalid binding key!" (car b)))
+        (throw 'mal-error (format #f "Invalid binding key! '~a'" (car b))))
       (when (null? e)
         (throw 'mal-error "Invalid pattern for this macro"))
       (hash-set! _env (car b) (car e))
@@ -67,4 +61,4 @@
       ((find) _find)
       ((get) _get)
       ((show) _show)
-      (else (throw 'mal-error "BUG: Invalid cmd" cmd)))))
+      (else (throw 'mal-error (format #f "BUG: Invalid cmd '~a'" cmd))))))
