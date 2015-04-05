@@ -1,4 +1,4 @@
-PROGS=step0_repl step1_read_print step2_eval
+PROGS=step0_repl step1_read_print step2_eval step3_env
 
 all:	${PROGS}
 
@@ -13,6 +13,10 @@ step1_read_print:	step1_read_print.adb types.ad[bs] reader.ad[bs] \
 step2_eval:	step2_eval.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
 		smart_pointers.ad[bs] envs.ad[bs] evaluation.ad[bs]
 	gnatmake -g -P$@
+
+step3_env:	step3_env.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
+		smart_pointers.ad[bs] envs.ad[bs] evaluation.ad[bs]
+	gnatmake -g -gnata -P$@
 
 clean:
 	rm -f obj/* ${PROGS}

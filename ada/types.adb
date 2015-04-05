@@ -178,7 +178,7 @@ package body Types is
 
    function Deref_Atom (S : Mal_Handle) return Atom_Ptr is
    begin
-      return Atom_Ptr (Smart_Pointers.Deref (S));
+      return Atom_Ptr (Deref (S));
    end Deref_Atom;
 
    overriding function To_Str (T : Atom_Mal_Type) return Mal_String is
@@ -329,6 +329,26 @@ package body Types is
       end if;
    end Append;
 
+   function Node_Length (L : Mal_Handle) return Natural is
+      Right  : Mal_Handle;
+   begin
+      if Is_Null (L) then
+         return 0;
+      else
+         Right := Deref_Node (L).Right;
+         if Is_Null (Right) then
+            -- Its a node; there must be something in the Left, right? ;)
+            return 1;
+         elsif Deref (Right).Sym_Type = Node then
+            -- Right is a node so recurse but +1 for the Left just passed.
+            return Node_Length (Right) + 1;
+         else
+            -- Right is not null but not node.
+            return 2;
+         end if;
+      end if;
+   end Node_Length;
+
    -- Get the first item in the list:
    function Car (L : List_Mal_Type) return Mal_Handle is
    begin
@@ -341,10 +361,11 @@ package body Types is
    
    
    -- Get the rest of the list (second item onwards)
-   function Cdr (L : List_Mal_Type) return List_Mal_Type is
+   function Cdr (L : List_Mal_Type) return Mal_Handle is
    begin
-      if Is_Null (L.The_List) then
-         return L;
+      if Is_Null (L.The_List) or else
+         Is_Null (Deref_Node (L.The_List).Right) then
+         return New_List_Mal_Type (L.List_Type);
       end if;
       declare
          Node_P : Node_Ptr;
@@ -353,9 +374,21 @@ package body Types is
          -- Clojure lists are constants?
          -- If not, need to copy P.Right to a new list...
          -- Or maybe we copy on write?
-         return Deref_List (New_List_Mal_Type (L.List_Type, Node_P.Right)).all;
+         if Deref (Node_P.Right).Sym_Type = Node then
+            return New_List_Mal_Type (L.List_Type, Node_P.Right);
+         else
+            -- Right is not a Node! We'd better make one.
+            return New_List_Mal_Type
+                     (L.List_Type,
+                      New_Node_Mal_Type (Left => Node_P.Right));
+         end if;
       end;
    end Cdr;
+
+   function Length (L : List_Mal_Type) return Natural is
+   begin
+      return Node_Length (L.The_List);
+   end Length;
 
    function Null_List (L : List_Types) return List_Mal_Type is
    begin

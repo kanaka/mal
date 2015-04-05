@@ -156,11 +156,13 @@ package Types is
 
    procedure Append (To_List : in out List_Mal_Type; Op : Mal_Handle);
 
+   function Length (L : List_Mal_Type) return Natural;
+
    -- Get the first item in the list:
    function Car (L : List_Mal_Type) return Mal_Handle;
 
    -- Get the rest of the list (second item onwards)
-   function Cdr (L : List_Mal_Type) return List_Mal_Type;
+   function Cdr (L : List_Mal_Type) return Mal_Handle;
 
    type Func_Access is access
      function (Elem : Mal_Handle)

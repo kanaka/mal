@@ -70,7 +70,7 @@ package body Reader is
    Body_Chars : Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps."or"
        (Ada.Strings.Maps.Constants.Alphanumeric_Set,
-        Ada.Strings.Maps.To_Set ("-!"));
+        Ada.Strings.Maps.To_Set ("-!*"));
 
    Atom_Recognizer  : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get

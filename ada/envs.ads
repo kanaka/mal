@@ -33,11 +33,14 @@ private
       Equivalent_Keys => Ada.Strings.Unbounded."=",
       "="             => Smart_Pointers."=");
 
-   type Environment is record
-      The_Map : String_Mal_Hash.Map;
-   end record;
+   type Environment;
 
    type Env_Ptr is access Environment;
+
+   type Environment is record
+      The_Map : String_Mal_Hash.Map;
+      Prev_Env : Env_Ptr;
+   end record;
 
    Current : Env_Ptr;
 
