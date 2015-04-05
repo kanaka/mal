@@ -63,7 +63,9 @@ module Env
               wrap "pr-str" Core.pr_str;
               wrap "str" Core.str;
               wrap "prn" Core.prn;
-              wrap "println" Core.println ]
+              wrap "println" Core.println;
+              wrap "read-string" Core.read_str;
+              wrap "slurp" Core.slurp ]
             |> ofList
         [ env ]
 

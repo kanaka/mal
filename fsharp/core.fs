@@ -48,3 +48,16 @@ module Core
     let str nodes = nodes |> Printer.str |> String
     let prn nodes = nodes |> Printer.prn |> printfn "%s"; Nil
     let println nodes = nodes |> Printer.println |> printfn "%s"; Nil
+
+    let read_str = function
+        | [String(s)] ->
+            match Reader.read_str s with
+            | [node] -> node
+            | nodes -> List(Symbol("do")::nodes)
+        | [_] -> raise <| errArgMismatch ()
+        | _ -> raise <| errArity ()
+
+    let slurp = function
+        | [String(s)] -> System.IO.File.ReadAllText s |> String
+        | [_] -> raise <| errArgMismatch ()
+        | _ -> raise <| errArity ()
