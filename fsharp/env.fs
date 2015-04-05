@@ -2,9 +2,6 @@ module Env
 
     open Types
 
-    type Env = System.Collections.Generic.Dictionary<string, Node>
-    type EnvChain = Env list
-
     let errSymbolNotFound s = EvalError(sprintf "'%s' not found" s)
     let errNoEnvironment () = EvalError("no environment")
     let errTooManyValues () = EvalError("too many values")
@@ -37,13 +34,18 @@ module Env
         | Some(v) -> v
         | None -> raise <| errSymbolNotFound key
 
-    let makeFunc =
+    let private getNextValue =
         let counter = ref 0
-        let getNext () = System.Threading.Interlocked.Increment(counter)
-        fun f -> Func(getNext (), f)
+        fun () -> System.Threading.Interlocked.Increment(counter)
+
+    let makeBuiltInFunc f =
+        Func(getNextValue (), f, NIL, [], [])
+
+    let makeFunc f body binds env =
+        Func(getNextValue (), f, body, binds, env)
 
     let makeRootEnv () =
-        let wrap name f = name, makeFunc f
+        let wrap name f = name, makeBuiltInFunc f
         let env =
             [ wrap "+" Core.add;
               wrap "-" Core.subtract;

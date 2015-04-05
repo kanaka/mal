@@ -14,9 +14,9 @@ TERMINAL_SOURCES = terminal.cs
 #####################
 
 SRCS = step0_repl.fs step1_read_print.fs step2_eval.fs step3_env.fs \
-       step4_if_fn_do.fs
+       step4_if_fn_do.fs step5_tco.fs
 
-FSFLAGS = $(if $(strip $(DEBUG)),--debug+,)
+FSFLAGS = $(if $(strip $(DEBUG)),--debug+,--debug- --optimize+ --tailcalls+)
 CSFLAGS = $(if $(strip $(DEBUG)),-debug+,)
 #####################
 

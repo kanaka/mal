@@ -41,15 +41,15 @@ module Eval
         let form = eval env second
         Env.set env s form
 
-    and letStarForm env = function
+    and letStarForm outer = function
         | [bindings; form] ->
-            let newEnv = Env.makeNew env [] []
-            let binder = setBinding newEnv
+            let inner = Env.makeNew outer [] []
+            let binder = setBinding inner
             match bindings with
             | List(lst) -> lst |> iterPairs binder
             | Vector(vec) -> vec |> iterPairs binder
             | _ -> raise <| errExpected "list or vector"
-            eval newEnv form
+            inner, form
         | _ -> raise <| Core.errArity ()
 
     and ifForm env = function
@@ -59,11 +59,11 @@ module Eval
 
     and ifForm3 env condForm trueForm falseForm =
         match eval env condForm with
-        | Bool(false) | Nil -> eval env falseForm
-        | _ -> eval env trueForm
+        | Bool(false) | Nil -> falseForm
+        | _ -> trueForm
 
     and doForm env = function
-        | [a] -> eval env a
+        | [a] -> a
         | a::rest ->
             eval env a |> ignore
             doForm env rest
@@ -71,9 +71,10 @@ module Eval
 
     and fnStarForm outer nodes =
         let makeFunc binds body =
-            Env.makeFunc (fun nodes ->
-                let inner = Env.makeNew outer binds nodes
-                eval inner body)
+            let f = fun nodes ->
+                        let inner = Env.makeNew outer binds nodes
+                        eval inner body
+            Env.makeFunc f body binds outer
 
         match nodes with
         | [List(binds); body] -> makeFunc binds body
@@ -83,13 +84,18 @@ module Eval
 
     and eval env = function
         | List(Symbol("def!")::rest) -> defBangForm env rest
-        | List(Symbol("let*")::rest) -> letStarForm env rest
-        | List(Symbol("if")::rest) -> ifForm env rest
-        | List(Symbol("do")::rest) -> doForm env rest
+        | List(Symbol("let*")::rest) -> 
+            let inner, form = letStarForm env rest
+            form |> eval inner
+        | List(Symbol("if")::rest) -> ifForm env rest |> eval env
+        | List(Symbol("do")::rest) -> doForm env rest |> eval env
         | List(Symbol("fn*")::rest) -> fnStarForm env rest
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
-            | List(Func(_, f)::rest) -> f rest
+            | List(Func(_, f, _, _, [])::rest) -> f rest
+            | List(Func(_, _, body, binds, outer)::rest) ->
+                let inner = Env.makeNew outer binds rest
+                body |> eval inner
             | _ -> raise <| errExpected "function"
         | node -> node |> eval_ast env

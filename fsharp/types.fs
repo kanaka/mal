@@ -14,7 +14,7 @@ module Types
         | Number of int64
         | String of string
         | Bool of bool
-        | Func of int * (Node list -> Node)
+        | Func of int * (Node list -> Node) * Node * Node list * EnvChain
 
         static member private hashSeq (s : seq<Node>) =
             let iter st node = (st * 397) ^^^ node.GetHashCode()
@@ -59,7 +59,7 @@ module Types
             | Number(_) -> 6
             | String(_) -> 7
             | Bool(_) -> 8
-            | Func(_, _) -> 9
+            | Func(_, _, _, _, _) -> 9
 
         static member private equals x y =
             match x, y with
@@ -74,7 +74,7 @@ module Types
             | Number(a), Number(b) -> a = b
             | String(a), String(b) -> a = b
             | Bool(a), Bool(b) -> a = b
-            | Func(a, _), Func(b, _) -> a = b
+            | Func(a, _, _, _, _), Func(b, _, _, _, _) -> a = b
             | _, _ -> false
 
         static member private compare x y =
@@ -90,7 +90,7 @@ module Types
             | Number(a), Number(b) -> compare a b
             | String(a), String(b) -> compare a b
             | Bool(a), Bool(b) -> compare a b
-            | Func(a, _), Func(b, _) -> compare a b
+            | Func(a, _, _, _, _), Func(b, _, _, _, _) -> compare a b
             | a, b -> compare (Node.rank a) (Node.rank b)
 
         override x.Equals yobj =
@@ -109,13 +109,16 @@ module Types
             | Number(num) -> hash num
             | String(str) -> hash str
             | Bool(b) -> hash b
-            | Func(tag, _) -> hash tag
+            | Func(tag, _, _, _, _) -> hash tag
 
         interface System.IComparable with
             member x.CompareTo yobj =
                 match yobj with
                 | :? Node as y -> Node.compare x y
                 | _ -> invalidArg "yobj" "Cannot compare values of different types."
+
+    and Env = System.Collections.Generic.Dictionary<string, Node>
+    and EnvChain = Env list
 
     let TRUE = Bool(true)
     let SomeTRUE = Some(TRUE)
