@@ -82,48 +82,47 @@ func READ(str: String) -> MalVal {
 // the object unchanged.
 //
 func eval_ast(ast: MalVal, env: Environment) -> MalVal {
-    if is_symbol(ast) {
-        let symbol = ast as MalSymbol
-        if let val = env.get(symbol) {
-            return val
-        }
-        return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
+    switch ast.type {
+        case .TypeSymbol:
+            let symbol = ast as MalSymbol
+            if let val = env.get(symbol) {
+                return val
+            }
+            return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
+        case .TypeList:
+            let list = ast as MalList
+            var result = [MalVal]()
+            result.reserveCapacity(list.count)
+            for item in list {
+                let eval = EVAL(item, env)
+                if is_error(eval) { return eval }
+                result.append(eval)
+            }
+            return MalList(array: result)
+        case .TypeVector:
+            let vec = ast as MalVector
+            var result = [MalVal]()
+            result.reserveCapacity(vec.count)
+            for item in vec {
+                let eval = EVAL(item, env)
+                if is_error(eval) { return eval }
+                result.append(eval)
+            }
+            return MalVector(array: result)
+        case .TypeHashMap:
+            let hash = ast as MalHashMap
+            var result = [MalVal]()
+            result.reserveCapacity(hash.count * 2)
+            for (k, v) in hash {
+                let new_v = EVAL(v, env)
+                if is_error(new_v) { return new_v }
+                result.append(k)
+                result.append(new_v)
+            }
+            return MalHashMap(array: result)
+        default:
+            return ast
     }
-    if is_list(ast) {
-        let list = ast as MalList
-        var result = [MalVal]()
-        result.reserveCapacity(list.count)
-        for item in list {
-            let eval = EVAL(item, env)
-            if is_error(eval) { return eval }
-            result.append(eval)
-        }
-        return MalList(array: result)
-    }
-    if is_vector(ast) {
-        let vec = ast as MalVector
-        var result = [MalVal]()
-        result.reserveCapacity(vec.count)
-        for item in vec {
-            let eval = EVAL(item, env)
-            if is_error(eval) { return eval }
-            result.append(eval)
-        }
-        return MalVector(array: result)
-    }
-    if is_hashmap(ast) {
-        let hash = ast as MalHashMap
-        var result = [MalVal]()
-        result.reserveCapacity(hash.count * 2)
-        for (k, v) in hash {
-            let new_v = EVAL(v, env)
-            if is_error(new_v) { return new_v }
-            result.append(k)
-            result.append(new_v)
-        }
-        return MalHashMap(array: result)
-    }
-    return ast
 }
 
 enum TCOVal {
