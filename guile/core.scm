@@ -67,7 +67,6 @@
 
 (define (_first lst)
   (define ll (->list lst))
-  ;;(format #t "FFF: ~a, ~a~%" ll (if (not (null? ll)) (car ll) ll))
   (if (null? ll)
       nil
       (car ll)))
@@ -82,7 +81,7 @@
 
 (define (_apply f . args)
   (define ll
-    (let lp((next (->list args)) (ret '()))
+    (let lp((next args) (ret '()))
       (cond
        ((null? next) (reverse ret))
        (else
@@ -90,7 +89,16 @@
           (lp (cdr next) (if (list? n)
                              (append (reverse n) ret)
                              (cons n ret))))))))
-    (apply (callable-closure f) ll))
+  (define (unbox-all args)
+    (if (list? args)
+        (map (lambda (x)
+               (let ((xx (unbox x)))
+                 (if (list? xx)
+                     (map unbox-all xx)
+                     xx)))
+             (unbox args))
+        (unbox args)))
+  (apply (callable-closure f) (if (callable-unbox f) (map unbox-all ll) ll)))
 
 (define (->symbol x)
   ((if (symbol? x) identity string->symbol) x))
@@ -127,7 +135,9 @@
 (define (_meta c)
   (if (callable? c)
       (callable-meta-info c)
-      (or (object-property c 'meta) nil)))
+      (begin
+        ;;(format #t "MMM: ~a~%" c)
+        (or (object-property c 'meta) nil))))
 
 (define (_with-meta c ht)
   (cond

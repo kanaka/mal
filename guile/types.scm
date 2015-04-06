@@ -64,9 +64,7 @@
 (define (make-func closure) (make-callable nil #t #f closure))
 
 (define (callable-apply c arglst)
-  (define closure (callable-closure c))
-  (define -> (if (callable-unbox c) unbox identity))
-  (apply closure (if (callable-unbox c) (map unbox arglst) arglst)))
+  (apply (callable-closure c) (if (callable-unbox c) (map unbox arglst) arglst)))
 
 (define (callable-check c b)
   (and (callable? c)

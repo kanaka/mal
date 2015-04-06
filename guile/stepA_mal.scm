@@ -19,6 +19,9 @@
 (define *toplevel*
   (receive (b e) (unzip2 core.ns)
     (let ((env (make-Env #:binds b #:exprs (map (lambda (x) (make-func x)) e))))
+      ;; `meta' primitive is the only exception needn't to unbox
+      ;; This is a trick to implement meta-info taking advange of the original
+      ;; types of Guile as possible.
       (callable-unbox-set! ((env 'get) 'meta) #f)
       env)))
 
@@ -50,8 +53,6 @@
   (cond
    ((func? (car ast))
     => (lambda (c)
-         ;;(if (eq? (car ast) 'not) (format #t "AAA: ~a~%" ast))
-
          (callable-apply c (map _eval (cdr ast)))))
    (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
