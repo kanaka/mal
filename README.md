@@ -139,11 +139,15 @@ coffee ./stepX_YYY
 
 ### Erlang
 
-Requires [rebar](https://github.com/rebar/rebar) to build.
+*The Erlang implementation was created by [Nathan Fiedler (nlfiedler)](https://github.com/nlfiedler)*
+
+The Erlang implementation of mal requires [Erlang/OTP R17](http://www.erlang.org/download.html) and [rebar](https://github.com/rebar/rebar) to build.
 
 ```
 cd erlang
-MAL_STEP=stepX_YYY rebar compile escriptize
+make
+    # OR
+MAL_STEP=stepX_YYY rebar compile escriptize # build individual step
 ./stepX_YYY
 ```
 
