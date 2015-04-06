@@ -174,6 +174,11 @@
 (define (_deref x) (atom-val x))
 (define (_reset! x v) (atom-val-set! x v))
 
+(define (time-ms)
+  (let ((t (gettimeofday)))
+    (round
+     (+ (* (car t) 1000.0) (/ (cdr t) 1000.0) 0.5))))
+
 (define *primitives*
   `((list        ,list)
     (list?       ,list?)
@@ -229,7 +234,7 @@
     (reset!      ,_reset!)
     (swap!       ,_swap!)
     (conj        ,_conj)
-    (time-ms     ,current-time)))
+    (time-ms     ,time-ms)))
 
 ;; Well, we have to rename it to this strange name...
 (define core.ns *primitives*)

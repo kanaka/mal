@@ -199,8 +199,8 @@
 (let ((args (cdr (command-line))))
   (cond
    ((> (length args) 0)
-    (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args))
+    ((*toplevel* 'set) '*ARGV* (cdr args))
+    (EVAL-string (string-append "(load-file \"" (car args) "\")")))
    (else
-    ((*toplevel* 'set) '*ARGV* args)
     (EVAL-string "(println (str \"Mal (\" *host-language* \")\"))")
     (REPL))))

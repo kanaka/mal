@@ -132,7 +132,6 @@
 (let ((args (cdr (command-line))))
   (cond
    ((> (length args) 0)
-    (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args))
-   (else
-    ((*toplevel* 'set) '*ARGV* args)
-    (REPL))))
+    ((*toplevel* 'set) '*ARGV* (cdr args))
+    (EVAL-string (string-append "(load-file \"" (car args) "\")")))
+   (else (REPL))))
