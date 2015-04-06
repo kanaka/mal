@@ -22,6 +22,7 @@ Mal is implemented in 32 different languages:
 * Julia
 * Lua
 * GNU Make
+* GNU Guile
 * mal itself
 * MATLAB
 * [miniMAL](https://github.com/kanaka/miniMAL)
@@ -170,6 +171,14 @@ FACTOR_ROOTS=src factor -run=stepX_YYY
 ```
 cd forth
 gforth stepX_YYY.fs
+```
+
+### GNU Guile 2.1+
+Guile implementation was created by @NalaGinrut.
+
+```
+cd guile
+guile -L ./ stepX_YYY.scm
 ```
 
 ### Go
