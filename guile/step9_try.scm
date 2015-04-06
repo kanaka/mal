@@ -172,4 +172,9 @@
 (EVAL-string "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (EVAL-string "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (EVAL-string "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
-(REPL)
+
+(let ((args (cdr (command-line))))
+  ((*toplevel* 'set) '*ARGV* args)
+  (if (> (length args) 0)
+      (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args)
+      (REPL)))

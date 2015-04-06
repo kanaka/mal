@@ -129,4 +129,8 @@
 ((*toplevel* 'set) '*ARGV* '())
 (EVAL-string "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
-(REPL)
+(let ((args (cdr (command-line))))
+  ((*toplevel* 'set) '*ARGV* args)
+  (if (> (length args) 0)
+      (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args)
+      (REPL)))

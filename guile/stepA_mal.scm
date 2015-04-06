@@ -197,6 +197,7 @@
 (EVAL-string "(def! *host-language* \"guile\")")
 
 (let ((args (cdr (command-line))))
+  ((*toplevel* 'set) '*ARGV* args)
   (if (> (length args) 0)
       (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args)
       (begin
