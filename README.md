@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 32 different languages:
+Mal is implemented in 33 different languages:
 
 * Bash shell
 * C
@@ -16,13 +16,13 @@ Mal is implemented in 32 different languages:
 * Factor
 * Forth
 * Go
+* GNU Guile
 * Haskell
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
 * Lua
 * GNU Make
-* GNU Guile
 * mal itself
 * MATLAB
 * [miniMAL](https://github.com/kanaka/miniMAL)
@@ -174,7 +174,8 @@ gforth stepX_YYY.fs
 ```
 
 ### GNU Guile 2.1+
-Guile implementation was created by @NalaGinrut.
+
+*The Guile implementation was created by @NalaGinrut.*
 
 ```
 cd guile
