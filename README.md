@@ -175,7 +175,7 @@ gforth stepX_YYY.fs
 
 ### GNU Guile 2.1+
 
-*The Guile implementation was created by @NalaGinrut.*
+*The Guile implementation was created by [Mu Lei (NalaGinrut)](https://github.com/NalaGinrut).*
 
 ```
 cd guile
