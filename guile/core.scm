@@ -228,7 +228,8 @@
     (deref       ,_deref)
     (reset!      ,_reset!)
     (swap!       ,_swap!)
-    (conj        ,_conj)))
+    (conj        ,_conj)
+    (time-ms     ,current-time)))
 
 ;; Well, we have to rename it to this strange name...
 (define core.ns *primitives*)

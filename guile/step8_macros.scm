@@ -162,7 +162,9 @@
 (EVAL-string "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
 (let ((args (cdr (command-line))))
-  ((*toplevel* 'set) '*ARGV* args)
-  (if (> (length args) 0)
-      (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args)
-      (REPL)))
+  (cond
+   ((> (length args) 0)
+    (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args))
+   (else
+    ((*toplevel* 'set) '*ARGV* args)
+    (REPL))))
