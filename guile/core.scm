@@ -126,9 +126,7 @@
 (define (_meta c)
   (if (callable? c)
       (callable-meta-info c)
-      (begin
-        ;;(format #t "MMM: ~a~%" c)
-        (or (object-property c 'meta) nil))))
+      (or (object-property c 'meta) nil)))
 
 (define (_with-meta c ht)
   (cond
@@ -140,7 +138,7 @@
       cc))
    (else
     (let ((cc (box c)))
-          (set-object-property! cc 'meta ht)
+      (set-object-property! cc 'meta ht)
       cc))))
 
 ;; Apply closure 'c' with atom-val as one of arguments, then
@@ -166,6 +164,15 @@
         str)))
 
 (define (_not o) (or (_nil? o) (not o)))
+
+(define (_true? x) (eq? x #t))
+(define (_false? x) (eq? x #f))
+
+;; We need regular named procedure for better debug
+(define (_atom x) (make-atom x))
+(define (_atom? x) (atom? x))
+(define (_deref x) (atom-val x))
+(define (_reset! x v) (atom-val-set! x v))
 
 (define *primitives*
   `((list        ,list)
@@ -196,8 +203,8 @@
     (map         ,_map)
     (apply       ,_apply)
     (nil?        ,_nil?)
-    (true?       ,(lambda (x) (eq? x #t)))
-    (false?      ,(lambda (x) (eq? x #f)))
+    (true?       ,_true?)
+    (false?      ,_false?)
     (symbol?     ,symbol?)
     (symbol      ,->symbol)
     (keyword     ,->keyword)
@@ -216,10 +223,10 @@
     (readline    ,__readline)
     (meta        ,_meta)
     (with-meta   ,_with-meta)
-    (atom        ,make-atom)
-    (atom?       ,atom?)
-    (deref       ,atom-val)
-    (reset!      ,atom-val-set!)
+    (atom        ,_atom)
+    (atom?       ,_atom?)
+    (deref       ,_deref)
+    (reset!      ,_reset!)
     (swap!       ,_swap!)
     (conj        ,_conj)))
 

@@ -17,7 +17,7 @@
   (export string-sub *eof* non-list?
           string->keyword _keyword?
           nil _nil? list->hash-map
-          cond-true?
+          cond-true? make-anonymous-func
           make-atom atom? atom-val atom-val-set!
           make-callable callable? callable-is_macro
           callable-is_macro-set! callable-closure
@@ -25,7 +25,7 @@
           callable-unbox-set! callable-unbox
           callable-meta-info hash-table-clone
           box? box unbox)
-  (import (guile) (rnrs) (ice-9 regex) (ice-9 session)))
+  (import (guile) (only (rnrs) define-record-type) (ice-9 regex) (ice-9 session)))
 
 (define (non-list? x) (not (list? x)))
 
@@ -62,6 +62,7 @@
    closure))
 
 (define (make-func closure) (make-callable nil #t #f closure))
+(define (make-anonymous-func closure) (make-callable nil #f #f closure))
 
 (define (callable-apply c arglst)
   (apply (callable-closure c) (if (callable-unbox c) (map unbox arglst) arglst)))

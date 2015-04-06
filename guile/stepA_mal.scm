@@ -16,13 +16,17 @@
 (import (readline) (reader) (printer) (ice-9 match) (srfi srfi-43)
         (srfi srfi-1) (ice-9 receive) (env) (core) (types))
 
+;; Primitives which doesn't unbox args in default.
+;; This is a trick to implement meta-info taking advange of the original
+;; types of Guile as possible.
+(define *unbox-exception* '(meta assoc swap!))
+
 (define *toplevel*
   (receive (b e) (unzip2 core.ns)
     (let ((env (make-Env #:binds b #:exprs (map (lambda (x) (make-func x)) e))))
-      ;; `meta' primitive is the only exception needn't to unbox
-      ;; This is a trick to implement meta-info taking advange of the original
-      ;; types of Guile as possible.
-      (callable-unbox-set! ((env 'get) 'meta) #f)
+      (for-each (lambda (f)
+                  (callable-unbox-set! ((env 'get) f) #f))
+                *unbox-exception*)
       env)))
 
 (define (READ)
@@ -38,7 +42,6 @@
      ;; NOTE: we must allocate a new hashmap here to avoid any side-effects, or
      ;;       there'll be strange bugs!!!
      (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
-    ((? thunk?) (unbox ast))
     (else ast)))
 
 (define (eval_func ast env)
@@ -137,7 +140,7 @@
           ((cond-true? (EVAL cnd env)) (tco-loop thn env))
           (else (if (null? els) nil (tco-loop (car els) env)))))
         (('fn* params body ...) ; function definition
-         (make-func
+         (make-anonymous-func
           (lambda args
             (let ((nenv (make-Env #:outer env #:binds (->list params) #:exprs args)))
               (cond
@@ -192,9 +195,10 @@
 (EVAL-string "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (EVAL-string "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 (EVAL-string "(def! *host-language* \"guile\")")
-(EVAL-string "(println (str \"Mal (\" *host-language* \")\"))")
 
 (let ((args (cdr (command-line))))
   (if (> (length args) 0)
       (for-each (lambda (f) (EVAL-string (string-append "(load-file \"" f "\")"))) args)
-      (REPL)))
+      (begin
+        (EVAL-string "(println (str \"Mal (\" *host-language* \")\"))")
+        (REPL))))
