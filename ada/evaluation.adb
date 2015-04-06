@@ -45,24 +45,23 @@ package body Evaluation is
 
       case Deref (Func).Sym_Type is
 
-         when Sym =>
+         when Atom =>
 
             declare
-               Sym_P : Types.Sym_Ptr;
+               Atom_P : Types.Atom_Ptr;
             begin
-               Sym_P := Types.Deref_Sym (Func);
-               case Sym_P.all.Symbol is
-                  when '+' => return Reduce ("+"'Access, Args);
-                  when '-' => return Reduce ("-"'Access, Args);
-                  when '*' => return Reduce ("*"'Access, Args);
-                  when '/' => return Reduce ("/"'Access, Args);
-                  when others => null;
-               end case;
+               Atom_P := Types.Deref_Atom (Func);
+               if Atom_P.Get_Atom = "+" then
+                  return Reduce ("+"'Access, Args);
+               elsif Atom_P.Get_Atom = "-" then
+                  return Reduce ("-"'Access, Args);
+               elsif Atom_P.Get_Atom = "*" then
+                  return Reduce ("*"'Access, Args);
+               elsif Atom_P.Get_Atom = "/" then
+                  return Reduce ("/"'Access, Args);
+               end if;
            end;
 
---         when Atom =>
-
-                
          when Error => return Func;
 
          when others => null;
@@ -108,17 +107,6 @@ package body Evaluation is
    begin
 
       case Deref (Ast).Sym_Type is
-
-         when Sym =>
-
-            declare
-              Sym : Mal_String (1..1) := Deref_Sym (Ast).Symbol & "";
-            begin
-               return Envs.Get (Sym);
-            exception
-               when Envs.Not_Found =>
-                  return New_Error_Mal_Type ("'" &  Sym & "' not found");
-            end;
 
          when Atom =>
 

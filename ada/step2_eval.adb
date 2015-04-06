@@ -45,10 +45,10 @@ begin
 
    Envs.New_Env;
 
-   Envs.Set ("+", Types.New_Sym_Mal_Type ('+'));
-   Envs.Set ("-", Types.New_Sym_Mal_Type ('-'));
-   Envs.Set ("*", Types.New_Sym_Mal_Type ('*'));
-   Envs.Set ("/", Types.New_Sym_Mal_Type ('/'));
+   Envs.Set ("+", Types.New_Atom_Mal_Type ("+"));
+   Envs.Set ("-", Types.New_Atom_Mal_Type ("-"));
+   Envs.Set ("*", Types.New_Atom_Mal_Type ("*"));
+   Envs.Set ("/", Types.New_Atom_Mal_Type ("/"));
 
    loop
       Ada.Text_IO.Put ("user> ");

@@ -147,7 +147,7 @@ package body Reader is
             Res := New_Float_Mal_Type
               (Floating => Mal_Float'Value (Get_Token_String));
          when Sym =>
-            Res := New_Sym_Mal_Type (Sym => Get_Token_Char);
+            Res := New_Atom_Mal_Type (Str => Get_Token_Char & "");
          when Nil =>
             Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when True_Tok =>
@@ -208,7 +208,7 @@ package body Reader is
       use Types;
       List_SP, MTA : Mal_Handle;
       List_P : List_Ptr;
-      Close : Character := Types.Closing (LT);
+      Close : String (1..1) := (1 => Types.Closing (LT));
 
    begin
 
@@ -220,8 +220,8 @@ package body Reader is
       loop
          MTA := Read_Form;
          exit when Is_Null (MTA) or else
-                   (Deref (MTA).Sym_Type = Sym and then
-                    Sym_Mal_Type (Deref (MTA).all).Symbol = Close);
+                   (Deref (MTA).Sym_Type = Atom and then
+                    Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close);
          Append (List_P.all, MTA);
       end loop;
       return List_SP;
@@ -239,7 +239,6 @@ package body Reader is
    function Read_Form return Types.Mal_Handle is
       use Types;
       MTS : Mal_Handle;
-      Symbol : Character;
    begin
 
       MTS := Get_Token;
@@ -248,40 +247,43 @@ package body Reader is
          return Smart_Pointers.Null_Smart_Pointer;
       end if;
 
-      if Deref (MTS).Sym_Type = Sym then
+      if Deref (MTS).Sym_Type = Atom then
 
-         Symbol := Sym_Mal_Type (Deref (MTS).all).Symbol;
-         -- Listy things and quoting...
-         if Symbol = '(' then
-            return Read_List (List_List);
-         elsif Symbol = '[' then
-            return Read_List (Vector_List);
-         elsif Symbol = '{' then
-            return Read_List (Hashed_List);
-         elsif Symbol = '^' then
-            declare
-               Meta, Obj : Mal_Handle;
-            begin
-               Meta := Read_Form;
-               Obj := Read_Form;
+         declare
+            Symbol : String := Atom_Mal_Type (Deref (MTS).all).Get_Atom;
+         begin
+            -- Listy things and quoting...
+            if Symbol = "(" then
+               return Read_List (List_List);
+            elsif Symbol = "[" then
+               return Read_List (Vector_List);
+            elsif Symbol = "{" then
+               return Read_List (Hashed_List);
+            elsif Symbol = "^" then
                declare
-                  MT : Mal_Ptr := Deref (Obj);
+                  Meta, Obj : Mal_Handle;
                begin
-                  Set_Meta (MT.all, Meta);
+                  Meta := Read_Form;
+                  Obj := Read_Form;
+                  declare
+                     MT : Mal_Ptr := Deref (Obj);
+                  begin
+                     Set_Meta (MT.all, Meta);
+                  end;
+                  return Obj;
                end;
-               return Obj;
-            end;
-         elsif Symbol = ACL.Apostrophe then
-            return New_Unitary_Mal_Type (Func => Quote, Op => Read_Form);
-         elsif Symbol = ACL.Grave then
-            return New_Unitary_Mal_Type (Func => Quasiquote, Op => Read_Form);
-         elsif Symbol = ACL.Tilde then
-            return New_Unitary_Mal_Type (Func => Unquote, Op => Read_Form);
-         elsif Symbol = ACL.Commercial_At then
-            return New_Unitary_Mal_Type (Func => Deref, Op => Read_Form);
-         else
-            return MTS;
-         end if;
+            elsif Symbol = ACL.Apostrophe & "" then
+               return New_Unitary_Mal_Type (Func => Quote, Op => Read_Form);
+            elsif Symbol = ACL.Grave & "" then
+               return New_Unitary_Mal_Type (Func => Quasiquote, Op => Read_Form);
+            elsif Symbol = ACL.Tilde & "" then
+               return New_Unitary_Mal_Type (Func => Unquote, Op => Read_Form);
+            elsif Symbol = ACL.Commercial_At & "" then
+               return New_Unitary_Mal_Type (Func => Deref, Op => Read_Form);
+            else
+               return MTS;
+            end if;
+         end;
 
       elsif Deref(MTS).Sym_Type = Unitary and then
             Unitary_Mal_Type (Deref (MTS).all).Get_Func = Splice_Unquote then

@@ -29,7 +29,7 @@ package Types is
 
    subtype Mal_Handle is Smart_Pointers.Smart_Pointer;
 
-   type Sym_Types is (Int, Floating, List, Sym, Str, Atom,
+   type Sym_Types is (Int, Floating, List, Str, Atom,
                       Unitary, Node, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
@@ -77,19 +77,6 @@ package Types is
    type Float_Ptr is access all Float_Mal_Type;
 
    function Deref_Float (SP : Mal_Handle) return Float_Ptr;
-
-
-   type Sym_Mal_Type is new Mal_Type with private;
-
-   function New_Sym_Mal_Type (Sym : Character) return Mal_Handle;
-
-   overriding function Sym_Type (T : Sym_Mal_Type) return Sym_Types;
-
-   function Symbol (T : Sym_Mal_Type) return Character;
-
-   type Sym_Ptr is access all Sym_Mal_Type;
-
-   function Deref_Sym (S : Mal_Handle) return Sym_Ptr;
 
 
    type String_Mal_Type is new Mal_Type with private;
@@ -229,12 +216,6 @@ private
    end record;
 
    overriding function To_Str (T : Float_Mal_Type) return Mal_String;
-
-   type Sym_Mal_Type is new Mal_Type with record
-      Symbol : Character;
-   end record;
-
-   overriding function To_Str (T : Sym_Mal_Type) return Mal_String;
 
    type String_Mal_Type is new Mal_Type with record
       The_String : Ada.Strings.Unbounded.Unbounded_String;

@@ -109,33 +109,6 @@ package body Types is
    end Deref_Float;
 
 
-   function New_Sym_Mal_Type (Sym : Character) return Mal_Handle is
-   begin
-      return Smart_Pointers.New_Ptr
-        (new Sym_Mal_Type'(Mal_Type with Symbol => Sym));
-   end New_Sym_Mal_Type;
-
-   overriding function Sym_Type (T : Sym_Mal_Type) return Sym_Types is
-   begin
-      return Sym;
-   end Sym_Type;
-
-   function Symbol (T : Sym_Mal_Type) return Character is
-   begin
-      return T.Symbol;
-   end Symbol;
-
-   overriding function To_Str (T : Sym_Mal_Type) return Mal_String is
-   begin
-      return "" & T.Symbol;
-   end To_Str;
-
-   function Deref_Sym (S : Mal_Handle) return Sym_Ptr is
-   begin
-      return Sym_Ptr (Deref (S));
-   end Deref_Sym;
-
-
    function New_String_Mal_Type (Str : Mal_String) return Mal_Handle is
    begin
       return Smart_Pointers.New_Ptr
