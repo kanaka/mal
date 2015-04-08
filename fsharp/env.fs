@@ -47,25 +47,27 @@ module Env
     let makeRootEnv () =
         let wrap name f = name, makeBuiltInFunc f
         let env =
-            [ wrap "+" Core.add;
-              wrap "-" Core.subtract;
-              wrap "*" Core.multiply;
-              wrap "/" Core.divide;
-              wrap "list" Core.list;
-              wrap "list?" Core.isList;
-              wrap "empty?" Core.isEmpty;
-              wrap "count" Core.count;
-              wrap "=" Core.eq;
-              wrap "<" Core.lt;
-              wrap "<=" Core.le;
-              wrap ">=" Core.ge;
-              wrap ">" Core.gt;
-              wrap "pr-str" Core.pr_str;
-              wrap "str" Core.str;
-              wrap "prn" Core.prn;
-              wrap "println" Core.println;
-              wrap "read-string" Core.read_str;
-              wrap "slurp" Core.slurp ]
+            [ wrap "+" Core.add
+              wrap "-" Core.subtract
+              wrap "*" Core.multiply
+              wrap "/" Core.divide
+              wrap "list" Core.list
+              wrap "list?" Core.isList
+              wrap "empty?" Core.isEmpty
+              wrap "count" Core.count
+              wrap "=" Core.eq
+              wrap "<" Core.lt
+              wrap "<=" Core.le
+              wrap ">=" Core.ge
+              wrap ">" Core.gt
+              wrap "pr-str" Core.pr_str
+              wrap "str" Core.str
+              wrap "prn" Core.prn
+              wrap "println" Core.println
+              wrap "read-string" Core.read_str
+              wrap "slurp" Core.slurp
+              wrap "cons" Core.cons
+              wrap "concat" Core.concat ]
             |> ofList
         [ env ]
 

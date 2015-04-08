@@ -61,3 +61,20 @@ module Core
         | [String(s)] -> System.IO.File.ReadAllText s |> String
         | [_] -> raise <| errArgMismatch ()
         | _ -> raise <| errArity ()
+
+    let cons = function
+        | [node; List(lst)] -> List(node::lst)
+        | [node; Vector(vec)] -> List(node::(List.ofArray vec))
+        | [_; _] -> raise <| errArgMismatch ()
+        | _ -> raise <| errArity ()
+
+    let concat nodes =
+        nodes
+        |> Seq.ofList
+        |> Seq.map (fun n ->
+            match n with
+            | List(lst) -> lst
+            | Vector(vec) -> List.ofArray vec
+            | _ -> raise <| errArgMismatch ())
+        |> List.concat
+        |> List

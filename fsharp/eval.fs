@@ -17,6 +17,28 @@ module Eval
                 loop ()
         loop ()
 
+    let quasiquoteForm nodes =
+        let identity n = n
+        let singleNodeTransform f = function
+            | [node] -> f node
+            | _ -> raise <| Core.errArity ()
+        let rec quasiquote node =
+            match node with
+            | List(Symbol("unquote")::rest) -> rest |> singleNodeTransform identity
+            | Vector(vec) when vec.Length > 0 -> quasiquote (List(List.ofArray vec))
+            | List(List(Symbol("splice-unquote")::spliceRest)::rest) ->
+                List([
+                        Symbol("concat")
+                        (singleNodeTransform identity spliceRest)
+                        (quasiquote (List(rest)))])
+            | List(node::rest) ->
+                List([
+                        Symbol("cons")
+                        (quasiquote node)
+                        (quasiquote (List(rest)))])
+            | n -> List([Symbol("quote"); n])
+        nodes |> singleNodeTransform quasiquote
+
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
         | List(lst) -> lst |> List.map (eval env) |> List
@@ -82,6 +104,10 @@ module Eval
         | [_; _] -> raise <| errExpected "bindings of list or vector"
         | _ -> raise <| Core.errArity ()
 
+    and quoteForm = function
+        | [node] -> node
+        | _ -> raise <| Core.errArity ()
+
     and eval env = function
         | List(Symbol("def!")::rest) -> defBangForm env rest
         | List(Symbol("let*")::rest) -> 
@@ -90,6 +116,8 @@ module Eval
         | List(Symbol("if")::rest) -> ifForm env rest |> eval env
         | List(Symbol("do")::rest) -> doForm env rest |> eval env
         | List(Symbol("fn*")::rest) -> fnStarForm env rest
+        | List(Symbol("quote")::rest) -> quoteForm rest
+        | List(Symbol("quasiquote")::rest) -> quasiquoteForm rest |> eval env
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
