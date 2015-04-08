@@ -18,7 +18,7 @@ class Environment {
     func set_bindings(binds: MalSequence, with_exprs exprs: MalSequence) -> MalVal {
         for var index = 0; index < binds.count; ++index {
             if !is_symbol(binds[index]) { return MalError(message: "an entry in binds was not a symbol: index=\(index), binds[index]=\(binds[index])") }
-            let sym = binds[index] as MalSymbol
+            let sym = binds[index] as! MalSymbol
             if sym != kSymbolAmpersand {
                 if index < exprs.count {
                     set(sym, exprs[index])
@@ -41,7 +41,7 @@ class Environment {
             // later decrement it to get to (a b c d e ...)
             if ++index >= binds.count { return MalError(message: "found & but no symbol") }
             if !is_symbol(binds[index]) { return MalError(message: "& was not followed by a symbol: index=\(index), binds[index]=\(binds[index])") }
-            let rest_sym = binds[index--] as MalSymbol
+            let rest_sym = binds[index--] as! MalSymbol
             let rest = exprs[index..<exprs.count]
             set(rest_sym, MalList(slice: rest))
             break

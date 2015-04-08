@@ -86,13 +86,13 @@ func READ(str: String) -> MalVal {
 func eval_ast(ast: MalVal, env: Environment) -> MalVal {
     switch ast.type {
         case .TypeSymbol:
-            let symbol = ast as MalSymbol
+            let symbol = ast as! MalSymbol
             if let val = env.get(symbol) {
                 return val
             }
             return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
         case .TypeList:
-            let list = ast as MalList
+            let list = ast as! MalList
             var result = [MalVal]()
             result.reserveCapacity(list.count)
             for item in list {
@@ -102,7 +102,7 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
             }
             return MalList(array: result)
         case .TypeVector:
-            let vec = ast as MalVector
+            let vec = ast as! MalVector
             var result = [MalVal]()
             result.reserveCapacity(vec.count)
             for item in vec {
@@ -112,7 +112,7 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
             }
             return MalVector(array: result)
         case .TypeHashMap:
-            let hash = ast as MalHashMap
+            let hash = ast as! MalHashMap
             var result = [MalVal]()
             result.reserveCapacity(hash.count * 2)
             for (k, v) in hash {
@@ -149,7 +149,7 @@ func eval_def(list: MalSequence, env: Environment) -> TCOVal {
     if !is_symbol(arg1) {
         return TCOVal("expected symbol for first argument to def!")
     }
-    let sym = arg1 as MalSymbol
+    let sym = arg1 as! MalSymbol
     let value = EVAL(arg2, env)
     if is_error(value) { return TCOVal(value) }
     return TCOVal(env.set(sym, value))
@@ -166,7 +166,7 @@ func eval_let(list: MalSequence, env: Environment) -> TCOVal {
     if !is_sequence(arg1) {
         return TCOVal("expected list for first argument to let*")
     }
-    let bindings = arg1 as MalSequence
+    let bindings = arg1 as! MalSequence
     if bindings.count % 2 == 1 {
         return TCOVal("expected even number of elements in bindings to let*, got \(bindings.count)")
     }
@@ -178,7 +178,7 @@ func eval_let(list: MalSequence, env: Environment) -> TCOVal {
         if !is_symbol(binding_name) {
             return TCOVal("expected symbol for first element in binding pair")
         }
-        let binding_symbol = binding_name as MalSymbol
+        let binding_symbol = binding_name as! MalSymbol
         let evaluated_value = EVAL(binding_value, new_env)
         if is_error(evaluated_value) { return TCOVal(evaluated_value) }
         new_env.set(binding_symbol, evaluated_value)
@@ -200,7 +200,7 @@ func eval_do(list: MalSequence, env: Environment) -> TCOVal {
 
     let evaluated_ast = eval_ast(list.rest(), env)
     if is_error(evaluated_ast) { return TCOVal(evaluated_ast) }
-    let evaluated_seq = evaluated_ast as MalSequence
+    let evaluated_seq = evaluated_ast as! MalSequence
     return TCOVal(evaluated_seq.last())
 }
 
@@ -234,7 +234,7 @@ func eval_fn(list: MalSequence, env: Environment) -> TCOVal {
     if !is_sequence(list[1]) {
         return TCOVal("expected list or vector for first argument to fn*")
     }
-    return TCOVal(MalClosure(eval: EVAL, args:list[1] as MalSequence, body:list[2], env:env))
+    return TCOVal(MalClosure(eval: EVAL, args:list[1] as! MalSequence, body:list[2], env:env))
 }
 
 // Walk the AST and completely evaluate it, handling macro expansions, special
@@ -265,7 +265,7 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
 
         // Special handling if it's a list.
 
-        var list = ast as MalList
+        var list = ast as! MalList
         if DEBUG_EVAL { println("\(indent)>.  \(list)") }
 
         if list.isEmpty {
@@ -278,7 +278,7 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
         let arg0 = list.first()
         if is_symbol(arg0) {
             var res: TCOVal
-            let fn_symbol = arg0 as MalSymbol
+            let fn_symbol = arg0 as! MalSymbol
 
             switch fn_symbol {
                 case kSymbolDef:            res = eval_def(list, env)
@@ -302,7 +302,7 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
 
         // The result had better be a list and better be non-empty.
 
-        let eval_list = eval as MalList
+        let eval_list = eval as! MalList
         if eval_list.isEmpty {
             return eval_list
         }
@@ -315,12 +315,12 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
         let rest = eval_list.rest()
 
         if is_builtin(first) {
-            let fn = first as MalBuiltin
+            let fn = first as! MalBuiltin
             let answer = fn.apply(rest)
             if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
             return answer
         } else if is_closure(first) {
-            let fn = first as MalClosure
+            let fn = first as! MalClosure
             var new_env = Environment(outer: fn.env)
             let result = new_env.set_bindings(fn.args, with_exprs:rest)
             if is_error(result) { return result }

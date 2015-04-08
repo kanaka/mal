@@ -23,13 +23,13 @@ func READ(str: String) -> MalVal {
 func eval_ast(ast: MalVal, env: Environment) -> MalVal {
     switch ast.type {
         case .TypeSymbol:
-            let symbol = ast as MalSymbol
+            let symbol = ast as! MalSymbol
             if let val = env.get(symbol) {
                 return val
             }
             return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
         case .TypeList:
-            let list = ast as MalList
+            let list = ast as! MalList
             var result = [MalVal]()
             result.reserveCapacity(list.count)
             for item in list {
@@ -39,7 +39,7 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
             }
             return MalList(array: result)
         case .TypeVector:
-            let vec = ast as MalVector
+            let vec = ast as! MalVector
             var result = [MalVal]()
             result.reserveCapacity(vec.count)
             for item in vec {
@@ -49,7 +49,7 @@ func eval_ast(ast: MalVal, env: Environment) -> MalVal {
             }
             return MalVector(array: result)
         case .TypeHashMap:
-            let hash = ast as MalHashMap
+            let hash = ast as! MalHashMap
             var result = [MalVal]()
             result.reserveCapacity(hash.count * 2)
             for (k, v) in hash {
@@ -80,7 +80,7 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
 
         // Special handling if it's a list.
 
-        var list = ast as MalList
+        var list = ast as! MalList
 
         if list.isEmpty {
             return list
@@ -93,7 +93,7 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
 
         // The result had better be a list and better be non-empty.
 
-        let eval_list = eval as MalList
+        let eval_list = eval as! MalList
         if eval_list.isEmpty {
             return eval_list
         }
@@ -104,7 +104,7 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
         let rest = eval_list.rest()
 
         if is_builtin(first) {
-            let fn = first as MalBuiltin
+            let fn = first as! MalBuiltin
             let answer = fn.apply(rest)
             return answer
         }
