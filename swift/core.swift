@@ -4,7 +4,7 @@
 
 import Foundation
 
-typealias MalVarArgs = Slice<MalVal>
+typealias MalVarArgs = ArraySlice<MalVal>
 
 func fn_eq(obj1: MalVal, obj2: MalVal) -> Bool {
     return obj1 == obj2
@@ -39,7 +39,7 @@ func fn_keyword(s: MalVal) -> MalVal {
         return s
     }
     if is_string(s) {
-        return MalKeyword(keyword: (s as MalString).value)
+        return MalKeyword(keyword: (s as! MalString).value)
     }
     return MalError(message: "expected string or keyword")
 }
@@ -177,13 +177,13 @@ func fn_dissoc(hash: MalHashMap, args: MalVarArgs) -> MalVal {
 func fn_get(obj: MalVal, key: MalVal) -> MalVal {
     if is_vector(obj) {
         if !is_integer(key) { return MalError(message: "expected integer key for get(vector), got \(key)") }
-        let as_vector = obj as MalVector
-        let index = key as MalInteger
+        let as_vector = obj as! MalVector
+        let index = key as! MalInteger
         if Int(index.value) >= as_vector.count { return MalError(message: "index out of range: \(index) >= \(as_vector.count)") }
         return as_vector[Int(index.value)]
     }
     if is_hashmap(obj) {
-        let as_hash = obj as MalHashMap
+        let as_hash = obj as! MalHashMap
         if let value = as_hash[key] { return value }
         return MalNil()
     }
@@ -196,12 +196,12 @@ func fn_get(obj: MalVal, key: MalVal) -> MalVal {
 func fn_containsQ(obj: MalVal, key: MalVal) -> MalVal {
     if is_vector(obj) {
         if !is_integer(key) { return MalError(message: "expected integer key for contains(vector), got \(key)") }
-        let as_vector = obj as MalVector
-        let index = key as MalInteger
+        let as_vector = obj as! MalVector
+        let index = key as! MalInteger
         return Int(index.value) < as_vector.count ? MalTrue() : MalFalse()
     }
     if is_hashmap(obj) {
-        let as_hash = obj as MalHashMap
+        let as_hash = obj as! MalHashMap
         return as_hash[key] != nil ? MalTrue() : MalFalse()
     }
     return MalError(message: "contains? called on unsupported type: \(obj)")
@@ -229,7 +229,7 @@ func fn_concat(args: MalVarArgs) -> MalVal {
     var result = [MalVal]()
     for arg in args {
         if !is_sequence(arg) { return MalError(message: "expected list, got \(arg)") }
-        result.extend((arg as MalSequence).slice)
+        result.extend((arg as! MalSequence).slice)
     }
     return MalList(array: result)
 }
@@ -243,7 +243,7 @@ func fn_first(arg: MalVal) -> MalVal {
         return arg
     }
     if is_sequence(arg) {
-        let list = arg as MalSequence
+        let list = arg as! MalSequence
         return list.first()
     }
     return MalError(message: "expected list, got \(arg)")
@@ -255,7 +255,7 @@ func fn_rest(list: MalSequence) -> MalVal {
 
 func fn_emptyQ(obj: MalVal) -> Bool {
     if is_sequence(obj) {
-        let list = obj as MalSequence
+        let list = obj as! MalSequence
         return list.isEmpty
     }
     return true
@@ -266,16 +266,16 @@ func fn_count(obj: MalVal) -> Int64 {
         return 0
     }
     if is_sequence(obj) {
-        let as_seq = obj as MalSequence
+        let as_seq = obj as! MalSequence
         return Int64(as_seq.count)
     }
     if is_hashmap(obj) {
-        let hash = obj as MalHashMap
+        let hash = obj as! MalHashMap
         return Int64(hash.count)
     }
     if is_string(obj) {
-        let string = obj as MalString
-        return Int64(string.value.utf16Count)
+        let string = obj as! MalString
+        return Int64(count(string.value.utf16))
     }
     return 0
 }
@@ -287,8 +287,8 @@ func fn_apply(args: MalVarArgs) -> MalVal {
     let last    = args[args.count - 1]
     if !is_function(first) { return MalError(message: "expected function for first argument to apply, got \(first)") }
     if !is_sequence(last) { return MalError(message: "expected sequence for last argument to apply, got \(last)") }
-    middle.extend((last as MalSequence).slice)
-    return (first as MalFunction).apply(MalList(slice: middle))
+    middle.extend((last as! MalSequence).slice)
+    return (first as! MalFunction).apply(MalList(slice: middle))
 }
 
 func fn_map(fn: MalFunction, list: MalSequence) -> MalVal {
@@ -338,7 +338,7 @@ func fn_atomQ(obj: MalVal) -> Bool {
 
 func fn_deref(form:MalVal) -> MalVal {
     if !is_atom(form) { return MalError(message: "expected atom, got \(form)") }
-    return (form as MalAtom).value
+    return (form as! MalAtom).value
 }
 
 func fn_resetBang(atom: MalAtom, obj: MalVal) -> MalVal {
@@ -405,7 +405,7 @@ func unwrap(args: MalSequence, fn: () -> MalVal) -> MalVal {
 func unwrap(args: MalSequence, fn: (MalHashMap) -> MalVal) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_hashmap(arg1) { return MalError(message: "expected hashmap, got \(arg1)") }
-        return fn(arg1 as MalHashMap)
+        return fn(arg1 as! MalHashMap)
     }
 }
 
@@ -414,7 +414,7 @@ func unwrap(args: MalSequence, fn: (MalHashMap) -> MalVal) -> MalVal {
 func unwrap(args: MalSequence, fn: (MalSequence) -> MalVal) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_sequence(arg1) { return MalError(message: "expected list, got \(arg1)") }
-        return fn(arg1 as MalSequence)
+        return fn(arg1 as! MalSequence)
     }
 }
 
@@ -447,7 +447,7 @@ func unwrap(args: MalSequence, fn: (MalVal) -> MalVal) -> MalVal {
 func unwrap(args: MalSequence, fn: (String) -> MalVal) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_string(arg1) { return MalError(message: "expected string, got \(arg1)") }
-        return fn((arg1 as MalString).value)
+        return fn((arg1 as! MalString).value)
     }
 }
 
@@ -456,7 +456,7 @@ func unwrap(args: MalSequence, fn: (String) -> MalVal) -> MalVal {
 func unwrap(args: MalSequence, fn: (String) -> MalVal?) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_string(arg1) { return MalError(message: "expected string, got \(arg1)") }
-        let res = fn((arg1 as MalString).value)
+        let res = fn((arg1 as! MalString).value)
         return res != nil ? res! : MalNil()
     }
 }
@@ -466,7 +466,7 @@ func unwrap(args: MalSequence, fn: (String) -> MalVal?) -> MalVal {
 func unwrap(args: MalSequence, fn: (String) -> String) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_string(arg1) { return MalError(message: "expected string, got \(arg1)") }
-        return MalString(unescaped: fn((arg1 as MalString).value))
+        return MalString(unescaped: fn((arg1 as! MalString).value))
     }
 }
 
@@ -475,7 +475,7 @@ func unwrap(args: MalSequence, fn: (String) -> String) -> MalVal {
 func unwrap(args: MalSequence, fn: (String) -> String?) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_string(arg1) { return MalError(message: "expected string, got \(arg1)") }
-        let res = fn((arg1 as MalString).value)
+        let res = fn((arg1 as! MalString).value)
         return res != nil ? MalString(unescaped:res!) : MalNil()
     }
 }
@@ -488,7 +488,7 @@ func unwrap(args: MalSequence, fn: (Int64, Int64) -> Bool) -> MalVal {
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_integer(arg1) { return MalError(message: "expected number, got \(arg1)") }
         if !is_integer(arg2) { return MalError(message: "expected number, got \(arg2)") }
-        return fn((arg1 as MalInteger).value, (arg2 as MalInteger).value) ? MalTrue() : MalFalse()
+        return fn((arg1 as! MalInteger).value, (arg2 as! MalInteger).value) ? MalTrue() : MalFalse()
     }
 }
 
@@ -498,7 +498,7 @@ func unwrap(args: MalSequence, fn: (Int64, Int64) -> Int64) -> MalVal {
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_integer(arg1) { return MalError(message: "expected number, got \(arg1)") }
         if !is_integer(arg2) { return MalError(message: "expected number, got \(arg2)") }
-        return MalInteger(value: fn((arg1 as MalInteger).value, (arg2 as MalInteger).value))
+        return MalInteger(value: fn((arg1 as! MalInteger).value, (arg2 as! MalInteger).value))
     }
 }
 
@@ -507,7 +507,7 @@ func unwrap(args: MalSequence, fn: (Int64, Int64) -> Int64) -> MalVal {
 func unwrap(args: MalSequence, fn: (MalAtom, MalVal) -> MalVal) -> MalVal {
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_atom(arg1) { return MalError(message: "expected atom, got \(arg1)") }
-        return fn((arg1 as MalAtom), arg2)
+        return fn((arg1 as! MalAtom), arg2)
     }
 }
 
@@ -517,7 +517,7 @@ func unwrap(args: MalSequence, fn: (MalFunction, MalSequence) -> MalVal) -> MalV
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_function(arg1) { return MalError(message: "expected function, got \(arg1)") }
         if !is_sequence(arg2) { return MalError(message: "expected sequence, got \(arg2)") }
-        return fn((arg1 as MalFunction), (arg2 as MalSequence))
+        return fn((arg1 as! MalFunction), (arg2 as! MalSequence))
     }
 }
 
@@ -527,7 +527,7 @@ func unwrap(args: MalSequence, fn: (MalSequence, Int) -> MalVal) -> MalVal {
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_sequence(arg1) { return MalError(message: "expected sequence, got \(arg1)") }
         if !is_integer(arg2)  { return MalError(message: "expected number, got \(arg2)") }
-        return fn((arg1 as MalSequence), Int((arg2 as MalInteger).value))
+        return fn((arg1 as! MalSequence), Int((arg2 as! MalInteger).value))
     }
 }
 
@@ -536,7 +536,7 @@ func unwrap(args: MalSequence, fn: (MalSequence, Int) -> MalVal) -> MalVal {
 func unwrap(args: MalSequence, fn: (MalVal, MalSequence) -> MalVal) -> MalVal {
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_sequence(arg2) { return MalError(message: "expected sequence, got \(arg2)") }
-        return fn(arg1, (arg2 as MalSequence))
+        return fn(arg1, (arg2 as! MalSequence))
     }
 }
 
@@ -583,7 +583,7 @@ func unwrap(args: MalSequence, fn: (MalAtom, MalFunction, MalVarArgs) -> MalVal)
     return with_two_parameters(args) { (arg1, arg2) -> MalVal in
         if !is_atom(arg1) { return MalError(message: "expected atom, got \(arg1)") }
         if !is_function(arg2) { return MalError(message: "expected function, got \(arg2)") }
-        return fn((arg1 as MalAtom), (arg2 as MalFunction), args[2..<args.count])
+        return fn((arg1 as! MalAtom), (arg2 as! MalFunction), args[2..<args.count])
     }
 }
 
@@ -592,7 +592,7 @@ func unwrap(args: MalSequence, fn: (MalAtom, MalFunction, MalVarArgs) -> MalVal)
 func unwrap(args: MalSequence, fn: (MalHashMap, MalVarArgs) -> MalVal) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_hashmap(arg1) { return MalError(message: "expected hashmap, got \(arg1)") }
-        return fn((arg1 as MalHashMap), args[1..<args.count])
+        return fn((arg1 as! MalHashMap), args[1..<args.count])
     }
 }
 
@@ -601,7 +601,7 @@ func unwrap(args: MalSequence, fn: (MalHashMap, MalVarArgs) -> MalVal) -> MalVal
 func unwrap(args: MalSequence, fn: (MalSequence, MalVarArgs) -> MalVal) -> MalVal {
     return with_one_parameter(args) { (arg1) -> MalVal in
         if !is_sequence(arg1) { return MalError(message: "expected sequence, got \(arg1)") }
-        return fn((arg1 as MalSequence), args[1..<args.count])
+        return fn((arg1 as! MalSequence), args[1..<args.count])
     }
 }
 
