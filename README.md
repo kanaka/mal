@@ -272,7 +272,7 @@ make -f stepX_YYY.mk
 *The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
 
 Running the Nim implementation of mal requires Nim's current devel branch
-(0.10.3) or later, and the nre library installed.
+(0.10.3) or later.
 
 ```
 cd nim
