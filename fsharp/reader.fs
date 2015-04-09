@@ -42,7 +42,7 @@ module Reader
             | None, _ -> raise <| errExpectedButEOF "')'"
 
     and readVector acc = function
-        | CloseBracket::rest -> Some(Vector(acc.ToArray())), rest
+        | CloseBracket::rest -> Some(acc.ToArray() |> makeVector), rest
         | [] -> raise <| errExpectedButEOF "']'"
         | tokens -> 
             match readForm tokens with

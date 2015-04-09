@@ -7,7 +7,7 @@ module Types
     type Node =
         | Nil
         | List of Node list
-        | Vector of Node array
+        | Vector of Node System.ArraySegment
         | Map of Collections.Map<Node, Node>
         | Symbol of string
         | Keyword of string
@@ -67,7 +67,7 @@ module Types
             | List(a), List(b) -> a = b
             | List(a), Vector(b) -> Node.allEqual a b
             | Vector(a), List(b) -> Node.allEqual a b
-            | Vector(a), Vector(b) -> a = b
+            | Vector(a), Vector(b) -> Node.allEqual a b
             | Map(a), Map(b) -> a = b
             | Symbol(a), Symbol(b) -> a = b
             | Keyword(a), Keyword(b) -> a = b
@@ -83,7 +83,7 @@ module Types
             | List(a), List(b) -> compare a b
             | List(a), Vector(b) -> Node.allCompare a b
             | Vector(a), List(b) -> Node.allCompare a b
-            | Vector(a), Vector(b) -> compare a b
+            | Vector(a), Vector(b) -> Node.allCompare a b
             | Map(a), Map(b) -> compare a b
             | Symbol(a), Symbol(b) -> compare a b
             | Keyword(a), Keyword(b) -> compare a b
@@ -101,7 +101,7 @@ module Types
         override x.GetHashCode() =
             match x with
             | Nil -> 0
-            | List(lst) -> Node.hashSeq lst
+            | List(lst) -> hash lst
             | Vector(vec) -> Node.hashSeq vec
             | Map(map) -> hash map
             | Symbol(sym) -> hash sym
@@ -127,3 +127,12 @@ module Types
     let NIL = Nil
     let SomeNIL = Some(NIL)
     let ZERO = Number(0L)
+
+    let makeVector vec = System.ArraySegment(vec) |> Vector
+    // TODO: Not currently using sliceVector.
+    let sliceVector offset count vec =
+        match vec with
+        | Vector(seg) ->
+            System.ArraySegment(seg.Array, seg.Offset + offset, count)
+            |> Vector
+        | _ -> invalidArg "vec" "Value passed in must be a Vector."

@@ -33,13 +33,13 @@ module Core
         | _ -> raise <| errArity ()
 
     let isEmpty = function
-        | [List([])]
-        | [Vector([||])] -> TRUE
+        | [List([])] -> TRUE
+        | [Vector(seg)] when seg.Count <= 0 -> TRUE
         | _ -> FALSE
 
     let count = function
         | [List(lst)] -> lst |> List.length |> int64 |> Number
-        | [Vector(vec)] -> vec |> Array.length |> int64 |> Number
+        | [Vector(seg)] -> seg.Count |> int64 |> Number
         | [Nil] -> ZERO
         | [_] -> raise <| errArgMismatch ()
         | _ -> raise <| errArity ()
@@ -64,17 +64,18 @@ module Core
 
     let cons = function
         | [node; List(lst)] -> List(node::lst)
-        | [node; Vector(vec)] -> List(node::(List.ofArray vec))
+        | [node; Vector(seg)] -> List(node::(List.ofSeq seg))
         | [_; _] -> raise <| errArgMismatch ()
         | _ -> raise <| errArity ()
 
     let concat nodes =
+        let cons st node = node::st
+        let accumNode acc = function
+            | List(lst) -> lst |> List.fold cons acc
+            | Vector(seg) -> seg |> Seq.fold cons acc
+            | _ -> raise <| errArgMismatch ()
+
         nodes
-        |> Seq.ofList
-        |> Seq.map (fun n ->
-            match n with
-            | List(lst) -> lst
-            | Vector(vec) -> List.ofArray vec
-            | _ -> raise <| errArgMismatch ())
-        |> List.concat
+        |> List.fold accumNode []
+        |> List.rev
         |> List

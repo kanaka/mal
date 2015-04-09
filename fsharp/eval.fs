@@ -24,8 +24,8 @@ module Eval
             | _ -> raise <| Core.errArity ()
         let rec quasiquote node =
             match node with
+            | Vector(seg) when seg.Count > 0 -> quasiquote (List(List.ofSeq seg))
             | List(Symbol("unquote")::rest) -> rest |> singleNodeTransform identity
-            | Vector(vec) when vec.Length > 0 -> quasiquote (List(List.ofArray vec))
             | List(List(Symbol("splice-unquote")::spliceRest)::rest) ->
                 List([
                         Symbol("concat")
@@ -42,7 +42,7 @@ module Eval
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
         | List(lst) -> lst |> List.map (eval env) |> List
-        | Vector(arr) -> arr |> Array.map (eval env) |> Vector
+        | Vector(seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> makeVector
         | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
         | node -> node
 
@@ -69,7 +69,7 @@ module Eval
             let binder = setBinding inner
             match bindings with
             | List(lst) -> lst |> iterPairs binder
-            | Vector(vec) -> vec |> iterPairs binder
+            | Vector(seg) -> seg |> iterPairs binder
             | _ -> raise <| errExpected "list or vector"
             inner, form
         | _ -> raise <| Core.errArity ()
@@ -100,7 +100,7 @@ module Eval
 
         match nodes with
         | [List(binds); body] -> makeFunc binds body
-        | [Vector(binds); body] -> makeFunc (List.ofArray binds) body
+        | [Vector(seg); body] -> makeFunc (List.ofSeq seg) body
         | [_; _] -> raise <| errExpected "bindings of list or vector"
         | _ -> raise <| Core.errArity ()
 
