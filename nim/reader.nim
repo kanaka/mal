@@ -1,4 +1,4 @@
-import nre, optional_t, strutils, types
+import re, strutils, sequtils, types
 
 let
   tokenRE = re"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"""
@@ -24,9 +24,16 @@ proc peek(r: Reader): string =
 
 proc tokenize(str: string): seq[string] =
   result = @[]
-  for match in str.findIter(tokenRE):
-    if match.captures[0][0] != ';':
-      result.add match.captures[0]
+  var pos = 0
+  while pos < str.len:
+    var matches: array[2, string]
+    var len = str.findBounds(tokenRE, matches, pos)
+    if len.first != -1 and len.last != -1:
+      pos = len.last + 1
+      if matches[0][0] != ';':
+        result.add matches[0]
+    else:
+      inc pos
 
 proc read_form(r: var Reader): MalType
 
