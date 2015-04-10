@@ -918,7 +918,7 @@ make test^quux^step6
 Congratulations, you now have a full-fledged scripting language that
 can run other mal programs. The `slurp` function loads a file as
 a string, the `read-string` function calls the mal reader to turn that
-stirng into data, and the `eval` function takes data and evaluates it
+string into data, and the `eval` function takes data and evaluates it
 as a normal mal program. However, it is important to note that the
 `eval` function is not just for running external programs. Because mal
 programs are regular mal data structures, you can dynamically generate
@@ -962,7 +962,7 @@ add a powerful abstraction for manipulating mal code itself
 
 The `quote` special form indicates to the evaluator (`EVAL`) that the
 parameter should not be evaluated (yet). At first glance, this might
-not seem particular useful but an example of what this enables is the
+not seem particularly useful but an example of what this enables is the
 ability for a mal program to refer to a symbol itself rather than the
 value that it evaluates to. Likewise with lists. For example, consider
 the following:
@@ -1218,8 +1218,8 @@ implementation. Let us continue!
 
 In this step you will implement the final mal special form for
 error/exception handling: `try*/catch*`. You will also add several core
-functions to you implementation. In particular, you will enhance the
-functional programming pedigree of you implementation by adding the
+functions to your implementation. In particular, you will enhance the
+functional programming pedigree of your implementation by adding the
 `apply` and `map` core functions.
 
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
@@ -1410,11 +1410,11 @@ from the mal implementation:
 ./stepA_mal.qx ../mal/stepA_mal.mal
 ```
 
-There is a very good change that you will encounter an error at some
+There is a very good chance that you will encounter an error at some
 point while trying to run the mal in mal implementation steps above.
 Debugging failures that happen while self-hosting is MUCH more
 difficult and mind bending. One of the best approaches I have
-personally found is to add prn statements to the mal implemenation 
+personally found is to add prn statements to the mal implementation 
 step (not your own implementation of mal) that is causing problems.
 
 Another approach I have frequently used is to pull out the code from
