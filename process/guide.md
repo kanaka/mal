@@ -778,7 +778,7 @@ the changes that will be made during this step:
 diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 ```
 
-* Copy `step4_env.qx` to `step5_tco.qx`.
+* Copy `step4_if_fn_do.qx` to `step5_tco.qx`.
 
 * Add a loop (e.g. while true) around all code in `EVAL`.
 
