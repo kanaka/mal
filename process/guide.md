@@ -603,8 +603,8 @@ run. Most Lisp variants tend to be dynamically typed (types of values
 are checked when they are actually used at runtime).
 
 As an aside-aside: The great debate between static and dynamic typing
-debate can be understood by following the money. Advocates of strict
-static typing use words like "correctness" and "safety" and thus get
+can be understood by following the money. Advocates of strict static
+typing use words like "correctness" and "safety" and thus get
 government and academic funding. Advocates of dynamic typing use words
 like "agile" and "time-to-market" and thus get venture capital and
 commercial funding.
