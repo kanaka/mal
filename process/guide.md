@@ -543,17 +543,17 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     (second parameter of `EVAL` called `env`) using the unevaluated
     first parameter (second list element) as the symbol key and the
     evaluated second parameter as the value.
-  * symbol "let*": create a new environment using the current
+  * symbol "let\*": create a new environment using the current
     environment as the outer value and then use the first parameter as
-    a list of new bindings in the "let*" environment. Take the second
-    element of the binding list, call `EVAL` using the new "let*"
+    a list of new bindings in the "let\*" environment. Take the second
+    element of the binding list, call `EVAL` using the new "let\*"
     environment as the evaluation environment, then call `set` on the
-    "let*" environment using the first binding list element as the key
+    "let\*" environment using the first binding list element as the key
     and the evaluated second element as the value. This is repeated
     for each odd/even pair in the binding list. Note in particular,
     the bindings earlier in the list can be referred to by later
     bindings. Finally, the second parameter (third element) of the
-    original `let*` form is evaluated using the new "let*" environment
+    original `let*` form is evaluated using the new "let\*" environment
     and the result is returned as the result of the `let*` (the new
     let environment is discarded upon completion).
   * otherwise: call `eval_ast` on the list and apply the first element
@@ -603,8 +603,8 @@ run. Most Lisp variants tend to be dynamically typed (types of values
 are checked when they are actually used at runtime).
 
 As an aside-aside: The great debate between static and dynamic typing
-debate can be understood by following the money. Advocates of strict
-static typing use words like "correctness" and "safety" and thus get
+can be understood by following the money. Advocates of strict static
+typing use words like "correctness" and "safety" and thus get
 government and academic funding. Advocates of dynamic typing use words
 like "agile" and "time-to-market" and thus get venture capital and
 commercial funding.
