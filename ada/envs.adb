@@ -1,48 +1,125 @@
 with Ada.Text_IO;
+with Types;
 with Unchecked_Deallocation;
 
 package body Envs is
 
 
-   procedure Set (Key : String; SP : Smart_Pointers.Smart_Pointer) is
+   procedure Init is
    begin
+      New_Env;
+
+      Set (Current, "+", Types.New_Atom_Mal_Type ("+"));
+      Set (Current, "-", Types.New_Atom_Mal_Type ("-"));
+      Set (Current, "*", Types.New_Atom_Mal_Type ("*"));
+      Set (Current, "/", Types.New_Atom_Mal_Type ("/"));
+      Set (Current, "<", Types.New_Atom_Mal_Type ("<"));
+      Set (Current, "<=", Types.New_Atom_Mal_Type ("<="));
+      Set (Current, ">", Types.New_Atom_Mal_Type (">"));
+      Set (Current, ">=", Types.New_Atom_Mal_Type (">="));
+      Set (Current, "=", Types.New_Atom_Mal_Type ("="));
+      Set (Current, "true", Types.New_Bool_Mal_Type (True));
+      Set (Current, "false", Types.New_Bool_Mal_Type (False));
+      Set (Current, "list", Types.New_Atom_Mal_Type ("list"));
+      Set (Current, "nil", Types.New_Atom_Mal_Type ("nil"));
+   end Init;
+
+
+   function Is_Null (E : Env_Handle) return Boolean is
+      use Smart_Pointers;
+   begin
+     return Smart_Pointer (E) = Null_Smart_Pointer;
+   end Is_Null;
+
+
+   function New_Env (Outer : Env_Handle) return Env_Handle is
+      use Smart_Pointers;
+      Level : Natural;
+   begin
+      if Is_Null (Outer) then
+         Level := 0;
+      else
+         Level := Deref (Outer).Level + 1;
+      end if;
+      if Debug then
+         Ada.Text_IO.Put_Line
+           ("Envs: Creating at level " & Natural'Image (Level));
+      end if;
+      return Env_Handle (Smart_Pointers.New_Ptr (new Env'
+               (Base_Class with The_Map => String_Mal_Hash.Empty_Map,
+                Outer_Env => Outer,
+                Level => Level)));
+   end New_Env;
+
+
+   procedure Set
+     (E : Env_Handle;
+      Key : String;
+      Elem : Smart_Pointers.Smart_Pointer) is
+   begin
+      if Debug then
+         Ada.Text_IO.Put_Line
+           ("Envs: Setting " & Key &
+            " to " & Types.Deref (Elem).To_String &
+            " at level " & Natural'Image (Deref (E).Level));
+      end if;
       String_Mal_Hash.Include
-        (Container => Current.The_Map,
+        (Container => Deref (E).The_Map,
          Key       => Ada.Strings.Unbounded.To_Unbounded_String (Key),
-         New_Item  => SP);
+         New_Item  => Elem);
    end Set;
 
-   function Get (Key : String) return Smart_Pointers.Smart_Pointer is
 
-      function Find (Env : Env_Ptr) return Smart_Pointers.Smart_Pointer is
-         use String_Mal_Hash;
-         C : Cursor;
-      begin
-         C := Find (Env.The_Map,
-                    Ada.Strings.Unbounded.To_Unbounded_String (Key));
+   function Get (E : Env_Handle; Key: String)
+   return Smart_Pointers.Smart_Pointer is
 
-         if C = No_Element then
-
-            if Env.Prev_Env = null then
-               raise Not_Found;
-            else
-               return Find (Env.Prev_Env);
-            end if;
-
-         else
-            return Element (C);
-         end if;
-
-      end Find;
+      use String_Mal_Hash;
+      C : Cursor;
 
    begin
-      return Find (Current);
+
+      if Debug then
+         Ada.Text_IO.Put_Line
+           ("Envs: Finding " & Key &
+            " at level " & Natural'Image (Deref (E).Level));
+      end if;
+
+      C := Find (Deref (E).The_Map,
+                 Ada.Strings.Unbounded.To_Unbounded_String (Key));
+
+      if C = No_Element then
+
+         if Is_Null (Deref (E).Outer_Env) then
+            raise Not_Found;
+         else
+            return Get (Deref (E).Outer_Env, Key);
+         end if;
+
+      else
+         return Element (C);
+      end if;
+
    end Get;
+
+
+   -- Sym and Exprs are lists.  Bind Sets Keys in Syms to the corresponding
+   -- expression in Exprs.
+   procedure Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type) is
+      use Types;
+      S, Expr : List_Mal_Type;
+   begin
+      S := Syms;
+      Expr := Exprs;
+      while not Is_Null (S) and not Is_Null (Expr) loop
+         Set (E, Deref_Atom (Car (S)).Get_Atom, Car (Expr));
+         S := Deref_List (Cdr (S)).all;
+         Expr := Deref_List (Cdr (Expr)).all;
+      end loop;
+   end Bind;
 
 
    function String_Hash (Key : Ada.Strings.Unbounded.Unbounded_String)
    return Ada.Containers.Hash_Type is
-
       use Ada.Containers;
       Res : Ada.Containers.Hash_Type;
       Str_Len : Natural;
@@ -58,25 +135,34 @@ package body Envs is
 
 
    procedure New_Env is
-      Old_Env : Env_Ptr;
    begin
-      Old_Env := Current;
-      Current := new Environment;
-      Current.Prev_Env := Old_Env;
+      Current := New_Env (Current);
    end New_Env;
 
 
-   procedure Free is new Unchecked_Deallocation (Environment, Env_Ptr);
+   procedure Free is new Unchecked_Deallocation (Env, Env_Ptr);
 
    procedure Delete_Env is
-      TBD : Env_Ptr;
    begin
-      TBD := Current;
-      if Current.Prev_Env /= null then
-         Current := Current.Prev_Env;
-         Free (TBD);
+      -- Always leave one Env!
+      if not Is_Null (Deref (Current).Outer_Env) then
+         Current := Deref (Current).Outer_Env;
+         -- The old Current is finalized *if* there are no references to it.
+         -- Note closures may refer to the old env.
       end if;
    end Delete_Env;
    
+
+   function Get_Current return Env_Handle is
+   begin
+      return Current;
+   end Get_Current;
+
+
+   function Deref (SP : Env_Handle) return Env_Ptr is
+   begin
+      return Env_Ptr (Smart_Pointers.Deref (Smart_Pointers.Smart_Pointer (SP)));
+   end Deref;
+
 
 end Envs;

@@ -1,8 +1,9 @@
+with Envs;
 with Types;
 
 package Evaluation is
 
-   function Eval (Param : Types.Mal_Handle)
+   function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle;
 
    Evaluation_Error : exception;

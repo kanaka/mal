@@ -1,13 +1,56 @@
 with Ada.Characters.Latin_1;
 with Ada.Strings.Fixed;
+with Ada.Strings.Maps.Constants;
 with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
+with Envs;
 with Smart_Pointers;
 
 package body Types is
 
    package ACL renames Ada.Characters.Latin_1;
 
+
+   function "=" (A, B : Mal_Handle) return Mal_Handle is
+   begin
+      return New_Bool_Mal_Type (A = B);
+   end "=";
+
+
+   function "=" (A, B : Mal_Handle) return Boolean is
+   begin
+
+      if (not Is_Null (A) and not Is_Null (B)) and then
+         Deref (A).Sym_Type = Deref (B).Sym_Type then
+
+         case Deref (A).Sym_Type is
+            when Int =>
+               return (Deref_Int (A).Get_Int_Val = Deref_Int (B).Get_Int_Val);
+            when Floating =>
+               return (Deref_Float (A).Get_Float_Val = Deref_Float (B).Get_Float_Val);
+            when Bool =>
+               return (Deref_Bool (A).Get_Bool = Deref_Bool (B).Get_Bool);
+            when List =>
+               return (Deref_List (A).all = Deref_List (B).all);
+            when Str =>
+               return (Deref_String (A).Get_String = Deref_String (B).Get_String);
+            when Atom =>
+               return (Deref_Atom (A).Get_Atom = Deref_Atom (B).Get_Atom);
+            when Unitary =>
+               return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
+            when Node =>
+               return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
+            when Lambda =>
+               return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
+            when Error =>
+               return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
+          end case;
+      elsif Is_Null (A) and Is_Null (B) then
+         return True;
+      else  -- either one of the args is null or the sym_types don't match
+         return False;
+      end if;
+   end "=";
 
    function Get_Meta (T : Mal_Type) return Mal_Handle is
    begin
@@ -41,7 +84,7 @@ package body Types is
    function Is_Null (S : Mal_Handle) return Boolean is
       use Smart_Pointers;
    begin
-      return S = Null_Smart_Pointer;
+      return Smart_Pointers."="(S, Null_Smart_Pointer);
    end Is_Null;
 
 
@@ -109,6 +152,35 @@ package body Types is
    end Deref_Float;
 
 
+   function New_Bool_Mal_Type (Bool : Boolean) return Mal_Handle is
+   begin
+      return Smart_Pointers.New_Ptr
+        (new Bool_Mal_Type'(Mal_Type with Bool_Val => Bool));
+   end New_Bool_Mal_Type;
+
+   overriding function Sym_Type (T : Bool_Mal_Type) return Sym_Types is
+   begin
+      return Bool;
+   end Sym_Type;
+
+   function Get_Bool (T : Bool_Mal_Type) return Boolean is
+   begin
+      return T.Bool_Val;
+   end Get_Bool;
+
+   overriding function To_Str (T : Bool_Mal_Type) return Mal_String is
+      Res : Mal_String := Boolean'Image (T.Bool_Val);
+   begin
+     return Ada.Strings.Fixed.Translate
+              (Res, Ada.Strings.Maps.Constants.Lower_Case_Map);
+   end To_Str;
+
+   function Deref_Bool (SP : Mal_Handle) return Bool_Ptr is
+   begin
+      return Bool_Ptr (Deref (SP));
+   end Deref_Bool;
+
+
    function New_String_Mal_Type (Str : Mal_String) return Mal_Handle is
    begin
       return Smart_Pointers.New_Ptr
@@ -125,6 +197,11 @@ package body Types is
    begin
       return Ada.Strings.Unbounded.To_String (T.The_String);
    end Get_String;
+
+   function Deref_String (SP : Mal_Handle) return String_Ptr is
+   begin
+      return String_Ptr (Deref (SP));
+   end Deref_String;
 
    overriding function To_Str (T : String_Mal_Type) return Mal_String is
    begin
@@ -268,6 +345,24 @@ package body Types is
    end To_Str;
 
 
+   function Nodes_Equal (A, B : Mal_Handle) return Boolean is
+   begin
+      if (not Is_Null (A) and not Is_Null (B)) and then
+         Deref (A).Sym_Type = Deref (B).Sym_Type then
+         if Deref (A).Sym_Type = Node then
+            return
+              Nodes_Equal (Deref_Node (A).Left, Deref_Node (B).Left) and then
+              Nodes_Equal (Deref_Node (A).Right, Deref_Node (B).Right);
+         else
+            return A = B; 
+         end if;
+      elsif Is_Null (A) and Is_Null (B) then
+         return True;
+      else  -- either one of the args is null or the sym_types don't match
+         return False;
+      end if;
+   end Nodes_Equal;
+
    function New_Node_Mal_Type (Left, Right : Mal_Handle :=
                         Smart_Pointers.Null_Smart_pointer)
    return Mal_Handle is
@@ -363,6 +458,12 @@ package body Types is
       return Node_Length (L.The_List);
    end Length;
 
+   function Is_Null (L : List_Mal_Type) return Boolean is
+      use Smart_Pointers;
+   begin
+      return Smart_Pointers."="(L.The_List, Null_Smart_Pointer);
+   end Is_Null;
+
    function Null_List (L : List_Types) return List_Mal_Type is
    begin
       return (Mal_Type with List_Type => L,
@@ -418,6 +519,25 @@ package body Types is
    end Deref_Node;
 
 
+   function "=" (A, B : List_Mal_Type) return Boolean is
+   begin
+      if A.List_Type = B.List_Type then
+         return Nodes_Equal (A.The_List, B.The_List);
+      else
+         return False;
+      end if;
+   end "=";
+
+   function New_List_Mal_Type
+     (The_List : List_Mal_Type)
+   return Mal_Handle is
+   begin
+     return Smart_Pointers.New_Ptr
+        (new List_Mal_Type'(Mal_Type with
+          List_Type => The_List.List_Type,
+          The_List => The_List.The_List));
+   end New_List_Mal_Type;
+
 
    function New_List_Mal_Type
      (List_Type : List_Types;
@@ -472,28 +592,6 @@ package body Types is
    end To_Str;
 
 
-   function New_Lambda_Mal_Type
---     (Left, Right : Mal_Handle := Smart_Pointers.Null_Smart_pointer)
-       (Bin : Binary_Func_Access;
-        Rep : Mal_String)
-   return Mal_Handle is
-   begin
-      return Smart_Pointers.New_Ptr
-        (new Lambda_Mal_Type'(Mal_Type with
-          Bin => Bin,
-          Rep => Ada.Strings.Unbounded.To_Unbounded_String (Rep)));
-   end New_Lambda_Mal_Type;
-
-   overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types is
-   begin
-      return Lambda;
-   end Sym_Type;
-
-   overriding function To_Str (T : Lambda_Mal_Type) return Mal_String is
-   begin
-      return "(lambda " & Ada.Strings.Unbounded.To_String (T.Rep) & ")";
-   end To_Str;
-
    function Opening (LT : List_Types) return Character is
       Res : Character;
    begin
@@ -524,6 +622,54 @@ package body Types is
    end Closing;
 
 
+   function New_Lambda_Mal_Type
+     (Params : Mal_Handle; Expr : Mal_Handle)
+   return Mal_Handle is
+   begin
+      return Smart_Pointers.New_Ptr
+        (new Lambda_Mal_Type'
+          (Mal_Type with Env => Envs.Get_Current,
+           Params => Params,
+           Expr => Expr));
+   end New_Lambda_Mal_Type;
+
+   overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types is
+   begin
+      return Lambda;
+   end Sym_Type;
+
+   function Get_Env (L : Lambda_Mal_Type) return Envs.Env_Handle is
+   begin
+      return L.Env;
+   end Get_Env;
+
+   procedure Set_Env (L : in out Lambda_Mal_Type; Env : Envs.Env_Handle) is
+   begin
+      L.Env := Env;
+   end Set_Env;
+
+   function Get_Params (L : Lambda_Mal_Type) return Mal_Handle is
+   begin
+      return L.Params;
+   end Get_Params;
+
+   function Get_Expr (L : Lambda_Mal_Type) return Mal_Handle is
+   begin
+      return L.Expr;
+   end Get_Expr;
+
+   overriding function To_Str (T : Lambda_Mal_Type) return Mal_String is
+   begin
+--      return "(lambda " & Ada.Strings.Unbounded.To_String (T.Rep) & ")";
+      return "#<function>";
+   end To_Str;
+
+   function Deref_Lambda (SP : Mal_Handle) return Lambda_Ptr is
+   begin
+      return Lambda_Ptr (Deref (SP));
+   end Deref_Lambda;
+
+
    function Op (A, B : Mal_Handle) return Mal_Handle is
       use Types;
       A_Sym_Type : Sym_Types := Deref (A).Sym_Type;
@@ -540,10 +686,44 @@ package body Types is
          return New_Float_Mal_Type
            (Float_Op (Deref_Float (A).Get_Float_Val,
             Mal_Float (Deref_Float (B).Get_Float_Val)));
-      else
+      elsif A_Sym_Type = Floating and B_Sym_Type = Floating then
          return New_Float_Mal_Type
            (Float_Op (Deref_Float (A).Get_Float_Val,
             Deref_Float (B).Get_Float_Val));
+      else
+         if A_Sym_Type = Error then
+            return A;
+         elsif B_Sym_Type = Error then
+            return B;
+         else
+            return New_Error_Mal_Type ("Invalid operands");
+         end if;
       end if;
    end Op;
+
+
+   function Rel_Op (A, B : Mal_Handle) return Mal_Handle is
+      use Types;
+      A_Sym_Type : Sym_Types := Deref (A).Sym_Type;
+      B_Sym_Type : Sym_Types := Deref (B).Sym_Type;
+   begin
+      if A_Sym_Type = Int and B_Sym_Type = Int then
+         return New_Bool_Mal_Type
+           (Int_Rel_Op (Deref_Int (A).Get_Int_Val, Deref_Int (B).Get_Int_Val));
+      elsif A_Sym_Type = Int and B_Sym_Type = Floating then
+         return New_Bool_Mal_Type
+           (Float_Rel_Op (Mal_Float (Deref_Int (A).Get_Int_Val),
+            Deref_Float (B).Get_Float_Val));
+      elsif A_Sym_Type = Floating and B_Sym_Type = Int then
+         return New_Bool_Mal_Type
+           (Float_Rel_Op (Deref_Float (A).Get_Float_Val,
+            Mal_Float (Deref_Float (B).Get_Float_Val)));
+      else
+         return New_Bool_Mal_Type
+           (Float_Rel_Op (Deref_Float (A).Get_Float_Val,
+            Deref_Float (B).Get_Float_Val));
+      end if;
+   end Rel_Op;
+
+
 end Types;

@@ -16,6 +16,7 @@
 
 with Ada.Strings.Unbounded;
 with Smart_Pointers;
+with Envs;
 
 package Types is
 
@@ -29,7 +30,11 @@ package Types is
 
    subtype Mal_Handle is Smart_Pointers.Smart_Pointer;
 
-   type Sym_Types is (Int, Floating, List, Str, Atom,
+   function "=" (A, B : Mal_Handle) return Mal_Handle;
+
+   function "=" (A, B : Mal_Handle) return Boolean;
+
+   type Sym_Types is (Int, Floating, Bool, List, Str, Atom,
                       Unitary, Node, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
@@ -79,6 +84,19 @@ package Types is
    function Deref_Float (SP : Mal_Handle) return Float_Ptr;
 
 
+   type Bool_Mal_Type is new Mal_Type with private;
+
+   function New_Bool_Mal_Type (Bool : Boolean) return Mal_Handle;
+
+   overriding function Sym_Type (T : Bool_Mal_Type) return Sym_Types;
+
+   function Get_Bool (T : Bool_Mal_Type) return Boolean;
+
+   type Bool_Ptr is access all Bool_Mal_Type;
+
+   function Deref_Bool (SP : Mal_Handle) return Bool_Ptr;
+
+
    type String_Mal_Type is new Mal_Type with private;
 
    function New_String_Mal_Type (Str : Mal_String) return Mal_Handle;
@@ -86,6 +104,10 @@ package Types is
    overriding function Sym_Type (T : String_Mal_Type) return Sym_Types;
 
    function Get_String (T : String_Mal_Type) return Mal_String;
+
+   type String_Ptr is access all String_Mal_Type;
+
+   function Deref_String (SP : Mal_Handle) return String_Ptr;
 
 
    type Atom_Mal_Type is new Mal_Type with private;
@@ -132,9 +154,15 @@ package Types is
 
    type List_Mal_Type is new Mal_Type with private;
 
+   function "=" (A, B : List_Mal_Type) return Boolean;
+
    function New_List_Mal_Type
      (List_Type : List_Types;
       The_First_Node : Mal_Handle := Smart_Pointers.Null_Smart_Pointer)
+   return Mal_Handle;
+
+   function New_List_Mal_Type
+     (The_List : List_Mal_Type)
    return Mal_Handle;
 
    overriding function Sym_Type (T : List_Mal_Type) return Sym_Types;
@@ -169,6 +197,8 @@ package Types is
       L : List_Mal_Type)
    return Mal_Handle;
 
+   function Is_Null (L : List_Mal_Type) return Boolean;
+
    function Null_List (L : List_Types) return List_Mal_Type;
 
    type List_Ptr is access all List_Mal_Type;
@@ -178,22 +208,33 @@ package Types is
 
    type Lambda_Mal_Type is new Mal_Type with private;
 
-   type Func_Type is (Prim_Binary, Mal_Func);
    function New_Lambda_Mal_Type
---     (Body : Mal_Handle := Smart_Pointers.Null_Smart_pointer)
-       (Bin : Binary_Func_Access;
-        Rep : Mal_String)
+     (Params : Mal_Handle; Expr : Mal_Handle)
    return Mal_Handle;
 
    overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types;
 
-   -- primitive functions on Mal_Handle,
---   function "+" (A, B : Mal_Handle) return Mal_Handle;
+   function Get_Env (L : Lambda_Mal_Type) return Envs.Env_Handle;
+
+   procedure Set_Env (L : in out Lambda_Mal_Type; Env : Envs.Env_Handle);
+
+   function Get_Params (L : Lambda_Mal_Type) return Mal_Handle;
+
+   function Get_Expr (L : Lambda_Mal_Type) return Mal_Handle;
+
+   type Lambda_Ptr is access all Lambda_Mal_Type;
+
+   function Deref_Lambda (SP : Mal_Handle) return Lambda_Ptr;
 
    generic
       with function Int_Op (A, B : Mal_Integer) return Mal_Integer;
       with function Float_Op (A, B : Mal_Float) return Mal_Float;
    function Op (A, B : Mal_Handle) return Mal_Handle;
+
+   generic
+      with function Int_Rel_Op (A, B : Mal_Integer) return Boolean;
+      with function Float_Rel_Op (A, B : Mal_Float) return Boolean;
+   function Rel_Op (A, B : Mal_Handle) return Mal_Handle;
 
 private
 
@@ -216,6 +257,12 @@ private
    end record;
 
    overriding function To_Str (T : Float_Mal_Type) return Mal_String;
+
+   type Bool_Mal_Type is new Mal_Type with record
+      Bool_Val : Boolean;
+   end record;
+
+   overriding function To_Str (T : Bool_Mal_Type) return Mal_String;
 
    type String_Mal_Type is new Mal_Type with record
       The_String : Ada.Strings.Unbounded.Unbounded_String;
@@ -278,8 +325,8 @@ private
 
 
    type Lambda_Mal_Type is new Mal_Type with record
-       Bin : Binary_Func_Access;
-       Rep : Ada.Strings.Unbounded.Unbounded_String;
+       Env : Envs.Env_Handle;
+       Params, Expr : Mal_Handle;
    end record;
 
    overriding function To_Str (T : Lambda_Mal_Type) return Mal_String;

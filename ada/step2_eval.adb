@@ -32,7 +32,7 @@ procedure Step2_Eval is
      if Types.Is_Null (AST) then
         return "";
      else
-        Evaluated_AST := Evaluation.Eval (AST);
+        Evaluated_AST := Evaluation.Eval (AST, Envs.Get_Current);
         return Print (Evaluated_AST);
      end if;
 
@@ -45,10 +45,10 @@ begin
 
    Envs.New_Env;
 
-   Envs.Set ("+", Types.New_Atom_Mal_Type ("+"));
-   Envs.Set ("-", Types.New_Atom_Mal_Type ("-"));
-   Envs.Set ("*", Types.New_Atom_Mal_Type ("*"));
-   Envs.Set ("/", Types.New_Atom_Mal_Type ("/"));
+   Envs.Set (Envs.Get_Current, "+", Types.New_Atom_Mal_Type ("+"));
+   Envs.Set (Envs.Get_Current, "-", Types.New_Atom_Mal_Type ("-"));
+   Envs.Set (Envs.Get_Current, "*", Types.New_Atom_Mal_Type ("*"));
+   Envs.Set (Envs.Get_Current, "/", Types.New_Atom_Mal_Type ("/"));
 
    loop
       Ada.Text_IO.Put ("user> ");

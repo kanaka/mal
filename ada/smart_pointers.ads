@@ -16,6 +16,8 @@ package Smart_Pointers is
 
    Null_Smart_Pointer : constant Smart_Pointer;
 
+   function Is_Null (Ptr : Smart_Pointer) return Boolean;
+
 private
 
    type Base_Class is abstract tagged record

@@ -22,12 +22,19 @@ package body Reader is
    package ACL renames Ada.Characters.Latin_1;
 
    type Lexemes is (Int, Float_Tok, Sym,
-                    Nil, True_Tok, False_Tok, Exp_Tok, Splice_Unq,
+                    Nil, True_Tok, False_Tok,
+                    LE_Tok, GE_Tok, Exp_Tok, Splice_Unq,
                     Str, Atom,
                     Whitespace, Comment);
 
    package Lisp_Tokens is new Opentoken.Token.Enumerated (Lexemes);
    package Tokenizer is new Lisp_Tokens.Analyzer;
+
+   LE_Recognizer   : constant Tokenizer.Recognizable_Token :=
+     Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("<="));
+
+   GE_Recognizer   : constant Tokenizer.Recognizable_Token :=
+     Tokenizer.Get(Opentoken.Recognizer.Separator.Get (">="));
 
    Exp_Recognizer   : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("**"));
@@ -70,14 +77,14 @@ package body Reader is
    Body_Chars : Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps."or"
        (Ada.Strings.Maps.Constants.Alphanumeric_Set,
-        Ada.Strings.Maps.To_Set ("-!*"));
+        Ada.Strings.Maps.To_Set ("-!*?"));
 
    Atom_Recognizer  : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get
        (Opentoken.Recognizer.Identifier.Get (Start_Chars, Body_Chars));
 
    Lisp_Syms : constant Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.To_Set ("[]{}()'`~^@+-*/");
+     Ada.Strings.Maps.To_Set ("[]{}()'`~^@+-*/<>=");
 
    Sym_Recognizer : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get (Opentoken.Recognizer.Single_Character_Set.Get (Lisp_Syms));
@@ -98,6 +105,8 @@ package body Reader is
       Nil        => Nil_Recognizer,
       True_Tok   => True_Recognizer,
       False_Tok  => False_Recognizer,
+      LE_Tok     => LE_Recognizer,
+      GE_Tok     => GE_Recognizer,
       Exp_Tok    => Exp_Recognizer,
       Splice_Unq => Splice_Unq_Recognizer,
       Str        => String_Recognizer,
@@ -154,6 +163,10 @@ package body Reader is
             Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when False_Tok =>
             Res := New_Atom_Mal_Type (Str => Get_Token_String);
+         when LE_Tok =>
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
+         when GE_Tok =>
+            Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when Exp_Tok =>
             Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when Splice_Unq =>
@@ -181,7 +194,7 @@ package body Reader is
 --            end loop;
 --            Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, "^");
 --         end;
-
+--
 --         Ada.Text_IO.Put_Line
 --           (Ada.Text_IO.Standard_Error,
 --            Ada.Exceptions.Exception_Information (E));
@@ -206,7 +219,7 @@ package body Reader is
    return Types.Mal_Handle is
 
       use Types;
-      List_SP, MTA : Mal_Handle;
+      List_SP, MTA, Params, Expr, Close_Lambda : Mal_Handle;
       List_P : List_Ptr;
       Close : String (1..1) := (1 => Types.Closing (LT));
 
@@ -217,14 +230,28 @@ package body Reader is
       -- Need to append to a variable so...
       List_P := Deref_List (List_SP);
 
-      loop
-         MTA := Read_Form;
-         exit when Is_Null (MTA) or else
-                   (Deref (MTA).Sym_Type = Atom and then
-                    Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close);
-         Append (List_P.all, MTA);
-      end loop;
-      return List_SP;
+      MTA := Read_Form;
+
+      if Deref (MTA).Sym_Type = Atom and then
+         Deref_Atom (MTA).Get_Atom = "fn*" then
+
+         Params := Read_Form;
+         Expr := Read_Form;
+         Close_Lambda := Read_Form;  -- the ) at the end of the lambda
+         return New_Lambda_Mal_Type (Params, Expr);
+
+      else
+
+         loop
+            exit when Is_Null (MTA) or else
+                      (Deref (MTA).Sym_Type = Atom and then
+                       Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close);
+            Append (List_P.all, MTA);
+            MTA := Read_Form;
+         end loop;
+         return List_SP;
+      end if;
+
    exception
       when Lexical_Error =>
 

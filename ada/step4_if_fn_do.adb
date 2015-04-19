@@ -1,4 +1,5 @@
 with Ada.Command_Line;
+with Ada.Exceptions;
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
 with Envs;
@@ -7,7 +8,7 @@ with Printer;
 with Reader;
 with Types;
 
-procedure Step3_Env is
+procedure Step4_If_Fn_Do is
 
    function Read (Param : String) return Types.Mal_Handle is
    begin
@@ -41,29 +42,37 @@ procedure Step3_Env is
 
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
+   Cmd_Args : Natural;
 
 begin
 
-   if Ada.Command_Line.Argument_Count > 0 then
-     if Ada.Command_Line.Argument (1) = "-d" then
+   Cmd_Args := 0;
+   while Ada.Command_Line.Argument_Count > Cmd_Args loop
+     Cmd_Args := Cmd_Args + 1;
+     if Ada.Command_Line.Argument (Cmd_Args) = "-d" then
         Evaluation.Debug := True;
+     elsif Ada.Command_Line.Argument (Cmd_Args) = "-e" then
+        Envs.Debug := True;
      end if;
-   end if;
+   end loop;
 
-   Envs.New_Env;
-
-   Envs.Set (Envs.Get_Current, "+", Types.New_Atom_Mal_Type ("+"));
-   Envs.Set (Envs.Get_Current, "-", Types.New_Atom_Mal_Type ("-"));
-   Envs.Set (Envs.Get_Current, "*", Types.New_Atom_Mal_Type ("*"));
-   Envs.Set (Envs.Get_Current, "/", Types.New_Atom_Mal_Type ("/"));
+   Envs.Init;
 
    loop
-      Ada.Text_IO.Put ("user> ");
-      Ada.Text_IO.Get_Line (S, Last);
-      Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+      begin
+         Ada.Text_IO.Put ("user> ");
+         Ada.Text_IO.Get_Line (S, Last);
+         Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+      exception
+         when Ada.IO_Exceptions.End_Error => raise;
+         when E : others =>
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               Ada.Exceptions.Exception_Information (E));
+      end;
    end loop;
 
 exception
    when Ada.IO_Exceptions.End_Error => null;
    -- i.e. exit without textual output
-end Step3_Env;
+end Step4_If_Fn_Do;

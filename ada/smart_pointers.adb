@@ -38,4 +38,10 @@ package body Smart_Pointers is
    end Finalize;
 
 
+   function Is_Null (Ptr : Smart_Pointer) return Boolean is
+   begin
+      return Ptr = Null_Smart_Pointer;
+   end Is_Null;
+
+
 end Smart_Pointers;
