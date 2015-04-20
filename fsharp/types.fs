@@ -117,6 +117,17 @@ module Types
                 | :? Node as y -> Node.compare x y
                 | _ -> invalidArg "yobj" "Cannot compare values of different types."
 
+        static member ofArray arr = System.ArraySegment(arr) |> Vector
+        static member toArray = function
+            | List(lst) -> Array.ofList lst
+            | Vector(seg) -> Array.sub seg.Array seg.Offset seg.Count
+            | node -> [| node |]
+        static member length = function
+            | List(lst) -> List.length lst
+            | Vector(seg) -> seg.Count
+            | Map(m) -> m.Count
+            | _ -> 1
+
     and Env = System.Collections.Generic.Dictionary<string, Node>
     and EnvChain = Env list
 
@@ -128,11 +139,31 @@ module Types
     let SomeNIL = Some(NIL)
     let ZERO = Number(0L)
 
-    let makeVector vec = System.ArraySegment(vec) |> Vector
-    // TODO: Not currently using sliceVector.
-    let sliceVector offset count vec =
-        match vec with
-        | Vector(seg) ->
-            System.ArraySegment(seg.Array, seg.Offset + offset, count)
-            |> Vector
-        | _ -> invalidArg "vec" "Value passed in must be a Vector."
+    (* Active Patterns to help with pattern matching nodes *)
+    let (|Elements|_|) num node =
+        let rec accumList acc idx lst =
+            let len = Array.length acc
+            match lst with
+            | [] when idx = len -> Some(Elements acc)
+            | h::t when idx < len ->
+                acc.[idx] <- h
+                accumList acc (idx + 1) t
+            | _ -> None
+        match node with
+        | List(lst) -> accumList (Array.zeroCreate num) 0 lst
+        | Vector(seg) when seg.Count = num -> Some(Node.toArray node)
+        | _ -> None
+
+    let (|Head|_|) = function
+        | List(h::t) -> Some(Head(h, List(t)))
+        | Vector(seg) when seg.Count > 0 ->
+            let h = seg.Array.[seg.Offset]
+            let t = System.ArraySegment(seg.Array, seg.Offset + 1, seg.Count - 1)
+                    |> Vector
+            Some(Head(h, t))
+        | _ -> None
+
+    let (|Empty|_|) = function
+        | List([]) -> Some(Empty)
+        | Vector(seg) when seg.Count = 0 -> Some(Empty)
+        | _ -> None

@@ -18,31 +18,27 @@ module Eval
         loop ()
 
     let quasiquoteForm nodes =
-        let identity n = n
-        let singleNodeTransform f = function
-            | [node] -> f node
+        let transformNode f = function
+            | Elements 1 [|a|] -> f a
             | _ -> raise <| Core.errArity ()
+        let singleNode = transformNode (fun n -> n)
         let rec quasiquote node =
             match node with
-            | Vector(seg) when seg.Count > 0 -> quasiquote (List(List.ofSeq seg))
-            | List(Symbol("unquote")::rest) -> rest |> singleNodeTransform identity
-            | List(List(Symbol("splice-unquote")::spliceRest)::rest) ->
-                List([
-                        Symbol("concat")
-                        (singleNodeTransform identity spliceRest)
-                        (quasiquote (List(rest)))])
-            | List(node::rest) ->
-                List([
-                        Symbol("cons")
-                        (quasiquote node)
-                        (quasiquote (List(rest)))])
+            | Head(Symbol("unquote"), rest) -> rest |> singleNode
+            | Head(Head(Symbol("splice-unquote"), spliceRest), rest) ->
+                List([Symbol("concat"); singleNode spliceRest; quasiquote rest])
+            | Head(h, t) -> List([Symbol("cons"); quasiquote h; quasiquote t])
             | n -> List([Symbol("quote"); n])
-        nodes |> singleNodeTransform quasiquote
+        List(nodes) |> transformNode quasiquote
+
+    let quoteForm = function
+        | [node] -> node
+        | _ -> raise <| Core.errArity ()
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
         | List(lst) -> lst |> List.map (eval env) |> List
-        | Vector(seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> makeVector
+        | Vector(seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
         | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
         | node -> node
 
@@ -102,10 +98,6 @@ module Eval
         | [List(binds); body] -> makeFunc binds body
         | [Vector(seg); body] -> makeFunc (List.ofSeq seg) body
         | [_; _] -> raise <| errExpected "bindings of list or vector"
-        | _ -> raise <| Core.errArity ()
-
-    and quoteForm = function
-        | [node] -> node
         | _ -> raise <| Core.errArity ()
 
     and eval env = function
