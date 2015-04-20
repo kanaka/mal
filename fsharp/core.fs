@@ -5,7 +5,7 @@ module Core
     let errArity () = EvalError("arity: wrong number of arguments")
     let errArgMismatch () = EvalError("argument mismatch")
 
-    let inline toBool b = if b then TRUE else FALSE
+    let inline toBool b = if b then Node.TRUE else Node.FALSE
 
     let inline twoNumberOp (f : int64 -> int64 -> Node) = function
         | [Number(a); Number(b)] -> f a b
@@ -28,19 +28,19 @@ module Core
 
     let list nodes = List(nodes)
     let isList = function
-        | [List(_)] -> TRUE
-        | [_] -> FALSE
+        | [List(_)] -> Node.TRUE
+        | [_] -> Node.FALSE
         | _ -> raise <| errArity ()
 
     let isEmpty = function
-        | [List([])] -> TRUE
-        | [Vector(seg)] when seg.Count <= 0 -> TRUE
-        | _ -> FALSE
+        | [List([])] -> Node.TRUE
+        | [Vector(seg)] when seg.Count <= 0 -> Node.TRUE
+        | _ -> Node.FALSE
 
     let count = function
         | [List(lst)] -> lst |> List.length |> int64 |> Number
         | [Vector(seg)] -> seg.Count |> int64 |> Number
-        | [Nil] -> ZERO
+        | [Nil] -> Node.ZERO
         | [_] -> raise <| errArgMismatch ()
         | _ -> raise <| errArity ()
 

@@ -1,21 +1,18 @@
 module Eval
 
+    open Node
     open Types
 
     type Env = Map<string, Node>
 
     let errExpected tok = EvalError(sprintf "expected %s" tok)
 
-    let iterPairs f (source : seq<_>) =
-        use iter = source.GetEnumerator()
-        let rec loop () =
-            if iter.MoveNext() then
-                let first = iter.Current
-                if not (iter.MoveNext()) then raise <| errExpected "even node count"
-                let second = iter.Current
-                f first second
-                loop ()
-        loop ()
+    let rec iterPairs f = function
+        | Pair(first, second, t) ->
+            f first second
+            iterPairs f t
+        | Empty -> ()
+        | _ -> raise <| errExpected "Vector or List"
 
     let quasiquoteForm nodes =
         let transformNode f = function
@@ -24,10 +21,10 @@ module Eval
         let singleNode = transformNode (fun n -> n)
         let rec quasiquote node =
             match node with
-            | Head(Symbol("unquote"), rest) -> rest |> singleNode
-            | Head(Head(Symbol("splice-unquote"), spliceRest), rest) ->
+            | Cons(Symbol("unquote"), rest) -> rest |> singleNode
+            | Cons(Cons(Symbol("splice-unquote"), spliceRest), rest) ->
                 List([Symbol("concat"); singleNode spliceRest; quasiquote rest])
-            | Head(h, t) -> List([Symbol("cons"); quasiquote h; quasiquote t])
+            | Cons(h, t) -> List([Symbol("cons"); quasiquote h; quasiquote t])
             | n -> List([Symbol("quote"); n])
         List(nodes) |> transformNode quasiquote
 
@@ -64,8 +61,7 @@ module Eval
             let inner = Env.makeNew outer [] []
             let binder = setBinding inner
             match bindings with
-            | List(lst) -> lst |> iterPairs binder
-            | Vector(seg) -> seg |> iterPairs binder
+            | List(_) | Vector(_) -> iterPairs binder bindings
             | _ -> raise <| errExpected "list or vector"
             inner, form
         | _ -> raise <| Core.errArity ()

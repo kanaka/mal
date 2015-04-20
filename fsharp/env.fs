@@ -39,7 +39,7 @@ module Env
         fun () -> System.Threading.Interlocked.Increment(counter)
 
     let makeBuiltInFunc f =
-        Func(getNextValue (), f, NIL, [], [])
+        Func(getNextValue (), f, Node.NIL, [], [])
 
     let makeFunc f body binds env =
         Func(getNextValue (), f, body, binds, env)
