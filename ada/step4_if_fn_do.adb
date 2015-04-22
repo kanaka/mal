@@ -58,6 +58,8 @@ begin
 
    Envs.Init;
 
+   Ada.Text_IO.Put_Line (Rep ("(def! not (fn* (a) (if a false true)))"));
+
    loop
       begin
          Ada.Text_IO.Put ("user> ");
