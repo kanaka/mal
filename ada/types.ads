@@ -169,6 +169,9 @@ package Types is
 
    function Get_List_Type (L : List_Mal_Type) return List_Types;
 
+   function Prepend (Op : Mal_Handle; To_List : List_Mal_Type)
+   return Mal_Handle;
+
    procedure Append (To_List : in out List_Mal_Type; Op : Mal_Handle);
 
    function Length (L : List_Mal_Type) return Natural;

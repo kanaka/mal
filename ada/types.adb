@@ -521,11 +521,7 @@ package body Types is
 
    function "=" (A, B : List_Mal_Type) return Boolean is
    begin
-      if A.List_Type = B.List_Type then
-         return Nodes_Equal (A.The_List, B.The_List);
-      else
-         return False;
-      end if;
+      return Nodes_Equal (A.The_List, B.The_List);
    end "=";
 
    function New_List_Mal_Type
@@ -559,6 +555,14 @@ package body Types is
    begin
       return L.List_Type;
    end Get_List_Type;
+
+   function Prepend (Op : Mal_Handle; To_List : List_Mal_Type)
+   return Mal_Handle is
+   begin
+      return New_List_Mal_Type
+               (To_List.Get_List_Type,
+                New_Node_Mal_Type (Op, To_List.The_List));
+   end Prepend;
 
    procedure Append (To_List : in out List_Mal_Type; Op : Mal_Handle) is
       Node_P : Node_Ptr;

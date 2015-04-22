@@ -22,6 +22,11 @@ package Envs is
    function Get (E : Env_Handle; Key : String)
    return Smart_Pointers.Smart_Pointer;
 
+   procedure Set_Outer
+     (E : Env_Handle; Outer_Env : Env_Handle);
+
+   function To_String (E : Env_Handle) return String;
+
    Not_Found : exception;
 
    -- Sym and Exprs are lists.  Bind Sets Keys in Syms to the corresponding
@@ -59,7 +64,7 @@ private
    type Env is new Smart_Pointers.Base_Class with record
       The_Map : String_Mal_Hash.Map;
       Outer_Env : Env_Handle;
-Level: Natural;
+      Level: Natural;
    end record;
 
    Current : Env_Handle;

@@ -102,6 +102,30 @@ package body Envs is
    end Get;
 
 
+   procedure Set_Outer
+     (E : Env_Handle; Outer_Env : Env_Handle) is
+   begin
+      -- Attempt to avoid making loops.
+      if Deref (E).Level /= 0 then
+         Deref (E).Outer_Env := Outer_Env;
+      end if;
+   end Set_Outer;
+
+
+   function To_String (E : Env_Handle) return String is
+      use String_Mal_Hash, Ada.Strings.Unbounded;
+      C : Cursor;
+      Res : Unbounded_String;
+   begin
+      C := First (Deref (E).The_Map);
+      while C /= No_Element loop
+         Append (Res, Key (C) &  " => " & Types.To_String (Types.Deref (Element (C)).all) & ", ");
+         C := Next (C);
+      end loop;
+      return To_String (Res);
+   end To_String;
+
+
    -- Sym and Exprs are lists.  Bind Sets Keys in Syms to the corresponding
    -- expression in Exprs.
    procedure Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type) is
@@ -144,6 +168,9 @@ package body Envs is
 
    procedure Delete_Env is
    begin
+      if Debug then
+         Ada.Text_IO.Put_Line ("Deleting env at level " & Natural'Image (Deref (Current).Level));
+      end if;
       -- Always leave one Env!
       if not Is_Null (Deref (Current).Outer_Env) then
          Current := Deref (Current).Outer_Env;
