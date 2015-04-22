@@ -45,10 +45,9 @@ package body Evaluation is
       Params : List_Mal_Type;
       E : Envs.Env_Handle;
    begin
-      E := Envs.New_Env (Env);
+      E := Envs.New_Env (L.Get_Env);
       Params := Deref_List (L.Get_Params).all;
       Envs.Bind (E, Params, Deref_List (Fn_List).all);
-      Set_Env (L.all, E);
 
       return Eval (L.Get_Expr, E); 
 
