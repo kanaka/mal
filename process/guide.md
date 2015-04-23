@@ -41,6 +41,12 @@ In addition, the following will make your task especially easy:
 Here are some examples of languages that have all of the above
 features: JavaScript, Ruby, Python, Lua, R, Clojure.
 
+Michael Fogus has some great blog posts on interesting but less well
+known languages and many of the languages on his lists do not yet have
+any mal implementations:
+* http://blog.fogus.me/2011/08/14/perlis-languages/
+* http://blog.fogus.me/2011/10/18/programming-language-development-the-past-5-years/
+
 Many of the most popular languages already have Mal implementations.
 However, this should not discourage you from creating your own
 implementation in a language that already has one. However, if you go
