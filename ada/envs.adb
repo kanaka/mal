@@ -111,12 +111,21 @@ package body Envs is
    procedure Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type) is
       use Types;
       S, Expr : List_Mal_Type;
+      First_Sym : Atom_Ptr;
    begin
       S := Syms;
       Expr := Exprs;
-      while not Is_Null (S) and not Is_Null (Expr) loop
-         Set (E, Deref_Atom (Car (S)).Get_Atom, Car (Expr));
+      while not Is_Null (S) loop
+         First_Sym := Deref_Atom (Car (S));
+         if First_Sym.Get_Atom = "&" then
+            S := Deref_List (Cdr (S)).all;
+            First_Sym := Deref_Atom (Car (S));
+            Set (E, First_Sym.Get_Atom, New_List_Mal_Type (Expr));
+            exit;
+         end if;
+         Set (E, First_Sym.Get_Atom, Car (Expr));
          S := Deref_List (Cdr (S)).all;
+         exit when Is_Null (Expr);
          Expr := Deref_List (Cdr (Expr)).all;
       end loop;
    end Bind;

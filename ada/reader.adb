@@ -84,7 +84,7 @@ package body Reader is
        (Opentoken.Recognizer.Identifier.Get (Start_Chars, Body_Chars));
 
    Lisp_Syms : constant Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.To_Set ("[]{}()'`~^@+-*/<>=");
+     Ada.Strings.Maps.To_Set ("[]{}()'`~^@&+-*/<>=");
 
    Sym_Recognizer : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get (Opentoken.Recognizer.Single_Character_Set.Get (Lisp_Syms));
