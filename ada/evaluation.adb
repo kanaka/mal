@@ -6,18 +6,6 @@ package body Evaluation is
 
    use Types;
 
-   -- primitive functions on Smart_Pointer,
-   function "+" is new Op ("+", "+");
-   function "-" is new Op ("-", "-");
-   function "*" is new Op ("*", "*");
-   function "/" is new Op ("/", "/");
-
-   function "<" is new Rel_Op ("<", "<");
-   function "<=" is new Rel_Op ("<=", "<=");
-   function ">" is new Rel_Op (">", ">");
-   function ">=" is new Rel_Op (">=", ">=");
-
-
    procedure Add_Defs (Defs : List_Mal_Type; Env : Envs.Env_Handle) is
       D, L : List_Mal_Type;
    begin
@@ -54,73 +42,8 @@ package body Evaluation is
    end Fn_Processing;
 
 
-   function Apply (Func : Types.Mal_Handle; Params : Types.Mal_Handle)
-   return Types.Mal_Handle is
-      use Types;
-      Args : List_Mal_Type;
-   begin
-
-      Args := Deref_List (Params).all;
-
-      if Debug then
-
-         Ada.Text_IO.Put_Line
-           ("Applying " & To_String (Deref (Func).all) &
-            " to " & Args.To_String);
-
-      end if;
-
-      case Deref (Func).Sym_Type is
-
-         when Atom =>
-
-            declare
-               Atom_P : Types.Atom_Ptr;
-            begin
-               Atom_P := Types.Deref_Atom (Func);
-               if Atom_P.Get_Atom = "+" then
-                  return Reduce ("+"'Access, Args);
-               elsif Atom_P.Get_Atom = "-" then
-                  return Reduce ("-"'Access, Args);
-               elsif Atom_P.Get_Atom = "*" then
-                  return Reduce ("*"'Access, Args);
-               elsif Atom_P.Get_Atom = "/" then
-                  return Reduce ("/"'Access, Args);
-               elsif Atom_P.Get_Atom = "<" then
-                  return Reduce ("<"'Access, Args);
-               elsif Atom_P.Get_Atom = "<=" then
-                  return Reduce ("<="'Access, Args);
-               elsif Atom_P.Get_Atom = ">" then
-                  return Reduce (">"'Access, Args);
-               elsif Atom_P.Get_Atom = ">=" then
-                  return Reduce (">="'Access, Args);
-               elsif Atom_P.Get_Atom = "=" then
-                  return Reduce (Types."="'Access, Args);
-               elsif Atom_P.Get_Atom = "list" then
-                  return New_List_Mal_Type (The_List => Args);
-               end if;
-           end;
-
-         when Lambda =>
-
-            declare
-               Lam : Lambda_Ptr;
-            begin
-               Lam := Deref_Lambda (Func);
-               return Fn_Processing (Lam, Params, Lam.Get_Env);
-            end;
-
-         when Error => return Func;
-
-         when others => null;
-
-      end case;
-      return Smart_Pointers.Null_Smart_Pointer;
-   end Apply;
-
-
-   function Def_Fn (Args : Types.List_Mal_Type; Env : Envs.Env_Handle) return Types.Mal_Handle is
-      use Types;
+   function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
+   return Mal_Handle is
       Name, Fn_Body, Res : Mal_Handle;
    begin
       Name := Car (Args);
@@ -133,9 +56,8 @@ package body Evaluation is
    end Def_Fn;
 
 
-   function Let_Processing (Args : Types.List_Mal_Type; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
-      use Types;
+   function Let_Processing (Args : List_Mal_Type; Env : Envs.Env_Handle)
+   return Mal_Handle is
       Defs, Expr, Res : Mal_Handle;
    begin
       Envs.New_Env;
@@ -148,8 +70,7 @@ package body Evaluation is
    end Let_Processing;
 
 
-   function Eval_As_Boolean (MH : Types.Mal_Handle) return Boolean is
-      use Types;
+   function Eval_As_Boolean (MH : Mal_Handle) return Boolean is
       Res : Boolean;
    begin
       case Deref (MH).Sym_Type is
@@ -171,8 +92,8 @@ package body Evaluation is
    end Eval_As_Boolean;
 
 
-   function If_Processing (Args : Types.List_Mal_Type; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
+   function If_Processing (Args : List_Mal_Type; Env : Envs.Env_Handle)
+   return Mal_Handle is
 
       Cond, True_Part, False_Part : Mal_Handle;
       Cond_Bool : Boolean;
@@ -201,8 +122,8 @@ package body Evaluation is
 
 
    function Eval_Ast
-     (Ast : Types.Mal_Handle; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
+     (Ast : Mal_Handle; Env : Envs.Env_Handle)
+   return Mal_Handle is
 
       function Call_Eval (A : Mal_Handle) return Mal_Handle is
       begin
@@ -256,9 +177,8 @@ package body Evaluation is
    end Eval_Ast;
 
 
-   function Do_Processing (Do_List : Types.List_Mal_Type; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
-      use Types;
+   function Do_Processing (Do_List : List_Mal_Type; Env : Envs.Env_Handle)
+   return Mal_Handle is
       D : List_Mal_Type;
       Res : Mal_Handle := Smart_Pointers.Null_Smart_Pointer;
    begin
@@ -272,34 +192,6 @@ package body Evaluation is
       end loop;
       return Res;
    end Do_Processing;
-
-
-   function Eval_As_List (MH : Types.Mal_Handle) return List_Mal_Type is
-   begin
-      case Deref (MH).Sym_Type is
-         when List =>  return Deref_List (MH).all;
-         when Atom =>
-            if Deref_Atom (MH).Get_Atom = "nil" then
-               return Null_List (List_List);
-            end if;
-         when others => null;
-      end case;
-      raise Evaluation_Error with "Expecting a List";
-      return Null_List (List_List);
-   end Eval_As_List;
-
-
-   function Apply2
-     (Op : Binary_Func_Access; L : List_Mal_Type; Env : Envs.Env_Handle)
-   return Mal_Handle is
-      Left, Right : Mal_Handle;
-      Rest_List : List_Mal_Type;
-   begin
-      Left := Eval (Car (L), Env);
-      Rest_List := Deref_List (Cdr (L)).all;
-      Right := Eval (Car (Rest_List), Env);
-      return Op (Left, Right);
-   end Apply2;
 
 
    function Eval_List (L : Mal_Handle; Env : Envs.Env_Handle)
@@ -316,13 +208,16 @@ package body Evaluation is
 
       First_Elem := Car (LMT);
 
-      Rest_List := Deref_List (Cdr (LMT)).all;
+      Rest_Handle := Cdr (LMT);
+
+      Rest_List := Deref_List (Rest_Handle).all;
 
       case Deref (First_Elem).Sym_Type is
 
          when Int | Floating | Bool | Str =>
  
-            return Eval_Ast (L, Env);
+--            return Eval_Ast (L, Env);
+            return First_Elem;
 
          when Atom =>
 
@@ -338,58 +233,9 @@ package body Evaluation is
                   return Do_Processing (Rest_List, Env);
                elsif Atom_P.Get_Atom = "if" then
                   return If_Processing (Rest_List, Env);
-               elsif Atom_P.Get_Atom = "list?" then
-                  declare
-                     First_Param, Evaled_List : Mal_Handle;
-                  begin
-                     First_Param := Car (Rest_List);
-                     Evaled_List := Eval (First_Param, Env);
-                     return New_Bool_Mal_Type
-                       (Deref (Evaled_List).Sym_Type = List and then
-                        Deref_List (Evaled_List).Get_List_Type = List_List);
-                  end;
-               elsif Atom_P.Get_Atom = "empty?" then
-                  declare
-                     First_Param, Evaled_List : Mal_Handle;
-                     List : List_Mal_Type;
-                  begin
-                     First_Param := Car (Rest_List);
-                     Evaled_List := Eval (First_Param, Env);
-                     List := Deref_List (Evaled_List).all;
-                     return New_Bool_Mal_Type (Is_Null (List));
-                  end;
-               elsif Atom_P.Get_Atom = "count" then
-                  declare
-                     First_Param, Evaled_List : Mal_Handle;
-                     List : List_Mal_Type;
-                  begin
-                     First_Param := Car (Rest_List);
-                     Evaled_List := Eval (First_Param, Env);
-                     List := Eval_As_List (Evaled_List);
-                     return New_Int_Mal_Type (Length (List));
-                  end;
-               elsif Atom_P.Get_Atom = "+" then
-                  return Apply2 ("+"'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "-" then
-                  return Apply2 ("-"'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "*" then
-                  return Apply2 ("*"'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "/" then
-                  return Apply2 ("/"'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "<" then
-                  return Apply2 ("<"'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "<=" then
-                  return Apply2 ("<="'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = ">" then
-                  return Apply2 (">"'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = ">=" then
-                  return Apply2 (">="'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "=" then
-                  return Apply2 (Types."="'Access, Rest_List, Env);
-               elsif Atom_P.Get_Atom = "list" then
-                  return New_List_Mal_Type (The_List => Rest_List);
                else -- not a special form
 
+                  -- Apply section
                   declare
                      Res : Mal_Handle;
                   begin
@@ -397,14 +243,22 @@ package body Evaluation is
                      Res := Eval_Ast (L, Env);
                      return Eval (Res, Env);
                   end;
+
                end if;
             end;
+
+         when Func =>
+
+            return Call_Func
+                     (Deref_Func (First_Elem).all,
+                      Rest_Handle,
+                      Env);
 
          when Lambda =>
 
             return Fn_Processing
                      (Deref_Lambda (First_Elem),
-                      Cdr (LMT),
+                      Cdr (LMT),  -- Rest_Handle,
                       Env);
 
          when List => 
@@ -437,9 +291,8 @@ package body Evaluation is
    end Eval_List;
 
 
-   function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
-      use Types;
+   function Eval (Param : Mal_Handle; Env : Envs.Env_Handle)
+   return Mal_Handle is
       First_Elem : Mal_Handle;
    begin
 

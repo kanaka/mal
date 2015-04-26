@@ -1,6 +1,7 @@
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
+with Core;
 with Envs;
 with Evaluation;
 with Printer;
@@ -50,12 +51,7 @@ begin
      end if;
    end if;
 
-   Envs.New_Env;
-
-   Envs.Set (Envs.Get_Current, "+", Types.New_Atom_Mal_Type ("+"));
-   Envs.Set (Envs.Get_Current, "-", Types.New_Atom_Mal_Type ("-"));
-   Envs.Set (Envs.Get_Current, "*", Types.New_Atom_Mal_Type ("*"));
-   Envs.Set (Envs.Get_Current, "/", Types.New_Atom_Mal_Type ("/"));
+   Core.Init;
 
    loop
       Ada.Text_IO.Put ("user> ");

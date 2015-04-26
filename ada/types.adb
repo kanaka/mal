@@ -36,6 +36,8 @@ package body Types is
                return (Deref_String (A).Get_String = Deref_String (B).Get_String);
             when Atom =>
                return (Deref_Atom (A).Get_Atom = Deref_Atom (B).Get_Atom);
+            when Func =>
+               return (Deref_Func (A).Get_Func_Name = Deref_Func (B).Get_Func_Name);
             when Unitary =>
                return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
             when Node =>
@@ -234,6 +236,43 @@ package body Types is
    overriding function To_Str (T : Atom_Mal_Type) return Mal_String is
    begin
       return Ada.Strings.Unbounded.To_String (T.The_Atom);
+   end To_Str;
+
+
+   function New_Func_Mal_Type (Str : Mal_String; F : Builtin_Func)
+   return Mal_Handle is
+   begin
+      return Smart_Pointers.New_Ptr
+        (new Func_Mal_Type'(Mal_Type with
+          Func_Name => Ada.Strings.Unbounded.To_Unbounded_String (Str),
+          Func_P => F));
+   end New_Func_Mal_Type;
+
+   overriding function Sym_Type (T : Func_Mal_Type) return Sym_Types is
+   begin
+      return Func;
+   end Sym_Type;
+
+   function Get_Func_Name (T : Func_Mal_Type) return Mal_String is
+   begin
+      return Ada.Strings.Unbounded.To_String (T.Func_Name);
+   end Get_Func_Name;
+
+   function Call_Func
+     (FMT : Func_Mal_Type; Rest_List : Mal_Handle; Env : Envs.Env_Handle)
+   return Mal_Handle is
+   begin
+      return FMT.Func_P (Rest_List, Env);
+   end Call_Func;
+
+   function Deref_Func (S : Mal_Handle) return Func_Ptr is
+   begin
+      return Func_Ptr (Deref (S));
+   end Deref_Func;
+
+   overriding function To_Str (T : Func_Mal_Type) return Mal_String is
+   begin
+      return Ada.Strings.Unbounded.To_String (T.Func_Name);
    end To_Str;
 
 
@@ -674,7 +713,7 @@ package body Types is
    end Deref_Lambda;
 
 
-   function Op (A, B : Mal_Handle) return Mal_Handle is
+   function Arith_Op (A, B : Mal_Handle) return Mal_Handle is
       use Types;
       A_Sym_Type : Sym_Types := Deref (A).Sym_Type;
       B_Sym_Type : Sym_Types := Deref (B).Sym_Type;
@@ -703,7 +742,7 @@ package body Types is
             return New_Error_Mal_Type ("Invalid operands");
          end if;
       end if;
-   end Op;
+   end Arith_Op;
 
 
    function Rel_Op (A, B : Mal_Handle) return Mal_Handle is

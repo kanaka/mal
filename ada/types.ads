@@ -34,7 +34,7 @@ package Types is
 
    function "=" (A, B : Mal_Handle) return Boolean;
 
-   type Sym_Types is (Int, Floating, Bool, List, Str, Atom,
+   type Sym_Types is (Int, Floating, Bool, List, Str, Atom, Func,
                       Unitary, Node, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
@@ -209,6 +209,28 @@ package Types is
    function Deref_List (SP : Mal_Handle) return List_Ptr;
 
 
+   type Func_Mal_Type is new Mal_Type with private;
+
+   type Builtin_Func is access
+      function (MH : Mal_Handle; Env : Envs.Env_Handle) return Mal_Handle;
+
+   function New_Func_Mal_Type (Str : Mal_String; F : Builtin_Func)
+   return Mal_Handle;
+
+   overriding function Sym_Type (T : Func_Mal_Type) return Sym_Types;
+
+   function Get_Func_Name (T : Func_Mal_Type) return Mal_String;
+
+   function Call_Func
+     (FMT : Func_Mal_Type; Rest_List : Mal_Handle; Env : Envs.Env_Handle)
+   return Mal_Handle;
+
+   type Func_Ptr is access all Func_Mal_Type;
+
+   function Deref_Func (S : Mal_Handle) return Func_Ptr;
+
+
+
    type Lambda_Mal_Type is new Mal_Type with private;
 
    function New_Lambda_Mal_Type
@@ -232,7 +254,7 @@ package Types is
    generic
       with function Int_Op (A, B : Mal_Integer) return Mal_Integer;
       with function Float_Op (A, B : Mal_Float) return Mal_Float;
-   function Op (A, B : Mal_Handle) return Mal_Handle;
+   function Arith_Op (A, B : Mal_Handle) return Mal_Handle;
 
    generic
       with function Int_Rel_Op (A, B : Mal_Integer) return Boolean;
@@ -278,6 +300,13 @@ private
    end record;
 
    overriding function To_Str (T : Atom_Mal_Type) return Mal_String;
+
+   type Func_Mal_Type is new Mal_Type with record
+      Func_Name : Ada.Strings.Unbounded.Unbounded_String;
+      Func_P : Builtin_Func;
+   end record;
+
+   overriding function To_Str (T : Func_Mal_Type) return Mal_String;
 
    type Error_Mal_Type is new Mal_Type with record
       Error_Msg : Ada.Strings.Unbounded.Unbounded_String;

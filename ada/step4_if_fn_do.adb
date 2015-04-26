@@ -2,6 +2,7 @@ with Ada.Command_Line;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
+with Core;
 with Envs;
 with Evaluation;
 with Printer;
@@ -56,7 +57,7 @@ begin
      end if;
    end loop;
 
-   Envs.Init;
+   Core.Init;
 
    Ada.Text_IO.Put_Line (Rep ("(def! not (fn* (a) (if a false true)))"));
 

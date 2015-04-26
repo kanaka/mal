@@ -5,26 +5,6 @@ with Unchecked_Deallocation;
 package body Envs is
 
 
-   procedure Init is
-   begin
-      New_Env;
-
-      Set (Current, "+", Types.New_Atom_Mal_Type ("+"));
-      Set (Current, "-", Types.New_Atom_Mal_Type ("-"));
-      Set (Current, "*", Types.New_Atom_Mal_Type ("*"));
-      Set (Current, "/", Types.New_Atom_Mal_Type ("/"));
-      Set (Current, "<", Types.New_Atom_Mal_Type ("<"));
-      Set (Current, "<=", Types.New_Atom_Mal_Type ("<="));
-      Set (Current, ">", Types.New_Atom_Mal_Type (">"));
-      Set (Current, ">=", Types.New_Atom_Mal_Type (">="));
-      Set (Current, "=", Types.New_Atom_Mal_Type ("="));
-      Set (Current, "true", Types.New_Bool_Mal_Type (True));
-      Set (Current, "false", Types.New_Bool_Mal_Type (False));
-      Set (Current, "list", Types.New_Atom_Mal_Type ("list"));
-      Set (Current, "nil", Types.New_Atom_Mal_Type ("nil"));
-   end Init;
-
-
    function Is_Null (E : Env_Handle) return Boolean is
       use Smart_Pointers;
    begin

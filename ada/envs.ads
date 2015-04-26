@@ -5,8 +5,6 @@ limited with Types;
 
 package Envs is
 
-   procedure Init;
-
    type Env_Handle is private;
 
    function New_Env (Outer : Env_Handle) return Env_Handle;
