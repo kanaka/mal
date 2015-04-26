@@ -1,5 +1,6 @@
 with Ada.Containers.Hashed_Maps;
-with Ada.Strings.Unbounded;
+--with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 with Smart_Pointers;
 limited with Types;
 
@@ -49,13 +50,10 @@ private
 
    function Is_Null (E : Env_Handle) return Boolean;
 
-   function String_Hash (Key : Ada.Strings.Unbounded.Unbounded_String)
-   return Ada.Containers.Hash_Type;
-
    package String_Mal_Hash is new Ada.Containers.Hashed_Maps
      (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
       Element_Type    => Smart_Pointers.Smart_Pointer,
-      Hash            => String_Hash,
+      Hash            => Ada.Strings.Unbounded.Hash,
       Equivalent_Keys => Ada.Strings.Unbounded."=",
       "="             => Smart_Pointers."=");
 

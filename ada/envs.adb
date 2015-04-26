@@ -131,22 +131,6 @@ package body Envs is
    end Bind;
 
 
-   function String_Hash (Key : Ada.Strings.Unbounded.Unbounded_String)
-   return Ada.Containers.Hash_Type is
-      use Ada.Containers;
-      Res : Ada.Containers.Hash_Type;
-      Str_Len : Natural;
-   begin
-      Res := 0;
-      Str_Len := Ada.Strings.Unbounded.Length (Key);
-      for I in 1..Str_Len loop
-         Res := Res * 16 +
-                  Character'Pos (Ada.Strings.Unbounded.Element (Key, I));
-      end loop;
-      return Res;
-   end String_Hash;
-
-
    procedure New_Env is
    begin
       Current := New_Env (Current);
