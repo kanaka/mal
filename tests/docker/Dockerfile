@@ -107,13 +107,10 @@ RUN luarocks install linenoise
 RUN npm install -g minimal-lisp
 
 # Nim
-RUN git clone -b devel git://github.com/Araq/Nim.git /tmp/Nim \
-    && cd /tmp/Nim && git clone -b devel --depth 1 git://github.com/nim-lang/csources \
-    && cd /tmp/Nim/csources && sh build.sh \
-    && cd /tmp/Nim && bin/nim c koch \
-    && ./koch boot -d:release \
-    && ./koch install /usr/local/bin \
-    && rm -r /tmp/Nim
+RUN cd /tmp && wget http://nim-lang.org/download/nim-0.11.0.tar.xz \
+    && tar xvJf /tmp/nim-0.11.0.tar.xz && cd nim-0.11.0 \
+    && make && sh install.sh /usr/local/bin \
+    && rm -r /tmp/nim-0.11.0
 
 # OCaml
 RUN apt-get -y install ocaml-batteries-included
