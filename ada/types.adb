@@ -64,14 +64,15 @@ package body Types is
       T.Meta := SP;
    end Set_Meta;
 
-   function To_String (T : Mal_Type'Class) return Mal_String is
+   function To_String (T : Mal_Type'Class; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       if not Is_Null (T.Meta) then
          return "(with-meta " &
-                To_Str (T) & " " &
-                To_Str (Deref (T.Meta).all) & ")";
+                To_Str (T, Print_Readably) & " " &
+                To_Str (Deref (T.Meta).all, Print_Readably) & ")";
       else
-         return To_Str (T);
+         return To_Str (T, Print_Readably);
       end if;
    end To_String;
 
@@ -91,7 +92,8 @@ package body Types is
 
 
    -- To_Str on the abstract type...
-   function To_Str (T : Mal_Type) return Mal_String is
+   function To_Str (T : Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       raise Constraint_Error;  -- Tha'll teach 'ee
       return "";  -- Keeps the compiler happy.
@@ -114,7 +116,9 @@ package body Types is
       return T.Int_Val;
    end Get_Int_Val;
 
-   overriding function To_Str (T : Int_Mal_Type) return Mal_String is
+   overriding function To_Str
+     (T : Int_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
       Res : Mal_String := Mal_Integer'Image (T.Int_Val);
    begin
       return Ada.Strings.Fixed.Trim (Res, Ada.Strings.Left);
@@ -142,7 +146,9 @@ package body Types is
       return T.Float_Val;
    end Get_Float_Val;
 
-   overriding function To_Str (T : Float_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Float_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
       Res : Mal_String := Mal_Float'Image (T.Float_Val);
    begin
       return Ada.Strings.Fixed.Trim (Res, Ada.Strings.Left);
@@ -170,7 +176,9 @@ package body Types is
       return T.Bool_Val;
    end Get_Bool;
 
-   overriding function To_Str (T : Bool_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Bool_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
       Res : Mal_String := Boolean'Image (T.Bool_Val);
    begin
      return Ada.Strings.Fixed.Translate
@@ -205,9 +213,35 @@ package body Types is
       return String_Ptr (Deref (SP));
    end Deref_String;
 
-   overriding function To_Str (T : String_Mal_Type) return Mal_String is
+
+   overriding function To_Str 
+     (T : String_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
+      use Ada.Strings.Unbounded;
+      I : Positive := 2;
+      Str_Len : Natural;
+      Res : Unbounded_String;
    begin
-      return Ada.Strings.Unbounded.To_String (T.The_String);
+      if Print_Readably then
+         Append (Res, '"');
+         Str_Len := Length (T.The_String);
+         while I < Str_Len loop
+            if Element (T.The_String, I) = '"' then
+               Append (Res, "\""");
+            elsif Element (T.The_String, I) = '\' then
+               Append (Res, "\\");
+            elsif Element (T.The_String, I) = Ada.Characters.Latin_1.LF then
+               Append (Res, "\n");
+            else
+               Append (Res, Element (T.The_String, I));
+            end if;
+            I := I + 1;
+         end loop;
+         Append (Res, '"');
+         return Ada.Strings.Unbounded.To_String (Res);
+      else
+         return Slice (T.The_String, 2, Length (T.The_String) - 1);
+      end if;
    end To_Str;
 
 
@@ -233,7 +267,9 @@ package body Types is
       return Atom_Ptr (Deref (S));
    end Deref_Atom;
 
-   overriding function To_Str (T : Atom_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Atom_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       return Ada.Strings.Unbounded.To_String (T.The_Atom);
    end To_Str;
@@ -270,7 +306,9 @@ package body Types is
       return Func_Ptr (Deref (S));
    end Deref_Func;
 
-   overriding function To_Str (T : Func_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Func_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       return Ada.Strings.Unbounded.To_String (T.Func_Name);
    end To_Str;
@@ -288,7 +326,9 @@ package body Types is
       return Error;
    end Sym_Type;
 
-   overriding function To_Str (T : Error_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Error_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       return Ada.Strings.Unbounded.To_String (T.Error_Msg);
    end To_Str;
@@ -365,21 +405,23 @@ package body Types is
    end Reduce_Nodes;
 
 
-   overriding function To_Str (T : Unitary_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Unitary_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       case T.The_Function is
          when Quote =>
-            return "(quote " & To_String (Deref (T.The_Operand).all) & ")";
+            return "(quote " & To_String (Deref (T.The_Operand).all, True) & ")";
          when Unquote =>
-            return "(unquote " & To_String (Deref (T.The_Operand).all) & ")";
+            return "(unquote " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
          when Quasiquote =>
-            return "(quasiquote " & To_String (Deref (T.The_Operand).all) & ")";
+            return "(quasiquote " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
          when Splice_Unquote =>
             return
-              "(splice-unquote " & To_String (Deref (T.The_Operand).all) & ")";
+              "(splice-unquote " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
          when Deref =>
             return
-              "(deref " & To_String (Deref (T.The_Operand).all) & ")";
+              "(deref " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
       end case;
    end To_Str;
 
@@ -536,21 +578,42 @@ package body Types is
       end if;
    end Reduce;
 
-   overriding function To_Str (T : Node_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Node_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       if Is_Null (T.Left) then
          -- Left is null and by implication so is right.
          return "";
       elsif Is_Null (T.Right) then
         -- Left is not null but right is.
-        return To_Str (Deref (T.Left).all);
+        return To_Str (Deref (T.Left).all, Print_Readably);
       else
         -- Left and right are both not null.
-        return To_Str (Deref (T.Left).all) &
+        return To_Str (Deref (T.Left).all, Print_Readably) &
                " " &
-               To_Str (Deref (T.Right).all);
+               To_Str (Deref (T.Right).all, Print_Readably);
       end if;
    end To_Str;
+
+   function Cat_Str (T : Node_Mal_Type; Print_Readably : Boolean := True) return Mal_String is
+   begin
+      if Is_Null (T.Left) then
+         -- Left is null and by implication so is right.
+         return "";
+      elsif Is_Null (T.Right) then
+        -- Left is not null but right is.
+        return To_Str (Deref (T.Left).all, Print_Readably);
+
+      -- Left and right are both not null.
+      elsif Deref (T.Right).Sym_Type = Node then
+        return To_Str (Deref (T.Left).all, Print_Readably) &
+               Cat_Str (Deref_Node (T.Right).all, Print_Readably);
+      else
+        return To_Str (Deref (T.Left).all, Print_Readably) &
+               To_Str (Deref (T.Right).all, Print_Readably);
+      end if;
+   end Cat_Str;
 
    function Deref_Node (SP : Mal_Handle) return Node_Ptr is
    begin
@@ -622,17 +685,41 @@ package body Types is
    end Deref_List;
 
 
-   overriding function To_Str (T : List_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : List_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
       if Is_Null (T.The_List) then
          return Opening (T.List_Type) &
                 Closing (T.List_Type);
       else
          return Opening (T.List_Type) &
-                To_String (Deref (T.The_List).all) &
+                To_String (Deref (T.The_List).all, Print_Readably) &
                 Closing (T.List_Type);
       end if;
    end To_Str;
+
+
+   function Pr_Str (T : List_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
+   begin
+      if Is_Null (T.The_List) then
+         return "";
+      else
+         return To_String (Deref_Node (T.The_List).all, Print_Readably);
+      end if;
+   end Pr_Str;
+
+
+   function Cat_Str (T : List_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
+   begin
+      if Is_Null (T.The_List) then
+         return "";
+      else
+         return Cat_Str (Deref_Node (T.The_List).all, Print_Readably);
+      end if;
+   end Cat_Str;
 
 
    function Opening (LT : List_Types) return Character is
@@ -701,7 +788,9 @@ package body Types is
       return L.Expr;
    end Get_Expr;
 
-   overriding function To_Str (T : Lambda_Mal_Type) return Mal_String is
+   overriding function To_Str 
+     (T : Lambda_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
 --      return "(lambda " & Ada.Strings.Unbounded.To_String (T.Rep) & ")";
       return "#<function>";

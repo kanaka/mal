@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Envs;
 with Evaluation;
@@ -203,6 +204,43 @@ package body Core is
    end EQ;
 
 
+   function Pr_Str (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      use Ada.Strings.Unbounded;
+      Res : Unbounded_String;
+   begin
+      return New_String_Mal_Type ('"' & Deref_List (Rest_Handle).Pr_Str & '"');
+   end Pr_Str;
+
+
+   function Prn (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      use Ada.Strings.Unbounded;
+   begin
+      Ada.Text_IO.Put_Line (Deref_List (Rest_Handle).Pr_Str);
+      return New_Atom_Mal_Type ("nil");
+   end Prn;
+
+
+   function Println (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      use Ada.Strings.Unbounded;
+      Res : String := Deref_List (Rest_Handle).Pr_Str (False);
+   begin
+      Ada.Text_IO.Put_Line (Res);
+      return New_Atom_Mal_Type ("nil");
+   end Println;
+
+
+   function Str (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      use Ada.Strings.Unbounded;
+      Res : String := Deref_List (Rest_Handle).Cat_Str (False);
+   begin
+      return New_String_Mal_Type ('"' & Res & '"');
+   end Str;
+
+
    procedure Init is
      use Envs;
    begin
@@ -228,6 +266,22 @@ package body Core is
       Set (Get_Current,
            "list",
            New_Func_Mal_Type ("list", New_List'access));
+
+      Set (Get_Current,
+           "pr-str",
+           New_Func_Mal_Type ("pr-str", Pr_Str'access));
+
+      Set (Get_Current,
+           "str",
+           New_Func_Mal_Type ("str", Str'access));
+
+      Set (Get_Current,
+           "prn",
+           New_Func_Mal_Type ("prn", Prn'access));
+
+      Set (Get_Current,
+           "println",
+           New_Func_Mal_Type ("println", Println'access));
 
       Set (Get_Current,
            "+",

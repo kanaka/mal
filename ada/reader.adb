@@ -139,6 +139,39 @@ package body Reader is
       return S (S'First);
    end Get_Token_Char;
 
+   function Convert_String (S : String) return String is
+      use Ada.Strings.Unbounded;
+      Res : Unbounded_String;
+      I : Positive;
+      Str_Last : Natural;
+   begin
+      Str_Last := S'Last;
+      I := S'First;
+      while I <= Str_Last loop
+         if S (I) = '\' then
+            if I+1 > Str_Last then
+               Append (Res, S (I));
+               I := I + 1;
+            elsif S (I+1) = 'n' then
+               Append (Res, Ada.Characters.Latin_1.LF);
+               I := I + 2;
+            elsif S (I+1) = '"' then
+               Append (Res, S (I+1));
+               I := I + 2;
+            elsif S (I+1) = '\' then
+               Append (Res, S (I+1));
+               I := I + 2;
+            else
+               Append (Res, S (I));
+               I := I + 1;
+            end if;
+         else
+            Append (Res, S (I));
+            I := I + 1;
+         end if;
+      end loop;
+      return To_String (Res);
+   end Convert_String;
 
    -- Saved_Line is needed to detect the unterminated string error.
    Saved_Line : String (1..Max_Line_Len);
@@ -174,7 +207,8 @@ package body Reader is
               (Func => Splice_Unquote,
                Op => Smart_Pointers.Null_Smart_Pointer);
          when Str =>
-            Res := New_String_Mal_Type (Str => Get_Token_String);
+            Res := New_String_Mal_Type
+              (Str => Convert_String (Get_Token_String));
          when Atom =>
             Res := New_Atom_Mal_Type (Str => Get_Token_String);
          when Whitespace | Comment => null;

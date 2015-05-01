@@ -45,7 +45,8 @@ package Types is
 
    procedure Set_Meta (T : in out Mal_Type'Class; SP : Mal_Handle);
 
-   function To_String (T : Mal_Type'Class) return Mal_String;
+   function To_String (T : Mal_Type'Class; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Mal_Ptr is access all Mal_Type'Class;
 
@@ -204,6 +205,12 @@ package Types is
 
    function Null_List (L : List_Types) return List_Mal_Type;
 
+   function Pr_Str (T : List_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
+
+   function Cat_Str (T : List_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
+
    type List_Ptr is access all List_Mal_Type;
 
    function Deref_List (SP : Mal_Handle) return List_Ptr;
@@ -269,57 +276,66 @@ private
 
    -- Not allowed to be abstract and private.  RM 3.9.3(10)
    -- So if you call this it'll just raise an exception.
-   function To_Str (T : Mal_Type) return Mal_String; -- is abstract;
+   function To_Str (T : Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Int_Mal_Type is new Mal_Type with record
       Int_Val : Mal_Integer;
    end record;
 
-   overriding function To_Str (T : Int_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Int_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Float_Mal_Type is new Mal_Type with record
       Float_Val : Mal_Float;
    end record;
 
-   overriding function To_Str (T : Float_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Float_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Bool_Mal_Type is new Mal_Type with record
       Bool_Val : Boolean;
    end record;
 
-   overriding function To_Str (T : Bool_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Bool_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type String_Mal_Type is new Mal_Type with record
       The_String : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
-   overriding function To_Str (T : String_Mal_Type) return Mal_String;
+   overriding function To_Str (T : String_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Atom_Mal_Type is new Mal_Type with record
       The_Atom : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
-   overriding function To_Str (T : Atom_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Atom_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Func_Mal_Type is new Mal_Type with record
       Func_Name : Ada.Strings.Unbounded.Unbounded_String;
       Func_P : Builtin_Func;
    end record;
 
-   overriding function To_Str (T : Func_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Func_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Error_Mal_Type is new Mal_Type with record
       Error_Msg : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
-   overriding function To_Str (T : Error_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Error_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Unitary_Mal_Type is new Mal_Type with record
       The_Function : Unitary_Functions;
       The_Operand : Mal_Handle;
    end record;
 
-   overriding function To_Str (T : Unitary_Mal_Type) return Mal_String;
+   overriding function To_Str (T : Unitary_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
 
    -- Nodes have to be a differnt type from a List;
@@ -341,7 +357,9 @@ private
      L : Node_Mal_Type)
    return Mal_Handle;
 
-   overriding function To_Str (T : Node_Mal_Type) return Mal_String;
+   overriding function To_Str 
+     (T : Node_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
    type Node_Ptr is access all Node_Mal_Type;
 
@@ -353,7 +371,9 @@ private
       The_List : Mal_Handle;
    end record;
 
-   overriding function To_Str (T : List_Mal_Type) return Mal_String;
+   overriding function To_Str 
+     (T : List_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
 
    type Lambda_Mal_Type is new Mal_Type with record
@@ -361,7 +381,9 @@ private
        Params, Expr : Mal_Handle;
    end record;
 
-   overriding function To_Str (T : Lambda_Mal_Type) return Mal_String;
+   overriding function To_Str 
+     (T : Lambda_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
 
 
 end Types;
