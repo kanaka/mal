@@ -5,7 +5,7 @@ module REPL
         try
             Reader.read_str input
         with
-        | Types.ReaderError(msg) ->
+        | Error.ReaderError(msg) ->
             printfn "%s" msg
             []
 
@@ -13,7 +13,7 @@ module REPL
         try
             Some(Eval.eval env ast)
         with
-        | Types.EvalError(msg) ->
+        | Error.EvalError(msg) ->
             printfn "%s" msg
             None
 
@@ -41,7 +41,7 @@ module REPL
 
     let eval_func env = function
         | [ast] -> Eval.eval env ast
-        | _ -> raise <| Core.errArity ()
+        | _ -> raise <| Error.wrongArity ()
 
     let argv_func = function
         | file::rest -> rest |> List.map Types.String |> Types.List

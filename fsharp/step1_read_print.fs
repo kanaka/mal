@@ -5,7 +5,7 @@ module REPL
         try
             Reader.read_str input
         with
-        | Types.ReaderError(msg) ->
+        | Error.ReaderError(msg) ->
             printfn "%s" msg
             []
 

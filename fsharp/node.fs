@@ -58,11 +58,11 @@ module Node
         match node with
         | List(a::b::t) -> Some(a, b, List(t))
         | List([]) -> None
-        | List(_) -> raise <| EvalError("Expected even node count")
+        | List(_) -> raise <| Error.expectedEvenNodeCount ()
         | Vector(seg) ->
             match seg.Count with
             | 0 -> None
-            | 1 -> raise <| EvalError("Expected even node count")
+            | 1 -> raise <| Error.expectedEvenNodeCount ()
             | _ ->
                 let a = seg.Array.[seg.Offset]
                 let b = seg.Array.[seg.Offset + 1]

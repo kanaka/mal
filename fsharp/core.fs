@@ -2,19 +2,16 @@ module Core
     
     open Types
 
-    let errArity () = EvalError("arity: wrong number of arguments")
-    let errArgMismatch () = EvalError("argument mismatch")
-
     let inline toBool b = if b then Node.TRUE else Node.FALSE
 
     let inline twoNumberOp (f : int64 -> int64 -> Node) = function
         | [Number(a); Number(b)] -> f a b
-        | [_; _] -> raise <| errArgMismatch ()
-        | _ -> raise <| errArity ()
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
     
     let inline twoNodeOp (f : Node -> Node -> Node) = function
         | [a; b] -> f a b
-        | _ -> raise <| errArity ()
+        | _ -> raise <| Error.wrongArity ()
  
     let add = twoNumberOp (fun a b -> a + b |> Number)
     let subtract = twoNumberOp (fun a b -> a - b |> Number)
@@ -30,7 +27,7 @@ module Core
     let isList = function
         | [List(_)] -> Node.TRUE
         | [_] -> Node.FALSE
-        | _ -> raise <| errArity ()
+        | _ -> raise <| Error.wrongArity ()
 
     let isEmpty = function
         | [List([])] -> Node.TRUE
@@ -41,8 +38,8 @@ module Core
         | [List(lst)] -> lst |> List.length |> int64 |> Number
         | [Vector(seg)] -> seg.Count |> int64 |> Number
         | [Nil] -> Node.ZERO
-        | [_] -> raise <| errArgMismatch ()
-        | _ -> raise <| errArity ()
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
 
     let pr_str nodes = nodes |> Printer.pr_str |> String
     let str nodes = nodes |> Printer.str |> String
@@ -54,26 +51,26 @@ module Core
             match Reader.read_str s with
             | [node] -> node
             | nodes -> List(Symbol("do")::nodes)
-        | [_] -> raise <| errArgMismatch ()
-        | _ -> raise <| errArity ()
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
 
     let slurp = function
         | [String(s)] -> System.IO.File.ReadAllText s |> String
-        | [_] -> raise <| errArgMismatch ()
-        | _ -> raise <| errArity ()
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
 
     let cons = function
         | [node; List(lst)] -> List(node::lst)
         | [node; Vector(seg)] -> List(node::(List.ofSeq seg))
-        | [_; _] -> raise <| errArgMismatch ()
-        | _ -> raise <| errArity ()
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
 
     let concat nodes =
         let cons st node = node::st
         let accumNode acc = function
             | List(lst) -> lst |> List.fold cons acc
             | Vector(seg) -> seg |> Seq.fold cons acc
-            | _ -> raise <| errArgMismatch ()
+            | _ -> raise <| Error.argMismatch ()
 
         nodes
         |> List.fold accumNode []

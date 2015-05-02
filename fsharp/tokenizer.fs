@@ -18,9 +18,6 @@ module Tokenizer
         | Keyword of string
         | Number of string
 
-    let errExpectedButEOF tok = ReaderError(sprintf "expected %s, got EOF" tok)
-    let errExpected tok = ReaderError(sprintf "expected %s" tok)
-    let errUnexpected () = ReaderError("unexpected char")
 
     let tokenize (str : string) =
         let len = str.Length
@@ -52,14 +49,14 @@ module Tokenizer
                 accChars n
             and accChars p =
                 let n = p + 1
-                if p >= len then raise <| errExpectedButEOF "'\"'"
+                if p >= len then raise <| Error.expectedXButEOF "'\"'"
                 match str.[p] with
                 | '\\' -> accEscaped n
                 | '"' -> n
                 | ch -> accChar ch n
             and accEscaped p =
                 let n = p + 1
-                if p >= len then raise <| errExpectedButEOF "char"
+                if p >= len then raise <| Error.expectedXButEOF "char"
                 match str.[p] with
                 | 't'  -> accChar '\t' n
                 | 'b'  -> accChar '\b' n
@@ -69,15 +66,15 @@ module Tokenizer
                 | '\'' -> accChar '\'' n
                 | '"'  -> accChar '"' n
                 | '\\' -> accChar '\\' n
-                | _ -> raise <| errExpectedButEOF "valid escape char"
+                | _ -> raise <| Error.expectedXButEOF "valid escape char"
             let n = accChars p
             String(b.ToString()), n
 
         let accumulateKeyword p =
             let n = p + 1
-            if p >= len then raise <| errExpectedButEOF "keyword"
+            if p >= len then raise <| Error.expectedXButEOF "keyword"
             elif isTokenChar str.[p] then accumulateWhile isTokenChar Keyword p n
-            else raise <| errExpected "keyword char"
+            else raise <| Error.expectedX "keyword char"
 
         let accumulateSpliceUnquote p =
             if p >= len then Tilde, p
@@ -107,7 +104,7 @@ module Tokenizer
                 | ':' -> accumulateKeyword n
                 | ch when isDigit ch -> accumulateWhile isDigit Number p n
                 | ch when isTokenChar ch -> accumulateWhile isTokenChar Token p n
-                | _ -> raise <| errUnexpected ()
+                | _ -> raise <| Error.unexpectedChar ()
 
         let rec accumulate acc p = 
             match getToken p with

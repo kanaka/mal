@@ -5,7 +5,7 @@ module REPL
         try
             Reader.read_str input
         with
-        | Types.ReaderError(msg) ->
+        | Error.ReaderError(msg) ->
             printfn "%s" msg
             []
 
@@ -13,7 +13,8 @@ module REPL
         try
             Some(Eval.eval env ast)
         with
-        | Types.EvalError(msg) ->
+        | Error.EvalError(msg)
+        | Error.ReaderError(msg) ->
             printfn "%s" msg
             None
 

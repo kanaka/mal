@@ -2,13 +2,6 @@ module Env
 
     open Types
 
-    let errSymbolNotFound s = EvalError(sprintf "'%s' not found" s)
-    let errNoEnvironment () = EvalError("no environment")
-    let errTooManyValues () = EvalError("too many values")
-    let errNotEnoughValues () = EvalError("not enough values")
-    let errExpectedSymbol () = EvalError("expected symbol")
-    let errOnlyOneSymbol () = EvalError("only one symbol after &")
-
     let makeEmpty () = Env()
 
     let ofList lst =
@@ -19,7 +12,7 @@ module Env
     let set (env : EnvChain) key node =
         match env with
         | head::_ -> head.[key] <- node
-        | _ -> raise <| errNoEnvironment ()
+        | _ -> raise <| Error.noEnvironment ()
 
     let rec find (chain : EnvChain) key =
         match chain with
@@ -32,7 +25,7 @@ module Env
     let get chain key =
         match find chain key with
         | Some(v) -> v
-        | None -> raise <| errSymbolNotFound key
+        | None -> raise <| Error.symbolNotFound key
 
     let private getNextValue =
         let counter = ref 0
@@ -78,12 +71,12 @@ module Env
             | [Symbol("&"); Symbol(s)], nodes ->
                 set env s (List nodes)
                 env
-            | Symbol("&")::_, _ -> raise <| errOnlyOneSymbol ()
+            | Symbol("&")::_, _ -> raise <| Error.onlyOneSymbolAfterAmp ()
             | Symbol(s)::symbols, n::nodes -> 
                 set env s n
                 loop symbols nodes
             | [], [] -> env
-            | _, [] -> raise <| errNotEnoughValues ()
-            | [], _ -> raise <| errTooManyValues ()
-            | _, _ -> raise <| errExpectedSymbol ()
+            | _, [] -> raise <| Error.notEnoughValues ()
+            | [], _ -> raise <| Error.tooManyValues ()
+            | _, _ -> raise <| Error.expectedX "symbol"
         loop symbols nodes

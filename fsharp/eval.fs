@@ -5,19 +5,17 @@ module Eval
 
     type Env = Map<string, Node>
 
-    let errExpected tok = EvalError(sprintf "expected %s" tok)
-
     let rec iterPairs f = function
         | Pair(first, second, t) ->
             f first second
             iterPairs f t
         | Empty -> ()
-        | _ -> raise <| errExpected "Vector or List"
+        | _ -> raise <| Error.expectedX "list or vector"
 
     let quasiquoteForm nodes =
         let transformNode f = function
             | Elements 1 [|a|] -> f a
-            | _ -> raise <| Core.errArity ()
+            | _ -> raise <| Error.wrongArity ()
         let singleNode = transformNode (fun n -> n)
         let rec quasiquote node =
             match node with
@@ -30,7 +28,7 @@ module Eval
 
     let quoteForm = function
         | [node] -> node
-        | _ -> raise <| Core.errArity ()
+        | _ -> raise <| Error.wrongArity ()
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
@@ -46,13 +44,13 @@ module Eval
                 let node = eval env form
                 Env.set env sym node
                 node
-            | _ -> raise <| errExpected "symbol"
-        | _ -> raise <| Core.errArity ()
+            | _ -> raise <| Error.expectedX "symbol"
+        | _ -> raise <| Error.wrongArity ()
 
     and setBinding env first second =
         let s = match first with 
                 | Symbol(s) -> s 
-                | _ -> raise <| errExpected "symbol"
+                | _ -> raise <| Error.expectedX "symbol"
         let form = eval env second
         Env.set env s form
 
@@ -62,14 +60,14 @@ module Eval
             let binder = setBinding inner
             match bindings with
             | List(_) | Vector(_) -> iterPairs binder bindings
-            | _ -> raise <| errExpected "list or vector"
+            | _ -> raise <| Error.expectedX "list or vector"
             inner, form
-        | _ -> raise <| Core.errArity ()
+        | _ -> raise <| Error.wrongArity ()
 
     and ifForm env = function
         | [condForm; trueForm; falseForm] -> ifForm3 env condForm trueForm falseForm
         | [condForm; trueForm] -> ifForm3 env condForm trueForm Nil
-        | _ -> raise <| Core.errArity ()
+        | _ -> raise <| Error.wrongArity ()
 
     and ifForm3 env condForm trueForm falseForm =
         match eval env condForm with
@@ -81,7 +79,7 @@ module Eval
         | a::rest ->
             eval env a |> ignore
             doForm env rest
-        | _ -> raise <| Core.errArity ()
+        | _ -> raise <| Error.wrongArity ()
 
     and fnStarForm outer nodes =
         let makeFunc binds body =
@@ -93,8 +91,8 @@ module Eval
         match nodes with
         | [List(binds); body] -> makeFunc binds body
         | [Vector(seg); body] -> makeFunc (List.ofSeq seg) body
-        | [_; _] -> raise <| errExpected "bindings of list or vector"
-        | _ -> raise <| Core.errArity ()
+        | [_; _] -> raise <| Error.expectedX "bindings of list or vector"
+        | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
         | List(Symbol("def!")::rest) -> defBangForm env rest
@@ -113,5 +111,5 @@ module Eval
             | List(Func(_, _, body, binds, outer)::rest) ->
                 let inner = Env.makeNew outer binds rest
                 body |> eval inner
-            | _ -> raise <| errExpected "function"
+            | _ -> raise <| Error.expectedX "function"
         | node -> node |> eval_ast env

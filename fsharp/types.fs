@@ -1,8 +1,5 @@
 module Types
 
-    exception ReaderError of string
-    exception EvalError of string
-
     [<CustomEquality; CustomComparison>]
     type Node =
         | Nil
