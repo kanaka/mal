@@ -21,6 +21,6 @@ def rep(x)
     read(eval(print(x)))
 end
 
-while line = my_readline("user> ")
+while line = Mal::my_readline("user> ")
     puts rep(line)
 end
