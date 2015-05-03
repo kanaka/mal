@@ -21,14 +21,16 @@ package body Reader is
 
    package ACL renames Ada.Characters.Latin_1;
 
-   type Lexemes is (Int, Float_Tok, Sym,
+   type Lexemes is (Whitespace, Comment,
+                    Int, Float_Tok, Sym,
                     Nil, True_Tok, False_Tok,
                     LE_Tok, GE_Tok, Exp_Tok, Splice_Unq,
-                    Str, Atom,
-                    Whitespace, Comment);
+                    Str, Atom);
 
-   package Lisp_Tokens is new Opentoken.Token.Enumerated (Lexemes);
-   package Tokenizer is new Lisp_Tokens.Analyzer;
+   package Lisp_Tokens is
+     new Opentoken.Token.Enumerated (Lexemes, Lexemes'Image, 10);
+
+   package Tokenizer is new Lisp_Tokens.Analyzer (Int, Atom);
 
    LE_Recognizer   : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("<="));
@@ -50,9 +52,6 @@ package body Reader is
 
    False_Recognizer : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get (Opentoken.Recognizer.Keyword.Get ("false"));
-
-   ID_Recognizer   : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Identifier.Get);
 
    Int_Recognizer  : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get(Opentoken.Recognizer.Integer.Get);
@@ -211,7 +210,6 @@ package body Reader is
               (Str => Convert_String (Get_Token_String));
          when Atom =>
             Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when Whitespace | Comment => null;
       end case;
       return Res;
 
