@@ -24,5 +24,9 @@ def rep(str)
 end
 
 while line = my_readline("user> ")
+  begin
     puts rep(line)
+  rescue e
+    STDERR.puts e
+  end
 end
