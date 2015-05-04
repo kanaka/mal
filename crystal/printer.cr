@@ -8,6 +8,7 @@ def pr_str(value, print_readably = true)
   when Mal::List   then "(#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")})"
   when Mal::Vector then "[#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")}]"
   when Mal::Symbol then value.val.to_s
+  when Proc        then "<function>"
   when Mal::HashMap
     "{#{value.map{|k, v| "#{pr_str(k, print_readably) as String} #{pr_str(v, print_readably) as String}"}.join(" ")}}"
   when String
