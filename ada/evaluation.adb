@@ -24,24 +24,6 @@ package body Evaluation is
    end Add_Defs;
 
 
-   function Fn_Processing
-     (L : Lambda_Ptr;
-      Fn_List : Mal_Handle;
-      Env : Envs.Env_Handle)
-   return Mal_Handle is
-
-      Params : List_Mal_Type;
-      E : Envs.Env_Handle;
-   begin
-      E := Envs.New_Env (L.Get_Env);
-      Params := Deref_List (L.Get_Params).all;
-      Envs.Bind (E, Params, Deref_List (Fn_List).all);
-
-      return Eval (L.Get_Expr, E); 
-
-   end Fn_Processing;
-
-
    function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
    return Mal_Handle is
       Name, Fn_Body, Res : Mal_Handle;
@@ -90,35 +72,6 @@ package body Evaluation is
       end case;
       return Res;
    end Eval_As_Boolean;
-
-
-   function If_Processing (Args : List_Mal_Type; Env : Envs.Env_Handle)
-   return Mal_Handle is
-
-      Cond, True_Part, False_Part : Mal_Handle;
-      Cond_Bool : Boolean;
-      pragma Assert (Length (Args) = 2 or Length (Args) = 3,
-                     "If_Processing: not 2 or 3 parameters");
-      L : List_Mal_Type;
-   begin
-      
-      Cond := Eval (Car (Args), Env);
-
-      Cond_Bool := Eval_As_Boolean (Cond);
-
-      if Cond_Bool then
-         L := Deref_List (Cdr (Args)).all;
-         return Eval (Car (L), Env);
-      else
-         if Length (Args) = 3 then
-            L := Deref_List (Cdr (Args)).all;
-            L := Deref_List (Cdr (L)).all;
-            return Eval (Car (L), Env);
-         else
-            return New_Atom_Mal_Type ("nil");
-         end if;
-      end if;
-   end If_Processing;
 
 
    function Eval_Ast
@@ -194,14 +147,29 @@ package body Evaluation is
    end Do_Processing;
 
 
-   function Eval_List (L : Mal_Handle; Env : Envs.Env_Handle)
+   function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
    return Mal_Handle is
+      Param : Mal_Handle;
+      Env : Envs.Env_Handle;
+      First_Elem : Mal_Handle;
+   begin
 
-      pragma Assert (Deref (L).Sym_Type = List,
-                     "Eval_List: expected a List");
+      Param := AParam;
+      Env := AnEnv;
+
+      <<Tail_Call_Opt>>
+
+      if Debug then
+         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
+      end if;
+
+      if Deref (Param).Sym_Type = List and then
+         Deref_List (Param).all.Get_List_Type = List_List then
+
+   declare
+      L : Mal_Handle := Param;
       LMT, Rest_List : List_Mal_Type;
       First_Elem, Rest_Handle : Mal_Handle;
-
    begin
 
       LMT := Deref_List (L).all;
@@ -216,7 +184,6 @@ package body Evaluation is
 
          when Int | Floating | Bool | Str =>
  
---            return Eval_Ast (L, Env);
             return First_Elem;
 
          when Atom =>
@@ -232,7 +199,40 @@ package body Evaluation is
                elsif Atom_P.Get_Atom = "do" then
                   return Do_Processing (Rest_List, Env);
                elsif Atom_P.Get_Atom = "if" then
-                  return If_Processing (Rest_List, Env);
+                  declare
+                     Args : List_Mal_Type := Rest_List;
+
+                     Cond, True_Part, False_Part : Mal_Handle;
+                     Cond_Bool : Boolean;
+                     pragma Assert (Length (Args) = 2 or Length (Args) = 3,
+                     "If_Processing: not 2 or 3 parameters");
+                     L : List_Mal_Type;
+                  begin
+      
+                     Cond := Eval (Car (Args), Env);
+
+                     Cond_Bool := Eval_As_Boolean (Cond);
+
+                     if Cond_Bool then
+                        L := Deref_List (Cdr (Args)).all;
+
+                        Param := Car (L);
+                        goto Tail_Call_Opt;
+                        -- return Eval (Car (L), Env);
+                     else
+                        if Length (Args) = 3 then
+                           L := Deref_List (Cdr (Args)).all;
+                           L := Deref_List (Cdr (L)).all;
+
+                           Param := Car (L);
+                           goto Tail_Call_Opt;
+                           -- return Eval (Car (L), Env);
+                        else
+                           return New_Atom_Mal_Type ("nil");
+                        end if;
+                     end if;
+                  end;
+
                else -- not a special form
 
                   -- Apply section
@@ -241,7 +241,9 @@ package body Evaluation is
                   begin
                      -- Eval the atom.
                      Res := Eval_Ast (L, Env);
-                     return Eval (Res, Env);
+                     Param := Res;
+                     goto Tail_Call_Opt;
+                     -- return Eval (Res, Env);
                   end;
 
                end if;
@@ -256,10 +258,22 @@ package body Evaluation is
 
          when Lambda =>
 
-            return Fn_Processing
-                     (Deref_Lambda (First_Elem),
-                      Cdr (LMT),  -- Rest_Handle,
-                      Env);
+            declare
+               LP : Lambda_Ptr := Deref_Lambda (First_Elem);
+               Fn_List : Mal_Handle := Cdr (LMT);
+               Params : List_Mal_Type;
+               E : Envs.Env_Handle;
+            begin
+               E := Envs.New_Env (LP.Get_Env);
+               Params := Deref_List (LP.Get_Params).all;
+               Envs.Bind (E, Params, Deref_List (Fn_List).all);
+
+               Param := LP.Get_Expr;
+               Env := E;
+               goto Tail_Call_Opt;
+               --return Eval (LP.Get_Expr, E); 
+
+            end;
 
          when List => 
 
@@ -276,8 +290,12 @@ package body Evaluation is
                else
                   E := Env;
                end if;
-               Evaled_List := Prepend (Evaled_List, Rest_List);
-               return Eval (Evaled_List, E);
+
+               Param := Prepend (Evaled_List, Rest_List);
+               Env := E;
+               goto Tail_Call_Opt;
+               -- Evaled_List := Prepend (Evaled_List, Rest_List);
+               -- return Eval (Evaled_List, E);
             end;
 
          when Error => return First_Elem;
@@ -288,22 +306,7 @@ package body Evaluation is
 
       end case;
 
-   end Eval_List;
-
-
-   function Eval (Param : Mal_Handle; Env : Envs.Env_Handle)
-   return Mal_Handle is
-      First_Elem : Mal_Handle;
-   begin
-
-      if Debug then
-         Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
-      end if;
-
-      if Deref (Param).Sym_Type = List and then
-         Deref_List (Param).all.Get_List_Type = List_List then
-
-         return Eval_List (Param, Env);
+   end;
 
       else
 
