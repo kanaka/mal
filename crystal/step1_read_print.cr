@@ -16,7 +16,7 @@ def eval(x)
 end
 
 def print(result)
-  pr_str result
+  pr_str(result, true)
 end
 
 def rep(str)

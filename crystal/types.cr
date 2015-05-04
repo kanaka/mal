@@ -5,5 +5,5 @@ module Mal
     end
   end
 
-  alias Type = Nil | Bool | Int32 | String | Array(Type) | Symbol
+  alias Type = Nil | Bool | Int32 | String | Symbol | Array(Type)
 end
