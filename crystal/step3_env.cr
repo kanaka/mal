@@ -69,7 +69,7 @@ def eval(ast, env)
     eval_error "wrong number of argument for 'def!'" unless ast.size == 3
 
     bindings = ast[1]
-    eval_error "1st argument of 'let*' must be list" unless bindings.is_a?(Mal::List)
+    eval_error "1st argument of 'let*' must be list or vector" unless bindings.is_a?(Array)
     eval_error "size of binding list must be even" unless bindings.size.even?
 
     new_env = Mal::Env.new env
