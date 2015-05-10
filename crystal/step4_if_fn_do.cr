@@ -5,6 +5,7 @@ require "./reader"
 require "./printer"
 require "./types"
 require "./env"
+require "./core"
 
 # Note:
 # Employed downcase names because Crystal prohibits uppercase names for methods
@@ -13,26 +14,12 @@ def eval_error(msg)
   raise Mal::EvalException.new msg
 end
 
-def num_func(func)
-  -> (args : Array(Mal::Type)) {
-    x, y = args[0], args[1]
-    eval_error "invalid arguments" unless x.is_a?(Int32) && y.is_a?(Int32)
-    func.call(x, y) as Mal::Type
-  } as Mal::Func
-end
-
 def func_of(env, binds, body) : Mal::Type
   -> (args : Array(Mal::Type)) {
     new_env = Mal::Env.new(env, binds, args)
     eval(body, new_env) as Mal::Type
   } as Mal::Func
 end
-
-$repl_env = Mal::Env.new nil
-$repl_env.set("+", num_func(->(x : Int32, y : Int32){ x + y }))
-$repl_env.set("-", num_func(->(x : Int32, y : Int32){ x - y }))
-$repl_env.set("*", num_func(->(x : Int32, y : Int32){ x * y }))
-$repl_env.set("/", num_func(->(x : Int32, y : Int32){ x / y }))
 
 def eval_ast(ast, env)
   case ast
@@ -60,7 +47,7 @@ end
 def eval(ast, env)
   return eval_ast(ast, env) unless ast.is_a?(Mal::List)
 
-  eval_error "empty list" if ast.empty?
+  return Mal::List.new if ast.empty?
 
   head = ast.first
   case head
@@ -124,6 +111,9 @@ end
 def rep(str)
   print(eval(read(str), $repl_env))
 end
+
+$repl_env = Mal::Env.new nil
+Mal::NS.each{|k,v| $repl_env.set(k, v)}
 
 while line = my_readline("user> ")
   begin
