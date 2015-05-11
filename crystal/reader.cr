@@ -49,11 +49,11 @@ class Reader
   end
 
   def read_list
-    read_sequence(Mal::List.new, '(', ')')
+    Mal::Type.new read_sequence(Mal::List.new, '(', ')')
   end
 
   def read_vector
-    read_sequence(Mal::Vector.new, '[', ']')
+    Mal::Type.new read_sequence(Mal::Vector.new, '[', ']')
   end
 
   def read_hashmap
@@ -72,14 +72,14 @@ class Reader
       end
     end
 
-    map
+    Mal::Type.new map
   end
 
   def read_atom
     token = self.next
     parse_error "expected Atom but got EOF" unless token
 
-    case
+    Mal::Type.new case
     when token =~ /^-?\d+$/ then token.to_i
     when token == "true"    then true
     when token == "false"   then false
@@ -91,7 +91,7 @@ class Reader
   end
 
   def list_of(symname)
-    Mal::List.new << Mal::Symbol.new(symname) << read_form
+    Mal::List.new << Mal::Type.new(Mal::Symbol.new(symname)) << read_form
   end
 
   def read_form
@@ -100,7 +100,7 @@ class Reader
     parse_error "unexpected EOF" unless token
     parse_error "unexpected comment" if token[0] == ';'
 
-    case token
+    Mal::Type.new case token
     when "("  then read_list
     when ")"  then parse_error "unexpected ')'"
     when "["  then read_vector

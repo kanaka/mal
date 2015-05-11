@@ -14,29 +14,34 @@ def eval_error(msg)
   raise Mal::EvalException.new msg
 end
 
-def func_of(env, binds, body) : Mal::Type
+def func_of(env, binds, body)
   -> (args : Array(Mal::Type)) {
     new_env = Mal::Env.new(env, binds, args)
-    eval(body, new_env) as Mal::Type
+    eval(body, new_env)
   } as Mal::Func
 end
 
 def eval_ast(ast, env)
-  case ast
+  return ast.map{|n| eval(n, env) as Mal::Type} if ast.is_a?(Mal::List)
+
+  val = ast.val
+
+  Mal::Type.new case val
   when Mal::Symbol
-    if e = env.get(ast.val)
+    if e = env.get(val.val)
       e
     else
-      eval_error "'#{ast.val}' not found"
+      eval_error "'#{val.val}' not found"
     end
   when Mal::List
-    ast.map{|n| eval(n, env) as Mal::Type}
+    val.each_with_object(Mal::List.new){|n, l| l << eval(n, env)}
   when Mal::Vector
-    ast.each_with_object(Mal::Vector.new){|n, l| l << eval(n, env)}
+    val.each_with_object(Mal::Vector.new){|n, l| l << eval(n, env)}
   when Mal::HashMap
-    ast.each{|k, v| ast[k] = eval(v, env)}
+    val.each{|k, v| val[k] = eval(v, env)}
+    val
   else
-    ast
+    val
   end
 end
 
@@ -45,23 +50,27 @@ def read(str)
 end
 
 def eval(ast, env)
-  return eval_ast(ast, env) unless ast.is_a?(Mal::List)
+  list = ast.val
+  unless list.is_a?(Mal::List)
+    return eval_ast(ast, env)
+  end
 
-  return Mal::List.new if ast.empty?
+  return Mal::Type.new(Mal::List.new) if list.empty?
 
-  head = ast.first
-  case head
+  head = list.first.val
+
+  Mal::Type.new case head
   when Mal::Symbol
     case head.val
     when "def!"
-      eval_error "wrong number of argument for 'def!'" unless ast.size == 3
-      a1 = ast[1]
+      eval_error "wrong number of argument for 'def!'" unless list.size == 3
+      a1 = list[1].val
       eval_error "1st argument of 'def!' must be symbol" unless a1.is_a?(Mal::Symbol)
-      env.set(a1.val, eval(ast[2], env) as Mal::Type)
+      env.set(a1.val, eval(list[2], env))
     when "let*"
-      eval_error "wrong number of argument for 'def!'" unless ast.size == 3
+      eval_error "wrong number of argument for 'def!'" unless list.size == 3
 
-      bindings = ast[1]
+      bindings = list[1]
       eval_error "1st argument of 'let*' must be list or vector" unless bindings.is_a?(Array)
       eval_error "size of binding list must be even" unless bindings.size.even?
 
@@ -72,35 +81,35 @@ def eval(ast, env)
         new_env.set(name.val, eval(value, new_env))
       end
 
-      eval(ast[2], new_env)
+      eval(list[2], new_env)
     when "do"
-      ast.shift(1)
-      eval_ast(ast, env).last
+      list.shift(1)
+      eval_ast(list, env).last
     when "if"
-      cond = eval(ast[1], env)
+      cond = eval(list[1], env)
       case cond
       when Nil
-        ast.size >= 4 ? eval(ast[3], env) : nil
+        list.size >= 4 ? eval(list[3], env) : nil
       when false
-        ast.size >= 4 ?  eval(ast[3], env) : nil
+        list.size >= 4 ?  eval(list[3], env) : nil
       else
-        eval(ast[2], env)
+        eval(list[2], env)
       end
     when "fn*"
       # Note:
-      # If writing lambda expression here directly, compiler will fail to infer type of 'ast'. (Error 'Nil for empty?')
-      func_of(env, ast[1], ast[2])
+      # If writing lambda expression here directly, compiler will fail to infer type of 'list'. (Error 'Nil for empty?')
+      func_of(env, list[1], list[2])
     else
-      f = eval_ast(head, env)
+      f = eval_ast(list.first, env).val
       eval_error "expected function symbol as the first symbol of list" unless f.is_a?(Mal::Func)
-      ast.shift(1)
-      f.call eval_ast(ast, env).each_with_object([] of Mal::Type){|e, a| a << e}
+      list.shift(1)
+      f.call eval_ast(list, env)
     end
   else
-    f = eval(head, env)
+    f = eval(list.first, env).val
     eval_error "expected function symbol as the first symbol of list" unless f.is_a?(Mal::Func)
-    ast.shift(1)
-    f.call eval_ast(ast, env).each_with_object([] of Mal::Type){|e, a| a << e}
+    list.shift(1)
+    f.call eval_ast(list, env)
   end
 end
 
@@ -113,7 +122,7 @@ def rep(str)
 end
 
 $repl_env = Mal::Env.new nil
-Mal::NS.each{|k,v| $repl_env.set(k, v)}
+Mal::NS.each{|k,v| $repl_env.set(k, Mal::Type.new(v))}
 
 while line = my_readline("user> ")
   begin

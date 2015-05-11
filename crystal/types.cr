@@ -14,9 +14,19 @@ module Mal
   class HashMap < Hash(String, Type)
   end
 
-  alias Type = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Proc(Array(Type), Type)
+  class Type
+    alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | ((Array(Type) -> Type))
+    property :val
 
-  alias Func = Proc(Array(Type), Type)
+    def initialize(@val : ValueType)
+    end
+
+    def initialize(other : Type)
+      @val = other.val
+    end
+  end
+
+  alias Func = Array(Type) -> Type
 
   class ParseException < Exception
   end

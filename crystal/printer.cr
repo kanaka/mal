@@ -24,3 +24,7 @@ def pr_str(value, print_readably = true)
     raise "invalid MalType: #{value.to_s}"
   end
 end
+
+def pr_str(t : Mal::Type, print_readably = true)
+  pr_str(t.val, print_readably)
+end

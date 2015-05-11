@@ -17,7 +17,7 @@ module Mal
       # Note:
       # Array#zip() can't be used because overload resolution failed
       (0...binds.size).each do |idx|
-        sym, expr = binds[idx], exprs[idx]
+        sym, expr = binds[idx].val, exprs[idx]
         raise EvalException.new "bind list must be symbol" unless sym.is_a?(Mal::Symbol)
         @data[sym.val] = expr
       end
