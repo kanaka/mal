@@ -7,7 +7,7 @@ def pr_str(value, print_readably = true)
   when Int32       then value.to_s
   when Mal::List   then "(#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")})"
   when Mal::Vector then "[#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")}]"
-  when Mal::Symbol then value.val.to_s
+  when Mal::Symbol then value.str.to_s
   when Proc        then "<function>"
   when Mal::HashMap
     "{#{value.map{|k, v| "#{pr_str(k, print_readably) as String} #{pr_str(v, print_readably) as String}"}.join(" ")}}"
@@ -26,5 +26,5 @@ def pr_str(value, print_readably = true)
 end
 
 def pr_str(t : Mal::Type, print_readably = true)
-  pr_str(t.val, print_readably)
+  pr_str(t.unwrap, print_readably)
 end

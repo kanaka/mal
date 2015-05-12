@@ -1,4 +1,5 @@
 require "./types"
+require "./error"
 
 module Mal
 
@@ -12,14 +13,14 @@ module Mal
     def initialize(@outer, binds, exprs : Array(Mal::Type))
       @data = {} of String => Mal::Type
 
-      raise EvalException.new "binds must be list or vector" unless binds.is_a?(Array)
+      eval_error "binds must be list or vector" unless binds.is_a? Array
 
       # Note:
       # Array#zip() can't be used because overload resolution failed
       (0...binds.size).each do |idx|
-        sym, expr = binds[idx].val, exprs[idx]
-        raise EvalException.new "bind list must be symbol" unless sym.is_a?(Mal::Symbol)
-        @data[sym.val] = expr
+        sym, expr = binds[idx].unwrap, exprs[idx]
+        eval_error "bind list must be symbol" unless sym.is_a? Mal::Symbol
+        @data[sym.str] = expr
       end
     end
 
@@ -40,7 +41,7 @@ module Mal
 
     def get(key)
       e = find(key)
-      raise EvalException.new "#{key} not found" unless e
+      eval_error "#{key} not found" unless e
       e.data[key]
     end
   end

@@ -1,4 +1,5 @@
 require "./types"
+require "./error"
 
 class Reader
   def initialize(@tokens)
@@ -24,10 +25,6 @@ class Reader
     peek
   ensure
     @pos += 1
-  end
-
-  def parse_error(msg)
-    raise Mal::ParseException.new msg
   end
 
   def read_sequence(init, open, close)

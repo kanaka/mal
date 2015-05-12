@@ -1,7 +1,7 @@
 module Mal
   class Symbol
-    property :val
-    def initialize(@val)
+    property :str
+    def initialize(@str)
     end
   end
 
@@ -16,7 +16,6 @@ module Mal
 
   class Type
     alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | ((Array(Type) -> Type))
-    property :val
 
     def initialize(@val : ValueType)
     end
@@ -24,13 +23,11 @@ module Mal
     def initialize(other : Type)
       @val = other.val
     end
+
+    def unwrap
+      @val
+    end
   end
 
   alias Func = Array(Type) -> Type
-
-  class ParseException < Exception
-  end
-
-  class EvalException < Exception
-  end
 end

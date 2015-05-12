@@ -6,13 +6,10 @@ require "./printer"
 require "./types"
 require "./env"
 require "./core"
+require "./error"
 
 # Note:
 # Employed downcase names because Crystal prohibits uppercase names for methods
-
-def eval_error(msg)
-  raise Mal::EvalException.new msg
-end
 
 def func_of(env, binds, body)
   -> (args : Array(Mal::Type)) {
@@ -22,16 +19,16 @@ def func_of(env, binds, body)
 end
 
 def eval_ast(ast, env)
-  return ast.map{|n| eval(n, env) as Mal::Type} if ast.is_a?(Mal::List)
+  return ast.map{|n| eval(n, env) as Mal::Type} if ast.is_a? Mal::List
 
-  val = ast.val
+  val = ast.unwrap
 
   Mal::Type.new case val
   when Mal::Symbol
-    if e = env.get(val.val)
+    if e = env.get(val.str)
       e
     else
-      eval_error "'#{val.val}' not found"
+      eval_error "'#{val.str}' not found"
     end
   when Mal::List
     val.each_with_object(Mal::List.new){|n, l| l << eval(n, env)}
@@ -50,35 +47,33 @@ def read(str)
 end
 
 def eval(ast, env)
-  list = ast.val
-  unless list.is_a?(Mal::List)
-    return eval_ast(ast, env)
-  end
+  list = ast.unwrap
 
-  return Mal::Type.new(Mal::List.new) if list.empty?
+  return eval_ast(ast, env)          unless list.is_a? Mal::List
+  return Mal::Type.new Mal::List.new if list.empty?
 
-  head = list.first.val
+  head = list.first.unwrap
 
   Mal::Type.new case head
   when Mal::Symbol
-    case head.val
+    case head.unwrap
     when "def!"
       eval_error "wrong number of argument for 'def!'" unless list.size == 3
-      a1 = list[1].val
-      eval_error "1st argument of 'def!' must be symbol" unless a1.is_a?(Mal::Symbol)
-      env.set(a1.val, eval(list[2], env))
+      a1 = list[1].unwrap
+      eval_error "1st argument of 'def!' must be symbol" unless a1.is_a? Mal::Symbol
+      env.set(a1.str, eval(list[2], env))
     when "let*"
       eval_error "wrong number of argument for 'def!'" unless list.size == 3
 
       bindings = list[1]
-      eval_error "1st argument of 'let*' must be list or vector" unless bindings.is_a?(Array)
+      eval_error "1st argument of 'let*' must be list or vector" unless bindings.is_a? Array
       eval_error "size of binding list must be even" unless bindings.size.even?
 
       new_env = Mal::Env.new env
       bindings.each_slice(2) do |binding|
         name, value = binding
-        eval_error "name of binding must be specified as symbol" unless name.is_a?(Mal::Symbol)
-        new_env.set(name.val, eval(value, new_env))
+        eval_error "name of binding must be specified as symbol" unless name.is_a? Mal::Symbol
+        new_env.set(name.str, eval(value, new_env))
       end
 
       eval(list[2], new_env)
@@ -100,14 +95,14 @@ def eval(ast, env)
       # If writing lambda expression here directly, compiler will fail to infer type of 'list'. (Error 'Nil for empty?')
       func_of(env, list[1], list[2])
     else
-      f = eval_ast(list.first, env).val
-      eval_error "expected function symbol as the first symbol of list" unless f.is_a?(Mal::Func)
+      f = eval_ast(list.first, env).unwrap
+      eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
       list.shift(1)
       f.call eval_ast(list, env)
     end
   else
-    f = eval(list.first, env).val
-    eval_error "expected function symbol as the first symbol of list" unless f.is_a?(Mal::Func)
+    f = eval(list.first, env).unwrap
+    eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
     list.shift(1)
     f.call eval_ast(list, env)
   end
