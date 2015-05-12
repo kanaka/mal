@@ -37,7 +37,7 @@ macro func(name)
 end
 
 macro rel_op(op)
-  -> (args : Array(Mal::Type)) { Mal::Type.new (args[0] {{op.id}} args[1]) }
+-> (args : Array(Mal::Type)) { Mal::Type.new (args[0] {{op.id}} args[1]) }
 end
 
 NS = {
@@ -50,6 +50,10 @@ NS = {
   "empty?" => func(:empty?)
   "count" => func(:count)
   "=" => rel_op(:==)
+  "<" => rel_op(:<)
+  ">" => rel_op(:<)
+  "<=" => rel_op(:<=)
+  ">=" => rel_op(:>=)
 } of String => Mal::Func
 
 end

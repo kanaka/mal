@@ -56,7 +56,7 @@ def eval(ast, env)
 
   Mal::Type.new case head
   when Mal::Symbol
-    case head.unwrap
+    case head.str
     when "def!"
       eval_error "wrong number of argument for 'def!'" unless list.size == 3
       a1 = list[1].unwrap
@@ -65,13 +65,14 @@ def eval(ast, env)
     when "let*"
       eval_error "wrong number of argument for 'def!'" unless list.size == 3
 
-      bindings = list[1]
+      bindings = list[1].unwrap
       eval_error "1st argument of 'let*' must be list or vector" unless bindings.is_a? Array
       eval_error "size of binding list must be even" unless bindings.size.even?
 
       new_env = Mal::Env.new env
       bindings.each_slice(2) do |binding|
-        name, value = binding
+        key, value = binding
+        name = key.unwrap
         eval_error "name of binding must be specified as symbol" unless name.is_a? Mal::Symbol
         new_env.set(name.str, eval(value, new_env))
       end
@@ -93,7 +94,7 @@ def eval(ast, env)
     when "fn*"
       # Note:
       # If writing lambda expression here directly, compiler will fail to infer type of 'list'. (Error 'Nil for empty?')
-      func_of(env, list[1], list[2])
+      func_of(env, list[1].unwrap, list[2])
     else
       f = eval_ast(list.first, env).unwrap
       eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
