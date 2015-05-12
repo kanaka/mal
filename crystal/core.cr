@@ -16,7 +16,7 @@ def self.list(args)
 end
 
 def self.list?(args)
-  args.first.unwrap.is_a?(Mal::List)
+  args.first.unwrap.is_a? Mal::List
 end
 
 def self.empty?(args)
@@ -25,7 +25,7 @@ def self.empty?(args)
 end
 
 def self.count(args)
-  a = args.first
+  a = args.first.unwrap
   eval_error "first parameter is not a list or vector" unless a.is_a? Array
   a.size as Int32
 end
@@ -51,7 +51,7 @@ NS = {
   "count" => func(:count)
   "=" => rel_op(:==)
   "<" => rel_op(:<)
-  ">" => rel_op(:<)
+  ">" => rel_op(:>)
   "<=" => rel_op(:<=)
   ">=" => rel_op(:>=)
 } of String => Mal::Func

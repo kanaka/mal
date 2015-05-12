@@ -82,7 +82,7 @@ def eval(ast, env)
       list.shift(1)
       eval_ast(list, env).last
     when "if"
-      cond = eval(list[1], env)
+      cond = eval(list[1], env).unwrap
       case cond
       when Nil
         list.size >= 4 ? eval(list[3], env) : nil
@@ -119,6 +119,7 @@ end
 
 $repl_env = Mal::Env.new nil
 Mal::NS.each{|k,v| $repl_env.set(k, Mal::Type.new(v))}
+rep "(def! not (fn* (a) (if a false true)))"
 
 while line = my_readline("user> ")
   begin
