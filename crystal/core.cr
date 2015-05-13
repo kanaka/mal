@@ -1,5 +1,6 @@
 require "./types"
 require "./error"
+require "./printer"
 
 module Mal
 
@@ -26,8 +27,32 @@ end
 
 def self.count(args)
   a = args.first.unwrap
-  eval_error "first parameter is not a list or vector" unless a.is_a? Array
-  a.size as Int32
+  case a
+  when Array
+    a.size as Int32
+  when Nil
+    0
+  else
+    eval_error "invalid argument for function 'count'"
+  end
+end
+
+def self.pr_str_(args)
+  args.map{|a| pr_str(a)}.join(" ")
+end
+
+def self.str(args)
+  args.map{|a| pr_str(a, false)}.join
+end
+
+def self.prn(args)
+  puts self.pr_str_(args)
+  nil
+end
+
+def self.println(args)
+  puts args.map{|a| pr_str(a, false)}.join(" ")
+  nil
 end
 
 # Note:
@@ -54,6 +79,10 @@ NS = {
   ">" => rel_op(:>)
   "<=" => rel_op(:<=)
   ">=" => rel_op(:>=)
+  "pr-str" => func(:pr_str_)
+  "str" => func(:str)
+  "prn" => func(:prn)
+  "println" => func(:println)
 } of String => Mal::Func
 
 end

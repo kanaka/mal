@@ -53,6 +53,9 @@ module Mal
     rel_op :<, :>, :<=, :>=
   end
 
-
   alias Func = Type::Func
+end
+
+macro gen_type(t)
+  Mal::Type.new {{t.id}}.new
 end

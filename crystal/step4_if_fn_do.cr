@@ -42,6 +42,12 @@ def eval_ast(ast, env)
   end
 end
 
+def eval_invocation(list, env)
+  f = eval(list.first, env).unwrap
+  eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
+  f.call eval_ast(list[1..-1].each_with_object(Mal::List.new){|i, l| l << i}, env)
+end
+
 def read(str)
   read_str str
 end
@@ -50,7 +56,7 @@ def eval(ast, env)
   list = ast.unwrap
 
   return eval_ast(ast, env)          unless list.is_a? Mal::List
-  return Mal::Type.new Mal::List.new if list.empty?
+  return gen_type Mal::List if list.empty?
 
   head = list.first.unwrap
 
@@ -79,7 +85,7 @@ def eval(ast, env)
 
       eval(list[2], new_env)
     when "do"
-      list.shift(1)
+      list.shift 1
       eval_ast(list, env).last
     when "if"
       cond = eval(list[1], env).unwrap
@@ -96,16 +102,10 @@ def eval(ast, env)
       # If writing lambda expression here directly, compiler will fail to infer type of 'list'. (Error 'Nil for empty?')
       func_of(env, list[1].unwrap, list[2])
     else
-      f = eval_ast(list.first, env).unwrap
-      eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
-      list.shift(1)
-      f.call eval_ast(list, env)
+      eval_invocation(list, env)
     end
   else
-    f = eval(list.first, env).unwrap
-    eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
-    list.shift(1)
-    f.call eval_ast(list, env)
+    eval_invocation(list, env)
   end
 end
 

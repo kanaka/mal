@@ -15,25 +15,23 @@ module Mal
 
       eval_error "binds must be list or vector" unless binds.is_a? Array
 
-      varargs = false
-
       # Note:
       # Array#zip() can't be used because overload resolution failed
       (0...binds.size).each do |idx|
-        sym, expr = binds[idx].unwrap, exprs[idx]
-        eval_error "bind list must be symbol" unless sym.is_a? Mal::Symbol
+        sym = binds[idx].unwrap
+        eval_error "bind name must be symbol" unless sym.is_a? Mal::Symbol
 
         if sym.str == "&"
-          varargs = true
-          next
-        end
-
-        if varargs
-          @data[sym.str] = Mal::Type.new exprs[idx-1..-1].each_with_object(Mal::List.new){|i, l| l << i}
+          eval_error "missing variable parameter name" if binds.size == idx
+          next_param = binds[idx+1].unwrap
+          eval_error "bind name must be symbol" unless next_param.is_a? Mal::Symbol
+          var_args = Mal::List.new
+          exprs[idx..-1].each{|e| var_args << e} if idx < exprs.size
+          @data[next_param.str] = Mal::Type.new var_args
           break
         end
 
-        @data[sym.str] = expr
+        @data[sym.str] = exprs[idx]
       end
     end
 
