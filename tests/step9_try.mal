@@ -22,7 +22,7 @@
 ;=>7
 
 ;;; Test that throw is a function:
-(try* (map throw [7]) (catch* exc exc))
+(try* (map throw (list 7)) (catch* exc exc))
 ;=>7
 
 

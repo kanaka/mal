@@ -56,3 +56,4 @@ nim/nimcache
 .m2
 .ivy2
 .sbt
+groovy/*.class

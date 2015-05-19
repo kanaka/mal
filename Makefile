@@ -10,9 +10,9 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp cs erlang factor forth go haskell java \
-	julia js lua make mal ocaml matlab miniMAL nim perl php ps \
-	python r racket ruby rust scala swift vb guile
+IMPLS = bash c clojure coffee cpp cs erlang factor forth go groovy \
+	haskell java julia js lua make mal ocaml matlab miniMAL nim \
+	perl php ps python r racket ruby rust scala swift vb guile
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -62,6 +62,7 @@ erlang_STEP_TO_PROG =  erlang/$($(1))
 factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 go_STEP_TO_PROG =      go/$($(1))
+groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 haskell_STEP_TO_PROG = haskell/$($(1))
 julia_STEP_TO_PROG =   julia/$($(1)).jl
@@ -102,6 +103,7 @@ erlang_RUNSTEP =  ../$(2) $(3)
 factor_RUNSTEP =  factor ../$(2) $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
 go_RUNSTEP =      ../$(2) $(3)
+groovy_RUNSTEP =  groovy ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
 julia_RUNSTEP =   ../$(2) $(3)
