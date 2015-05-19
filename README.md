@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 33 different languages:
+Mal is implemented in 34 different languages:
 
 * Bash shell
 * C
@@ -16,6 +16,7 @@ Mal is implemented in 33 different languages:
 * Factor
 * Forth
 * Go
+* Groovy
 * GNU Guile
 * Haskell
 * Java
@@ -191,6 +192,18 @@ path. The implementation has been tested with Go 1.3.1.
 cd go
 make
 ./stepX_YYY
+```
+
+
+### Groovy
+
+The Groovy implementation of mal requires Groovy to run and has been
+tested with Groovy 1.8.6.
+
+```
+cd groovy
+make
+groovy ./stepX_YYY.groovy
 ```
 
 
