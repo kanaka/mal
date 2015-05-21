@@ -1,5 +1,5 @@
 PROGS=step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
-	step5_tco
+	step5_tco step6_file
 
 all:	${PROGS}
 
@@ -24,6 +24,10 @@ step4_if_fn_do:	step4_if_fn_do.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
 	gnatmake -g -gnata -P$@
 
 step5_tco:	step5_tco.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
+		smart_pointers.ad[bs] envs.ad[bs] evaluation.ad[bs] core.ad[bs]
+	gnatmake -g -gnata -P$@
+
+step6_file:	step6_file.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
 		smart_pointers.ad[bs] envs.ad[bs] evaluation.ad[bs] core.ad[bs]
 	gnatmake -g -gnata -P$@
 

@@ -89,7 +89,7 @@ package body Reader is
      Tokenizer.Get (Opentoken.Recognizer.Single_Character_Set.Get (Lisp_Syms));
 
    Lisp_Whitespace : constant Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.To_Set (ACL.HT & ACL.Space & ACL.Comma);
+     Ada.Strings.Maps.To_Set (ACL.HT & ACL.LF & ACL.Space & ACL.Comma);
 
    Whitesp_Recognizer : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get (Opentoken.Recognizer.Character_Set.Get (Lisp_Whitespace));
@@ -358,6 +358,12 @@ package body Reader is
         return New_Error_Mal_Type (Str => "expected '""'");
    end Read_Form;
 
+   procedure Lex_Init (S : String) is
+   begin
+      Analyzer.Reset;
+      Input_Feeder.Set (S);
+      Saved_Line (1..S'Length) := S;  -- Needed for error recovery
+   end Lex_Init;
 
    function Read_Str (S : String) return Types.Mal_Handle is
       I, Str_Len : Natural := S'Length;
@@ -371,10 +377,9 @@ package body Reader is
       if I > Str_Len or else S (I) = ';' then
          return Smart_Pointers.Null_Smart_Pointer;
       end if;
-       
-      Analyzer.Reset;
-      Input_Feeder.Set (S);
-      Saved_Line (1..S'Length) := S;  -- Needed for error recovery
+
+      Lex_Init (S);
+
       return Read_Form;
    end Read_Str;
    

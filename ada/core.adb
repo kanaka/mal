@@ -1,7 +1,9 @@
+with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Envs;
 with Evaluation;
+with Reader;
 with Smart_Pointers;
 with Types;
 
@@ -241,6 +243,59 @@ package body Core is
    end Str;
 
 
+   function Read_String (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : Types.List_Mal_Type;
+      First_Param : Mal_Handle;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      declare
+         Str_Param : String := Deref_String (First_Param).Get_String;
+         Unquoted_Str : String(1 .. Str_Param'Length-2) :=
+           Str_Param (Str_Param'First+1 .. Str_Param'Last-1);
+         -- i.e. strip out the double-qoutes surrounding the string.
+      begin
+         return Reader.Read_Str (Unquoted_Str);
+      end;
+   end Read_String;
+
+
+   function Slurp (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : Types.List_Mal_Type;
+      First_Param : Mal_Handle;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      declare
+         Str_Param : String := Deref_String (First_Param).Get_String;
+         Unquoted_Str : String(1 .. Str_Param'Length-2) :=
+           Str_Param (Str_Param'First+1 .. Str_Param'Last-1);
+         -- i.e. strip out the double-qoutes surrounding the string.
+         use Ada.Text_IO;
+         Fn : Ada.Text_IO.File_Type;
+         Line_Str : String (1..Reader.Max_Line_Len);
+         File_Str : String (1..Reader.Max_Line_Len);
+         Last : Natural;
+         I : Natural := 0;
+      begin
+         Ada.Text_IO.Open (Fn, In_File, Unquoted_Str);
+         while not End_Of_File (Fn) loop
+            Get_Line (Fn, Line_Str, Last);
+            if Last > 0 then
+               File_Str (I+1 .. I+Last) := Line_Str (1 .. Last);
+               I := I + Last;
+               File_Str (I+1) := Ada.Characters.Latin_1.LF;
+               I := I + 1;
+            end if;
+         end loop;
+         Ada.Text_IO.Close (Fn);
+         return New_String_Mal_Type ('"' & File_Str (1..I) & '"');
+      end;
+   end Slurp;
+
+
    procedure Init is
      use Envs;
    begin
@@ -282,6 +337,18 @@ package body Core is
       Set (Get_Current,
            "println",
            New_Func_Mal_Type ("println", Println'access));
+
+      Set (Get_Current,
+           "eval",
+           New_Func_Mal_Type ("eval", Evaluation.Eval'access));
+
+      Set (Get_Current,
+           "read-string",
+           New_Func_Mal_Type ("read-string", Read_String'access));
+
+      Set (Get_Current,
+           "slurp",
+           New_Func_Mal_Type ("slurp", Slurp'access));
 
       Set (Get_Current,
            "+",
