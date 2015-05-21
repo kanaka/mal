@@ -2,15 +2,16 @@ require "./types"
 
 def pr_str(value, print_readably = true)
   case value
-  when Nil         then "nil"
-  when Bool        then value.to_s
-  when Int32       then value.to_s
-  when Mal::List   then "(#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")})"
-  when Mal::Vector then "[#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")}]"
-  when Mal::Symbol then value.str.to_s
-  when Proc        then "<function>"
+  when Nil          then "nil"
+  when Bool         then value.to_s
+  when Int32        then value.to_s
+  when Mal::List    then "(#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")})"
+  when Mal::Vector  then "[#{value.map{|v| pr_str(v, print_readably) as String}.join(" ")}]"
+  when Mal::Symbol  then value.str.to_s
+  when Mal::Func    then "<function>"
+  when Mal::Closure then "<closure>"
   when Mal::HashMap
-    "{#{value.map{|k, v| "#{pr_str(k, print_readably) as String} #{pr_str(v, print_readably) as String}"}.join(" ")}}"
+    "{#{value.map{|k, v| "#{pr_str(k, print_readably)} #{pr_str(v, print_readably)}"}.join(" ")}}"
   when String
     case
     when value.empty?()

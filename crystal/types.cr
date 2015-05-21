@@ -14,9 +14,15 @@ module Mal
   class HashMap < Hash(String, Type)
   end
 
+  class Closure
+    property :ast, :params, :env, :fn
+    def initialize(@ast, @params, @env, @fn)
+    end
+  end
+
   class Type
     alias Func = (Array(Type) -> Type)
-    alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func
+    alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func | Closure
 
     def initialize(@val : ValueType)
     end
