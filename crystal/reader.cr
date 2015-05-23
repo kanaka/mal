@@ -60,12 +60,12 @@ class Reader
     map = Mal::HashMap.new
 
     types.each_slice(2) do |kv|
-      k, v = kv
+      k, v = kv[0].unwrap, kv[1]
       case k
       when String
         map[k] = v
       else
-        parse_error("key of hash-map must be string or keyword: #{k}")
+        parse_error("key of hash-map must be string or keyword")
       end
     end
 
