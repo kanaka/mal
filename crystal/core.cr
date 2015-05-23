@@ -72,6 +72,22 @@ def self.slurp(args)
   end
 end
 
+def self.cons(args)
+  arg1 = args[1].unwrap
+  eval_error "2nd arg of cons must be list" unless arg1.is_a? Array
+  arg1.each_with_object(Mal::List.new << args[0]) do |elem, list|
+    list << elem
+  end
+end
+
+def self.concat(args)
+  args.each_with_object(Mal::List.new) do |arg, list|
+    a = arg.unwrap
+    eval_error "arguments of concat must be list" unless a.is_a?(Array)
+    a.each{|e| list << e}
+  end
+end
+
 # Note:
 # Simply using ->self.some_func doesn't work
 macro func(name)
@@ -102,6 +118,8 @@ NS = {
   "println" => func(:println)
   "read-string" => func(:read_string)
   "slurp" => func(:slurp)
+  "cons" => func(:cons)
+  "concat" => func(:concat)
 } of String => Mal::Func
 
 end

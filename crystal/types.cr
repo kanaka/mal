@@ -3,6 +3,10 @@ module Mal
     property :str
     def initialize(@str)
     end
+
+    def ==(other : Symbol)
+      @str == other.str
+    end
   end
 
   class List < Array(Type)
@@ -35,7 +39,7 @@ module Mal
       @val
     end
 
-    def ==(other : Mal::Type)
+    def ==(other : Type)
       @val == other.unwrap
     end
 
@@ -62,6 +66,6 @@ module Mal
   alias Func = Type::Func
 end
 
-macro gen_type(t)
-  Mal::Type.new {{t.id}}.new
+macro gen_type(t, *args)
+  Mal::Type.new {{t.id}}.new({{*args}})
 end

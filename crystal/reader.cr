@@ -88,7 +88,7 @@ class Reader
   end
 
   def list_of(symname)
-    Mal::List.new << Mal::Type.new(Mal::Symbol.new(symname)) << read_form
+    Mal::List.new << gen_type(Mal::Symbol, symname) << read_form
   end
 
   def read_form
