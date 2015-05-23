@@ -1,6 +1,7 @@
 require "./types"
 require "./error"
 require "./printer"
+require "./reader"
 
 module Mal
 
@@ -55,6 +56,22 @@ def self.println(args)
   nil
 end
 
+def self.read_string(args)
+  head = args.first.unwrap
+  eval_error "argument of read-str must be string" unless head.is_a? String
+  read_str head
+end
+
+def self.slurp(args)
+  head = args.first.unwrap
+  eval_error "argument of slurp must be string" unless head.is_a? String
+  begin
+    File.read head
+  rescue e : Errno
+    eval_error "no such file"
+  end
+end
+
 # Note:
 # Simply using ->self.some_func doesn't work
 macro func(name)
@@ -83,6 +100,8 @@ NS = {
   "str" => func(:str)
   "prn" => func(:prn)
   "println" => func(:println)
+  "read-string" => func(:read_string)
+  "slurp" => func(:slurp)
 } of String => Mal::Func
 
 end
