@@ -51,7 +51,7 @@ module Mal
     end
 
     def get(key)
-      e = find(key)
+      e = find key
       eval_error "#{key} not found" unless e
       e.data[key]
     end

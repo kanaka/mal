@@ -88,6 +88,30 @@ def self.concat(args)
   end
 end
 
+def self.nth(args)
+  a0, a1 = args[0].unwrap, args[1].unwrap
+  eval_error "1st argument of nth must be list or vector" unless a0.is_a? Array
+  eval_error "2nd argument of nth must be integer" unless a1.is_a? Int32
+  a0[a1]
+end
+
+def self.first(args)
+  a0 = args[0].unwrap
+
+  return nil if a0.nil?
+  eval_error "1st argument of first must be list or vector or nil" unless a0.is_a? Array
+  a0.empty? ? nil : a0.first
+end
+
+def self.rest(args)
+  a0 = args[0].unwrap
+
+  return Mal::List.new if a0.nil?
+  eval_error "1st argument of first must be list or vector or nil" unless a0.is_a? Array
+  return Mal::List.new if a0.empty?
+  a0[1..-1].each_with_object(Mal::List.new){|e,l| l << e}
+end
+
 # Note:
 # Simply using ->self.some_func doesn't work
 macro func(name)
@@ -120,6 +144,9 @@ NS = {
   "slurp" => func(:slurp)
   "cons" => func(:cons)
   "concat" => func(:concat)
+  "nth" => func(:nth)
+  "first" => func(:first)
+  "rest" => func(:rest)
 } of String => Mal::Func
 
 end

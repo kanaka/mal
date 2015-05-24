@@ -28,15 +28,23 @@ module Mal
     alias Func = (Array(Type) -> Type)
     alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func | Closure
 
+    property :is_macro
+
     def initialize(@val : ValueType)
+      @is_macro = false
     end
 
     def initialize(other : Type)
       @val = other.unwrap
+      @is_macro = false
     end
 
     def unwrap
       @val
+    end
+
+    def macro?
+      @is_macro
     end
 
     def ==(other : Type)

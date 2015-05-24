@@ -27,5 +27,5 @@ def pr_str(value, print_readably = true)
 end
 
 def pr_str(t : Mal::Type, print_readably = true)
-  pr_str(t.unwrap, print_readably)
+  pr_str(t.unwrap, print_readably) + (t.macro? ? " (macro)" : "")
 end
