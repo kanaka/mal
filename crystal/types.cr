@@ -1,3 +1,5 @@
+require "./printer"
+
 module Mal
   class Symbol
     property :str
@@ -45,6 +47,10 @@ module Mal
 
     def macro?
       @is_macro
+    end
+
+    def to_s
+      pr_str(self)
     end
 
     def ==(other : Type)

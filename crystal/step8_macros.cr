@@ -108,7 +108,7 @@ def macroexpand(ast, env)
     when Mal::Closure
       ast = func.fn.call(list[1..-1])
     else
-      eval_error "macro '#{func_sym.str}' must be function"
+      eval_error "macro '#{func_sym.str}' must be function: #{ast}"
     end
   end
 
@@ -126,7 +126,7 @@ macro invoke_list(l, env)
   when Mal::Func
     return f.call args
   else
-    eval_error "expected function as the first argument"
+    eval_error "expected function as the first argument: #{f}"
   end
 end
 
@@ -151,7 +151,7 @@ def eval(ast, env)
       when "def!"
         eval_error "wrong number of argument for 'def!'" unless list.size == 3
         a1 = list[1].unwrap
-        eval_error "1st argument of 'def!' must be symbol" unless a1.is_a? Mal::Symbol
+        eval_error "1st argument of 'def!' must be symbol: #{a1}" unless a1.is_a? Mal::Symbol
         env.set(a1.str, eval(list[2], env))
       when "let*"
         eval_error "wrong number of argument for 'def!'" unless list.size == 3
@@ -164,7 +164,7 @@ def eval(ast, env)
         bindings.each_slice(2) do |binding|
           key, value = binding
           name = key.unwrap
-          eval_error "name of binding must be specified as symbol" unless name.is_a? Mal::Symbol
+          eval_error "name of binding must be specified as symbol #{name}" unless name.is_a? Mal::Symbol
           new_env.set(name.str, eval(value, new_env))
         end
 
@@ -188,8 +188,8 @@ def eval(ast, env)
         next # TCO
       when "fn*"
         params = list[1].unwrap
-        unless params.is_a?(Mal::List) || params.is_a?(Mal::Vector)
-          eval_error "'fn*' parameters must be list"
+        unless params.is_a? Array
+          eval_error "'fn*' parameters must be list or vector: #{params}"
         end
         Mal::Closure.new(list[2], params, env, func_of(env, params, list[2]))
       when "quote"
@@ -200,7 +200,7 @@ def eval(ast, env)
       when "defmacro!"
         eval_error "wrong number of argument for 'defmacro!'" unless list.size == 3
         a1 = list[1].unwrap
-        eval_error "1st argument of 'defmacro!' must be symbol" unless a1.is_a? Mal::Symbol
+        eval_error "1st argument of 'defmacro!' must be symbol: #{a1}" unless a1.is_a? Mal::Symbol
         env.set(a1.str, eval(list[2], env).tap{|n| n.is_macro = true})
       when "macroexpand"
         macroexpand(list[1], env)
