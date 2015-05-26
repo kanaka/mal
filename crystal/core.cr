@@ -8,7 +8,7 @@ module Mal
 macro calc_op(op)
   -> (args : Array(Mal::Type)) {
     x, y = args[0].unwrap, args[1].unwrap
-    eval_error "invalid arguments" unless x.is_a?(Int32) && y.is_a?(Int32)
+    eval_error "invalid arguments for binary operator {{op.id}}" unless x.is_a?(Int32) && y.is_a?(Int32)
     Mal::Type.new(x {{op.id}} y)
   }
 end
@@ -112,6 +112,164 @@ def self.rest(args)
   a0[1..-1].each_with_object(Mal::List.new){|e,l| l << e}
 end
 
+def self.apply(args)
+  eval_error "apply must take at least 2 arguments" unless args.size >= 2
+
+  head = args.first.unwrap
+  last = args.last.unwrap
+
+  eval_error "last argument of apply must be list or vector" unless last.is_a? Array
+
+  case head
+  when Mal::Closure
+    head.fn.call(args[1..-2] + last)
+  when Mal::Func
+    head.call(args[1..-2] + last)
+  else
+    eval_error "1st argument of apply must be function or closure"
+  end
+end
+
+def self.map(args)
+  func = args.first.unwrap
+  list = args[1].unwrap
+
+  eval_error "2nd argument of map must be list or vector" unless list.is_a? Array
+
+  f = case func
+      when Mal::Closure then func.fn
+      when Mal::Func    then func
+      else                   eval_error "1st argument of map must be function"
+      end
+
+  list.each_with_object(Mal::List.new) do |elem, mapped|
+    mapped << f.call([elem])
+  end
+end
+
+def self.nil?(args)
+  args.first.unwrap.nil?
+end
+
+def self.true?(args)
+  a = args.first.unwrap
+  a.is_a?(Bool) && a
+end
+
+def self.false?(args)
+  a = args.first.unwrap
+  a.is_a?(Bool) && !a
+end
+
+def self.symbol?(args)
+  args.first.unwrap.is_a?(Mal::Symbol)
+end
+
+def self.symbol(args)
+  head = args.first.unwrap
+  eval_error "1st argument of symbol function must be string" unless head.is_a? String
+  Mal::Symbol.new head
+end
+
+def self.keyword(args)
+  head = args.first.unwrap
+  eval_error "1st argument of symbol function must be string" unless head.is_a? String
+  "\u029e" + head
+end
+
+def self.keyword?(args)
+  head = args.first.unwrap
+  head.is_a?(String) && !head.empty? && head[0] == '\u029e'
+end
+
+def self.vector(args)
+  args.each_with_object(Mal::Vector.new){|e,v| v << e}
+end
+
+def self.vector?(args)
+  args.first.unwrap.is_a? Mal::Vector
+end
+
+def self.hash_map(args)
+  eval_error "hash-map must take even number of arguments" unless args.size.even?
+  map = Mal::HashMap.new
+  args.each_slice(2) do |kv|
+    k = kv[0].unwrap
+    eval_error "key must be string" unless k.is_a? String
+    map[k] = kv[1]
+  end
+  map
+end
+
+def self.map?(args)
+  args.first.unwrap.is_a? Mal::HashMap
+end
+
+def self.assoc(args)
+  head = args.first.unwrap
+  eval_error "1st argument of assoc must be hashmap" unless head.is_a? Mal::HashMap
+  eval_error "assoc must take a list and even number of arguments" unless (args.size - 1).even?
+
+  map = Mal::HashMap.new
+  head.each{|k, v| map[k] = v}
+
+  args[1..-1].each_slice(2) do |kv|
+    k = kv[0].unwrap
+    eval_error "key must be string" unless k.is_a? String
+    map[k] = kv[1]
+  end
+
+  map
+end
+
+def self.dissoc(args)
+  head = args.first.unwrap
+  eval_error "1st argument of assoc must be hashmap" unless head.is_a? Mal::HashMap
+
+  map = Mal::HashMap.new
+  head.each{|k,v| map[k] = v}
+
+  args[1..-1].each do |arg|
+    key = arg.unwrap
+    eval_error "key must be string" unless key.is_a? String
+    map.delete key
+  end
+
+  map
+end
+
+def self.get(args)
+  a0, a1 = args[0].unwrap, args[1].unwrap
+  return nil unless a0.is_a? Mal::HashMap
+  eval_error "2nd argument of get must be string" unless a1.is_a? String
+
+  # a0[a1]? isn't available because type ofa0[a1] is infered NoReturn
+  a0.has_key?(a1) ? a0[a1] : nil
+end
+
+def self.contains?(args)
+  a0, a1 = args[0].unwrap, args[1].unwrap
+  eval_error "1st argument of get must be hashmap" unless a0.is_a? Mal::HashMap
+  eval_error "2nd argument of get must be string" unless a1.is_a? String
+  a0.has_key? a1
+end
+
+def self.keys(args)
+  head = args.first.unwrap
+  eval_error "1st argument of assoc must be hashmap" unless head.is_a? Mal::HashMap
+  head.keys.each_with_object(Mal::List.new){|e,l| l << Mal::Type.new(e)}
+end
+
+def self.vals(args)
+  head = args.first.unwrap
+  eval_error "1st argument of assoc must be hashmap" unless head.is_a? Mal::HashMap
+  head.values.each_with_object(Mal::List.new){|e,l| l << e}
+end
+
+def self.sequential?(args)
+  args.first.unwrap.is_a? Array
+end
+
 # Note:
 # Simply using ->self.some_func doesn't work
 macro func(name)
@@ -123,30 +281,51 @@ macro rel_op(op)
 end
 
 NS = {
-  "+" => calc_op(:+)
-  "-" => calc_op(:-)
-  "*" => calc_op(:*)
-  "/" => calc_op(:/)
-  "list" => func(:list)
-  "list?" => func(:list?)
-  "empty?" => func(:empty?)
-  "count" => func(:count)
-  "=" => rel_op(:==)
-  "<" => rel_op(:<)
-  ">" => rel_op(:>)
-  "<=" => rel_op(:<=)
-  ">=" => rel_op(:>=)
-  "pr-str" => func(:pr_str_)
-  "str" => func(:str)
-  "prn" => func(:prn)
-  "println" => func(:println)
+  "+"           => calc_op(:+)
+  "-"           => calc_op(:-)
+  "*"           => calc_op(:*)
+  "/"           => calc_op(:/)
+  "list"        => func(:list)
+  "list?"       => func(:list?)
+  "empty?"      => func(:empty?)
+  "count"       => func(:count)
+  "="           => rel_op(:==)
+  "<"           => rel_op(:<)
+  ">"           => rel_op(:>)
+  "<="          => rel_op(:<=)
+  ">="          => rel_op(:>=)
+  "pr-str"      => func(:pr_str_)
+  "str"         => func(:str)
+  "prn"         => func(:prn)
+  "println"     => func(:println)
   "read-string" => func(:read_string)
-  "slurp" => func(:slurp)
-  "cons" => func(:cons)
-  "concat" => func(:concat)
-  "nth" => func(:nth)
-  "first" => func(:first)
-  "rest" => func(:rest)
+  "slurp"       => func(:slurp)
+  "cons"        => func(:cons)
+  "concat"      => func(:concat)
+  "nth"         => func(:nth)
+  "first"       => func(:first)
+  "rest"        => func(:rest)
+  "throw"       => -> (args : Array(Mal::Type)) { raise Mal::RuntimeException.new args[0] }
+  "apply"       => func(:apply)
+  "map"         => func(:map)
+  "nil?"        => func(:nil?)
+  "true?"       => func(:true?)
+  "false?"      => func(:false?)
+  "symbol?"     => func(:symbol?)
+  "symbol"      => func(:symbol)
+  "keyword"     => func(:keyword)
+  "keyword?"    => func(:keyword?)
+  "vector"      => func(:vector)
+  "vector?"     => func(:vector?)
+  "hash-map"    => func(:hash_map)
+  "map?"        => func(:map?)
+  "assoc"       => func(:assoc)
+  "dissoc"      => func(:dissoc)
+  "get"         => func(:get)
+  "contains?"   => func(:contains?)
+  "keys"        => func(:keys)
+  "vals"        => func(:vals)
+  "sequential?" => func(:sequential?)
 } of String => Mal::Func
 
 end

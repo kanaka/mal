@@ -4,6 +4,13 @@ module Mal
 
   class EvalException < Exception
   end
+
+  class RuntimeException < Exception
+    getter :thrown
+    def initialize(@thrown)
+      super()
+    end
+  end
 end
 
 def eval_error(msg)

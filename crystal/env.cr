@@ -52,7 +52,7 @@ module Mal
 
     def get(key)
       e = find key
-      eval_error "#{key} not found" unless e
+      eval_error "'#{key}' not found" unless e
       e.data[key]
     end
   end
