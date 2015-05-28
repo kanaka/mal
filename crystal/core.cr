@@ -14,7 +14,7 @@ macro calc_op(op)
 end
 
 def self.list(args)
-  args.each_with_object(Mal::List.new){|a,l| l << a}
+  args.to_mal
 end
 
 def self.list?(args)
@@ -73,11 +73,9 @@ def self.slurp(args)
 end
 
 def self.cons(args)
-  arg1 = args[1].unwrap
-  eval_error "2nd arg of cons must be list" unless arg1.is_a? Array
-  arg1.each_with_object(Mal::List.new << args[0]) do |elem, list|
-    list << elem
-  end
+  head, tail = args[0] as Mal::Type, args[1].unwrap
+  eval_error "2nd arg of cons must be list" unless tail.is_a? Array
+  ([head] + tail).to_mal
 end
 
 def self.concat(args)
@@ -109,7 +107,7 @@ def self.rest(args)
   return Mal::List.new if a0.nil?
   eval_error "1st argument of first must be list or vector or nil" unless a0.is_a? Array
   return Mal::List.new if a0.empty?
-  a0[1..-1].each_with_object(Mal::List.new){|e,l| l << e}
+  a0[1..-1].to_mal
 end
 
 def self.apply(args)
@@ -183,7 +181,7 @@ def self.keyword?(args)
 end
 
 def self.vector(args)
-  args.each_with_object(Mal::Vector.new){|e,v| v << e}
+  args.to_mal(Mal::Vector)
 end
 
 def self.vector?(args)
@@ -263,7 +261,7 @@ end
 def self.vals(args)
   head = args.first.unwrap
   eval_error "1st argument of assoc must be hashmap" unless head.is_a? Mal::HashMap
-  head.values.each_with_object(Mal::List.new){|e,l| l << e}
+  head.values.to_mal
 end
 
 def self.sequential?(args)

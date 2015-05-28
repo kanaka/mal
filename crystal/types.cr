@@ -83,3 +83,10 @@ end
 macro gen_type(t, *args)
   Mal::Type.new {{t.id}}.new({{*args}})
 end
+
+class Array
+  def to_mal(t = Mal::List)
+    each_with_object(t.new){|e, l| l << e}
+  end
+end
+
