@@ -1,7 +1,10 @@
+require "time"
+
 require "./types"
 require "./error"
 require "./printer"
 require "./reader"
+require "./readline"
 
 module Mal
 
@@ -268,6 +271,76 @@ def self.sequential?(args)
   args.first.unwrap.is_a? Array
 end
 
+def self.readline(args)
+  head = args.first.unwrap
+  eval_error "1st argument of readline must be string" unless head.is_a? String
+  my_readline head
+end
+
+def self.meta(args)
+  m = args.first.meta
+  m.nil? ? nil : m
+end
+
+def self.with_meta(args)
+  t = args.first.dup
+  t.meta = args[1]
+  t
+end
+
+def self.atom(args)
+  Mal::Atom.new args.first
+end
+
+def self.atom?(args)
+  args.first.unwrap.is_a? Mal::Atom
+end
+
+def self.deref(args)
+  head = args.first.unwrap
+  eval_error "1st argument of deref must be atom" unless head.is_a? Mal::Atom
+  head.val
+end
+
+def self.reset!(args)
+  head = args.first.unwrap
+  eval_error "1st argument of reset! must be atom" unless head.is_a? Mal::Atom
+  head.val = args[1]
+end
+
+def self.swap!(args)
+  atom = args.first.unwrap
+  eval_error "1st argument of swap! must be atom" unless atom.is_a? Mal::Atom
+
+  a = [atom.val] + args[2..-1]
+
+  func = args[1].unwrap
+  case func
+  when Mal::Func
+    atom.val = func.call a
+  when Mal::Closure
+    atom.val = func.fn.call a
+  else
+    eval_error "2nd argumetn of swap! must be function"
+  end
+end
+
+def self.conj(args)
+  seq = args.first.unwrap
+  case seq
+  when Mal::List
+    (args[1..-1].reverse + seq).to_mal
+  when Mal::Vector
+    (seq + args[1..-1]).to_mal(Mal::Vector)
+  else
+    eval_error "1st argument of conj must be list or vector"
+  end
+end
+
+def self.time_ms(args)
+  (Time.now.to_i.to_i32) * 1000
+end
+
 # Note:
 # Simply using ->self.some_func doesn't work
 macro func(name)
@@ -324,6 +397,17 @@ NS = {
   "keys"        => func(:keys)
   "vals"        => func(:vals)
   "sequential?" => func(:sequential?)
+  "readline"    => func(:readline)
+  "meta"        => func(:meta)
+  "with-meta"   => func(:with_meta)
+  "atom"        => func(:atom)
+  "atom?"       => func(:atom?)
+  "deref"       => func(:deref)
+  "deref"       => func(:deref)
+  "reset!"      => func(:reset!)
+  "swap!"       => func(:swap!)
+  "conj"        => func(:conj)
+  "time-ms"     => func(:time_ms)
 } of String => Mal::Func
 
 end

@@ -21,6 +21,8 @@ def pr_str(value, print_readably = true)
     else
       print_readably ? value.inspect : value
     end
+  when Mal::Atom
+    "(atom #{pr_str(value.val, print_readably)})"
   else
     raise "invalid MalType: #{value.to_s}"
   end

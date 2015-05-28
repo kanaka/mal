@@ -20,6 +20,16 @@ module Mal
   class HashMap < Hash(String, Type)
   end
 
+  class Atom
+    property :val
+    def initialize(@val)
+    end
+
+    def ==(rhs : Atom)
+      @val == rhs.val
+    end
+  end
+
   class Closure
     property :ast, :params, :env, :fn
     def initialize(@ast, @params, @env, @fn)
@@ -28,17 +38,22 @@ module Mal
 
   class Type
     alias Func = (Array(Type) -> Type)
-    alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func | Closure
+    alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func | Closure | Atom
 
-    property :is_macro
+    is_macro :: Bool
+    meta :: Type
+
+    property :is_macro, :meta
 
     def initialize(@val : ValueType)
       @is_macro = false
+      @meta = nil
     end
 
     def initialize(other : Type)
       @val = other.unwrap
-      @is_macro = false
+      @is_macro = other.is_macro
+      @meta = other.meta
     end
 
     def unwrap
@@ -51,6 +66,13 @@ module Mal
 
     def to_s
       pr_str(self)
+    end
+
+    def dup
+      Type.new(@val).tap do |t|
+        t.is_macro = @is_macro
+        t.meta = @meta
+      end
     end
 
     def ==(other : Type)
