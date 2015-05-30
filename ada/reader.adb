@@ -71,7 +71,7 @@ package body Reader is
    Start_Chars : Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps."or"
        (Ada.Strings.Maps.Constants.Letter_Set,
-        Ada.Strings.Maps.To_Set (':'));
+        Ada.Strings.Maps.To_Set (":*"));
 
    Body_Chars : Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps."or"

@@ -44,20 +44,33 @@ procedure Step6_File is
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
    Cmd_Args : Natural;
+   Command_Args : Types.Mal_Handle;
+   Command_List : Types.List_Ptr;
 
 begin
 
+
+   Core.Init;
+
    Cmd_Args := 0;
+   Command_Args := Types.New_List_Mal_Type (Types.List_List);
+   Command_List := Types.Deref_List (Command_Args);
+
    while Ada.Command_Line.Argument_Count > Cmd_Args loop
+
      Cmd_Args := Cmd_Args + 1;
      if Ada.Command_Line.Argument (Cmd_Args) = "-d" then
         Evaluation.Debug := True;
      elsif Ada.Command_Line.Argument (Cmd_Args) = "-e" then
         Envs.Debug := True;
+     else
+        Command_List.Append
+          (Types.New_Atom_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
      end if;
+
    end loop;
 
-   Core.Init;
+   Envs.Set (Envs.Get_Current, "*ARGV*", Command_Args);
 
    Ada.Text_IO.Put_Line (Rep ("(def! not (fn* (a) (if a false true)))"));
    Ada.Text_IO.Put_Line (Rep ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))"));
