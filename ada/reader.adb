@@ -89,7 +89,8 @@ package body Reader is
      Tokenizer.Get (Opentoken.Recognizer.Single_Character_Set.Get (Lisp_Syms));
 
    Lisp_Whitespace : constant Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.To_Set (ACL.HT & ACL.LF & ACL.Space & ACL.Comma);
+     Ada.Strings.Maps.To_Set
+       (ACL.HT & ACL.LF & ACL.CR & ACL.Space & ACL.Comma);
 
    Whitesp_Recognizer : constant Tokenizer.Recognizable_Token :=
      Tokenizer.Get (Opentoken.Recognizer.Character_Set.Get (Lisp_Whitespace));

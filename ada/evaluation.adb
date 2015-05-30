@@ -285,7 +285,9 @@ package body Evaluation is
                E : Envs.Env_Handle;
             begin
                Evaled_List := Eval (First_Elem, Env);
-               if Deref (Evaled_List).Sym_Type = Lambda then
+               if Is_Null (Evaled_List) then
+                  return Evaled_List;
+               elsif Deref (Evaled_List).Sym_Type = Lambda then
                   E := Deref_Lambda (Evaled_List).Get_Env;
                else
                   E := Env;
