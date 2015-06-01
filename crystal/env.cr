@@ -35,6 +35,14 @@ module Mal
       end
     end
 
+    def dump
+      puts "ENV BEGIN".colorize.red
+      @data.each do |k, v|
+        puts "  #{k} -> #{print(v)}".colorize.red
+      end
+      puts "ENV END".colorize.red
+    end
+
     def set(key, value)
       @data[key] = value
     end

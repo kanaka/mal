@@ -1,5 +1,7 @@
 #! /usr/bin/env crystal run
 
+require "colorize"
+
 require "./readline"
 require "./reader"
 require "./printer"
@@ -19,7 +21,7 @@ def func_of(env, binds, body)
 end
 
 def eval_ast(ast, env)
-  return ast.map{|n| eval(n, env) as Mal::Type} if ast.is_a? Mal::List
+  return ast.map{|n| eval(n, env) as Mal::Type} if ast.is_a? Array
 
   val = ast.unwrap
 
@@ -34,11 +36,10 @@ def eval_ast(ast, env)
     val.each_with_object(Mal::List.new){|n, l| l << eval(n, env)}
   when Mal::Vector
     val.each_with_object(Mal::Vector.new){|n, l| l << eval(n, env)}
-  when Array(Mal::Type)
-    val.map{|n| eval(n, env)}
   when Mal::HashMap
-    val.each{|k, v| val[k] = eval(v, env)}
-    val
+    new_map = Mal::HashMap.new
+    val.each{|k, v| new_map[k] = eval(v, env)}
+    new_map
   else
     val
   end
@@ -118,7 +119,8 @@ end
 
 macro invoke_list(l, env)
   f = eval({{l}}.first, {{env}}).unwrap
-  args = eval_ast({{l}}[1..-1].to_mal, {{env}})
+  args = eval_ast({{l}}[1..-1], {{env}}) as Array
+
   case f
   when Mal::Closure
     ast = f.ast
@@ -129,6 +131,10 @@ macro invoke_list(l, env)
   else
     eval_error "expected function as the first argument: #{f}"
   end
+end
+
+def debug(ast)
+  puts print(ast).colorize.red
 end
 
 def eval(ast, env)
