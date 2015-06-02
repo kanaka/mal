@@ -11,7 +11,8 @@ def pr_str(value, print_readably = true)
   when Mal::Func    then "<function>"
   when Mal::Closure then "<closure>"
   when Mal::HashMap
-    "{#{value.map{|k, v| "#{pr_str(k, print_readably)} #{pr_str(v, print_readably)}"}.join(" ")}}"
+    # step1_read_print.cr requires specifying type
+    "{#{value.map{|k, v| "#{pr_str(k, print_readably)} #{pr_str(v, print_readably)}" as String}.join(" ")}}"
   when String
     case
     when value.empty?()
