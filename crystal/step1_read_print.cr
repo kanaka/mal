@@ -7,25 +7,29 @@ require "./printer"
 # Note:
 # Employed downcase names because Crystal prohibits uppercase names for methods
 
-def read(str)
-  read_str str
-end
+module Mal
+  extend self
 
-def eval(x)
-    x
-end
+  def read(str)
+    read_str str
+  end
 
-def print(result)
-  pr_str(result, true)
-end
+  def eval(x)
+      x
+  end
 
-def rep(str)
-  print(eval(read(str)))
+  def print(result)
+    pr_str(result, true)
+  end
+
+  def rep(str)
+    print(eval(read(str)))
+  end
 end
 
 while line = my_readline("user> ")
   begin
-    puts rep(line)
+    puts Mal.rep(line)
   rescue e
     STDERR.puts e
   end
