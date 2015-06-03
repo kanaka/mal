@@ -16,7 +16,7 @@ $(STEP_BINS): %: %.cr $(MAL_LIB)
 clean:
 	rm -rf $(STEP_BINS) mal .crystal
 
-stats: $(MODULES) stepA_mal.cr
+stats: types.cr error.cr readline.cr reader.cr printer.cr env.cr core.cr stepA_mal.cr
 	@wc $^
 
 stats-lisp: env.cr core.cr stepA_mal.cr
