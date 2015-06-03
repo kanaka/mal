@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 34 different languages:
+Mal is implemented in 35 different languages:
 
 * Bash shell
 * C
@@ -12,6 +12,7 @@ Mal is implemented in 34 different languages:
 * C#
 * Clojure
 * CoffeeScript
+* Crystal
 * Erlang
 * Factor
 * Forth
@@ -141,9 +142,16 @@ coffee ./stepX_YYY
 
 ### Crystal
 
+*The Crystal implementation of mal was created by [Linda_pp](https://github.com/rhysd)
+
+The Crystal implemenation of mal has been tested with Crystal 0.7.2.
+
 ```
 cd crystal
 crystal run ./stepX_YYY.cr
+    # OR
+make   # needed to run tests
+./stepX_YYY
 ```
 
 ### Erlang
