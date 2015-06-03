@@ -57,3 +57,4 @@ nim/nimcache
 .ivy2
 .sbt
 groovy/*.class
+.crystal

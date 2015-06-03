@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp cs erlang factor forth go groovy \
+IMPLS = bash c clojure coffee cpp crystal cs erlang factor forth go groovy \
 	haskell java julia js lua make mal ocaml matlab miniMAL nim \
 	perl php ps python r racket ruby rust scala swift vb guile
 
@@ -43,6 +43,7 @@ EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
 EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
 EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
 EXCLUDE_TESTS += test^vb^step5   # completes at 10,000
+EXCLUDE_TESTS += test^crystal^step5   # test completes, even at 1,000,000
 
 EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
@@ -57,6 +58,7 @@ c_STEP_TO_PROG =       c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 cpp_STEP_TO_PROG =     cpp/$($(1))
+crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
 erlang_STEP_TO_PROG =  erlang/$($(1))
 factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
@@ -98,6 +100,7 @@ c_RUNSTEP =       ../$(2) $(3)
 clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
 coffee_RUNSTEP =  coffee ../$(2) $(3)
 cpp_RUNSTEP =     ../$(2) $(3)
+crystal_RUNSTEP = ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
 erlang_RUNSTEP =  ../$(2) $(3)
 factor_RUNSTEP =  factor ../$(2) $(3)

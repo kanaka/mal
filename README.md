@@ -139,6 +139,13 @@ cd coffee
 coffee ./stepX_YYY
 ```
 
+### Crystal
+
+```
+cd crystal
+crystal run ./stepX_YYY.cr
+```
+
 ### Erlang
 
 *The Erlang implementation was created by [Nathan Fiedler (nlfiedler)](https://github.com/nlfiedler)*
