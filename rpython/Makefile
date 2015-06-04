@@ -12,6 +12,7 @@ all: $(STEPS)
 
 step1_read_print: mal_types.py reader.py printer.py
 step2_eval: mal_types.py reader.py printer.py
+step3_env: mal_types.py reader.py printer.py env.py
 
 clean:
 	rm -f $(STEPS) *.pyc

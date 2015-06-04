@@ -121,6 +121,9 @@ class MalSym(MalType):
     def __init__(self, value):
         assert isinstance(value, unicode)
         self.value = value
+def _symbol(strn):
+    assert isinstance(strn, unicode)
+    return MalSym(strn)
 def _symbol_Q(exp):
     assert isinstance(exp, MalType)
     return exp.__class__ is MalSym
@@ -166,8 +169,13 @@ class MalList(MalType):
         self.values = vals
     def append(self, val):
         self.values.append(val)
+    def rest(self, val):
+        return MalList(self.values[1:])
     def __len__(self):
         return len(self.values)
+    def __getitem__(self, i):
+        assert isinstance(i, int)
+        return self.values[i]
 
 ##    def __add__(self, rhs): return List(list.__add__(self, rhs))
 ##    def __getitem__(self, i):
