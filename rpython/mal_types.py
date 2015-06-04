@@ -142,7 +142,12 @@ def _keywordu(strn):
 def _keyword_Q(exp):
     return _string_Q(exp) and exp.value[0] == u"\u029e"
 
-### Functions
+# Functions
+class MalFunc(MalType):
+    def __init__(self, fn):
+        self.fn = fn
+    def apply(self, args):
+        return self.fn(args)
 ##def _function(Eval, Env, ast, env, params):
 ##    def fn(*args):
 ##        return Eval(ast, Env(env, params, args))
@@ -150,7 +155,9 @@ def _keyword_Q(exp):
 ##    fn.__ast__ = ast
 ##    fn.__gen_env__ = lambda args: Env(env, params, args)
 ##    return fn
-##def _function_Q(f): return type(f) == type(function_Q)
+def _function_Q(exp):
+    assert isinstance(exp, MalType)
+    return exp.__class__ is MalFunc
 
 # lists
 class MalList(MalType):
@@ -159,12 +166,8 @@ class MalList(MalType):
         self.values = vals
     def append(self, val):
         self.values.append(val)
-##    def __len__(self):
-##        return len(self.values)
-##    def __getitem__(self, i):
-##        if type(i) == slice: return List(list.__getitem__(self, i))
-##        elif i >= len(self): return None
-##        else:                return list.__getitem__(self, i)
+    def __len__(self):
+        return len(self.values)
 
 ##    def __add__(self, rhs): return List(list.__add__(self, rhs))
 ##    def __getitem__(self, i):
