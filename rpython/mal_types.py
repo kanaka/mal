@@ -58,7 +58,7 @@ import sys, copy, types as pytypes
 ##        return copy.copy(obj)
 
 def _replace(match, sub, old_str):
-    new_str = ""
+    new_str = u""
     idx = 0
     while idx < len(old_str):
         midx = old_str.find(match, idx)
@@ -108,7 +108,7 @@ def _int_Q(exp):
 # String
 class MalStr(MalType):
     def __init__(self, value):
-        assert isinstance(value, str)
+        assert isinstance(value, unicode)
         self.value = value
     def __len__(self):
         return len(self.value)
@@ -119,20 +119,29 @@ def _string_Q(exp):
 # Symbols
 class MalSym(MalType):
     def __init__(self, value):
-        assert isinstance(value, str)
+        assert isinstance(value, unicode)
         self.value = value
 def _symbol_Q(exp):
     assert isinstance(exp, MalType)
     return exp.__class__ is MalSym
 
-### Keywords
-### A specially prefixed string
-##def _keyword(str):
-##    if str[0] == u("\u029e"): return str
-##    else:                     return u("\u029e") + str
-##def _keyword_Q(exp):
-##    return _string_Q(exp) and exp[0] == u("\u029e")
-##
+# Keywords
+# A specially prefixed string
+def _keyword(mstr):
+    assert isinstance(mstr, MalType)
+    if isinstance(mstr, MalStr):
+        val = mstr.value
+        if val[0] == u"\u029e": return mstr
+        else:                   return MalStr(u"\u029e" + val)
+    else:
+        raise Exception("_keyword called on non-string")
+# Create keyword from unicode string
+def _keywordu(strn):
+    assert isinstance(strn, unicode)
+    return MalStr(u"\u029e" + strn)
+def _keyword_Q(exp):
+    return _string_Q(exp) and exp.value[0] == u"\u029e"
+
 ### Functions
 ##def _function(Eval, Env, ast, env, params):
 ##    def fn(*args):

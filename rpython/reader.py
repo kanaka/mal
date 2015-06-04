@@ -7,7 +7,7 @@ else:
     import re
 
 import mal_types as types
-from mal_types import (MalSym, MalInt, MalStr, _list)
+from mal_types import (MalSym, MalInt, MalStr, _keywordu, _list)
 
 class Blank(Exception): pass
 
@@ -47,14 +47,14 @@ def read_atom(reader):
     elif token[0] == '"':
         end = len(token)-1
         if end < 2:
-            return MalStr("")
+            return MalStr(u"")
         else:
-            return MalStr(types._replace('\\"', '"', token[1:end]))
-##    elif token[0] == ':':           return _keyword(token[1:])
+            return MalStr(types._replace(u'\\"', u'"', unicode(token[1:end])))
+    elif token[0] == ':':           return _keywordu(unicode(token[1:]))
     elif token == "nil":            return types.nil
     elif token == "true":           return types.true
     elif token == "false":          return types.false
-    else:                           return MalSym(token)
+    else:                           return MalSym(unicode(token))
 
 def read_sequence(reader, typ, start='(', end=')'):
     ast = typ()
@@ -87,23 +87,23 @@ def read_form(reader):
         return None
     elif token == '\'':
         reader.next()
-        return _list(MalSym('quote'), read_form(reader))
+        return _list(MalSym(u'quote'), read_form(reader))
     elif token == '`':
         reader.next()
-        return _list(MalSym('quasiquote'), read_form(reader))
+        return _list(MalSym(u'quasiquote'), read_form(reader))
     elif token == '~':
         reader.next()
-        return _list(MalSym('unquote'), read_form(reader))
+        return _list(MalSym(u'unquote'), read_form(reader))
     elif token == '~@':
         reader.next()
-        return _list(MalSym('splice-unquote'), read_form(reader))
+        return _list(MalSym(u'splice-unquote'), read_form(reader))
     elif token == '^':
         reader.next()
         meta = read_form(reader)
-        return _list(MalSym('with-meta'), read_form(reader), meta)
+        return _list(MalSym(u'with-meta'), read_form(reader), meta)
     elif token == '@':
         reader.next()
-        return _list(MalSym('deref'), read_form(reader))
+        return _list(MalSym(u'deref'), read_form(reader))
 
     # list
     elif token == ')': raise Exception("unexpected ')'")
