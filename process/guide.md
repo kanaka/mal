@@ -1077,7 +1077,7 @@ macros.
   * token is "'" (single quote): return a new list that contains the
     symbol "quote" and the result of reading the next form
     (`read_form`).
-  * token is "`" (back-tick): return a new list that contains the
+  * token is "\`" (back-tick): return a new list that contains the
     symbol "quasiquote" and the result of reading the next form
     (`read_form`).
   * token is "~" (tilde): return a new list that contains the
@@ -1399,9 +1399,9 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 * Add the `readline` core function. TODO
 
 
-Now go to the top level, run the step 9 tests:
+Now go to the top level, run the step A tests:
 ```
-make test^quux^step9
+make test^quux^stepA
 ```
 
 Once you have passed all the non-optional step A tests, it is time to
