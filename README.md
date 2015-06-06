@@ -189,15 +189,6 @@ cd forth
 gforth stepX_YYY.fs
 ```
 
-### GNU Guile 2.1+
-
-*The Guile implementation was created by [Mu Lei (NalaGinrut)](https://github.com/NalaGinrut).*
-
-```
-cd guile
-guile -L ./ stepX_YYY.scm
-```
-
 ### Go
 
 The Go implementation of mal requires that go is installed on on the
@@ -221,6 +212,14 @@ make
 groovy ./stepX_YYY.groovy
 ```
 
+### GNU Guile 2.1+
+
+*The Guile implementation was created by [Mu Lei (NalaGinrut)](https://github.com/NalaGinrut).*
+
+```
+cd guile
+guile -L ./ stepX_YYY.scm
+```
 
 ### Haskell
 
