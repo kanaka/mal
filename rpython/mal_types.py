@@ -1,33 +1,27 @@
 import sys, copy, types as pytypes
 
-### python 3.0 differences
-##if sys.hexversion > 0x3000000:
-##    def u(x):
-##        return x
-##else:
-##    import codecs
-##    def u(x):
-##        return codecs.unicode_escape_decode(x)[0]
-##
-##
-##if sys.version_info[0] >= 3:
-##    str_types = [str]
-##else:
-##    str_types = [str, unicode]
-##
-### General functions
-##
-##def _equal_Q(a, b):
-##    ota, otb = type(a), type(b)
-##    if not (ota == otb or (_sequential_Q(a) and _sequential_Q(b))):
-##        return False;
-##    if _symbol_Q(a):
-##        return a == b
+# General functions
+
+def _equal_Q(a, b):
+    assert isinstance(a, MalType) and isinstance(b, MalType)
+    ota, otb = a.__class__, b.__class__
+    if not (ota is otb or (_sequential_Q(a) and _sequential_Q(b))):
+        return False
+    if _symbol_Q(a):
+        assert isinstance(a, MalSym) and isinstance(b, MalSym)
+        return a.value == b.value
+    elif _string_Q(a):
+        assert isinstance(a, MalStr) and isinstance(b, MalStr)
+        return a.value == b.value
+    elif _int_Q(a):
+        assert isinstance(a, MalInt) and isinstance(b, MalInt)
+        return a.value == b.value
 ##    elif _list_Q(a) or _vector_Q(a):
-##        if len(a) != len(b): return False
-##        for i in range(len(a)):
-##            if not _equal_Q(a[i], b[i]): return False
-##        return True
+    elif _list_Q(a):
+        if len(a) != len(b): return False
+        for i in range(len(a)):
+            if not _equal_Q(a[i], b[i]): return False
+        return True
 ##    elif _hash_map_Q(a):
 ##        akeys = a.keys()
 ##        akeys.sort()
@@ -38,11 +32,16 @@ import sys, copy, types as pytypes
 ##            if akeys[i] != bkeys[i]: return False
 ##            if not equal_Q(a[akeys[i]], b[bkeys[i]]): return False
 ##        return True
-##    else:
-##        return a == b
-##
+    elif a is b:
+    #elif ((a is nil and a is nil) or (a is true and b is true) or (a
+    #    is false and b is false)):
+        return True
+    else:
+        raise Exception("no = op defined for %s" % a.__class__.__name__)
+
 ##def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
-##
+def _sequential_Q(seq): return _list_Q(seq)
+
 ##def _clone(obj):
 ##    #if type(obj) == type(lambda x:x):
 ##    if type(obj) == pytypes.FunctionType:
@@ -145,23 +144,6 @@ def _keywordu(strn):
 def _keyword_Q(exp):
     return _string_Q(exp) and exp.value[0] == u"\u029e"
 
-# Functions
-class MalFunc(MalType):
-    def __init__(self, fn):
-        self.fn = fn
-    def apply(self, args):
-        return self.fn(args)
-##def _function(Eval, Env, ast, env, params):
-##    def fn(*args):
-##        return Eval(ast, Env(env, params, args))
-##    fn.__meta__ = None
-##    fn.__ast__ = ast
-##    fn.__gen_env__ = lambda args: Env(env, params, args)
-##    return fn
-def _function_Q(exp):
-    assert isinstance(exp, MalType)
-    return exp.__class__ is MalFunc
-
 # lists
 class MalList(MalType):
     def __init__(self, vals):
@@ -169,21 +151,23 @@ class MalList(MalType):
         self.values = vals
     def append(self, val):
         self.values.append(val)
-    def rest(self, val):
+    def rest(self):
         return MalList(self.values[1:])
     def __len__(self):
         return len(self.values)
     def __getitem__(self, i):
         assert isinstance(i, int)
         return self.values[i]
-
+    def slice(self, start, end=None):
+        if end is None: end = len(self.values)
+        return MalList(self.values[start:end])
 ##    def __add__(self, rhs): return List(list.__add__(self, rhs))
 ##    def __getitem__(self, i):
 ##        if type(i) == slice: return List(list.__getitem__(self, i))
 ##        elif i >= len(self): return None
 ##        else:                return list.__getitem__(self, i)
-##    def __getslice__(self, *a): return List(list.__getslice__(self, *a))
 def _list(*vals): return MalList(list(vals))
+def _listl(l): return MalList(l.values)
 #def _list_Q(exp): return exp.__class__ == MalList
 def _list_Q(exp):
     assert isinstance(exp, MalType)
@@ -208,6 +192,33 @@ def _list_Q(exp):
 ##    for i in range(0,len(key_vals),2): hm[key_vals[i]] = key_vals[i+1]
 ##    return hm
 ##def _hash_map_Q(exp): return type(exp) == Hash_Map
+
+# Functions
+# env import must happen after MalSym and MalList definitions to allow
+# circular dependency
+from env import Env
+class MalFunc(MalType):
+    def __init__(self, fn, ast=None, env=None, params=None,
+                 EvalFunc=None):
+        if fn is None and EvalFunc is None:
+            raise Exception("MalFunc requires either fn or EvalFunc")
+        self.fn = fn
+        #assert isinstance(ast, MalType) or ast is None
+        self.ast = ast
+        self.env = env
+        self.params = params
+        self.EvalFunc = EvalFunc
+    def apply(self, args):
+        if self.EvalFunc:
+            return self.EvalFunc(self.ast, self.gen_env(args))
+        else:
+            return self.fn(args)
+    def gen_env(self, args):
+        return Env(self.env, self.params, args)
+def _function_Q(exp):
+    assert isinstance(exp, MalType)
+    return exp.__class__ is MalFunc
+
 ##
 ### atoms
 ##class Atom(object):

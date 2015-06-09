@@ -33,7 +33,7 @@ def _pr_str(obj, print_readably=True):
         elif print_readably:
             return u'"' + types._replace(u'\\n', u'\\n',
                           types._replace(u'\"', u'\\"',
-                           types._replace(u'\\\\', u'\\\\', val))) + u'"'
+                           types._replace(u'\\', u'\\\\', val))) + u'"'
         else:
             return val
     elif types._nil_Q(obj):
@@ -50,6 +50,8 @@ def _pr_str(obj, print_readably=True):
     elif types._int_Q(obj):
         assert isinstance(obj, MalInt)
         return unicode(str(obj.value))
+    elif types._function_Q(obj):
+        return u"#<function>"
     else:
         return u"unknown"
 

@@ -1,4 +1,4 @@
-from mal_types import MalType, MalSym
+from mal_types import MalType, MalSym, MalList
 
 # Environment
 class Env():
@@ -7,12 +7,17 @@ class Env():
         self.outer = outer or None
 
         if binds:
+            assert isinstance(binds, MalList) and isinstance(exprs, MalList)
             for i in range(len(binds)):
-                if binds[i] == "&":
-                    self.data[binds[i+1]] = exprs[i:]
+                bind = binds[i]
+                assert isinstance(bind, MalSym)
+                if bind.value == u"&":
+                    bind = binds[i+1]
+                    assert isinstance(bind, MalSym)
+                    self.data[bind.value] = exprs.slice(i)
                     break
                 else:
-                    self.data[binds[i]] = exprs[i]
+                    self.data[bind.value] = exprs[i]
 
     def find(self, key):
         assert isinstance(key, MalSym)

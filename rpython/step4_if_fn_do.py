@@ -1,10 +1,11 @@
-#import sys, traceback
+import sys, traceback
 import mal_readline
 import mal_types as types
-from mal_types import (MalSym, MalInt, MalStr, _symbol, _keywordu,
-                       MalList, _list, MalFunc)
+from mal_types import (MalSym, MalInt, MalStr, nil, true, false,
+                       _symbol, _keywordu, MalList, _list, MalFunc)
 import reader, printer
 from env import Env
+import core
 
 # read
 def READ(str):
@@ -39,24 +40,40 @@ def EVAL(ast, env):
         # apply list
         if len(ast) == 0: return ast
         a0 = ast[0]
-        if not isinstance(a0, MalSym):
-            raise Exception("attempt to apply on non-symbol")
+        if isinstance(a0, MalSym):
+            a0sym = a0.value
+        else:
+            a0sym = u"__<*fn*>__"
 
-        if u"def!" == a0.value:
+        if u"def!" == a0sym:
             a1, a2 = ast[1], ast[2]
             res = EVAL(a2, env)
             return env.set(a1, res)
-        elif u"let*" == a0.value:
+        elif u"let*" == a0sym:
             a1, a2 = ast[1], ast[2]
             let_env = Env(env)
             for i in range(0, len(a1), 2):
                 let_env.set(a1[i], EVAL(a1[i+1], let_env))
             return EVAL(a2, let_env)
+        elif u"do" == a0sym:
+            el = eval_ast(ast.rest(), env)
+            return el.values[-1]
+        elif u"if" == a0sym:
+            a1, a2 = ast[1], ast[2]
+            cond = EVAL(a1, env)
+            if cond is nil or cond is false:
+                if len(ast) > 3: return EVAL(ast[3], env)
+                else:            return nil
+            else:
+                return EVAL(a2, env)
+        elif u"fn*" == a0sym:
+            a1, a2 = ast[1], ast[2]
+            return MalFunc(None, a2, env, a1, EVAL)
         else:
             el = eval_ast(ast, env)
             f = el.values[0]
             if isinstance(f, MalFunc):
-                return f.apply(el.values[1:])
+                return f.apply(el.rest())
             else:
                 raise Exception("%s is not callable" % f)
 
@@ -65,36 +82,18 @@ def PRINT(exp):
     return printer._pr_str(exp)
 
 # repl
-repl_env = Env()
-def REP(str, env):
-    return PRINT(EVAL(READ(str), env))
-
-def plus(args):
-    a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
-    return MalInt(a.value+b.value)
-def minus(args):
-    a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
-    return MalInt(a.value-b.value)
-def multiply(args):
-    a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
-    return MalInt(a.value*b.value)
-def divide(args):
-    a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
-    return MalInt(int(a.value/b.value))
-repl_env.set(_symbol(u'+'), MalFunc(plus))
-repl_env.set(_symbol(u'-'), MalFunc(minus))
-repl_env.set(_symbol(u'*'), MalFunc(multiply))
-repl_env.set(_symbol(u'/'), MalFunc(divide))
-
 def entry_point(argv):
+    repl_env = Env()
+    def REP(str, env):
+        return PRINT(EVAL(READ(str), env))
+
+    # core.py: defined using python
+    for k, v in core.ns.items():
+        repl_env.set(_symbol(unicode(k)), MalFunc(v))
+
+    # core.mal: defined using the language itself
+    REP("(def! not (fn* (a) (if a false true)))", repl_env)
+
     while True:
         try:
             line = mal_readline.readline("user> ")
