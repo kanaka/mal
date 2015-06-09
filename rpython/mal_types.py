@@ -158,8 +158,10 @@ class MalList(MalType):
     def __getitem__(self, i):
         assert isinstance(i, int)
         return self.values[i]
-    def slice(self, start, end=None):
-        if end is None: end = len(self.values)
+    def slice(self, start):
+        return MalList(self.values[start:len(self.values)])
+    def slice2(self, start, end):
+        assert end >= 0
         return MalList(self.values[start:end])
 ##    def __add__(self, rhs): return List(list.__add__(self, rhs))
 ##    def __getitem__(self, i):
