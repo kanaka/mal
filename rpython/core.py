@@ -1,5 +1,4 @@
 import copy, time
-from itertools import chain
 
 import mal_types as types
 from mal_types import (MalType, nil, true, false,
@@ -155,10 +154,18 @@ def count(args):
 
 #def coll_Q(coll): return sequential_Q(coll) or hash_map_Q(coll)
 #
-#def cons(x, seq): return List([x]) + List(seq)
-#
-#def concat(*lsts): return List(chain(*lsts))
-#
+def cons(args):
+    x, seq = args[0], args[1]
+    assert isinstance(seq, MalList)
+    return MalList([x] + seq.values)
+
+def concat(args):
+    new_lst = []
+    for l in args.values:
+        assert isinstance(l, MalList)
+        new_lst = new_lst + l.values
+    return MalList(new_lst)
+
 #def nth(lst, idx):
 #    if idx < len(lst): return lst[idx]
 #    else: throw("nth: index out of range")
@@ -251,8 +258,8 @@ ns = {
 #        'vals': vals,
 #
 #        'sequential?': types._sequential_Q,
-#        'cons': cons,
-#        'concat': concat,
+        'cons': cons,
+        'concat': concat,
 #        'nth': nth,
 #        'first': first,
 #        'rest': rest,
