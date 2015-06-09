@@ -46,11 +46,23 @@ procedure Step6_File is
    Cmd_Args : Natural;
    Command_Args : Types.Mal_Handle;
    Command_List : Types.List_Ptr;
+   File_Processed : Boolean := False;
 
 begin
 
-
+   -- Core init also creates the first environment.
+   -- This is needed for the def!'s below.
    Core.Init;
+
+   declare
+      Not_S : String :=
+        Rep ("(def! not (fn* (a) (if a false true)))");
+      LF_S : String :=
+        Rep ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))");
+      pragma Unreferenced (Not_S, LF_S);
+   begin
+      null;
+   end;
 
    Cmd_Args := 0;
    Command_Args := Types.New_List_Mal_Type (Types.List_List);
@@ -64,16 +76,25 @@ begin
      elsif Ada.Command_Line.Argument (Cmd_Args) = "-e" then
         Envs.Debug := True;
      else
-        Command_List.Append
-          (Types.New_Atom_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
+        if not File_Processed then
+--           declare
+--              F_S : String :=
+ADa.Text_IO.Put_Line (
+                Rep ("(load-file """ & Ada.Command_Line.Argument (Cmd_Args) & """)")
+);
+--           begin
+--              null;
+--           end;
+           File_Processed := True;
+        else
+           Command_List.Append
+             (Types.New_Atom_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
+        end if;
      end if;
 
    end loop;
 
    Envs.Set (Envs.Get_Current, "*ARGV*", Command_Args);
-
-   Ada.Text_IO.Put_Line (Rep ("(def! not (fn* (a) (if a false true)))"));
-   Ada.Text_IO.Put_Line (Rep ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))"));
 
    loop
       begin

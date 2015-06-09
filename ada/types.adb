@@ -804,9 +804,25 @@ package body Types is
 
    function Arith_Op (A, B : Mal_Handle) return Mal_Handle is
       use Types;
-      A_Sym_Type : Sym_Types := Deref (A).Sym_Type;
-      B_Sym_Type : Sym_Types := Deref (B).Sym_Type;
+      A_Sym_Type : Sym_Types;
+      B_Sym_Type : Sym_Types;
    begin
+
+      if Is_Null (A) then
+        if Is_Null (B) then
+           -- both null, gotta be zero.
+           return New_Int_Mal_Type (0);
+        else  -- A is null but B is not.
+           return Arith_Op (New_Int_Mal_Type (0), B);
+        end if;
+      elsif Is_Null (B) then
+        -- A is not null but B is.
+         return Arith_Op (A, New_Int_Mal_Type (0));
+      end if;
+  
+      -- else both A and B and not null.:wq
+      A_Sym_Type := Deref (A).Sym_Type;
+      B_Sym_Type := Deref (B).Sym_Type;
       if A_Sym_Type = Int and B_Sym_Type = Int then
          return New_Int_Mal_Type
            (Int_Op (Deref_Int (A).Get_Int_Val, Deref_Int (B).Get_Int_Val));

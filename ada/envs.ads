@@ -29,8 +29,9 @@ package Envs is
    Not_Found : exception;
 
    -- Sym and Exprs are lists.  Bind Sets Keys in Syms to the corresponding
-   -- expression in Exprs.
-   procedure Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type);
+   -- expression in Exprs.  Returns true if all the parameters were bound.
+   function Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type)
+   return Boolean;
 
    -- Create a New_Env. The previous one is pushed to the stack and the
    -- new one becomes the current one.

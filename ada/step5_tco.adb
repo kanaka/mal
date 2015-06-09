@@ -9,7 +9,7 @@ with Printer;
 with Reader;
 with Types;
 
-procedure Step5_CTO is
+procedure Step5_TCO is
 
    function Read (Param : String) return Types.Mal_Handle is
    begin
@@ -78,4 +78,4 @@ begin
 exception
    when Ada.IO_Exceptions.End_Error => null;
    -- i.e. exit without textual output
-end Step5_CTO;
+end Step5_TCO;

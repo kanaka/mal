@@ -107,8 +107,9 @@ package body Envs is
 
 
    -- Sym and Exprs are lists.  Bind Sets Keys in Syms to the corresponding
-   -- expression in Exprs.
-   procedure Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type) is
+   -- expression in Exprs.  Returns true if all the parameters were bound.
+   function Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type)
+   return Boolean is
       use Types;
       S, Expr : List_Mal_Type;
       First_Sym : Atom_Ptr;
@@ -116,18 +117,23 @@ package body Envs is
       S := Syms;
       Expr := Exprs;
       while not Is_Null (S) loop
+
          First_Sym := Deref_Atom (Car (S));
+
          if First_Sym.Get_Atom = "&" then
             S := Deref_List (Cdr (S)).all;
             First_Sym := Deref_Atom (Car (S));
             Set (E, First_Sym.Get_Atom, New_List_Mal_Type (Expr));
-            exit;
+            return True;
          end if;
+
          Set (E, First_Sym.Get_Atom, Car (Expr));
          S := Deref_List (Cdr (S)).all;
          exit when Is_Null (Expr);
          Expr := Deref_List (Cdr (Expr)).all;
+
       end loop;
+      return Is_Null (S);
    end Bind;
 
 

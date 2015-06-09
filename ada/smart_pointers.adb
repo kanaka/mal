@@ -30,9 +30,11 @@ package body Smart_Pointers is
    overriding procedure Finalize (Object : in out Smart_Pointer) is
    begin
       if Object.Pointer /= null then
-         Object.Pointer.Ref_Count := Object.Pointer.Ref_Count - 1;
-         if Object.Pointer.Ref_Count = 0 then
-            Free (Object.Pointer);
+         if Object.Pointer.Ref_Count > 0 then
+            Object.Pointer.Ref_Count := Object.Pointer.Ref_Count - 1;
+            if Object.Pointer.Ref_Count = 0 then
+               Free (Object.Pointer);
+            end if;
          end if;
       end if;
    end Finalize;
