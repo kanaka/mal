@@ -40,6 +40,16 @@ def println(args):
     print(u" ".join(parts))
     return nil
 
+def read_str(args):
+    a0 = args[0]
+    assert isinstance(a0, MalStr)
+    return reader.read_str(str(a0.value))
+
+def slurp(args):
+    a0 = args[0]
+    assert isinstance(a0, MalStr)
+    return MalStr(unicode(open(str(a0.value)).read()))
+
 # Number functions
 def lt(args):
     a, b = args[0], args[1]
@@ -215,8 +225,8 @@ ns = {
         'prn': prn,
         'println': println,
 #        'readline': lambda prompt: mal_readline.readline(prompt),
-#        'read-string': reader.read_str,
-#        'slurp': lambda file: open(file).read(),
+        'read-string': read_str,
+        'slurp': slurp,
         '<':  lt,
         '<=': lte,
         '>':  gt,
