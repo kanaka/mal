@@ -58,6 +58,11 @@ def println(args):
     print(u" ".join(parts))
     return nil
 
+def do_readline(args):
+    prompt = args[0]
+    assert isinstance(prompt, MalStr)
+    return MalStr(unicode(mal_readline.readline(str(prompt.value))))
+
 def read_str(args):
     a0 = args[0]
     assert isinstance(a0, MalStr)
@@ -260,7 +265,7 @@ ns = {
         'str': do_str,
         'prn': prn,
         'println': println,
-#        'readline': lambda prompt: mal_readline.readline(prompt),
+        'readline': do_readline,
         'read-string': read_str,
         'slurp': slurp,
         '<':  lt,
