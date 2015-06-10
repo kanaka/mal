@@ -14,7 +14,7 @@ def do_equal(args):
 
 ## Errors/Exceptions
 #def throw(exc): raise Exception(exc)
-#
+
 
 # String functions
 def pr_str(args):
@@ -166,20 +166,25 @@ def concat(args):
         new_lst = new_lst + l.values
     return MalList(new_lst)
 
-#def nth(lst, idx):
-#    if idx < len(lst): return lst[idx]
-#    else: throw("nth: index out of range")
-#
-#def first(lst): return lst[0]
-#
-#def rest(lst): return List(lst[1:])
-#
-#def empty_Q(lst): return len(lst) == 0
-#
-#def count(lst):
-#    if types._nil_Q(lst): return 0
-#    else: return len(lst)
-#
+def nth(args):
+    lst, idx = args[0], args[1]
+    assert isinstance(lst, MalList)
+    assert isinstance(idx, MalInt)
+    if idx.value < len(lst): return lst[idx.value]
+    else: raise Exception("nth: index out of range")
+
+def first(args):
+    a0 = args[0]
+    assert isinstance(a0, MalList)
+    if len(a0) == 0: return nil
+    else:            return a0[0]
+
+def rest(args):
+    a0 = args[0]
+    assert isinstance(a0, MalList)
+    if len(a0) == 0: return MalList([])
+    else:            return a0.rest()
+
 ## retains metadata
 #def conj(lst, *args):
 #    if types._list_Q(lst): 
@@ -260,9 +265,9 @@ ns = {
 #        'sequential?': types._sequential_Q,
         'cons': cons,
         'concat': concat,
-#        'nth': nth,
-#        'first': first,
-#        'rest': rest,
+        'nth': nth,
+        'first': first,
+        'rest': rest,
         'empty?': empty_Q,
         'count': count,
 #        'conj': conj,

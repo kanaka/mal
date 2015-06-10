@@ -201,7 +201,7 @@ def _list_Q(exp):
 from env import Env
 class MalFunc(MalType):
     def __init__(self, fn, ast=None, env=None, params=None,
-                 EvalFunc=None):
+                 EvalFunc=None, ismacro=False):
         if fn is None and EvalFunc is None:
             raise Exception("MalFunc requires either fn or EvalFunc")
         self.fn = fn
@@ -210,6 +210,7 @@ class MalFunc(MalType):
         self.env = env
         self.params = params
         self.EvalFunc = EvalFunc
+        self.ismacro = ismacro
     def apply(self, args):
         if self.EvalFunc:
             return self.EvalFunc(self.ast, self.gen_env(args))
