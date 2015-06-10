@@ -2,18 +2,37 @@ import copy, time
 
 import mal_types as types
 from mal_types import (MalType, nil, true, false,
-                       MalInt, MalStr, MalList)
+                       MalInt, MalSym, MalStr, MalList)
 import mal_readline
 import reader
 import printer
 
 # General functions
-def do_equal(args):
-    if types._equal_Q(args[0], args[1]): return true
-    else:                                return false
+def wrap_tf(tf):
+    if tf: return true
+    else:  return false
 
-## Errors/Exceptions
-#def throw(exc): raise Exception(exc)
+def do_equal(args): return wrap_tf(types._equal_Q(args[0], args[1]))
+
+# Errors/Exceptions
+def throw(args):
+    raise types.MalException(args[0])
+
+# Scalar functions
+def nil_Q(args): return wrap_tf(types._nil_Q(args[0]))
+def true_Q(args): return wrap_tf(types._true_Q(args[0]))
+def false_Q(args): return wrap_tf(types._false_Q(args[0]))
+def symbol(args):
+    a0 = args[0]
+    if isinstance(a0, MalStr):
+        return types._symbol(a0.value)
+    elif isinstance(a0, MalSym):
+        return a0
+    else:
+        types.throw_str("symbol called on non-string/non-symbol")
+def symbol_Q(args): return wrap_tf(types._symbol_Q(args[0]))
+def keyword(args): return types._keyword(args[0])
+def keyword_Q(args): return wrap_tf(types._keyword_Q(args[0]))
 
 
 # String functions
@@ -54,26 +73,22 @@ def lt(args):
     a, b = args[0], args[1]
     assert isinstance(a, MalInt)
     assert isinstance(b, MalInt)
-    if a.value < b.value: return true
-    else:                 return false
+    return wrap_tf(a.value < b.value)
 def lte(args):
     a, b = args[0], args[1]
     assert isinstance(a, MalInt)
     assert isinstance(b, MalInt)
-    if a.value <= b.value: return true
-    else:                  return false
+    return wrap_tf(a.value <= b.value)
 def gt(args):
     a, b = args[0], args[1]
     assert isinstance(a, MalInt)
     assert isinstance(b, MalInt)
-    if a.value > b.value: return true
-    else:                 return false
+    return wrap_tf(a.value > b.value)
 def gte(args):
     a, b = args[0], args[1]
     assert isinstance(a, MalInt)
     assert isinstance(b, MalInt)
-    if a.value >= b.value: return true
-    else:                  return false
+    return wrap_tf(a.value >= b.value)
 
 def plus(args):
     a, b = args[0], args[1]
@@ -128,19 +143,17 @@ def do_list(ml):
     return ml
 
 def list_Q(args):
-    if isinstance(args[0], MalList): return true
-    else:                            return false
+    return wrap_tf(isinstance(args[0], MalList))
 
 def empty_Q(args):
     assert isinstance(args, MalType)
     seq = args[0]
     if isinstance(seq, MalList):
-        if len(seq) == 0: return true
-        else:             return false
+        return wrap_tf(len(seq) == 0)
     elif seq is nil:
         return true
     else:
-        raise Exception("empty? called on non-sequence")
+        types.throw_str("empty? called on non-sequence")
 
 def count(args):
     assert isinstance(args, MalType)
@@ -150,7 +163,7 @@ def count(args):
     elif seq is nil:
         return MalInt(0)
     else:
-        raise Exception("count called on non-sequence")
+        types.throw_str("count called on non-sequence")
 
 #def coll_Q(coll): return sequential_Q(coll) or hash_map_Q(coll)
 #
@@ -171,7 +184,7 @@ def nth(args):
     assert isinstance(lst, MalList)
     assert isinstance(idx, MalInt)
     if idx.value < len(lst): return lst[idx.value]
-    else: raise Exception("nth: index out of range")
+    else: types.throw_str("nth: index out of range")
 
 def first(args):
     a0 = args[0]
@@ -194,12 +207,23 @@ def rest(args):
 #    if hasattr(lst, "__meta__"):
 #        new_lst.__meta__ = lst.__meta__
 #    return new_lst
-#
-#def apply(f, *args): return f(*(list(args[0:-1])+args[-1]))
-#
-#def mapf(f, lst): return List(map(f, lst))
-#
-#
+
+def apply(args):
+    f, fargs = args[0], args.rest()
+    last_arg = fargs.values[-1]
+    assert isinstance(last_arg, MalList)
+    all_args = fargs.values[0:-1] + last_arg.values
+    return f.apply(MalList(all_args))
+
+def mapf(args):
+    f, lst = args[0], args[1]
+    assert isinstance(lst, MalList)
+    res = []
+    for a in lst.values:
+        res.append(f.apply(MalList([a])))
+    return MalList(res)
+
+
 ## Metadata functions
 #def with_meta(obj, meta):
 #    new_obj = types._clone(obj)
@@ -223,15 +247,15 @@ def rest(args):
 
 ns = { 
         '=': do_equal,
-#        'throw': throw,
-#        'nil?': types._nil_Q,
-#        'true?': types._true_Q,
-#        'false?': types._false_Q,
-#        'symbol': types._symbol,
-#        'symbol?': types._symbol_Q,
-#        'keyword': types._keyword,
-#        'keyword?': types._keyword_Q,
-#
+        'throw': throw,
+        'nil?': nil_Q,
+        'true?': true_Q,
+        'false?': false_Q,
+        'symbol': symbol,
+        'symbol?': symbol_Q,
+        'keyword': keyword,
+        'keyword?': keyword_Q,
+
         'pr-str': pr_str,
         'str': do_str,
         'prn': prn,
@@ -271,8 +295,8 @@ ns = {
         'empty?': empty_Q,
         'count': count,
 #        'conj': conj,
-#        'apply': apply,
-#        'map': mapf,
+        'apply': apply,
+        'map': mapf,
 #
 #        'with-meta': with_meta,
 #        'meta': meta,

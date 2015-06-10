@@ -37,7 +37,7 @@ def _equal_Q(a, b):
     #    is false and b is false)):
         return True
     else:
-        raise Exception("no = op defined for %s" % a.__class__.__name__)
+        throw_str("no = op defined for %s" % a.__class__.__name__)
 
 ##def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
 def _sequential_Q(seq): return _list_Q(seq)
@@ -72,6 +72,14 @@ def _replace(match, sub, old_str):
 #
 # Mal Types
 #
+
+class MalException(Exception):
+    def __init__(self, object):
+        self.object = object
+
+def throw_str(s):
+    raise MalException(MalStr(unicode(s)))
+
 
 ### Parent type
 class MalType(): pass
@@ -136,13 +144,16 @@ def _keyword(mstr):
         if val[0] == u"\u029e": return mstr
         else:                   return MalStr(u"\u029e" + val)
     else:
-        raise Exception("_keyword called on non-string")
+        throw_str("_keyword called on non-string")
 # Create keyword from unicode string
 def _keywordu(strn):
     assert isinstance(strn, unicode)
     return MalStr(u"\u029e" + strn)
 def _keyword_Q(exp):
-    return _string_Q(exp) and exp.value[0] == u"\u029e"
+    if isinstance(exp, MalStr):
+        return exp.value[0] == u"\u029e"
+    else:
+        return False
 
 # lists
 class MalList(MalType):
@@ -203,7 +214,7 @@ class MalFunc(MalType):
     def __init__(self, fn, ast=None, env=None, params=None,
                  EvalFunc=None, ismacro=False):
         if fn is None and EvalFunc is None:
-            raise Exception("MalFunc requires either fn or EvalFunc")
+            throw_str("MalFunc requires either fn or EvalFunc")
         self.fn = fn
         #assert isinstance(ast, MalType) or ast is None
         self.ast = ast

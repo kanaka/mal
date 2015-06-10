@@ -59,11 +59,11 @@ def read_atom(reader):
 def read_sequence(reader, typ, start='(', end=')'):
     ast = typ()
     token = reader.next()
-    if token != start: raise Exception("expected '" + start + "'")
+    if token != start: types.throw_str("expected '" + start + "'")
 
     token = reader.peek()
     while token != end:
-        if not token: raise Exception("expected '" + end + "', got EOF")
+        if not token: types.throw_str("expected '" + end + "', got EOF")
         ast.append(read_form(reader))
         token = reader.peek()
     reader.next()
@@ -106,15 +106,15 @@ def read_form(reader):
         return _list(MalSym(u'deref'), read_form(reader))
 
     # list
-    elif token == ')': raise Exception("unexpected ')'")
+    elif token == ')': types.throw_str("unexpected ')'")
     elif token == '(': return read_list(reader)
 
 ##    # vector
-##    elif token == ']': raise Exception("unexpected ']'");
+##    elif token == ']': types.throw_str("unexpected ']'");
 ##    elif token == '[': return read_vector(reader);
 ##
 ##    # hash-map
-##    elif token == '}': raise Exception("unexpected '}'");
+##    elif token == '}': types.throw_str("unexpected '}'");
 ##    elif token == '{': return read_hash_map(reader);
 
     # atom

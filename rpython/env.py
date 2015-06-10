@@ -1,4 +1,4 @@
-from mal_types import MalType, MalSym, MalList
+from mal_types import MalType, MalSym, MalList, throw_str
 
 # Environment
 class Env():
@@ -34,5 +34,5 @@ class Env():
     def get(self, key):
         assert isinstance(key, MalSym)
         env = self.find(key)
-        if not env: raise Exception(u"'" + key.value + u"' not found")
+        if not env: throw_str("'" + str(key.value) + "' not found")
         return env.data[key.value]

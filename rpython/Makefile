@@ -18,6 +18,7 @@ step5_tco: mal_types.py reader.py printer.py env.py core.py
 step6_file: mal_types.py reader.py printer.py env.py core.py
 step7_quote: mal_types.py reader.py printer.py env.py core.py
 step8_macros: mal_types.py reader.py printer.py env.py core.py
+step9_try: mal_types.py reader.py printer.py env.py core.py
 
 clean:
 	rm -f $(STEPS) *.pyc
