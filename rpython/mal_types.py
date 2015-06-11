@@ -7,14 +7,11 @@ def _equal_Q(a, b):
     ota, otb = a.__class__, b.__class__
     if not (ota is otb or (_sequential_Q(a) and _sequential_Q(b))):
         return False
-    if _symbol_Q(a):
-        assert isinstance(a, MalSym) and isinstance(b, MalSym)
+    if isinstance(a, MalSym) and isinstance(b, MalSym):
         return a.value == b.value
-    elif _string_Q(a):
-        assert isinstance(a, MalStr) and isinstance(b, MalStr)
+    elif isinstance(a, MalStr) and isinstance(b, MalStr):
         return a.value == b.value
-    elif _int_Q(a):
-        assert isinstance(a, MalInt) and isinstance(b, MalInt)
+    elif isinstance(a, MalInt) and isinstance(b, MalInt):
         return a.value == b.value
     elif _list_Q(a) or _vector_Q(a):
         if len(a) != len(b): return False
@@ -32,8 +29,6 @@ def _equal_Q(a, b):
 ##            if not equal_Q(a[akeys[i]], b[bkeys[i]]): return False
 ##        return True
     elif a is b:
-    #elif ((a is nil and a is nil) or (a is true and b is true) or (a
-    #    is false and b is false)):
         return True
     else:
         throw_str("no = op defined for %s" % a.__class__.__name__)
@@ -192,16 +187,18 @@ def _vector_Q(exp):
 ### hash maps
 class MalHashMap(MalMeta):
     def __init__(self, dct):
-        #assert isinstance(dct, {}.__class__)
         self.dct = dct
         self.meta = nil
     def append(self, val):
         self.dct.append(val)
     def __getitem__(self, k):
         assert isinstance(k, unicode)
+        if not isinstance(k, unicode):
+            throw_str("hash-map lookup by non-string/non-keyword")
         return self.dct[k]
     def __setitem__(self, k, v):
-        assert isinstance(k, unicode)
+        if not isinstance(k, unicode):
+            throw_str("hash-map key must be string or keyword")
         assert isinstance(v, MalType)
         self.dct[k] = v
         return v
@@ -209,7 +206,8 @@ def _hash_mapl(kvs):
     dct = {}
     for i in range(0, len(kvs), 2):
         k = kvs[i]
-        assert isinstance(k, MalStr)
+        if not isinstance(k, MalStr):
+            throw_str("hash-map key must be string or keyword")
         v = kvs[i+1]
         dct[k.value] = v
     return MalHashMap(dct)

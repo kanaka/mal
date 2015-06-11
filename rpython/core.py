@@ -2,7 +2,8 @@
 import time
 
 import mal_types as types
-from mal_types import (MalType, MalMeta, nil, true, false,
+from mal_types import (throw_str,
+                       MalType, MalMeta, nil, true, false,
                        MalInt, MalSym, MalStr,
                        MalList, MalVector, MalHashMap,
                        MalAtom, MalFunc)
@@ -32,7 +33,7 @@ def symbol(args):
     elif isinstance(a0, MalSym):
         return a0
     else:
-        types.throw_str("symbol called on non-string/non-symbol")
+        throw_str("symbol called on non-string/non-symbol")
 def symbol_Q(args): return wrap_tf(types._symbol_Q(args[0]))
 def keyword(args): return types._keyword(args[0])
 def keyword_Q(args): return wrap_tf(types._keyword_Q(args[0]))
@@ -63,7 +64,8 @@ def println(args):
 
 def do_readline(args):
     prompt = args[0]
-    assert isinstance(prompt, MalStr)
+    if not isinstance(prompt, MalStr):
+        throw_str("readline prompt is not a string")
     try:
         return MalStr(unicode(mal_readline.readline(str(prompt.value))))
     except EOFError:
@@ -71,55 +73,59 @@ def do_readline(args):
 
 def read_str(args):
     a0 = args[0]
-    assert isinstance(a0, MalStr)
+    if not isinstance(a0, MalStr):
+        throw_str("read-string of non-string")
     return reader.read_str(str(a0.value))
 
 def slurp(args):
     a0 = args[0]
-    assert isinstance(a0, MalStr)
+    if not isinstance(a0, MalStr):
+        throw_str("slurp with non-string filename")
     return MalStr(unicode(open(str(a0.value)).read()))
 
 # Number functions
 def lt(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("< called on non-integer")
     return wrap_tf(a.value < b.value)
 def lte(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("<= called on non-integer")
     return wrap_tf(a.value <= b.value)
 def gt(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("> called on non-integer")
     return wrap_tf(a.value > b.value)
 def gte(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str(">= called on non-integer")
     return wrap_tf(a.value >= b.value)
 
 def plus(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("+ called on non-integer")
     return MalInt(a.value+b.value)
 def minus(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("- called on non-integer")
     return MalInt(a.value-b.value)
 def multiply(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("* called on non-integer")
     return MalInt(a.value*b.value)
 def divide(args):
     a, b = args[0], args[1]
-    assert isinstance(a, MalInt)
-    assert isinstance(b, MalInt)
+    if not isinstance(a, MalInt) or not isinstance(b, MalInt):
+        throw_str("/ called on non-integer")
+    if b.value == 0:
+        throw_str("divide by zero")
     return MalInt(int(a.value/b.value))
 
 def time_ms(args):
@@ -128,7 +134,6 @@ def time_ms(args):
 
 # Hash map functions
 def do_hash_map(ml):
-    assert isinstance(ml, MalList)
     return types._hash_mapl(ml.values)
 
 def hash_map_Q(args):
@@ -139,7 +144,8 @@ def assoc(args):
     new_dct = src_hm.dct.copy()
     for i in range(0,len(key_vals),2):
         k = key_vals[i]
-        assert isinstance(k, MalStr)
+        if not isinstance(k, MalStr):
+            throw_str("assoc called with non-string/non-keyword key")
         new_dct[k.value] = key_vals[i+1]
     return MalHashMap(new_dct)
 
@@ -147,7 +153,8 @@ def dissoc(args):
     src_hm, keys = args[0], args.rest()
     new_dct = src_hm.dct.copy()
     for k in keys.values:
-        assert isinstance(k, MalStr)
+        if not isinstance(k, MalStr):
+            throw_str("dissoc called with non-string/non-keyword key")
         if k.value in new_dct:
             del new_dct[k.value]
     return MalHashMap(new_dct)
@@ -157,20 +164,23 @@ def get(args):
     if obj is nil:
         return nil
     elif isinstance(obj, MalHashMap):
-        assert isinstance(key, MalStr)
+        if not isinstance(key, MalStr):
+            throw_str("get called on hash-map with non-string/non-keyword key")
         if obj and key.value in obj.dct:
             return obj.dct[key.value]
         else:
             return nil
     elif isinstance(obj, MalList):
-        assert isinstance(key, MalInt)
+        if not isinstance(key, MalInt):
+            throw_str("get called on list/vector with non-string/non-keyword key")
         return obj.values[key.value]
     else:
-        raise Exception("get called on invalid type")
+        throw_str("get called on invalid type")
 
 def contains_Q(args):
     hm, key = args[0], args[1]
-    assert isinstance(key, MalStr)
+    if not isinstance(key, MalStr):
+        throw_str("contains? called on hash-map with non-string/non-keyword key")
     return wrap_tf(key.value in hm.dct)
 
 def keys(args):
@@ -186,76 +196,79 @@ def vals(args):
 
 # Sequence functions
 def do_list(ml):
-    assert isinstance(ml, MalList)
     return ml
 
 def list_Q(args):
     return wrap_tf(types._list_Q(args[0]))
 
 def do_vector(ml):
-    assert isinstance(ml, MalList)
     return MalVector(ml.values)
 
 def vector_Q(args):
     return wrap_tf(types._vector_Q(args[0]))
 
 def empty_Q(args):
-    assert isinstance(args, MalType)
     seq = args[0]
     if isinstance(seq, MalList):
         return wrap_tf(len(seq) == 0)
     elif seq is nil:
         return true
     else:
-        types.throw_str("empty? called on non-sequence")
+        throw_str("empty? called on non-sequence")
 
 def count(args):
-    assert isinstance(args, MalType)
     seq = args[0]
     if isinstance(seq, MalList):
         return MalInt(len(seq))
     elif seq is nil:
         return MalInt(0)
     else:
-        types.throw_str("count called on non-sequence")
+        throw_str("count called on non-sequence")
 
 def sequential_Q(args):
     return wrap_tf(types._sequential_Q(args[0]))
 
 def cons(args):
     x, seq = args[0], args[1]
-    assert isinstance(seq, MalList)
+    if not isinstance(seq, MalList):
+        throw_str("cons called with non-list/non-vector")
     return MalList([x] + seq.values)
 
 def concat(args):
     new_lst = []
     for l in args.values:
-        assert isinstance(l, MalList)
+        if not isinstance(l, MalList):
+            throw_str("concat called with non-list/non-vector")
         new_lst = new_lst + l.values
     return MalList(new_lst)
 
 def nth(args):
     lst, idx = args[0], args[1]
-    assert isinstance(lst, MalList)
-    assert isinstance(idx, MalInt)
+    if not isinstance(lst, MalList):
+        throw_str("nth called with non-list/non-vector")
+    if not isinstance(idx, MalInt):
+        throw_str("nth called with non-int index")
     if idx.value < len(lst): return lst[idx.value]
-    else: types.throw_str("nth: index out of range")
+    else: throw_str("nth: index out of range")
 
 def first(args):
     a0 = args[0]
-    assert isinstance(a0, MalList)
+    if not isinstance(a0, MalList):
+        throw_str("first called with non-list/non-vector")
     if len(a0) == 0: return nil
     else:            return a0[0]
 
 def rest(args):
     a0 = args[0]
-    assert isinstance(a0, MalList)
+    if not isinstance(a0, MalList):
+        throw_str("rest called with non-list/non-vector")
     if len(a0) == 0: return MalList([])
     else:            return a0.rest()
 
 # retains metadata
 def conj(args):
     lst, args = args[0], args.rest()
+    new_lst = None
     if types._list_Q(lst):
         vals = args.values[:]
         vals.reverse()
@@ -263,20 +276,22 @@ def conj(args):
     elif types._vector_Q(lst):
         new_lst = MalVector(lst.values + list(args.values))
     else:
-        raise Exception("conj on non-list/non-vector")
+        throw_str("conj on non-list/non-vector")
     new_lst.meta = lst.meta
     return new_lst
 
 def apply(args):
     f, fargs = args[0], args.rest()
     last_arg = fargs.values[-1]
-    assert isinstance(last_arg, MalList)
+    if not isinstance(last_arg, MalList):
+        throw_str("map called with non-list")
     all_args = fargs.values[0:-1] + last_arg.values
     return f.apply(MalList(all_args))
 
 def mapf(args):
     f, lst = args[0], args[1]
-    assert isinstance(lst, MalList)
+    if not isinstance(lst, MalList):
+        throw_str("map called with non-list")
     res = []
     for a in lst.values:
         res.append(f.apply(MalList([a])))
@@ -291,14 +306,14 @@ def with_meta(args):
         new_obj.meta = meta
         return new_obj
     else:
-        types.throw_str("with-meta not supported on type")
+        throw_str("with-meta not supported on type")
 
 def meta(args):
     obj = args[0]
     if isinstance(obj, MalMeta):
         return obj.meta
     else:
-        types.throw_str("meta not supported on type")
+        throw_str("meta not supported on type")
 
 
 # Atoms functions
@@ -308,18 +323,21 @@ def atom_Q(args):
     return wrap_tf(types._atom_Q(args[0]))
 def deref(args):
     atm = args[0]
-    assert isinstance(atm, MalAtom)
+    if not isinstance(atm, MalAtom):
+        throw_str("deref called on non-atom")
     return atm.value
 def reset_BANG(args):
     atm, val = args[0], args[1]
-    assert isinstance(atm, MalAtom)
+    if not isinstance(atm, MalAtom):
+        throw_str("reset! called on non-atom")
     atm.value = val
     return atm.value
 def swap_BANG(args):
     atm, f, fargs = args[0], args[1], args.slice(2)
-    assert isinstance(atm, MalAtom)
-    assert isinstance(f, MalFunc)
-    assert isinstance(fargs, MalList)
+    if not isinstance(atm, MalAtom):
+        throw_str("swap! called on non-atom")
+    if not isinstance(f, MalFunc):
+        throw_str("swap! called with non-function")
     all_args = [atm.value] + fargs.values
     atm.value = f.apply(MalList(all_args))
     return atm.value

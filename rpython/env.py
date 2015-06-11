@@ -10,10 +10,12 @@ class Env():
             assert isinstance(binds, MalList) and isinstance(exprs, MalList)
             for i in range(len(binds)):
                 bind = binds[i]
-                assert isinstance(bind, MalSym)
+                if not isinstance(bind, MalSym):
+                    throw_str("env bind value is not a symbol")
                 if bind.value == u"&":
                     bind = binds[i+1]
-                    assert isinstance(bind, MalSym)
+                    if not isinstance(bind, MalSym):
+                        throw_str("env bind value is not a symbol")
                     self.data[bind.value] = exprs.slice(i)
                     break
                 else:

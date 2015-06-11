@@ -1,4 +1,13 @@
-import sys, traceback
+import sys
+IS_RPYTHON = sys.argv[0].endswith('rpython')
+
+if IS_RPYTHON:
+    #from rpython.rlib.debug import fatalerror
+    from rpython.rtyper.lltypesystem import lltype
+    from rpython.rtyper.lltypesystem.lloperation import llop
+else:
+    import traceback
+
 import mal_readline
 import mal_types as types
 from mal_types import (MalSym, MalInt, MalStr,
@@ -203,7 +212,10 @@ def entry_point(argv):
             print(u"Error: %s" % printer._pr_str(e.object, False))
         except Exception as e:
             print("Error: %s" % e)
-            #print("".join(traceback.format_exception(*sys.exc_info())))
+            if IS_RPYTHON:
+                llop.debug_print_traceback(lltype.Void)
+            else:
+                print("".join(traceback.format_exception(*sys.exc_info())))
     return 0
 
 # _____ Define and setup target ___

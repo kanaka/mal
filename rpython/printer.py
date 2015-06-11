@@ -7,7 +7,8 @@ else:
     import re
 
 import mal_types as types
-from mal_types import (MalType, MalStr, MalSym, MalInt, MalAtom)
+from mal_types import (MalType, MalStr, MalSym, MalInt,
+                       nil, true, false, MalAtom, MalFunc)
 
 def _pr_a_str(s, print_readably=True):
     if len(s) > 0 and s[0] == u'\u029e':
@@ -38,25 +39,21 @@ def _pr_str(obj, print_readably=True):
             ret.append(_pr_a_str(k,_r))
             ret.append(_pr_str(obj.dct[k],_r))
         return u"{" + u" ".join(ret) + u"}"
-    elif types._string_Q(obj):
-        assert isinstance(obj, MalStr)
+    elif isinstance(obj, MalStr):
         return _pr_a_str(obj.value,_r)
-    elif types._nil_Q(obj):
+    elif obj is nil:
         return u"nil"
-    elif types._true_Q(obj):
+    elif obj is true:
         return u"true"
-    elif types._false_Q(obj):
+    elif obj is false:
         return u"false"
-    elif types._atom_Q(obj):
-        assert isinstance(obj, MalAtom)
+    elif isinstance(obj, MalAtom):
         return u"(atom " + _pr_str(obj.value,_r) + u")"
-    elif types._symbol_Q(obj):
-        assert isinstance(obj, MalSym)
+    elif isinstance(obj, MalSym):
         return obj.value
-    elif types._int_Q(obj):
-        assert isinstance(obj, MalInt)
+    elif isinstance(obj, MalInt):
         return unicode(str(obj.value))
-    elif types._function_Q(obj):
+    elif isinstance(obj, MalFunc):
         return u"#<function>"
     else:
         return u"unknown"
