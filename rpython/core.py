@@ -2,7 +2,7 @@
 import time
 
 import mal_types as types
-from mal_types import (MalType, nil, true, false,
+from mal_types import (MalType, MalMeta, nil, true, false,
                        MalInt, MalSym, MalStr,
                        MalList, MalVector, MalHashMap,
                        MalAtom, MalFunc)
@@ -136,7 +136,6 @@ def hash_map_Q(args):
 
 def assoc(args):
     src_hm, key_vals = args[0], args.rest()
-    #new_dct = copy.copy(src_hm.dct)
     new_dct = src_hm.dct.copy()
     for i in range(0,len(key_vals),2):
         k = key_vals[i]
@@ -146,7 +145,6 @@ def assoc(args):
 
 def dissoc(args):
     src_hm, keys = args[0], args.rest()
-    #new_dct = copy.copy(src_hm.dct)
     new_dct = src_hm.dct.copy()
     for k in keys.values:
         assert isinstance(k, MalStr)
@@ -221,8 +219,6 @@ def count(args):
     else:
         types.throw_str("count called on non-sequence")
 
-#def coll_Q(coll): return sequential_Q(coll) or hash_map_Q(coll)
-#
 def sequential_Q(args):
     return wrap_tf(types._sequential_Q(args[0]))
 
@@ -257,15 +253,19 @@ def rest(args):
     if len(a0) == 0: return MalList([])
     else:            return a0.rest()
 
-## retains metadata
-#def conj(lst, *args):
-#    if types._list_Q(lst): 
-#        new_lst = List(list(reversed(list(args))) + lst)
-#    else:
-#        new_lst = Vector(lst + list(args))
-#    if hasattr(lst, "__meta__"):
-#        new_lst.__meta__ = lst.__meta__
-#    return new_lst
+# retains metadata
+def conj(args):
+    lst, args = args[0], args.rest()
+    if types._list_Q(lst):
+        vals = args.values[:]
+        vals.reverse()
+        new_lst = MalList(vals + lst.values)
+    elif types._vector_Q(lst):
+        new_lst = MalVector(lst.values + list(args.values))
+    else:
+        raise Exception("conj on non-list/non-vector")
+    new_lst.meta = lst.meta
+    return new_lst
 
 def apply(args):
     f, fargs = args[0], args.rest()
@@ -286,7 +286,7 @@ def mapf(args):
 # Metadata functions
 def with_meta(args):
     obj, meta = args[0], args[1]
-    if isinstance(obj, MalFunc):
+    if isinstance(obj, MalMeta):
         new_obj = types._clone(obj)
         new_obj.meta = meta
         return new_obj
@@ -295,7 +295,7 @@ def with_meta(args):
 
 def meta(args):
     obj = args[0]
-    if isinstance(obj, MalFunc):
+    if isinstance(obj, MalMeta):
         return obj.meta
     else:
         types.throw_str("meta not supported on type")
@@ -309,23 +309,23 @@ def atom_Q(args):
 def deref(args):
     atm = args[0]
     assert isinstance(atm, MalAtom)
-    return atm.val
+    return atm.value
 def reset_BANG(args):
     atm, val = args[0], args[1]
     assert isinstance(atm, MalAtom)
-    atm.val = val
-    return atm.val
+    atm.value = val
+    return atm.value
 def swap_BANG(args):
     atm, f, fargs = args[0], args[1], args.slice(2)
     assert isinstance(atm, MalAtom)
     assert isinstance(f, MalFunc)
     assert isinstance(fargs, MalList)
-    all_args = [atm.val] + fargs.values
-    atm.val = f.apply(MalList(all_args))
-    return atm.val
+    all_args = [atm.value] + fargs.values
+    atm.value = f.apply(MalList(all_args))
+    return atm.value
 
 
-ns = { 
+ns = {
         '=': do_equal,
         'throw': throw,
         'nil?': nil_Q,
@@ -374,7 +374,7 @@ ns = {
         'rest': rest,
         'empty?': empty_Q,
         'count': count,
-#        'conj': conj,
+        'conj': conj,
         'apply': apply,
         'map': mapf,
 

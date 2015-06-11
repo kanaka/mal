@@ -17,7 +17,6 @@ def _equal_Q(a, b):
         assert isinstance(a, MalInt) and isinstance(b, MalInt)
         return a.value == b.value
     elif _list_Q(a) or _vector_Q(a):
-##    elif _list_Q(a):
         if len(a) != len(b): return False
         for i in range(len(a)):
             if not _equal_Q(a[i], b[i]): return False
@@ -40,25 +39,19 @@ def _equal_Q(a, b):
         throw_str("no = op defined for %s" % a.__class__.__name__)
 
 def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
-##def _sequential_Q(seq): return _list_Q(seq)
 
 def _clone(obj):
-##    #if type(obj) == type(lambda x:x):
     if isinstance(obj, MalFunc):
         return MalFunc(obj.fn, obj.ast, obj.env, obj.params,
                  obj.EvalFunc, obj.ismacro)
     elif isinstance(obj, MalList):
+        return obj.__class__(obj.values)
+    elif isinstance(obj, MalHashMap):
+        return MalHashMap(obj.dct)
+    elif isinstance(obj, MalAtom):
+        return MalAtom(obj.value)
+    else:
         raise Exception("_clone on invalid type")
-##        if obj.__code__:
-##            return pytypes.FunctionType(
-##                    obj.__code__, obj.__globals__, name = obj.__name__,
-##                    argdefs = obj.__defaults__, closure = obj.__closure__)
-##        else:
-##            return pytypes.FunctionType(
-##                    obj.func_code, obj.func_globals, name = obj.func_name,
-##                    argdefs = obj.func_defaults, closure = obj.func_closure)
-##    else:
-##        return copy.copy(obj)
 
 def _replace(match, sub, old_str):
     new_str = u""
@@ -87,6 +80,7 @@ def throw_str(s):
 
 ### Parent types
 class MalType(): pass
+class MalMeta(MalType): pass
 
 ### Scalars
 class MalNil(MalType): pass
@@ -127,18 +121,6 @@ def _string_Q(exp):
     assert isinstance(exp, MalType)
     return exp.__class__  is MalStr
 
-# Symbols
-class MalSym(MalType):
-    def __init__(self, value):
-        assert isinstance(value, unicode)
-        self.value = value
-def _symbol(strn):
-    assert isinstance(strn, unicode)
-    return MalSym(strn)
-def _symbol_Q(exp):
-    assert isinstance(exp, MalType)
-    return exp.__class__ is MalSym
-
 # Keywords
 # A specially prefixed string
 def _keyword(mstr):
@@ -159,11 +141,25 @@ def _keyword_Q(exp):
     else:
         return False
 
+# Symbols
+class MalSym(MalMeta):
+    def __init__(self, value):
+        assert isinstance(value, unicode)
+        self.value = value
+        self.meta = nil
+def _symbol(strn):
+    assert isinstance(strn, unicode)
+    return MalSym(strn)
+def _symbol_Q(exp):
+    assert isinstance(exp, MalType)
+    return exp.__class__ is MalSym
+
 # lists
-class MalList(MalType):
+class MalList(MalMeta):
     def __init__(self, vals):
         assert isinstance(vals, list)
         self.values = vals
+        self.meta = nil
     def append(self, val):
         self.values.append(val)
     def rest(self):
@@ -178,11 +174,6 @@ class MalList(MalType):
     def slice2(self, start, end):
         assert end >= 0
         return MalList(self.values[start:end])
-##    def __add__(self, rhs): return List(list.__add__(self, rhs))
-##    def __getitem__(self, i):
-##        if type(i) == slice: return List(list.__getitem__(self, i))
-##        elif i >= len(self): return None
-##        else:                return list.__getitem__(self, i)
 def _list(*vals): return MalList(list(vals))
 def _listl(lst): return MalList(lst)
 def _list_Q(exp):
@@ -199,10 +190,11 @@ def _vector_Q(exp):
     return exp.__class__ is MalVector
 
 ### hash maps
-class MalHashMap(MalType):
+class MalHashMap(MalMeta):
     def __init__(self, dct):
         #assert isinstance(dct, {}.__class__)
         self.dct = dct
+        self.meta = nil
     def append(self, val):
         self.dct.append(val)
     def __getitem__(self, k):
@@ -221,7 +213,6 @@ def _hash_mapl(kvs):
         v = kvs[i+1]
         dct[k.value] = v
     return MalHashMap(dct)
-#def _hash_maph(l): return MalHashMap(l.values)
 def _hash_map_Q(exp):
     assert isinstance(exp, MalType)
     return exp.__class__ is MalHashMap
@@ -230,13 +221,12 @@ def _hash_map_Q(exp):
 # env import must happen after MalSym and MalList definitions to allow
 # circular dependency
 from env import Env
-class MalFunc(MalType):
+class MalFunc(MalMeta):
     def __init__(self, fn, ast=None, env=None, params=None,
                  EvalFunc=None, ismacro=False):
         if fn is None and EvalFunc is None:
             throw_str("MalFunc requires either fn or EvalFunc")
         self.fn = fn
-        #assert isinstance(ast, MalType) or ast is None
         self.ast = ast
         self.env = env
         self.params = params
@@ -256,8 +246,9 @@ def _function_Q(exp):
 
 
 # atoms
-class MalAtom(MalType):
-    def __init__(self, val):
-        self.val = val
+class MalAtom(MalMeta):
+    def __init__(self, value):
+        self.value = value
+        self.meta = nil
 def _atom(val): return MalAtom(val)
 def _atom_Q(exp): return exp.__class__ is MalAtom

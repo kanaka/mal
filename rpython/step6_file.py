@@ -130,8 +130,10 @@ def entry_point(argv):
             break
         except reader.Blank:
             continue
+        except types.MalException as e:
+            print(u"Error: %s" % printer._pr_str(e.object, False))
         except Exception as e:
-            print(e)
+            print("Error: %s" % e)
             #print("".join(traceback.format_exception(*sys.exc_info())))
     return 0
 

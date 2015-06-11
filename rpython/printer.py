@@ -7,7 +7,7 @@ else:
     import re
 
 import mal_types as types
-from mal_types import (MalType, MalStr, MalSym, MalInt)
+from mal_types import (MalType, MalStr, MalSym, MalInt, MalAtom)
 
 def _pr_a_str(s, print_readably=True):
     if len(s) > 0 and s[0] == u'\u029e':
@@ -48,7 +48,8 @@ def _pr_str(obj, print_readably=True):
     elif types._false_Q(obj):
         return u"false"
     elif types._atom_Q(obj):
-        return u"(atom " + _pr_str(obj.val,_r) + u")"
+        assert isinstance(obj, MalAtom)
+        return u"(atom " + _pr_str(obj.value,_r) + u")"
     elif types._symbol_Q(obj):
         assert isinstance(obj, MalSym)
         return obj.value

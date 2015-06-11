@@ -1,7 +1,8 @@
 #import sys, traceback
 import mal_readline
 import mal_types as types
-from mal_types import (MalSym, MalInt, MalStr, _keywordu,
+from mal_types import (MalSym, MalInt, MalStr,
+                       _keywordu,
                        MalList, _list, MalVector, MalHashMap, MalFunc)
 import reader, printer
 
@@ -83,7 +84,6 @@ repl_env[u'*'] = MalFunc(multiply)
 repl_env[u'/'] = MalFunc(divide)
 
 def entry_point(argv):
-    #mal_readline.init()
     while True:
         try:
             line = mal_readline.readline("user> ")
@@ -91,8 +91,12 @@ def entry_point(argv):
             print(REP(line, repl_env))
         except EOFError as e:
             break
+        except reader.Blank:
+            continue
+        except types.MalException as e:
+            print(u"Error: %s" % printer._pr_str(e.object, False))
         except Exception as e:
-            print(e)
+            print("Error: %s" % e)
             #print("".join(traceback.format_exception(*sys.exc_info())))
     return 0
 
