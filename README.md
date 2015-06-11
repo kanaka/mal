@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 35 different languages:
+Mal is implemented in 36 different languages:
 
 * Bash shell
 * C
@@ -34,6 +34,7 @@ Mal is implemented in 35 different languages:
 * PHP
 * Postscript
 * Python
+* RPython
 * R
 * Racket
 * Ruby
@@ -379,11 +380,22 @@ cd ps
 gs -q -dNODISPLAY -I./ stepX_YYY.ps
 ```
 
-### Python (2 or 3)
+### Python (2.X or 3.X)
 
 ```
 cd python
 python stepX_YYY.py
+```
+
+### RPython
+
+You must have [rpython](https://rpython.readthedocs.org/) on your path
+(included with [pypy](https://bitbucket.org/pypy/pypy/)).
+
+```
+cd rpython
+make        # this takes a long time
+./stepX_YYY
 ```
 
 ### R
