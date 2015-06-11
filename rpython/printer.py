@@ -47,8 +47,8 @@ def _pr_str(obj, print_readably=True):
         return u"true"
     elif types._false_Q(obj):
         return u"false"
-##    elif types._atom_Q(obj):
-##        return "(atom " + _pr_str(obj.val,_r) + ")"
+    elif types._atom_Q(obj):
+        return u"(atom " + _pr_str(obj.val,_r) + u")"
     elif types._symbol_Q(obj):
         assert isinstance(obj, MalSym)
         return obj.value

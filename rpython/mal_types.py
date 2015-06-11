@@ -42,9 +42,13 @@ def _equal_Q(a, b):
 def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
 ##def _sequential_Q(seq): return _list_Q(seq)
 
-##def _clone(obj):
+def _clone(obj):
 ##    #if type(obj) == type(lambda x:x):
-##    if type(obj) == pytypes.FunctionType:
+    if isinstance(obj, MalFunc):
+        return MalFunc(obj.fn, obj.ast, obj.env, obj.params,
+                 obj.EvalFunc, obj.ismacro)
+    elif isinstance(obj, MalList):
+        raise Exception("_clone on invalid type")
 ##        if obj.__code__:
 ##            return pytypes.FunctionType(
 ##                    obj.__code__, obj.__globals__, name = obj.__name__,
@@ -81,7 +85,7 @@ def throw_str(s):
     raise MalException(MalStr(unicode(s)))
 
 
-### Parent type
+### Parent types
 class MalType(): pass
 
 ### Scalars
@@ -238,6 +242,7 @@ class MalFunc(MalType):
         self.params = params
         self.EvalFunc = EvalFunc
         self.ismacro = ismacro
+        self.meta = nil
     def apply(self, args):
         if self.EvalFunc:
             return self.EvalFunc(self.ast, self.gen_env(args))
@@ -249,10 +254,10 @@ def _function_Q(exp):
     assert isinstance(exp, MalType)
     return exp.__class__ is MalFunc
 
-##
-### atoms
-##class Atom(object):
-##    def __init__(self, val):
-##        self.val = val
-##def _atom(val): return Atom(val)
-##def _atom_Q(exp):   return type(exp) == Atom
+
+# atoms
+class MalAtom(MalType):
+    def __init__(self, val):
+        self.val = val
+def _atom(val): return MalAtom(val)
+def _atom_Q(exp): return exp.__class__ is MalAtom

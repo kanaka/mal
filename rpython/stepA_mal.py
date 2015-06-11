@@ -179,7 +179,7 @@ def entry_point(argv):
     repl_env.set(_symbol(u'*ARGV*'), MalList(mal_args))
 
     # core.mal: defined using the language itself
-    REP("(def! *host-language* \"python\")", repl_env)
+    REP("(def! *host-language* \"rpython\")", repl_env)
     REP("(def! not (fn* (a) (if a false true)))", repl_env)
     REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env)
     REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env)

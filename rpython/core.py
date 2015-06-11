@@ -4,7 +4,8 @@ import time
 import mal_types as types
 from mal_types import (MalType, nil, true, false,
                        MalInt, MalSym, MalStr,
-                       MalList, MalVector, MalHashMap)
+                       MalList, MalVector, MalHashMap,
+                       MalAtom, MalFunc)
 import mal_readline
 import reader
 import printer
@@ -63,7 +64,10 @@ def println(args):
 def do_readline(args):
     prompt = args[0]
     assert isinstance(prompt, MalStr)
-    return MalStr(unicode(mal_readline.readline(str(prompt.value))))
+    try:
+        return MalStr(unicode(mal_readline.readline(str(prompt.value))))
+    except EOFError:
+        return nil
 
 def read_str(args):
     a0 = args[0]
@@ -117,6 +121,9 @@ def divide(args):
     assert isinstance(a, MalInt)
     assert isinstance(b, MalInt)
     return MalInt(int(a.value/b.value))
+
+def time_ms(args):
+    return MalInt(int(time.time() * 1000))
 
 
 # Hash map functions
@@ -276,25 +283,46 @@ def mapf(args):
     return MalList(res)
 
 
-## Metadata functions
-#def with_meta(obj, meta):
-#    new_obj = types._clone(obj)
-#    new_obj.__meta__ = meta
-#    return new_obj
-#
-#def meta(obj):
-#    if hasattr(obj, "__meta__"): return obj.__meta__
-#    else:                        return None
-#
-#
-## Atoms functions
-#def deref(atm):    return atm.val
-#def reset_BANG(atm,val):
-#    atm.val = val
-#    return atm.val
-#def swap_BANG(atm,f,*args):
-#    atm.val = f(atm.val,*args)
-#    return atm.val
+# Metadata functions
+def with_meta(args):
+    obj, meta = args[0], args[1]
+    if isinstance(obj, MalFunc):
+        new_obj = types._clone(obj)
+        new_obj.meta = meta
+        return new_obj
+    else:
+        types.throw_str("with-meta not supported on type")
+
+def meta(args):
+    obj = args[0]
+    if isinstance(obj, MalFunc):
+        return obj.meta
+    else:
+        types.throw_str("meta not supported on type")
+
+
+# Atoms functions
+def do_atom(args):
+    return MalAtom(args[0])
+def atom_Q(args):
+    return wrap_tf(types._atom_Q(args[0]))
+def deref(args):
+    atm = args[0]
+    assert isinstance(atm, MalAtom)
+    return atm.val
+def reset_BANG(args):
+    atm, val = args[0], args[1]
+    assert isinstance(atm, MalAtom)
+    atm.val = val
+    return atm.val
+def swap_BANG(args):
+    atm, f, fargs = args[0], args[1], args.slice(2)
+    assert isinstance(atm, MalAtom)
+    assert isinstance(f, MalFunc)
+    assert isinstance(fargs, MalList)
+    all_args = [atm.val] + fargs.values
+    atm.val = f.apply(MalList(all_args))
+    return atm.val
 
 
 ns = { 
@@ -323,8 +351,8 @@ ns = {
         '-':  minus,
         '*':  multiply,
         '/':  divide,
-#        'time-ms': lambda : int(time.time() * 1000),
-#
+        'time-ms': time_ms,
+
         'list': do_list,
         'list?': list_Q,
         'vector': do_vector,
@@ -349,13 +377,13 @@ ns = {
 #        'conj': conj,
         'apply': apply,
         'map': mapf,
-#
-#        'with-meta': with_meta,
-#        'meta': meta,
-#        'atom': types._atom,
-#        'atom?': types._atom_Q,
-#        'deref': deref,
-#        'reset!': reset_BANG,
-#        'swap!': swap_BANG
+
+        'with-meta': with_meta,
+        'meta': meta,
+        'atom': do_atom,
+        'atom?': atom_Q,
+        'deref': deref,
+        'reset!': reset_BANG,
+        'swap!': swap_BANG
     }
 
