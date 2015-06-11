@@ -2,7 +2,7 @@
 import mal_readline
 import mal_types as types
 from mal_types import (MalSym, MalInt, MalStr, _keywordu,
-                       MalList, _list, MalFunc)
+                       MalList, _list, MalVector, MalHashMap, MalFunc)
 import reader, printer
 
 # read
@@ -22,14 +22,16 @@ def eval_ast(ast, env):
         for a in ast.values:
             res.append(EVAL(a, env))
         return MalList(res)
-##    elif types._vector_Q(ast):
-##        return types._vector(*map(lambda a: EVAL(a, env), ast))
-##    elif types._hash_map_Q(ast):
-##        keyvals = []
-##        for k in ast.keys():
-##            keyvals.append(EVAL(k, env))
-##            keyvals.append(EVAL(ast[k], env))
-##        return types._hash_map(*keyvals)
+    elif types._vector_Q(ast):
+        res = []
+        for a in ast.values:
+            res.append(EVAL(a, env))
+        return MalVector(res)
+    elif types._hash_map_Q(ast):
+        new_dct = {}
+        for k in ast.dct.keys():
+            new_dct[k] = EVAL(ast.dct[k], env)
+        return MalHashMap(new_dct)
     else:
         return ast  # primitive value, return unchanged
 

@@ -7,7 +7,8 @@ else:
     import re
 
 import mal_types as types
-from mal_types import (MalSym, MalInt, MalStr, _keywordu, _list)
+from mal_types import (MalSym, MalInt, MalStr, _keywordu,
+                       _list, _listl, _vectorl, _hash_mapl)
 
 class Blank(Exception): pass
 
@@ -56,8 +57,8 @@ def read_atom(reader):
     elif token == "false":          return types.false
     else:                           return MalSym(unicode(token))
 
-def read_sequence(reader, typ, start='(', end=')'):
-    ast = typ()
+def read_sequence(reader, start='(', end=')'):
+    ast = []
     token = reader.next()
     if token != start: types.throw_str("expected '" + start + "'")
 
@@ -69,15 +70,17 @@ def read_sequence(reader, typ, start='(', end=')'):
     reader.next()
     return ast
 
-##def read_hash_map(reader):
-##    lst = read_sequence(reader, list, '{', '}')
-##    return _hash_map(*lst)
-
 def read_list(reader):
-    return read_sequence(reader, _list, '(', ')')
+    lst = read_sequence(reader, '(', ')')
+    return _listl(lst)
 
-##def read_vector(reader):
-##    return read_sequence(reader, _vector, '[', ']')
+def read_vector(reader):
+    lst = read_sequence(reader, '[', ']')
+    return _vectorl(lst)
+
+def read_hash_map(reader):
+    lst = read_sequence(reader, '{', '}')
+    return _hash_mapl(lst)
 
 def read_form(reader):
     token = reader.peek()
@@ -109,13 +112,13 @@ def read_form(reader):
     elif token == ')': types.throw_str("unexpected ')'")
     elif token == '(': return read_list(reader)
 
-##    # vector
-##    elif token == ']': types.throw_str("unexpected ']'");
-##    elif token == '[': return read_vector(reader);
-##
-##    # hash-map
-##    elif token == '}': types.throw_str("unexpected '}'");
-##    elif token == '{': return read_hash_map(reader);
+    # vector
+    elif token == ']': types.throw_str("unexpected ']'");
+    elif token == '[': return read_vector(reader);
+
+    # hash-map
+    elif token == '}': types.throw_str("unexpected '}'");
+    elif token == '{': return read_hash_map(reader);
 
     # atom
     else:              return read_atom(reader);

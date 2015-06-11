@@ -1,8 +1,10 @@
-import copy, time
+#import copy, time
+import time
 
 import mal_types as types
 from mal_types import (MalType, nil, true, false,
-                       MalInt, MalSym, MalStr, MalList)
+                       MalInt, MalSym, MalStr,
+                       MalList, MalVector, MalHashMap)
 import mal_readline
 import reader
 import printer
@@ -117,30 +119,65 @@ def divide(args):
     return MalInt(int(a.value/b.value))
 
 
-## Hash map functions
-#def assoc(src_hm, *key_vals):
-#    hm = copy.copy(src_hm)
-#    for i in range(0,len(key_vals),2): hm[key_vals[i]] = key_vals[i+1]
-#    return hm
-#
-#def dissoc(src_hm, *keys):
-#    hm = copy.copy(src_hm)
-#    for key in keys:
-#        if key in hm: del hm[key]
-#    return hm
-#
-#def get(hm, key):
-#    if hm and key in hm:
-#        return hm[key]
-#    else:
-#        return None
-#
-#def contains_Q(hm, key): return key in hm
-#
-#def keys(hm): return types._list(*hm.keys())
-#
-#def vals(hm): return types._list(*hm.values())
-#
+# Hash map functions
+def do_hash_map(ml):
+    assert isinstance(ml, MalList)
+    return types._hash_mapl(ml.values)
+
+def hash_map_Q(args):
+    return wrap_tf(types._hash_map_Q(args[0]))
+
+def assoc(args):
+    src_hm, key_vals = args[0], args.rest()
+    #new_dct = copy.copy(src_hm.dct)
+    new_dct = src_hm.dct.copy()
+    for i in range(0,len(key_vals),2):
+        k = key_vals[i]
+        assert isinstance(k, MalStr)
+        new_dct[k.value] = key_vals[i+1]
+    return MalHashMap(new_dct)
+
+def dissoc(args):
+    src_hm, keys = args[0], args.rest()
+    #new_dct = copy.copy(src_hm.dct)
+    new_dct = src_hm.dct.copy()
+    for k in keys.values:
+        assert isinstance(k, MalStr)
+        if k.value in new_dct:
+            del new_dct[k.value]
+    return MalHashMap(new_dct)
+
+def get(args):
+    obj, key = args[0], args[1]
+    if obj is nil:
+        return nil
+    elif isinstance(obj, MalHashMap):
+        assert isinstance(key, MalStr)
+        if obj and key.value in obj.dct:
+            return obj.dct[key.value]
+        else:
+            return nil
+    elif isinstance(obj, MalList):
+        assert isinstance(key, MalInt)
+        return obj.values[key.value]
+    else:
+        raise Exception("get called on invalid type")
+
+def contains_Q(args):
+    hm, key = args[0], args[1]
+    assert isinstance(key, MalStr)
+    return wrap_tf(key.value in hm.dct)
+
+def keys(args):
+    hm = args[0]
+    keys = []
+    for k in hm.dct.keys(): keys.append(MalStr(k))
+    return MalList(keys)
+
+def vals(args):
+    hm = args[0]
+    return MalList(hm.dct.values())
+
 
 # Sequence functions
 def do_list(ml):
@@ -148,7 +185,14 @@ def do_list(ml):
     return ml
 
 def list_Q(args):
-    return wrap_tf(isinstance(args[0], MalList))
+    return wrap_tf(types._list_Q(args[0]))
+
+def do_vector(ml):
+    assert isinstance(ml, MalList)
+    return MalVector(ml.values)
+
+def vector_Q(args):
+    return wrap_tf(types._vector_Q(args[0]))
 
 def empty_Q(args):
     assert isinstance(args, MalType)
@@ -172,6 +216,9 @@ def count(args):
 
 #def coll_Q(coll): return sequential_Q(coll) or hash_map_Q(coll)
 #
+def sequential_Q(args):
+    return wrap_tf(types._sequential_Q(args[0]))
+
 def cons(args):
     x, seq = args[0], args[1]
     assert isinstance(seq, MalList)
@@ -280,18 +327,18 @@ ns = {
 #
         'list': do_list,
         'list?': list_Q,
-#        'vector': types._vector,
-#        'vector?': types._vector_Q,
-#        'hash-map': types._hash_map,
-#        'map?': types._hash_map_Q,
-#        'assoc': assoc,
-#        'dissoc': dissoc,
-#        'get': get,
-#        'contains?': contains_Q,
-#        'keys': keys,
-#        'vals': vals,
-#
-#        'sequential?': types._sequential_Q,
+        'vector': do_vector,
+        'vector?': vector_Q,
+        'hash-map': do_hash_map,
+        'map?': hash_map_Q,
+        'assoc': assoc,
+        'dissoc': dissoc,
+        'get': get,
+        'contains?': contains_Q,
+        'keys': keys,
+        'vals': vals,
+
+        'sequential?': sequential_Q,
         'cons': cons,
         'concat': concat,
         'nth': nth,

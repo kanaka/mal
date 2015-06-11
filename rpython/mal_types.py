@@ -16,8 +16,8 @@ def _equal_Q(a, b):
     elif _int_Q(a):
         assert isinstance(a, MalInt) and isinstance(b, MalInt)
         return a.value == b.value
-##    elif _list_Q(a) or _vector_Q(a):
-    elif _list_Q(a):
+    elif _list_Q(a) or _vector_Q(a):
+##    elif _list_Q(a):
         if len(a) != len(b): return False
         for i in range(len(a)):
             if not _equal_Q(a[i], b[i]): return False
@@ -39,8 +39,8 @@ def _equal_Q(a, b):
     else:
         throw_str("no = op defined for %s" % a.__class__.__name__)
 
-##def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
-def _sequential_Q(seq): return _list_Q(seq)
+def _sequential_Q(seq): return _list_Q(seq) or _vector_Q(seq)
+##def _sequential_Q(seq): return _list_Q(seq)
 
 ##def _clone(obj):
 ##    #if type(obj) == type(lambda x:x):
@@ -180,31 +180,47 @@ class MalList(MalType):
 ##        elif i >= len(self): return None
 ##        else:                return list.__getitem__(self, i)
 def _list(*vals): return MalList(list(vals))
-def _listl(l): return MalList(l.values)
-#def _list_Q(exp): return exp.__class__ == MalList
+def _listl(lst): return MalList(lst)
 def _list_Q(exp):
     assert isinstance(exp, MalType)
     return exp.__class__ is MalList
 
-
 ### vectors
-##class Vector(list):
-##    def __add__(self, rhs): return Vector(list.__add__(self, rhs))
-##    def __getitem__(self, i):
-##        if type(i) == slice: return Vector(list.__getitem__(self, i))
-##        elif i >= len(self): return None
-##        else:                return list.__getitem__(self, i)
-##    def __getslice__(self, *a): return Vector(list.__getslice__(self, *a))
-##def _vector(*vals): return Vector(vals)
-##def _vector_Q(exp): return type(exp) == Vector
-##
-### Hash maps
-##class Hash_Map(dict): pass
-##def _hash_map(*key_vals):
-##    hm = Hash_Map()
-##    for i in range(0,len(key_vals),2): hm[key_vals[i]] = key_vals[i+1]
-##    return hm
-##def _hash_map_Q(exp): return type(exp) == Hash_Map
+class MalVector(MalList):
+    pass
+def _vector(*vals): return MalVector(list(vals))
+def _vectorl(lst): return MalVector(lst)
+def _vector_Q(exp):
+    assert isinstance(exp, MalType)
+    return exp.__class__ is MalVector
+
+### hash maps
+class MalHashMap(MalType):
+    def __init__(self, dct):
+        #assert isinstance(dct, {}.__class__)
+        self.dct = dct
+    def append(self, val):
+        self.dct.append(val)
+    def __getitem__(self, k):
+        assert isinstance(k, unicode)
+        return self.dct[k]
+    def __setitem__(self, k, v):
+        assert isinstance(k, unicode)
+        assert isinstance(v, MalType)
+        self.dct[k] = v
+        return v
+def _hash_mapl(kvs):
+    dct = {}
+    for i in range(0, len(kvs), 2):
+        k = kvs[i]
+        assert isinstance(k, MalStr)
+        v = kvs[i+1]
+        dct[k.value] = v
+    return MalHashMap(dct)
+#def _hash_maph(l): return MalHashMap(l.values)
+def _hash_map_Q(exp):
+    assert isinstance(exp, MalType)
+    return exp.__class__ is MalHashMap
 
 # Functions
 # env import must happen after MalSym and MalList definitions to allow
