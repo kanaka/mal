@@ -158,12 +158,8 @@ IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl
 # Build rules
 #
 
-# Build a program in 'c' directory
-c/%:
-	$(MAKE) -C $(dir $(@)) $(notdir $(@))
-
-# Build a program in 'cpp' directory
-cpp/%:
+# Build a program in an implementation directory
+$(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	$(MAKE) -C $(dir $(@)) $(notdir $(@))
 
 # Allow test, test^STEP, test^IMPL, and test^IMPL^STEP
