@@ -1,0 +1,10 @@
+  // ;;;; ^([^;].*) to glob for input, replace with -> expectResults(testEval, '\1',
+  // ;;;; ^;=>(.*) to glob for expected output, replace with -> '\1');
+  // ;;;; 'ignore the first tick here...:  ^([^;].*',)\n -> \1
+  // ;;;; ^(;;.*) -> // \1
+  // ;; -----------------------------------------------------
+
+  // Minimal terminal with css
+  // http://codepen.io/nathansmonk/pen/FHbnC
+  // https://dartpad.dartlang.org/3b9835ad90e66bb006b8
+  // https://gist.github.com/3b9835ad90e66bb006b8

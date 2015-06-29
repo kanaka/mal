@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp crystal cs erlang factor forth go groovy \
+IMPLS = bash c clojure coffee cpp crystal cs dart erlang factor forth go groovy \
 	haskell java julia js lua make mal ocaml matlab miniMAL nim \
 	perl php ps python r racket rpython ruby rust scala swift vb guile
 
@@ -60,6 +60,7 @@ coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+dart_STEP_TO_PROG =    dart/$($(1)).dart
 erlang_STEP_TO_PROG =  erlang/$($(1))
 factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
@@ -103,6 +104,7 @@ coffee_RUNSTEP =  coffee ../$(2) $(3)
 cpp_RUNSTEP =     ../$(2) $(3)
 crystal_RUNSTEP = ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
+dart_RUNSTEP =    ../$(2) $(3)
 erlang_RUNSTEP =  ../$(2) $(3)
 factor_RUNSTEP =  factor ../$(2) $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
