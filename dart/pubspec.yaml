@@ -1,0 +1,7 @@
+name: MAL
+version: 0.0.1
+description: MAL (Make a lisp) implemented in Dart.
+author: Adam Singer <financeCoding@gmail.com>
+homepage: https://github.com/financeCoding/mal
+environment:
+  sdk: '>=1.10.0 <2.0.0'

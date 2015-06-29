@@ -56,5 +56,6 @@ nim/nimcache
 .m2
 .ivy2
 .sbt
+dart/.idea
 groovy/*.class
 .crystal
