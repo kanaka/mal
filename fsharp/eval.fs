@@ -10,7 +10,7 @@ module Eval
             f first second
             iterPairs f t
         | Empty -> ()
-        | _ -> raise <| Error.expectedX "list or vector"
+        | _ -> raise <| Error.errExpectedX "list or vector"
 
     let quasiquoteForm nodes =
         let transformNode f = function
@@ -44,13 +44,13 @@ module Eval
                 let node = eval env form
                 Env.set env sym node
                 node
-            | _ -> raise <| Error.expectedX "symbol"
+            | _ -> raise <| Error.errExpectedX "symbol"
         | _ -> raise <| Error.wrongArity ()
 
     and setBinding env first second =
         let s = match first with 
                 | Symbol(s) -> s 
-                | _ -> raise <| Error.expectedX "symbol"
+                | _ -> raise <| Error.errExpectedX "symbol"
         let form = eval env second
         Env.set env s form
 
@@ -60,7 +60,7 @@ module Eval
             let binder = setBinding inner
             match bindings with
             | List(_) | Vector(_) -> iterPairs binder bindings
-            | _ -> raise <| Error.expectedX "list or vector"
+            | _ -> raise <| Error.errExpectedX "list or vector"
             inner, form
         | _ -> raise <| Error.wrongArity ()
 
@@ -91,7 +91,7 @@ module Eval
         match nodes with
         | [List(binds); body] -> makeFunc binds body
         | [Vector(seg); body] -> makeFunc (List.ofSeq seg) body
-        | [_; _] -> raise <| Error.expectedX "bindings of list or vector"
+        | [_; _] -> raise <| Error.errExpectedX "bindings of list or vector"
         | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
@@ -111,5 +111,5 @@ module Eval
             | List(Func(_, _, body, binds, outer)::rest) ->
                 let inner = Env.makeNew outer binds rest
                 body |> eval inner
-            | _ -> raise <| Error.expectedX "function"
+            | _ -> raise <| Error.errExpectedX "function"
         | node -> node |> eval_ast env

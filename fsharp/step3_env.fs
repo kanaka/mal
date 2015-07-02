@@ -8,7 +8,7 @@ module REPL
             f first second
             iterPairs f t
         | Empty -> ()
-        | _ -> raise <| Error.expectedX "list or vector"
+        | _ -> raise <| Error.errExpectedX "list or vector"
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym

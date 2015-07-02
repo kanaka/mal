@@ -78,5 +78,5 @@ module Env
             | [], [] -> env
             | _, [] -> raise <| Error.notEnoughValues ()
             | [], _ -> raise <| Error.tooManyValues ()
-            | _, _ -> raise <| Error.expectedX "symbol"
+            | _, _ -> raise <| Error.errExpectedX "symbol"
         loop symbols nodes
