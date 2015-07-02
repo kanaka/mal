@@ -1,17 +1,14 @@
 module REPL
     open System
+    open Node
     open Types
 
-    let mapPairs f (source : seq<_>) =
-        use iter = source.GetEnumerator()
-        let rec loop () =
-            if iter.MoveNext() then
-                let first = iter.Current
-                if not (iter.MoveNext()) then raise <| Error.errExpectedX "even node count"
-                let second = iter.Current
-                f first second
-                loop ()
-        loop ()
+    let rec iterPairs f = function
+        | Pair(first, second, t) ->
+            f first second
+            iterPairs f t
+        | Empty -> ()
+        | _ -> raise <| Error.expectedX "list or vector"
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
@@ -42,8 +39,7 @@ module REPL
             let newEnv = Env.makeNew env [] []
             let binder = setBinding newEnv
             match bindings with
-            | List(lst) -> lst |> mapPairs binder
-            | Vector(vec) -> vec |> mapPairs binder
+            | List(_) | Vector(_) -> iterPairs binder bindings
             | _ -> raise <| Error.errExpectedX "list or vector"
             eval newEnv form
         | _ -> raise <| Error.wrongArity ()

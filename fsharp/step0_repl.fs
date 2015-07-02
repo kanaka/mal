@@ -1,23 +1,30 @@
 module REPL
-    let read input =
+    let READ input =
         input
 
-    let eval ast =
+    let EVAL ast =
         ast
 
-    let print v =
-        printfn "=> %A" v
+    let PRINT v =
+        printfn "%s" v
 
-    let rep input =
+    let REP input =
         input
-        |> read
-        |> eval
-        |> print
+        |> READ
+        |> EVAL
+        |> PRINT
+
+    let getReadlineMode (args : string array) =
+        if args.Length > 0 && args.[0] = "--raw" then
+            Readline.Mode.Raw
+        else
+            Readline.Mode.Terminal
 
     [<EntryPoint>]
     let rec main args =
-        match System.Console.ReadLine() with
+        let mode = getReadlineMode args
+        match Readline.read "user> " mode with
         | null -> 0
         | input -> 
-            rep input
+            REP input
             main args

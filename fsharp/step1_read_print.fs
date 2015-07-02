@@ -1,7 +1,7 @@
 module REPL
     open System
 
-    let read input =
+    let READ input =
         try
             Reader.read_str input
         with
@@ -9,21 +9,21 @@ module REPL
             printfn "%s" msg
             []
 
-    let eval ast =
+    let EVAL ast =
         Some(ast)
 
-    let print v =
+    let PRINT v =
         v
         |> Seq.singleton
         |> Printer.pr_str
         |> printfn "%s"
 
-    let rep input =
-        read input
+    let REP input =
+        READ input
         |> Seq.ofList
-        |> Seq.map (fun form -> eval form)
+        |> Seq.map (fun form -> EVAL form)
         |> Seq.filter Option.isSome
-        |> Seq.iter (fun value -> print value.Value)
+        |> Seq.iter (fun value -> PRINT value.Value)
 
     let getReadlineMode (args : string array) =
         if args.Length > 0 && args.[0] = "--raw" then
@@ -37,5 +37,5 @@ module REPL
         match Readline.read "user> " mode with
         | null -> 0
         | input -> 
-            rep input
+            REP input
             main args
