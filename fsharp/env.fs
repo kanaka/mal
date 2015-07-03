@@ -73,7 +73,21 @@ module Env
               wrap "nil?" (Core.isConst Node.NIL)
               wrap "true?" (Core.isConst Node.TRUE)
               wrap "false?" (Core.isConst Node.FALSE)
-              wrap "symbol?" Core.isSymbol ]
+              wrap "symbol?" Core.isSymbol
+              wrap "symbol" Core.symbol
+              wrap "keyword?" Core.isKeyword
+              wrap "keyword" Core.keyword
+              wrap "sequential?" Core.isSequential
+              wrap "vector?" Core.isVector
+              wrap "vector" Core.vector
+              wrap "map?" Core.isMap
+              wrap "hash-map" Core.hashMap
+              wrap "assoc" Core.assoc
+              wrap "dissoc" Core.dissoc
+              wrap "get" Core.get
+              wrap "contains?" Core.contains
+              wrap "keys" Core.keys
+              wrap "vals" Core.vals ]
             |> ofList
         [ env ]
 

@@ -137,7 +137,73 @@ module Core
         | [node] -> if node = cmp then Node.TRUE else Node.FALSE
         | _ -> raise <| Error.wrongArity ()
 
-    let isSymbol = function
-        | [Symbol(_)] -> Node.TRUE
-        | [_] -> Node.FALSE
+    let isPattern f = function
+        | [node] -> if f node then Node.TRUE else Node.FALSE
         | _ -> raise <| Error.wrongArity ()
+
+    let isSymbol = isPattern (function Symbol(_) -> true | _ -> false)
+    let isKeyword = isPattern (function Keyword(_) -> true | _ -> false)
+    let isSequential = isPattern (function Node.Seq(_) -> true | _ -> false)
+    let isVector = isPattern (function Vector(_) -> true | _ -> false)
+    let isMap = isPattern (function Map(_) -> true | _ -> false)
+
+    let fromString f = function
+        | [String(str)] -> f str
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let symbol = fromString (fun s -> Symbol(s))
+    let keyword = fromString (fun s -> Keyword(s))
+    let vector lst =  lst |> Array.ofList |> Node.ofArray
+
+    let rec getPairs lst =
+        seq {
+            match lst with
+            | first::second::t ->
+                yield first, second
+                yield! getPairs t
+            | [_] -> raise <| Error.expectedEvenNodeCount ()
+            | [] -> ()
+        }
+
+    let mapOpN f = function
+        | Map(map)::rest -> f rest map
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let mapOp1 f =
+        mapOpN (fun rest map ->
+                    match rest with
+                    | [v] -> f v map
+                    | _ -> raise <| Error.wrongArity ())
+
+    let mapOp0 f =
+        mapOpN (fun rest map ->
+                    match rest with
+                    | [] -> f map
+                    | _ -> raise <| Error.wrongArity ())
+
+    let mapKV f =
+        mapOp0 (fun map -> map |> Map.toSeq |> Seq.map f |> List.ofSeq |> List)
+
+    let hashMap lst = lst |> getPairs |> Map.ofSeq |> Map
+    let assoc = mapOpN (fun rest map ->
+                            rest
+                            |> getPairs
+                            |> Seq.fold (fun map (k, v) -> Map.add k v map) map
+                            |> Map)
+    let dissoc = mapOpN (fun keys map ->
+                            keys
+                            |> List.fold (fun map k -> Map.remove k map) map
+                            |> Map)
+    let get = function
+        | [Nil; _] -> Node.NIL
+        | _ as rest ->
+            rest |> mapOp1 (fun key map ->
+                                match Map.tryFind key map with
+                                | Some(node) -> node
+                                | None -> Node.NIL)
+    let containsKey key map = if Map.containsKey key map then Node.TRUE else Node.FALSE
+    let contains = mapOp1 containsKey
+    let keys = mapKV (fun (k, v) -> k)
+    let vals = mapKV (fun (k, v) -> v)
