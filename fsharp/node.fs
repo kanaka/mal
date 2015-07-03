@@ -72,3 +72,9 @@ module Node
                         |> Vector
                 Some(a, b, t)
         | _ -> None
+
+    let inline (|Seq|_|) node =
+        match node with
+        | List(lst) -> Some(Seq.ofList lst)
+        | Vector(seg) -> Some(seg :> Node seq)
+        | _ -> None

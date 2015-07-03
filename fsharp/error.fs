@@ -2,6 +2,7 @@ module Error
 
     exception ReaderError of string
     exception EvalError of string
+    exception MalError of Types.Node
     
     let expectedXButEOF x = ReaderError(sprintf "Expected %s, got EOF" x)
     let expectedX x = ReaderError(sprintf "Expected %s" x)

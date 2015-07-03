@@ -41,7 +41,6 @@ module Printer
                 | '\n' -> appendStr "\\n"
                 | '\r' -> appendStr "\\r"
                 | '\f' -> appendStr "\\f"
-                | '\'' -> appendStr "\\'"
                 | '"' -> appendStr "\\\""
                 | '\\' -> appendStr "\\\\"
                 | ch -> acc.Append(ch) |> ignore

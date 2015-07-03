@@ -66,7 +66,14 @@ module Env
               wrap "concat" Core.concat
               wrap "nth" Core.nth
               wrap "first" Core.first
-              wrap "rest" Core.rest ]
+              wrap "rest" Core.rest
+              wrap "throw" Core.throw
+              wrap "map" Core.map
+              wrap "apply" Core.apply
+              wrap "nil?" (Core.isConst Node.NIL)
+              wrap "true?" (Core.isConst Node.TRUE)
+              wrap "false?" (Core.isConst Node.FALSE)
+              wrap "symbol?" Core.isSymbol ]
             |> ofList
         [ env ]
 

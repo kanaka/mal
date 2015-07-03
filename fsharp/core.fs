@@ -108,3 +108,36 @@ module Core
         | [Vector(seg)] -> seg |> Seq.skip 1 |> List.ofSeq |> List
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
+
+    let throw = function
+        | [node] -> raise <| Error.MalError(node)
+        | _ -> raise <| Error.wrongArity ()
+
+    let map = function
+        | [BuiltInFunc(_, f); Node.Seq seq]
+        | [Func(_, f, _, _, _); Node.Seq seq] ->
+            seq |> Seq.map (fun node -> f [node]) |> List.ofSeq |> List
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let apply = function
+        | BuiltInFunc(_, f)::rest
+        | Func(_, f, _, _, _)::rest ->
+            let rec getArgsAndCall acc = function
+                | [] -> raise <| Error.wrongArity ()
+                | [Node.Seq seq] ->
+                    seq |> Seq.fold (fun acc node -> node::acc) acc |> List.rev |> f
+                | [_] -> raise <| Error.argMismatch ()
+                | h::rest -> getArgsAndCall (h::acc) rest
+            getArgsAndCall [] rest
+        | _::_ -> raise <| Error.argMismatch ()
+        | [] -> raise <| Error.wrongArity ()
+
+    let isConst cmp = function
+        | [node] -> if node = cmp then Node.TRUE else Node.FALSE
+        | _ -> raise <| Error.wrongArity ()
+
+    let isSymbol = function
+        | [Symbol(_)] -> Node.TRUE
+        | [_] -> Node.FALSE
+        | _ -> raise <| Error.wrongArity ()
