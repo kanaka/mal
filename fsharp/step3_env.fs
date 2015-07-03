@@ -50,8 +50,8 @@ module REPL
         | List(_) as node ->
             let resolved = node |> eval_ast env
             match resolved with
-            | List(Func(_, f, _, _, [])::rest) -> f rest
-            | _ -> raise <| Error.errExpectedX "function"
+            | List(BuiltInFunc(_, f)::rest) -> f rest
+            | _ -> raise <| Error.errExpectedX "func"
         | node -> node |> eval_ast env
 
     let READ input =

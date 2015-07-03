@@ -32,10 +32,13 @@ module Env
         fun () -> System.Threading.Interlocked.Increment(counter)
 
     let makeBuiltInFunc f =
-        Func(getNextValue (), f, Node.NIL, [], [])
+        BuiltInFunc(getNextValue (), f)
 
     let makeFunc f body binds env =
         Func(getNextValue (), f, body, binds, env)
+
+    let makeMacro f body binds env =
+        Macro(getNextValue (), f, body, binds, env)
 
     let makeRootEnv () =
         let wrap name f = name, makeBuiltInFunc f
@@ -60,7 +63,10 @@ module Env
               wrap "read-string" Core.read_str
               wrap "slurp" Core.slurp
               wrap "cons" Core.cons
-              wrap "concat" Core.concat ]
+              wrap "concat" Core.concat
+              wrap "nth" Core.nth
+              wrap "first" Core.first
+              wrap "rest" Core.rest ]
             |> ofList
         [ env ]
 
@@ -80,3 +86,11 @@ module Env
             | [], _ -> raise <| Error.tooManyValues ()
             | _, _ -> raise <| Error.errExpectedX "symbol"
         loop symbols nodes
+
+    (* Active Patterns to help with pattern matching nodes *)
+    let inline (|IsMacro|_|) env = function
+        | List(Symbol(sym)::rest) ->
+            match find env sym with
+            | Some(Macro(_, _, _, _, _) as m) -> Some(IsMacro m, rest)
+            | _ -> None
+        | _ -> None

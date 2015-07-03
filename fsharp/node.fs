@@ -9,6 +9,8 @@ module Node
     let NIL = Nil
     let SomeNIL = Some(NIL)
     let ZERO = Number(0L)
+    let EmptyLIST = List([])
+    let EmptyVECTOR = Vector(System.ArraySegment([| |]))
 
     let ofArray arr = System.ArraySegment(arr) |> Vector
 

@@ -23,7 +23,9 @@ module Printer
             | String(str) -> appendStr str
             | Bool(true) -> appendStr "true"
             | Bool(false) -> appendStr "false"
-            | Func(tag, _, _, _, _) -> pr_func tag
+            | BuiltInFunc(tag, _) | Func(tag, _, _, _, _) ->
+                pr_func "func" tag
+            | Macro(tag, _, _, _, _) -> pr_func "macro" tag
 
         and pr separator prefix node =
             appendStr prefix
@@ -47,8 +49,8 @@ module Printer
             str |> Seq.iter appendChar
             appendStr "\""
 
-        and pr_func tag =
-           sprintf "#<func %d>" tag |> appendStr 
+        and pr_func ftype tag =
+           sprintf "#<%s %d>" ftype tag |> appendStr
 
         and pr_list nodes =
             appendStr "("

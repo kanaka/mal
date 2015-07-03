@@ -17,3 +17,4 @@ module Error
     let notEnoughValues () = EvalError("Not enough values")
     let onlyOneSymbolAfterAmp () = EvalError("only one symbol after &")
     let errExpectedX x = EvalError(sprintf "expected %s" x)
+    let indexOutOfBounds () = EvalError("Index out of bounds")

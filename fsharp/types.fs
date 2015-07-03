@@ -11,7 +11,9 @@ module Types
         | Number of int64
         | String of string
         | Bool of bool
+        | BuiltInFunc of int * (Node list -> Node)
         | Func of int * (Node list -> Node) * Node * Node list * EnvChain
+        | Macro of int * (Node list -> Node) * Node * Node list * EnvChain
 
         static member private hashSeq (s : seq<Node>) =
             let iter st node = (st * 397) ^^^ node.GetHashCode()
@@ -56,7 +58,9 @@ module Types
             | Number(_) -> 6
             | String(_) -> 7
             | Bool(_) -> 8
-            | Func(_, _, _, _, _) -> 9
+            | BuiltInFunc(_, _)
+            | Func(_, _, _, _, _)
+            | Macro(_, _, _, _, _) -> 9
 
         static member private equals x y =
             match x, y with
@@ -71,7 +75,9 @@ module Types
             | Number(a), Number(b) -> a = b
             | String(a), String(b) -> a = b
             | Bool(a), Bool(b) -> a = b
-            | Func(a, _, _, _, _), Func(b, _, _, _, _) -> a = b
+            | (BuiltInFunc(a, _) | Func(a, _, _, _, _) | Macro(a, _, _, _, _)),
+              (BuiltInFunc(b, _) | Func(b, _, _, _, _) | Macro(b, _, _, _, _)) ->
+                a = b
             | _, _ -> false
 
         static member private compare x y =
@@ -87,7 +93,9 @@ module Types
             | Number(a), Number(b) -> compare a b
             | String(a), String(b) -> compare a b
             | Bool(a), Bool(b) -> compare a b
-            | Func(a, _, _, _, _), Func(b, _, _, _, _) -> compare a b
+            | (BuiltInFunc(a, _) | Func(a, _, _, _, _) | Macro(a, _, _, _, _)),
+              (BuiltInFunc(b, _) | Func(b, _, _, _, _) | Macro(b, _, _, _, _)) ->
+                compare a b
             | a, b -> compare (Node.rank a) (Node.rank b)
 
         override x.Equals yobj =
@@ -106,7 +114,8 @@ module Types
             | Number(num) -> hash num
             | String(str) -> hash str
             | Bool(b) -> hash b
-            | Func(tag, _, _, _, _) -> hash tag
+            | BuiltInFunc(tag, _) | Func(tag, _, _, _, _) | Macro(tag, _, _, _, _) ->
+                hash tag
 
         interface System.IComparable with
             member x.CompareTo yobj =

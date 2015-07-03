@@ -28,6 +28,11 @@ module REPL
         | [node] -> node
         | _ -> raise <| Error.wrongArity ()
 
+    let rec macroExpand env = function
+        | Env.IsMacro env (Macro(_, f, _, _, _), rest) ->
+            f rest |> macroExpand env
+        | node -> node
+
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
         | List(lst) -> lst |> List.map (eval env) |> List
@@ -43,6 +48,24 @@ module REPL
                 Env.set env sym node
                 node
             | _ -> raise <| Error.errExpectedX "symbol"
+        | _ -> raise <| Error.wrongArity ()
+
+    and defMacroForm env = function
+        | [sym; form] ->
+            match sym with
+            | Symbol(sym) ->
+                let node = eval env form
+                match node with
+                | Func(_, f, body, binds, outer) ->
+                    let node = Env.makeMacro f body binds outer
+                    Env.set env sym node
+                    node
+                | _ -> raise <| Error.errExpectedX "user defined func"
+            | _ -> raise <| Error.errExpectedX "symbol"
+        | _ -> raise <| Error.wrongArity ()
+
+    and macroExpandForm env = function
+        | [form] -> macroExpand env form
         | _ -> raise <| Error.wrongArity ()
 
     and setBinding env first second =
@@ -93,23 +116,28 @@ module REPL
         | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
-        | List(Symbol("def!")::rest) -> defBangForm env rest
-        | List(Symbol("let*")::rest) ->
-            let inner, form = letStarForm env rest
-            form |> eval inner
-        | List(Symbol("if")::rest) -> ifForm env rest |> eval env
-        | List(Symbol("do")::rest) -> doForm env rest |> eval env
-        | List(Symbol("fn*")::rest) -> fnStarForm env rest
-        | List(Symbol("quote")::rest) -> quoteForm rest
-        | List(Symbol("quasiquote")::rest) -> quasiquoteForm rest |> eval env
         | List(_) as node ->
-            let resolved = node |> eval_ast env
-            match resolved with
-            | List(BuiltInFunc(_, f)::rest) -> f rest
-            | List(Func(_, _, body, binds, outer)::rest) ->
-                let inner = Env.makeNew outer binds rest
-                body |> eval inner
-            | _ -> raise <| Error.errExpectedX "func"
+            match macroExpand env node with
+            | List(Symbol("def!")::rest) -> defBangForm env rest
+            | List(Symbol("defmacro!")::rest) -> defMacroForm env rest
+            | List(Symbol("macroexpand")::rest) -> macroExpandForm env rest
+            | List(Symbol("let*")::rest) ->
+                let inner, form = letStarForm env rest
+                form |> eval inner
+            | List(Symbol("if")::rest) -> ifForm env rest |> eval env
+            | List(Symbol("do")::rest) -> doForm env rest |> eval env
+            | List(Symbol("fn*")::rest) -> fnStarForm env rest
+            | List(Symbol("quote")::rest) -> quoteForm rest
+            | List(Symbol("quasiquote")::rest) -> quasiquoteForm rest |> eval env
+            | List(_) as node ->
+                let resolved = node |> eval_ast env
+                match resolved with
+                | List(BuiltInFunc(_, f)::rest) -> f rest
+                | List(Func(_, _, body, binds, outer)::rest) ->
+                    let inner = Env.makeNew outer binds rest
+                    body |> eval inner
+                | _ -> raise <| Error.errExpectedX "func"
+            | node -> node
         | node -> node |> eval_ast env
 
     let READ input =
@@ -167,6 +195,7 @@ module REPL
         RE env """
             (def! not (fn* (a) (if a false true)))
             (def! load-file (fn* (f) (eval (read-string (slurp f)))))
+            (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_ ~(first xs)) (if or_ or_ (or ~@(rest xs))))))))
             """ |> Seq.iter ignore
 
         env

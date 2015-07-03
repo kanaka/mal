@@ -76,3 +76,35 @@ module Core
         |> List.fold accumNode []
         |> List.rev
         |> List
+
+    let nth = function
+        | [List(lst); Number(n)] ->
+            let rec nth_list n = function
+                | [] -> raise <| Error.indexOutOfBounds ()
+                | h::_ when n = 0L -> h
+                | _::t -> nth_list (n - 1L) t
+            nth_list n lst
+        | [Vector(seg); Number(n)] ->
+            if n < 0L || n >= int64(seg.Count) then
+                raise <| Error.indexOutOfBounds ()
+            else
+                seg.Array.[int(n)]
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let first = function
+        | [List([])] -> Node.NIL
+        | [List(h::_)] -> h
+        | [Vector(seg)] when seg.Count > 0 -> seg.Array.[0]
+        | [Vector(_)] -> Node.NIL
+        | [Nil] -> Node.NIL
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let rest = function
+        | [List([]) as lst] -> lst
+        | [List(_::t)] -> List(t)
+        | [Vector(seg)] when seg.Count < 2 -> Node.EmptyLIST
+        | [Vector(seg)] -> seg |> Seq.skip 1 |> List.ofSeq |> List
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
