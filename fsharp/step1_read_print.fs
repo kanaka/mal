@@ -25,8 +25,8 @@ module REPL
         |> Seq.filter Option.isSome
         |> Seq.iter (fun value -> PRINT value.Value)
 
-    let getReadlineMode (args : string array) =
-        if args.Length > 0 && args.[0] = "--raw" then
+    let getReadlineMode args =
+        if args |> Array.exists (fun e -> e = "--raw") then
             Readline.Mode.Raw
         else
             Readline.Mode.Terminal
