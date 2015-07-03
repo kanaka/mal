@@ -5,7 +5,7 @@ DEBUG =
 TESTS =
 
 SOURCES_BASE = error.fs types.fs node.fs printer.fs tokenizer.fs reader.fs \
-               core.fs env.fs eval.fs readline.fs
+               core.fs env.fs readline.fs
 SOURCES_LISP =
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
