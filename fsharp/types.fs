@@ -14,6 +14,7 @@ module Types
         | BuiltInFunc of int * (Node list -> Node)
         | Func of int * (Node list -> Node) * Node * Node list * EnvChain
         | Macro of int * (Node list -> Node) * Node * Node list * EnvChain
+        | Atom of int * Node Ref
 
         static member private hashSeq (s : seq<Node>) =
             let iter st node = (st * 397) ^^^ node.GetHashCode()
@@ -61,6 +62,7 @@ module Types
             | BuiltInFunc(_, _)
             | Func(_, _, _, _, _)
             | Macro(_, _, _, _, _) -> 9
+            | Atom(_, _) -> 10
 
         static member private equals x y =
             match x, y with
@@ -78,6 +80,7 @@ module Types
             | (BuiltInFunc(a, _) | Func(a, _, _, _, _) | Macro(a, _, _, _, _)),
               (BuiltInFunc(b, _) | Func(b, _, _, _, _) | Macro(b, _, _, _, _)) ->
                 a = b
+            | Atom(a, _), Atom(b, _) -> a = b
             | _, _ -> false
 
         static member private compare x y =
@@ -96,6 +99,7 @@ module Types
             | (BuiltInFunc(a, _) | Func(a, _, _, _, _) | Macro(a, _, _, _, _)),
               (BuiltInFunc(b, _) | Func(b, _, _, _, _) | Macro(b, _, _, _, _)) ->
                 compare a b
+            | Atom(a, _), Atom(b, _) -> compare a b
             | a, b -> compare (Node.rank a) (Node.rank b)
 
         override x.Equals yobj =
@@ -116,6 +120,7 @@ module Types
             | Bool(b) -> hash b
             | BuiltInFunc(tag, _) | Func(tag, _, _, _, _) | Macro(tag, _, _, _, _) ->
                 hash tag
+            | Atom(tag, _) -> hash tag
 
         interface System.IComparable with
             member x.CompareTo yobj =

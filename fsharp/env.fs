@@ -87,7 +87,11 @@ module Env
               wrap "get" Core.get
               wrap "contains?" Core.contains
               wrap "keys" Core.keys
-              wrap "vals" Core.vals ]
+              wrap "vals" Core.vals
+              wrap "atom" (Core.atom getNextValue)
+              wrap "deref" Core.deref
+              wrap "reset!" Core.reset
+              wrap "swap!" Core.swap ]
             |> ofList
         [ env ]
 

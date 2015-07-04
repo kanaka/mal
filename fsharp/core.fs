@@ -207,3 +207,28 @@ module Core
     let contains = mapOp1 containsKey
     let keys = mapKV (fun (k, v) -> k)
     let vals = mapKV (fun (k, v) -> v)
+
+    let atom nextValue = function
+        | [node] -> Atom((nextValue ()), ref node)
+        | _ -> raise <| Error.wrongArity ()
+
+    let deref = function
+        | [Atom(_, r)] -> !r
+        | [_] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let reset = function
+        | [Atom(_, r); node] ->
+            r := node
+            !r
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let swap = function
+        | Atom(_, r)
+            ::(BuiltInFunc(_, f) | Func(_, f, _, _, _))
+            ::rest ->
+                r := f (!r::rest)
+                !r
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()

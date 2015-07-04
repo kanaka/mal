@@ -26,6 +26,7 @@ module Printer
             | BuiltInFunc(tag, _) | Func(tag, _, _, _, _) ->
                 pr_func "func" tag
             | Macro(tag, _, _, _, _) -> pr_func "macro" tag
+            | Atom(tag, r) -> pr_atom tag !r
 
         and pr separator prefix node =
             appendStr prefix
@@ -49,7 +50,12 @@ module Printer
             appendStr "\""
 
         and pr_func ftype tag =
-           sprintf "#<%s %d>" ftype tag |> appendStr
+            sprintf "#<%s %d>" ftype tag |> appendStr
+
+        and pr_atom tag node =
+            appendStr "(atom "
+            pr_node node
+            appendStr ")"
 
         and pr_list nodes =
             appendStr "("
