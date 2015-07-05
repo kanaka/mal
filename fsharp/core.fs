@@ -23,20 +23,20 @@ module Core
     let gt = twoNodeOp (fun a b -> a > b |> toBool)
     let eq = twoNodeOp (fun a b -> a = b |> toBool)
 
-    let list nodes = List(nodes)
+    let list = Node.makeList
     let isList = function
-        | [List(_)] -> Node.TRUE
+        | [List(_, _)] -> Node.TRUE
         | [_] -> Node.FALSE
         | _ -> raise <| Error.wrongArity ()
 
     let isEmpty = function
-        | [List([])] -> Node.TRUE
-        | [Vector(seg)] when seg.Count <= 0 -> Node.TRUE
+        | [List(_, [])] -> Node.TRUE
+        | [Vector(_, seg)] when seg.Count <= 0 -> Node.TRUE
         | _ -> Node.FALSE
 
     let count = function
-        | [List(lst)] -> lst |> List.length |> int64 |> Number
-        | [Vector(seg)] -> seg.Count |> int64 |> Number
+        | [List(_, lst)] -> lst |> List.length |> int64 |> Number
+        | [Vector(_, seg)] -> seg.Count |> int64 |> Number
         | [Nil] -> Node.ZERO
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
@@ -50,7 +50,7 @@ module Core
         | [String(s)] ->
             match Reader.read_str s with
             | [node] -> node
-            | nodes -> List(Symbol("do")::nodes)
+            | nodes -> Symbol("do")::nodes |> Node.makeList
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
@@ -60,31 +60,31 @@ module Core
         | _ -> raise <| Error.wrongArity ()
 
     let cons = function
-        | [node; List(lst)] -> List(node::lst)
-        | [node; Vector(seg)] -> List(node::(List.ofSeq seg))
+        | [node; List(_, lst)] -> node::lst |> Node.makeList
+        | [node; Vector(_, seg)] -> node::(List.ofSeq seg) |> Node.makeList
         | [_; _] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
     let concat nodes =
         let cons st node = node::st
         let accumNode acc = function
-            | List(lst) -> lst |> List.fold cons acc
-            | Vector(seg) -> seg |> Seq.fold cons acc
+            | List(_, lst) -> lst |> List.fold cons acc
+            | Vector(_, seg) -> seg |> Seq.fold cons acc
             | _ -> raise <| Error.argMismatch ()
 
         nodes
         |> List.fold accumNode []
         |> List.rev
-        |> List
+        |> Node.makeList
 
     let nth = function
-        | [List(lst); Number(n)] ->
+        | [List(_, lst); Number(n)] ->
             let rec nth_list n = function
                 | [] -> raise <| Error.indexOutOfBounds ()
                 | h::_ when n = 0L -> h
                 | _::t -> nth_list (n - 1L) t
             nth_list n lst
-        | [Vector(seg); Number(n)] ->
+        | [Vector(_, seg); Number(n)] ->
             if n < 0L || n >= int64(seg.Count) then
                 raise <| Error.indexOutOfBounds ()
             else
@@ -93,19 +93,19 @@ module Core
         | _ -> raise <| Error.wrongArity ()
 
     let first = function
-        | [List([])] -> Node.NIL
-        | [List(h::_)] -> h
-        | [Vector(seg)] when seg.Count > 0 -> seg.Array.[0]
-        | [Vector(_)] -> Node.NIL
+        | [List(_, [])] -> Node.NIL
+        | [List(_, h::_)] -> h
+        | [Vector(_, seg)] when seg.Count > 0 -> seg.Array.[0]
+        | [Vector(_, _)] -> Node.NIL
         | [Nil] -> Node.NIL
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
     let rest = function
-        | [List([]) as lst] -> lst
-        | [List(_::t)] -> List(t)
-        | [Vector(seg)] when seg.Count < 2 -> Node.EmptyLIST
-        | [Vector(seg)] -> seg |> Seq.skip 1 |> List.ofSeq |> List
+        | [List(_, [])] -> Node.EmptyLIST
+        | [List(_, _::t)] -> t |> Node.makeList
+        | [Vector(_, seg)] when seg.Count < 2 -> Node.EmptyLIST
+        | [Vector(_, seg)] -> seg |> Seq.skip 1 |> List.ofSeq |> Node.makeList
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
@@ -114,15 +114,15 @@ module Core
         | _ -> raise <| Error.wrongArity ()
 
     let map = function
-        | [BuiltInFunc(_, f); Node.Seq seq]
-        | [Func(_, f, _, _, _); Node.Seq seq] ->
-            seq |> Seq.map (fun node -> f [node]) |> List.ofSeq |> List
+        | [BuiltInFunc(_, _, f); Node.Seq seq]
+        | [Func(_, _, f, _, _, _); Node.Seq seq] ->
+            seq |> Seq.map (fun node -> f [node]) |> List.ofSeq |> Node.makeList
         | [_; _] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
     let apply = function
-        | BuiltInFunc(_, f)::rest
-        | Func(_, f, _, _, _)::rest ->
+        | BuiltInFunc(_, _, f)::rest
+        | Func(_, _, f, _, _, _)::rest ->
             let rec getArgsAndCall acc = function
                 | [] -> raise <| Error.wrongArity ()
                 | [Node.Seq seq] ->
@@ -144,8 +144,9 @@ module Core
     let isSymbol = isPattern (function Symbol(_) -> true | _ -> false)
     let isKeyword = isPattern (function Keyword(_) -> true | _ -> false)
     let isSequential = isPattern (function Node.Seq(_) -> true | _ -> false)
-    let isVector = isPattern (function Vector(_) -> true | _ -> false)
-    let isMap = isPattern (function Map(_) -> true | _ -> false)
+    let isVector = isPattern (function Vector(_, _) -> true | _ -> false)
+    let isMap = isPattern (function Map(_, _) -> true | _ -> false)
+    let isAtom = isPattern (function Atom(_, _) -> true | _ -> false)
 
     let fromString f = function
         | [String(str)] -> f str
@@ -167,7 +168,7 @@ module Core
         }
 
     let mapOpN f = function
-        | Map(map)::rest -> f rest map
+        | Map(_, map)::rest -> f rest map
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
@@ -184,18 +185,18 @@ module Core
                     | _ -> raise <| Error.wrongArity ())
 
     let mapKV f =
-        mapOp0 (fun map -> map |> Map.toSeq |> Seq.map f |> List.ofSeq |> List)
+        mapOp0 (fun map -> map |> Map.toSeq |> Seq.map f |> List.ofSeq |> Node.makeList)
 
-    let hashMap lst = lst |> getPairs |> Map.ofSeq |> Map
+    let hashMap lst = lst |> getPairs |> Map.ofSeq |> Node.makeMap
     let assoc = mapOpN (fun rest map ->
                             rest
                             |> getPairs
                             |> Seq.fold (fun map (k, v) -> Map.add k v map) map
-                            |> Map)
+                            |> Node.makeMap)
     let dissoc = mapOpN (fun keys map ->
                             keys
                             |> List.fold (fun map k -> Map.remove k map) map
-                            |> Map)
+                            |> Node.makeMap)
     let get = function
         | [Nil; _] -> Node.NIL
         | _ as rest ->
@@ -226,9 +227,53 @@ module Core
 
     let swap = function
         | Atom(_, r)
-            ::(BuiltInFunc(_, f) | Func(_, f, _, _, _))
+            ::(BuiltInFunc(_, _, f) | Func(_, _, f, _, _, _))
             ::rest ->
                 r := f (!r::rest)
                 !r
         | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let conj = function
+        | List(_, lst)::rest ->
+            rest 
+            |> List.fold (fun lst node -> node::lst) lst 
+            |> Node.makeList
+        | Vector(_, seg)::rest ->
+            (* Might be nice to implement a persistent vector here someday. *)
+            let cnt = List.length rest
+            if cnt > 0 then
+                let target : Node array = seg.Count + cnt |> Array.zeroCreate
+                System.Array.Copy(seg.Array :> System.Array, seg.Offset, 
+                    target :> System.Array, 0, seg.Count)
+                let rec copyElem i = function
+                    | h::t -> 
+                        Array.set target i h
+                        copyElem (i + 1) t
+                    | [] -> ()
+                copyElem (seg.Count) rest
+                target |> Node.ofArray
+            else
+                seg |> Node.makeVector
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let withMeta = function
+        | [List(_, lst); m] -> List(m, lst)
+        | [Vector(_, seg); m] -> Vector(m, seg)
+        | [Map(_, map); m] -> Map(m, map)
+        | [BuiltInFunc(_, tag, f); m] -> BuiltInFunc(m, tag, f)
+        | [Func(_, tag, f, a, b, c); m] -> Func(m, tag, f, a, b, c)
+        | [Macro(_, tag, f, a, b, c); m] -> Macro(m, tag, f, a, b, c)
+        | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let meta = function
+        | [List(m, _)]
+        | [Vector(m, _)]
+        | [Map(m, _)]
+        | [BuiltInFunc(m, _, _)]
+        | [Func(m, _, _, _, _, _)]
+        | [Macro(m, _, _, _, _, _)] -> m
+        | [_] -> Node.NIL
         | _ -> raise <| Error.wrongArity ()

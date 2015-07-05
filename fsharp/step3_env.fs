@@ -12,13 +12,13 @@ module REPL
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
-        | List(lst) -> lst |> List.map (eval env) |> List
-        | Vector(seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
-        | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
+        | List(_, lst) -> lst |> List.map (eval env) |> makeList
+        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
+        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
         | node -> node
 
     and defBang env = function
-        | sym::node::[] ->
+        | [sym; node] ->
             match sym with
             | Symbol(sym) ->
                 let node = eval env node
@@ -35,22 +35,22 @@ module REPL
         Env.set env s form
 
     and letStar env = function
-        | bindings::form::[] ->
+        | [bindings; form] ->
             let newEnv = Env.makeNew env [] []
             let binder = setBinding newEnv
             match bindings with
-            | List(_) | Vector(_) -> iterPairs binder bindings
+            | List(_, _) | Vector(_, _) -> iterPairs binder bindings
             | _ -> raise <| Error.errExpectedX "list or vector"
             eval newEnv form
         | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
-        | List(Symbol("def!")::rest) -> defBang env rest
-        | List(Symbol("let*")::rest) -> letStar env rest
-        | List(_) as node ->
+        | List(_, Symbol("def!")::rest) -> defBang env rest
+        | List(_, Symbol("let*")::rest) -> letStar env rest
+        | List(_, _) as node ->
             let resolved = node |> eval_ast env
             match resolved with
-            | List(BuiltInFunc(_, f)::rest) -> f rest
+            | List(_, BuiltInFunc(_, _, f)::rest) -> f rest
             | _ -> raise <| Error.errExpectedX "func"
         | node -> node |> eval_ast env
 

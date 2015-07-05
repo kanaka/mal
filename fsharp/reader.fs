@@ -2,6 +2,7 @@ module Reader
     open System
     open Tokenizer
     open Types
+    open Node
 
     type MutableList = System.Collections.Generic.List<Node>
     let inline addToMutableList (lst:MutableList) item = lst.Add(item); lst
@@ -27,11 +28,11 @@ module Reader
 
     and wrapForm node tokens = 
         match readForm tokens with
-        | Some(form), rest -> Some(List([node; form])), rest
+        | Some(form), rest -> Some(makeList [node; form]), rest
         | None, _ -> raise <| Error.expectedXButEOF "form"
 
     and readList acc = function
-        | CloseParen::rest -> Some(List(acc |> List.rev)), rest
+        | CloseParen::rest -> Some(acc |> List.rev |> makeList), rest
         | [] -> raise <| Error.expectedXButEOF "')'"
         | tokens -> 
             match readForm tokens with
@@ -47,7 +48,7 @@ module Reader
             | None, _ -> raise <| Error.expectedXButEOF "']'"
 
     and readMap acc = function
-        | CloseBrace::rest -> Some(Map(acc |> List.rev |> Map.ofList)), rest
+        | CloseBrace::rest -> Some(acc |> List.rev |> Map.ofList |> makeMap), rest
         | [] -> raise <| Error.expectedXButEOF "'}'"
         | tokens -> 
             match readForm tokens with
@@ -61,7 +62,7 @@ module Reader
         | OpenBrace::rest ->
             let meta, rest = readMap [] rest
             match readForm rest with
-            | Some(form), rest -> Some(List([withMeta; form; meta.Value])), rest
+            | Some(form), rest -> Some([withMeta; form; meta.Value] |> makeList), rest
             | None, _ -> raise <| Error.expectedXButEOF "form"
         | _ -> raise <| Error.expectedXButEOF "map"
 

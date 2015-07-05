@@ -13,9 +13,9 @@ module Printer
         let appendStr (str : string) = acc.Append(str) |> ignore
         let rec pr_node = function
             | Nil -> appendStr "nil"
-            | List(nodes) -> pr_list nodes
-            | Vector(nodes) -> pr_vector nodes
-            | Map(map) -> pr_map map
+            | List(_, nodes) -> pr_list nodes
+            | Vector(_, nodes) -> pr_vector nodes
+            | Map(_, map) -> pr_map map
             | Symbol(symbol) -> appendStr symbol
             | Keyword(keyword) -> appendStr ":"; appendStr keyword
             | Number(num) -> acc.Append(num) |> ignore
@@ -23,9 +23,9 @@ module Printer
             | String(str) -> appendStr str
             | Bool(true) -> appendStr "true"
             | Bool(false) -> appendStr "false"
-            | BuiltInFunc(tag, _) | Func(tag, _, _, _, _) ->
+            | BuiltInFunc(_, tag, _) | Func(_, tag, _, _, _, _) ->
                 pr_func "func" tag
-            | Macro(tag, _, _, _, _) -> pr_func "macro" tag
+            | Macro(_, tag, _, _, _, _) -> pr_func "macro" tag
             | Atom(tag, r) -> pr_atom tag !r
 
         and pr separator prefix node =

@@ -3,17 +3,17 @@ module Types
     [<CustomEquality; CustomComparison>]
     type Node =
         | Nil
-        | List of Node list
-        | Vector of Node System.ArraySegment
-        | Map of Collections.Map<Node, Node>
+        | List of Metadata * Node list
+        | Vector of Metadata * Node System.ArraySegment
+        | Map of Metadata * Collections.Map<Node, Node>
         | Symbol of string
         | Keyword of string
         | Number of int64
         | String of string
         | Bool of bool
-        | BuiltInFunc of int * (Node list -> Node)
-        | Func of int * (Node list -> Node) * Node * Node list * EnvChain
-        | Macro of int * (Node list -> Node) * Node * Node list * EnvChain
+        | BuiltInFunc of Metadata * int * (Node list -> Node)
+        | Func of Metadata * int * (Node list -> Node) * Node * Node list * EnvChain
+        | Macro of Metadata * int * (Node list -> Node) * Node * Node list * EnvChain
         | Atom of int * Node Ref
 
         static member private hashSeq (s : seq<Node>) =
@@ -51,34 +51,34 @@ module Types
         static member private rank x =
             match x with
             | Nil -> 0
-            | List(_) -> 1
-            | Vector(_) -> 2
-            | Map(_) -> 3
+            | List(_, _) -> 1
+            | Vector(_, _) -> 2
+            | Map(_, _) -> 3
             | Symbol(_) -> 4
             | Keyword(_) -> 5
             | Number(_) -> 6
             | String(_) -> 7
             | Bool(_) -> 8
-            | BuiltInFunc(_, _)
-            | Func(_, _, _, _, _)
-            | Macro(_, _, _, _, _) -> 9
+            | BuiltInFunc(_, _, _)
+            | Func(_, _, _, _, _, _)
+            | Macro(_, _, _, _, _, _) -> 9
             | Atom(_, _) -> 10
 
         static member private equals x y =
             match x, y with
             | Nil, Nil -> true
-            | List(a), List(b) -> a = b
-            | List(a), Vector(b) -> Node.allEqual a b
-            | Vector(a), List(b) -> Node.allEqual a b
-            | Vector(a), Vector(b) -> Node.allEqual a b
-            | Map(a), Map(b) -> a = b
+            | List(_, a), List(_, b) -> a = b
+            | List(_, a), Vector(_, b) -> Node.allEqual a b
+            | Vector(_, a), List(_, b) -> Node.allEqual a b
+            | Vector(_, a), Vector(_, b) -> Node.allEqual a b
+            | Map(_, a), Map(_, b) -> a = b
             | Symbol(a), Symbol(b) -> a = b
             | Keyword(a), Keyword(b) -> a = b
             | Number(a), Number(b) -> a = b
             | String(a), String(b) -> a = b
             | Bool(a), Bool(b) -> a = b
-            | (BuiltInFunc(a, _) | Func(a, _, _, _, _) | Macro(a, _, _, _, _)),
-              (BuiltInFunc(b, _) | Func(b, _, _, _, _) | Macro(b, _, _, _, _)) ->
+            | (BuiltInFunc(_, a, _) | Func(_, a, _, _, _, _) | Macro(_, a, _, _, _, _)),
+              (BuiltInFunc(_, b, _) | Func(_, b, _, _, _, _) | Macro(_, b, _, _, _, _)) ->
                 a = b
             | Atom(a, _), Atom(b, _) -> a = b
             | _, _ -> false
@@ -86,18 +86,18 @@ module Types
         static member private compare x y =
             match x, y with
             | Nil, Nil -> 0
-            | List(a), List(b) -> compare a b
-            | List(a), Vector(b) -> Node.allCompare a b
-            | Vector(a), List(b) -> Node.allCompare a b
-            | Vector(a), Vector(b) -> Node.allCompare a b
-            | Map(a), Map(b) -> compare a b
+            | List(_, a), List(_, b) -> compare a b
+            | List(_, a), Vector(_, b) -> Node.allCompare a b
+            | Vector(_, a), List(_, b) -> Node.allCompare a b
+            | Vector(_, a), Vector(_, b) -> Node.allCompare a b
+            | Map(_, a), Map(_, b) -> compare a b
             | Symbol(a), Symbol(b) -> compare a b
             | Keyword(a), Keyword(b) -> compare a b
             | Number(a), Number(b) -> compare a b
             | String(a), String(b) -> compare a b
             | Bool(a), Bool(b) -> compare a b
-            | (BuiltInFunc(a, _) | Func(a, _, _, _, _) | Macro(a, _, _, _, _)),
-              (BuiltInFunc(b, _) | Func(b, _, _, _, _) | Macro(b, _, _, _, _)) ->
+            | (BuiltInFunc(_, a, _) | Func(_, a, _, _, _, _) | Macro(_, a, _, _, _, _)),
+              (BuiltInFunc(_, b, _) | Func(_, b, _, _, _, _) | Macro(_, b, _, _, _, _)) ->
                 compare a b
             | Atom(a, _), Atom(b, _) -> compare a b
             | a, b -> compare (Node.rank a) (Node.rank b)
@@ -110,15 +110,15 @@ module Types
         override x.GetHashCode() =
             match x with
             | Nil -> 0
-            | List(lst) -> hash lst
-            | Vector(vec) -> Node.hashSeq vec
-            | Map(map) -> hash map
+            | List(_, lst) -> hash lst
+            | Vector(_, vec) -> Node.hashSeq vec
+            | Map(_, map) -> hash map
             | Symbol(sym) -> hash sym
             | Keyword(key) -> hash key
             | Number(num) -> hash num
             | String(str) -> hash str
             | Bool(b) -> hash b
-            | BuiltInFunc(tag, _) | Func(tag, _, _, _, _) | Macro(tag, _, _, _, _) ->
+            | BuiltInFunc(_, tag, _) | Func(_, tag, _, _, _, _) | Macro(_, tag, _, _, _, _) ->
                 hash tag
             | Atom(tag, _) -> hash tag
 
@@ -131,3 +131,4 @@ module Types
 
     and Env = System.Collections.Generic.Dictionary<string, Node>
     and EnvChain = Env list
+    and Metadata = Node

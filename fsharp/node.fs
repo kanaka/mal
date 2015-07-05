@@ -9,20 +9,26 @@ module Node
     let NIL = Nil
     let SomeNIL = Some(NIL)
     let ZERO = Number(0L)
-    let EmptyLIST = List([])
-    let EmptyVECTOR = Vector(System.ArraySegment([| |]))
 
-    let ofArray arr = System.ArraySegment(arr) |> Vector
+    let makeVector seg = Vector(NIL, seg)
+    let makeList lst = List(NIL, lst)
+    let makeMap map = Map(NIL, map)
+
+    let EmptyLIST = [] |> makeList
+    let EmptyVECTOR = System.ArraySegment([| |]) |> makeVector
+    let EmptyMAP = Map.empty |> makeMap
+
+    let ofArray arr = System.ArraySegment(arr) |> makeVector
 
     let toArray = function
-        | List(lst) -> Array.ofList lst
-        | Vector(seg) -> Array.sub seg.Array seg.Offset seg.Count
+        | List(_, lst) -> Array.ofList lst
+        | Vector(_, seg) -> Array.sub seg.Array seg.Offset seg.Count
         | node -> [| node |]
 
     let length = function
-        | List(lst) -> List.length lst
-        | Vector(seg) -> seg.Count
-        | Map(m) -> m.Count
+        | List(_, lst) -> List.length lst
+        | Vector(_, seg) -> seg.Count
+        | Map(_, m) -> m.Count
         | _ -> 1
 
     (* Active Patterns to help with pattern matching nodes *)
@@ -36,32 +42,32 @@ module Node
                 accumList acc (idx + 1) t
             | _ -> None
         match node with
-        | List(lst) -> accumList (Array.zeroCreate num) 0 lst
-        | Vector(seg) when seg.Count = num -> Some(toArray node)
+        | List(_, lst) -> accumList (Array.zeroCreate num) 0 lst
+        | Vector(_, seg) when seg.Count = num -> Some(toArray node)
         | _ -> None
 
     let inline (|Cons|_|) node =
         match node with
-        | List(h::t) -> Some(Cons(h, List(t)))
-        | Vector(seg) when seg.Count > 0 ->
+        | List(_, h::t) -> Some(Cons(h, makeList t))
+        | Vector(_, seg) when seg.Count > 0 ->
             let h = seg.Array.[seg.Offset]
             let t = System.ArraySegment(seg.Array, seg.Offset + 1, seg.Count - 1)
-                    |> Vector
+                    |> makeVector
             Some(Cons(h, t))
         | _ -> None
 
     let inline (|Empty|_|) node =
         match node with
-        | List([]) -> Some(Empty)
-        | Vector(seg) when seg.Count = 0 -> Some(Empty)
+        | List(_, []) -> Some(Empty)
+        | Vector(_, seg) when seg.Count = 0 -> Some(Empty)
         | _ -> None
 
     let inline (|Pair|_|) node =
         match node with
-        | List(a::b::t) -> Some(a, b, List(t))
-        | List([]) -> None
-        | List(_) -> raise <| Error.expectedEvenNodeCount ()
-        | Vector(seg) ->
+        | List(_, a::b::t) -> Some(a, b, makeList t)
+        | List(_, []) -> None
+        | List(_, _) -> raise <| Error.expectedEvenNodeCount ()
+        | Vector(_, seg) ->
             match seg.Count with
             | 0 -> None
             | 1 -> raise <| Error.expectedEvenNodeCount ()
@@ -69,12 +75,12 @@ module Node
                 let a = seg.Array.[seg.Offset]
                 let b = seg.Array.[seg.Offset + 1]
                 let t = System.ArraySegment(seg.Array, seg.Offset + 2, seg.Count - 2)
-                        |> Vector
+                        |> makeVector
                 Some(a, b, t)
         | _ -> None
 
     let inline (|Seq|_|) node =
         match node with
-        | List(lst) -> Some(Seq.ofList lst)
-        | Vector(seg) -> Some(seg :> Node seq)
+        | List(_, lst) -> Some(Seq.ofList lst)
+        | Vector(_, seg) -> Some(seg :> Node seq)
         | _ -> None

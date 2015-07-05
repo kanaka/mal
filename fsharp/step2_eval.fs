@@ -1,19 +1,20 @@
 module REPL
     open System
+    open Node
     open Types
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
-        | List(lst) -> lst |> List.map (eval env) |> List
-        | Vector(seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
-        | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
+        | List(_, lst) -> lst |> List.map (eval env) |> makeList
+        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
+        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
         | node -> node
 
     and eval env = function
-        | List(_) as node ->
+        | List(_, _) as node ->
             let resolved = node |> eval_ast env
             match resolved with
-            | List(BuiltInFunc(_, f)::rest) -> f rest
+            | List(_, BuiltInFunc(_, _, f)::rest) -> f rest
             | _ -> raise <| Error.errExpectedX "func"
         | node -> node |> eval_ast env
 

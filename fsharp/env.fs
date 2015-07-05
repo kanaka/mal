@@ -32,13 +32,13 @@ module Env
         fun () -> System.Threading.Interlocked.Increment(counter)
 
     let makeBuiltInFunc f =
-        BuiltInFunc(getNextValue (), f)
+        BuiltInFunc(Node.NIL, getNextValue (), f)
 
     let makeFunc f body binds env =
-        Func(getNextValue (), f, body, binds, env)
+        Func(Node.NIL, getNextValue (), f, body, binds, env)
 
     let makeMacro f body binds env =
-        Macro(getNextValue (), f, body, binds, env)
+        Macro(Node.NIL, getNextValue (), f, body, binds, env)
 
     let makeRootEnv () =
         let wrap name f = name, makeBuiltInFunc f
@@ -89,9 +89,13 @@ module Env
               wrap "keys" Core.keys
               wrap "vals" Core.vals
               wrap "atom" (Core.atom getNextValue)
+              wrap "atom?" Core.isAtom
               wrap "deref" Core.deref
               wrap "reset!" Core.reset
-              wrap "swap!" Core.swap ]
+              wrap "swap!" Core.swap
+              wrap "conj" Core.conj
+              wrap "meta" Core.meta
+              wrap "with-meta" Core.withMeta ]
             |> ofList
         [ env ]
 
@@ -100,7 +104,7 @@ module Env
         let rec loop symbols nodes =
             match symbols, nodes with
             | [Symbol("&"); Symbol(s)], nodes ->
-                set env s (List nodes)
+                set env s (Node.makeList nodes)
                 env
             | Symbol("&")::_, _ -> raise <| Error.onlyOneSymbolAfterAmp ()
             | Symbol(s)::symbols, n::nodes -> 
@@ -114,8 +118,8 @@ module Env
 
     (* Active Patterns to help with pattern matching nodes *)
     let inline (|IsMacro|_|) env = function
-        | List(Symbol(sym)::rest) ->
+        | List(_, Symbol(sym)::rest) ->
             match find env sym with
-            | Some(Macro(_, _, _, _, _) as m) -> Some(IsMacro m, rest)
+            | Some(Macro(_, _, _, _, _, _) as m) -> Some(IsMacro m, rest)
             | _ -> None
         | _ -> None

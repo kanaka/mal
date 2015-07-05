@@ -19,25 +19,25 @@ module REPL
             match node with
             | Cons(Symbol("unquote"), rest) -> rest |> singleNode
             | Cons(Cons(Symbol("splice-unquote"), spliceRest), rest) ->
-                List([Symbol("concat"); singleNode spliceRest; quasiquote rest])
-            | Cons(h, t) -> List([Symbol("cons"); quasiquote h; quasiquote t])
-            | n -> List([Symbol("quote"); n])
-        List(nodes) |> transformNode quasiquote
+                makeList [Symbol("concat"); singleNode spliceRest; quasiquote rest]
+            | Cons(h, t) -> makeList [Symbol("cons"); quasiquote h; quasiquote t]
+            | n -> makeList [Symbol("quote"); n]
+        makeList nodes |> transformNode quasiquote
 
     let quoteForm = function
         | [node] -> node
         | _ -> raise <| Error.wrongArity ()
 
     let rec macroExpand env = function
-        | Env.IsMacro env (Macro(_, f, _, _, _), rest) ->
+        | Env.IsMacro env (Macro(_, _, f, _, _, _), rest) ->
             f rest |> macroExpand env
         | node -> node
 
     let rec eval_ast env = function
         | Symbol(sym) -> Env.get env sym
-        | List(lst) -> lst |> List.map (eval env) |> List
-        | Vector(seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
-        | Map(map) -> map |> Map.map (fun k v -> eval env v) |> Map
+        | List(_, lst) -> lst |> List.map (eval env) |> makeList
+        | Vector(_, seg) -> seg |> Seq.map (eval env) |> Array.ofSeq |> Node.ofArray
+        | Map(_, map) -> map |> Map.map (fun k v -> eval env v) |> makeMap
         | node -> node
 
     and defBangForm env = function
@@ -56,7 +56,7 @@ module REPL
             | Symbol(sym) ->
                 let node = eval env form
                 match node with
-                | Func(_, f, body, binds, outer) ->
+                | Func(_, _, f, body, binds, outer) ->
                     let node = Env.makeMacro f body binds outer
                     Env.set env sym node
                     node
@@ -110,16 +110,16 @@ module REPL
             Env.makeFunc f body binds outer
 
         match nodes with
-        | [List(binds); body] -> makeFunc binds body
-        | [Vector(seg); body] -> makeFunc (List.ofSeq seg) body
+        | [List(_, binds); body] -> makeFunc binds body
+        | [Vector(_, seg); body] -> makeFunc (List.ofSeq seg) body
         | [_; _] -> raise <| Error.errExpectedX "bindings of list or vector"
         | _ -> raise <| Error.wrongArity ()
 
     and catchForm env err = function
-        | List([Symbol("catch*"); Symbol(_) as sym; catchBody]) ->
+        | List(_, [Symbol("catch*"); Symbol(_) as sym; catchBody]) ->
             let inner = Env.makeNew env [sym] [err]
             catchBody |> eval inner
-        | List([_; _; _]) -> raise <| Error.argMismatch ()
+        | List(_, [_; _; _]) -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
     and tryForm env = function
@@ -132,25 +132,25 @@ module REPL
         | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
-        | List(_) as node ->
+        | List(_, _) as node ->
             match macroExpand env node with
-            | List(Symbol("def!")::rest) -> defBangForm env rest
-            | List(Symbol("defmacro!")::rest) -> defMacroForm env rest
-            | List(Symbol("macroexpand")::rest) -> macroExpandForm env rest
-            | List(Symbol("let*")::rest) ->
+            | List(_, Symbol("def!")::rest) -> defBangForm env rest
+            | List(_, Symbol("defmacro!")::rest) -> defMacroForm env rest
+            | List(_, Symbol("macroexpand")::rest) -> macroExpandForm env rest
+            | List(_, Symbol("let*")::rest) ->
                 let inner, form = letStarForm env rest
                 form |> eval inner
-            | List(Symbol("if")::rest) -> ifForm env rest |> eval env
-            | List(Symbol("do")::rest) -> doForm env rest |> eval env
-            | List(Symbol("fn*")::rest) -> fnStarForm env rest
-            | List(Symbol("quote")::rest) -> quoteForm rest
-            | List(Symbol("quasiquote")::rest) -> quasiquoteForm rest |> eval env
-            | List(Symbol("try*")::rest) -> tryForm env rest
-            | List(_) as node ->
+            | List(_, Symbol("if")::rest) -> ifForm env rest |> eval env
+            | List(_, Symbol("do")::rest) -> doForm env rest |> eval env
+            | List(_, Symbol("fn*")::rest) -> fnStarForm env rest
+            | List(_, Symbol("quote")::rest) -> quoteForm rest
+            | List(_, Symbol("quasiquote")::rest) -> quasiquoteForm rest |> eval env
+            | List(_, Symbol("try*")::rest) -> tryForm env rest
+            | List(_, _) as node ->
                 let resolved = node |> eval_ast env
                 match resolved with
-                | List(BuiltInFunc(_, f)::rest) -> f rest
-                | List(Func(_, _, body, binds, outer)::rest) ->
+                | List(_, BuiltInFunc(_, _, f)::rest) -> f rest
+                | List(_, Func(_, _, _, body, binds, outer)::rest) ->
                     let inner = Env.makeNew outer binds rest
                     body |> eval inner
                 | _ -> raise <| Error.errExpectedX "func"
@@ -200,8 +200,8 @@ module REPL
         | _ -> raise <| Error.wrongArity ()
 
     let argv_func = function
-        | file::rest -> rest |> List.map Types.String |> Types.List
-        | [] -> Types.List([])
+        | file::rest -> rest |> List.map Types.String |> makeList
+        | [] -> EmptyLIST
 
     let configureEnv args =
         let env = Env.makeRootEnv ()
