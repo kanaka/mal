@@ -88,8 +88,8 @@ func == (left: MalVal, right: MalVal) -> Bool {
     // Special case lists/vectors, since they are different types that are
     // nonetheless comparable.
     if is_sequence(left) && is_sequence(right) {
-        let left_seq = left as MalSequence
-        let right_seq = right as MalSequence
+        let left_seq = left as! MalSequence
+        let right_seq = right as! MalSequence
         return left_seq == right_seq
     }
 
@@ -99,22 +99,22 @@ func == (left: MalVal, right: MalVal) -> Bool {
 
     switch left.type {
         case .TypeUnknown:  return false
-        case .TypeNil:      return (left as MalNil) == (right as MalNil)
-        case .TypeTrue:     return (left as MalTrue) == (right as MalTrue)
-        case .TypeFalse:    return (left as MalFalse) == (right as MalFalse)
-        case .TypeInteger:  return (left as MalInteger) == (right as MalInteger)
-        case .TypeFloat:    return (left as MalFloat) == (right as MalFloat)
-        case .TypeSymbol:   return (left as MalSymbol) == (right as MalSymbol)
-        case .TypeKeyword:  return (left as MalKeyword) == (right as MalKeyword)
-        case .TypeString:   return (left as MalString) == (right as MalString)
-        case .TypeList:     return (left as MalList) == (right as MalList)
-        case .TypeVector:   return (left as MalVector) == (right as MalVector)
-        case .TypeHashMap:  return (left as MalHashMap) == (right as MalHashMap)
-        case .TypeAtom:     return (left as MalAtom) == (right as MalAtom)
-        case .TypeClosure:  return (left as MalClosure) == (right as MalClosure)
-        case .TypeBuiltin:  return (left as MalBuiltin) == (right as MalBuiltin)
-        case .TypeComment:  return (left as MalComment) == (right as MalComment)
-        case .TypeError:    return (left as MalError) == (right as MalError)
+        case .TypeNil:      return (left as! MalNil) == (right as! MalNil)
+        case .TypeTrue:     return (left as! MalTrue) == (right as! MalTrue)
+        case .TypeFalse:    return (left as! MalFalse) == (right as! MalFalse)
+        case .TypeInteger:  return (left as! MalInteger) == (right as! MalInteger)
+        case .TypeFloat:    return (left as! MalFloat) == (right as! MalFloat)
+        case .TypeSymbol:   return (left as! MalSymbol) == (right as! MalSymbol)
+        case .TypeKeyword:  return (left as! MalKeyword) == (right as! MalKeyword)
+        case .TypeString:   return (left as! MalString) == (right as! MalString)
+        case .TypeList:     return (left as! MalList) == (right as! MalList)
+        case .TypeVector:   return (left as! MalVector) == (right as! MalVector)
+        case .TypeHashMap:  return (left as! MalHashMap) == (right as! MalHashMap)
+        case .TypeAtom:     return (left as! MalAtom) == (right as! MalAtom)
+        case .TypeClosure:  return (left as! MalClosure) == (right as! MalClosure)
+        case .TypeBuiltin:  return (left as! MalBuiltin) == (right as! MalBuiltin)
+        case .TypeComment:  return (left as! MalComment) == (right as! MalComment)
+        case .TypeError:    return (left as! MalError) == (right as! MalError)
     }
 }
 
@@ -178,28 +178,28 @@ func == (left: MalFloat, right: MalFloat) -> Bool { return left.value == right.v
 var symbolHash = [String:Int]()
 var symbolArray = [String]()
 
+private func indexForSymbol(s: String) -> Int {
+    if let i = symbolHash[s] {
+        return i
+    }
+
+    symbolArray.append(s)
+    symbolHash[s] = symbolArray.count - 1
+    return symbolArray.count - 1
+}
+
+private func symbolForIndex(i: Int) -> String {
+    return symbolArray[i]
+}
+
 class MalSymbol: MalVal, Hashable {
-    init(symbol: String, meta: MalVal? = nil) { self.index = -1; super.init(meta: meta); self.index = indexForSymbol(symbol) }
+    init(symbol: String, meta: MalVal? = nil) { self.index = indexForSymbol(symbol); super.init(meta: meta) }
     init(other: MalSymbol) { self.index = other.index; super.init(other: other) }
     override func clone() -> MalVal { return MalSymbol(other:self) }
     override var type: MalType { return .TypeSymbol }
-    override var description: String { return self.symbolForIndex(self.index) }
+    override var description: String { return symbolForIndex(self.index) }
     override var hashValue: Int { return self.index }
     let index: Int
-
-    private func indexForSymbol(s: String) -> Int {
-        if let i = symbolHash[s] {
-            return i
-        }
-
-        symbolArray.append(s)
-        symbolHash[s] = symbolArray.count - 1
-        return symbolArray.count - 1
-    }
-
-    private func symbolForIndex(i: Int) -> String {
-        return symbolArray[i]
-    }
 }
 func == (left: MalSymbol, right: MalSymbol) -> Bool { return left.index == right.index }
 
@@ -232,7 +232,7 @@ class MalString: MalVal {
         var prev_is_escape = false
         var str = ""
         for ch in s {
-            if index == s.utf16Count - 1 { continue }
+            if index == count(s.utf16) - 1 { continue }
             if index++ == 0 { continue }
             if prev_is_escape {
                 prev_is_escape = false;
@@ -267,25 +267,25 @@ func == (left: MalString, right: MalString) -> Bool { return left.value == right
 // ===== MalSequence =====
 
 class MalSequence: MalVal, SequenceType {
-    init(slice: Slice<MalVal>, meta: MalVal? = nil) { self.slice = slice; super.init(meta: meta) }
+    init(slice: ArraySlice<MalVal>, meta: MalVal? = nil) { self.slice = slice; super.init(meta: meta) }
     init(other: MalSequence) { self.slice = other.slice; super.init(other: other) }
     override var type: MalType { return .TypeUnknown }
     override var description: String { return "" }
 
     func first() -> MalVal { return !isEmpty ? slice[0] : MalNil() }
     func last() -> MalVal { return !isEmpty ? slice[slice.count - 1] : MalNil() }
-    func rest() -> MalSequence { return MalSequence(slice: Slice<MalVal>()) }
-    func map<U>(transform: (MalVal) -> U) -> Slice<U> { return slice.map(transform) }
-    func reduce<U>(initial: U, combine: (U, MalVal) -> U) -> U { return slice.reduce(initial, combine) }
+    func rest() -> MalSequence { return MalSequence(slice: ArraySlice<MalVal>()) }
+    func map<U>(transform: (MalVal) -> U) -> ArraySlice<U> { return slice.map(transform) }
+    func reduce<U>(initial: U, combine: (U, MalVal) -> U) -> U { return slice.reduce(initial, combine: combine) }
     var count: Int { return slice.count }
     var isEmpty: Bool { return slice.isEmpty }
     subscript(index: Int) -> MalVal { return index < slice.count ? slice[index] : MalError(message: "index (\(index)) out of range (\(slice.count))") }
-    subscript(subRange: Range<Int>) -> Slice<MalVal> { return slice[subRange] }
+    subscript(subRange: Range<Int>) -> ArraySlice<MalVal> { return slice[subRange] }
 
     // SequenceType
-     func generate() -> Slice<MalVal>.Generator { return slice.generate() }
+     func generate() -> ArraySlice<MalVal>.Generator { return slice.generate() }
 
-    let slice: Slice<MalVal>
+    let slice: ArraySlice<MalVal>
 }
 func == (left: MalSequence, right: MalSequence) -> Bool {
     if left.count != right.count { return false }
@@ -296,7 +296,7 @@ func == (left: MalSequence, right: MalSequence) -> Bool {
 // ===== MalList =====
 
 class MalList: MalSequence {
-    override init(slice: Slice<MalVal>, meta: MalVal? = nil) { super.init(slice: slice, meta: meta) }
+    override init(slice: ArraySlice<MalVal>, meta: MalVal? = nil) { super.init(slice: slice, meta: meta) }
     convenience init(array: [MalVal], meta: MalVal? = nil) { self.init(slice: array[0..<array.count], meta: meta) }
     convenience init(objects: MalVal...) { self.init(array: objects) }
     init(other: MalList) { super.init(other: other) }
@@ -312,7 +312,7 @@ func == (left: MalList, right: MalList) -> Bool {
 // ===== MalVector =====
 
 class MalVector: MalSequence {
-    override init(slice: Slice<MalVal>, meta: MalVal? = nil) { super.init(slice: slice, meta: meta) }
+    override init(slice: ArraySlice<MalVal>, meta: MalVal? = nil) { super.init(slice: slice, meta: meta) }
     convenience init(array: [MalVal], meta: MalVal? = nil) { self.init(slice: array[0..<array.count], meta: meta) }
     convenience init(objects: MalVal...) { self.init(array: objects) }
     init(other: MalVector) { super.init(other: other) }
@@ -330,7 +330,7 @@ func == (left: MalVector, right: MalVector) -> Bool {
 class MalHashMap: MalVal, SequenceType {
     convenience override init(meta: MalVal? = nil) { self.init(hash: [MalVal:MalVal](), meta:meta) }
     init(hash: [MalVal:MalVal], meta: MalVal? = nil) { self.hash = hash; super.init(meta: meta) }
-    convenience init(slice: Slice<MalVal>, meta: MalVal? = nil) { var hash = [MalVal:MalVal](); for var index = 0; index < slice.count; index += 2 { hash[slice[index]] = slice[index + 1] }; self.init(hash: hash, meta: meta) }
+    convenience init(slice: ArraySlice<MalVal>, meta: MalVal? = nil) { var hash = [MalVal:MalVal](); for var index = 0; index < slice.count; index += 2 { hash[slice[index]] = slice[index + 1] }; self.init(hash: hash, meta: meta) }
     convenience init(array: Array<MalVal>, meta: MalVal? = nil) { var hash = [MalVal:MalVal](); for var index = 0; index < array.count; index += 2 { hash[array[index]] = array[index + 1] }; self.init(hash: hash, meta: meta) }
     init(other: MalHashMap) { self.hash = other.hash; super.init(other: other) }
     override func clone() -> MalVal { return MalHashMap(other:self) }

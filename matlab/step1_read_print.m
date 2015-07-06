@@ -29,7 +29,9 @@ function main(args)
             fprintf('%s\n', rep(line, ''));
         catch err
             fprintf('Error: %s\n', err.message);
-            fprintf('%s\n', getReport(err, 'extended'));
+            %fprintf('%s\n', getReport(err, 'extended'));
+            fprintf('%s\n', lasterror(err).stack.file);
         end
     end
 end
+main(argv());

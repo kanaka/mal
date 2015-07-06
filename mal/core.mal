@@ -46,7 +46,6 @@
    ["rest" rest]
    ["empty?" empty?]
    ["count" count]
-   ["conj" conj]
    ["apply" apply]
    ["map" map]
 

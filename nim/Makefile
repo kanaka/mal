@@ -3,6 +3,7 @@
 SOURCES_BASE = types.nim reader.nim printer.nim
 SOURCES_LISP = env.nim core.nim stepA_mal.nim
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+SOURCES_REBUILD = $(SOURCES_BASE) env.nim core.nim
 
 #####################
 
@@ -18,11 +19,11 @@ all: $(BINS) mal
 mal: $(word $(words $(BINS)),$(BINS))
 	cp $< $@
 
-$(BINS): %: %.nim
-	nim -d:release c $@
+$(BINS): %: %.nim $(SOURCES_REBUILD)
+	nim -d:release --nimcache:nimcache-$@ c $@
 
 clean:
-	rm -rf nimcache/ $(BINS)
+	rm -rf nimcache-*/ $(BINS)
 	rm -f mal
 
 .PHONY: stats stats-lisp

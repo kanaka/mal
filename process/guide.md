@@ -41,6 +41,12 @@ In addition, the following will make your task especially easy:
 Here are some examples of languages that have all of the above
 features: JavaScript, Ruby, Python, Lua, R, Clojure.
 
+Michael Fogus has some great blog posts on interesting but less well
+known languages and many of the languages on his lists do not yet have
+any mal implementations:
+* http://blog.fogus.me/2011/08/14/perlis-languages/
+* http://blog.fogus.me/2011/10/18/programming-language-development-the-past-5-years/
+
 Many of the most popular languages already have Mal implementations.
 However, this should not discourage you from creating your own
 implementation in a language that already has one. However, if you go
@@ -543,17 +549,17 @@ diff -urp ../process/step2_eval.txt ../process/step3_env.txt
     (second parameter of `EVAL` called `env`) using the unevaluated
     first parameter (second list element) as the symbol key and the
     evaluated second parameter as the value.
-  * symbol "let*": create a new environment using the current
+  * symbol "let\*": create a new environment using the current
     environment as the outer value and then use the first parameter as
-    a list of new bindings in the "let*" environment. Take the second
-    element of the binding list, call `EVAL` using the new "let*"
+    a list of new bindings in the "let\*" environment. Take the second
+    element of the binding list, call `EVAL` using the new "let\*"
     environment as the evaluation environment, then call `set` on the
-    "let*" environment using the first binding list element as the key
+    "let\*" environment using the first binding list element as the key
     and the evaluated second element as the value. This is repeated
     for each odd/even pair in the binding list. Note in particular,
     the bindings earlier in the list can be referred to by later
     bindings. Finally, the second parameter (third element) of the
-    original `let*` form is evaluated using the new "let*" environment
+    original `let*` form is evaluated using the new "let\*" environment
     and the result is returned as the result of the `let*` (the new
     let environment is discarded upon completion).
   * otherwise: call `eval_ast` on the list and apply the first element
@@ -603,8 +609,8 @@ run. Most Lisp variants tend to be dynamically typed (types of values
 are checked when they are actually used at runtime).
 
 As an aside-aside: The great debate between static and dynamic typing
-debate can be understood by following the money. Advocates of strict
-static typing use words like "correctness" and "safety" and thus get
+can be understood by following the money. Advocates of strict static
+typing use words like "correctness" and "safety" and thus get
 government and academic funding. Advocates of dynamic typing use words
 like "agile" and "time-to-market" and thus get venture capital and
 commercial funding.
@@ -644,13 +650,13 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
 * Add support to `printer.qx` to print functions values. A string
   literal like "#<function>" is sufficient.
 
-* Add the following special forms to `EVAL`.
+* Add the following special forms to `EVAL`:
 
-  * `do`: Evaluate the all the elements of the list using `eval_ast`
+  * `do`: Evaluate all the elements of the list using `eval_ast`
     and return the final evaluated element.
   * `if`: Evaluate the first parameter (second element). If the result
     (condition) is anything other than `nil` or `false`, then evaluate
-    the second parammeter (third element of the list) and return the
+    the second parameter (third element of the list) and return the
     result.  Otherwise, evaluate the third parameter (fourth element)
     and return the result. If condition is false and there is no third
     parameter, then just return `nil`.
@@ -778,7 +784,7 @@ the changes that will be made during this step:
 diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 ```
 
-* Copy `step4_env.qx` to `step5_tco.qx`.
+* Copy `step4_if_fn_do.qx` to `step5_tco.qx`.
 
 * Add a loop (e.g. while true) around all code in `EVAL`.
 
@@ -918,7 +924,7 @@ make test^quux^step6
 Congratulations, you now have a full-fledged scripting language that
 can run other mal programs. The `slurp` function loads a file as
 a string, the `read-string` function calls the mal reader to turn that
-stirng into data, and the `eval` function takes data and evaluates it
+string into data, and the `eval` function takes data and evaluates it
 as a normal mal program. However, it is important to note that the
 `eval` function is not just for running external programs. Because mal
 programs are regular mal data structures, you can dynamically generate
@@ -962,7 +968,7 @@ add a powerful abstraction for manipulating mal code itself
 
 The `quote` special form indicates to the evaluator (`EVAL`) that the
 parameter should not be evaluated (yet). At first glance, this might
-not seem particular useful but an example of what this enables is the
+not seem particularly useful but an example of what this enables is the
 ability for a mal program to refer to a symbol itself rather than the
 value that it evaluates to. Likewise with lists. For example, consider
 the following:
@@ -1071,7 +1077,7 @@ macros.
   * token is "'" (single quote): return a new list that contains the
     symbol "quote" and the result of reading the next form
     (`read_form`).
-  * token is "`" (back-tick): return a new list that contains the
+  * token is "\`" (back-tick): return a new list that contains the
     symbol "quasiquote" and the result of reading the next form
     (`read_form`).
   * token is "~" (tilde): return a new list that contains the
@@ -1218,8 +1224,8 @@ implementation. Let us continue!
 
 In this step you will implement the final mal special form for
 error/exception handling: `try*/catch*`. You will also add several core
-functions to you implementation. In particular, you will enhance the
-functional programming pedigree of you implementation by adding the
+functions to your implementation. In particular, you will enhance the
+functional programming pedigree of your implementation by adding the
 `apply` and `map` core functions.
 
 Compare the pseudocode for step 8 and step 9 to get a basic idea of
@@ -1393,9 +1399,9 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 * Add the `readline` core function. TODO
 
 
-Now go to the top level, run the step 9 tests:
+Now go to the top level, run the step A tests:
 ```
-make test^quux^step9
+make test^quux^stepA
 ```
 
 Once you have passed all the non-optional step A tests, it is time to
@@ -1410,11 +1416,11 @@ from the mal implementation:
 ./stepA_mal.qx ../mal/stepA_mal.mal
 ```
 
-There is a very good change that you will encounter an error at some
+There is a very good chance that you will encounter an error at some
 point while trying to run the mal in mal implementation steps above.
 Debugging failures that happen while self-hosting is MUCH more
 difficult and mind bending. One of the best approaches I have
-personally found is to add prn statements to the mal implemenation 
+personally found is to add prn statements to the mal implementation 
 step (not your own implementation of mal) that is causing problems.
 
 Another approach I have frequently used is to pull out the code from

@@ -73,9 +73,9 @@ class Reader {
 
 func tokenizer(s: String) -> [String] {
     var tokens = [String]()
-    let range = NSMakeRange(0, s.utf16Count)
+    let range = NSMakeRange(0, count(s.utf16))
     let matches = token_regex.matchesInString(s, options:.allZeros, range:range)
-    for match in matches as [NSTextCheckingResult] {
+    for match in matches as! [NSTextCheckingResult] {
         if match.range.length > 0 {
             let token = (s as NSString).substringWithRange(match.rangeAtIndex(1))
             tokens.append(token)
@@ -89,9 +89,9 @@ private func have_match_at(match: NSTextCheckingResult, index:Int) -> Bool {
 }
 
 func read_atom(token: String) -> MalVal {
-    let range = NSMakeRange(0, token.utf16Count)
+    let range = NSMakeRange(0, count(token.utf16))
     let matches = atom_regex.matchesInString(token, options:.allZeros, range:range)
-    for match in matches as [NSTextCheckingResult] {
+    for match in matches as! [NSTextCheckingResult] {
         if have_match_at(match, 1) {                // Comment
             return MalComment(comment: token)
         } else if have_match_at(match, 2) {         // Integer
