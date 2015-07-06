@@ -220,6 +220,7 @@ module REPL
         Env.set env "readline" <| Env.makeBuiltInFunc (readline_func mode)
 
         RE env """
+            (def! *host-language* "fsharp")
             (def! not (fn* (a) (if a false true)))
             (def! load-file (fn* (f) (eval (read-string (slurp f)))))
             (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_ ~(first xs)) (if or_ or_ (or ~@(rest xs))))))))
