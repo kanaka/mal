@@ -176,7 +176,7 @@ MAL_STEP=stepX_YYY rebar compile escriptize # build individual step
 
 The F# implementation of mal has been tested on Linux using the Mono
 F# compiler (fsharpc) and the Mono runtime (version 3.12.1). The mono C#
-compiler is also necessary to compile the readline dependency. All are
+compiler (mcs) is also necessary to compile the readline dependency. All are
 required to build and run the F# implementation.
 
 ```
