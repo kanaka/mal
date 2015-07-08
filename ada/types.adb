@@ -357,6 +357,7 @@ package body Types is
      return T.The_Operand;
    end Get_Op;
 
+
    function Map_Nodes
      (Func_Ptr : Func_Access;
       L : Node_Mal_Type)
@@ -478,6 +479,25 @@ package body Types is
       end if;
    end Append;
 
+
+   function Duplicate (The_List : Node_Mal_Type) return Mal_Handle is
+   begin
+     if Is_Null (The_List.Right) then
+        return New_Node_Mal_Type (Left => The_List.Left, Right => The_List.Right);
+     elsif Sym_Type (Deref (The_List.Right).all) /= Node then
+        return New_Node_Mal_Type
+                 (Left => The_List.Left,
+                  Right => New_Node_Mal_Type
+                             (Left => The_List.Right,
+                              Right => Smart_Pointers.Null_Smart_Pointer));
+     else
+        return New_Node_Mal_Type
+                 (Left => The_List.Left,
+                  Right => Duplicate (Deref_Node (The_List.Right).all));
+     end if;
+   end Duplicate;
+     
+
    function Node_Length (L : Mal_Handle) return Natural is
       Right  : Mal_Handle;
    begin
@@ -497,6 +517,7 @@ package body Types is
          end if;
       end if;
    end Node_Length;
+
 
    -- Get the first item in the list:
    function Car (L : List_Mal_Type) return Mal_Handle is
@@ -666,6 +687,7 @@ package body Types is
                 New_Node_Mal_Type (Op, To_List.The_List));
    end Prepend;
 
+
    procedure Append (To_List : in out List_Mal_Type; Op : Mal_Handle) is
       Node_P : Node_Ptr;
    begin
@@ -678,6 +700,66 @@ package body Types is
       Node_P := Deref_Node (To_List.The_List);
       Append (Node_P.all, Op);
    end Append;
+
+
+   -- Duplicate copies the list (logically) but the list created has it's last element in
+   -- the left side of a Node and the right side is null.  This is to allow concatenation,
+   function Duplicate (The_List : List_Mal_Type) return Mal_Handle is
+   begin
+      if Is_Null (The_List.The_List) then
+         return New_List_Mal_Type (The_List.List_Type);
+      else
+         return New_List_Mal_Type
+                  (The_List.List_Type,
+                   Duplicate (Deref_Node (The_List.The_List).all));
+      end if;
+   end Duplicate;
+
+
+   -- Could track last node in list instead of this:
+   function Last_Node (N : Node_Ptr) return Node_Ptr is
+      Res, Next : Node_Ptr;
+   begin
+      Res := N;
+      Next := N;
+      while Next /= null loop
+         Res := Next;
+         Next := Deref_Node (Next.Right);
+      end loop;
+      return Res;
+   end Last_Node;
+        
+      
+   function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, List : Types.List_Mal_Type;
+      Res_List_Handle, Dup_List : Mal_Handle;
+      Last_Node_P : Node_Ptr := null;
+   begin
+      Rest_List := Rest_Handle;
+      --Rest_List := Deref_List (Rest_Handle).all;
+      while not Is_Null (Rest_List) loop
+         -- Find the next list in the list...
+         List := Deref_List (Car (Rest_List)).all;
+         -- Duplicate nodes to its contents. 
+         Dup_List := Duplicate (List);
+
+         -- Insert the duped list into the result using the last_node_p
+         -- as the insertion point.,,
+         if Last_Node_P = null then
+            Res_List_Handle := Dup_List;
+         else
+            Last_Node_P.Right := Deref_List (Dup_List).The_List;
+         end if;
+
+         -- Find the last node in the duplicated list.
+         Last_Node_P := Last_Node (Deref_Node (Deref_List (Dup_List).The_List));
+         
+         Rest_List := Deref_List (Cdr (Rest_List)).all;
+      end loop;
+      return Res_List_Handle;
+   end Concat;
+
 
    function Deref_List (SP : Mal_Handle) return List_Ptr is
    begin

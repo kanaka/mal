@@ -119,6 +119,31 @@ package body Core is
    end Count;
 
 
+   function Cons (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : Types.List_Mal_Type;
+      First_Param, List_Handle : Mal_Handle;
+      List : List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      List_Handle := Cdr (Rest_List);
+      List := Deref_List (List_Handle).all;
+      List_Handle := Car (List);
+      List := Deref_List (List_Handle).all;
+      return Prepend (First_Param, List);
+   end Cons;
+
+
+   function Concat (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      return Types.Concat (Rest_List, Env);
+   end Concat;
+
+
    function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
@@ -318,6 +343,14 @@ package body Core is
       Set (Get_Current,
            "count",
            New_Func_Mal_Type ("count", Count'access));
+
+      Set (Get_Current,
+           "cons",
+           New_Func_Mal_Type ("cons", Cons'access));
+
+      Set (Get_Current,
+           "concat",
+           New_Func_Mal_Type ("concat", Concat'access));
 
       Set (Get_Current,
            "list",

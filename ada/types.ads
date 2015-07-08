@@ -211,6 +211,9 @@ package Types is
    function Cat_Str (T : List_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String;
 
+   function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
+   return Types.Mal_Handle;  -- a new list
+
    type List_Ptr is access all List_Mal_Type;
 
    function Deref_List (SP : Mal_Handle) return List_Ptr;
