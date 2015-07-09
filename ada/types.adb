@@ -737,8 +737,12 @@ package body Types is
       Last_Node_P : Node_Ptr := null;
    begin
       Rest_List := Rest_Handle;
-      --Rest_List := Deref_List (Rest_Handle).all;
+
+      -- Set the result to the null list.
+      Res_List_Handle := New_List_Mal_Type (List_List);
+
       while not Is_Null (Rest_List) loop
+
          -- Find the next list in the list...
          List := Deref_List (Car (Rest_List)).all;
          -- Duplicate nodes to its contents. 
