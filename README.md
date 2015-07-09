@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 42 different languages:
+Mal is implemented in 43 different languages:
 
 * GNU awk
 * Bash shell
@@ -48,6 +48,7 @@ Mal is implemented in 42 different languages:
 * Rust
 * Scala
 * Swift
+* Tcl
 * Vimscript
 * Visual Basic.NET
 
@@ -532,6 +533,18 @@ language and standard library.
 cd swift
 make
 ./stepX_YYY
+```
+
+### Tcl 8.6
+
+*The Tcl implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Tcl implementation of mal requires Tcl 8.6 to run.  For readline line
+editing support, install tclreadline.
+
+```
+cd tcl
+tclsh ./stepX_YYY.tcl
 ```
 
 ### Vimscript
