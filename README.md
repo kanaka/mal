@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 36 different languages:
+Mal is implemented in 37 different languages:
 
 * Bash shell
 * C
@@ -14,6 +14,7 @@ Mal is implemented in 36 different languages:
 * CoffeeScript
 * Crystal
 * Erlang
+* F#
 * Factor
 * Forth
 * Go
@@ -167,6 +168,21 @@ make
     # OR
 MAL_STEP=stepX_YYY rebar compile escriptize # build individual step
 ./stepX_YYY
+```
+
+### F# ###
+
+*The F# implementation was created by [Peter Stephens (pstephens)](https://github.com/pstephens)*
+
+The F# implementation of mal has been tested on Linux using the Mono
+F# compiler (fsharpc) and the Mono runtime (version 3.12.1). The mono C#
+compiler (mcs) is also necessary to compile the readline dependency. All are
+required to build and run the F# implementation.
+
+```
+cd fsharp
+make
+mono ./stepX_YYY.exe
 ```
 
 ### Factor

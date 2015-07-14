@@ -28,6 +28,9 @@ clojure/.lein-repl-history
 erlang/ebin
 erlang/.rebar
 erlang/src/*.beam
+fsharp/*.exe
+fsharp/*.dll
+fsharp/*.mdb
 go/step*
 go/mal
 java/target/

@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp crystal cs erlang factor forth go groovy \
+IMPLS = bash c clojure coffee cpp crystal cs erlang factor forth fsharp go groovy \
 	haskell java julia js lua make mal ocaml matlab miniMAL nim \
 	perl php ps python r racket rpython ruby rust scala swift vb guile
 
@@ -31,6 +31,7 @@ EXCLUDE_TESTS += test^c^step5    # segfault
 EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
 EXCLUDE_TESTS += test^erlang^step5 # erlang is TCO, test passes
+EXCLUDE_TESTS += test^fsharp^step5 # completes at 10,000, fatal stack overflow at 100,000
 EXCLUDE_TESTS += test^haskell^step5 # test completes
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
 EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
@@ -63,6 +64,7 @@ cs_STEP_TO_PROG =      cs/$($(1)).exe
 erlang_STEP_TO_PROG =  erlang/$($(1))
 factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
+fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
 go_STEP_TO_PROG =      go/$($(1))
 groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
@@ -106,6 +108,7 @@ cs_RUNSTEP =      mono ../$(2) --raw $(3)
 erlang_RUNSTEP =  ../$(2) $(3)
 factor_RUNSTEP =  factor ../$(2) $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
+fsharp_RUNSTEP =  mono ../$(2) --raw $(3)
 go_RUNSTEP =      ../$(2) $(3)
 groovy_RUNSTEP =  groovy ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
