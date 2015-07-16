@@ -147,6 +147,17 @@ sub mal_map {
     return List->new(\@arr);
 }
 
+sub conj {
+    my ($lst, @args) = @{$_[0]->{val}};
+    my $new_lst = _clone($lst);
+    if (_list_Q($new_lst)) {
+        unshift @{$new_lst->{val}}, reverse @args;
+    } else {
+        push @{$new_lst->{val}}, @args;
+    }
+    return $new_lst;
+}
+
 
 # Metadata functions
 sub with_meta {
@@ -228,7 +239,7 @@ our $core_ns = {
     'count' => sub { count($_[0]->nth(0)) },
     'apply' => sub { apply($_[0]) },
     'map' => sub { mal_map($_[0]->nth(0), $_[0]->nth(1)) },
-    'conj' => sub { die "not implemented\n"; },
+    'conj' => \&conj,
 
     'with-meta' => sub { with_meta($_[0]->nth(0), $_[0]->nth(1)) },
     'meta' => sub { meta($_[0]->nth(0)) },
