@@ -42,7 +42,7 @@ void append_to_history() {
 #ifdef USE_READLINE
     append_history(1, hf);
 #else
-    HIST_ENTRY *he = history_get(history_length-1);
+    HIST_ENTRY *he = history_get(history_base+history_length-1);
     FILE *fp = fopen(hf, "a");
     if (fp) {
         fprintf(fp, "%s\n", he->line);
