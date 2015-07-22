@@ -51,20 +51,11 @@ sub _equal_Q {
 sub _clone {
     my ($obj) = @_;
     given (ref $obj) {
-        when (/^List/) {
-            return List->new( [ @{$obj->{val}} ] );
-        }
-        when (/^Vector/) {
-            return Vector->new( [ @{$obj->{val}} ] );
-        }
-        when (/^HashMap/) {
-            return HashMap->new( { %{$obj->{val}} } );
-        }
-        when (/^Function/) {
-            return Function->new_from_hash( { %{$obj} } );
+        when (/^CODE/) {
+            return FunctionRef->new( $obj );
         }
         default {
-            die "Clone of non-collection\n";
+            return bless {%{$obj}}, ref $obj;
         }
     }
 }
@@ -201,7 +192,6 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
                'params'=>$params,
                'ismacro'=>0}, $class
     }
-    sub new_from_hash { my $class = shift; bless $_[0], $class }
     sub gen_env {
         my $self = $_[0];
         return Env->new($self->{env}, $self->{params}, $_[1]);
@@ -209,6 +199,22 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
     sub apply {
         my $self = $_[0];
         return &{ $self->{eval} }($self->{ast}, gen_env($self, $_[1]));
+    }
+}
+
+
+# FunctionRef
+
+{
+    package FunctionRef;
+    sub new {
+        my ($class, $code) = @_;
+        bless {'meta'=>$nil,
+               'code'=>$code}, $class
+    }
+    sub apply {
+        my $self = $_[0];
+        return &{ $self->{code} }($_[1]);
     }
 }
 
