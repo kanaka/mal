@@ -237,7 +237,7 @@ namespace Mal {
                 fileIdx = 1;
             }
             MalList _argv = new MalList();
-            for (int i=fileIdx; i < args.Length; i++) {
+            for (int i=fileIdx+1; i < args.Length; i++) {
                 _argv.conj_BANG(new MalString(args[i]));
             }
             repl_env.set(new MalSymbol("*ARGV*"), _argv);
