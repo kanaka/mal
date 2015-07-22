@@ -45,7 +45,7 @@ function M._pr_str(obj, print_readably)
         return "(fn* "..M._pr_str(obj.params).." "..M._pr_str(obj.ast)..")"
     elseif types._atom_Q(obj) then
         return "(atom "..M._pr_str(obj.val)..")"
-    elseif type(obj) == 'function' then
+    elseif type(obj) == 'function' or types._functionref_Q(obj) then
         return "#<function>"
     else
         return string.format("%s", obj)
