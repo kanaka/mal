@@ -159,6 +159,20 @@ function swap_BANG(atm,f,...)
     return atm.val
 end
 
+local function conj(obj, ...)
+    local new_obj = types.copy(obj)
+    if types._list_Q(new_obj) then
+        for i, v in ipairs(arg) do
+            table.insert(new_obj, 1, v)
+        end
+    else
+        for i, v in ipairs(arg) do
+            table.insert(new_obj, v)
+        end
+    end
+    return new_obj
+end
+
 M.ns = {
     ['='] =  types._equal_Q,
     throw = types.throw,
@@ -213,7 +227,7 @@ M.ns = {
     count =  function(a) return #a end,
     apply = apply,
     map = map,
-    conj = function(...) return Nil end,
+    conj = conj,
 
     meta = meta,
     ['with-meta'] = with_meta,
