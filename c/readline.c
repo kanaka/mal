@@ -42,7 +42,12 @@ void append_to_history() {
 #ifdef USE_READLINE
     append_history(1, hf);
 #else
+#if defined(RL_READLINE_VERSION)
     HIST_ENTRY *he = history_get(history_base+history_length-1);
+#else
+    // libedit-2 segfaults if we add history_base
+    HIST_ENTRY *he = history_get(history_length-1);
+#endif
     FILE *fp = fopen(hf, "a");
     if (fp) {
         fprintf(fp, "%s\n", he->line);
