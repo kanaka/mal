@@ -357,6 +357,11 @@ package body Types is
      return T.The_Operand;
    end Get_Op;
 
+   function Deref_Unitary (SP : Mal_Handle) return Unitary_Ptr is
+   begin
+      return Unitary_Ptr (Deref (SP));
+   end Deref_Unitary;
+
 
    function Map_Nodes
      (Func_Ptr : Func_Access;

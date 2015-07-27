@@ -146,6 +146,10 @@ package Types is
 
    function Get_Op (T : Unitary_Mal_Type) return Mal_Handle;
 
+   type Unitary_Ptr is access all Unitary_Mal_Type;
+
+   function Deref_Unitary (SP : Mal_Handle) return Unitary_Ptr;
+
 
    -- Lists.
 

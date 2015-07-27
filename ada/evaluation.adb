@@ -233,6 +233,8 @@ package body Evaluation is
 			   end if;
 			end;
 
+		     elsif Atom_P.Get_Atom = "quote" then
+                        return Car (Rest_List);
 		     else -- not a special form
 
 			-- Apply section
@@ -315,6 +317,16 @@ package body Evaluation is
 
 	 end;
 
+      elsif Deref (Param).Sym_Type = Unitary then
+         declare
+            UMT : Types.Unitary_Mal_Type;
+         begin
+            UMT := Deref_Unitary (Param).all;
+            case UMT.Get_Func is
+               when Quote => return UMT.Get_Op;
+               when others => null;
+            end case;
+         end;
       else
 
          return Eval_Ast (Param, Env);
