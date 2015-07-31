@@ -26,7 +26,7 @@ export function _equal_Q (a, b) {
         return false;
     }
     switch (ota) {
-    case 'symbol': return a.value === b.value;
+    case 'symbol': return a.name === b.name;
     case 'list':
     case 'vector':
         if (a.length !== b.length) { return false; }
