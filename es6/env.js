@@ -9,21 +9,15 @@ export function new_env(outer={}, binds=[], exprs=[]) {
             e[binds[i]] = exprs[i];
         }
     }
-    Object.defineProperties(e, {
-        "get": {
-                value: function(sym) {
-                    if (sym.name in this) {
-                        return this[sym.name]
-                    } else {
-                        throw Error("'" + sym + "' not found")
-                    }
-                }
-        },
-        "set": {
-            value: function(sym, val) {
-                return this[sym.name] = val;
-            }
-        }
-    });
     return e;
+}
+export function env_get(env, sym) {
+    if (sym.name in env) {
+        return env[sym.name]
+    } else {
+        throw Error("'" + sym + "' not found")
+    }
+}
+export function env_set(env, sym, val) {
+    return env[sym.name] = val;
 }

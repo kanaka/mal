@@ -3,6 +3,7 @@ import { Sym, _list_Q } from './types';
 import { BlankException, read_str } from './reader';
 import { pr_str } from './printer';
 import { new_env, env_set, env_get } from './env';
+import { core_ns } from './core';
 
 // read
 const READ = (str) => read_str(str);
@@ -31,6 +32,17 @@ const EVAL = (ast, env) => {
                 env_set(let_env, a1[i], EVAL(a1[i+1], let_env));
             }
             return EVAL(a2, let_env);
+        case "do":
+            return eval_ast(ast.slice(1), env)[ast.length-2];
+        case "if":
+            let cond = EVAL(a1, env);
+            if (cond === null || cond === false) {
+                return typeof a3 !== "undefined" ? EVAL(a3, env) : null;
+            } else {
+                return EVAL(a2, env);
+            }
+        case "fn*":
+            return (...args) => EVAL(a2, new_env(env, a1, args));
         default:
             let [f, ...args] = eval_ast(ast, env);
             return f(...args);
@@ -42,11 +54,13 @@ const PRINT = (exp) => pr_str(exp, true);
 
 // repl
 let repl_env = new_env();
-env_set(repl_env, new Sym('+'), (a,b) => a+b);
-env_set(repl_env, new Sym('-'), (a,b) => a-b);
-env_set(repl_env, new Sym('*'), (a,b) => a*b);
-env_set(repl_env, new Sym('/'), (a,b) => a/b);
 const REP = (str) => PRINT(EVAL(READ(str), repl_env));
+
+// core.EXT: defined using ES6
+for (let [k, v] of core_ns) { env_set(repl_env, new Sym(k), v) }
+
+// core.mal: defined using language itself
+REP("(def! not (fn* (a) (if a false true)))")
 
 while (true) {
     let line = readline("user> ");
