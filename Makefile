@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp crystal cs erlang factor forth fsharp go groovy \
+IMPLS = bash c clojure coffee cpp crystal cs erlang es6 factor forth fsharp go groovy \
 	haskell java julia js lua make mal ocaml matlab miniMAL nim \
 	perl php ps python r racket rpython ruby rust scala swift vb guile
 
@@ -62,6 +62,7 @@ cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
 erlang_STEP_TO_PROG =  erlang/$($(1))
+es6_STEP_TO_PROG =     es6/build/$($(1)).js
 factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
@@ -106,6 +107,7 @@ cpp_RUNSTEP =     ../$(2) $(3)
 crystal_RUNSTEP = ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
 erlang_RUNSTEP =  ../$(2) $(3)
+es6_RUNSTEP =     node ../$(2) $(3)
 factor_RUNSTEP =  factor ../$(2) $(3)
 forth_RUNSTEP =   gforth ../$(2) $(3)
 fsharp_RUNSTEP =  mono ../$(2) --raw $(3)

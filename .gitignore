@@ -1,10 +1,8 @@
 */experiments
 make/mal.mk
-miniMAL/node_modules
-js/node_modules
+*/node_modules
 js/mal.js
 js/mal_web.js
-coffee/node_modules
 bash/mal.sh
 c/*.o
 *.pyc
@@ -61,3 +59,4 @@ nim/nimcache
 .sbt
 groovy/*.class
 .crystal
+es6/build
