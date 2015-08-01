@@ -1,6 +1,9 @@
-import * as types from './types';
+import { _equal_Q, _list_Q, Sym } from './types';
 import { pr_str } from './printer';
 import { read_str } from './reader';
+
+// Errors/Exceptions
+function mal_throw(exc) { throw exc; }
 
 // String functions
 function do_pr_str(...args) {
@@ -37,16 +40,20 @@ function slurp(f) {
 }
 
 // Sequence functions
-function cons(a, b) { return [a].concat(b); }
-
-function concat(lst) {
-    lst = lst || [];
-    return lst.concat.apply(lst, Array.prototype.slice.call(arguments, 1));
+function nth(lst, idx) {
+    if (idx < lst.length) { return lst[idx]; }
+    else                  { throw new Error("nth: index out of range"); }
 }
 
-// types.ns is namespace of type functions
+// core_ns is namespace of type functions
 export const core_ns = new Map([
-        ['=', types._equal_Q],
+        ['=', _equal_Q],
+        ['throw', mal_throw],
+        ['nil?', a => a === null],
+        ['true?', a => a === true],
+        ['false?', a => a === false],
+        ['symbol', a => new Sym(a)],
+        ['symbol?', a => a instanceof Sym],
 
         ['pr-str', do_pr_str],
         ['str', str],
@@ -66,9 +73,15 @@ export const core_ns = new Map([
         ["time-ms", () => new Date().getTime()],
 
         ['list', (...a) => a],
-        ['list?', types._list_Q],
+        ['list?', _list_Q],
 
         ['cons', (a,b) => [a].concat(b)],
         ['concat', (...a) => a.reduce((x,y) => x.concat(y), [])],
+        ['nth', nth],
+        ['first', a => a.length > 0 ? a[0] : null],
+        ['rest', a => a.slice(1)],
         ['empty?', a => a.length === 0],
-        ['count', a => a === null ? 0 : a.length]]);
+        ['count', a => a === null ? 0 : a.length],
+        ['apply', (f,...a) => f(...a.slice(0, -1).concat(a[a.length-1]))],
+        ['map', (f,a) => a.map(x => f(x))]
+        ]);
