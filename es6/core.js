@@ -1,5 +1,6 @@
-import { _equal_Q, _list_Q, Sym } from './types';
+import { _equal_Q, _list_Q, _clone, Sym, Atom } from './types';
 import { pr_str } from './printer';
+import { readline } from './node_readline';
 import { read_str } from './reader';
 
 // Errors/Exceptions
@@ -45,6 +46,21 @@ function nth(lst, idx) {
     else                  { throw new Error("nth: index out of range"); }
 }
 
+function conj(lst, ...args) {
+    return b.slice(1).reverse().concat(lst);
+}
+
+// Metadata functions
+function meta(obj) {
+    return 'meta' in obj ? obj['meta'] : null;
+}
+
+function with_meta(obj, m) {
+    let new_obj = _clone(obj);
+    new_obj.meta = m;
+    return new_obj;
+}
+
 // core_ns is namespace of type functions
 export const core_ns = new Map([
         ['=', _equal_Q],
@@ -59,7 +75,8 @@ export const core_ns = new Map([
         ['str', str],
         ['prn', prn],
         ['println', println],
-        ['read-string',read_str],
+        ['read-string', read_str],
+        ['readline', readline],
         ['slurp', slurp],
 
         ['<' , (a,b) => a<b],
@@ -83,5 +100,15 @@ export const core_ns = new Map([
         ['empty?', a => a.length === 0],
         ['count', a => a === null ? 0 : a.length],
         ['apply', (f,...a) => f(...a.slice(0, -1).concat(a[a.length-1]))],
-        ['map', (f,a) => a.map(x => f(x))]
+        ['map', (f,a) => a.map(x => f(x))],
+
+        ['conj', conj],
+
+        ['meta', meta],
+        ['with-meta', with_meta],
+        ['atom', a => new Atom(a)],
+        ['atom?', a => a instanceof Atom],
+        ['deref', atm => atm.val],
+        ['reset!', (atm,a) => atm.val = a],
+        ['swap!', (atm,f,args) => atm.val = f(...[atm.val].concat(args))]
         ]);

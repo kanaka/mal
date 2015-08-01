@@ -19,6 +19,18 @@ export function _obj_type(obj) {
     }
 }
 
+export function _clone(obj) {
+    if (obj instanceof Sym) {
+        return new Sym(obj.name);
+    } else if (_list_Q(obj)) {
+        return obj.slice(0);
+    } else if (obj instanceof Function) {
+        return obj.clone();
+    } else {
+        throw Error("Unsupported type for clone");
+    }
+}
+
 
 export function _equal_Q (a, b) {
     var ota = _obj_type(a), otb = _obj_type(b);
@@ -53,11 +65,23 @@ export function _malfunc(f, ast, env, params) {
     f.ast = ast;
     f.env = env;
     f.params = params;
+    f.gen_env = args => new Env(env, params, args);
     f.meta = null;
     f.ismacro = false;
     return f;
 }
 export const _malfunc_Q = f => f.ast ? true : false;
+Function.prototype.clone = function() {
+    var that = this;
+    var temp = function () { return that.apply(this, arguments); };
+    for( let key in this ) {
+        if (this.hasOwnProperty(key)) {
+            temp[key] = this[key];
+        }
+    }
+    return temp;
+};
+
 
 // Symbols
 export class Sym {
@@ -70,3 +94,8 @@ export const _symbol_Q = obj => obj instanceof Sym;
 
 // Lists
 export const _list_Q = obj => Array.isArray(obj) && !obj.__isvector__;
+
+// Atoms
+export class Atom {
+    constructor(val) { this.val = val; }
+}

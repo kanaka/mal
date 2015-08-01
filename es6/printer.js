@@ -1,4 +1,4 @@
-import { Sym } from './types';
+import { Sym, Atom } from './types';
 
 export function pr_str(obj, print_readably) {
     if (typeof print_readably === 'undefined') { print_readably = true; }
@@ -18,6 +18,8 @@ export function pr_str(obj, print_readably) {
         }
     } else if (obj === null) {
         return "nil";
+    } else if (obj instanceof Atom) {
+        return "(atom " + obj.val + ")";
     } else {
         return obj.toString();
     }
