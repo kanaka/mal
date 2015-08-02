@@ -1,5 +1,5 @@
 import { readline } from './node_readline';
-import { Sym, _list_Q } from './types';
+import { Sym, _list_Q, _vector, _vector_Q, _hash_map_Q } from './types';
 import { BlankException, read_str } from './reader';
 import { pr_str } from './printer';
 import { new_env, env_set, env_get } from './env';
@@ -14,12 +14,21 @@ const eval_ast = (ast, env) => {
         return env_get(env, ast)
     } else if (_list_Q(ast)) {
         return ast.map((x) => EVAL(x, env));
+    } else if (_vector_Q(ast)) {
+        return _vector(...ast.map((x) => EVAL(x, env)));
+    } else if (_hash_map_Q(ast)) {
+        let new_hm = new Map();
+        for (let [k, v] of ast) {
+            new_hm.set(EVAL(k, env), EVAL(v, env));
+        }
+        return new_hm;
     } else {
         return ast;
     }
 }
 
 const EVAL = (ast, env) => {
+    //console.log("EVAL:", pr_str(ast, true));
     if (!_list_Q(ast)) { return eval_ast(ast, env) }
 
     let [{ name: a0sym }, a1, a2, a3] = ast;

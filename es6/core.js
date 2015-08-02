@@ -1,4 +1,7 @@
-import { _equal_Q, _list_Q, _clone, Sym, Atom } from './types';
+import { _equal_Q, _clone, _list_Q, _sequential_Q,
+         _keyword, _keyword_Q, _vector, _vector_Q,
+         _hash_map, _hash_map_Q, _assoc_BANG, _dissoc_BANG,
+         Sym, Atom } from './types';
 import { pr_str } from './printer';
 import { readline } from './node_readline';
 import { read_str } from './reader';
@@ -47,7 +50,23 @@ function nth(lst, idx) {
 }
 
 function conj(lst, ...args) {
-    return b.slice(1).reverse().concat(lst);
+    if (_list_Q(lst)) {
+        return args.reverse().concat(lst);
+    } else {
+        return _vector(...lst.concat(args));
+    }
+}
+
+function keys(hm) {
+    let ks = [];
+    for (let k of hm.keys()) { ks.push(k) };
+    return ks;
+}
+
+function vals(hm) {
+    let vs = [];
+    for (let v of hm.values()) { vs.push(v) };
+    return vs;
 }
 
 // Metadata functions
@@ -65,11 +84,14 @@ function with_meta(obj, m) {
 export const core_ns = new Map([
         ['=', _equal_Q],
         ['throw', mal_throw],
+
         ['nil?', a => a === null],
         ['true?', a => a === true],
         ['false?', a => a === false],
         ['symbol', a => new Sym(a)],
         ['symbol?', a => a instanceof Sym],
+        ['keyword', a => _keyword(a)],
+        ['keyword?', a => _keyword_Q(a)],
 
         ['pr-str', do_pr_str],
         ['str', str],
@@ -91,7 +113,18 @@ export const core_ns = new Map([
 
         ['list', (...a) => a],
         ['list?', _list_Q],
+        ['vector', _vector],
+        ['vector?', _vector_Q],
+        ['hash-map', _hash_map],
+        ['map?', _hash_map_Q],
+        ['assoc', (m,...a) => _assoc_BANG(_clone(m), ...a)],
+        ['dissoc', (m,...a) => _dissoc_BANG(_clone(m), ...a)],
+        ['get', (m,a) => m === null ? null : m.has(a) ? m.get(a) : null],
+        ['contains?', (m,a) => m.has(a)],
+        ['keys', keys],
+        ['vals', vals],
 
+        ['sequential?', _sequential_Q],
         ['cons', (a,b) => [a].concat(b)],
         ['concat', (...a) => a.reduce((x,y) => x.concat(y), [])],
         ['nth', nth],
@@ -110,5 +143,5 @@ export const core_ns = new Map([
         ['atom?', a => a instanceof Atom],
         ['deref', atm => atm.val],
         ['reset!', (atm,a) => atm.val = a],
-        ['swap!', (atm,f,args) => atm.val = f(...[atm.val].concat(args))]
+        ['swap!', (atm,f,...args) => atm.val = f(...[atm.val].concat(args))]
         ]);

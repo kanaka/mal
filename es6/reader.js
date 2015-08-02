@@ -1,4 +1,4 @@
-import * as types from './types';
+import { _symbol, _keyword, _vector, _hash_map } from './types';
 
 export class BlankException extends Error {}
 
@@ -34,7 +34,7 @@ function read_atom (reader) {
             .replace(/\\"/g, '"')
             .replace(/\\n/g, "\n"); // string
     } else if (token[0] === ":") {
-        return types._keyword(token.slice(1));
+        return _keyword(token.slice(1));
     } else if (token === "nil") {
         return null;
     } else if (token === "true") {
@@ -42,7 +42,7 @@ function read_atom (reader) {
     } else if (token === "false") {
         return false;
     } else {
-        return types._symbol(token); // symbol
+        return _symbol(token); // symbol
     }
 }
 
@@ -65,28 +65,46 @@ function read_list(reader, start, end) {
     return ast;
 }
 
+// read vector of tokens
+function read_vector(reader) {
+    return _vector(...read_list(reader, '[', ']'));
+}
+
+// read hash-map key/value pairs
+function read_hash_map(reader) {
+    return _hash_map(...read_list(reader, '{', '}'));
+}
+
 function read_form(reader) {
     var token = reader.peek();
     switch (token) {
     // reader macros/transforms
     case ';': return null; // Ignore comments
     case '\'': reader.next();
-               return [types._symbol('quote'), read_form(reader)];
+               return [_symbol('quote'), read_form(reader)];
     case '`': reader.next();
-              return [types._symbol('quasiquote'), read_form(reader)];
+              return [_symbol('quasiquote'), read_form(reader)];
     case '~': reader.next();
-              return [types._symbol('unquote'), read_form(reader)];
+              return [_symbol('unquote'), read_form(reader)];
     case '~@': reader.next();
-               return [types._symbol('splice-unquote'), read_form(reader)];
+               return [_symbol('splice-unquote'), read_form(reader)];
     case '^': reader.next();
               var meta = read_form(reader);
-              return [types._symbol('with-meta'), read_form(reader), meta];
+              return [_symbol('with-meta'), read_form(reader), meta];
     case '@': reader.next();
-              return [types._symbol('deref'), read_form(reader)];
+              return [_symbol('deref'), read_form(reader)];
 
     // list
     case ')': throw new Error("unexpected ')'");
     case '(': return read_list(reader);
+
+    // vector
+    case ']': throw new Error("unexpected ']'");
+    case '[': return read_vector(reader);
+
+    // hash-map
+    case '}': throw new Error("unexpected '}'");
+    case '{': return read_hash_map(reader);
 
     // atom
     default:  return read_atom(reader);
