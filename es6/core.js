@@ -1,44 +1,26 @@
 import { _equal_Q, _clone, _list_Q, _sequential_Q,
          _keyword, _keyword_Q, _vector, _vector_Q,
          _hash_map, _hash_map_Q, _assoc_BANG, _dissoc_BANG,
-         Sym, Atom } from './types';
-import { pr_str } from './printer';
-import { readline } from './node_readline';
-import { read_str } from './reader';
+         _symbol, _symbol_Q, Atom } from './types'
+import { pr_str } from './printer'
+import { readline } from './node_readline'
+import { read_str } from './reader'
 
 // Errors/Exceptions
 function mal_throw(exc) { throw exc; }
 
 // String functions
-function do_pr_str(...args) {
-    return args.map(exp => pr_str(exp, true)).join(" ");
-}
-
-function str(...args) {
-    return args.map(exp => pr_str(exp, false)).join("");
-}
-
-function prn(...args) {
-    console.log.apply({}, args.map(exp => pr_str(exp, true)));
-    return null;
-}
-
-function println(...args) {
-    console.log.apply({}, args.map(exp => pr_str(exp, false)));
-    return null;
-}
-
 function slurp(f) {
     if (typeof require !== 'undefined') {
-        return require('fs').readFileSync(f, 'utf-8');
+        return require('fs').readFileSync(f, 'utf-8')
     } else {
-        var req = new XMLHttpRequest();
-        req.open("GET", f, false);
-        req.send();
+        var req = new XMLHttpRequest()
+        req.open('GET', f, false)
+        req.send()
         if (req.status == 200) {
-            return req.responseText;
+            return req.responseText
         } else {
-            throw new Error("Failed to slurp file: " + f);
+            throw new Error(`Failed to slurp file: ${f}`)
         }
     }
 }
@@ -46,38 +28,36 @@ function slurp(f) {
 // Sequence functions
 function nth(lst, idx) {
     if (idx < lst.length) { return lst[idx]; }
-    else                  { throw new Error("nth: index out of range"); }
+    else                  { throw new Error('nth: index out of range'); }
 }
 
 function conj(lst, ...args) {
     if (_list_Q(lst)) {
-        return args.reverse().concat(lst);
+        return args.reverse().concat(lst)
     } else {
-        return _vector(...lst.concat(args));
+        return _vector(...lst.concat(args))
     }
 }
 
 function keys(hm) {
-    let ks = [];
-    for (let k of hm.keys()) { ks.push(k) };
-    return ks;
+    // TODO: Array.from(hm.keys()) when supported
+    let ks = []
+    for (let k of hm.keys()) { ks.push(k) }
+    return ks
 }
 
 function vals(hm) {
-    let vs = [];
-    for (let v of hm.values()) { vs.push(v) };
-    return vs;
+    // TODO: Array.from(hm.keys()) when supported
+    let vs = []
+    for (let v of hm.values()) { vs.push(v) }
+    return vs
 }
 
 // Metadata functions
-function meta(obj) {
-    return 'meta' in obj ? obj['meta'] : null;
-}
-
 function with_meta(obj, m) {
-    let new_obj = _clone(obj);
-    new_obj.meta = m;
-    return new_obj;
+    let new_obj = _clone(obj)
+    new_obj.meta = m
+    return new_obj
 }
 
 // core_ns is namespace of type functions
@@ -88,15 +68,15 @@ export const core_ns = new Map([
         ['nil?', a => a === null],
         ['true?', a => a === true],
         ['false?', a => a === false],
-        ['symbol', a => new Sym(a)],
-        ['symbol?', a => a instanceof Sym],
+        ['symbol', a => _symbol(a)],
+        ['symbol?', a => _symbol_Q(a)],
         ['keyword', a => _keyword(a)],
         ['keyword?', a => _keyword_Q(a)],
 
-        ['pr-str', do_pr_str],
-        ['str', str],
-        ['prn', prn],
-        ['println', println],
+        ['pr-str', (...a) => a.map(e => pr_str(e,1)).join(' ')],
+        ['str', (...a) => a.map(e => pr_str(e,0)).join('')],
+        ['prn', (...a) => console.log(...a.map(e => pr_str(e,1))) || null],
+        ['println', (...a) => console.log(...a.map(e => pr_str(e,0))) || null],
         ['read-string', read_str],
         ['readline', readline],
         ['slurp', slurp],
@@ -137,11 +117,11 @@ export const core_ns = new Map([
 
         ['conj', conj],
 
-        ['meta', meta],
+        ['meta', a => 'meta' in a ? a['meta'] : null],
         ['with-meta', with_meta],
         ['atom', a => new Atom(a)],
         ['atom?', a => a instanceof Atom],
         ['deref', atm => atm.val],
         ['reset!', (atm,a) => atm.val = a],
         ['swap!', (atm,f,...args) => atm.val = f(...[atm.val].concat(args))]
-        ]);
+        ])

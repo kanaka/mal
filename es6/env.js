@@ -1,23 +1,21 @@
 export function new_env(outer={}, binds=[], exprs=[]) {
-    var e = Object.setPrototypeOf({}, outer);
+    var e = Object.setPrototypeOf({}, outer)
     // Bind symbols in binds to values in exprs
     for (var i=0; i<binds.length; i++) {
-        if (binds[i] == "&") {
-            e[binds[i+1]] = exprs.slice(i); // variable length arguments
-            break;
+        if (Symbol.keyFor(binds[i]) === "&") {
+            e[binds[i+1]] = exprs.slice(i) // variable length arguments
+            break
         } else {
-            e[binds[i]] = exprs[i];
+            e[binds[i]] = exprs[i]
         }
     }
-    return e;
+    return e
 }
-export function env_get(env, sym) {
-    if (sym.name in env) {
-        return env[sym.name]
+export const env_get = (env, sym) => {
+    if (sym in env) {
+        return env[sym]
     } else {
-        throw Error("'" + sym + "' not found")
+        throw Error(`'${Symbol.keyFor(sym)}' not found`)
     }
 }
-export function env_set(env, sym, val) {
-    return env[sym.name] = val;
-}
+export const env_set = (env, sym, val) => env[sym] = val
