@@ -13,8 +13,8 @@ Mal is implemented in 38 different languages:
 * Clojure
 * CoffeeScript
 * Crystal
-* ES6 (ECMAScript 6 / ECMAScript 2015)
 * Erlang
+* ES6 (ECMAScript 6 / ECMAScript 2015)
 * F#
 * Factor
 * Forth
@@ -157,19 +157,6 @@ make   # needed to run tests
 ./stepX_YYY
 ```
 
-### ES6 (ECMAScript 6 / ECMAScript 2015)
-
-The ES6 implementation uses the [babel](https://babeljs.io) compiler
-to generate ES5 compatible JavaScript. The generated code has been
-tested with Node 0.12.4.
-
-```
-cd es6
-make
-node build/stepX_YYY.js
-```
-
-
 ### Erlang
 
 *The Erlang implementation was created by [Nathan Fiedler (nlfiedler)](https://github.com/nlfiedler)*
@@ -183,6 +170,19 @@ make
 MAL_STEP=stepX_YYY rebar compile escriptize # build individual step
 ./stepX_YYY
 ```
+
+### ES6 (ECMAScript 6 / ECMAScript 2015)
+
+The ES6 implementation uses the [babel](https://babeljs.io) compiler
+to generate ES5 compatible JavaScript. The generated code has been
+tested with Node 0.12.4.
+
+```
+cd es6
+make
+node build/stepX_YYY.js
+```
+
 
 ### F# ###
 
