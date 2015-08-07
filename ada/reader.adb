@@ -252,46 +252,66 @@ package body Reader is
    return Types.Mal_Handle is
 
       use Types;
-      List_SP, MTA, Params, Expr, Close_Lambda : Mal_Handle;
-      List_P : List_Ptr;
-      Close : String (1..1) := (1 => Types.Closing (LT));
+      MTA : Mal_Handle;
 
    begin
-
-      List_SP := New_List_Mal_Type (List_Type => LT);
-
-      -- Need to append to a variable so...
-      List_P := Deref_List (List_SP);
 
       MTA := Read_Form;
 
       if Deref (MTA).Sym_Type = Atom and then
          Deref_Atom (MTA).Get_Atom = "fn*" then
 
-         Params := Read_Form;
-         Expr := Read_Form;
-         Close_Lambda := Read_Form;  -- the ) at the end of the lambda
-         return New_Lambda_Mal_Type (Params, Expr);
+         declare
+            Params, Expr, Close_Lambda : Mal_Handle;
+         begin
+            Params := Read_Form;
+            Expr := Read_Form;
+            Close_Lambda := Read_Form;  -- the ) at the end of the lambda
+            return New_Lambda_Mal_Type (Params, Expr);
+         exception
+            when Lexical_Error =>
+
+              -- List_MT about to go out of scope but its a Mal_Handle
+              -- so it is automatically garbage collected.
+
+              return New_Error_Mal_Type (Str => "Lexical error in fn*");
+
+         end;
 
       else
 
-         loop
-            exit when Is_Null (MTA) or else
-                      (Deref (MTA).Sym_Type = Atom and then
-                       Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close);
-            Append (List_P.all, MTA);
-            MTA := Read_Form;
-         end loop;
-         return List_SP;
+         declare
+            List_SP : Mal_Handle;
+            List_P : List_Ptr;
+            Close : String (1..1) := (1 => Types.Closing (LT));
+         begin
+            List_SP := New_List_Mal_Type (List_Type => LT);
+
+            -- Need to append to a variable so...
+            List_P := Deref_List (List_SP);
+            loop
+               exit when Is_Null (MTA) or else
+                         (Deref (MTA).Sym_Type = Atom and then
+                          Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close);
+               Append (List_P.all, MTA);
+               MTA := Read_Form;
+            end loop;
+            return List_SP;
+         exception
+            when Lexical_Error =>
+
+              -- List_MT about to go out of scope but its a Mal_Handle
+              -- so it is automatically garbage collected.
+
+              return New_Error_Mal_Type (Str => "expected '" & Close & "'");
+
+         end;
       end if;
 
    exception
       when Lexical_Error =>
 
-        -- List_MT about to go out of scope but its a Mal_Handle
-        -- so it is automatically garbage collected.
-
-        return New_Error_Mal_Type (Str => "expected '" & Close & "'");
+        return New_Error_Mal_Type (Str => "Lexical error in Read_List");
 
    end Read_List;
 
