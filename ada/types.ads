@@ -181,6 +181,8 @@ package Types is
 
    function Length (L : List_Mal_Type) return Natural;
 
+   function Is_Pair (L : List_Mal_Type) return Boolean;
+
    -- Get the first item in the list:
    function Car (L : List_Mal_Type) return Mal_Handle;
 

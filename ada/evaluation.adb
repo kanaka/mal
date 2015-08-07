@@ -147,6 +147,77 @@ package body Evaluation is
    end Do_Processing;
 
 
+   function Quasi_Quote_Processing (Param : Mal_Handle) return Mal_Handle is
+      Res, First_Elem : Mal_Handle;
+      D, Ast : List_Mal_Type;
+      L : List_Ptr;
+   begin
+
+      if Deref (Param).Sym_Type /= List then
+         return Param;
+      end if;
+
+      Ast := Deref_List (Param).all;
+
+      -- Create a New List for the result...
+      Res := New_List_Mal_Type (List_List);
+      L := Deref_List (Res);
+
+      -- if is_pair of ast is false:
+      -- return a new list containing: a symbol named "quote" and ast.
+      if not Is_Pair (Ast) then
+
+         L.Append (New_Atom_Mal_Type ("quote"));
+         L.Append (Param);
+         return Res;
+
+      else
+
+         -- else if the first element of ast is a symbol...
+         First_Elem := Car (Ast);
+         if Deref (First_Elem).Sym_Type = Atom then
+
+            -- named "unquote":
+            if Deref_Atom (First_Elem).Get_Atom = "unquote" then
+
+               -- return the second element of ast.`
+               D := Deref_List (Cdr (Ast)).all;
+               return Car (D);
+
+            -- named "splice-unquote":
+            elsif Deref_Atom (First_Elem).Get_Atom = "splice-quote" then
+
+               -- return a new list containing: a symbol named "concat",
+               L.Append (New_Atom_Mal_Type ("concat"));
+
+               -- the second element of first element of ast (ast[0][1]),
+               D := Deref_List (Cdr (Ast)).all;
+               L.Append (Car (D));
+
+               -- and the result of calling quasiquote with
+               -- the second through last element of ast.
+               L.Append (Quasi_Quote_Processing (Cdr (D)));
+
+               return Res;
+
+            end if;
+         end if;
+      end if;
+
+      -- otherwise: return a new list containing: a symbol named "cons",
+      L.Append (New_Atom_Mal_Type ("cons"));
+
+      -- the result of calling quasiquote on first element of ast (ast[0]),
+      L.Append (Quasi_Quote_Processing (Car (Ast)));
+
+      -- and result of calling quasiquote with the second through last element of ast.
+      L.Append (Quasi_Quote_Processing (Cdr (Ast)));
+
+      return Res;
+
+   end Quasi_Quote_Processing;
+
+
    function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
 		 return Mal_Handle is
       Param : Mal_Handle;
@@ -235,6 +306,9 @@ package body Evaluation is
 
 		     elsif Atom_P.Get_Atom = "quote" then
                         return Car (Rest_List);
+		     elsif Atom_P.Get_Atom = "quasiquote" then
+		        Param := Quasi_Quote_Processing (Car (Rest_List));
+		        goto Tail_Call_Opt;
 		     else -- not a special form
 
 			-- Apply section
@@ -323,7 +397,11 @@ package body Evaluation is
          begin
             UMT := Deref_Unitary (Param).all;
             case UMT.Get_Func is
-               when Quote => return UMT.Get_Op;
+               when Quote =>
+                  return UMT.Get_Op;
+               when QuasiQuote =>
+		  Param := Quasi_Quote_Processing (UMT.Get_Op);
+                  goto Tail_Call_Opt;
                when others => null;
             end case;
          end;
