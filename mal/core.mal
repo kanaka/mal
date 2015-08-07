@@ -49,6 +49,8 @@
    ["apply" apply]
    ["map" map]
 
+   ["conj" conj]
+
    ["with-meta" with-meta]
    ["meta" meta]
    ["atom" atom]
