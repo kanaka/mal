@@ -353,11 +353,44 @@ package body Reader is
                   return Obj;
                end;
             elsif Symbol = ACL.Apostrophe & "" then
-               return New_Unitary_Mal_Type (Func => Quote, Op => Read_Form);
+
+               declare
+                  List_SP : Mal_Handle;
+                  List_P : List_Ptr;
+               begin
+                  List_SP := New_List_Mal_Type (List_Type => List_List);
+                  List_P := Deref_List (List_SP);
+                  Append (List_P.all, New_Atom_Mal_Type ("quote"));
+                  Append (List_P.all, Read_Form);
+                  return List_SP;
+               end;
+
             elsif Symbol = ACL.Grave & "" then
-               return New_Unitary_Mal_Type (Func => Quasiquote, Op => Read_Form);
+
+               declare
+                  List_SP : Mal_Handle;
+                  List_P : List_Ptr;
+               begin
+                  List_SP := New_List_Mal_Type (List_Type => List_List);
+                  List_P := Deref_List (List_SP);
+                  Append (List_P.all, New_Atom_Mal_Type ("quasiquote"));
+                  Append (List_P.all, Read_Form);
+                  return List_SP;
+               end;
+
             elsif Symbol = ACL.Tilde & "" then
-               return New_Unitary_Mal_Type (Func => Unquote, Op => Read_Form);
+
+               declare
+                  List_SP : Mal_Handle;
+                  List_P : List_Ptr;
+               begin
+                  List_SP := New_List_Mal_Type (List_Type => List_List);
+                  List_P := Deref_List (List_SP);
+                  Append (List_P.all, New_Atom_Mal_Type ("unquote"));
+                  Append (List_P.all, Read_Form);
+                  return List_SP;
+               end;
+
             elsif Symbol = ACL.Commercial_At & "" then
                return New_Unitary_Mal_Type (Func => Deref, Op => Read_Form);
             else

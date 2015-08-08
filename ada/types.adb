@@ -693,7 +693,7 @@ package body Types is
    return Mal_Handle is
    begin
       return New_List_Mal_Type
-               (To_List.Get_List_Type,
+               (List_List,
                 New_Node_Mal_Type (Op, To_List.The_List));
    end Prepend;
 
@@ -714,13 +714,14 @@ package body Types is
 
    -- Duplicate copies the list (logically) but the list created has it's last element in
    -- the left side of a Node and the right side is null.  This is to allow concatenation,
+   -- The result is always a List_List.
    function Duplicate (The_List : List_Mal_Type) return Mal_Handle is
    begin
       if Is_Null (The_List.The_List) then
-         return New_List_Mal_Type (The_List.List_Type);
+         return New_List_Mal_Type (List_List);
       else
          return New_List_Mal_Type
-                  (The_List.List_Type,
+                  (List_List,
                    Duplicate (Deref_Node (The_List.The_List).all));
       end if;
    end Duplicate;

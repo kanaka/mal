@@ -153,18 +153,21 @@ package body Evaluation is
       L : List_Ptr;
    begin
 
-      if Deref (Param).Sym_Type /= List then
-         return Param;
-      end if;
-
-      Ast := Deref_List (Param).all;
-
       -- Create a New List for the result...
       Res := New_List_Mal_Type (List_List);
       L := Deref_List (Res);
 
+      if Deref (Param).Sym_Type /= List then
+         L.Append (New_Atom_Mal_Type ("quote"));
+         L.Append (Param);
+         return Res;
+      end if;
+
+      Ast := Deref_List (Param).all;
+
       -- if is_pair of ast is false:
       -- return a new list containing: a symbol named "quote" and ast.
+      -- CMM Is_Pair???  There might be scope for some re-arranging here.
       if not Is_Pair (Ast) then
 
          L.Append (New_Atom_Mal_Type ("quote"));
@@ -309,6 +312,9 @@ package body Evaluation is
 		     elsif Atom_P.Get_Atom = "quasiquote" then
 		        Param := Quasi_Quote_Processing (Car (Rest_List));
 		        goto Tail_Call_Opt;
+		     elsif Atom_P.Get_Atom = "unquote" then
+		        Param := Car (Rest_List);
+		        goto Tail_Call_Opt;
 		     else -- not a special form
 
 			-- Apply section
@@ -401,6 +407,9 @@ package body Evaluation is
                   return UMT.Get_Op;
                when QuasiQuote =>
 		  Param := Quasi_Quote_Processing (UMT.Get_Op);
+                  goto Tail_Call_Opt;
+               when Unquote =>
+		  Param := UMT.Get_Op;
                   goto Tail_Call_Opt;
                when others => null;
             end case;
