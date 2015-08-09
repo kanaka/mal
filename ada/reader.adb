@@ -401,7 +401,16 @@ package body Reader is
       elsif Deref(MTS).Sym_Type = Unitary and then
             Unitary_Mal_Type (Deref (MTS).all).Get_Func = Splice_Unquote then
 
-         return New_Unitary_Mal_Type (Func => Splice_Unquote, Op => Read_Form);
+         declare
+            List_SP : Mal_Handle;
+            List_P : List_Ptr;
+         begin
+            List_SP := New_List_Mal_Type (List_Type => List_List);
+            List_P := Deref_List (List_SP);
+            Append (List_P.all, New_Atom_Mal_Type ("splice-unquote"));
+            Append (List_P.all, Read_Form);
+            return List_SP;
+         end;
 
       else
          return MTS;

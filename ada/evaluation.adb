@@ -148,63 +148,72 @@ package body Evaluation is
 
 
    function Quasi_Quote_Processing (Param : Mal_Handle) return Mal_Handle is
-      Res, First_Elem : Mal_Handle;
+      Res, First_Elem, FE_0 : Mal_Handle;
       D, Ast : List_Mal_Type;
       L : List_Ptr;
    begin
+
+      if Debug then
+         Ada.Text_IO.Put_Line ("QuasiQt " & Deref (Param).To_String);
+      end if;
 
       -- Create a New List for the result...
       Res := New_List_Mal_Type (List_List);
       L := Deref_List (Res);
 
-      if Deref (Param).Sym_Type /= List then
+      -- This is the equivalent of Is_Pair
+      if Deref (Param).Sym_Type /= List or else
+         Is_Null (Deref_List (Param).all) then
+
+         -- return a new list containing: a symbol named "quote" and ast.
          L.Append (New_Atom_Mal_Type ("quote"));
          L.Append (Param);
          return Res;
+
       end if;
+
+      -- Ast is a non-empty list at this point.
 
       Ast := Deref_List (Param).all;
 
-      -- if is_pair of ast is false:
-      -- return a new list containing: a symbol named "quote" and ast.
-      -- CMM Is_Pair???  There might be scope for some re-arranging here.
-      if not Is_Pair (Ast) then
+      First_Elem := Car (Ast);
 
-         L.Append (New_Atom_Mal_Type ("quote"));
-         L.Append (Param);
-         return Res;
+      -- if the first element of ast is a symbol named "unquote":
+      if Deref (First_Elem).Sym_Type = Atom and then
+         Deref_Atom (First_Elem).Get_Atom = "unquote" then
 
-      else
+         -- return the second element of ast.`
+         D := Deref_List (Cdr (Ast)).all;
+         return Car (D);
 
-         -- else if the first element of ast is a symbol...
-         First_Elem := Car (Ast);
-         if Deref (First_Elem).Sym_Type = Atom then
+      end if;
 
-            -- named "unquote":
-            if Deref_Atom (First_Elem).Get_Atom = "unquote" then
+      -- if the first element of first element of `ast` (`ast[0][0]`)
+      -- is a symbol named "splice-unquote"
+      if Deref (First_Elem).Sym_Type = List and then
+         not Is_Null (Deref_List (First_Elem).all) then
 
-               -- return the second element of ast.`
-               D := Deref_List (Cdr (Ast)).all;
-               return Car (D);
+         D := Deref_List (First_Elem).all;
+         FE_0 := Car (D);
 
-            -- named "splice-unquote":
-            elsif Deref_Atom (First_Elem).Get_Atom = "splice-quote" then
+         if Deref (FE_0).Sym_Type = Atom and then
+            Deref_Atom (FE_0).Get_Atom = "splice-unquote" then
 
-               -- return a new list containing: a symbol named "concat",
-               L.Append (New_Atom_Mal_Type ("concat"));
+            -- return a new list containing: a symbol named "concat",
+            L.Append (New_Atom_Mal_Type ("concat"));
 
-               -- the second element of first element of ast (ast[0][1]),
-               D := Deref_List (Cdr (Ast)).all;
-               L.Append (Car (D));
+            -- the second element of first element of ast (ast[0][1]),
+            D := Deref_List (Cdr (D)).all;
+            L.Append (Car (D));
 
-               -- and the result of calling quasiquote with
-               -- the second through last element of ast.
-               L.Append (Quasi_Quote_Processing (Cdr (D)));
+            -- and the result of calling quasiquote with
+            -- the second through last element of ast.
+            L.Append (Quasi_Quote_Processing (Cdr (Ast)));
 
-               return Res;
+            return Res;
 
-            end if;
          end if;
+
       end if;
 
       -- otherwise: return a new list containing: a symbol named "cons",

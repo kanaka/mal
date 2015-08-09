@@ -571,11 +571,6 @@ package body Types is
       return Smart_Pointers."="(L.The_List, Null_Smart_Pointer);
    end Is_Null;
 
-   function Is_Pair (L : List_Mal_Type) return Boolean is
-   begin
-      return not Is_Null (Car (L));
-   end Is_Pair;
-
    function Null_List (L : List_Types) return List_Mal_Type is
    begin
       return (Mal_Type with List_Type => L,
