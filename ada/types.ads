@@ -48,6 +48,8 @@ package Types is
    function To_String (T : Mal_Type'Class; Print_Readably : Boolean := True)
    return Mal_String;
 
+   function Is_Macro_Call (T : Mal_Type'Class; Env : Envs.Env_Handle) return Boolean;
+
    type Mal_Ptr is access all Mal_Type'Class;
 
    -- A helper function that just view converts the smart pointer to
@@ -261,7 +263,13 @@ package Types is
 
    function Get_Expr (L : Lambda_Mal_Type) return Mal_Handle;
 
+   function Get_Is_Macro (L : Lambda_Mal_Type) return Boolean;
+
+   procedure Set_Is_Macro (L : in out Lambda_Mal_Type; B : Boolean);
+
    type Lambda_Ptr is access all Lambda_Mal_Type;
+
+   function Get_Macro (T : Mal_Handle; Env : Envs.Env_Handle) return Lambda_Ptr;
 
    function Deref_Lambda (SP : Mal_Handle) return Lambda_Ptr;
 
@@ -384,8 +392,9 @@ private
 
 
    type Lambda_Mal_Type is new Mal_Type with record
-       Env : Envs.Env_Handle;
-       Params, Expr : Mal_Handle;
+      Env : Envs.Env_Handle;
+      Params, Expr : Mal_Handle;
+      Is_Macro : Boolean;
    end record;
 
    overriding function To_Str 

@@ -76,6 +76,39 @@ package body Types is
       end if;
    end To_String;
 
+   function Is_Macro_Call (T : Mal_Type'Class; Env : Envs.Env_Handle) return Boolean is
+      L : List_Mal_Type;
+      First_Elem, Func : Mal_Handle;
+   begin
+
+      if T.Sym_Type /= List then
+         return False;
+      end if;
+
+      L := List_Mal_Type (T);
+
+      if Is_Null (L) then
+         return False;
+      end if;
+
+      First_Elem := Car (L);
+
+      if Deref (First_Elem).Sym_Type /= Atom then
+         return False;
+      end if;
+
+      Func := Envs.Get (Env, Deref_Atom (First_Elem).Get_Atom);
+
+      if Deref (Func).Sym_Type /= Lambda then
+         return False;
+      end if;
+
+      return Deref_Lambda (Func).Get_Is_Macro;
+
+   exception
+      when Envs.Not_Found => return False;
+   end Is_Macro_Call;
+
 
    -- A helper function that just view converts the smart pointer.
    function Deref (S : Mal_Handle) return Mal_Ptr is
@@ -852,7 +885,8 @@ package body Types is
         (new Lambda_Mal_Type'
           (Mal_Type with Env => Envs.Get_Current,
            Params => Params,
-           Expr => Expr));
+           Expr => Expr,
+           Is_Macro => False));
    end New_Lambda_Mal_Type;
 
    overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types is
@@ -879,6 +913,51 @@ package body Types is
    begin
       return L.Expr;
    end Get_Expr;
+
+   function Get_Is_Macro (L : Lambda_Mal_Type) return Boolean is
+   begin
+      return L.Is_Macro;
+   end Get_Is_Macro;
+
+   procedure Set_Is_Macro (L : in out Lambda_Mal_Type; B : Boolean) is
+   begin
+      L.Is_Macro := B;
+   end Set_Is_Macro;
+
+
+   function Get_Macro (T : Mal_Handle; Env : Envs.Env_Handle) return Lambda_Ptr is
+      L : List_Mal_Type;
+      First_Elem, Func : Mal_Handle;
+   begin
+
+      if Deref (T).Sym_Type /= List then
+         return null;
+      end if;
+
+      L := Deref_List (T).all;
+
+      if Is_Null (L) then
+         return null;
+      end if;
+
+      First_Elem := Car (L);
+
+      if Deref (First_Elem).Sym_Type /= Atom then
+         return null;
+      end if;
+
+      Func := Envs.Get (Env, Deref_Atom (First_Elem).Get_Atom);
+
+      if Deref (Func).Sym_Type /= Lambda then
+         return null;
+      end if;
+
+      return Deref_Lambda (Func);
+
+   exception
+      when Envs.Not_Found => return null;
+   end Get_Macro;
+
 
    overriding function To_Str 
      (T : Lambda_Mal_Type; Print_Readably : Boolean := True)

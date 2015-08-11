@@ -38,6 +38,66 @@ package body Evaluation is
    end Def_Fn;
 
 
+   function Def_Macro (Args : List_Mal_Type; Env : Envs.Env_Handle)
+		   return Mal_Handle is
+      Name, Fn_Body, Res : Mal_Handle;
+      Lambda_P : Lambda_Ptr;
+   begin
+      Name := Car (Args);
+      pragma Assert (Deref (Name).Sym_Type = Atom,
+                     "Def_Macro: expected atom as name");
+      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+      Res := Eval (Fn_Body, Env);
+      Lambda_P := Deref_Lambda (Res);
+      Lambda_P.Set_Is_Macro (True);
+      Envs.Set (Envs.Get_Current, Deref_Atom (Name).Get_Atom, Res);
+      return Res;
+   end Def_Macro;
+
+
+   function Macro_Expand (Ast : Mal_Handle; Env : Envs.Env_Handle)
+   return Mal_Handle is
+      Res : Mal_Handle;
+      LP : Lambda_Ptr;
+      LMT : List_Mal_Type;
+   begin
+
+      Res := Ast;
+
+      loop
+
+         if Deref (Res).Sym_Type /= List then
+            return Res;
+         end if;
+
+         LMT := Deref_List (Res).all;
+
+         LP := Get_Macro (Res, Env);
+
+      exit when LP = null or else not LP.Get_Is_Macro;
+
+	  declare
+	     Fn_List : Mal_Handle := Cdr (LMT);
+	     Params : List_Mal_Type;
+	     E : Envs.Env_Handle;
+	  begin
+	     E := Envs.New_Env (LP.Get_Env);
+	     Params := Deref_List (LP.Get_Params).all;
+	     if Envs.Bind (E, Params, Deref_List (Fn_List).all) then
+
+	        Res := Eval (LP.Get_Expr, E); 
+      
+             end if;
+
+	  end;
+
+      end loop;
+
+      return Res;
+
+   end Macro_Expand;
+
+
    function Let_Processing (Args : List_Mal_Type; Env : Envs.Env_Handle)
 			   return Mal_Handle is
       Defs, Expr, Res : Mal_Handle;
@@ -246,6 +306,12 @@ package body Evaluation is
          Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
       end if;
 
+      Param := Macro_Expand (Param, Env);
+
+      if Debug then
+         Ada.Text_IO.Put_Line ("After expansion " & Deref (Param).To_String);
+      end if;
+
       if Deref (Param).Sym_Type = List and then
 	Deref_List (Param).all.Get_List_Type = List_List then
 
@@ -277,6 +343,10 @@ package body Evaluation is
 		     Atom_P := Deref_Atom (First_Elem);
 		     if Atom_P.Get_Atom = "def!" then
 			return Def_Fn (Rest_List, Env);
+		     elsif Atom_P.Get_Atom = "defmacro!" then
+			return Def_Macro (Rest_List, Env);
+		     elsif Atom_P.Get_Atom = "macroexpand" then
+			return Macro_Expand (Rest_Handle, Env);
 		     elsif Atom_P.Get_Atom = "let*" then
 			return Let_Processing (Rest_List, Env);
 		     elsif Atom_P.Get_Atom = "do" then
@@ -320,9 +390,6 @@ package body Evaluation is
                         return Car (Rest_List);
 		     elsif Atom_P.Get_Atom = "quasiquote" then
 		        Param := Quasi_Quote_Processing (Car (Rest_List));
-		        goto Tail_Call_Opt;
-		     elsif Atom_P.Get_Atom = "unquote" then
-		        Param := Car (Rest_List);
 		        goto Tail_Call_Opt;
 		     else -- not a special form
 
