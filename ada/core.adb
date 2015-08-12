@@ -144,6 +144,30 @@ package body Core is
    end Concat;
 
 
+   function First (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, First_List : Types.List_Mal_Type;
+      First_Param : Mal_Handle;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      First_List := Deref_List (First_Param).all;
+      return Types.Car (First_List);
+   end First;
+
+
+   function Rest (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, First_List : Types.List_Mal_Type;
+      First_Param : Mal_Handle;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      First_List := Deref_List (First_Param).all;
+      return Types.Cdr (First_List);
+   end Rest;
+
+
    function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
@@ -351,6 +375,14 @@ package body Core is
       Set (Get_Current,
            "concat",
            New_Func_Mal_Type ("concat", Concat'access));
+
+      Set (Get_Current,
+           "first",
+           New_Func_Mal_Type ("first", First'access));
+
+      Set (Get_Current,
+           "rest",
+           New_Func_Mal_Type ("rest", Rest'access));
 
       Set (Get_Current,
            "list",
