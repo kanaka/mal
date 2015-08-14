@@ -396,54 +396,6 @@ package body Types is
    end Deref_Unitary;
 
 
-   function Map_Nodes
-     (Func_Ptr : Func_Access;
-      L : Node_Mal_Type)
-   return Mal_Handle is
-   begin
-      if not Is_Null (L.Right) then
-         if Deref (L.Right).Sym_Type = Node then
-            return New_Node_Mal_Type
-                     (Left => Func_Ptr.all (L.Left),
-                      Right => Map_Nodes (Func_Ptr, Deref_Node (L.Right).all));
-         else
-            -- Left and right are both filled.
-            return New_Node_Mal_Type
-                     (Left => Func_Ptr.all (L.Left),
-                      Right => Func_Ptr.all (L.Right));
-         end if;
-      else  -- Right is null.
-         return New_Node_Mal_Type
-                  (Left => Func_Ptr.all (L.Left),
-                   Right => Smart_Pointers.Null_Smart_Pointer);
-      end if;
-   end Map_Nodes;
-
-
-   function Reduce_Nodes
-     (Func_Ptr : Binary_Func_Access;
-      L : Node_Mal_Type)
-   return Mal_Handle is
-      C_Node : Node_Mal_Type := L;
-      Res : Mal_Handle;
-   begin
-      if Is_Null (C_Node.Left) then
-         return Smart_Pointers.Null_Smart_Pointer;
-      end if;
-      Res := C_Node.Left;
-      while not Is_Null (C_Node.Right) and then
-            Deref (C_Node.Right).Sym_Type = Node loop
-
-         C_Node := Deref_Node (C_Node.Right).all;
-         Res := Func_Ptr (Res, C_Node.Left);
-      end loop;
-      if not Is_Null (C_Node.Right) then
-         Res := Func_Ptr (Res, C_Node.Right);
-      end if;
-      return Res;
-   end Reduce_Nodes;
-
-
    overriding function To_Str 
      (T : Unitary_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String is
@@ -471,8 +423,8 @@ package body Types is
          Deref (A).Sym_Type = Deref (B).Sym_Type then
          if Deref (A).Sym_Type = Node then
             return
-              Nodes_Equal (Deref_Node (A).Left, Deref_Node (B).Left) and then
-              Nodes_Equal (Deref_Node (A).Right, Deref_Node (B).Right);
+              Nodes_Equal (Deref_Node (A).Data, Deref_Node (B).Data) and then
+              Nodes_Equal (Deref_Node (A).Next, Deref_Node (B).Next);
          else
             return A = B; 
          end if;
@@ -483,78 +435,22 @@ package body Types is
       end if;
    end Nodes_Equal;
 
-   function New_Node_Mal_Type (Left, Right : Mal_Handle :=
-                        Smart_Pointers.Null_Smart_pointer)
+
+   function New_Node_Mal_Type
+     (Data : Mal_Handle;
+      Next : Mal_Handle := Smart_Pointers.Null_Smart_Pointer)
    return Mal_Handle is
    begin
       return Smart_Pointers.New_Ptr
-        (new Node_Mal_Type' (Mal_Type with Left => Left, Right => Right));
+        (new Node_Mal_Type'
+          (Mal_Type with Data => Data, Next => Next));
    end New_Node_Mal_Type;
+
 
    overriding function Sym_Type (T : Node_Mal_Type) return Sym_Types is
    begin
       return Node;
    end Sym_Type;
-
-   procedure Append (To_List : in out Node_Mal_Type; Op : Mal_Handle) is
-   begin
-      if Is_Null (To_List.Left) then
-         To_List.Left := Op;
-      elsif Is_Null (To_List.Right) then
-         To_List.Right := Op;
-      elsif Sym_Type (Deref (To_List.Right).all) = Node then
-         declare
-            Node_P : Node_Ptr;
-         begin
-            Node_P := Deref_Node (To_List.Right);
-            Append (Node_P.all, Op);
-         end;
-      else
-         -- Right is not null and not a node i.e. a full node.
-         To_List.Right := New_Node_Mal_Type
-            (Left => To_List.Right,
-             Right => Op);
-      end if;
-   end Append;
-
-
-   function Duplicate (The_List : Node_Mal_Type) return Mal_Handle is
-   begin
-     if Is_Null (The_List.Right) then
-        return New_Node_Mal_Type (Left => The_List.Left, Right => The_List.Right);
-     elsif Sym_Type (Deref (The_List.Right).all) /= Node then
-        return New_Node_Mal_Type
-                 (Left => The_List.Left,
-                  Right => New_Node_Mal_Type
-                             (Left => The_List.Right,
-                              Right => Smart_Pointers.Null_Smart_Pointer));
-     else
-        return New_Node_Mal_Type
-                 (Left => The_List.Left,
-                  Right => Duplicate (Deref_Node (The_List.Right).all));
-     end if;
-   end Duplicate;
-     
-
-   function Node_Length (L : Mal_Handle) return Natural is
-      Right  : Mal_Handle;
-   begin
-      if Is_Null (L) then
-         return 0;
-      else
-         Right := Deref_Node (L).Right;
-         if Is_Null (Right) then
-            -- Its a node; there must be something in the Left, right? ;)
-            return 1;
-         elsif Deref (Right).Sym_Type = Node then
-            -- Right is a node so recurse but +1 for the Left just passed.
-            return Node_Length (Right) + 1;
-         else
-            -- Right is not null but not node.
-            return 2;
-         end if;
-      end if;
-   end Node_Length;
 
 
    -- Get the first item in the list:
@@ -563,40 +459,44 @@ package body Types is
       if Is_Null (L.The_List) then
          return Smart_Pointers.Null_Smart_Pointer;
       else
-         return Deref_Node (L.The_List).Left;
+         return Deref_Node (L.The_List).Data;
       end if;
    end Car;
    
    
    -- Get the rest of the list (second item onwards)
    function Cdr (L : List_Mal_Type) return Mal_Handle is
+      Res : Mal_Handle;
+      LP : List_Ptr;
    begin
+
+      Res := New_List_Mal_Type (L.List_Type);
+
       if Is_Null (L.The_List) or else
-         Is_Null (Deref_Node (L.The_List).Right) then
-         return New_List_Mal_Type (L.List_Type);
+         Is_Null (Deref_Node (L.The_List).Next) then
+         return Res;
+      else
+         LP := Deref_List (Res);
+         LP.The_List := Deref_Node (L.The_List).Next;
+         LP.Last_Elem := L.Last_Elem;
+         return Res;
       end if;
-      declare
-         Node_P : Node_Ptr;
-      begin 
-         Node_P := Deref_Node (L.The_List);
-         -- Clojure lists are constants?
-         -- If not, need to copy P.Right to a new list...
-         -- Or maybe we copy on write?
-         if Deref (Node_P.Right).Sym_Type = Node then
-            return New_List_Mal_Type (L.List_Type, Node_P.Right);
-         else
-            -- Right is not a Node! We'd better make one.
-            return New_List_Mal_Type
-                     (L.List_Type,
-                      New_Node_Mal_Type (Left => Node_P.Right));
-         end if;
-      end;
    end Cdr;
 
+
    function Length (L : List_Mal_Type) return Natural is
+      Res : Natural;
+      NP : Node_Ptr;
    begin
-      return Node_Length (L.The_List);
+      Res := 0;
+      NP := Deref_Node (L.The_List);
+      while NP /= null loop
+         Res := Res + 1;
+         NP := Deref_Node (NP.Next);
+      end loop;
+      return Res;
    end Length;
+
 
    function Is_Null (L : List_Mal_Type) return Boolean is
       use Smart_Pointers;
@@ -604,10 +504,12 @@ package body Types is
       return Smart_Pointers."="(L.The_List, Null_Smart_Pointer);
    end Is_Null;
 
+
    function Null_List (L : List_Types) return List_Mal_Type is
    begin
       return (Mal_Type with List_Type => L,
-              The_List => Smart_Pointers.Null_Smart_Pointer);
+              The_List => Smart_Pointers.Null_Smart_Pointer,
+              Last_Elem => Smart_Pointers.Null_Smart_Pointer);
    end Null_List;
 
 
@@ -615,64 +517,110 @@ package body Types is
      (Func_Ptr : Func_Access;
       L : List_Mal_Type)
    return Mal_Handle is
+
+      Res, Old_List, First_New_Node, New_List : Mal_Handle;
+      LP : List_Ptr;
+
    begin
-      if Is_Null (L.The_List) then
-         return New_List_Mal_Type (L.Get_List_Type);
-      else
-         return New_List_Mal_Type
-           (L.Get_List_Type,
-            Map_Nodes (Func_Ptr, Deref_Node (L.The_List).all));
+
+      Res := New_List_Mal_Type (List_Type => L.Get_List_Type);
+
+      Old_List := L.The_List;
+
+      if Is_Null (Old_List) then
+         return Res;
       end if;
+
+      First_New_Node := New_Node_Mal_Type (Func_Ptr.all (Deref_Node (Old_List).Data));
+
+      New_List := First_New_Node;
+
+      Old_List := Deref_Node (Old_List).Next;
+
+      while not Is_Null (Old_List) loop
+
+         Deref_Node (New_List).Next :=
+           New_Node_Mal_Type (Func_Ptr.all (Deref_Node (Old_List).Data));
+
+         New_List := Deref_Node (New_List).Next;
+
+         Old_List := Deref_Node (Old_List).Next;
+
+      end loop;
+
+      LP := Deref_List (Res);
+      LP.The_List := First_New_Node;
+      LP.Last_Elem := New_List;
+
+      return Res;
+
    end Map;
+
 
    function Reduce
      (Func_Ptr : Binary_Func_Access;
       L : List_Mal_Type)
    return Mal_Handle is
+
+      C_Node : Node_Ptr;
+      Res : Mal_Handle;
+      use Smart_Pointers;
+
    begin
-      if Is_Null (L.The_List) then
-         return New_List_Mal_Type (L.Get_List_Type);
-      else
-         return Reduce_Nodes (Func_Ptr, Deref_Node (L.The_List).all);
+
+      C_Node := Deref_Node (L.The_List);
+
+      if C_Node = null then
+         return Smart_Pointers.Null_Smart_Pointer;
       end if;
+
+      Res := C_Node.Data;
+      while not Is_Null (C_Node.Next) loop
+         C_Node := Deref_Node (C_Node.Next);
+         Res := Func_Ptr (Res, C_Node.Data);
+      end loop;
+
+      return Res;
+
    end Reduce;
+
 
    overriding function To_Str 
      (T : Node_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String is
    begin
-      if Is_Null (T.Left) then
+      if Is_Null (T.Data) then
          -- Left is null and by implication so is right.
          return "";
-      elsif Is_Null (T.Right) then
+      elsif Is_Null (T.Next) then
         -- Left is not null but right is.
-        return To_Str (Deref (T.Left).all, Print_Readably);
+        return To_Str (Deref (T.Data).all, Print_Readably);
       else
         -- Left and right are both not null.
-        return To_Str (Deref (T.Left).all, Print_Readably) &
+        return To_Str (Deref (T.Data).all, Print_Readably) &
                " " &
-               To_Str (Deref (T.Right).all, Print_Readably);
+               To_Str (Deref (T.Next).all, Print_Readably);
       end if;
    end To_Str;
 
-   function Cat_Str (T : Node_Mal_Type; Print_Readably : Boolean := True) return Mal_String is
+
+   function Cat_Str (T : Node_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
    begin
-      if Is_Null (T.Left) then
+      if Is_Null (T.Data) then
          -- Left is null and by implication so is right.
          return "";
-      elsif Is_Null (T.Right) then
+      elsif Is_Null (T.Next) then
         -- Left is not null but right is.
-        return To_Str (Deref (T.Left).all, Print_Readably);
+        return To_Str (Deref (T.Data).all, Print_Readably);
 
       -- Left and right are both not null.
-      elsif Deref (T.Right).Sym_Type = Node then
-        return To_Str (Deref (T.Left).all, Print_Readably) &
-               Cat_Str (Deref_Node (T.Right).all, Print_Readably);
       else
-        return To_Str (Deref (T.Left).all, Print_Readably) &
-               To_Str (Deref (T.Right).all, Print_Readably);
+        return To_Str (Deref (T.Data).all, Print_Readably) &
+               Cat_Str (Deref_Node (T.Next).all, Print_Readably);
       end if;
    end Cat_Str;
+
 
    function Deref_Node (SP : Mal_Handle) return Node_Ptr is
    begin
@@ -692,7 +640,8 @@ package body Types is
      return Smart_Pointers.New_Ptr
         (new List_Mal_Type'(Mal_Type with
           List_Type => The_List.List_Type,
-          The_List => The_List.The_List));
+          The_List => The_List.The_List,
+          Last_Elem => The_List.Last_Elem));
    end New_List_Mal_Type;
 
 
@@ -702,20 +651,25 @@ package body Types is
    return Mal_Handle is
    begin
       return Smart_Pointers.New_Ptr
-        (new List_Mal_Type'(Mal_Type with
-          List_Type => List_Type,
-          The_List => The_First_Node));
+        (new List_Mal_Type'
+          (Mal_Type with
+            List_Type => List_Type,
+            The_List => The_First_Node,
+            Last_Elem => The_First_Node));
    end New_List_Mal_Type;
+
 
    overriding function Sym_Type (T : List_Mal_Type) return Sym_Types is
    begin
       return List;
    end Sym_Type;
 
+
    function Get_List_Type (L : List_Mal_Type) return List_Types is
    begin
       return L.List_Type;
    end Get_List_Type;
+
 
    function Prepend (Op : Mal_Handle; To_List : List_Mal_Type)
    return Mal_Handle is
@@ -727,53 +681,92 @@ package body Types is
 
 
    procedure Append (To_List : in out List_Mal_Type; Op : Mal_Handle) is
-      Node_P : Node_Ptr;
    begin
       if Is_Null (Op) then
          return;  -- Say what
       end if;
+
+      -- If the list is null just insert the new element
+      -- else use the last_elem pointer to insert it and then update it.
       if Is_Null (To_List.The_List) then
-         To_List.The_List := New_Node_Mal_Type;
+         To_List.The_List := New_Node_Mal_Type (Op);
+         To_List.Last_Elem := To_List.The_List;
+      else
+         Deref_Node (To_List.Last_Elem).Next := New_Node_Mal_Type (Op);
+         To_List.Last_Elem := Deref_Node (To_List.Last_Elem).Next;
       end if;
-      Node_P := Deref_Node (To_List.The_List);
-      Append (Node_P.all, Op);
    end Append;
 
 
-   -- Duplicate copies the list (logically) but the list created has it's last element in
-   -- the left side of a Node and the right side is null.  This is to allow concatenation,
+   -- Duplicate copies the list (logically).  This is to allow concatenation,
    -- The result is always a List_List.
    function Duplicate (The_List : List_Mal_Type) return Mal_Handle is
+      Res, Old_List, First_New_Node, New_List : Mal_Handle;
+      LP : List_Ptr;
    begin
-      if Is_Null (The_List.The_List) then
-         return New_List_Mal_Type (List_List);
-      else
-         return New_List_Mal_Type
-                  (List_List,
-                   Duplicate (Deref_Node (The_List.The_List).all));
+
+      Res := New_List_Mal_Type (List_List);
+
+      Old_List := The_List.The_List;
+
+      if Is_Null (Old_List) then
+         return Res;
       end if;
+
+      First_New_Node := New_Node_Mal_Type (Deref_Node (Old_List).Data);
+      New_List := First_New_Node;
+      Old_List := Deref_Node (Old_List).Next;
+
+      while not Is_Null (Old_List) loop
+
+         Deref_Node (New_List).Next := New_Node_Mal_Type (Deref_Node (Old_List).Data);
+         New_List := Deref_Node (New_List).Next;
+         Old_List := Deref_Node (Old_List).Next;
+
+      end loop;
+
+      LP := Deref_List (Res);
+      LP.The_List := First_New_Node;
+      LP.Last_Elem := New_List;
+
+      return Res;
+
    end Duplicate;
 
 
-   -- Could track last node in list instead of this:
-   function Last_Node (N : Node_Ptr) return Node_Ptr is
-      Res, Next : Node_Ptr;
+   function Nth (L : List_Mal_Type; N : Natural) return Mal_Handle is
+
+      C : Natural;
+      Next : Mal_Handle;
+
    begin
-      Res := N;
-      Next := N;
-      while Next /= null loop
-         Res := Next;
-         Next := Deref_Node (Next.Right);
+
+      C := 0;
+
+      Next := L.The_List;
+
+      while not Is_Null (Next) loop
+
+         if C >= N then
+            return Next;
+         end if;
+
+         C := C + 1;
+
+         Next := Deref_Node (Next).Next;
+
       end loop;
-      return Res;
-   end Last_Node;
-        
-      
+
+      return Smart_Pointers.Null_Smart_Pointer;
+
+   end Nth;
+
+
    function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List, List : Types.List_Mal_Type;
       Res_List_Handle, Dup_List : Mal_Handle;
-      Last_Node_P : Node_Ptr := null;
+      Last_Node_P : Mal_Handle := Smart_Pointers.Null_Smart_Pointer;
    begin
       Rest_List := Rest_Handle;
 
@@ -784,23 +777,35 @@ package body Types is
 
          -- Find the next list in the list...
          List := Deref_List (Car (Rest_List)).all;
+
          -- Duplicate nodes to its contents. 
          Dup_List := Duplicate (List);
 
-         -- Insert the duped list into the result using the last_node_p
-         -- as the insertion point.,,
-         if Last_Node_P = null then
+         -- Of we haven't inserted a list yet, then take the duplicated list whole.
+         if Is_Null (Last_Node_P) then
             Res_List_Handle := Dup_List;
          else
-            Last_Node_P.Right := Deref_List (Dup_List).The_List;
+            -- Note that the first inserted list may have been the null list
+            -- and so may the newly duplicated one...
+            Deref_Node (Last_Node_P).Next := Deref_List (Dup_List).The_List;
+            if Is_Null (Deref_List (Res_List_Handle).The_List) then
+               Deref_List (Res_list_Handle).The_List :=
+                 Deref_List (Dup_List).The_List;
+            end if;
+            if not Is_Null (Deref_List (Dup_List).Last_Elem) then
+               Deref_List (Res_List_Handle).Last_Elem :=
+                 Deref_List (Dup_List).Last_Elem;
+            end if;
          end if;
 
-         -- Find the last node in the duplicated list.
-         Last_Node_P := Last_Node (Deref_Node (Deref_List (Dup_List).The_List));
-         
+         Last_Node_P := Deref_List (Dup_List).Last_Elem;
+
          Rest_List := Deref_List (Cdr (Rest_List)).all;
+
       end loop;
+
       return Res_List_Handle;
+
    end Concat;
 
 

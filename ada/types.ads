@@ -183,6 +183,8 @@ package Types is
 
    function Length (L : List_Mal_Type) return Natural;
 
+   function Nth (L : List_Mal_Type; N : Natural) return Mal_Handle;
+
    -- Get the first item in the list:
    function Car (L : List_Mal_Type) return Mal_Handle;
 
@@ -356,21 +358,16 @@ private
    -- Nodes have to be a differnt type from a List;
    -- otherwise how do you represent a list within a list?
    type Node_Mal_Type is new Mal_Type with record
-      Left, Right : Mal_Handle;
+      Data : Mal_Handle;
+      Next : Mal_Handle;  -- This is always a Node_Mal_Type handle
    end record;
 
    function New_Node_Mal_Type
-     (Left, Right : Mal_Handle := Smart_Pointers.Null_Smart_pointer)
+     (Data : Mal_Handle;
+      Next : Mal_Handle := Smart_Pointers.Null_Smart_Pointer)
    return Mal_Handle;
 
    overriding function Sym_Type (T : Node_Mal_Type) return Sym_Types;
-
-   procedure Append (To_List : in out Node_Mal_Type; Op : Mal_Handle);
-
-   function Map_Nodes
-    (Func_Ptr : Func_Access;
-     L : Node_Mal_Type)
-   return Mal_Handle;
 
    overriding function To_Str 
      (T : Node_Mal_Type; Print_Readably : Boolean := True)
@@ -384,6 +381,7 @@ private
    type List_Mal_Type is new Mal_Type with record
       List_Type : List_Types;
       The_List : Mal_Handle;
+      Last_Elem : Mal_Handle;
    end record;
 
    overriding function To_Str 
