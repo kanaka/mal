@@ -6,6 +6,7 @@ Mal is a Clojure inspired Lisp interpreter.
 
 Mal is implemented in 38 different languages:
 
+* GNU awk
 * Bash shell
 * C
 * C++
@@ -79,6 +80,15 @@ guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 ## Building/running implementations
+
+### GNU awk
+
+The GNU awk implementation of mal has been tested with GNU awk 4.1.1.
+
+```
+cd gawk
+gawk -O -f stepX_YYY.awk
+```
 
 ### Bash 4
 

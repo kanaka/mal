@@ -32,6 +32,9 @@ RUN ln -sf nodejs /usr/bin/node
 # Implementation specific installs
 #
 
+# GNU awk
+RUN apt-get -y install gawk
+
 # Bash
 RUN apt-get -y install bash
 
