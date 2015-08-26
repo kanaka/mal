@@ -10,7 +10,7 @@ PYTHON = python
 # Settings
 #
 
-IMPLS = bash c clojure coffee cpp crystal cs erlang es6 factor forth fsharp go groovy \
+IMPLS = awk bash c clojure coffee cpp crystal cs erlang es6 factor forth fsharp go groovy \
 	haskell java julia js lua make mal ocaml matlab miniMAL nim \
 	perl php ps python r racket rpython ruby rust scala swift vb guile
 
@@ -26,6 +26,7 @@ step8 = step8_macros
 step9 = step9_try
 stepA = stepA_mal
 
+EXCLUDE_TESTS += test^awk^step5 # completes at 10,000
 EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
 EXCLUDE_TESTS += test^c^step5    # segfault
 EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
@@ -54,6 +55,7 @@ EXCLUDE_PERFS = perf^mal  # TODO: fix this
 
 STEP_TEST_FILES = $(strip $(wildcard $(1)/tests/$($(2)).mal) $(wildcard tests/$($(2)).mal))
 
+awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
 clojure_STEP_TO_PROG = clojure/src/$($(1)).clj
@@ -99,6 +101,7 @@ noop =
 SPACE = $(noop) $(noop)
 export FACTOR_ROOTS := src
 
+awk_RUNSTEP =     awk -O -f ../$(2) $(3)
 bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
 clojure_RUNSTEP = lein with-profile +$(1) trampoline run $(3)
