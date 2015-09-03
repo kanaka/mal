@@ -1,0 +1,58 @@
+# TODO: def -> defp for everything but read_str
+defmodule Mal.Reader do
+  import Mal.Types
+
+  def read_str(input) do
+    output = tokenize(input)
+      |> read_form
+      |> elem(0)
+    {:ok, output}
+  catch
+    {:invalid, message} -> {:error, message}
+  end
+
+  def tokenize(input) do
+    regex = ~r/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
+    Regex.scan(regex, input, capture: :all_but_first)
+      |> List.flatten
+      |> List.delete_at(-1) # Remove the last match, which is an empty string
+  end
+
+  def read_form([next | rest] = tokens) do
+    case next do
+      "(" <> _ ->
+        read_list(tokens)
+      _ ->
+        token = read_atom(next)
+        {token, rest}
+    end
+  end
+
+  def read_list([_ | tokens]), do: do_read_list(tokens, [])
+
+  defp do_read_list([], acc), do: throw({:invalid, "expected ')', got EOF"})
+  defp do_read_list([head | tail] = tokens, acc) do
+    case head do
+      ")" <> _ -> {Enum.reverse(acc), tail}
+      _  ->
+        {token, rest} = read_form(tokens)
+        do_read_list(rest, [token | acc])
+    end
+  end
+
+  def read_atom("nil"), do: nil
+  def read_atom("true"), do: true
+  def read_atom("false"), do: false
+  def read_atom(":" <> rest), do: String.to_atom(rest)
+  def read_atom(token) do
+    cond do
+      String.starts_with?(token, "\"") -> token
+      String.starts_with?(token, "'") -> token
+      integer?(token) ->
+        Integer.parse(token)
+          |> elem(0)
+
+      true -> {:symbol, token}
+    end
+  end
+end
