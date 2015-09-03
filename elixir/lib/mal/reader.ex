@@ -22,15 +22,25 @@ defmodule Mal.Reader do
     case next do
       "(" <> _ ->
         read_list(tokens)
+      "'" -> create_quote('quote', rest)
+      "`" -> create_quote('quasiquote', rest)
+      "~" -> create_quote('unquote', rest)
+      "~@" -> create_quote('splice-unquote', rest)
       _ ->
         token = read_atom(next)
         {token, rest}
     end
   end
 
+  defp create_quote(quote_type, tokens) do
+    {token, rest_tokens} = read_form(tokens)
+    new_token = [{:symbol, quote_type}, token]
+    {new_token, rest_tokens}
+  end
+
   def read_list([_ | tokens]), do: do_read_list(tokens, [])
 
-  defp do_read_list([], acc), do: throw({:invalid, "expected ')', got EOF"})
+  defp do_read_list([], _acc), do: throw({:invalid, "expected ')', got EOF"})
   defp do_read_list([head | tail] = tokens, acc) do
     case head do
       ")" <> _ -> {Enum.reverse(acc), tail}
