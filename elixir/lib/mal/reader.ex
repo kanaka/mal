@@ -56,8 +56,11 @@ defmodule Mal.Reader do
   def read_atom(":" <> rest), do: String.to_atom(rest)
   def read_atom(token) do
     cond do
-      String.starts_with?(token, "\"") -> token
-      String.starts_with?(token, "'") -> token
+      String.starts_with?(token, "\"") and String.ends_with?(token, "\"") ->
+        token
+          |> String.slice(1..-2)
+          |> String.replace("\\\"", "\"")
+
       integer?(token) ->
         Integer.parse(token)
           |> elem(0)
