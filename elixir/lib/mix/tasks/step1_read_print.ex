@@ -13,14 +13,10 @@ defmodule Mix.Tasks.Step1ReadPrint do
     Mal.Reader.read_str(input)
   end
 
-  def eval({:ok, input}), do: {:ok, input}
-  def eval({:error, message}), do: {:error, message}
+  def eval(ast), do: ast
 
-  def print({:ok, output}) do
-    IO.puts(Mal.Printer.print_str(output))
-  end
-  def print({:error, message}) do
-    IO.puts(message)
+  def print(value) do
+    IO.puts(Mal.Printer.print_str(value))
   end
 
   def read_eval_print(:eof), do: exit(0)
@@ -28,5 +24,7 @@ defmodule Mix.Tasks.Step1ReadPrint do
     read(line)
       |> eval
       |> print
+  catch
+    {:error, message} -> IO.puts("Error: #{message}")
   end
 end

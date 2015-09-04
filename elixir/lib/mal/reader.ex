@@ -3,12 +3,9 @@ defmodule Mal.Reader do
   import Mal.Types
 
   def read_str(input) do
-    output = tokenize(input)
+    tokenize(input)
       |> read_form
       |> elem(0)
-    {:ok, output}
-  catch
-    {:invalid, message} -> {:error, message}
   end
 
   def tokenize(input) do
@@ -29,7 +26,7 @@ defmodule Mal.Reader do
       "~@" -> create_quote('splice-unquote', rest)
       "@" -> create_quote('deref', rest)
       "^" -> create_meta(rest)
-      ")" -> throw({:invalid, "unexpected )"})
+      ")" -> throw({:error, "unexpected )"})
       _ ->
         token = read_atom(next)
         {token, rest}
@@ -51,7 +48,7 @@ defmodule Mal.Reader do
 
   def read_list([_ | tokens]), do: do_read_list(tokens, [])
 
-  defp do_read_list([], _acc), do: throw({:invalid, "expected ')', got EOF"})
+  defp do_read_list([], _acc), do: throw({:error, "expected ')', got EOF"})
   defp do_read_list([head | tail] = tokens, acc) do
     case head do
       ")" <> _ -> {Enum.reverse(acc), tail}
