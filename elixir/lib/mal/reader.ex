@@ -16,6 +16,7 @@ defmodule Mal.Reader do
     Regex.scan(regex, input, capture: :all_but_first)
       |> List.flatten
       |> List.delete_at(-1) # Remove the last match, which is an empty string
+      |> Enum.filter(fn token -> not String.starts_with?(token, ";") end)
   end
 
   def read_form([next | rest] = tokens) do
@@ -26,10 +27,20 @@ defmodule Mal.Reader do
       "`" -> create_quote('quasiquote', rest)
       "~" -> create_quote('unquote', rest)
       "~@" -> create_quote('splice-unquote', rest)
+      "@" -> create_quote('deref', rest)
+      "^" -> create_meta(rest)
+      ")" -> throw({:invalid, "unexpected )"})
       _ ->
         token = read_atom(next)
         {token, rest}
     end
+  end
+
+  defp create_meta(tokens) do
+    {meta, meta_rest} = read_form(tokens)
+    {token, rest_tokens} = read_form(meta_rest)
+    new_token = [{:symbol, 'with-meta'}, token, meta]
+    {new_token, rest_tokens}
   end
 
   defp create_quote(quote_type, tokens) do
