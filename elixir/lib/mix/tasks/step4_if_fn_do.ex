@@ -45,6 +45,18 @@ defmodule Mix.Tasks.Step4IfFnDo do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
+  defp eval_if_false([], _env), do: nil
+  defp eval_if_false([body], env), do: eval(body, env)
+
+  def eval([{:symbol, "if"}, condition, if_true | if_false], env) do
+    result = eval(condition, env)
+    if result == nil or result == false do
+      eval_if_false(if_false, env)
+    else
+      eval(if_true, env)
+    end
+  end
+
   def eval([{:symbol, "do"} | ast], env) do
     eval_ast(ast, env)
       |> List.last
