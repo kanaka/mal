@@ -17,10 +17,6 @@ defmodule Mal.Env do
     end)
   end
 
-  defp find_callback(map, key) do
-    IO.inspect(map.env)
-  end
-
   def find(pid, key) do
     Agent.get(pid, fn map ->
       case Map.has_key?(map.env, key) do

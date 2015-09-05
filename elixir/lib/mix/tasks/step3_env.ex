@@ -37,16 +37,24 @@ defmodule Mix.Tasks.Step3Env do
     Mal.Reader.read_str(input)
   end
 
+  defp eval_bindings([], _env), do: _env
+  defp eval_bindings([{:symbol, key}, binding | tail], env) do
+    evaluated = eval(binding, env)
+    Mal.Env.set(env, key, evaluated)
+    eval_bindings(tail, env)
+  end
+  defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
+
+
   def eval([{:symbol, "def!"}, {:symbol, key}, value], env) do
     evaluated = eval(value, env)
     Mal.Env.set(env, key, evaluated)
     evaluated
   end
 
-  def eval([{:symbol, "let*"}, [{:symbol, key}, bindings], body], env) do
+  def eval([{:symbol, "let*"}, bindings, body], env) do
     {:ok, let_env} = Mal.Env.initialize(env)
-    evaluated_bindings = eval(bindings, let_env)
-    Mal.Env.set(let_env, key, evaluated_bindings)
+    eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
 
