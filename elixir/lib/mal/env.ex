@@ -5,10 +5,18 @@ defmodule Mal.Env do
       %{outer: outer, env: %{}}
     end)
 
-    Enum.zip(binds, exprs)
-      |> Enum.map(fn {key, value} -> set(pid, key, value) end)
+    set_bindings(pid, binds, exprs)
+  end
 
+  defp set_bindings(pid, [], []), do: pid
+  defp set_bindings(pid, ["&", key], exprs) do
+    set(pid, key, exprs)
     pid
+  end
+
+  defp set_bindings(pid, [key | binds], [value | exprs]) do
+    set(pid, key, value)
+    set_bindings(pid, binds, exprs)
   end
 
   def set(pid, key, value) do
