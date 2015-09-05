@@ -37,6 +37,12 @@ defmodule Mix.Tasks.Step3Env do
     Mal.Reader.read_str(input)
   end
 
+  def eval([{:symbol, "def!"}, {:symbol, key}, value], env) do
+    evaluated = eval(value, env)
+    Mal.Env.set(env, key, evaluated)
+    evaluated
+  end
+
   def eval(ast, env) when is_list(ast) do
     [func | args] = eval_ast(ast, env)
     apply(func, args)

@@ -7,7 +7,7 @@ defmodule Mal.Env do
 
   def set(pid, key, value) do
     Agent.update(pid, fn map ->
-      Map.put(map.env, key, value)
+      %{map | :env => Map.put(map.env, key, value)}
     end)
   end
 
