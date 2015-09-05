@@ -1,14 +1,7 @@
 defmodule Mix.Tasks.Step4IfFnDo do
-  @initial_env %{
-    "+" => &+/2,
-    "-" => &-/2,
-    "*" => &*/2,
-    "/" => &div/2
-  }
-
   def run(_) do
     env = Mal.Env.initialize()
-    Mal.Env.merge(env, @initial_env)
+    Mal.Env.merge(env, Mal.Core.namespace)
     main(env)
   end
 
@@ -89,7 +82,7 @@ defmodule Mix.Tasks.Step4IfFnDo do
     [func | args] = eval_ast(ast, env)
     case func do
       {:closure, closure} -> closure.(args)
-      _ -> apply(func, args)
+      _ -> func.(args)
     end
   end
 
