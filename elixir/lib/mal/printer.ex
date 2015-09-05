@@ -7,9 +7,8 @@ defmodule Mal.Printer do
   def print_str({:symbol, value}, _), do: value
   def print_str(mal, false) when is_bitstring(mal), do: mal
   def print_str(mal, true) when is_bitstring(mal) do
-    output = String.replace(mal, "\"", "\\\"")
-    "\"#{output}\""
-   end
+    Inspect.Algebra.to_doc(mal, %Inspect.Opts{})
+  end
 
   def print_str(mal, _print_readably) when is_list(mal) do
     output = mal

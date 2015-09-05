@@ -2,7 +2,12 @@ defmodule Mix.Tasks.Step4IfFnDo do
   def run(_) do
     env = Mal.Env.initialize()
     Mal.Env.merge(env, Mal.Core.namespace)
+    bootstrap(env)
     main(env)
+  end
+
+  def bootstrap(env) do
+    read_eval_print("(def! not (fn* (a) (if a false true)))", env)
   end
 
   def main(env) do
