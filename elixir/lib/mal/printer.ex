@@ -10,9 +10,9 @@ defmodule Mal.Printer do
     Inspect.Algebra.to_doc(mal, %Inspect.Opts{})
   end
 
-  def print_str(mal, _print_readably) when is_list(mal) do
+  def print_str(mal, print_readably) when is_list(mal) do
     output = mal
-      |> Enum.map(fn(x) -> print_str(x) end)
+      |> Enum.map(fn(x) -> print_str(x, print_readably) end)
       |> Enum.join(" ")
 
     "(#{output})"
