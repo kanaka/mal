@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Step3Env do
   }
 
   def run(_) do
-    {:ok, env} = Mal.Env.initialize()
+    env = Mal.Env.initialize()
     Mal.Env.merge(env, @initial_env)
     main(env)
   end
@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Step3Env do
   end
 
   def eval([{:symbol, "let*"}, bindings, body], env) do
-    {:ok, let_env} = Mal.Env.initialize(env)
+    let_env = Mal.Env.initialize(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end

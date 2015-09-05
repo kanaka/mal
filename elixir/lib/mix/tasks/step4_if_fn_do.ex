@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Step4IfFnDo do
   }
 
   def run(_) do
-    {:ok, env} = Mal.Env.initialize()
+    env = Mal.Env.initialize()
     Mal.Env.merge(env, @initial_env)
     main(env)
   end
@@ -69,14 +69,28 @@ defmodule Mix.Tasks.Step4IfFnDo do
   end
 
   def eval([{:symbol, "let*"}, bindings, body], env) do
-    {:ok, let_env} = Mal.Env.initialize(env)
+    let_env = Mal.Env.initialize(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
 
+  def eval([{:symbol, "fn*"}, params, body], env) do
+    param_symbols = for {:symbol, symbol} <- params, do: symbol
+
+    closure = fn args ->
+      inner = Mal.Env.initialize(env, param_symbols, args)
+      eval(body, inner)
+    end
+
+    {:closure, closure}
+  end
+
   def eval(ast, env) when is_list(ast) do
     [func | args] = eval_ast(ast, env)
-    apply(func, args)
+    case func do
+      {:closure, closure} -> closure.(args)
+      _ -> apply(func, args)
+    end
   end
 
   def eval(ast, env), do: eval_ast(ast, env)

@@ -1,8 +1,14 @@
 defmodule Mal.Env do
-  def initialize(outer \\ nil) do
-    Agent.start_link(fn ->
+  def initialize(outer \\ nil, binds \\ [], exprs \\ [])
+  def initialize(outer, binds, exprs) do
+    {:ok, pid} = Agent.start_link(fn ->
       %{outer: outer, env: %{}}
     end)
+
+    Enum.zip(binds, exprs)
+      |> Enum.map(fn {key, value} -> set(pid, key, value) end)
+
+    pid
   end
 
   def set(pid, key, value) do
