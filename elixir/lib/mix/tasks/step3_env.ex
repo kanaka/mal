@@ -43,6 +43,13 @@ defmodule Mix.Tasks.Step3Env do
     evaluated
   end
 
+  def eval([{:symbol, "let*"}, [{:symbol, key}, bindings], body], env) do
+    {:ok, let_env} = Mal.Env.initialize(env)
+    evaluated_bindings = eval(bindings, let_env)
+    Mal.Env.set(let_env, key, evaluated_bindings)
+    eval(body, let_env)
+  end
+
   def eval(ast, env) when is_list(ast) do
     [func | args] = eval_ast(ast, env)
     apply(func, args)
