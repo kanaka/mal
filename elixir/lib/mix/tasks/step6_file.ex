@@ -1,13 +1,42 @@
 defmodule Mix.Tasks.Step6File do
-  def run(_) do
+  def run(args) do
     env = Mal.Env.initialize()
     Mal.Env.merge(env, Mal.Core.namespace)
-    bootstrap(env)
+    bootstrap(args, env)
+    load_file(args, env)
     main(env)
   end
 
-  def bootstrap(env) do
-    read_eval_print("(def! not (fn* (a) (if a false true)))", env)
+  defp load_file([], _env), do: nil
+  defp load_file([file_name | args], env) do
+    read_eval_print("""
+      (load-file "#{file_name}")
+      """, env)
+    exit(:normal)
+  end
+
+  defp bootstrap(args, env) do
+    # not:
+    read_eval_print("""
+      (def! not
+        (fn* (a) (if a false true)))
+      """, env)
+
+    # load-file:
+    read_eval_print("""
+      (def! load-file
+        (fn* (f)
+          (eval (read-string (str "(do " (slurp f) ")")))))
+      """, env)
+
+    Mal.Env.set(env, "eval", fn [ast] ->
+      eval(ast, env)
+    end)
+
+    case args do
+      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", rest)
+      [] -> Mal.Env.set(env, "*ARGV*", [])
+    end
   end
 
   def main(env) do
