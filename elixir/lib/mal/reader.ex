@@ -23,11 +23,11 @@ defmodule Mal.Reader do
     case next do
       "(" <> _ ->
         read_list(tokens)
-      "'" -> create_quote('quote', rest)
-      "`" -> create_quote('quasiquote', rest)
-      "~" -> create_quote('unquote', rest)
-      "~@" -> create_quote('splice-unquote', rest)
-      "@" -> create_quote('deref', rest)
+      "'" -> create_quote("quote", rest)
+      "`" -> create_quote("quasiquote", rest)
+      "~" -> create_quote("unquote", rest)
+      "~@" -> create_quote("splice-unquote", rest)
+      "@" -> create_quote("deref", rest)
       "^" -> create_meta(rest)
       ")" -> throw({:error, "unexpected )"})
       _ ->
@@ -39,7 +39,7 @@ defmodule Mal.Reader do
   defp create_meta(tokens) do
     {meta, meta_rest} = read_form(tokens)
     {token, rest_tokens} = read_form(meta_rest)
-    new_token = [{:symbol, 'with-meta'}, token, meta]
+    new_token = [{:symbol, "with-meta"}, token, meta]
     {new_token, rest_tokens}
   end
 

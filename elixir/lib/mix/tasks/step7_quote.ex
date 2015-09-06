@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Step7Quote do
   end
 
   defp load_file([], _env), do: nil
-  defp load_file([file_name | args], env) do
+  defp load_file([file_name | _args], env) do
     read_eval_print("""
       (load-file "#{file_name}")
       """, env)
@@ -72,6 +72,16 @@ defmodule Mix.Tasks.Step7Quote do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
+  defp quasiquote(ast, _env) when not is_list(ast), do: [{:symbol, "quote"}, ast]
+  defp quasiquote([], _env), do: [{:symbol, "quote"}, []]
+  defp quasiquote([{:symbol, "unquote"}, arg], _env), do: arg
+  defp quasiquote([[{:symbol, "splice-unquote"}, first] | tail], env) do
+    [{:symbol, "concat"}, first, quasiquote(tail, env)]
+  end
+  defp quasiquote([head | tail], env) do
+    [{:symbol, "cons"}, quasiquote(head, env), quasiquote(tail, env)]
+  end
+
   def eval([{:symbol, "if"}, condition, if_true | if_false], env) do
     result = eval(condition, env)
     if result == nil or result == false do
@@ -110,6 +120,13 @@ defmodule Mix.Tasks.Step7Quote do
     end
 
     {:closure, closure}
+  end
+
+  def eval([{:symbol, "quote"}, arg], _env), do: arg
+
+  def eval([{:symbol, "quasiquote"}, ast], env) do
+    quasiquote(ast, env)
+      |> eval(env)
   end
 
   def eval(ast, env) when is_list(ast) do
