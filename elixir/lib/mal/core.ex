@@ -17,7 +17,9 @@ defmodule Mal.Core do
       "pr-str" => &pr_str/1,
       "str" => &str/1,
       "prn" => &prn/1,
-      "println" => &println/1
+      "println" => &println/1,
+      "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
+      "slurp" => &slurp/1
     }
   end
 
@@ -55,5 +57,15 @@ defmodule Mal.Core do
       |> Enum.join(" ")
       |> IO.puts
     nil
+  end
+
+  def slurp([file_name]) do
+    case File.read(file_name) do
+      {:ok, content} -> content
+      {:error, :enoent} -> throw({:error, "can't find file #{file_name}"})
+      {:error, :eisdir} -> throw({:error, "can't read directory #{file_name}"})
+      {:error, :eaccess} -> throw({:error, "missing permissions #{file_name}"})
+      {:error, reason} -> throw({:error, "can't read file #{file_name}, #{reason}"})
+    end
   end
 end

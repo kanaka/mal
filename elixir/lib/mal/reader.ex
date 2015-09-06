@@ -3,9 +3,12 @@ defmodule Mal.Reader do
   import Mal.Types
 
   def read_str(input) do
-    tokenize(input)
-      |> read_form
-      |> elem(0)
+    case tokenize(input) do
+      [] -> nil
+      tokens -> tokens
+        |> read_form
+        |> elem(0)
+    end
   end
 
   def tokenize(input) do
