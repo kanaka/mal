@@ -19,7 +19,9 @@ defmodule Mal.Core do
       "prn" => &prn/1,
       "println" => &println/1,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
-      "slurp" => &slurp/1
+      "slurp" => &slurp/1,
+      "cons" => fn [prepend, list] -> [prepend | list] end,
+      "concat" => &List.flatten/1
     }
   end
 
