@@ -32,6 +32,7 @@ EXCLUDE_TESTS += test^c^step5    # segfault
 EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
 EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
 EXCLUDE_TESTS += test^erlang^step5 # erlang is TCO, test passes
+EXCLUDE_TESTS += test^elixir^step5 # elixir is TCO, test passes
 EXCLUDE_TESTS += test^fsharp^step5 # completes at 10,000, fatal stack overflow at 100,000
 EXCLUDE_TESTS += test^haskell^step5 # test completes
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step

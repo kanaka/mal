@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Step4IfFnDo do
+defmodule Mix.Tasks.Step5Tco do
   def run(_) do
     env = Mal.Env.initialize()
     Mal.Env.merge(env, Mal.Core.namespace)
