@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Step1ReadPrint do
     IO.puts(Mal.Printer.print_str(value))
   end
 
-  def read_eval_print(:eof), do: exit(0)
+  def read_eval_print(:eof), do: exit(:normal)
   def read_eval_print(line) do
     read(line)
       |> eval

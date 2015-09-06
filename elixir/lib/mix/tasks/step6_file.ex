@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Step6File do
     IO.puts(Mal.Printer.print_str(value))
   end
 
-  def read_eval_print(:eof, _env), do: exit(0)
+  def read_eval_print(:eof, _env), do: exit(:normal)
   def read_eval_print(line, env) do
     read(line)
       |> eval(env)

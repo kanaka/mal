@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Step0Repl do
     main
   end
 
-  defp handle_line(:eof), do: exit(0)
+  defp handle_line(:eof), do: exit(:normal)
   defp handle_line(line) do
     IO.write(:stdio, read_eval_print(line))
   end
