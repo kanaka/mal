@@ -1,12 +1,12 @@
 defmodule Mix.Tasks.Step1ReadPrint do
-  def run(_), do: main
+  def run(_), do: loop
 
-  defp main do
-    IO.write(:stdio, "user> ")
-    IO.read(:stdio, :line)
+  defp loop do
+    Mal.Core.readline("user> ")
       |> read_eval_print
+      |> IO.puts
 
-    main
+    loop
   end
 
   defp read(input) do
@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Step1ReadPrint do
   defp eval(ast), do: ast
 
   defp print(value) do
-    IO.puts(Mal.Printer.print_str(value))
+    Mal.Printer.print_str(value)
   end
 
   defp read_eval_print(:eof), do: exit(:normal)

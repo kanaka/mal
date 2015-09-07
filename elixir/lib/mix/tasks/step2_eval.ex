@@ -6,14 +6,14 @@ defmodule Mix.Tasks.Step2Eval do
     "/" => &div/2
   }
 
-  def run(_), do: main
+  def run(_), do: loop
 
-  defp main do
-    IO.write(:stdio, "user> ")
-    IO.read(:stdio, :line)
+  defp loop do
+    Mal.Core.readline("user> ")
       |> read_eval_print
+      |> IO.puts
 
-    main
+    loop
   end
 
   defp eval_ast(ast, env) when is_list(ast) do
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Step2Eval do
   defp eval(ast, env), do: eval_ast(ast, env)
 
   defp print(value) do
-    IO.puts(Mal.Printer.print_str(value))
+    Mal.Printer.print_str(value)
   end
 
   defp read_eval_print(:eof), do: exit(:normal)

@@ -9,15 +9,15 @@ defmodule Mix.Tasks.Step3Env do
   def run(_) do
     env = Mal.Env.initialize()
     Mal.Env.merge(env, @initial_env)
-    main(env)
+    loop(env)
   end
 
-  defp main(env) do
-    IO.write(:stdio, "user> ")
-    IO.read(:stdio, :line)
+  defp loop(env) do
+    Mal.Core.readline("user> ")
       |> read_eval_print(env)
+      |> IO.puts
 
-    main(env)
+    loop(env)
   end
 
   defp eval_ast(ast, env) when is_list(ast) do
@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Step3Env do
   defp eval(ast, env), do: eval_ast(ast, env)
 
   defp print(value) do
-    IO.puts(Mal.Printer.print_str(value))
+    Mal.Printer.print_str(value)
   end
 
   defp read_eval_print(:eof, _env), do: exit(:normal)

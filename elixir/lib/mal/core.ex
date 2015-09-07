@@ -32,6 +32,7 @@ defmodule Mal.Core do
       "dissoc" => &dissoc/1,
       "get" => &get/1,
       "hash-map" => &Mal.Types.hash_map/1,
+      "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
       "vector" => fn list -> {:vector, list} end,
       "keyword?" => fn [type] -> is_atom(type) end,
@@ -47,6 +48,12 @@ defmodule Mal.Core do
       "keys" => fn [map] -> Map.keys(map) end,
       "vals" => fn [map] -> Map.values(map) end
     }
+  end
+
+  def readline(prompt) do
+    IO.write(:stdio, prompt)
+    IO.read(:stdio, :line)
+      |> String.strip(?\n)
   end
 
   defp convert_vector({:vector, list}), do: list

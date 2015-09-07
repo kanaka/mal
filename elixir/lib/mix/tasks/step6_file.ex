@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Step6File do
     Mal.Env.merge(env, Mal.Core.namespace)
     bootstrap(args, env)
     load_file(args, env)
-    main(env)
+    loop(env)
   end
 
   defp load_file([], _env), do: nil
@@ -39,12 +39,12 @@ defmodule Mix.Tasks.Step6File do
     end
   end
 
-  defp main(env) do
-    IO.write(:stdio, "user> ")
-    IO.read(:stdio, :line)
+  defp loop(env) do
+    Mal.Core.readline("user> ")
       |> read_eval_print(env)
+      |> IO.puts
 
-    main(env)
+    loop(env)
   end
 
   defp eval_ast(ast, env) when is_list(ast) do
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.Step6File do
   defp eval(ast, env), do: eval_ast(ast, env)
 
   defp print(value) do
-    IO.puts(Mal.Printer.print_str(value))
+    Mal.Printer.print_str(value)
   end
 
   defp read_eval_print(:eof, _env), do: exit(:normal)
