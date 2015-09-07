@@ -1,4 +1,3 @@
-# TODO: def -> defp for everything but read_str
 defmodule Mal.Reader do
   def read_str(input) do
     case tokenize(input) do
@@ -17,7 +16,7 @@ defmodule Mal.Reader do
       |> Enum.filter(fn token -> not String.starts_with?(token, ";") end)
   end
 
-  def read_form([next | rest] = tokens) do
+  defp read_form([next | rest] = tokens) do
     case next do
       "(" -> read_list(tokens)
       "[" -> read_vector(tokens)
@@ -50,14 +49,14 @@ defmodule Mal.Reader do
     {new_token, rest_tokens}
   end
 
-  def read_list([_ | tokens]), do: do_read_sequence(tokens, [], "(", ")")
+  defp read_list([_ | tokens]), do: do_read_sequence(tokens, [], "(", ")")
 
-  def read_vector([_ | tokens]) do
+  defp read_vector([_ | tokens]) do
     {vector, rest} = do_read_sequence(tokens, [], "[", "]")
     {{:vector, vector}, rest}
   end
 
-  def read_hash_map([_ | tokens]) do
+  defp read_hash_map([_ | tokens]) do
     {map, rest} = do_read_sequence(tokens, [], "{", "}")
     {Mal.Types.hash_map(map), rest}
   end
@@ -73,11 +72,11 @@ defmodule Mal.Reader do
     end
   end
 
-  def read_atom("nil"), do: nil
-  def read_atom("true"), do: true
-  def read_atom("false"), do: false
-  def read_atom(":" <> rest), do: String.to_atom(rest)
-  def read_atom(token) do
+  defp read_atom("nil"), do: nil
+  defp read_atom("true"), do: true
+  defp read_atom("false"), do: false
+  defp read_atom(":" <> rest), do: String.to_atom(rest)
+  defp read_atom(token) do
     cond do
       String.starts_with?(token, "\"") and String.ends_with?(token, "\"") ->
         token

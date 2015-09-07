@@ -52,41 +52,41 @@ defmodule Mal.Core do
   defp convert_vector({:vector, list}), do: list
   defp convert_vector(other), do: other
 
-  def equal([a, b]) do
+  defp equal([a, b]) do
     convert_vector(a) == convert_vector(b)
   end
 
-  def list?([arg]) when is_list(arg), do: true
-  def list?([_arg]), do: false
+  defp list?([arg]) when is_list(arg), do: true
+  defp list?([_arg]), do: false
 
-  def empty?([[]]), do: true
-  def empty?([{:vector, []}]), do: true
-  def empty?(_), do: false
+  defp empty?([[]]), do: true
+  defp empty?([{:vector, []}]), do: true
+  defp empty?(_), do: false
 
-  def count([arg]) when is_list(arg), do: length(arg)
-  def count([{:vector, arg}]), do: length(arg)
-  def count(_), do: 0
+  defp count([arg]) when is_list(arg), do: length(arg)
+  defp count([{:vector, arg}]), do: length(arg)
+  defp count(_), do: 0
 
-  def pr_str(args) do
+  defp pr_str(args) do
     args
       |> Enum.map(&Mal.Printer.print_str/1)
       |> Enum.join(" ")
   end
 
-  def str(args) do
+  defp str(args) do
     args
       |> Enum.map(&(Mal.Printer.print_str(&1, false)))
       |> Enum.join("")
   end
 
-  def prn(args) do
+  defp prn(args) do
     args
       |> pr_str
       |> IO.puts
     nil
   end
 
-  def println(args) do
+  defp println(args) do
     args
       |> Enum.map(&(Mal.Printer.print_str(&1, false)))
       |> Enum.join(" ")
@@ -94,7 +94,7 @@ defmodule Mal.Core do
     nil
   end
 
-  def slurp([file_name]) do
+  defp slurp([file_name]) do
     case File.read(file_name) do
       {:ok, content} -> content
       {:error, :enoent} -> throw({:error, "can't find file #{file_name}"})
@@ -104,66 +104,66 @@ defmodule Mal.Core do
     end
   end
 
-  def nth([list, index]) do
+  defp nth([list, index]) do
     case Enum.at(convert_vector(list), index, :error) do
       :error -> throw({:error, "index out of bounds"})
       any -> any
     end
   end
 
-  def first([{:vector, [head | tail]}]), do: head
-  def first([[head | tail]]), do: head
-  def first(_), do: nil
+  defp first([{:vector, [head | tail]}]), do: head
+  defp first([[head | tail]]), do: head
+  defp first(_), do: nil
 
-  def rest([{:vector, list}]), do: do_rest(list)
-  def rest([list]), do: do_rest(list)
+  defp rest([{:vector, list}]), do: do_rest(list)
+  defp rest([list]), do: do_rest(list)
 
   defp do_rest([head | tail]), do: tail
   defp do_rest([]), do: []
 
-  def map([{_function_type, function}, list]), do: do_map(function, list)
-  def map([function, list]), do: do_map(function, list)
+  defp map([{_function_type, function}, list]), do: do_map(function, list)
+  defp map([function, list]), do: do_map(function, list)
 
   defp do_map(function, list) do
     convert_vector(list)
       |> Enum.map(fn arg -> function.([arg]) end)
   end
 
-  def apply([{_function_type, function} | tail]), do: do_apply(function, tail)
-  def apply([function | tail]), do: do_apply(function, tail)
+  defp apply([{_function_type, function} | tail]), do: do_apply(function, tail)
+  defp apply([function | tail]), do: do_apply(function, tail)
 
-  def do_apply(function, tail) do
+  defp do_apply(function, tail) do
     [list | reversed_args] = Enum.reverse(tail)
     args = Enum.reverse(reversed_args)
     func_args = Enum.concat(args, convert_vector(list))
     function.(func_args)
   end
 
-  def symbol?([{:symbol, _}]), do: true
-  def symbol?(_), do: false
+  defp symbol?([{:symbol, _}]), do: true
+  defp symbol?(_), do: false
 
-  def vector?([{:vector, _}]), do: true
-  def vector?(_), do: false
+  defp vector?([{:vector, _}]), do: true
+  defp vector?(_), do: false
 
-  def keyword([atom]) when is_atom(atom), do: atom
-  def keyword([atom]), do: String.to_atom(atom)
+  defp keyword([atom]) when is_atom(atom), do: atom
+  defp keyword([atom]), do: String.to_atom(atom)
 
-  def cons([prepend, {:vector, list}]), do: [prepend | list]
-  def cons([prepend, list]), do: [prepend | list]
+  defp cons([prepend, {:vector, list}]), do: [prepend | list]
+  defp cons([prepend, list]), do: [prepend | list]
 
-  def concat(args) do
+  defp concat(args) do
     Enum.map(args, &convert_vector/1)
       |> Enum.concat
   end
 
-  def assoc([hash_map | pairs]) do
+  defp assoc([hash_map | pairs]) do
     Map.merge(hash_map, Mal.Types.hash_map(pairs))
   end
 
-  def dissoc([hash_map | keys]) do
+  defp dissoc([hash_map | keys]) do
     Map.drop(hash_map, keys)
   end
 
-  def get([map, key]) when is_map(map), do: Map.get(map, key, nil)
-  def get([_map, _key]), do: nil
+  defp get([map, key]) when is_map(map), do: Map.get(map, key, nil)
+  defp get([_map, _key]), do: nil
 end

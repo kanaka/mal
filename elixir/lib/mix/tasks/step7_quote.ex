@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Step7Quote do
     end
   end
 
-  def main(env) do
+  defp main(env) do
     IO.write(:stdio, "user> ")
     IO.read(:stdio, :line)
       |> read_eval_print(env)
@@ -47,30 +47,30 @@ defmodule Mix.Tasks.Step7Quote do
     main(env)
   end
 
-  def eval_ast(ast, env) when is_list(ast) do
+  defp eval_ast(ast, env) when is_list(ast) do
     Enum.map(ast, fn elem -> eval(elem, env) end)
   end
 
-  def eval_ast(ast, env) when is_map(ast) do
+  defp eval_ast(ast, env) when is_map(ast) do
     for {key, value} <- ast, into: %{} do
       {eval(key, env), eval(value, env)}
     end
   end
 
-  def eval_ast({:vector, ast}, env) do
+  defp eval_ast({:vector, ast}, env) do
     {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
   end
 
-  def eval_ast({:symbol, symbol}, env) do
+  defp eval_ast({:symbol, symbol}, env) do
     case Mal.Env.get(env, symbol) do
       {:ok, value} -> value
       :not_found -> throw({:error, "invalid symbol #{symbol}"})
     end
   end
 
-  def eval_ast(ast, _env), do: ast
+  defp eval_ast(ast, _env), do: ast
 
-  def read(input) do
+  defp read(input) do
     Mal.Reader.read_str(input)
   end
 
@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Step7Quote do
     [{:symbol, "cons"}, quasiquote(head, env), quasiquote(tail, env)]
   end
 
-  def eval([{:symbol, "if"}, condition, if_true | if_false], env) do
+  defp eval([{:symbol, "if"}, condition, if_true | if_false], env) do
     result = eval(condition, env)
     if result == nil or result == false do
       case if_false do
@@ -106,27 +106,27 @@ defmodule Mix.Tasks.Step7Quote do
     end
   end
 
-  def eval([{:symbol, "do"} | ast], env) do
+  defp eval([{:symbol, "do"} | ast], env) do
     eval_ast(List.delete_at(ast, -1), env)
     eval(List.last(ast), env)
   end
 
-  def eval([{:symbol, "def!"}, {:symbol, key}, value], env) do
+  defp eval([{:symbol, "def!"}, {:symbol, key}, value], env) do
     evaluated = eval(value, env)
     Mal.Env.set(env, key, evaluated)
     evaluated
   end
 
-  def eval([{:symbol, "let*"}, bindings, body], env) do
+  defp eval([{:symbol, "let*"}, bindings, body], env) do
     let_env = Mal.Env.initialize(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
 
-  def eval([{:symbol, "fn*"}, {:vector, params}, body], env) do
+  defp eval([{:symbol, "fn*"}, {:vector, params}, body], env) do
     eval([{:symbol, "fn*"}, params, body], env)
   end
-  def eval([{:symbol, "fn*"}, params, body], env) do
+  defp eval([{:symbol, "fn*"}, params, body], env) do
     param_symbols = for {:symbol, symbol} <- params, do: symbol
 
     closure = fn args ->
@@ -137,14 +137,14 @@ defmodule Mix.Tasks.Step7Quote do
     {:closure, closure}
   end
 
-  def eval([{:symbol, "quote"}, arg], _env), do: arg
+  defp eval([{:symbol, "quote"}, arg], _env), do: arg
 
-  def eval([{:symbol, "quasiquote"}, ast], env) do
+  defp eval([{:symbol, "quasiquote"}, ast], env) do
     quasiquote(ast, env)
       |> eval(env)
   end
 
-  def eval(ast, env) when is_list(ast) do
+  defp eval(ast, env) when is_list(ast) do
     [func | args] = eval_ast(ast, env)
     case func do
       {:closure, closure} -> closure.(args)
@@ -152,14 +152,14 @@ defmodule Mix.Tasks.Step7Quote do
     end
   end
 
-  def eval(ast, env), do: eval_ast(ast, env)
+  defp eval(ast, env), do: eval_ast(ast, env)
 
-  def print(value) do
+  defp print(value) do
     IO.puts(Mal.Printer.print_str(value))
   end
 
-  def read_eval_print(:eof, _env), do: exit(:normal)
-  def read_eval_print(line, env) do
+  defp read_eval_print(:eof, _env), do: exit(:normal)
+  defp read_eval_print(line, env) do
     read(line)
       |> eval(env)
       |> print

@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Step9Try do
     end
   end
 
-  def main(env) do
+  defp main(env) do
     IO.write(:stdio, "user> ")
     IO.read(:stdio, :line)
       |> read_eval_print(env)
@@ -70,30 +70,30 @@ defmodule Mix.Tasks.Step9Try do
     main(env)
   end
 
-  def eval_ast(ast, env) when is_list(ast) do
+  defp eval_ast(ast, env) when is_list(ast) do
     Enum.map(ast, fn elem -> eval(elem, env) end)
   end
 
-  def eval_ast(ast, env) when is_map(ast) do
+  defp eval_ast(ast, env) when is_map(ast) do
     for {key, value} <- ast, into: %{} do
       {eval(key, env), eval(value, env)}
     end
   end
 
-  def eval_ast({:vector, ast}, env) do
+  defp eval_ast({:vector, ast}, env) do
     {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
   end
 
-  def eval_ast({:symbol, symbol}, env) do
+  defp eval_ast({:symbol, symbol}, env) do
     case Mal.Env.get(env, symbol) do
       {:ok, value} -> value
       :not_found -> throw({:error, "'#{symbol}' not found"})
     end
   end
 
-  def eval_ast(ast, _env), do: ast
+  defp eval_ast(ast, _env), do: ast
 
-  def read(input) do
+  defp read(input) do
     Mal.Reader.read_str(input)
   end
 
@@ -131,7 +131,7 @@ defmodule Mix.Tasks.Step9Try do
       |> macroexpand(env)
   end
 
-  def macroexpand(ast, env) do
+  defp macroexpand(ast, env) do
     if macro_call?(ast, env) do
       do_macro_call(ast, env)
     else
@@ -139,17 +139,17 @@ defmodule Mix.Tasks.Step9Try do
     end
   end
 
-  def eval(ast, env) when not is_list(ast), do: eval_ast(ast, env)
-  def eval(ast, env) when is_list(ast) do
+  defp eval(ast, env) when not is_list(ast), do: eval_ast(ast, env)
+  defp eval(ast, env) when is_list(ast) do
     case macroexpand(ast, env) do
       result when is_list(result) -> eval_list(result, env)
       result -> result
     end
   end
 
-  def eval_list([{:symbol, "macroexpand"}, ast], env), do: macroexpand(ast, env)
+  defp eval_list([{:symbol, "macroexpand"}, ast], env), do: macroexpand(ast, env)
 
-  def eval_list([{:symbol, "if"}, condition, if_true | if_false], env) do
+  defp eval_list([{:symbol, "if"}, condition, if_true | if_false], env) do
     result = eval(condition, env)
     if result == nil or result == false do
       case if_false do
@@ -161,34 +161,34 @@ defmodule Mix.Tasks.Step9Try do
     end
   end
 
-  def eval_list([{:symbol, "do"} | ast], env) do
+  defp eval_list([{:symbol, "do"} | ast], env) do
     eval_ast(List.delete_at(ast, -1), env)
     eval(List.last(ast), env)
   end
 
-  def eval_list([{:symbol, "def!"}, {:symbol, key}, value], env) do
+  defp eval_list([{:symbol, "def!"}, {:symbol, key}, value], env) do
     evaluated = eval(value, env)
     Mal.Env.set(env, key, evaluated)
     evaluated
   end
 
-  def eval_list([{:symbol, "defmacro!"}, {:symbol, key}, function], env) do
+  defp eval_list([{:symbol, "defmacro!"}, {:symbol, key}, function], env) do
     {:closure, evaluated} = eval(function, env)
     macro = {:macro, evaluated}
     Mal.Env.set(env, key, macro)
     macro
   end
 
-  def eval_list([{:symbol, "let*"}, bindings, body], env) do
+  defp eval_list([{:symbol, "let*"}, bindings, body], env) do
     let_env = Mal.Env.initialize(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
 
-  def eval_list([{:symbol, "fn*"}, {:vector, params}, body], env) do
+  defp eval_list([{:symbol, "fn*"}, {:vector, params}, body], env) do
     eval_list([{:symbol, "fn*"}, params, body], env)
   end
-  def eval_list([{:symbol, "fn*"}, params, body], env) do
+  defp eval_list([{:symbol, "fn*"}, params, body], env) do
     param_symbols = for {:symbol, symbol} <- params, do: symbol
 
     closure = fn args ->
@@ -199,15 +199,15 @@ defmodule Mix.Tasks.Step9Try do
     {:closure, closure}
   end
 
-  def eval_list([{:symbol, "quote"}, arg], _env), do: arg
+  defp eval_list([{:symbol, "quote"}, arg], _env), do: arg
 
-  def eval_list([{:symbol, "quasiquote"}, ast], env) do
+  defp eval_list([{:symbol, "quasiquote"}, ast], env) do
     quasiquote(ast, env)
       |> eval(env)
   end
 
   # (try* A (catch* B C))
-  def eval_list([{:symbol, "try*"}, try_form,
+  defp eval_list([{:symbol, "try*"}, try_form,
   [{:symbol, "catch*"}, {:symbol, exception}, catch_form]], env) do
     try do
       eval(try_form, env)
@@ -219,7 +219,7 @@ defmodule Mix.Tasks.Step9Try do
     end
   end
 
-  def eval_list(ast, env) do
+  defp eval_list(ast, env) do
     [func | args] = eval_ast(ast, env)
     case func do
       {:closure, closure} -> closure.(args)
@@ -227,12 +227,12 @@ defmodule Mix.Tasks.Step9Try do
     end
   end
 
-  def print(value) do
+  defp print(value) do
     IO.puts(Mal.Printer.print_str(value))
   end
 
-  def read_eval_print(:eof, _env), do: exit(:normal)
-  def read_eval_print(line, env) do
+  defp read_eval_print(:eof, _env), do: exit(:normal)
+  defp read_eval_print(line, env) do
     read(line)
       |> eval(env)
       |> print

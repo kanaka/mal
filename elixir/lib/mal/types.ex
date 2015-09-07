@@ -3,10 +3,6 @@ defmodule Mal.Types do
     Regex.match?(~r/^-?[0-9]+$/, input)
   end
 
-  def float?(input) do
-    Regex.match?(~r/^-?[0-9][0-9.]*$/, input)
-  end
-
   def hash_map(ast) do
     ast
       |> Enum.chunk(2)

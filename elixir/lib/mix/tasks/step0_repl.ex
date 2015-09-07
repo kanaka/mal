@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Step0Repl do
   def run(_), do: main
 
-  def main do
+  defp main do
     IO.write(:stdio, "user> ")
     IO.read(:stdio, :line)
       |> handle_line
@@ -14,19 +14,19 @@ defmodule Mix.Tasks.Step0Repl do
     IO.write(:stdio, read_eval_print(line))
   end
 
-  def read(input) do
+  defp read(input) do
     input
   end
 
-  def eval(input) do
+  defp eval(input) do
     input
   end
 
-  def print(input) do
+  defp print(input) do
     input
   end
 
-  def read_eval_print(line) do
+  defp read_eval_print(line) do
     read(line)
       |> eval
       |> print

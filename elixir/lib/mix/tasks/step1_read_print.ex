@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Step1ReadPrint do
   def run(_), do: main
 
-  def main do
+  defp main do
     IO.write(:stdio, "user> ")
     IO.read(:stdio, :line)
       |> read_eval_print
@@ -9,18 +9,18 @@ defmodule Mix.Tasks.Step1ReadPrint do
     main
   end
 
-  def read(input) do
+  defp read(input) do
     Mal.Reader.read_str(input)
   end
 
-  def eval(ast), do: ast
+  defp eval(ast), do: ast
 
-  def print(value) do
+  defp print(value) do
     IO.puts(Mal.Printer.print_str(value))
   end
 
-  def read_eval_print(:eof), do: exit(:normal)
-  def read_eval_print(line) do
+  defp read_eval_print(:eof), do: exit(:normal)
+  defp read_eval_print(line) do
     read(line)
       |> eval
       |> print
