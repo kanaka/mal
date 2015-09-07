@@ -24,11 +24,14 @@ defmodule Mal.Core do
       "rest" => &rest/1,
       "map" => &map/1,
       "apply" => &apply/1,
+      "keyword" => &keyword/1,
       "symbol?" => &symbol?/1,
-      "list" => fn args -> args end,
+      "keyword?" => fn [type] -> is_atom(type) end,
       "nil?" => fn [type] -> type == nil end,
       "true?" => fn [type] -> type == true end,
       "false?" => fn [type] -> type == false end,
+      "symbol" => fn [name] -> {:symbol, name} end,
+      "list" => fn args -> args end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "cons" => fn [prepend, list] -> [prepend | list] end,
       "throw" => fn [arg] -> throw({:error, arg}) end,
@@ -113,4 +116,7 @@ defmodule Mal.Core do
 
   def symbol?([{:symbol, _}]), do: true
   def symbol?(_), do: false
+
+  def keyword([atom]) when is_atom(atom), do: atom
+  def keyword([atom]), do: String.to_atom(atom)
 end

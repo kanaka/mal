@@ -1,6 +1,6 @@
 defmodule Mal.Printer do
   def print_str(mal, print_readably \\ true)
-  def print_str(mal, _) when is_atom(mal), do: Atom.to_string(mal)
+  def print_str(mal, _) when is_atom(mal), do: inspect(mal)
   def print_str(mal, _) when is_integer(mal), do: Integer.to_string(mal)
   def print_str(mal, _) when is_function(mal), do: inspect(mal)
   def print_str({:closure, mal}, _), do: inspect(mal)
