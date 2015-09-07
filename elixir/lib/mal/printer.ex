@@ -12,6 +12,18 @@ defmodule Mal.Printer do
   def print_str(mal, false) when is_bitstring(mal), do: mal
   def print_str(mal, true) when is_bitstring(mal), do: inspect(mal)
 
+  def print_str(mal, print_readably) when is_map(mal) do
+    evaluate_pair = fn {key, value} ->
+      "#{print_str(key, print_readably)} #{print_str(value, print_readably)}"
+    end
+
+    output = mal
+      |> Enum.map(evaluate_pair)
+      |> Enum.join(" ")
+
+    "{#{output}}"
+  end
+
   def print_str({:vector, vector}, print_readably) do
     "[#{print_list(vector, print_readably)}]"
   end

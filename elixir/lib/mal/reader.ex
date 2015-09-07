@@ -1,7 +1,5 @@
 # TODO: def -> defp for everything but read_str
 defmodule Mal.Reader do
-  import Mal.Types
-
   def read_str(input) do
     case tokenize(input) do
       [] -> nil
@@ -23,6 +21,7 @@ defmodule Mal.Reader do
     case next do
       "(" -> read_list(tokens)
       "[" -> read_vector(tokens)
+      "{" -> read_hash_map(tokens)
       "'" -> create_quote("quote", rest)
       "`" -> create_quote("quasiquote", rest)
       "~" -> create_quote("unquote", rest)
@@ -30,6 +29,8 @@ defmodule Mal.Reader do
       "@" -> create_quote("deref", rest)
       "^" -> create_meta(rest)
       ")" -> throw({:error, "unexpected )"})
+      "]" -> throw({:error, "unexpected ]"})
+      "}" -> throw({:error, "unexpected }"})
       _ ->
         token = read_atom(next)
         {token, rest}
@@ -56,7 +57,12 @@ defmodule Mal.Reader do
     {{:vector, vector}, rest}
   end
 
-  defp do_read_sequence([], _acc, start_sep, end_sep), do: throw({:error, "expected ')', got EOF"})
+  def read_hash_map([_ | tokens]) do
+    {map, rest} = do_read_sequence(tokens, [], "{", "}")
+    {Mal.Types.hash_map(map), rest}
+  end
+
+  defp do_read_sequence([], _acc, start_sep, end_sep), do: throw({:error, "expected #{end_sep}, got EOF"})
   defp do_read_sequence([head | tail] = tokens, acc, start_sep, end_sep) do
     cond do
       String.starts_with?(head, end_sep) ->
@@ -78,7 +84,7 @@ defmodule Mal.Reader do
           |> String.slice(1..-2)
           |> String.replace("\\\"", "\"")
 
-      integer?(token) ->
+      Mal.Types.integer?(token) ->
         Integer.parse(token)
           |> elem(0)
 
