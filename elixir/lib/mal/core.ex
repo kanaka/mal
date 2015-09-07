@@ -28,9 +28,14 @@ defmodule Mal.Core do
       "symbol?" => &symbol?/1,
       "cons" => &cons/1,
       "vector?" => &vector?/1,
+      "assoc" => &assoc/1,
+      "dissoc" => &dissoc/1,
+      "get" => &get/1,
+      "hash-map" => &Mal.Types.hash_map/1,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
       "vector" => fn list -> {:vector, list} end,
       "keyword?" => fn [type] -> is_atom(type) end,
+      "map?" => fn [type] -> is_map(type) end,
       "nil?" => fn [type] -> type == nil end,
       "true?" => fn [type] -> type == true end,
       "false?" => fn [type] -> type == false end,
@@ -38,6 +43,9 @@ defmodule Mal.Core do
       "list" => fn args -> args end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "throw" => fn [arg] -> throw({:error, arg}) end,
+      "contains?" => fn [map, key] -> Map.has_key?(map, key) end,
+      "keys" => fn [map] -> Map.keys(map) end,
+      "vals" => fn [map] -> Map.values(map) end
     }
   end
 
@@ -147,4 +155,15 @@ defmodule Mal.Core do
     Enum.map(args, &convert_vector/1)
       |> Enum.concat
   end
+
+  def assoc([hash_map | pairs]) do
+    Map.merge(hash_map, Mal.Types.hash_map(pairs))
+  end
+
+  def dissoc([hash_map | keys]) do
+    Map.drop(hash_map, keys)
+  end
+
+  def get([map, key]) when is_map(map), do: Map.get(map, key, nil)
+  def get([_map, _key]), do: nil
 end
