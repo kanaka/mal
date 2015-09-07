@@ -29,6 +29,29 @@ defmodule Mix.Tasks.Step8Macros do
           (eval (read-string (str "(do " (slurp f) ")")))))
       """, env)
 
+    # cond
+    read_eval_print("""
+      (defmacro! cond
+        (fn* (& xs)
+          (if (> (count xs) 0)
+            (list 'if (first xs)
+              (if (> (count xs) 1)
+                (nth xs 1)
+                (throw \"odd number of forms to cond\"))
+              (cons 'cond (rest (rest xs)))))))"
+      """, env)
+
+    # or:
+    read_eval_print("""
+      (defmacro! or
+        (fn* (& xs)
+          (if (empty? xs)
+            nil
+            (if (= 1 (count xs))
+              (first xs)
+              `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
+      """, env)
+
     Mal.Env.set(env, "eval", fn [ast] ->
       eval(ast, env)
     end)
@@ -111,6 +134,8 @@ defmodule Mix.Tasks.Step8Macros do
       result -> result
     end
   end
+
+  def eval_list([{:symbol, "macroexpand"}, ast], env), do: macroexpand(ast, env)
 
   def eval_list([{:symbol, "if"}, condition, if_true | if_false], env) do
     result = eval(condition, env)

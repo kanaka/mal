@@ -11,6 +11,7 @@ defmodule Mal.Core do
       "<=" => fn [a, b] -> a <= b end,
       ">=" => fn [a, b] -> a >= b end,
       "list" => fn args -> args end,
+      "concat" => &Enum.concat/1,
       "list?" => &list?/1,
       "empty?" => &empty?/1,
       "count" => &count/1,
@@ -18,10 +19,12 @@ defmodule Mal.Core do
       "str" => &str/1,
       "prn" => &prn/1,
       "println" => &println/1,
-      "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "slurp" => &slurp/1,
-      "cons" => fn [prepend, list] -> [prepend | list] end,
-      "concat" => &List.flatten/1
+      "nth" => &nth/1,
+      "first" => &first/1,
+      "rest" => &rest/1,
+      "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
+      "cons" => fn [prepend, list] -> [prepend | list] end
     }
   end
 
@@ -70,4 +73,17 @@ defmodule Mal.Core do
       {:error, reason} -> throw({:error, "can't read file #{file_name}, #{reason}"})
     end
   end
+
+  def nth([list, index]) do
+    case Enum.at(list, index, :error) do
+      :error -> throw({:error, "index out of bounds"})
+      any -> any
+    end
+  end
+
+  def first([[head | tail]]), do: head
+  def first(_), do: nil
+
+  def rest([[head | tail]]), do: tail
+  def rest([[]]), do: []
 end
