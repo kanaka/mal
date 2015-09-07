@@ -12,11 +12,17 @@ defmodule Mal.Printer do
   def print_str(mal, false) when is_bitstring(mal), do: mal
   def print_str(mal, true) when is_bitstring(mal), do: inspect(mal)
 
+  def print_str({:vector, vector}, print_readably) do
+    "[#{print_list(vector, print_readably)}]"
+  end
+
   def print_str(mal, print_readably) when is_list(mal) do
-    output = mal
+    "(#{print_list(mal, print_readably)})"
+  end
+
+  defp print_list(list, print_readably) do
+    list
       |> Enum.map(fn(x) -> print_str(x, print_readably) end)
       |> Enum.join(" ")
-
-    "(#{output})"
   end
 end

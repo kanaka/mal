@@ -20,6 +20,10 @@ defmodule Mix.Tasks.Step2Eval do
     Enum.map(ast, fn elem -> eval(elem, env) end)
   end
 
+  def eval_ast({:vector, ast}, env) do
+    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
+  end
+
   def eval_ast({:symbol, symbol}, env) do
     case Map.fetch(env, symbol) do
       {:ok, value} -> value

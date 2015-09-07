@@ -24,6 +24,10 @@ defmodule Mix.Tasks.Step3Env do
     Enum.map(ast, fn elem -> eval(elem, env) end)
   end
 
+  def eval_ast({:vector, ast}, env) do
+    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
+  end
+
   def eval_ast({:symbol, symbol}, env) do
     case Mal.Env.get(env, symbol) do
       {:ok, value} -> value
@@ -37,6 +41,7 @@ defmodule Mix.Tasks.Step3Env do
     Mal.Reader.read_str(input)
   end
 
+  defp eval_bindings({:vector, vector}, env), do: eval_bindings(vector, env)
   defp eval_bindings([], _env), do: _env
   defp eval_bindings([{:symbol, key}, binding | tail], env) do
     evaluated = eval(binding, env)

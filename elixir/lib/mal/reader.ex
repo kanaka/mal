@@ -21,8 +21,8 @@ defmodule Mal.Reader do
 
   def read_form([next | rest] = tokens) do
     case next do
-      "(" <> _ ->
-        read_list(tokens)
+      "(" -> read_list(tokens)
+      "[" -> read_vector(tokens)
       "'" -> create_quote("quote", rest)
       "`" -> create_quote("quasiquote", rest)
       "~" -> create_quote("unquote", rest)
@@ -49,15 +49,21 @@ defmodule Mal.Reader do
     {new_token, rest_tokens}
   end
 
-  def read_list([_ | tokens]), do: do_read_list(tokens, [])
+  def read_list([_ | tokens]), do: do_read_sequence(tokens, [], "(", ")")
 
-  defp do_read_list([], _acc), do: throw({:error, "expected ')', got EOF"})
-  defp do_read_list([head | tail] = tokens, acc) do
-    case head do
-      ")" <> _ -> {Enum.reverse(acc), tail}
-      _  ->
+  def read_vector([_ | tokens]) do
+    {vector, rest} = do_read_sequence(tokens, [], "[", "]")
+    {{:vector, vector}, rest}
+  end
+
+  defp do_read_sequence([], _acc, start_sep, end_sep), do: throw({:error, "expected ')', got EOF"})
+  defp do_read_sequence([head | tail] = tokens, acc, start_sep, end_sep) do
+    cond do
+      String.starts_with?(head, end_sep) ->
+        {Enum.reverse(acc), tail}
+      true ->
         {token, rest} = read_form(tokens)
-        do_read_list(rest, [token | acc])
+        do_read_sequence(rest, [token | acc], start_sep, end_sep)
     end
   end
 

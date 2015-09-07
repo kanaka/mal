@@ -74,6 +74,10 @@ defmodule Mix.Tasks.Step8Macros do
     Enum.map(ast, fn elem -> eval(elem, env) end)
   end
 
+  def eval_ast({:vector, ast}, env) do
+    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
+  end
+
   def eval_ast({:symbol, symbol}, env) do
     case Mal.Env.get(env, symbol) do
       {:ok, value} -> value
@@ -87,6 +91,7 @@ defmodule Mix.Tasks.Step8Macros do
     Mal.Reader.read_str(input)
   end
 
+  defp eval_bindings({:vector, vector}, env), do: eval_bindings(vector, env)
   defp eval_bindings([], _env), do: _env
   defp eval_bindings([{:symbol, key}, binding | tail], env) do
     evaluated = eval(binding, env)
@@ -95,6 +100,7 @@ defmodule Mix.Tasks.Step8Macros do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
+  defp quasiquote({:vector, list}, _env), do: quasiquote(list, _env)
   defp quasiquote(ast, _env) when not is_list(ast), do: [{:symbol, "quote"}, ast]
   defp quasiquote([], _env), do: [{:symbol, "quote"}, []]
   defp quasiquote([{:symbol, "unquote"}, arg], _env), do: arg
@@ -173,6 +179,9 @@ defmodule Mix.Tasks.Step8Macros do
     eval(body, let_env)
   end
 
+  def eval_list([{:symbol, "fn*"}, {:vector, params}, body], env) do
+    eval_list([{:symbol, "fn*"}, params, body], env)
+  end
   def eval_list([{:symbol, "fn*"}, params, body], env) do
     param_symbols = for {:symbol, symbol} <- params, do: symbol
 
