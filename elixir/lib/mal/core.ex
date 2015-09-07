@@ -23,10 +23,15 @@ defmodule Mal.Core do
       "first" => &first/1,
       "rest" => &rest/1,
       "map" => &map/1,
+      "apply" => &apply/1,
+      "symbol?" => &symbol?/1,
       "list" => fn args -> args end,
+      "nil?" => fn [type] -> type == nil end,
+      "true?" => fn [type] -> type == true end,
+      "false?" => fn [type] -> type == false end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "cons" => fn [prepend, list] -> [prepend | list] end,
-      "throw" => fn [arg] -> throw({:error, arg}) end
+      "throw" => fn [arg] -> throw({:error, arg}) end,
     }
   end
 
@@ -89,11 +94,23 @@ defmodule Mal.Core do
   def rest([[head | tail]]), do: tail
   def rest([[]]), do: []
 
-  def map([{:macro, function}, list]), do: do_map(function, list)
-  def map([{:closure, function}, list]), do: do_map(function, list)
+  def map([{_function_type, function}, list]), do: do_map(function, list)
   def map([function, list]), do: do_map(function, list)
 
   defp do_map(function, list) do
     Enum.map(list, fn arg -> function.([arg]) end)
   end
+
+  def apply([{_function_type, function} | tail]), do: do_apply(function, tail)
+  def apply([function | tail]), do: do_apply(function, tail)
+
+  def do_apply(function, tail) do
+    [list | args] = tail
+      |> Enum.reverse
+    func_args = Enum.concat(list, args)
+    function.(func_args)
+  end
+
+  def symbol?([{:symbol, _}]), do: true
+  def symbol?(_), do: false
 end
