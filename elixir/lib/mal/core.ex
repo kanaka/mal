@@ -10,7 +10,6 @@ defmodule Mal.Core do
       "<" => fn [a, b] -> a < b end,
       "<=" => fn [a, b] -> a <= b end,
       ">=" => fn [a, b] -> a >= b end,
-      "list" => fn args -> args end,
       "concat" => &Enum.concat/1,
       "list?" => &list?/1,
       "empty?" => &empty?/1,
@@ -23,8 +22,11 @@ defmodule Mal.Core do
       "nth" => &nth/1,
       "first" => &first/1,
       "rest" => &rest/1,
+      "map" => &map/1,
+      "list" => fn args -> args end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
-      "cons" => fn [prepend, list] -> [prepend | list] end
+      "cons" => fn [prepend, list] -> [prepend | list] end,
+      "throw" => fn [arg] -> throw({:error, arg}) end
     }
   end
 
@@ -86,4 +88,12 @@ defmodule Mal.Core do
 
   def rest([[head | tail]]), do: tail
   def rest([[]]), do: []
+
+  def map([{:macro, function}, list]), do: do_map(function, list)
+  def map([{:closure, function}, list]), do: do_map(function, list)
+  def map([function, list]), do: do_map(function, list)
+
+  defp do_map(function, list) do
+    Enum.map(list, fn arg -> function.([arg]) end)
+  end
 end
