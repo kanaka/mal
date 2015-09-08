@@ -64,9 +64,10 @@
    ['rest rest]
    ['empty? empty?]
    ['count count]
-   ['conj conj]
    ['apply apply]
    ['map #(doall (map %1 %2))] 
+
+   ['conj conj]
 
    ['with-meta mal_with_meta]
    ['meta mal_meta]

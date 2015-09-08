@@ -8,7 +8,7 @@ __mal_types_included=true
 declare -A ANON
 
 __obj_magic=__5bal7
-__keyw=$(echo -en "\u029e")
+__keyw=$(echo -en "\xCA\x9E") # \u029E
 __obj_hash_code=${__obj_hash_code:-0}
 
 __new_obj_hash_code () {
@@ -53,7 +53,12 @@ _obj_type () {
         func) r="function" ;;
         strn)
             local s="${ANON["${1}"]}"
-            [[ "${s:0:1}" = "${__keyw}" ]] && r="keyword" || r="string" ;;
+            if [[ "${1:0:1}" = "${__keyw}" ]] \
+                || [[ "${1:0:2}" = "${__keyw}" ]]; then
+                r="keyword"
+            else
+                r="string"
+            fi ;;
         _nil) r="nil" ;;
         true) r="true" ;;
         fals) r="false" ;;
@@ -118,13 +123,18 @@ _keyword () {
     local k="${1}"
     __new_obj_hash_code
     r="strn_${r}"
-    [[ "${1:1:1}" = "${__keyw}" ]] || k="${__keyw}${1}"
+    if [[ "${1:0:1}" = "${__keyw}" ]] \
+        || [[ "${1:0:2}" = "${__keyw}" ]]; then
+        true
+    else
+        k="${__keyw}${1}"
+    fi
     ANON["${r}"]="${k//\*/__STAR__}"
 }
 _keyword? () {
     [[ ${1} =~ ^strn_ ]] || return 1
     local s="${ANON["${1}"]}"
-    [[ "${s:0:1}" = "${__keyw}" ]]
+    [[ "${s:0:1}" = "${__keyw}" ]] || [[ "${s:0:2}" = "${__keyw}" ]]
 }
 
 

@@ -1,29 +1,3 @@
-;; Testing nth, first and rest functions
-
-(nth '(1) 0)
-;=>1
-(nth '(1 2) 1)
-;=>2
-(def! x "x")
-(def! x (nth '(1 2) 2))
-x
-;=>"x"
-
-(first '())
-;=>nil
-(first '(6))
-;=>6
-(first '(7 8 9))
-;=>7
-
-(rest '())
-;=>()
-(rest '(6))
-;=>()
-(rest '(7 8 9))
-;=>(8 9)
-
-
 ;; Testing non-macro function
 (not (= 1 1))
 ;=>false
@@ -52,6 +26,37 @@ x
 (unless2 true 7 8)
 ;=>8
 
+;; Testing macroexpand
+(macroexpand (unless2 2 3 4))
+;=>(if (not 2) 3 4)
+
+
+;; Testing nth, first and rest functions
+
+(nth '(1) 0)
+;=>1
+(nth '(1 2) 1)
+;=>2
+(def! x "x")
+(def! x (nth '(1 2) 2))
+x
+;=>"x"
+
+(first '())
+;=>nil
+(first '(6))
+;=>6
+(first '(7 8 9))
+;=>7
+
+(rest '())
+;=>()
+(rest '(6))
+;=>()
+(rest '(7 8 9))
+;=>(8 9)
+
+
 ;; Testing or macro
 (or)
 ;=>nil
@@ -67,6 +72,8 @@ x
 ;=>4
 (or false nil 3 false nil 4)
 ;=>3
+(or (or false 4))
+;=>4
 
 ;; Testing cond macro
 
@@ -84,10 +91,6 @@ x
 ;=>8
 (cond false 7 false 8 false 9)
 ;=>nil
-
-;; Testing macroexpand
-(macroexpand (unless2 2 3 4))
-;=>(if (not 2) 3 4)
 
 ;;
 ;; Loading core.mal

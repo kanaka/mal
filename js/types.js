@@ -79,6 +79,10 @@ function _clone (obj) {
     default:
         throw new Error("clone of non-collection: " + _obj_type(obj));
     }
+    Object.defineProperty(new_obj, "__meta__", {
+        enumerable: false,
+        writable: true
+    });
     return new_obj;
 }
 
@@ -100,7 +104,13 @@ function _symbol_Q(obj) { return obj instanceof Symbol; }
 
 
 // Keywords
-function _keyword(name) { return "\u029e" + name; }
+function _keyword(obj) {
+    if (typeof obj === 'string' && obj[0] === '\u029e') {
+        return obj;
+    } else {
+        return "\u029e" + obj;
+    }
+}
 function _keyword_Q(obj) {
     return typeof obj === 'string' && obj[0] === '\u029e';
 }

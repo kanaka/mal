@@ -1,10 +1,11 @@
 // Based on: https://github.com/shaleh/rust-readline (MIT)
-extern crate libc;
+use libc;
 
-use std::c_str;
-
-use std::io::{File, Append, Write};
-use std::io::BufferedReader;
+use std::ffi::{CStr, CString};
+use std::fs::{OpenOptions, File};
+use std::io::BufReader;
+use std::io::prelude::*;
+use std::str;
 
 mod ext_readline {
     extern crate libc;
@@ -18,19 +19,21 @@ mod ext_readline {
 
 pub fn add_history(line: &str) {
     unsafe {
-        ext_readline::add_history(line.to_c_str().as_ptr());
+        ext_readline::add_history(CString::new(line).unwrap().as_ptr());
     }
 }
 
 pub fn readline(prompt: &str) -> Option<String> {
-    let cprmt = prompt.to_c_str();
+    let cprmt = CString::new(prompt).unwrap();
     unsafe {
-        let ret = ext_readline::readline(cprmt.as_ptr());
-        if ret.is_null() {  // user pressed Ctrl-D
+        let ptr = ext_readline::readline(cprmt.as_ptr());
+        if ptr.is_null() {  // user pressed Ctrl-D
             None
-        }
-        else {
-            c_str::CString::new(ret, true).as_str().map(|ret| ret.to_string())
+        } else {
+            let ret = str::from_utf8(CStr::from_ptr(ptr).to_bytes());
+            let ret = ret.ok().map(|s| s.to_string());
+            libc::free(ptr as *mut _);
+            return ret;
         }
     }
 }
@@ -38,7 +41,7 @@ pub fn readline(prompt: &str) -> Option<String> {
 // --------------------------------------------
 
 static mut history_loaded : bool = false;
-static HISTORY_FILE : &'static str = "/home/joelm/.mal-history";
+static HISTORY_FILE: &'static str = "/home/joelm/.mal-history";
 
 fn load_history() {
     unsafe {
@@ -46,31 +49,33 @@ fn load_history() {
         history_loaded = true;
     }
 
-    let path = Path::new(HISTORY_FILE);
-    let mut file = BufferedReader::new(File::open(&path));
+    let file = match File::open(HISTORY_FILE) {
+        Ok(f) => f,
+        Err(..) => return
+    };
+    let file = BufReader::new(file);
     for line in file.lines() {
         let rt: &[_] = &['\r', '\n'];
         let line2 = line.unwrap();
-        let line3 = line2.as_slice().trim_right_chars(rt);
+        let line3 = line2.trim_right_matches(rt);
         add_history(line3);
     }
 }
 
 fn append_to_history(line: &str) {
-    let path = Path::new("/home/joelm/.mal-history");
-    let mut file = File::open_mode(&path, Append, Write);
-    let _ = file.write_line(line);
+    let file = OpenOptions::new().append(true).write(true).create(true)
+                                 .open(HISTORY_FILE);
+    let mut file = match file { Ok(f) => f, Err(..) => return };
+    let _ = file.write_all(line.as_bytes());
+    let _ = file.write_all(b"\n");
 }
 
 pub fn mal_readline (prompt: &str) -> Option<String> {
     load_history();
     let line = readline(prompt);
-    match line {
-        None => None,
-        _ => {
-            add_history(line.clone().unwrap().as_slice());
-            append_to_history(line.clone().unwrap().as_slice());
-            line
-        }
+    if let Some(ref s) = line {
+        add_history(s);
+        append_to_history(s);
     }
+    line
 }

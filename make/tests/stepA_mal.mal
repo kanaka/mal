@@ -1,0 +1,19 @@
+;; Testing basic make interop
+
+(make* "7")
+;=>"7"
+
+(make* "$(info foo)")
+; foo
+;=>""
+
+(make* "$(eval foo := 8)")
+(make* "$(foo)")
+;=>"8"
+
+(make* "$(foreach v,a b c,X$(v)Y)")
+;=>"XaY XbY XcY"
+
+(read-string (make* "($(foreach v,1 2 3,$(call int_add,1,$(v))))"))
+;=>(2 3 4)
+

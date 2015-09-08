@@ -3,16 +3,16 @@
 ["load-file", ["`", "miniMAL-core.json"]],
 
 ["def", "READ", ["fn", ["strng"],
-    "strng"]],
+  "strng"]],
 
 ["def", "EVAL", ["fn", ["ast", "env"],
-    "ast"]],
+  "ast"]],
 
 ["def", "PRINT", ["fn", ["exp"],
-    "exp"]],
+  "exp"]],
 
 ["def", "rep", ["fn", ["strng"],
-    ["PRINT", ["EVAL", ["READ", "strng"], null]]]],
+  ["PRINT", ["EVAL", ["READ", "strng"], null]]]],
 
 ["repl", ["`", "user> "], "rep"],
 

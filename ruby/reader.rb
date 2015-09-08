@@ -1,4 +1,4 @@
-require "types"
+require_relative "types"
 
 class Reader
     def initialize(tokens)

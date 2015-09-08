@@ -4,7 +4,7 @@
 (try* 123 (catch* e 456))
 ;=>123
 
-(try* (abc 1 2) (catch* exc (prn "exc is:" exc))))
+(try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
 ; "exc is:" "'abc' not found"
 ;=>nil
 
@@ -13,8 +13,8 @@
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
 
-(try* (throw (list "data" "foo")) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" ("data" "foo")
+(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+; "err:" (1 2 3)
 ;=>7
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
@@ -22,7 +22,7 @@
 ;=>7
 
 ;;; Test that throw is a function:
-(try* (map throw [7]) (catch* exc exc))
+(try* (map throw (list 7)) (catch* exc exc))
 ;=>7
 
 
@@ -51,7 +51,7 @@
 (false? true)
 ;=>false
 
-;; Testing apply function
+;; Testing apply function with core functions
 (apply + (list 2 3))
 ;=>5
 (apply + 4 (list 5))
@@ -60,8 +60,12 @@
 ; 1 2 "3" ()
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
-;=>nil
 
+;; Testing apply function with user functions
+(apply (fn* (a b) (+ a b)) (list 2 3))
+;=>5
+(apply (fn* (a b) (+ a b)) 4 (list 5))
+;=>9
 
 ;; Testing map function
 (def! nums (list 1 2 3))
@@ -72,27 +76,6 @@
 ;=>(2 4 6)
 (map (fn* (x) (symbol? x)) (list 1 (symbol "two") "three"))
 ;=>(false true false)
-
-;;
-;; Testing read-str and eval
-(read-string "(1 2 (3 4) nil)")
-;=>(1 2 (3 4) nil)
-
-(read-string "7 ;; comment")
-;=>7
-
-;;; Differing output, but make sure no fatal error
-(read-string ";; comment")
-
-
-(eval (read-string "(+ 4 5)"))
-;=>9
-
-;;
-;; Testing readline
-(readline "mal-user> ")
-"hello"
-;=>"\"hello\""
 
 ;;
 ;; ------- Optional Functionality ----------
@@ -116,6 +99,14 @@
 (keyword? (keyword "abc"))
 ;=>true
 
+(symbol "abc")
+;=>abc
+;;;TODO: all implementations should suppport this too
+;;;(keyword :abc)
+;;;;=>:abc
+(keyword "abc")
+;=>:abc
+
 ;; Testing sequential? function
 
 (sequential? (list 1 2 3))
@@ -128,6 +119,18 @@
 ;=>false
 (sequential? "abc")
 ;=>false
+
+;; Testing apply function with core functions and arguments in vector
+(apply + 4 [5])
+;=>9
+(apply prn 1 2 ["3" 4])
+; 1 2 "3" 4
+;=>nil
+;; Testing apply function with user functions and arguments in vector
+(apply (fn* (a b) (+ a b)) [2 3])
+;=>5
+(apply (fn* (a b) (+ a b)) 4 [5])
+;=>9
 
 
 ;; Testing map function with vectors
@@ -164,6 +167,9 @@
 
 (assoc {} "a" 1)
 ;=>{"a" 1}
+
+(get (assoc (assoc {"a" 1 } "b" 2) "c" 3) "a")
+;=>1
 
 (def! hm1 (hash-map))
 ;=>{}
@@ -255,183 +261,4 @@
 ;=>true
 
 
-
-;;
-;; Testing metadata on functions
-
-;;
-;; Testing metadata on mal functions
-
-(meta (fn* (a) a))
-;=>nil
-
-(meta (with-meta (fn* (a) a) {"b" 1}))
-;=>{"b" 1}
-
-(meta (with-meta (fn* (a) a) "abc"))
-;=>"abc"
-
-(def! l-wm (with-meta (fn* (a) a) {"b" 2}))
-(meta l-wm)
-;=>{"b" 2}
-
-(meta (with-meta l-wm {"new_meta" 123}))
-;=>{"new_meta" 123}
-(meta l-wm)
-;=>{"b" 2}
-
-(def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
-(meta f-wm)
-;=>{"abc" 1}
-
-(meta (with-meta f-wm {"new_meta" 123}))
-;=>{"new_meta" 123}
-(meta f-wm)
-;=>{"abc" 1}
-
-(def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
-(meta f-wm2)
-;=>{"abc" 1}
-
-;;
-;; Make sure closures and metadata co-exist
-(def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
-(def! plus7 (gen-plusX 7))
-(def! plus8 (gen-plusX 8))
-(plus7 8)
-;=>15
-(meta plus7)
-;=>{"meta" 1}
-(meta plus8)
-;=>{"meta" 1}
-(meta (with-meta plus7 {"meta" 2}))
-;=>{"meta" 2}
-(meta plus8)
-;=>{"meta" 1}
-
-
-;;
-;; Testing atoms
-
-(def! inc3 (fn* (a) (+ 3 a)))
-
-(def! a (atom 2))
-;=>(atom 2)
-
-;;;(type a)
-;;;;=>"atom"
-
-(deref a)
-;=>2
-
-@a
-;=>2
-
-(reset! a 3)
-;=>3
-
-@a
-;=>3
-
-(swap! a inc3)
-;=>6
-
-@a
-;=>6
-
-(swap! a (fn* (a) a))
-;=>6
-
-(swap! a (fn* (a) (* 2 a)))
-;=>12
-
-(swap! a (fn* (a b) (* a b)) 10)
-;=>120
-
-(swap! a + 3)
-;=>123
-
-;; Testing swap!/closure interaction
-(def! inc-it (fn* (a) (+ 1 a)))
-(def! atm (atom 7))
-(def! f (fn* [] (swap! atm inc-it)))
-(f)
-;=>8
-(f)
-;=>9
-
-
-;;
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
-
-;;
-;; Testing conj function
-(conj (list) 1)
-;=>(1)
-(conj (list 1) 2)
-;=>(2 1)
-(conj (list 2 3) 4)
-;=>(4 2 3)
-(conj (list 2 3) 4 5 6)
-;=>(6 5 4 2 3)
-(conj (list 1) (list 2 3))
-;=>((2 3) 1)
-
-(conj [] 1)
-;=>[1]
-(conj [1] 2)
-;=>[1 2]
-(conj [2 3] 4)
-;=>[2 3 4]
-(conj [2 3] 4 5 6)
-;=>[2 3 4 5 6]
-(conj [1] [2 3])
-;=>[1 [2 3]]
-
-
-;;
-;; Testing metadata on collections
-
-(meta [1 2 3])
-;=>nil
-
-(with-meta [1 2 3] {"a" 1})
-;=>[1 2 3]
-
-(meta (with-meta [1 2 3] {"a" 1}))
-;=>{"a" 1}
-
-(meta (with-meta [1 2 3] "abc"))
-;=>"abc"
-
-(meta (with-meta (list 1 2 3) {"a" 1}))
-;=>{"a" 1}
-
-(meta (with-meta {"abc" 123} {"a" 1}))
-;=>{"a" 1}
-
-;;; Not actually supported by Clojure
-;;;(meta (with-meta (atom 7) {"a" 1}))
-;;;;=>{"a" 1}
-
-(def! l-wm (with-meta [4 5 6] {"b" 2}))
-;=>[4 5 6]
-(meta l-wm)
-;=>{"b" 2}
-
-(meta (with-meta l-wm {"new_meta" 123}))
-;=>{"new_meta" 123}
-(meta l-wm)
-;=>{"b" 2}
-
-;;
-;; Testing metadata on builtin functions
-(meta +)
-;=>nil
-(def! f-wm3 ^{"def" 2} +)
-(meta f-wm3)
-;=>{"def" 2}
-(meta +)
-;=>nil
 

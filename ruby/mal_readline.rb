@@ -4,13 +4,17 @@ $history_loaded = false
 $histfile = "#{ENV['HOME']}/.mal-history"
 
 def _readline(prompt)
-    if not $history_loaded
+    if !$history_loaded && File.exist?($histfile)
         $history_loaded = true
-        File.readlines($histfile).each {|l| Readline::HISTORY.push(l.chomp)}
+        if File.readable?($histfile)
+            File.readlines($histfile).each {|l| Readline::HISTORY.push(l.chomp)}
+        end
     end
 
     if line = Readline.readline(prompt, true)
-        File.open($histfile, 'a+') {|f| f.write(line+"\n")}
+        if File.writable?($histfile)
+            File.open($histfile, 'a+') {|f| f.write(line+"\n")}
+        end
         return line
     else
         return nil

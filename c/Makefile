@@ -9,7 +9,7 @@ TESTS =
 SOURCES_BASE = readline.h readline.c types.h types.c \
                reader.h reader.c printer.h printer.c \
                interop.h interop.c
-SOURCES_LISP = env.c core.h core.c stepA_interop.c
+SOURCES_LISP = env.c core.h core.c stepA_mal.c
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 
@@ -17,7 +17,7 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 SRCS = step0_repl.c step1_read_print.c step2_eval.c step3_env.c \
        step4_if_fn_do.c step5_tco.c step6_file.c step7_quote.c \
-       step8_macros.c step9_try.c stepA_interop.c
+       step8_macros.c step9_try.c stepA_mal.c
 OBJS = $(SRCS:%.c=%.o)
 BINS = $(OBJS:%.o=%)
 OTHER_OBJS = types.o readline.o reader.o printer.o env.o core.o interop.o
@@ -25,6 +25,11 @@ OTHER_HDRS = types.h readline.h reader.h printer.h       core.h interop.h
 
 GLIB_CFLAGS ?= $(shell pkg-config --cflags glib-2.0)
 GLIB_LDFLAGS ?= $(shell pkg-config --libs glib-2.0)
+
+
+ifeq ($(shell uname -s),Darwin)
+CFLAGS +=-DOSX=1
+endif
 
 ifeq (,$(USE_READLINE))
 RL_LIBRARY ?= edit

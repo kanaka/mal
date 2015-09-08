@@ -9,12 +9,14 @@ function mal_readline($prompt) {
     // Load the history file
     if (! $history_loaded) {
         $history_loaded = true;
-        if ($file = fopen($HISTORY_FILE, "r")) {
-            while (!feof($file)) {
-                $line = fgets($file);
-                if ($line) { readline_add_history($line); }
+        if (is_readable($HISTORY_FILE)) {
+            if ($file = fopen($HISTORY_FILE, "r")) {
+                while (!feof($file)) {
+                    $line = fgets($file);
+                    if ($line) { readline_add_history($line); }
+                }
+                fclose($file);
             }
-            fclose($file);
         }
     }
 
@@ -23,9 +25,11 @@ function mal_readline($prompt) {
     readline_add_history($line);
 
     // Append to the history file
-    if ($file = fopen($HISTORY_FILE, "a")) {
-        fputs($file, $line . "\n");
-        fclose($file);
+    if (is_writable($HISTORY_FILE)) {
+        if ($file = fopen($HISTORY_FILE, "a")) {
+            fputs($file, $line . "\n");
+            fclose($file);
+        }
     }
 
     return $line;

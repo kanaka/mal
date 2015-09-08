@@ -50,9 +50,9 @@ repl_env.set('*ARGV*, cmdline_args[1..])
 
 ;; core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))")
-rep("(def! load-file (fn* (f) ...))")
-rep("(defmacro! cond (fn* (& xs) ...))")
-rep("(defmacro! or (fn* (& xs) ...))")
+rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
+rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 
 if cmdline_args: rep("(load-file \"" + args[0] + "\")"); exit 0
 
@@ -74,6 +74,14 @@ class Env (outer=null,binds=[],exprs=[])
 ns = {'=:        equal?,
       'throw:    throw,
 
+      'nil?:     nil?,
+      'true?:    true?,
+      'false?:   false?,
+      'symbol:   symbol,
+      'symbol?:  symbol?,
+      'keyword:  keyword,
+      'keyword?: keyword?,
+
       'pr-str:   (a) -> a.map(|s| pr_str(e,true)).join(" ")),
       'str:      (a) -> a.map(|s| pr_str(e,false)).join("")),
       'prn:      (a) -> println(a.map(|s| pr_str(e,true)).join(" ")),
@@ -92,11 +100,24 @@ ns = {'=:        equal?,
 
       'list:     list,
       'list?:    list?,
+      'vector:   vector,
+      'vector?:  vector?,
+      'hash-map: hash_map,
+      'map?:     hash_map?,
+      'assoc:    assoc,
+      'dissoc:   dissoc,
+      'get:      get,
+      'contains?: contains?,
+      'keys:     keys,
+      'vals:     vals,
 
+      'sequential? sequential?,
       'cons:     (a) -> concat([a[0]], a[1]),
       'concat:   (a) -> reduce(concat, [], a),
       'nth:      (a) -> a[0][a[1]] OR raise "nth: index out of range",
       'first:    (a) -> a[0][0] OR nil,
       'rest:     (a) -> a[0][1..] OR list(),
       'empty?:   empty?,
-      'count:    count}
+      'count:    count,
+      'apply:    apply,
+      'map:      map}

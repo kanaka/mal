@@ -34,7 +34,11 @@ exports.readline = rlwrap.readline = function(prompt) {
     var line = rllib.readline(prompt);
     if (line) {
         rllib.add_history(line);
-        fs.appendFileSync(HISTORY_FILE, line + "\n");
+        try {
+            fs.appendFileSync(HISTORY_FILE, line + "\n");
+        } catch (exc) {
+            // ignored
+        }
     }
 
     return line;

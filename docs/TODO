@@ -1,21 +1,21 @@
 All:
-    - rename stepA_interop to stepA_mal
-    - test to check args set properly
-    - test to make sure slurp captures final newline
-    - make sure errors propagate/print properly when self-hosted
+    - Finish guide.md
 
-    - change perf test to run for 10 seconds and then calculate number
-      of iterations per second
-    - redefine (defmacro!) as (def! (macro*))
-    - runtest expect fixes:
-        - stop using expect, so we can drop --raw option
-        - fix long lines in runtext/expect
+    - test that *ARGV* gets set properly
+    - test to make sure slurp captures final newline
+    - Give runtest knowledge of optional tests and report as non-fatal
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
-    - Implement/fix interop
-    - Print full exception when test gets EOF from expect
+    - per impl tests for step5_tco, or at least a better way of
+      enabling/disabling/tweaking per implementation
+    - fix stepA failures: lua matlab miniMAL perl racket
 
-    - metadata on symbols
+Other ideas for All:
+    - propagate/print errors when self-hosted
+    - redefine (defmacro!) as (def! (macro*))
+    - Fix/implement interop in more implementations
+
+    - metadata on symbols (as per Clojure)
     - metadata as a map only. ^ merges metadata in the reader itself.
       Line numbers in metadata from reader.
     - protocols!
@@ -30,18 +30,12 @@ All:
           a *namespaces* map is found with the namespace name being
           looked up. Then the symbol would be looked up starting in
           the namespace environment. Need protocols first probably.
-    - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
-
-    - Get self-host working at earlier step:
-        - Move try* to step6
-        - Remove macros from mal
 
     - multi-line REPL read
     - loop/recur ?
     - gensym reader inside quasiquote
 
-    - per impl tests for step5_tco
 
 ---------------------------------------------
 
@@ -57,6 +51,8 @@ C:
 C#:
     - fix command line arg processing (doesn't run file specified)
     - accumulates line breaks with mal/clojurewest2014.mal
+    - step9_interop:
+      http://www.ckode.dk/programming/eval-in-c-yes-its-possible/
 
 Clojure:
     - make indent consistent across steps (e.g. step5, step8)
@@ -81,7 +77,7 @@ Java:
     - MAL formatting is a bit off with mal/clojurewest2014.mal
 
 Javascript:
-    - interop: callbacks using Mal functions
+    - interop: adopt techniques from miniMAL
     - fix "user> " prompt with mal/clojurewest2014.mal
 
 Lua:
@@ -90,7 +86,7 @@ Lua:
 Make:
     - allow '_' in make variable names
     - hash-map with space in key string
-    - Fix: make -f stepA_interop.mk ../mal/step6_file.mal
+    - Fix: make -f stepA_mal.mk ../mal/step6_file.mal
         (slurp "../tests/incA.mal")
         (read-string "(+ 2 3)")
     - errors should propagate up from within load-file
@@ -117,7 +113,7 @@ Postscript:
     - formatting messed up with mal/clojurewest2014.mal
 
 Python:
-    - error: python ../python/stepA_interop.py ../mal/stepA_interop.mal ../mal/stepA_interop.mal
+    - error: python ../python/stepA_mal.py ../mal/stepA_mal.mal ../mal/stepA_mal.mal
     - interop tests
 
 R:
@@ -145,39 +141,3 @@ VB.Net
     - convert readline.cs to readline.vb
 
 
----------------------------------------------
-
-
-Future Implementations:
-
-    - Ada (gnat)
-        - http://rosettacode.org/wiki/Regular_expressions#Ada
-
-    - C++
-
-    - Groovy
-        - http://groovy-lang.org/learn.html
-        - http://groovy-lang.org/structure.html
-
-    - Erlang
-
-    - F#
-
-    - Haxe
-        - http://api.haxe.org/
-        - http://haxe.us/haxe_tutorial.html
-
-    - Objective-C:
-
-    - Pascal:
-        sudo aptitude install fp-compiler-2.6.2
-
-    - VimL
-        - https://github.com/tpope/timl
-
-    - Tcl
-
-    - TeX/LaTeX
-        - Basic interpreter in TeX: http://ctanhg.scharrer-online.de/pkg/basix.html
-        - Cheat Sheet: http://www.stdout.org/~winston/latex/latexsheet.pd
-        - latex '\nonstopmode\input' blah.tex

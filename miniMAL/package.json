@@ -1,0 +1,8 @@
+{
+    "name": "mal-miniMAL",
+    "version": "0.0.1",
+    "description": "Make a Lisp (mal) language implemented in miniMAL",
+    "dependencies": {
+        "minimal-lisp": "0.0.3"
+    }
+}

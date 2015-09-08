@@ -1,0 +1,225 @@
+;;;
+;;; See IMPL/tests/stepA_mal.mal for implementation specific
+;;; interop tests.
+;;;
+
+
+;;
+;; Testing readline
+(readline "mal-user> ")
+"hello"
+;=>"\"hello\""
+
+;;
+;; Testing *host-language*
+;;; each impl is different, but this should return false
+;;; rather than throwing an exception
+(= "something bogus" *host-language*)
+;=>false
+
+
+;;
+;; ------- Optional Functionality ----------
+;; ------- (Needed for self-hosting) -------
+
+;;
+;; Testing metadata on functions
+
+;;
+;; Testing metadata on mal functions
+
+(meta (fn* (a) a))
+;=>nil
+
+(meta (with-meta (fn* (a) a) {"b" 1}))
+;=>{"b" 1}
+
+(meta (with-meta (fn* (a) a) "abc"))
+;=>"abc"
+
+(def! l-wm (with-meta (fn* (a) a) {"b" 2}))
+(meta l-wm)
+;=>{"b" 2}
+
+(meta (with-meta l-wm {"new_meta" 123}))
+;=>{"new_meta" 123}
+(meta l-wm)
+;=>{"b" 2}
+
+(def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
+(meta f-wm)
+;=>{"abc" 1}
+
+(meta (with-meta f-wm {"new_meta" 123}))
+;=>{"new_meta" 123}
+(meta f-wm)
+;=>{"abc" 1}
+
+(def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
+(meta f-wm2)
+;=>{"abc" 1}
+
+;; Meta of native functions should return nil (not fail)
+(meta +)
+;=>nil
+
+
+;;
+;; Make sure closures and metadata co-exist
+(def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
+(def! plus7 (gen-plusX 7))
+(def! plus8 (gen-plusX 8))
+(plus7 8)
+;=>15
+(meta plus7)
+;=>{"meta" 1}
+(meta plus8)
+;=>{"meta" 1}
+(meta (with-meta plus7 {"meta" 2}))
+;=>{"meta" 2}
+(meta plus8)
+;=>{"meta" 1}
+
+
+;;
+;; Testing atoms
+
+(def! inc3 (fn* (a) (+ 3 a)))
+
+(def! a (atom 2))
+;=>(atom 2)
+
+;;;(type a)
+;;;;=>"atom"
+
+(deref a)
+;=>2
+
+@a
+;=>2
+
+(reset! a 3)
+;=>3
+
+@a
+;=>3
+
+(swap! a inc3)
+;=>6
+
+@a
+;=>6
+
+(swap! a (fn* (a) a))
+;=>6
+
+(swap! a (fn* (a) (* 2 a)))
+;=>12
+
+(swap! a (fn* (a b) (* a b)) 10)
+;=>120
+
+(swap! a + 3)
+;=>123
+
+;; Testing swap!/closure interaction
+(def! inc-it (fn* (a) (+ 1 a)))
+(def! atm (atom 7))
+(def! f (fn* [] (swap! atm inc-it)))
+(f)
+;=>8
+(f)
+;=>9
+
+;; Testing hash-map evaluation and atoms (i.e. an env)
+(def! e (atom {"+" +}))
+(swap! e assoc "-" -)
+( (get @e "+") 7 8)
+;=>15
+( (get @e "-") 11 8)
+;=>3
+
+
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+;;
+;; Testing conj function
+(conj (list) 1)
+;=>(1)
+(conj (list 1) 2)
+;=>(2 1)
+(conj (list 2 3) 4)
+;=>(4 2 3)
+(conj (list 2 3) 4 5 6)
+;=>(6 5 4 2 3)
+(conj (list 1) (list 2 3))
+;=>((2 3) 1)
+
+(conj [] 1)
+;=>[1]
+(conj [1] 2)
+;=>[1 2]
+(conj [2 3] 4)
+;=>[2 3 4]
+(conj [2 3] 4 5 6)
+;=>[2 3 4 5 6]
+(conj [1] [2 3])
+;=>[1 [2 3]]
+
+
+;;
+;; Testing metadata on collections
+
+(meta [1 2 3])
+;=>nil
+
+(with-meta [1 2 3] {"a" 1})
+;=>[1 2 3]
+
+(meta (with-meta [1 2 3] {"a" 1}))
+;=>{"a" 1}
+
+(vector? (with-meta [1 2 3] {"a" 1}))
+;=>true
+
+(meta (with-meta [1 2 3] "abc"))
+;=>"abc"
+
+(meta (with-meta (list 1 2 3) {"a" 1}))
+;=>{"a" 1}
+
+(list? (with-meta (list 1 2 3) {"a" 1}))
+;=>true
+
+(meta (with-meta {"abc" 123} {"a" 1}))
+;=>{"a" 1}
+
+(map? (with-meta {"abc" 123} {"a" 1}))
+;=>true
+
+;;; Not actually supported by Clojure
+;;;(meta (with-meta (atom 7) {"a" 1}))
+;;;;=>{"a" 1}
+
+(def! l-wm (with-meta [4 5 6] {"b" 2}))
+;=>[4 5 6]
+(meta l-wm)
+;=>{"b" 2}
+
+(meta (with-meta l-wm {"new_meta" 123}))
+;=>{"new_meta" 123}
+(meta l-wm)
+;=>{"b" 2}
+
+;;
+;; Testing metadata on builtin functions
+(meta +)
+;=>nil
+(def! f-wm3 ^{"def" 2} +)
+(meta f-wm3)
+;=>{"def" 2}
+(meta +)
+;=>nil
+

@@ -1,11 +1,9 @@
-#![allow(dead_code)]
-
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt;
 
-use types::{MalVal,MalRet,Sym,List,Vector,_nil,list,err_string};
+use types::{MalVal, MalRet, _nil, list, err_string};
+use types::MalType::{Sym, List, Vector};
 
 struct EnvType {
     data: HashMap<String,MalVal>,
@@ -27,10 +25,10 @@ pub fn env_bind(env: &Env,
             match *mexprs {
                 List(ref exprs,_) | Vector(ref exprs,_) => {
                     let mut it = binds.iter().enumerate();
-                    for (i, b) in it {
+                    for (i, b) in it.by_ref() {
                         match **b {
                             Sym(ref strn) => {
-                                if *strn == "&".to_string() {
+                                if *strn == "&" {
                                     variadic = true;
                                     break;
                                 } else {
@@ -44,7 +42,7 @@ pub fn env_bind(env: &Env,
                         let (i, sym) = it.next().unwrap();
                         match **sym {
                             Sym(_) => {
-                                let rest = exprs.slice(i-1,exprs.len()).to_vec();
+                                let rest = exprs[i-1..].to_vec();
                                 env_set(env, sym.clone(), list(rest));
                             }
                             _ => return Err("& bind to non-symbol".to_string()),
@@ -59,14 +57,15 @@ pub fn env_bind(env: &Env,
     }
 }
 
-pub fn env_find(env: Env, key: MalVal) -> Option<Env> {
-    match *key {
+pub fn env_find(env: &Env, key: &MalVal) -> Option<Env> {
+    match **key {
         Sym(ref k) => {
-            if env.borrow().data.contains_key(k) {
-                Some(env)
+            let map = env.borrow();
+            if map.data.contains_key(k) {
+                Some(env.clone())
             } else {
-                match env.borrow().outer {
-                    Some(ref e) => env_find(e.clone(), key.clone()),
+                match map.outer {
+                    Some(ref e) => env_find(e, key),
                     None => None,
                 }
             }
@@ -84,35 +83,24 @@ pub fn env_root(env: &Env) -> Env {
 
 pub fn env_set(env: &Env, key: MalVal, val: MalVal) {
     match *key {
-        Sym(ref k) => {
-            env.borrow_mut().data.insert(k.to_string(), val.clone());
-        },
+        Sym(ref k) => { env.borrow_mut().data.insert(k.to_string(), val); }
         _ => {},
     }
 }
 
-pub fn env_get(env: Env, key: MalVal) -> MalRet {
-    match *key {
+pub fn env_get(env: &Env, key: &MalVal) -> MalRet {
+    match **key {
         Sym(ref k) => {
-            match env_find(env, key.clone()) {
+            match env_find(env, key) {
                 Some(e) => {
-                    match e.borrow().data.find_copy(k) {
-                        Some(v) => Ok(v),
+                    match e.borrow().data.get(k) {
+                        Some(v) => Ok(v.clone()),
                         None => Ok(_nil()),
                     }
                 },
-                None    => err_string("'".to_string() + k.to_string() + "' not found".to_string()),
+                None => err_string(format!("'{}' not found", k)),
             }
         }
         _ => err_string("env_get called with non-symbol key".to_string()),
-    }
-}
-
-impl fmt::Show for EnvType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.outer {
-            Some(ref o) => write!(f, "[{}/outer:{}]", self.data, o.borrow()),
-            _ => write!(f, "{}", self.data)
-        }
     }
 }

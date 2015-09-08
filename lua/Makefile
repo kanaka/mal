@@ -1,7 +1,7 @@
 TESTS =
 
 SOURCES_BASE = utils.lua types.lua reader.lua printer.lua
-SOURCES_LISP = env.lua core.lua stepA_interop.lua
+SOURCES_LISP = env.lua core.lua stepA_mal.lua
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: libs
