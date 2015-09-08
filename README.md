@@ -83,6 +83,8 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 ### GNU awk
 
+*The GNU awk implemenation was created by [Miutsuru kariya](https://github.com/kariya-mitsuru)*
+
 The GNU awk implementation of mal has been tested with GNU awk 4.1.1.
 
 ```
