@@ -1,4 +1,6 @@
 defmodule Mal.Core do
+  import Mal.Types
+
   def namespace do
     %{
       "+" => fn [a, b] -> a + b end,
@@ -31,22 +33,22 @@ defmodule Mal.Core do
       "assoc" => &assoc/1,
       "dissoc" => &dissoc/1,
       "get" => &get/1,
-      "hash-map" => &Mal.Types.hash_map/1,
+      "map?" => &map?/1,
+      "list" => &list/1,
+      "vector" => &vector/1,
+      "hash-map" => &hash_map/1,
       "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
-      "vector" => fn list -> {:vector, list} end,
       "keyword?" => fn [type] -> is_atom(type) end,
-      "map?" => fn [type] -> is_map(type) end,
       "nil?" => fn [type] -> type == nil end,
       "true?" => fn [type] -> type == true end,
       "false?" => fn [type] -> type == false end,
       "symbol" => fn [name] -> {:symbol, name} end,
-      "list" => fn args -> args end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "throw" => fn [arg] -> throw({:error, arg}) end,
-      "contains?" => fn [map, key] -> Map.has_key?(map, key) end,
-      "keys" => fn [map] -> Map.keys(map) end,
-      "vals" => fn [map] -> Map.values(map) end
+      "contains?" => fn [{:map, map, _}, key] -> Map.has_key?(map, key) end,
+      "keys" => fn [{:map, map, _}] -> Map.keys(map) |> list end,
+      "vals" => fn [{:map, map, _}] -> Map.values(map) |> list end
     }
   end
 
@@ -56,22 +58,20 @@ defmodule Mal.Core do
       |> String.strip(?\n)
   end
 
-  defp convert_vector({:vector, list}), do: list
+  defp convert_vector({:vector, ast, meta}), do: {:list, ast, meta}
   defp convert_vector(other), do: other
 
   defp equal([a, b]) do
     convert_vector(a) == convert_vector(b)
   end
 
-  defp list?([arg]) when is_list(arg), do: true
-  defp list?([_arg]), do: false
+  defp list?([{:list, _, _}]), do: true
+  defp list?(_), do: false
 
-  defp empty?([[]]), do: true
-  defp empty?([{:vector, []}]), do: true
+  defp empty?([{_type, [], _meta}]), do: true
   defp empty?(_), do: false
 
-  defp count([arg]) when is_list(arg), do: length(arg)
-  defp count([{:vector, arg}]), do: length(arg)
+  defp count([{_type, ast, _meta}]), do: length(ast)
   defp count(_), do: 0
 
   defp pr_str(args) do
@@ -111,66 +111,68 @@ defmodule Mal.Core do
     end
   end
 
-  defp nth([list, index]) do
-    case Enum.at(convert_vector(list), index, :error) do
+  defp nth([{_type, ast, _meta}, index]) do
+    case Enum.at(ast, index, :error) do
       :error -> throw({:error, "index out of bounds"})
       any -> any
     end
   end
 
-  defp first([{:vector, [head | tail]}]), do: head
-  defp first([[head | tail]]), do: head
+  defp first([{_type, [head | tail], _}]), do: head
   defp first(_), do: nil
 
-  defp rest([{:vector, list}]), do: do_rest(list)
-  defp rest([list]), do: do_rest(list)
+  defp rest([{_type, [head | tail], _}]), do: list(tail)
+  defp rest([{_type, [], _}]), do: list([])
 
-  defp do_rest([head | tail]), do: tail
-  defp do_rest([]), do: []
+  defp map([{_function_type, function}, ast]), do: do_map(function, ast)
+  defp map([function, ast]), do: do_map(function, ast)
 
-  defp map([{_function_type, function}, list]), do: do_map(function, list)
-  defp map([function, list]), do: do_map(function, list)
-
-  defp do_map(function, list) do
-    convert_vector(list)
+  defp do_map(function, {_type, ast, _meta}) do
+    ast
       |> Enum.map(fn arg -> function.([arg]) end)
+      |> list
   end
 
   defp apply([{_function_type, function} | tail]), do: do_apply(function, tail)
   defp apply([function | tail]), do: do_apply(function, tail)
 
   defp do_apply(function, tail) do
-    [list | reversed_args] = Enum.reverse(tail)
+    [{_type, ast, _meta} | reversed_args] = Enum.reverse(tail)
     args = Enum.reverse(reversed_args)
-    func_args = Enum.concat(args, convert_vector(list))
+    func_args = Enum.concat(args, ast)
     function.(func_args)
   end
 
   defp symbol?([{:symbol, _}]), do: true
   defp symbol?(_), do: false
 
-  defp vector?([{:vector, _}]), do: true
+  defp vector?([{:vector, _ast, _meta}]), do: true
   defp vector?(_), do: false
+
+  defp map?([{:map, _ast, _meta}]), do: true
+  defp map?(_), do: false
 
   defp keyword([atom]) when is_atom(atom), do: atom
   defp keyword([atom]), do: String.to_atom(atom)
 
-  defp cons([prepend, {:vector, list}]), do: [prepend | list]
-  defp cons([prepend, list]), do: [prepend | list]
+  defp cons([prepend, {_type, ast, meta}]), do: {:list, [prepend | ast], meta}
 
   defp concat(args) do
-    Enum.map(args, &convert_vector/1)
+    args
+      |> Enum.map(fn tuple -> elem(tuple, 1) end)
       |> Enum.concat
+      |> list
   end
 
-  defp assoc([hash_map | pairs]) do
-    Map.merge(hash_map, Mal.Types.hash_map(pairs))
+  defp assoc([{:map, hash_map, meta} | pairs]) do
+    {:map, merge, _} = hash_map(pairs)
+    {:map, Map.merge(hash_map, merge), meta}
   end
 
-  defp dissoc([hash_map | keys]) do
-    Map.drop(hash_map, keys)
+  defp dissoc([{:map, hash_map, meta} | keys]) do
+    {:map, Map.drop(hash_map, keys), meta}
   end
 
-  defp get([map, key]) when is_map(map), do: Map.get(map, key, nil)
-  defp get([_map, _key]), do: nil
+  defp get([{:map, map, _}, key]), do: Map.get(map, key, nil)
+  defp get(_), do: nil
 end

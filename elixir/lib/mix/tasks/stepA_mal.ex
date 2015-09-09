@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.StepAMal do
+  import Mal.Types
+
   def run(args) do
     env = Mal.Env.initialize()
     Mal.Env.merge(env, Mal.Core.namespace)
@@ -62,8 +64,8 @@ defmodule Mix.Tasks.StepAMal do
     end)
 
     case args do
-      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", rest)
-      [] -> Mal.Env.set(env, "*ARGV*", [])
+      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", list(rest))
+      [] -> Mal.Env.set(env, "*ARGV*", list([]))
     end
   end
 
@@ -76,18 +78,20 @@ defmodule Mix.Tasks.StepAMal do
     loop(env)
   end
 
-  defp eval_ast(ast, env) when is_list(ast) do
-    Enum.map(ast, fn elem -> eval(elem, env) end)
+  defp eval_ast({:list, ast, meta}, env) when is_list(ast) do
+    {:list, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
   end
 
-  defp eval_ast(ast, env) when is_map(ast) do
-    for {key, value} <- ast, into: %{} do
+  defp eval_ast({:map, ast, meta}, env) do
+    map = for {key, value} <- ast, into: %{} do
       {eval(key, env), eval(value, env)}
     end
+
+    {:map, map, meta}
   end
 
-  defp eval_ast({:vector, ast}, env) do
-    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
+  defp eval_ast({:vector, ast, meta}, env) do
+    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
   end
 
   defp eval_ast({:symbol, symbol}, env) do
@@ -103,7 +107,6 @@ defmodule Mix.Tasks.StepAMal do
     Mal.Reader.read_str(input)
   end
 
-  defp eval_bindings({:vector, vector}, env), do: eval_bindings(vector, env)
   defp eval_bindings([], _env), do: _env
   defp eval_bindings([{:symbol, key}, binding | tail], env) do
     evaluated = eval(binding, env)
@@ -112,18 +115,31 @@ defmodule Mix.Tasks.StepAMal do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
-  defp quasiquote({:vector, list}, _env), do: quasiquote(list, _env)
-  defp quasiquote(ast, _env) when not is_list(ast), do: [{:symbol, "quote"}, ast]
-  defp quasiquote([], _env), do: [{:symbol, "quote"}, []]
-  defp quasiquote([{:symbol, "unquote"}, arg], _env), do: arg
-  defp quasiquote([[{:symbol, "splice-unquote"}, first] | tail], env) do
-    [{:symbol, "concat"}, first, quasiquote(tail, env)]
+  defp quasi_list([], _env), do: list([{:symbol, "quote"}, list([])])
+  defp quasi_list([{:symbol, "unquote"}, arg], _env), do: arg
+  defp quasi_list([{:list, [{:symbol, "splice-unquote"}, first], _meta} | tail], env) do
+    right = tail
+      |> list
+      |> quasiquote(env)
+
+    list([{:symbol, "concat"}, first, right])
   end
-  defp quasiquote([head | tail], env) do
-    [{:symbol, "cons"}, quasiquote(head, env), quasiquote(tail, env)]
+  defp quasi_list([head | tail], env) do
+    left = quasiquote(head, env)
+    right = tail
+      |> list
+      |> quasiquote(env)
+
+    list([{:symbol, "cons"}, left, right])
   end
 
-  defp macro_call?([{:symbol, key} | _tail], env) do
+  defp quasiquote({list_type, ast, _}, env)
+  when list_type in [:list, :vector] do
+    quasi_list(ast, env)
+  end
+  defp quasiquote(ast, _env), do: list([{:symbol, "quote"}, ast])
+
+  defp macro_call?({:list, [{:symbol, key} | _tail], _}, env) do
     case Mal.Env.get(env, key) do
       {:ok, {:macro, _}} -> true
       _ -> false
@@ -131,7 +147,7 @@ defmodule Mix.Tasks.StepAMal do
   end
   defp macro_call?(_ast, _env), do: false
 
-  defp do_macro_call([{:symbol, key} | tail], env) do
+  defp do_macro_call({:list, [{:symbol, key} | tail], _}, env) do
     {:ok, {:macro, macro}} = Mal.Env.get(env, key)
     macro.(tail)
       |> macroexpand(env)
@@ -145,17 +161,17 @@ defmodule Mix.Tasks.StepAMal do
     end
   end
 
-  defp eval(ast, env) when not is_list(ast), do: eval_ast(ast, env)
-  defp eval(ast, env) when is_list(ast) do
+  defp eval({:list, _list, _meta} = ast, env) do
     case macroexpand(ast, env) do
-      result when is_list(result) -> eval_list(result, env)
+      {:list, list, meta} -> eval_list(list, env, meta)
       result -> result
     end
   end
+  defp eval(ast, env), do: eval_ast(ast, env)
 
-  defp eval_list([{:symbol, "macroexpand"}, ast], env), do: macroexpand(ast, env)
+  defp eval_list([{:symbol, "macroexpand"}, ast], env, _), do: macroexpand(ast, env)
 
-  defp eval_list([{:symbol, "if"}, condition, if_true | if_false], env) do
+  defp eval_list([{:symbol, "if"}, condition, if_true | if_false], env, _) do
     result = eval(condition, env)
     if result == nil or result == false do
       case if_false do
@@ -167,34 +183,36 @@ defmodule Mix.Tasks.StepAMal do
     end
   end
 
-  defp eval_list([{:symbol, "do"} | ast], env) do
-    eval_ast(List.delete_at(ast, -1), env)
+  defp eval_list([{:symbol, "do"} | ast], env, _) do
+    ast
+      |> List.delete_at(-1)
+      |> list
+      |> eval_ast(env)
     eval(List.last(ast), env)
   end
 
-  defp eval_list([{:symbol, "def!"}, {:symbol, key}, value], env) do
+  defp eval_list([{:symbol, "def!"}, {:symbol, key}, value], env, _) do
     evaluated = eval(value, env)
     Mal.Env.set(env, key, evaluated)
     evaluated
   end
 
-  defp eval_list([{:symbol, "defmacro!"}, {:symbol, key}, function], env) do
+  defp eval_list([{:symbol, "defmacro!"}, {:symbol, key}, function], env, _) do
     {:closure, evaluated} = eval(function, env)
     macro = {:macro, evaluated}
     Mal.Env.set(env, key, macro)
     macro
   end
 
-  defp eval_list([{:symbol, "let*"}, bindings, body], env) do
+  defp eval_list([{:symbol, "let*"}, {list_type, bindings, _}, body], env, _)
+  when list_type == :list or list_type == :vector do
     let_env = Mal.Env.initialize(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
 
-  defp eval_list([{:symbol, "fn*"}, {:vector, params}, body], env) do
-    eval_list([{:symbol, "fn*"}, params, body], env)
-  end
-  defp eval_list([{:symbol, "fn*"}, params, body], env) do
+  defp eval_list([{:symbol, "fn*"}, {list_type, params, _}, body], env, _)
+  when list_type == :list or list_type == :vector do
     param_symbols = for {:symbol, symbol} <- params, do: symbol
 
     closure = fn args ->
@@ -205,16 +223,31 @@ defmodule Mix.Tasks.StepAMal do
     {:closure, closure}
   end
 
-  defp eval_list([{:symbol, "quote"}, arg], _env), do: arg
+  defp eval_list([{:symbol, "quote"}, arg], _env, _), do: arg
 
-  defp eval_list([{:symbol, "quasiquote"}, ast], env) do
+  defp eval_list([{:symbol, "quasiquote"}, ast], env, _) do
     quasiquote(ast, env)
       |> eval(env)
   end
 
   # (try* A (catch* B C))
-  defp eval_list([{:symbol, "try*"}, try_form,
-  [{:symbol, "catch*"}, {:symbol, exception}, catch_form]], env) do
+  defp eval_list([{:symbol, "try*"}, try_form, {:list, catch_list, _meta}], env, _) do
+    eval_try(try_form, catch_list, env)
+  end
+  defp eval_list([{:symbol, "try*"}, _try_form, _], _env, _) do
+    throw({:error, "try* requires a list as the second parameter"})
+  end
+
+  defp eval_list(ast, env, meta) do
+    {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
+    case func do
+      {:closure, closure} -> closure.(args)
+      _ -> func.(args)
+    end
+  end
+
+  defp eval_try(try_form,
+  [{:symbol, "catch*"}, {:symbol, exception}, catch_form], env) do
     try do
       eval(try_form, env)
     catch
@@ -224,13 +257,8 @@ defmodule Mix.Tasks.StepAMal do
         eval(catch_form, catch_env)
     end
   end
-
-  defp eval_list(ast, env) do
-    [func | args] = eval_ast(ast, env)
-    case func do
-      {:closure, closure} -> closure.(args)
-      _ -> func.(args)
-    end
+  defp eval_try(_try_form, _catch_list, _env) do
+    throw({:error, "catch* requires two arguments"})
   end
 
   defp print(value) do

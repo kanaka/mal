@@ -1,4 +1,6 @@
 defmodule Mal.Reader do
+  import Mal.Types
+
   def read_str(input) do
     case tokenize(input) do
       [] -> nil
@@ -39,26 +41,29 @@ defmodule Mal.Reader do
   defp create_meta(tokens) do
     {meta, meta_rest} = read_form(tokens)
     {token, rest_tokens} = read_form(meta_rest)
-    new_token = [{:symbol, "with-meta"}, token, meta]
+    new_token = list([{:symbol, "with-meta"}, token, meta])
     {new_token, rest_tokens}
   end
 
   defp create_quote(quote_type, tokens) do
     {token, rest_tokens} = read_form(tokens)
-    new_token = [{:symbol, quote_type}, token]
+    new_token = list([{:symbol, quote_type}, token])
     {new_token, rest_tokens}
   end
 
-  defp read_list([_ | tokens]), do: do_read_sequence(tokens, [], "(", ")")
+  defp read_list([_ | tokens]) do
+    {ast, rest} = do_read_sequence(tokens, [], "(", ")")
+    {list(ast), rest}
+  end
 
   defp read_vector([_ | tokens]) do
-    {vector, rest} = do_read_sequence(tokens, [], "[", "]")
-    {{:vector, vector}, rest}
+    {ast, rest} = do_read_sequence(tokens, [], "[", "]")
+    {vector(ast), rest}
   end
 
   defp read_hash_map([_ | tokens]) do
     {map, rest} = do_read_sequence(tokens, [], "{", "}")
-    {Mal.Types.hash_map(map), rest}
+    {hash_map(map), rest}
   end
 
   defp do_read_sequence([], _acc, start_sep, end_sep), do: throw({:error, "expected #{end_sep}, got EOF"})
@@ -83,7 +88,7 @@ defmodule Mal.Reader do
           |> String.slice(1..-2)
           |> String.replace("\\\"", "\"")
 
-      Mal.Types.integer?(token) ->
+      integer?(token) ->
         Integer.parse(token)
           |> elem(0)
 
