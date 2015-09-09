@@ -1,4 +1,7 @@
 defmodule Mix.Tasks.Step6File do
+  import Mal.Types
+  alias Mal.Function
+
   def run(args) do
     env = Mal.Env.initialize()
     Mal.Env.merge(env, Mal.Core.namespace)
@@ -8,7 +11,7 @@ defmodule Mix.Tasks.Step6File do
   end
 
   defp load_file([], _env), do: nil
-  defp load_file([file_name | args], env) do
+  defp load_file([file_name | _args], env) do
     read_eval_print("""
       (load-file "#{file_name}")
       """, env)
@@ -34,37 +37,40 @@ defmodule Mix.Tasks.Step6File do
     end)
 
     case args do
-      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", rest)
-      [] -> Mal.Env.set(env, "*ARGV*", [])
+      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", list(rest))
+      [] -> Mal.Env.set(env, "*ARGV*", list([]))
     end
   end
 
   defp loop(env) do
-    Mal.Core.readline("user> ")
+    IO.write(:stdio, "user> ")
+    IO.read(:stdio, :line)
       |> read_eval_print(env)
       |> IO.puts
 
     loop(env)
   end
 
-  defp eval_ast(ast, env) when is_list(ast) do
-    Enum.map(ast, fn elem -> eval(elem, env) end)
+  defp eval_ast({:list, ast, meta}, env) when is_list(ast) do
+    {:list, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
   end
 
-  defp eval_ast(ast, env) when is_map(ast) do
-    for {key, value} <- ast, into: %{} do
+  defp eval_ast({:map, ast, meta}, env) do
+    map = for {key, value} <- ast, into: %{} do
       {eval(key, env), eval(value, env)}
     end
+
+    {:map, map, meta}
   end
 
-  defp eval_ast({:vector, ast}, env) do
-    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end)}
+  defp eval_ast({:vector, ast, meta}, env) do
+    {:vector, Enum.map(ast, fn elem -> eval(elem, env) end), meta}
   end
 
   defp eval_ast({:symbol, symbol}, env) do
     case Mal.Env.get(env, symbol) do
       {:ok, value} -> value
-      :not_found -> throw({:error, "invalid symbol #{symbol}"})
+      :not_found -> throw({:error, "'#{symbol}' not found"})
     end
   end
 
@@ -74,7 +80,6 @@ defmodule Mix.Tasks.Step6File do
     Mal.Reader.read_str(input)
   end
 
-  defp eval_bindings({:vector, vector}, env), do: eval_bindings(vector, env)
   defp eval_bindings([], _env), do: _env
   defp eval_bindings([{:symbol, key}, binding | tail], env) do
     evaluated = eval(binding, env)
@@ -83,7 +88,10 @@ defmodule Mix.Tasks.Step6File do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
-  defp eval([{:symbol, "if"}, condition, if_true | if_false], env) do
+  defp eval({:list, ast, meta}, env), do: eval_list(ast, env, meta)
+  defp eval(ast, env), do: eval_ast(ast, env)
+
+  defp eval_list([{:symbol, "if"}, condition, if_true | if_false], env, _) do
     result = eval(condition, env)
     if result == nil or result == false do
       case if_false do
@@ -95,27 +103,29 @@ defmodule Mix.Tasks.Step6File do
     end
   end
 
-  defp eval([{:symbol, "do"} | ast], env) do
-    eval_ast(List.delete_at(ast, -1), env)
+  defp eval_list([{:symbol, "do"} | ast], env, _) do
+    ast
+      |> List.delete_at(-1)
+      |> list
+      |> eval_ast(env)
     eval(List.last(ast), env)
   end
 
-  defp eval([{:symbol, "def!"}, {:symbol, key}, value], env) do
+  defp eval_list([{:symbol, "def!"}, {:symbol, key}, value], env, _) do
     evaluated = eval(value, env)
     Mal.Env.set(env, key, evaluated)
     evaluated
   end
 
-  defp eval([{:symbol, "let*"}, bindings, body], env) do
+  defp eval_list([{:symbol, "let*"}, {list_type, bindings, _}, body], env, _)
+  when list_type == :list or list_type == :vector do
     let_env = Mal.Env.initialize(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
 
-  defp eval([{:symbol, "fn*"}, {:vector, params}, body], env) do
-    eval([{:symbol, "fn*"}, params, body], env)
-  end
-  defp eval([{:symbol, "fn*"}, params, body], env) do
+  defp eval_list([{:symbol, "fn*"}, {list_type, params, _}, body], env, _)
+  when list_type == :list or list_type == :vector do
     param_symbols = for {:symbol, symbol} <- params, do: symbol
 
     closure = fn args ->
@@ -123,18 +133,16 @@ defmodule Mix.Tasks.Step6File do
       eval(body, inner)
     end
 
-    {:closure, closure}
+    %Function{value: closure}
   end
 
-  defp eval(ast, env) when is_list(ast) do
-    [func | args] = eval_ast(ast, env)
+  defp eval_list(ast, env, meta) do
+    {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
     case func do
-      {:closure, closure} -> closure.(args)
+      %Function{value: closure} -> closure.(args)
       _ -> func.(args)
     end
   end
-
-  defp eval(ast, env), do: eval_ast(ast, env)
 
   defp print(value) do
     Mal.Printer.print_str(value)
