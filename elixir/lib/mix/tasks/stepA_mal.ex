@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.StepAMal do
   import Mal.Types
+  alias Mal.Function
 
   def run(args) do
     env = Mal.Env.initialize()
@@ -141,14 +142,14 @@ defmodule Mix.Tasks.StepAMal do
 
   defp macro_call?({:list, [{:symbol, key} | _tail], _}, env) do
     case Mal.Env.get(env, key) do
-      {:ok, {:macro, _}} -> true
+      {:ok, %Function{value: macro, macro: true}} -> true
       _ -> false
     end
   end
   defp macro_call?(_ast, _env), do: false
 
   defp do_macro_call({:list, [{:symbol, key} | tail], _}, env) do
-    {:ok, {:macro, macro}} = Mal.Env.get(env, key)
+    {:ok, %Function{value: macro, macro: true}} = Mal.Env.get(env, key)
     macro.(tail)
       |> macroexpand(env)
   end
@@ -198,8 +199,7 @@ defmodule Mix.Tasks.StepAMal do
   end
 
   defp eval_list([{:symbol, "defmacro!"}, {:symbol, key}, function], env, _) do
-    {:closure, evaluated} = eval(function, env)
-    macro = {:macro, evaluated}
+    macro = %{eval(function, env) | macro: true}
     Mal.Env.set(env, key, macro)
     macro
   end
@@ -220,7 +220,7 @@ defmodule Mix.Tasks.StepAMal do
       eval(body, inner)
     end
 
-    {:closure, closure}
+    %Function{value: closure}
   end
 
   defp eval_list([{:symbol, "quote"}, arg], _env, _), do: arg
@@ -241,7 +241,7 @@ defmodule Mix.Tasks.StepAMal do
   defp eval_list(ast, env, meta) do
     {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
     case func do
-      {:closure, closure} -> closure.(args)
+      %Function{value: closure} -> closure.(args)
       _ -> func.(args)
     end
   end

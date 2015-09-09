@@ -1,5 +1,6 @@
 defmodule Mal.Core do
   import Mal.Types
+  alias Mal.Function
 
   def namespace do
     %{
@@ -124,7 +125,7 @@ defmodule Mal.Core do
   defp rest([{_type, [head | tail], _}]), do: list(tail)
   defp rest([{_type, [], _}]), do: list([])
 
-  defp map([{_function_type, function}, ast]), do: do_map(function, ast)
+  defp map([%Function{value: function}, ast]), do: do_map(function, ast)
   defp map([function, ast]), do: do_map(function, ast)
 
   defp do_map(function, {_type, ast, _meta}) do
@@ -133,7 +134,7 @@ defmodule Mal.Core do
       |> list
   end
 
-  defp apply([{_function_type, function} | tail]), do: do_apply(function, tail)
+  defp apply([%Function{value: function} | tail]), do: do_apply(function, tail)
   defp apply([function | tail]), do: do_apply(function, tail)
 
   defp do_apply(function, tail) do
