@@ -14,7 +14,7 @@ VOLUME /mal
 RUN apt-get -y install make wget curl git
 
 # Deps for compiled languages (C, Go, Rust, Nim, etc)
-RUN apt-get -y install gcc pkg-config 
+RUN apt-get -y install gcc pkg-config
 
 # Deps for Java-based languages (Clojure, Scala, Java)
 RUN apt-get -y install openjdk-7-jdk
@@ -58,6 +58,12 @@ RUN touch /.coffee_history && chmod go+w /.coffee_history
 
 # C#
 RUN apt-get -y install mono-mcs
+
+# Elixir
+RUN wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb \
+    && dpkg -i erlang-solutions_1.0_all.deb
+RUN apt-get update
+RUN apt-get -y install elixir
 
 # Erlang R17 (so I can use maps)
 RUN apt-get -y install build-essential libncurses5-dev libssl-dev
