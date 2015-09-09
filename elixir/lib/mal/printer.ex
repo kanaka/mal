@@ -14,6 +14,14 @@ defmodule Mal.Printer do
   def print_str(mal, false) when is_bitstring(mal), do: mal
   def print_str(mal, true) when is_bitstring(mal), do: inspect(mal)
 
+  def print_str({:atom, pid} = atom, print_readably) do
+    output = atom
+      |> Mal.Atom.deref
+      |> print_str(print_readably)
+
+    "(atom #{output})"
+  end
+
   def print_str({:map, mal, _}, print_readably) do
     evaluate_pair = fn {key, value} ->
       "#{print_str(key, print_readably)} #{print_str(value, print_readably)}"

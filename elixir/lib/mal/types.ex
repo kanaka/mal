@@ -12,9 +12,26 @@ defmodule Mal.Types do
     {:map, map, nil}
   end
 
+  def map?([{:map, _ast, _meta}]), do: true
+  def map?(_), do: false
+
   def list(ast), do: {:list, ast, nil}
 
+  def list?([{:list, _, _}]), do: true
+  def list?(_), do: false
+
   def vector(ast), do: {:vector, ast, nil}
+
+  def vector?([{:vector, _ast, _meta}]), do: true
+  def vector?(_), do: false
+
+  def symbol?([{:symbol, _}]), do: true
+  def symbol?(_), do: false
+
+  def atom([value]) do
+    pid = Mal.Atom.new(value)
+    {:atom, pid}
+  end
 end
 
 defmodule Mal.Function do

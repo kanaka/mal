@@ -40,6 +40,11 @@ defmodule Mal.Core do
       "hash-map" => &hash_map/1,
       "meta" => &meta/1,
       "with-meta" => &with_meta/1,
+      "atom" => &atom/1,
+      "deref" => &deref/1,
+      "reset!" => &reset!/1,
+      "swap!" => &swap!/1,
+      "time-ms" => fn _ -> :erlang.system_time(:milli_seconds) end,
       "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
       "keyword?" => fn [type] -> is_atom(type) end,
@@ -75,9 +80,6 @@ defmodule Mal.Core do
   defp equal([a, b]) do
     convert_vector(a) == convert_vector(b)
   end
-
-  defp list?([{:list, _, _}]), do: true
-  defp list?(_), do: false
 
   defp empty?([{_type, [], _meta}]), do: true
   defp empty?(_), do: false
@@ -154,15 +156,6 @@ defmodule Mal.Core do
     function.(func_args)
   end
 
-  defp symbol?([{:symbol, _}]), do: true
-  defp symbol?(_), do: false
-
-  defp vector?([{:vector, _ast, _meta}]), do: true
-  defp vector?(_), do: false
-
-  defp map?([{:map, _ast, _meta}]), do: true
-  defp map?(_), do: false
-
   defp keyword([atom]) when is_atom(atom), do: atom
   defp keyword([atom]), do: String.to_atom(atom)
 
@@ -193,4 +186,16 @@ defmodule Mal.Core do
 
   defp with_meta([{type, ast, _old_meta}, meta]), do: {type, ast, meta}
   defp with_meta([%Function{} = func, meta]), do: %{func | meta: meta}
+
+  defp deref(args) do
+    apply(&Mal.Atom.deref/1, args)
+  end
+
+  defp reset!(args) do
+    apply(&Mal.Atom.reset!/2, args)
+  end
+
+  defp swap!([atom, function | args]) do
+    Mal.Atom.swap!(atom, function, args)
+  end
 end

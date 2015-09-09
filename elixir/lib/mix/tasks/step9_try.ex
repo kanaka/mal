@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Step9Try do
   alias Mal.Function
 
   def run(args) do
-    env = Mal.Env.initialize()
+    env = Mal.Env.new()
     Mal.Env.merge(env, Mal.Core.namespace)
     bootstrap(args, env)
     load_file(args, env)
@@ -201,7 +201,7 @@ defmodule Mix.Tasks.Step9Try do
 
   defp eval_list([{:symbol, "let*"}, {list_type, bindings, _}, body], env, _)
   when list_type == :list or list_type == :vector do
-    let_env = Mal.Env.initialize(env)
+    let_env = Mal.Env.new(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
@@ -211,7 +211,7 @@ defmodule Mix.Tasks.Step9Try do
     param_symbols = for {:symbol, symbol} <- params, do: symbol
 
     closure = fn args ->
-      inner = Mal.Env.initialize(env, param_symbols, args)
+      inner = Mal.Env.new(env, param_symbols, args)
       eval(body, inner)
     end
 
@@ -244,7 +244,7 @@ defmodule Mix.Tasks.Step9Try do
       eval(try_form, env)
     catch
       {:error, message}->
-        catch_env = Mal.Env.initialize(env)
+        catch_env = Mal.Env.new(env)
         Mal.Env.set(catch_env, exception, {:exception, message})
         eval(catch_form, catch_env)
     end

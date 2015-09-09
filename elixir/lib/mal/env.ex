@@ -1,8 +1,8 @@
 defmodule Mal.Env do
   import Mal.Types
 
-  def initialize(outer \\ nil, binds \\ [], exprs \\ [])
-  def initialize(outer, binds, exprs) do
+  def new(outer \\ nil, binds \\ [], exprs \\ [])
+  def new(outer, binds, exprs) do
     {:ok, pid} = Agent.start_link(fn ->
       %{outer: outer, env: %{}}
     end)

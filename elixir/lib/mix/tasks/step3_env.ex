@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Step3Env do
   }
 
   def run(_) do
-    env = Mal.Env.initialize()
+    env = Mal.Env.new()
     Mal.Env.merge(env, @initial_env)
     loop(env)
   end
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Step3Env do
 
   defp eval_list([{:symbol, "let*"}, {list_type, bindings, _}, body], env, _)
   when list_type == :list or list_type == :vector do
-    let_env = Mal.Env.initialize(env)
+    let_env = Mal.Env.new(env)
     eval_bindings(bindings, let_env)
     eval(body, let_env)
   end
