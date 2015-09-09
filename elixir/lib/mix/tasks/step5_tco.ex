@@ -16,9 +16,9 @@ defmodule Mix.Tasks.Step5Tco do
         (fn* (a) (if a false true)))
       """, env)
 
-    Mal.Env.set(env, "eval", fn [ast] ->
+    Mal.Env.set(env, "eval", %Function{value: fn [ast] ->
       eval(ast, env)
-    end)
+    end})
   end
 
   defp loop(env) do

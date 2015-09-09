@@ -16,9 +16,9 @@ defmodule Mix.Tasks.Step4IfFnDo do
         (fn* (a) (if a false true)))
       """, env)
 
-    Mal.Env.set(env, "eval", fn [ast] ->
+    Mal.Env.set(env, "eval", %Function{value: fn [ast] ->
       eval(ast, env)
-    end)
+    end})
   end
 
   defp loop(env) do
@@ -117,10 +117,7 @@ defmodule Mix.Tasks.Step4IfFnDo do
 
   defp eval_list(ast, env, meta) do
     {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
-    case func do
-      %Function{value: closure} -> closure.(args)
-      _ -> func.(args)
-    end
+    func.value.(args)
   end
 
   defp print(value) do

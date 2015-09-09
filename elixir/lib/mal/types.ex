@@ -18,5 +18,5 @@ defmodule Mal.Types do
 end
 
 defmodule Mal.Function do
-  defstruct value: nil, macro: false, meta: nil 
+  defstruct value: nil, macro: false, meta: nil
 end

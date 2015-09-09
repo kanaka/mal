@@ -3,7 +3,7 @@ defmodule Mal.Core do
   alias Mal.Function
 
   def namespace do
-    %{
+    raw = %{
       "+" => fn [a, b] -> a + b end,
       "-" => fn [a, b] -> a - b end,
       "*" => fn [a, b] -> a * b end,
@@ -38,6 +38,8 @@ defmodule Mal.Core do
       "list" => &list/1,
       "vector" => &vector/1,
       "hash-map" => &hash_map/1,
+      "meta" => &meta/1,
+      "with-meta" => &with_meta/1,
       "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
       "keyword?" => fn [type] -> is_atom(type) end,
@@ -51,6 +53,14 @@ defmodule Mal.Core do
       "keys" => fn [{:map, map, _}] -> Map.keys(map) |> list end,
       "vals" => fn [{:map, map, _}] -> Map.values(map) |> list end
     }
+
+    convert(raw)
+  end
+
+  defp convert(map) do
+    for {name, func} <- map, into: %{} do
+      {name, %Function{value: func}}
+    end
   end
 
   def readline(prompt) do
@@ -176,4 +186,11 @@ defmodule Mal.Core do
 
   defp get([{:map, map, _}, key]), do: Map.get(map, key, nil)
   defp get(_), do: nil
+
+  defp meta([{_type, _ast, meta}]), do: meta
+  defp meta([%Function{meta: meta}]), do: meta
+  defp meta(_), do: nil
+
+  defp with_meta([{type, ast, _old_meta}, meta]), do: {type, ast, meta}
+  defp with_meta([%Function{} = func, meta]), do: %{func | meta: meta}
 end

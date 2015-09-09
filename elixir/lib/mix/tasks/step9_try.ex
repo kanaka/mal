@@ -55,9 +55,9 @@ defmodule Mix.Tasks.Step9Try do
               `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
       """, env)
 
-    Mal.Env.set(env, "eval", fn [ast] ->
+    Mal.Env.set(env, "eval", %Function{value: fn [ast] ->
       eval(ast, env)
-    end)
+    end})
 
     case args do
       [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", list(rest))
@@ -235,10 +235,7 @@ defmodule Mix.Tasks.Step9Try do
 
   defp eval_list(ast, env, meta) do
     {:list, [func | args], _} = eval_ast({:list, ast, meta}, env)
-    case func do
-      %Function{value: closure} -> closure.(args)
-      _ -> func.(args)
-    end
+    func.value.(args)
   end
 
   defp eval_try(try_form,
