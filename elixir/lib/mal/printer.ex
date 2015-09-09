@@ -14,7 +14,7 @@ defmodule Mal.Printer do
   def print_str(mal, false) when is_bitstring(mal), do: mal
   def print_str(mal, true) when is_bitstring(mal), do: inspect(mal)
 
-  def print_str({:atom, pid} = atom, print_readably) do
+  def print_str({:atom, _pid} = atom, print_readably) do
     output = atom
       |> Mal.Atom.deref
       |> print_str(print_readably)

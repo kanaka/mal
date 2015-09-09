@@ -15,7 +15,7 @@ defmodule Mal.Atom do
     new_value
   end
 
-  def swap!({:atom, pid} = atom, %Function{value: func}, args) do
+  def swap!({:atom, pid}, %Function{value: func}, args) do
     Agent.get_and_update(pid, fn state ->
       func_args = [state | args]
       new = func.(func_args)

@@ -32,6 +32,9 @@ defmodule Mal.Types do
     pid = Mal.Atom.new(value)
     {:atom, pid}
   end
+
+  def atom?([{:atom, _}]), do: true
+  def atom?(_), do: false
 end
 
 defmodule Mal.Function do

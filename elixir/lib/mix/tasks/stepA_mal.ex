@@ -142,7 +142,7 @@ defmodule Mix.Tasks.StepAMal do
 
   defp macro_call?({:list, [{:symbol, key} | _tail], _}, env) do
     case Mal.Env.get(env, key) do
-      {:ok, %Function{value: macro, macro: true}} -> true
+      {:ok, %Function{macro: true}} -> true
       _ -> false
     end
   end

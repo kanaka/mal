@@ -41,9 +41,11 @@ defmodule Mal.Core do
       "meta" => &meta/1,
       "with-meta" => &with_meta/1,
       "atom" => &atom/1,
+      "atom?" => &atom?/1,
       "deref" => &deref/1,
       "reset!" => &reset!/1,
       "swap!" => &swap!/1,
+      "conj" => &conj/1,
       "time-ms" => fn _ -> :erlang.system_time(:milli_seconds) end,
       "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
@@ -131,10 +133,10 @@ defmodule Mal.Core do
     end
   end
 
-  defp first([{_type, [head | tail], _}]), do: head
+  defp first([{_type, [head | _tail], _}]), do: head
   defp first(_), do: nil
 
-  defp rest([{_type, [head | tail], _}]), do: list(tail)
+  defp rest([{_type, [_head | tail], _}]), do: list(tail)
   defp rest([{_type, [], _}]), do: list([])
 
   defp map([%Function{value: function}, ast]), do: do_map(function, ast)
@@ -197,5 +199,14 @@ defmodule Mal.Core do
 
   defp swap!([atom, function | args]) do
     Mal.Atom.swap!(atom, function, args)
+  end
+
+  defp conj([{:list, ast, meta} | args]) do
+    new_list = Enum.reverse(args) ++ ast
+    {:list, new_list, meta}
+  end
+
+  defp conj([{:vector, ast, meta} | args]) do
+    {:vector, ast ++ args, meta}
   end
 end

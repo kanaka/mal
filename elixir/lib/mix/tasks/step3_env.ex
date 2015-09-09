@@ -1,7 +1,4 @@
 defmodule Mix.Tasks.Step3Env do
-  import Mal.Types
-  alias Mal.Function
-
   @initial_env %{
     "+" => &+/2,
     "-" => &-/2,

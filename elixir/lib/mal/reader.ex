@@ -66,7 +66,7 @@ defmodule Mal.Reader do
     {hash_map(map), rest}
   end
 
-  defp do_read_sequence([], _acc, start_sep, end_sep), do: throw({:error, "expected #{end_sep}, got EOF"})
+  defp do_read_sequence([], _acc, _start_sep, end_sep), do: throw({:error, "expected #{end_sep}, got EOF"})
   defp do_read_sequence([head | tail] = tokens, acc, start_sep, end_sep) do
     cond do
       String.starts_with?(head, end_sep) ->
