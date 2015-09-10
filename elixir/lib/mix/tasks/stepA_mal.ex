@@ -6,12 +6,10 @@ defmodule Mix.Tasks.StepAMal do
     env = Mal.Env.new()
     Mal.Env.merge(env, Mal.Core.namespace)
     bootstrap(args, env)
-    load_file(args, env)
     loop(env)
   end
 
-  defp load_file([], _env), do: nil
-  defp load_file([file_name | _args], env) do
+  defp load_file(file_name, env) do
     read_eval_print("""
       (load-file "#{file_name}")
       """, env)
@@ -58,15 +56,18 @@ defmodule Mix.Tasks.StepAMal do
               `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
       """, env)
 
-    read_eval_print("(println (str \"Mal [\" *host-language* \"]\"))", env)
-
     Mal.Env.set(env, "eval", %Function{value: fn [ast] ->
       eval(ast, env)
     end})
 
     case args do
-      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", list(rest))
-      [] -> Mal.Env.set(env, "*ARGV*", list([]))
+      [file_name | rest] ->
+        Mal.Env.set(env, "*ARGV*", list(rest))
+        load_file(file_name, env)
+
+      [] ->
+        Mal.Env.set(env, "*ARGV*", list([]))
+        read_eval_print("(println (str \"Mal [\" *host-language* \"]\"))", env)
     end
   end
 
