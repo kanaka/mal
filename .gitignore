@@ -60,3 +60,8 @@ nim/nimcache
 groovy/*.class
 .crystal
 es6/build
+elixir/_build
+elixir/deps
+elixir/erl_crash.dump
+elixir/*.ez
+

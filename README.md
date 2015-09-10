@@ -4,7 +4,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 39 different languages:
+Mal is implemented in 40 different languages:
 
 * GNU awk
 * Bash shell
@@ -14,6 +14,7 @@ Mal is implemented in 39 different languages:
 * Clojure
 * CoffeeScript
 * Crystal
+* Elixir
 * Erlang
 * ES6 (ECMAScript 6 / ECMAScript 2015)
 * F#
@@ -167,6 +168,17 @@ crystal run ./stepX_YYY.cr
     # OR
 make   # needed to run tests
 ./stepX_YYY
+```
+
+### Elixir
+
+*The Elixir implementation was created by [Martin Ek (ekmartin)](https://github.com/ekmartin)*
+
+The Elixir implementation of mal has been tested with Elixir 1.0.5.
+
+```
+cd elixir
+iex -S mix stepX_YYY
 ```
 
 ### Erlang
@@ -664,4 +676,3 @@ example, to run step2 tests for every implementation (except MATLAB):
 
 Mal (make-a-lisp) is licensed under the MPL 2.0 (Mozilla Public
 License 2.0). See LICENSE.txt for more details.
-
