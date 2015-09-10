@@ -6,12 +6,10 @@ defmodule Mix.Tasks.Step8Macros do
     env = Mal.Env.new()
     Mal.Env.merge(env, Mal.Core.namespace)
     bootstrap(args, env)
-    load_file(args, env)
     loop(env)
   end
 
-  defp load_file([], _env), do: nil
-  defp load_file([file_name | _args], env) do
+  defp load_file(file_name, env) do
     read_eval_print("""
       (load-file "#{file_name}")
       """, env)
@@ -60,8 +58,12 @@ defmodule Mix.Tasks.Step8Macros do
     end})
 
     case args do
-      [_file_name | rest] -> Mal.Env.set(env, "*ARGV*", list(rest))
-      [] -> Mal.Env.set(env, "*ARGV*", list([]))
+      [file_name | rest] ->
+        Mal.Env.set(env, "*ARGV*", list(rest))
+        load_file(file_name, env)
+
+      [] ->
+        Mal.Env.set(env, "*ARGV*", list([]))
     end
   end
 
