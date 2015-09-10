@@ -178,6 +178,8 @@ The Elixir implementation of mal has been tested with Elixir 1.0.5.
 
 ```
 cd elixir
+mix stepX_YYY
+# Or with readline/line editing functionality:
 iex -S mix stepX_YYY
 ```
 
