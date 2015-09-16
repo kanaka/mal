@@ -52,7 +52,7 @@ haskell/*.hi
 haskell/*.o
 lua/lib
 lua/linenoise.so
-nim/nimcache
+nim/nimcache*
 .lein
 .m2
 .ivy2
