@@ -6,7 +6,7 @@ import Foundation
 
 private let HISTORY_FILE = "~/.mal-history"
 
-func with_history_file(do_to_history_file:(UnsafePointer<Int8>) -> ()) {
+private func with_history_file(do_to_history_file: (UnsafePointer<Int8>) -> ()) {
     HISTORY_FILE.withCString {
         (c_str) -> () in
         let abs_path = tilde_expand(UnsafeMutablePointer<Int8>(c_str))

@@ -6,48 +6,57 @@ import Foundation
 
 typealias EnvironmentVars = [MalSymbol: MalVal]
 
-let kSymbolAmpersand = MalSymbol(symbol: "&")
-let kNil = MalNil()
-let kNilSymbol = MalSymbol(symbol: "")
+private let kSymbolAmpersand = as_symbol(make_symbol("&"))
+private let kSymbolNil       = as_symbol(make_symbol(""))
+private let kNil             = make_nil()
 
-class Environment {
+final class Environment {
     init(outer: Environment?) {
         self.outer = outer
     }
 
-    func set_bindings(binds: MalSequence, with_exprs exprs: MalSequence) -> MalVal {
-        for var index = 0; index < binds.count; ++index {
-            if !is_symbol(binds[index]) { return MalError(message: "an entry in binds was not a symbol: index=\(index), binds[index]=\(binds[index])") }
-            let sym = binds[index] as! MalSymbol
+    func set_bindings(binds: MalSequence, with_exprs exprs: MalSequence) throws -> MalVal {
+        for var index: MalIntType = 0; index < binds.count; ++index {
+            guard let sym = as_symbolQ(try! binds.nth(index)) else {
+                try throw_error("an entry in binds was not a symbol: index=\(index), binds[index]=\(try! binds.nth(index))")
+            }
             if sym != kSymbolAmpersand {
                 if index < exprs.count {
-                    set(sym, exprs[index])
+                    set(sym, try! exprs.nth(index))
                 } else {
                     set(sym, kNil)
                 }
                 continue
             }
-            // I keep getting messed up by the following, so here's an
-            // explanation. We are iterating over two lists, and are at this
-            // point:
-            // 
-            //           index
-            //             |
-            //             v
-            // binds: (... & name)
-            // exprs: (... a b    c d e ...)
-            //
-            // In the following, we increment index to get to "name", and then
-            // later decrement it to get to (a b c d e ...)
-            if ++index >= binds.count { return MalError(message: "found & but no symbol") }
-            if !is_symbol(binds[index]) { return MalError(message: "& was not followed by a symbol: index=\(index), binds[index]=\(binds[index])") }
-            let rest_sym = binds[index--] as! MalSymbol
-            let rest = exprs[index..<exprs.count]
-            set(rest_sym, MalList(slice: rest))
+
+            guard (index + 1) < binds.count else {
+                try throw_error("found & but no symbol")
+            }
+            guard let rest_sym = as_symbolQ(try! binds.nth(index + 1)) else {
+                try throw_error("& was not followed by a symbol: index=\(index), binds[index]=\(try! binds.nth(index))")
+            }
+            let rest = exprs.range_from(index, to: exprs.count)
+            set(rest_sym, rest)
             break
         }
         return kNil
     }
+
+    // In this implementation, rather than storing everything in a dictionary,
+    // we optimize for small environments by having a hard-coded set of four
+    // slots. We use these slots when creating small environments, such as when
+    // a function is invoked. Testing shows that supporting up to four variables
+    // in this way is a good trade-off. Otherwise, if we have more than four
+    // variables, we switch over to using a dictionary. Testing also shows that
+    // trying to use both the slots and the dictionary for large environments is
+    // not as efficient as just completely switching over to the dictionary.
+    //
+    // Interestingly, even though the MalVal return value is hardly ever used at
+    // the call site, removing it and returning nothing is a performance loss.
+    // This is because returning 'value' allows the compiler to skip calling
+    // swift_release on it. The result is that set() calls swift_release twice
+    // (on self and sym), as opposed to three times (on self, sym, and value) if
+    // it were to return something other than one of the parameters.
 
     func set(sym: MalSymbol, _ value: MalVal) -> MalVal {
         if num_bindings == 0 {
@@ -83,7 +92,7 @@ class Environment {
     }
 
     func get(sym: MalSymbol) -> MalVal? {
-        if num_bindings > 4 { if let val = data[sym] { return val } }
+        if num_bindings > 4 { if let val = data[sym] { return val }; return outer?.get(sym) }
         if num_bindings > 3 { if slot_name3 == sym { return slot_value3 } }
         if num_bindings > 2 { if slot_name2 == sym { return slot_value2 } }
         if num_bindings > 1 { if slot_name1 == sym { return slot_value1 } }
@@ -94,12 +103,12 @@ class Environment {
     private var outer: Environment?
     private var data = EnvironmentVars()
     private var num_bindings = 0
-    private var slot_name0: MalSymbol = kNilSymbol
-    private var slot_name1: MalSymbol = kNilSymbol
-    private var slot_name2: MalSymbol = kNilSymbol
-    private var slot_name3: MalSymbol = kNilSymbol
-    private var slot_value0: MalVal = kNil
-    private var slot_value1: MalVal = kNil
-    private var slot_value2: MalVal = kNil
-    private var slot_value3: MalVal = kNil
+    private var slot_name0 = kSymbolNil
+    private var slot_name1 = kSymbolNil
+    private var slot_name2 = kSymbolNil
+    private var slot_name3 = kSymbolNil
+    private var slot_value0 = kNil
+    private var slot_value1 = kNil
+    private var slot_value2 = kNil
+    private var slot_value3 = kNil
 }

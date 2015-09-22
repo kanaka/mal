@@ -11,8 +11,8 @@ import Foundation
 
 // Parse the string into an AST.
 //
-func READ(str: String) -> MalVal {
-    return read_str(str)
+private func READ(str: String) throws -> MalVal {
+    return try read_str(str)
 }
 
 // Perform a simple evaluation of the `ast` object. If it's a symbol,
@@ -20,129 +20,124 @@ func READ(str: String) -> MalVal {
 // elements (or just the values, in the case of the hashmap). Otherwise, return
 // the object unchanged.
 //
-func eval_ast(ast: MalVal, env: Environment) -> MalVal {
-    switch ast.type {
-        case .TypeSymbol:
-            let symbol = ast as! MalSymbol
-            if let val = env.get(symbol) {
-                return val
-            }
-            return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
-        case .TypeList:
-            let list = ast as! MalList
-            var result = [MalVal]()
-            result.reserveCapacity(list.count)
-            for item in list {
-                let eval = EVAL(item, env)
-                if is_error(eval) { return eval }
-                result.append(eval)
-            }
-            return MalList(array: result)
-        case .TypeVector:
-            let vec = ast as! MalVector
-            var result = [MalVal]()
-            result.reserveCapacity(vec.count)
-            for item in vec {
-                let eval = EVAL(item, env)
-                if is_error(eval) { return eval }
-                result.append(eval)
-            }
-            return MalVector(array: result)
-        case .TypeHashMap:
-            let hash = ast as! MalHashMap
-            var result = [MalVal]()
-            result.reserveCapacity(hash.count * 2)
-            for (k, v) in hash {
-                let new_v = EVAL(v, env)
-                if is_error(new_v) { return new_v }
-                result.append(k)
-                result.append(new_v)
-            }
-            return MalHashMap(array: result)
-        default:
-            return ast
+private func eval_ast(ast: MalVal, _ env: Environment) throws -> MalVal {
+    if let symbol = as_symbolQ(ast) {
+        guard let val = env.get(symbol) else {
+            try throw_error("'\(symbol)' not found")    // Specific text needed to match MAL unit tests
+        }
+        return val
     }
+    if let list = as_listQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(list.count))
+        for item in list {
+            let eval = try EVAL(item, env)
+            result.append(eval)
+        }
+        return make_list(result)
+    }
+    if let vec = as_vectorQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(vec.count))
+        for item in vec {
+            let eval = try EVAL(item, env)
+            result.append(eval)
+        }
+        return make_vector(result)
+    }
+    if let hash = as_hashmapQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(hash.count) * 2)
+        for (k, v) in hash {
+            let new_v = try EVAL(v, env)
+            result.append(k)
+            result.append(new_v)
+        }
+        return make_hashmap(result)
+    }
+    return ast
 }
 
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
-func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
-        if is_error(ast) { return ast }
+private func EVAL(ast: MalVal, _ env: Environment) throws -> MalVal {
 
         if !is_list(ast) {
 
             // Not a list -- just evaluate and return.
 
-            let answer = eval_ast(ast, env)
+            let answer = try eval_ast(ast, env)
             return answer
         }
 
         // Special handling if it's a list.
 
-        var list = ast as! MalList
+        let list = as_list(ast)
 
         if list.isEmpty {
-            return list
+            return ast
         }
 
         // Standard list to be applied. Evaluate all the elements first.
 
-        let eval = eval_ast(ast, env)
-        if is_error(eval) { return eval }
+        let eval = try eval_ast(ast, env)
 
         // The result had better be a list and better be non-empty.
 
-        let eval_list = eval as! MalList
+        let eval_list = as_list(eval)
         if eval_list.isEmpty {
-            return eval_list
+            return eval
         }
 
         // Get the first element of the list and execute it.
 
         let first = eval_list.first()
-        let rest = eval_list.rest()
+        let rest = as_sequence(eval_list.rest())
 
-        if is_builtin(first) {
-            let fn = first as! MalBuiltin
-            let answer = fn.apply(rest)
+        if let fn = as_builtinQ(first) {
+            let answer = try fn.apply(rest)
             return answer
         }
 
         // The first element wasn't a function to be executed. Return an
         // error saying so.
 
-        return MalError(message: "first list item does not evaluate to a function: \(first)")
+        try throw_error("first list item does not evaluate to a function: \(first)")
 }
 
 // Convert the value into a human-readable string for printing.
 //
-func PRINT(exp: MalVal) -> String? {
-    if is_error(exp) { return nil }
+private func PRINT(exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 // Perform the READ and EVAL steps. Useful for when you don't care about the
 // printable result.
 //
-func RE(text: String, env: Environment) -> MalVal? {
-    if text.isEmpty { return nil }
-    let ast = READ(text)
-    if is_error(ast) {
-        println("Error parsing input: \(ast)")
-        return nil
+private func RE(text: String, _ env: Environment) -> MalVal? {
+    if !text.isEmpty {
+        do {
+            let ast = try READ(text)
+            do {
+                return try EVAL(ast, env)
+            } catch let error as MalException {
+                print("Error evaluating input: \(error)")
+            } catch {
+                print("Error evaluating input: \(error)")
+            }
+        } catch let error as MalException {
+            print("Error parsing input: \(error)")
+        } catch {
+            print("Error parsing input: \(error)")
+        }
     }
-    let exp = EVAL(ast, env)
-    if is_error(exp) {
-        println("Error evaluating input: \(exp)")
-        return nil
-    }
-    return exp
+    return nil
 }
 
 // Perform the full READ/EVAL/PRINT, returning a printable string.
 //
-func REP(text: String, env: Environment) -> String? {
+private func REP(text: String, _ env: Environment) -> String? {
     let exp = RE(text, env)
     if exp == nil { return nil }
     return PRINT(exp!)
@@ -150,21 +145,21 @@ func REP(text: String, env: Environment) -> String? {
 
 // Perform the full REPL.
 //
-func REPL(env: Environment) {
+private func REPL(env: Environment) {
     while true {
         if let text = _readline("user> ") {
             if let output = REP(text, env) {
-                println("\(output)")
+                print("\(output)")
             }
         } else {
-            println()
+            print("")
             break
         }
     }
 }
 
 func main() {
-    var env = Environment(outer: nil)
+    let env = Environment(outer: nil)
 
     load_history_file()
     load_builtins(env)

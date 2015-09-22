@@ -11,16 +11,23 @@ import Foundation
 
 // Symbols used in this module.
 //
-let kSymbolDef              = MalSymbol(symbol: "def!")
-let kSymbolDo               = MalSymbol(symbol: "do")
-let kSymbolFn               = MalSymbol(symbol: "fn*")
-let kSymbolIf               = MalSymbol(symbol: "if")
-let kSymbolLet              = MalSymbol(symbol: "let*")
+private let kValDef           = make_symbol("def!")
+private let kValDo            = make_symbol("do")
+private let kValFn            = make_symbol("fn*")
+private let kValIf            = make_symbol("if")
+private let kValLet           = make_symbol("let*")
+private let kValTry           = make_symbol("try*")
+
+private let kSymbolDef           = as_symbol(kValDef)
+private let kSymbolDo            = as_symbol(kValDo)
+private let kSymbolFn            = as_symbol(kValFn)
+private let kSymbolIf            = as_symbol(kValIf)
+private let kSymbolLet           = as_symbol(kValLet)
 
 // Parse the string into an AST.
 //
-func READ(str: String) -> MalVal {
-    return read_str(str)
+private func READ(str: String) throws -> MalVal {
+    return try read_str(str)
 }
 
 // Perform a simple evaluation of the `ast` object. If it's a symbol,
@@ -28,240 +35,225 @@ func READ(str: String) -> MalVal {
 // elements (or just the values, in the case of the hashmap). Otherwise, return
 // the object unchanged.
 //
-func eval_ast(ast: MalVal, env: Environment) -> MalVal {
-    switch ast.type {
-        case .TypeSymbol:
-            let symbol = ast as! MalSymbol
-            if let val = env.get(symbol) {
-                return val
-            }
-            return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
-        case .TypeList:
-            let list = ast as! MalList
-            var result = [MalVal]()
-            result.reserveCapacity(list.count)
-            for item in list {
-                let eval = EVAL(item, env)
-                if is_error(eval) { return eval }
-                result.append(eval)
-            }
-            return MalList(array: result)
-        case .TypeVector:
-            let vec = ast as! MalVector
-            var result = [MalVal]()
-            result.reserveCapacity(vec.count)
-            for item in vec {
-                let eval = EVAL(item, env)
-                if is_error(eval) { return eval }
-                result.append(eval)
-            }
-            return MalVector(array: result)
-        case .TypeHashMap:
-            let hash = ast as! MalHashMap
-            var result = [MalVal]()
-            result.reserveCapacity(hash.count * 2)
-            for (k, v) in hash {
-                let new_v = EVAL(v, env)
-                if is_error(new_v) { return new_v }
-                result.append(k)
-                result.append(new_v)
-            }
-            return MalHashMap(array: result)
-        default:
-            return ast
+private func eval_ast(ast: MalVal, _ env: Environment) throws -> MalVal {
+    if let symbol = as_symbolQ(ast) {
+        guard let val = env.get(symbol) else {
+            try throw_error("'\(symbol)' not found")    // Specific text needed to match MAL unit tests
+        }
+        return val
     }
+    if let list = as_listQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(list.count))
+        for item in list {
+            let eval = try EVAL(item, env)
+            result.append(eval)
+        }
+        return make_list(result)
+    }
+    if let vec = as_vectorQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(vec.count))
+        for item in vec {
+            let eval = try EVAL(item, env)
+            result.append(eval)
+        }
+        return make_vector(result)
+    }
+    if let hash = as_hashmapQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(hash.count) * 2)
+        for (k, v) in hash {
+            let new_v = try EVAL(v, env)
+            result.append(k)
+            result.append(new_v)
+        }
+        return make_hashmap(result)
+    }
+    return ast
 }
 
 // EVALuate "def!".
 //
-func eval_def(list: MalSequence, env: Environment) -> MalVal {
-    if list.count != 3 {
-        return MalError(message: "expected 2 arguments to def!, got \(list.count - 1)")
+private func eval_def(list: MalSequence, _ env: Environment) throws -> MalVal {
+    guard list.count == 3 else {
+        try throw_error("expected 2 arguments to def!, got \(list.count - 1)")
     }
-    let arg1 = list[1]
-    let arg2 = list[2]
-    if !is_symbol(arg1) {
-        return MalError(message: "expected symbol for first argument to def!")
+    let arg1 = try! list.nth(1)
+    let arg2 = try! list.nth(2)
+    guard let sym = as_symbolQ(arg1) else {
+        try throw_error("expected symbol for first argument to def!")
     }
-    let sym = arg1 as! MalSymbol
-    let value = EVAL(arg2, env)
-    if is_error(value) { return value }
+    let value = try EVAL(arg2, env)
     return env.set(sym, value)
 }
 
 // EVALuate "let*".
 //
-func eval_let(list: MalSequence, env: Environment) -> MalVal {
-    if list.count != 3 {
-        return MalError(message: "expected 2 arguments to let*, got \(list.count - 1)")
+private func eval_let(list: MalSequence, _ env: Environment) throws -> MalVal {
+    guard list.count == 3 else {
+        try throw_error("expected 2 arguments to let*, got \(list.count - 1)")
     }
-    let arg1 = list[1]
-    let arg2 = list[2]
-    if !is_sequence(arg1) {
-        return MalError(message: "expected list for first argument to let*")
+    let arg1 = try! list.nth(1)
+    let arg2 = try! list.nth(2)
+    guard let bindings = as_sequenceQ(arg1) else {
+        try throw_error("expected list for first argument to let*")
     }
-    let bindings = arg1 as! MalSequence
-    if bindings.count % 2 == 1 {
-        return MalError(message: "expected even number of elements in bindings to let*, got \(bindings.count)")
+    guard bindings.count % 2 == 0 else {
+        try throw_error("expected even number of elements in bindings to let*, got \(bindings.count)")
     }
-    var new_env = Environment(outer: env)
-    for var index = 0; index < bindings.count; index += 2 {
-        let binding_name = bindings[index]
-        let binding_value = bindings[index + 1]
-
-        if !is_symbol(binding_name) {
-            return MalError(message: "expected symbol for first element in binding pair")
+    let new_env = Environment(outer: env)
+    for var index: MalIntType = 0; index < bindings.count; index += 2 {
+        let binding_name = try! bindings.nth(index)
+        let binding_value = try! bindings.nth(index + 1)
+        guard let binding_symbol = as_symbolQ(binding_name) else {
+            try throw_error("expected symbol for first element in binding pair")
         }
-        let binding_symbol = binding_name as! MalSymbol
-        let evaluated_value = EVAL(binding_value, new_env)
-        if is_error(evaluated_value) { return evaluated_value }
+        let evaluated_value = try EVAL(binding_value, new_env)
         new_env.set(binding_symbol, evaluated_value)
     }
-    return EVAL(arg2, new_env)
+    return try EVAL(arg2, new_env)
 }
 
 // EVALuate "do".
 //
-func eval_do(list: MalSequence, env: Environment) -> MalVal {
-    let evaluated_ast = eval_ast(list.rest(), env)
-    if is_error(evaluated_ast) { return evaluated_ast }
-    let evaluated_seq = evaluated_ast as! MalSequence
+private func eval_do(list: MalSequence, _ env: Environment) throws -> MalVal {
+    let evaluated_ast = try eval_ast(list.rest(), env)
+    let evaluated_seq = as_sequence(evaluated_ast)
     return evaluated_seq.last()
 }
 
 // EVALuate "if".
 //
-func eval_if(list: MalSequence, env: Environment) -> MalVal {
-    if list.count < 3 {
-        return MalError(message: "expected at least 2 arguments to if, got \(list.count - 1)")
+private func eval_if(list: MalSequence, _ env: Environment) throws -> MalVal {
+    guard list.count >= 3 else {
+        try throw_error("expected at least 2 arguments to if, got \(list.count - 1)")
     }
-    let cond_result = EVAL(list[1], env)
-    var new_ast = MalVal()
+    let cond_result = try EVAL(try! list.nth(1), env)
+    var new_ast: MalVal
     if is_truthy(cond_result) {
-        new_ast = list[2]
+        new_ast = try! list.nth(2)
     } else if list.count == 4 {
-        new_ast = list[3]
+        new_ast = try! list.nth(3)
     } else {
-        return MalNil()
+        return make_nil()
     }
-    return EVAL(new_ast, env)
+    return try EVAL(new_ast, env)
 }
 
 // EVALuate "fn*".
 //
-func eval_fn(list: MalSequence, env: Environment) -> MalVal {
-    if list.count != 3 {
-        return MalError(message: "expected 2 arguments to fn*, got \(list.count - 1)")
+private func eval_fn(list: MalSequence, _ env: Environment) throws -> MalVal {
+    guard list.count == 3 else {
+        try throw_error("expected 2 arguments to fn*, got \(list.count - 1)")
     }
-    if !is_sequence(list[1]) {
-        return MalError(message: "expected list or vector for first argument to fn*")
+    guard let seq = as_sequenceQ(try! list.nth(1)) else {
+        try throw_error("expected list or vector for first argument to fn*")
     }
-    return MalClosure(eval: EVAL, args:list[1] as! MalSequence, body:list[2], env:env)
+    return make_closure((eval: EVAL, args: seq, body: try! list.nth(2), env: env))
 }
 
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
-func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
-        if is_error(ast) { return ast }
+private func EVAL(ast: MalVal, _ env: Environment) throws -> MalVal {
 
         if !is_list(ast) {
 
             // Not a list -- just evaluate and return.
 
-            let answer = eval_ast(ast, env)
+            let answer = try eval_ast(ast, env)
             return answer
         }
 
         // Special handling if it's a list.
 
-        var list = ast as! MalList
+        let list = as_list(ast)
 
         if list.isEmpty {
-            return list
+            return ast
         }
 
         // Check for special forms, where we want to check the operation
         // before evaluating all of the parameters.
 
         let arg0 = list.first()
-        if is_symbol(arg0) {
-            let fn_symbol = arg0 as! MalSymbol
+        if let fn_symbol = as_symbolQ(arg0) {
 
             switch fn_symbol {
-                case kSymbolDef:            return eval_def(list, env)
-                case kSymbolLet:            return eval_let(list, env)
-                case kSymbolDo:             return eval_do(list, env)
-                case kSymbolIf:             return eval_if(list, env)
-                case kSymbolFn:             return eval_fn(list, env)
+                case kSymbolDef:            return try eval_def(list, env)
+                case kSymbolLet:            return try eval_let(list, env)
+                case kSymbolDo:             return try eval_do(list, env)
+                case kSymbolIf:             return try eval_if(list, env)
+                case kSymbolFn:             return try eval_fn(list, env)
                 default:                    break
             }
         }
 
         // Standard list to be applied. Evaluate all the elements first.
 
-        let eval = eval_ast(ast, env)
-        if is_error(eval) { return eval }
+        let eval = try eval_ast(ast, env)
 
         // The result had better be a list and better be non-empty.
 
-        let eval_list = eval as! MalList
+        let eval_list = as_list(eval)
         if eval_list.isEmpty {
-            return eval_list
+            return eval
         }
 
         // Get the first element of the list and execute it.
 
         let first = eval_list.first()
-        let rest = eval_list.rest()
+        let rest = as_sequence(eval_list.rest())
 
-        if is_builtin(first) {
-            let fn = first as! MalBuiltin
-            let answer = fn.apply(rest)
+        if let fn = as_builtinQ(first) {
+            let answer = try fn.apply(rest)
             return answer
-        } else if is_closure(first) {
-            let fn = first as! MalClosure
-            var new_env = Environment(outer: fn.env)
-            let result = new_env.set_bindings(fn.args, with_exprs:rest)
-            if is_error(result) { return result }
-            let answer = EVAL(fn.body, new_env)
+        } else if let fn = as_closureQ(first) {
+            let new_env = Environment(outer: fn.env)
+            let _ = try new_env.set_bindings(fn.args, with_exprs: rest)
+            let answer = try EVAL(fn.body, new_env)
             return answer
         }
 
         // The first element wasn't a function to be executed. Return an
         // error saying so.
 
-        return MalError(message: "first list item does not evaluate to a function: \(first)")
+        try throw_error("first list item does not evaluate to a function: \(first)")
 }
 
 // Convert the value into a human-readable string for printing.
 //
-func PRINT(exp: MalVal) -> String? {
-    if is_error(exp) { return nil }
+private func PRINT(exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 // Perform the READ and EVAL steps. Useful for when you don't care about the
 // printable result.
 //
-func RE(text: String, env: Environment) -> MalVal? {
-    if text.isEmpty { return nil }
-    let ast = READ(text)
-    if is_error(ast) {
-        println("Error parsing input: \(ast)")
-        return nil
+private func RE(text: String, _ env: Environment) -> MalVal? {
+    if !text.isEmpty {
+        do {
+            let ast = try READ(text)
+            do {
+                return try EVAL(ast, env)
+            } catch let error as MalException {
+                print("Error evaluating input: \(error)")
+            } catch {
+                print("Error evaluating input: \(error)")
+            }
+        } catch let error as MalException {
+            print("Error parsing input: \(error)")
+        } catch {
+            print("Error parsing input: \(error)")
+        }
     }
-    let exp = EVAL(ast, env)
-    if is_error(exp) {
-        println("Error evaluating input: \(exp)")
-        return nil
-    }
-    return exp
+    return nil
 }
 
 // Perform the full READ/EVAL/PRINT, returning a printable string.
 //
-func REP(text: String, env: Environment) -> String? {
+private func REP(text: String, _ env: Environment) -> String? {
     let exp = RE(text, env)
     if exp == nil { return nil }
     return PRINT(exp!)
@@ -269,21 +261,21 @@ func REP(text: String, env: Environment) -> String? {
 
 // Perform the full REPL.
 //
-func REPL(env: Environment) {
+private func REPL(env: Environment) {
     while true {
         if let text = _readline("user> ") {
             if let output = REP(text, env) {
-                println("\(output)")
+                print("\(output)")
             }
         } else {
-            println()
+            print("")
             break
         }
     }
 }
 
 func main() {
-    var env = Environment(outer: nil)
+    let env = Environment(outer: nil)
 
     load_history_file()
     load_builtins(env)

@@ -11,27 +11,27 @@ import Foundation
 
 // Parse the string into an AST.
 //
-func READ(str: String) -> String {
+private func READ(str: String) -> String {
     return str
 }
 
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
-func EVAL(ast: String) -> String {
+private func EVAL(ast: String) -> String {
     return ast
 }
 
 // Convert the value into a human-readable string for printing.
 //
-func PRINT(exp: String) -> String {
+private func PRINT(exp: String) -> String {
     return exp
 }
 
 // Perform the READ and EVAL steps. Useful for when you don't care about the
 // printable result.
 //
-func RE(text: String) -> String {
+private func RE(text: String) -> String {
     let ast = READ(text)
     let exp = EVAL(ast)
     return exp
@@ -39,19 +39,19 @@ func RE(text: String) -> String {
 
 // Perform the full READ/EVAL/PRINT, returning a printable string.
 //
-func REP(text: String) -> String {
+private func REP(text: String) -> String {
     let exp = RE(text)
     return PRINT(exp)
 }
 
 // Perform the full REPL.
 //
-func REPL() {
+private func REPL() {
     while true {
         if let text = _readline("user> ") {
-            println("\(REP(text))")
+            print("\(REP(text))")
         } else {
-            println()
+            print("")
             break
         }
     }

@@ -11,46 +11,43 @@ import Foundation
 
 // Parse the string into an AST.
 //
-func READ(str: String) -> MalVal {
-    return read_str(str)
+private func READ(str: String) throws -> MalVal {
+    return try read_str(str)
 }
 
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
-func EVAL(ast: MalVal) -> MalVal {
-    if is_error(ast) { return ast }
+private func EVAL(ast: MalVal) -> MalVal {
     return ast
 }
 
 // Convert the value into a human-readable string for printing.
 //
-func PRINT(exp: MalVal) -> String? {
-    if is_error(exp) { return nil }
+private func PRINT(exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 // Perform the READ and EVAL steps. Useful for when you don't care about the
 // printable result.
 //
-func RE(text: String) -> MalVal? {
-    if text.isEmpty { return nil }
-    let ast = READ(text)
-    if is_error(ast) {
-        println("Error parsing input: \(ast)")
-        return nil
+private func RE(text: String) -> MalVal? {
+    if !text.isEmpty {
+        do {
+            let ast = try READ(text)
+                return EVAL(ast)
+        } catch let error as MalException {
+            print("Error parsing input: \(error)")
+        } catch {
+            print("Error parsing input: \(error)")
+        }
     }
-    let exp = EVAL(ast)
-    if is_error(exp) {
-        println("Error evaluating input: \(exp)")
-        return nil
-    }
-    return exp
+    return nil
 }
 
 // Perform the full READ/EVAL/PRINT, returning a printable string.
 //
-func REP(text: String) -> String? {
+private func REP(text: String) -> String? {
     let exp = RE(text)
     if exp == nil { return nil }
     return PRINT(exp!)
@@ -58,14 +55,14 @@ func REP(text: String) -> String? {
 
 // Perform the full REPL.
 //
-func REPL() {
+private func REPL() {
     while true {
         if let text = _readline("user> ") {
             if let output = REP(text) {
-                println("\(output)")
+                print("\(output)")
             }
         } else {
-            println()
+            print("")
             break
         }
     }
