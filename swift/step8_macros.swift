@@ -12,28 +12,28 @@ import Foundation
 // The number of times EVAL has been entered recursively. We keep track of this
 // so that we can protect against overrunning the stack.
 //
-var EVAL_level = 0
+private var EVAL_level = 0
 
 // The maximum number of times we let EVAL recurse before throwing an exception.
 // Testing puts this at some place between 1800 and 1900. Let's keep it at 500
 // for safety's sake.
 //
-let EVAL_leval_max = 500
+private let EVAL_leval_max = 500
 
 // Control whether or not tail-call optimization (TCO) is enabled. We want it
 // `true` most of the time, but may disable it for debugging purposes (it's
 // easier to get a meaningful backtrace that way).
 //
-let TCO = true
+private let TCO = true
 
 // Control whether or not we emit debugging statements in EVAL.
 //
-let DEBUG_EVAL = false
+private let DEBUG_EVAL = false
 
 // String used to prefix information logged in EVAL. Increasing lengths of the
 // string are used the more EVAL is recursed.
 //
-let INDENT_TEMPLATE = "|----|----|----|----|----|----|----|----|" +
+private let INDENT_TEMPLATE = "|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
     "----|----|----|----|----|----|----|----|----|----|----|" +
@@ -47,75 +47,79 @@ let INDENT_TEMPLATE = "|----|----|----|----|----|----|----|----|" +
 
 // Holds the prefix of INDENT_TEMPLATE used for actual logging.
 //
-var indent = String()
+private var indent = String()
 
 // Symbols used in this module.
 //
-let kSymbolArgv             = MalSymbol(symbol: "*ARGV*")
-let kSymbolConcat           = MalSymbol(symbol: "concat")
-let kSymbolCons             = MalSymbol(symbol: "cons")
-let kSymbolDef              = MalSymbol(symbol: "def!")
-let kSymbolDefMacro         = MalSymbol(symbol: "defmacro!")
-let kSymbolDo               = MalSymbol(symbol: "do")
-let kSymbolEval             = MalSymbol(symbol: "eval")
-let kSymbolFn               = MalSymbol(symbol: "fn*")
-let kSymbolIf               = MalSymbol(symbol: "if")
-let kSymbolLet              = MalSymbol(symbol: "let*")
-let kSymbolMacroExpand      = MalSymbol(symbol: "macroexpand")
-let kSymbolQuasiQuote       = MalSymbol(symbol: "quasiquote")
-let kSymbolQuote            = MalSymbol(symbol: "quote")
-let kSymbolSpliceUnquote    = MalSymbol(symbol: "splice-unquote")
-let kSymbolUnquote          = MalSymbol(symbol: "unquote")
+private let kValArgv          = make_symbol("*ARGV*")
+private let kValConcat        = make_symbol("concat")
+private let kValCons          = make_symbol("cons")
+private let kValDef           = make_symbol("def!")
+private let kValDefMacro      = make_symbol("defmacro!")
+private let kValDo            = make_symbol("do")
+private let kValEval          = make_symbol("eval")
+private let kValFn            = make_symbol("fn*")
+private let kValIf            = make_symbol("if")
+private let kValLet           = make_symbol("let*")
+private let kValMacroExpand   = make_symbol("macroexpand")
+private let kValQuasiQuote    = make_symbol("quasiquote")
+private let kValQuote         = make_symbol("quote")
+private let kValSpliceUnquote = make_symbol("splice-unquote")
+private let kValUnquote       = make_symbol("unquote")
+private let kValTry           = make_symbol("try*")
 
-// Class to help control the incrementing and decrementing of EVAL_level. We
-// create one of these on entry to EVAL, incrementing the level. When the
-// variable goes out of scope, the object is destroyed, decrementing the level.
-//
-class EVAL_Counter {
-    init() {
-        ++EVAL_level
-    }
-    deinit {
-        --EVAL_level
-    }
+private let kSymbolArgv          = as_symbol(kValArgv)
+private let kSymbolConcat        = as_symbol(kValConcat)
+private let kSymbolCons          = as_symbol(kValCons)
+private let kSymbolDef           = as_symbol(kValDef)
+private let kSymbolDefMacro      = as_symbol(kValDefMacro)
+private let kSymbolDo            = as_symbol(kValDo)
+private let kSymbolEval          = as_symbol(kValEval)
+private let kSymbolFn            = as_symbol(kValFn)
+private let kSymbolIf            = as_symbol(kValIf)
+private let kSymbolLet           = as_symbol(kValLet)
+private let kSymbolMacroExpand   = as_symbol(kValMacroExpand)
+private let kSymbolQuasiQuote    = as_symbol(kValQuasiQuote)
+private let kSymbolQuote         = as_symbol(kValQuote)
+private let kSymbolSpliceUnquote = as_symbol(kValSpliceUnquote)
+private let kSymbolUnquote       = as_symbol(kValUnquote)
+
+func substring(s: String, _ begin: Int, _ end: Int) -> String {
+    return s[s.startIndex.advancedBy(begin) ..< s.startIndex.advancedBy(end)]
 }
 
 // Parse the string into an AST.
 //
-func READ(str: String) -> MalVal {
-    return read_str(str)
+private func READ(str: String) throws -> MalVal {
+    return try read_str(str)
 }
 
 // Return whether or not `val` is a non-empty list.
 //
-func is_pair(val:MalVal) -> Bool {
-    if !is_sequence(val) { return false }
-    let list = val as! MalSequence
-    return !list.isEmpty
+private func is_pair(val: MalVal) -> Bool {
+    if let seq = as_sequenceQ(val) {
+        return !seq.isEmpty
+    }
+    return false
 }
 
 // Expand macros for as long as the expression looks like a macro invocation.
 //
-func macroexpand(var ast:MalVal, env:Environment) -> MalVal {
+private func macroexpand(var ast: MalVal, _ env: Environment) throws -> MalVal {
     while true {
-        if !is_list(ast) { break }
-        let ast_as_list = ast as! MalList
-        if ast_as_list.isEmpty { break }
-        let first = ast_as_list.first()
-        if !is_symbol(first) { break }
-        let macro_name = first as! MalSymbol
-        let obj = env.get(macro_name)
-        if obj == nil { break }
-        if !is_closure(obj!) { break }
-        let macro = obj! as! MalClosure
-        if !macro.is_macro { break }
-        var new_env = Environment(outer: macro.env)
-        let rest = ast_as_list.rest()
-        let res = new_env.set_bindings(macro.args, with_exprs:rest)
-        if is_error(res) { return res }
-        ast = EVAL(macro.body, new_env)
+        if  let ast_as_list = as_listQ(ast) where !ast_as_list.isEmpty,
+            let macro_name = as_symbolQ(ast_as_list.first()),
+            let obj = env.get(macro_name),
+            let macro = as_macroQ(obj)
+        {
+            let new_env = Environment(outer: macro.env)
+            let rest = as_sequence(ast_as_list.rest())
+            let _ = try new_env.set_bindings(macro.args, with_exprs: rest)
+            ast = try EVAL(macro.body, new_env)
+            continue
+        }
+        return ast
     }
-    return ast
 }
 
 // Evaluate `quasiquote`, possibly recursing in the process.
@@ -154,15 +158,15 @@ func macroexpand(var ast:MalVal, env:Environment) -> MalVal {
 // list) with the remaining items of the list containing that splice-quote
 // expression. However, it's not clear to me why the handling of "unquote" is
 // not handled similarly, for consistency's sake.
-
-func quasiquote(qq_arg:MalVal) -> MalVal {
+//
+private func quasiquote(qq_arg: MalVal) throws -> MalVal {
 
     // If the argument is an atom or empty list:
     //
     // Return: (quote <argument>)
 
     if !is_pair(qq_arg) {
-        return MalList(objects: kSymbolQuote, qq_arg)
+        return make_list_from(kValQuote, qq_arg)
     }
 
     // The argument is a non-empty list -- that is (item rest...)
@@ -172,12 +176,9 @@ func quasiquote(qq_arg:MalVal) -> MalVal {
     //
     // Return: item
 
-    let qq_list = qq_arg as! MalSequence
-    if is_symbol(qq_list.first()) {
-        let sym = qq_list.first() as! MalSymbol
-        if sym == kSymbolUnquote {
-            return qq_list.count >= 2 ? qq_list[1] : MalNil()
-        }
+    let qq_list = as_sequence(qq_arg)
+    if let sym = as_symbolQ(qq_list.first()) where sym == kSymbolUnquote {
+        return qq_list.count >= 2 ? try! qq_list.nth(1) : make_nil()
     }
 
     // If the first item from the list is itself a non-empty list starting with
@@ -186,14 +187,10 @@ func quasiquote(qq_arg:MalVal) -> MalVal {
     // Return: (concat item quasiquote(rest...))
 
     if is_pair(qq_list.first()) {
-        let qq_list_item0 = qq_list.first() as! MalSequence
-        if is_symbol(qq_list_item0.first()) {
-            let sym = qq_list_item0.first() as! MalSymbol
-            if sym == kSymbolSpliceUnquote {
-                let result = quasiquote(qq_list.rest())
-                if is_error(result) { return result }
-                return MalList(array: [kSymbolConcat, qq_list_item0[1], result])
-            }
+        let qq_list_item0 = as_sequence(qq_list.first())
+        if let sym = as_symbolQ(qq_list_item0.first()) where sym == kSymbolSpliceUnquote {
+            let result = try quasiquote(qq_list.rest())
+            return make_list_from(kValConcat, try! qq_list_item0.nth(1), result)
         }
     }
 
@@ -201,13 +198,9 @@ func quasiquote(qq_arg:MalVal) -> MalVal {
     //
     // Return: (cons (quasiquote item) (quasiquote (rest...))
 
-    let first = quasiquote(qq_list.first())
-    if is_error(first) { return first }
-
-    let rest = quasiquote(qq_list.rest())
-    if is_error(rest) { return rest }
-
-    return MalList(objects: kSymbolCons, first, rest)
+    let first = try quasiquote(qq_list.first())
+    let rest = try quasiquote(qq_list.rest())
+    return make_list_from(kValCons, first, rest)
 }
 
 // Perform a simple evaluation of the `ast` object. If it's a symbol,
@@ -215,51 +208,45 @@ func quasiquote(qq_arg:MalVal) -> MalVal {
 // elements (or just the values, in the case of the hashmap). Otherwise, return
 // the object unchanged.
 //
-func eval_ast(ast: MalVal, env: Environment) -> MalVal {
-    switch ast.type {
-        case .TypeSymbol:
-            let symbol = ast as! MalSymbol
-            if let val = env.get(symbol) {
-                return val
-            }
-            return MalError(message: "'\(symbol)' not found")    // Specific text needed to match MAL unit tests
-        case .TypeList:
-            let list = ast as! MalList
-            var result = [MalVal]()
-            result.reserveCapacity(list.count)
-            for item in list {
-                let eval = EVAL(item, env)
-                if is_error(eval) { return eval }
-                result.append(eval)
-            }
-            return MalList(array: result)
-        case .TypeVector:
-            let vec = ast as! MalVector
-            var result = [MalVal]()
-            result.reserveCapacity(vec.count)
-            for item in vec {
-                let eval = EVAL(item, env)
-                if is_error(eval) { return eval }
-                result.append(eval)
-            }
-            return MalVector(array: result)
-        case .TypeHashMap:
-            let hash = ast as! MalHashMap
-            var result = [MalVal]()
-            result.reserveCapacity(hash.count * 2)
-            for (k, v) in hash {
-                let new_v = EVAL(v, env)
-                if is_error(new_v) { return new_v }
-                result.append(k)
-                result.append(new_v)
-            }
-            return MalHashMap(array: result)
-        default:
-            return ast
+private func eval_ast(ast: MalVal, _ env: Environment) throws -> MalVal {
+    if let symbol = as_symbolQ(ast) {
+        guard let val = env.get(symbol) else {
+            try throw_error("'\(symbol)' not found")    // Specific text needed to match MAL unit tests
+        }
+        return val
     }
+    if let list = as_listQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(list.count))
+        for item in list {
+            let eval = try EVAL(item, env)
+            result.append(eval)
+        }
+        return make_list(result)
+    }
+    if let vec = as_vectorQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(vec.count))
+        for item in vec {
+            let eval = try EVAL(item, env)
+            result.append(eval)
+        }
+        return make_vector(result)
+    }
+    if let hash = as_hashmapQ(ast) {
+        var result = [MalVal]()
+        result.reserveCapacity(Int(hash.count) * 2)
+        for (k, v) in hash {
+            let new_v = try EVAL(v, env)
+            result.append(k)
+            result.append(new_v)
+        }
+        return make_hashmap(result)
+    }
+    return ast
 }
 
-enum TCOVal {
+private enum TCOVal {
     case NoResult
     case Return(MalVal)
     case Continue(MalVal, Environment)
@@ -267,204 +254,192 @@ enum TCOVal {
     init() { self = .NoResult }
     init(_ result: MalVal) { self = .Return(result) }
     init(_ ast: MalVal, _ env: Environment) { self = .Continue(ast, env) }
-    init(_ e: String) { self = .Return(MalError(message: e)) }
 }
 
 // EVALuate "def!" and "defmacro!".
 //
-func eval_def(list: MalSequence, env: Environment) -> TCOVal {
-    if list.count != 3 {
-        return TCOVal("expected 2 arguments to def!, got \(list.count - 1)")
+private func eval_def(list: MalSequence, _ env: Environment) throws -> TCOVal {
+    guard list.count == 3 else {
+        try throw_error("expected 2 arguments to def!, got \(list.count - 1)")
     }
-    let arg0 = list[0] as! MalSymbol
-    let arg1 = list[1]
-    let arg2 = list[2]
-    if !is_symbol(arg1) {
-        return TCOVal("expected symbol for first argument to def!")
+    let arg0 = try! list.nth(0)
+    let arg1 = try! list.nth(1)
+    let arg2 = try! list.nth(2)
+    guard let sym = as_symbolQ(arg1) else {
+        try throw_error("expected symbol for first argument to def!")
     }
-    let sym = arg1 as! MalSymbol
-    let value = EVAL(arg2, env)
-    if is_error(value) { return TCOVal(value) }
-    if arg0 == kSymbolDefMacro {
-        if is_closure(value) {
-            let as_closure = value as! MalClosure
-            as_closure.is_macro = true
-        } else {
-            return TCOVal("expected closure, got \(value)")
+    var value = try EVAL(arg2, env)
+    if as_symbol(arg0) == kSymbolDefMacro {
+        guard let closure = as_closureQ(value) else {
+            try throw_error("expected closure, got \(value)")
         }
+        value = make_macro(closure)
     }
     return TCOVal(env.set(sym, value))
 }
 
 // EVALuate "let*".
 //
-func eval_let(list: MalSequence, env: Environment) -> TCOVal {
-    if list.count != 3 {
-        return TCOVal("expected 2 arguments to let*, got \(list.count - 1)")
+private func eval_let(list: MalSequence, _ env: Environment) throws -> TCOVal {
+    guard list.count == 3 else {
+        try throw_error("expected 2 arguments to let*, got \(list.count - 1)")
     }
-    let arg1 = list[1]
-    let arg2 = list[2]
-    if !is_sequence(arg1) {
-        return TCOVal("expected list for first argument to let*")
+    let arg1 = try! list.nth(1)
+    let arg2 = try! list.nth(2)
+    guard let bindings = as_sequenceQ(arg1) else {
+        try throw_error("expected list for first argument to let*")
     }
-    let bindings = arg1 as! MalSequence
-    if bindings.count % 2 == 1 {
-        return TCOVal("expected even number of elements in bindings to let*, got \(bindings.count)")
+    guard bindings.count % 2 == 0 else {
+        try throw_error("expected even number of elements in bindings to let*, got \(bindings.count)")
     }
-    var new_env = Environment(outer: env)
-    for var index = 0; index < bindings.count; index += 2 {
-        let binding_name = bindings[index]
-        let binding_value = bindings[index + 1]
-
-        if !is_symbol(binding_name) {
-            return TCOVal("expected symbol for first element in binding pair")
+    let new_env = Environment(outer: env)
+    for var index: MalIntType = 0; index < bindings.count; index += 2 {
+        let binding_name = try! bindings.nth(index)
+        let binding_value = try! bindings.nth(index + 1)
+        guard let binding_symbol = as_symbolQ(binding_name) else {
+            try throw_error("expected symbol for first element in binding pair")
         }
-        let binding_symbol = binding_name as! MalSymbol
-        let evaluated_value = EVAL(binding_value, new_env)
-        if is_error(evaluated_value) { return TCOVal(evaluated_value) }
+        let evaluated_value = try EVAL(binding_value, new_env)
         new_env.set(binding_symbol, evaluated_value)
     }
     if TCO {
         return TCOVal(arg2, new_env)
     }
-    return TCOVal(EVAL(arg2, new_env))
+    return TCOVal(try EVAL(arg2, new_env))
 }
 
 // EVALuate "do".
 //
-func eval_do(list: MalSequence, env: Environment) -> TCOVal {
+private func eval_do(list: MalSequence, _ env: Environment) throws -> TCOVal {
     if TCO {
-        let eval = eval_ast(MalList(slice: list[1..<list.count-1]), env)
-        if is_error(eval) { return TCOVal(eval) }
+        let _ = try eval_ast(list.range_from(1, to: list.count-1), env)
         return TCOVal(list.last(), env)
     }
 
-    let evaluated_ast = eval_ast(list.rest(), env)
-    if is_error(evaluated_ast) { return TCOVal(evaluated_ast) }
-    let evaluated_seq = evaluated_ast as! MalSequence
+    let evaluated_ast = try eval_ast(list.rest(), env)
+    let evaluated_seq = as_sequence(evaluated_ast)
     return TCOVal(evaluated_seq.last())
 }
 
 // EVALuate "if".
 //
-func eval_if(list: MalSequence, env: Environment) -> TCOVal {
-    if list.count < 3 {
-        return TCOVal("expected at least 2 arguments to if, got \(list.count - 1)")
+private func eval_if(list: MalSequence, _ env: Environment) throws -> TCOVal {
+    guard list.count >= 3 else {
+        try throw_error("expected at least 2 arguments to if, got \(list.count - 1)")
     }
-    let cond_result = EVAL(list[1], env)
-    var new_ast = MalVal()
+    let cond_result = try EVAL(try! list.nth(1), env)
+    var new_ast: MalVal
     if is_truthy(cond_result) {
-        new_ast = list[2]
+        new_ast = try! list.nth(2)
     } else if list.count == 4 {
-        new_ast = list[3]
+        new_ast = try! list.nth(3)
     } else {
-        return TCOVal(MalNil())
+        return TCOVal(make_nil())
     }
     if TCO {
         return TCOVal(new_ast, env)
     }
-    return TCOVal(EVAL(new_ast, env))
+    return TCOVal(try EVAL(new_ast, env))
 }
 
 // EVALuate "fn*".
 //
-func eval_fn(list: MalSequence, env: Environment) -> TCOVal {
-    if list.count != 3 {
-        return TCOVal("expected 2 arguments to fn*, got \(list.count - 1)")
+private func eval_fn(list: MalSequence, _ env: Environment) throws -> TCOVal {
+    guard list.count == 3 else {
+        try throw_error("expected 2 arguments to fn*, got \(list.count - 1)")
     }
-    if !is_sequence(list[1]) {
-        return TCOVal("expected list or vector for first argument to fn*")
+    guard let seq = as_sequenceQ(try! list.nth(1)) else {
+        try throw_error("expected list or vector for first argument to fn*")
     }
-    return TCOVal(MalClosure(eval: EVAL, args:list[1] as! MalSequence, body:list[2], env:env))
+    return TCOVal(make_closure((eval: EVAL, args: seq, body: try! list.nth(2), env: env)))
 }
 
 // EVALuate "quote".
 //
-func eval_quote(list: MalSequence, env: Environment) -> TCOVal {
+private func eval_quote(list: MalSequence, _ env: Environment) throws -> TCOVal {
     if list.count >= 2 {
-        return TCOVal(list[1])
+        return TCOVal(try! list.nth(1))
     }
-    return TCOVal(MalNil())
+    return TCOVal(make_nil())
 }
 
 // EVALuate "quasiquote".
 //
-func eval_quasiquote(list: MalSequence, env: Environment) -> TCOVal {
-    if list.count >= 2 {
-        if TCO {
-            return TCOVal(quasiquote(list[1]), env)
-        }
-        return TCOVal(EVAL(quasiquote(list[1]), env))
+private func eval_quasiquote(list: MalSequence, _ env: Environment) throws -> TCOVal {
+    guard list.count >= 2 else {
+        try throw_error("Expected non-nil parameter to 'quasiquote'")
     }
-    return TCOVal("Expected non-nil parameter to 'quasiquote'")
+    if TCO {
+        return TCOVal(try quasiquote(try! list.nth(1)), env)
+    }
+    return TCOVal(try EVAL(try quasiquote(try! list.nth(1)), env))
 }
 
 // EVALuate "macroexpand".
 //
-func eval_macroexpand(list: MalSequence, env: Environment) -> TCOVal {
-    if list.count >= 2 {
-        return TCOVal(macroexpand(list[1], env))
+private func eval_macroexpand(list: MalSequence, _ env: Environment) throws -> TCOVal {
+    guard list.count >= 2 else {
+        try throw_error("Expected parameter to 'macroexpand'")
     }
-    return TCOVal("Expected parameter to 'macroexpand'")
+    return TCOVal(try macroexpand(try! list.nth(1), env))
 }
 
 // Walk the AST and completely evaluate it, handling macro expansions, special
 // forms and function calls.
 //
-func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
-    let x = EVAL_Counter()
-    if EVAL_level > EVAL_leval_max {
-        return MalError(message: "Recursing too many levels (> \(EVAL_leval_max))")
+private func EVAL(var ast: MalVal, var _ env: Environment) throws -> MalVal {
+    EVAL_level++
+    defer { EVAL_level-- }
+    guard EVAL_level <= EVAL_leval_max else {
+        try throw_error("Recursing too many levels (> \(EVAL_leval_max))")
     }
 
     if DEBUG_EVAL {
-        indent = prefix(INDENT_TEMPLATE, EVAL_level)
+        indent = substring(INDENT_TEMPLATE, 0, EVAL_level)
     }
 
     while true {
-        if is_error(ast) { return ast }
-        if DEBUG_EVAL { println("\(indent)>   \(ast)") }
+        if DEBUG_EVAL { print("\(indent)>   \(ast)") }
 
         if !is_list(ast) {
 
             // Not a list -- just evaluate and return.
 
-            let answer = eval_ast(ast, env)
-            if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
+            let answer = try eval_ast(ast, env)
+            if DEBUG_EVAL { print("\(indent)>>> \(answer)") }
             return answer
         }
 
         // Special handling if it's a list.
 
-        var list = ast as! MalList
-        ast = macroexpand(ast, env)
+        var list = as_list(ast)
+        ast = try macroexpand(ast, env)
         if !is_list(ast) { return ast }
-        list = ast as! MalList
+        list = as_list(ast)
 
-        if DEBUG_EVAL { println("\(indent)>.  \(list)") }
+        if DEBUG_EVAL { print("\(indent)>.  \(list)") }
 
         if list.isEmpty {
-            return list
+            return ast
         }
 
         // Check for special forms, where we want to check the operation
         // before evaluating all of the parameters.
 
         let arg0 = list.first()
-        if is_symbol(arg0) {
-            var res: TCOVal
-            let fn_symbol = arg0 as! MalSymbol
+        if let fn_symbol = as_symbolQ(arg0) {
+            let res: TCOVal
 
             switch fn_symbol {
-                case kSymbolDef:            res = eval_def(list, env)
-                case kSymbolDefMacro:       res = eval_def(list, env)
-                case kSymbolLet:            res = eval_let(list, env)
-                case kSymbolDo:             res = eval_do(list, env)
-                case kSymbolIf:             res = eval_if(list, env)
-                case kSymbolFn:             res = eval_fn(list, env)
-                case kSymbolQuote:          res = eval_quote(list, env)
-                case kSymbolQuasiQuote:     res = eval_quasiquote(list, env)
-                case kSymbolMacroExpand:    res = eval_macroexpand(list, env)
+                case kSymbolDef:            res = try eval_def(list, env)
+                case kSymbolDefMacro:       res = try eval_def(list, env)
+                case kSymbolLet:            res = try eval_let(list, env)
+                case kSymbolDo:             res = try eval_do(list, env)
+                case kSymbolIf:             res = try eval_if(list, env)
+                case kSymbolFn:             res = try eval_fn(list, env)
+                case kSymbolQuote:          res = try eval_quote(list, env)
+                case kSymbolQuasiQuote:     res = try eval_quasiquote(list, env)
+                case kSymbolMacroExpand:    res = try eval_macroexpand(list, env)
                 default:                    res = TCOVal()
             }
             switch res {
@@ -476,78 +451,78 @@ func EVAL(var ast: MalVal, var env: Environment) -> MalVal {
 
         // Standard list to be applied. Evaluate all the elements first.
 
-        let eval = eval_ast(ast, env)
-        if is_error(eval) { return eval }
+        let eval = try eval_ast(ast, env)
 
         // The result had better be a list and better be non-empty.
 
-        let eval_list = eval as! MalList
+        let eval_list = as_list(eval)
         if eval_list.isEmpty {
-            return eval_list
+            return eval
         }
 
-        if DEBUG_EVAL { println("\(indent)>>  \(eval)") }
+        if DEBUG_EVAL { print("\(indent)>>  \(eval)") }
 
         // Get the first element of the list and execute it.
 
         let first = eval_list.first()
-        let rest = eval_list.rest()
+        let rest = as_sequence(eval_list.rest())
 
-        if is_builtin(first) {
-            let fn = first as! MalBuiltin
-            let answer = fn.apply(rest)
-            if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
+        if let fn = as_builtinQ(first) {
+            let answer = try fn.apply(rest)
+            if DEBUG_EVAL { print("\(indent)>>> \(answer)") }
             return answer
-        } else if is_closure(first) {
-            let fn = first as! MalClosure
-            var new_env = Environment(outer: fn.env)
-            let result = new_env.set_bindings(fn.args, with_exprs:rest)
-            if is_error(result) { return result }
+        } else if let fn = as_closureQ(first) {
+            let new_env = Environment(outer: fn.env)
+            let _ = try new_env.set_bindings(fn.args, with_exprs: rest)
             if TCO {
                 env = new_env
                 ast = fn.body
                 continue
             }
-            let answer = EVAL(fn.body, new_env)
-            if DEBUG_EVAL { println("\(indent)>>> \(answer)") }
+            let answer = try EVAL(fn.body, new_env)
+            if DEBUG_EVAL { print("\(indent)>>> \(answer)") }
             return answer
         }
 
         // The first element wasn't a function to be executed. Return an
         // error saying so.
 
-        return MalError(message: "first list item does not evaluate to a function: \(first)")
+        try throw_error("first list item does not evaluate to a function: \(first)")
     }
 }
 
 // Convert the value into a human-readable string for printing.
 //
-func PRINT(exp: MalVal) -> String? {
-    if is_error(exp) { return nil }
+private func PRINT(exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 // Perform the READ and EVAL steps. Useful for when you don't care about the
 // printable result.
 //
-func RE(text: String, env: Environment) -> MalVal? {
-    if text.isEmpty { return nil }
-    let ast = READ(text)
-    if is_error(ast) {
-        println("Error parsing input: \(ast)")
-        return nil
+private func RE(text: String, _ env: Environment) -> MalVal? {
+    if !text.isEmpty {
+        do {
+            let ast = try READ(text)
+            do {
+                return try EVAL(ast, env)
+            } catch let error as MalException {
+                print("Error evaluating input: \(error)")
+            } catch {
+                print("Error evaluating input: \(error)")
+            }
+        } catch let error as MalException {
+            print("Error parsing input: \(error)")
+        } catch {
+            print("Error parsing input: \(error)")
+        }
     }
-    let exp = EVAL(ast, env)
-    if is_error(exp) {
-        println("Error evaluating input: \(exp)")
-        return nil
-    }
-    return exp
+    return nil
 }
 
 // Perform the full READ/EVAL/PRINT, returning a printable string.
 //
-func REP(text: String, env: Environment) -> String? {
+private func REP(text: String, _ env: Environment) -> String? {
     let exp = RE(text, env)
     if exp == nil { return nil }
     return PRINT(exp!)
@@ -555,14 +530,14 @@ func REP(text: String, env: Environment) -> String? {
 
 // Perform the full REPL.
 //
-func REPL(env: Environment) {
+private func REPL(env: Environment) {
     while true {
         if let text = _readline("user> ") {
             if let output = REP(text, env) {
-                println("\(output)")
+                print("\(output)")
             }
         } else {
-            println()
+            print("")
             break
         }
     }
@@ -573,13 +548,13 @@ func REPL(env: Environment) {
 // taken as a script to execute. If one exists, it is executed in lieu of
 // running the REPL.
 //
-func process_command_line(args:[String], env:Environment) -> Bool {
-    var argv = MalList()
+private func process_command_line(args: [String], _ env: Environment) -> Bool {
+    var argv = make_list()
     if args.count > 2 {
         let args1 = args[2..<args.count]
-        let args2 = args1.map { MalString(unescaped: $0) as MalVal }
+        let args2 = args1.map { make_string($0) }
         let args3 = [MalVal](args2)
-        argv = MalList(array: args3)
+        argv = make_list(args3)
     }
     env.set(kSymbolArgv, argv)
 
@@ -592,7 +567,7 @@ func process_command_line(args:[String], env:Environment) -> Bool {
 }
 
 func main() {
-    var env = Environment(outer: nil)
+    let env = Environment(outer: nil)
 
     load_history_file()
     load_builtins(env)
@@ -604,10 +579,10 @@ func main() {
     RE("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) " +
        "`(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))", env)
 
-    env.set(kSymbolEval, MalBuiltin(function: {
-         unwrap($0) {
-            (ast:MalVal) -> MalVal in
-            EVAL(ast, env)
+    env.set(kSymbolEval, make_builtin({
+         try! unwrap_args($0) {
+            (ast: MalVal) -> MalVal in
+            try EVAL(ast, env)
          }
     }))
 

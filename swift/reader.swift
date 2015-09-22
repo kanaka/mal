@@ -4,10 +4,10 @@
 
 import Foundation
 
-let kSymbolWithMeta = MalSymbol(symbol: "with-meta")
-let kSymbolDeref    = MalSymbol(symbol: "deref")
+private let kSymbolWithMeta = make_symbol("with-meta")
+private let kSymbolDeref    = make_symbol("deref")
 
-let token_pattern =
+private let token_pattern =
     "[[:space:],]*" +                       // Skip whitespace: a sequence of zero or more commas or [:space:]'s
     "(" +
         "~@" +                              // Literal "~@"
@@ -21,7 +21,7 @@ let token_pattern =
         "[^[:space:]\\[\\]{}()`'\",;]*" +   // Symbol, keyword, number, nil, true, false: any sequence of chars but [:space:] or []{}()`'",;
     ")"
 
-let atom_pattern =
+private let atom_pattern =
     "(^;.*$)" +                 // Comment
     "|" +
     "(^-?[0-9]+$)" +            // Integer
@@ -40,10 +40,10 @@ let atom_pattern =
     "|" +
     "(^[^\"]*$)"                // Symbol
 
-var token_regex: NSRegularExpression = NSRegularExpression(pattern:token_pattern, options:.allZeros, error:nil)!
-var atom_regex: NSRegularExpression = NSRegularExpression(pattern:atom_pattern, options:.allZeros, error:nil)!
+private var token_regex: NSRegularExpression = try! NSRegularExpression(pattern: token_pattern, options: NSRegularExpressionOptions())
+private var atom_regex: NSRegularExpression = try! NSRegularExpression(pattern: atom_pattern, options: NSRegularExpressionOptions())
 
-class Reader {
+private final class Reader {
 
     init(_ tokens: [String]) {
         self.tokens = tokens
@@ -71,11 +71,11 @@ class Reader {
     private var index: Int
 }
 
-func tokenizer(s: String) -> [String] {
+private func tokenizer(s: String) -> [String] {
     var tokens = [String]()
-    let range = NSMakeRange(0, count(s.utf16))
-    let matches = token_regex.matchesInString(s, options:.allZeros, range:range)
-    for match in matches as! [NSTextCheckingResult] {
+    let range = NSMakeRange(0, s.characters.count)
+    let matches = token_regex.matchesInString(s, options: NSMatchingOptions(), range: range)
+    for match in matches {
         if match.range.length > 0 {
             let token = (s as NSString).substringWithRange(match.rangeAtIndex(1))
             tokens.append(token)
@@ -84,126 +84,116 @@ func tokenizer(s: String) -> [String] {
     return tokens
 }
 
-private func have_match_at(match: NSTextCheckingResult, index:Int) -> Bool {
+private func have_match(match: NSTextCheckingResult, at_index index: Int) -> Bool {
     return Int64(match.rangeAtIndex(index).location) < LLONG_MAX
 }
 
-func read_atom(token: String) -> MalVal {
-    let range = NSMakeRange(0, count(token.utf16))
-    let matches = atom_regex.matchesInString(token, options:.allZeros, range:range)
-    for match in matches as! [NSTextCheckingResult] {
-        if have_match_at(match, 1) {                // Comment
-            return MalComment(comment: token)
-        } else if have_match_at(match, 2) {         // Integer
-            if let value = NSNumberFormatter().numberFromString(token)?.longLongValue {
-                return MalInteger(value: value)
+private func read_atom(token: String) throws -> MalVal {
+    let range = NSMakeRange(0, token.characters.count)
+    let matches = atom_regex.matchesInString(token, options: NSMatchingOptions(), range: range)
+    for match in matches {
+        if have_match(match, at_index: 1) {                // Comment
+            return make_comment()
+        } else if have_match(match, at_index: 2) {         // Integer
+            guard let value = NSNumberFormatter().numberFromString(token)?.longLongValue else {
+                try throw_error("invalid integer: \(token)")
             }
-            return MalError(message: "invalid integer: \(token)")
-        } else if have_match_at(match, 3) {         // Float
-            if let value = NSNumberFormatter().numberFromString(token)?.doubleValue {
-                return MalFloat(value: value)
+            return make_integer(value)
+        } else if have_match(match, at_index: 3) {         // Float
+            guard let value = NSNumberFormatter().numberFromString(token)?.doubleValue else {
+                try throw_error("invalid float: \(token)")
             }
-            return MalError(message: "invalid float: \(token)")
-        } else if have_match_at(match, 4) {         // nil
-            return MalNil()
-        } else if have_match_at(match, 5) {         // true
-            return MalTrue()
-        } else if have_match_at(match, 6) {         // false
-            return MalFalse()
-        } else if have_match_at(match, 7) {         // String
-            return MalString(escaped: token)
-        } else if have_match_at(match, 8) {         // Keyword
-            return MalKeyword(keyword: dropFirst(token))
-        } else if have_match_at(match, 9) {         // Symbol
-            return MalSymbol(symbol: token)
+            return make_float(value)
+        } else if have_match(match, at_index: 4) {         // nil
+            return make_nil()
+        } else if have_match(match, at_index: 5) {         // true
+            return make_true()
+        } else if have_match(match, at_index: 6) {         // false
+            return make_false()
+        } else if have_match(match, at_index: 7) {         // String
+            return make_string(unescape(token))
+        } else if have_match(match, at_index: 8) {         // Keyword
+            return make_keyword(token[token.startIndex.successor() ..< token.endIndex])
+        } else if have_match(match, at_index: 9) {         // Symbol
+            return make_symbol(token)
         }
     }
-    return MalError(message: "Unknown token=\(token)")
+    try throw_error("Unknown token=\(token)")
 }
 
-func read_elements(r: Reader, open: String, close: String) -> ([MalVal]?, MalVal?) {
+private func read_elements(r: Reader, _ open: String, _ close: String) throws -> [MalVal] {
     var list = [MalVal]()
     while let token = r.peek() {
         if token == close {
             r.increment() // Consume the closing paren
-            return (list, nil)
+            return list
         } else {
-            let item = read_form(r)
-            if is_error(item) {
-                return (nil, item)
-            }
-            if item.type != .TypeComment {
+            let item = try read_form(r)
+            if !is_comment(item) {
                 list.append(item)
             }
         }
     }
-    return (nil, MalError(message: "ran out of tokens -- possibly unbalanced ()'s"))
+    try throw_error("ran out of tokens -- possibly unbalanced ()'s")
 }
 
-func read_list(r: Reader) -> MalVal {
-    let (list, err) = read_elements(r, "(", ")")
-    return err != nil ? err! : MalList(array: list!)
+private func read_list(r: Reader) throws -> MalVal {
+    return make_list(try read_elements(r, "(", ")"))
 }
 
-func read_vector(r: Reader) -> MalVal {
-    let (list, err) = read_elements(r, "[", "]")
-    return err != nil ? err! : MalVector(array: list!)
+private func read_vector(r: Reader) throws -> MalVal {
+    return make_vector(try read_elements(r, "[", "]"))
 }
 
-func read_hashmap(r: Reader) -> MalVal {
-    let (list, err) = read_elements(r, "{", "}")
-    return err != nil ? err! : MalHashMap(array: list!)
+private func read_hashmap(r: Reader) throws -> MalVal {
+    return make_hashmap(try read_elements(r, "{", "}"))
 }
 
-func common_quote(r: Reader, symbol: String) -> MalVal {
-    let next = read_form(r)
-    if is_error(next) { return next }
-    return MalList(objects: MalSymbol(symbol: symbol), next)
+private func common_quote(r: Reader, _ symbol: String) throws -> MalVal {
+    let next = try read_form(r)
+    return make_list_from(make_symbol(symbol), next)
 }
 
-func read_form(r: Reader) -> MalVal {
+private func read_form(r: Reader) throws -> MalVal {
     if let token = r.next() {
         switch token {
             case "(":
-                return read_list(r)
+                return try read_list(r)
             case ")":
-                return MalError(message: "unexpected \")\"")
+                try throw_error("unexpected \")\"")
             case "[":
-                return read_vector(r)
+                return try read_vector(r)
             case "]":
-                return MalError(message: "unexpected \"]\"")
+                try throw_error("unexpected \"]\"")
             case "{":
-                return read_hashmap(r)
+                return try read_hashmap(r)
             case "}":
-                return MalError(message: "unexpected \"}\"")
+                try throw_error("unexpected \"}\"")
             case "`":
-                return common_quote(r, "quasiquote")
+                return try common_quote(r, "quasiquote")
             case "'":
-                return common_quote(r, "quote")
+                return try common_quote(r, "quote")
             case "~":
-                return common_quote(r, "unquote")
+                return try common_quote(r, "unquote")
             case "~@":
-                return common_quote(r, "splice-unquote")
+                return try common_quote(r, "splice-unquote")
             case "^":
-                let meta = read_form(r)
-                if is_error(meta) { return meta }
-                let form = read_form(r)
-                if is_error(form) { return form }
-                return MalList(objects: kSymbolWithMeta, form, meta)
+                let meta = try read_form(r)
+                let form = try read_form(r)
+                return make_list_from(kSymbolWithMeta, form, meta)
             case "@":
-                let form = read_form(r)
-                if is_error(form) { return form }
-                return MalList(objects: kSymbolDeref, form)
+                let form = try read_form(r)
+                return make_list_from(kSymbolDeref, form)
             default:
-                return read_atom(token)
+                return try read_atom(token)
         }
     }
-    return MalError(message: "ran out of tokens -- possibly unbalanced ()'s")
+    try throw_error("ran out of tokens -- possibly unbalanced ()'s")
 }
 
-func read_str(s: String) -> MalVal {
+func read_str(s: String) throws -> MalVal {
     let tokens = tokenizer(s)
     let reader = Reader(tokens)
-    let obj = read_form(reader)
+    let obj = try read_form(reader)
     return obj
 }

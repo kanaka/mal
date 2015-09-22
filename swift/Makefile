@@ -111,6 +111,12 @@ SRCS := $(wildcard ./step*.swift)
 EXES := $(patsubst %.swift,%,$(SRCS))
 
 #
+# Also generate references to any debug-symbol directories we may make when -g
+# is specified.
+#
+DSYMS := $(patsubst %.swift,%.dSYM,$(SRCS))
+
+#
 # Given a name like "./step<#>_foo", return <#>.
 #
 # (Is there a better way to do this? $(patsubst) seems to be the most
@@ -168,12 +174,21 @@ $(foreach SRC,$(SRCS),$(eval ss$(call get_step_number,$(SRC)): $(SRC)))
 #
 # Various helpful variables.
 #
-SWIFT		:= swiftc
+DEV_DIR		:= $(firstword $(wildcard /Applications/Xcode-beta.app /Applications/Xcode.app))
+SWIFT		:= $(shell DEVELOPER_DIR="$(DEV_DIR)" xcrun --find swiftc)
+SDKROOT		:= $(shell DEVELOPER_DIR="$(DEV_DIR)" xcrun --show-sdk-path)
 STEP_TEMPLATE	:= ./templates/step.swift
 FILTER	 	:= ./templates/filter_steps.sh
 UTIL_SRC	:= $(filter-out $(STEP_TEMPLATE) $(SRCS),$(wildcard ./*.swift))
-SDKROOT		?= $(shell xcrun --show-sdk-path)
-OPT		:= #-Ounchecked
+ifndef TYPES
+TYPES		:= CLASS
+endif
+ifeq ($(TYPES), ENUM)
+UTIL_SRC	:= $(filter-out ./types_class.swift,$(UTIL_SRC))
+else
+UTIL_SRC	:= $(filter-out ./types_enum.swift,$(UTIL_SRC))
+endif
+OPT		:= -Ounchecked -whole-module-optimization
 DEBUG		:= #-g
 EXTRA		:= #-v
 COMMON		:= $(UTIL_SRC) $(OPT) $(DEBUG) $(EXTRA) -import-objc-header ./bridging-header.h -L /usr/lib -ledit -sdk $(SDKROOT)
@@ -182,7 +197,7 @@ COMMON		:= $(UTIL_SRC) $(OPT) $(DEBUG) $(EXTRA) -import-objc-header ./bridging-h
 # Build the executable from the input sources consisting of the appropriate
 # "step" file and the supporting files in $(UTIL_SRC).
 #
-$(EXES) : % : %.swift $(UTIL_SRC)
+$(EXES) : % : %.swift $(UTIL_SRC) ./Makefile
 	@echo "Making    : $@"
 	@$(SWIFT) $< $(COMMON) -o $@
 
@@ -195,10 +210,10 @@ $(SRCS) : % : $(STEP_TEMPLATE) ./Makefile
 	@$(FILTER) $(call get_step_number,$@) $< $@
 
 #
-# Delete all of the built executables.
+# Delete all of the build output (other than generated "step" source files)
 #
 clean:
-	@rm -f $(EXES)
+	@rm -rf $(EXES) $(DSYMS)
 
 #
 # Display some variables for debugging.
@@ -206,6 +221,8 @@ clean:
 dump:
 	@echo "   SRCS = $(SRCS)"
 	@echo "   EXES = $(EXES)"
+	@echo "  DSYMS = $(DSYMS)"
 	@echo "   UTIL = $(UTIL_SRC)"
+	@echo "  SWIFT = $(SWIFT)"
 	@echo "SDKROOT = $(SDKROOT)"
 	@echo "  STEPS = $(call get_all_step_numbers)"
