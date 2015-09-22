@@ -507,8 +507,9 @@ scala -classpath target/scala*/classes stepX_YYY
 
 *The Swift implementation was created by [Keith Rollin](https://github.com/keith-rollin)*
 
-The Swift implemenation of mal requires the Swift 1.2 compiler (XCode
-6.3) to build.
+The Swift implementation of mal requires the Swift 2.0 compiler (XCode
+7.0) to build. Older versions will not work due to changes in the
+language and standard library.
 
 ```
 cd swift
