@@ -84,7 +84,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 ### GNU awk
 
-*The GNU awk implemenation was created by [Miutsuru kariya](https://github.com/kariya-mitsuru)*
+*The GNU awk implementation was created by [Miutsuru kariya](https://github.com/kariya-mitsuru)*
 
 The GNU awk implementation of mal has been tested with GNU awk 4.1.1.
 
@@ -160,7 +160,7 @@ coffee ./stepX_YYY
 
 *The Crystal implementation of mal was created by [Linda_pp](https://github.com/rhysd)*
 
-The Crystal implemenation of mal has been tested with Crystal 0.7.2.
+The Crystal implementation of mal has been tested with Crystal 0.7.2.
 
 ```
 cd crystal
@@ -571,7 +571,7 @@ make test^step2
 make test^step7
 ```
 
-* To run tests for a specifc step against a single implementation:
+* To run tests for a specific step against a single implementation:
 
 ```
 make test^IMPL^stepX
@@ -619,7 +619,7 @@ make perf
 
 ### Generating language statistics
 
-* To report line and byte stastics for a single implementation:
+* To report line and byte statistics for a single implementation:
 ```
 make stats^IMPL
 
@@ -627,7 +627,7 @@ make stats^IMPL
 make stats^js
 ```
 
-* To report line and bytes stastics for general Lisp code (env, core
+* To report line and bytes statistics for general Lisp code (env, core
   and stepA):
 ```
 make stats-lisp^IMPL
@@ -643,7 +643,7 @@ builds a docker image based on Ubuntu Utopic that contains everything
 needed to run tests against all the implementations (except for MATLAB
 which is proprietary/licensed).
 
-Build the the docker image using a provided script. WARNING: this will
+Build the docker image using a provided script. WARNING: this will
 likely take over an hour to build from scratch and use more 3 GB of disk:
 ```bash
 ./tests/docker-build.sh
