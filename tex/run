@@ -1,0 +1,2 @@
+#!/bin/bash
+exec etex -halt-on-error $(dirname $0)/${STEP:-stepA_mal}.tex "${@}"

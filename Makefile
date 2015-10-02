@@ -71,6 +71,8 @@ DOCKERIZE=
 # Run target/rule within docker image for the implementation
 DOCKERIZE =
 
+export max_print_line = 1000 # stop tex output wrapping
+
 #
 # Settings
 #
@@ -79,7 +81,7 @@ IMPLS = ada awk bash c d clojure coffee cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
 	io java julia js kotlin lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl php plpgsql plsql ps python r racket \
-	rpython ruby rust scala swift swift3 tcl vb vhdl vimscript
+	rpython ruby rust scala swift swift3 tcl tex vb vhdl vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -188,6 +190,7 @@ scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
 swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
+tex_STEP_TO_PROG =     tex/$($(1)).tex
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim

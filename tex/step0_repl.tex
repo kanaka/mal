@@ -1,0 +1,9 @@
+\immediate\write16{}
+
+\newread\in
+\loop \iftrue%
+    \endlinechar-1
+    \message{user> }
+    \readline-\in to\line
+    \immediate\write16{\line}
+\repeat
