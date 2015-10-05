@@ -224,8 +224,8 @@ docker-build: $(DOCKER_BUILD)
 $(DOCKER_BUILD):
 	echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
-	  echo "Running: docker build -t mal-test-$(impl) .:"; \
-	  cd $(impl) && docker build -t mal-test-$(impl) .)
+	  echo "Running: docker build -t kanaka/mal-test-$(impl) .:"; \
+	  cd $(impl) && docker build -t kanaka/mal-test-$(impl) .)
 
 # Performance test rules
 

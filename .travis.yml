@@ -1,12 +1,15 @@
 sudo: required
 
-language: ruby
+language: node
 
 services:
     - docker
 
-before_install:
-    - docker pull kanaka/mal-test-js
+env:
+    - IMPL=js
+    - IMPL=python
 
 script:
-    - time docker run -it -v `pwd`:/mal kanaka/mal-test-js make IMPLS="js" test
+    - docker pull kanaka/mal-test-$IMPL
+    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-$IMPL make -C $IMPL
+    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-$IMPL make IMPLS="$IMPL" test
