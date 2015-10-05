@@ -163,6 +163,8 @@ ALL_TESTS = $(filter-out $(EXCLUDE_TESTS),\
 IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
 IMPL_STATS_LISP = $(foreach impl,$(DO_IMPLS),stats-lisp^$(impl))
 
+DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
+
 IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl)))
 
 #
@@ -214,6 +216,16 @@ $(IMPL_STATS_LISP):
 	  echo "Stats (lisp only) for $(impl):"; \
 	  $(MAKE) --no-print-directory -C $(impl) stats-lisp)
 
+# Docker build rules
+
+docker-build: $(DOCKER_BUILD)
+
+.SECONDEXPANSION:
+$(DOCKER_BUILD):
+	echo "----------------------------------------------"; \
+	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Running: docker build -t mal-test-$(impl) .:"; \
+	  cd $(impl) && docker build -t mal-test-$(impl) .)
 
 # Performance test rules
 
