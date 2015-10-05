@@ -21,17 +21,8 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# For building node modules
+# Install g++ so that it's common with C++ Dockerfile
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 0.12 stable
-RUN curl -sL https://deb.nodesource.com/setup_0.12 | bash -
-
-# Install nodejs
-RUN apt-get -y install nodejs
-
-# Link common name
-RUN ln -sf nodejs /usr/bin/node
-
-ENV NPM_CONFIG_CACHE /mal/.npm
-
+# Libraries needed for the C impl
+RUN apt-get -y install libglib2.0 libglib2.0-dev libffi-dev

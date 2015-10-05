@@ -12,7 +12,7 @@ RUN apt-get -y update
 RUN apt-get -y install make python
 
 # Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline6-dev
+RUN apt-get -y install curl libreadline-dev libedit-dev
 
 RUN mkdir -p /mal
 WORKDIR /mal

@@ -6,7 +6,10 @@ services:
     - docker
 
 env:
+    - IMPL=bash
+    - IMPL=c
     - IMPL=js
+    - IMPL=make
     - IMPL=python
 
 script:

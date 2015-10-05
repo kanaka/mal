@@ -5,7 +5,6 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all: mal.sh
 
 mal.sh: $(SOURCES)
-	cat $+ > $@
 	echo "#!/usr/bin/env bash" > $@
 	cat $+ | grep -v "^source " >> $@
 	chmod +x $@
