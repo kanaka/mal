@@ -8,14 +8,17 @@ services:
 env:
     - IMPL=bash
     - IMPL=c
+    - IMPL=cpp
     #- IMPL=coffee  # step5 hangs
     - IMPL=cs
     - IMPL=clojure
+    - IMPL=factor
     - IMPL=forth
     - IMPL=go
     - IMPL=haskell
     - IMPL=java
     - IMPL=js
+    - IMPL=julia
     - IMPL=lua
     - IMPL=make
     - IMPL=mal
@@ -32,9 +35,10 @@ env:
     - IMPL=ruby
     #- IMPL=rust  # compilation issues
     - IMPL=scala
+    #- IMPL=swift  # OS X, need travis-ci multi-language support
     - IMPL=vb
 
 script:
     - docker pull kanaka/mal-test-${IMPL,,}
     - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL
-    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make IMPLS="$IMPL" test
+    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make test^${IMPL}

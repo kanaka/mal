@@ -21,5 +21,9 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install g++ for any C/C++ based implementations
-RUN apt-get -y install g++
+# Julia
+RUN apt-get -y install software-properties-common
+RUN apt-add-repository -y ppa:staticfloat/juliareleases
+RUN apt-get -y update
+RUN apt-get -y install julia
+
