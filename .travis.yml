@@ -8,6 +8,7 @@ services:
 env:
     - IMPL=bash
     - IMPL=c
+    #- IMPL=coffee
     - IMPL=cs
     - IMPL=clojure
     - IMPL=go
@@ -18,7 +19,9 @@ env:
     - IMPL=php
     - IMPL=ps
     - IMPL=python
+    - IMPL=r
     - IMPL=ruby
+    - IMPL=rust
 
 script:
     - docker pull kanaka/mal-test-$IMPL
