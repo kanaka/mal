@@ -21,7 +21,7 @@ env:
     - IMPL=python
     - IMPL=r
     - IMPL=ruby
-    - IMPL=rust
+    #- IMPL=rust  # compilation issues
     - IMPL=vb
 
 script:
