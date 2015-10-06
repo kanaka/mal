@@ -11,12 +11,16 @@ env:
     #- IMPL=coffee  # step5 hangs
     - IMPL=cs
     - IMPL=clojure
+    - IMPL=forth
     - IMPL=go
     - IMPL=haskell
     - IMPL=java
     - IMPL=js
     - IMPL=lua
     - IMPL=make
+    #- IMPL=matlab  # licensed (until port to Octave)
+    - IMPL=miniMAL
+    - IMPL=ocaml
     - IMPL=perl
     - IMPL=php
     - IMPL=ps
@@ -29,6 +33,6 @@ env:
     - IMPL=vb
 
 script:
-    - docker pull kanaka/mal-test-$IMPL
-    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-$IMPL make -C $IMPL
-    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-$IMPL make IMPLS="$IMPL" test
+    - docker pull kanaka/mal-test-${IMPL,,}
+    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL
+    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make IMPLS="$IMPL" test
