@@ -8,6 +8,7 @@ services:
 env:
     - IMPL=bash
     - IMPL=c
+    - IMPL=clojure
     - IMPL=js
     - IMPL=make
     - IMPL=python
