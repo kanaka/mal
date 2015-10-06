@@ -21,8 +21,8 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install g++ for any C/C++ based implementations
-RUN apt-get -y install g++
+# Deps for Mono-based languages (C#, VB.Net)
+RUN apt-get -y install mono-runtime mono-mcs mono-vbnc
 
-# Libraries needed for the C impl
-RUN apt-get -y install libglib2.0 libglib2.0-dev libffi-dev
+# C#
+RUN apt-get -y install mono-mcs
