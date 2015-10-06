@@ -1,5 +1,7 @@
 # mal - Make a Lisp
 
+[![Build Status](https://travis-ci.org/kanaka/mal.svg?branch=master)](https://travis-ci.org/kanaka/mal)
+
 ## Description
 
 Mal is a Clojure inspired Lisp interpreter.
