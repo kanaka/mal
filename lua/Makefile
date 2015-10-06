@@ -10,6 +10,7 @@ all: libs
 
 clean:
 	rm -f linenoise.so
+	rm -rf lib/lua/5.1
 
 stats: $(SOURCES)
 	@wc $^

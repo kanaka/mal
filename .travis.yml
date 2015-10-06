@@ -12,14 +12,17 @@ env:
     - IMPL=cs
     - IMPL=clojure
     - IMPL=go
+    - IMPL=haskell
     - IMPL=java
     - IMPL=js
+    - IMPL=lua
     - IMPL=make
     - IMPL=perl
     - IMPL=php
     - IMPL=ps
     - IMPL=python
     - IMPL=r
+    #- IMPL=racket  # stepA optional failures
     - IMPL=ruby
     #- IMPL=rust  # compilation issues
     - IMPL=scala
