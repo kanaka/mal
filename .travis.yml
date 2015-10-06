@@ -8,7 +8,7 @@ services:
 env:
     - IMPL=bash
     - IMPL=c
-    #- IMPL=coffee
+    #- IMPL=coffee  # step5 hangs
     - IMPL=cs
     - IMPL=clojure
     - IMPL=go
@@ -22,6 +22,7 @@ env:
     - IMPL=r
     - IMPL=ruby
     - IMPL=rust
+    - IMPL=vb
 
 script:
     - docker pull kanaka/mal-test-$IMPL
