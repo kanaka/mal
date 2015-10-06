@@ -4,7 +4,8 @@ SOURCES_BASE = types.scala reader.scala printer.scala
 SOURCES_LISP = env.scala core.scala stepA_mal.scala
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-#all: mal.scala
+all:
+	sbt 'run-main stepA_mal ../tests/incA.mal'
 
 .PHONY: stats tests $(TESTS)
 
