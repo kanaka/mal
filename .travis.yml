@@ -18,8 +18,10 @@ env:
     - IMPL=js
     - IMPL=lua
     - IMPL=make
+    - IMPL=mal
     #- IMPL=matlab  # licensed (until port to Octave)
-    - IMPL=miniMAL
+    #- IMPL=miniMAL  # repl/string slice bug
+    - IMPL=nim
     - IMPL=ocaml
     - IMPL=perl
     - IMPL=php
