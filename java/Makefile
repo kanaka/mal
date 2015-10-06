@@ -8,6 +8,9 @@ SOURCES_LISP = src/main/java/mal/env.java src/main/java/mal/core.java \
                src/main/java/mal/stepA_mal.java
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
+all:
+	mvn install
+
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats
 

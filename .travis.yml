@@ -9,8 +9,11 @@ env:
     - IMPL=bash
     - IMPL=c
     - IMPL=clojure
+    - IMPL=java
     - IMPL=js
     - IMPL=make
+    - IMPL=php
+    - IMPL=ps
     - IMPL=python
 
 script:
