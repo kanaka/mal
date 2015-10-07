@@ -29,6 +29,8 @@ parser.add_argument('--pre-eval', default=None, type=str,
         help="Mal code to evaluate prior to running the test")
 parser.add_argument('--no-pty', action='store_true',
         help="Use direct pipes instead of pseudo-tty")
+parser.add_argument('--log-file', type=str,
+        help="Write all test interaction the named file")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -37,9 +39,12 @@ parser.add_argument('mal_cmd', nargs="*",
              "specify a Mal command line with dashed options.")
 
 class Runner():
-    def __init__(self, args, no_pty=False):
+    def __init__(self, args, no_pty=False, log_file=None):
         #print "args: %s" % repr(args)
         self.no_pty = no_pty
+
+        if log_file: self.logf = open(log_file, "a")
+        else:        self.logf = None
 
         # Cleanup child process on exit
         atexit.register(self.cleanup)
@@ -88,6 +93,7 @@ class Runner():
                 new_data = self.stdout.read(1)
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
                 #print "new_data: '%s'" % new_data
+                self.log(new_data)
                 if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
@@ -102,6 +108,12 @@ class Runner():
                         self.last_prompt = prompt
                         return buf
         return None
+
+    def log(self, data):
+        if self.logf:
+            self.logf.write(data)
+            self.logf.flush()
+
 
     def writeline(self, str):
         def _to_bytes(s):
@@ -124,7 +136,7 @@ test_data = args.test_file.read().split('\n')
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, no_pty=args.no_pty)
+r = Runner(args.mal_cmd, no_pty=args.no_pty, log_file=args.log_file)
 
 
 test_idx = 0
