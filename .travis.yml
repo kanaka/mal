@@ -10,7 +10,7 @@ env:
     - IMPL=bash
     - IMPL=c
     - IMPL=cpp
-    - IMPL=coffee  # step5 hangs
+    - IMPL=coffee
     - IMPL=cs
     - IMPL=clojure
     - IMPL=crystal
@@ -22,7 +22,7 @@ env:
     - IMPL=fsharp
     - IMPL=go
     - IMPL=groovy  # stepA conj failures
-    #- IMPL=guile  # docker build issues
+    #- IMPL=guile  # step0 regex issues
     - IMPL=haskell
     - IMPL=java
     - IMPL=js

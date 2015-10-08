@@ -27,6 +27,13 @@ class core {
         }
         args[0][args[1]]
     }
+    def static do_conj(args) {
+        if (types.list_Q(args[0])) {
+            args.drop(1).inject(args[0], { a, b -> [b] + a })
+        } else {
+            types.vector(args.drop(1).inject(args[0], { a, b -> a + [b] }))
+        }
+    }
     def static do_apply(args) {
         def start_args = args.drop(1).take(args.size()-2) as List
         args[0](start_args + (args.last() as List))
@@ -91,7 +98,7 @@ class core {
         "apply": core.&do_apply,
         "map": { a -> a[1].collect { x -> a[0].call([x]) } },
 
-        "conj": null,
+        "conj": core.&do_conj,
 
         "meta": { a -> a[0].hasProperty("meta") ? a[0].getProperties().meta : null },
         "with-meta": { a -> def b = types.copy(a[0]); b.getMetaClass().meta = a[1]; b },
