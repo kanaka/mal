@@ -1,9 +1,9 @@
-#![feature(exit_status)]
 
 extern crate mal;
 
 use std::collections::HashMap;
 use std::env as stdenv;
+use std::process as process;
 
 use mal::types::{MalVal, MalRet, MalError, err_str};
 use mal::types::{symbol, _nil, string, list, vector, hash_map, malfunc, malfuncd};
@@ -329,10 +329,10 @@ fn main() {
         let lf = format!("(load-file \"{}\")",
                          stdenv::args().skip(1).next().unwrap());
         return match rep(&lf, repl_env.clone()) {
-            Ok(_) => stdenv::set_exit_status(0),
+            Ok(_) => process::exit(0),
             Err(str) => {
                 println!("Error: {:?}", str);
-                stdenv::set_exit_status(1);
+                process::exit(1);
             }
         };
     }

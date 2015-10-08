@@ -3,7 +3,8 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::num::ToPrimitive;
+//use std::num::ToPrimitive;
+use num::traits::ToPrimitive;
 use time;
 
 use types::{MalVal,MalRet,err_val,err_str,err_string,
@@ -233,7 +234,7 @@ pub fn concat(a: Vec<MalVal>) -> MalRet {
     let mut new_v: Vec<MalVal> = vec![];
     for lst in a.iter() {
         match **lst {
-            List(ref l,_) | Vector(ref l,_) => new_v.push_all(l),
+            List(ref l,_) | Vector(ref l,_) => new_v.extend(l.clone()),
             _ => return err_str("concat called with non-sequence"),
         }
     }
@@ -328,7 +329,7 @@ pub fn apply(a: Vec<MalVal>) -> MalRet {
     let mut args = a[1..a.len()-1].to_vec();
     match *a[a.len()-1] {
         List(ref v, _) | Vector(ref v, _) => {
-            args.push_all(v);
+            args.extend(v.clone());
             f.apply(args)
         },
         _ => err_str("apply call with non-sequence"),
@@ -359,14 +360,14 @@ pub fn conj(a: Vec<MalVal>) -> MalRet {
     let mut new_v: Vec<MalVal> = vec![];
     match *a[0] {
         List(ref l,_) => {
-            new_v.push_all(l);
+            new_v.extend(l.clone());
             for mv in a.iter().skip(1) {
                 new_v.insert(0, mv.clone());
             }
             Ok(list(new_v))
         }
         Vector(ref l,_) => {
-            new_v.push_all(l);
+            new_v.extend(l.clone());
             for mv in a.iter().skip(1) {
                 new_v.push(mv.clone());
             }

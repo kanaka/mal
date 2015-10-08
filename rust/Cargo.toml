@@ -8,3 +8,4 @@ authors = [ "Your name <you@example.com>" ]
 time = "0.1"
 regex = "0.1"
 libc = "0.1"
+num = "*"
