@@ -21,7 +21,7 @@ env:
     - IMPL=forth
     - IMPL=fsharp
     - IMPL=go
-    - IMPL=groovy
+    - IMPL=groovy  # stepA conj failures
     #- IMPL=guile  # docker build issues
     - IMPL=haskell
     - IMPL=java

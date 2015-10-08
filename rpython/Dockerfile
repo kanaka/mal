@@ -37,4 +37,8 @@ RUN apt-get -y install mercurial libffi-dev pkg-config libz-dev libbz2-dev \
 # TODO: combine these
 RUN cd /tmp/ && hg clone https://bitbucket.org/pypy/pypy pypy
 RUN cd /tmp/pypy && make
-    
+
+RUN ln -sf /tmp/pypy/rpython/bin/rpython /usr/local/bin/rpython
+RUN ln -sf /tmp/pypy/pypy-c /usr/local/bin/pypy
+RUN apt-get -y autoremove pypy
+
