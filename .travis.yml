@@ -51,5 +51,5 @@ script:
     - docker pull kanaka/mal-test-${IMPL,,}
     - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL
     - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make TEST_OPTS="--log-file run.out" test^${IMPL}
-    - cat run.out
+    - cat $IMPL/run.out
       #- docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make perf^${IMPL}
