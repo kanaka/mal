@@ -35,6 +35,7 @@ EXCLUDE_TESTS += test^erlang^step5 # erlang is TCO, test passes
 EXCLUDE_TESTS += test^elixir^step5 # elixir is TCO, test passes
 EXCLUDE_TESTS += test^fsharp^step5 # completes at 10,000, fatal stack overflow at 100,000
 EXCLUDE_TESTS += test^haskell^step5 # test completes
+EXCLUDE_TESTS += test^julia^step5 # hangs test
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
 EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
 EXCLUDE_TESTS += test^miniMAL^step5 # strange error with runtest.py
@@ -147,6 +148,8 @@ vb_RUNSTEP =      mono ../$(2) --raw $(3)
 guile_RUNSTEP =   guile -L ../guile ../$(2) $(3)
 
 # Extra options to pass to runtest.py
+TEST_OPTS =
+# Extra implementation specific options to pass to runtest.py
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 
 
@@ -190,8 +193,8 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	    $(foreach test,$(call STEP_TEST_FILES,$(impl),$(step)),\
 	      echo '----------------------------------------------'; \
 	      echo 'Testing $@, step file: $+, test file: $(test)'; \
-	      echo 'Running: ../runtest.py $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))'; \
-	      ../runtest.py $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+));)))
+	      echo 'Running: ../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))'; \
+	      ../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+));)))
 
 test: $(ALL_TESTS)
 tests: $(ALL_TESTS)

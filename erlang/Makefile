@@ -1,10 +1,8 @@
 #####################
 
-SOURCES_BASE = src/step0_repl.erl src/step1_read_print.erl src/step2_eval.erl src/step3_env.erl \
-	src/step4_if_fn_do.erl src/step5_tco.erl src/step6_file.erl src/step7_quote.erl \
-	src/step8_macros.erl src/step9_try.erl src/stepA_mal.erl
-SOURCES_LISP = src/atom.erl src/core.erl src/env.erl src/printer.erl src/reader.erl src/types.erl
-SOURCES = $(SOURCES_BASE) $(word $(words $(SOURCES_LISP)),${SOURCES_LISP})
+SOURCES_BASE = src/atom.erl src/printer.erl src/reader.erl
+SOURCES_LISP = src/core.erl src/env.erl src/types.erl src/stepA_mal.erl
+SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
@@ -23,7 +21,7 @@ mal: $(word $(words $(BINS)),$(BINS))
 
 define dep_template
 .PHONY: $(1)
-$(1): $(SOURCES_BASE) src/$(1).erl
+$(1): src/$(1).erl
 	MAL_STEP=$(1) rebar compile escriptize
 endef
 

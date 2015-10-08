@@ -27,6 +27,7 @@ $(UPPER_STEPS): $(STEP4_DEPS)
 
 clean:
 	rm -f $(STEPS) *.pyc
+	rm -rf __pycache__
 
 stats: $(SOURCES)
 	@wc $^

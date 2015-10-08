@@ -6,15 +6,23 @@ services:
     - docker
 
 env:
+    - IMPL=awk
     - IMPL=bash
     - IMPL=c
     - IMPL=cpp
-    #- IMPL=coffee  # step5 hangs
+    - IMPL=coffee  # step5 hangs
     - IMPL=cs
     - IMPL=clojure
-    #- IMPL=factor  # stepA optional failures
+    - IMPL=crystal
+    - IMPL=elixir
+    - IMPL=erlang
+    - IMPL=es6
+    - IMPL=factor  # stepA optional failures
     - IMPL=forth
+    - IMPL=fsharp
     - IMPL=go
+    - IMPL=groovy
+    #- IMPL=guile  # docker build issues
     - IMPL=haskell
     - IMPL=java
     - IMPL=js
@@ -23,7 +31,7 @@ env:
     - IMPL=make
     - IMPL=mal
     #- IMPL=matlab  # licensed (until port to Octave)
-    #- IMPL=miniMAL  # repl/string slice bug
+    - IMPL=miniMAL  # repl/string slice bug
     - IMPL=nim
     - IMPL=ocaml
     - IMPL=perl
@@ -31,9 +39,10 @@ env:
     - IMPL=ps
     - IMPL=python
     - IMPL=r
-    #- IMPL=racket  # stepA optional failures
+    - IMPL=racket  # stepA optional failures
+    #- IMPL=rpython  # very long build
     - IMPL=ruby
-    #- IMPL=rust  # compilation issues
+    - IMPL=rust  # compilation issues
     - IMPL=scala
     #- IMPL=swift  # OS X, need travis-ci multi-language support
     - IMPL=vb
@@ -41,4 +50,6 @@ env:
 script:
     - docker pull kanaka/mal-test-${IMPL,,}
     - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL
-    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make test^${IMPL}
+    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make TEST_OPTS="--log-file run.out" test^${IMPL}
+    - cat run.out
+      #- docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make perf^${IMPL}
