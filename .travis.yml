@@ -40,7 +40,7 @@ env:
     - IMPL=python
     - IMPL=r
     - IMPL=racket  # stepA optional failures
-    #- IMPL=rpython  # very long build
+    - IMPL=rpython
     - IMPL=ruby
     - IMPL=rust
     - IMPL=scala

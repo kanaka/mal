@@ -248,5 +248,7 @@ class MalAtom(MalMeta):
     def __init__(self, value):
         self.value = value
         self.meta = nil
+    def get_value(self):
+        return self.value
 def _atom(val): return MalAtom(val)
 def _atom_Q(exp): return exp.__class__ is MalAtom

@@ -42,3 +42,4 @@ RUN ln -sf /tmp/pypy/rpython/bin/rpython /usr/local/bin/rpython
 RUN ln -sf /tmp/pypy/pypy-c /usr/local/bin/pypy
 RUN apt-get -y autoremove pypy
 
+RUN chmod -R ugo+rw /tmp/pypy/rpython/_cache
