@@ -34,4 +34,7 @@ RUN curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.s
 
 RUN multirust default stable
 
-ENV MULTIRUST_HOME /mal
+RUN chmod ugo+rx /root /root/.*
+RUN chmod -R ugo+rw /root
+ENV HOME /root
+#ENV MULTIRUST_HOME /mal
