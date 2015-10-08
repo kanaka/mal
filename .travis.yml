@@ -49,10 +49,10 @@ env:
 
 script:
     - docker pull kanaka/mal-test-${IMPL,,}
-    - if [ "${IMPL}" = "mal" ]; then
-        docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-js make -C js
-      else
-        docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL
+    - if [ "${IMPL}" = "mal" ]; then \
+        docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-js make -C js; \
+      else \
+        docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL; \
       fi
     - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make TEST_OPTS="--log-file ../run.out" test^${IMPL}
     - cat run.out
