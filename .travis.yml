@@ -21,7 +21,7 @@ env:
     - IMPL=forth
     - IMPL=fsharp
     - IMPL=go
-    - IMPL=groovy  # stepA conj failures
+    - IMPL=groovy
     #- IMPL=guile  # step0 regex issues
     - IMPL=haskell
     - IMPL=java
@@ -42,7 +42,7 @@ env:
     - IMPL=racket  # stepA optional failures
     #- IMPL=rpython  # very long build
     - IMPL=ruby
-    - IMPL=rust  # compilation issues
+    - IMPL=rust
     - IMPL=scala
     #- IMPL=swift  # OS X, need travis-ci multi-language support
     - IMPL=vb
