@@ -85,12 +85,10 @@ matrix:
 #      os: linux
     - env: IMPL=swift
       os: osx
+      osx_image: xcode7
 #    - env: IMPL=vb
 #      os: linux
 
 script:
-  - docker pull kanaka/mal-test-${IMPL,,}
-  - BUILD_IMPL=${BUILD_IMPL:-${IMPL}} && docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${BUILD_IMPL,,} make -C ${BUILD_IMPL}
-  - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make TEST_OPTS="--soft --log-file ../run.out" test^${IMPL}
-  - cat run.out
-    #- docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make perf^${IMPL}
+  - ./.travis_build.sh
+  - ./.travis_test.sh
