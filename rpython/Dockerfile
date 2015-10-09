@@ -34,12 +34,13 @@ RUN apt-get -y install pypy
 RUN apt-get -y install mercurial libffi-dev pkg-config libz-dev libbz2-dev \
     libsqlite3-dev libncurses-dev libexpat1-dev libssl-dev
 
-# TODO: combine these
-RUN cd /tmp/ && hg clone https://bitbucket.org/pypy/pypy pypy
-RUN cd /tmp/pypy && make
+RUN mkdir -p /opt/pypy && \
+    curl https://bitbucket.org/pypy/pypy/get/tip.tar.gz | tar -xzf - -C /opt/pypy/ --strip-components=1
+RUN cd /opt/pypy && make
 
-RUN ln -sf /tmp/pypy/rpython/bin/rpython /usr/local/bin/rpython
-RUN ln -sf /tmp/pypy/pypy-c /usr/local/bin/pypy
+RUN ln -sf /opt/pypy/rpython/bin/rpython /usr/local/bin/rpython
+RUN ln -sf /opt/pypy/pypy-c /usr/local/bin/pypy
+RUN chmod -R ugo+rw /opt/pypy/rpython/_cache
+
 RUN apt-get -y autoremove pypy
 
-RUN chmod -R ugo+rw /tmp/pypy/rpython/_cache
