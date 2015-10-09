@@ -3,9 +3,11 @@ sudo: required
 language: node
 
 services:
-    - docker
+  - docker
 
 env:
+  #global:
+  matrix:
     - IMPL=awk
     - IMPL=bash
     - IMPL=c
@@ -17,7 +19,7 @@ env:
     - IMPL=elixir
     - IMPL=erlang
     - IMPL=es6
-    - IMPL=factor  # stepA optional failures
+    - IMPL=factor
     - IMPL=forth
     - IMPL=fsharp
     - IMPL=go
@@ -26,10 +28,10 @@ env:
     - IMPL=haskell
     - IMPL=java
     - IMPL=js
-    - IMPL=julia  # stepA optional failures
+    - IMPL=julia
     - IMPL=lua
     - IMPL=make
-    - IMPL=mal
+    - IMPL=mal BUILD_IMPL=js
     #- IMPL=matlab  # licensed (until port to Octave)
     - IMPL=miniMAL  # repl/string slice bug
     - IMPL=nim
@@ -39,7 +41,7 @@ env:
     - IMPL=ps
     - IMPL=python
     - IMPL=r
-    - IMPL=racket  # stepA optional failures
+    - IMPL=racket
     - IMPL=rpython
     - IMPL=ruby
     - IMPL=rust
@@ -48,8 +50,8 @@ env:
     - IMPL=vb
 
 script:
-    - docker pull kanaka/mal-test-${IMPL,,}
-    - if [ "${IMPL}" = "mal" ]; then docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-js make -C js;  else docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make -C $IMPL; fi
-    - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make TEST_OPTS="--log-file ../run.out" test^${IMPL}
-    - cat run.out
-      #- docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make perf^${IMPL}
+  - docker pull kanaka/mal-test-${IMPL,,}
+  - BUILD_IMPL=${BUILD_IMPL:-${IMPL}} && docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${BUILD_IMPL,,} make -C ${BUILD_IMPL}
+  - docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make TEST_OPTS="--soft --log-file ../run.out" test^${IMPL}
+  - cat run.out
+    #- docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${IMPL,,} make perf^${IMPL}
