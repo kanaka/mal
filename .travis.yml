@@ -24,7 +24,7 @@ env:
     - IMPL=fsharp
     - IMPL=go
     - IMPL=groovy
-    #- IMPL=guile  # step0 regex issues
+    - IMPL=guile
     - IMPL=haskell
     - IMPL=java
     - IMPL=js
@@ -33,7 +33,7 @@ env:
     - IMPL=make
     - IMPL=mal BUILD_IMPL=js
     #- IMPL=matlab  # licensed (until port to Octave)
-    - IMPL=miniMAL  # repl/string slice bug
+    #- IMPL=miniMAL  # repl/string slice bug
     - IMPL=nim
     - IMPL=ocaml
     - IMPL=perl

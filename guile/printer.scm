@@ -48,8 +48,8 @@
     ((? hash-table?) (print-hashmap obj %pr_str))
     ((? string?)
      (cond
-      ((string-match "^\u029e(.*)" obj)
-       => (lambda (m) (format #f ":~a" (match:substring m 1))))
+      ((_keyword? obj)
+       => (lambda (m) (format #f ":~a" (substring obj 1))))
       (else (if readable? (format #f "\"~a\"" (->str obj)) obj))))
     ;;((? number?) (format #f "~a" obj))
     ;;((? symbol?) (format #f "~a" obj))
