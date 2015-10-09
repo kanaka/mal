@@ -452,7 +452,7 @@ You must have [rpython](https://rpython.readthedocs.org/) on your path
 
 ```
 cd rpython
-make        # this takes a long time
+make        # this takes a very long time
 ./stepX_YYY
 ```
 

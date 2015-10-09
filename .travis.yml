@@ -5,89 +5,92 @@ language: node
 services:
   - docker
 
+# matrix layout based on:
+# https://github.com/libressl-portable/portable/blob/9e090286b55def5ca2c0cc375c65023a70d8796e/.travis.yml
+
 matrix:
   include:
-#    - env: IMPL=awk
-#      os: linux
-#    - env: IMPL=bash
-#      os: linux
-#    - env: IMPL=c
-#      os: linux
-#    - env: IMPL=cpp
-#      os: linux
-#    - env: IMPL=coffee
-#      os: linux
-#    - env: IMPL=cs
-#      os: linux
-#    - env: IMPL=clojure
-#      os: linux
-#    - env: IMPL=crystal
-#      os: linux
-#    - env: IMPL=elixir
-#      os: linux
-#    - env: IMPL=erlang
-#      os: linux
-#    - env: IMPL=es6
-#      os: linux
-#    - env: IMPL=factor
-#      os: linux
-#    - env: IMPL=forth
-#      os: linux
-#    - env: IMPL=fsharp
-#      os: linux
-#    - env: IMPL=go
-#      os: linux
-#    - env: IMPL=groovy
-#      os: linux
-#    - env: IMPL=guile
-#      os: linux
-#    - env: IMPL=haskell
-#      os: linux
-#    - env: IMPL=java
-#      os: linux
-#    - env: IMPL=js
-#      os: linux
-#    - env: IMPL=julia
-#      os: linux
-#    - env: IMPL=lua
-#      os: linux
-#    - env: IMPL=make
-#      os: linux
-#    - env: IMPL=mal BUILD_IMPL=js
-#      os: linux
-#    #- env: IMPL=matlab  # licensed (until port to Octave)
-#    #  os: linux
-#    #- env: IMPL=miniMAL  # repl/string slice bug
-#    #  os: linux
-#    - env: IMPL=nim
-#      os: linux
-#    - env: IMPL=ocaml
-#      os: linux
-#    - env: IMPL=perl
-#      os: linux
-#    - env: IMPL=php
-#      os: linux
-#    - env: IMPL=ps
-#      os: linux
-#    - env: IMPL=python
-#      os: linux
-#    - env: IMPL=r
-#      os: linux
-#    - env: IMPL=racket
-#      os: linux
-#    - env: IMPL=rpython
-#      os: linux
-#    - env: IMPL=ruby
-#      os: linux
+    - env: IMPL=awk
+      os: linux
+    - env: IMPL=bash
+      os: linux
+    - env: IMPL=c
+      os: linux
+    - env: IMPL=cpp
+      os: linux
+    - env: IMPL=coffee
+      os: linux
+    - env: IMPL=cs
+      os: linux
+    - env: IMPL=clojure
+      os: linux
+    - env: IMPL=crystal
+      os: linux
+    - env: IMPL=elixir
+      os: linux
+    - env: IMPL=erlang
+      os: linux
+    - env: IMPL=es6
+      os: linux
+    - env: IMPL=factor
+      os: linux
+    - env: IMPL=forth
+      os: linux
+    - env: IMPL=fsharp
+      os: linux
+    - env: IMPL=go
+      os: linux
+    - env: IMPL=groovy
+      os: linux
+    - env: IMPL=guile
+      os: linux
+    - env: IMPL=haskell
+      os: linux
+    - env: IMPL=java
+      os: linux
+    - env: IMPL=js
+      os: linux
+    - env: IMPL=julia
+      os: linux
+    - env: IMPL=lua
+      os: linux
+    - env: IMPL=make
+      os: linux
+    - env: IMPL=mal BUILD_IMPL=js
+      os: linux
+    #- env: IMPL=matlab  # licensed (until port to Octave)
+    #  os: linux
+    #- env: IMPL=miniMAL  # repl/string slice bug
+    #  os: linux
+    - env: IMPL=nim
+      os: linux
+    - env: IMPL=ocaml
+      os: linux
+    - env: IMPL=perl
+      os: linux
+    - env: IMPL=php
+      os: linux
+    - env: IMPL=ps
+      os: linux
+    - env: IMPL=python
+      os: linux
+    - env: IMPL=r
+      os: linux
+    - env: IMPL=racket
+      os: linux
+    - env: IMPL=rpython
+      os: linux
+    - env: IMPL=ruby
+      os: linux
     - env: IMPL=rust
       os: linux
-#    - env: IMPL=scala
-#      os: linux
-#    - env: IMPL=swift
-#      os: osx
-#      osx_image: xcode7
-#    - env: IMPL=vb
-#      os: linux
+    - env: IMPL=scala
+      os: linux
+    - env: IMPL=swift
+      os: osx
+      osx_image: xcode7
+    - env: IMPL=vb
+      os: linux
 
 script:
   - ./.travis_build.sh

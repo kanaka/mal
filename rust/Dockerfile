@@ -29,12 +29,7 @@ RUN apt-get -y install pkg-config
 # rust install script requirements
 RUN apt-get -y install git sudo
 
-#RUN rm -f /dev/tty && mknod -m 666 /dev/tty c 5 0
+ENV MULTIRUST_HOME /opt/multirust
 RUN curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh > /tmp/blastoff.sh && chmod +x /tmp/blastoff.sh && /tmp/blastoff.sh --yes && rm /tmp/blastoff.sh
 
-RUN multirust default stable
-
-RUN chmod ugo+rx /root /root/.*
-RUN chmod -R ugo+rw /root
-ENV HOME /root
-#ENV MULTIRUST_HOME /mal
+ENV CARGO_HOME /tmp/.cargo

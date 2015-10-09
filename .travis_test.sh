@@ -14,5 +14,3 @@ osx)
     #make TEST_OPTS="--soft --log-file ../perf" perf^${IMPL}
     ;;
 esac
-cat test.out
-#cat perf.out
