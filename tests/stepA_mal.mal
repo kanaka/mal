@@ -143,6 +143,7 @@
 ;;
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
+;>>> soft=True
 
 ;;
 ;; Testing conj function
