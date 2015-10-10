@@ -35,7 +35,7 @@ matrix:
     - env: IMPL=make
     - env: IMPL=mal BUILD_IMPL=js
     #- env: IMPL=matlab  # licensed (until port to Octave)
-    - env: IMPL=miniMAL
+    - env: IMPL=miniMAL BUILD_IMPL=js
     - env: IMPL=nim
     - env: IMPL=ocaml
     - env: IMPL=perl
