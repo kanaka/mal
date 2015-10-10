@@ -14,11 +14,14 @@ echo "MAL_IMPL: ${MAL_IMPL}"
 # use the Travis image/tools directly.
 if [ -z "${NO_DOCKER}" ]; then
     impl=$(echo "${IMPL}" | tr '[:upper:]' '[:lower:]')
+    img_impl=$(echo "${3:-${IMPL}}" | tr '[:upper:]' '[:lower:]')
 
-    docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${impl} \
-        make TEST_OPTS="--soft --log-file ../${ACTION}.out" \
+    docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl} \
+        make TEST_OPTS="--soft --log-file ../${ACTION}.err" \
             MAL_IMPL=${MAL_IMPL} ${ACTION}^${IMPL}
 else
-    make TEST_OPTS="--soft --log-file ../${ACTION}.out" \
+    make TEST_OPTS="--soft --log-file ../${ACTION}.err" \
         MAL_IMPL=${MAL_IMPL} ${ACTION}^${IMPL}
 fi
+# no failure so remove error log
+rm ${ACTION}.err

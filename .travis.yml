@@ -59,12 +59,12 @@ script:
 
   # Regular tests
   - ./.travis_test.sh test ${IMPL}
-  - cat test.out; rm -f test.out
+  - cat test.err || true; rm -f test.err
 
   # Self-hosted tests
   - ./.travis_test.sh test mal ${IMPL}
-  - cat test.out; rm -f test.out
+  - cat test.err || true; rm -f test.err
 
   # Performance tests
-  #- ./.travis_test.sh perf
-  #- cat perf.out
+  #- ./.travis_test.sh perf ${IMPL}
+  #- cat perf.err || true; rm -f perf.err
