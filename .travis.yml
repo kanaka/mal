@@ -61,9 +61,10 @@ script:
   - ./.travis_test.sh test ${IMPL}
   - cat test.err || true; rm -f test.err
 
+  # NOTE: use self-host-test branch
   # Self-hosted tests
-  - ./.travis_test.sh test mal ${IMPL}
-  - cat test.err || true; rm -f test.err
+  #- ./.travis_test.sh test mal ${IMPL}
+  #- cat test.err || true; rm -f test.err
 
   # Performance tests
   #- ./.travis_test.sh perf ${IMPL}
