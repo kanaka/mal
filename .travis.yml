@@ -54,7 +54,17 @@ matrix:
     - env: IMPL=vb
 
 script:
+  # Build
   - ./.travis_build.sh
-  - ./.travis_test.sh
-  - cat test.out
+
+  # Regular tests
+  - ./.travis_test.sh test ${IMPL}
+  - cat test.out; rm -f test.out
+
+  # Self-hosted tests
+  - ./.travis_test.sh test mal ${IMPL}
+  - cat test.out; rm -f test.out
+
+  # Performance tests
+  #- ./.travis_test.sh perf
   #- cat perf.out
