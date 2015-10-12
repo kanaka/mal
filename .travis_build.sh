@@ -15,10 +15,10 @@ if [ -z "${NO_DOCKER}" ]; then
         docker pull kanaka/mal-test-${img_impl}
     fi
     if [ "${BUILD_IMPL}" = "rpython" ]; then
-        # rpython often fails once per build in compute_vars_longevity
-        # so build it twice and ignore failures the first time
+        # rpython often fails on step9 in compute_vars_longevity
+        # so build step9, then continue wit the full build
         docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl} \
-            make -C ${BUILD_IMPL} || true
+            make -C ${BUILD_IMPL} step9_try || true
     fi
     docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl} \
         make -C ${BUILD_IMPL}
