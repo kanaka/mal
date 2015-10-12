@@ -4,8 +4,8 @@ hello world
 abcABC123
 ;=>abcABC123
 
-;:() []{}"'*
-;=>;:() []{}"'*
+[]{}"'* ;:()
+;=>[]{}"'* ;:()
 
 
 ;;; Test long line
