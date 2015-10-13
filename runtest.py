@@ -182,8 +182,10 @@ class TestReader:
 
         return self.form
 
-
 args = parser.parse_args(sys.argv[1:])
+# Workaround argparse issue with two '--' on command line
+if sys.argv.count('--') > 0:
+    args.mal_cmd = sys.argv[sys.argv.index('--')+1:]
 
 if args.rundir: os.chdir(args.rundir)
 
