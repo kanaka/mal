@@ -1,4 +1,5 @@
 with Ada.Text_IO;
+with Ada.Exceptions;
 with Envs;
 with Smart_Pointers;
 
@@ -160,7 +161,7 @@ package body Evaluation is
                end if;
             exception
                when Envs.Not_Found =>
-                  return New_Error_Mal_Type ("'" &  Sym & "' not found");
+                  raise Envs.Not_Found with (" '" &  Sym & "' not found ");
             end;
 
          when List =>
@@ -290,6 +291,32 @@ package body Evaluation is
    end Quasi_Quote_Processing;
 
 
+   function Catch_Processing
+              (Try_Line : Mal_Handle;
+               ExStr : String;
+               Env : Envs.Env_Handle)
+   return Mal_Handle is
+
+      L, CL, CL2, CL3 : List_Mal_Type;
+      C : Mal_Handle;
+      New_Env : Envs.Env_Handle;
+
+   begin
+
+      L := Deref_List (Try_Line).all;
+      C := Car (L);
+      -- CL is the list with the catch in.
+      CL := Deref_List (C).all;
+
+      CL2 := Deref_List (Cdr (CL)).all;
+      New_Env := Envs.New_Env (Env);
+      Envs.Set (New_Env, Deref_Atom (Car (CL2)).Get_Atom, New_String_Mal_Type (ExStr));
+
+      CL3 := Deref_List (Cdr (CL2)).all;
+      return Eval (Car (CL3), New_Env);
+   end Catch_Processing;
+
+
    function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
 		 return Mal_Handle is
       Param : Mal_Handle;
@@ -391,6 +418,22 @@ package body Evaluation is
 		     elsif Atom_P.Get_Atom = "quasiquote" then
 		        Param := Quasi_Quote_Processing (Car (Rest_List));
 		        goto Tail_Call_Opt;
+		     elsif Atom_P.Get_Atom = "try*" then
+                        declare
+                        begin
+			   return Eval (Car (Rest_List), Env);
+                        exception
+                           when Mal_Exception =>
+                              return Catch_Processing
+                                       (Cdr (Rest_List),
+                                        "Mal Error",
+                                        Env);
+                           when E : others =>
+                              return Catch_Processing
+                                       (Cdr (Rest_List),
+                                        Ada.Exceptions.Exception_Message (E),
+                                        Env);
+                        end;
 		     else -- not a special form
 
 			-- Apply section

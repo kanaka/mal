@@ -285,6 +285,8 @@ package Types is
       with function Float_Rel_Op (A, B : Mal_Float) return Boolean;
    function Rel_Op (A, B : Mal_Handle) return Mal_Handle;
 
+   Mal_Exception : exception;  -- So tempting to call this Mal_Function but...
+
 private
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with record
