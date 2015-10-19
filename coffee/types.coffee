@@ -71,7 +71,8 @@ E._symbol = (str) -> new Symbol str
 E._symbol_Q = _symbol_Q = (o) -> o instanceof Symbol
 
 # Keywords
-E._keyword = _keyword = (str) -> "\u029e" + str
+E._keyword = _keyword = (o) ->
+  _keyword_Q(o) && o || ("\u029e" + o)
 E._keyword_Q = _keyword_Q = (o) ->
   typeof o == 'string' && o[0] == "\u029e"
 

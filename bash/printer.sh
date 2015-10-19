@@ -38,6 +38,8 @@ _raw_string_pr_str () {
     local print_readably="${2}"
     if [[ "${s:0:1}" = "${__keyw}" ]]; then
         r=":${s:1}"
+    elif [[ "${s:0:2}" = "${__keyw}" ]]; then
+        r=":${s:2}"
     elif [ "${print_readably}" == "yes" ]; then
         s="${s//\\/\\\\}"
         r="\"${s//\"/\\\"}\""

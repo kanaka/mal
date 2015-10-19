@@ -1,4 +1,4 @@
-readline = require "../js/node_readline"
+readline = require "./node_readline"
 types = require "./types.coffee"
 reader = require "./reader.coffee"
 printer = require "./printer.coffee"
@@ -51,7 +51,7 @@ exports.ns = {
   '*': (a,b) -> a*b,
   '/': (a,b) -> a/b,
   'time-ms': () -> new Date().getTime(),
-  
+
   'list': (a...) -> a,
   'list?': types._list_Q,
   'vector': (a...) -> types._vector(a...),

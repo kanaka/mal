@@ -40,7 +40,7 @@ repl_env.set('*ARGV*, cmdline_args[1..])
 
 ;; core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))")
-rep("(def! load-file (fn* (f) ...))")
+rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 if cmdline_args: rep("(load-file \"" + args[0] + "\")"); exit 0
 

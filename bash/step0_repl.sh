@@ -5,8 +5,7 @@ READ () {
 }
 
 EVAL () {
-    r=
-    eval "${1}"
+    r="${1}"
 }
 
 PRINT () {

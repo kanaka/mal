@@ -174,7 +174,7 @@ function MAL_EVAL($ast, $env) {
 
 // print
 function MAL_PRINT($exp) {
-    return _pr_str($exp, True) . "\n";
+    return _pr_str($exp, True);
 }
 
 // repl
@@ -216,7 +216,7 @@ do {
         $line = mal_readline("user> ");
         if ($line === NULL) { break; }
         if ($line !== "") {
-            print(rep($line));
+            print(rep($line) . "\n");
         }
     } catch (BlankException $e) {
         continue;

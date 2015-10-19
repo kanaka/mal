@@ -29,6 +29,9 @@ if(!exists("..types..")) source("types.r")
         "character"={
             if (substring(exp,1,1) == "\u029e") {
                 concat(":", substring(exp,2))
+            } else if (substring(exp,1,8) == "<U+029E>") {
+                # terrible hack, appears in 3.1.1 on Utopic
+                concat(":", substring(exp,9))
             } else if (print_readably) {
                 paste("\"",
                       gsub("\\n", "\\\\n",

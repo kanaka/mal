@@ -4,7 +4,7 @@
 (printer.ps) runlibfile
 
 % read
-/_readline { print flush (%stdin) (r) file 99 string readline } def
+/_readline { print flush (%stdin) (r) file 1024 string readline } def
 
 /READ {
     /str exch def

@@ -1,23 +1,21 @@
 All:
     - Finish guide.md
 
-    - test to check args set properly
+    - test that *ARGV* gets set properly
     - test to make sure slurp captures final newline
-    - make sure errors propagate/print properly when self-hosted
-
-    * change perf test to run for 10 seconds and then calculate number
-      of iterations per second
-    - redefine (defmacro!) as (def! (macro*))
-    - runtest expect fixes:
-        * stop using expect, so we can drop --raw option
-        * fix C#, VB
-        - fix long line splitting in runtest
+    - Give runtest knowledge of optional tests and report as non-fatal
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
-    - Implement/fix interop
-    - Print full exception when test gets EOF from expect
+    - per impl tests for step5_tco, or at least a better way of
+      enabling/disabling/tweaking per implementation
+    - fix stepA failures: lua matlab miniMAL perl racket
 
-    - metadata on symbols
+Other ideas for All:
+    - propagate/print errors when self-hosted
+    - redefine (defmacro!) as (def! (macro*))
+    - Fix/implement interop in more implementations
+
+    - metadata on symbols (as per Clojure)
     - metadata as a map only. ^ merges metadata in the reader itself.
       Line numbers in metadata from reader.
     - protocols!
@@ -32,18 +30,12 @@ All:
           a *namespaces* map is found with the namespace name being
           looked up. Then the symbol would be looked up starting in
           the namespace environment. Need protocols first probably.
-    - Break out impl eval into step0.5
     - Fix quasiquoting of vectors
-
-    - Get self-host working at earlier step:
-        - Move try* to step6
-        - Remove macros from mal
 
     - multi-line REPL read
     - loop/recur ?
     - gensym reader inside quasiquote
 
-    - per impl tests for step5_tco
 
 ---------------------------------------------
 
@@ -149,43 +141,3 @@ VB.Net
     - convert readline.cs to readline.vb
 
 
----------------------------------------------
-
-
-Future Implementations:
-
-    - Ada (gnat)
-        - http://rosettacode.org/wiki/Regular_expressions#Ada
-
-    - C++
-
-    - Groovy
-        - http://groovy-lang.org/learn.html
-        - http://groovy-lang.org/structure.html
-
-    - Erlang
-
-    - F#
-
-    - Haxe
-        - http://api.haxe.org/
-        - http://haxe.us/haxe_tutorial.html
-
-    - Julia
-
-    - Nim
-
-    - Objective-C:
-
-    - Pascal:
-        sudo aptitude install fp-compiler-2.6.2
-
-    - VimL
-        - https://github.com/tpope/timl
-
-    - Tcl
-
-    - TeX/LaTeX
-        - Basic interpreter in TeX: http://ctanhg.scharrer-online.de/pkg/basix.html
-        - Cheat Sheet: http://www.stdout.org/~winston/latex/latexsheet.pd
-        - latex '\nonstopmode\input' blah.tex

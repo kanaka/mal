@@ -144,7 +144,8 @@ function apply($f) {
 
 function map($f, $seq) {
     $l = new ListClass();
-    $l->exchangeArray(array_map($f, $seq->getArrayCopy()));
+    # @ to surpress warning if $f throws an exception
+    @$l->exchangeArray(array_map($f, $seq->getArrayCopy()));
     return $l;
 }
 

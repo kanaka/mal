@@ -7,10 +7,10 @@ exports.Env = class Env
     if @binds.length > 0
       for b,i in @binds
         if types._symbol_Q(b) && b.name == "&"
-          @data[@binds[i+1].name] = exprs[i..]
+          @data[@binds[i+1].name] = @exprs[i..]
           break
         else
-          @data[b.name] = exprs[i]
+          @data[b.name] = @exprs[i]
   find: (key) ->
     if not types._symbol_Q(key)
       throw new Error("env.find key must be symbol")

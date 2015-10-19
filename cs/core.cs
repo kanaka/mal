@@ -36,7 +36,14 @@ namespace Mal {
             a => a[0] is MalSymbol ? True : False);
 
         static MalFunc keyword = new MalFunc(
-            a => new MalString("\u029e" + ((MalString)a[0]).getValue()));
+            a => {
+                if (a[0] is MalString &&
+                    ((MalString)a[0]).getValue()[0] == '\u029e') {
+                    return a[0];
+                } else {
+                    return new MalString("\u029e" + ((MalString)a[0]).getValue());
+                }
+            } );
 
         static MalFunc keyword_Q = new MalFunc(
             a => {

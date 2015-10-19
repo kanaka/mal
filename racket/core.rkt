@@ -10,6 +10,13 @@
                        exc)))
 
 ;; Sequence functions
+(define do_apply
+  (lambda a
+    (let* ([f (first a)]
+           [lst (_to_list (last a))]
+           [args (append (take (drop a 1) (- (length a) 2)) lst)])
+      (apply f args))))
+
 (define conj
   (lambda a
     (if (vector? (first a))
@@ -88,7 +95,7 @@
     'rest     _rest
     'empty?   _empty?
     'count    _count
-    'apply    apply
+    'apply    do_apply
     'map      (lambda (f s) (_to_list (_map f s)))
     'conj     conj
 

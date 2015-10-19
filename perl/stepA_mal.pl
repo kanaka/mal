@@ -83,7 +83,7 @@ sub eval_ast {
         }
         when (/^HashMap/) {
             my $new_hm = {};
-            foreach my $k (keys($ast->{val})) {
+            foreach my $k (keys( %{ $ast->{val} })) {
                 $new_hm->{$k} = EVAL($ast->get($k), $env);
             }
             return HashMap->new($new_hm);
@@ -223,7 +223,7 @@ my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 
 # core.mal: defined using the language itself
-REP("(def! *host-language* \"javascript\")");
+REP("(def! *host-language* \"perl\")");
 REP("(def! not (fn* (a) (if a false true)))");
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");

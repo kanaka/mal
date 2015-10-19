@@ -3,6 +3,7 @@ SOURCES_LISP = src/env.clj src/core.clj src/stepA_mal.clj
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:
+	lein deps
 
 .PHONY: stats
 

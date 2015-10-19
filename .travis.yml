@@ -1,0 +1,71 @@
+sudo: required
+
+language: node
+
+services:
+  - docker
+
+# matrix layout based on:
+# https://github.com/libressl-portable/portable/blob/9e090286b55def5ca2c0cc375c65023a70d8796e/.travis.yml
+
+matrix:
+  include:
+    - env: IMPL=awk
+    - env: IMPL=bash
+    - env: IMPL=c
+    - env: IMPL=cpp
+    - env: IMPL=coffee
+    - env: IMPL=cs
+    - env: IMPL=clojure
+    - env: IMPL=crystal
+    - env: IMPL=elixir
+    - env: IMPL=erlang
+    - env: IMPL=es6
+    - env: IMPL=factor
+    - env: IMPL=forth
+    - env: IMPL=fsharp
+    - env: IMPL=go
+    - env: IMPL=groovy
+    - env: IMPL=guile
+    - env: IMPL=haskell
+    - env: IMPL=java
+    - env: IMPL=js
+    - env: IMPL=julia
+    - env: IMPL=lua
+    - env: IMPL=make
+    - env: IMPL=mal BUILD_IMPL=js
+    #- env: IMPL=matlab  # licensed (until port to Octave)
+    - env: IMPL=miniMAL BUILD_IMPL=js
+    - env: IMPL=nim
+    - env: IMPL=ocaml
+    - env: IMPL=perl
+    - env: IMPL=php
+    - env: IMPL=ps
+    - env: IMPL=python
+    - env: IMPL=r
+    - env: IMPL=racket
+    - env: IMPL=rpython
+    - env: IMPL=ruby
+    - env: IMPL=rust
+    - env: IMPL=scala
+    - env: IMPL=swift NO_DOCKER=1
+      os: osx
+      osx_image: xcode7
+    - env: IMPL=vb
+
+script:
+  # Build
+  - ./.travis_build.sh
+
+  # Regular tests
+  - ./.travis_test.sh test ${IMPL}
+  - cat test.err || true; rm -f test.err
+
+  # NOTE: use self-host-test branch
+  # Self-hosted tests
+  #- ./.travis_test.sh test mal ${IMPL}
+  #- cat test.err || true; rm -f test.err
+
+  # Performance tests
+  #- ./.travis_test.sh perf ${IMPL}
+  #- cat perf.err || true; rm -f perf.err

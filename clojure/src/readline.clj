@@ -1,5 +1,6 @@
 (ns readline
     (:require [clojure.string :refer [split]]
+              [clojure.java.io :refer [file]]
               [net.n01se.clojure-jna :as jna]))
 
 (defonce history-loaded (atom nil))
@@ -29,9 +30,11 @@
 (defn readline [prompt & [lib]]
   (when (not @history-loaded)
     (reset! history-loaded true)
-    (load-history HISTORY-FILE))
+    (when (.canRead (file HISTORY-FILE))
+      (load-history HISTORY-FILE)))
   (let [line (readline-call prompt)]
     (when line
       (add-history line)
-      (spit HISTORY-FILE (str line "\n") :append true))
+      (when (.canWrite (file HISTORY-FILE))
+        (spit HISTORY-FILE (str line "\n") :append true)))
     line))

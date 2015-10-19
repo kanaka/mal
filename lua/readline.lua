@@ -10,9 +10,13 @@ M.raw = false
 function M.readline(prompt)
     if not history_loaded then
         history_loaded = true
-        for line in io.lines(history_file) do
-            LN.historyadd(line)
-        end
+        xpcall(function()
+            for line in io.lines(history_file) do
+                LN.historyadd(line)
+            end
+        end, function(exc)
+            return true -- ignore the error
+        end)
     end
 
     if M.raw then
@@ -23,9 +27,13 @@ function M.readline(prompt)
     end
     if line then
         LN.historyadd(line)
-        local f = io.open(history_file, "a")
-        f:write(line.."\n")
-        f:close()
+        xpcall(function()
+            local f = io.open(history_file, "a")
+            f:write(line.."\n")
+            f:close()
+        end, function(exc)
+            return true -- ignore the error
+        end)
     end
     return line
 end
