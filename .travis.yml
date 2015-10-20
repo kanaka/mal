@@ -51,6 +51,7 @@ matrix:
     - env: IMPL=swift NO_DOCKER=1
       os: osx
       osx_image: xcode7
+    - env: IMPL=vimscript
     - env: IMPL=vb
 
 script:
