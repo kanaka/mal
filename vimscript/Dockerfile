@@ -21,4 +21,7 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install gcc vim
+# To build the readline plugin
+RUN apt-get -y install g++
+
+RUN apt-get -y install vim

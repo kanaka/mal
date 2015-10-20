@@ -7,6 +7,8 @@
 #
 # See: http://vim.wikia.com/wiki/Vim_as_a_system_interpreter_for_vimscript
 
+rundir=`dirname $0`
+export LD_LIBRARY_PATH=`readlink -f $rundir`
 vimscriptfile="$1"
 shift
 if [ x$DEBUG = x ] ; then
