@@ -1,0 +1,41 @@
+;; Testing basic Vim interop with (vim* "...")
+;;
+
+(vim* "7")
+;=>7
+
+(vim* "'7'")
+;=>"7"
+
+(vim* "[7,8,9]")
+;=>(7 8 9)
+
+(vim* "{\"abc\": 789}")
+;=>{"abc" 789}
+
+;;
+;; Test Vim eval() expression support
+;;
+
+(vim* "3 + 7 * 8")
+;=>59
+
+(vim* "join(['a','b','c'], '_')")
+;=>"a_b_c"
+
+(vim* "split('d@@@@e@f@@g', '@\+')")
+;=>("d" "e" "f" "g")
+
+(vim* "add([1,2,3], 4)")
+;=>(1 2 3 4)
+
+;;
+;; Test access to Vim predefined variables
+;;
+
+(vim* "v:progname")
+;=>"vim"
+
+;; v:version is 704 for Vim 7.4
+(> (vim* "v:version") 700)
+;=>true

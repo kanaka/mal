@@ -18,7 +18,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 
 IMPLS = awk bash c clojure coffee cpp crystal cs erlang elixir es6 factor forth fsharp go groovy \
 	haskell java julia js lua make mal ocaml matlab miniMAL nim \
-	perl php ps python r racket rpython ruby rust scala swift vb guile
+	perl php ps python r racket rpython ruby rust scala swift vb vimscript guile
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -102,6 +102,7 @@ rust_STEP_TO_PROG =    rust/target/release/$($(1))
 scala_STEP_TO_PROG =   scala/$($(1)).scala
 swift_STEP_TO_PROG =   swift/$($(1))
 vb_STEP_TO_PROG =      vb/$($(1)).exe
+vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
 guile_STEP_TO_PROG =   guile/$($(1)).scm
 
 # Needed some argument munging
@@ -150,10 +151,15 @@ rust_RUNSTEP =    ../$(2) $(3)
 scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 swift_RUNSTEP =   ../$(2) $(3)
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
+vimscript_RUNSTEP = ./run_vimscript.sh ../$(2) $(3)
 # needs TERM=dumb to work with readline
 guile_RUNSTEP =   guile --no-auto-compile -L ../guile ../$(2) $(3)
 
 
+vimscript_TEST_OPTS = --test-timeout 30
+ifeq ($(MAL_IMPL),vimscript)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+endif
 
 # Derived lists
 STEPS = $(sort $(filter step%,$(.VARIABLES)))

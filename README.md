@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 40 different languages:
+Mal is implemented in 41 different languages:
 
 * GNU awk
 * Bash shell
@@ -47,6 +47,7 @@ Mal is implemented in 40 different languages:
 * Rust
 * Scala
 * Swift
+* Vimscript
 * Visual Basic.NET
 
 
@@ -517,6 +518,18 @@ language and standard library.
 cd swift
 make
 ./stepX_YYY
+```
+
+### Vimscript
+
+*The Vimscript implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Vimscript implementation of mal requires Vim to run.  It has been tested
+with Vim 7.4.
+
+```
+cd vimscript
+./run_vimscript.sh ./stepX_YYY.vim
 ```
 
 ### Visual Basic.NET ###
