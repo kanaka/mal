@@ -293,7 +293,7 @@ package body Evaluation is
 
    function Catch_Processing
               (Try_Line : Mal_Handle;
-               ExStr : String;
+               ExStr : Mal_Handle;
                Env : Envs.Env_Handle)
    return Mal_Handle is
 
@@ -310,12 +310,13 @@ package body Evaluation is
 
       CL2 := Deref_List (Cdr (CL)).all;
       New_Env := Envs.New_Env (Env);
-      Envs.Set (New_Env, Deref_Atom (Car (CL2)).Get_Atom, New_String_Mal_Type (ExStr));
+      Envs.Set (New_Env, Deref_Atom (Car (CL2)).Get_Atom, ExStr);
 
       CL3 := Deref_List (Cdr (CL2)).all;
       return Eval (Car (CL3), New_Env);
    end Catch_Processing;
 
+   Mal_Exception_Value : Mal_Handle;
 
    function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
 		 return Mal_Handle is
@@ -420,20 +421,27 @@ package body Evaluation is
 		        goto Tail_Call_Opt;
 		     elsif Atom_P.Get_Atom = "try*" then
                         declare
+                           Res : Mal_Handle;
                         begin
 			   return Eval (Car (Rest_List), Env);
                         exception
                            when Mal_Exception =>
-                              return Catch_Processing
+                              Res := Catch_Processing
                                        (Cdr (Rest_List),
-                                        "Mal Error",
+                                        Mal_Exception_Value,
                                         Env);
+                              Mal_Exception_Value := Smart_Pointers.Null_Smart_Pointer;
+                              return Res;
                            when E : others =>
                               return Catch_Processing
                                        (Cdr (Rest_List),
-                                        Ada.Exceptions.Exception_Message (E),
+                                        New_String_Mal_Type
+                                          (Ada.Exceptions.Exception_Message (E)),
                                         Env);
                         end;
+		     elsif Atom_P.Get_Atom = "throw" then
+                         Mal_Exception_Value := Eval (Car (Rest_List), Env);
+                         raise Mal_Exception;
 		     else -- not a special form
 
 			-- Apply section
