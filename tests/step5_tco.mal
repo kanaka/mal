@@ -22,9 +22,8 @@ res2
 ;;; no try* yet, so test completion of side-effects
 (def! res1 nil)
 ;=>nil
-;;; For implementations without their own TCO this should fail and
-;;; leave res1 unchanged
+;;; For implementations with their own TCO this should succeed
 (def! res1 (sum-to 10000))
 res1
-;=>nil
+;=>50005000
 
