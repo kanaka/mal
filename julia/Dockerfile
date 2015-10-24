@@ -24,6 +24,6 @@ WORKDIR /mal
 # Julia
 RUN apt-get -y install software-properties-common
 RUN apt-add-repository -y ppa:staticfloat/juliareleases
-RUN apt-get -y update
+RUN apt-get update -y
 RUN apt-get -y install julia
 

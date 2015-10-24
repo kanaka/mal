@@ -1,6 +1,6 @@
 module env
 
-export Env, set, find, get
+export Env, env_set, env_find, env_get
 
 type Env
     outer::Any
@@ -29,22 +29,22 @@ function Env(outer, binds, exprs)
 end
 
 
-function set(env::Env, k::Symbol, v)
+function env_set(env::Env, k::Symbol, v)
     env.data[k] = v
 end
 
-function find(env::Env, k::Symbol)
+function env_find(env::Env, k::Symbol)
     if haskey(env.data, k)
         env
     elseif env.outer != nothing
-        find(env.outer, k)
+        env_find(env.outer, k)
     else
         nothing
     end
 end
 
-function get(env::Env, k::Symbol)
-    e = find(env, k)
+function env_get(env::Env, k::Symbol)
+    e = env_find(env, k)
     if e != nothing
         e.data[k]
     else

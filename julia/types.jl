@@ -39,7 +39,7 @@ function equal_Q(a, b)
 
     if sequential_Q(a)
         tuple(a...) == tuple(b...)
-    elseif isa(a,String)
+    elseif isa(a,AbstractString)
         a == b
     else
         a === b

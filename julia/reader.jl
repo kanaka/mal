@@ -34,7 +34,7 @@ end
 function read_atom(rdr)
     token = next(rdr)
     if ismatch(r"^-?[0-9]+$", token)
-        int(token)
+        parse(Int,token)
     elseif ismatch(r"^-?[0-9][0-9.]*$", token)
         float(token)
     elseif ismatch(r"^\".*\"$", token)
@@ -85,23 +85,23 @@ function read_form(rdr)
     token = peek(rdr)
     if token == "'"
         next(rdr)
-        [[:quote], Any[read_form(rdr)]]
+        [[:quote]; Any[read_form(rdr)]]
     elseif token == "`"
         next(rdr)
-        [[:quasiquote], Any[read_form(rdr)]]
+        [[:quasiquote]; Any[read_form(rdr)]]
     elseif token == "~"
         next(rdr)
-        [[:unquote], Any[read_form(rdr)]]
+        [[:unquote]; Any[read_form(rdr)]]
     elseif token == "~@"
         next(rdr)
-        [[symbol("splice-unquote")], Any[read_form(rdr)]]
+        [[symbol("splice-unquote")]; Any[read_form(rdr)]]
     elseif token == "^"
         next(rdr)
         meta = read_form(rdr)
-        [[symbol("with-meta")], Any[read_form(rdr)], Any[meta]]
+        [[symbol("with-meta")]; Any[read_form(rdr)]; Any[meta]]
     elseif token == "@"
         next(rdr)
-        [[symbol("deref")], Any[read_form(rdr)]]
+        [[symbol("deref")]; Any[read_form(rdr)]]
 
     elseif token == ")"
         error("unexpected ')'")
