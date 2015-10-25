@@ -11,6 +11,8 @@ fun pr_str(malType: MalType, print_readably: Boolean = false): String =
             } else malType.value
         } else if (malType is MalConstant) {
             malType.value
+        } else if (malType is MalSymbol) {
+            malType.value
         } else if (malType is MalFunction) {
             "#" + malType
         } else if (malType is MalList) {

@@ -24,7 +24,9 @@ class MalInteger(val value: Int) : MalType {
     override fun equals(other: Any?): Boolean = other is MalInteger && value.equals(other.value)
 }
 
-class MalSymbol(value: String) : MalConstant(value)
+class MalSymbol(val value: String) : MalType {
+    override fun equals(other: Any?): Boolean = other is MalSymbol && value.equals(other.value)
+}
 
 open class MalString(value: String) : MalConstant(value)
 

@@ -36,12 +36,16 @@ fun tokenizer(input: String?): Sequence<String>? {
 fun read_form(reader: Reader): MalType =
         when (reader.peek()) {
             null -> throw MalContinue()
-            "(" -> read_list(reader)
-            ")" -> throw MalReaderException("expected form, got ')'")
-            "[" -> read_vector(reader)
-            "]" -> throw MalReaderException("expected form, got ']'")
-            "{" -> read_hashmap(reader)
-            "}" -> throw MalReaderException("expected form, got '}'")
+            "("  -> read_list(reader)
+            ")"  -> throw MalReaderException("expected form, got ')'")
+            "["  -> read_vector(reader)
+            "]"  -> throw MalReaderException("expected form, got ']'")
+            "{"  -> read_hashmap(reader)
+            "}"  -> throw MalReaderException("expected form, got '}'")
+            "'"  -> read_shorthand(reader, "quote")
+            "`"  -> read_shorthand(reader, "quasiquote")
+            "~"  -> read_shorthand(reader, "unquote")
+            "~@" -> read_shorthand(reader, "splice-unquote")
             else -> read_atom(reader)
         }
 
@@ -94,6 +98,16 @@ fun read_hashmap(reader: Reader): MalType {
     } while (key != null)
 
     return hashMap
+}
+
+fun read_shorthand(reader: Reader, symbol: String): MalType {
+    reader.next()
+
+    val list = MalList()
+    list.conj_BANG(MalSymbol(symbol))
+    list.conj_BANG(read_form(reader))
+
+    return list
 }
 
 fun read_atom(reader: Reader): MalType {

@@ -44,6 +44,16 @@ val ns = hashMapOf(
             val name = a.first() as? MalString ?: throw MalException("slurp requires a filename parameter")
             val text = File(name.value).readText()
             MalString(text)
+        })),
+
+        Pair(MalSymbol("cons"), MalFunction({ a: ISeq ->
+            val list = a.nth(1) as? ISeq ?: throw MalException("cons requires a list as its second parameter")
+            val mutableList = list.seq().toLinkedList()
+            mutableList.addFirst(a.nth(0))
+            MalList(mutableList)
+        })),
+        Pair(MalSymbol("concat"), MalFunction({ a: ISeq ->
+            MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toLinkedList())
         }))
 )
 
