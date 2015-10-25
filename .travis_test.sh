@@ -25,4 +25,4 @@ ${MAKE} TEST_OPTS="--soft --log-file ../${ACTION}.err" \
     MAL_IMPL=${MAL_IMPL} ${ACTION}^${IMPL}
 
 # no failure so remove error log
-rm ${ACTION}.err
+rm -f ${ACTION}.err || true
