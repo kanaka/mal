@@ -19,7 +19,7 @@ matrix:
     - env: IMPL=clojure
     - env: IMPL=crystal
     - env: IMPL=elixir
-    - env: IMPL=erlang
+    - env: IMPL=erlang NO_PERF=1  # perf runs out of memory
     - env: IMPL=es6
     - env: IMPL=factor
     - env: IMPL=forth
@@ -33,7 +33,7 @@ matrix:
     - env: IMPL=julia
     - env: IMPL=lua
     - env: IMPL=make
-    - env: IMPL=mal BUILD_IMPL=js
+    - env: IMPL=mal BUILD_IMPL=js NO_PERF=1
     #- env: IMPL=matlab  # licensed (until port to Octave)
     - env: IMPL=miniMAL BUILD_IMPL=js
     - env: IMPL=nim
@@ -68,5 +68,5 @@ script:
   #- cat test.err || true; rm -f test.err
 
   # Performance tests
-  #- ./.travis_test.sh perf ${IMPL}
-  #- cat perf.err || true; rm -f perf.err
+  - [ -z "${NO_PERF}" ] && ./.travis_test.sh perf ${IMPL} || true
+  - cat perf.err || true; rm -f perf.err
