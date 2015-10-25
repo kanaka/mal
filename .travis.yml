@@ -60,7 +60,7 @@ script:
 
   # Regular tests
   - ./.travis_test.sh test ${IMPL}
-  - cat test.err || true; rm -f test.err
+  - cat test.err || true
 
   # NOTE: use self-host-test branch
   # Self-hosted tests
@@ -69,4 +69,4 @@ script:
 
   # Performance tests
   - if [ -z "${NO_PERF}" ]; then ./.travis_test.sh perf ${IMPL}; fi
-  - cat perf.err || true; rm -f perf.err
+  - cat perf.err || true
