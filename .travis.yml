@@ -68,5 +68,5 @@ script:
   #- cat test.err || true; rm -f test.err
 
   # Performance tests
-  - [ -z "${NO_PERF}" ] && ./.travis_test.sh perf ${IMPL} || true
+  - if [ -z "${NO_PERF}" ]; then ./.travis_test.sh perf ${IMPL}; fi
   - cat perf.err || true; rm -f perf.err
