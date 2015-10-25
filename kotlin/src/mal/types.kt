@@ -34,15 +34,18 @@ interface ILambda : MalType {
     fun apply(seq: ISeq): MalType
 }
 
-class MalFunction(val lambda: (ISeq) -> MalType) : MalType, ILambda {
+open class MalFunction(val lambda: (ISeq) -> MalType) : MalType, ILambda {
     override fun apply(seq: ISeq): MalType = lambda(seq)
 }
+
+class MalFnFunction(val ast: MalType, val params: Sequence<MalSymbol>, val env: Env, lambda: (ISeq) -> MalType) : MalFunction(lambda)
 
 interface ISeq : MalType {
     fun seq(): Sequence<MalType>
     fun first(): MalType
     fun rest(): ISeq
     fun nth(n: Int): MalType
+    fun slice(fromIndex: Int, toIndex: Int): ISeq
 }
 
 interface IMutableSeq : ISeq {
@@ -54,6 +57,9 @@ class MalSequence(val elements : Sequence<MalType>) : MalType, ISeq {
     override fun first(): MalType = elements.first()
     override fun rest(): ISeq = MalSequence(elements.drop(1))
     override fun nth(n: Int): MalType = elements.elementAt(n)
+
+    override fun slice(fromIndex: Int, toIndex: Int): MalList =
+            MalList(elements.toLinkedList().subList(fromIndex, toIndex))
 }
 
 class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
@@ -73,6 +79,9 @@ class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
             (other is ISeq)
                     && elements.size == other.seq().count() // TODO optimize counting?
                     && elements.asSequence().zip(other.seq()).all({ it -> it.first == it.second })
+
+    override fun slice(fromIndex: Int, toIndex: Int): MalList =
+            MalList(elements.subList(fromIndex, toIndex))
 }
 
 class MalVector(val elements: MutableList<MalType>) : MalType, IMutableSeq {
@@ -92,6 +101,9 @@ class MalVector(val elements: MutableList<MalType>) : MalType, IMutableSeq {
             (other is ISeq)
                     && elements.size == other.seq().count() // TODO optimize counting?
                     && elements.asSequence().zip(other.seq()).all({ it -> it.first == it.second })
+
+    override fun slice(fromIndex: Int, toIndex: Int): MalVector =
+            MalVector(elements.subList(fromIndex, toIndex))
 }
 
 class MalHashMap : MalType {
