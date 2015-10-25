@@ -1,5 +1,7 @@
 package mal
 
+import java.io.File
+
 val ns = hashMapOf(
         Pair(MalSymbol("+"), MalFunction({ a: ISeq -> a.seq().reduce({ x, y -> x as MalInteger + y as MalInteger }) })),
         Pair(MalSymbol("-"), MalFunction({ a: ISeq -> a.seq().reduce({ x, y -> x as MalInteger - y as MalInteger }) })),
@@ -32,6 +34,16 @@ val ns = hashMapOf(
         })),
         Pair(MalSymbol("println"), MalFunction({
             a: ISeq -> println(a.seq().map({ it -> pr_str(it, print_readably = false) }).joinToString(" ")); NIL
+        })),
+
+        Pair(MalSymbol("read-string"), MalFunction({ a: ISeq ->
+            val string = a.first() as? MalString ?: throw MalException("slurp requires a string parameter")
+            read_str(string.value)
+        })),
+        Pair(MalSymbol("slurp"), MalFunction({ a: ISeq ->
+            val name = a.first() as? MalString ?: throw MalException("slurp requires a filename parameter")
+            val text = File(name.value).readText()
+            MalString(text)
         }))
 )
 
