@@ -17,7 +17,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 #
 
 IMPLS = awk bash c clojure coffee cpp crystal cs erlang elixir es6 factor forth fsharp go groovy \
-	haskell java julia js lua make mal ocaml matlab miniMAL nim \
+	haskell java julia js kotlin lua make mal ocaml matlab miniMAL nim \
 	perl php ps python r racket rpython ruby rust scala swift vb vimscript guile
 
 step0 = step0_repl
@@ -83,6 +83,7 @@ java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 haskell_STEP_TO_PROG = haskell/$($(1))
 julia_STEP_TO_PROG =   julia/$($(1)).jl
 js_STEP_TO_PROG =      js/$($(1)).js
+kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
 lua_STEP_TO_PROG =     lua/$($(1)).lua
 make_STEP_TO_PROG =    make/$($(1)).mk
 mal_STEP_TO_PROG =     mal/$($(1)).mal
@@ -131,6 +132,7 @@ haskell_RUNSTEP = ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
 julia_RUNSTEP =   ../$(2) $(3)
 js_RUNSTEP =      node ../$(2) $(3)
+kotlin_RUNSTEP =  java -jar ../$(2) $(3)
 lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,stepA,$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"

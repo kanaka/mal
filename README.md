@@ -29,6 +29,7 @@ Mal is implemented in 41 different languages:
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
+* Kotlin
 * Lua
 * GNU Make
 * mal itself
@@ -322,6 +323,18 @@ The Julia implementation of mal has been tested with Julia 0.3.7.
 ```
 cd julia
 julia stepX_YYY.jl
+```
+
+### Kotlin
+
+*The Kotlin implementation was created by [Javier Fernandez-Ivern](https://github.com/ivern)*
+
+The Kotlin implementation of mal has been tested with Kotlin M14.
+
+```
+cd kotlin
+make
+java -jar stepX_YYY.jar
 ```
 
 ### Lua
