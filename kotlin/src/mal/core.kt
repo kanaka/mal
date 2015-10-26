@@ -115,8 +115,51 @@ val ns = hashMapOf(
         Pair(MalSymbol("vector"), MalFunction({ a: ISeq -> MalVector(a) })),
         Pair(MalSymbol("vector?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalVector) TRUE else FALSE })),
 
+        Pair(MalSymbol("hash-map"), MalFunction({ a: ISeq ->
+            val map = MalHashMap()
+            val (keys, vals) = a.seq().withIndex().partition({ it -> it.index % 2 == 0 })
+            keys.map({ it -> it.value as MalString }).zip(vals.map({ it -> it.value })).forEach({ it ->
+                map.assoc_BANG(it.first, it.second)
+            })
+            map
+        })),
         Pair(MalSymbol("map?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalHashMap) TRUE else FALSE })),
-
+        Pair(MalSymbol("assoc"), MalFunction({ a: ISeq ->
+            val map = MalHashMap(a.nth(0) as MalHashMap)
+            val (keys, vals) = a.seq().drop(1).withIndex().partition({ it -> it.index % 2 == 0 })
+            keys.map({ it -> it.value as MalString }).zip(vals.map({ it -> it.value })).forEach({ it ->
+                map.assoc_BANG(it.first, it.second)
+            })
+            map
+        })),
+        Pair(MalSymbol("dissoc"), MalFunction({ a: ISeq ->
+            val map = MalHashMap(a.nth(0) as MalHashMap)
+            a.seq().drop(1).forEach({ it -> map.dissoc_BANG(it as MalString) })
+            map
+        })),
+        Pair(MalSymbol("get"), MalFunction({ a: ISeq ->
+            val map = a.nth(0) as? MalHashMap
+            val key = a.nth(1) as MalString
+            map?.elements?.get(key) ?: NIL
+        })),
+        Pair(MalSymbol("contains?"), MalFunction({ a: ISeq ->
+            val map = a.nth(0) as? MalHashMap
+            val key = a.nth(1) as MalString
+            if (map?.elements?.get(key) != null) TRUE else FALSE
+        })),
+        Pair(MalSymbol("keys"), MalFunction({ a: ISeq ->
+            val map = a.nth(0) as MalHashMap
+            // Another situation where kotlinc breaks if I don't add this unnecessary cast
+            MalList(map.elements.keys.map({ it -> it as MalType }).asSequence().toLinkedList())
+        })),
+        Pair(MalSymbol("vals"), MalFunction({ a: ISeq ->
+            val map = a.nth(0) as MalHashMap
+            MalList(map.elements.values.asSequence().toLinkedList())
+        })),
+        Pair(MalSymbol("count"), MalFunction({ a: ISeq ->
+            val seq = a.nth(0) as? ISeq
+            if (seq != null) MalInteger(seq.seq().count()) else ZERO
+        })),
         Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE }))
 )
 

@@ -15,6 +15,7 @@ interface MalType {
 
 open class MalConstant(val value: String) : MalType {
     override fun equals(other: Any?): Boolean = other is MalConstant && value.equals(other.value)
+    override fun hashCode(): Int = value.hashCode()
 }
 
 class MalInteger(val value: Int) : MalType {
@@ -113,13 +114,21 @@ class MalVector(val elements: MutableList<MalType>) : MalType, IMutableSeq {
             MalVector(elements.subList(fromIndex, toIndex))
 }
 
-class MalHashMap : MalType {
+class MalHashMap() : MalType {
     val elements = HashMap<MalString, MalType>()
 
+    constructor(other: MalHashMap) : this() {
+        other.elements.forEach({ it -> assoc_BANG(it.key, it.value) })
+    }
+
     fun assoc_BANG(key: MalString, value: MalType) = elements.put(key, value)
+    fun dissoc_BANG(key: MalString) {
+        elements.remove(key)
+    }
 }
 
 // TODO add truthiness checking
 val NIL = MalConstant("nil")
 val TRUE = MalConstant("true")
 val FALSE = MalConstant("false")
+val ZERO = MalInteger(0)
