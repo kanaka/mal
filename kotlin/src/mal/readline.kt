@@ -1,6 +1,8 @@
 package mal
 
-fun readline(prompt: String): String? {
+class EofException : Exception("EOF")
+
+fun readline(prompt: String): String {
     print(prompt)
-    return readLine()
+    return readLine() ?: throw EofException()
 }

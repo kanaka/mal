@@ -25,6 +25,8 @@ fun pr_str(malType: MalType, print_readably: Boolean = false): String =
             pr_str(malType.elements, "[", "]", print_readably)
         } else if (malType is MalHashMap) {
             malType.elements.map({ it -> pr_str(it, print_readably) }).joinToString(" ", "{", "}")
+        } else if (malType is MalAtom) {
+            "(atom " + pr_str(malType.value, print_readably) + ")"
         } else {
             throw MalPrinterException("Unrecognized MalType: " + malType)
         }

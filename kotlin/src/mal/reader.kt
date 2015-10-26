@@ -47,6 +47,7 @@ fun read_form(reader: Reader): MalType =
             "~"  -> read_shorthand(reader, "unquote")
             "~@" -> read_shorthand(reader, "splice-unquote")
             "^"  -> read_with_meta(reader)
+            "@"  -> read_shorthand(reader, "deref")
             else -> read_atom(reader)
         }
 

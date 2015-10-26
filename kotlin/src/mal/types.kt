@@ -235,6 +235,13 @@ class MalHashMap() : MalType {
     }
 }
 
+class MalAtom(var value: MalType) : MalType {
+    override var metadata: MalType = NIL
+    override fun with_meta(meta: MalType): MalType = throw UnsupportedOperationException()
+
+
+}
+
 // TODO add truthiness checking
 val NIL = MalConstant("nil")
 val TRUE = MalConstant("true")

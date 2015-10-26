@@ -163,7 +163,46 @@ val ns = hashMapOf(
         Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE })),
 
         Pair(MalSymbol("meta"), MalFunction({ a: ISeq -> a.first().metadata })),
-        Pair(MalSymbol("conj"), MalFunction({ a: ISeq -> (a.first() as ISeq).conj(a.rest()) }))
+        Pair(MalSymbol("conj"), MalFunction({ a: ISeq -> (a.first() as ISeq).conj(a.rest()) })),
+
+        Pair(MalSymbol("deref"), MalFunction({ a: ISeq -> (a.first() as MalAtom).value })),
+        Pair(MalSymbol("reset!"), MalFunction({ a: ISeq ->
+            val atom = (a.nth(0) as MalAtom)
+            val value = a.nth(1)
+            atom.value = value
+            value
+        })),
+        Pair(MalSymbol("swap!"), MalFunction({ a: ISeq ->
+            val atom = (a.nth(0) as MalAtom)
+            val function = a.nth(1) as MalFunction
+
+            // TODO reuse code from apply?
+            val params = MalList()
+            params.conj_BANG(atom.value)
+            a.seq().drop(2).forEach({ it ->
+                if (it is ISeq) {
+                    it.seq().forEach({ x -> params.conj_BANG(x) })
+                } else {
+                    params.conj_BANG(it)
+                }
+            })
+
+            val value = function.apply(params)
+            atom.value = value
+
+            value
+        })),
+
+        Pair(MalSymbol("readline"), MalFunction({ a: ISeq ->
+            val prompt = a.first() as MalString
+            try {
+                MalString(readline(prompt.value))
+            } catch (e: java.io.IOException) {
+                throw MalException(e.message)
+            } catch (e: EofException) {
+                NIL
+            }
+        }))
 )
 
 fun pairwiseEquals(s: ISeq): MalConstant =

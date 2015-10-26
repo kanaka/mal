@@ -72,6 +72,8 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 val obj = eval(ast.nth(1), env)
                 val metadata = eval(ast.nth(2), env)
                 return obj.with_meta(metadata)
+            } else if (first is MalSymbol && first.value == "atom") {
+                return MalAtom(eval(ast.nth(1), env))
             } else {
                 val evaluated = eval_ast(ast, env) as ISeq
                 val firstEval = evaluated.first()
@@ -173,10 +175,11 @@ fun main(args: Array<String>) {
     }
 
     while (true) {
-        val input = readline("user> ") ?: break
-
+        val input = readline("user> ")
         try {
             println(rep(input, repl_env))
+        } catch (e: EofException) {
+            break
         } catch (e: MalContinue) {
         } catch (e: MalException) {
             println("Error: " + e.message)
