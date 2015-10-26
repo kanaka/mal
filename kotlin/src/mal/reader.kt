@@ -46,6 +46,19 @@ fun read_form(reader: Reader): MalType =
             "`"  -> read_shorthand(reader, "quasiquote")
             "~"  -> read_shorthand(reader, "unquote")
             "~@" -> read_shorthand(reader, "splice-unquote")
+            "^"  -> {
+                reader.next()
+
+                val meta = read_form(reader)
+                val obj = read_form(reader)
+
+                val list = MalList()
+                list.conj_BANG(MalSymbol("with-meta"))
+                list.conj_BANG(obj)
+                list.conj_BANG(meta)
+
+                list
+            }
             else -> read_atom(reader)
         }
 

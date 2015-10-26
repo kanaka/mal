@@ -41,7 +41,9 @@ interface ILambda : MalType {
 }
 
 open class MalFunction(val lambda: (ISeq) -> MalType) : MalType, ILambda {
+    // TODO make this stuff immutable?
     var is_macro: Boolean = false
+    var metadata: MalType = NIL
 
     override fun apply(seq: ISeq): MalType = lambda(seq)
 }
@@ -54,8 +56,10 @@ interface ISeq : MalType {
     fun rest(): ISeq
     fun nth(n: Int): MalType
     fun slice(fromIndex: Int, toIndex: Int): ISeq
+    fun conj(s: ISeq): ISeq
 }
 
+// TODO could we get rid of this and make conj work on immutables?
 interface IMutableSeq : ISeq {
     fun conj_BANG(form: MalType)
 }
@@ -68,6 +72,8 @@ class MalSequence(val elements : Sequence<MalType>) : MalType, ISeq {
 
     override fun slice(fromIndex: Int, toIndex: Int): MalList =
             MalList(elements.toLinkedList().subList(fromIndex, toIndex))
+
+    override fun conj(s: ISeq): ISeq = MalList(elements.toLinkedList()).conj(s)
 }
 
 class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
@@ -90,6 +96,12 @@ class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
 
     override fun slice(fromIndex: Int, toIndex: Int): MalList =
             MalList(elements.subList(fromIndex, toIndex))
+
+    override fun conj(s: ISeq): ISeq {
+        val list = LinkedList<MalType>(elements)
+        s.seq().forEach({ it -> list.addFirst(it) })
+        return MalList(list)
+    }
 }
 
 class MalVector(val elements: MutableList<MalType>) : MalType, IMutableSeq {
@@ -112,6 +124,8 @@ class MalVector(val elements: MutableList<MalType>) : MalType, IMutableSeq {
 
     override fun slice(fromIndex: Int, toIndex: Int): MalVector =
             MalVector(elements.subList(fromIndex, toIndex))
+
+    override fun conj(s: ISeq): ISeq = MalVector(elements.plus(s.seq()).toArrayList())
 }
 
 class MalHashMap() : MalType {

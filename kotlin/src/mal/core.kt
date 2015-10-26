@@ -160,7 +160,10 @@ val ns = hashMapOf(
             val seq = a.nth(0) as? ISeq
             if (seq != null) MalInteger(seq.seq().count()) else ZERO
         })),
-        Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE }))
+        Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE })),
+
+        Pair(MalSymbol("meta"), MalFunction({ a: ISeq -> (a.first() as? MalFunction)?.metadata ?: NIL })),
+        Pair(MalSymbol("conj"), MalFunction({ a: ISeq -> (a.first() as ISeq).conj(a.rest()) }))
 )
 
 fun pairwiseEquals(s: ISeq): MalConstant =
