@@ -69,9 +69,9 @@ fun eval(_ast: MalType, _env: Env): MalType {
                     return eval(catchBody, catchEnv)
                 }
             } else if (first is MalSymbol && first.value == "with-meta") {
-                val function = eval(ast.nth(1), env) as MalFunction
-                function.metadata = eval(ast.nth(2), env)
-                return function
+                val obj = eval(ast.nth(1), env)
+                val metadata = eval(ast.nth(2), env)
+                return obj.with_meta(metadata)
             } else {
                 val evaluated = eval_ast(ast, env) as ISeq
                 val firstEval = evaluated.first()

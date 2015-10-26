@@ -162,7 +162,7 @@ val ns = hashMapOf(
         })),
         Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE })),
 
-        Pair(MalSymbol("meta"), MalFunction({ a: ISeq -> (a.first() as? MalFunction)?.metadata ?: NIL })),
+        Pair(MalSymbol("meta"), MalFunction({ a: ISeq -> a.first().metadata })),
         Pair(MalSymbol("conj"), MalFunction({ a: ISeq -> (a.first() as ISeq).conj(a.rest()) }))
 )
 
