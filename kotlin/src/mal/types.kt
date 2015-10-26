@@ -2,10 +2,13 @@ package mal
 
 import java.util.*
 
-open class MalException(message: String) : Exception(message) { }
+// TODO clean up exception hierarchy
+open class MalException(message: String?) : Exception(message), MalType { }
 class MalContinue() : MalException("continue") { }
 class MalReaderException(message: String) : MalException(message) { }
 class MalPrinterException(message: String) : MalException(message) { }
+
+class MalCoreException(message: String, val value: MalType) : MalException(message) // TODO rename
 
 interface MalType {
 }

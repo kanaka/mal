@@ -15,6 +15,10 @@ fun pr_str(malType: MalType, print_readably: Boolean = false): String =
             malType.value
         } else if (malType is MalFunction) {
             "#" + malType
+        } else if (malType is MalCoreException) {
+            pr_str(malType.value, print_readably)
+        } else if (malType is MalException) {
+            "\"" + (malType.message ?: "exception") + "\""
         } else if (malType is MalList) {
             pr_str(malType.elements, "(", ")", print_readably)
         } else if (malType is MalVector) {

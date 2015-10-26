@@ -72,7 +72,52 @@ val ns = hashMapOf(
         Pair(MalSymbol("rest"), MalFunction({ a: ISeq ->
             val list = a.nth(0) as? ISeq ?: throw MalException("rest requires a list parameter")
             MalList(list.rest())
-        }))
+        })),
+
+        Pair(MalSymbol("throw"), MalFunction({ a: ISeq ->
+            val throwable = a.nth(0)
+            throw MalCoreException(pr_str(throwable), throwable)
+        })),
+
+        Pair(MalSymbol("apply"), MalFunction({ a: ISeq ->
+            val function = a.nth(0) as MalFunction
+            val params = MalList()
+            a.seq().drop(1).forEach({ it ->
+                if (it is ISeq) {
+                    it.seq().forEach({ x -> params.conj_BANG(x) })
+                } else {
+                    params.conj_BANG(it)
+                }
+            })
+            function.apply(params)
+        })),
+
+        Pair(MalSymbol("map"), MalFunction({ a: ISeq ->
+            val function = a.nth(0) as MalFunction
+            MalList((a.nth(1) as ISeq).seq().map({ it ->
+                val params = MalList()
+                params.conj_BANG(it)
+                function.apply(params)
+            }).toLinkedList())
+        })),
+
+        Pair(MalSymbol("nil?"), MalFunction({ a: ISeq -> if (a.nth(0) == NIL) TRUE else FALSE })),
+        Pair(MalSymbol("true?"), MalFunction({ a: ISeq -> if (a.nth(0) == TRUE) TRUE else FALSE })),
+        Pair(MalSymbol("false?"), MalFunction({ a: ISeq -> if (a.nth(0) == FALSE) TRUE else FALSE })),
+        Pair(MalSymbol("symbol?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalSymbol) TRUE else FALSE })),
+
+        Pair(MalSymbol("symbol"), MalFunction({ a: ISeq -> MalSymbol((a.nth(0) as MalString).value) })),
+        Pair(MalSymbol("keyword"), MalFunction({ a: ISeq ->
+            val param = a.nth(0)
+            if (param is MalKeyword) param else MalKeyword((a.nth(0) as MalString).value)
+        })),
+        Pair(MalSymbol("keyword?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalKeyword) TRUE else FALSE })),
+        Pair(MalSymbol("vector"), MalFunction({ a: ISeq -> MalVector(a) })),
+        Pair(MalSymbol("vector?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalVector) TRUE else FALSE })),
+
+        Pair(MalSymbol("map?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalHashMap) TRUE else FALSE })),
+
+        Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE }))
 )
 
 fun pairwiseEquals(s: ISeq): MalConstant =
