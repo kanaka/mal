@@ -31,10 +31,12 @@ fun main(args: Array<String>) {
     )
 
     while (true) {
-        val input = readline("user> ") ?: break
+        val input = readline("user> ")
 
         try {
             println(print(eval(read(input), env)))
+        } catch (e: EofException) {
+            break
         } catch (e: MalContinue) {
         } catch (e: MalException) {
             println("Error: " + e.message)

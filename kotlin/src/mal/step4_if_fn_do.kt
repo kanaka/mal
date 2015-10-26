@@ -88,10 +88,12 @@ fun main(args: Array<String>) {
     rep("(def! not (fn* (a) (if a false true)))", repl_env)
 
     while (true) {
-        val input = readline("user> ") ?: break
+        val input = readline("user> ")
 
         try {
             println(rep(input, repl_env))
+        } catch (e: EofException) {
+            break
         } catch (e: MalContinue) {
         } catch (e: MalException) {
             println("Error: " + e.message)

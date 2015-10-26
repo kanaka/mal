@@ -47,10 +47,12 @@ fun main(args: Array<String>) {
     env.set(MalSymbol("/"), MalFunction({ a: ISeq -> a.seq().reduce({ x, y -> x as MalInteger / y as MalInteger }) }))
 
     while (true) {
-        val input = readline("user> ") ?: break
+        val input = readline("user> ")
 
         try {
             println(print(eval(read(input), env)))
+        } catch (e: EofException) {
+            break
         } catch (e: MalContinue) {
         } catch (e: MalException) {
             println("Error: " + e.message)

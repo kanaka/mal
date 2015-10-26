@@ -6,10 +6,12 @@ fun main(args: Array<String>) {
     fun print(result: MalType) = pr_str(result, print_readably = true)
 
     while (true) {
-        val input = readline("user> ") ?: break
+        val input = readline("user> ")
 
         try {
             println(print(eval(read(input))))
+        } catch (e: EofException) {
+            break
         } catch (e: MalContinue) {
         } catch (e: MalException) {
             println("Error: " + e.message)

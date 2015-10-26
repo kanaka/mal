@@ -6,10 +6,12 @@ fun main(args: Array<String>) {
     fun print(result: String?): String? = result
 
     while (true) {
-        val input = readline("user> ") ?: break
+        val input = readline("user> ")
 
         try {
             println(print(eval(read(input))))
+        } catch (e: EofException) {
+            break
         } catch (t: Throwable) {
             println("Uncaught " + t + ": " + t.message)
         }
