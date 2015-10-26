@@ -37,6 +37,8 @@ interface ILambda : MalType {
 }
 
 open class MalFunction(val lambda: (ISeq) -> MalType) : MalType, ILambda {
+    var is_macro: Boolean = false
+
     override fun apply(seq: ISeq): MalType = lambda(seq)
 }
 

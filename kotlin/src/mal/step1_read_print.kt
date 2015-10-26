@@ -3,7 +3,7 @@ package mal
 fun main(args: Array<String>) {
     fun read(input: String?): MalType = read_str(input)
     fun eval(expression: MalType): MalType = expression
-    fun print(result: MalType) = pr_str(result, print_readably = false)
+    fun print(result: MalType) = pr_str(result, print_readably = true)
 
     while (true) {
         val input = readline("user> ") ?: break

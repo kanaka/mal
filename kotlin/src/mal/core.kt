@@ -54,6 +54,24 @@ val ns = hashMapOf(
         })),
         Pair(MalSymbol("concat"), MalFunction({ a: ISeq ->
             MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toLinkedList())
+        })),
+
+        Pair(MalSymbol("nth"), MalFunction({ a: ISeq ->
+            val list = a.nth(0) as? ISeq ?: throw MalException("nth requires a list as its first parameter")
+            val index = a.nth(1) as? MalInteger ?: throw MalException("nth requires an integer as its second parameter")
+            if (index.value >= list.seq().count()) throw MalException("index out of bounds")
+            list.nth(index.value)
+        })),
+        Pair(MalSymbol("first"), MalFunction({ a: ISeq ->
+            if (a.nth(0) == NIL) NIL
+            else {
+                val list = a.nth(0) as? ISeq ?: throw MalException("first requires a list parameter")
+                if (list.seq().any()) list.first() else NIL
+            }
+        })),
+        Pair(MalSymbol("rest"), MalFunction({ a: ISeq ->
+            val list = a.nth(0) as? ISeq ?: throw MalException("rest requires a list parameter")
+            MalList(list.rest())
         }))
 )
 
