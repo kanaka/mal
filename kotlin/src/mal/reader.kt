@@ -131,7 +131,7 @@ fun read_atom(reader: Reader): MalType {
     val groups = ATOM_REGEX.find(next)?.groups ?: throw MalReaderException("Unrecognized token: " + next)
 
     return if (groups[1]?.value != null) {
-        MalInteger(Integer.valueOf(groups[1]?.value))
+        MalInteger(groups[1]?.value?.toLong() ?: throw MalReaderException("Error parsing number: " + next))
     } else if (groups[2]?.value != null) {
         NIL
     } else if (groups[3]?.value != null) {

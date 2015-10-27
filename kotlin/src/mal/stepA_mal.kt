@@ -31,10 +31,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
                 val params = binds.seq().filterIsInstance<MalSymbol>()
                 val body = ast.nth(2)
-
-                return MalFnFunction(body, params, env, { s: ISeq ->
-                    eval(body, Env(env, params, s.seq()))
-                })
+                return MalFnFunction(body, params, env, { s: ISeq -> eval(body, Env(env, params, s.seq())) })
             } else if (first is MalSymbol && first.value == "do") {
                 eval_ast(ast.slice(1, ast.seq().count() - 1), env)
                 ast = ast.seq().last()

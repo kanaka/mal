@@ -41,7 +41,7 @@ open class MalConstant(val value: String) : MalType {
     }
 }
 
-class MalInteger(val value: Int) : MalType {
+class MalInteger(val value: Long) : MalType {
     override var metadata: MalType = NIL
 
     operator fun plus(a: MalInteger): MalInteger = MalInteger(value + a.value)

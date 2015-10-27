@@ -14,7 +14,7 @@ val ns = hashMapOf(
             a: ISeq -> if (a.first() !is ISeq || !(a.first() as ISeq).seq().any()) TRUE else FALSE
         })),
         Pair(MalSymbol("count"), MalFunction({
-            a: ISeq -> if (a.first() is ISeq) MalInteger((a.first() as ISeq).seq().count()) else MalInteger(0)
+            a: ISeq -> if (a.first() is ISeq) MalInteger((a.first() as ISeq).count().toLong()) else MalInteger(0)
         })),
 
         Pair(MalSymbol("="), MalFunction({ a: ISeq -> pairwiseEquals(a) })),
@@ -60,7 +60,7 @@ val ns = hashMapOf(
             val list = a.nth(0) as? ISeq ?: throw MalException("nth requires a list as its first parameter")
             val index = a.nth(1) as? MalInteger ?: throw MalException("nth requires an integer as its second parameter")
             if (index.value >= list.seq().count()) throw MalException("index out of bounds")
-            list.nth(index.value)
+            list.nth(index.value.toInt())
         })),
         Pair(MalSymbol("first"), MalFunction({ a: ISeq ->
             if (a.nth(0) == NIL) NIL
@@ -152,7 +152,7 @@ val ns = hashMapOf(
         })),
         Pair(MalSymbol("count"), MalFunction({ a: ISeq ->
             val seq = a.nth(0) as? ISeq
-            if (seq != null) MalInteger(seq.seq().count()) else ZERO
+            if (seq != null) MalInteger(seq.count().toLong()) else ZERO
         })),
         Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE })),
 
@@ -196,7 +196,9 @@ val ns = hashMapOf(
             } catch (e: EofException) {
                 NIL
             }
-        }))
+        })),
+
+        Pair(MalSymbol("time-ms"), MalFunction({ a: ISeq -> MalInteger(System.currentTimeMillis()) }))
 )
 
 fun pairwise(s: ISeq): List<Pair<MalType, MalType>> {
