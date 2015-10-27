@@ -26,17 +26,14 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 env = childEnv
                 ast = ast.nth(2)
             } else if (first is MalSymbol && first.value == "fn*") {
-                val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
-                val params = binds.seq().filterIsInstance<MalSymbol>()
-                val body = ast.nth(2)
-                return MalFnFunction(body, params, env, { s: ISeq -> eval(body, Env(env, params, s.seq())) })
+                return fn_STAR(ast, env)
             } else if (first is MalSymbol && first.value == "do") {
                 eval_ast(ast.slice(1, ast.seq().count() - 1), env)
                 ast = ast.seq().last()
             } else if (first is MalSymbol && first.value == "if") {
                 val check = eval(ast.nth(1), env)
 
-                if (check != NIL && check != FALSE) {
+                if (check !== NIL && check !== FALSE) {
                     ast = ast.nth(2)
                 } else if (ast.seq().asSequence().count() > 3) {
                     ast = ast.nth(3)
@@ -58,6 +55,25 @@ fun eval(_ast: MalType, _env: Env): MalType {
             }
         } else return eval_ast(ast, env)
     }
+}
+
+fun eval_ast(ast: MalType, env: Env): MalType =
+        if (ast is MalSymbol) {
+            env.get(ast)
+        } else if (ast is MalList) {
+            ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
+        } else if (ast is MalVector) {
+            ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+        } else if (ast is MalHashMap) {
+            ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+        } else ast
+
+private fun fn_STAR(ast: MalList, env: Env): MalType {
+    val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
+    val params = binds.seq().filterIsInstance<MalSymbol>()
+    val body = ast.nth(2)
+
+    return MalFnFunction(body, params, env, { s: ISeq -> eval(body, Env(env, params, s.seq())) })
 }
 
 private fun is_pair(ast: MalType): Boolean = ast is ISeq && ast.seq().any()
@@ -91,17 +107,6 @@ private fun quasiquote(ast: MalType): MalType {
     consed.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toLinkedList())))
     return consed
 }
-
-fun eval_ast(ast: MalType, env: Env): MalType =
-    if (ast is MalSymbol) {
-        env.get(ast)
-    } else if (ast is MalList) {
-        ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-    } else if (ast is MalVector) {
-        ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-    } else if (ast is MalHashMap) {
-        ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-    } else ast
 
 fun print(result: MalType) = pr_str(result, print_readably = true)
 

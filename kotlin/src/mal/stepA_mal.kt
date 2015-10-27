@@ -28,10 +28,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 env = childEnv
                 ast = ast.nth(2)
             } else if (first is MalSymbol && first.value == "fn*") {
-                val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
-                val params = binds.seq().filterIsInstance<MalSymbol>()
-                val body = ast.nth(2)
-                return MalFnFunction(body, params, env, { s: ISeq -> eval(body, Env(env, params, s.seq())) })
+                return fn_STAR(ast, env)
             } else if (first is MalSymbol && first.value == "do") {
                 eval_ast(ast.slice(1, ast.seq().count() - 1), env)
                 ast = ast.seq().last()
@@ -48,23 +45,11 @@ fun eval(_ast: MalType, _env: Env): MalType {
             } else if (first is MalSymbol && first.value == "quasiquote") {
                 ast = quasiquote(ast.nth(1))
             } else if (first is MalSymbol && first.value == "defmacro!") {
-                val macro = eval(ast.nth(2), env) as MalFunction
-                macro.is_macro = true
-                return env.set(ast.nth(1) as MalSymbol, macro)
+                return defmacro(ast, env)
             } else if (first is MalSymbol && first.value == "macroexpand") {
                 return macroexpand(ast.nth(1), env)
             } else if (first is MalSymbol && first.value == "try*") {
-                val body = ast.nth(1)
-                try {
-                    return eval(body, env)
-                } catch (e: Exception) {
-                    val thrown = if (e is MalException) e else MalException(e.message)
-                    val symbol = (ast.nth(2) as MalList).nth(1) as MalSymbol
-                    val catchBody = (ast.nth(2) as MalList).nth(2)
-                    val catchEnv = Env(env)
-                    catchEnv.set(symbol, thrown)
-                    return eval(catchBody, catchEnv)
-                }
+                return try_catch(ast, env)
             } else {
                 val evaluated = eval_ast(ast, env) as ISeq
                 val firstEval = evaluated.first()
@@ -90,6 +75,14 @@ fun eval_ast(ast: MalType, env: Env): MalType =
         } else if (ast is MalHashMap) {
             ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
         } else ast
+
+private fun fn_STAR(ast: MalList, env: Env): MalType {
+    val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
+    val params = binds.seq().filterIsInstance<MalSymbol>()
+    val body = ast.nth(2)
+
+    return MalFnFunction(body, params, env, { s: ISeq -> eval(body, Env(env, params, s.seq())) })
+}
 
 private fun is_pair(ast: MalType): Boolean = ast is ISeq && ast.seq().any()
 
@@ -126,6 +119,7 @@ private fun quasiquote(ast: MalType): MalType {
 private fun is_macro_call(ast: MalType, env: Env): Boolean {
     val symbol = (ast as? MalList)?.first() as? MalSymbol ?: return false
     val function = env.find(symbol) as? MalFunction ?: return false
+
     return function.is_macro
 }
 
@@ -138,6 +132,27 @@ private fun macroexpand(_ast: MalType, env: Env): MalType {
     }
     return ast
 }
+
+private fun defmacro(ast: MalList, env: Env): MalType {
+    val macro = eval(ast.nth(2), env) as MalFunction
+    macro.is_macro = true
+
+    return env.set(ast.nth(1) as MalSymbol, macro)
+}
+
+private fun try_catch(ast: MalList, env: Env): MalType =
+    try {
+        eval(ast.nth(1), env)
+    } catch (e: Exception) {
+        val thrown = if (e is MalException) e else MalException(e.message)
+        val symbol = (ast.nth(2) as MalList).nth(1) as MalSymbol
+
+        val catchBody = (ast.nth(2) as MalList).nth(2)
+        val catchEnv = Env(env)
+        catchEnv.set(symbol, thrown)
+
+        eval(catchBody, catchEnv)
+    }
 
 fun print(result: MalType) = pr_str(result, print_readably = true)
 
