@@ -144,6 +144,9 @@
 ;=>15
 ( (get @e "-") 11 8)
 ;=>3
+(swap! e assoc "foo" (list))
+(get @e "foo")
+;=>()
 
 
 ;;

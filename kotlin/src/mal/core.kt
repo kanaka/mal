@@ -187,7 +187,7 @@ val ns = hashMapOf(
             val params = MalList()
             params.conj_BANG(atom.value)
             a.seq().drop(2).forEach({ it ->
-                if (it is ISeq) {
+                if (it is ISeq && it.seq().any()) {
                     it.seq().forEach({ x -> params.conj_BANG(x) })
                 } else {
                     params.conj_BANG(it)
