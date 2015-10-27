@@ -31,6 +31,7 @@ matrix:
     - env: IMPL=java
     - env: IMPL=js
     - env: IMPL=julia
+    - env: IMPL=kotlin
     - env: IMPL=lua
     - env: IMPL=make
     - env: IMPL=mal BUILD_IMPL=js NO_PERF=1
