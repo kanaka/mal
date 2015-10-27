@@ -19,6 +19,16 @@ res2
 (sum-to 10)
 ;=>55
 
+
+;; Test mutually recursive tail-call functions
+
+(def! foo (fn* (n) (if (= n 0) 0 (bar (- n 1)))))
+(def! bar (fn* (n) (if (= n 0) 0 (foo (- n 1)))))
+
+(foo 10000)
+;=>0
+
+
 ;;; no try* yet, so test completion of side-effects
 (def! res1 nil)
 ;=>nil
@@ -27,4 +37,3 @@ res2
 (def! res1 (sum-to 10000))
 res1
 ;=>nil
-
