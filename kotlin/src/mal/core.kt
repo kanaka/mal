@@ -162,9 +162,16 @@ val ns = hashMapOf(
         })),
         Pair(MalSymbol("sequential?"), MalFunction({ a: ISeq -> if (a.nth(0) is ISeq) TRUE else FALSE })),
 
+        Pair(MalSymbol("with-meta"), MalFunction({ a: ISeq ->
+            val obj = a.nth(0)
+            val metadata = a.nth(1)
+            obj.with_meta(metadata)
+        })),
         Pair(MalSymbol("meta"), MalFunction({ a: ISeq -> a.first().metadata })),
         Pair(MalSymbol("conj"), MalFunction({ a: ISeq -> (a.first() as ISeq).conj(a.rest()) })),
 
+        Pair(MalSymbol("atom"), MalFunction({ a: ISeq -> MalAtom(a.first()) })),
+        Pair(MalSymbol("atom?"), MalFunction({ a: ISeq -> if (a.first() is MalAtom) TRUE else FALSE })),
         Pair(MalSymbol("deref"), MalFunction({ a: ISeq -> (a.first() as MalAtom).value })),
         Pair(MalSymbol("reset!"), MalFunction({ a: ISeq ->
             val atom = (a.nth(0) as MalAtom)

@@ -41,7 +41,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
             } else if (first is MalSymbol && first.value == "if") {
                 val check = eval(ast.nth(1), env)
 
-                if (check != NIL && check != FALSE) {
+                if (check !== NIL && check !== FALSE) {
                     ast = ast.nth(2)
                 } else if (ast.seq().asSequence().count() > 3) {
                     ast = ast.nth(3)
@@ -68,12 +68,6 @@ fun eval(_ast: MalType, _env: Env): MalType {
                     catchEnv.set(symbol, thrown)
                     return eval(catchBody, catchEnv)
                 }
-            } else if (first is MalSymbol && first.value == "with-meta") {
-                val obj = eval(ast.nth(1), env)
-                val metadata = eval(ast.nth(2), env)
-                return obj.with_meta(metadata)
-            } else if (first is MalSymbol && first.value == "atom") {
-                return MalAtom(eval(ast.nth(1), env))
             } else {
                 val evaluated = eval_ast(ast, env) as ISeq
                 val firstEval = evaluated.first()

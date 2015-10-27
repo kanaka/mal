@@ -89,6 +89,12 @@
 (def! a (atom 2))
 ;=>(atom 2)
 
+(atom? a)
+;=>true
+
+(atom? 1)
+;=>false
+
 ;;;(type a)
 ;;;;=>"atom"
 
