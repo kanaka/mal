@@ -1,5 +1,6 @@
 #!/usr/bin/env julia
 
+push!(LOAD_PATH, pwd(), "/usr/share/julia/base")
 import readline_mod
 import reader
 import printer
@@ -13,7 +14,7 @@ end
 # EVAL
 function eval_ast(ast, env)
     if typeof(ast) == Symbol
-        get(env,ast)
+        env_get(env,ast)
     elseif isa(ast, Array) || isa(ast, Tuple)
         map((x) -> EVAL(x,env), ast)
     elseif isa(ast, Dict)
@@ -28,11 +29,11 @@ function EVAL(ast, env)
 
     # apply
     if     :def! == ast[1]
-        set(env, ast[2], EVAL(ast[3], env))
+        env_set(env, ast[2], EVAL(ast[3], env))
     elseif symbol("let*") == ast[1]
         let_env = Env(env)
         for i = 1:2:length(ast[2])
-            set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
+            env_set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
         end
         EVAL(ast[3], let_env)
     else
@@ -49,10 +50,10 @@ end
 
 # REPL
 repl_env = Env(nothing,
-               {:+ => +,
-                :- => -,
-                :* => *,
-                :/ => div})
+               Dict{Any,Any}(:+ => +,
+                             :- => -,
+                             :* => *,
+                             :/ => div))
 function REP(str)
     return PRINT(EVAL(READ(str), repl_env))
 end

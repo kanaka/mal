@@ -36,6 +36,12 @@ function MalDiv(args)
   return IntegerNew(ObjValue(a:args[0]) / ObjValue(a:args[1]))
 endfunction
 
+function MalTimeMs(args)
+  " TODO: support more cross-platform way if possible
+  "return IntegerNew(ceil(strftime('%s000') + 0))
+  return IntegerNew(0 + system('date +%s%N | cut -b1-13'))
+endfunction
+
 function MalList(args)
   return ListNew(a:args)
 endfunction
@@ -348,6 +354,7 @@ let CoreNs = {
   \ "-":           NewNativeFn("MalSub"),
   \ "*":           NewNativeFn("MalMul"),
   \ "/":           NewNativeFn("MalDiv"),
+  \ "time-ms":     NewNativeFn("MalTimeMs"),
   \ "nil?":        NewNativeFn("MalNilQ"),
   \ "true?":       NewNativeFn("MalTrueQ"),
   \ "false?":      NewNativeFn("MalFalseQ"),

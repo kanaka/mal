@@ -1,5 +1,6 @@
 module Core
     
+    open System
     open Types
 
     let inline toBool b = if b then Node.TRUE else Node.FALSE
@@ -22,6 +23,9 @@ module Core
     let ge = twoNodeOp (fun a b -> a >= b |> toBool)
     let gt = twoNodeOp (fun a b -> a > b |> toBool)
     let eq = twoNodeOp (fun a b -> a = b |> toBool)
+
+    let time_ms _ =
+        DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond |> int64 |> Number
 
     let list = Node.makeList
     let isList = function

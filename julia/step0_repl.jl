@@ -1,5 +1,6 @@
 #!/usr/bin/env julia
 
+push!(LOAD_PATH, pwd(), "/usr/share/julia/base")
 import readline_mod
 
 # READ
@@ -19,7 +20,7 @@ end
 
 # REPL
 function REP(str)
-    return PRINT(EVAL(READ(str), {}))
+    return PRINT(EVAL(READ(str), []))
 end
 
 while true

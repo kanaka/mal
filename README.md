@@ -191,7 +191,8 @@ iex -S mix stepX_YYY
 
 *The Erlang implementation was created by [Nathan Fiedler (nlfiedler)](https://github.com/nlfiedler)*
 
-The Erlang implementation of mal requires [Erlang/OTP R17](http://www.erlang.org/download.html) and [rebar](https://github.com/rebar/rebar) to build.
+The Erlang implementation of mal requires [Erlang/OTP R17](http://www.erlang.org/download.html)
+and [rebar](https://github.com/rebar/rebar) to build.
 
 ```
 cd erlang
@@ -318,7 +319,7 @@ node stepX_YYY.js
 
 ### Julia
 
-The Julia implementation of mal has been tested with Julia 0.3.7.
+The Julia implementation of mal requires Julia 0.4.
 
 ```
 cd julia

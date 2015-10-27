@@ -41,7 +41,6 @@ EXCLUDE_TESTS += test^erlang^step5 # erlang is TCO, test passes
 EXCLUDE_TESTS += test^elixir^step5 # elixir is TCO, test passes
 EXCLUDE_TESTS += test^fsharp^step5 # completes at 10,000, fatal stack overflow at 100,000
 EXCLUDE_TESTS += test^haskell^step5 # test completes
-EXCLUDE_TESTS += test^julia^step5 # hangs test
 EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
 EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
 EXCLUDE_TESTS += test^miniMAL^step5 # strange error with runtest.py

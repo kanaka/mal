@@ -1,5 +1,6 @@
 #!/usr/bin/env julia
 
+push!(LOAD_PATH, pwd(), "/usr/share/julia/base")
 import readline_mod
 import reader
 import printer
@@ -19,27 +20,27 @@ end
 
 function quasiquote(ast)
     if !ispair(ast)
-        [[:quote], Any[ast]]
+        [[:quote]; Any[ast]]
     elseif ast[1] == :unquote
         ast[2]
     elseif ispair(ast[1]) && ast[1][1] == symbol("splice-unquote")
-        [[:concat], Any[ast[1][2]], Any[quasiquote(ast[2:end])]]
+        [[:concat]; Any[ast[1][2]]; Any[quasiquote(ast[2:end])]]
     else
-        [[:cons], Any[quasiquote(ast[1])], Any[quasiquote(ast[2:end])]]
+        [[:cons]; Any[quasiquote(ast[1])]; Any[quasiquote(ast[2:end])]]
     end
 end
 
 function ismacroCall(ast, env)
     return isa(ast, Array) &&
            isa(ast[1], Symbol) &&
-           find(env, ast[1]) != nothing &&
-           isa(get(env, ast[1]), MalFunc) &&
-           get(env, ast[1]).ismacro
+           env_find(env, ast[1]) != nothing &&
+           isa(env_get(env, ast[1]), MalFunc) &&
+           env_get(env, ast[1]).ismacro
 end
 
 function macroexpand(ast, env)
     while ismacroCall(ast, env)
-        mac = get(env, ast[1])
+        mac = env_get(env, ast[1])
         ast = mac.fn(ast[2:end]...)
     end
     ast
@@ -47,7 +48,7 @@ end
 
 function eval_ast(ast, env)
     if typeof(ast) == Symbol
-        get(env,ast)
+        env_get(env,ast)
     elseif isa(ast, Array) || isa(ast, Tuple)
         map((x) -> EVAL(x,env), ast)
     elseif isa(ast, Dict)
@@ -67,11 +68,11 @@ function EVAL(ast, env)
     if !isa(ast, Array) return ast end
 
     if     :def! == ast[1]
-        return set(env, ast[2], EVAL(ast[3], env))
+        return env_set(env, ast[2], EVAL(ast[3], env))
     elseif symbol("let*") == ast[1]
         let_env = Env(env)
         for i = 1:2:length(ast[2])
-            set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
+            env_set(let_env, ast[2][i], EVAL(ast[2][i+1], let_env))
         end
         env = let_env
         ast = ast[3]
@@ -84,7 +85,7 @@ function EVAL(ast, env)
     elseif :defmacro! == ast[1]
         func = EVAL(ast[3], env)
         func.ismacro = true
-        return set(env, ast[2], func)
+        return env_set(env, ast[2], func)
     elseif :macroexpand == ast[1]
         return macroexpand(ast[2], env)
     elseif :do == ast[1]
@@ -135,8 +136,8 @@ end
 
 # core.jl: defined using Julia
 repl_env = Env(nothing, core.ns)
-set(repl_env, :eval, (ast) -> EVAL(ast, repl_env))
-set(repl_env, symbol("*ARGV*"), ARGS[2:end])
+env_set(repl_env, :eval, (ast) -> EVAL(ast, repl_env))
+env_set(repl_env, symbol("*ARGV*"), ARGS[2:end])
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
@@ -161,8 +162,11 @@ while true
         else
             println("Error: $(string(e))")
         end
-        bt = catch_backtrace()
-        Base.show_backtrace(STDERR, bt)
+        # TODO: show at least part of stack
+        if !isa(e, StackOverflowError)
+            bt = catch_backtrace()
+            Base.show_backtrace(STDERR, bt)
+        end
         println()
     end
 end

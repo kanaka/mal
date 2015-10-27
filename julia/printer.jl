@@ -12,9 +12,9 @@ function pr_str(obj, print_readably=true)
         "[$(join([pr_str(o, _r) for o=obj], " "))]"
     elseif isa(obj, Dict)
         "{$(join(["$(pr_str(o[1],_r)) $(pr_str(o[2],_r))" for o=obj], " "))}"
-    elseif isa(obj, String)
+    elseif isa(obj, AbstractString)
         if length(obj) > 0 && obj[1] == '\u029e'
-            ":$(obj[2:end])"
+            ":$(obj[3:end])"
         elseif _r
             str = replace(replace(replace(obj,
                                           "\\", "\\\\"),

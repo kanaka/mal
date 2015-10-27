@@ -1,5 +1,6 @@
 #!/usr/bin/env julia
 
+push!(LOAD_PATH, pwd(), "/usr/share/julia/base")
 import readline_mod
 import reader
 import printer
@@ -37,10 +38,10 @@ function PRINT(exp)
 end
 
 # REPL
-repl_env = {:+ => +,
-            :- => -,
-            :* => *,
-            :/ => div}
+repl_env = Dict{Any,Any}(:+ => +,
+                         :- => -,
+                         :* => *,
+                         :/ => div)
 function REP(str)
     return PRINT(EVAL(READ(str), repl_env))
 end

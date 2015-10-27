@@ -124,8 +124,8 @@ DSYMS := $(patsubst %.swift,%.dSYM,$(SRCS))
 #
 # (I've included a `sed` version in case relying on bash is contraindicated.)
 #
-#get_step_number = $(shell echo $(1) | sed -e "s/.*step\(.\).*/\1/")
-get_step_number = $(shell [[ $(1) =~ step(.)_.* ]] ; echo $${BASH_REMATCH[1]})
+get_step_number = $(shell echo $(1) | sed -e "s/.*step\(.\).*/\1/")
+#get_step_number = $(shell [[ $(1) =~ step(.)_.* ]] ; echo $${BASH_REMATCH[1]})
 
 #
 # Working from the list of discovered "step<#>_foo.swift" files, generate the
@@ -175,8 +175,8 @@ $(foreach SRC,$(SRCS),$(eval ss$(call get_step_number,$(SRC)): $(SRC)))
 # Various helpful variables.
 #
 DEV_DIR		:= $(firstword $(wildcard /Applications/Xcode-beta.app /Applications/Xcode.app))
-SWIFT		:= $(shell DEVELOPER_DIR="$(DEV_DIR)" xcrun --find swiftc)
-SDKROOT		:= $(shell DEVELOPER_DIR="$(DEV_DIR)" xcrun --show-sdk-path)
+SWIFT		:= $(shell DEVELOPER_DIR="$(DEV_DIR)" xcrun --find swiftc 2>/dev/null)
+SDKROOT		:= $(shell DEVELOPER_DIR="$(DEV_DIR)" xcrun --show-sdk-path 2>/dev/null)
 STEP_TEMPLATE	:= ./templates/step.swift
 FILTER	 	:= ./templates/filter_steps.sh
 UTIL_SRC	:= $(filter-out $(STEP_TEMPLATE) $(SRCS),$(wildcard ./*.swift))
@@ -226,3 +226,14 @@ dump:
 	@echo "  SWIFT = $(SWIFT)"
 	@echo "SDKROOT = $(SDKROOT)"
 	@echo "  STEPS = $(call get_all_step_numbers)"
+
+#
+# Display source stats
+#
+.PHONY: stats tests $(TESTS)
+
+stats: $(UTIL_SRC) ./stepA_mal.swift
+	@wc $^
+stats-lisp: ./stepA_mal.swift ./core.swift ./env.swift
+	@wc $^
+

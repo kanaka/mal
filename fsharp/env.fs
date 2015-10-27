@@ -56,6 +56,7 @@ module Env
               wrap "<=" Core.le
               wrap ">=" Core.ge
               wrap ">" Core.gt
+              wrap "time-ms" Core.time_ms
               wrap "pr-str" Core.pr_str
               wrap "str" Core.str
               wrap "prn" Core.prn
