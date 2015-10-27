@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 41 different languages:
+Mal is implemented in 42 different languages:
 
 * GNU awk
 * Bash shell

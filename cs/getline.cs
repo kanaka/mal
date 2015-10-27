@@ -897,17 +897,15 @@ namespace Mono.Terminal {
 				if (app != null){
 					string dir = Environment.GetFolderPath (Environment.SpecialFolder.Personal);
 					//Console.WriteLine (dir);
-					/*
-					if (!Directory.Exists (dir)){
-						try {
-							Directory.CreateDirectory (dir);
-						} catch {
-							app = null;
-						}
-					}
-					if (app != null)
-						histfile = Path.Combine (dir, app) + ".history";
-					*/
+//					if (!Directory.Exists (dir)){
+//						try {
+//							Directory.CreateDirectory (dir);
+//						} catch {
+//							app = null;
+//						}
+//					}
+//					if (app != null)
+//						histfile = Path.Combine (dir, app) + ".history";
 					histfile = Path.Combine (dir, ".mal-history");
 				}
 				

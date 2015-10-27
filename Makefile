@@ -17,8 +17,8 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 #
 
 IMPLS = awk bash c clojure coffee cpp crystal cs erlang elixir es6 factor forth fsharp go groovy \
-	haskell java julia js kotlin lua make mal ocaml matlab miniMAL nim \
-	perl php ps python r racket rpython ruby rust scala swift vb vimscript guile
+	guile haskell java julia js kotlin lua make mal ocaml matlab miniMAL nim \
+	perl php ps python r racket rpython ruby rust scala swift vb vimscript
 
 step0 = step0_repl
 step1 = step1_read_print

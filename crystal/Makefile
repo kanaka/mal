@@ -18,9 +18,10 @@ clean:
 
 stats: types.cr error.cr readline.cr reader.cr printer.cr env.cr core.cr stepA_mal.cr
 	@wc $^
-
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: env.cr core.cr stepA_mal.cr
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 
 .PHONY: all clean stats stats-lisp
 

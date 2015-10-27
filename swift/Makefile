@@ -234,6 +234,8 @@ dump:
 
 stats: $(UTIL_SRC) ./stepA_mal.swift
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: ./stepA_mal.swift ./core.swift ./env.swift
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 

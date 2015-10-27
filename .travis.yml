@@ -51,7 +51,7 @@ matrix:
     - env: IMPL=swift NO_DOCKER=1
       os: osx
       osx_image: xcode7
-    - env: IMPL=vimscript
+    - env: IMPL=vimscript NO_PERF=1  # /dev/stdout not writable
     - env: IMPL=vb
 
 script:
