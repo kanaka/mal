@@ -147,6 +147,9 @@
 (swap! e assoc "foo" (list))
 (get @e "foo")
 ;=>()
+(swap! e assoc "bar" '(1 2 3))
+(get @e "bar")
+;=>(1 2 3)
 
 
 ;;
