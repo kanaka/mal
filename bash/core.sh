@@ -79,6 +79,7 @@ string? () { _string? "${1}" && r="${__true}" || r="${__false}"; }
 pr_str () {
     local res=""
     for x in "${@}"; do _pr_str "${x}" yes; res="${res} ${r}"; done
+    echo "JOEL pr_str:" "${res:1}"
     _string "${res:1}"
 }
 
