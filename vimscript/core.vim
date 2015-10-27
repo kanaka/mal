@@ -294,7 +294,7 @@ function MalAtom(args)
 endfunction
 
 function MalAtomQ(args)
-  return AtomQ(a:args[0])
+  return BoolNew(AtomQ(a:args[0]))
 endfunction
 
 function MalDeref(args)
