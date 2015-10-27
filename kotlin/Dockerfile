@@ -22,7 +22,8 @@ WORKDIR /mal
 ##########################################################
 
 # Java and Zip
-RUN apt-get -y install openjdk-7-jdk unzip
+RUN apt-get -y install openjdk-7-jdk
+RUN apt-get -y install unzip
 
 RUN curl -O -J -L https://github.com/JetBrains/kotlin/releases/download/build-1.0.0-beta-1038/kotlin-compiler-1.0.0-beta-1038.zip
 
