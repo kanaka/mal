@@ -29,7 +29,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 ast = ast.nth(2)
             } else if (first is MalSymbol && first.value == "fn*") {
                 val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
-                val params = binds.seq().filterIsInstance<MalSymbol>() // TODO error if any non-symbols?
+                val params = binds.seq().filterIsInstance<MalSymbol>()
                 val body = ast.nth(2)
 
                 return MalFnFunction(body, params, env, { s: ISeq ->

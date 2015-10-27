@@ -38,7 +38,7 @@ private fun eval_let_STAR(ast: ISeq, env: Env): MalType {
 
 private fun eval_fn_STAR(ast: ISeq, env: Env): MalType {
     val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
-    val symbols = binds.seq().filterIsInstance<MalSymbol>() // TODO error if any non-symbols?
+    val symbols = binds.seq().filterIsInstance<MalSymbol>()
     val body = ast.nth(2)
 
     return MalFunction({ s: ISeq ->

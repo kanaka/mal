@@ -2,7 +2,6 @@ package mal
 
 import java.util.*
 
-// TODO clean up exception hierarchy
 open class MalException(message: String?) : Exception(message), MalType {
     override var metadata: MalType = NIL
     override fun with_meta(meta: MalType): MalType {
@@ -11,10 +10,12 @@ open class MalException(message: String?) : Exception(message), MalType {
         return exception
     }
 }
-class MalContinue() : MalException("continue") { }
-class MalReaderException(message: String) : MalException(message) { }
-class MalPrinterException(message: String) : MalException(message) { }
-class MalCoreException(message: String, val value: MalType) : MalException(message) { // TODO rename
+
+class MalContinue() : MalException("continue")
+class MalReaderException(message: String) : MalException(message)
+class MalPrinterException(message: String) : MalException(message)
+
+class MalCoreException(message: String, val value: MalType) : MalException(message) {
     override fun with_meta(meta: MalType): MalType {
         val exception = MalCoreException(message as String, value)
         exception.metadata = meta
@@ -23,7 +24,7 @@ class MalCoreException(message: String, val value: MalType) : MalException(messa
 }
 
 interface MalType {
-    var metadata: MalType // TODO make immutable
+    var metadata: MalType
     fun with_meta(meta: MalType): MalType
 }
 
@@ -91,7 +92,6 @@ interface ILambda : MalType {
 }
 
 open class MalFunction(val lambda: (ISeq) -> MalType) : MalType, ILambda {
-    // TODO make this stuff immutable?
     var is_macro: Boolean = false
     override var metadata: MalType = NIL
 
@@ -117,45 +117,22 @@ interface ISeq : MalType {
     fun first(): MalType
     fun rest(): ISeq
     fun nth(n: Int): MalType
+    fun count(): Int
     fun slice(fromIndex: Int, toIndex: Int): ISeq
     fun conj(s: ISeq): ISeq
 }
 
-// TODO could we get rid of this and make conj work on immutables?
 interface IMutableSeq : ISeq {
     fun conj_BANG(form: MalType)
 }
 
-class MalSequence(val elements : Sequence<MalType>) : MalType, ISeq {
+abstract class MalSequence(val elements: MutableList<MalType>) : MalType, IMutableSeq {
     override var metadata: MalType = NIL
-
-    override fun seq(): Sequence<MalType> = elements
-    override fun first(): MalType = elements.first()
-    override fun rest(): ISeq = MalSequence(elements.drop(1))
-    override fun nth(n: Int): MalType = elements.elementAt(n)
-
-    override fun slice(fromIndex: Int, toIndex: Int): MalList =
-            MalList(elements.toLinkedList().subList(fromIndex, toIndex))
-
-    override fun conj(s: ISeq): ISeq = MalList(elements.toLinkedList()).conj(s)
-
-    override fun with_meta(meta: MalType): MalType {
-        val obj = MalSequence(elements)
-        obj.metadata = meta
-        return obj
-    }
-}
-
-class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
-    override var metadata: MalType = NIL
-
-    constructor() : this(LinkedList<MalType>())
-    constructor(s: ISeq) : this(s.seq().toLinkedList())
 
     override fun seq(): Sequence<MalType> = elements.asSequence()
     override fun first(): MalType = elements.first()
-    override fun rest(): ISeq = MalSequence(elements.drop(1).asSequence())
     override fun nth(n: Int): MalType = elements.elementAt(n)
+    override fun count(): Int = elements.count()
 
     override fun conj_BANG(form: MalType) {
         elements.add(form)
@@ -163,8 +140,15 @@ class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
 
     override fun equals(other: Any?): Boolean =
             (other is ISeq)
-                    && elements.size == other.seq().count() // TODO optimize counting?
+                    && elements.size == other.count()
                     && elements.asSequence().zip(other.seq()).all({ it -> it.first == it.second })
+}
+
+class MalList(elements: MutableList<MalType>) : MalSequence(elements) {
+    constructor() : this(LinkedList<MalType>())
+    constructor(s: ISeq) : this(s.seq().toLinkedList())
+
+    override fun rest(): ISeq = MalList(elements.drop(1).toLinkedList())
 
     override fun slice(fromIndex: Int, toIndex: Int): MalList =
             MalList(elements.subList(fromIndex, toIndex))
@@ -182,25 +166,13 @@ class MalList(val elements: MutableList<MalType>) : MalType, IMutableSeq {
     }
 }
 
-class MalVector(val elements: MutableList<MalType>) : MalType, IMutableSeq {
+class MalVector(elements: MutableList<MalType>) : MalSequence(elements) {
     override var metadata: MalType = NIL
 
     constructor() : this(ArrayList<MalType>())
     constructor(s: ISeq) : this(s.seq().toArrayList())
 
-    override fun seq(): Sequence<MalType> = elements.asSequence()
-    override fun first(): MalType = elements.first()
-    override fun rest(): ISeq = MalSequence(elements.drop(1).asSequence())
-    override fun nth(n: Int): MalType = elements.elementAt(n)
-
-    override fun conj_BANG(form: MalType) {
-        elements.add(form)
-    }
-
-    override fun equals(other: Any?): Boolean =
-            (other is ISeq)
-                    && elements.size == other.seq().count() // TODO optimize counting?
-                    && elements.asSequence().zip(other.seq()).all({ it -> it.first == it.second })
+    override fun rest(): ISeq = MalVector(elements.drop(1).toArrayList())
 
     override fun slice(fromIndex: Int, toIndex: Int): MalVector =
             MalVector(elements.subList(fromIndex, toIndex))
@@ -224,6 +196,7 @@ class MalHashMap() : MalType {
     }
 
     fun assoc_BANG(key: MalString, value: MalType) = elements.put(key, value)
+
     fun dissoc_BANG(key: MalString) {
         elements.remove(key)
     }
@@ -238,11 +211,8 @@ class MalHashMap() : MalType {
 class MalAtom(var value: MalType) : MalType {
     override var metadata: MalType = NIL
     override fun with_meta(meta: MalType): MalType = throw UnsupportedOperationException()
-
-
 }
 
-// TODO add truthiness checking
 val NIL = MalConstant("nil")
 val TRUE = MalConstant("true")
 val FALSE = MalConstant("false")

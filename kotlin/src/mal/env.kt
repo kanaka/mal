@@ -6,7 +6,6 @@ class Env(val outer: Env?, binds: Sequence<MalSymbol>?, exprs: Sequence<MalType>
     val data = HashMap<String, MalType>()
 
     init {
-        // TODO idiomatic?
         if (binds != null && exprs != null) {
             val itb = binds.iterator()
             val ite = exprs.iterator()

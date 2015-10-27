@@ -18,10 +18,10 @@ val ns = hashMapOf(
         })),
 
         Pair(MalSymbol("="), MalFunction({ a: ISeq -> pairwiseEquals(a) })),
-        Pair(MalSymbol("<"), MalFunction({ a: ISeq -> pairwise(a, { x, y -> x.value < y.value }) })),
-        Pair(MalSymbol("<="), MalFunction({ a: ISeq -> pairwise(a, { x, y -> x.value <= y.value }) })),
-        Pair(MalSymbol(">"), MalFunction({ a: ISeq -> pairwise(a, { x, y -> x.value > y.value }) })),
-        Pair(MalSymbol(">="), MalFunction({ a: ISeq -> pairwise(a, { x, y -> x.value >= y.value }) })),
+        Pair(MalSymbol("<"), MalFunction({ a: ISeq -> pairwiseCompare(a, { x, y -> x.value < y.value }) })),
+        Pair(MalSymbol("<="), MalFunction({ a: ISeq -> pairwiseCompare(a, { x, y -> x.value <= y.value }) })),
+        Pair(MalSymbol(">"), MalFunction({ a: ISeq -> pairwiseCompare(a, { x, y -> x.value > y.value }) })),
+        Pair(MalSymbol(">="), MalFunction({ a: ISeq -> pairwiseCompare(a, { x, y -> x.value >= y.value }) })),
 
         Pair(MalSymbol("pr-str"), MalFunction({
             a: ISeq -> MalString(a.seq().map({ it -> pr_str(it, print_readably = true) }).joinToString(" "))
@@ -117,24 +117,18 @@ val ns = hashMapOf(
 
         Pair(MalSymbol("hash-map"), MalFunction({ a: ISeq ->
             val map = MalHashMap()
-            val (keys, vals) = a.seq().withIndex().partition({ it -> it.index % 2 == 0 })
-            keys.map({ it -> it.value as MalString }).zip(vals.map({ it -> it.value })).forEach({ it ->
-                map.assoc_BANG(it.first, it.second)
-            })
+            pairwise(a).forEach({ it -> map.assoc_BANG(it.first as MalString, it.second) })
             map
         })),
         Pair(MalSymbol("map?"), MalFunction({ a: ISeq -> if (a.nth(0) is MalHashMap) TRUE else FALSE })),
         Pair(MalSymbol("assoc"), MalFunction({ a: ISeq ->
-            val map = MalHashMap(a.nth(0) as MalHashMap)
-            val (keys, vals) = a.seq().drop(1).withIndex().partition({ it -> it.index % 2 == 0 })
-            keys.map({ it -> it.value as MalString }).zip(vals.map({ it -> it.value })).forEach({ it ->
-                map.assoc_BANG(it.first, it.second)
-            })
+            val map = MalHashMap(a.first() as MalHashMap)
+            pairwise(a.rest()).forEach({ it -> map.assoc_BANG(it.first as MalString, it.second) })
             map
         })),
         Pair(MalSymbol("dissoc"), MalFunction({ a: ISeq ->
-            val map = MalHashMap(a.nth(0) as MalHashMap)
-            a.seq().drop(1).forEach({ it -> map.dissoc_BANG(it as MalString) })
+            val map = MalHashMap(a.first() as MalHashMap)
+            a.rest().seq().forEach({ it -> map.dissoc_BANG(it as MalString) })
             map
         })),
         Pair(MalSymbol("get"), MalFunction({ a: ISeq ->
@@ -174,7 +168,7 @@ val ns = hashMapOf(
         Pair(MalSymbol("atom?"), MalFunction({ a: ISeq -> if (a.first() is MalAtom) TRUE else FALSE })),
         Pair(MalSymbol("deref"), MalFunction({ a: ISeq -> (a.first() as MalAtom).value })),
         Pair(MalSymbol("reset!"), MalFunction({ a: ISeq ->
-            val atom = (a.nth(0) as MalAtom)
+            val atom = a.nth(0) as MalAtom
             val value = a.nth(1)
             atom.value = value
             value
@@ -205,10 +199,13 @@ val ns = hashMapOf(
         }))
 )
 
-fun pairwiseEquals(s: ISeq): MalConstant =
-        if (s.seq().zip(s.seq().drop(1)).all({ it -> it.first == it.second })) TRUE else FALSE
+fun pairwise(s: ISeq): List<Pair<MalType, MalType>> {
+    val (keys, vals) = s.seq().withIndex().partition({ it -> it.index % 2 == 0 })
+    return keys.map({ it -> it.value }).zip(vals.map({ it -> it.value }))
+}
 
-fun pairwise(s: ISeq, pred: (MalInteger, MalInteger) -> Boolean): MalConstant =
-        if (s.seq().zip(s.seq().drop(1)).all({
-            it -> pred(it.first as MalInteger, it.second as MalInteger)
-        })) TRUE else FALSE
+fun pairwiseCompare(s: ISeq, pred: (MalInteger, MalInteger) -> Boolean): MalConstant =
+        if (pairwise(s).all({ it -> pred(it.first as MalInteger, it.second as MalInteger) })) TRUE else FALSE
+
+fun pairwiseEquals(s: ISeq): MalConstant =
+        if (pairwise(s).all({ it -> it.first == it.second })) TRUE else FALSE
