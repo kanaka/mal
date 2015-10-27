@@ -64,4 +64,6 @@ elixir/_build
 elixir/deps
 elixir/erl_crash.dump
 elixir/*.ez
-
+kotlin/*.jar
+kotlin/.idea
+kotlin/*.iml

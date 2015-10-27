@@ -89,6 +89,12 @@
 (def! a (atom 2))
 ;=>(atom 2)
 
+(atom? a)
+;=>true
+
+(atom? 1)
+;=>false
+
 ;;;(type a)
 ;;;;=>"atom"
 
@@ -138,6 +144,12 @@
 ;=>15
 ( (get @e "-") 11 8)
 ;=>3
+(swap! e assoc "foo" (list))
+(get @e "foo")
+;=>()
+(swap! e assoc "bar" '(1 2 3))
+(get @e "bar")
+;=>(1 2 3)
 
 
 ;;
