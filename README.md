@@ -239,7 +239,7 @@ The Factor implementation of mal has been tested with Factor 0.97
 
 ```
 cd factor
-FACTOR_ROOTS=src factor -run=stepX_YYY
+FACTOR_ROOTS=. factor -run=stepX_YYY
 ```
 
 ### Forth

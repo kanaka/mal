@@ -73,7 +73,7 @@ cs_STEP_TO_PROG =      cs/$($(1)).exe
 elixir_STEP_TO_PROG =  elixir/lib/mix/tasks/$($(1)).ex
 erlang_STEP_TO_PROG =  erlang/$($(1))
 es6_STEP_TO_PROG =     es6/build/$($(1)).js
-factor_STEP_TO_PROG =  factor/src/$($(1))/$($(1)).factor
+factor_STEP_TO_PROG =  factor/$($(1))/$($(1)).factor
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
 go_STEP_TO_PROG =      go/$($(1))
@@ -109,7 +109,7 @@ guile_STEP_TO_PROG =   guile/$($(1)).scm
 COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
-export FACTOR_ROOTS := src
+export FACTOR_ROOTS := .
 
 awk_RUNSTEP =     awk -O -f ../$(2) $(3)
 bash_RUNSTEP =    bash ../$(2) $(3)
