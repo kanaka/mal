@@ -109,7 +109,7 @@ guile_STEP_TO_PROG =   guile/$($(1)).scm
 COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
-export FACTOR_ROOTS := src
+export FACTOR_ROOTS := .
 
 awk_RUNSTEP =     awk -O -f ../$(2) $(3)
 bash_RUNSTEP =    bash ../$(2) $(3)
