@@ -62,7 +62,7 @@ CONSTANT: ns H{
     { "sequential?" [ first { [ vector? ] [ array? ] } 1|| ] }
     { "readline" [ first readline ] }
     { "meta" [ first dup malfn? [ meta>> ] [ drop f ] if [ nil ] unless* ] }
-    { "with-meta" [ first2 over malfn? [ [ clone ] dip >>meta ] when ] }
+    { "with-meta" [ first2 over malfn? [ [ clone ] dip >>meta ] [ drop ] if ] }
     { "atom" [ first <malatom> ] }
     { "atom?" [ first malatom? ] }
     { "deref" [ first val>> ] }
