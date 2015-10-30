@@ -6,7 +6,8 @@ js/mal_web.js
 bash/mal.sh
 c/*.o
 *.pyc
-*/mal
+c/mal
+haskell/mal
 */step0_repl
 */step1_read_print
 */step2_eval
