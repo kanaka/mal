@@ -21,7 +21,7 @@ else
     MAKE="docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl} make"
 fi
 
-${MAKE} TEST_OPTS="--soft --log-file ../${ACTION}.err" \
+${MAKE} TEST_OPTS="--soft --debug-file ../${ACTION}.err" \
     MAL_IMPL=${MAL_IMPL} ${ACTION}^${IMPL}
 
 # no failure so remove error log

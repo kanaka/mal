@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os, sys, re
 import argparse, time
 import signal, atexit
@@ -11,6 +12,21 @@ from select import select
 import pty, array, fcntl, termios
 
 IS_PY_3 = sys.version_info[0] == 3
+
+debug_file = None
+log_file = None
+
+def debug(data):
+    if debug_file:
+        debug_file.write(data)
+        debug_file.flush()
+
+def log(data, end='\n'):
+    if log_file:
+        log_file.write(data + end)
+        log_file.flush()
+    print(data, end=end)
+    sys.stdout.flush()
 
 # TODO: do we need to support '\n' too
 sep = "\r\n"
@@ -30,6 +46,8 @@ parser.add_argument('--pre-eval', default=None, type=str,
 parser.add_argument('--no-pty', action='store_true',
         help="Use direct pipes instead of pseudo-tty")
 parser.add_argument('--log-file', type=str,
+        help="Write messages to the named file in addition the screen")
+parser.add_argument('--debug-file', type=str,
         help="Write all test interaction the named file")
 parser.add_argument('--soft', action='store_true',
         help="Report but do not fail tests after ';>>> soft=True'")
@@ -41,12 +59,9 @@ parser.add_argument('mal_cmd', nargs="*",
              "specify a Mal command line with dashed options.")
 
 class Runner():
-    def __init__(self, args, no_pty=False, log_file=None):
+    def __init__(self, args, no_pty=False):
         #print "args: %s" % repr(args)
         self.no_pty = no_pty
-
-        if log_file: self.logf = open(log_file, "a")
-        else:        self.logf = None
 
         # Cleanup child process on exit
         atexit.register(self.cleanup)
@@ -94,8 +109,8 @@ class Runner():
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
-                #print "new_data: '%s'" % new_data
-                self.log(new_data)
+                #print("new_data: '%s'" % new_data)
+                debug(new_data)
                 if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
@@ -110,12 +125,6 @@ class Runner():
                         self.last_prompt = prompt
                         return buf
         return None
-
-    def log(self, data):
-        if self.logf:
-            self.logf.write(data)
-            self.logf.flush()
-
 
     def writeline(self, str):
         def _to_bytes(s):
@@ -133,9 +142,10 @@ class Runner():
             self.p = None
 
 class TestReader:
-    def __init__(self, test_file):
+    def __init__(self, test_file, print=print):
         self.line_num = 0
         self.data = test_file.read().split('\n')
+        self.print = print
         self.soft = False
 
     def next(self):
@@ -151,7 +161,7 @@ class TestReader:
             elif line[0:3] == ";;;":       # ignore comment
                 continue
             elif line[0:2] == ";;":        # output comment
-                print(line[3:])
+                log(line[3:])
                 continue
             elif line[0:5] == ";>>> ":     # settings/commands
                 settings = {}
@@ -159,7 +169,7 @@ class TestReader:
                 if 'soft' in settings: self.soft = True
                 continue
             elif line[0:1] == ";":         # unexpected comment
-                print("Test data error at line %d:\n%s" % (self.line_num, line))
+                log("Test data error at line %d:\n%s" % (self.line_num, line))
                 return None
             self.form = line   # the line is a form to send
 
@@ -189,7 +199,10 @@ if sys.argv.count('--') > 0:
 
 if args.rundir: os.chdir(args.rundir)
 
-r = Runner(args.mal_cmd, no_pty=args.no_pty, log_file=args.log_file)
+if args.log_file:   log_file   = open(args.log_file, "a")
+if args.debug_file: debug_file = open(args.debug_file, "a")
+
+r = Runner(args.mal_cmd, no_pty=args.no_pty)
 t = TestReader(args.test_file)
 
 
@@ -198,10 +211,10 @@ def assert_prompt(runner, prompts, timeout):
     header = runner.read_to_prompt(prompts, timeout=timeout)
     if not header == None:
         if header:
-            print("Started with:\n%s" % header)
+            log("Started with:\n%s" % header)
     else:
-        print("Did not one of following prompt(s): %s" % repr(prompts))
-        print("    Got      : %s" % repr(r.buf))
+        log("Did not one of following prompt(s): %s" % repr(prompts))
+        log("    Got      : %s" % repr(r.buf))
         sys.exit(1)
 
 
@@ -214,12 +227,13 @@ if args.pre_eval:
     p.write(args.pre_eval)
     assert_prompt(args.test_timeout)
 
+test_cnt = 0
+pass_cnt = 0
 fail_cnt = 0
 soft_fail_cnt = 0
 
 while t.next():
-    sys.stdout.write("TEST: %s -> [%s,%s]" % (t.form, repr(t.out), t.ret))
-    sys.stdout.flush()
+    log("TEST: %s -> [%s,%s]" % (t.form, repr(t.out), t.ret), end='')
 
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
@@ -229,30 +243,40 @@ while t.next():
 
     r.writeline(t.form)
     try:
+        test_cnt += 1
         res = r.read_to_prompt(['\r\nuser> ', '\nuser> ',
                                 '\r\nmal-user> ', '\nmal-user> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if t.ret == "*" or res in expected:
-            print(" -> SUCCESS")
+            log(" -> SUCCESS")
+            pass_cnt += 1
         else:
             if args.soft and t.soft:
-                print(" -> SOFT FAIL (line %d):" % t.line_num)
+                log(" -> SOFT FAIL (line %d):" % t.line_num)
                 soft_fail_cnt += 1
             else:
-                print(" -> FAIL (line %d):" % t.line_num)
+                log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
-            print("    Expected : %s" % repr(expected))
-            print("    Got      : %s" % repr(res))
+            log("    Expected : %s" % repr(expected))
+            log("    Got      : %s" % repr(res))
     except:
         _, exc, _ = sys.exc_info()
-        print("\nException: %s" % repr(exc))
-        print("Output before exception:\n%s" % r.buf)
+        log("\nException: %s" % repr(exc))
+        log("Output before exception:\n%s" % r.buf)
         sys.exit(1)
 
-if soft_fail_cnt > 0:
-    print("SOFT FAILURES: %d" % soft_fail_cnt)
+results = """TEST RESULTS (for %s):
+  %3d: soft failing tests
+  %3d: failing tests
+  %3d: passing tests
+  %3d: total tests
+""" % (args.test_file.name, soft_fail_cnt, fail_cnt,
+        pass_cnt, test_cnt)
+log(results)
+
+debug("\n") # add some separate to debug log
+
 if fail_cnt > 0:
-    print("FAILURES: %d" % fail_cnt)
-    sys.exit(2)
+    sys.exit(1)
 sys.exit(0)
