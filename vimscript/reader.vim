@@ -46,6 +46,7 @@ function ParseString(token)
   let str = a:token[1:-2]
   let str = substitute(str, '\\"', '"', "g")
   let str = substitute(str, '\\n', "\n", "g")
+  let str = substitute(str, '\\\\', "\\", "g")
   return str
 endfunction
 

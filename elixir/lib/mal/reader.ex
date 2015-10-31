@@ -87,6 +87,8 @@ defmodule Mal.Reader do
         token
           |> String.slice(1..-2)
           |> String.replace("\\\"", "\"")
+          |> String.replace("\\n", "\n")
+          |> String.replace("\\\\", "\\")
 
       integer?(token) ->
         Integer.parse(token)

@@ -16,6 +16,7 @@ M: string (pr-str)
     [
         "\\" "\\\\" replace
         "\"" "\\\"" replace
+        "\n" "\\n" replace
         "\"" dup surround
     ] when ;
 M: array (pr-str) '[ _ (pr-str) ] map " " join "(" ")" surround ;

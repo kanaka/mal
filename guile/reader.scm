@@ -80,8 +80,10 @@
 (define (read_atom reader)
   (define (->str s)
     (string-sub
-     (string-sub s "\\\\\"" "\"")
-     "\\\\\n" "\n"))
+     (string-sub
+      (string-sub s "\\\\\"" "\"")
+      "\\\\n" "\n")
+     "\\\\\\\\" "\\"))
   (let ((token (reader 'next)))
     (cond
      ((string-match "^-?[0-9][0-9.]*$" token)

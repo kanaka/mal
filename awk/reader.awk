@@ -1,20 +1,10 @@
 function reader_read_string(token,    v, r)
 {
 	token = substr(token, 1, length(token) - 1)
-	while (match(token, /\\["n\\]?/, r)) {
-		switch (r[0]) {
-		case "\\":
-			return "!\"Invalid escape character '" substr(token, RSTART, 2) "'."
-		case "\\n":
-			v = v substr(token, 1, RSTART - 1) "\n"
-			break
-		default:
-			v = v substr(token, 1, RSTART - 1) substr(r[0], 2, 1)
-			break
-		}
-		token = substr(token, RSTART + RLENGTH)
-	}
-	return v token
+	gsub(/\\\\/, "\\", token)
+	gsub(/\\"/, "\"", token)
+	gsub(/\\n/, "\n", token)
+	return token
 }
 
 function reader_read_atom(token)

@@ -34,9 +34,11 @@
           [(regexp-match #px"^\".*\"$" token)
            (string-replace
              (string-replace
-               (substring token 1 (- (string-length token) 1))
-               "\\\"" "\"")
-             "\\n" "\n")]
+               (string-replace
+                 (substring token 1 (- (string-length token) 1))
+                 "\\\"" "\"")
+               "\\n" "\n")
+             "\\\\" "\\")]
           [(regexp-match #px"^:" token) (_keyword (substring token 1))]
           [(equal? "nil" token) nil]
           [(equal? "true" token) #t]

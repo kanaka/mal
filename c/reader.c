@@ -78,36 +78,12 @@ Reader *tokenize(char *line) {
 }
 
 
-// From http://creativeandcritical.net/str-replace-c/ - Laird Shaw
 char *replace_str(const char *str, const char *old, const char *new)
 {
-    char *ret, *r;
-    const char *p, *q;
-    size_t oldlen = strlen(old);
-    size_t count, retlen, newlen = strlen(new);
-
-    if (oldlen != newlen) {
-        for (count = 0, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen)
-            count++;
-        /* this is undefined if p - str > PTRDIFF_MAX */
-        retlen = p - str + strlen(p) + count * (newlen - oldlen);
-    } else
-        retlen = strlen(str);
-
-    if ((ret = malloc(retlen + 1)) == NULL)
-        return NULL;
-
-    for (r = ret, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen) {
-        /* this is undefined if q - p > PTRDIFF_MAX */
-        ptrdiff_t l = q - p;
-        memcpy(r, p, l);
-        r += l;
-        memcpy(r, new, newlen);
-        r += newlen;
-    }
-    strcpy(r, p);
-
-    return ret;
+    GRegex *reg = g_regex_new (old, 0, 0, NULL);
+    char *str_tmp = g_regex_replace_literal(reg, str, -1, 0, new, 0, NULL);
+    free(reg);
+    return str_tmp;
 }
 
 
@@ -142,8 +118,12 @@ MalVal *read_atom(Reader *reader) {
         atom = &mal_false;
     } else if (g_match_info_fetch_pos(matchInfo, 6, &pos, NULL) && pos != -1) {
         //g_print("read_atom string: %s\n", token);
-        char *str_tmp = replace_str(g_match_info_fetch(matchInfo, 6), "\\\"", "\"");
-        atom = malval_new_string(str_tmp);
+        char *str_tmp = replace_str(g_match_info_fetch(matchInfo, 6), "\\\\\"", "\"");
+        char *str_tmp2 = replace_str(str_tmp, "\\\\n", "\n");
+        free(str_tmp);
+        char *str_tmp3 = replace_str(str_tmp2, "\\\\\\\\", "\\");
+        free(str_tmp2);
+        atom = malval_new_string(str_tmp3);
     } else if (g_match_info_fetch_pos(matchInfo, 7, &pos, NULL) && pos != -1) {
         //g_print("read_atom keyword\n");
         atom = malval_new_keyword(g_match_info_fetch(matchInfo, 7));

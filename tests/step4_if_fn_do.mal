@@ -243,6 +243,11 @@ a
 "\""
 ;=>"\""
 
+"abc\ndef\nghi"
+;=>"abc\ndef\nghi"
+
+"abc\\def\\ghi"
+;=>"abc\\def\\ghi"
 
 ;; Testing pr-str
 
@@ -264,6 +269,12 @@ a
 (pr-str (list 1 2 "abc" "\"") "def")
 ;=>"(1 2 \"abc\" \"\\\"\") \"def\""
 
+(pr-str "abc\ndef\nghi")
+;=>"\"abc\\ndef\\nghi\""
+
+(pr-str "abc\\def\\ghi")
+;=>"\"abc\\\\def\\\\ghi\""
+
 
 ;; Testing str
 
@@ -284,6 +295,12 @@ a
 
 (str "abc  def" "ghi jkl")
 ;=>"abc  defghi jkl"
+
+(str "abc\ndef\nghi")
+;=>"abc\ndef\nghi"
+
+(str "abc\\def\\ghi")
+;=>"abc\\def\\ghi"
 
 ;;; TODO: get this working properly
 ;;;(str (list 1 2 "abc" "\"") "def")
@@ -310,6 +327,14 @@ a
 ; "\""
 ;=>nil
 
+(prn "abc\ndef\nghi")
+; "abc\ndef\nghi"
+;=>nil
+
+(prn "abc\\def\\ghi")
+; "abc\\def\\ghi"
+nil
+
 (prn (list 1 2 "abc" "\"") "def")
 ; (1 2 "abc" "\"") "def"
 ;=>nil
@@ -333,6 +358,16 @@ a
 
 (println "\"")
 ; "
+;=>nil
+
+(println "abc\ndef\nghi")
+; abc
+; def
+; ghi
+;=>nil
+
+(println "abc\\def\\ghi")
+; abc\def\ghi
 ;=>nil
 
 (println (list 1 2 "abc" "\"") "def")

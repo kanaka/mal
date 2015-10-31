@@ -26,7 +26,7 @@ object reader {
   }
 
   def parse_str(s: String): String = {
-    s.replace("\\\"", "\"").replace("\\n", "\n")
+    s.replace("\\\"", "\"").replace("\\n", "\n").replace("\\\\", "\\")
   }
 
   def read_atom(rdr: Reader): Any = {

@@ -84,7 +84,8 @@ Namespace Mal
                 return New Mal.types.MalString(
                         str.Substring(1, str.Length-2) _
                         .Replace("\""", """") _
-                        .Replace("\n", Environment.NewLine))
+                        .Replace("\n", Environment.NewLine) _
+                        .Replace("\\", "\"))
             Else If match.Groups(7).Value <> String.Empty Then
                 return New Mal.types.MalString(ChrW(&H029e) & match.Groups(7).Value)
             Else If match.Groups(8).Value <> String.Empty Then

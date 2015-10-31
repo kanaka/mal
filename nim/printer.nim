@@ -3,7 +3,7 @@ import strutils, sequtils, tables, types
 proc str_handle(x: string, pr = true): string =
   if x.len > 0 and x[0] == '\xff':
             result = ":" & x[1 .. x.high]
-  elif pr:  result = "\"" & x.replace("\\", "\\\\").replace("\"", "\\\"") & "\""
+  elif pr:  result = "\"" & x.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") & "\""
   else:     result = x
 
 proc pr_str*(m: MalType, pr = true): string =

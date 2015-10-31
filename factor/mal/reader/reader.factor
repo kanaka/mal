@@ -10,7 +10,9 @@ DEFER: read-form
 
 : (read-atom) ( str -- maltype )
     {
-        { [ dup first CHAR: " = ] [ rest but-last "\\\"" "\"" replace ] }
+        { [ dup first CHAR: " = ] [ rest but-last "\\\"" "\"" replace
+                                                  "\\n"  "\n" replace
+                                                  "\\\\" "\\" replace ] }
         { [ dup first CHAR: : = ] [ rest <malkeyword> ] }
         { [ dup "false" = ]       [ drop f ] }
         { [ dup "true" = ]        [ drop t ] }

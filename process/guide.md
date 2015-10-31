@@ -365,15 +365,17 @@ and each step will give progressively more bang for the buck.
 
 * Add support for the other basic data type to your reader and printer
   functions: string, nil, true, and false. These become mandatory at
-  step 4. When a string is read, a slash followed by a doublequote is
-  translated into a plain doublequote character and a slash followed by
-  "n" is translated into a newline. To properly print a string (for
-  step 4 string functions), the `pr_str` function needs another
-  parameter called `print_readably`. When `print_readably` is true,
-  doublequotes and newlines are translated into their printed
-  representations (the reverse of the reader). The `PRINT` function in
-  the main program should call `pr_str` with print_readably set to
-  true.
+  step 4. When a string is read, the following transformations are
+  applied: a backslash followed by a doublequote is translated into
+  a plain doublequote character, a backslash followed by "n" is
+  translated into a newline, and a backslash followed by another
+  backslash is translated into a single backslash. To properly print
+  a string (for step 4 string functions), the `pr_str` function needs
+  another parameter called `print_readably`.  When `print_readably` is
+  true, doublequotes, newlines, and backslashes are translated into
+  their printed representations (the reverse of the reader). The
+  `PRINT` function in the main program should call `pr_str` with
+  print_readably set to true.
 
 * Add support for the other mal types: keyword, vector, hash-map, and
   atom.

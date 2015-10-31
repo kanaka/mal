@@ -43,9 +43,10 @@ read_atom <- function(rdr) {
     } else if (re_match("^-?[0-9][0-9.]*$", token)) {
         as.double(token)
     } else if (substr(token,1,1) == "\"") {
-        gsub("\\\\n", "\\n",
-             gsub("\\\\\"", "\"",
-                  substr(token, 2, nchar(token)-1)))
+        gsub("\\\\\\\\", "\\\\",
+            gsub("\\\\n", "\n",
+                 gsub("\\\\\"", "\"",
+                      substr(token, 2, nchar(token)-1))))
     } else if (substr(token,1,1) == ":") {
         new.keyword(substring(token,2))
     } else if (token == "nil") {

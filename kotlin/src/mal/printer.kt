@@ -7,7 +7,7 @@ fun pr_str(malType: MalType, print_readably: Boolean = false): String =
             ":" + malType.value.substring(1)
         } else if (malType is MalString) {
             if (print_readably) {
-                "\"" + malType.value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+                "\"" + malType.value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
             } else malType.value
         } else if (malType is MalConstant) {
             malType.value

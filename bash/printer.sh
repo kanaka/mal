@@ -42,7 +42,8 @@ _raw_string_pr_str () {
         r=":${s:2}"
     elif [ "${print_readably}" == "yes" ]; then
         s="${s//\\/\\\\}"
-        r="\"${s//\"/\\\"}\""
+        s="${s//\"/\\\"}"
+        r="\"${s//$'\n'/\\n}\""
     else
         r="${s}"
     fi

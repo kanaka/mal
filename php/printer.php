@@ -26,7 +26,7 @@ function _pr_str($obj, $print_readably=True) {
         if (strpos($obj, chr(0x7f)) === 0) {
             return ":".substr($obj,1);
         } elseif ($print_readably) {
-            $obj = preg_replace('/"/', '\\"', preg_replace('/\\\\/', '\\\\\\\\', $obj));
+            $obj = preg_replace('/\n/', '\\n', preg_replace('/"/', '\\"', preg_replace('/\\\\/', '\\\\\\\\', $obj)));
             return '"' . $obj . '"';
         } else {
             return $obj;

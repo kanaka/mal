@@ -1,5 +1,8 @@
 import mal_types as types
 
+def _escape(s):
+    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
 def _pr_str(obj, print_readably=True):
     _r = print_readably
     if types._list_Q(obj):
@@ -15,7 +18,7 @@ def _pr_str(obj, print_readably=True):
         if len(obj) > 0 and obj[0] == types.u('\u029e'):
             return ':' + obj[1:]
         elif print_readably:
-            return '"' + obj.encode('unicode_escape').decode('latin1').replace('"', '\\"') + '"'
+            return '"' + _escape(obj) + '"'
         else:
             return obj
     elif types._nil_Q(obj):

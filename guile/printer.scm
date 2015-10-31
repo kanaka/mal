@@ -37,7 +37,7 @@
      (string-sub
       (string-sub s "\\\\" "\\\\")
       "\"" "\\\"")
-     "\n" "\\\n"))
+     "\n" "\\n"))
   (define (%pr_str o) (pr_str o readable?))
   (match obj
     ((? box?) (%pr_str (unbox obj)))

@@ -39,9 +39,11 @@ function read_atom(rdr)
         float(token)
     elseif ismatch(r"^\".*\"$", token)
         replace(
-            replace(token[2:end-1],
-                    "\\\"", "\""),
-            "\\n", "\n")
+            replace(
+                replace(token[2:end-1],
+                        "\\\"", "\""),
+                "\\n", "\n"),
+            "\\\\", "\\")
     elseif token[1] == ':'
         "\u029e$(token[2:end])"
     elseif token == "nil"

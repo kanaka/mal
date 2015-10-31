@@ -167,7 +167,7 @@ class TestReader:
             while self.data:
                 line = self.data[0]
                 if line[0:3] == ";=>":
-                    self.ret = line[3:].replace('\\r', '\r').replace('\\n', '\n')
+                    self.ret = line[3:]
                     self.line_num += 1
                     self.data.pop(0)
                     break

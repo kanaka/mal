@@ -27,6 +27,9 @@ $(foreach ch,$(word 1,$($(1))),\
     ))
 endef
 
+# $(_NL) is used here instead of $(NEWLINE) because $(strip) removes
+# $(NEWLINE). str_encode will just pass through $(_NL) so str_decode
+# later will restore a correct newline
 define READ_STRING
 $(foreach ch,$(word 1,$($(1))),\
   $(if $(ch),\
@@ -34,11 +37,19 @@ $(foreach ch,$(word 1,$($(1))),\
       $(eval $(1) := $(wordlist 3,$(words $($(1))),$($(1))))\
       $(and $(READER_DEBUG),$(info READ_STRING ch: \$(word 1,$($(1))) | $($(1))))\
       $(DQUOTE) $(strip $(call READ_STRING,$(1))),\
+    $(if $(and $(filter \,$(ch)),$(filter n,$(word 2,$($(1))))),\
+      $(eval $(1) := $(wordlist 3,$(words $($(1))),$($(1))))\
+      $(and $(READER_DEBUG),$(info READ_STRING ch: \$(word 1,$($(1))) | $($(1))))\
+      $(_NL) $(strip $(call READ_STRING,$(1))),\
+    $(if $(and $(filter \,$(ch)),$(filter \,$(word 2,$($(1))))),\
+      $(eval $(1) := $(wordlist 3,$(words $($(1))),$($(1))))\
+      $(and $(READER_DEBUG),$(info READ_STRING ch: \$(word 1,$($(1))) | $($(1))))\
+      \ $(strip $(call READ_STRING,$(1))),\
     $(if $(filter $(DQUOTE),$(ch)),\
       ,\
       $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
       $(and $(READER_DEBUG),$(info READ_STRING ch: $(ch) | $($(1))))\
-      $(ch) $(strip $(call READ_STRING,$(1))))),))
+      $(ch) $(strip $(call READ_STRING,$(1))))))),))
 endef
 
 define READ_SYMBOL

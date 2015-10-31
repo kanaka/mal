@@ -14,9 +14,9 @@ def _pr_a_str(s, print_readably=True):
     if len(s) > 0 and s[0] == u'\u029e':
         return u':' + s[1:]
     elif print_readably:
-        return u'"' + types._replace(u'\\n', u'\\n',
+        return u'"' + types._replace(u'\n', u'\\n',
                         types._replace(u'\"', u'\\"',
-                        types._replace(u'\\', u'\\\\', s))) + u'"'
+                          types._replace(u'\\', u'\\\\', s))) + u'"'
     else:
         return s
 

@@ -50,7 +50,11 @@ def read_atom(reader):
         if end < 2:
             return MalStr(u"")
         else:
-            return MalStr(types._replace(u'\\"', u'"', unicode(token[1:end])))
+            s = unicode(token[1:end])
+            s = types._replace(u'\\"', u'"', s)
+            s = types._replace(u'\\n', u"\n", s)
+            s = types._replace(u'\\\\', u"\\", s)
+            return MalStr(s)
     elif token[0] == ':':           return _keywordu(unicode(token[1:]))
     elif token == "nil":            return types.nil
     elif token == "true":           return types.true
