@@ -6,7 +6,13 @@ SOURCES_BASE = types.awk reader.awk printer.awk
 SOURCES_LISP = env.awk core.awk stepA_mal.awk
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all:
+all: mal.awk
+
+mal.awk: $(SOURCES)
+	echo "#!/usr/bin/awk -f" > $@
+	cat $+ | grep -v "^@include " >> $@
+	chmod +x $@
+
 
 .PHONY: stats tests $(TESTS)
 

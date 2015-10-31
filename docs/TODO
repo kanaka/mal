@@ -1,14 +1,15 @@
+---------------------------------------------
+
 All:
     - Finish guide.md
 
     - test that *ARGV* gets set properly
     - test to make sure slurp captures final newline
-    - Give runtest knowledge of optional tests and report as non-fatal
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - per impl tests for step5_tco, or at least a better way of
       enabling/disabling/tweaking per implementation
-    - fix stepA failures: lua matlab miniMAL perl racket
+    - fix stepA soft failures: lua matlab miniMAL perl racket
 
 Other ideas for All:
     - propagate/print errors when self-hosted
@@ -96,6 +97,9 @@ Mal:
     - line numbers in errors
     - step5_tco
 
+MATLAB:
+    - Port to support both GNU Octave and MATLAB
+
 miniMAL:
     - figure out why {} literals are "static"/persistent
 
@@ -140,4 +144,7 @@ Scala
 VB.Net
     - convert readline.cs to readline.vb
 
+Vimscript:
+    - fix perf^vimscript when in docker (/dev/stdout permission
+      denied)
 
