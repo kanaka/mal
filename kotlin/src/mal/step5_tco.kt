@@ -8,61 +8,62 @@ fun eval(_ast: MalType, _env: Env): MalType {
 
     while (true) {
         if (ast is MalList) {
-            val first = ast.first()
+            when ((ast.first() as? MalSymbol)?.value) {
+                "def!" -> return env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
+                "let*" -> {
+                    val childEnv = Env(env)
+                    val bindings = ast.nth(1) as? ISeq ?: throw MalException("expected sequence as the first parameter to let*")
 
-            if (first is MalSymbol && first.value == "def!") {
-                return env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
-            } else if (first is MalSymbol && first.value == "let*") {
-                val childEnv = Env(env)
-                val bindings = ast.nth(1) as? ISeq ?: throw MalException("expected sequence as the first parameter to let*")
+                    val it = bindings.seq().iterator()
+                    while (it.hasNext()) {
+                        val key = it.next()
+                        if (!it.hasNext()) throw MalException("odd number of binding elements in let*")
+                        childEnv.set(key as MalSymbol, eval(it.next(), childEnv))
+                    }
 
-                val it = bindings.seq().iterator()
-                while (it.hasNext()) {
-                    val key = it.next()
-                    if (!it.hasNext()) throw MalException("odd number of binding elements in let*")
-                    childEnv.set(key as MalSymbol, eval(it.next(), childEnv))
-                }
-
-                env = childEnv
-                ast = ast.nth(2)
-            } else if (first is MalSymbol && first.value == "fn*") {
-                return fn_STAR(ast, env)
-            } else if (first is MalSymbol && first.value == "do") {
-                eval_ast(ast.slice(1, ast.seq().count() - 1), env)
-                ast = ast.seq().last()
-            } else if (first is MalSymbol && first.value == "if") {
-                val check = eval(ast.nth(1), env)
-
-                if (check !== NIL && check !== FALSE) {
+                    env = childEnv
                     ast = ast.nth(2)
-                } else if (ast.seq().asSequence().count() > 3) {
-                    ast = ast.nth(3)
-                } else return NIL
-            } else {
-                val evaluated = eval_ast(ast, env) as ISeq
-                val firstEval = evaluated.first()
+                }
+                "fn*" -> return fn_STAR(ast, env)
+                "do" -> {
+                    eval_ast(ast.slice(1, ast.count() - 1), env)
+                    ast = ast.seq().last()
+                }
+                "if" -> {
+                    val check = eval(ast.nth(1), env)
 
-                if (firstEval is MalFnFunction) {
-                    ast = firstEval.ast
-                    env = Env(firstEval.env, firstEval.params, evaluated.rest().seq())
-                } else if (firstEval is MalFunction) {
-                    return firstEval.apply(evaluated.rest())
-                } else throw MalException("cannot execute non-function")
+                    if (check !== NIL && check !== FALSE) {
+                        ast = ast.nth(2)
+                    } else if (ast.count() > 3) {
+                        ast = ast.nth(3)
+                    } else return NIL
+                }
+                else -> {
+                    val evaluated = eval_ast(ast, env) as ISeq
+                    val firstEval = evaluated.first()
+
+                    when (firstEval) {
+                        is MalFnFunction -> {
+                            ast = firstEval.ast
+                            env = Env(firstEval.env, firstEval.params, evaluated.rest().seq())
+                        }
+                        is MalFunction -> return firstEval.apply(evaluated.rest())
+                        else -> throw MalException("cannot execute non-function")
+                    }
+                }
             }
         } else return eval_ast(ast, env)
     }
 }
 
 fun eval_ast(ast: MalType, env: Env): MalType =
-        if (ast is MalSymbol) {
-            env.get(ast)
-        } else if (ast is MalList) {
-            ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-        } else if (ast is MalVector) {
-            ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-        } else if (ast is MalHashMap) {
-            ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-        } else ast
+        when (ast) {
+            is MalSymbol -> env.get(ast)
+            is MalList -> ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
+            is MalVector -> ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+            is MalHashMap -> ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+            else -> ast
+        }
 
 private fun fn_STAR(ast: MalList, env: Env): MalType {
     val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")

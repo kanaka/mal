@@ -54,7 +54,7 @@ private fun eval_if(ast: ISeq, env: Env): MalType {
 
     return if (check != NIL && check != FALSE) {
         eval(ast.nth(2), env)
-    } else if (ast.seq().asSequence().count() > 3) {
+    } else if (ast.count() > 3) {
         eval(ast.nth(3), env)
     } else NIL
 }
@@ -66,15 +66,13 @@ private fun eval_function_call(ast: ISeq, env: Env): MalType {
 }
 
 fun eval_ast(ast: MalType, env: Env): MalType =
-    if (ast is MalSymbol) {
-        env.get(ast)
-    } else if (ast is MalList) {
-        ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-    } else if (ast is MalVector) {
-        ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-    } else if (ast is MalHashMap) {
-        ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-    } else ast
+        when (ast) {
+            is MalSymbol -> env.get(ast)
+            is MalList -> ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
+            is MalVector -> ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+            is MalHashMap -> ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+            else -> ast
+        }
 
 fun print(result: MalType) = pr_str(result, print_readably = true)
 
