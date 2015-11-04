@@ -66,15 +66,13 @@ fun eval(_ast: MalType, _env: Env): MalType {
 }
 
 fun eval_ast(ast: MalType, env: Env): MalType =
-        if (ast is MalSymbol) {
-            env.get(ast)
-        } else if (ast is MalList) {
-            ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
-        } else if (ast is MalVector) {
-            ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
-        } else if (ast is MalHashMap) {
-            ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
-        } else ast
+        when (ast) {
+            is MalSymbol -> env.get(ast)
+            is MalList -> ast.elements.fold(MalList(), { a, b -> a.conj_BANG(eval(b, env)); a })
+            is MalVector -> ast.elements.fold(MalVector(), { a, b -> a.conj_BANG(eval(b, env)); a })
+            is MalHashMap -> ast.elements.entries.fold(MalHashMap(), { a, b -> a.assoc_BANG(b.key, eval(b.value, env)); a })
+            else -> ast
+        }
 
 private fun fn_STAR(ast: MalList, env: Env): MalType {
     val binds = ast.nth(1) as? ISeq ?: throw MalException("fn* requires a binding list as first parameter")
