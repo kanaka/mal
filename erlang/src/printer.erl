@@ -54,7 +54,7 @@ escape_str(String) ->
         case C of
             $"  -> [C, $\\|AccIn];
             $\\ -> [C, $\\|AccIn];
-            $\n -> [C, $\\|AccIn];
+            $\n -> [$n, $\\|AccIn];
             _   -> [C|AccIn]
         end
     end,

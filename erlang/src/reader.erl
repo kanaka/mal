@@ -216,8 +216,9 @@ lex_string([], _String) ->
 lex_string([$\\,Escaped|Rest], String) ->
     % unescape the string while building it
     case Escaped of
-        [] -> {error, "end of string reached in escape"};
-        _  -> lex_string(Rest, [Escaped|String])
+        []  -> {error, "end of string reached in escape"};
+        $n  -> lex_string(Rest, [$\n|String]);
+        _   -> lex_string(Rest, [Escaped|String])
     end;
 lex_string([$"|Rest], String) ->
     {{string, lists:reverse(String)}, Rest};
