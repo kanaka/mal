@@ -258,7 +258,7 @@ while t.next():
             else:
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
-            log("    Expected : %s" % repr(expected))
+            log("    Expected : %s" % repr(expected[0]))
             log("    Got      : %s" % repr(res))
     except:
         _, exc, _ = sys.exc_info()
