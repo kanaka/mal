@@ -36,7 +36,7 @@ def _equal_Q(a, b):
         if len(akeys) != len(bkeys): return False
         for i in range(len(akeys)):
             if akeys[i] != bkeys[i]: return False
-            if not equal_Q(a[akeys[i]], b[bkeys[i]]): return False
+            if not _equal_Q(a[akeys[i]], b[bkeys[i]]): return False
         return True
     else:
         return a == b

@@ -8,7 +8,7 @@ coffee/mal.coffee
 crystal/mal
 haskell/mal
 js/mal.js
-js/mal_web.js
+js/web/mal.js
 make/mal.mk
 mal/mal.mal
 nim/mal
