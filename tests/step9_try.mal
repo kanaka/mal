@@ -261,4 +261,14 @@
 ;=>true
 
 
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+;>>> soft=True
 
+;; Testing equality of hash-maps
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
