@@ -22,3 +22,5 @@ WORKDIR /mal
 ##########################################################
 
 RUN apt-get -y install tcl tcl-tclreadline
+
+ENV HOME /mal
