@@ -17,6 +17,12 @@ function M._equal_Q(a,b)
             if not M._equal_Q(v,b[i]) then return false end
         end
         return true
+    elseif M._hash_map_Q(a) and M._hash_map_Q(b) then
+        if #a ~= #b then return false end
+        for k, v in pairs(a) do
+            if not M._equal_Q(v,b[k]) then return false end
+        end
+        return true
     else
         return a == b
     end
