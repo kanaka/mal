@@ -6,6 +6,7 @@ bash/mal.sh
 c/mal
 coffee/mal.coffee
 crystal/mal
+d/mal
 haskell/mal
 js/mal.js
 js/web/mal.js
