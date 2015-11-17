@@ -38,9 +38,7 @@ E._equal_Q = _equal_Q = (a,b) ->
       bkeys = (key for key of b)
       return false if akeys.length != bkeys.length
       for akey,i in akeys
-        bkey = bkeys[i]
-        return false if akey != bkey
-        return false if !_equal_Q(a[akey], b[bkey])
+        return false if !_equal_Q(a[akey], b[akey])
       true
     else a == b
 

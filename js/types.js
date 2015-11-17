@@ -43,12 +43,9 @@ function _equal_Q (a, b) {
         }
         return true;
     case 'hash-map':
-        var akeys = Object.keys(a).sort(),
-            bkeys = Object.keys(b).sort();
-        if (akeys.length !== bkeys.length) { return false; }
-        for (var i=0; i<akeys.length; i++) {
-            if (akeys[i] !== bkeys[i]) { return false; }
-            if (! equal_Q(a[akeys[i]], b[bkeys[i]])) { return false; }
+        if (Object.keys(a).length !== Object.keys(b).length) { return false; }
+        for (var k in a) {
+            if (! _equal_Q(a[k], b[k])) { return false; }
         }
         return true;
     default:

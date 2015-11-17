@@ -58,6 +58,19 @@ namespace Mal {
                         }
                     }
                     return true;
+                } else if (a is MalHashMap) {
+                    var akeys = ((MalHashMap)a).getValue().Keys;
+                    var bkeys = ((MalHashMap)b).getValue().Keys;
+                    if (akeys.Count != bkeys.Count) {
+                        return false;
+                    }
+                    foreach (var k in akeys) {
+                        if (!_equal_Q(((MalHashMap)a).getValue()[k],
+                                      ((MalHashMap)b).getValue()[k])) {
+                            return false;
+                        }
+                    }
+                    return true;
                 } else {
                     return a == b;
                 }
