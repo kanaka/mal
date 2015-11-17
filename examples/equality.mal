@@ -1,0 +1,78 @@
+;;
+;; equality.mal
+;;
+;; This file checks whether the `=` function correctly implements equality of
+;; hash-maps and sequences (lists and vectors).  If not, it redefines the `=`
+;; function with a pure mal (recursive) implementation that only relies on the
+;; native original `=` function for comparing scalars (integers, booleans,
+;; symbols, strings).
+;;
+
+;; Save the original (native) `=` as scalar-equal?
+(def! scalar-equal? =)
+
+;; A simple `and` macro for two argument which doesn't use `=` internally
+(defmacro! and2
+  (fn* [a b]
+    `(let* (and2_FIXME ~a)
+      (if and2_FIXME ~b and2_FIXME))))
+
+;; Implement `=` for two sequential arguments
+(def! sequential-equal?
+  (fn* [a b]
+    (if (scalar-equal? (count a) (count b))
+      (if (empty? a)
+        true
+        (if (mal-equal? (first a) (first b))
+          (sequential-equal? (rest a) (rest b))
+          false))
+      false)))
+
+;; Helper function
+(def! hash-map-vals-equal?
+  (fn* [a b map-keys]
+    (if (scalar-equal? 0 (count map-keys))
+      true
+      (let* [key (first map-keys)]
+        (if (and2
+              (and2 (contains? a key) (contains? b key))
+              (mal-equal? (get a key) (get b key)))
+          (hash-map-vals-equal? a b (rest map-keys))
+          false)))))
+
+;; Implement `=` for two hash-maps
+(def! hash-map-equal?
+  (fn* [a b]
+    (let* [keys-a (keys a)]
+      (if (scalar-equal? (count keys-a) (count (keys b)))
+        (hash-map-vals-equal? a b keys-a)
+        false))))
+
+;; This implements = in pure mal (using only scalar-equal? as native impl)
+(def! mal-equal?
+  (fn* [a b]
+    (cond
+      (and2 (sequential? a) (sequential? b)) (sequential-equal? a b)
+      (and2 (map? a) (map? b)) (hash-map-equal? a b)
+      true (scalar-equal? a b))))
+
+(def! hash-map-equality-correct?
+  (fn* []
+    (try*
+      (and2 (= {:a 1} {:a 1})
+            (not (= {:a 1} {:a 1 :b 2})))
+      (catch* _ false))))
+
+(def! sequence-equality-correct?
+  (fn* []
+    (try*
+      (and2 (= [:a :b] (list :a :b))
+            (not (= [:a :b] [:a :b :c])))
+      (catch* _ false))))
+
+;; If the native `=` implementation doesn't support sequences or hash-maps
+;; correctly, replace it with the pure mal implementation
+(if (not (and2 (hash-map-equality-correct?) (sequence-equality-correct?)))
+  (do
+    (def! = mal-equal?)
+    (println "equality.mal: Replaced = with pure mal implementation")))
