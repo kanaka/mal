@@ -42,13 +42,8 @@ end } def
     dup null eq { %if hash_map is a nil
         pop pop null
     }{ %else hash_map is not a nil
-        /data get % stack: args dict
-        exch 1 _nth % stack: dict key
-        2 copy known { %if has key
-            get
-        }{
-            pop pop null
-        } ifelse
+        exch 1 _nth % stack: hash_map key
+        _hash_map_get
     } ifelse
 } def
 
@@ -57,13 +52,6 @@ end } def
     dup 0 _nth /data get % stack: args dict
     exch 1 _nth % stack: dict key
     known
-} def
-
-% [hashmap] -> keys -> key_list
-/keys {
-    0 _nth /data get
-    [ exch { pop dup length string cvs } forall ]
-    _list_from_array
 } def
 
 % [hashmap] -> vals -> val_list
@@ -261,7 +249,7 @@ end } def
     (dissoc)  { dissoc }
     (get)     { hash_map_get }
     (contains?) { contains? }
-    (keys)    { keys }
+    (keys)    { 0 _nth _keys }
     (vals)    { vals }
 
     (sequential?) { 0 _nth _sequential? }

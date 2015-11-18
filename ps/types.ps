@@ -58,15 +58,13 @@ end } def
 /_equal? { 6 dict begin
     /b exch def
     /a exch def
-    /ota a type def
-    /otb b type def
 
     a type b type eq
     a _sequential? b _sequential? and
     or not { %if type mismatch and not sequential
         false
     }{
-        a _sequential? { %if list
+        a _sequential? b _sequential? and { %if list/vector
             /ret true def
             a _count b _count eq not { %if length mismatch
                 /ret false def
@@ -80,8 +78,25 @@ end } def
                 } for
             } ifelse
             ret
-        }{ %else not a list
-            a b eq
+        }{ %else not list/vector
+            a _hash_map? b _hash_map? and { %if hash_map
+                /ret true def
+                /a_keys a _keys def
+                a_keys _count b _keys _count eq not {
+                    /ret false def
+                }{
+                    a_keys /data get { %foreach key in a_keys
+                        /key exch def
+                        a key _hash_map_get b key _hash_map_get _equal? not { %if not items _equal?
+                            /ret false def
+                            exit
+                        } if
+                    } forall
+                } ifelse
+                ret
+            }{ %else not hash_map
+                a b eq
+            } ifelse
         } ifelse
     } ifelse
 end } def
@@ -122,6 +137,24 @@ end } def
     _list_from_array
 } def
 
+% hashmap -> _keys -> key_list
+/_keys {
+    /data get
+    [ exch { pop dup length string cvs } forall ]
+    _list_from_array
+} def
+
+% hashmap key -> _hash_map_get -> val
+/_hash_map_get {
+    exch % stack: key hashmap
+    /data get % stack: key dict
+    exch % stack: dict key
+    2 copy known { %if has key
+        get
+    }{
+        pop pop null
+    } ifelse
+} def
 
 
 % Errors/Exceptions
