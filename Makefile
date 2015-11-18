@@ -186,8 +186,12 @@ IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl
 #
 
 # Build a program in an implementation directory
+# Make sure we always try and build first because the dependencies are
+# encoded in the implementation Makefile not here
+.PHONY: $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s))))
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
-	$(MAKE) -C $(dir $(@)) $(notdir $(@))
+	$(foreach impl,$(word 1,$(subst /, ,$(@))),\
+	  $(MAKE) -C $(impl) $(subst $(impl)/,,$(@)))
 
 # Allow test, test^STEP, test^IMPL, and test^IMPL^STEP
 .SECONDEXPANSION:
