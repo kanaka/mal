@@ -142,12 +142,11 @@ val ns = hashMapOf(
         }),
         envPair("keys", { a: ISeq ->
             val map = a.nth(0) as MalHashMap
-            // Another situation where kotlinc breaks if I don't add this unnecessary cast
-            MalList(map.elements.keys.map({ it -> it as MalType }).asSequence().toCollection(LinkedList<MalType>()))
+            MalList(map.elements.keys.toCollection(LinkedList<MalType>()))
         }),
         envPair("vals", { a: ISeq ->
             val map = a.nth(0) as MalHashMap
-            MalList(map.elements.values.asSequence().toCollection(LinkedList<MalType>()))
+            MalList(map.elements.values.toCollection(LinkedList<MalType>()))
         }),
         envPair("count", { a: ISeq ->
             val seq = a.nth(0) as? ISeq

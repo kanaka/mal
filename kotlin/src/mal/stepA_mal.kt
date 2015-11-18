@@ -162,10 +162,7 @@ fun main(args: Array<String>) {
     ns.forEach({ it -> repl_env.set(it.key, it.value) })
 
     repl_env.set(MalSymbol("*host-language*"), MalString("kotlin"))
-
-    // Need to cast the strings explicitly to MalType to get this to compile.  Looks like a bug in kotlinc,
-    // and it results in a warning.
-    repl_env.set(MalSymbol("*ARGV*"), MalList(args.drop(1).map({ it -> MalString(it) as MalType }).toCollection(LinkedList<MalType>())))
+    repl_env.set(MalSymbol("*ARGV*"), MalList(args.drop(1).map({ it -> MalString(it) }).toCollection(LinkedList<MalType>())))
     repl_env.set(MalSymbol("eval"), MalFunction({ a: ISeq -> eval(a.first(), repl_env) }))
 
     rep("(def! not (fn* (a) (if a false true)))", repl_env)
