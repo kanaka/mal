@@ -1,5 +1,7 @@
 package mal
 
+import java.util.*
+
 fun read(input: String?): MalType = read_str(input)
 
 fun eval(_ast: MalType, _env: Env): MalType {
@@ -84,7 +86,7 @@ fun main(args: Array<String>) {
 
     // Need to cast the strings explicitly to MalType to get this to compile.  Looks like a bug in kotlinc,
     // and it results in a warning.
-    repl_env.set(MalSymbol("*ARGV*"), MalList(args.drop(1).map({ it -> MalString(it) as MalType }).toLinkedList()))
+    repl_env.set(MalSymbol("*ARGV*"), MalList(args.drop(1).map({ it -> MalString(it) as MalType }).toCollection(LinkedList<MalType>())))
     repl_env.set(MalSymbol("eval"), MalFunction({ a: ISeq -> eval(a.first(), repl_env) }))
 
     rep("(def! not (fn* (a) (if a false true)))", repl_env)

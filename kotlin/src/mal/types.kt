@@ -146,9 +146,9 @@ abstract class MalSequence(val elements: MutableList<MalType>) : MalType, IMutab
 
 class MalList(elements: MutableList<MalType>) : MalSequence(elements) {
     constructor() : this(LinkedList<MalType>())
-    constructor(s: ISeq) : this(s.seq().toLinkedList())
+    constructor(s: ISeq) : this(s.seq().toCollection(LinkedList<MalType>()))
 
-    override fun rest(): ISeq = MalList(elements.drop(1).toLinkedList())
+    override fun rest(): ISeq = MalList(elements.drop(1).toCollection(LinkedList<MalType>()))
 
     override fun slice(fromIndex: Int, toIndex: Int): MalList =
             MalList(elements.subList(fromIndex, toIndex))
@@ -170,14 +170,14 @@ class MalVector(elements: MutableList<MalType>) : MalSequence(elements) {
     override var metadata: MalType = NIL
 
     constructor() : this(ArrayList<MalType>())
-    constructor(s: ISeq) : this(s.seq().toArrayList())
+    constructor(s: ISeq) : this(s.seq().toCollection(ArrayList<MalType>()))
 
-    override fun rest(): ISeq = MalVector(elements.drop(1).toArrayList())
+    override fun rest(): ISeq = MalVector(elements.drop(1).toCollection(ArrayList<MalType>()))
 
     override fun slice(fromIndex: Int, toIndex: Int): MalVector =
             MalVector(elements.subList(fromIndex, toIndex))
 
-    override fun conj(s: ISeq): ISeq = MalVector(elements.plus(s.seq()).toArrayList())
+    override fun conj(s: ISeq): ISeq = MalVector(elements.plus(s.seq()).toCollection(ArrayList<MalType>()))
 
     override fun with_meta(meta: MalType): MalType {
         val obj = MalVector(elements)
