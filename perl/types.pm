@@ -28,7 +28,7 @@ sub _equal_Q {
             return $$a eq $$b;
         }
         when (/^List/ || /^Vector/) {
-            if (! scalar(@{$a->{val}}) == scalar(@{$b->{val}})) {
+            if (! (scalar(@{$a->{val}}) == scalar(@{$b->{val}}))) {
                 return 0;
             }
             for (my $i=0; $i<scalar(@{$a->{val}}); $i++) {
@@ -39,7 +39,15 @@ sub _equal_Q {
             return 1;
         }
         when (/^HashMap/) {
-            die "TODO: Hash map comparison\n";
+            if (! (scalar(keys $a->{val}) == scalar(keys $b->{val}))) {
+                return 0;
+            }
+            foreach my $k (keys $a->{val}) {
+                if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
+                    return 0;
+                }
+            }
+            return 1;
         }
         default {
             return $$a eq $$b;
