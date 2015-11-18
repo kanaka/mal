@@ -54,7 +54,7 @@ private fun eval_if(ast: ISeq, env: Env): MalType {
 
     return if (check != NIL && check != FALSE) {
         eval(ast.nth(2), env)
-    } else if (ast.seq().asSequence().count() > 3) {
+    } else if (ast.count() > 3) {
         eval(ast.nth(3), env)
     } else NIL
 }

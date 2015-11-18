@@ -58,7 +58,7 @@ val ns = hashMapOf(
         envPair("nth", { a: ISeq ->
             val list = a.nth(0) as? ISeq ?: throw MalException("nth requires a list as its first parameter")
             val index = a.nth(1) as? MalInteger ?: throw MalException("nth requires an integer as its second parameter")
-            if (index.value >= list.seq().count()) throw MalException("index out of bounds")
+            if (index.value >= list.count()) throw MalException("index out of bounds")
             list.nth(index.value.toInt())
         }),
         envPair("first", { a: ISeq ->

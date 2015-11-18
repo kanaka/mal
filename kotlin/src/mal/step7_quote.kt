@@ -28,7 +28,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
                 }
                 "fn*" -> return fn_STAR(ast, env)
                 "do" -> {
-                    eval_ast(ast.slice(1, ast.seq().count() - 1), env)
+                    eval_ast(ast.slice(1, ast.count() - 1), env)
                     ast = ast.seq().last()
                 }
                 "if" -> {
@@ -36,7 +36,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
 
                     if (check !== NIL && check !== FALSE) {
                         ast = ast.nth(2)
-                    } else if (ast.seq().asSequence().count() > 3) {
+                    } else if (ast.count() > 3) {
                         ast = ast.nth(3)
                     } else return NIL
                 }
