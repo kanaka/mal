@@ -113,8 +113,7 @@ _clone_obj = $(strip \
 
 _hash_equal? = $(strip \
                  $(if $(and $(call _EQ,$(foreach v,$(call __get_obj_values,$(1)),$(word 4,$(subst _, ,$(v)))),$(foreach v,$(call __get_obj_values,$(2)),$(word 4,$(subst _, ,$(v))))),\
-                            $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(foreach v,$(call __get_obj_values,$(1)),$($(v))),\
-                                                                                               $(foreach v,$(call __get_obj_values,$(2)),$($(v))))))),\
+                            $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(foreach v,$(call __get_obj_values,$(1)),$($(v))),$(foreach v,$(call __get_obj_values,$(2)),$($(v))))))),\
                       $(__true),))
 
 _equal? = $(strip \
