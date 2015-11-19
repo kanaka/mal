@@ -1,6 +1,7 @@
 package mal
 
 import java.io.File
+import java.util.*
 
 val ns = hashMapOf(
         envPair("+", { a: ISeq -> a.seq().reduce({ x, y -> x as MalInteger + y as MalInteger }) }),
@@ -48,11 +49,11 @@ val ns = hashMapOf(
 
         envPair("cons", { a: ISeq ->
             val list = a.nth(1) as? ISeq ?: throw MalException("cons requires a list as its second parameter")
-            val mutableList = list.seq().toLinkedList()
+            val mutableList = list.seq().toCollection(LinkedList<MalType>())
             mutableList.addFirst(a.nth(0))
             MalList(mutableList)
         }),
-        envPair("concat", { a: ISeq -> MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toLinkedList()) }),
+        envPair("concat", { a: ISeq -> MalList(a.seq().flatMap({ it -> (it as ISeq).seq() }).toCollection(LinkedList<MalType>())) }),
 
         envPair("nth", { a: ISeq ->
             val list = a.nth(0) as? ISeq ?: throw MalException("nth requires a list as its first parameter")
@@ -96,7 +97,7 @@ val ns = hashMapOf(
                 val params = MalList()
                 params.conj_BANG(it)
                 function.apply(params)
-            }).toLinkedList())
+            }).toCollection(LinkedList<MalType>()))
         }),
 
         envPair("nil?", { a: ISeq -> if (a.nth(0) == NIL) TRUE else FALSE }),
@@ -141,12 +142,11 @@ val ns = hashMapOf(
         }),
         envPair("keys", { a: ISeq ->
             val map = a.nth(0) as MalHashMap
-            // Another situation where kotlinc breaks if I don't add this unnecessary cast
-            MalList(map.elements.keys.map({ it -> it as MalType }).asSequence().toLinkedList())
+            MalList(map.elements.keys.toCollection(LinkedList<MalType>()))
         }),
         envPair("vals", { a: ISeq ->
             val map = a.nth(0) as MalHashMap
-            MalList(map.elements.values.asSequence().toLinkedList())
+            MalList(map.elements.values.toCollection(LinkedList<MalType>()))
         }),
         envPair("count", { a: ISeq ->
             val seq = a.nth(0) as? ISeq
