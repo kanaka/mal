@@ -39,10 +39,10 @@ sub _equal_Q {
             return 1;
         }
         when (/^HashMap/) {
-            if (! (scalar(keys $a->{val}) == scalar(keys $b->{val}))) {
+            if (! (scalar(keys %{ $a->{val} }) == scalar(keys %{ $b->{val} }))) {
                 return 0;
             }
-            foreach my $k (keys $a->{val}) {
+            foreach my $k (keys %{ $a->{val} }) {
                 if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
                     return 0;
                 }
