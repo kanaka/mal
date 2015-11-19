@@ -268,6 +268,9 @@ MalVal *_apply(MalVal *f, MalVal *args) {
 
 
 int _equal_Q(MalVal *a, MalVal *b) {
+    GHashTableIter iter;
+    gpointer key, value;
+
     if (a == NULL || b == NULL) { return FALSE; }
 
     // If types are the same or both are sequential then they might be equal
@@ -305,8 +308,22 @@ int _equal_Q(MalVal *a, MalVal *b) {
         }
         return TRUE;
     case MAL_HASH_MAP:
-        _error("_equal_Q does not support hash-maps yet");
-        return FALSE;
+        if (g_hash_table_size(a->val.hash_table) !=
+            g_hash_table_size(b->val.hash_table)) {
+            return FALSE;
+        }
+        g_hash_table_iter_init (&iter, a->val.hash_table);
+        while (g_hash_table_iter_next (&iter, &key, &value)) {
+            if (!g_hash_table_contains(b->val.hash_table, key)) {
+                return FALSE;
+            }
+            MalVal *aval = (MalVal *) g_hash_table_lookup(a->val.hash_table, key);
+            MalVal *bval = (MalVal *) g_hash_table_lookup(b->val.hash_table, key);
+            if (!_equal_Q(aval, bval)) {
+                return FALSE;
+            }
+        }
+        return TRUE;
     case MAL_FUNCTION_C:
     case MAL_FUNCTION_MAL:
         return a->val.f0 == b->val.f0;

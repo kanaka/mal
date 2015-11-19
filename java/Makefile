@@ -11,6 +11,9 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	mvn install
 
+src/main/mal/%.java:
+	mvn install
+
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats
 

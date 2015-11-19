@@ -64,6 +64,20 @@ public class types {
                     }
                 }
                 return true;
+            } else if (a instanceof MalHashMap) {
+                if (((MalHashMap)a).value.size() != ((MalHashMap)b).value.size()) {
+                    return false;
+                }
+                //HashMap<String,MalVal> hm = (HashMap<String,MalVal>)a.value;
+                MalHashMap mhm = ((MalHashMap)a);
+                HashMap<String,MalVal> hm = (HashMap<String,MalVal>)mhm.value;
+                for (String k : hm.keySet()) {
+                    if (! _equal_Q(((MalVal)((MalHashMap)a).value.get(k)),
+                                   ((MalVal)((MalHashMap)b).value.get(k)))) {
+                        return false;
+                    }
+                }
+                return true;
             } else {
                 return a == b;
             }

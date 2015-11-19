@@ -81,7 +81,7 @@ _equal? () {
     case "${ot1}" in
     string|symbol|keyword|number)
         [[ "${ANON["${1}"]}" == "${ANON["${2}"]}" ]] ;;
-    list|vector|hash_map)
+    list|vector)
         _count "${1}"; local sz1="${r}"
         _count "${2}"; local sz2="${r}"
         [[ "${sz1}" == "${sz2}" ]] || return 1
@@ -89,6 +89,20 @@ _equal? () {
         local a2=(${ANON["${2}"]})
         for ((i=0;i<${#a1[*]};i++)); do
             _equal? "${a1[${i}]}" "${a2[${i}]}" || return 1
+        done
+        ;;
+    hash_map)
+        local hm1="${ANON["${1}"]}"
+        eval local ks1="\${!${hm1}[@]}"
+        local hm2="${ANON["${2}"]}"
+        eval local ks2="\${!${hm2}[@]}"
+        [[ "${#ks1}" == "${#ks2}" ]] || return 1
+        for k in ${ks1}; do
+            eval v1="\${${hm1}[\"${k}\"]}"
+            eval v2="\${${hm2}[\"${k}\"]}"
+            [ "${v1}" ] || return 1
+            [ "${v2}" ] || return 1
+            _equal? "${v1}" "${v2}" || return 1
         done
         ;;
     *)

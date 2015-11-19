@@ -34,12 +34,9 @@ export function _equal_Q (a, b) {
         }
         return true
     case 'hash-map':
-        let akeys = Object.keys(a).sort(),
-            bkeys = Object.keys(b).sort()
-        if (akeys.length !== bkeys.length) { return false }
-        for (let i=0; i<akeys.length; i++) {
-            if (akeys[i] !== bkeys[i]) { return false }
-            if (! _equal_Q(a.get(akeys[i]), b.get(bkeys[i]))) { return false }
+        if (a.size !== b.size) { return false }
+        for (let k of a.keys()) {
+            if (! _equal_Q(a.get(k), b.get(k))) { return false }
         }
         return true
     default:

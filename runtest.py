@@ -49,8 +49,8 @@ parser.add_argument('--log-file', type=str,
         help="Write messages to the named file in addition the screen")
 parser.add_argument('--debug-file', type=str,
         help="Write all test interaction the named file")
-parser.add_argument('--soft', action='store_true',
-        help="Report but do not fail tests after ';>>> soft=True'")
+parser.add_argument('--hard', action='store_true',
+        help="Turn soft tests following a ';>>> soft=True' into hard failures")
 
 parser.add_argument('test_file', type=argparse.FileType('r'),
         help="a test file formatted as with mal test data")
@@ -252,13 +252,13 @@ while t.next():
             log(" -> SUCCESS")
             pass_cnt += 1
         else:
-            if args.soft and t.soft:
+            if t.soft and not args.hard:
                 log(" -> SOFT FAIL (line %d):" % t.line_num)
                 soft_fail_cnt += 1
             else:
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
-            log("    Expected : %s" % repr(expected))
+            log("    Expected : %s" % repr(expected[0]))
             log("    Got      : %s" % repr(res))
     except:
         _, exc, _ = sys.exc_info()

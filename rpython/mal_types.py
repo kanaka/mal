@@ -1,6 +1,18 @@
 import sys, copy, types as pytypes
+IS_RPYTHON = sys.argv[0].endswith('rpython')
+
+if IS_RPYTHON:
+    from rpython.rlib.listsort import TimSort
+else:
+    import re
 
 # General functions
+
+class StringSort(TimSort):
+    def lt(self, a, b):
+        assert isinstance(a, unicode)
+        assert isinstance(b, unicode)
+        return a < b
 
 def _equal_Q(a, b):
     assert isinstance(a, MalType) and isinstance(b, MalType)
@@ -18,16 +30,23 @@ def _equal_Q(a, b):
         for i in range(len(a)):
             if not _equal_Q(a[i], b[i]): return False
         return True
-##    elif _hash_map_Q(a):
-##        akeys = a.keys()
-##        akeys.sort()
-##        bkeys = b.keys()
-##        bkeys.sort()
-##        if len(akeys) != len(bkeys): return False
-##        for i in range(len(akeys)):
-##            if akeys[i] != bkeys[i]: return False
-##            if not equal_Q(a[akeys[i]], b[bkeys[i]]): return False
-##        return True
+    elif _hash_map_Q(a):
+        assert isinstance(a, MalHashMap)
+        assert isinstance(b, MalHashMap)
+        akeys = a.dct.keys()
+        bkeys = b.dct.keys()
+        if len(akeys) != len(bkeys): return False
+
+        StringSort(akeys).sort()
+        StringSort(bkeys).sort()
+        for i in range(len(akeys)):
+            ak, bk = akeys[i], bkeys[i]
+            assert isinstance(ak, unicode)
+            assert isinstance(bk, unicode)
+            if ak != bk: return False
+            av, bv = a.dct[ak], b.dct[bk]
+            if not _equal_Q(av, bv): return False
+        return True
     elif a is b:
         return True
     else:

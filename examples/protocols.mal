@@ -1,0 +1,70 @@
+;; A sketch of Clojure-like protocols, implemented in Mal
+;; By chouser (Chris Houser)
+;; Original: https://gist.github.com/Chouser/6081ea66d144d13e56fc
+
+(def! builtin-type (fn* [obj]
+  (cond
+    (list?    obj) :mal/list
+    (vector?  obj) :mal/vector
+    (map?     obj) :mal/map
+    (symbol?  obj) :mal/symbol
+    (keyword? obj) :mal/keyword
+    (atom?    obj) :mal/atom
+    (nil?     obj) nil
+    (true?    obj) :mal/bool
+    (false?   obj) :mal/bool)))
+
+(def! find-protocol-methods (fn* [protocol obj]
+  (let* [p @protocol]
+    (or (get p (get (meta obj) :type))
+        (get p (builtin-type obj))
+        (get p :mal/default)))))
+
+(def! satisfies? (fn* [protocol obj]
+  (if (find-protocol-methods protocol obj) true false)))
+
+(defmacro! defprotocol (fn* [proto-name & methods]
+  `(do
+     (def! ~proto-name (atom {}))
+     ~@(map (fn* [m]
+              (let* [name (first m), sig (first (rest m))]
+                `(def! ~name (fn* [this-FIXME & args-FIXME]
+                   (apply (get (find-protocol-methods ~proto-name this-FIXME)
+                               ~(keyword (str name)))
+                          this-FIXME args-FIXME)))))
+            methods))))
+
+(def! extend (fn* [type proto methods & more]
+  (do
+    (swap! proto assoc type methods)
+    (if (first more)
+      (apply extend type more)))))
+
+;;----
+;; Example:
+
+(def! make-triangle (fn* [o a]
+  ^{:type :shape/triangle} {:opposite o, :adjacent a}))
+
+(def! make-rectangle (fn* [x y]
+  ^{:type :shape/rectangle} {:width x, :height y}))
+
+(defprotocol IDraw
+  (area [this])
+  (draw [this]))
+
+(prn :false-> (satisfies? IDraw (make-triangle 5 5))) ;=> false
+
+(extend :shape/rectangle
+  IDraw
+    {:area (fn* [obj] (* (get obj :width) (get obj :height)))
+     :draw (fn* [obj] (println "[]"))})
+
+(extend :shape/triangle
+  IDraw
+    {:area (fn* [obj] (/ (* (get obj :opposite) (get obj :adjacent)) 2))
+     :draw (fn* [obj] (println " .\n.."))})
+
+(prn :true-> (satisfies? IDraw (make-triangle 5 5))) ;=> true
+
+(prn :area-> (area (make-triangle 5 4))) ;=> 10
