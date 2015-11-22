@@ -34,13 +34,23 @@
             (rest (drop xs n)))
         (cons first-chunk (_partition n rest)))))
 
+(define (_equal_seqs? seq_a seq_b)
+  (let ([a (_to_list seq_a)]
+        [b (_to_list seq_b)])
+    (and (= (length a) (length b))
+         (andmap (lambda (va vb) (_equal? va vb)) a b))))
+
+(define (_equal_hashes? a b)
+  (if (= (hash-count a) (hash-count b))
+    (let ([keys (hash-keys a)])
+      (andmap (lambda (k) (_equal? (_get a k) (_get b k))) keys))
+    #f))
+
 (define (_equal? a b)
   (cond
-    [(and (list? a) (vector? b))
-     (equal? a (vector->list b))]
-    [(and (vector? a) (list? b))
-     (equal? (vector->list a) b)]
-    [else (equal? a b)]))
+    [(and (_sequential? a) (_sequential? b)) (_equal_seqs? a b)]
+    [(and (hash? a) (hash? b))               (_equal_hashes? a b)]
+    [else                                    (equal? a b)]))
 
 ;; printf with flush
 (define _printf (lambda a (apply printf a) (flush-output)))
