@@ -48,3 +48,22 @@ let rec list_into_map target source =
     | k :: v :: more -> list_into_map (MalMap.add k v target) more
     | [] -> map target
     | _ :: [] -> raise (Invalid_argument "Literal maps must contain an even number of forms")
+
+let rec mal_list_equal a b =
+  List.length a = List.length b && List.for_all2 mal_equal a b
+
+and mal_hash_equal a b =
+  if MalMap.cardinal a = MalMap.cardinal b
+  then
+    let identical_to_b k v = MalMap.mem k b && mal_equal v (MalMap.find k b) in
+    MalMap.for_all identical_to_b a
+  else false
+
+and mal_equal a b =
+  match (a, b) with
+    | (Types.List a, Types.List b)
+    | (Types.List a, Types.Vector b)
+    | (Types.Vector a, Types.List b)
+    | (Types.Vector a, Types.Vector b) -> mal_list_equal a.Types.value b.Types.value
+    | (Types.Map a, Types.Map b) -> mal_hash_equal a.Types.value b.Types.value
+    | _ -> a = b
