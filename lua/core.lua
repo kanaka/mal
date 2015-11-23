@@ -3,6 +3,7 @@ local types = require('types')
 local reader = require('reader')
 local printer = require('printer')
 local readline = require('readline')
+local socket = require('socket')
 
 local Nil, List, _pr_str = types.Nil, types.List, printer._pr_str
 
@@ -201,8 +202,7 @@ M.ns = {
     ['-'] =  function(a,b) return a-b end,
     ['*'] =  function(a,b) return a*b end,
     ['/'] =  function(a,b) return math.floor(a/b) end,
-    -- TODO: get actual milliseconds
-    ['time-ms'] = function() return os.time() * 1000 end,
+    ['time-ms'] = function() return math.floor(socket.gettime() * 1000) end,
 
     list = function(...) return List:new(arg) end,
     ['list?'] = function(a) return types._list_Q(a) end,

@@ -24,6 +24,7 @@ WORKDIR /mal
 # Lua
 RUN apt-get -y install lua5.1 lua-rex-pcre luarocks
 RUN luarocks install linenoise
+RUN luarocks install luasocket
 
 # luarocks .cache directory is relative to HOME
 ENV HOME /mal
