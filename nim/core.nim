@@ -1,4 +1,4 @@
-import strutils, rdstdin, tables, algorithm, times, types, printer, reader
+import strutils, rdstdin, tables, algorithm, times, sequtils, types, printer, reader
 
 type MalError* = object of Exception
   t*: MalType
@@ -69,7 +69,8 @@ proc dissoc(xs: varargs[MalType]): MalType =
 
 proc get(xs: varargs[MalType]): MalType =
   if xs[0].kind == HashMap:
-    result = xs[0].hash_map[xs[1].str]
+    if xs[1].str in xs[0].hash_map:
+      result = xs[0].hash_map[xs[1].str]
     if not result.isNil: return
 
   result = nilObj
