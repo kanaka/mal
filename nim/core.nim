@@ -1,4 +1,4 @@
-import strutils, rdstdin, tables, algorithm, times, types, printer, reader
+import strutils, rdstdin, tables, algorithm, times, sequtils, types, printer, reader
 
 type MalError* = object of Exception
   t*: MalType
