@@ -1,6 +1,6 @@
 sudo: required
 
-language: node_js
+#language: node_js
 
 services:
   - docker
