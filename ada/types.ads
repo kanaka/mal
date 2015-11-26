@@ -222,6 +222,10 @@ package Types is
    function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
    return Types.Mal_Handle;  -- a new list
 
+   -- Duplicate copies the list (logically).  This is to allow concatenation,
+   -- The result is always a List_List.
+   function Duplicate (The_List : List_Mal_Type) return Mal_Handle;
+
    type List_Ptr is access all List_Mal_Type;
 
    function Deref_List (SP : Mal_Handle) return List_Ptr;

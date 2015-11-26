@@ -152,20 +152,43 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       First_List := Deref_List (First_Param).all;
-      return Types.Car (First_List);
+      if Is_Null (First_List) then
+         return New_Atom_Mal_Type ("nil");
+      else
+         return Types.Car (First_List);
+      end if;
    end First;
 
 
    function Rest (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, First_List : Types.List_Mal_Type;
+      Rest_List, First_List, Res : Types.List_Mal_Type;
       First_Param : Mal_Handle;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       First_List := Deref_List (First_Param).all;
-      return Types.Cdr (First_List);
+      Res := Deref_List (Types.Cdr (First_List)).all;
+      return Types.Duplicate (Res);
    end Rest;
+
+
+   function Nth (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, First_List : Types.List_Mal_Type;
+      First_Param, List_Handle, Num_Handle : Mal_Handle;
+      List : List_Mal_Type;
+      Index : Types.Int_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      First_List := Deref_List (First_Param).all;
+      List_Handle := Cdr (Rest_List);
+      List := Deref_List (List_Handle).all;
+      Num_Handle := Car (List);
+      Index := Deref_Int (Num_Handle).all;
+      return Types.Nth (First_List, Natural (Index.Get_Int_Val));
+   end Nth;
 
 
    function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
@@ -383,6 +406,10 @@ package body Core is
       Set (Get_Current,
            "rest",
            New_Func_Mal_Type ("rest", Rest'access));
+
+      Set (Get_Current,
+           "nth",
+           New_Func_Mal_Type ("nth", Nth'access));
 
       Set (Get_Current,
            "list",

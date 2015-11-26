@@ -1,5 +1,6 @@
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
+with Ada.Exceptions;
 with Core;
 with Envs;
 with Evaluation;
@@ -47,9 +48,17 @@ begin
    Core.Init;
 
    loop
-      Ada.Text_IO.Put ("user> ");
-      Ada.Text_IO.Get_Line (S, Last);
-      Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+      begin
+         Ada.Text_IO.Put ("user> ");
+         Ada.Text_IO.Get_Line (S, Last);
+         Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+      exception
+         when Ada.IO_Exceptions.End_Error => raise;
+         when E : others =>
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               Ada.Exceptions.Exception_Information (E));
+      end;
    end loop;
 
 exception

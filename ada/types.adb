@@ -748,7 +748,7 @@ package body Types is
       while not Is_Null (Next) loop
 
          if C >= N then
-            return Next;
+            return Deref_Node (Next).Data;
          end if;
 
          C := C + 1;
