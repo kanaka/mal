@@ -22,6 +22,18 @@ classdef types
                     end
                 end
                 ret = true;
+            case 'types.HashMap'
+                if ~(length(a) == length(b))
+                    return;
+                end
+                ks1 = a.keys();
+                for i=1:length(ks1)
+                    k = ks1{i};
+                    if ~(types.equal(a.data(k), b.data(k)))
+                        return;
+                    end
+                end
+                ret = true;
             case 'char'
                 ret = strcmp(a,b);
             otherwise
@@ -45,8 +57,11 @@ classdef types
         end
 
         function ret = keyword(str)
-            ret = sprintf('%s%s', native2unicode(hex2dec('029e'),'UTF-8'), ...
-                          str(2:end));
+            if types.keyword_Q(str)
+                ret = str;
+            else
+                ret = sprintf('%s%s', native2unicode(hex2dec('029e'),'UTF-8'), str);
+            end
         end
         function ret = keyword_Q(obj)
             ret = length(obj) > 1 && ...

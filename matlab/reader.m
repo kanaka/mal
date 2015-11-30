@@ -19,7 +19,7 @@ classdef reader
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
             elseif strcmp(token(1), ':')
-                atm = types.keyword(token);
+                atm = types.keyword(token(2:end));
             elseif strcmp(token, 'nil')
                 atm = types.nil;
             elseif strcmp(token, 'true')

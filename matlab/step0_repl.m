@@ -26,4 +26,3 @@ function main(args)
         fprintf('%s\n', rep(line, ''));
     end
 end
-main(argv());
