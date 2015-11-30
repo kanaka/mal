@@ -29,7 +29,22 @@
 
 ;; Well, strange spec...
 (define (_equal? o1 o2)
-  (equal? (->list o1) (->list o2)))
+  (define (equal-lists? lst1 lst2)
+    (and (= (length lst1) (length lst2))
+         (for-all _equal? lst1 lst2)))
+  (define (equal-hash-tables? ht1 ht2)
+    (define (equal-values? k)
+      (_equal? (_get ht1 k) (_get ht2 k)))
+    (let ((keys1 (_keys ht1)))
+      (and (= (length keys1) (length (_keys ht2)))
+           (for-all equal-values? keys1))))
+  (cond
+    ((and (_sequential? o1) (_sequential? o2))
+     (equal-lists? (->list o1) (->list o2)))
+    ((and (hash-table? o1) (hash-table? o2))
+     (equal-hash-tables? o1 o2))
+    (else
+     (equal? o1 o2))))
 
 (define (pr-str . args)
   (define (pr x) (pr_str x #t))
