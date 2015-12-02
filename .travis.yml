@@ -21,6 +21,8 @@ matrix:
       services: [docker]
     - env: IMPL=crystal
       services: [docker]
+    - env: IMPL=d
+      services: [docker]
     - env: IMPL=elixir
       services: [docker]
     - env: IMPL=erlang NO_PERF=1  # perf runs out of memory
