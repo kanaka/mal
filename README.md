@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 43 different languages:
+Mal is implemented in 44 different languages:
 
 * GNU awk
 * Bash shell
@@ -16,6 +16,7 @@ Mal is implemented in 43 different languages:
 * Clojure
 * CoffeeScript
 * Crystal
+* D
 * Elixir
 * Erlang
 * ES6 (ECMAScript 6 / ECMAScript 2015)
@@ -172,6 +173,19 @@ cd crystal
 crystal run ./stepX_YYY.cr
     # OR
 make   # needed to run tests
+./stepX_YYY
+```
+
+### D
+
+*The D implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The D implementation of mal was tested with GDC 4.8.  It requires the GNU
+readline library.
+
+```
+cd d
+make
 ./stepX_YYY
 ```
 
