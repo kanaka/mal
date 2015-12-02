@@ -22,8 +22,20 @@ object types {
 
   def _equal_Q(a: Any, b: Any): Any = {
     (a, b) match {
-      case (a: MalList, b: MalList)   => a.value == b.value
-      case (a: MalHashMap, b: MalHashMap) => a.value == b.value
+      case (a: MalList, b: MalList)   => {
+        if (a.value.length != b.value.length) return false
+        for ( (x, y) <- (a.value zip b.value) ) {
+          if (_equal_Q(x, y) != true) return false
+        }
+        true
+      }
+      case (a: MalHashMap, b: MalHashMap) => {
+        if (a.value.size != b.value.size) return false
+        for ( (k,v) <- a.value ) {
+          if (_equal_Q(v,b.value(k)) != true) return false
+        }
+        true
+      }
       case _ => a == b
     }
   }
