@@ -402,6 +402,8 @@ nil
 ;; Testing vector equality
 (= [] (list))
 ;=>true
+(= [7 8] [7 8])
+;=>true
 (= (list 1 2) [1 2])
 ;=>true
 (= (list 1) [])
