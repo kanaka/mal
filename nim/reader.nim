@@ -28,7 +28,7 @@ proc tokenize(str: string): seq[string] =
   while pos < str.len:
     var matches: array[2, string]
     var len = str.findBounds(tokenRE, matches, pos)
-    if len.first != -1 and len.last != -1:
+    if len.first != -1 and len.last != -1 and len.last >= len.first:
       pos = len.last + 1
       if matches[0][0] != ';':
         result.add matches[0]
