@@ -3,6 +3,24 @@
 
 #include <glib.h>
 
+#ifdef USE_GC
+
+#include <gc/gc.h>
+char* GC_strdup(const char *src);
+#define MAL_GC_SETUP()  GC_setup()
+#define MAL_GC_MALLOC   GC_MALLOC
+#define MAL_GC_FREE     nop_free
+#define MAL_GC_STRDUP   GC_strdup
+
+#else
+
+#include <string.h>
+#define MAL_GC_SETUP()
+#define MAL_GC_MALLOC   malloc
+#define MAL_GC_FREE     free
+#define MAL_GC_STRDUP   strdup
+
+#endif
 
 struct MalVal; // pre-declare
 

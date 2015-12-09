@@ -5,6 +5,37 @@
 #include "types.h"
 #include "printer.h"
 
+#ifdef USE_GC
+void nop_free(void* ptr) {
+    (void)ptr; // Unused argument
+}
+
+static GMemVTable gc_gmem_vtable = {
+    .malloc = GC_malloc,
+    .realloc = GC_realloc,
+    .free = nop_free,
+    .calloc = NULL,
+    .try_malloc = NULL,
+    .try_realloc = NULL
+};
+
+void GC_setup() {
+    GC_INIT();
+    setenv("G_SLICE", "always-malloc", 1);
+    g_mem_gc_friendly = TRUE;
+    g_mem_set_vtable(&gc_gmem_vtable);
+}
+
+char* GC_strdup(const char *src) {
+    if (!src) {
+        return NULL;
+    }
+    char* dst = (char*)MAL_GC_MALLOC(strlen(src) + 1);
+    strcpy(dst, src);
+    return dst;
+}
+#endif
+
 
 // Errors/Exceptions
 
@@ -67,17 +98,16 @@ int _count(MalVal *obj) {
 
 // Allocate a malval and set its type and value
 MalVal *malval_new(MalType type, MalVal *metadata) {
-    MalVal *mv = (MalVal*)malloc(sizeof(MalVal));
+    MalVal *mv = (MalVal*)MAL_GC_MALLOC(sizeof(MalVal));
     mv->type = type;
     mv->metadata = metadata;
     return mv;
 }
 
-// 
 void malval_free(MalVal *mv) {
     // TODO: free collection items
     if (!(mv->type & (MAL_NIL|MAL_TRUE|MAL_FALSE))) {
-        free(mv);
+        MAL_GC_FREE(mv);
     }
 }
 
