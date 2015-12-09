@@ -127,8 +127,8 @@ into the main repository:
 * Your implementation needs to be complete enough to self-host. This
   means that all the tests should pass in both direct and self-hosted modes:
   ```bash
-  make test^[IMPL_NAME]
-  make MAL_IMPL=[IMPL_NAME] test^mal
+  make "test^[IMPL_NAME]"
+  make MAL_IMPL=[IMPL_NAME] "test^mal"
   ```
   You do not need to pass the final optional tests for stepA that are
   marked as optional and not needed for self-hosting.
