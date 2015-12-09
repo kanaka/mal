@@ -94,7 +94,7 @@ quux_RUNSTEP =  ../$(2) $(3)
 
 This allows you to run tests against your implementation like this:
 ```
-make test^quux^stepX
+make "test^quux^stepX"
 ```
 
 
@@ -185,7 +185,7 @@ It is time to run your first tests. This will check that your program
 does input and output in a way that can be captured by the test
 harness. Go to the top level and run the following:
 ```
-make test^quux^step0
+make "test^quux^step0"
 ```
 
 Add and then commit your new `step0_repl.qx` and `Makefile` to git.
@@ -344,7 +344,7 @@ Once you have gotten past those simple manual tests, it is time to run
 the full suite of step 1 tests. Go to the top level and run the
 following:
 ```
-make test^quux^step1
+make "test^quux^step1"
 ```
 
 Fix any test failures related to symbols, numbers and lists.
@@ -488,7 +488,7 @@ a function references using an arguments list.
 
 Now go to the top level, run the step 2 tests and fix the errors.
 ```
-make test^quux^step2
+make "test^quux^step2"
 ```
 
 You now have a simple prefix notation calculator!
@@ -585,7 +585,7 @@ Try some simple environment tests:
 
 Now go to the top level, run the step 3 tests and fix the errors.
 ```
-make test^quux^step3
+make "test^quux^step3"
 ```
 
 You mal implementation is still basically just a numeric calculator
@@ -718,7 +718,7 @@ tests in step 4 but all of the non-optional tests that do not involve
 strings should be able to pass now.
 
 ```
-make test^quux^step4
+make "test^quux^step4"
 ```
 
 Your mal implementation is already beginning to look like a real
@@ -837,7 +837,7 @@ broken anything by adding TCO.
 Now go to the top level, run the step 5 tests.
 
 ```
-make test^quux^step5
+make "test^quux^step5"
 ```
 
 Look at the step 5 test file `tests/step5_tco.mal`. The `sum-to`
@@ -920,7 +920,7 @@ The `load-file` function does the following:
 Now go to the top level, run the step 6 tests. The optional tests will
 need support from the reader for comments, vectors and hash-maps:
 ```
-make test^quux^step6
+make "test^quux^step6"
 ```
 
 Congratulations, you now have a full-fledged scripting language that
@@ -1058,7 +1058,7 @@ Mal borrows most of its syntax and feature-set).
 
 Now go to the top level, run the step 7 tests:
 ```
-make test^quux^step7
+make "test^quux^step7"
 ```
 
 Quoting is one of the more mundane functions available in mal, but do
@@ -1163,7 +1163,7 @@ simple.
 
 Now go to the top level, run the step 8 tests:
 ```
-make test^quux^step8
+make "test^quux^step8"
 ```
 
 There is a reasonably good chance that the macro tests will not pass
@@ -1306,7 +1306,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 
 Now go to the top level, run the step 9 tests:
 ```
-make test^quux^step9
+make "test^quux^step9"
 ```
 
 Your mal implementation is now essentially a fully featured Lisp
@@ -1403,7 +1403,7 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 
 Now go to the top level, run the step A tests:
 ```
-make test^quux^stepA
+make "test^quux^stepA"
 ```
 
 Once you have passed all the non-optional step A tests, it is time to
@@ -1437,7 +1437,7 @@ self-hosting when it is much more difficult to track down and fix.
 Once you can manually run all the self-hosted steps, it is time to run
 all the tests in self-hosted mode:
 ```
-make MAL_IMPL=quux test^mal
+make MAL_IMPL=quux "test^mal"
 ```
 
 When you run into problems (which you almost certainly will), use the
