@@ -40,6 +40,15 @@ slice <- function(seq, start=1, end=-1) {
         }
         TRUE
     },
+    "HashMap"={
+        ks1 <- ls(a)
+        ks2 <- ls(b)
+        if (length(ks1) != length(ks2)) return(FALSE)
+        for(k in ks1) {
+            if (!.equal_q(a[[k]],b[[k]])) return(FALSE)
+        }
+        TRUE
+    },
     {
         a == b
     })

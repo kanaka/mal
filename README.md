@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 43 different languages:
+Mal is implemented in 44 different languages:
 
 * GNU awk
 * Bash shell
@@ -16,6 +16,7 @@ Mal is implemented in 43 different languages:
 * Clojure
 * CoffeeScript
 * Crystal
+* D
 * Elixir
 * Erlang
 * ES6 (ECMAScript 6 / ECMAScript 2015)
@@ -172,6 +173,19 @@ cd crystal
 crystal run ./stepX_YYY.cr
     # OR
 make   # needed to run tests
+./stepX_YYY
+```
+
+### D
+
+*The D implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The D implementation of mal was tested with GDC 4.8.  It requires the GNU
+readline library.
+
+```
+cd d
+make
 ./stepX_YYY
 ```
 
@@ -596,31 +610,31 @@ make test
 * To run all tests against a single implementation:
 
 ```
-make test^IMPL
+make "test^IMPL"
 
 # e.g.
-make test^clojure
-make test^js
+make "test^clojure"
+make "test^js"
 ```
 
 * To run tests for a single step against all implementations:
 
 ```
-make test^stepX
+make "test^stepX"
 
 # e.g.
-make test^step2
-make test^step7
+make "test^step2"
+make "test^step7"
 ```
 
 * To run tests for a specific step against a single implementation:
 
 ```
-make test^IMPL^stepX
+make "test^IMPL^stepX"
 
 # e.g
-make test^ruby^step3
-make test^ps^step4
+make "test^ruby^step3"
+make "test^ps^step4"
 ```
 
 ### Self-hosted functional tests
@@ -629,12 +643,12 @@ make test^ps^step4
   as the test implementation and use the `MAL_IMPL` make variable
   to change the underlying host language (default is JavaScript):
 ```
-make MAL_IMPL=IMPL test^mal^step2
+make MAL_IMPL=IMPL "test^mal^step2"
 
 # e.g.
-make test^mal^step2   # js is default
-make MAL_IMPL=ruby test^mal^step2
-make MAL_IMPL=python test^mal^step2
+make "test^mal^step2"   # js is default
+make MAL_IMPL=ruby "test^mal^step2"
+make MAL_IMPL=python "test^mal^step2"
 ```
 
 
@@ -648,34 +662,34 @@ that I'm willing to sell you for cheap.
 
 * To run performance tests against a single implementation:
 ```
-make perf^IMPL
+make "perf^IMPL"
 
 # e.g.
-make perf^js
+make "perf^js"
 ```
 
 * To run performance tests against all implementations:
 ```
-make perf
+make "perf"
 ```
 
 ### Generating language statistics
 
 * To report line and byte statistics for a single implementation:
 ```
-make stats^IMPL
+make "stats^IMPL"
 
 # e.g.
-make stats^js
+make "stats^js"
 ```
 
 * To report line and bytes statistics for general Lisp code (env, core
   and stepA):
 ```
-make stats-lisp^IMPL
+make "stats-lisp^IMPL"
 
 # e.g.
-make stats-lisp^js
+make "stats-lisp^js"
 ```
 
 ## Docker test environment
@@ -702,7 +716,7 @@ implementations and tests:
 You can also specify a command to run within the container. For
 example, to run step2 tests for every implementation (except MATLAB):
 ```bash
-./tests/docker-run.sh make SKIP_IMPLS="matlab" test^step2
+./tests/docker-run.sh make SKIP_IMPLS="matlab" "test^step2"
 ```
 
 **Notes**:

@@ -82,7 +82,6 @@ Javascript:
     - fix "user> " prompt with mal/clojurewest2014.mal
 
 Lua:
-    - time-ms should get actual milliseconds
 
 Make:
     - allow '_' in make variable names

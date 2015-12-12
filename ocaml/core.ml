@@ -75,9 +75,7 @@ let init env = begin
                 | _ -> T.Int 0));
   Env.set env (Types.symbol "=")
     (Types.fn (function
-                | [T.List a; T.Vector b] -> T.Bool (a = b)
-                | [T.Vector a; T.List b] -> T.Bool (a = b)
-                | [a; b] -> T.Bool (a = b)
+                | [a; b] -> T.Bool (Types.mal_equal a b)
                 | _ -> T.Bool false));
 
   Env.set env (Types.symbol "pr-str")

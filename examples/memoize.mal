@@ -1,0 +1,53 @@
+;;
+;; memoize.mal
+;;
+;; Impelement `memoize` using an atom (`mem`) which holds the memoized results
+;; (hash-map from the arguments to the result). When the function is called,
+;; the hash-map is checked to see if the result for the given argument was already
+;; calculated and stored. If this is the case, it is returned immediately;
+;; otherwise, it is calculated and stored in `mem`.
+;;
+;; Adapated from http://clojure.org/atoms
+;;
+
+;; Memoize any function
+(def! memoize
+  (fn* [f]
+    (let* [mem (atom {})]
+      (fn* [& args]
+        (let* [key (str args)]
+          (if (contains? @mem key)
+            (get @mem key)
+            (let* [ret (apply f args)]
+              (do
+                (swap! mem assoc key ret)
+                ret))))))))
+
+;; Naive (non-memoized) Fibonacci function
+(def! fib
+  (fn* [n]
+    (if (<= n 1)
+      n
+      (+ (fib (- n 1)) (fib (- n 2))))))
+
+
+;; -----------------------------------------------
+;; Benchmarks
+
+(load-file "../perf.mal")  ; for the 'time' macro
+(def! N 32)
+
+;; Benchmark naive 'fib'
+
+(println "fib N=" N ": without memoization:")
+(time (fib N))
+;; "Elapsed time: 14402 msecs"
+
+
+;; Benchmark memoized 'fib'
+
+(def! fib (memoize fib))
+
+(println "fib N=" N ": with memoization:")
+(time (fib N))
+;; "Elapsed time: 1 msecs"

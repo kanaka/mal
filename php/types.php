@@ -32,9 +32,7 @@ function _equal_Q($a, $b) {
         $hm1 = $a->getArrayCopy();
         $hm2 = $b->getArrayCopy();
         foreach (array_keys($hm1) as $k) {
-            if ($hm1[$k] !== $hm2[$k]) {
-                return false;
-            }
+            if (!_equal_Q($hm1[$k], $hm2[$k])) { return false; }
         }
         return true;
     } else {

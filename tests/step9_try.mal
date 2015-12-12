@@ -260,6 +260,13 @@
 (keyword? (nth (vals {"a" :abc "b" :def}) 0))
 ;=>true
 
+;; Testing nil as hash-map values
+(contains? {:abc nil} :abc)
+;=>true
+(assoc {} :bcd nil)
+;=>{:bcd nil}
+(dissoc {:cde nil :fgh 456} :cde)
+;=>{:fgh 456}
 
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
@@ -269,6 +276,10 @@
 (= {} {})
 ;=>true
 (= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
 ;=>true
 (= {:a 11 :b 22} (hash-map :b 23 :a 11))
 ;=>false

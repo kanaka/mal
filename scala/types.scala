@@ -22,8 +22,20 @@ object types {
 
   def _equal_Q(a: Any, b: Any): Any = {
     (a, b) match {
-      case (a: MalList, b: MalList)   => a.value == b.value
-      case (a: MalHashMap, b: MalHashMap) => a.value == b.value
+      case (a: MalList, b: MalList)   => {
+        if (a.value.length != b.value.length) return false
+        for ( (x, y) <- (a.value zip b.value) ) {
+          if (_equal_Q(x, y) != true) return false
+        }
+        true
+      }
+      case (a: MalHashMap, b: MalHashMap) => {
+        if (a.value.size != b.value.size) return false
+        for ( (k,v) <- a.value ) {
+          if (_equal_Q(v,b.value(k)) != true) return false
+        }
+        true
+      }
       case _ => a == b
     }
   }
@@ -100,15 +112,13 @@ object types {
 
   // Hash Maps
   class MalHashMap(seq: Any*) {
-    var flat_value: List[Any] = seq.toList
-    var value: Map[String,Any] = flat_value.grouped(2).map(
+    var value: Map[String,Any] = seq.toList.grouped(2).map(
       (kv: List[Any]) => (kv(0).asInstanceOf[String], kv(1))).toMap
     var meta: Any = null
 
     override def clone(): MalHashMap = {
       val new_hm = new MalHashMap()
       new_hm.value = value
-      new_hm.flat_value = flat_value
       new_hm.meta = meta
       new_hm
     }
@@ -126,14 +136,26 @@ object types {
       new MalHashMap(res.flatten.toSeq:_*)
     }
     def ++(that: MalHashMap) = {
-      new MalHashMap((flat_value ++ that.flat_value):_*)
+      val new_hm = clone() 
+      new_hm.value ++= that.value
+      new_hm
     }
 
     override def toString() = {
-      "{" + flat_value.map(_pr_str(_, true)).mkString(" ") + "}"
+      var res = mutable.MutableList[Any]()
+      for ((k,v) <- value) {
+        res += _pr_str(k, true)
+        res += _pr_str(v, true)
+      }
+      "{" + res.mkString(" ") + "}"
     }
     def toString(print_readably: Boolean) = {
-      "{" + flat_value.map(_pr_str(_, print_readably)).mkString(" ") + "}"
+      var res = mutable.MutableList[Any]()
+      for ((k,v) <- value) {
+        res += _pr_str(k, print_readably)
+        res += _pr_str(v, print_readably)
+      }
+      "{" + res.mkString(" ") + "}"
     }
   }
   def _hash_map(seq: Any*) = {

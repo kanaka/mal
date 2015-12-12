@@ -72,7 +72,7 @@ object stepA_mal {
       case v: MalVector  => v.map(EVAL(_, env))
       case l: MalList    => l.map(EVAL(_, env))
       case m: MalHashMap => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
+        m.map{case (k,v) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
