@@ -357,6 +357,21 @@ BUILTIN("str")
     return mal::string(printValues(argsBegin, argsEnd, "", false));
 }
 
+BUILTIN("swap!")
+{
+    CHECK_ARGS_AT_LEAST(2);
+    ARG(malAtom, atom);
+
+    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+
+    malValueVec args(1 + argsEnd - argsBegin);
+    args[0] = atom->deref();
+    std::copy(argsBegin, argsEnd, args.begin() + 1);
+
+    malValuePtr value = APPLY(op, args.begin(), args.end(), env->getRoot());
+    return atom->reset(value);
+}
+
 BUILTIN("symbol")
 {
     CHECK_ARGS_IS(1);
