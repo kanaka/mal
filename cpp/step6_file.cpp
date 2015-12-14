@@ -16,11 +16,12 @@ static void safeRep(const String& input, malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
+static malEnvPtr replEnv(new malEnv);
+
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    malEnvPtr replEnv(new malEnv);
     installCore(replEnv);
     installFunctions(replEnv);
     makeArgv(replEnv, argc - 2, argv + 2);
@@ -71,6 +72,9 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
+    if (!env) {
+        env = replEnv;
+    }
     while (1) {
         const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
@@ -151,7 +155,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             continue; // TCO
         }
         else {
-            return APPLY(op, items->begin()+1, items->end(), env);
+            return APPLY(op, items->begin()+1, items->end());
         }
     }
 }
@@ -161,14 +165,13 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
-                  malEnvPtr env)
+malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
     MAL_CHECK(handler != NULL,
               "\"%s\" is not applicable", op->print(true).c_str());
 
-    return handler->apply(argsBegin, argsEnd, env);
+    return handler->apply(argsBegin, argsEnd);
 }
 
 static const char* malFunctionTable[] = {
