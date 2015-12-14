@@ -917,8 +917,39 @@ The `load-file` function does the following:
   * Call `eval` (the one in the REPL environment) on the AST returned
     from `read-string` to "run" it.
 
+Besides adding file and eval support, we'll add support for the atom data type
+in this step.  An atom is the Mal way to represent *state*; it is
+heavily inspired by [Clojure's atoms](http://clojure.org/state).  An atom holds
+a reference to a single Mal value of any type; it supports reading that Mal value
+and *modifying* the reference to point to another Mal value.  Note that this is
+the only Mal data type that is mutable (but the Mal values it refers to are
+still immutable; immutability is explained in greater detail in step 7).
+You'll need to add 5 functions to the core namesapce to support atoms:
+
+  * `atom`: Takes a Mal value and returns a new atom which points to that Mal value.
+  * `atom?`: Takes an argument and returns `true` if the argument is an atom.
+  * `deref`: Takes an atom argument and returns the Mal value referenced by this atom.
+  * `reset!`: Takes an atom and a Mal value; the atom is modified to refer to
+    the given Mal value. The Mal value is returned.
+  * `swap!`: Takes an atom, a function, and zero or more function arguments. The
+    atom's value is modified to result of applying the function with the atom's
+    value as the first argument and the optionally given function arguments as
+    the rest of the arguments. The new atom's value is returned. (Side note: Mal is
+    single-threaded, but in concurrent languages like Clojure, `swap!` promises
+    atomic update: `(swap! myatom (fn* [x] (+ 1 x)))` will always increase the
+    `myatom` counter by one and will not suffer from missing updates when the
+    atom is updated from multiple threads.)
+
+Optionally, you can add a reader macro `@` which will serve as a short form for
+`deref`, so that `@a` is equivalent to `(deref a)`.  In order to do that, modify
+the conditional in reader `read_form` function and add a case which deals with
+the `@` token: if the token is `@` (at sign) then return a new list that
+contains the symbol `deref` and the result of reading the next form
+(`read_form`).
+
 Now go to the top level, run the step 6 tests. The optional tests will
-need support from the reader for comments, vectors and hash-maps:
+need support from the reader for comments, vectors, hash-maps and the `@`
+reader macro:
 ```
 make "test^quux^step6"
 ```
@@ -1394,9 +1425,6 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 
 * Add meta-data support to mal functions. TODO. Should be separate
   from the function macro flag.
-
-* Add atom data type and supporting core functions. This is the only
-  mal data type/value that is mutable. TODO
 
 * Add the `readline` core function. TODO
 
