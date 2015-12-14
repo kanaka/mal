@@ -18,7 +18,7 @@
 
 (define *toplevel*
   (receive (b e) (unzip2 core.ns)
-    (make-Env #:binds b #:exprs (map (lambda (x) (make-func x)) e))))
+    (make-Env #:binds b #:exprs (map make-func e))))
 
 (define (READ)
   (read_str (_readline "user> ")))
@@ -40,8 +40,8 @@
   (define (func? x) (and=> ((env 'get) x) is-func?))
   (cond
    ((func? (car ast))
-    => (lambda (f)
-         (apply (callable-closure f) (map _eval (cdr ast)))))
+    => (lambda (c)
+         (callable-apply c (map _eval (cdr ast)))))
    (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
 (define (eval_seq ast env)
@@ -110,16 +110,17 @@
          ((cond-true? (EVAL cnd env)) (tco-loop thn env))
          (else (if (null? els) nil (tco-loop (car els) env)))))
        (('fn* params body ...) ; function definition
-        (lambda args
-          (let ((nenv (make-Env #:outer env #:binds (->list params) #:exprs args)))
-            (cond
-             ((null? body) (throw 'mal-error "fn*: bad lambda in form " ast))
-             ((= 1 (length body)) (tco-loop (car body) nenv))
-             (else
-              (let ((mexpr (take body (1- (length body))))
-                    (tail-call (car (take-right body 1))))
-                (eval_seq mexpr nenv)
-                (tco-loop tail-call nenv)))))))
+	(make-func
+         (lambda args
+           (let ((nenv (make-Env #:outer env #:binds (->list params) #:exprs args)))
+             (cond
+              ((null? body) (throw 'mal-error "fn*: bad lambda in form " ast))
+              ((= 1 (length body)) (tco-loop (car body) nenv))
+              (else
+               (let ((mexpr (take body (1- (length body))))
+                     (tail-call (car (take-right body 1))))
+                 (eval_seq mexpr nenv)
+                 (tco-loop tail-call nenv))))))))
        ((? list?) (eval_func ast env)) ; function calling
        (else (eval_ast ast env)))))
 
@@ -143,7 +144,7 @@
                 (format #t "Error: ~a~%" (car e)))))))
 
 ;; initialization
-((*toplevel* 'set) 'eval (lambda (ast) (EVAL ast *toplevel*)))
+((*toplevel* 'set) 'eval (make-func (lambda (ast) (EVAL ast *toplevel*))))
 ((*toplevel* 'set) '*ARGV* '())
 (EVAL-string "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
