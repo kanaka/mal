@@ -184,6 +184,11 @@ DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
 IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl)))
 
+IMPL_REPL = $(foreach impl,$(DO_IMPLS),repl^$(impl))
+ALL_REPL = $(strip $(sort \
+             $(foreach impl,$(DO_IMPLS),\
+               $(foreach step,$(STEPS),repl^$(impl)^$(step)))))
+
 #
 # Build rules
 #
@@ -264,3 +269,18 @@ $(IMPL_PERF):
           $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf2.mal); \
 	  echo 'Running: $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf3.mal)'; \
           $(call $(impl)_RUNSTEP,stepA,$(call $(impl)_STEP_TO_PROG,stepA),../tests/perf3.mal))
+
+# REPL invocation rules
+# Allow repl^IMPL^STEP and repl^IMPL (which starts REPL of stepA)
+
+.SECONDEXPANSION:
+$(IMPL_REPL): $$@^stepA
+
+.SECONDEXPANSION:
+$(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
+	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
+	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)); \
+	    echo 'REPL implementation $(impl), step file: $+'; \
+	    echo 'Running: $(call $(impl)_RUNSTEP,$(step),$(+))'; \
+	    $(call $(impl)_RUNSTEP,$(step),$(+));))
