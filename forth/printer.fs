@@ -58,7 +58,7 @@ MalMap
         list MalList/start @ { start }
         start @ pr-buf a-space start cell+ @ pr-buf
         count 2 / 1 ?do
-            s" , " str-append
+            a-space
             start i 2 * cells + @ pr-buf a-space
             start i 2 * 1+ cells + @ pr-buf
         loop
