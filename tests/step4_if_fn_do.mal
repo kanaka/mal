@@ -269,12 +269,20 @@ a
 (pr-str (list 1 2 "abc" "\"") "def")
 ;=>"(1 2 \"abc\" \"\\\"\") \"def\""
 
+(pr-str [1 2 "abc" "\""] "def")
+;=>"[1 2 \"abc\" \"\\\"\"] \"def\""
+
 (pr-str "abc\ndef\nghi")
 ;=>"\"abc\\ndef\\nghi\""
 
 (pr-str "abc\\def\\ghi")
 ;=>"\"abc\\\\def\\\\ghi\""
 
+(pr-str (list))
+;=>"()"
+
+(pr-str [])
+;=>"[]"
 
 ;; Testing str
 
@@ -302,10 +310,17 @@ a
 (str "abc\\def\\ghi")
 ;=>"abc\\def\\ghi"
 
-;;; TODO: get this working properly
-;;;(str (list 1 2 "abc" "\"") "def")
-;;;;=>"(1 2 \"abc\" \"\\\"\")def"
+(str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 abc \")def"
 
+(str [1 2 "abc" "\""] "def")
+;=>"[1 2 abc \"]def"
+
+(str (list))
+;=>"()"
+
+(str [])
+;=>"[]"
 
 ;; Testing prn
 (prn)
