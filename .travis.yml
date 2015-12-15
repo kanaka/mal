@@ -94,6 +94,8 @@ matrix:
       services: [docker]
     - env: IMPL=vb
       services: [docker]
+    - env: IMPL=vimscript
+      services: [docker]
 
 script:
   # Build
