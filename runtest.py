@@ -231,6 +231,7 @@ test_cnt = 0
 pass_cnt = 0
 fail_cnt = 0
 soft_fail_cnt = 0
+failures = []
 
 while t.next():
     log("TEST: %s -> [%s,%s]" % (t.form, repr(t.out), t.ret), end='')
@@ -255,18 +256,30 @@ while t.next():
             if t.soft and not args.hard:
                 log(" -> SOFT FAIL (line %d):" % t.line_num)
                 soft_fail_cnt += 1
+                fail_type = "SOFT "
             else:
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
+                fail_type = ""
             log("    Expected : %s" % repr(expected[0]))
             log("    Got      : %s" % repr(res))
+            failed_test = """%sFAILED TEST (line %d): %s -> [%s,%s]:
+    Expected : %s
+    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out), t.ret, repr(expected[0]), repr(res))
+            failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()
         log("\nException: %s" % repr(exc))
         log("Output before exception:\n%s" % r.buf)
         sys.exit(1)
 
-results = """TEST RESULTS (for %s):
+if len(failures) > 0:
+    log("\nFAILURES:")
+    for f in failures:
+        log(f)
+
+results = """
+TEST RESULTS (for %s):
   %3d: soft failing tests
   %3d: failing tests
   %3d: passing tests
