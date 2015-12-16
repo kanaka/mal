@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step2_Eval is
 
    for Object_Dir use "obj";

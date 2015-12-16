@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step4_If_Fn_Do is
 
    for Object_Dir use "obj";

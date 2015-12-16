@@ -3,7 +3,6 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Envs;
 with Evaluation;
-with OpenToken;
 with Reader;
 with Smart_Pointers;
 with Types;
@@ -359,7 +358,8 @@ package body Core is
             if Last > 0 then
                File_Str (I+1 .. I+Last) := Line_Str (1 .. Last);
                I := I + Last;
-               File_Str (I+1) := OpenToken.EOL_Character;
+               --File_Str (I+1) := OpenToken.EOL_Character;
+               File_Str (I+1) := Ada.Characters.Latin_1.LF;
                I := I + 1;
             end if;
          end loop;

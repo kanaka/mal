@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step6_File is
 
    for Object_Dir use "obj";

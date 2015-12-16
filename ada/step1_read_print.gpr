@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step1_Read_Print is
 
    for Object_Dir use "obj";

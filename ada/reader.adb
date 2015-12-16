@@ -4,17 +4,6 @@ with Ada.Exceptions;
 with Ada.Strings.Maps.Constants;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
-with Opentoken.Recognizer.Character_Set;
-with Opentoken.Recognizer.Identifier;
-with Opentoken.Recognizer.Integer;
-with Opentoken.Recognizer.Keyword;
-with Opentoken.Recognizer.Line_Comment;
-with Opentoken.Recognizer.Real;
-with Opentoken.Recognizer.Separator;
-with Opentoken.Recognizer.Single_Character_Set;
-with Opentoken.Recognizer.String;
-with OpenToken.Text_Feeder.String;
-with Opentoken.Token.Enumerated.Analyzer;
 with Smart_Pointers;
 
 package body Reader is
@@ -27,98 +16,15 @@ package body Reader is
                     LE_Tok, GE_Tok, Exp_Tok, Splice_Unq,
                     Str, Atom);
 
-   package Lisp_Tokens is
-     new Opentoken.Token.Enumerated (Lexemes, Lexemes'Image, 10);
-
-   package Tokenizer is new Lisp_Tokens.Analyzer (Int, Atom);
-
-   LE_Recognizer   : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("<="));
-
-   GE_Recognizer   : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Separator.Get (">="));
-
-   Exp_Recognizer   : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("**"));
-
-   Splice_Unq_Recognizer   : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Separator.Get ("~@"));
-
-   Nil_Recognizer   : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Keyword.Get ("nil"));
-
-   True_Recognizer : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Keyword.Get ("true"));
-
-   False_Recognizer : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get (Opentoken.Recognizer.Keyword.Get ("false"));
-
-   Int_Recognizer  : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Integer.Get);
-
-   Float_Recognizer  : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Real.Get);
-
-   -- Use the C style for escaped strings.
-   String_Recognizer : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get
-       (Opentoken.Recognizer.String.Get
-         (Escapeable => True, 
-          Double_Delimiter => False));
-
-   -- Atom definition
-   -- Note Start_Chars includes : for keywords.
-   Start_Chars : Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps."or"
-       (Ada.Strings.Maps.Constants.Letter_Set,
-        Ada.Strings.Maps.To_Set (":*"));
-
-   Body_Chars : Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps."or"
-       (Ada.Strings.Maps.Constants.Alphanumeric_Set,
-        Ada.Strings.Maps.To_Set ("-!*?"));
-
-   Atom_Recognizer  : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get
-       (Opentoken.Recognizer.Identifier.Get (Start_Chars, Body_Chars));
-
-   Lisp_Syms : constant Ada.Strings.Maps.Character_Set :=
-     Ada.Strings.Maps.To_Set ("[]{}()'`~^@&+-*/<>=");
-
-   Sym_Recognizer : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get (Opentoken.Recognizer.Single_Character_Set.Get (Lisp_Syms));
-
    Lisp_Whitespace : constant Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps.To_Set
        (ACL.HT & ACL.LF & ACL.CR & ACL.Space & ACL.Comma);
 
-   Whitesp_Recognizer : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get (Opentoken.Recognizer.Character_Set.Get (Lisp_Whitespace));
-
-   Comment_Recognizer  : constant Tokenizer.Recognizable_Token :=
-     Tokenizer.Get(Opentoken.Recognizer.Line_Comment.Get (";"));
-
-   Syntax : constant Tokenizer.Syntax :=
-     (Int        => Int_Recognizer,
-      Float_Tok  => Float_Recognizer,
-      Sym        => Sym_Recognizer,
-      Nil        => Nil_Recognizer,
-      True_Tok   => True_Recognizer,
-      False_Tok  => False_Recognizer,
-      LE_Tok     => LE_Recognizer,
-      GE_Tok     => GE_Recognizer,
-      Exp_Tok    => Exp_Recognizer,
-      Splice_Unq => Splice_Unq_Recognizer,
-      Str        => String_Recognizer,
-      Atom       => Atom_Recognizer,
-      Whitespace => Whitesp_Recognizer,
-      Comment    => Comment_Recognizer);
-
-   Input_Feeder : aliased OpenToken.Text_Feeder.String.Instance;
-
-   Analyzer : Tokenizer.Instance :=
-     Tokenizer.Initialize (Syntax, Input_Feeder'access);
-
+   -- [^\s\[\]{}('"`,;)]
+   Terminator_Syms : Ada.Strings.Maps.Character_Set :=
+     Ada.Strings.Maps."or"
+       (Lisp_Whitespace, 
+        Ada.Strings.Maps.To_Set ("[]{}('""`,;)"));
 
    -- This is raised if an invalid character is encountered
    Lexical_Error : exception;
@@ -126,18 +32,6 @@ package body Reader is
    -- The unterminated string error
    String_Error : exception;
 
-
-   function Get_Token_String return String is
-   begin
-      return Tokenizer.Lexeme (Analyzer);
-   end Get_Token_String;
-
-
-   function Get_Token_Char return Character is
-      S : String := Tokenizer.Lexeme (Analyzer);
-   begin
-      return S (S'First);
-   end Get_Token_Char;
 
    function Convert_String (S : String) return String is
       use Ada.Strings.Unbounded;
@@ -173,74 +67,122 @@ package body Reader is
       return To_String (Res);
    end Convert_String;
 
-   -- Saved_Line is needed to detect the unterminated string error.
+   subtype String_Indices is Integer range 0 .. Max_Line_Len;
+
+   Str_Len : String_Indices := 0;
    Saved_Line : String (1..Max_Line_Len);
+   Char_To_Read : String_Indices := 1;
 
    function Get_Token return Types.Mal_Handle is
       use Types;
       Res : Types.Mal_Handle;
+      I, J : String_Indices;
+      Dots : Natural;
+      All_Digits : Boolean;
    begin
-      Tokenizer.Find_Next (Analyzer);
-      case Tokenizer.ID (Analyzer) is
-         when Int =>
-            Res := New_Int_Mal_Type
-              (Int => Mal_Integer'Value (Get_Token_String));
-         when Float_Tok =>
-            Res := New_Float_Mal_Type
-              (Floating => Mal_Float'Value (Get_Token_String));
-         when Sym =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_Char & "");
-         when Nil =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when True_Tok =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when False_Tok =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when LE_Tok =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when GE_Tok =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when Exp_Tok =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-         when Splice_Unq =>
-            Res := New_Unitary_Mal_Type
-              (Func => Splice_Unquote,
-               Op => Smart_Pointers.Null_Smart_Pointer);
-         when Str =>
-            Res := New_String_Mal_Type
-              (Str => Convert_String (Get_Token_String));
-         when Atom =>
-            Res := New_Atom_Mal_Type (Str => Get_Token_String);
-      end case;
-      return Res;
+      I := Char_To_Read;
+      while I <= Str_Len and then
+            Ada.Strings.Maps.Is_In (Saved_Line (I), Lisp_Whitespace) loop
+         I := I + 1;
+      end loop;
 
-   exception
+      -- Filter out lines consisting of only whitespace
+      if I > Str_Len then
+         return Smart_Pointers.Null_Smart_Pointer;
+      end if;
 
-      when E : OpenToken.Syntax_Error =>
-
--- Extra debug info
---         declare
---            Err_Pos : Integer := Analyzer.Column + 1;
---         begin
---            for J in 1..Err_Pos + 5 loop
---               Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, ' ');
---            end loop;
---            Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, "^");
---         end;
---
---         Ada.Text_IO.Put_Line
---           (Ada.Text_IO.Standard_Error,
---            Ada.Exceptions.Exception_Information (E));
-
-         declare
-            Col : Integer := Analyzer.Column;
-         begin
-            if Saved_Line (Col) ='"' then
-               raise String_Error;
+      J := I;
+      case Saved_Line (J) is
+         when '~' => -- Circumflex
+            if J+1 <= Str_Len and then Saved_Line(J+1) = '@' then
+               Res := New_Unitary_Mal_Type
+                 (Func => Splice_Unquote,
+                  Op => Smart_Pointers.Null_Smart_Pointer);
+               Char_To_Read := J+2;
             else
-               raise Lexical_Error;
+               -- Just a circumflex
+               Res := New_Atom_Mal_Type (Saved_Line (J..J));
+               Char_To_Read := J+1;
             end if;
-         end;
+         when '[' | ']' |
+              '{' | '}' |
+              '(' | ')' |
+              ''' | '`' |
+              '^' | '@' =>
+            
+            Res := New_Atom_Mal_Type (Saved_Line (J..J));
+            Char_To_Read := J+1;
+
+         when '"' => -- a string
+
+            -- Skip over "
+            J := J + 1;
+            while J <= Str_Len and then
+               (Saved_Line (J) /= '"' or else
+                 Saved_Line (J-1) = '\') loop
+               J := J + 1;
+            end loop;
+
+            -- So we either ran out of string..
+            if J > Str_Len then
+               raise String_Error;
+            end if;
+
+            -- or we reached an unescaped "
+            Res := New_String_Mal_Type
+              (Str => Convert_String (Saved_Line (I .. J)));
+            Char_To_Read := J + 1;
+
+         when ';' => -- a comment
+
+            Res := Smart_Pointers.Null_Smart_Pointer;
+            while Saved_Line (J) /= ACL.LF loop
+               J := J + 1;
+            end loop;
+            Char_To_Read := J + 1;
+            Res := Get_Token;
+
+         when others => -- an atom
+
+            while J <= Str_Len and then
+               not Ada.Strings.Maps.Is_In (Saved_Line (J), Terminator_Syms) loop
+               J := J + 1;
+            end loop;
+
+            -- Either we ran out of string or
+            -- the one at J was the start of a new token
+            Char_To_Read := J;
+            J := J - 1;
+
+            -- check if all digits or .
+            Dots := 0;
+            All_Digits := True;
+            for K in I .. J loop
+               if Saved_Line (K) = '.' then
+                  Dots := Dots + 1; 
+               elsif not (Saved_Line (K) in '0' .. '9') then
+                  All_Digits := False;
+                  exit;
+               end if;
+            end loop;
+
+            if All_Digits then
+               if Dots = 0 then
+                  Res := New_Int_Mal_Type
+                    (Int => Mal_Integer'Value (Saved_Line (I .. J)));
+               elsif Dots = 1 then
+                  Res := New_Float_Mal_Type
+                    (Floating => Mal_Float'Value (Saved_Line (I..J)));
+               else
+                  Res := New_Atom_Mal_Type (Saved_Line (I..J));
+               end if;
+            else
+               Res := New_Atom_Mal_Type (Saved_Line (I..J));
+            end if;
+
+      end case;
+
+      return Res;
 
    end Get_Token;
 
@@ -423,27 +365,19 @@ package body Reader is
 
    procedure Lex_Init (S : String) is
    begin
-      Analyzer.Reset;
-      Input_Feeder.Set (S);
+      Str_Len := S'Length;
       Saved_Line (1..S'Length) := S;  -- Needed for error recovery
+      Char_To_Read := 1;
    end Lex_Init;
 
    function Read_Str (S : String) return Types.Mal_Handle is
       I, Str_Len : Natural := S'Length;
    begin
-      -- Filter out lines consisting of only whitespace and/or comments
-      I := 1;
-      while I <= Str_Len and then
-            Ada.Strings.Maps.Is_In (S (I), Lisp_Whitespace) loop
-         I := I + 1;
-      end loop;
-      if I > Str_Len or else S (I) = ';' then
-         return Smart_Pointers.Null_Smart_Pointer;
-      end if;
 
       Lex_Init (S);
 
       return Read_Form;
+
    end Read_Str;
    
 

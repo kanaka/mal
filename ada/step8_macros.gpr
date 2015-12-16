@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step8_Macros is
 
    for Object_Dir use "obj";

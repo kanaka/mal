@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step7_Quote is
 
    for Object_Dir use "obj";

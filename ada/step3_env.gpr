@@ -1,5 +1,3 @@
-with "opentoken";
-
 project Step3_Env is
 
    for Object_Dir use "obj";
