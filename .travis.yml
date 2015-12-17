@@ -90,8 +90,6 @@ matrix:
       osx_image: xcode7
     - env: IMPL=tcl
       services: [docker]
-    - env: IMPL=vimscript NO_PERF=1  # /dev/stdout not writable
-      services: [docker]
     - env: IMPL=vb
       services: [docker]
     - env: IMPL=vimscript
