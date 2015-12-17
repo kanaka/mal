@@ -1,5 +1,6 @@
 (ns core
-  (:require [readline]))
+  (:require [readline]
+            [printer]))
 
 ;; Errors/exceptions
 (defn mal_throw [obj]
@@ -14,6 +15,22 @@
 (defn mal_meta [obj]
   (:meta (meta obj)))
 
+; Strings and printing functions
+(defn pr-helper [coll sep readable?]
+  (clojure.string/join sep (map #(printer/mal-pr-str % readable?) coll)))
+
+(defn mal_pr_str [& args]
+  (pr-helper args " " true))
+
+(defn mal_str [& args]
+  (pr-helper args "" false))
+
+(defn mal_prn [& args]
+  (println (pr-helper args " " true)))
+
+(defn mal_println [& args]
+  (println (pr-helper args " " false)))
+
 ;; core_ns is core namespaces functions
 (def core_ns
   [['= =]
@@ -26,10 +43,10 @@
    ['keyword keyword]
    ['keyword? keyword?]
 
-   ['pr-str pr-str]
-   ['str str]
-   ['prn prn]
-   ['println println]
+   ['pr-str mal_pr_str]
+   ['str mal_str]
+   ['prn mal_prn]
+   ['println mal_println]
    ['readline readline/readline]
    ['read-string reader/read-string]
    ['slurp slurp]
