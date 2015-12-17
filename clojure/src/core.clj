@@ -27,7 +27,7 @@
    ['keyword? keyword?]
 
    ['pr-str pr-str]
-   ['str str]
+   ['str #(binding [*print-readably* false] (apply str %&))]
    ['prn prn]
    ['println println]
    ['readline readline/readline]

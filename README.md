@@ -149,6 +149,9 @@ mono ./stepX_YYY.exe
 
 ### Clojure
 
+For the most part the Clojure implementation requires Clojure 1.5,
+however, to pass all tests, Clojure 1.8.0-RC4 is required.
+
 ```
 cd clojure
 lein with-profile +stepX trampoline run
