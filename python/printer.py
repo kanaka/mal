@@ -15,7 +15,7 @@ def _pr_str(obj, print_readably=True):
             ret.extend((_pr_str(k), _pr_str(obj[k],_r)))
         return "{" + " ".join(ret) + "}"
     elif types._string_Q(obj):
-        if len(obj) > 0 and obj[0] == types.u('\u029e'):
+        if len(obj) > 0 and obj[0] == types._u('\u029e'):
             return ':' + obj[1:]
         elif print_readably:
             return '"' + _escape(obj) + '"'

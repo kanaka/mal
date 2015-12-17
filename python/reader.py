@@ -1,5 +1,5 @@
 import re
-from mal_types import (_symbol, _keyword, _list, _vector, _hash_map)
+from mal_types import (_symbol, _keyword, _list, _vector, _hash_map, _s2u)
 
 class Blank(Exception): pass
 
@@ -32,7 +32,7 @@ def read_atom(reader):
     if re.match(int_re, token):     return int(token)
     elif re.match(float_re, token): return int(token)
     elif token[0] == '"':
-        if token[-1] == '"':        return _unescape(token[1:-1])
+        if token[-1] == '"':        return _s2u(_unescape(token[1:-1]))
         else:                       raise Exception("expected '\"', got EOF")
     elif token[0] == ':':           return _keyword(token[1:])
     elif token == "nil":            return None
