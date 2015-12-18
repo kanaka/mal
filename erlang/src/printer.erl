@@ -41,13 +41,11 @@ pr_list(Seq, Start, End, Join, Readably) ->
     Start ++ L ++ End.
 
 pr_map(Map, Readably) ->
-    PrintKV = fun({Key, Value}) ->
-        KS = pr_str(Key, Readably),
-        VS = pr_str(Value, Readably),
-        KS ++ " " ++ VS
+    AppendKV = fun({Key, Value}, AccIn) ->
+        AccIn ++ [Key, Value]
     end,
-    L = string:join(lists:map(PrintKV, maps:to_list(Map)), " "),
-    io_lib:format("{~s}", [L]).
+    Elements = lists:foldl(AppendKV, [], maps:to_list(Map)),
+    pr_list(Elements, "{", "}", " ", Readably).
 
 escape_str(String) ->
     Escape = fun(C, AccIn) ->
