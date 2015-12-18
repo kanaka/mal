@@ -9,6 +9,11 @@ PYTHON = python
 # Extra options to pass to runtest.py
 TEST_OPTS =
 
+# Test with previous test files not just the test files for the
+# current step. Step 0 and 1 tests are special and not included in
+# later steps.
+REGRESS=
+
 # Extra implementation specific options to pass to runtest.py
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 
@@ -32,37 +37,55 @@ step8 = step8_macros
 step9 = step9_try
 stepA = stepA_mal
 
-EXCLUDE_TESTS += test^awk^step5 # completes at 10,000
-EXCLUDE_TESTS += test^bash^step5 # no stack exhaustion or completion
-EXCLUDE_TESTS += test^c^step5    # segfault
-EXCLUDE_TESTS += test^cpp^step5  # completes at 10,000
-EXCLUDE_TESTS += test^cs^step5   # fatal stack overflow fault
-EXCLUDE_TESTS += test^d^step5    # completes at 10,000, fatal stack overflow at 1,000,000
-EXCLUDE_TESTS += test^erlang^step5 # erlang is TCO, test passes
-EXCLUDE_TESTS += test^elixir^step5 # elixir is TCO, test passes
-EXCLUDE_TESTS += test^fsharp^step5 # completes at 10,000, fatal stack overflow at 100,000
-EXCLUDE_TESTS += test^haskell^step5 # test completes
-EXCLUDE_TESTS += test^make^step5 # no TCO capability/step
-EXCLUDE_TESTS += test^mal^step5  # no TCO capability/step
-EXCLUDE_TESTS += test^miniMAL^step5 # strange error with runtest.py
-EXCLUDE_TESTS += test^nim^step5   # test completes, even at 100,000
-EXCLUDE_TESTS += test^go^step5   # test completes, even at 100,000
-EXCLUDE_TESTS += test^php^step5  # test completes, even at 100,000
-EXCLUDE_TESTS += test^racket^step5 # test completes
-EXCLUDE_TESTS += test^ruby^step5 # test completes, even at 100,000
-EXCLUDE_TESTS += test^rust^step5 # no catching stack overflows
-EXCLUDE_TESTS += test^ocaml^step5 # test completes, even at 1,000,000
-EXCLUDE_TESTS += test^vb^step5   # completes at 10,000
-EXCLUDE_TESTS += test^crystal^step5   # test completes, even at 1,000,000
+regress_step0 = step0
+regress_step1 = step1
+regress_step2 = step2
+regress_step3 = $(regress_step2) step3
+regress_step4 = $(regress_step3) step4
+regress_step5 = $(regress_step4) step5
+regress_step6 = $(regress_step5) step6
+regress_step7 = $(regress_step6) step7
+regress_step8 = $(regress_step7) step8
+regress_step9 = $(regress_step8) step9
+regress_stepA = $(regress_step9) stepA
 
-EXCLUDE_PERFS = perf^mal  # TODO: fix this
+STEP5_EXCLUDES += awk     # completes at 10,000
+STEP5_EXCLUDES += bash    # no stack exhaustion or completion
+STEP5_EXCLUDES += c       # segfault
+STEP5_EXCLUDES += cpp     # completes at 10,000
+STEP5_EXCLUDES += cs      # fatal stack overflow fault
+STEP5_EXCLUDES += d       # completes at 10,000, fatal stack overflow at 1,000,000
+STEP5_EXCLUDES += erlang  # erlang is TCO, test passes
+STEP5_EXCLUDES += elixir  # elixir is TCO, test passes
+STEP5_EXCLUDES += fsharp  # completes at 10,000, fatal stack overflow at 100,000
+STEP5_EXCLUDES += haskell # test completes
+STEP5_EXCLUDES += make    # no TCO capability/step
+STEP5_EXCLUDES += mal     # no TCO capability/step
+STEP5_EXCLUDES += miniMAL # strange error with runtest.py
+STEP5_EXCLUDES += nim     # test completes, even at 100,000
+STEP5_EXCLUDES += go      # test completes, even at 100,000
+STEP5_EXCLUDES += php     # test completes, even at 100,000
+STEP5_EXCLUDES += racket  # test completes
+STEP5_EXCLUDES += ruby    # test completes, even at 100,000
+STEP5_EXCLUDES += rust    # no catching stack overflows
+STEP5_EXCLUDES += ocaml   # test completes, even at 1,000,000
+STEP5_EXCLUDES += vb      # completes at 10,000
+STEP5_EXCLUDES += crystal # test completes, even at 1,000,000
+
+PERF_EXCLUDES = mal  # TODO: fix this
 
 #
 # Utility functions
 #
 
-STEP_TEST_FILES = $(strip $(wildcard $(1)/tests/$($(2)).mal) $(wildcard tests/$($(2)).mal))
+# Return list of test files for a given step. If REGRESS is set then
+# test files will include step 2 tests through tests for the step
+# being tested.
+STEP_TEST_FILES = $(strip $(wildcard \
+		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
+		      $(1)/tests/$($(s)).mal tests/$($(s)).mal)))
 
+# Map of step (e.g. "step8") to executable file for that step
 awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
@@ -108,12 +131,17 @@ vb_STEP_TO_PROG =      vb/$($(1)).exe
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
 guile_STEP_TO_PROG =   guile/$($(1)).scm
 
+
 # Needed some argument munging
 COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
 export FACTOR_ROOTS := .
 
+# Macro for running a step:
+#   $(1): step (e.g. "stepA")
+#   $(2): program for step (e.g. result of *_STEP_TO_PROG
+#   $(3): program arguments
 awk_RUNSTEP =     awk -O -f ../$(2) $(3)
 bash_RUNSTEP =    bash ../$(2) $(3)
 c_RUNSTEP =       ../$(2) $(3)
@@ -172,7 +200,7 @@ STEPS = $(sort $(filter step%,$(.VARIABLES)))
 DO_IMPLS = $(filter-out $(SKIP_IMPLS),$(IMPLS))
 IMPL_TESTS = $(foreach impl,$(DO_IMPLS),test^$(impl))
 STEP_TESTS = $(foreach step,$(STEPS),test^$(step))
-ALL_TESTS = $(filter-out $(EXCLUDE_TESTS),\
+ALL_TESTS = $(filter-out $(foreach impl,$(STEP5_EXCLUDES),test^$(impl)^step5),\
               $(strip $(sort \
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
@@ -182,7 +210,7 @@ IMPL_STATS_LISP = $(foreach impl,$(DO_IMPLS),stats-lisp^$(impl))
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
-IMPL_PERF = $(filter-out $(EXCLUDE_PERFS),$(foreach impl,$(DO_IMPLS),perf^$(impl)))
+IMPL_PERF = $(foreach impl,$(filter-out $(PERF_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
 
 IMPL_REPL = $(foreach impl,$(DO_IMPLS),repl^$(impl))
 ALL_REPL = $(strip $(sort \
