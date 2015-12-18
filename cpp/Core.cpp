@@ -33,7 +33,7 @@ static StaticList<malBuiltIn*> handlers;
     static StaticList<malBuiltIn*>::Node HRECNAME(uniq) \
         (handlers, new malBuiltIn(symbol, FUNCNAME(uniq))); \
     malValuePtr FUNCNAME(uniq)(const String& name, \
-        malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
+        malValueIter argsBegin, malValueIter argsEnd)
 
 #define BUILTIN(symbol)  BUILTIN_DEF(__LINE__, symbol)
 
@@ -121,7 +121,7 @@ BUILTIN("apply")
         args.push_back(lastArg->item(i));
     }
 
-    return APPLY(op, args.begin(), args.end(), env->getRoot());
+    return APPLY(op, args.begin(), args.end());
 }
 
 BUILTIN("assoc")
@@ -227,7 +227,7 @@ BUILTIN("empty?")
 BUILTIN("eval")
 {
     CHECK_ARGS_IS(1);
-    return EVAL(*argsBegin, env->getRoot());
+    return EVAL(*argsBegin, NULL);
 }
 
 BUILTIN("first")
@@ -355,6 +355,21 @@ BUILTIN("slurp")
 BUILTIN("str")
 {
     return mal::string(printValues(argsBegin, argsEnd, "", false));
+}
+
+BUILTIN("swap!")
+{
+    CHECK_ARGS_AT_LEAST(2);
+    ARG(malAtom, atom);
+
+    malValuePtr op = *argsBegin++; // this gets checked in APPLY
+
+    malValueVec args(1 + argsEnd - argsBegin);
+    args[0] = atom->deref();
+    std::copy(argsBegin, argsEnd, args.begin() + 1);
+
+    malValuePtr value = APPLY(op, args.begin(), args.end());
+    return atom->reset(value);
 }
 
 BUILTIN("symbol")

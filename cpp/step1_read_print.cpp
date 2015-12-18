@@ -60,7 +60,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr)
     return ast;
 }
 
-malValuePtr APPLY(malValuePtr ast, malValueIter, malValueIter, malEnvPtr)
+malValuePtr APPLY(malValuePtr ast, malValueIter, malValueIter)
 {
     return ast;
 }

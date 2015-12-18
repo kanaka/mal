@@ -59,14 +59,13 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
-                  malEnvPtr env)
+malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
     MAL_CHECK(handler != NULL,
               "\"%s\" is not applicable", op->print(true).c_str());
 
-    return handler->apply(argsBegin, argsEnd, env);
+    return handler->apply(argsBegin, argsEnd);
 }
 
 #define ARG(type, name) type* name = VALUE_CAST(type, *argsBegin++)
@@ -79,7 +78,7 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
 
 
 static malValuePtr builtIn_add(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
+    malValueIter argsBegin, malValueIter argsEnd)
 {
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
@@ -88,7 +87,7 @@ static malValuePtr builtIn_add(const String& name,
 }
 
 static malValuePtr builtIn_sub(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
+    malValueIter argsBegin, malValueIter argsEnd)
 {
         int argCount = CHECK_ARGS_BETWEEN(1, 2);
         ARG(malInteger, lhs);
@@ -100,7 +99,7 @@ static malValuePtr builtIn_sub(const String& name,
 }
 
 static malValuePtr builtIn_mul(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
+    malValueIter argsBegin, malValueIter argsEnd)
 {
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
@@ -109,7 +108,7 @@ static malValuePtr builtIn_mul(const String& name,
 }
 
 static malValuePtr builtIn_div(const String& name,
-    malValueIter argsBegin, malValueIter argsEnd, malEnvPtr env)
+    malValueIter argsBegin, malValueIter argsEnd)
 {
         CHECK_ARGS_IS(2);
         ARG(malInteger, lhs);
