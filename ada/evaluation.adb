@@ -374,7 +374,7 @@ package body Evaluation is
 		     elsif Atom_P.Get_Atom = "defmacro!" then
 			return Def_Macro (Rest_List, Env);
 		     elsif Atom_P.Get_Atom = "macroexpand" then
-			return Macro_Expand (Rest_Handle, Env);
+			return Macro_Expand (Car (Rest_List), Env);
 		     elsif Atom_P.Get_Atom = "let*" then
 			return Let_Processing (Rest_List, Env);
 		     elsif Atom_P.Get_Atom = "do" then
