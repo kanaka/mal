@@ -59,30 +59,34 @@ package body Evaluation is
    function Macro_Expand (Ast : Mal_Handle; Env : Envs.Env_Handle)
    return Mal_Handle is
       Res : Mal_Handle;
-      LP : Lambda_Ptr;
+      E : Envs.Env_Handle;
       LMT : List_Mal_Type;
+      LP : Lambda_Ptr;
    begin
 
       Res := Ast;
+      E := Env;
 
       loop
 
          if Deref (Res).Sym_Type /= List then
-            return Res;
+            exit;
          end if;
 
          LMT := Deref_List (Res).all;
 
-         LP := Get_Macro (Res, Env);
+         -- Get the macro in the list from the env
+         -- or return null if not applicable.
+         LP := Get_Macro (Res, E);
 
       exit when LP = null or else not LP.Get_Is_Macro;
 
 	  declare
 	     Fn_List : Mal_Handle := Cdr (LMT);
 	     Params : List_Mal_Type;
-	     E : Envs.Env_Handle;
 	  begin
-	     E := Envs.New_Env (LP.Get_Env);
+	     E := Envs.New_Env (E);
+
 	     Params := Deref_List (LP.Get_Params).all;
 	     if Envs.Bind (E, Params, Deref_List (Fn_List).all) then
 
@@ -102,13 +106,13 @@ package body Evaluation is
    function Let_Processing (Args : List_Mal_Type; Env : Envs.Env_Handle)
 			   return Mal_Handle is
       Defs, Expr, Res : Mal_Handle;
+      E : Envs.Env_Handle;
    begin
-      Envs.New_Env;
+      E := Envs.New_Env (Env);
       Defs := Car (Args);
-      Add_Defs (Deref_List (Defs).all, Envs.Get_Current);
+      Add_Defs (Deref_List (Defs).all, E);
       Expr := Car (Deref_List (Cdr (Args)).all);
-      Res := Eval (Expr, Envs.Get_Current);
-      Envs.Delete_Env;
+      Res := Eval (Expr, E);
       return Res;
    end Let_Processing;
 

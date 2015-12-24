@@ -135,12 +135,19 @@ package body Reader is
 
          when ';' => -- a comment
 
-            Res := Smart_Pointers.Null_Smart_Pointer;
-            while Saved_Line (J) /= ACL.LF loop
+            -- Read to the end of the line or until
+            -- the saved_line string is exhausted.
+            -- NB if we reach the end we don't care
+            -- what the last char was.
+            while J < Str_Len and Saved_Line (J) /= ACL.LF loop
                J := J + 1;
             end loop;
-            Char_To_Read := J + 1;
-            Res := Get_Token;
+            if J = Str_Len then
+               Res := Smart_Pointers.Null_Smart_Pointer;
+            else
+               Char_To_Read := J + 1;
+               Res := Get_Token;
+            end if;
 
          when others => -- an atom
 
