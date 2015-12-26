@@ -97,7 +97,7 @@ private fun quasiquote(ast: MalType): MalType {
     if (is_pair(first) && ((first as ISeq).first() as? MalSymbol)?.value == "splice-unquote") {
         val spliced = MalList()
         spliced.conj_BANG(MalSymbol("concat"))
-        spliced.conj_BANG((first as ISeq).nth(1))
+        spliced.conj_BANG(first.nth(1))
         spliced.conj_BANG(quasiquote(MalList(seq.seq().drop(1).toCollection(LinkedList<MalType>()))))
         return spliced
     }

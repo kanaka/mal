@@ -30,7 +30,7 @@ class Env(val outer: Env?, binds: Sequence<MalSymbol>?, exprs: Sequence<MalType>
         return value
     }
 
-    fun find(key: MalSymbol): MalType? = data.getOrElse(key.value) { outer?.find(key) }
+    fun find(key: MalSymbol): MalType? = data[key.value] ?: outer?.find(key)
 
     fun get(key: MalSymbol): MalType = find(key) ?: throw MalException("'${key.value}' not found")
 }
