@@ -80,6 +80,8 @@ package body Reader is
       Dots : Natural;
       All_Digits : Boolean;
    begin
+
+      <<Tail_Call_Opt>>
       I := Char_To_Read;
       while I <= Str_Len and then
             Ada.Strings.Maps.Is_In (Saved_Line (I), Lisp_Whitespace) loop
@@ -146,7 +148,8 @@ package body Reader is
                Res := Smart_Pointers.Null_Smart_Pointer;
             else
                Char_To_Read := J + 1;
-               Res := Get_Token;
+               -- was: Res := Get_Token;
+               goto Tail_Call_Opt;
             end if;
 
          when others => -- an atom
