@@ -190,6 +190,46 @@ package body Core is
    end Nth;
 
 
+   function Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Func_Handle, List_Handle, Results_Handle : Mal_Handle;
+      Rest_List, The_List, Results_List : List_Mal_Type;
+
+   begin
+
+      -- The rest of the line.
+      Rest_List := Deref_List (Rest_Handle).all;
+
+      Func_Handle := Car (Rest_List);
+      List_Handle := Car (Deref_List (Cdr (Rest_List)).all);
+      The_List := Deref_List (List_Handle).all;
+
+      Results_Handle := New_List_Mal_Type (List_List);
+      Results_List := Deref_List (Results_Handle).all;
+
+      while not Is_Null (The_List) loop
+         declare
+            Parts_Handle : Mal_Handle;
+            Parts_List : List_Mal_Type;
+         begin
+            Parts_Handle := New_List_Mal_Type (List_List);
+            Parts_List := Deref_List (Parts_Handle).all;
+            Append (Parts_List, Func_Handle);
+            Append (Parts_List, Car (The_List));
+
+            The_List := Deref_List (Cdr (The_List)).all;
+
+            -- Using a Parts_Handle below doesn't work.
+            Append
+              (Results_List,
+               Evaluation.Eval (New_List_Mal_Type (Parts_List), Env));
+         end;
+      end loop;
+      return New_List_Mal_Type (Results_List);
+   end Map;
+
+
    function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
@@ -410,6 +450,10 @@ package body Core is
       Set (Get_Current,
            "nth",
            New_Func_Mal_Type ("nth", Nth'access));
+
+      Set (Get_Current,
+           "map",
+           New_Func_Mal_Type ("map", Map'access));
 
       Set (Get_Current,
            "list",
