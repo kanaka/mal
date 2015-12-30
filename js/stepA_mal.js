@@ -21,7 +21,7 @@ function is_pair(x) {
 function quasiquote(ast) {
     if (!is_pair(ast)) {
         return [types._symbol("quote"), ast];
-    } else if (ast[0].value === 'unquote') {
+    } else if (types._symbol_Q(ast[0]) && ast[0].value === 'unquote') {
         return ast[1];
     } else if (is_pair(ast[0]) && ast[0][0].value === 'splice-unquote') {
         return [types._symbol("concat"),

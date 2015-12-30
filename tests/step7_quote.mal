@@ -49,6 +49,10 @@
 ;=>(1 2 (3 4))
 `(1 2 (3 4))
 ;=>(1 2 (3 4))
+(quasiquote (nil))
+;=>(nil)
+`(nil)
+;=>(nil)
 
 
 ;; Testing unquote
