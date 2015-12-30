@@ -13,7 +13,7 @@ is_pair = (x) -> types._sequential_Q(x) && x.length > 0
 
 quasiquote = (ast) ->
   if !is_pair(ast) then [types._symbol('quote'), ast]
-  else if ast[0].name == 'unquote' then ast[1]
+  else if ast[0] != null && ast[0].name == 'unquote' then ast[1]
   else if is_pair(ast[0]) && ast[0][0].name == 'splice-unquote'
     [types._symbol('concat'), ast[0][1], quasiquote(ast[1..])]
   else
