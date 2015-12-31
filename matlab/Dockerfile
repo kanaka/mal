@@ -27,9 +27,8 @@ RUN apt-get -y install maven2
 ENV MAVEN_OPTS -Duser.home=/mal
 
 # GNU Octave
-RUN apt-get update -y
-RUN apt-get -y install software-properties-common
-RUN apt-add-repository -y ppa:octave/stable
-RUN apt-get update -y
-RUN apt-get -y install octave
+RUN apt-get -y install software-properties-common && \
+    apt-add-repository -y ppa:octave/stable && \
+    apt-get -y update && \
+    apt-get -y install octave
 
