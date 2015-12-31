@@ -8,7 +8,7 @@ classdef printer
             case 'double'
                 str = num2str(obj);
             case 'char'
-                if types.keyword_Q(obj)
+                if type_utils.keyword_Q(obj)
                     str = sprintf(':%s', obj(2:end));
                 else
                     if print_readably

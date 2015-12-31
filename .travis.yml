@@ -31,7 +31,7 @@ matrix:
     - {env: IMPL=lua,       services: [docker]}
     - {env: IMPL=make,      services: [docker]}
     - {env: IMPL=mal BUILD_IMPL=js NO_PERF=1, services: [docker]}
-    #- {env: IMPL=matlab, services: [docker]} # licensed (until port to Octave)
+    - {env: IMPL=matlab, services: [docker]} # Uses Octave
     - {env: IMPL=miniMAL BUILD_IMPL=js, services: [docker]}
     - {env: IMPL=nim,       services: [docker]}
     - {env: IMPL=ocaml,     services: [docker]}

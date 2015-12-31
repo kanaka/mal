@@ -5,6 +5,7 @@
 MAL_IMPL = js
 
 PYTHON = python
+USE_MATLAB =
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -61,6 +62,7 @@ STEP5_EXCLUDES += fsharp  # completes at 10,000, fatal stack overflow at 100,000
 STEP5_EXCLUDES += haskell # test completes
 STEP5_EXCLUDES += make    # no TCO capability/step
 STEP5_EXCLUDES += mal     # no TCO capability/step
+STEP5_EXCLUDES += matlab  # too slow to complete 10,000
 STEP5_EXCLUDES += miniMAL # strange error with runtest.py
 STEP5_EXCLUDES += nim     # test completes, even at 100,000
 STEP5_EXCLUDES += go      # test completes, even at 100,000
@@ -77,6 +79,11 @@ PERF_EXCLUDES = mal  # TODO: fix this
 #
 # Utility functions
 #
+
+MATLAB = matlab -nodisplay -nosplash -nodesktop -nojvm -r
+OCTAVE = octave --no-gui -q --traditional --eval
+matlab_args = $(subst $(SPACE),$(COMMA),$(foreach x,$(strip $(1)),'$(x)'))
+matlab_cmd = $(if $(strip $(USE_MATLAB)),$(MATLAB),$(OCTAVE))
 
 # Return list of test files for a given step. If REGRESS is set then
 # test files will include step 2 tests through tests for the step
@@ -168,8 +175,7 @@ lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,stepA,$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
-matlab_args =     $(subst $(SPACE),$(COMMA),$(foreach x,$(strip $(1)),'$(x)'))
-matlab_RUNSTEP =  matlab -nodisplay -nosplash -nodesktop -nojvm -r "$($(1))($(call matlab_args,$(3)));quit;"
+matlab_RUNSTEP =  $(matlab_cmd) "$($(1))($(call matlab_args,$(3)));quit;"
 miniMAL_RUNSTEP = miniMAL ../$(2) $(3)
 nim_RUNSTEP =     ../$(2) $(3)
 perl_RUNSTEP =    perl ../$(2) $(3)

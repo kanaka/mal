@@ -23,14 +23,17 @@ end
 function main(args)
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
     while (true)
-        line = input('user> ', 's');
+        try
+            line = input('user> ', 's');
+        catch err
+            return
+        end
         if strcmp(strtrim(line),''), continue, end
         try
             fprintf('%s\n', rep(line, ''));
         catch err
             fprintf('Error: %s\n', err.message);
-            fprintf('%s\n', getReport(err, 'extended'));
-            %fprintf('%s\n', lasterror(err).stack.file);
+            type_utils.print_stack(err);
         end
     end
 end

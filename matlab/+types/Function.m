@@ -4,8 +4,8 @@ classdef Function < handle
         ast
         env
         params
-        is_macro = false
-        meta = types.nil;
+        is_macro = false;
+        meta = type_utils.nil;
     end
     methods
         function f = Function(fn, ast, env, params)

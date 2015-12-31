@@ -1,11 +1,12 @@
 classdef List < handle
     properties
-        data = {}
-        meta = types.nil;
+        data
+        meta
     end
     methods
         function obj = List(varargin)
             obj.data = varargin;
+            meta = type_utils.nil;
         end
 
         function len = length(obj)

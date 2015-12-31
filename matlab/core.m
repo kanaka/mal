@@ -1,8 +1,19 @@
 classdef core
     methods(Static)
         function ret = throw(obj)
-            ret = types.nil;
-            throw(types.MalException(obj));
+            ret = type_utils.nil;
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                % Until Octave has MException objects, we need to
+                % store the error object globally to be able to pass
+                % it to the error handler.
+                global error_object;
+                error_object = obj;
+                exc = struct('identifier', 'MalException:object',...
+                             'message', 'MalException');
+                rethrow(exc);
+            else
+                throw(types.MalException(obj));
+            end
         end
 
         function str = pr_str(varargin)
@@ -19,13 +30,13 @@ classdef core
             strs = cellfun(@(s) printer.pr_str(s,true), varargin, ...
                     'UniformOutput', false);
             fprintf('%s\n', strjoin(strs, ' '));
-            ret = types.nil;
+            ret = type_utils.nil;
         end
         function ret = println(varargin)
             strs = cellfun(@(s) printer.pr_str(s,false), varargin, ...
                     'UniformOutput', false);
             fprintf('%s\n', strjoin(strs, ' '));
-            ret = types.nil;
+            ret = type_utils.nil;
         end
 
         function ret = time_ms()
@@ -43,17 +54,21 @@ classdef core
         function new_hm = dissoc(hm, varargin)
             new_hm = clone(hm);
             ks = intersect(hm.keys(),varargin);
-            remove(new_hm.data, ks);
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                new_hm.data.remove(ks);
+            else
+                remove(new_hm.data, ks);
+            end
         end
 
         function ret = get(hm, key)
-            if hm == types.nil
-                ret = types.nil;
+            if isa(hm, 'types.Nil')
+                ret = type_utils.nil;
             else
                 if hm.data.isKey(key)
                     ret = hm.data(key);
                 else
-                    ret = types.nil;
+                    ret = type_utils.nil;
                 end
             end
         end
@@ -86,7 +101,7 @@ classdef core
 
         function ret = first(seq)
             if length(seq) < 1
-                ret = types.nil;
+                ret = type_utils.nil;
             else
                 ret = seq.get(1);
             end
@@ -135,7 +150,7 @@ classdef core
                   'types.HashMap', 'types.Function'}
                 meta = obj.meta;
             otherwise
-                meta = types.nil;
+                meta = type_utils.nil;
             end
         end
 
@@ -154,24 +169,28 @@ classdef core
         end
 
         function n = ns()
-            n = containers.Map();
-            n('=') =  @types.equal;
-            n('throw') = @core.throw;
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                n = Dict();
+            else
+                n = containers.Map();
+            end
+            n('=') =  @(a,b) type_utils.equal(a,b);
+            n('throw') = @(a) core.throw(a);
             n('nil?') = @(a) isa(a, 'types.Nil');
             n('true?') = @(a) isa(a, 'logical') && a == true;
             n('false?') = @(a) isa(a, 'logical') && a == false;
             n('symbol') = @(a) types.Symbol(a);
             n('symbol?') = @(a) isa(a, 'types.Symbol');
-            n('keyword') = @types.keyword;
-            n('keyword?') = @types.keyword_Q;
+            n('keyword') = @(a) type_utils.keyword(a);
+            n('keyword?') = @(a) type_utils.keyword_Q(a);
 
-            n('pr-str') = @core.pr_str;
-            n('str') = @core.do_str;
-            n('prn') = @core.prn;
-            n('println') = @core.println;
-            n('read-string') = @reader.read_str;
+            n('pr-str') = @(varargin) core.pr_str(varargin{:});
+            n('str') = @(varargin) core.do_str(varargin{:});
+            n('prn') = @(varargin) core.prn(varargin{:});
+            n('println') = @(varargin) core.println(varargin{:});
+            n('read-string') = @(a) reader.read_str(a);
             n('readline') = @(p) input(p, 's');
-            n('slurp') = @fileread;
+            n('slurp') = @(a) fileread(a);
 
             n('<') =  @(a,b) a<b;
             n('<=') = @(a,b) a<=b;
@@ -181,40 +200,41 @@ classdef core
             n('-') =  @(a,b) a-b;
             n('*') =  @(a,b) a*b;
             n('/') =  @(a,b) floor(a/b);
-            n('time-ms') = @core.time_ms;
+            n('time-ms') = @() core.time_ms();
 
             n('list') = @(varargin) types.List(varargin{:});
-            n('list?') = @types.list_Q;
+            n('list?') = @(a) type_utils.list_Q(a);
             n('vector') = @(varargin) types.Vector(varargin{:});
-            n('vector?') = @types.vector_Q;
+            n('vector?') = @(a) type_utils.vector_Q(a);
             n('hash-map') = @(varargin) types.HashMap(varargin{:});
-            n('map?') = @types.hash_map_Q;
-            n('assoc') = @core.assoc;
-            n('dissoc') = @core.dissoc;
-            n('get') = @core.get;
+            n('map?') = @(a) type_utils.hash_map_Q(a);
+            n('assoc') = @(varargin) core.assoc(varargin{:});
+            n('dissoc') = @(varargin) core.dissoc(varargin{:});
+            n('get') = @(a,b) core.get(a,b);
             n('contains?') = @(a,b) a.data.isKey(b);
-            n('keys') = @core.keys;
-            n('vals') = @core.vals;
+            n('keys') = @(a) core.keys(a);
+            n('vals') = @(a) core.vals(a);
 
-            n('sequential?') = @types.sequential_Q;
-            n('cons') = @core.cons;
-            n('concat') = @core.concat;
-            n('nth') = @core.nth;
-            n('first') = @core.first;
-            n('rest') = @core.rest;
+            n('sequential?') = @(a) type_utils.sequential_Q(a);
+            n('cons') = @(a,b) core.cons(a,b);
+            n('concat') = @(varargin) core.concat(varargin{:});
+            n('nth') = @(a,b) core.nth(a,b);
+            n('first') = @(a) core.first(a);
+            n('rest') = @(a) core.rest(a);
             n('empty?') = @(a) length(a) == 0;
-            n('count') = @(a) length(a);
-            n('apply') = @core.apply;
-            n('map') = @core.map;
+            % workaround Octave always giving length(a) of 1
+            n('count') = @(a) 0 + length(a);
+            n('apply') = @(varargin) core.apply(varargin{:});
+            n('map') = @(varargin) core.map(varargin{:});
             n('conj') = @(x) disp('not implemented yet');
 
-            n('with-meta') = @core.with_meta;
-            n('meta') = @core.meta;
-            n('atom') = @types.Atom;
+            n('with-meta') = @(a,b) core.with_meta(a,b);
+            n('meta') = @(a) core.meta(a);
+            n('atom') = @(a) types.Atom(a);
             n('atom?') = @(a) isa(a, 'types.Atom');
             n('deref') = @(a) a.val;
-            n('reset!') = @core.reset_BANG;
-            n('swap!') = @core.swap_BANG;
+            n('reset!') = @(a,b) core.reset_BANG(a,b);
+            n('swap!') = @(varargin) core.swap_BANG(varargin{:});
         end
     end
 end
