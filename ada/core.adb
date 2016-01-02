@@ -230,6 +230,45 @@ package body Core is
    end Map;
 
 
+   function Symbol (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Sym_Handle, Res : Mal_Handle;
+      Rest_List : List_Mal_Type;
+
+   begin
+
+      -- The rest of the line.
+      Rest_List := Deref_List (Rest_Handle).all;
+
+      Sym_Handle := Car (Rest_List);
+
+      declare
+        The_String : Mal_String :=
+          Deref_String (Sym_Handle).Get_String;
+      begin
+
+         Res := New_Atom_Mal_Type
+                  (The_String (The_String'First + 1 .. The_String'Last - 1));
+
+      end;
+      return Res;
+   end Symbol;
+
+
+   function Is_Symbol (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Sym_Handle : Mal_Handle;
+      Rest_List : List_Mal_Type;
+
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      Sym_Handle := Car (Rest_List);
+      return New_Bool_Mal_Type (Deref (Sym_Handle).Sym_Type = Atom);
+   end Is_Symbol;
+
+
    function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
@@ -454,6 +493,14 @@ package body Core is
       Set (Get_Current,
            "map",
            New_Func_Mal_Type ("map", Map'access));
+
+      Set (Get_Current,
+           "symbol",
+           New_Func_Mal_Type ("symbol", Symbol'access));
+
+      Set (Get_Current,
+           "symbol?",
+           New_Func_Mal_Type ("symbol?", Is_Symbol'access));
 
       Set (Get_Current,
            "list",
