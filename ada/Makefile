@@ -1,8 +1,11 @@
+DIRS=obj
 PROGS=step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
 	step5_tco step6_file step7_quote step8_macros step9_try
 
-all:	${PROGS}
+all:	${DIRS} ${PROGS}
 
+${DIRS}:
+	mkdir -p $@
 
 step0_repl:	step0_repl.adb
 	gnatmake -g -P$@
@@ -44,4 +47,5 @@ step9_try:	step9_try.adb types.ad[bs] reader.ad[bs]  printer.ad[bs] \
 	gnatmake -g -gnata -P$@
 
 clean:
-	rm -f obj/* ${PROGS}
+	rm -f ${PROGS}
+	rm -rf obj
