@@ -108,6 +108,8 @@ M: callable apply call( x -- y ) f ;
         eval-ast
     ] if ;
 
+[ apply [ EVAL ] when* ] mal-apply set-global
+
 : PRINT ( maltype -- str ) pr-str ;
 
 : REP ( str -- str )
