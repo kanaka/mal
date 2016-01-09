@@ -22,9 +22,10 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 # Settings
 #
 
-IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elixir es6 factor forth fsharp go groovy \
-	guile haskell java julia js kotlin lua make mal ocaml matlab miniMAL nim \
-	perl php ps python r racket rpython ruby rust scala swift tcl vb vimscript
+IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elixir es6 \
+	factor forth fsharp go groovy guile haskell haxe java julia \
+	js kotlin lua make mal ocaml matlab miniMAL nim perl php ps \
+	python r racket rpython ruby rust scala swift tcl vb vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -112,6 +113,7 @@ go_STEP_TO_PROG =      go/$($(1))
 groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 haskell_STEP_TO_PROG = haskell/$($(1))
+haxe_STEP_TO_PROG =    haxe/$($(1)).py
 julia_STEP_TO_PROG =   julia/$($(1)).jl
 js_STEP_TO_PROG =      js/$($(1)).js
 kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
@@ -167,6 +169,7 @@ fsharp_RUNSTEP =  mono ../$(2) --raw $(3)
 go_RUNSTEP =      ../$(2) $(3)
 groovy_RUNSTEP =  groovy ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
+haxe_RUNSTEP =    python3 ../$(2) $(3)
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
 julia_RUNSTEP =   ../$(2) $(3)
 js_RUNSTEP =      node ../$(2) $(3)
