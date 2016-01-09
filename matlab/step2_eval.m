@@ -9,11 +9,7 @@ end
 function ret = eval_ast(ast, env)
     switch class(ast)
     case 'types.Symbol'
-        %if exist('OCTAVE_VERSION', 'builtin') ~= 0
-        %    ret = env.(ast.name);
-        %else
-            ret = env(ast.name);
-        %end
+        ret = env(ast.name);
     case 'types.List'
         ret = types.List();
         for i=1:length(ast)

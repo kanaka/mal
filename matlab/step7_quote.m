@@ -95,14 +95,14 @@ function ret = EVAL(ast, env)
            if length(ast) > 3
                ast = ast.get(4); % TCO
             else
-               ret = types.nil;
+               ret = type_utils.nil;
                return;
             end
         else
             ast = ast.get(3); % TCO
         end
     case 'fn*'
-        fn = @(varargin) EVAL(ast.get(3), Env(env, ast.get(2), ...
+        fn = @(varargin) EVAL(ast.get(3), Env({env}, ast.get(2), ...
                                               types.List(varargin{:})));
         ret = types.Function(fn, ast.get(3), env, ast.get(2));
         return;
