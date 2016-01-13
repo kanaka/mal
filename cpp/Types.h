@@ -227,8 +227,7 @@ public:
     malApplicable(malValuePtr meta) : malValue(meta) { }
 
     virtual malValuePtr apply(malValueIter argsBegin,
-                               malValueIter argsEnd,
-                               malEnvPtr env) const = 0;
+                               malValueIter argsEnd) const = 0;
 };
 
 class malHash : public malValue {
@@ -263,8 +262,7 @@ class malBuiltIn : public malApplicable {
 public:
     typedef malValuePtr (ApplyFunc)(const String& name,
                                     malValueIter argsBegin,
-                                    malValueIter argsEnd,
-                                    malEnvPtr env);
+                                    malValueIter argsEnd);
 
     malBuiltIn(const String& name, ApplyFunc* handler)
     : m_name(name), m_handler(handler) { }
@@ -273,8 +271,7 @@ public:
     : malApplicable(meta), m_name(that.m_name), m_handler(that.m_handler) { }
 
     virtual malValuePtr apply(malValueIter argsBegin,
-                              malValueIter argsEnd,
-                              malEnvPtr env) const;
+                              malValueIter argsEnd) const;
 
     virtual String print(bool readably) const {
         return STRF("#builtin-function(%s)", m_name.c_str());
@@ -300,8 +297,7 @@ public:
     malLambda(const malLambda& that, bool isMacro);
 
     virtual malValuePtr apply(malValueIter argsBegin,
-                              malValueIter argsEnd,
-                              malEnvPtr env) const;
+                              malValueIter argsEnd) const;
 
     malValuePtr getBody() const { return m_body; }
     malEnvPtr makeEnv(malValueIter argsBegin, malValueIter argsEnd) const;

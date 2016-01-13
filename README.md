@@ -149,6 +149,9 @@ mono ./stepX_YYY.exe
 
 ### Clojure
 
+For the most part the Clojure implementation requires Clojure 1.5,
+however, to pass all tests, Clojure 1.8.0-RC4 is required.
+
 ```
 cd clojure
 lein with-profile +stepX trampoline run
@@ -651,6 +654,39 @@ make MAL_IMPL=ruby "test^mal^step2"
 make MAL_IMPL=python "test^mal^step2"
 ```
 
+### Starting the REPL
+
+* To start the REPL of an implementation in a specific step:
+
+```
+make "repl^IMPL^stepX"
+
+# e.g
+make "repl^ruby^step3"
+make "repl^ps^step4"
+```
+
+* If you omit the step, then `stepA` is used:
+
+```
+make "repl^IMPL"
+
+# e.g
+make "repl^ruby"
+make "repl^ps"
+```
+
+* To start the REPL of the self-hosted implementation, specify `mal` as the
+  REPL implementation and use the `MAL_IMPL` make variable to change the
+  underlying host language (default is JavaScript):
+```
+make MAL_IMPL=IMPL "repl^mal^stepX"
+
+# e.g.
+make "repl^mal^step2"   # js is default
+make MAL_IMPL=ruby "repl^mal^step2"
+make MAL_IMPL=python "repl^mal"
+```
 
 ### Performance tests
 

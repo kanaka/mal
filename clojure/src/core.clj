@@ -1,5 +1,6 @@
 (ns core
-  (:require [readline]))
+  (:require [readline]
+            [printer]))
 
 ;; Errors/exceptions
 (defn mal_throw [obj]
@@ -27,7 +28,7 @@
    ['keyword? keyword?]
 
    ['pr-str pr-str]
-   ['str str]
+   ['str printer/_str]
    ['prn prn]
    ['println println]
    ['readline readline/readline]

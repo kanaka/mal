@@ -14,4 +14,4 @@ shift
 if [ x$DEBUG = x ] ; then
   exec 2> /dev/null
 fi
-exec vim -i NONE -V1 -nNesS $vimscriptfile -- "$@"
+exec vim -i NONE -V1 -nNesS $vimscriptfile -- "$@" | cat

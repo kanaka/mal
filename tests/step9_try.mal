@@ -268,6 +268,29 @@
 (dissoc {:cde nil :fgh 456} :cde)
 ;=>{:fgh 456}
 
+;;
+;; Additional str and pr-str tests
+
+(str "A" {:abc "val"} "Z")
+;=>"A{:abc val}Z"
+
+(str true "." false "." nil "." :keyw "." 'symb)
+;=>"true.false.nil.:keyw.symb"
+
+(pr-str "A" {:abc "val"} "Z")
+;=>"\"A\" {:abc \"val\"} \"Z\""
+
+(pr-str true "." false "." nil "." :keyw "." 'symb)
+;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
+
+(def! s (str {:abc "val1" :def "val2"}))
+(or (= s "{:abc val1 :def val2}") (= s "{:def val2 :abc val1}"))
+;=>true
+
+(def! p (pr-str {:abc "val1" :def "val2"}))
+(or (= p "{:abc \"val1\" :def \"val2\"}") (= p "{:def \"val2\" :abc \"val1\"}"))
+;=>true
+
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
 ;>>> soft=True

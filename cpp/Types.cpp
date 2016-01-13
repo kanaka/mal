@@ -112,10 +112,9 @@ namespace mal {
 };
 
 malValuePtr malBuiltIn::apply(malValueIter argsBegin,
-                              malValueIter argsEnd,
-                              malEnvPtr env) const
+                              malValueIter argsEnd) const
 {
-    return m_handler(m_name, argsBegin, argsEnd, env);
+    return m_handler(m_name, argsBegin, argsEnd);
 }
 
 static String makeHashKey(malValuePtr key)
@@ -302,8 +301,7 @@ malLambda::malLambda(const malLambda& that, bool isMacro)
 }
 
 malValuePtr malLambda::apply(malValueIter argsBegin,
-                             malValueIter argsEnd,
-                             malEnvPtr) const
+                             malValueIter argsEnd) const
 {
     return EVAL(m_body, makeEnv(argsBegin, argsEnd));
 }
@@ -342,7 +340,7 @@ malValuePtr malList::eval(malEnvPtr env)
     std::unique_ptr<malValueVec> items(evalItems(env));
     auto it = items->begin();
     malValuePtr op = *it;
-    return APPLY(op, ++it, items->end(), env);
+    return APPLY(op, ++it, items->end());
 }
 
 String malList::print(bool readably) const

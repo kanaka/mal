@@ -12,11 +12,12 @@ String PRINT(malValuePtr ast);
 
 static ReadLine s_readLine("~/.mal-history");
 
+static malEnvPtr replEnv(new malEnv);
+
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    malEnvPtr replEnv(new malEnv);
     installCore(replEnv);
     while (s_readLine.get(prompt, input)) {
         String out;
@@ -46,6 +47,9 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
+    if (!env) {
+        env = replEnv;
+    }
     const malList* list = DYNAMIC_CAST(malList, ast);
     if (!list || (list->count() == 0)) {
         return ast->eval(env);
@@ -81,7 +85,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
     // Now we're left with the case of a regular list to be evaluated.
     std::unique_ptr<malValueVec> items(list->evalItems(env));
     malValuePtr op = items->at(0);
-    return APPLY(op, items->begin()+1, items->end(), env);
+    return APPLY(op, items->begin()+1, items->end());
 }
 
 String PRINT(malValuePtr ast)
@@ -89,14 +93,13 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
-                  malEnvPtr env)
+malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
     MAL_CHECK(handler != NULL,
               "\"%s\" is not applicable", op->print(true).c_str());
 
-    return handler->apply(argsBegin, argsEnd, env);
+    return handler->apply(argsBegin, argsEnd);
 }
 
 // Added to keep the linker happy at step A

@@ -19,11 +19,12 @@ static void installMacros(malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
+static malEnvPtr replEnv(new malEnv);
+
 int main(int argc, char* argv[])
 {
     String prompt = "user> ";
     String input;
-    malEnvPtr replEnv(new malEnv);
     installCore(replEnv);
     installFunctions(replEnv);
     installMacros(replEnv);
@@ -75,6 +76,9 @@ malValuePtr READ(const String& input)
 
 malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
 {
+    if (!env) {
+        env = replEnv;
+    }
     while (1) {
         const malList* list = DYNAMIC_CAST(malList, ast);
         if (!list || (list->count() == 0)) {
@@ -186,7 +190,7 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             continue; // TCO
         }
         else {
-            return APPLY(op, items->begin()+1, items->end(), env);
+            return APPLY(op, items->begin()+1, items->end());
         }
     }
 }
@@ -196,14 +200,13 @@ String PRINT(malValuePtr ast)
     return ast->print(true);
 }
 
-malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd,
-                  malEnvPtr env)
+malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
 {
     const malApplicable* handler = DYNAMIC_CAST(malApplicable, op);
     MAL_CHECK(handler != NULL,
               "\"%s\" is not applicable", op->print(true).c_str());
 
-    return handler->apply(argsBegin, argsEnd, env);
+    return handler->apply(argsBegin, argsEnd);
 }
 
 static bool isSymbol(malValuePtr obj, const String& text)
@@ -271,7 +274,7 @@ static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
 {
     while (const malLambda* macro = isMacroApplication(obj, env)) {
         const malSequence* seq = STATIC_CAST(malSequence, obj);
-        obj = macro->apply(seq->begin() + 1, seq->end(), env);
+        obj = macro->apply(seq->begin() + 1, seq->end());
     }
     return obj;
 }
