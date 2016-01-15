@@ -11,19 +11,35 @@ class Printer {
             case MalTrue: "true";
             case MalFalse: "false";
             case MalInt(v): Std.string(v);
+            case MalSymbol(v): v;
             case MalString(v):
-                if (_r) {
-                    '"' + v + '"';
+                var re1 = ~/\\/g,
+                    re2 = ~/"/g,
+                    re3 = ~/\n/g;
+                //if (haxe.Utf8.charCodeAt(v, 0) == 255) {
+                if (v.charAt(0) == "\x7f") {
+                    ":" + v.substr(1);
+                } else if (_r) {
+                    '"' + re3.replace(
+                            re2.replace(
+                              re1.replace(v, "\\\\"),
+                              '\\"'),
+                            "\\n") + '"';
                 } else {
                     v;
                 }
-            case MalSymbol(v): Std.string(v);
             case MalList(l):
                 var lst = l.map(function(e) {return pr_str(e,_r);});
-                "(" + lst.join(" ") + ")";
+                '(${lst.join(" ")})';
             case MalVector(l):
                 var lst = l.map(function(e) {return pr_str(e,_r);});
-                "[" + lst.join(" ") + "]";
+                '[${lst.join(" ")}]';
+            case MalFunc(f,ast,_,params):
+                if (ast != null) {
+                    '(fn* ${pr_str(params,true)} ${pr_str(ast)})';
+                } else {
+                    "#<native function>";
+                }
             case _: throw "unknown type for printing";
         }
     }

@@ -32,10 +32,11 @@ class Reader {
         var pos = 0;
         while (re.matchSub(str, pos)) {
             var t = re.matched(1);
-            if (t == "" || t.charAt(0) == ";") { break; }
-            tokens.push(t);
+            if (t == "") { break; }
             var pos_len = re.matchedPos();
             pos = pos_len.pos + pos_len.len;
+            if (t.charAt(0) == ";") { continue; }
+            tokens.push(t);
 
         }
         return tokens;
@@ -52,10 +53,20 @@ class Reader {
                 MalTrue;
             case "false":
                 MalFalse;
+            case _ if (token.charAt(0) == ":"):
+                MalString("\x7f" + token.substr(1));
             case _ if (re_int.match(token)):
                 MalInt(Std.parseInt(token));
             case _ if (re_str.match(token)):
-                MalString(token.substr(1, token.length-2));
+                var re1 = ~/\\"/g,
+                    re2 = ~/\\n/g,
+                    re3 = ~/\\\\/g,
+                    s = token.substr(1, token.length-2);
+                MalString(re3.replace(
+                           re2.replace(
+                             re1.replace(s, "\""),
+                             "\n"),
+                           "\\"));
             case _:
                 MalSymbol(token);
         }
