@@ -781,7 +781,7 @@ package body Types is
          -- Duplicate nodes to its contents. 
          Dup_List := Duplicate (List);
 
-         -- Of we haven't inserted a list yet, then take the duplicated list whole.
+         -- If we haven't inserted a list yet, then take the duplicated list whole.
          if Is_Null (Last_Node_P) then
             Res_List_Handle := Dup_List;
          else

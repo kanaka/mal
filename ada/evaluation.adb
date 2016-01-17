@@ -320,7 +320,15 @@ package body Evaluation is
       return Eval (Car (CL3), New_Env);
    end Catch_Processing;
 
+
    Mal_Exception_Value : Mal_Handle;
+
+
+   procedure Set_Mal_Exception_Value (MEV : Mal_Handle) is
+   begin
+      Mal_Exception_Value := MEV;
+   end Set_Mal_Exception_Value;
+
 
    function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
 		 return Mal_Handle is
@@ -443,9 +451,6 @@ package body Evaluation is
                                           (Ada.Exceptions.Exception_Message (E)),
                                         Env);
                         end;
-		     elsif Atom_P.Get_Atom = "throw" then
-                         Mal_Exception_Value := Eval (Car (Rest_List), Env);
-                         raise Mal_Exception;
 		     else -- not a special form
 
 			-- Apply section

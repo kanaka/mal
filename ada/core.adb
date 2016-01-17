@@ -64,6 +64,58 @@ package body Core is
    end Eval_As_Boolean;
 
 
+   function Throw (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      Evaluation.Set_Mal_Exception_Value (First_Param);
+      raise Mal_Exception;
+      return First_Param;  -- Keep the compiler happy.
+   end Throw;
+
+
+   function Is_True (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type
+        (Deref (First_Param).Sym_Type = Bool and then
+         Deref_Bool (First_Param).Get_Bool);
+   end Is_True;
+
+
+   function Is_False (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type
+        (Deref (First_Param).Sym_Type = Bool and then
+         not Deref_Bool (First_Param).Get_Bool);
+   end Is_False;
+
+
+   function Is_Nil (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type
+        (Deref (First_Param).Sym_Type = Atom and then
+         Deref_Atom (First_Param).Get_Atom = "nil");
+   end Is_Nil;
+
+
    function Is_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
@@ -75,6 +127,45 @@ package body Core is
         (Deref (First_Param).Sym_Type = List and then
          Deref_List (First_Param).Get_List_Type = List_List);
    end Is_List;
+
+
+   function Is_Vector (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type
+        (Deref (First_Param).Sym_Type = List and then
+         Deref_List (First_Param).Get_List_Type = Vector_List);
+   end Is_Vector;
+
+
+   function Is_Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type
+        (Deref (First_Param).Sym_Type = List and then
+         Deref_List (First_Param).Get_List_Type = Hashed_List);
+   end Is_Map;
+
+
+   function Is_Sequential (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type
+        (Deref (First_Param).Sym_Type = List and then
+         Deref_List (First_Param).Get_List_Type /= Hashed_List);
+   end Is_Sequential;
 
 
    function Is_Empty (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
@@ -228,6 +319,51 @@ package body Core is
       end loop;
       return New_List_Mal_Type (Results_List);
    end Map;
+
+
+   function Apply (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Results_Handle : Mal_Handle;
+      Rest_List, Results_List : List_Mal_Type;
+
+   begin
+
+      -- The rest of the line.
+      Rest_List := Deref_List (Rest_Handle).all;
+
+      Results_Handle := New_List_Mal_Type (List_List);
+      Results_List := Deref_List (Results_Handle).all;
+
+      -- Just bundle all the parts into one list so
+      -- (apply f (A B) (C D)) becomes (f A B C D)
+      -- Is this right? Or should it be (f (A B) C D)?
+      while not Is_Null (Rest_List) loop
+         declare
+            Part_Handle : Mal_Handle;
+         begin
+            Part_Handle := Car (Rest_List);
+            Rest_List := Deref_List (Cdr (Rest_List)).all;
+
+            if Deref (Part_Handle).Sym_Type = List then
+               declare
+                  The_List : List_Mal_Type;
+                  List_Item : Mal_Handle;
+               begin
+                  The_List := Deref_List (Part_Handle).all;
+                  while not Is_Null (The_List) loop
+                     List_Item := Car (The_List);
+                     Append (Results_List, List_Item);
+                     The_List := Deref_List (Cdr (The_List)).all;
+                  end loop;
+               end;
+            else
+               Append (Results_List, Part_Handle);
+            end if;
+         end;
+      end loop;
+      return Evaluation.Eval (New_List_Mal_Type (Results_List), Env);
+   end Apply;
 
 
    function Symbol (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
@@ -455,12 +591,42 @@ package body Core is
       Envs.New_Env;
 
       Set (Get_Current, "true", Types.New_Bool_Mal_Type (True));
+
+      Set (Get_Current,
+           "true?",
+           New_Func_Mal_Type ("true?", Is_True'access));
+
       Set (Get_Current, "false", Types.New_Bool_Mal_Type (False));
+
+      Set (Get_Current,
+           "false?",
+           New_Func_Mal_Type ("false?", Is_False'access));
+
       Set (Get_Current, "nil", Types.New_Atom_Mal_Type ("nil"));
+
+      Set (Get_Current,
+           "throw",
+           New_Func_Mal_Type ("throw", Throw'access));
+
+      Set (Get_Current,
+           "nil?",
+           New_Func_Mal_Type ("nil?", Is_Nil'access));
 
       Set (Get_Current,
            "list?",
            New_Func_Mal_Type ("list?", Is_List'access));
+
+      Set (Get_Current,
+           "vector?",
+           New_Func_Mal_Type ("vector?", Is_Vector'access));
+
+      Set (Get_Current,
+           "map?",
+           New_Func_Mal_Type ("map?", Is_Map'access));
+
+      Set (Get_Current,
+           "sequential?",
+           New_Func_Mal_Type ("sequential?", Is_Sequential'access));
 
       Set (Get_Current,
            "empty?",
@@ -493,6 +659,10 @@ package body Core is
       Set (Get_Current,
            "map",
            New_Func_Mal_Type ("map", Map'access));
+
+      Set (Get_Current,
+           "apply",
+           New_Func_Mal_Type ("apply", Apply'access));
 
       Set (Get_Current,
            "symbol",
