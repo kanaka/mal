@@ -157,7 +157,7 @@ package body Evaluation is
             declare
                Sym : Mal_String := Deref_Atom (Ast).Get_Atom;
             begin
-               -- if keyword or nil (which may represent False)...
+               -- if keyword, return it. Otherwise look it up in the environment.
                if Sym(1) = ':' then
                   return Ast;
                else

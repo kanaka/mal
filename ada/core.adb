@@ -397,12 +397,63 @@ package body Core is
 
       Sym_Handle : Mal_Handle;
       Rest_List : List_Mal_Type;
+      Res : Boolean;
 
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       Sym_Handle := Car (Rest_List);
-      return New_Bool_Mal_Type (Deref (Sym_Handle).Sym_Type = Atom);
+      if Deref (Sym_Handle).Sym_Type = Atom then
+         Res := Deref_Atom (Sym_Handle).Get_Atom (1) /= ':';
+      else
+         Res := False;
+      end if;
+      return New_Bool_Mal_Type (Res);
    end Is_Symbol;
+
+
+   function Keyword (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Sym_Handle, Res : Mal_Handle;
+      Rest_List : List_Mal_Type;
+
+   begin
+
+      -- The rest of the line.
+      Rest_List := Deref_List (Rest_Handle).all;
+
+      Sym_Handle := Car (Rest_List);
+
+      declare
+        The_String : Mal_String :=
+          Deref_String (Sym_Handle).Get_String;
+      begin
+
+         Res := New_Atom_Mal_Type
+                  (':' & The_String (The_String'First + 1 .. The_String'Last - 1));
+
+      end;
+      return Res;
+   end Keyword;
+
+
+   function Is_Keyword (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Sym_Handle : Mal_Handle;
+      Rest_List : List_Mal_Type;
+      Res : Boolean;
+
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      Sym_Handle := Car (Rest_List);
+      if Deref (Sym_Handle).Sym_Type = Atom then
+         Res := Deref_Atom (Sym_Handle).Get_Atom (1) = ':';
+      else
+         Res := False;
+      end if;
+      return New_Bool_Mal_Type (Res);
+   end Is_Keyword;
 
 
    function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
@@ -671,6 +722,14 @@ package body Core is
       Set (Get_Current,
            "symbol?",
            New_Func_Mal_Type ("symbol?", Is_Symbol'access));
+
+      Set (Get_Current,
+           "keyword",
+           New_Func_Mal_Type ("keyword", Keyword'access));
+
+      Set (Get_Current,
+           "keyword?",
+           New_Func_Mal_Type ("keyword?", Is_Keyword'access));
 
       Set (Get_Current,
            "list",
