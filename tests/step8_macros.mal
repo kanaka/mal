@@ -162,3 +162,12 @@ x
 (let* [x (or nil "yes")] x)
 ;=>"yes"
 
+;;
+;; ------- Mostly broken (move up when fixed) --------------
+;>>> soft=True
+
+;; Testing evaluation of macro result
+(defmacro! identity (fn* (x) x))
+(let* (a 123) (identity a))
+;=>123
+
