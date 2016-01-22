@@ -208,9 +208,7 @@ class MalHashMap() : MalType {
     }
 
     override fun equals(other: Any?): Boolean =
-            (other is MalHashMap)
-                    && elements.size == other.elements.size
-                    && elements.all({ it -> other.elements.containsKey(it.key) && it.value == other.elements[it.key] })
+            (other is MalHashMap) && elements.equals(other.elements)
 }
 
 class MalAtom(var value: MalType) : MalType {
