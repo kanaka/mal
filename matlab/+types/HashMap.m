@@ -1,15 +1,26 @@
 classdef HashMap < handle
     properties
-        data = containers.Map();
-        meta = types.nil;
+        data
+        meta = type_utils.nil;
     end
     methods
         function obj = HashMap(varargin)
             if nargin == 0
-                obj.data = containers.Map();
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    obj.data = Dict();
+                else
+                    obj.data = containers.Map();
+                end
             else
-                obj.data = containers.Map(varargin(1:2:end), ...
-                                          varargin(2:2:end));
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    obj.data = Dict();
+                    for i=1:2:length(varargin)
+                        obj.data(varargin{i}) = varargin{i+1};
+                    end
+                else
+                    obj.data = containers.Map(varargin(1:2:end), ...
+                                              varargin(2:2:end));
+                end
             end
         end
 
@@ -37,9 +48,17 @@ classdef HashMap < handle
         function ret = clone(obj)
             ret = types.HashMap();
             if length(obj) > 0
-                ret.data = containers.Map(obj.data.keys(), obj.data.values());
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    ret.data = Dict(obj.data.keys(), obj.data.values());
+                else
+                    ret.data = containers.Map(obj.data.keys(), obj.data.values());
+                end
             else
-                ret.data = containers.Map();
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    ret.data = Dict();
+                else
+                    ret.data = containers.Map();
+                end
             end
             ret.meta = obj.meta;
         end

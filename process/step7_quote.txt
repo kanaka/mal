@@ -83,4 +83,10 @@ ns = {'=:        equal?,
       'cons:     (a) -> concat([a[0]], a[1]),
       'concat:   (a) -> reduce(concat, [], a),
       'empty?:   empty?,
-      'count:    count}
+      'count:    count,
+
+      'atom:     (a) -> new Atom(a[0]),
+      'atom?:    (a) -> type(a[0]) == "atom",
+      'deref:    (a) -> a[0].val,
+      'reset!:   (a) -> a[0].val = a[1],
+      'swap!:    swap!}

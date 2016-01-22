@@ -18,10 +18,12 @@ classdef reader
                 atm = token(2:length(token)-1);
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
+                atm = strrep(atm, '\\', '\');
             elseif strcmp(token(1), ':')
-                atm = types.keyword(token(2:end));
+                s = token(2:end);
+                atm = type_utils.keyword(s);
             elseif strcmp(token, 'nil')
-                atm = types.nil;
+                atm = type_utils.nil;
             elseif strcmp(token, 'true')
                 atm = true;
             elseif strcmp(token, 'false')
@@ -115,6 +117,7 @@ classdef reader
         function ast = read_str(str)
             %fprintf('in read_str\n');
             tokens = reader.tokenize(str);
+            %disp(tokens);
             rdr = types.Reader(tokens);
             ast = reader.read_form(rdr);
         end

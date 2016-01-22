@@ -23,7 +23,7 @@
 
 (define *toplevel*
   (receive (b e) (unzip2 core.ns)
-    (let ((env (make-Env #:binds b #:exprs (map (lambda (x) (make-func x)) e))))
+    (let ((env (make-Env #:binds b #:exprs (map make-func e))))
       (for-each (lambda (f)
                   (callable-unbox-set! ((env 'get) f) #f))
                 *unbox-exception*)

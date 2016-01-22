@@ -97,4 +97,10 @@ ns = {'=:        equal?,
       'first:    (a) -> a[0][0] OR nil,
       'rest:     (a) -> a[0][1..] OR list(),
       'empty?:   empty?,
-      'count:    count}
+      'count:    count,
+
+      'atom:     (a) -> new Atom(a[0]),
+      'atom?:    (a) -> type(a[0]) == "atom",
+      'deref:    (a) -> a[0].val,
+      'reset!:   (a) -> a[0].val = a[1],
+      'swap!:    swap!}

@@ -5,11 +5,23 @@ classdef Env < handle
     end
     methods
         function env = Env(outer, binds, exprs)
-            env.data = containers.Map();
-            env.outer = outer;
+            if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                env.data = Dict();
+            else
+                env.data = containers.Map();
+            end
+
+            if nargin == 0
+                env.outer = false;
+            else
+                % Workaround Octave calling bug when the first
+                % argument is the same type as the class (the class is
+                % not properly initialized in that case)
+                env.outer = outer{1};
+            end
 
             if nargin > 1
-                env = Env(outer);
+                %env = Env(outer);
                 for i=1:length(binds)
                     k = binds.get(i).name;
                     if strcmp(k, '&')
@@ -42,8 +54,13 @@ classdef Env < handle
             if ~islogical(fenv)
                 ret = fenv.data(k.name);
             else
-                throw(MException('ENV:notfound', ...
-                                 sprintf('''%s'' not found', k.name)));
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    error('ENV:notfound', ...
+                          sprintf('''%s'' not found', k.name));
+                else
+                    throw(MException('ENV:notfound', ...
+                                     sprintf('''%s'' not found', k.name)));
+                end
             end
         end
     end
