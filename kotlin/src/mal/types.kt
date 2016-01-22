@@ -206,6 +206,9 @@ class MalHashMap() : MalType {
         obj.metadata = meta
         return obj
     }
+
+    override fun equals(other: Any?): Boolean =
+            (other is MalHashMap) && elements.equals(other.elements)
 }
 
 class MalAtom(var value: MalType) : MalType {
