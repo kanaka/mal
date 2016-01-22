@@ -81,7 +81,7 @@ function EVAL(ast, env)
 
     -- apply list
     ast = macroexpand(ast, env)
-    if not types._list_Q(ast) then return ast end
+    if not types._list_Q(ast) then return eval_ast(ast, env) end
 
     local a0,a1,a2,a3 = ast[1], ast[2],ast[3],ast[4]
     local a0sym = types._symbol_Q(a0) and a0.val or ""

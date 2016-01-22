@@ -153,7 +153,7 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 			return nil, e
 		}
 		if !List_Q(ast) {
-			return ast, nil
+			return eval_ast(ast, env)
 		}
 
 		a0 := ast.(List).Val[0]
