@@ -252,7 +252,9 @@ $repl_env.set("eval", Mal::Type.new -> (args: Array(Mal::Type)){ Mal.eval(args[0
 Mal.rep "(def! not (fn* (a) (if a false true)))"
 Mal.rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 Mal.rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
-Mal.rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+Mal.rep "(def! *gensym-counter* (atom 0))"
+Mal.rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+Mal.rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 Mal.rep("(def! *host-language* \"crystal\")")
 
 $argv = Mal::List.new
