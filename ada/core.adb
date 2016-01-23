@@ -465,6 +465,21 @@ package body Core is
    end New_List;
 
 
+   function New_Vector (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : List_Mal_Type;
+      Res : Mal_Handle;
+   begin
+      Res := New_List_Mal_Type (Vector_List);
+      Rest_List := Deref_List (Rest_Handle).all;
+      while not Is_Null (Rest_List) loop
+         Deref_List(Res).Append (Car (Rest_List));
+         Rest_List := Deref_List (Cdr (Rest_List)).all;
+      end loop;
+      return Res;
+   end New_Vector;
+
+
    -- Take a list with two parameters and produce a single result
    -- using the Op access-to-function parameter.
    function Reduce2
@@ -656,16 +671,24 @@ package body Core is
       Set (Get_Current, "nil", Types.New_Atom_Mal_Type ("nil"));
 
       Set (Get_Current,
-           "throw",
-           New_Func_Mal_Type ("throw", Throw'access));
-
-      Set (Get_Current,
            "nil?",
            New_Func_Mal_Type ("nil?", Is_Nil'access));
 
       Set (Get_Current,
+           "throw",
+           New_Func_Mal_Type ("throw", Throw'access));
+
+      Set (Get_Current,
+           "list",
+           New_Func_Mal_Type ("list", New_List'access));
+
+      Set (Get_Current,
            "list?",
            New_Func_Mal_Type ("list?", Is_List'access));
+
+      Set (Get_Current,
+           "vector",
+           New_Func_Mal_Type ("vector", New_Vector'access));
 
       Set (Get_Current,
            "vector?",
@@ -730,10 +753,6 @@ package body Core is
       Set (Get_Current,
            "keyword?",
            New_Func_Mal_Type ("keyword?", Is_Keyword'access));
-
-      Set (Get_Current,
-           "list",
-           New_Func_Mal_Type ("list", New_List'access));
 
       Set (Get_Current,
            "pr-str",
