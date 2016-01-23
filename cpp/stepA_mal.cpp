@@ -322,7 +322,7 @@ static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
 
 static const char* macroTable[] = {
     "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
-    "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))",
+    "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))",
 };
 
 static void installMacros(malEnvPtr env)
@@ -351,6 +351,8 @@ static const char* malFunctionTable[] = {
         (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
     "(def! map (fn* (f xs) (if (empty? xs) xs \
         (cons (f (first xs)) (map f (rest xs))))))",
+    "(def! *gensym-counter* (atom 0))",
+    "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))",
     "(def! *host-language* \"c++\")",
 };
 
