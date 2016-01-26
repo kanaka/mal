@@ -69,7 +69,7 @@ EVAL = { ast, env ->
     if (! types.list_Q(ast)) return eval_ast(ast, env)
 
     ast = macroexpand(ast, env)
-    if (! types.list_Q(ast)) return ast
+    if (! types.list_Q(ast)) return eval_ast(ast, env)
 
     switch (ast[0]) {
     case { it instanceof MalSymbol && it.value == "def!" }:

@@ -67,7 +67,7 @@
       ;; apply list
       (let [ast (macroexpand ast env)]
         (if (not (seq? ast))
-          ast
+          (eval-ast ast env)
 
           (let [[a0 a1 a2 a3] ast]
             (condp = a0

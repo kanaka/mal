@@ -88,7 +88,8 @@ object step8_macros {
 
     // apply list
     ast = macroexpand(ast, env)
-    if (!_list_Q(ast)) return ast
+    if (!_list_Q(ast))
+      return eval_ast(ast, env)
 
     ast.asInstanceOf[MalList].value match {
       case Symbol("def!") :: a1 :: a2 :: Nil => {
