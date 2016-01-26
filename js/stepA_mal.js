@@ -79,7 +79,9 @@ function _EVAL(ast, env) {
 
     // apply list
     ast = macroexpand(ast, env);
-    if (!types._list_Q(ast)) { return ast; }
+    if (!types._list_Q(ast)) {
+        return eval_ast(ast, env);
+    }
 
     var a0 = ast[0], a1 = ast[1], a2 = ast[2], a3 = ast[3];
     switch (a0.value) {

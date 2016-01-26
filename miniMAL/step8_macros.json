@@ -73,7 +73,7 @@
     ["eval-ast", "ast", "env"],
     ["let", ["ast", ["macroexpand", "ast", "env"]],
       ["if", ["not", ["list?", "ast"]],
-        "ast",
+        ["eval-ast", "ast", "env"],
         ["let", ["a0", ["get", ["first", "ast"], ["`", "val"]]],
           ["if", ["=", ["`", "def!"], "a0"],
             ["env-set", "env", ["nth", "ast", 1],
