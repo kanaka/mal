@@ -9,6 +9,10 @@ crystal/mal
 d/mal
 erlang/mal
 haskell/mal
+haxe/*.n
+haxe/*.py
+haxe/cpp/
+haxe/*.js
 js/mal.js
 js/web/mal.js
 make/mal.mk
