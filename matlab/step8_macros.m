@@ -85,7 +85,7 @@ function ret = EVAL(ast, env)
     % apply
     ast = macroexpand(ast, env);
     if ~type_utils.list_Q(ast)
-        ret = ast;
+        ret = eval_ast(ast, env);
         return;
     end
 

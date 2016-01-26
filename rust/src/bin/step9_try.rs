@@ -142,7 +142,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
     ast = try!(macroexpand(ast, env.clone()));
     match *ast {
         List(_,_) => (),  // continue
-        _ => return Ok(ast),
+        _ => return eval_ast(ast, env),
     }
 
     let tmp = ast;

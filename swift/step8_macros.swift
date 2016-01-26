@@ -414,7 +414,14 @@ private func EVAL(var ast: MalVal, var _ env: Environment) throws -> MalVal {
 
         var list = as_list(ast)
         ast = try macroexpand(ast, env)
-        if !is_list(ast) { return ast }
+        if !is_list(ast) {
+
+            // Not a list -- just evaluate and return.
+
+            let answer = try eval_ast(ast, env)
+            if DEBUG_EVAL { print("\(indent)>>> \(answer)") }
+            return answer
+        }
         list = as_list(ast)
 
         if DEBUG_EVAL { print("\(indent)>.  \(list)") }
