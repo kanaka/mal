@@ -1,7 +1,7 @@
 package reader;
 
 import types.Types.MalType;
-import types.Types.MalType.*;
+import types.Types.*;
 
 class Reader {
     // Reader class implementation
@@ -76,11 +76,11 @@ class Reader {
         var lst = [];
         var token = rdr.next();
         if (token != start) {
-            throw "expected '$start'";
+            throw 'expected \'${start}\'';
         }
         while ((token = rdr.peek()) != end) {
             if (token == null) {
-                throw "expected '$end', got EOF";
+                throw 'expected \'${end}\', got EOF';
             }
             lst.push(read_form(rdr));
         }
@@ -109,8 +109,14 @@ class Reader {
             // list
             case ")": throw("unexpected ')'");
             case "(": MalList(read_seq(rdr, '(', ')'));
+
+            // vector
             case "]": throw("unexpected ']'");
             case "[": MalVector(read_seq(rdr, '[', ']'));
+
+            // hashmap
+            case "}": throw("unexpected '}'");
+            case "{": hash_map(read_seq(rdr, '{', '}'));
             case _: read_atom(rdr);
         }
     }

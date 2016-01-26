@@ -19,6 +19,12 @@ class Step4_if_fn_do {
                 MalList(l.map(function(x) { return EVAL(x, env); }));
             case MalVector(l):
                 MalVector(l.map(function(x) { return EVAL(x, env); }));
+            case MalHashMap(m):
+                var new_map = new Map<String,MalType>();
+                for (k in m.keys()) {
+                    new_map[k] = EVAL(m[k], env);
+                }
+                MalHashMap(new_map);
             case _: ast;
         }
     }
@@ -57,12 +63,12 @@ class Step4_if_fn_do {
         case MalSymbol("fn*"):
             return MalFunc(function (args) {
                 return EVAL(alst[2], new Env(env, _list(alst[1]), args));
-            },null,null,null);
+            },null,null,null,false,nil);
         case _:
             var el = eval_ast(ast, env);
             var lst = _list(el);
             switch (first(el)) {
-                case MalFunc(f,_,_,_): return f(_list(el).slice(1));
+                case MalFunc(f,_,_,_,_,_): return f(_list(el).slice(1));
                 case _: throw "Call of non-function";
             }
         }
@@ -87,7 +93,7 @@ class Step4_if_fn_do {
 
         // core.EXT: defined using Haxe
         for (k in Core.ns.keys()) {
-            repl_env.set(MalSymbol(k), MalFunc(Core.ns[k],null,null,null));
+            repl_env.set(MalSymbol(k), MalFunc(Core.ns[k],null,null,null,false,nil));
         }
 
         // core.mal: defined using the language itself

@@ -5,13 +5,64 @@ import printer.*;
 import env.*;
 import core.*;
 
-class Step5_tco {
+class Step8_macros {
     // READ
     static function READ(str:String):MalType {
         return Reader.read_str(str);
     }
 
     // EVAL
+    static function is_pair(ast:MalType) {
+        return switch (ast) {
+            case MalList(l) | MalVector(l): l.length > 0;
+            case _: false;
+        }
+    }
+
+    static function quasiquote(ast:MalType) {
+        if (!is_pair(ast)) {
+            return MalList([MalSymbol("quote"), ast]);
+        } else {
+            var a0 = first(ast);
+            if (_equal_Q(a0, MalSymbol("unquote"))) {
+                    return _nth(ast, 1);
+            } else if (is_pair(a0)) {
+                var a00 = first(a0);
+                if (_equal_Q(a00, MalSymbol("splice-unquote"))) {
+                    return MalList([MalSymbol("concat"),
+                                    _nth(a0, 1),
+                                    quasiquote(rest(ast))]);
+                }
+            }
+            return MalList([MalSymbol("cons"),
+                            quasiquote(a0),
+                            quasiquote(rest(ast))]);
+        }
+    }
+
+    static function is_macro(ast:MalType, env:Env) {
+        return switch(ast) {
+            case MalList(a):
+                var a0 = a[0];
+                return symbol_Q(a0) &&
+                       env.find(a0) != null &&
+                       _macro_Q(env.get(a0));
+            case _: false;
+        }
+    }
+
+    static function macroexpand(ast:MalType, env:Env) {
+        while (is_macro(ast, env)) {
+            var mac = env.get(first(ast));
+            switch (mac) {
+                case MalFunc(f,_,_,_,_,_):
+                    ast = f(_list(ast).slice(1));
+                case _: break;
+            }
+        }
+        return ast;
+    }
+
     static function eval_ast(ast:MalType, env:Env) {
         return switch (ast) {
             case MalSymbol(s): env.get(ast);
@@ -34,8 +85,10 @@ class Step5_tco {
         if (!list_Q(ast)) { return eval_ast(ast, env); }
 
         // apply
-        var alst = _list(ast);
+        ast = macroexpand(ast, env);
+        if (!list_Q(ast)) { return ast; }
 
+        var alst = _list(ast);
         switch (alst[0]) {
         case MalSymbol("def!"):
             return env.set(alst[1], EVAL(alst[2], env));
@@ -52,6 +105,21 @@ class Step5_tco {
             ast = alst[2];
             env = let_env;
             continue; // TCO
+        case MalSymbol("quote"):
+            return alst[1];
+        case MalSymbol("quasiquote"):
+            ast = quasiquote(alst[1]);
+            continue; // TCO
+        case MalSymbol("defmacro!"):
+            var func = EVAL(alst[2], env);
+            return switch (func) {
+                case MalFunc(f,ast,e,params,_,_):
+                    env.set(alst[1], MalFunc(f,ast,e,params,true,nil));
+                case _:
+                    throw "Invalid defmacro! call";
+            }
+        case MalSymbol("macroexpand"):
+            return macroexpand(alst[1], env);
         case MalSymbol("do"):
             var el = eval_ast(MalList(alst.slice(1, alst.length-1)), env);
             ast = last(ast);
@@ -111,8 +179,25 @@ class Step5_tco {
             repl_env.set(MalSymbol(k), MalFunc(Core.ns[k],null,null,null,false,nil));
         }
 
+        var evalfn = MalFunc(function(args) {
+            return EVAL(args[0], repl_env);
+        },null,null,null,false,nil);
+        repl_env.set(MalSymbol("eval"), evalfn);
+
+        var cmdargs = Sys.args().map(function(a) { return MalString(a); });
+        repl_env.set(MalSymbol("*ARGV*"), MalList(cmdargs));
+
         // core.mal: defined using the language itself
         rep("(def! not (fn* (a) (if a false true)))");
+        rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+        rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
+        rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
+
+
+        if (cmdargs.length > 0) {
+            rep('(load-file "${Sys.args()[0]}")');
+            Sys.exit(0);
+        }
 
         while (true) {
             try {

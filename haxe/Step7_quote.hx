@@ -5,13 +5,41 @@ import printer.*;
 import env.*;
 import core.*;
 
-class Step5_tco {
+class Step7_quote {
     // READ
     static function READ(str:String):MalType {
         return Reader.read_str(str);
     }
 
     // EVAL
+    static function is_pair(ast:MalType) {
+        return switch (ast) {
+            case MalList(l) | MalVector(l): l.length > 0;
+            case _: false;
+        }
+    }
+
+    static function quasiquote(ast:MalType) {
+        if (!is_pair(ast)) {
+            return MalList([MalSymbol("quote"), ast]);
+        } else {
+            var a0 = first(ast);
+            if (_equal_Q(a0, MalSymbol("unquote"))) {
+                    return _nth(ast, 1);
+            } else if (is_pair(a0)) {
+                var a00 = first(a0);
+                if (_equal_Q(a00, MalSymbol("splice-unquote"))) {
+                    return MalList([MalSymbol("concat"),
+                                    _nth(a0, 1),
+                                    quasiquote(rest(ast))]);
+                }
+            }
+            return MalList([MalSymbol("cons"),
+                            quasiquote(a0),
+                            quasiquote(rest(ast))]);
+        }
+    }
+
     static function eval_ast(ast:MalType, env:Env) {
         return switch (ast) {
             case MalSymbol(s): env.get(ast);
@@ -51,6 +79,11 @@ class Step5_tco {
             }
             ast = alst[2];
             env = let_env;
+            continue; // TCO
+        case MalSymbol("quote"):
+            return alst[1];
+        case MalSymbol("quasiquote"):
+            ast = quasiquote(alst[1]);
             continue; // TCO
         case MalSymbol("do"):
             var el = eval_ast(MalList(alst.slice(1, alst.length-1)), env);
@@ -111,8 +144,22 @@ class Step5_tco {
             repl_env.set(MalSymbol(k), MalFunc(Core.ns[k],null,null,null,false,nil));
         }
 
+        var evalfn = MalFunc(function(args) {
+            return EVAL(args[0], repl_env);
+        },null,null,null,false,nil);
+        repl_env.set(MalSymbol("eval"), evalfn);
+
+        var cmdargs = Sys.args().map(function(a) { return MalString(a); });
+        repl_env.set(MalSymbol("*ARGV*"), MalList(cmdargs));
+
         // core.mal: defined using the language itself
         rep("(def! not (fn* (a) (if a false true)))");
+        rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+
+        if (cmdargs.length > 0) {
+            rep('(load-file "${Sys.args()[0]}")');
+            Sys.exit(0);
+        }
 
         while (true) {
             try {

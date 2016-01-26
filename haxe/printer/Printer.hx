@@ -34,7 +34,16 @@ class Printer {
             case MalVector(l):
                 var lst = l.map(function(e) {return pr_str(e,_r);});
                 '[${lst.join(" ")}]';
-            case MalFunc(f,ast,_,params):
+            case MalHashMap(m):
+                var elems = [];
+                for (k in m.keys()) {
+                    elems.push(pr_str(MalString(k), _r));
+                    elems.push(pr_str(m[k], _r));
+                }
+                '{${elems.join(" ")}}';
+            case MalAtom(v):
+                '(atom ${pr_str(v.val,_r)})';
+            case MalFunc(f,ast,_,params,_):
                 if (ast != null) {
                     '(fn* ${pr_str(params,true)} ${pr_str(ast)})';
                 } else {

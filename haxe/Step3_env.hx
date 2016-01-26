@@ -18,6 +18,12 @@ class Step3_env {
                 MalList(l.map(function(x) { return EVAL(x, env); }));
             case MalVector(l):
                 MalVector(l.map(function(x) { return EVAL(x, env); }));
+            case MalHashMap(m):
+                var new_map = new Map<String,MalType>();
+                for (k in m.keys()) {
+                    new_map[k] = EVAL(m[k], env);
+                }
+                MalHashMap(new_map);
             case _: ast;
         }
     }
@@ -44,9 +50,9 @@ class Step3_env {
             return EVAL(alst[2], let_env);
         case _:
             var el = eval_ast(ast, env);
-            var lst = switch (el) { case MalList(lst): lst; case _: []; }
-            switch (lst[0]) {
-                case MalFunc(f,_,_,_): return f(lst.slice(1));
+            var lst = _list(el);
+            switch (first(el)) {
+                case MalFunc(f,_,_,_,_,_): return f(_list(el).slice(1));
                 case _: throw "Call of non-function";
             }
         }
@@ -65,7 +71,7 @@ class Step3_env {
                 case _: throw "Invalid numeric op call"; 
             }
             
-        },null,null,null);
+        },null,null,null,false,nil);
     }
     static var repl_env = new Env(null);
 

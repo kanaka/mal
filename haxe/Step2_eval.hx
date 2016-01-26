@@ -17,6 +17,12 @@ class Step2_eval {
                 MalList(l.map(function(x) { return EVAL(x, env); }));
             case MalVector(l):
                 MalVector(l.map(function(x) { return EVAL(x, env); }));
+            case MalHashMap(m):
+                var new_map = new Map<String,MalType>();
+                for (k in m.keys()) {
+                    new_map[k] = EVAL(m[k], env);
+                }
+                MalHashMap(new_map);
             case _: ast;
         }
     }
@@ -29,7 +35,7 @@ class Step2_eval {
         var lst = switch (el) { case MalList(lst): lst; case _: []; }
         var a0 = lst[0], args = lst.slice(1);
         switch (a0) {
-            case MalFunc(f,_,_,_): return f(args);
+            case MalFunc(f,_,_,_,_,_): return f(args);
             case _: throw "Call of non-function";
         }
     }
@@ -47,7 +53,7 @@ class Step2_eval {
                 case _: throw "Invalid numeric op call"; 
             }
             
-        });
+        },null,null,null,false,nil);
     }
     static var repl_env:Map<String,MalType> = 
         ["+" => NumOp(function(a,b) {return a+b;}),
