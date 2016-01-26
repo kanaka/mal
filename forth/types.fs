@@ -484,6 +484,31 @@ MalMap
   extend mal-count
     MalMap/list @
     MalList/count @ 2 / MalInt. ;;
+  extend mal= { b a -- bool }
+    b mal-type @ MalMap = if
+        a MalMap/list @ MalList/count @ { a-count }
+        b MalMap/list @ MalList/count @ { b-count }
+        a-count b-count = if
+            a MalMap/list @ MalList/start @ { a-start }
+            true ( return-val )
+            a-count 0 +do
+                a-start i cells + @ ( return-val key )
+                dup a MalMap/get-addr swap b MalMap/get-addr ( return-val a-val-addr b-val-addr )
+                dup 0= if
+                    drop 2drop false leave
+                else
+                    @ swap @ ( return-val b-val a-val )
+                    m= if else
+                        drop false leave
+                    endif
+                endif
+            2 +loop
+        else
+            false
+        endif
+    else
+        false
+    endif ;;
 drop
 
 \ Examples of extending existing protocol methods to existing type
