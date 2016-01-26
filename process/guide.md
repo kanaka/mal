@@ -1183,8 +1183,9 @@ simple.
   section), perform macro expansion by calling the `macroexpand`
   function with the current value of `ast` and `env`. Set `ast` to the
   result of that call. If the new value of `ast` is no longer a list
-  after macro expansion, then return `ast`, otherwise continue with
-  the rest of the apply section (special forms switch).
+  after macro expansion, then return the result of calling `eval_ast`
+  on it, otherwise continue with the rest of the apply section
+  (special forms switch).
 
 * Add a new special form condition for `macroexpand`. Call the
   `macroexpand` function using the first `ast` argument (second list
