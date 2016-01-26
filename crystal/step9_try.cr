@@ -143,7 +143,7 @@ module Mal
 
       list = ast.unwrap
 
-      return ast unless list.is_a? Mal::List
+      return eval_ast(ast, env) unless list.is_a? Mal::List
       return ast if list.empty?
 
       head = list.first.unwrap

@@ -106,7 +106,9 @@ sub EVAL {
 
     # apply list
     $ast = macroexpand($ast, $env);
-    if (! _list_Q($ast)) { return $ast; }
+    if (! _list_Q($ast)) {
+        return eval_ast($ast, $env);
+    }
 
     my ($a0, $a1, $a2, $a3) = @{$ast->{val}};
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
