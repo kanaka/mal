@@ -14,6 +14,9 @@ all:
 src/main/mal/%.java:
 	mvn install
 
+target/classes/mal/step%.class: src/main/mal/step%.java ${SOURCES}
+	mvn install
+
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats
 

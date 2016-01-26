@@ -108,7 +108,9 @@ namespace Mal {
 
             // apply list
             MalVal expanded = macroexpand(orig_ast, env);
-            if (!expanded.list_Q()) { return expanded; } 
+            if (!expanded.list_Q()) {
+                return eval_ast(expanded, env);
+            } 
             MalList ast = (MalList) expanded;
 
             if (ast.size() == 0) { return ast; }

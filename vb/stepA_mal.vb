@@ -122,7 +122,7 @@ Namespace Mal
             ' apply list
             Dim expanded As MalVal = macroexpand(orig_ast, env)
             if not expanded.list_Q() Then
-                return expanded
+                return eval_ast(expanded, env)
             End If
             Dim ast As MalList = DirectCast(expanded, MalList)
 

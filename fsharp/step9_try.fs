@@ -154,7 +154,7 @@ module REPL
                     let inner = Env.makeNew outer binds rest
                     body |> eval inner
                 | _ -> raise <| Error.errExpectedX "func"
-            | node -> node
+            | node -> node |> eval_ast env
         | node -> node |> eval_ast env
 
     let READ input =
