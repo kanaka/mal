@@ -89,7 +89,7 @@ class Step9_try {
 
         // apply
         ast = macroexpand(ast, env);
-        if (!list_Q(ast)) { return ast; }
+        if (!list_Q(ast)) { return eval_ast(ast, env); }
 
         var alst = _list(ast);
         switch (alst[0]) {

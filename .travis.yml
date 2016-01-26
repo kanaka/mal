@@ -24,6 +24,7 @@ matrix:
     - {env: IMPL=groovy,    services: [docker]}
     - {env: IMPL=guile,     services: [docker]}
     - {env: IMPL=haskell,   services: [docker]}
+    - {env: IMPL=haxe,      services: [docker]}
     - {env: IMPL=java,      services: [docker]}
     - {env: IMPL=js,        services: [docker]}
     - {env: IMPL=julia,     services: [docker]}

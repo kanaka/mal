@@ -2,6 +2,20 @@ STEP1_DEPS = Compat.hx types/Types.hx reader/Reader.hx printer/Printer.hx
 STEP3_DEPS = $(STEP1_DEPS) env/Env.hx
 STEP4_DEPS = $(STEP3_DEPS) core/Core.hx
 
+STEPS = step0_repl step1_read_print step2_eval step3_env \
+	step4_if_fn_do step5_tco step6_file step7_quote \
+	step8_macros step9_try stepA_mal
+
+all: all-neko all-python all-cpp all-js
+
+all-neko: $(foreach x,$(STEPS),$(x).n)
+
+all-python: $(foreach x,$(STEPS),$(x).py)
+
+all-cpp: $(foreach x,$(STEPS),cpp/$(x))
+
+all-js: $(foreach x,$(STEPS),$(x).js)
+
 
 # Neko target (neko)
 

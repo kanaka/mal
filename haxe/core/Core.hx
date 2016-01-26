@@ -179,6 +179,19 @@ class Core {
         }
     }
 
+    static function conj(args) {
+        return switch (args[0]) {
+            case MalList(l):
+                var elems = args.slice(1);
+                elems.reverse();
+                MalList(elems.concat(l));
+            case MalVector(l):
+                MalVector(l.concat(args.slice(1)));
+            case _: throw "Invalid conj call";
+        }
+    }
+
+
     // hash-map functions
 
     public static function get(hm:MalType, key:MalType) {
@@ -335,7 +348,7 @@ class Core {
         "apply" => apply,
         "map" => do_map,
 
-        "conj" => function(a) { return nil; },
+        "conj" => conj,
 
         "meta" => meta,
         "with-meta" => with_meta,
