@@ -180,3 +180,9 @@
 (meta +)
 ;=>nil
 
+;;
+;; Testing gensym and clean or macro
+(= (gensym) (gensym))
+;=>false
+(let* [or_FIXME 23] (or false (+ or_FIXME 100)))
+;=>123

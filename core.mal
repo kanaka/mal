@@ -37,8 +37,9 @@
       true
       (if (= 1 (count xs))
         (first xs)
-        `(let* (and_FIXME ~(first xs))
-          (if and_FIXME (and ~@(rest xs)) and_FIXME))))))
+        (let* (condvar (gensym))
+          `(let* (~condvar ~(first xs))
+            (if ~condvar (and ~@(rest xs)) ~condvar)))))))
 
 (defmacro! or
   (fn* (& xs)
@@ -46,8 +47,9 @@
       nil
       (if (= 1 (count xs))
         (first xs)
-        `(let* (or_FIXME ~(first xs))
-          (if or_FIXME or_FIXME (or ~@(rest xs))))))))
+        (let* (condvar (gensym))
+          `(let* (~condvar ~(first xs))
+             (if ~condvar ~condvar (or ~@(rest xs)))))))))
 
 (defmacro! cond
   (fn* (& clauses)

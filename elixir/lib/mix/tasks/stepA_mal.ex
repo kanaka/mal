@@ -45,6 +45,14 @@ defmodule Mix.Tasks.StepAMal do
               (cons 'cond (rest (rest xs)))))))"
       """, env)
 
+    # gensym
+    read_eval_print("(def! *gensym-counter* (atom 0))", env)
+    read_eval_print("""
+      (def! gensym
+        (fn* []
+          (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))
+      """, env)
+
     # or:
     read_eval_print("""
       (defmacro! or
@@ -53,7 +61,9 @@ defmodule Mix.Tasks.StepAMal do
             nil
             (if (= 1 (count xs))
               (first xs)
-              `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
+              (let* (condvar (gensym))
+                `(let* (~condvar ~(first xs))
+                  (if ~condvar ~condvar (or ~@(rest xs)))))))))
       """, env)
 
     Mal.Env.set(env, "eval", %Function{value: fn [ast] ->

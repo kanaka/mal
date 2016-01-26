@@ -1479,7 +1479,35 @@ might even be asking if you can continue the "inception" by using your
 implementation to run a mal implementation which itself runs the mal
 implementation.
 
-### Optional
+
+### Optional: gensym
+
+The `or` macro we introduced at step 8 has a bug. It defines a
+variable called `or_FIXME`, which "shadows" such a binding from the
+user's code (which uses the macro). If a user has a variable called
+`or_FIXME`, it cannot be used as an `or` macro argument. In order to
+fix that, we'll introduce `gensym`: a function which returns a symbol
+which was never used before anywhere in the program. This is also an
+example for the use of mal atoms to keep state (the state here being
+the number of symbols produced by `gensym` so far).
+
+Previously you used `rep` to define the `or` macro. Remove that
+definition and use `rep` to define the new counter, `gensym` function
+and the clean `or` macro. Here are the string arguments you need to
+pass to `rep`:
+```
+"(def! *gensym-counter* (atom 0))"
+
+"(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+
+"(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
+```
+
+For extra information read [Peter Seibel's thorough discussion about
+`gensym` and leaking macros in Common Lisp](http://www.gigamonkeys.com/book/macros-defining-your-own.html#plugging-the-leaks).
+
+
+### Optional additions
 
 * Add metadata support to composite data types, symbols and native
   functions. TODO
