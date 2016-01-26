@@ -162,7 +162,7 @@ defmodule Mix.Tasks.Step8Macros do
   defp eval({:list, _list, _meta} = ast, env) do
     case macroexpand(ast, env) do
       {:list, list, meta} -> eval_list(list, env, meta)
-      result -> result
+      result -> eval_ast(result, env)
     end
   end
   defp eval(ast, env), do: eval_ast(ast, env)

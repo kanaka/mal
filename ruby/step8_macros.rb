@@ -71,7 +71,9 @@ def EVAL(ast, env)
 
     # apply list
     ast = macroexpand(ast, env)
-    return ast if not ast.is_a? List
+    if not ast.is_a? List
+        return eval_ast(ast, env)
+    end
 
     a0,a1,a2,a3 = ast
     case a0

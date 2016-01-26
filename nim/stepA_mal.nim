@@ -61,7 +61,7 @@ proc eval(ast: MalType, env: Env): MalType =
     if ast.kind != List: return ast.eval_ast(env)
 
     ast = ast.macroexpand(env)
-    if ast.kind != List: return ast
+    if ast.kind != List: return ast.eval_ast(env)
     if ast.list.len == 0: return ast
 
     let a0 = ast.list[0]

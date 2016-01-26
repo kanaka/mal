@@ -47,8 +47,8 @@ EVAL = (ast, env) ->
   if !types._list_Q ast then return eval_ast ast, env
 
   # apply list
-  ast = macroexpand ast, env 
-  if !types._list_Q ast then return ast
+  ast = macroexpand ast, env
+  if !types._list_Q ast then return eval_ast ast, env
 
   [a0, a1, a2, a3] = ast
   switch a0.name

@@ -94,7 +94,7 @@ function EVAL(ast, env)
 
     let ast = MacroExpand(ast, env)
     if !ListQ(ast)
-      return ast
+      return EvalAst(ast, env)
     end
 
     let first = ListFirst(ast)

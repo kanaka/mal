@@ -127,7 +127,7 @@ MalType EVAL(MalType ast, Env env)
         ast_list = cast(MalList) ast;
         if (ast_list is null)
         {
-            return ast;
+            return eval_ast(ast, env);
         }
 
         auto aste = ast_list.elements;

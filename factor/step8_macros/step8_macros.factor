@@ -102,7 +102,7 @@ M: callable apply call( x -- y ) f ;
                 [ drop '[ _ EVAL ] map unclip apply ]
             } case [ EVAL ] when*
         ] [
-            drop
+            eval-ast
         ] if
     ] [
         eval-ast

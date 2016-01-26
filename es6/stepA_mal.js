@@ -64,7 +64,7 @@ const EVAL = (ast, env) => {
     if (!_list_Q(ast)) { return eval_ast(ast, env) }
 
     ast = macroexpand(ast, env)
-    if (!_list_Q(ast)) { return ast; }
+    if (!_list_Q(ast)) { return eval_ast(ast, env) }
 
     const [a0, a1, a2, a3] = ast
     const a0sym = _symbol_Q(a0) ? Symbol.keyFor(a0) : Symbol(':default')

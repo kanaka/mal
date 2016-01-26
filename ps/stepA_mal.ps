@@ -108,7 +108,7 @@ end } def
     }{ %else apply the list
       /ast ast env macroexpand def
       ast _list? not { %if no longer a list
-          ast
+          ast env eval_ast
       }{ %else still a list
         /a0 ast 0 _nth def
         /def! a0 eq { %if def!

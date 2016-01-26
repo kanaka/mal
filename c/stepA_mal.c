@@ -124,7 +124,9 @@ MalVal *EVAL(MalVal *ast, Env *env) {
     //g_print("EVAL apply list: %s\n", _pr_str(ast,1));
     ast = macroexpand(ast, env);
     if (!ast || mal_error) return NULL;
-    if (ast->type != MAL_LIST) { return ast; }
+    if (ast->type != MAL_LIST) {
+        return eval_ast(ast, env);
+    }
     if (_count(ast) == 0) { return ast; }
 
     int i, len;

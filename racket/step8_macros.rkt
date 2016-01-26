@@ -54,7 +54,7 @@
 
     (let ([ast (macroexpand ast env)])
       (if (not (list? ast))
-        ast
+        (eval-ast ast env)
         (let ([a0 (_nth ast 0)])
           (cond
             [(eq? 'def! a0)

@@ -102,7 +102,7 @@ proc EVAL {ast env} {
 
         set ast [macroexpand $ast $env]
         if {![list_q $ast]} {
-            return $ast
+            return [eval_ast $ast $env]
         }
 
         lassign [obj_val $ast] a0 a1 a2 a3
