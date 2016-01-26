@@ -64,7 +64,8 @@ def EVAL(ast, env):
 
         # apply list
         ast = macroexpand(ast, env)
-        if not types._list_Q(ast): return ast
+        if not types._list_Q(ast):
+            return eval_ast(ast, env)
         if len(ast) == 0: return ast
         a0 = ast[0]
 

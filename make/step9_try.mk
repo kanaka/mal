@@ -142,7 +142,7 @@ $(strip $(if $(__ERROR),,\
     $(foreach ast,$(call MACROEXPAND,$(1),$(2)),
       $(if $(call _list?,$(ast)),\
         $(word 1,$(strip $(call EVAL_INVOKE,$(ast),$(2)) $(__nil))),\
-	$(ast))),\
+	$(call EVAL_AST,$(ast),$(2)))),\
     $(call EVAL_AST,$(1),$(2)))))
 endef
 

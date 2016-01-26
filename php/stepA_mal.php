@@ -80,7 +80,9 @@ function MAL_EVAL($ast, $env) {
 
     // apply list
     $ast = macroexpand($ast, $env);
-    if (!_list_Q($ast)) { return $ast; }
+    if (!_list_Q($ast)) {
+        return eval_ast($ast, $env);
+    }
 
     $a0 = $ast[0];
     $a0v = (_symbol_Q($a0) ? $a0->value : $a0);
