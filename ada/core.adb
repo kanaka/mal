@@ -480,6 +480,68 @@ package body Core is
    end New_Vector;
 
 
+   function New_Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : List_Mal_Type;
+      Res : Mal_Handle;
+   begin
+      Res := New_List_Mal_Type (Hashed_List);
+      Rest_List := Deref_List (Rest_Handle).all;
+      while not Is_Null (Rest_List) loop
+         Deref_List(Res).Append (Car (Rest_List));
+         Rest_List := Deref_List (Cdr (Rest_List)).all;
+      end loop;
+      return Res;
+   end New_Map;
+
+
+   function Assoc (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, List_Param : List_Mal_Type;
+      Res : Mal_Handle;
+   begin
+
+      Rest_List := Deref_List (Rest_Handle).all;
+      List_Param := Deref_List (Car (Rest_List)).all;
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+
+      while not Is_Null (Rest_List) loop
+         List_Param.Append (Car (Rest_List));
+         Rest_List := Deref_List (Cdr (Rest_List)).all;
+      end loop;
+      return New_List_Mal_Type (List_Param);
+   end Assoc;
+
+
+   function Get_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, Map : List_Mal_Type;
+      Key, Map_Key, Map_Val : Mal_Handle;
+   begin
+
+      Rest_List := Deref_List (Rest_Handle).all;
+      Map := Deref_List (Car (Rest_List)).all;
+      if Is_Null (Map) then
+         return New_Atom_Mal_Type ("nil");
+      end if;
+
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+      Key := Car (Rest_List);
+
+      while not Is_Null (Map) loop
+         Map_Key := Car (Map);
+         Map := Deref_List (Cdr (Map)).all;
+         exit when Is_Null (Map);  -- how... odd.
+         Map_Val := Car (Map);
+         if Map_Key = Key then
+            return Map_Val;
+         end if;
+         Map := Deref_List (Cdr (Map)).all;
+      end loop;
+      return New_Atom_Mal_Type ("nil");
+   end Get_Key;
+
+
    -- Take a list with two parameters and produce a single result
    -- using the Op access-to-function parameter.
    function Reduce2
@@ -693,6 +755,18 @@ package body Core is
       Set (Get_Current,
            "vector?",
            New_Func_Mal_Type ("vector?", Is_Vector'access));
+
+      Set (Get_Current,
+           "hash-map",
+           New_Func_Mal_Type ("hash-map", New_Map'access));
+
+      Set (Get_Current,
+           "assoc",
+           New_Func_Mal_Type ("assoc", Assoc'access));
+
+      Set (Get_Current,
+           "get",
+           New_Func_Mal_Type ("get", Get_Key'access));
 
       Set (Get_Current,
            "map?",
