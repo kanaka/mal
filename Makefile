@@ -6,6 +6,8 @@ MAL_IMPL = js
 
 PYTHON = python
 USE_MATLAB =
+# python, js, cpp, or neko are currently supported
+HAXE_MODE = neko
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -86,6 +88,16 @@ OCTAVE = octave --no-gui -q --traditional --eval
 matlab_args = $(subst $(SPACE),$(COMMA),$(foreach x,$(strip $(1)),'$(x)'))
 matlab_cmd = $(if $(strip $(USE_MATLAB)),$(MATLAB),$(OCTAVE))
 
+haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
+haxe_STEP_TO_PROG_python = haxe/$($(1)).py
+haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
+haxe_STEP_TO_PROG_js     = haxe/$($(1)).js
+
+haxe_RUNSTEP_neko   = neko ../$(2) $(3)
+haxe_RUNSTEP_python = python3 ../$(2) $(3)
+haxe_RUNSTEP_cpp    = ../$(2) $(3)
+haxe_RUNSTEP_js     = node ../$(2) $(3)
+
 # Return list of test files for a given step. If REGRESS is set then
 # test files will include step 2 tests through tests for the step
 # being tested.
@@ -113,7 +125,7 @@ go_STEP_TO_PROG =      go/$($(1))
 groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
 java_STEP_TO_PROG =    java/src/main/java/mal/$($(1)).java
 haskell_STEP_TO_PROG = haskell/$($(1))
-haxe_STEP_TO_PROG =    haxe/$($(1)).py
+haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(HAXE_MODE))
 julia_STEP_TO_PROG =   julia/$($(1)).jl
 js_STEP_TO_PROG =      js/$($(1)).js
 kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
@@ -170,6 +182,7 @@ go_RUNSTEP =      ../$(2) $(3)
 groovy_RUNSTEP =  groovy ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 haxe_RUNSTEP =    python3 ../$(2) $(3)
+haxe_RUNSTEP =    $(haxe_RUNSTEP_$(HAXE_MODE))
 java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
 julia_RUNSTEP =   ../$(2) $(3)
 js_RUNSTEP =      node ../$(2) $(3)

@@ -1,3 +1,4 @@
+import Compat;
 import types.Types.MalType;
 import types.Types.*;
 import reader.*;
@@ -12,7 +13,12 @@ class Step2_eval {
     // EVAL
     static function eval_ast(ast:MalType, env:Map<String,MalType>) {
         return switch (ast) {
-            case MalSymbol(s): env.get(s);
+            case MalSymbol(s):
+                if (env.exists(s)) {
+                    env.get(s);
+                } else {
+                    throw "'" + s + "' not found";
+                }
             case MalList(l):
                 MalList(l.map(function(x) { return EVAL(x, env); }));
             case MalVector(l):
@@ -66,21 +72,17 @@ class Step2_eval {
     }
 
     public static function main() {
-        #if js
-            #error "JS not supported yet"
-        #end
         while (true) {
             try {
-                Sys.print("user> ");
-                var line = Sys.stdin().readLine();
+                var line = Compat.readline("user> ");
                 if (line == "") { continue; }
-                Sys.println(rep(line));
+                Compat.println(rep(line));
             } catch (exc:BlankLine) {
                 continue;
             } catch (exc:haxe.io.Eof) {
-                Sys.exit(0);
+                Compat.exit(0);
             } catch (exc:Dynamic) {
-                Sys.println(exc);
+                Compat.println(exc);
             }
         }
     }

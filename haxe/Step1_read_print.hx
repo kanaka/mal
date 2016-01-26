@@ -1,3 +1,4 @@
+import Compat;
 import types.Types.MalType;
 import reader.*;
 import printer.*;
@@ -24,21 +25,17 @@ class Step1_read_print {
     }
 
     public static function main() {
-        #if js
-            #error "JS not supported yet"
-        #end
         while (true) {
             try {
-                Sys.print("user> ");
-                var line = Sys.stdin().readLine();
+                var line = Compat.readline("user> ");
                 if (line == "") { continue; }
-                Sys.println(rep(line));
+                Compat.println(rep(line));
             } catch (exc:BlankLine) {
                 continue;
             } catch (exc:haxe.io.Eof) {
-                Sys.exit(0);
+                Compat.exit(0);
             } catch (exc:Dynamic) {
-                Sys.println(exc);
+                Compat.println(exc);
             }
         }
     }

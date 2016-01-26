@@ -1,3 +1,4 @@
+import Compat;
 import types.Types.MalType;
 import types.Types.*;
 import reader.*;
@@ -135,10 +136,6 @@ class Step7_quote {
     }
 
     public static function main() {
-        #if js
-            #error "JS not supported yet"
-        #end
-
         // core.EXT: defined using Haxe
         for (k in Core.ns.keys()) {
             repl_env.set(MalSymbol(k), MalFunc(Core.ns[k],null,null,null,false,nil));
@@ -149,30 +146,30 @@ class Step7_quote {
         },null,null,null,false,nil);
         repl_env.set(MalSymbol("eval"), evalfn);
 
-        var cmdargs = Sys.args().map(function(a) { return MalString(a); });
-        repl_env.set(MalSymbol("*ARGV*"), MalList(cmdargs));
+        var cmdargs = Compat.cmdline_args();
+        var argarray = cmdargs.map(function(a) { return MalString(a); });
+        repl_env.set(MalSymbol("*ARGV*"), MalList(argarray));
 
         // core.mal: defined using the language itself
         rep("(def! not (fn* (a) (if a false true)))");
         rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
         if (cmdargs.length > 0) {
-            rep('(load-file "${Sys.args()[0]}")');
-            Sys.exit(0);
+            rep('(load-file "${cmdargs[0]}")');
+            Compat.exit(0);
         }
 
         while (true) {
             try {
-                Sys.print("user> ");
-                var line = Sys.stdin().readLine();
+                var line = Compat.readline("user> ");
                 if (line == "") { continue; }
-                Sys.println(rep(line));
+                Compat.println(rep(line));
             } catch (exc:BlankLine) {
                 continue;
             } catch (exc:haxe.io.Eof) {
-                Sys.exit(0);
+                Compat.exit(0);
             } catch (exc:Dynamic) {
-                Sys.println(exc);
+                Compat.println(exc);
             }
         }
     }

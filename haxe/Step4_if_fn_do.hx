@@ -1,3 +1,4 @@
+import Compat;
 import types.Types.MalType;
 import types.Types.*;
 import reader.*;
@@ -87,10 +88,6 @@ class Step4_if_fn_do {
     }
 
     public static function main() {
-        #if js
-            #error "JS not supported yet"
-        #end
-
         // core.EXT: defined using Haxe
         for (k in Core.ns.keys()) {
             repl_env.set(MalSymbol(k), MalFunc(Core.ns[k],null,null,null,false,nil));
@@ -101,16 +98,15 @@ class Step4_if_fn_do {
 
         while (true) {
             try {
-                Sys.print("user> ");
-                var line = Sys.stdin().readLine();
+                var line = Compat.readline("user> ");
                 if (line == "") { continue; }
-                Sys.println(rep(line));
+                Compat.println(rep(line));
             } catch (exc:BlankLine) {
                 continue;
             } catch (exc:haxe.io.Eof) {
-                Sys.exit(0);
+                Compat.exit(0);
             } catch (exc:Dynamic) {
-                Sys.println(exc);
+                Compat.println(exc);
             }
         }
     }

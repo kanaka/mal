@@ -21,13 +21,35 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install Haxe
+###
+# Node
+
+# For building node modules
+RUN apt-get -y install g++
+
+# Add nodesource apt repo config for 0.12 stable
+RUN curl -sL https://deb.nodesource.com/setup_0.12 | bash -
+
+# Install nodejs
+RUN apt-get -y install nodejs
+
+# Link common name
+RUN ln -sf nodejs /usr/bin/node
+
+ENV NPM_CONFIG_CACHE /mal/.npm
+
+
+###
+# Haxe
+
 RUN apt-get -y install software-properties-common && \
     add-apt-repository -y ppa:haxe/releases && \
     apt-get -y update
+
+ENV HOME /
 RUN apt-get install -y haxe && \
-    mkdir /root/haxelib && haxelib setup /root/haxelib
+    mkdir /haxelib && haxelib setup /haxelib
 
 # Install support for C++ compilation
-RUN apt-get -y install g++
 RUN haxelib install hxcpp
+

@@ -1,3 +1,5 @@
+import Compat;
+
 class Step0_repl {
     // READ
     static function READ(str:String) {
@@ -20,18 +22,14 @@ class Step0_repl {
     }
 
     public static function main() {
-        #if js
-            #error "JS not supported yet"
-        #end
         while (true) {
             try {
-                Sys.print("user> ");
-                var line = Sys.stdin().readLine();
-                Sys.println(rep(line));
+                var line = Compat.readline("user> ");
+                Compat.println(rep(line));
             } catch (exc:haxe.io.Eof) {
-                Sys.exit(0);
+                Compat.exit(0);
             } catch (exc:Dynamic) {
-                Sys.println(exc);
+                Compat.println(exc);
             }
         }
     }

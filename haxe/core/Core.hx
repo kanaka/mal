@@ -1,5 +1,6 @@
 package core;
 
+import Compat;
 import types.Types.MalType;
 import types.Types.*;
 import types.MalException;
@@ -47,11 +48,11 @@ class Core {
         );
     }
     static function prn(args) {
-        Sys.println(args.map(function(s) { return Printer.pr_str(s,true); }).join(" "));
+        Compat.println(args.map(function(s) { return Printer.pr_str(s,true); }).join(" "));
         return nil;
     }
     static function println(args) {
-        Sys.println(args.map(function(s) { return Printer.pr_str(s,false); }).join(" "));
+        Compat.println(args.map(function(s) { return Printer.pr_str(s,false); }).join(" "));
         return nil;
     }
 
@@ -84,10 +85,9 @@ class Core {
 
     static function readline(args) {
         return switch (args[0]) {
-            case MalString(s):
-                Sys.print(s);
+            case MalString(prompt):
                 try {
-                    MalString(Sys.stdin().readLine());
+                    MalString(Compat.readline(prompt));
                 } catch (exc:haxe.io.Eof) {
                     nil;
                 }
@@ -97,7 +97,8 @@ class Core {
 
     static function slurp(args) {
         return switch (args[0]) {
-            case MalString(s): MalString(sys.io.File.getContent(s));
+            case MalString(s):
+                MalString(Compat.slurp(s));
             case _: throw "invalid slurp call";
         }
     }
