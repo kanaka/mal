@@ -23,8 +23,7 @@ def prn(*args):
     return None
 
 def println(*args):
-    line = " ".join(map(lambda exp: printer._pr_str(exp, False), args))
-    print(line.replace('\\n', '\n'))
+    print(" ".join(map(lambda exp: printer._pr_str(exp, False), args)))
     return None
 
 
