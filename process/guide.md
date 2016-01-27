@@ -257,7 +257,7 @@ expression support.
 * If the target language has objects types (OOP), then the next step
   is to create a simple stateful Reader object in `reader.qx`. This
   object will store the tokens and a position. The Reader object will
-  have two methods: `next` and `peek`. `next` returns the tokens at
+  have two methods: `next` and `peek`. `next` returns the token at
   the current position and increments the position. `peek` just
   returns the token at the current position.
 
