@@ -94,6 +94,8 @@
 ;=>false
 (= "abc" 'abc)
 ;=>false
+(= "abc" (str 'abc))
+;=>true
 
 ;;;;; Test quine
 ;;; TODO: needs expect line length fix

@@ -18,6 +18,8 @@ else:
 
 def _equal_Q(a, b):
     ota, otb = type(a), type(b)
+    if _string_Q(a) and _string_Q(b):
+        return a == b
     if not (ota == otb or (_sequential_Q(a) and _sequential_Q(b))):
         return False;
     if _symbol_Q(a):
