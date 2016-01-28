@@ -83,7 +83,7 @@
           'fn*
           (with-meta
             (fn [& args]
-              (EVAL a2 (env/env env a1 args)))
+              (EVAL a2 (env/env env a1 (or args '()))))
             {:expression a2
              :environment env
              :parameters a1})
