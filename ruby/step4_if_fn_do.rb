@@ -59,7 +59,7 @@ def EVAL(ast, env)
         end
     when :"fn*"
         return lambda {|*args|
-            EVAL(a2, Env.new(env, a1, args))
+            EVAL(a2, Env.new(env, a1, List.new(args)))
         }
     else
         el = eval_ast(ast, env)
