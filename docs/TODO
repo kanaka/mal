@@ -116,7 +116,6 @@ Postscript:
     - formatting messed up with mal/clojurewest2014.mal
 
 Python:
-    - error: python ../python/stepA_mal.py ../mal/stepA_mal.mal ../mal/stepA_mal.mal
     - interop tests
 
 R:
