@@ -273,6 +273,26 @@ expression support.
 ```
 [\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)
 ```
+* For each match captured within the parenthesis starting at char 6 of the
+  regular expression a new token will be created.
+
+  * `[\s,]*`: Matches any number of whitespaces or commas. This is not captured
+    so it will be ignored and not tokenized.
+
+  * `~@`: Captures the special two-characters `~@` (tokenized).
+
+  * ```[\[\]{}()'`~^@]```: Captures any special single character, one of
+    ```[]{}'`~^@``` (tokenized).
+
+  * `"(?:\\.|[^\\"])*"`: Starts capturing at a double-quote and stops at the
+    next double-quote unless it was proceeded by a backslash in which case it
+    includes it until the next double-quote (tockenized).
+
+  * `;.*`: Captures any sequence of characters starting with `;` (tokenized).
+
+  * ```[^\s\[\]{}('"`,;)]*```: Captures a sequence of zero or more non special
+    characters (e.g. symbols, numbers, "true", "false", and "nil") and is sort
+    of the inverse of the one above that captures special characters (tokenized).
 
 * Add the function `read_form` to `reader.qx`. This function
   will peek at the first token in the Reader object and switch on the
@@ -894,7 +914,7 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
   (closed over from outside) as the second argument. The result of
   the `EVAL` call is returned. This simple but powerful addition
   allows your program to treat mal data as a mal program. For example,
-  you can now to this: 
+  you can now to this:
 ```
 (def! mal-prog (list + 1 2))
 (eval mal-prog)
@@ -1300,7 +1320,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
     chain). Yes, it is ugly, but you were warned in the section on
     picking a language.
 
-* Add the `throw` core function. 
+* Add the `throw` core function.
   * If your language supports try/catch style exception handling, then
     this function takes a mal type/value and throws/raises it as an
     exception. In order to do this, you may need to create a custom
@@ -1450,7 +1470,7 @@ There is a very good chance that you will encounter an error at some
 point while trying to run the mal in mal implementation steps above.
 Debugging failures that happen while self-hosting is MUCH more
 difficult and mind bending. One of the best approaches I have
-personally found is to add prn statements to the mal implementation 
+personally found is to add prn statements to the mal implementation
 step (not your own implementation of mal) that is causing problems.
 
 Another approach I have frequently used is to pull out the code from
