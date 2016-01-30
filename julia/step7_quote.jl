@@ -82,7 +82,7 @@ function EVAL(ast, env)
         end
     elseif symbol("fn*") == ast[1]
         return MalFunc(
-            (args...) -> EVAL(ast[3], Env(env, ast[2], args)),
+            (args...) -> EVAL(ast[3], Env(env, ast[2], Any[args...])),
             ast[3], env, ast[2])
     else
         el = eval_ast(ast, env)
