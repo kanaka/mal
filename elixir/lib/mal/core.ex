@@ -147,6 +147,7 @@ defmodule Mal.Core do
 
   defp rest([{_type, [_head | tail], _}]), do: list(tail)
   defp rest([{_type, [], _}]), do: list([])
+  defp rest([nil]), do: list([])
 
   defp map([%Function{value: function}, ast]), do: do_map(function, ast)
   defp map([function, ast]), do: do_map(function, ast)

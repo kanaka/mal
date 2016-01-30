@@ -68,6 +68,8 @@ rest([{Type, [_First|Rest], _Meta}]) when Type == list orelse Type == vector ->
     {list, Rest, nil};
 rest([{Type, [], _Meta}]) when Type == list orelse Type == vector ->
     {list, [], nil};
+rest([nil]) ->
+    {list, [], nil};
 rest([_]) ->
     {error, "rest called on non-sequence"};
 rest([]) ->

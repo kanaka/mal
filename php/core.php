@@ -105,7 +105,7 @@ function nth($seq, $idx) {
 }
 
 function first($seq) {
-    if (count($seq) === 0) {
+    if ($seq === NULL || count($seq) === 0) {
         return NULL;
     } else {
         return $seq[0];
@@ -113,9 +113,13 @@ function first($seq) {
 }
 
 function rest($seq) {
-    $l = new ListClass();
-    $l->exchangeArray(array_slice($seq->getArrayCopy(), 1));
-    return $l;
+    if ($seq === NULL) {
+        return new ListClass();
+    } else {
+        $l = new ListClass();
+        $l->exchangeArray(array_slice($seq->getArrayCopy(), 1));
+        return $l;
+    }
 }
 
 function empty_Q($seq) { return $seq->count() === 0; }
