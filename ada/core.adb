@@ -516,10 +516,20 @@ package body Core is
    function Get_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List, Map : List_Mal_Type;
-      Key, Map_Key, Map_Val : Mal_Handle;
+      Key, Map_Key, Map_Val, Map_Param : Mal_Handle;
+      Sym : Sym_Types;
    begin
 
       Rest_List := Deref_List (Rest_Handle).all;
+      Map_Param := Car (Rest_List);
+      Sym := Deref (Map_Param).Sym_Type;
+      if Sym = Atom then
+         -- Either its nil or its some other atom
+         -- which makes no sense!
+         return New_Atom_Mal_Type ("nil");
+      end if;
+
+      -- Assume a map from here on in.
       Map := Deref_List (Car (Rest_List)).all;
       if Is_Null (Map) then
          return New_Atom_Mal_Type ("nil");
@@ -540,6 +550,86 @@ package body Core is
       end loop;
       return New_Atom_Mal_Type ("nil");
    end Get_Key;
+
+
+   function Contains_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, Map : List_Mal_Type;
+      Key, Map_Key : Mal_Handle;
+   begin
+
+      Rest_List := Deref_List (Rest_Handle).all;
+      Map := Deref_List (Car (Rest_List)).all;
+      if Is_Null (Map) then
+         return New_Bool_Mal_Type (False);
+      end if;
+
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+      Key := Car (Rest_List);
+
+      while not Is_Null (Map) loop
+         Map_Key := Car (Map);
+         Map := Deref_List (Cdr (Map)).all;
+         exit when Is_Null (Map);  -- how... odd.
+         if Map_Key = Key then
+            return New_Bool_Mal_Type (True);
+         end if;
+         Map := Deref_List (Cdr (Map)).all;
+      end loop;
+      return New_Bool_Mal_Type (False);
+   end Contains_Key;
+
+
+   function All_Keys (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, Map : List_Mal_Type;
+      Map_Key, Map_Val, Res : Mal_Handle;
+   begin
+
+      Rest_List := Deref_List (Rest_Handle).all;
+      Map := Deref_List (Car (Rest_List)).all;
+
+      Res := New_List_Mal_Type (List_List);
+      if Is_Null (Map) then
+         return Res;
+      end if;
+
+      while not Is_Null (Map) loop
+         Map_Key := Car (Map);
+         Deref_List (Res).Append (Map_Key);
+         Map := Deref_List (Cdr (Map)).all;
+         exit when Is_Null (Map);  -- how... odd.
+         Map_Val := Car (Map);
+         Map := Deref_List (Cdr (Map)).all;
+      end loop;
+      return Res;
+   end All_Keys;
+
+
+   function All_Values (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List, Map : List_Mal_Type;
+      Map_Key, Map_Val, Res : Mal_Handle;
+   begin
+
+      Rest_List := Deref_List (Rest_Handle).all;
+      Map := Deref_List (Car (Rest_List)).all;
+
+      Res := New_List_Mal_Type (List_List);
+      if Is_Null (Map) then
+         return Res;
+      end if;
+
+      while not Is_Null (Map) loop
+         Map_Key := Car (Map);
+         Map := Deref_List (Cdr (Map)).all;
+         exit when Is_Null (Map);  -- how... odd.
+         Map_Val := Car (Map);
+         Deref_List (Res).Append (Map_Val);
+         Map := Deref_List (Cdr (Map)).all;
+      end loop;
+      return Res;
+   end All_Values;
 
 
    -- Take a list with two parameters and produce a single result
@@ -769,8 +859,20 @@ package body Core is
            New_Func_Mal_Type ("get", Get_Key'access));
 
       Set (Get_Current,
+           "keys",
+           New_Func_Mal_Type ("keys", All_Keys'access));
+
+      Set (Get_Current,
+           "vals",
+           New_Func_Mal_Type ("vals", All_Values'access));
+
+      Set (Get_Current,
            "map?",
            New_Func_Mal_Type ("map?", Is_Map'access));
+
+      Set (Get_Current,
+           "contains?",
+           New_Func_Mal_Type ("contains?", Contains_Key'access));
 
       Set (Get_Current,
            "sequential?",
