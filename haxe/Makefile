@@ -43,9 +43,9 @@ cpp/s%: S%.hx
 	haxe -main $(patsubst %.hx,%,$<) -cpp cpp
 	cp $(patsubst cpp/s%,cpp/S%,$@) $@
 
-cpp/Step1_read_print cpp/Step2_eval: $(STEP1_DEPS)
-cpp/Step3_env: $(STEP3_DEPS)
-cpp/Step4_if_fn_do cpp/Step5_tco cpp/Step6_file cpp/Step7_quote cpp/Step8_macros cpp/Step9_try cpp/StepA_mal: $(STEP4_DEPS)
+cpp/step1_read_print cpp/step2_eval: $(STEP1_DEPS)
+cpp/step3_env: $(STEP3_DEPS)
+cpp/step4_if_fn_do cpp/step5_tco cpp/step6_file cpp/step7_quote cpp/step8_macros cpp/step9_try cpp/stepA_mal: $(STEP4_DEPS)
 
 
 # JavaScript target (js)

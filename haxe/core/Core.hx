@@ -6,6 +6,7 @@ import types.Types.*;
 import types.MalException;
 import printer.Printer;
 import reader.Reader;
+import haxe.Timer;
 
 class Core {
     static function BoolFn(v) {
@@ -31,6 +32,11 @@ class Core {
             }
             
         };
+    }
+
+    static var start = Timer.stamp();
+    static function time_ms(args) {
+        return MalInt(Std.int(1000 * (Timer.stamp()-start)));
     }
 
     static function equal_Q(args) {
@@ -323,6 +329,7 @@ class Core {
         "-" => NumOp(function(a,b) {return a-b;}),
         "*" => NumOp(function(a,b) {return a*b;}),
         "/" => NumOp(function(a,b) {return Std.int(a/b);}),
+        "time-ms" => time_ms,
 
         "list" => function(a) { return MalList(a); },
         "list?" => function(a) { return BoolFn(list_Q(a[0])); },
