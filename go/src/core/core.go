@@ -198,6 +198,9 @@ func first(a []MalType) (MalType, error) {
 	if len(a) == 0 {
 		return nil, nil
 	}
+	if a[0] == nil {
+		return nil, nil
+	}
 	slc, e := GetSlice(a[0])
 	if e != nil {
 		return nil, e
@@ -209,6 +212,9 @@ func first(a []MalType) (MalType, error) {
 }
 
 func rest(a []MalType) (MalType, error) {
+	if a[0] == nil {
+		return List{}, nil
+	}
 	slc, e := GetSlice(a[0])
 	if e != nil {
 		return nil, e

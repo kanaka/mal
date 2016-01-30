@@ -37,8 +37,8 @@ CONSTANT: ns H{
     { "cons" [ first2 swap prefix { } like ] }
     { "concat" [ concat { } like ] }
     { "nth" [ first2 swap nth ] }
-    { "first" [ first [ nil ] [ first ] if-empty ] }
-    { "rest" [ first [ { } ] [ rest { } like ] if-empty ] }
+    { "first" [ first dup nil? [ drop nil ] [ [ nil ] [ first ] if-empty ] if ] }
+    { "rest" [ first dup nil? [ drop { } ] [ [ { } ] [ rest { } like ] if-empty ] if ] }
     { "throw" [ first throw ] }
     { "apply" [ unclip [ unclip-last append ] dip mal-apply get call( args fn -- maltype ) ] }
     { "map" [ first2 swap '[ 1array _ mal-apply get call( args fn -- maltype ) ] map { } like ] }

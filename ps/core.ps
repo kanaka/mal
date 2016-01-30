@@ -101,12 +101,20 @@ end } def
 
 % [obj ...] -> first -> obj
 /first {
-    0 _nth _first
+    0 _nth dup _nil? {
+        pop null
+    }{
+        _first
+    } ifelse
 } def
 
 % [obj objs...] -> first -> [objs..]
 /rest {
-    0 _nth _rest
+    0 _nth dup _nil? {
+        pop 0 _list
+    }{
+        _rest
+    } ifelse
 } def
 
 % [vect elem...] -> conj -> new_vect
