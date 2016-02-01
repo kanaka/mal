@@ -81,7 +81,7 @@ def _keyword_Q(exp):
 # Functions
 def _function(Eval, Env, ast, env, params):
     def fn(*args):
-        return Eval(ast, Env(env, params, args))
+        return Eval(ast, Env(env, params, List(args)))
     fn.__meta__ = None
     fn.__ast__ = ast
     fn.__gen_env__ = lambda args: Env(env, params, args)

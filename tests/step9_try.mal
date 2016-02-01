@@ -291,6 +291,15 @@
 (or (= p "{:abc \"val1\" :def \"val2\"}") (= p "{:def \"val2\" :abc \"val1\"}"))
 ;=>true
 
+;;
+;; Test extra function arguments as Mal List (bypassing TCO with apply)
+(apply (fn* (& more) (list? more)) [1 2 3])
+;=>true
+(apply (fn* (& more) (list? more)) [])
+;=>true
+(apply (fn* (a & more) (list? more)) [1])
+;=>true
+
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
 ;>>> soft=True

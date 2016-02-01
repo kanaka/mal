@@ -51,7 +51,7 @@ function EVAL(ast, env)
             EVAL(ast[3], env)
         end
     elseif symbol("fn*") == ast[1]
-        (args...) -> EVAL(ast[3], Env(env, ast[2], args))
+        (args...) -> EVAL(ast[3], Env(env, ast[2], Any[args...]))
     else
         el = eval_ast(ast, env)
         f, args = el[1], el[2:end]
