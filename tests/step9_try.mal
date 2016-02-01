@@ -317,6 +317,8 @@
 ;=>false
 (= {:a 11 :b 22} (hash-map :a 11))
 ;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
 (= {:a 11 :b 22} (list :a 11 :b 22))
 ;=>false
 (= {} [])
