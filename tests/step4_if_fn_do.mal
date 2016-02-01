@@ -446,12 +446,6 @@ nil
 ( (fn* [f x] (f x)) (fn* [a] (+ 1 a)) 7)
 ;=>8
 
-;;
-;; -------- Soft tests --------
-;; (when most implementations will implement these tests correctly this section
-;; will be modified to hard failures)
-;>>> soft=True
-
 ;; Nested vector/list equality
 (= [(list)] (list []))
 ;=>true

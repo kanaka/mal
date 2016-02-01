@@ -268,6 +268,28 @@
 (dissoc {:cde nil :fgh 456} :cde)
 ;=>{:fgh 456}
 
+;; Testing equality of hash-maps
+(= {} {})
+;=>true
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :b 23 :a 11))
+;=>false
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
+(= {} [])
+;=>false
+(= [] {})
+;=>false
+
 ;;
 ;; Additional str and pr-str tests
 
@@ -300,28 +322,3 @@
 (apply (fn* (a & more) (list? more)) [1])
 ;=>true
 
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
-;>>> soft=True
-
-;; Testing equality of hash-maps
-(= {} {})
-;=>true
-(= {:a 11 :b 22} (hash-map :b 22 :a 11))
-;=>true
-(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
-;=>true
-(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
-;=>true
-(= {:a 11 :b 22} (hash-map :b 23 :a 11))
-;=>false
-(= {:a 11 :b 22} (hash-map :a 11))
-;=>false
-(= {:a [11 22]} {:a (list 11 22)})
-;=>true
-(= {:a 11 :b 22} (list :a 11 :b 22))
-;=>false
-(= {} [])
-;=>false
-(= [] {})
-;=>false
