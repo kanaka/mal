@@ -1532,8 +1532,20 @@ For extra information read [Peter Seibel's thorough discussion about
 
 * Add metadata support to composite data types, symbols and native
   functions. TODO
-* `time-ms` TODO
-* `conj` TODO
+* Add the following new core functions:
+  * `time-ms`: takes no arguments and returns the number of
+    milliseconds since epoch (00:00:00 UTC Janurary 1, 1970), or, if
+    not possible, since another point in time (`time-ms` is usually
+    used relatively to measure time durations).  After `time-ms` is
+    implemented, you can run the mal implementation performance
+    benchmarks by running `make perf^quux`.
+  * `conj`: takes a collection and one or more elements as arguments
+    and returns a new collection which includes the original
+    collection and the new elements.  If the collection is a list, a
+    new list is returned with the elements inserted at the start of
+    the given list in opposite order; if the collection is a vector, a
+    new vector is returned with the elements added to the end of the
+    given vector.
 
 
 ## TODO:
