@@ -621,8 +621,11 @@ function core_first(idx,    lst, lst_idx)
 		return "!\"Invalid argument length for builtin function 'first'. Expects exactly 2 arguments, supplied " (types_heap[idx]["len"] - 1) "."
 	}
 	lst = types_heap[idx][1]
+	if (lst == "#nil") {
+	        return "#nil"
+	}
 	if (lst !~ /^[([]/) {
-		return "!\"Incompatible type for argument 1 of builtin function 'first'. Expects list or vector, supplied " types_typename(lst) "."
+		return "!\"Incompatible type for argument 1 of builtin function 'first'. Expects list, vector or nil, supplied " types_typename(lst) "."
 	}
 	lst_idx = substr(lst, 2)
 	return types_heap[lst_idx]["len"] == 0 ? "#nil" : types_addref(types_heap[lst_idx][0])
@@ -634,8 +637,13 @@ function core_rest(idx,    lst, lst_idx, lst_len, new_idx, i)
 		return "!\"Invalid argument length for builtin function 'rest'. Expects exactly 2 arguments, supplied " (types_heap[idx]["len"] - 1) "."
 	}
 	lst = types_heap[idx][1]
+	if (lst == "#nil") {
+	        new_idx = types_allocate()
+	        types_heap[new_idx]["len"] = 0
+	        return "(" new_idx
+	}
 	if (lst !~ /^[([]/) {
-		return "!\"Incompatible type for argument 1 of builtin function 'rest'. Expects list or vector, supplied " types_typename(lst) "."
+		return "!\"Incompatible type for argument 1 of builtin function 'rest'. Expects list, vector or nil, supplied " types_typename(lst) "."
 	}
 	lst_idx = substr(lst, 2)
 	lst_len = types_heap[lst_idx]["len"]
