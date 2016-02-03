@@ -253,14 +253,18 @@ def nth(args):
 
 def first(args):
     a0 = args[0]
-    if not isinstance(a0, MalList):
+    if a0 is nil:
+        return nil
+    elif not isinstance(a0, MalList):
         throw_str("first called with non-list/non-vector")
     if len(a0) == 0: return nil
     else:            return a0[0]
 
 def rest(args):
     a0 = args[0]
-    if not isinstance(a0, MalList):
+    if a0 is nil:
+        return MalList([])
+    elif not isinstance(a0, MalList):
         throw_str("rest called with non-list/non-vector")
     if len(a0) == 0: return MalList([])
     else:            return a0.rest()

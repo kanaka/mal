@@ -64,12 +64,10 @@ classdef core
         function ret = get(hm, key)
             if isa(hm, 'types.Nil')
                 ret = type_utils.nil;
+            elseif hm.data.isKey(key)
+                ret = hm.data(key);
             else
-                if hm.data.isKey(key)
-                    ret = hm.data(key);
-                else
-                    ret = type_utils.nil;
-                end
+                ret = type_utils.nil;
             end
         end
 
@@ -100,7 +98,9 @@ classdef core
         end
 
         function ret = first(seq)
-            if length(seq) < 1
+            if isa(seq, 'types.Nil')
+                ret = type_utils.nil;
+            elseif length(seq) < 1
                 ret = type_utils.nil;
             else
                 ret = seq.get(1);
@@ -108,8 +108,12 @@ classdef core
         end
 
         function ret = rest(seq)
-            cella = seq.data(2:end);
-            ret = types.List(cella{:});
+            if isa(seq, 'types.Nil')
+                ret = types.List();
+            else
+                cella = seq.data(2:end);
+                ret = types.List(cella{:});
+            end
         end
 
         function ret = nth(seq, idx)
