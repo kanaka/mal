@@ -110,6 +110,7 @@ module Core
         | [List(_, _::t)] -> t |> Node.makeList
         | [Vector(_, seg)] when seg.Count < 2 -> Node.EmptyLIST
         | [Vector(_, seg)] -> seg |> Seq.skip 1 |> List.ofSeq |> Node.makeList
+        | [Nil] -> Node.EmptyLIST
         | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
