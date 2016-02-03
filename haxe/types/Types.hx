@@ -136,6 +136,7 @@ class Types {
             case MalList(l) | MalVector(l):
                 if (l.length == 0) { nil; }
                 else               { l[0]; }
+            case MalNil: MalNil;
             case _: throw "first called on non-sequence";
         }
     }
@@ -143,8 +144,9 @@ class Types {
     public static function rest(seq:MalType) {
         return switch (seq) {
             case MalList(l) | MalVector(l):
-                if (l.length <= 1) { nil; }
+                if (l.length <= 1) { MalList([]); }
                 else               { MalList(l.slice(1)); }
+            case MalNil: MalList([]);
             case _: throw "rest called on non-sequence";
         }
     }
