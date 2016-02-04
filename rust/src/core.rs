@@ -271,6 +271,7 @@ pub fn first(a: Vec<MalVal>) -> MalRet {
     }
     let seq = match *a[0] {
         List(ref v,_) | Vector(ref v,_) => v,
+        Nil => return Ok(_nil()),
         _ => return err_str("first called with non-sequence"),
     };
     if seq.len() == 0 {
@@ -286,6 +287,7 @@ pub fn rest(a: Vec<MalVal>) -> MalRet {
     }
     let seq = match *a[0] {
         List(ref v,_) | Vector(ref v,_) => v,
+        Nil => return Ok(list(vec![])),
         _ => return err_str("rest called with non-sequence"),
     };
     if seq.len() == 0 {

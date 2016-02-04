@@ -190,10 +190,10 @@ namespace Mal {
             });
 
         static MalFunc first = new MalFunc(
-            a => ((MalList)a[0])[0]);
+            a => a[0] == Nil ? Nil : ((MalList)a[0])[0]);
 
         static MalFunc rest = new MalFunc(
-            a => ((MalList)a[0]).rest());
+            a => a[0] == Nil ? new MalList() : ((MalList)a[0]).rest());
 
         static MalFunc empty_Q = new MalFunc(
             a => ((MalList)a[0]).size() == 0 ? True : False);

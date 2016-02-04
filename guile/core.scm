@@ -82,15 +82,17 @@
 
 (define (_first lst)
   (define ll (->list lst))
-  (if (null? ll)
-      nil
-      (car ll)))
+  (cond
+    ((_nil? lst) nil)
+    ((null? ll) nil)
+    (else (car ll))))
 
 (define (_rest lst)
   (define ll (->list lst))
-  (if (null? ll)
-      '()
-      (cdr ll)))
+  (cond
+    ((_nil? lst) '())
+    ((null? ll) '())
+    (else (cdr ll))))
 
 (define (_map f lst) (map (callable-closure f) (->list lst)))
 

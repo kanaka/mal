@@ -111,9 +111,13 @@ sub nth {
     }
 }
 
-sub first { my ($seq) = @_; return scalar(@{$seq->{val}}) > 0 ? $seq->nth(0) : $nil; }
+sub first {
+    my ($seq) = @_;
+    return $nil if (_nil_Q($seq));
+    return scalar(@{$seq->{val}}) > 0 ? $seq->nth(0) : $nil;
+}
 
-sub rest { return $_[0]->rest(); }
+sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
 
 sub count {
     if (_nil_Q($_[0])) {

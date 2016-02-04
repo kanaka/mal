@@ -233,6 +233,9 @@ BUILTIN("eval")
 BUILTIN("first")
 {
     CHECK_ARGS_IS(1);
+    if (*argsBegin == mal::nilValue()) {
+        return mal::nilValue();
+    }
     ARG(malSequence, seq);
     return seq->first();
 }
@@ -329,6 +332,9 @@ BUILTIN("reset!")
 BUILTIN("rest")
 {
     CHECK_ARGS_IS(1);
+    if (*argsBegin == mal::nilValue()) {
+        return mal::list(new malValueVec(0));
+    }
     ARG(malSequence, seq);
     return seq->rest();
 }

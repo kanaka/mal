@@ -349,7 +349,7 @@ class Core {
         "concat" => do_concat,
         "nth" => nth,
         "first" => function(a) { return first(a[0]); },
-        "rest" => function(a) { return MalList(_list(a[0]).slice(1)); },
+        "rest" => function(a) { return rest(a[0]); },
         "empty?" => empty_Q,
         "count" => count,
         "apply" => apply,

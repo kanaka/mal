@@ -254,8 +254,14 @@ private func fn_first(arg: MalVal) throws -> MalVal {
     try throw_error("expected list, got \(arg)")
 }
 
-private func fn_rest(list: MalSequence) throws -> MalVal {
-    return list.rest()
+private func fn_rest(arg: MalVal) throws -> MalVal {
+    if is_nil(arg) {
+        return make_list()
+    }
+    if let seq = as_sequenceQ(arg) {
+        return seq.rest()
+    }
+    try throw_error("expected sequence, got \(arg)")
 }
 
 private func fn_emptyQ(obj: MalVal) throws -> Bool {

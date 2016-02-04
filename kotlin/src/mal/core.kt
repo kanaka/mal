@@ -69,8 +69,11 @@ val ns = hashMapOf(
             }
         }),
         envPair("rest", { a: ISeq ->
-            val list = a.nth(0) as? ISeq ?: throw MalException("rest requires a list parameter")
-            MalList(list.rest())
+            if (a.nth(0) == NIL) MalList()
+            else {
+                val list = a.nth(0) as? ISeq ?: throw MalException("rest requires a list parameter")
+                MalList(list.rest())
+            }
         }),
 
         envPair("throw", { a: ISeq ->

@@ -451,7 +451,7 @@ MalVal *_nth(MalVal *seq, int idx) {
 }
 
 MalVal *_first(MalVal *seq) {
-    assert_type(seq, MAL_LIST|MAL_VECTOR,
+    assert_type(seq, MAL_NIL|MAL_LIST|MAL_VECTOR,
                 "_first called with non-sequential");
     if (_count(seq) == 0) {
         return &mal_nil;

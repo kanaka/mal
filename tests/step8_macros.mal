@@ -118,11 +118,15 @@ x
 
 (first [])
 ;=>nil
+(first nil)
+;=>nil
 (first [10])
 ;=>10
 (first [10 11 12])
 ;=>10
 (rest [])
+;=>()
+(rest nil)
 ;=>()
 (rest [10])
 ;=>()

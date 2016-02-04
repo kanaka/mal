@@ -175,7 +175,7 @@ function MalConcat(args)
 endfunction
 
 function MalFirst(args)
-  return ListFirst(a:args[0])
+  return NilQ(a:args[0]) ? g:MalNil : ListFirst(a:args[0])
 endfunction
 
 function MalNth(args)
@@ -183,7 +183,7 @@ function MalNth(args)
 endfunction
 
 function MalRest(args)
-  return ListRest(a:args[0])
+  return NilQ(a:args[0]) ? ListNew([]) : ListRest(a:args[0])
 endfunction
 
 function MalApply(args)

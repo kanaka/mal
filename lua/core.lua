@@ -118,6 +118,14 @@ function first(a)
     end
 end
 
+function rest(a)
+    if a == Nil then
+        return List:new()
+    else
+        return List:new(a:slice(2))
+    end
+end
+
 function apply(f, ...)
     if types._malfunc_Q(f) then
         f = f.fn
@@ -222,7 +230,7 @@ M.ns = {
     concat = concat,
     nth = nth,
     first = first,
-    rest = function(a) return List:new(a:slice(2)) end,
+    rest = rest,
     ['empty?'] = function(a) return a==Nil or #a == 0 end,
     count =  function(a) return #a end,
     apply = apply,

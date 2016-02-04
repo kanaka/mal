@@ -83,13 +83,18 @@ object core {
   }
 
   def first(a: List[Any]): Any = {
-    val lst = a(0).asInstanceOf[MalList].value
-    if (lst.length > 0) lst(0) else null
+    a(0) match {
+      case null => null
+      case ml: MalList => {
+        val lst = ml.value
+        if (lst.length > 0) lst(0) else null
+      }
+    }
   }
 
   def rest(a: List[Any]): Any = {
     a(0) match {
-      case null => true
+      case null => _list()
       case ml: MalList => _list(ml.drop(1).value:_*)
     }
   }

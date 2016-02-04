@@ -63,9 +63,13 @@ def nth(lst, idx):
     if idx < len(lst): return lst[idx]
     else: throw("nth: index out of range")
 
-def first(lst): return lst[0]
+def first(lst):
+    if types._nil_Q(lst): return None
+    else: return lst[0]
 
-def rest(lst): return List(lst[1:])
+def rest(lst):
+    if types._nil_Q(lst): return List([])
+    else: return List(lst[1:])
 
 def empty_Q(lst): return len(lst) == 0
 
