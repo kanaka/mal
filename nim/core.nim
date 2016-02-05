@@ -15,8 +15,7 @@ proc prn(xs: varargs[MalType]): MalType =
   result = nilObj
 
 proc println(xs: varargs[MalType]): MalType =
-  let line = xs.map(proc(x: MalType): string = x.pr_str(false)).join(" ")
-  echo line.replace("\\n", "\n")
+  echo xs.map(proc(x: MalType): string = x.pr_str(false)).join(" ")
   result = nilObj
 
 proc read_str(xs: varargs[MalType]): MalType =
