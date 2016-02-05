@@ -33,8 +33,10 @@
       ["_cmp_hash_maps", "a", "b"],
       false],
   ["if", ["symbol?", "a"],
-    ["=", ["get", "a", ["`", "val"]], ["get", "b", ["`", "val"]]],
-    ["=", "a", "b"]]]]]],
+    ["if", ["symbol?", "b"],
+      ["=", ["get", "a", ["`", "val"]], ["get", "b", ["`", "val"]]],
+      false],
+  ["=", "a", "b"]]]]]],
 
 ["def", "_clone", ["fn", ["obj"],
   ["if", ["list?", "obj"],

@@ -206,7 +206,7 @@ class StepA_mal {
 
         var cmdargs = Compat.cmdline_args();
         var argarray = cmdargs.map(function(a) { return MalString(a); });
-        repl_env.set(MalSymbol("*ARGV*"), MalList(argarray));
+        repl_env.set(MalSymbol("*ARGV*"), MalList(argarray.slice(1)));
 
         // core.mal: defined using the language itself
         rep("(def! *host-language* \"haxe\")");

@@ -21,6 +21,15 @@ function do_apply(f, all_args...)
     fn(args...)
 end
 
+function do_map(a,b)
+    # map and convert to array/list
+    if isa(a,types.MalFunc)
+        collect(map(a.fn,b))
+    else
+        collect(map(a,b))
+    end
+end
+
 function with_meta(obj, meta)
     new_obj = types.copy(obj)
     new_obj.meta = meta
@@ -79,7 +88,7 @@ ns = Dict{Any,Any}(
     symbol("empty?") => isempty,
     :count => (a) -> a == nothing ? 0 : length(a),
     :apply => do_apply,
-    :map => (a,b) -> isa(a,types.MalFunc) ? [map(a.fn,b)...] : [map(a,b)...],
+    :map => do_map,
 
     :conj => nothing,
 

@@ -96,6 +96,10 @@
 ;=>false
 (= "abc" (str 'abc))
 ;=>true
+(= 'abc nil)
+;=>false
+(= nil 'abc)
+;=>false
 
 ;;;;; Test quine
 ;;; TODO: needs expect line length fix
