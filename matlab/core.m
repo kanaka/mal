@@ -143,6 +143,18 @@ classdef core
             ret = types.List(cells{:});
         end
 
+        function ret = conj(varargin)
+            seq = varargin{1};
+            args = varargin(2:end);
+            if type_utils.list_Q(seq)
+                cella = [fliplr(args), seq.data];
+                ret = types.List(cella{:});
+            else
+                cella = [seq.data, args];
+                ret = types.Vector(cella{:});
+            end
+        end
+
         function new_obj = with_meta(obj, meta)
             new_obj = clone(obj);
             new_obj.meta = meta;
@@ -230,7 +242,7 @@ classdef core
             n('count') = @(a) 0 + length(a);
             n('apply') = @(varargin) core.apply(varargin{:});
             n('map') = @(varargin) core.map(varargin{:});
-            n('conj') = @(x) disp('not implemented yet');
+            n('conj') = @(varargin) core.conj(varargin{:});
 
             n('with-meta') = @(a,b) core.with_meta(a,b);
             n('meta') = @(a) core.meta(a);

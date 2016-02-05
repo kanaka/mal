@@ -1,7 +1,7 @@
 classdef List < handle
     properties
         data
-        meta
+        meta = type_utils.nil;
     end
     methods
         function obj = List(varargin)

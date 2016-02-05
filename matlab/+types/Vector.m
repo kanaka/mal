@@ -2,6 +2,7 @@ classdef Vector < types.List
     methods
         function obj = Vector(varargin)
             obj.data = varargin;
+            meta = type_utils.nil;
         end
 
         function ret = slice(obj, start, last)

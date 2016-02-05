@@ -63,18 +63,23 @@ classdef type_utils
             if type_utils.keyword_Q(str)
                 ret = str;
             else
-                ret = sprintf('%c%s', 0xff, str);
+                ret = sprintf('%c%s', 255, str);
             end
         end
         function ret = keyword_Q(obj)
-            ret = length(obj) > 1 && strcmp(obj(1), sprintf('%c', 0xff));
+            ret = length(obj) > 1 && strcmp(obj(1), sprintf('%c', 255));
         end
 
         function print_stack(err)
             for i=1:numel(err.stack)
                 stack = err.stack(i);
-                fprintf('    %s at line %d column %d (%s)\n', ...
-                        stack.name, stack.line, stack.column, stack.file);
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    fprintf('    %s at line %d column %d (%s)\n', ...
+                            stack.name, stack.line, stack.column, stack.file);
+                else
+                    fprintf('    %s at line %d (%s)\n', ...
+                            stack.name, stack.line, stack.file);
+                end
             end
         end
     end
