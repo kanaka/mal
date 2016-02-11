@@ -7,10 +7,19 @@ class MalException < StandardError
   end
 end
 
+class String # re-open and add seq
+    def seq()
+        return List.new self.split("")
+    end
+end
+
 class List < Array
     attr_accessor :meta
     def conj(xs)
         xs.each{|x| self.unshift(x)}
+        return self
+    end
+    def seq()
         return self
     end
 end
@@ -20,6 +29,9 @@ class Vector < Array
     def conj(xs)
         self.push(*xs)
         return self
+    end
+    def seq()
+        return List.new self
     end
 end
 

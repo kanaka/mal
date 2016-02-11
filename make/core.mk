@@ -57,7 +57,7 @@ time_ms = $(call _number,$(shell echo $$(date +%s%3N)))
 
 # String functions
 
-string? = $(if $(call _string?,$(1)),$(__true),$(__false))
+string? = $(if $(call _string?,$(1)),$(if $(call _keyword?,$(1)),$(__false),$(__true)),$(__false))
 
 pr_str  = $(call _string,$(call _pr_str_mult,$(1),yes, ))
 str     = $(call _string,$(call _pr_str_mult,$(1),,))
@@ -143,14 +143,6 @@ empty? = $(if $(call _EQ,0,$(if $(call _hash_map?,$(1)),$($(1)_size),$(words $($
 
 count = $(call _number,$(call _count,$(1)))
 
-conj = $(word 1,$(foreach new_list,$(call __new_obj_like,$(word 1,$(1))),\
-                  $(new_list) \
-                  $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value))) \
-                  $(if $(call _list?,$(new_list)),\
-                    $(foreach elem,$(wordlist 2,$(words $(1)),$(1)),\
-                      $(eval $(new_list)_value := $(strip $(elem) $($(new_list)_value)))),\
-                    $(eval $(new_list)_value := $(strip $($(new_list)_value) $(wordlist 2,$(words $(1)),$(1)))))))
-
 # Creates a new vector/list of the everything after but the first
 # element
 srest = $(word 1,$(foreach new_list,$(call _list),\
@@ -161,7 +153,7 @@ srest = $(word 1,$(foreach new_list,$(call _list),\
 # (function object) using the remaining arguments.
 sapply = $(call $(word 1,$(1))_value,$(strip \
                                        $(wordlist 2,$(call int_sub,$(words $(1)),1),$(1)) \
-				       $($(word $(words $(1)),$(1))_value)))
+                                       $($(word $(words $(1)),$(1))_value)))
 
 # Map a function object over a list object
 smap = $(strip\
@@ -175,6 +167,34 @@ smap = $(strip\
                        $(call $(func)_value,$(val))))))\
                  $(__obj_magic)_$(type)_$(new_hcode))))))
 
+conj = $(word 1,$(foreach new_list,$(call __new_obj_like,$(word 1,$(1))),\
+                  $(new_list) \
+                  $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value))) \
+                  $(if $(call _list?,$(new_list)),\
+                    $(foreach elem,$(wordlist 2,$(words $(1)),$(1)),\
+                      $(eval $(new_list)_value := $(strip $(elem) $($(new_list)_value)))),\
+                    $(eval $(new_list)_value := $(strip $($(new_list)_value) $(wordlist 2,$(words $(1)),$(1)))))))
+
+seq = $(strip\
+        $(if $(call _list?,$(1)),\
+          $(if $(call _EQ,0,$(call _count,$(1))),$(__nil),$(1)),\
+        $(if $(call _vector?,$(1)),\
+          $(if $(call _EQ,0,$(call _count,$(1))),\
+            $(__nil),\
+            $(word 1,$(foreach new_list,$(call _list),\
+                        $(new_list) \
+                        $(eval $(new_list)_value := $(strip $($(word 1,$(1))_value)))))),\
+        $(if $(call _EQ,string,$(call _obj_type,$(1))),\
+          $(if $(call _EQ,0,$(call _count,$(1))),\
+            $(__nil),\
+            $(word 1,$(foreach new_list,$(call _list),\
+                        $(new_list) \
+                        $(eval $(new_list)_value := $(strip \
+                                                      $(foreach c,$($(word 1,$(1))_value),\
+                                                        $(call _string,$(c)))))))),\
+        $(if $(call _nil?,$(1)),\
+          $(__nil),\
+        $(call _error,seq: called on non-sequence))))))
 
 # Metadata functions
 
@@ -214,12 +234,12 @@ core_ns = type obj_type \
           nil? nil? \
           true? true? \
           false? false? \
+          string? string? \
           symbol symbol \
           symbol? symbol? \
           keyword keyword \
           keyword? keyword? \
           function? function? \
-          string? string? \
           \
           pr-str pr_str \
           str str \
@@ -262,9 +282,11 @@ core_ns = type obj_type \
           last slast \
           empty? empty? \
           count count \
-          conj conj \
           apply sapply \
           map smap \
+          \
+          conj conj \
+          seq seq \
           \
           with-meta with_meta \
           meta meta \
