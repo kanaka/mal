@@ -5,6 +5,7 @@ with Ada.Strings.Maps.Constants;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Smart_Pointers;
+with Types.Vector;
 
 package body Reader is
 
@@ -234,13 +235,19 @@ package body Reader is
 
          declare
             List_SP : Mal_Handle;
-            List_P : List_Ptr;
+            List_P : List_Class_Ptr;
             Close : String (1..1) := (1 => Types.Closing (LT));
          begin
-            List_SP := New_List_Mal_Type (List_Type => LT);
+            case LT is
+               when List_List | Hashed_List =>
+                  List_SP := New_List_Mal_Type (List_Type => LT);
+               when Vector_List =>
+                  List_SP := Vector.New_Vector_Mal_Type;
+            end case;
+
 
             -- Need to append to a variable so...
-            List_P := Deref_List (List_SP);
+            List_P := Deref_List_Class (List_SP);
             loop
                exit when Is_Null (MTA) or else
                          (Deref (MTA).Sym_Type = Atom and then

@@ -230,6 +230,10 @@ package Types is
 
    function Deref_List (SP : Mal_Handle) return List_Ptr;
 
+   type List_Class_Ptr is access all List_Mal_Type'Class;
+
+   function Deref_List_Class (SP : Mal_Handle) return List_Class_Ptr;
+
 
    type Func_Mal_Type is new Mal_Type with private;
 
@@ -394,6 +398,9 @@ private
      (T : List_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String;
 
+   type Container_Cursor is tagged record
+      The_Node : Node_Ptr := null;
+   end record;
 
    type Lambda_Mal_Type is new Mal_Type with record
       Env : Envs.Env_Handle;

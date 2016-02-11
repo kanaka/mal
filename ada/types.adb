@@ -5,10 +5,13 @@ with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 with Envs;
 with Smart_Pointers;
+with Types.Vector;
 
 package body Types is
 
    package ACL renames Ada.Characters.Latin_1;
+
+   function Nodes_Equal (A, B : Mal_Handle) return Boolean;
 
 
    function "=" (A, B : Mal_Handle) return Mal_Handle is
@@ -17,7 +20,29 @@ package body Types is
    end "=";
 
 
+   function Compare_List_And_Vector (A : List_Mal_Type; B : List_Mal_Type'Class)
+   return Boolean is
+      First_Node, First_Index : Mal_Handle;
+      I : Natural := 0;
+   begin
+      First_Node := A.The_List;
+      loop
+         if not Is_Null (First_Node) and I < B.Length then
+            First_Index := B.Nth (I);
+            if not "=" (Deref_Node (First_Node).Data, First_Index) then
+               return False;
+            end if;
+            First_Node := Deref_Node (First_Node).Next;
+            I := I + 1;
+         else
+            return Is_Null (First_Node) and I = B.Length;
+         end if;
+      end loop;
+   end Compare_List_And_Vector;
+
+
    function "=" (A, B : Mal_Handle) return Boolean is
+      use Types.Vector;
    begin
 
       if (not Is_Null (A) and not Is_Null (B)) and then
@@ -31,7 +56,37 @@ package body Types is
             when Bool =>
                return (Deref_Bool (A).Get_Bool = Deref_Bool (B).Get_Bool);
             when List =>
-               return (Deref_List (A).all = Deref_List (B).all);
+            -- When Types.Vector was added, the choice was:
+            -- 1) use interfaces (because you need a class hierachy for the containers
+            --    and a corresponding hierarchy for the cursors and Ada is single dispatch
+            --    + interfaces.
+            -- 2) map out the combinations here and use nth to access vector items.
+               case Deref_List (A).Get_List_Type is
+                  when List_List =>
+                     case Deref_List (B).Get_List_Type is
+                        when List_List => 
+                           return Nodes_Equal (Deref_List (A).The_List, Deref_List (B).The_List);
+                        when Vector_List =>
+                           return Compare_List_And_Vector
+                                    (Deref_List (A).all, Deref_List_Class (B).all);
+                        when Hashed_List => return False; -- Comparing a list and a hash
+                     end case;
+                  when Vector_List =>
+                     case Deref_List (B).Get_List_Type is
+                        when List_List =>
+                           return Compare_List_And_Vector
+                                    (Deref_List (B).all, Deref_List_Class (A).all);
+                        when Vector_List =>
+                           return Vector."=" (Deref_Vector (A).all, Deref_Vector (B).all);
+                        when Hashed_List => return False; -- Comparing a vector and a hash
+                     end case;
+                  when Hashed_List =>
+                     case Deref_List (B).Get_List_Type is
+                        when List_List => return False; -- Comparing a list and a hash
+                        when Vector_List => return False; -- Comparing a vector and a hash
+                        when Hashed_List => return False; -- Comparing a hash and a hash
+                     end case;
+               end case;
             when Str =>
                return (Deref_String (A).Get_String = Deref_String (B).Get_String);
             when Atom =>
@@ -764,7 +819,8 @@ package body Types is
 
    function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, List : Types.List_Mal_Type;
+      Rest_List : Types.List_Mal_Type;
+      List : Types.List_Class_Ptr;
       Res_List_Handle, Dup_List : Mal_Handle;
       Last_Node_P : Mal_Handle := Smart_Pointers.Null_Smart_Pointer;
    begin
@@ -776,10 +832,10 @@ package body Types is
       while not Is_Null (Rest_List) loop
 
          -- Find the next list in the list...
-         List := Deref_List (Car (Rest_List)).all;
+         List := Deref_List_Class (Car (Rest_List));
 
          -- Duplicate nodes to its contents. 
-         Dup_List := Duplicate (List);
+         Dup_List := Duplicate (List.all);
 
          -- If we haven't inserted a list yet, then take the duplicated list whole.
          if Is_Null (Last_Node_P) then
@@ -813,6 +869,12 @@ package body Types is
    begin
       return List_Ptr (Deref (SP));
    end Deref_List;
+
+
+   function Deref_List_Class (SP : Mal_Handle) return List_Class_Ptr is
+   begin
+      return List_Class_Ptr (Deref (SP));
+   end Deref_List_Class;
 
 
    overriding function To_Str 
@@ -911,7 +973,13 @@ package body Types is
 
    function Get_Params (L : Lambda_Mal_Type) return Mal_Handle is
    begin
-      return L.Params;
+      if Deref (L.Params).Sym_Type = List and then
+         Deref_List (L.Params).Get_List_Type = Vector_List then
+         -- Its a vector and we need a list...
+         return Deref_List_Class (L.Params).Duplicate;
+      else
+         return L.Params;
+      end if;
    end Get_Params;
 
    function Get_Expr (L : Lambda_Mal_Type) return Mal_Handle is

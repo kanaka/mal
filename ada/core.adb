@@ -6,6 +6,7 @@ with Evaluation;
 with Reader;
 with Smart_Pointers;
 with Types;
+with Types.Vector;
 
 package body Core is
 
@@ -171,13 +172,13 @@ package body Core is
    function Is_Empty (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
-      List : List_Mal_Type;
+      List : List_Class_Ptr;
       Rest_List : Types.List_Mal_Type;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      List := Deref_List (First_Param).all;
-      return New_Bool_Mal_Type (Is_Null (List));
+      List := Deref_List_Class (First_Param);
+      return New_Bool_Mal_Type (Is_Null (List.all));
    end Is_Empty;
 
 
@@ -199,13 +200,20 @@ package body Core is
    function Count (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
-      List : List_Mal_Type;
+      L : List_Mal_Type;
       Rest_List : Types.List_Mal_Type;
+      N : Natural;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      List := Eval_As_List (First_Param);
-      return New_Int_Mal_Type (Length (List));
+      if Deref (First_Param).Sym_Type = List and then
+         Deref_List (First_Param).Get_List_Type = Vector_List then
+         N := Deref_List_Class (First_Param).Length;
+      else
+         L := Eval_As_List (First_Param);
+         N := L.Length;
+      end if;
+      return New_Int_Mal_Type (N);
    end Count;
 
 
@@ -214,14 +222,15 @@ package body Core is
       Rest_List : Types.List_Mal_Type;
       First_Param, List_Handle : Mal_Handle;
       List : List_Mal_Type;
+      List_Class : List_Class_Ptr;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       List_Handle := Cdr (Rest_List);
       List := Deref_List (List_Handle).all;
       List_Handle := Car (List);
-      List := Deref_List (List_Handle).all;
-      return Prepend (First_Param, List);
+      List_Class := Deref_List_Class (List_Handle);
+      return Prepend (First_Param, List_Class.all);
    end Cons;
 
 
@@ -236,48 +245,50 @@ package body Core is
 
    function First (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, First_List : Types.List_Mal_Type;
+      Rest_List : Types.List_Mal_Type;
+      First_List : Types.List_Class_Ptr;
       First_Param : Mal_Handle;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      First_List := Deref_List (First_Param).all;
-      if Is_Null (First_List) then
+      First_List := Deref_List_Class (First_Param);
+      if Is_Null (First_List.all) then
          return New_Atom_Mal_Type ("nil");
       else
-         return Types.Car (First_List);
+         return Types.Car (First_List.all);
       end if;
    end First;
 
 
    function Rest (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, First_List, Res : Types.List_Mal_Type;
-      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+      First_Param, Container : Mal_Handle;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      First_List := Deref_List (First_Param).all;
-      Res := Deref_List (Types.Cdr (First_List)).all;
-      return Types.Duplicate (Res);
+      Container := Deref_List_Class (First_Param).Cdr;
+      return Deref_List_Class (Container).Duplicate;
    end Rest;
 
 
    function Nth (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, First_List : Types.List_Mal_Type;
+      -- Rest_List, First_List : Types.List_Mal_Type;
+      Rest_List : Types.List_Mal_Type;
+      First_List : Types.List_Class_Ptr;
       First_Param, List_Handle, Num_Handle : Mal_Handle;
       List : List_Mal_Type;
       Index : Types.Int_Mal_Type;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      First_List := Deref_List (First_Param).all;
+      First_List := Deref_List_Class (First_Param);
       List_Handle := Cdr (Rest_List);
       List := Deref_List (List_Handle).all;
       Num_Handle := Car (List);
       Index := Deref_Int (Num_Handle).all;
-      return Types.Nth (First_List, Natural (Index.Get_Int_Val));
+      return Types.Nth (First_List.all, Natural (Index.Get_Int_Val));
    end Nth;
 
 
@@ -469,11 +480,12 @@ package body Core is
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Res : Mal_Handle;
+      use Types.Vector;
    begin
-      Res := New_List_Mal_Type (Vector_List);
+      Res := New_Vector_Mal_Type;
       Rest_List := Deref_List (Rest_Handle).all;
       while not Is_Null (Rest_List) loop
-         Deref_List(Res).Append (Car (Rest_List));
+         Deref_Vector (Res).Append (Car (Rest_List));
          Rest_List := Deref_List (Cdr (Rest_List)).all;
       end loop;
       return Res;

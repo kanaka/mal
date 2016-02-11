@@ -110,7 +110,12 @@ package body Evaluation is
    begin
       E := Envs.New_Env (Env);
       Defs := Car (Args);
-      Add_Defs (Deref_List (Defs).all, E);
+      if Deref (Defs).Sym_Type = List and then
+         Deref_List (Defs).Get_List_Type = Vector_List then
+         Add_Defs (Deref_List (Deref_List_Class (Defs).Duplicate).all, E);
+      else
+         Add_Defs (Deref_List (Defs).all, E);
+      end if;
       Expr := Car (Deref_List (Cdr (Args)).all);
       Res := Eval (Expr, E);
       return Res;
@@ -170,7 +175,7 @@ package body Evaluation is
 
          when List =>
 
-            return Map (Call_Eval'Unrestricted_Access, Deref_List (Ast).all);
+            return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
 
          when Lambda =>
 
@@ -353,7 +358,7 @@ package body Evaluation is
       end if;
 
       if Deref (Param).Sym_Type = List and then
-	Deref_List (Param).all.Get_List_Type = List_List then
+	Deref_List (Param).Get_List_Type = List_List then
 
 	 declare
 	    L : Mal_Handle := Param;
