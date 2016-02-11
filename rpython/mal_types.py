@@ -133,7 +133,7 @@ class MalStr(MalType):
         return len(self.value)
 def _string_Q(exp):
     assert isinstance(exp, MalType)
-    return exp.__class__  is MalStr
+    return exp.__class__  is MalStr and not _keyword_Q(exp)
 
 # Keywords
 # A specially prefixed string
@@ -150,7 +150,7 @@ def _keywordu(strn):
     assert isinstance(strn, unicode)
     return MalStr(u"\u029e" + strn)
 def _keyword_Q(exp):
-    if isinstance(exp, MalStr):
+    if isinstance(exp, MalStr) and len(exp.value) > 0:
         return exp.value[0] == u"\u029e"
     else:
         return False

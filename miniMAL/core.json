@@ -6,6 +6,10 @@
                                             ["`", "."],
                                             ["`", "node_readline.js"]]]],
 
+["def", "_string?", ["fn", ["s"],
+  ["and", ["string?", "s"],
+          ["not", ["=", ["`", "\u029e"], ["get", "s", 0]]]]]],
+
 ["def", "div", ["fn", ["a", "b"], ["parseInt", ["/", "a", "b"]]]],
 
 ["def", "time-ms", ["fn", [],
@@ -59,6 +63,25 @@
   ["let", ["fn", ["if", ["malfunc?", "f"], ["get", "f", ["`", "fn"]], "f"]],
     ["map", "fn", "seq"]]]],
 
+["def", "_conj", ["fn", ["seq", "&", "a"],
+  ["if", ["list?", "seq"],
+    [".", [".", "a", ["`", "reverse"]], ["`", "concat"], "seq"],
+    ["vectorl", [".", "seq", ["`", "concat"], "a"]]]]],
+
+["def", "_seq", ["fn", ["obj"],
+  ["if", ["list?", "obj"],
+    ["if", [">", ["count", "obj"], 0], "obj", null],
+  ["if", ["vector?", "obj"],
+    ["if", [">", ["count", "obj"], 0], ["slice", "obj", 0], null],
+  ["if", ["string?", "obj"],
+    ["if", [">", ["count", "obj"], 0],
+      [".", "obj", ["`", "split"], ["`", ""]],
+      null],
+  ["if", ["nil?", "obj"],
+    null,
+    ["throw", "seq: called on non-sequence"]
+  ]]]]]],
+
 ["def", "with_meta", ["fn", ["obj", "m"],
   ["let", ["new-obj", ["clone", "obj"]],
     ["do",
@@ -93,6 +116,7 @@
    ["`", "nil?"], "nil?",
    ["`", "true?"], "true?",
    ["`", "false?"], "false?",
+   ["`", "string?"], "_string?",
    ["`", "symbol"], "symbol",
    ["`", "symbol?"], "symbol?",
    ["`", "keyword"], "keyword",
@@ -146,7 +170,9 @@
    ["`", "count"], "_count",
    ["`", "apply"], "_apply",
    ["`", "map"], "_map",
-   ["`", "conj"], null,
+
+   ["`", "conj"], "_conj",
+   ["`", "seq"], "_seq",
 
    ["`", "with-meta"], "with_meta",
    ["`", "meta"], "meta",

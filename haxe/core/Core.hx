@@ -197,6 +197,21 @@ class Core {
         }
     }
 
+    static function seq(args) {
+        return switch (args[0]) {
+            case MalList(l):
+                l.length > 0 ? args[0] : nil;
+            case MalVector(l):
+                l.length > 0 ? MalList(l.slice(0)) : nil;
+            case MalString(s):
+                if (s.length == 0) { return nil; }
+                MalList(s.split("").map(function(c) { return MalString(c); }));
+            case MalNil:
+                nil;
+            case _: throw "seq: called on non-sequence";
+        }
+    }
+
 
     // hash-map functions
 
@@ -308,6 +323,7 @@ class Core {
         "nil?" => function(a) { return BoolFn(nil_Q(a[0])); },
         "true?" => function(a) { return BoolFn(true_Q(a[0])); },
         "false?" => function(a) { return BoolFn(false_Q(a[0])); },
+        "string?" => function(a) { return BoolFn(string_Q(a[0])); },
         "symbol" => symbol,
         "symbol?" => function(a) { return BoolFn(symbol_Q(a[0])); },
         "keyword" => keyword,
@@ -356,6 +372,7 @@ class Core {
         "map" => do_map,
 
         "conj" => conj,
+        "seq" => seq,
 
         "meta" => meta,
         "with-meta" => with_meta,
