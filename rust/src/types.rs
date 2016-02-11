@@ -190,6 +190,22 @@ pub fn false_q(a:Vec<MalVal>) -> MalRet {
     }
 }
 
+pub fn string_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to string? call");
+    }
+    match *a[0].clone() {
+        Strn(ref s) => {
+            if s.starts_with("\u{29e}") {
+                Ok(_false())
+            } else {
+                Ok(_true())
+            }
+        },
+        _ => Ok(_false()),
+    }
+}
+
 pub fn _int(i: isize) -> MalVal { Rc::new(Int(i)) }
 
 
