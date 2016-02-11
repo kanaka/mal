@@ -16,6 +16,16 @@ let seq = function
      Types.MalMap.fold (fun k v list -> k :: v :: list) xs []
   | _ -> []
 
+let mal_seq = function
+  | [T.Nil] -> T.Nil
+  | [T.List {T.value = []}]
+  | [T.Vector {T.value = []}] -> T.Nil
+  | [T.List _ as lst] -> lst
+  | [T.Vector {T.value = xs}] -> Types.list xs
+  | [T.String ""] -> T.Nil
+  | [T.String s] -> Types.list (List.map (fun x -> T.String x) (Str.split (Str.regexp "") s))
+  | _ ->  T.Nil
+
 let rec assoc = function
   | c :: k :: v :: (_ :: _ as xs) -> assoc ((assoc [c; k; v]) :: xs)
   | [T.Nil; k; v] -> Types.map (Types.MalMap.add k v Types.MalMap.empty)
@@ -126,6 +136,8 @@ let init env = begin
                 | [xs] -> Types.list (match seq xs with _ :: xs -> xs | _ -> [])
                 | _ -> T.Nil));
 
+  Env.set env (Types.symbol "string?")
+    (Types.fn (function [T.String _] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "symbol")
     (Types.fn (function [T.String x] -> Types.symbol x | _ -> T.Nil));
   Env.set env (Types.symbol "symbol?")
@@ -186,6 +198,7 @@ let init env = begin
                 | [T.Map { T.value = m }; k] -> T.Bool (Types.MalMap.mem k m)
                 | _ -> T.Bool false));
   Env.set env (Types.symbol "conj") (Types.fn conj);
+  Env.set env (Types.symbol "seq") (Types.fn mal_seq);
 
   Env.set env (Types.symbol "atom?")
           (Types.fn (function [T.Atom _] -> T.Bool true | _ -> T.Bool false));
