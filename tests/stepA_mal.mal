@@ -102,6 +102,24 @@
 ;>>> soft=True
 
 ;;
+;; Testing string? function
+(string? "")
+;=>true
+(string? 'abc)
+;=>false
+(string? "abc")
+;=>true
+(string? :abc)
+;=>false
+(string? (keyword "abc"))
+;=>false
+(string? 234)
+;=>false
+(string? nil)
+;=>false
+
+
+;;
 ;; Testing conj function
 (conj (list) 1)
 ;=>(1)
@@ -125,6 +143,25 @@
 (conj [1] [2 3])
 ;=>[1 [2 3]]
 
+;;
+;; Testing seq function
+(seq "abc")
+;=>("a" "b" "c")
+(apply str (seq "this is a test"))
+;=>"this is a test"
+(seq '(2 3 4))
+;=>(2 3 4)
+(seq [2 3 4])
+;=>(2 3 4)
+
+(seq "")
+;=>nil
+(seq '())
+;=>nil
+(seq [])
+;=>nil
+(seq nil)
+;=>nil
 
 ;;
 ;; Testing metadata on collections
