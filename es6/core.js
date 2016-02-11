@@ -39,6 +39,22 @@ function conj(lst, ...args) {
     }
 }
 
+function seq(obj) {
+    if (_list_Q(obj)) {
+        return obj.length > 0 ? obj : null
+    } else if (_vector_Q(obj)) {
+        return obj.length > 0 ? obj.slice(0) : null
+    } else if (typeof obj === "string" && obj[0] !== '\u029e') {
+        return obj.length > 0 ? obj.split('') : null
+    } else if (obj === null) {
+        return null
+    } else {
+        throw new Error('seq: called on non-sequence')
+    }
+}
+
+// hash-map functions
+
 function keys(hm) {
     // TODO: Array.from(hm.keys()) when supported
     let ks = []
@@ -68,6 +84,7 @@ export const core_ns = new Map([
         ['nil?', a => a === null],
         ['true?', a => a === true],
         ['false?', a => a === false],
+        ['string?', a => typeof a === "string" && a[0] !== '\u029e'],
         ['symbol', a => _symbol(a)],
         ['symbol?', a => _symbol_Q(a)],
         ['keyword', a => _keyword(a)],
@@ -116,6 +133,7 @@ export const core_ns = new Map([
         ['map', (f,a) => a.map(x => f(x))],
 
         ['conj', conj],
+        ['seq', seq],
 
         ['meta', a => 'meta' in a ? a['meta'] : null],
         ['with-meta', with_meta],
