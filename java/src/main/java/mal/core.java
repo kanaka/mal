@@ -49,6 +49,15 @@ public class core {
             return args.nth(0) == False ? True : False;
         }
     };
+    static MalFunction string_Q = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            if (!(args.nth(0) instanceof MalString)) { return False; }
+            String s = ((MalString)args.nth(0)).getValue();
+            if (s.length() != 0 && s.charAt(0) == '\u029e') { return False; }
+            return True;
+        }
+    };
+
     static MalFunction symbol = new MalFunction() {
         public MalVal apply(MalList args) throws MalThrowable {
             return new MalSymbol((MalString)args.nth(0));
@@ -72,12 +81,10 @@ public class core {
     };
     static MalFunction keyword_Q = new MalFunction() {
         public MalVal apply(MalList args) throws MalThrowable {
-            if (args.nth(0) instanceof MalString &&
-                (((MalString)args.nth(0)).getValue().charAt(0) == '\u029e')) {
-                return True;
-            } else {
-                return False;
-            }
+            if (!(args.nth(0) instanceof MalString)) { return False; }
+            String s = ((MalString)args.nth(0)).getValue();
+            if (s.length() == 0 || s.charAt(0) != '\u029e') { return False; }
+            return True;
         }
     };
 
@@ -404,6 +411,29 @@ public class core {
         }
     };
 
+    // General sequence functions
+    static MalFunction apply = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            MalFunction f = (MalFunction)a.nth(0);
+            MalList args = a.slice(1,a.size()-1);
+            args.value.addAll( ((MalList)a.nth(a.size()-1)).value);
+            return f.apply(args);
+        }
+    };
+
+    static MalFunction map = new MalFunction() {
+        public MalVal apply(MalList a) throws MalThrowable {
+            MalFunction f = (MalFunction) a.nth(0);
+            MalList src_lst = (MalList) a.nth(1);
+            MalList new_lst = new MalList();
+            for(Integer i=0; i<src_lst.size(); i++) {
+                new_lst.value.add(
+                        f.apply(new MalList(src_lst.nth(i))));
+            }
+            return new_lst;
+        }
+    };
+
     static MalFunction conj = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
             MalList src_seq = (MalList)a.nth(0), new_seq;
@@ -424,26 +454,28 @@ public class core {
         }
     };
 
-    // General list related functions
-    static MalFunction apply = new MalFunction() {
+    static MalFunction seq = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            MalFunction f = (MalFunction)a.nth(0);
-            MalList args = a.slice(1,a.size()-1);
-            args.value.addAll( ((MalList)a.nth(a.size()-1)).value);
-            return f.apply(args);
-        }
-    };
-
-    static MalFunction map = new MalFunction() {
-        public MalVal apply(MalList a) throws MalThrowable {
-            MalFunction f = (MalFunction) a.nth(0);
-            MalList src_lst = (MalList) a.nth(1);
-            MalList new_lst = new MalList();
-            for(Integer i=0; i<src_lst.size(); i++) {
-                new_lst.value.add(
-                        f.apply(new MalList(src_lst.nth(i))));
+            MalVal mv = (MalVal)a.nth(0);
+            if (mv instanceof MalVector) {
+                if (((MalVector)mv).size() == 0) { return Nil; }
+                return new MalList(((MalVector)mv).getList());
+            } else if (mv instanceof MalList) {
+                if (((MalList)mv).size() == 0) { return Nil; }
+                return mv;
+            } else if (mv instanceof MalString) {
+                String s = ((MalString)mv).getValue();
+                if (s.length() == 0) { return Nil; }
+                List<MalVal> lst = new ArrayList<MalVal>();
+                for (String c : s.split("(?!^)")) {
+                    lst.add(new MalString(c));
+                }
+                return new MalList(lst);
+            } else if (mv == Nil) {
+                return Nil;
+            } else {
+                throw new MalError("seq: called on non-sequence");
             }
-            return new_lst;
         }
     };
 
@@ -513,6 +545,7 @@ public class core {
         .put("nil?",      nil_Q)
         .put("true?",     true_Q)
         .put("false?",    false_Q)
+        .put("string?",   string_Q)
         .put("symbol",    symbol)
         .put("symbol?",   symbol_Q)
         .put("keyword",   keyword)
@@ -556,9 +589,11 @@ public class core {
         .put("rest",      rest)
         .put("empty?",    empty_Q)
         .put("count",     count)
-        .put("conj",      conj)
         .put("apply",     apply)
         .put("map",       map)
+
+        .put("conj",      conj)
+        .put("seq",       seq)
 
         .put("with-meta", with_meta)
         .put("meta",      meta)

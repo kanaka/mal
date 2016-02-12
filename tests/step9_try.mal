@@ -96,6 +96,8 @@
 ;=>false
 (keyword? "abc")
 ;=>false
+(keyword? "")
+;=>false
 (keyword? (keyword "abc"))
 ;=>true
 
