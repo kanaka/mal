@@ -85,6 +85,10 @@ proc string_new {val} {
     obj_new "string" $val
 }
 
+proc string_q {obj} {
+    expr {[obj_type $obj] == "string" && [string index [obj_val $obj] 0] != "\u029E"}
+}
+
 proc keyword_new {val} {
     string_new "\u029E$val"
 }
