@@ -17,11 +17,17 @@ interface MalMeta
     MalType with_meta(MalType new_meta);
 }
 
-class MalNil : MalType
+interface HasSeq
+{
+    MalType seq();
+}
+
+class MalNil : MalType, HasSeq
 {
     override string print(bool readable) const { return "nil"; }
     override bool is_truthy() const { return false; }
     override bool opEquals(Object o) { return (cast(MalNil)(o) !is null); }
+    override MalType seq() { return this; }
 }
 
 class MalFalse : MalType
@@ -91,7 +97,7 @@ class MalInteger : MalType
     }
 }
 
-class MalString : MalType
+class MalString : MalType, HasSeq
 {
     const string val;
     this(in string token) { val = token; }
@@ -121,9 +127,15 @@ class MalString : MalType
         auto ostr = cast(MalString)(o);
         return (ostr !is null && val == ostr.val);
     }
+
+    override MalType seq() {
+        if (is_keyword() || val.length == 0) return mal_nil;
+        auto chars = val.map!(c => cast(MalType)(new MalString(to!string(c))));
+        return new MalList(array(chars));
+    }
 }
 
-abstract class MalSequential : MalType, MalMeta
+abstract class MalSequential : MalType, HasSeq, MalMeta
 {
     MalType[] elements;
     MalType meta_val;
@@ -140,6 +152,11 @@ abstract class MalSequential : MalType, MalMeta
     }
 
     MalSequential conj(MalType element);
+
+    MalType seq() {
+        if (elements.length == 0) return mal_nil;
+        return new MalList(elements);
+    }
 }
 
 class MalList : MalSequential, MalMeta
