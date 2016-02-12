@@ -4,6 +4,7 @@ with Ada.Strings.Maps.Constants;
 with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 with Envs;
+with Evaluation;
 with Smart_Pointers;
 with Types.Vector;
 
@@ -863,6 +864,21 @@ package body Types is
       return Res_List_Handle;
 
    end Concat;
+
+
+   procedure Add_Defs (Defs : List_Mal_Type; Env : Envs.Env_Handle) is
+      D, L : List_Mal_Type;
+   begin
+      D := Defs;
+      while not Is_Null (D) loop
+         L := Deref_List (Cdr (D)).all;
+         Envs.Set
+           (Env,
+            Deref_Atom (Car (D)).Get_Atom,
+            Evaluation.Eval (Car (L), Env));
+         D := Deref_List (Cdr(L)).all;
+      end loop;
+   end Add_Defs;
 
 
    function Deref_List (SP : Mal_Handle) return List_Ptr is

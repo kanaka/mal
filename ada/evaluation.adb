@@ -7,23 +7,6 @@ package body Evaluation is
 
    use Types;
 
-   procedure Add_Defs (Defs : List_Mal_Type; Env : Envs.Env_Handle) is
-      D, L : List_Mal_Type;
-   begin
-      if Debug then
-         Ada.Text_IO.Put_Line ("Add_Defs " & To_String (Defs));
-      end if;
-      D := Defs;
-      while not Is_Null (D) loop
-         L := Deref_List (Cdr (D)).all;
-         Envs.Set
-           (Env,
-            Deref_Atom (Car (D)).Get_Atom,
-            Eval (Car (L), Env));
-         D := Deref_List (Cdr(L)).all;
-      end loop;
-   end Add_Defs;
-
 
    function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
 		   return Mal_Handle is
@@ -110,12 +93,7 @@ package body Evaluation is
    begin
       E := Envs.New_Env (Env);
       Defs := Car (Args);
-      if Deref (Defs).Sym_Type = List and then
-         Deref_List (Defs).Get_List_Type = Vector_List then
-         Add_Defs (Deref_List (Deref_List_Class (Defs).Duplicate).all, E);
-      else
-         Add_Defs (Deref_List (Defs).all, E);
-      end if;
+      Deref_List_Class (Defs).Add_Defs (E);
       Expr := Car (Deref_List (Cdr (Args)).all);
       Res := Eval (Expr, E);
       return Res;

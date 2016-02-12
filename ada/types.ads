@@ -185,6 +185,8 @@ package Types is
 
    function Nth (L : List_Mal_Type; N : Natural) return Mal_Handle;
 
+   procedure Add_Defs (Defs : List_Mal_Type; Env : Envs.Env_Handle);
+
    -- Get the first item in the list:
    function Car (L : List_Mal_Type) return Mal_Handle;
 

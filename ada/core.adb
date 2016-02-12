@@ -24,24 +24,6 @@ package body Core is
    function ">=" is new Rel_Op (">=", ">=");
 
 
-   procedure Add_Defs (Defs : List_Mal_Type; Env : Envs.Env_Handle) is
-      D, L : List_Mal_Type;
-   begin
-      if Evaluation.Debug then
-         Ada.Text_IO.Put_Line ("Add_Defs " & To_String (Defs));
-      end if;
-      D := Defs;
-      while not Is_Null (D) loop
-         L := Deref_List (Cdr (D)).all;
-         Envs.Set
-           (Env,
-            Deref_Atom (Car (D)).Get_Atom,
-            Evaluation.Eval (Car (L), Env));
-         D := Deref_List (Cdr(L)).all;
-      end loop;
-   end Add_Defs;
-
-
    function Eval_As_Boolean (MH : Types.Mal_Handle) return Boolean is
       use Types;
       Res : Boolean;

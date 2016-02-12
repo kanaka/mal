@@ -27,11 +27,13 @@ package Types.Vector is
 
    overriding function Nth (L : Vector_Mal_Type; N : Natural) return Mal_Handle;
 
+   overriding procedure Add_Defs (Defs : Vector_Mal_Type; Env : Envs.Env_Handle);
+
    -- Get the first item in the list:
-   function Car (L : Vector_Mal_Type) return Mal_Handle;
+   overriding function Car (L : Vector_Mal_Type) return Mal_Handle;
 
    -- Get the rest of the list (second item onwards)
-   function Cdr (L : Vector_Mal_Type) return Mal_Handle;
+   overriding function Cdr (L : Vector_Mal_Type) return Mal_Handle;
 
    overriding function Map
      (Func_Ptr : Func_Access;

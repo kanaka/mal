@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded;
+with Evaluation;
 
 package body Types.Vector is
 
@@ -68,6 +69,22 @@ package body Types.Vector is
    begin
       return Natural (L.Vec.Length);
    end Length;
+
+
+   procedure Add_Defs (Defs : Vector_Mal_Type; Env : Envs.Env_Handle) is
+      C, D : Cursor;
+   begin
+      C := Defs.Vec.First;
+      while Has_Element (C) loop
+         D := Next (C);
+         exit when not Has_Element (D);
+         Envs.Set
+           (Env,
+            Deref_Atom (Element (C)).Get_Atom,
+            Evaluation.Eval (Element (D), Env));
+         C := Next (D);
+      end loop;
+   end Add_Defs;
 
 
    overriding function Nth (L : Vector_Mal_Type; N : Natural) return Mal_Handle is
