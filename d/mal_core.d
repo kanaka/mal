@@ -30,6 +30,14 @@ static MalType mal_symbol(MalType[] a ...)
     return new MalSymbol(s.val);
 }
 
+static MalType mal_string_q(MalType[] a ...)
+{
+    verify_args_count(a, 1);
+    auto s = cast(MalString) a[0];
+    if (s is null) return mal_false;
+    return bool_to_mal(!s.is_keyword());
+}
+
 static MalType mal_keyword(MalType[] a ...)
 {
     verify_args_count(a, 1);
@@ -277,6 +285,14 @@ static MalType mal_conj(MalType[] a ...)
     return reduce!((s,e) => s.conj(e))(seq, a[1..$]);
 }
 
+static MalType mal_seq(MalType[] a ...)
+{
+    verify_args_count(a, 1);
+    auto seqobj = cast(HasSeq) a[0];
+    if (seqobj is null) return mal_nil;
+    return seqobj.seq();
+}
+
 static MalType mal_meta(MalType[] a ...)
 {
     verify_args_count(a, 1);
@@ -322,6 +338,7 @@ static this()
         "false?":   (a ...) => mal_type_q!MalFalse(a),
         "symbol":   &mal_symbol,
         "symbol?":  (a ...) => mal_type_q!MalSymbol(a),
+        "string?":  &mal_string_q,
         "keyword":  &mal_keyword,
         "keyword?": &mal_keyword_q,
 
@@ -368,6 +385,7 @@ static this()
         "map":      &mal_map,
 
         "conj":     &mal_conj,
+        "seq":      &mal_seq,
 
         "meta":     &mal_meta,
         "with-meta": &mal_with_meta,
