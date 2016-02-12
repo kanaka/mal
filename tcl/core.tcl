@@ -28,6 +28,10 @@ proc mal_symbol_q {a} {
     bool_new [symbol_q [lindex $a 0]]
 }
 
+proc mal_string_q {a} {
+    bool_new [string_q [lindex $a 0]]
+}
+
 proc mal_keyword {a} {
     keyword_new [obj_val [lindex $a 0]]
 }
@@ -305,6 +309,35 @@ proc mal_conj {a} {
     }
 }
 
+proc mal_seq {a} {
+    lassign $a a0
+    if {[string_q $a0]} {
+        set str [obj_val $a0]
+        if {$str == ""} {
+            return $::mal_nil
+        }
+        set res {}
+        foreach char [split $str {}] {
+            lappend res [string_new $char]
+        }
+        list_new $res
+    } elseif {[list_q $a0]} {
+        if {[llength [obj_val $a0]] == 0} {
+            return $::mal_nil
+        }
+        return $a0
+    } elseif {[vector_q $a0]} {
+        if {[llength [obj_val $a0]] == 0} {
+            return $::mal_nil
+        }
+        list_new [obj_val $a0]
+    } elseif {[nil_q $a0]} {
+        return $::mal_nil
+    } else {
+        error "seq requires string or list or vector or nil"
+    }
+}
+
 proc mal_meta {a} {
     obj_meta [lindex $a 0]
 }
@@ -347,6 +380,7 @@ set core_ns [dict create \
     "false?"       [nativefunction_new mal_false_q] \
     "symbol"       [nativefunction_new mal_symbol] \
     "symbol?"      [nativefunction_new mal_symbol_q] \
+    "string?"      [nativefunction_new mal_string_q] \
     "keyword"      [nativefunction_new mal_keyword] \
     "keyword?"     [nativefunction_new mal_keyword_q] \
     \
@@ -393,6 +427,7 @@ set core_ns [dict create \
     "map"          [nativefunction_new mal_map] \
     \
     "conj"         [nativefunction_new mal_conj] \
+    "seq"          [nativefunction_new mal_seq] \
     \
     "meta"         [nativefunction_new mal_meta] \
     "with-meta"    [nativefunction_new mal_with_meta] \
