@@ -20,6 +20,8 @@ module Node
 
     let ofArray arr = System.ArraySegment(arr) |> makeVector
 
+    let ofChar chr = sprintf "%c" chr |> String
+
     let toArray = function
         | List(_, lst) -> Array.ofList lst
         | Vector(_, seg) -> Array.sub seg.Array seg.Offset seg.Count
