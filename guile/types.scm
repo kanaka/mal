@@ -15,7 +15,7 @@
 
 (library (types)
   (export string-sub *eof* non-list?
-          string->keyword _keyword?
+          string->keyword _keyword? _string?
           nil _nil? list->hash-map
           cond-true? make-anonymous-func
           make-atom atom? atom-val atom-val-set!
@@ -44,6 +44,9 @@
   (and (string? k)
        (> (string-length k) 0)
        (char=? #\1236 (string-ref k 0))))
+
+(define (_string? s)
+  (and (string? s) (not (_keyword? s))))
 
 (define-record-type mal-nil)
 
