@@ -5,10 +5,20 @@ SOURCES_BASE = node_readline.coffee types.coffee \
 SOURCES_LISP = env.coffee core.coffee stepA_mal.coffee
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: node_modules
+all: node_modules dist
 
 node_modules:
 	npm install
+
+dist: mal.coffee
+
+mal.coffee: $(SOURCES)
+	echo "#!/usr/bin/env coffee" > $@
+	cat $+ | grep -v "= *require('./" >> $@
+	chmod +x $@
+
+clean:
+	rm -f mal.coffee
 
 
 .PHONY: stats tests $(TESTS)

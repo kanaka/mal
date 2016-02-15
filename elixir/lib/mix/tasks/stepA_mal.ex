@@ -2,6 +2,11 @@ defmodule Mix.Tasks.StepAMal do
   import Mal.Types
   alias Mal.Function
 
+  # for escript execution
+  def main(args) do
+    run(args)
+  end
+
   def run(args) do
     env = Mal.Env.new()
     Mal.Env.merge(env, Mal.Core.namespace)

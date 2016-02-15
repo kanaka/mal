@@ -43,7 +43,9 @@ LDFLAGS += -l$(RL_LIBRARY) $(GLIB_LDFLAGS) -ldl -lffi
 
 #####################
 
-all: $(BINS) mal
+all: $(BINS)
+
+dist: mal
 
 mal: $(word $(words $(BINS)),$(BINS))
 	cp $< $@

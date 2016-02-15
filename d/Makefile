@@ -24,7 +24,9 @@ LATE_STEPS_BINS = $(LATE_SRCS:%.d=%)
 
 #####################
 
-all: $(BINS) mal
+all: $(BINS)
+
+dist: mal
 
 mal: $(word $(words $(BINS)),$(BINS))
 	cp $< $@

@@ -2,7 +2,10 @@ SOURCES_BASE = types.sh reader.sh printer.sh
 SOURCES_LISP = env.sh core.sh stepA_mal.sh
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: mal.sh
+all:
+	true
+
+dist: mal.sh
 
 mal.sh: $(SOURCES)
 	echo "#!/usr/bin/env bash" > $@

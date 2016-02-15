@@ -233,6 +233,8 @@ ALL_TESTS = $(filter-out $(foreach impl,$(STEP5_EXCLUDES),test^$(impl)^step5),\
 IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
 IMPL_STATS_LISP = $(foreach impl,$(DO_IMPLS),stats-lisp^$(impl))
 
+IMPL_DIST = $(foreach impl,$(DO_IMPLS),dist^$(impl))
+
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
 IMPL_PERF = $(foreach impl,$(filter-out $(PERF_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
@@ -294,6 +296,17 @@ $(IMPL_STATS_LISP):
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  echo "Stats (lisp only) for $(impl):"; \
 	  $(MAKE) --no-print-directory -C $(impl) stats-lisp)
+
+# dist rules
+
+dist: $(IMPL_DIST)
+
+.SECONDEXPANSION:
+$(IMPL_DIST):
+	@echo "----------------------------------------------"; \
+	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Running: make -C $(impl) dist"; \
+	  $(MAKE) --no-print-directory -C $(impl) dist)
 
 # Docker build rules
 

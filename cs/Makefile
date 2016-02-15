@@ -22,7 +22,9 @@ FLAGS = $(if $(strip $(DEBUG)),-debug+,)
 
 #####################
 
-all: mal.exe $(patsubst %.cs,%.exe,$(SRCS))
+all: $(patsubst %.cs,%.exe,$(SRCS))
+
+dist: mal.exe
 
 mal.exe: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES)))
 	cp $< $@
