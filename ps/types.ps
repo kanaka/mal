@@ -204,7 +204,7 @@ end } def
 /_false? { false eq } def
 /_string? {
     dup type /stringtype eq {
-        dup length 0 eq { % length > 0
+        dup length 0 eq { % if length == 0
             pop true
         }{
             0 get 127 eq not
@@ -237,7 +237,11 @@ end } def
 
 /_keyword? {
     dup type /stringtype eq {
-        0 get 127 eq
+        dup length 0 eq { % if length == 0
+            pop false
+        }{
+            0 get 127 eq
+        } ifelse
     }{
         pop false
     } ifelse
