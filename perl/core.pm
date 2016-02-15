@@ -8,7 +8,7 @@ use Time::HiRes qw(time);
 use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
              _nil_Q _true_Q _false_Q
-             _symbol _symbol_Q _keyword _keyword_Q _list_Q _vector_Q
+             _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q
              _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
@@ -162,6 +162,25 @@ sub conj {
     return $new_lst;
 }
 
+sub seq {
+    my ($arg) = @_;
+    if (_nil_Q($arg)) {
+        return $nil;
+    } elsif (_list_Q($arg)) {
+        return $nil if scalar(@{$arg->{val}}) == 0;
+        return $arg;
+        # return scalar(@{$arg->{val}}) > 0 ? $arg : $nil;
+    } elsif (_vector_Q($arg)) {
+        return $nil if scalar(@{$arg->{val}}) == 0;
+        return List->new($arg->{val});
+    } elsif (_string_Q($arg)) {
+        return $nil if length($$arg) == 0;
+        my @chars = map { String->new($_) } split(//, $$arg);
+        return List->new(\@chars);
+    } else {
+        die "seq requires list or vector or string or nil";
+    }
+}
 
 # Metadata functions
 sub with_meta {
@@ -200,6 +219,7 @@ our $core_ns = {
     'false?' => sub { _false_Q($_[0]->nth(0)) ? $true : $false },
     'symbol'  => sub { Symbol->new(${$_[0]->nth(0)}) },
     'symbol?' => sub { _symbol_Q($_[0]->nth(0)) ? $true : $false },
+    'string?' => sub { _string_Q($_[0]->nth(0)) ? $true : $false },
     'keyword'  => sub { _keyword(${$_[0]->nth(0)}) },
     'keyword?' => sub { _keyword_Q($_[0]->nth(0)) ? $true : $false },
 
@@ -244,6 +264,7 @@ our $core_ns = {
     'apply' => sub { apply($_[0]) },
     'map' => sub { mal_map($_[0]->nth(0), $_[0]->nth(1)) },
     'conj' => \&conj,
+    'seq' => sub { seq($_[0]->nth(0)) },
 
     'with-meta' => sub { with_meta($_[0]->nth(0), $_[0]->nth(1)) },
     'meta' => sub { meta($_[0]->nth(0)) },
