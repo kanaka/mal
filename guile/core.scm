@@ -174,6 +174,14 @@
     (append (reverse args) (->list lst)))
    (else (throw 'mal-error (format #f "conj: '~a' is not list/vector" lst)))))
 
+(define (_seq obj)
+  (cond
+   ((_nil? obj) nil)
+   ((_string? obj)
+    (if (string-null? obj) nil (map string (string->list obj))))
+   ((_empty? obj) nil)
+   (else (->list obj))))
+
 (define (__readline prompt)
   (let ((str (_readline prompt)))
     (if (eof-object? str)
@@ -229,6 +237,7 @@
     (false?      ,_false?)
     (symbol?     ,symbol?)
     (symbol      ,->symbol)
+    (string?     ,_string?)
     (keyword     ,->keyword)
     (keyword?    ,_keyword?)
     (vector?     ,vector?)
@@ -251,6 +260,7 @@
     (reset!      ,_reset!)
     (swap!       ,_swap!)
     (conj        ,_conj)
+    (seq         ,_seq)
     (time-ms     ,time-ms)))
 
 ;; Well, we have to rename it to this strange name...
