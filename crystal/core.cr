@@ -172,6 +172,11 @@ def self.symbol(args)
   Mal::Symbol.new head
 end
 
+def self.string?(args)
+  head = args.first.unwrap
+  head.is_a?(String) && (head.empty? || head[0] != '\u029e')
+end
+
 def self.keyword(args)
   head = args.first.unwrap
   eval_error "1st argument of symbol function must be string" unless head.is_a? String
@@ -337,6 +342,25 @@ def self.conj(args)
   end
 end
 
+def self.seq(args)
+  obj = args.first.unwrap
+  case obj
+  when nil
+    nil
+  when Mal::List
+    return nil if obj.empty?
+    obj
+  when Mal::Vector
+    return nil if obj.empty?
+    obj.to_mal
+  when String
+    return nil if obj.empty?
+    obj.split("").each_with_object(Mal::List.new){|e,l| l << Mal::Type.new(e)}
+  else
+    eval_error "argument of seq must be list or vector or string or nil"
+  end
+end
+
 def self.time_ms(args)
   Time.now.epoch_ms.to_i32
 end
@@ -384,6 +408,7 @@ NS = {
   "false?"      => func(:false?),
   "symbol?"     => func(:symbol?),
   "symbol"      => func(:symbol),
+  "string?"     => func(:string?),
   "keyword"     => func(:keyword),
   "keyword?"    => func(:keyword?),
   "vector"      => func(:vector),
@@ -407,6 +432,7 @@ NS = {
   "reset!"      => func(:reset!),
   "swap!"       => func(:swap!),
   "conj"        => func(:conj),
+  "seq"         => func(:seq),
   "time-ms"     => func(:time_ms),
 } of String => Mal::Func
 
