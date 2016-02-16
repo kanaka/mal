@@ -371,7 +371,7 @@ julia stepX_YYY.jl
 
 *The Kotlin implementation was created by [Javier Fernandez-Ivern](https://github.com/ivern)*
 
-The Kotlin implementation of mal has been tested with Kotlin 1.0.0-beta.
+The Kotlin implementation of mal has been tested with Kotlin 1.0.
 
 ```
 cd kotlin
