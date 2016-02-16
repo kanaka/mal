@@ -96,6 +96,8 @@ defcore conj { argv argc }
         argv i cells + @ swap conj
     loop ;;
 
+defcore seq drop @ seq ;;
+
 defcore assoc { argv argc }
     argv @ ( coll )
     argv argc cells +  argv cell+  +do
@@ -211,6 +213,7 @@ defcore list?    drop @ mal-type @ MalList    = mal-bool ;;
 defcore vector?  drop @ mal-type @ MalVector  = mal-bool ;;
 defcore keyword? drop @ mal-type @ MalKeyword = mal-bool ;;
 defcore symbol?  drop @ mal-type @ MalSymbol  = mal-bool ;;
+defcore string?  drop @ mal-type @ MalString  = mal-bool ;;
 defcore atom?    drop @ mal-type @ Atom       = mal-bool ;;
 defcore true?    drop @ mal-true  = mal-bool ;;
 defcore false?   drop @ mal-false = mal-bool ;;
