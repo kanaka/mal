@@ -95,7 +95,7 @@ fun read_hashmap(reader: Reader): MalType {
         }
 
         if (key != null) {
-            hashMap.assoc_BANG(key as MalString, value as MalType)
+            hashMap.assoc_BANG(key, value as MalType)
         }
     } while (key != null)
 
