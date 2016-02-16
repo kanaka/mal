@@ -97,6 +97,15 @@ This allows you to run tests against your implementation like this:
 make "test^quux^stepX"
 ```
 
+TODO: If your implementation language is a compiled language, then you
+should also add a Makefile at the top level of your implementation
+directory that will define how to build the files pointed to by the
+quux_STEP_TO_PROG macro. The top-level Makefile will attempt to build
+those targets before running tests. If it is a scripting
+language/uncompiled, then no Makefile is necessary because
+quux_STEP_TO_PROG will point to a source file that already exists and
+does not need to be compiled/built.
+
 
 ## General hints
 
@@ -876,7 +885,7 @@ that most mainstream languages lack.
 
 <a name="step6"></a>
 
-### Step 6: Files and Evil
+### Step 6: Files, Mutation, and Evil
 
 ![step6_file architecture](step6_file.png)
 
@@ -1417,7 +1426,7 @@ self-hosting.
 
 <a name="stepA"></a>
 
-### Step A: Mutation, Self-hosting and Interop
+### Step A: Metadata, Self-hosting and Interop
 
 ![stepA_mal architecture](stepA_mal.png)
 
@@ -1444,10 +1453,13 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
 
+* Add the `readline` core function. This functions takes a
+  string that is used to prompt the user for input. The line of text
+  entered by the user is returned as a string. If the user sends an
+  end-of-file (usually Ctrl-D), then nil is returned.
+
 * Add meta-data support to mal functions. TODO. Should be separate
   from the function macro flag.
-
-* Add the `readline` core function. TODO
 
 
 Now go to the top level, run the step A tests:
@@ -1546,6 +1558,13 @@ For extra information read [Peter Seibel's thorough discussion about
     the given list in opposite order; if the collection is a vector, a
     new vector is returned with the elements added to the end of the
     given vector.
+  * `string?`: returns true if the parameter is a string.
+  * `seq`: takes a list, vector, string, or nil. If an empty list,
+    empty vector, or empty string ("") is passed in then nil is
+    returned. Otherwise, a list is returned unchanged, a vector is
+    converted into a list, and a string is converted to a list that
+    containing the original string split into single character
+    strings.
 
 
 ## TODO:
