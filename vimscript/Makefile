@@ -4,6 +4,17 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: libvimreadline.so
 
+dist: mal.vim
+
+mal.vim: $(SOURCES)
+	echo "#!/bin/sh" > $@
+	echo "\":\" ; rundir=\`dirname \$$0\`" >> $@
+	echo "\":\" ; export LD_LIBRARY_PATH=\`readlink -f \$$rundir\`" >> $@
+	echo "\":\" ; exec vim -i NONE -V1 -nNesS \"\$$0\" -- \"\$$@\"" >> $@
+	cat $+ | grep -v "^source " >> $@
+	chmod +x $@
+
+
 libvimreadline.so: vimreadline.o
 	$(CC) -g -shared -o $@ $< -lreadline
 
@@ -11,7 +22,7 @@ vimreadline.o: vimreadline.c
 	$(CC) -g -fPIC -c $< -o $@
 
 clean:
-	rm -f vimreadline.o libvimreadline.so
+	rm -f vimreadline.o libvimreadline.so mal.vim
 
 stats: $(SOURCES)
 	@wc $^

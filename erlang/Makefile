@@ -12,7 +12,7 @@ BINS = $(SRCS:%.erl=%)
 
 #####################
 
-.PHONY: all mal clean stats stats-lisp
+.PHONY: all dist clean stats stats-lisp
 
 all: $(BINS)
 
@@ -34,6 +34,7 @@ $(foreach b,$(BINS),$(eval $(call dep_template,$(b))))
 
 clean:
 	rebar clean
+	rm -f mal
 
 stats: $(SOURCES)
 	@wc $^

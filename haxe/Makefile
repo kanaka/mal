@@ -16,6 +16,20 @@ all-cpp: $(foreach x,$(STEPS),cpp/$(x))
 
 all-js: $(foreach x,$(STEPS),$(x).js)
 
+dist: mal.n mal.py cpp/mal mal.js
+
+mal.n: stepA_mal.n
+	cp $< $@
+
+mal.py: stepA_mal.py
+	cp $< $@
+
+cpp/mal: cpp/stepA_mal
+	cp $< $@
+
+mal.js: stepA_mal.js
+	cp $< $@
+
 
 # Neko target (neko)
 
@@ -65,4 +79,5 @@ node_modules:
 ###
 
 clean:
+	rm -f mal.n mal.py cpp/mal mal.js
 	rm -r step*.py cpp/ step*.js step*.n

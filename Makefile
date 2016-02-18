@@ -80,6 +80,10 @@ STEP5_EXCLUDES += crystal # test completes, even at 1,000,000
 
 PERF_EXCLUDES = mal  # TODO: fix this
 
+DIST_EXCLUDES += mal
+# TODO: still need to implement dist
+DIST_EXCLUDES += factor groovy guile io julia matlab miniMAL swift
+
 #
 # Utility functions
 #
@@ -182,6 +186,8 @@ forth_RUNSTEP =   gforth ../$(2) $(3)
 fsharp_RUNSTEP =  mono ../$(2) --raw $(3)
 go_RUNSTEP =      ../$(2) $(3)
 groovy_RUNSTEP =  groovy ../$(2) $(3)
+# needs TERM=dumb to work with readline
+guile_RUNSTEP =   guile --no-auto-compile -L ../guile ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 haxe_RUNSTEP =    python3 ../$(2) $(3)
 haxe_RUNSTEP =    $(haxe_RUNSTEP_$(HAXE_MODE))
@@ -211,8 +217,6 @@ swift3_RUNSTEP =  ../$(2) $(3)
 tcl_RUNSTEP =     tclsh ../$(2) --raw $(3)
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 vimscript_RUNSTEP = ./run_vimscript.sh ../$(2) $(3)
-# needs TERM=dumb to work with readline
-guile_RUNSTEP =   guile --no-auto-compile -L ../guile ../$(2) $(3)
 
 
 vimscript_TEST_OPTS = --test-timeout 30
@@ -233,7 +237,8 @@ ALL_TESTS = $(filter-out $(foreach impl,$(STEP5_EXCLUDES),test^$(impl)^step5),\
 IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
 IMPL_STATS_LISP = $(foreach impl,$(DO_IMPLS),stats-lisp^$(impl))
 
-IMPL_DIST = $(foreach impl,$(DO_IMPLS),dist^$(impl))
+IMPL_DIST = $(filter-out $(foreach impl,$(DIST_EXCLUDES),dist^$(impl)),\
+              $(foreach impl,$(DO_IMPLS),dist^$(impl)))
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 

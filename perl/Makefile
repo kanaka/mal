@@ -5,7 +5,16 @@ SOURCES_BASE = readline.pm types.pm reader.pm printer.pm \
 SOURCES_LISP = env.pm core.pm stepA_mal.pl
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-#all: mal.pl
+all:
+
+dist: mal.pl
+
+mal.pl: $(SOURCES)
+	echo "#!/usr/bin/env perl" > $@
+	fatpack pack stepA_mal.pl >> $@
+
+clean:
+	rm -f mal.pl
 
 .PHONY: stats tests $(TESTS)
 

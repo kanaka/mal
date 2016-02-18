@@ -24,6 +24,11 @@ CSFLAGS = $(if $(strip $(DEBUG)),-debug+,)
 
 all: $(patsubst %.fs,%.exe,$(SRCS))
 
+dist: mal.exe
+
+mal.exe: stepA_mal.exe
+	cp $< $@
+
 Mono.Terminal.dll: $(TERMINAL_SOURCES)
 	mcs $(CSFLAGS) -target:library $+ -out:$@
 

@@ -11,11 +11,21 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	mvn install
 
+dist: mal.jar
+
+mal.jar: target/classes/mal/stepA_mal.class
+	mvn assembly:assembly
+	cp target/mal-0.0.1.jar $@
+
 src/main/mal/%.java:
 	mvn install
 
 target/classes/mal/step%.class: src/main/mal/step%.java ${SOURCES}
 	mvn install
+
+clean:
+	mvn clean
+	rm -f mal.jar
 
 #.PHONY: stats tests $(TESTS)
 .PHONY: stats

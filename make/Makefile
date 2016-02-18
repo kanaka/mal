@@ -6,6 +6,11 @@ SOURCES_BASE = util.mk numbers.mk readline.mk gmsl.mk types.mk \
 SOURCES_LISP = env.mk core.mk stepA_mal.mk
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
+all:
+	true
+
+dist: mal.mk
+
 mal.mk: $(SOURCES)
 	echo "#!/usr/bin/make -f" > $@
 	cat $+ | grep -v "^include " >> $@

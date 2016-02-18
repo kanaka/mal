@@ -76,6 +76,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                        <descriptorRefs>
+                            <descriptorRef>jar-with-dependencies</descriptorRef>
+                        </descriptorRefs>
+                        <archive>
+                            <manifest>
+                                <mainClass>mal.stepA_mal</mainClass>
+                            </manifest>
+                        </archive>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -7,8 +7,13 @@ JARS = $(SOURCES_LISP:%.kt=%.jar)
 
 all: $(JARS)
 
+dist: mal.jar
+
+mal.jar: stepA_mal.jar
+	cp $< $@
+
 clean:
-	rm -vf $(JARS)
+	rm -vf $(JARS) mal.jar
 
 $(JARS): %.jar: src/mal/%.kt $(SOURCES_BASE:%.kt=src/mal/%.kt)
 	kotlinc src/mal/$(@:%.jar=%.kt) $(SOURCES_BASE:%.kt=src/mal/%.kt) -include-runtime -d $@

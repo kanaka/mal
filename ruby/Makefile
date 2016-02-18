@@ -4,7 +4,18 @@ SOURCES_BASE = mal_readline.rb types.rb reader.rb printer.rb
 SOURCES_LISP = env.rb core.rb stepA_mal.rb
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-#all: mal.rb
+all:
+	true
+
+dist: mal.rb
+
+mal.rb: $(SOURCES)
+	echo "#!/usr/bin/env ruby" > $@
+	cat $+ | grep -v "^require_relative" >> $@
+	chmod +x $@
+
+clean:
+	rm -f mal.rb
 
 .PHONY: stats tests $(TESTS)
 
