@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded;
+with Ada.Text_IO;
 with Evaluation;
 
 package body Types.Vector is
@@ -33,7 +34,7 @@ package body Types.Vector is
    overriding function Is_Null (L : Vector_Mal_Type) return Boolean is
      use Ada.Containers;
    begin
-      return L.Vec.Length = 0;
+      return L.Vec.Is_Empty;
    end Is_Null;
 
 
@@ -50,7 +51,7 @@ package body Types.Vector is
 
    -- Duplicate copies the list (logically).  This is to allow concatenation,
    -- The result is always a List_List.
-   function Duplicate (The_List : Vector_Mal_Type) return Mal_Handle is
+   overriding function Duplicate (The_List : Vector_Mal_Type) return Mal_Handle is
       Res : Mal_Handle;
       use Mal_Vectors;
       C : Cursor;
@@ -113,7 +114,7 @@ package body Types.Vector is
          return Res;
       end if;
       Vec_P := Deref_Vector (Res);
-      Vec_P.Vec := To_Vector (L.Vec.Length);
+      Vec_P.Vec := To_Vector (L.Vec.Length - 1);
 
       -- Set C to second entry.
       C := L.Vec.First;

@@ -6,6 +6,7 @@ with Evaluation;
 with Reader;
 with Smart_Pointers;
 with Types;
+with Types.Hash_Map;
 with Types.Vector;
 
 package body Core is
@@ -278,7 +279,7 @@ package body Core is
    return Types.Mal_Handle is
 
       Func_Handle, List_Handle, Results_Handle : Mal_Handle;
-      Rest_List, The_List, Results_List : List_Mal_Type;
+      Rest_List, Results_List : List_Mal_Type;
 
    begin
 
@@ -287,12 +288,11 @@ package body Core is
 
       Func_Handle := Car (Rest_List);
       List_Handle := Car (Deref_List (Cdr (Rest_List)).all);
-      The_List := Deref_List (List_Handle).all;
 
       Results_Handle := New_List_Mal_Type (List_List);
       Results_List := Deref_List (Results_Handle).all;
 
-      while not Is_Null (The_List) loop
+      while not Is_Null (Deref_List_Class (List_Handle).all) loop
          declare
             Parts_Handle : Mal_Handle;
             Parts_List : List_Mal_Type;
@@ -300,9 +300,9 @@ package body Core is
             Parts_Handle := New_List_Mal_Type (List_List);
             Parts_List := Deref_List (Parts_Handle).all;
             Append (Parts_List, Func_Handle);
-            Append (Parts_List, Car (The_List));
+            Append (Parts_List, Car (Deref_List_Class (List_Handle).all));
 
-            The_List := Deref_List (Cdr (The_List)).all;
+            List_Handle := Cdr (Deref_List_Class (List_Handle).all);
 
             -- Using a Parts_Handle below doesn't work.
             Append
@@ -479,10 +479,10 @@ package body Core is
       Rest_List : List_Mal_Type;
       Res : Mal_Handle;
    begin
-      Res := New_List_Mal_Type (Hashed_List);
+      Res := Hash_Map.New_Hash_Map_Mal_Type;
       Rest_List := Deref_List (Rest_Handle).all;
       while not Is_Null (Rest_List) loop
-         Deref_List(Res).Append (Car (Rest_List));
+         Hash_Map.Deref_Hash (Res).Append (Car (Rest_List));
          Rest_List := Deref_List (Cdr (Rest_List)).all;
       end loop;
       return Res;
@@ -491,26 +491,33 @@ package body Core is
 
    function Assoc (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, List_Param : List_Mal_Type;
-      Res : Mal_Handle;
+      Rest_List : Mal_Handle;
+      Map : Hash_Map.Hash_Map_Mal_Type;
    begin
-
-      Rest_List := Deref_List (Rest_Handle).all;
-      List_Param := Deref_List (Car (Rest_List)).all;
-      Rest_List := Deref_List (Cdr (Rest_List)).all;
-
-      while not Is_Null (Rest_List) loop
-         List_Param.Append (Car (Rest_List));
-         Rest_List := Deref_List (Cdr (Rest_List)).all;
-      end loop;
-      return New_List_Mal_Type (List_Param);
+      Rest_List := Rest_Handle;
+      Map := Hash_Map.Deref_Hash (Car (Deref_List (Rest_List).all)).all;
+      Rest_List := Cdr (Deref_List (Rest_List).all);
+      return Hash_Map.Assoc (Map, Rest_List);
    end Assoc;
+
+
+   function Dis_Assoc (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : Mal_Handle;
+      Map : Hash_Map.Hash_Map_Mal_Type;
+   begin
+      Rest_List := Rest_Handle;
+      Map := Hash_Map.Deref_Hash (Car (Deref_List (Rest_List).all)).all;
+      Rest_List := Cdr (Deref_List (Rest_List).all);
+      return Hash_Map.Dis_Assoc (Map, Rest_List);
+   end Dis_Assoc;
 
 
    function Get_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, Map : List_Mal_Type;
-      Key, Map_Key, Map_Val, Map_Param : Mal_Handle;
+      Rest_List : List_Mal_Type;
+      Map : Hash_Map.Hash_Map_Mal_Type;
+      Map_Param, Key : Mal_Handle;
       Sym : Sym_Types;
    begin
 
@@ -524,105 +531,48 @@ package body Core is
       end if;
 
       -- Assume a map from here on in.
-      Map := Deref_List (Car (Rest_List)).all;
-      if Is_Null (Map) then
-         return New_Atom_Mal_Type ("nil");
-      end if;
-
+      Map := Hash_Map.Deref_Hash (Car (Rest_List)).all;
       Rest_List := Deref_List (Cdr (Rest_List)).all;
       Key := Car (Rest_List);
 
-      while not Is_Null (Map) loop
-         Map_Key := Car (Map);
-         Map := Deref_List (Cdr (Map)).all;
-         exit when Is_Null (Map);  -- how... odd.
-         Map_Val := Car (Map);
-         if Map_Key = Key then
-            return Map_Val;
-         end if;
-         Map := Deref_List (Cdr (Map)).all;
-      end loop;
-      return New_Atom_Mal_Type ("nil");
+      return Map.Get (Key);
+
    end Get_Key;
 
 
    function Contains_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, Map : List_Mal_Type;
-      Key, Map_Key : Mal_Handle;
+      Rest_List : List_Mal_Type;
+      Map : Hash_Map.Hash_Map_Mal_Type;
+      Key : Mal_Handle;
    begin
-
       Rest_List := Deref_List (Rest_Handle).all;
-      Map := Deref_List (Car (Rest_List)).all;
-      if Is_Null (Map) then
-         return New_Bool_Mal_Type (False);
-      end if;
-
+      Map := Hash_Map.Deref_Hash (Car (Rest_List)).all;
       Rest_List := Deref_List (Cdr (Rest_List)).all;
       Key := Car (Rest_List);
-
-      while not Is_Null (Map) loop
-         Map_Key := Car (Map);
-         Map := Deref_List (Cdr (Map)).all;
-         exit when Is_Null (Map);  -- how... odd.
-         if Map_Key = Key then
-            return New_Bool_Mal_Type (True);
-         end if;
-         Map := Deref_List (Cdr (Map)).all;
-      end loop;
-      return New_Bool_Mal_Type (False);
+      return New_Bool_Mal_Type (Hash_Map.Contains (Map, Key));
    end Contains_Key;
 
 
    function All_Keys (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, Map : List_Mal_Type;
-      Map_Key, Map_Val, Res : Mal_Handle;
+      Rest_List : List_Mal_Type;
+      Map : Hash_Map.Hash_Map_Mal_Type;
    begin
-
       Rest_List := Deref_List (Rest_Handle).all;
-      Map := Deref_List (Car (Rest_List)).all;
-
-      Res := New_List_Mal_Type (List_List);
-      if Is_Null (Map) then
-         return Res;
-      end if;
-
-      while not Is_Null (Map) loop
-         Map_Key := Car (Map);
-         Deref_List (Res).Append (Map_Key);
-         Map := Deref_List (Cdr (Map)).all;
-         exit when Is_Null (Map);  -- how... odd.
-         Map_Val := Car (Map);
-         Map := Deref_List (Cdr (Map)).all;
-      end loop;
-      return Res;
+      Map := Hash_Map.Deref_Hash (Car (Rest_List)).all;
+      return Hash_Map.All_Keys (Map);
    end All_Keys;
 
 
    function All_Values (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
-      Rest_List, Map : List_Mal_Type;
-      Map_Key, Map_Val, Res : Mal_Handle;
+      Rest_List : List_Mal_Type;
+      Map : Hash_Map.Hash_Map_Mal_Type;
    begin
-
       Rest_List := Deref_List (Rest_Handle).all;
-      Map := Deref_List (Car (Rest_List)).all;
-
-      Res := New_List_Mal_Type (List_List);
-      if Is_Null (Map) then
-         return Res;
-      end if;
-
-      while not Is_Null (Map) loop
-         Map_Key := Car (Map);
-         Map := Deref_List (Cdr (Map)).all;
-         exit when Is_Null (Map);  -- how... odd.
-         Map_Val := Car (Map);
-         Deref_List (Res).Append (Map_Val);
-         Map := Deref_List (Cdr (Map)).all;
-      end loop;
-      return Res;
+      Map := Hash_Map.Deref_Hash (Car (Rest_List)).all;
+      return Hash_Map.All_Values (Map);
    end All_Values;
 
 
@@ -847,6 +797,10 @@ package body Core is
       Set (Get_Current,
            "assoc",
            New_Func_Mal_Type ("assoc", Assoc'access));
+
+      Set (Get_Current,
+           "dissoc",
+           New_Func_Mal_Type ("dissoc", Dis_Assoc'access));
 
       Set (Get_Current,
            "get",

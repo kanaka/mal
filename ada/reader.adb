@@ -6,6 +6,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Smart_Pointers;
 with Types.Vector;
+with Types.Hash_Map;
 
 package body Reader is
 
@@ -239,10 +240,12 @@ package body Reader is
             Close : String (1..1) := (1 => Types.Closing (LT));
          begin
             case LT is
-               when List_List | Hashed_List =>
+               when List_List =>
                   List_SP := New_List_Mal_Type (List_Type => LT);
                when Vector_List =>
                   List_SP := Vector.New_Vector_Mal_Type;
+               when Hashed_List =>
+                  List_SP := Hash_Map.New_Hash_Map_Mal_Type;
             end case;
 
 
