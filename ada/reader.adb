@@ -10,13 +10,15 @@ with Types.Hash_Map;
 
 package body Reader is
 
+   use Types;
+
    package ACL renames Ada.Characters.Latin_1;
 
    type Lexemes is (Whitespace, Comment,
-                    Int, Float_Tok, Sym,
-                    Nil, True_Tok, False_Tok,
-                    LE_Tok, GE_Tok, Exp_Tok, Splice_Unq,
-                    Str, Atom);
+                    Int_Tok, Float_Tok, Sym_Tok,
+                    Nil_Tok, True_Tok, False_Tok,
+                    LE_Tok, GE_Tok, Exp_Tok, Splice_Unq_Tok,
+                    Str_Tok, Atom_Tok);
 
    Lisp_Whitespace : constant Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps.To_Set
@@ -27,9 +29,6 @@ package body Reader is
      Ada.Strings.Maps."or"
        (Lisp_Whitespace, 
         Ada.Strings.Maps.To_Set ("[]{}('""`,;)"));
-
-   -- This is raised if an invalid character is encountered
-   Lexical_Error : exception;
 
    -- The unterminated string error
    String_Error : exception;
@@ -76,7 +75,6 @@ package body Reader is
    Char_To_Read : String_Indices := 1;
 
    function Get_Token return Types.Mal_Handle is
-      use Types;
       Res : Types.Mal_Handle;
       I, J : String_Indices;
       Dots : Natural;
@@ -205,7 +203,6 @@ package body Reader is
    function Read_List (LT : Types.List_Types)
    return Types.Mal_Handle is
 
-      use Types;
       MTA : Mal_Handle;
 
    begin
@@ -222,14 +219,6 @@ package body Reader is
             Expr := Read_Form;
             Close_Lambda := Read_Form;  -- the ) at the end of the lambda
             return New_Lambda_Mal_Type (Params, Expr);
-         exception
-            when Lexical_Error =>
-
-              -- List_MT about to go out of scope but its a Mal_Handle
-              -- so it is automatically garbage collected.
-
-              return New_Error_Mal_Type (Str => "Lexical error in fn*");
-
          end;
 
       else
@@ -252,34 +241,22 @@ package body Reader is
             -- Need to append to a variable so...
             List_P := Deref_List_Class (List_SP);
             loop
-               exit when Is_Null (MTA) or else
-                         (Deref (MTA).Sym_Type = Atom and then
-                          Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close);
+               if Is_Null (MTA) then
+                  return New_Error_Mal_Type (Str => "expected '" & Close & "'");
+               end if;
+               exit when Deref (MTA).Sym_Type = Atom and then
+                          Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close;
                Append (List_P.all, MTA);
                MTA := Read_Form;
             end loop;
             return List_SP;
-         exception
-            when Lexical_Error =>
-
-              -- List_MT about to go out of scope but its a Mal_Handle
-              -- so it is automatically garbage collected.
-
-              return New_Error_Mal_Type (Str => "expected '" & Close & "'");
-
          end;
       end if;
-
-   exception
-      when Lexical_Error =>
-
-        return New_Error_Mal_Type (Str => "Lexical error in Read_List");
 
    end Read_List;
 
 
    function Read_Form return Types.Mal_Handle is
-      use Types;
       MTS : Mal_Handle;
    begin
 
@@ -378,15 +355,12 @@ package body Reader is
          return MTS;
       end if;
 
-   exception
-      when String_Error =>
-        return New_Error_Mal_Type (Str => "expected '""'");
    end Read_Form;
 
    procedure Lex_Init (S : String) is
    begin
       Str_Len := S'Length;
-      Saved_Line (1..S'Length) := S;  -- Needed for error recovery
+      Saved_Line (1..S'Length) := S;
       Char_To_Read := 1;
    end Lex_Init;
 
@@ -398,6 +372,9 @@ package body Reader is
 
       return Read_Form;
 
+   exception
+      when String_Error =>
+        return New_Error_Mal_Type (Str => "expected '""'");
    end Read_Str;
    
 
