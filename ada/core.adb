@@ -126,6 +126,41 @@ package body Core is
    end With_Meta;
 
 
+   function New_Atom (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      case Deref (First_Param).Sym_Type is
+         when Int => return New_Atom_Mal_Type
+                       (Mal_Integer'Image (Deref_Int (First_Param).Get_Int_Val));
+         when Floating => return New_Atom_Mal_Type
+                       (Mal_Float'Image (Deref_Float (First_Param).Get_Float_Val));
+         when Bool => return New_Atom_Mal_Type
+                       (Boolean'Image (Deref_Bool (First_Param).Get_Bool));
+         when Str => return New_Atom_Mal_Type
+                       (Deref_String (First_Param).Get_String);
+         when Atom => return New_Atom_Mal_Type (Deref_Atom (First_Param).Get_Atom);
+         when Error => return First_Param;
+         when others =>
+            raise Mal_Exception;
+            return First_Param;
+      end case;
+   end New_Atom;
+
+   function Is_Atom (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Evaled_List : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return New_Bool_Mal_Type (Deref (First_Param).Sym_Type = Atom);
+   end Is_Atom;
+
+
    function Is_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
@@ -807,6 +842,14 @@ package body Core is
       Set (Get_Current,
            "throw",
            New_Func_Mal_Type ("throw", Throw'access));
+
+      Set (Get_Current,
+           "atom",
+           New_Func_Mal_Type ("atom", New_Atom'access));
+
+      Set (Get_Current,
+           "atom?",
+           New_Func_Mal_Type ("atom?", Is_Atom'access));
 
       Set (Get_Current,
            "list",
