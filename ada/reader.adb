@@ -14,11 +14,26 @@ package body Reader is
 
    package ACL renames Ada.Characters.Latin_1;
 
-   type Lexemes is (Whitespace, Comment,
-                    Int_Tok, Float_Tok, Sym_Tok,
-                    Nil_Tok, True_Tok, False_Tok,
-                    LE_Tok, GE_Tok, Exp_Tok, Splice_Unq_Tok,
+   subtype String_Indices is Integer range 0 .. Max_Line_Len;
+
+   type Lexemes is (Ignored_Tok,
+                    Start_List_Tok, Start_Vector_Tok, Start_Hash_Tok,
+                    Meta_Tok, Deref_Tok,
+                    Quote_Tok, Quasi_Quote_Tok, Splice_Unq_Tok, Unquote_Tok,
+                    Int_Tok, Float_Tok,
                     Str_Tok, Atom_Tok);
+
+   type Token (ID : Lexemes := Ignored_Tok) is record
+      case ID is
+         when Int_Tok =>
+            Int_Val : Mal_Integer;
+         when Float_Tok =>
+            Float_Val : Mal_Float;
+         when Str_Tok | Atom_Tok =>
+            Start_Char, Stop_Char : String_Indices;
+         when others => null;
+      end case;
+   end record;
 
    Lisp_Whitespace : constant Ada.Strings.Maps.Character_Set :=
      Ada.Strings.Maps.To_Set
@@ -68,20 +83,18 @@ package body Reader is
       return To_String (Res);
    end Convert_String;
 
-   subtype String_Indices is Integer range 0 .. Max_Line_Len;
-
    Str_Len : String_Indices := 0;
    Saved_Line : String (1..Max_Line_Len);
    Char_To_Read : String_Indices := 1;
 
-   function Get_Token return Types.Mal_Handle is
-      Res : Types.Mal_Handle;
+   function Get_Token return Token is
+      Res : Token;
       I, J : String_Indices;
-      Dots : Natural;
-      All_Digits : Boolean;
    begin
 
       <<Tail_Call_Opt>>
+
+      -- Skip over whitespace...
       I := Char_To_Read;
       while I <= Str_Len and then
             Ada.Strings.Maps.Is_In (Saved_Line (I), Lisp_Whitespace) loop
@@ -90,29 +103,38 @@ package body Reader is
 
       -- Filter out lines consisting of only whitespace
       if I > Str_Len then
-         return Smart_Pointers.Null_Smart_Pointer;
+         return (ID => Ignored_Tok);
       end if;
 
       J := I;
+
       case Saved_Line (J) is
-         when '~' => -- Circumflex
+
+         when ''' => Res := (ID => Quote_Tok); Char_To_Read := J+1;
+
+         when '`' => Res := (ID => Quasi_Quote_Tok); Char_To_Read := J+1;
+
+         when '~' => -- Tilde
+
             if J+1 <= Str_Len and then Saved_Line(J+1) = '@' then
-               Res := New_Unitary_Mal_Type
-                 (Func => Splice_Unquote,
-                  Op => Smart_Pointers.Null_Smart_Pointer);
+               Res := (ID => Splice_Unq_Tok);
                Char_To_Read := J+2;
             else
-               -- Just a circumflex
-               Res := New_Atom_Mal_Type (Saved_Line (J..J));
+               -- Just a Tilde
+               Res := (ID => Unquote_Tok);
                Char_To_Read := J+1;
             end if;
-         when '[' | ']' |
-              '{' | '}' |
-              '(' | ')' |
-              ''' | '`' |
-              '^' | '@' =>
+
+         when '(' => Res := (ID => Start_List_Tok); Char_To_Read := J+1;
+         when '[' => Res := (ID => Start_Vector_Tok); Char_To_Read := J+1;
+         when '{' => Res := (ID => Start_Hash_Tok); Char_To_Read := J+1;
+
+         when '^' => Res := (ID => Meta_Tok); Char_To_Read := J+1;
+         when '@' => Res := (ID => Deref_Tok); Char_To_Read := J+1;
+
+         when ']' | '}' | ')' =>
             
-            Res := New_Atom_Mal_Type (Saved_Line (J..J));
+            Res := (ID => Atom_Tok, Start_Char => J, Stop_Char => J);
             Char_To_Read := J+1;
 
          when '"' => -- a string
@@ -131,8 +153,7 @@ package body Reader is
             end if;
 
             -- or we reached an unescaped "
-            Res := New_String_Mal_Type
-              (Str => Convert_String (Saved_Line (I .. J)));
+            Res := (ID => Str_Tok, Start_Char => I, Stop_Char => J);
             Char_To_Read := J + 1;
 
          when ';' => -- a comment
@@ -145,7 +166,7 @@ package body Reader is
                J := J + 1;
             end loop;
             if J = Str_Len then
-               Res := Smart_Pointers.Null_Smart_Pointer;
+               Res := (ID => Ignored_Tok);
             else
                Char_To_Read := J + 1;
                -- was: Res := Get_Token;
@@ -164,31 +185,39 @@ package body Reader is
             Char_To_Read := J;
             J := J - 1;
 
-            -- check if all digits or .
-            Dots := 0;
-            All_Digits := True;
-            for K in I .. J loop
-               if Saved_Line (K) = '.' then
-                  Dots := Dots + 1; 
-               elsif not (Saved_Line (K) in '0' .. '9') then
-                  All_Digits := False;
-                  exit;
-               end if;
-            end loop;
+            declare
+               Dots : Natural;
+               All_Digits : Boolean;
+            begin
+               -- check if all digits or .
+               Dots := 0;
+               All_Digits := True;
+               for K in I .. J loop
+                  if Saved_Line (K) = '.' then
+                     Dots := Dots + 1; 
+                  elsif not (Saved_Line (K) in '0' .. '9') then
+                     All_Digits := False;
+                     exit;
+                  end if;
+               end loop;
 
-            if All_Digits then
-               if Dots = 0 then
-                  Res := New_Int_Mal_Type
-                    (Int => Mal_Integer'Value (Saved_Line (I .. J)));
-               elsif Dots = 1 then
-                  Res := New_Float_Mal_Type
-                    (Floating => Mal_Float'Value (Saved_Line (I..J)));
+               if All_Digits then
+                  if Dots = 0 then
+                     Res :=
+                       (ID => Int_Tok,
+                        Int_Val => Mal_Integer'Value (Saved_Line (I .. J)));
+                  elsif Dots = 1 then
+                     Res :=
+                       (ID => Float_Tok,
+                        Float_Val => Mal_Float'Value (Saved_Line (I..J)));
+                  else
+                     Res := (ID => Atom_Tok, Start_Char => I, Stop_Char => J);
+                  end if;
                else
-                  Res := New_Atom_Mal_Type (Saved_Line (I..J));
+                  Res := (ID => Atom_Tok, Start_Char => I, Stop_Char => J);
                end if;
-            else
-               Res := New_Atom_Mal_Type (Saved_Line (I..J));
-            end if;
+
+            end;
 
       end case;
 
@@ -196,9 +225,6 @@ package body Reader is
 
    end Get_Token;
 
-
-   -- Parsing
-   function Read_Form return Types.Mal_Handle;
 
    function Read_List (LT : Types.List_Types)
    return Types.Mal_Handle is
@@ -256,106 +282,79 @@ package body Reader is
    end Read_List;
 
 
+   -- Make a new list of the form: (Atom_Name, <rest_of_form>)
+   function Make_New_List (Atom_Name : Mal_String) return Mal_Handle is
+      List_SP : Mal_Handle;
+      List_P : List_Ptr;
+   begin
+      List_SP := New_List_Mal_Type (List_Type => List_List);
+      List_P := Deref_List (List_SP);
+      Append (List_P.all, New_Atom_Mal_Type (Atom_Name));
+      Append (List_P.all, Read_Form);
+      return List_SP;
+   end Make_New_List;
+
+
    function Read_Form return Types.Mal_Handle is
+      Tok : Token;
       MTS : Mal_Handle;
    begin
 
-      MTS := Get_Token;
+      Tok := Get_Token;
 
-      if Is_Null (MTS) then
-         return Smart_Pointers.Null_Smart_Pointer;
-      end if;
+      case Tok.ID is
 
-      if Deref (MTS).Sym_Type = Atom then
+         when Ignored_Tok => return Smart_Pointers.Null_Smart_Pointer;
 
-         declare
-            Symbol : String := Atom_Mal_Type (Deref (MTS).all).Get_Atom;
-         begin
-            -- Listy things and quoting...
-            if Symbol = "(" then
-               return Read_List (List_List);
-            elsif Symbol = "[" then
-               return Read_List (Vector_List);
-            elsif Symbol = "{" then
-               return Read_List (Hashed_List);
-            elsif Symbol = "^" then
+         when Int_Tok => return New_Int_Mal_Type (Tok.Int_Val);
+
+         when Float_Tok => return New_Float_Mal_Type (Tok.Float_Val);
+
+         when Start_List_Tok => return Read_List (List_List);
+
+         when Start_Vector_Tok => return Read_List (Vector_List);
+
+         when Start_Hash_Tok => return Read_List (Hashed_List);
+
+         when Meta_Tok =>
+
+            declare
+               Meta, Obj : Mal_Handle;
+            begin
+               Meta := Read_Form;
+               Obj := Read_Form;
                declare
-                  Meta, Obj : Mal_Handle;
+                  MT : Mal_Ptr := Deref (Obj);
                begin
-                  Meta := Read_Form;
-                  Obj := Read_Form;
-                  declare
-                     MT : Mal_Ptr := Deref (Obj);
-                  begin
-                     Set_Meta (MT.all, Meta);
-                  end;
-                  return Obj;
+                  Set_Meta (MT.all, Meta);
                end;
-            elsif Symbol = ACL.Apostrophe & "" then
+               return Obj;
+            end;
 
-               declare
-                  List_SP : Mal_Handle;
-                  List_P : List_Ptr;
-               begin
-                  List_SP := New_List_Mal_Type (List_Type => List_List);
-                  List_P := Deref_List (List_SP);
-                  Append (List_P.all, New_Atom_Mal_Type ("quote"));
-                  Append (List_P.all, Read_Form);
-                  return List_SP;
-               end;
+         when Deref_Tok => return Make_New_List ("deref");
 
-            elsif Symbol = ACL.Grave & "" then
+         when Quote_Tok => return Make_New_List ("quote");
 
-               declare
-                  List_SP : Mal_Handle;
-                  List_P : List_Ptr;
-               begin
-                  List_SP := New_List_Mal_Type (List_Type => List_List);
-                  List_P := Deref_List (List_SP);
-                  Append (List_P.all, New_Atom_Mal_Type ("quasiquote"));
-                  Append (List_P.all, Read_Form);
-                  return List_SP;
-               end;
+         when Quasi_Quote_Tok => return Make_New_List ("quasiquote");
 
-            elsif Symbol = ACL.Tilde & "" then
+         when Splice_Unq_Tok => return Make_New_List ("splice-unquote");
 
-               declare
-                  List_SP : Mal_Handle;
-                  List_P : List_Ptr;
-               begin
-                  List_SP := New_List_Mal_Type (List_Type => List_List);
-                  List_P := Deref_List (List_SP);
-                  Append (List_P.all, New_Atom_Mal_Type ("unquote"));
-                  Append (List_P.all, Read_Form);
-                  return List_SP;
-               end;
+         when Unquote_Tok => return Make_New_List ("unquote");
 
-            elsif Symbol = ACL.Commercial_At & "" then
-               return New_Unitary_Mal_Type (Func => Deref, Op => Read_Form);
-            else
-               return MTS;
-            end if;
-         end;
+         when Str_Tok =>
 
-      elsif Deref(MTS).Sym_Type = Unitary and then
-            Unitary_Mal_Type (Deref (MTS).all).Get_Func = Splice_Unquote then
+            return New_String_Mal_Type
+                     (Convert_String (Saved_Line (Tok.Start_Char..Tok.Stop_Char)));
 
-         declare
-            List_SP : Mal_Handle;
-            List_P : List_Ptr;
-         begin
-            List_SP := New_List_Mal_Type (List_Type => List_List);
-            List_P := Deref_List (List_SP);
-            Append (List_P.all, New_Atom_Mal_Type ("splice-unquote"));
-            Append (List_P.all, Read_Form);
-            return List_SP;
-         end;
+         when Atom_Tok =>
 
-      else
-         return MTS;
-      end if;
+            return New_Atom_Mal_Type
+                     (Saved_Line (Tok.Start_Char..Tok.Stop_Char));
+
+      end case;
 
    end Read_Form;
+
 
    procedure Lex_Init (S : String) is
    begin
@@ -363,6 +362,7 @@ package body Reader is
       Saved_Line (1..S'Length) := S;
       Char_To_Read := 1;
    end Lex_Init;
+
 
    function Read_Str (S : String) return Types.Mal_Handle is
       I, Str_Len : Natural := S'Length;
