@@ -94,8 +94,6 @@ package body Types is
                return (Deref_Atom (A).Get_Atom = Deref_Atom (B).Get_Atom);
             when Func =>
                return (Deref_Func (A).Get_Func_Name = Deref_Func (B).Get_Func_Name);
-            when Unitary =>
-               return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
             when Node =>
                return (Deref_Int(A).Get_Int_Val = Deref_Int(B).Get_Int_Val);
             when Lambda =>
@@ -430,56 +428,6 @@ package body Types is
    return Mal_String is
    begin
       return Ada.Strings.Unbounded.To_String (T.Error_Msg);
-   end To_Str;
-
-
-   function New_Unitary_Mal_Type (Func : Unitary_Functions; Op : Mal_Handle)
-   return Mal_Handle is
-   begin
-      return Smart_Pointers.New_Ptr
-        (new Unitary_Mal_Type'
-           (Mal_Type with The_Function => Func, The_Operand => Op));
-   end New_Unitary_Mal_Type;
-
-   overriding function Sym_Type (T : Unitary_Mal_Type) return Sym_Types is
-   begin
-      return Unitary;
-   end Sym_Type;
-
-   function Get_Func (T : Unitary_Mal_Type) return Unitary_Functions is
-   begin
-      return T.The_Function;
-   end Get_Func;
-
-   function Get_Op (T : Unitary_Mal_Type) return Mal_Handle is
-   begin
-     return T.The_Operand;
-   end Get_Op;
-
-   function Deref_Unitary (SP : Mal_Handle) return Unitary_Ptr is
-   begin
-      return Unitary_Ptr (Deref (SP));
-   end Deref_Unitary;
-
-
-   overriding function To_Str 
-     (T : Unitary_Mal_Type; Print_Readably : Boolean := True)
-   return Mal_String is
-   begin
-      case T.The_Function is
-         when Quote =>
-            return "(quote " & To_String (Deref (T.The_Operand).all, True) & ")";
-         when Unquote =>
-            return "(unquote " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
-         when Quasiquote =>
-            return "(quasiquote " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
-         when Splice_Unquote =>
-            return
-              "(splice-unquote " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
-         when Deref =>
-            return
-              "(deref " & To_String (Deref (T.The_Operand).all, Print_Readably) & ")";
-      end case;
    end To_Str;
 
 

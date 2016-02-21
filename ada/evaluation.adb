@@ -510,29 +510,10 @@ package body Evaluation is
 
 	       when Node => return New_Error_Mal_Type ("Evaluating a node");
 
-	       when Unitary => null; -- Not yet impl
-
 	    end case;
 
 	 end;
 
-      elsif Deref (Param).Sym_Type = Unitary then
-         declare
-            UMT : Types.Unitary_Mal_Type;
-         begin
-            UMT := Deref_Unitary (Param).all;
-            case UMT.Get_Func is
-               when Quote =>
-                  return UMT.Get_Op;
-               when QuasiQuote =>
-		  Param := Quasi_Quote_Processing (UMT.Get_Op);
-                  goto Tail_Call_Opt;
-               when Unquote =>
-		  Param := UMT.Get_Op;
-                  goto Tail_Call_Opt;
-               when others => null;
-            end case;
-         end;
       else
 
          return Eval_Ast (Param, Env);

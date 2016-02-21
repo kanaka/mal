@@ -36,7 +36,7 @@ package Types is
    function "=" (A, B : Mal_Handle) return Boolean;
 
    type Sym_Types is (Int, Floating, Bool, List, Str, Atom, Func,
-                      Unitary, Node, Lambda, Error);
+                      Node, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
 
@@ -135,25 +135,6 @@ package Types is
    function New_Error_Mal_Type (Str : Mal_String) return Mal_Handle;
 
    overriding function Sym_Type (T : Error_Mal_Type) return Sym_Types;
-
-
-   type Unitary_Functions is
-     (Quote, Unquote, Quasiquote, Splice_Unquote, Deref);
-
-   type Unitary_Mal_Type is new Mal_Type with private;
-
-   function New_Unitary_Mal_Type (Func : Unitary_Functions; Op : Mal_Handle)
-   return Mal_Handle;
-
-   overriding function Sym_Type (T : Unitary_Mal_Type) return Sym_Types;
-
-   function Get_Func (T : Unitary_Mal_Type) return Unitary_Functions;
-
-   function Get_Op (T : Unitary_Mal_Type) return Mal_Handle;
-
-   type Unitary_Ptr is access all Unitary_Mal_Type;
-
-   function Deref_Unitary (SP : Mal_Handle) return Unitary_Ptr;
 
 
    -- Lists.
@@ -359,14 +340,6 @@ private
    end record;
 
    overriding function To_Str (T : Error_Mal_Type; Print_Readably : Boolean := True)
-   return Mal_String;
-
-   type Unitary_Mal_Type is new Mal_Type with record
-      The_Function : Unitary_Functions;
-      The_Operand : Mal_Handle;
-   end record;
-
-   overriding function To_Str (T : Unitary_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String;
 
 
