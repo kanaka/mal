@@ -112,13 +112,23 @@ package body Types is
 
    function Get_Meta (T : Mal_Type) return Mal_Handle is
    begin
-       return T.Meta;
+       if T.Meta = Smart_Pointers.Null_Smart_Pointer then
+          return New_Atom_Mal_Type ("nil");
+       else
+          return T.Meta;
+       end if;
    end Get_Meta;
 
    procedure Set_Meta (T : in out Mal_Type'Class; SP : Mal_Handle) is
    begin
       T.Meta := SP;
    end Set_Meta;
+
+   function Copy (M : Mal_Handle) return Mal_Handle is
+   begin
+      return Smart_Pointers.New_Ptr
+        (new Mal_Type'Class'(Deref (M).all));
+   end Copy;
 
    function To_String (T : Mal_Type'Class; Print_Readably : Boolean := True)
    return Mal_String is

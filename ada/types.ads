@@ -5,6 +5,7 @@
 -- The third version bites the bullet and delares Mal_Type as tagged.
 -- Smart pointers are an OO version in a separate package.
 -- The Doubly_Linked_Lists have been replaced with a tree-like list instead...
+-- The tree-like list has been replaced with a singly linked list. Sigh.
 
 -- WARNING!  This code contains:
 -- Recursive data structures.
@@ -44,6 +45,8 @@ package Types is
    function Get_Meta (T : Mal_Type) return Mal_Handle;
 
    procedure Set_Meta (T : in out Mal_Type'Class; SP : Mal_Handle);
+
+   function Copy (M : Mal_Handle) return Mal_Handle;
 
    function To_String (T : Mal_Type'Class; Print_Readably : Boolean := True)
    return Mal_String;

@@ -100,6 +100,32 @@ package body Core is
    end Is_Nil;
 
 
+   function Meta (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return Deref (First_Param).Get_Meta;
+   end Meta;
+
+
+   function With_Meta (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Meta_Param, Res : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+      Meta_Param := Car (Rest_List);
+      Res := Copy (First_Param);
+      Deref (Res).Set_Meta (Meta_Param);
+      return Res;
+   end With_Meta;
+
+
    function Is_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
@@ -765,6 +791,14 @@ package body Core is
            New_Func_Mal_Type ("false?", Is_False'access));
 
       Set (Get_Current, "nil", Types.New_Atom_Mal_Type ("nil"));
+
+      Set (Get_Current,
+           "meta",
+           New_Func_Mal_Type ("meta", Meta'access));
+
+      Set (Get_Current,
+           "with-meta",
+           New_Func_Mal_Type ("with-meta", With_Meta'access));
 
       Set (Get_Current,
            "nil?",
