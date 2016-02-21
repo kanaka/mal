@@ -10,11 +10,14 @@ all: libs
 
 clean:
 	rm -f linenoise.so
+	rm -rf lib/lua/5.1
 
 stats: $(SOURCES)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*--|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: $(SOURCES_LISP)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*--|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 
 
 .PHONY: libs

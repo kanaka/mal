@@ -13,7 +13,7 @@ is_pair = (x) -> types._sequential_Q(x) && x.length > 0
 
 quasiquote = (ast) ->
   if !is_pair(ast) then [types._symbol('quote'), ast]
-  else if ast[0].name == 'unquote' then ast[1]
+  else if ast[0] != null && ast[0].name == 'unquote' then ast[1]
   else if is_pair(ast[0]) && ast[0][0].name == 'splice-unquote'
     [types._symbol('concat'), ast[0][1], quasiquote(ast[1..])]
   else
@@ -47,8 +47,8 @@ EVAL = (ast, env) ->
   if !types._list_Q ast then return eval_ast ast, env
 
   # apply list
-  ast = macroexpand ast, env 
-  if !types._list_Q ast then return ast
+  ast = macroexpand ast, env
+  if !types._list_Q ast then return eval_ast ast, env
 
   [a0, a1, a2, a3] = ast
   switch a0.name
@@ -128,7 +128,9 @@ while (line = readline.readline("user> ")) != null
     console.log rep line
   catch exc
     continue if exc instanceof reader.BlankException
-    if exc.stack then console.log exc.stack
-    else              console.log exc
+    if exc.stack? and exc.stack.length > 2000
+      console.log exc.stack.slice(0,1000) + "\n  ..." + exc.stack.slice(-1000)
+    else if exc.stack? console.log exc.stack
+    else               console.log exc
 
 # vim: ts=2:sw=2

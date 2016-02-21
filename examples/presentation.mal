@@ -1,0 +1,123 @@
+;; Mal Presentation
+
+(def! clear
+  (fn* ()
+    (str "[2J[;H")))
+
+(def! bold
+  (fn* (s)
+    (str "[1m" s "[0m")))
+
+(def! blue
+  (fn* (s)
+    (str "[1;34m" s "[0m")))
+
+(def! title
+  (fn* (s)
+    (bold (blue (str s "\n")))))
+
+(def! title2
+  (fn* (s)
+    (bold (blue s))))
+
+
+(def! slides
+  (list
+   (list
+    (title2 " __  __    _    _")
+    (title2 "|  \/  |  / \  | |")
+    (title2 "| |\/| | / _ \ | | ")
+    (title2 "| |  | |/ ___ \| |___ ")
+    (title2 "|_|  |_/_/   \_\_____|"))
+   (list
+    (title "gherkin")
+    "- a lisp1 written in bash4")
+   (list
+    (title "mal - an interpreter for a subset of Clojure"))
+   (list
+    (title "mal - an interpreter for a subset of Clojure")
+    "- written in GNU make")
+   (list
+    (title "mal - an interpreter for a subset of Clojure")
+    "- written in GNU make"
+    "- and Bash 4")
+   (list
+    (title "mal - an interpreter for a subset of Clojure")
+    "- written in GNU make"
+    "- and Bash 4"
+    "- and Javascript")
+   (list
+    (title "mal - an interpreter for a subset of Clojure")
+    "- written in GNU make"
+    "- and Bash 4"
+    "- and Javascript"
+    "- and Python")
+   (list
+    (title "mal - an interpreter for a subset of Clojure")
+    "- written in GNU make"
+    "- and Bash 4"
+    "- and Javascript"
+    "- and Python"
+    "- and Clojure")
+   (list
+    (title "mal - an interpreter for a subset of Clojure")
+    "- written in GNU make"
+    "- and Bash 4"
+    "- and Javascript"
+    "- and Python"
+    "- and Clojure"
+    "- and 17 other languages")
+   (list
+    (title "things it has")
+    "- scalars: integers, strings, symbols, keywords, nil, true, false"
+    "- immutable collections: lists, vectors, hash-maps"
+    "- metadata, atoms"
+    "- def!, fn*, let*"
+    "  - varargs: (fn* (x y & more) ...)"
+    "- tail call optimization"
+    "  -  except GNU make implementation (no iteration)"
+    "- macros (quote, unquote, quasiquote, splice-quote)"
+    "- over 500 unit tests"
+    "- REPL with line editing (GNU readline/libedit/linenoise)")
+   (list
+    (title "things it does not have")
+    "- performance"
+    "- namespaces"
+    "- GC (in bash, make, C implmentations)"
+    "- protocols :-("
+    "- lots of other things")
+   (list
+    (title "why?")
+    "- because!")
+   (list
+    (title "why?")
+    "- because!"
+    "- gherkin was an inspiration to higher levels of crazy"
+    "- evolved into learning tool"
+    "- way to learn about Lisp and also the target language"
+    "- each implementation broken into small 11 steps")
+   (list
+    (title "thanks to:")
+    "- Peter Norvig: inspiration: lispy"
+    "  - http://norvig.com/lispy.html"
+    "- Alan Dipert: gherkin, original gherkin slides"
+    "  - https://github.com/alandipert/gherkin")
+   (list
+    (title "mal - Make a Lisp")
+    "https://github.com/kanaka/mal")
+   (list
+    (title "demo"))))
+
+(def! present
+  (fn* (slides)
+    (if (> (count slides) 0)
+      (do
+        (println (clear))
+
+        (apply println (map (fn* (line) (str "\n        " line)) (first slides)))
+        (println "\n\n\n")
+        (readline "")
+        (present (rest slides))))))
+
+(present slides)
+

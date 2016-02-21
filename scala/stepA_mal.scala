@@ -72,7 +72,7 @@ object stepA_mal {
       case v: MalVector  => v.map(EVAL(_, env))
       case l: MalList    => l.map(EVAL(_, env))
       case m: MalHashMap => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
+        m.map{case (k,v) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
@@ -88,7 +88,8 @@ object stepA_mal {
 
     // apply list
     ast = macroexpand(ast, env)
-    if (!_list_Q(ast)) return ast
+    if (!_list_Q(ast))
+      return eval_ast(ast, env)
 
     ast.asInstanceOf[MalList].value match {
       case Symbol("def!") :: a1 :: a2 :: Nil => {
@@ -202,7 +203,9 @@ object stepA_mal {
     REP("(def! not (fn* (a) (if a false true)))")
     REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
     REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-    REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
+    REP("(def! *gensym-counter* (atom 0))")
+    REP("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+    REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 
     if (args.length > 0) {

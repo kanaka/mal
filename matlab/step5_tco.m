@@ -35,7 +35,7 @@ end
 function ret = EVAL(ast, env)
   while true
     %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
-    if ~types.list_Q(ast)
+    if ~type_utils.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
@@ -51,7 +51,7 @@ function ret = EVAL(ast, env)
         ret = env.set(ast.get(2), EVAL(ast.get(3), env));
         return;
     case 'let*'
-        let_env = Env(env);
+        let_env = Env({env});
         for i=1:2:length(ast.get(2))
             let_env.set(ast.get(2).get(i), EVAL(ast.get(2).get(i+1), let_env));
         end
@@ -67,14 +67,14 @@ function ret = EVAL(ast, env)
            if length(ast) > 3
                ast = ast.get(4); % TCO
             else
-               ret = types.nil;
+               ret = type_utils.nil;
                return;
             end
         else
             ast = ast.get(3); % TCO
         end
     case 'fn*'
-        fn = @(varargin) EVAL(ast.get(3), Env(env, ast.get(2), ...
+        fn = @(varargin) EVAL(ast.get(3), Env({env}, ast.get(2), ...
                                               types.List(varargin{:})));
         ret = types.Function(fn, ast.get(3), env, ast.get(2));
         return;
@@ -83,7 +83,7 @@ function ret = EVAL(ast, env)
         f = el.get(1);
         args = el.slice(2);
         if isa(f, 'types.Function')
-            env = Env(f.env, f.params, args);
+            env = Env({f.env}, f.params, args);
             ast = f.ast; % TCO
         else
             ret = f(args.data{:});
@@ -104,7 +104,7 @@ function ret = rep(str, env)
 end
 
 function main(args)
-    repl_env = Env(false);
+    repl_env = Env();
 
     % core.m: defined using matlab
     ns = core.ns(); ks = ns.keys();
@@ -118,13 +118,17 @@ function main(args)
 
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
     while (true)
-        line = input('user> ', 's');
+        try
+            line = input('user> ', 's');
+        catch err
+            return
+        end
         if strcmp(strtrim(line),''), continue, end
         try
             fprintf('%s\n', rep(line, repl_env));
         catch err
             fprintf('Error: %s\n', err.message);
-            fprintf('%s\n', getReport(err, 'extended'));
+            type_utils.print_stack(err);
         end
     end
 end

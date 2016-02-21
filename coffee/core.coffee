@@ -1,4 +1,4 @@
-readline = require "../js/node_readline"
+readline = require "./node_readline"
 types = require "./types.coffee"
 reader = require "./reader.coffee"
 printer = require "./printer.coffee"
@@ -51,7 +51,7 @@ exports.ns = {
   '*': (a,b) -> a*b,
   '/': (a,b) -> a/b,
   'time-ms': () -> new Date().getTime(),
-  
+
   'list': (a...) -> a,
   'list?': types._list_Q,
   'vector': (a...) -> types._vector(a...),
@@ -70,8 +70,8 @@ exports.ns = {
   'concat': (a=[],b...) -> a.concat(b...),
   'nth': (a,b) -> if a.length > b then a[b] else
     throw new Error "nth: index out of bounds",
-  'first': (a) -> if a.length > 0 then a[0] else null,
-  'rest': (a) -> a[1..],
+  'first': (a) -> if a != null and a.length > 0 then a[0] else null,
+  'rest': (a) -> if a == null then [] else a[1..],
   'empty?': (a) -> a.length == 0,
   'count': (a) -> if a == null then 0 else a.length,
   'apply': (a,b...) -> a(b[0..-2].concat(b[b.length-1])...),

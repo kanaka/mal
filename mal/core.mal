@@ -46,9 +46,10 @@
    ["rest" rest]
    ["empty?" empty?]
    ["count" count]
-   ["conj" conj]
    ["apply" apply]
    ["map" map]
+
+   ["conj" conj]
 
    ["with-meta" with-meta]
    ["meta" meta]

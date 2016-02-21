@@ -23,8 +23,9 @@ pub fn escape_str(s: &str) -> String {
 
 pub fn unescape_str(s: &str) -> String {
     let re1 = regex!(r#"\\""#);
-    let re2 = regex!(r#"\n"#);
-    re2.replace_all(&re1.replace_all(&s, "\""), "\n")
+    let re2 = regex!(r#"\\n"#);
+    let re3 = regex!(r#"\\\\"#);
+    re3.replace_all(&re2.replace_all(&re1.replace_all(&s, "\""), "\n"), "\\")
 }
 
 pub fn pr_list(lst: &Vec<MalVal>, pr: bool,

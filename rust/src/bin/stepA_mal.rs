@@ -1,9 +1,10 @@
-#![feature(exit_status)]
+#![allow(non_snake_case)]
 
 extern crate mal;
 
 use std::collections::HashMap;
 use std::env as stdenv;
+use std::process as process;
 
 use mal::types::{MalVal, MalRet, MalError, err_str};
 use mal::types::{symbol, _nil, string, list, vector, hash_map, malfunc, malfuncd};
@@ -142,7 +143,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
     ast = try!(macroexpand(ast, env.clone()));
     match *ast {
         List(_,_) => (),  // continue
-        _ => return Ok(ast),
+        _ => return eval_ast(ast, env),
     }
 
     let tmp = ast;
@@ -348,7 +349,9 @@ fn main() {
     let _ = rep("(def! not (fn* (a) (if a false true)))", repl_env.clone());
     let _ = rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env.clone());
     let _ = rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env.clone());
-    let _ = rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))", repl_env.clone());
+    let _ = rep("(def! *gensym-counter* (atom 0))", repl_env.clone());
+    let _ = rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))", repl_env.clone());
+    let _ = rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))", repl_env.clone());
 
     // Invoked with command line arguments
     let args = stdenv::args();
@@ -360,10 +363,10 @@ fn main() {
         let lf = format!("(load-file \"{}\")",
                          stdenv::args().skip(1).next().unwrap());
         return match rep(&lf, repl_env.clone()) {
-            Ok(_) => stdenv::set_exit_status(0),
+            Ok(_) => process::exit(0),
             Err(str) => {
                 println!("Error: {:?}", str);
-                stdenv::set_exit_status(1);
+                process::exit(1);
             }
         };
     }

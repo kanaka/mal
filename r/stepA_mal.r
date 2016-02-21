@@ -81,7 +81,7 @@ EVAL <- function(ast, env) {
 
     # apply list
     ast <- macroexpand(ast, env)
-    if (!.list_q(ast)) return(ast)
+    if (!.list_q(ast)) return(eval_ast(ast, env))
 
     switch(paste("l",length(ast),sep=""),
            l0={ return(ast) },
@@ -170,7 +170,9 @@ Env.set(repl_env, "*ARGV*", new.list())
 . <- rep("(def! not (fn* (a) (if a false true)))")
 . <- rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 . <- rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-. <- rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
+. <- rep("(def! *gensym-counter* (atom 0))")
+. <- rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+. <- rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 
 args <- commandArgs(trailingOnly = TRUE)

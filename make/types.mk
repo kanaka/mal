@@ -111,16 +111,24 @@ _clone_obj = $(strip \
                      $(eval $(new_obj)_value := $(strip $($(1)_value)))))\
                    $(new_obj))))
 
+_hash_equal? = $(strip \
+                 $(if $(and $(call _EQ,$(foreach v,$(call __get_obj_values,$(1)),$(word 4,$(subst _, ,$(v)))),$(foreach v,$(call __get_obj_values,$(2)),$(word 4,$(subst _, ,$(v))))),\
+                            $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(foreach v,$(call __get_obj_values,$(1)),$($(v))),$(foreach v,$(call __get_obj_values,$(2)),$($(v))))))),\
+                      $(__true),))
+
 _equal? = $(strip \
             $(foreach ot1,$(call _obj_type,$(1)),$(foreach ot2,$(call _obj_type,$(2)),\
               $(if $(or $(call _EQ,$(ot1),$(ot2)),\
                         $(and $(call _sequential?,$(1)),$(call _sequential?,$(2)))),\
                 $(if $(or $(call _string?,$(1)),$(call _symbol?,$(1)),$(call _keyword?,$(1)),$(call _number?,$(1))),\
                   $(call _EQ,$($(1)_value),$($(2)_value)),\
-                $(if $(or $(call _vector?,$(1)),$(call _list?,$(1)),$(call _hash_map?,$(1))),\
-                  $(if $(and $(call _EQ,$(call _count,$(1)),$(call _count,$(2))),\
-                             $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(call __get_obj_values,$(1)),$(call __get_obj_values,$(2)))))),$(__true),),\
-                $(call _EQ,$(1),$(2))))))))
+                $(if $(call _hash_map?,$(1)),\
+                  $(call _hash_equal?,$(1),$(2)),\
+                $(if $(or $(call _vector?,$(1)),$(call _list?,$(1))),\
+		  $(if $(and $(call _EQ,$(call _count,$(1)),$(call _count,$(2))),\
+                             $(call _EQ,$(call _count,$(1)),$(words $(call gmsl_pairmap,_equal?,$(call __get_obj_values,$(1)),$(call __get_obj_values,$(2)))))),\
+                    $(__true),),\
+                $(call _EQ,$(1),$(2)))))))))
 
 _undefined? = $(or $(call _EQ,undefined,$(origin $(1))),$(filter $(__undefined),$($(1))))
 

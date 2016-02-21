@@ -11,12 +11,12 @@
       (cond
         (= nil b)
         env
-        
+
         (= '& (first b))
         (assoc env (nth b 1) e)
-  
+
         :else
-        (recur (assoc env (first b) (first e)) (next b) (next e))))))
+        (recur (assoc env (first b) (first e)) (next b) (rest e))))))
 
 (defn env-find [env k]
   (cond

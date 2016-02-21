@@ -103,6 +103,8 @@ end } def
     } loop
     str start cnt getinterval % the matched string
     (\\") (") replace
+    (\\n) (\n) replace
+    (\\\\) (\\) replace
     str idx % return: new_string string new_idx
 end } def
 

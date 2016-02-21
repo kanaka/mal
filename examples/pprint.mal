@@ -1,0 +1,41 @@
+
+(def! spaces- (fn* [indent]
+  (if (> indent 0)
+    (str " " (spaces- (- indent 1)))
+    "")))
+
+(def! pp-seq- (fn* [obj indent]
+  (let* [xindent (+ 1 indent)]
+    (apply str (pp- (first obj) 0)
+               (map (fn* [x] (str "\n" (spaces- xindent)
+                                  (pp- x xindent)))
+                    (rest obj))))))
+
+(def! pp-map- (fn* [obj indent]
+  (let* [ks (keys obj)
+         kindent (+ 1 indent)
+         kwidth (count (seq (str (first ks))))
+         vindent (+ 1 (+ kwidth kindent))]
+    (apply str (pp- (first ks) 0)
+               " "
+               (pp- (get obj (first ks)) 0)
+               (map (fn* [k] (str "\n" (spaces- kindent)
+                                  (pp- k kindent)
+                                  " "
+                                  (pp- (get obj k) vindent)))
+                    (rest (keys obj)))))))
+
+(def! pp- (fn* [obj indent]
+  (cond
+    (list? obj)   (str "(" (pp-seq- obj indent) ")")
+    (vector? obj) (str "[" (pp-seq- obj indent) "]")
+    (map? obj)    (str "{" (pp-map- obj indent) "}")
+    :else         (pr-str obj))))
+
+(def! pprint (fn* [obj]
+  (println (pp- obj 0))))
+
+
+;;(pprint '(7 8 9 "ten" [11 12 [13 14]] 15 16))
+;;(pprint '{:abc 123 :def {:ghi 456 :jkl [789 "ten eleven twelve"]}})
+;;(pprint '(7 8 {:abc 123 :def {:ghi 456 :jkl 789}} 9 10 [11 12 [13 14]] 15 16))

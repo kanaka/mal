@@ -295,7 +295,17 @@ func Equal_Q(a MalType, b MalType) bool {
 		}
 		return true
 	case HashMap:
-		return false
+		am := a.(HashMap).Val
+		bm := b.(HashMap).Val
+		if len(am) != len(bm) {
+			return false
+		}
+		for k, v := range am {
+			if !Equal_Q(v, bm[k]) {
+				return false
+			}
+		}
+		return true
 	default:
 		return a == b
 	}

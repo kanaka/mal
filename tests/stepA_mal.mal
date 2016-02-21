@@ -10,6 +10,13 @@
 "hello"
 ;=>"\"hello\""
 
+;;
+;; Testing *host-language*
+;;; each impl is different, but this should return false
+;;; rather than throwing an exception
+(= "something bogus" *host-language*)
+;=>false
+
 
 ;;
 ;; ------- Optional Functionality ----------
@@ -52,6 +59,11 @@
 (meta f-wm2)
 ;=>{"abc" 1}
 
+;; Meta of native functions should return nil (not fail)
+(meta +)
+;=>nil
+
+
 ;;
 ;; Make sure closures and metadata co-exist
 (def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
@@ -68,61 +80,26 @@
 (meta plus8)
 ;=>{"meta" 1}
 
-
 ;;
-;; Testing atoms
-
-(def! inc3 (fn* (a) (+ 3 a)))
-
-(def! a (atom 2))
-;=>(atom 2)
-
-;;;(type a)
-;;;;=>"atom"
-
-(deref a)
-;=>2
-
-@a
-;=>2
-
-(reset! a 3)
+;; Testing hash-map evaluation and atoms (i.e. an env)
+(def! e (atom {"+" +}))
+(swap! e assoc "-" -)
+( (get @e "+") 7 8)
+;=>15
+( (get @e "-") 11 8)
 ;=>3
-
-@a
-;=>3
-
-(swap! a inc3)
-;=>6
-
-@a
-;=>6
-
-(swap! a (fn* (a) a))
-;=>6
-
-(swap! a (fn* (a) (* 2 a)))
-;=>12
-
-(swap! a (fn* (a b) (* a b)) 10)
-;=>120
-
-(swap! a + 3)
-;=>123
-
-;; Testing swap!/closure interaction
-(def! inc-it (fn* (a) (+ 1 a)))
-(def! atm (atom 7))
-(def! f (fn* [] (swap! atm inc-it)))
-(f)
-;=>8
-(f)
-;=>9
+(swap! e assoc "foo" (list))
+(get @e "foo")
+;=>()
+(swap! e assoc "bar" '(1 2 3))
+(get @e "bar")
+;=>(1 2 3)
 
 
 ;;
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
+;>>> soft=True
 
 ;;
 ;; Testing conj function
@@ -203,3 +180,9 @@
 (meta +)
 ;=>nil
 
+;;
+;; Testing gensym and clean or macro
+(= (gensym) (gensym))
+;=>false
+(let* [or_FIXME 23] (or false (+ or_FIXME 100)))
+;=>123

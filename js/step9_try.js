@@ -20,7 +20,7 @@ function is_pair(x) {
 function quasiquote(ast) {
     if (!is_pair(ast)) {
         return [types._symbol("quote"), ast];
-    } else if (ast[0].value === 'unquote') {
+    } else if (types._symbol_Q(ast[0]) && ast[0].value === 'unquote') {
         return ast[1];
     } else if (is_pair(ast[0]) && ast[0][0].value === 'splice-unquote') {
         return [types._symbol("concat"),
@@ -78,7 +78,9 @@ function _EVAL(ast, env) {
 
     // apply list
     ast = macroexpand(ast, env);
-    if (!types._list_Q(ast)) { return ast; }
+    if (!types._list_Q(ast)) {
+        return eval_ast(ast, env);
+    }
 
     var a0 = ast[0], a1 = ast[1], a2 = ast[2], a3 = ast[3];
     switch (a0.value) {

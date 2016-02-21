@@ -12,9 +12,9 @@ proc quasiquote(ast: MalType): MalType =
     return ast.list[1]
   elif ast.list[0].is_pair and ast.list[0].list[0] == symbol "splice-unquote":
     return list(symbol "concat", ast.list[0].list[1],
-      quasiquote(list ast.list[1 .. -1]))
+      quasiquote(list ast.list[1 .. ^1]))
   else:
-    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. -1])))
+    return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
 
 proc is_macro_call(ast: MalType, env: Env): bool =
   ast.kind == List and ast.list.len > 0 and ast.list[0].kind == Symbol and
@@ -24,7 +24,7 @@ proc macroexpand(ast: MalType, env: Env): MalType =
   result = ast
   while result.is_macro_call(env):
     let mac = env.get(result.list[0].str)
-    result = mac.malfun.fn(result.list[1 .. -1]).macroexpand(env)
+    result = mac.malfun.fn(result.list[1 .. ^1]).macroexpand(env)
 
 proc eval(ast: MalType, env: Env): MalType
 
@@ -53,15 +53,15 @@ proc eval(ast: MalType, env: Env): MalType =
     case f.kind
     of MalFun:
       ast = f.malfun.ast
-      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. -1]))
+      env = initEnv(f.malfun.env, f.malfun.params, list(el.list[1 .. ^1]))
     else:
-      return f.fun(el.list[1 .. -1])
+      return f.fun(el.list[1 .. ^1])
 
   while true:
     if ast.kind != List: return ast.eval_ast(env)
 
     ast = ast.macroexpand(env)
-    if ast.kind != List: return ast
+    if ast.kind != List: return ast.eval_ast(env)
     if ast.list.len == 0: return ast
 
     let a0 = ast.list[0]
@@ -172,7 +172,9 @@ proc rep(str: string): string {.discardable.} =
 rep "(def! not (fn* (a) (if a false true)))"
 rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
-rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+rep "(def! *gensym-counter* (atom 0))"
+rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 rep "(def! *host-language* \"nim\")"
 
 if paramCount() >= 1:

@@ -161,9 +161,11 @@ nth ((MalVector lst _):(MalNumber idx):[]) = do
     else throwStr "nth: index out of range"
 nth _ = throwStr "invalid call to nth"
 
+first Nil = Nil
 first (MalList lst _) = if length lst > 0 then lst !! 0 else Nil
 first (MalVector lst _) = if length lst > 0 then lst !! 0 else Nil
 
+rest Nil = MalList [] Nil
 rest (MalList lst _) = MalList (drop 1 lst) Nil
 rest (MalVector lst _) = MalList (drop 1 lst) Nil
 

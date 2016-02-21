@@ -71,7 +71,9 @@ def EVAL(ast, env)
 
     # apply list
     ast = macroexpand(ast, env)
-    return ast if not ast.is_a? List
+    if not ast.is_a? List
+        return eval_ast(ast, env)
+    end
 
     a0,a1,a2,a3 = ast
     case a0
@@ -128,7 +130,7 @@ def EVAL(ast, env)
         end
     when :"fn*"
         return Function.new(a2, env, a1) {|*args|
-            EVAL(a2, Env.new(env, a1, args))
+            EVAL(a2, Env.new(env, a1, List.new(args)))
         }
     else
         el = eval_ast(ast, env)
@@ -164,7 +166,9 @@ RE["(def! *host-language* \"ruby\")"]
 RE["(def! not (fn* (a) (if a false true)))"]
 RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
 RE["(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"]
-RE["(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"]
+RE["(def! *gensym-counter* (atom 0))"]
+RE["(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"]
+RE["(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"]
 
 if ARGV.size > 0
     RE["(load-file \"" + ARGV[0] + "\")"]

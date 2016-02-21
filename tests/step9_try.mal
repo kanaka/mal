@@ -22,7 +22,7 @@
 ;=>7
 
 ;;; Test that throw is a function:
-(try* (map throw [7]) (catch* exc exc))
+(try* (map throw (list 7)) (catch* exc exc))
 ;=>7
 
 
@@ -60,7 +60,6 @@
 ; 1 2 "3" ()
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
-;=>nil
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
@@ -120,6 +119,18 @@
 ;=>false
 (sequential? "abc")
 ;=>false
+
+;; Testing apply function with core functions and arguments in vector
+(apply + 4 [5])
+;=>9
+(apply prn 1 2 ["3" 4])
+; 1 2 "3" 4
+;=>nil
+;; Testing apply function with user functions and arguments in vector
+(apply (fn* (a b) (+ a b)) [2 3])
+;=>5
+(apply (fn* (a b) (+ a b)) 4 [5])
+;=>9
 
 
 ;; Testing map function with vectors
@@ -249,5 +260,65 @@
 (keyword? (nth (vals {"a" :abc "b" :def}) 0))
 ;=>true
 
+;; Testing nil as hash-map values
+(contains? {:abc nil} :abc)
+;=>true
+(assoc {} :bcd nil)
+;=>{:bcd nil}
+(dissoc {:cde nil :fgh 456} :cde)
+;=>{:fgh 456}
 
+;; Testing equality of hash-maps
+(= {} {})
+;=>true
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :b 23 :a 11))
+;=>false
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
+(= {} [])
+;=>false
+(= [] {})
+;=>false
+
+;;
+;; Additional str and pr-str tests
+
+(str "A" {:abc "val"} "Z")
+;=>"A{:abc val}Z"
+
+(str true "." false "." nil "." :keyw "." 'symb)
+;=>"true.false.nil.:keyw.symb"
+
+(pr-str "A" {:abc "val"} "Z")
+;=>"\"A\" {:abc \"val\"} \"Z\""
+
+(pr-str true "." false "." nil "." :keyw "." 'symb)
+;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
+
+(def! s (str {:abc "val1" :def "val2"}))
+(or (= s "{:abc val1 :def val2}") (= s "{:def val2 :abc val1}"))
+;=>true
+
+(def! p (pr-str {:abc "val1" :def "val2"}))
+(or (= p "{:abc \"val1\" :def \"val2\"}") (= p "{:def \"val2\" :abc \"val1\"}"))
+;=>true
+
+;;
+;; Test extra function arguments as Mal List (bypassing TCO with apply)
+(apply (fn* (& more) (list? more)) [1 2 3])
+;=>true
+(apply (fn* (& more) (list? more)) [])
+;=>true
+(apply (fn* (a & more) (list? more)) [1])
+;=>true
 

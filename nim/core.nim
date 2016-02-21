@@ -1,4 +1,4 @@
-import strutils, rdstdin, tables, algorithm, times, types, printer, reader
+import strutils, rdstdin, tables, algorithm, times, sequtils, types, printer, reader
 
 type MalError* = object of Exception
   t*: MalType
@@ -15,8 +15,7 @@ proc prn(xs: varargs[MalType]): MalType =
   result = nilObj
 
 proc println(xs: varargs[MalType]): MalType =
-  let line = xs.map(proc(x: MalType): string = x.pr_str(false)).join(" ")
-  echo line.replace("\\n", "\n")
+  echo xs.map(proc(x: MalType): string = x.pr_str(false)).join(" ")
   result = nilObj
 
 proc read_str(xs: varargs[MalType]): MalType =
@@ -49,7 +48,7 @@ proc first(xs: varargs[MalType]): MalType =
 
 proc rest(xs: varargs[MalType]): MalType =
   if xs[0].kind in {List, Vector} and xs[0].list.len > 0:
-    list xs[0].list[1 .. -1]
+    list xs[0].list[1 .. ^1]
   else: list()
 
 proc throw(xs: varargs[MalType]): MalType =
@@ -69,7 +68,8 @@ proc dissoc(xs: varargs[MalType]): MalType =
 
 proc get(xs: varargs[MalType]): MalType =
   if xs[0].kind == HashMap:
-    result = xs[0].hash_map[xs[1].str]
+    if xs[1].str in xs[0].hash_map:
+      result = xs[0].hash_map[xs[1].str]
     if not result.isNil: return
 
   result = nilObj

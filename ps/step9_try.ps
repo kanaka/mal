@@ -6,7 +6,7 @@
 (core.ps) runlibfile
 
 % read
-/_readline { print flush (%stdin) (r) file 99 string readline } def
+/_readline { print flush (%stdin) (r) file 1024 string readline } def
 
 /READ {
     /str exch def
@@ -108,7 +108,7 @@ end } def
     }{ %else apply the list
       /ast ast env macroexpand def
       ast _list? not { %if no longer a list
-          ast
+          ast env eval_ast
       }{ %else still a list
         /a0 ast 0 _nth def
         /def! a0 eq { %if def!

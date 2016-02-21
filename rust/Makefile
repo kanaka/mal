@@ -21,8 +21,9 @@ mal: ${SOURCES_BASE} $(word $(words ${SOURCES_LISP}),${SOURCES_LISP})
 	cargo build --release
 	cp $(word $(words ${BINS}),${BINS})  $@
 
-#$(BINS): target/release/%: src/%.rs
-#	cargo build --release $*
+# TODO: would be nice to build just the step requested
+$(BINS): target/release/%: src/bin/%.rs $(wildcard src/*.rs)
+	cargo build --release
 
 clean:
 	cargo clean
@@ -32,5 +33,7 @@ clean:
 
 stats: $(SOURCES)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: $(SOURCES_LISP)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

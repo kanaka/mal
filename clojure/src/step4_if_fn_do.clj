@@ -56,7 +56,7 @@
 
         'fn*
         (fn [& args]
-          (EVAL a2 (env/env env a1 args)))
+          (EVAL a2 (env/env env a1 (or args '()))))
 
         ;; apply
         (let [el (eval-ast ast env)

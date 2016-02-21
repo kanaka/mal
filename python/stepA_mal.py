@@ -64,7 +64,8 @@ def EVAL(ast, env):
 
         # apply list
         ast = macroexpand(ast, env)
-        if not types._list_Q(ast): return ast
+        if not types._list_Q(ast):
+            return eval_ast(ast, env)
         if len(ast) == 0: return ast
         a0 = ast[0]
 
@@ -158,7 +159,9 @@ REP("(def! *host-language* \"python\")")
 REP("(def! not (fn* (a) (if a false true)))")
 REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
+REP("(def! *gensym-counter* (atom 0))")
+REP("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+REP("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 if len(sys.argv) >= 2:
     REP('(load-file "' + sys.argv[1] + '")')

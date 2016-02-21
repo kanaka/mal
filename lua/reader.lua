@@ -47,6 +47,7 @@ function M.read_atom(rdr)
         local sval = string.sub(token,2,string.len(token)-1)
         sval = string.gsub(sval, '\\"', '"')
         sval = string.gsub(sval, '\\n', '\n')
+        sval = string.gsub(sval, '\\\\', '\\')
         return sval
     elseif string.sub(token,1,1) == ':' then
         return "\177" .. string.sub(token,2)

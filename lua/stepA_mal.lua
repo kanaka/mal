@@ -81,7 +81,7 @@ function EVAL(ast, env)
 
     -- apply list
     ast = macroexpand(ast, env)
-    if not types._list_Q(ast) then return ast end
+    if not types._list_Q(ast) then return eval_ast(ast, env) end
 
     local a0,a1,a2,a3 = ast[1], ast[2],ast[3],ast[4]
     local a0sym = types._symbol_Q(a0) and a0.val or ""
@@ -173,7 +173,9 @@ rep("(def! *host-language* \"lua\")")
 rep("(def! not (fn* (a) (if a false true)))")
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
+rep("(def! *gensym-counter* (atom 0))")
+rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 function print_exception(exc)
     if exc then

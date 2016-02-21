@@ -111,9 +111,13 @@ sub nth {
     }
 }
 
-sub first { my ($seq) = @_; return scalar(@{$seq->{val}}) > 0 ? $seq->nth(0) : $nil; }
+sub first {
+    my ($seq) = @_;
+    return $nil if (_nil_Q($seq));
+    return scalar(@{$seq->{val}}) > 0 ? $seq->nth(0) : $nil;
+}
 
-sub rest { return $_[0]->rest(); }
+sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
 
 sub count {
     if (_nil_Q($_[0])) {
@@ -145,6 +149,17 @@ sub mal_map {
         @arr = map { &{ $f}(List->new([$_])) } @{$_[0]->{val}};
     }
     return List->new(\@arr);
+}
+
+sub conj {
+    my ($lst, @args) = @{$_[0]->{val}};
+    my $new_lst = _clone($lst);
+    if (_list_Q($new_lst)) {
+        unshift @{$new_lst->{val}}, reverse @args;
+    } else {
+        push @{$new_lst->{val}}, @args;
+    }
+    return $new_lst;
 }
 
 
@@ -228,7 +243,7 @@ our $core_ns = {
     'count' => sub { count($_[0]->nth(0)) },
     'apply' => sub { apply($_[0]) },
     'map' => sub { mal_map($_[0]->nth(0), $_[0]->nth(1)) },
-    'conj' => sub { die "not implemented\n"; },
+    'conj' => \&conj,
 
     'with-meta' => sub { with_meta($_[0]->nth(0), $_[0]->nth(1)) },
     'meta' => sub { meta($_[0]->nth(0)) },

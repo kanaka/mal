@@ -1,5 +1,7 @@
 # Mal/Make-a-Lisp FAQ
 
+<a name="why_mal"></a>
+
 ### Why did you create mal/make-a-lisp?
 ### OR Why the name "mal"?
 ### OR Why?
@@ -25,6 +27,8 @@ tool and so the "mal" name became a double entendre for "Make, A Lisp"
 and "make-a-lisp" (and eventually just the latter given that the make
 implementation is now just a small part of the whole).
 
+
+<a name="code_split"></a>
 
 ### Why is some code split into steps and some code not?
 
@@ -57,6 +61,9 @@ represent the core of what makes something a Lisp, the rest of the
 modules are just language specific details (they may be the harder
 than the Lisp part, but that is due to the nature of the target
 language not because of Lisp functionality per se).
+
+
+<a name="steps"></a>
 
 ### Why are the mal/make-a-lisp steps structured the way they are?
 
@@ -107,6 +114,8 @@ process guide for step1 and to be clear that many of the types are
 deferrable until later. But I am always open to suggestions.
 
 
+<a name="add_implementation"></a>
+
 ### Will you add my new implementation?
 
 Absolutely! I want mal to have a idiomatic implementation in every
@@ -118,18 +127,20 @@ into the main repository:
 * Your implementation needs to be complete enough to self-host. This
   means that all the tests should pass in both direct and self-hosted modes:
   ```bash
-  make test^[IMPL_NAME]
-  make MAL_IMPL=[IMPL_NAME] test^mal
+  make "test^[IMPL_NAME]"
+  make MAL_IMPL=[IMPL_NAME] "test^mal"
   ```
   You do not need to pass the final optional tests for stepA that are
   marked as optional and not needed for self-hosting.
 
 * Your implementation should follow the existing mal steps and
-  structure: Lisp-centric code in the step files, other code in
-  reader, printer, env, and core files. I encourage you to create
-  implementations that take mal in new directions for your own
-  learning and experimentation, but for it to be included in the main
-  repository I ask that it follows the steps and structure.
+  structure: Lisp-centric code (eval, eval_ast, quasiquote,
+  macroexpand) in the step files, other code in reader, printer, env,
+  and core files. See [code layout rationale](#code_split) above.
+  I encourage you to create implementations that take mal in new
+  directions for your own learning and experimentation, but for it to
+  be included in the main repository I ask that it follows the steps
+  and structure.
 
 * Your implementation should stick as much as possible to the accepted
   idioms and conventions in that language. Try to create an
@@ -142,17 +153,18 @@ into the main repository:
   improve it first.
    
 * If you are creating a new implementation for an existing
-  implementation, then it is less likely that I will replace the
-  existing implementation with your new one. If you can make
-  a compelling argument that your implementation is more idiomatic or
-  significantly better than the existing implementation then I may
-  replace it. However, a better option would be to work with the me
-  and the original author (if it was not me) to improve the existing
-  implementation. This also implies that if somebody submits a high
-  quality implementation to me before you, your implementation may not
-  get merged. However, if you have alternate implementation and it
-  follows the rest of the guidelines, I am definitely willing to link
-  to it in the list of implementations.
+  implementation (or somebody beats you to the punch while you are
+  working on it), there is still a chance I will merge your
+  implementation. If you can make a compelling argument that your
+  implementation is more idiomatic or significantly better than the
+  existing implementation then I may replace the existing one.
+  However, if your approach is different or unique from the existing
+  implementation, there is still a good chance I will merge your
+  implementation side-by-side with the existing one. In that case
+  I will add your github username as a suffix to the language
+  implementation directory. At the very least, even if I decide not to
+  merge your implementation, I am certainly willing to link to you
+  implementation once it is completed.
 
 * You do not need to implement line editing (i.e. readline)
   functionality for your implementation, however, it is a nice

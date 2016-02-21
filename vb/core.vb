@@ -286,11 +286,19 @@ Namespace Mal
         End Function
 
         Shared Function first(a As MalList) As MalVal
-            return DirectCast(a(0),MalList)(0)
+            If a(0) Is Nil Then
+                return Nil
+            Else
+                return DirectCast(a(0),MalList)(0)
+            End If
         End Function
 
         Shared Function rest(a As MalList) As MalVal
-            return DirectCast(a(0),MalList).rest()
+            If a(0) Is Nil Then
+                return new MalList()
+            Else
+                return DirectCast(a(0),MalList).rest()
+            End If
         End Function
 
         Shared Function empty_Q(a As MalList) As MalVal

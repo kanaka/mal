@@ -87,6 +87,8 @@ abc-def
 ; expected ']', got EOF
 "abc
 ; expected '"', got EOF
+(1 "abc
+; expected ')', got EOF
 
 ;;
 ;; -------- Optional Functionality --------

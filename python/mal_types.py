@@ -2,13 +2,12 @@ import sys, copy, types as pytypes
 
 # python 3.0 differences
 if sys.hexversion > 0x3000000:
-    def u(x):
-        return x
+    _u = lambda x: x
+    _s2u = lambda x: x
 else:
     import codecs
-    def u(x):
-        return codecs.unicode_escape_decode(x)[0]
-
+    _u = lambda x: codecs.unicode_escape_decode(x)[0]
+    _s2u = lambda x: unicode(x)
 
 if sys.version_info[0] >= 3:
     str_types = [str]
@@ -19,6 +18,8 @@ else:
 
 def _equal_Q(a, b):
     ota, otb = type(a), type(b)
+    if _string_Q(a) and _string_Q(b):
+        return a == b
     if not (ota == otb or (_sequential_Q(a) and _sequential_Q(b))):
         return False;
     if _symbol_Q(a):
@@ -36,7 +37,7 @@ def _equal_Q(a, b):
         if len(akeys) != len(bkeys): return False
         for i in range(len(akeys)):
             if akeys[i] != bkeys[i]: return False
-            if not equal_Q(a[akeys[i]], b[bkeys[i]]): return False
+            if not _equal_Q(a[akeys[i]], b[bkeys[i]]): return False
         return True
     else:
         return a == b
@@ -72,15 +73,15 @@ def _symbol_Q(exp): return type(exp) == Symbol
 # Keywords
 # A specially prefixed string
 def _keyword(str):
-    if str[0] == u("\u029e"): return str
-    else:                     return u("\u029e") + str
+    if str[0] == _u("\u029e"): return str
+    else:                     return _u("\u029e") + str
 def _keyword_Q(exp):
-    return _string_Q(exp) and exp[0] == u("\u029e")
+    return _string_Q(exp) and exp[0] == _u("\u029e")
 
 # Functions
 def _function(Eval, Env, ast, env, params):
     def fn(*args):
-        return Eval(ast, Env(env, params, args))
+        return Eval(ast, Env(env, params, List(args)))
     fn.__meta__ = None
     fn.__ast__ = ast
     fn.__gen_env__ = lambda args: Env(env, params, args)

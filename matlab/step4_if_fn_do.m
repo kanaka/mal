@@ -34,7 +34,7 @@ end
 
 function ret = EVAL(ast, env)
     %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
-    if ~types.list_Q(ast)
+    if ~type_utils.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
@@ -49,7 +49,7 @@ function ret = EVAL(ast, env)
     case 'def!'
         ret = env.set(ast.get(2), EVAL(ast.get(3), env));
     case 'let*'
-        let_env = Env(env);
+        let_env = Env({env});
         for i=1:2:length(ast.get(2))
             let_env.set(ast.get(2).get(i), EVAL(ast.get(2).get(i+1), let_env));
         end
@@ -64,13 +64,13 @@ function ret = EVAL(ast, env)
            if length(ast) > 3
                ret = EVAL(ast.get(4), env);
             else
-               ret = types.nil;
+               ret = type_utils.nil;
             end
         else
             ret = EVAL(ast.get(3), env);
         end
     case 'fn*'
-        ret = @(varargin) EVAL(ast.get(3), Env(env, ast.get(2), ...
+        ret = @(varargin) EVAL(ast.get(3), Env({env}, ast.get(2), ...
                                                types.List(varargin{:})));
     otherwise
         el = eval_ast(ast, env);
@@ -91,7 +91,7 @@ function ret = rep(str, env)
 end
 
 function main(args)
-    repl_env = Env(false);
+    repl_env = Env();
 
     % core.m: defined using matlab
     ns = core.ns(); ks = ns.keys();
@@ -105,13 +105,17 @@ function main(args)
 
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
     while (true)
-        line = input('user> ', 's');
+        try
+            line = input('user> ', 's');
+        catch err
+            return
+        end
         if strcmp(strtrim(line),''), continue, end
         try
             fprintf('%s\n', rep(line, repl_env));
         catch err
             fprintf('Error: %s\n', err.message);
-            fprintf('%s\n', getReport(err, 'extended'));
+            type_utils.print_stack(err);
         end
     end
 end

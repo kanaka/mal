@@ -49,6 +49,10 @@
 ;=>(1 2 (3 4))
 `(1 2 (3 4))
 ;=>(1 2 (3 4))
+(quasiquote (nil))
+;=>(nil)
+`(nil)
+;=>(nil)
 
 
 ;; Testing unquote
@@ -89,6 +93,12 @@
 (= 'abc "abc")
 ;=>false
 (= "abc" 'abc)
+;=>false
+(= "abc" (str 'abc))
+;=>true
+(= 'abc nil)
+;=>false
+(= nil 'abc)
 ;=>false
 
 ;;;;; Test quine

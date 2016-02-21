@@ -44,6 +44,11 @@
     null,
     ["first", "seq"]]]],
 
+["def", "_rest", ["fn", ["seq"],
+  ["if", ["empty?", "seq"],
+    ["`", []],
+    ["rest", "seq"]]]],
+
 ["def", "_apply", ["fn", ["f", "&", "args"],
   ["let", ["fn", ["if", ["malfunc?", "f"], ["get", "f", ["`", "fn"]], "f"],
            "fargs", ["concat", ["slice", "args", 0, ["-", ["count", "args"], 1]],
@@ -136,7 +141,7 @@
    ["`", "concat"], "concat",
    ["`", "nth"], "_nth",
    ["`", "first"], "_first",
-   ["`", "rest"], ["fn", ["a"], ["rest", "a"]],
+   ["`", "rest"], "_rest",
    ["`", "empty?"], "empty?",
    ["`", "count"], "_count",
    ["`", "apply"], "_apply",

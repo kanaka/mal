@@ -34,7 +34,7 @@ end
 
 function ret = EVAL(ast, env)
     %fprintf('EVAL: %s\n', printer.pr_str(ast, true));
-    if ~types.list_Q(ast)
+    if ~type_utils.list_Q(ast)
         ret = eval_ast(ast, env);
         return;
     end
@@ -57,7 +57,11 @@ function ret = rep(str, env)
 end
 
 function main(args)
-    repl_env = containers.Map();
+    if exist('OCTAVE_VERSION', 'builtin') ~= 0
+        repl_env = Dict();
+    else
+        repl_env = containers.Map();
+    end
     repl_env('+') = @(a,b) a+b;
     repl_env('-') = @(a,b) a-b;
     repl_env('*') = @(a,b) a*b;
@@ -65,13 +69,17 @@ function main(args)
 
     %cleanObj = onCleanup(@() disp('*** here1 ***'));
     while (true)
-        line = input('user> ', 's');
+        try
+            line = input('user> ', 's');
+        catch err
+            return
+        end
         if strcmp(strtrim(line),''), continue, end
         try
             fprintf('%s\n', rep(line, repl_env));
         catch err
             fprintf('Error: %s\n', err.message);
-            fprintf('%s\n', getReport(err, 'extended'));
+            type_utils.print_stack(err);
         end
     end
 end

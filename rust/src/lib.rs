@@ -1,8 +1,7 @@
-#![feature(io, fs, core, std_misc, collections)]
-
 extern crate libc;
 extern crate regex;
 extern crate time;
+extern crate num;
 
 macro_rules! regex {
     ($e:expr) => (::regex::Regex::new($e).unwrap())

@@ -27,6 +27,14 @@ function _equal_Q($a, $b) {
             if (!_equal_Q($a[$i], $b[$i])) { return false; }
         }
         return true;
+    } elseif (_hash_map_Q($a)) {
+        if ($a->count() !== $b->count()) { return false; }
+        $hm1 = $a->getArrayCopy();
+        $hm2 = $b->getArrayCopy();
+        foreach (array_keys($hm1) as $k) {
+            if (!_equal_Q($hm1[$k], $hm2[$k])) { return false; }
+        }
+        return true;
     } else {
         return $a === $b;
     }

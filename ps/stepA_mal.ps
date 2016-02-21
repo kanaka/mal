@@ -6,7 +6,7 @@
 (core.ps) runlibfile
 
 % read
-/_readline { print flush (%stdin) (r) file 99 string readline } def
+/_readline { print flush (%stdin) (r) file 1024 string readline } def
 
 /READ {
     /str exch def
@@ -108,7 +108,7 @@ end } def
     }{ %else apply the list
       /ast ast env macroexpand def
       ast _list? not { %if no longer a list
-          ast
+          ast env eval_ast
       }{ %else still a list
         /a0 ast 0 _nth def
         /def! a0 eq { %if def!
@@ -264,7 +264,9 @@ core_ns { _function _ref } forall
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
 (\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
 (\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop
-(\(defmacro! or \(fn* \(& xs\) \(if \(empty? xs\) nil \(if \(= 1 \(count xs\)\) \(first xs\) `\(let* \(or_FIXME ~\(first xs\)\) \(if or_FIXME or_FIXME \(or ~@\(rest xs\)\)\)\)\)\)\)\)) RE pop
+(\(def! *gensym-counter* \(atom 0\)\)) RE pop
+(\(def! gensym \(fn* [] \(symbol \(str "G__" \(swap! *gensym-counter* \(fn* [x] \(+ 1 x\)\)\)\)\)\)\)) RE pop
+(\(defmacro! or \(fn* \(& xs\) \(if \(empty? xs\) nil \(if \(= 1 \(count xs\)\) \(first xs\) \(let* \(condvar \(gensym\)\) `\(let* \(~condvar ~\(first xs\)\) \(if ~condvar ~condvar \(or ~@\(rest xs\)\)\)\)\)\)\)\)\)) RE pop
 
 userdict /ARGUMENTS known { %if command line arguments
     ARGUMENTS length 0 gt { %if more than 0 arguments

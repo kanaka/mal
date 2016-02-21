@@ -39,6 +39,8 @@ function read_atom($reader) {
     } elseif ($token[0] === "\"") {
         $str = substr($token, 1, -1);
         $str = preg_replace('/\\\\"/', '"', $str);
+        $str = preg_replace('/\\\\n/', "\n", $str);
+        $str = preg_replace('/\\\\\\\\/', "\\", $str);
         return $str;
     } elseif ($token[0] === ":") {
         return _keyword(substr($token,1));

@@ -72,7 +72,7 @@ object step8_macros {
       case v: MalVector  => v.map(EVAL(_, env))
       case l: MalList    => l.map(EVAL(_, env))
       case m: MalHashMap => {
-        m.map{case (k: String,v: Any) => (k, EVAL(v, env))}
+        m.map{case (k,v) => (k, EVAL(v, env))}
       }
       case _             => ast
     }
@@ -88,7 +88,8 @@ object step8_macros {
 
     // apply list
     ast = macroexpand(ast, env)
-    if (!_list_Q(ast)) return ast
+    if (!_list_Q(ast))
+      return eval_ast(ast, env)
 
     ast.asInstanceOf[MalList].value match {
       case Symbol("def!") :: a1 :: a2 :: Nil => {

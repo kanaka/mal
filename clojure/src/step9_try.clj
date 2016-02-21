@@ -67,7 +67,7 @@
       ;; apply list
       (let [ast (macroexpand ast env)]
         (if (not (seq? ast))
-          ast
+          (eval-ast ast env)
 
           (let [[a0 a1 a2 a3] ast]
             (condp = a0
@@ -123,7 +123,7 @@
               'fn*
               (with-meta
                 (fn [& args]
-                  (EVAL a2 (env/env env a1 args)))
+                  (EVAL a2 (env/env env a1 (or args '()))))
                 {:expression a2
                  :environment env
                  :parameters a1})

@@ -1,0 +1,28 @@
+;; Testing basic Tcl interop
+;;
+;; Note that in Tcl "everything is a string", so we don't have enough
+;; information to convert the results to other Mal types.
+
+(tcl* "expr {3 ** 4}")
+;=>"81"
+
+(tcl* "llength {a b c d}")
+;=>"4"
+
+(tcl* "concat {a b} c {d e} f g")
+;=>"a b c d e f g"
+
+(tcl* "puts \"hello [expr {5 + 6}] world\"")
+; hello 11 world
+;=>""
+
+(tcl* "set ::foo 8")
+(tcl* "expr {$::foo}")
+;=>"8"
+
+(tcl* "proc mult3 {x} { expr {$x * 3} }")
+(tcl* "mult3 6")
+;=>"18"
+
+(tcl* "string range $::tcl_version 0 1")
+;=>"8."

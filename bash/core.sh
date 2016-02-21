@@ -98,8 +98,7 @@ prn () {
 println () {
     local res=""
     for x in "${@}"; do _pr_str "${x}"; res="${res} ${r}"; done
-    res="${res//\\n/$'\n'}"
-    echo -e "${res:1}"
+    echo "${res:1}"
     r="${__nil}"; 
 }
 

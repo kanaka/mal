@@ -81,7 +81,7 @@ EVAL <- function(ast, env) {
 
     # apply list
     ast <- macroexpand(ast, env)
-    if (!.list_q(ast)) return(ast)
+    if (!.list_q(ast)) return(eval_ast(ast, env))
 
     switch(paste("l",length(ast),sep=""),
            l0={ return(ast) },

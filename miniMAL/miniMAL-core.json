@@ -94,18 +94,20 @@
 
 
 ["def", "repl", ["fn",["prompt", "rep"],
-  ["let", ["r", ["require", ["`", "repl"]],
-           "evl", ["fn", ["l", "c", "f", "cb"],
-                    ["let", ["line", ["slice", "l", 1, ["-", [".-", "l", ["`", "length"]], 2]]],
-                      ["do",
-                        ["println", ["rep", "line"]],
-                        ["cb"]]]],
-           "opts", {"ignoreUndefined": true,
-                    "terminal": false}],
+  ["let", ["readline", ["require", ["`", "readline"]],
+           "opts", ["new", ["fn", [], null]],
+           "_", ["set", "opts", ["`", "input"], [".-", "process", ["`", "stdin"]]],
+           "_", ["set", "opts", ["`", "output"], [".-", "process", ["`", "stdout"]]],
+           "_", ["set", "opts", ["`", "terminal"], false],
+           "rl", [".", "readline", ["`", "createInterface"], "opts"],
+           "evl", ["fn", ["line"],
+                    ["do",
+                      ["println", ["rep", "line"]],
+                      [".", "rl", ["`", "prompt"]]]]],
     ["do",
-      [".-", "opts", ["`", "prompt"], "prompt"],
-      [".-", "opts", ["`", "eval"], "evl"],
-      [".", "r", ["`", "start"], "opts"]]]]],
+      [".", "rl", ["`", "setPrompt"], "prompt"],
+      [".", "rl", ["`", "prompt"]],
+      [".", "rl", ["`", "on"], ["`", "line"], "evl"]]]]],
 
 null
 ]

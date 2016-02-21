@@ -30,8 +30,9 @@ clean:
 
 stats: $(MODULES) stepA_mal.ml
 	@wc $^
-
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*\(\*|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: env.ml core.ml stepA_mal.ml
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*\(\*|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 
 .PHONY: all repl clean stats stats-lisp

@@ -12,6 +12,15 @@ res2
 ;=>50005000
 
 
+;; Test mutually recursive tail-call functions
+
+(def! foo (fn* (n) (if (= n 0) 0 (bar (- n 1)))))
+(def! bar (fn* (n) (if (= n 0) 0 (foo (- n 1)))))
+
+(foo 10000)
+;=>0
+
+
 ;; Test recursive non-tail call function
 
 (def! sum-to (fn* (n) (if (= n 0) 0 (+ n (sum-to (- n 1))))))
@@ -27,4 +36,3 @@ res2
 (def! res1 (sum-to 10000))
 res1
 ;=>nil
-

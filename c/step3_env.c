@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "types.h"
@@ -135,13 +136,13 @@ MalVal *RE(Env *env, char *prompt, char *str) {
 // Setup the initial REPL environment
 Env *repl_env;
 
+WRAP_INTEGER_OP(plus,+)
+WRAP_INTEGER_OP(minus,-)
+WRAP_INTEGER_OP(multiply,*)
+WRAP_INTEGER_OP(divide,/)
+
 void init_repl_env() {
     repl_env = new_env(NULL, NULL, NULL);
-
-    WRAP_INTEGER_OP(plus,+)
-    WRAP_INTEGER_OP(minus,-)
-    WRAP_INTEGER_OP(multiply,*)
-    WRAP_INTEGER_OP(divide,/)
 
     env_set(repl_env, malval_new_symbol("+"), (MalVal *)int_plus);
     env_set(repl_env, malval_new_symbol("-"), (MalVal *)int_minus);

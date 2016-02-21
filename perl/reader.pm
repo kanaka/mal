@@ -35,6 +35,7 @@ sub read_atom {
             my $str = substr $token, 1, -1;
             $str =~ s/\\"/"/g;
             $str =~ s/\\n/\n/g;
+            $str =~ s/\\\\/\\/g;
             return String->new($str)
         }
         when(/^:/) { return _keyword(substr($token,1)) }

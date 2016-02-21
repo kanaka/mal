@@ -46,10 +46,11 @@ drop
     target argc ;
 
 MalNativeFn
-  extend eval-invoke ( env list this -- list )
-    MalNativeFn/xt @ { xt }
-    eval-rest ( argv argc )
-    xt execute ( return-val ) ;;
+  extend eval-invoke { env list this -- list }
+    env list eval-rest ( argv argc )
+    this invoke ;;
+  extend invoke ( argv argc this -- val )
+    MalNativeFn/xt @ execute ;;
 drop
 
 SpecialOp
@@ -164,34 +165,38 @@ defspecial if { env list -- val }
 
 s" &" MalSymbol. constant &-sym
 
-MalUserFn
-  extend eval-invoke { call-env list mal-fn -- list }
-    call-env list eval-rest { argv argc }
-
+: new-user-fn-env { argv argc mal-fn -- env }
     mal-fn MalUserFn/formal-args @ { f-args-list }
     mal-fn MalUserFn/env @ MalEnv. { env }
 
     f-args-list MalList/start @ { f-args }
     f-args-list MalList/count @ ?dup 0= if else
-        \ pass nil for last arg, unless overridden below
-        1- cells f-args + @ mal-nil env env/set
+        \ pass empty list for last arg, unless overridden below
+        1- cells f-args + @ MalList new env env/set
     endif
     argc 0 ?do
         f-args i cells + @
         dup &-sym m= if
             drop
-            f-args i 1+ cells + @ ( more-args-symbol )
-            MalList new ( sym more-args )
-            argc i - dup { c } over MalList/count !
-            c cells allocate throw dup { start } over MalList/start !
+            argc i - { c }
+            c cells allocate throw { start }
             argv i cells +  start  c cells  cmove
-            env env/set
+            f-args i 1+ cells + @ ( more-args-symbol )
+            start c MalList. env env/set
             leave
         endif
         argv i cells + @
         env env/set
     loop
+    env ;
 
+MalUserFn
+  extend eval-invoke { call-env list mal-fn -- list }
+    call-env list eval-rest
+    mal-fn invoke ;;
+
+  extend invoke ( argv argc mal-fn )
+    dup { mal-fn } new-user-fn-env { env }
     env   mal-fn MalUserFn/body @   TCO-eval ;;
 drop
 
@@ -258,6 +263,21 @@ defcore eval ( argv argc )
 
 create buff 128 allot
 77777777777 constant stack-leak-detect
+
+: nop ;
+
+defcore swap! { argv argc -- val }
+    \ argv is  (atom fn args...)
+    argv @ { atom }
+    argv cell+ @ { fn }
+    argc 1- { call-argc }
+    call-argc cells allocate throw { call-argv }
+    atom Atom/val   call-argv    1 cells   cmove
+    argv cell+ cell+   call-argv cell+   call-argc 1- cells   cmove
+    call-argv call-argc fn  invoke
+    dup TCO-eval = if drop eval endif { new-val }
+    new-val atom Atom/val !
+    new-val ;;
 
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
 

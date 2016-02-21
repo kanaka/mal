@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "types.h"
@@ -123,7 +124,9 @@ MalVal *EVAL(MalVal *ast, Env *env) {
     //g_print("EVAL apply list: %s\n", _pr_str(ast,1));
     ast = macroexpand(ast, env);
     if (!ast || mal_error) return NULL;
-    if (ast->type != MAL_LIST) { return ast; }
+    if (ast->type != MAL_LIST) {
+        return eval_ast(ast, env);
+    }
     if (_count(ast) == 0) { return ast; }
 
     int i, len;
@@ -289,6 +292,7 @@ MalVal *RE(Env *env, char *prompt, char *str) {
 
 // Setup the initial REPL environment
 Env *repl_env;
+MalVal *do_eval(MalVal *ast) { return EVAL(ast, repl_env); }
 
 void init_repl_env(int argc, char *argv[]) {
     repl_env = new_env(NULL, NULL, NULL);
@@ -300,7 +304,6 @@ void init_repl_env(int argc, char *argv[]) {
                 malval_new_symbol(core_ns[i].name),
                 malval_new_function(core_ns[i].func, core_ns[i].arg_cnt));
     }
-    MalVal *do_eval(MalVal *ast) { return EVAL(ast, repl_env); }
     env_set(repl_env,
             malval_new_symbol("eval"),
             malval_new_function((void*(*)(void *))do_eval, 1));
@@ -318,7 +321,9 @@ void init_repl_env(int argc, char *argv[]) {
     RE(repl_env, "",
        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
     RE(repl_env, "", "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
-    RE(repl_env, "", "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
+    RE(repl_env, "", "(def! *gensym-counter* (atom 0))");
+    RE(repl_env, "", "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))");
+    RE(repl_env, "", "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))");
 }
 
 int main(int argc, char *argv[])

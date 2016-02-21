@@ -373,14 +373,22 @@ public class core {
 
     static MalFunction first = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            MalList ml = ((MalList)a.nth(0));
+            MalVal exp = a.nth(0);
+            if (exp == Nil) {
+                return Nil;
+            }
+            MalList ml = ((MalList)exp);
             return ml.size() > 0 ? ml.nth(0) : Nil;
         }
     };
 
     static MalFunction rest = new MalFunction() {
         public MalVal apply(MalList a) throws MalThrowable {
-            MalList ml = ((MalList)a.nth(0));
+            MalVal exp = a.nth(0);
+            if (exp == Nil) {
+                return new MalList();
+            }
+            MalList ml = ((MalList)exp);
             return ml.rest();
         }
     };

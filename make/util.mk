@@ -20,6 +20,7 @@ RBRACKET := ]
 DQUOTE := "# "
 SLASH := $(strip \ )
 ESC_DQUOTE := $(SLASH)$(DQUOTE)
+ESC_N := $(SLASH)n
 SQUOTE := '# '
 QQUOTE := `# `
 SPACE := 

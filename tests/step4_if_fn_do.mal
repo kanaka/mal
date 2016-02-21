@@ -166,14 +166,20 @@
 
 ( (fn* (& more) (count more)) 1 2 3)
 ;=>3
+( (fn* (& more) (list? more)) 1 2 3)
+;=>true
 ( (fn* (& more) (count more)) 1)
 ;=>1
 ( (fn* (& more) (count more)) )
 ;=>0
+( (fn* (& more) (list? more)) )
+;=>true
 ( (fn* (a & more) (count more)) 1 2 3)
 ;=>2
 ( (fn* (a & more) (count more)) 1)
 ;=>0
+( (fn* (a & more) (list? more)) 1)
+;=>true
 
 
 ;; Testing language defined not function
@@ -223,8 +229,9 @@ a
 ;=>2
 (fib 4)
 ;=>5
-(fib 10)
-;=>89
+;;; Too slow for bash, erlang, make and miniMAL
+;;;(fib 10)
+;;;;=>89
 
 ;; -----------------------------------------------------
 
@@ -242,6 +249,11 @@ a
 "\""
 ;=>"\""
 
+"abc\ndef\nghi"
+;=>"abc\ndef\nghi"
+
+"abc\\def\\ghi"
+;=>"abc\\def\\ghi"
 
 ;; Testing pr-str
 
@@ -263,6 +275,20 @@ a
 (pr-str (list 1 2 "abc" "\"") "def")
 ;=>"(1 2 \"abc\" \"\\\"\") \"def\""
 
+(pr-str [1 2 "abc" "\""] "def")
+;=>"[1 2 \"abc\" \"\\\"\"] \"def\""
+
+(pr-str "abc\ndef\nghi")
+;=>"\"abc\\ndef\\nghi\""
+
+(pr-str "abc\\def\\ghi")
+;=>"\"abc\\\\def\\\\ghi\""
+
+(pr-str (list))
+;=>"()"
+
+(pr-str [])
+;=>"[]"
 
 ;; Testing str
 
@@ -284,10 +310,23 @@ a
 (str "abc  def" "ghi jkl")
 ;=>"abc  defghi jkl"
 
-;;; TODO: get this working properly
-;;;(str (list 1 2 "abc" "\"") "def")
-;;;;=>"(1 2 \"abc\" \"\\\"\")def"
+(str "abc\ndef\nghi")
+;=>"abc\ndef\nghi"
 
+(str "abc\\def\\ghi")
+;=>"abc\\def\\ghi"
+
+(str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 abc \")def"
+
+(str [1 2 "abc" "\""] "def")
+;=>"[1 2 abc \"]def"
+
+(str (list))
+;=>"()"
+
+(str [])
+;=>"[]"
 
 ;; Testing prn
 (prn)
@@ -308,6 +347,14 @@ a
 (prn "\"")
 ; "\""
 ;=>nil
+
+(prn "abc\ndef\nghi")
+; "abc\ndef\nghi"
+;=>nil
+
+(prn "abc\\def\\ghi")
+; "abc\\def\\ghi"
+nil
 
 (prn (list 1 2 "abc" "\"") "def")
 ; (1 2 "abc" "\"") "def"
@@ -332,6 +379,16 @@ a
 
 (println "\"")
 ; "
+;=>nil
+
+(println "abc\ndef\nghi")
+; abc
+; def
+; ghi
+;=>nil
+
+(println "abc\\def\\ghi")
+; abc\def\ghi
 ;=>nil
 
 (println (list 1 2 "abc" "\"") "def")
@@ -366,6 +423,8 @@ a
 ;; Testing vector equality
 (= [] (list))
 ;=>true
+(= [7 8] [7 8])
+;=>true
 (= (list 1 2) [1 2])
 ;=>true
 (= (list 1) [])
@@ -386,3 +445,9 @@ a
 ;=>4
 ( (fn* [f x] (f x)) (fn* [a] (+ 1 a)) 7)
 ;=>8
+
+;; Nested vector/list equality
+(= [(list)] (list []))
+;=>true
+(= [1 2 (list 3 4 [5 6])] (list 1 2 [3 4 (list 5 6)]))
+;=>true

@@ -100,9 +100,9 @@ function nth(lst, idx) {
     else                  { throw new Error("nth: index out of range"); }
 }
 
-function first(lst) { return lst[0]; }
+function first(lst) { return (lst === null) ? null : lst[0]; }
 
-function rest(lst) { return lst.slice(1); }
+function rest(lst) { return (lst == null) ? [] : lst.slice(1); }
 
 function empty_Q(lst) { return lst.length === 0; }
 

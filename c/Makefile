@@ -1,5 +1,5 @@
 USE_READLINE ?=
-CFLAGS += -g
+CFLAGS += -g -O2
 LDFLAGS += -g
 
 #####################
@@ -25,6 +25,11 @@ OTHER_HDRS = types.h readline.h reader.h printer.h       core.h interop.h
 
 GLIB_CFLAGS ?= $(shell pkg-config --cflags glib-2.0)
 GLIB_LDFLAGS ?= $(shell pkg-config --libs glib-2.0)
+
+
+ifeq ($(shell uname -s),Darwin)
+CFLAGS +=-DOSX=1
+endif
 
 ifeq (,$(USE_READLINE))
 RL_LIBRARY ?= edit
@@ -57,8 +62,10 @@ clean:
 
 stats: $(SOURCES)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: $(SOURCES_LISP)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 
 tests: $(TESTS)
 

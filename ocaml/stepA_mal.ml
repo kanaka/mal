@@ -136,10 +136,17 @@ let rec main =
     ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" repl_env);
     ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
     ignore (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" repl_env);
-    ignore (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" repl_env);
+    ignore (rep "(def! *gensym-counter* (atom 0))" repl_env);
+    ignore (rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))" repl_env);
+    ignore (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))" repl_env);
 
     if Array.length Sys.argv > 1 then
-      ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env)
+      try
+        ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env);
+      with
+        | Types.MalExn exc ->
+           output_string stderr ("Exception: " ^ (print exc) ^ "\n");
+           flush stderr
     else begin
         ignore (rep "(println (str \"Mal [\" *host-language* \"]\"))" repl_env);
         while true do
@@ -148,6 +155,9 @@ let rec main =
           try
             print_endline (rep line repl_env);
           with End_of_file -> ()
+             | Types.MalExn exc ->
+                output_string stderr ("Exception: " ^ (print exc) ^ "\n");
+                flush stderr
              | Invalid_argument x ->
                 output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
                 flush stderr

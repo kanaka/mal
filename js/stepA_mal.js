@@ -21,7 +21,7 @@ function is_pair(x) {
 function quasiquote(ast) {
     if (!is_pair(ast)) {
         return [types._symbol("quote"), ast];
-    } else if (ast[0].value === 'unquote') {
+    } else if (types._symbol_Q(ast[0]) && ast[0].value === 'unquote') {
         return ast[1];
     } else if (is_pair(ast[0]) && ast[0][0].value === 'splice-unquote') {
         return [types._symbol("concat"),
@@ -79,7 +79,9 @@ function _EVAL(ast, env) {
 
     // apply list
     ast = macroexpand(ast, env);
-    if (!types._list_Q(ast)) { return ast; }
+    if (!types._list_Q(ast)) {
+        return eval_ast(ast, env);
+    }
 
     var a0 = ast[0], a1 = ast[1], a2 = ast[2], a3 = ast[3];
     switch (a0.value) {
@@ -177,7 +179,9 @@ rep("(def! *host-language* \"javascript\")")
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))");
-rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
+rep("(def! *gensym-counter* (atom 0))");
+rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))");
+rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
     repl_env.set(types._symbol('*ARGV*'), process.argv.slice(3));

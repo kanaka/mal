@@ -41,6 +41,7 @@ _equal_Q (MalSymbol a) (MalSymbol b) = a == b
 _equal_Q (MalList a _) (MalList b _) = a == b
 _equal_Q (MalList a _) (MalVector b _) = a == b
 _equal_Q (MalVector a _) (MalList b _) = a == b
+_equal_Q (MalVector a _) (MalVector b _) = a == b
 _equal_Q (MalHashMap a _) (MalHashMap b _) = a == b
 _equal_Q (MalAtom a _) (MalAtom b _) = a == b
 _equal_Q _ _ = False

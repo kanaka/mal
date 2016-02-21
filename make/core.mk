@@ -159,10 +159,9 @@ srest = $(word 1,$(foreach new_list,$(call _list),\
 
 # Takes a space separated arguments and invokes the first argument
 # (function object) using the remaining arguments.
-sapply = $(call $(word 1,$(1))_value,\
-                $(strip \
-                  $(wordlist 2,$(call int_sub,$(words $(1)),1),$(1)) \
-                  $($(word $(words $(1)),$(1))_value)))
+sapply = $(call $(word 1,$(1))_value,$(strip \
+                                       $(wordlist 2,$(call int_sub,$(words $(1)),1),$(1)) \
+				       $($(word $(words $(1)),$(1))_value)))
 
 # Map a function object over a list object
 smap = $(strip\

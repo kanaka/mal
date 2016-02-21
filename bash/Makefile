@@ -5,7 +5,6 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all: mal.sh
 
 mal.sh: $(SOURCES)
-	cat $+ > $@
 	echo "#!/usr/bin/env bash" > $@
 	cat $+ | grep -v "^source " >> $@
 	chmod +x $@
@@ -17,5 +16,7 @@ clean:
 
 stats: $(SOURCES)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: $(SOURCES_LISP)
 	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

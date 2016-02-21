@@ -1,5 +1,5 @@
 import re
-from mal_types import (_symbol, _keyword, _list, _vector, _hash_map)
+from mal_types import (_symbol, _keyword, _list, _vector, _hash_map, _s2u)
 
 class Blank(Exception): pass
 
@@ -19,8 +19,11 @@ class Reader():
             return None
 
 def tokenize(str):
-    tre = re.compile(r"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:[\\].|[^\\"])*"|;.*|[^\s\[\]{}()'"`@,;]+)""");
+    tre = re.compile(r"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:[\\].|[^\\"])*"?|;.*|[^\s\[\]{}()'"`@,;]+)""");
     return [t for t in re.findall(tre, str) if t[0] != ';']
+
+def _unescape(s):
+    return s.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
 
 def read_atom(reader):
     int_re = re.compile(r"-?[0-9]+$")
@@ -28,7 +31,9 @@ def read_atom(reader):
     token = reader.next()
     if re.match(int_re, token):     return int(token)
     elif re.match(float_re, token): return int(token)
-    elif token[0] == '"':           return token[1:-1].replace('\\"', '"')
+    elif token[0] == '"':
+        if token[-1] == '"':        return _s2u(_unescape(token[1:-1]))
+        else:                       raise Exception("expected '\"', got EOF")
     elif token[0] == ':':           return _keyword(token[1:])
     elif token == "nil":            return None
     elif token == "true":           return True

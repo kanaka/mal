@@ -112,7 +112,9 @@ public class step9_try {
 
         // apply list
         MalVal expanded = macroexpand(orig_ast, env);
-        if (!expanded.list_Q()) { return expanded; } 
+        if (!expanded.list_Q()) {
+            return eval_ast(expanded, env);
+        }
         MalList ast = (MalList) expanded;
         if (ast.size() == 0) { return ast; }
         a0 = ast.nth(0);

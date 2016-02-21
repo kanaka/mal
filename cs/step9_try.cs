@@ -108,7 +108,9 @@ namespace Mal {
 
             // apply list
             MalVal expanded = macroexpand(orig_ast, env);
-            if (!expanded.list_Q()) { return expanded; } 
+            if (!expanded.list_Q()) {
+                return eval_ast(expanded, env);
+            } 
             MalList ast = (MalList) expanded;
 
             if (ast.size() == 0) { return ast; }
@@ -231,13 +233,13 @@ namespace Mal {
             }
             repl_env.set(new MalSymbol("eval"), new MalFunc(
                         a => EVAL(a[0], repl_env)));
-            int fileIdx = 1;
+            int fileIdx = 0;
             if (args.Length > 0 && args[0] == "--raw") {
                 Mal.readline.mode = Mal.readline.Mode.Raw;
-                fileIdx = 2;
+                fileIdx = 1;
             }
             MalList _argv = new MalList();
-            for (int i=fileIdx; i < args.Length; i++) {
+            for (int i=fileIdx+1; i < args.Length; i++) {
                 _argv.conj_BANG(new MalString(args[i]));
             }
             repl_env.set(new MalSymbol("*ARGV*"), _argv);

@@ -17,12 +17,21 @@ function M._equal_Q(a,b)
             if not M._equal_Q(v,b[i]) then return false end
         end
         return true
+    elseif M._hash_map_Q(a) and M._hash_map_Q(b) then
+        if #a ~= #b then return false end
+        for k, v in pairs(a) do
+            if not M._equal_Q(v,b[k]) then return false end
+        end
+        return true
     else
         return a == b
     end
 end
 
 function M.copy(obj)
+    if type(obj) == "function" then
+        return M.FunctionRef:new(obj)
+    end
     if type(obj) ~= "table" then return obj end
 
     -- copy object data
@@ -188,6 +197,20 @@ function M.Atom:new(val)
 end
 function M._atom_Q(obj)
     return utils.instanceOf(obj, M.Atom)
+end
+
+-- FunctionRefs
+
+M.FunctionRef = {}
+function M.FunctionRef:new(fn)
+    local newObj = {fn = fn}
+    return setmetatable(newObj, self)
+end
+function M._functionref_Q(obj)
+    return utils.instanceOf(obj, M.FunctionRef)
+end
+function M.FunctionRef:__call(...)
+    return self.fn(...)
 end
 
 return M
