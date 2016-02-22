@@ -112,22 +112,22 @@ package body Envs is
    return Boolean is
       use Types;
       S, Expr : List_Mal_Type;
-      First_Sym : Atom_Ptr;
+      First_Sym : Sym_Ptr;
    begin
       S := Syms;
       Expr := Exprs;
       while not Is_Null (S) loop
 
-         First_Sym := Deref_Atom (Car (S));
+         First_Sym := Deref_Sym (Car (S));
 
-         if First_Sym.Get_Atom = "&" then
+         if First_Sym.Get_Sym = "&" then
             S := Deref_List (Cdr (S)).all;
-            First_Sym := Deref_Atom (Car (S));
-            Set (E, First_Sym.Get_Atom, New_List_Mal_Type (Expr));
+            First_Sym := Deref_Sym (Car (S));
+            Set (E, First_Sym.Get_Sym, New_List_Mal_Type (Expr));
             return True;
          end if;
 
-         Set (E, First_Sym.Get_Atom, Car (Expr));
+         Set (E, First_Sym.Get_Sym, Car (Expr));
          S := Deref_List (Cdr (S)).all;
          exit when Is_Null (Expr);
          Expr := Deref_List (Cdr (Expr)).all;

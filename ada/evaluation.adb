@@ -13,11 +13,11 @@ package body Evaluation is
       Name, Fn_Body, Res : Mal_Handle;
    begin
       Name := Car (Args);
-      pragma Assert (Deref (Name).Sym_Type = Atom,
+      pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected atom as name");
       Fn_Body := Car (Deref_List (Cdr (Args)).all);
       Res := Eval (Fn_Body, Env);
-      Envs.Set (Envs.Get_Current, Deref_Atom (Name).Get_Atom, Res);
+      Envs.Set (Envs.Get_Current, Deref_Sym (Name).Get_Sym, Res);
       return Res;
    end Def_Fn;
 
@@ -28,13 +28,13 @@ package body Evaluation is
       Lambda_P : Lambda_Ptr;
    begin
       Name := Car (Args);
-      pragma Assert (Deref (Name).Sym_Type = Atom,
+      pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Macro: expected atom as name");
       Fn_Body := Car (Deref_List (Cdr (Args)).all);
       Res := Eval (Fn_Body, Env);
       Lambda_P := Deref_Lambda (Res);
       Lambda_P.Set_Is_Macro (True);
-      Envs.Set (Envs.Get_Current, Deref_Atom (Name).Get_Atom, Res);
+      Envs.Set (Envs.Get_Current, Deref_Sym (Name).Get_Sym, Res);
       return Res;
    end Def_Macro;
 
@@ -106,8 +106,8 @@ package body Evaluation is
       case Deref (MH).Sym_Type is
          when Bool => 
             Res := Deref_Bool (MH).Get_Bool;
-         when Atom =>
-            return not (Deref_Atom (MH).Get_Atom = "nil");
+         when Sym =>
+            return not (Deref_Sym (MH).Get_Sym = "nil");
 --         when List =>
 --            declare
 --               L : List_Mal_Type;
@@ -135,10 +135,10 @@ package body Evaluation is
 
       case Deref (Ast).Sym_Type is
 
-         when Atom =>
+         when Sym =>
 
             declare
-               Sym : Mal_String := Deref_Atom (Ast).Get_Atom;
+               Sym : Mal_String := Deref_Sym (Ast).Get_Sym;
             begin
                -- if keyword, return it. Otherwise look it up in the environment.
                if Sym(1) = ':' then
@@ -214,7 +214,7 @@ package body Evaluation is
          Is_Null (Deref_List (Param).all) then
 
          -- return a new list containing: a symbol named "quote" and ast.
-         L.Append (New_Atom_Mal_Type ("quote"));
+         L.Append (New_Symbol_Mal_Type ("quote"));
          L.Append (Param);
          return Res;
 
@@ -227,8 +227,8 @@ package body Evaluation is
       First_Elem := Car (Ast);
 
       -- if the first element of ast is a symbol named "unquote":
-      if Deref (First_Elem).Sym_Type = Atom and then
-         Deref_Atom (First_Elem).Get_Atom = "unquote" then
+      if Deref (First_Elem).Sym_Type = Sym and then
+         Deref_Sym (First_Elem).Get_Sym = "unquote" then
 
          -- return the second element of ast.`
          D := Deref_List (Cdr (Ast)).all;
@@ -244,11 +244,11 @@ package body Evaluation is
          D := Deref_List (First_Elem).all;
          FE_0 := Car (D);
 
-         if Deref (FE_0).Sym_Type = Atom and then
-            Deref_Atom (FE_0).Get_Atom = "splice-unquote" then
+         if Deref (FE_0).Sym_Type = Sym and then
+            Deref_Sym (FE_0).Get_Sym = "splice-unquote" then
 
             -- return a new list containing: a symbol named "concat",
-            L.Append (New_Atom_Mal_Type ("concat"));
+            L.Append (New_Symbol_Mal_Type ("concat"));
 
             -- the second element of first element of ast (ast[0][1]),
             D := Deref_List (Cdr (D)).all;
@@ -265,7 +265,7 @@ package body Evaluation is
       end if;
 
       -- otherwise: return a new list containing: a symbol named "cons",
-      L.Append (New_Atom_Mal_Type ("cons"));
+      L.Append (New_Symbol_Mal_Type ("cons"));
 
       -- the result of calling quasiquote on first element of ast (ast[0]),
       L.Append (Quasi_Quote_Processing (Car (Ast)));
@@ -297,7 +297,7 @@ package body Evaluation is
 
       CL2 := Deref_List (Cdr (CL)).all;
       New_Env := Envs.New_Env (Env);
-      Envs.Set (New_Env, Deref_Atom (Car (CL2)).Get_Atom, ExStr);
+      Envs.Set (New_Env, Deref_Sym (Car (CL2)).Get_Sym, ExStr);
 
       CL3 := Deref_List (Cdr (CL2)).all;
       return Eval (Car (CL3), New_Env);
@@ -358,23 +358,27 @@ package body Evaluation is
 		  
 		  return First_Elem;
 
-	       when Atom =>
+               when Atom =>
+
+                  return Deref_Atom (First_Elem).Get_Atom;
+
+	       when Sym =>
 
 		  declare
-		     Atom_P : Atom_Ptr;
+		     Sym_P : Sym_Ptr;
 		  begin
-		     Atom_P := Deref_Atom (First_Elem);
-		     if Atom_P.Get_Atom = "def!" then
+		     Sym_P := Deref_Sym (First_Elem);
+		     if Sym_P.Get_Sym = "def!" then
 			return Def_Fn (Rest_List, Env);
-		     elsif Atom_P.Get_Atom = "defmacro!" then
+		     elsif Sym_P.Get_Sym = "defmacro!" then
 			return Def_Macro (Rest_List, Env);
-		     elsif Atom_P.Get_Atom = "macroexpand" then
+		     elsif Sym_P.Get_Sym = "macroexpand" then
 			return Macro_Expand (Car (Rest_List), Env);
-		     elsif Atom_P.Get_Atom = "let*" then
+		     elsif Sym_P.Get_Sym = "let*" then
 			return Let_Processing (Rest_List, Env);
-		     elsif Atom_P.Get_Atom = "do" then
+		     elsif Sym_P.Get_Sym = "do" then
 			return Do_Processing (Rest_List, Env);
-		     elsif Atom_P.Get_Atom = "if" then
+		     elsif Sym_P.Get_Sym = "if" then
 			declare
 			   Args : List_Mal_Type := Rest_List;
 
@@ -404,17 +408,17 @@ package body Evaluation is
 				 goto Tail_Call_Opt;
 				 -- was: return Eval (Car (L), Env);
 			      else
-				 return New_Atom_Mal_Type ("nil");
+				 return New_Symbol_Mal_Type ("nil");
 			      end if;
 			   end if;
 			end;
 
-		     elsif Atom_P.Get_Atom = "quote" then
+		     elsif Sym_P.Get_Sym = "quote" then
                         return Car (Rest_List);
-		     elsif Atom_P.Get_Atom = "quasiquote" then
+		     elsif Sym_P.Get_Sym = "quasiquote" then
 		        Param := Quasi_Quote_Processing (Car (Rest_List));
 		        goto Tail_Call_Opt;
-		     elsif Atom_P.Get_Atom = "try*" then
+		     elsif Sym_P.Get_Sym = "try*" then
                         declare
                            Res : Mal_Handle;
                         begin

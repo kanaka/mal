@@ -32,8 +32,8 @@ package body Core is
       case Deref (MH).Sym_Type is
          when Bool => 
             Res := Deref_Bool (MH).Get_Bool;
-         when Atom =>
-            return not (Deref_Atom (MH).Get_Atom = "nil");
+         when Sym =>
+            return not (Deref_Sym (MH).Get_Sym = "nil");
 --         when List =>
 --            declare
 --               L : List_Mal_Type;
@@ -95,8 +95,8 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       return New_Bool_Mal_Type
-        (Deref (First_Param).Sym_Type = Atom and then
-         Deref_Atom (First_Param).Get_Atom = "nil");
+        (Deref (First_Param).Sym_Type = Sym and then
+         Deref_Sym (First_Param).Get_Sym = "nil");
    end Is_Nil;
 
 
@@ -133,21 +133,7 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      case Deref (First_Param).Sym_Type is
-         when Int => return New_Atom_Mal_Type
-                       (Mal_Integer'Image (Deref_Int (First_Param).Get_Int_Val));
-         when Floating => return New_Atom_Mal_Type
-                       (Mal_Float'Image (Deref_Float (First_Param).Get_Float_Val));
-         when Bool => return New_Atom_Mal_Type
-                       (Boolean'Image (Deref_Bool (First_Param).Get_Bool));
-         when Str => return New_Atom_Mal_Type
-                       (Deref_String (First_Param).Get_String);
-         when Atom => return New_Atom_Mal_Type (Deref_Atom (First_Param).Get_Atom);
-         when Error => return First_Param;
-         when others =>
-            raise Mal_Exception;
-            return First_Param;
-      end case;
+      return New_Atom_Mal_Type (First_Param);
    end New_Atom;
 
    function Is_Atom (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
@@ -230,8 +216,8 @@ package body Core is
    begin
       case Deref (MH).Sym_Type is
          when List =>  return Deref_List (MH).all;
-         when Atom =>
-            if Deref_Atom (MH).Get_Atom = "nil" then
+         when Sym =>
+            if Deref_Sym (MH).Get_Sym = "nil" then
                return Null_List (List_List);
             end if;
          when others => null;
@@ -297,7 +283,7 @@ package body Core is
       First_Param := Car (Rest_List);
       First_List := Deref_List_Class (First_Param);
       if Is_Null (First_List.all) then
-         return New_Atom_Mal_Type ("nil");
+         return New_Symbol_Mal_Type ("nil");
       else
          return Types.Car (First_List.all);
       end if;
@@ -438,7 +424,7 @@ package body Core is
           Deref_String (Sym_Handle).Get_String;
       begin
 
-         Res := New_Atom_Mal_Type
+         Res := New_Symbol_Mal_Type
                   (The_String (The_String'First + 1 .. The_String'Last - 1));
 
       end;
@@ -456,8 +442,8 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       Sym_Handle := Car (Rest_List);
-      if Deref (Sym_Handle).Sym_Type = Atom then
-         Res := Deref_Atom (Sym_Handle).Get_Atom (1) /= ':';
+      if Deref (Sym_Handle).Sym_Type = Sym then
+         Res := Deref_Sym (Sym_Handle).Get_Sym (1) /= ':';
       else
          Res := False;
       end if;
@@ -483,7 +469,7 @@ package body Core is
           Deref_String (Sym_Handle).Get_String;
       begin
 
-         Res := New_Atom_Mal_Type
+         Res := New_Symbol_Mal_Type
                   (':' & The_String (The_String'First + 1 .. The_String'Last - 1));
 
       end;
@@ -501,8 +487,8 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       Sym_Handle := Car (Rest_List);
-      if Deref (Sym_Handle).Sym_Type = Atom then
-         Res := Deref_Atom (Sym_Handle).Get_Atom (1) = ':';
+      if Deref (Sym_Handle).Sym_Type = Sym then
+         Res := Deref_Sym (Sym_Handle).Get_Sym (1) = ':';
       else
          Res := False;
       end if;
@@ -585,10 +571,10 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       Map_Param := Car (Rest_List);
       Sym := Deref (Map_Param).Sym_Type;
-      if Sym = Atom then
+      if Sym = Sym then
          -- Either its nil or its some other atom
          -- which makes no sense!
-         return New_Atom_Mal_Type ("nil");
+         return New_Symbol_Mal_Type ("nil");
       end if;
 
       -- Assume a map from here on in.
@@ -730,7 +716,7 @@ package body Core is
       use Ada.Strings.Unbounded;
    begin
       Ada.Text_IO.Put_Line (Deref_List (Rest_Handle).Pr_Str);
-      return New_Atom_Mal_Type ("nil");
+      return New_Symbol_Mal_Type ("nil");
    end Prn;
 
 
@@ -740,7 +726,7 @@ package body Core is
       Res : String := Deref_List (Rest_Handle).Pr_Str (False);
    begin
       Ada.Text_IO.Put_Line (Res);
-      return New_Atom_Mal_Type ("nil");
+      return New_Symbol_Mal_Type ("nil");
    end Println;
 
 
@@ -825,7 +811,7 @@ package body Core is
            "false?",
            New_Func_Mal_Type ("false?", Is_False'access));
 
-      Set (Get_Current, "nil", Types.New_Atom_Mal_Type ("nil"));
+      Set (Get_Current, "nil", Types.New_Symbol_Mal_Type ("nil"));
 
       Set (Get_Current,
            "meta",

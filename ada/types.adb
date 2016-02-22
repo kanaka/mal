@@ -90,6 +90,8 @@ package body Types is
                end case;
             when Str =>
                return (Deref_String (A).Get_String = Deref_String (B).Get_String);
+            when Sym =>
+               return (Deref_Sym (A).Get_Sym = Deref_Sym (B).Get_Sym);
             when Atom =>
                return (Deref_Atom (A).Get_Atom = Deref_Atom (B).Get_Atom);
             when Func =>
@@ -111,7 +113,7 @@ package body Types is
    function Get_Meta (T : Mal_Type) return Mal_Handle is
    begin
        if T.Meta = Smart_Pointers.Null_Smart_Pointer then
-          return New_Atom_Mal_Type ("nil");
+          return New_Symbol_Mal_Type ("nil");
        else
           return T.Meta;
        end if;
@@ -157,11 +159,11 @@ package body Types is
 
       First_Elem := Car (L);
 
-      if Deref (First_Elem).Sym_Type /= Atom then
+      if Deref (First_Elem).Sym_Type /= Sym then
          return False;
       end if;
 
-      Func := Envs.Get (Env, Deref_Atom (First_Elem).Get_Atom);
+      Func := Envs.Get (Env, Deref_Sym (First_Elem).Get_Sym);
 
       if Deref (Func).Sym_Type /= Lambda then
          return False;
@@ -342,11 +344,40 @@ package body Types is
    end To_Str;
 
 
-   function New_Atom_Mal_Type (Str : Mal_String) return Mal_Handle is
+   function New_Symbol_Mal_Type (Str : Mal_String) return Mal_Handle is
    begin
       return Smart_Pointers.New_Ptr
-        (new Atom_Mal_Type'(Mal_Type with The_Atom =>
+        (new Symbol_Mal_Type'(Mal_Type with The_Symbol =>
            Ada.Strings.Unbounded.To_Unbounded_String (Str)));
+   end New_Symbol_Mal_Type;
+
+   overriding function Sym_Type (T : Symbol_Mal_Type) return Sym_Types is
+   begin
+      return Sym;
+   end Sym_Type;
+
+   function Get_Sym (T : Symbol_Mal_Type) return Mal_String is
+   begin
+      return Ada.Strings.Unbounded.To_String (T.The_Symbol);
+   end Get_Sym;
+
+   function Deref_Sym (S : Mal_Handle) return Sym_Ptr is
+   begin
+      return Sym_Ptr (Deref (S));
+   end Deref_Sym;
+
+   overriding function To_Str 
+     (T : Symbol_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
+   begin
+      return Ada.Strings.Unbounded.To_String (T.The_Symbol);
+   end To_Str;
+
+
+   function New_Atom_Mal_Type (MH : Mal_Handle) return Mal_Handle is
+   begin
+      return Smart_Pointers.New_Ptr
+        (new Atom_Mal_Type'(Mal_Type with The_Atom => MH));
    end New_Atom_Mal_Type;
 
    overriding function Sym_Type (T : Atom_Mal_Type) return Sym_Types is
@@ -354,9 +385,9 @@ package body Types is
       return Atom;
    end Sym_Type;
 
-   function Get_Atom (T : Atom_Mal_Type) return Mal_String is
+   function Get_Atom (T : Atom_Mal_Type) return Mal_Handle is
    begin
-      return Ada.Strings.Unbounded.To_String (T.The_Atom);
+      return T.The_Atom;
    end Get_Atom;
 
    function Deref_Atom (S : Mal_Handle) return Atom_Ptr is
@@ -368,7 +399,7 @@ package body Types is
      (T : Atom_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String is
    begin
-      return Ada.Strings.Unbounded.To_String (T.The_Atom);
+      return "(atom " & To_String (Deref (T.The_Atom).all) & ')';
    end To_Str;
 
 
@@ -832,7 +863,7 @@ package body Types is
          L := Deref_List (Cdr (D)).all;
          Envs.Set
            (Env,
-            Deref_Atom (Car (D)).Get_Atom,
+            Deref_Sym (Car (D)).Get_Sym,
             Evaluation.Eval (Car (L), Env));
          D := Deref_List (Cdr(L)).all;
       end loop;
@@ -989,11 +1020,11 @@ package body Types is
 
       First_Elem := Car (L);
 
-      if Deref (First_Elem).Sym_Type /= Atom then
+      if Deref (First_Elem).Sym_Type /= Sym then
          return null;
       end if;
 
-      Func := Envs.Get (Env, Deref_Atom (First_Elem).Get_Atom);
+      Func := Envs.Get (Env, Deref_Sym (First_Elem).Get_Sym);
 
       if Deref (Func).Sym_Type /= Lambda then
          return null;

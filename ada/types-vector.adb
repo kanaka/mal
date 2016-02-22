@@ -81,7 +81,7 @@ package body Types.Vector is
          exit when not Has_Element (D);
          Envs.Set
            (Env,
-            Deref_Atom (Element (C)).Get_Atom,
+            Deref_Sym (Element (C)).Get_Sym,
             Evaluation.Eval (Element (D), Env));
          C := Next (D);
       end loop;

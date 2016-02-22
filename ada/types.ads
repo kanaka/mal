@@ -35,8 +35,8 @@ package Types is
 
    function "=" (A, B : Mal_Handle) return Boolean;
 
-   type Sym_Types is (Int, Floating, Bool, List, Str, Atom, Func,
-                      Node, Lambda, Error);
+   type Sym_Types is (Bool, Int, Floating, Str, Sym, Atom, Node, List,
+                      Func, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
 
@@ -116,13 +116,27 @@ package Types is
    function Deref_String (SP : Mal_Handle) return String_Ptr;
 
 
+   type Symbol_Mal_Type is new Mal_Type with private;
+
+   function New_Symbol_Mal_Type (Str : Mal_String) return Mal_Handle;
+
+   overriding function Sym_Type (T : Symbol_Mal_Type) return Sym_Types;
+
+   function Get_Sym (T : Symbol_Mal_Type) return Mal_String;
+
+   type Sym_Ptr is access all Symbol_Mal_Type;
+
+   function Deref_Sym (S : Mal_Handle) return Sym_Ptr;
+
+
+
    type Atom_Mal_Type is new Mal_Type with private;
 
-   function New_Atom_Mal_Type (Str : Mal_String) return Mal_Handle;
+   function New_Atom_Mal_Type (MH : Mal_Handle) return Mal_Handle;
 
    overriding function Sym_Type (T : Atom_Mal_Type) return Sym_Types;
 
-   function Get_Atom (T : Atom_Mal_Type) return Mal_String;
+   function Get_Atom (T : Atom_Mal_Type) return Mal_Handle;
 
    type Atom_Ptr is access all Atom_Mal_Type;
 
@@ -320,8 +334,15 @@ private
    overriding function To_Str (T : String_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String;
 
+   type Symbol_Mal_Type is new Mal_Type with record
+      The_Symbol : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   overriding function To_Str (T : Symbol_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
+
    type Atom_Mal_Type is new Mal_Type with record
-      The_Atom : Ada.Strings.Unbounded.Unbounded_String;
+      The_Atom : Mal_Handle;
    end record;
 
    overriding function To_Str (T : Atom_Mal_Type; Print_Readably : Boolean := True)

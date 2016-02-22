@@ -21,7 +21,7 @@ package body Reader is
                     Meta_Tok, Deref_Tok,
                     Quote_Tok, Quasi_Quote_Tok, Splice_Unq_Tok, Unquote_Tok,
                     Int_Tok, Float_Tok,
-                    Str_Tok, Atom_Tok);
+                    Str_Tok, Sym_Tok);
 
    type Token (ID : Lexemes := Ignored_Tok) is record
       case ID is
@@ -29,7 +29,7 @@ package body Reader is
             Int_Val : Mal_Integer;
          when Float_Tok =>
             Float_Val : Mal_Float;
-         when Str_Tok | Atom_Tok =>
+         when Str_Tok | Sym_Tok =>
             Start_Char, Stop_Char : String_Indices;
          when others => null;
       end case;
@@ -134,7 +134,7 @@ package body Reader is
 
          when ']' | '}' | ')' =>
             
-            Res := (ID => Atom_Tok, Start_Char => J, Stop_Char => J);
+            Res := (ID => Sym_Tok, Start_Char => J, Stop_Char => J);
             Char_To_Read := J+1;
 
          when '"' => -- a string
@@ -211,10 +211,10 @@ package body Reader is
                        (ID => Float_Tok,
                         Float_Val => Mal_Float'Value (Saved_Line (I..J)));
                   else
-                     Res := (ID => Atom_Tok, Start_Char => I, Stop_Char => J);
+                     Res := (ID => Sym_Tok, Start_Char => I, Stop_Char => J);
                   end if;
                else
-                  Res := (ID => Atom_Tok, Start_Char => I, Stop_Char => J);
+                  Res := (ID => Sym_Tok, Start_Char => I, Stop_Char => J);
                end if;
 
             end;
@@ -235,8 +235,8 @@ package body Reader is
 
       MTA := Read_Form;
 
-      if Deref (MTA).Sym_Type = Atom and then
-         Deref_Atom (MTA).Get_Atom = "fn*" then
+      if Deref (MTA).Sym_Type = Sym and then
+         Deref_Sym (MTA).Get_Sym = "fn*" then
 
          declare
             Params, Expr, Close_Lambda : Mal_Handle;
@@ -270,8 +270,8 @@ package body Reader is
                if Is_Null (MTA) then
                   return New_Error_Mal_Type (Str => "expected '" & Close & "'");
                end if;
-               exit when Deref (MTA).Sym_Type = Atom and then
-                          Atom_Mal_Type (Deref (MTA).all).Get_Atom = Close;
+               exit when Deref (MTA).Sym_Type = Sym and then
+                          Symbol_Mal_Type (Deref (MTA).all).Get_Sym = Close;
                Append (List_P.all, MTA);
                MTA := Read_Form;
             end loop;
@@ -282,14 +282,14 @@ package body Reader is
    end Read_List;
 
 
-   -- Make a new list of the form: (Atom_Name, <rest_of_form>)
-   function Make_New_List (Atom_Name : Mal_String) return Mal_Handle is
+   -- Make a new list of the form: (Sym_Name, <rest_of_form>)
+   function Make_New_List (Sym_Name : Mal_String) return Mal_Handle is
       List_SP : Mal_Handle;
       List_P : List_Ptr;
    begin
       List_SP := New_List_Mal_Type (List_Type => List_List);
       List_P := Deref_List (List_SP);
-      Append (List_P.all, New_Atom_Mal_Type (Atom_Name));
+      Append (List_P.all, New_Symbol_Mal_Type (Sym_Name));
       Append (List_P.all, Read_Form);
       return List_SP;
    end Make_New_List;
@@ -346,9 +346,9 @@ package body Reader is
             return New_String_Mal_Type
                      (Convert_String (Saved_Line (Tok.Start_Char..Tok.Stop_Char)));
 
-         when Atom_Tok =>
+         when Sym_Tok =>
 
-            return New_Atom_Mal_Type
+            return New_Symbol_Mal_Type
                      (Saved_Line (Tok.Start_Char..Tok.Stop_Char));
 
       end case;
