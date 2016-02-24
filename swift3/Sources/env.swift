@@ -7,37 +7,43 @@ class Env {
         self.outer = outer
 
         if binds != nil {
+            var bs = Array<MalVal>(), es = Array<MalVal>()
+            //print("binds: \(binds), exprs: \(exprs)")
             switch (binds!, exprs!) {
-            case (MalVal.MalList(let bs), MalVal.MalList(let es)):
-                var pos = bs.startIndex
-
-                bhandle:
-                while pos < bs.endIndex {
-                    let b = bs[pos]
-                    switch b {
-                    case MalVal.MalSymbol("&"):
-                        switch bs[pos.successor()] {
-                        case MalVal.MalSymbol(let sym):
-                            if pos < es.endIndex {
-                                let slc = es[pos..<es.endIndex]
-                                data[sym] = MalVal.MalList(Array(slc))
-                            } else {
-                                data[sym] = MalVal.MalList([])
-                            }
-                            break bhandle
-                        default:
-                            throw MalError.General(msg: "Env invalid varargs")
-                        }
-                    case MalVal.MalSymbol(let sym):
-                        let e = es[pos]
-                        data[sym] = e
-                    default:
-                        throw MalError.General(msg: "Env binds has non-symbol")
-                    }
-                    pos = pos.successor()
-                }
+            case (MalVal.MalList(let l1), MalVal.MalList(let l2)):
+                bs = l1; es = l2
+            case (MalVal.MalVector(let l1), MalVal.MalList(let l2)):
+                bs = l1; es = l2
             default:
                 throw MalError.General(msg: "invalid Env init call")
+            }
+
+            var pos = bs.startIndex
+
+            bhandle:
+            while pos < bs.endIndex {
+                let b = bs[pos]
+                switch b {
+                case MalVal.MalSymbol("&"):
+                    switch bs[pos.successor()] {
+                    case MalVal.MalSymbol(let sym):
+                        if pos < es.endIndex {
+                            let slc = es[pos..<es.endIndex]
+                            data[sym] = MalVal.MalList(Array(slc))
+                        } else {
+                            data[sym] = MalVal.MalList([])
+                        }
+                        break bhandle
+                    default:
+                        throw MalError.General(msg: "Env invalid varargs")
+                    }
+                case MalVal.MalSymbol(let sym):
+                    let e = es[pos]
+                    data[sym] = e
+                default:
+                    throw MalError.General(msg: "Env binds has non-symbol")
+                }
+                pos = pos.successor()
             }
         }
     }

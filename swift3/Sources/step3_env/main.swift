@@ -1,15 +1,23 @@
 import Foundation
 
+// read
 func READ(str: String) throws -> MalVal {
     return try read_str(str)
 }
 
+// eval
 func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalSymbol:
         return try env.get(ast)
     case MalVal.MalList(let lst):
         return MalVal.MalList(try lst.map { try EVAL($0, env) })
+    case MalVal.MalVector(let lst):
+        return MalVal.MalVector(try lst.map { try EVAL($0, env) })
+    case MalVal.MalHashMap(let dict):
+        var new_dict = Dictionary<String,MalVal>()
+        for (k,v) in dict { new_dict[k] = try EVAL(v, env) }
+        return MalVal.MalHashMap(new_dict)
     default:
         return ast
     }
@@ -28,23 +36,25 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
             return try env.set(lst[1], try EVAL(lst[2], env))
         case MalVal.MalSymbol("let*"):
             let let_env = try Env(env)
+            var binds = Array<MalVal>()
             switch lst[1] {
-            case MalVal.MalList(let binds):
-                var idx = binds.startIndex
-                while idx < binds.endIndex {
-                    let v = try EVAL(binds[idx.successor()], let_env)
-                    try let_env.set(binds[idx], v)
-                    idx = idx.successor().successor()
-                }
-                return try EVAL(lst[2], let_env)
+            case MalVal.MalList(let l): binds = l
+            case MalVal.MalVector(let l): binds = l
             default:
                 throw MalError.General(msg: "Invalid let* bindings")
             }
+            var idx = binds.startIndex
+            while idx < binds.endIndex {
+                let v = try EVAL(binds[idx.successor()], let_env)
+                try let_env.set(binds[idx], v)
+                idx = idx.successor().successor()
+            }
+            return try EVAL(lst[2], let_env)
         default:
             switch try eval_ast(ast, env) {
             case MalVal.MalList(let elst):
                 switch elst[0] {
-                case MalVal.MalFunc(let fn,_,_,_):
+                case MalVal.MalFunc(let fn,_,_,_,_,_):
                     let args = Array(elst[1..<elst.count])
                     return try fn(args)
                 default:
@@ -58,11 +68,13 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
     }
 }
 
+// print
 func PRINT(exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 
+// repl
 func rep(str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }
@@ -79,16 +91,20 @@ func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
 var repl_env: Env = try Env()
 try repl_env.set(MalVal.MalSymbol("+"),
                  MalVal.MalFunc({ try IntOp({ $0 + $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil))
+                                ast:nil, env:nil, params:nil,
+                                macro:false, meta:nil))
 try repl_env.set(MalVal.MalSymbol("-"),
                  MalVal.MalFunc({ try IntOp({ $0 - $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil))
+                                ast:nil, env:nil, params:nil,
+                                macro:false, meta:nil))
 try repl_env.set(MalVal.MalSymbol("*"),
                  MalVal.MalFunc({ try IntOp({ $0 * $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil))
+                                ast:nil, env:nil, params:nil,
+                                macro:false, meta:nil))
 try repl_env.set(MalVal.MalSymbol("/"),
                  MalVal.MalFunc({ try IntOp({ $0 / $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil))
+                                ast:nil, env:nil, params:nil,
+                                macro:false, meta:nil))
 
 
 while true {

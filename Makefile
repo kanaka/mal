@@ -27,7 +27,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elixir es6 \
 	factor forth fsharp go groovy guile haskell haxe java julia \
 	js kotlin lua make mal ocaml matlab miniMAL nim perl php ps \
-	python r racket rpython ruby rust scala swift tcl vb vimscript
+	python r racket rpython ruby rust scala swift swift3 tcl vb vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -73,6 +73,7 @@ STEP5_EXCLUDES += php     # test completes, even at 100,000
 STEP5_EXCLUDES += racket  # test completes
 STEP5_EXCLUDES += ruby    # test completes, even at 100,000
 STEP5_EXCLUDES += rust    # no catching stack overflows
+STEP5_EXCLUDES += swift3   # no catching stack overflows
 STEP5_EXCLUDES += ocaml   # test completes, even at 1,000,000
 STEP5_EXCLUDES += vb      # completes at 10,000
 STEP5_EXCLUDES += crystal # test completes, even at 1,000,000
@@ -147,6 +148,7 @@ ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/release/$($(1))
 scala_STEP_TO_PROG =   scala/$($(1)).scala
 swift_STEP_TO_PROG =   swift/$($(1))
+swift3_STEP_TO_PROG =  swift3/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
@@ -205,6 +207,7 @@ ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
 scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
 swift_RUNSTEP =   ../$(2) $(3)
+swift3_RUNSTEP =  ../$(2) $(3)
 tcl_RUNSTEP =     tclsh ../$(2) --raw $(3)
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
 vimscript_RUNSTEP = ./run_vimscript.sh ../$(2) $(3)

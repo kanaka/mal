@@ -6,6 +6,74 @@ func READ(str: String) throws -> MalVal {
 }
 
 // eval
+func is_pair(ast: MalVal) -> Bool {
+    switch ast {
+    case MalVal.MalList(let lst):   return lst.count > 0
+    case MalVal.MalVector(let lst): return lst.count > 0
+    default:                        return false
+    }
+}
+
+func quasiquote(ast: MalVal) -> MalVal {
+    if !is_pair(ast) {
+        return MalVal.MalList([MalVal.MalSymbol("quote"), ast])
+    }
+    let a0 = try! _nth(ast, 0)
+    switch a0 {
+    case MalVal.MalSymbol("unquote"):
+        return try! _nth(ast, 1)
+    default: true // fallthrough
+    }
+    if is_pair(a0) {
+        let a00 = try! _nth(a0, 0)
+        switch a00 {
+        case MalVal.MalSymbol("splice-unquote"):
+            return MalVal.MalList([MalVal.MalSymbol("concat"),
+                                try! _nth(a0, 1),
+                                quasiquote(try! rest(ast))])
+        default: true // fallthrough
+        }
+    }
+
+    return MalVal.MalList([MalVal.MalSymbol("cons"),
+                            quasiquote(a0),
+                            quasiquote(try! rest(ast))])
+}
+
+func is_macro(ast: MalVal, _ env: Env) -> Bool {
+    switch ast {
+    case MalVal.MalList(let lst) where lst.count > 0:
+        let a0 = lst[lst.startIndex]
+        switch a0 {
+        case MalVal.MalSymbol:
+            let e = try! env.find(a0)
+            if e != nil {
+                let mac = try! e!.get(a0)
+                switch mac {
+                case MalVal.MalFunc(_,_,_,_,let macro,_): return macro
+                default: return false
+                }
+            } else {
+                return false
+            }
+        default: return false
+        }
+    default: return false
+    }
+}
+
+func macroexpand(orig_ast: MalVal, _ env: Env) throws -> MalVal {
+    var ast: MalVal = orig_ast
+    while is_macro(ast, env) {
+        switch try! env.get(try! _nth(ast, 0)) {
+        case MalVal.MalFunc(let mac,_,_,_,_,_):
+            ast = try mac(_rest(ast))
+        default: throw MalError.General(msg: "impossible state in macroexpand")
+        }
+    }
+    return ast
+}
+
 func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalSymbol:
@@ -26,6 +94,12 @@ func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
 func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
   var ast = orig_ast, env = orig_env
   while true {
+    switch ast {
+    case MalVal.MalList: true
+    default: return try eval_ast(ast, env)
+    }
+
+    ast = try macroexpand(ast, env)
     switch ast {
     case MalVal.MalList: true
     default: return try eval_ast(ast, env)
@@ -53,6 +127,20 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
             }
             env = let_env
             ast = lst[2] // TCO
+        case MalVal.MalSymbol("quote"):
+            return lst[1]
+        case MalVal.MalSymbol("quasiquote"):
+            ast = quasiquote(lst[1]) // TCO
+        case MalVal.MalSymbol("defmacro!"):
+            var mac = try EVAL(lst[2], env)
+            switch mac {
+            case MalVal.MalFunc(let fn, let a, let e, let p, _, let m):
+                mac = MalVal.MalFunc(fn,ast:a,env:e,params:p,macro:true,meta:m)
+            default: throw MalError.General(msg: "invalid defmacro! form")
+            }
+            return try env.set(lst[1], mac)
+        case MalVal.MalSymbol("macroexpand"):
+            return try macroexpand(lst[1], env)
         case MalVal.MalSymbol("do"):
             let slc = lst[1..<lst.endIndex.predecessor()]
             try eval_ast(MalVal.MalList(Array(slc)), env)
@@ -117,10 +205,29 @@ for (k, fn) in core_ns {
                      MalVal.MalFunc(fn,ast:nil,env:nil,params:nil,
                                     macro:false,meta:nil))
 }
+try repl_env.set(MalVal.MalSymbol("eval"),
+                 MalVal.MalFunc({ try EVAL($0[0], repl_env) },
+                                ast:nil,env:nil,params:nil,
+                                macro:false,meta:nil))
+let pargs = Process.arguments.map { MalVal.MalString($0) }
+// TODO: weird way to get empty list, fix this
+var args = pargs[pargs.startIndex..<pargs.startIndex]
+if pargs.startIndex.advancedBy(2) < pargs.endIndex {
+    args = pargs[pargs.startIndex.advancedBy(2)..<pargs.endIndex]
+}
+try repl_env.set(MalVal.MalSymbol("*ARGV*"), MalVal.MalList(Array(args)))
 
 // core.mal: defined using the language itself
 try rep("(def! not (fn* (a) (if a false true)))")
+try rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+try rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+try rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
+
+if Process.arguments.count > 1 {
+    try rep("(load-file \"" + Process.arguments[1] + "\")")
+    exit(0)
+}
 
 while true {
     print("user> ", terminator: "")

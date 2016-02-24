@@ -1,18 +1,22 @@
 import Foundation
 
+// read
 func READ(str: String) throws -> MalVal {
     return try read_str(str)
 }
 
+// eval
 func EVAL(ast: MalVal, _ env: String) throws -> MalVal {
     return ast
 }
 
+// print
 func PRINT(exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 
+// repl
 func rep(str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), ""))
 }

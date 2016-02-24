@@ -1,3 +1,5 @@
+import Glibc
+
 func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
     case (MV.MalInt(let i1), MV.MalInt(let i2)):
@@ -34,6 +36,30 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     "println": {
         print($0.map { pr_str($0,false) }.joinWithSeparator(" "))
         return MV.MalNil
+    },
+    "read-string": {
+        switch $0[0] {
+        case MV.MalString(let str): return try read_str(str)
+        default: throw MalError.General(msg: "Invalid read-string call")
+        }
+    },
+    "slurp": {
+        switch $0[0] {
+        case MV.MalString(let file):
+            // TODO: replace with this when it is available
+            // let data = try String(contentsOfFile: file, encoding: NSUTF8StringEncoding)
+
+            let BUFSIZE = 1024
+            var pp      = popen("cat " + file, "r")
+            var buf     = [CChar](count:BUFSIZE, repeatedValue:CChar(0))
+            var data    = String()
+
+            while fgets(&buf, Int32(BUFSIZE), pp) != nil {
+                data = data + String.fromCString(buf)!;
+            }
+            return MalVal.MalString(data)
+        default: throw MalError.General(msg: "Invalid slurp call")
+        }
     },
 
 
