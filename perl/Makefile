@@ -24,7 +24,7 @@ mal: mal.pl
 
 clean:
 	rm -f mal.pl mal fatpacker.trace packlists fatlib/*
-	rmdir fatlib
+	[ -d fatlib ] && rmdir fatlib || true
 
 .PHONY: stats tests $(TESTS)
 

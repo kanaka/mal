@@ -57,18 +57,19 @@ STEP5_EXCLUDES += awk     # completes at 10,000
 STEP5_EXCLUDES += bash    # no stack exhaustion or completion
 STEP5_EXCLUDES += c       # segfault
 STEP5_EXCLUDES += cpp     # completes at 10,000
+STEP5_EXCLUDES += crystal # test completes, even at 1,000,000
 STEP5_EXCLUDES += cs      # fatal stack overflow fault
 STEP5_EXCLUDES += d       # completes at 10,000, fatal stack overflow at 1,000,000
 STEP5_EXCLUDES += erlang  # erlang is TCO, test passes
 STEP5_EXCLUDES += elixir  # elixir is TCO, test passes
 STEP5_EXCLUDES += fsharp  # completes at 10,000, fatal stack overflow at 100,000
+STEP5_EXCLUDES += go      # test completes, even at 100,000
 STEP5_EXCLUDES += haskell # test completes
 STEP5_EXCLUDES += make    # no TCO capability/step
 STEP5_EXCLUDES += mal     # no TCO capability/step
 STEP5_EXCLUDES += matlab  # too slow to complete 10,000
 STEP5_EXCLUDES += miniMAL # strange error with runtest.py
 STEP5_EXCLUDES += nim     # test completes, even at 100,000
-STEP5_EXCLUDES += go      # test completes, even at 100,000
 STEP5_EXCLUDES += php     # test completes, even at 100,000
 STEP5_EXCLUDES += racket  # test completes
 STEP5_EXCLUDES += ruby    # test completes, even at 100,000
@@ -76,13 +77,12 @@ STEP5_EXCLUDES += rust    # no catching stack overflows
 STEP5_EXCLUDES += swift3   # no catching stack overflows
 STEP5_EXCLUDES += ocaml   # test completes, even at 1,000,000
 STEP5_EXCLUDES += vb      # completes at 10,000
-STEP5_EXCLUDES += crystal # test completes, even at 1,000,000
 
 PERF_EXCLUDES = mal  # TODO: fix this
 
-DIST_EXCLUDES += mal
+dist_EXCLUDES += mal
 # TODO: still need to implement dist
-DIST_EXCLUDES += factor groovy guile io julia matlab miniMAL swift
+dist_EXCLUDES += guile io julia matlab swift
 
 #
 # Utility functions
@@ -234,12 +234,6 @@ ALL_TESTS = $(filter-out $(foreach impl,$(STEP5_EXCLUDES),test^$(impl)^step5),\
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
 
-IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
-IMPL_STATS_LISP = $(foreach impl,$(DO_IMPLS),stats-lisp^$(impl))
-
-IMPL_DIST = $(filter-out $(foreach impl,$(DIST_EXCLUDES),dist^$(impl)),\
-              $(foreach impl,$(DO_IMPLS),dist^$(impl)))
-
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
 IMPL_PERF = $(foreach impl,$(filter-out $(PERF_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
@@ -355,3 +349,30 @@ $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(su
 	    echo 'REPL implementation $(impl), step file: $+'; \
 	    echo 'Running: $(call $(impl)_RUNSTEP,$(step),$(+))'; \
 	    $(call $(impl)_RUNSTEP,$(step),$(+));))
+
+
+# Recursive rules (call make FOO in each subdirectory)
+
+define recur_template
+.PHONY: $(1)
+$(1): $(2)
+.SECONDEXPANSION:
+$(2):
+	@echo "----------------------------------------------"; \
+	$$(foreach impl,$$(word 2,$$(subst ^, ,$$(@))),\
+	  echo "Running: $$(MAKE) --no-print-directory -C $$(impl) $(1)"; \
+	  $$(MAKE) --no-print-directory -C $$(impl) $(1))
+endef
+
+recur_impls_ = $(filter-out $(foreach impl,$($(1)_EXCLUDES),$(1)^$(impl)),$(foreach impl,$(IMPLS),$(1)^$(impl)))
+
+# recursive clean
+$(eval $(call recur_template,clean,$(call recur_impls_,clean)))
+
+# recursive stats
+$(eval $(call recur_template,stats,$(call recur_impls_,stats)))
+$(eval $(call recur_template,stats-lisp,$(call recur_impls_,stats-lisp)))
+
+# recursive dist
+$(eval $(call recur_template,dist,$(call recur_impls_,dist)))
+
