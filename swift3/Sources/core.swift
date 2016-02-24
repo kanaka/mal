@@ -43,6 +43,15 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         default: return MV.MalFalse
         }
     },
+    "string?": {
+        switch $0[0] {
+        case MV.MalString(let s) where s.characters.count == 0:
+            return MV.MalTrue
+        case MV.MalString(let s):
+            return wraptf(s[s.startIndex] != "\u{029e}")
+        default: return MV.MalFalse
+        }
+    },
     "symbol": {
         switch $0[0] {
         case MV.MalSymbol(_): return $0[0]
@@ -332,6 +341,23 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
 
     "conj": {
         return $0[0]
+    },
+    "seq": {
+        if $0.count < 1 { throw MalError.General(msg: "Invalid seq call") }
+        switch $0[0] {
+        case MV.MalList(let lst):
+            if lst.count == 0 { return MV.MalNil }
+            return $0[0]
+        case MV.MalVector(let lst):
+            if lst.count == 0 { return MV.MalNil }
+            return MV.MalList(lst)
+        case MV.MalString(let str):
+            if str.characters.count == 0 { return MV.MalNil }
+            return MV.MalList(str.characters.map { MV.MalString(String($0)) })
+        case MV.MalNil:
+            return MV.MalNil
+        default: throw MalError.General(msg: "Invalid seq call")
+        }
     },
 
     "meta": {
