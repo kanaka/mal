@@ -47,6 +47,7 @@ matrix:
     - {env: IMPL=rust,      services: [docker]}
     - {env: IMPL=scala,     services: [docker]}
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7}
+    - {env: IMPL=swift3,    services: [docker]}
     - {env: IMPL=tcl,       services: [docker]}
     - {env: IMPL=vb,        services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}
