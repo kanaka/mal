@@ -159,7 +159,9 @@
       (repl-loop))))
 (let ([args (current-command-line-arguments)])
   (if (> (vector-length args) 0)
-    (for () (rep (string-append "(load-file \"" (vector-ref args 0) "\")")))
+    (begin
+      (send repl-env set '*ARGV* (vector->list (vector-drop args 1)))
+      (for () (rep (string-append "(load-file \"" (vector-ref args 0) "\")"))))
     (begin
       (rep "(println (str \"Mal [\" *host-language* \"]\"))")
       (repl-loop))))

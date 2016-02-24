@@ -1,9 +1,9 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs fry hashtables kernel lists
-mal.types math math.parser sequences splitting strings summary
+lib.types math math.parser sequences splitting strings summary
 vectors ;
-IN: mal.printer
+IN: lib.printer
 
 GENERIC# (pr-str) 1 ( maltype readably? -- str )
 M: object (pr-str) drop summary ;

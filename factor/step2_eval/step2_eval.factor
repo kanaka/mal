@@ -1,7 +1,7 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators continuations fry io
-kernel math mal.printer mal.reader mal.types quotations readline
+kernel math lib.printer lib.reader lib.types quotations readline
 sequences ;
 IN: step2_eval
 

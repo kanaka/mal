@@ -6,10 +6,12 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: ${CLASSES}
 
-step1_read_print.groovy: types.class reader.class printer.class
-step2_eval.groovy: types.class reader.class printer.class
-step3_env.groovy: types.class reader.class printer.class env.class
-step4_if_fn_do.groovy step6_file.groovy step7_quote.groovy step8_macros.groovy step9_try.groovy stepA_mal.groovy: ${CLASSES}
+dist: mal.jar
+
+step1_read_print.class: types.class reader.class printer.class
+step2_eval.class: types.class reader.class printer.class
+step3_env.class: types.class reader.class printer.class env.class
+step4_if_fn_do.class step6_file.class step7_quote.class step8_macros.class step9_try.class stepA_mal.class: ${CLASSES}
 
 types.class: types.groovy
 	groovyc $<
@@ -26,8 +28,18 @@ printer.class: printer.groovy
 core.class: core.groovy types.class reader.class printer.class
 	groovyc $<
 
+mal.jar: ${CLASSES}
+	groovyc stepA_mal.groovy
+	GROOVY_HOME=/usr/share/groovy groovy GroovyWrapper -d $@ -m stepA_mal
+
+SHELL := bash
+mal: mal.jar
+	cat <(echo -e '#!/bin/sh\nexec java -jar "$$0" "$$@"') mal.jar > $@
+	chmod +x mal
+
 clean:
-	rm -f *.class
+	rm -f *.class classes/* mal.jar mal
+	rmdir classes || true
 
 .PHONY: stats tests
 

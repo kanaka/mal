@@ -8,7 +8,7 @@
 
 main([File|Args]) ->
     Env = init(),
-    env:set(Env, {symbol, "*ARGV*"}, {list, Args, nil}),
+    env:set(Env, {symbol, "*ARGV*"}, {list, [{string,Arg} || Arg <- Args], nil}),
     rep("(load-file \"" ++ File ++ "\")", Env);
 main([]) ->
     Env = init(),

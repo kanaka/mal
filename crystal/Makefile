@@ -5,7 +5,9 @@ STEPS = step0_repl.cr step1_read_print.cr step2_eval.cr step3_env.cr \
 STEP_BINS = $(STEPS:%.cr=%)
 LAST_STEP_BIN = $(word $(words $(STEP_BINS)),$(STEP_BINS))
 
-all: $(STEP_BINS) mal
+all: $(STEP_BINS)
+
+dist: mal
 
 mal: $(LAST_STEP_BIN)
 	cp $< $@

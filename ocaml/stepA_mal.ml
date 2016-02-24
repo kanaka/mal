@@ -141,7 +141,12 @@ let rec main =
     ignore (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))" repl_env);
 
     if Array.length Sys.argv > 1 then
-      ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env)
+      try
+        ignore (rep ("(load-file \"" ^ Sys.argv.(1) ^ "\")") repl_env);
+      with
+        | Types.MalExn exc ->
+           output_string stderr ("Exception: " ^ (print exc) ^ "\n");
+           flush stderr
     else begin
         ignore (rep "(println (str \"Mal [\" *host-language* \"]\"))" repl_env);
         while true do
@@ -150,6 +155,9 @@ let rec main =
           try
             print_endline (rep line repl_env);
           with End_of_file -> ()
+             | Types.MalExn exc ->
+                output_string stderr ("Exception: " ^ (print exc) ^ "\n");
+                flush stderr
              | Invalid_argument x ->
                 output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
                 flush stderr

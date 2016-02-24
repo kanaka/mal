@@ -22,4 +22,4 @@ WORKDIR /mal
 ##########################################################
 
 # Deps for Mono-based languages (C#, VB.Net)
-RUN apt-get -y install mono-runtime mono-mcs mono-vbnc
+RUN apt-get -y install mono-runtime mono-mcs mono-vbnc mono-devel

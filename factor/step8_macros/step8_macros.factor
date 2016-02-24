@@ -2,8 +2,8 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators
 combinators.short-circuit command-line continuations fry
-grouping hashtables io kernel lists locals mal.core mal.env
-mal.printer mal.reader mal.types math namespaces quotations
+grouping hashtables io kernel lists locals lib.core lib.env
+lib.printer lib.reader lib.types math namespaces quotations
 readline sequences splitting ;
 IN: step8_macros
 
