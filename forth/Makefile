@@ -5,15 +5,18 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	true
 
-dist: mal.fs
+dist: mal.fs mal
 
 mal.fs: $(SOURCES)
+	cat $+ | egrep -v "^require |^droprequire " > $@
+
+mal: mal.fs
 	echo "#! /usr/bin/env gforth" > $@
-	cat $+ | egrep -v "^require |^droprequire " >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm -f mal.fs
+	rm -f mal.fs mal
 
 .PHONY: stats tests $(TESTS)
 

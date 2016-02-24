@@ -7,15 +7,18 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	true
 
-dist: mal.rb
+dist: mal.rb mal
 
 mal.rb: $(SOURCES)
+	cat $+ | grep -v "^require_relative" > $@
+
+mal: mal.rb
 	echo "#!/usr/bin/env ruby" > $@
-	cat $+ | grep -v "^require_relative" >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm -f mal.rb
+	rm -f mal.rb mal
 
 .PHONY: stats tests $(TESTS)
 

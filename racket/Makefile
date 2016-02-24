@@ -11,7 +11,7 @@ mal: $(SOURCES)
 	mv stepA_mal $@
 
 clean:
-	mal
+	rm -f mal
 
 .PHONY: stats
 

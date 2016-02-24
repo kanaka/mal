@@ -6,23 +6,26 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: libs
 
-dist: mal.lua
+dist: mal.lua mal
 
 SOURCE_NAMES = $(patsubst %.lua,%,$(SOURCES))
 mal.lua: $(SOURCES)
-	echo "#!/usr/bin/env lua" > $@
-	echo "local $(foreach n,$(SOURCE_NAMES),$(n),) M" >> $@
+	echo "local $(foreach n,$(SOURCE_NAMES),$(n),) M" > $@
 	echo "M={} $(foreach n,$(SOURCE_NAMES),$(n)=M);" >> $@
 	cat $+ | grep -v -e "return M$$" \
 	    -e "return Env" \
 	    -e "local M =" \
 	    -e "^#!" \
 	    $(foreach n,$(SOURCE_NAMES),-e "require('$(n)')") >> $@
+
+mal: mal.lua
+	echo "#!/usr/bin/env lua" > $@
+	cat $< >> $@
 	chmod +x $@
 
 
 clean:
-	rm -f linenoise.so mal.lua
+	rm -f linenoise.so mal.lua mal
 	rm -rf lib/lua/5.1
 
 .PHONY: stats tests $(TESTS)

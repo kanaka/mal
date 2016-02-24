@@ -8,14 +8,17 @@ WEB_SOURCES = $(SOURCES:node_readline.js=jq_readline.js)
 
 all: node_modules
 
-dist: mal.js web/mal.js
+dist: mal.js mal web/mal.js
 
 node_modules:
 	npm install
 
 mal.js: $(SOURCES)
-	echo "#!/usr/bin/env node" > $@
 	cat $+ | grep -v "= *require('./" >> $@
+
+mal: mal.js
+	echo "#!/usr/bin/env node" > $@
+	cat $< >> $@
 	chmod +x $@
 
 web/mal.js: $(WEB_SOURCES)

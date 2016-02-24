@@ -7,15 +7,18 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:
 
-dist: mal.php
+dist: mal.php mal
 
 mal.php: $(SOURCES)
+	cat $+ | grep -v "^require_once" > $@
+
+mal: mal.php
 	echo "#!/usr/bin/env php" > $@
-	cat $+ | grep -v "^require_once" >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm mal.php
+	rm -f mal.php mal
 
 .PHONY: stats tests $(TESTS)
 

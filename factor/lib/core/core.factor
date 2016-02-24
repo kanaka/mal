@@ -2,10 +2,10 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators
 combinators.short-circuit fry grouping hash-sets hashtables io
-io.encodings.utf8 io.files kernel lists mal.env mal.printer
-mal.reader mal.types math namespaces readline sequences sets
+io.encodings.utf8 io.files kernel lists lib.env lib.printer
+lib.reader lib.types math namespaces readline sequences sets
 system vectors ;
-IN: mal.core
+IN: lib.core
 
 SYMBOL: mal-apply
 

@@ -1,8 +1,8 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: arrays combinators grouping hashtables kernel lists
-locals make mal.types math.parser regexp sequences splitting ;
-IN: mal.reader
+locals make lib.types math.parser regexp sequences splitting ;
+IN: lib.reader
 
 CONSTANT: token-regex R/ (~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)~^@]+)/
 

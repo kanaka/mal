@@ -1,5 +1,5 @@
 USING: assocs effects kernel sequences stack-checker tools.test ;
-IN: mal.core
+IN: lib.core
 
 { t } [
     ns values [

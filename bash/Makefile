@@ -5,15 +5,18 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	true
 
-dist: mal.sh
+dist: mal.sh mal
 
 mal.sh: $(SOURCES)
+	cat $+ | grep -v "^source " > $@
+
+mal: mal.sh
 	echo "#!/usr/bin/env bash" > $@
-	cat $+ | grep -v "^source " >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm -f mal.sh
+	rm -f mal.sh mal
 
 .PHONY: stats
 

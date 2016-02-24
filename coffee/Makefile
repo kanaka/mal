@@ -10,15 +10,18 @@ all: node_modules dist
 node_modules:
 	npm install
 
-dist: mal.coffee
+dist: mal.coffee mal
 
 mal.coffee: $(SOURCES)
+	cat $+ | grep -v "= *require('./" > $@
+
+mal: mal.coffee
 	echo "#!/usr/bin/env coffee" > $@
-	cat $+ | grep -v "= *require('./" >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm -f mal.coffee
+	rm -f mal.coffee mal
 
 
 .PHONY: stats tests $(TESTS)

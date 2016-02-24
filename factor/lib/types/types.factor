@@ -1,8 +1,8 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors assocs combinators.short-circuit hashtables
-kernel locals mal.env sequences strings ;
-IN: mal.types
+kernel locals lib.env sequences strings ;
+IN: lib.types
 
 TUPLE: malsymbol { name string read-only } ;
 

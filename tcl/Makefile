@@ -7,15 +7,18 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	true
 
-dist: mal.tcl
+dist: mal.tcl mal
 
 mal.tcl: $(SOURCES)
+	cat $+ | grep -v "^source " > $@
+
+mal: mal.tcl
 	echo "#!/usr/bin/env tclsh" > $@
-	cat $+ | grep -v "^source " >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm -f mal.tcl
+	rm -f mal.tcl mal
 
 
 stats: $(SOURCES)

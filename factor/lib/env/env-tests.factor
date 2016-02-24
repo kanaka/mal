@@ -1,5 +1,5 @@
-USING: assocs kernel mal.types tools.test ;
-IN: mal.env
+USING: assocs kernel lib.types tools.test ;
+IN: lib.env
 
 { "1" } [
     T{ malsymbol { name "foo" } }

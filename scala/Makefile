@@ -9,14 +9,20 @@ all: build
 build:
 	sbt 'run-main stepA_mal ../tests/incA.mal'
 
-dist: mal.jar
+dist: mal.jar mal
 
 mal.jar: $(SOURCES)
 	sbt assembly
 	cp target/scala-*/mal-assembly*.jar $@
 
+SHELL := bash
+mal: mal.jar
+	cat <(echo -e '#!/bin/sh\nexec java -jar "$$0" "$$@"') mal.jar > $@
+	chmod +x mal
+
+
 clean:
-	rm -f mal.jar
+	rm -f mal.jar mal
 
 .PHONY: stats tests $(TESTS)
 

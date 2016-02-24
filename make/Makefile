@@ -9,15 +9,18 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	true
 
-dist: mal.mk
+dist: mal.mk mal
 
 mal.mk: $(SOURCES)
+	cat $+ | grep -v "^include " > $@
+
+mal: mal.mk
 	echo "#!/usr/bin/make -f" > $@
-	cat $+ | grep -v "^include " >> $@
+	cat $< >> $@
 	chmod +x $@
 
 clean:
-	rm -f mal.mk
+	rm -f mal.mk mal
 
 .PHONY: stats tests $(TESTS)
 

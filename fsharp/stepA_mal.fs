@@ -243,6 +243,7 @@ module REPL
             |> REP env
             0
         | _ ->
+            RE env "(println (str \"Mal [\" *host-language* \"]\"))" |> Seq.iter ignore
             let rec loop () =
                 match Readline.read "user> " mode with
                 | null -> 0
