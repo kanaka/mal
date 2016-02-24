@@ -1,3 +1,4 @@
+// TODO: remove this once time-ms and slurp use standard library calls
 import Glibc
 
 func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
@@ -129,7 +130,16 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     "-":  { try IntOp({ $0 - $1},  $0[0], $0[1]) },
     "*":  { try IntOp({ $0 * $1},  $0[0], $0[1]) },
     "/":  { try IntOp({ $0 / $1},  $0[0], $0[1]) },
-    "time-ms": { $0; return MV.MalInt(0) }, // TODO
+    "time-ms": {
+        $0; // no parameters
+
+        // TODO: replace with something more like this
+        // return MV.MalInt(NSDate().timeIntervalSince1970 )
+
+        var tv:timeval = timeval(tv_sec: 0, tv_usec: 0)
+        gettimeofday(&tv, nil)
+        return MV.MalInt(tv.tv_sec * 1000 + Int(tv.tv_usec)/1000)
+    },
 
     "list": { MV.MalList($0) },
     "list?": {
