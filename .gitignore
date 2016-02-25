@@ -22,6 +22,11 @@
 */step9_try
 */stepA_mal
 */mal
+*/notes
+
+logs
+old
+
 awk/mal.awk
 bash/mal.sh
 clojure/mal.jar
