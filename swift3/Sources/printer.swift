@@ -1,13 +1,13 @@
 
 func pr_str(obj: MalVal, _ print_readably: Bool = true) -> String {
     switch obj {
-    case MalVal.MalList(let lst):
+    case MalVal.MalList(let lst, _):
         let elems = lst.map { pr_str($0, print_readably) }
         return "(" + elems.joinWithSeparator(" ")  + ")"
-    case MalVal.MalVector(let lst):
+    case MalVal.MalVector(let lst, _):
         let elems = lst.map { pr_str($0, print_readably) }
         return "[" + elems.joinWithSeparator(" ")  + "]"
-    case MalVal.MalHashMap(let dict):
+    case MalVal.MalHashMap(let dict, _):
         let elems = dict.map {
             pr_str(MalVal.MalString($0), print_readably) +
             " " + pr_str($1, print_readably)

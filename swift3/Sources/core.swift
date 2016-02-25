@@ -106,8 +106,8 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         case MV.MalString(let prompt):
             print(prompt, terminator: "")
             let line = readLine(stripNewline: true)
-            if line == nil { return MalVal.MalNil }
-            return MalVal.MalString(line!)
+            if line == nil { return MV.MalNil }
+            return MV.MalString(line!)
         default: throw MalError.General(msg: "Invalid readline call")
         }
     },
@@ -150,44 +150,44 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         return MV.MalInt(tv.tv_sec * 1000 + Int(tv.tv_usec)/1000)
     },
 
-    "list": { MV.MalList($0) },
+    "list": { list($0) },
     "list?": {
         switch $0[0] {
-        case MV.MalList(_): return MV.MalTrue
+        case MV.MalList: return MV.MalTrue
         default: return MV.MalFalse
         }
     },
-    "vector": { MV.MalVector($0) },
+    "vector": { vector($0) },
     "vector?": {
         switch $0[0] {
-        case MV.MalVector(_): return MV.MalTrue
+        case MV.MalVector: return MV.MalTrue
         default: return MV.MalFalse
         }
     },
     "hash-map": { try hash_map($0) },
     "map?": {
         switch $0[0] {
-        case MV.MalHashMap(_): return MV.MalTrue
+        case MV.MalHashMap: return MV.MalTrue
         default: return MV.MalFalse
         }
     },
     "assoc": {
         switch $0[0] {
-        case MV.MalHashMap(let dict):
-            return MV.MalHashMap(try _assoc(dict, Array($0[1..<$0.endIndex])))
+        case MV.MalHashMap(let dict, _):
+            return hash_map(try _assoc(dict, Array($0[1..<$0.endIndex])))
         default: throw MalError.General(msg: "Invalid assoc call")
         }
     },
     "dissoc": {
         switch $0[0] {
-        case MV.MalHashMap(let dict):
-            return MV.MalHashMap(try _dissoc(dict, Array($0[1..<$0.endIndex])))
+        case MV.MalHashMap(let dict, _):
+            return hash_map(try _dissoc(dict, Array($0[1..<$0.endIndex])))
         default: throw MalError.General(msg: "Invalid dissoc call")
         }
     },
     "get": {
         switch ($0[0], $0[1]) {
-        case (MV.MalHashMap(let dict), MV.MalString(let k)):
+        case (MV.MalHashMap(let dict, _), MV.MalString(let k)):
             return dict[k] ?? MV.MalNil
         case (MV.MalNil, MV.MalString(let k)):
             return MV.MalNil
@@ -196,7 +196,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     },
     "contains?": {
         switch ($0[0], $0[1]) {
-        case (MV.MalHashMap(let dict), MV.MalString(let k)):
+        case (MV.MalHashMap(let dict, _), MV.MalString(let k)):
             return dict[k] != nil ? MV.MalTrue : MV.MalFalse
         case (MV.MalNil, MV.MalString(let k)):
             return MV.MalFalse
@@ -205,15 +205,15 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     },
     "keys": {
         switch $0[0] {
-        case MV.MalHashMap(let dict):
-            return MV.MalList(dict.keys.map { MV.MalString($0) })
+        case MV.MalHashMap(let dict, _):
+            return list(dict.keys.map { MV.MalString($0) })
         default: throw MalError.General(msg: "Invalid keys call")
         }
     },
     "vals": {
         switch $0[0] {
-        case MV.MalHashMap(let dict):
-            return MV.MalList(dict.values.map { $0 })
+        case MV.MalHashMap(let dict, _):
+            return list(dict.values.map { $0 })
         default: throw MalError.General(msg: "Invalid vals call")
         }
     },
@@ -221,18 +221,18 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
 
     "sequential?": {
         switch $0[0] {
-        case MV.MalList(_): return MV.MalTrue
-        case MV.MalVector(_): return MV.MalTrue
+        case MV.MalList:   return MV.MalTrue
+        case MV.MalVector: return MV.MalTrue
         default: return MV.MalFalse
         }
     },
     "cons": {
         if $0.count != 2 { throw MalError.General(msg: "Invalid cons call") }
         switch ($0[0], $0[1]) {
-        case (let mv, MV.MalList(let lst)):
-            return MV.MalList([mv] + lst)
-        case (let mv, MV.MalVector(let lst)):
-            return MV.MalList([mv] + lst)
+        case (let mv, MV.MalList(let lst, _)):
+            return list([mv] + lst)
+        case (let mv, MV.MalVector(let lst, _)):
+            return list([mv] + lst)
         default: throw MalError.General(msg: "Invalid cons call")
         }
     },
@@ -240,22 +240,22 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         var res = Array<MalVal>()
         for seq in $0 {
             switch seq {
-            case MV.MalList(let lst):   res = res + lst
-            case MV.MalVector(let lst): res = res + lst
+            case MV.MalList(let lst, _):   res = res + lst
+            case MV.MalVector(let lst, _): res = res + lst
             default: throw MalError.General(msg: "Invalid concat call")
             }
         }
-        return MV.MalList(res)
+        return list(res)
     },
     "nth": {
         if $0.count != 2 { throw MalError.General(msg: "Invalid nth call") }
         switch ($0[0], $0[1]) {
-        case (MV.MalList(let lst), MV.MalInt(let idx)):
+        case (MV.MalList(let lst, _), MV.MalInt(let idx)):
             if idx >= lst.count {
                 throw MalError.General(msg: "nth: index out of range")
             }
             return try _nth($0[0], idx)
-        case (MV.MalVector(let lst), MV.MalInt(let idx)):
+        case (MV.MalVector(let lst, _), MV.MalInt(let idx)):
             if idx >= lst.count {
                 throw MalError.General(msg: "nth: index out of range")
             }
@@ -266,29 +266,29 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     },
     "first": {
         switch $0[0] {
-        case MV.MalList(let lst):
-            return lst.count > 0 ? lst[0] : MalVal.MalNil
-        case MV.MalVector(let lst):
-            return lst.count > 0 ? lst[0] : MalVal.MalNil
-        case MV.MalNil: return MalVal.MalNil
+        case MV.MalList(let lst, _):
+            return lst.count > 0 ? lst[0] : MV.MalNil
+        case MV.MalVector(let lst, _):
+            return lst.count > 0 ? lst[0] : MV.MalNil
+        case MV.MalNil: return MV.MalNil
         default: throw MalError.General(msg: "Invalid first call")
         }
     },
     "rest": {
         switch $0[0] {
-        case MV.MalList(let lst):
-            return lst.count > 0 ? try rest($0[0]) : MalVal.MalList([])
-        case MV.MalVector(let lst):
-            return lst.count > 0 ? try rest($0[0]) : MalVal.MalList([])
-        case MV.MalNil: return MalVal.MalList([])
+        case MV.MalList(let lst, _):
+            return lst.count > 0 ? try rest($0[0]) : list([])
+        case MV.MalVector(let lst, _):
+            return lst.count > 0 ? try rest($0[0]) : list([])
+        case MV.MalNil: return list([])
         default: throw MalError.General(msg: "Invalid rest call")
         }
     },
     "empty?": {
         switch $0[0] {
-        case MV.MalList(let lst):
+        case MV.MalList(let lst, _):
             return lst.count == 0 ? MV.MalTrue : MV.MalFalse
-        case MV.MalVector(let lst):
+        case MV.MalVector(let lst, _):
             return lst.count == 0 ? MV.MalTrue : MV.MalFalse
         case MV.MalNil: return MV.MalTrue
         default: throw MalError.General(msg: "Invalid empty? call")
@@ -296,8 +296,8 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     },
     "count": {
         switch $0[0] {
-        case MV.MalList(let lst): return MV.MalInt(lst.count)
-        case MV.MalVector(let lst): return MV.MalInt(lst.count)
+        case MV.MalList(let lst, _):   return MV.MalInt(lst.count)
+        case MV.MalVector(let lst, _): return MV.MalInt(lst.count)
         case MV.MalNil: return MV.MalInt(0)
         default: throw MalError.General(msg: "Invalid count call")
         }
@@ -311,8 +311,8 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
 
         var args = Array($0[1..<$0.endIndex-1])
         switch $0[$0.endIndex-1] {
-        case MV.MalList(let l): args = args + l
-        case MV.MalVector(let l): args = args + l
+        case MV.MalList(let l, _):  args = args + l
+        case MV.MalVector(let l, _): args = args + l
         default: throw MalError.General(msg: "Invalid apply call")
         }
 
@@ -327,8 +327,8 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
 
         var lst = Array<MalVal>()
         switch $0[1] {
-        case MV.MalList(let l): lst = l
-        case MV.MalVector(let l): lst = l
+        case MV.MalList(let l, _):   lst = l
+        case MV.MalVector(let l, _): lst = l
         default: throw MalError.General(msg: "Invalid map call")
         }
 
@@ -336,24 +336,32 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         for mv in lst {
             res.append(try fn([mv]))
         }
-        return MalVal.MalList(res)
+        return list(res)
     },
 
     "conj": {
-        return $0[0]
+        if $0.count < 1 { throw MalError.General(msg: "Invalid conj call") }
+        switch $0[0] {
+        case MV.MalList(let lst, _):
+            let a = Array($0[1..<$0.endIndex]).reverse()
+            return list(a + lst)
+        case MV.MalVector(let lst, _):
+            return vector(lst + $0[1..<$0.endIndex])
+        default: throw MalError.General(msg: "Invalid conj call")
+        }
     },
     "seq": {
         if $0.count < 1 { throw MalError.General(msg: "Invalid seq call") }
         switch $0[0] {
-        case MV.MalList(let lst):
+        case MV.MalList(let lst, _):
             if lst.count == 0 { return MV.MalNil }
             return $0[0]
-        case MV.MalVector(let lst):
+        case MV.MalVector(let lst, _):
             if lst.count == 0 { return MV.MalNil }
-            return MV.MalList(lst)
+            return list(lst)
         case MV.MalString(let str):
             if str.characters.count == 0 { return MV.MalNil }
-            return MV.MalList(str.characters.map { MV.MalString(String($0)) })
+            return list(str.characters.map { MV.MalString(String($0)) })
         case MV.MalNil:
             return MV.MalNil
         default: throw MalError.General(msg: "Invalid seq call")
@@ -362,16 +370,30 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
 
     "meta": {
         switch $0[0] {
+        case MV.MalList(_, let m):
+            return m != nil ? m![0] : MV.MalNil
+        case MV.MalVector(_, let m):
+            return m != nil ? m![0] : MV.MalNil
+        case MV.MalHashMap(_, let m):
+            return m != nil ? m![0] : MV.MalNil
         case MV.MalFunc(_, _, _, _, _, let m):
-            return m != nil ? m![0] : MalVal.MalNil
+            return m != nil ? m![0] : MV.MalNil
         default: throw MalError.General(msg: "meta called on non-function")
         }
     },
     "with-meta": {
         switch $0[0] {
+        case MV.MalList(let l, _):
+            return list(l, meta: $0[1])
+        case MV.MalVector(let l, _):
+            return vector(l, meta: $0[1])
+        case MV.MalHashMap(let d, _):
+            return hash_map(d, meta: $0[1])
         case MV.MalFunc(let f, let a, let e, let p, let m, _):
-            return MV.MalFunc(f,ast:a,env:e,params:p,macro:m,meta:[$0[1]])
-        default: throw MalError.General(msg: "with-meta called on non-function")
+            return malfunc(f, ast:a, env:e, params:p, macro:m, meta:$0[1])
+            //return MV.MalFunc(f,ast:a,env:e,params:p,macro:m,meta:[$0[1]])
+        default:
+            throw MalError.General(msg: "with-meta called on non-collection")
         }
     },
     "atom": {

@@ -10,14 +10,14 @@ func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalSymbol:
         return try env.get(ast)
-    case MalVal.MalList(let lst):
-        return MalVal.MalList(try lst.map { try EVAL($0, env) })
-    case MalVal.MalVector(let lst):
-        return MalVal.MalVector(try lst.map { try EVAL($0, env) })
-    case MalVal.MalHashMap(let dict):
+    case MalVal.MalList(let lst, _):
+        return list(try lst.map { try EVAL($0, env) })
+    case MalVal.MalVector(let lst, _):
+        return vector(try lst.map { try EVAL($0, env) })
+    case MalVal.MalHashMap(let dict, _):
         var new_dict = Dictionary<String,MalVal>()
         for (k,v) in dict { new_dict[k] = try EVAL(v, env) }
-        return MalVal.MalHashMap(new_dict)
+        return hash_map(new_dict)
     default:
         return ast
     }
@@ -30,7 +30,7 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
     }
 
     switch ast {
-    case MalVal.MalList(let lst):
+    case MalVal.MalList(let lst, _):
         switch lst[0] {
         case MalVal.MalSymbol("def!"):
             return try env.set(lst[1], try EVAL(lst[2], env))
@@ -38,8 +38,8 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
             let let_env = try Env(env)
             var binds = Array<MalVal>()
             switch lst[1] {
-            case MalVal.MalList(let l): binds = l
-            case MalVal.MalVector(let l): binds = l
+            case MalVal.MalList(let l, _): binds = l
+            case MalVal.MalVector(let l, _): binds = l
             default:
                 throw MalError.General(msg: "Invalid let* bindings")
             }
@@ -52,8 +52,8 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
             return try EVAL(lst[2], let_env)
         case MalVal.MalSymbol("do"):
             let slc = lst[lst.startIndex.successor()..<lst.endIndex]
-            switch try eval_ast(MalVal.MalList(Array(slc)), env) {
-            case MalVal.MalList(let elst):
+            switch try eval_ast(list(Array(slc)), env) {
+            case MalVal.MalList(let elst, _):
                 return elst[elst.endIndex.predecessor()]
             default:
                 throw MalError.General(msg: "Invalid do form")
@@ -70,14 +70,13 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
                 return try EVAL(lst[2], env)
             }
         case MalVal.MalSymbol("fn*"):
-            return MalVal.MalFunc( {
+            return malfunc( {
                 return try EVAL(lst[2], Env(env, binds: lst[1],
-                                                 exprs: MalVal.MalList($0)))
-            }, ast:nil, env:nil, params:nil,
-               macro:false, meta:nil)
+                                                 exprs: list($0)))
+            })
         default:
             switch try eval_ast(ast, env) {
-            case MalVal.MalList(let elst):
+            case MalVal.MalList(let elst, _):
                 switch elst[0] {
                 case MalVal.MalFunc(let fn,_,_,_,_,_):
                     let args = Array(elst[1..<elst.count])
@@ -108,9 +107,7 @@ var repl_env: Env = try Env()
 
 // core.swift: defined using Swift
 for (k, fn) in core_ns {
-    try repl_env.set(MalVal.MalSymbol(k),
-                     MalVal.MalFunc(fn,ast:nil,env:nil,params:nil,
-                                    macro:false,meta:nil))
+    try repl_env.set(MalVal.MalSymbol(k), malfunc(fn))
 }
 
 // core.mal: defined using the language itself

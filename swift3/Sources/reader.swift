@@ -149,41 +149,39 @@ func read_form(rdr: Reader) throws -> MalVal {
     // reader macros/transforms
     case "'":
         rdr.next()
-        return MalVal.MalList([MalVal.MalSymbol("quote"),
-                               try read_form(rdr)])
+        return list([MalVal.MalSymbol("quote"), try read_form(rdr)])
     case "`":
         rdr.next()
-        return MalVal.MalList([MalVal.MalSymbol("quasiquote"),
-                               try read_form(rdr)])
+        return list([MalVal.MalSymbol("quasiquote"), try read_form(rdr)])
     case "~":
         switch rdr.str[rdr.pos.successor()] {
         case "@":
             rdr.next()
             rdr.next()
-            return MalVal.MalList([MalVal.MalSymbol("splice-unquote"),
-                                   try read_form(rdr)])
+            return list([MalVal.MalSymbol("splice-unquote"),
+                         try read_form(rdr)])
         default:
             rdr.next()
-            return MalVal.MalList([MalVal.MalSymbol("unquote"),
-                                   try read_form(rdr)])
+            return list([MalVal.MalSymbol("unquote"),
+                         try read_form(rdr)])
         }
     case "^":
         rdr.next()
         let meta = try read_form(rdr)
-        return MalVal.MalList([MalVal.MalSymbol("with-meta"),
-                               try read_form(rdr),
-                               meta])
+        return list([MalVal.MalSymbol("with-meta"),
+                     try read_form(rdr),
+                     meta])
     case "@":
         rdr.next()
-        return MalVal.MalList([MalVal.MalSymbol("deref"),
-                               try read_form(rdr)])
+        return list([MalVal.MalSymbol("deref"),
+                     try read_form(rdr)])
 
     // list
-    case "(": res = MalVal.MalList(try read_list(rdr))
+    case "(": res = list(try read_list(rdr))
     case ")": throw MalError.Reader(msg: "unexpected ')'")
 
     // vector
-    case "[": res = MalVal.MalVector(try read_list(rdr, start: "[", end: "]"))
+    case "[": res = vector(try read_list(rdr, start: "[", end: "]"))
     case "]": throw MalError.Reader(msg: "unexpected ']'")
 
     // hash-map

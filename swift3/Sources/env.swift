@@ -10,9 +10,9 @@ class Env {
             var bs = Array<MalVal>(), es = Array<MalVal>()
             //print("binds: \(binds), exprs: \(exprs)")
             switch (binds!, exprs!) {
-            case (MalVal.MalList(let l1), MalVal.MalList(let l2)):
+            case (MalVal.MalList(let l1, _), MalVal.MalList(let l2, _)):
                 bs = l1; es = l2
-            case (MalVal.MalVector(let l1), MalVal.MalList(let l2)):
+            case (MalVal.MalVector(let l1, _), MalVal.MalList(let l2, _)):
                 bs = l1; es = l2
             default:
                 throw MalError.General(msg: "invalid Env init call")
@@ -29,9 +29,9 @@ class Env {
                     case MalVal.MalSymbol(let sym):
                         if pos < es.endIndex {
                             let slc = es[pos..<es.endIndex]
-                            data[sym] = MalVal.MalList(Array(slc))
+                            data[sym] = list(Array(slc))
                         } else {
-                            data[sym] = MalVal.MalList([])
+                            data[sym] = list([])
                         }
                         break bhandle
                     default:

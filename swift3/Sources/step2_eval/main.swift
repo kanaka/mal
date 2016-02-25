@@ -13,14 +13,14 @@ func eval_ast(ast: MalVal, _ env: Dictionary<String, MalVal>) throws -> MalVal {
             throw MalError.General(msg: "'\(sym)' not found")
         }
         return env[sym]!
-    case MalVal.MalList(let lst):
-        return MalVal.MalList(try lst.map { try EVAL($0, env) })
-    case MalVal.MalVector(let lst):
-        return MalVal.MalVector(try lst.map { try EVAL($0, env) })
-    case MalVal.MalHashMap(let dict):
+    case MalVal.MalList(let lst, _):
+        return list(try lst.map { try EVAL($0, env) })
+    case MalVal.MalVector(let lst, _):
+        return vector(try lst.map { try EVAL($0, env) })
+    case MalVal.MalHashMap(let dict, _):
         var new_dict = Dictionary<String,MalVal>()
         for (k,v) in dict { new_dict[k] = try EVAL(v, env) }
-        return MalVal.MalHashMap(new_dict)
+        return hash_map(new_dict)
     default:
         return ast
     }
@@ -33,7 +33,7 @@ func EVAL(ast: MalVal, _ env: Dictionary<String, MalVal>) throws -> MalVal {
     }
 
     switch try eval_ast(ast, env) {
-    case MalVal.MalList(let elst):
+    case MalVal.MalList(let elst, _):
         switch elst[0] {
         case MalVal.MalFunc(let fn,_,_,_,_,_):
             let args = Array(elst[1..<elst.count])
@@ -66,18 +66,10 @@ func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
 }
 
 var repl_env: Dictionary<String,MalVal> = [
-    "+": MalVal.MalFunc({ try IntOp({ $0 + $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil,
-                                macro:false, meta:nil),
-    "-": MalVal.MalFunc({ try IntOp({ $0 - $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil,
-                                macro:false, meta:nil),
-    "*": MalVal.MalFunc({ try IntOp({ $0 * $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil,
-                                macro:false, meta:nil),
-    "/": MalVal.MalFunc({ try IntOp({ $0 / $1}, $0[0], $0[1]) },
-                                ast:nil, env:nil, params:nil,
-                                macro:false, meta:nil),
+    "+": malfunc({ try IntOp({ $0 + $1}, $0[0], $0[1]) }),
+    "-": malfunc({ try IntOp({ $0 - $1}, $0[0], $0[1]) }),
+    "*": malfunc({ try IntOp({ $0 * $1}, $0[0], $0[1]) }),
+    "/": malfunc({ try IntOp({ $0 / $1}, $0[0], $0[1]) }),
 ]
 
 while true {
