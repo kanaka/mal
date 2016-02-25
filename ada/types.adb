@@ -390,6 +390,11 @@ package body Types is
       return T.The_Atom;
    end Get_Atom;
 
+   procedure Set_Atom (T : in out Atom_Mal_Type; New_Val : Mal_Handle) is
+   begin
+      T.The_Atom := New_Val;
+   end Set_Atom;
+
    function Deref_Atom (S : Mal_Handle) return Atom_Ptr is
    begin
       return Atom_Ptr (Deref (S));
@@ -1001,6 +1006,37 @@ package body Types is
    begin
       L.Is_Macro := B;
    end Set_Is_Macro;
+
+
+   function Apply
+     (L : Lambda_Mal_Type;
+      Param_List : Mal_Handle;
+      Env : Envs.Env_Handle)
+   return Mal_Handle is
+
+      E : Envs.Env_Handle;
+      Param_Names : List_Mal_Type;
+      Res : Mal_Handle;
+
+   begin
+
+      E := Envs.New_Env (Env);
+
+      Param_Names := Deref_List (L.Get_Params).all;
+
+      if Envs.Bind (E, Param_Names, Deref_List (Param_List).all) then
+
+         Res := Evaluation.Eval (L.Get_Expr, E); 
+
+      else
+
+         raise Mal_Exception with "Bind failed in Apply";
+
+      end if;
+
+      return Res;
+
+   end Apply;
 
 
    function Get_Macro (T : Mal_Handle; Env : Envs.Env_Handle) return Lambda_Ptr is

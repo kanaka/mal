@@ -138,6 +138,8 @@ package Types is
 
    function Get_Atom (T : Atom_Mal_Type) return Mal_Handle;
 
+   procedure Set_Atom (T : in out Atom_Mal_Type; New_Val : Mal_Handle);
+
    type Atom_Ptr is access all Atom_Mal_Type;
 
    function Deref_Atom (S : Mal_Handle) return Atom_Ptr;
@@ -276,6 +278,11 @@ package Types is
    function Get_Is_Macro (L : Lambda_Mal_Type) return Boolean;
 
    procedure Set_Is_Macro (L : in out Lambda_Mal_Type; B : Boolean);
+
+   function Apply
+     (L : Lambda_Mal_Type;
+      Param_List : Mal_Handle;
+      Env : Envs.Env_Handle) return Mal_Handle;
 
    type Lambda_Ptr is access all Lambda_Mal_Type;
 

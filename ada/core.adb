@@ -147,6 +147,53 @@ package body Core is
    end Is_Atom;
 
 
+   function Deref (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return Deref_Atom (First_Param).Get_Atom;
+   end Deref;
+
+
+   function Reset (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Atom_Param, New_Val : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      Atom_Param := Car (Rest_List);
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+      New_Val := Car (Rest_List);
+      Deref_Atom (Atom_Param).Set_Atom (New_Val);
+      return New_Val;
+   end Reset;
+
+
+   function Swap (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param, Atom_Param, Atom_Val, New_Val : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+      Rest_List_Class : Types.List_Class_Ptr;
+      Lambda, Param_List : Mal_Handle;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      Atom_Param := Car (Rest_List);
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+      Lambda := Car (Rest_List);
+      Rest_List_Class := Deref_List_Class (Cdr (Rest_List));
+
+      Param_List := Rest_List_Class.Duplicate;
+      Atom_Val := Deref_Atom (Atom_Param).Get_Atom;
+      Param_List := Prepend (Atom_Val, Deref_List (Param_List).all);
+      New_Val := Deref_Lambda (Lambda).Apply (Param_List, Env);
+      Deref_Atom (Atom_Param).Set_Atom (New_Val);
+      return New_Val;
+   end Swap;
+
+
    function Is_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
@@ -836,6 +883,18 @@ package body Core is
       Set (Get_Current,
            "atom?",
            New_Func_Mal_Type ("atom?", Is_Atom'access));
+
+      Set (Get_Current,
+           "deref",
+           New_Func_Mal_Type ("deref", Core.Deref'access));
+
+      Set (Get_Current,
+           "reset!",
+           New_Func_Mal_Type ("reset!", Reset'access));
+
+      Set (Get_Current,
+           "swap!",
+           New_Func_Mal_Type ("swap!", Swap'access));
 
       Set (Get_Current,
            "list",
