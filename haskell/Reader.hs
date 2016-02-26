@@ -6,7 +6,6 @@ import Text.ParserCombinators.Parsec (
     Parser, parse, space, char, digit, letter, try,
     (<|>), oneOf, noneOf, many, many1, skipMany, skipMany1, sepEndBy)
 import qualified Data.Map as Map
-import Control.Monad (liftM)
 
 import Types
 
@@ -33,7 +32,15 @@ escaped = do
         _   -> return x
 
 read_number :: Parser MalVal
-read_number = liftM (MalNumber . read) $ many1 digit
+read_number = do
+    x <- many1 digit
+    return $ MalNumber $ read x
+
+read_negative_number :: Parser MalVal
+read_negative_number = do
+    sign <- char '-'
+    rest <- many1 digit
+    return $ MalNumber $ read $ sign:rest
 
 read_string :: Parser MalVal
 read_string = do
@@ -61,6 +68,7 @@ read_keyword = do
 
 read_atom :: Parser MalVal
 read_atom =  read_number
+         <|> try read_negative_number
          <|> read_string
          <|> read_keyword
          <|> read_symbol
