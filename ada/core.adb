@@ -335,6 +335,9 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
+      if Deref (First_Param).Sym_Type = Sym then
+         return New_Symbol_Mal_Type ("nil");
+      end if;
       First_List := Deref_List_Class (First_Param);
       if Is_Null (First_List.all) then
          return New_Symbol_Mal_Type ("nil");
@@ -351,6 +354,10 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
+      if Deref (First_Param).Sym_Type = Sym then
+         -- Assuming it's nil
+         return New_List_Mal_Type (List_List);
+      end if;
       Container := Deref_List_Class (First_Param).Cdr;
       return Deref_List_Class (Container).Duplicate;
    end Rest;
