@@ -177,18 +177,25 @@ package body Core is
       First_Param, Atom_Param, Atom_Val, New_Val : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
       Rest_List_Class : Types.List_Class_Ptr;
-      Lambda, Param_List : Mal_Handle;
+      Func_Param, Param_List : Mal_Handle;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       Atom_Param := Car (Rest_List);
       Rest_List := Deref_List (Cdr (Rest_List)).all;
-      Lambda := Car (Rest_List);
-      Rest_List_Class := Deref_List_Class (Cdr (Rest_List));
+      Func_Param := Car (Rest_List);
+      Param_List := Cdr (Rest_List);
 
+      Rest_List_Class := Deref_List_Class (Param_List);
       Param_List := Rest_List_Class.Duplicate;
       Atom_Val := Deref_Atom (Atom_Param).Get_Atom;
       Param_List := Prepend (Atom_Val, Deref_List (Param_List).all);
-      New_Val := Deref_Lambda (Lambda).Apply (Param_List, Env);
+      case Deref (Func_Param).Sym_Type is
+         when Lambda =>
+            New_Val := Deref_Lambda (Func_Param).Apply (Param_List, Env);
+         when Func =>
+            New_Val := Deref_Func (Func_Param).Call_Func (Param_List, Env);
+         when others => raise Mal_Exception with "Swap with bad func";
+      end case;
       Deref_Atom (Atom_Param).Set_Atom (New_Val);
       return New_Val;
    end Swap;
