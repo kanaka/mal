@@ -19,7 +19,7 @@ $(foreach ch,$(word 1,$($(1))),\
   $(if $(ch),\
     $(if $(filter $(_TOKEN_DELIMS),$(ch)),\
       ,\
-      $(if $(filter-out $(NUMBERS),$(ch)),\
+      $(if $(filter-out $(MINUS) $(NUMBERS),$(ch)),\
         $(call _error,Invalid number character '$(ch)'),\
         $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
         $(and $(READER_DEBUG),$(info READ_NUMBER ch: $(ch) | $($(1))))\
@@ -76,6 +76,8 @@ endef
 
 define READ_ATOM
 $(foreach ch,$(word 1,$($(1))),\
+  $(if $(and $(filter $(MINUS),$(ch)),$(filter $(NUMBERS),$(word 2,$($(1))))),\
+    $(call _number,$(call READ_NUMBER,$(1))),\
   $(if $(filter $(NUMBERS),$(ch)),\
     $(call _number,$(call READ_NUMBER,$(1))),\
   $(if $(filter $(DQUOTE),$(ch)),\
@@ -94,7 +96,7 @@ $(foreach ch,$(word 1,$($(1))),\
       $(__true),\
     $(if $(call _EQ,false,$(sym)),\
       $(__false),\
-      $(call _symbol,$(sym))))))))))
+      $(call _symbol,$(sym)))))))))))
 endef
 
 # read and return tokens until $(2) found
