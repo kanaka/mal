@@ -111,7 +111,7 @@ end } def
 
 % read_atom: read a single atom from string/idx
 % string idx -> read_atom -> int string new_idx
-/read_atom { 3 dict begin
+/read_atom { 4 dict begin
     %(in read_atom\n) print
     /idx exch def
     /str exch def
@@ -124,7 +124,7 @@ end } def
         }{
             /nextch str idx 1 add get def  % next character
         } ifelse
-        ch 48 ge ch 57 le and { %if number
+        ch 48 ge ch 57 le and { %if digit (number)
             str idx read_number
         }{ ch 45 eq nextch 48 ge nextch 57 le and and { %elseif minus and digit
             str idx read_number
