@@ -42,7 +42,7 @@
         (\))
         concatenate
     }{ /integertype obj type eq { % if number
-        /slen obj abs log ceiling cvi 2 add def
+        /slen obj abs 1 add log ceiling cvi 2 add def
         obj 10 slen string cvrs
     }{ /stringtype obj type eq { % if string
         obj length 0 gt { % if string length > 0
