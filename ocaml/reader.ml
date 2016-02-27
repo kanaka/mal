@@ -38,6 +38,11 @@ let read_atom token =
     | _ ->
     match token.[0] with
       | '0'..'9' -> T.Int (int_of_string token)
+      | '-' -> (match String.length token with
+                  | 1 -> Types.symbol token
+                  | _ -> (match token.[1] with
+                            | '0'..'9' -> T.Int (int_of_string token)
+                            | _ -> Types.symbol token))
       | '"' -> T.String (gsub (Str.regexp "\\\\.")
                               (function
                                 | "\\n" -> "\n"

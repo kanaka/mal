@@ -42,7 +42,10 @@
         (\))
         concatenate
     }{ /integertype obj type eq { % if number
-        /slen obj 10 add log ceiling cvi def
+        /slen
+          obj abs 1 max log floor cvi 1 add % positive size
+          obj 0 lt { 1 add } if % account for sign
+        def
         obj 10 slen string cvrs
     }{ /stringtype obj type eq { % if string
         obj length 0 gt { % if string length > 0

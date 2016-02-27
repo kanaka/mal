@@ -102,6 +102,7 @@ module Tokenizer
                 | '@' -> At, n
                 | '"' -> accumulateString n
                 | ':' -> accumulateKeyword n
+                | '-' when isDigit str.[n] -> accumulateWhile isDigit Number p n
                 | ch when isDigit ch -> accumulateWhile isDigit Number p n
                 | ch when isTokenChar ch -> accumulateWhile isTokenChar Token p n
                 | _ -> raise <| Error.unexpectedChar ()

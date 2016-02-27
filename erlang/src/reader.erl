@@ -193,6 +193,7 @@ lex_single([Char|Rest]) ->
         $@ -> {deref, Rest};
         $^ -> {'with-meta', Rest};
         N when N >= $0, N =< $9 -> lex_number(Rest, [Char]);
+        S when S == $- -> lex_minus_word(Char, Rest);
         S when S == 32; S == $,; S == $\r; S == $\n; S == $\t -> lex_spaces(Rest);
         $\\ -> {error, io_lib:format("bare escape literal ~c~c", [Char, hd(Rest)])};
         $. -> {error, "bare dot (.) not supported"};
@@ -229,6 +230,11 @@ lex_number([N|Rest], Number) when N >= $0, N =< $9 ->
     lex_number(Rest, [N|Number]);
 lex_number(Rest, Number) ->
     {{integer, lists:reverse(Number)}, Rest}.
+
+lex_minus_word(Minus, [N|Rest]) when N >= $0, N =< $9 ->
+    lex_number([N|Rest], [Minus]);
+lex_minus_word(Minus, Rest) ->
+    lex_symbol([Minus|Rest], symbol).
 
 % Lex the remainder of either a keyword or a symbol. The Type is used as
 % the tag for the returned tuple (e.g. the atoms keyword or symbol).

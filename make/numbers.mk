@@ -19,14 +19,18 @@ LIST100_9 := $(foreach x,$(LIST20_X),9 9 9 9 9)
 
 int_encode = $(strip $(call _reverse,\
                $(eval __temp := $(1))\
-               $(foreach a,0 1 2 3 4 5 6 7 8 9,\
+               $(foreach a,- 0 1 2 3 4 5 6 7 8 9,\
                  $(eval __temp := $$(subst $$a,$$a$$(SPACE),$(__temp))))$(__temp)))
 
 int_decode = $(strip $(call _join,$(call _reverse,$(1))))
 
 # trim extaneous zero digits off the end (front of number)
 _trim_zeros = $(if $(call _EQ,0,$(strip $(1))),0,$(if $(call _EQ,0,$(word 1,$(1))),$(call _trim_zeros,$(wordlist 2,$(words $(1)),$(1))),$(1)))
-trim_zeros = $(strip $(if $(call _EQ,0,$(strip $(1))),$(1),$(call _reverse,$(call _trim_zeros,$(call _reverse,$(1))))))
+trim_zeros = $(strip \
+               $(if $(call _EQ,0,$(strip $(filter-out -,$(1)))),\
+                 $(filter-out -,$(1)),\
+                 $(call _reverse,$(call _trim_zeros,$(call _reverse,$(filter-out -,$(1))))))\
+               $(if $(filter -,$(1)), -,))
 
 # drop the last element of a list of words/digits
 drop_last = $(call _reverse,$(wordlist 2,$(words $(1)),$(call _reverse,$(1))))
@@ -36,9 +40,11 @@ drop_last = $(call _reverse,$(wordlist 2,$(words $(1)),$(call _reverse,$(1))))
 #$(info $(filter-out 1,$(filter 1%,1 132 456)))
 #$(info (int_encode 13): [$(call int_encode,13)])
 #$(info (int_encode 156463): [$(call int_encode,156463)])
+#$(info (int_encode -156463): [$(call int_encode,-156463)])
 #$(info (int_decode (int_encode 156463)): [$(call int_decode,$(call int_encode,156463))])
 
 #$(info trim_zeros(0 0 0): [$(call trim_zeros,0 0 0)])
+#$(info trim_zeros(0 0 0 -): [$(call trim_zeros,0 0 0 -)])
 
 
 ### 
@@ -67,13 +73,22 @@ _lte_digits = $(strip \
 
 ### lte/less than or equal to
 
+_int_lte_encoded = $(strip \
+                     $(foreach len1,$(words $(1)),$(foreach len2,$(words $(2)),\
+                     $(if $(call _EQ,$(len1),$(len2)),\
+                       $(call _lte_digits,$(call _reverse,$(1)),$(call _reverse,$(2))),\
+                       $(if $(wordlist $(len1),$(len2),$(LIST100_X)),\
+                         true,\
+                         )))))
+
 int_lte_encoded = $(strip \
-                    $(foreach len1,$(words $(1)),$(foreach len2,$(words $(2)),\
-                      $(if $(call _EQ,$(len1),$(len2)),\
-                        $(call _lte_digits,$(call _reverse,$(1)),$(call _reverse,$(2))),\
-                        $(if $(wordlist $(len1),$(len2),$(LIST100_X)),\
-                          true,\
-                          )))))
+                    $(if $(filter -,$(1)),\
+                      $(if $(filter -,$(2)),\
+                        $(call _int_lte_encoded,$(filter-out -,$(2)),$(filter-out -,$(1))),\
+                        true),\
+                      $(if $(filter -,$(2)),\
+                        ,\
+                        $(call _int_lte_encoded,$(1),$(2)))))
 
 int_lte = $(call int_lte_encoded,$(call int_encode,$(1)),$(call int_encode,$(2)))
 
@@ -116,6 +131,7 @@ int_gt = $(call int_gt_encoded,$(call int_encode,$(1)),$(call int_encode,$(2)))
 #$(info _lte_digits,1 2 5,1 2 4: [$(call _lte_digits,1 2 5,1 2 4)])
 #$(info _lte_digits,4 1,9 0: [$(call _lte_digits,4 1,9 0)])
 
+# The main comparison operator (others are built on this)
 #$(info int_lte_encoded,1,1: [$(call int_lte_encoded,1,1)])
 #$(info int_lte_encoded,1,2: [$(call int_lte_encoded,1,2)])
 #$(info int_lte_encoded,2,1: [$(call int_lte_encoded,2,1)])
@@ -125,6 +141,16 @@ int_gt = $(call int_gt_encoded,$(call int_encode,$(1)),$(call int_encode,$(2)))
 #$(info int_lte_encoded,4 3 2 1,4 3 2 1: [$(call int_lte_encoded,4 3 2 1,4 3 2 1)])
 #$(info int_lte_encoded,5 3 2 1,4 3 2 1: [$(call int_lte_encoded,5 3 2 1,4 3 2 1)])
 #$(info int_lte_encoded,4 3 2 1,5 3 2 1: [$(call int_lte_encoded,4 3 2 1,5 3 2 1)])
+# negative numbers
+#$(info int_lte_encoded,7 -,7: [$(call int_lte_encoded,7 -,7)])
+#$(info int_lte_encoded,7,7 -: [$(call int_lte_encoded,7,7 -)])
+#$(info int_lte_encoded,7 -,7 -: [$(call int_lte_encoded,7 -,7 -)])
+#$(info int_lte_encoded,1 7 -,0 7: [$(call int_lte_encoded,1 7 -,0 7)])
+#$(info int_lte_encoded,1 7,0 7 -: [$(call int_lte_encoded,1 7,0 7 -)])
+#$(info int_lte_encoded,1 7 -,0 7 -: [$(call int_lte_encoded,1 7 -,0 7 -)])
+#$(info int_lte_encoded,4 3 2 1 -,4 3 2 1: [$(call int_lte_encoded,4 3 2 1 -,4 3 2 1)])
+#$(info int_lte_encoded,4 3 2 1,4 3 2 1 -: [$(call int_lte_encoded,4 3 2 1,4 3 2 1 -)])
+#$(info int_lte_encoded,4 3 2 1 -,4 3 2 1 -: [$(call int_lte_encoded,4 3 2 1 -,4 3 2 1 -)])
 
 #$(info int_lte,1,1: [$(call int_lte,1,1)])
 #$(info int_lte,1,2: [$(call int_lte,1,2)])
@@ -134,7 +160,10 @@ int_gt = $(call int_gt_encoded,$(call int_encode,$(1)),$(call int_encode,$(2)))
 #$(info int_lte,1234,1234: [$(call int_lte,1234,1234)])
 #$(info int_lte,1235,1234: [$(call int_lte,1235,1234)])
 #$(info int_lte,1234,1235: [$(call int_lte,1234,1235)])
-#
+#$(info int_lte,-1234,1235: [$(call int_lte,-1234,1235)])
+#$(info int_lte,1234,-1235: [$(call int_lte,1234,-1235)])
+#$(info int_lte,-1234,-1235: [$(call int_lte,-1234,-1235)])
+
 #$(info int_lt,1,1: [$(call int_lt,1,1)])
 #$(info int_lt,1,2: [$(call int_lt,1,2)])
 #$(info int_lt,2,1: [$(call int_lt,2,1)])
@@ -161,6 +190,8 @@ int_gt = $(call int_gt_encoded,$(call int_encode,$(1)),$(call int_encode,$(2)))
 #$(info int_gt,1234,1234: [$(call int_gt,1234,1234)])
 #$(info int_gt,1235,1234: [$(call int_gt,1235,1234)])
 #$(info int_gt,1234,1235: [$(call int_gt,1234,1235)])
+#$(info int_gt,-1234,1235: [$(call int_gt,-1234,1235)])
+#$(info int_gt,-1234,-1235: [$(call int_gt,-1234,-1235)])
 
 
 ###
@@ -188,8 +219,22 @@ _resolve_carries = $(strip \
                    $(call _resolve_carries,$(wordlist 2,$(words $(1)),$(1)),$(2) $(num)))),\
                $(2)))
 
+_negate = $(strip \
+            $(if $(call _EQ,0,$(strip $(1))),\
+              0,\
+              $(if $(filter -,$(1)),$(filter-out -,$(1)),$(1) -)))
+
 # add two encoded numbers, returns encoded number
-int_add_encoded = $(call _resolve_carries,$(call _add,$(1),$(2)))
+_int_add_encoded = $(call _resolve_carries,$(call _add,$(1),$(2)))
+
+int_add_encoded = $(strip \
+                    $(if $(filter -,$(1)),\
+                      $(if $(filter -,$(2)),\
+                        $(call _negate,$(call _int_add_encoded,$(filter-out -,$(1)),$(filter-out -,$(2)))),\
+                        $(call int_sub_encoded,$(2),$(filter-out -,$(1)))),\
+                      $(if $(filter -,$(2)),\
+                        $(call int_sub_encoded,$(1),$(filter-out -,$(2))),\
+                        $(call _int_add_encoded,$(1),$(2)))))
 
 # add two unencoded numbers, returns unencoded number
 int_add = $(call int_decode,$(call int_add_encoded,$(call int_encode,$(1)),$(call int_encode,$(2))))
@@ -217,6 +262,11 @@ int_add = $(call int_decode,$(call int_add_encoded,$(call int_encode,$(1)),$(cal
 #$(info int_add(123,5): [$(call int_add,123,5)])
 #$(info int_add(123456,9): [$(call int_add,123456,9)])
 #$(info int_add(999999991,9): [$(call int_add,999999991,9)])
+# negative numbers
+#$(info int_add(-2,2): [$(call int_add,-2,2)])
+#$(info int_add(-1,2): [$(call int_add,-1,2)])
+#$(info int_add(1,-2): [$(call int_add,1,-2)])
+#$(info int_add(-1,-2): [$(call int_add,-1,-2)])
 
 ###
 ### subtraction
@@ -252,15 +302,30 @@ _complement = $(strip $(call _get_zeros,$(1)) \
                       $(call _complement_rest,$(wordlist $(call _inc_digit,$(words $(call _get_zeros,$(1)))),$(words $(1)),$(1))))
 
 # subtracted encoded number 2 from encoded number 1 and return and
-# encoded number result
-int_sub_encoded = $(strip \
-                $(if $(call _EQ,0,$(strip $(2))),\
-                  $(1),\
+# encoded number result. both numbers must be positive but may have
+# a negative result
+__int_sub_encoded = $(strip \
                   $(call trim_zeros,\
                     $(call drop_last,\
                       $(call int_add_encoded,\
                         $(1),\
-                        $(wordlist 1,$(words $(1)),$(call _complement,$(2)) $(LIST100_9)))))))
+                        $(wordlist 1,$(words $(1)),$(call _complement,$(2)) $(LIST100_9))))))
+
+_int_sub_encoded = $(strip \
+                     $(if $(call _EQ,0,$(strip $(2))),\
+                       $(1),\
+                       $(if $(call _int_lte_encoded,$(2),$(1)),\
+                         $(call __int_sub_encoded,$(1),$(2)),\
+                         $(call _negate,$(call __int_sub_encoded,$(2),$(1))))))
+
+int_sub_encoded = $(strip \
+                    $(if $(filter -,$(1)),\
+                      $(if $(filter -,$(2)),\
+                        $(call _int_sub_encoded,$(filter-out -,$(2)),$(filter-out -,$(1))),\
+                        $(call _negate,$(call _int_add_encoded,$(filter-out -,$(1)),$(2)))),\
+                      $(if $(filter -,$(2)),\
+                        $(call _int_add_encoded,$(1),$(filter-out -,$(2))),\
+                        $(call _int_sub_encoded,$(1),$(2)))))
 
 # subtract unencoded number 2 from unencoded number 1 and return
 # unencoded result
@@ -288,6 +353,16 @@ int_sub = $(call int_decode,$(call int_sub_encoded,$(call int_encode,$(1)),$(cal
 #$(info int_sub(100,13): [$(call int_sub,100,13)])
 #$(info int_sub(100,99): [$(call int_sub,100,99)])
 #$(info int_sub(91,19): [$(call int_sub,91,19)])
+# negative numbers
+#$(info int_sub(1,2): [$(call int_sub,1,2)])
+#$(info int_sub(-1,2): [$(call int_sub,-1,2)])
+#$(info int_sub(1,-2): [$(call int_sub,1,-2)])
+#$(info int_sub(-1,-2): [$(call int_sub,-1,-2)])
+#$(info int_sub(-2,-1): [$(call int_sub,-2,-1)])
+#$(info int_sub(19,91): [$(call int_sub,19,91)])
+#$(info int_sub(91,-19): [$(call int_sub,91,-19)])
+#$(info int_sub(-91,19): [$(call int_sub,-91,19)])
+#$(info int_sub(-91,-19): [$(call int_sub,-91,-19)])
 
 
 ###
@@ -313,7 +388,16 @@ _mult_each = $(if $(strip $(2)),$(call _mult_each,$(1),$(wordlist 2,$(words $(2)
 _add_many = $(if $(word 2,$(1)),$(call _add_many,$(call int_add,$(word 1,$(1)),$(word 2,$(1))) $(wordlist  3,$(words $(1)),$(1))),$(1))
 
 # multiply two encoded numbers, returns encoded number
-int_mult_encoded = $(call trim_zeros,$(call int_encode,$(call _add_many,$(call _mult_each,$(1),$(2)))))
+_int_mult_encoded = $(call trim_zeros,$(call int_encode,$(call _add_many,$(call _mult_each,$(1),$(2)))))
+
+int_mult_encoded = $(strip \
+             $(if $(filter -,$(1)),\
+               $(if $(filter -,$(2)),\
+                 $(call _int_mult_encoded,$(filter-out -,$(1)),$(filter-out -,$(2))),\
+                 $(call _negate,$(call _int_mult_encoded,$(filter-out -,$(1)),$(2)))),\
+               $(if $(filter -,$(2)),\
+                 $(call _negate,$(call _int_mult_encoded,$(1),$(filter-out -,$(2)))),\
+                 $(call _int_mult_encoded,$(1),$(2)))))
 
 # multiply two unencoded numbers, returns unencoded number
 int_mult = $(call int_decode,$(call int_mult_encoded,$(call int_encode,$(1)),$(call int_encode,$(2))))
@@ -334,6 +418,11 @@ int_mult = $(call int_decode,$(call int_mult_encoded,$(call int_encode,$(1)),$(c
 #$(info int_mult(1,23456): [$(call int_mult,1,23456)])
 #$(info int_mult(0,23456): [$(call int_mult,0,23456)])
 #$(info int_mult(0,0): [$(call int_mult,0,0)])
+# negative numbers
+#$(info int_mult(-378,6): [$(call int_mult,-378,6)])
+#$(info int_mult(678,-234): [$(call int_mult,678,-234)])
+#$(info int_mult(-1,-23456): [$(call int_mult,-1,-23456)])
+#$(info int_mult(0,-23456): [$(call int_mult,0,-23456)])
 
 ###
 ### division
@@ -360,7 +449,7 @@ _div = $(strip \
              $(4))))
 
 # divide two encoded numbers, returns encoded number
-int_div_encoded = $(strip \
+_int_div_encoded = $(strip \
                 $(if $(call _EQ,0,$(1)),\
                   0,\
                   $(if $(call _EQ,$(1),$(2)),\
@@ -368,6 +457,15 @@ int_div_encoded = $(strip \
                     $(if $(call int_gt_encoded,$(2),$(1)),\
                       0,\
                       $(call _div,$(1),$(2),$(call _zero_pad,$(1),$(2)),0)))))
+
+int_div_encoded = $(strip \
+             $(if $(filter -,$(1)),\
+               $(if $(filter -,$(2)),\
+                 $(call _int_div_encoded,$(filter-out -,$(1)),$(filter-out -,$(2))),\
+                 $(call _negate,$(call _int_div_encoded,$(filter-out -,$(1)),$(2)))),\
+               $(if $(filter -,$(2)),\
+                 $(call _negate,$(call _int_div_encoded,$(1),$(filter-out -,$(2)))),\
+                 $(call _int_div_encoded,$(1),$(2)))))
 
 # divide two unencoded numbers, returns unencoded number
 int_div = $(call int_decode,$(call int_div_encoded,$(call int_encode,$(1)),$(call int_encode,$(2))))
@@ -389,15 +487,24 @@ int_div = $(call int_decode,$(call int_div_encoded,$(call int_encode,$(1)),$(cal
 #$(info int_div(5,2): [$(call int_div,5,2)])
 #$(info int_div(123,7): [$(call int_div,123,7)])
 #$(info int_div(100,7): [$(call int_div,100,7)])
+# negative numbers
+#$(info int_div(-5,1): [$(call int_div,-5,1)])
+#$(info int_div(5,-2): [$(call int_div,5,-2)])
+#$(info int_div(-123,-7): [$(call int_div,-123,-7)])
 
 
 ### combination tests
 
-# (/ (- (+ 515 (* 222 311)) 300) 41)
+# (/ (- (+ 515 (* 222 311)) 300) 41) = 1689
 #$(info int_mult,222,311: [$(call int_mult,222,311)])
 #$(info int_add(515,69042): [$(call int_add,515,69042)])
 #$(info int_sub(69557,300): [$(call int_sub,69557,300)])
 #$(info int_div(69257,41): [$(call int_div,69257,41)])
+# (/ (- (+ 515 (* -222 311)) 300) 41) = -1678
+#$(info int_mult,-222,311: [$(call int_mult,-222,311)])
+#$(info int_add(515,-69042): [$(call int_add,515,-69042)])
+#$(info int_sub(-68527,300): [$(call int_sub,-68527,300)])
+#$(info int_div(-68827,41): [$(call int_div,-68827,41)])
 
 ###############################################################
 
