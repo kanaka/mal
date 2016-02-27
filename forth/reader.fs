@@ -47,10 +47,13 @@ defer read-form ( str-addr str-len -- str-addr str-len mal-obj )
 
 : read-int ( str-addr str-len digit-char -- str-addr str-len non-digit-char mal-int )
     0 { int }
+    0 { neg }
+    dup [char] - = if drop adv-str 1 to neg endif
     begin ( str-addr str-len digit-char )
         [char] 0 - int 10 * + to int ( str-addr str-len )
         adv-str dup mal-digit? 0= ( str-addr str-len digit-char )
     until
+    neg if 0 int - to int endif
     int MalInt. ;
 
 : read-symbol-str ( str-addr str-len sym-char -- str-addr str-len char sym-addr sym-len )
@@ -112,6 +115,7 @@ s" unquote"        MalSymbol. constant unquote-sym
 
 : read-form2 ( str-addr str-len char -- str-addr str-len char mal-obj )
     skip-spaces
+    dup [char] - = 3 pick 1 + c@ mal-digit? and if read-int else
     dup mal-digit? if read-int else
     dup [char] ( = if [char] ) read-list else
     dup [char] [ = if [char] ] read-list MalVector new tuck MalVector/list ! else
@@ -140,7 +144,7 @@ s" unquote"        MalSymbol. constant unquote-sym
         else 2dup s" nil" str= if 2drop mal-nil
         else
           MalSymbol.
-    endif endif endif endif endif endif endif endif endif endif endif endif endif endif ;
+    endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif ;
 ' read-form2 is read-form
 
 : read-str ( str-addr str-len - mal-obj )
