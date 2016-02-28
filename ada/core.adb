@@ -856,6 +856,36 @@ package body Core is
    end Slurp;
 
 
+   function Conj (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : List_Mal_Type;
+      First_Param, Res : Mal_Handle;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+
+      -- Is this a List or a Vector?
+      case Deref_List (First_Param).Get_List_Type is
+         when List_List =>
+            Res := Copy (First_Param);
+            while not Is_Null (Rest_List) loop
+               Res := Prepend (To_List => Deref_List (Res).all, Op => Car (Rest_List));
+               Rest_List := Deref_List (Cdr (Rest_List)).all;
+            end loop;
+            return Res;
+         when Vector_List =>
+            Res := Copy (First_Param);
+            while not Is_Null (Rest_List) loop
+               Vector.Append (Vector.Deref_Vector (Res).all, Car (Rest_List));
+               Rest_List := Deref_List (Cdr (Rest_List)).all;
+            end loop;
+            return Res;
+         when Hashed_List => raise Mal_Exception with "Conj on Hashed_Map";
+      end case;
+   end Conj;
+
+
    procedure Init is
      use Envs;
    begin
@@ -1045,6 +1075,10 @@ package body Core is
       Set (Get_Current,
            "slurp",
            New_Func_Mal_Type ("slurp", Slurp'access));
+
+      Set (Get_Current,
+           "conj",
+           New_Func_Mal_Type ("conj", Conj'access));
 
       Set (Get_Current,
            "+",
