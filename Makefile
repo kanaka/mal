@@ -24,7 +24,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 # Settings
 #
 
-IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elixir es6 \
+IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elisp elixir es6 \
 	factor forth fsharp go groovy guile haskell haxe java julia \
 	js kotlin lua make mal ocaml matlab miniMAL nim perl php ps \
 	python r racket rpython ruby rust scala swift tcl vb vimscript
@@ -115,6 +115,7 @@ coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+elisp_STEP_TO_PROG =   elisp/$($(1)).el
 elixir_STEP_TO_PROG =  elixir/lib/mix/tasks/$($(1)).ex
 erlang_STEP_TO_PROG =  erlang/$($(1))
 es6_STEP_TO_PROG =     es6/build/$($(1)).js
@@ -172,6 +173,7 @@ coffee_RUNSTEP =  coffee ../$(2) $(3)
 cpp_RUNSTEP =     ../$(2) $(3)
 crystal_RUNSTEP = ../$(2) $(3)
 cs_RUNSTEP =      mono ../$(2) --raw $(3)
+elisp_RUNSTEP =   emacs -Q --batch --load ../$(2) $(3)
 elixir_RUNSTEP =  mix $(notdir $(basename $(2))) $(3)
 erlang_RUNSTEP =  ../$(2) $(3)
 es6_RUNSTEP =     node ../$(2) $(3)
