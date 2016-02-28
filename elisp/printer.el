@@ -22,7 +22,11 @@
      ((eq type 'vector)
       (pr-vector value print-readably))
      ((eq type 'map)
-      (pr-map value print-readably)))))
+      (pr-map value print-readably))
+     ((eq type 'fn)
+      "#<fn>")
+     ((eq type 'func)
+      "#<func>"))))
 
 (defun pr-list (form print-readably)
   (let ((items (mapconcat

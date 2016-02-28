@@ -35,6 +35,8 @@
 
 (mal-object env)
 (mal-object atom)
+
+(mal-object fn)
 (mal-object func)
 
 ;;; regex

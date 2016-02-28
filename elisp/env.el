@@ -1,5 +1,16 @@
-(defun mal-env (&optional outer)
-  (vector 'env (vector (make-hash-table :test 'eq) outer)))
+(defun mal-env (&optional outer binds exprs)
+  (let ((env (vector 'env (vector (make-hash-table :test 'eq) outer))))
+    (while binds
+      (let ((key (pop binds)))
+        (if (eq key '&)
+            (let ((key (pop binds))
+                  (value (mal-list exprs)))
+              (mal-env-set env key value)
+              (setq binds nil
+                    exprs nil))
+          (let ((value (pop exprs)))
+            (mal-env-set env key value)))))
+    env))
 
 (defun mal-env-set (env key value)
   (let ((data (aref (aref env 1) 0)))
