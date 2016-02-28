@@ -197,8 +197,8 @@ package body Evaluation is
 
    function Quasi_Quote_Processing (Param : Mal_Handle) return Mal_Handle is
       Res, First_Elem, FE_0 : Mal_Handle;
-      D, Ast : List_Mal_Type;
       L : List_Ptr;
+      D_Ptr, Ast_P : List_Class_Ptr;
    begin
 
       if Debug then
@@ -211,7 +211,7 @@ package body Evaluation is
 
       -- This is the equivalent of Is_Pair
       if Deref (Param).Sym_Type /= List or else
-         Is_Null (Deref_List (Param).all) then
+         Is_Null (Deref_List_Class (Param).all) then
 
          -- return a new list containing: a symbol named "quote" and ast.
          L.Append (New_Symbol_Mal_Type ("quote"));
@@ -222,27 +222,27 @@ package body Evaluation is
 
       -- Ast is a non-empty list at this point.
 
-      Ast := Deref_List (Param).all;
+      Ast_P := Deref_List_Class (Param);
 
-      First_Elem := Car (Ast);
+      First_Elem := Car (Ast_P.all);
 
       -- if the first element of ast is a symbol named "unquote":
       if Deref (First_Elem).Sym_Type = Sym and then
          Deref_Sym (First_Elem).Get_Sym = "unquote" then
 
          -- return the second element of ast.`
-         D := Deref_List (Cdr (Ast)).all;
-         return Car (D);
+         D_Ptr := Deref_List_Class (Cdr (Ast_P.all));
+         return Car (D_Ptr.all);
 
       end if;
 
       -- if the first element of first element of `ast` (`ast[0][0]`)
       -- is a symbol named "splice-unquote"
       if Deref (First_Elem).Sym_Type = List and then
-         not Is_Null (Deref_List (First_Elem).all) then
+         not Is_Null (Deref_List_Class (First_Elem).all) then
 
-         D := Deref_List (First_Elem).all;
-         FE_0 := Car (D);
+         D_Ptr := Deref_List_Class (First_Elem);
+         FE_0 := Car (D_Ptr.all);
 
          if Deref (FE_0).Sym_Type = Sym and then
             Deref_Sym (FE_0).Get_Sym = "splice-unquote" then
@@ -251,12 +251,12 @@ package body Evaluation is
             L.Append (New_Symbol_Mal_Type ("concat"));
 
             -- the second element of first element of ast (ast[0][1]),
-            D := Deref_List (Cdr (D)).all;
-            L.Append (Car (D));
+            D_Ptr := Deref_List_Class (Cdr (D_Ptr.all));
+            L.Append (Car (D_Ptr.all));
 
             -- and the result of calling quasiquote with
             -- the second through last element of ast.
-            L.Append (Quasi_Quote_Processing (Cdr (Ast)));
+            L.Append (Quasi_Quote_Processing (Cdr (Ast_P.all)));
 
             return Res;
 
@@ -268,10 +268,10 @@ package body Evaluation is
       L.Append (New_Symbol_Mal_Type ("cons"));
 
       -- the result of calling quasiquote on first element of ast (ast[0]),
-      L.Append (Quasi_Quote_Processing (Car (Ast)));
+      L.Append (Quasi_Quote_Processing (Car (Ast_P.all)));
 
       -- and result of calling quasiquote with the second through last element of ast.
-      L.Append (Quasi_Quote_Processing (Cdr (Ast)));
+      L.Append (Quasi_Quote_Processing (Cdr (Ast_P.all)));
 
       return Res;
 
