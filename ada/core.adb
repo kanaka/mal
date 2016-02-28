@@ -862,6 +862,8 @@ package body Core is
 
       Envs.New_Env;
 
+      Set (Get_Current, "*host-language*", Types.New_Symbol_Mal_Type ("ada"));
+
       Set (Get_Current, "true", Types.New_Bool_Mal_Type (True));
 
       Set (Get_Current,
