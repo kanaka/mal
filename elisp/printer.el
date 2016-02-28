@@ -26,7 +26,9 @@
      ((eq type 'fn)
       "#<fn>")
      ((eq type 'func)
-      "#<func>"))))
+      "#<func>")
+     ((eq type 'atom)
+      (format "(atom %s)" (mal-value value))))))
 
 (defun pr-list (form print-readably)
   (let ((items (mapconcat
