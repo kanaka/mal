@@ -74,4 +74,8 @@
                                (value (apply (mal-value fn*) args*)))
                           (setf (aref atom 1) value)))))
 
+    (cons . ,(mal-fn (lambda (arg list) (mal-list (cons arg (mal-value (mal-listify list)))))))
+    (concat . ,(mal-fn (lambda (&rest lists)
+                         (let ((lists* (mapcar (lambda (item) (mal-value (mal-listify item))) lists)))
+                           (mal-list (apply 'append lists*))))))
     ))
