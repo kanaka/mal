@@ -448,14 +448,16 @@ package body Core is
 
             if Deref (Part_Handle).Sym_Type = List then
                declare
-                  The_List : List_Mal_Type;
+                  The_List : List_Class_Ptr;
                   List_Item : Mal_Handle;
+                  Next_List : Mal_Handle;
                begin
-                  The_List := Deref_List (Part_Handle).all;
-                  while not Is_Null (The_List) loop
-                     List_Item := Car (The_List);
+                  The_List := Deref_List_Class (Part_Handle);
+                  while not Is_Null (The_List.all) loop
+                     List_Item := Car (The_List.all);
                      Append (Results_List, List_Item);
-                     The_List := Deref_List (Cdr (The_List)).all;
+                     Next_List := Cdr (The_List.all);
+                     The_List := Deref_List_Class (Next_List);
                   end loop;
                end;
             else
@@ -626,13 +628,13 @@ package body Core is
       Rest_List : List_Mal_Type;
       Map : Hash_Map.Hash_Map_Mal_Type;
       Map_Param, Key : Mal_Handle;
-      Sym : Sym_Types;
+      The_Sym : Sym_Types;
    begin
 
       Rest_List := Deref_List (Rest_Handle).all;
       Map_Param := Car (Rest_List);
-      Sym := Deref (Map_Param).Sym_Type;
-      if Sym = Sym then
+      The_Sym := Deref (Map_Param).Sym_Type;
+      if The_Sym = Sym then
          -- Either its nil or its some other atom
          -- which makes no sense!
          return New_Symbol_Mal_Type ("nil");

@@ -3,6 +3,27 @@ with Smart_Pointers;
 
 package body Types.Hash_Map is
 
+   function "=" (A, B : Hash_Map_Mal_Type) return Boolean is
+      A_Key, A_Elem, B_Elem : Mal_Handle;
+      use Mal_Mal_Hash;
+      C : Cursor;
+   begin
+      if A.Length /= B.Length then
+         return False;
+      end if;
+      C := A.Hash.First;
+      while Has_Element (C) loop
+         A_Key := Key (C);
+         A_Elem := Element (C);
+         B_Elem := Mal_Mal_Hash.Element (B.Hash, A_Key);
+         if A_Elem /= B_Elem then
+            return False;
+         end if;
+         Next (C);
+      end loop;
+      return True;
+   end "=";
+
    function New_Hash_Map_Mal_Type
    return Mal_Handle is
    begin

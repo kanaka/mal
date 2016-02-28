@@ -9,6 +9,8 @@ package Types.Hash_Map is
    function New_Hash_Map_Mal_Type
    return Mal_Handle;
 
+   function "=" (A, B : Hash_Map_Mal_Type) return Boolean;
+
    overriding function Prepend (Op : Mal_Handle; To_Vector : Hash_Map_Mal_Type)
    return Mal_Handle;
 

@@ -7,6 +7,7 @@ with Envs;
 with Evaluation;
 with Smart_Pointers;
 with Types.Vector;
+with Types.Hash_Map;
 
 package body Types is
 
@@ -44,6 +45,7 @@ package body Types is
 
    function "=" (A, B : Mal_Handle) return Boolean is
       use Types.Vector;
+      use Types.Hash_Map;
    begin
 
       if (not Is_Null (A) and not Is_Null (B)) and then
@@ -85,7 +87,8 @@ package body Types is
                      case Deref_List (B).Get_List_Type is
                         when List_List => return False; -- Comparing a list and a hash
                         when Vector_List => return False; -- Comparing a vector and a hash
-                        when Hashed_List => return False; -- Comparing a hash and a hash
+                        when Hashed_List =>
+                           return Hash_Map."=" (Deref_Hash (A).all, Deref_Hash (B).all);
                      end case;
                end case;
             when Str =>
