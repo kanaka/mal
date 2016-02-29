@@ -78,4 +78,17 @@
     (concat . ,(mal-fn (lambda (&rest lists)
                          (let ((lists* (mapcar (lambda (item) (mal-value (mal-listify item))) lists)))
                            (mal-list (apply 'append lists*))))))
+
+    (nth . ,(mal-fn (lambda (seq index)
+                      (let ((i (mal-value index))
+                            (list (mal-value (mal-listify seq))))
+                        (or (nth i list)
+                            (signal 'args-out-of-range (list (pr-str seq) i)))))))
+
+    (first . ,(mal-fn (lambda (seq) (if (mal-nil-p seq)
+                                        (mal-nil)
+                                      (let* ((list (mal-value (mal-listify seq)))
+                                             (value (car list)))
+                                        (or value (mal-nil)))))))
+    (rest . ,(mal-fn (lambda (seq) (mal-list (cdr (mal-value (mal-listify seq)))))))
     ))
