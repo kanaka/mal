@@ -54,15 +54,15 @@ MalMap := Map clone do (
         lst foreach(i, e,
             if(i % 2 == 0,
                 k := e,
-                obj atPut(objToString(k), e)
+                obj atPut(objToKey(k), e)
             )
         )
         obj
     )
-    objToString := method(obj,
+    objToKey := method(obj,
         if(obj isKindOf(MalKeyword), "K_" .. (obj val), "S_" .. obj)
     )
-    stringToObj := method(s,
+    keyToObj := method(s,
         if(s beginsWithSeq("K_"),
             MalKeyword with(s exSlice(2)),
             s exSlice(2)
@@ -71,7 +71,7 @@ MalMap := Map clone do (
     malPrint := method(readable,
         "{" ..  
             (self map(k, v, 
-                (stringToObj(k) malPrint(readable)) .. " " .. (v malPrint(readable)) 
+                (keyToObj(k) malPrint(readable)) .. " " .. (v malPrint(readable)) 
             ) join(" ")) .. "}"
     )
 )
