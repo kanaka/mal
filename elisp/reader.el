@@ -107,6 +107,9 @@
           (push (read-form) output)))))
     (mal-vector (vconcat (nreverse output)))))
 
+;; HACK overriden by core.el in later steps
+(define-hash-table-test 'mal-= 'equal 'sxhash)
+
 (defun read-map ()
   (next) ; pop map start
   (let ((output (make-hash-table :test 'mal-=))
