@@ -1,5 +1,5 @@
-(defun mal-func (ast params env fn &optional macrop)
-  (vector 'func (vector ast params env fn macrop)))
+(defun mal-func (ast params env fn &optional macrop meta)
+  (vector 'func (vector ast params env fn macrop) meta))
 
 (defun mal-func-ast (mal-func)
   (aref (aref mal-func 1) 0))

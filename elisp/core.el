@@ -69,6 +69,15 @@
 
 (define-hash-table-test 'mal-= 'mal-= 'sxhash)
 
+(defun mal-conj (seq &rest args)
+  (let ((type (mal-type seq))
+        (value (mal-value seq)))
+    (if (eq type 'vector)
+        (mal-vector (vconcat (append (append value nil) args)))
+      (while args
+        (push (pop args) value))
+      (mal-list value))))
+
 (defvar core-ns
   `((+ . ,(mal-fn (lambda (a b) (mal-number (+ (mal-value a) (mal-value b))))))
     (- . ,(mal-fn (lambda (a b) (mal-number (- (mal-value a) (mal-value b))))))
@@ -145,6 +154,7 @@
 
     (symbol? . ,(mal-fn (lambda (arg) (if (mal-symbol-p arg) (mal-true) (mal-false)))))
     (keyword? . ,(mal-fn (lambda (arg) (if (mal-keyword-p arg) (mal-true) (mal-false)))))
+    (string? . ,(mal-fn (lambda (arg) (if (mal-string-p arg) (mal-true) (mal-false)))))
     (vector? . ,(mal-fn (lambda (arg) (if (mal-vector-p arg) (mal-true) (mal-false)))))
     (map? . ,(mal-fn (lambda (arg) (if (mal-map-p arg) (mal-true) (mal-false)))))
 
@@ -179,4 +189,36 @@
                                      (maphash (lambda (key value) (push value vals))
                                               (mal-value map))
                                      (mal-list vals)))))
+
+    (readline . ,(mal-fn (lambda (prompt) (mal-string (readln (mal-value prompt))))))
+
+    (meta . ,(mal-fn (lambda (mal-object) (or (mal-meta mal-object) (mal-nil)))))
+    (with-meta . ,(mal-fn (lambda (mal-object meta)
+                            ;; TODO: doesn't work on hashtables
+                            (let ((mal-object* (copy-tree mal-object t)))
+                              (setf (aref mal-object* 2) meta)
+                              mal-object*))))
+
+    (time-ms . ,(mal-fn (lambda () (mal-number (floor (* (float-time) 1000))))))
+
+    (conj . ,(mal-fn 'mal-conj))
+    (seq . ,(mal-fn (lambda (mal-object)
+                      (let ((type (mal-type mal-object))
+                            (value (mal-value mal-object)))
+                        (cond
+                         ((eq type 'list)
+                          (if value
+                              mal-object
+                            (mal-nil)))
+                         ((eq type 'vector)
+                          (if (not (zerop (length value)))
+                              (mal-vector (append value nil))
+                            (mal-nil)))
+                         ((eq type 'string)
+                          (if (not (zerop (length value)))
+                              (mal-list (mapcar (lambda (item) (mal-string (char-to-string item)))
+                                                (append value nil)))
+                            (mal-nil)))
+                         (t
+                          (mal-nil)))))))
     ))
