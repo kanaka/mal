@@ -30,7 +30,7 @@
 (defun quasiquote (ast)
   (if (not (mal-pair-p ast))
       (mal-list (list (mal-symbol 'quote) ast))
-    (let* ((a (mal-value (mal-listify ast)))
+    (let* ((a (mal-listify ast))
            (a0 (car a))
            (a0... (cdr a))
            (a1 (cadr a)))

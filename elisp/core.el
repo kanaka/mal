@@ -5,11 +5,10 @@
       mal-false)))
 
 (defun mal-listify (mal-object)
-  ;; FIXME: avoid boxing
   (let ((type (mal-type mal-object)))
     (if (eq type 'vector)
-        (mal-list (append (mal-value mal-object) nil))
-      mal-object)))
+        (append (mal-value mal-object) nil)
+      (mal-value mal-object))))
 
 (defun mal-= (a b)
   (let ((a-type (mal-type a))
@@ -37,9 +36,7 @@
 (defun mal-seq-= (a b)
   (when (= (length (mal-value a))
            (length (mal-value b)))
-    (when (everyp 'mal-=
-                  (mal-value (mal-listify a))
-                  (mal-value (mal-listify b)))
+    (when (everyp 'mal-= (mal-listify a) (mal-listify b))
       t)))
 
 (defun everyp (predicate list-a list-b)
@@ -117,24 +114,24 @@
                                (value (apply (mal-value fn*) args*)))
                           (setf (aref atom 1) value)))))
 
-    (cons . ,(mal-fn (lambda (arg list) (mal-list (cons arg (mal-value (mal-listify list)))))))
+    (cons . ,(mal-fn (lambda (arg list) (mal-list (cons arg (mal-listify list))))))
     (concat . ,(mal-fn (lambda (&rest lists)
-                         (let ((lists* (mapcar (lambda (item) (mal-value (mal-listify item))) lists)))
+                         (let ((lists* (mapcar (lambda (item) (mal-listify item)) lists)))
                            (mal-list (apply 'append lists*))))))
 
     (nth . ,(mal-fn (lambda (seq index)
                       (let ((i (mal-value index))
-                            (list (mal-value (mal-listify seq))))
+                            (list (mal-listify seq)))
                         (or (nth i list)
                             ;; FIXME
                             (signal 'args-out-of-range (list (pr-str seq) i)))))))
     (first . ,(mal-fn (lambda (seq)
                         (if (mal-nil-p seq)
                             mal-nil
-                          (let* ((list (mal-value (mal-listify seq)))
+                          (let* ((list (mal-listify seq))
                                  (value (car list)))
                             (or value mal-nil))))))
-    (rest . ,(mal-fn (lambda (seq) (mal-list (cdr (mal-value (mal-listify seq)))))))
+    (rest . ,(mal-fn (lambda (seq) (mal-list (cdr (mal-listify seq))))))
 
     (throw . ,(mal-fn (lambda (mal-object) (signal 'mal-custom (list mal-object)))))
 
@@ -142,7 +139,7 @@
                         (let* ((butlast (butlast args))
                                (last (mal-listify (car (last args))))
                                (fn* (if (mal-func-p fn) (mal-func-fn fn) fn))
-                               (args* (append butlast (mal-value last))))
+                               (args* (append butlast last)))
                           (apply (mal-value fn*) args*)))))
     (map . ,(mal-fn (lambda (fn seq)
                       (let ((fn* (if (mal-func-p fn) (mal-func-fn fn) fn)))
