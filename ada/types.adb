@@ -810,7 +810,7 @@ package body Types is
 
       end loop;
 
-      return Smart_Pointers.Null_Smart_Pointer;
+      raise Mal_Exception with "Nth (list): Index out of range";
 
    end Nth;
 
