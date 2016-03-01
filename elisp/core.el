@@ -123,8 +123,7 @@
                       (let ((i (mal-value index))
                             (list (mal-listify seq)))
                         (or (nth i list)
-                            ;; FIXME
-                            (signal 'args-out-of-range (list (pr-str seq) i)))))))
+                            (error "Args out of range: %s, %d" (pr-str seq) i))))))
     (first . ,(mal-fn (lambda (seq)
                         (if (mal-nil-p seq)
                             mal-nil
