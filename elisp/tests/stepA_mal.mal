@@ -1,0 +1,21 @@
+;; Testing basic elisp interop
+
+(elisp* "42")
+;=>"42"
+
+(elisp* "(+ 1 1)")
+;=>"2"
+
+(elisp* "[foo bar baz]")
+;=>"[foo bar baz]"
+
+(elisp* "(mapcar '1+ (number-sequence 0 2))")
+;=>"(1 2 3)"
+
+(elisp* "(progn (princ \"Hello World!\n\") nil)")
+; Hello World!
+;=>"nil"
+
+(elisp* "(setq emacs-version-re \"24\\\.[[:digit:]]\\\.[[:digit:]]\")")
+(elisp* "(and (string-match-p emacs-version-re emacs-version) t)")
+;=>"t"
