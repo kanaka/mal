@@ -66,7 +66,7 @@
                     (setq ast then) ; TCO
                   (if else
                       (setq ast else) ; TCO
-                    (throw 'return (mal-nil))))))
+                    (throw 'return mal-nil)))))
              ((eq a0* 'fn*)
               (let* ((binds (mapcar 'mal-value (mal-value a1)))
                      (body a2)

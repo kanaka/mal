@@ -24,6 +24,10 @@
 (mal-object true)
 (mal-object false)
 
+(defvar mal-nil (mal-nil))
+(defvar mal-true (mal-true 'true))
+(defvar mal-false (mal-false 'false))
+
 (mal-object number)
 (mal-object string)
 (mal-object symbol)

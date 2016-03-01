@@ -56,7 +56,7 @@
                 (EVAL then env)
               (if else
                   (EVAL else env)
-                (mal-nil)))))
+                mal-nil))))
          ((eq a0* 'fn*)
           (let ((binds (mapcar 'mal-value (mal-value a1)))
                 (body a2))

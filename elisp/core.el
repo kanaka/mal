@@ -1,8 +1,8 @@
 (defun mal-seq-p (mal-object)
   (let ((type (mal-type mal-object)))
     (if (or (eq type 'list) (eq type 'vector))
-        (mal-true)
-      (mal-false))))
+        mal-true
+      mal-false)))
 
 (defun mal-listify (mal-object)
   ;; FIXME: avoid boxing
@@ -84,22 +84,22 @@
     (* . ,(mal-fn (lambda (a b) (mal-number (* (mal-value a) (mal-value b))))))
     (/ . ,(mal-fn (lambda (a b) (mal-number (/ (mal-value a) (mal-value b))))))
 
-    (< . ,(mal-fn (lambda (a b) (if (< (mal-value a) (mal-value b)) (mal-true) (mal-false)))))
-    (<= . ,(mal-fn (lambda (a b) (if (<= (mal-value a) (mal-value b)) (mal-true) (mal-false)))))
-    (> . ,(mal-fn (lambda (a b) (if (> (mal-value a) (mal-value b)) (mal-true) (mal-false)))))
-    (>= . ,(mal-fn (lambda (a b) (if (>= (mal-value a) (mal-value b)) (mal-true) (mal-false)))))
+    (< . ,(mal-fn (lambda (a b) (if (< (mal-value a) (mal-value b)) mal-true mal-false))))
+    (<= . ,(mal-fn (lambda (a b) (if (<= (mal-value a) (mal-value b)) mal-true mal-false))))
+    (> . ,(mal-fn (lambda (a b) (if (> (mal-value a) (mal-value b)) mal-true mal-false))))
+    (>= . ,(mal-fn (lambda (a b) (if (>= (mal-value a) (mal-value b)) mal-true mal-false))))
 
-    (= . ,(mal-fn (lambda (a b) (if (mal-= a b) (mal-true) (mal-false)))))
+    (= . ,(mal-fn (lambda (a b) (if (mal-= a b) mal-true mal-false))))
 
     (list . ,(mal-fn (lambda (&rest args) (mal-list args))))
-    (list? . ,(mal-fn (lambda (mal-object) (if (mal-list-p mal-object) (mal-true) (mal-false)))))
-    (empty? . ,(mal-fn (lambda (seq) (if (zerop (length (mal-value seq))) (mal-true) (mal-false)))))
+    (list? . ,(mal-fn (lambda (mal-object) (if (mal-list-p mal-object) mal-true mal-false))))
+    (empty? . ,(mal-fn (lambda (seq) (if (zerop (length (mal-value seq))) mal-true mal-false))))
     (count . ,(mal-fn (lambda (seq) (mal-number (if (mal-seq-p seq) (length (mal-value seq)) 0)))))
 
     (pr-str . ,(mal-fn (lambda (&rest args) (mal-string (mapconcat (lambda (item) (pr-str item t)) args " ")))))
     (str . ,(mal-fn (lambda (&rest args) (mal-string (mapconcat 'pr-str args "")))))
-    (prn . ,(mal-fn (lambda (&rest args) (println (mapconcat (lambda (item) (pr-str item t)) args " ")) (mal-nil))))
-    (println . ,(mal-fn (lambda (&rest args) (println (mapconcat 'pr-str args " ")) (mal-nil))))
+    (prn . ,(mal-fn (lambda (&rest args) (println (mapconcat (lambda (item) (pr-str item t)) args " ")) mal-nil)))
+    (println . ,(mal-fn (lambda (&rest args) (println (mapconcat 'pr-str args " ")) mal-nil)))
 
     (read-string . ,(mal-fn (lambda (input) (read-str (mal-value input)))))
     (slurp . ,(mal-fn (lambda (file)
@@ -108,7 +108,7 @@
                           (mal-string (buffer-string))))))
 
     (atom . ,(mal-fn (lambda (arg) (mal-atom arg))))
-    (atom? . ,(mal-fn (lambda (mal-object) (if (mal-atom-p mal-object) (mal-true) (mal-false)))))
+    (atom? . ,(mal-fn (lambda (mal-object) (if (mal-atom-p mal-object) mal-true mal-false))))
     (deref . ,(mal-fn (lambda (atom) (mal-value atom))))
     (reset! . ,(mal-fn (lambda (atom value) (setf (aref atom 1) value))))
     (swap! . ,(mal-fn (lambda (atom fn &rest args)
@@ -130,10 +130,10 @@
                             (signal 'args-out-of-range (list (pr-str seq) i)))))))
     (first . ,(mal-fn (lambda (seq)
                         (if (mal-nil-p seq)
-                            (mal-nil)
+                            mal-nil
                           (let* ((list (mal-value (mal-listify seq)))
                                  (value (car list)))
-                            (or value (mal-nil)))))))
+                            (or value mal-nil))))))
     (rest . ,(mal-fn (lambda (seq) (mal-list (cdr (mal-value (mal-listify seq)))))))
 
     (throw . ,(mal-fn (lambda (mal-object) (signal 'mal-custom (list mal-object)))))
@@ -148,15 +148,15 @@
                       (let ((fn* (if (mal-func-p fn) (mal-func-fn fn) fn)))
                         (mal-list (mapcar (mal-value fn*) (mal-value seq)))))))
 
-    (nil? . ,(mal-fn (lambda (arg) (if (mal-nil-p arg) (mal-true) (mal-false)))))
-    (true? . ,(mal-fn (lambda (arg) (if (mal-true-p arg) (mal-true) (mal-false)))))
-    (false? . ,(mal-fn (lambda (arg) (if (mal-false-p arg) (mal-true) (mal-false)))))
+    (nil? . ,(mal-fn (lambda (arg) (if (mal-nil-p arg) mal-true mal-false))))
+    (true? . ,(mal-fn (lambda (arg) (if (mal-true-p arg) mal-true mal-false))))
+    (false? . ,(mal-fn (lambda (arg) (if (mal-false-p arg) mal-true mal-false))))
 
-    (symbol? . ,(mal-fn (lambda (arg) (if (mal-symbol-p arg) (mal-true) (mal-false)))))
-    (keyword? . ,(mal-fn (lambda (arg) (if (mal-keyword-p arg) (mal-true) (mal-false)))))
-    (string? . ,(mal-fn (lambda (arg) (if (mal-string-p arg) (mal-true) (mal-false)))))
-    (vector? . ,(mal-fn (lambda (arg) (if (mal-vector-p arg) (mal-true) (mal-false)))))
-    (map? . ,(mal-fn (lambda (arg) (if (mal-map-p arg) (mal-true) (mal-false)))))
+    (symbol? . ,(mal-fn (lambda (arg) (if (mal-symbol-p arg) mal-true mal-false))))
+    (keyword? . ,(mal-fn (lambda (arg) (if (mal-keyword-p arg) mal-true mal-false))))
+    (string? . ,(mal-fn (lambda (arg) (if (mal-string-p arg) mal-true mal-false))))
+    (vector? . ,(mal-fn (lambda (arg) (if (mal-vector-p arg) mal-true mal-false))))
+    (map? . ,(mal-fn (lambda (arg) (if (mal-map-p arg) mal-true mal-false))))
 
     (symbol . ,(mal-fn (lambda (string) (mal-symbol (intern (mal-value string))))))
     (keyword . ,(mal-fn (lambda (string) (mal-keyword (intern (concat ":" (mal-value string)))))))
@@ -169,8 +169,8 @@
 
     (sequential? . ,(mal-fn 'mal-seq-p))
 
-    (get . ,(mal-fn (lambda (map key) (if (mal-map-p map) (or (gethash key (mal-value map)) (mal-nil)) (mal-nil)))))
-    (contains? . ,(mal-fn (lambda (map key) (if (gethash key (mal-value map)) (mal-true) (mal-false)))))
+    (get . ,(mal-fn (lambda (map key) (if (mal-map-p map) (or (gethash key (mal-value map)) mal-nil) mal-nil))))
+    (contains? . ,(mal-fn (lambda (map key) (if (gethash key (mal-value map)) mal-true mal-false))))
     (assoc . ,(mal-fn (lambda (map &rest args)
                         (let ((map* (copy-hash-table (mal-value map))))
                           (while args
@@ -192,7 +192,7 @@
 
     (readline . ,(mal-fn (lambda (prompt) (mal-string (readln (mal-value prompt))))))
 
-    (meta . ,(mal-fn (lambda (mal-object) (or (mal-meta mal-object) (mal-nil)))))
+    (meta . ,(mal-fn (lambda (mal-object) (or (mal-meta mal-object) mal-nil))))
     (with-meta . ,(mal-fn (lambda (mal-object meta)
                             ;; TODO: doesn't work on hashtables
                             (let ((mal-object* (copy-tree mal-object t)))
@@ -209,16 +209,16 @@
                          ((eq type 'list)
                           (if value
                               mal-object
-                            (mal-nil)))
+                            mal-nil))
                          ((eq type 'vector)
                           (if (not (zerop (length value)))
                               (mal-vector (append value nil))
-                            (mal-nil)))
+                            mal-nil))
                          ((eq type 'string)
                           (if (not (zerop (length value)))
                               (mal-list (mapcar (lambda (item) (mal-string (char-to-string item)))
                                                 (append value nil)))
-                            (mal-nil)))
+                            mal-nil))
                          (t
-                          (mal-nil)))))))
+                          mal-nil))))))
     ))

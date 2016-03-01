@@ -128,11 +128,11 @@
     (if token
         (cond
          ((string= token "nil")
-          (mal-nil))
+          mal-nil)
          ((string= token "true")
-          (mal-true))
+          mal-true)
          ((string= token "false")
-          (mal-false))
+          mal-false)
          ((string-match number-re token)
           (mal-number (string-to-number token)))
          ((= (aref token 0) ?\")
