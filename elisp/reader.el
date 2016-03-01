@@ -109,7 +109,7 @@
 
 (defun read-map ()
   (next) ; pop map start
-  (let ((output (make-hash-table :test 'equal))
+  (let ((output (make-hash-table :test 'mal-=))
         end-of-map)
     (while (not end-of-map)
       (let ((token (peek)))

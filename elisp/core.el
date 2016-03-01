@@ -5,10 +5,42 @@
       (mal-false))))
 
 (defun mal-listify (mal-object)
+  ;; FIXME: avoid boxing
   (let ((type (mal-type mal-object)))
     (if (eq type 'vector)
         (mal-list (append (mal-value mal-object) nil))
       mal-object)))
+
+(defun mal-= (a b)
+  (let ((a-type (mal-type a))
+        (b-type (mal-type b)))
+    (cond
+     ((and (and (not (eq a-type 'map))
+                (not (eq a-type 'list))
+                (not (eq a-type 'vector)))
+           (and (not (eq b-type 'map))
+                (not (eq b-type 'list))
+                (not (eq b-type 'vector))))
+      (mal-atom-= a b))
+     ((and (or (eq a-type 'list) (eq a-type 'vector))
+           (or (eq b-type 'list) (eq b-type 'vector)))
+      (mal-seq-= a b))
+     ((and (eq a-type 'map) (eq b-type 'map))
+      (mal-map-= a b))
+     (t
+      ;; incompatible types
+      nil))))
+
+(defun mal-atom-= (a b)
+  (equal (mal-value a) (mal-value b)))
+
+(defun mal-seq-= (a b)
+  (when (= (length (mal-value a))
+           (length (mal-value b)))
+    (when (everyp 'mal-=
+                  (mal-value (mal-listify a))
+                  (mal-value (mal-listify b)))
+      t)))
 
 (defun everyp (predicate list-a list-b)
   (let ((everyp t))
@@ -19,21 +51,23 @@
           (setq everyp nil))))
     everyp))
 
-(defun mal-= (a b)
-  (let ((mal-seq-a-p (mal-true-p (mal-seq-p a)))
-        (mal-seq-b-p (mal-true-p (mal-seq-p b))))
-    (cond
-     ((and (not mal-seq-a-p) (not mal-seq-b-p))
-      (equal (mal-value a) (mal-value b)))
-     ((or (and (not mal-seq-a-p) mal-seq-b-p)
-          (and mal-seq-a-p (not mal-seq-b-p)))
-      nil)
-     ((and mal-seq-a-p mal-seq-b-p
-           (= (length (mal-value a))
-              (length (mal-value b))))
-      (if (everyp 'mal-= (mal-value (mal-listify a)) (mal-value (mal-listify b)))
-          t
-        nil)))))
+(defun mal-map-= (a b)
+  (catch 'return
+    (let ((a* (mal-value a))
+          (b* (mal-value b)))
+      (when (= (hash-table-count a*)
+               (hash-table-count b*))
+        (maphash (lambda (key a-value)
+                   (let ((b-value (gethash key b*)))
+                     (if b-value
+                         (when (not (mal-= a-value b-value))
+                           (throw 'return nil))
+                       (throw 'return nil))))
+                 a*)
+        ;; if we made it this far, the maps are equal
+        t))))
+
+(define-hash-table-test 'mal-= 'mal-= 'sxhash)
 
 (defvar core-ns
   `((+ . ,(mal-fn (lambda (a b) (mal-number (+ (mal-value a) (mal-value b))))))
@@ -83,12 +117,66 @@
                       (let ((i (mal-value index))
                             (list (mal-value (mal-listify seq))))
                         (or (nth i list)
+                            ;; FIXME
                             (signal 'args-out-of-range (list (pr-str seq) i)))))))
-
-    (first . ,(mal-fn (lambda (seq) (if (mal-nil-p seq)
-                                        (mal-nil)
-                                      (let* ((list (mal-value (mal-listify seq)))
-                                             (value (car list)))
-                                        (or value (mal-nil)))))))
+    (first . ,(mal-fn (lambda (seq)
+                        (if (mal-nil-p seq)
+                            (mal-nil)
+                          (let* ((list (mal-value (mal-listify seq)))
+                                 (value (car list)))
+                            (or value (mal-nil)))))))
     (rest . ,(mal-fn (lambda (seq) (mal-list (cdr (mal-value (mal-listify seq)))))))
+
+    (throw . ,(mal-fn (lambda (mal-object) (signal 'mal-custom (list mal-object)))))
+
+    (apply . ,(mal-fn (lambda (fn &rest args)
+                        (let* ((butlast (butlast args))
+                               (last (mal-listify (car (last args))))
+                               (fn* (if (mal-func-p fn) (mal-func-fn fn) fn))
+                               (args* (append butlast (mal-value last))))
+                          (apply (mal-value fn*) args*)))))
+    (map . ,(mal-fn (lambda (fn seq)
+                      (let ((fn* (if (mal-func-p fn) (mal-func-fn fn) fn)))
+                        (mal-list (mapcar (mal-value fn*) (mal-value seq)))))))
+
+    (nil? . ,(mal-fn (lambda (arg) (if (mal-nil-p arg) (mal-true) (mal-false)))))
+    (true? . ,(mal-fn (lambda (arg) (if (mal-true-p arg) (mal-true) (mal-false)))))
+    (false? . ,(mal-fn (lambda (arg) (if (mal-false-p arg) (mal-true) (mal-false)))))
+
+    (symbol? . ,(mal-fn (lambda (arg) (if (mal-symbol-p arg) (mal-true) (mal-false)))))
+    (keyword? . ,(mal-fn (lambda (arg) (if (mal-keyword-p arg) (mal-true) (mal-false)))))
+    (vector? . ,(mal-fn (lambda (arg) (if (mal-vector-p arg) (mal-true) (mal-false)))))
+    (map? . ,(mal-fn (lambda (arg) (if (mal-map-p arg) (mal-true) (mal-false)))))
+
+    (symbol . ,(mal-fn (lambda (string) (mal-symbol (intern (mal-value string))))))
+    (keyword . ,(mal-fn (lambda (string) (mal-keyword (intern (concat ":" (mal-value string)))))))
+    (vector . ,(mal-fn (lambda (&rest args) (mal-vector (vconcat args)))))
+    (hash-map . ,(mal-fn (lambda (&rest args)
+                           (let ((map (make-hash-table :test 'mal-=)))
+                             (while args
+                               (puthash (pop args) (pop args) map))
+                             (mal-map map)))))
+
+    (sequential? . ,(mal-fn 'mal-seq-p))
+
+    (get . ,(mal-fn (lambda (map key) (if (mal-map-p map) (or (gethash key (mal-value map)) (mal-nil)) (mal-nil)))))
+    (contains? . ,(mal-fn (lambda (map key) (if (gethash key (mal-value map)) (mal-true) (mal-false)))))
+    (assoc . ,(mal-fn (lambda (map &rest args)
+                        (let ((map* (copy-hash-table (mal-value map))))
+                          (while args
+                            (puthash (pop args) (pop args) map*))
+                          (mal-map map*)))))
+    (dissoc . ,(mal-fn (lambda (map &rest args)
+                         (let ((map* (copy-hash-table (mal-value map))))
+                           (while args
+                             (remhash (pop args) map*))
+                           (mal-map map*)))))
+    (keys . ,(mal-fn (lambda (map) (let (keys)
+                                     (maphash (lambda (key value) (push key keys))
+                                              (mal-value map))
+                                     (mal-list keys)))))
+    (vals . ,(mal-fn (lambda (map) (let (vals)
+                                     (maphash (lambda (key value) (push value vals))
+                                              (mal-value map))
+                                     (mal-list vals)))))
     ))

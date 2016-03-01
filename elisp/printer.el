@@ -52,5 +52,5 @@
      form)
     (let ((items (mapconcat
                   (lambda (item) (concat (car item) " " (cdr item)))
-                  (nreverse pairs) ", ")))
+                  (nreverse pairs) " ")))
       (concat "{" items "}"))))

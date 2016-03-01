@@ -76,3 +76,4 @@
 (define-error 'mal "MAL error")
 (define-error 'unterminated-sequence "Unterminated token sequence" 'mal)
 (define-error 'end-of-token-stream "End of token stream" 'mal)
+(define-error 'mal-custom "Custom error" 'mal)

@@ -28,5 +28,5 @@
 (defun mal-env-get (env key)
   (let ((value (mal-env-find env key)))
     (if (not value)
-        (error "%s not found" key)
+        (error "'%s' not found" key)
       value)))
