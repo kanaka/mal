@@ -190,7 +190,11 @@
                                               (mal-value map))
                                      (mal-list vals)))))
 
-    (readline . ,(mal-fn (lambda (prompt) (mal-string (readln (mal-value prompt))))))
+    (readline . ,(mal-fn (lambda (prompt)
+                           (let ((ret (readln (mal-value prompt))))
+                             (if ret
+                                 (mal-string ret)
+                               mal-nil)))))
 
     (meta . ,(mal-fn (lambda (mal-object) (or (mal-meta mal-object) mal-nil))))
     (with-meta . ,(mal-fn (lambda (mal-object meta)
