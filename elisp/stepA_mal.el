@@ -192,7 +192,7 @@
       ast))))
 
 (mal-env-set repl-env 'eval (mal-fn (let ((env repl-env)) (lambda (form) (EVAL form env)))))
-(mal-env-set repl-env '*ARGV* (mal-list (mapcar 'mal-string argv)))
+(mal-env-set repl-env '*ARGV* (mal-list (mapcar 'mal-string (cdr argv))))
 (mal-env-set repl-env '*host-language* (mal-string "elisp"))
 
 (defun PRINT (input)

@@ -146,7 +146,7 @@
       ast))))
 
 (mal-env-set repl-env 'eval (mal-fn (let ((env repl-env)) (lambda (form) (EVAL form env)))))
-(mal-env-set repl-env '*ARGV* (mal-list (mapcar 'mal-string argv)))
+(mal-env-set repl-env '*ARGV* (mal-list (mapcar 'mal-string (cdr argv))))
 
 (defun PRINT (input)
   (pr-str input t))
