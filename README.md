@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 46 languages:
+Mal is implemented in 47 languages:
 
 * GNU awk
 * Bash shell
@@ -18,6 +18,7 @@ Mal is implemented in 46 languages:
 * Crystal
 * D
 * Elixir
+* Emacs Lisp
 * Erlang
 * ES6 (ECMAScript 6 / ECMAScript 2015)
 * F#
@@ -192,6 +193,22 @@ readline library.
 cd d
 make
 ./stepX_YYY
+```
+
+### Emacs Lisp
+
+*The Emacs Lisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Emacs Lisp implementation of mal has been tested with Emacs 24.3
+and 24.5.  While there is very basic readline editing (`<backspace>`
+and `C-d` work, `C-c` cancels the process), it is recommended to use
+`rlwrap`.
+
+```
+cd elisp
+emacs -Q --batch --load stepX_YYY.el
+# with full readline support
+rlwrap emacs -Q --batch --load stepX_YYY.el
 ```
 
 ### Elixir
