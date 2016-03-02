@@ -1,19 +1,24 @@
 
 TESTS = tests/types.js tests/reader.js
 
-SOURCES_BASE = node_readline.js types.js reader.js printer.js
+SOURCES_BASE = node_readline.js types.js reader.js printer.js interop.js
 SOURCES_LISP = env.js core.js stepA_mal.js
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 WEB_SOURCES = $(SOURCES:node_readline.js=jq_readline.js)
 
-all: node_modules mal.js web/mal.js
+all: node_modules
+
+dist: mal.js mal web/mal.js
 
 node_modules:
 	npm install
 
 mal.js: $(SOURCES)
-	echo "#!/usr/bin/env node" > $@
 	cat $+ | grep -v "= *require('./" >> $@
+
+mal: mal.js
+	echo "#!/usr/bin/env node" > $@
+	cat $< >> $@
 	chmod +x $@
 
 web/mal.js: $(WEB_SOURCES)

@@ -70,6 +70,10 @@ classdef type_utils
             ret = length(obj) > 1 && strcmp(obj(1), sprintf('%c', 255));
         end
 
+        function ret = string_Q(obj)
+            ret = strcmp(class(obj), 'char') && ~type_utils.keyword_Q(obj);
+        end
+
         function print_stack(err)
             for i=1:numel(err.stack)
                 stack = err.stack(i);

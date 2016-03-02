@@ -95,6 +95,21 @@ conj <- function(obj, ...) {
     }
 }
 
+do_seq <- function(obj) {
+    if (.list_q(obj)) {
+        if (length(obj) == 0) nil else obj
+    } else if (.vector_q(obj)) {
+        if (length(obj) == 0) nil else new.listl(.clone(obj))
+    } else if (.string_q(obj)) {
+        if (nchar(obj) == 0) nil else new.listl(strsplit(obj, "")[[1]])
+    } else if (class(obj) == "nil") {
+        nil
+    } else {
+        throw("seq: called on non-sequence")
+    }
+}
+
+
 # Metadata functions
 with_meta <- function(obj, m) {
     new_obj <- .clone(obj)
@@ -125,6 +140,7 @@ core_ns <- list(
     "nil?"=.nil_q,
     "true?"=.true_q,
     "false?"=.false_q,
+    "string?"=.string_q,
     "symbol"=new.symbol,
     "symbol?"=.symbol_q,
     "keyword"=new.keyword,
@@ -170,7 +186,9 @@ core_ns <- list(
     "count"=function(a) if (.nil_q(a)) 0 else length(a),
     "apply"=do_apply,
     "map"=map,
+
     "conj"=conj,
+    "seq"=do_seq,
 
     "with-meta"=with_meta,
     "meta"=meta,

@@ -22,6 +22,7 @@
    ['nil? nil?]
    ['true? true?]
    ['false? false?]
+   ['string? string?]
    ['symbol symbol]
    ['symbol? symbol?]
    ['keyword keyword]
@@ -69,6 +70,7 @@
    ['map #(doall (map %1 %2))] 
 
    ['conj conj]
+   ['seq (fn [obj] (seq (if (string? obj) (map str obj) obj)))]
 
    ['with-meta mal_with_meta]
    ['meta mal_meta]

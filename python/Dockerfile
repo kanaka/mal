@@ -23,3 +23,6 @@ WORKDIR /mal
 
 # Nothing additional needed for python
 RUN apt-get -y install python3
+
+# For dist packaging
+RUN apt-get -y install zip

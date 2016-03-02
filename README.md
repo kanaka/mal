@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 45 different languages:
+Mal is implemented in 46 languages:
 
 * GNU awk
 * Bash shell
@@ -50,6 +50,7 @@ Mal is implemented in 45 different languages:
 * Rust
 * Scala
 * Swift
+* Swift 3
 * Tcl
 * Vimscript
 * Visual Basic.NET
@@ -571,6 +572,18 @@ language and standard library.
 
 ```
 cd swift
+make
+./stepX_YYY
+```
+
+### Swift 3
+
+The Swift 3 implementation of mal requires the Swift 3.0 compiler. It
+has been tested with the development version of the Swift 3 from
+2016-02-08.
+
+```
+cd swift3
 make
 ./stepX_YYY
 ```

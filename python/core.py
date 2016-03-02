@@ -77,6 +77,10 @@ def count(lst):
     if types._nil_Q(lst): return 0
     else: return len(lst)
 
+def apply(f, *args): return f(*(list(args[0:-1])+args[-1]))
+
+def mapf(f, lst): return List(map(f, lst))
+
 # retains metadata
 def conj(lst, *args):
     if types._list_Q(lst): 
@@ -87,10 +91,16 @@ def conj(lst, *args):
         new_lst.__meta__ = lst.__meta__
     return new_lst
 
-def apply(f, *args): return f(*(list(args[0:-1])+args[-1]))
-
-def mapf(f, lst): return List(map(f, lst))
-
+def seq(obj):
+    if types._list_Q(obj):
+        return obj if len(obj) > 0 else None
+    elif types._vector_Q(obj):
+        return List(obj) if len(obj) > 0 else None
+    elif types._string_Q(obj):
+        return List([c for c in obj]) if len(obj) > 0 else None
+    elif obj == None:
+        return None
+    else: throw ("seq: called on non-sequence")
 
 # Metadata functions
 def with_meta(obj, meta):
@@ -119,6 +129,7 @@ ns = {
         'nil?': types._nil_Q,
         'true?': types._true_Q,
         'false?': types._false_Q,
+        'string?': types._string_Q,
         'symbol': types._symbol,
         'symbol?': types._symbol_Q,
         'keyword': types._keyword,
@@ -162,9 +173,11 @@ ns = {
         'rest': rest,
         'empty?': empty_Q,
         'count': count,
-        'conj': conj,
         'apply': apply,
         'map': mapf,
+
+        'conj': conj,
+        'seq': seq,
 
         'with-meta': with_meta,
         'meta': meta,

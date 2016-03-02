@@ -2,7 +2,7 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors assocs formatting hashtables kernel math
 sequences typed ;
-IN: mal.env
+IN: lib.env
 
 TUPLE: malenv
 { outer read-only }

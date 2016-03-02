@@ -12,12 +12,17 @@ BINS = $(SRCS:%.erl=%)
 
 #####################
 
-.PHONY: all mal clean stats stats-lisp
+.PHONY: all dist clean stats stats-lisp
 
-all: $(BINS) mal
+all: $(BINS)
 
-mal: $(word $(words $(BINS)),$(BINS))
-	cp $< $@
+dist: mal
+
+mal: $(SOURCES)
+	sed 's/stepA_mal/mal/' src/stepA_mal.erl > src/mal.erl
+	MAL_STEP=mal rebar compile escriptize
+	rm src/mal.erl
+
 
 define dep_template
 .PHONY: $(1)
@@ -29,6 +34,7 @@ $(foreach b,$(BINS),$(eval $(call dep_template,$(b))))
 
 clean:
 	rebar clean
+	rm -f mal
 
 stats: $(SOURCES)
 	@wc $^

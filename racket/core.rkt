@@ -23,6 +23,12 @@
       (vector-append (first a) (list->vector (rest a)))
       (append (reverse (rest a)) (first a)))))
 
+(define (seq obj)
+  (cond [(_nil? obj) nil]
+        [(_string? obj) (if (eq? 0 (string-length obj)) nil (map string (string->list obj)))]
+        [(_empty? obj) nil]
+        [else (_to_list obj)]))
+
 ;; Meta functions
 (define (meta obj)
   (cond [(malfunc? obj) (malfunc-meta obj)]
@@ -53,6 +59,7 @@
     'false?   (lambda (x) (eq? x #f))
     'symbol   (lambda (s) (if (symbol? s) s (string->symbol s)))
     'symbol?  symbol?
+    'string?  _string?
     'keyword  (lambda (s) (if (_keyword? s) s (_keyword s)))
     'keyword? _keyword?
 
@@ -98,6 +105,7 @@
     'apply    do_apply
     'map      (lambda (f s) (_to_list (_map f s)))
     'conj     conj
+    'seq      seq
 
     'meta     meta
     'with-meta with-meta

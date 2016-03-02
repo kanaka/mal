@@ -148,6 +148,7 @@ module Core
 
     let isSymbol = isPattern (function Symbol(_) -> true | _ -> false)
     let isKeyword = isPattern (function Keyword(_) -> true | _ -> false)
+    let isString = isPattern (function String(_) -> true | _ -> false)
     let isSequential = isPattern (function Node.Seq(_) -> true | _ -> false)
     let isVector = isPattern (function Vector(_, _) -> true | _ -> false)
     let isMap = isPattern (function Map(_, _) -> true | _ -> false)
@@ -261,6 +262,17 @@ module Core
             else
                 seg |> Node.makeVector
         | [_; _] -> raise <| Error.argMismatch ()
+        | _ -> raise <| Error.wrongArity ()
+
+    let seq = function
+        | [Nil] -> Node.NIL
+        | [List(_, [])] -> Node.NIL
+        | [List(_, _) as l] -> l
+        | [Vector(_, seg)] when seg.Count < 1 -> Node.NIL
+        | [Vector(_, seg)] -> seg |> List.ofSeq |> Node.makeList
+        | [String(s)] when String.length s < 1 -> Node.NIL
+        | [String(s)] -> s |> Seq.map Node.ofChar |> List.ofSeq |> Node.makeList
+        | [_] -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
     let withMeta = function

@@ -1,5 +1,5 @@
-USING: lists mal.types tools.test ;
-IN: mal.printer
+USING: lists lib.types tools.test ;
+IN: lib.printer
 
 { "(atom \"foo\")" } [ T{ malatom { val "foo" } } pr-str ] unit-test
 { "#<fn>" } [ T{ malfn } pr-str ] unit-test

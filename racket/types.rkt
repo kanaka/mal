@@ -4,7 +4,7 @@
          malfunc malfunc? malfunc-fn
          malfunc-ast malfunc-env malfunc-params malfunc-macro? malfunc-meta
          _partition _equal? _printf
-         nil _nil? _keyword _keyword?
+         nil _nil? _keyword _keyword? _string?
          _to_list _sequential? _count _empty? _nth _first _rest _map
          _assoc _dissoc _get
          atom atom? atom-val set-atom-val!)
@@ -62,6 +62,9 @@
 (define (_keyword? k)
   (and (string? k) (regexp-match? #px"^\u029e" k)))
 
+;; Strings
+(define (_string? s)
+  (and (string? s) (not (_keyword? s))))
 
 ;; Lists and vectors
 

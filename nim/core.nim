@@ -87,6 +87,19 @@ proc vals(xs: varargs[MalType]): MalType =
   for value in xs[0].hash_map.values:
     result.list.add value
 
+proc apply(xs: varargs[MalType]): MalType =
+  var s = newSeq[MalType]()
+  if xs.len > 2:
+    for j in 1 .. xs.high-1:
+      s.add xs[j]
+  s.add xs[xs.high].list
+  xs[0].getFun()(s)
+
+proc map(xs: varargs[MalType]): MalType =
+  result = list()
+  for i in 0 .. xs[1].list.high:
+    result.list.add xs[0].getFun()(xs[1].list[i])
+
 proc conj(xs: varargs[MalType]): MalType =
   if xs[0].kind == List:
     result = list()
@@ -100,18 +113,23 @@ proc conj(xs: varargs[MalType]): MalType =
       result.list.add xs[i]
   result.meta = xs[0].meta
 
-proc apply(xs: varargs[MalType]): MalType =
-  var s = newSeq[MalType]()
-  if xs.len > 2:
-    for j in 1 .. xs.high-1:
-      s.add xs[j]
-  s.add xs[xs.high].list
-  xs[0].getFun()(s)
-
-proc map(xs: varargs[MalType]): MalType =
-  result = list()
-  for i in 0 .. xs[1].list.high:
-    result.list.add xs[0].getFun()(xs[1].list[i])
+proc seq(xs: varargs[MalType]): MalType =
+  if xs[0].kind == List:
+    if len(xs[0].list) == 0: return nilObj
+    result = xs[0]
+  elif xs[0].kind == Vector:
+    if len(xs[0].list) == 0: return nilObj
+    result = list()
+    result.list.add xs[0].list
+  elif xs[0].kind == String:
+    if len(xs[0].str) == 0: return nilObj
+    result = list()
+    for i in countup(0, len(xs[0].str) - 1):
+      result.list.add(str xs[0].str.copy(i,i))
+  elif xs[0] == nilObj:
+    result = nilObj
+  else:
+    raise newException(ValueError, "seq: called on non-sequence")
 
 proc with_meta(xs: varargs[MalType]): MalType =
   new result
@@ -190,15 +208,18 @@ let ns* = {
   "nth": fun nth,
   "first": fun first,
   "rest": fun rest,
-  "conj": fun conj,
   "apply": fun apply,
   "map": fun map,
+
+  "conj": fun conj,
+  "seq": fun seq,
 
   "throw": fun throw,
 
   "nil?": fun nil_q,
   "true?": fun true_q,
   "false?": fun false_q,
+  "string?": fun string_q,
   "symbol": fun symbol,
   "symbol?": fun symbol_q,
   "keyword": fun keyword,

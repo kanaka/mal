@@ -182,6 +182,23 @@ local function conj(obj, ...)
     return new_obj
 end
 
+local function seq(obj, ...)
+    if obj == Nil or #obj == 0 then
+        return Nil
+    elseif types._list_Q(obj) then
+        return obj
+    elseif types._vector_Q(obj) then
+        return List:new(obj)
+    elseif types._string_Q(obj) then
+        local chars = {}
+        for i = 1, #obj do
+            chars[#chars+1] = string.sub(obj,i,i)
+        end
+        return List:new(chars)
+    end
+    return Nil
+end
+
 M.ns = {
     ['='] =  types._equal_Q,
     throw = types.throw,
@@ -191,6 +208,7 @@ M.ns = {
     ['false?'] =  function(a) return a==false end,
     symbol = function(a) return types.Symbol:new(a) end,
     ['symbol?'] = function(a) return types._symbol_Q(a) end,
+    ['string?'] = function(a) return types._string_Q(a) and "\177" ~= string.sub(a,1,1) end,
     keyword = function(a) return "\177"..a end,
     ['keyword?'] = function(a) return types._keyword_Q(a) end,
 
@@ -236,6 +254,7 @@ M.ns = {
     apply = apply,
     map = map,
     conj = conj,
+    seq = seq,
 
     meta = meta,
     ['with-meta'] = with_meta,

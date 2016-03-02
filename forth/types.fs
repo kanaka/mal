@@ -262,6 +262,7 @@ end-extend
 \ === Mal types and protocols === /
 
 def-protocol-method conj ( obj this -- this )
+def-protocol-method seq ( obj -- mal-list|nil )
 def-protocol-method assoc ( k v this -- this )
 def-protocol-method dissoc ( k this -- this )
 def-protocol-method get ( not-found k this -- value )
@@ -357,6 +358,10 @@ MalList
       old-list MalList/start @   new-start cell+   new-count 1- cells  cmove
     endif
     new-start new-count MalList. ;;
+  extend seq
+    dup MalList/count @ 0= if
+        drop mal-nil
+    endif ;;
   extend empty? MalList/count @ 0= mal-bool ;;
   extend mal-count MalList/count @ MalInt. ;;
   extend mal=
@@ -416,6 +421,8 @@ MalVector
     new-start   old-count 1+  MalList.
     MalVector new swap
     over MalVector/list ! ;;
+  extend seq
+    MalVector/list @ seq ;;
 drop
 
 MalType%
@@ -526,6 +533,7 @@ drop
 MalNil
   extend conj ( item nil -- mal-list )
     drop MalList/Empty conj ;;
+  extend seq drop mal-nil ;;
   extend as-native drop nil ;;
   extend get 2drop ;;
   extend to-list drop MalList/Empty ;;
@@ -613,6 +621,18 @@ MalString
         2drop 0
     endif ;;
   ' as-native ' unpack-str extend-method*
+  extend seq { str }
+    str MalString/str-len @ { len }
+    len 0= if
+      mal-nil
+    else
+      len cells allocate throw { list-start }
+      len 0 ?do
+        str MalString/str-addr @ i + 1 MalString. ( new-char-string )
+        list-start i cells + !
+      loop
+      list-start len MalList.
+    endif ;;
 drop
 
 

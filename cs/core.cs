@@ -35,6 +35,16 @@ namespace Mal {
         static MalFunc symbol_Q = new MalFunc(
             a => a[0] is MalSymbol ? True : False);
 
+        static MalFunc string_Q = new MalFunc(
+            a => {
+                if (a[0] is MalString) {
+                    var s = ((MalString)a[0]).getValue();
+                    return (s.Length == 0 || s[0] != '\u029e') ? True : False;
+                } else {
+                    return False;
+                }
+            } );
+
         static MalFunc keyword = new MalFunc(
             a => {
                 if (a[0] is MalString &&
@@ -47,9 +57,9 @@ namespace Mal {
 
         static MalFunc keyword_Q = new MalFunc(
             a => {
-                if (a[0] is MalString &&
-                    ((MalString)a[0]).getValue()[0] == '\u029e') {
-                    return True;
+                if (a[0] is MalString) {
+                    var s = ((MalString)a[0]).getValue();
+                    return (s.Length > 0 && s[0] == '\u029e') ? True : False;
                 } else {
                     return False;
                 }
@@ -224,6 +234,32 @@ namespace Mal {
             });
 
 
+        static MalFunc seq = new MalFunc(
+            a => {
+                if (a[0] == Nil) {
+                    return Nil;
+                } else if (a[0] is MalVector) {
+                    return (((MalVector)a[0]).size() == 0)
+                        ? (MalVal)Nil
+                        : new MalList(((MalVector)a[0]).getValue());
+                } else if (a[0] is MalList) {
+                    return (((MalList)a[0]).size() == 0)
+                        ? Nil
+                        : a[0];
+                } else if (a[0] is MalString) {
+                    var s = ((MalString)a[0]).getValue();
+                    if (s.Length == 0) {
+                        return Nil;
+                    }
+                    var chars_list = new List<MalVal>();
+                    foreach (var c in s) {
+                        chars_list.Add(new MalString(c.ToString()));
+                    }
+                    return new MalList(chars_list);
+                }
+                return Nil;
+            });
+
         // General list related functions
         static MalFunc apply = new MalFunc(
             a => {
@@ -286,6 +322,7 @@ namespace Mal {
             {"false?", false_Q},
             {"symbol", new MalFunc(a => new MalSymbol((MalString)a[0]))},
             {"symbol?", symbol_Q},
+            {"string?", string_Q},
             {"keyword", keyword},
             {"keyword?", keyword_Q},
 
@@ -328,6 +365,7 @@ namespace Mal {
             {"empty?", empty_Q},
             {"count", count},
             {"conj", conj},
+            {"seq", seq},
             {"apply", apply},
             {"map", map},
 

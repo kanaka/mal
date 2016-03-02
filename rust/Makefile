@@ -17,9 +17,10 @@ BINS = $(SRCS:%.rs=target/release/%)
 
 all: mal
 
-mal: ${SOURCES_BASE} $(word $(words ${SOURCES_LISP}),${SOURCES_LISP})
-	cargo build --release
-	cp $(word $(words ${BINS}),${BINS})  $@
+dist: mal
+
+mal: target/release/stepA_mal
+	cp $< $@
 
 # TODO: would be nice to build just the step requested
 $(BINS): target/release/%: src/bin/%.rs $(wildcard src/*.rs)

@@ -10,6 +10,11 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: $(STEPS)
 
+dist: mal
+
+mal: stepA_mal
+	cp $< $@
+
 %: %.py
 	$(RPYTHON) --output=$@ $<
 
@@ -26,7 +31,7 @@ $(UPPER_STEPS): $(STEP4_DEPS)
 .PHONY: clean stats stats-lisp
 
 clean:
-	rm -f $(STEPS) *.pyc
+	rm -f mal $(STEPS) *.pyc
 	rm -rf __pycache__
 
 stats: $(SOURCES)

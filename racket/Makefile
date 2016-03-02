@@ -4,6 +4,15 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:
 
+dist: mal
+
+mal: $(SOURCES)
+	raco exe stepA_mal.rkt
+	mv stepA_mal $@
+
+clean:
+	rm -f mal
+
 .PHONY: stats
 
 stats: $(SOURCES)

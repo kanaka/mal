@@ -379,6 +379,39 @@ pub fn conj(a: Vec<MalVal>) -> MalRet {
     }
 }
 
+pub fn seq(a: Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to seq call");
+    }
+    let mut new_v: Vec<MalVal> = vec![];
+    match *a[0] {
+        List(ref l,_) |
+        Vector(ref l,_) => {
+            if l.len() == 0 {
+                Ok(_nil())
+            } else {
+                new_v.extend(l.clone());
+                Ok(list(new_v))
+            }
+        },
+        Strn(ref s) => {
+            if s.len() == 0 {
+                Ok(_nil())
+            } else if s.starts_with("\u{29e}") {
+                err_str("seq: called with non-sequence")
+            } else {
+                for c in s.chars() {
+                    new_v.push(string(c.to_string()));
+                }
+                Ok(list(new_v))
+            }
+        },
+        Nil => Ok(_nil()),
+        _ => err_str("seq: called with non-sequence"),
+    }
+}
+
+
 
 // Metadata functions
 fn with_meta(a: Vec<MalVal>) -> MalRet {
@@ -461,6 +494,7 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("nil?".to_string(), func(types::nil_q));
     ns.insert("true?".to_string(), func(types::true_q));
     ns.insert("false?".to_string(), func(types::false_q));
+    ns.insert("string?".to_string(), func(types::string_q));
     ns.insert("symbol".to_string(), func(types::_symbol));
     ns.insert("symbol?".to_string(), func(types::symbol_q));
     ns.insert("keyword".to_string(), func(types::_keyword));
@@ -507,7 +541,9 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("count".to_string(), func(count));
     ns.insert("apply".to_string(), func(apply));
     ns.insert("map".to_string(), func(map));
+
     ns.insert("conj".to_string(), func(conj));
+    ns.insert("seq".to_string(), func(seq));
 
     ns.insert("with-meta".to_string(), func(with_meta));
     ns.insert("meta".to_string(), func(meta));

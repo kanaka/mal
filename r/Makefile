@@ -6,6 +6,19 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: libs
 
+dist: mal.r mal
+
+mal.r: $(SOURCES)
+	cat $+ | grep -v " source(" > $@
+
+mal: mal.r
+	echo "#!/usr/bin/env Rscript" > $@
+	cat $< >> $@
+	chmod +x $@
+
+clean:
+	rm -f mal.r mal
+
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)

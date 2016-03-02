@@ -76,6 +76,14 @@ function core_falsep(idx)
 	return types_heap[idx][1] == "#false" ? "#true" : "#false"
 }
 
+function core_stringp(idx)
+{
+	if (types_heap[idx]["len"] != 2) {
+		return "!\"Invalid argument length for builtin function 'string?'. Expects exactly 1 argument, supplied " (types_heap[idx]["len"] - 1) "."
+	}
+	return types_heap[idx][1] ~ /^"/ ? "#true" : "#false"
+}
+
 function core_symbol(idx,    str)
 {
 	if (types_heap[idx]["len"] != 2) {
@@ -821,6 +829,44 @@ function core_conj(idx,    len, lst, lst_idx, lst_len, new_idx, i, j)
 	return substr(lst, 1, 1) new_idx
 }
 
+function core_seq(idx,     obj, obj_idx, new_idx, i, len, chars)
+{
+	if (types_heap[idx]["len"] != 2) {
+		return "!\"Invalid argument length for builtin function 'seq'. Expects exactly 1 argument, supplied " (types_heap[idx]["len"] - 1) "."
+	}
+	obj = types_heap[idx][1]
+	if (obj ~ /^[(]/) {
+		if (types_heap[substr(obj, 2)]["len"] == 0) {
+			return "#nil"
+		}
+		return types_addref(obj)
+	} else if (obj ~ /^\[/) {
+		obj_idx = substr(obj, 2)
+		len = types_heap[obj_idx]["len"]
+		if (len == 0) { return "#nil" }
+		new_idx = types_allocate()
+		for (i = 0; i < len; ++i) {
+			types_addref(types_heap[new_idx][i] = types_heap[obj_idx][i])
+		}
+		types_heap[new_idx]["len"] = len
+		return "(" new_idx
+	} else if (obj ~ /^"/) {
+		obj_idx = substr(obj, 2)
+		len = length(obj_idx)
+		if (len == 0) { return "#nil" }
+		new_idx = types_allocate()
+		split(obj_idx, chars, "")
+		for (i = 0; i <= len; ++i) {
+			types_heap[new_idx][i] = "\"" chars[i+1]
+		}
+		types_heap[new_idx]["len"] = len
+		return "(" new_idx
+	} else if (obj == "#nil") {
+		return "#nil"
+	} else {
+		return "!\"seq: called on non-sequence"
+	}
+}
 
 
 function core_meta(idx,    obj, obj_idx)
@@ -977,6 +1023,7 @@ function core_init()
 	core_ns["'nil?"] = "&core_nilp"
 	core_ns["'true?"] = "&core_truep"
 	core_ns["'false?"] = "&core_falsep"
+	core_ns["'string?"] = "&core_stringp"
 	core_ns["'symbol"] = "&core_symbol"
 	core_ns["'symbol?"] = "&core_symbolp"
 	core_ns["'keyword"] = "&core_keyword"
@@ -1025,6 +1072,7 @@ function core_init()
 	core_ns["'map"] = "&core_map"
 
 	core_ns["'conj"] = "&core_conj"
+	core_ns["'seq"] = "&core_seq"
 
 	core_ns["'meta"] = "&core_meta"
 	core_ns["'with-meta"] = "&core_with_meta"

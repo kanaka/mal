@@ -9,6 +9,22 @@ all: node_modules
 node_modules:
 	npm install
 
+dist: mal.json mal
+
+mal.json: $(filter-out %.js,$(SOURCES))
+	echo '["do",' >> $@
+	$(foreach f,$+,\
+	  cat $(f) | egrep -v '^ *[[]"load-file"' >> $@; \
+	  echo "," >> $@;)
+	echo 'null]' >> $@
+
+mal: mal.json
+	echo '#!/usr/bin/env miniMAL' > $@
+	cat $< >> $@
+	chmod +x $@
+
+clean:
+
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)

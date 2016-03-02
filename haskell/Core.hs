@@ -179,10 +179,6 @@ count (MalList lst _:[])   = return $ MalNumber $ length lst
 count (MalVector lst _:[]) = return $ MalNumber $ length lst
 count _ = throwStr $ "non-sequence passed to count"
 
-conj ((MalList lst _):args) = return $ MalList ((reverse args) ++ lst) Nil
-conj ((MalVector lst _):args) = return $ MalVector (lst ++ args) Nil
-conj _ = throwStr $ "illegal arguments to conj"
-
 apply args = do
     f <- _get_call args
     lst <- _to_list (last args)
@@ -193,6 +189,19 @@ do_map args = do
     lst <- _to_list (args !! 1)
     do new_lst <- mapM (\x -> f [x]) lst
        return $ MalList new_lst Nil
+
+conj ((MalList lst _):args) = return $ MalList ((reverse args) ++ lst) Nil
+conj ((MalVector lst _):args) = return $ MalVector (lst ++ args) Nil
+conj _ = throwStr $ "illegal arguments to conj"
+
+do_seq (l@(MalList [] _):[])  = return $ Nil
+do_seq (l@(MalList lst m):[]) = return $ l
+do_seq (MalVector [] _:[])    = return $ Nil
+do_seq (MalVector lst _:[])   = return $ MalList lst Nil
+do_seq (MalString []:[])      = return $ Nil
+do_seq (MalString s:[])       = return $ MalList [MalString [c] | c <- s] Nil
+do_seq (Nil:[])               = return $ Nil
+do_seq _                      = throwStr $ "seq: called on non-sequence"
 
 -- Metadata functions
 
@@ -243,6 +252,7 @@ ns = [
     ("nil?", _func $ run_1 $ _nil_Q),
     ("true?", _func $ run_1 $ _true_Q),
     ("false?", _func $ run_1 $ _false_Q),
+    ("string?", _func $ run_1 $ _string_Q),
     ("symbol", _func $ symbol),
     ("symbol?", _func $ run_1 $ _symbol_Q),
     ("keyword", _func $ keyword),
@@ -287,9 +297,11 @@ ns = [
     ("rest", _func $ run_1 $ rest),
     ("empty?", _func $ run_1 $ empty_Q),
     ("count", _func $ count),
-    ("conj", _func $ conj),
     ("apply", _func $ apply),
     ("map", _func $ do_map),
+
+    ("conj", _func $ conj),
+    ("seq", _func $ do_seq),
 
     ("with-meta", _func $ with_meta),
     ("meta",      _func $ do_meta),

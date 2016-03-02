@@ -22,10 +22,18 @@ FLAGS = $(if $(strip $(DEBUG)),-debug+,)
 
 #####################
 
-all: mal.exe $(patsubst %.cs,%.exe,$(SRCS))
+all: $(patsubst %.cs,%.exe,$(SRCS))
+
+dist: mal.exe mal
 
 mal.exe: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES)))
 	cp $< $@
+
+# NOTE/WARNING: static linking triggers mono libraries LGPL
+# distribution requirements.
+# http://www.mono-project.com/archived/guiderunning_mono_applications/
+mal: $(patsubst %.cs,%.exe,$(word $(words $(SOURCES)),$(SOURCES))) mal.dll
+	mkbundle --static -o $@ $+ --deps
 
 mal.dll: $(LIB_SRCS)
 	mcs $(FLAGS) -target:library $+ -out:$@
@@ -34,7 +42,7 @@ mal.dll: $(LIB_SRCS)
 	mcs $(FLAGS) -r:mal.dll $<
 
 clean:
-	rm -f *.dll *.exe *.mdb
+	rm -f mal *.dll *.exe *.mdb
 
 .PHONY: stats tests $(TESTS)
 

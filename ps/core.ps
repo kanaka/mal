@@ -117,30 +117,6 @@ end } def
     } ifelse
 } def
 
-% [vect elem...] -> conj -> new_vect
-% [list elem...] -> conj -> new_list
-/conj { 5 dict begin
-    /args exch def
-    /src_arr args 0 _nth /data get def
-    /new_len src_arr length   args _count 1 sub   add def
-    /new_arr new_len array def
-    args 0 _nth _list? { %if list
-        new_arr   new_len src_arr length sub   src_arr putinterval
-        args _count 1 sub -1 1 {
-            /idx exch def
-            new_arr   args _count idx sub 1 sub   args idx _nth   put
-        } for
-        new_arr _list_from_array
-    }{ %else vector
-        src_arr new_arr copy pop
-        1 1 args _count 1 sub {
-            /idx exch def
-            new_arr   src_arr length idx add 1 sub   args idx _nth   put
-        } for
-        new_arr _vector_from_array
-    } ifelse
-end } def
-
 % [function args... arg_list] -> apply -> result
 /apply { 1 dict begin
     /args exch def
@@ -165,6 +141,56 @@ end } def
     pop % remove the function
     args _count array astore
     _list_from_array
+end } def
+
+% [vect elem...] -> conj -> new_vect
+% [list elem...] -> conj -> new_list
+/conj { 5 dict begin
+    /args exch def
+    /src_arr args 0 _nth /data get def
+    /new_len src_arr length   args _count 1 sub   add def
+    /new_arr new_len array def
+    args 0 _nth _list? { %if list
+        new_arr   new_len src_arr length sub   src_arr putinterval
+        args _count 1 sub -1 1 {
+            /idx exch def
+            new_arr   args _count idx sub 1 sub   args idx _nth   put
+        } for
+        new_arr _list_from_array
+    }{ %else vector
+        src_arr new_arr copy pop
+        1 1 args _count 1 sub {
+            /idx exch def
+            new_arr   src_arr length idx add 1 sub   args idx _nth   put
+        } for
+        new_arr _vector_from_array
+    } ifelse
+end } def
+
+% [obj] -> seq -> new_list/nil/error
+/seq { 1 dict begin
+    0 _nth /obj exch def
+    obj _list? { % if list
+        obj _count 0 eq { null }{ obj } ifelse
+    }{ obj _vector? { % if vector
+        obj _count 0 eq { null }{ obj /data get _list_from_array } ifelse
+    }{ obj _string? { % if string
+        obj length 0 eq {
+            null
+        }{
+            % convert string to 1 character strings
+            obj {
+                1 string dup 0 % chr string string 0
+                4 -1 roll % string string 0 chr
+                put
+            } forall
+            obj length _list
+        } ifelse
+    }{ null obj eq { % if nil
+        null
+    }{ % invalid seq argument
+        (seq: called on non-sequence) _throw
+    } ifelse } ifelse } ifelse } ifelse
 end } def
 
 
@@ -225,6 +251,7 @@ end } def
     (nil?)    { 0 _nth _nil? }
     (true?)   { 0 _nth _true? }
     (false?)  { 0 _nth _false? }
+    (string?) { 0 _nth _string? }
     (symbol)  { 0 _nth _symbol }
     (symbol?) { 0 _nth _symbol? }
     (keyword) { 0 _nth _keyword }
@@ -268,9 +295,11 @@ end } def
     (rest)    { rest }
     (empty?)  { 0 _nth _count 0 eq }
     (count)   { do_count }
-    (conj)    { conj }
     (apply)   { apply }
     (map)     { map }
+
+    (conj)    { conj }
+    (seq)     { seq }
 
     (with-meta) { with_meta }
     (meta)    { meta }

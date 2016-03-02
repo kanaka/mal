@@ -25,5 +25,6 @@ WORKDIR /mal
 RUN apt-get -y install openjdk-7-jdk
 #RUN apt-get -y install maven2
 #ENV MAVEN_OPTS -Duser.home=/mal
-RUN apt-get -y install groovy
+RUN apt-get -y install ant
 
+RUN apt-get -y install groovy

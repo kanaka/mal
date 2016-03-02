@@ -14,7 +14,9 @@ BINS = $(SRCS:%.nim=%)
 
 #####################
 
-all: $(BINS) mal
+all: $(BINS)
+
+dist: mal
 
 mal: $(word $(words $(BINS)),$(BINS))
 	cp $< $@

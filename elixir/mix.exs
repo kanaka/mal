@@ -8,7 +8,12 @@ defmodule Mal.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps,
-     default_task: "stepA_mal"]
+     default_task: "stepA_mal",
+     escript: escript]
+  end
+
+  def escript do
+    [main_module: Mix.Tasks.StepAMal]
   end
 
   # Configuration for the OTP application

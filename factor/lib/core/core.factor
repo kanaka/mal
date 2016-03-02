@@ -2,10 +2,10 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators
 combinators.short-circuit fry grouping hash-sets hashtables io
-io.encodings.utf8 io.files kernel lists mal.env mal.printer
-mal.reader mal.types math namespaces readline sequences sets
-system vectors ;
-IN: mal.core
+io.encodings.utf8 io.files kernel lists lib.env lib.printer
+lib.reader lib.types math namespaces readline sequences sets
+strings system vectors ;
+IN: lib.core
 
 SYMBOL: mal-apply
 
@@ -47,6 +47,7 @@ CONSTANT: ns H{
     { "false?" [ first f = ] }
     { "symbol" [ first <malsymbol> ] }
     { "symbol?" [ first malsymbol? ] }
+    { "string?" [ first string? ] }
     { "keyword" [ first <malkeyword> ] }
     { "keyword?" [ first malkeyword? ] }
     { "vector" [ >vector ] }
@@ -70,5 +71,12 @@ CONSTANT: ns H{
     { "swap!" [ { [ first ] [ second ] [ 2 tail ] [ first val>> ] } cleave
                 prefix swap mal-apply get call( args fn -- maltype ) >>val val>> ] }
     { "conj" [ unclip swap over array? [ reverse prepend ] [ append ] if ] }
+    { "seq" [ first {
+                  { [ dup nil? ]    [ drop nil ] }
+                  { [ dup empty? ]  [ drop nil ] }
+                  { [ dup array? ]  [ ] }
+                  { [ dup vector? ] [ >array ] }
+                  { [ dup string? ] [ [ 1string ] { } map-as ] }
+              } cond ] }
     { "time-ms" [ drop nano-count 1,000,000 /i ] }
 }

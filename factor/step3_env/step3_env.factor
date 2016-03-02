@@ -1,8 +1,8 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators continuations fry
-grouping hashtables io kernel locals mal.env mal.printer
-mal.reader mal.types math namespaces quotations readline
+grouping hashtables io kernel locals lib.env lib.printer
+lib.reader lib.types math namespaces quotations readline
 sequences ;
 IN: step3_env
 

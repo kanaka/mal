@@ -177,6 +177,7 @@ fun main(args: Array<String>) {
         return
     }
 
+    rep("(println (str \"Mal [\" *host-language* \"]\"))", repl_env)
     while (true) {
         val input = readline("user> ")
         try {

@@ -7,6 +7,14 @@ import readline_mod
 
 export ns
 
+function string_Q(obj)
+    isa(obj,AbstractString) && (length(obj) == 0 || obj[1] != '\u029e')
+end
+
+function keyword_Q(obj)
+    isa(obj,AbstractString) && (length(obj) > 0 && obj[1] == '\u029e')
+end
+
 function concat(args...)
     res = []
     for a=args
@@ -30,6 +38,29 @@ function do_map(a,b)
     end
 end
 
+function conj(seq, args...)
+    if isa(seq,Array)
+        concat(reverse(args), seq)
+    else
+        tuple(concat(seq, args)...)
+    end
+end
+
+function do_seq(obj)
+    if isa(obj,Array)
+        length(obj) > 0 ? obj : nothing
+    elseif isa(obj,Tuple)
+        length(obj) > 0 ? Any[obj...] : nothing
+    elseif isa(obj,AbstractString)
+        length(obj) > 0 ? [string(c) for c=obj] : nothing
+    elseif obj == nothing
+        nothing
+    else
+        error("seq: called on non-sequence")
+    end
+end
+
+
 function with_meta(obj, meta)
     new_obj = types.copy(obj)
     new_obj.meta = meta
@@ -43,10 +74,11 @@ ns = Dict{Any,Any}(
     symbol("nil?") => (a) -> a === nothing,
     symbol("true?") => (a) -> a === true,
     symbol("false?") => (a) -> a === false,
+    symbol("string?") => string_Q,
     symbol("symbol") => (a) -> symbol(a),
     symbol("symbol?") => (a) -> typeof(a) === Symbol,
     symbol("keyword") => (a) -> a[1] == '\u029e' ? a : "\u029e$(a)",
-    symbol("keyword?") => (a) -> isa(a,AbstractString) && a[1] == '\u029e',
+    symbol("keyword?") => keyword_Q,
 
     symbol("pr-str") => (a...) -> join(map((e)->pr_str(e, true),a)," "),
     :str => (a...) -> join(map((e)->pr_str(e, false),a),""),
@@ -90,7 +122,8 @@ ns = Dict{Any,Any}(
     :apply => do_apply,
     :map => do_map,
 
-    :conj => nothing,
+    :conj => conj,
+    :seq => do_seq,
 
     :meta => (a) -> isa(a,types.MalFunc) ? a.meta : nothing,
     symbol("with-meta") => with_meta,

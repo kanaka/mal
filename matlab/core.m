@@ -155,6 +155,36 @@ classdef core
             end
         end
 
+        function ret = seq(obj)
+            if type_utils.list_Q(obj)
+                if length(obj) > 0
+                    ret = obj;
+                else
+                    ret = type_utils.nil;
+                end
+            elseif type_utils.vector_Q(obj)
+                if length(obj) > 0
+                    ret = types.List(obj.data{:});
+                else
+                    ret = type_utils.nil;
+                end
+            elseif type_utils.string_Q(obj)
+                if length(obj) > 0
+                    cells = cellfun(@(c) char(c),...
+                                    num2cell(double(obj)),...
+                                    'UniformOutput', false);
+                    ret = types.List(cells{:});
+                else
+                    ret = type_utils.nil;
+                end
+            elseif isa(obj, 'types.Nil')
+                ret = type_utils.nil;
+            else
+                throw(MException('Type:seq',...
+                                 'seq: called on non-sequence'))
+            end
+        end
+
         function new_obj = with_meta(obj, meta)
             new_obj = clone(obj);
             new_obj.meta = meta;
@@ -195,6 +225,7 @@ classdef core
             n('nil?') = @(a) isa(a, 'types.Nil');
             n('true?') = @(a) isa(a, 'logical') && a == true;
             n('false?') = @(a) isa(a, 'logical') && a == false;
+            n('string?') = @(a) type_utils.string_Q(a);
             n('symbol') = @(a) types.Symbol(a);
             n('symbol?') = @(a) isa(a, 'types.Symbol');
             n('keyword') = @(a) type_utils.keyword(a);
@@ -242,7 +273,9 @@ classdef core
             n('count') = @(a) 0 + length(a);
             n('apply') = @(varargin) core.apply(varargin{:});
             n('map') = @(varargin) core.map(varargin{:});
+
             n('conj') = @(varargin) core.conj(varargin{:});
+            n('seq') = @(a) core.seq(a);
 
             n('with-meta') = @(a,b) core.with_meta(a,b);
             n('meta') = @(a) core.meta(a);

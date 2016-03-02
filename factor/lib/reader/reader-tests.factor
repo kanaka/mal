@@ -1,5 +1,5 @@
-USING: lists mal.types tools.test ;
-IN: mal.reader
+USING: lists lib.types tools.test ;
+IN: lib.reader
 
 { "foo" } [ "\"foo\"" read-atom ] unit-test
 { T{ malkeyword { name "foo" } } } [ ":foo" read-atom ] unit-test

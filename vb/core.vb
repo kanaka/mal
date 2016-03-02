@@ -69,6 +69,21 @@ Namespace Mal
             End If
         End Function
 
+        Shared Function string_Q(a As MalList) As MalVal
+            If TypeOf a(0) Is MalString Then
+                Dim s As String = DirectCast(a(0),MalString).getValue()
+                If s.Length = 0 Then
+                    return MalTrue
+                Elseif s.Substring(0,1) = Strings.ChrW(&H029e) Then
+                    return MalFalse
+                Else
+                    return MalTrue
+                End If
+            Else
+                return MalFalse
+            End If
+        End Function
+
         Shared Function keyword(a As MalList) As MalVal
             Dim s As String = DirectCast(a(0),MalString).getValue()
             return new MalString(ChrW(&H029e) & s)
@@ -77,7 +92,9 @@ Namespace Mal
         Shared Function keyword_Q(a As MalList) As MalVal
             If TypeOf a(0) Is MalString Then
                 Dim s As String = DirectCast(a(0),MalString).getValue()
-                If s.Substring(0,1) = Strings.ChrW(&H029e) Then
+                If s.Length = 0 Then
+                    return MalFalse
+                Elseif s.Substring(0,1) = Strings.ChrW(&H029e) Then
                     return MalTrue
                 Else
                     return MalFalse
@@ -334,6 +351,33 @@ Namespace Mal
             End If
         End Function
 
+        Shared Function seq(a As MalList) As MalVal
+            If a(0) Is Nil Then
+                return Nil
+            Elseif TypeOf a(0) is MalVector Then
+                If DirectCast(a(0),MalVector).size() = 0 Then
+                    return Nil
+                End If
+                return new MalList(DirectCast(a(0),MalVector).getValue())
+            Elseif TypeOf a(0) is MalList Then
+                If DirectCast(a(0),MalList).size() = 0 Then
+                    return Nil
+                End If
+                return a(0)
+            Elseif TypeOf a(0) is MalString Then
+                Dim s As String = DirectCast(a(0),MalString).getValue()
+                If s.Length = 0 Then
+                    return Nil
+                End If
+                Dim chars_list As New List(Of MalVal)
+                For Each c As Char In s
+                    chars_list.Add(new MalString(c.ToString()))
+                Next
+                return new MalList(chars_list)
+            Else
+                return Nil
+            End If
+        End Function
 
         ' General list related functions
         Shared Function apply(a As MalList) As MalVal
@@ -407,6 +451,7 @@ Namespace Mal
             ns.Add("false?", New MalFunc(AddressOf false_Q))
             ns.Add("symbol", new MalFunc(AddressOf symbol))
             ns.Add("symbol?", New MalFunc(AddressOf symbol_Q))
+            ns.Add("string?", New MalFunc(AddressOf string_Q))
             ns.Add("keyword", new MalFunc(AddressOf keyword))
             ns.Add("keyword?", New MalFunc(AddressOf keyword_Q))
 
@@ -449,6 +494,7 @@ Namespace Mal
             ns.Add("empty?", New MalFunc(AddressOf empty_Q))
             ns.Add("count",New MalFunc(AddressOf  count))
             ns.Add("conj", New MalFunc(AddressOf conj))
+            ns.Add("seq", New MalFunc(AddressOf seq))
             ns.Add("apply", New MalFunc(AddressOf apply))
             ns.Add("map", New MalFunc(AddressOf map))
 
