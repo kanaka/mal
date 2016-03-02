@@ -282,15 +282,25 @@ package body Reader is
    end Read_List;
 
 
-   -- Make a new list of the form: (Sym_Name, <rest_of_form>)
-   function Make_New_List (Sym_Name : Mal_String) return Mal_Handle is
+   type Handle_Lists is array (Positive range <>) of Mal_Handle;
+
+   -- Make a new list of the form: (Sym_Name, Handle_List(1), Handle_List(2)...)
+   -- If no Handle_List is supplied then it defauls to (1 => Read_Form).
+   function Make_New_List
+              (Sym_Name : Mal_String;
+               Handle_List : Handle_Lists := (1 => Read_Form))
+   return Mal_Handle is
+
       List_SP : Mal_Handle;
       List_P : List_Ptr;
+
    begin
       List_SP := New_List_Mal_Type (List_Type => List_List);
       List_P := Deref_List (List_SP);
       Append (List_P.all, New_Symbol_Mal_Type (Sym_Name));
-      Append (List_P.all, Read_Form);
+      for I in Handle_List'Range loop
+         Append (List_P.all, Handle_List (I));
+      end loop;
       return List_SP;
    end Make_New_List;
 
@@ -317,18 +327,13 @@ package body Reader is
          when Start_Hash_Tok => return Read_List (Hashed_List);
 
          when Meta_Tok =>
-
+            
             declare
                Meta, Obj : Mal_Handle;
             begin
                Meta := Read_Form;
                Obj := Read_Form;
-               declare
-                  MT : Mal_Ptr := Deref (Obj);
-               begin
-                  Set_Meta (MT.all, Meta);
-               end;
-               return Obj;
+               return Make_New_List ("with-meta", (1 => Obj, 2 => Meta));
             end;
 
          when Deref_Tok => return Make_New_List ("deref");

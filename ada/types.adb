@@ -136,13 +136,7 @@ package body Types is
    function To_String (T : Mal_Type'Class; Print_Readably : Boolean := True)
    return Mal_String is
    begin
-      if not Is_Null (T.Meta) then
-         return "(with-meta " &
-                To_Str (T, Print_Readably) & " " &
-                To_Str (Deref (T.Meta).all, Print_Readably) & ")";
-      else
-         return To_Str (T, Print_Readably);
-      end if;
+      return To_Str (T, Print_Readably);
    end To_String;
 
    function Is_Macro_Call (T : Mal_Type'Class; Env : Envs.Env_Handle) return Boolean is

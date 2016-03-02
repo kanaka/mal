@@ -61,9 +61,13 @@ begin
         Rep ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))");
       Cond_S : String :=
         Rep ("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons 'cond (rest (rest xs)))))))");
+      GenSym_Counter_S : String :=
+        Rep ("(def! *gensym-counter* (atom 0))");
+      GenSym_S : String :=
+        Rep ("(def! gensym (fn* [] (symbol (str ""G__"" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))");
       Or_S : String :=
-        Rep ("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
-      pragma Unreferenced (Not_S, LF_S, Cond_S, Or_S);
+        Rep ("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))");
+      pragma Unreferenced (Not_S, LF_S, Cond_S, GenSym_Counter_S, GenSym_S, Or_S);
    begin
       null;
    end;
