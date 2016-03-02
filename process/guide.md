@@ -1461,6 +1461,15 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 * Add meta-data support to mal functions. TODO. Should be separate
   from the function macro flag.
 
+* Add a new "\*host-language\*" (symbol) entry to your REPL
+  environment. The value of this entry should be a mal string
+  containing thename of the current implementation.
+
+* When the REPL starts up (as opposed to when it is called with
+  a script and/or arguments), call the `rep` function with this string
+  to print a startup header:
+  "(println (str \"Mal [\" *host-language* \"]\"))".
+
 
 Now go to the top level, run the step A tests:
 ```
