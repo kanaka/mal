@@ -206,13 +206,9 @@
                       (let ((type (mal-type mal-object))
                             (value (mal-value mal-object)))
                         (cond
-                         ((eq type 'list)
-                          (if value
-                              mal-object
-                            mal-nil))
-                         ((eq type 'vector)
-                          (if (not (zerop (length value)))
-                              (mal-vector (append value nil))
+                         ((or (eq type 'list) (eq type 'vector))
+                          (if (and value (not (zerop (length value))))
+                              (mal-list (mal-listify mal-object))
                             mal-nil))
                          ((eq type 'string)
                           (if (not (zerop (length value)))
