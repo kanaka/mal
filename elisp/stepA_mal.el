@@ -245,6 +245,7 @@
       (with-error-handling
        (rep (format "(load-file \"%s\")" (car argv))))
     (let (eof)
+      (rep "(println (str \"Mal [\" *host-language* \"]\"))")
       (while (not eof)
         (let ((input (readln "user> ")))
           (if input

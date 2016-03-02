@@ -14,6 +14,7 @@ matrix:
     - {env: IMPL=clojure,   services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
     - {env: IMPL=d,         services: [docker]}
+    - {env: IMPL=elisp,     services: [docker]}
     - {env: IMPL=elixir,    services: [docker]}
     - {env: IMPL=erlang NO_PERF=1, services: [docker]} # perf runs out of memory
     - {env: IMPL=es6,       services: [docker]}
