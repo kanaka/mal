@@ -820,6 +820,26 @@ package body Core is
    end Read_String;
 
 
+   function Read_Line (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      Rest_List : Types.List_Mal_Type;
+      First_Param : Mal_Handle;
+      S : String (1..Reader.Max_Line_Len);
+   Last : Natural;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      declare
+         Prompt : String := Deref_String (First_Param).Get_String;
+      begin
+         -- Print the prompt, less the quote marks.
+         Ada.Text_IO.Put (Prompt (2 .. Prompt'Last - 1));
+      end;
+      Ada.Text_IO.Get_Line (S, Last);
+      return New_String_Mal_Type ('"' & S (1 .. Last) & '"');
+   end Read_Line;
+
+
    function Slurp (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
@@ -1071,6 +1091,10 @@ package body Core is
       Set (Get_Current,
            "read-string",
            New_Func_Mal_Type ("read-string", Read_String'access));
+
+      Set (Get_Current,
+           "readline",
+           New_Func_Mal_Type ("readline", Read_Line'access));
 
       Set (Get_Current,
            "slurp",
