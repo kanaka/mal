@@ -20,7 +20,7 @@ eval_ast := method(ast, env,
 )
 
 EVAL := method(ast, env,
-    if(ast type != "MalList", return eval_ast(ast, env))
+    if(ast type != "MalList", return(eval_ast(ast, env)))
     el := eval_ast(ast, env)
     f := el at(0)
     args := el rest
@@ -46,6 +46,6 @@ loop(
     if(line isEmpty, continue)
     e := try(REP(line) println)
     e catch(Exception,
-        (e caughtMessage) println
+        ("Error: " .. (e error)) println
     )
 )

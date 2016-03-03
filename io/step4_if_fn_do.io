@@ -25,6 +25,12 @@ EVAL := method(ast, env,
         ast at(0) val switch(
             "def!",
                 return(env set(ast at(1), EVAL(ast at(2), env))),
+            "do",
+                return(eval_ast(ast rest, env) last),
+            "if",
+                return(EVAL(if(EVAL(ast at(1), env), ast at(2), ast at(3)), env)),
+            "fn*",
+                return(block(a, EVAL(ast at(2), Env with(env, ast at(1), a)))),
             "let*",
                 letEnv := Env with(env)
                 varName := nil
@@ -42,20 +48,20 @@ EVAL := method(ast, env,
     el := eval_ast(ast, env)
     f := el at(0)
     args := el rest
-    f callWithArgList(args)
+    f call(args)
 )
 
 PRINT := method(exp, exp malPrint(true))
 
-repl_env := Env with(nil)
-repl_env set(MalSymbol with("+"), block(a, b, a + b))
-repl_env set(MalSymbol with("-"), block(a, b, a - b))
-repl_env set(MalSymbol with("*"), block(a, b, a * b))
-repl_env set(MalSymbol with("/"), block(a, b, a / b))
-
 RE := method(str, EVAL(READ(str), repl_env))
 
 REP := method(str, PRINT(RE(str)))
+
+repl_env := Env with(nil)
+MalCore foreach(k, v, repl_env set(MalSymbol with(k), v))
+
+// core.mal: defined using the language itself
+RE("(def! not (fn* (a) (if a false true)))")
 
 loop(
     line := MalReadline readLine("user> ")

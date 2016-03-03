@@ -7,10 +7,7 @@ Number malPrint := method(readable, self asString)
 
 // Io strings are of type Sequence
 Sequence malPrint := method(readable,
-    if(readable,
-        "\"" .. (self asString) .. "\"",
-        self asString
-    )
+    if(readable, self asString asJson, self asString)
 )
 
 MalSymbol := Object clone do (
@@ -19,6 +16,7 @@ MalSymbol := Object clone do (
         self clone setVal(str)
     )
     malPrint := method(readable, val)
+    == := method(other, other isKindOf(MalSymbol) and (val == other val))
 )
 
 MalKeyword := Object clone do (
@@ -27,6 +25,7 @@ MalKeyword := Object clone do (
         self clone setVal(str)
     )
     malPrint := method(readable, ":" .. val)
+    == := method(other, other isKindOf(MalKeyword) and (val == other val))
 )
 
 MalList := List clone do (
@@ -36,6 +35,8 @@ MalList := List clone do (
     malPrint := method(readable,
         "(" ..  (self map(e, e malPrint(readable)) join(" ")) .. ")"
     )
+    rest := method(MalList with(resend))
+    slice := method(MalList with(resend))
 )
 
 MalVector := List clone do (
@@ -69,9 +70,9 @@ MalMap := Map clone do (
         )
     )
     malPrint := method(readable,
-        "{" ..  
-            (self map(k, v, 
-                (keyToObj(k) malPrint(readable)) .. " " .. (v malPrint(readable)) 
+        "{" ..
+            (self map(k, v,
+                (keyToObj(k) malPrint(readable)) .. " " .. (v malPrint(readable))
             ) join(" ")) .. "}"
     )
 )

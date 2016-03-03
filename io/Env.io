@@ -2,8 +2,20 @@ Env := Object clone do(
     outer ::= nil
     data ::= nil
 
-    with := method(envOuter,
-        self clone setOuter(envOuter) setData(Map clone)
+    with := method(aOuter, aBinds, aExprs,
+        self clone setOuter(aOuter) setData(Map clone) initBinds(aBinds, aExprs)
+    )
+
+    initBinds := method(aBinds, aExprs,
+        if(aBinds isNil not,
+            aBinds foreach(i, b,
+                if(b val == "&",
+                    set(aBinds at(i + 1), aExprs slice(i)) break,
+                    set(b, aExprs at(i))
+                )
+            )
+        )
+        self
     )
 
     set := method(key, val,

@@ -17,6 +17,6 @@ loop(
     if(line isEmpty, continue)
     e := try(REP(line) println)
     e catch(Exception,
-        (e caughtMessage) println
+        ("Error: " .. (e error)) println
     )
 )

@@ -28,17 +28,17 @@ MalReader := Object clone do (
     numberRegex := Regex with("^-?[0-9]+$")
 
     read_string := method(token,
-        token exSlice(1, -1) // Remove the starting and ending quotes
+        token exSlice(1, -1) replaceSeq("\\\"", "\"") replaceSeq("\\n", "\n") replaceSeq("\\\\", "\\")
     )
 
     read_atom := method(rdr,
         token := rdr next
         (token hasMatchOfRegex(numberRegex)) ifTrue(return(token asNumber))
-        (token == "true") ifTrue(return true)
-        (token == "false") ifTrue(return false)
-        (token == "nil") ifTrue(return nil)
+        (token == "true") ifTrue(return(true))
+        (token == "false") ifTrue(return(false))
+        (token == "nil") ifTrue(return(nil))
         (token beginsWithSeq(":")) ifTrue(return(MalKeyword with(token exSlice(1))))
-        (token beginsWithSeq("\"")) ifTrue(return read_string(token))
+        (token beginsWithSeq("\"")) ifTrue(return(read_string(token)))
         MalSymbol with(token)
     )
 
@@ -63,21 +63,21 @@ MalReader := Object clone do (
 
     read_form := method(rdr,
         token := rdr peek
-        (token == "'") ifTrue(return reader_macro("quote", rdr))
-        (token == "`") ifTrue(return reader_macro("quasiquote", rdr))
-        (token == "~") ifTrue(return reader_macro("unquote", rdr))
-        (token == "~@") ifTrue(return reader_macro("splice-unquote", rdr))
+        (token == "'") ifTrue(return(reader_macro("quote", rdr)))
+        (token == "`") ifTrue(return(reader_macro("quasiquote", rdr)))
+        (token == "~") ifTrue(return(reader_macro("unquote", rdr)))
+        (token == "~@") ifTrue(return(reader_macro("splice-unquote", rdr)))
         (token == "^") ifTrue(
             rdr next
             meta := read_form(rdr)
-            return MalList with(list(MalSymbol with("with-meta"), read_form(rdr), meta))
+            return(MalList with(list(MalSymbol with("with-meta"), read_form(rdr), meta)))
         )
-        (token == "@") ifTrue(return reader_macro("deref", rdr))
-        (token == "(") ifTrue(return MalList with(read_list(rdr, "(", ")")))
+        (token == "@") ifTrue(return(reader_macro("deref", rdr)))
+        (token == "(") ifTrue(return(MalList with(read_list(rdr, "(", ")"))))
         (token == ")") ifTrue(Exception raise("unexepcted ')'"))
-        (token == "[") ifTrue(return MalVector with(read_list(rdr, "[", "]")))
+        (token == "[") ifTrue(return(MalVector with(read_list(rdr, "[", "]"))))
         (token == "]") ifTrue(Exception raise("unexepcted ']'"))
-        (token == "{") ifTrue(return MalMap withList(read_list(rdr, "{", "}")))
+        (token == "{") ifTrue(return(MalMap withList(read_list(rdr, "{", "}"))))
         (token == "}") ifTrue(Exception raise("unexepcted '}'"))
         read_atom(rdr)
     )
