@@ -90,3 +90,12 @@ MalFunc := Object clone do (
     )
     malPrint := method(readable, "#<Function:params=" ..  (params malPrint(true)) .. ">")
 )
+
+MalAtom := Object clone do (
+    val ::= nil
+    with := method(str,
+        self clone setVal(str)
+    )
+    malPrint := method(readable, "(atom " .. (val malPrint(true)) .. ")")
+    == := method(other, other isKindOf(MalAtom) and (val == other val))
+)

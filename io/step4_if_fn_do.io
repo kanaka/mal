@@ -58,7 +58,7 @@ RE := method(str, EVAL(READ(str), repl_env))
 REP := method(str, PRINT(RE(str)))
 
 repl_env := Env with(nil)
-MalCore foreach(k, v, repl_env set(MalSymbol with(k), v))
+MalCore NS foreach(k, v, repl_env set(MalSymbol with(k), v))
 
 // core.mal: defined using the language itself
 RE("(def! not (fn* (a) (if a false true)))")

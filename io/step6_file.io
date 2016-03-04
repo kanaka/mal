@@ -68,15 +68,24 @@ EVAL := method(ast, env,
 
 PRINT := method(exp, exp malPrint(true))
 
+repl_env := Env with(nil)
+
 RE := method(str, EVAL(READ(str), repl_env))
 
 REP := method(str, PRINT(RE(str)))
 
-repl_env := Env with(nil)
 MalCore NS foreach(k, v, repl_env set(MalSymbol with(k), v))
+repl_env set(MalSymbol with("eval"), block(a, EVAL(a at(0), repl_env)))
+repl_env set(MalSymbol with("*ARGV*"), MalList with(System args slice(2)))
 
 // core.mal: defined using the language itself
 RE("(def! not (fn* (a) (if a false true)))")
+RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+
+if(System args size > 1,
+    REP("(load-file \"" .. (System args at(1)) .. "\")")
+    System exit(0)
+)
 
 loop(
     line := MalReadline readLine("user> ")
