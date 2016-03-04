@@ -6,6 +6,13 @@ MalCore := Object clone do(
         res
     )
 
+    nth := block(a,
+        if(a at(1) < a at(0) size,
+            a at(0) at(a at(1)),
+            Exception raise("nth: index out of range")
+        )
+    )
+
     swapBang := block(a,
         atom := a at(0)
         f := a at(1)
@@ -43,6 +50,9 @@ MalCore := Object clone do(
 
         "cons",   block(a, MalList with(list(a at(0)) appendSeq(a at(1)))),
         "concat", block(a, MalList with(a reduce(appendSeq, list()))),
+        "nth",    nth,
+        "first",  block(a, a at(0) ifNil(return nil) first),
+        "rest",   block(a, a at(0) ifNil(return MalList with(list())) rest),
         "empty?", block(a, a at(0) ifNil(true) isEmpty),
         "count",  block(a, a at(0) ifNil(return(0)) size),
 

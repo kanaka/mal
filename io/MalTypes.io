@@ -92,6 +92,7 @@ MalFunc := Object clone do (
     params ::= nil
     env ::= nil
     blk ::= nil
+    isMacro ::= false
 
     with := method(aAst, aParams, aEnv, aBlk,
         self clone setAst(aAst) setParams(aParams) setEnv(aEnv) setBlk(aBlk)
