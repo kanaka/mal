@@ -10,7 +10,12 @@ Sequence malPrint := method(readable,
     if(readable, self asString asJson, self asString)
 )
 
+MalMeta := Object clone do(
+    meta ::= nil
+)
+
 MalSymbol := Object clone do (
+    appendProto(MalMeta)
     val ::= nil
     with := method(str,
         self clone setVal(str)
@@ -34,6 +39,7 @@ MalSequential := Object clone do(
 
 MalList := List clone do (
     appendProto(MalSequential)
+    appendProto(MalMeta)
     with := method(lst,
         self clone copy(lst)
     )
@@ -46,6 +52,7 @@ MalList := List clone do (
 
 MalVector := List clone do (
     appendProto(MalSequential)
+    appendProto(MalMeta)
     with := method(lst,
         self clone copy(lst)
     )
@@ -57,6 +64,7 @@ MalVector := List clone do (
 )
 
 MalMap := Map clone do (
+    appendProto(MalMeta)
     withList := method(lst,
         obj := self clone
         k := nil
@@ -102,8 +110,10 @@ MalMap := Map clone do (
 )
 
 Block malPrint := method(readable, "#<NativeFunction>")
+Block appendProto(MalMeta)
 
 MalFunc := Object clone do (
+    appendProto(MalMeta)
     ast ::= nil
     params ::= nil
     env ::= nil
@@ -117,6 +127,7 @@ MalFunc := Object clone do (
 )
 
 MalAtom := Object clone do (
+    appendProto(MalMeta)
     val ::= nil
     with := method(str,
         self clone setVal(str)

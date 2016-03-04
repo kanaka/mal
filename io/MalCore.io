@@ -19,6 +19,30 @@ MalCore := Object clone do(
         )
     )
 
+    conj := block(a,
+        coll := a at(0)
+        coll type switch(
+            "MalList",
+                MalList with(a rest reverse appendSeq(coll)),
+            "MalVector",
+                MalVector with(coll appendSeq(a rest))
+        )
+    )
+
+    seq := block(a,
+        obj := a at(0)
+        (obj isNil) ifTrue(return(nil))
+        (obj type == "MalList") ifTrue(return(if(obj isEmpty, nil, obj)))
+        (obj type == "MalVector") ifTrue(return(if(obj isEmpty, nil, MalList with(obj))))
+        (obj type == "Sequence") ifTrue(
+            if(obj isEmpty, return(nil))
+            lst := list()
+            obj foreach(i, c, lst append(obj inclusiveSlice(i, i)))
+            return(MalList with(lst))
+        )
+        nil
+    )
+
     swapBang := block(a,
         atom := a at(0)
         newVal := a at(1) call(MalList with(list(atom val)) appendSeq(a slice(2)))
@@ -32,6 +56,7 @@ MalCore := Object clone do(
         "nil?",     block(a, a at(0) isNil),
         "true?",    block(a, a at(0) == true),
         "false?",   block(a, a at(0) == false),
+        "string?",  block(a, a at(0) type == "Sequence"),
         "symbol",   block(a, MalSymbol with(a at(0))),
         "symbol?",  block(a, a at(0) type == "MalSymbol"),
         "keyword",  block(a, MalKeyword with(a at(0))),
@@ -42,6 +67,7 @@ MalCore := Object clone do(
         "prn",     block(a, a map(s, s malPrint(true)) join(" ") println ; nil),
         "println", block(a, a map(s, s malPrint(false)) join(" ") println ; nil),
         "read-string", block(a, MalReader read_str(a at(0))),
+        "readline",    block(a, MalReadline readLine(a at(0))),
         "slurp",   slurp,
 
         "<",  block(a, a at(0) <  a at(1)),
@@ -52,6 +78,7 @@ MalCore := Object clone do(
         "-",  block(a, a at(0) -  a at(1)),
         "*",  block(a, a at(0) *  a at(1)),
         "/",  block(a, a at(0) /  a at(1)),
+        "time-ms", block(a, (Date now asNumber * 1000.0) round),
 
         "list",      block(a, a),
         "list?",     block(a, a at(0) type == "MalList"),
@@ -77,10 +104,15 @@ MalCore := Object clone do(
         "apply",  block(a, a at(0) call(MalList with(a slice(1, -1) appendSeq(a last)))),
         "map",    block(a, MalList with(a at(1) map(e, a at(0) call(MalList with(list(e)))))),
 
-        "atom",   block(a, MalAtom with(a at(0))),
-        "atom?",  block(a, a at(0) type == "MalAtom"),
-        "deref",  block(a, a at(0) val),
-        "reset!", block(a, a at(0) setVal(a at(1)) ; a at(1)),
-        "swap!",  swapBang
+        "conj",   conj,
+        "seq",    seq,
+
+        "meta",      block(a, a at(0) ?meta),
+        "with-meta", block(a, a at(0) clone setMeta(a at(1))),
+        "atom",      block(a, MalAtom with(a at(0))),
+        "atom?",     block(a, a at(0) type == "MalAtom"),
+        "deref",     block(a, a at(0) val),
+        "reset!",    block(a, a at(0) setVal(a at(1)) ; a at(1)),
+        "swap!",     swapBang
     )
 )
