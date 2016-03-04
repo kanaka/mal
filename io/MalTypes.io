@@ -28,7 +28,12 @@ MalKeyword := Object clone do (
     == := method(other, other isKindOf(MalKeyword) and (val == other val))
 )
 
+MalSequential := Object clone do(
+    isSequential := method(true)
+)
+
 MalList := List clone do (
+    appendProto(MalSequential)
     with := method(lst,
         self clone copy(lst)
     )
@@ -40,12 +45,15 @@ MalList := List clone do (
 )
 
 MalVector := List clone do (
+    appendProto(MalSequential)
     with := method(lst,
         self clone copy(lst)
     )
     malPrint := method(readable,
         "[" ..  (self map(e, e malPrint(readable)) join(" ")) .. "]"
     )
+    rest := method(MalList with(resend))
+    slice := method(MalList with(resend))
 )
 
 MalMap := Map clone do (

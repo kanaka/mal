@@ -41,6 +41,8 @@ MalCore := Object clone do(
         "list",  block(a, a),
         "list?", block(a, a at(0) type == "MalList"),
 
+        "cons",   block(a, MalList with(list(a at(0)) appendSeq(a at(1)))),
+        "concat", block(a, MalList with(a reduce(appendSeq, list()))),
         "empty?", block(a, a at(0) ifNil(true) isEmpty),
         "count",  block(a, a at(0) ifNil(return(0)) size),
 
