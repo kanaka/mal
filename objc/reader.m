@@ -61,7 +61,9 @@ NSArray * tokenize(NSString *str) {
 
     NSMutableArray * tokens = [NSMutableArray array];
     for (NSTextCheckingResult *match in matches) {
-        [tokens addObject:[str substringWithRange:[match rangeAtIndex:1]]];
+        NSString * mstr = [str substringWithRange:[match rangeAtIndex:1]];
+        if ([mstr characterAtIndex:0] == ';') { continue; }
+        [tokens addObject:mstr];
     }
     return tokens;
 }
@@ -181,5 +183,9 @@ NSObject * read_form(Reader * rdr) {
 
 NSObject * read_str(NSString *str) {
     NSArray * tokens = tokenize(str);
+    if ([tokens count] == 0) { @throw [NSException exceptionWithName:@"ReaderContinue"
+                                       reason:@"empty token"
+                                       userInfo:nil]; }
+    //if ([tokens count] == 0) { @throw [[MalContinue alloc] init]; }
     return read_form([[Reader alloc] initWithTokens:tokens]);
 }

@@ -37,25 +37,25 @@
 @end
 
 
-// Lists
+BOOL string_Q(id obj) {
+    if ([obj isKindOfClass:[NSString class]]) {
+        NSString * s = obj;
+        if (![s isKindOfClass:[MalSymbol class]]) {
+            return ![s hasPrefix:@"\u029e"];
+        }
+    }
+    return false;
+}
 
-//// Add map to NSArray
-//@implementation NSArray (CMMap)
-//- (NSArray *) map:(NSObject *(^)(NSObject * obj))block {
-//    NSMutableArray *res = [NSMutableArray array];
-//    for (NSObject * x in self) {
-//        [res addObject: block(x)];
-//    }
-//    return res;
-//}
-//@end
-//
-// E.g.:
-// return [(NSArray *)ast map:^(NSObject * x) { return EVAL(x, env); }];
+// Lists
 
 BOOL list_Q(id obj) {
     return ([obj isKindOfClass:[NSArray class]] &&
             ![obj isKindOfClass:[MalVector class]]);
+}
+
+NSArray * _rest(NSArray * obj) {
+    return [obj subarrayWithRange:NSMakeRange(1, [obj count]-1)];
 }
 
 // Vectors 
@@ -114,6 +114,29 @@ BOOL block_Q(id obj) {
     return [obj isKindOfClass:blockClass];
 }
 
+
+
+@implementation MalAtom
+
+@synthesize val = _val;
+
+- (id)init:(NSObject *)val {
+    self = [super init];
+    if (self) {
+        _val = val;
+    }
+    return self;
+}
+
++ (id)fromObject:(NSObject *)val {
+    return [[MalAtom alloc] init:val];
+}
+
+@end
+
+BOOL atom_Q(id obj) {
+    return [obj isKindOfClass:[MalAtom class]];
+}
 
 // General functions
 

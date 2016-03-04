@@ -51,7 +51,7 @@ NSObject *EVAL(NSObject *ast, NSDictionary *env) {
 
     NSArray * el = (NSArray *) eval_ast(ast, env);
     NSObject * (^ f)(NSArray *) = el[0];
-    NSArray * args = [el subarrayWithRange:NSMakeRange(1, [el count] - 1)];
+    NSArray * args = _rest(el);
     return f(args);
 }
 
@@ -65,12 +65,7 @@ NSString *REP(NSString *line, NSDictionary *env) {
     return PRINT(EVAL(READ(line), env));
 }
 
-int main (int argc, const char * argv[]) {
-    // Create an autorelease pool to manage the memory into the program
-    NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
-    // If using automatic reference counting (ARC), use @autoreleasepool instead:
-//    @autoreleasepool {
-
+int main () {
     NSDictionary * repl_env = @{
         @"+": ^(NSArray *args){
             return [NSNumber numberWithInt:[args[0] intValue] + [args[1] intValue]];
@@ -86,6 +81,11 @@ int main (int argc, const char * argv[]) {
         },
         };
 
+    // Create an autorelease pool to manage the memory into the program
+    NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
+    // If using automatic reference counting (ARC), use @autoreleasepool instead:
+//    @autoreleasepool {
+
     while (true) {
         char *rawline = _readline("user> ");
         if (!rawline) { break; }
@@ -95,6 +95,9 @@ int main (int argc, const char * argv[]) {
             printf("%s\n", [[REP(line, repl_env) description] UTF8String]);
         } @catch(NSString *e) {
             printf("Error: %s\n", [e UTF8String]);
+        } @catch(NSException *e) {
+            if ([[e name] isEqualTo:@"ReaderContinue"]) { continue; }
+            printf("Exception: %s\n", [[e reason] UTF8String]);
         }
     }
 

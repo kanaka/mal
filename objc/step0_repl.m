@@ -18,7 +18,7 @@ NSString *REP(NSString *line) {
     return PRINT(EVAL(READ(line), @""));
 }
 
-int main (int argc, const char * argv[]) {
+int main () {
     // Create an autorelease pool to manage the memory into the program
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
     // If using automatic reference counting (ARC), use @autoreleasepool instead:

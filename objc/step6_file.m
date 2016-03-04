@@ -39,6 +39,7 @@ NSObject *eval_ast(NSObject *ast, Env *env) {
 }
 
 NSObject *EVAL(NSObject *ast, Env *env) {
+  while (true) {
     //NSLog(@"EVAL: %@ (%@)", _pr_str(ast, true), env);
     if (!list_Q(ast)) {
         return eval_ast(ast, env);
@@ -57,21 +58,23 @@ NSObject *EVAL(NSObject *ast, Env *env) {
         for (int i=0; i < [binds count]; i+=2) {
             [let_env set:binds[i] val:EVAL(binds[i+1], let_env)];
         }
-        return EVAL(alst[2], let_env);
+        env = let_env;
+        ast = alst[2]; // TCO
     } else if ([a0sym isEqualTo:@"do"]) {
-        NSArray * el = (NSArray *)eval_ast(_rest(alst), env);
-        return [el lastObject];
+        NSRange r = NSMakeRange(1, [alst count] - 2);
+        eval_ast([alst subarrayWithRange:r], env);
+        ast = [alst lastObject]; // TCO
     } else if ([a0sym isEqualTo:@"if"]) {
         NSObject * cond = EVAL(alst[1], env);
         if ([cond isKindOfClass:[NSNull class]] ||
             [cond isKindOfClass:[MalFalse class]]) {
             if ([alst count] > 3) {
-                return EVAL(alst[3], env);
+                ast = alst[3]; // TCO
             } else {
                 return [NSNull alloc];
             }
         } else {
-            return EVAL(alst[2], env);
+            ast = alst[2]; // TCO
         }
     } else if ([a0sym isEqualTo:@"fn*"]) {
         return [[MalFunc alloc] init:alst[2] env:env params:alst[1]];
@@ -81,17 +84,16 @@ NSObject *EVAL(NSObject *ast, Env *env) {
         if ([el count] > 1) {
             args = _rest(el);
         }
-        return apply(el[0], args);
-        /*
         if ([el[0] isKindOfClass:[MalFunc class]]) {
             MalFunc * mf = el[0];
-            return [mf apply:args];
+            env = [Env fromBindings:[mf env] binds:[mf params] exprs:args];
+            ast = [mf ast]; // TCO
         } else {
             NSObject * (^ f)(NSArray *) = el[0];
             return f(args);
         }
-        */
     }
+  }
 }
 
 // print
@@ -105,7 +107,10 @@ NSString *REP(NSString *line, Env *env) {
 }
 
 int main () {
+    // Outside of pool to prevent "Block_release called upon
+    // a stack..." message on exit
     Env * repl_env = [[Env alloc] init];
+    NSArray *args = [[NSProcessInfo processInfo] arguments];
 
     // Create an autorelease pool to manage the memory into the program
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
@@ -117,9 +122,27 @@ int main () {
     for (NSString* key in core_ns) {
         [repl_env set:(MalSymbol *)key val:[core_ns objectForKey:key]];
     }
+    [repl_env set:(MalSymbol *)@"eval" val:^(NSArray *args) {
+        return EVAL(args[0], repl_env);
+    }];
+    NSArray *argv = @[];
+    if ([args count] > 2) {
+        argv = [args subarrayWithRange:NSMakeRange(2, [args count] - 2)];
+    }
+    [repl_env set:(MalSymbol *)@"*ARGV*" val:argv];
 
     // core.mal: defined using the language itself
     REP(@"(def! not (fn* (a) (if a false true)))", repl_env);
+    REP(@"(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env);
+
+    if ([args count] > 1) {
+        @try {
+            REP([NSString stringWithFormat:@"(load-file \"%@\")", args[1]], repl_env);
+        } @catch(NSString *e) {
+            printf("Error: %s\n", [e UTF8String]);
+        }
+        return 0;
+    }
 
     while (true) {
         char *rawline = _readline("user> ");

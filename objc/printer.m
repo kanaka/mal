@@ -49,6 +49,9 @@ NSString * _pr_str(NSObject * obj, BOOL print_readably) {
                 [elems componentsJoinedByString:@" "]];
     } else if (block_Q(obj)) {
         return @"#<native function>";
+    } else if (atom_Q(obj)) {
+        return [NSString stringWithFormat:@"(atom %@)",
+                _pr_str([(MalAtom *)obj val], print_readably)];
     } else {
         return [obj description];
     }

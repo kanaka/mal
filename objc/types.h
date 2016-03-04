@@ -28,7 +28,6 @@
 // Mal Types
 //
 
-
 @interface MalTrue : NSObject
 @end
 
@@ -38,10 +37,13 @@
 @interface MalSymbol: NSString
 @end
 
+BOOL string_Q(NSObject * obj);
 
 // Lists
 
 BOOL list_Q(id obj);
+
+NSArray * _rest(NSArray * obj);
 
 
 // Vectors
@@ -63,6 +65,7 @@ BOOL list_Q(id obj);
 
 // Hash Maps
 
+NSDictionary * assoc_BANG(NSMutableDictionary * d, NSArray * kvs);
 NSDictionary * hash_map(NSArray *kvs);
 
 
@@ -70,6 +73,20 @@ NSDictionary * hash_map(NSArray *kvs);
 
 BOOL block_Q(id obj);
 
+
+// Atoms
+
+@interface MalAtom : NSObject
+ 
+@property (copy) NSObject * val;
+
+- (id)init:(NSObject *)val;
+
++ (id)fromObject:(NSObject *)val;
+
+@end
+
+BOOL atom_Q(id obj);
 
 
 // General functions

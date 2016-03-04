@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 
 #import "mal_readline.h"
+#import "types.h"
 #import "reader.h"
 #import "printer.h"
 
@@ -20,7 +21,7 @@ NSString *REP(NSString *line) {
     return PRINT(EVAL(READ(line), @""));
 }
 
-int main (int argc, const char * argv[]) {
+int main () {
     // Create an autorelease pool to manage the memory into the program
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
     // If using automatic reference counting (ARC), use @autoreleasepool instead:
@@ -35,6 +36,9 @@ int main (int argc, const char * argv[]) {
             printf("%s\n", [[REP(line) description] UTF8String]);
         } @catch(NSString *e) {
             printf("Error: %s\n", [e UTF8String]);
+        } @catch(NSException *e) {
+            if ([[e name] isEqualTo:@"ReaderContinue"]) { continue; }
+            printf("Exception: %s\n", [[e reason] UTF8String]);
         }
     }
 

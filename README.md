@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 47 languages:
+Mal is implemented in 48 languages:
 
 * GNU awk
 * Bash shell
@@ -39,6 +39,7 @@ Mal is implemented in 47 languages:
 * MATLAB
 * [miniMAL](https://github.com/kanaka/miniMAL)
 * Nim
+* Objective C
 * OCaml
 * Perl
 * PHP
@@ -438,6 +439,17 @@ cd nim
 make
   # OR
 nimble build
+./stepX_YYY
+```
+
+### Objective C
+
+The Objective C implementation of mal has been built and tested on
+Linux using clang/LLVM 3.6.
+
+```
+cd objc
+make
 ./stepX_YYY
 ```
 

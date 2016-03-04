@@ -63,7 +63,7 @@ NSObject *EVAL(NSObject *ast, Env *env) {
     } else {
         NSArray * el = (NSArray *) eval_ast(ast, env);
         NSObject * (^ f)(NSArray *) = el[0];
-        NSArray * args = [el subarrayWithRange:NSMakeRange(1, [el count] - 1)];
+        NSArray * args = _rest(el);
         return f(args);
     }
 }
@@ -78,13 +78,14 @@ NSString *REP(NSString *line, Env *env) {
     return PRINT(EVAL(READ(line), env));
 }
 
-int main (int argc, const char * argv[]) {
+int main () {
+    Env * repl_env = [[Env alloc] init];
+
     // Create an autorelease pool to manage the memory into the program
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
     // If using automatic reference counting (ARC), use @autoreleasepool instead:
 //    @autoreleasepool {
 
-    Env * repl_env = [[Env alloc] init];
     [repl_env set:(MalSymbol *)@"+" val:^(NSArray *args){
         return [NSNumber numberWithInt:[args[0] intValue] + [args[1] intValue]];
     }];
@@ -107,6 +108,9 @@ int main (int argc, const char * argv[]) {
             printf("%s\n", [[REP(line, repl_env) description] UTF8String]);
         } @catch(NSString *e) {
             printf("Error: %s\n", [e UTF8String]);
+        } @catch(NSException *e) {
+            if ([[e name] isEqualTo:@"ReaderContinue"]) { continue; }
+            printf("Exception: %s\n", [[e reason] UTF8String]);
         }
     }
 
