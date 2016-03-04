@@ -76,3 +76,17 @@ MalMap := Map clone do (
             ) join(" ")) .. "}"
     )
 )
+
+Block malPrint := method(readable, "#<NativeFunction>")
+
+MalFunc := Object clone do (
+    ast ::= nil
+    params ::= nil
+    env ::= nil
+    blk ::= nil
+
+    with := method(aAst, aParams, aEnv, aBlk,
+        self clone setAst(aAst) setParams(aParams) setEnv(aEnv) setBlk(aBlk)
+    )
+    malPrint := method(readable, "#<Function:params=" ..  (params malPrint(true)) .. ">")
+)

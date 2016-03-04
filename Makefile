@@ -65,6 +65,7 @@ STEP5_EXCLUDES += elixir  # elixir is TCO, test passes
 STEP5_EXCLUDES += fsharp  # completes at 10,000, fatal stack overflow at 100,000
 STEP5_EXCLUDES += go      # test completes, even at 100,000
 STEP5_EXCLUDES += haskell # test completes
+STEP5_EXCLUDES += io      # too slow to complete 10,000
 STEP5_EXCLUDES += make    # no TCO capability/step
 STEP5_EXCLUDES += mal     # no TCO capability/step
 STEP5_EXCLUDES += matlab  # too slow to complete 10,000
