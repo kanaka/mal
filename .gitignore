@@ -75,6 +75,7 @@ make/mal.mk
 mal/mal.mal
 miniMAL/mal.json
 nim/nimcache*
+objc/*.d
 ocaml/*.cmi
 ocaml/*.cmo
 ocaml/*.swp
