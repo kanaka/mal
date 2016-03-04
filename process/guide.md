@@ -295,7 +295,7 @@ expression support.
 
   * `"(?:\\.|[^\\"])*"`: Starts capturing at a double-quote and stops at the
     next double-quote unless it was proceeded by a backslash in which case it
-    includes it until the next double-quote (tockenized).
+    includes it until the next double-quote (tokenized).
 
   * `;.*`: Captures any sequence of characters starting with `;` (tokenized).
 
@@ -324,7 +324,7 @@ expression support.
   your language does not have a sequential data type that can hold mal
   type values you may need to implement one (in `types.qx`).  Note
   that `read_list` repeatedly calls `read_form` rather than
-  `read_atom`. This mutually recursive defintion between `read_list`
+  `read_atom`. This mutually recursive definition between `read_list`
   and `read_form` is what allows lists to contain lists.
 
 * Add the function `read_atom` to `reader.qx`. This function will
@@ -953,7 +953,7 @@ a reference to a single Mal value of any type; it supports reading that Mal valu
 and *modifying* the reference to point to another Mal value.  Note that this is
 the only Mal data type that is mutable (but the Mal values it refers to are
 still immutable; immutability is explained in greater detail in step 7).
-You'll need to add 5 functions to the core namesapce to support atoms:
+You'll need to add 5 functions to the core namespace to support atoms:
 
   * `atom`: Takes a Mal value and returns a new atom which points to that Mal value.
   * `atom?`: Takes an argument and returns `true` if the argument is an atom.
@@ -991,7 +991,7 @@ as a normal mal program. However, it is important to note that the
 `eval` function is not just for running external programs. Because mal
 programs are regular mal data structures, you can dynamically generate
 or manipulate those data structures before calling `eval` on them.
-This isomorphisism (same shape) between data and programs is known as
+This isomorphism (same shape) between data and programs is known as
 "homoiconicity". Lisp languages are homoiconic and this property
 distinguishes them from most other programming languages.
 
@@ -1012,7 +1012,7 @@ support quoting (step 7) and macros (step 8).
 
 * Add the rest of the command line arguments to your REPL environment
   so that programs that are run with `load-file` have access to their
-  calling environmnet. Add a new "\*ARGV\*" (symbol) entry to your REPL
+  calling environment. Add a new "\*ARGV\*" (symbol) entry to your REPL
   environment. The value of this entry should be the rest of the
   command line arguments as a mal list value.
 
@@ -1162,7 +1162,7 @@ macros.
 
 ![step8_macros architecture](step8_macros.png)
 
-Your mal implementation is now ready for one of the most Lispy and
+Your mal implementation is now ready for one of the most lispy and
 exciting of all programming concepts: macros. In the previous step,
 quoting enabled some simple manipulation data structures and therefore
 manipulation of mal code (because the `eval` function from step
@@ -1248,10 +1248,10 @@ Congratulations! You now have a Lisp interpreter with a super power
 that most non-Lisp languages can only dream of (I have it on good
 authority that languages dream when you are not using them). If you
 are not already familiar with Lisp macros, I suggest the following
-excercise: write a recursive macro that handles postfixed mal code
+exercise: write a recursive macro that handles postfixed mal code
 (with the function as the last parameter instead of the first). Or
 not. I have not actually done so myself, but I have heard it is an
-interesting excercise.
+interesting exercise.
 
 In the next step you will add try/catch style exception handling to
 your implementation in addition to some new core functions. After
@@ -1343,7 +1343,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
   `fn*`, the you will need to do so now.
   * `apply`: takes at least two arguments. The first argument is
     a function and the last argument is list (or vector). The
-    arguments between the function and the last arguemnt (if there are
+    arguments between the function and the last argument (if there are
     any) are concatenated with the final argument to create the
     arguments that are used to call the function. The apply
     function allows a function to be called with arguments that are
@@ -1555,7 +1555,7 @@ For extra information read [Peter Seibel's thorough discussion about
   functions. TODO
 * Add the following new core functions:
   * `time-ms`: takes no arguments and returns the number of
-    milliseconds since epoch (00:00:00 UTC Janurary 1, 1970), or, if
+    milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
     not possible, since another point in time (`time-ms` is usually
     used relatively to measure time durations).  After `time-ms` is
     implemented, you can run the mal implementation performance
