@@ -6,6 +6,12 @@ MalCore := Object clone do(
         res
     )
 
+    dissoc := block(a,
+        res := MalMap withMap(a at(0))
+        a rest foreach(k, res removeKey(k))
+        res
+    )
+
     nth := block(a,
         if(a at(1) < a at(0) size,
             a at(0) at(a at(1)),
@@ -15,19 +21,21 @@ MalCore := Object clone do(
 
     swapBang := block(a,
         atom := a at(0)
-        f := a at(1)
-        args := MalList with(list(atom val)) appendSeq(a slice(2))
-        newVal := f type switch(
-            "Block", f call(args),
-            "MalFunc", f blk call(args),
-            Exception raise("Unknown function type")
-        )
-        atom setVal(newVal)
-        newVal
+        newVal := a at(1) call(MalList with(list(atom val)) appendSeq(a slice(2)))
+        atom setVal(newVal) val
     )
 
     NS := Map with(
-        "=", block(a, a at(0) == a at(1)),
+        "=",     block(a, a at(0) == a at(1)),
+        "throw", block(a, MalException with(a at(0)) raise),
+
+        "nil?",     block(a, a at(0) isNil),
+        "true?",    block(a, a at(0) == true),
+        "false?",   block(a, a at(0) == false),
+        "symbol",   block(a, MalSymbol with(a at(0))),
+        "symbol?",  block(a, a at(0) type == "MalSymbol"),
+        "keyword",  block(a, MalKeyword with(a at(0))),
+        "keyword?", block(a, a at(0) type == "MalKeyword"),
 
         "pr-str",  block(a, a map(s, s malPrint(true)) join(" ")),
         "str",     block(a, a map(s, s malPrint(false)) join("")),
@@ -45,9 +53,20 @@ MalCore := Object clone do(
         "*",  block(a, a at(0) *  a at(1)),
         "/",  block(a, a at(0) /  a at(1)),
 
-        "list",  block(a, a),
-        "list?", block(a, a at(0) type == "MalList"),
+        "list",      block(a, a),
+        "list?",     block(a, a at(0) type == "MalList"),
+        "vector",    block(a, MalVector with(a)),
+        "vector?",   block(a, a at(0) type == "MalVector"),
+        "hash-map",  block(a, MalMap withList(a)),
+        "map?",      block(a, a at(0) type == "MalMap"),
+        "assoc",     block(a, MalMap withMap(a at(0) merge(MalMap withList(a rest)))),
+        "dissoc",    dissoc,
+        "get",       block(a, a at(0) ifNil(return nil) get(a at(1))),
+        "contains?", block(a, a at(0) ifNil(return nil) contains(a at(1))),
+        "keys",      block(a, a at(0) malKeys),
+        "vals",      block(a, a at(0) malVals),
 
+        "sequential?", block(a, if(a at(0) ?isSequential, true, false)),
         "cons",   block(a, MalList with(list(a at(0)) appendSeq(a at(1)))),
         "concat", block(a, MalList with(a reduce(appendSeq, list()))),
         "nth",    nth,
@@ -55,6 +74,8 @@ MalCore := Object clone do(
         "rest",   block(a, a at(0) ifNil(return MalList with(list())) rest),
         "empty?", block(a, a at(0) ifNil(true) isEmpty),
         "count",  block(a, a at(0) ifNil(return(0)) size),
+        "apply",  block(a, a at(0) call(MalList with(a slice(1, -1) appendSeq(a last)))),
+        "map",    block(a, MalList with(a at(1) map(e, a at(0) call(MalList with(list(e)))))),
 
         "atom",   block(a, MalAtom with(a at(0))),
         "atom?",  block(a, a at(0) type == "MalAtom"),

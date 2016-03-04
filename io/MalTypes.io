@@ -68,6 +68,9 @@ MalMap := Map clone do (
         )
         obj
     )
+    withMap := method(aMap,
+        self clone merge(aMap)
+    )
     objToKey := method(obj,
         if(obj isKindOf(MalKeyword), "K_" .. (obj val), "S_" .. obj)
     )
@@ -83,6 +86,19 @@ MalMap := Map clone do (
                 (keyToObj(k) malPrint(readable)) .. " " .. (v malPrint(readable))
             ) join(" ")) .. "}"
     )
+    contains := method(obj, hasKey(objToKey(obj)))
+    get := method(obj, at(objToKey(obj)))
+    malKeys := method(MalList with(keys map(k, keyToObj(k))))
+    malVals := method(MalList with(values))
+    removeKey := method(obj, removeAt(objToKey(obj)))
+    == := method(other,
+        if(self type != other type, return false)
+        if(keys size != other keys size, return false)
+        unequalElement := self detect(k, valA,
+            (valA == (other at(k))) not
+        )
+        if(unequalElement, false, true)
+    )
 )
 
 Block malPrint := method(readable, "#<NativeFunction>")
@@ -93,11 +109,11 @@ MalFunc := Object clone do (
     env ::= nil
     blk ::= nil
     isMacro ::= false
-
     with := method(aAst, aParams, aEnv, aBlk,
         self clone setAst(aAst) setParams(aParams) setEnv(aEnv) setBlk(aBlk)
     )
     malPrint := method(readable, "#<Function:params=" ..  (params malPrint(true)) .. ">")
+    call := method(args, blk call(args))
 )
 
 MalAtom := Object clone do (
@@ -107,4 +123,11 @@ MalAtom := Object clone do (
     )
     malPrint := method(readable, "(atom " .. (val malPrint(true)) .. ")")
     == := method(other, other isKindOf(MalAtom) and (val == other val))
+)
+
+MalException := Exception clone do (
+    val ::= nil
+    with := method(str,
+        self clone setVal(str)
+    )
 )
