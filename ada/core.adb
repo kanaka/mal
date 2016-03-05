@@ -825,7 +825,7 @@ package body Core is
       Rest_List : Types.List_Mal_Type;
       First_Param : Mal_Handle;
       S : String (1..Reader.Max_Line_Len);
-   Last : Natural;
+      Last : Natural;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
@@ -855,7 +855,8 @@ package body Core is
          use Ada.Text_IO;
          Fn : Ada.Text_IO.File_Type;
          Line_Str : String (1..Reader.Max_Line_Len);
-         File_Str : String (1..Reader.Max_Line_Len);
+         File_Str : Ada.Strings.Unbounded.Unbounded_String :=
+           Ada.Strings.Unbounded.To_Unbounded_String ("""");
          Last : Natural;
          I : Natural := 0;
       begin
@@ -863,15 +864,13 @@ package body Core is
          while not End_Of_File (Fn) loop
             Get_Line (Fn, Line_Str, Last);
             if Last > 0 then
-               File_Str (I+1 .. I+Last) := Line_Str (1 .. Last);
-               I := I + Last;
-               --File_Str (I+1) := OpenToken.EOL_Character;
-               File_Str (I+1) := Ada.Characters.Latin_1.LF;
-               I := I + 1;
+               Ada.Strings.Unbounded.Append (File_Str, Line_Str (1 .. Last));
+               Ada.Strings.Unbounded.Append (File_Str, Ada.Characters.Latin_1.LF);
             end if;
          end loop;
          Ada.Text_IO.Close (Fn);
-         return New_String_Mal_Type ('"' & File_Str (1..I) & '"');
+         Ada.Strings.Unbounded.Append (File_Str, '"');
+         return New_String_Mal_Type (Ada.Strings.Unbounded.To_String (File_Str));
       end;
    end Slurp;
 

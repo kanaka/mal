@@ -14,8 +14,6 @@ package body Reader is
 
    package ACL renames Ada.Characters.Latin_1;
 
-   subtype String_Indices is Integer range 0 .. Max_Line_Len;
-
    type Lexemes is (Ignored_Tok,
                     Start_List_Tok, Start_Vector_Tok, Start_Hash_Tok,
                     Meta_Tok, Deref_Tok,
@@ -30,7 +28,7 @@ package body Reader is
          when Float_Tok =>
             Float_Val : Mal_Float;
          when Str_Tok | Sym_Tok =>
-            Start_Char, Stop_Char : String_Indices;
+            Start_Char, Stop_Char : Natural;
          when others => null;
       end case;
    end record;
@@ -83,13 +81,14 @@ package body Reader is
       return To_String (Res);
    end Convert_String;
 
-   Str_Len : String_Indices := 0;
-   Saved_Line : String (1..Max_Line_Len);
-   Char_To_Read : String_Indices := 1;
+   Str_Len : Natural := 0;
+   Saved_Line : Ada.Strings.Unbounded.Unbounded_String;
+   Char_To_Read : Natural := 1;
 
    function Get_Token return Token is
       Res : Token;
-      I, J : String_Indices;
+      I, J : Natural;
+      use Ada.Strings.Unbounded;
    begin
 
       <<Tail_Call_Opt>>
@@ -97,7 +96,7 @@ package body Reader is
       -- Skip over whitespace...
       I := Char_To_Read;
       while I <= Str_Len and then
-            Ada.Strings.Maps.Is_In (Saved_Line (I), Lisp_Whitespace) loop
+            Ada.Strings.Maps.Is_In (Element (Saved_Line, I), Lisp_Whitespace) loop
          I := I + 1;
       end loop;
 
@@ -108,7 +107,7 @@ package body Reader is
 
       J := I;
 
-      case Saved_Line (J) is
+      case Element (Saved_Line, J) is
 
          when ''' => Res := (ID => Quote_Tok); Char_To_Read := J+1;
 
@@ -116,7 +115,7 @@ package body Reader is
 
          when '~' => -- Tilde
 
-            if J+1 <= Str_Len and then Saved_Line(J+1) = '@' then
+            if J+1 <= Str_Len and then Element (Saved_Line, J+1) = '@' then
                Res := (ID => Splice_Unq_Tok);
                Char_To_Read := J+2;
             else
@@ -142,8 +141,8 @@ package body Reader is
             -- Skip over "
             J := J + 1;
             while J <= Str_Len and then
-               (Saved_Line (J) /= '"' or else
-                 Saved_Line (J-1) = '\') loop
+               (Element (Saved_Line, J) /= '"' or else
+                 Element (Saved_Line, J-1) = '\') loop
                J := J + 1;
             end loop;
 
@@ -162,7 +161,7 @@ package body Reader is
             -- the saved_line string is exhausted.
             -- NB if we reach the end we don't care
             -- what the last char was.
-            while J < Str_Len and Saved_Line (J) /= ACL.LF loop
+            while J < Str_Len and Element (Saved_Line, J) /= ACL.LF loop
                J := J + 1;
             end loop;
             if J = Str_Len then
@@ -176,7 +175,7 @@ package body Reader is
          when others => -- an atom
 
             while J <= Str_Len and then
-               not Ada.Strings.Maps.Is_In (Saved_Line (J), Terminator_Syms) loop
+               not Ada.Strings.Maps.Is_In (Element (Saved_Line, J), Terminator_Syms) loop
                J := J + 1;
             end loop;
 
@@ -193,9 +192,9 @@ package body Reader is
                Dots := 0;
                All_Digits := True;
                for K in I .. J loop
-                  if Saved_Line (K) = '.' then
+                  if Element (Saved_Line, K) = '.' then
                      Dots := Dots + 1; 
-                  elsif not (Saved_Line (K) in '0' .. '9') then
+                  elsif not (Element (Saved_Line, K) in '0' .. '9') then
                      All_Digits := False;
                      exit;
                   end if;
@@ -205,11 +204,11 @@ package body Reader is
                   if Dots = 0 then
                      Res :=
                        (ID => Int_Tok,
-                        Int_Val => Mal_Integer'Value (Saved_Line (I .. J)));
+                        Int_Val => Mal_Integer'Value (Slice (Saved_Line, I, J)));
                   elsif Dots = 1 then
                      Res :=
                        (ID => Float_Tok,
-                        Float_Val => Mal_Float'Value (Saved_Line (I..J)));
+                        Float_Val => Mal_Float'Value (Slice (Saved_Line, I, J)));
                   else
                      Res := (ID => Sym_Tok, Start_Char => I, Stop_Char => J);
                   end if;
@@ -308,6 +307,7 @@ package body Reader is
    function Read_Form return Types.Mal_Handle is
       Tok : Token;
       MTS : Mal_Handle;
+      use Ada.Strings.Unbounded;
    begin
 
       Tok := Get_Token;
@@ -349,12 +349,12 @@ package body Reader is
          when Str_Tok =>
 
             return New_String_Mal_Type
-                     (Convert_String (Saved_Line (Tok.Start_Char..Tok.Stop_Char)));
+                     (Convert_String (Slice (Saved_Line, Tok.Start_Char, Tok.Stop_Char)));
 
          when Sym_Tok =>
 
             return New_Symbol_Mal_Type
-                     (Saved_Line (Tok.Start_Char..Tok.Stop_Char));
+                     (Slice (Saved_Line, Tok.Start_Char, Tok.Stop_Char));
 
       end case;
 
@@ -364,7 +364,7 @@ package body Reader is
    procedure Lex_Init (S : String) is
    begin
       Str_Len := S'Length;
-      Saved_Line (1..S'Length) := S;
+      Saved_Line := Ada.Strings.Unbounded.To_Unbounded_String (S);
       Char_To_Read := 1;
    end Lex_Init;
 
