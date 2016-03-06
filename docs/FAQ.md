@@ -125,7 +125,8 @@ Here are a few guidelines for getting your implementation accepted
 into the main repository:
 
 * Your implementation needs to be complete enough to self-host. This
-  means that all the tests should pass in both direct and self-hosted modes:
+  means that all the mandatory tests should pass in both direct and
+  self-hosted modes:
   ```bash
   make "test^[IMPL_NAME]"
   make MAL_IMPL=[IMPL_NAME] "test^mal"
@@ -170,4 +171,4 @@ into the main repository:
   functionality for your implementation, however, it is a nice
   convenience for users of your implementation and I personally find
   it saves a lot of time when I am creating a new implementation to
-  have line edit support early on in the REPL.
+  have line edit support early in the process.
