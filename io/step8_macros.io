@@ -17,11 +17,12 @@ quasiquote := method(ast,
 )
 
 isMacroCall := method(ast, env,
-    ast isKindOf(MalList) ifFalse(return false)
-    ast at(0) isKindOf(MalSymbol) ifFalse(return false)
-    env find(ast at(0)) ifNil(return false)
-    f := env get(ast at(0))
-    (f isKindOf(MalFunc)) and (f isMacro)
+    if(ast type != "MalList", return false)
+    a0 := ast first
+    if(a0 type != "MalSymbol", return false)
+    if(env find(a0) isNil, return false)
+    f := env get(a0)
+    (f type == "MalFunc") and (f isMacro)
 )
 
 macroexpand := method(ast, env,

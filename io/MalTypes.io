@@ -14,35 +14,26 @@ MalMeta := Object clone do(
     meta ::= nil
 )
 
-MalSymbol := Object clone do (
-    appendProto(MalMeta)
+MalSymbol := Object clone appendProto(MalMeta) do (
     val ::= nil
-    with := method(str,
-        self clone setVal(str)
-    )
+    with := method(str, self clone setVal(str))
     malPrint := method(readable, val)
-    == := method(other, other isKindOf(MalSymbol) and (val == other val))
+    == := method(other, (self type == other type) and (val == other val))
 )
 
 MalKeyword := Object clone do (
     val ::= nil
-    with := method(str,
-        self clone setVal(str)
-    )
+    with := method(str, self clone setVal(str))
     malPrint := method(readable, ":" .. val)
-    == := method(other, other isKindOf(MalKeyword) and (val == other val))
+    == := method(other, (self type == other type) and (val == other val))
 )
 
 MalSequential := Object clone do(
     isSequential := method(true)
 )
 
-MalList := List clone do (
-    appendProto(MalSequential)
-    appendProto(MalMeta)
-    with := method(lst,
-        self clone copy(lst)
-    )
+MalList := List clone appendProto(MalSequential) appendProto(MalMeta) do (
+    with := method(lst, self clone copy(lst))
     malPrint := method(readable,
         "(" ..  (self map(e, e malPrint(readable)) join(" ")) .. ")"
     )
@@ -50,12 +41,8 @@ MalList := List clone do (
     slice := method(MalList with(resend))
 )
 
-MalVector := List clone do (
-    appendProto(MalSequential)
-    appendProto(MalMeta)
-    with := method(lst,
-        self clone copy(lst)
-    )
+MalVector := List clone appendProto(MalSequential) appendProto(MalMeta) do (
+    with := method(lst, self clone copy(lst))
     malPrint := method(readable,
         "[" ..  (self map(e, e malPrint(readable)) join(" ")) .. "]"
     )
@@ -63,8 +50,7 @@ MalVector := List clone do (
     slice := method(MalList with(resend))
 )
 
-MalMap := Map clone do (
-    appendProto(MalMeta)
+MalMap := Map clone appendProto(MalMeta) do (
     withList := method(lst,
         obj := self clone
         k := nil
@@ -76,11 +62,9 @@ MalMap := Map clone do (
         )
         obj
     )
-    withMap := method(aMap,
-        self clone merge(aMap)
-    )
+    withMap := method(aMap, self clone merge(aMap))
     objToKey := method(obj,
-        if(obj isKindOf(MalKeyword), "K_" .. (obj val), "S_" .. obj)
+        if(obj type == "MalKeyword", "K_" .. (obj val), "S_" .. obj)
     )
     keyToObj := method(s,
         if(s beginsWithSeq("K_"),
@@ -112,8 +96,7 @@ MalMap := Map clone do (
 Block malPrint := method(readable, "#<NativeFunction>")
 Block appendProto(MalMeta)
 
-MalFunc := Object clone do (
-    appendProto(MalMeta)
+MalFunc := Object clone appendProto(MalMeta) do (
     ast ::= nil
     params ::= nil
     env ::= nil
@@ -127,18 +110,13 @@ MalFunc := Object clone do (
 )
 
 MalAtom := Object clone do (
-    appendProto(MalMeta)
     val ::= nil
-    with := method(str,
-        self clone setVal(str)
-    )
+    with := method(str, self clone setVal(str))
     malPrint := method(readable, "(atom " .. (val malPrint(true)) .. ")")
-    == := method(other, other isKindOf(MalAtom) and (val == other val))
+    == := method(other, (self type == other type) and (val == other val))
 )
 
 MalException := Exception clone do (
     val ::= nil
-    with := method(str,
-        self clone setVal(str)
-    )
+    with := method(str, self clone setVal(str))
 )

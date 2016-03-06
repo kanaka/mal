@@ -17,11 +17,12 @@ quasiquote := method(ast,
 )
 
 isMacroCall := method(ast, env,
-    ast isKindOf(MalList) ifFalse(return false)
-    ast at(0) isKindOf(MalSymbol) ifFalse(return false)
-    env find(ast at(0)) ifNil(return false)
-    f := env get(ast at(0))
-    (f isKindOf(MalFunc)) and (f isMacro)
+    if(ast type != "MalList", return false)
+    a0 := ast first
+    if(a0 type != "MalSymbol", return false)
+    if(env find(a0) isNil, return false)
+    f := env get(a0)
+    (f type == "MalFunc") and (f isMacro)
 )
 
 macroexpand := method(ast, env,
@@ -92,7 +93,7 @@ EVAL := method(ast, env,
                 "try*",
                     e := try(result := EVAL(ast at(1), env))
                     e catch(Exception,
-                        exc := if(e isKindOf(MalException), e val, e error)
+                        exc := if(e type == "MalException", e val, e error)
                         catchAst := ast at(2)
                         catchEnv := Env with(env)
                         catchEnv set(catchAst at(1), exc)
