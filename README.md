@@ -445,7 +445,8 @@ nimble build
 ### Objective C
 
 The Objective C implementation of mal has been built and tested on
-Linux using clang/LLVM 3.6.
+Linux using clang/LLVM 3.6. It has also been built and tested on OS
+X using XCode 7.
 
 ```
 cd objc

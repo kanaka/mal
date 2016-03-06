@@ -84,33 +84,33 @@ NSObject * read_atom(Reader * rdr) {
         range:NSMakeRange(0, [token length])];
 
     if ([matches count] > 0) {
+
         NSTextCheckingResult *match = matches[0];
-        if ([match rangeAtIndex:1].location != -1) {        // integer
+        if ([match rangeAtIndex:1].location < -1ULL/2) { // integer
             return [numf numberFromString:token];
-        } else if ([match rangeAtIndex:2].location != -1) { // float
+        } else if ([match rangeAtIndex:2].location < -1ULL/2) { // float
             return [numf numberFromString:token];
-        } else if ([match rangeAtIndex:3].location != -1) { // nil
+        } else if ([match rangeAtIndex:3].location < -1ULL/2) { // nil
             return [NSNull alloc];
-        } else if ([match rangeAtIndex:4].location != -1) { // true
+        } else if ([match rangeAtIndex:4].location < -1ULL/2) { // true
             return [MalTrue alloc]; // TODO: intern
-        } else if ([match rangeAtIndex:5].location != -1) { // false
+        } else if ([match rangeAtIndex:5].location < -1ULL/2) { // false
             return [MalFalse alloc]; // TODO: intern
-        } else if ([match rangeAtIndex:6].location != -1) { // string
+        } else if ([match rangeAtIndex:6].location < -1ULL/2) { // string
             NSString * str = [token substringWithRange:[match rangeAtIndex:6]];
             return [[[str
                       stringByReplacingOccurrencesOfString:@"\\\"" withString:@"\""]
                      stringByReplacingOccurrencesOfString:@"\\n" withString:@"\n"]
                     stringByReplacingOccurrencesOfString:@"\\\\" withString:@"\\"];
-            return [token substringWithRange:[match rangeAtIndex:6]];
-        } else if ([match rangeAtIndex:7].location != -1) { // keyword
+        } else if ([match rangeAtIndex:7].location < -1ULL/2) { // keyword
             return [NSString stringWithFormat:@"\u029e%@",
                     [token substringWithRange:[match rangeAtIndex:7]]];
-        } else if ([match rangeAtIndex:8].location != -1) { // symbol
+        } else if ([match rangeAtIndex:8].location < -1ULL/2) { // symbol
             return [MalSymbol stringWithString:token];
         }
     }
 
-    return @0;
+    @throw @"read_atom: invalid token";
 }
 
 // Only used locally, so declare here

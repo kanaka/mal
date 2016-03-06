@@ -66,7 +66,7 @@ NSArray * _rest(NSArray * obj) {
 @synthesize count = _count;
 
 - (id)initWithArray:(NSArray *)arr {
-    self = [super init];
+    self = [self init];
     if (self) {
         _array = arr;
         _count = [arr count];
@@ -75,7 +75,12 @@ NSArray * _rest(NSArray * obj) {
 }
         
 - (id)init {
-    return [self initWithArray:@[]];
+    self = [super init];
+    if (self) {
+        _array = @[];
+        _count = 0;
+    }
+    return self;
 }
 
 + (id)fromArray:(NSArray *)arr {
@@ -150,7 +155,8 @@ BOOL equal_Q(NSObject * a, NSObject * b) {
           ([a isKindOfClass:[NSArray class]] &&
            [b isKindOfClass:[NSArray class]]) ||
           ([a isKindOfClass:[NSNumber class]] &&
-           [b isKindOfClass:[NSNumber class]]))) {
+           [b isKindOfClass:[NSNumber class]]) ||
+          (string_Q(a) && string_Q(b)))) {
         return false;
     }
     if ([a isKindOfClass:[MalTrue class]]) {

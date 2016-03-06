@@ -24,7 +24,7 @@ NSString * _pr_str(NSObject * obj, BOOL print_readably) {
                    stringByReplacingOccurrencesOfString:@"\n" withString:@"\\n"];
             return [NSString stringWithFormat:@"\"%@\"", str];
         } else {
-            return str;
+            return [NSString stringWithString:str];
         }
     } else if ([obj isKindOfClass:[NSArray class]]) {
         NSMutableArray * elems = [NSMutableArray array];
