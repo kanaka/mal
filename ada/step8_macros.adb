@@ -43,7 +43,7 @@ procedure Step8_Macros is
 
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
-   Cmd_Args : Natural;
+   Cmd_Args, File_Param : Natural;
    Command_Args : Types.Mal_Handle;
    Command_List : Types.List_Ptr;
    File_Processed : Boolean := False;
@@ -79,26 +79,22 @@ begin
         Evaluation.Debug := True;
      elsif Ada.Command_Line.Argument (Cmd_Args) = "-e" then
         Envs.Debug := True;
+     elsif not File_Processed then
+        File_Param := Cmd_Args;
+        File_Processed := True;
      else
-        if not File_Processed then
---           declare
---              F_S : String :=
-ADa.Text_IO.Put_Line (
-                Rep ("(load-file """ & Ada.Command_Line.Argument (Cmd_Args) & """)")
-);
---           begin
---              null;
---           end;
-           File_Processed := True;
-        else
-           Command_List.Append
-             (Types.New_Symbol_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
-        end if;
+        Command_List.Append
+          (Types.New_Symbol_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
      end if;
 
    end loop;
 
    Envs.Set (Envs.Get_Current, "*ARGV*", Command_Args);
+
+   if File_Processed then
+      Ada.Text_IO.Put_Line
+        (Rep ("(load-file """ & Ada.Command_Line.Argument (File_Param) & """)"));
+   end if;
 
    loop
       begin
