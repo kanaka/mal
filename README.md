@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 48 languages:
+Mal is implemented in 49 languages:
 
 * GNU awk
 * Bash shell
@@ -29,6 +29,7 @@ Mal is implemented in 48 languages:
 * GNU Guile
 * Haskell
 * Haxe
+* Io
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
@@ -356,6 +357,16 @@ make all-js
 node ./stepX_YYY.js
 ```
 
+### Io
+
+*The Io implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Io implementation of mal has been tested with Io version 20110905.
+
+```
+cd io
+io ./stepX_YYY.io
+```
 
 ### Java 1.7
 
