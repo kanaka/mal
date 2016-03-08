@@ -41,6 +41,10 @@ x
 ;=>4
 (let* (z 2) (let* (q 9) a))
 ;=>4
+(let* (x 4) (def! a 5))
+;=>5
+a
+;=>4
 
 ;;
 ;; -------- Optional Functionality --------

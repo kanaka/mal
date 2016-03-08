@@ -8,10 +8,10 @@ all: ${CLASSES}
 
 dist: mal.jar
 
-step1_read_print.class: types.class reader.class printer.class
-step2_eval.class: types.class reader.class printer.class
-step3_env.class: types.class reader.class printer.class env.class
-step4_if_fn_do.class step6_file.class step7_quote.class step8_macros.class step9_try.class stepA_mal.class: ${CLASSES}
+step1_read_print.groovy: types.class reader.class printer.class
+step2_eval.groovy: types.class reader.class printer.class
+step3_env.groovy: types.class reader.class printer.class env.class
+step4_if_fn_do.groovy step6_file.groovy step7_quote.groovy step8_macros.groovy step9_try.groovy stepA_mal.groovy: ${CLASSES}
 
 types.class: types.groovy
 	groovyc $<
