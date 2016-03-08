@@ -93,6 +93,19 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 ## Building/running implementations
 
+The simplest way to run any given implementation is to use docker.
+Every implementation has a docker image pre-built with language
+dependencies installed. You can launch the REPL using a convenience
+target in the top level Makefile (where IMPL is the implementation
+directory name and stepX is the step to run):
+
+```
+make DOCKERIZE=1 "repl^IMPL^stepX"
+    # OR stepA is the default step:
+make DOCKERIZE=1 "repl^IMPL"
+```
+
+
 ### GNU awk
 
 *The GNU awk implementation was created by [Miutsuru kariya](https://github.com/kariya-mitsuru)*
@@ -805,43 +818,37 @@ make "stats-lisp^IMPL"
 make "stats-lisp^js"
 ```
 
-## Docker test environment
+## Dockerized testing
 
-There is a Dockerfile included in the `tests/docker` directory that
-builds a docker image based on Ubuntu Utopic that contains everything
-needed to run tests against all the implementations (except for MATLAB
-which is proprietary/licensed).
+Every implementation directory contains a Dockerfile to create
+a docker image containing all the dependencies for that
+implementation. In addition, the top-level Makefile contains support
+for running the tests target (and perf, stats, repl, etc) within
+a docker container for that implementation by passing *"DOCKERIZE=1"*
+on the make command line. For example:
 
-Build the docker image using a provided script. WARNING: this will
-likely take over an hour to build from scratch and use more 3 GB of disk:
-```bash
-./tests/docker-build.sh
+```
+make DOCKERIZE=1 "test^js^step3"
 ```
 
-Launch a docker container from that image built above. This will
-volume mount the mal directory to `/mal` and then give you a bash
-prompt in the container. You can then run individual mal
-implementations and tests:
-```bash
-./tests/docker-run.sh
+Existing implementations already have docker images built and pushed
+to the docker registry. However, if
+you wish to build or rebuild a docker image locally, the toplevel
+Makefile provides a rule for building docker images:
+
+```
+make "docker-build^IMPL"
 ```
 
-You can also specify a command to run within the container. For
-example, to run step2 tests for every implementation (except MATLAB):
-```bash
-./tests/docker-run.sh make SKIP_IMPLS="matlab" "test^step2"
-```
 
 **Notes**:
-* JVM-based language implementations (Java, Clojure, Scala): you will
-  need to run these implementations once manually first before you can
-  run tests because runtime dependencies need to be downloaded to
-  avoid the tests timing out. These dependencies are download to
-  dot-files in the /mal directory so they will persist between runs.
-* Compiled languages: if your host system is different enough from
-  Ubuntu Utopic then you may need to re-compile your compiled
-  languages from within the container to avoid linker version
-  mismatches.
+* Docker images are named *"kanaka/mal-test-IMPL"*
+* JVM-based language implementations (Groovy, Java, Clojure, Scala):
+  you will probably need to run these implementations once manually
+  first (make DOCKERIZE=1 "repl^IMPL")before you can run tests because
+  runtime dependencies need to be downloaded to avoid the tests timing
+  out. These dependencies are download to dot-files in the /mal
+  directory so they will persist between runs.
 
 
 ## License
