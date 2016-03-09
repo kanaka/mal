@@ -46,7 +46,7 @@ $core_ns = {
 
     :sequential? => lambda {|a| sequential?(a)},
     :cons =>      lambda {|a,b| List.new(b.clone.insert(0,a))},
-    :concat =>    lambda {|*a| List.new(a && a.reduce(:concat) || [])},
+    :concat =>    lambda {|*a| List.new(a && a.reduce(:+) || [])},
     :nth =>       lambda {|a,b| raise "nth: index out of range" if b >= a.size; a[b]},
     :first =>     lambda {|a| a.nil? ? nil : a[0]},
     :rest =>      lambda {|a| List.new(a.nil? || a.size == 0 ? [] : a.drop(1))},
