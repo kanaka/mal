@@ -223,3 +223,13 @@
 ;=>false
 (let* [or_FIXME 23] (or false (+ or_FIXME 100)))
 ;=>123
+
+;;
+;; Testing time-ms function
+(def! start-time (time-ms))
+(> start-time 0)
+;=>true
+(let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time
+;=>55
+(> (time-ms) start-time)
+;=>true

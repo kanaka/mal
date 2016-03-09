@@ -25,6 +25,7 @@
    ["-" -]
    ["*" *]
    ["/" /]
+   ["time-ms" time-ms]
 
    ["list" list]
    ["list?" list?]
