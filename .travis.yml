@@ -37,6 +37,7 @@ matrix:
     - {env: IMPL=matlab, services: [docker]} # Uses Octave
     - {env: IMPL=miniMAL BUILD_IMPL=js, services: [docker]}
     - {env: IMPL=nim,       services: [docker]}
+    - {env: IMPL=objpascal, services: [docker]}
     - {env: IMPL=objc NO_DOCKER=1, os: osx, osx_image: xcode7}
     - {env: IMPL=objc,      services: [docker]}
     - {env: IMPL=ocaml,     services: [docker]}

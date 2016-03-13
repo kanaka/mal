@@ -25,12 +25,13 @@ pas-readline: pas-readline/src/readline.pas
 pas-readline/src/readline.pas:
 	git clone https://github.com/hansiglaser/pas-readline pas-readline
 
-regexpr: regexpr/Source/RegExpr.pas
-regexpr/Source/RegExpr.pas:
-	mkdir -p regexpr
-	curl -O http://regexpstudio.com/Downloads/regexpr.zip
-	cd regexpr && unzip ../regexpr.zip
-	rm regexpr.zip
+#regexpr: regexpr/Source/RegExpr.pas
+#regexpr/Source/RegExpr.pas: regexpr-linux.patch
+#	mkdir -p regexpr
+#	curl -O http://regexpstudio.com/Downloads/regexpr.zip
+#	cd regexpr && unzip ../regexpr.zip
+#	rm regexpr.zip
+#	patch -p1 < regexpr-linux.patch
 
 step%: step%.pas
 	$(FPC) $<
