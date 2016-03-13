@@ -67,10 +67,11 @@ DOCKERIZE =
 # Settings
 #
 
-IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elisp elixir es6 \
-	factor forth fsharp go groovy guile haskell haxe io java julia \
-	js kotlin lua make mal ocaml matlab miniMAL nim objc perl php ps \
-	python r racket rpython ruby rust scala swift swift3 tcl vb vimscript
+IMPLS = awk bash c d clojure coffee cpp crystal cs erlang elisp \
+	elixir es6 factor forth fsharp go groovy guile haskell haxe \
+	io java julia js kotlin lua make mal ocaml matlab miniMAL \
+	nim objc objpascal perl php ps python r racket rpython ruby \
+	rust scala swift swift3 tcl vb vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -115,11 +116,12 @@ STEP5_EXCLUDES += matlab  # too slow to complete 10,000
 STEP5_EXCLUDES += miniMAL # strange error with runtest.py
 STEP5_EXCLUDES += nim     # test completes, even at 100,000
 STEP5_EXCLUDES += objc    # completes at 10,000, crashes at 100,000
+STEP5_EXCLUDES += objpascal # completes at 10,000
 STEP5_EXCLUDES += php     # test completes, even at 100,000
 STEP5_EXCLUDES += racket  # test completes
 STEP5_EXCLUDES += ruby    # test completes, even at 100,000
 STEP5_EXCLUDES += rust    # no catching stack overflows
-STEP5_EXCLUDES += swift3   # no catching stack overflows
+STEP5_EXCLUDES += swift3  # no catching stack overflows
 STEP5_EXCLUDES += ocaml   # test completes, even at 1,000,000
 STEP5_EXCLUDES += vb      # completes at 10,000
 
@@ -189,6 +191,7 @@ matlab_STEP_TO_PROG =  matlab/$($(1)).m
 miniMAL_STEP_TO_PROG = miniMAL/$($(1)).json
 nim_STEP_TO_PROG =     nim/$($(1))
 objc_STEP_TO_PROG =    objc/$($(1))
+objpascal_STEP_TO_PROG = objpascal/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
 ps_STEP_TO_PROG =      ps/$($(1)).ps
@@ -253,6 +256,7 @@ matlab_RUNSTEP =  $(matlab_cmd) "$($(1))($(call matlab_args,$(3)));quit;"
 miniMAL_RUNSTEP = miniMAL ../$(2) $(3)
 nim_RUNSTEP =     ../$(2) $(3)
 objc_RUNSTEP =    ../$(2) $(3)
+objpascal_RUNSTEP = ../$(2) $(3)
 perl_RUNSTEP =    perl ../$(2) $(3)
 php_RUNSTEP =     php ../$(2) $(3)
 ps_RUNSTEP =      gs -q -I./ -dNODISPLAY -- ../$(2) $(3)

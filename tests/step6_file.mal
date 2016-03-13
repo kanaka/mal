@@ -88,12 +88,13 @@
 ;; Testing swap!/closure interaction
 (def! inc-it (fn* (a) (+ 1 a)))
 (def! atm (atom 7))
-(def! f (fn* [] (swap! atm inc-it)))
+(def! f (fn* () (swap! atm inc-it)))
 (f)
 ;=>8
 (f)
 ;=>9
 
+;;
 ;; -------- Optional Functionality --------
 
 ;; Testing comments in a file

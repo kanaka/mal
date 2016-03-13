@@ -40,6 +40,7 @@ Mal is implemented in 49 languages:
 * MATLAB
 * [miniMAL](https://github.com/kanaka/miniMAL)
 * Nim
+* Object Pascal
 * Objective C
 * OCaml
 * Perl
@@ -463,6 +464,17 @@ cd nim
 make
   # OR
 nimble build
+./stepX_YYY
+```
+
+### Object Pascal
+
+The Object Pascal implementation of mal has been built and tested on
+Linux using the Free Pascal compiler version 2.6.2 and 2.6.4.
+
+```
+cd objpascal
+make
 ./stepX_YYY
 ```
 

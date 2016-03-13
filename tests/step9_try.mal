@@ -58,8 +58,10 @@
 ;=>9
 (apply prn (list 1 2 "3" (list)))
 ; 1 2 "3" ()
+;=>nil
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
+;=>nil
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))

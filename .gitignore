@@ -82,6 +82,10 @@ ocaml/*.swp
 ocaml/*.cmx
 ocaml/*.o
 ocaml/mal_lib.*
+objpascal/*.o
+objpascal/*.ppu
+objpascal/pas-readline
+objpascal/regexpr
 perl/mal.pl
 php/mal.php
 ps/mal.ps
