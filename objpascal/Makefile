@@ -23,7 +23,8 @@ all: $(patsubst %.pas,%,$(STEPS))
 # Downloaded units
 pas-readline: pas-readline/src/readline.pas
 pas-readline/src/readline.pas:
-	git clone https://github.com/hansiglaser/pas-readline pas-readline
+	curl -L https://github.com/hansiglaser/pas-readline/archive/master.tar.gz | tar xzf -
+	mv pas-readline-master pas-readline
 
 #regexpr: regexpr/Source/RegExpr.pas
 #regexpr/Source/RegExpr.pas: regexpr-linux.patch
