@@ -17,13 +17,19 @@ uses sysutils,
 
 {$ENDIF}
 
-//
+
+// External libedit/readline functions
+
 function readline(Prompt: PChar) : PChar; cdecl; external;
 procedure add_history(Line: PChar); cdecl; external;
+
+// API
 
 type MalEOF = class(Exception);
 
 function _readline(Prompt: string) : string;
+
+////////////////////////////////////////////////////////////
 
 implementation
 
