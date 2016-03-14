@@ -1,16 +1,17 @@
 program Mal;
 
+{$H+} // Use AnsiString
+
 Uses sysutils,
      CMem,
-     Readline in 'pas-readline/src/readline.pas',
-     History in 'pas-readline/src/history.pas',
+     mal_readline,
      mal_types,
      reader,
      printer;
 
 var
-    Repl_Env: string = '';
-    Line : PChar;
+    Repl_Env : string = '';
+    Line     : string;
 
 // read
 function READ(const Str: string) : TMal;
@@ -39,16 +40,12 @@ end;
 begin
     while True do
     begin
-        Line := Readline.readline('user> ');
-        if Line = Nil then
-            Halt(0);
-        if Line[0] = #0 then
-            continue;
-        add_history(Line);
-
         try
+            Line := _readline('user> ');
+            if Line = '' then continue;
             WriteLn(REP(Line))
         except
+            On E : MalEOF do Halt(0);
             On E : Exception do
             begin
                 WriteLn('Error: ' + E.message);

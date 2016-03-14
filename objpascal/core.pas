@@ -7,7 +7,7 @@ interface
 uses Classes,
      sysutils,
      fgl,
-     Readline in 'pas-readline/src/readline.pas',
+     mal_readline,
      mal_types,
      mal_func,
      mal_env,
@@ -110,15 +110,16 @@ begin
 end;
 function do_readline(Args: TMalArray) : TMal;
 var
-    Prompt : PChar;
-    Line   : PChar;
+    Prompt : string;
+    Line   : string;
 begin
-    Prompt := PChar((Args[0] as TMalString).Val);
-    Line := Readline.readline(Prompt);
-    if Line = nil then
-        do_readline := TMalNil.Create
-    else
+    Prompt := (Args[0] as TMalString).Val;
+    try
+        Line := _readline(Prompt);
         do_readline := TMalString.Create(Line);
+    except
+        On E : MalEOF do do_readline := TMalNil.Create;
+    end;
 end;
 function slurp(Args: TMalArray) : TMal;
 var

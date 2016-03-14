@@ -36,9 +36,9 @@ type TMalFalse = class(TMal);
 
 type TMalInt = class(TMal)
     public
-        Val: Longint;
+        Val: int64;
 
-        constructor Create(V : Longint);
+        constructor Create(V : int64);
 end;
 
 type TMalString = class(TMal)
@@ -127,7 +127,7 @@ end;
 // Mal types
 //
 
-constructor TMalInt.Create(V : Longint);
+constructor TMalInt.Create(V : int64);
 begin
     inherited Create();
     Self.Val := V;

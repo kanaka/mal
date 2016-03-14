@@ -1,12 +1,13 @@
 program Mal;
 
+{$H+} // Use AnsiString
+
 Uses CMem,
-     Readline in 'pas-readline/src/readline.pas',
-     History in 'pas-readline/src/history.pas';
+     mal_readline;
 
 var
     Repl_Env: string = '';
-    Line : PChar;
+    Line : string;
 
 // read
 function READ(const Str: string) : string;
@@ -35,13 +36,12 @@ end;
 begin
     while True do
     begin
-        Line := Readline.readline('user> ');
-        if Line = Nil then
-            Halt(0);
-        if Line[0] = #0 then
-            continue;
-        add_history(Line);
-
-        WriteLn(REP(Line));
+        try
+            Line := _readline('user> ');
+            if Line = '' then continue;
+            WriteLn(REP(Line))
+        except
+            On E : MalEOF do Halt(0);
+        end;
     end;
 end.
