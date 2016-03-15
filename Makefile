@@ -59,6 +59,9 @@ REGRESS =
 
 # Extra implementation specific options to pass to runtest.py
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
+miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
+
+DOCKERIZE=
 
 # Run target/rule within docker image for the implementation
 DOCKERIZE =
