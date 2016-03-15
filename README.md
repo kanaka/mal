@@ -696,7 +696,7 @@ mono ./stepX_YYY.exe
 
 ### Functional tests
 
-The are nearly 500 generic functional tests (for all implementations)
+The are over 600 generic functional tests (for all implementations)
 in the `tests/` directory. Each step has a corresponding test file
 containing tests specific to that step. The `runtest.py` test harness
 launches a Mal step implementation and then feeds the tests one at
