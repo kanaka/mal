@@ -234,74 +234,41 @@ package body Reader is
 
       MTA := Read_Form;
 
-      if Deref (MTA).Sym_Type = Sym and then
-         Deref_Sym (MTA).Get_Sym = "fn*" then
+      declare
+         List_SP : Mal_Handle;
+         List_P : List_Class_Ptr;
+         Close : String (1..1) := (1 => Types.Closing (LT));
+      begin
 
-         declare
-            Params, Expr, Close_Lambda : Mal_Handle;
-         begin
-            Params := Read_Form;
-            Expr := Read_Form;
-            Close_Lambda := Read_Form;  -- the ) at the end of the lambda
-            return New_Lambda_Mal_Type (Params, Expr);
-         end;
+         case LT is
+            when List_List   => List_SP := New_List_Mal_Type (List_Type => LT);
+            when Vector_List => List_SP := Vector.New_Vector_Mal_Type;
+            when Hashed_List => List_SP := Hash_Map.New_Hash_Map_Mal_Type;
+         end case;
 
-      else
+         -- Need to append to a variable so...
+         List_P := Deref_List_Class (List_SP);
 
-         declare
-            List_SP : Mal_Handle;
-            List_P : List_Class_Ptr;
-            Close : String (1..1) := (1 => Types.Closing (LT));
-         begin
-            case LT is
-               when List_List =>
-                  List_SP := New_List_Mal_Type (List_Type => LT);
-               when Vector_List =>
-                  List_SP := Vector.New_Vector_Mal_Type;
-               when Hashed_List =>
-                  List_SP := Hash_Map.New_Hash_Map_Mal_Type;
-            end case;
+         loop
 
+            if Is_Null (MTA) then
+               return New_Error_Mal_Type (Str => "expected '" & Close & "'");
+            end if;
 
-            -- Need to append to a variable so...
-            List_P := Deref_List_Class (List_SP);
-            loop
-               if Is_Null (MTA) then
-                  return New_Error_Mal_Type (Str => "expected '" & Close & "'");
-               end if;
-               exit when Deref (MTA).Sym_Type = Sym and then
-                          Symbol_Mal_Type (Deref (MTA).all).Get_Sym = Close;
-               Append (List_P.all, MTA);
-               MTA := Read_Form;
-            end loop;
-            return List_SP;
-         end;
-      end if;
+            exit when Deref (MTA).Sym_Type = Sym and then
+                      Symbol_Mal_Type (Deref (MTA).all).Get_Sym = Close;
+
+            Append (List_P.all, MTA);
+
+            MTA := Read_Form;
+
+         end loop;
+
+         return List_SP;
+
+      end;
 
    end Read_List;
-
-
-   type Handle_Lists is array (Positive range <>) of Mal_Handle;
-
-   -- Make a new list of the form: (Sym_Name, Handle_List(1), Handle_List(2)...)
-   -- If no Handle_List is supplied then it defauls to (1 => Read_Form).
-   function Make_New_List
-              (Sym_Name : Mal_String;
-               Handle_List : Handle_Lists := (1 => Read_Form))
-   return Mal_Handle is
-
-      List_SP : Mal_Handle;
-      List_P : List_Ptr;
-
-   begin
-      List_SP := New_List_Mal_Type (List_Type => List_List);
-      List_P := Deref_List (List_SP);
-      Append (List_P.all, New_Symbol_Mal_Type (Sym_Name));
-      for I in Handle_List'Range loop
-         Append (List_P.all, Handle_List (I));
-      end loop;
-      return List_SP;
-   end Make_New_List;
 
 
    function Read_Form return Types.Mal_Handle is
@@ -333,18 +300,41 @@ package body Reader is
             begin
                Meta := Read_Form;
                Obj := Read_Form;
-               return Make_New_List ("with-meta", (1 => Obj, 2 => Meta));
+               return Make_New_List
+                        ((1 => New_Symbol_Mal_Type ("with-meta"),
+                          2 => Obj,
+                          3 => Meta));
             end;
 
-         when Deref_Tok => return Make_New_List ("deref");
+         when Deref_Tok =>
 
-         when Quote_Tok => return Make_New_List ("quote");
+            return Make_New_List
+                     ((1 => New_Symbol_Mal_Type ("deref"),
+                       2 => Read_Form));
 
-         when Quasi_Quote_Tok => return Make_New_List ("quasiquote");
+         when Quote_Tok =>
 
-         when Splice_Unq_Tok => return Make_New_List ("splice-unquote");
+            return Make_New_List
+                     ((1 => New_Symbol_Mal_Type ("quote"),
+                       2 => Read_Form));
 
-         when Unquote_Tok => return Make_New_List ("unquote");
+         when Quasi_Quote_Tok =>
+
+            return Make_New_List
+                     ((1 => New_Symbol_Mal_Type ("quasiquote"),
+                       2 => Read_Form));
+
+         when Splice_Unq_Tok =>
+
+            return Make_New_List
+                     ((1 =>  New_Symbol_Mal_Type ("splice-unquote"),
+                       2 => Read_Form));
+
+         when Unquote_Tok =>
+
+            return Make_New_List
+                     ((1 => New_Symbol_Mal_Type ("unquote"),
+                       2 => Read_Form));
 
          when Str_Tok =>
 

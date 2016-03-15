@@ -172,6 +172,11 @@ package Types is
      (The_List : List_Mal_Type)
    return Mal_Handle;
 
+   type Handle_Lists is array (Positive range <>) of Mal_Handle;
+
+   -- Make a new list of the form: (Handle_List(1), Handle_List(2)...)
+   function Make_New_List (Handle_List : Handle_Lists) return Mal_Handle;
+
    overriding function Sym_Type (T : List_Mal_Type) return Sym_Types;
 
    function Get_List_Type (L : List_Mal_Type) return List_Types;
@@ -262,7 +267,7 @@ package Types is
    type Lambda_Mal_Type is new Mal_Type with private;
 
    function New_Lambda_Mal_Type
-     (Params : Mal_Handle; Expr : Mal_Handle)
+     (Params : Mal_Handle; Expr : Mal_Handle; Env : Envs.Env_Handle)
    return Mal_Handle;
 
    overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types;
@@ -281,8 +286,7 @@ package Types is
 
    function Apply
      (L : Lambda_Mal_Type;
-      Param_List : Mal_Handle;
-      Env : Envs.Env_Handle) return Mal_Handle;
+      Param_List : Mal_Handle) return Mal_Handle;
 
    type Lambda_Ptr is access all Lambda_Mal_Type;
 
@@ -301,6 +305,8 @@ package Types is
    function Rel_Op (A, B : Mal_Handle) return Mal_Handle;
 
    Mal_Exception : exception;  -- So tempting to call this Mal_Function but...
+
+   Mal_Exception_Value : Mal_Handle;  -- Used by mal's throw command
 
 private
 
@@ -409,8 +415,8 @@ private
    end record;
 
    type Lambda_Mal_Type is new Mal_Type with record
-      Env : Envs.Env_Handle;
       Params, Expr : Mal_Handle;
+      Env : Envs.Env_Handle;
       Is_Macro : Boolean;
    end record;
 

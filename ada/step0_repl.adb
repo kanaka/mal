@@ -19,11 +19,11 @@ procedure Step0_Repl is
    end Print;
 
    function Rep (Param : String) return String is
-     Read_Str : String := Read (Param);
-     Eval_Str : String := Eval (Read_Str);
-     Print_Str : String := Print (Eval_Str);
+      Read_Str : String := Read (Param);
+      Eval_Str : String := Eval (Read_Str);
+      Print_Str : String := Print (Eval_Str);
    begin
-     return Print_Str;
+      return Print_Str;
    end Rep; 
 
    S : String (1..1024);

@@ -86,20 +86,6 @@ package body Evaluation is
    end Macro_Expand;
 
 
-   function Let_Processing (Args : List_Mal_Type; Env : Envs.Env_Handle)
-			   return Mal_Handle is
-      Defs, Expr, Res : Mal_Handle;
-      E : Envs.Env_Handle;
-   begin
-      E := Envs.New_Env (Env);
-      Defs := Car (Args);
-      Deref_List_Class (Defs).Add_Defs (E);
-      Expr := Car (Deref_List (Cdr (Args)).all);
-      Res := Eval (Expr, E);
-      return Res;
-   end Let_Processing;
-
-
    function Eval_As_Boolean (MH : Mal_Handle) return Boolean is
       Res : Boolean;
    begin
@@ -176,23 +162,6 @@ package body Evaluation is
       end case;
 
    end Eval_Ast;
-
-
-   function Do_Processing (Do_List : List_Mal_Type; Env : Envs.Env_Handle)
-			  return Mal_Handle is
-      D : List_Mal_Type;
-      Res : Mal_Handle := Smart_Pointers.Null_Smart_Pointer;
-   begin
-      if Debug then
-         Ada.Text_IO.Put_Line ("Do-ing " & To_String (Do_List));
-      end if;
-      D := Do_List;
-      while not Is_Null (D) loop
-         Res := Eval (Car (D), Env);
-         D := Deref_List (Cdr(D)).all;
-      end loop;
-      return Res;
-   end Do_Processing;
 
 
    function Quasi_Quote_Processing (Param : Mal_Handle) return Mal_Handle is
@@ -304,15 +273,6 @@ package body Evaluation is
    end Catch_Processing;
 
 
-   Mal_Exception_Value : Mal_Handle;
-
-
-   procedure Set_Mal_Exception_Value (MEV : Mal_Handle) is
-   begin
-      Mal_Exception_Value := MEV;
-   end Set_Mal_Exception_Value;
-
-
    function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle)
 		 return Mal_Handle is
       Param : Mal_Handle;
@@ -375,9 +335,48 @@ package body Evaluation is
 		     elsif Sym_P.Get_Sym = "macroexpand" then
 			return Macro_Expand (Car (Rest_List), Env);
 		     elsif Sym_P.Get_Sym = "let*" then
-			return Let_Processing (Rest_List, Env);
+                        declare
+                           Defs, Expr, Res : Mal_Handle;
+                           E : Envs.Env_Handle;
+                        begin
+                           E := Envs.New_Env (Env);
+                           Defs := Car (Rest_List);
+                           Deref_List_Class (Defs).Add_Defs (E);
+                           Expr := Car (Deref_List (Cdr (Rest_List)).all);
+		           Param := Expr;
+		           Env := E;
+		           goto Tail_Call_Opt;
+                           -- was:
+                           -- Res := Eval (Expr, E);
+                           -- return Res;
+                        end;
 		     elsif Sym_P.Get_Sym = "do" then
-			return Do_Processing (Rest_List, Env);
+                        declare
+                           D : List_Mal_Type;
+                           E : Mal_Handle;
+                        begin
+
+                           if Debug then
+                              Ada.Text_IO.Put_Line ("Do-ing " & To_String (Rest_List));
+                           end if;
+
+                           if Is_Null (Rest_List) then
+                              return Rest_Handle;
+                           end if;
+
+                           -- Loop processes Evals all but last entry
+                           D := Rest_List;
+                           loop
+                              E := Car (D);
+                              D := Deref_List (Cdr (D)).all;
+                           exit when Is_Null (D);
+                              E := Eval (E, Env);
+                           end loop;
+
+                           Param := E;
+                           goto Tail_Call_Opt;
+
+                        end;
 		     elsif Sym_P.Get_Sym = "if" then
 			declare
 			   Args : List_Mal_Type := Rest_List;
@@ -427,9 +426,10 @@ package body Evaluation is
                            when Mal_Exception =>
                               Res := Catch_Processing
                                        (Cdr (Rest_List),
-                                        Mal_Exception_Value,
+                                        Types.Mal_Exception_Value,
                                         Env);
-                              Mal_Exception_Value := Smart_Pointers.Null_Smart_Pointer;
+                              Types.Mal_Exception_Value :=
+                                Smart_Pointers.Null_Smart_Pointer;
                               return Res;
                            when E : others =>
                               return Catch_Processing

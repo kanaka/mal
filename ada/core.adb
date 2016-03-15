@@ -2,7 +2,7 @@ with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Envs;
-with Evaluation;
+with Eval_Callback;
 with Reader;
 with Smart_Pointers;
 with Types;
@@ -48,6 +48,17 @@ package body Core is
    end Eval_As_Boolean;
 
 
+   function Do_Eval (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return Eval_Callback.Eval.all (First_Param, Env);
+   end Do_Eval;
+
+
    function Throw (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
       First_Param : Mal_Handle;
@@ -55,7 +66,7 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      Evaluation.Set_Mal_Exception_Value (First_Param);
+      Types.Mal_Exception_Value := First_Param;
       raise Mal_Exception;
       return First_Param;  -- Keep the compiler happy.
    end Throw;
@@ -191,7 +202,7 @@ package body Core is
       Param_List := Prepend (Atom_Val, Deref_List (Param_List).all);
       case Deref (Func_Param).Sym_Type is
          when Lambda =>
-            New_Val := Deref_Lambda (Func_Param).Apply (Param_List, Env);
+            New_Val := Deref_Lambda (Func_Param).Apply (Param_List);
          when Func =>
             New_Val := Deref_Func (Func_Param).Call_Func (Param_List, Env);
          when others => raise Mal_Exception with "Swap with bad func";
@@ -276,7 +287,7 @@ package body Core is
             end if;
          when others => null;
       end case;
-      raise Evaluation.Evaluation_Error with "Expecting a List";
+      raise Evaluation_Error with "Expecting a List";
       return Null_List (List_List);
    end Eval_As_List;
 
@@ -386,8 +397,8 @@ package body Core is
    function Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
 
-      Func_Handle, List_Handle, Results_Handle : Mal_Handle;
       Rest_List, Results_List : List_Mal_Type;
+      Func_Handle, List_Handle, Results_Handle : Mal_Handle;
 
    begin
 
@@ -395,30 +406,36 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
 
       Func_Handle := Car (Rest_List);
-      List_Handle := Car (Deref_List (Cdr (Rest_List)).all);
+      List_Handle := Nth (Rest_List, 1);
 
       Results_Handle := New_List_Mal_Type (List_List);
       Results_List := Deref_List (Results_Handle).all;
 
       while not Is_Null (Deref_List_Class (List_Handle).all) loop
+
          declare
             Parts_Handle : Mal_Handle;
-            Parts_List : List_Mal_Type;
          begin
-            Parts_Handle := New_List_Mal_Type (List_List);
-            Parts_List := Deref_List (Parts_Handle).all;
-            Append (Parts_List, Func_Handle);
-            Append (Parts_List, Car (Deref_List_Class (List_Handle).all));
-
+            Parts_Handle :=
+              Make_New_List
+                ((1 => Func_Handle,
+                  2 => Make_New_List
+                         ((1 => New_Symbol_Mal_Type ("quote"),
+                           2 => Car (Deref_List_Class (List_Handle).all)))));
+ 
             List_Handle := Cdr (Deref_List_Class (List_Handle).all);
 
             -- Using a Parts_Handle below doesn't work.
             Append
               (Results_List,
-               Evaluation.Eval (New_List_Mal_Type (Parts_List), Env));
+               Eval_Callback.Eval.all (Parts_Handle, Env));
+
          end;
+
       end loop;
+
       return New_List_Mal_Type (Results_List);
+
    end Map;
 
 
@@ -465,7 +482,7 @@ package body Core is
             end if;
          end;
       end loop;
-      return Evaluation.Eval (New_List_Mal_Type (Results_List), Env);
+      return Eval_Callback.Eval.all (New_List_Mal_Type (Results_List), Env);
    end Apply;
 
 
@@ -1085,7 +1102,7 @@ package body Core is
 
       Set (Get_Current,
            "eval",
-           New_Func_Mal_Type ("eval", Evaluation.Eval'access));
+           New_Func_Mal_Type ("eval", Do_Eval'access));
 
       Set (Get_Current,
            "read-string",

@@ -4,7 +4,7 @@ with Ada.Strings.Maps.Constants;
 with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 with Envs;
-with Evaluation;
+with Eval_Callback;
 with Smart_Pointers;
 with Types.Vector;
 with Types.Hash_Map;
@@ -706,6 +706,21 @@ package body Types is
    end New_List_Mal_Type;
 
 
+   function Make_New_List (Handle_List : Handle_Lists) return Mal_Handle is
+
+      List_SP : Mal_Handle;
+      List_P : List_Ptr;
+
+   begin
+      List_SP := New_List_Mal_Type (List_Type => List_List);
+      List_P := Deref_List (List_SP);
+      for I in Handle_List'Range loop
+         Append (List_P.all, Handle_List (I));
+      end loop;
+      return List_SP;
+   end Make_New_List;
+
+
    overriding function Sym_Type (T : List_Mal_Type) return Sym_Types is
    begin
       return List;
@@ -866,7 +881,7 @@ package body Types is
          Envs.Set
            (Env,
             Deref_Sym (Car (D)).Get_Sym,
-            Evaluation.Eval (Car (L), Env));
+            Eval_Callback.Eval.all (Car (L), Env));
          D := Deref_List (Cdr(L)).all;
       end loop;
    end Add_Defs;
@@ -952,15 +967,16 @@ package body Types is
 
 
    function New_Lambda_Mal_Type
-     (Params : Mal_Handle; Expr : Mal_Handle)
+     (Params : Mal_Handle; Expr : Mal_Handle; Env : Envs.Env_Handle)
    return Mal_Handle is
    begin
       return Smart_Pointers.New_Ptr
         (new Lambda_Mal_Type'
-          (Mal_Type with Env => Envs.Get_Current,
-           Params => Params,
-           Expr => Expr,
-           Is_Macro => False));
+          (Mal_Type with
+             Params => Params,
+             Expr => Expr,
+             Env => Env,
+             Is_Macro => False));
    end New_Lambda_Mal_Type;
 
    overriding function Sym_Type (T : Lambda_Mal_Type) return Sym_Types is
@@ -1007,8 +1023,7 @@ package body Types is
 
    function Apply
      (L : Lambda_Mal_Type;
-      Param_List : Mal_Handle;
-      Env : Envs.Env_Handle)
+      Param_List : Mal_Handle)
    return Mal_Handle is
 
       E : Envs.Env_Handle;
@@ -1017,13 +1032,13 @@ package body Types is
 
    begin
 
-      E := Envs.New_Env (Env);
+      E := Envs.New_Env (L.Env);
 
       Param_Names := Deref_List (L.Get_Params).all;
 
       if Envs.Bind (E, Param_Names, Deref_List (Param_List).all) then
 
-         Res := Evaluation.Eval (L.Get_Expr, E); 
+         Res := Eval_Callback.Eval.all (L.Get_Expr, E); 
 
       else
 

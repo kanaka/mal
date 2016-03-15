@@ -22,17 +22,17 @@ procedure Step1_Read_Print is
    end Print;
 
    function Rep (Param : String) return String is
-     AST, Evaluated_AST : Types.Mal_Handle;
+      AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
-     AST := Read (Param);
+      AST := Read (Param);
 
-     if Types.Is_Null (AST) then
-        return "";
-     else
-        Evaluated_AST := Eval (AST);
-        return Print (Evaluated_AST);
-     end if;
+      if Types.Is_Null (AST) then
+         return "";
+      else
+         Evaluated_AST := Eval (AST);
+         return Print (Evaluated_AST);
+      end if;
 
    end Rep; 
 
