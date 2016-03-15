@@ -15,7 +15,7 @@ BINS = $(SRCS:%.rs=target/release/%)
 
 #####################
 
-all: mal
+all: $(BINS)
 
 dist: mal
 
