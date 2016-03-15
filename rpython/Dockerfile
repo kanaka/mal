@@ -32,10 +32,11 @@ RUN apt-get -y install pypy
 
 # rpython
 RUN apt-get -y install mercurial libffi-dev pkg-config libz-dev libbz2-dev \
-    libsqlite3-dev libncurses-dev libexpat1-dev libssl-dev
+    libsqlite3-dev libncurses-dev libexpat1-dev libssl-dev libgdbm-dev tcl-dev
 
 RUN mkdir -p /opt/pypy && \
-    curl https://bitbucket.org/pypy/pypy/get/tip.tar.gz | tar -xzf - -C /opt/pypy/ --strip-components=1
+    curl -L https://bitbucket.org/pypy/pypy/downloads/pypy-4.0.1-src.tar.bz2 | tar -xjf - -C /opt/pypy/ --strip-components=1
+    #curl https://bitbucket.org/pypy/pypy/get/tip.tar.gz | tar -xzf - -C /opt/pypy/ --strip-components=1
 RUN cd /opt/pypy && make
 
 RUN ln -sf /opt/pypy/rpython/bin/rpython /usr/local/bin/rpython
