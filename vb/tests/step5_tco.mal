@@ -1,0 +1,2 @@
+;; VB: skipping non-TCO recursion
+;; Reason: unrecoverable segfault at 10,000

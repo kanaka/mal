@@ -1,0 +1,2 @@
+;; Elixir: skipping non-TCO recursion
+;; Reason: Elixir has TCO, test always completes.

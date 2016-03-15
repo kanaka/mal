@@ -97,35 +97,12 @@ regress_step8 = $(regress_step7) step8
 regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
-STEP5_EXCLUDES += awk     # completes at 10,000
-STEP5_EXCLUDES += bash    # no stack exhaustion or completion
-STEP5_EXCLUDES += c       # segfault
-STEP5_EXCLUDES += cpp     # completes at 10,000
-STEP5_EXCLUDES += crystal # test completes, even at 1,000,000
-STEP5_EXCLUDES += cs      # fatal stack overflow fault
-STEP5_EXCLUDES += d       # completes at 10,000, fatal stack overflow at 1,000,000
-STEP5_EXCLUDES += erlang  # erlang is TCO, test passes
-STEP5_EXCLUDES += elixir  # elixir is TCO, test passes
-STEP5_EXCLUDES += fsharp  # completes at 10,000, fatal stack overflow at 100,000
-STEP5_EXCLUDES += go      # test completes, even at 100,000
-STEP5_EXCLUDES += haskell # test completes
-STEP5_EXCLUDES += io      # too slow to complete 10,000
-STEP5_EXCLUDES += make    # no TCO capability/step
-STEP5_EXCLUDES += mal     # no TCO capability/step
-STEP5_EXCLUDES += matlab  # too slow to complete 10,000
-STEP5_EXCLUDES += miniMAL # strange error with runtest.py
-STEP5_EXCLUDES += nim     # test completes, even at 100,000
-STEP5_EXCLUDES += objc    # completes at 10,000, crashes at 100,000
-STEP5_EXCLUDES += objpascal # completes at 10,000
-STEP5_EXCLUDES += php     # test completes, even at 100,000
-STEP5_EXCLUDES += racket  # test completes
-STEP5_EXCLUDES += ruby    # test completes, even at 100,000
-STEP5_EXCLUDES += rust    # no catching stack overflows
-STEP5_EXCLUDES += swift3  # no catching stack overflows
-STEP5_EXCLUDES += ocaml   # test completes, even at 1,000,000
-STEP5_EXCLUDES += vb      # completes at 10,000
+test_EXCLUDES += test^bash^step5   # never completes at 10,000
+test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
+test_EXCLUDES += test^mal^step5    # host impl dependent
+test_EXCLUDES += test^matlab^step5 # never completes at 10,000
 
-PERF_EXCLUDES = mal  # TODO: fix this
+perf_EXCLUDES = mal  # TODO: fix this
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
@@ -294,14 +271,14 @@ STEPS = $(sort $(filter step%,$(.VARIABLES)))
 DO_IMPLS = $(filter-out $(SKIP_IMPLS),$(IMPLS))
 IMPL_TESTS = $(foreach impl,$(DO_IMPLS),test^$(impl))
 STEP_TESTS = $(foreach step,$(STEPS),test^$(step))
-ALL_TESTS = $(filter-out $(foreach impl,$(STEP5_EXCLUDES),test^$(impl)^step5),\
+ALL_TESTS = $(filter-out $(test_EXCLUDES),\
               $(strip $(sort \
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
-IMPL_PERF = $(foreach impl,$(filter-out $(PERF_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
+IMPL_PERF = $(foreach impl,$(filter-out $(perf_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
 
 IMPL_REPL = $(foreach impl,$(DO_IMPLS),repl^$(impl))
 ALL_REPL = $(strip $(sort \
@@ -421,6 +398,12 @@ $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(su
 .SECONDEXPANSION:
 $(IMPL_REPL): $$@^stepA
 
+#
+# Utility functions
+#
+.SECONDEXPANSION:
+print-%:
+	@echo "$($(*))"
 
 #
 # Recursive rules (call make FOO in each subdirectory)

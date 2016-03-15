@@ -19,20 +19,3 @@ res2
 
 (foo 10000)
 ;=>0
-
-
-;; Test recursive non-tail call function
-
-(def! sum-to (fn* (n) (if (= n 0) 0 (+ n (sum-to (- n 1))))))
-
-(sum-to 10)
-;=>55
-
-;;; no try* yet, so test completion of side-effects
-(def! res1 nil)
-;=>nil
-;;; For implementations without their own TCO this should fail and
-;;; leave res1 unchanged
-(def! res1 (sum-to 10000))
-res1
-;=>nil

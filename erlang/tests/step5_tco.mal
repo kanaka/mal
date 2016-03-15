@@ -1,0 +1,2 @@
+;; Erlang: skipping non-TCO recursion
+;; Reason: Erlang has TCO, test always completes.

@@ -1,0 +1,2 @@
+;; Nim: skipping non-TCO recursion
+;; Reason: completes at 10,000, unrecoverable segfault 20,000
