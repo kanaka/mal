@@ -47,11 +47,11 @@
 (defn eval-ast [ast env]
   (cond
     (symbol? ast) (env/env-get env ast)
-   
+
     (seq? ast)    (doall (map #(EVAL % env) ast))
 
     (vector? ast) (vec (doall (map #(EVAL % env) ast)))
-   
+
     (map? ast)    (apply hash-map (doall (map #(EVAL % env)
                                               (mapcat identity ast))))
 
@@ -63,7 +63,7 @@
     ;;(prn "EVAL" ast (keys @env)) (flush)
     (if (not (seq? ast))
       (eval-ast ast env)
-  
+
       ;; apply list
       (let [ast (macroexpand ast env)]
         (if (not (seq? ast))
@@ -73,27 +73,27 @@
             (condp = a0
               'def!
               (env/env-set env a1 (EVAL a2 env))
-      
+
               'let*
               (let [let-env (env/env env)]
                 (doseq [[b e] (partition 2 a1)]
                   (env/env-set let-env b (EVAL e let-env)))
                 (recur a2 let-env))
-    
+
               'quote
               a1
-    
+
               'quasiquote
               (recur (quasiquote a1) env)
-    
+
               'defmacro!
               (let [func (with-meta (EVAL a2 env)
                                     {:ismacro true})]
                 (env/env-set env a1 func))
-    
+
               'macroexpand
               (macroexpand a1 env)
-      
+
               'try*
               (if (= 'catch* (nth a2 0))
                 (try
@@ -107,11 +107,11 @@
                                               [(nth a2 1)]
                                               [(.getMessage t)]))))
                 (EVAL a1 env))
-    
+
               'do
               (do (eval-ast (->> ast (drop-last) (drop 1)) env)
                   (recur (last ast) env))
-      
+
               'if
               (let [cond (EVAL a1 env)]
                 (if (or (= cond nil) (= cond false))
@@ -119,7 +119,7 @@
                     (recur a3 env)
                     nil)
                   (recur a2 env)))
-      
+
               'fn*
               (with-meta
                 (fn [& args]
@@ -127,12 +127,12 @@
                 {:expression a2
                  :environment env
                  :parameters a1})
-      
+
               ;; apply
               (let [el (eval-ast ast env)
-                       f (first el)
-                       args (rest el)
-                       {:keys [expression environment parameters]} (meta f)]
+                    f (first el)
+                    args (rest el)
+                    {:keys [expression environment parameters]} (meta f)]
                 (if expression
                   (recur expression (env/env environment parameters args))
                   (apply f args))))))))))
@@ -172,5 +172,4 @@
   (env/env-set repl-env '*ARGV* (rest args))
   (if args
     (rep (str "(load-file \"" (first args) "\")"))
-    (do
-      (repl-loop))))
+    (repl-loop)))
