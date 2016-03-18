@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
-with Evaluation;
+with Eval_Callback;
 
 package body Types.Vector is
 
@@ -82,7 +82,7 @@ package body Types.Vector is
          Envs.Set
            (Env,
             Deref_Sym (Element (C)).Get_Sym,
-            Evaluation.Eval (Element (D), Env));
+            Eval_Callback.Eval.all (Element (D), Env));
          C := Next (D);
       end loop;
    end Add_Defs;

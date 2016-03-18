@@ -14,21 +14,17 @@ procedure Step7_Quote is
 
    use Types;
 
-   function Read (Param : String) return Types.Mal_Handle is
-   begin
-      return Reader.Read_Str (Param);
-   end Read;
-
-
-   -- evaluation.ads
-
    function Eval (AParam : Types.Mal_Handle; AnEnv : Envs.Env_Handle)
    return Types.Mal_Handle;
 
    Debug : Boolean := False;
 
 
-   -- evaluation.adb
+   function Read (Param : String) return Types.Mal_Handle is
+   begin
+      return Reader.Read_Str (Param);
+   end Read;
+
 
    function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
 		   return Mal_Handle is
@@ -37,9 +33,9 @@ procedure Step7_Quote is
       Name := Car (Args);
       pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected atom as name");
-      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+      Fn_Body := Nth (Args, 1);
       Res := Eval (Fn_Body, Env);
-      Envs.Set (Envs.Get_Current, Deref_Sym (Name).Get_Sym, Res);
+      Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
       return Res;
    end Def_Fn;
 
@@ -218,7 +214,7 @@ procedure Step7_Quote is
       Param := AParam;
       Env := AnEnv;
 
-  <<Tail_Call_Opt>>
+      <<Tail_Call_Opt>>
 
       if Debug then
          Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
@@ -403,20 +399,45 @@ procedure Step7_Quote is
       return Printer.Pr_Str (Param);
    end Print;
 
-   function Rep (Param : String) return String is
-     AST, Evaluated_AST : Types.Mal_Handle;
+   function Rep (Param : String; Env : Envs.Env_Handle) return String is
+      AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
-     AST := Read (Param);
+      AST := Read (Param);
 
-     if Types.Is_Null (AST) then
-        return "";
-     else
-        Evaluated_AST := Eval (AST, Envs.Get_Current);
-        return Print (Evaluated_AST);
-     end if;
+      if Types.Is_Null (AST) then
+         return "";
+      else
+         Evaluated_AST := Eval (AST, Env);
+         return Print (Evaluated_AST);
+      end if;
 
    end Rep; 
+
+
+   Repl_Env : Envs.Env_Handle;
+
+
+   -- These two ops use Repl_Env directly.
+
+
+   procedure RE (Str : Mal_String) is
+      Discarded : Mal_Handle;
+   begin
+      Discarded := Eval (Read (Str), Repl_Env);
+   end RE;
+
+
+   function Do_Eval (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return Eval_Callback.Eval.all (First_Param, Repl_Env);
+   end Do_Eval;
+
 
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
@@ -432,19 +453,19 @@ begin
    -- as we know Eval will be in scope for the lifetime of the program.
    Eval_Callback.Eval := Eval'Unrestricted_Access;
 
+   Repl_Env := Envs.New_Env;
+
    -- Core init also creates the first environment.
    -- This is needed for the def!'s below.
-   Core.Init;
+   Core.Init (Repl_Env);
 
-   declare
-      Not_S : String :=
-        Rep ("(def! not (fn* (a) (if a false true)))");
-      LF_S : String :=
-        Rep ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))");
-      pragma Unreferenced (Not_S, LF_S);
-   begin
-      null;
-   end;
+   -- Register the eval command.  This needs to be done here rather than Core.Init
+   -- as it requires direct access to Repl_Env.
+   Envs.Set (Repl_Env, "eval", New_Func_Mal_Type ("eval", Do_Eval'Unrestricted_Access));
+
+   RE ("(def! not (fn* (a) (if a false true)))");
+
+   RE ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))");
 
    Cmd_Args := 0;
    Command_Args := Types.New_List_Mal_Type (Types.List_List);
@@ -467,18 +488,17 @@ begin
 
    end loop;
 
-   Envs.Set (Envs.Get_Current, "*ARGV*", Command_Args);
+   Envs.Set (Repl_Env, "*ARGV*", Command_Args);
 
    if File_Processed then
-      Ada.Text_IO.Put_Line
-        (Rep ("(load-file """ & Ada.Command_Line.Argument (File_Param) & """)"));
+      RE ("(load-file """ & Ada.Command_Line.Argument (File_Param) & """)");
    end if;
 
    loop
       begin
          Ada.Text_IO.Put ("user> ");
          Ada.Text_IO.Get_Line (S, Last);
-         Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+         Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
       exception
          when Ada.IO_Exceptions.End_Error => raise;
          when E : others =>

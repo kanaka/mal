@@ -1,7 +1,6 @@
 with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
-with Envs;
 with Eval_Callback;
 with Reader;
 with Smart_Pointers;
@@ -394,6 +393,89 @@ package body Core is
    end Nth;
 
 
+   function Apply (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+
+      Results_Handle, First_Param : Mal_Handle;
+      Rest_List : List_Mal_Type;
+      Results_List : List_Ptr;
+
+   begin
+
+      -- The rest of the line.
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      Rest_List := Deref_List (Cdr (Rest_List)).all;
+
+      Results_Handle := New_List_Mal_Type (List_List);
+      Results_List := Deref_List (Results_Handle);
+
+      -- The last item is a list or a vector which gets flattened so that
+      -- (apply f (A B) C (D E)) becomes (f (A B) C D E)
+      while not Is_Null (Rest_List) loop
+         declare
+            Part_Handle : Mal_Handle;
+         begin
+            Part_Handle := Car (Rest_List);
+            Rest_List := Deref_List (Cdr (Rest_List)).all;
+
+            -- Is Part_Handle the last item in the list?
+            if Is_Null (Rest_List) then
+               declare
+                  The_List : List_Class_Ptr;
+                  List_Item : Mal_Handle;
+                  Next_List : Mal_Handle;
+               begin
+                  The_List := Deref_List_Class (Part_Handle);
+                  while not Is_Null (The_List.all) loop
+                     List_Item := Car (The_List.all);
+                     Append (Results_List.all, List_Item);
+                     Next_List := Cdr (The_List.all);
+                     The_List := Deref_List_Class (Next_List);
+                  end loop;
+               end;
+            else
+               Append (Results_List.all, Part_Handle);
+            end if;
+         end;
+      end loop;
+      if Deref (First_Param).Sym_Type = Func then
+         return Call_Func (Deref_Func (First_Param).all, Results_Handle, Env);
+      elsif Deref (First_Param).Sym_Type = Lambda then
+         declare
+
+            L : Lambda_Mal_Type;
+            E : Envs.Env_Handle;
+            Param_Names : List_Mal_Type;
+            Res : Mal_Handle;
+
+         begin
+
+            L := Deref_Lambda (First_Param).all;
+            E := Envs.New_Env (L.Get_Env);
+
+            Param_Names := Deref_List (L.Get_Params).all;
+
+            if Envs.Bind (E, Param_Names, Results_List.all) then
+
+               return Eval_Callback.Eval.all (L.Get_Expr, E);
+
+            else
+
+               raise Mal_Exception with "Bind failed in Apply";
+
+            end if;
+
+         end;
+
+      else  -- neither a Lambda or a Func
+         raise Mal_Exception;
+      end if;
+
+--      return Eval_Callback.Eval.all (New_List_Mal_Type (Results_List), Env);
+   end Apply;
+
+
    function Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle is
 
@@ -420,15 +502,13 @@ package body Core is
               Make_New_List
                 ((1 => Func_Handle,
                   2 => Make_New_List
-                         ((1 => New_Symbol_Mal_Type ("quote"),
-                           2 => Car (Deref_List_Class (List_Handle).all)))));
+                         ((1 => Car (Deref_List_Class (List_Handle).all)))));
  
             List_Handle := Cdr (Deref_List_Class (List_Handle).all);
 
-            -- Using a Parts_Handle below doesn't work.
             Append
               (Results_List,
-               Eval_Callback.Eval.all (Parts_Handle, Env));
+               Apply (Parts_Handle, Env));
 
          end;
 
@@ -437,53 +517,6 @@ package body Core is
       return New_List_Mal_Type (Results_List);
 
    end Map;
-
-
-   function Apply (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
-
-      Results_Handle : Mal_Handle;
-      Rest_List, Results_List : List_Mal_Type;
-
-   begin
-
-      -- The rest of the line.
-      Rest_List := Deref_List (Rest_Handle).all;
-
-      Results_Handle := New_List_Mal_Type (List_List);
-      Results_List := Deref_List (Results_Handle).all;
-
-      -- Just bundle all the parts into one list so
-      -- (apply f (A B) (C D)) becomes (f A B C D)
-      -- Is this right? Or should it be (f (A B) C D)?
-      while not Is_Null (Rest_List) loop
-         declare
-            Part_Handle : Mal_Handle;
-         begin
-            Part_Handle := Car (Rest_List);
-            Rest_List := Deref_List (Cdr (Rest_List)).all;
-
-            if Deref (Part_Handle).Sym_Type = List then
-               declare
-                  The_List : List_Class_Ptr;
-                  List_Item : Mal_Handle;
-                  Next_List : Mal_Handle;
-               begin
-                  The_List := Deref_List_Class (Part_Handle);
-                  while not Is_Null (The_List.all) loop
-                     List_Item := Car (The_List.all);
-                     Append (Results_List, List_Item);
-                     Next_List := Cdr (The_List.all);
-                     The_List := Deref_List_Class (Next_List);
-                  end loop;
-               end;
-            else
-               Append (Results_List, Part_Handle);
-            end if;
-         end;
-      end loop;
-      return Eval_Callback.Eval.all (New_List_Mal_Type (Results_List), Env);
-   end Apply;
 
 
    function Symbol (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
@@ -922,237 +955,234 @@ package body Core is
    end Conj;
 
 
-   procedure Init is
-     use Envs;
+   procedure Init (Repl_Env : Envs.Env_Handle) is
    begin
 
-      Envs.New_Env;
+      Envs.Set (Repl_Env, "*host-language*", Types.New_Symbol_Mal_Type ("ada"));
 
-      Set (Get_Current, "*host-language*", Types.New_Symbol_Mal_Type ("ada"));
+      Envs.Set (Repl_Env, "true", Types.New_Bool_Mal_Type (True));
 
-      Set (Get_Current, "true", Types.New_Bool_Mal_Type (True));
-
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "true?",
            New_Func_Mal_Type ("true?", Is_True'access));
 
-      Set (Get_Current, "false", Types.New_Bool_Mal_Type (False));
+      Envs.Set (Repl_Env, "false", Types.New_Bool_Mal_Type (False));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "false?",
            New_Func_Mal_Type ("false?", Is_False'access));
 
-      Set (Get_Current, "nil", Types.New_Symbol_Mal_Type ("nil"));
+      Envs.Set (Repl_Env, "nil", Types.New_Symbol_Mal_Type ("nil"));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "meta",
            New_Func_Mal_Type ("meta", Meta'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "with-meta",
            New_Func_Mal_Type ("with-meta", With_Meta'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "nil?",
            New_Func_Mal_Type ("nil?", Is_Nil'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "throw",
            New_Func_Mal_Type ("throw", Throw'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "atom",
            New_Func_Mal_Type ("atom", New_Atom'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "atom?",
            New_Func_Mal_Type ("atom?", Is_Atom'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "deref",
            New_Func_Mal_Type ("deref", Core.Deref'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "reset!",
            New_Func_Mal_Type ("reset!", Reset'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "swap!",
            New_Func_Mal_Type ("swap!", Swap'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "list",
            New_Func_Mal_Type ("list", New_List'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "list?",
            New_Func_Mal_Type ("list?", Is_List'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "vector",
            New_Func_Mal_Type ("vector", New_Vector'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "vector?",
            New_Func_Mal_Type ("vector?", Is_Vector'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "hash-map",
            New_Func_Mal_Type ("hash-map", New_Map'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "assoc",
            New_Func_Mal_Type ("assoc", Assoc'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "dissoc",
            New_Func_Mal_Type ("dissoc", Dis_Assoc'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "get",
            New_Func_Mal_Type ("get", Get_Key'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "keys",
            New_Func_Mal_Type ("keys", All_Keys'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "vals",
            New_Func_Mal_Type ("vals", All_Values'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "map?",
            New_Func_Mal_Type ("map?", Is_Map'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "contains?",
            New_Func_Mal_Type ("contains?", Contains_Key'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "sequential?",
            New_Func_Mal_Type ("sequential?", Is_Sequential'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "empty?",
            New_Func_Mal_Type ("empty?", Is_Empty'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "count",
            New_Func_Mal_Type ("count", Count'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "cons",
            New_Func_Mal_Type ("cons", Cons'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "concat",
            New_Func_Mal_Type ("concat", Concat'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "first",
            New_Func_Mal_Type ("first", First'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "rest",
            New_Func_Mal_Type ("rest", Rest'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "nth",
            New_Func_Mal_Type ("nth", Nth'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "map",
            New_Func_Mal_Type ("map", Map'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "apply",
            New_Func_Mal_Type ("apply", Apply'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "symbol",
            New_Func_Mal_Type ("symbol", Symbol'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "symbol?",
            New_Func_Mal_Type ("symbol?", Is_Symbol'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "keyword",
            New_Func_Mal_Type ("keyword", Keyword'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "keyword?",
            New_Func_Mal_Type ("keyword?", Is_Keyword'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "pr-str",
            New_Func_Mal_Type ("pr-str", Pr_Str'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "str",
            New_Func_Mal_Type ("str", Str'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "prn",
            New_Func_Mal_Type ("prn", Prn'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "println",
            New_Func_Mal_Type ("println", Println'access));
 
-      Set (Get_Current,
-           "eval",
-           New_Func_Mal_Type ("eval", Do_Eval'access));
+--      Envs.Set (Repl_Env,
+--           "eval",
+--           New_Func_Mal_Type ("eval", Do_Eval'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "read-string",
            New_Func_Mal_Type ("read-string", Read_String'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "readline",
            New_Func_Mal_Type ("readline", Read_Line'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "slurp",
            New_Func_Mal_Type ("slurp", Slurp'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "conj",
            New_Func_Mal_Type ("conj", Conj'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "+",
            New_Func_Mal_Type ("+", Plus'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "-",
            New_Func_Mal_Type ("-", Minus'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "*",
            New_Func_Mal_Type ("*", Mult'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "/",
            New_Func_Mal_Type ("/", Divide'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "<",
            New_Func_Mal_Type ("<", LT'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "<=",
            New_Func_Mal_Type ("<=", LTE'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            ">",
            New_Func_Mal_Type (">", GT'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            ">=",
            New_Func_Mal_Type (">=", GTE'access));
 
-      Set (Get_Current,
+      Envs.Set (Repl_Env,
            "=",
            New_Func_Mal_Type ("=", EQ'access));
 

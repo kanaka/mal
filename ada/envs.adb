@@ -8,11 +8,11 @@ package body Envs is
    function Is_Null (E : Env_Handle) return Boolean is
       use Smart_Pointers;
    begin
-     return Smart_Pointer (E) = Null_Smart_Pointer;
+     return E = Null_Env_Handle;
    end Is_Null;
 
 
-   function New_Env (Outer : Env_Handle) return Env_Handle is
+   function New_Env (Outer : Env_Handle := Null_Env_Handle) return Env_Handle is
       use Smart_Pointers;
       Level : Natural;
    begin
@@ -108,7 +108,7 @@ package body Envs is
 
    -- Sym and Exprs are lists.  Bind Sets Keys in Syms to the corresponding
    -- expression in Exprs.  Returns true if all the parameters were bound.
-   function Bind (E : Env_Handle; Syms, Exprs : Types.List_Mal_Type)
+   function Bind (Env : Env_Handle; Syms, Exprs : Types.List_Mal_Type)
    return Boolean is
       use Types;
       S, Expr : List_Mal_Type;
@@ -123,11 +123,11 @@ package body Envs is
          if First_Sym.Get_Sym = "&" then
             S := Deref_List (Cdr (S)).all;
             First_Sym := Deref_Sym (Car (S));
-            Set (E, First_Sym.Get_Sym, New_List_Mal_Type (Expr));
+            Set (Env, First_Sym.Get_Sym, New_List_Mal_Type (Expr));
             return True;
          end if;
 
-         Set (E, First_Sym.Get_Sym, Car (Expr));
+         Set (Env, First_Sym.Get_Sym, Car (Expr));
          S := Deref_List (Cdr (S)).all;
          exit when Is_Null (Expr);
          Expr := Deref_List (Cdr (Expr)).all;
@@ -135,34 +135,6 @@ package body Envs is
       end loop;
       return Is_Null (S);
    end Bind;
-
-
-   procedure New_Env is
-   begin
-      Current := New_Env (Current);
-   end New_Env;
-
-
-   procedure Free is new Unchecked_Deallocation (Env, Env_Ptr);
-
-   procedure Delete_Env is
-   begin
-      if Debug then
-         Ada.Text_IO.Put_Line ("Deleting env at level " & Natural'Image (Deref (Current).Level));
-      end if;
-      -- Always leave one Env!
-      if not Is_Null (Deref (Current).Outer_Env) then
-         Current := Deref (Current).Outer_Env;
-         -- The old Current is finalized *if* there are no references to it.
-         -- Note closures may refer to the old env.
-      end if;
-   end Delete_Env;
-   
-
-   function Get_Current return Env_Handle is
-   begin
-      return Current;
-   end Get_Current;
 
 
    function Deref (SP : Env_Handle) return Env_Ptr is

@@ -14,21 +14,17 @@ procedure Step5_TCO is
 
    use Types;
 
+   -- Forward declaration of Eval.
+   function Eval (AParam : Mal_Handle; AnEnv : Envs.Env_Handle) return Mal_Handle;
+
+   Debug : Boolean := False;
+
+
    function Read (Param : String) return Types.Mal_Handle is
    begin
       return Reader.Read_Str (Param);
    end Read;
 
-
-   -- evaluation.ads
-
-   function Eval (AParam : Types.Mal_Handle; AnEnv : Envs.Env_Handle)
-   return Types.Mal_Handle;
-
-   Debug : Boolean := False;
-
-
-   -- evaluation.adb
 
    function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
 		   return Mal_Handle is
@@ -37,9 +33,9 @@ procedure Step5_TCO is
       Name := Car (Args);
       pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected atom as name");
-      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+      Fn_Body := Nth (Args, 1);
       Res := Eval (Fn_Body, Env);
-      Envs.Set (Envs.Get_Current, Deref_Sym (Name).Get_Sym, Res);
+      Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
       return Res;
    end Def_Fn;
 
@@ -133,7 +129,7 @@ procedure Step5_TCO is
       Param := AParam;
       Env := AnEnv;
 
-  <<Tail_Call_Opt>>
+      <<Tail_Call_Opt>>
 
       if Debug then
          Ada.Text_IO.Put_Line ("Evaling " & Deref (Param).To_String);
@@ -307,7 +303,7 @@ procedure Step5_TCO is
       return Printer.Pr_Str (Param);
    end Print;
 
-   function Rep (Param : String) return String is
+   function Rep (Param : String; Env : Envs.Env_Handle) return String is
      AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
@@ -316,11 +312,35 @@ procedure Step5_TCO is
      if Types.Is_Null (AST) then
         return "";
      else
-        Evaluated_AST := Eval (AST, Envs.Get_Current);
+        Evaluated_AST := Eval (AST, Env);
         return Print (Evaluated_AST);
      end if;
 
    end Rep; 
+
+   Repl_Env : Envs.Env_Handle;
+
+
+   -- These two ops use Repl_Env directly.
+
+
+   procedure RE (Str : Mal_String) is
+      Discarded : Mal_Handle;
+   begin
+      Discarded := Eval (Read (Str), Repl_Env);
+   end RE;
+
+
+   function Do_Eval (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Rest_List : Types.List_Mal_Type;
+   begin
+      Rest_List := Deref_List (Rest_Handle).all;
+      First_Param := Car (Rest_List);
+      return Eval_Callback.Eval.all (First_Param, Repl_Env);
+   end Do_Eval;
+
 
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
@@ -343,15 +363,17 @@ begin
    -- as we know Eval will be in scope for the lifetime of the program.
    Eval_Callback.Eval := Eval'Unrestricted_Access;
 
-   Core.Init;
+   Repl_Env := Envs.New_Env;
 
-   Ada.Text_IO.Put_Line (Rep ("(def! not (fn* (a) (if a false true)))"));
+   Core.Init (Repl_Env);
+
+   RE ("(def! not (fn* (a) (if a false true)))");
 
    loop
       begin
          Ada.Text_IO.Put ("user> ");
          Ada.Text_IO.Get_Line (S, Last);
-         Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+         Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
       exception
          when Ada.IO_Exceptions.End_Error => raise;
          when E : others =>

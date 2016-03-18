@@ -14,21 +14,17 @@ procedure Step4_If_Fn_Do is
 
    use Types;
 
-   function Read (Param : String) return Types.Mal_Handle is
-   begin
-      return Reader.Read_Str (Param);
-   end Read;
-
-
-   -- evaluation.ads
-
    function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle;
 
    Debug : Boolean := False;
 
 
-   -- evaluation.adb
+   function Read (Param : String) return Types.Mal_Handle is
+   begin
+      return Reader.Read_Str (Param);
+   end Read;
+
 
    function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
 		   return Mal_Handle is
@@ -37,7 +33,8 @@ procedure Step4_If_Fn_Do is
       Name := Car (Args);
       pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected symbol as name");
-      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+--      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+      Fn_Body := Nth (Args, 1);
       Res := Eval (Fn_Body, Env);
       Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
       return Res;
@@ -248,20 +245,33 @@ procedure Step4_If_Fn_Do is
    end Print;
 
 
-   function Rep (Param : String) return String is
-     AST, Evaluated_AST : Types.Mal_Handle;
+   function Rep (Param : String; Env : Envs.Env_Handle) return String is
+      AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
-     AST := Read (Param);
+      AST := Read (Param);
 
-     if Types.Is_Null (AST) then
-        return "";
-     else
-        Evaluated_AST := Eval (AST, Envs.Get_Current);
-        return Print (Evaluated_AST);
-     end if;
+      if Types.Is_Null (AST) then
+         return "";
+      else
+         Evaluated_AST := Eval (AST, Env);
+         return Print (Evaluated_AST);
+      end if;
 
    end Rep; 
+
+
+   Repl_Env : Envs.Env_Handle;
+
+
+   -- This op uses Repl_Env directly.
+
+
+   procedure RE (Str : Mal_String) is
+      Discarded : Mal_Handle;
+   begin
+      Discarded := Eval (Read (Str), Repl_Env);
+   end RE;
 
 
    S : String (1..Reader.Max_Line_Len);
@@ -285,15 +295,17 @@ begin
    -- as we know Eval will be in scope for the lifetime of the program.
    Eval_Callback.Eval := Eval'Unrestricted_Access;
 
-   Core.Init;
+   Repl_Env := Envs.New_Env;
 
-   Ada.Text_IO.Put_Line (Rep ("(def! not (fn* (a) (if a false true)))"));
+   Core.Init (Repl_Env);
+
+   RE ("(def! not (fn* (a) (if a false true)))");
 
    loop
       begin
          Ada.Text_IO.Put ("user> ");
          Ada.Text_IO.Get_Line (S, Last);
-         Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+         Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
       exception
          when Ada.IO_Exceptions.End_Error => raise;
          when E : others =>

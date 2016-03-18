@@ -13,21 +13,17 @@ procedure Step3_Env is
 
    use Types;
 
-   function Read (Param : String) return Types.Mal_Handle is
-   begin
-      return Reader.Read_Str (Param);
-   end Read;
-
-
-   -- evaluation.ads
-
    function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle;
 
    Debug : Boolean := False;
 
 
-   -- evaluation.adb
+   function Read (Param : String) return Types.Mal_Handle is
+   begin
+      return Reader.Read_Str (Param);
+   end Read;
+
 
    function Def_Fn (Args : List_Mal_Type; Env : Envs.Env_Handle)
 		   return Mal_Handle is
@@ -36,7 +32,8 @@ procedure Step3_Env is
       Name := Car (Args);
       pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected symbol as name");
-      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+--      Fn_Body := Car (Deref_List (Cdr (Args)).all);
+      Fn_Body := Nth (Args, 1);
       Res := Eval (Fn_Body, Env);
       Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
       return Res;
@@ -147,21 +144,22 @@ procedure Step3_Env is
       return Printer.Pr_Str (Param);
    end Print;
 
-   function Rep (Param : String) return String is
-     AST, Evaluated_AST : Types.Mal_Handle;
+   function Rep (Param : String; Env : Envs.Env_Handle) return String is
+      AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
-     AST := Read (Param);
+      AST := Read (Param);
 
-     if Types.Is_Null (AST) then
-        return "";
-     else
-        Evaluated_AST := Eval (AST, Envs.Get_Current);
-        return Print (Evaluated_AST);
-     end if;
+      if Types.Is_Null (AST) then
+         return "";
+      else
+         Evaluated_AST := Eval (AST, Env);
+         return Print (Evaluated_AST);
+      end if;
 
    end Rep; 
 
+   Repl_Env : Envs.Env_Handle;
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
 
@@ -178,12 +176,14 @@ begin
    -- as we know Eval will be in scope for the lifetime of the program.
    Eval_Callback.Eval := Eval'Unrestricted_Access;
 
-   Core.Init;
+   Repl_Env := Envs.New_Env;
+
+   Core.Init (Repl_Env);
 
    loop
       Ada.Text_IO.Put ("user> ");
       Ada.Text_IO.Get_Line (S, Last);
-      Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+      Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
    end loop;
 
 exception
