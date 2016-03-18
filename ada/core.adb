@@ -439,6 +439,8 @@ package body Core is
             end if;
          end;
       end loop;
+
+      -- The apply part...
       if Deref (First_Param).Sym_Type = Func then
          return Call_Func (Deref_Func (First_Param).all, Results_Handle, Env);
       elsif Deref (First_Param).Sym_Type = Lambda then
@@ -472,7 +474,6 @@ package body Core is
          raise Mal_Exception;
       end if;
 
---      return Eval_Callback.Eval.all (New_List_Mal_Type (Results_List), Env);
    end Apply;
 
 
