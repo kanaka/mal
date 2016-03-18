@@ -1131,10 +1131,6 @@ package body Core is
            "println",
            New_Func_Mal_Type ("println", Println'access));
 
---      Envs.Set (Repl_Env,
---           "eval",
---           New_Func_Mal_Type ("eval", Do_Eval'access));
-
       Envs.Set (Repl_Env,
            "read-string",
            New_Func_Mal_Type ("read-string", Read_String'access));
