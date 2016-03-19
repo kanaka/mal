@@ -31,8 +31,8 @@ package body Core is
       case Deref (MH).Sym_Type is
          when Bool => 
             Res := Deref_Bool (MH).Get_Bool;
-         when Sym =>
-            return not (Deref_Sym (MH).Get_Sym = "nil");
+         when Nil => 
+            Res := False;
 --         when List =>
 --            declare
 --               L : List_Mal_Type;
@@ -105,8 +105,7 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       return New_Bool_Mal_Type
-        (Deref (First_Param).Sym_Type = Sym and then
-         Deref_Sym (First_Param).Get_Sym = "nil");
+        (Deref (First_Param).Sym_Type = Nil);
    end Is_Nil;
 
 
@@ -279,11 +278,8 @@ package body Core is
    function Eval_As_List (MH : Types.Mal_Handle) return List_Mal_Type is
    begin
       case Deref (MH).Sym_Type is
-         when List =>  return Deref_List (MH).all;
-         when Sym =>
-            if Deref_Sym (MH).Get_Sym = "nil" then
-               return Null_List (List_List);
-            end if;
+         when List   => return Deref_List (MH).all;
+         when Nil    => return Null_List (List_List);
          when others => null;
       end case;
       raise Evaluation_Error with "Expecting a List";
@@ -345,12 +341,12 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      if Deref (First_Param).Sym_Type = Sym then
-         return New_Symbol_Mal_Type ("nil");
+      if Deref (First_Param).Sym_Type = Nil then
+         return New_Nil_Mal_Type;
       end if;
       First_List := Deref_List_Class (First_Param);
       if Is_Null (First_List.all) then
-         return New_Symbol_Mal_Type ("nil");
+         return New_Nil_Mal_Type;
       else
          return Types.Car (First_List.all);
       end if;
@@ -364,8 +360,7 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      if Deref (First_Param).Sym_Type = Sym then
-         -- Assuming it's nil
+      if Deref (First_Param).Sym_Type = Nil then
          return New_List_Mal_Type (List_List);
       end if;
       Container := Deref_List_Class (First_Param).Cdr;
@@ -685,10 +680,10 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       Map_Param := Car (Rest_List);
       The_Sym := Deref (Map_Param).Sym_Type;
-      if The_Sym = Sym then
+      if The_Sym = Sym or The_Sym = Nil then
          -- Either its nil or its some other atom
          -- which makes no sense!
-         return New_Symbol_Mal_Type ("nil");
+         return New_Nil_Mal_Type;
       end if;
 
       -- Assume a map from here on in.
@@ -830,7 +825,7 @@ package body Core is
       use Ada.Strings.Unbounded;
    begin
       Ada.Text_IO.Put_Line (Deref_List (Rest_Handle).Pr_Str);
-      return New_Symbol_Mal_Type ("nil");
+      return New_Nil_Mal_Type;
    end Prn;
 
 
@@ -840,7 +835,7 @@ package body Core is
       Res : String := Deref_List (Rest_Handle).Pr_Str (False);
    begin
       Ada.Text_IO.Put_Line (Res);
-      return New_Symbol_Mal_Type ("nil");
+      return New_Nil_Mal_Type;
    end Println;
 
 
@@ -961,19 +956,13 @@ package body Core is
 
       Envs.Set (Repl_Env, "*host-language*", Types.New_Symbol_Mal_Type ("ada"));
 
-      Envs.Set (Repl_Env, "true", Types.New_Bool_Mal_Type (True));
-
       Envs.Set (Repl_Env,
            "true?",
            New_Func_Mal_Type ("true?", Is_True'access));
 
-      Envs.Set (Repl_Env, "false", Types.New_Bool_Mal_Type (False));
-
       Envs.Set (Repl_Env,
            "false?",
            New_Func_Mal_Type ("false?", Is_False'access));
-
-      Envs.Set (Repl_Env, "nil", Types.New_Symbol_Mal_Type ("nil"));
 
       Envs.Set (Repl_Env,
            "meta",

@@ -183,7 +183,7 @@ package body Types.Hash_Map is
       if Has_Element (C) then
          return Element (C);
       else
-         return New_Symbol_Mal_Type ("nil");
+         return New_Nil_Mal_Type;
       end if;
    end Get;
 

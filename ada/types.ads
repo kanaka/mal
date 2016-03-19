@@ -35,8 +35,8 @@ package Types is
 
    function "=" (A, B : Mal_Handle) return Boolean;
 
-   type Sym_Types is (Bool, Int, Floating, Str, Sym, Atom, Node, List,
-                      Func, Lambda, Error);
+   type Sym_Types is (Nil, Bool, Int, Floating, Str, Sym, Atom, Node,
+                      List, Func, Lambda, Error);
 
    type Mal_Type is abstract new Smart_Pointers.Base_Class with private;
 
@@ -63,6 +63,13 @@ package Types is
    function Is_Null (S : Mal_Handle) return Boolean;
 
    -- Derived types.  All boilerplate from here.
+
+   type Nil_Mal_Type is new Mal_Type with private;
+
+   function New_Nil_Mal_Type return Mal_Handle;
+
+   overriding function Sym_Type (T : Nil_Mal_Type) return Sym_Types;
+
 
    type Int_Mal_Type is new Mal_Type with private;
 
@@ -317,6 +324,11 @@ private
    -- Not allowed to be abstract and private.  RM 3.9.3(10)
    -- So if you call this it'll just raise an exception.
    function To_Str (T : Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String;
+
+   type Nil_Mal_Type is new Mal_Type with null record;
+
+   overriding function To_Str (T : Nil_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String;
 
    type Int_Mal_Type is new Mal_Type with record

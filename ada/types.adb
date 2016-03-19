@@ -52,6 +52,8 @@ package body Types is
          Deref (A).Sym_Type = Deref (B).Sym_Type then
 
          case Deref (A).Sym_Type is
+            when Nil =>
+               return True; -- Both nil.
             when Int =>
                return (Deref_Int (A).Get_Int_Val = Deref_Int (B).Get_Int_Val);
             when Floating =>
@@ -116,7 +118,7 @@ package body Types is
    function Get_Meta (T : Mal_Type) return Mal_Handle is
    begin
        if T.Meta = Smart_Pointers.Null_Smart_Pointer then
-          return New_Symbol_Mal_Type ("nil");
+          return New_Nil_Mal_Type;
        else
           return T.Meta;
        end if;
@@ -193,6 +195,24 @@ package body Types is
    begin
       raise Constraint_Error;  -- Tha'll teach 'ee
       return "";  -- Keeps the compiler happy.
+   end To_Str;
+
+
+   function New_Nil_Mal_Type return Mal_Handle is
+   begin
+      return Smart_Pointers.New_Ptr
+        (new Nil_Mal_Type'(Mal_Type with null record));
+   end New_Nil_Mal_Type;
+
+   overriding function Sym_Type (T : Nil_Mal_Type) return Sym_Types is
+   begin
+      return Nil;
+   end Sym_Type;
+
+   overriding function To_Str (T : Nil_Mal_Type; Print_Readably : Boolean := True)
+   return Mal_String is
+   begin
+      return "nil";
    end To_Str;
 
 

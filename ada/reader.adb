@@ -351,6 +351,8 @@ package body Reader is
                   return New_Bool_Mal_Type (True);
                elsif S = "false" then
                   return New_Bool_Mal_Type (False);
+               elsif S = "nil" then
+                  return New_Nil_Mal_Type;
                else
                   return New_Symbol_Mal_Type (S);
                end if;

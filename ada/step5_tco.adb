@@ -46,8 +46,8 @@ procedure Step5_TCO is
       case Deref (MH).Sym_Type is
          when Bool => 
             Res := Deref_Bool (MH).Get_Bool;
-         when Sym =>
-            return not (Deref_Sym (MH).Get_Sym = "nil");
+         when Nil =>
+            return False;
 --         when List =>
 --            declare
 --               L : List_Mal_Type;
@@ -222,7 +222,7 @@ procedure Step5_TCO is
 		     goto Tail_Call_Opt;
 		     -- was: return Eval (Car (L), Env);
 	          else
-		     return New_Symbol_Mal_Type ("nil");
+		     return New_Nil_Mal_Type;
 	          end if;
 	       end if;
 	    end;

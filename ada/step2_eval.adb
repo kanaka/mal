@@ -25,28 +25,6 @@ procedure Step2_Eval is
    end Read;
 
 
-   function Eval_As_Boolean (MH : Mal_Handle) return Boolean is
-      Res : Boolean;
-   begin
-      case Deref (MH).Sym_Type is
-         when Bool => 
-            Res := Deref_Bool (MH).Get_Bool;
-         when Sym =>
-            return not (Deref_Sym (MH).Get_Sym = "nil");
---         when List =>
---            declare
---               L : List_Mal_Type;
---            begin
---               L := Deref_List (MH).all;
---               Res := not Is_Null (L);
---            end;
-         when others => -- Everything else
-            Res := True;
-      end case;
-      return Res;
-   end Eval_As_Boolean;
-
-
    function Eval_Ast
      (Ast : Mal_Handle; Env : Envs.Env_Handle)
      return Mal_Handle is
