@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -951,6 +952,19 @@ package body Core is
    end Conj;
 
 
+   Start_Time : Ada.Calendar.Time := Ada.Calendar.Clock;
+
+   function Time_Ms (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   return Types.Mal_Handle is
+      D : Duration;
+      use Ada.Calendar;
+   begin
+      D := Clock - Start_Time;  -- seconds
+      D := D * 1000.0;  -- milli-seconds
+      return New_Int_Mal_Type (Integer (D));  -- ms rounded to the nearest one
+   end Time_Ms;
+
+
    procedure Init (Repl_Env : Envs.Env_Handle) is
    begin
 
@@ -1135,6 +1149,10 @@ package body Core is
       Envs.Set (Repl_Env,
            "conj",
            New_Func_Mal_Type ("conj", Conj'access));
+
+      Envs.Set (Repl_Env,
+           "time-ms",
+           New_Func_Mal_Type ("time-ms", Time_Ms'access));
 
       Envs.Set (Repl_Env,
            "+",
