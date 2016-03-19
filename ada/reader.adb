@@ -343,8 +343,18 @@ package body Reader is
 
          when Sym_Tok =>
 
-            return New_Symbol_Mal_Type
-                     (Slice (Saved_Line, Tok.Start_Char, Tok.Stop_Char));
+            -- Mal interpreter is required to know about true, false and nil.
+            declare
+               S : String := Slice (Saved_Line, Tok.Start_Char, Tok.Stop_Char);
+            begin
+               if S = "true" then
+                  return New_Bool_Mal_Type (True);
+               elsif S = "false" then
+                  return New_Bool_Mal_Type (False);
+               else
+                  return New_Symbol_Mal_Type (S);
+               end if;
+            end;
 
       end case;
 
