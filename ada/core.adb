@@ -803,8 +803,6 @@ package body Core is
 
    function Pr_Str (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
-      use Ada.Strings.Unbounded;
-      Res : Unbounded_String;
    begin
       return New_String_Mal_Type ('"' & Deref_List (Rest_Handle).Pr_Str & '"');
    end Pr_Str;
@@ -812,7 +810,6 @@ package body Core is
 
    function Prn (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
-      use Ada.Strings.Unbounded;
    begin
       Ada.Text_IO.Put_Line (Deref_List (Rest_Handle).Pr_Str);
       return New_Nil_Mal_Type;
@@ -821,20 +818,16 @@ package body Core is
 
    function Println (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
-      use Ada.Strings.Unbounded;
-      Res : String := Deref_List (Rest_Handle).Pr_Str (False);
    begin
-      Ada.Text_IO.Put_Line (Res);
+      Ada.Text_IO.Put_Line (Deref_List (Rest_Handle).Pr_Str (False));
       return New_Nil_Mal_Type;
    end Println;
 
 
    function Str (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
-      use Ada.Strings.Unbounded;
-      Res : String := Deref_List (Rest_Handle).Cat_Str (False);
    begin
-      return New_String_Mal_Type ('"' & Res & '"');
+      return New_String_Mal_Type ('"' & Deref_List (Rest_Handle).Cat_Str (False) & '"');
    end Str;
 
 
