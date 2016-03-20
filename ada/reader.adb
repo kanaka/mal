@@ -192,7 +192,9 @@ package body Reader is
                Dots := 0;
                All_Digits := True;
                for K in I .. J loop
-                  if Element (Saved_Line, K) = '.' then
+                  if (K = I and K /= J) and then Element (Saved_Line, K) = '-' then
+                     null;
+                  elsif Element (Saved_Line, K) = '.' then
                      Dots := Dots + 1; 
                   elsif not (Element (Saved_Line, K) in '0' .. '9') then
                      All_Digits := False;
