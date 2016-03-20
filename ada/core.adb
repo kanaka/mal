@@ -550,6 +550,14 @@ package body Core is
    end Is_Symbol;
 
 
+   function Is_String (Rest_Handle : Mal_Handle) return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+   begin
+      First_Param := Car (Deref_List (Rest_Handle).all);
+      return New_Bool_Mal_Type (Deref (First_Param).Sym_Type = Str);
+   end Is_String;
+
+
    function Keyword (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
@@ -1091,6 +1099,10 @@ package body Core is
       Envs.Set (Repl_Env,
            "symbol?",
            New_Func_Mal_Type ("symbol?", Is_Symbol'access));
+
+      Envs.Set (Repl_Env,
+           "string?",
+           New_Func_Mal_Type ("string?", Is_String'access));
 
       Envs.Set (Repl_Env,
            "keyword",
