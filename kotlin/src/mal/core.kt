@@ -106,6 +106,9 @@ val ns = hashMapOf(
         envPair("nil?", { a: ISeq -> if (a.nth(0) == NIL) TRUE else FALSE }),
         envPair("true?", { a: ISeq -> if (a.nth(0) == TRUE) TRUE else FALSE }),
         envPair("false?", { a: ISeq -> if (a.nth(0) == FALSE) TRUE else FALSE }),
+        envPair("string?", { a: ISeq ->
+            if (a.nth(0) is MalString && !(a.nth(0) is MalKeyword)) TRUE else FALSE
+        }),
         envPair("symbol?", { a: ISeq -> if (a.nth(0) is MalSymbol) TRUE else FALSE }),
 
         envPair("symbol", { a: ISeq -> MalSymbol((a.nth(0) as MalString).value) }),
@@ -163,7 +166,23 @@ val ns = hashMapOf(
             obj.with_meta(metadata)
         }),
         envPair("meta", { a: ISeq -> a.first().metadata }),
+
         envPair("conj", { a: ISeq -> (a.first() as ISeq).conj(a.rest()) }),
+        envPair("seq", { a: ISeq ->
+            val obj = a.nth(0)
+            if (obj is ISeq) {
+                if (obj.count() == 0) NIL
+                else MalList(obj.seq().toCollection(LinkedList<MalType>()))
+            } else if (obj is MalString && !(obj is MalKeyword)) {
+                if (obj.value.length == 0) NIL
+                else {
+                    var strs = obj.value.map({ c -> MalString(c.toString()) })
+                    MalList(strs.toCollection(LinkedList<MalType>()))
+                }
+            } else {
+                NIL
+            }
+        }),
 
         envPair("atom", { a: ISeq -> MalAtom(a.first()) }),
         envPair("atom?", { a: ISeq -> if (a.first() is MalAtom) TRUE else FALSE }),

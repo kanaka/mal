@@ -101,6 +101,14 @@ class Types {
         }
     }
 
+    public static function string_Q(x:MalType) {
+        return switch (x) {
+            case MalString(s): s.charAt(0) != "\x7f";
+            case _: false;
+        }
+    }
+
+
     public static function symbol_Q(x:MalType) {
         return switch (x) {
             case MalSymbol(_): true;

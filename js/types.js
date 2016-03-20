@@ -88,6 +88,9 @@ function _clone (obj) {
 function _nil_Q(a) { return a === null ? true : false; }
 function _true_Q(a) { return a === true ? true : false; }
 function _false_Q(a) { return a === false ? true : false; }
+function _string_Q(obj) {
+    return typeof obj === 'string' && obj[0] !== '\u029e';
+}
 
 
 // Symbols
@@ -202,6 +205,7 @@ exports._clone = types._clone = _clone;
 exports._nil_Q = types._nil_Q = _nil_Q;
 exports._true_Q = types._true_Q = _true_Q;
 exports._false_Q = types._false_Q = _false_Q;
+exports._string_Q = types._string_Q = _string_Q;
 exports._symbol = types._symbol = _symbol;
 exports._symbol_Q = types._symbol_Q = _symbol_Q;
 exports._keyword = types._keyword = _keyword;

@@ -26,6 +26,7 @@ def throw(args):
 def nil_Q(args): return wrap_tf(types._nil_Q(args[0]))
 def true_Q(args): return wrap_tf(types._true_Q(args[0]))
 def false_Q(args): return wrap_tf(types._false_Q(args[0]))
+def string_Q(args): return wrap_tf(types._string_Q(args[0]))
 def symbol(args):
     a0 = args[0]
     if isinstance(a0, MalStr):
@@ -269,21 +270,6 @@ def rest(args):
     if len(a0) == 0: return MalList([])
     else:            return a0.rest()
 
-# retains metadata
-def conj(args):
-    lst, args = args[0], args.rest()
-    new_lst = None
-    if types._list_Q(lst):
-        vals = args.values[:]
-        vals.reverse()
-        new_lst = MalList(vals + lst.values)
-    elif types._vector_Q(lst):
-        new_lst = MalVector(lst.values + list(args.values))
-    else:
-        throw_str("conj on non-list/non-vector")
-    new_lst.meta = lst.meta
-    return new_lst
-
 def apply(args):
     f, fargs = args[0], args.rest()
     last_arg = fargs.values[-1]
@@ -301,6 +287,37 @@ def mapf(args):
         res.append(f.apply(MalList([a])))
     return MalList(res)
 
+# retains metadata
+def conj(args):
+    lst, args = args[0], args.rest()
+    new_lst = None
+    if types._list_Q(lst):
+        vals = args.values[:]
+        vals.reverse()
+        new_lst = MalList(vals + lst.values)
+    elif types._vector_Q(lst):
+        new_lst = MalVector(lst.values + list(args.values))
+    else:
+        throw_str("conj on non-list/non-vector")
+    new_lst.meta = lst.meta
+    return new_lst
+
+def seq(args):
+    a0 = args[0]
+    if isinstance(a0, MalVector):
+        if len(a0) == 0: return nil
+        return MalList(a0.values)
+    elif isinstance(a0, MalList):
+        if len(a0) == 0: return nil
+        return a0
+    elif types._string_Q(a0):
+        assert isinstance(a0, MalStr)
+        if len(a0) == 0: return nil
+        return MalList([MalStr(unicode(c)) for c in a0.value])
+    elif a0 is nil:
+        return nil
+    else:
+        throw_str("seq: called on non-sequence")
 
 # Metadata functions
 def with_meta(args):
@@ -353,6 +370,7 @@ ns = {
         'nil?': nil_Q,
         'true?': true_Q,
         'false?': false_Q,
+        'string?': string_Q,
         'symbol': symbol,
         'symbol?': symbol_Q,
         'keyword': keyword,
@@ -396,9 +414,11 @@ ns = {
         'rest': rest,
         'empty?': empty_Q,
         'count': count,
-        'conj': conj,
         'apply': apply,
         'map': mapf,
+
+        'conj': conj,
+        'seq': seq,
 
         'with-meta': with_meta,
         'meta': meta,

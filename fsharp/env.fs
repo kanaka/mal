@@ -76,6 +76,7 @@ module Env
               wrap "false?" (Core.isConst Node.FALSE)
               wrap "symbol?" Core.isSymbol
               wrap "symbol" Core.symbol
+              wrap "string?" Core.isString
               wrap "keyword?" Core.isKeyword
               wrap "keyword" Core.keyword
               wrap "sequential?" Core.isSequential
@@ -95,6 +96,7 @@ module Env
               wrap "reset!" Core.reset
               wrap "swap!" Core.swap
               wrap "conj" Core.conj
+              wrap "seq" Core.seq
               wrap "meta" Core.meta
               wrap "with-meta" Core.withMeta ]
             |> ofList

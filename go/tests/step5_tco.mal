@@ -1,0 +1,2 @@
+;; Go: skipping non-TCO recursion
+;; Reason: completes even at 100,000

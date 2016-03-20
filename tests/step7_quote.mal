@@ -8,6 +8,12 @@
 (cons (list 1) (list 2 3))
 ;=>((1) 2 3)
 
+(def! a (list 2 3))
+(cons 1 a)
+;=>(1 2 3)
+a
+;=>(2 3)
+
 ;; Testing concat function
 (concat)
 ;=>()
@@ -20,6 +26,14 @@
 (concat (concat))
 ;=>()
 
+(def! a (list 1 2))
+(def! b (list 3 4))
+(concat a b (list 5 6))
+;=>(1 2 3 4 5 6)
+a
+;=>(1 2)
+b
+;=>(3 4)
 
 ;; Testing regular quote
 (quote 7)

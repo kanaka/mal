@@ -13,3 +13,4 @@ showSuccess := false
 
 logLevel in runMain := Level.Warn
 
+mainClass in Compile := Some("stepA_mal")

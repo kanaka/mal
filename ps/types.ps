@@ -202,6 +202,17 @@ end } def
 /_nil? { null eq } def
 /_true? { true eq } def
 /_false? { false eq } def
+/_string? {
+    dup type /stringtype eq {
+        dup length 0 eq { % if length == 0
+            pop true
+        }{
+            0 get 127 eq not
+        } ifelse
+    }{
+        pop false
+    } ifelse
+} def
 
 
 % Symbols
@@ -226,7 +237,11 @@ end } def
 
 /_keyword? {
     dup type /stringtype eq {
-        0 get 127 eq
+        dup length 0 eq { % if length == 0
+            pop false
+        }{
+            0 get 127 eq
+        } ifelse
     }{
         pop false
     } ifelse

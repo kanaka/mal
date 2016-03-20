@@ -17,6 +17,18 @@ conj = (seq, args...) ->
       types._vector(lst...)
     else throw new Error "conj called on " + types._obj_type(seq)
 
+seq = (obj) ->
+  switch types._obj_type(obj)
+    when 'list'
+      if obj.length == 0 then null else obj
+    when 'vector'
+      if obj.length == 0 then null else obj[0..-1]
+    when 'string'
+      if obj.length == 0 then null else obj.split('')
+    when 'nil'
+      null
+    else throw new Error "seq: called on non-sequential " + types._obj_type(seq)
+
 # Metadata functions
 with_meta = (obj,m) ->
   new_obj = types._clone(obj)
@@ -30,6 +42,7 @@ exports.ns = {
   'nil?': types._nil_Q,
   'true?': types._true_Q,
   'false?': types._false_Q,
+  'string?': types._string_Q,
   'symbol': types._symbol,
   'symbol?': types._symbol_Q,
   'keyword': types._keyword,
@@ -76,7 +89,9 @@ exports.ns = {
   'count': (a) -> if a == null then 0 else a.length,
   'apply': (a,b...) -> a(b[0..-2].concat(b[b.length-1])...),
   'map': (a,b) -> b.map((x) -> a(x)),
+
   'conj': conj,
+  'seq': seq,
 
   'with-meta': with_meta,
   'meta': (a) -> a.__meta__ or null,

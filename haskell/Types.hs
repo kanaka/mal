@@ -2,7 +2,7 @@ module Types
 (MalVal (..), MalError (..), IOThrows (..), Fn (..), EnvData (..), Env,
  throwStr, throwMalVal, _get_call, _to_list,
  _func, _malfunc,
- _nil_Q, _true_Q, _false_Q, _symbol_Q, _keyword_Q,
+ _nil_Q, _true_Q, _false_Q, _string_Q, _symbol_Q, _keyword_Q,
  _list_Q, _vector_Q, _hash_map_Q, _atom_Q)
 where
 
@@ -112,6 +112,10 @@ _false_Q _        = MalFalse
 
 _symbol_Q (MalSymbol _) = MalTrue
 _symbol_Q _             = MalFalse
+
+_string_Q (MalString ('\x029e':_)) = MalFalse
+_string_Q (MalString _)            = MalTrue
+_string_Q _                        = MalFalse
 
 _keyword_Q (MalString ('\x029e':_)) = MalTrue
 _keyword_Q _                        = MalFalse

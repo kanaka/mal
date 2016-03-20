@@ -14,6 +14,7 @@ matrix:
     - {env: IMPL=clojure,   services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
     - {env: IMPL=d,         services: [docker]}
+    - {env: IMPL=elisp,     services: [docker]}
     - {env: IMPL=elixir,    services: [docker]}
     - {env: IMPL=erlang NO_PERF=1, services: [docker]} # perf runs out of memory
     - {env: IMPL=es6,       services: [docker]}
@@ -25,6 +26,7 @@ matrix:
     - {env: IMPL=guile,     services: [docker]}
     - {env: IMPL=haskell,   services: [docker]}
     - {env: IMPL=haxe,      services: [docker]}
+    - {env: IMPL=io,        services: [docker]}
     - {env: IMPL=java,      services: [docker]}
     - {env: IMPL=js,        services: [docker]}
     - {env: IMPL=julia,     services: [docker]}
@@ -35,6 +37,9 @@ matrix:
     - {env: IMPL=matlab, services: [docker]} # Uses Octave
     - {env: IMPL=miniMAL BUILD_IMPL=js, services: [docker]}
     - {env: IMPL=nim,       services: [docker]}
+    - {env: IMPL=objpascal, services: [docker]}
+    - {env: IMPL=objc NO_DOCKER=1, os: osx, osx_image: xcode7}
+    - {env: IMPL=objc,      services: [docker]}
     - {env: IMPL=ocaml,     services: [docker]}
     - {env: IMPL=perl,      services: [docker]}
     - {env: IMPL=php,       services: [docker]}
@@ -47,6 +52,7 @@ matrix:
     - {env: IMPL=rust,      services: [docker]}
     - {env: IMPL=scala,     services: [docker]}
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7}
+    - {env: IMPL=swift3,    services: [docker]}
     - {env: IMPL=tcl,       services: [docker]}
     - {env: IMPL=vb,        services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}

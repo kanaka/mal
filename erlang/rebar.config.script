@@ -6,5 +6,6 @@
 case os:getenv("MAL_STEP") of
     false -> CONFIG; % env var not defined
     []    -> CONFIG; % env var set to empty string
-    Step  -> CONFIG ++ [{escript_name, Step}]
+    Step  -> CONFIG ++ [{escript_name, Step}];
+    mal   -> CONFIG ++ [{escript_name, mal}]
 end.

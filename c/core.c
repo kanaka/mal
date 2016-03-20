@@ -31,6 +31,13 @@ MalVal *equal_Q(MalVal *a, MalVal *b) {
 MalVal *nil_Q(MalVal *seq) { return seq->type & MAL_NIL ? &mal_true : &mal_false; }
 MalVal *true_Q(MalVal *seq) { return seq->type & MAL_TRUE ? &mal_true : &mal_false; }
 MalVal *false_Q(MalVal *seq) { return seq->type & MAL_FALSE ? &mal_true : &mal_false; }
+MalVal *string_Q(MalVal *seq) {
+    if ((seq->type & MAL_STRING) && (seq->val.string[0] != '\x7f')) {
+        return &mal_true;
+    } else {
+        return &mal_false;
+    }
+}
 
 
 // Symbol functions
@@ -324,30 +331,6 @@ MalVal *count(MalVal *seq) {
     return malval_new_integer(_count(seq));
 }
 
-MalVal *sconj(MalVal *args) {
-    assert_type(args, MAL_LIST|MAL_VECTOR,
-                "conj called with non-sequential");
-    MalVal *src_lst = _nth(args, 0);
-    assert_type(args, MAL_LIST|MAL_VECTOR,
-                "first argument to conj is non-sequential");
-    int i, len = _count(src_lst) + _count(args) - 1;
-    GArray *new_arr = g_array_sized_new(TRUE, TRUE, sizeof(MalVal*),
-                                        len);
-    // Copy in src_lst
-    for (i=0; i<_count(src_lst); i++) {
-        g_array_append_val(new_arr, g_array_index(src_lst->val.array, MalVal*, i));
-    }
-    // Conj extra args
-    for (i=1; i<_count(args); i++) {
-        if (src_lst->type & MAL_LIST) {
-            g_array_prepend_val(new_arr, g_array_index(args->val.array, MalVal*, i));
-        } else {
-            g_array_append_val(new_arr, g_array_index(args->val.array, MalVal*, i));
-        }
-    }
-    return malval_new_list(src_lst->type, new_arr);
-}
-
 MalVal *apply(MalVal *args) {
     assert_type(args, MAL_LIST|MAL_VECTOR,
                 "apply called with non-sequential");
@@ -392,6 +375,62 @@ MalVal *map(MalVal *mvf, MalVal *lst) {
         g_array_append_val(el->val.array, res);
     }
     return el;
+}
+
+MalVal *sconj(MalVal *args) {
+    assert_type(args, MAL_LIST|MAL_VECTOR,
+                "conj called with non-sequential");
+    MalVal *src_lst = _nth(args, 0);
+    assert_type(args, MAL_LIST|MAL_VECTOR,
+                "first argument to conj is non-sequential");
+    int i, len = _count(src_lst) + _count(args) - 1;
+    GArray *new_arr = g_array_sized_new(TRUE, TRUE, sizeof(MalVal*),
+                                        len);
+    // Copy in src_lst
+    for (i=0; i<_count(src_lst); i++) {
+        g_array_append_val(new_arr, g_array_index(src_lst->val.array, MalVal*, i));
+    }
+    // Conj extra args
+    for (i=1; i<_count(args); i++) {
+        if (src_lst->type & MAL_LIST) {
+            g_array_prepend_val(new_arr, g_array_index(args->val.array, MalVal*, i));
+        } else {
+            g_array_append_val(new_arr, g_array_index(args->val.array, MalVal*, i));
+        }
+    }
+    return malval_new_list(src_lst->type, new_arr);
+}
+
+MalVal *seq(MalVal *obj) {
+    assert_type(obj, MAL_LIST|MAL_VECTOR|MAL_STRING|MAL_NIL,
+                "seq: called with non-sequential");
+    int cnt, i;
+    MalVal *lst, *mstr;
+    switch (obj->type) {
+    case MAL_LIST:
+        cnt = _count(obj);
+        if (cnt == 0) { return &mal_nil; }
+        return obj;
+    case MAL_VECTOR:
+        cnt = _count(obj);
+        if (cnt == 0) { return &mal_nil; }
+        lst = malval_new_list(MAL_LIST,
+                            g_array_sized_new(TRUE, TRUE, sizeof(MalVal*), cnt));
+        lst->val.array = obj->val.array;
+        return lst;
+    case MAL_STRING:
+        cnt = strlen(obj->val.string);
+        if (cnt == 0) { return &mal_nil; }
+        lst = malval_new_list(MAL_LIST,
+                              g_array_sized_new(TRUE, TRUE, sizeof(MalVal*), cnt));
+        for (i=0; i<cnt; i++) {
+            mstr = malval_new_string(g_strdup_printf("%c", obj->val.string[i]));
+            g_array_append_val(lst->val.array, mstr);
+        }
+        return lst;
+    case MAL_NIL:
+        return &mal_nil;
+    }
 }
 
 
@@ -453,12 +492,13 @@ MalVal *swap_BANG(MalVal *args) {
 
 
 
-core_ns_entry core_ns[56] = {
+core_ns_entry core_ns[58] = {
     {"=", (void*(*)(void*))equal_Q, 2},
     {"throw", (void*(*)(void*))throw, 1},
     {"nil?", (void*(*)(void*))nil_Q, 1},
     {"true?", (void*(*)(void*))true_Q, 1},
     {"false?", (void*(*)(void*))false_Q, 1},
+    {"string?", (void*(*)(void*))string_Q, 1},
     {"symbol", (void*(*)(void*))symbol, 1},
     {"symbol?", (void*(*)(void*))symbol_Q, 1},
     {"keyword", (void*(*)(void*))keyword, 1},
@@ -503,9 +543,11 @@ core_ns_entry core_ns[56] = {
     {"last", (void*(*)(void*))_last, 1},
     {"empty?", (void*(*)(void*))empty_Q, 1},
     {"count", (void*(*)(void*))count, 1},
-    {"conj", (void*(*)(void*))sconj, -1},
     {"apply", (void*(*)(void*))apply, -1},
     {"map", (void*(*)(void*))map, 2},
+
+    {"conj", (void*(*)(void*))sconj, -1},
+    {"seq", (void*(*)(void*))seq, 1},
 
     {"with-meta", (void*(*)(void*))with_meta, 2},
     {"meta", (void*(*)(void*))meta, 1},

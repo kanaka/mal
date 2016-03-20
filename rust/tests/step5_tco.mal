@@ -1,0 +1,2 @@
+;; Rust: skipping non-TCO recursion
+;; Reason: unrecoverable stack overflow

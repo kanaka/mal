@@ -111,7 +111,7 @@ end } def
 
 % read_atom: read a single atom from string/idx
 % string idx -> read_atom -> int string new_idx
-/read_atom { 3 dict begin
+/read_atom { 4 dict begin
     %(in read_atom\n) print
     /idx exch def
     /str exch def
@@ -119,8 +119,14 @@ end } def
         exit % EOF
     }{
         /ch str idx get def  % current character
-        %ch 48 ge ch 57 le and 45 ch eq or { %if number
-        ch 48 ge ch 57 le and { %if number
+        str length idx 1 add le {
+            /nextch 0 def
+        }{
+            /nextch str idx 1 add get def  % next character
+        } ifelse
+        ch 48 ge ch 57 le and { %if digit (number)
+            str idx read_number
+        }{ ch 45 eq nextch 48 ge nextch 57 le and and { %elseif minus and digit
             str idx read_number
         }{ ch 34 eq { %elseif double-quote (string)
             str idx read_string
@@ -138,7 +144,7 @@ end } def
             }{ %else
                 str idx % return the original symbol/name
             } ifelse } ifelse } ifelse
-        } ifelse } ifelse } ifelse
+        } ifelse } ifelse } ifelse } ifelse
     }ifelse
 
     % return: atom string new_idx

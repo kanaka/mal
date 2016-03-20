@@ -1,0 +1,2 @@
+;; PHP: skipping non-TCO recursion
+;; Reason: completes at 10,000, unrecoverable segfault at 20,000

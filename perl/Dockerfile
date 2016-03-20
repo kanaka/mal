@@ -21,4 +21,4 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install perl
+RUN apt-get -y install perl libapp-fatpacker-perl

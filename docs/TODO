@@ -1,8 +1,14 @@
 ---------------------------------------------
 
-All:
+General:
+    - add chat bot for #mal
+    - move tokenizer.mal and reader.mal from malc along with
+      ./examples/{equality,memoize,pprint,protocols}.mal and
+      ./core.mal to ./lib directory
+
     - Finish guide.md
 
+All Implementations:
     - test that *ARGV* gets set properly
     - test to make sure slurp captures final newline
     - regular expression matching in runtest
@@ -31,11 +37,11 @@ Other ideas for All:
           a *namespaces* map is found with the namespace name being
           looked up. Then the symbol would be looked up starting in
           the namespace environment. Need protocols first probably.
-    - Fix quasiquoting of vectors
 
     - multi-line REPL read
     - loop/recur ?
     - gensym reader inside quasiquote
+    - standalone executable
 
 
 ---------------------------------------------
@@ -47,21 +53,16 @@ Bash:
 C:
     - come up with better way to do 20 vararg code
     - GC: use http://www.hboehm.info/gc/
-    - fix mal/clojurewest2014.mal
 
 C#:
-    - fix command line arg processing (doesn't run file specified)
     - accumulates line breaks with mal/clojurewest2014.mal
-    - step9_interop:
-      http://www.ckode.dk/programming/eval-in-c-yes-its-possible/
+    - interop: http://www.ckode.dk/programming/eval-in-c-yes-its-possible/
 
 Clojure:
-    - make indent consistent across steps (e.g. step5, step8)
-    - fix mal/clojurewest2014.mal
+    - fix "\/" exception in mal/clojurewest2014.mal
 
 CoffeeScript:
     - make target to compile to JS
-    - fix "user> " prompt with mal/clojurewest2014.mal
 
 Go:
     - consider variable arguments in places where it makes sense
@@ -70,7 +71,7 @@ Go:
 Haskell:
     - TCO using seq/bang patterns:
       http://stackoverflow.com/questions/9149183/tail-optimization-guarantee-loop-encoding-in-haskell
-    - immediately exits mal/clojurewest2014.mal
+    - immediately exits mal/clojurewest2014.mal ("\/" exception)
 
 Java:
     - Use gradle instead of mvn
@@ -79,9 +80,6 @@ Java:
 
 Javascript:
     - interop: adopt techniques from miniMAL
-    - fix "user> " prompt with mal/clojurewest2014.mal
-
-Lua:
 
 Make:
     - allow '_' in make variable names
@@ -102,18 +100,18 @@ MATLAB:
 miniMAL:
     - figure out why {} literals are "static"/persistent
 
+ObjPascal:
+    - verify that GC/reference counting works
+    - fix comment by itself error at REPL
+
 Perl:
     - fix metadata on native functions
-    - implement conj
-
-PHP:
-    - formatting messed up with mal/clojurewest2014.mal
+    - fix extra line breaks at REPL
 
 Postscript:
     - add negative numbers
     - fix blank line after comments
     - fix command line arg processing (doesn't run file specified)
-    - formatting messed up with mal/clojurewest2014.mal
 
 Python:
     - interop tests
@@ -121,28 +119,13 @@ Python:
 R:
     - tracebacks in errors
     - fix running from different directory
-    - formatting messed up with mal/clojurewest2014.mal
 
 Racket
     - metadata on collections
 
-Ruby:
-
 Rust:
-    - use built-in regex once fixed:
-        https://github.com/rust-lang/rust/issues/18034
-        https://github.com/rust-lang/rust/issues/18035
     - fix 'make all' invocation of cargo build
-    - formatting messed up with mal/clojurewest2014.mal
 
 Scala
     - readline
     - fix exception when finished running something on command line
-
-VB.Net
-    - convert readline.cs to readline.vb
-
-Vimscript:
-    - fix perf^vimscript when in docker (/dev/stdout permission
-      denied)
-

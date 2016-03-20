@@ -47,7 +47,9 @@ function _sequential_Q($seq) { return _list_Q($seq) or _vector_Q($seq); }
 function _nil_Q($obj) { return $obj === NULL; }
 function _true_Q($obj) { return $obj === true; }
 function _false_Q($obj) { return $obj === false; }
-function _string_Q($obj) { return is_string($obj); }
+function _string_Q($obj) {
+    return is_string($obj) && strpos($obj, chr(0x7f)) !== 0;
+}
 
 
 // Symbols

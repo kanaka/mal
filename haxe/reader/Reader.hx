@@ -43,7 +43,7 @@ class Reader {
     }
 
     static function read_atom(rdr:Reader) {
-        var re_int = ~/^[0-9]*$/;
+        var re_int = ~/^-?[0-9][0-9]*$/;
         var re_str = ~/^".*"$/;
         var token = rdr.next();
         return switch (token) {

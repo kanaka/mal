@@ -31,6 +31,11 @@ TARGETS=$(MAINS:%.cpp=%)
 
 all: $(TARGETS)
 
+dist: mal
+
+mal: stepA_mal
+	cp $< $@
+
 .deps: *.cpp *.h
 	$(CXX) $(CXXFLAGS) -MM *.cpp > .deps
 
@@ -44,7 +49,7 @@ libmal.a: $(LIBOBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o $(TARGETS) libmal.a .deps
+	rm -rf *.o $(TARGETS) libmal.a .deps mal
 
 -include .deps
 

@@ -61,6 +61,7 @@ E._clone = _clone = (obj) ->
 E._nil_Q = _nil_Q = (o) -> o == null
 E._true_Q = _true_Q = (o) -> o == true
 E._false_Q = _false_Q = (o) -> o == false
+E._string_Q = _string_Q = (o) -> _obj_type(o) == 'string'
 
 # Symbols
 class Symbol

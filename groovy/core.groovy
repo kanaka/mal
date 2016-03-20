@@ -27,13 +27,6 @@ class core {
         }
         args[0][args[1]]
     }
-    def static do_conj(args) {
-        if (types.list_Q(args[0])) {
-            args.drop(1).inject(args[0], { a, b -> [b] + a })
-        } else {
-            types.vector(args.drop(1).inject(args[0], { a, b -> a + [b] }))
-        }
-    }
     def static do_apply(args) {
         def start_args = args.drop(1).take(args.size()-2) as List
         args[0](start_args + (args.last() as List))
@@ -44,6 +37,29 @@ class core {
         atm.value = f([atm.value] + (args.drop(2) as List))
     }
 
+    def static do_conj(args) {
+        if (types.list_Q(args[0])) {
+            args.drop(1).inject(args[0], { a, b -> [b] + a })
+        } else {
+            types.vector(args.drop(1).inject(args[0], { a, b -> a + [b] }))
+        }
+    }
+    def static do_seq(args) {
+        def obj = args[0]
+        switch (obj) {
+            case { types.list_Q(obj) }:
+                return obj.size() == 0 ? null : obj
+            case { types.vector_Q(obj) }:
+                return obj.size() == 0 ? null : obj.clone()
+            case { types.string_Q(obj) }:
+                return obj.size() == 0 ? null : obj.collect{ it.toString() }
+            case null:
+                return null
+            default:
+                throw new MalException("seq: called on non-sequence")
+        }
+    }
+
     static ns = [
         "=": { a -> a[0]==a[1]},
         "throw": { a -> throw new MalException(a[0]) },
@@ -51,6 +67,7 @@ class core {
         "nil?": { a -> a[0] == null },
         "true?": { a -> a[0] == true },
         "false?": { a -> a[0] == false },
+        "string?": { a -> types.string_Q(a[0]) },
         "symbol": { a -> new MalSymbol(a[0]) },
         "symbol?": { a -> a[0] instanceof MalSymbol },
         "keyword": { a -> types.keyword(a[0]) },
@@ -99,6 +116,7 @@ class core {
         "map": { a -> a[1].collect { x -> a[0].call([x]) } },
 
         "conj": core.&do_conj,
+        "seq": core.&do_seq,
 
         "meta": { a -> a[0].hasProperty("meta") ? a[0].getProperties().meta : null },
         "with-meta": { a -> def b = types.copy(a[0]); b.getMetaClass().meta = a[1]; b },

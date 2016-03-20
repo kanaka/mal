@@ -8,7 +8,9 @@ MAL_LIB = mal_lib.cmxa
 STEP_BINS = $(STEPS:%.ml=%)
 LAST_STEP_BIN = $(word $(words $(STEP_BINS)),$(STEP_BINS))
 
-all: $(STEP_BINS) mal
+all: $(STEP_BINS)
+
+dist: mal
 
 mal: $(LAST_STEP_BIN)
 	cp $< $@

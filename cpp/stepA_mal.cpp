@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
         safeRep(STRF("(load-file %s)", filename.c_str()), replEnv);
         return 0;
     }
+    rep("(println (str \"Mal [\" *host-language* \"]\"))", replEnv);
     while (s_readLine.get(prompt, input)) {
         safeRep(input, replEnv);
     }
@@ -353,7 +354,7 @@ static const char* malFunctionTable[] = {
         (cons (f (first xs)) (map f (rest xs))))))",
     "(def! *gensym-counter* (atom 0))",
     "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))",
-    "(def! *host-language* \"c++\")",
+    "(def! *host-language* \"C++\")",
 };
 
 static void installFunctions(malEnvPtr env) {

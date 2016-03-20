@@ -19,7 +19,9 @@
              :step7 {:main step7-quote}
              :step8 {:main step8-macros}
              :step9 {:main step9-try}
-             :stepA {:main stepA-mal}}
+             :stepA {:main stepA-mal}
+             :jar   {:main stepA-mal
+                     :aot [stepA-mal]}}
 
-   :main stepA-more)
+   :main stepA-mal)
 

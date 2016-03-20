@@ -97,6 +97,15 @@ This allows you to run tests against your implementation like this:
 make "test^quux^stepX"
 ```
 
+TODO: If your implementation language is a compiled language, then you
+should also add a Makefile at the top level of your implementation
+directory that will define how to build the files pointed to by the
+quux_STEP_TO_PROG macro. The top-level Makefile will attempt to build
+those targets before running tests. If it is a scripting
+language/uncompiled, then no Makefile is necessary because
+quux_STEP_TO_PROG will point to a source file that already exists and
+does not need to be compiled/built.
+
 
 ## General hints
 
@@ -286,7 +295,7 @@ expression support.
 
   * `"(?:\\.|[^\\"])*"`: Starts capturing at a double-quote and stops at the
     next double-quote unless it was proceeded by a backslash in which case it
-    includes it until the next double-quote (tockenized).
+    includes it until the next double-quote (tokenized).
 
   * `;.*`: Captures any sequence of characters starting with `;` (tokenized).
 
@@ -315,7 +324,7 @@ expression support.
   your language does not have a sequential data type that can hold mal
   type values you may need to implement one (in `types.qx`).  Note
   that `read_list` repeatedly calls `read_form` rather than
-  `read_atom`. This mutually recursive defintion between `read_list`
+  `read_atom`. This mutually recursive definition between `read_list`
   and `read_form` is what allows lists to contain lists.
 
 * Add the function `read_atom` to `reader.qx`. This function will
@@ -876,7 +885,7 @@ that most mainstream languages lack.
 
 <a name="step6"></a>
 
-### Step 6: Files and Evil
+### Step 6: Files, Mutation, and Evil
 
 ![step6_file architecture](step6_file.png)
 
@@ -944,7 +953,7 @@ a reference to a single Mal value of any type; it supports reading that Mal valu
 and *modifying* the reference to point to another Mal value.  Note that this is
 the only Mal data type that is mutable (but the Mal values it refers to are
 still immutable; immutability is explained in greater detail in step 7).
-You'll need to add 5 functions to the core namesapce to support atoms:
+You'll need to add 5 functions to the core namespace to support atoms:
 
   * `atom`: Takes a Mal value and returns a new atom which points to that Mal value.
   * `atom?`: Takes an argument and returns `true` if the argument is an atom.
@@ -982,7 +991,7 @@ as a normal mal program. However, it is important to note that the
 `eval` function is not just for running external programs. Because mal
 programs are regular mal data structures, you can dynamically generate
 or manipulate those data structures before calling `eval` on them.
-This isomorphisism (same shape) between data and programs is known as
+This isomorphism (same shape) between data and programs is known as
 "homoiconicity". Lisp languages are homoiconic and this property
 distinguishes them from most other programming languages.
 
@@ -1003,7 +1012,7 @@ support quoting (step 7) and macros (step 8).
 
 * Add the rest of the command line arguments to your REPL environment
   so that programs that are run with `load-file` have access to their
-  calling environmnet. Add a new "\*ARGV\*" (symbol) entry to your REPL
+  calling environment. Add a new "\*ARGV\*" (symbol) entry to your REPL
   environment. The value of this entry should be the rest of the
   command line arguments as a mal list value.
 
@@ -1153,7 +1162,7 @@ macros.
 
 ![step8_macros architecture](step8_macros.png)
 
-Your mal implementation is now ready for one of the most Lispy and
+Your mal implementation is now ready for one of the most lispy and
 exciting of all programming concepts: macros. In the previous step,
 quoting enabled some simple manipulation data structures and therefore
 manipulation of mal code (because the `eval` function from step
@@ -1239,10 +1248,10 @@ Congratulations! You now have a Lisp interpreter with a super power
 that most non-Lisp languages can only dream of (I have it on good
 authority that languages dream when you are not using them). If you
 are not already familiar with Lisp macros, I suggest the following
-excercise: write a recursive macro that handles postfixed mal code
+exercise: write a recursive macro that handles postfixed mal code
 (with the function as the last parameter instead of the first). Or
 not. I have not actually done so myself, but I have heard it is an
-interesting excercise.
+interesting exercise.
 
 In the next step you will add try/catch style exception handling to
 your implementation in addition to some new core functions. After
@@ -1334,7 +1343,7 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
   `fn*`, the you will need to do so now.
   * `apply`: takes at least two arguments. The first argument is
     a function and the last argument is list (or vector). The
-    arguments between the function and the last arguemnt (if there are
+    arguments between the function and the last argument (if there are
     any) are concatenated with the final argument to create the
     arguments that are used to call the function. The apply
     function allows a function to be called with arguments that are
@@ -1417,7 +1426,7 @@ self-hosting.
 
 <a name="stepA"></a>
 
-### Step A: Mutation, Self-hosting and Interop
+### Step A: Metadata, Self-hosting and Interop
 
 ![stepA_mal architecture](stepA_mal.png)
 
@@ -1444,10 +1453,22 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 
 * Copy `step9_try.qx` to `stepA_mal.qx`.
 
+* Add the `readline` core function. This functions takes a
+  string that is used to prompt the user for input. The line of text
+  entered by the user is returned as a string. If the user sends an
+  end-of-file (usually Ctrl-D), then nil is returned.
+
 * Add meta-data support to mal functions. TODO. Should be separate
   from the function macro flag.
 
-* Add the `readline` core function. TODO
+* Add a new "\*host-language\*" (symbol) entry to your REPL
+  environment. The value of this entry should be a mal string
+  containing thename of the current implementation.
+
+* When the REPL starts up (as opposed to when it is called with
+  a script and/or arguments), call the `rep` function with this string
+  to print a startup header:
+  "(println (str \"Mal [\" *host-language* \"]\"))".
 
 
 Now go to the top level, run the step A tests:
@@ -1534,7 +1555,7 @@ For extra information read [Peter Seibel's thorough discussion about
   functions. TODO
 * Add the following new core functions:
   * `time-ms`: takes no arguments and returns the number of
-    milliseconds since epoch (00:00:00 UTC Janurary 1, 1970), or, if
+    milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
     not possible, since another point in time (`time-ms` is usually
     used relatively to measure time durations).  After `time-ms` is
     implemented, you can run the mal implementation performance
@@ -1546,6 +1567,13 @@ For extra information read [Peter Seibel's thorough discussion about
     the given list in opposite order; if the collection is a vector, a
     new vector is returned with the elements added to the end of the
     given vector.
+  * `string?`: returns true if the parameter is a string.
+  * `seq`: takes a list, vector, string, or nil. If an empty list,
+    empty vector, or empty string ("") is passed in then nil is
+    returned. Otherwise, a list is returned unchanged, a vector is
+    converted into a list, and a string is converted to a list that
+    containing the original string split into single character
+    strings.
 
 
 ## TODO:

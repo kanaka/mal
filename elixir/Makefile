@@ -5,8 +5,14 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 all:
 	mix compile
 
+dist: mal
+
+mal: $(SOURCES)
+	mix escript.build
+
 clean:
 	mix clean
+	rm -f mal
 
 stats: $(SOURCES)
 	@wc $^

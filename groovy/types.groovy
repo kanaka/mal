@@ -31,6 +31,10 @@ class types {
         }
     }
 
+    def static string_Q(o) {
+        return o instanceof String && (o.size() == 0 || o[0] != "\u029e")
+    }
+
     @AutoClone
     static class MalSymbol implements Comparable {
         String value

@@ -5,6 +5,8 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:
 
+clean:
+
 .PHONY: stats tests $(TESTS)
 
 stats: $(SOURCES)

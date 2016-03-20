@@ -88,9 +88,15 @@ nil <- structure("malnil", class="nil")
 .nil_q <- function(obj) "nil" == class(obj)
 .true_q <- function(obj) "logical" == class(obj) && obj == TRUE
 .false_q <- function(obj) "logical" == class(obj) && obj == FALSE
-new.symbol <- function(name) structure(name, class="Symbol")
+.string_q <- function(obj) {
+    "character" == class(obj) &&
+        !("\u029e" == substr(obj,1,1) ||
+          "<U+029E>" == substring(obj,1,8))
+}
 
+new.symbol <- function(name) structure(name, class="Symbol")
 .symbol_q <- function(obj) "Symbol" == class(obj)
+
 new.keyword <- function(name) concat("\u029e", name)
 .keyword_q <- function(obj) {
     "character" == class(obj) &&

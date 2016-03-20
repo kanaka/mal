@@ -7,8 +7,18 @@ JARS = $(SOURCES_LISP:%.kt=%.jar)
 
 all: $(JARS)
 
+dist: mal.jar mal
+
+mal.jar: stepA_mal.jar
+	cp $< $@
+
+SHELL := bash
+mal: mal.jar
+	cat <(echo -e '#!/bin/sh\nexec java -jar "$$0" "$$@"') mal.jar > $@
+	chmod +x mal
+
 clean:
-	rm -vf $(JARS)
+	rm -vf $(JARS) mal.jar mal
 
 $(JARS): %.jar: src/mal/%.kt $(SOURCES_BASE:%.kt=src/mal/%.kt)
 	kotlinc src/mal/$(@:%.jar=%.kt) $(SOURCES_BASE:%.kt=src/mal/%.kt) -include-runtime -d $@

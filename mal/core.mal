@@ -4,6 +4,7 @@
    ["nil?" nil?]
    ["true?" true?]
    ["false?" false?]
+   ["string?" string?]
    ["symbol" symbol]
    ["symbol?" symbol?]
    ["keyword" keyword]
@@ -24,6 +25,7 @@
    ["-" -]
    ["*" *]
    ["/" /]
+   ["time-ms" time-ms]
 
    ["list" list]
    ["list?" list?]
@@ -50,6 +52,7 @@
    ["map" map]
 
    ["conj" conj]
+   ["seq" seq]
 
    ["with-meta" with-meta]
    ["meta" meta]

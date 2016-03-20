@@ -232,10 +232,10 @@ dump:
 #
 .PHONY: stats tests $(TESTS)
 
-stats: $(UTIL_SRC) ./stepA_mal.swift
+stats: bridging-header.h $(UTIL_SRC) ./stepA_mal.swift
 	@wc $^
 	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: ./stepA_mal.swift ./core.swift ./env.swift
+stats-lisp: ./env.swift ./core.swift ./stepA_mal.swift
 	@wc $^
 	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 

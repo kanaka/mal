@@ -46,6 +46,7 @@ defmodule Mal.Core do
       "reset!" => &reset!/1,
       "swap!" => &swap!/1,
       "conj" => &conj/1,
+      "seq" => &seq/1,
       "time-ms" => fn _ -> :erlang.system_time(:milli_seconds) end,
       "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
@@ -53,6 +54,7 @@ defmodule Mal.Core do
       "nil?" => fn [type] -> type == nil end,
       "true?" => fn [type] -> type == true end,
       "false?" => fn [type] -> type == false end,
+      "string?" => fn [obj] -> String.valid?(obj) end,
       "symbol" => fn [name] -> {:symbol, name} end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "throw" => fn [arg] -> throw({:error, arg}) end,
@@ -219,4 +221,13 @@ defmodule Mal.Core do
   defp conj([{:vector, ast, meta} | args]) do
     {:vector, ast ++ args, meta}
   end
+
+  defp seq([nil]), do: nil
+  defp seq([{:list, [], meta}]), do: nil
+  defp seq([{:list, ast, meta}]), do: {:list, ast, meta}
+  defp seq([{:vector, [], meta}]), do: nil
+  defp seq([{:vector, ast, meta}]), do: {:list, ast, meta}
+  defp seq([""]), do: nil
+  defp seq([s]), do: {:list, String.split(s, "", trim: true), nil}
+  defp seq(_), do: nil
 end

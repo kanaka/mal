@@ -248,6 +248,10 @@ function MalSymbolQ(args)
   return BoolNew(SymbolQ(a:args[0]))
 endfunction
 
+function MalStringQ(args)
+  return BoolNew(StringQ(a:args[0]))
+endfunction
+
 function MalKeyword(args)
   return KeywordNew(ObjValue(a:args[0]))
 endfunction
@@ -278,6 +282,20 @@ function MalConj(args)
   elseif VectorQ(a:args[0])
     return ConjVector(a:args[0], a:args[1:])
   endif
+endfunction
+
+function MalSeq(args)
+  let obj = a:args[0]
+  if EmptyQ(obj)
+    return g:MalNil
+  elseif ListQ(obj)
+    return obj
+  elseif VectorQ(obj)
+    return ListNew(ObjValue(obj))
+  elseif StringQ(obj)
+    return ListNew(map(split(ObjValue(obj), '\zs'), 'StringNew(v:val)'))
+  endif
+  throw "seq requires string or list or vector or nil"
 endfunction
 
 function MalMeta(args)
@@ -360,6 +378,7 @@ let CoreNs = {
   \ "false?":      NewNativeFn("MalFalseQ"),
   \ "symbol":      NewNativeFn("MalSymbol"),
   \ "symbol?":     NewNativeFn("MalSymbolQ"),
+  \ "string?":     NewNativeFn("MalStringQ"),
   \ "keyword":     NewNativeFn("MalKeyword"),
   \ "keyword?":    NewNativeFn("MalKeywordQ"),
   \ "list":        NewNativeFn("MalList"),
@@ -393,6 +412,7 @@ let CoreNs = {
   \ "map":         NewNativeFn("MalMap"),
   \ "throw":       NewNativeFn("MalThrow"),
   \ "conj":        NewNativeFn("MalConj"),
+  \ "seq":         NewNativeFn("MalSeq"),
   \ "meta":        NewNativeFn("MalMeta"),
   \ "with-meta":   NewNativeFn("MalWithMeta"),
   \ "atom":        NewNativeFn("MalAtom"),

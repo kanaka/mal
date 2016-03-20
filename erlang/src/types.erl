@@ -33,6 +33,13 @@ symbol([{string, Name}]) ->
 symbol(_) ->
     {error, "symbol expects a single string argument"}.
 
+string_p([{string, _S}]) ->
+    true;
+string_p([_A]) ->
+    false;
+string_p(_) ->
+    {error, "string? takes a single argument"}.
+
 keyword_p([{keyword, _K}]) ->
     true;
 keyword_p([_A]) ->

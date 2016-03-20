@@ -1,6 +1,6 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: continuations io kernel mal.printer mal.reader readline
+USING: continuations io kernel lib.printer lib.reader readline
 sequences ;
 IN: step1_read_print
 

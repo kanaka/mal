@@ -24,6 +24,17 @@ CSFLAGS = $(if $(strip $(DEBUG)),-debug+,)
 
 all: $(patsubst %.fs,%.exe,$(SRCS))
 
+dist: mal.exe mal
+
+mal.exe: stepA_mal.exe
+	cp $< $@
+
+# NOTE/WARNING: static linking triggers mono libraries LGPL
+# distribution requirements.
+# http://www.mono-project.com/archived/guiderunning_mono_applications/
+mal: $(patsubst %.fs,%.exe,$(word $(words $(SOURCES)),$(SOURCES))) Mono.Terminal.dll mal.dll
+	mkbundle --static -o $@ $+ --deps
+
 Mono.Terminal.dll: $(TERMINAL_SOURCES)
 	mcs $(CSFLAGS) -target:library $+ -out:$@
 
@@ -34,7 +45,7 @@ mal.dll: $(DLL_SOURCES) Mono.Terminal.dll
 	fsharpc $(FSFLAGS) -o $@ -r mal.dll $<
 
 clean:
-	rm -f *.dll *.exe *.mdb
+	rm -f mal *.dll *.exe *.mdb
 
 .PHONY: stats tests $(TESTS)
 

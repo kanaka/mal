@@ -8,6 +8,7 @@ $core_ns = {
     :nil? =>      lambda {|a| a == nil},
     :true? =>     lambda {|a| a == true},
     :false? =>    lambda {|a| a == false},
+    :string? =>   lambda {|a| (a.is_a? String) && "\u029e" != a[0]},
     :symbol =>    lambda {|a| a.to_sym},
     :symbol? =>   lambda {|a| a.is_a? Symbol},
     :keyword =>   lambda {|a| "\u029e"+a},
@@ -45,15 +46,17 @@ $core_ns = {
 
     :sequential? => lambda {|a| sequential?(a)},
     :cons =>      lambda {|a,b| List.new(b.clone.insert(0,a))},
-    :concat =>    lambda {|*a| List.new(a && a.reduce(:concat) || [])},
+    :concat =>    lambda {|*a| List.new(a && a.reduce(:+) || [])},
     :nth =>       lambda {|a,b| raise "nth: index out of range" if b >= a.size; a[b]},
     :first =>     lambda {|a| a.nil? ? nil : a[0]},
     :rest =>      lambda {|a| List.new(a.nil? || a.size == 0 ? [] : a.drop(1))},
     :empty? =>    lambda {|a| a.size == 0},
     :count =>     lambda {|a| return 0 if a == nil; a.size},
-    :conj =>      lambda {|*a| a[0].clone.conj(a.drop(1))},
     :apply =>     lambda {|*a| a[0][*a[1..-2].concat(a[-1])]},
     :map =>       lambda {|a,b| List.new(b.map {|e| a[e]})},
+
+    :conj =>      lambda {|*a| a[0].clone.conj(a.drop(1))},
+    :seq =>       lambda {|a| a.nil? ? nil : a.size == 0 ? nil : a.seq},
 
     :"with-meta" => lambda {|a,b| x = a.clone; x.meta = b; x},
     :meta =>      lambda {|a| a.meta},

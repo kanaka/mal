@@ -2,7 +2,7 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: accessors arrays assocs combinators command-line
 continuations fry grouping hashtables io kernel lists locals
-mal.core mal.env mal.printer mal.reader mal.types math
+lib.core lib.env lib.printer lib.reader lib.types math
 namespaces quotations readline sequences splitting ;
 IN: step6_file
 
