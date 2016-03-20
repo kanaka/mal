@@ -48,18 +48,7 @@ package body Core is
    end Eval_As_Boolean;
 
 
-   function Do_Eval (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
-   return Types.Mal_Handle is
-      First_Param : Mal_Handle;
-      Rest_List : Types.List_Mal_Type;
-   begin
-      Rest_List := Deref_List (Rest_Handle).all;
-      First_Param := Car (Rest_List);
-      return Eval_Callback.Eval.all (First_Param, Env);
-   end Do_Eval;
-
-
-   function Throw (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Throw (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -72,7 +61,7 @@ package body Core is
    end Throw;
 
 
-   function Is_True (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_True (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -85,7 +74,7 @@ package body Core is
    end Is_True;
 
 
-   function Is_False (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_False (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -98,7 +87,7 @@ package body Core is
    end Is_False;
 
 
-   function Is_Nil (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Nil (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -110,7 +99,7 @@ package body Core is
    end Is_Nil;
 
 
-   function Meta (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Meta (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -121,7 +110,7 @@ package body Core is
    end Meta;
 
 
-   function With_Meta (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function With_Meta (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Meta_Param, Res : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -136,7 +125,7 @@ package body Core is
    end With_Meta;
 
 
-   function New_Atom (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function New_Atom (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -146,7 +135,7 @@ package body Core is
       return New_Atom_Mal_Type (First_Param);
    end New_Atom;
 
-   function Is_Atom (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Atom (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -157,7 +146,7 @@ package body Core is
    end Is_Atom;
 
 
-   function Deref (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Deref_Atm (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -165,10 +154,10 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       return Deref_Atom (First_Param).Get_Atom;
-   end Deref;
+   end Deref_Atm;
 
 
-   function Reset (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Reset (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Atom_Param, New_Val : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -182,7 +171,7 @@ package body Core is
    end Reset;
 
 
-   function Swap (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Swap (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Atom_Param, Atom_Val, New_Val : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -203,7 +192,7 @@ package body Core is
          when Lambda =>
             New_Val := Deref_Lambda (Func_Param).Apply (Param_List);
          when Func =>
-            New_Val := Deref_Func (Func_Param).Call_Func (Param_List, Env);
+            New_Val := Deref_Func (Func_Param).Call_Func (Param_List);
          when others => raise Mal_Exception with "Swap with bad func";
       end case;
       Deref_Atom (Atom_Param).Set_Atom (New_Val);
@@ -211,7 +200,7 @@ package body Core is
    end Swap;
 
 
-   function Is_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_List (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -224,7 +213,7 @@ package body Core is
    end Is_List;
 
 
-   function Is_Vector (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Vector (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -237,7 +226,7 @@ package body Core is
    end Is_Vector;
 
 
-   function Is_Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Map (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -250,7 +239,7 @@ package body Core is
    end Is_Map;
 
 
-   function Is_Sequential (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Sequential (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       Rest_List : Types.List_Mal_Type;
@@ -263,7 +252,7 @@ package body Core is
    end Is_Sequential;
 
 
-   function Is_Empty (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Empty (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       List : List_Class_Ptr;
@@ -288,7 +277,7 @@ package body Core is
    end Eval_As_List;
 
 
-   function Count (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Count (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param, Evaled_List : Mal_Handle;
       L : List_Mal_Type;
@@ -308,7 +297,7 @@ package body Core is
    end Count;
 
 
-   function Cons (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Cons (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_Param, List_Handle : Mal_Handle;
@@ -325,16 +314,16 @@ package body Core is
    end Cons;
 
 
-   function Concat (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Concat (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
-      return Types.Concat (Rest_List, Env);
+      return Types.Concat (Rest_List);
    end Concat;
 
 
-   function First (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function First (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_List : Types.List_Class_Ptr;
@@ -354,7 +343,7 @@ package body Core is
    end First;
 
 
-   function Rest (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Rest (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_Param, Container : Mal_Handle;
@@ -369,7 +358,7 @@ package body Core is
    end Rest;
 
 
-   function Nth (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Nth (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       -- Rest_List, First_List : Types.List_Mal_Type;
       Rest_List : Types.List_Mal_Type;
@@ -389,7 +378,7 @@ package body Core is
    end Nth;
 
 
-   function Apply (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Apply (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
       Results_Handle, First_Param : Mal_Handle;
@@ -438,7 +427,7 @@ package body Core is
 
       -- The apply part...
       if Deref (First_Param).Sym_Type = Func then
-         return Call_Func (Deref_Func (First_Param).all, Results_Handle, Env);
+         return Call_Func (Deref_Func (First_Param).all, Results_Handle);
       elsif Deref (First_Param).Sym_Type = Lambda then
          declare
 
@@ -473,7 +462,7 @@ package body Core is
    end Apply;
 
 
-   function Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Map (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
       Rest_List, Results_List : List_Mal_Type;
@@ -505,7 +494,7 @@ package body Core is
 
             Append
               (Results_List,
-               Apply (Parts_Handle, Env));
+               Apply (Parts_Handle));
 
          end;
 
@@ -516,7 +505,7 @@ package body Core is
    end Map;
 
 
-   function Symbol (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Symbol (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
       Sym_Handle, Res : Mal_Handle;
@@ -542,7 +531,7 @@ package body Core is
    end Symbol;
 
 
-   function Is_Symbol (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Symbol (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
       Sym_Handle : Mal_Handle;
@@ -561,7 +550,7 @@ package body Core is
    end Is_Symbol;
 
 
-   function Keyword (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Keyword (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
       Sym_Handle, Res : Mal_Handle;
@@ -587,7 +576,7 @@ package body Core is
    end Keyword;
 
 
-   function Is_Keyword (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Is_Keyword (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
       Sym_Handle : Mal_Handle;
@@ -606,7 +595,7 @@ package body Core is
    end Is_Keyword;
 
 
-   function New_List (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function New_List (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
    begin
@@ -615,7 +604,7 @@ package body Core is
    end New_List;
 
 
-   function New_Vector (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function New_Vector (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Res : Mal_Handle;
@@ -631,7 +620,7 @@ package body Core is
    end New_Vector;
 
 
-   function New_Map (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function New_Map (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Res : Mal_Handle;
@@ -646,7 +635,7 @@ package body Core is
    end New_Map;
 
 
-   function Assoc (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Assoc (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Mal_Handle;
       Map : Hash_Map.Hash_Map_Mal_Type;
@@ -658,7 +647,7 @@ package body Core is
    end Assoc;
 
 
-   function Dis_Assoc (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Dis_Assoc (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Mal_Handle;
       Map : Hash_Map.Hash_Map_Mal_Type;
@@ -670,7 +659,7 @@ package body Core is
    end Dis_Assoc;
 
 
-   function Get_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Get_Key (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Map : Hash_Map.Hash_Map_Mal_Type;
@@ -697,7 +686,7 @@ package body Core is
    end Get_Key;
 
 
-   function Contains_Key (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Contains_Key (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Map : Hash_Map.Hash_Map_Mal_Type;
@@ -711,7 +700,7 @@ package body Core is
    end Contains_Key;
 
 
-   function All_Keys (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function All_Keys (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Map : Hash_Map.Hash_Map_Mal_Type;
@@ -722,7 +711,7 @@ package body Core is
    end All_Keys;
 
 
-   function All_Values (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function All_Values (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       Map : Hash_Map.Hash_Map_Mal_Type;
@@ -736,7 +725,7 @@ package body Core is
    -- Take a list with two parameters and produce a single result
    -- using the Op access-to-function parameter.
    function Reduce2
-     (Op : Binary_Func_Access; LH : Mal_Handle; Env : Envs.Env_Handle)
+     (Op : Binary_Func_Access; LH : Mal_Handle)
    return Mal_Handle is
       Left, Right : Mal_Handle;
       L, Rest_List : List_Mal_Type;
@@ -749,70 +738,70 @@ package body Core is
    end Reduce2;
 
 
-   function Plus (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Plus (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 ("+"'Access, Rest_Handle, Env);
+       return Reduce2 ("+"'Access, Rest_Handle);
    end Plus;
 
 
-   function Minus (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Minus (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 ("-"'Access, Rest_Handle, Env);
+       return Reduce2 ("-"'Access, Rest_Handle);
    end Minus;
 
 
-   function Mult (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Mult (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 ("*"'Access, Rest_Handle, Env);
+       return Reduce2 ("*"'Access, Rest_Handle);
    end Mult;
 
 
-   function Divide (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Divide (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 ("/"'Access, Rest_Handle, Env);
+       return Reduce2 ("/"'Access, Rest_Handle);
    end Divide;
 
 
-   function LT (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function LT (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 ("<"'Access, Rest_Handle, Env);
+       return Reduce2 ("<"'Access, Rest_Handle);
    end LT;
 
 
-   function LTE (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function LTE (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 ("<="'Access, Rest_Handle, Env);
+       return Reduce2 ("<="'Access, Rest_Handle);
    end LTE;
 
 
-   function GT (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function GT (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 (">"'Access, Rest_Handle, Env);
+       return Reduce2 (">"'Access, Rest_Handle);
    end GT;
 
 
-   function GTE (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function GTE (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 (">="'Access, Rest_Handle, Env);
+       return Reduce2 (">="'Access, Rest_Handle);
    end GTE;
 
 
-   function EQ (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function EQ (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-       return Reduce2 (Types."="'Access, Rest_Handle, Env);
+       return Reduce2 (Types."="'Access, Rest_Handle);
    end EQ;
 
 
-   function Pr_Str (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Pr_Str (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       use Ada.Strings.Unbounded;
       Res : Unbounded_String;
@@ -821,7 +810,7 @@ package body Core is
    end Pr_Str;
 
 
-   function Prn (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Prn (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       use Ada.Strings.Unbounded;
    begin
@@ -830,7 +819,7 @@ package body Core is
    end Prn;
 
 
-   function Println (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Println (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       use Ada.Strings.Unbounded;
       Res : String := Deref_List (Rest_Handle).Pr_Str (False);
@@ -840,7 +829,7 @@ package body Core is
    end Println;
 
 
-   function Str (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Str (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       use Ada.Strings.Unbounded;
       Res : String := Deref_List (Rest_Handle).Cat_Str (False);
@@ -849,7 +838,7 @@ package body Core is
    end Str;
 
 
-   function Read_String (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Read_String (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_Param : Mal_Handle;
@@ -867,7 +856,7 @@ package body Core is
    end Read_String;
 
 
-   function Read_Line (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Read_Line (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_Param : Mal_Handle;
@@ -887,7 +876,7 @@ package body Core is
    end Read_Line;
 
 
-   function Slurp (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Slurp (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_Param : Mal_Handle;
@@ -922,7 +911,7 @@ package body Core is
    end Slurp;
 
 
-   function Conj (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Conj (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : List_Mal_Type;
       First_Param, Res : Mal_Handle;
@@ -954,7 +943,7 @@ package body Core is
 
    Start_Time : Ada.Calendar.Time := Ada.Calendar.Clock;
 
-   function Time_Ms (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Time_Ms (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       D : Duration;
       use Ada.Calendar;
@@ -1004,7 +993,7 @@ package body Core is
 
       Envs.Set (Repl_Env,
            "deref",
-           New_Func_Mal_Type ("deref", Core.Deref'access));
+           New_Func_Mal_Type ("deref", Deref_Atm'access));
 
       Envs.Set (Repl_Env,
            "reset!",

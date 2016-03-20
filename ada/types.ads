@@ -233,7 +233,7 @@ package Types is
    function Cat_Str (T : List_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String;
 
-   function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
+   function Concat (Rest_Handle : List_Mal_Type)
    return Types.Mal_Handle;  -- a new list
 
    -- Duplicate copies the list (logically).  This is to allow concatenation,
@@ -252,7 +252,7 @@ package Types is
    type Func_Mal_Type is new Mal_Type with private;
 
    type Builtin_Func is access
-      function (MH : Mal_Handle; Env : Envs.Env_Handle) return Mal_Handle;
+      function (MH : Mal_Handle) return Mal_Handle;
 
    function New_Func_Mal_Type (Str : Mal_String; F : Builtin_Func)
    return Mal_Handle;
@@ -262,7 +262,7 @@ package Types is
    function Get_Func_Name (T : Func_Mal_Type) return Mal_String;
 
    function Call_Func
-     (FMT : Func_Mal_Type; Rest_List : Mal_Handle; Env : Envs.Env_Handle)
+     (FMT : Func_Mal_Type; Rest_List : Mal_Handle)
    return Mal_Handle;
 
    type Func_Ptr is access all Func_Mal_Type;

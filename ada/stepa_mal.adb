@@ -470,7 +470,7 @@ procedure StepA_Mal is
                Rest_List := Deref_List (Rest_Params).all;
 
                if Deref (First_Param).Sym_Type = Func then
-                  return Call_Func (Deref_Func (First_Param).all, Rest_Params, Env);
+                  return Call_Func (Deref_Func (First_Param).all, Rest_Params);
                elsif Deref (First_Param).Sym_Type = Lambda then
                   declare
 
@@ -553,7 +553,7 @@ procedure StepA_Mal is
    end RE;
 
 
-   function Do_Eval (Rest_Handle : Mal_Handle; Env : Envs.Env_Handle)
+   function Do_Eval (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       First_Param : Mal_Handle;
       Rest_List : Types.List_Mal_Type;

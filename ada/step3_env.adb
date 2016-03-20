@@ -125,7 +125,7 @@ procedure Step3_Env is
                Evaled_H := Eval_Ast (Param, Env);
                Param_List := Deref_List (Evaled_H).all;
                First_Param := Car (Param_List);
-               return Call_Func (Deref_Func (First_Param).all, Cdr (Param_List), Env);
+               return Call_Func (Deref_Func (First_Param).all, Cdr (Param_List));
             end if;
 
          end;

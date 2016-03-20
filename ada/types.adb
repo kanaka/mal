@@ -445,10 +445,10 @@ package body Types is
    end Get_Func_Name;
 
    function Call_Func
-     (FMT : Func_Mal_Type; Rest_List : Mal_Handle; Env : Envs.Env_Handle)
+     (FMT : Func_Mal_Type; Rest_List : Mal_Handle)
    return Mal_Handle is
    begin
-      return FMT.Func_P (Rest_List, Env);
+      return FMT.Func_P (Rest_List);
    end Call_Func;
 
    function Deref_Func (S : Mal_Handle) return Func_Ptr is
@@ -844,7 +844,7 @@ package body Types is
    end Nth;
 
 
-   function Concat (Rest_Handle : List_Mal_Type; Env : Envs.Env_Handle)
+   function Concat (Rest_Handle : List_Mal_Type)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       List : Types.List_Class_Ptr;

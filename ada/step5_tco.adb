@@ -250,7 +250,7 @@ procedure Step5_TCO is
                Rest_List := Deref_List (Rest_Params).all;
 
                if Deref (First_Param).Sym_Type = Func then
-                  return Call_Func (Deref_Func (First_Param).all, Rest_Params, Env);
+                  return Call_Func (Deref_Func (First_Param).all, Rest_Params);
                elsif Deref (First_Param).Sym_Type = Lambda then
                   declare
 

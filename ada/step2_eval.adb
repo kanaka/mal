@@ -84,7 +84,7 @@ procedure Step2_Eval is
             Evaled_H := Eval_Ast (Param, Env);
             Evaled_List := Deref_List (Evaled_H).all;
             First_Param := Car (Evaled_List);
-            return Call_Func (Deref_Func (First_Param).all, Cdr (Evaled_List), Env);
+            return Call_Func (Deref_Func (First_Param).all, Cdr (Evaled_List));
          end;
 
       else -- Not a List_List
