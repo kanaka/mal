@@ -622,21 +622,21 @@ begin
 
    if File_Processed then
       RE ("(load-file """ & Ada.Command_Line.Argument (File_Param) & """)");
+   else
+      loop
+         begin
+            Ada.Text_IO.Put ("user> ");
+            Ada.Text_IO.Get_Line (S, Last);
+            Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
+         exception
+            when Ada.IO_Exceptions.End_Error => raise;
+            when E : others =>
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error,
+                  Ada.Exceptions.Exception_Information (E));
+         end;
+      end loop;
    end if;
-
-   loop
-      begin
-         Ada.Text_IO.Put ("user> ");
-         Ada.Text_IO.Get_Line (S, Last);
-         Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
-      exception
-         when Ada.IO_Exceptions.End_Error => raise;
-         when E : others =>
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Standard_Error,
-               Ada.Exceptions.Exception_Information (E));
-      end;
-   end loop;
 
 exception
    when Ada.IO_Exceptions.End_Error => null;
