@@ -942,6 +942,52 @@ package body Core is
    end Conj;
 
 
+   function Seq (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+      First_Param, Res : Mal_Handle;
+   begin
+      First_Param := Car (Deref_List (Rest_Handle).all);
+      case Deref (First_Param).Sym_Type is
+         when Nil => return First_Param;
+         when List =>
+            case Deref_List (First_Param).Get_List_Type is
+               when List_List =>
+                  if Is_Null (Deref_List (First_Param).all) then
+                     return New_Nil_Mal_Type;
+                  else
+                     return First_Param;
+                  end if;
+               when Vector_List =>
+                  if Vector.Is_Null (Vector.Deref_Vector (First_Param).all) then
+                     return New_Nil_Mal_Type;
+                  else
+                     return Vector.Duplicate (Vector.Deref_Vector (First_Param).all);
+                  end if;
+               when others => raise Mal_Exception;
+            end case;
+         when Str =>
+            declare
+               Param_Str : String := Deref_String (First_Param).Get_String;
+               String_Handle : Mal_Handle;
+               L_Ptr : List_Ptr;
+            begin
+               if Param_Str'Length <= 2 then
+                  return New_Nil_Mal_Type; -- ""
+               else
+                  Res := New_List_Mal_Type (List_List);
+                  L_Ptr := Deref_List (Res);
+                  for I in Param_Str'First+1 .. Param_Str'Last-1 loop
+                     String_Handle:= New_String_Mal_Type ('"' &Param_Str (I) & '"');
+                     Append (L_Ptr.all, String_Handle);
+                  end loop;
+                  return Res;
+               end if;
+            end;
+         when others => raise Mal_Exception;
+      end case;
+   end Seq;
+
+
    Start_Time : Ada.Calendar.Time := Ada.Calendar.Clock;
 
    function Time_Ms (Rest_Handle : Mal_Handle)
@@ -1143,6 +1189,10 @@ package body Core is
       Envs.Set (Repl_Env,
            "conj",
            New_Func_Mal_Type ("conj", Conj'access));
+
+      Envs.Set (Repl_Env,
+           "seq",
+           New_Func_Mal_Type ("seq", Seq'access));
 
       Envs.Set (Repl_Env,
            "time-ms",
