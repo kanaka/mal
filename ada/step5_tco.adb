@@ -95,22 +95,6 @@ procedure Step5_TCO is
 
             return Map (Call_Eval'Unrestricted_Access, Deref_List_Class (Ast).all);
 
-         when Lambda =>
-
-            -- Evaluating a lambda in a different Env.
-            declare
-               L : Lambda_Ptr;
-               New_Env : Envs.Env_Handle;
-            begin
-               L := Deref_Lambda (Ast);
-               New_Env := Env;
-               -- Make the current Lambda's env the outer of the env param.
-               Envs.Set_Outer (New_Env, L.Get_Env);
-               -- Make the Lambda's Env.
-               L.Set_Env (New_Env);
-               return Ast;
-            end;
-
          when others => return Ast;
 
       end case;
