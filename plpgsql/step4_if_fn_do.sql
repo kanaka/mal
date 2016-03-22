@@ -5,6 +5,7 @@
 \i reader.sql
 \i printer.sql
 \i env.sql
+\i core.sql
 
 -- ---------------------------------------------------------
 -- step1_read_print.sql
@@ -73,10 +74,16 @@ DECLARE
     binds    integer[];
     exprs    integer[];
     el       integer;
+    fn       integer;
     fname    varchar;
     args     integer[];
+    cond     integer;
+    fast     integer;
+    fparams  integer;
+    fenv     integer;
     result   integer;
 BEGIN
+    -- RAISE NOTICE 'EVAL: % [%]', pr_str(ast), ast;
     SELECT type_id INTO type FROM value WHERE value_id = ast;
     IF type <> 8 THEN
         RETURN eval_ast(ast, env);
@@ -118,15 +125,49 @@ BEGIN
         --PERFORM env_print(let_env);
         RETURN EVAL(_nth(ast, 2), let_env);
     END;
+    WHEN a0sym = 'do' THEN
+    BEGIN
+        el := eval_ast(_rest(ast), env);
+        RETURN _nth(el, _count(el)-1);
+    END;
+    WHEN a0sym = 'if' THEN
+    BEGIN
+        cond := EVAL(_nth(ast, 1), env);
+        SELECT type_id INTO type FROM value WHERE value_id = cond;
+        IF type = 0 OR type = 1 THEN -- nil or false
+            IF _count(ast) > 3 THEN
+                RETURN EVAL(_nth(ast, 3), env);
+            ELSE
+                RETURN 0; -- nil
+            END IF;
+        ELSE
+            RETURN EVAL(_nth(ast, 2), env);
+        END IF;
+    END;
+    WHEN a0sym = 'fn*' THEN
+    BEGIN
+        RETURN _function(_nth(ast, 2), _nth(ast, 1), env);
+    END;
     ELSE
     BEGIN
         el := eval_ast(ast, env);
-        SELECT function_name INTO fname FROM value WHERE value_id = _first(el);
+        SELECT type_id, collection_id, function_name
+            INTO type, fn, fname
+            FROM value WHERE value_id = _first(el);
         args := _restArray(el);
-        --RAISE NOTICE 'fname: %, args: %', fname, args;
-        EXECUTE format('SELECT %s($1);', fname)
-            INTO result USING args;
-        RETURN result;
+        IF type = 11 THEN
+            EXECUTE format('SELECT %s($1);', fname)
+                INTO result USING args;
+            RETURN result;
+        ELSIF type = 12 THEN
+            SELECT value_id, params_id, env_id
+                INTO fast, fparams, fenv
+                FROM collection
+                WHERE collection_id = fn;
+            RETURN EVAL(fast, env_new_bindings(fenv, fparams, args));
+        ELSE
+            RAISE EXCEPTION 'Invalid function call';
+        END IF;
     END;
     END CASE;
 END; $$ LANGUAGE plpgsql;
@@ -140,44 +181,16 @@ END; $$ LANGUAGE plpgsql;
 
 -- repl
 
-CREATE OR REPLACE FUNCTION mal_intop(op varchar, args integer[]) RETURNS integer AS $$
-DECLARE a integer; b integer; result integer;
-BEGIN
-    SELECT val_int INTO a FROM value WHERE value_id = args[1];
-    SELECT val_int INTO b FROM value WHERE value_id = args[2];
-    EXECUTE format('INSERT INTO value (type_id, val_int) VALUES (3, $1 %s $2)
-                    RETURNING value_id;', op) INTO result USING a, b;
-    RETURN result;
-END; $$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION mal_add(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('+', args); END; $$ LANGUAGE plpgsql;
-CREATE OR REPLACE FUNCTION mal_subtract(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('-', args); END; $$ LANGUAGE plpgsql;
-CREATE OR REPLACE FUNCTION mal_multiply(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('*', args); END; $$ LANGUAGE plpgsql;
-CREATE OR REPLACE FUNCTION mal_divide(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('/', args); END; $$ LANGUAGE plpgsql;
-
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_add');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_subtract');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_multiply');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_divide');
-
--- -- repl_env is environment 0
-INSERT INTO env (env_id, outer_id) VALUES (0, NULL);
-
-SELECT env_vset(0, '+', (SELECT value_id FROM value WHERE function_name = 'mal_add'));
-SELECT env_vset(0, '-', (SELECT value_id FROM value WHERE function_name = 'mal_subtract'));
-SELECT env_vset(0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_multiply'));
-SELECT env_vset(0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
-
+-- repl_env is environment 0
 
 CREATE OR REPLACE FUNCTION REP(line varchar) RETURNS varchar AS $$
-DECLARE
-    output varchar;
 BEGIN
-    -- RAISE NOTICE 'line is %', line;
-    -- output := 'line: ' || line;
     RETURN PRINT(EVAL(READ(line), 0));
 END; $$ LANGUAGE plpgsql;
+
+-- core.sql: defined using SQL (in core.sql)
+-- repl_env is created and populated with core functions in by core.sql
+
+-- core.mal: defined using the language itself
+SELECT REP('(def! not (fn* (a) (if a false true)))') \g '/dev/null'
+

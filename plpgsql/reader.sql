@@ -4,7 +4,7 @@
 CREATE OR REPLACE FUNCTION
     tokenize(str varchar) RETURNS varchar[] AS $$
 DECLARE
-    re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;.*|[^\\s \\[\\]{}()\'"`~@,;]*)';
+    re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;]*)';
 BEGIN
     RETURN ARRAY(SELECT tok FROM
         (SELECT (regexp_matches(str, re, 'g'))[1] AS tok) AS x
@@ -18,6 +18,7 @@ CREATE OR REPLACE FUNCTION
     read_atom(tokens varchar[], INOUT pos integer, OUT result integer) AS $$
 DECLARE
     str_id  integer;
+    str     varchar;
     token   varchar;
 BEGIN
     token := tokens[pos];
@@ -36,20 +37,14 @@ BEGIN
             RETURNING value_id INTO result;
     ELSIF token ~ '^".*"' THEN
         -- string
-        INSERT INTO string (value)
-            VALUES (substring(token FROM 2 FOR (char_length(token)-2)))
-            RETURNING string_id INTO str_id;
-        INSERT INTO value (type_id, val_string_id)
-            VALUES (5, str_id)
-            RETURNING value_id INTO result;
+        str := substring(token FROM 2 FOR (char_length(token)-2));
+        str := replace(str, '\"', '"');
+        str := replace(str, '\n', E'\n');
+        str := replace(str, '\\', E'\\');
+        result := _string(str);
     ELSE
         -- symbol
-        INSERT INTO string (value)
-            VALUES (token)
-            RETURNING string_id INTO str_id;
-        INSERT INTO value (type_id, val_string_id)
-            VALUES (7, str_id)
-            RETURNING value_id INTO result;
+        result := _symbol(token);
     END IF;
 END; $$ LANGUAGE plpgsql;
 

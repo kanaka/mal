@@ -104,6 +104,7 @@ test_EXCLUDES += test^bash^step5   # never completes at 10,000
 test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
 test_EXCLUDES += test^mal^step5    # host impl dependent
 test_EXCLUDES += test^matlab^step5 # never completes at 10,000
+test_EXCLUDES += test^plpgsql^step5    # too slow for 10,000
 
 perf_EXCLUDES = mal  # TODO: fix this
 

@@ -22,6 +22,7 @@ ALTER TABLE env_data ADD CONSTRAINT fk_env_data_env_id
 
 -- -----------------------
 
+-- env_new
 CREATE OR REPLACE FUNCTION env_new(outer_env integer)
     RETURNS integer AS $$
 DECLARE
@@ -33,35 +34,76 @@ BEGIN
     RETURN e;
 END; $$ LANGUAGE plpgsql;
 
+-- env_new_bindings
+CREATE OR REPLACE FUNCTION env_new_bindings(outer_env integer,
+                                            binds integer,
+                                            exprs integer[])
+    RETURNS integer AS $$
+DECLARE
+    e     integer;
+    cid   integer;
+    i     integer;
+    bind  integer;
+    bsym  varchar;
+    expr  integer;
+BEGIN
+    e := env_new(outer_env);
+    SELECT collection_id INTO cid FROM value
+        WHERE value_id = binds;
+    FOR bind, i IN (SELECT value_id, idx FROM collection
+                    WHERE collection_id = cid
+                    ORDER BY idx)
+    LOOP
+        expr := exprs[i+1];
+        bsym := _vstring(bind);
+        --RAISE NOTICE 'i: %, bind: %, expr: %', i, bind, expr;
+        IF bsym = '&' THEN
+            bind := (SELECT value_id FROM collection
+                     WHERE collection_id = cid
+                     AND idx = i+1);
+            PERFORM env_set(e, bind, _arrayToValue(exprs[i+1:array_length(exprs, 1)]));
+            RETURN e;
+        END IF;
+        PERFORM env_vset(e, bsym, expr);
+    END LOOP;
+    RETURN e;
+END; $$ LANGUAGE plpgsql;
+
+
+-- env_vset
+-- like env_set but takes a varchar key instead of value_id
+CREATE OR REPLACE FUNCTION env_vset(env integer, name varchar, val integer)
+    RETURNS integer AS $$
+BEGIN
+    -- upsert
+    IF (SELECT 1 FROM env_data WHERE env_id=env AND env_data.key=name) THEN
+        UPDATE env_data SET value_id = val
+            WHERE env_id=env AND env_data.key=name;
+    ELSE
+        INSERT INTO env_data (env_id, key, value_id)
+            VALUES (env, name, val);
+    END IF;
+    RETURN val;
+END; $$ LANGUAGE plpgsql;
+
+
+-- env_set
 CREATE OR REPLACE FUNCTION env_set(env integer, key integer, val integer)
     RETURNS integer AS $$
 DECLARE
     symkey  varchar;
 BEGIN
-    symkey := (SELECT value FROM string
-               WHERE string_id = (SELECT val_string_id FROM value
-                                  WHERE value_id = key));
-    -- upsert
-    IF (SELECT 1 FROM env_data WHERE env_id=env AND env_data.key=symkey) THEN
-        UPDATE env_data SET value_id = val
-            WHERE env_id=env AND env_data.key=symkey;
-    ELSE
-        INSERT INTO env_data (env_id, key, value_id)
-            VALUES (env, symkey, val);
-    END IF;
-    RETURN val;
+    symkey := _vstring(key);
+    RETURN env_vset(env, symkey, val);
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION env_find(env integer, key integer)
+-- env_find
+CREATE OR REPLACE FUNCTION env_find(env integer, symkey varchar)
     RETURNS integer AS $$
 DECLARE
-    symkey    varchar;
     outer_id  integer;
     val       integer;
 BEGIN
-    symkey := (SELECT value FROM string
-               WHERE string_id = (SELECT val_string_id FROM value
-                                  WHERE value_id = key));
     SELECT e.outer_id INTO outer_id FROM env e WHERE e.env_id = env;
     SELECT value_id INTO val FROM env_data
         WHERE env_id = env AND env_data.key = symkey;
@@ -70,23 +112,21 @@ BEGIN
         RETURN env;
     ELSIF outer_id IS NOT NULL THEN
         --RAISE NOTICE 'symkey: %, not found in: %, trying: %', symkey, env, outer_id;
-        RETURN env_find(outer_id, key);
+        RETURN env_find(outer_id, symkey);
     ELSE
         RETURN NULL;
     END IF;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION env_get(env integer, key integer)
+
+-- env_vget
+CREATE OR REPLACE FUNCTION env_vget(env integer, symkey varchar)
     RETURNS integer AS $$
 DECLARE
-    symkey  varchar;
     result  integer;
     e       integer;
 BEGIN
-    symkey := (SELECT value FROM string
-               WHERE string_id = (SELECT val_string_id FROM value
-                                  WHERE value_id = key));
-    e := env_find(env, key);
+    e := env_find(env, symkey);
     --RAISE NOTICE 'env_find env: %, symkey: % -> e: %', env, symkey, e;
     IF e IS NULL THEN
         RAISE EXCEPTION '''%'' not found', symkey;
@@ -100,6 +140,20 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
+-- env_get
+CREATE OR REPLACE FUNCTION env_get(env integer, key integer)
+    RETURNS integer AS $$
+DECLARE
+    symkey  varchar;
+    result  integer;
+    e       integer;
+BEGIN
+    RETURN env_vget(env, _vstring(key));
+END; $$ LANGUAGE plpgsql;
+
+
+-- env_print
+-- For debugging
 CREATE OR REPLACE FUNCTION env_print(env integer)
     RETURNS void AS $$
 DECLARE

@@ -31,9 +31,7 @@ BEGIN
     CASE
     WHEN type = 7 THEN
     BEGIN
-        symkey := (SELECT value FROM string
-                   WHERE string_id = (SELECT val_string_id FROM value
-                                      WHERE value_id = ast));
+        symkey := _vstring(ast);
         SELECT e.value_id FROM env e INTO result
             WHERE e.env_id = env
             AND e.key = symkey;
@@ -106,6 +104,12 @@ CREATE TABLE env (
     value_id  integer NOT NULL
 );
 
+CREATE OR REPLACE FUNCTION env_vset(env integer, name varchar, val integer)
+    RETURNS void AS $$
+BEGIN
+    INSERT INTO env (env_id, key, value_id) VALUES (env, name, val);
+END; $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION mal_intop(op varchar, args integer[]) RETURNS integer AS $$
 DECLARE a integer; b integer; result integer;
@@ -132,11 +136,10 @@ INSERT INTO value (type_id, function_name) VALUES (11, 'mal_multiply');
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_divide');
 
 -- repl_env is environment 0
-INSERT INTO env (env_id, key, value_id)
-    VALUES (0, '+', (SELECT value_id FROM value WHERE function_name = 'mal_add')),
-           (0, '-', (SELECT value_id FROM value WHERE function_name = 'mal_subtract')),
-           (0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_multiply')),
-           (0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
+SELECT env_vset(0, '+', (SELECT value_id FROM value WHERE function_name = 'mal_add'));
+SELECT env_vset(0, '-', (SELECT value_id FROM value WHERE function_name = 'mal_subtract'));
+SELECT env_vset(0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_multiply'));
+SELECT env_vset(0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
 
 
 CREATE OR REPLACE FUNCTION REP(line varchar) RETURNS varchar AS $$
