@@ -73,8 +73,8 @@ DOCKERIZE =
 IMPLS = ada awk bash c d clojure coffee cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
 	io java julia js kotlin lua make mal ocaml matlab miniMAL \
-	nim objc objpascal perl php ps python r racket rpython ruby \
-	rust scala swift swift3 tcl vb vimscript
+	nim objc objpascal perl php plpgsql ps python r racket \
+	rpython ruby rust scala swift swift3 tcl vb vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -175,6 +175,7 @@ objc_STEP_TO_PROG =    objc/$($(1))
 objpascal_STEP_TO_PROG = objpascal/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
+plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
 ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
@@ -241,6 +242,7 @@ objc_RUNSTEP =    ../$(2) $(3)
 objpascal_RUNSTEP = ../$(2) $(3)
 perl_RUNSTEP =    perl ../$(2) $(3)
 php_RUNSTEP =     php ../$(2) $(3)
+plpgsql_RUNSTEP = ./wrap.sh  ../$(2) $(3)
 ps_RUNSTEP =      gs -q -I./ -dNODISPLAY -- ../$(2) $(3)
 python_RUNSTEP =  $(PYTHON) ../$(2) $(3)
 r_RUNSTEP =       Rscript ../$(2) $(3)
