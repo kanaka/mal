@@ -4,7 +4,6 @@ with Ada.Text_IO;
 with Ada.IO_Exceptions;
 with Core;
 with Envs;
-with Eval_Callback;
 with Printer;
 with Reader;
 with Smart_Pointers;
@@ -33,7 +32,6 @@ procedure Step4_If_Fn_Do is
       Name := Car (Args);
       pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected symbol as name");
---      Fn_Body := Car (Deref_List (Cdr (Args)).all);
       Fn_Body := Nth (Args, 1);
       Res := Eval (Fn_Body, Env);
       Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
@@ -289,11 +287,6 @@ begin
         Envs.Debug := True;
      end if;
    end loop;
-
-   -- Save a function pointer back to the Eval function.
-   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
-   -- as we know Eval will be in scope for the lifetime of the program.
-   Eval_Callback.Eval := Eval'Unrestricted_Access;
 
    Repl_Env := Envs.New_Env;
 

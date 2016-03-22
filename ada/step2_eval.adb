@@ -1,9 +1,8 @@
+with Ada.Containers.Hashed_Maps;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
 with Ada.Exceptions;
-with Core;
-with Envs;
-with Eval_Callback;
 with Printer;
 with Reader;
 with Smart_Pointers;
@@ -13,8 +12,84 @@ procedure Step2_Eval is
 
    use Types;
 
-   function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
+   -- primitive functions on Smart_Pointer,
+   function "+" is new Arith_Op ("+", "+");
+   function "-" is new Arith_Op ("-", "-");
+   function "*" is new Arith_Op ("*", "*");
+   function "/" is new Arith_Op ("/", "/");
+
+   -- Take a list with two parameters and produce a single result
+   -- using the Op access-to-function parameter.
+   function Reduce2
+     (Op : Binary_Func_Access; LH : Mal_Handle)
+   return Mal_Handle is
+      Left, Right : Mal_Handle;
+      L, Rest_List : List_Mal_Type;
+   begin
+      L := Deref_List (LH).all;
+      Left := Car (L);
+      Rest_List := Deref_List (Cdr (L)).all;
+      Right := Car (Rest_List);
+      return Op (Left, Right);
+   end Reduce2;
+
+
+   function Plus (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step2_Eval."+"'Unrestricted_Access, Rest_Handle);
+   end Plus;
+
+
+   function Minus (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step2_Eval."-"'Unrestricted_Access, Rest_Handle);
+   end Minus;
+
+
+   function Mult (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step2_Eval."*"'Unrestricted_Access, Rest_Handle);
+   end Mult;
+
+
+   function Divide (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step2_Eval."/"'Unrestricted_Access, Rest_Handle);
+   end Divide;
+
+
+   package String_Mal_Hash is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
+      Element_Type    => Smart_Pointers.Smart_Pointer,
+      Hash            => Ada.Strings.Unbounded.Hash,
+      Equivalent_Keys => Ada.Strings.Unbounded."=",
+      "="             => Smart_Pointers."=");
+
+   Not_Found : exception;
+
+   function Get (M : String_Mal_Hash.Map; K : String) return Mal_Handle is
+      use String_Mal_Hash;
+      C : Cursor;
+   begin
+      C := Find (M, Ada.Strings.Unbounded.To_Unbounded_String (K));
+      if C = No_Element then
+         raise Not_Found;
+      else
+         return Element (C);
+      end if;
+   end Get;
+
+
+   Repl_Env : String_Mal_Hash.Map;
+
+
+   function Eval (Param : Types.Mal_Handle; Env : String_Mal_Hash.Map)
    return Types.Mal_Handle;
+
 
    Debug : Boolean := False;
 
@@ -26,7 +101,7 @@ procedure Step2_Eval is
 
 
    function Eval_Ast
-     (Ast : Mal_Handle; Env : Envs.Env_Handle)
+     (Ast : Mal_Handle; Env : String_Mal_Hash.Map)
      return Mal_Handle is
 
       function Call_Eval (A : Mal_Handle) return Mal_Handle is
@@ -47,11 +122,11 @@ procedure Step2_Eval is
                if Sym(1) = ':' then
                   return Ast;
                else
-                  return Envs.Get (Env, Sym);
+                  return Get (Env, Sym);
                end if;
             exception
-               when Envs.Not_Found =>
-                  raise Envs.Not_Found with (" '" &  Sym & "' not found ");
+               when Not_Found =>
+                  raise Not_Found with (" '" &  Sym & "' not found ");
             end;
 
          when List =>
@@ -65,7 +140,7 @@ procedure Step2_Eval is
    end Eval_Ast;
 
 
-   function Eval (Param : Mal_Handle; Env : Envs.Env_Handle)
+   function Eval (Param : Mal_Handle; Env : String_Mal_Hash.Map)
 		 return Mal_Handle is
       First_Elem : Mal_Handle;
    begin
@@ -102,7 +177,7 @@ procedure Step2_Eval is
    end Print;
 
 
-   function Rep (Param : String; Env : Envs.Env_Handle) return String is
+   function Rep (Param : String; Env : String_Mal_Hash.Map) return String is
      AST, Evaluated_AST : Types.Mal_Handle;
    begin
 
@@ -118,20 +193,30 @@ procedure Step2_Eval is
    end Rep; 
 
 
-   Repl_Env : Envs.Env_Handle;
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
 
 begin
 
-   -- Save a function pointer back to the Eval function.
-   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
-   -- as we know Eval will be in scope for the lifetime of the program.
-   Eval_Callback.Eval := Eval'Unrestricted_Access;
+   String_Mal_Hash.Include
+     (Container => Repl_Env,
+      Key       => Ada.Strings.Unbounded.To_Unbounded_String ("+"),
+      New_Item  => New_Func_Mal_Type ("+", Plus'Unrestricted_access));
 
-   Repl_Env := Envs.New_Env;
+   String_Mal_Hash.Include
+     (Container => Repl_Env,
+      Key       => Ada.Strings.Unbounded.To_Unbounded_String ("-"),
+      New_Item  => New_Func_Mal_Type ("-", Minus'Unrestricted_access));
 
-   Core.Init (Repl_Env);
+   String_Mal_Hash.Include
+     (Container => Repl_Env,
+      Key       => Ada.Strings.Unbounded.To_Unbounded_String ("*"),
+      New_Item  => New_Func_Mal_Type ("*", Mult'Unrestricted_access));
+
+   String_Mal_Hash.Include
+     (Container => Repl_Env,
+      Key       => Ada.Strings.Unbounded.To_Unbounded_String ("/"),
+      New_Item  => New_Func_Mal_Type ("/", Divide'Unrestricted_access));
 
    loop
       begin

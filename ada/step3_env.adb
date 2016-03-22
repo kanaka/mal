@@ -1,9 +1,7 @@
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
-with Core;
 with Envs;
-with Eval_Callback;
 with Printer;
 with Reader;
 with Smart_Pointers;
@@ -12,6 +10,56 @@ with Types;
 procedure Step3_Env is
 
    use Types;
+
+   -- primitive functions on Smart_Pointer,
+   function "+" is new Arith_Op ("+", "+");
+   function "-" is new Arith_Op ("-", "-");
+   function "*" is new Arith_Op ("*", "*");
+   function "/" is new Arith_Op ("/", "/");
+
+   -- Take a list with two parameters and produce a single result
+   -- using the Op access-to-function parameter.
+   function Reduce2
+     (Op : Binary_Func_Access; LH : Mal_Handle)
+   return Mal_Handle is
+      Left, Right : Mal_Handle;
+      L, Rest_List : List_Mal_Type;
+   begin
+      L := Deref_List (LH).all;
+      Left := Car (L);
+      Rest_List := Deref_List (Cdr (L)).all;
+      Right := Car (Rest_List);
+      return Op (Left, Right);
+   end Reduce2;
+
+
+   function Plus (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step3_Env."+"'Unrestricted_Access, Rest_Handle);
+   end Plus;
+
+
+   function Minus (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step3_Env."-"'Unrestricted_Access, Rest_Handle);
+   end Minus;
+
+
+   function Mult (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step3_Env."*"'Unrestricted_Access, Rest_Handle);
+   end Mult;
+
+
+   function Divide (Rest_Handle : Mal_Handle)
+   return Types.Mal_Handle is
+   begin
+       return Reduce2 (Step3_Env."/"'Unrestricted_Access, Rest_Handle);
+   end Divide;
+
 
    function Eval (Param : Types.Mal_Handle; Env : Envs.Env_Handle)
    return Types.Mal_Handle;
@@ -32,7 +80,6 @@ procedure Step3_Env is
       Name := Car (Args);
       pragma Assert (Deref (Name).Sym_Type = Sym,
                      "Def_Fn: expected symbol as name");
---      Fn_Body := Car (Deref_List (Cdr (Args)).all);
       Fn_Body := Nth (Args, 1);
       Res := Eval (Fn_Body, Env);
       Envs.Set (Env, Deref_Sym (Name).Get_Sym, Res);
@@ -159,6 +206,29 @@ procedure Step3_Env is
 
    end Rep; 
 
+
+   procedure Init (Env : Envs.Env_Handle) is
+   begin
+
+      Envs.Set (Env,
+           "+",
+           New_Func_Mal_Type ("+", Plus'Unrestricted_Access));
+
+      Envs.Set (Env,
+           "-",
+           New_Func_Mal_Type ("-", Minus'Unrestricted_Access));
+
+      Envs.Set (Env,
+           "*",
+           New_Func_Mal_Type ("*", Mult'Unrestricted_Access));
+
+      Envs.Set (Env,
+           "/",
+           New_Func_Mal_Type ("/", Divide'Unrestricted_Access));
+
+   end Init;
+
+
    Repl_Env : Envs.Env_Handle;
    S : String (1..Reader.Max_Line_Len);
    Last : Natural;
@@ -171,14 +241,9 @@ begin
      end if;
    end if;
 
-   -- Save a function pointer back to the Eval function.
-   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
-   -- as we know Eval will be in scope for the lifetime of the program.
-   Eval_Callback.Eval := Eval'Unrestricted_Access;
-
    Repl_Env := Envs.New_Env;
 
-   Core.Init (Repl_Env);
+   Init (Repl_Env);
 
    loop
       Ada.Text_IO.Put ("user> ");
