@@ -15,7 +15,7 @@ ${DIRS}:
 	mkdir -p $@
 
 step%:
-	gnatmake -g -gnata -o $@ -P$@
+	gnatmake -O3 -gnata -o $@ -P$@
 
 step0_repl:	step0_repl.adb ${STEP0_DEPS}
 step1_read_print:	step1_read_print.adb ${STEP1_DEPS}
