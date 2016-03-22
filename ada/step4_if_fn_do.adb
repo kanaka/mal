@@ -4,6 +4,7 @@ with Ada.Text_IO;
 with Ada.IO_Exceptions;
 with Core;
 with Envs;
+with Eval_Callback;
 with Printer;
 with Reader;
 with Smart_Pointers;
@@ -277,6 +278,11 @@ procedure Step4_If_Fn_Do is
    Cmd_Args : Natural;
 
 begin
+
+   -- Save a function pointer back to the Eval function.
+   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
+   -- as we know Eval will be in scope for the lifetime of the program.
+   Eval_Callback.Eval := Eval'Unrestricted_Access;
 
    Cmd_Args := 0;
    while Ada.Command_Line.Argument_Count > Cmd_Args loop

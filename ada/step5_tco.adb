@@ -332,6 +332,11 @@ procedure Step5_TCO is
 
 begin
 
+   -- Save a function pointer back to the Eval function.
+   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
+   -- as we know Eval will be in scope for the lifetime of the program.
+   Eval_Callback.Eval := Eval'Unrestricted_Access;
+
    Cmd_Args := 0;
    while Ada.Command_Line.Argument_Count > Cmd_Args loop
      Cmd_Args := Cmd_Args + 1;
@@ -341,11 +346,6 @@ begin
         Envs.Debug := True;
      end if;
    end loop;
-
-   -- Save a function pointer back to the Eval function.
-   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
-   -- as we know Eval will be in scope for the lifetime of the program.
-   Eval_Callback.Eval := Eval'Unrestricted_Access;
 
    Repl_Env := Envs.New_Env;
 

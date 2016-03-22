@@ -2,6 +2,7 @@ with Ada.Command_Line;
 with Ada.Text_IO;
 with Ada.IO_Exceptions;
 with Envs;
+with Eval_Callback;
 with Printer;
 with Reader;
 with Smart_Pointers;
@@ -234,6 +235,11 @@ procedure Step3_Env is
    Last : Natural;
 
 begin
+
+   -- Save a function pointer back to the Eval function.
+   -- Can't use 'Access here because of Ada rules but 'Unrestricted_Access is OK
+   -- as we know Eval will be in scope for the lifetime of the program.
+   Eval_Callback.Eval := Eval'Unrestricted_Access;
 
    if Ada.Command_Line.Argument_Count > 0 then
      if Ada.Command_Line.Argument (1) = "-d" then
