@@ -75,7 +75,7 @@ IMPLS = ada awk bash c d clojure coffee cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
 	io java julia js kotlin lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl php plpgsql ps python r racket \
-	rpython ruby rust scala swift swift3 tcl vb vimscript
+	rpython ruby rust scala swift swift3 tcl vb vhdl vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -190,6 +190,7 @@ swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
 vb_STEP_TO_PROG =      vb/$($(1)).exe
+vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
 guile_STEP_TO_PROG =   guile/$($(1)).scm
 
@@ -257,6 +258,7 @@ swift_RUNSTEP =   ../$(2) $(3)
 swift3_RUNSTEP =  ../$(2) $(3)
 tcl_RUNSTEP =     tclsh ../$(2) --raw $(3)
 vb_RUNSTEP =      mono ../$(2) --raw $(3)
+vhdl_RUNSTEP =    ./run_vhdl.sh ../$(2) $(3)
 vimscript_RUNSTEP = ./run_vimscript.sh ../$(2) $(3)
 
 

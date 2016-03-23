@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 52 languages:
+Mal is implemented in 53 languages:
 
 * Ada
 * GNU awk
@@ -58,6 +58,7 @@ Mal is implemented in 52 languages:
 * Swift
 * Swift 3
 * Tcl
+* VHDL
 * Vimscript
 * Visual Basic.NET
 
@@ -699,6 +700,18 @@ editing support, install tclreadline.
 ```
 cd tcl
 tclsh ./stepX_YYY.tcl
+```
+
+### VHDL
+
+*The VHDL implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The VHDL implementation of mal has been tested with GHDL 0.29.
+
+```
+cd vhdl
+make
+./run_vhdl.sh ./stepX_YYY
 ```
 
 ### Vimscript
