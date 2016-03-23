@@ -11,6 +11,23 @@ will be able to run a mal interpreter written in mal itself.
 
 So jump right in (er ... start the climb)!
 
+- [Pick a language](#pick-a-language)
+- [Getting started](#getting-started)
+- [General hints](#general-hints)
+- [The Make-A-Lisp Process](#the-make-a-lisp-process-1)
+  - [Step 0: The REPL](#step-0-the-repl)
+  - [Step 1: Read and Print](#step-1-read-and-print)
+  - [Step 2: Eval](#step-2-eval)
+  - [Step 3: Environments](#step-3-environments)
+  - [Step 4: If Fn Do](#step-4-if-fn-do)
+  - [Step 5: Tail call optimization](#step-5-tail-call-optimization)
+  - [Step 6: Files, Mutation, and Evil](#step-6-files-mutation-and-evil)
+  - [Step 7: Quoting](#step-7-quoting)
+  - [Step 8: Macros](#step-8-macros)
+  - [Step 9: Try](#step-9-try)
+  - [Step A: Metadata, Self-hosting and Interop](#step-a-metadata-self-hosting-and-interop)
+
+
 ## Pick a language
 
 You might already have a language in mind that you want to use.
@@ -1259,7 +1276,7 @@ step9 you will be very close to having a fully self-hosting mal
 implementation. Let us continue!
 
 
-### Deferrable
+#### Deferrable
 
 * Add the following new core functions which are frequently used in
   macro functions:
@@ -1375,7 +1392,7 @@ interpreter. But if you stop now you will miss one of the most
 satisfying and enlightening aspects of creating a mal implementation:
 self-hosting.
 
-### Deferrable
+#### Deferrable
 
 * Add the following new core functions:
   * `symbol`: takes a string and returns a new symbol with the string
@@ -1522,7 +1539,7 @@ implementation to run a mal implementation which itself runs the mal
 implementation.
 
 
-### Optional: gensym
+#### Optional: gensym
 
 The `or` macro we introduced at step 8 has a bug. It defines a
 variable called `or_FIXME`, which "shadows" such a binding from the
@@ -1549,7 +1566,7 @@ For extra information read [Peter Seibel's thorough discussion about
 `gensym` and leaking macros in Common Lisp](http://www.gigamonkeys.com/book/macros-defining-your-own.html#plugging-the-leaks).
 
 
-### Optional additions
+#### Optional additions
 
 * Add metadata support to composite data types, symbols and native
   functions. TODO
