@@ -340,8 +340,11 @@ package body Reader is
 
          when Str_Tok =>
 
+            -- +/-1 strips out the double quotes.
+            -- Convert_String converts backquoted charaters to raw format.
             return New_String_Mal_Type
-                     (Convert_String (Slice (Saved_Line, Tok.Start_Char, Tok.Stop_Char)));
+                     (Convert_String
+                       (Slice (Saved_Line, Tok.Start_Char + 1, Tok.Stop_Char - 1)));
 
          when Sym_Tok =>
 

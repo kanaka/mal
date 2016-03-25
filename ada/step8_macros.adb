@@ -152,7 +152,7 @@ procedure Step8_Macros is
                end if;
             exception
                when Envs.Not_Found =>
-                  raise Envs.Not_Found with (" '" &  Sym & "' not found ");
+                  raise Envs.Not_Found with ("'" &  Sym & "' not found");
             end;
 
          when List =>

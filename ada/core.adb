@@ -796,7 +796,7 @@ package body Core is
    function Pr_Str (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-      return New_String_Mal_Type ('"' & Deref_List (Rest_Handle).Pr_Str & '"');
+      return New_String_Mal_Type (Deref_List (Rest_Handle).Pr_Str);
    end Pr_Str;
 
 
@@ -819,7 +819,7 @@ package body Core is
    function Str (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
    begin
-      return New_String_Mal_Type ('"' & Deref_List (Rest_Handle).Cat_Str (False) & '"');
+      return New_String_Mal_Type (Deref_List (Rest_Handle).Cat_Str (False));
    end Str;
 
 
@@ -847,7 +847,7 @@ package body Core is
       Ada.Text_IO.Put (Deref_String (First_Param).Get_String);
       -- Get the text.
       Ada.Text_IO.Get_Line (S, Last);
-      return New_String_Mal_Type ('"' & S (1 .. Last) & '"');
+      return New_String_Mal_Type (S (1 .. Last));
    end Read_Line;
 
 
@@ -864,7 +864,7 @@ package body Core is
          Fn : Ada.Text_IO.File_Type;
          Line_Str : String (1..Reader.Max_Line_Len);
          File_Str : Ada.Strings.Unbounded.Unbounded_String :=
-           Ada.Strings.Unbounded.To_Unbounded_String ("""");
+           Ada.Strings.Unbounded.Null_Unbounded_String;
          Last : Natural;
          I : Natural := 0;
       begin
@@ -877,7 +877,6 @@ package body Core is
             end if;
          end loop;
          Ada.Text_IO.Close (Fn);
-         Ada.Strings.Unbounded.Append (File_Str, '"');
          return New_String_Mal_Type (Ada.Strings.Unbounded.To_String (File_Str));
       end;
    end Slurp;
@@ -939,7 +938,7 @@ package body Core is
          when Str =>
             declare
                Param_Str : String := Deref_String (First_Param).Get_String;
-               String_Handle : Mal_Handle;
+               String1 : String (1 .. 1);
                L_Ptr : List_Ptr;
             begin
                if Param_Str'Length = 0 then
@@ -948,8 +947,8 @@ package body Core is
                   Res := New_List_Mal_Type (List_List);
                   L_Ptr := Deref_List (Res);
                   for I in Param_Str'First .. Param_Str'Last loop
-                     String_Handle:= New_String_Mal_Type ('"' & Param_Str (I) & '"');
-                     Append (L_Ptr.all, String_Handle);
+                     String1 (1) := Param_Str (I);
+                     Append (L_Ptr.all, New_String_Mal_Type (String1));
                   end loop;
                   return Res;
                end if;

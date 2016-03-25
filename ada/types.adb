@@ -311,7 +311,7 @@ package body Types is
    begin
       return Smart_Pointers.New_Ptr
         (new String_Mal_Type' (Mal_Type with The_String =>
-           Ada.Strings.Unbounded.To_Unbounded_String (Str)));
+           Ada.Strings.Unbounded.To_Unbounded_String ('"' & Str & '"')));
    end New_String_Mal_Type;
 
    overriding function Sym_Type (T : String_Mal_Type) return Sym_Types is

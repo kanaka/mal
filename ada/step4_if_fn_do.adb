@@ -119,7 +119,7 @@ procedure Step4_If_Fn_Do is
                end if;
             exception
                when Envs.Not_Found =>
-                  raise Envs.Not_Found with (" '" &  Sym & "' not found ");
+                  raise Envs.Not_Found with ("'" &  Sym & "' not found");
             end;
 
          when List =>

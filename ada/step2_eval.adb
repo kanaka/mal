@@ -126,7 +126,7 @@ procedure Step2_Eval is
                end if;
             exception
                when Not_Found =>
-                  raise Not_Found with (" '" &  Sym & "' not found ");
+                  raise Not_Found with ("'" &  Sym & "' not found");
             end;
 
          when List =>
