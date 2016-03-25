@@ -508,7 +508,7 @@ package body Core is
    function Symbol (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
-      Sym_Handle, Res : Mal_Handle;
+      Sym_Handle : Mal_Handle;
       Rest_List : List_Mal_Type;
 
    begin
@@ -518,16 +518,8 @@ package body Core is
 
       Sym_Handle := Car (Rest_List);
 
-      declare
-        The_String : Mal_String :=
-          Deref_String (Sym_Handle).Get_String;
-      begin
+      return New_Symbol_Mal_Type (Deref_String (Sym_Handle).Get_String);
 
-         Res := New_Symbol_Mal_Type
-                  (The_String (The_String'First + 1 .. The_String'Last - 1));
-
-      end;
-      return Res;
    end Symbol;
 
 
@@ -561,7 +553,7 @@ package body Core is
    function Keyword (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
 
-      Sym_Handle, Res : Mal_Handle;
+      Sym_Handle : Mal_Handle;
       Rest_List : List_Mal_Type;
 
    begin
@@ -571,16 +563,8 @@ package body Core is
 
       Sym_Handle := Car (Rest_List);
 
-      declare
-        The_String : Mal_String :=
-          Deref_String (Sym_Handle).Get_String;
-      begin
+      return New_Symbol_Mal_Type (':' & Deref_String (Sym_Handle).Get_String);
 
-         Res := New_Symbol_Mal_Type
-                  (':' & The_String (The_String'First + 1 .. The_String'Last - 1));
-
-      end;
-      return Res;
    end Keyword;
 
 
@@ -846,14 +830,7 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      declare
-         Str_Param : String := Deref_String (First_Param).Get_String;
-         Unquoted_Str : String(1 .. Str_Param'Length-2) :=
-           Str_Param (Str_Param'First+1 .. Str_Param'Last-1);
-         -- i.e. strip out the double-qoutes surrounding the string.
-      begin
-         return Reader.Read_Str (Unquoted_Str);
-      end;
+      return Reader.Read_Str (Deref_String (First_Param).Get_String);
    end Read_String;
 
 
@@ -866,12 +843,9 @@ package body Core is
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
-      declare
-         Prompt : String := Deref_String (First_Param).Get_String;
-      begin
-         -- Print the prompt, less the quote marks.
-         Ada.Text_IO.Put (Prompt (2 .. Prompt'Last - 1));
-      end;
+      -- Output the prompt.
+      Ada.Text_IO.Put (Deref_String (First_Param).Get_String);
+      -- Get the text.
       Ada.Text_IO.Get_Line (S, Last);
       return New_String_Mal_Type ('"' & S (1 .. Last) & '"');
    end Read_Line;
@@ -885,10 +859,7 @@ package body Core is
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       declare
-         Str_Param : String := Deref_String (First_Param).Get_String;
-         Unquoted_Str : String(1 .. Str_Param'Length-2) :=
-           Str_Param (Str_Param'First+1 .. Str_Param'Last-1);
-         -- i.e. strip out the double-qoutes surrounding the string.
+         Unquoted_Str : String := Deref_String (First_Param).Get_String;
          use Ada.Text_IO;
          Fn : Ada.Text_IO.File_Type;
          Line_Str : String (1..Reader.Max_Line_Len);
@@ -971,13 +942,13 @@ package body Core is
                String_Handle : Mal_Handle;
                L_Ptr : List_Ptr;
             begin
-               if Param_Str'Length <= 2 then
+               if Param_Str'Length = 0 then
                   return New_Nil_Mal_Type; -- ""
                else
                   Res := New_List_Mal_Type (List_List);
                   L_Ptr := Deref_List (Res);
-                  for I in Param_Str'First+1 .. Param_Str'Last-1 loop
-                     String_Handle:= New_String_Mal_Type ('"' &Param_Str (I) & '"');
+                  for I in Param_Str'First .. Param_Str'Last loop
+                     String_Handle:= New_String_Mal_Type ('"' & Param_Str (I) & '"');
                      Append (L_Ptr.all, String_Handle);
                   end loop;
                   return Res;

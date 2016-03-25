@@ -320,8 +320,9 @@ package body Types is
    end Sym_Type;
 
    function Get_String (T : String_Mal_Type) return Mal_String is
+      The_String : String := Ada.Strings.Unbounded.To_String (T.The_String);
    begin
-      return Ada.Strings.Unbounded.To_String (T.The_String);
+      return The_String (The_String'First+1 .. The_String'Last-1);
    end Get_String;
 
    function Deref_String (SP : Mal_Handle) return String_Ptr is
