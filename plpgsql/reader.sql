@@ -24,40 +24,46 @@ BEGIN
     token := tokens[pos];
     pos := pos + 1;
     -- RAISE NOTICE 'read_atom: %', token;
-    IF token = 'nil' THEN
+    IF token = 'nil' THEN       -- nil
         result := 0;
-    ELSIF token = 'false' THEN
+    ELSIF token = 'false' THEN  -- false
         result := 1;
-    ELSIF token = 'true' THEN
+    ELSIF token = 'true' THEN   -- true
         result := 2;
-    ELSIF token ~ '^-?[0-9][0-9]*$' THEN
+    ELSIF token ~ '^-?[0-9][0-9]*$' THEN  -- integer
         -- integer
         INSERT INTO value (type_id, val_int)
             VALUES (3, CAST(token AS integer))
             RETURNING value_id INTO result;
-    ELSIF token ~ '^".*"' THEN
+    ELSIF token ~ '^".*"' THEN  -- string
         -- string
         str := substring(token FROM 2 FOR (char_length(token)-2));
         str := replace(str, '\"', '"');
         str := replace(str, '\n', E'\n');
         str := replace(str, '\\', E'\\');
         result := _stringv(str);
+    ELSIF token ~ '^:.*' THEN  -- keyword
+        -- keyword
+        result := _keywordv(substring(token FROM 2 FOR (char_length(token)-1)));
     ELSE
         -- symbol
         result := _symbolv(token);
     END IF;
 END; $$ LANGUAGE plpgsql;
 
--- read_seq:
--- takes a tokens array, type (8,9), first and last characters and position
--- returns new position and value_id (or a list)
+-- read_coll:
+-- takes a tokens array, type (8, 9, 10), first and last characters
+-- and position
+-- returns new position and value_id for a list (8), vector (9) or
+-- hash-map (10)
 CREATE OR REPLACE FUNCTION
-    read_seq(tokens varchar[], type integer, first varchar, last varchar,
+    read_coll(tokens varchar[], type integer, first varchar, last varchar,
              INOUT pos integer, OUT result integer) AS $$
 DECLARE
-    list_id   integer = NULL;
+    coll_id   integer = NULL;
     token     varchar;
     idx       integer = 0;
+    key       varchar = NULL;
     item_id   integer;
 BEGIN
     token := tokens[pos];
@@ -66,23 +72,38 @@ BEGIN
         RAISE EXCEPTION 'expected ''%''', first;
     END IF;
     LOOP
+        IF type = 10 THEN  -- hashmap
+            -- key for hash-map
+            IF pos > array_length(tokens, 1) THEN
+                RAISE EXCEPTION 'expected ''%''', last;
+            END IF;
+            token := tokens[pos];
+            IF token = last THEN EXIT; END IF;
+            SELECT * FROM read_form(tokens, pos) INTO pos, item_id;
+
+            SELECT val_string FROM value INTO key WHERE value_id = item_id;
+        END IF;
+
         IF pos > array_length(tokens, 1) THEN
             RAISE EXCEPTION 'expected ''%''', last;
         END IF;
         token := tokens[pos];
         IF token = last THEN EXIT; END IF;
         SELECT * FROM read_form(tokens, pos) INTO pos, item_id;
-        IF list_id IS NULL THEN
-            list_id := (SELECT COALESCE(Max(collection_id), 0) FROM collection)+1;
+
+        IF coll_id IS NULL THEN
+            coll_id := (SELECT COALESCE(Max(collection_id), 0) FROM collection)+1;
         END IF;
-        INSERT INTO collection (collection_id, idx, value_id)
-            VALUES (list_id, idx, item_id);
+
+        -- value for list, vector and hash-map
+        INSERT INTO collection (collection_id, idx, key_string, value_id)
+            VALUES (coll_id, idx, key, item_id);
         idx := idx + 1;
     END LOOP;
 
-    -- Create new list referencing list_id
+    -- Create new list referencing coll_id
     INSERT INTO value (type_id, collection_id)
-        VALUES (type, list_id)
+        VALUES (type, coll_id)
         RETURNING value_id INTO result;
     pos := pos + 1;
 END; $$ LANGUAGE plpgsql;
@@ -142,7 +163,7 @@ BEGIN
         RAISE EXCEPTION 'unexpected '')''';
     WHEN token = '(' THEN
     BEGIN
-        SELECT * FROM read_seq(tokens, 8, '(', ')', pos) INTO pos, result;
+        SELECT * FROM read_coll(tokens, 8, '(', ')', pos) INTO pos, result;
     END;
 
     -- vector
@@ -150,7 +171,15 @@ BEGIN
         RAISE EXCEPTION 'unexpected '']''';
     WHEN token = '[' THEN
     BEGIN
-        SELECT * FROM read_seq(tokens, 9, '[', ']', pos) INTO pos, result;
+        SELECT * FROM read_coll(tokens, 9, '[', ']', pos) INTO pos, result;
+    END;
+
+    -- hash-map
+    WHEN token = '}' THEN
+        RAISE EXCEPTION 'unexpected ''}''';
+    WHEN token = '{' THEN
+    BEGIN
+        SELECT * FROM read_coll(tokens, 10, '{', '}', pos) INTO pos, result;
     END;
 
     --

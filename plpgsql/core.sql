@@ -10,9 +10,9 @@ INSERT INTO value (type_id, function_name) VALUES (11, 'mal_equal');
 CREATE OR REPLACE FUNCTION mal_throw(args integer[]) RETURNS integer AS $$
 BEGIN
     -- TODO: Only throws strings. Without subtransactions, all changes
-    -- to DB up to this point get rolled back so object being thrown
-    -- dissapears.
-    RAISE EXCEPTION '%', _vstring(pr_str(args[1]));
+    -- to DB up to this point get rolled back so the object being
+    -- thrown dissapears.
+    RAISE EXCEPTION '%', pr_str(args[1], false);
 END; $$ LANGUAGE plpgsql;
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_throw');
 
@@ -49,6 +49,22 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_symbol_Q');
 
+CREATE OR REPLACE FUNCTION mal_keyword(args integer[]) RETURNS integer AS $$
+BEGIN
+    IF _keyword_Q(args[1]) THEN
+        RETURN args[1];
+    ELSE
+        RETURN _keywordv(_vstring(args[1]));
+    END IF;
+END; $$ LANGUAGE plpgsql;
+INSERT INTO value (type_id, function_name) VALUES (11, 'mal_keyword');
+
+CREATE OR REPLACE FUNCTION mal_keyword_Q(args integer[]) RETURNS integer AS $$
+BEGIN
+    RETURN _wraptf(_keyword_Q(args[1]));
+END; $$ LANGUAGE plpgsql;
+INSERT INTO value (type_id, function_name) VALUES (11, 'mal_keyword_Q');
+
 
 -- string functions
 
@@ -66,14 +82,16 @@ INSERT INTO value (type_id, function_name) VALUES (11, 'mal_str');
 
 CREATE OR REPLACE FUNCTION mal_prn(args integer[]) RETURNS integer AS $$
 BEGIN
-    RAISE NOTICE '%', pr_str_array(args, ' ', true);
+    --RAISE NOTICE '%', pr_str_array(args, ' ', true);
+    PERFORM writeline(pr_str_array(args, ' ', true));
     RETURN 0; -- nil
 END; $$ LANGUAGE plpgsql;
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_prn');
 
 CREATE OR REPLACE FUNCTION mal_println(args integer[]) RETURNS integer AS $$
 BEGIN
-    RAISE NOTICE '%', pr_str_array(args, ' ', false);
+    --RAISE NOTICE '%', pr_str_array(args, ' ', false);
+    PERFORM writeline(pr_str_array(args, ' ', false));
     RETURN 0; -- nil
 END; $$ LANGUAGE plpgsql;
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_println');
@@ -373,6 +391,8 @@ INSERT INTO env_data (env_id, key, value_id) VALUES
     (0, 'true?', (SELECT value_id FROM value WHERE function_name = 'mal_true_Q')),
     (0, 'symbol', (SELECT value_id FROM value WHERE function_name = 'mal_symbol')),
     (0, 'symbol?', (SELECT value_id FROM value WHERE function_name = 'mal_symbol_Q')),
+    (0, 'keyword', (SELECT value_id FROM value WHERE function_name = 'mal_keyword')),
+    (0, 'keyword?', (SELECT value_id FROM value WHERE function_name = 'mal_keyword_Q')),
 
     (0, 'pr-str',  (SELECT value_id FROM value WHERE function_name = 'mal_pr_str')),
     (0, 'str',  (SELECT value_id FROM value WHERE function_name = 'mal_str')),

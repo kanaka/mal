@@ -14,7 +14,7 @@ INSERT INTO type VALUES (2, 'true');
 INSERT INTO type VALUES (3, 'integer');
 INSERT INTO type VALUES (4, 'float');
 INSERT INTO type VALUES (5, 'string');
-INSERT INTO type VALUES (6, 'keyword');
+--INSERT INTO type VALUES (6, 'keyword');
 INSERT INTO type VALUES (7, 'symbol');
 INSERT INTO type VALUES (8, 'list');
 INSERT INTO type VALUES (9, 'vector');
@@ -24,37 +24,24 @@ INSERT INTO type VALUES (12, 'malfunc');
 INSERT INTO type VALUES (13, 'atom');
 
 
--- string values ("interned")
-
-CREATE SEQUENCE string_id_seq;
-CREATE TABLE string (
-    string_id  integer NOT NULL DEFAULT nextval('string_id_seq'),
-    value      varchar(4096)
-);
-ALTER TABLE string ADD CONSTRAINT pk_string_id
-    PRIMARY KEY (string_id);
--- drop sequence when table dropped
-ALTER SEQUENCE string_id_seq OWNED BY string.string_id;
-
-
+-- ---------------------------------------------------------
 -- collections/groupings
 
 CREATE TABLE collection (
     collection_id   integer NOT NULL,  -- same for items of a collection
     idx             integer,           -- set for list and vector items
-    key_string_id   integer,           -- set for hashmap items
+    key_string      varchar,           -- set for hashmap items
     value_id        integer,           -- set for all items (ast for functions)
     params_id       integer,           -- set for functions
     env_id          integer,           -- set for functions
     macro           boolean            -- set for macro functions
 );
 -- ALTER TABLE collection ADD CONSTRAINT pk_collection
---     PRIMARY KEY (collection_id, idx, key_string_id);
-ALTER TABLE collection ADD CONSTRAINT fk_key_string_id
-    FOREIGN KEY (key_string_id) REFERENCES string(string_id);
+--     PRIMARY KEY (collection_id, idx, key_string);
 -- value_id, params_id foreign keys are after value table
 
 
+-- ---------------------------------------------------------
 -- persistent values
 
 CREATE SEQUENCE value_id_seq START WITH 3; -- skip nil, false, true
@@ -62,7 +49,7 @@ CREATE TABLE value (
     value_id        integer NOT NULL DEFAULT nextval('value_id_seq'),
     type_id         integer NOT NULL,
     val_int         integer,  -- set for integers
-    val_string_id   integer,  -- set for strings, keywords, and symbols
+    val_string      varchar,  -- set for strings, keywords, and symbols
     collection_id   integer,  -- set for lists, vectors and hashmaps
                               -- (NULL for empty collection)
     function_name   varchar   -- set for native function types
@@ -73,10 +60,8 @@ ALTER TABLE value ADD CONSTRAINT pk_value_id
 ALTER SEQUENCE value_id_seq OWNED BY value.value_id;
 ALTER TABLE value ADD CONSTRAINT fk_type_id
     FOREIGN KEY (type_id) REFERENCES type(type_id);
-ALTER TABLE value ADD CONSTRAINT fk_val_string_id
-    FOREIGN KEY (val_string_id) REFERENCES string(string_id);
 -- ALTER TABLE value ADD CONSTRAINT fk_collection_id
---    FOREIGN KEY (collection_id) REFERENCES collection(collection_id, idx, key_string_id);
+--    FOREIGN KEY (collection_id) REFERENCES collection(collection_id, idx, key_string);
 -- References from collection back to value
 ALTER TABLE collection ADD CONSTRAINT fk_value_id
     FOREIGN KEY (value_id) REFERENCES value(value_id);
@@ -170,8 +155,8 @@ BEGIN
 
     -- copy collection and change collection_id
     INSERT INTO collection
-        (collection_id,idx,key_string_id,value_id,params_id,env_id,macro)
-        (SELECT dst_coll_id,idx,key_string_id,value_id,params_id,env_id,macro
+        (collection_id,idx,key_string,value_id,params_id,env_id,macro)
+        (SELECT dst_coll_id,idx,key_string,value_id,params_id,env_id,macro
             FROM collection
             WHERE collection_id = src_coll_id);
 
@@ -222,9 +207,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION
     _vstring(sid integer) RETURNS varchar AS $$
 BEGIN
-    RETURN (SELECT value FROM string
-            WHERE string_id = (SELECT val_string_id
-                           FROM value WHERE value_id = sid));
+    RETURN (SELECT val_string FROM value WHERE value_id = sid);
 END; $$ LANGUAGE plpgsql;
 
 -- _stringish:
@@ -233,22 +216,16 @@ END; $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION
     _stringish(str varchar, type integer) RETURNS integer AS $$
 DECLARE
-    str_id  integer;
     result  integer;
 BEGIN
     -- TODO: share string data between string types
     -- lookup if it exists
     SELECT value_id FROM value INTO result
-        INNER JOIN string ON value.val_string_id=string.string_id
-        WHERE string.value = str AND value.type_id = type;
+        WHERE val_string = str AND type_id = type;
     IF result IS NULL THEN
-        -- Create string value for string
-        INSERT INTO string (value)
-            VALUES (str)
-            RETURNING string_id INTO str_id;
-        -- Create actual string entry
-        INSERT INTO value (type_id, val_string_id)
-            VALUES (type, str_id)
+        -- Create string entry
+        INSERT INTO value (type_id, val_string)
+            VALUES (type, str)
             RETURNING value_id INTO result;
     END IF;
     RETURN result;
@@ -261,6 +238,33 @@ CREATE OR REPLACE FUNCTION
     _stringv(str varchar) RETURNS integer AS $$
 BEGIN
     RETURN _stringish(str, 5);
+END; $$ LANGUAGE plpgsql;
+
+-- _keywordv:
+-- takes a varchar string
+-- returns the value_id of a keyword (new or existing)
+CREATE OR REPLACE FUNCTION
+    _keywordv(name varchar) RETURNS integer AS $$
+BEGIN
+    RETURN _stringish(chr(CAST(x'29e' AS integer)) || name, 5);
+END; $$ LANGUAGE plpgsql;
+
+-- _keyword_Q:
+-- takes a value_id
+-- returns the whether value_id is keyword type
+CREATE OR REPLACE FUNCTION
+    _keyword_Q(id integer) RETURNS boolean AS $$
+DECLARE
+    str  varchar;
+BEGIN
+    IF (SELECT 1 FROM value WHERE type_id = 5 AND value_id = id) THEN
+        str := _vstring(id);
+        IF char_length(str) > 0 AND
+           chr(CAST(x'29e' AS integer)) = substring(str FROM 1 FOR 1) THEN
+            RETURN true;
+        END IF;
+    END IF;
+    RETURN false;
 END; $$ LANGUAGE plpgsql;
 
 -- _symbolv:

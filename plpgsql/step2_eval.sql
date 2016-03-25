@@ -1,4 +1,5 @@
 \i init.sql
+\i io.sql
 \i types.sql
 \i reader.sql
 \i printer.sql
@@ -7,13 +8,15 @@
 -- step1_read_print.sql
 
 -- read
-CREATE OR REPLACE FUNCTION READ(line varchar) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION READ(line varchar)
+RETURNS integer AS $$
 BEGIN
     RETURN read_str(line);
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer)
+RETURNS integer AS $$
 DECLARE
     type           integer;
     symkey         varchar;
@@ -63,7 +66,8 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer)
+RETURNS integer AS $$
 DECLARE
     type    integer;
     el      integer;
@@ -86,7 +90,8 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- print
-CREATE OR REPLACE FUNCTION PRINT(exp integer) RETURNS varchar AS $$
+CREATE OR REPLACE FUNCTION PRINT(exp integer)
+RETURNS varchar AS $$
 BEGIN
     RETURN pr_str(exp);
 END; $$ LANGUAGE plpgsql;
@@ -102,13 +107,14 @@ CREATE TABLE env (
 );
 
 CREATE OR REPLACE FUNCTION env_vset(env integer, name varchar, val integer)
-    RETURNS void AS $$
+RETURNS void AS $$
 BEGIN
     INSERT INTO env (env_id, key, value_id) VALUES (env, name, val);
 END; $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION mal_intop(op varchar, args integer[]) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION mal_intop(op varchar, args integer[])
+RETURNS integer AS $$
 DECLARE a integer; b integer; result integer;
 BEGIN
     SELECT val_int INTO a FROM value WHERE value_id = args[1];
@@ -139,11 +145,30 @@ SELECT env_vset(0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_m
 SELECT env_vset(0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
 
 
-CREATE OR REPLACE FUNCTION REP(line varchar) RETURNS varchar AS $$
-DECLARE
-    output varchar;
+CREATE OR REPLACE FUNCTION REP(line varchar)
+RETURNS varchar AS $$
 BEGIN
-    -- RAISE NOTICE 'line is %', line;
-    -- output := 'line: ' || line;
     RETURN PRINT(EVAL(READ(line), 0));
+END; $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION MAIN_LOOP()
+RETURNS integer AS $$
+DECLARE
+    line    varchar;
+    output  varchar;
+BEGIN
+    WHILE true
+    LOOP
+        BEGIN
+            line := readline('user> ', 0);
+            IF line IS NULL THEN RETURN 0; END IF;
+            IF line <> '' THEN
+                output := REP(line);
+                PERFORM writeline(output);
+            END IF;
+
+            EXCEPTION WHEN OTHERS THEN
+                PERFORM writeline('Error: ' || SQLERRM);
+        END;
+    END LOOP;
 END; $$ LANGUAGE plpgsql;

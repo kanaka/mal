@@ -42,7 +42,9 @@ BEGIN
                      FROM value WHERE value_id = ast) as varchar);
     WHEN type = 5 THEN  -- string
         str := _vstring(ast);
-        IF print_readably THEN
+        IF chr(CAST(x'29e' AS integer)) = substring(str FROM 1 FOR 1) THEN
+            RETURN ':' || substring(str FROM 2 FOR (char_length(str)-1));
+        ELSIF print_readably THEN
             str := replace(str, E'\\', '\\');
             str := replace(str, '"', '\"');
             str := replace(str, E'\n', '\n');
@@ -71,6 +73,17 @@ BEGIN
                         FROM collection c
                         WHERE c.collection_id = cid), ' ') ||
                    ']';
+        END;
+    WHEN type = 10 THEN  -- hash-map
+        BEGIN
+            cid := (SELECT collection_id FROM value WHERE value_id = ast);
+            RETURN '{' ||
+                   array_to_string(array(
+                        SELECT pr_str(_stringv(c.key_string), print_readably) ||
+                               ' ' || pr_str(c.value_id, print_readably)
+                        FROM collection c
+                        WHERE c.collection_id = cid), ' ') ||
+                   '}';
         END;
     WHEN type = 11 THEN  -- native function
         RETURN '#<function ' ||

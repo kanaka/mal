@@ -1,6 +1,5 @@
-\set VERBOSITY 'terse'
-
 \i init.sql
+\i io.sql
 \i types.sql
 \i reader.sql
 \i printer.sql
@@ -11,13 +10,15 @@
 -- step1_read_print.sql
 
 -- read
-CREATE OR REPLACE FUNCTION READ(line varchar) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION READ(line varchar)
+RETURNS integer AS $$
 BEGIN
     RETURN read_str(line);
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer)
+RETURNS integer AS $$
 DECLARE
     type           integer;
     symkey         varchar;
@@ -61,7 +62,8 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer)
+RETURNS integer AS $$
 DECLARE
     type     integer;
     a0       integer;
@@ -89,9 +91,7 @@ BEGIN
 
     a0 := _first(ast);
     IF _symbol_Q(a0) THEN
-        a0sym := (SELECT string.value FROM string
-                  INNER JOIN value ON value.val_string_id=string.string_id
-                  WHERE value.value_id = a0);
+        a0sym := (SELECT val_string FROM value WHERE value_id = a0);
     ELSE
         a0sym := '__<*fn*>__';
     END IF;
@@ -188,7 +188,8 @@ END; $$ LANGUAGE plpgsql;
 
 -- repl_env is environment 0
 
-CREATE OR REPLACE FUNCTION REP(line varchar) RETURNS varchar AS $$
+CREATE OR REPLACE FUNCTION REP(line varchar)
+RETURNS varchar AS $$
 BEGIN
     RETURN PRINT(EVAL(READ(line), 0));
 END; $$ LANGUAGE plpgsql;
@@ -212,7 +213,30 @@ SELECT env_vset(0, '*ARGV*', READ('()'));
 SELECT REP('(def! not (fn* (a) (if a false true)))') \g '/dev/null'
 SELECT REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))') \g '/dev/null'
 
-CREATE OR REPLACE FUNCTION RUN(argstring varchar) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION MAIN_LOOP()
+RETURNS integer AS $$
+DECLARE
+    line    varchar;
+    output  varchar;
+BEGIN
+    WHILE true
+    LOOP
+        BEGIN
+            line := readline('user> ', 0);
+            IF line IS NULL THEN RETURN 0; END IF;
+            IF line <> '' THEN
+                output := REP(line);
+                PERFORM writeline(output);
+            END IF;
+
+            EXCEPTION WHEN OTHERS THEN
+                PERFORM writeline('Error: ' || SQLERRM);
+        END;
+    END LOOP;
+END; $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION RUN(argstring varchar)
+RETURNS void AS $$
 DECLARE
     allargs  integer;
 BEGIN

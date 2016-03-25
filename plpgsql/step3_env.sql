@@ -1,6 +1,5 @@
-\set VERBOSITY 'terse'
-
 \i init.sql
+\i io.sql
 \i types.sql
 \i reader.sql
 \i printer.sql
@@ -10,13 +9,15 @@
 -- step1_read_print.sql
 
 -- read
-CREATE OR REPLACE FUNCTION READ(line varchar) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION READ(line varchar)
+RETURNS integer AS $$
 BEGIN
     RETURN read_str(line);
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer)
+RETURNS integer AS $$
 DECLARE
     type           integer;
     symkey         varchar;
@@ -60,7 +61,8 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer)
+RETURNS integer AS $$
 DECLARE
     type     integer;
     a0       integer;
@@ -81,9 +83,7 @@ BEGIN
 
     a0 := _first(ast);
     IF _symbol_Q(a0) THEN
-        a0sym := (SELECT string.value FROM string
-                  INNER JOIN value ON value.val_string_id=string.string_id
-                  WHERE value.value_id = a0);
+        a0sym := (SELECT val_string FROM value WHERE value_id = a0);
     ELSE
         a0sym := '__<*fn*>__';
     END IF;
@@ -161,7 +161,7 @@ INSERT INTO value (type_id, function_name) VALUES (11, 'mal_subtract');
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_multiply');
 INSERT INTO value (type_id, function_name) VALUES (11, 'mal_divide');
 
--- -- repl_env is environment 0
+-- repl_env is environment 0
 INSERT INTO env (env_id, outer_id) VALUES (0, NULL);
 
 SELECT env_vset(0, '+', (SELECT value_id FROM value WHERE function_name = 'mal_add'));
@@ -170,11 +170,30 @@ SELECT env_vset(0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_m
 SELECT env_vset(0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
 
 
-CREATE OR REPLACE FUNCTION REP(line varchar) RETURNS varchar AS $$
-DECLARE
-    output varchar;
+CREATE OR REPLACE FUNCTION REP(line varchar)
+RETURNS varchar AS $$
 BEGIN
-    -- RAISE NOTICE 'line is %', line;
-    -- output := 'line: ' || line;
     RETURN PRINT(EVAL(READ(line), 0));
+END; $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION MAIN_LOOP()
+RETURNS integer AS $$
+DECLARE
+    line    varchar;
+    output  varchar;
+BEGIN
+    WHILE true
+    LOOP
+        BEGIN
+            line := readline('user> ', 0);
+            IF line IS NULL THEN RETURN 0; END IF;
+            IF line <> '' THEN
+                output := REP(line);
+                PERFORM writeline(output);
+            END IF;
+
+            EXCEPTION WHEN OTHERS THEN
+                PERFORM writeline('Error: ' || SQLERRM);
+        END;
+    END LOOP;
 END; $$ LANGUAGE plpgsql;
