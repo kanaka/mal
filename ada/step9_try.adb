@@ -592,7 +592,7 @@ begin
         File_Processed := True;
      else
         Command_List.Append
-          (Types.New_Symbol_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
+          (Types.New_String_Mal_Type (Ada.Command_Line.Argument (Cmd_Args)));
      end if;
 
    end loop;
