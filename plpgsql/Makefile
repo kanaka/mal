@@ -1,8 +1,8 @@
 # POSTGRES OR MYSQL
 MODE = POSTGRES
 
-SOURCES = init.sql types.sql reader.sql printer.sql env.sql step4_if_fn_do.sql
-SOURCES_LISP = env.sql step4_if_fn_do.sql
+SOURCES = init.sql types.sql reader.sql printer.sql env.sql core.sql step6_file.sql
+SOURCES_LISP = env.sql core.sql step6_file.sql
 
 #STEP0_DEPS = init.sql
 #STEP1_DEPS = $(STEP0_DEPS) types.sql reader.sql printer.sql

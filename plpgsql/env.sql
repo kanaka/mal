@@ -61,7 +61,7 @@ BEGIN
             bind := (SELECT value_id FROM collection
                      WHERE collection_id = cid
                      AND idx = i+1);
-            PERFORM env_set(e, bind, _arrayToValue(exprs[i+1:array_length(exprs, 1)]));
+            PERFORM env_set(e, bind, _seq(exprs[i+1:array_length(exprs, 1)], 8));
             RETURN e;
         END IF;
         PERFORM env_vset(e, bsym, expr);

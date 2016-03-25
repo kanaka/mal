@@ -17,6 +17,36 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- eval
+CREATE OR REPLACE FUNCTION is_pair(ast integer) RETURNS boolean AS $$
+BEGIN
+    RETURN _sequential_Q(ast) AND _count(ast) > 0;
+END; $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION quasiquote(ast integer) RETURNS integer AS $$
+DECLARE
+    a0   integer;
+    a00  integer;
+BEGIN
+    IF NOT is_pair(ast) THEN
+        RETURN _list(ARRAY[_symbolv('quote'), ast]);
+    ELSE
+        a0 := _nth(ast, 0);
+        IF _symbol_Q(a0) AND a0 = _symbolv('unquote') THEN
+            RETURN _nth(ast, 1);
+        ELSE
+            a00 := _nth(a0, 0);
+            IF _symbol_Q(a00) AND a00 = _symbolv('splice-unquote') THEN
+                RETURN _list(ARRAY[_symbolv('concat'),
+                                   _nth(a0, 1),
+                                   quasiquote(_rest(ast))]);
+            END IF;
+        END IF;
+        RETURN _list(ARRAY[_symbolv('cons'),
+                           quasiquote(_first(ast)),
+                           quasiquote(_rest(ast))]);
+    END IF;
+END; $$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer) RETURNS integer AS $$
 DECLARE
     type           integer;
@@ -80,7 +110,8 @@ DECLARE
     fenv     integer;
     result   integer;
 BEGIN
-    -- RAISE NOTICE 'EVAL: % [%]', pr_str(ast), ast;
+  LOOP
+    --RAISE NOTICE 'EVAL: % [%]', pr_str(ast), ast;
     SELECT type_id INTO type FROM value WHERE value_id = ast;
     IF type <> 8 THEN
         RETURN eval_ast(ast, env);
@@ -119,13 +150,24 @@ BEGIN
         LOOP
             PERFORM env_set(let_env, binds[idx], EVAL(exprs[idx], let_env));
         END LOOP;
-        --PERFORM env_print(let_env);
-        RETURN EVAL(_nth(ast, 2), let_env);
+        env := let_env;
+        ast := _nth(ast, 2);
+        CONTINUE; -- TCO
+    END;
+    WHEN a0sym = 'quote' THEN
+    BEGIN
+        RETURN _nth(ast, 1);
+    END;
+    WHEN a0sym = 'quasiquote' THEN
+    BEGIN
+        ast := quasiquote(_nth(ast, 1));
+        CONTINUE; -- TCO
     END;
     WHEN a0sym = 'do' THEN
     BEGIN
-        el := eval_ast(_rest(ast), env);
-        RETURN _nth(el, _count(el)-1);
+        PERFORM eval_ast(_slice(ast, 1, _count(ast)-1), env);
+        ast := _nth(ast, _count(ast)-1);
+        CONTINUE; -- TCO
     END;
     WHEN a0sym = 'if' THEN
     BEGIN
@@ -133,12 +175,14 @@ BEGIN
         SELECT type_id INTO type FROM value WHERE value_id = cond;
         IF type = 0 OR type = 1 THEN -- nil or false
             IF _count(ast) > 3 THEN
-                RETURN EVAL(_nth(ast, 3), env);
+                ast := _nth(ast, 3);
+                CONTINUE; -- TCO
             ELSE
                 RETURN 0; -- nil
             END IF;
         ELSE
-            RETURN EVAL(_nth(ast, 2), env);
+            ast := _nth(ast, 2);
+            CONTINUE; -- TCO
         END IF;
     END;
     WHEN a0sym = 'fn*' THEN
@@ -161,12 +205,15 @@ BEGIN
                 INTO fast, fparams, fenv
                 FROM collection
                 WHERE collection_id = fn;
-            RETURN EVAL(fast, env_new_bindings(fenv, fparams, args));
+            env := env_new_bindings(fenv, fparams, args);
+            ast := fast;
+            CONTINUE; -- TCO
         ELSE
             RAISE EXCEPTION 'Invalid function call';
         END IF;
     END;
     END CASE;
+  END LOOP;
 END; $$ LANGUAGE plpgsql;
 
 -- print
@@ -187,7 +234,30 @@ END; $$ LANGUAGE plpgsql;
 
 -- core.sql: defined using SQL (in core.sql)
 -- repl_env is created and populated with core functions in by core.sql
+CREATE OR REPLACE FUNCTION mal_eval(args integer[]) RETURNS integer AS $$
+BEGIN
+    RETURN EVAL(args[1], 0);
+END; $$ LANGUAGE plpgsql;
+INSERT INTO value (type_id, function_name) VALUES (11, 'mal_eval');
+
+SELECT env_vset(0, 'eval',
+                   (SELECT value_id FROM value
+                    WHERE function_name = 'mal_eval')) \g '/dev/null'
+-- *ARGV* values are set by RUN
+SELECT env_vset(0, '*ARGV*', READ('()'));
+
 
 -- core.mal: defined using the language itself
 SELECT REP('(def! not (fn* (a) (if a false true)))') \g '/dev/null'
+SELECT REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))') \g '/dev/null'
+
+CREATE OR REPLACE FUNCTION RUN(argstring varchar) RETURNS void AS $$
+DECLARE
+    allargs  integer;
+BEGIN
+    allargs := READ(argstring);
+    PERFORM env_vset(0, '*ARGV*', _rest(allargs));
+    PERFORM REP('(load-file ' || pr_str(_first(allargs)) || ')');
+    RETURN;
+END; $$ LANGUAGE plpgsql;
 

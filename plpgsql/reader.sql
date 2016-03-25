@@ -41,10 +41,10 @@ BEGIN
         str := replace(str, '\"', '"');
         str := replace(str, '\n', E'\n');
         str := replace(str, '\\', E'\\');
-        result := _string(str);
+        result := _stringv(str);
     ELSE
         -- symbol
-        result := _symbol(token);
+        result := _symbolv(token);
     END IF;
 END; $$ LANGUAGE plpgsql;
 
@@ -103,38 +103,38 @@ BEGIN
     BEGIN
         pos := pos + 1;
         SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list2(_symbol('quote'), vid);
+        result := _list(ARRAY[_symbolv('quote'), vid]);
     END;
     WHEN token = '`' THEN
     BEGIN
         pos := pos + 1;
         SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list2(_symbol('quasiquote'), vid);
+        result := _list(ARRAY[_symbolv('quasiquote'), vid]);
     END;
     WHEN token = '~' THEN
     BEGIN
         pos := pos + 1;
         SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list2(_symbol('unquote'), vid);
+        result := _list(ARRAY[_symbolv('unquote'), vid]);
     END;
     WHEN token = '~@' THEN
     BEGIN
         pos := pos + 1;
         SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list2(_symbol('splice-unquote'), vid);
+        result := _list(ARRAY[_symbolv('splice-unquote'), vid]);
     END;
     WHEN token = '^' THEN
     BEGIN
         pos := pos + 1;
         SELECT * FROM read_form(tokens, pos) INTO pos, meta;
         SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list3(_symbol('with-meta'), vid, meta);
+        result := _list(ARRAY[_symbolv('with-meta'), vid, meta]);
     END;
     WHEN token = '@' THEN
     BEGIN
         pos := pos + 1;
         SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list2(_symbol('deref'), vid);
+        result := _list(ARRAY[_symbolv('deref'), vid]);
     END;
 
     -- list

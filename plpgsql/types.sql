@@ -45,7 +45,8 @@ CREATE TABLE collection (
     key_string_id   integer,           -- set for hashmap items
     value_id        integer,           -- set for all items (ast for functions)
     params_id       integer,           -- set for functions
-    env_id          integer            -- set for functions
+    env_id          integer,           -- set for functions
+    macro           boolean            -- set for macro functions
 );
 -- ALTER TABLE collection ADD CONSTRAINT pk_collection
 --     PRIMARY KEY (collection_id, idx, key_string_id);
@@ -152,6 +153,38 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 
+-- _clone:
+-- take a value_id of a collection
+-- returns a new value_id of a cloned collection
+CREATE OR REPLACE FUNCTION
+    _clone(id integer) RETURNS integer AS $$
+DECLARE
+    src_coll_id  integer;
+    dst_coll_id  integer;
+    result       integer;
+BEGIN
+    SELECT collection_id FROM collection INTO src_coll_id
+        WHERE collection_id = (SELECT collection_id FROM value
+                               WHERE value_id = id);
+    dst_coll_id := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
+
+    -- copy collection and change collection_id
+    INSERT INTO collection
+        (collection_id,idx,key_string_id,value_id,params_id,env_id,macro)
+        (SELECT dst_coll_id,idx,key_string_id,value_id,params_id,env_id,macro
+            FROM collection
+            WHERE collection_id = src_coll_id);
+
+    -- copy value and change collection_id to new value
+    INSERT INTO value (type_id,collection_id)
+        (SELECT type_id,dst_coll_id
+            FROM value
+            WHERE value_id = id)
+        RETURNING value_id INTO result;
+    RETURN result;
+END; $$ LANGUAGE plpgsql;
+
+
 -- ---------------------------------------------------------
 -- scalar functions
 
@@ -180,7 +213,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION
     _true_Q(id integer) RETURNS boolean AS $$
 BEGIN
-    RETURN id = 1;
+    RETURN id = 2;
 END; $$ LANGUAGE plpgsql;
 
 -- _vstring:
@@ -221,20 +254,20 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
--- _string:
+-- _stringv:
 -- takes a varchar string
 -- returns the value_id of a string (new or existing)
 CREATE OR REPLACE FUNCTION
-    _string(str varchar) RETURNS integer AS $$
+    _stringv(str varchar) RETURNS integer AS $$
 BEGIN
     RETURN _stringish(str, 5);
 END; $$ LANGUAGE plpgsql;
 
--- _symbol:
+-- _symbolv:
 -- takes a varchar string
 -- returns the value_id of a symbol (new or existing)
 CREATE OR REPLACE FUNCTION
-    _symbol(name varchar) RETURNS integer AS $$
+    _symbolv(name varchar) RETURNS integer AS $$
 BEGIN
     RETURN _stringish(name, 7);
 END; $$ LANGUAGE plpgsql;
@@ -277,11 +310,11 @@ BEGIN
     END IF;
 END; $$ LANGUAGE plpgsql;
 
--- _list:
+-- _seq:
 -- takes a array of value_id integers
--- returns the value_id of a new list
+-- returns the value_id of a new list or vector
 CREATE OR REPLACE FUNCTION
-    _list(items integer[]) RETURNS integer AS $$
+    _seq(items integer[], type integer) RETURNS integer AS $$
 DECLARE
     cid      integer = NULL;
     list_id  integer;
@@ -292,62 +325,32 @@ BEGIN
         LOOP
             -- Create entries
             INSERT INTO collection (collection_id, idx, value_id)
-                VALUES (cid, idx, items[idx]);
+                VALUES (cid, idx-1, items[idx]);
         END LOOP;
     END IF;
     -- Create value entry pointing to collection (or NULL)
     INSERT INTO value (type_id, collection_id)
-        VALUES (8, cid)
+        VALUES (type, cid)
         RETURNING value_id INTO list_id;
     RETURN list_id;
 END; $$ LANGUAGE plpgsql;
 
--- _list2:
--- takes two value_id integers
+-- _list:
+-- takes a array of value_id integers
 -- returns the value_id of a new list
 CREATE OR REPLACE FUNCTION
-    _list2(a integer, b integer) RETURNS integer AS $$
-DECLARE
-    cid      integer = NULL;
-    list_id  integer;
+    _list(items integer[]) RETURNS integer AS $$
 BEGIN
-    cid := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
-    -- Create entries
-    INSERT INTO collection (collection_id, idx, value_id)
-        VALUES (cid, 0, a);
-    INSERT INTO collection (collection_id, idx, value_id)
-        VALUES (cid, 1, b);
-
-    -- Create value entry pointing to collection
-    INSERT INTO value (type_id, collection_id)
-        VALUES (8, cid)
-        RETURNING value_id INTO list_id;
-    RETURN list_id;
+    RETURN _seq(items, 8);
 END; $$ LANGUAGE plpgsql;
 
--- _list3:
--- takes three value_id integers
+-- _vector:
+-- takes a array of value_id integers
 -- returns the value_id of a new list
 CREATE OR REPLACE FUNCTION
-    _list2(a integer, b integer, c integer) RETURNS integer AS $$
-DECLARE
-    cid      integer = NULL;
-    list_id  integer;
+    _vector(items integer[]) RETURNS integer AS $$
 BEGIN
-    cid := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
-    -- Create entries
-    INSERT INTO collection (collection_id, idx, value_id)
-        VALUES (cid, 0, a);
-    INSERT INTO collection (collection_id, idx, value_id)
-        VALUES (cid, 1, b);
-    INSERT INTO collection (collection_id, idx, value_id)
-        VALUES (cid, 2, c);
-
-    -- Create value entry pointing to collection
-    INSERT INTO value (type_id, collection_id)
-        VALUES (8, cid)
-        RETURNING value_id INTO list_id;
-    RETURN list_id;
+    RETURN _seq(items, 9);
 END; $$ LANGUAGE plpgsql;
 
 -- _list_Q:
@@ -361,29 +364,27 @@ BEGIN
     END IF;
 END; $$ LANGUAGE plpgsql;
 
-
--- _arrayToValue:
--- takes an array of value_id integers
--- returns the value_id of new list of those values
-CREATE OR REPLACE FUNCTION
-    _arrayToValue(arr integer[]) RETURNS integer AS $$
-DECLARE
-    dst_coll_id    integer = NULL;
-    i              integer;
-    result         integer;
+-- _vector_Q:
+-- return true if obj value_id is a list
+CREATE OR REPLACE FUNCTION _vector_Q(obj integer) RETURNS boolean AS $$
 BEGIN
-    IF array_length(arr, 1) > 0 THEN
-        dst_coll_id := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
-        FOR i IN array_lower(arr, 1) .. array_upper(arr, 1)
-        LOOP
-            INSERT INTO collection (collection_id, idx, value_id)
-                VALUES (dst_coll_id, i-1, arr[i]);
-        END LOOP;
+    IF (SELECT 1 FROM value WHERE value_id = obj and type_id = 9) THEN
+        RETURN true;
+    ELSE
+        RETURN false;
     END IF;
-    INSERT INTO value (type_id, collection_id)
-        VALUES (8, dst_coll_id)
-        RETURNING value_id INTO result;
-    RETURN result;
+END; $$ LANGUAGE plpgsql;
+
+
+-- _valueToArray:
+-- takes an value_id referring to a list or vector
+-- returns an array of the value_ids from the list/vector
+CREATE OR REPLACE FUNCTION
+    _valueToArray(seq integer) RETURNS integer[] AS $$
+BEGIN
+    RETURN ARRAY(SELECT value_id FROM collection
+                 WHERE collection_id = (SELECT collection_id FROM value
+                                        WHERE value_id = seq));
 END; $$ LANGUAGE plpgsql;
 
 
@@ -498,6 +499,20 @@ BEGIN
         VALUES (12, cid)
         RETURNING value_id into result;
     RETURN result;
+END; $$ LANGUAGE plpgsql;
+
+-- _macro:
+CREATE OR REPLACE FUNCTION
+    _macro(func integer) RETURNS integer AS $$
+DECLARE
+    newfunc  integer;
+    cid      integer;
+BEGIN
+    newfunc := _clone(func);
+    SELECT collection_id FROM value INTO cid WHERE value_id = newfunc;
+    UPDATE collection SET macro = true
+        WHERE collection_id = cid;
+    RETURN newfunc;
 END; $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION

@@ -25,6 +25,12 @@ END; $$ LANGUAGE plpgsql;
 
 -- repl
 
+-- stub to support wrap.sh
+CREATE OR REPLACE FUNCTION env_vset(env integer, name varchar, val varchar)
+    RETURNS void AS $$
+BEGIN END; $$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION REP(line varchar) RETURNS varchar AS $$
 DECLARE
     output varchar;

@@ -17,9 +17,6 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE OR REPLACE FUNCTION just_add(args integer[]) RETURNS integer AS $$
-BEGIN RETURN args[1] + args[2]; END; $$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer) RETURNS integer AS $$
 DECLARE
     type           integer;
