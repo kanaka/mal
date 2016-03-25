@@ -311,7 +311,7 @@ package body Types is
    begin
       return Smart_Pointers.New_Ptr
         (new String_Mal_Type' (Mal_Type with The_String =>
-           Ada.Strings.Unbounded.To_Unbounded_String ('"' & Str & '"')));
+           Ada.Strings.Unbounded.To_Unbounded_String (Str)));
    end New_String_Mal_Type;
 
    overriding function Sym_Type (T : String_Mal_Type) return Sym_Types is
@@ -320,9 +320,8 @@ package body Types is
    end Sym_Type;
 
    function Get_String (T : String_Mal_Type) return Mal_String is
-      The_String : String := Ada.Strings.Unbounded.To_String (T.The_String);
    begin
-      return The_String (The_String'First+1 .. The_String'Last-1);
+      return Ada.Strings.Unbounded.To_String (T.The_String);
    end Get_String;
 
    function Deref_String (SP : Mal_Handle) return String_Ptr is
@@ -335,29 +334,31 @@ package body Types is
      (T : String_Mal_Type; Print_Readably : Boolean := True)
    return Mal_String is
       use Ada.Strings.Unbounded;
-      I : Positive := 2;
+      I : Positive := 1;
       Str_Len : Natural;
       Res : Unbounded_String;
+      Ch : Character;
    begin
       if Print_Readably then
          Append (Res, '"');
          Str_Len := Length (T.The_String);
-         while I < Str_Len loop
-            if Element (T.The_String, I) = '"' then
+         while I <= Str_Len loop
+            Ch := Element (T.The_String, I);
+            if Ch = '"' then
                Append (Res, "\""");
-            elsif Element (T.The_String, I) = '\' then
+            elsif Ch = '\' then
                Append (Res, "\\");
-            elsif Element (T.The_String, I) = Ada.Characters.Latin_1.LF then
+            elsif Ch = Ada.Characters.Latin_1.LF then
                Append (Res, "\n");
             else
-               Append (Res, Element (T.The_String, I));
+               Append (Res, Ch);
             end if;
             I := I + 1;
          end loop;
          Append (Res, '"');
-         return Ada.Strings.Unbounded.To_String (Res);
+         return To_String (Res);
       else
-         return Slice (T.The_String, 2, Length (T.The_String) - 1);
+         return To_String (T.The_String);
       end if;
    end To_Str;
 
