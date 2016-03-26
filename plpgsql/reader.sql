@@ -1,7 +1,7 @@
 -- ---------------------------------------------------------
 -- reader.sql
 
-CREATE OR REPLACE FUNCTION
+CREATE FUNCTION
     tokenize(str varchar) RETURNS varchar[] AS $$
 DECLARE
     re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;]*)';
@@ -14,7 +14,7 @@ END; $$ LANGUAGE plpgsql;
 -- read_atom:
 -- takes a tokens array and position
 -- returns new position and value_id
-CREATE OR REPLACE FUNCTION
+CREATE FUNCTION
     read_atom(tokens varchar[], INOUT pos integer, OUT result integer) AS $$
 DECLARE
     str_id  integer;
@@ -51,67 +51,41 @@ BEGIN
     END IF;
 END; $$ LANGUAGE plpgsql;
 
--- read_coll:
+-- read_seq:
 -- takes a tokens array, type (8, 9, 10), first and last characters
 -- and position
 -- returns new position and value_id for a list (8), vector (9) or
 -- hash-map (10)
-CREATE OR REPLACE FUNCTION
-    read_coll(tokens varchar[], type integer, first varchar, last varchar,
-             INOUT pos integer, OUT result integer) AS $$
+CREATE FUNCTION
+    read_seq(tokens varchar[], first varchar, last varchar,
+             INOUT p integer, OUT items integer[]) AS $$
 DECLARE
-    coll_id   integer = NULL;
     token     varchar;
-    idx       integer = 0;
     key       varchar = NULL;
     item_id   integer;
 BEGIN
-    token := tokens[pos];
-    pos := pos + 1;
+    token := tokens[p];
+    p := p + 1;
     IF token <> first THEN
         RAISE EXCEPTION 'expected ''%''', first;
     END IF;
     LOOP
-        IF type = 10 THEN  -- hashmap
-            -- key for hash-map
-            IF pos > array_length(tokens, 1) THEN
-                RAISE EXCEPTION 'expected ''%''', last;
-            END IF;
-            token := tokens[pos];
-            IF token = last THEN EXIT; END IF;
-            SELECT * FROM read_form(tokens, pos) INTO pos, item_id;
-
-            SELECT val_string FROM value INTO key WHERE value_id = item_id;
-        END IF;
-
-        IF pos > array_length(tokens, 1) THEN
+        IF p > array_length(tokens, 1) THEN
             RAISE EXCEPTION 'expected ''%''', last;
         END IF;
-        token := tokens[pos];
+        token := tokens[p];
         IF token = last THEN EXIT; END IF;
-        SELECT * FROM read_form(tokens, pos) INTO pos, item_id;
-
-        IF coll_id IS NULL THEN
-            coll_id := (SELECT COALESCE(Max(collection_id), 0) FROM collection)+1;
-        END IF;
-
-        -- value for list, vector and hash-map
-        INSERT INTO collection (collection_id, idx, key_string, value_id)
-            VALUES (coll_id, idx, key, item_id);
-        idx := idx + 1;
+        SELECT * FROM read_form(tokens, p) INTO p, item_id;
+        items := array_append(items, item_id);
     END LOOP;
 
-    -- Create new list referencing coll_id
-    INSERT INTO value (type_id, collection_id)
-        VALUES (type, coll_id)
-        RETURNING value_id INTO result;
-    pos := pos + 1;
+    p := p + 1;
 END; $$ LANGUAGE plpgsql;
 
 -- read_form:
 -- takes a tokens array and position
 -- returns new position and value_id
-CREATE OR REPLACE FUNCTION
+CREATE FUNCTION
     read_form(tokens varchar[], INOUT pos integer, OUT result integer) AS $$
 DECLARE
     vid     integer;
@@ -163,7 +137,8 @@ BEGIN
         RAISE EXCEPTION 'unexpected '')''';
     WHEN token = '(' THEN
     BEGIN
-        SELECT * FROM read_coll(tokens, 8, '(', ')', pos) INTO pos, result;
+        SELECT p, _collection(items, 8)
+            FROM read_seq(tokens, '(', ')', pos) INTO pos, result;
     END;
 
     -- vector
@@ -171,7 +146,8 @@ BEGIN
         RAISE EXCEPTION 'unexpected '']''';
     WHEN token = '[' THEN
     BEGIN
-        SELECT * FROM read_coll(tokens, 9, '[', ']', pos) INTO pos, result;
+        SELECT p, _collection(items, 9)
+            FROM read_seq(tokens, '[', ']', pos) INTO pos, result;
     END;
 
     -- hash-map
@@ -179,7 +155,8 @@ BEGIN
         RAISE EXCEPTION 'unexpected ''}''';
     WHEN token = '{' THEN
     BEGIN
-        SELECT * FROM read_coll(tokens, 10, '{', '}', pos) INTO pos, result;
+        SELECT p, _collection(items, 10)
+            FROM read_seq(tokens, '{', '}', pos) INTO pos, result;
     END;
 
     --
@@ -191,7 +168,7 @@ END; $$ LANGUAGE plpgsql;
 -- read_str:
 -- takes a string
 -- returns a new value_id
-CREATE OR REPLACE FUNCTION
+CREATE FUNCTION
     read_str(str varchar) RETURNS integer AS $$
 DECLARE
     tokens varchar[];

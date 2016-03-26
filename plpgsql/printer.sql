@@ -1,7 +1,7 @@
 -- ---------------------------------------------------------
 -- printer.sql
 
-CREATE OR REPLACE FUNCTION
+CREATE FUNCTION
     pr_str_array(arr integer[], sep varchar, print_readably boolean)
     RETURNS varchar AS $$
 DECLARE
@@ -19,7 +19,7 @@ BEGIN
     END IF;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION
+CREATE FUNCTION
     pr_str(ast integer, print_readably boolean DEFAULT true)
     RETURNS varchar AS $$
 DECLARE
@@ -41,7 +41,7 @@ BEGIN
         RETURN CAST((SELECT val_int
                      FROM value WHERE value_id = ast) as varchar);
     WHEN type = 5 THEN  -- string
-        str := _vstring(ast);
+        str := _valueToString(ast);
         IF chr(CAST(x'29e' AS integer)) = substring(str FROM 1 FOR 1) THEN
             RETURN ':' || substring(str FROM 2 FOR (char_length(str)-1));
         ELSIF print_readably THEN
@@ -53,7 +53,7 @@ BEGIN
             RETURN str;
         END IF;
     WHEN type = 7 THEN  -- symbol
-        RETURN _vstring(ast);
+        RETURN _valueToString(ast);
     WHEN type = 8 THEN  -- list
         BEGIN
             cid := (SELECT collection_id FROM value WHERE value_id = ast);

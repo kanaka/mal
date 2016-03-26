@@ -10,19 +10,19 @@
 -- step1_read_print.sql
 
 -- read
-CREATE OR REPLACE FUNCTION READ(line varchar)
+CREATE FUNCTION READ(line varchar)
 RETURNS integer AS $$
 BEGIN
     RETURN read_str(line);
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE OR REPLACE FUNCTION is_pair(ast integer) RETURNS boolean AS $$
+CREATE FUNCTION is_pair(ast integer) RETURNS boolean AS $$
 BEGIN
     RETURN _sequential_Q(ast) AND _count(ast) > 0;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION quasiquote(ast integer) RETURNS integer AS $$
+CREATE FUNCTION quasiquote(ast integer) RETURNS integer AS $$
 DECLARE
     a0   integer;
     a00  integer;
@@ -47,7 +47,7 @@ BEGIN
     END IF;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION is_macro_call(ast integer, env integer)
+CREATE FUNCTION is_macro_call(ast integer, env integer)
     RETURNS boolean AS $$
 DECLARE
     a0      integer;
@@ -56,7 +56,7 @@ DECLARE
 BEGIN
     IF _list_Q(ast) THEN
         a0 = _first(ast);
-        IF _symbol_Q(a0) AND env_find(env, _vstring(a0)) IS NOT NULL THEN
+        IF _symbol_Q(a0) AND env_find(env, _valueToString(a0)) IS NOT NULL THEN
             f := env_get(env, a0);
             SELECT macro INTO result FROM collection
                 WHERE collection_id = (SELECT collection_id FROM value
@@ -66,7 +66,7 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION macroexpand(ast integer, env integer)
+CREATE FUNCTION macroexpand(ast integer, env integer)
     RETURNS integer AS $$
 DECLARE
     mac  integer;
@@ -79,12 +79,13 @@ BEGIN
     RETURN ast;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION eval_ast(ast integer, env integer)
+CREATE FUNCTION eval_ast(ast integer, env integer)
 RETURNS integer AS $$
 DECLARE
     type           integer;
     symkey         varchar;
     vid            integer;
+    k              varchar;
     i              integer;
     src_coll_id    integer;
     dst_coll_id    integer = NULL;
@@ -97,25 +98,22 @@ BEGIN
     BEGIN
         result := env_get(env, ast);
     END;
-    WHEN type = 8 OR type = 9 THEN
+    WHEN type IN (8, 9, 10) THEN
     BEGIN
         src_coll_id := (SELECT collection_id FROM value WHERE value_id = ast);
-        FOR vid, i IN (SELECT value_id, idx FROM collection
-                       WHERE collection_id = src_coll_id)
-        LOOP
-            e := EVAL(vid, env);
-            IF dst_coll_id IS NULL THEN
-                dst_coll_id := COALESCE((SELECT Max(collection_id)
-                                         FROM collection)+1,0);
-            END IF;
-            -- Evaluated each entry
-            INSERT INTO collection (collection_id, idx, value_id)
-                VALUES (dst_coll_id, i, e);
-        END LOOP;
-        -- Create value entry pointing to new collection
+        -- Create new value entry pointing to new collection
+        dst_coll_id := COALESCE((SELECT Max(collection_id) FROM value)+1,0);
         INSERT INTO value (type_id, collection_id)
             VALUES (type, dst_coll_id)
             RETURNING value_id INTO result;
+        FOR vid, k, i IN (SELECT value_id, key_string, idx FROM collection
+                       WHERE collection_id = src_coll_id)
+        LOOP
+            -- Evaluate each entry
+            e := EVAL(vid, env);
+            INSERT INTO collection (collection_id, key_string, idx, value_id)
+                VALUES (dst_coll_id, k, i, e);
+        END LOOP;
     END;
     ELSE
         result := ast;
@@ -124,7 +122,7 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION EVAL(ast integer, env integer)
+CREATE FUNCTION EVAL(ast integer, env integer)
 RETURNS integer AS $$
 DECLARE
     type     integer;
@@ -145,7 +143,7 @@ DECLARE
     result   integer;
 BEGIN
   LOOP
-    --RAISE NOTICE 'EVAL: % [%]', pr_str(ast), ast;
+    -- RAISE NOTICE 'EVAL: % [%]', pr_str(ast), ast;
     SELECT type_id INTO type FROM value WHERE value_id = ast;
     IF type <> 8 THEN
         RETURN eval_ast(ast, env);
@@ -265,7 +263,7 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- print
-CREATE OR REPLACE FUNCTION PRINT(exp integer) RETURNS varchar AS $$
+CREATE FUNCTION PRINT(exp integer) RETURNS varchar AS $$
 BEGIN
     RETURN pr_str(exp);
 END; $$ LANGUAGE plpgsql;
@@ -275,7 +273,7 @@ END; $$ LANGUAGE plpgsql;
 
 -- repl_env is environment 0
 
-CREATE OR REPLACE FUNCTION REP(line varchar)
+CREATE FUNCTION REP(line varchar)
 RETURNS varchar AS $$
 BEGIN
     RETURN PRINT(EVAL(READ(line), 0));
@@ -283,7 +281,7 @@ END; $$ LANGUAGE plpgsql;
 
 -- core.sql: defined using SQL (in core.sql)
 -- repl_env is created and populated with core functions in by core.sql
-CREATE OR REPLACE FUNCTION mal_eval(args integer[]) RETURNS integer AS $$
+CREATE FUNCTION mal_eval(args integer[]) RETURNS integer AS $$
 BEGIN
     RETURN EVAL(args[1], 0);
 END; $$ LANGUAGE plpgsql;
@@ -302,12 +300,13 @@ SELECT REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")
 SELECT REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))') \g '/dev/null'
 SELECT REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))') \g '/dev/null'
 
-CREATE OR REPLACE FUNCTION MAIN_LOOP()
+CREATE FUNCTION MAIN_LOOP(pwd varchar)
 RETURNS integer AS $$
 DECLARE
     line    varchar;
     output  varchar;
 BEGIN
+    PERFORM env_vset(0, '*PWD*', _stringv(pwd));
     WHILE true
     LOOP
         BEGIN
@@ -324,12 +323,13 @@ BEGIN
     END LOOP;
 END; $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION RUN(argstring varchar)
+CREATE FUNCTION RUN(pwd varchar, argstring varchar)
 RETURNS void AS $$
 DECLARE
     allargs  integer;
 BEGIN
     allargs := READ(argstring);
+    PERFORM env_vset(0, '*PWD*', _stringv(pwd));
     PERFORM env_vset(0, '*ARGV*', _rest(allargs));
     PERFORM REP('(load-file ' || pr_str(_first(allargs)) || ')');
     RETURN;

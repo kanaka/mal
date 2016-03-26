@@ -1,8 +1,5 @@
-DROP EXTENSION IF EXISTS dblink;
 CREATE EXTENSION dblink;
---SELECT dblink_connect('mal', 'dbname=mal');
 
-DROP TABLE IF EXISTS stream;
 CREATE TABLE stream (
     stream_id  integer,
     data       varchar,
@@ -12,7 +9,7 @@ CREATE TABLE stream (
 INSERT INTO stream (stream_id, data, rl_prompt) VALUES (0, '', ''); -- stdin
 INSERT INTO stream (stream_id, data, rl_prompt) VALUES (1, '', ''); -- stdout
 
-CREATE OR REPLACE FUNCTION read(stream_id integer DEFAULT 0)
+CREATE FUNCTION read(stream_id integer DEFAULT 0)
 RETURNS varchar AS $$
 DECLARE
     query  varchar;
@@ -40,12 +37,11 @@ BEGIN
             sleep := sleep * 1.1; -- backoff
         END IF;
     END LOOP;
-END;
-$$ LANGUAGE 'plpgsql' STRICT;
+END; $$ LANGUAGE 'plpgsql' STRICT;
 
 -- readline:
 -- set prompt and wait for readline style input on the stream
-CREATE OR REPLACE FUNCTION readline(prompt varchar, stream_id integer DEFAULT 0)
+CREATE FUNCTION readline(prompt varchar, stream_id integer DEFAULT 0)
 RETURNS varchar AS $$
 DECLARE
     query  varchar;
@@ -55,10 +51,9 @@ BEGIN
     PERFORM dblink('dbname=mal', query);
 
     RETURN read(stream_id);
-END;
-$$ LANGUAGE 'plpgsql' STRICT;
+END; $$ LANGUAGE 'plpgsql' STRICT;
 
-CREATE OR REPLACE FUNCTION write(data varchar, stream_id integer DEFAULT 1)
+CREATE FUNCTION write(data varchar, stream_id integer DEFAULT 1)
 RETURNS void AS $$
 DECLARE
     query   varchar;
@@ -67,20 +62,18 @@ BEGIN
         data, stream_id);
     --RAISE NOTICE 'write query: %', query;
     PERFORM dblink('dbname=mal', query);
-END;
-$$ LANGUAGE 'plpgsql' STRICT;
+END; $$ LANGUAGE 'plpgsql' STRICT;
 
-CREATE OR REPLACE FUNCTION writeline(data varchar, stream_id integer DEFAULT 1)
+CREATE FUNCTION writeline(data varchar, stream_id integer DEFAULT 1)
 RETURNS void AS $$
 BEGIN
     PERFORM write(data || E'\n', stream_id);
-END;
-$$ LANGUAGE 'plpgsql' STRICT;
+END; $$ LANGUAGE 'plpgsql' STRICT;
 
 -- wait_rl_prompt:
 -- wait for rl_prompt to be set on the given stream and return the
 -- rl_prompt value
-CREATE OR REPLACE FUNCTION wait_rl_prompt(stream_id integer DEFAULT 0)
+CREATE FUNCTION wait_rl_prompt(stream_id integer DEFAULT 0)
 RETURNS varchar AS $$
 DECLARE
     dquery   varchar;
@@ -112,6 +105,5 @@ BEGIN
             sleep := sleep * 1.1; -- backoff
         END IF;
     END LOOP;
-END;
-$$ LANGUAGE 'plpgsql' STRICT;
+END; $$ LANGUAGE 'plpgsql' STRICT;
 
