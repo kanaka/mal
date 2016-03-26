@@ -143,13 +143,12 @@ END; $$ LANGUAGE plpgsql;
 
 -- integer operation
 CREATE FUNCTION mal_intop(op varchar, args integer[]) RETURNS integer AS $$
-DECLARE a integer; b integer; result integer;
+DECLARE a bigint; b bigint; result bigint;
 BEGIN
     SELECT val_int INTO a FROM value WHERE value_id = args[1];
     SELECT val_int INTO b FROM value WHERE value_id = args[2];
-    EXECUTE format('INSERT INTO value (type_id, val_int) VALUES (3, $1 %s $2)
-                    RETURNING value_id;', op) INTO result USING a, b;
-    RETURN result;
+    EXECUTE format('SELECT $1 %s $2;', op) INTO result USING a, b;
+    RETURN _numToValue(result);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_lt(args integer[]) RETURNS integer AS $$
@@ -190,6 +189,12 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION mal_divide(args integer[]) RETURNS integer AS $$
 BEGIN
     RETURN mal_intop('/', args);
+END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION mal_time_ms(args integer[]) RETURNS integer AS $$
+BEGIN
+    RETURN _numToValue(
+        CAST(date_part('epoch', clock_timestamp()) * 1000 AS bigint));
 END; $$ LANGUAGE plpgsql;
 
 
@@ -473,7 +478,8 @@ SELECT core_def(
     '+',           'mal_add',
     '-',           'mal_subtract',
     '*',           'mal_multiply',
-    '/',           'mal_divide');
+    '/',           'mal_divide',
+    'time-ms',     'mal_time_ms');
 
 -- split since calls are limited to 100 arguments
 SELECT core_def(
@@ -500,6 +506,9 @@ SELECT core_def(
     'count',       'mal_count',
     'apply',       'mal_apply',
     'map',         'mal_map',
+
+    'conj',        'mal_map',
+    'seq',         'mal_map',
 
     'meta',        'mal_meta',
     'with-meta',   'mal_with_meta',

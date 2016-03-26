@@ -39,6 +39,9 @@ CREATE TABLE collection (
 -- ALTER TABLE collection ADD CONSTRAINT pk_collection
 --     PRIMARY KEY (collection_id, idx, key_string);
 -- value_id, params_id foreign keys are after value table
+CREATE INDEX ON collection (collection_id);
+CREATE INDEX ON collection (collection_id, idx);
+CREATE INDEX ON collection (collection_id, key_string);
 
 
 -- ---------------------------------------------------------
@@ -48,7 +51,7 @@ CREATE SEQUENCE value_id_seq START WITH 3; -- skip nil, false, true
 CREATE TABLE value (
     value_id        integer NOT NULL DEFAULT nextval('value_id_seq'),
     type_id         integer NOT NULL,
-    val_int         integer,  -- set for integers
+    val_int         bigint,   -- set for integers
     val_string      varchar,  -- set for strings, keywords, and symbols
     collection_id   integer,  -- set for lists, vectors and hashmaps
                               -- (NULL for empty collection)
@@ -70,6 +73,8 @@ ALTER TABLE collection ADD CONSTRAINT fk_value_id
     FOREIGN KEY (value_id) REFERENCES value(value_id);
 ALTER TABLE collection ADD CONSTRAINT fk_params_id
     FOREIGN KEY (params_id) REFERENCES value(value_id);
+
+CREATE INDEX ON value (value_id, type_id);
 
 INSERT INTO value (value_id, type_id) VALUES (0, 0); -- nil
 INSERT INTO value (value_id, type_id) VALUES (1, 1); -- false
@@ -185,14 +190,13 @@ DECLARE
 BEGIN
     SELECT collection_id FROM value INTO src_coll_id
         WHERE value_id = id;
-    dst_coll_id := COALESCE((SELECT Max(collection_id) FROM value)+1,0);
 
     -- copy value and change collection_id to new value
     INSERT INTO value (type_id,collection_id)
-        (SELECT type_id,dst_coll_id
+        (SELECT type_id,COALESCE((SELECT Max(collection_id) FROM value)+1,0)
             FROM value
             WHERE value_id = id)
-        RETURNING value_id INTO result;
+        RETURNING value_id, collection_id INTO result, dst_coll_id;
 
     -- copy collection and change collection_id
     INSERT INTO collection
@@ -322,16 +326,39 @@ BEGIN
     RETURN _tf((SELECT 1 FROM value WHERE type_id = 7 AND value_id = id));
 END; $$ LANGUAGE plpgsql;
 
+---- _numToValue:
+---- takes an integer number
+---- returns the value_id for the number
+--CREATE FUNCTION _numToValue(num integer) RETURNS integer AS $$
+--DECLARE
+--    result  integer;
+--BEGIN
+--    SELECT value_id FROM value INTO result
+--        WHERE val_int = CAST(num AS bigint) AND type_id = 3;
+--    IF result IS NULL THEN
+--        -- Create an integer entry
+--        INSERT INTO value (type_id, val_int)
+--            VALUES (3, CAST(num AS bigint))
+--            RETURNING value_id INTO result;
+--    END IF;
+--    RETURN result;
+--END; $$ LANGUAGE plpgsql;
+
 -- _numToValue:
--- takes an integer number
+-- takes an bigint number
 -- returns the value_id for the number
-CREATE FUNCTION _numToValue(num integer) RETURNS integer AS $$
+CREATE FUNCTION _numToValue(num bigint) RETURNS integer AS $$
 DECLARE
     result  integer;
 BEGIN
-    INSERT INTO value (type_id, val_int)
-        VALUES (3, num)
-        RETURNING value_id INTO result;
+    SELECT value_id FROM value INTO result
+        WHERE val_int = num AND type_id = 3;
+    IF result IS NULL THEN
+        -- Create an integer entry
+        INSERT INTO value (type_id, val_int)
+            VALUES (3, num)
+            RETURNING value_id INTO result;
+    END IF;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
@@ -351,20 +378,19 @@ END; $$ LANGUAGE plpgsql;
 -- returns the value_id of a new list (8), vector (9) or hash-map (10)
 CREATE FUNCTION _collection(items integer[], type integer) RETURNS integer AS $$
 DECLARE
-    cid      integer = NULL;
-    idx      integer;
-    key      varchar = NULL;
-    coll_id  integer;
+    cid  integer = NULL;
+    idx  integer;
+    key  varchar = NULL;
+    vid  integer;
 BEGIN
     IF type = 10 AND (array_length(items, 1) % 2) = 1 THEN
         RAISE EXCEPTION 'hash-map: odd number of arguments';
     END IF;
-    cid := COALESCE((SELECT Max(collection_id) FROM value)+1,0);
 
     -- Create value entry pointing to collection (or NULL)
     INSERT INTO value (type_id, collection_id)
-        VALUES (type, cid)
-        RETURNING value_id INTO coll_id;
+        VALUES (type, COALESCE((SELECT Max(collection_id) FROM value)+1,0))
+        RETURNING value_id, collection_id INTO vid, cid;
 
     IF array_length(items, 1) > 0 THEN
         idx := 1;
@@ -380,7 +406,7 @@ BEGIN
             idx := idx + 1;
         END LOOP;
     END IF;
-    RETURN coll_id;
+    RETURN vid;
 END; $$ LANGUAGE plpgsql;
 
 -- _append:
@@ -511,10 +537,13 @@ BEGIN
                    ORDER BY idx)
     LOOP
         IF dst_coll_id IS NULL THEN
-            dst_coll_id := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
+            INSERT INTO collection (collection_id, idx, value_id)
+                VALUES (COALESCE((SELECT Max(collection_id) FROM collection)+1,0), i-1, vid)
+                RETURNING collection_id INTO dst_coll_id;
+        ELSE
+            INSERT INTO collection (collection_id, idx, value_id)
+                VALUES (dst_coll_id, i-1, vid);
         END IF;
-        INSERT INTO collection (collection_id, idx, value_id)
-            VALUES (dst_coll_id, i-1, vid);
     END LOOP;
     INSERT INTO value (type_id, collection_id)
         VALUES (8, dst_coll_id)
@@ -629,10 +658,11 @@ DECLARE
     cid     integer = NULL;
     result  integer;
 BEGIN
-    cid := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
     -- Create function entry
     INSERT INTO collection (collection_id, value_id, params_id, env_id)
-        VALUES (cid, ast, params, env);
+        VALUES (COALESCE((SELECT Max(collection_id) FROM collection)+1,0),
+                ast, params, env)
+        RETURNING collection_id INTO cid;
     INSERT INTO value (type_id, collection_id)
         VALUES (12, cid)
         RETURNING value_id into result;
@@ -692,11 +722,12 @@ DECLARE
     cid     integer = NULL;
     result  integer;
 BEGIN
-    cid := COALESCE((SELECT Max(collection_id) FROM collection)+1,0);
     -- Create function entry
-    INSERT INTO collection (collection_id, value_id) VALUES (cid, val);
+    INSERT INTO collection (collection_id, value_id)
+        VALUES (COALESCE((SELECT Max(collection_id) FROM collection)+1,0), val)
+        RETURNING collection_id INTO cid;
     INSERT INTO value (type_id, collection_id) VALUES (13, cid)
-        RETURNING value_id into result;
+        RETURNING value_id INTO result;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
