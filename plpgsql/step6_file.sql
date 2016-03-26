@@ -243,6 +243,7 @@ BEGIN
     PERFORM env_vset(0, '*PWD*', _stringv(pwd));
     PERFORM env_vset(0, '*ARGV*', _rest(allargs));
     PERFORM REP('(load-file ' || pr_str(_first(allargs)) || ')');
+    PERFORM wait_flushed(1);
     RETURN;
 END; $$ LANGUAGE plpgsql;
 

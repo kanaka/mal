@@ -92,8 +92,14 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_readline(args integer[]) RETURNS integer AS $$
+DECLARE
+    input  varchar;
 BEGIN
-    RETURN _stringv(rtrim(readline(_valueToString(args[1])), E'\n'));
+    input := readline(_valueToString(args[1]));
+    IF input IS NULL THEN
+        RETURN 0;  -- nil
+    END IF;
+    RETURN _stringv(rtrim(input, E'\n'));
 END; $$ LANGUAGE plpgsql;
 
 
