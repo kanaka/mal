@@ -6,8 +6,9 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 50 languages:
+Mal is implemented in 51 languages:
 
+* Ada
 * GNU awk
 * Bash shell
 * C
@@ -106,6 +107,19 @@ make DOCKERIZE=1 "repl^IMPL^stepX"
 make DOCKERIZE=1 "repl^IMPL"
 ```
 
+
+### Ada
+
+The Ada implementation was developed with GNAT 4.9 on debian.
+But it also compiles unchanged on windows
+if you have windows versions of git, GNAT and (optionally) make.
+There are no external dependencies (readline not implemented).
+
+```
+cd ada
+make
+./stepX_YYY
+```
 
 ### GNU awk
 

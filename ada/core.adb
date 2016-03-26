@@ -974,7 +974,7 @@ package body Core is
    procedure Init (Repl_Env : Envs.Env_Handle) is
    begin
 
-      Envs.Set (Repl_Env, "*host-language*", Types.New_String_Mal_Type ("ada"));
+      Envs.Set (Repl_Env, "*host-language*", Types.New_String_Mal_Type ("Ada"));
 
       Envs.Set (Repl_Env,
            "true?",

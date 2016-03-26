@@ -607,6 +607,7 @@ begin
    if File_Processed then
       RE ("(load-file """ & Ada.Command_Line.Argument (File_Param) & """)");
    else
+      RE("(println (str ""Mal ["" *host-language* ""]""))");
       loop
          begin
             Ada.Text_IO.Put ("user> ");
