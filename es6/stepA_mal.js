@@ -151,7 +151,7 @@ REP('(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] 
 REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))')
 
 if (process.argv.length > 2) { 
-    env_set(repl_env, '*ARGV*', process.argv.slice(3))
+    env_set(repl_env, _symbol('*ARGV*'), process.argv.slice(3))
     REP(`(load-file "${process.argv[2]}")`)
     process.exit(0)
 }

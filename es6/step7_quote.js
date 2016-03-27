@@ -110,7 +110,7 @@ REP('(def! not (fn* (a) (if a false true)))')
 REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
 
 if (process.argv.length > 2) { 
-    env_set(repl_env, '*ARGV*', process.argv.slice(3))
+    env_set(repl_env, _symbol('*ARGV*'), process.argv.slice(3))
     REP(`(load-file "${process.argv[2]}")`)
     process.exit(0)
 }

@@ -137,7 +137,7 @@ REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if 
 REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))')
 
 if (process.argv.length > 2) { 
-    env_set(repl_env, '*ARGV*', process.argv.slice(3))
+    env_set(repl_env, _symbol('*ARGV*'), process.argv.slice(3))
     REP(`(load-file "${process.argv[2]}")`)
     process.exit(0)
 }
