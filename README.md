@@ -110,10 +110,12 @@ make DOCKERIZE=1 "repl^IMPL"
 
 ### Ada
 
-The Ada implementation was developed with GNAT 4.9 on debian.
-But it also compiles unchanged on windows
-if you have windows versions of git, GNAT and (optionally) make.
-There are no external dependencies (readline not implemented).
+*The Ada implementation was created by [Chris Moore](https://github.com/zmower)*
+
+The Ada implementation was developed with GNAT 4.9 on debian. It also
+compiles unchanged on windows if you have windows versions of git,
+GNAT and (optionally) make.  There are no external dependencies
+(readline not implemented).
 
 ```
 cd ada
