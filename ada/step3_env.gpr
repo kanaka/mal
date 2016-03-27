@@ -1,0 +1,7 @@
+project Step3_Env is
+
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("step3_env.adb");
+
+end Step3_Env;

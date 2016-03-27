@@ -1,0 +1,7 @@
+project Step7_Quote is
+
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("step7_quote.adb");
+
+end Step7_Quote;

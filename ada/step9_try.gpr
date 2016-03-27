@@ -1,0 +1,7 @@
+project Step9_Try is
+
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("step9_try.adb");
+
+end Step9_Try;
