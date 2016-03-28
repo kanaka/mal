@@ -22,6 +22,7 @@ eval_ast = (ast, env) ->
 EVAL = (ast, env) ->
   #console.log "EVAL:", printer._pr_str ast
   if !types._list_Q ast then return eval_ast ast, env
+  if ast.length == 0 then return ast
 
   # apply list
   [a0, a1, a2, a3] = ast

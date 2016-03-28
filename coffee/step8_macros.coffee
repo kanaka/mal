@@ -49,6 +49,7 @@ EVAL = (ast, env) ->
   # apply list
   ast = macroexpand ast, env
   if !types._list_Q ast then return eval_ast ast, env
+  if ast.length == 0 then return ast
 
   [a0, a1, a2, a3] = ast
   switch a0.name
