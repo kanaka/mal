@@ -21,6 +21,7 @@ let rec eval_ast ast env =
     | _ -> ast
 and eval ast env =
   match ast with
+    | T.List { T.value = [] } -> ast
     | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
