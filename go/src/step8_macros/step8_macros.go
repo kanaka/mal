@@ -56,6 +56,9 @@ func quasiquote(ast MalType) MalType {
 func is_macro_call(ast MalType, env EnvType) bool {
 	if List_Q(ast) {
 		slc, _ := GetSlice(ast)
+		if len(slc) == 0 {
+			return false
+		}
 		a0 := slc[0]
 		if Symbol_Q(a0) && env.Find(a0.(Symbol)) != nil {
 			mac, e := env.Get(a0.(Symbol))
@@ -154,6 +157,9 @@ func EVAL(ast MalType, env EnvType) (MalType, error) {
 		}
 		if !List_Q(ast) {
 			return eval_ast(ast, env)
+		}
+		if len(ast.(List).Val) == 0 {
+			return ast, nil
 		}
 
 		a0 := ast.(List).Val[0]
