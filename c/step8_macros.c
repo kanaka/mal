@@ -59,7 +59,7 @@ MalVal *quasiquote(MalVal *ast) {
 }
 
 int is_macro_call(MalVal *ast, Env *env) {
-    if (!ast || ast->type != MAL_LIST) { return 0; }
+    if (!ast || ast->type != MAL_LIST || _count(ast) == 0) { return 0; }
     MalVal *a0 = _nth(ast, 0);
     return (a0->type & MAL_SYMBOL) &&
             env_find(env, a0) &&
