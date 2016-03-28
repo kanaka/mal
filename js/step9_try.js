@@ -81,6 +81,9 @@ function _EVAL(ast, env) {
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
+    if (ast.length === 0) {
+        return ast;
+    }
 
     var a0 = ast[0], a1 = ast[1], a2 = ast[2], a3 = ast[3];
     switch (a0.value) {
