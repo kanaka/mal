@@ -93,6 +93,7 @@ module REPL
         | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
+        | List(_, []) as emptyList -> emptyList
         | List(_, Symbol("def!")::rest) -> defBangForm env rest
         | List(_, Symbol("let*")::rest) ->
             let inner, form = letStarForm env rest

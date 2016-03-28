@@ -118,6 +118,7 @@ module REPL
     and eval env = function
         | List(_, _) as node ->
             match macroExpand env node with
+            | List(_, []) as emptyList -> emptyList
             | List(_, Symbol("def!")::rest) -> defBangForm env rest
             | List(_, Symbol("defmacro!")::rest) -> defMacroForm env rest
             | List(_, Symbol("macroexpand")::rest) -> macroExpandForm env rest
