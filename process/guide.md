@@ -427,8 +427,7 @@ and each step will give progressively more bang for the buck.
   `PRINT` function in the main program should call `pr_str` with
   print_readably set to true.
 
-* Add support for the other mal types: keyword, vector, hash-map, and
-  atom.
+* Add support for the other mal types: keyword, vector, hash-map.
   * keyword: a keyword is a token that begins with a colon. A keyword
     can just be stored as a string with special unicode prefix like
     0x29E (or char 0xff/127 if the target language does not have good
@@ -786,7 +785,7 @@ from a neat toy to a full featured language.
   after the "&" is bound to the rest of the `exprs` list that has not
   been bound yet.
 
-* Defines a `not` function using mal itself. In `step4_if_fn_do.qx`
+* Define a `not` function using mal itself. In `step4_if_fn_do.qx`
   call the `rep` function with this string:
   "(def! not (fn* (a) (if a false true)))".
 
@@ -825,10 +824,11 @@ calling back into `EVAL`. For those forms that call `EVAL` as the last
 thing that they do before returning (tail call) you will just loop back
 to the beginning of eval rather than calling it again. The advantage
 of this approach is that it avoids adding more frames to the call
-stack. This is especially important in Lisp languages because they do
-not tend to have iteration control structures preferring recursion
-instead. However, with tail call optimization, recursion can be made
-as stack efficient as iteration.
+stack. This is especially important in Lisp languages because they tend
+to prefer using recursion instead of iteration for control structures.
+(Though some Lisps, such as Common Lisp, have iteration.) However, with
+tail call optimization, recursion can be made as stack efficient as
+iteration.
 
 Compare the pseudocode for step 4 and step 5 to get a basic idea of
 the changes that will be made during this step:
@@ -982,7 +982,7 @@ You'll need to add 5 functions to the core namespace to support atoms:
   * `reset!`: Takes an atom and a Mal value; the atom is modified to refer to
     the given Mal value. The Mal value is returned.
   * `swap!`: Takes an atom, a function, and zero or more function arguments. The
-    atom's value is modified to result of applying the function with the atom's
+    atom's value is modified to the result of applying the function with the atom's
     value as the first argument and the optionally given function arguments as
     the rest of the arguments. The new atom's value is returned. (Side note: Mal is
     single-threaded, but in concurrent languages like Clojure, `swap!` promises
@@ -1084,7 +1084,7 @@ result of evaluation is put in place into the quasiquoted list. The
 `splice-unquote` also turns evaluation back on for its argument, but
 the evaluated value must be a list which is then "spliced" into the
 quasiquoted list. The true power of the quasiquote form will be
-manifest when it used together with macros (in the next step).
+manifest when it is used together with macros (in the next step).
 
 Compare the pseudocode for step 6 and step 7 to get a basic idea of
 the changes that will be made during this step:
@@ -1125,7 +1125,7 @@ Mal borrows most of its syntax and feature-set).
      a symbol named "quote" and `ast`.
   2. else if the first element of `ast` is a symbol named "unquote":
      return the second element of `ast`.
-  3. if `is_pair` of first element of `ast` is true and the first
+  3. if `is_pair` of the first element of `ast` is true and the first
      element of first element of `ast` (`ast[0][0]`) is a symbol named
      "splice-unquote": return a new list containing: a symbol named
      "concat", the second element of first element of `ast`
@@ -1133,7 +1133,7 @@ Mal borrows most of its syntax and feature-set).
      second through last element of `ast`.
   4. otherwise: return a new list containing: a symbol named "cons", the
      result of calling `quasiquote` on first element of `ast`
-     (`ast[0]`), and result of calling `quasiquote` with the second
+     (`ast[0]`), and the result of calling `quasiquote` with the second
      through last element of `ast`.
 
 
@@ -1323,21 +1323,21 @@ diff -urp ../process/step8_macros.txt ../process/step9_try.txt
 * Add the `try*/catch*` special form to the EVAL function. The
   try catch form looks like this: `(try* A (catch* B C))`. The form
   `A` is evaluated, if it throws an exception, then form `C` is
-  evaluated with a new environment that binds the symbol B to the
+  evaluated with a new environment that binds the symbol `B` to the
   value of the exception that was thrown.
   * If your target language has built-in try/catch style exception
     handling then you are already 90% of the way done. Add a
-    (native language) try/catch block that calls evaluates `A` within
+    (native language) try/catch block that evaluates `A` within
     the try block and catches all exceptions. If an exception is
     caught, then translate it to a mal type/value. For native
     exceptions this is either the message string or a mal hash-map
     that contains the message string and other attributes of the
-    exception. When a regular mal types/values is used as an
+    exception. When a regular mal type/value is used as an
     exception, you will probably need to store it within a native
     exception type in order to be able to convey/transport it using
     the native try/catch mechanism. Then you will extract the mal
     type/value from the native exception. Create a new mal environment
-    that binds B to the value of the exception. Finally, evaluate `C`
+    that binds `B` to the value of the exception. Finally, evaluate `C`
     using that new environment.
   * If your target language does not have built-in try/catch style
     exception handling then you have some extra work to do. One of the
