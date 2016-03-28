@@ -29,6 +29,7 @@
 
 (define (macro? ast env)
   (and (list? ast)
+       (not (empty? ast))
        (symbol? (first ast))
        (not (equal? null (send env find (first ast))))
        (let ([fn (send env get (first ast))])
@@ -53,7 +54,7 @@
     (eval-ast ast env)
 
     (let ([ast (macroexpand ast env)])
-      (if (not (list? ast))
+      (if (or (not (list? ast)) (empty? ast))
         (eval-ast ast env)
         (let ([a0 (_nth ast 0)])
           (cond
