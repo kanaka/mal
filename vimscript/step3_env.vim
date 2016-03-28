@@ -43,6 +43,9 @@ function EVAL(ast, env)
   if !ListQ(a:ast)
     return EvalAst(a:ast, a:env)
   end
+  if EmptyQ(a:ast)
+    return a:ast
+  endif
 
   let first_symbol = ObjValue(ObjValue(a:ast)[0])
   if first_symbol == "def!"
