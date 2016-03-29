@@ -54,7 +54,7 @@
 (defun EVAL (ast env)
   (catch 'return
     (while t
-      (if (mal-list-p ast)
+      (if (and (mal-list-p ast) (mal-value ast))
           (let* ((a (mal-value ast))
                  (a0 (car a))
                  (a0* (mal-value a0))
