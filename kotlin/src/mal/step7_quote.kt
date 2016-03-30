@@ -10,6 +10,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
 
     while (true) {
         if (ast is MalList) {
+            if (ast.count() == 0) return ast
             when ((ast.first() as? MalSymbol)?.value) {
                 "def!" -> return env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
                 "let*" -> {
