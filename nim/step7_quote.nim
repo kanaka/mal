@@ -48,6 +48,7 @@ proc eval(ast: MalType, env: var Env): MalType =
 
   while true:
     if ast.kind != List: return ast.eval_ast(env)
+    if ast.list.len == 0: return ast
 
     let a0 = ast.list[0]
     case a0.kind
