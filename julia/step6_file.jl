@@ -30,6 +30,7 @@ function EVAL(ast, env)
   while true
     #println("EVAL: $(printer.pr_str(ast,true))")
     if !isa(ast, Array) return eval_ast(ast, env) end
+    if isempty(ast) return ast end
 
     # apply
     if     :def! == ast[1]

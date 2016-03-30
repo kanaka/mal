@@ -32,6 +32,7 @@ end
 
 function ismacroCall(ast, env)
     return isa(ast, Array) &&
+           !isempty(ast) &&
            isa(ast[1], Symbol) &&
            env_find(env, ast[1]) != nothing &&
            isa(env_get(env, ast[1]), MalFunc) &&
@@ -66,6 +67,7 @@ function EVAL(ast, env)
     # apply
     ast = macroexpand(ast, env)
     if !isa(ast, Array) return eval_ast(ast, env) end
+    if isempty(ast) return ast end
 
     if     :def! == ast[1]
         return env_set(env, ast[2], EVAL(ast[3], env))
