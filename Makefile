@@ -320,12 +320,13 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(s
 $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
-	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)); \
+	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)) && \
 	    $(foreach test,$(call STEP_TEST_FILES,$(impl),$(step)),\
-	      echo '----------------------------------------------'; \
-	      echo 'Testing $@, step file: $+, test file: $(test)'; \
-	      echo 'Running: $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))'; \
-	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+));)))
+	      echo '----------------------------------------------' && \
+	      echo 'Testing $@, step file: $+, test file: $(test)' && \
+	      echo 'Running: $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))' && \
+	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) &&) \
+	    true))
 
 # Allow test, tests, test^STEP, test^IMPL, and test^IMPL^STEP
 test: $(ALL_TESTS)
