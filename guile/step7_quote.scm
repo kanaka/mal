@@ -84,6 +84,7 @@
   ;;       If you're Lispy enough, there's no recursive at all while you saw named let loop.
   (let tco-loop((ast ast) (env env))
     (match ast
+      (() ast)
       (('quote obj) obj)
       (('quasiquote obj) (EVAL (_quasiquote (->list obj)) env))
       (('def! k v) ((env 'set) k (EVAL v env)))
