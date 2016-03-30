@@ -13,7 +13,7 @@
 ;=>(true)
 
 (ps* "/sym")
-;=>sym
+;=>(sym)
 
 (ps* "1 1 eq { (yep) }{ (nope) } ifelse")
 ;=>("yep")
@@ -21,3 +21,5 @@
 (ps* "1 0 eq { (yep) }{ (nope) } ifelse")
 ;=>("nope")
 
+(ps* "1 2 3 pop pop pop")
+;=>nil
