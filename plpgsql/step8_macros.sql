@@ -58,9 +58,7 @@ BEGIN
         a0 = _first(ast);
         IF _symbol_Q(a0) AND env_find(env, _valueToString(a0)) IS NOT NULL THEN
             f := env_get(env, a0);
-            SELECT macro INTO result FROM collection
-                WHERE collection_id = (SELECT collection_id FROM value
-                                       WHERE value_id = f);
+            SELECT macro INTO result FROM value WHERE value_id = f;
         END IF;
     END IF;
     RETURN result;
@@ -83,12 +81,11 @@ CREATE FUNCTION eval_ast(ast integer, env integer)
 RETURNS integer AS $$
 DECLARE
     type           integer;
-    symkey         varchar;
-    vid            integer;
-    k              varchar;
-    i              integer;
-    src_coll_id    integer;
-    dst_coll_id    integer = NULL;
+    seq            integer[];
+    eseq           integer[];
+    hash           hstore;
+    ehash          hstore;
+    kv             RECORD;
     e              integer;
     result         integer;
 BEGIN
@@ -98,22 +95,30 @@ BEGIN
     BEGIN
         result := env_get(env, ast);
     END;
-    WHEN type IN (8, 9, 10) THEN
+    WHEN type IN (8, 9) THEN
     BEGIN
-        src_coll_id := (SELECT collection_id FROM value WHERE value_id = ast);
-        -- Create new value entry pointing to new collection
-        dst_coll_id := COALESCE((SELECT Max(collection_id) FROM value)+1,0);
-        INSERT INTO value (type_id, collection_id)
-            VALUES (type, dst_coll_id)
-            RETURNING value_id INTO result;
-        FOR vid, k, i IN (SELECT value_id, key_string, idx FROM collection
-                       WHERE collection_id = src_coll_id)
-        LOOP
-            -- Evaluate each entry
-            e := EVAL(vid, env);
-            INSERT INTO collection (collection_id, key_string, idx, value_id)
-                VALUES (dst_coll_id, k, i, e);
+        SELECT val_seq INTO seq FROM value WHERE value_id = ast;
+        -- Evaluate each entry creating a new sequence
+        FOR i IN 1 .. COALESCE(array_length(seq, 1), 0) LOOP
+            eseq[i] := EVAL(seq[i], env);
         END LOOP;
+        INSERT INTO value (type_id, val_seq) VALUES (type, eseq)
+            RETURNING value_id INTO result;
+    END;
+    WHEN type = 10 THEN
+    BEGIN
+        SELECT val_hash INTO hash FROM value WHERE value_id = ast;
+        -- Evaluate each value for every key/value
+        FOR kv IN SELECT * FROM each(hash) LOOP
+            e := EVAL(CAST(kv.value AS integer), env);
+            IF ehash IS NULL THEN
+                ehash := hstore(kv.key, CAST(e AS varchar));
+            ELSE
+                ehash := ehash || hstore(kv.key, CAST(e AS varchar));
+            END IF;
+        END LOOP;
+        INSERT INTO value (type_id, val_hash) VALUES (type, ehash)
+            RETURNING value_id INTO result;
     END;
     ELSE
         result := ast;
@@ -130,8 +135,8 @@ DECLARE
     a0sym    varchar;
     a1       integer;
     let_env  integer;
+    idx      integer;
     binds    integer[];
-    exprs    integer[];
     el       integer;
     fn       integer;
     fname    varchar;
@@ -172,19 +177,11 @@ BEGIN
     BEGIN
         let_env := env_new(env);
         a1 := _nth(ast, 1);
-        binds := ARRAY(SELECT collection.value_id FROM collection INNER JOIN value
-                       ON collection.collection_id=value.collection_id
-                       WHERE value.value_id = a1
-                       AND (collection.idx % 2) = 0
-                       ORDER BY collection.idx);
-        exprs := ARRAY(SELECT collection.value_id FROM collection INNER JOIN value
-                       ON collection.collection_id=value.collection_id
-                       WHERE value.value_id = a1
-                       AND (collection.idx % 2) = 1
-                       ORDER BY collection.idx);
-        FOR idx IN array_lower(binds, 1) .. array_upper(binds, 1)
-        LOOP
-            PERFORM env_set(let_env, binds[idx], EVAL(exprs[idx], let_env));
+        binds := (SELECT val_seq FROM value WHERE value_id = a1);
+        idx := 1;
+        WHILE idx < array_length(binds, 1) LOOP
+            PERFORM env_set(let_env, binds[idx], EVAL(binds[idx+1], let_env));
+            idx := idx + 2;
         END LOOP;
         env := let_env;
         ast := _nth(ast, 2);
@@ -233,13 +230,13 @@ BEGIN
     END;
     WHEN a0sym = 'fn*' THEN
     BEGIN
-        RETURN _function(_nth(ast, 2), _nth(ast, 1), env);
+        RETURN _malfunc(_nth(ast, 2), _nth(ast, 1), env);
     END;
     ELSE
     BEGIN
         el := eval_ast(ast, env);
-        SELECT type_id, collection_id, function_name
-            INTO type, fn, fname
+        SELECT type_id, function_name, ast_id, params_id, env_id
+            INTO type, fname, fast, fparams, fenv
             FROM value WHERE value_id = _first(el);
         args := _restArray(el);
         IF type = 11 THEN
@@ -247,10 +244,6 @@ BEGIN
                 INTO result USING args;
             RETURN result;
         ELSIF type = 12 THEN
-            SELECT value_id, params_id, env_id
-                INTO fast, fparams, fenv
-                FROM collection
-                WHERE collection_id = fn;
             env := env_new_bindings(fenv, fparams, args);
             ast := fast;
             CONTINUE; -- TCO

@@ -120,8 +120,9 @@ BEGIN
     tmp := CAST(round(random()*1000000) AS varchar);
 
     EXECUTE format('CREATE TEMP TABLE %I (content text)', tmp);
-    EXECUTE format('COPY %I FROM %L', tmp, fname);
+    EXECUTE format('COPY %I FROM %L WITH ENCODING ''SQL_ASCII''', tmp, fname);
     EXECUTE format('SELECT ARRAY(SELECT content FROM %I)', tmp) INTO lines;
+    --RAISE NOTICE 'lines[1]: %', lines[1];
     EXECUTE format('DROP TABLE %I', tmp);
 
     content := array_to_string(lines, E'\n') || E'\n';
@@ -133,7 +134,7 @@ END; $$ LANGUAGE plpgsql;
 
 -- integer comparison
 CREATE FUNCTION mal_intcmp(op varchar, args integer[]) RETURNS integer AS $$
-DECLARE a integer; b integer; result boolean;
+DECLARE a bigint; b bigint; result boolean;
 BEGIN
     SELECT val_int INTO a FROM value WHERE value_id = args[1];
     SELECT val_int INTO b FROM value WHERE value_id = args[2];
@@ -202,7 +203,7 @@ END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_list(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _collection(args, 8);
+    RETURN _list(args);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_list_Q(args integer[]) RETURNS integer AS $$
@@ -212,7 +213,7 @@ END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_vector(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _collection(args, 9);
+    RETURN _vector(args);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_vector_Q(args integer[]) RETURNS integer AS $$
@@ -222,7 +223,7 @@ END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_hash_map(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _collection(args, 10);
+    RETURN _hash_map(args);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_map_Q(args integer[]) RETURNS integer AS $$
@@ -232,12 +233,12 @@ END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_assoc(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _append(_clone(args[1]), args[2:array_length(args, 1)]);
+    RETURN _assoc_BANG(_clone(args[1]), args[2:array_length(args, 1)]);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_dissoc(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _dissoc(_clone(args[1]), args[2:array_length(args, 1)]);
+    RETURN _dissoc_BANG(_clone(args[1]), args[2:array_length(args, 1)]);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_get(args integer[]) RETURNS integer AS $$
@@ -260,12 +261,12 @@ END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_keys(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _collection(_keys(args[1]), 8);
+    RETURN _list(_keys(args[1]));
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_vals(args integer[]) RETURNS integer AS $$
 BEGIN
-    RETURN _collection(_vals(args[1]), 8);
+    RETURN _list(_vals(args[1]));
 END; $$ LANGUAGE plpgsql;
 
 
@@ -282,16 +283,15 @@ DECLARE
     lst   integer[];
 BEGIN
     lst := array_prepend(args[1], _valueToArray(args[2]));
-    RETURN _collection(lst, 8);
+    RETURN _list(lst);
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION mal_concat(args integer[]) RETURNS integer AS $$
 DECLARE
     lst     integer;
-    result  integer[];
+    result  integer[] = ARRAY[]::integer[];
 BEGIN
-    FOREACH lst IN ARRAY args
-    LOOP
+    FOREACH lst IN ARRAY args LOOP
         result := array_cat(result, _valueToArray(lst));
     END LOOP;
     RETURN _list(result);
@@ -363,7 +363,57 @@ BEGIN
     LOOP
         result := array_append(result, _apply(args[1], ARRAY[x]));
     END LOOP;
-    return _collection(result, 8);
+    return _list(result);
+END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION mal_conj(args integer[]) RETURNS integer AS $$
+DECLARE
+    type  integer;
+BEGIN
+    type := _type(args[1]);
+    CASE
+    WHEN type = 8 THEN -- list
+        RETURN _list(array_cat(array_reverse(args[2:array_length(args, 1)]),
+                               _valueToArray(args[1])));
+    WHEN type = 9 THEN -- vector
+        RETURN _vector(array_cat(_valueToArray(args[1]),
+                                 args[2:array_length(args, 1)]));
+    ELSE
+        RAISE EXCEPTION 'conj: called on non-sequence';
+    END CASE;
+END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION mal_seq(args integer[]) RETURNS integer AS $$
+DECLARE
+    type  integer;
+    vid   integer;
+    str   varchar;
+    chr   varchar;
+    seq   integer[];
+BEGIN
+    type := _type(args[1]);
+    CASE
+    WHEN type = 8 THEN -- list
+        IF _count(args[1]) = 0 THEN RETURN 0; END IF; -- nil
+        RETURN args[1];
+    WHEN type = 9 THEN -- vector
+        IF _count(args[1]) = 0 THEN RETURN 0; END IF; -- nil
+        -- clone and modify to a list
+        vid := _clone(args[1]);
+        UPDATE value SET type_id = 8 WHERE value_id = vid;
+        RETURN vid;
+    WHEN type = 5 THEN -- string
+        str := _valueToString(args[1]);
+        IF char_length(str) = 0 THEN RETURN 0; END IF; -- nil
+        FOREACH chr IN ARRAY regexp_split_to_array(str, '') LOOP
+            seq := array_append(seq, _stringv(chr));
+        END LOOP;
+        RETURN _list(seq);
+    WHEN type = 0 THEN -- nil
+        RETURN 0; -- nil
+    ELSE
+        RAISE EXCEPTION 'seq: called on non-sequence';
+    END CASE;
 END; $$ LANGUAGE plpgsql;
 
 
@@ -428,92 +478,72 @@ END; $$ LANGUAGE plpgsql;
 
 -- ---------------------------------------------------------
 
-CREATE FUNCTION core_def(VARIADIC kvs varchar[]) RETURNS void AS $$
-DECLARE
-    idx  integer;
-    vid  integer;
-BEGIN
-    idx := 1;
-    WHILE idx < array_length(kvs, 1)
-    LOOP
-        INSERT INTO value (type_id, function_name) VALUES (11, kvs[idx+1])
-            RETURNING value_id INTO vid;
-        INSERT INTO env_data (env_id, key, value_id) VALUES (0, kvs[idx], vid);
-        idx := idx + 2;
-    END LOOP;
-END; $$ LANGUAGE plpgsql;
-
-
 -- repl_env is environment 0
 
-INSERT INTO env (env_id, outer_id) VALUES (0, NULL);
+INSERT INTO env (env_id, outer_id, data)
+    VALUES (0, NULL, hstore(ARRAY[
+        '=',           _function('mal_equal'),
+        'throw',       _function('mal_throw'),
 
--- core namespace
+        'nil?',        _function('mal_nil_Q'),
+        'true?',       _function('mal_true_Q'),
+        'false?',      _function('mal_false_Q'),
+        'string?',     _function('mal_string_Q'),
+        'symbol',      _function('mal_symbol'),
+        'symbol?',     _function('mal_symbol_Q'),
+        'keyword',     _function('mal_keyword'),
+        'keyword?',    _function('mal_keyword_Q'),
 
-SELECT core_def(
-    '=',           'mal_equal',
-    'throw',       'mal_throw',
+        'pr-str',      _function('mal_pr_str'),
+        'str',         _function('mal_str'),
+        'prn',         _function('mal_prn'),
+        'println',     _function('mal_println'),
+        'read-string', _function('mal_read_string'),
+        'readline',    _function('mal_readline'),
+        'slurp',       _function('mal_slurp'),
 
-    'nil?',        'mal_nil_Q',
-    'true?',       'mal_true_Q',
-    'false?',      'mal_false_Q',
-    'string?',     'mal_string_Q',
-    'symbol',      'mal_symbol',
-    'symbol?',     'mal_symbol_Q',
-    'keyword',     'mal_keyword',
-    'keyword?',    'mal_keyword_Q',
+        '<',           _function('mal_lt'),
+        '<=',          _function('mal_lte'),
+        '>',           _function('mal_gt'),
+        '>=',          _function('mal_gte'),
+        '+',           _function('mal_add'),
+        '-',           _function('mal_subtract'),
+        '*',           _function('mal_multiply'),
+        '/',           _function('mal_divide'),
+        'time-ms',     _function('mal_time_ms'),
 
-    'pr-str',      'mal_pr_str',
-    'str',         'mal_str',
-    'prn',         'mal_prn',
-    'println',     'mal_println',
-    'read-string', 'mal_read_string',
-    'readline',    'mal_readline',
-    'slurp',       'mal_slurp',
+        'list',        _function('mal_list'),
+        'list?',       _function('mal_list_Q'),
+        'vector',      _function('mal_vector'),
+        'vector?',     _function('mal_vector_Q'),
+        'hash-map',    _function('mal_hash_map'),
+        'map?',        _function('mal_map_Q'),
+        'assoc',       _function('mal_assoc'),
+        'dissoc',      _function('mal_dissoc'),
+        'get',         _function('mal_get'),
+        'contains?',   _function('mal_contains_Q'),
+        'keys',        _function('mal_keys'),
+        'vals',        _function('mal_vals'),
 
-    '<',           'mal_lt',
-    '<=',          'mal_lte',
-    '>',           'mal_gt',
-    '>=',          'mal_gte',
-    '+',           'mal_add',
-    '-',           'mal_subtract',
-    '*',           'mal_multiply',
-    '/',           'mal_divide',
-    'time-ms',     'mal_time_ms');
+        'sequential?', _function('mal_sequential_Q'),
+        'cons',        _function('mal_cons'),
+        'concat',      _function('mal_concat'),
+        'nth',         _function('mal_nth'),
+        'first',       _function('mal_first'),
+        'rest',        _function('mal_rest'),
+        'empty?',      _function('mal_empty_Q'),
+        'count',       _function('mal_count'),
+        'apply',       _function('mal_apply'),
+        'map',         _function('mal_map'),
 
--- split since calls are limited to 100 arguments
-SELECT core_def(
-    'list',        'mal_list',
-    'list?',       'mal_list_Q',
-    'vector',      'mal_vector',
-    'vector?',     'mal_vector_Q',
-    'hash-map',    'mal_hash_map',
-    'map?',        'mal_map_Q',
-    'assoc',       'mal_assoc',
-    'dissoc',      'mal_dissoc',
-    'get',         'mal_get',
-    'contains?',   'mal_contains_Q',
-    'keys',        'mal_keys',
-    'vals',        'mal_vals',
+        'conj',        _function('mal_conj'),
+        'seq',         _function('mal_seq'),
 
-    'sequential?', 'mal_sequential_Q',
-    'cons',        'mal_cons',
-    'concat',      'mal_concat',
-    'nth',         'mal_nth',
-    'first',       'mal_first',
-    'rest',        'mal_rest',
-    'empty?',      'mal_empty_Q',
-    'count',       'mal_count',
-    'apply',       'mal_apply',
-    'map',         'mal_map',
-
-    'conj',        'mal_map',
-    'seq',         'mal_map',
-
-    'meta',        'mal_meta',
-    'with-meta',   'mal_with_meta',
-    'atom',        'mal_atom',
-    'atom?',       'mal_atom_Q',
-    'deref',       'mal_deref',
-    'reset!',      'mal_reset_BANG',
-    'swap!',       'mal_swap_BANG');
+        'meta',        _function('mal_meta'),
+        'with-meta',   _function('mal_with_meta'),
+        'atom',        _function('mal_atom'),
+        'atom?',       _function('mal_atom_Q'),
+        'deref',       _function('mal_deref'),
+        'reset!',      _function('mal_reset_BANG'),
+        'swap!',       _function('mal_swap_BANG')
+        ]));

@@ -25,6 +25,8 @@ CREATE FUNCTION
 DECLARE
     re    varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;.*|[^\\s \\[\\]{}()\'"`~@,;]*)';
     type  integer;
+    seq   integer[];
+    hash  hstore;
     cid   integer;
     vid   integer;
     pid   integer;
@@ -56,33 +58,31 @@ BEGIN
         RETURN _valueToString(ast);
     WHEN type = 8 THEN  -- list
         BEGIN
-            cid := (SELECT collection_id FROM value WHERE value_id = ast);
+            SELECT val_seq INTO seq FROM value WHERE value_id = ast;
             RETURN '(' ||
                    array_to_string(array(
-                        SELECT pr_str(c.value_id, print_readably)
-                        FROM collection c
-                        WHERE c.collection_id = cid), ' ') ||
+                        SELECT pr_str(x, print_readably)
+                            FROM unnest(seq) AS x), ' ') ||
                    ')';
         END;
     WHEN type = 9 THEN  -- vector
         BEGIN
-            cid := (SELECT collection_id FROM value WHERE value_id = ast);
+            SELECT val_seq INTO seq FROM value WHERE value_id = ast;
             RETURN '[' ||
                    array_to_string(array(
-                        SELECT pr_str(c.value_id, print_readably)
-                        FROM collection c
-                        WHERE c.collection_id = cid), ' ') ||
+                        SELECT pr_str(x, print_readably)
+                            FROM unnest(seq) AS x), ' ') ||
                    ']';
         END;
     WHEN type = 10 THEN  -- hash-map
         BEGIN
-            cid := (SELECT collection_id FROM value WHERE value_id = ast);
+            SELECT val_hash INTO hash FROM value WHERE value_id = ast;
             RETURN '{' ||
                    array_to_string(array(
-                        SELECT pr_str(_stringv(c.key_string), print_readably) ||
-                               ' ' || pr_str(c.value_id, print_readably)
-                        FROM collection c
-                        WHERE c.collection_id = cid), ' ') ||
+                        SELECT pr_str(CAST(key AS integer), print_readably) ||
+                               ' ' ||
+                               pr_str(CAST(value AS integer), print_readably)
+                        FROM each(hash)), ' ') ||
                    '}';
         END;
     WHEN type = 11 THEN  -- native function
@@ -91,18 +91,16 @@ BEGIN
                '>';
     WHEN type = 12 THEN  -- mal function
         BEGIN
-            cid := (SELECT collection_id FROM value WHERE value_id = ast);
-            SELECT params_id, value_id
-                INTO pid, vid
-                FROM collection WHERE collection_id = cid;
+            SELECT ast_id, params_id
+                INTO vid, pid
+                FROM value WHERE value_id = ast;
             RETURN '(fn* ' || pr_str(pid, print_readably) ||
                    ' ' || pr_str(vid, print_readably) || ')';
         END;
     WHEN type = 13 THEN  -- atom
         BEGIN
-            cid := (SELECT collection_id FROM value WHERE value_id = ast);
-            SELECT value_id INTO vid
-                FROM collection WHERE collection_id = cid;
+            SELECT val_seq[1] INTO vid
+                FROM value WHERE value_id = ast;
             RETURN '(atom ' || pr_str(vid, print_readably) || ')';
         END;
     ELSE

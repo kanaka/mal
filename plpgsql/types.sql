@@ -25,38 +25,24 @@ INSERT INTO type VALUES (13, 'atom');
 
 
 -- ---------------------------------------------------------
--- collections/groupings
-
-CREATE TABLE collection (
-    collection_id   integer NOT NULL,  -- same for items of a collection
-    idx             integer,           -- set for list and vector items
-    key_string      varchar,           -- set for hashmap items
-    value_id        integer,           -- set for all items (ast for functions)
-    params_id       integer,           -- set for functions
-    env_id          integer,           -- set for functions
-    macro           boolean            -- set for macro functions
-);
--- ALTER TABLE collection ADD CONSTRAINT pk_collection
---     PRIMARY KEY (collection_id, idx, key_string);
--- value_id, params_id foreign keys are after value table
-CREATE INDEX ON collection (collection_id);
-CREATE INDEX ON collection (collection_id, idx);
-CREATE INDEX ON collection (collection_id, key_string);
-
-
--- ---------------------------------------------------------
 -- persistent values
+
+CREATE EXTENSION hstore;
 
 CREATE SEQUENCE value_id_seq START WITH 3; -- skip nil, false, true
 CREATE TABLE value (
     value_id        integer NOT NULL DEFAULT nextval('value_id_seq'),
     type_id         integer NOT NULL,
-    val_int         bigint,   -- set for integers
-    val_string      varchar,  -- set for strings, keywords, and symbols
-    collection_id   integer,  -- set for lists, vectors and hashmaps
-                              -- (NULL for empty collection)
-    function_name   varchar,  -- set for native function types
-    meta_id         integer   -- can be set for any collection
+    val_int         bigint,    -- set for integers
+    val_string      varchar,   -- set for strings, keywords, and symbols
+    val_seq         integer[], -- set for lists and vectors
+    val_hash        hstore,    -- set for hash-maps
+    function_name   varchar,   -- set for native function types
+    ast_id          integer,   -- set for malfunc
+    params_id       integer,   -- set for malfunc
+    env_id          integer,   -- set for malfunc
+    macro           boolean,   -- set for malfunc
+    meta_id         integer    -- can be set for any collection
 );
 ALTER TABLE value ADD CONSTRAINT pk_value_id
     PRIMARY KEY (value_id);
@@ -66,12 +52,7 @@ ALTER TABLE value ADD CONSTRAINT fk_type_id
     FOREIGN KEY (type_id) REFERENCES type(type_id);
 ALTER TABLE value ADD CONSTRAINT fk_meta_id
     FOREIGN KEY (meta_id) REFERENCES value(value_id);
--- ALTER TABLE value ADD CONSTRAINT fk_collection_id
---    FOREIGN KEY (collection_id) REFERENCES collection(collection_id, idx, key_string);
--- References from collection back to value
-ALTER TABLE collection ADD CONSTRAINT fk_value_id
-    FOREIGN KEY (value_id) REFERENCES value(value_id);
-ALTER TABLE collection ADD CONSTRAINT fk_params_id
+ALTER TABLE value ADD CONSTRAINT fk_params_id
     FOREIGN KEY (params_id) REFERENCES value(value_id);
 
 CREATE INDEX ON value (value_id, type_id);
@@ -118,18 +99,19 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 
-
-
 CREATE FUNCTION _equal_Q(a integer, b integer) RETURNS boolean AS $$
 DECLARE
     atype  integer;
     btype  integer;
-    akey   varchar;
-    bkey   varchar;
+    anum   bigint;
+    bnum   bigint;
     avid   integer;
     bvid   integer;
-    acid   integer;
-    bcid   integer;
+    aseq   integer[];
+    bseq   integer[];
+    ahash  hstore;
+    bhash  hstore;
+    kv     RECORD;
     i      integer;
 BEGIN
     atype := _type(a);
@@ -139,39 +121,37 @@ BEGIN
     END IF;
     CASE
     WHEN atype = 3 THEN -- integer
-        SELECT val_int FROM value INTO avid WHERE value_id = a;
-        SELECT val_int FROM value INTO bvid WHERE value_id = b;
-        RETURN avid = bvid;
+        SELECT val_int FROM value INTO anum WHERE value_id = a;
+        SELECT val_int FROM value INTO bnum WHERE value_id = b;
+        RETURN anum = bnum;
     WHEN atype = 5 OR atype = 7 THEN -- string/symbol
         RETURN _valueToString(a) = _valueToString(b);
-    WHEN atype IN (8, 9, 10) THEN -- list/vector/hash-map
+    WHEN atype IN (8, 9) THEN -- list/vector
         IF _count(a) <> _count(b) THEN
             RETURN false;
         END IF;
-        SELECT collection_id FROM value INTO acid WHERE value_id = a;
-        SELECT collection_id FROM value INTO bcid WHERE value_id = b;
-        IF atype = 10 THEN  -- hash-map
-            FOR akey, avid IN (SELECT key_string, value_id FROM collection
-                               WHERE collection_id = acid)
-            LOOP
-                SELECT key_string, value_id INTO bkey, bvid FROM collection
-                    WHERE collection_id = bcid AND key_string = akey;
-                IF bvid IS NULL OR NOT _equal_Q(avid, bvid) THEN
-                    return false;
-                END IF;
-            END LOOP;
-        ELSE
-            FOR i IN 0 .. _count(a)-1
-            LOOP
-                SELECT value_id INTO avid FROM collection
-                    WHERE collection_id = acid AND idx = i;
-                SELECT value_id INTO bvid FROM collection
-                    WHERE collection_id = bcid AND idx = i;
-                IF NOT _equal_Q(avid, bvid) THEN
-                    return false;
-                END IF;
-            END LOOP;
+        SELECT val_seq INTO aseq FROM value WHERE value_id = a;
+        SELECT val_seq INTO bseq FROM value WHERE value_id = b;
+        FOR i IN 1 .. _count(a)
+        LOOP
+            IF NOT _equal_Q(aseq[i], bseq[i]) THEN
+                return false;
+            END IF;
+        END LOOP;
+        RETURN true;
+    WHEN atype = 10 THEN -- hash-map
+        SELECT val_hash INTO ahash FROM value WHERE value_id = a;
+        SELECT val_hash INTO bhash FROM value WHERE value_id = b;
+        IF array_length(akeys(ahash), 1) <> array_length(akeys(bhash), 1) THEN
+            RETURN false;
         END IF;
+        FOR kv IN SELECT * FROM each(ahash) LOOP
+            avid := CAST((ahash -> kv.key) AS integer);
+            bvid := CAST((bhash -> kv.key) AS integer);
+            IF bvid IS NULL OR NOT _equal_Q(avid, bvid) THEN
+                return false;
+            END IF;
+        END LOOP;
         RETURN true;
     ELSE
         RETURN a = b;
@@ -184,27 +164,15 @@ END; $$ LANGUAGE plpgsql;
 -- returns a new value_id of a cloned collection
 CREATE FUNCTION _clone(id integer) RETURNS integer AS $$
 DECLARE
-    src_coll_id  integer;
-    dst_coll_id  integer;
     result       integer;
 BEGIN
-    SELECT collection_id FROM value INTO src_coll_id
-        WHERE value_id = id;
-
-    -- copy value and change collection_id to new value
-    INSERT INTO value (type_id,collection_id)
-        (SELECT type_id,COALESCE((SELECT Max(collection_id) FROM value)+1,0)
-            FROM value
-            WHERE value_id = id)
-        RETURNING value_id, collection_id INTO result, dst_coll_id;
-
-    -- copy collection and change collection_id
-    INSERT INTO collection
-        (collection_id,idx,key_string,value_id,params_id,env_id,macro)
-        (SELECT dst_coll_id,idx,key_string,value_id,params_id,env_id,macro
-            FROM collection
-            WHERE collection_id = src_coll_id);
-
+    INSERT INTO value (type_id,val_int,val_string,val_seq,val_hash,
+                       function_name,ast_id,params_id,env_id,meta_id)
+        (SELECT type_id,val_int,val_string,val_seq,val_hash,
+                  function_name,ast_id,params_id,env_id,meta_id
+              FROM value
+              WHERE value_id = id)
+        RETURNING value_id INTO result;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
@@ -326,24 +294,6 @@ BEGIN
     RETURN _tf((SELECT 1 FROM value WHERE type_id = 7 AND value_id = id));
 END; $$ LANGUAGE plpgsql;
 
----- _numToValue:
----- takes an integer number
----- returns the value_id for the number
---CREATE FUNCTION _numToValue(num integer) RETURNS integer AS $$
---DECLARE
---    result  integer;
---BEGIN
---    SELECT value_id FROM value INTO result
---        WHERE val_int = CAST(num AS bigint) AND type_id = 3;
---    IF result IS NULL THEN
---        -- Create an integer entry
---        INSERT INTO value (type_id, val_int)
---            VALUES (3, CAST(num AS bigint))
---            RETURNING value_id INTO result;
---    END IF;
---    RETURN result;
---END; $$ LANGUAGE plpgsql;
-
 -- _numToValue:
 -- takes an bigint number
 -- returns the value_id for the number
@@ -378,68 +328,21 @@ END; $$ LANGUAGE plpgsql;
 -- returns the value_id of a new list (8), vector (9) or hash-map (10)
 CREATE FUNCTION _collection(items integer[], type integer) RETURNS integer AS $$
 DECLARE
-    cid  integer = NULL;
-    idx  integer;
-    key  varchar = NULL;
     vid  integer;
 BEGIN
-    IF type = 10 AND (array_length(items, 1) % 2) = 1 THEN
-        RAISE EXCEPTION 'hash-map: odd number of arguments';
-    END IF;
-
-    -- Create value entry pointing to collection (or NULL)
-    INSERT INTO value (type_id, collection_id)
-        VALUES (type, COALESCE((SELECT Max(collection_id) FROM value)+1,0))
-        RETURNING value_id, collection_id INTO vid, cid;
-
-    IF array_length(items, 1) > 0 THEN
-        idx := 1;
-        LOOP
-            IF idx > array_length(items, 1) THEN EXIT; END IF;
-            IF type = 10 THEN -- hash-map
-                key := _valueToString(items[idx]);
-                idx := idx + 1;
-            END IF;
-            -- Create entries
-            INSERT INTO collection (collection_id, idx, key_string, value_id)
-                VALUES (cid, idx-1, key, items[idx]);
-            idx := idx + 1;
-        END LOOP;
+    IF type IN (8, 9) THEN
+        INSERT INTO value (type_id, val_seq)
+            VALUES (type, items)
+            RETURNING value_id INTO vid;
+    ELSIF type = 10 THEN
+        IF (array_length(items, 1) % 2) = 1 THEN
+            RAISE EXCEPTION 'hash-map: odd number of arguments';
+        END IF;
+        INSERT INTO value (type_id, val_hash)
+            VALUES (type, hstore(CAST(items AS varchar[])))
+            RETURNING value_id INTO vid;
     END IF;
     RETURN vid;
-END; $$ LANGUAGE plpgsql;
-
--- _append:
--- return value_id of the collection with new elements appended
-CREATE FUNCTION _append(coll integer, items integer[]) RETURNS integer AS $$
-DECLARE
-    type       integer;
-    cid        integer = NULL;
-    start_idx  integer;
-    cur_idx    integer;
-    key        varchar = NULL;
-BEGIN
-    SELECT type_id, COALESCE(collection_id,
-                             (SELECT Max(collection_id) FROM value)+1)
-        FROM value INTO type, cid WHERE value_id = coll;
-    IF type = 10 AND (array_length(items, 1) % 2) = 1 THEN
-        RAISE EXCEPTION 'hash-map: odd number of arguments';
-    END IF;
-    SELECT COALESCE(Max(idx)+1, 0)
-        FROM collection INTO start_idx WHERE collection_id = cid;
-    cur_idx := 1;
-    LOOP
-        IF cur_idx > array_length(items, 1) THEN EXIT; END IF;
-        IF type = 10 THEN -- hash-map
-            key := _valueToString(items[cur_idx]);
-            cur_idx := cur_idx + 1;
-        END IF;
-        -- Create entries
-        INSERT INTO collection (collection_id, idx, key_string, value_id)
-            VALUES (cid, cur_idx+start_idx-1, key, items[cur_idx]);
-        cur_idx := cur_idx + 1;
-    END LOOP;
-    RETURN coll;
 END; $$ LANGUAGE plpgsql;
 
 
@@ -478,11 +381,24 @@ END; $$ LANGUAGE plpgsql;
 -- takes an value_id referring to a list or vector
 -- returns an array of the value_ids from the list/vector
 CREATE FUNCTION _valueToArray(seq integer) RETURNS integer[] AS $$
+DECLARE
+    result  integer[];
 BEGIN
-    RETURN ARRAY(SELECT value_id FROM collection
-                 WHERE collection_id = (SELECT collection_id FROM value
-                                        WHERE value_id = seq));
+    result := (SELECT val_seq FROM value WHERE value_id = seq);
+    IF result IS NULL THEN
+        result := ARRAY[]::integer[];
+    END IF;
+    RETURN result;
 END; $$ LANGUAGE plpgsql;
+
+-- From: https://wiki.postgresql.org/wiki/Array_reverse
+CREATE FUNCTION array_reverse(a integer[]) RETURNS integer[] AS $$
+SELECT ARRAY(
+    SELECT a[i]
+    FROM generate_subscripts(a,1) AS s(i)
+    ORDER BY i DESC
+);
+$$ LANGUAGE 'sql' STRICT IMMUTABLE;
 
 
 -- _nth:
@@ -492,11 +408,7 @@ CREATE FUNCTION _nth(seq_id integer, indx integer) RETURNS integer AS $$
 DECLARE
     result  integer;
 BEGIN
-    SELECT value_id INTO result FROM collection
-        WHERE collection_id = (SELECT collection_id FROM value
-                               WHERE value_id = seq_id)
-        AND idx = indx;
-    RETURN result;
+    RETURN (SELECT val_seq[indx+1] FROM value WHERE value_id = seq_id);
 END; $$ LANGUAGE plpgsql;
 
 -- _first:
@@ -512,11 +424,11 @@ END; $$ LANGUAGE plpgsql;
 -- takes value_id
 -- returns the array of value_ids
 CREATE FUNCTION _restArray(seq_id integer) RETURNS integer[] AS $$
+DECLARE
+    result  integer[];
 BEGIN
-    RETURN ARRAY(SELECT value_id FROM collection
-                 WHERE collection_id = (SELECT collection_id FROM value
-                                        WHERE value_id = seq_id)
-                 AND idx > 0);
+    result := (SELECT val_seq FROM value WHERE value_id = seq_id);
+    RETURN result[2:array_length(result, 1)];
 END; $$ LANGUAGE plpgsql;
 
 -- _slice:
@@ -525,28 +437,14 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION _slice(seq_id integer, first integer, last integer)
 RETURNS integer AS $$
 DECLARE
-    dst_coll_id    integer = NULL;
+    seq            integer[];
     vid            integer;
     i              integer;
     result         integer;
 BEGIN
-    FOR vid, i IN (SELECT value_id, idx FROM collection
-                   WHERE collection_id = (SELECT collection_id FROM value
-                                          WHERE value_id = seq_id)
-                   AND idx >= first AND idx < last
-                   ORDER BY idx)
-    LOOP
-        IF dst_coll_id IS NULL THEN
-            INSERT INTO collection (collection_id, idx, value_id)
-                VALUES (COALESCE((SELECT Max(collection_id) FROM collection)+1,0), i-1, vid)
-                RETURNING collection_id INTO dst_coll_id;
-        ELSE
-            INSERT INTO collection (collection_id, idx, value_id)
-                VALUES (dst_coll_id, i-1, vid);
-        END IF;
-    END LOOP;
-    INSERT INTO value (type_id, collection_id)
-        VALUES (8, dst_coll_id)
+    SELECT val_seq INTO seq FROM value WHERE value_id = seq_id;
+    INSERT INTO value (type_id, val_seq)
+        VALUES (8, seq[first+1:last])
         RETURNING value_id INTO result;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
@@ -564,12 +462,11 @@ END; $$ LANGUAGE plpgsql;
 -- returns a count (not value_id)
 CREATE FUNCTION _count(seq_id integer) RETURNS integer AS $$
 DECLARE
-    result  integer;
+    result  integer[];
 BEGIN
-    SELECT count(*) INTO result FROM collection
-        WHERE collection_id = (SELECT collection_id FROM value
-                               WHERE value_id = seq_id);
-    RETURN result;
+    result := (SELECT val_seq FROM value
+                         WHERE value_id = seq_id);
+    RETURN COALESCE(array_length(result, 1), 0);
 END; $$ LANGUAGE plpgsql;
 
 
@@ -590,59 +487,76 @@ BEGIN
     RETURN _tf((SELECT 1 FROM value WHERE value_id = obj and type_id = 10));
 END; $$ LANGUAGE plpgsql;
 
--- _dissoc:
--- return value_id of the hash-map with elements removed
-CREATE FUNCTION _dissoc(hm integer, items integer[]) RETURNS integer AS $$
+-- _assoc_BANG:
+-- return value_id of the hash-map with new elements appended
+CREATE FUNCTION _assoc_BANG(hm integer, items integer[]) RETURNS integer AS $$
 DECLARE
-    cid        integer = NULL;
+    hash  hstore;
 BEGIN
-    SELECT collection_id FROM value INTO cid WHERE value_id = hm;
-    FOR i IN 1 .. array_length(items, 1)
-    LOOP
-        -- Delete matching entries
-        DELETE FROM collection
-            WHERE collection_id = cid
-            AND key_string = _valueToString(items[i]);
-    END LOOP;
+    IF (array_length(items, 1) % 2) = 1 THEN
+        RAISE EXCEPTION 'hash-map: odd number of arguments';
+    END IF;
+    SELECT val_hash INTO hash FROM value WHERE value_id = hm;
+    IF hash IS NULL THEN
+        UPDATE value SET val_hash = hstore(CAST(items AS varchar[]))
+            WHERE value_id = hm;
+    ELSE
+        UPDATE value SET val_hash = hash || hstore(CAST(items AS varchar[]))
+            WHERE value_id = hm;
+    END IF;
+    RETURN hm;
+END; $$ LANGUAGE plpgsql;
+
+-- _dissoc_BANG:
+-- return value_id of the hash-map with elements removed
+CREATE FUNCTION _dissoc_BANG(hm integer, items integer[]) RETURNS integer AS $$
+DECLARE
+    hash  hstore;
+BEGIN
+    SELECT val_hash INTO hash FROM value WHERE value_id = hm;
+    UPDATE value SET val_hash = hash - CAST(items AS varchar[])
+            WHERE value_id = hm;
     RETURN hm;
 END; $$ LANGUAGE plpgsql;
 
 -- _get:
 -- return value_id of the hash-map entry matching key
 CREATE FUNCTION _get(hm integer, key varchar) RETURNS integer AS $$
+DECLARE
+    hash  hstore;
 BEGIN
-    RETURN (SELECT value_id FROM collection
-            WHERE collection_id = (SELECT collection_id FROM value
-                                   WHERE value_id = hm)
-            AND key_string = key);
+    SELECT val_hash INTO hash FROM value WHERE value_id = hm;
+    RETURN hash -> CAST(_stringv(key) AS varchar);
 END; $$ LANGUAGE plpgsql;
 
 -- _contains_Q:
 -- return true if hash-map contains entry matching key
 CREATE FUNCTION _contains_Q(hm integer, key varchar) RETURNS boolean AS $$
+DECLARE
+    hash  hstore;
 BEGIN
-    RETURN _tf((SELECT 1 FROM collection
-                WHERE collection_id = (SELECT collection_id FROM value
-                                       WHERE value_id = hm)
-                AND key_string = key));
+    SELECT val_hash INTO hash FROM value WHERE value_id = hm;
+    RETURN _tf(hash ? CAST(_stringv(key) AS varchar));
 END; $$ LANGUAGE plpgsql;
 
 -- _keys:
 -- return array of key value_ids from hash-map
 CREATE FUNCTION _keys(hm integer) RETURNS integer[] AS $$
+DECLARE
+    hash  hstore;
 BEGIN
-    RETURN ARRAY(SELECT _stringv(key_string) FROM collection
-                 WHERE collection_id = (SELECT collection_id FROM value
-                                        WHERE value_id = hm));
+    SELECT val_hash INTO hash FROM value WHERE value_id = hm;
+    RETURN CAST(akeys(hash) AS integer[]);
 END; $$ LANGUAGE plpgsql;
 
 -- _vals:
 -- return array of value value_ids from hash-map
 CREATE FUNCTION _vals(hm integer) RETURNS integer[] AS $$
+DECLARE
+    hash  hstore;
 BEGIN
-    RETURN ARRAY(SELECT value_id FROM collection
-                 WHERE collection_id = (SELECT collection_id FROM value
-                                        WHERE value_id = hm));
+    SELECT val_hash INTO hash FROM value WHERE value_id = hm;
+    RETURN CAST(avals(hash) AS integer[]);
 END; $$ LANGUAGE plpgsql;
 
 
@@ -650,21 +564,31 @@ END; $$ LANGUAGE plpgsql;
 -- function functions
 
 -- _function:
+-- takes a function name
+-- returns the value_id of a new 
+CREATE FUNCTION _function(fname varchar)
+RETURNS varchar AS $$
+DECLARE
+    result  integer;
+BEGIN
+    INSERT INTO value (type_id, function_name)
+        VALUES (11, fname)
+        RETURNING value_id INTO result;
+    RETURN CAST(result AS varchar);
+END; $$ LANGUAGE plpgsql;
+
+-- _malfunc:
 -- takes a ast value_id, params value_id and env_id
 -- returns the value_id of a new function
-CREATE FUNCTION _function(ast integer, params integer, env integer)
+CREATE FUNCTION _malfunc(ast integer, params integer, env integer)
 RETURNS integer AS $$
 DECLARE
     cid     integer = NULL;
     result  integer;
 BEGIN
     -- Create function entry
-    INSERT INTO collection (collection_id, value_id, params_id, env_id)
-        VALUES (COALESCE((SELECT Max(collection_id) FROM collection)+1,0),
-                ast, params, env)
-        RETURNING collection_id INTO cid;
-    INSERT INTO value (type_id, collection_id)
-        VALUES (12, cid)
+    INSERT INTO value (type_id, ast_id, params_id, env_id)
+        VALUES (12, ast, params, env)
         RETURNING value_id into result;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
@@ -676,9 +600,7 @@ DECLARE
     cid      integer;
 BEGIN
     newfunc := _clone(func);
-    SELECT collection_id FROM value INTO cid WHERE value_id = newfunc;
-    UPDATE collection SET macro = true
-        WHERE collection_id = cid;
+    UPDATE value SET macro = true WHERE value_id = newfunc;
     RETURN newfunc;
 END; $$ LANGUAGE plpgsql;
 
@@ -692,18 +614,14 @@ DECLARE
     fenv     integer;
     result   integer;
 BEGIN
-    SELECT type_id, collection_id, function_name
-        INTO type, fcid, fname
+    SELECT type_id, function_name, ast_id, params_id, env_id
+        INTO type, fname, fast, fparams, fenv
         FROM value WHERE value_id = func;
     IF type = 11 THEN
         EXECUTE format('SELECT %s($1);', fname)
             INTO result USING args;
         RETURN result;
     ELSIF type = 12 THEN
-        SELECT value_id, params_id, env_id
-            INTO fast, fparams, fenv
-            FROM collection
-            WHERE collection_id = fcid;
         -- NOTE: forward reference to current step EVAL function
         RETURN EVAL(fast, env_new_bindings(fenv, fparams, args));
     ELSE
@@ -722,11 +640,9 @@ DECLARE
     cid     integer = NULL;
     result  integer;
 BEGIN
-    -- Create function entry
-    INSERT INTO collection (collection_id, value_id)
-        VALUES (COALESCE((SELECT Max(collection_id) FROM collection)+1,0), val)
-        RETURNING collection_id INTO cid;
-    INSERT INTO value (type_id, collection_id) VALUES (13, cid)
+    -- Create atom
+    INSERT INTO value (type_id, val_seq)
+        VALUES (13, ARRAY[val])
         RETURNING value_id INTO result;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
@@ -746,10 +662,7 @@ CREATE FUNCTION _deref(atm integer) RETURNS integer AS $$
 DECLARE
     result  integer;
 BEGIN
-    SELECT value_id INTO result FROM collection
-        WHERE collection_id = (SELECT collection_id FROM value
-                               WHERE value_id = atm);
-    RETURN result;
+    RETURN (SELECT val_seq[1] FROM value WHERE value_id = atm);
 END; $$ LANGUAGE plpgsql;
 
 -- _reset_BANG:
@@ -757,8 +670,6 @@ END; $$ LANGUAGE plpgsql;
 -- returns a new value value_id
 CREATE FUNCTION _reset_BANG(atm integer, newval integer) RETURNS integer AS $$
 BEGIN
-    UPDATE collection SET value_id = newval
-        WHERE collection_id = (SELECT collection_id FROM value
-                               WHERE value_id = atm);
+    UPDATE value SET val_seq = ARRAY[newval] WHERE value_id = atm;
     RETURN newval;
 END; $$ LANGUAGE plpgsql;

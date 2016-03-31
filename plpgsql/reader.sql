@@ -69,6 +69,7 @@ BEGIN
     IF token <> first THEN
         RAISE EXCEPTION 'expected ''%''', first;
     END IF;
+    items := ARRAY[]::integer[];
     LOOP
         IF p > array_length(tokens, 1) THEN
             RAISE EXCEPTION 'expected ''%''', last;
@@ -137,7 +138,7 @@ BEGIN
         RAISE EXCEPTION 'unexpected '')''';
     WHEN token = '(' THEN
     BEGIN
-        SELECT p, _collection(items, 8)
+        SELECT p, _list(items)
             FROM read_seq(tokens, '(', ')', pos) INTO pos, result;
     END;
 
@@ -146,7 +147,7 @@ BEGIN
         RAISE EXCEPTION 'unexpected '']''';
     WHEN token = '[' THEN
     BEGIN
-        SELECT p, _collection(items, 9)
+        SELECT p, _vector(items)
             FROM read_seq(tokens, '[', ']', pos) INTO pos, result;
     END;
 
@@ -155,7 +156,7 @@ BEGIN
         RAISE EXCEPTION 'unexpected ''}''';
     WHEN token = '{' THEN
     BEGIN
-        SELECT p, _collection(items, 10)
+        SELECT p, _hash_map(items)
             FROM read_seq(tokens, '{', '}', pos) INTO pos, result;
     END;
 

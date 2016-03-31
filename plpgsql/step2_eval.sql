@@ -15,16 +15,16 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE FUNCTION eval_ast(ast integer, env integer)
+CREATE FUNCTION eval_ast(ast integer, env hstore)
 RETURNS integer AS $$
 DECLARE
     type           integer;
     symkey         varchar;
-    vid            integer;
-    k              varchar;
-    i              integer;
-    src_coll_id    integer;
-    dst_coll_id    integer = NULL;
+    seq            integer[];
+    eseq           integer[];
+    hash           hstore;
+    ehash          hstore;
+    kv             RECORD;
     e              integer;
     result         integer;
 BEGIN
@@ -33,29 +33,36 @@ BEGIN
     WHEN type = 7 THEN
     BEGIN
         symkey := _valueToString(ast);
-        SELECT e.value_id FROM env e INTO result
-            WHERE e.env_id = env
-            AND e.key = symkey;
-        IF result IS NULL THEN
+        IF env ? symkey THEN
+            result := env -> symkey;
+        ELSE
             RAISE EXCEPTION '''%'' not found', symkey;
         END IF;
     END;
-    WHEN type IN (8, 9, 10) THEN
+    WHEN type IN (8, 9) THEN
     BEGIN
-        src_coll_id := (SELECT collection_id FROM value WHERE value_id = ast);
-        -- Create new value entry pointing to new collection
-        dst_coll_id := COALESCE((SELECT Max(collection_id) FROM value)+1,0);
-        INSERT INTO value (type_id, collection_id)
-            VALUES (type, dst_coll_id)
-            RETURNING value_id INTO result;
-        FOR vid, k, i IN (SELECT value_id, key_string, idx FROM collection
-                       WHERE collection_id = src_coll_id)
-        LOOP
-            -- Evaluate each entry
-            e := EVAL(vid, env);
-            INSERT INTO collection (collection_id, key_string, idx, value_id)
-                VALUES (dst_coll_id, k, i, e);
+        SELECT val_seq INTO seq FROM value WHERE value_id = ast;
+        -- Evaluate each entry creating a new sequence
+        FOR i IN 1 .. COALESCE(array_length(seq, 1), 0) LOOP
+            eseq[i] := EVAL(seq[i], env);
         END LOOP;
+        INSERT INTO value (type_id, val_seq) VALUES (type, eseq)
+            RETURNING value_id INTO result;
+    END;
+    WHEN type = 10 THEN
+    BEGIN
+        SELECT val_hash INTO hash FROM value WHERE value_id = ast;
+        -- Evaluate each value for every key/value
+        FOR kv IN SELECT * FROM each(hash) LOOP
+            e := EVAL(CAST(kv.value AS integer), env);
+            IF ehash IS NULL THEN
+                ehash := hstore(kv.key, CAST(e AS varchar));
+            ELSE
+                ehash := ehash || hstore(kv.key, CAST(e AS varchar));
+            END IF;
+        END LOOP;
+        INSERT INTO value (type_id, val_hash) VALUES (type, ehash)
+            RETURNING value_id INTO result;
     END;
     ELSE
         result := ast;
@@ -64,7 +71,7 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION EVAL(ast integer, env integer)
+CREATE FUNCTION EVAL(ast integer, env hstore)
 RETURNS integer AS $$
 DECLARE
     type    integer;
@@ -81,9 +88,7 @@ BEGIN
     el := eval_ast(ast, env);
     SELECT function_name INTO fname FROM value WHERE value_id = _first(el);
     args := _restArray(el);
-    -- RAISE NOTICE 'fname: %, args: %', fname, args;
-    EXECUTE format('SELECT %s($1);', fname)
-        INTO result USING args;
+    EXECUTE format('SELECT %s($1);', fname) INTO result USING args;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
@@ -96,20 +101,6 @@ END; $$ LANGUAGE plpgsql;
 
 
 -- repl
-
--- env table
-CREATE TABLE env (
-    env_id    integer NOT NULL,
-    key       varchar NOT NULL,
-    value_id  integer NOT NULL
-);
-
-CREATE FUNCTION env_vset(env integer, name varchar, val integer)
-RETURNS void AS $$
-BEGIN
-    INSERT INTO env (env_id, key, value_id) VALUES (env, name, val);
-END; $$ LANGUAGE plpgsql;
-
 
 CREATE FUNCTION mal_intop(op varchar, args integer[])
 RETURNS integer AS $$
@@ -131,37 +122,31 @@ BEGIN RETURN mal_intop('*', args); END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION mal_divide(args integer[]) RETURNS integer AS $$
 BEGIN RETURN mal_intop('/', args); END; $$ LANGUAGE plpgsql;
 
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_add');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_subtract');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_multiply');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_divide');
 
--- repl_env is environment 0
-SELECT env_vset(0, '+', (SELECT value_id FROM value WHERE function_name = 'mal_add'));
-SELECT env_vset(0, '-', (SELECT value_id FROM value WHERE function_name = 'mal_subtract'));
-SELECT env_vset(0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_multiply'));
-SELECT env_vset(0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
-
-
-CREATE FUNCTION REP(line varchar)
+CREATE FUNCTION REP(env hstore, line varchar)
 RETURNS varchar AS $$
 BEGIN
-    RETURN PRINT(EVAL(READ(line), 0));
+    RETURN PRINT(EVAL(READ(line), env));
 END; $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION MAIN_LOOP(pwd varchar)
 RETURNS integer AS $$
 DECLARE
-    line    varchar;
-    output  varchar;
+    repl_env  hstore;
+    line      varchar;
+    output    varchar;
 BEGIN
-    WHILE true
-    LOOP
+    repl_env := hstore(ARRAY[
+        '+', _function('mal_add'),
+        '-', _function('mal_subtract'),
+        '*', _function('mal_multiply'),
+        '/', _function('mal_divide')]);
+    WHILE true LOOP
         BEGIN
             line := readline('user> ', 0);
             IF line IS NULL THEN RETURN 0; END IF;
             IF line <> '' THEN
-                output := REP(line);
+                output := REP(repl_env, line);
                 PERFORM writeline(output);
             END IF;
 

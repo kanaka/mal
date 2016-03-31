@@ -20,12 +20,11 @@ CREATE FUNCTION eval_ast(ast integer, env integer)
 RETURNS integer AS $$
 DECLARE
     type           integer;
-    symkey         varchar;
-    vid            integer;
-    k              varchar;
-    i              integer;
-    src_coll_id    integer;
-    dst_coll_id    integer = NULL;
+    seq            integer[];
+    eseq           integer[];
+    hash           hstore;
+    ehash          hstore;
+    kv             RECORD;
     e              integer;
     result         integer;
 BEGIN
@@ -35,22 +34,30 @@ BEGIN
     BEGIN
         result := env_get(env, ast);
     END;
-    WHEN type IN (8, 9, 10) THEN
+    WHEN type IN (8, 9) THEN
     BEGIN
-        src_coll_id := (SELECT collection_id FROM value WHERE value_id = ast);
-        -- Create new value entry pointing to new collection
-        dst_coll_id := COALESCE((SELECT Max(collection_id) FROM value)+1,0);
-        INSERT INTO value (type_id, collection_id)
-            VALUES (type, dst_coll_id)
-            RETURNING value_id INTO result;
-        FOR vid, k, i IN (SELECT value_id, key_string, idx FROM collection
-                       WHERE collection_id = src_coll_id)
-        LOOP
-            -- Evaluate each entry
-            e := EVAL(vid, env);
-            INSERT INTO collection (collection_id, key_string, idx, value_id)
-                VALUES (dst_coll_id, k, i, e);
+        SELECT val_seq INTO seq FROM value WHERE value_id = ast;
+        -- Evaluate each entry creating a new sequence
+        FOR i IN 1 .. COALESCE(array_length(seq, 1), 0) LOOP
+            eseq[i] := EVAL(seq[i], env);
         END LOOP;
+        INSERT INTO value (type_id, val_seq) VALUES (type, eseq)
+            RETURNING value_id INTO result;
+    END;
+    WHEN type = 10 THEN
+    BEGIN
+        SELECT val_hash INTO hash FROM value WHERE value_id = ast;
+        -- Evaluate each value for every key/value
+        FOR kv IN SELECT * FROM each(hash) LOOP
+            e := EVAL(CAST(kv.value AS integer), env);
+            IF ehash IS NULL THEN
+                ehash := hstore(kv.key, CAST(e AS varchar));
+            ELSE
+                ehash := ehash || hstore(kv.key, CAST(e AS varchar));
+            END IF;
+        END LOOP;
+        INSERT INTO value (type_id, val_hash) VALUES (type, ehash)
+            RETURNING value_id INTO result;
     END;
     ELSE
         result := ast;
@@ -67,13 +74,14 @@ DECLARE
     a0sym    varchar;
     a1       integer;
     let_env  integer;
+    idx      integer;
     binds    integer[];
-    exprs    integer[];
     el       integer;
     fname    varchar;
     args     integer[];
     result   integer;
 BEGIN
+    --PERFORM writeline(format('EVAL: %s [%s]', pr_str(ast), ast));
     SELECT type_id INTO type FROM value WHERE value_id = ast;
     IF type <> 8 THEN
         RETURN eval_ast(ast, env);
@@ -86,7 +94,6 @@ BEGIN
         a0sym := '__<*fn*>__';
     END IF;
 
-    --RAISE NOTICE 'ast: %, a0sym: %', ast, a0sym;
     CASE
     WHEN a0sym = 'def!' THEN
     BEGIN
@@ -96,21 +103,12 @@ BEGIN
     BEGIN
         let_env := env_new(env);
         a1 := _nth(ast, 1);
-        binds := ARRAY(SELECT collection.value_id FROM collection INNER JOIN value
-                       ON collection.collection_id=value.collection_id
-                       WHERE value.value_id = a1
-                       AND (collection.idx % 2) = 0
-                       ORDER BY collection.idx);
-        exprs := ARRAY(SELECT collection.value_id FROM collection INNER JOIN value
-                       ON collection.collection_id=value.collection_id
-                       WHERE value.value_id = a1
-                       AND (collection.idx % 2) = 1
-                       ORDER BY collection.idx);
-        FOR idx IN array_lower(binds, 1) .. array_upper(binds, 1)
-        LOOP
-            PERFORM env_set(let_env, binds[idx], EVAL(exprs[idx], let_env));
+        binds := (SELECT val_seq FROM value WHERE value_id = a1);
+        idx := 1;
+        WHILE idx < array_length(binds, 1) LOOP
+            PERFORM env_set(let_env, binds[idx], EVAL(binds[idx+1], let_env));
+            idx := idx + 2;
         END LOOP;
-        --PERFORM env_print(let_env);
         RETURN EVAL(_nth(ast, 2), let_env);
     END;
     ELSE
@@ -118,7 +116,6 @@ BEGIN
         el := eval_ast(ast, env);
         SELECT function_name INTO fname FROM value WHERE value_id = _first(el);
         args := _restArray(el);
-        --RAISE NOTICE 'fname: %, args: %', fname, args;
         EXECUTE format('SELECT %s($1);', fname)
             INTO result USING args;
         RETURN result;
@@ -127,7 +124,8 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 
 -- print
-CREATE FUNCTION PRINT(exp integer) RETURNS varchar AS $$
+CREATE FUNCTION PRINT(exp integer)
+RETURNS varchar AS $$
 BEGIN
     RETURN pr_str(exp);
 END; $$ LANGUAGE plpgsql;
@@ -135,7 +133,8 @@ END; $$ LANGUAGE plpgsql;
 
 -- repl
 
-CREATE FUNCTION mal_intop(op varchar, args integer[]) RETURNS integer AS $$
+CREATE FUNCTION mal_intop(op varchar, args integer[])
+RETURNS integer AS $$
 DECLARE a integer; b integer; result integer;
 BEGIN
     SELECT val_int INTO a FROM value WHERE value_id = args[1];
@@ -154,19 +153,12 @@ BEGIN RETURN mal_intop('*', args); END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION mal_divide(args integer[]) RETURNS integer AS $$
 BEGIN RETURN mal_intop('/', args); END; $$ LANGUAGE plpgsql;
 
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_add');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_subtract');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_multiply');
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_divide');
-
 -- repl_env is environment 0
-INSERT INTO env (env_id, outer_id) VALUES (0, NULL);
-
-SELECT env_vset(0, '+', (SELECT value_id FROM value WHERE function_name = 'mal_add'));
-SELECT env_vset(0, '-', (SELECT value_id FROM value WHERE function_name = 'mal_subtract'));
-SELECT env_vset(0, '*', (SELECT value_id FROM value WHERE function_name = 'mal_multiply'));
-SELECT env_vset(0, '/', (SELECT value_id FROM value WHERE function_name = 'mal_divide'));
-
+INSERT INTO env (env_id, outer_id, data)
+    VALUES (0, NULL, hstore(ARRAY['+', _function('mal_add'),
+                                  '-', _function('mal_subtract'),
+                                  '*', _function('mal_multiply'),
+                                  '/', _function('mal_divide')]));
 
 CREATE FUNCTION REP(line varchar)
 RETURNS varchar AS $$
