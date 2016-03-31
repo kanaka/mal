@@ -87,7 +87,7 @@ BEGIN
         END;
     WHEN type = 11 THEN  -- native function
         RETURN '#<function ' ||
-               (SELECT function_name FROM value WHERE value_id = ast) ||
+               (SELECT val_string FROM value WHERE value_id = ast) ||
                '>';
     WHEN type = 12 THEN  -- mal function
         BEGIN

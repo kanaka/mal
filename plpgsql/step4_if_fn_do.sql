@@ -143,7 +143,7 @@ BEGIN
     ELSE
     BEGIN
         el := eval_ast(ast, env);
-        SELECT type_id, function_name, ast_id, params_id, env_id
+        SELECT type_id, val_string, ast_id, params_id, env_id
             INTO type, fname, fast, fparams, fenv
             FROM value WHERE value_id = _first(el);
         args := _restArray(el);

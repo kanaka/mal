@@ -109,6 +109,7 @@ CREATE FUNCTION mal_slurp(args integer[]) RETURNS integer AS $$
 DECLARE
     fname    varchar;
     tmp      varchar;
+    cmd      varchar;
     lines    varchar[];
     content  varchar;
 BEGIN
@@ -120,9 +121,9 @@ BEGIN
     tmp := CAST(round(random()*1000000) AS varchar);
 
     EXECUTE format('CREATE TEMP TABLE %I (content text)', tmp);
-    EXECUTE format('COPY %I FROM %L WITH ENCODING ''SQL_ASCII''', tmp, fname);
+    cmd := format('sed ''s/\\/\\\\/g'' %L', fname);
+    EXECUTE format('COPY %I FROM PROGRAM %L', tmp, cmd);
     EXECUTE format('SELECT ARRAY(SELECT content FROM %I)', tmp) INTO lines;
-    --RAISE NOTICE 'lines[1]: %', lines[1];
     EXECUTE format('DROP TABLE %I', tmp);
 
     content := array_to_string(lines, E'\n') || E'\n';

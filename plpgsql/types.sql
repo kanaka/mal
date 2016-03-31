@@ -1,43 +1,33 @@
 -- ---------------------------------------------------------
--- list of types
-
-CREATE TABLE type (
-    type_id  integer NOT NULL,
-    name     char(10)
-);
-ALTER TABLE type ADD CONSTRAINT pk_types_id
-    PRIMARY KEY (type_id);
-
-INSERT INTO type VALUES (0, 'nil');
-INSERT INTO type VALUES (1, 'false');
-INSERT INTO type VALUES (2, 'true');
-INSERT INTO type VALUES (3, 'integer');
-INSERT INTO type VALUES (4, 'float');
-INSERT INTO type VALUES (5, 'string');
---INSERT INTO type VALUES (6, 'keyword');
-INSERT INTO type VALUES (7, 'symbol');
-INSERT INTO type VALUES (8, 'list');
-INSERT INTO type VALUES (9, 'vector');
-INSERT INTO type VALUES (10, 'hashmap');
-INSERT INTO type VALUES (11, 'function');
-INSERT INTO type VALUES (12, 'malfunc');
-INSERT INTO type VALUES (13, 'atom');
-
-
--- ---------------------------------------------------------
 -- persistent values
 
 CREATE EXTENSION hstore;
+
+-- list of types for type_id
+-- 0:  nil
+-- 1:  false
+-- 2:  true
+-- 3:  integer
+-- 4:  float
+-- 5:  string
+-- 6:  keyword (not used, uses prefixed string)
+-- 7:  symbol
+-- 8:  list
+-- 9:  vector
+-- 10: hashmap
+-- 11: function
+-- 12: malfunc
+-- 13: atom
 
 CREATE SEQUENCE value_id_seq START WITH 3; -- skip nil, false, true
 CREATE TABLE value (
     value_id        integer NOT NULL DEFAULT nextval('value_id_seq'),
     type_id         integer NOT NULL,
     val_int         bigint,    -- set for integers
-    val_string      varchar,   -- set for strings, keywords, and symbols
+    val_string      varchar,   -- set for strings, keywords, symbols,
+                               -- and native functions (function name)
     val_seq         integer[], -- set for lists and vectors
     val_hash        hstore,    -- set for hash-maps
-    function_name   varchar,   -- set for native function types
     ast_id          integer,   -- set for malfunc
     params_id       integer,   -- set for malfunc
     env_id          integer,   -- set for malfunc
@@ -48,8 +38,6 @@ ALTER TABLE value ADD CONSTRAINT pk_value_id
     PRIMARY KEY (value_id);
 -- drop sequence when table dropped
 ALTER SEQUENCE value_id_seq OWNED BY value.value_id;
-ALTER TABLE value ADD CONSTRAINT fk_type_id
-    FOREIGN KEY (type_id) REFERENCES type(type_id);
 ALTER TABLE value ADD CONSTRAINT fk_meta_id
     FOREIGN KEY (meta_id) REFERENCES value(value_id);
 ALTER TABLE value ADD CONSTRAINT fk_params_id
@@ -72,7 +60,7 @@ BEGIN
     ELSE
         RETURN 1;
     END IF;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- pun both NULL and false to false
 CREATE FUNCTION _tf(val boolean) RETURNS boolean AS $$
@@ -81,7 +69,7 @@ BEGIN
         RETURN false;
     END IF;
     RETURN true;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- pun both NULL and 0 to false
 CREATE FUNCTION _tf(val integer) RETURNS boolean AS $$
@@ -90,7 +78,7 @@ BEGIN
         RETURN false;
     END IF;
     RETURN true;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- return the type of the given value_id
 CREATE FUNCTION _type(obj integer) RETURNS integer AS $$
@@ -167,9 +155,9 @@ DECLARE
     result       integer;
 BEGIN
     INSERT INTO value (type_id,val_int,val_string,val_seq,val_hash,
-                       function_name,ast_id,params_id,env_id,meta_id)
+                       ast_id,params_id,env_id,meta_id)
         (SELECT type_id,val_int,val_string,val_seq,val_hash,
-                  function_name,ast_id,params_id,env_id,meta_id
+                ast_id,params_id,env_id,meta_id
               FROM value
               WHERE value_id = id)
         RETURNING value_id INTO result;
@@ -187,7 +175,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION _nil_Q(id integer) RETURNS boolean AS $$
 BEGIN
     RETURN id = 0;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- _true_Q:
 -- takes a value_id
@@ -195,7 +183,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION _true_Q(id integer) RETURNS boolean AS $$
 BEGIN
     RETURN id = 2;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- _false_Q:
 -- takes a value_id
@@ -203,7 +191,7 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION _false_Q(id integer) RETURNS boolean AS $$
 BEGIN
     RETURN id = 1;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- _string_Q:
 -- takes a value_id
@@ -571,7 +559,7 @@ RETURNS varchar AS $$
 DECLARE
     result  integer;
 BEGIN
-    INSERT INTO value (type_id, function_name)
+    INSERT INTO value (type_id, val_string)
         VALUES (11, fname)
         RETURNING value_id INTO result;
     RETURN CAST(result AS varchar);
@@ -614,7 +602,7 @@ DECLARE
     fenv     integer;
     result   integer;
 BEGIN
-    SELECT type_id, function_name, ast_id, params_id, env_id
+    SELECT type_id, val_string, ast_id, params_id, env_id
         INTO type, fname, fast, fparams, fenv
         FROM value WHERE value_id = func;
     IF type = 11 THEN

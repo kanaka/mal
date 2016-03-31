@@ -9,7 +9,7 @@ BEGIN
     RETURN ARRAY(SELECT tok FROM
         (SELECT (regexp_matches(str, re, 'g'))[1] AS tok) AS x
         WHERE tok <> '' AND tok NOT LIKE ';%');
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- read_atom:
 -- takes a tokens array and position

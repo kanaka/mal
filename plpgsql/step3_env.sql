@@ -114,7 +114,7 @@ BEGIN
     ELSE
     BEGIN
         el := eval_ast(ast, env);
-        SELECT function_name INTO fname FROM value WHERE value_id = _first(el);
+        SELECT val_string INTO fname FROM value WHERE value_id = _first(el);
         args := _restArray(el);
         EXECUTE format('SELECT %s($1);', fname)
             INTO result USING args;

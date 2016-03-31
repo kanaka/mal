@@ -189,7 +189,7 @@ BEGIN
     ELSE
     BEGIN
         el := eval_ast(ast, env);
-        SELECT type_id, function_name, ast_id, params_id, env_id
+        SELECT type_id, val_string, ast_id, params_id, env_id
             INTO type, fname, fast, fparams, fenv
             FROM value WHERE value_id = _first(el);
         args := _restArray(el);
@@ -232,11 +232,11 @@ CREATE FUNCTION mal_eval(args integer[]) RETURNS integer AS $$
 BEGIN
     RETURN EVAL(args[1], 0);
 END; $$ LANGUAGE plpgsql;
-INSERT INTO value (type_id, function_name) VALUES (11, 'mal_eval');
+INSERT INTO value (type_id, val_string) VALUES (11, 'mal_eval');
 
 SELECT env_vset(0, 'eval',
                    (SELECT value_id FROM value
-                    WHERE function_name = 'mal_eval')) \g '/dev/null'
+                    WHERE val_string = 'mal_eval')) \g '/dev/null'
 -- *ARGV* values are set by RUN
 SELECT env_vset(0, '*ARGV*', READ('()'));
 
