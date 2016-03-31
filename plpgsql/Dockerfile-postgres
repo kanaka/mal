@@ -1,4 +1,0 @@
-FROM sameersbn/postgresql:9.4-17
-
-RUN apt-get -y update
-RUN apt-get -y install make cpp python

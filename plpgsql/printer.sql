@@ -44,7 +44,7 @@ BEGIN
                      FROM value WHERE value_id = ast) as varchar);
     WHEN type = 5 THEN  -- string
         str := _valueToString(ast);
-        IF chr(CAST(x'29e' AS integer)) = substring(str FROM 1 FOR 1) THEN
+        IF chr(CAST(x'7f' AS integer)) = substring(str FROM 1 FOR 1) THEN
             RETURN ':' || substring(str FROM 2 FOR (char_length(str)-1));
         ELSIF print_readably THEN
             str := replace(str, E'\\', '\\');

@@ -2,7 +2,9 @@
 
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"
-PSQL="psql -q -t -A -v ON_ERROR_STOP=1"
+PSQL_USER="${PSQL_USER:-postgres}"
+
+PSQL="psql -q -t -A -v ON_ERROR_STOP=1 ${PSQL_USER:+-U ${PSQL_USER}}"
 [ "${DEBUG}" ] || PSQL="${PSQL} -v VERBOSITY=terse"
 
 # If mal DB is not there, force create of it

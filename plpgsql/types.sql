@@ -246,7 +246,7 @@ END; $$ LANGUAGE plpgsql;
 -- returns the value_id of a keyword (new or existing)
 CREATE FUNCTION _keywordv(name varchar) RETURNS integer AS $$
 BEGIN
-    RETURN _stringish(chr(CAST(x'29e' AS integer)) || name, 5);
+    RETURN _stringish(chr(CAST(x'7f' AS integer)) || name, 5);
 END; $$ LANGUAGE plpgsql;
 
 -- _keyword_Q:
@@ -259,7 +259,7 @@ BEGIN
     IF (SELECT 1 FROM value WHERE type_id = 5 AND value_id = id) THEN
         str := _valueToString(id);
         IF char_length(str) > 0 AND
-           chr(CAST(x'29e' AS integer)) = substring(str FROM 1 FOR 1) THEN
+           chr(CAST(x'7f' AS integer)) = substring(str FROM 1 FOR 1) THEN
             RETURN true;
         END IF;
     END IF;
