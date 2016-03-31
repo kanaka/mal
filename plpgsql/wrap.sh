@@ -1,11 +1,13 @@
 #!/bin/bash
 
-set -e
-
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"
 PSQL="psql -q -t -A -v ON_ERROR_STOP=1"
 [ "${DEBUG}" ] || PSQL="${PSQL} -v VERBOSITY=terse"
+
+# If mal DB is not there, force create of it
+dbcheck=$(${PSQL} -c "select 1 from pg_database where datname='mal'")
+[ -z "${dbcheck}" ] && SKIP_INIT=
 
 # Load the SQL code
 [ "${SKIP_INIT}" ] || ${PSQL} -f $1 >/dev/null
@@ -18,14 +20,13 @@ while true; do
     out="$(${PSQL} -dmal -c "SELECT read_or_error(1)" 2>/dev/null)" || break
     echo "${out}"
 done
-#echo "done stream 1"
 ) &
 
 # Perform readline input into stream table when requested
 (
 [ -r ${RL_HISTORY_FILE} ] && history -r ${RL_HISTORY_FILE}
 while true; do
-    prompt=$(${PSQL} -dmal -c "SELECT wait_rl_prompt(0);" 2>/dev/null)
+    prompt=$(${PSQL} -dmal -c "SELECT wait_rl_prompt(0);" 2>/dev/null) || break
     read -u 0 -r -e -p "${prompt}" line || break
     if [ "${line}" ]; then
         history -s -- "${line}"        # add to history
@@ -33,22 +34,27 @@ while true; do
     fi
 
     ${PSQL} -dmal -v arg="${line}" \
-        -f <(echo "SELECT writeline(:'arg', 0);") >/dev/null
+        -f <(echo "SELECT writeline(:'arg', 0);") >/dev/null || break
 done
 ${PSQL} -dmal -c "SELECT stream_close(0); SELECT stream_close(1);" > /dev/null
-#echo "done stream 0"
+# For bizzaro reasons, removing this next statement causes repeated
+# calls to fail due to DB recovery
+true
 ) <&0 >&1 &
-STDIN_PID=$!
 
+res=0
 shift
 if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)
     ${PSQL} -dmal -v args="(${args})" \
         -f <(echo "SELECT RUN('$(pwd)', :'args');") > /dev/null
-    ${PSQL} -dmal -c "SELECT stream_close(0); SELECT stream_close(1);" > /dev/null
-    exit $?
+    res=$?
 else
     # Start main loop in the background
     ${PSQL} -dmal -c "SELECT MAIN_LOOP('$(pwd)');" > /dev/null
+    res=$?
 fi
+${PSQL} -dmal -c "SELECT stream_close(0); SELECT stream_close(1);" > /dev/null
+sleep 1 # Allow DB to quiesce
+exit ${res}
