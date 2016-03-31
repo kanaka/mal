@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 51 languages:
+Mal is implemented in 52 languages:
 
 * Ada
 * GNU awk
@@ -46,6 +46,7 @@ Mal is implemented in 51 languages:
 * OCaml
 * Perl
 * PHP
+* PL/pgSQL
 * Postscript
 * Python
 * RPython
@@ -580,6 +581,19 @@ has been tested with ghostscript 9.10.
 ```
 cd ps
 gs -q -dNODISPLAY -I./ stepX_YYY.ps
+```
+
+### PL/pgSQL (Postgres SQL Procedural Language)
+
+The PL/pgSQL implementation of mal requires a running Postgres
+server (the "kanaka/mal-test-plpgsql" docker image automatically
+starts a Postgres server). The implementation connects to the Postgres
+server and create a database named "mal" to store tables and stored
+procedures. It has been tested with Postgres 9.4.
+
+```
+cd plpgsql
+./wrap.sh stepX_YYY.sql
 ```
 
 ### Python (2.X or 3.X)
