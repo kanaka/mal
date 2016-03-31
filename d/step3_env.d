@@ -58,6 +58,10 @@ MalType EVAL(MalType ast, Env env)
     {
         return eval_ast(ast, env);
     }
+    if (ast_list.elements.length == 0)
+    {
+        return ast;
+    }
 
     auto a0_sym = verify_cast!MalSymbol(ast_list.elements[0]);
     switch (a0_sym.name)
