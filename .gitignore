@@ -88,6 +88,8 @@ objpascal/pas-readline
 objpascal/regexpr/Source/RegExpr.ppu
 perl/mal.pl
 php/mal.php
+plsql/io.sql
+plsql/step*.sql
 ps/mal.ps
 python/mal.pyz
 r/mal.r
