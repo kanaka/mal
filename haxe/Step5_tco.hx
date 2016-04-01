@@ -36,6 +36,7 @@ class Step5_tco {
 
         // apply
         var alst = _list(ast);
+        if (alst.length == 0) { return ast; }
 
         switch (alst[0]) {
         case MalSymbol("def!"):

@@ -45,6 +45,7 @@ class StepA_mal {
 
     static function is_macro(ast:MalType, env:Env) {
         return switch(ast) {
+            case MalList([]): false;
             case MalList(a):
                 var a0 = a[0];
                 return symbol_Q(a0) &&
@@ -92,6 +93,7 @@ class StepA_mal {
         if (!list_Q(ast)) { return eval_ast(ast, env); }
 
         var alst = _list(ast);
+        if (alst.length == 0) { return ast; }
         switch (alst[0]) {
         case MalSymbol("def!"):
             return env.set(alst[1], EVAL(alst[2], env));
