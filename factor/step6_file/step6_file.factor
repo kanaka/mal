@@ -1,9 +1,9 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: accessors arrays assocs combinators command-line
-continuations fry grouping hashtables io kernel lists locals
-lib.core lib.env lib.printer lib.reader lib.types math
-namespaces quotations readline sequences splitting ;
+USING: accessors arrays assocs combinators combinators.short-circuit
+command-line continuations fry grouping hashtables io kernel lists locals
+lib.core lib.env lib.printer lib.reader lib.types math namespaces quotations
+readline sequences splitting ;
 IN: step6_file
 
 SYMBOL: repl-env
@@ -62,7 +62,7 @@ M: callable apply call( x -- y ) f ;
 : READ ( str -- maltype ) read-str ;
 
 : EVAL ( maltype env -- maltype )
-    over array? [
+    over { [ array? ] [ empty? not ] } 1&& [
         over first dup malsymbol? [ name>> ] when {
             { "def!" [ [ rest first2 ] dip eval-def! f ] }
             { "let*" [ [ rest first2 ] dip eval-let* ] }
