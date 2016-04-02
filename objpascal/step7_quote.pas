@@ -127,6 +127,8 @@ begin
     // Apply list
     Lst := (Ast as TMalList);
     Arr := Lst.Val;
+    if Length(Arr) = 0 then
+        Exit(Ast);
     if Arr[0] is TMalSymbol then
         A0Sym := (Arr[0] as TMalSymbol).Val
     else
