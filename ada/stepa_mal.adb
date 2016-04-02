@@ -302,6 +302,12 @@ procedure StepA_Mal is
 	Deref_List (Param).Get_List_Type = List_List then
 
          Param_List := Deref_List (Param).all;
+
+         -- Deal with empty list..
+         if Param_List.Length = 0 then
+	    return Param;
+         end if;
+
          First_Param := Car (Param_List);
          Rest_Params := Cdr (Param_List);
          Rest_List := Deref_List (Rest_Params).all;
