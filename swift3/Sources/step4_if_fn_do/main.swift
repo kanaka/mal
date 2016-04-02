@@ -25,7 +25,7 @@ func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
 
 func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
-    case MalVal.MalList: true
+    case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
     default: return try eval_ast(ast, env)
     }
 
