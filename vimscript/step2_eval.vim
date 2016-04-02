@@ -45,6 +45,9 @@ function EVAL(ast, env)
   if !ListQ(a:ast)
     return EvalAst(a:ast, a:env)
   end
+  if EmptyQ(a:ast)
+    return a:ast
+  endif
 
   " apply list
   let el = EvalAst(a:ast, a:env)

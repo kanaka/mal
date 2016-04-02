@@ -46,6 +46,7 @@
 
 (define (EVAL ast env)
   (match ast
+    (() ast)
     ((? list?) (eval_func ast env))
     (else (eval_ast ast env))))
 

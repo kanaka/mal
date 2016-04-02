@@ -32,6 +32,7 @@ const eval_ast = (ast, env) => {
 
 const EVAL = (ast, env) => {
     if (!_list_Q(ast)) { return eval_ast(ast, env) }
+    if (ast.length === 0) { return ast }
 
     const [f, ...args] = eval_ast(ast, env)
     return f(...args)

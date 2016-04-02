@@ -33,6 +33,9 @@ EVAL <- function(ast, env) {
     }
 
     # apply list
+    if (length(ast) == 0) {
+        return(ast)
+    }
     el <- eval_ast(ast, env)
     f <- el[[1]]
     return(do.call(f,el[-1]))

@@ -53,7 +53,7 @@ module Mal
   def eval(t, env)
     Mal::Type.new case ast = t.unwrap
     when Mal::List
-      eval_error "empty list" if ast.empty?
+      return gen_type Mal::List if ast.empty?
 
       f = eval_ast(ast.first, env)
       ast.shift(1)

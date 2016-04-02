@@ -36,6 +36,9 @@ function _EVAL(ast, env) {
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
+    if (ast.length === 0) {
+        return ast;
+    }
 
     // apply list
     var el = eval_ast(ast, env), f = el[0];

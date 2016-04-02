@@ -33,6 +33,9 @@ def EVAL(ast, env)
     if not ast.is_a? List
         return eval_ast(ast, env)
     end
+    if ast.empty?
+        return ast
+    end
 
     # apply list
     el = eval_ast(ast, env)
