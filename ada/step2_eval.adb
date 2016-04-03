@@ -155,7 +155,15 @@ procedure Step2_Eval is
          declare
             Evaled_H, First_Param : Mal_Handle;
             Evaled_List : List_Mal_Type;
+            Param_List : List_Mal_Type;
          begin
+            Param_List := Deref_List (Param).all;
+
+            -- Deal with empty list..
+            if Param_List.Length = 0 then
+               return Param;
+            end if;
+
             Evaled_H := Eval_Ast (Param, Env);
             Evaled_List := Deref_List (Evaled_H).all;
             First_Param := Car (Evaled_List);
