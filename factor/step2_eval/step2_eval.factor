@@ -1,8 +1,8 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: accessors arrays assocs combinators continuations fry io
-kernel math lib.printer lib.reader lib.types quotations readline
-sequences ;
+USING: accessors arrays assocs combinators combinators.short-circuit
+continuations fry io kernel math lib.printer lib.reader lib.types
+quotations readline sequences ;
 IN: step2_eval
 
 CONSTANT: repl-env H{
@@ -34,7 +34,7 @@ DEFER: EVAL
 : READ ( str -- maltype ) read-str ;
 
 : EVAL ( maltype env -- maltype )
-    eval-ast dup array? [
+    eval-ast dup { [ array? ] [ empty? not ] } 1&& [
         unclip
         dup quotation? [ "not a fn" throw ] unless
         with-datastack first

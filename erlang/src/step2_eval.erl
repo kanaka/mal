@@ -43,6 +43,8 @@ read(String) ->
         {error, Reason} -> io:format("error: ~s~n", [Reason]), nil
     end.
 
+eval({list, [], _Meta}=AST, _Env) ->
+    AST;
 eval({list, List, Meta}, Env) ->
     case eval_ast({list, List, Meta}, Env) of
         {list, [F|Args], _M} -> erlang:apply(F, [Args]);
