@@ -57,6 +57,10 @@ MalType EVAL(MalType ast, Env env)
     {
         return eval_ast(ast, env);
     }
+    if ((cast(MalList) ast).elements.length == 0)
+    {
+        return ast;
+    }
 
     auto el = verify_cast!MalList(eval_ast(ast, env));
     auto fobj = verify_cast!MalBuiltinFunc(el.elements[0]);

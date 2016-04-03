@@ -57,6 +57,7 @@ sub EVAL {
     }
 
     # apply list
+    if (scalar(@{$ast->{val}}) == 0) { return $ast; }
     my $el = eval_ast($ast, $env);
     my $f = $el->nth(0);
     return &{ $f }($el->rest());

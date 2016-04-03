@@ -24,6 +24,7 @@ proc eval_ast(ast: MalType, env: Table[string, MalType]): MalType =
 proc eval(ast: MalType, env: Table[string, MalType]): MalType =
   case ast.kind
   of List:
+    if ast.list.len == 0: return ast
     let el = ast.eval_ast(env)
     el.list[0].fun(el.list[1 .. ^1])
   else:

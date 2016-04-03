@@ -48,6 +48,7 @@ EVAL () {
         EVAL_AST "${ast}" "${env}"
         return
     fi
+    _empty? "${ast}" && r="${ast}" && return
 
     # apply list
     EVAL_AST "${ast}" "${env}"

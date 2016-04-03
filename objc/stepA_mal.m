@@ -98,6 +98,9 @@ NSObject *EVAL(NSObject *ast, Env *env) {
     }
 
     // apply list
+    if ([(NSArray *)ast count] == 0) {
+        return ast;
+    }
     ast = macroexpand(ast, env);
     if (!list_Q(ast)) {
         return eval_ast(ast, env);

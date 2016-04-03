@@ -515,6 +515,7 @@ repl_env = {'+': lambda a,b: a+b,
 * Modify `EVAL` to check if the first parameter `ast` is a list.
   * `ast` is not a list: then return the result of calling `eval_ast`
     on it.
+  * `ast` is a empty list: return ast unchanged.
   * `ast` is a list: call `eval_ast` to get a new evaluated list. Take
     the first item of the evaluated list and call it as function using
     the rest of the evaluated list as its arguments.

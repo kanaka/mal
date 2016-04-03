@@ -3,7 +3,7 @@ package mal
 fun read(input: String?): MalType = read_str(input)
 
 fun eval(ast: MalType, env: Map<String, MalType>): MalType =
-        if (ast is MalList) {
+        if (ast is MalList && ast.count() > 0) {
             val evaluated = eval_ast(ast, env) as ISeq
             if (evaluated.first() !is MalFunction) throw MalException("cannot execute non-function")
             (evaluated.first() as MalFunction).apply(evaluated.rest())

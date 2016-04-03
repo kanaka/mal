@@ -25,6 +25,8 @@ object step2_eval {
       return eval_ast(ast, env)
 
     // apply list
+    if (ast.asInstanceOf[MalList].value.length == 0)
+      return ast
     eval_ast(ast, env).asInstanceOf[MalList].value match {
       case f :: el => {
         var fn: List[Any] => Any = null

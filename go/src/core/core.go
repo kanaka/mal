@@ -235,7 +235,7 @@ func empty_Q(a []MalType) (MalType, error) {
 	case nil:
 		return true, nil
 	default:
-		return nil, errors.New("Count called on non-sequence")
+		return nil, errors.New("empty? called on non-sequence")
 	}
 }
 
@@ -250,7 +250,7 @@ func count(a []MalType) (MalType, error) {
 	case nil:
 		return 0, nil
 	default:
-		return nil, errors.New("Count called on non-sequence")
+		return nil, errors.New("count called on non-sequence")
 	}
 }
 

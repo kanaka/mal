@@ -37,6 +37,9 @@ class Step2_eval {
         if (!list_Q(ast)) { return eval_ast(ast, env); }
 
         // apply
+        var alst = switch (ast) { case MalList(lst): lst; case _: []; }
+        if (alst.length == 0) { return ast; }
+
         var el = eval_ast(ast, env);
         var lst = switch (el) { case MalList(lst): lst; case _: []; }
         var a0 = lst[0], args = lst.slice(1);
