@@ -17,7 +17,7 @@
   (read-str input))
 
 (defun EVAL (ast env)
-  (if (mal-list-p ast)
+  (if (and (mal-list-p ast) (mal-value ast))
       (let* ((ast* (mal-value (eval-ast ast env)))
              (fn (car ast*))
              (args (cdr ast*)))

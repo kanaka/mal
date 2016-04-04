@@ -76,7 +76,7 @@
         (throw 'return (eval-ast ast env)))
 
       (setq ast (MACROEXPAND ast env))
-      (when (not (mal-list-p ast))
+      (when (or (not (mal-list-p ast)) (not (mal-value ast)))
         (throw 'return (eval-ast ast env)))
 
       (let* ((a (mal-value ast))
