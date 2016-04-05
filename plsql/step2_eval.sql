@@ -3,9 +3,6 @@
 @reader.sql
 @printer.sql
 
--- ---------------------------------------------------------
--- step1_read_print.sql
-
 CREATE OR REPLACE PACKAGE mal_pkg IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer;
@@ -76,12 +73,6 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         RETURN printer_pkg.pr_str(exp);
     END;
 
-    -- stub to support wrap.sh
-    PROCEDURE env_vset(env integer, name varchar, val varchar) IS
-    BEGIN
-        RETURN;
-    END;
-
     -- repl
     FUNCTION mal_add(args mal_seq_items_type) RETURN mal_type IS
     BEGIN
@@ -116,7 +107,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         END IF;
 
         fname := TREAT(fn AS mal_str_type).val_str;
-        CASE 
+        CASE
         WHEN fname = '+' THEN RETURN mal_add(args);
         WHEN fname = '-' THEN RETURN mal_subtract(args);
         WHEN fname = '*' THEN RETURN mal_multiply(args);
@@ -137,8 +128,7 @@ BEGIN
     repl_env('*') := mal_str_type(11, '*');
     repl_env('/') := mal_str_type(11, '/');
 
-    WHILE true
-    LOOP
+    WHILE true LOOP
         BEGIN
             line := stream_readline('user> ', 0);
             -- stream_writeline('line: [' || line || ']', 1);
@@ -152,6 +142,7 @@ BEGIN
                     RETURN 0;
                 END IF;
                 stream_writeline('Error: ' || SQLERRM);
+                stream_writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;
 END;

@@ -8,6 +8,13 @@ SET LINESIZE 32767;
 -- SET WRAP OFF;
 SET PAGESIZE 0;
 
+-- Do not format whitespace in terminaml output
+SET TAB OFF;
+
+-- Allow literal & in strings
+SET DEFINE OFF;
+
+-- Print DBMS_OUTPUT.PUT_LINE debugcommands
 SET SERVEROUTPUT ON SIZE 30000;
 
 -- PROMPT 'Finish login.sql';

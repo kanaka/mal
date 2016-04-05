@@ -26,21 +26,25 @@ END;
 -- 12: malfunc
 -- 13: atom
 
+-- nil (0), false (1), true (2)
 CREATE OR REPLACE TYPE mal_type FORCE AS OBJECT (
     type_id  integer
 ) NOT FINAL;
 /
 
+-- integer (3)
 CREATE OR REPLACE TYPE mal_int_type FORCE UNDER mal_type (
     val_int  integer
 ) FINAL;
 /
 
+-- string/keyword (5), symbol (7)
 CREATE OR REPLACE TYPE mal_str_type FORCE UNDER mal_type (
     val_str  varchar2(4000)
 ) FINAL;
 /
 
+-- list (8), vector (9)
 CREATE OR REPLACE TYPE mal_seq_items_type FORCE AS TABLE OF mal_type;
 /
 
@@ -49,6 +53,13 @@ CREATE OR REPLACE TYPE mal_seq_type FORCE UNDER mal_type (
 ) FINAL;
 /
 
+-- malfunc (12)
+CREATE OR REPLACE TYPE malfunc_type FORCE UNDER mal_type (
+    ast     mal_type,
+    params  mal_type,
+    env     integer
+) FINAL;
+/
 
 
 
@@ -56,6 +67,8 @@ CREATE OR REPLACE TYPE mal_seq_type FORCE UNDER mal_type (
 
 CREATE OR REPLACE PACKAGE types_pkg IS
     -- general functions
+    FUNCTION wraptf(val boolean) RETURN mal_type;
+    FUNCTION equal_Q(a mal_type, b mal_type) RETURN boolean;
 
     -- scalar functions
     FUNCTION symbol(name varchar) RETURN mal_type;
@@ -65,25 +78,73 @@ CREATE OR REPLACE PACKAGE types_pkg IS
     FUNCTION list(a mal_type) RETURN mal_type;
     FUNCTION list(a mal_type, b mal_type) RETURN mal_type;
     FUNCTION list(a mal_type, b mal_type, c mal_type) RETURN mal_type;
+    FUNCTION list(items mal_seq_items_type) RETURN mal_type;
 
     FUNCTION first(seq mal_type) RETURN mal_type;
     FUNCTION slice(seq mal_type, idx integer) RETURN mal_type;
+    FUNCTION slice(items mal_seq_items_type, idx integer) RETURN mal_type;
     FUNCTION nth(seq mal_type, idx integer) RETURN mal_type;
+
+    FUNCTION count(seq mal_type) RETURN integer;
 END types_pkg;
 /
 
 CREATE OR REPLACE PACKAGE BODY types_pkg IS
 
+-- ---------------------------------------------------------
+-- general functions
 
--- CREATE OR REPLACE FUNCTION _wraptf(val boolean) RETURNS integer AS $$
--- BEGIN
---     IF val THEN
---         RETURN 2;
---     ELSE
---         RETURN 1;
---     END IF;
--- END; $$ LANGUAGE plpgsql IMMUTABLE;
--- 
+
+FUNCTION wraptf(val boolean) RETURN mal_type IS
+BEGIN
+    IF val THEN
+        RETURN mal_type(2);
+    ELSE
+        RETURN mal_type(1);
+    END IF;
+END;
+
+FUNCTION equal_Q(a mal_type, b mal_type) RETURN boolean IS
+    aseq  mal_seq_items_type;
+    bseq  mal_seq_items_type;
+    i     integer;
+BEGIN
+    if NOT (a.type_id = b.type_id OR
+            (a.type_id IN (8,9) AND b.type_id IN (8,9))) THEN
+        RETURN FALSE;
+    END IF;
+
+    CASE
+    WHEN a.type_id IN (0,1,2) THEN
+        RETURN TRUE;
+    WHEN a.type_id = 3 THEN
+        RETURN TREAT(a AS mal_int_type).val_int =
+               TREAT(b AS mal_int_type).val_int;
+    WHEN a.type_id IN (5,7) THEN
+        IF TREAT(a AS mal_str_type).val_str IS NULL AND
+           TREAT(b AS mal_str_type).val_str IS NULL THEN
+            RETURN TRUE;
+        ELSE
+            RETURN TREAT(a AS mal_str_type).val_str =
+                TREAT(b AS mal_str_type).val_str;
+        END IF;
+    WHEN a.type_id IN (8,9) THEN
+        aseq := TREAT(a AS mal_seq_type).val_seq;
+        bseq := TREAT(b AS mal_seq_type).val_seq;
+        IF aseq.COUNT <> bseq.COUNT THEN
+            RETURN FALSE;
+        END IF;
+        FOR i IN 1..aseq.COUNT LOOP
+            IF NOT equal_Q(aseq(i), bseq(i)) THEN
+                RETURN FALSE;
+            END IF;
+        END LOOP;
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END CASE;
+END;
+
 -- -- pun both NULL and false to false
 -- CREATE OR REPLACE FUNCTION _tf(val boolean) RETURNS boolean AS $$
 -- BEGIN
@@ -363,9 +424,6 @@ END;
 -- 
 
 -- ---------------------------------------------------------
--- general functions
-
--- ---------------------------------------------------------
 -- sequence functions
 
 -- list:
@@ -390,6 +448,11 @@ BEGIN
     RETURN mal_seq_type(8, mal_seq_items_type(a, b, c));
 END;
 
+FUNCTION list(items mal_seq_items_type) RETURN mal_type IS
+BEGIN
+    RETURN mal_seq_type(8, items);
+END;
+
 FUNCTION first(seq mal_type) RETURN mal_type IS
 BEGIN
     RETURN TREAT(seq AS mal_seq_type).val_seq(1);
@@ -409,9 +472,26 @@ BEGIN
     RETURN mal_seq_type(8, new_items);
 END;
 
+FUNCTION slice(items mal_seq_items_type, idx integer) RETURN mal_type IS
+    new_items  mal_seq_items_type;
+    i          integer;
+BEGIN
+    new_items := mal_seq_items_type();
+    new_items.EXTEND(items.COUNT - idx);
+    FOR i IN idx+1..items.COUNT LOOP
+        new_items(i-idx) := items(i);
+    END LOOP;
+    RETURN mal_seq_type(8, new_items);
+END;
+
 FUNCTION nth(seq mal_type, idx integer) RETURN mal_type IS
 BEGIN
     RETURN TREAT(seq AS mal_seq_type).val_seq(idx+1);
+END;
+
+FUNCTION count(seq mal_type) RETURN integer IS
+BEGIN
+    RETURN TREAT(seq AS mal_seq_type).val_seq.COUNT;
 END;
 
 -- -- _vector:

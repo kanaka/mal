@@ -52,7 +52,8 @@ while true; do
     # Escape (double) single quotes per SQL norm
     line=${line//\'/\'\'}
     #echo "line: [${line}]"
-    echo -e "BEGIN stream_writeline('${line}', 0); END;\n/" \
+    ( echo -n "BEGIN stream_writeline('${line}', 0); END;";
+      echo -en "\n/" ) \
         | ${SQLPLUS} >/dev/null || break
 done
 echo -e "BEGIN stream_close(0); stream_close(1); END;\n/" \

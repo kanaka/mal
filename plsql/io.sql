@@ -126,25 +126,25 @@ BEGIN
     sleep := 0.05;
     WHILE true
     LOOP
-        -- LOCK TABLE stream IN EXCLUSIVE MODE;
+        LOCK TABLE stream IN EXCLUSIVE MODE;
         SELECT open, rl_prompt INTO isopen, prompt
             FROM stream WHERE stream_id = sid;
         SELECT count(data) INTO datas FROM stream WHERE data IS NOT NULL;
-        if datas > 0 THEN
-            CONTINUE;
+
+        IF isopen = 0 THEN
+            raise_application_error(
+                -20000, 'stream_wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
         END IF;
-        IF isopen = 1 AND prompt IS NOT NULL THEN
+
+        -- wait until all channels have flushed
+        IF datas = 0 AND prompt IS NOT NULL THEN
             UPDATE stream SET rl_prompt = '' WHERE stream_id = sid;
             COMMIT;
             -- Prompt is returned single-quoted because sqlplus trims
             -- trailing whitespace in select output.
             RETURN '''' || prompt || '''';
         END IF;
-        -- '' -> no input, NULL -> stream closed
-        IF isopen = 0 THEN
-            raise_application_error(
-                -20000, 'stream_wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
-        END IF;
+        COMMIT;
 
         DBMS_LOCK.SLEEP(sleep);
         IF sleep < 0.5 THEN

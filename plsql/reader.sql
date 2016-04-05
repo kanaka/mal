@@ -78,12 +78,11 @@ BEGIN
         result := mal_int_type(3, CAST(token AS integer));
     ELSIF REGEXP_LIKE(token, '^".*"') THEN  -- string
         -- string
---         str := substring(token FROM 2 FOR (char_length(token)-2));
---         str := replace(str, '\"', '"');
---         str := replace(str, '\n', E'\n');
---         str := replace(str, '\\', E'\\');
---         result := _stringv(str);
-        result := mal_str_type(5, token);
+        str := SUBSTR(token, 2, LENGTH(token)-2);
+        str := REPLACE(str, '\"', '"');
+        str := REPLACE(str, '\n', chr(10));
+        str := REPLACE(str, '\\', chr(92));
+        result := mal_str_type(5, str);
 --     ELSIF token ~ '^:.*' THEN  -- keyword
 --         -- keyword
 --         result := _keywordv(substring(token FROM 2 FOR (char_length(token)-1)));
@@ -125,7 +124,7 @@ BEGIN
     token := rdr.next();
     RETURN mal_seq_type(type_id, items);
 END;
- 
+
 -- read_form:
 -- takes a reader
 -- updates the reader and returns new mal_type value
@@ -174,7 +173,7 @@ BEGIN
             'unexpected '')''', TRUE);
     WHEN token = '(' THEN
         RETURN read_seq(rdr, 8, '(', ')');
--- 
+--
 --     -- vector
 --     WHEN token = ']' THEN
 --         RAISE EXCEPTION 'unexpected '']''';
@@ -183,7 +182,7 @@ BEGIN
 --         SELECT p, _vector(items)
 --             FROM read_seq(tokens, '[', ']', pos) INTO pos, result;
 --     END;
--- 
+--
 --     -- hash-map
 --     WHEN token = '}' THEN
 --         RAISE EXCEPTION 'unexpected ''}''';
@@ -192,7 +191,7 @@ BEGIN
 --         SELECT p, _hash_map(items)
 --             FROM read_seq(tokens, '{', '}', pos) INTO pos, result;
 --     END;
--- 
+--
     --
     ELSE
         RETURN read_atom(rdr);
@@ -208,7 +207,7 @@ FUNCTION read_str(str varchar) RETURN mal_type IS
     ast   mal_type;
 BEGIN
     toks := tokenize(str);
-    rdr := reader(1, toks); 
+    rdr := reader(1, toks);
     -- stream_writeline('token 1: ' || rdr.peek());
     RETURN read_form(rdr);
 END;

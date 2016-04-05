@@ -3,6 +3,7 @@
 @reader.sql
 @printer.sql
 @env.sql
+@core.sql
 
 CREATE OR REPLACE PACKAGE mal_pkg IS
 
@@ -18,6 +19,8 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     repl_env  integer;
     line      varchar2(4000);
     x         mal_type;
+    core_ns   core_ns_type;
+    cidx      integer;
 
     -- read
     FUNCTION READ(line varchar) RETURN mal_type IS
@@ -29,7 +32,6 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 
     -- forward declarations
     FUNCTION EVAL(ast mal_type, env integer) RETURN mal_type;
-    FUNCTION do_core_func(fn mal_type, args mal_seq_items_type) RETURN mal_type;
 
     FUNCTION eval_ast(ast mal_type, env integer) RETURN mal_type IS
         i        integer;
@@ -58,8 +60,11 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         a0sym    varchar2(4000);
         seq      mal_seq_items_type;
         let_env  integer;
+        fn_env   integer;
         i        integer;
+        cond     mal_type;
         f        mal_type;
+        malfn    malfunc_type;
         args     mal_seq_type;
     BEGIN
         IF ast.type_id <> 8 THEN
@@ -88,11 +93,36 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
                 i := i + 2;
             END LOOP;
             RETURN EVAL(types_pkg.nth(ast, 2), let_env);
+        WHEN a0sym = 'do' THEN
+            el := eval_ast(types_pkg.slice(ast, 1), env);
+            RETURN types_pkg.nth(el, types_pkg.count(el)-1);
+        WHEN a0sym = 'if' THEN
+            cond := EVAL(types_pkg.nth(ast, 1), env);
+            IF cond.type_id = 0 OR cond.type_id = 1 THEN
+                IF types_pkg.count(ast) > 3 THEN
+                    RETURN EVAL(types_pkg.nth(ast, 3), env);
+                ELSE
+                    RETURN mal_type(0);
+                END IF;
+            ELSE
+                RETURN EVAL(types_pkg.nth(ast, 2), env);
+            END IF;
+        WHEN a0sym = 'fn*' THEN
+            RETURN malfunc_type(12, types_pkg.nth(ast, 2),
+                                    types_pkg.nth(ast, 1),
+                                    env);
         ELSE
             el := eval_ast(ast, env);
             f := types_pkg.first(el);
             args := TREAT(types_pkg.slice(el, 1) AS mal_seq_type);
-            RETURN do_core_func(f, args.val_seq);
+            IF f.type_id = 12 THEN
+                malfn := TREAT(f AS malfunc_type);
+                fn_env := env_pkg.env_new(env_mem, malfn.env,
+                                          malfn.params, args);
+                RETURN EVAL(malfn.ast, fn_env);
+            ELSE
+                RETURN core_pkg.do_core_func(f, args.val_seq);
+            END IF;
         END CASE;
 
     END;
@@ -103,50 +133,6 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         RETURN printer_pkg.pr_str(exp);
     END;
 
-    -- repl
-    FUNCTION mal_add(args mal_seq_items_type) RETURN mal_type IS
-    BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int +
-                               TREAT(args(2) AS mal_int_type).val_int);
-    END;
-
-    FUNCTION mal_subtract(args mal_seq_items_type) RETURN mal_type IS
-    BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int -
-                               TREAT(args(2) AS mal_int_type).val_int);
-    END;
-
-    FUNCTION mal_multiply(args mal_seq_items_type) RETURN mal_type IS
-    BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int *
-                               TREAT(args(2) AS mal_int_type).val_int);
-    END;
-
-    FUNCTION mal_divide(args mal_seq_items_type) RETURN mal_type IS
-    BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int /
-                               TREAT(args(2) AS mal_int_type).val_int);
-    END;
-
-    FUNCTION do_core_func(fn mal_type, args mal_seq_items_type) RETURN mal_type IS
-        fname  varchar(100);
-    BEGIN
-        IF fn.type_id <> 11 THEN
-            raise_application_error(-20004,
-                'Invalid function call', TRUE);
-        END IF;
-
-        fname := TREAT(fn AS mal_str_type).val_str;
-        CASE
-        WHEN fname = '+' THEN RETURN mal_add(args);
-        WHEN fname = '-' THEN RETURN mal_subtract(args);
-        WHEN fname = '*' THEN RETURN mal_multiply(args);
-        WHEN fname = '/' THEN RETURN mal_divide(args);
-        ELSE raise_application_error(-20004,
-                'Invalid function call', TRUE);
-        END CASE;
-    END;
-
     FUNCTION REP(line varchar) RETURN varchar IS
     BEGIN
         RETURN PRINT(EVAL(READ(line), repl_env));
@@ -155,14 +141,17 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 BEGIN
     env_mem := env_mem_type();
     repl_env := env_pkg.env_new(env_mem, NULL);
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('+'),
-                                            mal_str_type(11, '+'));
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('-'),
-                                            mal_str_type(11, '-'));
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('*'),
-                                            mal_str_type(11, '*'));
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('/'),
-                                            mal_str_type(11, '/'));
+
+    -- core.EXT: defined using PL/SQL
+    core_ns := core_pkg.get_core_ns();
+    FOR cidx IN 1..core_ns.COUNT LOOP
+        x := env_pkg.env_set(env_mem, repl_env,
+            types_pkg.symbol(core_ns(cidx)),
+            mal_str_type(11, core_ns(cidx)));
+    END LOOP;
+
+    -- core.mal: defined using the language itself
+    line := REP('(def! not (fn* (a) (if a false true)))');
 
     WHILE true LOOP
         BEGIN
