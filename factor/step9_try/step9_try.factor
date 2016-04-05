@@ -94,7 +94,7 @@ M: callable apply call( x -- y ) f ;
 : READ ( str -- maltype ) read-str ;
 
 : EVAL ( maltype env -- maltype )
-    over array? [
+    over { [ array? ] [ empty? not ] } 1&& [
         [ macro-expand ] keep over array? [
             over first dup malsymbol? [ name>> ] when {
                 { "def!" [ [ rest first2 ] dip eval-def! f ] }

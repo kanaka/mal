@@ -11,6 +11,7 @@ module REPL
         | node -> node
 
     and eval env = function
+        | List(_, []) as emptyList -> emptyList
         | List(_, _) as node ->
             let resolved = node |> eval_ast env
             match resolved with

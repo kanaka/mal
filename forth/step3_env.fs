@@ -111,8 +111,12 @@ drop
 
 MalList
   extend mal-eval { env list -- val }
-    env list MalList/start @ @ eval
-    env list rot eval-invoke ;;
+    list MalList/count @ 0= if
+        list
+    else
+        env list MalList/start @ @ eval
+        env list rot eval-invoke
+    endif ;;
 drop
 
 MalVector

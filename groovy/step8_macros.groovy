@@ -15,6 +15,7 @@ READ = { str ->
 // EVAL
 macro_Q = { ast, env ->
     if (types.list_Q(ast) &&
+        ast.size() > 0 &&
         ast[0].class == MalSymbol &&
         env.find(ast[0])) {
         def obj = env.get(ast[0])
@@ -70,6 +71,7 @@ EVAL = { ast, env ->
 
     ast = macroexpand(ast, env)
     if (! types.list_Q(ast)) return eval_ast(ast, env)
+    if (ast.size() == 0) return ast
 
     switch (ast[0]) {
     case { it instanceof MalSymbol && it.value == "def!" }:

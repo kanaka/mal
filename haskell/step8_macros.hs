@@ -86,6 +86,8 @@ let_bind env (b:e:xs) = do
     let_bind env xs
 
 apply_ast :: MalVal -> Env -> IOThrows MalVal
+apply_ast ast@(MalList [] _) env = do
+    return ast
 apply_ast ast@(MalList (MalSymbol "def!" : args) _) env = do
     case args of
          (a1@(MalSymbol _): a2 : []) -> do

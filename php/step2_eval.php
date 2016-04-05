@@ -37,6 +37,9 @@ function MAL_EVAL($ast, $env) {
     if (!_list_Q($ast)) {
         return eval_ast($ast, $env);
     }
+    if ($ast->count() === 0) {
+        return $ast;
+    }
 
     // apply list
     $el = eval_ast($ast, $env);

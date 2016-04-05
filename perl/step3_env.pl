@@ -55,6 +55,7 @@ sub EVAL {
 
     # apply list
     my ($a0, $a1, $a2, $a3) = @{$ast->{val}};
+    if (!$a0) { return $ast; }
     given ($$a0) {
         when (/^def!$/) {
             my $res = EVAL($a2, $env);

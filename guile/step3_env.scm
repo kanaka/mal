@@ -58,6 +58,7 @@
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (match ast
     ((? (lambda (x) (not (list? x)))) (eval_ast ast env))
+    (() ast)
     (('def! k v) ((env 'set) k (EVAL v env)))
     (('let* kvs body)
      (let* ((new-env (make-Env #:outer env))

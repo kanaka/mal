@@ -54,8 +54,14 @@ fn eval(ast: MalVal, env: &HashMap<String,MalVal>) -> MalRet {
     // apply list
     match *try!(eval_ast(ast, env)) {
         List(ref args,_) => {
-            let ref f = args.clone()[0];
-            f.apply(args[1..].to_vec())
+            match args.len() {
+                0 =>
+                    Ok(list(vec![])),
+                _ =>  {
+                    let ref f = args.clone()[0];
+                    f.apply(args[1..].to_vec())
+                }
+            }
         },
         _ => return err_str("Expected list"),
     }

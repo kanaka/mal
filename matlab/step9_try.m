@@ -83,6 +83,10 @@ function ret = EVAL(ast, env)
     end
 
     % apply
+    if length(ast) == 0
+        ret = ast;
+        return;
+    end
     ast = macroexpand(ast, env);
     if ~type_utils.list_Q(ast)
         ret = eval_ast(ast, env);

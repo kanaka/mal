@@ -68,6 +68,7 @@
   ;;       If you're Lispy enough, there's no recursive at all while you saw named let loop.
   (let tco-loop((ast ast) (env env))
     (match ast
+      (() ast)
       (('def! k v) ((env 'set) k (EVAL v env)))
       (('let* kvs body)
        (let* ((new-env (make-Env #:outer env))

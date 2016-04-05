@@ -46,6 +46,10 @@ NSObject *EVAL(NSObject *ast, Env *env) {
         return eval_ast(ast, env);
     }
 
+    // apply list
+    if ([(NSArray *)ast count] == 0) {
+        return ast;
+    }
     NSArray * alst = (NSArray *)ast;
     id a0 = alst[0];
     if (![a0 isKindOfClass:[MalSymbol class]]) {

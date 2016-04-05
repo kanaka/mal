@@ -35,6 +35,7 @@ class Step4_if_fn_do {
 
         // apply
         var alst = _list(ast);
+        if (alst.length == 0) { return ast; }
 
         switch (alst[0]) {
         case MalSymbol("def!"):

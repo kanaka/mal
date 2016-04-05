@@ -1,9 +1,8 @@
 ! Copyright (C) 2015 Jordan Lewis.
 ! See http://factorcode.org/license.txt for BSD license.
-USING: accessors arrays assocs combinators continuations fry
-grouping hashtables io kernel locals lib.env lib.printer
-lib.reader lib.types math namespaces quotations readline
-sequences ;
+USING: accessors arrays assocs combinators combinators.short-circuit
+continuations fry grouping hashtables io kernel locals lib.env lib.printer
+lib.reader lib.types math namespaces quotations readline sequences ;
 IN: step3_env
 
 CONSTANT: repl-bindings H{
@@ -36,7 +35,7 @@ DEFER: EVAL
 : READ ( str -- maltype ) read-str ;
 
 :: EVAL ( maltype env -- maltype )
-    maltype dup array? [
+    maltype dup { [ array? ] [ empty? not ] } 1&& [
         unclip dup dup malsymbol? [ name>> ] when {
             { "def!" [ drop first2 env eval-def! ] }
             { "let*" [ drop first2 env eval-let* ] }

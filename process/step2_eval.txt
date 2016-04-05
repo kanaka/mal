@@ -12,6 +12,7 @@ eval_ast(ast,env):
 
 EVAL(ast,env):
     if not list?(ast): return eval_ast(ast, env)
+    if empty?(ast): return ast
     f, args = eval_ast(ast, env)
     return apply(f, args)
 

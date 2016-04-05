@@ -27,7 +27,7 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
   var ast = orig_ast, env = orig_env
   while true {
     switch ast {
-    case MalVal.MalList: true
+    case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
     default: return try eval_ast(ast, env)
     }
 

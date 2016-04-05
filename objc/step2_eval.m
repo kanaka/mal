@@ -49,6 +49,10 @@ NSObject *EVAL(NSObject *ast, NSDictionary *env) {
         return eval_ast(ast, env);
     }
 
+    // apply list
+    if ([(NSArray *)ast count] == 0) {
+        return ast;
+    }
     NSArray * el = (NSArray *) eval_ast(ast, env);
     NSObject * (^ f)(NSArray *) = el[0];
     NSArray * args = _rest(el);

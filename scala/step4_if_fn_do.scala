@@ -28,6 +28,9 @@ object step4_if_fn_do {
 
     // apply list
     ast.asInstanceOf[MalList].value match {
+      case Nil => {
+        return ast
+      }
       case Symbol("def!") :: a1 :: a2 :: Nil => {
         return env.set(a1.asInstanceOf[Symbol], EVAL(a2, env))
       }

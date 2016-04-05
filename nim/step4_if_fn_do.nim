@@ -22,6 +22,7 @@ proc eval_ast(ast: MalType, env: var Env): MalType =
 proc eval(ast: MalType, env: var Env): MalType =
   case ast.kind
   of List:
+    if ast.list.len == 0: return ast
     let a0 = ast.list[0]
     case a0.kind
     of Symbol:

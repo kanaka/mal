@@ -45,6 +45,9 @@ proc EVAL {ast env} {
         return [eval_ast $ast $env]
     }
     lassign [obj_val $ast] a0 a1 a2 a3
+    if {$a0 == ""} {
+        return $ast
+    }
     switch [obj_val $a0] {
         "def!" {
             set varname [obj_val $a1]

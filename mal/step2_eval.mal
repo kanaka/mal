@@ -28,10 +28,12 @@
     (eval-ast ast env)
 
     ;; apply list
-    (let* [el (eval-ast ast env)
-          f (first el)
-          args (rest el)]
-      (apply f args))))))
+    (if (empty? ast)
+      ast
+      (let* [el (eval-ast ast env)
+            f (first el)
+            args (rest el)]
+        (apply f args)))))))
 
 
 ;; print

@@ -34,6 +34,7 @@ class Step3_env {
 
         // apply
         var alst = switch (ast) { case MalList(lst): lst; case _: []; }
+        if (alst.length == 0) { return ast; }
 
         switch (alst[0]) {
         case MalSymbol("def!"):

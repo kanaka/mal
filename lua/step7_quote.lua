@@ -63,6 +63,7 @@ function EVAL(ast, env)
     if not types._list_Q(ast) then return eval_ast(ast, env) end
 
     local a0,a1,a2,a3 = ast[1], ast[2],ast[3],ast[4]
+    if not a0 then return ast end
     local a0sym = types._symbol_Q(a0) and a0.val or ""
     if 'def!' == a0sym then
         return env:set(a1, EVAL(a2, env))

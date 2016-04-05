@@ -44,6 +44,9 @@ proc EVAL {ast env} {
         return [eval_ast $ast $env]
     }
     set a0 [lindex [obj_val $ast] 0]
+    if {$a0 == ""} {
+        return $ast
+    }
     set a1 [lindex [obj_val $ast] 1]
     set a2 [lindex [obj_val $ast] 2]
     switch [obj_val $a0] {

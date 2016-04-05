@@ -61,8 +61,7 @@ module Mal
     ast = t.unwrap
 
     return eval_ast(t, env) unless ast.is_a?(Mal::List)
-
-    eval_error "empty list" if ast.empty?
+    return gen_type Mal::List if ast.empty?
 
     sym = ast.first.unwrap
     eval_error "first element of list must be a symbol" unless sym.is_a?(Mal::Symbol)

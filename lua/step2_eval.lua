@@ -39,6 +39,7 @@ end
 function EVAL(ast, env)
     --print("EVAL: "..printer._pr_str(ast,true))
     if not types._list_Q(ast) then return eval_ast(ast, env) end
+    if #ast == 0 then return ast end
     local args = eval_ast(ast, env)
     local f = table.remove(args, 1)
     return f(unpack(args))

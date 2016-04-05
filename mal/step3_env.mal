@@ -36,6 +36,9 @@
     ;; apply list
     (let* [a0 (first ast)]
       (cond
+        (nil? a0)
+        ast
+
         (= 'def! a0)
         (env-set env (nth ast 1) (EVAL (nth ast 2) env))
 

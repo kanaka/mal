@@ -44,6 +44,9 @@ function EVAL(ast, env)
   if !ListQ(a:ast)
     return EvalAst(a:ast, a:env)
   end
+  if EmptyQ(a:ast)
+    return a:ast
+  endif
 
   let first = ListFirst(a:ast)
   let first_symbol = SymbolQ(first) ? ObjValue(first) : ""

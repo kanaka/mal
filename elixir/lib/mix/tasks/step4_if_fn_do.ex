@@ -67,6 +67,7 @@ defmodule Mix.Tasks.Step4IfFnDo do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
+  defp eval({:list, [], _} = empty_ast, env), do: empty_ast
   defp eval({:list, ast, meta}, env), do: eval_list(ast, env, meta)
   defp eval(ast, env), do: eval_ast(ast, env)
 

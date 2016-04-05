@@ -12,6 +12,7 @@ eval_ast(ast,env):
 
 EVAL(ast,env):
     if not list?(ast): return eval_ast(ast, env)
+    if empty?(ast): return ast
     switch ast[0]:
       'def!:        return env.set(ast[1], EVAL(ast[2], env))
       'let*:        let_env = ...; return EVAL(ast[2], let_env)

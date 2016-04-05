@@ -74,6 +74,9 @@ def EVAL(ast, env)
     if not ast.is_a? List
         return eval_ast(ast, env)
     end
+    if ast.empty?
+        return ast
+    end
 
     a0,a1,a2,a3 = ast
     case a0
