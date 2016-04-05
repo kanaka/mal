@@ -6,53 +6,48 @@
 -- ---------------------------------------------------------
 -- step1_read_print.sql
 
--- read
-CREATE OR REPLACE FUNCTION READ(line varchar)
-RETURN mal_type IS
-BEGIN
-    RETURN reader_pkg.read_str(line);
-END;
+CREATE OR REPLACE PACKAGE mal_pkg IS
+
+FUNCTION MAIN(pwd varchar) RETURN integer;
+
+END mal_pkg;
 /
 
--- eval
-CREATE OR REPLACE FUNCTION EVAL(ast mal_type, env varchar)
-RETURN mal_type IS
-BEGIN
-    RETURN ast;
-END;
-/
+CREATE OR REPLACE PACKAGE BODY mal_pkg IS
 
--- print
-CREATE OR REPLACE FUNCTION PRINT(exp mal_type)
-RETURN varchar IS
-BEGIN
-    RETURN printer_pkg.pr_str(exp);
-END;
-/
+FUNCTION MAIN(pwd varchar) RETURN integer IS
+    line  varchar2(4000);
 
+    -- read
+    FUNCTION READ(line varchar) RETURN mal_type IS
+    BEGIN
+        RETURN reader_pkg.read_str(line);
+    END;
 
--- repl
+    -- eval
+    FUNCTION EVAL(ast mal_type, env varchar) RETURN mal_type IS
+    BEGIN
+        RETURN ast;
+    END;
 
--- stub to support wrap.sh
-CREATE OR REPLACE PROCEDURE env_vset(env integer, name varchar, val varchar)
-IS
-BEGIN
-    RETURN;
-END;
-/
+    -- print
+    FUNCTION PRINT(exp mal_type) RETURN varchar IS
+    BEGIN
+        RETURN printer_pkg.pr_str(exp);
+    END;
 
+    -- stub to support wrap.sh
+    PROCEDURE env_vset(env integer, name varchar, val varchar) IS
+    BEGIN
+        RETURN;
+    END;
 
-CREATE OR REPLACE FUNCTION REP(line varchar)
-RETURN varchar IS
-BEGIN
-    RETURN PRINT(EVAL(READ(line), ''));
-END;
-/
+    -- repl
+    FUNCTION REP(line varchar) RETURN varchar IS
+    BEGIN
+        RETURN PRINT(EVAL(READ(line), ''));
+    END;
 
-CREATE OR REPLACE FUNCTION MAIN_LOOP(pwd varchar)
-RETURN integer IS
-    line    varchar2(4000);
-    output  varchar2(4000);
 BEGIN
     WHILE true
     LOOP
@@ -61,8 +56,7 @@ BEGIN
             -- stream_writeline('line: [' || line || ']', 1);
             IF line IS NULL THEN RETURN 0; END IF;
             IF line IS NOT NULL THEN
-                output := REP(line);
-                stream_writeline(output);
+                stream_writeline(REP(line));
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
@@ -73,6 +67,9 @@ BEGIN
         END;
     END LOOP;
 END;
+
+END mal_pkg;
 /
+show errors;
 
 quit;

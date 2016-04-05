@@ -50,77 +50,30 @@ CREATE OR REPLACE TYPE mal_seq_type FORCE UNDER mal_type (
 /
 
 
--- CREATE OR REPLACE TYPE mal_seq_items AS TABLE OF mal_type;
--- /
-
--- CREATE OR REPLACE TYPE mal_seq_type AS OBJECT (
---     items  mal_seq_items
--- );
--- /
-
--- BEGIN
---   EXECUTE IMMEDIATE 'DROP TABLE sequence';
--- EXCEPTION
---   WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF;
--- END;
--- /
--- 
--- CREATE TABLE sequence (
---     seq  mal_seq_items
--- )
--- NESTED TABLE seq STORE AS seq_table;
--- 
--- PROMPT "types.sql 3";
-
--- -- skip nil, false, true
--- CREATE SEQUENCE value_id_seq START WITH 3;
--- CREATE TABLE value (
---     value_id        integer NOT NULL,
---     value           REF mal_type
--- --     type_id         integer NOT NULL,
--- --     val_int         bigint,    -- set for integers
--- --     val_string      varchar,   -- set for strings, keywords, symbols,
--- --                                -- and native functions (function name)
--- --     val_seq         integer[], -- set for lists and vectors
--- --     val_hash        hstore,    -- set for hash-maps
--- --     ast_id          integer,   -- set for malfunc
--- --     params_id       integer,   -- set for malfunc
--- --     env_id          integer,   -- set for malfunc
--- --     macro           boolean,   -- set for malfunc
--- --     meta_id         integer    -- can be set for any collection
--- );
-
---NESTED TABLE val STORE AS val_table
---( NESTED TABLE val_seq STORE AS val_seq_table );
-
--- CREATE OR REPLACE TRIGGER pk_value_trigger BEFORE INSERT ON value
--- FOR EACH ROW
--- DECLARE
--- BEGIN
---     select value_id_seq.nextval into :new.value_id from dual;
--- END;
--- /
-
-PROMPT "types.sql 5";
-
--- ALTER TABLE value ADD CONSTRAINT pk_value_id
---     PRIMARY KEY (value_id);
--- PL/pgSQL:-- drop sequence when table dropped
--- PL/pgSQL:ALTER SEQUENCE value_id_seq OWNED BY value.value_id;
--- ALTER TABLE value ADD CONSTRAINT fk_meta_id
---     FOREIGN KEY (meta_id) REFERENCES value(value_id);
--- ALTER TABLE value ADD CONSTRAINT fk_params_id
---     FOREIGN KEY (params_id) REFERENCES value(value_id);
--- 
--- CREATE INDEX ON value (value_id, type_id);
--- 
--- INSERT INTO value (value_id, type_id) VALUES (0, 0); -- nil
--- INSERT INTO value (value_id, type_id) VALUES (1, 1); -- false
--- INSERT INTO value (value_id, type_id) VALUES (2, 2); -- true
 
 
 -- ---------------------------------------------------------
--- general functions
+
+CREATE OR REPLACE PACKAGE types_pkg IS
+    -- general functions
+
+    -- scalar functions
+    FUNCTION symbol(name varchar) RETURN mal_type;
+
+    -- sequence functions
+    FUNCTION list RETURN mal_type;
+    FUNCTION list(a mal_type) RETURN mal_type;
+    FUNCTION list(a mal_type, b mal_type) RETURN mal_type;
+    FUNCTION list(a mal_type, b mal_type, c mal_type) RETURN mal_type;
+
+    FUNCTION first(seq mal_type) RETURN mal_type;
+    FUNCTION slice(seq mal_type, idx integer) RETURN mal_type;
+    FUNCTION nth(seq mal_type, idx integer) RETURN mal_type;
+END types_pkg;
+/
+
+CREATE OR REPLACE PACKAGE BODY types_pkg IS
+
 
 -- CREATE OR REPLACE FUNCTION _wraptf(val boolean) RETURNS integer AS $$
 -- BEGIN
@@ -232,12 +185,18 @@ PROMPT "types.sql 5";
 --         RETURNING value_id INTO result;
 --     RETURN result;
 -- END; $$ LANGUAGE plpgsql;
--- 
--- 
--- -- ---------------------------------------------------------
--- -- scalar functions
--- 
--- 
+
+
+-- ---------------------------------------------------------
+-- scalar functions
+
+
+FUNCTION symbol(name varchar) RETURN mal_type IS
+BEGIN
+    RETURN mal_str_type(7, name);
+END;
+
+
 -- -- _nil_Q:
 -- -- takes a value_id
 -- -- returns the whether value_id is nil
@@ -403,41 +362,57 @@ PROMPT "types.sql 5";
 -- END; $$ LANGUAGE plpgsql;
 -- 
 
-CREATE OR REPLACE PACKAGE types_pkg IS
-    FUNCTION mal_list RETURN mal_type;
-    FUNCTION mal_list(a mal_type) RETURN mal_type;
-    FUNCTION mal_list(a mal_type, b mal_type) RETURN mal_type;
-    FUNCTION mal_list(a mal_type, b mal_type, c mal_type) RETURN mal_type;
-END types_pkg;
-/
+-- ---------------------------------------------------------
+-- general functions
 
-CREATE OR REPLACE PACKAGE BODY types_pkg IS
+-- ---------------------------------------------------------
+-- sequence functions
 
--- mal_list:
+-- list:
 -- return a mal list
-FUNCTION mal_list RETURN mal_type IS
+FUNCTION list RETURN mal_type IS
 BEGIN
     RETURN mal_seq_type(8, mal_seq_items_type());
 END;
 
-FUNCTION mal_list(a mal_type) RETURN mal_type IS
+FUNCTION list(a mal_type) RETURN mal_type IS
 BEGIN
     RETURN mal_seq_type(8, mal_seq_items_type(a));
 END;
 
-FUNCTION mal_list(a mal_type, b mal_type) RETURN mal_type IS
+FUNCTION list(a mal_type, b mal_type) RETURN mal_type IS
 BEGIN
     RETURN mal_seq_type(8, mal_seq_items_type(a, b));
 END;
 
-FUNCTION mal_list(a mal_type, b mal_type, c mal_type) RETURN mal_type IS
+FUNCTION list(a mal_type, b mal_type, c mal_type) RETURN mal_type IS
 BEGIN
     RETURN mal_seq_type(8, mal_seq_items_type(a, b, c));
 END;
 
-END types_pkg;
-/
-show errors;
+FUNCTION first(seq mal_type) RETURN mal_type IS
+BEGIN
+    RETURN TREAT(seq AS mal_seq_type).val_seq(1);
+END;
+
+FUNCTION slice(seq mal_type, idx integer) RETURN mal_type IS
+    old_items  mal_seq_items_type;
+    new_items  mal_seq_items_type;
+    i          integer;
+BEGIN
+    old_items := TREAT(seq AS mal_seq_type).val_seq;
+    new_items := mal_seq_items_type();
+    new_items.EXTEND(old_items.COUNT - idx);
+    FOR i IN idx+1..old_items.COUNT LOOP
+        new_items(i-idx) := old_items(i);
+    END LOOP;
+    RETURN mal_seq_type(8, new_items);
+END;
+
+FUNCTION nth(seq mal_type, idx integer) RETURN mal_type IS
+BEGIN
+    RETURN TREAT(seq AS mal_seq_type).val_seq(idx+1);
+END;
 
 -- -- _vector:
 -- -- takes a array of value_id integers
@@ -758,5 +733,9 @@ show errors;
 --     UPDATE value SET val_seq = ARRAY[newval] WHERE value_id = atm;
 --     RETURN newval;
 -- END; $$ LANGUAGE plpgsql;
+
+END types_pkg;
+/
+show errors;
 
 PROMPT "types.sql finished";

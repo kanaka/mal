@@ -137,34 +137,34 @@ BEGIN
      CASE
     WHEN token = '''' THEN
         token := rdr.next();
-        RETURN types_pkg.mal_list(
+        RETURN types_pkg.list(
             mal_str_type(7, 'quote'),
             read_form(rdr));
     WHEN token = '`' THEN
         token := rdr.next();
-        RETURN types_pkg.mal_list(
+        RETURN types_pkg.list(
             mal_str_type(7, 'quasiquote'),
             read_form(rdr));
     WHEN token = '~' THEN
         token := rdr.next();
-        RETURN types_pkg.mal_list(
+        RETURN types_pkg.list(
             mal_str_type(7, 'unquote'),
             read_form(rdr));
     WHEN token = '~@' THEN
         token := rdr.next();
-        RETURN types_pkg.mal_list(
+        RETURN types_pkg.list(
             mal_str_type(7, 'splice-unquote'),
             read_form(rdr));
     WHEN token = '^' THEN
         token := rdr.next();
         meta := read_form(rdr);
-        RETURN types_pkg.mal_list(
+        RETURN types_pkg.list(
             mal_str_type(7, 'with-meta'),
             read_form(rdr),
             meta);
     WHEN token = '@' THEN
         token := rdr.next();
-        RETURN types_pkg.mal_list(
+        RETURN types_pkg.list(
             mal_str_type(7, 'deref'),
             read_form(rdr));
 

@@ -74,10 +74,10 @@ BEGIN
 --                         FROM each(hash)), ' ') ||
 --                    '}';
 --         END;
---     WHEN type_id = 11 THEN  -- native function
---         RETURN '#<function ' ||
---                (SELECT val_string FROM value WHERE value_id = ast) ||
---                '>';
+    WHEN type_id = 11 THEN  -- native function
+        RETURN '#<function ' ||
+               TREAT(ast AS mal_str_type).val_str ||
+               '>';
 --     WHEN type_id = 12 THEN  -- mal function
 --         BEGIN
 --             SELECT ast_id, params_id

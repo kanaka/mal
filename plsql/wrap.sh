@@ -64,12 +64,12 @@ shift
 if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)
-    echo -e "BEGIN RUN('$(pwd)', :'args'); END;\n/" \
+    echo -e "BEGIN MAIN('$(pwd)', :'args'); END;\n/" \
         | ${SQLPLUS} "(${args})" > /dev/null
     res=$?
 else
     # Start main loop in the background
-    echo "SELECT MAIN_LOOP('$(pwd)') FROM dual;" \
+    echo "SELECT mal_pkg.MAIN('$(pwd)') FROM dual;" \
         | ${SQLPLUS} > /dev/null
     res=$?
 fi
