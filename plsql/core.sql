@@ -3,7 +3,6 @@ PROMPT 'core.sql start';
 CREATE OR REPLACE TYPE core_ns_type IS TABLE OF varchar2(100);
 /
 
-
 CREATE OR REPLACE PACKAGE core_pkg IS
 
 FUNCTION do_core_func(fn mal_type, args mal_seq_items_type) RETURN mal_type;
@@ -43,6 +42,20 @@ FUNCTION println(args mal_seq_items_type) RETURN mal_type IS
 BEGIN
     stream_writeline(printer_pkg.pr_str_seq(args, ' ', FALSE));
     RETURN mal_type(0);
+END;
+
+FUNCTION read_string(args mal_seq_items_type) RETURN mal_type IS
+BEGIN
+    RETURN reader_pkg.read_str(TREAT(args(1) AS mal_str_type).val_str);
+END;
+
+FUNCTION slurp(args mal_seq_items_type) RETURN mal_type IS
+    content  varchar2(4000);
+BEGIN
+    -- stream_writeline('here1: ' || TREAT(args(1) AS mal_str_type).val_str);
+    content := file_open_and_read(TREAT(args(1) AS mal_str_type).val_str);
+    content := REPLACE(content, '\n', chr(10));
+    RETURN mal_str_type(5, content);
 END;
 
 
@@ -107,12 +120,14 @@ BEGIN
     fname := TREAT(fn AS mal_str_type).val_str;
 
     CASE
-    WHEN fname = '=' THEN RETURN equal_Q(args);
+    WHEN fname = '='           THEN RETURN equal_Q(args);
 
-    WHEN fname = 'pr-str'  THEN RETURN pr_str(args);
-    WHEN fname = 'str'     THEN RETURN str(args);
-    WHEN fname = 'prn'     THEN RETURN prn(args);
-    WHEN fname = 'println' THEN RETURN println(args);
+    WHEN fname = 'pr-str'      THEN RETURN pr_str(args);
+    WHEN fname = 'str'         THEN RETURN str(args);
+    WHEN fname = 'prn'         THEN RETURN prn(args);
+    WHEN fname = 'println'     THEN RETURN println(args);
+    WHEN fname = 'read-string' THEN RETURN read_string(args);
+    WHEN fname = 'slurp'       THEN RETURN slurp(args);
 
     WHEN fname = '<'  THEN RETURN lt(args);
     WHEN fname = '<=' THEN RETURN lte(args);
@@ -149,6 +164,8 @@ BEGIN
         'str',
         'prn',
         'println',
+        'read-string',
+        'slurp',
 
         '<',
         '<=',
@@ -163,7 +180,14 @@ BEGIN
         'list?',
 
         'empty?',
-        'count');
+        'count',
+
+        -- defined in step do_builtin function
+        'atom',
+        'atom?',
+        'deref',
+        'reset!',
+        'swap!');
 END;
 
 END core_pkg;

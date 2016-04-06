@@ -5,16 +5,16 @@ PROMPT "printer start";
 
 CREATE OR REPLACE PACKAGE printer_pkg IS
     FUNCTION pr_str(ast mal_type,
-                    print_readably boolean DEFAULT true) RETURN varchar;
+                    print_readably boolean DEFAULT TRUE) RETURN varchar;
     FUNCTION pr_str_seq(seq mal_seq_items_type, sep varchar2,
-                        print_readably boolean DEFAULT true) RETURN varchar;
+                        print_readably boolean DEFAULT TRUE) RETURN varchar;
 END printer_pkg;
 /
 
 CREATE OR REPLACE PACKAGE BODY printer_pkg AS
 
 FUNCTION pr_str_seq(seq mal_seq_items_type, sep varchar2,
-                    print_readably boolean DEFAULT true) RETURN varchar IS
+                    print_readably boolean DEFAULT TRUE) RETURN varchar IS
     first  integer := 1;
     str    varchar2(4000) := '';
 BEGIN
@@ -30,7 +30,7 @@ BEGIN
 END;
 
 FUNCTION pr_str(ast mal_type,
-                print_readably boolean DEFAULT true) RETURN varchar IS
+                print_readably boolean DEFAULT TRUE) RETURN varchar IS
     type_id  integer;
     first    integer := 1;
     i        integer;
@@ -91,12 +91,8 @@ BEGIN
         malfn := TREAT(ast AS malfunc_type);
         RETURN '(fn* ' || pr_str(malfn.params, print_readably) ||
                 ' ' || pr_str(malfn.ast, print_readably) || ')';
---     WHEN type_id = 13 THEN  -- atom
---         BEGIN
---             SELECT val_seq[1] INTO vid
---                 FROM value WHERE value_id = ast;
---             RETURN '(atom ' || pr_str(vid, print_readably) || ')';
---         END;
+    WHEN type_id = 13 THEN  -- atom
+        RETURN '(atom ...)';
     ELSE
         RETURN 'unknown';
     END CASE;

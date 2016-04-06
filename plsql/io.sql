@@ -21,6 +21,22 @@ INSERT INTO stream (stream_id, open, data, rl_prompt)
 
 -- ---------------------------------------------------------
 
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE file_io';
+EXCEPTION
+  WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+
+CREATE TABLE file_io (
+    path       varchar2(1024),  -- file to read/write
+    data       varchar2(4000),  -- file data
+    error      varchar2(1024),  -- any errors during read
+    in_or_out  varchar2(4)      -- input ('in') or output ('out')
+);
+
+-- ---------------------------------------------------------
+
 CREATE OR REPLACE PROCEDURE stream_open(sid integer) AS
 BEGIN
     -- DBMS_OUTPUT.PUT_LINE('stream_open(' || sid || ') start');
@@ -68,8 +84,8 @@ BEGIN
         -- '' -> no input, NULL -> stream closed
         --RAISE NOTICE 'read input: [%] %', input, stream_id;
         IF isopen = 0 THEN
-            raise_application_error(
-                -20000, 'stream_read: stream ''' || sid || ''' is closed', TRUE);
+            raise_application_error(-20000,
+                'stream_read: stream ''' || sid || ''' is closed', TRUE);
         END IF;
         SYS.DBMS_LOCK.SLEEP(sleep);
         IF sleep < 0.5 THEN
@@ -132,8 +148,8 @@ BEGIN
         SELECT count(data) INTO datas FROM stream WHERE data IS NOT NULL;
 
         IF isopen = 0 THEN
-            raise_application_error(
-                -20000, 'stream_wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
+            raise_application_error(-20000,
+                'stream_wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
         END IF;
 
         -- wait until all channels have flushed
@@ -172,3 +188,51 @@ BEGIN
     END LOOP;
 END;
 /
+
+-- ---------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION file_open_and_read(path varchar)
+RETURN varchar IS
+    PRAGMA AUTONOMOUS_TRANSACTION;
+    sleep    real;
+    content    varchar2(4000);
+    error_msg  varchar2(1024);
+BEGIN
+    sleep := 0.05;
+    -- TODO: use unique ID instead of path
+    INSERT INTO file_io (path, data, error, in_or_out)
+        VALUES (path, NULL, NULL, 'in');
+    WHILE true
+    LOOP
+        LOCK TABLE file_io IN EXCLUSIVE MODE;
+        SELECT data, error INTO content, error_msg
+            FROM file_io WHERE path = path AND ROWNUM = 1;
+
+        IF error_msg IS NOT NULL THEN
+            raise_application_error(-20010,
+                'open_and_read error: ''' || error_msg || '''', TRUE);
+        END IF;
+
+        IF content IS NOT NULL THEN
+            DELETE FROM file_io WHERE path = path;
+            COMMIT;
+            RETURN content;
+        END IF;
+        COMMIT;
+
+        -- keep waiting
+        DBMS_LOCK.SLEEP(sleep);
+        IF sleep < 0.5 THEN
+            sleep := sleep * 1.1; -- backoff
+        END IF;
+    END LOOP;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE file_read_response(path varchar, data varchar) AS
+    PRAGMA AUTONOMOUS_TRANSACTION;
+BEGIN
+    UPDATE file_io SET data = data WHERE path = path;
+END;
+/
+

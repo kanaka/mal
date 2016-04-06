@@ -61,6 +61,15 @@ CREATE OR REPLACE TYPE malfunc_type FORCE UNDER mal_type (
 ) FINAL;
 /
 
+-- atom (13)
+CREATE OR REPLACE TYPE atom_mem_type FORCE IS TABLE OF mal_type;
+/
+
+CREATE OR REPLACE TYPE atom_type FORCE UNDER mal_type (
+    val  integer  -- index into atom_mem_type
+);
+/
+
 
 
 -- ---------------------------------------------------------
@@ -86,6 +95,9 @@ CREATE OR REPLACE PACKAGE types_pkg IS
     FUNCTION nth(seq mal_type, idx integer) RETURN mal_type;
 
     FUNCTION count(seq mal_type) RETURN integer;
+
+    FUNCTION atom_new(mem IN OUT NOCOPY atom_mem_type,
+                      val mal_type) RETURN mal_type;
 END types_pkg;
 /
 
@@ -768,10 +780,21 @@ END;
 --         RAISE EXCEPTION 'Invalid function call';
 --     END IF;
 -- END; $$ LANGUAGE plpgsql;
--- 
--- -- ---------------------------------------------------------
--- -- atom functions
--- 
+
+-- ---------------------------------------------------------
+-- atom functions
+
+FUNCTION atom_new(mem IN OUT NOCOPY atom_mem_type,
+                  val mal_type) RETURN mal_type IS
+    aidx  integer;
+BEGIN
+    mem.EXTEND();
+    aidx := mem.COUNT();
+    mem(aidx) := val;
+    RETURN atom_type(13, aidx);
+END;
+
+
 -- -- _atom:
 -- -- takes an ast value_id
 -- -- returns a new atom value_id
