@@ -108,8 +108,8 @@ if [ $# -gt 0 ]; then
     res=$?
 else
     # Start main loop in the background
-    echo "SELECT mal_pkg.MAIN('$(pwd)') FROM dual;" \
-        | ${SQLPLUS} > /dev/null
+    echo "SELECT mal.MAIN('$(pwd)') FROM dual;" \
+        | ${SQLPLUS}
     res=$?
 fi
 echo -e "BEGIN stream_close(0); stream_close(1); END;\n/" \

@@ -35,6 +35,79 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer;
     FUNCTION do_builtin(fn integer, args mal_seq_type) RETURN integer;
 
+    FUNCTION is_pair(ast integer) RETURN BOOLEAN IS
+    BEGIN
+        RETURN M(ast).type_id IN (8,9) AND types.count(M, ast) > 0;
+    END;
+
+    FUNCTION quasiquote(ast integer) RETURN integer IS
+        a0   integer;
+        a00  integer;
+    BEGIN
+        IF NOT is_pair(ast) THEN
+            RETURN types.list(M, types.symbol(M, 'quote'), ast);
+        ELSE
+            a0 := types.nth(M, ast, 0);
+            IF M(a0).type_id = 7 AND
+               TREAT(m(a0) AS mal_str_type).val_str = 'unquote' THEN
+                RETURN types.nth(M, ast, 1);
+            ELSIF is_pair(a0) THEN
+                a00 := types.nth(M, a0, 0);
+                IF M(a00).type_id = 7 AND
+                   TREAT(M(a00) AS mal_str_type).val_str = 'splice-unquote' THEN
+                    RETURN types.list(M, types.symbol(M, 'concat'),
+                                         types.nth(M, a0, 1),
+                                         quasiquote(types.slice(M, ast, 1)));
+                END IF;
+            END IF;
+            RETURN types.list(M, types.symbol(M, 'cons'),
+                                 quasiquote(a0),
+                                 quasiquote(types.slice(M, ast, 1)));
+        END IF;
+    END;
+
+
+    FUNCTION is_macro_call(ast integer, env integer) RETURN BOOLEAN IS
+        a0   integer;
+        mac  integer;
+    BEGIN
+        IF M(ast).type_id = 8 THEN
+            a0 := types.nth(M, ast, 0);
+            IF M(a0).type_id = 7 AND
+               env_pkg.env_find(M, env_mem, env, a0) IS NOT NULL THEN
+                mac := env_pkg.env_get(M, env_mem, env, a0);
+                IF M(mac).type_id = 12 THEN
+                    RETURN TREAT(M(mac) AS malfunc_type).is_macro > 0;
+                END IF;
+            END IF;
+        END IF;
+        RETURN FALSE;
+    END;
+
+    FUNCTION macroexpand(orig_ast integer, env integer) RETURN integer IS
+        ast     integer;
+        mac     integer;
+        malfn   malfunc_type;
+        fargs   mal_seq_type;
+        fn_env  integer;
+    BEGIN
+        ast := orig_ast;
+        WHILE is_macro_call(ast, env) LOOP
+            mac := env_pkg.env_get(M, env_mem, env, types.nth(M, ast, 0));
+            fargs := TREAT(M(types.slice(M, ast, 1)) as mal_seq_type);
+            if M(mac).type_id = 12 THEN
+                malfn := TREAT(M(mac) AS malfunc_type);
+                fn_env := env_pkg.env_new(M, env_mem, malfn.env,
+                                          malfn.params,
+                                          fargs);
+                ast := EVAL(malfn.ast, fn_env);
+            ELSE
+                ast := do_builtin(mac, fargs);
+            END IF;
+        END LOOP;
+        RETURN ast;
+    END;
+
     FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i        integer;
         old_seq  mal_seq_items_type;
@@ -75,6 +148,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         END IF;
 
         -- apply
+        ast := macroexpand(ast, env);
+        IF M(ast).type_id <> 8 THEN
+            RETURN eval_ast(ast, env);
+        END IF;
+        IF types.count(M, ast) = 0 THEN
+            RETURN ast;
+        END IF;
+
         a0 := types.first(M, ast);
         if M(a0).type_id = 7 THEN -- symbol
             a0sym := TREAT(M(a0) AS mal_str_type).val_str;
@@ -97,6 +178,19 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
             END LOOP;
             env := let_env;
             ast := types.nth(M, ast, 2); -- TCO
+        WHEN a0sym = 'quote' THEN
+            RETURN types.nth(M, ast, 1);
+        WHEN a0sym = 'quasiquote' THEN
+            RETURN EVAL(quasiquote(types.nth(M, ast, 1)), env);
+        WHEN a0sym = 'defmacro!' THEN
+            x := EVAL(types.nth(M, ast, 2), env);
+            malfn := TREAT(M(x) as malfunc_type);
+            malfn.is_macro := 1;
+            M(x) := malfn;
+            RETURN env_pkg.env_set(M, env_mem, env,
+                types.nth(M, ast, 1), x);
+        WHEN a0sym = 'macroexpand' THEN
+            RETURN macroexpand(types.nth(M, ast, 1), env);
         WHEN a0sym = 'do' THEN
             x := types.slice(M, ast, 1, types.count(M, ast)-2);
             x := eval_ast(x, env);
@@ -210,6 +304,8 @@ BEGIN
     -- core.mal: defined using the language itself
     line := REP('(def! not (fn* (a) (if a false true)))');
     line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+    line := REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))');
+    line := REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))');
 
     WHILE true LOOP
         BEGIN

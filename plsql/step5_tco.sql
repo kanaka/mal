@@ -32,7 +32,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     -- eval
 
     -- forward declarations
-    FUNCTION EVAL(ast integer, env integer) RETURN integer;
+    FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer;
 
     FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i        integer;
@@ -54,7 +54,9 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         END IF;
     END;
 
-    FUNCTION EVAL(ast integer, env integer) RETURN integer IS
+    FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer IS
+        ast      integer := orig_ast;
+        env      integer := orig_env;
         el       integer;
         a0       integer;
         a0sym    varchar2(4000);
@@ -62,11 +64,11 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         let_env  integer;
         i        integer;
         f        integer;
-        fn_env   integer;
         cond     integer;
         malfn    malfunc_type;
         args     mal_seq_type;
     BEGIN
+      WHILE TRUE LOOP
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
         END IF;
@@ -92,20 +94,22 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
                     seq(i), EVAL(seq(i+1), let_env));
                 i := i + 2;
             END LOOP;
-            RETURN EVAL(types.nth(M, ast, 2), let_env);
+            env := let_env;
+            ast := types.nth(M, ast, 2); -- TCO
         WHEN a0sym = 'do' THEN
-            el := eval_ast(types.slice(M, ast, 1), env);
-            RETURN types.nth(M, el, types.count(M, el)-1);
+            x := types.slice(M, ast, 1, types.count(M, ast)-2);
+            x := eval_ast(x, env);
+            ast := types.nth(M, ast, types.count(M, ast)-1);  -- TCO
         WHEN a0sym = 'if' THEN
             cond := EVAL(types.nth(M, ast, 1), env);
             IF cond = 1 OR cond = 2 THEN  -- nil or false
                 IF types.count(M, ast) > 3 THEN
-                    RETURN EVAL(types.nth(M, ast, 3), env);
+                    ast := EVAL(types.nth(M, ast, 3), env);  -- TCO
                 ELSE
                     RETURN 1;  -- nil
                 END IF;
             ELSE
-                RETURN EVAL(types.nth(M, ast, 2), env);
+                ast := EVAL(types.nth(M, ast, 2), env);  -- TCO
             END IF;
         WHEN a0sym = 'fn*' THEN
             RETURN types.malfunc(M, types.nth(M, ast, 2),
@@ -117,13 +121,15 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
             args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
-                fn_env := env_pkg.env_new(M, env_mem, malfn.env,
+                env := env_pkg.env_new(M, env_mem, malfn.env,
                                           malfn.params, args);
-                RETURN EVAL(malfn.ast, fn_env);
+                ast := malfn.ast;  -- TCO
             ELSE
                 RETURN core.do_core_func(M, f, args.val_seq);
             END IF;
         END CASE;
+
+      END LOOP;
 
     END;
 
@@ -133,6 +139,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         RETURN printer.pr_str(M, exp);
     END;
 
+    -- repl
     FUNCTION REP(line varchar) RETURN varchar IS
     BEGIN
         RETURN PRINT(EVAL(READ(line), repl_env));

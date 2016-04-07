@@ -32,7 +32,39 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     -- eval
 
     -- forward declarations
-    FUNCTION EVAL(ast integer, env integer) RETURN integer;
+    FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer;
+    FUNCTION do_builtin(fn integer, args mal_seq_type) RETURN integer;
+
+    FUNCTION is_pair(ast integer) RETURN BOOLEAN IS
+    BEGIN
+        RETURN M(ast).type_id IN (8,9) AND types.count(M, ast) > 0;
+    END;
+
+    FUNCTION quasiquote(ast integer) RETURN integer IS
+        a0   integer;
+        a00  integer;
+    BEGIN
+        IF NOT is_pair(ast) THEN
+            RETURN types.list(M, types.symbol(M, 'quote'), ast);
+        ELSE
+            a0 := types.nth(M, ast, 0);
+            IF M(a0).type_id = 7 AND
+               TREAT(m(a0) AS mal_str_type).val_str = 'unquote' THEN
+                RETURN types.nth(M, ast, 1);
+            ELSIF is_pair(a0) THEN
+                a00 := types.nth(M, a0, 0);
+                IF M(a00).type_id = 7 AND
+                   TREAT(M(a00) AS mal_str_type).val_str = 'splice-unquote' THEN
+                    RETURN types.list(M, types.symbol(M, 'concat'),
+                                         types.nth(M, a0, 1),
+                                         quasiquote(types.slice(M, ast, 1)));
+                END IF;
+            END IF;
+            RETURN types.list(M, types.symbol(M, 'cons'),
+                                 quasiquote(a0),
+                                 quasiquote(types.slice(M, ast, 1)));
+        END IF;
+    END;
 
     FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i        integer;
@@ -54,7 +86,9 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         END IF;
     END;
 
-    FUNCTION EVAL(ast integer, env integer) RETURN integer IS
+    FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer IS
+        ast      integer := orig_ast;
+        env      integer := orig_env;
         el       integer;
         a0       integer;
         a0sym    varchar2(4000);
@@ -62,11 +96,11 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         let_env  integer;
         i        integer;
         f        integer;
-        fn_env   integer;
         cond     integer;
         malfn    malfunc_type;
         args     mal_seq_type;
     BEGIN
+      WHILE TRUE LOOP
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
         END IF;
@@ -92,20 +126,26 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
                     seq(i), EVAL(seq(i+1), let_env));
                 i := i + 2;
             END LOOP;
-            RETURN EVAL(types.nth(M, ast, 2), let_env);
+            env := let_env;
+            ast := types.nth(M, ast, 2); -- TCO
+        WHEN a0sym = 'quote' THEN
+            RETURN types.nth(M, ast, 1);
+        WHEN a0sym = 'quasiquote' THEN
+            RETURN EVAL(quasiquote(types.nth(M, ast, 1)), env);
         WHEN a0sym = 'do' THEN
-            el := eval_ast(types.slice(M, ast, 1), env);
-            RETURN types.nth(M, el, types.count(M, el)-1);
+            x := types.slice(M, ast, 1, types.count(M, ast)-2);
+            x := eval_ast(x, env);
+            ast := types.nth(M, ast, types.count(M, ast)-1);  -- TCO
         WHEN a0sym = 'if' THEN
             cond := EVAL(types.nth(M, ast, 1), env);
             IF cond = 1 OR cond = 2 THEN  -- nil or false
                 IF types.count(M, ast) > 3 THEN
-                    RETURN EVAL(types.nth(M, ast, 3), env);
+                    ast := EVAL(types.nth(M, ast, 3), env);  -- TCO
                 ELSE
                     RETURN 1;  -- nil
                 END IF;
             ELSE
-                RETURN EVAL(types.nth(M, ast, 2), env);
+                ast := EVAL(types.nth(M, ast, 2), env);  -- TCO
             END IF;
         WHEN a0sym = 'fn*' THEN
             RETURN types.malfunc(M, types.nth(M, ast, 2),
@@ -117,15 +157,58 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
             args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
-                fn_env := env_pkg.env_new(M, env_mem, malfn.env,
+                env := env_pkg.env_new(M, env_mem, malfn.env,
                                           malfn.params, args);
-                RETURN EVAL(malfn.ast, fn_env);
+                ast := malfn.ast;  -- TCO
             ELSE
-                RETURN core.do_core_func(M, f, args.val_seq);
+                RETURN do_builtin(f, args);
             END IF;
         END CASE;
 
+      END LOOP;
+
     END;
+
+    -- hack to get around lack of function references
+    -- functions that require special access to repl_env or EVAL
+    -- are implemented directly here, otherwise, core.do_core_fn
+    -- is called.
+    FUNCTION do_builtin(fn integer, args mal_seq_type) RETURN integer IS
+        fname   varchar2(100);
+        sargs   mal_seq_items_type := args.val_seq;
+        aval    integer;
+        f       integer;
+        malfn   malfunc_type;
+        fargs   mal_seq_items_type;
+        fn_env  integer;
+    BEGIN
+        fname := TREAT(M(fn) AS mal_str_type).val_str;
+        CASE
+        WHEN fname = 'do_eval' THEN
+            RETURN EVAL(sargs(1), repl_env);
+        WHEN fname = 'swap!' THEN
+            aval := TREAT(M(sargs(1)) AS mal_atom_type).val;
+            f := sargs(2);
+            -- slice one extra at the beginning that will be changed
+            -- to the value of the atom
+            fargs := TREAT(M(types.slice(M, sargs, 1)) AS mal_seq_type).val_seq;
+            fargs(1) := aval;
+            IF M(f).type_id = 12 THEN
+                malfn := TREAT(M(f) AS malfunc_type);
+                fn_env := env_pkg.env_new(M, env_mem, malfn.env,
+                                          malfn.params,
+                                          mal_seq_type(8, fargs));
+                aval := EVAL(malfn.ast, fn_env);
+            ELSE
+                aval := do_builtin(f, mal_seq_type(8, fargs));
+            END IF;
+            M(sargs(1)) := mal_atom_type(13, aval);
+            RETURN aval;
+        ELSE
+            RETURN core.do_core_func(M, fn, sargs);
+        END CASE;
+    END;
+
 
     -- print
     FUNCTION PRINT(exp integer) RETURN varchar IS
@@ -133,6 +216,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         RETURN printer.pr_str(M, exp);
     END;
 
+    -- repl
     FUNCTION REP(line varchar) RETURN varchar IS
     BEGIN
         RETURN PRINT(EVAL(READ(line), repl_env));
@@ -151,9 +235,16 @@ BEGIN
             types.symbol(M, core_ns(cidx)),
             types.func(M, core_ns(cidx)));
     END LOOP;
+    x := env_pkg.env_set(M, env_mem, repl_env,
+        types.symbol(M, 'eval'),
+        types.func(M, 'do_eval'));
+    x := env_pkg.env_set(M, env_mem, repl_env,
+        types.symbol(M, '*ARGV*'),
+        types.list(M));
 
     -- core.mal: defined using the language itself
     line := REP('(def! not (fn* (a) (if a false true)))');
+    line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
 
     WHILE true LOOP
         BEGIN

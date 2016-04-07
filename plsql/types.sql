@@ -45,7 +45,7 @@ CREATE OR REPLACE TYPE mal_str_type FORCE UNDER mal_type (
 /
 
 -- list (8), vector (9)
-CREATE OR REPLACE TYPE mal_seq_items_type FORCE AS TABLE OF mal_type;
+CREATE OR REPLACE TYPE mal_seq_items_type FORCE AS TABLE OF integer;
 /
 
 CREATE OR REPLACE TYPE mal_seq_type FORCE UNDER mal_type (
@@ -55,99 +55,140 @@ CREATE OR REPLACE TYPE mal_seq_type FORCE UNDER mal_type (
 
 -- malfunc (12)
 CREATE OR REPLACE TYPE malfunc_type FORCE UNDER mal_type (
-    ast     mal_type,
-    params  mal_type,
-    env     integer
+    ast       integer,
+    params    integer,
+    env       integer,
+    is_macro  integer
 ) FINAL;
 /
 
 -- atom (13)
-CREATE OR REPLACE TYPE atom_mem_type FORCE IS TABLE OF mal_type;
+CREATE OR REPLACE TYPE mal_atom_type FORCE UNDER mal_type (
+    val  integer  -- index into mem_type
+);
 /
 
-CREATE OR REPLACE TYPE atom_type FORCE UNDER mal_type (
-    val  integer  -- index into atom_mem_type
-);
+-- nested table for storing mal_types
+CREATE OR REPLACE TYPE mem_type FORCE IS TABLE OF mal_type;
 /
 
 
 
 -- ---------------------------------------------------------
 
-CREATE OR REPLACE PACKAGE types_pkg IS
+CREATE OR REPLACE PACKAGE types IS
     -- general functions
-    FUNCTION wraptf(val boolean) RETURN mal_type;
-    FUNCTION equal_Q(a mal_type, b mal_type) RETURN boolean;
+    FUNCTION mem_new RETURN mem_type;
+
+    FUNCTION wraptf(val boolean) RETURN integer;
+    FUNCTION equal_Q(M IN OUT NOCOPY mem_type,
+                     a integer, b integer) RETURN boolean;
 
     -- scalar functions
-    FUNCTION symbol(name varchar) RETURN mal_type;
+    FUNCTION int(M IN OUT NOCOPY mem_type, num integer) RETURN integer;
+    FUNCTION symbol(M IN OUT NOCOPY mem_type, name varchar) RETURN integer;
+    FUNCTION string(M IN OUT NOCOPY mem_type, name varchar) RETURN integer;
 
     -- sequence functions
-    FUNCTION list RETURN mal_type;
-    FUNCTION list(a mal_type) RETURN mal_type;
-    FUNCTION list(a mal_type, b mal_type) RETURN mal_type;
-    FUNCTION list(a mal_type, b mal_type, c mal_type) RETURN mal_type;
-    FUNCTION list(items mal_seq_items_type) RETURN mal_type;
+    FUNCTION seq (M IN OUT NOCOPY mem_type,
+                  type_id integer, items mal_seq_items_type) RETURN integer;
+    FUNCTION list(M IN OUT NOCOPY mem_type) RETURN integer;
+    FUNCTION list(M IN OUT NOCOPY mem_type,
+                  a integer) RETURN integer;
+    FUNCTION list(M IN OUT NOCOPY mem_type,
+                  a integer, b integer) RETURN integer;
+    FUNCTION list(M IN OUT NOCOPY mem_type,
+                  a integer, b integer, c integer) RETURN integer;
+-- --     FUNCTION list(M IN OUT NOCOPY mem_type,
+-- --                   items mal_seq_items_type) RETURN integer;
 
-    FUNCTION first(seq mal_type) RETURN mal_type;
-    FUNCTION slice(seq mal_type, idx integer) RETURN mal_type;
-    FUNCTION slice(items mal_seq_items_type, idx integer) RETURN mal_type;
-    FUNCTION nth(seq mal_type, idx integer) RETURN mal_type;
+     FUNCTION first(M IN OUT NOCOPY mem_type,
+                    seq integer) RETURN integer;
+     FUNCTION slice(M IN OUT NOCOPY mem_type,
+                    seq integer,
+                    idx integer,
+                    last integer DEFAULT NULL) RETURN integer;
+    FUNCTION slice(M IN OUT NOCOPY mem_type,
+                   items mal_seq_items_type, idx integer) RETURN integer;
+    FUNCTION nth(M IN OUT NOCOPY mem_type,
+                 seq integer, idx integer) RETURN integer;
 
-    FUNCTION count(seq mal_type) RETURN integer;
+    FUNCTION count(M IN OUT NOCOPY mem_type,
+                   seq integer) RETURN integer;
 
-    FUNCTION atom_new(mem IN OUT NOCOPY atom_mem_type,
-                      val mal_type) RETURN mal_type;
-END types_pkg;
+    FUNCTION atom_new(M IN OUT NOCOPY mem_type,
+                      val integer) RETURN integer;
+
+    -- function functions
+    FUNCTION func(M IN OUT NOCOPY mem_type, name varchar) RETURN integer;
+    FUNCTION malfunc(M IN OUT NOCOPY mem_type,
+                     ast       integer,
+                     params    integer,
+                     env       integer,
+                     is_macro  integer DEFAULT 0
+                     ) RETURN integer;
+END types;
 /
 
-CREATE OR REPLACE PACKAGE BODY types_pkg IS
+CREATE OR REPLACE PACKAGE BODY types IS
 
 -- ---------------------------------------------------------
 -- general functions
 
+FUNCTION mem_new RETURN mem_type IS
+BEGIN
+    -- initialize mal type memory pool
+    -- 1 -> nil
+    -- 2 -> false
+    -- 3 -> true
+    RETURN mem_type(mal_type(0), mal_type(1), mal_type(2));
+END;
 
-FUNCTION wraptf(val boolean) RETURN mal_type IS
+FUNCTION wraptf(val boolean) RETURN integer IS
 BEGIN
     IF val THEN
-        RETURN mal_type(2);
+        RETURN 3; -- true
     ELSE
-        RETURN mal_type(1);
+        RETURN 2; -- false
     END IF;
 END;
 
-FUNCTION equal_Q(a mal_type, b mal_type) RETURN boolean IS
+FUNCTION equal_Q(M IN OUT NOCOPY mem_type,
+                 a integer, b integer) RETURN boolean IS
+    atyp  integer;
+    btyp  integer;
     aseq  mal_seq_items_type;
     bseq  mal_seq_items_type;
     i     integer;
 BEGIN
-    if NOT (a.type_id = b.type_id OR
-            (a.type_id IN (8,9) AND b.type_id IN (8,9))) THEN
+    atyp := M(a).type_id;
+    btyp := M(b).type_id;
+    IF NOT (atyp = btyp OR (atyp IN (8,9) AND btyp IN (8,9))) THEN
         RETURN FALSE;
     END IF;
 
     CASE
-    WHEN a.type_id IN (0,1,2) THEN
+    WHEN atyp IN (0,1,2) THEN
         RETURN TRUE;
-    WHEN a.type_id = 3 THEN
-        RETURN TREAT(a AS mal_int_type).val_int =
-               TREAT(b AS mal_int_type).val_int;
-    WHEN a.type_id IN (5,7) THEN
-        IF TREAT(a AS mal_str_type).val_str IS NULL AND
-           TREAT(b AS mal_str_type).val_str IS NULL THEN
+    WHEN atyp = 3 THEN
+        RETURN TREAT(M(a) AS mal_int_type).val_int =
+               TREAT(M(b) AS mal_int_type).val_int;
+    WHEN atyp IN (5,7) THEN
+        IF TREAT(M(a) AS mal_str_type).val_str IS NULL AND
+           TREAT(M(b) AS mal_str_type).val_str IS NULL THEN
             RETURN TRUE;
         ELSE
-            RETURN TREAT(a AS mal_str_type).val_str =
-                TREAT(b AS mal_str_type).val_str;
+            RETURN TREAT(M(a) AS mal_str_type).val_str =
+                   TREAT(M(b) AS mal_str_type).val_str;
         END IF;
-    WHEN a.type_id IN (8,9) THEN
-        aseq := TREAT(a AS mal_seq_type).val_seq;
-        bseq := TREAT(b AS mal_seq_type).val_seq;
+    WHEN atyp IN (8,9) THEN
+        aseq := TREAT(M(a) AS mal_seq_type).val_seq;
+        bseq := TREAT(M(b) AS mal_seq_type).val_seq;
         IF aseq.COUNT <> bseq.COUNT THEN
             RETURN FALSE;
         END IF;
         FOR i IN 1..aseq.COUNT LOOP
-            IF NOT equal_Q(aseq(i), bseq(i)) THEN
+            IF NOT equal_Q(M, aseq(i), bseq(i)) THEN
                 RETURN FALSE;
             END IF;
         END LOOP;
@@ -264,10 +305,27 @@ END;
 -- scalar functions
 
 
-FUNCTION symbol(name varchar) RETURN mal_type IS
+FUNCTION int(M IN OUT NOCOPY mem_type, num integer) RETURN integer IS
 BEGIN
-    RETURN mal_str_type(7, name);
+    M.EXTEND();
+    M(M.COUNT()) := mal_int_type(3, num);
+    RETURN M.COUNT();
 END;
+
+FUNCTION symbol(M IN OUT NOCOPY mem_type, name varchar) RETURN integer IS
+BEGIN
+    M.EXTEND();
+    M(M.COUNT()) := mal_str_type(7, name);
+    RETURN M.COUNT();
+END;
+
+FUNCTION string(M IN OUT NOCOPY mem_type, name varchar) RETURN integer IS
+BEGIN
+    M.EXTEND();
+    M(M.COUNT()) := mal_str_type(5, name);
+    RETURN M.COUNT();
+END;
+
 
 
 -- -- _nil_Q:
@@ -438,53 +496,80 @@ END;
 -- ---------------------------------------------------------
 -- sequence functions
 
+FUNCTION seq(M IN OUT NOCOPY mem_type,
+             type_id integer, items mal_seq_items_type) RETURN integer IS
+BEGIN
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(type_id, items);
+    RETURN M.COUNT();
+END;
+
 -- list:
 -- return a mal list
-FUNCTION list RETURN mal_type IS
+FUNCTION list(M IN OUT NOCOPY mem_type) RETURN integer IS
 BEGIN
-    RETURN mal_seq_type(8, mal_seq_items_type());
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(8, mal_seq_items_type());
+    RETURN M.COUNT();
 END;
 
-FUNCTION list(a mal_type) RETURN mal_type IS
+FUNCTION list(M IN OUT NOCOPY mem_type,
+              a integer) RETURN integer IS
 BEGIN
-    RETURN mal_seq_type(8, mal_seq_items_type(a));
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(8, mal_seq_items_type(a));
+    RETURN M.COUNT();
 END;
 
-FUNCTION list(a mal_type, b mal_type) RETURN mal_type IS
+FUNCTION list(M IN OUT NOCOPY mem_type,
+              a integer, b integer) RETURN integer IS
 BEGIN
-    RETURN mal_seq_type(8, mal_seq_items_type(a, b));
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(8, mal_seq_items_type(a, b));
+    RETURN M.COUNT();
 END;
 
-FUNCTION list(a mal_type, b mal_type, c mal_type) RETURN mal_type IS
+FUNCTION list(M IN OUT NOCOPY mem_type,
+              a integer, b integer, c integer) RETURN integer IS
 BEGIN
-    RETURN mal_seq_type(8, mal_seq_items_type(a, b, c));
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(8, mal_seq_items_type(a, b, c));
+    RETURN M.COUNT();
 END;
 
-FUNCTION list(items mal_seq_items_type) RETURN mal_type IS
+FUNCTION first(M IN OUT NOCOPY mem_type,
+               seq integer) RETURN integer IS
 BEGIN
-    RETURN mal_seq_type(8, items);
+    RETURN TREAT(M(seq) AS mal_seq_type).val_seq(1);
 END;
 
-FUNCTION first(seq mal_type) RETURN mal_type IS
-BEGIN
-    RETURN TREAT(seq AS mal_seq_type).val_seq(1);
-END;
-
-FUNCTION slice(seq mal_type, idx integer) RETURN mal_type IS
+FUNCTION slice(M IN OUT NOCOPY mem_type,
+               seq integer,
+               idx integer,
+               last integer DEFAULT NULL) RETURN integer IS
     old_items  mal_seq_items_type;
     new_items  mal_seq_items_type;
     i          integer;
+    final_idx  integer;
 BEGIN
-    old_items := TREAT(seq AS mal_seq_type).val_seq;
+    old_items := TREAT(M(seq) AS mal_seq_type).val_seq;
     new_items := mal_seq_items_type();
-    new_items.EXTEND(old_items.COUNT - idx);
-    FOR i IN idx+1..old_items.COUNT LOOP
+    IF last IS NULL THEN
+        final_idx := old_items.COUNT();
+    ELSE
+        final_idx := last + 1;
+    END IF;
+    new_items.EXTEND(final_idx - idx);
+    FOR i IN idx+1..final_idx LOOP
         new_items(i-idx) := old_items(i);
     END LOOP;
-    RETURN mal_seq_type(8, new_items);
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(8, new_items);
+    RETURN M.COUNT();
 END;
 
-FUNCTION slice(items mal_seq_items_type, idx integer) RETURN mal_type IS
+FUNCTION slice(M IN OUT NOCOPY mem_type,
+               items mal_seq_items_type, idx integer) RETURN integer IS
     new_items  mal_seq_items_type;
     i          integer;
 BEGIN
@@ -493,17 +578,21 @@ BEGIN
     FOR i IN idx+1..items.COUNT LOOP
         new_items(i-idx) := items(i);
     END LOOP;
-    RETURN mal_seq_type(8, new_items);
+    M.EXTEND();
+    M(M.COUNT()) := mal_seq_type(8, new_items);
+    RETURN M.COUNT();
 END;
 
-FUNCTION nth(seq mal_type, idx integer) RETURN mal_type IS
+FUNCTION nth(M IN OUT NOCOPY mem_type,
+             seq integer, idx integer) RETURN integer IS
 BEGIN
-    RETURN TREAT(seq AS mal_seq_type).val_seq(idx+1);
+    RETURN TREAT(M(seq) AS mal_seq_type).val_seq(idx+1);
 END;
 
-FUNCTION count(seq mal_type) RETURN integer IS
+FUNCTION count(M IN OUT NOCOPY mem_type,
+               seq integer) RETURN integer IS
 BEGIN
-    RETURN TREAT(seq AS mal_seq_type).val_seq.COUNT;
+    RETURN TREAT(M(seq) AS mal_seq_type).val_seq.COUNT;
 END;
 
 -- -- _vector:
@@ -710,11 +799,30 @@ END;
 --     SELECT val_hash INTO hash FROM value WHERE value_id = hm;
 --     RETURN CAST(avals(hash) AS integer[]);
 -- END; $$ LANGUAGE plpgsql;
--- 
--- 
--- -- ---------------------------------------------------------
--- -- function functions
--- 
+
+
+-- ---------------------------------------------------------
+-- function functions
+
+FUNCTION func(M IN OUT NOCOPY mem_type, name varchar) RETURN integer IS
+BEGIN
+    M.EXTEND();
+    M(M.COUNT()) := mal_str_type(11, name);
+    RETURN M.COUNT();
+END;
+
+FUNCTION malfunc(M IN OUT NOCOPY mem_type,
+                 ast       integer,
+                 params    integer,
+                 env       integer,
+                 is_macro  integer DEFAULT 0
+                 ) RETURN integer IS
+BEGIN
+    M.EXTEND();
+    M(M.COUNT()) := malfunc_type(12, ast, params, env, is_macro);
+    RETURN M.COUNT();
+END;
+
 -- -- _function:
 -- -- takes a function name
 -- -- returns the value_id of a new 
@@ -784,14 +892,13 @@ END;
 -- ---------------------------------------------------------
 -- atom functions
 
-FUNCTION atom_new(mem IN OUT NOCOPY atom_mem_type,
-                  val mal_type) RETURN mal_type IS
+FUNCTION atom_new(M IN OUT NOCOPY mem_type,
+                  val integer) RETURN integer IS
     aidx  integer;
 BEGIN
-    mem.EXTEND();
-    aidx := mem.COUNT();
-    mem(aidx) := val;
-    RETURN atom_type(13, aidx);
+    M.EXTEND();
+    M(M.COUNT()) := mal_atom_type(13, val);
+    RETURN M.COUNT();
 END;
 
 
@@ -837,7 +944,7 @@ END;
 --     RETURN newval;
 -- END; $$ LANGUAGE plpgsql;
 
-END types_pkg;
+END types;
 /
 show errors;
 

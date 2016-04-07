@@ -3,34 +3,35 @@
 @reader.sql
 @printer.sql
 
-CREATE OR REPLACE PACKAGE mal_pkg IS
+CREATE OR REPLACE PACKAGE mal IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer;
 
-END mal_pkg;
+END mal;
 /
 
-CREATE OR REPLACE PACKAGE BODY mal_pkg IS
+CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer IS
-    line  varchar2(4000);
+    M         mem_type;
+    line      varchar2(4000);
 
     -- read
-    FUNCTION READ(line varchar) RETURN mal_type IS
+    FUNCTION READ(line varchar) RETURN integer IS
     BEGIN
-        RETURN reader_pkg.read_str(line);
+        RETURN reader.read_str(M, line);
     END;
 
     -- eval
-    FUNCTION EVAL(ast mal_type, env varchar) RETURN mal_type IS
+    FUNCTION EVAL(ast integer, env varchar) RETURN integer IS
     BEGIN
         RETURN ast;
     END;
 
     -- print
-    FUNCTION PRINT(exp mal_type) RETURN varchar IS
+    FUNCTION PRINT(exp integer) RETURN varchar IS
     BEGIN
-        RETURN printer_pkg.pr_str(exp);
+        RETURN printer.pr_str(M, exp);
     END;
 
     -- repl
@@ -40,11 +41,12 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     END;
 
 BEGIN
+    M := types.mem_new();
+
     WHILE true LOOP
         BEGIN
             line := stream_readline('user> ', 0);
-            -- stream_writeline('line: [' || line || ']', 1);
-            IF line IS NULL THEN RETURN 0; END IF;
+            IF line IS NULL THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
                 stream_writeline(REP(line));
             END IF;
@@ -59,7 +61,7 @@ BEGIN
     END LOOP;
 END;
 
-END mal_pkg;
+END mal;
 /
 show errors;
 

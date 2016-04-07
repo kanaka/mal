@@ -3,17 +3,20 @@
 
 PROMPT "printer start";
 
-CREATE OR REPLACE PACKAGE printer_pkg IS
-    FUNCTION pr_str(ast mal_type,
-                    print_readably boolean DEFAULT TRUE) RETURN varchar;
-    FUNCTION pr_str_seq(seq mal_seq_items_type, sep varchar2,
+CREATE OR REPLACE PACKAGE printer IS
+    FUNCTION pr_str_seq(M IN OUT NOCOPY mem_type,
+                        seq mal_seq_items_type, sep varchar2,
                         print_readably boolean DEFAULT TRUE) RETURN varchar;
-END printer_pkg;
+    FUNCTION pr_str(M IN OUT NOCOPY mem_type,
+                    ast integer,
+                    print_readably boolean DEFAULT TRUE) RETURN varchar;
+END printer;
 /
 
-CREATE OR REPLACE PACKAGE BODY printer_pkg AS
+CREATE OR REPLACE PACKAGE BODY printer AS
 
-FUNCTION pr_str_seq(seq mal_seq_items_type, sep varchar2,
+FUNCTION pr_str_seq(M IN OUT NOCOPY mem_type,
+                    seq mal_seq_items_type, sep varchar2,
                     print_readably boolean DEFAULT TRUE) RETURN varchar IS
     first  integer := 1;
     str    varchar2(4000) := '';
@@ -24,12 +27,13 @@ BEGIN
         ELSE
             str := str || sep;
         END IF;
-        str := str || pr_str(seq(i), print_readably);
+        str := str || pr_str(M, seq(i), print_readably);
     END LOOP;
     RETURN str;
 END;
 
-FUNCTION pr_str(ast mal_type,
+FUNCTION pr_str(M IN OUT NOCOPY mem_type,
+                ast integer,
                 print_readably boolean DEFAULT TRUE) RETURN varchar IS
     type_id  integer;
     first    integer := 1;
@@ -37,16 +41,16 @@ FUNCTION pr_str(ast mal_type,
     str      varchar2(4000);
     malfn    malfunc_type;
 BEGIN
-    type_id := ast.type_id;
+    type_id := M(ast).type_id;
     -- stream_writeline('pr_str type: ' || type_id);
     CASE
     WHEN type_id = 0 THEN RETURN 'nil';
     WHEN type_id = 1 THEN RETURN 'false';
     WHEN type_id = 2 THEN RETURN 'true';
     WHEN type_id = 3 THEN  -- integer
-        RETURN CAST(TREAT(ast AS mal_int_type).val_int as varchar);
+        RETURN CAST(TREAT(M(ast) AS mal_int_type).val_int as varchar);
     WHEN type_id = 5 THEN  -- string
-        str := TREAT(ast as mal_str_type).val_str;
+        str := TREAT(M(ast) as mal_str_type).val_str;
         IF chr(127) = SUBSTR(str, 1, 1) THEN
             RETURN ':' || SUBSTR(str, 2, LENGTH(str)-1);
         ELSIF print_readably THEN
@@ -57,11 +61,12 @@ BEGIN
         ELSE
             RETURN str;
         END IF;
-        RETURN TREAT(ast AS mal_str_type).val_str;
+        RETURN TREAT(M(ast) AS mal_str_type).val_str;
     WHEN type_id = 7 THEN  -- symbol
-        RETURN TREAT(ast AS mal_str_type).val_str;
+        RETURN TREAT(M(ast) AS mal_str_type).val_str;
     WHEN type_id = 8 THEN  -- list
-        RETURN '(' || pr_str_seq(TREAT(ast AS mal_seq_type).val_seq, ' ',
+        RETURN '(' || pr_str_seq(M,
+                                 TREAT(M(ast) AS mal_seq_type).val_seq, ' ',
                                  print_readably) || ')';
 --     WHEN type_id = 9 THEN  -- vector
 --         BEGIN
@@ -85,20 +90,22 @@ BEGIN
 --         END;
     WHEN type_id = 11 THEN  -- native function
         RETURN '#<function ' ||
-               TREAT(ast AS mal_str_type).val_str ||
+               TREAT(M(ast) AS mal_str_type).val_str ||
                '>';
     WHEN type_id = 12 THEN  -- mal function
-        malfn := TREAT(ast AS malfunc_type);
-        RETURN '(fn* ' || pr_str(malfn.params, print_readably) ||
-                ' ' || pr_str(malfn.ast, print_readably) || ')';
+        malfn := TREAT(M(ast) AS malfunc_type);
+        RETURN '(fn* ' || pr_str(M, malfn.params, print_readably) ||
+                ' ' || pr_str(M, malfn.ast, print_readably) || ')';
     WHEN type_id = 13 THEN  -- atom
-        RETURN '(atom ...)';
+        RETURN '(atom ' ||
+            pr_str(M, TREAT(M(ast) AS mal_atom_type).val, print_readably) ||
+            ')';
     ELSE
         RETURN 'unknown';
     END CASE;
 END;
 
-END printer_pkg;
+END printer;
 /
 show errors;
 

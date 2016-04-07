@@ -6,24 +6,24 @@ PROMPT "reader.sql start";
 CREATE OR REPLACE TYPE tokens FORCE AS TABLE OF varchar2(4000);
 /
 
-CREATE OR REPLACE TYPE reader FORCE AS OBJECT (
+CREATE OR REPLACE TYPE readerT FORCE AS OBJECT (
     position  integer,
     toks      tokens,
-    MEMBER FUNCTION peek (SELF IN OUT reader) RETURN varchar,
-    MEMBER FUNCTION next (SELF IN OUT reader) RETURN varchar
+    MEMBER FUNCTION peek (SELF IN OUT NOCOPY readerT) RETURN varchar,
+    MEMBER FUNCTION next (SELF IN OUT NOCOPY readerT) RETURN varchar
 );
 /
 
 
-CREATE OR REPLACE TYPE BODY reader AS
-    MEMBER FUNCTION peek (SELF IN OUT reader) RETURN varchar IS
+CREATE OR REPLACE TYPE BODY readerT AS
+    MEMBER FUNCTION peek (SELF IN OUT NOCOPY readerT) RETURN varchar IS
     BEGIN
         IF position > toks.COUNT THEN
             RETURN NULL;
         END IF;
         RETURN toks(position);
     END;
-    MEMBER FUNCTION next (SELF IN OUT reader) RETURN varchar IS
+    MEMBER FUNCTION next (SELF IN OUT NOCOPY readerT) RETURN varchar IS
     BEGIN
         position := position + 1;
         RETURN toks(position-1);
@@ -32,12 +32,14 @@ END;
 /
 
 
-CREATE OR REPLACE PACKAGE reader_pkg IS
-    FUNCTION read_str(str varchar) RETURN mal_type;
-END reader_pkg;
+CREATE OR REPLACE PACKAGE reader IS
+    FUNCTION read_str(M IN OUT NOCOPY mem_type,
+                      str varchar) RETURN integer;
+END reader;
 /
+show errors;
 
-CREATE OR REPLACE PACKAGE BODY reader_pkg AS
+CREATE OR REPLACE PACKAGE BODY reader AS
 
 FUNCTION tokenize(str varchar) RETURN tokens IS
     re      varchar2(100) := '[[:space:] ,]*(~@|[][{}()''`~@]|"(([\].|[^\"])*)"|;[^' || chr(10) || ']*|[^][[:space:] {}()''"`~@,;]*)';
@@ -58,50 +60,53 @@ BEGIN
 END;
 
 -- read_atom:
--- takes a reader
--- updates reader and returns value
-FUNCTION read_atom(rdr IN OUT reader) RETURN mal_type IS
+-- takes a readerT
+-- updates readerT and returns value
+FUNCTION read_atom(M IN OUT NOCOPY mem_type,
+                   rdr IN OUT NOCOPY readerT) RETURN integer IS
     str_id  integer;
     str     varchar2(4000);
     token   varchar2(4000);
-    result  mal_type;
+    result  integer;
 BEGIN
     token := rdr.next();
     -- stream_writeline('read_atom: ' || token);
     IF token = 'nil' THEN       -- nil
-        result := mal_type(0);
+        result := 1;
     ELSIF token = 'false' THEN  -- false
-        result := mal_type(1);
+        result := 2;
     ELSIF token = 'true' THEN   -- true
-        result := mal_type(2);
+        result := 3;
     ELSIF REGEXP_LIKE(token, '^-?[0-9][0-9]*$') THEN  -- integer
-        result := mal_int_type(3, CAST(token AS integer));
+        result := types.int(M, CAST(token AS integer));
     ELSIF REGEXP_LIKE(token, '^".*"') THEN  -- string
         -- string
         str := SUBSTR(token, 2, LENGTH(token)-2);
         str := REPLACE(str, '\"', '"');
         str := REPLACE(str, '\n', chr(10));
         str := REPLACE(str, '\\', chr(92));
-        result := mal_str_type(5, str);
+        result := types.string(M, str);
 --     ELSIF token ~ '^:.*' THEN  -- keyword
 --         -- keyword
 --         result := _keywordv(substring(token FROM 2 FOR (char_length(token)-1)));
     ELSE
         -- symbol
-        result := mal_str_type(7, token);
+        result := types.symbol(M, token);
     END IF;
     return result;
 END;
 
 -- forward declaration of read_form
-FUNCTION read_form(rdr IN OUT reader) RETURN mal_type;
+FUNCTION read_form(M IN OUT NOCOPY mem_type,
+                   rdr IN OUT NOCOPY readerT) RETURN integer;
 
 -- read_seq:
--- takes a reader
--- updates reader and returns new mal_type list/vector/hash-map
-FUNCTION read_seq(rdr IN OUT reader, type_id integer,
+-- takes a readerT
+-- updates readerT and returns new mal_list/vector/hash-map
+FUNCTION read_seq(M IN OUT NOCOPY mem_type,
+                  rdr IN OUT NOCOPY readerT, type_id integer,
                   first varchar, last varchar)
-    RETURN mal_type IS
+    RETURN integer IS
     token   varchar2(4000);
     items   mal_seq_items_type;
 BEGIN
@@ -119,60 +124,62 @@ BEGIN
         END IF;
         IF token = last THEN EXIT; END IF;
         items.EXTEND();
-        items(items.COUNT) := read_form(rdr);
+        items(items.COUNT) := read_form(M, rdr);
     END LOOP;
     token := rdr.next();
-    RETURN mal_seq_type(type_id, items);
+    RETURN types.seq(M, type_id, items);
 END;
 
 -- read_form:
--- takes a reader
--- updates the reader and returns new mal_type value
-FUNCTION read_form(rdr IN OUT reader) RETURN mal_type IS
+-- takes a readerT
+-- updates the readerT and returns new mal value
+FUNCTION read_form(M IN OUT NOCOPY mem_type,
+                   rdr IN OUT NOCOPY readerT) RETURN integer IS
     token   varchar2(4000);
-    meta    mal_type;
+    meta    integer;
+    midx    integer;
 BEGIN
      token := rdr.peek();  -- peek
      CASE
     WHEN token = '''' THEN
         token := rdr.next();
-        RETURN types_pkg.list(
-            mal_str_type(7, 'quote'),
-            read_form(rdr));
+        RETURN types.list(M,
+                          types.symbol(M, 'quote'),
+                          read_form(M, rdr));
     WHEN token = '`' THEN
         token := rdr.next();
-        RETURN types_pkg.list(
-            mal_str_type(7, 'quasiquote'),
-            read_form(rdr));
+        RETURN types.list(M,
+                          types.symbol(M, 'quasiquote'),
+                          read_form(M, rdr));
     WHEN token = '~' THEN
         token := rdr.next();
-        RETURN types_pkg.list(
-            mal_str_type(7, 'unquote'),
-            read_form(rdr));
+        RETURN types.list(M,
+                          types.symbol(M, 'unquote'),
+                          read_form(M, rdr));
     WHEN token = '~@' THEN
         token := rdr.next();
-        RETURN types_pkg.list(
-            mal_str_type(7, 'splice-unquote'),
-            read_form(rdr));
+        RETURN types.list(M,
+                          types.symbol(M, 'splice-unquote'),
+                          read_form(M, rdr));
     WHEN token = '^' THEN
         token := rdr.next();
-        meta := read_form(rdr);
-        RETURN types_pkg.list(
-            mal_str_type(7, 'with-meta'),
-            read_form(rdr),
-            meta);
+        meta := read_form(M, rdr);
+        RETURN types.list(M,
+                          types.symbol(M, 'with-meta'),
+                          read_form(M, rdr),
+                              meta);
     WHEN token = '@' THEN
         token := rdr.next();
-        RETURN types_pkg.list(
-            mal_str_type(7, 'deref'),
-            read_form(rdr));
+        RETURN types.list(M,
+                          types.symbol(M, 'deref'),
+                          read_form(M, rdr));
 
     -- list
     WHEN token = ')' THEN
         raise_application_error(-20001,
             'unexpected '')''', TRUE);
     WHEN token = '(' THEN
-        RETURN read_seq(rdr, 8, '(', ')');
+        RETURN read_seq(M, rdr, 8, '(', ')');
 --
 --     -- vector
 --     WHEN token = ']' THEN
@@ -194,25 +201,25 @@ BEGIN
 --
     --
     ELSE
-        RETURN read_atom(rdr);
+        RETURN read_atom(M, rdr);
     END CASE;
 END;
 
 -- read_str:
 -- takes a string
--- returns a new mal_type value
-FUNCTION read_str(str varchar) RETURN mal_type IS
+-- returns a new mal value
+FUNCTION read_str(M IN OUT NOCOPY mem_type,
+                  str varchar) RETURN integer IS
     toks  tokens;
-    rdr   reader;
-    ast   mal_type;
+    rdr   readerT;
 BEGIN
     toks := tokenize(str);
-    rdr := reader(1, toks);
+    rdr := readerT(1, toks);
     -- stream_writeline('token 1: ' || rdr.peek());
-    RETURN read_form(rdr);
+    RETURN read_form(M, rdr);
 END;
 
-END reader_pkg;
+END reader;
 /
 show errors;
 

@@ -4,139 +4,141 @@
 @printer.sql
 @env.sql
 
-CREATE OR REPLACE PACKAGE mal_pkg IS
+CREATE OR REPLACE PACKAGE mal IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer;
 
-END mal_pkg;
+END mal;
 /
 
-CREATE OR REPLACE PACKAGE BODY mal_pkg IS
+CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer IS
+    M         mem_type;
     env_mem   env_mem_type;
     repl_env  integer;
+    x         integer;
     line      varchar2(4000);
-    x         mal_type;
 
     -- read
-    FUNCTION READ(line varchar) RETURN mal_type IS
+    FUNCTION READ(line varchar) RETURN integer IS
     BEGIN
-        RETURN reader_pkg.read_str(line);
+        RETURN reader.read_str(M, line);
     END;
 
     -- eval
 
     -- forward declarations
-    FUNCTION EVAL(ast mal_type, env integer) RETURN mal_type;
-    FUNCTION do_core_func(fn mal_type, args mal_seq_items_type) RETURN mal_type;
+    FUNCTION EVAL(ast integer, env integer) RETURN integer;
+    FUNCTION do_core_func(fn integer, args mal_seq_items_type)
+        RETURN integer;
 
-    FUNCTION eval_ast(ast mal_type, env integer) RETURN mal_type IS
+    FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i        integer;
         old_seq  mal_seq_items_type;
         new_seq  mal_seq_items_type;
-        f        mal_type;
     BEGIN
-        IF ast.type_id = 7 THEN
-            RETURN env_pkg.env_get(env_mem, env, ast);
-        ELSIF ast.type_id IN (8,9) THEN
-            old_seq := TREAT(ast AS mal_seq_type).val_seq;
+        IF M(ast).type_id = 7 THEN
+            RETURN env_pkg.env_get(M, env_mem, env, ast);
+        ELSIF M(ast).type_id IN (8,9) THEN
+            old_seq := TREAT(M(ast) AS mal_seq_type).val_seq;
             new_seq := mal_seq_items_type();
             new_seq.EXTEND(old_seq.COUNT);
             FOR i IN 1..old_seq.COUNT LOOP
                 new_seq(i) := EVAL(old_seq(i), env);
             END LOOP;
-            RETURN mal_seq_type(ast.type_id, new_seq);
+            RETURN types.seq(M, M(ast).type_id, new_seq);
         ELSE
             RETURN ast;
         END IF;
     END;
 
-    FUNCTION EVAL(ast mal_type, env integer) RETURN mal_type IS
-        el       mal_type;
-        a0       mal_type;
+    FUNCTION EVAL(ast integer, env integer) RETURN integer IS
+        el       integer;
+        a0       integer;
         a0sym    varchar2(4000);
         seq      mal_seq_items_type;
         let_env  integer;
         i        integer;
-        f        mal_type;
+        f        integer;
         args     mal_seq_type;
     BEGIN
-        IF ast.type_id <> 8 THEN
+        IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
         END IF;
 
         -- apply
-        a0 := types_pkg.first(ast);
-        if a0.type_id = 7 THEN -- symbol
-            a0sym := TREAT(a0 AS mal_str_type).val_str;
+        a0 := types.first(M, ast);
+        if M(a0).type_id = 7 THEN -- symbol
+            a0sym := TREAT(M(a0) AS mal_str_type).val_str;
         ELSE
             a0sym := '__<*fn*>__';
         END IF;
 
         CASE
         WHEN a0sym = 'def!' THEN
-            RETURN env_pkg.env_set(env_mem, env,
-                types_pkg.nth(ast, 1), EVAL(types_pkg.nth(ast, 2), env));
+            RETURN env_pkg.env_set(M, env_mem, env,
+                types.nth(M, ast, 1), EVAL(types.nth(M, ast, 2), env));
         WHEN a0sym = 'let*' THEN
-            let_env := env_pkg.env_new(env_mem, env);
-            seq := TREAT(types_pkg.nth(ast, 1) AS mal_seq_type).val_seq;
+            let_env := env_pkg.env_new(M, env_mem, env);
+            seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_type).val_seq;
             i := 1;
             WHILE i <= seq.COUNT LOOP
-                x := env_pkg.env_set(env_mem, let_env,
+                x := env_pkg.env_set(M, env_mem, let_env,
                     seq(i), EVAL(seq(i+1), let_env));
                 i := i + 2;
             END LOOP;
-            RETURN EVAL(types_pkg.nth(ast, 2), let_env);
+            RETURN EVAL(types.nth(M, ast, 2), let_env);
         ELSE
             el := eval_ast(ast, env);
-            f := types_pkg.first(el);
-            args := TREAT(types_pkg.slice(el, 1) AS mal_seq_type);
+            f := types.first(M, el);
+            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
             RETURN do_core_func(f, args.val_seq);
         END CASE;
 
     END;
 
     -- print
-    FUNCTION PRINT(exp mal_type) RETURN varchar IS
+    FUNCTION PRINT(exp integer) RETURN varchar IS
     BEGIN
-        RETURN printer_pkg.pr_str(exp);
+        RETURN printer.pr_str(M, exp);
     END;
 
     -- repl
-    FUNCTION mal_add(args mal_seq_items_type) RETURN mal_type IS
+    FUNCTION mal_add(args mal_seq_items_type) RETURN integer IS
     BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int +
-                               TREAT(args(2) AS mal_int_type).val_int);
+        RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int +
+                            TREAT(M(args(2)) AS mal_int_type).val_int);
     END;
 
-    FUNCTION mal_subtract(args mal_seq_items_type) RETURN mal_type IS
+    FUNCTION mal_subtract(args mal_seq_items_type) RETURN integer IS
     BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int -
-                               TREAT(args(2) AS mal_int_type).val_int);
+        RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int -
+                            TREAT(M(args(2)) AS mal_int_type).val_int);
     END;
 
-    FUNCTION mal_multiply(args mal_seq_items_type) RETURN mal_type IS
+    FUNCTION mal_multiply(args mal_seq_items_type) RETURN integer IS
     BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int *
-                               TREAT(args(2) AS mal_int_type).val_int);
+        RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int *
+                            TREAT(M(args(2)) AS mal_int_type).val_int);
     END;
 
-    FUNCTION mal_divide(args mal_seq_items_type) RETURN mal_type IS
+    FUNCTION mal_divide(args mal_seq_items_type) RETURN integer IS
     BEGIN
-        RETURN mal_int_type(3, TREAT(args(1) AS mal_int_type).val_int /
-                               TREAT(args(2) AS mal_int_type).val_int);
+        RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int /
+                            TREAT(M(args(2)) AS mal_int_type).val_int);
     END;
 
-    FUNCTION do_core_func(fn mal_type, args mal_seq_items_type) RETURN mal_type IS
+    FUNCTION do_core_func(fn integer, args mal_seq_items_type)
+        RETURN integer IS
         fname  varchar(100);
     BEGIN
-        IF fn.type_id <> 11 THEN
+        IF M(fn).type_id <> 11 THEN
             raise_application_error(-20004,
                 'Invalid function call', TRUE);
         END IF;
 
-        fname := TREAT(fn AS mal_str_type).val_str;
+        fname := TREAT(M(fn) AS mal_str_type).val_str;
         CASE
         WHEN fname = '+' THEN RETURN mal_add(args);
         WHEN fname = '-' THEN RETURN mal_subtract(args);
@@ -153,22 +155,23 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     END;
 
 BEGIN
+    M := types.mem_new();
     env_mem := env_mem_type();
-    repl_env := env_pkg.env_new(env_mem, NULL);
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('+'),
-                                            mal_str_type(11, '+'));
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('-'),
-                                            mal_str_type(11, '-'));
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('*'),
-                                            mal_str_type(11, '*'));
-    x := env_pkg.env_set(env_mem, repl_env, types_pkg.symbol('/'),
-                                            mal_str_type(11, '/'));
+
+    repl_env := env_pkg.env_new(M, env_mem, NULL);
+    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '+'),
+                                               types.func(M, '+'));
+    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '-'),
+                                               types.func(M, '-'));
+    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '*'),
+                                               types.func(M, '*'));
+    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '/'),
+                                               types.func(M, '/'));
 
     WHILE true LOOP
         BEGIN
             line := stream_readline('user> ', 0);
-            -- stream_writeline('line: [' || line || ']', 1);
-            IF line IS NULL THEN RETURN 0; END IF;
+            IF line IS NULL THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
                 stream_writeline(REP(line));
             END IF;
@@ -183,7 +186,7 @@ BEGIN
     END LOOP;
 END;
 
-END mal_pkg;
+END mal;
 /
 show errors;
 

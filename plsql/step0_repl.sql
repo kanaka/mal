@@ -1,17 +1,17 @@
 --\i init.sql
 @io.sql
 
-CREATE OR REPLACE PACKAGE mal_pkg IS
+CREATE OR REPLACE PACKAGE mal IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer;
 
-END mal_pkg;
+END mal;
 /
 
-CREATE OR REPLACE PACKAGE BODY mal_pkg IS
+CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(pwd varchar) RETURN integer IS
-    line  varchar2(4000);
+    line      varchar2(4000);
 
     -- read
     FUNCTION READ(line varchar) RETURN varchar IS
@@ -41,8 +41,7 @@ BEGIN
     WHILE true LOOP
         BEGIN
             line := stream_readline('user> ', 0);
-            -- stream_writeline('line: [' || line || ']', 1);
-            IF line IS NULL THEN RETURN 0; END IF;
+            IF line IS NULL THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
                 stream_writeline(REP(line));
             END IF;
@@ -57,7 +56,7 @@ BEGIN
     END LOOP;
 END;
 
-END mal_pkg;
+END mal;
 /
 show errors;
 
