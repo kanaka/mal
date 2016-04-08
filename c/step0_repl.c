@@ -37,7 +37,7 @@ int main()
         ast = READ(prompt);
         if (!ast) return 0;
         exp = EVAL(ast, NULL);
-        g_print("%s\n", PRINT(exp));
+        puts(PRINT(exp));
  
         free(ast); // Free input string
     }

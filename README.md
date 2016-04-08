@@ -144,7 +144,8 @@ bash stepX_YYY.sh
 ### C
 
 The C implementation of mal requires the following libraries (lib and
-header packages): glib, libffi6 and either the libedit or GNU readline library.
+header packages): glib, libffi6, libgc, and either the libedit or GNU readline
+library.
 
 ```
 cd c
