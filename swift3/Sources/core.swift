@@ -1,5 +1,10 @@
 // TODO: remove this once time-ms and slurp use standard library calls
+
+#if os(Linux)
 import Glibc
+#else
+import Darwin
+#endif
 
 func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
@@ -82,10 +87,21 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     },
 
     "pr-str":  {
-        return MV.MalString($0.map { pr_str($0,true) }.joinWithSeparator(" "))
+        // TODO: if the following two statements are combined into one, we get
+        // the following error message. It's not clear to me that there's
+        // actually any error, so this might be a compiler issue.
+        //
+        //      Sources/core.swift:29:59: error: type of expression is ambiguous without more context
+        //      let core_ns: [String: (Array<MalVal>) throws -> MalVal] = [
+        //                                                                ^
+
+        let s = $0.map { pr_str($0,true) }.joinWithSeparator(" ")
+        return MV.MalString(s)
     },
     "str": {
-        return MV.MalString($0.map { pr_str($0,false) }.joinWithSeparator(""))
+        // The comment for "pr-str" applies here, too.
+        let s = $0.map { pr_str($0,false) }.joinWithSeparator("")
+        return MV.MalString(s)
     },
     "prn": {
         print($0.map { pr_str($0,true) }.joinWithSeparator(" "))
