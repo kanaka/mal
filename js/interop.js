@@ -7,7 +7,7 @@ if (typeof module === 'undefined') {
 
 function resolve_js(str) {
     if (str.match(/\./)) {
-        var re = /^(.*)\.\([^\.]*)$/,
+        var re = /^(.*)\.([^\.]*)$/,
             match = re.exec(str);
         return [eval(match[0]), eval(str)];
     } else {
