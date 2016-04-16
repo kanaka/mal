@@ -84,8 +84,12 @@ The mal (make a lisp) steps are:
 
 Mal was presented publicly for the first time in a lightning talk at
 Clojure West 2014 (unfortunately there is no video). See
-mal/clojurewest2014.mal for the presentation that was given at the
-conference (yes the presentation is a mal program).
+examples/clojurewest2014.mal for the presentation that was given at the
+conference (yes the presentation is a mal program). At Midwest.io
+2015, Joel Martin gave a presentation on Mal titled "Achievement
+Unlocked: A Better Path to Language Learning".
+[Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
+[Slides](http://kanaka.github.io/midwest.io.mal/).
 
 If you are interesting in creating a mal implementation (or just
 interested in using mal for something), please drop by the #mal
