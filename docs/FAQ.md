@@ -10,7 +10,7 @@
 In November of 2013, Alan Dipert gave a [lightning talk at
 Clojure/conj](https://www.youtube.com/watch?v=bmHTFo2Rf2w#t=28m55s)
 about [gherkin](https://github.com/alandipert/gherkin), a Lisp
-implemented in bash. His presentation led me to ask myself the qestion
+implemented in bash. His presentation led me to ask myself the question
 of whether a Lisp could be created using the GNU Make macro language.
 As you have probably guessed, the answer to that question is yes.
 
