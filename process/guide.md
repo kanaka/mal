@@ -351,7 +351,7 @@ expression support.
 * Add the function `read_atom` to `reader.qx`. This function will
   look at the contents of the token and return the appropriate scalar
   (simple/single) data type value. Initially, you can just implement
-  numbers (integers) and symbols . This will allow you to proceed
+  numbers (integers) and symbols. This will allow you to proceed
   through the next couple of steps before you will need to implement
   the other fundamental mal types: nil, true, false, and string. The
   remaining mal types: keyword, vector, hash-map, and atom do not
