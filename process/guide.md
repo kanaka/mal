@@ -623,7 +623,7 @@ rest of the list elements (arguments) may be evaluated differently (or
 not at all) unlike the default apply case where all elements of the
 list are evaluated before the first element is invoked. Lists which
 contain a "special" as the first element are known as "special forms".
-The are special because the follow special evaluation rules.
+They are special because they follow special evaluation rules.
 
 Try some simple environment tests:
 
