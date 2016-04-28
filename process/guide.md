@@ -543,6 +543,16 @@ make "test^quux^step2"
 
 You now have a simple prefix notation calculator!
 
+#### Deferrable:
+
+* `eval_ast` should evaluate elements of vectors and hash-maps.  Add the
+  following cases in `eval_ast`:
+  * If `ast` is a vector: return a new vector that is the result of calling
+    `EVAL` on each of the members of the vector.
+  * If `ast` is a hash-map: return a new hash-map which consists of key-value
+    pairs where the key is a key from the hash-map and the value is the result
+    of calling `EVAL` on the corresponding value.
+
 
 <a name="step3"></a>
 
