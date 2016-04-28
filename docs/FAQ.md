@@ -172,3 +172,9 @@ into the main repository:
   convenience for users of your implementation and I personally find
   it saves a lot of time when I am creating a new implementation to
   have line edit support early in the process.
+
+---
+
+**Good questions that either don't have answer or need more detail**
+
+### Why do some mal forms end in "\*" or "!" (swap!, def!, let\*, etc)?
