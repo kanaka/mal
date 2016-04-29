@@ -7,21 +7,22 @@
 
 CREATE OR REPLACE PACKAGE mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer;
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer;
 
 END mal;
 /
 
 CREATE OR REPLACE PACKAGE BODY mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer IS
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     M         mem_type;
-    env_mem   env_mem_type;
+    E         env_pkg.env_entry_table;
     repl_env  integer;
     x         integer;
     line      varchar2(4000);
     core_ns   core_ns_type;
     cidx      integer;
+    argv      mal_seq_items_type;
 
     -- read
     FUNCTION READ(line varchar) RETURN integer IS
@@ -41,7 +42,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         new_seq  mal_seq_items_type;
     BEGIN
         IF M(ast).type_id = 7 THEN
-            RETURN env_pkg.env_get(M, env_mem, env, ast);
+            RETURN env_pkg.env_get(M, E, env, ast);
         ELSIF M(ast).type_id IN (8,9) THEN
             old_seq := TREAT(M(ast) AS mal_seq_type).val_seq;
             new_seq := mal_seq_items_type();
@@ -84,14 +85,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 
         CASE
         WHEN a0sym = 'def!' THEN
-            RETURN env_pkg.env_set(M, env_mem, env,
+            RETURN env_pkg.env_set(M, E, env,
                 types.nth(M, ast, 1), EVAL(types.nth(M, ast, 2), env));
         WHEN a0sym = 'let*' THEN
-            let_env := env_pkg.env_new(M, env_mem, env);
+            let_env := env_pkg.env_new(M, E, env);
             seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_type).val_seq;
             i := 1;
             WHILE i <= seq.COUNT LOOP
-                x := env_pkg.env_set(M, env_mem, let_env,
+                x := env_pkg.env_set(M, E, let_env,
                     seq(i), EVAL(seq(i+1), let_env));
                 i := i + 2;
             END LOOP;
@@ -122,7 +123,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
             args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
-                env := env_pkg.env_new(M, env_mem, malfn.env,
+                env := env_pkg.env_new(M, E, malfn.env,
                                           malfn.params, args);
                 ast := malfn.ast;  -- TCO
             ELSE
@@ -159,7 +160,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
             fargs(1) := val;
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
-                fn_env := env_pkg.env_new(M, env_mem, malfn.env,
+                fn_env := env_pkg.env_new(M, E, malfn.env,
                                           malfn.params, fargs);
                 val := EVAL(malfn.ast, fn_env);
             ELSE
@@ -187,27 +188,36 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 
 BEGIN
     M := types.mem_new();
-    env_mem := env_mem_type();
+    E := env_pkg.env_entry_table();
 
-    repl_env := env_pkg.env_new(M, env_mem, NULL);
+    repl_env := env_pkg.env_new(M, E, NULL);
+
+    argv := TREAT(M(reader.read_str(M, args)) AS mal_seq_type).val_seq;
 
     -- core.EXT: defined using PL/SQL
     core_ns := core.get_core_ns();
     FOR cidx IN 1..core_ns.COUNT LOOP
-        x := env_pkg.env_set(M, env_mem, repl_env,
+        x := env_pkg.env_set(M, E, repl_env,
             types.symbol(M, core_ns(cidx)),
             types.func(M, core_ns(cidx)));
     END LOOP;
-    x := env_pkg.env_set(M, env_mem, repl_env,
+    x := env_pkg.env_set(M, E, repl_env,
         types.symbol(M, 'eval'),
         types.func(M, 'do_eval'));
-    x := env_pkg.env_set(M, env_mem, repl_env,
+    x := env_pkg.env_set(M, E, repl_env,
         types.symbol(M, '*ARGV*'),
-        types.list(M));
+        types.slice(M, argv, 1));
 
     -- core.mal: defined using the language itself
     line := REP('(def! not (fn* (a) (if a false true)))');
     line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+
+    IF argv.COUNT() > 0 THEN
+        line := REP('(load-file "' ||
+                TREAT(M(argv(1)) AS mal_str_type).val_str ||
+                '")');
+        RETURN 0;
+    END IF;
 
     WHILE true LOOP
         BEGIN

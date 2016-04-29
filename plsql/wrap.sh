@@ -10,7 +10,7 @@ SQLPLUS="sqlplus -S system/oracle"
 FILE_PID=
 cleanup() {
     trap - TERM QUIT INT EXIT
-    echo cleanup: ${FILE_PID}
+    #echo cleanup: ${FILE_PID}
     [ "${FILE_PID}" ] && kill ${FILE_PID}
 }
 trap "cleanup" TERM QUIT INT EXIT
@@ -87,7 +87,7 @@ while true; do
             echo "UPDATE file_io SET data = '${content}' WHERE path = '${f}' AND in_or_out = 'in';" \
                 | ${SQLPLUS} >/dev/null
         else
-            echo "UPDATE file_io SET error = 'Can not read ''${f}''' WHERE path = '${f}' AND in_or_out = 'in';" \
+            echo "UPDATE file_io SET error = 'Cannot read ''${f}''' WHERE path = '${f}' AND in_or_out = 'in';" \
                 | ${SQLPLUS} >/dev/null
         fi
     done
@@ -103,13 +103,13 @@ shift
 if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)
-    echo -e "BEGIN MAIN('$(pwd)', :'args'); END;\n/" \
-        | ${SQLPLUS} "(${args})"
+    echo -e "SELECT mal.MAIN('(${args})') FROM dual;" \
+        | ${SQLPLUS} > /dev/null
     res=$?
 else
     # Start main loop in the background
-    echo "SELECT mal.MAIN('$(pwd)') FROM dual;" \
-        | ${SQLPLUS}
+    echo "SELECT mal.MAIN() FROM dual;" \
+        | ${SQLPLUS} > /dev/null
     res=$?
 fi
 echo -e "BEGIN stream_close(0); stream_close(1); END;\n/" \

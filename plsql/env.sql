@@ -23,27 +23,30 @@ CREATE OR REPLACE TYPE env_mem_type FORCE IS TABLE OF env_type;
 /
 
 CREATE OR REPLACE PACKAGE env_pkg IS
+    TYPE env_entry IS TABLE OF integer INDEX BY varchar2(256);
+    TYPE env_entry_table IS TABLE OF env_entry;
+
     FUNCTION env_new(M IN OUT NOCOPY mem_type,
-                     eM IN OUT NOCOPY env_mem_type,
+                     eeT IN OUT NOCOPY env_entry_table,
                      outer_idx integer DEFAULT NULL)
                 RETURN integer;
     FUNCTION env_new(M IN OUT NOCOPY mem_type,
-                     eM IN OUT NOCOPY env_mem_type,
+                     eeT IN OUT NOCOPY env_entry_table,
                      outer_idx integer,
                      binds integer,
                      exprs mal_seq_items_type)
                 RETURN integer;
     FUNCTION env_set(M IN OUT NOCOPY mem_type,
-                     eM IN OUT NOCOPY env_mem_type,
+                     eeT IN OUT NOCOPY env_entry_table,
                      eidx integer,
                      key integer,
                      val integer) RETURN integer;
     FUNCTION env_find(M IN OUT NOCOPY mem_type,
-                      eM env_mem_type,
+                      eeT env_entry_table,
                       eidx integer,
                       key integer) RETURN integer;
     FUNCTION env_get(M IN OUT NOCOPY mem_type,
-                     eM env_mem_type,
+                     eeT env_entry_table,
                      eidx integer,
                      key integer) RETURN integer;
 END env_pkg;
@@ -52,117 +55,88 @@ show errors;
 
 CREATE OR REPLACE PACKAGE BODY env_pkg IS
     FUNCTION env_new(M IN OUT NOCOPY mem_type,
-                     eM IN OUT NOCOPY env_mem_type,
+                     eeT IN OUT NOCOPY env_entry_table,
                      outer_idx integer DEFAULT NULL)
                 RETURN integer IS
         eidx  integer;
     BEGIN
-        eM.EXTEND();
-        eidx := eM.COUNT();
-        eM(eidx) := env_type(eidx, outer_idx, env_data());
+        eeT.EXTEND();
+        eidx := eeT.COUNT();
+        eeT(eidx)('**OUTER**') := outer_idx;
         RETURN eidx;
     END;
 
     FUNCTION env_new(M IN OUT NOCOPY mem_type,
-                     eM IN OUT NOCOPY env_mem_type,
+                     eeT IN OUT NOCOPY env_entry_table,
                      outer_idx integer,
                      binds integer,
                      exprs mal_seq_items_type)
                 RETURN integer IS
         eidx  integer;
-        ed    env_data;
         i     integer;
         bs    mal_seq_items_type;
     BEGIN
-        eM.EXTEND();
-        eidx := eM.COUNT();
-        ed := env_data();
+        eeT.EXTEND();
+        eidx := eeT.COUNT();
+        eeT(eidx)('**OUTER**') := outer_idx;
         IF binds IS NOT NULL THEN
             bs := TREAT(M(binds) AS mal_seq_type).val_seq;
             FOR i IN 1..bs.COUNT LOOP
-                ed.EXTEND();
                 IF TREAT(M(bs(i)) AS mal_str_type).val_str = '&' THEN
-                    ed(ed.COUNT) := env_item(
-                        TREAT(M(bs(i+1)) AS mal_str_type).val_str,
-                        types.slice(M, exprs, i-1));
+                    eeT(eidx)(TREAT(M(bs(i+1)) AS mal_str_type).val_str) :=
+                        types.slice(M, exprs, i-1);
                     EXIT;
                 ELSE
-                    ed(ed.COUNT) := env_item(
-                        TREAT(M(bs(i)) AS mal_str_type).val_str,
-                        exprs(i));
+                    eeT(eidx)(TREAT(M(bs(i)) AS mal_str_type).val_str) :=
+                        exprs(i);
                 END IF;
             END LOOP;
         END IF;
-        eM(eidx) := env_type(eidx, outer_idx, ed);
         RETURN eidx;
     END;
 
     FUNCTION env_set(M IN OUT NOCOPY mem_type,
-                     eM IN OUT NOCOPY env_mem_type,
+                     eeT IN OUT NOCOPY env_entry_table,
                      eidx integer,
                      key integer,
                      val integer) RETURN integer IS
-        k    varchar2(100);
+        k    varchar2(256);
         i    integer;
         cnt  integer;
-        ed   env_data;
     BEGIN
         k := TREAT(M(key) AS mal_str_type).val_str;
-        SELECT count(*) INTO cnt FROM TABLE(eM(eidx).data) t
-            WHERE key = k;
-        IF cnt > 0 THEN
-            -- TODO: a more efficient way to do this
-            ed := eM(eidx).data;
-            FOR i IN ed.FIRST..ed.LAST LOOP
-                IF ed(i).key = k THEN
-                    eM(eidx).data(i).val := val;
-                    EXIT;
-                END IF;
-            END LOOP;
-        ELSE
-            eM(eidx).data.EXTEND();
-            eM(eidx).data(eM(eidx).data.COUNT) := env_item(k, val);
-        END IF;
+        eeT(eidx)(k) := val;
         RETURN val;
     END;
 
     FUNCTION env_find(M IN OUT NOCOPY mem_type,
-                      eM env_mem_type,
+                      eeT env_entry_table,
                       eidx integer,
                       key integer) RETURN integer IS
-        e    env_type;
         k    varchar2(100);
         cnt  integer;
     BEGIN
-        e := eM(eidx);
         k := TREAT(M(key) AS mal_str_type).val_str;
-        SELECT COUNT(*) INTO cnt FROM TABLE(e.data) t WHERE key = k;
-        IF cnt > 0 THEN
-            RETURN e.idx;
-        ELSIF e.outer_idx IS NOT NULL THEN
-            e := eM(e.outer_idx);
-            RETURN env_find(M, eM, e.idx, key);
+        IF eeT(eidx).EXISTS(k) THEN
+            RETURN eidx;
+        ELSIF eeT(eidx)('**OUTER**') IS NOT NULL THEN
+            RETURN env_find(M, eeT, eeT(eidx)('**OUTER**'), key);
         ELSE
             RETURN NULL;
         END IF;
     END;
 
     FUNCTION env_get(M IN OUT NOCOPY mem_type,
-                     eM env_mem_type,
+                     eeT env_entry_table,
                      eidx integer,
                      key integer) RETURN integer IS
-        idx   integer;
-        e     env_type;
-        k     varchar2(100);
-        v     integer;
+        found  integer;
+        k      varchar2(100);
     BEGIN
-        idx := env_find(M, eM, eidx, key);
+        found := env_find(M, eeT, eidx, key);
         k := TREAT(M(key) AS mal_str_type).val_str;
-        IF idx IS NOT NULL THEN
-            e := eM(idx);
-            SELECT t.val INTO v FROM TABLE(e.data) t
-                WHERE key = k;
-            RETURN v;
+        IF found IS NOT NULL THEN
+            RETURN eeT(found)(k);
         ELSE
             raise_application_error(-20005,
                 '''' || k || ''' not found', TRUE);

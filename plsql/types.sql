@@ -559,10 +559,12 @@ BEGIN
     ELSE
         final_idx := last + 1;
     END IF;
-    new_items.EXTEND(final_idx - idx);
-    FOR i IN idx+1..final_idx LOOP
-        new_items(i-idx) := old_items(i);
-    END LOOP;
+    IF final_idx > idx THEN
+        new_items.EXTEND(final_idx - idx);
+        FOR i IN idx+1..final_idx LOOP
+            new_items(i-idx) := old_items(i);
+        END LOOP;
+    END IF;
     M.EXTEND();
     M(M.COUNT()) := mal_seq_type(8, new_items);
     RETURN M.COUNT();
@@ -574,10 +576,12 @@ FUNCTION slice(M IN OUT NOCOPY mem_type,
     i          integer;
 BEGIN
     new_items := mal_seq_items_type();
-    new_items.EXTEND(items.COUNT - idx);
-    FOR i IN idx+1..items.COUNT LOOP
-        new_items(i-idx) := items(i);
-    END LOOP;
+    IF items.COUNT > idx THEN
+        new_items.EXTEND(items.COUNT - idx);
+        FOR i IN idx+1..items.COUNT LOOP
+            new_items(i-idx) := items(i);
+        END LOOP;
+    END IF;
     M.EXTEND();
     M(M.COUNT()) := mal_seq_type(8, new_items);
     RETURN M.COUNT();

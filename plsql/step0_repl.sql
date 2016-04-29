@@ -3,14 +3,14 @@
 
 CREATE OR REPLACE PACKAGE mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer;
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer;
 
 END mal;
 /
 
 CREATE OR REPLACE PACKAGE BODY mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer IS
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     line      varchar2(4000);
 
     -- read

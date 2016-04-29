@@ -5,14 +5,14 @@
 
 CREATE OR REPLACE PACKAGE mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer;
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer;
 
 END mal;
 /
 
 CREATE OR REPLACE PACKAGE BODY mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer IS
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     M         mem_type;
     TYPE      env_type IS TABLE OF integer INDEX BY varchar2(100);
     repl_env  env_type;

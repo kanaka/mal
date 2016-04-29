@@ -64,6 +64,20 @@ BEGIN
     RETURN reader.read_str(M, TREAT(M(args(1)) AS mal_str_type).val_str);
 END;
 
+FUNCTION readline(M IN OUT NOCOPY mem_type,
+                  prompt integer) RETURN integer IS
+    input  varchar2(4000);
+BEGIN
+    input := stream_readline(TREAT(M(prompt) AS mal_str_type).val_str, 0);
+    RETURN types.string(M, input);
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE = -20001 THEN  -- io streams closed
+        RETURN 1;  -- nil
+    ELSE
+        RAISE;
+    END IF;
+END;
+
 FUNCTION slurp(M IN OUT NOCOPY mem_type,
                args mal_seq_items_type) RETURN integer IS
     content  varchar2(4000);
@@ -132,6 +146,17 @@ BEGIN
                         TREAT(M(args(2)) AS mal_int_type).val_int);
 END;
 
+FUNCTION time_ms(M IN OUT NOCOPY mem_type) RETURN integer IS
+    now  integer;
+BEGIN
+    -- SELECT (SYSDATE - TO_DATE('01-01-1970 00:00:00', 'DD-MM-YYYY HH24:MI:SS')) * 24 * 60 * 60 * 1000
+    --    INTO now FROM DUAL;
+    SELECT extract(day from(sys_extract_utc(systimestamp) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(systimestamp), 'SSSSSFF3'))
+        INTO now
+        FROM dual;
+    RETURN types.int(M, now);
+END;
+
 -- sequence functions
 FUNCTION cons(M IN OUT NOCOPY mem_type,
               args mal_seq_items_type) RETURN integer IS
@@ -198,6 +223,7 @@ BEGIN
     WHEN fname = 'prn'         THEN RETURN prn(M, args);
     WHEN fname = 'println'     THEN RETURN println(M, args);
     WHEN fname = 'read-string' THEN RETURN read_string(M, args);
+    WHEN fname = 'readline'    THEN RETURN readline(M, args(1));
     WHEN fname = 'slurp'       THEN RETURN slurp(M, args);
 
     WHEN fname = '<'  THEN RETURN lt(M, args);
@@ -208,6 +234,7 @@ BEGIN
     WHEN fname = '-'  THEN RETURN subtract(M, args);
     WHEN fname = '*'  THEN RETURN multiply(M, args);
     WHEN fname = '/'  THEN RETURN divide(M, args);
+    WHEN fname = 'time-ms' THEN RETURN time_ms(M);
 
     WHEN fname = 'list'  THEN RETURN types.seq(M, 8, args);
     WHEN fname = 'list?' THEN RETURN types.wraptf(M(args(1)).type_id = 8);
@@ -270,6 +297,7 @@ BEGIN
         'prn',
         'println',
         'read-string',
+        'readline',
         'slurp',
 
         '<',
@@ -280,6 +308,7 @@ BEGIN
         '-',
         '*',
         '/',
+        'time-ms',
 
         'list',
         'list?',

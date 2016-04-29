@@ -6,16 +6,16 @@
 
 CREATE OR REPLACE PACKAGE mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer;
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer;
 
 END mal;
 /
 
 CREATE OR REPLACE PACKAGE BODY mal IS
 
-FUNCTION MAIN(pwd varchar) RETURN integer IS
+FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     M         mem_type;
-    env_mem   env_mem_type;
+    E         env_pkg.env_entry_table;
     repl_env  integer;
     x         integer;
     line      varchar2(4000);
@@ -39,7 +39,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         new_seq  mal_seq_items_type;
     BEGIN
         IF M(ast).type_id = 7 THEN
-            RETURN env_pkg.env_get(M, env_mem, env, ast);
+            RETURN env_pkg.env_get(M, E, env, ast);
         ELSIF M(ast).type_id IN (8,9) THEN
             old_seq := TREAT(M(ast) AS mal_seq_type).val_seq;
             new_seq := mal_seq_items_type();
@@ -77,14 +77,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 
         CASE
         WHEN a0sym = 'def!' THEN
-            RETURN env_pkg.env_set(M, env_mem, env,
+            RETURN env_pkg.env_set(M, E, env,
                 types.nth(M, ast, 1), EVAL(types.nth(M, ast, 2), env));
         WHEN a0sym = 'let*' THEN
-            let_env := env_pkg.env_new(M, env_mem, env);
+            let_env := env_pkg.env_new(M, E, env);
             seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_type).val_seq;
             i := 1;
             WHILE i <= seq.COUNT LOOP
-                x := env_pkg.env_set(M, env_mem, let_env,
+                x := env_pkg.env_set(M, E, let_env,
                     seq(i), EVAL(seq(i+1), let_env));
                 i := i + 2;
             END LOOP;
@@ -156,17 +156,17 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 
 BEGIN
     M := types.mem_new();
-    env_mem := env_mem_type();
+    E := env_pkg.env_entry_table();
 
-    repl_env := env_pkg.env_new(M, env_mem, NULL);
-    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '+'),
-                                               types.func(M, '+'));
-    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '-'),
-                                               types.func(M, '-'));
-    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '*'),
-                                               types.func(M, '*'));
-    x := env_pkg.env_set(M, env_mem, repl_env, types.symbol(M, '/'),
-                                               types.func(M, '/'));
+    repl_env := env_pkg.env_new(M, E, NULL);
+    x := env_pkg.env_set(M, E, repl_env, types.symbol(M, '+'),
+                                         types.func(M, '+'));
+    x := env_pkg.env_set(M, E, repl_env, types.symbol(M, '-'),
+                                         types.func(M, '-'));
+    x := env_pkg.env_set(M, E, repl_env, types.symbol(M, '*'),
+                                         types.func(M, '*'));
+    x := env_pkg.env_set(M, E, repl_env, types.symbol(M, '/'),
+                                         types.func(M, '/'));
 
     WHILE true LOOP
         BEGIN
