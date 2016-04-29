@@ -17,6 +17,8 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
 
 ENV HOME=/var/run/postgresql
 
+WORKDIR /mal
+
 # Travis runs as user ID 1001 so add that user
 RUN useradd -ou 1001 -m -s /bin/bash -G sudo,postgres travis
 # Enable postgres and travis users to sudo for postgres startup
