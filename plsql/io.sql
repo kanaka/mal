@@ -84,7 +84,7 @@ BEGIN
         -- '' -> no input, NULL -> stream closed
         --RAISE NOTICE 'read input: [%] %', input, stream_id;
         IF isopen = 0 THEN
-            raise_application_error(-20000,
+            raise_application_error(-20001,
                 'stream_read: stream ''' || sid || ''' is closed', TRUE);
         END IF;
         SYS.DBMS_LOCK.SLEEP(sleep);
@@ -148,7 +148,7 @@ BEGIN
         SELECT count(data) INTO datas FROM stream WHERE data IS NOT NULL;
 
         IF isopen = 0 THEN
-            raise_application_error(-20000,
+            raise_application_error(-20001,
                 'stream_wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
         END IF;
 

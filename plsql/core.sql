@@ -23,6 +23,14 @@ BEGIN
     RETURN types.wraptf(types.equal_Q(M, args(1), args(2)));
 END;
 
+-- scalar functiosn
+FUNCTION symbol(M IN OUT NOCOPY mem_type,
+                val integer) RETURN integer IS
+BEGIN
+    RETURN types.symbol(M, TREAT(M(val) AS mal_str_type).val_str);
+END;
+
+
 -- string functions
 FUNCTION pr_str(M IN OUT NOCOPY mem_type,
                 args mal_seq_items_type) RETURN integer IS
@@ -179,6 +187,12 @@ BEGIN
     CASE
     WHEN fname = '='           THEN RETURN equal_Q(M, args);
 
+    WHEN fname = 'nil?'    THEN RETURN types.wraptf(args(1) = 1);
+    WHEN fname = 'false?'  THEN RETURN types.wraptf(args(1) = 2);
+    WHEN fname = 'true?'   THEN RETURN types.wraptf(args(1) = 3);
+    WHEN fname = 'symbol'  THEN RETURN symbol(M, args(1));
+    WHEN fname = 'symbol?' THEN RETURN types.wraptf(M(args(1)).type_id = 7);
+
     WHEN fname = 'pr-str'      THEN RETURN pr_str(M, args);
     WHEN fname = 'str'         THEN RETURN str(M, args);
     WHEN fname = 'prn'         THEN RETURN prn(M, args);
@@ -243,6 +257,13 @@ FUNCTION get_core_ns RETURN core_ns_type IS
 BEGIN
     RETURN core_ns_type(
         '=',
+        'throw',
+
+        'nil?',
+        'true?',
+        'false?',
+        'symbol',
+        'symbol?',
 
         'pr-str',
         'str',
@@ -270,6 +291,8 @@ BEGIN
         'rest',
         'empty?',
         'count',
+        'apply',
+        'map',
 
         -- defined in step do_builtin function
         'atom',

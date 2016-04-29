@@ -112,14 +112,14 @@ FUNCTION read_seq(M IN OUT NOCOPY mem_type,
 BEGIN
     token := rdr.next();
     IF token <> first THEN
-        raise_application_error(-20002,
+        raise_application_error(-20003,
             'expected ''' || first || '''', TRUE);
     END IF;
     items := mal_seq_items_type();
     LOOP
         token := rdr.peek();
         IF token IS NULL THEN
-            raise_application_error(-20002,
+            raise_application_error(-20003,
                 'expected ''' || last || '''', TRUE);
         END IF;
         IF token = last THEN EXIT; END IF;
@@ -176,7 +176,7 @@ BEGIN
 
     -- list
     WHEN token = ')' THEN
-        raise_application_error(-20001,
+        raise_application_error(-20002,
             'unexpected '')''', TRUE);
     WHEN token = '(' THEN
         RETURN read_seq(M, rdr, 8, '(', ')');

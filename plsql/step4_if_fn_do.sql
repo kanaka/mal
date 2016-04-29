@@ -57,7 +57,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     FUNCTION EVAL(ast integer, env integer) RETURN integer IS
         el       integer;
         a0       integer;
-        a0sym    varchar2(4000);
+        a0sym    varchar2(100);
         seq      mal_seq_items_type;
         let_env  integer;
         i        integer;
@@ -65,7 +65,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         fn_env   integer;
         cond     integer;
         malfn    malfunc_type;
-        args     mal_seq_type;
+        args     mal_seq_items_type;
     BEGIN
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
@@ -114,14 +114,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         ELSE
             el := eval_ast(ast, env);
             f := types.first(M, el);
-            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
+            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
                 fn_env := env_pkg.env_new(M, env_mem, malfn.env,
                                           malfn.params, args);
                 RETURN EVAL(malfn.ast, fn_env);
             ELSE
-                RETURN core.do_core_func(M, f, args.val_seq);
+                RETURN core.do_core_func(M, f, args);
             END IF;
         END CASE;
 
@@ -133,6 +133,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         RETURN printer.pr_str(M, exp);
     END;
 
+    -- repl
     FUNCTION REP(line varchar) RETURN varchar IS
     BEGIN
         RETURN PRINT(EVAL(READ(line), repl_env));
@@ -164,7 +165,7 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20000 THEN
+                IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
                 stream_writeline('Error: ' || SQLERRM);

@@ -59,14 +59,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         env      integer := orig_env;
         el       integer;
         a0       integer;
-        a0sym    varchar2(4000);
+        a0sym    varchar2(100);
         seq      mal_seq_items_type;
         let_env  integer;
         i        integer;
         f        integer;
         cond     integer;
         malfn    malfunc_type;
-        args     mal_seq_type;
+        args     mal_seq_items_type;
     BEGIN
       WHILE TRUE LOOP
         IF M(ast).type_id <> 8 THEN
@@ -118,14 +118,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         ELSE
             el := eval_ast(ast, env);
             f := types.first(M, el);
-            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
+            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
                 env := env_pkg.env_new(M, env_mem, malfn.env,
                                           malfn.params, args);
                 ast := malfn.ast;  -- TCO
             ELSE
-                RETURN core.do_core_func(M, f, args.val_seq);
+                RETURN core.do_core_func(M, f, args);
             END IF;
         END CASE;
 
@@ -171,7 +171,7 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20000 THEN
+                IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
                 stream_writeline('Error: ' || SQLERRM);

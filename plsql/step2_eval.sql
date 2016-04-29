@@ -54,7 +54,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     FUNCTION EVAL(ast integer, env env_type) RETURN integer IS
         el       integer;
         f        integer;
-        args     mal_seq_type;
+        args     mal_seq_items_type;
     BEGIN
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
@@ -63,8 +63,8 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         -- apply
         el := eval_ast(ast, env);
         f := types.first(M, el);
-        args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
-        RETURN do_core_func(f, args.val_seq);
+        args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
+        RETURN do_core_func(f, args);
     END;
 
     -- print
@@ -140,7 +140,7 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20000 THEN
+                IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
                 stream_writeline('Error: ' || SQLERRM);

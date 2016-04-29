@@ -52,7 +52,7 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20000 THEN
+                IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
                 stream_writeline('Error: ' || SQLERRM);

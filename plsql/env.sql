@@ -25,9 +25,14 @@ CREATE OR REPLACE TYPE env_mem_type FORCE IS TABLE OF env_type;
 CREATE OR REPLACE PACKAGE env_pkg IS
     FUNCTION env_new(M IN OUT NOCOPY mem_type,
                      eM IN OUT NOCOPY env_mem_type,
-                     outer_idx integer DEFAULT NULL,
-                     binds integer DEFAULT NULL,
-                     exprs mal_seq_type DEFAULT NULL) RETURN integer;
+                     outer_idx integer DEFAULT NULL)
+                RETURN integer;
+    FUNCTION env_new(M IN OUT NOCOPY mem_type,
+                     eM IN OUT NOCOPY env_mem_type,
+                     outer_idx integer,
+                     binds integer,
+                     exprs mal_seq_items_type)
+                RETURN integer;
     FUNCTION env_set(M IN OUT NOCOPY mem_type,
                      eM IN OUT NOCOPY env_mem_type,
                      eidx integer,
@@ -43,36 +48,48 @@ CREATE OR REPLACE PACKAGE env_pkg IS
                      key integer) RETURN integer;
 END env_pkg;
 /
+show errors;
 
 CREATE OR REPLACE PACKAGE BODY env_pkg IS
     FUNCTION env_new(M IN OUT NOCOPY mem_type,
                      eM IN OUT NOCOPY env_mem_type,
-                     outer_idx integer DEFAULT NULL,
-                     binds integer DEFAULT NULL,
-                     exprs mal_seq_type DEFAULT NULL) RETURN integer IS
+                     outer_idx integer DEFAULT NULL)
+                RETURN integer IS
+        eidx  integer;
+    BEGIN
+        eM.EXTEND();
+        eidx := eM.COUNT();
+        eM(eidx) := env_type(eidx, outer_idx, env_data());
+        RETURN eidx;
+    END;
+
+    FUNCTION env_new(M IN OUT NOCOPY mem_type,
+                     eM IN OUT NOCOPY env_mem_type,
+                     outer_idx integer,
+                     binds integer,
+                     exprs mal_seq_items_type)
+                RETURN integer IS
         eidx  integer;
         ed    env_data;
         i     integer;
         bs    mal_seq_items_type;
-        es    mal_seq_items_type;
     BEGIN
         eM.EXTEND();
-        eidx := eM.COUNT;
+        eidx := eM.COUNT();
         ed := env_data();
         IF binds IS NOT NULL THEN
             bs := TREAT(M(binds) AS mal_seq_type).val_seq;
-            es := exprs.val_seq;
             FOR i IN 1..bs.COUNT LOOP
                 ed.EXTEND();
                 IF TREAT(M(bs(i)) AS mal_str_type).val_str = '&' THEN
                     ed(ed.COUNT) := env_item(
                         TREAT(M(bs(i+1)) AS mal_str_type).val_str,
-                        types.slice(M, es, i-1));
+                        types.slice(M, exprs, i-1));
                     EXIT;
                 ELSE
                     ed(ed.COUNT) := env_item(
                         TREAT(M(bs(i)) AS mal_str_type).val_str,
-                        es(i));
+                        exprs(i));
                 END IF;
             END LOOP;
         END IF;

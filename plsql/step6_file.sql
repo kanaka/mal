@@ -33,7 +33,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
 
     -- forward declarations
     FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer;
-    FUNCTION do_builtin(fn integer, args mal_seq_type) RETURN integer;
+    FUNCTION do_builtin(fn integer, args mal_seq_items_type) RETURN integer;
 
     FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i        integer;
@@ -60,14 +60,14 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         env      integer := orig_env;
         el       integer;
         a0       integer;
-        a0sym    varchar2(4000);
+        a0sym    varchar2(100);
         seq      mal_seq_items_type;
         let_env  integer;
         i        integer;
         f        integer;
         cond     integer;
         malfn    malfunc_type;
-        args     mal_seq_type;
+        args     mal_seq_items_type;
     BEGIN
       WHILE TRUE LOOP
         IF M(ast).type_id <> 8 THEN
@@ -119,7 +119,7 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         ELSE
             el := eval_ast(ast, env);
             f := types.first(M, el);
-            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type);
+            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
                 env := env_pkg.env_new(M, env_mem, malfn.env,
@@ -138,10 +138,9 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
     -- functions that require special access to repl_env or EVAL
     -- are implemented directly here, otherwise, core.do_core_fn
     -- is called.
-    FUNCTION do_builtin(fn integer, args mal_seq_type) RETURN integer IS
+    FUNCTION do_builtin(fn integer, args mal_seq_items_type) RETURN integer IS
         fname   varchar2(100);
-        sargs   mal_seq_items_type := args.val_seq;
-        aval    integer;
+        val     integer;
         f       integer;
         malfn   malfunc_type;
         fargs   mal_seq_items_type;
@@ -150,27 +149,26 @@ FUNCTION MAIN(pwd varchar) RETURN integer IS
         fname := TREAT(M(fn) AS mal_str_type).val_str;
         CASE
         WHEN fname = 'do_eval' THEN
-            RETURN EVAL(sargs(1), repl_env);
+            RETURN EVAL(args(1), repl_env);
         WHEN fname = 'swap!' THEN
-            aval := TREAT(M(sargs(1)) AS mal_atom_type).val;
-            f := sargs(2);
+            val := TREAT(M(args(1)) AS mal_atom_type).val;
+            f := args(2);
             -- slice one extra at the beginning that will be changed
             -- to the value of the atom
-            fargs := TREAT(M(types.slice(M, sargs, 1)) AS mal_seq_type).val_seq;
-            fargs(1) := aval;
+            fargs := TREAT(M(types.slice(M, args, 1)) AS mal_seq_type).val_seq;
+            fargs(1) := val;
             IF M(f).type_id = 12 THEN
                 malfn := TREAT(M(f) AS malfunc_type);
                 fn_env := env_pkg.env_new(M, env_mem, malfn.env,
-                                          malfn.params,
-                                          mal_seq_type(8, fargs));
-                aval := EVAL(malfn.ast, fn_env);
+                                          malfn.params, fargs);
+                val := EVAL(malfn.ast, fn_env);
             ELSE
-                aval := do_builtin(f, mal_seq_type(8, fargs));
+                val := do_builtin(f, fargs);
             END IF;
-            M(sargs(1)) := mal_atom_type(13, aval);
-            RETURN aval;
+            M(args(1)) := mal_atom_type(13, val);
+            RETURN val;
         ELSE
-            RETURN core.do_core_func(M, fn, sargs);
+            RETURN core.do_core_func(M, fn, args);
         END CASE;
     END;
 
@@ -220,7 +218,7 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20000 THEN
+                IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
                 stream_writeline('Error: ' || SQLERRM);
