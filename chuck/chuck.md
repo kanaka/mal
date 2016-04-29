@@ -56,10 +56,13 @@
     of operation caused it (no stacktrace or anything)
   - No user-definable exceptions, no mechanism to catch or throw them
     (other than intentionally doing something illegal)
-  - This means that you must use C-style error checking by converting
-    the potentially erroneous functions into returning a status code
-    and mutating a reference passed to them as argument which is
-    highly weird in a otherwise Java-like language
+  - This means that you should use C-style error checking by
+    converting the potentially erroneous functions into returning a
+    status code and mutating a reference passed to them as argument
+    which is highly weird in a otherwise Java-like language
+  - An alternative is defining an error object (which belongs to the
+    same supertype as the other legal return values) and checking its
+    type by inspecting the user-tracked type field
 - Other oddities
   - strict distinction between assigning values and references with
     two separate operators for them (`<<` for array append doesn't
@@ -68,3 +71,10 @@
     with the regular operator...
   - `<<` on an `type[]` gives you a weird error as you need to use an
     `type[0]` (and a `type[]` is merely a reference...)
+  - The compiler will find lots of mistakes for you, but cannot figure
+    out code branches not returning anything which means that return
+    type violations will blow up in your face unless there's a
+    reasonable default value (null for `Object` isn't, 0 for `int` and
+    "" for `string` is)
+  - If you abuse the type system too much, chances are you get a
+    segfault or assert instead of an exception...

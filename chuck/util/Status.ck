@@ -4,6 +4,7 @@ public class Status
     static int EMPTY_INPUT;
     static int UNEXPECTED_TERMINATOR;
     static int EXPECTED_TERMINATOR;
+    static int SYMBOL_NOT_FOUND;
 
     static string status_codes[];
 
@@ -31,8 +32,10 @@ public class Status
 1 => Status.EMPTY_INPUT;
 2 => Status.UNEXPECTED_TERMINATOR;
 3 => Status.EXPECTED_TERMINATOR;
+4 => Status.SYMBOL_NOT_FOUND;
 
 ["success",
  "empty input",
  "unexpected '%'",
- "expected '%', got EOF"] @=> Status.status_codes;
+ "expected '%', got EOF",
+ "'%' not found"] @=> Status.status_codes;

@@ -36,6 +36,10 @@ public class Printer
         {
             return "(atom " + pr_str((m$MalAtom).value(), print_readably) + ")";
         }
+        else if( type == "subr" )
+        {
+            return "#<Subr>";
+        }
         else if( type == "list" )
         {
             return pr_list((m$MalList).value(), print_readably, "(", ")");
@@ -47,6 +51,10 @@ public class Printer
         else if( type == "hashmap" )
         {
             return pr_list((m$MalHashMap).value(), print_readably, "{", "}");
+        }
+        else
+        {
+            return "Unknown type";
         }
     }
 

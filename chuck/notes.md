@@ -13,3 +13,17 @@
   `eval`-like thing or alternatively, chopping off the surrounding
   quotes and doing the inverse transformation of the printing)
 - How is an atom printed?
+
+# Step 2
+
+- What if my language doesn't support lambdas, let alone passing
+  around named functions? Ideally write something about
+  implementing/using functors/delegates or replacing that namespace
+  with a big switch as with VHDL.  Another problem is that if you
+  choose a different solution in step 4, step 2 could end up no longer
+  functional...
+- What kind of error (read: what message?) is raised when no value can
+  be looked up for the symbol?  Is it arbitrary?  Do I need to extend
+  my error handling to allow for format strings?
+- It would be worth a mention that you should extend the printer to
+  handle "native" functions (or in oldtimey terms, subrs)

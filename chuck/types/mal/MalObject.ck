@@ -29,4 +29,16 @@ public class MalObject
 
         return values;
     }
+
+    fun static MalObject[] slice(MalObject objects[], int index)
+    {
+        MalObject values[objects.size() - index];
+
+        for( index => int i; i < objects.size(); i++ )
+        {
+            objects[i] @=> values[i - index];
+        }
+
+        return values;
+    }
 }
