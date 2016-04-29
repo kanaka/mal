@@ -26,4 +26,4 @@ RUN echo "%sudo ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Add entrypoint.sh which starts postgres then run bash/command
 ADD entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["sudo", "--user=postgres", "/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

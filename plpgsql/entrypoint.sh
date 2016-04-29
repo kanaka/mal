@@ -1,12 +1,15 @@
 #!/bin/bash
 
+POSTGRES_SUDO_USER=${POSTGRES_SUDO_USER:-postgres}
+
 POPTS=""
 while [[ ${1:0:1} = '-' ]]; do
     POPTS="${POPTS}$1 $2"
     shift; shift
 done
 
-/usr/lib/postgresql/9.4/bin/postgres \
+sudo --user=${POSTGRES_SUDO_USER} \
+    /usr/lib/postgresql/9.4/bin/postgres \
     -c config_file=/etc/postgresql/9.4/main/postgresql.conf \
     ${POPTS} &
 
