@@ -13,10 +13,15 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     DEBIAN_FRONTEND=noninteractive apt-get -y install acl \
       postgresql-${PG_VERSION} postgresql-client-${PG_VERSION} postgresql-contrib-${PG_VERSION} && \ 
     mkdir -p /var/run/postgresql/9.4-main.pg_stat_tmp/ && \
-    chown -R postgres /var/run/postgresql
+    chown -R postgres.postgres /var/run/postgresql
 
 ENV HOME=/var/run/postgresql
 
+# Travis runs as user ID 1001 so add that user
+RUN useradd -ou 1001 -m -s /bin/bash -G sudo,postgres travis
+# Enable postgres and travis users to sudo for postgres startup
+RUN echo "%sudo ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
 # Add entrypoint.sh which starts postgres then run bash/command
 ADD entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["sudo", "--user=postgres", "/entrypoint.sh"]
