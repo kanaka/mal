@@ -309,7 +309,7 @@ mono ./stepX_YYY.exe
 *The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
 
 The Factor implementation of mal has been tested with Factor 0.97
-([factorcode.org](factorcode.org)).
+([factorcode.org](http://factorcode.org)).
 
 ```
 cd factor
