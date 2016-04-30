@@ -27,3 +27,13 @@
   my error handling to allow for format strings?
 - It would be worth a mention that you should extend the printer to
   handle "native" functions (or in oldtimey terms, subrs)
+
+# Step 3
+
+- You should modify both eval_ast *and* EVAL
+- Suggest the trick with destructuring the AST into `a0`, `a1`,
+  etc. variables for easier access.  Perhaps this can be used to clear
+  up the general language used with AST manipulation (like, first
+  parameter and second list element)?
+- What does def! return?  Emacs Lisp for instance returns the symbol
+  whereas the tests suggest the value should be returned instead...

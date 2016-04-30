@@ -63,6 +63,16 @@
   - An alternative is defining an error object (which belongs to the
     same supertype as the other legal return values) and checking its
     type by inspecting the user-tracked type field
+- No function pointers/functors/closures
+  - This is a bit unexpected as if you leave away the parentheses
+    holding the argument list and debug print a function, you'll see
+    it being recognized as a function, yet you can't store it anywhere
+    for passing it around
+  - So you get to implement functors and closures yourself...
+  - A functor is a class with a call method taking an argument list
+    and executing the code of the function you intend to pass around
+  - To use it, store an instance of its class somewhere, then use its
+    call method with an argument list
 - Other oddities
   - strict distinction between assigning values and references with
     two separate operators for them (`<<` for array append doesn't
@@ -78,3 +88,7 @@
     "" for `string` is)
   - If you abuse the type system too much, chances are you get a
     segfault or assert instead of an exception...
+  - Debug print shows the object and its type if you pass one
+    argument, if you pass more than one, it prints the concatenation
+    of their representations instead, so it's a bit hard to make out
+    what is a debug print and what isn't
