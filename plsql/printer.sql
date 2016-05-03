@@ -5,9 +5,11 @@ PROMPT "printer start";
 
 CREATE OR REPLACE PACKAGE printer IS
     FUNCTION pr_str_seq(M IN OUT NOCOPY mem_type,
+                        H IN OUT NOCOPY types.map_entry_table,
                         seq mal_seq_items_type, sep varchar2,
                         print_readably boolean DEFAULT TRUE) RETURN varchar;
     FUNCTION pr_str(M IN OUT NOCOPY mem_type,
+                    H IN OUT NOCOPY types.map_entry_table,
                     ast integer,
                     print_readably boolean DEFAULT TRUE) RETURN varchar;
 END printer;
@@ -16,6 +18,7 @@ END printer;
 CREATE OR REPLACE PACKAGE BODY printer AS
 
 FUNCTION pr_str_seq(M IN OUT NOCOPY mem_type,
+                    H IN OUT NOCOPY types.map_entry_table,
                     seq mal_seq_items_type, sep varchar2,
                     print_readably boolean DEFAULT TRUE) RETURN varchar IS
     first  integer := 1;
@@ -27,12 +30,36 @@ BEGIN
         ELSE
             str := str || sep;
         END IF;
-        str := str || pr_str(M, seq(i), print_readably);
+        str := str || pr_str(M, H, seq(i), print_readably);
     END LOOP;
     RETURN str;
 END;
 
+FUNCTION pr_str_map(M IN OUT NOCOPY mem_type,
+                    H IN OUT NOCOPY types.map_entry_table,
+                    midx integer, sep varchar2,
+                    print_readably boolean DEFAULT TRUE) RETURN varchar IS
+    key    varchar2(256);
+    first  integer := 1;
+    str    varchar2(4000) := '';
+BEGIN
+    key := H(midx).FIRST();
+    WHILE key IS NOT NULL LOOP
+        IF first = 1 THEN
+            first := 0;
+        ELSE
+            str := str || sep;
+        END IF;
+        str := str || pr_str(M, H, types.string(M, key), print_readably);
+        str := str || ' ' || pr_str(M, H, H(midx)(key), print_readably);
+        key := H(midx).NEXT(key);
+    END LOOP;
+    RETURN str;
+END;
+
+
 FUNCTION pr_str(M IN OUT NOCOPY mem_type,
+                H IN OUT NOCOPY types.map_entry_table,
                 ast integer,
                 print_readably boolean DEFAULT TRUE) RETURN varchar IS
     type_id  integer;
@@ -65,40 +92,28 @@ BEGIN
     WHEN type_id = 7 THEN  -- symbol
         RETURN TREAT(M(ast) AS mal_str_type).val_str;
     WHEN type_id = 8 THEN  -- list
-        RETURN '(' || pr_str_seq(M,
+        RETURN '(' || pr_str_seq(M, H,
                                  TREAT(M(ast) AS mal_seq_type).val_seq, ' ',
                                  print_readably) || ')';
---     WHEN type_id = 9 THEN  -- vector
---         BEGIN
---             SELECT val_seq INTO seq FROM value WHERE value_id = ast;
---             RETURN '[' ||
---                    array_to_string(array(
---                         SELECT pr_str(x, print_readably)
---                             FROM unnest(seq) AS x), ' ') ||
---                    ']';
---         END;
---     WHEN type_id = 10 THEN  -- hash-map
---         BEGIN
---             SELECT val_hash INTO hash FROM value WHERE value_id = ast;
---             RETURN '{' ||
---                    array_to_string(array(
---                         SELECT pr_str(CAST(key AS integer), print_readably) ||
---                                ' ' ||
---                                pr_str(CAST(value AS integer), print_readably)
---                         FROM each(hash)), ' ') ||
---                    '}';
---         END;
+    WHEN type_id = 9 THEN  -- vector
+        RETURN '[' || pr_str_seq(M, H,
+                                 TREAT(M(ast) AS mal_seq_type).val_seq, ' ',
+                                 print_readably) || ']';
+    WHEN type_id = 10 THEN  -- hash-map
+        RETURN '{' || pr_str_map(M, H,
+                                 TREAT(M(ast) AS mal_map_type).map_idx, ' ',
+                                 print_readably) || '}';
     WHEN type_id = 11 THEN  -- native function
         RETURN '#<function ' ||
                TREAT(M(ast) AS mal_str_type).val_str ||
                '>';
     WHEN type_id = 12 THEN  -- mal function
         malfn := TREAT(M(ast) AS malfunc_type);
-        RETURN '(fn* ' || pr_str(M, malfn.params, print_readably) ||
-                ' ' || pr_str(M, malfn.ast, print_readably) || ')';
+        RETURN '(fn* ' || pr_str(M, H, malfn.params, print_readably) ||
+                ' ' || pr_str(M, H, malfn.ast, print_readably) || ')';
     WHEN type_id = 13 THEN  -- atom
         RETURN '(atom ' ||
-            pr_str(M, TREAT(M(ast) AS mal_atom_type).val, print_readably) ||
+            pr_str(M, H, TREAT(M(ast) AS mal_atom_type).val, print_readably) ||
             ')';
     ELSE
         RETURN 'unknown';

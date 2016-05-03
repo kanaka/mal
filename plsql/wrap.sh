@@ -79,7 +79,7 @@ while true; do
         | grep -v "^no rows selected")" || break
     for f in ${files}; do
         if [ -r ${f} ]; then
-            content=$(cat ${f})
+            IFS= read -rd '' content < "${f}"
             content=${content//\'/\'\'}
             content=${content//$'\n'/\\n}
             #content=$(printf "%q" "$(cat ${f})")

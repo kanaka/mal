@@ -13,13 +13,14 @@ END mal;
 CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
-    M         mem_type;
+    M         mem_type;                 -- general mal value memory pool
+    H         types.map_entry_table;    -- hashmap memory pool
     line      varchar2(4000);
 
     -- read
     FUNCTION READ(line varchar) RETURN integer IS
     BEGIN
-        RETURN reader.read_str(M, line);
+        RETURN reader.read_str(M, H, line);
     END;
 
     -- eval
@@ -31,7 +32,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     -- print
     FUNCTION PRINT(exp integer) RETURN varchar IS
     BEGIN
-        RETURN printer.pr_str(M, exp);
+        RETURN printer.pr_str(M, H, exp);
     END;
 
     -- repl
@@ -41,7 +42,9 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     END;
 
 BEGIN
+    -- initialize memory pools
     M := types.mem_new();
+    H := types.map_entry_table();
 
     WHILE true LOOP
         BEGIN
