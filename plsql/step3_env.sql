@@ -19,7 +19,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     E         env_pkg.env_entry_table;  -- mal env memory pool
     repl_env  integer;
     x         integer;
-    line      varchar2(4000);
+    line      CLOB;
 
     -- read
     FUNCTION READ(line varchar) RETURN integer IS
@@ -72,7 +72,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     FUNCTION EVAL(ast integer, env integer) RETURN integer IS
         el       integer;
         a0       integer;
-        a0sym    varchar2(100);
+        a0sym    varchar2(256);
         seq      mal_seq_items_type;
         let_env  integer;
         i        integer;
@@ -150,7 +150,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
 
     FUNCTION do_core_func(fn integer, args mal_seq_items_type)
         RETURN integer IS
-        fname  varchar(100);
+        fname  varchar(256);
     BEGIN
         IF M(fn).type_id <> 11 THEN
             raise_application_error(-20004,
@@ -191,18 +191,18 @@ BEGIN
 
     WHILE true LOOP
         BEGIN
-            line := stream_readline('user> ', 0);
-            IF line IS NULL THEN CONTINUE; END IF;
+            line := io.readline('user> ', 0);
+            IF line = EMPTY_CLOB() THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
-                stream_writeline(REP(line));
+                io.writeline(REP(line));
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
                 IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
-                stream_writeline('Error: ' || SQLERRM);
-                stream_writeline(dbms_utility.format_error_backtrace);
+                io.writeline('Error: ' || SQLERRM);
+                io.writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;
 END;

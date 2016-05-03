@@ -82,12 +82,18 @@ FUNCTION read_string(M IN OUT NOCOPY mem_type,
                      H IN OUT NOCOPY types.map_entry_table,
                      args mal_seq_items_type) RETURN integer IS
 BEGIN
-    RETURN reader.read_str(M, H, TREAT(M(args(1)) AS mal_str_type).val_str);
+    IF M(args(1)).type_id = 5 THEN
+        RETURN reader.read_str(M, H,
+            TREAT(M(args(1)) AS mal_str_type).val_str);
+    ELSE
+        RETURN reader.read_str(M, H,
+            TREAT(M(args(1)) AS mal_long_str_type).val_long_str);
+    END IF;
 END;
 
 FUNCTION readline(M IN OUT NOCOPY mem_type,
                   prompt integer) RETURN integer IS
-    input  varchar2(4000);
+    input  CLOB;
 BEGIN
     input := stream_readline(TREAT(M(prompt) AS mal_str_type).val_str, 0);
     RETURN types.string(M, input);
@@ -101,10 +107,9 @@ END;
 
 FUNCTION slurp(M IN OUT NOCOPY mem_type,
                args mal_seq_items_type) RETURN integer IS
-    content  varchar2(4000);
+    content  CLOB;
 BEGIN
-    -- stream_writeline('here1: ' || TREAT(args(1) AS mal_str_type).val_str);
-    content := file_open_and_read(TREAT(M(args(1)) AS mal_str_type).val_str);
+    content := io.file_open_and_read(TREAT(M(args(1)) AS mal_str_type).val_str);
     content := REPLACE(content, '\n', chr(10));
     RETURN types.string(M, content);
 END;
@@ -398,7 +403,7 @@ FUNCTION seq(M IN OUT NOCOPY mem_type,
              val integer) RETURN integer IS
     type_id    integer;
     new_val    integer;
-    str        varchar2(4000);
+    str        CLOB;
     str_items  mal_seq_items_type;
 BEGIN
     type_id := M(val).type_id;
@@ -466,7 +471,7 @@ FUNCTION do_core_func(M IN OUT NOCOPY mem_type,
                       H IN OUT NOCOPY types.map_entry_table,
                       fn integer,
                       a mal_seq_items_type) RETURN integer IS
-    fname  varchar(100);
+    fname  varchar(256);
     idx    integer;
 BEGIN
     IF M(fn).type_id <> 11 THEN

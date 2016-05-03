@@ -22,7 +22,7 @@ FUNCTION pr_str_seq(M IN OUT NOCOPY mem_type,
                     seq mal_seq_items_type, sep varchar2,
                     print_readably boolean DEFAULT TRUE) RETURN varchar IS
     first  integer := 1;
-    str    varchar2(4000) := '';
+    str    CLOB;
 BEGIN
     FOR i IN 1..seq.COUNT LOOP
         IF first = 1 THEN
@@ -41,7 +41,7 @@ FUNCTION pr_str_map(M IN OUT NOCOPY mem_type,
                     print_readably boolean DEFAULT TRUE) RETURN varchar IS
     key    varchar2(256);
     first  integer := 1;
-    str    varchar2(4000) := '';
+    str    CLOB;
 BEGIN
     key := H(midx).FIRST();
     WHILE key IS NOT NULL LOOP
@@ -65,7 +65,7 @@ FUNCTION pr_str(M IN OUT NOCOPY mem_type,
     type_id  integer;
     first    integer := 1;
     i        integer;
-    str      varchar2(4000);
+    str      CLOB;
     malfn    malfunc_type;
 BEGIN
     type_id := M(ast).type_id;
@@ -76,8 +76,12 @@ BEGIN
     WHEN type_id = 2 THEN RETURN 'true';
     WHEN type_id = 3 THEN  -- integer
         RETURN CAST(TREAT(M(ast) AS mal_int_type).val_int as varchar);
-    WHEN type_id = 5 THEN  -- string
-        str := TREAT(M(ast) as mal_str_type).val_str;
+    WHEN type_id IN (5,6) THEN  -- string
+        IF type_id = 5 THEN
+            str := TREAT(M(ast) as mal_str_type).val_str;
+        ELSE
+            str := TREAT(M(ast) as mal_long_str_type).val_long_str;
+        END IF;
         IF chr(127) = SUBSTR(str, 1, 1) THEN
             RETURN ':' || SUBSTR(str, 2, LENGTH(str)-1);
         ELSIF print_readably THEN

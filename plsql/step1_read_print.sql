@@ -15,7 +15,7 @@ CREATE OR REPLACE PACKAGE BODY mal IS
 FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     M         mem_type;                 -- general mal value memory pool
     H         types.map_entry_table;    -- hashmap memory pool
-    line      varchar2(4000);
+    line      CLOB;
 
     -- read
     FUNCTION READ(line varchar) RETURN integer IS
@@ -48,18 +48,18 @@ BEGIN
 
     WHILE true LOOP
         BEGIN
-            line := stream_readline('user> ', 0);
-            IF line IS NULL THEN CONTINUE; END IF;
+            line := io.readline('user> ', 0);
+            IF line = EMPTY_CLOB() THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
-                stream_writeline(REP(line));
+                io.writeline(REP(line));
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
                 IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
-                stream_writeline('Error: ' || SQLERRM);
-                stream_writeline(dbms_utility.format_error_backtrace);
+                io.writeline('Error: ' || SQLERRM);
+                io.writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;
 END;

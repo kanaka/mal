@@ -20,7 +20,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     E         env_pkg.env_entry_table;  -- mal env memory pool
     repl_env  integer;
     x         integer;
-    line      varchar2(4000);
+    line      CLOB;
     core_ns   core_ns_type;
     cidx      integer;
 
@@ -186,18 +186,18 @@ BEGIN
 
     WHILE true LOOP
         BEGIN
-            line := stream_readline('user> ', 0);
-            IF line IS NULL THEN CONTINUE; END IF;
+            line := io.readline('user> ', 0);
+            IF line = EMPTY_CLOB() THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
-                stream_writeline(REP(line));
+                io.writeline(REP(line));
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
                 IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
-                stream_writeline('Error: ' || SQLERRM);
-                stream_writeline(dbms_utility.format_error_backtrace);
+                io.writeline('Error: ' || SQLERRM);
+                io.writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;
 END;

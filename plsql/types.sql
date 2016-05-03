@@ -17,7 +17,7 @@ END;
 -- 3:  integer
 -- 4:  float
 -- 5:  string
--- 6:  keyword (not used, uses prefixed string)
+-- 6:  long string (CLOB)
 -- 7:  symbol
 -- 8:  list
 -- 9:  vector
@@ -38,11 +38,17 @@ CREATE OR REPLACE TYPE mal_int_type FORCE UNDER mal_type (
 ) FINAL;
 /
 
--- string/keyword (5), symbol (7)
+-- string/keyword (5,6), symbol (7)
 CREATE OR REPLACE TYPE mal_str_type FORCE UNDER mal_type (
     val_str  varchar2(4000)
+) NOT FINAL;
+/
+
+CREATE OR REPLACE TYPE mal_long_str_type FORCE UNDER mal_str_type (
+    val_long_str  CLOB  -- long character object (for larger than 4000 chars)
 ) FINAL;
 /
+show errors;
 
 -- list (8), vector (9)
 CREATE OR REPLACE TYPE mal_seq_items_type FORCE AS TABLE OF integer;
@@ -216,7 +222,7 @@ BEGIN
     WHEN atyp = 3 THEN
         RETURN TREAT(M(a) AS mal_int_type).val_int =
                TREAT(M(b) AS mal_int_type).val_int;
-    WHEN atyp IN (5,7) THEN
+    WHEN atyp IN (5,6,7) THEN
         IF TREAT(M(a) AS mal_str_type).val_str IS NULL AND
            TREAT(M(b) AS mal_str_type).val_str IS NULL THEN
             RETURN TRUE;
@@ -317,16 +323,26 @@ END;
 FUNCTION string(M IN OUT NOCOPY mem_type, name varchar) RETURN integer IS
 BEGIN
     M.EXTEND();
-    M(M.COUNT()) := mal_str_type(5, name);
+    IF LENGTH(name) <= 4000 THEN
+        M(M.COUNT()) := mal_str_type(5, name);
+    ELSE
+        M(M.COUNT()) := mal_long_str_type(6, NULL, name);
+    END IF;
     RETURN M.COUNT();
 END;
 
 FUNCTION string_Q(M IN OUT NOCOPY mem_type, val integer) RETURN boolean IS
-    str  varchar2(4000);
+    str  CLOB;
 BEGIN
-    IF M(val).type_id = 5 THEN
-        str := TREAT(M(val) AS mal_str_type).val_str;
-        IF str IS NULL OR SUBSTR(str, 1, 1) <> chr(127) THEN
+    IF M(val).type_id IN (5,6) THEN
+        IF M(val).type_id = 5 THEN
+            str := TREAT(M(val) AS mal_str_type).val_str;
+        ELSE
+            str := TREAT(M(val) AS mal_long_str_type).val_long_str;
+        END IF;
+        IF str IS NULL OR
+           str = EMPTY_CLOB() OR
+           SUBSTR(str, 1, 1) <> chr(127) THEN
             RETURN TRUE;
         ELSE
             RETURN FALSE;
@@ -351,7 +367,7 @@ BEGIN
 END;
 
 FUNCTION keyword_Q(M IN OUT NOCOPY mem_type, val integer) RETURN boolean IS
-    str  varchar2(4000);
+    str  CLOB;
 BEGIN
     IF M(val).type_id = 5 THEN
         str := TREAT(M(val) AS mal_str_type).val_str;

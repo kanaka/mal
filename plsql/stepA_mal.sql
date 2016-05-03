@@ -20,7 +20,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     E         env_pkg.env_entry_table;  -- mal env memory pool
     repl_env  integer;
     x         integer;
-    line      varchar2(4000);
+    line      CLOB;
     core_ns   core_ns_type;
     cidx      integer;
     argv      mal_seq_items_type;
@@ -162,7 +162,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         args     mal_seq_items_type;
     BEGIN
       WHILE TRUE LOOP
-        -- stream_writeline('EVAL: ' || printer.pr_str(M, H, ast));
+        -- io.writeline('EVAL: ' || printer.pr_str(M, H, ast));
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
         END IF;
@@ -427,18 +427,18 @@ BEGIN
     line := REP('(println (str "Mal [" *host-language* "]"))');
     WHILE true LOOP
         BEGIN
-            line := stream_readline('user> ', 0);
-            IF line IS NULL THEN CONTINUE; END IF;
+            line := io.readline('user> ', 0);
+            IF line IS NULL OR line = EMPTY_CLOB() THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
-                stream_writeline(REP(line));
+                io.writeline(REP(line));
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
                 IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
-                stream_writeline('Error: ' || SQLERRM);
-                stream_writeline(dbms_utility.format_error_backtrace);
+                io.writeline('Error: ' || SQLERRM);
+                io.writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;
 END;

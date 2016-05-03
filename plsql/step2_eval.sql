@@ -17,7 +17,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     H         types.map_entry_table;    -- hashmap memory pool
     TYPE      env_type IS TABLE OF integer INDEX BY varchar2(100);
     repl_env  env_type;
-    line      varchar2(4000);
+    line      CLOB;
 
     -- read
     FUNCTION READ(line varchar) RETURN integer IS
@@ -119,7 +119,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
 
     FUNCTION do_core_func(fn integer, args mal_seq_items_type)
         RETURN integer IS
-        fname  varchar(100);
+        fname  varchar(256);
     BEGIN
         IF M(fn).type_id <> 11 THEN
             raise_application_error(-20004,
@@ -154,18 +154,18 @@ BEGIN
 
     WHILE true LOOP
         BEGIN
-            line := stream_readline('user> ', 0);
-            IF line IS NULL THEN CONTINUE; END IF;
+            line := io.readline('user> ', 0);
+            IF line = EMPTY_CLOB() THEN CONTINUE; END IF;
             IF line IS NOT NULL THEN
-                stream_writeline(REP(line));
+                io.writeline(REP(line));
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
                 IF SQLCODE = -20001 THEN  -- io streams closed
                     RETURN 0;
                 END IF;
-                stream_writeline('Error: ' || SQLERRM);
-                stream_writeline(dbms_utility.format_error_backtrace);
+                io.writeline('Error: ' || SQLERRM);
+                io.writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;
 END;

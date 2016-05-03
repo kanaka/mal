@@ -4,7 +4,7 @@
 PROMPT "env.sql start";
 
 CREATE OR REPLACE TYPE env_item FORCE AS OBJECT (
-    key  varchar2(100),
+    key  varchar2(256),
     val  integer
 ) FINAL;
 /
@@ -113,7 +113,7 @@ CREATE OR REPLACE PACKAGE BODY env_pkg IS
                       eeT env_entry_table,
                       eidx integer,
                       key integer) RETURN integer IS
-        k    varchar2(100);
+        k    varchar2(256);
         cnt  integer;
     BEGIN
         k := TREAT(M(key) AS mal_str_type).val_str;
@@ -131,7 +131,7 @@ CREATE OR REPLACE PACKAGE BODY env_pkg IS
                      eidx integer,
                      key integer) RETURN integer IS
         found  integer;
-        k      varchar2(100);
+        k      varchar2(256);
     BEGIN
         found := env_find(M, eeT, eidx, key);
         k := TREAT(M(key) AS mal_str_type).val_str;

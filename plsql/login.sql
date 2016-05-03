@@ -17,5 +17,9 @@ SET DEFINE OFF;
 -- Print DBMS_OUTPUT.PUT_LINE debugcommands
 SET SERVEROUTPUT ON SIZE 30000;
 
+-- Do not truncate or wrap CLOB output
+SET LONG 32767;
+SET LONGCHUNKSIZE 32767;
+
 -- PROMPT 'Finish login.sql';
 

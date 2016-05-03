@@ -3,7 +3,7 @@
 
 PROMPT "reader.sql start";
 
-CREATE OR REPLACE TYPE tokens FORCE AS TABLE OF varchar2(4000);
+CREATE OR REPLACE TYPE tokens FORCE AS TABLE OF CLOB;
 /
 
 CREATE OR REPLACE TYPE readerT FORCE AS OBJECT (
@@ -44,7 +44,7 @@ CREATE OR REPLACE PACKAGE BODY reader AS
 
 FUNCTION tokenize(str varchar) RETURN tokens IS
     re      varchar2(100) := '[[:space:] ,]*(~@|[][{}()''`~@]|"(([\].|[^\"])*)"|;[^' || chr(10) || ']*|[^][[:space:] {}()''"`~@,;]*)';
-    tok     varchar2(4000);
+    tok     CLOB;
     toks    tokens := tokens();
     cnt     integer;
 BEGIN
@@ -66,8 +66,9 @@ END;
 FUNCTION read_atom(M IN OUT NOCOPY mem_type,
                    rdr IN OUT NOCOPY readerT) RETURN integer IS
     str_id  integer;
-    str     varchar2(4000);
-    token   varchar2(4000);
+    str     CLOB;
+    token   CLOB;
+    istr    varchar2(256);
     result  integer;
 BEGIN
     token := rdr.next();
@@ -79,7 +80,8 @@ BEGIN
     ELSIF token = 'true' THEN   -- true
         result := 3;
     ELSIF REGEXP_LIKE(token, '^-?[0-9][0-9]*$') THEN  -- integer
-        result := types.int(M, CAST(token AS integer));
+        istr := token;
+        result := types.int(M, CAST(istr AS integer));
     ELSIF REGEXP_LIKE(token, '^".*"') THEN  -- string
         -- string
         str := SUBSTR(token, 2, LENGTH(token)-2);
@@ -110,7 +112,7 @@ FUNCTION read_seq(M IN OUT NOCOPY mem_type,
                   rdr IN OUT NOCOPY readerT, type_id integer,
                   first varchar, last varchar)
     RETURN integer IS
-    token   varchar2(4000);
+    token   CLOB;
     items   mal_seq_items_type;
 BEGIN
     token := rdr.next();
@@ -143,7 +145,7 @@ END;
 FUNCTION read_form(M IN OUT NOCOPY mem_type,
                    H IN OUT NOCOPY types.map_entry_table,
                    rdr IN OUT NOCOPY readerT) RETURN integer IS
-    token   varchar2(4000);
+    token   CLOB;
     meta    integer;
     midx    integer;
 BEGIN

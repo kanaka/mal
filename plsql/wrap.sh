@@ -28,15 +28,15 @@ if [ -z "${SKIP_INIT}" ]; then
 fi
 
 # open I/O streams
-echo -e "BEGIN stream_open(0); stream_open(1); END;\n/" \
+echo -e "BEGIN io.open(0); io.open(1); END;\n/" \
     | ${SQLPLUS} >/dev/null
 
 # Stream from table to stdout
 (
 while true; do
-    out="$(echo "SELECT stream_read(1) FROM dual;" \
+    out="$(echo "SELECT io.read(1) FROM dual;" \
         | ${SQLPLUS} 2>/dev/null)" || break
-    #echo "out: [${out}]"
+    #echo "out: [${out}] (${#out})"
     echo "${out}"
 done
 ) &
@@ -45,7 +45,7 @@ done
 (
 [ -r ${RL_HISTORY_FILE} ] && history -r ${RL_HISTORY_FILE}
 while true; do
-    prompt=$(echo "SELECT stream_wait_rl_prompt(0) FROM dual;" \
+    prompt=$(echo "SELECT io.wait_rl_prompt(0) FROM dual;" \
         | ${SQLPLUS} 2>/dev/null) || break
     # Prompt is returned single-quoted because sqlplus trims trailing
     # whitespace. Remove the single quotes from the beginning and end:
@@ -62,11 +62,11 @@ while true; do
     # Escape (double) single quotes per SQL norm
     line=${line//\'/\'\'}
     #echo "line: [${line}]"
-    ( echo -n "BEGIN stream_writeline('${line}', 0); END;";
+    ( echo -n "BEGIN io.writeline('${line}', 0); END;";
       echo -en "\n/" ) \
         | ${SQLPLUS} >/dev/null || break
 done
-echo -e "BEGIN stream_close(0); stream_close(1); END;\n/" \
+echo -e "BEGIN io.close(0); io.close(1); END;\n/" \
     | ${SQLPLUS} > /dev/null
 ) <&0 >&1 &
 
@@ -78,18 +78,25 @@ while true; do
         | ${SQLPLUS} 2>/dev/null \
         | grep -v "^no rows selected")" || break
     for f in ${files}; do
-        if [ -r ${f} ]; then
-            IFS= read -rd '' content < "${f}"
-            content=${content//\'/\'\'}
-            content=${content//$'\n'/\\n}
-            #content=$(printf "%q" "$(cat ${f})")
-            #content="${content#$}"  # strip bash leading $
-            echo "UPDATE file_io SET data = '${content}' WHERE path = '${f}' AND in_or_out = 'in';" \
-                | ${SQLPLUS} >/dev/null
-        else
+        if [ ! -r ${f} ]; then
             echo "UPDATE file_io SET error = 'Cannot read ''${f}''' WHERE path = '${f}' AND in_or_out = 'in';" \
                 | ${SQLPLUS} >/dev/null
+            continue;
         fi
+        IFS= read -rd '' content < "${f}"
+        # sqlplus limits lines to 2499 characters so split the update
+        # into chunks of the file ORed together over multiple lines
+        query="UPDATE file_io SET data = TO_CLOB('')"
+        while [ -n "${content}" ]; do
+            chunk="${content:0:2000}"
+            content="${content:${#chunk}}"
+            chunk="${chunk//\'/\'\'}"
+            chunk="${chunk//$'\n'/\\n}"
+            query="${query}"$'\n'"    || TO_CLOB('${chunk}')"
+        done
+        query="${query}"$'\n'" WHERE path = '${f}' AND in_or_out = 'in';"
+        echo "${query}" | ${SQLPLUS} > /dev/null
+        #echo "file read: ${f}: ${?}"
     done
     sleep 1
 done
@@ -112,6 +119,8 @@ else
         | ${SQLPLUS} > /dev/null
     res=$?
 fi
-echo -e "BEGIN stream_close(0); stream_close(1); END;\n/" \
+# TODO: fix this
+sleep 2
+echo -e "BEGIN io.close(0); io.close(1); END;\n/" \
     | ${SQLPLUS} > /dev/null
 exit ${res}
