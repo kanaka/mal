@@ -11,38 +11,52 @@ PSQL="psql -q -t -A -v ON_ERROR_STOP=1 ${PSQL_USER:+-U ${PSQL_USER}}"
 dbcheck=$(${PSQL} -c "select 1 from pg_database where datname='mal'")
 [ -z "${dbcheck}" ] && SKIP_INIT=
 
-# Load the SQL code
-[ "${SKIP_INIT}" ] || ${PSQL} -f $1 >/dev/null
+STDOUT_PID= STDIN_PID=
+cleanup () {
+    trap - TERM QUIT INT EXIT
+    # Make sure input stream is closed. Input subprocess will do this
+    # for normal terminal input but in the runtest.py case it does not
+    # get a chance.
+    ${PSQL} -dmal -c "SELECT io.close(0);" > /dev/null
+    [ "${STDIN_PID}" ] && kill ${STDIN_PID} 2>/dev/null
+}
 
-${PSQL} -dmal -c "SELECT stream_open(0); SELECT stream_open(1);" > /dev/null
+# Load the SQL code
+trap "cleanup" TERM QUIT INT EXIT
+${PSQL} -tc "SELECT 1 FROM pg_database WHERE datname = 'mal'" \
+    | grep -q 1 || ${PSQL} -c "CREATE DATABASE mal"
+#[ "${SKIP_INIT}" ] || ${PSQL} -dmal -f $1 > /dev/null
+[ "${SKIP_INIT}" ] || ${PSQL} -dmal -f $1
+
+${PSQL} -dmal -c "SELECT io.open(0); SELECT io.open(1);" > /dev/null
 
 # Stream from table to stdout
 (
 while true; do
-    out="$(${PSQL} -dmal -c "SELECT read_or_error(1)" 2>/dev/null)" || break
+    out="$(${PSQL} -dmal -c "SELECT io.read_or_error(1)" 2>/dev/null)" || break
     echo "${out}"
 done
 ) &
+STDOUT_PID=$!
 
 # Perform readline input into stream table when requested
 (
 [ -r ${RL_HISTORY_FILE} ] && history -r ${RL_HISTORY_FILE}
 while true; do
-    prompt=$(${PSQL} -dmal -c "SELECT wait_rl_prompt(0);" 2>/dev/null) || break
-    read -u 0 -r -e -p "${prompt}" line || break
+    prompt=$(${PSQL} -dmal \
+        -c "SELECT io.wait_rl_prompt(0);" 2>/dev/null) || break
+    IFS= read -u 0 -r -e -p "${prompt}" line || break
     if [ "${line}" ]; then
         history -s -- "${line}"        # add to history
         history -a ${RL_HISTORY_FILE}  # save history to file
     fi
 
     ${PSQL} -dmal -v arg="${line}" \
-        -f <(echo "SELECT writeline(:'arg', 0);") >/dev/null || break
+        -f <(echo "SELECT io.writeline(:'arg', 0);") >/dev/null || break
 done
-${PSQL} -dmal -c "SELECT stream_close(0); SELECT stream_close(1);" > /dev/null
-# For bizzaro reasons, removing this next statement causes repeated
-# calls to fail due to DB recovery
-true
+${PSQL} -dmal -c "SELECT io.close(0);" > /dev/null
 ) <&0 >&1 &
+STDIN_PID=$!
 
 res=0
 shift
@@ -50,13 +64,12 @@ if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)
     ${PSQL} -dmal -v args="(${args})" \
-        -f <(echo "SELECT RUN('$(pwd)', :'args');") > /dev/null
+        -f <(echo "SELECT mal.MAIN('$(pwd)', :'args');") > /dev/null
     res=$?
 else
     # Start main loop in the background
-    ${PSQL} -dmal -c "SELECT MAIN_LOOP('$(pwd)');" > /dev/null
+    ${PSQL} -dmal -c "SELECT mal.MAIN('$(pwd)');" > /dev/null
     res=$?
 fi
-${PSQL} -dmal -c "SELECT stream_close(0); SELECT stream_close(1);" > /dev/null
-sleep 1 # Allow DB to quiesce
+wait ${STDOUT_PID}
 exit ${res}

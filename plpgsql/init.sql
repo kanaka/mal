@@ -1,9 +1,13 @@
 -- ---------------------------------------------------------
 -- init.sql
 
--- Initialize the database
+-- Drop pre-existing schemas
+DROP SCHEMA IF EXISTS io, types, reader, printer, envs, core, mal CASCADE;
 
-DROP DATABASE IF EXISTS mal;
-CREATE DATABASE mal;
+-- Drop and recreate extensions
+DROP EXTENSION IF EXISTS hstore;
+CREATE EXTENSION hstore;
 
-\c mal
+DROP EXTENSION IF EXISTS dblink;
+CREATE EXTENSION dblink;
+

@@ -1,8 +1,9 @@
 -- ---------------------------------------------------------
 -- reader.sql
 
-CREATE FUNCTION
-    tokenize(str varchar) RETURNS varchar[] AS $$
+CREATE SCHEMA reader;
+
+CREATE FUNCTION reader.tokenize(str varchar) RETURNS varchar[] AS $$
 DECLARE
     re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;]*)';
 BEGIN
@@ -14,8 +15,8 @@ END; $$ LANGUAGE plpgsql IMMUTABLE;
 -- read_atom:
 -- takes a tokens array and position
 -- returns new position and value_id
-CREATE FUNCTION
-    read_atom(tokens varchar[], INOUT pos integer, OUT result integer) AS $$
+CREATE FUNCTION reader.read_atom(tokens varchar[],
+    INOUT pos integer, OUT result integer) AS $$
 DECLARE
     str_id  integer;
     str     varchar;
@@ -32,7 +33,7 @@ BEGIN
         result := 2;
     ELSIF token ~ '^-?[0-9][0-9]*$' THEN  -- integer
         -- integer
-        INSERT INTO value (type_id, val_int)
+        INSERT INTO types.value (type_id, val_int)
             VALUES (3, CAST(token AS integer))
             RETURNING value_id INTO result;
     ELSIF token ~ '^".*"' THEN  -- string
@@ -41,13 +42,13 @@ BEGIN
         str := replace(str, '\"', '"');
         str := replace(str, '\n', E'\n');
         str := replace(str, '\\', E'\\');
-        result := _stringv(str);
+        result := types._stringv(str);
     ELSIF token ~ '^:.*' THEN  -- keyword
         -- keyword
-        result := _keywordv(substring(token FROM 2 FOR (char_length(token)-1)));
+        result := types._keywordv(substring(token FROM 2 FOR (char_length(token)-1)));
     ELSE
         -- symbol
-        result := _symbolv(token);
+        result := types._symbolv(token);
     END IF;
 END; $$ LANGUAGE plpgsql;
 
@@ -56,9 +57,8 @@ END; $$ LANGUAGE plpgsql;
 -- and position
 -- returns new position and value_id for a list (8), vector (9) or
 -- hash-map (10)
-CREATE FUNCTION
-    read_seq(tokens varchar[], first varchar, last varchar,
-             INOUT p integer, OUT items integer[]) AS $$
+CREATE FUNCTION reader.read_seq(tokens varchar[], first varchar, last varchar,
+    INOUT p integer, OUT items integer[]) AS $$
 DECLARE
     token     varchar;
     key       varchar = NULL;
@@ -76,7 +76,7 @@ BEGIN
         END IF;
         token := tokens[p];
         IF token = last THEN EXIT; END IF;
-        SELECT * FROM read_form(tokens, p) INTO p, item_id;
+        SELECT * FROM reader.read_form(tokens, p) INTO p, item_id;
         items := array_append(items, item_id);
     END LOOP;
 
@@ -86,8 +86,8 @@ END; $$ LANGUAGE plpgsql;
 -- read_form:
 -- takes a tokens array and position
 -- returns new position and value_id
-CREATE FUNCTION
-    read_form(tokens varchar[], INOUT pos integer, OUT result integer) AS $$
+CREATE FUNCTION reader.read_form(tokens varchar[],
+    INOUT pos integer, OUT result integer) AS $$
 DECLARE
     vid     integer;
     meta    integer;
@@ -98,39 +98,39 @@ BEGIN
     WHEN token = '''' THEN
     BEGIN
         pos := pos + 1;
-        SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list(ARRAY[_symbolv('quote'), vid]);
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, vid;
+        result := types._list(ARRAY[types._symbolv('quote'), vid]);
     END;
     WHEN token = '`' THEN
     BEGIN
         pos := pos + 1;
-        SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list(ARRAY[_symbolv('quasiquote'), vid]);
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, vid;
+        result := types._list(ARRAY[types._symbolv('quasiquote'), vid]);
     END;
     WHEN token = '~' THEN
     BEGIN
         pos := pos + 1;
-        SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list(ARRAY[_symbolv('unquote'), vid]);
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, vid;
+        result := types._list(ARRAY[types._symbolv('unquote'), vid]);
     END;
     WHEN token = '~@' THEN
     BEGIN
         pos := pos + 1;
-        SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list(ARRAY[_symbolv('splice-unquote'), vid]);
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, vid;
+        result := types._list(ARRAY[types._symbolv('splice-unquote'), vid]);
     END;
     WHEN token = '^' THEN
     BEGIN
         pos := pos + 1;
-        SELECT * FROM read_form(tokens, pos) INTO pos, meta;
-        SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list(ARRAY[_symbolv('with-meta'), vid, meta]);
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, meta;
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, vid;
+        result := types._list(ARRAY[types._symbolv('with-meta'), vid, meta]);
     END;
     WHEN token = '@' THEN
     BEGIN
         pos := pos + 1;
-        SELECT * FROM read_form(tokens, pos) INTO pos, vid;
-        result := _list(ARRAY[_symbolv('deref'), vid]);
+        SELECT * FROM reader.read_form(tokens, pos) INTO pos, vid;
+        result := types._list(ARRAY[types._symbolv('deref'), vid]);
     END;
 
     -- list
@@ -138,8 +138,8 @@ BEGIN
         RAISE EXCEPTION 'unexpected '')''';
     WHEN token = '(' THEN
     BEGIN
-        SELECT p, _list(items)
-            FROM read_seq(tokens, '(', ')', pos) INTO pos, result;
+        SELECT p, types._list(items)
+            FROM reader.read_seq(tokens, '(', ')', pos) INTO pos, result;
     END;
 
     -- vector
@@ -147,8 +147,8 @@ BEGIN
         RAISE EXCEPTION 'unexpected '']''';
     WHEN token = '[' THEN
     BEGIN
-        SELECT p, _vector(items)
-            FROM read_seq(tokens, '[', ']', pos) INTO pos, result;
+        SELECT p, types._vector(items)
+            FROM reader.read_seq(tokens, '[', ']', pos) INTO pos, result;
     END;
 
     -- hash-map
@@ -156,30 +156,29 @@ BEGIN
         RAISE EXCEPTION 'unexpected ''}''';
     WHEN token = '{' THEN
     BEGIN
-        SELECT p, _hash_map(items)
-            FROM read_seq(tokens, '{', '}', pos) INTO pos, result;
+        SELECT p, types._hash_map(items)
+            FROM reader.read_seq(tokens, '{', '}', pos) INTO pos, result;
     END;
 
     --
     ELSE
-        SELECT * FROM read_atom(tokens, pos) INTO pos, result;
+        SELECT * FROM reader.read_atom(tokens, pos) INTO pos, result;
     END CASE;
 END; $$ LANGUAGE plpgsql;
 
 -- read_str:
 -- takes a string
 -- returns a new value_id
-CREATE FUNCTION
-    read_str(str varchar) RETURNS integer AS $$
+CREATE FUNCTION reader.read_str(str varchar) RETURNS integer AS $$
 DECLARE
     tokens varchar[];
     pos    integer;
     ast    integer;
 BEGIN
-    tokens := tokenize(str);
+    tokens := reader.tokenize(str);
     -- RAISE NOTICE 'read_str first: %', tokens[1];
     pos := 1;
-    SELECT * FROM read_form(tokens, pos) INTO pos, ast;
+    SELECT * FROM reader.read_form(tokens, pos) INTO pos, ast;
     -- RAISE NOTICE 'pos after read_atom: %', pos;
     RETURN ast;
 END; $$ LANGUAGE plpgsql;

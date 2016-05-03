@@ -1,3 +1,6 @@
+-- ---------------------------------------------------------
+-- step1_read_print.sql
+
 \i init.sql
 \i io.sql
 \i types.sql
@@ -5,63 +8,55 @@
 \i printer.sql
 
 -- ---------------------------------------------------------
--- step1_read_print.sql
+
+CREATE SCHEMA mal;
 
 -- read
-CREATE FUNCTION READ(line varchar)
-RETURNS integer AS $$
+CREATE FUNCTION mal.READ(line varchar) RETURNS integer AS $$
 BEGIN
-    RETURN read_str(line);
+    RETURN reader.read_str(line);
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE FUNCTION EVAL(ast integer, env varchar)
-RETURNS integer AS $$
+CREATE FUNCTION mal.EVAL(ast integer, env varchar) RETURNS integer AS $$
 BEGIN
     RETURN ast;
 END; $$ LANGUAGE plpgsql;
 
 -- print
-CREATE FUNCTION PRINT(exp integer)
-RETURNS varchar AS $$
+CREATE FUNCTION mal.PRINT(exp integer) RETURNS varchar AS $$
 BEGIN
-    RETURN pr_str(exp);
+    RETURN printer.pr_str(exp);
 END; $$ LANGUAGE plpgsql;
 
 
 -- repl
 
--- stub to support wrap.sh
-CREATE FUNCTION env_vset(env integer, name varchar, val integer)
-RETURNS void AS $$
+CREATE FUNCTION mal.REP(line varchar) RETURNS varchar AS $$
 BEGIN
+    RETURN mal.PRINT(mal.EVAL(mal.READ(line), ''));
 END; $$ LANGUAGE plpgsql;
 
-
-CREATE FUNCTION REP(line varchar)
-RETURNS varchar AS $$
-BEGIN
-    RETURN PRINT(EVAL(READ(line), ''));
-END; $$ LANGUAGE plpgsql;
-
-CREATE FUNCTION MAIN_LOOP(pwd varchar)
-RETURNS integer AS $$
+CREATE FUNCTION mal.MAIN(pwd varchar) RETURNS integer AS $$
 DECLARE
-    line    varchar;
-    output  varchar;
+    line      varchar;
+    output    varchar;
 BEGIN
     WHILE true
     LOOP
         BEGIN
-            line := readline('user> ', 0);
-            IF line IS NULL THEN RETURN 0; END IF;
-            IF line <> '' THEN
-                output := REP(line);
-                PERFORM writeline(output);
+            line := io.readline('user> ', 0);
+            IF line IS NULL THEN
+                PERFORM io.close(1);
+                RETURN 0;
+            END IF;
+            IF line NOT IN ('', E'\n') THEN
+                output := mal.REP(line);
+                PERFORM io.writeline(output);
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                PERFORM writeline('Error: ' || SQLERRM);
+                PERFORM io.writeline('Error: ' || SQLERRM);
         END;
     END LOOP;
 END; $$ LANGUAGE plpgsql;

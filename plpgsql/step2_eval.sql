@@ -1,3 +1,6 @@
+-- ---------------------------------------------------------
+-- step2_eval.sql
+
 \i init.sql
 \i io.sql
 \i types.sql
@@ -5,18 +8,17 @@
 \i printer.sql
 
 -- ---------------------------------------------------------
--- step1_read_print.sql
+
+CREATE SCHEMA mal;
 
 -- read
-CREATE FUNCTION READ(line varchar)
-RETURNS integer AS $$
+CREATE FUNCTION mal.READ(line varchar) RETURNS integer AS $$
 BEGIN
-    RETURN read_str(line);
+    RETURN reader.read_str(line);
 END; $$ LANGUAGE plpgsql;
 
 -- eval
-CREATE FUNCTION eval_ast(ast integer, env hstore)
-RETURNS integer AS $$
+CREATE FUNCTION mal.eval_ast(ast integer, env hstore) RETURNS integer AS $$
 DECLARE
     type           integer;
     symkey         varchar;
@@ -28,11 +30,11 @@ DECLARE
     e              integer;
     result         integer;
 BEGIN
-    SELECT type_id INTO type FROM value WHERE value_id = ast;
+    SELECT type_id INTO type FROM types.value WHERE value_id = ast;
     CASE
     WHEN type = 7 THEN
     BEGIN
-        symkey := _valueToString(ast);
+        symkey := types._valueToString(ast);
         IF env ? symkey THEN
             result := env -> symkey;
         ELSE
@@ -41,27 +43,27 @@ BEGIN
     END;
     WHEN type IN (8, 9) THEN
     BEGIN
-        SELECT val_seq INTO seq FROM value WHERE value_id = ast;
+        SELECT val_seq INTO seq FROM types.value WHERE value_id = ast;
         -- Evaluate each entry creating a new sequence
         FOR i IN 1 .. COALESCE(array_length(seq, 1), 0) LOOP
-            eseq[i] := EVAL(seq[i], env);
+            eseq[i] := mal.EVAL(seq[i], env);
         END LOOP;
-        INSERT INTO value (type_id, val_seq) VALUES (type, eseq)
+        INSERT INTO types.value (type_id, val_seq) VALUES (type, eseq)
             RETURNING value_id INTO result;
     END;
     WHEN type = 10 THEN
     BEGIN
-        SELECT val_hash INTO hash FROM value WHERE value_id = ast;
+        SELECT val_hash INTO hash FROM types.value WHERE value_id = ast;
         -- Evaluate each value for every key/value
         FOR kv IN SELECT * FROM each(hash) LOOP
-            e := EVAL(CAST(kv.value AS integer), env);
+            e := mal.EVAL(CAST(kv.value AS integer), env);
             IF ehash IS NULL THEN
                 ehash := hstore(kv.key, CAST(e AS varchar));
             ELSE
                 ehash := ehash || hstore(kv.key, CAST(e AS varchar));
             END IF;
         END LOOP;
-        INSERT INTO value (type_id, val_hash) VALUES (type, ehash)
+        INSERT INTO types.value (type_id, val_hash) VALUES (type, ehash)
             RETURNING value_id INTO result;
     END;
     ELSE
@@ -71,87 +73,90 @@ BEGIN
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION EVAL(ast integer, env hstore)
-RETURNS integer AS $$
+CREATE FUNCTION mal.EVAL(ast integer, env hstore) RETURNS integer AS $$
 DECLARE
-    type    integer;
-    el      integer;
-    fname   varchar;
-    args    integer[];
-    result  integer;
+    type     integer;
+    el       integer;
+    fname    varchar;
+    args     integer[];
+    result   integer;
 BEGIN
-    SELECT type_id INTO type FROM value WHERE value_id = ast;
+    SELECT type_id INTO type FROM types.value WHERE value_id = ast;
     IF type <> 8 THEN
-        RETURN eval_ast(ast, env);
+        RETURN mal.eval_ast(ast, env);
+    END IF;
+    IF types._count(ast) = 0 THEN
+        RETURN ast;
     END IF;
 
-    el := eval_ast(ast, env);
-    SELECT val_string INTO fname FROM value WHERE value_id = _first(el);
-    args := _restArray(el);
+    el := mal.eval_ast(ast, env);
+    SELECT val_string INTO fname FROM types.value
+        WHERE value_id = types._first(el);
+    args := types._restArray(el);
     EXECUTE format('SELECT %s($1);', fname) INTO result USING args;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
 -- print
-CREATE FUNCTION PRINT(exp integer)
-RETURNS varchar AS $$
+CREATE FUNCTION mal.PRINT(exp integer) RETURNS varchar AS $$
 BEGIN
-    RETURN pr_str(exp);
+    RETURN printer.pr_str(exp);
 END; $$ LANGUAGE plpgsql;
 
 
 -- repl
 
-CREATE FUNCTION mal_intop(op varchar, args integer[])
-RETURNS integer AS $$
+CREATE FUNCTION mal.intop(op varchar, args integer[]) RETURNS integer AS $$
 DECLARE a integer; b integer; result integer;
 BEGIN
-    SELECT val_int INTO a FROM value WHERE value_id = args[1];
-    SELECT val_int INTO b FROM value WHERE value_id = args[2];
-    EXECUTE format('INSERT INTO value (type_id, val_int) VALUES (3, $1 %s $2)
+    SELECT val_int INTO a FROM types.value WHERE value_id = args[1];
+    SELECT val_int INTO b FROM types.value WHERE value_id = args[2];
+    EXECUTE format('INSERT INTO types.value (type_id, val_int)
+                    VALUES (3, $1 %s $2)
                     RETURNING value_id;', op) INTO result USING a, b;
     RETURN result;
 END; $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION mal_add(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('+', args); END; $$ LANGUAGE plpgsql;
-CREATE FUNCTION mal_subtract(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('-', args); END; $$ LANGUAGE plpgsql;
-CREATE FUNCTION mal_multiply(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('*', args); END; $$ LANGUAGE plpgsql;
-CREATE FUNCTION mal_divide(args integer[]) RETURNS integer AS $$
-BEGIN RETURN mal_intop('/', args); END; $$ LANGUAGE plpgsql;
+CREATE FUNCTION mal.add(args integer[]) RETURNS integer AS $$
+BEGIN RETURN mal.intop('+', args); END; $$ LANGUAGE plpgsql;
+CREATE FUNCTION mal.subtract(args integer[]) RETURNS integer AS $$
+BEGIN RETURN mal.intop('-', args); END; $$ LANGUAGE plpgsql;
+CREATE FUNCTION mal.multiply(args integer[]) RETURNS integer AS $$
+BEGIN RETURN mal.intop('*', args); END; $$ LANGUAGE plpgsql;
+CREATE FUNCTION mal.divide(args integer[]) RETURNS integer AS $$
+BEGIN RETURN mal.intop('/', args); END; $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION REP(env hstore, line varchar)
-RETURNS varchar AS $$
+CREATE FUNCTION mal.REP(env hstore, line varchar) RETURNS varchar AS $$
 BEGIN
-    RETURN PRINT(EVAL(READ(line), env));
+    RETURN mal.PRINT(mal.EVAL(mal.READ(line), env));
 END; $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION MAIN_LOOP(pwd varchar)
-RETURNS integer AS $$
+CREATE FUNCTION mal.MAIN(pwd varchar) RETURNS integer AS $$
 DECLARE
     repl_env  hstore;
     line      varchar;
     output    varchar;
 BEGIN
     repl_env := hstore(ARRAY[
-        '+', _function('mal_add'),
-        '-', _function('mal_subtract'),
-        '*', _function('mal_multiply'),
-        '/', _function('mal_divide')]);
+        '+', types._function('mal.add'),
+        '-', types._function('mal.subtract'),
+        '*', types._function('mal.multiply'),
+        '/', types._function('mal.divide')]);
     WHILE true LOOP
         BEGIN
-            line := readline('user> ', 0);
-            IF line IS NULL THEN RETURN 0; END IF;
-            IF line <> '' THEN
-                output := REP(repl_env, line);
-                PERFORM writeline(output);
+            line := io.readline('user> ', 0);
+            IF line IS NULL THEN
+                PERFORM io.close(1);
+                RETURN 0;
+            END IF;
+            IF line NOT IN ('', E'\n') THEN
+                output := mal.REP(repl_env, line);
+                PERFORM io.writeline(output);
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                PERFORM writeline('Error: ' || SQLERRM);
+                PERFORM io.writeline('Error: ' || SQLERRM);
         END;
     END LOOP;
 END; $$ LANGUAGE plpgsql;
