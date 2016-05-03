@@ -1,4 +1,4 @@
-SOURCES_LISP = env.sql core.sql stepA_mal.sql
+SOURCES_LISP = envs.sql core.sql stepA_mal.sql
 SOURCES = wrap.sh io.sql init.sql types.sql reader.sql printer.sql $(SOURCES_LISP)
 
 all:
