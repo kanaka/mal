@@ -235,10 +235,18 @@ BEGIN
     line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
 
     IF argv.COUNT() > 0 THEN
-        line := REP('(load-file "' ||
-                TREAT(M(argv(1)) AS mal_str_type).val_str ||
-                '")');
-        RETURN 0;
+        BEGIN
+            line := REP('(load-file "' ||
+                    TREAT(M(argv(1)) AS mal_str_type).val_str ||
+                    '")');
+            io.close(1);  -- close output stream
+            RETURN 0;
+        EXCEPTION WHEN OTHERS THEN
+            io.writeline('Error: ' || SQLERRM);
+            io.writeline(dbms_utility.format_error_backtrace);
+            io.close(1);  -- close output stream
+            RAISE;
+        END;
     END IF;
 
     WHILE true LOOP
@@ -250,7 +258,8 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20001 THEN  -- io streams closed
+                IF SQLCODE = -20001 THEN  -- io read stream closed
+                    io.close(1);  -- close output stream
                     RETURN 0;
                 END IF;
                 io.writeline('Error: ' || SQLERRM);

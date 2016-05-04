@@ -64,6 +64,7 @@ OPTIONAL=1
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
 plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
+plsql_TEST_OPTS = --start-timeout 60 --test-timeout 120
 
 DOCKERIZE=
 
@@ -108,7 +109,8 @@ test_EXCLUDES += test^bash^step5   # never completes at 10,000
 test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
 test_EXCLUDES += test^mal^step5    # host impl dependent
 test_EXCLUDES += test^matlab^step5 # never completes at 10,000
-test_EXCLUDES += test^plpgsql^step5    # too slow for 10,000
+test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
+test_EXCLUDES += test^plsql^step5  # too slow for 10,000
 
 perf_EXCLUDES = mal  # TODO: fix this
 

@@ -54,6 +54,7 @@ show errors;
 CREATE OR REPLACE PACKAGE BODY io AS
 
 PROCEDURE open(sid integer) AS
+    PRAGMA AUTONOMOUS_TRANSACTION;
 BEGIN
     -- DBMS_OUTPUT.PUT_LINE('stream_open(' || sid || ') start');
     UPDATE stream SET data = '', rl_prompt = '', open = 1
@@ -63,6 +64,7 @@ BEGIN
 END;
 
 PROCEDURE close(sid integer) AS
+    PRAGMA AUTONOMOUS_TRANSACTION;
 BEGIN
     -- DBMS_OUTPUT.PUT_LINE('stream_close(' || sid || ') start');
     UPDATE stream SET rl_prompt = '', open = 0
@@ -89,7 +91,7 @@ BEGIN
         -- LOCK TABLE stream IN EXCLUSIVE MODE;
         SELECT data, open INTO input, isopen FROM stream
             WHERE stream_id = sid;
-        IF isopen = 1 AND input IS NOT NULL THEN
+        IF input IS NOT NULL THEN
             UPDATE stream SET data = '' WHERE stream_id = sid;
             COMMIT;
             RETURN trim(TRAILING chr(10) FROM input);
@@ -114,6 +116,11 @@ FUNCTION readline(prompt varchar, sid integer DEFAULT 0) RETURN CLOB IS
 BEGIN
     -- set prompt / request readline style input
     -- LOCK TABLE stream IN EXCLUSIVE MODE;
+    IF sid = 0 THEN
+        wait_flushed(1);
+    ELSIF sid = 1 THEN
+        wait_flushed(0);
+    END IF;
     UPDATE stream SET rl_prompt = prompt WHERE stream_id = sid;
     COMMIT;
 
@@ -152,7 +159,7 @@ BEGIN
         LOCK TABLE stream IN EXCLUSIVE MODE;
         SELECT open, rl_prompt INTO isopen, prompt
             FROM stream WHERE stream_id = sid;
-        SELECT count(*) INTO datas FROM stream WHERE data IS NOT NULL;
+        SELECT count(stream_id) INTO datas FROM stream WHERE data IS NOT NULL;
 
         IF isopen = 0 THEN
             raise_application_error(-20001,
@@ -184,8 +191,8 @@ BEGIN
     sleep := 0.05;
     WHILE true
     LOOP
-        SELECT count(*) INTO pending FROM stream
-            WHERE stream_id = sid AND data IS NOT NULL; 
+        SELECT count(stream_id) INTO pending FROM stream
+            WHERE stream_id = sid AND data IS NOT NULL;
         IF pending = 0 THEN RETURN; END IF;
         DBMS_LOCK.SLEEP(sleep);
         IF sleep < 0.5 THEN

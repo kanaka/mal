@@ -186,7 +186,8 @@ BEGIN
             END IF;
 
             EXCEPTION WHEN OTHERS THEN
-                IF SQLCODE = -20001 THEN  -- io streams closed
+                IF SQLCODE = -20001 THEN  -- io read stream closed
+                    io.close(1);  -- close output stream
                     RETURN 0;
                 END IF;
                 io.writeline('Error: ' || SQLERRM);

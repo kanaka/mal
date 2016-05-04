@@ -3,8 +3,6 @@
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"
 
-#MALDIR=$(readlink -f $(dirname $0)/..)
-#echo MALDIR: ${MALDIR}
 SQLPLUS="sqlplus -S system/oracle"
 
 FILE_PID=
@@ -40,6 +38,7 @@ while true; do
     echo "${out}"
 done
 ) &
+STDOUT_PID=$!
 
 # Perform readline input into stream table when requested
 (
@@ -66,7 +65,7 @@ while true; do
       echo -en "\n/" ) \
         | ${SQLPLUS} >/dev/null || break
 done
-echo -e "BEGIN io.close(0); io.close(1); END;\n/" \
+echo -e "BEGIN io.close(0); END;\n/" \
     | ${SQLPLUS} > /dev/null
 ) <&0 >&1 &
 
@@ -105,8 +104,6 @@ FILE_PID=$!
 
 res=0
 shift
-#echo "CREATE OR REPLACE DIRECTORY ROOTDIR AS '${MALDIR}';" \
-#    | ${SQLPLUS} > /dev/null
 if [ $# -gt 0 ]; then
     # If there are command line arguments then run a command and exit
     args=$(for a in "$@"; do echo -n "\"$a\" "; done)
@@ -119,8 +116,6 @@ else
         | ${SQLPLUS} > /dev/null
     res=$?
 fi
-# TODO: fix this
-sleep 2
-echo -e "BEGIN io.close(0); io.close(1); END;\n/" \
-    | ${SQLPLUS} > /dev/null
+# Wait for output to flush
+wait ${STDOUT_PID}
 exit ${res}
