@@ -15,13 +15,13 @@ END mal;
 CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
-    M         mem_type;                 -- general mal value memory pool
+    M         types.mal_table;                 -- general mal value memory pool
     H         types.map_entry_table;    -- hashmap memory pool
     E         env_pkg.env_entry_table;  -- mal env memory pool
     repl_env  integer;
     x         integer;
     line      CLOB;
-    core_ns   core_ns_type;
+    core_ns   core_ns_T;
     cidx      integer;
 
     -- read
@@ -37,8 +37,8 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
 
     FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i         integer;
-        old_seq   mal_seq_items_type;
-        new_seq   mal_seq_items_type;
+        old_seq   mal_vals;
+        new_seq   mal_vals;
         new_hm    integer;
         old_midx  integer;
         new_midx  integer;
@@ -47,17 +47,17 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         IF M(ast).type_id = 7 THEN
             RETURN env_pkg.env_get(M, E, env, ast);
         ELSIF M(ast).type_id IN (8,9) THEN
-            old_seq := TREAT(M(ast) AS mal_seq_type).val_seq;
-            new_seq := mal_seq_items_type();
+            old_seq := TREAT(M(ast) AS mal_seq_T).val_seq;
+            new_seq := mal_vals();
             new_seq.EXTEND(old_seq.COUNT);
             FOR i IN 1..old_seq.COUNT LOOP
                 new_seq(i) := EVAL(old_seq(i), env);
             END LOOP;
             RETURN types.seq(M, M(ast).type_id, new_seq);
         ELSIF M(ast).type_id IN (10) THEN
-            new_hm := types.hash_map(M, H, mal_seq_items_type());
-            old_midx := TREAT(M(ast) AS mal_map_type).map_idx;
-            new_midx := TREAT(M(new_hm) AS mal_map_type).map_idx;
+            new_hm := types.hash_map(M, H, mal_vals());
+            old_midx := TREAT(M(ast) AS mal_map_T).map_idx;
+            new_midx := TREAT(M(new_hm) AS mal_map_T).map_idx;
 
             k := H(old_midx).FIRST();
             WHILE k IS NOT NULL LOOP
@@ -74,14 +74,14 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         el       integer;
         a0       integer;
         a0sym    varchar2(100);
-        seq      mal_seq_items_type;
+        seq      mal_vals;
         let_env  integer;
         i        integer;
         f        integer;
         fn_env   integer;
         cond     integer;
-        malfn    malfunc_type;
-        args     mal_seq_items_type;
+        malfn    mal_func_T;
+        args     mal_vals;
     BEGIN
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
@@ -93,7 +93,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         -- apply
         a0 := types.first(M, ast);
         if M(a0).type_id = 7 THEN -- symbol
-            a0sym := TREAT(M(a0) AS mal_str_type).val_str;
+            a0sym := TREAT(M(a0) AS mal_str_T).val_str;
         ELSE
             a0sym := '__<*fn*>__';
         END IF;
@@ -104,7 +104,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
                 types.nth(M, ast, 1), EVAL(types.nth(M, ast, 2), env));
         WHEN a0sym = 'let*' THEN
             let_env := env_pkg.env_new(M, E, env);
-            seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_type).val_seq;
+            seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_T).val_seq;
             i := 1;
             WHILE i <= seq.COUNT LOOP
                 x := env_pkg.env_set(M, E, let_env,
@@ -133,9 +133,9 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         ELSE
             el := eval_ast(ast, env);
             f := types.first(M, el);
-            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
+            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_T).val_seq;
             IF M(f).type_id = 12 THEN
-                malfn := TREAT(M(f) AS malfunc_type);
+                malfn := TREAT(M(f) AS mal_func_T);
                 fn_env := env_pkg.env_new(M, E, malfn.env,
                                           malfn.params, args);
                 RETURN EVAL(malfn.ast, fn_env);

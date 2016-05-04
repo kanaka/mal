@@ -1,29 +1,27 @@
 -- ---------------------------------------------------------
 -- reader.sql
 
-PROMPT "reader.sql start";
-
 CREATE OR REPLACE TYPE tokens FORCE AS TABLE OF CLOB;
 /
 
-CREATE OR REPLACE TYPE readerT FORCE AS OBJECT (
+CREATE OR REPLACE TYPE reader_T FORCE AS OBJECT (
     position  integer,
     toks      tokens,
-    MEMBER FUNCTION peek (SELF IN OUT NOCOPY readerT) RETURN varchar,
-    MEMBER FUNCTION next (SELF IN OUT NOCOPY readerT) RETURN varchar
+    MEMBER FUNCTION peek (SELF IN OUT NOCOPY reader_T) RETURN varchar,
+    MEMBER FUNCTION next (SELF IN OUT NOCOPY reader_T) RETURN varchar
 );
 /
 
 
-CREATE OR REPLACE TYPE BODY readerT AS
-    MEMBER FUNCTION peek (SELF IN OUT NOCOPY readerT) RETURN varchar IS
+CREATE OR REPLACE TYPE BODY reader_T AS
+    MEMBER FUNCTION peek (SELF IN OUT NOCOPY reader_T) RETURN varchar IS
     BEGIN
         IF position > toks.COUNT THEN
             RETURN NULL;
         END IF;
         RETURN toks(position);
     END;
-    MEMBER FUNCTION next (SELF IN OUT NOCOPY readerT) RETURN varchar IS
+    MEMBER FUNCTION next (SELF IN OUT NOCOPY reader_T) RETURN varchar IS
     BEGIN
         position := position + 1;
         RETURN toks(position-1);
@@ -33,15 +31,18 @@ END;
 
 
 CREATE OR REPLACE PACKAGE reader IS
-    FUNCTION read_str(M IN OUT NOCOPY mem_type,
+    FUNCTION read_str(M IN OUT NOCOPY types.mal_table,
                       H IN OUT NOCOPY types.map_entry_table,
                       str varchar) RETURN integer;
 END reader;
 /
 show errors;
 
+
 CREATE OR REPLACE PACKAGE BODY reader AS
 
+-- tokenize:
+-- takes a string and returns a nested table of token strings
 FUNCTION tokenize(str varchar) RETURN tokens IS
     re      varchar2(100) := '[[:space:] ,]*(~@|[][{}()''`~@]|"(([\].|[^\"])*)"|;[^' || chr(10) || ']*|[^][[:space:] {}()''"`~@,;]*)';
     tok     CLOB;
@@ -54,17 +55,17 @@ BEGIN
         IF tok IS NOT NULL AND SUBSTR(tok, 1, 1) <> ';' THEN
             toks.extend();
             toks(toks.COUNT) := tok;
-            -- stream_writeline('tok: [' || tok || ']');
+            -- io.writeline('tok: [' || tok || ']');
         END IF;
     END LOOP;
     RETURN toks;
 END;
 
 -- read_atom:
--- takes a readerT
--- updates readerT and returns value
-FUNCTION read_atom(M IN OUT NOCOPY mem_type,
-                   rdr IN OUT NOCOPY readerT) RETURN integer IS
+-- takes a reader_T
+-- updates reader_T and returns a single scalar mal value
+FUNCTION read_atom(M IN OUT NOCOPY types.mal_table,
+                   rdr IN OUT NOCOPY reader_T) RETURN integer IS
     str_id  integer;
     str     CLOB;
     token   CLOB;
@@ -72,7 +73,7 @@ FUNCTION read_atom(M IN OUT NOCOPY mem_type,
     result  integer;
 BEGIN
     token := rdr.next();
-    -- stream_writeline('read_atom: ' || token);
+    -- io.writeline('read_atom: ' || token);
     IF token = 'nil' THEN       -- nil
         result := 1;
     ELSIF token = 'false' THEN  -- false
@@ -100,27 +101,28 @@ BEGIN
 END;
 
 -- forward declaration of read_form
-FUNCTION read_form(M IN OUT NOCOPY mem_type,
+FUNCTION read_form(M IN OUT NOCOPY types.mal_table,
                    H IN OUT NOCOPY types.map_entry_table,
-                   rdr IN OUT NOCOPY readerT) RETURN integer;
+                   rdr IN OUT NOCOPY reader_T) RETURN integer;
 
 -- read_seq:
--- takes a readerT
--- updates readerT and returns new mal_list/vector/hash-map
-FUNCTION read_seq(M IN OUT NOCOPY mem_type,
+-- takes a reader_T
+-- updates reader_T and returns new mal_list/vector/hash-map
+FUNCTION read_seq(M IN OUT NOCOPY types.mal_table,
                   H IN OUT NOCOPY types.map_entry_table,
-                  rdr IN OUT NOCOPY readerT, type_id integer,
+                  rdr IN OUT NOCOPY reader_T,
+                  type_id integer,
                   first varchar, last varchar)
     RETURN integer IS
     token   CLOB;
-    items   mal_seq_items_type;
+    items   mal_vals;
 BEGIN
     token := rdr.next();
     IF token <> first THEN
         raise_application_error(-20003,
             'expected ''' || first || '''', TRUE);
     END IF;
-    items := mal_seq_items_type();
+    items := mal_vals();
     LOOP
         token := rdr.peek();
         IF token IS NULL THEN
@@ -140,11 +142,11 @@ BEGIN
 END;
 
 -- read_form:
--- takes a readerT
--- updates the readerT and returns new mal value
-FUNCTION read_form(M IN OUT NOCOPY mem_type,
+-- takes a reader_T
+-- updates the reader_T and returns new mal value
+FUNCTION read_form(M IN OUT NOCOPY types.mal_table,
                    H IN OUT NOCOPY types.map_entry_table,
-                   rdr IN OUT NOCOPY readerT) RETURN integer IS
+                   rdr IN OUT NOCOPY reader_T) RETURN integer IS
     token   CLOB;
     meta    integer;
     midx    integer;
@@ -177,7 +179,7 @@ BEGIN
         RETURN types.list(M,
                           types.symbol(M, 'with-meta'),
                           read_form(M, H, rdr),
-                              meta);
+                          meta);
     WHEN token = '@' THEN
         token := rdr.next();
         RETURN types.list(M,
@@ -214,20 +216,18 @@ END;
 -- read_str:
 -- takes a string
 -- returns a new mal value
-FUNCTION read_str(M IN OUT NOCOPY mem_type,
+FUNCTION read_str(M IN OUT NOCOPY types.mal_table,
                   H IN OUT NOCOPY types.map_entry_table,
                   str varchar) RETURN integer IS
     toks  tokens;
-    rdr   readerT;
+    rdr   reader_T;
 BEGIN
     toks := tokenize(str);
-    rdr := readerT(1, toks);
-    -- stream_writeline('token 1: ' || rdr.peek());
+    rdr := reader_T(1, toks);
+    -- io.writeline('token 1: ' || rdr.peek());
     RETURN read_form(M, H, rdr);
 END;
 
 END reader;
 /
 show errors;
-
-PROMPT "reader.sql finished";

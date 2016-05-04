@@ -56,24 +56,24 @@ CREATE OR REPLACE PACKAGE BODY io AS
 PROCEDURE open(sid integer) AS
     PRAGMA AUTONOMOUS_TRANSACTION;
 BEGIN
-    -- DBMS_OUTPUT.PUT_LINE('stream_open(' || sid || ') start');
+    -- DBMS_OUTPUT.PUT_LINE('io.open(' || sid || ') start');
     UPDATE stream SET data = '', rl_prompt = '', open = 1
         WHERE stream_id = sid;
     COMMIT;
-    -- DBMS_OUTPUT.PUT_LINE('stream_open(' || sid || ') done');
+    -- DBMS_OUTPUT.PUT_LINE('io.open(' || sid || ') done');
 END;
 
 PROCEDURE close(sid integer) AS
     PRAGMA AUTONOMOUS_TRANSACTION;
 BEGIN
-    -- DBMS_OUTPUT.PUT_LINE('stream_close(' || sid || ') start');
+    -- DBMS_OUTPUT.PUT_LINE('io.close(' || sid || ') start');
     UPDATE stream SET rl_prompt = '', open = 0
         WHERE stream_id = sid;
     COMMIT;
-    -- DBMS_OUTPUT.PUT_LINE('stream_close(' || sid || ') done');
+    -- DBMS_OUTPUT.PUT_LINE('io.close(' || sid || ') done');
 END;
 
--- stream_read:
+-- read:
 -- read from stream stream_id in stream table. Waits until there is
 -- either data to return or the stream closes (NULL data). Returns
 -- NULL when stream is closed.
@@ -100,7 +100,7 @@ BEGIN
         --RAISE NOTICE 'read input: [%] %', input, stream_id;
         IF isopen = 0 THEN
             raise_application_error(-20001,
-                'stream_read: stream ''' || sid || ''' is closed', TRUE);
+                'io.read: stream ''' || sid || ''' is closed', TRUE);
         END IF;
         SYS.DBMS_LOCK.SLEEP(sleep);
         IF sleep < 0.5 THEN
@@ -163,7 +163,7 @@ BEGIN
 
         IF isopen = 0 THEN
             raise_application_error(-20001,
-                'stream_wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
+                'io.wait_rl_prompt: stream ''' || sid || ''' is closed', TRUE);
         END IF;
 
         -- wait until all channels have flushed

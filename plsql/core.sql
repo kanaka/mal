@@ -1,43 +1,40 @@
-PROMPT 'core.sql start';
-
-CREATE OR REPLACE TYPE core_ns_type IS TABLE OF varchar2(100);
+CREATE OR REPLACE TYPE core_ns_T IS TABLE OF varchar2(100);
 /
 
 CREATE OR REPLACE PACKAGE core IS
+    FUNCTION do_core_func(M IN OUT NOCOPY types.mal_table,
+                          H IN OUT NOCOPY types.map_entry_table,
+                          fn integer,
+                          a mal_vals) RETURN integer;
 
-FUNCTION do_core_func(M IN OUT NOCOPY mem_type,
-                      H IN OUT NOCOPY types.map_entry_table,
-                      fn integer,
-                      a mal_seq_items_type) RETURN integer;
-
-FUNCTION get_core_ns RETURN core_ns_type;
-
+    FUNCTION get_core_ns RETURN core_ns_T;
 END core;
 /
+show errors;
 
 
 CREATE OR REPLACE PACKAGE BODY core AS
 
 -- general functions
-FUNCTION equal_Q(M IN OUT NOCOPY mem_type,
+FUNCTION equal_Q(M IN OUT NOCOPY types.mal_table,
                  H IN OUT NOCOPY types.map_entry_table,
-                 args mal_seq_items_type) RETURN integer IS
+                 args mal_vals) RETURN integer IS
 BEGIN
     RETURN types.tf(types.equal_Q(M, H, args(1), args(2)));
 END;
 
 -- scalar functiosn
-FUNCTION symbol(M IN OUT NOCOPY mem_type,
+FUNCTION symbol(M IN OUT NOCOPY types.mal_table,
                 val integer) RETURN integer IS
 BEGIN
-    RETURN types.symbol(M, TREAT(M(val) AS mal_str_type).val_str);
+    RETURN types.symbol(M, TREAT(M(val) AS mal_str_T).val_str);
 END;
 
-FUNCTION keyword(M IN OUT NOCOPY mem_type,
+FUNCTION keyword(M IN OUT NOCOPY types.mal_table,
                  val integer) RETURN integer IS
 BEGIN
     IF types.string_Q(M, val) THEN
-        RETURN types.keyword(M, TREAT(M(val) AS mal_str_type).val_str);
+        RETURN types.keyword(M, TREAT(M(val) AS mal_str_T).val_str);
     ELSIF types.keyword_Q(M, val) THEN
         RETURN val;
     ELSE
@@ -48,54 +45,54 @@ END;
 
 
 -- string functions
-FUNCTION pr_str(M IN OUT NOCOPY mem_type,
+FUNCTION pr_str(M IN OUT NOCOPY types.mal_table,
                 H IN OUT NOCOPY types.map_entry_table,
-                args mal_seq_items_type) RETURN integer IS
+                args mal_vals) RETURN integer IS
 BEGIN
     RETURN types.string(M, printer.pr_str_seq(M, H, args, ' ', TRUE));
 END;
 
-FUNCTION str(M IN OUT NOCOPY mem_type,
+FUNCTION str(M IN OUT NOCOPY types.mal_table,
              H IN OUT NOCOPY types.map_entry_table,
-             args mal_seq_items_type) RETURN integer IS
+             args mal_vals) RETURN integer IS
 BEGIN
     RETURN types.string(M, printer.pr_str_seq(M, H, args, '', FALSE));
 END;
 
-FUNCTION prn(M IN OUT NOCOPY mem_type,
+FUNCTION prn(M IN OUT NOCOPY types.mal_table,
              H IN OUT NOCOPY types.map_entry_table,
-             args mal_seq_items_type) RETURN integer IS
+             args mal_vals) RETURN integer IS
 BEGIN
-    stream_writeline(printer.pr_str_seq(M, H, args, ' ', TRUE));
+    io.writeline(printer.pr_str_seq(M, H, args, ' ', TRUE));
     RETURN 1;  -- nil
 END;
 
-FUNCTION println(M IN OUT NOCOPY mem_type,
+FUNCTION println(M IN OUT NOCOPY types.mal_table,
                  H IN OUT NOCOPY types.map_entry_table,
-                 args mal_seq_items_type) RETURN integer IS
+                 args mal_vals) RETURN integer IS
 BEGIN
-    stream_writeline(printer.pr_str_seq(M, H, args, ' ', FALSE));
+    io.writeline(printer.pr_str_seq(M, H, args, ' ', FALSE));
     RETURN 1;  -- nil
 END;
 
-FUNCTION read_string(M IN OUT NOCOPY mem_type,
+FUNCTION read_string(M IN OUT NOCOPY types.mal_table,
                      H IN OUT NOCOPY types.map_entry_table,
-                     args mal_seq_items_type) RETURN integer IS
+                     args mal_vals) RETURN integer IS
 BEGIN
     IF M(args(1)).type_id = 5 THEN
         RETURN reader.read_str(M, H,
-            TREAT(M(args(1)) AS mal_str_type).val_str);
+            TREAT(M(args(1)) AS mal_str_T).val_str);
     ELSE
         RETURN reader.read_str(M, H,
-            TREAT(M(args(1)) AS mal_long_str_type).val_long_str);
+            TREAT(M(args(1)) AS mal_long_str_T).val_long_str);
     END IF;
 END;
 
-FUNCTION readline(M IN OUT NOCOPY mem_type,
+FUNCTION readline(M IN OUT NOCOPY types.mal_table,
                   prompt integer) RETURN integer IS
     input  CLOB;
 BEGIN
-    input := stream_readline(TREAT(M(prompt) AS mal_str_type).val_str, 0);
+    input := io.readline(TREAT(M(prompt) AS mal_str_T).val_str, 0);
     RETURN types.string(M, input);
 EXCEPTION WHEN OTHERS THEN
     IF SQLCODE = -20001 THEN  -- io streams closed
@@ -105,115 +102,115 @@ EXCEPTION WHEN OTHERS THEN
     END IF;
 END;
 
-FUNCTION slurp(M IN OUT NOCOPY mem_type,
-               args mal_seq_items_type) RETURN integer IS
+FUNCTION slurp(M IN OUT NOCOPY types.mal_table,
+               args mal_vals) RETURN integer IS
     content  CLOB;
 BEGIN
-    content := io.file_open_and_read(TREAT(M(args(1)) AS mal_str_type).val_str);
+    content := io.file_open_and_read(TREAT(M(args(1)) AS mal_str_T).val_str);
     content := REPLACE(content, '\n', chr(10));
     RETURN types.string(M, content);
 END;
 
 
 -- numeric functions
-FUNCTION lt(M IN OUT NOCOPY mem_type,
-            args mal_seq_items_type) RETURN integer IS
+FUNCTION lt(M IN OUT NOCOPY types.mal_table,
+            args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.tf(TREAT(M(args(1)) AS mal_int_type).val_int <
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.tf(TREAT(M(args(1)) AS mal_int_T).val_int <
+                    TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION lte(M IN OUT NOCOPY mem_type,
-             args mal_seq_items_type) RETURN integer IS
+FUNCTION lte(M IN OUT NOCOPY types.mal_table,
+             args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.tf(TREAT(M(args(1)) AS mal_int_type).val_int <=
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.tf(TREAT(M(args(1)) AS mal_int_T).val_int <=
+                    TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION gt(M IN OUT NOCOPY mem_type,
-            args mal_seq_items_type) RETURN integer IS
+FUNCTION gt(M IN OUT NOCOPY types.mal_table,
+            args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.tf(TREAT(M(args(1)) AS mal_int_type).val_int >
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.tf(TREAT(M(args(1)) AS mal_int_T).val_int >
+                    TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION gte(M IN OUT NOCOPY mem_type,
-             args mal_seq_items_type) RETURN integer IS
+FUNCTION gte(M IN OUT NOCOPY types.mal_table,
+             args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.tf(TREAT(M(args(1)) AS mal_int_type).val_int >=
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.tf(TREAT(M(args(1)) AS mal_int_T).val_int >=
+                    TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION add(M IN OUT NOCOPY mem_type,
-             args mal_seq_items_type) RETURN integer IS
+FUNCTION add(M IN OUT NOCOPY types.mal_table,
+             args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int +
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_T).val_int +
+                        TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION subtract(M IN OUT NOCOPY mem_type,
-                  args mal_seq_items_type) RETURN integer IS
+FUNCTION subtract(M IN OUT NOCOPY types.mal_table,
+                  args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int -
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_T).val_int -
+                        TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION multiply(M IN OUT NOCOPY mem_type,
-                  args mal_seq_items_type) RETURN integer IS
+FUNCTION multiply(M IN OUT NOCOPY types.mal_table,
+                  args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int *
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_T).val_int *
+                        TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION divide(M IN OUT NOCOPY mem_type,
-                args mal_seq_items_type) RETURN integer IS
+FUNCTION divide(M IN OUT NOCOPY types.mal_table,
+                args mal_vals) RETURN integer IS
 BEGIN
-    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_type).val_int /
-                        TREAT(M(args(2)) AS mal_int_type).val_int);
+    RETURN types.int(M, TREAT(M(args(1)) AS mal_int_T).val_int /
+                        TREAT(M(args(2)) AS mal_int_T).val_int);
 END;
 
-FUNCTION time_ms(M IN OUT NOCOPY mem_type) RETURN integer IS
+FUNCTION time_ms(M IN OUT NOCOPY types.mal_table) RETURN integer IS
     now  integer;
 BEGIN
-    -- SELECT (SYSDATE - TO_DATE('01-01-1970 00:00:00', 'DD-MM-YYYY HH24:MI:SS')) * 24 * 60 * 60 * 1000
-    --    INTO now FROM DUAL;
-    SELECT extract(day from(sys_extract_utc(systimestamp) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(systimestamp), 'SSSSSFF3'))
+    SELECT extract(day from(sys_extract_utc(systimestamp) -
+                   to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 +
+        to_number(to_char(sys_extract_utc(systimestamp), 'SSSSSFF3'))
         INTO now
         FROM dual;
     RETURN types.int(M, now);
 END;
 
 -- hash-map functions
-FUNCTION assoc(M IN OUT NOCOPY mem_type,
+FUNCTION assoc(M IN OUT NOCOPY types.mal_table,
                H IN OUT NOCOPY types.map_entry_table,
                hm integer,
-               kvs mal_seq_items_type) RETURN integer IS
+               kvs mal_vals) RETURN integer IS
     new_hm    integer;
     midx      integer;
 BEGIN
     new_hm := types.clone(M, H, hm);
-    midx := TREAT(M(new_hm) AS mal_map_type).map_idx;
+    midx := TREAT(M(new_hm) AS mal_map_T).map_idx;
     -- Add the new key/values
     midx := types.assoc_BANG(M, H, midx, kvs);
     RETURN new_hm;
 END;
 
-FUNCTION dissoc(M IN OUT NOCOPY mem_type,
+FUNCTION dissoc(M IN OUT NOCOPY types.mal_table,
                 H IN OUT NOCOPY types.map_entry_table,
                 hm integer,
-                ks mal_seq_items_type) RETURN integer IS
+                ks mal_vals) RETURN integer IS
     new_hm    integer;
     midx      integer;
 BEGIN
     new_hm := types.clone(M, H, hm);
-    midx := TREAT(M(new_hm) AS mal_map_type).map_idx;
+    midx := TREAT(M(new_hm) AS mal_map_T).map_idx;
     -- Remove the keys
     midx := types.dissoc_BANG(M, H, midx, ks);
     RETURN new_hm;
 END;
 
 
-FUNCTION get(M IN OUT NOCOPY mem_type,
+FUNCTION get(M IN OUT NOCOPY types.mal_table,
              H IN OUT NOCOPY types.map_entry_table,
              hm integer, key integer) RETURN integer IS
     midx  integer;
@@ -223,8 +220,8 @@ BEGIN
     IF M(hm).type_id = 0 THEN
         RETURN 1;  -- nil
     END IF;
-    midx := TREAT(M(hm) AS mal_map_type).map_idx;
-    k := TREAT(M(key) AS mal_str_type).val_str;
+    midx := TREAT(M(hm) AS mal_map_T).map_idx;
+    k := TREAT(M(key) AS mal_str_T).val_str;
     IF H(midx).EXISTS(k) THEN
         RETURN H(midx)(k);
     ELSE
@@ -232,28 +229,28 @@ BEGIN
     END IF;
 END;
 
-FUNCTION contains_Q(M IN OUT NOCOPY mem_type,
+FUNCTION contains_Q(M IN OUT NOCOPY types.mal_table,
              H IN OUT NOCOPY types.map_entry_table,
              hm integer, key integer) RETURN integer IS
     midx  integer;
     k     varchar2(256);
     val   integer;
 BEGIN
-    midx := TREAT(M(hm) AS mal_map_type).map_idx;
-    k := TREAT(M(key) AS mal_str_type).val_str;
+    midx := TREAT(M(hm) AS mal_map_T).map_idx;
+    k := TREAT(M(key) AS mal_str_T).val_str;
     RETURN types.tf(H(midx).EXISTS(k));
 END;
 
-FUNCTION keys(M IN OUT NOCOPY mem_type,
+FUNCTION keys(M IN OUT NOCOPY types.mal_table,
               H IN OUT NOCOPY types.map_entry_table,
               hm integer) RETURN integer IS
     midx  integer;
     k     varchar2(256);
-    ks    mal_seq_items_type;
+    ks    mal_vals;
     val   integer;
 BEGIN
-    midx := TREAT(M(hm) AS mal_map_type).map_idx;
-    ks := mal_seq_items_type();
+    midx := TREAT(M(hm) AS mal_map_T).map_idx;
+    ks := mal_vals();
 
     k := H(midx).FIRST();
     WHILE k IS NOT NULL LOOP
@@ -265,16 +262,16 @@ BEGIN
     RETURN types.seq(M, 8, ks);
 END;
 
-FUNCTION vals(M IN OUT NOCOPY mem_type,
+FUNCTION vals(M IN OUT NOCOPY types.mal_table,
               H IN OUT NOCOPY types.map_entry_table,
               hm integer) RETURN integer IS
     midx  integer;
     k     varchar2(256);
-    ks    mal_seq_items_type;
+    ks    mal_vals;
     val   integer;
 BEGIN
-    midx := TREAT(M(hm) AS mal_map_type).map_idx;
-    ks := mal_seq_items_type();
+    midx := TREAT(M(hm) AS mal_map_T).map_idx;
+    ks := mal_vals();
 
     k := H(midx).FIRST();
     WHILE k IS NOT NULL LOOP
@@ -288,31 +285,31 @@ END;
 
 
 -- sequence functions
-FUNCTION cons(M IN OUT NOCOPY mem_type,
-              args mal_seq_items_type) RETURN integer IS
-    new_items  mal_seq_items_type;
+FUNCTION cons(M IN OUT NOCOPY types.mal_table,
+              args mal_vals) RETURN integer IS
+    new_items  mal_vals;
     len        integer;
     i          integer;
 BEGIN
-    new_items := mal_seq_items_type();
+    new_items := mal_vals();
     len := types.count(M, args(2));
     new_items.EXTEND(len+1);
     new_items(1) := args(1);
     FOR i IN 1..len LOOP
-        new_items(i+1) := TREAT(M(args(2)) AS mal_seq_type).val_seq(i);
+        new_items(i+1) := TREAT(M(args(2)) AS mal_seq_T).val_seq(i);
     END LOOP;
     RETURN types.seq(M, 8, new_items);
 END;
 
-FUNCTION concat(M IN OUT NOCOPY mem_type,
-                args mal_seq_items_type) RETURN integer IS
-    new_items  mal_seq_items_type;
+FUNCTION concat(M IN OUT NOCOPY types.mal_table,
+                args mal_vals) RETURN integer IS
+    new_items  mal_vals;
     cur_len    integer;
     seq_len    integer;
     i          integer;
     j          integer;
 BEGIN
-    new_items := mal_seq_items_type();
+    new_items := mal_vals();
     cur_len := 0;
     FOR i IN 1..args.COUNT() LOOP
         seq_len := types.count(M, args(i));
@@ -326,16 +323,16 @@ BEGIN
 END;
 
 
-FUNCTION nth(M IN OUT NOCOPY mem_type,
+FUNCTION nth(M IN OUT NOCOPY types.mal_table,
              val integer,
              ival integer) RETURN integer IS
     idx  integer;
 BEGIN
-    idx := TREAT(M(ival) AS mal_int_type).val_int;
+    idx := TREAT(M(ival) AS mal_int_T).val_int;
     RETURN types.nth(M, val, idx);
 END;
 
-FUNCTION first(M IN OUT NOCOPY mem_type,
+FUNCTION first(M IN OUT NOCOPY types.mal_table,
                val integer) RETURN integer IS
 BEGIN
     IF val = 1 OR types.count(M, val) = 0 THEN
@@ -345,7 +342,7 @@ BEGIN
     END IF;
 END;
 
-FUNCTION rest(M IN OUT NOCOPY mem_type,
+FUNCTION rest(M IN OUT NOCOPY types.mal_table,
               val integer) RETURN integer IS
 BEGIN
     IF val = 1 OR types.count(M, val) = 0 THEN
@@ -355,7 +352,7 @@ BEGIN
     END IF;
 END;
 
-FUNCTION do_count(M IN OUT NOCOPY mem_type,
+FUNCTION do_count(M IN OUT NOCOPY types.mal_table,
                val integer) RETURN integer IS
 BEGIN
     IF M(val).type_id = 0 THEN
@@ -366,16 +363,16 @@ BEGIN
 END;
 
 
-FUNCTION conj(M IN OUT NOCOPY mem_type,
+FUNCTION conj(M IN OUT NOCOPY types.mal_table,
               seq integer,
-              vals mal_seq_items_type) RETURN integer IS
+              vals mal_vals) RETURN integer IS
     type_id  integer;
     slen     integer;
-    items    mal_seq_items_type;
+    items    mal_vals;
 BEGIN
     type_id := M(seq).type_id;
     slen := types.count(M, seq);
-    items := mal_seq_items_type();
+    items := mal_vals();
     items.EXTEND(slen + vals.COUNT());
     CASE
     WHEN type_id = 8 THEN
@@ -399,12 +396,12 @@ BEGIN
     RETURN types.seq(M, type_id, items);
 END;
 
-FUNCTION seq(M IN OUT NOCOPY mem_type,
+FUNCTION seq(M IN OUT NOCOPY types.mal_table,
              val integer) RETURN integer IS
     type_id    integer;
     new_val    integer;
     str        CLOB;
-    str_items  mal_seq_items_type;
+    str_items  mal_vals;
 BEGIN
     type_id := M(val).type_id;
     CASE
@@ -417,13 +414,13 @@ BEGIN
         IF types.count(M, val) = 0 THEN
             RETURN 1;  -- nil
         END IF;
-        RETURN types.seq(M, 8, TREAT(M(val) AS mal_seq_type).val_seq);
+        RETURN types.seq(M, 8, TREAT(M(val) AS mal_seq_T).val_seq);
     WHEN types.string_Q(M, val) THEN
-        str := TREAT(M(val) AS mal_str_type).val_str;
+        str := TREAT(M(val) AS mal_str_T).val_str;
         IF str IS NULL THEN
             RETURN 1;  -- nil
         END IF;
-        str_items := mal_seq_items_type();
+        str_items := mal_vals();
         str_items.EXTEND(LENGTH(str));
         FOR i IN 1..LENGTH(str) LOOP
             str_items(i) := types.string(M, SUBSTR(str, i, 1));
@@ -437,29 +434,20 @@ BEGIN
     END CASE;
 END;
 
--- atom functions
-FUNCTION reset_BANG(M IN OUT NOCOPY mem_type,
-                    atm integer,
-                    new_val integer) RETURN integer IS
-BEGIN
-    M(atm) := mal_atom_type(13, new_val);
-    RETURN new_val;
-END;
-
 -- metadata functions
-FUNCTION meta(M IN OUT NOCOPY mem_type,
+FUNCTION meta(M IN OUT NOCOPY types.mal_table,
               val integer) RETURN integer IS
     type_id  integer;
 BEGIN
     type_id := M(val).type_id;
     IF type_id IN (8,9) THEN  -- list/vector
-        RETURN TREAT(M(val) AS mal_seq_type).meta;
+        RETURN TREAT(M(val) AS mal_seq_T).meta;
     ELSIF type_id = 10 THEN   -- hash-map
-        RETURN TREAT(M(val) AS mal_map_type).meta;
+        RETURN TREAT(M(val) AS mal_map_T).meta;
     ELSIF type_id = 11 THEN   -- native function
         RETURN 1;  -- nil
     ELSIF type_id = 12 THEN   -- mal function
-        RETURN TREAT(M(val) AS malfunc_type).meta;
+        RETURN TREAT(M(val) AS mal_func_T).meta;
     ELSE
         raise_application_error(-20006,
             'meta: metadata not supported on type', TRUE);
@@ -467,10 +455,10 @@ BEGIN
 END;
 
 -- general native function case/switch
-FUNCTION do_core_func(M IN OUT NOCOPY mem_type,
+FUNCTION do_core_func(M IN OUT NOCOPY types.mal_table,
                       H IN OUT NOCOPY types.map_entry_table,
                       fn integer,
-                      a mal_seq_items_type) RETURN integer IS
+                      a mal_vals) RETURN integer IS
     fname  varchar(256);
     idx    integer;
 BEGIN
@@ -479,7 +467,7 @@ BEGIN
             'Invalid function call', TRUE);
     END IF;
 
-    fname := TREAT(M(fn) AS mal_str_type).val_str;
+    fname := TREAT(M(fn) AS mal_str_T).val_str;
 
     CASE
     WHEN fname = '='           THEN RETURN equal_Q(M, H, a);
@@ -540,16 +528,16 @@ BEGIN
     WHEN fname = 'with-meta'   THEN RETURN types.clone(M, H, a(1), a(2));
     WHEN fname = 'atom'        THEN RETURN types.atom_new(M, a(1));
     WHEN fname = 'atom?'       THEN RETURN types.tf(M(a(1)).type_id = 13);
-    WHEN fname = 'deref'       THEN RETURN TREAT(M(a(1)) AS mal_atom_type).val;
-    WHEN fname = 'reset!'      THEN RETURN reset_BANG(M, a(1), a(2));
+    WHEN fname = 'deref'       THEN RETURN TREAT(M(a(1)) AS mal_atom_T).val;
+    WHEN fname = 'reset!'      THEN RETURN types.atom_reset(M, a(1), a(2));
 
     ELSE raise_application_error(-20004, 'Invalid function call', TRUE);
     END CASE;
 END;
 
-FUNCTION get_core_ns RETURN core_ns_type IS
+FUNCTION get_core_ns RETURN core_ns_T IS
 BEGIN
-    RETURN core_ns_type(
+    RETURN core_ns_T(
         '=',
         'throw',
 
@@ -620,5 +608,3 @@ END;
 END core;
 /
 show errors;
-
-PROMPT 'core.sql finished';

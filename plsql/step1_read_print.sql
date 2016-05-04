@@ -13,7 +13,7 @@ END mal;
 CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
-    M         mem_type;                 -- general mal value memory pool
+    M         types.mal_table;                 -- general mal value memory pool
     H         types.map_entry_table;    -- hashmap memory pool
     line      CLOB;
 
@@ -56,7 +56,7 @@ BEGIN
 
             EXCEPTION WHEN OTHERS THEN
                 IF SQLCODE = -20001 THEN  -- io read stream closed
-                    stream_writeline('closing stream 1');
+                    io.writeline('closing stream 1');
                     io.close(1);  -- close output stream
                     RETURN 0;
                 END IF;

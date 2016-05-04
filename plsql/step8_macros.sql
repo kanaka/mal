@@ -15,15 +15,15 @@ END mal;
 CREATE OR REPLACE PACKAGE BODY mal IS
 
 FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
-    M         mem_type;                 -- general mal value memory pool
+    M         types.mal_table;                 -- general mal value memory pool
     H         types.map_entry_table;    -- hashmap memory pool
     E         env_pkg.env_entry_table;  -- mal env memory pool
     repl_env  integer;
     x         integer;
     line      CLOB;
-    core_ns   core_ns_type;
+    core_ns   core_ns_T;
     cidx      integer;
-    argv      mal_seq_items_type;
+    argv      mal_vals;
 
     -- read
     FUNCTION READ(line varchar) RETURN integer IS
@@ -35,7 +35,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
 
     -- forward declarations
     FUNCTION EVAL(orig_ast integer, orig_env integer) RETURN integer;
-    FUNCTION do_builtin(fn integer, args mal_seq_items_type) RETURN integer;
+    FUNCTION do_builtin(fn integer, args mal_vals) RETURN integer;
 
     FUNCTION is_pair(ast integer) RETURN BOOLEAN IS
     BEGIN
@@ -51,12 +51,12 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         ELSE
             a0 := types.nth(M, ast, 0);
             IF M(a0).type_id = 7 AND
-               TREAT(m(a0) AS mal_str_type).val_str = 'unquote' THEN
+               TREAT(m(a0) AS mal_str_T).val_str = 'unquote' THEN
                 RETURN types.nth(M, ast, 1);
             ELSIF is_pair(a0) THEN
                 a00 := types.nth(M, a0, 0);
                 IF M(a00).type_id = 7 AND
-                   TREAT(M(a00) AS mal_str_type).val_str = 'splice-unquote' THEN
+                   TREAT(M(a00) AS mal_str_T).val_str = 'splice-unquote' THEN
                     RETURN types.list(M, types.symbol(M, 'concat'),
                                          types.nth(M, a0, 1),
                                          quasiquote(types.slice(M, ast, 1)));
@@ -79,7 +79,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
                env_pkg.env_find(M, E, env, a0) IS NOT NULL THEN
                 mac := env_pkg.env_get(M, E, env, a0);
                 IF M(mac).type_id = 12 THEN
-                    RETURN TREAT(M(mac) AS malfunc_type).is_macro > 0;
+                    RETURN TREAT(M(mac) AS mal_func_T).is_macro > 0;
                 END IF;
             END IF;
         END IF;
@@ -89,16 +89,16 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     FUNCTION macroexpand(orig_ast integer, env integer) RETURN integer IS
         ast     integer;
         mac     integer;
-        malfn   malfunc_type;
-        fargs   mal_seq_items_type;
+        malfn   mal_func_T;
+        fargs   mal_vals;
         fn_env  integer;
     BEGIN
         ast := orig_ast;
         WHILE is_macro_call(ast, env) LOOP
             mac := env_pkg.env_get(M, E, env, types.nth(M, ast, 0));
-            fargs := TREAT(M(types.slice(M, ast, 1)) as mal_seq_type).val_seq;
+            fargs := TREAT(M(types.slice(M, ast, 1)) as mal_seq_T).val_seq;
             if M(mac).type_id = 12 THEN
-                malfn := TREAT(M(mac) AS malfunc_type);
+                malfn := TREAT(M(mac) AS mal_func_T);
                 fn_env := env_pkg.env_new(M, E, malfn.env,
                                           malfn.params,
                                           fargs);
@@ -112,8 +112,8 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
 
     FUNCTION eval_ast(ast integer, env integer) RETURN integer IS
         i         integer;
-        old_seq   mal_seq_items_type;
-        new_seq   mal_seq_items_type;
+        old_seq   mal_vals;
+        new_seq   mal_vals;
         new_hm    integer;
         old_midx  integer;
         new_midx  integer;
@@ -122,17 +122,17 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         IF M(ast).type_id = 7 THEN
             RETURN env_pkg.env_get(M, E, env, ast);
         ELSIF M(ast).type_id IN (8,9) THEN
-            old_seq := TREAT(M(ast) AS mal_seq_type).val_seq;
-            new_seq := mal_seq_items_type();
+            old_seq := TREAT(M(ast) AS mal_seq_T).val_seq;
+            new_seq := mal_vals();
             new_seq.EXTEND(old_seq.COUNT);
             FOR i IN 1..old_seq.COUNT LOOP
                 new_seq(i) := EVAL(old_seq(i), env);
             END LOOP;
             RETURN types.seq(M, M(ast).type_id, new_seq);
         ELSIF M(ast).type_id IN (10) THEN
-            new_hm := types.hash_map(M, H, mal_seq_items_type());
-            old_midx := TREAT(M(ast) AS mal_map_type).map_idx;
-            new_midx := TREAT(M(new_hm) AS mal_map_type).map_idx;
+            new_hm := types.hash_map(M, H, mal_vals());
+            old_midx := TREAT(M(ast) AS mal_map_T).map_idx;
+            new_midx := TREAT(M(new_hm) AS mal_map_T).map_idx;
 
             k := H(old_midx).FIRST();
             WHILE k IS NOT NULL LOOP
@@ -151,16 +151,16 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         el       integer;
         a0       integer;
         a0sym    varchar2(100);
-        seq      mal_seq_items_type;
+        seq      mal_vals;
         let_env  integer;
         i        integer;
         f        integer;
         cond     integer;
-        malfn    malfunc_type;
-        args     mal_seq_items_type;
+        malfn    mal_func_T;
+        args     mal_vals;
     BEGIN
       WHILE TRUE LOOP
-        -- stream_writeline('EVAL: ' || printer.pr_str(M, ast));
+        -- io.writeline('EVAL: ' || printer.pr_str(M, H, ast));
         IF M(ast).type_id <> 8 THEN
             RETURN eval_ast(ast, env);
         END IF;
@@ -177,7 +177,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         -- apply
         a0 := types.first(M, ast);
         if M(a0).type_id = 7 THEN -- symbol
-            a0sym := TREAT(M(a0) AS mal_str_type).val_str;
+            a0sym := TREAT(M(a0) AS mal_str_T).val_str;
         ELSE
             a0sym := '__<*fn*>__';
         END IF;
@@ -188,7 +188,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
                 types.nth(M, ast, 1), EVAL(types.nth(M, ast, 2), env));
         WHEN a0sym = 'let*' THEN
             let_env := env_pkg.env_new(M, E, env);
-            seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_type).val_seq;
+            seq := TREAT(M(types.nth(M, ast, 1)) AS mal_seq_T).val_seq;
             i := 1;
             WHILE i <= seq.COUNT LOOP
                 x := env_pkg.env_set(M, E, let_env,
@@ -203,7 +203,7 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
             RETURN EVAL(quasiquote(types.nth(M, ast, 1)), env);
         WHEN a0sym = 'defmacro!' THEN
             x := EVAL(types.nth(M, ast, 2), env);
-            malfn := TREAT(M(x) as malfunc_type);
+            malfn := TREAT(M(x) as mal_func_T);
             malfn.is_macro := 1;
             M(x) := malfn;
             RETURN env_pkg.env_set(M, E, env,
@@ -232,9 +232,9 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
         ELSE
             el := eval_ast(ast, env);
             f := types.first(M, el);
-            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_type).val_seq;
+            args := TREAT(M(types.slice(M, el, 1)) AS mal_seq_T).val_seq;
             IF M(f).type_id = 12 THEN
-                malfn := TREAT(M(f) AS malfunc_type);
+                malfn := TREAT(M(f) AS mal_func_T);
                 env := env_pkg.env_new(M, E, malfn.env,
                                           malfn.params, args);
                 ast := malfn.ast;  -- TCO
@@ -251,35 +251,34 @@ FUNCTION MAIN(args varchar DEFAULT '()') RETURN integer IS
     -- functions that require special access to repl_env or EVAL
     -- are implemented directly here, otherwise, core.do_core_fn
     -- is called.
-    FUNCTION do_builtin(fn integer, args mal_seq_items_type) RETURN integer IS
+    FUNCTION do_builtin(fn integer, args mal_vals) RETURN integer IS
         fname   varchar2(100);
         val     integer;
         f       integer;
-        malfn   malfunc_type;
-        fargs   mal_seq_items_type;
+        malfn   mal_func_T;
+        fargs   mal_vals;
         fn_env  integer;
     BEGIN
-        fname := TREAT(M(fn) AS mal_str_type).val_str;
+        fname := TREAT(M(fn) AS mal_str_T).val_str;
         CASE
         WHEN fname = 'do_eval' THEN
             RETURN EVAL(args(1), repl_env);
         WHEN fname = 'swap!' THEN
-            val := TREAT(M(args(1)) AS mal_atom_type).val;
+            val := TREAT(M(args(1)) AS mal_atom_T).val;
             f := args(2);
             -- slice one extra at the beginning that will be changed
             -- to the value of the atom
-            fargs := TREAT(M(types.slice(M, args, 1)) AS mal_seq_type).val_seq;
+            fargs := TREAT(M(types.slice(M, args, 1)) AS mal_seq_T).val_seq;
             fargs(1) := val;
             IF M(f).type_id = 12 THEN
-                malfn := TREAT(M(f) AS malfunc_type);
+                malfn := TREAT(M(f) AS mal_func_T);
                 fn_env := env_pkg.env_new(M, E, malfn.env,
                                           malfn.params, fargs);
                 val := EVAL(malfn.ast, fn_env);
             ELSE
                 val := do_builtin(f, fargs);
             END IF;
-            M(args(1)) := mal_atom_type(13, val);
-            RETURN val;
+            RETURN types.atom_reset(M, args(1), val);
         ELSE
             RETURN core.do_core_func(M, H, fn, args);
         END CASE;
@@ -306,7 +305,7 @@ BEGIN
 
     repl_env := env_pkg.env_new(M, E, NULL);
 
-    argv := TREAT(M(reader.read_str(M, H, args)) AS mal_seq_type).val_seq;
+    argv := TREAT(M(reader.read_str(M, H, args)) AS mal_seq_T).val_seq;
 
     -- core.EXT: defined using PL/SQL
     core_ns := core.get_core_ns();
@@ -331,7 +330,7 @@ BEGIN
     IF argv.COUNT() > 0 THEN
         BEGIN
             line := REP('(load-file "' ||
-                    TREAT(M(argv(1)) AS mal_str_type).val_str ||
+                    TREAT(M(argv(1)) AS mal_str_T).val_str ||
                     '")');
             io.close(1);  -- close output stream
             RETURN 0;
