@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Starting Oracle XE"
-/usr/sbin/startup.sh
+sudo /usr/sbin/startup.sh
 
 if [ "${*}" ]; then
     exec "${@}"
