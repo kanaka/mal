@@ -25,7 +25,6 @@ CREATE FUNCTION printer.pr_str(ast integer,
     print_readably boolean DEFAULT true)
     RETURNS varchar AS $$
 DECLARE
-    re    varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;.*|[^\\s \\[\\]{}()\'"`~@,;]*)';
     type  integer;
     seq   integer[];
     hash  hstore;

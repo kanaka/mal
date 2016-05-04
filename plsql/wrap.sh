@@ -3,7 +3,8 @@
 RL_HISTORY_FILE=${HOME}/.mal-history
 SKIP_INIT="${SKIP_INIT:-}"
 
-SQLPLUS="sqlplus -S system/oracle"
+ORACLE_LOGON=${ORACLE_LOGON:-system/oracle}
+SQLPLUS="sqlplus -S ${ORACLE_LOGON}"
 
 FILE_PID=
 cleanup() {

@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 53 languages:
+Mal is implemented in 54 languages:
 
 * Ada
 * GNU awk
@@ -46,7 +46,8 @@ Mal is implemented in 53 languages:
 * OCaml
 * Perl
 * PHP
-* PL/pgSQL
+* PL/pgSQL (Postgres)
+* PL/SQL (Oracle)
 * Postscript
 * Python
 * RPython
@@ -586,15 +587,41 @@ gs -q -dNODISPLAY -I./ stepX_YYY.ps
 
 ### PL/pgSQL (Postgres SQL Procedural Language)
 
-The PL/pgSQL implementation of mal requires a running Postgres
-server (the "kanaka/mal-test-plpgsql" docker image automatically
-starts a Postgres server). The implementation connects to the Postgres
-server and create a database named "mal" to store tables and stored
-procedures. It has been tested with Postgres 9.4.
+The PL/pgSQL implementation of mal requires a running Postgres server
+(the "kanaka/mal-test-plpgsql" docker image automatically starts
+a Postgres server). The implementation connects to the Postgres server
+and create a database named "mal" to store tables and stored
+procedures. The wrapper script uses the psql command to connect to the
+server and defaults to the user "postgres" but this can be overridden
+with the PSQL_USER environment variable. A password can be specified
+using the PGPASSWORD environment variable. The implementation has been
+tested with Postgres 9.4.
 
 ```
 cd plpgsql
 ./wrap.sh stepX_YYY.sql
+    # OR
+PSQL_USER=myuser PGPASSWORD=mypass ./wrap.sh stepX_YYY.sql
+```
+
+### PL/SQL (Oracle SQL Procedural Language)
+
+The PL/pgSQL implementation of mal requires a running Oracle DB
+server (the "kanaka/mal-test-plsql" docker image automatically
+starts an Oracle Express server). The implementation connects to the
+Oracle server to create types, tables and stored procedures. The
+default SQL*Plus logon value (username/password@connect_identifier) is
+"system/oracle" but this can be overridden with the ORACLE_LOGON
+environment variable. The implementation has been tested with Oracle
+Express Edition 11g Release 2. Note that any SQL*Plus connection
+warnings (user password expiration, etc) will interfere with the
+ability of the wrapper script to communicate with the DB.
+
+```
+cd plsql
+./wrap.sh stepX_YYY.sql
+    # OR
+ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
 ```
 
 ### Python (2.X or 3.X)
