@@ -3,8 +3,7 @@
 <a name="milliseconds"></a>
 
 ### How do I get milliseconds since epoch for the "time-ms" function?
-### Does the "time-ms" function have to return millisecond since
-epoch?
+### Does the "time-ms" function have to return millisecond since epoch?
 
 Most languages usually have some way to do this natively even though
 it might be buried deeply in the language. If you are having trouble
@@ -17,7 +16,9 @@ a native way at all).
 As a last resort you can always shell out and call the date command
 like this:
 
-    date +%s%3N
+```
+date +%s%3N
+```
 
 There are currently three implementations where this method was
 necessary (probably): bash, make and vimscript. Unfortunately this
@@ -33,11 +34,8 @@ integers).
 
 <a name="function_references"></a>
 
-### How do I implement core/native functions if my language does not
-have any sort of function references (function pointers, closures,
-lambdas, etc)?
-### How do I implement mal functions in step4 if I do not have
-function references?
+### How do I implement core/native functions if my language does not have any sort of function references (function pointers, closures, lambdas, etc)?
+### How do I implement mal functions in step4 if I do not have function references?
 
 There are very few language that do not have any sort of function
 references so I suggest asking about the specific problem you are
@@ -68,8 +66,7 @@ functions are stored in step4.
 
 <a name="IO"></a>
 
-### How do I implement terminal input and output in a language which
-does not have standard I/O capabilities?
+### How do I implement terminal input and output in a language which does not have standard I/O capabilities?
 
 If your target language has some way to get data in and out while it
 is running (even if it is not standard terminal or file I/O) then you
