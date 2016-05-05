@@ -78,6 +78,18 @@ as your implementation can be used with the test runner and the hack
 is just for working around I/O limitations in your target language,
 it is considered legitimate for upstream inclusion.
 
+### How do I read the command-line arguments if my language runtime doesn't support access to them?
+
+Most languages give access to the command-line arguments that were passed to
+the program, either as an arguement to the `main` function (like `argc` and
+`argv` in C) or as a global variable (like `sys.argv` in Python).  If your
+target language doesn't have such mechanisms, consider adding a wrapper script
+that will read the command-line arguments that were passed to the script and
+pass them to the program in a way that the program can read.  This might be
+through an environment variable (if the target language allows reading from
+environment variables) or through a temporary file.
+
+
 <a name="no_reader_object">
 
 ### How can I implement the reader without using a mutable object?
