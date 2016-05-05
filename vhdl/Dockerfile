@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:14.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -20,6 +20,10 @@ WORKDIR /mal
 ##########################################################
 # Specific implementation requirements
 ##########################################################
+
+RUN apt-get -y install software-properties-common && \
+    apt-add-repository -y ppa:pgavin/ghdl && \
+    apt-get update -y
 
 RUN apt-get -y install ghdl
 
