@@ -57,6 +57,9 @@ TEST_OPTS =
 # later steps.
 REGRESS =
 
+DEFERABLE=1
+OPTIONAL=1
+
 # Extra implementation specific options to pass to runtest.py
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
@@ -131,6 +134,9 @@ haxe_RUNSTEP_neko   = neko ../$(2) $(3)
 haxe_RUNSTEP_python = python3 ../$(2) $(3)
 haxe_RUNSTEP_cpp    = ../$(2) $(3)
 haxe_RUNSTEP_js     = node ../$(2) $(3)
+
+opt_DEFERABLE       = $(if $(strip $(DEFERABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERABLE)),--deferable,--no-deferable),--no-deferable)
+opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
 
 # Return list of test files for a given step. If REGRESS is set then
 # test files will include step 2 tests through tests for the step
@@ -330,8 +336,8 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	    $(foreach test,$(call STEP_TEST_FILES,$(impl),$(step)),\
 	      echo '----------------------------------------------' && \
 	      echo 'Testing $@, step file: $+, test file: $(test)' && \
-	      echo 'Running: $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))' && \
-	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) &&) \
+	      echo 'Running: $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))' && \
+	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) &&) \
 	    true))
 
 # Allow test, tests, test^STEP, test^IMPL, and test^IMPL^STEP

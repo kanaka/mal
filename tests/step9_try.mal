@@ -67,11 +67,12 @@
 ;=>6
 (map double nums) 
 ;=>(2 4 6)
-(map (fn* (x) (symbol? x)) (list 1 (symbol "two") "three"))
+(map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
 
+;>>> deferable=True
 ;;
-;; ------- Optional Functionality ----------
+;; ------- Deferable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
 ;; Testing symbol and keyword functions
@@ -317,10 +318,11 @@
 (apply (fn* (a & more) (list? more)) [1])
 ;=>true
 
+;>>> soft=True
+;>>> optional=True
 ;;
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
-;>>> soft=True
 
 
 ;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*

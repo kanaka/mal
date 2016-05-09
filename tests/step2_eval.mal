@@ -23,8 +23,14 @@
 (abc 1 2 3)
 ; .*\'abc\' not found.*
 
+;; Testing empty list
+()
+;=>()
+
+;>>> deferable=True
+;>>> optional=True
 ;;
-;; -------- Optional Functionality --------
+;; -------- Deferable/Optional Functionality --------
 
 ;; Testing evaluation within collection literals
 [1 2 (+ 1 2)]
@@ -35,7 +41,3 @@
 
 {:a (+ 7 8)}
 ;=>{:a 15}
-
-;; Testing empty list
-()
-;=>()

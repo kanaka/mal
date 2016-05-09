@@ -161,38 +161,6 @@
 (plus7 8)
 ;=>15
 
-
-;; Testing variable length arguments
-
-( (fn* (& more) (count more)) 1 2 3)
-;=>3
-( (fn* (& more) (list? more)) 1 2 3)
-;=>true
-( (fn* (& more) (count more)) 1)
-;=>1
-( (fn* (& more) (count more)) )
-;=>0
-( (fn* (& more) (list? more)) )
-;=>true
-( (fn* (a & more) (count more)) 1 2 3)
-;=>2
-( (fn* (a & more) (count more)) 1)
-;=>0
-( (fn* (a & more) (list? more)) 1)
-;=>true
-
-
-;; Testing language defined not function
-(not false)
-;=>true
-(not true)
-;=>false
-(not "a")
-;=>false
-(not 0)
-;=>false
-
-
 ;; Testing do form
 (do (prn "prn output1"))
 ; "prn output1"
@@ -232,6 +200,42 @@ a
 ;;; Too slow for bash, erlang, make and miniMAL
 ;;;(fib 10)
 ;;;;=>89
+
+
+;>>> deferable=True
+;;
+;; -------- Deferable Functionality --------
+
+;; Testing variable length arguments
+
+( (fn* (& more) (count more)) 1 2 3)
+;=>3
+( (fn* (& more) (list? more)) 1 2 3)
+;=>true
+( (fn* (& more) (count more)) 1)
+;=>1
+( (fn* (& more) (count more)) )
+;=>0
+( (fn* (& more) (list? more)) )
+;=>true
+( (fn* (a & more) (count more)) 1 2 3)
+;=>2
+( (fn* (a & more) (count more)) 1)
+;=>0
+( (fn* (a & more) (list? more)) 1)
+;=>true
+
+
+;; Testing language defined not function
+(not false)
+;=>true
+(not true)
+;=>false
+(not "a")
+;=>false
+(not 0)
+;=>false
+
 
 ;; -----------------------------------------------------
 
@@ -383,6 +387,7 @@ nil
 ; (1 2 abc ") def
 ;=>nil
 
+;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
 
