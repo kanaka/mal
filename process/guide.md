@@ -407,12 +407,6 @@ and each step will give progressively more bang for the buck.
 #### Deferrable:
 
 
-* Add error checking to your reader functions to make sure parens
-  are properly matched. Catch and print these errors in your main
-  loop. If your language does not have try/catch style bubble up
-  exception handling, then you will need to add explicit error
-  handling to your code to catch and pass on errors without crashing.
-
 * Add support for the other basic data type to your reader and printer
   functions: string, nil, true, and false. These become mandatory at
   step 4. When a string is read, the following transformations are
@@ -426,6 +420,17 @@ and each step will give progressively more bang for the buck.
   their printed representations (the reverse of the reader). The
   `PRINT` function in the main program should call `pr_str` with
   print_readably set to true.
+
+* Add error checking to your reader functions to make sure parens
+  are properly matched. Catch and print these errors in your main
+  loop. If your language does not have try/catch style bubble up
+  exception handling, then you will need to add explicit error
+  handling to your code to catch and pass on errors without crashing.
+
+* Add support for reader macros which are forms that are
+  transformed into other forms during the read phase. Refer to
+  `tests/step1_read_print.mal` for the form that these macros should
+  take (they are just simple transformations of the token stream).
 
 * Add support for the other mal types: keyword, vector, hash-map.
   * keyword: a keyword is a token that begins with a colon. A keyword
@@ -453,11 +458,6 @@ and each step will give progressively more bang for the buck.
     parameters to indicate the starting and ending tokens. The odd
     tokens are then used for keys with the corresponding even tokens
     as the values.
-
-* Add support for reader macros which are forms that are
-  transformed into other forms during the read phase. Refer to
-  `tests/step1_read_print.mal` for the form that these macros should
-  take (they are just simple transformations of the token stream).
 
 * Add comment support to your reader. The tokenizer should ignore
   tokens that start with ";". Your `read_str` function will need to
@@ -758,6 +758,9 @@ Try out the basic functionality you have implemented:
   REPL environment (`repl_env`).
 
 * Add the following functions to `core.ns`:
+  * `prn`: call `pr_str` on the first parameter with `print_readably`
+    set to true, prints the result to the screen and then return
+    `nil`. Note that the full version of `prn` is a deferable below.
   * `list`: take the parameters and return them as a list.
   * `list?`: return true if the first parameter is a list, false
     otherwise.
