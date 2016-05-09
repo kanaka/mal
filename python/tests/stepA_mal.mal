@@ -1,0 +1,23 @@
+;; Testing Python interop
+
+;; Testing Python experesions
+(py* "7")
+;=>7
+(py* "'7'")
+;=>"7"
+(py* "[7,8,9]")
+;=>(7 8 9)
+(py* "' '.join(['X'+c+'Y' for c in ['a','b','c']])")
+;=>"XaY XbY XcY"
+(py* "[1 + x for x in [1,2,3]]")
+;=>(2 3 4)
+
+;; Testing Python statements
+(py!* "print('hello')")
+; hello
+;=>nil
+
+(py!* "foo = 19 % 4")
+;=>nil
+(py* "foo")
+;=>3

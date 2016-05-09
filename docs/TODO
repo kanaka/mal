@@ -113,9 +113,6 @@ Postscript:
     - fix blank line after comments
     - fix command line arg processing (doesn't run file specified)
 
-Python:
-    - interop tests
-
 R:
     - tracebacks in errors
     - fix running from different directory
