@@ -37,9 +37,8 @@ function MalDiv(args)
 endfunction
 
 function MalTimeMs(args)
-  " TODO: support more cross-platform way if possible
-  "return IntegerNew(ceil(strftime('%s000') + 0))
-  return IntegerNew(0 + system('date +%s%N | cut -b1-13'))
+  " vimtimems() is implemented in vimextras.c
+  return IntegerNew(libcallnr("libvimextras.so", "vimtimems", 0))
 endfunction
 
 function MalList(args)

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <readline/readline.h>
+#include <sys/time.h>
 
 /*
  * Vim interface for the readline(3) function.
@@ -24,4 +25,20 @@ char* vimreadline(char* prompt) {
         buf[1] = '\0';
     }
     return buf;
+}
+
+#define UNIXTIME_2000_01_01 946684800
+
+/*
+ * Returns the number of milliseconds since 2000-01-01 00:00:00 UTC.
+ *
+ * This date is chosen (instead of the standard 1970 epoch) so the number of
+ * milliseconds will not exceed a 32-bit integer, which is the limit for Vim
+ * number variables.
+ */
+int vimtimems(int dummy) {
+    struct timeval tv;
+    (void) dummy; /* unused */
+    gettimeofday(&tv, NULL);
+    return (tv.tv_sec - UNIXTIME_2000_01_01) * 1000 + (tv.tv_usec / 1000);
 }
