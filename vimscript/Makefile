@@ -2,7 +2,7 @@ SOURCES_BASE = readline.vim types.vim reader.vim printer.vim
 SOURCES_LISP = env.vim core.vim stepA_mal.vim
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: libvimreadline.so
+all: libvimextras.so
 
 dist: mal.vim mal
 
@@ -18,14 +18,14 @@ mal: mal.vim
 	chmod +x $@
 
 
-libvimreadline.so: vimreadline.o
+libvimextras.so: vimextras.o
 	$(CC) -g -shared -o $@ $< -lreadline
 
-vimreadline.o: vimreadline.c
+vimextras.o: vimextras.c
 	$(CC) -g -fPIC -c $< -o $@
 
 clean:
-	rm -f vimreadline.o libvimreadline.so mal.vim mal
+	rm -f vimextras.o libvimextras.so mal.vim mal
 
 stats: $(SOURCES)
 	@wc $^
