@@ -20,9 +20,9 @@ like this:
 date +%s%3N
 ```
 
-There are currently three implementations where this method was
-necessary (probably): bash, make and vimscript. Unfortunately this
-method is limited to Linux/UNIX.
+There are currently two implementations where this method was
+necessary (probably): bash and make. Unfortunately this method is
+limited to Linux/UNIX.
 
 Also, "time-ms" technically just needs to return accurate milliseconds
 since some arbitrary point in time (even program start) in order to be
