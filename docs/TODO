@@ -10,7 +10,6 @@ General:
 
 All Implementations:
     - test that *ARGV* gets set properly
-    - test to make sure slurp captures final newline
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - per impl tests for step5_tco, or at least a better way of
