@@ -1,0 +1,260 @@
+<html>
+<head>
+  <style>
+    h2 {
+        text-align: center;
+    }
+    table {
+        font-size: 11px;
+        border-width: 0px;
+        border-collapse: collapse;
+    }
+    table tr {
+        border: none;
+    }
+    table td,th {
+        border-left: solid 1px #008;
+    }
+    table td:first-child, th:first-child {
+        border-left: none;
+    }
+
+    table td {
+        vertical-align: top;
+        padding: 2px;
+    }
+    pre {
+        background: #FCFCF9;
+        padding: 3px;
+        border-width: 1px;
+        border-style: solid;
+        border-color: lightgrey;
+    }
+
+    .file {
+        font-weight: 700;
+        color: #338833;
+    }
+    .var {
+        font-weight: 700;
+        color: #BB8855;
+    }
+    .function {
+        font-weight: 700;
+        color: #887744;
+    }
+    .object {
+        font-weight: 700;
+        color: #DD7744;
+    }
+    .malsym {
+        font-weight: 600;
+        color: #883333;
+    }
+    .string {
+        font-weight: 400;
+        color: #994444;
+    }
+  </style>
+</head>
+<body>
+  <h2>Make-A-Lisp Cheatsheet</h2>
+  <table align=left>
+  <tr>
+    <th>Step 1</th> <th>Step 6</th>
+  <tr>
+    <td width=50%>
+<!--
+<pre><code><span class=file>step0_repl.EXT</span>:
+  <span class=function>READ</span></span>(<span class=var>ast</span>):       passthrough <span class=var>ast</span>
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):  passthrough <span class=var>ast</span>
+  <span class=function>PRINT</span>(<span class=var>ast</span>):      passthrough <span class=var>ast</span>
+  <span class=function>main</span>(<span class=var>args</span>):      loop: <span class=function>writeline</span> <span class=function>PRINT</span>(<span class=function>EVAL</span>(<span class=function>READ</span>(<span class=function>readline</span>()), <span class=string>""</span>))
+
+
+
+
+</code></pre>
+-->
+<pre><code><span class=file>reader.EXT</span>:
+  <span class=object>Reader</span>(<span class=var>tokens</span>) object: <span class=var>position</span>, <span class=function>next</span>(), <span class=function>peek</span>()
+  <span class=function>tokenize</span>:  <span class=string>/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/</span>
+  <span class=function>read_atom</span>: int, float, string (escaped), keyword, nil, true, false, symbol
+  <span class=function>read_list</span>: repeatedly <span class=function>read_form</span> until end token (<span class=object>EOF</span> is error)
+  <span class=function>read_form</span>: expand reader macros, <span class=function>read_list</span> (vector/maps too), or <span class=function>read_atom</span>
+  <span class=function>read_str</span>:  <span class=function>tokenize</span>, error if no tokens, call <span class=function>read_form</span>(<span class=object>Reader</span>(<span class=var>tokens</span>))
+<span class=file>printer.EXT</span>:
+  <span class=function>pr_str</span>(<span class=var>ast</span>, <span class=var>print_readably</span>):
+    - map <span class=function>pr_str</span> across collections
+    - unescape strings if <span class=var>print_readably</span>
+<span class=file>step1_read_print.EXT</span>:
+  <span class=function>main</span>(<span class=var>args</span>): loop: <span class=function>writeline</span> <span class=function>PRINT</span>(<span class=function>EVAL</span>(<span class=function>READ</span>(<span class=function>readline</span>()), <span class=string>""</span>))
+</code></pre>
+    </td>
+    <td width=50%>
+<pre><code><span class=file>core.EXT</span>:
+  <span class=function>read-string</span>: call <span class=function>reader.read_str</span>
+  <span class=function>slurp</span>: return file content as a string
+  <span class=function>atom</span>, <span class=function>atom?</span>, <span class=function>deref</span>, <span class=function>reset!</span>, <span class=function>swap!</span>: atom functions
+<span class=file>step6_file.EXT</span>:
+  <span class=function>main</span>(<span class=var>args</span>):
+    - add <span class=malsym>eval</span> and <span class=malsym>*ARGV*</span> to <span class=var>repl_env</span>
+    - define <span class=malsym>load-file</span> using <span class=function>rep</span>
+    - if <span class=var>args</span>, set <span class=malsym>*ARGV*</span> to rest(<span class=var>args</span>) and call <span class=malsym>load-file</span> with <span class=var>arg</span>s[0]
+
+
+
+
+</code></pre>
+    </td>
+  <tr>
+    <th>&nbsp;</th> <th>&nbsp;</th>
+  <tr>
+    <th>Step 2</th> <th>Step 7</th>
+  <tr>
+    <td width=50%>
+<pre><code><span class=file>step2_eval.EXT</span>:
+  <span class=function>eval_ast</span>(<span class=var>ast</span>, <span class=var>env</span>): lookup symbols in <span class=var>env</span>, map <span class=function>EVAL</span> across collections
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - if not list?(<span class=var>ast</span>), return <span class=function>eval_ast</span>(<span class=var>ast</span>, <span class=var>env</span>)
+    - otherwise apply (<span class=var>ast</span> is a list):
+      <span class=var>el</span> = <span class=function>eval_ast</span>(<span class=var>ast</span>, <span class=var>env</span>)
+      return <span class=var>el</span>[0](rest(<span class=var>el</span>))
+  <span class=function>main</span>(<span class=var>args</span>): loop: <span class=function>writeline</span> <span class=function>PRINT</span>(<span class=function>EVAL</span>(<span class=function>READ</span>(<span class=function>readline</span>()), {<span class=malsym>+</span>: <span class=function>add</span>, ...}))
+
+
+
+</code></pre>
+    </td>
+    <td width=50%>
+<pre><code><span class=file>core.EXT</span>:
+  <span class=function>cons</span>, <span class=function>concat</span>: sequence functions
+<span class=file>step7_quote.EXT</span>:
+  <span class=function>quasiquote</span>(ast):
+    - <span class=var>ast</span> is empty or not a list   -> (<span class=malsym>quote</span> <span class=var>ast</span>)
+    - (<span class=malsym>unquote</span> FOO)                -> FOO
+    - ((<span class=malsym>splice-unquote</span> FOO) BAR..) -> (<span class=malsym>concat</span> FOO <span class=function>quasiquote</span>(BAR...))</span>
+    - (FOO BAR...)                 -> (<span class=malsym>cons</span> FOO <span class=function>quasiquote</span>(BAR...))</span>
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - <span class=malsym>quote</span>      -> return <span class=var>ast</span>[1]
+    - <span class=malsym>quasiquote</span> -> set <span class=var>ast</span> to <span class=function>quasiquote</span>(<span class=var>ast</span>[1]), loop
+</code></pre>
+    </td>
+  <tr>
+    <th>&nbsp;</th> <th>&nbsp;</th>
+  <tr>
+    <th>Step 3</th> <th>Step 8</th>
+  <tr>
+    <td width=50%>
+<pre><code><span class=file>env.EXT</span>:
+  <span class=object>Env</span>(<span class=var>outer</span>) object: <span class=var>data</span>, <span class=function>set</span>(<span class=var>k</span>, <span class=var>v</span>), <span class=function>find</span>(<span class=var>k</span>), <span class=function>get</span>(<span class=var>k</span>)
+<span class=file>step3_env.EXT</span>:
+  <span class=function>eval_ast</span>(<span class=var>ast</span>, <span class=var>env</span>): switch to <span class=var>env</span>.<span class=function>get</span> for symbol lookup
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - <span class=malsym>def!</span>  -> return <span class=var>env</span>.<span class=function>set</span>(<span class=var>ast</span>[1], <span class=function>EVAL</span>(<span class=var>ast</span>[2], <span class=var>env</span>))
+    - <span class=malsym>let*</span>  -> create new env <span class=var>let_env</span>
+               for each ODD/EVEN pair in <span class=var>ast[1]</span>:
+                 <span class=var>let_env</span>.<span class=function>set</span>(ODD, <span class=function>EVAL</span>(EVEN, <span class=var>let_env</span>))
+               return <span class=function>EVAL</span>(<span class=var>ast</span>[2], <span class=var>let_env</span>)
+  <span class=function>main</span>(<span class=var>args</span>): populate <span class=var>repl_env</span> with numeric functions using <span class=var>repl_env</span>.<span class=function>set</span>
+</code></pre>
+    </td>
+    <td width=50%>
+<pre><code><span class=file>core.EXT</span>:
+  <span class=function>nth</span>, <span class=function>first</span>, <span class=function>rest</span>: sequence functions
+<span class=file>step8_macros.EXT</span>:
+  <span class=function>macroexpand</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - while <span class=var>env</span>.<span class=function>get</span>(<span class=var>ast</span>[0]) is a macro: <span class=var>ast</span> = <span class=var>env</span>.<span class=function>get</span>(<span class=var>ast</span>[0])(rest(<span class=var>ast</span>))
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - before apply section, add <span class=var>ast</span> = <span class=function>macroexpand</span>(<span class=var>ast</span>, <span class=var>env</span>)
+    - <span class=malsym>defmacro!</span>   -> same as <span class=malsym>def!</span>, but set mal function macro flag
+    - <span class=malsym>macroexpand</span> -> return <span class=function>macroexpand</span>(<span class=var>ast</span>[1], <span class=var>env</span>)
+
+
+</code></pre>
+    </td>
+  <tr>
+    <th>&nbsp;</th> <th>&nbsp;</th>
+  <tr>
+    <th>Step 4</th> <th>Step 9</th>
+  <tr>
+    <td width=50%>
+<pre><code><span class=file>env.EXT</span>:
+  <span class=object>Env</span>(<span class=var>outer</span>, <span class=var>binds</span>, <span class=var>exprs</span>) object: map <span class=var>binds</span> to <span class=var>exprs</span>, handle <span class=string>"&amp;"</span> as variadic
+<span class=file>core.EXT</span>:
+  <span class=function>=</span>: recursive compare of collections
+  <span class=function>pr-str</span>, <span class=function>str</span>: return <span class=function>pr_str</span>(<span class=function>arg</span>, true) join <span class=string>" "</span>, <span class=function>pr_str</span>(<span class=function>arg</span>, false) join <span class=string>""</span>
+  <span class=function>prn</span>, <span class=function>println</span>: print <span class=function>pr_str</span>(<span class=function>arg</span>, true) join <span class=string>""</span>, <span class=function>pr_str</span>(<span class=function>arg</span>, false) join <span class=string>""</span>
+  <span class=function><</span>, <span class=function><=</span>, <span class=function>></span>, <span class=function>>=</span>, <span class=function>+</span>, <span class=function>-</span>, <span class=function>*</span>, <span class=function>/</span>: numeric comparison and numeric operations
+  <span class=function>list</span>, <span class=function>list?</span>, <span class=function>empty?</span>, <span class=function>count</span>: sequence functions
+<span class=file>step4_do_if_fn.EXT</span>:
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - <span class=malsym>do</span>  -> return last element of <span class=function>eval_ast</span>(<span class=var>ast</span>, <span class=var>env</span>)
+    - <span class=malsym>if</span>  -> if <span class=function>EVAL</span>(<span class=var>ast[1]</span>, <span class=var>env</span>): return <span class=function>EVAL</span>(<span class=var>ast[2]</span>, <span class=var>env</span>)
+             else                : return <span class=function>EVAL</span>(<span class=var>ast[3]</span>, <span class=var>env</span>)
+    - <span class=malsym>fn*</span> -> return closure:
+               (<span class=var>args</span>) -> <span class=function>EVAL</span>(<span class=var>ast</span>[2], new <span class=object>Env</span>(<span class=var>env</span>, <span class=var>ast</span>[1], <span class=var>args</span>))
+  <span class=function>main</span>(<span class=var>args</span>): populate <span class=var>repl_env</span> with core functions, define not using <span class=function>rep</span>()
+</code></pre>
+    </td>
+    <td width=50%>
+<pre><code><span class=file>core.EXT</span>:
+  <span class=function>throw</span>: raise mal value as exception (maybe wrap in native exception)
+  <span class=function>vector</span>, <span class=function>vector?</span>: sequence functions
+  <span class=function>hash-map</span>, <span class=function>get</span>, <span class=function>contains?</span>, <span class=function>keys</span>, <span class=function>vals</span>: hash-map functions
+  <span class=function>assoc</span>, <span class=function>dissoc</span>: immutable hash-map transform functions
+  <span class=function>apply</span>(<span class=var>f</span>, <span class=var>args...</span>, <span class=var>last</span>): return <span class=function>f</span>(<span class=function>concat</span>(<span class=var>args</span>, <span class=var>last</span>))
+  <span class=function>map</span>(<span class=var>f</span>, <span class=var>args</span>): return list of mapping <span class=function>f</span> on each <span class=var>args</span>
+<span class=file>step9_try.EXT</span>:
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - <span class=malsym>try*</span> -> try <span class=function>EVAL</span>(<span class=var>ast</span>[1], <span class=var>env</span>)
+                catch exception <span class=var>exc</span> (unwrap if necessary):
+                  new <span class=var>err_env</span> with <span class=var>ast</span>[2][1] symbol bound to <span class=var>exc</span>
+                  <span class=function>EVAL</span>(<span class=var>ast</span>[2][2], <span class=var>err_env</span>)
+
+
+
+</code></pre>
+    </td>
+  <tr>
+    <th>&nbsp;</th> <th>&nbsp;</th>
+  <tr>
+    <th>Step 5</th> <th>Step A</th>
+  <tr>
+    <td width=50%>
+<pre><code><span class=file>step5_tco.EXT</span>:
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - top level loop in <span class=function>EVAL</span>
+    - <span class=malsym>let*</span>  -> set <span class=var>env</span> to <span class=var>let_env</span>, set <span class=var>ast</span> to <span class=var>ast</span>[2], loop
+    - <span class=malsym>do</span>    -> <span class=function>eval_ast</span> of middle elements, sets <span class=var>ast</span> to last element, loop
+    - <span class=malsym>if</span>    -> set <span class=var>ast</span> to <span class=var>ast</span>[2] or <span class=var>ast</span>[3] (or <span class=malsym>nil</span>) depending condition, loop
+    - <span class=malsym>fn*</span>   -> return new mal function type <span class=var>f</span> with:
+                <span class=var>f</span>.<span class=var>ast</span>=<span class=var>ast</span>[2], <span class=var>f</span>.<span class=var>params</span>=<span class=var>ast</span>[1], <span class=var>f</span>.<span class=var>env</span>=<span class=var>env</span>
+    - apply -> <span class=var>el</span> = <span class=function>eval_ast</span>(<span class=var>ast</span>, <span class=var>env</span>)
+               <span class=var>f</span> = <span class=var>el</span>[0]
+               if <span class=var>f</span> is a mal function: <span class=var>ast</span> = <span class=var>f</span>.<span class=var>ast</span> and <span class=var>env</span> = <span class=var>f</span>.<span class=var>env</span>, loop
+               else                  : return <span class=var>el</span>[0](rest(<span class=var>el</span>))
+
+</code></pre>
+    </td>
+    <td width=50%>
+<pre><code><span class=file>core.EXT</span>:
+  <span class=function>string?</span>: true if string
+  <span class=function>readline</span>: prompt and read a line of input (synchronous)
+  <span class=function>time-ms</span>: return milliseconds since epoch (1970-1-1)
+  <span class=function>conj</span>, <span class=function>seq</span>: type specific sequence functions
+  <span class=function>meta</span>, <span class=function>with-meta</span>: metadata functions
+<span class=file>step9_try.EXT</span>:
+  <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
+    - set <span class=malsym>*host-language*</span> in <span class=var>repl_env</span> to host language name
+    - <span class=malsym>*gensym-count*</span>: define (using <span class=function>rep</span>()) an atom type containing an integer
+    - <span class=malsym>gensym</span>: define using <span class=function>rep</span>(), increment <span class=malsym>*gensym-count*</span>, return unique symbol
+    - <span class=malsym>or</span>: use <span class=malsym>gensym</span> to fix <span class=malsym>or</span> macro
+  <span class=function>main</span>(<span class=var>args</span>): <span class=function>rep</span>(<span class=string>"(println (str \"Mal [\" <span class=malsym>*host-language*</span> \"]\"))"</span>)
+</code></pre>
+    </td>
+  <tr>
+    <th>&nbsp;</th> <th>&nbsp;</th>
+  </table>
+</body>
+</html>

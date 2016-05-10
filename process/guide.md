@@ -114,13 +114,11 @@ This allows you to run tests against your implementation like this:
 make "test^quux^stepX"
 ```
 
-TODO: If your implementation language is a compiled language, then you
+If your implementation language is a compiled language, then you
 should also add a Makefile at the top level of your implementation
-directory.
-
-Your Makefile will define how to build the files pointed to by the
-quux_STEP_TO_PROG macro. The top-level Makefile will attempt to build
-those targets before running tests. If it is a scripting
+directory. This Makefile will define how to build the files pointed to
+by the quux_STEP_TO_PROG macro. The top-level Makefile will attempt to
+build those targets before running tests. If it is a scripting
 language/uncompiled, then no Makefile is necessary because
 quux_STEP_TO_PROG will point to a source file that already exists and
 does not need to be compiled/built.
@@ -167,10 +165,12 @@ fix it, repeat until all the tests for that step pass.
 ## Reference Code
 
 The `process` directory contains abbreviated pseudocode and
-architecture images for each step of the make-a-lisp process. Use
+architecture diagrams for each step of the make-a-lisp process. Use
 a textual diff/comparison tool to compare the previous pseudocode step
-with the one you are working on. The architecture images have changes
-from the previous step highlighted in red.
+with the one you are working on. The architecture diagram images have
+changes from the previous step highlighted in red. There is also
+a concise [cheatsheet](cheatsheet.html) that summarizes the key
+changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
