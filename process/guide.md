@@ -169,8 +169,9 @@ architecture diagrams for each step of the make-a-lisp process. Use
 a textual diff/comparison tool to compare the previous pseudocode step
 with the one you are working on. The architecture diagram images have
 changes from the previous step highlighted in red. There is also
-a concise [cheatsheet](cheatsheet.html) that summarizes the key
-changes at each step.
+a concise
+[cheatsheet](http://kanaka.github.io/mal/process/cheatsheet.html) that
+summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
