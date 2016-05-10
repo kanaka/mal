@@ -104,9 +104,9 @@ b
 ;;;((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
 ;;;=>((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
 
-;>>> deferable=True
+;>>> deferrable=True
 ;;
-;; -------- Deferable Functionality --------
+;; -------- Deferrable Functionality --------
 
 ;; Testing ' (quote) reader macro
 '7

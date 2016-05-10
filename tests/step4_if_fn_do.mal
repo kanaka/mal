@@ -202,9 +202,9 @@ a
 ;;;;=>89
 
 
-;>>> deferable=True
+;>>> deferrable=True
 ;;
-;; -------- Deferable Functionality --------
+;; -------- Deferrable Functionality --------
 
 ;; Testing variable length arguments
 

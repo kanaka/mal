@@ -43,10 +43,10 @@ abc-def
 ;=>(1 2 3)
 
 
-;>>> deferable=True
+;>>> deferrable=True
 
 ;;
-;; -------- Deferable Functionality --------
+;; -------- Deferrable Functionality --------
 
 ;; Testing read of nil/true/false
 nil

@@ -52,12 +52,12 @@ parser.add_argument('--debug-file', type=str,
 parser.add_argument('--hard', action='store_true',
         help="Turn soft tests following a ';>>> soft=True' into hard failures")
 
-# Control whether deferable and optional tests are executed
-parser.add_argument('--deferable', dest='deferable', action='store_true',
-        help="Enable deferable tests that follow a ';>>> deferable=True'")
-parser.add_argument('--no-deferable', dest='deferable', action='store_false',
-        help="Disable deferable tests that follow a ';>>> deferable=True'")
-parser.set_defaults(deferable=True)
+# Control whether deferrable and optional tests are executed
+parser.add_argument('--deferrable', dest='deferrable', action='store_true',
+        help="Enable deferrable tests that follow a ';>>> deferrable=True'")
+parser.add_argument('--no-deferrable', dest='deferrable', action='store_false',
+        help="Disable deferrable tests that follow a ';>>> deferrable=True'")
+parser.set_defaults(deferrable=True)
 parser.add_argument('--optional', dest='optional', action='store_true',
         help="Enable optional tests that follow a ';>>> optional=True'")
 parser.add_argument('--no-optional', dest='optional', action='store_false',
@@ -158,7 +158,7 @@ class TestReader:
         self.line_num = 0
         self.data = test_file.read().split('\n')
         self.soft = False
-        self.deferable = False
+        self.deferrable = False
         self.optional = False
 
     def next(self):
@@ -182,8 +182,8 @@ class TestReader:
                 exec(line[5:], {}, settings)
                 if 'soft' in settings:
                     self.soft = settings['soft']
-                if 'deferable' in settings and settings['deferable']:
-                    self.deferable = "\nSkipping deferable and optional tests"
+                if 'deferrable' in settings and settings['deferrable']:
+                    self.deferrable = "\nSkipping deferrable and optional tests"
                     return True
                 if 'optional' in settings and settings['optional']:
                     self.optional = "\nSkipping optional tests"
@@ -255,8 +255,8 @@ soft_fail_cnt = 0
 failures = []
 
 while t.next():
-    if args.deferable == False and t.deferable:
-        log(t.deferable)
+    if args.deferrable == False and t.deferrable:
+        log(t.deferrable)
         break
 
     if args.optional == False and t.optional:

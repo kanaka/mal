@@ -27,10 +27,10 @@
 ()
 ;=>()
 
-;>>> deferable=True
+;>>> deferrable=True
 ;>>> optional=True
 ;;
-;; -------- Deferable/Optional Functionality --------
+;; -------- Deferrable/Optional Functionality --------
 
 ;; Testing evaluation within collection literals
 [1 2 (+ 1 2)]

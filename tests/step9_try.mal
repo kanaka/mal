@@ -70,9 +70,9 @@
 (map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
 
-;>>> deferable=True
+;>>> deferrable=True
 ;;
-;; ------- Deferable Functionality ----------
+;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
 ;; Testing symbol and keyword functions

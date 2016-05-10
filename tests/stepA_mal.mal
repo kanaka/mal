@@ -18,9 +18,9 @@
 ;=>false
 
 
-;>>> deferable=True
+;>>> deferrable=True
 ;;
-;; ------- Deferable Functionality ----------
+;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
 ;;

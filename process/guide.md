@@ -760,7 +760,7 @@ Try out the basic functionality you have implemented:
 * Add the following functions to `core.ns`:
   * `prn`: call `pr_str` on the first parameter with `print_readably`
     set to true, prints the result to the screen and then return
-    `nil`. Note that the full version of `prn` is a deferable below.
+    `nil`. Note that the full version of `prn` is a deferrable below.
   * `list`: take the parameters and return them as a list.
   * `list?`: return true if the first parameter is a list, false
     otherwise.

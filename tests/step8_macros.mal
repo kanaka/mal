@@ -28,9 +28,9 @@
 ;=>123
 
 
-;>>> deferable=True
+;>>> deferrable=True
 ;;
-;; -------- Deferable Functionality --------
+;; -------- Deferrable Functionality --------
 
 ;; Testing non-macro function
 (not (= 1 1))

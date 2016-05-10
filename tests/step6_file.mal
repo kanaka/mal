@@ -94,10 +94,10 @@
 (f)
 ;=>9
 
-;>>> deferable=True
+;>>> deferrable=True
 ;>>> optional=True
 ;;
-;; -------- Deferable/Optional Functionality --------
+;; -------- Deferrable/Optional Functionality --------
 
 ;; Testing comments in a file
 (load-file "../tests/incB.mal")
