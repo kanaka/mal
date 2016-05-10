@@ -337,7 +337,13 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	      echo '----------------------------------------------' && \
 	      echo 'Testing $@, step file: $+, test file: $(test)' && \
 	      echo 'Running: $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))' && \
-	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) &&) \
+	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) && \
+	      $(if $(filter tests/step6_file.mal,$(test)),\
+	        echo '----------------------------------------------' && \
+	        echo 'Testing ARGV of $@; step file: $+' && \
+	        echo 'Running: $(call get_run_prefix,$(impl))../run_argv_test.sh $(call $(impl)_RUNSTEP,$(step),$(+))' && \
+	        $(call get_run_prefix,$(impl))../run_argv_test.sh $(call $(impl)_RUNSTEP,$(step),$(+)) && ,\
+		true && ))\
 	    true))
 
 # Allow test, tests, test^STEP, test^IMPL, and test^IMPL^STEP

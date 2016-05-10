@@ -9,7 +9,6 @@ General:
     - Finish guide.md
 
 All Implementations:
-    - test that *ARGV* gets set properly
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - per impl tests for step5_tco, or at least a better way of
