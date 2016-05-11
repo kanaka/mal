@@ -135,7 +135,7 @@
 ;; core.rkt: defined using Racket
 (hash-for-each core_ns (lambda (k v) (send repl-env set k v)))
 (send repl-env set 'eval (lambda [ast] (EVAL ast repl-env)))
-(send repl-env set '*ARGV* (list))
+(send repl-env set '*ARGV* (_rest (current-command-line-arguments)))
 
 ;; core.mal: defined using the language itself
 (rep "(def! not (fn* (a) (if a false true)))")
