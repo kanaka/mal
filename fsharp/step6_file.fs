@@ -162,7 +162,7 @@ module REPL
         match args with
         | file::_ ->
             System.IO.File.ReadAllText file
-            |> REP env
+            |> RE env |> Seq.iter ignore
             0
         | _ ->
             let rec loop () =

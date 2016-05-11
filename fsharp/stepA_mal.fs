@@ -241,7 +241,7 @@ module REPL
         match args with
         | file::_ ->
             System.IO.File.ReadAllText file
-            |> REP env
+            |> RE env |> Seq.iter ignore
             0
         | _ ->
             RE env "(println (str \"Mal [\" *host-language* \"]\"))" |> Seq.iter ignore
