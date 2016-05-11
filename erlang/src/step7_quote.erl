@@ -27,15 +27,16 @@ loop(Env) ->
         eof -> io:format("~n");
         {error, Reason} -> exit(Reason);
         Line ->
-            rep(string:strip(Line, both, $\n), Env),
+            print(rep(string:strip(Line, both, $\n), Env)),
             loop(Env)
     end.
 
 rep(Input, Env) ->
     try eval(read(Input), Env) of
-        Result -> print(Result)
+        none -> none;
+        Result -> printer:pr_str(Result, true)
     catch
-        error:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason -> printer:pr_str({error, Reason}, true)
     end.
 
 read(Input) ->
@@ -123,7 +124,7 @@ print(none) ->
     % if nothing meaningful was entered, print nothing at all
     ok;
 print(Value) ->
-    io:format("~s~n", [printer:pr_str(Value, true)]).
+    io:format("~s~n", [Value]).
 
 let_star(Env, Bindings) ->
     Bind = fun({Name, Expr}) ->
