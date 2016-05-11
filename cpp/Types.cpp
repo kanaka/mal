@@ -34,7 +34,7 @@ namespace mal {
         return malValuePtr(new malHash(argsBegin, argsEnd, isEvaluated));
     }
 
-    malValuePtr integer(int value) {
+    malValuePtr integer(int64_t value) {
         return malValuePtr(new malInteger(value));
     };
 

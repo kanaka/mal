@@ -75,7 +75,7 @@ private:
 
 class malInteger : public malValue {
 public:
-    malInteger(int value) : m_value(value) { }
+    malInteger(int64_t value) : m_value(value) { }
     malInteger(const malInteger& that, malValuePtr meta)
         : malValue(meta), m_value(that.m_value) { }
 
@@ -83,7 +83,7 @@ public:
         return std::to_string(m_value);
     }
 
-    int value() const { return m_value; }
+    int64_t value() const { return m_value; }
 
     virtual bool doIsEqualTo(const malValue* rhs) const {
         return m_value == static_cast<const malInteger*>(rhs)->m_value;
@@ -92,7 +92,7 @@ public:
     WITH_META(malInteger);
 
 private:
-    const int m_value;
+    const int64_t m_value;
 };
 
 class malStringBase : public malValue {
@@ -353,7 +353,7 @@ namespace mal {
     malValuePtr hash(malValueIter argsBegin, malValueIter argsEnd,
                      bool isEvaluated);
     malValuePtr hash(const malHash::Map& map);
-    malValuePtr integer(int value);
+    malValuePtr integer(int64_t value);
     malValuePtr integer(const String& token);
     malValuePtr keyword(const String& token);
     malValuePtr lambda(const StringVec&, malValuePtr, malEnvPtr);
