@@ -7,11 +7,11 @@ public class MalLess extends MalSubr
 
         if( a.value() < b.value() )
         {
-            return MalTrue.create();
+            return Constants.TRUE;
         }
         else
         {
-            return MalFalse.create();
+            return Constants.FALSE;
         }
     }
 }

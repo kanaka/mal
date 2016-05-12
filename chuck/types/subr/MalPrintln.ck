@@ -10,6 +10,6 @@ public class MalPrintln extends MalSubr
         }
 
         Util.println(String.join(values, " "));
-        return MalNil.create();
+        return Constants.NIL;
     }
 }

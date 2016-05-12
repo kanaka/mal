@@ -5,11 +5,11 @@ public class MalIsEmpty extends MalSubr
         (args[0]$MalList).value() @=> MalObject values[];
         if( values.size() == 0 )
         {
-            return MalTrue.create();
+            return Constants.TRUE;
         }
         else
         {
-            return MalFalse.create();
+            return Constants.FALSE;
         }
     }
 }

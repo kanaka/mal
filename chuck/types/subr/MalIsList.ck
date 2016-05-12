@@ -4,11 +4,11 @@ public class MalIsList extends MalSubr
     {
         if( args[0].type == "list" )
         {
-            return MalTrue.create();
+            return Constants.TRUE;
         }
         else
         {
-            return MalFalse.create();
+            return Constants.FALSE;
         }
     }
 }

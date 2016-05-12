@@ -13,7 +13,7 @@ public class MalEqual extends MalSubr
 
             if( as.size() != bs.size() )
             {
-                return MalFalse.create();
+                return Constants.FALSE;
             }
 
             for( 0 => int i; i < as.size(); i++ )
@@ -21,16 +21,16 @@ public class MalEqual extends MalSubr
                 call([as[i], bs[i]]) @=> MalObject value;
                 if( value.type != "true" )
                 {
-                    return MalFalse.create();
+                    return Constants.FALSE;
                 }
             }
 
-            return MalTrue.create();
+            return Constants.TRUE;
         }
 
         if( a.type != b.type )
         {
-            return MalFalse.create();
+            return Constants.FALSE;
         }
 
         // NOTE: normally I'd go for a type variable, but its scope
@@ -38,54 +38,54 @@ public class MalEqual extends MalSubr
         a.type => string kind;
         if( kind == "true" || kind == "false" || kind == "nil" )
         {
-            return MalTrue.create();
+            return Constants.TRUE;
         }
         else if( kind == "int" )
         {
             if( (a$MalInt).value() == (b$MalInt).value() )
             {
-                return MalTrue.create();
+                return Constants.TRUE;
             }
             else
             {
-                return MalFalse.create();
+                return Constants.FALSE;
             }
         }
         else if( kind == "string" )
         {
             if( (a$MalString).value() == (b$MalString).value() )
             {
-                return MalTrue.create();
+                return Constants.TRUE;
             }
             else
             {
-                return MalFalse.create();
+                return Constants.FALSE;
             }
         }
         else if( kind == "symbol" )
         {
             if( (a$MalSymbol).value() == (b$MalSymbol).value() )
             {
-                return MalTrue.create();
+                return Constants.TRUE;
             }
             else
             {
-                return MalFalse.create();
+                return Constants.FALSE;
             }
         }
         else if( kind == "keyword" )
         {
             if( (a$MalKeyword).value() == (b$MalKeyword).value() )
             {
-                return MalTrue.create();
+                return Constants.TRUE;
             }
             else
             {
-                return MalFalse.create();
+                return Constants.FALSE;
             }
         }
 
         // HACK: return false for everything unknown for now
-        return MalFalse.create();
+        return Constants.FALSE;
     }
 }

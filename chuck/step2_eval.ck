@@ -1,11 +1,11 @@
 // @import types/boxed/*.ck
 // @import types/MalObject.ck
 // @import types/mal/*.ck
-// @import types/MalSubr.ck
-// @import types/subr/*.ck
-// @import util/Status.ck
+// @import util/*.ck
 // @import reader.ck
 // @import printer.ck
+// @import types/MalSubr.ck
+// @import types/subr/*.ck
 
 fun MalObject READ(string input)
 {

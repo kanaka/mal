@@ -171,15 +171,15 @@ public class Reader
 
         if( token == "true" )
         {
-            return MalTrue.create();
+            return Constants.TRUE;
         }
         else if( token == "false" )
         {
-            return MalFalse.create();
+            return Constants.FALSE;
         }
         else if( token == "nil" )
         {
-            return MalNil.create();
+            return Constants.NIL;
         }
         else if( RegEx.match(intRe, token) )
         {

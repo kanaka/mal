@@ -94,7 +94,7 @@ fun MalObject EVAL(MalObject m, Env env)
                 {
                     if( ast.size() < 4 )
                     {
-                        return MalNil.create();
+                        return Constants.NIL;
                     }
                     else
                     {
