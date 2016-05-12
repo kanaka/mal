@@ -37,3 +37,15 @@
   parameter and second list element)?
 - What does def! return?  Emacs Lisp for instance returns the symbol
   whereas the tests suggest the value should be returned instead...
+
+# Step 4
+
+- "Implement the strings functions"
+- The "no closures" paragraph isn't quite clear.  Asides from that, do
+  native functions don't really need to be wrapped the same way as the
+  `fn*` objects, just introduce another type (like, a Subr and a Func
+  type) and do a check before applying the arguments to it
+- Why does the guide say that the first argument of `count` can be
+  treated as list, yet there's a test performing `(count nil)` and
+  expecting zero as result?
+- Does it make sense to compare, say, atoms in `=`?

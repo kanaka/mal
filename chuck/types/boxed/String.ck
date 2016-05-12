@@ -53,21 +53,48 @@ public class String
         return output;
     }
 
+    fun static string replaceAll(string input, string pat, string rep)
+    {
+        0 => int offset;
+        input => string output;
+        int index;
+
+        while( true )
+        {
+            if( offset >= output.length() )
+            {
+                break;
+            }
+
+            output.find(pat, offset) => index;
+
+            if( index == -1 )
+            {
+                break;
+            }
+
+            output.replace(index, pat.length(), rep);
+            index + rep.length() => offset;
+        }
+
+        return output;
+    }
+
     fun static string parse(string input)
     {
         slice(input, 1, input.length() - 1) => string output;
-        RegEx.replaceAll("\\\\\"", "\"", output) => output;
-        RegEx.replaceAll("\\\\n", "\n", output) => output;
-        RegEx.replaceAll("\\\\\\\\", "\\", output) => output;
+        replaceAll(output, "\\\"", "\"") => output;
+        replaceAll(output, "\\n", "\n") => output;
+        replaceAll(output, "\\\\", "\\") => output;
         return output;
     }
 
     fun static string repr(string input)
     {
         input => string output;
-        RegEx.replaceAll("\\\\", "\\\\", output) => output;
-        RegEx.replaceAll("\n", "\\n", output) => output;
-        RegEx.replaceAll("\"", "\\\"", output) => output;
+        replaceAll(output, "\\", "\\\\") => output;
+        replaceAll(output, "\n", "\\n") => output;
+        replaceAll(output, "\"", "\\\"") => output;
         return "\"" + output + "\"";
     }
 }

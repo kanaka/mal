@@ -40,6 +40,10 @@ public class Printer
         {
             return "#<Subr>";
         }
+        else if( type == "func" )
+        {
+            return "#<Func>";
+        }
         else if( type == "list" )
         {
             return pr_list((m$MalList).value(), print_readably, "(", ")");

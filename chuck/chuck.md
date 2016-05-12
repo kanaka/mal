@@ -1,5 +1,10 @@
 - I've found a potential bug in their substring function:
   https://github.com/ccrma/chuck/issues/55
+- later I've found one in their regex replace function, too:
+  https://github.com/ccrma/chuck/issues/60
+- this suggests there hasn't been much testing done on things
+  unrelated to audio which is not that unexpected in an audio
+  programming language, but still...
 - the manual isn't up to date, so you need to look at `VERSIONS` and
   the examples instead, sometimes the sources, too
 - the manual only speaks of the debug syntax for printing
@@ -27,6 +32,9 @@
     functions/variables)
   - if you use static variables, you can't assign values to them
     directly, you'll have to do that after the class has been defined
+  - worse, you can't even declare anything that's not a primitive, so
+    if you want to declare a reference type, use the reference
+    operator instead...
   - no interfaces
   - no generics (copy/paste code for all types you need!)
   - no unions (use Object, then cast to the correct type)
@@ -68,11 +76,16 @@
     holding the argument list and debug print a function, you'll see
     it being recognized as a function, yet you can't store it anywhere
     for passing it around
+  - This is not quite right as you can store it in an `Object`, just
+    not call it in any way or cast it to a function type
   - So you get to implement functors and closures yourself...
   - A functor is a class with a call method taking an argument list
     and executing the code of the function you intend to pass around
   - To use it, store an instance of its class somewhere, then use its
     call method with an argument list
+  - Closures can be implemented with a data structure holding a
+    snapshot of the current environment, the parameter list and AST,
+    the last two being a way of representing an anonymous function.
 - Other oddities
   - strict distinction between assigning values and references with
     two separate operators for them (`<<` for array append doesn't

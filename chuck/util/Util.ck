@@ -11,4 +11,14 @@ public class Util
             return (m$MalVector).value();
         }
     }
+
+    fun static void print(string message)
+    {
+        chout <= message;
+    }
+
+    fun static void println(string message)
+    {
+        chout <= message + "\n";
+    }
 }

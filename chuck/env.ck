@@ -8,10 +8,38 @@ public class Env extends MalObject
         env @=> outer;
     }
 
+    fun void init(MalObject env, string binds[], MalObject exprs[])
+    {
+        env @=> outer;
+
+        for( 0 => int i; i < binds.size(); i++ )
+        {
+            binds[i] => string bind;
+
+            if( bind == "&" )
+            {
+                MalObject.slice(exprs, i) @=> MalObject rest_binds[];
+                MalList.create(rest_binds) @=> data[binds[i+1]];
+                break;
+            }
+            else
+            {
+                exprs[i] @=> data[bind];
+            }
+        }
+    }
+
     fun static Env create(MalObject env)
     {
         Env e;
         e.init(env);
+        return e;
+    }
+
+    fun static Env create(MalObject env, string binds[], MalObject exprs[])
+    {
+        Env e;
+        e.init(env, binds, exprs);
         return e;
     }
 
