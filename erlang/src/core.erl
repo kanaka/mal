@@ -296,8 +296,8 @@ readline(_) ->
     {error, "readline expects a string argument"}.
 
 time_ms(_) ->
-    {Mega, Sec, _Micro} = os:timestamp(),
-    {integer, Mega * 1000000 + Sec}.
+    {Mega, Sec, Micro} = os:timestamp(),
+    {integer, Mega * 1000000000 + Sec * 1000 + Micro div 1000}.
 
 ns() ->
     Builtins = #{
