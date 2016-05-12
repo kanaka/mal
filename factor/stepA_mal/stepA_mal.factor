@@ -134,7 +134,7 @@ M: callable apply call( x -- y ) f ;
 : main ( -- )
     command-line get
     [ REPL ]
-    [ first "(load-file \"" "\")" surround REP print flush ]
+    [ first "(load-file \"" "\")" surround REP drop ]
     if-empty ;
 
 f ns clone
