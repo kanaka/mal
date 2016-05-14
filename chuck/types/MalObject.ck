@@ -41,4 +41,17 @@ public class MalObject
 
         return values;
     }
+
+    fun static MalObject[] slice(MalObject objects[], int from, int to)
+    {
+        Math.max(to - from, 0)$int => int size;
+        MalObject values[size];
+
+        for( from => int i; i < size; i++ )
+        {
+            objects[i] @=> values[i - from];
+        }
+
+        return values;
+    }
 }

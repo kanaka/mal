@@ -49,3 +49,18 @@
   treated as list, yet there's a test performing `(count nil)` and
   expecting zero as result?
 - Does it make sense to compare, say, atoms in `=`?
+
+# Step 5
+
+- "This is especially important in Lisp languages because they tend to
+  prefer using recursion instead of iteration for control structures."
+  <- I'd argue it's less of a lisp thing (see everything else related
+  to CL) and more a thing functional programming proponents have
+  considered more elegant than introducing iteration constructs (see
+  haskell, ocaml, erlang)
+- It's not really clear that the TCO change for `let*` involves the
+  form you'd normally pass to `EVAL` to become the new `ast`.  I had to
+  reread this a few more times to understand that the "second `ast`"
+  is actually its third argument...
+- Where did the check for `do` not being broken by TCO go?
+- What's the deal with the `quux/tests/step5_tco.qx` file?
