@@ -120,11 +120,6 @@ dist_EXCLUDES += guile io julia matlab swift
 # Utility functions
 #
 
-MATLAB = matlab -nodisplay -nosplash -nodesktop -nojvm -r
-OCTAVE = octave --no-gui -q --traditional --eval
-matlab_args = $(subst $(SPACE),$(COMMA),$(foreach x,$(strip $(1)),'$(x)'))
-matlab_cmd = $(if $(strip $(USE_MATLAB)),$(MATLAB),$(OCTAVE))
-
 haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
 haxe_STEP_TO_PROG_python = haxe/$($(1)).py
 haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
@@ -244,7 +239,7 @@ lua_RUNSTEP =     ../$(2) $(3)
 make_RUNSTEP =    make -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,stepA,$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
-matlab_RUNSTEP =  $(matlab_cmd) "$($(1))($(call matlab_args,$(3)));quit;"
+matlab_RUNSTEP =  env USE_MATLAB=$(USE_MATLAB) STEP=$($(1)) ./run $(3)
 miniMAL_RUNSTEP = miniMAL ../$(2) $(3)
 nim_RUNSTEP =     ../$(2) $(3)
 objc_RUNSTEP =    ../$(2) $(3)

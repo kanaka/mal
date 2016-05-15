@@ -1,0 +1,13 @@
+#!/bin/bash
+args=""
+if [ "$#" -gt 0 ]; then
+    args="'$1'"
+    for a in "${@:2}"; do
+        args="$args,'$a'"
+    done
+fi
+if [ -n "$USE_MATLAB" ] ; then
+    exec matlab -nodisplay -nosplash -nodesktop -nojvm -r "${STEP:-stepA_mal}($args);quit;"
+else
+    exec octave --no-gui --no-history -q --traditional --eval "${STEP:-stepA_mal}($args);quit;"
+fi
