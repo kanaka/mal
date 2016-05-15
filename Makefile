@@ -236,7 +236,7 @@ julia_RUNSTEP =   ../$(2) $(3)
 js_RUNSTEP =      node ../$(2) $(3)
 kotlin_RUNSTEP =  java -jar ../$(2) $(3)
 lua_RUNSTEP =     ../$(2) $(3)
-make_RUNSTEP =    make -f ../$(2) $(3)
+make_RUNSTEP =    make --no-print-directory -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,stepA,$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
 matlab_RUNSTEP =  env USE_MATLAB=$(USE_MATLAB) STEP=$($(1)) ./run $(3)
