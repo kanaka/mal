@@ -186,7 +186,7 @@ racket_STEP_TO_PROG =  racket/$($(1)).rkt
 rpython_STEP_TO_PROG = rpython/$($(1))
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/release/$($(1))
-scala_STEP_TO_PROG =   scala/$($(1)).scala
+scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
 swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
@@ -254,7 +254,7 @@ racket_RUNSTEP =  ../$(2) $(3)
 rpython_RUNSTEP = ../$(2) $(3)
 ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
-scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
+scala_RUNSTEP =   env STEP=$($(1)) ./run $(3)
 swift_RUNSTEP =   ../$(2) $(3)
 swift3_RUNSTEP =  ../$(2) $(3)
 tcl_RUNSTEP =     tclsh ../$(2) --raw $(3)
