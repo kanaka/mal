@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Io prints the line "Registering Regex: Regex" when loading the Regex module
+# for the first time, and there's no way to suppress it.  To avoid this from
+# polluting the Mal script output, we swallow the first 25 bytes.
+io $(dirname $0)/${STEP:-stepA_mal}.io "$@" | (read -N 25 -t 10 ; cat)

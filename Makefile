@@ -120,11 +120,6 @@ dist_EXCLUDES += guile io julia matlab swift
 # Utility functions
 #
 
-MATLAB = matlab -nodisplay -nosplash -nodesktop -nojvm -r
-OCTAVE = octave --no-gui -q --traditional --eval
-matlab_args = $(subst $(SPACE),$(COMMA),$(foreach x,$(strip $(1)),'$(x)'))
-matlab_cmd = $(if $(strip $(USE_MATLAB)),$(MATLAB),$(OCTAVE))
-
 haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
 haxe_STEP_TO_PROG_python = haxe/$($(1)).py
 haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
@@ -191,7 +186,7 @@ racket_STEP_TO_PROG =  racket/$($(1)).rkt
 rpython_STEP_TO_PROG = rpython/$($(1))
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/release/$($(1))
-scala_STEP_TO_PROG =   scala/$($(1)).scala
+scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
 swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
@@ -235,16 +230,16 @@ guile_RUNSTEP =   guile --no-auto-compile -L ../guile ../$(2) $(3)
 haskell_RUNSTEP = ../$(2) $(3)
 haxe_RUNSTEP =    python3 ../$(2) $(3)
 haxe_RUNSTEP =    $(haxe_RUNSTEP_$(HAXE_MODE))
-io_RUNSTEP =      io ../$(2) $(3)
-java_RUNSTEP =    mvn -quiet exec:java -Dexec.mainClass="mal.$($(1))" $(if $(3), -Dexec.args="$(3)",)
+io_RUNSTEP =      env STEP=$($(1)) ./run $(3)
+java_RUNSTEP =    env STEP=$($(1)) ./run $(3)
 julia_RUNSTEP =   ../$(2) $(3)
 js_RUNSTEP =      node ../$(2) $(3)
 kotlin_RUNSTEP =  java -jar ../$(2) $(3)
 lua_RUNSTEP =     ../$(2) $(3)
-make_RUNSTEP =    make -f ../$(2) $(3)
+make_RUNSTEP =    make --no-print-directory -f ../$(2) $(3)
 mal_RUNSTEP =     $(call $(MAL_IMPL)_RUNSTEP,stepA,$(call $(MAL_IMPL)_STEP_TO_PROG,stepA),../$(2),")  #"
 ocaml_RUNSTEP =   ../$(2) $(3)
-matlab_RUNSTEP =  $(matlab_cmd) "$($(1))($(call matlab_args,$(3)));quit;"
+matlab_RUNSTEP =  env USE_MATLAB=$(USE_MATLAB) STEP=$($(1)) ./run $(3)
 miniMAL_RUNSTEP = miniMAL ../$(2) $(3)
 nim_RUNSTEP =     ../$(2) $(3)
 objc_RUNSTEP =    ../$(2) $(3)
@@ -259,7 +254,7 @@ racket_RUNSTEP =  ../$(2) $(3)
 rpython_RUNSTEP = ../$(2) $(3)
 ruby_RUNSTEP =    ruby ../$(2) $(3)
 rust_RUNSTEP =    ../$(2) $(3)
-scala_RUNSTEP =   sbt 'run-main $($(1))$(if $(3), $(3),)'
+scala_RUNSTEP =   env STEP=$($(1)) ./run $(3)
 swift_RUNSTEP =   ../$(2) $(3)
 swift3_RUNSTEP =  ../$(2) $(3)
 tcl_RUNSTEP =     tclsh ../$(2) --raw $(3)
@@ -337,7 +332,13 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	      echo '----------------------------------------------' && \
 	      echo 'Testing $@, step file: $+, test file: $(test)' && \
 	      echo 'Running: $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+))' && \
-	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) &&) \
+	      $(call get_run_prefix,$(impl))../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(impl)_TEST_OPTS) ../$(test) -- $(call $(impl)_RUNSTEP,$(step),$(+)) && \
+	      $(if $(filter tests/step6_file.mal,$(test)),\
+	        echo '----------------------------------------------' && \
+	        echo 'Testing ARGV of $@; step file: $+' && \
+	        echo 'Running: $(call get_run_prefix,$(impl))../run_argv_test.sh $(call $(impl)_RUNSTEP,$(step),$(+))' && \
+	        $(call get_run_prefix,$(impl))../run_argv_test.sh $(call $(impl)_RUNSTEP,$(step),$(+)) && ,\
+		true && ))\
 	    true))
 
 # Allow test, tests, test^STEP, test^IMPL, and test^IMPL^STEP

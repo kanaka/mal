@@ -135,7 +135,7 @@ rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
-    repl_env.set('*ARGV*', process.argv.slice(3));
+    repl_env.set(types._symbol('*ARGV*'), process.argv.slice(3));
     rep('(load-file "' + process.argv[2] + '")');
     process.exit(0);
 }
