@@ -1,0 +1,2 @@
+#!/bin/bash
+exec guile --no-auto-compile -L $(dirname $0) $(dirname $0)/${STEP:-stepA_mal}.scm "${@}"

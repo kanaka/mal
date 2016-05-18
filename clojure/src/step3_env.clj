@@ -3,7 +3,8 @@
               [readline]
               [reader]
               [printer]
-              [env]))
+              [env])
+    (:gen-class))
 
 ;; read
 (defn READ [& [strng]]

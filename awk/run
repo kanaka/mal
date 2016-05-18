@@ -1,0 +1,2 @@
+#!/bin/bash
+exec awk -O -f $(dirname $0)/${STEP:-stepA_mal}.awk "${@}"

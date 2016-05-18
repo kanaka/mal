@@ -105,8 +105,22 @@ mkdir quux
 IMPLS = ... quux ...
 ...
 quux_STEP_TO_PROG = mylang/$($(1)).qx
-...
-quux_RUNSTEP =  ../$(2) $(3)
+```
+
+* Add a "run" script to you implementation directory that listens to
+  the "STEP" environment variable for the implementation step to run
+  and defaults to "stepA_mal".  The following are examples of "run"
+  scripts for a compiled language and an interpreted language (where
+  the interpreter is named "quux"):
+
+```
+#!/bin/bash
+exec $(dirname $0)/${STEP:-stepA_mal} "${@}"
+```
+
+```
+#!/bin/bash
+exec quux $(dirname $0)/${STEP:-stepA_mal}.qx "${@}"
 ```
 
 This allows you to run tests against your implementation like this:

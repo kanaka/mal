@@ -1,0 +1,2 @@
+#!/bin/bash
+exec factor $(dirname $0)/${STEP:-stepA_mal}/${STEP:-stepA_mal}.factor "${@}"

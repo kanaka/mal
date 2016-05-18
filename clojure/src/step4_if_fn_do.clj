@@ -4,7 +4,8 @@
               [reader]
               [printer]
               [env]
-              [core]))
+              [core])
+    (:gen-class))
 
 ;; read
 (defn READ [& [strng]]

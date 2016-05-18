@@ -2,7 +2,8 @@
     (:require [clojure.repl]
               [readline]
               [reader]
-              [printer]))
+              [printer])
+    (:gen-class))
 
 ;; read
 (defn READ [& [strng]]
