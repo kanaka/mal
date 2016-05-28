@@ -1,0 +1,2 @@
+#!/bin/bash
+exec shen-ruby $(dirname $0)/${STEP:-stepA_mal}.shen "${@}"
