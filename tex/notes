@@ -1,0 +1,78 @@
+- Dependencies:
+    sudo aptitude install texlive-latex-base    
+
+
+- Refernece:
+    http://www.tug.org/utilities/plain/cseq.html#top-fam
+
+    http://infohost.nmt.edu/tcc/help/pubs/texcrib.pdf
+
+    http://tex.loria.fr/general/texbytopic.pdf
+
+    https://books.google.com/books?id=xWvgBwAAQBAJ&pg=PA453&lpg=PA453&dq=tex+readline&source=bl&ots=jPGJ521-LX&sig=WRYdCnxDq8-tBm7RN8c35_892s8&hl=en&sa=X&ved=0CFgQ6AEwCGoVChMIlrOU_avoxwIVQb2UCh2gKQEZ#v=onepage&q=tex%20readline&f=false
+
+    http://tug.ctan.org/macros/latex2e/contrib/
+
+- I/O:
+    http://www.personal.ceu.hu/tex/termio.htm
+    http://tex.stackexchange.com/questions/9164/file-copy-without-expansion
+
+*** l3kernel/expl3
+    http://texdoc.net/texmf-dist/doc/latex/l3kernel/interface3.pdf
+
+
+- Other Links
+    http://tug.ctan.org/macros/latex2e/contrib/lisp-on-tex/examples/
+    http://tug.ctan.org/macros/latex2e/contrib/lisp-on-tex/examples/repl.tex
+    http://tug.ctan.org/macros/latex2e/contrib/lisp-on-tex/
+
+
+- Knuth Notes:
+    - Appendix A (answers starts at pg. 304)
+    - Conditionals: Knuth pg. 209
+    - Expansion: Knuth pg. 212
+        - when TEX is taking care of a \def, the <control sequence>,
+          the <parameter text>, and the <replacement text> of that
+          \def are not subject to expansion. Similarly, the two tokens
+          after \ifx are never expanded
+    - assignments: Knuth pg. 206
+        - \chardef\cs=<number> makes \cs a character code;
+        - \countdef\cs=<number> makes \cs a \count register;
+        - \def\cs...{...} makes \cs a macro.
+        - \edef\a{\double{xy}}: expanded macro definition
+        - \let\cs=<token> gives \cs the token’s current meaning
+
+    - \string: list of characters for that control sequence's name.
+    - \csname<tokens>\endcsname: convert characters to control sequence
+    - \csname\string\TeX\endcsname: produce unusual control sequence "\\TeX"
+    - When \csname is used to define a control sequence for the first
+      time, that control sequence is made equivalent to \relax until
+      it is redefined.
+    - if register \count5 holds the value 316, then ‘\number\count5’ produces "316"
+    - \char<number>: where <number> is ASCII number from 0 to 255
+    - `b: ASCII code for "b"
+    - ^^@: ASCII 0, ^^A: ASCII 1, ^^_: ASCII 31
+    - ^^00 to ^^ff: all ASCII characters
+    - Knuth 46-48: reading/parsing (mouth) rules
+    - Knuth Ch20: Macros
+    - \tracingmacros=1: write something in log file whenever it
+    - \tracingcommands=2: TEX will show all conditional commands and
+      their outcome expands a macro, and whenever it has read a macro
+      argument
+    - \newcount: create allocate new 
+    - \newtoks: allocate new token list parameter
+        - assignment:
+            - <token variable>={<replacement text>}
+            - <token variable>=<token variable>
+    - Expanded definitions that are made with \edef or \xdef continue
+      to expand tokens until only unexpandable tokens remain, except
+      that token lists produced by ‘\the’ are not expanded further.
+      Furthermore a token following ‘\noexpand’ will not be expanded,
+      since its ability to expand has been nullified. These two
+      operations can be used to control what gets expanded and what
+      doesn’t
+
+- Quotes:
+    Knuth: "...they have come to be known as macros because they are
+    so powerful; one little macro can represent an enormous amount of
+    material, so it has a sort of macroscopic effect."
