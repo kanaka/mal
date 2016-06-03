@@ -16,9 +16,16 @@ RUN /usr/sbin/startup.sh && \
     echo "ALTER PROFILE default LIMIT PASSWORD_LIFE_TIME UNLIMITED;" | sqlplus -S system/oracle && \
     echo "ALTER USER system IDENTIFIED BY oracle ACCOUNT UNLOCK;" | sqlplus -S system/oracle
 
-# Allow oracle user to sudo without a password
+WORKDIR /mal
+
+# Add oracle user
 RUN usermod -a -G sudo oracle
-RUN echo "oracle ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Travis runs as user ID 1001 so add that user
+RUN useradd -ou 1001 -m -s /bin/bash -G sudo travis
+
+# Enable oracle and travis users to sudo for oracle startup
+RUN echo "%sudo ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 ADD entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

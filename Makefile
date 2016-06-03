@@ -64,7 +64,7 @@ OPTIONAL=1
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
 plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
-plsql_TEST_OPTS = --start-timeout 60 --test-timeout 120
+plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
 
 DOCKERIZE=
 
@@ -297,8 +297,8 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	    $(foreach test,$(call STEP_TEST_FILES,$(impl),$(step)),\
 	      echo '----------------------------------------------' && \
 	      echo 'Testing $@; step file: $+, test file: $(test)' && \
-	      echo 'Running: $(call get_runtest_cmd,$(impl),$(step)) $(call $(impl)_TEST_OPTS) ../$(test) -- ../$(impl)/run' && \
-	      $(call get_runtest_cmd,$(impl),$(step)) $(call $(impl)_TEST_OPTS) ../$(test) -- ../$(impl)/run && \
+	      echo 'Running: $(call get_runtest_cmd,$(impl),$(step)) ../$(test) -- ../$(impl)/run' && \
+	      $(call get_runtest_cmd,$(impl),$(step)) ../$(test) -- ../$(impl)/run && \
 	      $(if $(filter tests/step6_file.mal,$(test)),\
 	        echo '----------------------------------------------' && \
 	        echo 'Testing ARGV of $@; step file: $+' && \
