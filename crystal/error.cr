@@ -1,3 +1,5 @@
+require "./types"
+
 module Mal
   class ParseException < Exception
   end
@@ -7,7 +9,7 @@ module Mal
 
   class RuntimeException < Exception
     getter :thrown
-    def initialize(@thrown)
+    def initialize(@thrown : Type)
       super()
     end
   end

@@ -3,7 +3,7 @@ require "./printer"
 module Mal
   class Symbol
     property :str
-    def initialize(@str)
+    def initialize(@str : String)
     end
 
     def ==(other : Symbol)
@@ -22,7 +22,7 @@ module Mal
 
   class Atom
     property :val
-    def initialize(@val)
+    def initialize(@val : Type)
     end
 
     def ==(rhs : Atom)
@@ -32,7 +32,7 @@ module Mal
 
   class Closure
     property :ast, :params, :env, :fn
-    def initialize(@ast, @params, @env, @fn)
+    def initialize(@ast : Type, @params : List | Vector, @env : Env, @fn : Func)
     end
   end
 
@@ -40,14 +40,11 @@ module Mal
     alias Func = (Array(Type) -> Type)
     alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func | Closure | Atom
 
-    is_macro :: Bool
-    meta :: Type
-
     property :is_macro, :meta
 
     def initialize(@val : ValueType)
       @is_macro = false
-      @meta = nil
+      @meta = nil as Type?
     end
 
     def initialize(other : Type)
