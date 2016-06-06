@@ -148,7 +148,7 @@ def self.map(args)
   end
 end
 
-def self.nil?(args)
+def self.nil_value?(args)
   args.first.unwrap.nil?
 end
 
@@ -403,7 +403,7 @@ NS = {
   "throw"       => -> (args : Array(Mal::Type)) { raise Mal::RuntimeException.new args[0] },
   "apply"       => func(:apply),
   "map"         => func(:map),
-  "nil?"        => func(:nil?),
+  "nil?"        => func(:nil_value?),
   "true?"       => func(:true?),
   "false?"      => func(:false?),
   "symbol?"     => func(:symbol?),
