@@ -23,6 +23,22 @@ sub equal ($a, $b) {
   }
 }
 
+sub perl6-eval ($code) {
+  my &convert = -> $data {
+    given $data {
+      when Array|List { MalList($_.map({&convert($_)}).Array) }
+      when Hash { MalHashMap($_.map({.key => &convert(.value)}).Hash) }
+      when Bool { $_ ?? $TRUE !! $FALSE }
+      when Int { MalNumber($_) }
+      when Nil { $NIL }
+      default { $_.^name eq 'Any' ?? $NIL !! MalString($_.gist) }
+    }
+  };
+
+  use MONKEY-SEE-NO-EVAL;
+  return &convert(EVAL($code));
+}
+
 our %ns = (
   '+'         => MalCode({ MalNumber($^a.val + $^b.val) }),
   '-'         => MalCode({ MalNumber($^a.val - $^b.val) }),
@@ -81,4 +97,5 @@ our %ns = (
   seq         => MalCode({ $^a.seq }),
   with-meta   => MalCode({ return $NIL if !$^a.can('meta'); my $x = $^a.clone; $x.meta = $^b; $x }),
   meta        => MalCode({ $^a.?meta // $NIL }),
+  perl6-eval  => MalCode({ perl6-eval($^a.val) }),
 );
