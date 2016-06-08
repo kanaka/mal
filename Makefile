@@ -233,7 +233,7 @@ get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
 get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb,$(1)),RAW=1,)) \
-		    ../runtest.py $(TEST_OPTS) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS)
+		    ../runtest.py $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS) $(TEST_OPTS)
 
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
