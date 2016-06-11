@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 54 languages:
+Mal is implemented in 55 languages:
 
 * Ada
 * GNU awk
@@ -45,6 +45,7 @@ Mal is implemented in 54 languages:
 * Objective C
 * OCaml
 * Perl
+* Perl 6
 * PHP
 * PL/pgSQL (Postgres)
 * PL/SQL (Oracle)
@@ -564,6 +565,16 @@ cd perl
 perl stepX_YYY.pl
 ```
 
+### Perl 6
+
+*The Perl 6 implementation was created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
+
+The Perl 6 implementation was tested on Rakudo Perl 6 2016.04.
+
+```
+cd perl6
+perl6 stepX_YYY.pl
+```
 
 ### PHP 5.3
 

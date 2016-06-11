@@ -65,6 +65,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
 plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
 plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
+perl6_TEST_OPTS = --test-timeout=60
 
 DOCKERIZE=
 
@@ -78,8 +79,8 @@ DOCKERIZE =
 IMPLS = ada awk bash c d clojure coffee cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
 	io java julia js kotlin lua make mal ocaml matlab miniMAL \
-	nim objc objpascal perl php plpgsql plsql ps python r racket \
-	rpython ruby rust scala swift swift3 tcl vb vhdl vimscript
+	nim objc objpascal perl perl6 php plpgsql plsql ps python r \
+	racket rpython ruby rust scala swift swift3 tcl vb vhdl vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -174,6 +175,7 @@ nim_STEP_TO_PROG =     nim/$($(1))
 objc_STEP_TO_PROG =    objc/$($(1))
 objpascal_STEP_TO_PROG = objpascal/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
+perl6_STEP_TO_PROG =   perl6/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
 plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
 plsql_STEP_TO_PROG =   plsql/$($(1)).sql
