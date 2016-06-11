@@ -32,9 +32,10 @@ sub read_list ($rdr, $end) {
   my @list;
   my $token = $rdr.next;
 
-  while ($token = $rdr.peek).defined {
-    last if $token eq $end;
+  loop {
+    $token = $rdr.peek;
     die X::MalIncomplete.new(end => $end) if !$token.defined;
+    last if $token eq $end;
     @list.push(read_form($rdr));
   }
   $rdr.next;
