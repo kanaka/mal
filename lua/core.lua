@@ -5,7 +5,7 @@ local printer = require('printer')
 local readline = require('readline')
 local socket = require('socket')
 
-local Nil, List, _pr_str = types.Nil, types.List, printer._pr_str
+local Nil, List, HashMap, _pr_str = types.Nil, types.List, types.HashMap, printer._pr_str
 
 local M = {}
 
@@ -199,6 +199,40 @@ local function seq(obj, ...)
     return Nil
 end
 
+local function lua_to_mal(a)
+  if a == nil then
+    return Nil
+  elseif type(a) == "boolean" or type(a) == "number" or type(a) == "string" then
+    return a
+  elseif type(a) == "table" then
+    local first_key, _ = next(a)
+    if first_key == nil then
+      return List:new({})
+    elseif type(first_key) == "number" then
+      local list = {}
+      for i, v in ipairs(a) do
+        list[i] = lua_to_mal(v)
+      end
+      return List:new(list)
+    else
+      local hashmap = {}
+      for k, v in pairs(a) do
+        hashmap[lua_to_mal(k)] = lua_to_mal(v)
+      end
+      return HashMap:new(hashmap)
+    end
+  end
+  return tostring(a)
+end
+
+local function lua_eval(str)
+    local f, err = loadstring("return "..str)
+    if err then
+        types.throw("lua-eval: can't load code: "..err)
+    end
+    return lua_to_mal(f())
+end
+
 M.ns = {
     ['='] =  types._equal_Q,
     throw = types.throw,
@@ -263,6 +297,8 @@ M.ns = {
     deref = function(a) return a.val end,
     ['reset!'] = function(a,b) a.val = b; return b end,
     ['swap!'] = swap_BANG,
+
+    ['lua-eval'] = lua_eval,
 }
 
 return M
