@@ -1624,6 +1624,16 @@ For extra information read [Peter Seibel's thorough discussion about
     converted into a list, and a string is converted to a list that
     containing the original string split into single character
     strings.
+* For interop with the target language, add this core function:
+  * `quux-eval`: takes a string, evaluates it in the target language,
+    and returns the result converted to the relevant Mal type. You
+    may also add other interop functions as you see fit; Clojure, for
+    example, has a function called `.` which allows calling Java
+    methods. If the target language is a static language, consider
+    using FFI or some language-specific reflection mechanism, if
+    available. The tests for `quux-eval` and any other interop
+    function should be added in `quux/tests/stepA_mal.mal` (see the
+    [tests for `lua-eval`](../lua/tests/stepA_mal.mal) as an example).
 
 
 ## TODO:
