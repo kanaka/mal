@@ -49,6 +49,28 @@ MalCore := Object clone do(
         atom setVal(newVal) val
     )
 
+    ioToMal := method(v,
+        (v isNil) ifTrue(return(v))
+        (v == true) ifTrue(return(v))
+        (v == false) ifTrue(return(v))
+        (v type == "Number") ifTrue(return(v))
+        (v type == "Sequence") ifTrue(return(v))
+        (v type == "List") ifTrue(return(MalList with(v map(e, ioToMal(e)))))
+        (v type == "Map") ifTrue(
+            lst := list()
+            v foreach(key, val,
+                lst push(key asString)
+                lst push(ioToMal(val))
+            )
+            return(MalMap withList(lst))
+        )
+        v asString
+    )
+
+    ioEval := block(a,
+        MalCore ioToMal(doString(a at(0)))
+    )
+
     NS := Map with(
         "=",     block(a, a at(0) == a at(1)),
         "throw", block(a, MalException with(a at(0)) raise),
@@ -113,6 +135,8 @@ MalCore := Object clone do(
         "atom?",     block(a, a at(0) type == "MalAtom"),
         "deref",     block(a, a at(0) val),
         "reset!",    block(a, a at(0) setVal(a at(1)) ; a at(1)),
-        "swap!",     swapBang
+        "swap!",     swapBang,
+
+        "io-eval",   ioEval
     )
 )
