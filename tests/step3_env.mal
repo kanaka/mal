@@ -19,6 +19,16 @@ x
 y
 ;=>8
 
+;; Verifying symbols are case-sensitive
+(def! mynum 111)
+;=>111
+(def! MYNUM 222)
+;=>222
+mynum
+;=>111
+MYNUM
+;=>222
+
 
 ;; Testing let*
 (let* (z 9) z)
