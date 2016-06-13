@@ -1,0 +1,48 @@
+;; Testing basic Perl 6 interop
+
+(perl6-eval "7")
+;=>7
+
+(perl6-eval "'7'")
+;=>"7"
+
+(perl6-eval "123 == 123")
+;=>true
+
+(perl6-eval "123 == 456")
+;=>false
+
+(perl6-eval "(7,8,9)")
+;=>(7 8 9)
+
+(perl6-eval "[7,8,9]")
+;=>(7 8 9)
+
+(perl6-eval "{abc => 789}")
+;=>{"abc" 789}
+
+(perl6-eval "Nil")
+;=>nil
+
+(perl6-eval "True")
+;=>true
+
+(perl6-eval "False")
+;=>false
+
+(perl6-eval "my $foo")
+;=>nil
+
+(perl6-eval "say 'hello' ")
+; hello
+;=>true
+
+(perl6-eval "sub { my $foo = 8 }()")
+;=>8
+
+(perl6-eval "'This sentence has five words'.subst(/\w+/, :g, {'*' ~ $^a.chars ~ '*'})")
+;=>"*4* *8* *3* *4* *5*"
+
+(perl6-eval "<3 a 45 b>.join: '|'")
+;=>"3|a|45|b"
+
