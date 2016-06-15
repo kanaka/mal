@@ -217,4 +217,6 @@
                             mal-nil))
                          (t
                           mal-nil))))))
+
+    (elisp-eval . ,(mal-fn (lambda (string) (mal-string (format "%S" (eval (read (mal-value string))))))))
     ))

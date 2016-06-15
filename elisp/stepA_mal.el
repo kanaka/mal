@@ -113,8 +113,6 @@
             (throw 'return (mal-env-set env identifier value))))
          ((eq a0* 'macroexpand)
           (throw 'return (MACROEXPAND a1 env)))
-         ((eq a0* 'elisp*)
-          (throw 'return (mal-string (format "%S" (eval (read (mal-value a1)))))))
          ((eq a0* 'try*)
           (condition-case err
               (throw 'return (EVAL a1 env))
