@@ -6,7 +6,8 @@ if (typeof module === 'undefined') {
     var types = require('./types'),
         readline = require('./node_readline'),
         reader = require('./reader'),
-        printer = require('./printer');
+        printer = require('./printer'),
+        interop = require('./interop');
 }
 
 // Errors/Exceptions
@@ -174,6 +175,17 @@ function swap_BANG(atm, f) {
     return atm.val;
 }
 
+function js_eval(str) {
+    return interop.js_to_mal(eval(str.toString()));
+}
+
+function js_method_call(object_method_str) {
+    var args = Array.prototype.slice.call(arguments, 1),
+        r = interop.resolve_js(object_method_str),
+        obj = r[0], f = r[1];
+    var res = f.apply(obj, args);
+    return interop.js_to_mal(res);
+}
 
 // types.ns is namespace of type functions
 var ns = {'type': types._obj_type,
@@ -238,6 +250,10 @@ var ns = {'type': types._obj_type,
           'atom?': types._atom_Q,
           "deref": deref,
           "reset!": reset_BANG,
-          "swap!": swap_BANG};
+          "swap!": swap_BANG,
+
+          'js-eval': js_eval,
+          '.': js_method_call
+};
 
 exports.ns = core.ns = ns;
