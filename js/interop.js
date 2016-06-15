@@ -7,15 +7,18 @@ if (typeof module === 'undefined') {
 
 function resolve_js(str) {
     if (str.match(/\./)) {
-        var re = /^(.*)\.([^\.]*)$/,
+        var re = /^(.*)\.[^\.]*$/,
             match = re.exec(str);
-        return [eval(match[0]), eval(str)];
+        return [eval(match[1]), eval(str)];
     } else {
         return [GLOBAL, eval(str)];
     }
 }
 
 function js_to_mal(obj) {
+    if (obj === null || obj === undefined) {
+        return null;
+    }
     var cache = [];
     var str = JSON.stringify(obj, function(key, value) {
         if (typeof value === 'object' && value !== null) {

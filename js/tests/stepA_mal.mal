@@ -1,24 +1,39 @@
 ;; Testing basic bash interop
 
-(js* "7")
+(js-eval "7")
 ;=>7
 
-(js* "'7'")
+(js-eval "'7'")
 ;=>"7"
 
-(js* "[7,8,9]")
+(js-eval "[7,8,9]")
 ;=>(7 8 9)
 
-(js* "console.log('hello');")
+(js-eval "console.log('hello');")
 ; hello
 ;=>nil
 
-(js* "foo=8;")
-(js* "foo;")
+(js-eval "foo=8;")
+(js-eval "foo;")
 ;=>8
 
-(js* "['a','b','c'].map(function(x){return 'X'+x+'Y'}).join(' ')")
+(js-eval "['a','b','c'].map(function(x){return 'X'+x+'Y'}).join(' ')")
 ;=>"XaY XbY XcY"
 
-(js* "[1,2,3].map(function(x){return 1+x})")
+(js-eval "[1,2,3].map(function(x){return 1+x})")
 ;=>(2 3 4)
+
+(js-eval (str "3 * " (* 4 5)))
+;=>60
+
+(. "console.log" "abc" 123 '(4 5 6) {"kk" "vv"} (= 1 1) nil)
+; abc 123 [ 4, 5, 6 ] { kk: 'vv' } true null
+;=>nil
+
+(js-eval "myobj = { v: 10, myfunc: function(a,b,c) { return a * b * c * this.v; } }")
+(. "myobj.myfunc" 2 3 4)
+;=>240
+
+(js-eval "myarray = [1,2,3,4,5]")
+(. "myarray.join" "#")
+;=>"1#2#3#4#5"
