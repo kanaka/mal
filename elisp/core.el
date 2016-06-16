@@ -75,6 +75,35 @@
         (push (pop args) value))
       (mal-list value))))
 
+(defun elisp-to-mal (arg)
+  (cond
+   ((not arg)
+    mal-nil)
+   ((eq arg t)
+    mal-true)
+   ((numberp arg)
+    (mal-number arg))
+   ((stringp arg)
+    (mal-string arg))
+   ((keywordp arg)
+    (mal-keyword arg))
+   ((symbolp arg)
+    (mal-symbol arg))
+   ((consp arg)
+    (mal-list (mapcar 'elisp-to-mal arg)))
+   ((vectorp arg)
+    (mal-vector (vconcat (mapcar 'elisp-to-mal arg))))
+   ((hash-table-p arg)
+    (let ((output (make-hash-table :test 'mal-=)))
+      (maphash
+       (lambda (key value)
+         (puthash (elisp-to-mal key) (elisp-to-mal value) output))
+       arg)
+      (mal-map output)))
+   (t
+    ;; represent anything else as printed arg
+    (mal-string (format "%S" arg)))))
+
 (defvar core-ns
   `((+ . ,(mal-fn (lambda (a b) (mal-number (+ (mal-value a) (mal-value b))))))
     (- . ,(mal-fn (lambda (a b) (mal-number (- (mal-value a) (mal-value b))))))
@@ -218,5 +247,5 @@
                          (t
                           mal-nil))))))
 
-    (elisp-eval . ,(mal-fn (lambda (string) (mal-string (format "%S" (eval (read (mal-value string))))))))
+    (elisp-eval . ,(mal-fn (lambda (string) (elisp-to-mal (eval (read (mal-value string)))))))
     ))
