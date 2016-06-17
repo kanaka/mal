@@ -1,0 +1,31 @@
+load "../logo/readline.lg
+
+to _read :str
+output :str
+end
+
+to _eval :ast :env
+output :ast
+end
+
+to _print :exp
+output :exp
+end
+
+to repl
+localmake "running "true
+while [:running] [
+  localmake "line readline word "user> :space_char
+  ifelse :line=[] [
+    print "
+    make "running "false
+  ] [
+    if not emptyp :line [
+      print _print _eval _read :line []
+    ]
+  ]
+]
+end
+
+repl
+bye

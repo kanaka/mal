@@ -1,0 +1,27 @@
+make "backspace_char char 8
+make "space_char char 32
+
+to readline :prompt
+type :prompt
+wait 0         ; flush standard output
+localmake "line "
+forever [
+  localmake "c readchar
+  ifelse emptyp :c [
+    output []
+  ] [
+    localmake "ascii rawascii :c
+    case :ascii [
+      [[4]       output []]
+      [[10]      type :c
+                 output :line]
+      [[127]     if not emptyp :line [
+                   type (word :backspace_char :space_char :backspace_char)
+                   make "line butlast :line
+                 ]]
+      [else      type :c
+                 make "line word :line :c]
+    ]
+  ]
+]
+end

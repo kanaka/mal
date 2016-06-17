@@ -1,0 +1,175 @@
+; Make Logo's string-comparison case sensitive
+make "caseignoredp "false
+
+; Load the 'case' library macro
+case "dummy []
+
+; Redefine 'case' macro to not override caseignoredp
+.macro case :case.value :case.clauses
+catch "case.error [output case.helper :case.value :case.clauses]
+(throw "error [Empty CASE clause])
+end
+
+to obj_new :type :val
+output list :type :val
+end
+
+to obj_new_with_meta :type :val :meta
+output (list :type :val :meta)
+end
+
+to obj_type :obj
+output first :obj
+end
+
+to obj_val :obj
+output item 2 :obj
+end
+
+to obj_meta :obj
+if (count :obj) < 3 [output []]
+output item 3 :obj
+end
+
+make "global_nil obj_new "nil []
+
+to nil_new
+output :global_nil
+end
+
+make "global_true obj_new "true []
+
+to true_new
+output :global_true
+end
+
+make "global_false obj_new "false []
+
+to false_new
+output :global_false
+end
+
+to symbol_new :name
+output obj_new "symbol :name
+end
+
+to hashmap_get :h :key
+localmake "i 1
+while [:i < count :h] [
+  if equal_q item :i :h :key [
+    output item (:i + 1) :h
+  ]
+  make "i (:i + 2)
+]
+output []
+end
+
+; Returns a new list with the key-val pair set
+to hashmap_put :h :key :val
+localmake "res hashmap_delete :h :key
+make "res lput :key :res
+make "res lput :val :res
+output :res
+end
+
+; Returns a new list without the key-val pair set
+to hashmap_delete :h :key
+localmake "res []
+localmake "i 1
+while [:i < count :h] [
+  if (item :i :h) <> :key [
+    make "res lput item :i :h :res
+    make "res lput item (:i + 1) :h :res
+  ]
+  make "i (:i + 2)
+]
+output :res
+end
+
+to fn_new :args :env :body
+output obj_new "fn (list :args :env :body "false)
+end
+
+to fn_args :fn
+output item 1 obj_val :fn
+end
+
+to fn_env :fn
+output item 2 obj_val :fn
+end
+
+to fn_body :fn
+output item 3 obj_val :fn
+end
+
+to fn_is_macro :fn
+output item 4 obj_val :fn
+end
+
+to fn_set_macro :fn
+.setfirst butfirst butfirst butfirst obj_val :fn "true
+end
+
+; zero-based sequence addressing
+to nth :seq :index
+output item (:index + 1) obj_val :seq
+end
+
+to _count :seq
+output count obj_val :seq
+end
+
+to rest :seq
+output obj_new obj_type :seq butfirst obj_val :seq
+end
+
+to drop :seq :num
+if or :num = 0 (_count :seq) = 0 [output :seq]
+foreach obj_val :seq [
+  if # >= :num [output obj_new obj_type :seq ?rest]
+]
+end
+
+to sequentialp :obj
+output or ((obj_type :obj) = "list) ((obj_type :obj) = "vector)
+end
+
+to equal_sequential_q :a :b
+if (_count :a) <> (_count :b) [output "false]
+(foreach obj_val :a obj_val :b [
+  if not equal_q ?1 ?2 [output "false]
+])
+output "true
+end
+
+to equal_hashmap_q :a :b
+if (_count :a) <> (_count :b) [output "false]
+localmake "a_keys obj_val mal_keys :a
+foreach :a_keys [
+  localmake "a_val hashmap_get obj_val :a ?
+  localmake "b_val hashmap_get obj_val :b ?
+  if emptyp :b_val [output "false]
+  if not equal_q :a_val :b_val [output "false]
+]
+output "true
+end
+
+to equal_q :a :b
+output cond [
+  [[and sequentialp :a sequentialp :b]
+    equal_sequential_q :a :b]
+  [[((obj_type :a) = (obj_type :b))]
+    case obj_type :a [
+      [[true false nil] "true]
+      [[number string keyword symbol] ((obj_val :a) = (obj_val :b))]
+      [[hashmap] equal_hashmap_q :a :b]
+      [[atom] equal_q obj_val :a obj_val :b]
+      [else "false]
+    ]]
+  [else "false]
+]
+end
+
+to symbolnamedp :name :obj
+output and ((obj_type :obj) = "symbol) ((obj_val :obj) = :name)
+end

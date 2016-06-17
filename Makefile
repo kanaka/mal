@@ -61,6 +61,7 @@ DEFERRABLE=1
 OPTIONAL=1
 
 # Extra implementation specific options to pass to runtest.py
+logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
 plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
@@ -78,7 +79,7 @@ DOCKERIZE =
 
 IMPLS = ada awk bash c d clojure coffee cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
-	io java julia js kotlin lua make mal ocaml matlab miniMAL \
+	io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl perl6 php plpgsql plsql ps python r \
 	racket rpython ruby rust scala swift swift3 tcl vb vhdl vimscript
 
@@ -107,6 +108,7 @@ regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
 test_EXCLUDES += test^bash^step5   # never completes at 10,000
+test_EXCLUDES += test^logo^step5   # too slow for 10,000
 test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
 test_EXCLUDES += test^mal^step5    # host impl dependent
 test_EXCLUDES += test^matlab^step5 # never completes at 10,000

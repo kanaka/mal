@@ -1,0 +1,25 @@
+; Draw a tree
+;
+; The classic Logo demo for recursive functions - now in Mal!
+
+; White background with blue pen
+(logo-eval "setbackground 7")
+(logo-eval "setpencolor 1")
+
+; Initialize turtle location
+(logo-eval "penup setxy 0 -100 pendown")
+
+; Expose Logo drawing functions to Mal code
+(def! fd (fn* [size] (logo-eval (str "fd " size))))
+(def! bk (fn* [size] (logo-eval (str "bk " size))))
+(def! lt (fn* [size] (logo-eval (str "lt " size))))
+(def! rt (fn* [size] (logo-eval (str "rt " size))))
+
+; Tree parts
+(def! leaf (fn* [size] (do (fd size) (bk size))))
+(def! branch (fn* [size] (do (fd size) (draw-tree size) (bk size))))
+(def! two-branches (fn* [size] (do (lt 10) (branch size) (rt 40) (branch size) (lt 30))))
+(def! draw-tree (fn* [size] (if (< size 5) (leaf size) (two-branches (/ size 2)))))
+
+; Draw it
+(draw-tree 250)

@@ -32,6 +32,7 @@ matrix:
     - {env: IMPL=js,        services: [docker]}
     - {env: IMPL=julia,     services: [docker]}
     - {env: IMPL=kotlin,    services: [docker]}
+    - {env: IMPL=logo,      services: [docker]}
     - {env: IMPL=lua,       services: [docker]}
     - {env: IMPL=make,      services: [docker]}
     - {env: IMPL=mal BUILD_IMPL=js NO_PERF=1, services: [docker]}
