@@ -11,7 +11,7 @@ module Mal
 macro calc_op(op)
   -> (args : Array(Mal::Type)) {
     x, y = args[0].unwrap, args[1].unwrap
-    eval_error "invalid arguments for binary operator {{op.id}}" unless x.is_a?(Int32) && y.is_a?(Int32)
+    eval_error "invalid arguments for binary operator {{op.id}}" unless x.is_a?(Int64) && y.is_a?(Int64)
     Mal::Type.new(x {{op.id}} y)
   }
 end
@@ -33,9 +33,9 @@ def self.count(args)
   a = args.first.unwrap
   case a
   when Array
-    a.size as Int32
+    a.size.to_i64
   when Nil
-    0
+    0i64
   else
     eval_error "invalid argument for function 'count'"
   end
@@ -92,7 +92,7 @@ end
 def self.nth(args)
   a0, a1 = args[0].unwrap, args[1].unwrap
   eval_error "1st argument of nth must be list or vector" unless a0.is_a? Array
-  eval_error "2nd argument of nth must be integer" unless a1.is_a? Int32
+  eval_error "2nd argument of nth must be integer" unless a1.is_a? Int64
   a0[a1]
 end
 
@@ -362,7 +362,7 @@ def self.seq(args)
 end
 
 def self.time_ms(args)
-  Time.now.epoch_ms.to_i32
+  Time.now.epoch_ms.to_i64
 end
 
 # Note:

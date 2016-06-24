@@ -38,7 +38,7 @@ module Mal
 
   class Type
     alias Func = (Array(Type) -> Type)
-    alias ValueType = Nil | Bool | Int32 | String | Symbol | List | Vector | HashMap | Func | Closure | Atom
+    alias ValueType = Nil | Bool | Int64 | String | Symbol | List | Vector | HashMap | Func | Closure | Atom
 
     property :is_macro, :meta
 
@@ -80,7 +80,7 @@ module Mal
       {% for op in ops %}
         def {{op.id}}(other : Mal::Type)
           l, r = @val, other.unwrap
-            {% for t in [Int32, String] %}
+            {% for t in [Int64, String] %}
               if l.is_a?({{t}}) && r.is_a?({{t}})
                 return (l) {{op.id}} (r)
               end
