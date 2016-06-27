@@ -77,7 +77,7 @@ class Reader
     parse_error "expected Atom but got EOF" unless token
 
     Mal::Type.new case
-    when token =~ /^-?\d+$/ then token.to_i
+    when token =~ /^-?\d+$/ then token.to_i64
     when token == "true"    then true
     when token == "false"   then false
     when token == "nil"     then nil

@@ -13,7 +13,7 @@ mal: $(LAST_STEP_BIN)
 	cp $< $@
 
 $(STEP_BINS): %: %.cr $(MAL_LIB)
-	crystal build --release $<
+	crystal compile --release $<
 
 clean:
 	rm -rf $(STEP_BINS) mal .crystal
