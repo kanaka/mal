@@ -1,5 +1,4 @@
 // TODO: remove this once time-ms and slurp use standard library calls
-import Foundation
 
 #if os(Linux)
 import Glibc
