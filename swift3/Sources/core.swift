@@ -6,7 +6,7 @@ import Glibc
 import Darwin
 #endif
 
-func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
+func IntOp(_ op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
     case (MV.MalInt(let i1), MV.MalInt(let i2)):
         return MV.MalInt(op(i1, i2))
@@ -15,7 +15,7 @@ func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     }
 }
 
-func CmpOp(op: (Int, Int) -> Bool, _ a: MalVal, _ b: MalVal) throws -> MalVal {
+func CmpOp(_ op: (Int, Int) -> Bool, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
     case (MV.MalInt(let i1), MV.MalInt(let i2)):
         return wraptf(op(i1, i2))
@@ -95,20 +95,20 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         //      let core_ns: [String: (Array<MalVal>) throws -> MalVal] = [
         //                                                                ^
 
-        let s = $0.map { pr_str($0,true) }.joinWithSeparator(" ")
+        let s = $0.map { pr_str($0,true) }.joined(separator: " ")
         return MV.MalString(s)
     },
     "str": {
         // The comment for "pr-str" applies here, too.
-        let s = $0.map { pr_str($0,false) }.joinWithSeparator("")
+        let s = $0.map { pr_str($0,false) }.joined(separator: "")
         return MV.MalString(s)
     },
     "prn": {
-        print($0.map { pr_str($0,true) }.joinWithSeparator(" "))
+        print($0.map { pr_str($0,true) }.joined(separator: " "))
         return MV.MalNil
     },
     "println": {
-        print($0.map { pr_str($0,false) }.joinWithSeparator(" "))
+        print($0.map { pr_str($0,false) }.joined(separator: " "))
         return MV.MalNil
     },
     "read-string": {
@@ -121,7 +121,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         switch $0[0] {
         case MV.MalString(let prompt):
             print(prompt, terminator: "")
-            let line = readLine(stripNewline: true)
+            let line = readLine(strippingNewline: true)
             if line == nil { return MV.MalNil }
             return MV.MalString(line!)
         default: throw MalError.General(msg: "Invalid readline call")
@@ -359,7 +359,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         if $0.count < 1 { throw MalError.General(msg: "Invalid conj call") }
         switch $0[0] {
         case MV.MalList(let lst, _):
-            let a = Array($0[1..<$0.endIndex]).reverse()
+            let a = Array($0[1..<$0.endIndex]).reversed()
             return list(a + lst)
         case MV.MalVector(let lst, _):
             return vector(lst + $0[1..<$0.endIndex])
