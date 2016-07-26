@@ -67,6 +67,7 @@ func read_string(_ rdr: Reader) throws -> MalVal {
         rdr.pos = rdr.str.index(after: cidx)
         if escaped {
             escaped = false
+            cidx = rdr.pos
             continue
         }
         if rdr.str[cidx] == "\\" { escaped = true }

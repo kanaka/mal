@@ -1,4 +1,5 @@
 // TODO: remove this once time-ms and slurp use standard library calls
+import Foundation
 
 #if os(Linux)
 import Glibc
@@ -130,17 +131,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     "slurp": {
         switch $0[0] {
         case MV.MalString(let file):
-            // TODO: replace with this when it is available
-            // let data = try String(contentsOfFile: file, encoding: NSUTF8StringEncoding)
-
-            let BUFSIZE = 1024
-            var pp      = popen("cat " + file, "r")
-            var buf     = [CChar](count:BUFSIZE, repeatedValue:CChar(0))
-            var data    = String()
-             
-            while fgets(&buf, Int32(BUFSIZE), pp) != nil {
-                data = data + String.fromCString(buf)!;
-            }
+            let data = try String(contentsOfFile: file, encoding: String.Encoding.utf8)
             return MV.MalString(data)
         default: throw MalError.General(msg: "Invalid slurp call")
         }
@@ -156,7 +147,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     "*":  { try IntOp({ $0 * $1},  $0[0], $0[1]) },
     "/":  { try IntOp({ $0 / $1},  $0[0], $0[1]) },
     "time-ms": {
-        $0; // no parameters
+        let read = $0; // no parameters
 
         // TODO: replace with something more like this
         // return MV.MalInt(NSDate().timeIntervalSince1970 )
