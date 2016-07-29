@@ -9,6 +9,9 @@ STEP2_DEPS=${STEP1_DEPS}
 STEP3_DEPS=${STEP2_DEPS} envs.ad[bs] eval_callback.ads
 STEP4_DEPS=${STEP3_DEPS} core.ad[bs]
 
+SOURCES = $(filter-out $(STEP0_DEPS),$(STEP4_DEPS)) stepA_mal.gpr stepa_mal.adb
+SOURCES_LISP = $(filter-out $(STEP2_DEPS),$(SOURCES))
+
 all:	${DIRS} ${PROGS}
 
 ${DIRS}:
@@ -32,3 +35,14 @@ stepA_mal:	stepa_mal.adb ${STEP4_DEPS}
 clean:
 	rm -f ${PROGS}
 	rm -rf obj
+
+.PHONY: stats stats-lisp
+
+stats: $(SOURCES)
+	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*--|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
+
+stats-lisp: $(SOURCES_LISP)
+	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*--|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
+
