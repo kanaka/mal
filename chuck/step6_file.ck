@@ -17,8 +17,13 @@ fun MalObject READ(string input)
 
 fun MalObject EVAL(MalObject m, Env env)
 {
-    if( m.type == "list" )
+    while( true )
     {
+        if( m.type != "list" )
+        {
+            return eval_ast(m, env);
+        }
+
         if( (m$MalList).value().size() == 0 )
         {
             return m;
@@ -61,11 +66,13 @@ fun MalObject EVAL(MalObject m, Env env)
                     let_env.set(symbol, value);
                 }
 
-                return EVAL(ast[2], let_env);
+                let_env @=> env;
+                ast[2] @=> m;
+                continue; // TCO
             }
             else if( a0 == "do" )
             {
-                MalObject.slice(ast, 1) @=> MalObject forms[];
+                MalObject.slice(ast, 1, ast.size()) @=> MalObject forms[];
                 eval_ast(MalList.create(forms), env) @=> MalObject value;
 
                 if( value.type == "error" )
@@ -73,9 +80,9 @@ fun MalObject EVAL(MalObject m, Env env)
                     return value;
                 }
 
-                (value$MalList).value() @=> MalObject values[];
-
-                return values[values.size()-1];
+                // HACK: this assumes do gets at least one argument...
+                ast[ast.size()-1] @=> m;
+                continue; // TCO
             }
             else if( a0 == "if" )
             {
@@ -88,7 +95,8 @@ fun MalObject EVAL(MalObject m, Env env)
 
                 if( !(condition.type == "nil") && !(condition.type == "false") )
                 {
-                    return EVAL(ast[2], env);
+                    ast[2] @=> m;
+                    continue; // TCO
                 }
                 else
                 {
@@ -98,7 +106,8 @@ fun MalObject EVAL(MalObject m, Env env)
                     }
                     else
                     {
-                        return EVAL(ast[3], env);
+                        ast[3] @=> m;
+                        continue; // TCO
                     }
                 }
             }
@@ -131,19 +140,36 @@ fun MalObject EVAL(MalObject m, Env env)
         if( type == "subr" )
         {
             values[0]$MalSubr @=> MalSubr subr;
-            return subr.call(args);
+            subr.name => string name;
+
+            if( name == "eval" )
+            {
+                return EVAL(args[0], subr.env);
+            }
+            else if( name == "swap!")
+            {
+                args[0]$MalAtom @=> MalAtom atom;
+                atom.value() @=> MalObject value;
+                args[1] @=> MalObject f;
+                MalObject.slice(args, 2) @=> MalObject _args[];
+                MalObject.append([f, value], _args) @=> _args;
+                EVAL(MalList.create(_args), env) @=> MalObject _value;
+                // NOTE: the DoSwap subr only puts a value into an atom
+                return subr.call([atom, _value]);
+            }
+            else
+            {
+                return subr.call(args);
+            }
         }
         else // type == "func"
         {
             values[0]$Func @=> Func func;
             Env.create(func.env, func.args, args) @=> Env eval_env;
-            return EVAL(func.ast, eval_env);
+            eval_env @=> env;
+            func.ast @=> m;
+            continue; // TCO
         }
-    }
-    else
-    {
-        eval_ast(m, env) @=> MalObject result;
-        return result;
     }
 }
 
@@ -221,6 +247,24 @@ for( 0 => int i; i < Core.names.size(); i++ )
     repl_env.set(name, Core.ns[name]);
 }
 
+repl_env.set("eval", MalSubr.create("eval", repl_env));
+
+fun MalObject[] MalArgv(string args[])
+{
+    MalObject values[args.size()-1];
+
+    for( 1 => int i; i < args.size(); i++ )
+    {
+        MalString.create(args[i]) @=> values[i-1];
+    }
+
+    return values;
+}
+
+// NOTE: normally I'd use \0, but strings are null-terminated...
+String.split(Std.getenv("CHUCK_ARGS"), "\a") @=> string args[];
+repl_env.set("*ARGV*", MalList.create(MalArgv(args)));
+
 fun string rep(string input)
 {
     READ(input) @=> MalObject m;
@@ -240,6 +284,7 @@ fun string rep(string input)
 }
 
 rep("(def! not (fn* (a) (if a false true)))");
+rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 fun void main()
 {
@@ -263,4 +308,12 @@ fun void main()
     }
 }
 
-main();
+if( args.size() > 1 )
+{
+    args[1] => string filename;
+    rep("(load-file \"" + filename + "\")");
+}
+else
+{
+    main();
+}

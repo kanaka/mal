@@ -4,9 +4,9 @@
 // @import util/*.ck
 // @import reader.ck
 // @import printer.ck
+// @import env.ck
 // @import types/MalSubr.ck
 // @import types/subr/*.ck
-// @import env.ck
 // @import core.ck
 // @import func.ck
 

@@ -54,4 +54,21 @@ public class MalObject
 
         return values;
     }
+
+    fun static MalObject[] append(MalObject as[], MalObject bs[])
+    {
+        MalObject output[as.size()+bs.size()];
+
+        for( 0 => int i; i < as.size(); i++ )
+        {
+            as[i] @=> output[i];
+        }
+
+        for( 0 => int i; i < bs.size(); i++ )
+        {
+            bs[i] @=> output[as.size()+i];
+        }
+
+        return output;
+    }
 }

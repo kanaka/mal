@@ -15,8 +15,8 @@ public class Reader
 
     fun static string[] tokenizer(string input)
     {
-        "^[ ,]*(~@|[][{}()'`~^@]|\"(\\\\.|[^\\\"])*\"|;.*|[^][ {}()'`~@,;\"]*)" => string tokenRe;
-        "^([ ,]*|;.*)$" => string blankRe;
+        "^[ \n,]*(~@|[][{}()'`~^@]|\"(\\\\.|[^\\\"])*\"|;[^\n]*|[^][ {}()'`~@,;\"]*)" => string tokenRe;
+        "^([ \n,]*|;[^\n]*)$" => string blankRe;
 
         string tokens[0];
 

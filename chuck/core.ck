@@ -7,7 +7,9 @@ public class Core
 ["+", "-", "*", "/",
  "list", "list?", "empty?", "count",
  "=", "<", "<=", ">", ">=",
- "pr-str", "str", "prn", "println"] @=> Core.names;
+ "pr-str", "str", "prn", "println",
+ "read-string", "slurp",
+ "atom", "atom?", "deref", "reset!", "swap!"] @=> Core.names;
 MalSubr ns[0] @=> Core.ns;
 
 new MalAdd @=> Core.ns["+"];
@@ -30,3 +32,12 @@ new MalPrStr @=> Core.ns["pr-str"];
 new MalStr @=> Core.ns["str"];
 new MalPrn @=> Core.ns["prn"];
 new MalPrintln @=> Core.ns["println"];
+
+new MalReadStr @=> Core.ns["read-string"];
+new MalSlurp @=> Core.ns["slurp"];
+
+new MalAtomify @=> Core.ns["atom"];
+new MalIsAtom @=> Core.ns["atom?"];
+new MalDeref @=> Core.ns["deref"];
+new MalDoReset @=> Core.ns["reset!"];
+new MalDoSwap @=> Core.ns["swap!"];

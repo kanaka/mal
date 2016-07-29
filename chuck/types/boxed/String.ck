@@ -53,6 +53,35 @@ public class String
         return output;
     }
 
+    fun static string[] split(string input, string separator)
+    {
+        string output[0];
+
+        if( input == "" )
+        {
+            return output;
+        }
+
+        0 => int offset;
+        int index;
+
+        while( true )
+        {
+            input.find(separator, offset) => index;
+
+            if( index == -1 )
+            {
+                output << input.substring(offset);
+                break;
+            }
+
+            output << input.substring(offset, index - offset);
+            index + separator.length() => offset;
+        }
+
+        return output;
+    }
+
     fun static string replaceAll(string input, string pat, string rep)
     {
         0 => int offset;

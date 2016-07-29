@@ -10,5 +10,5 @@ import_files = imports.flat_map { |i| Dir[i] }
 cmdline += import_files
 cmdline << scriptfile
 
-ENV['CHUCK_ARGS'] = ARGV.join(' ')
+ENV['CHUCK_ARGS'] = ARGV.join("\a")
 exec(*cmdline)

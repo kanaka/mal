@@ -64,3 +64,11 @@
   is actually its third argument...
 - Where did the check for `do` not being broken by TCO go?
 - What's the deal with the `quux/tests/step5_tco.qx` file?
+
+# Step 6
+
+- "The closure calls the your EVAL function […]."
+- I still don't have any closures.  How the heck do I implement
+  `eval`?  What about `swap!`?
+- It would be useful to mention that `swap!` sort of requires
+  implementing `apply` first...
