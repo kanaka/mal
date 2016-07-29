@@ -1,29 +1,26 @@
 
-func pr_str(obj: MalVal, _ print_readably: Bool = true) -> String {
+func pr_str(_ obj: MalVal, _ print_readably: Bool = true) -> String {
     switch obj {
     case MalVal.MalList(let lst, _):
         let elems = lst.map { pr_str($0, print_readably) }
-        return "(" + elems.joinWithSeparator(" ")  + ")"
+        return "(" + elems.joined(separator: " ")  + ")"
     case MalVal.MalVector(let lst, _):
         let elems = lst.map { pr_str($0, print_readably) }
-        return "[" + elems.joinWithSeparator(" ")  + "]"
+        return "[" + elems.joined(separator: " ")  + "]"
     case MalVal.MalHashMap(let dict, _):
         let elems = dict.map {
             pr_str(MalVal.MalString($0), print_readably) +
             " " + pr_str($1, print_readably)
         }
-        return "{" + elems.joinWithSeparator(" ")  + "}"
+        return "{" + elems.joined(separator: " ")  + "}"
     case MalVal.MalString(let str):
         //print("kw: '\(str[str.startIndex])'")
         if str.characters.count > 0 && str[str.startIndex] == "\u{029e}" {
-            return ":" + str[str.startIndex.successor()..<str.endIndex]
+            return ":" + str[str.index(after: str.startIndex)..<str.endIndex]
         } else if print_readably {
-            let s1 = str.stringByReplacingOccurrencesOfString(
-                "\\", withString: "\\\\")
-            let s2 = s1.stringByReplacingOccurrencesOfString(
-                "\"", withString: "\\\"")
-            let s3 = s2.stringByReplacingOccurrencesOfString(
-                "\n", withString: "\\n")
+            let s1 = str.replacingOccurrences(of: "\\", with: "\\\\")
+            let s2 = s1.replacingOccurrences(of: "\"", with: "\\\"")
+            let s3 = s2.replacingOccurrences(of: "\n", with: "\\n")
             return "\"" + s3 + "\""
         } else {
             return str

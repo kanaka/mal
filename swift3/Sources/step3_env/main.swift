@@ -1,12 +1,12 @@
 import Foundation
 
 // read
-func READ(str: String) throws -> MalVal {
+func READ(_ str: String) throws -> MalVal {
     return try read_str(str)
 }
 
 // eval
-func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
+func eval_ast(_ ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalSymbol:
         return try env.get(ast)
@@ -23,7 +23,7 @@ func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
     }
 }
 
-func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
+func EVAL(_ ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
     default: return try eval_ast(ast, env)
@@ -45,9 +45,9 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
             }
             var idx = binds.startIndex
             while idx < binds.endIndex {
-                let v = try EVAL(binds[idx.successor()], let_env)
+                let v = try EVAL(binds[binds.index(after: idx)], let_env)
                 try let_env.set(binds[idx], v)
-                idx = idx.successor().successor()
+                idx = binds.index(idx, offsetBy: 2)
             }
             return try EVAL(lst[2], let_env)
         default:
@@ -69,17 +69,17 @@ func EVAL(ast: MalVal, _ env: Env) throws -> MalVal {
 }
 
 // print
-func PRINT(exp: MalVal) -> String {
+func PRINT(_ exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 
 // repl
-func rep(str:String) throws -> String {
+func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }
 
-func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
+func IntOp(_ op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
     case (MalVal.MalInt(let i1), MalVal.MalInt(let i2)):
         return MalVal.MalInt(op(i1, i2))
@@ -101,7 +101,7 @@ try repl_env.set(MalVal.MalSymbol("/"),
 
 while true {
     print("user> ", terminator: "")
-    let line = readLine(stripNewline: true)
+    let line = readLine(strippingNewline: true)
     if line == nil { break }
     if line == "" { continue }
 

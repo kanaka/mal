@@ -19,17 +19,18 @@ class Reader {
         self.str = str
         pos = str.startIndex
     }
-    func next() { pos = pos.successor() }
+    func next() { pos = str.index(after: pos) }
 }
 
-func read_int(rdr: Reader) -> MalVal {
+func read_int(_ rdr: Reader) -> MalVal {
     let start = rdr.pos
-    for cidx in rdr.pos..<rdr.str.endIndex {
-        rdr.pos = cidx
+    var cidx = rdr.pos
+    while cidx < rdr.str.endIndex {
         if !int_char.contains(rdr.str[cidx]) { break }
-        rdr.pos = cidx.successor()
+        cidx = rdr.str.index(after: cidx)
+        rdr.pos = cidx
     }
-    let matchStr = rdr.str.substringWithRange(start..<rdr.pos)
+    let matchStr = rdr.str.substring(with: start..<rdr.pos)
     if matchStr == "-" {
         return MalVal.MalSymbol("-")
     } else {
@@ -37,9 +38,10 @@ func read_int(rdr: Reader) -> MalVal {
     }
 }
 
-func skip_whitespace_and_comments(rdr: Reader) {
+func skip_whitespace_and_comments(_ rdr: Reader) {
     var in_comment = false
-    for cidx in rdr.pos..<rdr.str.endIndex {
+    var cidx = rdr.pos
+    while cidx < rdr.str.endIndex {
         rdr.pos = cidx
         if in_comment {
             if rdr.str[rdr.pos] == "\n" {
@@ -50,49 +52,52 @@ func skip_whitespace_and_comments(rdr: Reader) {
         } else {
             if !whitespace.contains(rdr.str[rdr.pos]) { break }
         }
+        cidx = rdr.str.index(after: cidx)
     }
 }
 
-func read_string(rdr: Reader) throws -> MalVal {
+func read_string(_ rdr: Reader) throws -> MalVal {
     let start = rdr.pos
     var escaped = false
     if rdr.str[rdr.pos] != "\"" {
         throw MalError.Reader(msg: "read_string call on non-string")
     }
-    for cidx in rdr.pos.successor()..<rdr.str.endIndex {
-        rdr.pos = cidx.successor()
+    var cidx = rdr.str.index(after: rdr.pos)
+    while cidx < rdr.str.endIndex {
+        rdr.pos = rdr.str.index(after: cidx)
         if escaped {
             escaped = false
+            cidx = rdr.pos
             continue
         }
         if rdr.str[cidx] == "\\" { escaped = true }
         if rdr.str[cidx] == "\"" { break }
+        cidx = rdr.pos
     }
     if rdr.pos > rdr.str.endIndex {
         throw MalError.Reader(msg: "Expected '\"', got EOF")
     }
-    let matchStr = rdr.str.substringWithRange(
-        start.successor()..<rdr.pos.predecessor())
-    let s1 = matchStr.stringByReplacingOccurrencesOfString(
-        "\\\"", withString: "\"")
-    let s2 = s1.stringByReplacingOccurrencesOfString(
-        "\\n", withString: "\n")
-    let s3 = s2.stringByReplacingOccurrencesOfString(
-        "\\\\", withString: "\\")
+    let matchStr = rdr.str.substring(with: 
+        rdr.str.index(after: start)..<rdr.str.index(before: rdr.pos))
+    let s1 = matchStr.replacingOccurrences(of: "\\\"", with: "\"")
+    let s2 = s1.replacingOccurrences(of: "\\n", with: "\n")
+    let s3 = s2.replacingOccurrences(of: "\\\\", with: "\\")
     return MalVal.MalString(s3)
 }
 
-func read_token(rdr: Reader) -> String {
+func read_token(_ rdr: Reader) -> String {
     let start = rdr.pos
-    for cidx in rdr.pos..<rdr.str.endIndex {
+    var cidx = rdr.pos
+    while cidx < rdr.str.endIndex {
         rdr.pos = cidx
         if token_delim.contains(rdr.str[cidx]) { break }
-        rdr.pos = cidx.successor()
+        cidx = rdr.str.index(after: cidx)
+        rdr.pos = cidx
     }
-    return rdr.str.substringWithRange(start..<rdr.pos)
+    return rdr.str.substring(with: start..<rdr.pos)
 }
 
-func read_symbol(rdr: Reader) throws -> MalVal {
+func read_symbol(_ rdr: Reader) throws -> MalVal {
    let tok = read_token(rdr)
     switch tok {
         case "nil": return MalVal.MalNil
@@ -102,12 +107,12 @@ func read_symbol(rdr: Reader) throws -> MalVal {
     }
 }
 
-func read_atom(rdr: Reader) throws -> MalVal {
+func read_atom(_ rdr: Reader) throws -> MalVal {
     if rdr.str.characters.count == 0 {
         throw MalError.Reader(msg: "Empty string passed to read_atom")
     }
     switch rdr.str[rdr.pos] {
-    case "-" where !int_char.contains(rdr.str[rdr.pos.successor()]):
+    case "-" where !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
         return try read_symbol(rdr)
     case let c where int_char.contains(c):
         return read_int(rdr)
@@ -121,7 +126,7 @@ func read_atom(rdr: Reader) throws -> MalVal {
     }
 }
 
-func read_list(rdr: Reader, start: Character = "(", end: Character = ")") throws -> Array<MalVal> {
+func read_list(_ rdr: Reader, start: Character = "(", end: Character = ")") throws -> Array<MalVal> {
     if rdr.str[rdr.pos] != start {
         throw MalError.Reader(msg: "expected '\(start)'")
     }
@@ -138,7 +143,7 @@ func read_list(rdr: Reader, start: Character = "(", end: Character = ")") throws
     return lst
 }
 
-func read_form(rdr: Reader) throws -> MalVal {
+func read_form(_ rdr: Reader) throws -> MalVal {
     if rdr.str.characters.count == 0 {
         throw MalError.Reader(msg: "Empty string passed to read_form")
     }
@@ -154,7 +159,7 @@ func read_form(rdr: Reader) throws -> MalVal {
         rdr.next()
         return list([MalVal.MalSymbol("quasiquote"), try read_form(rdr)])
     case "~":
-        switch rdr.str[rdr.pos.successor()] {
+        switch rdr.str[rdr.str.index(after: rdr.pos)] {
         case "@":
             rdr.next()
             rdr.next()
@@ -195,6 +200,6 @@ func read_form(rdr: Reader) throws -> MalVal {
     return res
 }
 
-func read_str(str: String) throws -> MalVal {
+func read_str(_ str: String) throws -> MalVal {
     return try read_form(Reader(str))
 }

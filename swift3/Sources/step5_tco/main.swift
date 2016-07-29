@@ -1,12 +1,12 @@
 import Foundation
 
 // read
-func READ(str: String) throws -> MalVal {
+func READ(_ str: String) throws -> MalVal {
     return try read_str(str)
 }
 
 // eval
-func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
+func eval_ast(_ ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalSymbol:
         return try env.get(ast)
@@ -23,7 +23,7 @@ func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
     }
 }
 
-func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
+func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
   var ast = orig_ast, env = orig_env
   while true {
     switch ast {
@@ -47,16 +47,16 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
             }
             var idx = binds.startIndex
             while idx < binds.endIndex {
-                let v = try EVAL(binds[idx.successor()], let_env)
+                let v = try EVAL(binds[binds.index(after: idx)], let_env)
                 try let_env.set(binds[idx], v)
-                idx = idx.successor().successor()
+                idx = binds.index(idx, offsetBy: 2)
             }
             env = let_env
             ast = lst[2] // TCO
         case MalVal.MalSymbol("do"):
-            let slc = lst[1..<lst.endIndex.predecessor()]
+            let slc = lst[1..<lst.index(before: lst.endIndex)]
             try eval_ast(list(Array(slc)), env)
-            ast = lst[lst.endIndex.predecessor()] // TCO
+            ast = lst[lst.index(before: lst.endIndex)] // TCO
         case MalVal.MalSymbol("if"):
             switch try EVAL(lst[1], env) {
             case MalVal.MalFalse, MalVal.MalNil:
@@ -98,13 +98,13 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
 }
 
 // print
-func PRINT(exp: MalVal) -> String {
+func PRINT(_ exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 
 // repl
-func rep(str:String) throws -> String {
+func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }
 
@@ -121,7 +121,7 @@ try rep("(def! not (fn* (a) (if a false true)))")
 
 while true {
     print("user> ", terminator: "")
-    let line = readLine(stripNewline: true)
+    let line = readLine(strippingNewline: true)
     if line == nil { break }
     if line == "" { continue }
 

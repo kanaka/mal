@@ -25,7 +25,7 @@ class Env {
                 let b = bs[pos]
                 switch b {
                 case MalVal.MalSymbol("&"):
-                    switch bs[pos.successor()] {
+                    switch bs[bs.index(after: pos)] {
                     case MalVal.MalSymbol(let sym):
                         if pos < es.endIndex {
                             let slc = es[pos..<es.endIndex]
@@ -43,12 +43,12 @@ class Env {
                 default:
                     throw MalError.General(msg: "Env binds has non-symbol")
                 }
-                pos = pos.successor()
+                pos = bs.index(after: pos)
             }
         }
     }
 
-    func find(key: MalVal) throws -> Env? {
+    func find(_ key: MalVal) throws -> Env? {
         switch key {
         case MalVal.MalSymbol(let str):
             if data[str] != nil {
@@ -63,7 +63,7 @@ class Env {
         }
     }
 
-    func get(key: MalVal) throws -> MalVal {
+    func get(_ key: MalVal) throws -> MalVal {
         switch key {
         case MalVal.MalSymbol(let str):
             let env = try self.find(key)
@@ -76,7 +76,7 @@ class Env {
         }
     }
 
-    func set(key: MalVal, _ val: MalVal) throws -> MalVal {
+    func set(_ key: MalVal, _ val: MalVal) throws -> MalVal {
         switch key {
         case MalVal.MalSymbol(let str):
             data[str] = val
