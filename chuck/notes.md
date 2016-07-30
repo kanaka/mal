@@ -72,3 +72,27 @@
   `eval`?  What about `swap!`?
 - It would be useful to mention that `swap!` sort of requires
   implementing `apply` first...
+
+# Step 7
+
+- Why the scare quotes for splicing?
+- "Before implementing the quoting forms, you will need to implement
+  some supporting functions in the core namespace:" should be one list
+  item
+- "this function takes a list as its second parameter and returns a
+  new list that has the first argument prepended to it." reads backwards
+- The quasiquote paragraph is hard to read
+- It's rather confusing to refer to the argument of `ast` and to an
+  `ast` parameter, perhaps name the latter a form?
+- What could also help would be a visualization of the four
+  conditionals:
+  - \`42, \`()
+  - \`~foo
+  - \`(~@foo) and more
+  - \`(42 ~@foo) and everything else
+- Mal/mal is inconsistently capitalized
+- "Expand the conditional with reader `read_form` function to add the
+  following four cases" is again weird, better refer to the
+  `read_form` function in reader.qx
+- "concat should support concatenation of lists, vectors, or a mix or
+  both." <- "or a mix or both" is redundant
