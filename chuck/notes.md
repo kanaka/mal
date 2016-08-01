@@ -96,3 +96,18 @@
   `read_form` function in reader.qx
 - "concat should support concatenation of lists, vectors, or a mix or
   both." <- "or a mix or both" is redundant
+
+# Step 8
+
+- "In the previous step, quoting enabled some simple manipulation [of]
+  data structures"
+- The macroexpand function step refers to call/apply, it's unclear how
+  to proceed if you don't have such a thing
+- How should the exception for invalid `nth` access look like?  Also,
+  why is it an exception and not an error like with the reader?
+- How can `first` take a list (or vector), but work on `nil`?
+- The description of `rest` is inconsistent with the tests
+- "In the main program, use the rep function to define two new control
+  structures macros."
+- Why does the definition of `cond` use `throw` although it's only
+  introduced in the next chapter?

@@ -10,7 +10,8 @@ public class Core
  "pr-str", "str", "prn", "println",
  "read-string", "slurp",
  "atom", "atom?", "deref", "reset!", "swap!",
- "cons", "concat"] @=> Core.names;
+ "cons", "concat",
+  "nth", "first", "rest"] @=> Core.names;
 MalSubr ns[0] @=> Core.ns;
 
 new MalAdd @=> Core.ns["+"];
@@ -45,3 +46,7 @@ new MalDoSwap @=> Core.ns["swap!"];
 
 new MalCons @=> Core.ns["cons"];
 new MalConcat @=> Core.ns["concat"];
+
+new MalNth @=> Core.ns["nth"];
+new MalFirst @=> Core.ns["first"];
+new MalRest @=> Core.ns["rest"];

@@ -4,18 +4,19 @@ public class Func extends MalObject
     Env env;
     string args[];
     MalObject ast;
+    int isMacro;
 
-    fun void init(Env _env, string _args[], MalObject _ast)
+    fun void init(Env env, string args[], MalObject ast)
     {
-        _env @=> env;
-        _args @=> args;
-        _ast @=> ast;
+        env @=> this.env;
+        args @=> this.args;
+        ast @=> this.ast;
     }
 
-    fun static Func create(Env _env, string _args[], MalObject _ast)
+    fun static Func create(Env env, string args[], MalObject ast)
     {
         Func func;
-        func.init(_env, _args, _ast);
+        func.init(env, args, ast);
         return func;
     }
 }
