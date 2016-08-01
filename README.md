@@ -731,8 +731,7 @@ make
 ### Swift 3
 
 The Swift 3 implementation of mal requires the Swift 3.0 compiler. It
-has been tested with the development version of the Swift 3 from
-2016-02-08.
+has been tested with Swift 3 Preview 3.
 
 ```
 cd swift3

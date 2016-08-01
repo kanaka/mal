@@ -22,7 +22,7 @@ func quasiquote(_ ast: MalVal) -> MalVal {
     switch a0 {
     case MalVal.MalSymbol("unquote"):
         return try! _nth(ast, 1)
-    default: true // fallthrough
+    default: break
     }
     if is_pair(a0) {
         let a00 = try! _nth(a0, 0)
@@ -31,7 +31,7 @@ func quasiquote(_ ast: MalVal) -> MalVal {
             return list([MalVal.MalSymbol("concat"),
                         try! _nth(a0, 1),
                         quasiquote(try! rest(ast))])
-        default: true // fallthrough
+        default: break
         }
     }
 
@@ -101,7 +101,7 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
 
     ast = try macroexpand(ast, env)
     switch ast {
-    case MalVal.MalList: true
+    case MalVal.MalList: break
     default: return try eval_ast(ast, env)
     }
 
@@ -167,16 +167,16 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
                             }
                             return try EVAL(a22, Env(env, binds: list([a21]),
                                                           exprs: list([err])))
-                        default: true // fall through
+                        default: break
                         }
-                    default: true // fall through
+                    default: break
                     }
                 }
                 throw exc
             }
         case MalVal.MalSymbol("do"):
             let slc = lst[1..<lst.index(before: lst.endIndex)]
-            try eval_ast(list(Array(slc)), env)
+            try _ = eval_ast(list(Array(slc)), env)
             ast = lst[lst.index(before: lst.endIndex)] // TCO
         case MalVal.MalSymbol("if"):
             switch try EVAL(lst[1], env) {
@@ -225,6 +225,7 @@ func PRINT(_ exp: MalVal) -> String {
 
 
 // repl
+@discardableResult
 func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }

@@ -76,6 +76,7 @@ class Env {
         }
     }
 
+    @discardableResult
     func set(_ key: MalVal, _ val: MalVal) throws -> MalVal {
         switch key {
         case MalVal.MalSymbol(let str):

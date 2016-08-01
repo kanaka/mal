@@ -55,7 +55,7 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
             ast = lst[2] // TCO
         case MalVal.MalSymbol("do"):
             let slc = lst[1..<lst.index(before: lst.endIndex)]
-            try eval_ast(list(Array(slc)), env)
+            try _ = eval_ast(list(Array(slc)), env)
             ast = lst[lst.index(before: lst.endIndex)] // TCO
         case MalVal.MalSymbol("if"):
             switch try EVAL(lst[1], env) {
@@ -104,6 +104,7 @@ func PRINT(_ exp: MalVal) -> String {
 
 
 // repl
+@discardableResult
 func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }

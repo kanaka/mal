@@ -99,6 +99,7 @@ func PRINT(_ exp: MalVal) -> String {
 
 
 // repl
+@discardableResult
 func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }
