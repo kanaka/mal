@@ -1,6 +1,17 @@
 // @import types/boxed/*.ck
 // @import types/MalObject.ck
-// @import types/mal/*.ck
+// @import types/mal/MalAtom.ck
+// @import types/mal/MalError.ck
+// @import types/mal/MalNil.ck
+// @import types/mal/MalFalse.ck
+// @import types/mal/MalTrue.ck
+// @import types/mal/MalInt.ck
+// @import types/mal/MalString.ck
+// @import types/mal/MalSymbol.ck
+// @import types/mal/MalKeyword.ck
+// @import types/mal/MalList.ck
+// @import types/mal/MalVector.ck
+// @import types/mal/MalHashMap.ck
 // @import util/*.ck
 // @import reader.ck
 // @import printer.ck
@@ -72,7 +83,7 @@ fun MalObject EVAL(MalObject m, Env env)
             }
             else if( a0 == "do" )
             {
-                MalObject.slice(ast, 1, ast.size()) @=> MalObject forms[];
+                MalObject.slice(ast, 1, ast.size()-1) @=> MalObject forms[];
                 eval_ast(MalList.create(forms), env) @=> MalObject value;
 
                 if( value.type == "error" )
@@ -227,19 +238,33 @@ for( 0 => int i; i < Core.names.size(); i++ )
     repl_env.set(name, Core.ns[name]);
 }
 
+fun string errorMessage(MalObject m)
+{
+    (m$MalError).value() @=> MalObject value;
+
+    if( value.type == "string" )
+    {
+        return Printer.pr_str(value, false);
+    }
+    else
+    {
+        return "exception: " + Printer.pr_str(value, true);
+    }
+}
+
 fun string rep(string input)
 {
     READ(input) @=> MalObject m;
 
     if( m.type == "error" )
     {
-        return Status.toMessage(m$MalError);
+        return errorMessage(m);
     }
 
     EVAL(m, repl_env) @=> MalObject result;
     if( result.type == "error" )
     {
-        return Status.toMessage(result$MalError);
+        return errorMessage(result);
     }
 
     return PRINT(result);

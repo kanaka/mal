@@ -76,7 +76,7 @@ public class Env extends MalObject
         }
         else
         {
-            return MalError.create(Status.SYMBOL_NOT_FOUND, key);
+            return MalError.create(MalString.create("'" + key + "' not found"));
         }
     }
 }

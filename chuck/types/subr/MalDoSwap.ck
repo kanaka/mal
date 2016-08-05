@@ -1,15 +1,15 @@
 public class MalDoSwap extends MalSubr
 {
-    // HACK: necessary for apply step
-    "swap!" => name;
-
     fun MalObject call(MalObject args[])
     {
         args[0]$MalAtom @=> MalAtom atom;
-        args[1]$MalObject @=> MalObject value;
+        atom.value() @=> MalObject value;
+        args[1] @=> MalObject f;
+        MalObject.slice(args, 2) @=> MalObject _args[];
+        MalObject.append([value], _args) @=> _args;
 
+        (eval$MalSubr).apply(f, _args) @=> value;
         value @=> atom.object;
-
         return value;
     }
 }

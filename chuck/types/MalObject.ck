@@ -44,12 +44,11 @@ public class MalObject
 
     fun static MalObject[] slice(MalObject objects[], int from, int to)
     {
-        Math.max(to - from, 0)$int => int size;
-        MalObject values[size];
+        MalObject values[0];
 
-        for( from => int i; i < size; i++ )
+        for( from => int i; i < to; i++ )
         {
-            objects[i] @=> values[i - from];
+            values << objects[i];
         }
 
         return values;

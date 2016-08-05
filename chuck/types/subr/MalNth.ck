@@ -11,7 +11,7 @@ public class MalNth extends MalSubr
         }
         else
         {
-            return MalError.create(Status.OUT_OF_BOUNDS);
+            return MalError.create(MalString.create("out of bounds"));
         }
     }
 }

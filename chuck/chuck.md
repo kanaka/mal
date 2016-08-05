@@ -47,6 +47,7 @@
     a reference and look at the return code instead)
   - no boxed versions of primitive types
   - no automatic boxing/unboxing
+  - no upcasting/downcasting
 - No module system
   - `Machine.add(file)` is the only mechanism available from code (no
     read all file contents and eval), but if you use it, it defers
@@ -105,3 +106,12 @@
     argument, if you pass more than one, it prints the concatenation
     of their representations instead, so it's a bit hard to make out
     what is a debug print and what isn't
+  - there are no hash maps, just the possibility to use a string key
+    on an array for storing and fetching contents (like in PHP, eww)
+    and no way of retrieving keys/values or even iterating over these
+  - I think I've spotted a weird scoping bug that prefers a member
+    variable over a local variable after nesting scopes, therefore I
+    consider the language to not implement proper lexical scoping
+  - another proof of it is declaring variables in consequent if-blocks
+    as that gives you an error instead of being permitted as they
+    should be in different local scopes...

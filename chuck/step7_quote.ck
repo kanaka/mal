@@ -1,6 +1,17 @@
 // @import types/boxed/*.ck
 // @import types/MalObject.ck
-// @import types/mal/*.ck
+// @import types/mal/MalAtom.ck
+// @import types/mal/MalError.ck
+// @import types/mal/MalNil.ck
+// @import types/mal/MalFalse.ck
+// @import types/mal/MalTrue.ck
+// @import types/mal/MalInt.ck
+// @import types/mal/MalString.ck
+// @import types/mal/MalSymbol.ck
+// @import types/mal/MalKeyword.ck
+// @import types/mal/MalList.ck
+// @import types/mal/MalVector.ck
+// @import types/mal/MalHashMap.ck
 // @import util/*.ck
 // @import reader.ck
 // @import printer.ck
@@ -127,7 +138,7 @@ fun MalObject EVAL(MalObject m, Env env)
             }
             else if( a0 == "do" )
             {
-                MalObject.slice(ast, 1, ast.size()) @=> MalObject forms[];
+                MalObject.slice(ast, 1, ast.size()-1) @=> MalObject forms[];
                 eval_ast(MalList.create(forms), env) @=> MalObject value;
 
                 if( value.type == "error" )
@@ -195,27 +206,7 @@ fun MalObject EVAL(MalObject m, Env env)
         if( type == "subr" )
         {
             values[0]$MalSubr @=> MalSubr subr;
-            subr.name => string name;
-
-            if( name == "eval" )
-            {
-                return EVAL(args[0], subr.env);
-            }
-            else if( name == "swap!")
-            {
-                args[0]$MalAtom @=> MalAtom atom;
-                atom.value() @=> MalObject value;
-                args[1] @=> MalObject f;
-                MalObject.slice(args, 2) @=> MalObject _args[];
-                MalObject.append([f, value], _args) @=> _args;
-                EVAL(MalList.create(_args), env) @=> MalObject _value;
-                // NOTE: the DoSwap subr only puts a value into an atom
-                return subr.call([atom, _value]);
-            }
-            else
-            {
-                return subr.call(args);
-            }
+            return subr.call(args);
         }
         else // type == "func"
         {
@@ -302,7 +293,33 @@ for( 0 => int i; i < Core.names.size(); i++ )
     repl_env.set(name, Core.ns[name]);
 }
 
-repl_env.set("eval", MalSubr.create("eval", repl_env));
+// HACK, HACK, HACK
+class MalEval extends MalSubr
+{
+    fun MalObject call(MalObject args[])
+    {
+        args[0] @=> MalObject m;
+        return EVAL(args[0], repl_env);
+    }
+
+    fun MalObject apply(MalObject f, MalObject args[])
+    {
+        if( f.type == "subr" )
+        {
+            return (f$MalSubr).call(args);
+        }
+        else // f.type == "func"
+        {
+            f$Func @=> Func func;
+            Env.create(func.env, func.args, args) @=> Env eval_env;
+            return EVAL(func.ast, eval_env);
+        }
+    }
+}
+
+new MalEval @=> MalEval eval;
+repl_env.set("eval", new MalEval);
+eval @=> (repl_env.get("swap!")$MalSubr).eval;
 
 fun MalObject[] MalArgv(string args[])
 {
@@ -320,19 +337,33 @@ fun MalObject[] MalArgv(string args[])
 String.split(Std.getenv("CHUCK_ARGS"), "\a") @=> string args[];
 repl_env.set("*ARGV*", MalList.create(MalArgv(args)));
 
+fun string errorMessage(MalObject m)
+{
+    (m$MalError).value() @=> MalObject value;
+
+    if( value.type == "string" )
+    {
+        return Printer.pr_str(value, false);
+    }
+    else
+    {
+        return "exception: " + Printer.pr_str(value, true);
+    }
+}
+
 fun string rep(string input)
 {
     READ(input) @=> MalObject m;
 
     if( m.type == "error" )
     {
-        return Status.toMessage(m$MalError);
+        return errorMessage(m);
     }
 
     EVAL(m, repl_env) @=> MalObject result;
     if( result.type == "error" )
     {
-        return Status.toMessage(result$MalError);
+        return errorMessage(result);
     }
 
     return PRINT(result);

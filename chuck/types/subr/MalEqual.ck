@@ -28,6 +28,41 @@ public class MalEqual extends MalSubr
             return Constants.TRUE;
         }
 
+        if( a.type == "hashmap" && b.type == "hashmap" )
+        {
+            (a$MalHashMap).value() @=> MalObject akvs[];
+            (b$MalHashMap).value() @=> MalObject bkvs[];
+
+            if( akvs.size() != bkvs.size() )
+            {
+                return Constants.FALSE;
+            }
+
+            MalObject bmap[0];
+
+            for( 0 => int i; i < bkvs.size(); 2 +=> i )
+            {
+                Util.keyName(bkvs[i]) => string keyName;
+                bkvs[i+1] @=> bmap[keyName];
+            }
+
+
+            for( 0 => int i; i < akvs.size(); 2 +=> i )
+            {
+                akvs[i] @=> MalObject key;
+                akvs[i+1] @=> MalObject value;
+                Util.keyName(key) => string keyName;
+
+                if( bmap[keyName] == null ||
+                    call([value, bmap[keyName]]).type != "true" )
+                {
+                    return Constants.FALSE;
+                }
+            }
+
+            return Constants.TRUE;
+        }
+
         if( a.type != b.type )
         {
             return Constants.FALSE;

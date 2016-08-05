@@ -110,7 +110,7 @@ fun MalObject macroexpand(MalObject ast, Env env)
         {
             macro$Func @=> Func func;
             Env.create(func.env, func.args, args) @=> Env eval_env;
-            EVAL(func.ast, eval_env) @=> ast;;
+            EVAL(func.ast, eval_env) @=> ast;
         }
     }
 
@@ -206,6 +206,21 @@ fun MalObject EVAL(MalObject m, Env env)
             else if( a0 == "macroexpand" )
             {
                 return macroexpand(ast[1], env);
+            }
+            else if( a0 == "try*" )
+            {
+                EVAL(ast[1], env) @=> MalObject value;
+
+                if( value.type != "error" )
+                {
+                    return value;
+                }
+
+                (ast[2]$MalList).value() @=> MalObject form[];
+                (form[1]$MalSymbol).value() => string name;
+
+                Env.create(env, [name], [(value$MalError).value()]) @=> Env error_env;
+                return EVAL(form[2], error_env);
             }
             else if( a0 == "do" )
             {
@@ -391,6 +406,8 @@ class MalEval extends MalSubr
 new MalEval @=> MalEval eval;
 repl_env.set("eval", new MalEval);
 eval @=> (repl_env.get("swap!")$MalSubr).eval;
+eval @=> (repl_env.get("apply")$MalSubr).eval;
+eval @=> (repl_env.get("map")$MalSubr).eval;
 
 fun MalObject[] MalArgv(string args[])
 {

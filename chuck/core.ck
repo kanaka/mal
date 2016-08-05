@@ -11,7 +11,13 @@ public class Core
  "read-string", "slurp",
  "atom", "atom?", "deref", "reset!", "swap!",
  "cons", "concat",
-  "nth", "first", "rest"] @=> Core.names;
+ "nth", "first", "rest",
+ "throw",
+ "apply", "map",
+ "nil?", "true?", "false?", "symbol?", "keyword?", "vector?", "map?",
+ "symbol", "keyword", "vector", "hash-map",
+ "assoc", "dissoc", "get", "contains?", "keys", "vals",
+ "sequential?"] @=> Core.names;
 MalSubr ns[0] @=> Core.ns;
 
 new MalAdd @=> Core.ns["+"];
@@ -50,3 +56,30 @@ new MalConcat @=> Core.ns["concat"];
 new MalNth @=> Core.ns["nth"];
 new MalFirst @=> Core.ns["first"];
 new MalRest @=> Core.ns["rest"];
+
+new MalThrow @=> Core.ns["throw"];
+
+new MalApply @=> Core.ns["apply"];
+new MalMap @=> Core.ns["map"];
+
+new MalIsNil @=> Core.ns["nil?"];
+new MalIsTrue @=> Core.ns["true?"];
+new MalIsFalse @=> Core.ns["false?"];
+new MalIsSymbol @=> Core.ns["symbol?"];
+new MalIsKeyword @=> Core.ns["keyword?"];
+new MalIsVector @=> Core.ns["vector?"];
+new MalIsHashMap @=> Core.ns["map?"];
+
+new MalSymbolify @=> Core.ns["symbol"];
+new MalKeywordify @=> Core.ns["keyword"];
+new MalVectorify @=> Core.ns["vector"];
+new MalHashMapify @=> Core.ns["hash-map"];
+
+new MalAssoc @=> Core.ns["assoc"];
+new MalDissoc @=> Core.ns["dissoc"];
+new MalGet @=> Core.ns["get"];
+new MalIsContains @=> Core.ns["contains?"];
+new MalKeys @=> Core.ns["keys"];
+new MalVals @=> Core.ns["vals"];
+
+new MalSequential @=> Core.ns["sequential?"];

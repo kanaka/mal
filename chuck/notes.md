@@ -111,3 +111,29 @@
   structures macros."
 - Why does the definition of `cond` use `throw` although it's only
   introduced in the next chapter?
+
+# Step 9
+
+- It's not really clear that you really just have a `try*` special
+  form, with `catch*` merely existing inside it...
+- Another thing to clarify is that the exception value is a string
+  containing the message you'd see (unless you're using `throw`)
+- Generally, it would be better to explain the general exception
+  handling mechanism (with some examples), then showing how one
+  implements it for both languages with and without exceptions
+- Another way than using a global variable is introducing an error
+  type next to the other MAL types and checking whether something a
+  function returned is one, although the hint about returning one at
+  each use of `EVAL` still stands...
+- Shouldn't either trick be mentioned at the beginning, simply because
+  you'll need it in a language without exceptions to do error handling?
+- Why this bizarre treatment for `keyword`?  Why is there no test for
+  it?
+- Is there a test for whether hash maps deduplicate identical keys
+  when using `hash-map` or `assoc`?
+- What exactly are keys the specification for `dissoc`, `get` and
+  `contains?` are speaking of?  Can I assume these are either strings
+  or keywords?
+- Why is it not documented that `get` may take `nil` instead of a map?
+- Perhaps it's worth adding more tests involving symbols to ensure
+  that functions using apply internally don't evaluate their args?
