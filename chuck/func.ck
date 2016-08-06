@@ -19,4 +19,17 @@ public class Func extends MalObject
         func.init(env, args, ast);
         return func;
     }
+
+    fun MalObject clone()
+    {
+        Func value;
+
+        this.type => value.type;
+        this.env @=> value.env;
+        this.args @=> value.args;
+        this.ast @=> value.ast;
+        this.isMacro @=> value.isMacro;
+
+        return value;
+    }
 }

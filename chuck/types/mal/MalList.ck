@@ -1,7 +1,6 @@
 public class MalList extends MalObject
 {
     "list" => type;
-    MalObject meta;
 
     fun MalObject[] value()
     {
@@ -18,5 +17,17 @@ public class MalList extends MalObject
         MalList m;
         m.init(values);
         return m;
+    }
+
+    fun MalObject clone()
+    {
+        MalList value;
+
+        this.type => value.type;
+        this.object @=> value.object;
+        this.objects @=> value.objects;
+        this.meta @=> value.meta;
+
+        return value;
     }
 }

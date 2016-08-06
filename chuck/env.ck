@@ -43,6 +43,16 @@ public class Env extends MalObject
         return e;
     }
 
+    fun MalObject clone()
+    {
+        Env value;
+
+        this.outer @=> value.outer;
+        this.data @=> value.data;
+
+        return value;
+    }
+
     fun void set(string key, MalObject value)
     {
         value @=> data[key];

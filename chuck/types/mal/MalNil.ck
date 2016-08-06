@@ -1,7 +1,6 @@
 public class MalNil extends MalObject
 {
     "nil" => type;
-    MalObject meta;
 
     fun void init()
     {
@@ -13,5 +12,17 @@ public class MalNil extends MalObject
         MalNil m;
         m.init();
         return m;
+    }
+
+    fun MalObject clone()
+    {
+        MalNil value;
+
+        this.type => value.type;
+        this.object @=> value.object;
+        this.objects @=> value.objects;
+        this.meta @=> value.meta;
+
+        return value;
     }
 }

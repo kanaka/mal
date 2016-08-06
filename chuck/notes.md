@@ -137,3 +137,19 @@
 - Why is it not documented that `get` may take `nil` instead of a map?
 - Perhaps it's worth adding more tests involving symbols to ensure
   that functions using apply internally don't evaluate their args?
+
+# Step A
+
+- "Add meta-data support to mal functions." <- Shouldn't you mention
+  that this involves implementing `with-meta` and `meta`?
+- "TODO. Should be separate from the function macro flag." <- Why is
+  this even related?
+- It would be worth to mention that `with-meta` shall clone its
+  argument to avoid one of the more sneaky test failure reasons
+- "The value of this entry should be a mal string containing thename
+  of the current implementation."
+- "When the REPL starts up (as opposed to when it is called with a
+  script and/or arguments), call the rep function with this string to
+  print a startup header: `"(println (str \"Mal
+  [\" *host-language* \"]\"))".`" <- proof that you better quote these
+  because the asterisks just disappear...

@@ -1,7 +1,6 @@
 public class MalAtom extends MalObject
 {
     "atom" => type;
-    MalObject meta;
 
     fun MalObject value()
     {
@@ -18,5 +17,17 @@ public class MalAtom extends MalObject
         MalAtom m;
         m.init(value);
         return m;
+    }
+
+    fun MalObject clone()
+    {
+        MalAtom value;
+
+        this.type => value.type;
+        this.object @=> value.object;
+        this.objects @=> value.objects;
+        this.meta @=> value.meta;
+
+        return value;
     }
 }

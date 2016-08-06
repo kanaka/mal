@@ -3,9 +3,24 @@ public class MalObject
     string type;
     Object object;
     Object objects[];
-    // no meta here because types can't be self-referential
+    // HACK: data types can't be self-referential
+    // NOTE: an object member does *not* default to null...
+    null => Object meta;
+
+    fun MalObject clone()
+    {
+        MalObject value;
+
+        this.type => value.type;
+        this.object @=> value.object;
+        this.objects @=> value.objects;
+        this.meta @=> value.meta;
+
+        return value;
+    }
 
     // helpers for sequence types
+
     fun static MalObject[] toMalObjectArray(Object objects[])
     {
         MalObject values[objects.size()];
@@ -66,6 +81,18 @@ public class MalObject
         for( 0 => int i; i < bs.size(); i++ )
         {
             bs[i] @=> output[as.size()+i];
+        }
+
+        return output;
+    }
+
+    fun static MalObject[] reverse(MalObject objects[])
+    {
+        MalObject output[objects.size()];
+
+        for( 0 => int i; i < output.size(); i++ )
+        {
+            objects[i] @=> output[output.size()-i-1];
         }
 
         return output;
