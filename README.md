@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 51 languages:
+Mal is implemented in 56 languages:
 
 * Ada
 * GNU awk
@@ -35,6 +35,7 @@ Mal is implemented in 51 languages:
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
 * Kotlin
+* Logo
 * Lua
 * GNU Make
 * mal itself
@@ -45,7 +46,10 @@ Mal is implemented in 51 languages:
 * Objective C
 * OCaml
 * Perl
+* Perl 6
 * PHP
+* PL/pgSQL (Postgres)
+* PL/SQL (Oracle)
 * Postscript
 * Python
 * RPython
@@ -57,6 +61,7 @@ Mal is implemented in 51 languages:
 * Swift
 * Swift 3
 * Tcl
+* VHDL
 * Vimscript
 * Visual Basic.NET
 
@@ -84,8 +89,12 @@ The mal (make a lisp) steps are:
 
 Mal was presented publicly for the first time in a lightning talk at
 Clojure West 2014 (unfortunately there is no video). See
-mal/clojurewest2014.mal for the presentation that was given at the
-conference (yes the presentation is a mal program).
+examples/clojurewest2014.mal for the presentation that was given at the
+conference (yes the presentation is a mal program). At Midwest.io
+2015, Joel Martin gave a presentation on Mal titled "Achievement
+Unlocked: A Better Path to Language Learning".
+[Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
+[Slides](http://kanaka.github.io/midwest.io.mal/).
 
 If you are interesting in creating a mal implementation (or just
 interested in using mal for something), please drop by the #mal
@@ -144,7 +153,8 @@ bash stepX_YYY.sh
 ### C
 
 The C implementation of mal requires the following libraries (lib and
-header packages): glib, libffi6 and either the libedit or GNU readline library.
+header packages): glib, libffi6, libgc, and either the libedit or GNU readline
+library.
 
 ```
 cd c
@@ -204,7 +214,7 @@ coffee ./stepX_YYY
 
 *The Crystal implementation of mal was created by [Linda_pp](https://github.com/rhysd)*
 
-The Crystal implementation of mal has been tested with Crystal 0.10.0.
+The Crystal implementation of mal has been tested with Crystal 0.18.4.
 
 ```
 cd crystal
@@ -304,7 +314,7 @@ mono ./stepX_YYY.exe
 *The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
 
 The Factor implementation of mal has been tested with Factor 0.97
-([factorcode.org](factorcode.org)).
+([factorcode.org](http://factorcode.org)).
 
 ```
 cd factor
@@ -439,6 +449,17 @@ make
 java -jar stepX_YYY.jar
 ```
 
+### Logo
+
+*The Logo implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Logo implementation of mal has been tested with UCBLogo 6.0.
+
+```
+cd logo
+logo stepX_YYY.lg
+```
+
 ### Lua
 
 Running the Lua implementation of mal requires lua 5.1 or later,
@@ -556,6 +577,16 @@ cd perl
 perl stepX_YYY.pl
 ```
 
+### Perl 6
+
+*The Perl 6 implementation was created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
+
+The Perl 6 implementation was tested on Rakudo Perl 6 2016.04.
+
+```
+cd perl6
+perl6 stepX_YYY.pl
+```
 
 ### PHP 5.3
 
@@ -575,6 +606,45 @@ has been tested with ghostscript 9.10.
 ```
 cd ps
 gs -q -dNODISPLAY -I./ stepX_YYY.ps
+```
+
+### PL/pgSQL (Postgres SQL Procedural Language)
+
+The PL/pgSQL implementation of mal requires a running Postgres server
+(the "kanaka/mal-test-plpgsql" docker image automatically starts
+a Postgres server). The implementation connects to the Postgres server
+and create a database named "mal" to store tables and stored
+procedures. The wrapper script uses the psql command to connect to the
+server and defaults to the user "postgres" but this can be overridden
+with the PSQL_USER environment variable. A password can be specified
+using the PGPASSWORD environment variable. The implementation has been
+tested with Postgres 9.4.
+
+```
+cd plpgsql
+./wrap.sh stepX_YYY.sql
+    # OR
+PSQL_USER=myuser PGPASSWORD=mypass ./wrap.sh stepX_YYY.sql
+```
+
+### PL/SQL (Oracle SQL Procedural Language)
+
+The PL/pgSQL implementation of mal requires a running Oracle DB
+server (the "kanaka/mal-test-plsql" docker image automatically
+starts an Oracle Express server). The implementation connects to the
+Oracle server to create types, tables and stored procedures. The
+default SQL*Plus logon value (username/password@connect_identifier) is
+"system/oracle" but this can be overridden with the ORACLE_LOGON
+environment variable. The implementation has been tested with Oracle
+Express Edition 11g Release 2. Note that any SQL*Plus connection
+warnings (user password expiration, etc) will interfere with the
+ability of the wrapper script to communicate with the DB.
+
+```
+cd plsql
+./wrap.sh stepX_YYY.sql
+    # OR
+ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
 ```
 
 ### Python (2.X or 3.X)
@@ -661,8 +731,7 @@ make
 ### Swift 3
 
 The Swift 3 implementation of mal requires the Swift 3.0 compiler. It
-has been tested with the development version of the Swift 3 from
-2016-02-08.
+has been tested with Swift 3 Preview 3.
 
 ```
 cd swift3
@@ -680,6 +749,18 @@ editing support, install tclreadline.
 ```
 cd tcl
 tclsh ./stepX_YYY.tcl
+```
+
+### VHDL
+
+*The VHDL implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The VHDL implementation of mal has been tested with GHDL 0.29.
+
+```
+cd vhdl
+make
+./run_vhdl.sh ./stepX_YYY
 ```
 
 ### Vimscript

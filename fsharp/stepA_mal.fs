@@ -135,6 +135,7 @@ module REPL
     and eval env = function
         | List(_, _) as node ->
             match macroExpand env node with
+            | List(_, []) as emptyList -> emptyList
             | List(_, Symbol("def!")::rest) -> defBangForm env rest
             | List(_, Symbol("defmacro!")::rest) -> defMacroForm env rest
             | List(_, Symbol("macroexpand")::rest) -> macroExpandForm env rest
@@ -240,7 +241,7 @@ module REPL
         match args with
         | file::_ ->
             System.IO.File.ReadAllText file
-            |> REP env
+            |> RE env |> Seq.iter ignore
             0
         | _ ->
             RE env "(println (str \"Mal [\" *host-language* \"]\"))" |> Seq.iter ignore

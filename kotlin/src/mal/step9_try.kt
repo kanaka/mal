@@ -12,6 +12,7 @@ fun eval(_ast: MalType, _env: Env): MalType {
         ast = macroexpand(ast, env)
 
         if (ast is MalList) {
+            if (ast.count() == 0) return ast
             when ((ast.first() as? MalSymbol)?.value) {
                 "def!" -> return env.set(ast.nth(1) as MalSymbol, eval(ast.nth(2), env))
                 "let*" -> {
@@ -115,7 +116,9 @@ private fun quasiquote(ast: MalType): MalType {
 }
 
 private fun is_macro_call(ast: MalType, env: Env): Boolean {
-    val symbol = (ast as? MalList)?.first() as? MalSymbol ?: return false
+    val ast_list = ast as? MalList ?: return false
+    if (ast_list.count() == 0) return false
+    val symbol = ast_list.first() as? MalSymbol ?: return false
     val function = env.find(symbol) as? MalFunction ?: return false
 
     return function.is_macro

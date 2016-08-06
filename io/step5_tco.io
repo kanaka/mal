@@ -22,6 +22,7 @@ eval_ast := method(ast, env,
 EVAL := method(ast, env,
     loop(
         if(ast type != "MalList", return(eval_ast(ast, env)))
+        if(ast isEmpty, return ast)
         if(ast at(0) type == "MalSymbol",
             ast at(0) val switch(
                 "def!",

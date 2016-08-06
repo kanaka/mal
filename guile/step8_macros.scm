@@ -54,6 +54,7 @@
 
 (define (is_macro_call ast env)
   (and (list? ast)
+       (> (length ast) 0)
        (and=> (env-check (car ast) env) is-macro?)))
 
 (define (_macroexpand ast env)
@@ -91,6 +92,7 @@
     (let ((ast (_macroexpand ast env)))
       (match ast
         ((? non-list?) (eval_ast ast env))
+        (() ast)
         (('defmacro! k v)
          (let ((c (EVAL v env)))
            (callable-is_macro-set! c #t)

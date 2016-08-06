@@ -1,3 +1,5 @@
+Regex
+
 READ := method(str, str)
 
 EVAL := method(ast, env, ast)

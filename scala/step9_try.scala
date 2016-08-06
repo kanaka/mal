@@ -39,7 +39,8 @@ object step9_try {
   def is_macro_call(ast: Any, env: Env): Boolean = {
     ast match {
       case ml: MalList => {
-        if (types._symbol_Q(ml(0)) &&
+        if (ml.value.length > 0 &&
+            types._symbol_Q(ml(0)) &&
             env.find(ml(0).asInstanceOf[Symbol]) != null) {
           env.get(ml(0).asInstanceOf[Symbol]) match {
             case f: MalFunction => return f.ismacro
@@ -92,6 +93,9 @@ object step9_try {
       return eval_ast(ast, env)
 
     ast.asInstanceOf[MalList].value match {
+      case Nil => {
+        return ast
+      }
       case Symbol("def!") :: a1 :: a2 :: Nil => {
         return env.set(a1.asInstanceOf[Symbol], EVAL(a2, env))
       }

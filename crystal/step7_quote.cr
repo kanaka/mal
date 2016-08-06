@@ -155,7 +155,7 @@ module Mal
           next # TCO
         when "fn*"
           params = list[1].unwrap
-          unless params.is_a?(Mal::List) || params.is_a?(Mal::Vector)
+          unless params.is_a? Array
             eval_error "'fn*' parameters must be list"
           end
           Mal::Closure.new(list[2], params, env, func_of(env, params, list[2]))

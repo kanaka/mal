@@ -32,6 +32,7 @@ matrix:
     - {env: IMPL=js,        services: [docker]}
     - {env: IMPL=julia,     services: [docker]}
     - {env: IMPL=kotlin,    services: [docker]}
+    - {env: IMPL=logo,      services: [docker]}
     - {env: IMPL=lua,       services: [docker]}
     - {env: IMPL=make,      services: [docker]}
     - {env: IMPL=mal BUILD_IMPL=js NO_PERF=1, services: [docker]}
@@ -43,7 +44,10 @@ matrix:
     - {env: IMPL=objc,      services: [docker]}
     - {env: IMPL=ocaml,     services: [docker]}
     - {env: IMPL=perl,      services: [docker]}
+    - {env: IMPL=perl6,     services: [docker]}
     - {env: IMPL=php,       services: [docker]}
+    - {env: IMPL=plpgsql,   services: [docker]}
+#    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}
     - {env: IMPL=python,    services: [docker]}
     - {env: IMPL=r,         services: [docker]}
@@ -54,8 +58,10 @@ matrix:
     - {env: IMPL=scala,     services: [docker]}
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7}
     - {env: IMPL=swift3,    services: [docker]}
+    - {env: IMPL=swift3 NO_DOCKER=1, os: osx, osx_image: xcode8}
     - {env: IMPL=tcl,       services: [docker]}
     - {env: IMPL=vb,        services: [docker]}
+    - {env: IMPL=vhdl,      services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}
 
 script:

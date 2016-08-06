@@ -87,7 +87,9 @@ define EVAL
 $(strip $(if $(__ERROR),,\
   $(and $(EVAL_DEBUG),$(info EVAL: $(call _pr_str,$(1))))\
   $(if $(call _list?,$(1)),\
-    $(word 1,$(strip $(call EVAL_INVOKE,$(1),$(2)) $(__nil))),\
+    $(if $(call _EQ,0,$(call _count,$(1))),\
+      $(1),\
+      $(word 1,$(strip $(call EVAL_INVOKE,$(1),$(2)) $(__nil)))),\
     $(call EVAL_AST,$(1),$(2)))))
 endef
 

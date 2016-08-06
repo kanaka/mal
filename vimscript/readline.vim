@@ -4,8 +4,8 @@ function PrintLn(str)
 endfunction
 
 function s:buildlibvimreadline()
-  if !filereadable("libvimreadline.so")
-    call system("make libvimreadline.so")
+  if !filereadable("libvimextras.so")
+    call system("make libvimextras.so")
   endif
 endfunction
 
@@ -14,7 +14,7 @@ function Readline(prompt)
   " Use the vimreadline() function defined in vimreadline.c and compiled
   " into libvimreadline.so
   call s:buildlibvimreadline()
-  let res = libcall("libvimreadline.so", "vimreadline", a:prompt)
+  let res = libcall("libvimextras.so", "vimreadline", a:prompt)
   if res[0] == "E"
     return [1, ""]
   else

@@ -55,6 +55,7 @@ EVAL := method(ast, env,
 
         ast = macroexpand(ast, env)
         if(ast type != "MalList", return(eval_ast(ast, env)))
+        if(ast isEmpty, return ast)
 
         if(ast at(0) type == "MalSymbol",
             ast at(0) val switch(

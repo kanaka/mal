@@ -105,8 +105,22 @@ mkdir quux
 IMPLS = ... quux ...
 ...
 quux_STEP_TO_PROG = mylang/$($(1)).qx
-...
-quux_RUNSTEP =  ../$(2) $(3)
+```
+
+* Add a "run" script to you implementation directory that listens to
+  the "STEP" environment variable for the implementation step to run
+  and defaults to "stepA_mal".  The following are examples of "run"
+  scripts for a compiled language and an interpreted language (where
+  the interpreter is named "quux"):
+
+```
+#!/bin/bash
+exec $(dirname $0)/${STEP:-stepA_mal} "${@}"
+```
+
+```
+#!/bin/bash
+exec quux $(dirname $0)/${STEP:-stepA_mal}.qx "${@}"
 ```
 
 This allows you to run tests against your implementation like this:
@@ -114,13 +128,11 @@ This allows you to run tests against your implementation like this:
 make "test^quux^stepX"
 ```
 
-TODO: If your implementation language is a compiled language, then you
+If your implementation language is a compiled language, then you
 should also add a Makefile at the top level of your implementation
-directory.
-
-Your Makefile will define how to build the files pointed to by the
-quux_STEP_TO_PROG macro. The top-level Makefile will attempt to build
-those targets before running tests. If it is a scripting
+directory. This Makefile will define how to build the files pointed to
+by the quux_STEP_TO_PROG macro. The top-level Makefile will attempt to
+build those targets before running tests. If it is a scripting
 language/uncompiled, then no Makefile is necessary because
 quux_STEP_TO_PROG will point to a source file that already exists and
 does not need to be compiled/built.
@@ -167,10 +179,13 @@ fix it, repeat until all the tests for that step pass.
 ## Reference Code
 
 The `process` directory contains abbreviated pseudocode and
-architecture images for each step of the make-a-lisp process. Use
+architecture diagrams for each step of the make-a-lisp process. Use
 a textual diff/comparison tool to compare the previous pseudocode step
-with the one you are working on. The architecture images have changes
-from the previous step highlighted in red.
+with the one you are working on. The architecture diagram images have
+changes from the previous step highlighted in red. There is also
+a concise
+[cheatsheet](http://kanaka.github.io/mal/process/cheatsheet.html) that
+summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
 should "cheat" by referring to the same step or functionality in
@@ -351,7 +366,7 @@ expression support.
 * Add the function `read_atom` to `reader.qx`. This function will
   look at the contents of the token and return the appropriate scalar
   (simple/single) data type value. Initially, you can just implement
-  numbers (integers) and symbols . This will allow you to proceed
+  numbers (integers) and symbols. This will allow you to proceed
   through the next couple of steps before you will need to implement
   the other fundamental mal types: nil, true, false, and string. The
   remaining mal types: keyword, vector, hash-map, and atom do not
@@ -407,12 +422,6 @@ and each step will give progressively more bang for the buck.
 #### Deferrable:
 
 
-* Add error checking to your reader functions to make sure parens
-  are properly matched. Catch and print these errors in your main
-  loop. If your language does not have try/catch style bubble up
-  exception handling, then you will need to add explicit error
-  handling to your code to catch and pass on errors without crashing.
-
 * Add support for the other basic data type to your reader and printer
   functions: string, nil, true, and false. These become mandatory at
   step 4. When a string is read, the following transformations are
@@ -426,6 +435,17 @@ and each step will give progressively more bang for the buck.
   their printed representations (the reverse of the reader). The
   `PRINT` function in the main program should call `pr_str` with
   print_readably set to true.
+
+* Add error checking to your reader functions to make sure parens
+  are properly matched. Catch and print these errors in your main
+  loop. If your language does not have try/catch style bubble up
+  exception handling, then you will need to add explicit error
+  handling to your code to catch and pass on errors without crashing.
+
+* Add support for reader macros which are forms that are
+  transformed into other forms during the read phase. Refer to
+  `tests/step1_read_print.mal` for the form that these macros should
+  take (they are just simple transformations of the token stream).
 
 * Add support for the other mal types: keyword, vector, hash-map.
   * keyword: a keyword is a token that begins with a colon. A keyword
@@ -453,11 +473,6 @@ and each step will give progressively more bang for the buck.
     parameters to indicate the starting and ending tokens. The odd
     tokens are then used for keys with the corresponding even tokens
     as the values.
-
-* Add support for reader macros which are forms that are
-  transformed into other forms during the read phase. Refer to
-  `tests/step1_read_print.mal` for the form that these macros should
-  take (they are just simple transformations of the token stream).
 
 * Add comment support to your reader. The tokenizer should ignore
   tokens that start with ";". Your `read_str` function will need to
@@ -514,6 +529,7 @@ repl_env = {'+': lambda a,b: a+b,
 * Modify `EVAL` to check if the first parameter `ast` is a list.
   * `ast` is not a list: then return the result of calling `eval_ast`
     on it.
+  * `ast` is a empty list: return ast unchanged.
   * `ast` is a list: call `eval_ast` to get a new evaluated list. Take
     the first item of the evaluated list and call it as function using
     the rest of the evaluated list as its arguments.
@@ -541,6 +557,16 @@ make "test^quux^step2"
 ```
 
 You now have a simple prefix notation calculator!
+
+#### Deferrable:
+
+* `eval_ast` should evaluate elements of vectors and hash-maps.  Add the
+  following cases in `eval_ast`:
+  * If `ast` is a vector: return a new vector that is the result of calling
+    `EVAL` on each of the members of the vector.
+  * If `ast` is a hash-map: return a new hash-map which consists of key-value
+    pairs where the key is a key from the hash-map and the value is the result
+    of calling `EVAL` on the corresponding value.
 
 
 <a name="step3"></a>
@@ -622,7 +648,7 @@ rest of the list elements (arguments) may be evaluated differently (or
 not at all) unlike the default apply case where all elements of the
 list are evaluated before the first element is invoked. Lists which
 contain a "special" as the first element are known as "special forms".
-The are special because the follow special evaluation rules.
+They are special because they follow special evaluation rules.
 
 Try some simple environment tests:
 
@@ -747,6 +773,9 @@ Try out the basic functionality you have implemented:
   REPL environment (`repl_env`).
 
 * Add the following functions to `core.ns`:
+  * `prn`: call `pr_str` on the first parameter with `print_readably`
+    set to true, prints the result to the screen and then return
+    `nil`. Note that the full version of `prn` is a deferrable below.
   * `list`: take the parameters and return them as a list.
   * `list?`: return true if the first parameter is a list, false
     otherwise.
@@ -1595,6 +1624,16 @@ For extra information read [Peter Seibel's thorough discussion about
     converted into a list, and a string is converted to a list that
     containing the original string split into single character
     strings.
+* For interop with the target language, add this core function:
+  * `quux-eval`: takes a string, evaluates it in the target language,
+    and returns the result converted to the relevant Mal type. You
+    may also add other interop functions as you see fit; Clojure, for
+    example, has a function called `.` which allows calling Java
+    methods. If the target language is a static language, consider
+    using FFI or some language-specific reflection mechanism, if
+    available. The tests for `quux-eval` and any other interop
+    function should be added in `quux/tests/stepA_mal.mal` (see the
+    [tests for `lua-eval`](../lua/tests/stepA_mal.mal) as an example).
 
 
 ## TODO:

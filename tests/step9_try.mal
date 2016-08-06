@@ -8,22 +8,13 @@
 ; "exc is:" "'abc' not found"
 ;=>nil
 
-;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
-;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
-;;;; "exc is:" ["data" "foo"] ;;;;=>7
-;;;;=>7
-
-(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" (1 2 3)
-;=>7
-
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
 ; "exc:" "my exception"
 ;=>7
 
 ;;; Test that throw is a function:
-(try* (map throw (list 7)) (catch* exc exc))
-;=>7
+(try* (map throw (list "my err")) (catch* exc exc))
+;=>"my err"
 
 
 ;;
@@ -76,11 +67,12 @@
 ;=>6
 (map double nums) 
 ;=>(2 4 6)
-(map (fn* (x) (symbol? x)) (list 1 (symbol "two") "three"))
+(map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
 
+;>>> deferrable=True
 ;;
-;; ------- Optional Functionality ----------
+;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
 ;; Testing symbol and keyword functions
@@ -325,4 +317,21 @@
 ;=>true
 (apply (fn* (a & more) (list? more)) [1])
 ;=>true
+
+;>>> soft=True
+;>>> optional=True
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+
+;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
+;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
+;;;; "exc is:" ["data" "foo"] ;;;;=>7
+;;;;=>7
+
+;; Testing throwing non-strings
+(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+; "err:" (1 2 3)
+;=>7
 

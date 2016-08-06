@@ -32,6 +32,7 @@ eval_ast = { ast, env ->
 
 EVAL = { ast, env ->
     if (! types.list_Q(ast)) return eval_ast(ast, env)
+    if (ast.size() == 0) return ast
 
     def el = eval_ast(ast, env)
     def (f, args) = [el[0], el[1..-1]]

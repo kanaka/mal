@@ -50,6 +50,7 @@ EVAL () {
         EVAL_AST "${ast}" "${env}"
         return
     fi
+    _empty? "${ast}" && r="${ast}" && return
 
     # apply list
     _nth "${ast}" 0; local a0="${r}"

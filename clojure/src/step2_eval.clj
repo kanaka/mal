@@ -2,7 +2,8 @@
     (:require [clojure.repl]
               [readline]
               [reader]
-              [printer]))
+              [printer])
+    (:gen-class))
 
 ;; read
 (defn READ [& [strng]]
@@ -32,11 +33,13 @@
       (eval-ast ast env)
 
       ;; apply list
-              ;; indented to match later steps
+            ;; indented to match later steps
+            (if (empty? ast)
+              ast
               (let [el (eval-ast ast env)
                     f (first el)
                     args (rest el)]
-                (apply f args))))
+                (apply f args)))))
 
 ;; print
 (defn PRINT [exp] (pr-str exp))

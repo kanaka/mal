@@ -1,5 +1,6 @@
 (ns step0-repl
-  (:require [readline]))
+  (:require [readline])
+  (:gen-class))
 
 
 ;; read

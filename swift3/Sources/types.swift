@@ -1,5 +1,5 @@
 
-enum MalError: ErrorType {
+enum MalError: ErrorProtocol {
     case Reader(msg: String)
     case General(msg: String)
     case MalException(obj: MalVal)
@@ -38,23 +38,23 @@ typealias MV = MalVal
 
 // General functions
 
-func wraptf(a: Bool) -> MalVal {
+func wraptf(_ a: Bool) -> MalVal {
     return a ? MV.MalTrue : MV.MalFalse
 }
 
 
 // equality functions
-func cmp_seqs(a: Array<MalVal>, _ b: Array<MalVal>) -> Bool {
+func cmp_seqs(_ a: Array<MalVal>, _ b: Array<MalVal>) -> Bool {
     if a.count != b.count { return false }
     var idx = a.startIndex
     while idx < a.endIndex {
         if !equal_Q(a[idx], b[idx]) { return false }
-        idx = idx.successor()
+        idx = a.index(after:idx)
     }
     return true
 }
 
-func cmp_maps(a: Dictionary<String,MalVal>,
+func cmp_maps(_ a: Dictionary<String,MalVal>,
               _ b: Dictionary<String,MalVal>) -> Bool {
     if a.count != b.count { return false }
     for (k,v1) in a {
@@ -64,7 +64,7 @@ func cmp_maps(a: Dictionary<String,MalVal>,
     return true
 }
 
-func equal_Q(a: MalVal, _ b: MalVal) -> Bool {
+func equal_Q(_ a: MalVal, _ b: MalVal) -> Bool {
     switch (a, b) {
     case (MV.MalNil, MV.MalNil): return true
     case (MV.MalFalse, MV.MalFalse): return true
@@ -88,24 +88,24 @@ func equal_Q(a: MalVal, _ b: MalVal) -> Bool {
 }
 
 // list and vector functions
-func list(lst: Array<MalVal>) -> MalVal {
+func list(_ lst: Array<MalVal>) -> MalVal {
     return MV.MalList(lst, meta:nil)
 }
-func list(lst: Array<MalVal>, meta: MalVal) -> MalVal {
+func list(_ lst: Array<MalVal>, meta: MalVal) -> MalVal {
     return MV.MalList(lst, meta:[meta])
 }
 
-func vector(lst: Array<MalVal>) -> MalVal {
+func vector(_ lst: Array<MalVal>) -> MalVal {
     return MV.MalVector(lst, meta:nil)
 }
-func vector(lst: Array<MalVal>, meta: MalVal) -> MalVal {
+func vector(_ lst: Array<MalVal>, meta: MalVal) -> MalVal {
     return MV.MalVector(lst, meta:[meta])
 }
 
 
 // hash-map functions
 
-func _assoc(src: Dictionary<String,MalVal>, _ mvs: Array<MalVal>)
+func _assoc(_ src: Dictionary<String,MalVal>, _ mvs: Array<MalVal>)
         throws -> Dictionary<String,MalVal> {
     var d = src
     if mvs.count % 2 != 0 {
@@ -124,12 +124,12 @@ func _assoc(src: Dictionary<String,MalVal>, _ mvs: Array<MalVal>)
     return d
 }
 
-func _dissoc(src: Dictionary<String,MalVal>, _ mvs: Array<MalVal>)
+func _dissoc(_ src: Dictionary<String,MalVal>, _ mvs: Array<MalVal>)
         throws -> Dictionary<String,MalVal> {
     var d = src
     for mv in mvs {
         switch mv {
-        case MV.MalString(let k): d.removeValueForKey(k)
+        case MV.MalString(let k): d.removeValue(forKey: k)
         default: throw MalError.General(msg: "Invalid _dissoc call")
         }
     }
@@ -137,33 +137,33 @@ func _dissoc(src: Dictionary<String,MalVal>, _ mvs: Array<MalVal>)
 }
 
 
-func hash_map(dict: Dictionary<String,MalVal>) -> MalVal {
+func hash_map(_ dict: Dictionary<String,MalVal>) -> MalVal {
     return MV.MalHashMap(dict, meta:nil)
 }
 
-func hash_map(dict: Dictionary<String,MalVal>, meta:MalVal) -> MalVal {
+func hash_map(_ dict: Dictionary<String,MalVal>, meta:MalVal) -> MalVal {
     return MV.MalHashMap(dict, meta:[meta])
 }
 
-func hash_map(arr: Array<MalVal>) throws -> MalVal {
+func hash_map(_ arr: Array<MalVal>) throws -> MalVal {
     let d = Dictionary<String,MalVal>();
     return MV.MalHashMap(try _assoc(d, arr), meta:nil)
 }
 
 
 // function functions
-func malfunc(fn: (Array<MalVal>) throws -> MalVal) -> MalVal {
+func malfunc(_ fn: (Array<MalVal>) throws -> MalVal) -> MalVal {
     return MV.MalFunc(fn, ast: nil, env: nil, params: nil,
                       macro: false, meta: nil)
 }
-func malfunc(fn: (Array<MalVal>) throws -> MalVal,
+func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
              ast: Array<MalVal>?,
              env: Env?,
              params: Array<MalVal>?) -> MalVal {
     return MV.MalFunc(fn, ast: ast, env: env, params: params,
                       macro: false, meta: nil)
 }
-func malfunc(fn: (Array<MalVal>) throws -> MalVal,
+func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
              ast: Array<MalVal>?,
              env: Env?,
              params: Array<MalVal>?,
@@ -172,7 +172,7 @@ func malfunc(fn: (Array<MalVal>) throws -> MalVal,
     return MV.MalFunc(fn, ast: ast, env: env, params: params,
                       macro: macro, meta: meta != nil ? [meta!] : nil)
 }
-func malfunc(fn: (Array<MalVal>) throws -> MalVal,
+func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
              ast: Array<MalVal>?,
              env: Env?,
              params: Array<MalVal>?,
@@ -184,27 +184,29 @@ func malfunc(fn: (Array<MalVal>) throws -> MalVal,
 
 // sequence functions
 
-func _rest(a: MalVal) throws -> Array<MalVal> {
+func _rest(_ a: MalVal) throws -> Array<MalVal> {
     switch a {
     case MV.MalList(let lst,_):
-        let slc = lst[lst.startIndex.successor()..<lst.endIndex]
+        let start = lst.index(after: lst.startIndex)
+        let slc = lst[start..<lst.endIndex]
         return Array(slc)
     case MV.MalVector(let lst,_):
-        let slc = lst[lst.startIndex.successor()..<lst.endIndex]
+        let start = lst.index(after: lst.startIndex)
+        let slc = lst[start..<lst.endIndex]
         return Array(slc)
     default:
         throw MalError.General(msg: "Invalid rest call")
     }
 }
 
-func rest(a: MalVal) throws -> MalVal {
+func rest(_ a: MalVal) throws -> MalVal {
     return list(try _rest(a))
 }
 
-func _nth(a: MalVal, _ idx: Int) throws -> MalVal {
+func _nth(_     a: MalVal, _ idx: Int) throws -> MalVal {
     switch a {
-    case MV.MalList(let l,_): return l[l.startIndex.advancedBy(idx)]
-    case MV.MalVector(let l,_): return l[l.startIndex.advancedBy(idx)]
+    case MV.MalList(let l,_): return l[l.startIndex.advanced(by: idx)]
+    case MV.MalVector(let l,_): return l[l.startIndex.advanced(by: idx)]
     default: throw MalError.General(msg: "Invalid nth call")
     }
 }

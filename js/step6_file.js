@@ -40,6 +40,9 @@ function _EVAL(ast, env) {
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
+    if (ast.length === 0) {
+        return ast;
+    }
 
     // apply list
     var a0 = ast[0], a1 = ast[1], a2 = ast[2], a3 = ast[3];
@@ -107,7 +110,7 @@ rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
 if (typeof process !== 'undefined' && process.argv.length > 2) {
-    repl_env.set('*ARGV*', process.argv.slice(3));
+    repl_env.set(types._symbol('*ARGV*'), process.argv.slice(3));
     rep('(load-file "' + process.argv[2] + '")');
     process.exit(0);
 }

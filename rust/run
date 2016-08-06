@@ -1,0 +1,2 @@
+#!/bin/bash
+exec $(dirname $0)/target/release/${STEP:-stepA_mal} "${@}"

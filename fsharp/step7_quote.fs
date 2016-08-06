@@ -93,6 +93,7 @@ module REPL
         | _ -> raise <| Error.wrongArity ()
 
     and eval env = function
+        | List(_, []) as emptyList -> emptyList
         | List(_, Symbol("def!")::rest) -> defBangForm env rest
         | List(_, Symbol("let*")::rest) ->
             let inner, form = letStarForm env rest
@@ -180,7 +181,7 @@ module REPL
         match args with
         | file::_ ->
             System.IO.File.ReadAllText file
-            |> REP env
+            |> RE env |> Seq.iter ignore
             0
         | _ ->
             let rec loop () =

@@ -33,6 +33,7 @@ def EVAL(ast, env):
             return eval_ast(ast, env)
 
         # apply list
+        if len(ast) == 0: return ast
         el = eval_ast(ast, env)
         f = el[0]
         return f(*el[1:])

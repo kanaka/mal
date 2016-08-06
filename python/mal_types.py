@@ -132,3 +132,9 @@ class Atom(object):
         self.val = val
 def _atom(val): return Atom(val)
 def _atom_Q(exp):   return type(exp) == Atom
+
+def py_to_mal(obj):
+        if type(obj) == list:   return List(obj)
+        if type(obj) == tuple:  return List(obj)
+        elif type(obj) == dict: return Hash_Map(obj)
+        else:                   return obj

@@ -5,7 +5,6 @@ if (typeof module !== 'undefined') {
     var printer = require('./printer');
     var Env = require('./env').Env;
     var core = require('./core');
-    var interop = require('./interop');
 }
 
 // read
@@ -82,6 +81,9 @@ function _EVAL(ast, env) {
     if (!types._list_Q(ast)) {
         return eval_ast(ast, env);
     }
+    if (ast.length === 0) {
+        return ast;
+    }
 
     var a0 = ast[0], a1 = ast[1], a2 = ast[2], a3 = ast[3];
     switch (a0.value) {
@@ -107,15 +109,6 @@ function _EVAL(ast, env) {
         return env.set(a1, func);
     case 'macroexpand':
         return macroexpand(a1, env);
-    case "js*":
-        return eval(a1.toString());
-    case ".":
-        var el = eval_ast(ast.slice(2), env),
-            r = interop.resolve_js(a1.toString()),
-            obj = r[0], f = r[1];
-        var res = f.apply(obj, el);
-        console.log("DEBUG3:", res);
-        return interop.js_to_mal(res);
     case "try*":
         try {
             return EVAL(a1, env);

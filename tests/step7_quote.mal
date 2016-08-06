@@ -38,48 +38,99 @@ b
 ;; Testing regular quote
 (quote 7)
 ;=>7
-'7
-;=>7
 (quote (1 2 3))
-;=>(1 2 3)
-'(1 2 3)
 ;=>(1 2 3)
 (quote (1 2 (3 4)))
 ;=>(1 2 (3 4))
-'(1 2 (3 4))
-;=>(1 2 (3 4))
-
 
 ;; Testing simple quasiquote
 (quasiquote 7)
 ;=>7
-`7
-;=>7
 (quasiquote (1 2 3))
-;=>(1 2 3)
-`(1 2 3)
 ;=>(1 2 3)
 (quasiquote (1 2 (3 4)))
 ;=>(1 2 (3 4))
-`(1 2 (3 4))
-;=>(1 2 (3 4))
 (quasiquote (nil))
 ;=>(nil)
+
+;; Testing unquote
+(quasiquote (unquote 7))
+;=>7
+(def! a 8)
+;=>8
+(quasiquote a)
+;=>a
+(quasiquote (unquote a))
+;=>8
+(quasiquote (1 a 3))
+;=>(1 a 3)
+(quasiquote (1 (unquote a) 3))
+;=>(1 8 3)
+(def! b (quote (1 "b" "d")))
+;=>(1 "b" "d")
+(quasiquote (1 b 3))
+;=>(1 b 3)
+(quasiquote (1 (unquote b) 3))
+;=>(1 (1 "b" "d") 3)
+
+
+;; Testing splice-unquote
+(def! c (quote (1 "b" "d")))
+;=>(1 "b" "d")
+(quasiquote (1 c 3))
+;=>(1 c 3)
+(quasiquote (1 (splice-unquote c) 3))
+;=>(1 1 "b" "d" 3)
+
+
+;; Testing symbol equality
+(= (quote abc) (quote abc))
+;=>true
+(= (quote abc) (quote abcd))
+;=>false
+(= (quote abc) "abc")
+;=>false
+(= "abc" (quote abc))
+;=>false
+(= "abc" (str (quote abc)))
+;=>true
+(= (quote abc) nil)
+;=>false
+(= nil (quote abc))
+;=>false
+
+;;;;; Test quine
+;;; TODO: needs expect line length fix
+;;;((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
+;;;=>((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
+
+;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing ' (quote) reader macro
+'7
+;=>7
+'(1 2 3)
+;=>(1 2 3)
+'(1 2 (3 4))
+;=>(1 2 (3 4))
+
+;; Testing ` (quasiquote) reader macro
+`7
+;=>7
+`(1 2 3)
+;=>(1 2 3)
+`(1 2 (3 4))
+;=>(1 2 (3 4))
 `(nil)
 ;=>(nil)
 
-
-;; Testing unquote
+;; Testing ~ (unquote) reader macro
 `~7
 ;=>7
 (def! a 8)
 ;=>8
-`a
-;=>a
-`~a
-;=>8
-`(1 a 3)
-;=>(1 a 3)
 `(1 ~a 3)
 ;=>(1 8 3)
 (def! b '(1 "b" "d"))
@@ -89,8 +140,7 @@ b
 `(1 ~b 3)
 ;=>(1 (1 "b" "d") 3)
 
-
-;; Testing splice-unquote
+;; Testing ~@ (splice-unquote) reader macro
 (def! c '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 c 3)
@@ -99,27 +149,7 @@ b
 ;=>(1 1 "b" "d" 3)
 
 
-;; Testing symbol equality
-(= 'abc 'abc)
-;=>true
-(= 'abc 'abcd)
-;=>false
-(= 'abc "abc")
-;=>false
-(= "abc" 'abc)
-;=>false
-(= "abc" (str 'abc))
-;=>true
-(= 'abc nil)
-;=>false
-(= nil 'abc)
-;=>false
-
-;;;;; Test quine
-;;; TODO: needs expect line length fix
-;;;((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-;;;=>((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-
+;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
 

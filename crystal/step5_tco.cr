@@ -136,7 +136,7 @@ module Mal
           # Note:
           # If writing lambda expression here directly, compiler will fail to infer type of 'list'. (Error 'Nil for empty?')
           params = list[1].unwrap
-          unless params.is_a?(Mal::List) || params.is_a?(Mal::Vector)
+          unless params.is_a? Array
             eval_error "'fn*' parameters must be list"
           end
           Mal::Closure.new(list[2], params, env, func_of(env, list[1].unwrap, list[2]))

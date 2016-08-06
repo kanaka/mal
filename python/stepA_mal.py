@@ -93,13 +93,10 @@ def EVAL(ast, env):
         elif 'macroexpand' == a0:
             return macroexpand(ast[1], env)
         elif "py!*" == a0:
-            if sys.version_info[0] >= 3:
-                exec(compile(ast[1], '', 'single'), globals())
-            else:
-                exec(compile(ast[1], '', 'single') in globals())
+            exec(compile(ast[1], '', 'single'), globals())
             return None
         elif "py*" == a0:
-            return eval(ast[1])
+            return types.py_to_mal(eval(ast[1]))
         elif "." == a0:
             el = eval_ast(ast[2:], env)
             f = eval(ast[1])

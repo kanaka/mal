@@ -64,6 +64,10 @@ function ret = EVAL(ast, env)
     end
 
     % apply
+    if length(ast) == 0
+        ret = ast;
+        return;
+    end
     if isa(ast.get(1),'types.Symbol')
         a1sym = ast.get(1).name;
     else

@@ -1,0 +1,2 @@
+#!/bin/bash
+exec php $(dirname $0)/${STEP:-stepA_mal}.php "${@}"

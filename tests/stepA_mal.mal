@@ -18,8 +18,9 @@
 ;=>false
 
 
+;>>> deferrable=True
 ;;
-;; ------- Optional Functionality ----------
+;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
 
 ;;
@@ -96,10 +97,11 @@
 ;=>(1 2 3)
 
 
+;>>> soft=True
+;>>> optional=True
 ;;
 ;; ------- Optional Functionality --------------
 ;; ------- (Not needed for self-hosting) -------
-;>>> soft=True
 
 ;;
 ;; Testing string? function

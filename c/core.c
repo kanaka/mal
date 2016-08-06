@@ -96,8 +96,8 @@ MalVal *prn(MalVal *args) {
     assert_type(args, MAL_LIST|MAL_VECTOR,
                 "prn called with non-sequential args");
     char *repr = _pr_str_args(args, " ", 1);
-    g_print("%s\n", repr);
-    free(repr);
+    puts(repr);
+    MAL_GC_FREE(repr);
     return &mal_nil;
 }
 
@@ -107,8 +107,8 @@ MalVal *println(MalVal *args) {
     assert_type(args, MAL_LIST|MAL_VECTOR,
                 "println called with non-sequential args");
     char *repr = _pr_str_args(args, " ", 0);
-    g_print("%s\n", repr);
-    free(repr);
+    puts(repr);
+    MAL_GC_FREE(repr);
     return &mal_nil;
 }
 
@@ -135,7 +135,7 @@ char *slurp_raw(char *path) {
     if (fstat(fd, &fst) < 0) {
         abort("slurp failed to stat '%s'", path);
     }
-    data = malloc(fst.st_size+1);
+    data = MAL_GC_MALLOC(fst.st_size+1);
     sz = read(fd, data, fst.st_size);
     if (sz < fst.st_size) {
         abort("slurp failed to read '%s'", path);

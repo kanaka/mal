@@ -21,6 +21,7 @@ let rec eval_ast ast env =
     | _ -> ast
 and eval ast env =
   match ast with
+    | T.List { T.value = [] } -> ast
     | T.List { T.value = [(T.Symbol { T.value = "def!" }); key; expr] } ->
         let value = (eval expr env) in
           Env.set env key value; value
@@ -75,8 +76,7 @@ let rec main =
                          else []));
     Env.set repl_env (Types.symbol "eval")
             (Types.fn (function [ast] -> eval ast repl_env | _ -> T.Nil));
-    let code = "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
-    in print_endline code; ignore (rep code repl_env);
+    ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" repl_env);
     ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
 
     if Array.length Sys.argv > 1 then

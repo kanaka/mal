@@ -12,7 +12,7 @@ String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
-static void safeRep(const String& input, malEnvPtr env);
+static String safeRep(const String& input, malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
@@ -31,24 +31,24 @@ int main(int argc, char* argv[])
         return 0;
     }
     while (s_readLine.get(prompt, input)) {
-        safeRep(input, replEnv);
+        String out = safeRep(input, replEnv);
+        if (out.length() > 0)
+            std::cout << out << "\n";
     }
     return 0;
 }
 
-static void safeRep(const String& input, malEnvPtr env)
+static String safeRep(const String& input, malEnvPtr env)
 {
-    String out;
     try {
-        out = rep(input, env);
+        return rep(input, env);
     }
     catch (malEmptyInputException&) {
-        return;
+        return String();
     }
     catch (String& s) {
-        out = s;
+        return s;
     };
-    std::cout << out << "\n";
 }
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[])

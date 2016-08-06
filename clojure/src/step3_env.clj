@@ -3,7 +3,8 @@
               [readline]
               [reader]
               [printer]
-              [env]))
+              [env])
+    (:gen-class))
 
 ;; read
 (defn READ [& [strng]]
@@ -35,6 +36,9 @@
           ;; indented to match later steps
           (let [[a0 a1 a2 a3] ast]
             (condp = a0
+              nil
+              ast
+
               'def!
               (env/env-set env a1 (EVAL a2 env))
 

@@ -1,0 +1,30 @@
+;; Testing basic Logo interop
+
+(logo-eval "7")
+;=>7
+
+(logo-eval "\"hello")
+;=>"hello"
+
+(logo-eval "[7 8 9]")
+;=>(7 8 9)
+
+(logo-eval "123 = 123")
+;=>true
+
+(logo-eval "not emptyp []")
+;=>false
+
+(logo-eval "print [hello world]")
+; hello world
+;=>nil
+
+(logo-eval "make \"foo 8")
+(logo-eval ":foo")
+;=>8
+
+(logo-eval "apply \"word map [reverse ?] [Abc Abcd Abcde]")
+;=>"cbAdcbAedcbA"
+
+(logo-eval "map [1 + ?] [1 2 3]")
+;=>(2 3 4)

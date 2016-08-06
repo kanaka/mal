@@ -25,5 +25,6 @@ WORKDIR /mal
 RUN apt-get -y install g++
 
 # Crystal
+RUN apt-get -y install apt-transport-https
 RUN curl http://dist.crystal-lang.org/apt/setup.sh | bash
 RUN apt-get -y install crystal

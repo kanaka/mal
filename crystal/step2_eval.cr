@@ -18,7 +18,7 @@ module Mal
   def num_func(func)
     -> (args : Array(Mal::Type)) {
       x, y = args[0].unwrap, args[1].unwrap
-      eval_error "invalid arguments" unless x.is_a?(Int32) && y.is_a?(Int32)
+      eval_error "invalid arguments" unless x.is_a?(Int64) && y.is_a?(Int64)
       Mal::Type.new func.call(x, y)
     }
   end
@@ -53,7 +53,7 @@ module Mal
   def eval(t, env)
     Mal::Type.new case ast = t.unwrap
     when Mal::List
-      eval_error "empty list" if ast.empty?
+      return gen_type Mal::List if ast.empty?
 
       f = eval_ast(ast.first, env)
       ast.shift(1)
@@ -79,10 +79,10 @@ module Mal
 end
 
 $repl_env = {
-  "+" => Mal.num_func(->(x : Int32, y : Int32){ x + y }),
-  "-" => Mal.num_func(->(x : Int32, y : Int32){ x - y }),
-  "*" => Mal.num_func(->(x : Int32, y : Int32){ x * y }),
-  "/" => Mal.num_func(->(x : Int32, y : Int32){ x / y }),
+  "+" => Mal.num_func(->(x : Int64, y : Int64){ x + y }),
+  "-" => Mal.num_func(->(x : Int64, y : Int64){ x - y }),
+  "*" => Mal.num_func(->(x : Int64, y : Int64){ x * y }),
+  "/" => Mal.num_func(->(x : Int64, y : Int64){ x / y }),
 } of String => Mal::Func
 
 while line = my_readline("user> ")

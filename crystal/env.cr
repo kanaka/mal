@@ -6,11 +6,11 @@ module Mal
   class Env
     property data
 
-    def initialize(@outer)
+    def initialize(@outer : Env?)
       @data = {} of String => Mal::Type
     end
 
-    def initialize(@outer, binds, exprs : Array(Mal::Type))
+    def initialize(@outer : Env, binds, exprs : Array(Mal::Type))
       @data = {} of String => Mal::Type
 
       eval_error "binds must be list or vector" unless binds.is_a? Array

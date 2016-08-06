@@ -1,4 +1,5 @@
 USE_READLINE ?=
+USE_GC ?= 1
 CFLAGS += -g -O2
 LDFLAGS += -g
 
@@ -36,6 +37,12 @@ RL_LIBRARY ?= edit
 else
 RL_LIBRARY ?= readline
 CFLAGS += -DUSE_READLINE=1
+endif
+
+ifeq (,$(USE_GC))
+else
+CFLAGS += -DUSE_GC=1
+LDFLAGS += -lgc
 endif
 
 CFLAGS += $(GLIB_CFLAGS)

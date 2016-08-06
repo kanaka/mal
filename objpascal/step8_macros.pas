@@ -69,7 +69,8 @@ var
     Mac : TMal;
 begin
     is_macro_call := false;
-    if (Ast.ClassType = TMalList) then
+    if (Ast.ClassType = TMalList) and
+       (Length((Ast as TMalList).Val) > 0) then
     begin
         A0 := (Ast as TMalList).Val[0];
         if (A0 is TMalSymbol) and
@@ -171,6 +172,8 @@ begin
     // Apply list
     Lst := (Ast as TMalList);
     Arr := Lst.Val;
+    if Length(Arr) = 0 then
+        Exit(Ast);
     if Arr[0] is TMalSymbol then
         A0Sym := (Arr[0] as TMalSymbol).Val
     else

@@ -96,6 +96,10 @@ MalType EVAL(MalType ast, Env env)
         }
 
         auto aste = ast_list.elements;
+        if (aste.length == 0)
+        {
+            return ast;
+        }
         auto a0_sym = cast(MalSymbol) aste[0];
         auto sym_name = a0_sym is null ? "" : a0_sym.name;
         switch (sym_name)

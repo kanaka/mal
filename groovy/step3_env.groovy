@@ -29,6 +29,7 @@ eval_ast = { ast, env ->
 EVAL = { ast, env ->
     //println("EVAL: ${printer.pr_str(ast,true)}")
     if (! types.list_Q(ast)) return eval_ast(ast, env)
+    if (ast.size() == 0) return ast
 
     switch (ast[0]) {
     case { it instanceof MalSymbol && it.value == "def!" }:

@@ -9,8 +9,6 @@ General:
     - Finish guide.md
 
 All Implementations:
-    - test that *ARGV* gets set properly
-    - test to make sure slurp captures final newline
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
     - per impl tests for step5_tco, or at least a better way of
@@ -112,9 +110,6 @@ Postscript:
     - add negative numbers
     - fix blank line after comments
     - fix command line arg processing (doesn't run file specified)
-
-Python:
-    - interop tests
 
 R:
     - tracebacks in errors

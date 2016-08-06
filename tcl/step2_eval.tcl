@@ -46,6 +46,10 @@ proc EVAL {ast env} {
     if {![list_q $ast]} {
         return [eval_ast $ast $env]
     }
+    set a0 [lindex [obj_val $ast] 0]
+    if {$a0 == ""} {
+        return $ast
+    }
     set lst_obj [eval_ast $ast $env]
     set lst [obj_val $lst_obj]
     set f [lindex $lst 0]

@@ -42,6 +42,7 @@ def EVAL(ast, env):
             return eval_ast(ast, env)
 
         # apply list
+        if len(ast) == 0: return ast
         el = eval_ast(ast, env)
         f = el.values[0]
         if isinstance(f, MalFunc):

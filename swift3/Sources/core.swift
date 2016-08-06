@@ -1,7 +1,12 @@
 // TODO: remove this once time-ms and slurp use standard library calls
-import Glibc
 
-func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
+#if os(Linux)
+import Glibc
+#else
+import Darwin
+#endif
+
+func IntOp(_ op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
     case (MV.MalInt(let i1), MV.MalInt(let i2)):
         return MV.MalInt(op(i1, i2))
@@ -10,7 +15,7 @@ func IntOp(op: (Int, Int) -> Int, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     }
 }
 
-func CmpOp(op: (Int, Int) -> Bool, _ a: MalVal, _ b: MalVal) throws -> MalVal {
+func CmpOp(_ op: (Int, Int) -> Bool, _ a: MalVal, _ b: MalVal) throws -> MalVal {
     switch (a, b) {
     case (MV.MalInt(let i1), MV.MalInt(let i2)):
         return wraptf(op(i1, i2))
@@ -82,17 +87,28 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     },
 
     "pr-str":  {
-        return MV.MalString($0.map { pr_str($0,true) }.joinWithSeparator(" "))
+        // TODO: if the following two statements are combined into one, we get
+        // the following error message. It's not clear to me that there's
+        // actually any error, so this might be a compiler issue.
+        //
+        //      Sources/core.swift:29:59: error: type of expression is ambiguous without more context
+        //      let core_ns: [String: (Array<MalVal>) throws -> MalVal] = [
+        //                                                                ^
+
+        let s = $0.map { pr_str($0,true) }.joined(separator: " ")
+        return MV.MalString(s)
     },
     "str": {
-        return MV.MalString($0.map { pr_str($0,false) }.joinWithSeparator(""))
+        // The comment for "pr-str" applies here, too.
+        let s = $0.map { pr_str($0,false) }.joined(separator: "")
+        return MV.MalString(s)
     },
     "prn": {
-        print($0.map { pr_str($0,true) }.joinWithSeparator(" "))
+        print($0.map { pr_str($0,true) }.joined(separator: " "))
         return MV.MalNil
     },
     "println": {
-        print($0.map { pr_str($0,false) }.joinWithSeparator(" "))
+        print($0.map { pr_str($0,false) }.joined(separator: " "))
         return MV.MalNil
     },
     "read-string": {
@@ -105,7 +121,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         switch $0[0] {
         case MV.MalString(let prompt):
             print(prompt, terminator: "")
-            let line = readLine(stripNewline: true)
+            let line = readLine(strippingNewline: true)
             if line == nil { return MV.MalNil }
             return MV.MalString(line!)
         default: throw MalError.General(msg: "Invalid readline call")
@@ -114,17 +130,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     "slurp": {
         switch $0[0] {
         case MV.MalString(let file):
-            // TODO: replace with this when it is available
-            // let data = try String(contentsOfFile: file, encoding: NSUTF8StringEncoding)
-
-            let BUFSIZE = 1024
-            var pp      = popen("cat " + file, "r")
-            var buf     = [CChar](count:BUFSIZE, repeatedValue:CChar(0))
-            var data    = String()
-             
-            while fgets(&buf, Int32(BUFSIZE), pp) != nil {
-                data = data + String.fromCString(buf)!;
-            }
+            let data = try String(contentsOfFile: file, encoding: String.Encoding.utf8)
             return MV.MalString(data)
         default: throw MalError.General(msg: "Invalid slurp call")
         }
@@ -140,7 +146,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
     "*":  { try IntOp({ $0 * $1},  $0[0], $0[1]) },
     "/":  { try IntOp({ $0 / $1},  $0[0], $0[1]) },
     "time-ms": {
-        $0; // no parameters
+        let read = $0; // no parameters
 
         // TODO: replace with something more like this
         // return MV.MalInt(NSDate().timeIntervalSince1970 )
@@ -343,7 +349,7 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         if $0.count < 1 { throw MalError.General(msg: "Invalid conj call") }
         switch $0[0] {
         case MV.MalList(let lst, _):
-            let a = Array($0[1..<$0.endIndex]).reverse()
+            let a = Array($0[1..<$0.endIndex]).reversed()
             return list(a + lst)
         case MV.MalVector(let lst, _):
             return vector(lst + $0[1..<$0.endIndex])

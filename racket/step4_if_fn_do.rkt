@@ -18,7 +18,7 @@
     [else ast]))
 
 (define (EVAL ast env)
-  (if (not (list? ast))
+  (if (or (not (list? ast)) (empty? ast))
         (eval-ast ast env)
 
         (let ([a0 (_nth ast 0)])

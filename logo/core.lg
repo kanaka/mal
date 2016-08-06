@@ -1,0 +1,413 @@
+load "../logo/types.lg
+load "../logo/reader.lg
+load "../logo/printer.lg
+
+make "global_exception []
+
+to bool_to_mal :bool
+output ifelse :bool [true_new] [false_new]
+end
+
+to mal_equal_q :a :b
+output bool_to_mal equal_q :a :b
+end
+
+to mal_throw :a
+make "global_exception :a
+(throw "error "_mal_exception_)
+end
+
+to mal_nil_q :a
+output bool_to_mal ((obj_type :a) = "nil)
+end
+
+to mal_true_q :a
+output bool_to_mal ((obj_type :a) = "true)
+end
+
+to mal_false_q :a
+output bool_to_mal ((obj_type :a) = "false)
+end
+
+to mal_string_q :a
+output bool_to_mal ((obj_type :a) = "string)
+end
+
+to mal_symbol :a
+output symbol_new obj_val :a
+end
+
+to mal_symbol_q :a
+output bool_to_mal ((obj_type :a) = "symbol)
+end
+
+to mal_keyword :a
+output obj_new "keyword obj_val :a
+end
+
+to mal_keyword_q :a
+output bool_to_mal ((obj_type :a) = "keyword)
+end
+
+to mal_pr_str [:args]
+output obj_new "string pr_seq :args "true " " :space_char
+end
+
+to mal_str [:args]
+output obj_new "string pr_seq :args "false " " "
+end
+
+to mal_prn [:args]
+print pr_seq :args "true " " :space_char
+output nil_new
+end
+
+to mal_println [:args]
+print pr_seq :args "false " " :space_char
+output nil_new
+end
+
+to mal_read_string :str
+output read_str obj_val :str
+end
+
+to mal_readline :prompt
+localmake "line readline obj_val :prompt
+if :line=[] [output nil_new]
+output obj_new "string :line
+end
+
+to mal_slurp :str
+openread obj_val :str
+setread obj_val :str
+localmake "content "
+while [not eofp] [
+  make "content word :content readchar
+]
+close obj_val :str
+output obj_new "string :content
+end
+
+to mal_lt :a :b
+output bool_to_mal ((obj_val :a) < (obj_val :b))
+end
+
+to mal_lte :a :b
+output bool_to_mal ((obj_val :a) <= (obj_val :b))
+end
+
+to mal_gt :a :b
+output bool_to_mal ((obj_val :a) > (obj_val :b))
+end
+
+to mal_gte :a :b
+output bool_to_mal ((obj_val :a) >= (obj_val :b))
+end
+
+to mal_add :a :b
+output obj_new "number ((obj_val :a) + (obj_val :b))
+end
+
+to mal_sub :a :b
+output obj_new "number ((obj_val :a) - (obj_val :b))
+end
+
+to mal_mul :a :b
+output obj_new "number ((obj_val :a) * (obj_val :b))
+end
+
+to mal_div :a :b
+output obj_new "number ((obj_val :a) / (obj_val :b))
+end
+
+to mal_time_ms
+; Native function timems is added to coms.c (see Dockerfile)
+output obj_new "number timems
+end
+
+to mal_list [:args]
+output obj_new "list :args
+end
+
+to mal_list_q :a
+output bool_to_mal ((obj_type :a) = "list)
+end
+
+to mal_vector [:args]
+output obj_new "vector :args
+end
+
+to mal_vector_q :a
+output bool_to_mal ((obj_type :a) = "vector)
+end
+
+to mal_hash_map [:args]
+localmake "h []
+localmake "i 1
+while [:i < count :args] [
+  make "h hashmap_put :h item :i :args item (:i + 1) :args
+  make "i (:i + 2)
+]
+output obj_new "hashmap :h
+end
+
+to mal_map_q :a
+output bool_to_mal ((obj_type :a) = "hashmap)
+end
+
+to mal_assoc :map [:args]
+localmake "h obj_val :map
+localmake "i 1
+while [:i < count :args] [
+  make "h hashmap_put :h item :i :args item (:i + 1) :args
+  make "i (:i + 2)
+]
+output obj_new "hashmap :h
+end
+
+to mal_dissoc :map [:args]
+localmake "h obj_val :map
+foreach :args [make "h hashmap_delete :h ?]
+output obj_new "hashmap :h
+end
+
+to mal_get :map :key
+localmake "val hashmap_get obj_val :map :key
+if emptyp :val [output nil_new]
+output :val
+end
+
+to mal_contains_q :map :key
+localmake "val hashmap_get obj_val :map :key
+output bool_to_mal not emptyp :val
+end
+
+to mal_keys :map
+localmake "h obj_val :map
+localmake "keys []
+localmake "i 1
+while [:i <= count :h] [
+  make "keys lput item :i :h :keys
+  make "i (:i + 2)
+]
+output obj_new "list :keys
+end
+
+to mal_vals :map
+localmake "h obj_val :map
+localmake "values []
+localmake "i 2
+while [:i <= count :h] [
+  make "values lput item :i :h :values
+  make "i (:i + 2)
+]
+output obj_new "list :values
+end
+
+to mal_sequential_q :a
+output bool_to_mal sequentialp :a
+end
+
+to mal_cons :a :b
+output obj_new "list fput :a obj_val :b
+end
+
+to mal_concat [:args]
+output obj_new "list apply "sentence map [obj_val ?] :args
+end
+
+to mal_nth :a :i
+if (obj_val :i) >= _count :a [(throw "error [nth: index out of range])]
+output nth :a obj_val :i
+end
+
+to mal_first :a
+output cond [
+  [[(obj_type :a) = "nil] nil_new]
+  [[(_count :a) = 0]      nil_new]
+  [else                   first obj_val :a]
+]
+end
+
+to mal_rest :a
+output obj_new "list cond [
+  [[(obj_type :a) = "nil] []]
+  [[(_count :a) = 0]      []]
+  [else                   butfirst obj_val :a]
+]
+end
+
+to mal_empty_q :a
+output bool_to_mal (emptyp obj_val :a)
+end
+
+to mal_count :a
+output obj_new "number _count :a
+end
+
+to mal_apply :f [:args]
+localmake "callargs obj_new "list sentence butlast :args obj_val last :args
+output invoke_fn :f :callargs
+end
+
+to mal_map :f :seq
+output obj_new "list map [invoke_fn :f obj_new "list (list ?)] obj_val :seq
+end
+
+to mal_conj :a0 [:rest]
+case obj_type :a0 [
+  [[list]   localmake "newlist :a0
+            foreach :rest [make "newlist mal_cons ? :newlist]
+            output :newlist ]
+  [[vector] output obj_new "vector sentence obj_val :a0 :rest ]
+  [else     (throw "error [conj requires list or vector]) ]
+]
+end
+
+to mal_seq :a
+case obj_type :a [
+  [[string]
+    if (_count :a) = 0 [output nil_new]
+    localmake "chars []
+    foreach obj_val :a [ make "chars lput obj_new "string ? :chars ]
+    output obj_new "list :chars ]
+  [[list]
+    if (_count :a) = 0 [output nil_new]
+    output :a ]
+  [[vector]
+    if (_count :a) = 0 [output nil_new]
+    output obj_new "list obj_val :a ]
+  [[nil] output nil_new ]
+  [else (throw "error [seq requires string or list or vector or nil]) ]
+]
+end
+
+to mal_meta :a
+localmake "m obj_meta :a
+if emptyp :m [output nil_new]
+output :m
+end
+
+to mal_with_meta :a :new_meta
+localmake "m ifelse (obj_type :new_meta) = "nil [[]] [:new_meta]
+output obj_new_with_meta obj_type :a obj_val :a :m
+end
+
+to mal_atom :a
+output obj_new "atom :a
+end
+
+to mal_atom_q :a
+output bool_to_mal ((obj_type :a) = "atom)
+end
+
+to mal_deref :a
+output obj_val :a
+end
+
+to mal_reset_bang :a :val
+.setfirst butfirst :a :val
+output :val
+end
+
+to invoke_fn :f :callargs
+output case obj_type :f [
+  [[nativefn]
+    apply obj_val :f obj_val :callargs ]
+  [[fn]
+    _eval fn_body :f env_new fn_env :f fn_args :f :callargs ]
+  [else
+    (throw "error [Wrong type for apply])]
+]
+end
+
+to mal_swap_bang :atom :f [:args]
+localmake "callargs obj_new "list fput mal_deref :atom :args
+output mal_reset_bang :atom invoke_fn :f :callargs
+end
+
+to logo_to_mal :a
+output cond [
+  [[:a = "true]  true_new]
+  [[:a = "false] false_new]
+  [[numberp :a]  obj_new "number :a]
+  [[wordp :a]    obj_new "string :a]
+  [[listp :a]    obj_new "list map [logo_to_mal ?] :a]
+  [else          nil_new]
+]
+end
+
+to mal_logo_eval :str
+make "res runresult obj_val :str
+if emptyp :res [output nil_new]
+output logo_to_mal first :res
+end
+
+make "core_ns [
+  [[symbol =]           [nativefn mal_equal_q]]
+  [[symbol throw]       [nativefn mal_throw]]
+
+  [[symbol nil?]        [nativefn mal_nil_q]]
+  [[symbol true?]       [nativefn mal_true_q]]
+  [[symbol false?]      [nativefn mal_false_q]]
+  [[symbol string?]     [nativefn mal_string_q]]
+  [[symbol symbol]      [nativefn mal_symbol]]
+  [[symbol symbol?]     [nativefn mal_symbol_q]]
+  [[symbol keyword]     [nativefn mal_keyword]]
+  [[symbol keyword?]    [nativefn mal_keyword_q]]
+
+  [[symbol pr-str]      [nativefn mal_pr_str]]
+  [[symbol str]         [nativefn mal_str]]
+  [[symbol prn]         [nativefn mal_prn]]
+  [[symbol println]     [nativefn mal_println]]
+  [[symbol read-string] [nativefn mal_read_string]]
+  [[symbol readline]    [nativefn mal_readline]]
+  [[symbol slurp]       [nativefn mal_slurp]]
+
+  [[symbol <]           [nativefn mal_lt]]
+  [[symbol <=]          [nativefn mal_lte]]
+  [[symbol >]           [nativefn mal_gt]]
+  [[symbol >=]          [nativefn mal_gte]]
+  [[symbol +]           [nativefn mal_add]]
+  [[symbol -]           [nativefn mal_sub]]
+  [[symbol *]           [nativefn mal_mul]]
+  [[symbol /]           [nativefn mal_div]]
+  [[symbol time-ms]     [nativefn mal_time_ms]]
+
+  [[symbol list]        [nativefn mal_list]]
+  [[symbol list?]       [nativefn mal_list_q]]
+  [[symbol vector]      [nativefn mal_vector]]
+  [[symbol vector?]     [nativefn mal_vector_q]]
+  [[symbol hash-map]    [nativefn mal_hash_map]]
+  [[symbol map?]        [nativefn mal_map_q]]
+  [[symbol assoc]       [nativefn mal_assoc]]
+  [[symbol dissoc]      [nativefn mal_dissoc]]
+  [[symbol get]         [nativefn mal_get]]
+  [[symbol contains?]   [nativefn mal_contains_q]]
+  [[symbol keys]        [nativefn mal_keys]]
+  [[symbol vals]        [nativefn mal_vals]]
+
+  [[symbol sequential?] [nativefn mal_sequential_q]]
+  [[symbol cons]        [nativefn mal_cons]]
+  [[symbol concat]      [nativefn mal_concat]]
+  [[symbol nth]         [nativefn mal_nth]]
+  [[symbol first]       [nativefn mal_first]]
+  [[symbol rest]        [nativefn mal_rest]]
+  [[symbol empty?]      [nativefn mal_empty_q]]
+  [[symbol count]       [nativefn mal_count]]
+  [[symbol apply]       [nativefn mal_apply]]
+  [[symbol map]         [nativefn mal_map]]
+
+  [[symbol conj]        [nativefn mal_conj]]
+  [[symbol seq]         [nativefn mal_seq]]
+
+  [[symbol meta]        [nativefn mal_meta]]
+  [[symbol with-meta]   [nativefn mal_with_meta]]
+  [[symbol atom]        [nativefn mal_atom]]
+  [[symbol atom?]       [nativefn mal_atom_q]]
+  [[symbol deref]       [nativefn mal_deref]]
+  [[symbol reset!]      [nativefn mal_reset_bang]]
+  [[symbol swap!]       [nativefn mal_swap_bang]]
+
+  [[symbol logo-eval]   [nativefn mal_logo_eval]]
+]

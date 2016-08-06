@@ -16,16 +16,16 @@ end
 def num_func(func)
   -> (args : Array(Mal::Type)) {
     x, y = args[0].unwrap, args[1].unwrap
-    eval_error "invalid arguments" unless x.is_a?(Int32) && y.is_a?(Int32)
+    eval_error "invalid arguments" unless x.is_a?(Int64) && y.is_a?(Int64)
     Mal::Type.new func.call(x, y)
   }
 end
 
 $repl_env = Mal::Env.new nil
-$repl_env.set("+", Mal::Type.new num_func(->(x : Int32, y : Int32){ x + y }))
-$repl_env.set("-", Mal::Type.new num_func(->(x : Int32, y : Int32){ x - y }))
-$repl_env.set("*", Mal::Type.new num_func(->(x : Int32, y : Int32){ x * y }))
-$repl_env.set("/", Mal::Type.new num_func(->(x : Int32, y : Int32){ x / y }))
+$repl_env.set("+", Mal::Type.new num_func(->(x : Int64, y : Int64){ x + y }))
+$repl_env.set("-", Mal::Type.new num_func(->(x : Int64, y : Int64){ x - y }))
+$repl_env.set("*", Mal::Type.new num_func(->(x : Int64, y : Int64){ x * y }))
+$repl_env.set("/", Mal::Type.new num_func(->(x : Int64, y : Int64){ x / y }))
 
 module Mal
   extend self
@@ -61,8 +61,7 @@ module Mal
     ast = t.unwrap
 
     return eval_ast(t, env) unless ast.is_a?(Mal::List)
-
-    eval_error "empty list" if ast.empty?
+    return gen_type Mal::List if ast.empty?
 
     sym = ast.first.unwrap
     eval_error "first element of list must be a symbol" unless sym.is_a?(Mal::Symbol)

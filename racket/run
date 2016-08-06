@@ -1,0 +1,2 @@
+#!/bin/bash
+exec racket $(dirname $0)/${STEP:-stepA_mal}.rkt "${@}"

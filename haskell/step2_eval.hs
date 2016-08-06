@@ -31,6 +31,8 @@ eval_ast ast@(MalHashMap lst m) env = do
 eval_ast ast env = return ast
 
 apply_ast :: MalVal -> (Map.Map String MalVal) -> IOThrows MalVal
+apply_ast ast@(MalList [] _) env = do
+    return ast
 apply_ast ast@(MalList _ _) env = do
     el <- eval_ast ast env
     case el of

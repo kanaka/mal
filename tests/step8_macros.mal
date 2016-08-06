@@ -1,11 +1,3 @@
-;; Testing non-macro function
-(not (= 1 1))
-;=>false
-;;; This should fail if it is a macro
-(not (= 1 2))
-;=>true
-
-
 ;; Testing trivial macros
 (defmacro! one (fn* () 1))
 (one)
@@ -36,29 +28,40 @@
 ;=>123
 
 
+;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing non-macro function
+(not (= 1 1))
+;=>false
+;;; This should fail if it is a macro
+(not (= 1 2))
+;=>true
+
 ;; Testing nth, first and rest functions
 
-(nth '(1) 0)
+(nth (list 1) 0)
 ;=>1
-(nth '(1 2) 1)
+(nth (list 1 2) 1)
 ;=>2
 (def! x "x")
-(def! x (nth '(1 2) 2))
+(def! x (nth (list 1 2) 2))
 x
 ;=>"x"
 
-(first '())
+(first (list))
 ;=>nil
-(first '(6))
+(first (list 6))
 ;=>6
-(first '(7 8 9))
+(first (list 7 8 9))
 ;=>7
 
-(rest '())
+(rest (list))
 ;=>()
-(rest '(6))
+(rest (list 6))
 ;=>()
-(rest '(7 8 9))
+(rest (list 7 8 9))
 ;=>(8 9)
 
 
@@ -102,6 +105,8 @@ x
 (let* (x (or nil "yes")) x)
 ;=>"yes"
 
+
+;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
 

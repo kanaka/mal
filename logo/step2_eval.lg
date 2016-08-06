@@ -1,0 +1,78 @@
+load "../logo/readline.lg
+load "../logo/reader.lg
+load "../logo/printer.lg
+load "../logo/types.lg
+
+to _read :str
+output read_str :str
+end
+
+to eval_ast :ast :env
+output case (obj_type :ast) [
+  [[symbol]  localmake "val hashmap_get :env :ast
+             if emptyp :val [(throw "error sentence (word "' obj_val :ast "' ) [not found])]
+             :val ]
+  [[list]    obj_new "list    map [_eval ? :env] obj_val :ast]
+  [[vector]  obj_new "vector  map [_eval ? :env] obj_val :ast]
+  [[hashmap] obj_new "hashmap map [_eval ? :env] obj_val :ast]
+  [else :ast]
+]
+end
+
+to _eval :ast :env
+if (obj_type :ast) <> "list [output eval_ast :ast :env]
+if emptyp obj_val :ast [output :ast]
+make "el obj_val eval_ast :ast :env
+output apply first :el butfirst :el
+end
+
+to _print :exp
+output pr_str :exp "true
+end
+
+to rep :str
+output _print _eval _read :str :repl_env
+end
+
+to mal_add :a :b
+output obj_new "number ((obj_val :a) + (obj_val :b))
+end
+
+to mal_sub :a :b
+output obj_new "number ((obj_val :a) - (obj_val :b))
+end
+
+to mal_mul :a :b
+output obj_new "number ((obj_val :a) * (obj_val :b))
+end
+
+to mal_div :a :b
+output obj_new "number ((obj_val :a) / (obj_val :b))
+end
+
+to repl
+localmake "running "true
+while [:running] [
+  localmake "line readline word "user> :space_char
+  ifelse :line=[] [
+    print "
+    make "running "false
+  ] [
+    if not emptyp :line [
+      catch "error [print rep :line]
+      localmake "exception error
+      if not emptyp :exception [
+        (print "Error: first butfirst :exception)
+      ]
+    ]
+  ]
+]
+end
+
+make "repl_env []
+make "repl_env hashmap_put :repl_env symbol_new "+ "mal_add
+make "repl_env hashmap_put :repl_env symbol_new "- "mal_sub
+make "repl_env hashmap_put :repl_env symbol_new "* "mal_mul
+make "repl_env hashmap_put :repl_env symbol_new "/ "mal_div
+repl
+bye

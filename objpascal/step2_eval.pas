@@ -82,6 +82,8 @@ begin
 
     // Apply list
     Arr := (eval_ast(Ast, Env) as TMalList).Val;
+    if Length(Arr) = 0 then
+        Exit(Ast);
     if Arr[0] is TMalFunc then
     begin
         Fn := (Arr[0] as TMalFunc).Val;

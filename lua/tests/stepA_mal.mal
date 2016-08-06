@@ -1,0 +1,38 @@
+;; Testing basic Lua interop
+
+;;; lua-eval adds the string "return " to the beginning of the evaluated string
+;;; and supplies that to Lua's loadstring().  If complex programs are needed,
+;;; those can be wrapped by an anonymous function which is called immediately
+;;; (see the foo = 8 example below).
+
+(lua-eval "7")
+;=>7
+
+(lua-eval "'7'")
+;=>"7"
+
+(lua-eval "123 == 123")
+;=>true
+
+(lua-eval "123 == 456")
+;=>false
+
+(lua-eval "{7,8,9}")
+;=>(7 8 9)
+
+(lua-eval "{abc = 789}")
+;=>{"abc" 789}
+
+(lua-eval "print('hello')")
+; hello
+;=>nil
+
+(lua-eval "(function() foo = 8 end)()")
+(lua-eval "foo")
+;=>8
+
+(lua-eval "string.gsub('This sentence has five words', '%w+', function(w) return '*'..#w..'*' end)")
+;=>"*4* *8* *3* *4* *5*"
+
+(lua-eval "table.concat({3, 'a', 45, 'b'}, '|')")
+;=>"3|a|45|b"

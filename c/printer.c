@@ -29,13 +29,13 @@ char *_pr_str_hash_map(MalVal *obj, int print_readably) {
         } else {
             repr_tmp2 = repr;
             repr = g_strdup_printf("%s %s %s", repr_tmp2, (char*)key2, repr_tmp1);
-            free(repr_tmp2);
+            MAL_GC_FREE(repr_tmp2);
         }
-        free(repr_tmp1);
+        MAL_GC_FREE(repr_tmp1);
     }
     repr_tmp2 = repr;
     repr = g_strdup_printf("%s}", repr_tmp2);
-    free(repr_tmp2);
+    MAL_GC_FREE(repr_tmp2);
     return repr;
 }
 
@@ -51,13 +51,13 @@ char *_pr_str_list(MalVal *obj, int print_readably, char start, char end) {
         } else {
             repr_tmp2 = repr;
             repr = g_strdup_printf("%s %s", repr_tmp2, repr_tmp1);
-            free(repr_tmp2);
+            MAL_GC_FREE(repr_tmp2);
         }
-        free(repr_tmp1);
+        MAL_GC_FREE(repr_tmp1);
     }
     repr_tmp2 = repr;
     repr = g_strdup_printf("%s%c", repr_tmp2, end);
-    free(repr_tmp2);
+    MAL_GC_FREE(repr_tmp2);
     return repr;
 }
 
@@ -84,7 +84,7 @@ char *_pr_str(MalVal *obj, int print_readably) {
         } else if (print_readably) {
             char *repr_tmp = g_strescape(obj->val.string, "");
             repr = g_strdup_printf("\"%s\"", repr_tmp);
-            free(repr_tmp);
+            MAL_GC_FREE(repr_tmp);
         } else {
             repr = g_strdup_printf("%s", obj->val.string);
         }
@@ -139,13 +139,16 @@ char *_pr_str_args(MalVal *args, char *sep, int print_readably) {
         if (i != 0) {
             repr2 = repr;
             repr = g_strdup_printf("%s%s", repr2, sep);
-            free(repr2);
+            MAL_GC_FREE(repr2);
         }
         repr2 = repr;
         repr = g_strdup_printf("%s%s",
                                repr2, _pr_str(obj, print_readably));
-        free(repr2);
+        MAL_GC_FREE(repr2);
     }
-    return repr;
+    char* res = MAL_GC_STRDUP(repr);
+    MAL_GC_FREE(repr);
+    // TODO - check why STRDUP was needed here
+    return res;
 }
 

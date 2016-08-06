@@ -27,20 +27,13 @@ RUN apt-get -y install clang-3.6 cmake pkg-config \
     libbsd-dev libedit-dev libxml2-dev libsqlite3-dev \
     swig libpython-dev libncurses5-dev
 
-ENV SWIFT_PREFIX swift-DEVELOPMENT-SNAPSHOT-2016-02-08-a
+ENV SWIFT_PREFIX swift-3.0-PREVIEW-3
 ENV SWIFT_RELEASE ${SWIFT_PREFIX}-ubuntu15.10
 
 RUN cd /opt && \
-    curl -O https://swift.org/builds/development/ubuntu1510/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
+    curl -O https://swift.org/builds/swift-3.0-preview-3/ubuntu1510/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
     tar xvzf ${SWIFT_RELEASE}.tar.gz && \
     rm ${SWIFT_RELEASE}.tar.gz
-
-#    tar xvzf ${SWIFT_RELEASE}.tar.gz --directory / --strip-components 1 && \
-#RUN find /usr -type f | xargs -ifoo chmod go+r foo && \
-#    find /usr -type d | xargs -ifoo chmod go+rx foo
-
-#RUN find /opt/${SWIFT_RELEASE}/ -type f | xargs -ifoo chmod go+r foo && \
-#    find /opt/${SWIFT_RELEASE}/ -type d | xargs -ifoo chmod go+rx foo
 
 ENV PATH /opt/${SWIFT_RELEASE}/usr/bin/:$PATH
 

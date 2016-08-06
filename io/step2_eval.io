@@ -21,6 +21,7 @@ eval_ast := method(ast, env,
 
 EVAL := method(ast, env,
     if(ast type != "MalList", return(eval_ast(ast, env)))
+    if(ast isEmpty, return ast)
     el := eval_ast(ast, env)
     f := el at(0)
     args := el rest

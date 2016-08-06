@@ -76,7 +76,7 @@
         (throw 'return (eval-ast ast env)))
 
       (setq ast (MACROEXPAND ast env))
-      (when (not (mal-list-p ast))
+      (when (or (not (mal-list-p ast)) (not (mal-value ast)))
         (throw 'return (eval-ast ast env)))
 
       (let* ((a (mal-value ast))
@@ -113,8 +113,6 @@
             (throw 'return (mal-env-set env identifier value))))
          ((eq a0* 'macroexpand)
           (throw 'return (MACROEXPAND a1 env)))
-         ((eq a0* 'elisp*)
-          (throw 'return (mal-string (format "%S" (eval (read (mal-value a1)))))))
          ((eq a0* 'try*)
           (condition-case err
               (throw 'return (EVAL a1 env))

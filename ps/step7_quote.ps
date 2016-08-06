@@ -78,7 +78,9 @@ end } def
         ast env eval_ast
     }{ %else apply the list
         /a0 ast 0 _nth def
-        /def! a0 eq { %if def!
+        a0 _nil? { %if ()
+            ast
+        }{ /def! a0 eq { %if def!
             /a1 ast 1 _nth def
             /a2 ast 2 _nth def
             env a1  a2 env EVAL  env_set
@@ -139,7 +141,7 @@ end } def
             }{ %else (regular procedure/function)
                 (cannot apply native proc!\n) print quit
             } ifelse } ifelse
-        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse 
+        } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse } ifelse
     } ifelse
 
     loop? not { exit } if

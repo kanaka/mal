@@ -25,16 +25,17 @@ loop(Env) ->
             io:format("Error reading input: ~s~n", [Reason]),
             exit(ioerr);
         Line ->
-            rep(string:strip(Line, both, $\n), Env),
+            print(rep(string:strip(Line, both, $\n), Env)),
             loop(Env)
     end.
 
 rep(Input, Env) ->
     AST = read(Input),
     try eval(AST, Env) of
-        Result -> print(Result)
+        none -> none;
+        Result -> printer:pr_str(Result, true)
     catch
-        error:Reason -> io:format("error: ~s~n", [Reason])
+        error:Reason -> printer:pr_str({error, Reason}, true)
     end.
 
 read(String) ->
@@ -43,6 +44,8 @@ read(String) ->
         {error, Reason} -> io:format("error: ~s~n", [Reason]), nil
     end.
 
+eval({list, [], _Meta}=AST, _Env) ->
+    AST;
 eval({list, List, Meta}, Env) ->
     case eval_ast({list, List, Meta}, Env) of
         {list, [F|Args], _M} -> erlang:apply(F, [Args]);
@@ -74,4 +77,4 @@ print(none) ->
     % if nothing meaningful was entered, print nothing at all
     ok;
 print(Value) ->
-    io:format("~s~n", [printer:pr_str(Value, true)]).
+    io:format("~s~n", [Value]).

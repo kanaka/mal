@@ -1,12 +1,12 @@
 import Foundation
 
 // read
-func READ(str: String) throws -> MalVal {
+func READ(_ str: String) throws -> MalVal {
     return try read_str(str)
 }
 
 // eval
-func is_pair(ast: MalVal) -> Bool {
+func is_pair(_ ast: MalVal) -> Bool {
     switch ast {
     case MalVal.MalList(let lst, _):   return lst.count > 0
     case MalVal.MalVector(let lst, _): return lst.count > 0
@@ -14,7 +14,7 @@ func is_pair(ast: MalVal) -> Bool {
     }
 }
 
-func quasiquote(ast: MalVal) -> MalVal {
+func quasiquote(_ ast: MalVal) -> MalVal {
     if !is_pair(ast) {
         return list([MalVal.MalSymbol("quote"), ast])
     }
@@ -22,7 +22,7 @@ func quasiquote(ast: MalVal) -> MalVal {
     switch a0 {
     case MalVal.MalSymbol("unquote"):
         return try! _nth(ast, 1)
-    default: true // fallthrough
+    default: break
     }
     if is_pair(a0) {
         let a00 = try! _nth(a0, 0)
@@ -31,7 +31,7 @@ func quasiquote(ast: MalVal) -> MalVal {
             return list([MalVal.MalSymbol("concat"),
                         try! _nth(a0, 1),
                         quasiquote(try! rest(ast))])
-        default: true // fallthrough
+        default: break
         }
     }
 
@@ -40,7 +40,7 @@ func quasiquote(ast: MalVal) -> MalVal {
                  quasiquote(try! rest(ast))])
 }
 
-func is_macro(ast: MalVal, _ env: Env) -> Bool {
+func is_macro(_ ast: MalVal, _ env: Env) -> Bool {
     switch ast {
     case MalVal.MalList(let lst, _) where lst.count > 0:
         let a0 = lst[lst.startIndex]
@@ -62,7 +62,7 @@ func is_macro(ast: MalVal, _ env: Env) -> Bool {
     }
 }
 
-func macroexpand(orig_ast: MalVal, _ env: Env) throws -> MalVal {
+func macroexpand(_ orig_ast: MalVal, _ env: Env) throws -> MalVal {
     var ast: MalVal = orig_ast
     while is_macro(ast, env) {
         switch try! env.get(try! _nth(ast, 0)) {
@@ -74,7 +74,7 @@ func macroexpand(orig_ast: MalVal, _ env: Env) throws -> MalVal {
     return ast
 }
 
-func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
+func eval_ast(_ ast: MalVal, _ env: Env) throws -> MalVal {
     switch ast {
     case MalVal.MalSymbol:
         return try env.get(ast)
@@ -91,17 +91,17 @@ func eval_ast(ast: MalVal, _ env: Env) throws -> MalVal {
     }
 }
 
-func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
+func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
   var ast = orig_ast, env = orig_env
   while true {
     switch ast {
-    case MalVal.MalList: true
+    case MalVal.MalList(let lst, _): if lst.count == 0 { return ast }
     default: return try eval_ast(ast, env)
     }
 
     ast = try macroexpand(ast, env)
     switch ast {
-    case MalVal.MalList: true
+    case MalVal.MalList: break
     default: return try eval_ast(ast, env)
     }
 
@@ -121,9 +121,9 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
             }
             var idx = binds.startIndex
             while idx < binds.endIndex {
-                let v = try EVAL(binds[idx.successor()], let_env)
+                let v = try EVAL(binds[binds.index(after: idx)], let_env)
                 try let_env.set(binds[idx], v)
-                idx = idx.successor().successor()
+                idx = binds.index(idx, offsetBy: 2)
             }
             env = let_env
             ast = lst[2] // TCO
@@ -167,17 +167,17 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
                             }
                             return try EVAL(a22, Env(env, binds: list([a21]),
                                                           exprs: list([err])))
-                        default: true // fall through
+                        default: break
                         }
-                    default: true // fall through
+                    default: break
                     }
                 }
                 throw exc
             }
         case MalVal.MalSymbol("do"):
-            let slc = lst[1..<lst.endIndex.predecessor()]
-            try eval_ast(list(Array(slc)), env)
-            ast = lst[lst.endIndex.predecessor()] // TCO
+            let slc = lst[1..<lst.index(before: lst.endIndex)]
+            try _ = eval_ast(list(Array(slc)), env)
+            ast = lst[lst.index(before: lst.endIndex)] // TCO
         case MalVal.MalSymbol("if"):
             switch try EVAL(lst[1], env) {
             case MalVal.MalFalse, MalVal.MalNil:
@@ -219,13 +219,14 @@ func EVAL(orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
 }
 
 // print
-func PRINT(exp: MalVal) -> String {
+func PRINT(_ exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 
 // repl
-func rep(str:String) throws -> String {
+@discardableResult
+func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), repl_env))
 }
 
@@ -240,8 +241,8 @@ try repl_env.set(MalVal.MalSymbol("eval"),
 let pargs = Process.arguments.map { MalVal.MalString($0) }
 // TODO: weird way to get empty list, fix this
 var args = pargs[pargs.startIndex..<pargs.startIndex]
-if pargs.startIndex.advancedBy(2) < pargs.endIndex {
-    args = pargs[pargs.startIndex.advancedBy(2)..<pargs.endIndex]
+if pargs.index(pargs.startIndex, offsetBy:2) < pargs.endIndex {
+    args = pargs[pargs.index(pargs.startIndex, offsetBy:2)..<pargs.endIndex]
 }
 try repl_env.set(MalVal.MalSymbol("*ARGV*"), list(Array(args)))
 
@@ -262,7 +263,7 @@ if Process.arguments.count > 1 {
 
 while true {
     print("user> ", terminator: "")
-    let line = readLine(stripNewline: true)
+    let line = readLine(strippingNewline: true)
     if line == nil { break }
     if line == "" { continue }
 

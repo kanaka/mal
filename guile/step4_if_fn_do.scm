@@ -60,6 +60,7 @@
        ((null? (cdr next)) (throw 'mal-error "let*: Invalid binding form" kvs)) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (match ast
+    (() ast)
     (('def! k v) ((env 'set) k (EVAL v env)))
     (('let* kvs body)
      (let* ((new-env (make-Env #:outer env))

@@ -75,7 +75,7 @@ M: callable apply call( x -- y ) f ;
 : READ ( str -- maltype ) read-str ;
 
 : EVAL ( maltype env -- maltype )
-    over array? [
+    over { [ array? ] [ empty? not ] } 1&& [
         over first dup malsymbol? [ name>> ] when {
             { "def!" [ [ rest first2 ] dip eval-def! f ] }
             { "let*" [ [ first2 ] dip eval-let* ] }
@@ -104,9 +104,15 @@ M: callable apply call( x -- y ) f ;
         ] keep
     ] loop ;
 
+: main ( -- )
+    command-line get
+    [ REPL ]
+    [ first "(load-file \"" "\")" surround REP drop ]
+    if-empty ;
+
 f ns clone
 [ first repl-env get EVAL ] "eval" pick set-at
-command-line get "*ARGV*" pick set-at
+command-line get dup empty? [ rest ] unless "*ARGV*" pick set-at
 <malenv> repl-env set-global
 
 "
@@ -114,4 +120,4 @@ command-line get "*ARGV*" pick set-at
 (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))
 " string-lines harvest [ REP drop ] each
 
-MAIN: REPL
+MAIN: main

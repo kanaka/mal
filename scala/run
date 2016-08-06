@@ -1,0 +1,2 @@
+#!/bin/bash
+exec java -classpath "$(dirname $0)/target/scala-2.11/mal.jar" "${STEP:-stepA_mal}" "$@"

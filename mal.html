@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <!--
 Copyright (c) 2014 Joel Martin
 Copyright (c) 2012 Fogus, Jen Myers and Relevance Inc.
@@ -12,6 +13,7 @@ this software.
 
 <html>
 <head>
+  <meta charset="UTF-8" />
   <link rel="stylesheet" type="text/css" href="js/web/base.css" />
   <link rel="stylesheet" type="text/css" href="js/web/layout.css" />
   <link rel="stylesheet" type="text/css" href="js/web/skeleton.css" />
@@ -65,17 +67,17 @@ this software.
             <td class="row-label">Maps</td>
             <td>{"key1" "val1", "key2" 123}</td>
           </tr>
-          <tr class="row-one">
+          <tr>
             <td class="row-label">Lists</td>
             <td>(1 2 3 "four")</td>
           </tr>
-          <tr>
+          <tr class="row-one">
             <td class="row-label">Vectors</td>
             <td>[1 2 3 4 "a" "b" "c" 1 2]</td>
           </tr>
           <tr>
             <td class="row-label">Scalars</td>
-            <td>a-symbol, "a string", 123, nil, true, false</td>
+            <td>a-symbol, "a string", :a_keyword, 123, nil, true, false</td>
           </tr>
         </table>
       </div><!-- /cheat-box -->
@@ -92,13 +94,13 @@ this software.
             <td>(def! <span class="ebnf">&lt;name&gt;</span> 
                   (fn*
                   [<span class="ebnf">&lt;args*&gt;</span>]
-                  <span class="ebnf">&lt;action*&gt;</span>))</td>
+                  <span class="ebnf">&lt;action&gt;</span>))</td>
           </tr>
           <tr class="row-one">
             <td class="row-label">Anonymous function</td>
-            <td>(fn* <span class="ebnf">|name|</span>
+            <td>(fn*
                   [<span class="ebnf">&lt;args*&gt;</span>]
-                  <span class="ebnf">&lt;action*&gt;</span>)</td>
+                  <span class="ebnf">&lt;action&gt;</span>)</td>
           </tr>
         </table>
       </div><!-- /cheat-box -->
@@ -124,6 +126,14 @@ this software.
             <td class="row-label">Defining things</td>
             <td>def! defmacro! let*</td>
           </tr>
+          <tr>
+            <td class="row-label">Quoting</td>
+            <td>' ` ~ ~@</td>
+          </tr>
+          <tr class="row-one">
+            <td class="row-label">Examining macros</td>
+            <td>macroexpand</td>
+          </tr>
 	</table>
       </div>
     </div><!-- /cheat-box-container -->
@@ -142,7 +152,7 @@ this software.
           </tr>
           <tr class="row-one">
             <td class="row-label">Predicates</td>
-            <td>nil? true? false? symbol? list? vector? map? sequential?</td>
+            <td>nil? true? false? symbol? keyword? string? list? vector? map? sequential?</td>
           </tr>
           <tr>
             <td class="row-label">Data processing</td>
@@ -162,11 +172,27 @@ this software.
           </tr>
           <tr>
             <td class="row-label">Lists and Vectors</td>
-            <td>first rest nth</td></td>
+            <td>first rest nth seq</td></td>
           </tr>
           <tr class="row-one">
             <td class="row-label">Hash Maps</td>
             <td>get keys vals contains?</td></td>
+          </tr>
+          <tr>
+            <td class="row-label">Strings</td>
+            <td>str pr-str seq</td></td>
+          </tr>
+          <tr class="row-one">
+            <td class="row-label">Atoms</td>
+            <td>atom atom? deref[@] reset! swap!</td></td>
+          </tr>
+          <tr>
+            <td class="row-label">Meta</td>
+            <td>meta with-meta[^]</td></td>
+          </tr>
+          <tr class="row-one">
+            <td class="row-label">Output</td>
+            <td>println prn</td></td>
           </tr>
         </table>
       </div><!-- /cheat-box -->
@@ -175,7 +201,7 @@ this software.
         <table>
           <tr class="row-one">
             <td class="row-label">Evaluate JavaScript</td>
-            <td>(js* "JS string to eval")</td>
+            <td>(js-eval "JS string to eval")</td>
           </tr>
           <tr>
             <td class="row-label">Method call/access</td>

@@ -1,12 +1,3 @@
-;; Testing read of nil/true/false
-nil
-;=>nil
-true
-;=>true
-false
-;=>false
-
-
 ;; Testing read of numbers
 1
 ;=>1
@@ -31,21 +22,6 @@ abc-def
 ;=>abc-def
 
 
-;; Testing read of strings
-"abc"
-;=>"abc"
-   "abc"   
-;=>"abc"
-"abc (with parens)"
-;=>"abc (with parens)"
-"abc\"def"
-;=>"abc\"def"
-;;;"abc\ndef"
-;;;;=>"abc\ndef"
-""
-;=>""
-
-
 ;; Testing read of lists
 (+ 1 2)
 ;=>(+ 1 2)
@@ -66,6 +42,45 @@ abc-def
 (1 2, 3,,,,),,
 ;=>(1 2 3)
 
+
+;>>> deferrable=True
+
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing read of nil/true/false
+nil
+;=>nil
+true
+;=>true
+false
+;=>false
+
+;; Testing read of strings
+"abc"
+;=>"abc"
+   "abc"   
+;=>"abc"
+"abc (with parens)"
+;=>"abc (with parens)"
+"abc\"def"
+;=>"abc\"def"
+;;;"abc\ndef"
+;;;;=>"abc\ndef"
+""
+;=>""
+
+;; Testing reader errors
+;;; TODO: fix these so they fail correctly
+(1 2
+; expected ')', got EOF
+[1 2
+; expected ']', got EOF
+"abc
+; expected '"', got EOF
+(1 "abc
+; expected ')', got EOF
+
 ;; Testing read of quoting
 '1
 ;=>(quote 1)
@@ -82,18 +97,8 @@ abc-def
 ~@(1 2 3)
 ;=>(splice-unquote (1 2 3))
 
-;;
-;; Testing reader errors
-;;; TODO: fix these so they fail correctly
-(1 2
-; expected ')', got EOF
-[1 2
-; expected ']', got EOF
-"abc
-; expected '"', got EOF
-(1 "abc
-; expected ')', got EOF
 
+;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
 

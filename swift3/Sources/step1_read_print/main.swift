@@ -1,29 +1,29 @@
 import Foundation
 
 // read
-func READ(str: String) throws -> MalVal {
+func READ(_ str: String) throws -> MalVal {
     return try read_str(str)
 }
 
 // eval
-func EVAL(ast: MalVal, _ env: String) throws -> MalVal {
+func EVAL(_ ast: MalVal, _ env: String) throws -> MalVal {
     return ast
 }
 
 // print
-func PRINT(exp: MalVal) -> String {
+func PRINT(_ exp: MalVal) -> String {
     return pr_str(exp, true)
 }
 
 
 // repl
-func rep(str:String) throws -> String {
+func rep(_ str:String) throws -> String {
     return PRINT(try EVAL(try READ(str), ""))
 }
 
 while true {
     print("user> ", terminator: "")
-    let line = readLine(stripNewline: true)
+    let line = readLine(strippingNewline: true)
     if line == nil { break }
     if line == "" { continue }
 

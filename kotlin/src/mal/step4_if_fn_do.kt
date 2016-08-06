@@ -3,7 +3,7 @@ package mal
 fun read(input: String?): MalType = read_str(input)
 
 fun eval(ast: MalType, env: Env): MalType =
-    if (ast is MalList) {
+    if (ast is MalList && ast.count() > 0) {
         val first = ast.first()
         if (first is MalSymbol) {
             when (first.value) {

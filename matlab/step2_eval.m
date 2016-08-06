@@ -40,6 +40,10 @@ function ret = EVAL(ast, env)
     end
 
     % apply
+    if length(ast) == 0
+        ret = ast;
+        return;
+    end
     el = eval_ast(ast, env);
     f = el.get(1);
     args = el.data(2:end);

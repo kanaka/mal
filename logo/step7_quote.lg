@@ -1,0 +1,178 @@
+load "../logo/readline.lg
+load "../logo/reader.lg
+load "../logo/printer.lg
+load "../logo/types.lg
+load "../logo/env.lg
+load "../logo/core.lg
+
+to _read :str
+output read_str :str
+end
+
+to pairp :obj
+output and sequentialp :obj ((_count :obj) > 0)
+end
+
+to quasiquote :ast
+if not pairp :ast [output (mal_list symbol_new "quote :ast)]
+localmake "a0 nth :ast 0
+if symbolnamedp "unquote :a0 [output nth :ast 1]
+if pairp :a0 [
+  localmake "a00 nth :a0 0
+  if symbolnamedp "splice-unquote :a00 [
+    localmake "a01 nth :a0 1
+    output (mal_list symbol_new "concat :a01 (mal_list symbol_new "quasiquote rest :ast))
+  ]
+]
+output (mal_list symbol_new "cons (mal_list symbol_new "quasiquote :a0) (mal_list symbol_new "quasiquote rest :ast))
+end
+
+to eval_ast :ast :env
+output case (obj_type :ast) [
+  [[symbol]  env_get :env :ast]
+  [[list]    obj_new "list    map [_eval ? :env] obj_val :ast]
+  [[vector]  obj_new "vector  map [_eval ? :env] obj_val :ast]
+  [[hashmap] obj_new "hashmap map [_eval ? :env] obj_val :ast]
+  [else :ast]
+]
+end
+
+to _eval :a_ast :a_env
+localmake "ast :a_ast
+localmake "env :a_env
+forever [
+  if (obj_type :ast) <> "list [output eval_ast :ast :env]
+  if emptyp obj_val :ast [output :ast]
+  localmake "a0 nth :ast 0
+  case list obj_type :a0 obj_val :a0 [
+    [[[symbol def!]]
+      localmake "a1 nth :ast 1
+      localmake "a2 nth :ast 2
+      output env_set :env :a1 _eval :a2 :env ]
+
+    [[[symbol let*]]
+      localmake "a1 nth :ast 1
+      localmake "letenv env_new :env [] []
+      localmake "i 0
+      while [:i < _count :a1] [
+        ignore env_set :letenv nth :a1 :i _eval nth :a1 (:i + 1) :letenv
+        make "i (:i + 2)
+      ]
+      make "env :letenv
+      make "ast nth :ast 2 ]        ; TCO
+
+    [[[symbol quote]]
+      output nth :ast 1  ]
+
+    [[[symbol quasiquote]]
+      make "ast quasiquote nth :ast 1 ]     ; TCO
+
+    [[[symbol do]]
+      localmake "i 1
+      while [:i < ((_count :ast) - 1)] [
+        ignore _eval nth :ast :i :env
+        make "i (:i + 1)
+      ]
+      make "ast last obj_val :ast ] ; TCO
+
+    [[[symbol if]]
+      localmake "a1 nth :ast 1
+      localmake "cond _eval :a1 :env
+      case obj_type :cond [
+        [[nil false] ifelse (_count :ast) > 3 [
+                       make "ast nth :ast 3  ; TCO
+                     ] [
+                       output nil_new
+                     ]]
+        [else        make "ast nth :ast 2]   ; TCO
+      ]]
+
+    [[[symbol fn*]]
+      output fn_new nth :ast 1 :env nth :ast 2 ]
+
+    [else
+      localmake "el eval_ast :ast :env
+      localmake "f nth :el 0
+      case obj_type :f [
+        [[nativefn]
+          output apply obj_val :f butfirst obj_val :el ]
+        [[fn]
+          make "env env_new fn_env :f fn_args :f rest :el
+          make "ast fn_body :f ]  ; TCO
+        [else
+          (throw "error [Wrong type for apply])]
+      ] ]
+  ]
+]
+end
+
+to _print :exp
+output pr_str :exp "true
+end
+
+to re :str
+output _eval _read :str :repl_env
+end
+
+to rep :str
+output _print re :str
+end
+
+to print_exception :exception
+if not emptyp :exception [
+  localmake "e first butfirst :exception
+  ifelse :e = "_mal_exception_ [
+    (print "Error: pr_str :global_exception "false)
+  ] [
+    (print "Error: :e)
+  ]
+]
+end
+
+to repl
+localmake "running "true
+while [:running] [
+  localmake "line readline word "user> :space_char
+  ifelse :line=[] [
+    print "
+    make "running "false
+  ] [
+    if not emptyp :line [
+      catch "error [print rep :line]
+      localmake "exception error
+      if not emptyp :exception [
+        (print "Error: first butfirst :exception)
+      ]
+    ]
+  ]
+]
+end
+
+to mal_eval :a
+output _eval :a :repl_env
+end
+
+to argv_list
+localmake "argv ifelse emptyp :command.line [[]] [butfirst :command.line]
+output obj_new "list map [obj_new "string ?] :argv
+end
+
+make "repl_env env_new [] [] []
+foreach :core_ns [
+  ignore env_set :repl_env first ? first butfirst ?
+]
+ignore env_set :repl_env [symbol eval] [nativefn mal_eval]
+ignore env_set :repl_env [symbol *ARGV*] argv_list
+
+; core.mal: defined using the language itself
+ignore re "|(def! not (fn* (a) (if a false true)))|
+ignore re "|(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))|
+
+if not emptyp :command.line [
+  catch "error [ignore re (word "\(load-file :space_char "\" first :command.line "\"\) )]
+  print_exception error
+  bye
+]
+
+repl
+bye

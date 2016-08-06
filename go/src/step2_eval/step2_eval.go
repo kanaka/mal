@@ -79,6 +79,10 @@ func EVAL(ast MalType, env map[string]MalType) (MalType, error) {
 		return eval_ast(ast, env)
 	}
 
+	if len(ast.(List).Val) == 0 {
+		return ast, nil
+	}
+
 	// apply list
 	el, e := eval_ast(ast, env)
 	if e != nil {

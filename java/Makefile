@@ -25,7 +25,7 @@ mal: mal.jar
 src/main/mal/%.java:
 	mvn install
 
-target/classes/mal/step%.class: src/main/mal/step%.java ${SOURCES}
+target/classes/mal/step%.class: src/main/java/mal/step%.java ${SOURCES}
 	mvn install
 
 clean:
