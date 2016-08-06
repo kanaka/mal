@@ -11,6 +11,8 @@ public class MalTimeMs extends MalSubr
         f => int timestamp;
         f.close();
 
+        Std.system("rm " + temp_file);
+
         return MalInt.create(timestamp);
     }
 }
