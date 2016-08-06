@@ -401,9 +401,9 @@ fun void main()
     }
 }
 
-if( args.size() > 1 )
+if( args.size() > 0 )
 {
-    args[1] => string filename;
+    args[0] => string filename;
     rep("(load-file \"" + filename + "\")");
 }
 else
