@@ -1,3 +1,4 @@
+// @import readline.ck
 // @import types/boxed/*.ck
 // @import types/MalObject.ck
 // @import types/mal/MalAtom.ck
@@ -448,22 +449,28 @@ rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first x
 
 fun void main()
 {
-    ConsoleInput stdin;
-    string input;
+    int done;
 
-    while( true )
+    while( !done )
     {
-        stdin.prompt("user>") => now;
-        stdin.getLine() => input;
-        rep(input) => string output;
+        Readline.readline("user> ") => string input;
 
-        if( output == "empty input" )
+        if( input != null )
         {
-            // proceed immediately with prompt
+            rep(input) => string output;
+
+            if( output == "empty input" )
+            {
+                // proceed immediately with prompt
+            }
+            else
+            {
+                Util.println(output);
+            }
         }
         else
         {
-            Util.println(output);
+            true => done;
         }
     }
 }

@@ -1,3 +1,5 @@
+// @import readline.ck
+
 fun string READ(string input)
 {
     return input;
@@ -20,14 +22,20 @@ fun string rep(string input)
 
 fun void main()
 {
-    ConsoleInput stdin;
-    string input;
+    int done;
 
-    while( true )
+    while( !done )
     {
-        stdin.prompt("user>") => now;
-        stdin.getLine() => input;
-        chout <= rep(input) + "\n";
+        Readline.readline("user> ") => string input;
+
+        if( input != null )
+        {
+            chout <= rep(input) + "\n";
+        }
+        else
+        {
+            true => done;
+        }
     }
 }
 
