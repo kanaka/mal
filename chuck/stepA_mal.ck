@@ -412,11 +412,11 @@ eval @=> (repl_env.get("map")$MalSubr).eval;
 
 fun MalObject[] MalArgv(string args[])
 {
-    MalObject values[args.size()-1];
+    MalObject values[0];
 
     for( 1 => int i; i < args.size(); i++ )
     {
-        MalString.create(args[i]) @=> values[i-1];
+        values << MalString.create(args[i]);
     }
 
     return values;

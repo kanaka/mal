@@ -1,0 +1,2 @@
+#!/bin/bash
+exec ./run_chuck.rb --silent $(dirname $0)/${STEP:-stepA_mal}.ck "${@}"
