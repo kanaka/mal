@@ -41,6 +41,15 @@ public class Readline
                 {
                     true => done;
                 }
+                else if( repr == "DEL" && Std.getenv("TERM") != "dumb")
+                {
+                    if( input.length() > 0)
+                    {
+                        chout <= "\033[1D\033[0K";
+                        chout.flush();
+                        input.substring(0, input.length()-1) => input;
+                    }
+                }
                 else
                 {
                     chout <= repr;
