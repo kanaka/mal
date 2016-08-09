@@ -12,6 +12,7 @@ matrix:
     - {env: IMPL=cpp,       services: [docker]}
     - {env: IMPL=coffee,    services: [docker]}
     - {env: IMPL=cs,        services: [docker]}
+    - {env: IMPL=chuck,     services: [docker]}
     - {env: IMPL=clojure,   services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
     - {env: IMPL=d,         services: [docker]}

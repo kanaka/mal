@@ -77,7 +77,7 @@ DOCKERIZE =
 # Settings
 #
 
-IMPLS = ada awk bash c d clojure coffee cpp crystal cs erlang elisp \
+IMPLS = ada awk bash c d chuck clojure coffee cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
 	io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl perl6 php plpgsql plsql ps python r \
@@ -146,6 +146,7 @@ awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
 c_STEP_TO_PROG =       c/$($(1))
 d_STEP_TO_PROG =       d/$($(1))
+chuck_STEP_TO_PROG =   chuck/$($(1)).ck
 clojure_STEP_TO_PROG = clojure/target/$($(1)).jar
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 cpp_STEP_TO_PROG =     cpp/$($(1))
@@ -220,7 +221,7 @@ get_build_prefix = $(if $(strip $(DOCKERIZE)),docker run -it --rm -u $(shell id 
 # Returns a command prefix (docker command and environment variables)
 # necessary to launch the given impl and step
 get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
-    docker run -e STEP=$($2) \
+    docker run -e STEP=$($2) -e MAL_IMPL=$(MAL_IMPL) \
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
     -w /mal/$(call actual_impl,$(1)) \
@@ -229,7 +230,7 @@ get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
     $(foreach env,$(3),-e $(env)) \
     $(call impl_to_image,$(call actual_impl,$(1))) \
     ,\
-    env STEP=$($2) \
+    env STEP=$($2) MAL_IMPL=$(MAL_IMPL) \
     $(if $(filter haxe,$(1)),HAXE_MODE=$(HAXE_MODE),) \
     $(if $(filter factor,$(1)),FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(3)))

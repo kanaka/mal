@@ -1,0 +1,5 @@
+#!/bin/bash
+imports=$(grep "^ *// *@import" "$(dirname $0)/${STEP:-stepA_mal}.ck" | awk '{print $3}')
+imports=$(for i in ${imports}; do ls $(dirname $0)/${i}; done)
+old_IFS="${IFS}"; IFS=$'\a'; export CHUCK_ARGS="${*}"; IFS="${old_IFS}"
+exec chuck --caution-to-the-wind --silent ${imports} $(dirname $0)/${STEP:-stepA_mal}.ck
