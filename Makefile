@@ -221,7 +221,7 @@ get_build_prefix = $(if $(strip $(DOCKERIZE)),docker run -it --rm -u $(shell id 
 # Returns a command prefix (docker command and environment variables)
 # necessary to launch the given impl and step
 get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
-    docker run -e STEP=$($2) \
+    docker run -e STEP=$($2) -e MAL_IMPL=$(MAL_IMPL) \
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
     -w /mal/$(call actual_impl,$(1)) \
@@ -230,7 +230,7 @@ get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
     $(foreach env,$(3),-e $(env)) \
     $(call impl_to_image,$(call actual_impl,$(1))) \
     ,\
-    env STEP=$($2) \
+    env STEP=$($2) MAL_IMPL=$(MAL_IMPL) \
     $(if $(filter haxe,$(1)),HAXE_MODE=$(HAXE_MODE),) \
     $(if $(filter factor,$(1)),FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(3)))
