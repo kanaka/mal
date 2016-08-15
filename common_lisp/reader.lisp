@@ -6,24 +6,13 @@
 
 (in-package :reader)
 
-(defvar *two-char-token* "~@"
-  "RE two char")
-
-(defvar *single-char-token* "[][{}()`'^@]"
-  "RE single char")
-
-(defvar *string-re* "\"\\(?:\\\\\\(?:.\\|\n\\)\\|[^\"\\]\\)*\""
+(defvar *string-re* "^\"\\(\\\\\\(.\\|
+\\)\\|[^\"\\]\\)*\"$"
   "RE string")
 
-(defvar *comment-re* ";[^
-]*"
-  "RE comment")
-
-(defvar *identifier-re* "[^][[:space:]{}()`'\";]\\+"
-  "RE identifier")
-
-(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()`'^@]\\|\"\\(\\\\\\(.\\|\n\\)\\|[^\"\\]\\)*\"\\|;[^
-]*\\|[^][[:space:]{}()`'\";]\\+\\)"
+(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()`'^@]\\|\"\\(\\\\\\(.\\|
+\\)\\|[^\"\\]\\)*\"\\?\\|;[^
+]*\\|[^][[:space:]{}()`'\";]*\\)"
   "RE")
 
 (define-condition eof (error)
@@ -33,6 +22,15 @@
                      "EOF encountered while reading ~a"
                      (context condition)))))
 
+(defun parse-string (token)
+  (if (and (> (length token) 1)
+           (regexp:match *string-re* token))
+      (read-from-string token)
+      ;; A bit inaccurate
+      (error 'eof
+             :context "string")))
+
+;; Useful to debug regexps
 (defun test-re (re string)
   (let ((match (regexp:match re string)))
     (when match
@@ -105,6 +103,7 @@
     (consume reader)
     (nreverse forms)))
 
+
 (defun read-atom (reader)
   (let ((token (next reader)))
     (cond
@@ -117,5 +116,5 @@
       ((string= token "nil")
        (make-mal-nil nil))
       ((char= (char token 0) #\")
-       (make-mal-string (read-from-string token)))
+       (make-mal-string (parse-string token)))
       (t (make-mal-symbol (read-from-string-preserving-case token))))))
