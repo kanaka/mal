@@ -88,6 +88,7 @@
       ((string= token "[") (make-mal-vector (read-mal-sequence reader
                                                                "]"
                                                                'vector)))
+      ((string= token "{") (make-mal-hash-map (read-hash-map reader)))
       (t (read-atom reader)))))
 
 (defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
@@ -107,6 +108,29 @@
     (consume reader)
     (apply constructor (nreverse forms))))
 
+(defun read-hash-map (reader)
+  ;; Consume the open brace
+  (consume reader)
+  (let (forms
+        (hash-map (make-hash-table :test 'types:mal-value=)))
+    (loop
+       for token = (peek reader)
+       while (cond
+               ((null token) (error 'eof
+                                    :context "hash-map"))
+               ((string= token "}") (return))
+               (t (let ((key (read-form reader))
+                        (value (read-form reader)))
+                    (if (null value)
+                        (error 'eof
+                               :context "hash-map")
+                        (push (cons key value) forms))))))
+    ;; Consume the closing brace
+    (consume reader)
+    ;; Construct the hash table
+    (dolist (key-value forms)
+      (setf (gethash (car key-value) hash-map) (cdr key-value)))
+    hash-map))
 
 (defun read-atom (reader)
   (let ((token (next reader)))
