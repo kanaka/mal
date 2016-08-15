@@ -10,9 +10,9 @@
 \\)\\|[^\"\\]\\)*\"$"
   "RE string")
 
-(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()`'^@]\\|\"\\(\\\\\\(.\\|
+(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()~`'^@]\\|\"\\(\\\\\\(.\\|
 \\)\\|[^\"\\]\\)*\"\\?\\|;[^
-]*\\|[^][[:space:]{}()`'\";]*\\)"
+]*\\|[^][[:space:]~{}()`'\";]*\\)"
   "RE")
 
 (define-condition eof (error)
@@ -89,7 +89,20 @@
                                                                "]"
                                                                'vector)))
       ((string= token "{") (make-mal-hash-map (read-hash-map reader)))
+      ((string= token "'") (expand-quote reader))
+      ((string= token "`") (expand-quote reader))
+      ((string= token "~") (expand-quote reader))
+      ((string= token "~@") (expand-quote reader))
       (t (read-atom reader)))))
+
+(defun expand-quote (reader)
+  (let ((quote (next reader)))
+    (make-mal-list (list (make-mal-symbol (cond
+                                            ((string= quote "'") "quote")
+                                            ((string= quote "`") "quasiquote")
+                                            ((string= quote "~") "unquote")
+                                            ((string= quote "~@") "splice-unquote")))
+                         (read-form reader)))))
 
 (defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
   ;; Consume the opening brace
