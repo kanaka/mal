@@ -82,12 +82,16 @@
   (let ((token (peek reader)))
     (cond
       ((null token) nil)
-      ((string= token "(") (make-mal-list (read-mal-sequence reader)))
-      ((string= token "[") (make-mal-vector (read-mal-sequence reader "]")))
+      ((string= token "(") (make-mal-list (read-mal-sequence reader
+                                                             ")"
+                                                             'list)))
+      ((string= token "[") (make-mal-vector (read-mal-sequence reader
+                                                               "]"
+                                                               'vector)))
       (t (read-atom reader)))))
 
-(defun read-mal-sequence (reader &optional (delimiter ")"))
-  ;; Consume the open brace
+(defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
+  ;; Consume the opening brace
   (consume reader)
   (let (forms)
     (loop
@@ -101,7 +105,7 @@
                (t (push (read-form reader) forms))))
     ;; Consume the closing brace
     (consume reader)
-    (nreverse forms)))
+    (apply constructor (nreverse forms))))
 
 
 (defun read-atom (reader)
