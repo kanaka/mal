@@ -66,3 +66,11 @@
 (define-mal-type vector)
 (define-mal-type hash-map)
 (define-mal-type nil)
+
+(defmacro switch-mal-type (ast &body forms)
+  `(let ((type (types::mal-type ,ast)))
+     (cond
+       ,@(mapcar (lambda (form)
+                   (list (list 'equal (car form) 'type)
+                         (cadr form)))
+                 forms))))
