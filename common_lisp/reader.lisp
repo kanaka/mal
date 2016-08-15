@@ -9,7 +9,7 @@
 (defvar *two-char-token* "~@"
   "RE two char")
 
-(defvar *single-char-token* "\\(\\[\\|\\]\\|[{}()`'^@]\\)"
+(defvar *single-char-token* "[][{}()`'^@]"
   "RE single char")
 
 (defvar *string-re* "\"\\(?:\\\\\\(?:.\\|\n\\)\\|[^\"\\]\\)*\""
@@ -19,11 +19,11 @@
 ]*"
   "RE comment")
 
-(defvar *identifier-re* "[^[:space:]{}()`'\";]\\+"
+(defvar *identifier-re* "[^][[:space:]{}()`'\";]\\+"
   "RE identifier")
 
-(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|\\(\\[\\|\\]\\|[{}()`'^@]\\)\\|\"\\(\\\\\\(.\\|\n\\)\\|[^\"\\]\\)*\"\\|;[^
-]*\\|[^[:space:]{}()`'\";]\\+\\)"
+(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()`'^@]\\|\"\\(\\\\\\(.\\|\n\\)\\|[^\"\\]\\)*\"\\|;[^
+]*\\|[^][[:space:]{}()`'\";]\\+\\)"
   "RE")
 
 (define-condition eof (error)
@@ -33,6 +33,10 @@
   (let ((match (regexp:match re string)))
     (when match
       (regexp:match-string string match))))
+
+(defun test-tokenizer (re string)
+  (let ((*tokenizer-re* re))
+    (tokenize string)))
 
 (defvar *whitespace-chars*
   '(#\Space #\Newline #\Backspace #\Tab
