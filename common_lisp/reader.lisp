@@ -80,22 +80,24 @@
   (let ((token (peek reader)))
     (cond
       ((null token) nil)
-      ((string= token "(") (read-list reader))
+      ((string= token "(") (make-mal-list (read-mal-sequence reader)))
+      ((string= token "[") (make-mal-vector (read-mal-sequence reader "]")))
       (t (read-atom reader)))))
 
-(defun read-list (reader)
+(defun read-mal-sequence (reader &optional (delimiter ")"))
   ;; Consume the open brace
   (consume reader)
   (let (forms)
     (loop
        for token = (peek reader)
        while (cond
-               ((null token) (error 'eof :text "EOF encountered while reading list"))
-               ((string= token ")") (return))
+               ((null token) (error 'eof :text (format "EOF encountered while reading list, expected ~a"
+                                                       delimiter)))
+               ((string= token delimiter) (return))
                (t (push (read-form reader) forms))))
     ;; Consume the closing brace
     (consume reader)
-    (make-mal-list (nreverse forms))))
+    (nreverse forms)))
 
 (defun read-atom (reader)
   (let ((token (next reader)))

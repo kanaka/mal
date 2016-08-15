@@ -6,6 +6,14 @@
 
 (in-package :printer)
 
+(defun pr-mal-sequence (start-delimiter sequence end-delimiter)
+  (concatenate 'string
+               start-delimiter
+               (format nil
+                       "~{~A~^ ~}"
+                       (mapcar #'pr-str (types::mal-value sequence)))
+               end-delimiter))
+
 (defun pr-str (ast)
   (when ast
     (case (types::mal-type ast)
@@ -14,9 +22,5 @@
       ('nil "nil")
       ('string (format nil "~s" (types::mal-value ast)))
       ('symbol (format nil "~a" (types::mal-value ast)))
-      ('list (concatenate 'string
-                          "("
-                          (format nil
-                                  "~{~A~^ ~}"
-                                  (mapcar #'pr-str (types::mal-value ast)))
-                          ")")))))
+      ('list (pr-mal-sequence "(" ast ")"))
+      ('vector (pr-mal-sequence "[" ast "]")))))

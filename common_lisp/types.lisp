@@ -29,6 +29,7 @@
             (export ',constructor))))
 
 (define-mal-type list)
+(define-mal-type vector)
 (define-mal-type number)
 (define-mal-type symbol)
 (define-mal-type string)
