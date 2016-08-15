@@ -27,7 +27,11 @@
   "RE")
 
 (define-condition eof (error)
-  ((text :initarg :text)))
+  ((context :initarg :context :reader context))
+  (:report (lambda (condition stream)
+             (format stream
+                     "EOF encountered while reading ~a"
+                     (context condition)))))
 
 (defun test-re (re string)
   (let ((match (regexp:match re string)))
@@ -91,8 +95,10 @@
     (loop
        for token = (peek reader)
        while (cond
-               ((null token) (error 'eof :text (format "EOF encountered while reading list, expected ~a"
-                                                       delimiter)))
+               ((null token) (error 'eof
+                                    :context (if (string= delimiter ")")
+                                                 "list"
+                                                 "vector")))
                ((string= token delimiter) (return))
                (t (push (read-form reader) forms))))
     ;; Consume the closing brace

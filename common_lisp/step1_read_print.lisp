@@ -16,9 +16,13 @@
   (printer:pr-str expression))
 
 (defun rep (string)
-  (handler-case (mal-print (mal-eval (mal-read string)
-                                     (make-hash-table :test #'equal)))
-    (reader::eof () "EOF occured")))
+  (handler-case
+      (mal-print (mal-eval (mal-read string)
+                           (make-hash-table :test #'equal)))
+    (reader::eof (condition)
+      (format nil
+              "~a"
+              condition))))
 
 (defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
   (format out-stream prompt)
