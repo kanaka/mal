@@ -38,6 +38,7 @@
       (types::nil "nil")
       (types::string (format nil "~s" (types::mal-value ast)))
       (types::symbol (format nil "~a" (types::mal-value ast)))
+      (types::keyword (format nil ":~a" (types::mal-value ast)))
       (types::list (pr-mal-sequence "(" ast ")"))
       (types::vector (pr-mal-sequence "[" ast "]"))
       (types::hash-map (pr-mal-hash-map ast)))))

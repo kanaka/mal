@@ -145,4 +145,6 @@
        (make-mal-nil nil))
       ((char= (char token 0) #\")
        (make-mal-string (parse-string token)))
+      ((char= (char token 0) #\:)
+       (make-mal-keyword (read-from-string-preserving-case token)))
       (t (make-mal-symbol (read-from-string-preserving-case token))))))

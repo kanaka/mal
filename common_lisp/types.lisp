@@ -59,6 +59,7 @@
 
 (define-mal-type number)
 (define-mal-type symbol)
+(define-mal-type keyword)
 (define-mal-type string)
 (define-mal-type boolean)
 (define-mal-type list)
