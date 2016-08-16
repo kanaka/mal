@@ -19,7 +19,20 @@
            ;; Helpers
            :apply-unwrapped-values
            :switch-mal-type
-           :add-mal-meta))
+           :add-mal-meta
+           :mal-value
+           :mal-type
+           :mal-meta
+           ;; Mal values
+           :number
+           :boolean
+           :nil
+           :string
+           :symbol
+           :keyword
+           :list
+           :vector
+           :hash-map))
 
 (in-package :types)
 
@@ -79,7 +92,7 @@
 (define-mal-type nil)
 
 (defmacro switch-mal-type (ast &body forms)
-  `(let ((type (types::mal-type ,ast)))
+  `(let ((type (types:mal-type ,ast)))
      (cond
        ,@(mapcar (lambda (form)
                    (list (list 'equal (car form) 'type)
