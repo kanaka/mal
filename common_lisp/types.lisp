@@ -80,6 +80,6 @@
   `(let ((type (types:mal-type ,ast)))
      (cond
        ,@(mapcar (lambda (form)
-                   (list (list 'equal (car form) 'type)
+                   (list (list 'equal (list 'quote (car form)) 'type)
                          (cadr form)))
                  forms))))
