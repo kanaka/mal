@@ -15,6 +15,7 @@
            :list
            :vector
            :hash-map
+           :any
            ;; Helpers
            :apply-unwrapped-values
            :switch-mal-type))
@@ -76,10 +77,17 @@
 (define-mal-type hash-map)
 (define-mal-type nil)
 
+;; Generic type
+(defvar any "any-type")
+
 (defmacro switch-mal-type (ast &body forms)
   `(let ((type (types:mal-type ,ast)))
      (cond
        ,@(mapcar (lambda (form)
-                   (list (list 'equal (list 'quote (car form)) 'type)
+                   (list (if (or (equal (car form) t)
+                                 (equal (car form) 'any))
+                             t
+                             (list 'equal (list 'quote (car form)) 'type))
                          (cadr form)))
                  forms))))
+
