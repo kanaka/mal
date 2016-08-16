@@ -19,7 +19,7 @@
   (handler-case
       (mal-print (mal-eval (mal-read string)
                            (make-hash-table :test #'equal)))
-    (reader::eof (condition)
+    (reader:eof (condition)
       (format nil
               "~a"
               condition))))

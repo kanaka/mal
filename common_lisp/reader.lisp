@@ -2,7 +2,8 @@
 
 (defpackage :reader
   (:use :regexp :common-lisp :types)
-  (:export :read-str))
+  (:export :read-str
+           :eof))
 
 (in-package :reader)
 
