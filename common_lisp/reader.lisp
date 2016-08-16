@@ -152,7 +152,7 @@
     ;; Consume the closing brace
     (consume reader)
     ;; Construct the hash table
-    (dolist (key-value forms)
+    (dolist (key-value (nreverse forms))
       (setf (gethash (car key-value) hash-map) (cdr key-value)))
     hash-map))
 
