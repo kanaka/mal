@@ -15,24 +15,9 @@
            :list
            :vector
            :hash-map
-           :any
            ;; Helpers
            :apply-unwrapped-values
-           :switch-mal-type
-           :add-mal-meta
-           :mal-value
-           :mal-type
-           :mal-meta
-           ;; Mal values
-           :number
-           :boolean
-           :nil
-           :string
-           :symbol
-           :keyword
-           :list
-           :vector
-           :hash-map))
+           :switch-mal-type))
 
 (in-package :types)
 
