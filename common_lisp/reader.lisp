@@ -12,7 +12,7 @@
 
 (defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()~`'^@]\\|\"\\(\\\\\\(.\\|
 \\)\\|[^\"\\]\\)*\"\\?\\|;[^
-]*\\|[^][[:space:]~{}()`'\";]*\\)"
+]*\\|[^][[:space:]~{}()@^`'\";]*\\)"
   "RE")
 
 (define-condition eof (error)
@@ -89,11 +89,21 @@
                                                                "]"
                                                                'vector)))
       ((string= token "{") (make-mal-hash-map (read-hash-map reader)))
-      ((string= token "'") (expand-quote reader))
-      ((string= token "`") (expand-quote reader))
-      ((string= token "~") (expand-quote reader))
-      ((string= token "~@") (expand-quote reader))
+      ((member token '("'" "`" "~" "~@" "@") :test #'string= ) (expand-quote reader))
+      ((string= token "^") (read-form-with-meta reader))
       (t (read-atom reader)))))
+
+(defun read-form-with-meta (reader)
+  (consume reader)
+  (let ((meta (read-form reader))
+        (value (read-form reader)))
+
+    (when (or (null meta)
+              (null value))
+      (error 'eof
+             :context "object metadata"))
+
+    (types:add-mal-meta value meta)))
 
 (defun expand-quote (reader)
   (let ((quote (next reader)))
@@ -101,7 +111,8 @@
                                             ((string= quote "'") "quote")
                                             ((string= quote "`") "quasiquote")
                                             ((string= quote "~") "unquote")
-                                            ((string= quote "~@") "splice-unquote")))
+                                            ((string= quote "~@") "splice-unquote")
+                                            ((string= quote "@") "deref")))
                          (read-form reader)))))
 
 (defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))

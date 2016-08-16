@@ -18,17 +18,23 @@
            :any
            ;; Helpers
            :apply-unwrapped-values
-           :switch-mal-type))
+           :switch-mal-type
+           :add-mal-meta))
 
 (in-package :types)
 
 (defclass mal-type ()
   ((value :accessor mal-value :initarg :value)
+   (meta :accessor mal-meta :initarg :meta)
    (type :accessor mal-type :initarg :type)))
 
 (defmethod print-object ((obj mal-type) out)
-  (with-slots (value type) obj
-    (format out "#<mal ~a: ~a>" type value)))
+  (with-slots (value type meta) obj
+    (format out "#<mal ~a: ~a (~a)>" type value meta)))
+
+(defun add-mal-meta (value meta)
+  (setf (slot-value value 'meta) meta)
+  value)
 
 (defun mal-value= (value1 value2)
   (and (equal (mal-type value1) (mal-type value2))
@@ -54,9 +60,10 @@
                      :initarg :type
                      :initform ',type)))
 
-            (defun ,constructor (value)
+            (defun ,constructor (value &optional meta)
               (make-instance ',name
-                             :value value))
+                             :value value
+                             :meta meta))
 
             (export ',name)
             (export ',constructor))))
