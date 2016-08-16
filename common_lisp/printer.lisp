@@ -11,7 +11,7 @@
                start-delimiter
                (format nil
                        "~{~A~^ ~}"
-                       (mapcar #'pr-str (types::mal-value sequence)))
+                       (map 'list #'pr-str (types::mal-value sequence)))
                end-delimiter))
 
 (defun pr-mal-hash-map (hash-map)
@@ -33,12 +33,12 @@
 (defun pr-str (ast)
   (when ast
     (switch-mal-type ast
-      ('number (format nil "~d" (types::mal-value ast)))
-      ('boolean (if (types::mal-value ast) "true" "false"))
-      ('nil "nil")
-      ('string (format nil "~s" (types::mal-value ast)))
-      ('symbol (format nil "~a" (types::mal-value ast)))
-      ('keyword (format nil ":~a" (types::mal-value ast)))
-      ('list (pr-mal-sequence "(" ast ")"))
-      ('vector (pr-mal-sequence "[" ast "]"))
-      ('hash-map (pr-mal-hash-map ast)))))
+      ('types::number (format nil "~d" (types::mal-value ast)))
+      ('types::boolean (if (types::mal-value ast) "true" "false"))
+      ('types::nil "nil")
+      ('types::string (format nil "~s" (types::mal-value ast)))
+      ('types::symbol (format nil "~a" (types::mal-value ast)))
+      ('types::keyword (format nil ":~a" (types::mal-value ast)))
+      ('types::list (pr-mal-sequence "(" ast ")"))
+      ('types::vector (pr-mal-sequence "[" ast "]"))
+      ('types::hash-map (pr-mal-hash-map ast)))))

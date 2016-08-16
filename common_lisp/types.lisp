@@ -26,6 +26,10 @@
   ((value :accessor mal-value :initarg :value)
    (type :accessor mal-type :initarg :type)))
 
+(defmethod print-object ((obj mal-type) out)
+  (with-slots (value type) obj
+    (format out "#<mal ~a: ~a>" type value)))
+
 (defun mal-value= (value1 value2)
   (and (equal (mal-type value1) (mal-type value2))
        (equal (mal-value value1) (mal-value value2))))
