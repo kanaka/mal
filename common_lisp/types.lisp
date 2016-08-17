@@ -83,7 +83,7 @@
 (define-mal-type builtin-fn)
 
 ;; Generic type
-(defvar any "any-type")
+(defvar any)
 
 (defmacro switch-mal-type (ast &body forms)
   `(let ((type (types:mal-type ,ast)))
