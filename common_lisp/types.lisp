@@ -75,11 +75,15 @@
 (define-mal-type symbol)
 (define-mal-type keyword)
 (define-mal-type string)
+;; TODO true, false and nil should ideally be singleton
 (define-mal-type boolean)
+(define-mal-type nil)
+
 (define-mal-type list)
 (define-mal-type vector)
 (define-mal-type hash-map)
-(define-mal-type nil)
+
+(define-mal-type fn)
 (define-mal-type builtin-fn)
 
 ;; Generic type

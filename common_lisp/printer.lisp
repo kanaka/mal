@@ -42,4 +42,5 @@
       (types:list (pr-mal-sequence "(" ast ")"))
       (types:vector (pr-mal-sequence "[" ast "]"))
       (types:hash-map (pr-mal-hash-map ast))
+      (types:fn "#<function>")
       (types:builtin-fn "#<builtin function>"))))
