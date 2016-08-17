@@ -50,3 +50,17 @@
 
 (defmethod set-env ((env mal-environment) symbol value)
   (setf (gethash symbol (mal-env-bindings env)) value))
+
+(defmethod initialize-instance :after ((env mal-environment)
+                                       &key (bindings nil)
+                                         (parent nil)
+                                         (binds nil)
+                                         (exprs nil))
+  (let ((arg-params (loop
+                       for x in binds
+                       for y in exprs
+                       collect (cons x y))))
+    (dolist (arg-param arg-params)
+      (set-env env
+               (car arg-param)
+               (cdr arg-param)))))
