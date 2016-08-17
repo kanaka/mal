@@ -49,7 +49,11 @@
                                                   (symbol-name type)))))
         (constructor (intern (string-upcase (concatenate 'string
                                                          "make-mal-"
-                                                         (symbol-name type))))))
+                                                         (symbol-name type)))))
+        (predicate (intern (string-upcase (concatenate 'string
+                                                         "mal-"
+                                                         (symbol-name type)
+                                                         "-p")))))
     `(progn (defclass ,name (mal-type)
               ((type :accessor mal-type
                      :initarg :type
@@ -59,9 +63,12 @@
               (make-instance ',name
                              :value value
                              :meta meta))
+            (defun ,predicate (value)
+              (equal (mal-type value) ',type))
 
             (export ',name)
-            (export ',constructor))))
+            (export ',constructor)
+            (export ',predicate))))
 
 (define-mal-type number)
 (define-mal-type symbol)
@@ -87,3 +94,5 @@
                          (cadr form)))
                  forms))))
 
+(defun apply-unwrapped-values (op &rest values)
+  (apply op (mapcar #'mal-value values)))
