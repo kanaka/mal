@@ -97,4 +97,15 @@
                  forms))))
 
 (defun apply-unwrapped-values (op &rest values)
-  (apply op (mapcar #'mal-value values)))
+  (let ((value (apply op (mapcar #'mal-value values))))
+    (funcall (typecase value
+               (number #'make-mal-number)
+               (symbol #'make-mal-number)
+               (keyword #'make-mal-keyword)
+               (string #'make-mal-string)
+               (boolean #'make-mal-boolean)
+               (list #'make-mal-list)
+               (vector #'make-mal-vector)
+               (hash-map #'make-mal-hash-map)
+               (null #'make-mal-nil))
+             value)))

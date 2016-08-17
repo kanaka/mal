@@ -14,27 +14,27 @@
 
 (setf (gethash (types:make-mal-symbol '+) *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                             (types:make-mal-number (apply-unwrapped-values '+
-                                                                            value1
-                                                                            value2)))))
+                                   (apply-unwrapped-values '+
+                                                           value1
+                                                           value2))))
 
 (setf (gethash (types:make-mal-symbol '-) *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:make-mal-number (apply-unwrapped-values '-
-                                                                                  value1
-                                                                                  value2)))))
+                                   (apply-unwrapped-values '-
+                                                           value1
+                                                           value2))))
 
 (setf (gethash (types:make-mal-symbol '*) *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:make-mal-number (apply-unwrapped-values '*
-                                                                                  value1
-                                                                                  value2)))))
+                                   (apply-unwrapped-values '*
+                                                           value1
+                                                           value2))))
 
 (setf (gethash (types:make-mal-symbol '/) *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:make-mal-number (apply-unwrapped-values '/
-                                                                                  value1
-                                                                                  value2)))))
+                                   (apply-unwrapped-values '/
+                                                           value1
+                                                           value2))))
 
 (defun lookup-env (symbol env)
   (let ((value (gethash symbol env)))
