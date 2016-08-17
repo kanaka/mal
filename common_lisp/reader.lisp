@@ -160,7 +160,7 @@
 (defun read-atom (reader)
   (let ((token (next reader)))
     (cond
-      ((regexp:match "^[[:digit:]]\\+$" token)
+      ((regexp:match "^\\(-\\|+\\)\\?[[:digit:]]\\+$" token)
        (make-mal-number (read-from-string token)))
       ((string= token "false")
        (make-mal-boolean nil))
