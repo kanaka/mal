@@ -104,8 +104,7 @@
       (error 'eof
              :context "object metadata"))
 
-    (setf (types:mal-meta value) meta)
-    value))
+    (make-mal-list (list (make-mal-symbol '|with-meta|) value meta))))
 
 (defun expand-quote (reader)
   (let ((quote (next reader)))

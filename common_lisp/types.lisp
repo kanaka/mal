@@ -24,16 +24,12 @@
 
 (defclass mal-type ()
   ((value :accessor mal-value :initarg :value)
-   (meta :accessor mal-meta :initarg :meta)
+   (meta :accessor mal-meta :initarg :meta :initform nil)
    (type :accessor mal-type :initarg :type)))
 
 (defmethod print-object ((obj mal-type) out)
   (with-slots (value type meta) obj
     (format out "#<mal ~a: ~a (~a)>" type value meta)))
-
-(defun add-mal-meta (value meta)
-  (setf (slot-value value 'meta) meta)
-  value)
 
 (defun mal-value= (value1 value2)
   (and (equal (mal-type value1) (mal-type value2))
