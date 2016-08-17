@@ -15,6 +15,7 @@
            :list
            :vector
            :hash-map
+           :fn
            :builtin-fn
            :any
            ;; Helpers
@@ -65,7 +66,8 @@
                              :value value
                              :meta meta))
             (defun ,predicate (value)
-              (equal (mal-type value) ',type))
+              (when (typep value 'mal-type)
+                (equal (mal-type value) ',type)))
 
             (export ',name)
             (export ',constructor)
