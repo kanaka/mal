@@ -127,6 +127,8 @@
               "~a"
               condition))))
 
+(rep "(def! not (fn* (a) (if a false true)))")
+
 (defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
   (format out-stream prompt)
   (force-output out-stream)
