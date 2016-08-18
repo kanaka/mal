@@ -30,12 +30,12 @@
 
    (cons (types:make-mal-symbol '|list?|)
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-list-p value)))))
+                                      (types:make-mal-boolean (or (types:mal-nil-p value)
+                                                                        (types:mal-list-p value))))))
 
    (cons (types:make-mal-symbol '|empty?|)
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:apply-unwrapped-values-prefer-bool 'null
-                                                                                value))))
+                                      (types:make-mal-boolean (zerop (length (mal-value value)))))))
 
    (cons (types:make-mal-symbol '|count|)
          (types:make-mal-builtin-fn (lambda (value)
