@@ -21,6 +21,7 @@
            ;; Helpers
            :wrap-value
            :apply-unwrapped-values
+           :apply-unwrapped-values-prefer-bool
            :switch-mal-type))
 
 (in-package :types)
@@ -137,17 +138,26 @@
 #+sbcl (sb-ext:define-hash-table-test mal-value= hash-mal-value)
 #+clisp (ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
 
+(defun wrap-value (value &key booleanp)
   (funcall (typecase value
              (number #'make-mal-number)
-             (symbol #'make-mal-number)
+             ;; This needs to before symbol since nil is a symbol
+             (null (if booleanp
+                       #'make-mal-boolean
+                       #'make-mal-nil))
+             ;; This needs to before symbol since nil is a symbol
+             (boolean #'make-mal-boolean)
+             (symbol #'make-mal-symbol)
              (keyword #'make-mal-keyword)
              (string #'make-mal-string)
-             (boolean #'make-mal-boolean)
              (list #'make-mal-list)
              (vector #'make-mal-vector)
-             (hash-map #'make-mal-hash-map)
+             (hash-table #'make-mal-hash-map)
              (null #'make-mal-nil))
            value))
 
 (defun apply-unwrapped-values (op &rest values)
   (wrap-value (apply op (mapcar #'mal-value values))))
+
+(defun apply-unwrapped-values-prefer-bool (op &rest values)
+  (wrap-value (apply op (mapcar #'mal-value values)) :booleanp t))

@@ -30,11 +30,12 @@
 
    (cons (types:make-mal-symbol '|list?|)
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:wrap-value (types:mal-list-p value)))))
+                                      (types:make-mal-boolean (types:mal-list-p value)))))
 
    (cons (types:make-mal-symbol '|empty?|)
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:apply-unwrapped-values 'null value))))
+                                      (types:apply-unwrapped-values-prefer-bool 'null
+                                                                                value))))
 
    (cons (types:make-mal-symbol '|count|)
          (types:make-mal-builtin-fn (lambda (value)
@@ -42,20 +43,28 @@
 
    (cons (types:make-mal-symbol '=)
          (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (types:wrap-value (types:mal-value= value1 value2)))))
+                                      (types:make-mal-boolean (types:mal-value= value1 value2)))))
 
    (cons (types:make-mal-symbol '<)
          (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (types:apply-unwrapped-values '< value1 value2))))
+                                      (types:apply-unwrapped-values-prefer-bool '<
+                                                                                value1
+                                                                                value2))))
 
    (cons (types:make-mal-symbol '>)
          (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (types:apply-unwrapped-values '> value1 value2))))
+                                      (types:apply-unwrapped-values-prefer-bool '>
+                                                                                value1
+                                                                                value2))))
 
    (cons (types:make-mal-symbol '<=)
          (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (types:apply-unwrapped-values '<= value1 value2))))
+                                      (types:apply-unwrapped-values-prefer-bool '<=
+                                                                                value1
+                                                                                value2))))
 
    (cons (types:make-mal-symbol '>=)
          (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (types:apply-unwrapped-values '>= value1 value2))))))
+                                      (types:apply-unwrapped-values-prefer-bool '>=
+                                                                                value1
+                                                                                value2))))))
