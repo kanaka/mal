@@ -36,7 +36,10 @@
 
 (defun mal-value= (value1 value2)
   (and (equal (mal-type value1) (mal-type value2))
-       (equal (mal-value value1) (mal-value value2))))
+       (if (mal-symbol-p value1)
+           (string= (symbol-name (mal-value value1))
+                    (symbol-name (mal-value value2)))
+           (equal (mal-value value1) (mal-value value2)))))
 
 (defun hash-mal-value (value)
   (sxhash (mal-value value)))
