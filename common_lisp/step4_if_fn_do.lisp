@@ -121,6 +121,10 @@
     (env:undefined-symbol (condition)
       (format nil
               "~a"
+              condition))
+    (error (condition)
+      (format nil
+              "~a"
               condition))))
 
 (defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
@@ -136,4 +140,4 @@
   (loop do (let ((line (readline "user> ")))
              (if line (writeline (rep line)) (return)))))
 
-;(main)
+(main)
