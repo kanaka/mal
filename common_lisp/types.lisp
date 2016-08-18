@@ -34,19 +34,6 @@
   (with-slots (value type meta) obj
     (format out "#<mal ~a: ~a (~a)>" type value meta)))
 
-(defun mal-value= (value1 value2)
-  (and (equal (mal-type value1) (mal-type value2))
-       (if (mal-symbol-p value1)
-           (string= (symbol-name (mal-value value1))
-                    (symbol-name (mal-value value2)))
-           (equal (mal-value value1) (mal-value value2)))))
-
-(defun hash-mal-value (value)
-  (sxhash (mal-value value)))
-
-#+sbcl (sb-ext:define-hash-table-test mal-value= hash-mal-value)
-#+clisp (ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
-
 (defmacro define-mal-type (type)
   ;; Create a class for given type and a convenience constructor and also export
   ;; them
@@ -106,7 +93,50 @@
                          (cadr form)))
                  forms))))
 
-(defun wrap-value (value)
+(defun mal-symbol= (value1 value2)
+  (string= (symbol-name (mal-value value1))
+           (symbol-name (mal-value value2))))
+
+(defun mal-sequence= (value1 value2)
+  (let ((sequence1 (map 'list #'identity (mal-value value1)))
+        (sequence2 (map 'list #'identity (mal-value value2))))
+    (when (= (length sequence1) (length sequence2))
+      (every #'identity
+             (loop
+                for x in sequence1
+                for y in sequence2
+                collect (mal-value= x y))))))
+
+(defun mal-hash-map= (value1 value2)
+  (let ((map1 (mal-value value1))
+        (map2 (mal-value value2)))
+    (when (= (hash-table-count map1) (hash-table-count map2))
+      (every #'identity
+             (loop
+                for key being the hash-keys of map1
+                collect (mal-value= (gethash key map1)
+                                    (gethash key map2)))))))
+
+(defun mal-value= (value1 value2)
+  (when (equal (mal-type value1) (mal-type value2))
+    (switch-mal-type value1
+      (number (= (mal-value value1) (mal-value value2)))
+      (boolean (equal (mal-value value1) (mal-value value2)))
+      (nil (equal (mal-value value1) (mal-value value2)))
+      (string (string= (mal-value value1) (mal-value value2)))
+      (symbol (mal-symbol= value1 value2))
+      (keyword (mal-symbol= value1 value2))
+      (list (mal-sequence= value1 value2))
+      (vector (mal-sequence= value1 value2))
+      (hash-map (mal-hash-map= value1 value2))
+      (any nil))))
+
+(defun hash-mal-value (value)
+  (sxhash (mal-value value)))
+
+#+sbcl (sb-ext:define-hash-table-test mal-value= hash-mal-value)
+#+clisp (ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
+
   (funcall (typecase value
              (number #'make-mal-number)
              (symbol #'make-mal-number)
