@@ -16,6 +16,15 @@
                      "Symbol ~a is undefined"
                      (symbol condition)))))
 
+(define-condition arity-mismatch (error)
+  ((required :initarg :required :reader required)
+   (provided :initarg :provided :reader provided))
+  (:report (lambda (condition stream)
+             (format stream
+                     "Unexpected number of arguments provided, expected ~a, got ~a"
+                     (required condition)
+                     (provided condition)))))
+
 (defclass mal-environment ()
   ((bindings :initarg :bindings
              :accessor mal-env-bindings
@@ -56,11 +65,41 @@
                                          (parent nil)
                                          (binds nil)
                                          (exprs nil))
-  (let ((arg-params (loop
-                       for x in binds
-                       for y in exprs
-                       collect (cons x y))))
-    (dolist (arg-param arg-params)
-      (set-env env
-               (car arg-param)
-               (cdr arg-param)))))
+  (let ((varidiac-position (position (types:make-mal-symbol '&)
+                                     binds
+                                     :test #'mal-value=)))
+    (when varidiac-position
+      (setf (subseq binds varidiac-position (length binds))
+            (list (nth (1+ varidiac-position) binds)))
+      (setf binds (subseq binds 0 (1+ varidiac-position)))
+
+      (let* ((no-of-args (length exprs))
+             ;; There are enough arguments for variadic operator
+             ;; to consume
+             (rest-args (cond ((>= no-of-args (1+ varidiac-position))
+                               (make-mal-list (subseq exprs
+                                                      varidiac-position
+                                                      (length exprs))))
+                              ;; There are enough parameters to satisfy the
+                              ;; normal arguments, set rest-args to a nil value
+                              ((= no-of-args varidiac-position)
+                               (make-mal-nil nil)))))
+        (handler-case
+            (setf exprs (concatenate 'list
+                                     (subseq exprs 0 varidiac-position)
+                                     (list rest-args)))
+          (simple-type-error (condition)
+            (error 'arity-mismatch
+                   :required (length binds)
+                   :provided (length exprs))))))
+
+    (when (not (= (length binds) (length exprs)))
+      (error 'arity-mismatch
+             :required (length binds)
+             :provided (length exprs)))
+
+    (let ((arg-params (map 'list #'cons binds exprs)))
+      (dolist (arg-param arg-params)
+        (set-env env
+                 (car arg-param)
+                 (cdr arg-param))))))
