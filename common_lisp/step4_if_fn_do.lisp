@@ -2,33 +2,24 @@
 (require "printer")
 (require "types")
 (require "env")
+(require "core")
 
 (defpackage :mal
-  (:use :common-lisp :types :env :reader :printer))
+  (:use :common-lisp
+        :types
+        :env
+        :reader
+        :printer
+        :core))
 
 (in-package :mal)
 
 (defvar *repl-env* (make-instance 'env:mal-environment))
 
-(set-env *repl-env*
-         (types:make-mal-symbol '+)
-         (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (apply-unwrapped-values '+ value1 value2))))
-
-(set-env *repl-env*
-         (types:make-mal-symbol '-)
-         (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (apply-unwrapped-values '- value1 value2))))
-
-(set-env *repl-env*
-         (types:make-mal-symbol '*)
-         (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (apply-unwrapped-values '* value1 value2))))
-
-(set-env *repl-env*
-         (types:make-mal-symbol '/)
-         (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (apply-unwrapped-values '/ value1 value2))))
+(dolist (binding core:ns)
+  (env:set-env *repl-env*
+               (car binding)
+               (cdr binding)))
 
 (defun eval-sequence (sequence env)
   (map 'list
@@ -103,9 +94,7 @@
       (t (let* ((evaluated-list (eval-ast ast env))
                (function (car evaluated-list)))
          ;; If first element is a mal function unwrap it
-         (apply (if (types:mal-fn-p function)
-                    (mal-value function)
-                    function)
+         (apply (mal-value function)
                 (cdr evaluated-list)))))))
 
 (defun mal-read (string)
@@ -147,4 +136,4 @@
   (loop do (let ((line (readline "user> ")))
              (if line (writeline (rep line)) (return)))))
 
-(main)
+;(main)
