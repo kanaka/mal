@@ -122,7 +122,9 @@
                                     (gethash key map2)))))))
 
 (defun mal-value= (value1 value2)
-  (if (equal (mal-type value1) (mal-type value2))
+  (when (and (typep value1 'mal-type)
+             (typep value2 'mal-type))
+    (if (equal (mal-type value1) (mal-type value2))
       (switch-mal-type value1
         (number (= (mal-value value1) (mal-value value2)))
         (boolean (equal (mal-value value1) (mal-value value2)))
@@ -136,7 +138,7 @@
         (any nil))
       (when (or (and (mal-list-p value1) (mal-vector-p value2))
                 (and (mal-list-p value2) (mal-vector-p value1)))
-        (mal-sequence= value1 value2))))
+        (mal-sequence= value1 value2)))))
 
 (defun hash-mal-value (value)
   (sxhash (mal-value value)))
