@@ -114,11 +114,11 @@
 (defun expand-quote (reader)
   (let ((quote (next reader)))
     (make-mal-list (list (make-mal-symbol (cond
-                                            ((string= quote "'") "quote")
-                                            ((string= quote "`") "quasiquote")
-                                            ((string= quote "~") "unquote")
-                                            ((string= quote "~@") "splice-unquote")
-                                            ((string= quote "@") "deref")))
+                                            ((string= quote "'") '|quote|)
+                                            ((string= quote "`") '|quasiquote|)
+                                            ((string= quote "~") '|unquote|)
+                                            ((string= quote "~@") '|splice-unquote|)
+                                            ((string= quote "@") '|deref|)))
                          (read-form reader)))))
 
 (defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
