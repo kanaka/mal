@@ -16,6 +16,7 @@
            :list
            :vector
            :hash-map
+           :atom
            :fn
            :builtin-fn
            :any
@@ -79,6 +80,8 @@
 (define-mal-type list)
 (define-mal-type vector)
 (define-mal-type hash-map)
+
+(define-mal-type atom)
 
 (define-mal-type fn)
 (define-mal-type builtin-fn)
