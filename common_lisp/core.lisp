@@ -1,11 +1,18 @@
 (require "types")
+(require "reader")
 (require "printer")
 
 (defpackage :core
-  (:use :common-lisp :types :printer)
+  (:use :common-lisp :types :reader :printer)
   (:export :ns))
 
 (in-package :core)
+
+(defun get-file-contents (filename)
+  (with-open-file (stream filename)
+    (let ((data (make-string (file-length stream))))
+      (read-sequence data stream)
+      data)))
 
 (defvar ns
   (list
@@ -55,10 +62,14 @@
                                                                      (mapcar (lambda (string) (printer:pr-str string nil))
                                                                              strings))))))
 
+   (cons (types:make-mal-symbol '|list|)
+         (types:make-mal-builtin-fn (lambda (&rest values)
+                                      (make-mal-list values))))
+
    (cons (types:make-mal-symbol '|list?|)
          (types:make-mal-builtin-fn (lambda (value)
                                       (types:make-mal-boolean (or (types:mal-nil-p value)
-                                                                        (types:mal-list-p value))))))
+                                                                  (types:mal-list-p value))))))
 
    (cons (types:make-mal-symbol '|empty?|)
          (types:make-mal-builtin-fn (lambda (value)
@@ -94,4 +105,12 @@
          (types:make-mal-builtin-fn (lambda (value1 value2)
                                       (types:apply-unwrapped-values-prefer-bool '>=
                                                                                 value1
-                                                                                value2))))))
+                                                                                value2))))
+
+   (cons (types:make-mal-symbol '|read-string|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (reader:read-str (types:mal-value value)))))
+
+   (cons (types:make-mal-symbol '|slurp|)
+         (types:make-mal-builtin-fn (lambda (filename)
+                                      (types:apply-unwrapped-values 'get-file-contents filename))))))
