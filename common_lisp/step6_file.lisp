@@ -21,6 +21,11 @@
                (car binding)
                (cdr binding)))
 
+(env:set-env *repl-env*
+             (types:make-mal-symbol '|eval|)
+             (types:make-mal-builtin-fn (lambda (ast)
+                                          (mal-eval ast *repl-env*))))
+
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
@@ -108,7 +113,8 @@
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
                       (if (not (types:mal-fn-p function))
-                          (return (apply function (cdr evaluated-list)))
+                          (return (apply (mal-value function)
+                                         (cdr evaluated-list)))
                           (let* ((attrs (types:mal-attrs function)))
                             (setf ast (cdr (assoc 'ast attrs))
                                   env (make-instance 'env:mal-environment
@@ -153,4 +159,4 @@
   (loop do (let ((line (readline "user> ")))
              (if line (writeline (rep line)) (return)))))
 
-;(main)
+(main)
