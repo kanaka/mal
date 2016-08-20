@@ -149,23 +149,32 @@
 #+sbcl (sb-ext:define-hash-table-test mal-value= hash-mal-value)
 #+clisp (ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
 
-(defun wrap-value (value &key booleanp)
-  (funcall (typecase value
-             (number #'make-mal-number)
-             ;; This needs to before symbol since nil is a symbol
-             (null (if booleanp
-                       #'make-mal-boolean
-                       #'make-mal-nil))
-             ;; This needs to before symbol since t, nil are symbols
-             (boolean #'make-mal-boolean)
-             (symbol #'make-mal-symbol)
-             (keyword #'make-mal-keyword)
-             (string #'make-mal-string)
-             (list #'make-mal-list)
-             (vector #'make-mal-vector)
-             (hash-table #'make-mal-hash-map)
-             (null #'make-mal-nil))
-           value))
+(defun wrap-hash-value (value)
+  (let ((new-hash-table (make-hash-table :test 'mal-value=)))
+    (loop
+       for key being the hash-keys of value
+       do (setf (gethash (wrap-value key) new-hash-table)
+                (wrap-value (gethash key value))))
+    new-hash-table))
+
+(defun wrap-value (value &key booleanp listp)
+  (typecase value
+    (number (make-mal-number value))
+    ;; This needs to before symbol since nil is a symbol
+    (null (funcall (cond
+                     (booleanp #'make-mal-boolean)
+                     (listp #'make-mal-list)
+                     (t #'make-mal-nil))
+                   value))
+    ;; This needs to before symbol since t, nil are symbols
+    (boolean (make-mal-boolean value))
+    (symbol (make-mal-symbol value))
+    (keyword (make-mal-keyword value))
+    (string (make-mal-string value))
+    (list (make-mal-list (map 'list #'wrap-value value)))
+    (vector (make-mal-vector (map 'vector #'wrap-value value)))
+    (hash-table (make-mal-hash-map (wrap-hash-value value)))
+    (null (make-mal-nil value))))
 
 (defun apply-unwrapped-values (op &rest values)
   (wrap-value (apply op (mapcar #'mal-value values))))

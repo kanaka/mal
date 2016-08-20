@@ -146,6 +146,7 @@
 
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+(rep "(def! *ARGV* (list))")
 
 (defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
   (format out-stream prompt)
@@ -160,4 +161,13 @@
   (loop do (let ((line (readline "user> ")))
              (if line (writeline (rep line)) (return)))))
 
-(main)
+(env:set-env *repl-env*
+             (types:make-mal-symbol '|*ARGV*|)
+             (types:wrap-value (cdr common-lisp-user::*args*)
+                               :listp t))
+
+(if (null common-lisp-user::*args*)
+    (main)
+    (rep (format nil
+                 "(load-file \"~a\")"
+                 (car common-lisp-user::*args*))))
