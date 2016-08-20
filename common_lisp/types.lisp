@@ -5,6 +5,7 @@
            :mal-value
            :mal-type
            :mal-meta
+           :mal-attrs
            ;; Mal values
            :number
            :boolean
@@ -29,11 +30,12 @@
 (defclass mal-type ()
   ((value :accessor mal-value :initarg :value)
    (meta :accessor mal-meta :initarg :meta :initform nil)
-   (type :accessor mal-type :initarg :type)))
+   (type :accessor mal-type :initarg :type)
+   (attrs :accessor mal-attrs :initarg :attrs)))
 
 (defmethod print-object ((obj mal-type) out)
-  (with-slots (value type meta) obj
-    (format out "#<mal ~a: ~a (~a)>" type value meta)))
+  (with-slots (value type meta attrs) obj
+    (format out "#<mal ~a: ~a (~a, ~a)>" type value meta attrs)))
 
 (defmacro define-mal-type (type)
   ;; Create a class for given type and a convenience constructor and also export
@@ -53,10 +55,11 @@
                      :initarg :type
                      :initform ',type)))
 
-            (defun ,constructor (value &optional meta)
+            (defun ,constructor (value &key meta attrs)
               (make-instance ',name
                              :value value
-                             :meta meta))
+                             :meta meta
+                             :attrs attrs))
             (defun ,predicate (value)
               (when (typep value 'mal-type)
                 (equal (mal-type value) ',type)))

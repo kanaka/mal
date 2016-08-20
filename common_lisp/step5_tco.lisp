@@ -56,6 +56,7 @@
                (cond
                  ((mal-value= (make-mal-symbol '|def!|) (first forms))
                   (return (env:set-env env (second forms) (mal-eval (third forms) env))))
+
                  ((mal-value= (make-mal-symbol '|let*|) (first forms))
                   (let ((new-env (make-instance 'env:mal-environment
                                                 :parent env))
@@ -76,31 +77,47 @@
                                collect (cons symbol value)))
                     (setf ast (third forms)
                           env new-env)))
+
                  ((mal-value= (make-mal-symbol '|do|) (first forms))
                   (mapc (lambda (form) (mal-eval form env))
                         (butlast (cdr forms)))
                   (setf ast (car (last forms))))
+
                  ((mal-value= (make-mal-symbol '|if|) (first forms))
                   (let ((predicate (mal-eval (second forms) env)))
                     (setf ast (if (or (mal-value= predicate (types:make-mal-nil nil))
                                       (mal-value= predicate (types:make-mal-boolean nil)))
                                   (fourth forms)
                                   (third forms)))))
+
                  ((mal-value= (make-mal-symbol '|fn*|) (first forms))
-                  (return (types:make-mal-fn (let ((arglist (second forms))
-                                                   (body (third forms)))
-                                               (lambda (&rest args)
+                  (return (let ((arglist (second forms))
+                                (body (third forms)))
+                            (types:make-mal-fn (lambda (&rest args)
                                                  (mal-eval body (make-instance 'env:mal-environment
                                                                                :parent env
                                                                                :binds (map 'list
                                                                                            #'identity
                                                                                            (mal-value arglist))
-                                                                               :exprs args)))))))
+                                                                               :exprs args)))
+                                               :attrs (list (cons 'params arglist)
+                                                            (cons 'ast body)
+                                                            (cons 'env env))))))
+
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
-                      (return (apply (mal-value function)
-                                     (cdr evaluated-list)))))))))))
+                      (if (not (types:mal-fn-p function))
+                          (return (apply (mal-value function)
+                                         (cdr evaluated-list)))
+                          (let* ((attrs (types:mal-attrs function)))
+                            (setf ast (cdr (assoc 'ast attrs))
+                                  env (make-instance 'env:mal-environment
+                                                     :parent (cdr (assoc 'env attrs))
+                                                     :binds (map 'list
+                                                                 #'identity
+                                                                 (mal-value (cdr (assoc 'params attrs))))
+                                                     :exprs (cdr evaluated-list)))))))))))))
 
 (defun mal-print (expression)
   (printer:pr-str expression))
