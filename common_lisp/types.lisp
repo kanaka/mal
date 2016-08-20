@@ -148,7 +148,7 @@
              (null (if booleanp
                        #'make-mal-boolean
                        #'make-mal-nil))
-             ;; This needs to before symbol since nil is a symbol
+             ;; This needs to before symbol since t, nil are symbols
              (boolean #'make-mal-boolean)
              (symbol #'make-mal-symbol)
              (keyword #'make-mal-keyword)
