@@ -145,6 +145,7 @@
               condition))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
+(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
 (defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
   (format out-stream prompt)
