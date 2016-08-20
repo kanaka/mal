@@ -113,4 +113,27 @@
 
    (cons (types:make-mal-symbol '|slurp|)
          (types:make-mal-builtin-fn (lambda (filename)
-                                      (types:apply-unwrapped-values 'get-file-contents filename))))))
+                                      (types:apply-unwrapped-values 'get-file-contents filename))))
+
+   (cons (types:make-mal-symbol '|atom|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-atom value))))
+
+   (cons (types:make-mal-symbol '|atom?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-atom-p value)))))
+
+   (cons (types:make-mal-symbol '|deref|)
+         (types:make-mal-builtin-fn (lambda (atom)
+                                      (types:mal-value atom))))
+
+   (cons (types:make-mal-symbol '|reset!|)
+         (types:make-mal-builtin-fn (lambda (atom value)
+                                      (setf (types:mal-value atom) value))))
+
+   (cons (types:make-mal-symbol '|swap!|)
+         (types:make-mal-builtin-fn (lambda (atom fn &rest args)
+                                      (setf (types:mal-value atom)
+                                            (apply (mal-value fn)
+                                                   (append (list (types:mal-value atom))
+                                                           args))))))))
