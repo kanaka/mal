@@ -15,6 +15,7 @@
            :list
            :vector
            :hash-map
+           :builtin-fn
            :any
            ;; Helpers
            :apply-unwrapped-values
@@ -79,6 +80,7 @@
 (define-mal-type vector)
 (define-mal-type hash-map)
 (define-mal-type nil)
+(define-mal-type builtin-fn)
 
 ;; Generic type
 (defvar any "any-type")
