@@ -36,7 +36,7 @@
         (new-hash-table (make-hash-table :test 'types:mal-value=)))
     (loop
        for key being the hash-keys of hash-map-value
-       do (setf (gethash key new-hash-table)
+       do (setf (gethash (mal-eval key env) new-hash-table)
                 (mal-eval (gethash key hash-map-value) env)))
     (make-mal-hash-map new-hash-table)))
 
