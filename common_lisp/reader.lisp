@@ -17,7 +17,7 @@
 ]*\\|[^][[:space:]~{}()@^`'\";]*\\)"
   "RE")
 
-(define-condition eof (error)
+(define-condition eof (types:mal-error)
   ((context :initarg :context :reader context))
   (:report (lambda (condition stream)
              (format stream

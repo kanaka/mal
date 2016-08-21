@@ -20,6 +20,8 @@
            :fn
            :builtin-fn
            :any
+           ;; Error
+           :mal-error
            ;; Helpers
            :wrap-value
            :apply-unwrapped-values
@@ -27,6 +29,9 @@
            :switch-mal-type))
 
 (in-package :types)
+
+(define-condition mal-error (error)
+  nil)
 
 (defclass mal-type ()
   ((value :accessor mal-value :initarg :value)

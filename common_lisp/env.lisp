@@ -9,14 +9,14 @@
 
 (in-package :env)
 
-(define-condition undefined-symbol (error)
+(define-condition undefined-symbol (types:mal-error)
   ((symbol :initarg :symbol :reader symbol))
   (:report (lambda (condition stream)
              (format stream
                      "Symbol ~a is undefined"
                      (symbol condition)))))
 
-(define-condition arity-mismatch (error)
+(define-condition arity-mismatch (types:mal-error)
   ((required :initarg :required :reader required)
    (provided :initarg :provided :reader provided))
   (:report (lambda (condition stream)

@@ -8,6 +8,17 @@
 
 (in-package :core)
 
+(define-condition index-error (types:mal-error)
+  ((size :initarg :size :reader size)
+   (index :initarg :index :reader index)
+   (sequence :initarg :sequence :reader sequence))
+  (:report (lambda (condition stream)
+             (format stream
+                     "Index out of range (~a), length is ~a but index given was ~a"
+                     (printer:pr-str (sequence condition))
+                     (size condition)
+                     (index condition)))))
+
 (defun get-file-contents (filename)
   (with-open-file (stream filename)
     (let ((data (make-string (file-length stream))))
@@ -29,7 +40,7 @@
                                       (types:apply-unwrapped-values '* value1 value2))))
 
    (cons (types:make-mal-symbol '/)
-         (types:make-mal-builtin-fn (lambda (value1 value2)
+         (types:make-mal-builtin-fn (   lambda (value1 value2)
                                       (types:apply-unwrapped-values '/ value1 value2))))
 
    (cons (types:make-mal-symbol '|prn|)
@@ -156,7 +167,10 @@
          (types:make-mal-builtin-fn (lambda (sequence index)
                                       (or (nth (mal-value index)
                                                (map 'list #'identity (mal-value sequence)))
-                                          (error "Index out of range")))))
+                                          (error 'index-error
+                                                 :size (length (mal-value sequence))
+                                                 :index (mal-value index)
+                                                 :sequence sequence)))))
 
    (cons (types:make-mal-symbol '|first|)
          (types:make-mal-builtin-fn (lambda (sequence)

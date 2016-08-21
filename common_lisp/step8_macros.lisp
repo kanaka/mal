@@ -14,6 +14,17 @@
 
 (in-package :mal)
 
+(define-condition invalid-function (types:mal-error)
+  ((form :initarg :form :reader form)
+   (context :initarg :context :reader context))
+  (:report (lambda (condition stream)
+             (format stream
+                     "Invalid function '~a' provided while ~a"
+                     (printer:pr-str (form condition))
+                     (if (string= (context condition) "apply")
+                         "applying"
+                         "defining macro")))))
+
 (defvar *repl-env* (make-instance 'env:mal-environment))
 
 (dolist (binding core:ns)
@@ -116,11 +127,14 @@
                  ((mal-value= (make-mal-symbol '|defmacro!|) (first forms))
                   (let ((value (mal-eval (third forms) env)))
                     (return (if (types:mal-fn-p value)
-                                (env:set-env env (second forms)
+                                (env:set-env env
+                                             (second forms)
                                              (progn
                                                (setf (cdr (assoc 'is-macro (types:mal-attrs value))) t)
                                                value))
-                                (error "Not a function")))))
+                                (error 'invalid-function
+                                       :form value
+                                       :context "macro")))))
 
                  ((mal-value= (make-mal-symbol '|let*|) (first forms))
                   (let ((new-env (make-instance 'env:mal-environment
@@ -173,17 +187,21 @@
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
-                      (if (not (types:mal-fn-p function))
-                          (return (apply (mal-value function)
-                                         (cdr evaluated-list)))
-                          (let* ((attrs (types:mal-attrs function)))
-                            (setf ast (cdr (assoc 'ast attrs))
-                                  env (make-instance 'env:mal-environment
-                                                     :parent (cdr (assoc 'env attrs))
-                                                     :binds (map 'list
-                                                                 #'identity
-                                                                 (mal-value (cdr (assoc 'params attrs))))
-                                                     :exprs (cdr evaluated-list)))))))))))))
+                      (cond ((types:mal-fn-p function)
+                             (let* ((attrs (types:mal-attrs function)))
+                               (setf ast (cdr (assoc 'ast attrs))
+                                     env (make-instance 'env:mal-environment
+                                                        :parent (cdr (assoc 'env attrs))
+                                                        :binds (map 'list
+                                                                    #'identity
+                                                                    (mal-value (cdr (assoc 'params attrs))))
+                                                        :exprs (cdr evaluated-list)))))
+                            ((types:mal-builtin-fn-p function)
+                             (return (apply (mal-value function)
+                                            (cdr evaluated-list))))
+                            (t (error 'invalid-function
+                                      :form function
+                                      :context "apply")))))))))))
 
 (defun mal-read (string)
   (reader:read-str string))
@@ -195,17 +213,13 @@
   (handler-case
       (mal-print (mal-eval (mal-read string)
                            *repl-env*))
-    (reader:eof (condition)
-      (format nil
-              "~a"
-              condition))
-    (env:undefined-symbol (condition)
+    (types:mal-error (condition)
       (format nil
               "~a"
               condition))
     (error (condition)
       (format nil
-              "~a"
+              "Internal error: ~a"
               condition))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
