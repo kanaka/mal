@@ -4,6 +4,7 @@ Import-Module $PSScriptRoot/types.psm1
 Import-Module $PSScriptRoot/reader.psm1
 Import-Module $PSScriptRoot/printer.psm1
 Import-Module $PSScriptRoot/env.psm1
+Import-Module $PSScriptRoot/core.psm1
 
 # READ
 function READ([String] $str) {
@@ -12,6 +13,7 @@ function READ([String] $str) {
 
 # EVAL
 function eval_ast($ast, $env) {
+    if ($ast -eq $null) { return $ast }
     switch ($ast.GetType().Name) {
         "Symbol"  { return $env.get($ast) }
         "List"    { return new-list ($ast.values | ForEach { EVAL $_ $env }) }
@@ -46,6 +48,25 @@ function EVAL($ast, $env) {
             }
             return EVAL $a2 $let_env
         }
+        "do" {
+            return (eval_ast $ast.rest() $env).last()
+        }
+        "if" {
+            $cond = (EVAL $a1 $env)
+            if ($cond -eq $null -or
+                ($cond -is [Boolean] -and $cond -eq $false)) {
+                return (EVAL $ast.nth(3) $env)
+            } else {
+                return (EVAL $a2 $env)
+            }
+        }
+        "fn*" {
+            # Save EVAL into a variable that will get closed over
+            $feval = Get-Command EVAL
+            return {
+                return (&$feval $a2 (new-env $env $a1.values $args))
+            }.GetNewClosure()
+        }
         default {
             $el = (eval_ast $ast $env)
             $f, $fargs = $el.first(), $el.rest().values
@@ -61,14 +82,18 @@ function PRINT($exp) {
 
 # REPL
 $repl_env = new-env
-$_ = $repl_env.set((new-symbol "+"), { param($a, $b); $a + $b })
-$_ = $repl_env.set((new-symbol "-"), { param($a, $b); $a - $b })
-$_ = $repl_env.set((new-symbol "*"), { param($a, $b); $a * $b })
-$_ = $repl_env.set((new-symbol "/"), { param($a, $b); $a / $b })
 
 function REP([String] $str) {
     return PRINT (EVAL (READ $str) $repl_env)
 }
+
+# core.EXT: defined using PowerShell
+foreach ($kv in $core_ns.GetEnumerator()) {
+    $_ = $repl_env.set((new-symbol $kv.Key), $kv.Value)
+}
+
+# core.mal: defined using the language itself
+$_ = REP('(def! not (fn* (a) (if a false true)))')
 
 while ($true) {
     Write-Host "user> " -NoNewline

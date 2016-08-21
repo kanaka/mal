@@ -115,6 +115,7 @@ test_EXCLUDES += test^mal^step5    # host impl dependent
 test_EXCLUDES += test^matlab^step5 # never completes at 10,000
 test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
 test_EXCLUDES += test^plsql^step5  # too slow for 10,000
+test_EXCLUDES += test^powershell^step5  # too slow for 10,000
 
 perf_EXCLUDES = mal  # TODO: fix this
 
@@ -248,6 +249,8 @@ get_argvtest_cmd = $(call get_run_prefix,$(1),$(2)) ../run_argv_test.sh
 
 vimscript_TEST_OPTS = --test-timeout 30
 ifeq ($(MAL_IMPL),vimscript)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+else ifeq ($(MAL_IMPL),powershell)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 endif
 

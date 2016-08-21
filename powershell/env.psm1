@@ -4,16 +4,26 @@ Class Env {
     [HashTable] $data
     [Env]       $outer
 
-    Env() {
-        # Case-sensitive hash table
-        $this.data  = New-Object System.Collections.HashTable
-        $this.outer = $null
-    }
-
-    Env([Env] $out) {
+    Env([Env] $out, $binds, $exprs) {
         # Case-sensitive hash table
         $this.data  = New-Object System.Collections.HashTable
         $this.outer = $out
+
+        if ($binds -ne $null) {
+            for ($i = 0; $i -lt $binds.Length; $i++) {
+                if ($binds[$i].value -eq "&") {
+                    if ($exprs.Length -gt $i) {
+                        $rest = $exprs[$i..($exprs.Length-1)]
+                    } else {
+                        $rest = @()
+                    }
+                    $this.data[$binds[($i+1)].value] = new-list($rest)
+                    break
+                } else {
+                    $this.data[$binds[$i].value] = $exprs[$i]
+                }
+            }
+        }
     }
 
     [Object] set($key, $value) {
@@ -41,11 +51,7 @@ Class Env {
     }
 }
 
-function new-env {
-    [Env]::new()
-}
-
-function new-env([Env] $out) {
-    [Env]::new($out)
+function new-env([Env] $out, $binds, $exprs) {
+    [Env]::new($out, $binds, $exprs)
 }
 
