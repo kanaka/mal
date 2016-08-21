@@ -176,8 +176,21 @@
     (hash-table (make-mal-hash-map (wrap-hash-value value)))
     (null (make-mal-nil value))))
 
+(defun unwrap-value (value)
+  (switch-mal-type value
+    (list (mapcar #'unwrap-value (mal-value value)))
+    (vector (map 'vector #'unwrap-value (mal-value value)))
+    (hash-map (let ((hash-table (make-hash-table))
+                    (hash-map-value (mal-value value)))
+                (loop
+                   for key being the hash-keys of hash-map-value
+                   do (setf (gethash (mal-value key) hash-table)
+                            (mal-value (gethash key hash-map-value))))
+                hash-table))
+    (any (mal-value value))))
+
 (defun apply-unwrapped-values (op &rest values)
-  (wrap-value (apply op (mapcar #'mal-value values))))
+  (wrap-value (apply op (mapcar #'unwrap-value values))))
 
 (defun apply-unwrapped-values-prefer-bool (op &rest values)
-  (wrap-value (apply op (mapcar #'mal-value values)) :booleanp t))
+  (wrap-value (apply op (mapcar #'unwrap-value values)) :booleanp t))
