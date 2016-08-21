@@ -136,4 +136,17 @@
                                       (setf (types:mal-value atom)
                                             (apply (mal-value fn)
                                                    (append (list (types:mal-value atom))
-                                                           args))))))))
+                                                           args))))))
+
+   (cons (types:make-mal-symbol '|cons|)
+         (types:make-mal-builtin-fn (lambda (element list)
+                                      (types:make-mal-list (cons element
+                                                                 (map 'list
+                                                                      #'identity
+                                                                      (mal-value list)))))))
+
+   (cons (types:make-mal-symbol '|concat|)
+         (types:make-mal-builtin-fn (lambda (&rest lists)
+                                      (types:make-mal-list (apply #'concatenate
+                                                                  'list
+                                                                  (mapcar #'types:mal-value lists))))))))
