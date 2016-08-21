@@ -149,4 +149,22 @@
          (types:make-mal-builtin-fn (lambda (&rest lists)
                                       (types:make-mal-list (apply #'concatenate
                                                                   'list
-                                                                  (mapcar #'types:mal-value lists))))))))
+                                                                  (mapcar #'types:mal-value lists))))))
+
+
+   (cons (types:make-mal-symbol '|nth|)
+         (types:make-mal-builtin-fn (lambda (sequence index)
+                                      (or (nth (mal-value index)
+                                               (map 'list #'identity (mal-value sequence)))
+                                          (error "Index out of range")))))
+
+   (cons (types:make-mal-symbol '|first|)
+         (types:make-mal-builtin-fn (lambda (sequence)
+                                      (or (first (map 'list #'identity (mal-value sequence)))
+                                          (types:make-mal-nil nil)))))
+
+   (cons (types:make-mal-symbol '|rest|)
+         (types:make-mal-builtin-fn (lambda (sequence)
+                                      (types:make-mal-list (rest (map 'list
+                                                                      #'identity
+                                                                      (mal-value sequence)))))))))
