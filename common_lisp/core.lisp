@@ -203,4 +203,22 @@
                                                              #'identity
                                                              (types:mal-value sequence))))
                                         (types:make-mal-list (mapcar (types:mal-value fn)
-                                                                  applicants))))))))
+                                                                     applicants))))))
+
+   (cons (types:make-mal-symbol '|nil?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-nil-p value)))))
+
+   (cons (types:make-mal-symbol '|true?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (and (types:mal-boolean-p value)
+                                                                   (types:mal-value value))))))
+
+   (cons (types:make-mal-symbol '|false?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (and (types:mal-boolean-p value)
+                                                                   (not (types:mal-value value)))))))
+
+   (cons (types:make-mal-symbol '|symbol?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-symbol-p value)))))))
