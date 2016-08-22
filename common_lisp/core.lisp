@@ -186,4 +186,21 @@
    (cons (types:make-mal-symbol '|throw|)
          (types:make-mal-builtin-fn (lambda (value)
                                       (error 'types:mal-user-exception
-                                             :data value))))))
+                                             :data value))))
+
+   (cons (types:make-mal-symbol '|apply|)
+         (types:make-mal-builtin-fn (lambda (fn &rest values)
+                                      (let ((final-arg (map 'list
+                                                            #'identity
+                                                            (types:mal-value (car (last values)))))
+                                            (butlast-args (butlast values)))
+                                        (apply (types:mal-value fn)
+                                               (append butlast-args final-arg))))))
+
+   (cons (types:make-mal-symbol '|map|)
+         (types:make-mal-builtin-fn (lambda (fn sequence)
+                                      (let ((applicants (map 'list
+                                                             #'identity
+                                                             (types:mal-value sequence))))
+                                        (types:make-mal-list (mapcar (types:mal-value fn)
+                                                                  applicants))))))))
