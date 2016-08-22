@@ -20,6 +20,11 @@
            :fn
            :builtin-fn
            :any
+           :mal-exception
+           ;; User exceptions
+           :mal-user-exception
+           ;; Exceptions raised by the runtime itself
+           :mal-runtime-exception
            ;; Error
            :mal-error
            ;; Helpers
@@ -32,6 +37,15 @@
 
 (define-condition mal-error (error)
   nil)
+
+(define-condition mal-exception (error)
+  nil)
+
+(define-condition mal-runtime-exception (mal-exception)
+  nil)
+
+(define-condition mal-user-exception (mal-exception)
+  ((data :accessor mal-exception-data :initarg :data)))
 
 (defclass mal-type ()
   ((value :accessor mal-value :initarg :value)

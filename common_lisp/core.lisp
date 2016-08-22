@@ -8,7 +8,7 @@
 
 (in-package :core)
 
-(define-condition index-error (types:mal-error)
+(define-condition index-error (types:mal-runtime-exception)
   ((size :initarg :size :reader size)
    (index :initarg :index :reader index)
    (sequence :initarg :sequence :reader sequence))

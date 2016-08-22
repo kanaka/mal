@@ -9,14 +9,14 @@
 
 (in-package :env)
 
-(define-condition undefined-symbol (types:mal-error)
+(define-condition undefined-symbol (types:mal-runtime-exception)
   ((symbol :initarg :symbol :reader symbol))
   (:report (lambda (condition stream)
              (format stream
-                     "Symbol ~a is undefined"
+                     "'~a' not found"
                      (symbol condition)))))
 
-(define-condition arity-mismatch (types:mal-error)
+(define-condition arity-mismatch (types:mal-runtime-exception)
   ((required :initarg :required :reader required)
    (provided :initarg :provided :reader provided))
   (:report (lambda (condition stream)
