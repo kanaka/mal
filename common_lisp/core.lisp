@@ -181,4 +181,9 @@
          (types:make-mal-builtin-fn (lambda (sequence)
                                       (types:make-mal-list (rest (map 'list
                                                                       #'identity
-                                                                      (mal-value sequence)))))))))
+                                                                      (mal-value sequence)))))))
+
+   (cons (types:make-mal-symbol '|throw|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (error 'types:mal-user-exception
+                                             :data value))))))
