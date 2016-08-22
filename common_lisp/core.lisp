@@ -221,4 +221,106 @@
 
    (cons (types:make-mal-symbol '|symbol?|)
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-symbol-p value)))))))
+                                      (types:make-mal-boolean (types:mal-symbol-p value)))))
+
+   (cons (types:make-mal-symbol '|symbol|)
+         (types:make-mal-builtin-fn (lambda (string)
+                                      (types:make-mal-symbol (reader::read-from-string-preserving-case
+                                                              (types:mal-value string))))))
+
+   (cons (types:make-mal-symbol '|keyword|)
+         (types:make-mal-builtin-fn (lambda (keyword)
+                                      (if (types:mal-keyword-p keyword)
+                                          keyword
+                                          (types:make-mal-keyword (reader::read-from-string-preserving-case
+                                                                   (format nil
+                                                                           ":~a"
+                                                                           (types:mal-value keyword))))))))
+
+   (cons (types:make-mal-symbol '|keyword?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-keyword-p value)))))
+
+   (cons (types:make-mal-symbol '|vector|)
+         (types:make-mal-builtin-fn (lambda (&rest elements)
+                                      (types:make-mal-vector (map 'vector #'identity elements)))))
+
+   (cons (types:make-mal-symbol '|vector?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-vector-p value)))))
+
+   (cons (types:make-mal-symbol '|hash-map|)
+         (types:make-mal-builtin-fn (lambda (&rest elements)
+                                      (let ((hash-map (make-hash-table :test 'types:mal-value=)))
+                                        (loop
+                                           for (key value) on elements
+                                           by #'cddr
+                                           do (setf (gethash key hash-map) value))
+                                        (types:make-mal-hash-map hash-map)))))
+
+   (cons (types:make-mal-symbol '|map?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-hash-map-p value)))))
+
+   (cons (types:make-mal-symbol '|assoc|)
+         (types:make-mal-builtin-fn (lambda (hash-map &rest elements)
+                                      (let ((hash-map-value (types:mal-value hash-map))
+                                            (new-hash-map (make-hash-table :test 'types:mal-value=)))
+
+                                        (loop
+                                           for key being the hash-keys of hash-map-value
+                                           do (setf (gethash key new-hash-map)
+                                                    (gethash key hash-map-value)))
+
+                                        (loop
+                                           for (key value) on elements
+                                           by #'cddr
+                                           do (setf (gethash key new-hash-map) value))
+
+                                        (types:make-mal-hash-map new-hash-map)))))
+
+   (cons (types:make-mal-symbol '|dissoc|)
+         (types:make-mal-builtin-fn (lambda (hash-map &rest elements)
+                                      (let ((hash-map-value (types:mal-value hash-map))
+                                            (new-hash-map (make-hash-table :test 'types:mal-value=)))
+
+                                        (loop
+                                           for key being the hash-keys of hash-map-value
+                                           do (when (not (member key elements :test #'types:mal-value=))
+                                                (setf (gethash key new-hash-map)
+                                                      (gethash key hash-map-value))))
+
+                                        (types:make-mal-hash-map new-hash-map)))))
+
+   (cons (types:make-mal-symbol '|get|)
+         (types:make-mal-builtin-fn (lambda (hash-map key)
+                                      (or (and (types:mal-hash-map-p hash-map)
+                                               (gethash key (types:mal-value hash-map)))
+                                          (types:make-mal-nil nil)))))
+
+   (cons (types:make-mal-symbol '|contains?|)
+         (types:make-mal-builtin-fn (lambda (hash-map key)
+                                      (if (gethash key (types:mal-value hash-map))
+                                          (types:make-mal-boolean t)
+                                          (types:make-mal-boolean nil)))))
+
+   (cons (types:make-mal-symbol '|keys|)
+         (types:make-mal-builtin-fn (lambda (hash-map)
+                                      (let ((hash-map-value (types:mal-value hash-map)))
+                                        (types:make-mal-list (loop
+                                                                for key being the hash-keys of hash-map-value
+                                                                collect key))))))
+
+   (cons (types:make-mal-symbol '|vals|)
+         (types:make-mal-builtin-fn (lambda (hash-map)
+                                      (let ((hash-map-value (types:mal-value hash-map)))
+                                        (types:make-mal-list (loop
+                                                                for key being the hash-keys of hash-map-value
+                                                                collect (gethash key hash-map-value)))))))
+
+   (cons (types:make-mal-symbol '|sequential?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (if (or (types:mal-vector-p value)
+                                              (types:mal-list-p value))
+                                          (types:make-mal-boolean t)
+                                          (types:make-mal-boolean nil)))))))
