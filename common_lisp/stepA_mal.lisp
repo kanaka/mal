@@ -187,7 +187,7 @@
                  ((mal-value= (make-mal-symbol '|try*|) (first forms))
                   (handler-case
                       (return (mal-eval (second forms) env))
-                    (types:mal-exception (condition)
+                    ((or types:mal-exception types:mal-error) (condition)
                       (when (third forms)
                         (let ((catch-forms (types:mal-value (third forms))))
                           (when (mal-value= (make-mal-symbol '|catch*|)
@@ -196,9 +196,10 @@
                                               (make-instance 'env:mal-environment
                                                              :parent env
                                                              :binds (list (second catch-forms))
-                                                             :exprs (list (if (typep condition 'types:mal-runtime-exception)
+                                                             :exprs (list (if (or (typep condition 'types:mal-runtime-exception)
+                                                                                  (typep condition 'types:mal-error))
                                                                               (types:make-mal-string (format nil "~a" condition))
-                                                                           (types::mal-exception-data condition)))))))))
+                                                                              (types::mal-exception-data condition)))))))))
                       (error condition))))
 
                  (t (let* ((evaluated-list (eval-ast ast env))

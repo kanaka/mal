@@ -53,10 +53,6 @@
    (type :accessor mal-type :initarg :type)
    (attrs :accessor mal-attrs :initarg :attrs)))
 
-(defmethod print-object ((obj mal-type) out)
-  (with-slots (value type meta attrs) obj
-    (format out "#<mal ~a: ~a (~a, ~a)>" type value meta attrs)))
-
 (defmacro define-mal-type (type)
   ;; Create a class for given type and a convenience constructor and also export
   ;; them
