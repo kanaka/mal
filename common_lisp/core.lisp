@@ -323,4 +323,67 @@
                                       (if (or (types:mal-vector-p value)
                                               (types:mal-list-p value))
                                           (types:make-mal-boolean t)
-                                          (types:make-mal-boolean nil)))))))
+                                          (types:make-mal-boolean nil)))))
+
+   (cons (types:make-mal-symbol '|readline|)
+         (types:make-mal-builtin-fn (lambda (prompt)
+                                      (format *standard-output* (types:mal-value prompt))
+                                      (force-output *standard-output*)
+                                      (types:wrap-value (read-line *standard-input* nil)))))
+
+   (cons (types:make-mal-symbol '|string?|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (types:make-mal-boolean (types:mal-string-p value)))))
+
+   (cons (types:make-mal-symbol '|time-ms|)
+         (types:make-mal-builtin-fn (lambda ()
+
+                                      (types:make-mal-number (floor (/ (get-internal-real-time)
+                                                                       (/ internal-time-units-per-second
+                                                                          1000)))))))
+
+   (cons (types:make-mal-symbol '|conj|)
+         (types:make-mal-builtin-fn (lambda (value &rest elements)
+                                      (cond ((types:mal-list-p value)
+                                             (types:make-mal-list (append (nreverse elements)
+                                                                          (types:mal-value value))))
+                                            ((types:mal-vector-p value)
+                                             (types:make-mal-vector (concatenate 'vector
+                                                                                 (types:mal-value value)
+                                                                                 elements)))
+                                            (t (error 'types:mal-user-exception))))))
+   (cons (types:make-mal-symbol '|seq|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (if (zerop (length (types:mal-value value)))
+                                          (types:make-mal-nil nil)
+                                          (cond ((types:mal-list-p value)
+                                                 value)
+                                                ((types:mal-vector-p value)
+                                                 (types:make-mal-list (map 'list
+                                                                           #'identity
+                                                                           (types:mal-value value))))
+                                                ((types:mal-string-p value)
+                                                 (types:make-mal-list  (map 'list
+                                                                            (lambda (char)
+                                                                              (types:make-mal-string (make-string 1 :initial-element char)))
+                                                                            (types:mal-value value))))
+                                                (t (error 'types:mal-user-exception)))))))
+
+   (cons (types:make-mal-symbol '|with-meta|)
+         (types:make-mal-builtin-fn (lambda (value meta)
+                                      (funcall (switch-mal-type value
+                                                 (types:string #'types:make-mal-string)
+                                                 (types:symbol #'types:make-mal-symbol)
+                                                 (types:list #'types:make-mal-list)
+                                                 (types:vector #'types:make-mal-vector)
+                                                 (types:hash-map #'types:make-mal-hash-map)
+                                                 (types:fn #'types:make-mal-fn)
+                                                 (types:builtin-fn #'types:make-mal-builtin-fn))
+                                               (types:mal-value value)
+                                               :meta meta
+                                               :attrs (types:mal-attrs value)))))
+
+   (cons (types:make-mal-symbol '|meta|)
+         (types:make-mal-builtin-fn (lambda (value)
+                                      (or (types:mal-meta value)
+                                          (types:make-mal-nil nil)))))))
