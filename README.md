@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 57 languages:
+Mal is implemented in 58 languages:
 
 * Ada
 * GNU awk
@@ -52,6 +52,7 @@ Mal is implemented in 57 languages:
 * PL/pgSQL (Postgres)
 * PL/SQL (Oracle)
 * Postscript
+* PowerShell
 * Python
 * RPython
 * R
@@ -610,16 +611,6 @@ cd php
 php stepX_YYY.php
 ```
 
-### Postscript Level 2/3
-
-The Postscript implementation of mal requires ghostscript to run. It
-has been tested with ghostscript 9.10.
-
-```
-cd ps
-gs -q -dNODISPLAY -I./ stepX_YYY.ps
-```
-
 ### PL/pgSQL (Postgres SQL Procedural Language)
 
 The PL/pgSQL implementation of mal requires a running Postgres server
@@ -657,6 +648,26 @@ cd plsql
 ./wrap.sh stepX_YYY.sql
     # OR
 ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
+```
+
+### Postscript Level 2/3
+
+The Postscript implementation of mal requires ghostscript to run. It
+has been tested with ghostscript 9.10.
+
+```
+cd ps
+gs -q -dNODISPLAY -I./ stepX_YYY.ps
+```
+
+### PowerShell
+
+The PowerShell implementation of mal requires the PowerShell script
+language. It has been tested with PowerShell 6.0.0 Alpha 9 on Linux.
+
+```
+cd powershell
+powershell ./stepX_YYY.ps1
 ```
 
 ### Python (2.X or 3.X)
