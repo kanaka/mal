@@ -183,7 +183,7 @@ a
 ;=>6
 
 ;; Testing special form case-sensitivity
-(def! DO (fn* () 7))
+(def! DO (fn* (a) 7))
 (DO 3)
 ;=>7
 
