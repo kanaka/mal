@@ -182,6 +182,10 @@
 a
 ;=>6
 
+;; Testing special form case-sensitivity
+(def! DO (fn* () 7))
+(DO 3)
+;=>7
 
 ;; Testing recursive sumdown function
 (def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))

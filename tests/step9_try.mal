@@ -53,6 +53,8 @@
 (apply prn 1 2 (list "3" (list)))
 ; 1 2 "3" ()
 ;=>nil
+(apply list (list))
+;=>()
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
@@ -122,6 +124,8 @@
 (apply prn 1 2 ["3" 4])
 ; 1 2 "3" 4
 ;=>nil
+(apply list [])
+;=>()
 ;; Testing apply function with user functions and arguments in vector
 (apply (fn* (a b) (+ a b)) [2 3])
 ;=>5
