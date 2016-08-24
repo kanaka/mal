@@ -50,6 +50,7 @@ matrix:
     - {env: IMPL=plpgsql,   services: [docker]}
 #    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}
+    - {env: IMPL=powershell, services: [docker]}
     - {env: IMPL=python,    services: [docker]}
     - {env: IMPL=r,         services: [docker]}
     - {env: IMPL=racket,    services: [docker]}
