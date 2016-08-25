@@ -119,3 +119,4 @@ basic/step8_macros.bas
 basic/step9_try.bas
 basic/stepA_mal.bas
 basic/*.prg
+common-lisp/*.image
