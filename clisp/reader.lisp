@@ -50,18 +50,21 @@
   '(#\Space #\Newline #\Backspace #\Tab
     #\Linefeed #\Page #\Return #\Rubout #\,))
 
+
 (defun tokenize (string)
-  (remove-if (lambda (token)
-               (or (zerop (length token))
-                   (char= (char token 0) #\;)))
-             (loop
-                with end = (length string)
-                for start = 0 then (regexp:match-end match)
-                for match = (ignore-errors
-                              (regexp:match *tokenizer-re* string :start start))
-                while (and match (< start end))
-                collect (string-trim *whitespace-chars*
-                                     (regexp:match-string string match)))))
+  (let (tokens)
+    (loop
+      with end = (length string)
+      for start = 0 then (regexp:match-end match)
+      for match = (when (< start end)
+                    (regexp:match *tokenizer-re* string :start start))
+      while match
+      do (let ((token (string-trim *whitespace-chars*
+                                   (regexp:match-string string match))))
+           (unless (or (zerop (length token))
+                       (char= (char token 0) #\;))
+             (push token tokens))))
+    (nreverse tokens)))
 
 (defstruct (token-reader)
   (tokens nil))
