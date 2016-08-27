@@ -47,40 +47,44 @@
 (define-condition mal-user-exception (mal-exception)
   ((data :accessor mal-exception-data :initarg :data)))
 
-(defclass mal-type ()
-  ((value :accessor mal-value :initarg :value)
-   (meta :accessor mal-meta :initarg :meta :initform nil)
-   (type :accessor mal-type :initarg :type)
-   (attrs :accessor mal-attrs :initarg :attrs)))
+(defstruct mal-type
+  (type nil)
+  (value nil)
+  meta
+  attrs)
+
+(defun mal-value (mal-data)
+  (mal-type-value mal-data))
+
+(defun mal-type (mal-data)
+  (mal-type-type mal-data))
+
+(defun mal-attrs (mal-data)
+  (mal-type-attrs mal-data))
+
+(defun mal-meta (mal-data)
+  (mal-type-meta mal-data))
 
 (defmacro define-mal-type (type)
   ;; Create a class for given type and a convenience constructor and also export
   ;; them
-  (let ((name (intern (string-upcase (concatenate 'string
-                                                  "mal-"
-                                                  (symbol-name type)))))
-        (constructor (intern (string-upcase (concatenate 'string
+  (let ((constructor (intern (string-upcase (concatenate 'string
                                                          "make-mal-"
                                                          (symbol-name type)))))
         (predicate (intern (string-upcase (concatenate 'string
                                                          "mal-"
                                                          (symbol-name type)
                                                          "-p")))))
-    `(progn (defclass ,name (mal-type)
-              ((type :accessor mal-type
-                     :initarg :type
-                     :initform ',type)))
-
-            (defun ,constructor (value &key meta attrs)
-              (make-instance ',name
+    `(progn (defun ,constructor (value &key meta attrs)
+              (make-mal-type :type ',type
                              :value value
                              :meta meta
                              :attrs attrs))
+
             (defun ,predicate (value)
               (when (typep value 'mal-type)
                 (equal (mal-type value) ',type)))
 
-            (export ',name)
             (export ',constructor)
             (export ',predicate))))
 
