@@ -1,5 +1,7 @@
 (defpackage :printer
-  (:use :common-lisp :types :genhash)
+  (:use :common-lisp
+        :types
+        :genhash)
   (:import-from :cl-ppcre
                 :regex-replace)
   (:import-from :utils
@@ -55,4 +57,5 @@
       (types:list (pr-mal-sequence "(" ast ")" print-readably))
       (types:vector (pr-mal-sequence "[" ast "]" print-readably))
       (types:hash-map (pr-mal-hash-map ast print-readably))
-      (types:atom (format nil "(atom ~a)" (pr-str (types:mal-data-value ast)))))))
+      (types:atom (format nil "(atom ~a)" (pr-str (types:mal-data-value ast))))
+      (types:builtin-fn "#<builtin-func"))))

@@ -1,5 +1,7 @@
 (defpackage :reader
-  (:use :common-lisp :types :genhash)
+  (:use :common-lisp
+        :types
+        :genhash)
   (:import-from :cl-ppcre
                 :create-scanner
                 :do-matches-as-strings
@@ -107,7 +109,7 @@ raised"
       (error 'eof
              :context "object metadata"))
 
-    (make-mal-list (list (make-mal-symbol '|with-meta|) value meta))))
+    (make-mal-list (list (make-mal-symbol "with-meta") value meta))))
 
 (defun expand-quote (reader)
   (let ((quote (next reader)))

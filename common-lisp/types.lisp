@@ -1,5 +1,6 @@
 (defpackage :types
-  (:use :common-lisp :genhash)
+  (:use :common-lisp
+        :genhash)
   (:export ;; Accessors
            :mal-data-value
            :mal-data-type
@@ -46,12 +47,19 @@
            :make-mal-atom
            :mal-atom-p
 
+           :builtin-fn
+           :make-mal-builtin-fn
+           :mal-builtin-fn-p
+
            :any
 
            :switch-mal-type
 
            ;; Hashing mal values
-           :make-mal-value-hash-table))
+           :make-mal-value-hash-table
+
+           ;; Utilities
+           :apply-unwrapped-values))
 
 (in-package :types)
 
@@ -94,6 +102,8 @@
 
 (define-mal-type atom)
 
+(define-mal-type builtin-fn)
+
 ;; Generic type
 (defvar any)
 
@@ -118,3 +128,45 @@
                              (list 'equal (list 'quote (car form)) 'type))
                          (cadr form)))
                  forms))))
+
+(defun wrap-value (value &key booleanp listp)
+  (typecase value
+    (number (make-mal-number value))
+    ;; This needs to be before symbol since nil is a symbol
+    (null (funcall (cond
+                    (booleanp #'make-mal-boolean)
+                    (listp #'make-mal-list)
+                    (t #'make-mal-nil))
+                   value))
+    ;; This needs to before symbol since t, nil are symbols
+    (boolean (make-mal-boolean value))
+    (keyword (make-mal-keyword value))
+    (symbol (make-mal-symbol (symbol-name value)))
+    (string (make-mal-string value))
+    (list (make-mal-list (map 'list #'wrap-value value)))
+    (vector (make-mal-vector (map 'vector #'wrap-value value)))
+    (hash-table (make-mal-hash-map (let ((new-hash-table (make-mal-value-hash-table)))
+                                     (loop
+                                      for key being the hash-keys of value
+                                      do (setf (gethash (wrap-value key) new-hash-table)
+                                               (wrap-value (gethash key value))))
+                                     new-hash-table)))))
+
+(defun unwrap-value (value)
+  (switch-mal-type value
+    (list (mapcar #'unwrap-value (mal-data-value value)))
+    (vector (map 'vector #'unwrap-value (mal-data-value value)))
+    (hash-map (let ((hash-table (make-hash-table))
+                    (hash-map-value (mal-data-value value)))
+                (loop
+                   for key being the hash-keys of hash-map-value
+                   do (setf (gethash (mal-data-value key) hash-table)
+                            (mal-data-value (gethash key hash-map-value))))
+                hash-table))
+    (any (mal-data-value value))))
+
+(defun apply-unwrapped-values (op &rest values)
+  (wrap-value (apply op (mapcar #'unwrap-value values))))
+
+(defun apply-unwrapped-values-prefer-bool (op &rest values)
+  (wrap-value (apply op (mapcar #'unwrap-value values)) :booleanp t))
