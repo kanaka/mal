@@ -194,8 +194,7 @@
 (defun hash-mal-value (value)
   (sxhash (mal-data-value value)))
 
-#+sbcl (sb-ext:define-hash-table-test mal-value= hash-mal-value)
-#+clisp (ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
+(ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
 
 (defun wrap-hash-value (value)
   (let ((new-hash-table (make-hash-table :test 'mal-value=)))
