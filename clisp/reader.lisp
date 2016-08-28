@@ -172,8 +172,6 @@
 (defun read-atom (reader)
   (let ((token (next reader)))
     (cond
-      ((regexp:regexp-exec *digit-re* token)
-       (make-mal-number (read-from-string token)))
       ((string= token "false")
        (make-mal-boolean nil))
       ((string= token "true")
@@ -184,4 +182,6 @@
        (make-mal-string (parse-string token)))
       ((char= (char token 0) #\:)
        (make-mal-keyword (read-from-string-preserving-case token)))
+      ((regexp:regexp-exec *digit-re* token)
+       (make-mal-number (read-from-string token)))
       (t (make-mal-symbol (read-from-string-preserving-case token))))))

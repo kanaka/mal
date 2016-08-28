@@ -23,14 +23,15 @@
                  "{"
                  (format nil
                          "~{~a~^ ~}"
-                         (mapcar (lambda (key-value)
-                                   (format nil
-                                           "~a ~a"
-                                           (pr-str (car key-value) print-readably)
-                                           (pr-str (cdr key-value) print-readably)))
-                                 (loop
-                                    for key being the hash-keys of hash-map-value
-                                    collect (cons key (gethash key hash-map-value)))))
+                         (let (entries)
+                           (maphash (lambda (key value)
+                                      (push (format nil
+                                                    "~a ~a"
+                                                    (pr-str key print-readably)
+                                                    (pr-str value print-readably))
+                                            entries))
+                                    hash-map-value)
+                           (nreverse entries)))
                  "}")))
 
 (defun pr-string (ast &optional (print-readably t))
