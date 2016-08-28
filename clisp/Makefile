@@ -7,6 +7,9 @@ all:
 
 .PHONY: stats
 
+step%.fas : step%.lisp dependencies.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp
+	clisp -q -c $<
+
 stats: $(SOURCES)
 	@wc $^
 	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

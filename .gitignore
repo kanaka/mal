@@ -104,3 +104,5 @@ tcl/mal.tcl
 vb/*.exe
 vb/*.dll
 vimscript/mal.vim
+clisp/*.fas
+clisp/*.lib
