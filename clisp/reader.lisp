@@ -12,9 +12,9 @@
 \\)\\|[^\"\\]\\)*\"$"
   "RE string")
 
-(defvar *tokenizer-re* "[[:space:],]*\\(~@\\|[][{}()~`'^@]\\|\"\\(\\\\\\(.\\|
+(defvar *tokenizer-re* (regexp:regexp-compile "[[:space:],]*\\(~@\\|[][{}()~`'^@]\\|\"\\(\\\\\\(.\\|
 \\)\\|[^\"\\]\\)*\"\\?\\|;[^
-]*\\|[^][[:space:]~{}()@^`'\";]*\\)"
+]*\\|[^][[:space:]~{}()@^`'\";]*\\)")
   "RE")
 
 (define-condition eof (types:mal-error)
@@ -50,20 +50,21 @@
   '(#\Space #\Newline #\Backspace #\Tab
     #\Linefeed #\Page #\Return #\Rubout #\,))
 
-
 (defun tokenize (string)
   (let (tokens)
-    (loop
-      with end = (length string)
-      for start = 0 then (regexp:match-end match)
-      for match = (when (< start end)
-                    (regexp:match *tokenizer-re* string :start start))
-      while match
-      do (let ((token (string-trim *whitespace-chars*
-                                   (regexp:match-string string match))))
-           (unless (or (zerop (length token))
-                       (char= (char token 0) #\;))
-             (push token tokens))))
+    (do* ((start 0)
+          (end (length string))
+          (match t))
+         ((not match))
+      (setf match (when (< start end)
+                    (nth-value 1
+                               (regexp:regexp-exec *tokenizer-re* string :start start))))
+      (when match
+        (setf start (regexp:match-end match))
+        (let ((token (regexp:match-string string match)))
+          (unless (or (zerop (length token))
+                      (char= (char token 0) #\;))
+            (push token tokens)))))
     (nreverse tokens)))
 
 (defstruct (token-reader)
