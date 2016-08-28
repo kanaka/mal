@@ -17,6 +17,18 @@
                (car binding)
                (cdr binding)))
 
+(defvar mal-quote (make-mal-symbol "quote"))
+(defvar mal-quasiquote (make-mal-symbol "quasiquote"))
+(defvar mal-unquote (make-mal-symbol "unquote"))
+(defvar mal-splice-unquote (make-mal-symbol "splice-unquote"))
+(defvar mal-cons (make-mal-symbol "cons"))
+(defvar mal-concat (make-mal-symbol "concat"))
+(defvar mal-def! (make-mal-symbol "def!"))
+(defvar mal-let* (make-mal-symbol "let*"))
+(defvar mal-do (make-mal-symbol "do"))
+(defvar mal-if (make-mal-symbol "if"))
+(defvar mal-fn* (make-mal-symbol "fn*"))
+
 (env:set-env *repl-env*
              (types:make-mal-symbol "eval")
              (types:make-mal-builtin-fn (lambda (ast)
@@ -44,6 +56,7 @@
     (types:hash-map (eval-hash-map ast env))
     (types:any ast)))
 
+
 (defun is-pair (value)
   (and (or (mal-list-p value)
            (mal-vector-p value))
@@ -51,21 +64,21 @@
 
 (defun quasiquote (ast)
   (if (not (is-pair ast))
-      (types:make-mal-list (list (types:make-mal-symbol "quote")
+      (types:make-mal-list (list mal-quote
                                  ast))
       (let ((forms (map 'list #'identity (mal-data-value ast))))
         (cond
-          ((mal-value= (make-mal-symbol "unquote") (first forms))
+          ((mal-value= mal-unquote (first forms))
            (second forms))
 
           ((and (is-pair (first forms))
-                (mal-value= (make-mal-symbol "splice-unquote")
+                (mal-value= mal-splice-unquote
                             (first (mal-data-value (first forms)))))
-           (types:make-mal-list (list (types:make-mal-symbol "concat")
+           (types:make-mal-list (list mal-concat
                                       (second (mal-data-value (first forms)))
                                       (quasiquote (make-mal-list (cdr forms))))))
 
-          (t (types:make-mal-list (list (types:make-mal-symbol "cons")
+          (t (types:make-mal-list (list mal-cons
                                         (quasiquote (first forms))
                                         (quasiquote (make-mal-list (cdr forms))))))))))
 
@@ -80,16 +93,16 @@
           ((zerop (length (mal-data-value ast))) (return ast))
           (t (let ((forms (mal-data-value ast)))
                (cond
-                 ((mal-value= (make-mal-symbol "quote") (first forms))
+                 ((mal-value= mal-quote (first forms))
                   (return (second forms)))
 
-                 ((mal-value= (make-mal-symbol "quasiquote") (first forms))
+                 ((mal-value= mal-quasiquote (first forms))
                   (setf ast (quasiquote (second forms))))
 
-                 ((mal-value= (make-mal-symbol "def!") (first forms))
+                 ((mal-value= mal-def! (first forms))
                   (return (env:set-env env (second forms) (mal-eval (third forms) env))))
 
-                 ((mal-value= (make-mal-symbol "let*") (first forms))
+                 ((mal-value= mal-let* (first forms))
                   (let ((new-env (make-instance 'env:mal-environment
                                                 :parent env))
                         ;; Convert a potential vector to a list
@@ -110,19 +123,19 @@
                     (setf ast (third forms)
                           env new-env)))
 
-                 ((mal-value= (make-mal-symbol "do") (first forms))
+                 ((mal-value= mal-do (first forms))
                   (mapc (lambda (form) (mal-eval form env))
                         (butlast (cdr forms)))
                   (setf ast (car (last forms))))
 
-                 ((mal-value= (make-mal-symbol "if") (first forms))
+                 ((mal-value= mal-if (first forms))
                   (let ((predicate (mal-eval (second forms) env)))
                     (setf ast (if (or (mal-value= predicate (types:make-mal-nil nil))
                                       (mal-value= predicate (types:make-mal-boolean nil)))
                                   (fourth forms)
                                   (third forms)))))
 
-                 ((mal-value= (make-mal-symbol "fn*") (first forms))
+                 ((mal-value= mal-fn* (first forms))
                   (return (let ((arglist (second forms))
                                 (body (third forms)))
                             (types:make-mal-fn (lambda (&rest args)

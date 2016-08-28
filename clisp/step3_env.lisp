@@ -27,6 +27,9 @@
          (types:make-mal-builtin-fn (lambda (value1 value2)
                                       (apply-unwrapped-values '/ value1 value2))))
 
+(defvar mal-def! (make-mal-symbol "def!"))
+(defvar mal-let* (make-mal-symbol "let*"))
+
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
@@ -73,9 +76,9 @@
 (defun eval-list (ast env)
   (let ((forms (mal-data-value ast)))
     (cond
-      ((mal-value= (make-mal-symbol "def!") (first forms))
+      ((mal-value= mal-def! (first forms))
        (env:set-env env (second forms) (mal-eval (third forms) env)))
-      ((mal-value= (make-mal-symbol "let*") (first forms))
+      ((mal-value= mal-let* (first forms))
        (eval-let* forms env))
       (t (let ((evaluated-list (eval-ast ast env)))
            (apply (types:mal-data-value (car evaluated-list))
