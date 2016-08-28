@@ -89,7 +89,7 @@
              (not (zerop (length (mal-data-value ast)))))
     (let* ((func-symbol (first (mal-data-value ast)))
            (func (when (types:mal-symbol-p func-symbol)
-                   (ignore-errors (env:get-env env func-symbol)))))
+                   (env:find-env env func-symbol))))
       (and func
            (types:mal-fn-p func)
            (cdr (assoc 'is-macro (types:mal-data-attrs func)))))))

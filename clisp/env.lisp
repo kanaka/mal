@@ -5,6 +5,7 @@
   (:export :undefined-symbol
            :mal-environment
            :get-env
+           :find-env
            :set-env))
 
 (in-package :env)
