@@ -40,8 +40,9 @@
                                       (types:apply-unwrapped-values '* value1 value2))))
 
    (cons (types:make-mal-symbol "/")
-         (types:make-mal-builtin-fn (   lambda (value1 value2)
-                                      (types:apply-unwrapped-values '/ value1 value2))))
+         (types:make-mal-builtin-fn (lambda (value1 value2)
+                                      (types:make-mal-number (float (/ (types:mal-data-value value1)
+                                                                       (types:mal-data-value value2)))))))
 
    (cons (types:make-mal-symbol "prn")
          (types:make-mal-builtin-fn (lambda (&rest strings)
