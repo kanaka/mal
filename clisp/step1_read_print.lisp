@@ -1,5 +1,4 @@
-(require "reader")
-(require "printer")
+(require "dependencies")
 
 (defpackage :mal
   (:use :common-lisp :reader :printer))

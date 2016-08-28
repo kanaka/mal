@@ -1,6 +1,3 @@
-(require "types")
-(require "utils")
-
 (defpackage :reader
   (:use :common-lisp :regexp :utils :types)
   (:export :read-str

@@ -1,5 +1,3 @@
-(require "types")
-
 (defpackage :env
   (:use :common-lisp :types)
   (:export :undefined-symbol

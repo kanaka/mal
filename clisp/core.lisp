@@ -1,7 +1,3 @@
-(require "types")
-(require "reader")
-(require "printer")
-
 (defpackage :core
   (:use :common-lisp :types :reader :printer)
   (:export :ns))

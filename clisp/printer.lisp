@@ -1,6 +1,3 @@
-(require "types")
-(require "utils")
-
 (defpackage :printer
   (:use :common-lisp :utils :types)
   (:export :pr-str))
