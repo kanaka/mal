@@ -2,6 +2,7 @@
 
 (defpackage :mal
   (:use :common-lisp
+        :readline
         :types
         :env
         :reader
@@ -265,26 +266,61 @@
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
-(defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
-  (format out-stream prompt)
-  (force-output out-stream)
-  (read-line in-stream nil))
-
-(defun writeline (string)
-  (when string
-    (write-line string)))
-
-(defun main ()
-  (loop do (let ((line (readline "user> ")))
-             (if line (writeline (rep line)) (return)))))
-
 (env:set-env *repl-env*
              (types:make-mal-symbol "*ARGV*")
              (types:wrap-value (cdr common-lisp-user::*args*)
                                :listp t))
 
-(if (null common-lisp-user::*args*)
-    (main)
-    (rep (format nil
-                 "(load-file \"~a\")"
-                 (car common-lisp-user::*args*))))
+;; Readline setup
+;;; The test runner sets this environment variable, in which case we do
+;;; use readline since tests do not work with the readline interface
+(defvar use-readline-p (not (string= (ext:getenv "PERL_RL") "false")))
+
+(defvar *history-file* (file-namestring (merge-pathnames (user-homedir-pathname)
+                                                         ".mal-clisp-history")))
+
+(defun load-history ()
+  (readline:read-history *history-file*))
+
+(defun save-history ()
+  (readline:write-history *history-file*))
+
+;; Setup history
+(when use-readline-p
+  (load-history))
+
+(defun raw-input (prompt)
+  (format *standard-output* prompt)
+  (force-output *standard-output*)
+  (read-line *standard-input* nil))
+
+(defun mal-readline (prompt)
+  (let ((input (if use-readline-p
+                   (readline:readline prompt)
+                   (raw-input prompt))))
+    (when (and use-readline-p
+               input
+               (not (zerop (length input))))
+      (readline:add-history input))
+    input))
+
+(defun mal-writeline (string)
+  (when string
+    (write-line string)))
+
+(defun repl ()
+  (loop do (let ((line (mal-readline "user> ")))
+             (if line
+                 (mal-writeline (rep line))
+                 (return))))
+  (when use-readline-p
+    (save-history)))
+
+(defun main ()
+  (if (null common-lisp-user::*args*)
+      (repl)
+      (rep (format nil
+                   "(load-file \"~a\")"
+                   (car common-lisp-user::*args*)))))
+
+(main)

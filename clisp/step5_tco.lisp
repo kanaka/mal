@@ -2,6 +2,7 @@
 
 (defpackage :mal
   (:use :common-lisp
+        :readline
         :types
         :env
         :reader
@@ -143,17 +144,49 @@
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
-(defun readline (prompt &optional (in-stream *standard-input*) (out-stream *standard-output*))
-  (format out-stream prompt)
-  (force-output out-stream)
-  (read-line in-stream nil))
+;; Readline setup
+;;; The test runner sets this environment variable, in which case we do
+;;; use readline since tests do not work with the readline interface
+(defvar use-readline-p (not (string= (ext:getenv "PERL_RL") "false")))
 
-(defun writeline (string)
+(defvar *history-file* (file-namestring (merge-pathnames (user-homedir-pathname)
+                                                         ".mal-clisp-history")))
+
+(defun load-history ()
+  (readline:read-history *history-file*))
+
+(defun save-history ()
+  (readline:write-history *history-file*))
+
+;; Setup history
+(when use-readline-p
+  (load-history))
+
+(defun raw-input (prompt)
+  (format *standard-output* prompt)
+  (force-output *standard-output*)
+  (read-line *standard-input* nil))
+
+(defun mal-readline (prompt)
+  (let ((input (if use-readline-p
+                   (readline:readline prompt)
+                   (raw-input prompt))))
+    (when (and use-readline-p
+               input
+               (not (zerop (length input))))
+      (readline:add-history input))
+    input))
+
+(defun mal-writeline (string)
   (when string
     (write-line string)))
 
 (defun main ()
-  (loop do (let ((line (readline "user> ")))
-             (if line (writeline (rep line)) (return)))))
+  (loop do (let ((line (mal-readline "user> ")))
+             (if line
+                 (mal-writeline (rep line))
+                 (return))))
+  (when use-readline-p
+    (save-history)))
 
 (main)
