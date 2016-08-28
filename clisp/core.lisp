@@ -21,6 +21,11 @@
       (read-sequence data stream)
       data)))
 
+(defmacro wrap-boolean (form)
+  `(if ,form
+       types:mal-true
+       types:mal-false))
+
 (defvar ns
   (list
    (cons (types:make-mal-symbol "+")
@@ -46,7 +51,7 @@
                                                           "~{~a~^ ~}"
                                                           (mapcar (lambda (string) (printer:pr-str string t))
                                                                   strings)))
-                                      (types:make-mal-nil nil))))
+                                      types:mal-nil)))
 
    (cons (types:make-mal-symbol "println")
          (types:make-mal-builtin-fn (lambda (&rest strings)
@@ -54,7 +59,7 @@
                                                           "~{~a~^ ~}"
                                                           (mapcar (lambda (string) (printer:pr-str string nil))
                                                                   strings)))
-                                      (types:make-mal-nil nil))))
+                                      types:mal-nil)))
 
    (cons (types:make-mal-symbol "pr-str")
          (types:make-mal-builtin-fn (lambda (&rest strings)
@@ -76,12 +81,12 @@
 
    (cons (types:make-mal-symbol "list?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (or (types:mal-nil-p value)
-                                                                  (types:mal-list-p value))))))
+                                      (wrap-boolean (or (types:mal-nil-p value)
+                                                        (types:mal-list-p value))))))
 
    (cons (types:make-mal-symbol "empty?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (zerop (length (mal-data-value value)))))))
+                                      (wrap-boolean (zerop (length (mal-data-value value)))))))
 
    (cons (types:make-mal-symbol "count")
          (types:make-mal-builtin-fn (lambda (value)
@@ -89,7 +94,7 @@
 
    (cons (types:make-mal-symbol "=")
          (types:make-mal-builtin-fn (lambda (value1 value2)
-                                      (types:make-mal-boolean (types:mal-value= value1 value2)))))
+                                      (wrap-boolean (types:mal-value= value1 value2)))))
 
    (cons (types:make-mal-symbol "<")
          (types:make-mal-builtin-fn (lambda (value1 value2)
@@ -129,7 +134,7 @@
 
    (cons (types:make-mal-symbol "atom?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-atom-p value)))))
+                                      (wrap-boolean (types:mal-atom-p value)))))
 
    (cons (types:make-mal-symbol "deref")
          (types:make-mal-builtin-fn (lambda (atom)
@@ -172,7 +177,7 @@
    (cons (types:make-mal-symbol "first")
          (types:make-mal-builtin-fn (lambda (sequence)
                                       (or (first (map 'list #'identity (mal-data-value sequence)))
-                                          (types:make-mal-nil nil)))))
+                                          types:mal-nil))))
 
    (cons (types:make-mal-symbol "rest")
          (types:make-mal-builtin-fn (lambda (sequence)
@@ -204,21 +209,21 @@
 
    (cons (types:make-mal-symbol "nil?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-nil-p value)))))
+                                      (wrap-boolean (types:mal-nil-p value)))))
 
    (cons (types:make-mal-symbol "true?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (and (types:mal-boolean-p value)
+                                      (wrap-boolean (and (types:mal-boolean-p value)
                                                                    (types:mal-data-value value))))))
 
    (cons (types:make-mal-symbol "false?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (and (types:mal-boolean-p value)
+                                      (wrap-boolean (and (types:mal-boolean-p value)
                                                                    (not (types:mal-data-value value)))))))
 
    (cons (types:make-mal-symbol "symbol?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-symbol-p value)))))
+                                      (wrap-boolean (types:mal-symbol-p value)))))
 
    (cons (types:make-mal-symbol "symbol")
          (types:make-mal-builtin-fn (lambda (string)
@@ -232,7 +237,7 @@
 
    (cons (types:make-mal-symbol "keyword?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-keyword-p value)))))
+                                      (wrap-boolean (types:mal-keyword-p value)))))
 
    (cons (types:make-mal-symbol "vector")
          (types:make-mal-builtin-fn (lambda (&rest elements)
@@ -240,7 +245,7 @@
 
    (cons (types:make-mal-symbol "vector?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-vector-p value)))))
+                                      (wrap-boolean (types:mal-vector-p value)))))
 
    (cons (types:make-mal-symbol "hash-map")
          (types:make-mal-builtin-fn (lambda (&rest elements)
@@ -253,7 +258,7 @@
 
    (cons (types:make-mal-symbol "map?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-hash-map-p value)))))
+                                      (wrap-boolean (types:mal-hash-map-p value)))))
 
    (cons (types:make-mal-symbol "assoc")
          (types:make-mal-builtin-fn (lambda (hash-map &rest elements)
@@ -289,13 +294,13 @@
          (types:make-mal-builtin-fn (lambda (hash-map key)
                                       (or (and (types:mal-hash-map-p hash-map)
                                                (gethash key (types:mal-data-value hash-map)))
-                                          (types:make-mal-nil nil)))))
+                                          types:mal-nil))))
 
    (cons (types:make-mal-symbol "contains?")
          (types:make-mal-builtin-fn (lambda (hash-map key)
                                       (if (gethash key (types:mal-data-value hash-map))
-                                          (types:make-mal-boolean t)
-                                          (types:make-mal-boolean nil)))))
+                                          types:mal-true
+                                          types:mal-false))))
 
    (cons (types:make-mal-symbol "keys")
          (types:make-mal-builtin-fn (lambda (hash-map)
@@ -313,10 +318,8 @@
 
    (cons (types:make-mal-symbol "sequential?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (if (or (types:mal-vector-p value)
-                                              (types:mal-list-p value))
-                                          (types:make-mal-boolean t)
-                                          (types:make-mal-boolean nil)))))
+                                      (wrap-boolean (or (types:mal-vector-p value)
+                                                        (types:mal-list-p value))))))
 
    (cons (types:make-mal-symbol "readline")
          (types:make-mal-builtin-fn (lambda (prompt)
@@ -326,7 +329,7 @@
 
    (cons (types:make-mal-symbol "string?")
          (types:make-mal-builtin-fn (lambda (value)
-                                      (types:make-mal-boolean (types:mal-string-p value)))))
+                                      (wrap-boolean (types:mal-string-p value)))))
 
    (cons (types:make-mal-symbol "time-ms")
          (types:make-mal-builtin-fn (lambda ()
@@ -348,7 +351,7 @@
    (cons (types:make-mal-symbol "seq")
          (types:make-mal-builtin-fn (lambda (value)
                                       (if (zerop (length (types:mal-data-value value)))
-                                          (types:make-mal-nil nil)
+                                          types:mal-nil
                                           (cond ((types:mal-list-p value)
                                                  value)
                                                 ((types:mal-vector-p value)
@@ -379,4 +382,4 @@
    (cons (types:make-mal-symbol "meta")
          (types:make-mal-builtin-fn (lambda (value)
                                       (or (types:mal-data-meta value)
-                                          (types:make-mal-nil nil)))))))
+                                          types:mal-nil))))))

@@ -82,7 +82,7 @@
                               ;; There are enough parameters to satisfy the
                               ;; normal arguments, set rest-args to a nil value
                               ((= no-of-args varidiac-position)
-                               (make-mal-nil nil)))))
+                               types:mal-nil))))
         (handler-case
             (setf exprs (concatenate 'list
                                      (subseq exprs 0 varidiac-position)

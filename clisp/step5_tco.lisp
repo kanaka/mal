@@ -51,7 +51,7 @@
 (defun mal-eval (ast env)
   (loop
      do (cond
-          ((null ast) (return (make-mal-nil nil)))
+          ((null ast) (return types:mal-nil))
           ((not (types:mal-list-p ast)) (return (eval-ast ast env)))
           ((zerop (length (mal-data-value ast))) (return ast))
           (t (let ((forms (mal-data-value ast)))
@@ -71,7 +71,7 @@
                               (env:set-env new-env
                                            (car binding)
                                            (mal-eval (or (cdr binding)
-                                                         (types:make-mal-nil nil))
+                                                         types:mal-nil)
                                                      new-env)))
                             (loop
                                for (symbol value) on bindings
@@ -87,8 +87,8 @@
 
                  ((mal-value= mal-if (first forms))
                   (let ((predicate (mal-eval (second forms) env)))
-                    (setf ast (if (or (mal-value= predicate (types:make-mal-nil nil))
-                                      (mal-value= predicate (types:make-mal-boolean nil)))
+                    (setf ast (if (or (mal-value= predicate types:mal-nil)
+                                      (mal-value= predicate types:mal-false))
                                   (fourth forms)
                                   (third forms)))))
 

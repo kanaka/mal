@@ -1,11 +1,13 @@
 (defpackage :types
   (:use :common-lisp)
   (:export :mal-value=
+
            ;; Accessors
            :mal-data-value
            :mal-data-type
            :mal-data-meta
            :mal-data-attrs
+
            ;; Mal values
            :number
            :boolean
@@ -20,13 +22,23 @@
            :fn
            :builtin-fn
            :any
+
+           ;; Singleton values
+           :mal-nil
+           :mal-true
+           :mal-false
+
            :mal-exception
+
            ;; User exceptions
            :mal-user-exception
+
            ;; Exceptions raised by the runtime itself
            :mal-runtime-exception
+
            ;; Error
            :mal-error
+
            ;; Helpers
            :wrap-value
            :apply-unwrapped-values
@@ -92,6 +104,10 @@
 
 (define-mal-type fn)
 (define-mal-type builtin-fn)
+
+(defvar mal-nil (make-mal-nil nil))
+(defvar mal-true (make-mal-boolean t))
+(defvar mal-false (make-mal-boolean nil))
 
 ;; Generic type
 (defvar any)
@@ -162,20 +178,19 @@
   (typecase value
     (number (make-mal-number value))
     ;; This needs to before symbol since nil is a symbol
-    (null (funcall (cond
-                     (booleanp #'make-mal-boolean)
-                     (listp #'make-mal-list)
-                     (t #'make-mal-nil))
-                   value))
+    (null (cond
+            (booleanp mal-false)
+            (listp (make-mal-list nil))
+            (t mal-nil)))
     ;; This needs to before symbol since t, nil are symbols
-    (boolean (make-mal-boolean value))
+    (boolean (if value mal-true mal-false))
     (symbol (make-mal-symbol (symbol-name value)))
     (keyword (make-mal-keyword value))
     (string (make-mal-string value))
     (list (make-mal-list (map 'list #'wrap-value value)))
     (vector (make-mal-vector (map 'vector #'wrap-value value)))
     (hash-table (make-mal-hash-map (wrap-hash-value value)))
-    (null (make-mal-nil value))))
+    (null mal-nil)))
 
 (defun unwrap-value (value)
   (switch-mal-type value
