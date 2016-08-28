@@ -18,7 +18,7 @@
 (defun rep (string)
   (handler-case
       (mal-print (mal-eval (mal-read string)
-                           (make-hash-table :test #'equal)))
+                           nil))
     (reader:eof (condition)
       (format nil
               "~a"

@@ -55,7 +55,7 @@
     (if value
         value
         (error 'undefined-symbol
-               :symbol (format nil "~a" (types:mal-value symbol))))))
+               :symbol (format nil "~a" (types:mal-data-value symbol))))))
 
 (defmethod set-env ((env mal-environment) symbol value)
   (setf (gethash symbol (mal-env-bindings env)) value))

@@ -41,7 +41,7 @@
     (if value
         value
         (error 'env:undefined-symbol
-               :symbol (format nil "~a" (types:mal-value symbol))))))
+               :symbol (format nil "~a" (types:mal-data-value symbol))))))
 
 (defun mal-read (string)
   (reader:read-str string))
@@ -49,10 +49,10 @@
 (defun mal-eval (ast env)
   (cond
     ((not (types:mal-list-p ast)) (eval-ast ast env))
-    ((zerop (length (mal-value ast))) ast)
+    ((zerop (length (mal-data-value ast))) ast)
     (t (progn
          (let ((evaluated-list (eval-ast ast env)))
-           (apply (mal-value (car evaluated-list))
+           (apply (mal-data-value (car evaluated-list))
                   (cdr evaluated-list)))))))
 
 (defun mal-print (expression)
@@ -61,10 +61,10 @@
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
-       (mal-value sequence)))
+       (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (mal-value hash-map))
+  (let ((hash-map-value (mal-data-value hash-map))
         (new-hash-table (make-hash-table :test 'types:mal-value=)))
     (loop
        for key being the hash-keys of hash-map-value

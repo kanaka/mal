@@ -29,10 +29,10 @@
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
-       (mal-value sequence)))
+       (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (mal-value hash-map))
+  (let ((hash-map-value (mal-data-value hash-map))
         (new-hash-table (make-hash-table :test 'types:mal-value=)))
     (loop
        for key being the hash-keys of hash-map-value
@@ -51,22 +51,22 @@
 (defun is-pair (value)
   (and (or (mal-list-p value)
            (mal-vector-p value))
-       (not (zerop (length (mal-value value))))))
+       (not (zerop (length (mal-data-value value))))))
 
 (defun quasiquote (ast)
   (if (not (is-pair ast))
       (types:make-mal-list (list (types:make-mal-symbol '|quote|)
                                  ast))
-      (let ((forms (map 'list #'identity (mal-value ast))))
+      (let ((forms (map 'list #'identity (mal-data-value ast))))
         (cond
           ((mal-value= (make-mal-symbol '|unquote|) (first forms))
            (second forms))
 
           ((and (is-pair (first forms))
                 (mal-value= (make-mal-symbol '|splice-unquote|)
-                            (first (mal-value (first forms)))))
+                            (first (mal-data-value (first forms)))))
            (types:make-mal-list (list (types:make-mal-symbol '|concat|)
-                                      (second (mal-value (first forms)))
+                                      (second (mal-data-value (first forms)))
                                       (quasiquote (make-mal-list (cdr forms))))))
 
           (t (types:make-mal-list (list (types:make-mal-symbol '|cons|)
@@ -81,8 +81,8 @@
      do (cond
           ((null ast) (return (make-mal-nil nil)))
           ((not (types:mal-list-p ast)) (return (eval-ast ast env)))
-          ((zerop (length (mal-value ast))) (return ast))
-          (t (let ((forms (mal-value ast)))
+          ((zerop (length (mal-data-value ast))) (return ast))
+          (t (let ((forms (mal-data-value ast)))
                (cond
                  ((mal-value= (make-mal-symbol '|quote|) (first forms))
                   (return (second forms)))
@@ -99,7 +99,7 @@
                         ;; Convert a potential vector to a list
                         (bindings (map 'list
                                        #'identity
-                                       (mal-value (second forms)))))
+                                       (mal-data-value (second forms)))))
 
                     (mapcar (lambda (binding)
                               (env:set-env new-env
@@ -134,7 +134,7 @@
                                                                                :parent env
                                                                                :binds (map 'list
                                                                                            #'identity
-                                                                                           (mal-value arglist))
+                                                                                           (mal-data-value arglist))
                                                                                :exprs args)))
                                                :attrs (list (cons 'params arglist)
                                                             (cons 'ast body)
@@ -144,15 +144,15 @@
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
                       (if (not (types:mal-fn-p function))
-                          (return (apply (mal-value function)
+                          (return (apply (mal-data-value function)
                                          (cdr evaluated-list)))
-                          (let* ((attrs (types:mal-attrs function)))
+                          (let* ((attrs (types:mal-data-attrs function)))
                             (setf ast (cdr (assoc 'ast attrs))
                                   env (make-instance 'env:mal-environment
                                                      :parent (cdr (assoc 'env attrs))
                                                      :binds (map 'list
                                                                  #'identity
-                                                                 (mal-value (cdr (assoc 'params attrs))))
+                                                                 (mal-data-value (cdr (assoc 'params attrs))))
                                                      :exprs (cdr evaluated-list)))))))))))))
 
 (defun mal-print (expression)

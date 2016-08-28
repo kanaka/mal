@@ -2,10 +2,10 @@
   (:use :common-lisp)
   (:export :mal-value=
            ;; Accessors
-           :mal-value
-           :mal-type
-           :mal-meta
-           :mal-attrs
+           :mal-data-value
+           :mal-data-type
+           :mal-data-meta
+           :mal-data-attrs
            ;; Mal values
            :number
            :boolean
@@ -47,23 +47,11 @@
 (define-condition mal-user-exception (mal-exception)
   ((data :accessor mal-exception-data :initarg :data)))
 
-(defstruct mal-type
-  (type nil)
+(defstruct mal-data
+  (type nil :read-only t)
   (value nil)
   meta
   attrs)
-
-(defun mal-value (mal-data)
-  (mal-type-value mal-data))
-
-(defun mal-type (mal-data)
-  (mal-type-type mal-data))
-
-(defun mal-attrs (mal-data)
-  (mal-type-attrs mal-data))
-
-(defun mal-meta (mal-data)
-  (mal-type-meta mal-data))
 
 (defmacro define-mal-type (type)
   ;; Create a class for given type and a convenience constructor and also export
@@ -76,14 +64,14 @@
                                                          (symbol-name type)
                                                          "-p")))))
     `(progn (defun ,constructor (value &key meta attrs)
-              (make-mal-type :type ',type
+              (make-mal-data :type ',type
                              :value value
                              :meta meta
                              :attrs attrs))
 
             (defun ,predicate (value)
-              (when (typep value 'mal-type)
-                (equal (mal-type value) ',type)))
+              (when (typep value 'mal-data)
+                (equal (mal-data-type value) ',type)))
 
             (export ',constructor)
             (export ',predicate))))
@@ -109,7 +97,7 @@
 (defvar any)
 
 (defmacro switch-mal-type (ast &body forms)
-  `(let ((type (types:mal-type ,ast)))
+  `(let ((type (types:mal-data-type ,ast)))
      (cond
        ,@(mapcar (lambda (form)
                    (list (if (or (equal (car form) t)
@@ -120,12 +108,12 @@
                  forms))))
 
 (defun mal-symbol= (value1 value2)
-  (string= (symbol-name (mal-value value1))
-           (symbol-name (mal-value value2))))
+  (string= (symbol-name (mal-data-value value1))
+           (symbol-name (mal-data-value value2))))
 
 (defun mal-sequence= (value1 value2)
-  (let ((sequence1 (map 'list #'identity (mal-value value1)))
-        (sequence2 (map 'list #'identity (mal-value value2))))
+  (let ((sequence1 (map 'list #'identity (mal-data-value value1)))
+        (sequence2 (map 'list #'identity (mal-data-value value2))))
     (when (= (length sequence1) (length sequence2))
       (every #'identity
              (loop
@@ -134,8 +122,8 @@
                 collect (mal-value= x y))))))
 
 (defun mal-hash-map= (value1 value2)
-  (let ((map1 (mal-value value1))
-        (map2 (mal-value value2)))
+  (let ((map1 (mal-data-value value1))
+        (map2 (mal-data-value value2)))
     (when (= (hash-table-count map1) (hash-table-count map2))
       (every #'identity
              (loop
@@ -144,14 +132,14 @@
                                     (gethash key map2)))))))
 
 (defun mal-value= (value1 value2)
-  (when (and (typep value1 'mal-type)
-             (typep value2 'mal-type))
-    (if (equal (mal-type value1) (mal-type value2))
+  (when (and (typep value1 'mal-data)
+             (typep value2 'mal-data))
+    (if (equal (mal-data-type value1) (mal-data-type value2))
       (switch-mal-type value1
-        (number (= (mal-value value1) (mal-value value2)))
-        (boolean (equal (mal-value value1) (mal-value value2)))
-        (nil (equal (mal-value value1) (mal-value value2)))
-        (string (string= (mal-value value1) (mal-value value2)))
+        (number (= (mal-data-value value1) (mal-data-value value2)))
+        (boolean (equal (mal-data-value value1) (mal-data-value value2)))
+        (nil (equal (mal-data-value value1) (mal-data-value value2)))
+        (string (string= (mal-data-value value1) (mal-data-value value2)))
         (symbol (mal-symbol= value1 value2))
         (keyword (mal-symbol= value1 value2))
         (list (mal-sequence= value1 value2))
@@ -163,7 +151,7 @@
         (mal-sequence= value1 value2)))))
 
 (defun hash-mal-value (value)
-  (sxhash (mal-value value)))
+  (sxhash (mal-data-value value)))
 
 #+sbcl (sb-ext:define-hash-table-test mal-value= hash-mal-value)
 #+clisp (ext:define-hash-table-test mal-value= mal-value= hash-mal-value)
@@ -197,16 +185,16 @@
 
 (defun unwrap-value (value)
   (switch-mal-type value
-    (list (mapcar #'unwrap-value (mal-value value)))
-    (vector (map 'vector #'unwrap-value (mal-value value)))
+    (list (mapcar #'unwrap-value (mal-data-value value)))
+    (vector (map 'vector #'unwrap-value (mal-data-value value)))
     (hash-map (let ((hash-table (make-hash-table))
-                    (hash-map-value (mal-value value)))
+                    (hash-map-value (mal-data-value value)))
                 (loop
                    for key being the hash-keys of hash-map-value
-                   do (setf (gethash (mal-value key) hash-table)
-                            (mal-value (gethash key hash-map-value))))
+                   do (setf (gethash (mal-data-value key) hash-table)
+                            (mal-data-value (gethash key hash-map-value))))
                 hash-table))
-    (any (mal-value value))))
+    (any (mal-data-value value))))
 
 (defun apply-unwrapped-values (op &rest values)
   (wrap-value (apply op (mapcar #'unwrap-value values))))

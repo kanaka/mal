@@ -33,10 +33,10 @@
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
-       (mal-value sequence)))
+       (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (mal-value hash-map))
+  (let ((hash-map-value (mal-data-value hash-map))
         (new-hash-table (make-hash-table :test 'types:mal-value=)))
     (loop
        for key being the hash-keys of hash-map-value
@@ -58,7 +58,7 @@
         ;; Convert a potential vector to a list
         (bindings (map 'list
                        #'identity
-                       (types:mal-value (second forms)))))
+                       (types:mal-data-value (second forms)))))
 
     (mapcar (lambda (binding)
               (env:set-env new-env
@@ -74,14 +74,14 @@
     (mal-eval (third forms) new-env)))
 
 (defun eval-list (ast env)
-  (let ((forms (mal-value ast)))
+  (let ((forms (mal-data-value ast)))
     (cond
       ((mal-value= (make-mal-symbol '|def!|) (first forms))
        (env:set-env env (second forms) (mal-eval (third forms) env)))
       ((mal-value= (make-mal-symbol '|let*|) (first forms))
        (eval-let* forms env))
       (t (let ((evaluated-list (eval-ast ast env)))
-           (apply (types:mal-value (car evaluated-list))
+           (apply (types:mal-data-value (car evaluated-list))
                   (cdr evaluated-list)))))))
 
 (defun mal-read (string)
@@ -91,7 +91,7 @@
   (cond
     ((null ast) (make-mal-nil nil))
     ((not (types:mal-list-p ast)) (eval-ast ast env))
-    ((zerop (length (mal-value ast))) ast)
+    ((zerop (length (mal-data-value ast))) ast)
     (t (eval-list ast env))))
 
 (defun mal-print (expression)
