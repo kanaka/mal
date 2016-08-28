@@ -8,14 +8,17 @@
 
 (in-package :reader)
 
-(defvar *string-re* "^\"\\(\\\\\\(.\\|
-\\)\\|[^\"\\]\\)*\"$"
-  "RE string")
+(defvar *string-re* (regexp:regexp-compile "^\"\\(\\\\\\(.\\|
+\\)\\|[^\"\\]\\)*\"$")
+  "Regular expression to match string")
+
+(defvar *digit-re* (regexp:regexp-compile "^\\(-\\|+\\)\\?[[:digit:]]\\+$")
+  "Regular expression to match digits")
 
 (defvar *tokenizer-re* (regexp:regexp-compile "[[:space:],]*\\(~@\\|[][{}()~`'^@]\\|\"\\(\\\\\\(.\\|
 \\)\\|[^\"\\]\\)*\"\\?\\|;[^
 ]*\\|[^][[:space:]~{}()@^`'\";]*\\)")
-  "RE")
+  "Regular expression to match LISP code")
 
 (define-condition eof (types:mal-error)
   ((context :initarg :context :reader context))
@@ -26,7 +29,7 @@
 
 (defun parse-string (token)
   (if (and (> (length token) 1)
-           (regexp:match *string-re* token))
+           (regexp:regexp-exec *string-re* token))
       (progn
         (read-from-string (utils:replace-all token
                                              "\\n"
@@ -169,7 +172,7 @@
 (defun read-atom (reader)
   (let ((token (next reader)))
     (cond
-      ((regexp:match "^\\(-\\|+\\)\\?[[:digit:]]\\+$" token)
+      ((regexp:regexp-exec *digit-re* token)
        (make-mal-number (read-from-string token)))
       ((string= token "false")
        (make-mal-boolean nil))
