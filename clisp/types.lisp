@@ -10,17 +10,51 @@
 
            ;; Mal values
            :number
+           :make-mal-number
+           :mal-number-p
+
            :boolean
+           :mal-boolean-p
+
            :nil
+           :mal-nil-p
+
            :string
+           :make-mal-string
+           :mal-string-p
+
            :symbol
+           :make-mal-symbol
+           :mal-symbol-p
+
            :keyword
+           :make-mal-keyword
+           :mal-keyword-p
+
            :list
+           :make-mal-list
+           :mal-list-p
+
            :vector
+           :make-mal-vector
+           :mal-vector-p
+
            :hash-map
+           :make-mal-hash-map
+           :mal-hash-map-p
+
            :atom
+           :make-mal-atom
+           :mal-atom-p
+
            :fn
+           :make-mal-fn
+           :mal-fn-p
+
            :builtin-fn
+           :make-mal-builtin-fn
+           :mal-builtin-fn-p
+
            :any
 
            ;; Singleton values
@@ -83,10 +117,7 @@
 
             (defun ,predicate (value)
               (when (typep value 'mal-data)
-                (equal (mal-data-type value) ',type)))
-
-            (export ',constructor)
-            (export ',predicate))))
+                (equal (mal-data-type value) ',type))))))
 
 (define-mal-type number)
 (define-mal-type symbol)
