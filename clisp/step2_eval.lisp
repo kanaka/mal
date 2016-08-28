@@ -12,25 +12,25 @@
 
 (defvar *repl-env* (make-hash-table :test 'types:mal-value=))
 
-(setf (gethash (types:make-mal-symbol '+) *repl-env*)
+(setf (gethash (types:make-mal-symbol "+") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
                                    (apply-unwrapped-values '+
                                                            value1
                                                            value2))))
 
-(setf (gethash (types:make-mal-symbol '-) *repl-env*)
+(setf (gethash (types:make-mal-symbol "-") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
                                    (apply-unwrapped-values '-
                                                            value1
                                                            value2))))
 
-(setf (gethash (types:make-mal-symbol '*) *repl-env*)
+(setf (gethash (types:make-mal-symbol "*") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
                                    (apply-unwrapped-values '*
                                                            value1
                                                            value2))))
 
-(setf (gethash (types:make-mal-symbol '/) *repl-env*)
+(setf (gethash (types:make-mal-symbol "/") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
                                    (apply-unwrapped-values '/
                                                            value1

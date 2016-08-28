@@ -65,7 +65,7 @@
                                          (parent nil)
                                          (binds nil)
                                          (exprs nil))
-  (let ((varidiac-position (position (types:make-mal-symbol '&)
+  (let ((varidiac-position (position (types:make-mal-symbol "&")
                                      binds
                                      :test #'mal-value=)))
     (when varidiac-position

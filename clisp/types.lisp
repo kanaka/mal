@@ -108,8 +108,8 @@
                  forms))))
 
 (defun mal-symbol= (value1 value2)
-  (string= (symbol-name (mal-data-value value1))
-           (symbol-name (mal-data-value value2))))
+  (string= (mal-data-value value1)
+           (mal-data-value value2)))
 
 (defun mal-sequence= (value1 value2)
   (let ((sequence1 (map 'list #'identity (mal-data-value value1)))
@@ -175,7 +175,7 @@
                    value))
     ;; This needs to before symbol since t, nil are symbols
     (boolean (make-mal-boolean value))
-    (symbol (make-mal-symbol value))
+    (symbol (make-mal-symbol (symbol-name value)))
     (keyword (make-mal-keyword value))
     (string (make-mal-string value))
     (list (make-mal-list (map 'list #'wrap-value value)))

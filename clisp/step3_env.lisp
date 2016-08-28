@@ -11,22 +11,22 @@
 (defvar *repl-env* (make-instance 'env:mal-environment))
 
 (set-env *repl-env*
-         (types:make-mal-symbol '+)
+         (types:make-mal-symbol "+")
          (types:make-mal-builtin-fn (lambda (value1 value2)
                                       (apply-unwrapped-values '+ value1 value2))))
 
 (set-env *repl-env*
-         (types:make-mal-symbol '-)
+         (types:make-mal-symbol "-")
          (types:make-mal-builtin-fn (lambda (value1 value2)
                                       (apply-unwrapped-values '- value1 value2))))
 
 (set-env *repl-env*
-         (types:make-mal-symbol '*)
+         (types:make-mal-symbol "*")
          (types:make-mal-builtin-fn (lambda (value1 value2)
                                       (apply-unwrapped-values '* value1 value2))))
 
 (set-env *repl-env*
-         (types:make-mal-symbol '/)
+         (types:make-mal-symbol "/")
          (types:make-mal-builtin-fn (lambda (value1 value2)
                                       (apply-unwrapped-values '/ value1 value2))))
 
@@ -76,9 +76,9 @@
 (defun eval-list (ast env)
   (let ((forms (mal-data-value ast)))
     (cond
-      ((mal-value= (make-mal-symbol '|def!|) (first forms))
+      ((mal-value= (make-mal-symbol "def!") (first forms))
        (env:set-env env (second forms) (mal-eval (third forms) env)))
-      ((mal-value= (make-mal-symbol '|let*|) (first forms))
+      ((mal-value= (make-mal-symbol "let*") (first forms))
        (eval-let* forms env))
       (t (let ((evaluated-list (eval-ast ast env)))
            (apply (types:mal-data-value (car evaluated-list))

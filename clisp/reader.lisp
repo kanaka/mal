@@ -49,10 +49,6 @@
   (let ((*tokenizer-re* re))
     (tokenize string)))
 
-(defvar *whitespace-chars*
-  '(#\Space #\Newline #\Backspace #\Tab
-    #\Linefeed #\Page #\Return #\Rubout #\,))
-
 (defun tokenize (string)
   (let (tokens)
     (do* ((start 0)
@@ -64,7 +60,7 @@
                                (regexp:regexp-exec *tokenizer-re* string :start start))))
       (when match
         (setf start (regexp:match-end match))
-        (let ((token (regexp:match-string string match)))
+        (let ((token (string-trim "," (regexp:match-string string match))))
           (unless (or (zerop (length token))
                       (char= (char token 0) #\;))
             (push token tokens)))))
@@ -83,11 +79,6 @@
   (pop (token-reader-tokens reader))
   reader)
 
-(defun read-from-string-preserving-case (string)
-  (let ((*readtable* (copy-readtable nil)))
-    (setf (readtable-case *readtable*) :preserve)
-    (read-from-string string)))
-
 (defun read-str (string)
   (read-form (make-token-reader :tokens (tokenize string))))
 
@@ -102,8 +93,8 @@
                                                                "]"
                                                                'vector)))
       ((string= token "{") (make-mal-hash-map (read-hash-map reader)))
-      ((member token '("'" "`" "~" "~@" "@") :test #'string= ) (expand-quote reader))
       ((string= token "^") (read-form-with-meta reader))
+      ((member token '("'" "`" "~" "~@" "@") :test #'string= ) (expand-quote reader))
       (t (read-atom reader)))))
 
 (defun read-form-with-meta (reader)
@@ -116,16 +107,16 @@
       (error 'eof
              :context "object metadata"))
 
-    (make-mal-list (list (make-mal-symbol '|with-meta|) value meta))))
+    (make-mal-list (list (make-mal-symbol "with-meta") value meta))))
 
 (defun expand-quote (reader)
   (let ((quote (next reader)))
     (make-mal-list (list (make-mal-symbol (cond
-                                            ((string= quote "'") '|quote|)
-                                            ((string= quote "`") '|quasiquote|)
-                                            ((string= quote "~") '|unquote|)
-                                            ((string= quote "~@") '|splice-unquote|)
-                                            ((string= quote "@") '|deref|)))
+                                            ((string= quote "'") "quote")
+                                            ((string= quote "`") "quasiquote")
+                                            ((string= quote "~") "unquote")
+                                            ((string= quote "~@") "splice-unquote")
+                                            ((string= quote "@") "deref")))
                          (read-form reader)))))
 
 (defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
@@ -148,8 +139,7 @@
 (defun read-hash-map (reader)
   ;; Consume the open brace
   (consume reader)
-  (let (forms
-        (hash-map (make-hash-table :test 'types:mal-value=)))
+  (let (forms)
     (loop
        for token = (peek reader)
        while (cond
@@ -164,10 +154,8 @@
                         (push (cons key value) forms))))))
     ;; Consume the closing brace
     (consume reader)
-    ;; Construct the hash table
-    (dolist (key-value (nreverse forms))
-      (setf (gethash (car key-value) hash-map) (cdr key-value)))
-    hash-map))
+    (make-hash-table :test 'types:mal-value=
+                     :initial-contents (nreverse forms))))
 
 (defun read-atom (reader)
   (let ((token (next reader)))
@@ -181,7 +169,7 @@
       ((char= (char token 0) #\")
        (make-mal-string (parse-string token)))
       ((char= (char token 0) #\:)
-       (make-mal-keyword (read-from-string-preserving-case token)))
+       (make-mal-keyword token))
       ((regexp:regexp-exec *digit-re* token)
        (make-mal-number (read-from-string token)))
-      (t (make-mal-symbol (read-from-string-preserving-case token))))))
+      (t (make-mal-symbol token)))))
