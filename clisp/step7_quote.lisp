@@ -241,7 +241,9 @@
 
 (defun main ()
   (if (null common-lisp-user::*args*)
-      (repl)
+      ;; Do not start REPL inside Emacs
+      (unless (member :swank *features*)
+        (repl))
       (rep (format nil
                    "(load-file \"~a\")"
                    (car common-lisp-user::*args*)))))

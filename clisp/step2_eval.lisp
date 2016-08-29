@@ -140,4 +140,6 @@
   (when use-readline-p
     (save-history)))
 
-(main)
+;; Do not start REPL inside Emacs
+(unless (member :swank *features*)
+  (main))
