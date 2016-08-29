@@ -312,6 +312,7 @@
     (write-line string)))
 
 (defun repl ()
+  (rep "(println (str \"Mal [\" *host-language* \"]\"))");
   (loop do (let ((line (mal-readline "user> ")))
              (if line
                  (mal-writeline (rep line))
