@@ -7,7 +7,7 @@ all:
 
 .PHONY: stats
 
-step%.fas : step%.lisp dependencies.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp
+step%.fas : step%.lisp dependencies.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp core.lisp
 	clisp -q -c $<
 
 clean:
