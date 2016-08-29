@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 58 languages:
+Mal is implemented in 59 languages:
 
 * Ada
 * GNU awk
@@ -15,6 +15,7 @@ Mal is implemented in 58 languages:
 * C++
 * C#
 * ChucK
+* GNU CLISP
 * Clojure
 * CoffeeScript
 * Crystal
@@ -202,6 +203,18 @@ Linux.
 
 ```
 cd chuck
+./run
+```
+
+### GNU CLISP
+
+*The GNU CLISP implementation was created by [Iqbal Ansari](https://github.com/iqbalansari)*
+
+The implementation has been tested with GNU CLISP v2.49 on Ubuntu 16.04, 14.04 and 12.04
+
+```
+cd clisp
+make
 ./run
 ```
 

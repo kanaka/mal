@@ -2,8 +2,7 @@ SOURCES_BASE = utils.lisp types.lisp reader.lisp printer.lisp
 SOURCES_LISP = env.lisp core.lisp stepA_mal.lisp
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all:
-	true
+all : stepA_mal.fas
 
 .PHONY: stats
 
