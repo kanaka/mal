@@ -2,12 +2,11 @@ SOURCES_BASE = utils.lisp types.lisp reader.lisp printer.lisp
 SOURCES_LISP = env.lisp core.lisp stepA_mal.lisp
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all:
-	true
+all : stepA_mal.fas
 
 .PHONY: stats
 
-step%.fas : step%.lisp dependencies.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp
+step%.fas : step%.lisp dependencies.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp core.lisp
 	clisp -q -c $<
 
 clean:

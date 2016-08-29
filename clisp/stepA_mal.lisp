@@ -268,6 +268,7 @@
 (rep "(def! *gensym-counter* (atom 0))")
 (rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
+(rep "(defmacro! defbuiltin! (fn* (arglist & forms) `(define-builtin '~arglist '~@forms)))")
 
 (env:set-env *repl-env*
              (types:make-mal-symbol "*ARGV*")
@@ -279,8 +280,8 @@
 ;;; use readline since tests do not work with the readline interface
 (defvar use-readline-p (not (string= (ext:getenv "PERL_RL") "false")))
 
-(defvar *history-file* (file-namestring (merge-pathnames (user-homedir-pathname)
-                                                         ".mal-clisp-history")))
+(defvar *history-file* (namestring (merge-pathnames (user-homedir-pathname)
+                                                    ".mal-clisp-history")))
 
 (defun load-history ()
   (readline:read-history *history-file*))
@@ -312,6 +313,7 @@
     (write-line string)))
 
 (defun repl ()
+  (rep "(println (str \"Mal [\" *host-language* \"]\"))");
   (loop do (let ((line (mal-readline "user> ")))
              (if line
                  (mal-writeline (rep line))
@@ -321,7 +323,9 @@
 
 (defun main ()
   (if (null common-lisp-user::*args*)
-      (repl)
+      ;; Do not start REPL inside Emacs
+      (unless (member :swank *features*)
+        (repl))
       (rep (format nil
                    "(load-file \"~a\")"
                    (car common-lisp-user::*args*)))))

@@ -382,4 +382,21 @@
    (cons (types:make-mal-symbol "meta")
          (types:make-mal-builtin-fn (lambda (value)
                                       (or (types:mal-data-meta value)
-                                          types:mal-nil))))))
+                                          types:mal-nil))))
+
+   ;; Since a nil in clisp may mean an empty list or boolean false or simply nil, the
+   ;; caller can specify the preferred type while evaluating an expression
+   (cons (types:make-mal-symbol "clisp-eval")
+         (types:make-mal-builtin-fn (lambda (code &optional booleanp listp)
+                                      (types:wrap-value (eval (read-from-string (types:mal-data-value code)))
+                                                        :booleanp (and booleanp (types:mal-data-value booleanp))
+                                                        :listp (and listp (types:mal-data-value listp))))))
+
+   (cons (types:make-mal-symbol "define-builtin")
+         (types:make-mal-builtin-fn (lambda (arglist &rest body)
+                                      (let* ((func-args (types:unwrap-value arglist))
+                                             (func-body (mapcar #'types:unwrap-value body))
+                                             (func (eval `(lambda ,func-args ,@func-body))))
+                                        (types:make-mal-builtin-fn (lambda (&rest args)
+                                                                     (types:wrap-value (apply func
+                                                                                              (mapcar #'types:unwrap-value args)))))))))))

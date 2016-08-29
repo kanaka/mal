@@ -199,7 +199,7 @@
 ;;; use readline since tests do not work with the readline interface
 (defvar use-readline-p (not (string= (ext:getenv "PERL_RL") "false")))
 
-(defvar *history-file* (file-namestring (merge-pathnames (user-homedir-pathname)
+(defvar *history-file* (namestring (merge-pathnames (user-homedir-pathname)
                                                          ".mal-clisp-history")))
 
 (defun load-history ()
@@ -241,7 +241,9 @@
 
 (defun main ()
   (if (null common-lisp-user::*args*)
-      (repl)
+      ;; Do not start REPL inside Emacs
+      (unless (member :swank *features*)
+        (repl))
       (rep (format nil
                    "(load-file \"~a\")"
                    (car common-lisp-user::*args*)))))
