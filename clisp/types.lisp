@@ -1,3 +1,7 @@
+;; Dummy package where MAL variables are interned
+(defpackage :mal-user
+  (:use :common-lisp))
+
 (defpackage :types
   (:use :common-lisp)
   (:export :mal-value=
@@ -75,6 +79,7 @@
 
            ;; Helpers
            :wrap-value
+           :unwrap-value
            :apply-unwrapped-values
            :apply-unwrapped-values-prefer-bool
            :switch-mal-type))
@@ -205,6 +210,7 @@
     new-hash-table))
 
 (defun wrap-value (value &key booleanp listp)
+  "Convert a Common Lisp value to MAL value"
   (typecase value
     (number (make-mal-number value))
     ;; This needs to before symbol since nil is a symbol
@@ -223,6 +229,7 @@
     (null mal-nil)))
 
 (defun unwrap-value (value)
+  "Convert a MAL value to native Common Lisp value"
   (switch-mal-type value
     (list (mapcar #'unwrap-value (mal-data-value value)))
     (vector (map 'vector #'unwrap-value (mal-data-value value)))
@@ -233,6 +240,15 @@
                    do (setf (gethash (mal-data-value key) hash-table)
                             (mal-data-value (gethash key hash-map-value))))
                 hash-table))
+    ;; Unfortunately below means even symbols that user indented to use
+    ;; from the common lisp are interned in lowercase thus runtime
+    ;; will not find them as such users need to explicitly upcase the
+    ;; symbols from common lisp
+    (symbol (intern (mal-data-value value) :mal-user))
+    ;; In case of a keyword strip the first colon, and intern the symbol in
+    ;; keyword package
+    (keyword (intern (string-upcase (subseq (mal-data-value value) 1))
+                     :keyword))
     (any (mal-data-value value))))
 
 (defun apply-unwrapped-values (op &rest values)
