@@ -1,0 +1,2 @@
+#!/bin/bash
+exec cbmbasic $(dirname $0)/${STEP:-stepA_mal}.bas "${@}"
