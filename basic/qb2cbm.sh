@@ -49,7 +49,10 @@ declare -A labels
 
 lnum=10
 while read -r line; do
-    if [[ ${line} =~ ^\ *$ ]]; then
+    if [[ ${line} =~ ^\ *# ]]; then
+        [ "${DEBUG}" ] && echo >&2 "ignoring # style comment after $lnum"
+        continue
+    elif [[ ${line} =~ ^\ *$ ]]; then
             [ "${DEBUG}" ] && echo >&2 "found blank line after $lnum"
             data="${data}\n"
             continue
