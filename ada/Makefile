@@ -9,7 +9,7 @@ STEP2_DEPS=${STEP1_DEPS}
 STEP3_DEPS=${STEP2_DEPS} envs.ad[bs] eval_callback.ads
 STEP4_DEPS=${STEP3_DEPS} core.ad[bs]
 
-SOURCES = $(filter-out $(STEP0_DEPS),$(STEP4_DEPS)) stepA_mal.gpr stepa_mal.adb
+SOURCES = $(filter-out $(STEP0_DEPS),$(STEP4_DEPS)) stepa_mal.adb
 SOURCES_LISP = $(filter-out $(STEP2_DEPS),$(SOURCES))
 
 all:	${DIRS} ${PROGS}
@@ -18,7 +18,7 @@ ${DIRS}:
 	mkdir -p $@
 
 step%:
-	gnatmake -O3 -gnata -o $@ -P$@
+	gnatmake -O3 -gnata $@.adb -D obj
 
 step0_repl:	step0_repl.adb ${STEP0_DEPS}
 step1_read_print:	step1_read_print.adb ${STEP1_DEPS}
@@ -30,7 +30,9 @@ step6_file:	step6_file.adb ${STEP4_DEPS}
 step7_quote:	step7_quote.adb ${STEP4_DEPS}
 step8_macros:	step8_macros.adb ${STEP4_DEPS}
 step9_try:	step9_try.adb ${STEP4_DEPS}
-stepA_mal:	stepa_mal.adb ${STEP4_DEPS}
+stepa_mal:	stepa_mal.adb ${STEP4_DEPS}
+stepA_mal:	stepa_mal
+	mv $< $@
 
 clean:
 	rm -f ${PROGS}
