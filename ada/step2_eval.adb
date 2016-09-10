@@ -1,7 +1,6 @@
 with Ada.Containers.Hashed_Maps;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;
-with Ada.IO_Exceptions;
 with Ada.Exceptions;
 with Printer;
 with Reader;
@@ -198,11 +197,7 @@ procedure Step2_Eval is
         return Print (Evaluated_AST);
      end if;
 
-   end Rep; 
-
-
-   S : String (1..Reader.Max_Line_Len);
-   Last : Natural;
+   end Rep;
 
 begin
 
@@ -229,18 +224,13 @@ begin
    loop
       begin
          Ada.Text_IO.Put ("user> ");
-         Ada.Text_IO.Get_Line (S, Last);
-         Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
+         exit when Ada.Text_IO.End_Of_File;
+         Ada.Text_IO.Put_Line (Rep (Ada.Text_IO.Get_Line, Repl_Env));
       exception
-         when Ada.IO_Exceptions.End_Error => raise;
          when E : others =>
             Ada.Text_IO.Put_Line
               (Ada.Text_IO.Standard_Error,
                Ada.Exceptions.Exception_Information (E));
       end;
    end loop;
-
-exception
-   when Ada.IO_Exceptions.End_Error => null;
-   -- i.e. exit without textual output
 end Step2_Eval;
