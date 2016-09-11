@@ -49,56 +49,69 @@ READ_FORM:
   IF (T$="true") THEN R%=2: GOTO READ_FORM_DONE
   CH$=MID$(T$,1,1)
   REM PRINT "CH$: [" + CH$ + "](" + STR$(ASC(CH$)) + ")"
-  IF (CH$ >= "0") AND (CH$ <= "9") OR (CH$ = "-") THEN READ_NUMBER
+  IF (CH$ >= "0") AND (CH$ <= "9") THEN READ_NUMBER
+  IF (CH$ = "-") THEN READ_SYMBOL_MAYBE
+
   IF (CH$ = CHR$(34)) THEN READ_STRING
-  IF (CH$ = "(") THEN READ_LIST
-  IF (CH$ = ")") THEN READ_LIST_END
+  IF (CH$ = "(") THEN T%=6: GOTO READ_SEQ
+  IF (CH$ = ")") THEN T%=6: GOTO READ_SEQ_END
+  IF (CH$ = "[") THEN T%=8: GOTO READ_SEQ
+  IF (CH$ = "]") THEN T%=8: GOTO READ_SEQ_END
+  IF (CH$ = "{") THEN T%=10: GOTO READ_SEQ
+  IF (CH$ = "}") THEN T%=10: GOTO READ_SEQ_END
   GOTO READ_SYMBOL
 
   READ_NUMBER:
     REM PRINT "READ_NUMBER"
-    ZT%(ZI%) = 3
-    ZV%(ZI%) = VAL(T$)
+    Z%(ZI%,0) = 2
+    Z%(ZI%,1) = VAL(T$)
     R%=ZI%
     ZI%=ZI%+1
     GOTO READ_FORM_DONE
   READ_STRING:
     REM PRINT "READ_STRING"
-    ZT%(ZI%) = 5
-    ZV%(ZI%) = ZJ%
+    Z%(ZI%,0) = 4
+    Z%(ZI%,1) = ZJ%
     R%=ZI%
     ZI%=ZI%+1
     ZS$(ZJ%) = MID$(T$, 2, LEN(T$)-2)
     REM ZS$(ZJ%) = T$
     ZJ%=ZJ%+1
     GOTO READ_FORM_DONE
+  READ_SYMBOL_MAYBE:
+    CH$=MID$(T$,2,1)
+    IF (CH$ >= "0") AND (CH$ <= "9") THEN READ_NUMBER
   READ_SYMBOL:
     REM PRINT "READ_SYMBOL"
-    ZT%(ZI%) = 7
-    ZV%(ZI%) = ZJ%
+    Z%(ZI%,0) = 5
+    Z%(ZI%,1) = ZJ%
     R%=ZI%
     ZI%=ZI%+1
     ZS$(ZJ%) = T$
     ZJ%=ZJ%+1
     GOTO READ_FORM_DONE
 
-  READ_LIST:
-    REM PRINT "READ_LIST"
+  READ_SEQ:
+    REM PRINT "READ_SEQ"
     REM push start ptr on the stack
     PT%=PT%+1
     PS%(PT%) = ZI%
+    REM push current sequence type
+    PT%=PT%+1
+    PS%(PT%) = T%
     REM push current ptr on the stack
     PT%=PT%+1
     PS%(PT%) = ZI%
     GOTO READ_FORM_DONE
 
-  READ_LIST_END:
-    REM PRINT "READ_LIST_END"
+  READ_SEQ_END:
+    REM PRINT "READ_SEQ_END"
     IF PT%=-1 THEN ER%=1: ER$="unexpected ')'": RETURN
-    REM Set return value to current list
-    PT%=PT%-1: REM pop current ptr off the stack
-    R%=PS%(PT%): REM start ptr to list
+    REM Set return value to current sequence
+    PT%=PT%-2: REM pop current ptr and type off the stack
+    R%=PS%(PT%): REM ptr to start of sequence to return
     PT%=PT%-1: REM pop start ptr off the stack
+    IF (PS%(PT%+2)) <> T% THEN ER%=1: ER$="sequence mismatch": RETURN
     GOTO READ_FORM_DONE
 
 
@@ -109,10 +122,10 @@ READ_FORM:
     IF T$="" THEN ER%=1: ER$="unexpected EOF": RETURN
     REM add list end entry (next pointer is 0 for now)
     REM PRINT "READ_FORM_DONE next list entry"
-    ZT%(ZI%) = 8
-    ZV%(ZI%) = 0
+    Z%(ZI%,0) = PS%(PT%- 1)
+    Z%(ZI%,1) = 0
     REM update prior pointer if not first
-    IF PS%(PT%)<>ZI% THEN ZV%(PS%(PT%)) = ZI%
+    IF PS%(PT%)<>ZI% THEN Z%(PS%(PT%),1) = ZI%
     REM update previous pointer to outself
     PS%(PT%) = ZI%
     ZI%=ZI%+1: REM slot for list element

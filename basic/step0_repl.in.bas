@@ -2,33 +2,39 @@ GOTO MAIN
 
 REM $INCLUDE: 'readline.in.bas'
 
-REM /* READ(A$) -> R$ */
+REM READ(A$) -> R$
 MAL_READ:
   R$=A$
   RETURN
 
-REM /* EVAL(A$, E%) -> R$ */
+REM EVAL(A$, E%) -> R$
 EVAL:
-  GOSUB MAL_READ: REM /* call READ */
+  R$=A$
   RETURN
 
-REM /* PRINT(A$) -> R$ */
+REM PRINT(A$) -> R$
 MAL_PRINT:
-  GOSUB EVAL: REM /* call EVAL */
+  R$=A$
   RETURN
 
-REM /* REP(A$) -> R$ */
+REM REP(A$) -> R$
 REP:
-  GOSUB MAL_PRINT: REM /* call PRINT */
-  PRINT R$
+  GOSUB MAL_READ
+  A%=R%: GOSUB EVAL
+  A%=R%: GOSUB MAL_PRINT
   RETURN
 
-REM /* main program loop */
+REM MAIN program
 MAIN:
-  A$="user> "
-  GOSUB READLINE: REM /* call input parser */
-  IF EOF=1 THEN END
-  A$=R$
-  GOSUB REP: REM /* call REP */
-  GOTO MAIN
+  MAIN_LOOP:
+    A$="user> "
+    GOSUB READLINE: REM /* call input parser */
+    IF EOF=1 THEN GOTO MAIN_DONE
+    A$=R$: GOSUB REP: REM /* call REP */
+    PRINT R$
+    GOTO MAIN_LOOP
+
+  MAIN_DONE:
+    PRINT "Free: " + STR$(FRE(0))
+    END
 
