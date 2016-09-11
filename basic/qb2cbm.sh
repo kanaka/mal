@@ -3,8 +3,12 @@
 set -e
 
 DEBUG=${DEBUG:-}
-KEEP_REM=${KEEP_REM:-}
-KEEP_REM_LABELS=${KEEP_REM_LABELS:-}
+KEEP_REM=${KEEP_REM:-1}
+# 0 - drop all REMs
+# 1 - keep LABEL and INCLUDE REMs
+# 2 - keep LABEL, INCLUDE, and GOTO REMs
+# 3 - keep LABEL, INCLUDE, GOTO, and whole line REMs
+# 4 - keep all REMS (end of line REMs too)
 
 infile=$1
 
@@ -35,7 +39,7 @@ while [[ ${input} =~ REM\ \$INCLUDE:\ \'.*\' ]]; do
             fi
             [ "${DEBUG}" ] && echo >&2 "including: ${include}"
             included[${include}]="done"
-            if [ "${KEEP_REM}" ]; then
+            if [ "${KEEP_REM}" -ge 1 ]; then
                 full="${full}\nREM vvv BEGIN '${include}' vvv\n$(cat ${include})\nREM vvv END '${include}' vvv\n"
             else
                 full="${full}\n$(cat ${include})\n"
@@ -58,7 +62,8 @@ while read -r line; do
     if [[ ${line} =~ ^\ *# ]]; then
         [ "${DEBUG}" ] && echo >&2 "ignoring # style comment at $lnum"
         continue
-    elif [[ -z "${KEEP_REM}" && ${line} =~ ^\ *REM ]]; then
+    elif [[ "${KEEP_REM}" -lt 3 && ${line} =~ ^\ *REM && \
+            ! ${line} =~ REM\ vvv && ! ${line} =~ REM\ ^^^ ]]; then
         [ "${DEBUG}" ] && echo >&2 "dropping REM comment: ${line}"
         continue
     elif [[ ${line} =~ ^\ *$ ]]; then
@@ -69,7 +74,7 @@ while read -r line; do
         label=${line%:}
         [ "${DEBUG}" ] && echo >&2 "found label ${label} at $lnum"
         labels[${label}]=$lnum
-        if [ -n "${KEEP_REM_LABELS}" ]; then
+        if [ "${KEEP_REM}" -ge 1 ]; then
             data="${data}${lnum} REM ${label}:\n"
         else
             continue
@@ -80,7 +85,7 @@ while read -r line; do
     lnum=$(( lnum + 10 ))
 done < <(echo -e "${input}")
 
-if [[ -z "${KEEP_REM}" ]]; then
+if [[ "${KEEP_REM}" -lt 4 ]]; then
     [ "${DEBUG}" ] && echo >&2 "Dropping line ending REMs"
     data=$(echo -e "${data}" | sed "s/: REM [^\n]*$//")
 fi
@@ -88,7 +93,7 @@ fi
 for label in "${!labels[@]}"; do
     [ "${DEBUG}" ] && echo >&2 "Updating label: ${label}"
     lnum=${labels[${label}]}
-    if [ -n "${KEEP_REM_LABELS}" ]; then
+    if [ "${KEEP_REM}" -ge 2 ]; then
         data=$(echo "${data}" | sed "s/\(THEN\|GOTO\|GOSUB\) ${label}\>/\1 ${lnum}: REM ${label}/g")
     else
         data=$(echo "${data}" | sed "s/\(THEN\|GOTO\|GOSUB\) ${label}\>/\1 ${lnum}/g")

@@ -4,6 +4,7 @@ REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'types.in.bas'
 REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
+REM $INCLUDE: 'env.in.bas'
 
 REM READ(A$) -> R%
 MAL_READ:
@@ -27,8 +28,7 @@ EVAL_AST:
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
-    HM%=E%: K%=A%: GOSUB HASHMAP_GET
-    IF T3%=0 THEN ER%=1: ER$="'" + ZS$(Z%(A%,1)) + "' not found"
+    K%=A%: GOSUB ENV_GET
     GOTO EVAL_AST_RETURN
   
   EVAL_AST_SEQ:
@@ -113,6 +113,59 @@ EVAL:
     GOSUB EMPTY_Q
     IF R% THEN R%=A%: GOTO EVAL_RETURN
 
+    A0% = A%+1
+    R%=A0%: GOSUB DEREF
+    A0%=R%
+
+    REM get symbol in A$
+    IF Z%(A0%,0)<>5 THEN A$=""
+    IF Z%(A0%,0)=5 THEN A$=ZS$(Z%(A0%,1))
+
+    IF A$="def!" THEN GOTO EVAL_DEF
+    IF A$="let*" THEN GOTO EVAL_LET
+    GOTO EVAL_INVOKE
+
+    EVAL_GET_A3:
+      A3% = Z%(Z%(Z%(A%,1),1),1)+1
+      R%=A3%: GOSUB DEREF
+      A3%=R%
+    EVAL_GET_A2:
+      A2% = Z%(Z%(A%,1),1)+1
+      R%=A2%: GOSUB DEREF
+      A2%=R%
+    EVAL_GET_A1:
+      A1% = Z%(A%,1)+1
+      R%=A1%: GOSUB DEREF
+      A1%=R%
+      RETURN
+
+    EVAL_DEF:
+      REM PRINT "def!"
+      GOSUB EVAL_GET_A2: REM set a1% and a2%
+      A%=A2%: GOSUB EVAL: REM eval a2
+      K%=A1%: V%=R%: GOSUB ENV_SET: REM set a1 in env to a2
+      RETURN
+    EVAL_LET:
+      GOSUB EVAL_GET_A2: REM set a1% and a2%
+      REM create new environment with outer as current environment
+      EO%=E%: GOSUB ENV_NEW
+      E%=R%
+      EVAL_LET_LOOP:
+        IF Z%(A1%,1)=0 THEN GOTO EVAL_LET_LOOP_DONE
+        REM push A1%
+        ZL%=ZL%+1: ZZ%(ZL%)=A1%
+        REM eval current A1 odd element
+        A%=Z%(A1%,1)+1: GOSUB EVAL
+        REM pop A1%
+        A1%=ZZ%(ZL%): ZL%=ZL%-1
+        REM set environment: even A1% key to odd A1% eval'd above
+        K%=A1%+1: V%=R%: GOSUB ENV_SET
+        REM skip to the next pair of A1% elements
+        A1%=Z%(Z%(A1%,1),1)
+        GOTO EVAL_LET_LOOP
+      EVAL_LET_LOOP_DONE:
+        A%=A2%: GOSUB EVAL: REM eval a2 using let_env
+        RETURN
     EVAL_INVOKE:
       GOSUB EVAL_AST
       IF ER%=1 THEN GOTO EVAL_RETURN
@@ -196,30 +249,26 @@ MAIN:
   GOSUB INIT_MEMORY
 
   REM repl_env
-  GOSUB HASHMAP
+  EO%=-1: GOSUB ENV_NEW
   RE%=R%
 
   REM + function
   A%=1: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="+": V%=R%: GOSUB ASSOC1_S
-  RE%=R%
+  E%=RE%: K$="+": V%=R%: GOSUB ENV_SET_S
 
   REM - function
   A%=2: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="-": V%=R%: GOSUB ASSOC1_S
-  RE%=R%
+  E%=RE%: K$="-": V%=R%: GOSUB ENV_SET_S
 
   REM * function
   A%=3: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="*": V%=R%: GOSUB ASSOC1_S
-  RE%=R%
+  E%=RE%: K$="*": V%=R%: GOSUB ENV_SET_S
 
   REM / function
   A%=4: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="/": V%=R%: GOSUB ASSOC1_S
-  RE%=R%
+  E%=RE%: K$="/": V%=R%: GOSUB ENV_SET_S
 
-  AZ%=RE%: GOSUB PR_STR
+  AZ%=ZE%(RE%): GOSUB PR_STR
   PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
 
   MAIN_LOOP:

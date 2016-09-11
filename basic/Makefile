@@ -5,7 +5,21 @@ step%.bas: step%.in.bas
 step0_repl.bas: readline.in.bas
 step1_read_print.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas
 step2_eval.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas
+step3_env.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas
 
 tests/%.bas: tests/%.in.bas readline.in.bas types.in.bas reader.in.bas printer.in.bas
 	./qb2cbm.sh $< > $@
+
+
+SOURCES_LISP = env.in.bas step3_env.in.bas
+SOURCES = readline.in.bas types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
+
+.PHONY: stats
+
+stats: $(SOURCES)
+	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*REM |^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
+stats-lisp: $(SOURCES_LISP)
+	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*REM |^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 
