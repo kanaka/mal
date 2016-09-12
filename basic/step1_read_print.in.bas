@@ -17,7 +17,7 @@ EVAL:
 
 REM PRINT(A%) -> R$
 MAL_PRINT:
-  AZ%=A%: GOSUB PR_STR
+  AZ%=A%: PR%=1: GOSUB PR_STR
   RETURN
 
 REM REP(A$) -> R$
@@ -50,6 +50,6 @@ MAIN:
       GOTO MAIN_LOOP
 
   MAIN_DONE:
-    PRINT "Free: " + STR$(FRE(0))
+    GOSUB PR_MEMORY_SUMMARY
     END
 

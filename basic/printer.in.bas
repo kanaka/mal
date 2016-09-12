@@ -1,4 +1,4 @@
-REM PR_STR(AZ%) -> R$
+REM PR_STR(AZ%, PR%) -> R$
 PR_STR:
   T%=Z%(AZ%,0)
   REM PRINT "AZ%: " + STR$(AZ%) + ", T%: " + STR$(T%) + ", V%: " + STR$(Z%(AZ%,1))
@@ -7,12 +7,14 @@ PR_STR:
   IF (T%=1) AND (Z%(AZ%,1)=0) THEN R$="false": RETURN
   IF (T%=1) AND (Z%(AZ%,1)=1) THEN R$="true": RETURN
   IF T%=2 THEN PR_INTEGER
-  IF T%=4 THEN PR_STRING
+  IF (T%=4) AND (PR%=0) THEN PR_STRING
+  IF (T%=4) AND (PR%=1) THEN PR_STRING_READABLY
   IF T%=5 THEN PR_SYMBOL
   IF T%=6 THEN PR_SEQ
   IF T%=8 THEN PR_SEQ
   IF T%=10 THEN PR_SEQ
   IF T%=12 THEN PR_FUNCTION
+  IF T%=13 THEN PR_MAL_FUNCTION
   R$="#<unknown>"
   RETURN
 
@@ -24,6 +26,9 @@ PR_STR:
     R$=RIGHT$(R$, LEN(R$)-1)
     RETURN
   PR_STRING:
+    R$=ZS$(Z%(AZ%,1))
+    RETURN
+  PR_STRING_READABLY:
     R$=CHR$(34) + ZS$(Z%(AZ%,1)) + CHR$(34)
     RETURN
   PR_SYMBOL:
@@ -68,16 +73,23 @@ PR_STR:
     T1%=Z%(AZ%,1)
     R$="#<function" + STR$(T1%) + ">"
     RETURN
+  PR_MAL_FUNCTION:
+    T1%=AZ%
+    AZ%=Z%(T1%+1,0): GOSUB PR_STR
+    T7$="(fn* " + R$
+    AZ%=Z%(T1%,1): GOSUB PR_STR
+    R$=T7$ + " " + R$ + ")"
+    RETURN
     
-
-
-PR_MEMORY:
-  PRINT "Value Memory (Z%):"
-  FOR I=0 TO ZI%-1
-    PRINT " " + STR$(I) + ": type: " + STR$(Z%(I,0)) + ", value: " + STR$(Z%(I,1))
-    NEXT I
-  PRINT "String Memory (ZS%):"
-  FOR I=0 TO ZJ%-1
-    PRINT " " + STR$(I) + ": '" + ZS$(I) + "'"
-    NEXT I
-  RETURN
+REM PR_STR_SEQ(AZ%, PR%, SE$) -> R$
+PR_STR_SEQ:
+  T9%=AZ%
+  R1$=""
+  PR_STR_SEQ_LOOP:
+    IF Z%(T9%,1)=0 THEN R$=R1$: RETURN
+    AZ%=T9%+1: GOSUB PR_STR
+    REM goto the next sequence element
+    T9%=Z%(T9%,1)
+    IF Z%(T9%,1)=0 THEN R1$=R1$+R$
+    IF Z%(T9%,1)<>0 THEN R1$=R1$+R$+SE$
+    GOTO PR_STR_SEQ_LOOP

@@ -13,6 +13,42 @@ ENV_NEW:
   ZK%=ZK%+1
   RETURN
 
+REM ENV_NEW_BINDS(EO%, BI%, EX%) -> R%
+ENV_NEW_BINDS:
+  GOSUB ENV_NEW
+  E%=R%
+  REM process bindings
+  ENV_NEW_BINDS_LOOP:
+    IF Z%(BI%,1)=0 THEN R%=E%: RETURN
+    REM get/deref the key from BI%
+    R%=BI%+1: GOSUB DEREF
+    K%=R%
+
+    IF ZS$(Z%(K%,1))="&" THEN EVAL_NEW_BINDS_VARGS:
+
+    EVAL_NEW_BINDS_1x1:
+      REM get/deref the key from EX%
+      R%=EX%+1: GOSUB DEREF
+      V%=R%
+      REM set the binding in the environment data
+      GOSUB ENV_SET
+      REM go to next element of BI% and EX%
+      BI%=Z%(BI%,1)
+      EX%=Z%(EX%,1)
+      GOTO ENV_NEW_BINDS_LOOP
+
+    EVAL_NEW_BINDS_VARGS:
+      REM get/deref the key from next element of BI%
+      BI%=Z%(BI%,1)
+      R%=BI%+1: GOSUB DEREF
+      K%=R%
+      REM the value is the remaining list in EX%
+      V%=EX%
+      REM set the binding in the environment data
+      GOSUB ENV_SET
+      R%=E%
+      RETURN
+
 REM ENV_SET(E%, K%, V%) -> R%
 ENV_SET:
   HM%=ZE%(E%)

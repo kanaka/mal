@@ -5,6 +5,7 @@ REM $INCLUDE: 'types.in.bas'
 REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
 REM $INCLUDE: 'env.in.bas'
+REM $INCLUDE: 'core.in.bas'
 
 REM READ(A$) -> R%
 MAL_READ:
@@ -12,8 +13,12 @@ MAL_READ:
   RETURN
 
 REM EVAL_AST(A%, E%) -> R%
+REM called using GOTO to avoid basic return address stack usage
+REM top of stack should have return label index
 EVAL_AST:
+  REM push A% and E% on the stack
   ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
+
   IF ER%=1 THEN GOTO EVAL_AST_RETURN
 
   REM AZ%=A%: GOSUB PR_STR
@@ -92,21 +97,38 @@ EVAL_AST:
       GOTO EVAL_AST_RETURN
 
   EVAL_AST_RETURN:
+    REM pop A% and E% off the stack
     E%=ZZ%(ZL%-1): A%=ZZ%(ZL%): ZL%=ZL%-2
+
+    RN%=ZZ%(ZL%): ZL%=ZL%-1
+    IF RN%=1 GOTO EVAL_AST_RETURN_1
+    IF RN%=2 GOTO EVAL_AST_RETURN_2
+    IF RN%=3 GOTO EVAL_AST_RETURN_3
     RETURN
 
 REM EVAL(A%, E%)) -> R%
 EVAL:
+  LV%=LV%+1: REM track basic return stack level
+
+  REM push A% and E% on the stack
   ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
+
+  EVAL_TCO_RECUR:
+
   IF ER%=1 THEN GOTO EVAL_RETURN
 
   REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL: " + R$ + "(" + STR$(R%) + ")"
+  REM PRINT "EVAL: " + R$ + "(" + STR$(R%) + "), DEPTH: " + STR$(LV%)
+  REM PRINT "EVAL level: " + STR$(LV%)
 
   GOSUB LIST_Q
   IF R% THEN GOTO APPLY_LIST
   REM ELSE
-    GOSUB EVAL_AST
+    REM push EVAL_AST return label/address
+    ZL%=ZL%+1: ZZ%(ZL%)=1
+    GOTO EVAL_AST
+    EVAL_AST_RETURN_1:
+
     GOTO EVAL_RETURN
 
   APPLY_LIST:
@@ -123,6 +145,9 @@ EVAL:
 
     IF A$="def!" THEN GOTO EVAL_DEF
     IF A$="let*" THEN GOTO EVAL_LET
+    IF A$="do" THEN GOTO EVAL_DO
+    IF A$="if" THEN GOTO EVAL_IF
+    IF A$="fn*" THEN GOTO EVAL_FN
     GOTO EVAL_INVOKE
 
     EVAL_GET_A3:
@@ -142,9 +167,14 @@ EVAL:
     EVAL_DEF:
       REM PRINT "def!"
       GOSUB EVAL_GET_A2: REM set a1% and a2%
+      REM push A1%
+      ZL%=ZL%+1: ZZ%(ZL%)=A1%
       A%=A2%: GOSUB EVAL: REM eval a2
-      K%=A1%: V%=R%: GOSUB ENV_SET: REM set a1 in env to a2
-      RETURN
+      REM pop A1%
+      A1%=ZZ%(ZL%): ZL%=ZL%-1
+      REM set a1 in env to a2
+      K%=A1%: V%=R%: GOSUB ENV_SET
+      GOTO EVAL_RETURN
     EVAL_LET:
       GOSUB EVAL_GET_A2: REM set a1% and a2%
       REM create new environment with outer as current environment
@@ -165,67 +195,67 @@ EVAL:
         GOTO EVAL_LET_LOOP
       EVAL_LET_LOOP_DONE:
         A%=A2%: GOSUB EVAL: REM eval a2 using let_env
-        RETURN
+        GOTO EVAL_RETURN
+    EVAL_DO:
+      A%=Z%(A%,1): REM rest
+
+      REM push EVAL_AST return label/address
+      ZL%=ZL%+1: ZZ%(ZL%)=2
+      GOTO EVAL_AST
+      EVAL_AST_RETURN_2:
+
+      A%=R%: GOSUB LAST: REM return the last element
+      GOTO EVAL_RETURN
+    EVAL_IF:
+      GOSUB EVAL_GET_A1: REM set a1%
+      REM push A%
+      ZL%=ZL%+1: ZZ%(ZL%)=A%
+      A%=A1%: GOSUB EVAL
+      REM pop A%
+      A%=ZZ%(ZL%): ZL%=ZL%-1
+      IF (R%=0) OR (R%=1) THEN GOTO EVAL_IF_FALSE
+
+      EVAL_IF_TRUE:
+        GOSUB EVAL_GET_A2: REM set a1% and a2% after EVAL
+        A%=A2%: GOTO EVAL_TCO_RECUR
+      EVAL_IF_FALSE:
+        REM if no false case (A3%), return nil
+        IF Z%(Z%(Z%(A%,1),1),1)=0 THEN R%=0: GOTO EVAL_RETURN
+        GOSUB EVAL_GET_A3: REM set a1% - a3% after EVAL
+        A%=A3%: GOTO EVAL_TCO_RECUR
+    EVAL_FN:
+      GOSUB EVAL_GET_A2: REM set a1% and a2%
+      A%=A2%: P%=A1%: GOSUB MAL_FUNCTION
+      GOTO EVAL_RETURN
     EVAL_INVOKE:
-      GOSUB EVAL_AST
+      REM push EVAL_AST return label/address
+      ZL%=ZL%+1: ZZ%(ZL%)=3
+      GOTO EVAL_AST
+      EVAL_AST_RETURN_3:
+
       IF ER%=1 THEN GOTO EVAL_RETURN
       F%=R%+1
-      AR%=Z%(R%,1): REM REST
+      AR%=Z%(R%,1): REM rest
       R%=F%: GOSUB DEREF
       F%=R%
-      IF Z%(F%,0)<>12 THEN ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
-      GOSUB DO_FUNCTION
-      GOTO EVAL_RETURN
+
+      IF Z%(F%,0)=12 THEN GOTO EVAL_DO_FUNCTION
+      IF Z%(F%,0)=13 THEN GOTO EVAL_DO_MAL_FUNCTION
+      ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
+      EVAL_DO_FUNCTION:
+        GOSUB DO_FUNCTION
+        GOTO EVAL_RETURN
+      EVAL_DO_MAL_FUNCTION:
+        EO%=Z%(F%+1,1): BI%=Z%(F%+1,0): EX%=AR%: GOSUB ENV_NEW_BINDS
+        A%=Z%(F%,1): E%=R%: GOTO EVAL_TCO_RECUR
 
   EVAL_RETURN:
+    REM trigger GC
+    T8%=FRE(0)
+    REM pop A% and E% off the stack
     E%=ZZ%(ZL%-1): A%=ZZ%(ZL%): ZL%=ZL%-2
-    RETURN
 
-REM DO_FUNCTION(F%, AR%)
-DO_FUNCTION:
-  AZ%=F%: GOSUB PR_STR
-  F$=R$
-  AZ%=AR%: GOSUB PR_STR
-  AR$=R$
-
-  REM Get the function number
-  FF%=Z%(F%,1)
-
-  REM Get argument values
-  R%=AR%+1: GOSUB DEREF
-  AA%=Z%(R%,1)
-  R%=Z%(AR%,1)+1: GOSUB DEREF
-  AB%=Z%(R%,1)
-
-  REM Allocate the return value
-  R%=ZI%
-  ZI%=ZI%+1
-
-  REM Switch on the function number
-  IF FF%=1 THEN DO_ADD
-  IF FF%=2 THEN DO_SUB
-  IF FF%=3 THEN DO_MULT
-  IF FF%=4 THEN DO_DIV
-  ER%=1: ER$="unknown function" + STR$(FF%): RETURN
-
-  DO_ADD:
-    Z%(R%,0)=2
-    Z%(R%,1)=AA%+AB%
-    GOTO DO_FUNCTION_DONE
-  DO_SUB:
-    Z%(R%,0)=2
-    Z%(R%,1)=AA%-AB%
-    GOTO DO_FUNCTION_DONE
-  DO_MULT:
-    Z%(R%,0)=2
-    Z%(R%,1)=AA%*AB%
-    GOTO DO_FUNCTION_DONE
-  DO_DIV:
-    Z%(R%,0)=2
-    Z%(R%,1)=AA%/AB%
-    GOTO DO_FUNCTION_DONE
-
-  DO_FUNCTION_DONE:
+    LV%=LV%-1: REM track basic return stack level
     RETURN
 
 REM PRINT(A%) -> R$
@@ -236,40 +266,36 @@ MAL_PRINT:
 REM REP(A$) -> R$
 REM Assume RE% has repl_env
 REP:
+  LV%=LV%+1: REM track basic return stack level
+
   GOSUB MAL_READ
-  IF ER% THEN RETURN
+  IF ER% THEN GOTO REP_RETURN
   A%=R%: E%=RE%: GOSUB EVAL
-  IF ER% THEN RETURN
+  IF ER% THEN GOTO REP_RETURN
   A%=R%: GOSUB MAL_PRINT
-  IF ER% THEN RETURN
-  RETURN
+  IF ER% THEN GOTO REP_RETURN
+  REP_RETURN:
+    LV%=LV%-1: REM track basic return stack level
+    RETURN
 
 REM MAIN program
 MAIN:
   GOSUB INIT_MEMORY
 
-  REM repl_env
+  LV%=0
+
+  REM create repl_env
   EO%=-1: GOSUB ENV_NEW
   RE%=R%
 
-  REM + function
-  A%=1: GOSUB NATIVE_FUNCTION
-  K$="+": V%=R%: GOSUB ENV_SET_S
+  REM set core functions in repl_env
+  E%=RE%: GOSUB INIT_CORE_NS
 
-  REM - function
-  A%=2: GOSUB NATIVE_FUNCTION
-  K$="-": V%=R%: GOSUB ENV_SET_S
+  REM AZ%=ZE%(RE%): GOSUB PR_STR
+  REM PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
 
-  REM * function
-  A%=3: GOSUB NATIVE_FUNCTION
-  K$="*": V%=R%: GOSUB ENV_SET_S
-
-  REM / function
-  A%=4: GOSUB NATIVE_FUNCTION
-  K$="/": V%=R%: GOSUB ENV_SET_S
-
-  AZ%=ZE%(RE%): GOSUB PR_STR
-  PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
+  REM B% = PEEK(57) + PEEK(58) * 256
+  REM PRINT "57/58%: " + STR$(B%)
 
   MAIN_LOOP:
     A$="user> "

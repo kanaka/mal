@@ -3,9 +3,9 @@ READ_TOKEN:
   CUR%=IDX%
   REM PRINT "READ_TOKEN: " + STR$(CUR%) + ", " + MID$(A$,CUR%,1)
   T$=MID$(A$,CUR%,1)
-  IF (T$="(" OR T$=")") THEN RETURN
-  IF (T$="[" OR T$="]") THEN RETURN
-  IF (T$="{" OR T$="}") THEN RETURN
+  IF (T$="(") OR (T$=")") THEN RETURN
+  IF (T$="[") OR (T$="]") THEN RETURN
+  IF (T$="{") OR (T$="}") THEN RETURN
   S1=0: S2=0: REM S1: INSTRING?, S2: ESCAPED?
   IF (T$=CHR$(34)) THEN S1=1
   CUR%=CUR%+1
@@ -14,10 +14,10 @@ READ_TOKEN:
     CH$=MID$(A$,CUR%,1)
     IF S2 THEN GOTO READ_TOKEN_CONT
     IF S1 THEN GOTO READ_TOKEN_CONT
-    IF (CH$=" " OR CH$=",") THEN RETURN
-    IF (CH$="(" OR CH$=")") THEN RETURN
-    IF (CH$="[" OR CH$="]") THEN RETURN
-    IF (CH$="{" OR CH$="}") THEN RETURN
+    IF (CH$=" ") OR (CH$=",") THEN RETURN
+    IF (CH$="(") OR (CH$=")") THEN RETURN
+    IF (CH$="[") OR (CH$="]") THEN RETURN
+    IF (CH$="{") OR (CH$="}") THEN RETURN
     READ_TOKEN_CONT:
     T$=T$+CH$
     CUR%=CUR%+1
@@ -44,9 +44,9 @@ READ_FORM:
   GOSUB READ_TOKEN
   REM PRINT "READ_FORM T$: [" + T$ + "]"
   IF (T$="") THEN R%=0: GOTO READ_FORM_DONE
-  IF (T$="nil") THEN R%=0: GOTO READ_FORM_DONE
-  IF (T$="false") THEN R%=1: GOTO READ_FORM_DONE
-  IF (T$="true") THEN R%=2: GOTO READ_FORM_DONE
+  IF (T$="nil") THEN T%=0: GOTO READ_SCALAR
+  IF (T$="false") THEN T%=1: GOTO READ_SCALAR
+  IF (T$="true") THEN T%=2: GOTO READ_SCALAR
   CH$=MID$(T$,1,1)
   REM PRINT "CH$: [" + CH$ + "](" + STR$(ASC(CH$)) + ")"
   IF (CH$ >= "0") AND (CH$ <= "9") THEN READ_NUMBER
@@ -61,6 +61,12 @@ READ_FORM:
   IF (CH$ = "}") THEN T%=10: GOTO READ_SEQ_END
   GOTO READ_SYMBOL
 
+  READ_SCALAR:
+    Z%(ZI%,0) = 15
+    Z%(ZI%,1) = T%
+    R%=ZI%
+    ZI%=ZI%+1
+    GOTO READ_FORM_DONE
   READ_NUMBER:
     REM PRINT "READ_NUMBER"
     Z%(ZI%,0) = 2
@@ -70,25 +76,24 @@ READ_FORM:
     GOTO READ_FORM_DONE
   READ_STRING:
     REM PRINT "READ_STRING"
+    REM intern string value
+    AS$=MID$(T$, 2, LEN(T$)-2): GOSUB STRING
     Z%(ZI%,0) = 4
-    Z%(ZI%,1) = ZJ%
+    Z%(ZI%,1) = R%
     R%=ZI%
     ZI%=ZI%+1
-    ZS$(ZJ%) = MID$(T$, 2, LEN(T$)-2)
-    REM ZS$(ZJ%) = T$
-    ZJ%=ZJ%+1
     GOTO READ_FORM_DONE
   READ_SYMBOL_MAYBE:
     CH$=MID$(T$,2,1)
     IF (CH$ >= "0") AND (CH$ <= "9") THEN READ_NUMBER
   READ_SYMBOL:
     REM PRINT "READ_SYMBOL"
+    REM intern string value
+    AS$=T$: GOSUB STRING
     Z%(ZI%,0) = 5
-    Z%(ZI%,1) = ZJ%
+    Z%(ZI%,1) = R%
     R%=ZI%
     ZI%=ZI%+1
-    ZS$(ZJ%) = T$
-    ZJ%=ZJ%+1
     GOTO READ_FORM_DONE
 
   READ_SEQ:
