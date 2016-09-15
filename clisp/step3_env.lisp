@@ -10,7 +10,7 @@
 
 (in-package :mal)
 
-(defvar *repl-env* (make-instance 'env:mal-environment))
+(defvar *repl-env* (env:create-mal-env))
 
 (set-env *repl-env*
          (types:make-mal-symbol "+")
@@ -58,8 +58,7 @@
     (types:any ast)))
 
 (defun eval-let* (forms env)
-  (let ((new-env (make-instance 'env:mal-environment
-                                :parent env))
+  (let ((new-env (env:create-mal-env :parent env))
         ;; Convert a potential vector to a list
         (bindings (map 'list
                        #'identity

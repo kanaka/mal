@@ -1,7 +1,8 @@
 (defpackage :env
   (:use :common-lisp :types)
   (:export :undefined-symbol
-           :mal-environment
+           :mal-env
+           :create-mal-env
            :get-env
            :find-env
            :set-env))
@@ -24,46 +25,32 @@
                      (required condition)
                      (provided condition)))))
 
-(defclass mal-environment ()
-  ((bindings :initarg :bindings
-             :accessor mal-env-bindings
-             :initform (make-hash-table :test 'types:mal-value=))
-   (parent :initarg :parent
-           :accessor mal-env-parent
-           :initform nil)))
+(defstruct mal-env
+  (bindings (make-hash-table :test 'equal) :read-only t)
+  (parent nil :read-only t))
 
-(defgeneric find-env (mal-environment symbol)
-  (:documentation "Find value of a symbol in given environment, return nil if not binding is found"))
-
-(defgeneric get-env (mal-environment symbol)
-  (:documentation "Get value of a symbol in given environment, raises undefined-symbol error if lookup fails"))
-
-(defgeneric set-env (mal-environment symbol value)
-  (:documentation "Set the value for a symbol in given environment"))
-
-(defmethod find-env ((env mal-environment) symbol)
-  (let ((value (gethash symbol (mal-env-bindings env)))
+(defun find-env (env symbol)
+  (let ((value (gethash (types:mal-data-value symbol)
+                        (mal-env-bindings env)))
         (parent (mal-env-parent env)))
     (cond
       (value value)
       (parent (find-env parent symbol))
       (t nil))))
 
-(defmethod get-env ((env mal-environment) symbol)
+(defun get-env (env symbol)
   (let ((value (find-env env symbol)))
     (if value
         value
         (error 'undefined-symbol
                :symbol (format nil "~a" (types:mal-data-value symbol))))))
 
-(defmethod set-env ((env mal-environment) symbol value)
-  (setf (gethash symbol (mal-env-bindings env)) value))
+(defun set-env (env symbol value)
+  (setf (gethash (types:mal-data-value symbol)
+                 (mal-env-bindings env))
+        value))
 
-(defmethod initialize-instance :after ((env mal-environment)
-                                       &key (bindings nil)
-                                         (parent nil)
-                                         (binds nil)
-                                         (exprs nil))
+(defun create-mal-env (&key (parent nil) (binds nil) (exprs nil))
   (let ((varidiac-position (position (types:make-mal-symbol "&")
                                      binds
                                      :test #'mal-value=)))
@@ -97,8 +84,9 @@
              :required (length binds)
              :provided (length exprs)))
 
-    (let ((arg-params (map 'list #'cons binds exprs)))
+    (let ((arg-params (map 'list #'cons binds exprs))
+          (bindings (make-hash-table :test 'equal)))
       (dolist (arg-param arg-params)
-        (set-env env
-                 (car arg-param)
-                 (cdr arg-param))))))
+        (setf (gethash (types:mal-data-value (car arg-param)) bindings)
+              (cdr arg-param)))
+      (make-mal-env :bindings bindings :parent parent))))

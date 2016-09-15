@@ -11,7 +11,7 @@
 
 (in-package :mal)
 
-(defvar *repl-env* (make-instance 'env:mal-environment))
+(defvar *repl-env* (env:create-mal-env))
 
 (dolist (binding core:ns)
   (env:set-env *repl-env*
@@ -47,8 +47,7 @@
     (types:any ast)))
 
 (defun eval-let* (forms env)
-  (let ((new-env (make-instance 'env:mal-environment
-                                :parent env))
+  (let ((new-env (env:create-mal-env :parent env))
         ;; Convert a potential vector to a list
         (bindings (map 'list
                        #'identity
@@ -88,12 +87,11 @@
        (types:make-mal-fn (let ((arglist (second forms))
                                 (body (third forms)))
                             (lambda (&rest args)
-                              (mal-eval body (make-instance 'env:mal-environment
-                                                            :parent env
-                                                            :binds (map 'list
-                                                                        #'identity
-                                                                        (mal-data-value arglist))
-                                                            :exprs args))))))
+                              (mal-eval body (env:create-mal-env :parent env
+                                                                 :binds (map 'list
+                                                                             #'identity
+                                                                             (mal-data-value arglist))
+                                                                 :exprs args))))))
       (t (let* ((evaluated-list (eval-ast ast env))
                (function (car evaluated-list)))
          ;; If first element is a mal function unwrap it
