@@ -27,7 +27,7 @@
 (defclass mal-environment ()
   ((bindings :initarg :bindings
              :accessor mal-env-bindings
-             :initform (make-hash-table :test 'types:mal-value=))
+             :initform (make-hash-table :test 'equal))
    (parent :initarg :parent
            :accessor mal-env-parent
            :initform nil)))
@@ -42,7 +42,7 @@
   (:documentation "Set the value for a symbol in given environment"))
 
 (defmethod find-env ((env mal-environment) symbol)
-  (let ((value (gethash symbol (mal-env-bindings env)))
+  (let ((value (gethash (types:mal-data-value symbol) (mal-env-bindings env)))
         (parent (mal-env-parent env)))
     (cond
       (value value)
@@ -57,7 +57,7 @@
                :symbol (format nil "~a" (types:mal-data-value symbol))))))
 
 (defmethod set-env ((env mal-environment) symbol value)
-  (setf (gethash symbol (mal-env-bindings env)) value))
+  (setf (gethash (types:mal-data-value symbol) (mal-env-bindings env)) value))
 
 (defmethod initialize-instance :after ((env mal-environment)
                                        &key (bindings nil)
