@@ -1,6 +1,5 @@
 with Ada.Command_Line;
 with Ada.Text_IO;
-with Ada.IO_Exceptions;
 with Envs;
 with Eval_Callback;
 with Printer;
@@ -211,7 +210,7 @@ procedure Step3_Env is
          return Print (Evaluated_AST);
       end if;
 
-   end Rep; 
+   end Rep;
 
 
    procedure Init (Env : Envs.Env_Handle) is
@@ -237,9 +236,6 @@ procedure Step3_Env is
 
 
    Repl_Env : Envs.Env_Handle;
-   S : String (1..Reader.Max_Line_Len);
-   Last : Natural;
-
 begin
 
    -- Save a function pointer back to the Eval function.
@@ -259,11 +255,7 @@ begin
 
    loop
       Ada.Text_IO.Put ("user> ");
-      Ada.Text_IO.Get_Line (S, Last);
-      Ada.Text_IO.Put_Line (Rep (S (1..Last), Repl_Env));
+      exit when Ada.Text_IO.End_Of_File;
+      Ada.Text_IO.Put_Line (Rep (Ada.Text_IO.Get_Line, Repl_Env));
    end loop;
-
-exception
-   when Ada.IO_Exceptions.End_Error => null;
-   -- i.e. exit without textual output
 end Step3_Env;

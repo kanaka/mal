@@ -30,9 +30,9 @@ package body Core is
       Res : Boolean;
    begin
       case Deref (MH).Sym_Type is
-         when Bool => 
+         when Bool =>
             Res := Deref_Bool (MH).Get_Bool;
-         when Nil => 
+         when Nil =>
             Res := False;
 --         when List =>
 --            declare
@@ -489,7 +489,7 @@ package body Core is
                 ((1 => Func_Handle,
                   2 => Make_New_List
                          ((1 => Car (Deref_List_Class (List_Handle).all)))));
- 
+
             List_Handle := Cdr (Deref_List_Class (List_Handle).all);
 
             Append
@@ -838,16 +838,13 @@ package body Core is
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
       First_Param : Mal_Handle;
-      S : String (1..Reader.Max_Line_Len);
-      Last : Natural;
    begin
       Rest_List := Deref_List (Rest_Handle).all;
       First_Param := Car (Rest_List);
       -- Output the prompt.
       Ada.Text_IO.Put (Deref_String (First_Param).Get_String);
       -- Get the text.
-      Ada.Text_IO.Get_Line (S, Last);
-      return New_String_Mal_Type (S (1 .. Last));
+      return New_String_Mal_Type (Ada.Text_IO.Get_Line);
    end Read_Line;
 
 
@@ -862,19 +859,20 @@ package body Core is
          Unquoted_Str : String := Deref_String (First_Param).Get_String;
          use Ada.Text_IO;
          Fn : Ada.Text_IO.File_Type;
-         Line_Str : String (1..Reader.Max_Line_Len);
          File_Str : Ada.Strings.Unbounded.Unbounded_String :=
            Ada.Strings.Unbounded.Null_Unbounded_String;
-         Last : Natural;
          I : Natural := 0;
       begin
          Ada.Text_IO.Open (Fn, In_File, Unquoted_Str);
          while not End_Of_File (Fn) loop
-            Get_Line (Fn, Line_Str, Last);
-            if Last > 0 then
-               Ada.Strings.Unbounded.Append (File_Str, Line_Str (1 .. Last));
-               Ada.Strings.Unbounded.Append (File_Str, Ada.Characters.Latin_1.LF);
-            end if;
+            declare
+               Line_Str : constant String := Get_Line (Fn);
+            begin
+               if Line_Str'Length > 0 then
+                  Ada.Strings.Unbounded.Append (File_Str, Line_Str);
+                  Ada.Strings.Unbounded.Append (File_Str, Ada.Characters.Latin_1.LF);
+               end if;
+            end;
          end loop;
          Ada.Text_IO.Close (Fn);
          return New_String_Mal_Type (Ada.Strings.Unbounded.To_String (File_Str));

@@ -1,5 +1,4 @@
 with Ada.Text_IO;
-with Ada.IO_Exceptions;
 
 procedure Step0_Repl is
 
@@ -24,20 +23,12 @@ procedure Step0_Repl is
       Print_Str : String := Print (Eval_Str);
    begin
       return Print_Str;
-   end Rep; 
-
-   S : String (1..1024);
-   Last : Natural;
+   end Rep;
 
 begin
-
    loop
       Ada.Text_IO.Put ("user> ");
-      Ada.Text_IO.Get_Line (S, Last);
-      Ada.Text_IO.Put_Line (Rep (S (1..Last)));
+      exit when Ada.Text_IO.End_Of_File;
+      Ada.Text_IO.Put_Line (Rep (Ada.Text_IO.Get_Line));
    end loop;
-
-exception
-   when Ada.IO_Exceptions.End_Error => null;
-   -- i.e. exit without textual output
 end Step0_Repl;
