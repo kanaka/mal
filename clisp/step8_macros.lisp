@@ -22,7 +22,7 @@
                          "applying"
                          "defining macro")))))
 
-(defvar *repl-env* (make-instance 'env:mal-environment))
+(defvar *repl-env* (env:create-mal-env))
 
 (dolist (binding core:ns)
   (env:set-env *repl-env*
@@ -148,8 +148,7 @@
                                        :context "macro")))))
 
                  ((mal-value= mal-let* (first forms))
-                  (let ((new-env (make-instance 'env:mal-environment
-                                                :parent env))
+                  (let ((new-env (env:create-mal-env :parent env))
                         ;; Convert a potential vector to a list
                         (bindings (map 'list
                                        #'identity
@@ -184,12 +183,11 @@
                   (return (let ((arglist (second forms))
                                 (body (third forms)))
                             (types:make-mal-fn (lambda (&rest args)
-                                                 (mal-eval body (make-instance 'env:mal-environment
-                                                                               :parent env
-                                                                               :binds (map 'list
-                                                                                           #'identity
-                                                                                           (mal-data-value arglist))
-                                                                               :exprs args)))
+                                                 (mal-eval body (env:create-mal-env :parent env
+                                                                                    :binds (map 'list
+                                                                                                #'identity
+                                                                                                (mal-data-value arglist))
+                                                                                    :exprs args)))
                                                :attrs (list (cons 'params arglist)
                                                             (cons 'ast body)
                                                             (cons 'env env)
@@ -201,12 +199,11 @@
                       (cond ((types:mal-fn-p function)
                              (let* ((attrs (types:mal-data-attrs function)))
                                (setf ast (cdr (assoc 'ast attrs))
-                                     env (make-instance 'env:mal-environment
-                                                        :parent (cdr (assoc 'env attrs))
-                                                        :binds (map 'list
-                                                                    #'identity
-                                                                    (mal-data-value (cdr (assoc 'params attrs))))
-                                                        :exprs (cdr evaluated-list)))))
+                                     env (env:create-mal-env :parent (cdr (assoc 'env attrs))
+                                                             :binds (map 'list
+                                                                         #'identity
+                                                                         (mal-data-value (cdr (assoc 'params attrs))))
+                                                             :exprs (cdr evaluated-list)))))
                             ((types:mal-builtin-fn-p function)
                              (return (apply (mal-data-value function)
                                             (cdr evaluated-list))))
