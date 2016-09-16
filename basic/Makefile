@@ -3,7 +3,10 @@ step%.bas: step%.in.bas
 	./qb2cbm.sh $< > $@
 
 step%.prg: step%.bas
-	petcat -text -w2 -o $@ $<
+	cat $< | tr "A-Z" "a-z" > $<.tmp
+	#cat $< | sed 's/["]\@<!\<\w\+\>["]\@!/\L&/g' > $<.tmp
+	petcat -text -w2 -o $@ $<.tmp
+	#rm $<.tmp
 
 step0_repl.bas: readline.in.bas
 step1_read_print.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas
@@ -15,7 +18,9 @@ tests/%.bas: tests/%.in.bas
 	./qb2cbm.sh $< > $@
 
 tests/%.prg: tests/%.bas
-	petcat -text -w2 -o $@ $<
+	cat $< | tr "A-Z" "a-z" > $<.tmp
+	petcat -text -w2 -o $@ $<.tmp
+	rm $<.tmp
 
 
 SOURCES_LISP = env.in.bas core.in.bas step4_if_fn_do.in.bas

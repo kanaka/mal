@@ -2,9 +2,9 @@ REM PR_STR(AZ%, PR%) -> R$
 PR_STR:
   RR$=""
   PR_STR_RECUR:
-  T%=Z%(AZ%,0)
+  T%=Z%(AZ%,0)AND15
   REM PRINT "AZ%: " + STR$(AZ%) + ", T%: " + STR$(T%) + ", V%: " + STR$(Z%(AZ%,1))
-  IF T%=15 THEN AZ%=Z%(AZ%,1): GOTO PR_STR_RECUR
+  IF T%=14 THEN AZ%=Z%(AZ%,1): GOTO PR_STR_RECUR
   IF T%=0 THEN R$="nil": RETURN
   IF (T%=1) AND (Z%(AZ%,1)=0) THEN R$="false": RETURN
   IF (T%=1) AND (Z%(AZ%,1)=1) THEN R$="true": RETURN
@@ -48,7 +48,7 @@ PR_STR:
       AZ%=AZ%+1
       REM Push type we are rendering on the stack
       ZL%=ZL%+1
-      ZZ%(ZL%) = Z%(AZ%,0)
+      ZZ%(ZL%) = Z%(AZ%,0)AND15
       GOSUB PR_STR_RECUR
       REM if we just rendered a non-sequence, then append it
       IF (T% < 6) OR (T% > 8) THEN RR$=RR$+R$
@@ -62,7 +62,7 @@ PR_STR:
       GOTO PR_SEQ_LOOP
     PR_SEQ_DONE:
       REM get current type
-      T%=Z%(ZZ%(ZL%),0)
+      T%=Z%(ZZ%(ZL%),0)AND15
       REM pop where we are the sequence
       ZL%=ZL%-1
       IF T%=6 THEN RR$=RR$+")"

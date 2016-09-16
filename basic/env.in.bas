@@ -3,17 +3,18 @@ REM ENV_NEW(EO%) -> R%
 ENV_NEW:
   REM allocate the data hashmap
   GOSUB HASHMAP
+  E1%=R%
 
   REM set the outer and data pointer
-  Z%(ZI%,0) = 14
-  Z%(ZI%,1) = R%
-  Z%(ZI%+1,0) = 14
-  Z%(ZI%+1,1) = EO%
-
-  REM allocate space and return new environment
-  R%=ZI%
-  ZI%=ZI%+2
+  SZ%=2: GOSUB ALLOC
+  Z%(R%,0) = 13+16
+  Z%(R%,1) = E1%
+  Z%(R%+1,0) = 13
+  Z%(R%+1,1) = EO%
+  IF EO%<>-1 THEN Z%(EO%,0)=Z%(EO%,0)+16
   RETURN
+
+REM see RELEASE types.in.bas for environment cleanup
 
 REM ENV_NEW_BINDS(EO%, BI%, EX%) -> R%
 ENV_NEW_BINDS:
@@ -23,14 +24,14 @@ ENV_NEW_BINDS:
   ENV_NEW_BINDS_LOOP:
     IF Z%(BI%,1)=0 THEN R%=E%: RETURN
     REM get/deref the key from BI%
-    R%=BI%+1: GOSUB DEREF
+    R%=BI%+1: GOSUB DEREF_R
     K%=R%
 
     IF ZS$(Z%(K%,1))="&" THEN EVAL_NEW_BINDS_VARGS:
 
     EVAL_NEW_BINDS_1x1:
       REM get/deref the key from EX%
-      R%=EX%+1: GOSUB DEREF
+      R%=EX%+1: GOSUB DEREF_R
       V%=R%
       REM set the binding in the environment data
       GOSUB ENV_SET
@@ -42,7 +43,7 @@ ENV_NEW_BINDS:
     EVAL_NEW_BINDS_VARGS:
       REM get/deref the key from next element of BI%
       BI%=Z%(BI%,1)
-      R%=BI%+1: GOSUB DEREF
+      R%=BI%+1: GOSUB DEREF_R
       K%=R%
       REM the value is the remaining list in EX%
       V%=EX%
@@ -85,6 +86,7 @@ ENV_FIND:
 REM ENV_GET(E%, K%) -> R%
 ENV_GET:
   GOSUB ENV_FIND
-  IF R%=-1 THEN ER%=1: ER$="'" + ZS$(Z%(K%,1)) + "' not found": RETURN
-  R%=T4%
+  IF R%=-1 THEN R%=0: ER%=1: ER$="'" + ZS$(Z%(K%,1)) + "' not found": RETURN
+  R%=T4%: GOSUB DEREF_R
+  Z%(R%,0)=Z%(R%,0)+16
   RETURN

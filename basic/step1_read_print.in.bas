@@ -27,12 +27,17 @@ REP:
   A%=R%: GOSUB EVAL
   IF ER% THEN RETURN
   A%=R%: GOSUB MAL_PRINT
-  IF ER% THEN RETURN
+
+  REM Release memory from EVAL
+  AY%=R%: GOSUB RELEASE
+
   RETURN
 
 REM MAIN program
 MAIN:
   GOSUB INIT_MEMORY
+
+  ZT%=ZI%: REM top of memory after repl_env
 
   MAIN_LOOP:
     A$="user> "
@@ -50,6 +55,7 @@ MAIN:
       GOTO MAIN_LOOP
 
   MAIN_DONE:
+    P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
     GOSUB PR_MEMORY_SUMMARY
     END
 

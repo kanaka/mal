@@ -5,10 +5,8 @@ DO_FUNCTION:
   FF%=Z%(F%,1)
 
   REM Get argument values
-  R%=AR%+1: GOSUB DEREF
-  AA%=R%
-  R%=Z%(AR%,1)+1: GOSUB DEREF
-  AB%=R%
+  R%=AR%+1: GOSUB DEREF_R: AA%=R%
+  R%=Z%(AR%,1)+1: GOSUB DEREF_R: AB%=R%
 
   REM Switch on the function number
   IF FF%=1 THEN DO_EQUAL_Q
@@ -45,18 +43,18 @@ DO_FUNCTION:
   DO_PR_STR:
     AZ%=AR%: PR%=1: SE$=" ": GOSUB PR_STR_SEQ
     AS$=R$: GOSUB STRING
-    Z%(ZI%,0) = 4
-    Z%(ZI%,1) = R%
-    R%=ZI%
-    ZI%=ZI%+1
+    R4%=R%
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0) = 4+16
+    Z%(R%,1) = R4%
     RETURN
   DO_STR:
     AZ%=AR%: PR%=0: SE$="": GOSUB PR_STR_SEQ
     AS$=R$: GOSUB STRING
-    Z%(ZI%,0) = 4
-    Z%(ZI%,1) = R%
-    R%=ZI%
-    ZI%=ZI%+1
+    R4%=R%
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0) = 4+16
+    Z%(R%,1) = R4%
     RETURN
   DO_PRN:
     AZ%=AR%: PR%=1: SE$=" ": GOSUB PR_STR_SEQ
@@ -87,28 +85,29 @@ DO_FUNCTION:
     RETURN
 
   DO_ADD:
-    R%=ZI%: ZI%=ZI%+1: REM Allocate result value
-    Z%(R%,0)=2
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0)=2+16
     Z%(R%,1)=Z%(AA%,1)+Z%(AB%,1)
     RETURN
   DO_SUB:
-    R%=ZI%: ZI%=ZI%+1: REM Allocate result value
-    Z%(R%,0)=2
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0)=2+16
     Z%(R%,1)=Z%(AA%,1)-Z%(AB%,1)
     RETURN
   DO_MULT:
-    R%=ZI%: ZI%=ZI%+1: REM Allocate result value
-    Z%(R%,0)=2
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0)=2+16
     Z%(R%,1)=Z%(AA%,1)*Z%(AB%,1)
     RETURN
   DO_DIV:
-    R%=ZI%: ZI%=ZI%+1: REM Allocate result value
-    Z%(R%,0)=2
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0)=2+16
     Z%(R%,1)=Z%(AA%,1)/Z%(AB%,1)
     RETURN
 
   DO_LIST:
     R%=AR%
+    Z%(R%,0)=Z%(R%,0)+16
     RETURN
   DO_LIST_Q:
     A%=AA%: GOSUB LIST_Q
@@ -120,13 +119,11 @@ DO_FUNCTION:
     IF Z%(AA%,1)=0 THEN R%=2
     RETURN
   DO_COUNT:
-    R%=-1
-    DO_COUNT_LOOP:
-      R%=R%+1
-      IF Z%(AA%,1)<>0 THEN AA%=Z%(AA%,1): GOTO DO_COUNT_LOOP
-    Z%(ZI%,0) = 2
-    Z%(ZI%,1) = R%
-    R%=ZI%: ZI%=ZI%+1: REM Allocate result value
+    A%=AA%: GOSUB COUNT
+    R4%=R%
+    SZ%=1: GOSUB ALLOC
+    Z%(R%,0) = 2+16
+    Z%(R%,1) = R4%
     RETURN
 
   DO_PR_MEMORY:
