@@ -5,25 +5,26 @@ REM integer            2   ->  int value
 REM float              3   ->  ???
 REM string/kw          4   ->  ZS$ index
 REM symbol             5   ->  ZS$ index
-REM list next/val      6   ->  next Z% index / or 0
+REM list next/val      6   ->  next Z% index (0 for last)
 REM                    followed by value (unless empty)
-REM vector next/val    8   ->  next Z% index / or 0
+REM vector next/val    7   ->  next Z% index (0 for last)
 REM                    followed by value (unless empty)
-REM hashmap next/val   10  ->  next Z% index / or 0
+REM hashmap next/val   8   ->  next Z% index (0 for last)
 REM                    followed by key or value (alternating)
-REM function           12  ->  function index
-REM mal function       13  ->  ???
-REM atom               14  ->  Z% index
+REM function           9   ->  function index
+REM mal function       10  ->  ???
+REM atom               11  ->  Z% index
+REM environment        14  ->  data/hashmap Z% index
+REM                    followed by 14 and outer Z% index (-1 for none)
 REM reference/ptr      15  ->  Z% index / or 0
 
 INIT_MEMORY:
   T%=FRE(0)
   
-  S1%=4096+512: REM Z% (boxed memory) size (X2)
+  S1%=4096+512+256: REM Z% (boxed memory) size (X2)
   S2%=256: REM ZS% (string memory) size
-  S3%=256: REM ZE%,ZO% (environments) size
-  S4%=256: REM ZZ% (call stack) size
-  S5%=64: REM PS% (logic stack) size
+  S3%=256: REM ZZ% (call stack) size
+  S4%=64: REM PS% (logic stack) size
 
   REM global error state
   ER%=0
@@ -45,18 +46,9 @@ INIT_MEMORY:
   ZJ%=0
   DIM ZS$(S2%)
 
-  REM environments
-  ZK%=0
-  DIM ZE%(S3%): REM data hashmap Z% index
-  DIM ZO%(S3%): REM outer ZE% index (or -1)
-
-  REM call stack
+  REM call/logic stack
   ZL%=-1
-  DIM ZZ%(S4%): REM stack of Z% indexes
-
-  REM logic stack
-  PT%=-1: REM index of top of PS% stack
-  DIM PS%(S5%): REM stack of Z% indexes
+  DIM ZZ%(S3%): REM stack of Z% indexes
 
   REM PRINT "Lisp data memory: " + STR$(T%-FRE(0))
   REM PRINT "Interpreter working memory: " + STR$(FRE(0))
@@ -69,9 +61,7 @@ PR_MEMORY_SUMMARY:
   PRINT "Free memory (FRE)      : " + STR$(FRE(0))
   PRINT "Boxed values (Z%)      : " + STR$(ZI%) + " /" + STR$(S1%)
   PRINT "String values (ZS$)    : " + STR$(ZJ%) + " /" + STR$(S2%)
-  PRINT "Environments (ZE%)     : " + STR$(ZK%) + " /" + STR$(S3%)
-  PRINT "Call stack size (ZZ%)  : " + STR$(ZL%+1) + " /" + STR$(S4%)
-  PRINT "Logic stack size (PS%) : " + STR$(PT%+1) + " /" + STR$(S5%)
+  PRINT "Call stack size (ZZ%)  : " + STR$(ZL%+1) + " /" + STR$(S3%)
   RETURN
 
 PR_MEMORY:
@@ -94,10 +84,10 @@ REM EQUAL_Q(A%, B%) -> R%
 EQUAL_Q:
   R%=0
   U1%=Z%(A%,0): U2%=Z%(B%,0)
-  IF NOT ((U1%=U2%) OR ((U1%=6 OR U1%=8) AND (U2%=6 OR U2%=8))) THEN RETURN
+  IF NOT ((U1%=U2%) OR ((U1%=6 OR U1%=7) AND (U2%=6 OR U2%=7))) THEN RETURN
   IF U1%=6 THEN GOTO EQUAL_Q_SEQ
-  IF U1%=8 THEN GOTO EQUAL_Q_SEQ
-  IF U1%=10 THEN GOTO EQUAL_Q_HM
+  IF U1%=7 THEN GOTO EQUAL_Q_SEQ
+  IF U1%=8 THEN GOTO EQUAL_Q_HM
 
   IF Z%(A%,1)=Z%(B%,1) THEN R%=1
   RETURN
@@ -159,7 +149,7 @@ REM hashmap functions
 
 REM HASHMAP() -> R%
 HASHMAP:
-  Z%(ZI%,0) = 10
+  Z%(ZI%,0) = 8
   Z%(ZI%,1) = 0
   R%=ZI%
   ZI%=ZI%+1
@@ -169,14 +159,14 @@ REM ASSOC1(HM%, K%, V%) -> R%
 ASSOC1:
   R%=ZI%
   REM key ptr
-  Z%(ZI%,0) = 10
+  Z%(ZI%,0) = 8
   Z%(ZI%,1) = ZI%+2: REM value
   ZI%=ZI%+1
   Z%(ZI%,0) = 15
   Z%(ZI%,1) = K%
   ZI%=ZI%+1
   REM value ptr
-  Z%(ZI%,0) = 10
+  Z%(ZI%,0) = 8
   Z%(ZI%,1) = HM%: REM hashmap to assoc onto
   ZI%=ZI%+1
   Z%(ZI%,0) = 15
@@ -225,7 +215,7 @@ HASHMAP_CONTAINS:
 
 REM NATIVE_FUNCTION(A%) -> R%
 NATIVE_FUNCTION:
-  Z%(ZI%,0) = 12
+  Z%(ZI%,0) = 9
   Z%(ZI%,1) = A%
   R%=ZI%
   ZI%=ZI%+1
@@ -233,7 +223,7 @@ NATIVE_FUNCTION:
 
 REM NATIVE_FUNCTION(A%, P%, E%) -> R%
 MAL_FUNCTION:
-  Z%(ZI%,0) = 13
+  Z%(ZI%,0) = 10
   Z%(ZI%,1) = A%
   Z%(ZI%+1,0) = P%
   Z%(ZI%+1,1) = E%

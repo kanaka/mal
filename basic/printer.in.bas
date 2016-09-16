@@ -1,8 +1,10 @@
 REM PR_STR(AZ%, PR%) -> R$
 PR_STR:
+  RR$=""
+  PR_STR_RECUR:
   T%=Z%(AZ%,0)
   REM PRINT "AZ%: " + STR$(AZ%) + ", T%: " + STR$(T%) + ", V%: " + STR$(Z%(AZ%,1))
-  IF T%=15 THEN AZ%=Z%(AZ%,1): GOTO PR_STR
+  IF T%=15 THEN AZ%=Z%(AZ%,1): GOTO PR_STR_RECUR
   IF T%=0 THEN R$="nil": RETURN
   IF (T%=1) AND (Z%(AZ%,1)=0) THEN R$="false": RETURN
   IF (T%=1) AND (Z%(AZ%,1)=1) THEN R$="true": RETURN
@@ -11,10 +13,10 @@ PR_STR:
   IF (T%=4) AND (PR%=1) THEN PR_STRING_READABLY
   IF T%=5 THEN PR_SYMBOL
   IF T%=6 THEN PR_SEQ
+  IF T%=7 THEN PR_SEQ
   IF T%=8 THEN PR_SEQ
-  IF T%=10 THEN PR_SEQ
-  IF T%=12 THEN PR_FUNCTION
-  IF T%=13 THEN PR_MAL_FUNCTION
+  IF T%=9 THEN PR_FUNCTION
+  IF T%=10 THEN PR_MAL_FUNCTION
   R$="#<unknown>"
   RETURN
 
@@ -35,39 +37,38 @@ PR_STR:
     R$=ZS$(Z%(AZ%,1))
     RETURN
   PR_SEQ:
-    IF PT%=-1 THEN RR$=""
     IF T%=6 THEN RR$=RR$+"("
-    IF T%=8 THEN RR$=RR$+"["
-    IF T%=10 THEN RR$=RR$+"{"
+    IF T%=7 THEN RR$=RR$+"["
+    IF T%=8 THEN RR$=RR$+"{"
     REM push where we are in the sequence
-    PT%=PT%+1
-    PS%(PT%)= AZ%
+    ZL%=ZL%+1
+    ZZ%(ZL%)= AZ%
     PR_SEQ_LOOP:
       IF Z%(AZ%,1) = 0 THEN PR_SEQ_DONE
       AZ%=AZ%+1
       REM Push type we are rendering on the stack
-      PT%=PT%+1
-      PS%(PT%) = Z%(AZ%,0)
-      GOSUB PR_STR
+      ZL%=ZL%+1
+      ZZ%(ZL%) = Z%(AZ%,0)
+      GOSUB PR_STR_RECUR
       REM if we just rendered a non-sequence, then append it
-      IF (T% < 6) OR (T% > 11) THEN RR$=RR$+R$
+      IF (T% < 6) OR (T% > 8) THEN RR$=RR$+R$
       REM pop type off stack and check it
-      T%=PS%(PT%)
-      PT%=PT%-1
+      T%=ZZ%(ZL%)
+      ZL%=ZL%-1
       REM Go to next list element
-      AZ%=Z%(PS%(PT%),1)
-      PS%(PT%) = AZ%
+      AZ%=Z%(ZZ%(ZL%),1)
+      ZZ%(ZL%) = AZ%
       IF Z%(AZ%,1) <> 0 THEN RR$=RR$+" "
       GOTO PR_SEQ_LOOP
     PR_SEQ_DONE:
       REM get current type
-      T%=Z%(PS%(PT%),0)
+      T%=Z%(ZZ%(ZL%),0)
       REM pop where we are the sequence
-      PT%=PT%-1
+      ZL%=ZL%-1
       IF T%=6 THEN RR$=RR$+")"
-      IF T%=8 THEN RR$=RR$+"]"
-      IF T%=10 THEN RR$=RR$+"}"
-      IF PT%=-1 THEN R$=RR$
+      IF T%=7 THEN RR$=RR$+"]"
+      IF T%=8 THEN RR$=RR$+"}"
+      R$=RR$
       RETURN
   PR_FUNCTION:
     T1%=Z%(AZ%,1)
@@ -75,9 +76,9 @@ PR_STR:
     RETURN
   PR_MAL_FUNCTION:
     T1%=AZ%
-    AZ%=Z%(T1%+1,0): GOSUB PR_STR
+    AZ%=Z%(T1%+1,0): GOSUB PR_STR_RECUR
     T7$="(fn* " + R$
-    AZ%=Z%(T1%,1): GOSUB PR_STR
+    AZ%=Z%(T1%,1): GOSUB PR_STR_RECUR
     R$=T7$ + " " + R$ + ")"
     RETURN
     

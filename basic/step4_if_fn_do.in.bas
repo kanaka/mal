@@ -27,8 +27,8 @@ EVAL_AST:
   T%=Z%(A%,0)
   IF T%=5 THEN EVAL_AST_SYMBOL
   IF T%=6 THEN EVAL_AST_SEQ
+  IF T%=7 THEN EVAL_AST_SEQ
   IF T%=8 THEN EVAL_AST_SEQ
-  IF T%=10 THEN EVAL_AST_SEQ
   R%=A%
   GOTO EVAL_AST_RETURN
 
@@ -69,7 +69,7 @@ EVAL_AST:
 
       REM if hashmap, skip eval of even entries (keys)
       R%=A%+1
-      IF (ZZ%(ZL%-3)=10) AND ((ZZ%(ZL%-2) AND 1)=0) THEN GOTO EVAL_AST_SEQ_SKIP
+      IF (ZZ%(ZL%-3)=8) AND ((ZZ%(ZL%-2) AND 1)=0) THEN GOTO EVAL_AST_SEQ_SKIP
 
       REM call EVAL for each entry
       A%=A%+1: GOSUB EVAL
@@ -239,8 +239,8 @@ EVAL:
       R%=F%: GOSUB DEREF
       F%=R%
 
-      IF Z%(F%,0)=12 THEN GOTO EVAL_DO_FUNCTION
-      IF Z%(F%,0)=13 THEN GOTO EVAL_DO_MAL_FUNCTION
+      IF Z%(F%,0)=9 THEN GOTO EVAL_DO_FUNCTION
+      IF Z%(F%,0)=10 THEN GOTO EVAL_DO_MAL_FUNCTION
       ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
       EVAL_DO_FUNCTION:
         GOSUB DO_FUNCTION
@@ -291,7 +291,7 @@ MAIN:
   REM set core functions in repl_env
   E%=RE%: GOSUB INIT_CORE_NS
 
-  REM AZ%=ZE%(RE%): GOSUB PR_STR
+  REM AZ%=Z%(RE%,1): GOSUB PR_STR
   REM PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
 
   REM B% = PEEK(57) + PEEK(58) * 256

@@ -22,8 +22,8 @@ EVAL_AST:
   T%=Z%(A%,0)
   IF T%=5 THEN EVAL_AST_SYMBOL
   IF T%=6 THEN EVAL_AST_SEQ
+  IF T%=7 THEN EVAL_AST_SEQ
   IF T%=8 THEN EVAL_AST_SEQ
-  IF T%=10 THEN EVAL_AST_SEQ
   R%=A%
   GOTO EVAL_AST_RETURN
 
@@ -64,7 +64,7 @@ EVAL_AST:
 
       REM if hashmap, skip eval of even entries (keys)
       R%=A%+1
-      IF (ZZ%(ZL%-3)=10) AND ((ZZ%(ZL%-2) AND 1)=0) THEN GOTO EVAL_AST_SEQ_SKIP
+      IF (ZZ%(ZL%-3)=8) AND ((ZZ%(ZL%-2) AND 1)=0) THEN GOTO EVAL_AST_SEQ_SKIP
 
       REM call EVAL for each entry
       A%=A%+1: GOSUB EVAL
@@ -173,7 +173,7 @@ EVAL:
       AR%=Z%(R%,1): REM REST
       R%=F%: GOSUB DEREF
       F%=R%
-      IF Z%(F%,0)<>12 THEN ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
+      IF Z%(F%,0)<>9 THEN ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       GOTO EVAL_RETURN
 
@@ -252,6 +252,7 @@ MAIN:
   EO%=-1: GOSUB ENV_NEW
   RE%=R%
 
+  E%=RE%
   REM + function
   A%=1: GOSUB NATIVE_FUNCTION
   K$="+": V%=R%: GOSUB ENV_SET_S
@@ -268,7 +269,7 @@ MAIN:
   A%=4: GOSUB NATIVE_FUNCTION
   K$="/": V%=R%: GOSUB ENV_SET_S
 
-  AZ%=ZE%(RE%): GOSUB PR_STR
+  AZ%=Z%(RE%,1): GOSUB PR_STR
   PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
 
   MAIN_LOOP:

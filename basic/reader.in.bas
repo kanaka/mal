@@ -55,10 +55,10 @@ READ_FORM:
   IF (CH$ = CHR$(34)) THEN READ_STRING
   IF (CH$ = "(") THEN T%=6: GOTO READ_SEQ
   IF (CH$ = ")") THEN T%=6: GOTO READ_SEQ_END
-  IF (CH$ = "[") THEN T%=8: GOTO READ_SEQ
-  IF (CH$ = "]") THEN T%=8: GOTO READ_SEQ_END
-  IF (CH$ = "{") THEN T%=10: GOTO READ_SEQ
-  IF (CH$ = "}") THEN T%=10: GOTO READ_SEQ_END
+  IF (CH$ = "[") THEN T%=7: GOTO READ_SEQ
+  IF (CH$ = "]") THEN T%=7: GOTO READ_SEQ_END
+  IF (CH$ = "{") THEN T%=8: GOTO READ_SEQ
+  IF (CH$ = "}") THEN T%=8: GOTO READ_SEQ_END
   GOTO READ_SYMBOL
 
   READ_SCALAR:
@@ -98,41 +98,43 @@ READ_FORM:
 
   READ_SEQ:
     REM PRINT "READ_SEQ"
+    SD%=SD%+1: REM increase read sequence depth
     REM push start ptr on the stack
-    PT%=PT%+1
-    PS%(PT%) = ZI%
+    ZL%=ZL%+1
+    ZZ%(ZL%) = ZI%
     REM push current sequence type
-    PT%=PT%+1
-    PS%(PT%) = T%
+    ZL%=ZL%+1
+    ZZ%(ZL%) = T%
     REM push current ptr on the stack
-    PT%=PT%+1
-    PS%(PT%) = ZI%
+    ZL%=ZL%+1
+    ZZ%(ZL%) = ZI%
     GOTO READ_FORM_DONE
 
   READ_SEQ_END:
     REM PRINT "READ_SEQ_END"
-    IF PT%=-1 THEN ER%=1: ER$="unexpected ')'": RETURN
+    IF SD%=0 THEN ER%=1: ER$="unexpected '" + CH$ + "'": RETURN
+    SD%=SD%-1: REM increase read sequence depth
     REM Set return value to current sequence
-    PT%=PT%-2: REM pop current ptr and type off the stack
-    R%=PS%(PT%): REM ptr to start of sequence to return
-    PT%=PT%-1: REM pop start ptr off the stack
-    IF (PS%(PT%+2)) <> T% THEN ER%=1: ER$="sequence mismatch": RETURN
+    ZL%=ZL%-2: REM pop current ptr and type off the stack
+    R%=ZZ%(ZL%): REM ptr to start of sequence to return
+    ZL%=ZL%-1: REM pop start ptr off the stack
+    IF (ZZ%(ZL%+2)) <> T% THEN ER%=1: ER$="sequence mismatch": RETURN
     GOTO READ_FORM_DONE
 
 
   READ_FORM_DONE:
     IDX%=IDX%+LEN(T$)
-    REM check PS% stack
-    IF PT%=-1 THEN RETURN
+    REM check read sequence depth
+    IF SD%=0 THEN RETURN
     IF T$="" THEN ER%=1: ER$="unexpected EOF": RETURN
     REM add list end entry (next pointer is 0 for now)
     REM PRINT "READ_FORM_DONE next list entry"
-    Z%(ZI%,0) = PS%(PT%- 1)
+    Z%(ZI%,0) = ZZ%(ZL%- 1)
     Z%(ZI%,1) = 0
     REM update prior pointer if not first
-    IF PS%(PT%)<>ZI% THEN Z%(PS%(PT%),1) = ZI%
+    IF ZZ%(ZL%)<>ZI% THEN Z%(ZZ%(ZL%),1) = ZI%
     REM update previous pointer to outself
-    PS%(PT%) = ZI%
+    ZZ%(ZL%) = ZI%
     ZI%=ZI%+1: REM slot for list element
     GOTO READ_FORM
 
@@ -140,6 +142,6 @@ READ_FORM:
 REM READ_STR(A$) -> R%
 READ_STR:
   IDX%=1
-  PT%=-1
+  SD%=0: REM sequence read depth
   GOSUB READ_FORM
   RETURN
