@@ -13,6 +13,7 @@ step1_read_print.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas
 step2_eval.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas
 step3_env.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas
 step4_if_fn_do.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas
+step5_tco.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas
 
 tests/%.bas: tests/%.in.bas
 	./qb2cbm.sh $< > $@
@@ -23,7 +24,7 @@ tests/%.prg: tests/%.bas
 	rm $<.tmp
 
 
-SOURCES_LISP = env.in.bas core.in.bas step4_if_fn_do.in.bas
+SOURCES_LISP = env.in.bas core.in.bas step5_tco.in.bas
 SOURCES = readline.in.bas types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
 
 .PHONY: stats

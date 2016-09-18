@@ -27,7 +27,7 @@ INIT_MEMORY:
   REM S1%=4096: REM Z% (boxed memory) size (X2)
   S2%=256: REM ZS% (string memory) size
   S3%=256: REM ZZ% (call stack) size
-  S4%=64: REM ZR% (pending release stack) size
+  S4%=128: REM ZR% (release stack) size
 
   REM global error state
   ER%=0
@@ -112,6 +112,7 @@ FREE:
 
 
 REM RELEASE(AY%) -> nil
+REM R% should not be affected by this call
 RELEASE:
   RC%=0
 
@@ -130,9 +131,14 @@ RELEASE:
   REM nil, false, true
   IF AY%<3 THEN GOTO RELEASE_TOP
 
+  U6%=Z%(AY%,0)AND15: REM type
+
+  REM AZ%=AY%: PR%=1: GOSUB PR_STR
+  REM PRINT "RELEASE AY%:"+STR$(AY%)+"["+R$+"] (byte0:"+STR$(Z%(AY%,0))+")"
+
   REM sanity check not already freed
-  IF (Z%(AY%,0)AND15)=15 THEN ER%=1: ER$="Free of free mem: " + STR$(AY%): RETURN
-  IF Z%(AY%,0)<16 THEN ER%=1: ER$="Free of freed object: " + STR$(AY%): RETURN
+  IF (U6%)=15 THEN ER%=1: ER$="Free of free memory: " + STR$(AY%): RETURN
+  IF Z%(AY%,0)<15 THEN ER%=1: ER$="Free of freed object: " + STR$(AY%): RETURN
 
   REM decrease reference count by one
   Z%(AY%,0)=Z%(AY%,0)-16
@@ -141,7 +147,6 @@ RELEASE:
   IF Z%(AY%,0)>=16 GOTO RELEASE_TOP
 
   REM switch on type
-  U6%=Z%(AY%,0)AND15: REM type
   IF (U6%<=5) OR (U6%=9) THEN GOTO RELEASE_SIMPLE
   IF (U6%>=6) AND (U6%<=8) THEN GOTO RELEASE_SEQ
   IF U6%=10 THEN GOTO RELEASE_MAL_FUNCTION
@@ -192,7 +197,9 @@ RELEASE:
 
 REM RELEASE_PEND() -> nil
 RELEASE_PEND:
+  REM REM IF ER%<>0 THEN RETURN
   IF ZM%<0 THEN RETURN
+  REM PRINT "here2 RELEASE_PEND releasing:"+STR$(ZR%(ZM%))
   AY%=ZR%(ZM%): GOSUB RELEASE
   ZM%=ZM%-1
   GOTO RELEASE_PEND
@@ -251,12 +258,16 @@ PR_MEMORY:
       PRINT ": ref cnt: " + STR$((Z%(I,0)AND-16)/16);
       PRINT ", type: " + STR$(Z%(I,0)AND15) + ", value: " + STR$(Z%(I,1))
       I=I+1
+      IF (Z%(I-1,0)AND15)<>10 THEN GOTO PR_MEMORY_VALUE_LOOP
+        PRINT " "+STR$(I)+":            ";
+        PRINT "params: "+STR$(Z%(I+1,0))+", env:"+STR$(Z%(I+1,1))
+        I=I+1
       GOTO PR_MEMORY_VALUE_LOOP
     PR_MEMORY_FREE:
       PRINT ": FREE size: "+STR$((Z%(I,0)AND-16)/16)+", next: "+STR$(Z%(I,1));
       IF I=ZK% THEN PRINT " (free list start)";
       PRINT
-      IF (Z%(I,0)AND-16)=32 THEN I=I+1: PRINT " " + STR$(I) + ": ---"
+      IF (Z%(I,0)AND-16)=32 THEN I=I+1: PRINT " "+STR$(I)+": ---"
       I=I+1
       GOTO PR_MEMORY_VALUE_LOOP
   PR_MEMORY_AFTER_VALUES:

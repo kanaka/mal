@@ -17,6 +17,8 @@ PR_STR:
   IF T%=8 THEN PR_SEQ
   IF T%=9 THEN PR_FUNCTION
   IF T%=10 THEN PR_MAL_FUNCTION
+  IF T%=13 THEN PR_ENV
+  IF T%=15 THEN PR_FREE
   R$="#<unknown>"
   RETURN
 
@@ -80,6 +82,12 @@ PR_STR:
     T7$="(fn* " + R$
     AZ%=Z%(T1%,1): GOSUB PR_STR_RECUR
     R$=T7$ + " " + R$ + ")"
+    RETURN
+  PR_ENV:
+    R$="#<env"+STR$(AZ%)+", data"+STR$(Z%(AZ%,1))+">"
+    RETURN
+  PR_FREE:
+    R$="#<free memory "+STR$(AZ%)+", next"+STR$(Z%(AZ%,1))+">"
     RETURN
     
 REM PR_STR_SEQ(AZ%, PR%, SE$) -> R$

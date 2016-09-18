@@ -3,12 +3,12 @@ REM ENV_NEW(EO%) -> R%
 ENV_NEW:
   REM allocate the data hashmap
   GOSUB HASHMAP
-  E1%=R%
+  ET%=R%
 
   REM set the outer and data pointer
   SZ%=2: GOSUB ALLOC
   Z%(R%,0) = 13+16
-  Z%(R%,1) = E1%
+  Z%(R%,1) = ET%
   Z%(R%+1,0) = 13
   Z%(R%+1,1) = EO%
   IF EO%<>-1 THEN Z%(EO%,0)=Z%(EO%,0)+16

@@ -188,6 +188,9 @@ EVAL:
     EVAL_LET:
       REM PRINT "let*"
       GOSUB EVAL_GET_A2: REM set a1% and a2%
+
+      E4%=E%: REM save the current environment for release
+
       REM create new environment with outer as current environment
       EO%=E%: GOSUB ENV_NEW
       E%=R%
@@ -209,12 +212,17 @@ EVAL:
         A1%=Z%(Z%(A1%,1),1)
         GOTO EVAL_LET_LOOP
       EVAL_LET_LOOP_DONE:
-        A%=A2%: GOSUB EVAL: REM eval a2 using let_env
-        REM REM release the let env
-        REM AY%=E%: GOSUB RELEASE
-        GOTO EVAL_RETURN
+        REM release previous env (if not root repl_env) because our
+        REM new env refers to it and we no longer need to track it
+        REM (since we are TCO recurring)
+        IF E4%<>RE% THEN AY%=E4%: GOSUB RELEASE
+
+        A%=A2%: GOTO EVAL_TCO_RECUR: REM TCO loop
+
     EVAL_DO:
       A%=Z%(A%,1): REM rest
+
+      REM TODO: TCO
 
       REM push EVAL_AST return label/address
       ZL%=ZL%+1: ZZ%(ZL%)=2
