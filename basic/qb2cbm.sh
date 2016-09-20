@@ -57,7 +57,7 @@ done
 data=""
 declare -A labels
 
-lnum=10
+lnum=1
 while read -r line; do
     if [[ ${line} =~ ^\ *# ]]; then
         [ "${DEBUG}" ] && echo >&2 "ignoring # style comment at $lnum"
@@ -82,7 +82,7 @@ while read -r line; do
     else
         data="${data}${lnum} ${line}\n"
     fi
-    lnum=$(( lnum + 10 ))
+    lnum=$(( lnum + 1 ))
 done < <(echo -e "${input}")
 
 if [[ "${KEEP_REM}" -lt 4 ]]; then

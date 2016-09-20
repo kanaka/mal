@@ -23,39 +23,45 @@ MAL_PRINT:
 REM REP(A$) -> R$
 REP:
   GOSUB MAL_READ
-  IF ER% THEN RETURN
+  IF ER%<>0 THEN GOTO REP_DONE
+
   A%=R%: GOSUB EVAL
-  IF ER% THEN RETURN
+  IF ER%<>0 THEN GOTO REP_DONE
+
   A%=R%: GOSUB MAL_PRINT
+  RT$=R$
 
-  REM Release memory from EVAL
-  AY%=R%: GOSUB RELEASE
-
-  RETURN
+  REP_DONE:
+    REM Release memory from EVAL
+    AY%=R%: GOSUB RELEASE
+    R$=RT$
+    RETURN
 
 REM MAIN program
 MAIN:
   GOSUB INIT_MEMORY
 
-  ZT%=ZI%: REM top of memory after repl_env
+  ZT%=ZI%: REM top of memory after base repl_env
 
-  MAIN_LOOP:
+  REPL_LOOP:
     A$="user> "
     GOSUB READLINE: REM /* call input parser */
-    IF EOF=1 THEN GOTO MAIN_DONE
-    A$=R$: GOSUB REP: REM /* call REP */
-    IF ER% THEN GOTO ERROR
+    IF EOF=1 THEN GOTO QUIT
+
+    A$=R$: GOSUB REP: REM call REP
+
+    IF ER%<>0 THEN GOSUB PRINT_ERROR: GOTO REPL_LOOP
     PRINT R$
-    GOTO MAIN_LOOP
+    GOTO REPL_LOOP
 
-    ERROR:
-      PRINT "Error: " + ER$
-      ER%=0
-      ER$=""
-      GOTO MAIN_LOOP
-
-  MAIN_DONE:
-    P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
+  QUIT:
+    REM P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
     GOSUB PR_MEMORY_SUMMARY
     END
+
+  PRINT_ERROR:
+    PRINT "Error: " + ER$
+    ER%=0
+    ER$=""
+    RETURN
 

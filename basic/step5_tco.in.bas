@@ -338,6 +338,22 @@ MAL_PRINT:
   AZ%=A%: PR%=1: GOSUB PR_STR
   RETURN
 
+REM RE(A$) -> R%
+REM Assume RE% has repl_env
+REM caller must release result
+RE:
+  R1%=0
+  GOSUB MAL_READ
+  R1%=R%
+  IF ER%<>0 THEN GOTO REP_DONE
+
+  A%=R%: E%=RE%: GOSUB EVAL
+
+  REP_DONE:
+    REM Release memory from MAL_READ
+    IF R1%<>0 THEN AY%=R1%: GOSUB RELEASE
+    RETURN: REM caller must release result of EVAL
+
 REM REP(A$) -> R$
 REM Assume RE% has repl_env
 REP:
@@ -377,33 +393,27 @@ MAIN:
 
   REM core.mal: defined using the language itself
   A$="(def! not (fn* (a) (if a false true)))"
-  GOSUB REP
+  GOSUB RE: AY%=R%: GOSUB RELEASE
 
-  REM AZ%=Z%(RE%,1): GOSUB PR_STR
-  REM PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
-
-  REM B% = PEEK(57) + PEEK(58) * 256
-  REM PRINT "57/58%: " + STR$(B%)
-
-  MAIN_LOOP:
+  REPL_LOOP:
     A$="user> "
     GOSUB READLINE: REM /* call input parser */
-    IF EOF=1 THEN GOTO MAIN_DONE
+    IF EOF=1 THEN GOTO QUIT
 
     A$=R$: GOSUB REP: REM /* call REP */
 
-    IF ER% THEN GOTO ERROR
+    IF ER%<>0 THEN GOSUB PRINT_ERROR: GOTO REPL_LOOP
     PRINT R$
-    GOTO MAIN_LOOP
+    GOTO REPL_LOOP
 
-    ERROR:
-      PRINT "Error: " + ER$
-      ER%=0
-      ER$=""
-      GOTO MAIN_LOOP
-
-  MAIN_DONE:
+  QUIT:
     REM P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
     GOSUB PR_MEMORY_SUMMARY
     END
+
+  PRINT_ERROR:
+    PRINT "Error: " + ER$
+    ER%=0
+    ER$=""
+    RETURN
 

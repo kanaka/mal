@@ -1,2 +1,3 @@
 #!/bin/bash
+(echo "(list $(for a in "${@}"; do echo -n "\"${a}\""; done))") > $(dirname $0)/.args.mal
 exec cbmbasic $(dirname $0)/${STEP:-stepA_mal}.bas "${@}"

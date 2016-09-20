@@ -17,6 +17,7 @@ PR_STR:
   IF T%=8 THEN PR_SEQ
   IF T%=9 THEN PR_FUNCTION
   IF T%=10 THEN PR_MAL_FUNCTION
+  IF T%=11 THEN PR_ATOM
   IF T%=13 THEN PR_ENV
   IF T%=15 THEN PR_FREE
   R$="#<unknown>"
@@ -33,7 +34,11 @@ PR_STR:
     R$=ZS$(Z%(AZ%,1))
     RETURN
   PR_STRING_READABLY:
-    R$=CHR$(34) + ZS$(Z%(AZ%,1)) + CHR$(34)
+    R$=ZS$(Z%(AZ%,1))
+    S1$=CHR$(92): S2$=CHR$(92)+CHR$(92): GOSUB REPLACE: REM escape backslash
+    S1$=CHR$(34): S2$=CHR$(92)+CHR$(34): GOSUB REPLACE: REM escape quotes
+    S1$=CHR$(13): S2$=CHR$(92)+"n": GOSUB REPLACE: REM escape newlines
+    R$=CHR$(34)+R$+CHR$(34)
     RETURN
   PR_SYMBOL:
     R$=ZS$(Z%(AZ%,1))
@@ -42,31 +47,28 @@ PR_STR:
     IF T%=6 THEN RR$=RR$+"("
     IF T%=7 THEN RR$=RR$+"["
     IF T%=8 THEN RR$=RR$+"{"
-    REM push where we are in the sequence
-    ZL%=ZL%+1
-    ZZ%(ZL%)= AZ%
+    REM push the type and where we are in the sequence
+    ZL%=ZL%+2
+    ZZ%(ZL%-1)=T%
+    ZZ%(ZL%)=AZ%
     PR_SEQ_LOOP:
-      IF Z%(AZ%,1) = 0 THEN PR_SEQ_DONE
+      IF Z%(AZ%,1)=0 THEN PR_SEQ_DONE
       AZ%=AZ%+1
-      REM Push type we are rendering on the stack
-      ZL%=ZL%+1
-      ZZ%(ZL%) = Z%(AZ%,0)AND15
       GOSUB PR_STR_RECUR
       REM if we just rendered a non-sequence, then append it
       IF (T% < 6) OR (T% > 8) THEN RR$=RR$+R$
-      REM pop type off stack and check it
-      T%=ZZ%(ZL%)
-      ZL%=ZL%-1
+      REM restore current seq type
+      T%=ZZ%(ZL%-1)
       REM Go to next list element
       AZ%=Z%(ZZ%(ZL%),1)
       ZZ%(ZL%) = AZ%
       IF Z%(AZ%,1) <> 0 THEN RR$=RR$+" "
       GOTO PR_SEQ_LOOP
     PR_SEQ_DONE:
-      REM get current type
-      T%=Z%(ZZ%(ZL%),0)AND15
-      REM pop where we are the sequence
-      ZL%=ZL%-1
+      REM get type
+      T%=ZZ%(ZL%-1)
+      REM pop where we are the sequence and type
+      ZL%=ZL%-2
       IF T%=6 THEN RR$=RR$+")"
       IF T%=7 THEN RR$=RR$+"]"
       IF T%=8 THEN RR$=RR$+"}"
@@ -82,6 +84,10 @@ PR_STR:
     T7$="(fn* " + R$
     AZ%=Z%(T1%,1): GOSUB PR_STR_RECUR
     R$=T7$ + " " + R$ + ")"
+    RETURN
+  PR_ATOM:
+    AZ%=Z%(AZ%,1): GOSUB PR_STR_RECUR
+    R$="(atom " + R$ + ")"
     RETURN
   PR_ENV:
     R$="#<env"+STR$(AZ%)+", data"+STR$(Z%(AZ%,1))+">"

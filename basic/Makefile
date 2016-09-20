@@ -1,3 +1,4 @@
+export KEEP_REM=0
 
 step%.bas: step%.in.bas
 	./qb2cbm.sh $< > $@
@@ -14,6 +15,7 @@ step2_eval.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas
 step3_env.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas
 step4_if_fn_do.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas
 step5_tco.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas
+step6_file.bas: readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas
 
 tests/%.bas: tests/%.in.bas
 	./qb2cbm.sh $< > $@
@@ -24,7 +26,7 @@ tests/%.prg: tests/%.bas
 	rm $<.tmp
 
 
-SOURCES_LISP = env.in.bas core.in.bas step5_tco.in.bas
+SOURCES_LISP = env.in.bas core.in.bas step6_file.in.bas
 SOURCES = readline.in.bas types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
 
 .PHONY: stats

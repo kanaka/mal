@@ -14,8 +14,10 @@ REM EVAL_AST(A%, E%) -> R%
 EVAL_AST:
   LV%=LV%+1
 
+  REM push A% and E% on the stack
   ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
-  IF ER%=1 THEN GOTO EVAL_AST_RETURN
+
+  IF ER%<>0 THEN GOTO EVAL_AST_RETURN
 
   REM AZ%=A%: GOSUB PR_STR
   REM PRINT "EVAL_AST: " + R$ + "(" + STR$(A%) + ")"
@@ -40,7 +42,7 @@ EVAL_AST:
     IF T3%=0 THEN ER%=1: ER$="'"+ZS$(Z%(A%,1))+"' not found": GOTO EVAL_AST_RETURN
     Z%(R%,0)=Z%(R%,0)+16
     GOTO EVAL_AST_RETURN
-  
+
   EVAL_AST_SEQ:
     REM allocate the first entry
     SZ%=2: GOSUB ALLOC
@@ -73,7 +75,7 @@ EVAL_AST:
       REM if hashmap, skip eval of even entries (keys)
       IF (ZZ%(ZL%-3)=8) AND ((ZZ%(ZL%-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
-      
+
       EVAL_AST_DO_REF:
         R%=A%+1: GOSUB DEREF_R: REM deref to target of referred entry
         Z%(R%,0)=Z%(R%,0)+16: REM inc ref cnt of referred value
@@ -83,13 +85,14 @@ EVAL_AST:
         REM call EVAL for each entry
         A%=A%+1: GOSUB EVAL
         A%=A%-1
-        IF ER%=1 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
         GOSUB DEREF_R: REM deref to target of evaluated entry
 
       EVAL_AST_ADD_VALUE:
 
-      REM update previous value pointer to evaluated entry 
+      REM update previous value pointer to evaluated entry
       Z%(ZZ%(ZL%)+1,1)=R%
+
+      IF ER%<>0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
       SZ%=2: GOSUB ALLOC
@@ -123,11 +126,9 @@ EVAL:
 
   REM push A% and E% on the stack
   ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
-  IF ER%=1 THEN GOTO EVAL_RETURN
 
   REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL: " + R$ + "(" + STR$(A%) + ")"
-  REM PRINT "EVAL level: " + STR$(LV%)
+  REM PRINT "EVAL: " + R$ + "(" + STR$(A%) + "), LV%:"+STR$(LV%)
 
   GOSUB DEREF_A
 
@@ -145,8 +146,10 @@ EVAL:
       GOSUB EVAL_AST
       R3%=R%
 
-      IF ER%=1 THEN GOTO EVAL_RETURN
+      REM if error, return f/args for release by caller
+      IF ER%<>0 THEN GOTO EVAL_RETURN
       F%=R%+1
+
       AR%=Z%(R%,1): REM rest
       R%=F%: GOSUB DEREF_R: F%=R%
       IF (Z%(F%,0)AND15)<>9 THEN ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
@@ -222,36 +225,30 @@ REM Assume RE% has repl_env
 REP:
   R1%=0: R2%=0
   GOSUB MAL_READ
-  IF ER% THEN GOTO REP_DONE
   R1%=R%
-
-  REM PRINT "After read:"
-  REM P1%=ZT%: P2%=0: GOSUB PR_MEMORY
+  IF ER%<>0 THEN GOTO REP_DONE
 
   A%=R%: E%=RE%: GOSUB EVAL
-  IF ER% THEN GOTO REP_DONE
   R2%=R%
-
-  REM PRINT "After eval, before print:"
-  REM P1%=ZT%: P2%=0: GOSUB PR_MEMORY
+  IF ER%<>0 THEN GOTO REP_DONE
 
   A%=R%: GOSUB MAL_PRINT
+  RT$=R$
 
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
     IF R2%<>0 THEN AY%=R2%: GOSUB RELEASE
     IF R1%<>0 THEN AY%=R1%: GOSUB RELEASE
-
-    REM PRINT "After releases:"
-    REM P1%=ZT%: P2%=0: GOSUB PR_MEMORY
-
+    R$=RT$
     RETURN
 
 REM MAIN program
 MAIN:
   GOSUB INIT_MEMORY
 
-  REM repl_env
+  LV%=0
+
+  REM create repl_env
   GOSUB HASHMAP
   RE%=R%
 
@@ -275,32 +272,27 @@ MAIN:
   HM%=RE%: K$="/": V%=R%: GOSUB ASSOC1_S
   RE%=R%
 
-  ZT%=ZI%: REM top of memory after repl_env
+  ZT%=ZI%: REM top of memory after base repl_env
 
-  REM AZ%=RE%: GOSUB PR_STR
-  REM PRINT "env: " + R$ + "(" + STR$(RE%) + ")"
-
-  MAIN_LOOP:
+  REPL_LOOP:
     A$="user> "
     GOSUB READLINE: REM /* call input parser */
-    IF EOF=1 THEN GOTO MAIN_DONE
-    A$=R$: GOSUB REP: REM /* call REP */
+    IF EOF=1 THEN GOTO QUIT
 
-    REM P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
-    REM GOSUB PR_MEMORY_SUMMARY
+    A$=R$: GOSUB REP: REM call REP
 
-    IF ER% THEN GOTO ERROR
+    IF ER%<>0 THEN GOSUB PRINT_ERROR: GOTO REPL_LOOP
     PRINT R$
-    GOTO MAIN_LOOP
+    GOTO REPL_LOOP
 
-    ERROR:
-      PRINT "Error: " + ER$
-      ER%=0
-      ER$=""
-      GOTO MAIN_LOOP
-
-  MAIN_DONE:
-    P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
+  QUIT:
+    REM P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
     GOSUB PR_MEMORY_SUMMARY
     END
+
+  PRINT_ERROR:
+    PRINT "Error: " + ER$
+    ER%=0
+    ER$=""
+    RETURN
 

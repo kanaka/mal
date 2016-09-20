@@ -28,7 +28,7 @@ READ_TOKEN:
 
 SKIP_SPACES:
   CH$=MID$(A$,IDX%,1)
-  IF (CH$<>" " AND CH$<>",") THEN RETURN
+  IF (CH$<>" ") AND (CH$<>",") AND (CH$<>CHR$(13)) AND (CH$<>CHR$(10)) THEN RETURN
   IDX%=IDX%+1
   GOTO SKIP_SPACES
 
@@ -74,11 +74,15 @@ READ_FORM:
     Z%(R%,1) = VAL(T$)
     GOTO READ_FORM_DONE
   READ_STRING:
+    REM PRINT "READ_STRING"
     T7$=MID$(T$,LEN(T$),1)
     IF T7$<>CHR$(34) THEN ER$="expected '"+CHR$(34)+"'": GOTO READ_FORM_ABORT
-    REM PRINT "READ_STRING"
+    R$=MID$(T$,2,LEN(T$)-2)
+    S1$=CHR$(92)+CHR$(34): S2$=CHR$(34): GOSUB REPLACE: REM unescape quotes
+    S1$=CHR$(92)+"n": S2$=CHR$(13): GOSUB REPLACE: REM unescape newlines
+    S1$=CHR$(92)+CHR$(92): S2$=CHR$(92): GOSUB REPLACE: REM unescape backslashes
     REM intern string value
-    AS$=MID$(T$, 2, LEN(T$)-2): GOSUB STRING
+    AS$=R$: GOSUB STRING
     T7%=R%
     SZ%=1: GOSUB ALLOC
     Z%(R%,0) = 4+16

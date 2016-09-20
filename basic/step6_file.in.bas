@@ -1,3 +1,5 @@
+REM POKE 1, PEEK(1)AND248: REM enable all ROM areas as RAM
+REM POKE 55,0: POKE 56,192: CLR: REM move BASIC end from $A000 to $C000
 GOTO MAIN
 
 REM $INCLUDE: 'readline.in.bas'
@@ -188,6 +190,9 @@ EVAL:
     EVAL_LET:
       REM PRINT "let*"
       GOSUB EVAL_GET_A2: REM set a1% and a2%
+
+      E4%=E%: REM save the current environment for release
+
       REM create new environment with outer as current environment
       EO%=E%: GOSUB ENV_NEW
       E%=R%
@@ -209,10 +214,17 @@ EVAL:
         A1%=Z%(Z%(A1%,1),1)
         GOTO EVAL_LET_LOOP
       EVAL_LET_LOOP_DONE:
-        A%=A2%: GOSUB EVAL: REM eval a2 using let_env
-        GOTO EVAL_RETURN
+        REM release previous env (if not root repl_env) because our
+        REM new env refers to it and we no longer need to track it
+        REM (since we are TCO recurring)
+        IF E4%<>RE% THEN AY%=E4%: GOSUB RELEASE
+
+        A%=A2%: GOTO EVAL_TCO_RECUR: REM TCO loop
+
     EVAL_DO:
       A%=Z%(A%,1): REM rest
+
+      REM TODO: TCO
 
       REM push EVAL_AST return label/address
       ZL%=ZL%+1: ZZ%(ZL%)=2
@@ -384,6 +396,35 @@ MAIN:
   REM core.mal: defined using the language itself
   A$="(def! not (fn* (a) (if a false true)))"
   GOSUB RE: AY%=R%: GOSUB RELEASE
+
+  A$="(def! load-file (fn* (f) (eval (read-string (str "
+  A$=A$+CHR$(34)+"(do "+CHR$(34)+" (slurp f) "
+  A$=A$+CHR$(34)+")"+CHR$(34)+")))))"
+  GOSUB RE: AY%=R%: GOSUB RELEASE
+
+  REM load the args file
+  A$="(def! -*ARGS*- (load-file "+CHR$(34)+".args.mal"+CHR$(34)+"))"
+  GOSUB RE: AY%=R%: GOSUB RELEASE
+
+  REM set the argument list
+  A$="(def! *ARGV* (rest -*ARGS*-))"
+  GOSUB RE: AY%=R%: GOSUB RELEASE
+
+  REM get the first argument
+  A$="(first -*ARGS*-)"
+  GOSUB RE
+
+  REM if there is an argument, then run it as a program
+  IF R%<>0 THEN AY%=R%: GOSUB RELEASE: GOTO RUN_PROG
+  REM no arguments, start REPL loop
+  IF R%=0 THEN GOTO REPL_LOOP
+
+  RUN_PROG:
+    REM run a single mal program and exit
+    A$="(load-file (first -*ARGS*-))"
+    GOSUB REP
+    IF ER%<>0 THEN GOSUB PRINT_ERROR: GOTO QUIT
+    IF ER%=0 THEN PRINT R$: GOTO QUIT
 
   REPL_LOOP:
     A$="user> "

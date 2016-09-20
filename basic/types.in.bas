@@ -23,11 +23,11 @@ REM next free ptr      15  ->  Z% index / or 0
 INIT_MEMORY:
   T%=FRE(0)
 
-  S1%=3072: REM Z% (boxed memory) size (X2)
+  S1%=2048+512: REM Z% (boxed memory) size (X2)
   REM S1%=4096: REM Z% (boxed memory) size (X2)
   S2%=256: REM ZS% (string memory) size
   S3%=256: REM ZZ% (call stack) size
-  S4%=128: REM ZR% (release stack) size
+  S4%=64: REM ZR% (release stack) size
 
   REM global error state
   ER%=0
@@ -150,6 +150,7 @@ RELEASE:
   IF (U6%<=5) OR (U6%=9) THEN GOTO RELEASE_SIMPLE
   IF (U6%>=6) AND (U6%<=8) THEN GOTO RELEASE_SEQ
   IF U6%=10 THEN GOTO RELEASE_MAL_FUNCTION
+  IF U6%=11 THEN GOTO RELEASE_ATOM
   IF U6%=13 THEN GOTO RELEASE_ENV
   IF U6%=14 THEN GOTO RELEASE_REFERENCE
   IF U6%=15 THEN ER%=1: ER$="RELEASE of already freed: "+STR$(AY%): RETURN
@@ -169,6 +170,11 @@ RELEASE:
     REM add value and next element to stack
     RC%=RC%+2: ZL%=ZL%+2: ZZ%(ZL%-1)=Z%(AY%+1,1): ZZ%(ZL%)=Z%(AY%,1)
     GOTO RELEASE_SIMPLE_2
+  RELEASE_ATOM:
+    REM add contained/referred value
+    RC%=RC%+1: ZL%=ZL%+1: ZZ%(ZL%)=Z%(AY%,1)
+    REM free the atom itself
+    GOTO RELEASE_SIMPLE
   RELEASE_MAL_FUNCTION:
     REM add ast, params and environment to stack
     RC%=RC%+3: ZL%=ZL%+3
@@ -338,7 +344,17 @@ STRING:
     ZJ%=ZJ%+1
     RETURN
 
-
+REM REPLACE(R$, S1$, S2$) -> R$
+REPLACE:
+  T3$=R$
+  R$=""
+  I=1: J=LEN(T3$)
+  REPLACE_LOOP:
+    IF I>J THEN RETURN
+    CH$=MID$(T3$,I,LEN(S1$))
+    IF CH$=S1$ THEN R$=R$+S2$: I=I+LEN(S1$)
+    IF CH$<>S1$ THEN R$=R$+MID$(T3$,I,1): I=I+1
+    GOTO REPLACE_LOOP
 
 
 REM list functions
@@ -377,6 +393,19 @@ LAST:
     R%=T6%+1: GOSUB DEREF_R
     Z%(R%,0)=Z%(R%,0)+16
     RETURN
+
+REM CONS(A%,B%) -> R%
+CONS:
+  SZ%=2: GOSUB ALLOC
+  Z%(R%,0)=6+16
+  Z%(R%,1)=B%
+  Z%(R%+1,0)=14
+  Z%(R%+1,1)=A%
+  REM inc ref cnt of item we are including
+  Z%(A%,0)=Z%(A%,0)+16
+  REM inc ref cnt of list we are prepending
+  Z%(B%,0)=Z%(B%,0)+16
+  RETURN
 
 REM hashmap functions
 
