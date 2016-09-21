@@ -5,7 +5,7 @@ set -e
 DEBUG=${DEBUG:-}
 KEEP_REM=${KEEP_REM:-1}
 # 0 - drop all REMs
-# 1 - keep LABEL and INCLUDE REMs
+# 1 - keep LABEL and INCLUDE REMs (and blank lines)
 # 2 - keep LABEL, INCLUDE, and GOTO REMs
 # 3 - keep LABEL, INCLUDE, GOTO, and whole line REMs
 # 4 - keep all REMS (end of line REMs too)
@@ -67,9 +67,13 @@ while read -r line; do
         [ "${DEBUG}" ] && echo >&2 "dropping REM comment: ${line}"
         continue
     elif [[ ${line} =~ ^\ *$ ]]; then
+        if [ "${KEEP_REM}" -ge 1 ]; then
             [ "${DEBUG}" ] && echo >&2 "found blank line at $lnum"
             data="${data}\n"
-            continue
+        else
+            [ "${DEBUG}" ] && echo >&2 "ignoring blank line at $lnum"
+        fi
+        continue
     elif [[ ${line} =~ ^[A-Za-z_][A-Za-z0-9_]*:$ ]]; then
         label=${line%:}
         [ "${DEBUG}" ] && echo >&2 "found label ${label} at $lnum"

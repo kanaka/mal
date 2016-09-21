@@ -3,7 +3,7 @@ PR_STR:
   RR$=""
   PR_STR_RECUR:
   T%=Z%(AZ%,0)AND15
-  REM PRINT "AZ%: " + STR$(AZ%) + ", T%: " + STR$(T%) + ", V%: " + STR$(Z%(AZ%,1))
+  REM PRINT "AZ%: "+STR$(AZ%)+", T%: "+STR$(T%)+", V%: "+STR$(Z%(AZ%,1))
   IF T%=14 THEN AZ%=Z%(AZ%,1): GOTO PR_STR_RECUR
   IF T%=0 THEN R$="nil": RETURN
   IF (T%=1) AND (Z%(AZ%,1)=0) THEN R$="false": RETURN
@@ -17,7 +17,7 @@ PR_STR:
   IF T%=8 THEN PR_SEQ
   IF T%=9 THEN PR_FUNCTION
   IF T%=10 THEN PR_MAL_FUNCTION
-  IF T%=11 THEN PR_ATOM
+  IF T%=12 THEN PR_ATOM
   IF T%=13 THEN PR_ENV
   IF T%=15 THEN PR_FREE
   R$="#<unknown>"
@@ -56,13 +56,13 @@ PR_STR:
       AZ%=AZ%+1
       GOSUB PR_STR_RECUR
       REM if we just rendered a non-sequence, then append it
-      IF (T% < 6) OR (T% > 8) THEN RR$=RR$+R$
+      IF (T%<6) OR (T%>8) THEN RR$=RR$+R$
       REM restore current seq type
       T%=ZZ%(ZL%-1)
       REM Go to next list element
       AZ%=Z%(ZZ%(ZL%),1)
-      ZZ%(ZL%) = AZ%
-      IF Z%(AZ%,1) <> 0 THEN RR$=RR$+" "
+      ZZ%(ZL%)=AZ%
+      IF Z%(AZ%,1)<>0 THEN RR$=RR$+" "
       GOTO PR_SEQ_LOOP
     PR_SEQ_DONE:
       REM get type
@@ -76,18 +76,18 @@ PR_STR:
       RETURN
   PR_FUNCTION:
     T1%=Z%(AZ%,1)
-    R$="#<function" + STR$(T1%) + ">"
+    R$="#<function"+STR$(T1%)+">"
     RETURN
   PR_MAL_FUNCTION:
     T1%=AZ%
     AZ%=Z%(T1%+1,0): GOSUB PR_STR_RECUR
-    T7$="(fn* " + R$
+    T7$="(fn* "+R$
     AZ%=Z%(T1%,1): GOSUB PR_STR_RECUR
-    R$=T7$ + " " + R$ + ")"
+    R$=T7$+" "+R$+")"
     RETURN
   PR_ATOM:
     AZ%=Z%(AZ%,1): GOSUB PR_STR_RECUR
-    R$="(atom " + R$ + ")"
+    R$="(atom "+R$+")"
     RETURN
   PR_ENV:
     R$="#<env"+STR$(AZ%)+", data"+STR$(Z%(AZ%,1))+">"

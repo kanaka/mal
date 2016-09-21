@@ -14,7 +14,7 @@ REM                    followed by key or value (alternating)
 REM function           9   ->  function index
 REM mal function       10  ->  body AST Z% index
 REM                    followed by param and env Z% index
-REM atom               11  ->  Z% index
+REM atom               12  ->  Z% index
 REM environment        13  ->  data/hashmap Z% index
 REM                    followed by 13 and outer Z% index (-1 for none)
 REM reference/ptr      14  ->  Z% index / or 0
@@ -23,26 +23,21 @@ REM next free ptr      15  ->  Z% index / or 0
 INIT_MEMORY:
   T%=FRE(0)
 
-  S1%=2048+512: REM Z% (boxed memory) size (X2)
-  REM S1%=4096: REM Z% (boxed memory) size (X2)
-  S2%=256: REM ZS% (string memory) size
-  S3%=256: REM ZZ% (call stack) size
-  S4%=64: REM ZR% (release stack) size
+  S1%=2048+512: REM Z% (boxed memory) size (4 bytes each)
+  S2%=256: REM ZS% (string memory) size (3 bytes each)
+  S3%=256: REM ZZ% (call stack) size (2 bytes each)
+  S4%=64: REM ZR% (release stack) size (2 bytes each)
 
   REM global error state
-  ER%=0
-  ER$=""
+  ER%=0: ER$=""
 
   REM boxed element memory
   DIM Z%(S1%,1): REM TYPE ARRAY
 
   REM Predefine nil, false, true
-  Z%(0,0) = 0
-  Z%(0,1) = 0
-  Z%(1,0) = 1
-  Z%(1,1) = 0
-  Z%(2,0) = 1
-  Z%(2,1) = 1
+  Z%(0,0)=0: Z%(0,1)=0
+  Z%(1,0)=1: Z%(1,1)=0
+  Z%(2,0)=1: Z%(2,1)=1
 
   REM start of unused memory
   ZI%=3
@@ -51,19 +46,16 @@ INIT_MEMORY:
   ZK%=3
 
   REM string memory storage
-  ZJ%=0
-  DIM ZS$(S2%)
+  ZJ%=0: DIM ZS$(S2%)
 
   REM call/logic stack
-  ZL%=-1
-  DIM ZZ%(S3%): REM stack of Z% indexes
+  ZL%=-1: DIM ZZ%(S3%): REM stack of Z% indexes
 
   REM pending release stack
-  ZM%=-1
-  DIM ZR%(S4%): REM stack of Z% indexes
+  ZM%=-1: DIM ZR%(S4%): REM stack of Z% indexes
 
-  REM PRINT "Lisp data memory: " + STR$(T%-FRE(0))
-  REM PRINT "Interpreter working memory: " + STR$(FRE(0))
+  REM PRINT "Lisp data memory: "+STR$(T%-FRE(0))
+  REM PRINT "Interpreter working memory: "+STR$(FRE(0))
   RETURN
 
 REM memory functions
@@ -71,8 +63,7 @@ REM memory functions
 REM ALLOC(SZ%) -> R%
 ALLOC:
   REM PRINT "ALLOC SZ%: "+STR$(SZ%)+", ZK%: "+STR$(ZK%)
-  U3%=ZK%
-  U4%=ZK%
+  U3%=ZK%: U4%=ZK%
   ALLOC_LOOP:
     IF U4%=ZI% THEN GOTO ALLOC_UNUSED
     REM TODO sanity check that type is 15
@@ -101,13 +92,10 @@ ALLOC:
 REM FREE(AY%, SZ%) -> nil
 FREE:
   REM assumes reference count cleanup already (see RELEASE)
-  Z%(AY%,0) = (SZ%*16)+15: REM set type(15) and size
-  Z%(AY%,1) = ZK%
-  IF SZ%>=2 THEN Z%(AY%+1,0)=0
-  IF SZ%>=2 THEN Z%(AY%+1,1)=0
-  IF SZ%>=3 THEN Z%(AY%+2,0)=0
-  IF SZ%>=3 THEN Z%(AY%+2,1)=0
-  ZK%=AY%
+  Z%(AY%,0)=(SZ%*16)+15: REM set type(15) and size
+  Z%(AY%,1)=ZK%: ZK%=AY%
+  IF SZ%>=2 THEN Z%(AY%+1,0)=0: Z%(AY%+1,1)=0
+  IF SZ%>=3 THEN Z%(AY%+2,0)=0: Z%(AY%+2,1)=0
   RETURN
 
 
@@ -137,8 +125,8 @@ RELEASE:
   REM PRINT "RELEASE AY%:"+STR$(AY%)+"["+R$+"] (byte0:"+STR$(Z%(AY%,0))+")"
 
   REM sanity check not already freed
-  IF (U6%)=15 THEN ER%=1: ER$="Free of free memory: " + STR$(AY%): RETURN
-  IF Z%(AY%,0)<15 THEN ER%=1: ER$="Free of freed object: " + STR$(AY%): RETURN
+  IF (U6%)=15 THEN ER%=1: ER$="Free of free memory: "+STR$(AY%): RETURN
+  IF Z%(AY%,0)<15 THEN ER%=1: ER$="Free of freed object: "+STR$(AY%): RETURN
 
   REM decrease reference count by one
   Z%(AY%,0)=Z%(AY%,0)-16
@@ -150,11 +138,11 @@ RELEASE:
   IF (U6%<=5) OR (U6%=9) THEN GOTO RELEASE_SIMPLE
   IF (U6%>=6) AND (U6%<=8) THEN GOTO RELEASE_SEQ
   IF U6%=10 THEN GOTO RELEASE_MAL_FUNCTION
-  IF U6%=11 THEN GOTO RELEASE_ATOM
+  IF U6%=12 THEN GOTO RELEASE_ATOM
   IF U6%=13 THEN GOTO RELEASE_ENV
   IF U6%=14 THEN GOTO RELEASE_REFERENCE
   IF U6%=15 THEN ER%=1: ER$="RELEASE of already freed: "+STR$(AY%): RETURN
-  ER%=1: ER$="RELEASE not defined for type " + STR$(U6%): RETURN
+  ER%=1: ER$="RELEASE not defined for type "+STR$(U6%): RETURN
 
   RELEASE_SIMPLE:
     REM simple type (no recursing), just call FREE on it
@@ -205,7 +193,7 @@ REM RELEASE_PEND() -> nil
 RELEASE_PEND:
   REM REM IF ER%<>0 THEN RETURN
   IF ZM%<0 THEN RETURN
-  REM PRINT "here2 RELEASE_PEND releasing:"+STR$(ZR%(ZM%))
+  REM PRINT "RELEASE_PEND releasing:"+STR$(ZR%(ZM%))
   AY%=ZR%(ZM%): GOSUB RELEASE
   ZM%=ZM%-1
   GOTO RELEASE_PEND
@@ -240,13 +228,13 @@ CHECK_FREE_LIST:
 PR_MEMORY_SUMMARY:
   GOSUB CHECK_FREE_LIST: REM get count in P2%
   PRINT
-  PRINT "Free memory (FRE)      : " + STR$(FRE(0))
-  PRINT "Value memory (Z%)      : " + STR$(ZI%-1) + " /" + STR$(S1%)
+  PRINT "Free memory (FRE)      : "+STR$(FRE(0))
+  PRINT "Value memory (Z%)      : "+STR$(ZI%-1)+" /"+STR$(S1%)
   PRINT "                         ";
   PRINT " used:"+STR$(ZI%-1-P2%)+", freed:"+STR$(P2%);
   PRINT ", post repl_env:"+STR$(ZT%)
-  PRINT "String values (ZS$)    : " + STR$(ZJ%) + " /" + STR$(S2%)
-  PRINT "Call stack size (ZZ%)  : " + STR$(ZL%+1) + " /" + STR$(S3%)
+  PRINT "String values (ZS$)    : "+STR$(ZJ%)+" /"+STR$(S2%)
+  PRINT "Call stack size (ZZ%)  : "+STR$(ZL%+1)+" /"+STR$(S3%)
   RETURN
 
 REM PR_MEMORY(P1%, P2%) -> nil
@@ -259,10 +247,10 @@ PR_MEMORY:
   I=P1%
   PR_MEMORY_VALUE_LOOP:
     IF I>P2% THEN GOTO PR_MEMORY_AFTER_VALUES
-    PRINT " " + STR$(I);
+    PRINT " "+STR$(I);
     IF (Z%(I,0)AND15)=15 THEN GOTO PR_MEMORY_FREE
-      PRINT ": ref cnt: " + STR$((Z%(I,0)AND-16)/16);
-      PRINT ", type: " + STR$(Z%(I,0)AND15) + ", value: " + STR$(Z%(I,1))
+      PRINT ": ref cnt: "+STR$((Z%(I,0)AND-16)/16);
+      PRINT ", type: "+STR$(Z%(I,0)AND15)+", value: "+STR$(Z%(I,1))
       I=I+1
       IF (Z%(I-1,0)AND15)<>10 THEN GOTO PR_MEMORY_VALUE_LOOP
         PRINT " "+STR$(I)+":            ";
@@ -277,13 +265,13 @@ PR_MEMORY:
       I=I+1
       GOTO PR_MEMORY_VALUE_LOOP
   PR_MEMORY_AFTER_VALUES:
-  PRINT "ZS% String Memory (ZJ%: " + STR$(ZJ%) + "):"
+  PRINT "ZS% String Memory (ZJ%: "+STR$(ZJ%)+"):"
   IF ZJ%<=0 THEN PRINT "  ---": GOTO PR_MEMORY_SKIP_STRINGS
   FOR I=0 TO ZJ%-1
-    PRINT " " + STR$(I) + ": '" + ZS$(I) + "'"
+    PRINT " "+STR$(I)+": '"+ZS$(I)+"'"
     NEXT I
   PR_MEMORY_SKIP_STRINGS:
-  PRINT "ZZ% Stack Memory (ZL%: " + STR$(ZL%) + "):"
+  PRINT "ZZ% Stack Memory (ZL%: "+STR$(ZL%)+"):"
   IF ZL%<0 THEN PRINT "  ---": GOTO PR_MEMORY_SKIP_STACK
   FOR I=0 TO ZL%
     PRINT " "+STR$(I)+": "+STR$(ZZ%(I))
@@ -330,7 +318,7 @@ REM string functions
 
 REM STRING_(AS$) -> R%
 REM intern string (returns string index, not Z% index)
-STRING:
+STRING_:
   IF ZJ%=0 THEN GOTO STRING_NOT_FOUND
 
   REM search for matching string in ZS$
@@ -339,10 +327,20 @@ STRING:
     NEXT I
 
   STRING_NOT_FOUND:
-    ZS$(ZJ%) = AS$
+    ZS$(ZJ%)=AS$
     R%=ZJ%
     ZJ%=ZJ%+1
     RETURN
+
+REM STRING(AS$, T%) -> R%
+REM intern string and allocate reference (return Z% index)
+STRING:
+  GOSUB STRING_
+  T7%=R%
+  SZ%=1: GOSUB ALLOC
+  Z%(R%,0)=T%+16
+  Z%(R%,1)=T7%
+  RETURN
 
 REM REPLACE(R$, S1$, S2$) -> R$
 REPLACE:
@@ -407,15 +405,44 @@ CONS:
   Z%(B%,0)=Z%(B%,0)+16
   RETURN
 
+REM LIST2(B2%,B1%) -> R%
+LIST2:
+  REM terminator
+  SZ%=2: GOSUB ALLOC: TB%=R%
+  Z%(R%,0)=6+16: Z%(R%,1)=0: Z%(R%+1,0)=0: Z%(R%+1,1)=0
+
+  REM second element is B1%
+  SZ%=2: GOSUB ALLOC: TC%=R%
+  Z%(R%,0)=6+16: Z%(R%,1)=TB%: Z%(R%+1,0)=14: Z%(R%+1,1)=B1%
+  Z%(B1%,0)=Z%(B1%,0)+16
+
+  REM first element is B2%
+  SZ%=2: GOSUB ALLOC
+  Z%(R%,0)=6+16: Z%(R%,1)=TC%: Z%(R%+1,0)=14: Z%(R%+1,1)=B2%
+  Z%(B2%,0)=Z%(B2%,0)+16
+
+  RETURN
+
+REM LIST3(B3%,B2%,B1%) -> R%
+LIST3:
+  GOSUB LIST2: TC%=R%
+
+  REM first element is B3%
+  SZ%=2: GOSUB ALLOC
+  Z%(R%,0)=6+16: Z%(R%,1)=TC%: Z%(R%+1,0)=14: Z%(R%+1,1)=B3%
+  Z%(B3%,0)=Z%(B3%,0)+16
+
+  RETURN
+
 REM hashmap functions
 
 REM HASHMAP() -> R%
 HASHMAP:
   SZ%=2: GOSUB ALLOC
-  Z%(R%,0) = 8+16
-  Z%(R%,1) = 0
-  Z%(R%+1,0) = 14
-  Z%(R%+1,1) = 0
+  Z%(R%,0)=8+16
+  Z%(R%,1)=0
+  Z%(R%+1,0)=14
+  Z%(R%+1,1)=0
   RETURN
 
 REM ASSOC1(HM%, K%, V%) -> R%
@@ -429,15 +456,15 @@ ASSOC1:
   Z%(V%,0)=Z%(V%,0)+16
   SZ%=4: GOSUB ALLOC
   REM key ptr
-  Z%(R%,0) = 8+16
-  Z%(R%,1) = R%+2: REM point to next element (value)
-  Z%(R%+1,0) = 14
-  Z%(R%+1,1) = K%
+  Z%(R%,0)=8+16
+  Z%(R%,1)=R%+2: REM point to next element (value)
+  Z%(R%+1,0)=14
+  Z%(R%+1,1)=K%
   REM value ptr
-  Z%(R%+2,0) = 8+16
-  Z%(R%+2,1) = HM%: REM hashmap to assoc onto
-  Z%(R%+3,0) = 14
-  Z%(R%+3,1) = V%
+  Z%(R%+2,0)=8+16
+  Z%(R%+2,1)=HM%: REM hashmap to assoc onto
+  Z%(R%+3,0)=14
+  Z%(R%+3,1)=V%
   RETURN
 
 REM ASSOC1(HM%, K$, V%) -> R%
@@ -445,9 +472,9 @@ ASSOC1_S:
   REM add the key string, then call ASSOC1
   SZ%=1: GOSUB ALLOC
   K%=R%
-  ZS$(ZJ%) = K$
-  Z%(R%,0) = 4: REM key ref cnt will be inc'd by ASSOC1
-  Z%(R%,1) = ZJ%
+  ZS$(ZJ%)=K$
+  Z%(R%,0)=4: REM key ref cnt will be inc'd by ASSOC1
+  Z%(R%,1)=ZJ%
   ZJ%=ZJ%+1
   GOSUB ASSOC1
   RETURN
@@ -482,8 +509,8 @@ HASHMAP_CONTAINS:
 REM NATIVE_FUNCTION(A%) -> R%
 NATIVE_FUNCTION:
   SZ%=1: GOSUB ALLOC
-  Z%(R%,0) = 9+16
-  Z%(R%,1) = A%
+  Z%(R%,0)=9+16
+  Z%(R%,1)=A%
   RETURN
 
 REM NATIVE_FUNCTION(A%, P%, E%) -> R%
@@ -493,8 +520,8 @@ MAL_FUNCTION:
   Z%(P%,0)=Z%(P%,0)+16
   Z%(E%,0)=Z%(E%,0)+16
 
-  Z%(R%,0) = 10+16
-  Z%(R%,1) = A%
-  Z%(R%+1,0) = P%
-  Z%(R%+1,1) = E%
+  Z%(R%,0)=10+16
+  Z%(R%,1)=A%
+  Z%(R%+1,0)=P%
+  Z%(R%+1,1)=E%
   RETURN

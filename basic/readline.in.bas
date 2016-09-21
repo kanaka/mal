@@ -1,11 +1,9 @@
-EOF=0
-
 REM READLINE(A$) -> R$
 READLINE:
   EOF=0
   PROMPT$=A$
   PRINT PROMPT$;
-  CH$="": LINE$="": CH=0
+  CH$="": LI$="": CH=0
   READCH:
     GET CH$: IF CH$="" THEN READCH
     CH=ASC(CH$)
@@ -15,15 +13,15 @@ READLINE:
     IF (CH=127) OR (CH=20) THEN GOTO READCH
     IF (CH<32 OR CH>127) AND CH<>13 THEN READCH
     PRINT CH$;
-    IF LEN(LINE$)<255 AND CH$<>CHR$(13) THEN LINE$=LINE$+CH$
-    IF LEN(LINE$)<255 AND CH$<>CHR$(13) THEN GOTO READCH
+    IF LEN(LI$)<255 AND CH$<>CHR$(13) THEN LI$=LI$+CH$
+    IF LEN(LI$)<255 AND CH$<>CHR$(13) THEN GOTO READCH
   RL_DONE:
-    R$=LINE$
+    R$=LI$
     RETURN
 
-  REM Assumes LINE$ has input buffer
+  REM Assumes LI$ has input buffer
   RL_BACKSPACE:
-    IF LEN(LINE$)=0 THEN RETURN
-    LINE$=LEFT$(LINE$, LEN(LINE$)-1)
-    PRINT CHR$(157) + " " + CHR$(157);
+    IF LEN(LI$)=0 THEN RETURN
+    LI$=LEFT$(LI$, LEN(LI$)-1)
+    PRINT CHR$(157)+" "+CHR$(157);
     RETURN 

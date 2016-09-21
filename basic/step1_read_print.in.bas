@@ -60,7 +60,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: " + ER$
+    PRINT "Error: "+ER$
     ER%=0
     ER$=""
     RETURN

@@ -130,7 +130,7 @@ EVAL:
   EVAL_TCO_RECUR:
 
   REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL: " + R$ + "(" + STR$(A%) + "), LV%:"+STR$(LV%)
+  REM PRINT "EVAL: "+R$+"("+STR$(A%)+"), LV%:"+STR$(LV%)
 
   GOSUB DEREF_A
 
@@ -163,13 +163,13 @@ EVAL:
     GOTO EVAL_INVOKE
 
     EVAL_GET_A3:
-      A3% = Z%(Z%(Z%(A%,1),1),1)+1
+      A3%=Z%(Z%(Z%(A%,1),1),1)+1
       R%=A3%: GOSUB DEREF_R: A3%=R%
     EVAL_GET_A2:
-      A2% = Z%(Z%(A%,1),1)+1
+      A2%=Z%(Z%(A%,1),1)+1
       R%=A2%: GOSUB DEREF_R: A2%=R%
     EVAL_GET_A1:
-      A1% = Z%(A%,1)+1
+      A1%=Z%(A%,1)+1
       R%=A1%: GOSUB DEREF_R: A1%=R%
       RETURN
 
@@ -412,7 +412,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: " + ER$
+    PRINT "Error: "+ER$
     ER%=0
     ER$=""
     RETURN

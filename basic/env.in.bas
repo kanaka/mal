@@ -7,10 +7,10 @@ ENV_NEW:
 
   REM set the outer and data pointer
   SZ%=2: GOSUB ALLOC
-  Z%(R%,0) = 13+16
-  Z%(R%,1) = ET%
-  Z%(R%+1,0) = 13
-  Z%(R%+1,1) = EO%
+  Z%(R%,0)=13+16
+  Z%(R%,1)=ET%
+  Z%(R%+1,0)=13
+  Z%(R%+1,1)=EO%
   IF EO%<>-1 THEN Z%(EO%,0)=Z%(EO%,0)+16
   RETURN
 
@@ -86,7 +86,7 @@ ENV_FIND:
 REM ENV_GET(E%, K%) -> R%
 ENV_GET:
   GOSUB ENV_FIND
-  IF R%=-1 THEN R%=0: ER%=1: ER$="'" + ZS$(Z%(K%,1)) + "' not found": RETURN
+  IF R%=-1 THEN R%=0: ER%=1: ER$="'"+ZS$(Z%(K%,1))+"' not found": RETURN
   R%=T4%: GOSUB DEREF_R
   Z%(R%,0)=Z%(R%,0)+16
   RETURN

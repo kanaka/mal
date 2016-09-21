@@ -1,23 +1,23 @@
 REM READ_TOKEN(A$, IDX%) -> T$
 READ_TOKEN:
   CUR%=IDX%
-  REM PRINT "READ_TOKEN: " + STR$(CUR%) + ", " + MID$(A$,CUR%,1)
+  REM PRINT "READ_TOKEN: "+STR$(CUR%)+", "+MID$(A$,CUR%,1)
   T$=MID$(A$,CUR%,1)
-  IF (T$="(") OR (T$=")") THEN RETURN
-  IF (T$="[") OR (T$="]") THEN RETURN
-  IF (T$="{") OR (T$="}") THEN RETURN
+  IF T$="(" OR T$=")" THEN RETURN
+  IF T$="[" OR T$="]" THEN RETURN
+  IF T$="{" OR T$="}" THEN RETURN
   S1=0: S2=0: REM S1: INSTRING?, S2: ESCAPED?
-  IF (T$=CHR$(34)) THEN S1=1
+  IF T$=CHR$(34) THEN S1=1
   CUR%=CUR%+1
   READ_TOKEN_LOOP:
-    IF CUR% > LEN(A$) THEN RETURN
+    IF CUR%>LEN(A$) THEN RETURN
     CH$=MID$(A$,CUR%,1)
     IF S2 THEN GOTO READ_TOKEN_CONT
     IF S1 THEN GOTO READ_TOKEN_CONT
-    IF (CH$=" ") OR (CH$=",") THEN RETURN
-    IF (CH$="(") OR (CH$=")") THEN RETURN
-    IF (CH$="[") OR (CH$="]") THEN RETURN
-    IF (CH$="{") OR (CH$="}") THEN RETURN
+    IF CH$=" " OR CH$="," THEN RETURN
+    IF CH$="(" OR CH$=")" THEN RETURN
+    IF CH$="[" OR CH$="]" THEN RETURN
+    IF CH$="{" OR CH$="}" THEN RETURN
     READ_TOKEN_CONT:
     T$=T$+CH$
     CUR%=CUR%+1
@@ -42,36 +42,36 @@ READ_FORM:
   IF ER% THEN RETURN
   GOSUB SKIP_SPACES
   GOSUB READ_TOKEN
-  REM PRINT "READ_FORM T$: [" + T$ + "]"
-  IF (T$="") THEN R%=0: GOTO READ_FORM_DONE
-  IF (T$="nil") THEN T%=0: GOTO READ_NIL_BOOL
-  IF (T$="false") THEN T%=1: GOTO READ_NIL_BOOL
-  IF (T$="true") THEN T%=2: GOTO READ_NIL_BOOL
+  REM PRINT "READ_FORM T$: ["+T$+"]"
+  IF T$="" THEN R%=0: GOTO READ_FORM_DONE
+  IF T$="nil" THEN T%=0: GOTO READ_NIL_BOOL
+  IF T$="false" THEN T%=1: GOTO READ_NIL_BOOL
+  IF T$="true" THEN T%=2: GOTO READ_NIL_BOOL
   CH$=MID$(T$,1,1)
-  REM PRINT "CH$: [" + CH$ + "](" + STR$(ASC(CH$)) + ")"
-  IF (CH$ >= "0") AND (CH$ <= "9") THEN READ_NUMBER
-  IF (CH$ = "-") THEN READ_SYMBOL_MAYBE
+  REM PRINT "CH$: ["+CH$+"]("+STR$(ASC(CH$))+")"
+  IF CH$>="0" AND CH$ <= "9" THEN READ_NUMBER
+  IF CH$="-" THEN READ_SYMBOL_MAYBE
 
-  IF (CH$ = CHR$(34)) THEN READ_STRING
-  IF (CH$ = "(") THEN T%=6: GOTO READ_SEQ
-  IF (CH$ = ")") THEN T%=6: GOTO READ_SEQ_END
-  IF (CH$ = "[") THEN T%=7: GOTO READ_SEQ
-  IF (CH$ = "]") THEN T%=7: GOTO READ_SEQ_END
-  IF (CH$ = "{") THEN T%=8: GOTO READ_SEQ
-  IF (CH$ = "}") THEN T%=8: GOTO READ_SEQ_END
+  IF CH$=CHR$(34) THEN READ_STRING
+  IF CH$="(" THEN T%=6: GOTO READ_SEQ
+  IF CH$=")" THEN T%=6: GOTO READ_SEQ_END
+  IF CH$="[" THEN T%=7: GOTO READ_SEQ
+  IF CH$="]" THEN T%=7: GOTO READ_SEQ_END
+  IF CH$="{" THEN T%=8: GOTO READ_SEQ
+  IF CH$="}" THEN T%=8: GOTO READ_SEQ_END
   GOTO READ_SYMBOL
 
   READ_NIL_BOOL:
     REM PRINT "READ_NIL_BOOL"
     SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 14+16
-    Z%(R%,1) = T%
+    Z%(R%,0)=14+16
+    Z%(R%,1)=T%
     GOTO READ_FORM_DONE
   READ_NUMBER:
     REM PRINT "READ_NUMBER"
     SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 2+16
-    Z%(R%,1) = VAL(T$)
+    Z%(R%,0)=2+16
+    Z%(R%,1)=VAL(T$)
     GOTO READ_FORM_DONE
   READ_STRING:
     REM PRINT "READ_STRING"
@@ -82,23 +82,14 @@ READ_FORM:
     S1$=CHR$(92)+"n": S2$=CHR$(13): GOSUB REPLACE: REM unescape newlines
     S1$=CHR$(92)+CHR$(92): S2$=CHR$(92): GOSUB REPLACE: REM unescape backslashes
     REM intern string value
-    AS$=R$: GOSUB STRING
-    T7%=R%
-    SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 4+16
-    Z%(R%,1) = T7%
+    AS$=R$: T%=4: GOSUB STRING
     GOTO READ_FORM_DONE
   READ_SYMBOL_MAYBE:
     CH$=MID$(T$,2,1)
-    IF (CH$ >= "0") AND (CH$ <= "9") THEN READ_NUMBER
+    IF CH$>="0" AND CH$<="9" THEN READ_NUMBER
   READ_SYMBOL:
     REM PRINT "READ_SYMBOL"
-    REM intern string value
-    AS$=T$: GOSUB STRING
-    T7%=R%
-    SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 5+16
-    Z%(R%,1) = T7%
+    AS$=T$: T%=5: GOSUB STRING
     GOTO READ_FORM_DONE
 
   READ_SEQ:
@@ -112,27 +103,27 @@ READ_FORM:
     IF SD%>1 THEN Z%(ZZ%(ZL%)+1,1)=R%
 
     REM set the type (with 1 ref cnt) and next pointer to current end
-    Z%(R%,0) = T%+16
-    Z%(R%,1) = 0
-    Z%(R%+1,0) = 14
-    Z%(R%+1,1) = 0
+    Z%(R%,0)=T%+16
+    Z%(R%,1)=0
+    Z%(R%+1,0)=14
+    Z%(R%+1,1)=0
 
     REM push start ptr on the stack
     ZL%=ZL%+1
-    ZZ%(ZL%) = R%
+    ZZ%(ZL%)=R%
     REM push current sequence type
     ZL%=ZL%+1
-    ZZ%(ZL%) = T%
+    ZZ%(ZL%)=T%
     REM push previous ptr on the stack
     ZL%=ZL%+1
-    ZZ%(ZL%) = R%
+    ZZ%(ZL%)=R%
 
     IDX%=IDX%+LEN(T$)
     GOTO READ_FORM
 
   READ_SEQ_END:
     REM PRINT "READ_SEQ_END"
-    IF SD%=0 THEN ER$="unexpected '" + CH$ + "'": GOTO READ_FORM_ABORT
+    IF SD%=0 THEN ER$="unexpected '"+CH$+"'": GOTO READ_FORM_ABORT
     IF ZZ%(ZL%-1)<>T% THEN ER$="sequence mismatch": GOTO READ_FORM_ABORT
     SD%=SD%-1: REM decrease read sequence depth
     R%=ZZ%(ZL%-2): REM ptr to start of sequence to return
@@ -157,21 +148,21 @@ READ_FORM:
     REM previous element
     T7%=ZZ%(ZL%)
     REM set previous list element to point to new element
-    Z%(T7%,1) = R%
+    Z%(T7%,1)=R%
     REM set the list value pointer
     Z%(T7%+1,1)=T8%
     REM set type to previous type, with ref count of 1 (from previous)
-    Z%(R%,0) = ZZ%(ZL%-1)+16
-    Z%(R%,1) = 0: REM current end of sequence
-    Z%(R%+1,0) = 14
-    Z%(R%+1,1) = 0
+    Z%(R%,0)=ZZ%(ZL%-1)+16
+    Z%(R%,1)=0: REM current end of sequence
+    Z%(R%+1,0)=14
+    Z%(R%+1,1)=0
 
     IF T7%=ZZ%(ZL%-2) THEN GOTO READ_FORM_SKIP_FIRST
-    Z%(T7%,1) = R%
+    Z%(T7%,1)=R%
 
     READ_FORM_SKIP_FIRST:
     REM update previous pointer to current element
-    ZZ%(ZL%) = R%
+    ZZ%(ZL%)=R%
     GOTO READ_FORM
 
   READ_FORM_ABORT:

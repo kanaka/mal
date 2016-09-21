@@ -21,8 +21,8 @@ EVAL_AST:
   IF ER%<>0 THEN GOTO EVAL_AST_RETURN
 
   REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL_AST: " + R$ + "(" + STR$(A%) + ")"
-  REM PRINT "EVAL_AST level: " + STR$(LV%)
+  REM PRINT "EVAL_AST: "+R$+"("+STR$(A%)+")"
+  REM PRINT "EVAL_AST level: "+STR$(LV%)
 
   GOSUB DEREF_A
 
@@ -129,7 +129,7 @@ EVAL:
   ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
 
   REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL: " + R$ + "(" + STR$(A%) + "), LV%:"+STR$(LV%)
+  REM PRINT "EVAL: "+R$+"("+STR$(A%)+"), LV%:"+STR$(LV%)
 
   GOSUB DEREF_A
 
@@ -155,13 +155,13 @@ EVAL:
     GOTO EVAL_INVOKE
 
     EVAL_GET_A3:
-      A3% = Z%(Z%(Z%(A%,1),1),1)+1
+      A3%=Z%(Z%(Z%(A%,1),1),1)+1
       R%=A3%: GOSUB DEREF_R: A3%=R%
     EVAL_GET_A2:
-      A2% = Z%(Z%(A%,1),1)+1
+      A2%=Z%(Z%(A%,1),1)+1
       R%=A2%: GOSUB DEREF_R: A2%=R%
     EVAL_GET_A1:
-      A1% = Z%(A%,1)+1
+      A1%=Z%(A%,1)+1
       R%=A1%: GOSUB DEREF_R: A1%=R%
       RETURN
 
@@ -255,7 +255,7 @@ DO_FUNCTION:
   IF FF%=2 THEN DO_SUB
   IF FF%=3 THEN DO_MULT
   IF FF%=4 THEN DO_DIV
-  ER%=1: ER$="unknown function" + STR$(FF%): RETURN
+  ER%=1: ER$="unknown function"+STR$(FF%): RETURN
 
   DO_ADD:
     Z%(R%,0)=2+16
@@ -350,7 +350,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: " + ER$
+    PRINT "Error: "+ER$
     ER%=0
     ER$=""
     RETURN

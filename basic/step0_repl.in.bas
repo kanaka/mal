@@ -35,6 +35,6 @@ MAIN:
     GOTO MAIN_LOOP
 
   MAIN_DONE:
-    PRINT "Free: " + STR$(FRE(0))
+    PRINT "Free: "+STR$(FRE(0))
     END
 

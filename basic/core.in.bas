@@ -45,7 +45,7 @@ DO_FUNCTION:
   IF FF%=58 THEN DO_PR_MEMORY
   IF FF%=59 THEN DO_PR_MEMORY_SUMMARY
   IF FF%=60 THEN DO_EVAL
-  ER%=1: ER$="unknown function" + STR$(FF%): RETURN
+  ER%=1: ER$="unknown function"+STR$(FF%): RETURN
 
   DO_EQUAL_Q:
     A%=AA%: B%=AB%: GOSUB EQUAL_Q
@@ -54,19 +54,11 @@ DO_FUNCTION:
 
   DO_PR_STR:
     AZ%=AR%: PR%=1: SE$=" ": GOSUB PR_STR_SEQ
-    AS$=R$: GOSUB STRING
-    R4%=R%
-    SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 4+16
-    Z%(R%,1) = R4%
+    AS$=R$: T%=4: GOSUB STRING
     RETURN
   DO_STR:
     AZ%=AR%: PR%=0: SE$="": GOSUB PR_STR_SEQ
-    AS$=R$: GOSUB STRING
-    R4%=R%
-    SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 4+16
-    Z%(R%,1) = R4%
+    AS$=R$: T%=4: GOSUB STRING
     RETURN
   DO_PRN:
     AZ%=AR%: PR%=1: SE$=" ": GOSUB PR_STR_SEQ
@@ -97,11 +89,7 @@ DO_FUNCTION:
       GOTO DO_SLURP_LOOP
     DO_SLURP_DONE:
       CLOSE 1
-      AS$=R$: GOSUB STRING
-      R4%=R%
-      SZ%=1: GOSUB ALLOC
-      Z%(R%,0) = 4+16
-      Z%(R%,1) = R4%
+      AS$=R$: T%=4: GOSUB STRING
       RETURN
 
   DO_LT:
@@ -172,19 +160,19 @@ DO_FUNCTION:
     A%=AA%: GOSUB COUNT
     R4%=R%
     SZ%=1: GOSUB ALLOC
-    Z%(R%,0) = 2+16
-    Z%(R%,1) = R4%
+    Z%(R%,0)=2+16
+    Z%(R%,1)=R4%
     RETURN
 
   DO_ATOM:
     SZ%=1: GOSUB ALLOC
     Z%(AA%,0)=Z%(AA%,0)+16: REM inc ref cnt of contained value
-    Z%(R%,0) = 11+16
-    Z%(R%,1) = AA%
+    Z%(R%,0)=12+16
+    Z%(R%,1)=AA%
     RETURN
   DO_ATOM_Q:
     R%=1
-    IF (Z%(AA%,0)AND15)=11 THEN R%=2
+    IF (Z%(AA%,0)AND15)=12 THEN R%=2
     RETURN
   DO_DEREF:
     R%=Z%(AA%,1): GOSUB DEREF_R
