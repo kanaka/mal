@@ -2,6 +2,8 @@ GOTO MAIN
 
 REM $INCLUDE: 'readline.in.bas'
 
+REM $INCLUDE: 'debug.in.bas'
+
 REM READ(A$) -> R$
 MAL_READ:
   R$=A$
@@ -26,15 +28,16 @@ REP:
 
 REM MAIN program
 MAIN:
-  MAIN_LOOP:
-    A$="user> "
-    GOSUB READLINE: REM /* call input parser */
-    IF EOF=1 THEN GOTO MAIN_DONE
-    A$=R$: GOSUB REP: REM /* call REP */
-    PRINT R$
-    GOTO MAIN_LOOP
+  REPL_LOOP:
+    A$="user> ": GOSUB READLINE: REM call input parser
+    IF EOF=1 THEN GOTO QUIT
 
-  MAIN_DONE:
+    A$=R$: GOSUB REP: REM call REP
+
+    PRINT R$
+    GOTO REPL_LOOP
+
+  QUIT:
     PRINT "Free: "+STR$(FRE(0))
     END
 

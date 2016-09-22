@@ -26,7 +26,7 @@ INIT_MEMORY:
   S1%=2048+512: REM Z% (boxed memory) size (4 bytes each)
   S2%=256: REM ZS% (string memory) size (3 bytes each)
   S3%=256: REM ZZ% (call stack) size (2 bytes each)
-  S4%=64: REM ZR% (release stack) size (2 bytes each)
+  S4%=64: REM ZR% (release stack) size (4 bytes each)
 
   REM global error state
   ER%=0: ER$=""
@@ -34,16 +34,17 @@ INIT_MEMORY:
   REM boxed element memory
   DIM Z%(S1%,1): REM TYPE ARRAY
 
-  REM Predefine nil, false, true
+  REM Predefine nil, false, true, and an empty list
   Z%(0,0)=0: Z%(0,1)=0
   Z%(1,0)=1: Z%(1,1)=0
   Z%(2,0)=1: Z%(2,1)=1
+  Z%(3,0)=6+16: Z%(3,1)=0: Z%(4,0)=0: Z%(4,1)=0
 
   REM start of unused memory
-  ZI%=3
+  ZI%=5
 
   REM start of free list
-  ZK%=3
+  ZK%=5
 
   REM string memory storage
   ZJ%=0: DIM ZS$(S2%)
@@ -52,7 +53,7 @@ INIT_MEMORY:
   ZL%=-1: DIM ZZ%(S3%): REM stack of Z% indexes
 
   REM pending release stack
-  ZM%=-1: DIM ZR%(S4%): REM stack of Z% indexes
+  ZM%=-1: DIM ZR%(S4%,1): REM stack of Z% indexes
 
   REM PRINT "Lisp data memory: "+STR$(T%-FRE(0))
   REM PRINT "Interpreter working memory: "+STR$(FRE(0))
@@ -189,12 +190,13 @@ RELEASE:
     SZ%=1: GOSUB FREE
     GOTO RELEASE_TOP
 
-REM RELEASE_PEND() -> nil
+REM RELEASE_PEND(LV%) -> nil
 RELEASE_PEND:
   REM REM IF ER%<>0 THEN RETURN
   IF ZM%<0 THEN RETURN
-  REM PRINT "RELEASE_PEND releasing:"+STR$(ZR%(ZM%))
-  AY%=ZR%(ZM%): GOSUB RELEASE
+  IF ZR%(ZM%,1)<=LV% THEN RETURN
+  REM PRINT "RELEASE_PEND releasing:"+STR$(ZR%(ZM%,0))
+  AY%=ZR%(ZM%,0): GOSUB RELEASE
   ZM%=ZM%-1
   GOTO RELEASE_PEND
 
@@ -224,61 +226,6 @@ CHECK_FREE_LIST:
   CHECK_FREE_LIST_DONE:
     IF P2%=-1 THEN PRINT "corrupt free list at "+STR$(P1%)
     RETURN
-
-PR_MEMORY_SUMMARY:
-  GOSUB CHECK_FREE_LIST: REM get count in P2%
-  PRINT
-  PRINT "Free memory (FRE)      : "+STR$(FRE(0))
-  PRINT "Value memory (Z%)      : "+STR$(ZI%-1)+" /"+STR$(S1%)
-  PRINT "                         ";
-  PRINT " used:"+STR$(ZI%-1-P2%)+", freed:"+STR$(P2%);
-  PRINT ", post repl_env:"+STR$(ZT%)
-  PRINT "String values (ZS$)    : "+STR$(ZJ%)+" /"+STR$(S2%)
-  PRINT "Call stack size (ZZ%)  : "+STR$(ZL%+1)+" /"+STR$(S3%)
-  RETURN
-
-REM PR_MEMORY(P1%, P2%) -> nil
-PR_MEMORY:
-  IF P2%<P1% THEN P2%=ZI%-1
-  PRINT "vvvvvv"
-  PRINT "Z% Value Memory"+STR$(P1%)+"->"+STR$(P2%);
-  PRINT " (ZI%: "+STR$(ZI%)+", ZK%: "+STR$(ZK%)+"):"
-  IF P2%<P1% THEN PRINT "  ---": GOTO PR_MEMORY_AFTER_VALUES
-  I=P1%
-  PR_MEMORY_VALUE_LOOP:
-    IF I>P2% THEN GOTO PR_MEMORY_AFTER_VALUES
-    PRINT " "+STR$(I);
-    IF (Z%(I,0)AND15)=15 THEN GOTO PR_MEMORY_FREE
-      PRINT ": ref cnt: "+STR$((Z%(I,0)AND-16)/16);
-      PRINT ", type: "+STR$(Z%(I,0)AND15)+", value: "+STR$(Z%(I,1))
-      I=I+1
-      IF (Z%(I-1,0)AND15)<>10 THEN GOTO PR_MEMORY_VALUE_LOOP
-        PRINT " "+STR$(I)+":            ";
-        PRINT "params: "+STR$(Z%(I+1,0))+", env:"+STR$(Z%(I+1,1))
-        I=I+1
-      GOTO PR_MEMORY_VALUE_LOOP
-    PR_MEMORY_FREE:
-      PRINT ": FREE size: "+STR$((Z%(I,0)AND-16)/16)+", next: "+STR$(Z%(I,1));
-      IF I=ZK% THEN PRINT " (free list start)";
-      PRINT
-      IF (Z%(I,0)AND-16)=32 THEN I=I+1: PRINT " "+STR$(I)+": ---"
-      I=I+1
-      GOTO PR_MEMORY_VALUE_LOOP
-  PR_MEMORY_AFTER_VALUES:
-  PRINT "ZS% String Memory (ZJ%: "+STR$(ZJ%)+"):"
-  IF ZJ%<=0 THEN PRINT "  ---": GOTO PR_MEMORY_SKIP_STRINGS
-  FOR I=0 TO ZJ%-1
-    PRINT " "+STR$(I)+": '"+ZS$(I)+"'"
-    NEXT I
-  PR_MEMORY_SKIP_STRINGS:
-  PRINT "ZZ% Stack Memory (ZL%: "+STR$(ZL%)+"):"
-  IF ZL%<0 THEN PRINT "  ---": GOTO PR_MEMORY_SKIP_STACK
-  FOR I=0 TO ZL%
-    PRINT " "+STR$(I)+": "+STR$(ZZ%(I))
-    NEXT I
-  PR_MEMORY_SKIP_STACK:
-  PRINT "^^^^^^"
-  RETURN
 
 
 REM general functions
@@ -336,10 +283,10 @@ REM STRING(AS$, T%) -> R%
 REM intern string and allocate reference (return Z% index)
 STRING:
   GOSUB STRING_
-  T7%=R%
+  TS%=R%
   SZ%=1: GOSUB ALLOC
-  Z%(R%,0)=T%+16
-  Z%(R%,1)=T7%
+  Z%(R%,0)=T%
+  Z%(R%,1)=TS%
   RETURN
 
 REM REPLACE(R$, S1$, S2$) -> R$
@@ -404,6 +351,34 @@ CONS:
   REM inc ref cnt of list we are prepending
   Z%(B%,0)=Z%(B%,0)+16
   RETURN
+
+REM SLICE(A%,B%,C%) -> R%
+REM make copy of sequence A% from index B% to C%
+SLICE:
+  I=0
+  R5%=-1: REM temporary for return as R%
+  R6%=0: REM previous list element
+  SLICE_LOOP:
+    REM always allocate at list one list element
+    SZ%=2: GOSUB ALLOC
+    Z%(R%,0)=6+16: Z%(R%,1)=0: Z%(R%+1,0)=14: Z%(R%+1,1)=0
+    IF R5%=-1 THEN R5%=R%
+    IF R5%<>-1 THEN Z%(R6%,1)=R%
+    REM advance A% to position B%
+    SLICE_FIND_B:
+      IF I<B% AND Z%(A%,1)<>0 THEN A%=Z%(A%,1): I=I+1: GOTO SLICE_FIND_B
+    REM if current position is C%, then return
+    IF C%<>-1 AND I>=C% THEN R%=R5%: RETURN
+    REM if we reached end of A%, then return
+    IF Z%(A%,1)=0 THEN R%=R5%: RETURN
+    R6%=R%: REM save previous list element
+    REM copy value and inc ref cnt
+    Z%(R6%+1,1)=Z%(A%+1,1)
+    R%=A%+1: GOSUB DEREF_R: Z%(R%,0)=Z%(R%,0)+16
+    REM advance to next element of A%
+    A%=Z%(A%,1)
+    I=I+1
+    GOTO SLICE_LOOP
 
 REM LIST2(B2%,B1%) -> R%
 LIST2:

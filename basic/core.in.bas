@@ -31,6 +31,7 @@ DO_FUNCTION:
   IF FF%=28 THEN DO_LIST_Q
 
   IF FF%=39 THEN DO_CONS
+  IF FF%=40 THEN DO_CONCAT
   IF FF%=43 THEN DO_FIRST
   IF FF%=44 THEN DO_REST
   IF FF%=45 THEN DO_EMPTY_Q
@@ -54,11 +55,11 @@ DO_FUNCTION:
 
   DO_PR_STR:
     AZ%=AR%: PR%=1: SE$=" ": GOSUB PR_STR_SEQ
-    AS$=R$: T%=4: GOSUB STRING
+    AS$=R$: T%=4+16: GOSUB STRING
     RETURN
   DO_STR:
     AZ%=AR%: PR%=0: SE$="": GOSUB PR_STR_SEQ
-    AS$=R$: T%=4: GOSUB STRING
+    AS$=R$: T%=4+16: GOSUB STRING
     RETURN
   DO_PRN:
     AZ%=AR%: PR%=1: SE$=" ": GOSUB PR_STR_SEQ
@@ -89,7 +90,7 @@ DO_FUNCTION:
       GOTO DO_SLURP_LOOP
     DO_SLURP_DONE:
       CLOSE 1
-      AS$=R$: T%=4: GOSUB STRING
+      AS$=R$: T%=4+16: GOSUB STRING
       RETURN
 
   DO_LT:
@@ -142,6 +143,51 @@ DO_FUNCTION:
   DO_CONS:
     A%=AA%: B%=AB%: GOSUB CONS
     RETURN
+  DO_CONCAT:
+    REM if empty arguments, return empty list
+    IF Z%(AR%,1)=0 THEN R%=3: Z%(R%,0)=Z%(R%,0)+16: RETURN
+
+    REM single argument
+    IF Z%(Z%(AR%,1),1)<>0 THEN GOTO DO_CONCAT_MULT
+      REM if single argument and it's a list, return it
+      IF (Z%(AA%,0)AND15)=6 THEN R%=AA%: Z%(R%,0)=Z%(R%,0)+16: RETURN
+      REM otherwise, copy first element to turn it into a list
+      B%=AA%+1: GOSUB DEREF_B: REM value to copy
+      SZ%=2: GOSUB ALLOC
+      Z%(R%,0)=6+16: Z%(R%,1)=Z%(AA%,1)
+      Z%(R%+1,0)=14: Z%(R%+1,1)=B%
+      REM inc ref count of trailing list part and of copied value
+      Z%(Z%(AA%,1),0)=Z%(Z%(AA%,1),0)+16
+      Z%(B%,0)=Z%(B%,0)+16
+      RETURN
+
+    REM multiple arguments
+    DO_CONCAT_MULT:
+      CZ%=ZL%: REM save current stack position
+      REM push arguments onto the stack
+      DO_CONCAT_STACK:
+        R%=AR%+1: GOSUB DEREF_R
+        ZL%=ZL%+1: ZZ%(ZL%)=R%: REM push sequence
+        AR%=Z%(AR%,1)
+        IF Z%(AR%,1)<>0 THEN GOTO DO_CONCAT_STACK
+
+    REM pop last argument as our seq to prepend to
+    AB%=ZZ%(ZL%): ZL%=ZL%-1
+    REM last arg/seq is not copied so we need to inc ref to it
+    Z%(AB%,0)=Z%(AB%,0)+16
+    DO_CONCAT_LOOP:
+      IF ZL%=CZ% THEN R%=AB%: RETURN
+      AA%=ZZ%(ZL%): ZL%=ZL%-1: REM pop off next seq to prepend
+      A%=AA%: B%=0: C%=-1: GOSUB SLICE
+
+      REM release the terminator of new list (we skip over it)
+      AY%=Z%(R6%,1): GOSUB RELEASE
+      REM attach new list element before terminator (last actual
+      REM element to the next sequence
+      Z%(R6%,1)=AB%
+
+      AB%=R%
+      GOTO DO_CONCAT_LOOP
   DO_FIRST:
     IF Z%(AA%,1)=0 THEN R%=0
     IF Z%(AA%,1)<>0 THEN R%=AA%+1: GOSUB DEREF_R
@@ -253,7 +299,6 @@ DO_FUNCTION:
     RETURN
 
   DO_EVAL:
-    AZ%=AA%: PR%=1: GOSUB PR_STR
     A%=AA%: E%=RE%: GOSUB EVAL
     RETURN
 
@@ -289,6 +334,7 @@ INIT_CORE_NS:
   K$="list?": A%=28: GOSUB INIT_CORE_SET_FUNCTION
 
   K$="cons": A%=39: GOSUB INIT_CORE_SET_FUNCTION
+  K$="concat": A%=40: GOSUB INIT_CORE_SET_FUNCTION
   K$="first": A%=43: GOSUB INIT_CORE_SET_FUNCTION
   K$="rest": A%=44: GOSUB INIT_CORE_SET_FUNCTION
   K$="empty?": A%=45: GOSUB INIT_CORE_SET_FUNCTION

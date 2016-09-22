@@ -5,6 +5,8 @@ REM $INCLUDE: 'types.in.bas'
 REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
 
+REM $INCLUDE: 'debug.in.bas'
+
 REM READ(A$) -> R%
 MAL_READ:
   GOSUB READ_STR
@@ -44,8 +46,7 @@ MAIN:
   ZT%=ZI%: REM top of memory after base repl_env
 
   REPL_LOOP:
-    A$="user> "
-    GOSUB READLINE: REM /* call input parser */
+    A$="user> ": GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
     A$=R$: GOSUB REP: REM call REP
@@ -61,7 +62,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=0
-    ER$=""
+    ER%=0: ER$=""
     RETURN
 

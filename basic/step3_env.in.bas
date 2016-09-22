@@ -6,6 +6,8 @@ REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
 REM $INCLUDE: 'env.in.bas'
 
+REM $INCLUDE: 'debug.in.bas'
+
 REM READ(A$) -> R%
 MAL_READ:
   GOSUB READ_STR
@@ -19,10 +21,6 @@ EVAL_AST:
   ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
 
   IF ER%<>0 THEN GOTO EVAL_AST_RETURN
-
-  REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL_AST: "+R$+"("+STR$(A%)+")"
-  REM PRINT "EVAL_AST level: "+STR$(LV%)
 
   GOSUB DEREF_A
 
@@ -219,8 +217,13 @@ EVAL:
       GOTO EVAL_RETURN
 
   EVAL_RETURN:
+    REM AZ%=R%: PR%=1: GOSUB PR_STR
+    REM PRINT "EVAL_RETURN R%: ["+R$+"] ("+STR$(R%)+"), LV%:"+STR$(LV%)+",ER%:"+STR$(ER%)
+
     REM release environment if not the top one on the stack
     IF E%<>ZZ%(ZL%-1) THEN AY%=E%: GOSUB RELEASE
+
+    LV%=LV%-1: REM track basic return stack level
 
 
     REM trigger GC
@@ -228,8 +231,6 @@ EVAL:
 
     REM pop A% and E% off the stack
     E%=ZZ%(ZL%-1): A%=ZZ%(ZL%): ZL%=ZL%-2
-
-    LV%=LV%-1: REM track basic return stack level
 
     RETURN
 
@@ -311,8 +312,7 @@ MAIN:
   LV%=0
 
   REM create repl_env
-  EO%=-1: GOSUB ENV_NEW
-  RE%=R%
+  EO%=-1: GOSUB ENV_NEW: RE%=R%
 
   E%=RE%
   REM + function
@@ -334,8 +334,7 @@ MAIN:
   ZT%=ZI%: REM top of memory after base repl_env
 
   REPL_LOOP:
-    A$="user> "
-    GOSUB READLINE: REM /* call input parser */
+    A$="user> ": GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
     A$=R$: GOSUB REP: REM call REP
@@ -351,7 +350,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=0
-    ER$=""
+    ER%=0: ER$=""
     RETURN
 

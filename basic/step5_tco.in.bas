@@ -7,6 +7,8 @@ REM $INCLUDE: 'printer.in.bas'
 REM $INCLUDE: 'env.in.bas'
 REM $INCLUDE: 'core.in.bas'
 
+REM $INCLUDE: 'debug.in.bas'
+
 REM READ(A$) -> R%
 MAL_READ:
   GOSUB READ_STR
@@ -102,8 +104,10 @@ EVAL_AST:
 
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
-      REM get return value (new seq)
-      R%=ZZ%(ZL%-1)
+      REM if no error, get return value (new seq)
+      IF ER%=0 THEN R%=ZZ%(ZL%-1)
+      REM otherwise, free the return value and return nil
+      IF ER%<>0 THEN R%=0: AY%=ZZ%(ZL%-1): GOSUB RELEASE
 
       REM pop previous, return, index and type
       ZL%=ZL%-4
@@ -304,8 +308,9 @@ EVAL:
 
         REM claim the AST before releasing the list containing it
         A%=Z%(F%,1): Z%(A%,0)=Z%(A%,0)+16
-        REM add AST to pending release queue to free later
-        ZM%=ZM%+1: ZR%(ZM%)=A%
+        REM add AST to pending release queue to free as soon as EVAL
+        REM actually returns (LV%+1)
+        ZM%=ZM%+1: ZR%(ZM%,0)=A%: ZR%(ZM%,1)=LV%+1
 
         REM pop and release f/args
         AY%=ZZ%(ZL%): ZL%=ZL%-1: GOSUB RELEASE
@@ -314,22 +319,22 @@ EVAL:
         E%=R%: GOTO EVAL_TCO_RECUR: REM TCO loop
 
   EVAL_RETURN:
+    REM AZ%=R%: PR%=1: GOSUB PR_STR
+    REM PRINT "EVAL_RETURN R%: ["+R$+"] ("+STR$(R%)+"), LV%:"+STR$(LV%)+",ER%:"+STR$(ER%)
+
     REM release environment if not the top one on the stack
     IF E%<>ZZ%(ZL%-1) THEN AY%=E%: GOSUB RELEASE
 
+    LV%=LV%-1: REM track basic return stack level
+
     REM release everything we couldn't release earlier
     GOSUB RELEASE_PEND
-
-    REM AZ%=R%: PR%=1: GOSUB PR_STR
-    REM PRINT "EVAL_RETURN R%: ["+R$+"] ("+STR$(R%)+"), LV%:"+STR$(LV%)+",ER%:"+STR$(ER%)
 
     REM trigger GC
     TA%=FRE(0)
 
     REM pop A% and E% off the stack
     E%=ZZ%(ZL%-1): A%=ZZ%(ZL%): ZL%=ZL%-2
-
-    LV%=LV%-1: REM track basic return stack level
 
     RETURN
 
@@ -383,8 +388,7 @@ MAIN:
   LV%=0
 
   REM create repl_env
-  EO%=-1: GOSUB ENV_NEW
-  RE%=R%
+  EO%=-1: GOSUB ENV_NEW: RE%=R%
 
   REM core.EXT: defined in Basic
   E%=RE%: GOSUB INIT_CORE_NS: REM set core functions in repl_env
@@ -392,15 +396,13 @@ MAIN:
   ZT%=ZI%: REM top of memory after base repl_env
 
   REM core.mal: defined using the language itself
-  A$="(def! not (fn* (a) (if a false true)))"
-  GOSUB RE: AY%=R%: GOSUB RELEASE
+  A$="(def! not (fn* (a) (if a false true)))": GOSUB RE: AY%=R%: GOSUB RELEASE
 
   REPL_LOOP:
-    A$="user> "
-    GOSUB READLINE: REM /* call input parser */
+    A$="user> ": GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
-    A$=R$: GOSUB REP: REM /* call REP */
+    A$=R$: GOSUB REP: REM call REP
 
     IF ER%<>0 THEN GOSUB PRINT_ERROR: GOTO REPL_LOOP
     PRINT R$
@@ -413,7 +415,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=0
-    ER$=""
+    ER%=0: ER$=""
     RETURN
 

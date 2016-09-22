@@ -2,6 +2,8 @@
 
 (def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
 
+;; TODO: test let*, and do for TCO
+
 (sum2 10 0)
 ;=>55
 
