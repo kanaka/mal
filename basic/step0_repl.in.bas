@@ -2,8 +2,6 @@ GOTO MAIN
 
 REM $INCLUDE: 'readline.in.bas'
 
-REM $INCLUDE: 'debug.in.bas'
-
 REM READ(A$) -> R$
 MAL_READ:
   R$=A$

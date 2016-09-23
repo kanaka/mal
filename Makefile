@@ -109,6 +109,7 @@ regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
 test_EXCLUDES += test^bash^step5   # never completes at 10,000
+test_EXCLUDES += test^basic^step5  # too slow, and limited to ints of 2^16
 test_EXCLUDES += test^logo^step5   # too slow for 10,000
 test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
 test_EXCLUDES += test^mal^step5    # host impl dependent

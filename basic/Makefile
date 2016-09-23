@@ -1,7 +1,7 @@
 export KEEP_REM=0
 
 step%.bas: step%.in.bas
-	./qb2cbm.sh $< > $@
+	./basicpp.py --number-lines $< > $@
 
 step%.prg: step%.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp
@@ -24,7 +24,7 @@ step6_file.bas: $(STEP4_DEPS)
 step7_quote.bas: $(STEP4_DEPS)
 
 tests/%.bas: tests/%.in.bas
-	./qb2cbm.sh $< > $@
+	./basicpp.py --number-lines $< > $@
 
 tests/%.prg: tests/%.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp
