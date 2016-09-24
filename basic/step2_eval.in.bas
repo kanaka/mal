@@ -17,33 +17,31 @@ EVAL_AST:
   LV%=LV%+1
 
   REM push A% and E% on the stack
-  ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
+  ZL%=ZL%+2:ZZ%(ZL%-1)=E%:ZZ%(ZL%)=A%
 
   IF ER%<>0 THEN GOTO EVAL_AST_RETURN
 
   GOSUB DEREF_A
 
   T%=Z%(A%,0)AND15
-  IF T%=5 THEN EVAL_AST_SYMBOL
-  IF T%=6 THEN EVAL_AST_SEQ
-  IF T%=7 THEN EVAL_AST_SEQ
-  IF T%=8 THEN EVAL_AST_SEQ
+  IF T%=5 THEN GOTO EVAL_AST_SYMBOL
+  IF T%>=6 AND T%<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
-  R%=A%: GOSUB DEREF_R
+  R%=A%:GOSUB DEREF_R
   Z%(R%,0)=Z%(R%,0)+16
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
-    HM%=E%: K%=A%: GOSUB HASHMAP_GET
+    HM%=E%:K%=A%:GOSUB HASHMAP_GET
     GOSUB DEREF_R
-    IF T3%=0 THEN ER%=1: ER$="'"+ZS$(Z%(A%,1))+"' not found": GOTO EVAL_AST_RETURN
+    IF T3%=0 THEN ER%=1:ER$="'"+ZS$(Z%(A%,1))+"' not found":GOTO EVAL_AST_RETURN
     Z%(R%,0)=Z%(R%,0)+16
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
     REM allocate the first entry
-    SZ%=2: GOSUB ALLOC
+    SZ%=2:GOSUB ALLOC
 
     REM make space on the stack
     ZL%=ZL%+4
@@ -75,13 +73,13 @@ EVAL_AST:
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
-        R%=A%+1: GOSUB DEREF_R: REM deref to target of referred entry
+        R%=A%+1:GOSUB DEREF_R: REM deref to target of referred entry
         Z%(R%,0)=Z%(R%,0)+16: REM inc ref cnt of referred value
         GOTO EVAL_AST_ADD_VALUE
 
       EVAL_AST_DO_EVAL:
         REM call EVAL for each entry
-        A%=A%+1: GOSUB EVAL
+        A%=A%+1:GOSUB EVAL
         A%=A%-1
         GOSUB DEREF_R: REM deref to target of evaluated entry
 
@@ -93,7 +91,7 @@ EVAL_AST:
       IF ER%<>0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
-      SZ%=2: GOSUB ALLOC
+      SZ%=2:GOSUB ALLOC
 
       REM update previous sequence entry value to point to new entry
       Z%(ZZ%(ZL%),1)=R%
@@ -113,7 +111,7 @@ EVAL_AST:
 
   EVAL_AST_RETURN:
     REM pop A% and E% off the stack
-    E%=ZZ%(ZL%-1): A%=ZZ%(ZL%): ZL%=ZL%-2
+    E%=ZZ%(ZL%-1):A%=ZZ%(ZL%):ZL%=ZL%-2
 
     LV%=LV%-1
     RETURN
@@ -123,7 +121,7 @@ EVAL:
   LV%=LV%+1: REM track basic return stack level
 
   REM push A% and E% on the stack
-  ZL%=ZL%+2: ZZ%(ZL%-1)=E%: ZZ%(ZL%)=A%
+  ZL%=ZL%+2:ZZ%(ZL%-1)=E%:ZZ%(ZL%)=A%
 
   REM AZ%=A%: GOSUB PR_STR
   REM PRINT "EVAL: "+R$+"("+STR$(A%)+"), LV%:"+STR$(LV%)
@@ -138,7 +136,7 @@ EVAL:
 
   APPLY_LIST:
     GOSUB EMPTY_Q
-    IF R% THEN R%=A%: Z%(R%,0)=Z%(R%,0)+16: GOTO EVAL_RETURN
+    IF R% THEN R%=A%:Z%(R%,0)=Z%(R%,0)+16:GOTO EVAL_RETURN
 
     EVAL_INVOKE:
       GOSUB EVAL_AST
@@ -149,15 +147,15 @@ EVAL:
       F%=R%+1
 
       AR%=Z%(R%,1): REM rest
-      R%=F%: GOSUB DEREF_R: F%=R%
-      IF (Z%(F%,0)AND15)<>9 THEN ER%=1: ER$="apply of non-function": GOTO EVAL_RETURN
+      R%=F%:GOSUB DEREF_R:F%=R%
+      IF (Z%(F%,0)AND15)<>9 THEN ER%=1:ER$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
-      AY%=R3%: GOSUB RELEASE
+      AY%=R3%:GOSUB RELEASE
       GOTO EVAL_RETURN
 
   EVAL_RETURN:
     REM an error occured, free up any new value
-    IF ER%=1 THEN AY%=R%: GOSUB RELEASE
+    IF ER%=1 THEN AY%=R%:GOSUB RELEASE
 
     LV%=LV%-1: REM track basic return stack level
 
@@ -166,33 +164,33 @@ EVAL:
     TA%=FRE(0)
 
     REM pop A% and E% off the stack
-    E%=ZZ%(ZL%-1): A%=ZZ%(ZL%): ZL%=ZL%-2
+    E%=ZZ%(ZL%-1):A%=ZZ%(ZL%):ZL%=ZL%-2
 
     RETURN
 
 REM DO_FUNCTION(F%, AR%)
 DO_FUNCTION:
-  AZ%=F%: GOSUB PR_STR
+  AZ%=F%:GOSUB PR_STR
   F$=R$
-  AZ%=AR%: GOSUB PR_STR
+  AZ%=AR%:GOSUB PR_STR
   AR$=R$
 
   REM Get the function number
   FF%=Z%(F%,1)
 
   REM Get argument values
-  R%=AR%+1: GOSUB DEREF_R: AA%=Z%(R%,1)
-  R%=Z%(AR%,1)+1: GOSUB DEREF_R: AB%=Z%(R%,1)
+  R%=AR%+1:GOSUB DEREF_R:AA%=Z%(R%,1)
+  R%=Z%(AR%,1)+1:GOSUB DEREF_R:AB%=Z%(R%,1)
 
   REM Allocate the return value
-  SZ%=1: GOSUB ALLOC
+  SZ%=1:GOSUB ALLOC
 
   REM Switch on the function number
-  IF FF%=1 THEN DO_ADD
-  IF FF%=2 THEN DO_SUB
-  IF FF%=3 THEN DO_MULT
-  IF FF%=4 THEN DO_DIV
-  ER%=1: ER$="unknown function"+STR$(FF%): RETURN
+  IF FF%=1 THEN GOTO DO_ADD
+  IF FF%=2 THEN GOTO DO_SUB
+  IF FF%=3 THEN GOTO DO_MULT
+  IF FF%=4 THEN GOTO DO_DIV
+  ER%=1:ER$="unknown function"+STR$(FF%):RETURN
 
   DO_ADD:
     Z%(R%,0)=2+16
@@ -216,28 +214,28 @@ DO_FUNCTION:
 
 REM PRINT(A%) -> R$
 MAL_PRINT:
-  AZ%=A%: PR%=1: GOSUB PR_STR
+  AZ%=A%:PR%=1:GOSUB PR_STR
   RETURN
 
 REM REP(A$) -> R$
 REM Assume RE% has repl_env
 REP:
-  R1%=0: R2%=0
+  R1%=0:R2%=0
   GOSUB MAL_READ
   R1%=R%
   IF ER%<>0 THEN GOTO REP_DONE
 
-  A%=R%: E%=RE%: GOSUB EVAL
+  A%=R%:E%=RE%:GOSUB EVAL
   R2%=R%
   IF ER%<>0 THEN GOTO REP_DONE
 
-  A%=R%: GOSUB MAL_PRINT
+  A%=R%:GOSUB MAL_PRINT
   RT$=R$
 
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
-    IF R2%<>0 THEN AY%=R2%: GOSUB RELEASE
-    IF R1%<>0 THEN AY%=R1%: GOSUB RELEASE
+    IF R2%<>0 THEN AY%=R2%:GOSUB RELEASE
+    IF R1%<>0 THEN AY%=R1%:GOSUB RELEASE
     R$=RT$
     RETURN
 
@@ -248,33 +246,33 @@ MAIN:
   LV%=0
 
   REM create repl_env
-  GOSUB HASHMAP: RE%=R%
+  GOSUB HASHMAP:RE%=R%
 
   REM + function
-  A%=1: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="+": V%=R%: GOSUB ASSOC1_S: RE%=R%
+  A%=1:GOSUB NATIVE_FUNCTION
+  HM%=RE%:K$="+":V%=R%:GOSUB ASSOC1_S:RE%=R%
 
   REM - function
-  A%=2: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="-": V%=R%: GOSUB ASSOC1_S: RE%=R%
+  A%=2:GOSUB NATIVE_FUNCTION
+  HM%=RE%:K$="-":V%=R%:GOSUB ASSOC1_S:RE%=R%
 
   REM * function
-  A%=3: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="*": V%=R%: GOSUB ASSOC1_S: RE%=R%
+  A%=3:GOSUB NATIVE_FUNCTION
+  HM%=RE%:K$="*":V%=R%:GOSUB ASSOC1_S:RE%=R%
 
   REM / function
-  A%=4: GOSUB NATIVE_FUNCTION
-  HM%=RE%: K$="/": V%=R%: GOSUB ASSOC1_S: RE%=R%
+  A%=4:GOSUB NATIVE_FUNCTION
+  HM%=RE%:K$="/":V%=R%:GOSUB ASSOC1_S:RE%=R%
 
   ZT%=ZI%: REM top of memory after base repl_env
 
   REPL_LOOP:
-    A$="user> ": GOSUB READLINE: REM call input parser
+    A$="user> ":GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
-    A$=R$: GOSUB REP: REM call REP
+    A$=R$:GOSUB REP: REM call REP
 
-    IF ER%<>0 THEN GOSUB PRINT_ERROR: GOTO REPL_LOOP
+    IF ER%<>0 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$
     GOTO REPL_LOOP
 
@@ -285,6 +283,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=0: ER$=""
+    ER%=0:ER$=""
     RETURN
 

@@ -4,25 +4,19 @@ PR_STR:
   PR_STR_RECUR:
   T%=Z%(AZ%,0)AND15
   REM PRINT "AZ%: "+STR$(AZ%)+", T%: "+STR$(T%)+", V%: "+STR$(Z%(AZ%,1))
-  IF T%=14 THEN AZ%=Z%(AZ%,1): GOTO PR_STR_RECUR
-  IF T%=0 THEN R$="nil": RETURN
-  IF (T%=1) AND (Z%(AZ%,1)=0) THEN R$="false": RETURN
-  IF (T%=1) AND (Z%(AZ%,1)=1) THEN R$="true": RETURN
-  IF T%=2 THEN PR_INTEGER
-  IF (T%=4) AND (PR%=0) THEN PR_STRING
-  IF (T%=4) AND (PR%=1) THEN PR_STRING_READABLY
-  IF T%=5 THEN PR_SYMBOL
-  IF T%=6 THEN PR_SEQ
-  IF T%=7 THEN PR_SEQ
-  IF T%=8 THEN PR_SEQ
-  IF T%=9 THEN PR_FUNCTION
-  IF T%=10 THEN PR_MAL_FUNCTION
-  IF T%=12 THEN PR_ATOM
-  IF T%=13 THEN PR_ENV
-  IF T%=15 THEN PR_FREE
-  R$="#<unknown>"
-  RETURN
+  IF T%=0 THEN R$="nil":RETURN
+  ON T% GOTO PR_BOOLEAN,PR_INTEGER,PR_UNKNOWN,PR_STRING,PR_SYMBOL,PR_SEQ,PR_SEQ,PR_SEQ,PR_FUNCTION,PR_MAL_FUNCTION,PR_UNKNOWN,PR_ATOM,PR_ENV,PR_RECUR,PR_FREE
 
+  PR_UNKNOWN:
+    R$="#<unknown>"
+    RETURN
+  PR_RECUR:
+    AZ%=Z%(AZ%,1)
+    GOTO PR_STR_RECUR
+  PR_BOOLEAN:
+    R$="true"
+    IF Z%(AZ%,1)=0 THEN R$="false"
+    RETURN
   PR_INTEGER:
     T5%=Z%(AZ%,1)
     R$=STR$(T5%)
@@ -31,13 +25,14 @@ PR_STR:
     R$=RIGHT$(R$, LEN(R$)-1)
     RETURN
   PR_STRING:
+    IF PR%=1 THEN PR_STRING_READABLY
     R$=ZS$(Z%(AZ%,1))
     RETURN
   PR_STRING_READABLY:
     R$=ZS$(Z%(AZ%,1))
-    S1$=CHR$(92): S2$=CHR$(92)+CHR$(92): GOSUB REPLACE: REM escape backslash
-    S1$=CHR$(34): S2$=CHR$(92)+CHR$(34): GOSUB REPLACE: REM escape quotes
-    S1$=CHR$(13): S2$=CHR$(92)+"n": GOSUB REPLACE: REM escape newlines
+    S1$=CHR$(92):S2$=CHR$(92)+CHR$(92):GOSUB REPLACE: REM escape backslash
+    S1$=CHR$(34):S2$=CHR$(92)+CHR$(34):GOSUB REPLACE: REM escape quotes
+    S1$=CHR$(13):S2$=CHR$(92)+"n":GOSUB REPLACE: REM escape newlines
     R$=CHR$(34)+R$+CHR$(34)
     RETURN
   PR_SYMBOL:
@@ -56,7 +51,7 @@ PR_STR:
       AZ%=AZ%+1
       GOSUB PR_STR_RECUR
       REM if we just rendered a non-sequence, then append it
-      IF (T%<6) OR (T%>8) THEN RR$=RR$+R$
+      IF T%<6 OR T%>8 THEN RR$=RR$+R$
       REM restore current seq type
       T%=ZZ%(ZL%-1)
       REM Go to next list element
@@ -80,13 +75,13 @@ PR_STR:
     RETURN
   PR_MAL_FUNCTION:
     T1%=AZ%
-    AZ%=Z%(T1%+1,0): GOSUB PR_STR_RECUR
+    AZ%=Z%(T1%+1,0):GOSUB PR_STR_RECUR
     T7$="(fn* "+R$
-    AZ%=Z%(T1%,1): GOSUB PR_STR_RECUR
+    AZ%=Z%(T1%,1):GOSUB PR_STR_RECUR
     R$=T7$+" "+R$+")"
     RETURN
   PR_ATOM:
-    AZ%=Z%(AZ%,1): GOSUB PR_STR_RECUR
+    AZ%=Z%(AZ%,1):GOSUB PR_STR_RECUR
     R$="(atom "+R$+")"
     RETURN
   PR_ENV:
@@ -101,8 +96,8 @@ PR_STR_SEQ:
   T9%=AZ%
   R1$=""
   PR_STR_SEQ_LOOP:
-    IF Z%(T9%,1)=0 THEN R$=R1$: RETURN
-    AZ%=T9%+1: GOSUB PR_STR
+    IF Z%(T9%,1)=0 THEN R$=R1$:RETURN
+    AZ%=T9%+1:GOSUB PR_STR
     REM goto the next sequence element
     T9%=Z%(T9%,1)
     IF Z%(T9%,1)=0 THEN R1$=R1$+R$

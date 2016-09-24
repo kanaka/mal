@@ -20,17 +20,17 @@ MAL_PRINT:
 REM REP(A$) -> R$
 REP:
   GOSUB MAL_READ
-  A%=R%: GOSUB EVAL
-  A%=R%: GOSUB MAL_PRINT
+  A%=R%:GOSUB EVAL
+  A%=R%:GOSUB MAL_PRINT
   RETURN
 
 REM MAIN program
 MAIN:
   REPL_LOOP:
-    A$="user> ": GOSUB READLINE: REM call input parser
+    A$="user> ":GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
-    A$=R$: GOSUB REP: REM call REP
+    A$=R$:GOSUB REP: REM call REP
 
     PRINT R$
     GOTO REPL_LOOP

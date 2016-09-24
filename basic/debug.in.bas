@@ -16,7 +16,7 @@ REM   IF P2%<P1% THEN P2%=ZI%-1
 REM   PRINT "vvvvvv"
 REM   PRINT "Z% Value Memory"+STR$(P1%)+"->"+STR$(P2%);
 REM   PRINT " (ZI%: "+STR$(ZI%)+", ZK%: "+STR$(ZK%)+"):"
-REM   IF P2%<P1% THEN PRINT "  ---": GOTO PR_MEMORY_AFTER_VALUES
+REM   IF P2%<P1% THEN PRINT "  ---":GOTO PR_MEMORY_AFTER_VALUES
 REM   I=P1%
 REM   PR_MEMORY_VALUE_LOOP:
 REM     IF I>P2% THEN GOTO PR_MEMORY_AFTER_VALUES
@@ -37,18 +37,18 @@ REM     PR_MEMORY_FREE:
 REM       PRINT ": FREE size: "+STR$((Z%(I,0)AND-16)/16)+", next: "+STR$(Z%(I,1));
 REM       IF I=ZK% THEN PRINT " (free list start)";
 REM       PRINT
-REM       IF (Z%(I,0)AND-16)=32 THEN I=I+1: PRINT " "+STR$(I)+": ---"
+REM       IF (Z%(I,0)AND-16)=32 THEN I=I+1:PRINT " "+STR$(I)+": ---"
 REM       I=I+1
 REM       GOTO PR_MEMORY_VALUE_LOOP
 REM   PR_MEMORY_AFTER_VALUES:
 REM   PRINT "ZS% String Memory (ZJ%: "+STR$(ZJ%)+"):"
-REM   IF ZJ%<=0 THEN PRINT "  ---": GOTO PR_MEMORY_SKIP_STRINGS
+REM   IF ZJ%<=0 THEN PRINT "  ---":GOTO PR_MEMORY_SKIP_STRINGS
 REM   FOR I=0 TO ZJ%-1
 REM     PRINT " "+STR$(I)+": '"+ZS$(I)+"'"
 REM     NEXT I
 REM   PR_MEMORY_SKIP_STRINGS:
 REM   PRINT "ZZ% Stack Memory (ZL%: "+STR$(ZL%)+"):"
-REM   IF ZL%<0 THEN PRINT "  ---": GOTO PR_MEMORY_SKIP_STACK
+REM   IF ZL%<0 THEN PRINT "  ---":GOTO PR_MEMORY_SKIP_STACK
 REM   FOR I=0 TO ZL%
 REM     PRINT " "+STR$(I)+": "+STR$(ZZ%(I))
 REM     NEXT I
@@ -60,11 +60,11 @@ REM PR_OBJECT(P1%) -> nil
 PR_OBJECT:
   RC%=0
 
-  RC%=RC%+1: ZL%=ZL%+1: ZZ%(ZL%)=P1%
+  RC%=RC%+1:ZL%=ZL%+1:ZZ%(ZL%)=P1%
 
   PR_OBJ_LOOP:
     IF RC%=0 THEN RETURN
-    I=ZZ%(ZL%): RC%=RC%-1: ZL%=ZL%-1
+    I=ZZ%(ZL%):RC%=RC%-1:ZL%=ZL%-1
 
     P2%=Z%(I,0)AND15
     PRINT " "+STR$(I);
@@ -74,6 +74,6 @@ PR_OBJECT:
     IF P2%=5 THEN PRINT "    "+ZS$(Z%(I,1))+"";
     PRINT
     IF P2%<=5 OR P2%=9 THEN GOTO PR_OBJ_LOOP
-    IF Z%(I,1)<>0 THEN RC%=RC%+1: ZL%=ZL%+1: ZZ%(ZL%)=Z%(I,1)
-    IF P2%>=6 AND P2%<=8 THEN RC%=RC%+1: ZL%=ZL%+1: ZZ%(ZL%)=I+1
+    IF Z%(I,1)<>0 THEN RC%=RC%+1:ZL%=ZL%+1:ZZ%(ZL%)=Z%(I,1)
+    IF P2%>=6 AND P2%<=8 THEN RC%=RC%+1:ZL%=ZL%+1:ZZ%(ZL%)=I+1
     GOTO PR_OBJ_LOOP

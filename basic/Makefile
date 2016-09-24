@@ -1,7 +1,7 @@
-export KEEP_REM=0
+BASICPP_OPTS = --number-lines --combine-lines
 
 step%.bas: step%.in.bas
-	./basicpp.py --number-lines $< > $@
+	./basicpp.py $(BASICPP_OPTS) $< > $@
 
 step%.prg: step%.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp
@@ -24,7 +24,7 @@ step6_file.bas: $(STEP4_DEPS)
 step7_quote.bas: $(STEP4_DEPS)
 
 tests/%.bas: tests/%.in.bas
-	./basicpp.py --number-lines $< > $@
+	./basicpp.py $(BASICPP_OPTS) $< > $@
 
 tests/%.prg: tests/%.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp
