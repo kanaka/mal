@@ -11,7 +11,9 @@
          (prinl Input) ) ) )
 
 (de readline (Prompt)
-   (prog1
-      (native "libreadline.so" "readline" 'S Prompt)
-      (save-to-history @) ) )
-
+   (let Input (native "libreadline.so" "readline" 'N Prompt)
+      (if (=0 Input)
+         0
+         (prog1
+            (struct Input 'S)
+            (save-to-history @) ) ) ) )

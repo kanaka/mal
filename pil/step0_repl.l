@@ -17,8 +17,12 @@
 
 (load-history ".mal_history")
 
-(while (readline "user> ")
-   (prinl (rep @)) )
+(use Eof
+   (until Eof
+      (let Input (readline "user> ")
+         (if (=0 Input)
+            (setq Eof T)
+            (prinl (rep Input)) ) ) ) )
 
 (prinl)
 (bye)
