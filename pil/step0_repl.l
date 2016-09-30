@@ -1,0 +1,24 @@
+(de load-relative (Path)
+   (load (pack (car (file)) Path)) )
+
+(load-relative "readline.l")
+
+(de READ (String)
+   String)
+
+(de EVAL (Ast)
+   Ast)
+
+(de PRINT (Ast)
+   Ast)
+
+(de rep (String)
+   (PRINT (EVAL (READ String))) )
+
+(load-history ".mal_history")
+
+(while (readline "user> ")
+   (prinl (rep @)) )
+
+(prinl)
+(bye)
