@@ -1,4 +1,4 @@
-SOURCES_BASE = reader.l printer.l types.l
+SOURCES_BASE = readline.l reader.l printer.l types.l
 SOURCES_LISP = env.l func.l core.l stepA_mal.l
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
