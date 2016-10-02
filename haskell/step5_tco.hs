@@ -1,6 +1,6 @@
 import System.IO (hFlush, stdout)
 import Control.Monad (mapM)
-import Control.Monad.Error (runErrorT)
+import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map as Map
 import qualified Data.Traversable as DT
@@ -61,7 +61,7 @@ apply_ast ast@(MalList (MalSymbol "do" : args) _) env = do
             el <- eval_ast (MalList args Nil) env
             case el of
                  (MalList lst _) -> return $ last lst
-            
+
 apply_ast ast@(MalList (MalSymbol "if" : args) _) env = do
     case args of
          (a1 : a2 : a3 : []) -> do
@@ -123,7 +123,7 @@ repl_loop env = do
         Nothing -> return ()
         Just "" -> repl_loop env
         Just str -> do
-            res <- runErrorT $ rep env str
+            res <- runExceptT $ rep env str
             out <- case res of
                 Left (StringError str) -> return $ "Error: " ++ str
                 Left (MalValError mv) -> return $ "Error: " ++ (show mv)
@@ -141,6 +141,6 @@ main = do
     (mapM (\(k,v) -> (env_set repl_env (MalSymbol k) v)) Core.ns)
 
     -- core.mal: defined using the language itself
-    runErrorT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
+    runExceptT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
 
     repl_loop repl_env

@@ -275,7 +275,7 @@ ns = [
     ("*",  _func $ num_op (*)),
     ("/",  _func $ num_op (div)),
     ("time-ms", _func $ time_ms),
-    
+
     ("list",     _func $ list),
     ("list?",    _func $ run_1 _list_Q),
     ("vector",   _func $ vector),
