@@ -73,13 +73,12 @@
 
 (de read-macro (Reader symbol)
    (next> Reader) # pop reader macro token
-   (new '(+MALList) (list (new '(+MALSymbol) symbol) (read-form Reader))) )
+   (MAL-list (list (MAL-symbol symbol) (read-form Reader))) )
 
 (de read-meta (Reader)
    (next> Reader) # pop reader macro token
    (let Form (read-form Reader)
-      (new '(+MALList)
-         (list (new '(+MALSymbol) 'with-meta) (read-form Reader) Form) ) ) )
+      (MAL-list (list (MAL-symbol 'with-meta) (read-form Reader) Form) ) ) )
 
 (de read-list (Reader Type Ender)
    (next> Reader) # pop list start
@@ -96,9 +95,8 @@
                       (next> Reader) # pop list end
                       (setq Done T) )
                      ((not Token)
-                      (let (Msg (pack "expected '" Ender "', got EOF")
-                            Err (new '(+MALError) Msg))
-                         (throw 'err Err) ) )
+                      (let Msg (pack "expected '" Ender "', got EOF")
+                         (throw 'err (MAL-error Msg)) ) )
                      (T (link (read-form Reader))) ) ) ) ) ) ) )
 
 (de read-atom (Reader)
@@ -112,13 +110,13 @@
          ((= Token "nil")
           *MAL-nil)
          ((format Token)
-          (new '(+MALNumber) @) )
+          (MAL-number @) )
          ((= (car Chars) "\"")
           (if (= (last Chars) "\"")
-             (new '(+MALString) (any Token))
-             (throw 'err (new '(+MALError) "expected '\"', got EOF")) ) )
+             (MAL-string (any Token))
+             (throw 'err (MAL-error "expected '\"', got EOF")) ) )
          ((= (car Chars) ":")
-          (new '(+MALKeyword) (pack (cdr Chars))) )
+          (MAL-keyword (pack (cdr Chars))) )
          ((not Token)
-          (throw 'err (new '(+MALError) "end of token stream")) )
-         (T (new '(+MALSymbol) Token)) ) ) )
+          (throw 'err (MAL-error "end of token stream")) )
+         (T (MAL-symbol Token)) ) ) )

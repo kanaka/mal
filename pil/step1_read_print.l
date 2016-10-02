@@ -27,7 +27,7 @@
             (setq Eof T)
             (let Output (catch 'err (rep Input))
                 (if (isa '+MALError Output)
-                   (let Message (get Output 'value)
+                   (let Message (MAL-value Output)
                       (unless (= Message "end of token stream")
                          (prinl "[error] " Message) ) )
                    (prinl Output) ) ) ) ) ) )

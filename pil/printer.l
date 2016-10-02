@@ -1,6 +1,6 @@
 (de pr-str (Ast PrintReadably)
-   (let Value (get Ast 'value)
-      (case (get Ast 'type)
+   (let Value (MAL-value Ast)
+      (case (MAL-type Ast)
          ((true false nil)
           (sym @) )
          (string (if PrintReadably (if Value (sym Value) "\"\"") Value))
@@ -9,7 +9,7 @@
          (list (pr-list Value PrintReadably "(" ")"))
          (vector (pr-list Value PrintReadably "[" "]"))
          (map (pr-list Value PrintReadably "{" "}"))
-         (T (throw 'err (new '(+MALError) "[pr-str] unimplemented type"))) ) ) )
+         (T (throw 'err (MAL-error "[pr-str] unimplemented type"))) ) ) )
 
 (de pr-list (Forms PrintReadably Starter Ender)
    (let Values (mapcar '((Form) (pr-str Form PrintReadably)) Forms)
