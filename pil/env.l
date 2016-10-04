@@ -1,11 +1,16 @@
 (class +Env)
 # data outer
-(dm T (Outer)
+(dm T (Outer Binds Exprs)
    (=: data (new))
-   (=: outer Outer) )
+   (=: outer Outer)
+   (for (Binds Binds Binds)
+      (if (<> (car Binds) '&)
+         (set> This (pop 'Binds) (pop 'Exprs))
+         (pop 'Binds)
+         (set> This (pop 'Binds) (MAL-list Exprs)) ) ) )
 
-(de MAL-env (Outer)
-   (new '(+Env) Outer) )
+(de MAL-env (Outer Binds Exprs)
+   (new '(+Env) Outer Binds Exprs) )
 
 (dm set> (Key Value)
    (put (: data) Key Value) )

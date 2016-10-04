@@ -16,15 +16,15 @@
 
 (class +MALTrue +MAL)
 (dm T ()
-   (super 'true T NIL) )
+   (super 'true 'true NIL) )
 
 (class +MALFalse +MAL)
 (dm T ()
-   (super 'false NIL NIL) )
+   (super 'false 'false NIL) )
 
 (class +MALNil +MAL)
 (dm T ()
-   (super 'nil NIL NIL) )
+   (super 'nil 'nil NIL) )
 
 (def '*MAL-true (new '(+MALTrue)))
 (def '*MAL-false (new '(+MALFalse)))
@@ -85,6 +85,13 @@
 
 (de MAL-atom (N)
    (new '(+MALAtom) N) )
+
+(class +MALFn +MAL)
+(dm T (Fn)
+   (super 'fn Fn NIL) )
+
+(de MAL-fn (Fn)
+   (new '(+MALFn) Fn) )
 
 (class +MALError +MAL)
 (dm T (Value)
