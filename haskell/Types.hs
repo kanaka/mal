@@ -9,7 +9,7 @@ where
 import Data.IORef (IORef)
 import qualified Data.Map as Map
 import Control.Exception as CE
-import Control.Monad.Error (ErrorT, Error, noMsg, strMsg, throwError)
+import Control.Monad.Except
 
 
 -- Base Mal types --
@@ -55,13 +55,11 @@ instance Eq MalVal where
 data MalError = StringError String
               | MalValError MalVal
 
-type IOThrows = ErrorT MalError IO
+type IOThrows = ExceptT MalError IO
 
-instance Error MalError where
-    noMsg = StringError "An error has occurred"
-    strMsg = StringError
-
+throwStr :: String -> IOThrows a
 throwStr str = throwError $ StringError str
+throwMalVal :: MalVal -> IOThrows a
 throwMalVal mv = throwError $ MalValError mv
 
 -- Env types --
