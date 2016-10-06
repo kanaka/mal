@@ -390,10 +390,8 @@ guile -L ./ stepX_YYY.scm
 
 ### Haskell
 
-Install the Haskell compiler (ghc/ghci), the Haskell platform and
-either the editline package (BSD) or the readline package (GPL). On
-Ubuntu these packages are: ghc, haskell-platform,
-libghc-readline-dev/libghc-editline-dev
+The Haskell implementation requires the ghc compiler version 7.10.1 or
+later and also the Haskell parsec and readline (or editline) packages.
 
 ```
 cd haskell
