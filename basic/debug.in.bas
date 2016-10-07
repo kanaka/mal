@@ -55,25 +55,25 @@ REM     NEXT I
 REM   PR_MEMORY_SKIP_STACK:
 REM   PRINT "^^^^^^"
 REM   RETURN
-
-REM PR_OBJECT(P1%) -> nil
-PR_OBJECT:
-  RC%=0
-
-  RC%=RC%+1:ZL%=ZL%+1:ZZ%(ZL%)=P1%
-
-  PR_OBJ_LOOP:
-    IF RC%=0 THEN RETURN
-    I=ZZ%(ZL%):RC%=RC%-1:ZL%=ZL%-1
-
-    P2%=Z%(I,0)AND15
-    PRINT " "+STR$(I);
-    PRINT ": ref cnt: "+STR$((Z%(I,0)AND-16)/16);
-    PRINT ", type: "+STR$(P2%)+", value: "+STR$(Z%(I,1));
-    IF P2%=4 THEN PRINT "    '"+ZS$(Z%(I,1))+"'";
-    IF P2%=5 THEN PRINT "    "+ZS$(Z%(I,1))+"";
-    PRINT
-    IF P2%<=5 OR P2%=9 THEN GOTO PR_OBJ_LOOP
-    IF Z%(I,1)<>0 THEN RC%=RC%+1:ZL%=ZL%+1:ZZ%(ZL%)=Z%(I,1)
-    IF P2%>=6 AND P2%<=8 THEN RC%=RC%+1:ZL%=ZL%+1:ZZ%(ZL%)=I+1
-    GOTO PR_OBJ_LOOP
+REM 
+REM REM PR_OBJECT(P1%) -> nil
+REM PR_OBJECT:
+REM   RD%=0
+REM 
+REM   RD%=RD%+1:ZL%=ZL%+1:ZZ%(ZL%)=P1%
+REM 
+REM   PR_OBJ_LOOP:
+REM     IF RD%=0 THEN RETURN
+REM     I=ZZ%(ZL%):RD%=RD%-1:ZL%=ZL%-1
+REM 
+REM     P2%=Z%(I,0)AND15
+REM     PRINT " "+STR$(I);
+REM     PRINT ": ref cnt: "+STR$((Z%(I,0)AND-16)/16);
+REM     PRINT ", type: "+STR$(P2%)+", value: "+STR$(Z%(I,1));
+REM     IF P2%=4 THEN PRINT "    '"+ZS$(Z%(I,1))+"'";
+REM     IF P2%=5 THEN PRINT "    "+ZS$(Z%(I,1))+"";
+REM     PRINT
+REM     IF P2%<=5 OR P2%=9 THEN GOTO PR_OBJ_LOOP
+REM     IF Z%(I,1)<>0 THEN RD%=RD%+1:ZL%=ZL%+1:ZZ%(ZL%)=Z%(I,1)
+REM     IF P2%>=6 AND P2%<=8 THEN RD%=RD%+1:ZL%=ZL%+1:ZZ%(ZL%)=I+1
+REM     GOTO PR_OBJ_LOOP

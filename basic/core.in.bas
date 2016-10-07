@@ -153,6 +153,7 @@ DO_FUNCTION:
     Z%(R%,1)=Z%(AA%,1)/Z%(AB%,1)
     RETURN
   DO_TIME_MS:
+    R%=0
     RETURN
 
   DO_LIST:
@@ -202,6 +203,7 @@ DO_FUNCTION:
     DO_CONCAT_LOOP:
       IF ZL%=CZ% THEN R%=AB%:RETURN
       AA%=ZZ%(ZL%):ZL%=ZL%-1: REM pop off next seq to prepend
+      IF Z%(AA%,1)=0 THEN GOTO DO_CONCAT_LOOP: REM skip empty seqs
       A%=AA%:B%=0:C%=-1:GOSUB SLICE
 
       REM release the terminator of new list (we skip over it)
@@ -213,7 +215,18 @@ DO_FUNCTION:
       AB%=R%
       GOTO DO_CONCAT_LOOP
   DO_NTH:
-    RETURN
+    B%=Z%(AB%,1)
+    A%=AA%:GOSUB COUNT
+    IF R%<=B% THEN R%=0:ER%=1:ER$="nth: index out of range":RETURN
+    DO_NTH_LOOP:
+      IF B%=0 THEN GOTO DO_NTH_DONE
+      B%=B%-1
+      AA%=Z%(AA%,1)
+      GOTO DO_NTH_LOOP
+    DO_NTH_DONE:
+      R%=Z%(AA%+1,1)
+      Z%(R%,0)=Z%(R%,0)+16
+      RETURN
   DO_FIRST:
     IF Z%(AA%,1)=0 THEN R%=0
     IF Z%(AA%,1)<>0 THEN R%=AA%+1:GOSUB DEREF_R
@@ -268,53 +281,24 @@ DO_FUNCTION:
     REM push args for release after
     ZL%=ZL%+1:ZZ%(ZL%)=AR%
 
-    REM TODO: break this out into APPLY
-    IF (Z%(F%,0)AND15)=9 THEN GOTO DO_SWAP_FUNCTION
-    IF (Z%(F%,0)AND15)=10 THEN GOTO DO_SWAP_MAL_FUNCTION
+    REM push atom
+    ZL%=ZL%+1:ZZ%(ZL%)=AA%
 
-    DO_SWAP_FUNCTION:
-      REM push atom
-      ZL%=ZL%+1:ZZ%(ZL%)=AA%
+    GOSUB APPLY
 
-      GOSUB DO_FUNCTION
+    REM pop atom
+    AA%=ZZ%(ZL%):ZL%=ZL%-1
 
-      REM pop atom
-      AA%=ZZ%(ZL%):ZL%=ZL%-1
+    REM pop and release args
+    AY%=ZZ%(ZL%):ZL%=ZL%-1:GOSUB RELEASE
 
-      REM pop and release args
-      AY%=ZZ%(ZL%):ZL%=ZL%-1:GOSUB RELEASE
-      
-      GOTO DO_SWAP_DONE
+    REM use reset to update the value
+    AB%=R%:GOSUB DO_RESET_BANG
 
-    DO_SWAP_MAL_FUNCTION:
-      REM push current environment for later release
-      ZL%=ZL%+1:ZZ%(ZL%)=E%
+    REM but decrease ref cnt of return by 1 (not sure why)
+    AY%=R%:GOSUB RELEASE
 
-      REM create new environ using env stored with function
-      EO%=Z%(F%+1,1):BI%=Z%(F%+1,0):EX%=AR%:GOSUB ENV_NEW_BINDS
-
-      REM push atom
-      ZL%=ZL%+1:ZZ%(ZL%)=AA%
-
-      A%=Z%(F%,1):E%=R%:GOSUB EVAL
-
-      REM pop atom
-      AA%=ZZ%(ZL%):ZL%=ZL%-1
-
-      REM pop and release args
-      AY%=ZZ%(ZL%):ZL%=ZL%-1:GOSUB RELEASE
-
-      REM pop and release previous env
-      AY%=ZZ%(ZL%):ZL%=ZL%-1:GOSUB RELEASE
-
-      GOTO DO_SWAP_DONE
-
-    DO_SWAP_DONE:
-      REM use reset to update the value
-      AB%=R%:GOSUB DO_RESET_BANG
-      REM but decrease ref cnt of return by 1 (not sure why)
-      AY%=R%:GOSUB RELEASE
-      RETURN
+    RETURN
 
   DO_PR_MEMORY:
     P1%=ZT%:P2%=-1:GOSUB PR_MEMORY

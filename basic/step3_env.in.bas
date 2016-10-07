@@ -124,8 +124,8 @@ EVAL:
   REM push A% and E% on the stack
   ZL%=ZL%+2:ZZ%(ZL%-1)=E%:ZZ%(ZL%)=A%
 
-  REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL: "+R$+"("+STR$(A%)+"), LV%:"+STR$(LV%)
+  REM AZ%=A%:PR%=1:GOSUB PR_STR
+  REM PRINT "EVAL: "+R$+" [A%:"+STR$(A%)+", LV%:"+STR$(LV%)+"]"
 
   GOSUB DEREF_A
 
@@ -169,6 +169,8 @@ EVAL:
       A%=A2%:GOSUB EVAL: REM eval a2
       A1%=ZZ%(ZL%):ZL%=ZL%-1: REM pop A1%
 
+      IF ER%<>0 THEN GOTO EVAL_RETURN
+
       REM set a1 in env to a2
       K%=A1%:V%=R%:GOSUB ENV_SET
       GOTO EVAL_RETURN
@@ -176,18 +178,18 @@ EVAL:
     EVAL_LET:
       REM PRINT "let*"
       GOSUB EVAL_GET_A2: REM set a1% and a2%
+
+      ZL%=ZL%+1:ZZ%(ZL%)=A2%: REM push/save A2%
       REM create new environment with outer as current environment
       EO%=E%:GOSUB ENV_NEW
       E%=R%
       EVAL_LET_LOOP:
         IF Z%(A1%,1)=0 THEN GOTO EVAL_LET_LOOP_DONE
 
-        REM push A1%
-        ZL%=ZL%+1:ZZ%(ZL%)=A1%
+        ZL%=ZL%+1:ZZ%(ZL%)=A1%: REM push A1%
         REM eval current A1 odd element
         A%=Z%(A1%,1)+1:GOSUB EVAL
-        REM pop A1%
-        A1%=ZZ%(ZL%):ZL%=ZL%-1
+        A1%=ZZ%(ZL%):ZL%=ZL%-1: REM pop A1%
 
         REM set environment: even A1% key to odd A1% eval'd above
         K%=A1%+1:V%=R%:GOSUB ENV_SET
@@ -196,7 +198,9 @@ EVAL:
         REM skip to the next pair of A1% elements
         A1%=Z%(Z%(A1%,1),1)
         GOTO EVAL_LET_LOOP
+
       EVAL_LET_LOOP_DONE:
+        A2%=ZZ%(ZL%):ZL%=ZL%-1: REM pop A2%
         A%=A2%:GOSUB EVAL: REM eval a2 using let_env
         GOTO EVAL_RETURN
     EVAL_INVOKE:

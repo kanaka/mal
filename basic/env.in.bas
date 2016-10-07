@@ -69,6 +69,8 @@ ENV_SET_S:
   RETURN
 
 REM ENV_FIND(E%, K%) -> R%
+REM   Returns environment (R%) containing K%. If found, value found is
+REM   in T4%
 ENV_FIND:
   EF%=E%
   ENV_FIND_LOOP:

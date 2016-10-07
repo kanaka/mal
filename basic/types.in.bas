@@ -14,6 +14,8 @@ REM                    followed by key or value (alternating)
 REM function           9   ->  function index
 REM mal function       10  ->  body AST Z% index
 REM                    followed by param and env Z% index
+REM macro (same as 10) 11  ->  body AST Z% index
+REM                    followed by param and env Z% index
 REM atom               12  ->  Z% index
 REM environment        13  ->  data/hashmap Z% index
 REM                    followed by 13 and outer Z% index (-1 for none)
@@ -130,6 +132,7 @@ RELEASE:
 
   REM sanity check not already freed
   IF (U6%)=15 THEN ER%=1:ER$="Free of free memory: "+STR$(AY%):RETURN
+  IF U6%=14 THEN GOTO RELEASE_REFERENCE
   IF Z%(AY%,0)<15 THEN ER%=1:ER$="Free of freed object: "+STR$(AY%):RETURN
 
   REM decrease reference count by one
@@ -142,9 +145,9 @@ RELEASE:
   IF (U6%<=5) OR (U6%=9) THEN GOTO RELEASE_SIMPLE
   IF (U6%>=6) AND (U6%<=8) THEN GOTO RELEASE_SEQ
   IF U6%=10 THEN GOTO RELEASE_MAL_FUNCTION
+  IF U6%=11 THEN GOTO RELEASE_MAL_FUNCTION
   IF U6%=12 THEN GOTO RELEASE_ATOM
   IF U6%=13 THEN GOTO RELEASE_ENV
-  IF U6%=14 THEN GOTO RELEASE_REFERENCE
   IF U6%=15 THEN ER%=1:ER$="RELEASE of already freed: "+STR$(AY%):RETURN
   ER%=1:ER$="RELEASE not defined for type "+STR$(U6%):RETURN
 
@@ -509,3 +512,31 @@ MAL_FUNCTION:
   Z%(R%+1,0)=P%
   Z%(R%+1,1)=E%
   RETURN
+
+REM APPLY(F%, AR%) -> R%
+REM   restores E%
+APPLY:
+  IF (Z%(F%,0)AND15)=9 THEN GOTO DO_APPLY_FUNCTION
+  IF (Z%(F%,0)AND15)=10 THEN GOTO DO_APPLY_MAL_FUNCTION
+  IF (Z%(F%,0)AND15)=11 THEN GOTO DO_APPLY_MAL_FUNCTION
+
+  DO_APPLY_FUNCTION:
+    GOSUB DO_FUNCTION
+
+    RETURN
+
+  DO_APPLY_MAL_FUNCTION:
+    ZL%=ZL%+1:ZZ%(ZL%)=E%: REM save the current environment
+
+    REM create new environ using env and params stored in the
+    REM function and bind the params to the apply arguments
+    EO%=Z%(F%+1,1):BI%=Z%(F%+1,0):EX%=AR%:GOSUB ENV_NEW_BINDS
+
+    A%=Z%(F%,1):E%=R%:GOSUB EVAL
+
+    AY%=E%:GOSUB RELEASE: REM release the new environment
+
+    E%=ZZ%(ZL%):ZL%=ZL%-1: REM pop/restore the saved environment
+
+    RETURN
+
