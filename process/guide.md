@@ -896,7 +896,9 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
   * `env`: the current value of the `env` parameter of `EVAL`.
   * `fn`: the original function value (i.e. what was return by `fn*`
     in step 4). Note that this is deferrable until step 9 when it is
-    needed for the `map` and `apply` core functions).
+    required for the `map` and `apply` core functions). You will also
+    need it in step 6 if you choose to not to defer atoms/`swap!` from
+    that step.
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
@@ -1518,7 +1520,7 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 * When the REPL starts up (as opposed to when it is called with
   a script and/or arguments), call the `rep` function with this string
   to print a startup header:
-  "(println (str \"Mal [\" *host-language* \"]\"))".
+  "(println (str \"Mal [\" \*host-language\* \"]\"))".
 
 
 Now go to the top level, run the step A tests:
@@ -1601,8 +1603,8 @@ For extra information read [Peter Seibel's thorough discussion about
 
 #### Optional additions
 
-* Add metadata support to composite data types, symbols and native
-  functions. TODO
+* Add metadata support to mal functions, other composite data
+  types, and native functions.
 * Add the following new core functions:
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
@@ -1639,7 +1641,9 @@ For extra information read [Peter Seibel's thorough discussion about
 ## TODO:
 
 * simplify: "X argument (list element Y)" -> ast[Y]
-* list of types with metadata: list, vector, hash-map, mal functions
+* list of types with metadata: mal functions (required for
+  self-hosting), list, vector, hash-map, native functions (optional
+  for self-hosting).
 * more clarity about when to peek and poke in read_list and read_form
 * tokenizer: use first group rather than whole match (to eliminate
   whitespace/commas)
