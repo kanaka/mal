@@ -88,7 +88,7 @@ ENV_FIND:
 REM ENV_GET(E%, K%) -> R%
 ENV_GET:
   GOSUB ENV_FIND
-  IF R%=-1 THEN R%=0:ER%=1:ER$="'"+ZS$(Z%(K%,1))+"' not found":RETURN
+  IF R%=-1 THEN R%=0:ER%=-1:ER$="'"+ZS$(Z%(K%,1))+"' not found":RETURN
   R%=T4%:GOSUB DEREF_R
   Z%(R%,0)=Z%(R%,0)+16
   RETURN

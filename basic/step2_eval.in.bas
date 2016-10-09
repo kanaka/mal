@@ -19,7 +19,7 @@ EVAL_AST:
   REM push A% and E% on the stack
   ZL%=ZL%+2:ZZ%(ZL%-1)=E%:ZZ%(ZL%)=A%
 
-  IF ER%<>0 THEN GOTO EVAL_AST_RETURN
+  IF ER%<>-2 THEN GOTO EVAL_AST_RETURN
 
   GOSUB DEREF_A
 
@@ -35,7 +35,7 @@ EVAL_AST:
   EVAL_AST_SYMBOL:
     HM%=E%:K%=A%:GOSUB HASHMAP_GET
     GOSUB DEREF_R
-    IF T3%=0 THEN ER%=1:ER$="'"+ZS$(Z%(A%,1))+"' not found":GOTO EVAL_AST_RETURN
+    IF T3%=0 THEN ER%=-1:ER$="'"+ZS$(Z%(A%,1))+"' not found":GOTO EVAL_AST_RETURN
     Z%(R%,0)=Z%(R%,0)+16
     GOTO EVAL_AST_RETURN
 
@@ -88,7 +88,7 @@ EVAL_AST:
       REM update previous value pointer to evaluated entry
       Z%(ZZ%(ZL%)+1,1)=R%
 
-      IF ER%<>0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
+      IF ER%<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
       SZ%=2:GOSUB ALLOC
@@ -123,8 +123,8 @@ EVAL:
   REM push A% and E% on the stack
   ZL%=ZL%+2:ZZ%(ZL%-1)=E%:ZZ%(ZL%)=A%
 
-  REM AZ%=A%: GOSUB PR_STR
-  REM PRINT "EVAL: "+R$+"("+STR$(A%)+"), LV%:"+STR$(LV%)
+  REM AZ%=A%:PR%=1:GOSUB PR_STR
+  REM PRINT "EVAL: "+R$+" [A%:"+STR$(A%)+", LV%:"+STR$(LV%)+"]"
 
   GOSUB DEREF_A
 
@@ -143,19 +143,17 @@ EVAL:
       R3%=R%
 
       REM if error, return f/args for release by caller
-      IF ER%<>0 THEN GOTO EVAL_RETURN
+      IF ER%<>-2 THEN GOTO EVAL_RETURN
       F%=R%+1
 
       AR%=Z%(R%,1): REM rest
       R%=F%:GOSUB DEREF_R:F%=R%
-      IF (Z%(F%,0)AND15)<>9 THEN ER%=1:ER$="apply of non-function":GOTO EVAL_RETURN
+      IF (Z%(F%,0)AND15)<>9 THEN ER%=-1:ER$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       AY%=R3%:GOSUB RELEASE
       GOTO EVAL_RETURN
 
   EVAL_RETURN:
-    REM an error occured, free up any new value
-    IF ER%=1 THEN AY%=R%:GOSUB RELEASE
 
     LV%=LV%-1: REM track basic return stack level
 
@@ -190,7 +188,7 @@ DO_FUNCTION:
   IF FF%=2 THEN GOTO DO_SUB
   IF FF%=3 THEN GOTO DO_MULT
   IF FF%=4 THEN GOTO DO_DIV
-  ER%=1:ER$="unknown function"+STR$(FF%):RETURN
+  ER%=-1:ER$="unknown function"+STR$(FF%):RETURN
 
   DO_ADD:
     Z%(R%,0)=2+16
@@ -223,11 +221,11 @@ REP:
   R1%=0:R2%=0
   GOSUB MAL_READ
   R1%=R%
-  IF ER%<>0 THEN GOTO REP_DONE
+  IF ER%<>-2 THEN GOTO REP_DONE
 
   A%=R%:E%=RE%:GOSUB EVAL
   R2%=R%
-  IF ER%<>0 THEN GOTO REP_DONE
+  IF ER%<>-2 THEN GOTO REP_DONE
 
   A%=R%:GOSUB MAL_PRINT
   RT$=R$
@@ -272,7 +270,7 @@ MAIN:
 
     A$=R$:GOSUB REP: REM call REP
 
-    IF ER%<>0 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
+    IF ER%<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$
     GOTO REPL_LOOP
 
@@ -283,6 +281,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=0:ER$=""
+    ER%=-2:ER$=""
     RETURN
 

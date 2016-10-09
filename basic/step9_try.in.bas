@@ -1,3 +1,5 @@
+REM POKE 1, PEEK(1)AND248: REM enable all ROM areas as RAM
+REM POKE 55,0: POKE 56,192: CLR: REM move BASIC end from $A000 to $C000
 GOTO MAIN
 
 REM $INCLUDE: 'readline.in.bas'
@@ -13,6 +15,112 @@ REM READ(A$) -> R%
 MAL_READ:
   GOSUB READ_STR
   RETURN
+
+REM PAIR_Q(B%) -> R%
+PAIR_Q:
+  R%=0
+  IF (Z%(B%,0)AND15)<>6 AND (Z%(B%,0)AND15)<>7 THEN RETURN
+  IF (Z%(B%,1)=0) THEN RETURN
+  R%=1
+  RETURN
+
+REM QUASIQUOTE(A%) -> R%
+QUASIQUOTE:
+  B%=A%:GOSUB PAIR_Q
+  IF R%=1 THEN GOTO QQ_UNQUOTE
+    REM ['quote, ast]
+    AS$="quote":T%=5:GOSUB STRING
+    B2%=R%:B1%=A%:GOSUB LIST2
+
+    RETURN
+
+  QQ_UNQUOTE:
+    R%=A%+1:GOSUB DEREF_R
+    IF (Z%(R%,0)AND15)<>5 THEN GOTO QQ_SPLICE_UNQUOTE
+    IF ZS$(Z%(R%,1))<>"unquote" THEN GOTO QQ_SPLICE_UNQUOTE
+      REM [ast[1]]
+      R%=Z%(A%,1)+1:GOSUB DEREF_R
+      Z%(R%,0)=Z%(R%,0)+16
+
+      RETURN
+
+  QQ_SPLICE_UNQUOTE:
+    REM push A% on the stack
+    ZL%=ZL%+1:ZZ%(ZL%)=A%
+    REM rest of cases call quasiquote on ast[1..]
+    A%=Z%(A%,1):GOSUB QUASIQUOTE:T6%=R%
+    REM pop A% off the stack
+    A%=ZZ%(ZL%):ZL%=ZL%-1
+
+    REM set A% to ast[0] for last two cases
+    A%=A%+1:GOSUB DEREF_A
+
+    B%=A%:GOSUB PAIR_Q
+    IF R%=0 THEN GOTO QQ_DEFAULT
+    B%=A%+1:GOSUB DEREF_B
+    IF (Z%(B%,0)AND15)<>5 THEN GOTO QQ_DEFAULT
+    IF ZS$(Z%(B%,1))<>"splice-unquote" THEN QQ_DEFAULT
+      REM ['concat, ast[0][1], quasiquote(ast[1..])]
+
+      B%=Z%(A%,1)+1:GOSUB DEREF_B:B2%=B%
+      AS$="concat":T%=5:GOSUB STRING:B3%=R%
+      B1%=T6%:GOSUB LIST3
+      REM release inner quasiquoted since outer list takes ownership
+      AY%=B1%:GOSUB RELEASE
+      RETURN
+
+  QQ_DEFAULT:
+    REM ['cons, quasiquote(ast[0]), quasiquote(ast[1..])]
+
+    REM push T6% on the stack
+    ZL%=ZL%+1:ZZ%(ZL%)=T6%
+    REM A% set above to ast[0]
+    GOSUB QUASIQUOTE:B2%=R%
+    REM pop T6% off the stack
+    T6%=ZZ%(ZL%):ZL%=ZL%-1
+
+    AS$="cons":T%=5:GOSUB STRING:B3%=R%
+    B1%=T6%:GOSUB LIST3
+    REM release inner quasiquoted since outer list takes ownership
+    AY%=B1%:GOSUB RELEASE
+    AY%=B2%:GOSUB RELEASE
+    RETURN
+
+REM MACROEXPAND(A%, E%) -> A%:
+MACROEXPAND:
+  REM push original A%
+  ZL%=ZL%+1:ZZ%(ZL%)=A%
+
+  MACROEXPAND_LOOP:
+    REM list?
+    IF (Z%(A%,0)AND15)<>6 THEN GOTO MACROEXPAND_DONE
+    REM non-empty?
+    IF Z%(A%,1)=0 THEN GOTO MACROEXPAND_DONE
+    B%=A%+1:GOSUB DEREF_B
+    REM symbol? in first position
+    IF (Z%(B%,0)AND15)<>5 THEN GOTO MACROEXPAND_DONE
+    REM defined in environment?
+    K%=B%:GOSUB ENV_FIND
+    IF R%=-1 THEN GOTO MACROEXPAND_DONE
+    B%=T4%:GOSUB DEREF_B
+    REM macro?
+    IF (Z%(B%,0)AND15)<>11 THEN GOTO MACROEXPAND_DONE
+  
+    REM apply
+    F%=B%:AR%=Z%(A%,1):GOSUB APPLY
+    A%=R%
+
+    AY%=ZZ%(ZL%)
+    REM if previous A% was not the first A% into macroexpand (i.e. an
+    REM intermediate form) then free it
+    IF A%<>AY% THEN ZM%=ZM%+1:ZR%(ZM%,0)=A%:ZR%(ZM%,1)=LV%
+  
+    IF ER%<>-2 THEN GOTO MACROEXPAND_DONE
+    GOTO MACROEXPAND_LOOP
+
+  MACROEXPAND_DONE:
+    ZL%=ZL%-1: REM pop original A%
+    RETURN
 
 REM EVAL_AST(A%, E%) -> R%
 REM called using GOTO to avoid basic return address stack usage
@@ -136,6 +244,7 @@ EVAL:
 
   GOSUB LIST_Q
   IF R% THEN GOTO APPLY_LIST
+  EVAL_NOT_LIST:
   REM ELSE
     REM push EVAL_AST return label/address
     ZL%=ZL%+1:ZZ%(ZL%)=1
@@ -145,6 +254,11 @@ EVAL:
     GOTO EVAL_RETURN
 
   APPLY_LIST:
+    GOSUB MACROEXPAND
+
+    GOSUB LIST_Q
+    IF R%<>1 THEN GOTO EVAL_NOT_LIST
+
     GOSUB EMPTY_Q
     IF R% THEN R%=A%:Z%(R%,0)=Z%(R%,0)+16:GOTO EVAL_RETURN
 
@@ -157,6 +271,11 @@ EVAL:
 
     IF A$="def!" THEN GOTO EVAL_DEF
     IF A$="let*" THEN GOTO EVAL_LET
+    IF A$="quote" THEN GOTO EVAL_QUOTE
+    IF A$="quasiquote" THEN GOTO EVAL_QUASIQUOTE
+    IF A$="defmacro!" THEN GOTO EVAL_DEFMACRO
+    IF A$="macroexpand" THEN GOTO EVAL_MACROEXPAND
+    IF A$="try*" THEN GOTO EVAL_TRY
     IF A$="do" THEN GOTO EVAL_DO
     IF A$="if" THEN GOTO EVAL_IF
     IF A$="fn*" THEN GOTO EVAL_FN
@@ -236,6 +355,75 @@ EVAL:
       A%=R%:GOSUB LAST: REM return the last element
       AY%=ZZ%(ZL%):ZL%=ZL%-1: REM pop eval'd list
       GOSUB RELEASE: REM release the eval'd list
+      GOTO EVAL_RETURN
+
+    EVAL_QUOTE:
+      R%=Z%(A%,1)+1:GOSUB DEREF_R
+      Z%(R%,0)=Z%(R%,0)+16
+      GOTO EVAL_RETURN
+
+    EVAL_QUASIQUOTE:
+      R%=Z%(A%,1)+1:GOSUB DEREF_R
+      A%=R%:GOSUB QUASIQUOTE
+      REM add quasiquote result to pending release queue to free when
+      REM next lower EVAL level returns (LV%)
+      ZM%=ZM%+1:ZR%(ZM%,0)=R%:ZR%(ZM%,1)=LV%
+
+      A%=R%:GOTO EVAL_TCO_RECUR: REM TCO loop
+
+    EVAL_DEFMACRO:
+      REM PRINT "defmacro!"
+      GOSUB EVAL_GET_A2: REM set a1% and a2%
+
+      ZL%=ZL%+1:ZZ%(ZL%)=A1%: REM push A1%
+      A%=A2%:GOSUB EVAL: REM eval a2
+      A1%=ZZ%(ZL%):ZL%=ZL%-1: REM pop A1%
+
+      REM change function to macro
+      Z%(R%,0)=Z%(R%,0)+1
+
+      REM set a1 in env to a2
+      K%=A1%:V%=R%:GOSUB ENV_SET
+      GOTO EVAL_RETURN
+
+    EVAL_MACROEXPAND:
+      REM PRINT "macroexpand"
+      R%=Z%(A%,1)+1:GOSUB DEREF_R
+      A%=R%:GOSUB MACROEXPAND:R%=A%
+
+      REM since we are returning it unevaluated, inc the ref cnt
+      Z%(R%,0)=Z%(R%,0)+16
+      GOTO EVAL_RETURN
+
+    EVAL_TRY:
+      REM PRINT "try*"
+      GOSUB EVAL_GET_A1: REM set a1%, a2%, and a3%
+
+      ZL%=ZL%+1:ZZ%(ZL%)=A%: REM push/save A%
+      A%=A1%:GOSUB EVAL: REM eval a1
+      A%=ZZ%(ZL%):ZL%=ZL%-1: REM pop/restore A%
+
+      REM if there is not error or catch block then return
+      IF ER%=-2 OR Z%(A%,1)=0 THEN GOTO EVAL_RETURN
+
+      REM create environment for the catch block eval
+      EO%=E%:GOSUB ENV_NEW:E%=R%
+
+      GOSUB EVAL_GET_A2: REM set a1% and a2%
+      A%=A2%:GOSUB EVAL_GET_A2: REM set a1% and a2% from catch block
+
+      REM create object for ER%=-1 type raw string errors
+      IF ER%=-1 THEN AS$=ER$:T%=4:GOSUB STRING:ER%=R%:Z%(R%,0)=Z%(R%,0)+16
+
+      REM bind the catch symbol to the error object
+      K%=A1%:V%=ER%:GOSUB ENV_SET
+      AY%=R%:GOSUB RELEASE: REM release out use, env took ownership
+
+      REM unset error for catch eval
+      ER%=-2:ER$=""
+
+      A%=A2%:GOSUB EVAL
+
       GOTO EVAL_RETURN
 
     EVAL_IF:
@@ -398,6 +586,43 @@ MAIN:
   A$="(def! not (fn* (a) (if a false true)))"
   GOSUB RE:AY%=R%:GOSUB RELEASE
 
+  A$="(def! load-file (fn* (f) (eval (read-string (str "
+  A$=A$+CHR$(34)+"(do "+CHR$(34)+" (slurp f) "+CHR$(34)+")"+CHR$(34)+")))))"
+  GOSUB RE:AY%=R%:GOSUB RELEASE
+
+  A$="(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs)"
+  A$=A$+" (if (> (count xs) 1) (nth xs 1) (throw "+CHR$(34)+"odd number of"
+  A$=A$+" forms to cond"+CHR$(34)+")) (cons 'cond (rest (rest xs)))))))"
+  GOSUB RE:AY%=R%:GOSUB RELEASE
+
+  A$="(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs)"
+  A$=A$+" `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+  GOSUB RE:AY%=R%:GOSUB RELEASE
+
+  REM load the args file
+  A$="(def! -*ARGS*- (load-file "+CHR$(34)+".args.mal"+CHR$(34)+"))"
+  GOSUB RE:AY%=R%:GOSUB RELEASE
+
+  REM set the argument list
+  A$="(def! *ARGV* (rest -*ARGS*-))"
+  GOSUB RE:AY%=R%:GOSUB RELEASE
+
+  REM get the first argument
+  A$="(first -*ARGS*-)"
+  GOSUB RE
+
+  REM if there is an argument, then run it as a program
+  IF R%<>0 THEN AY%=R%:GOSUB RELEASE:GOTO RUN_PROG
+  REM no arguments, start REPL loop
+  IF R%=0 THEN GOTO REPL_LOOP
+
+  RUN_PROG:
+    REM run a single mal program and exit
+    A$="(load-file (first -*ARGS*-))"
+    GOSUB RE
+    IF ER%<>-2 THEN GOSUB PRINT_ERROR
+    END
+
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
@@ -414,6 +639,8 @@ MAIN:
     END
 
   PRINT_ERROR:
+    REM if the error is an object, then print and free it
+    IF ER%>=0 THEN AZ%=ER%:PR%=0:GOSUB PR_STR:ER$=R$:AY%=ER%:GOSUB RELEASE
     PRINT "Error: "+ER$
     ER%=-2:ER$=""
     RETURN

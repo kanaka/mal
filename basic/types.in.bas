@@ -31,7 +31,11 @@ INIT_MEMORY:
   S4%=64: REM ZR% (release stack) size (4 bytes each)
 
   REM global error state
-  ER%=0:ER$=""
+  REM  -2 : no error
+  REM  -1 : string error in ER$
+  REM >=0 : pointer to error object
+  ER%=-2
+  ER$=""
 
   REM boxed element memory
   DIM Z%(S1%,1): REM TYPE ARRAY
@@ -131,9 +135,9 @@ RELEASE:
   REM PRINT "RELEASE AY%:"+STR$(AY%)+"["+R$+"] (byte0:"+STR$(Z%(AY%,0))+")"
 
   REM sanity check not already freed
-  IF (U6%)=15 THEN ER%=1:ER$="Free of free memory: "+STR$(AY%):RETURN
+  IF (U6%)=15 THEN ER%=-1:ER$="Free of free memory: "+STR$(AY%):RETURN
   IF U6%=14 THEN GOTO RELEASE_REFERENCE
-  IF Z%(AY%,0)<15 THEN ER%=1:ER$="Free of freed object: "+STR$(AY%):RETURN
+  IF Z%(AY%,0)<15 THEN ER%=-1:ER$="Free of freed object: "+STR$(AY%):RETURN
 
   REM decrease reference count by one
   Z%(AY%,0)=Z%(AY%,0)-16
@@ -148,8 +152,8 @@ RELEASE:
   IF U6%=11 THEN GOTO RELEASE_MAL_FUNCTION
   IF U6%=12 THEN GOTO RELEASE_ATOM
   IF U6%=13 THEN GOTO RELEASE_ENV
-  IF U6%=15 THEN ER%=1:ER$="RELEASE of already freed: "+STR$(AY%):RETURN
-  ER%=1:ER$="RELEASE not defined for type "+STR$(U6%):RETURN
+  IF U6%=15 THEN ER%=-1:ER$="RELEASE of already freed: "+STR$(AY%):RETURN
+  ER%=-1:ER$="RELEASE not defined for type "+STR$(U6%):RETURN
 
   RELEASE_SIMPLE:
     REM simple type (no recursing), just call FREE on it
@@ -161,7 +165,7 @@ RELEASE:
     GOTO RELEASE_TOP
   RELEASE_SEQ:
     IF Z%(AY%,1)=0 THEN GOTO RELEASE_SIMPLE_2
-    IF Z%(AY%+1,0)<>14 THEN ER%=1:ER$="invalid list value"+STR$(AY%+1):RETURN
+    IF Z%(AY%+1,0)<>14 THEN ER%=-1:ER$="invalid list value"+STR$(AY%+1):RETURN
     REM add value and next element to stack
     RC%=RC%+2:ZL%=ZL%+2:ZZ%(ZL%-1)=Z%(AY%+1,1):ZZ%(ZL%)=Z%(AY%,1)
     GOTO RELEASE_SIMPLE_2
@@ -198,7 +202,6 @@ RELEASE:
 
 REM RELEASE_PEND(LV%) -> nil
 RELEASE_PEND:
-  REM REM IF ER%<>0 THEN RETURN
   IF ZM%<0 THEN RETURN
   IF ZR%(ZM%,1)<=LV% THEN RETURN
   REM PRINT "RELEASE_PEND releasing:"+STR$(ZR%(ZM%,0))
@@ -366,12 +369,14 @@ CONS:
 
 REM SLICE(A%,B%,C%) -> R%
 REM make copy of sequence A% from index B% to C%
+REM returns R6% as reference to last element of slice
+REM returns A% as next element following slice (of original)
 SLICE:
   I=0
   R5%=-1: REM temporary for return as R%
   R6%=0: REM previous list element
   SLICE_LOOP:
-    REM always allocate at list one list element
+    REM always allocate at least one list element
     SZ%=2:GOSUB ALLOC
     Z%(R%,0)=6+16:Z%(R%,1)=0:Z%(R%+1,0)=14:Z%(R%+1,1)=0
     IF R5%=-1 THEN R5%=R%

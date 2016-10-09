@@ -20,7 +20,7 @@ EVAL_AST:
   REM push A% and E% on the stack
   ZL%=ZL%+2:ZZ%(ZL%-1)=E%:ZZ%(ZL%)=A%
 
-  IF ER%<>0 THEN GOTO EVAL_AST_RETURN
+  IF ER%<>-2 THEN GOTO EVAL_AST_RETURN
 
   GOSUB DEREF_A
 
@@ -86,7 +86,7 @@ EVAL_AST:
       REM update previous value pointer to evaluated entry
       Z%(ZZ%(ZL%)+1,1)=R%
 
-      IF ER%<>0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
+      IF ER%<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
       SZ%=2:GOSUB ALLOC
@@ -102,9 +102,9 @@ EVAL_AST:
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
       REM if no error, get return value (new seq)
-      IF ER%=0 THEN R%=ZZ%(ZL%-1)
+      IF ER%=-2 THEN R%=ZZ%(ZL%-1)
       REM otherwise, free the return value and return nil
-      IF ER%<>0 THEN R%=0:AY%=ZZ%(ZL%-1):GOSUB RELEASE
+      IF ER%<>-2 THEN R%=0:AY%=ZZ%(ZL%-1):GOSUB RELEASE
 
       REM pop previous, return, index and type
       ZL%=ZL%-4
@@ -169,7 +169,7 @@ EVAL:
       A%=A2%:GOSUB EVAL: REM eval a2
       A1%=ZZ%(ZL%):ZL%=ZL%-1: REM pop A1%
 
-      IF ER%<>0 THEN GOTO EVAL_RETURN
+      IF ER%<>-2 THEN GOTO EVAL_RETURN
 
       REM set a1 in env to a2
       K%=A1%:V%=R%:GOSUB ENV_SET
@@ -208,12 +208,12 @@ EVAL:
       R3%=R%
 
       REM if error, return f/args for release by caller
-      IF ER%<>0 THEN GOTO EVAL_RETURN
+      IF ER%<>-2 THEN GOTO EVAL_RETURN
       F%=R%+1
 
       AR%=Z%(R%,1): REM rest
       R%=F%:GOSUB DEREF_R:F%=R%
-      IF (Z%(F%,0)AND15)<>9 THEN ER%=1:ER$="apply of non-function":GOTO EVAL_RETURN
+      IF (Z%(F%,0)AND15)<>9 THEN ER%=-1:ER$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       AY%=R3%:GOSUB RELEASE
       GOTO EVAL_RETURN
@@ -258,7 +258,7 @@ DO_FUNCTION:
   IF FF%=2 THEN GOTO DO_SUB
   IF FF%=3 THEN GOTO DO_MULT
   IF FF%=4 THEN GOTO DO_DIV
-  ER%=1:ER$="unknown function"+STR$(FF%):RETURN
+  ER%=-1:ER$="unknown function"+STR$(FF%):RETURN
 
   DO_ADD:
     Z%(R%,0)=2+16
@@ -291,11 +291,11 @@ REP:
   R1%=0:R2%=0
   GOSUB MAL_READ
   R1%=R%
-  IF ER%<>0 THEN GOTO REP_DONE
+  IF ER%<>-2 THEN GOTO REP_DONE
 
   A%=R%:E%=RE%:GOSUB EVAL
   R2%=R%
-  IF ER%<>0 THEN GOTO REP_DONE
+  IF ER%<>-2 THEN GOTO REP_DONE
 
   A%=R%:GOSUB MAL_PRINT
   RT$=R$
@@ -318,20 +318,20 @@ MAIN:
 
   E%=RE%
   REM + function
-  A%=1: GOSUB NATIVE_FUNCTION
-  K$="+": V%=R%: GOSUB ENV_SET_S
+  A%=1:GOSUB NATIVE_FUNCTION
+  K$="+":V%=R%:GOSUB ENV_SET_S
 
   REM - function
-  A%=2: GOSUB NATIVE_FUNCTION
-  K$="-": V%=R%: GOSUB ENV_SET_S
+  A%=2:GOSUB NATIVE_FUNCTION
+  K$="-":V%=R%:GOSUB ENV_SET_S
 
   REM * function
-  A%=3: GOSUB NATIVE_FUNCTION
-  K$="*": V%=R%: GOSUB ENV_SET_S
+  A%=3:GOSUB NATIVE_FUNCTION
+  K$="*":V%=R%:GOSUB ENV_SET_S
 
   REM / function
-  A%=4: GOSUB NATIVE_FUNCTION
-  K$="/": V%=R%: GOSUB ENV_SET_S
+  A%=4:GOSUB NATIVE_FUNCTION
+  K$="/":V%=R%:GOSUB ENV_SET_S
 
   ZT%=ZI%: REM top of memory after base repl_env
 
@@ -341,7 +341,7 @@ MAIN:
 
     A$=R$:GOSUB REP: REM call REP
 
-    IF ER%<>0 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
+    IF ER%<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$
     GOTO REPL_LOOP
 
@@ -352,6 +352,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=0:ER$=""
+    ER%=-2:ER$=""
     RETURN
 
