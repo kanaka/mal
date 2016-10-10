@@ -18,7 +18,7 @@ step0_repl.bas: $(STEP0_DEPS)
 step1_read_print.bas step2_eval.bas: $(STEP1_DEPS)
 step3_env.bas: $(STEP3_DEPS)
 step4_if_fn_do.bas step5_tco.bas step6_file.bas step7_quote.bas: $(STEP4_DEPS)
-step8_macros.bas step9_try.bas: $(STEP4_DEPS)
+step8_macros.bas step9_try.bas stepA_mal.bas: $(STEP4_DEPS)
 
 tests/%.bas: tests/%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
@@ -28,10 +28,10 @@ tests/%.prg: tests/%.bas
 	petcat -text -w2 -o $@ $<.tmp
 	rm $<.tmp
 
-mal.prg: step9_try.prg
+mal.prg: stepA_mal.prg
 	cp $< $@
 
-SOURCES_LISP = env.in.bas core.in.bas step9_try.in.bas
+SOURCES_LISP = env.in.bas core.in.bas stepA_mal.in.bas
 SOURCES = readline.in.bas types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
 
 .PHONY: stats
