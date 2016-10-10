@@ -181,3 +181,9 @@ b
 ;;; TODO: fix this
 ;;;;=>[1 1 "b" "d" 3]
 
+;; Checking that eval does not use local environments.
+;; Test step6, but requires a quote.
+(def! a 1)
+;=>1
+(let* (a 2) (eval 'a))
+;=>1
