@@ -21,6 +21,13 @@ abc5
 abc-def
 ;=>abc-def
 
+;; Testing non-numbers starting with a dash.
+-
+;=>-
+-abc
+;=>-abc
+->>
+;=>->>
 
 ;; Testing read of lists
 (+ 1 2)
