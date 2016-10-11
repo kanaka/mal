@@ -7,6 +7,7 @@
          (keyword (pack ":" Value))
          ((number symbol) Value)
          (fn "#<subr>")
+         (func "#<func>")
          (list (pr-list Value PrintReadably "(" ")"))
          (vector (pr-list Value PrintReadably "[" "]"))
          (map (pr-list Value PrintReadably "{" "}"))

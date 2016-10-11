@@ -1,6 +1,7 @@
 (class +Func)
 # env ast params fn
 (dm T (Env Ast Params Fn)
+   (=: type 'func) # HACK
    (=: env Env)
    (=: ast Ast)
    (=: params Params)
