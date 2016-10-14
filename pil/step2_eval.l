@@ -9,7 +9,7 @@
 (de READ (String)
    (read-str String) )
 
-(def 'repl-env
+(def '*ReplEnv
    '((+ . ((A B) (MAL-number (+ (MAL-value A) (MAL-value B)))))
      (- . ((A B) (MAL-number (- (MAL-value A) (MAL-value B)))))
      (* . ((A B) (MAL-number (* (MAL-value A) (MAL-value B)))))
@@ -48,7 +48,7 @@
       (let Input (readline "user> ")
          (if (=0 Input)
             (setq Eof T)
-            (let Output (catch 'err (rep Input repl-env))
+            (let Output (catch 'err (rep Input *ReplEnv))
                 (if (isa '+MALError Output)
                    (let Message (MAL-value Output)
                       (unless (= Message "end of token stream")

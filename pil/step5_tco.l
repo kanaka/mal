@@ -12,8 +12,8 @@
 (de READ (String)
    (read-str String) )
 
-(def 'repl-env (MAL-env NIL))
-(for Bind ns (set> repl-env (car Bind) (cdr Bind)))
+(def '*ReplEnv (MAL-env NIL))
+(for Bind *Ns (set> *ReplEnv (car Bind) (cdr Bind)))
 
 (de EVAL (Ast Env)
    (catch 'done
@@ -77,13 +77,13 @@
 (de rep (String Env)
    (PRINT (EVAL (READ String) Env)) )
 
-(rep "(def! not (fn* (a) (if a false true)))" repl-env)
+(rep "(def! not (fn* (a) (if a false true)))" *ReplEnv)
 
 (load-history ".mal_history")
 
 (use Input
    (until (=0 (setq Input (readline "user> ")))
-      (let Output (catch 'err (rep Input repl-env))
+      (let Output (catch 'err (rep Input *ReplEnv))
          (if (isa '+MALError Output)
             (let Message (MAL-value Output)
                (unless (= Message "end of token stream")

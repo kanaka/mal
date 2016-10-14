@@ -22,7 +22,7 @@
 (de MAL-seq? (X)
    (memq (MAL-type X) '(list vector)) )
 
-(def 'ns
+(def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))
      (- . `(MAL-fn '((A B) (MAL-number (- (MAL-value A) (MAL-value B))))))
      (* . `(MAL-fn '((A B) (MAL-number (* (MAL-value A) (MAL-value B))))))
