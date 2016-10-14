@@ -22,6 +22,11 @@
 (de MAL-seq? (X)
    (memq (MAL-type X) '(list vector)) )
 
+(de MAL-swap! @
+   (let (X (next) Fn (next) Args (rest)
+         F (MAL-value (if (isa '+Func Fn) (get Fn 'fn) Fn)) )
+      (put X 'value (apply F Args (MAL-value X))) ) )
+
 (def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))
      (- . `(MAL-fn '((A B) (MAL-number (- (MAL-value A) (MAL-value B))))))
@@ -43,4 +48,13 @@
      (pr-str . `(MAL-fn '(@ (MAL-string (glue " " (mapcar '((X) (pr-str X T)) (rest)))))))
      (str . `(MAL-fn '(@ (MAL-string (pack (mapcar pr-str (rest)))))))
      (prn . `(MAL-fn '(@ (prinl (glue " " (mapcar '((X) (pr-str X T)) (rest)))) *MAL-nil)))
-     (println . `(MAL-fn '(@ (prinl (glue " " (mapcar pr-str (rest)))) *MAL-nil))) ) )
+     (println . `(MAL-fn '(@ (prinl (glue " " (mapcar pr-str (rest)))) *MAL-nil)))
+
+     (read-string . `(MAL-fn '((X) (read-str (MAL-value X)))))
+     (slurp . `(MAL-fn '((X) (MAL-string (in (MAL-value X) (till NIL T))))))
+
+     (atom . `(MAL-fn '((X) (MAL-atom X))))
+     (atom? . `(MAL-fn '((X) (if (= (MAL-type X) 'atom) *MAL-true *MAL-false))))
+     (deref . `(MAL-fn '((X) (MAL-value X))))
+     (reset! . `(MAL-fn '((X Value) (put X 'value Value))))
+     (swap! . `(MAL-fn MAL-swap!) ) ) )

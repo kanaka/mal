@@ -21,7 +21,7 @@
          (for (Chars (chop String) Chars)
             (let Char (pop 'Chars)
                (cond
-                  ((member Char '(" " ","))
+                  ((member Char '(" " "," "\n"))
                    # do nothing, whitespace
                    )
                   ((and (= Char "~") (= (car Chars) "@"))

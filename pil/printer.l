@@ -11,6 +11,7 @@
          (list (pr-list Value PrintReadably "(" ")"))
          (vector (pr-list Value PrintReadably "[" "]"))
          (map (pr-list Value PrintReadably "{" "}"))
+         (atom (pack "(atom " (pr-str Value PrintReadably) ")"))
          (T (pretty Value) (throw 'err (MAL-error "[pr-str] unimplemented type"))) ) ) )
 
 (de repr (X)
