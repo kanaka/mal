@@ -38,8 +38,8 @@
 (de PRINT (Ast)
    (pr-str Ast T) )
 
-(de rep (String Env)
-   (PRINT (EVAL (READ String) Env)) )
+(de rep (String)
+   (PRINT (EVAL (READ String) *ReplEnv)) )
 
 (load-history ".mal_history")
 
@@ -48,7 +48,7 @@
       (let Input (readline "user> ")
          (if (=0 Input)
             (setq Eof T)
-            (let Output (catch 'err (rep Input *ReplEnv))
+            (let Output (catch 'err (rep Input))
                 (if (isa '+MALError Output)
                    (let Message (MAL-value Output)
                       (unless (= Message "end of token stream")

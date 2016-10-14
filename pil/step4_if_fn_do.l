@@ -70,16 +70,16 @@
 (de PRINT (Ast)
    (pr-str Ast T) )
 
-(de rep (String Env)
-   (PRINT (EVAL (READ String) Env)) )
+(de rep (String)
+   (PRINT (EVAL (READ String) *ReplEnv)) )
 
-(rep "(def! not (fn* (a) (if a false true)))" *ReplEnv)
+(rep "(def! not (fn* (a) (if a false true)))")
 
 (load-history ".mal_history")
 
 (use Input
    (until (=0 (setq Input (readline "user> ")))
-      (let Output (catch 'err (rep Input *ReplEnv))
+      (let Output (catch 'err (rep Input))
          (if (isa '+MALError Output)
             (let Message (MAL-value Output)
                (unless (= Message "end of token stream")
