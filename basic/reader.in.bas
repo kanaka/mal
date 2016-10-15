@@ -59,6 +59,7 @@ READ_FORM:
   IF CH$="-" THEN GOTO READ_SYMBOL_MAYBE
 
   IF CH$=CHR$(34) THEN GOTO READ_STRING
+  IF CH$=":" THEN GOTO READ_KEYWORD
   IF CH$="(" THEN T=6:GOTO READ_SEQ
   IF CH$=")" THEN T=6:GOTO READ_SEQ_END
   IF CH$="[" THEN T=7:GOTO READ_SEQ
@@ -79,9 +80,7 @@ READ_FORM:
     GOTO READ_FORM_DONE
   READ_NUMBER:
     REM PRINT "READ_NUMBER"
-    SZ=1:GOSUB ALLOC
-    Z%(R,0)=2+16
-    Z%(R,1)=VAL(T$)
+    T=2:L=VAL(T$):GOSUB ALLOC
     GOTO READ_FORM_DONE
   READ_MACRO:
     IDX%=IDX%+LEN(T$)
@@ -94,7 +93,9 @@ READ_FORM:
     SD=S%(X-1):B2%=S%(X):X=X-2: REM pop SD, pop symbol into B2%
 
     GOSUB LIST2
-    AY=B1%:GOSUB RELEASE: REM release value, list has ownership
+    REM release values, list has ownership
+    AY=B1%:GOSUB RELEASE
+    AY=B2%:GOSUB RELEASE
 
     T$=""
     GOTO READ_FORM_DONE
@@ -107,14 +108,18 @@ READ_FORM:
     S1$=CHR$(92)+"n":S2$=CHR$(13):GOSUB REPLACE: REM unescape newlines
     S1$=CHR$(92)+CHR$(92):S2$=CHR$(92):GOSUB REPLACE: REM unescape backslashes
     REM intern string value
-    AS$=R$:T=4+16:GOSUB STRING
+    AS$=R$:T=4:GOSUB STRING
+    GOTO READ_FORM_DONE
+  READ_KEYWORD:
+    R$=CHR$(127)+MID$(T$,2,LEN(T$)-1)
+    AS$=R$:T=4:GOSUB STRING
     GOTO READ_FORM_DONE
   READ_SYMBOL_MAYBE:
     CH$=MID$(T$,2,1)
     IF CH$>="0" AND CH$<="9" THEN GOTO READ_NUMBER
   READ_SYMBOL:
     REM PRINT "READ_SYMBOL"
-    AS$=T$:T=5+16:GOSUB STRING
+    AS$=T$:T=5:GOSUB STRING
     GOTO READ_FORM_DONE
 
   READ_SEQ:
@@ -122,16 +127,10 @@ READ_FORM:
     SD=SD+1: REM increase read sequence depth
 
     REM allocate first sequence entry and space for value
-    SZ=2:GOSUB ALLOC
+    L=0:N=0:GOSUB ALLOC: REM T alread set above
 
     REM set reference value/pointer to new embedded sequence
     IF SD>1 THEN Z%(S%(X)+1,1)=R
-
-    REM set the type (with 1 ref cnt) and next pointer to current end
-    Z%(R,0)=T+16
-    Z%(R,1)=0
-    Z%(R+1,0)=14
-    Z%(R+1,1)=0
 
     REM push start ptr on the stack
     X=X+1
@@ -167,7 +166,8 @@ READ_FORM:
     REM PRINT "READ_FORM_DONE next list entry"
 
     REM allocate new sequence entry and space for value
-    SZ=2:GOSUB ALLOC
+    REM set type to previous type, with ref count of 1 (from previous)
+    T=S%(X-1):L=0:N=0:GOSUB ALLOC
 
     REM previous element
     T7=S%(X)
@@ -175,11 +175,6 @@ READ_FORM:
     Z%(T7,1)=R
     REM set the list value pointer
     Z%(T7+1,1)=T8
-    REM set type to previous type, with ref count of 1 (from previous)
-    Z%(R,0)=S%(X-1)+16
-    Z%(R,1)=0: REM current end of sequence
-    Z%(R+1,0)=14
-    Z%(R+1,1)=0
 
     IF T7=S%(X-2) THEN GOTO READ_FORM_SKIP_FIRST
     Z%(T7,1)=R

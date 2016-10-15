@@ -6,11 +6,11 @@ REM float              3   ->  ???
 REM string/kw          4   ->  S$ index
 REM symbol             5   ->  S$ index
 REM list next/val      6   ->  next Z% index (0 for last)
-REM                    followed by value (unless empty)
+REM                    followed by 14 and value (unless empty)
 REM vector next/val    7   ->  next Z% index (0 for last)
-REM                    followed by value (unless empty)
+REM                    followed by 14 and value (unless empty)
 REM hashmap next/val   8   ->  next Z% index (0 for last)
-REM                    followed by key or value (alternating)
+REM                    followed by 14 and key/value (alternating)
 REM function           9   ->  function index
 REM mal function       10  ->  body AST Z% index
 REM                    followed by param and env Z% index
@@ -18,7 +18,7 @@ REM macro (same as 10) 11  ->  body AST Z% index
 REM                    followed by param and env Z% index
 REM atom               12  ->  Z% index
 REM environment        13  ->  data/hashmap Z% index
-REM                    followed by 13 and outer Z% index (-1 for none)
+REM                    followed by 14 and outer Z% index (-1 for none)
 REM reference/ptr      14  ->  Z% index / or 0
 REM next free ptr      15  ->  Z% index / or 0
 
@@ -66,11 +66,19 @@ INIT_MEMORY:
   REM PRINT "Interpreter working memory: "+STR$(FRE(0))
   RETURN
 
+
 REM memory functions
 
-REM ALLOC(SZ) -> R
+REM ALLOC(T,L) -> R
+REM ALLOC(T,L,N) -> R
+REM ALLOC(T,L,M,N) -> R
+REM L is default for Z%(R,1)
+REM M is default for Z%(R+1,0), if relevant for T
+REM N is default for Z%(R+1,1), if relevant for T
 ALLOC:
-  REM PRINT "ALLOC SZ: "+STR$(SZ)+", ZK: "+STR$(ZK)
+  SZ=2
+  IF T<6 OR T=9 OR T=12 OR T>13 THEN SZ=1
+  REM PRINT "ALLOC T: "+STR$(T)+", SZ: "+STR$(SZ)+", ZK: "+STR$(ZK)
   U3=ZK
   U4=ZK
   ALLOC_LOOP:
@@ -88,7 +96,7 @@ ALLOC:
     IF U4=ZK THEN ZK=Z%(U4,1)
     REM set previous free to next free
     IF U4<>ZK THEN Z%(U3,1)=Z%(U4,1)
-    RETURN
+    GOTO ALLOC_DONE
   ALLOC_UNUSED:
     REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U3: "+STR$(U3)+", U4: "+STR$(U4)
     R=U4
@@ -96,6 +104,22 @@ ALLOC:
     IF U3=U4 THEN ZK=ZI
     REM set previous free to new memory top
     IF U3<>U4 THEN Z%(U3,1)=ZI
+    GOTO ALLOC_DONE
+  ALLOC_DONE:
+    Z%(R,0)=T+16
+    REM set Z%(R,1) to default L
+    IF T>=6 AND T<>9 AND L>0 THEN Z%(L,0)=Z%(L,0)+16
+    Z%(R,1)=L
+
+    IF SZ=1 THEN RETURN
+    Z%(R+1,0)=14: REM default for 6-8, and 13
+
+    REM function/macro sets Z%(R+1,0) to default M
+    IF T=10 OR T=11 THEN Z%(M,0)=Z%(M,0)+16:Z%(R+1,0)=M
+
+    REM seq, function/macro, environment sets Z%(R+1,1) to default N
+    IF N>0 THEN Z%(N,0)=Z%(N,0)+16
+    Z%(R+1,1)=N
     RETURN
 
 REM FREE(AY, SZ) -> nil
@@ -224,20 +248,6 @@ DEREF_B:
   IF (Z%(B,0)AND15)=14 THEN B=Z%(B,1):GOTO DEREF_B
   RETURN
 
-CHECK_FREE_LIST:
-  REM start and accumulator
-  P1%=ZK
-  P2%=0
-  CHECK_FREE_LIST_LOOP:
-    IF P1%>=ZI THEN GOTO CHECK_FREE_LIST_DONE
-    IF (Z%(P1%,0)AND15)<>15 THEN P2%=-1:GOTO CHECK_FREE_LIST_DONE
-    P2%=P2%+(Z%(P1%,0)AND-16)/16
-    P1%=Z%(P1%,1)
-    GOTO CHECK_FREE_LIST_LOOP
-  CHECK_FREE_LIST_DONE:
-    IF P2%=-1 THEN PRINT "corrupt free list at "+STR$(P1%)
-    RETURN
-
 
 REM general functions
 
@@ -247,9 +257,9 @@ EQUAL_Q:
   GOSUB DEREF_B
 
   R=0
-  U1=(Z%(A,0)AND15)
-  U2=(Z%(B,0)AND15)
-  IF NOT ((U1=U2) OR ((U1=6 OR U1=7) AND (U2=6 OR U2=7))) THEN RETURN
+  U1=Z%(A,0)AND15
+  U2=Z%(B,0)AND15
+  IF NOT (U1=U2 OR ((U1=6 OR U1=7) AND (U2=6 OR U2=7))) THEN RETURN
   IF U1=6 THEN GOTO EQUAL_Q_SEQ
   IF U1=7 THEN GOTO EQUAL_Q_SEQ
   IF U1=8 THEN GOTO EQUAL_Q_HM
@@ -297,10 +307,7 @@ REM STRING(AS$, T) -> R
 REM intern string and allocate reference (return Z% index)
 STRING:
   GOSUB STRING_
-  TS%=R
-  SZ=1:GOSUB ALLOC
-  Z%(R,0)=T
-  Z%(R,1)=TS%
+  L=R:GOSUB ALLOC
   RETURN
 
 REM REPLACE(R$, S1$, S2$) -> R$
@@ -317,7 +324,18 @@ REPLACE:
     GOTO REPLACE_LOOP
 
 
-REM list functions
+REM sequence functions
+
+REM FORCE_SEQ_TYPE(A,T) -> R
+FORCE_SEQ_TYPE:
+  REM if it's already the right type, inc ref cnt and return it
+  IF (Z%(A,0)AND15)=T THEN R=A:Z%(R,0)=Z%(R,0)+16:RETURN
+  REM otherwise, copy first element to turn it into correct type
+  B=A+1:GOSUB DEREF_B: REM value to copy
+  L=Z%(A,1):N=B:GOSUB ALLOC: REM T already set
+  IF Z%(A,1)=0 THEN RETURN
+  RETURN
+
 
 REM LIST_Q(A) -> R
 LIST_Q:
@@ -354,19 +372,6 @@ LAST:
     Z%(R,0)=Z%(R,0)+16
     RETURN
 
-REM CONS(A,B) -> R
-CONS:
-  SZ=2:GOSUB ALLOC
-  Z%(R,0)=6+16
-  Z%(R,1)=B
-  Z%(R+1,0)=14
-  Z%(R+1,1)=A
-  REM inc ref cnt of item we are including
-  Z%(A,0)=Z%(A,0)+16
-  REM inc ref cnt of list we are prepending
-  Z%(B,0)=Z%(B,0)+16
-  RETURN
-
 REM SLICE(A,B,C) -> R
 REM make copy of sequence A from index B to C
 REM returns R6 as reference to last element of slice
@@ -377,8 +382,7 @@ SLICE:
   R6=0: REM previous list element
   SLICE_LOOP:
     REM always allocate at least one list element
-    SZ=2:GOSUB ALLOC
-    Z%(R,0)=6+16:Z%(R,1)=0:Z%(R+1,0)=14:Z%(R+1,1)=0
+    T=6:L=0:N=0:GOSUB ALLOC
     IF R5=-1 THEN R5=R
     IF R5<>-1 THEN Z%(R6,1)=R
     REM advance A to position B
@@ -399,76 +403,55 @@ SLICE:
 
 REM LIST2(B2%,B1%) -> R
 LIST2:
-  REM terminator
-  SZ=2:GOSUB ALLOC:TB%=R
-  Z%(R,0)=6+16:Z%(R,1)=0:Z%(R+1,0)=0:Z%(R+1,1)=0
-
-  REM second element is B1%
-  SZ=2:GOSUB ALLOC:TC%=R
-  Z%(R,0)=6+16:Z%(R,1)=TB%:Z%(R+1,0)=14:Z%(R+1,1)=B1%
-  Z%(B1%,0)=Z%(B1%,0)+16
+  REM last element is 3 (empty list), second element is B1%
+  T=6:L=3:N=B1%:GOSUB ALLOC
 
   REM first element is B2%
-  SZ=2:GOSUB ALLOC
-  Z%(R,0)=6+16:Z%(R,1)=TC%:Z%(R+1,0)=14:Z%(R+1,1)=B2%
-  Z%(B2%,0)=Z%(B2%,0)+16
+  T=6:L=R:N=B2%:GOSUB ALLOC
+  AY=L:GOSUB RELEASE: REM new list takes ownership of previous
 
   RETURN
 
 REM LIST3(B3%,B2%,B1%) -> R
 LIST3:
-  GOSUB LIST2:TC%=R
+  GOSUB LIST2
 
   REM first element is B3%
-  SZ=2:GOSUB ALLOC
-  Z%(R,0)=6+16:Z%(R,1)=TC%:Z%(R+1,0)=14:Z%(R+1,1)=B3%
-  Z%(B3%,0)=Z%(B3%,0)+16
+  T=6:L=R:N=B3%:GOSUB ALLOC
+  AY=L:GOSUB RELEASE: REM new list takes ownership of previous
 
   RETURN
+
 
 REM hashmap functions
 
 REM HASHMAP() -> R
 HASHMAP:
-  SZ=2:GOSUB ALLOC
-  Z%(R,0)=8+16
-  Z%(R,1)=0
-  Z%(R+1,0)=14
-  Z%(R+1,1)=0
+  T=8:L=0:N=0:GOSUB ALLOC
   RETURN
 
 REM ASSOC1(H, K, V) -> R
 ASSOC1:
-  REM deref to actual key and value
-  R=K:GOSUB DEREF_R:K=R
+  REM deref K and V
   R=V:GOSUB DEREF_R:V=R
+  R=K:GOSUB DEREF_R:K=R
 
-  REM inc ref count of key and value
-  Z%(K,0)=Z%(K,0)+16
-  Z%(V,0)=Z%(V,0)+16
-  SZ=4:GOSUB ALLOC
-  REM key ptr
-  Z%(R,0)=8+16
-  Z%(R,1)=R+2: REM point to next element (value)
-  Z%(R+1,0)=14
-  Z%(R+1,1)=K
   REM value ptr
-  Z%(R+2,0)=8+16
-  Z%(R+2,1)=H: REM hashmap to assoc onto
-  Z%(R+3,0)=14
-  Z%(R+3,1)=V
+  T=8:L=H:N=V:GOSUB ALLOC
+  AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
+  REM key ptr
+  T=8:L=R:N=K:GOSUB ALLOC
+  AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
   RETURN
 
 REM ASSOC1(H, K$, V) -> R
 ASSOC1_S:
-  REM add the key string, then call ASSOC1
-  SZ=1:GOSUB ALLOC
-  K=R
   S$(ZJ)=K$
-  Z%(R,0)=4: REM key ref cnt will be inc'd by ASSOC1
-  Z%(R,1)=ZJ
+  REM add the key string
+  T=4:L=ZJ:GOSUB ALLOC
   ZJ=ZJ+1
-  GOSUB ASSOC1
+  K=R:GOSUB ASSOC1
+  AY=K:GOSUB RELEASE: REM map took ownership of key
   RETURN
 
 REM HASHMAP_GET(H, K) -> R
@@ -498,24 +481,17 @@ HASHMAP_CONTAINS:
   R=T3
   RETURN
 
+
+REM function functions
+
 REM NATIVE_FUNCTION(A) -> R
 NATIVE_FUNCTION:
-  SZ=1:GOSUB ALLOC
-  Z%(R,0)=9+16
-  Z%(R,1)=A
+  T=9:L=A:GOSUB ALLOC
   RETURN
 
 REM MAL_FUNCTION(A, P, E) -> R
 MAL_FUNCTION:
-  SZ=2:GOSUB ALLOC
-  Z%(A,0)=Z%(A,0)+16
-  Z%(P,0)=Z%(P,0)+16
-  Z%(E,0)=Z%(E,0)+16
-
-  Z%(R,0)=10+16
-  Z%(R,1)=A
-  Z%(R+1,0)=P
-  Z%(R+1,1)=E
+  T=10:L=A:M=P:N=E:GOSUB ALLOC
   RETURN
 
 REM APPLY(F, AR) -> R

@@ -3,15 +3,11 @@ REM ENV_NEW(O) -> R
 ENV_NEW:
   REM allocate the data hashmap
   GOSUB HASHMAP
-  ET%=R
+  ET=R
 
   REM set the outer and data pointer
-  SZ=2:GOSUB ALLOC
-  Z%(R,0)=13+16
-  Z%(R,1)=ET%
-  Z%(R+1,0)=13
-  Z%(R+1,1)=O
-  IF O<>-1 THEN Z%(O,0)=Z%(O,0)+16
+  T=13:L=R:N=O:GOSUB ALLOC
+  AY=ET:GOSUB RELEASE: REM environment takes ownership
   RETURN
 
 REM see RELEASE types.in.bas for environment cleanup

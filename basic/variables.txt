@@ -30,6 +30,9 @@ F   : function
 H   : hash map
 K   : hash map key (Z% index)
 K$  : hash map key string
+L   : ALLOC* Z%(R,1) default
+M   : ALLOC* Z%(R+1,0) default
+N   : ALLOC* Z%(R+1,1) default
 O   : outer environment
 P   : MAL_FUNCTION
 R   : common return value

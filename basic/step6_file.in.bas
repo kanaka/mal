@@ -39,8 +39,8 @@ EVAL_AST:
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
-    REM allocate the first entry
-    SZ=2:GOSUB ALLOC
+    REM allocate the first entry (T already set above)
+    L=0:N=0:GOSUB ALLOC
 
     REM make space on the stack
     X=X+4
@@ -54,13 +54,6 @@ EVAL_AST:
     S%(X)=R
 
     EVAL_AST_SEQ_LOOP:
-      REM set new sequence entry type (with 1 ref cnt)
-      Z%(R,0)=S%(X-3)+16
-      Z%(R,1)=0
-      REM create value ptr placeholder
-      Z%(R+1,0)=14
-      Z%(R+1,1)=0
-
       REM update index
       S%(X-2)=S%(X-2)+1
 
@@ -90,7 +83,8 @@ EVAL_AST:
       IF ER<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
-      SZ=2:GOSUB ALLOC
+      REM same new sequence entry type
+      T=S%(X-3):L=0:N=0:GOSUB ALLOC
 
       REM update previous sequence entry value to point to new entry
       Z%(S%(X),1)=R

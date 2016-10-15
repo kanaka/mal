@@ -31,6 +31,7 @@ QUASIQUOTE:
     REM ['quote, ast]
     AS$="quote":T=5:GOSUB STRING
     B2%=R:B1%=A:GOSUB LIST2
+    AY=B2%:GOSUB RELEASE
 
     RETURN
 
@@ -67,6 +68,7 @@ QUASIQUOTE:
       B1%=T6:GOSUB LIST3
       REM release inner quasiquoted since outer list takes ownership
       AY=B1%:GOSUB RELEASE
+      AY=B3%:GOSUB RELEASE
       RETURN
 
   QQ_DEFAULT:
@@ -84,6 +86,7 @@ QUASIQUOTE:
     REM release inner quasiquoted since outer list takes ownership
     AY=B1%:GOSUB RELEASE
     AY=B2%:GOSUB RELEASE
+    AY=B3%:GOSUB RELEASE
     RETURN
 
 REM MACROEXPAND(A, E) -> A:
@@ -147,8 +150,8 @@ EVAL_AST:
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
-    REM allocate the first entry
-    SZ=2:GOSUB ALLOC
+    REM allocate the first entry (T already set above)
+    L=0:N=0:GOSUB ALLOC
 
     REM make space on the stack
     X=X+4
@@ -162,13 +165,6 @@ EVAL_AST:
     S%(X)=R
 
     EVAL_AST_SEQ_LOOP:
-      REM set new sequence entry type (with 1 ref cnt)
-      Z%(R,0)=S%(X-3)+16
-      Z%(R,1)=0
-      REM create value ptr placeholder
-      Z%(R+1,0)=14
-      Z%(R+1,1)=0
-
       REM update index
       S%(X-2)=S%(X-2)+1
 
@@ -198,7 +194,8 @@ EVAL_AST:
       IF ER<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
-      SZ=2:GOSUB ALLOC
+      REM same new sequence entry type
+      T=S%(X-3):L=0:N=0:GOSUB ALLOC
 
       REM update previous sequence entry value to point to new entry
       Z%(S%(X),1)=R

@@ -9,24 +9,21 @@ DO_FUNCTION:
   R=Z%(AR,1)+1:GOSUB DEREF_R:AB=R
 
   REM Switch on the function number
-  IF FF>=61 THEN ER=-1:ER$="unknown function"+STR$(FF):RETURN
-  IF FF>=53 THEN DO_53
-  IF FF>=39 THEN DO_39
-  IF FF>=27 THEN DO_27
-  IF FF>=18 THEN DO_18
-  IF FF>=11 THEN DO_11
+  IF FF>58 THEN ER=-1:ER$="unknown function"+STR$(FF):RETURN
+  ON FF/10+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_59
 
-  ON FF GOTO DO_EQUAL_Q,DO_THROW,DO_NIL_Q,DO_TRUE_Q,DO_FALSE_Q,DO_STRING_Q,DO_SYMBOL,DO_SYMBOL_Q
-  DO_11:
-  ON FF-10 GOTO DO_PR_STR,DO_STR,DO_PRN,DO_PRINTLN,DO_READ_STRING,DO_READLINE,DO_SLURP
-  DO_18:
-  ON FF-17 GOTO DO_LT,DO_LTE,DO_GT,DO_GTE,DO_ADD,DO_SUB,DO_MULT,DO_DIV,DO_TIME_MS
-  DO_27:
-  ON FF-26 GOTO DO_LIST,DO_LIST_Q,DO_VECTOR,DO_VECTOR_Q,DO_HASH_MAP,DO_MAP_Q
-  DO_39:
-  ON FF-38 GOTO DO_SEQUENTIAL_Q,DO_CONS,DO_CONCAT,DO_NTH,DO_FIRST,DO_REST,DO_EMPTY_Q,DO_COUNT,DO_APPLY,DO_MAP
-  DO_53:
-  ON FF-52 GOTO DO_ATOM,DO_ATOM_Q,DO_DEREF,DO_RESET_BANG,DO_SWAP_BANG,DO_PR_MEMORY,DO_PR_MEMORY_SUMMARY,DO_EVAL
+  DO_1_9:
+  ON FF GOTO DO_EQUAL_Q,DO_THROW,DO_NIL_Q,DO_TRUE_Q,DO_FALSE_Q,DO_STRING_Q,DO_SYMBOL,DO_SYMBOL_Q,DO_KEYWORD
+  DO_10_19:
+  ON FF-9 GOTO DO_KEYWORD_Q,DO_PR_STR,DO_STR,DO_PRN,DO_PRINTLN,DO_READ_STRING,DO_READLINE,DO_SLURP,DO_LT,DO_LTE
+  DO_20_29:
+  ON FF-19 GOTO DO_GT,DO_GTE,DO_ADD,DO_SUB,DO_MULT,DO_DIV,DO_TIME_MS,DO_LIST,DO_LIST_Q,DO_VECTOR
+  DO_30_39:
+  ON FF-29 GOTO DO_VECTOR_Q,DO_HASH_MAP,DO_MAP_Q,DO_THROW,DO_THROW,DO_THROW,DO_THROW,DO_THROW,DO_THROW,DO_SEQUENTIAL_Q
+  DO_40_49:
+  ON FF-39 GOTO DO_CONS,DO_CONCAT,DO_NTH,DO_FIRST,DO_REST,DO_EMPTY_Q,DO_COUNT,DO_APPLY,DO_MAP,DO_THROW
+  DO_50_59:
+  ON FF-49 GOTO DO_THROW,DO_THROW,DO_THROW,DO_ATOM,DO_ATOM_Q,DO_DEREF,DO_RESET_BANG,DO_SWAP_BANG,DO_EVAL
 
   DO_EQUAL_Q:
     A=AA:B=AB:GOSUB EQUAL_Q
@@ -54,20 +51,33 @@ DO_FUNCTION:
     IF (Z%(AA,0)AND15)=4 THEN R=2
     RETURN
   DO_SYMBOL:
-    R=0
+    T=5:L=Z%(AA,1):GOSUB ALLOC
     RETURN
   DO_SYMBOL_Q:
     R=1
     IF (Z%(AA,0)AND15)=5 THEN R=2
     RETURN
+  DO_KEYWORD:
+    A=Z%(AA,1)
+    AS$=S$(A)
+    IF MID$(AS$,1,1)<>CHR$(127) THEN AS$=CHR$(127)+AS$
+    GOSUB STRING_
+    T=4:L=R:GOSUB ALLOC
+    RETURN
+  DO_KEYWORD_Q:
+    R=1
+    IF (Z%(AA,0)AND15)<>4 THEN RETURN
+    IF MID$(S$(Z%(AA,1)),1,1)<>CHR$(127) THEN RETURN
+    R=2
+    RETURN
 
   DO_PR_STR:
     AZ=AR:PR=1:SE$=" ":GOSUB PR_STR_SEQ
-    AS$=R$:T=4+16:GOSUB STRING
+    AS$=R$:T=4:GOSUB STRING
     RETURN
   DO_STR:
     AZ=AR:PR=0:SE$="":GOSUB PR_STR_SEQ
-    AS$=R$:T=4+16:GOSUB STRING
+    AS$=R$:T=4:GOSUB STRING
     RETURN
   DO_PRN:
     AZ=AR:PR=1:SE$=" ":GOSUB PR_STR_SEQ
@@ -87,7 +97,6 @@ DO_FUNCTION:
     A$=S$(Z%(AA,1)):GOSUB READLINE
     IF EOF=1 THEN EOF=0:R=0:RETURN
     AS$=R$:T=4:GOSUB STRING
-    Z%(R,0)=Z%(R,0)+16
     RETURN
   DO_SLURP:
     R$=""
@@ -104,7 +113,7 @@ DO_FUNCTION:
       GOTO DO_SLURP_LOOP
     DO_SLURP_DONE:
       CLOSE 1
-      AS$=R$:T=4+16:GOSUB STRING
+      AS$=R$:T=4:GOSUB STRING
       RETURN
 
   DO_LT:
@@ -125,24 +134,16 @@ DO_FUNCTION:
     RETURN
 
   DO_ADD:
-    SZ=1:GOSUB ALLOC
-    Z%(R,0)=2+16
-    Z%(R,1)=Z%(AA,1)+Z%(AB,1)
+    T=2:L=Z%(AA,1)+Z%(AB,1):GOSUB ALLOC
     RETURN
   DO_SUB:
-    SZ=1:GOSUB ALLOC
-    Z%(R,0)=2+16
-    Z%(R,1)=Z%(AA,1)-Z%(AB,1)
+    T=2:L=Z%(AA,1)-Z%(AB,1):GOSUB ALLOC
     RETURN
   DO_MULT:
-    SZ=1:GOSUB ALLOC
-    Z%(R,0)=2+16
-    Z%(R,1)=Z%(AA,1)*Z%(AB,1)
+    T=2:L=Z%(AA,1)*Z%(AB,1):GOSUB ALLOC
     RETURN
   DO_DIV:
-    SZ=1:GOSUB ALLOC
-    Z%(R,0)=2+16
-    Z%(R,1)=Z%(AA,1)/Z%(AB,1)
+    T=2:L=Z%(AA,1)/Z%(AB,1):GOSUB ALLOC
     RETURN
   DO_TIME_MS:
     R=0
@@ -157,14 +158,14 @@ DO_FUNCTION:
     R=R+1: REM map to mal false/true
     RETURN
   DO_VECTOR:
-    R=0
+    A=AR:T=7:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_VECTOR_Q:
     R=1
     IF (Z%(AA,0)AND15)=7 THEN R=2
     RETURN
   DO_HASH_MAP:
-    R=0
+    A=AR:T=8:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_MAP_Q:
     R=1
@@ -176,7 +177,7 @@ DO_FUNCTION:
     IF (Z%(AA,0)AND15)=6 OR (Z%(AA,0)AND15)=7 THEN R=2
     RETURN
   DO_CONS:
-    A=AA:B=AB:GOSUB CONS
+    T=6:L=AB:N=AA:GOSUB ALLOC
     RETURN
   DO_CONCAT:
     REM if empty arguments, return empty list
@@ -184,16 +185,8 @@ DO_FUNCTION:
 
     REM single argument
     IF Z%(Z%(AR,1),1)<>0 THEN GOTO DO_CONCAT_MULT
-      REM if single argument and it's a list, return it
-      IF (Z%(AA,0)AND15)=6 THEN R=AA:Z%(R,0)=Z%(R,0)+16:RETURN
-      REM otherwise, copy first element to turn it into a list
-      B=AA+1:GOSUB DEREF_B: REM value to copy
-      SZ=2:GOSUB ALLOC
-      Z%(R,0)=6+16:Z%(R,1)=Z%(AA,1)
-      Z%(R+1,0)=14:Z%(R+1,1)=B
-      REM inc ref count of trailing list part and of copied value
-      Z%(Z%(AA,1),0)=Z%(Z%(AA,1),0)+16
-      Z%(B,0)=Z%(B,0)+16
+      REM force to list type
+      A=AA:T=6:GOSUB FORCE_SEQ_TYPE
       RETURN
 
     REM multiple arguments
@@ -238,32 +231,35 @@ DO_FUNCTION:
       Z%(R,0)=Z%(R,0)+16
       RETURN
   DO_FIRST:
+    IF AA=0 THEN R=0:RETURN
     IF Z%(AA,1)=0 THEN R=0
     IF Z%(AA,1)<>0 THEN R=AA+1:GOSUB DEREF_R
     IF R<>0 THEN Z%(R,0)=Z%(R,0)+16
     RETURN
   DO_REST:
-    IF Z%(AA,1)=0 THEN R=AA
-    IF Z%(AA,1)<>0 THEN R=Z%(AA,1)
-    Z%(R,0)=Z%(R,0)+16
+    IF AA=0 THEN R=3:Z%(R,0)=Z%(R,0)+16:RETURN
+    IF Z%(AA,1)=0 THEN A=AA
+    IF Z%(AA,1)<>0 THEN A=Z%(AA,1)
+    T=6:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_EMPTY_Q:
     R=1
     IF Z%(AA,1)=0 THEN R=2
     RETURN
   DO_COUNT:
-    A=AA:GOSUB COUNT:R4=R
-    SZ=1:GOSUB ALLOC
-    Z%(R,0)=2+16
-    Z%(R,1)=R4
+    A=AA:GOSUB COUNT
+    T=2:L=R:GOSUB ALLOC
     RETURN
   DO_APPLY:
     F=AA
     AR=Z%(AR,1)
     A=AR:GOSUB COUNT:R4=R
 
+    A=Z%(AR+1,1)
+    REM no intermediate args, but not a list, so convert it first
+    IF R4<=1 AND (Z%(A,0)AND15)<>6 THEN :T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
     REM no intermediate args, just call APPLY directly
-    IF R4<=1 THEN AR=Z%(AR+1,1):GOSUB APPLY:RETURN
+    IF R4<=1 THEN AR=A:GOSUB APPLY:RETURN
 
     REM prepend intermediate args to final args element
     A=AR:B=0:C=R4-1:GOSUB SLICE
@@ -273,24 +269,21 @@ DO_FUNCTION:
     Z%(R6,1)=Z%(A+1,1)
     Z%(Z%(A+1,1),0)=Z%(Z%(A+1,1),0)+16
 
-    X=X+1:S%(X)=R: REM push/save new args for release
-    AR=R:GOSUB APPLY
-    AY=S%(X):X=X-1:GOSUB RELEASE: REM pop/release new args
-    RETURN
+    DO_APPLY_2:
+      X=X+1:S%(X)=R: REM push/save new args for release
+      AR=R:GOSUB APPLY
+      AY=S%(X):X=X-1:GOSUB RELEASE: REM pop/release new args
+      RETURN
   DO_MAP:
     F=AA
 
     REM first result list element
-    SZ=2:GOSUB ALLOC
+    T=6:L=0:N=0:GOSUB ALLOC
 
     REM push future return val, prior entry, F and AB
     X=X+4:S%(X-3)=R:S%(X-2)=0:S%(X-1)=F:S%(X)=AB
 
     DO_MAP_LOOP:
-      REM set base values
-      Z%(R,0)=6+16:Z%(R,1)=0
-      Z%(R+1,0)=14:Z%(R+1,1)=0
-
       REM set previous to current if not the first element
       IF S%(X-2)<>0 THEN Z%(S%(X-2),1)=R
       REM update previous reference to current
@@ -299,15 +292,9 @@ DO_FUNCTION:
       IF Z%(AB,1)=0 THEN GOTO DO_MAP_DONE
 
       REM create argument list for apply call
-      SZ=2:GOSUB ALLOC
-      Z%(R,0)=6+16:Z%(R,1)=0
-      Z%(R+1,0)=14:Z%(R+1,1)=0
-      AR=R: REM save end of list temporarily
-      SZ=2:GOSUB ALLOC
-      Z%(R,0)=6+16:Z%(R,1)=AR
+      Z%(3,0)=Z%(3,0)+16
       REM inc ref cnt of referred argument
-      A=Z%(AB+1,1): Z%(A,0)=Z%(A,0)+16
-      Z%(R+1,0)=14:Z%(R+1,1)=A
+      T=6:L=3:N=Z%(AB+1,1):GOSUB ALLOC
 
       REM push argument list
       X=X+1:S%(X)=R
@@ -328,7 +315,7 @@ DO_FUNCTION:
       AB=S%(X)
 
       REM allocate next element
-      SZ=2:GOSUB ALLOC
+      T=6:L=0:N=0:GOSUB ALLOC
 
       GOTO DO_MAP_LOOP
 
@@ -340,10 +327,7 @@ DO_FUNCTION:
       RETURN
 
   DO_ATOM:
-    SZ=1:GOSUB ALLOC
-    Z%(AA,0)=Z%(AA,0)+16: REM inc ref cnt of contained value
-    Z%(R,0)=12+16
-    Z%(R,1)=AA
+    T=12:L=AA:GOSUB ALLOC
     RETURN
   DO_ATOM_Q:
     R=1
@@ -366,7 +350,7 @@ DO_FUNCTION:
     F=AB
 
     REM add atom to front of the args list
-    A=Z%(AA,1):B=Z%(Z%(AR,1),1):GOSUB CONS
+    T=6:L=Z%(Z%(AR,1),1):N=Z%(AA,1):GOSUB ALLOC: REM cons
     AR=R
 
     REM push args for release after
@@ -420,6 +404,8 @@ INIT_CORE_NS:
   K$="string?":A=6:GOSUB INIT_CORE_SET_FUNCTION
   K$="symbol":A=7:GOSUB INIT_CORE_SET_FUNCTION
   K$="symbol?":A=8:GOSUB INIT_CORE_SET_FUNCTION
+  K$="keyword":A=9:GOSUB INIT_CORE_SET_FUNCTION
+  K$="keyword?":A=10:GOSUB INIT_CORE_SET_FUNCTION
 
   K$="pr-str":A=11:GOSUB INIT_CORE_SET_FUNCTION
   K$="str":A=12:GOSUB INIT_CORE_SET_FUNCTION
@@ -445,6 +431,12 @@ INIT_CORE_NS:
   K$="vector?":A=30:GOSUB INIT_CORE_SET_FUNCTION
   K$="hash-map":A=31:GOSUB INIT_CORE_SET_FUNCTION
   K$="map?":A=32:GOSUB INIT_CORE_SET_FUNCTION
+  K$="assoc":A=33:GOSUB INIT_CORE_SET_FUNCTION
+  K$="dissoc":A=34:GOSUB INIT_CORE_SET_FUNCTION
+  K$="get":A=35:GOSUB INIT_CORE_SET_FUNCTION
+  K$="contains?":A=36:GOSUB INIT_CORE_SET_FUNCTION
+  K$="keys":A=37:GOSUB INIT_CORE_SET_FUNCTION
+  K$="vals":A=38:GOSUB INIT_CORE_SET_FUNCTION
 
   K$="sequential?":A=39:GOSUB INIT_CORE_SET_FUNCTION
   K$="cons":A=40:GOSUB INIT_CORE_SET_FUNCTION
@@ -457,14 +449,14 @@ INIT_CORE_NS:
   K$="apply":A=47:GOSUB INIT_CORE_SET_FUNCTION
   K$="map":A=48:GOSUB INIT_CORE_SET_FUNCTION
 
+  K$="with-meta":A=51:GOSUB INIT_CORE_SET_FUNCTION
+  K$="meta":A=52:GOSUB INIT_CORE_SET_FUNCTION
   K$="atom":A=53:GOSUB INIT_CORE_SET_FUNCTION
   K$="atom?":A=54:GOSUB INIT_CORE_SET_FUNCTION
   K$="deref":A=55:GOSUB INIT_CORE_SET_FUNCTION
   K$="reset!":A=56:GOSUB INIT_CORE_SET_FUNCTION
   K$="swap!":A=57:GOSUB INIT_CORE_SET_FUNCTION
 
-  K$="pr-memory":A=58:GOSUB INIT_CORE_SET_FUNCTION
-  K$="pr-memory-summary":A=59:GOSUB INIT_CORE_SET_FUNCTION
-  K$="eval":A=60:GOSUB INIT_CORE_SET_FUNCTION
+  K$="eval":A=58:GOSUB INIT_CORE_SET_FUNCTION
 
   RETURN
