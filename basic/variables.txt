@@ -1,0 +1,48 @@
+Global Unique:
+
+Z%  : boxed memory values
+ZI  : start of unused memory (index into Z%)
+ZK  : start of free list (index into Z%)
+
+S$  : string memory storage
+ZJ  : next free index in S$
+
+S%  : logic/call stack (Z% indexes)
+X   : top element of S% stack
+
+ZR% : pending release stack (index into Z%, eval level)
+ZM% : top element of ZR% stack
+
+RE% : root repl environment
+
+ER  : error type (-2: none, -1: string, >=0: object)
+ER$ : error string (ER=-1)
+
+LV  : EVAL stack call level/depth
+
+Calling arguments/temporaries:
+
+A   : common call arguments (especially EVAL, EVAL_AST)
+B   : common call arguments
+C   : common call arguments
+E   : environment (EVAL, EVAL_AST)
+F   : function
+H   : hash map
+K   : hash map key (Z% index)
+K$  : hash map key string
+O   : outer environment
+P   : MAL_FUNCTION
+R   : common return value
+T   : common temp, type
+V   : hash map value
+
+SZ  : size argument to ALLOC
+
+Reused/temporaries:
+
+I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
+J   : REPLACE
+
+Unused:
+
+D, G, L, M, N, Q, U, W, Y

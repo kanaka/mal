@@ -7,35 +7,35 @@ REM $INCLUDE: 'printer.in.bas'
 
 REM $INCLUDE: 'debug.in.bas'
 
-REM READ(A$) -> R%
+REM READ(A$) -> R
 MAL_READ:
   GOSUB READ_STR
   RETURN
 
-REM EVAL(A%, E%) -> R%
+REM EVAL(A, E) -> R
 EVAL:
-  R%=A%
+  R=A
   RETURN
 
-REM PRINT(A%) -> R$
+REM PRINT(A) -> R$
 MAL_PRINT:
-  AZ%=A%:PR%=1:GOSUB PR_STR
+  AZ=A:PR=1:GOSUB PR_STR
   RETURN
 
 REM REP(A$) -> R$
 REP:
   GOSUB MAL_READ
-  IF ER%<>-2 THEN GOTO REP_DONE
+  IF ER<>-2 THEN GOTO REP_DONE
 
-  A%=R%:GOSUB EVAL
-  IF ER%<>-2 THEN GOTO REP_DONE
+  A=R:GOSUB EVAL
+  IF ER<>-2 THEN GOTO REP_DONE
 
-  A%=R%:GOSUB MAL_PRINT
+  A=R:GOSUB MAL_PRINT
   RT$=R$
 
   REP_DONE:
     REM Release memory from EVAL
-    AY%=R%:GOSUB RELEASE
+    AY=R:GOSUB RELEASE
     R$=RT$
     RETURN
 
@@ -43,7 +43,7 @@ REM MAIN program
 MAIN:
   GOSUB INIT_MEMORY
 
-  ZT%=ZI%: REM top of memory after base repl_env
+  ZT%=ZI: REM top of memory after base repl_env
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
@@ -51,7 +51,7 @@ MAIN:
 
     A$=R$:GOSUB REP: REM call REP
 
-    IF ER%<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
+    IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$
     GOTO REPL_LOOP
 
@@ -62,6 +62,6 @@ MAIN:
 
   PRINT_ERROR:
     PRINT "Error: "+ER$
-    ER%=-2:ER$=""
+    ER=-2:ER$=""
     RETURN
 

@@ -7,7 +7,7 @@ MAL_READ:
   R$=A$
   RETURN
 
-REM EVAL(A$, E%) -> R$
+REM EVAL(A$, E) -> R$
 EVAL:
   R$=A$
   RETURN
@@ -20,8 +20,8 @@ MAL_PRINT:
 REM REP(A$) -> R$
 REP:
   GOSUB MAL_READ
-  A%=R%:GOSUB EVAL
-  A%=R%:GOSUB MAL_PRINT
+  A=R:GOSUB EVAL
+  A=R:GOSUB MAL_PRINT
   RETURN
 
 REM MAIN program
