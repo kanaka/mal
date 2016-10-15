@@ -57,4 +57,7 @@
      (atom? . `(MAL-fn '((X) (if (= (MAL-type X) 'atom) *MAL-true *MAL-false))))
      (deref . `(MAL-fn '((X) (MAL-value X))))
      (reset! . `(MAL-fn '((X Value) (put X 'value Value))))
-     (swap! . `(MAL-fn MAL-swap!) ) ) )
+     (swap! . `(MAL-fn MAL-swap!))
+
+     (cons . `(MAL-fn '((X Seq) (MAL-list (cons X (MAL-value Seq))))))
+     (concat . `(MAL-fn '(@ (MAL-list (apply append (mapcar MAL-value (rest))))))) ) )
