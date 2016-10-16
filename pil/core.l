@@ -27,6 +27,12 @@
          F (MAL-value (if (isa '+Func Fn) (get Fn 'fn) Fn)) )
       (put X 'value (apply F Args (MAL-value X))) ) )
 
+(de MAL-nth (Seq N)
+   (let (Seq* (MAL-value Seq) N* (MAL-value N))
+      (if (< N* (length Seq*))
+         (nth Seq* (inc N*) 1)
+         (throw 'err (MAL-error "out of bounds")) ) ) )
+
 (def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))
      (- . `(MAL-fn '((A B) (MAL-number (- (MAL-value A) (MAL-value B))))))
@@ -60,4 +66,8 @@
      (swap! . `(MAL-fn MAL-swap!))
 
      (cons . `(MAL-fn '((X Seq) (MAL-list (cons X (MAL-value Seq))))))
-     (concat . `(MAL-fn '(@ (MAL-list (apply append (mapcar MAL-value (rest))))))) ) )
+     (concat . `(MAL-fn '(@ (MAL-list (apply append (mapcar MAL-value (rest)))))))
+
+     (nth . `(MAL-fn MAL-nth))
+     (first . `(MAL-fn '((X) (if (MAL-seq? X) (or (car (MAL-value X)) *MAL-nil) *MAL-nil))))
+     (rest . `(MAL-fn '((X) (if (MAL-seq? X) (MAL-list (cdr (MAL-value X))) (MAL-list NIL))))) ) )

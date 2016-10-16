@@ -21,7 +21,7 @@
          (for (Chars (chop String) Chars)
             (let Char (pop 'Chars)
                (cond
-                  ((member Char '(" " "," "\n"))
+                  ((or (sp? Char) (= Char ","))
                    # do nothing, whitespace
                    )
                   ((and (= Char "~") (= (car Chars) "@"))
@@ -48,13 +48,13 @@
                   ((= Char ";")
                    (while (and Chars (<> Char "\n"))
                       (setq Char (pop 'Chars)) ) )
-                  ((not (index Char (chop Special)))
+                  ((and (not (index Char (chop Special))) (not (sp? Char)))
                    (link
                       (pack
                          (make
                             (link Char)
                             (let Char (car Chars)
-                               (while (and Chars (not (index Char (chop Special))))
+                               (while (and Chars (not (index Char (chop Special))) (not (sp? Char)))
                                   (link (pop 'Chars))
                                   (setq Char (car Chars)) ) ) ) ) ) ) ) ) ) ) ) )
 
