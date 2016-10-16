@@ -197,8 +197,10 @@ $repl_env->set(_symbol('eval'), _function(function($ast) {
     global $repl_env; return MAL_EVAL($ast, $repl_env);
 }));
 $_argv = _list();
-for ($i=2; $i < count($argv); $i++) {
-    $_argv->append($argv[$i]);
+if (isset($argv)) {
+  for ($i=2; $i < count($argv); $i++) {
+      $_argv->append($argv[$i]);
+  }
 }
 $repl_env->set(_symbol('*ARGV*'), $_argv);
 
@@ -210,6 +212,13 @@ rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
 rep("(def! *gensym-counter* (atom 0))");
 rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))");
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))");
+
+// if we're called in a webserver context, auto-resolve to mal file
+if (php_sapi_name() != "cli") {
+    $malfile = str_replace(".php", ".mal", $_SERVER['SCRIPT_FILENAME']);
+    rep('(load-file "' . $malfile . '")');
+    exit(0);
+}
 
 if (count($argv) > 1) {
     rep('(load-file "' . $argv[1] . '")');
