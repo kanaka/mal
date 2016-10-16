@@ -4,6 +4,7 @@ require_once 'readline.php';
 require_once 'types.php';
 require_once 'reader.php';
 require_once 'printer.php';
+require_once 'interop.php';
 require_once 'env.php';
 require_once 'core.php';
 
@@ -71,6 +72,7 @@ function eval_ast($ast, $env) {
 }
 
 function MAL_EVAL($ast, $env) {
+    $_SUPERGLOBALS = ["_SERVER", "_GET", "_POST", "_FILES", "_REQUEST", "_SESSION", "_ENV", "_COOKIE"];
     while (true) {
 
     #echo "MAL_EVAL: " . _pr_str($ast) . "\n";
@@ -115,18 +117,7 @@ function MAL_EVAL($ast, $env) {
         return macroexpand($ast[1], $env);
     case "php*":
         $res = eval($ast[1]);
-        switch (gettype($res)) {
-        case "array":
-            if ($res !== array_values($res)) {
-                $new_res = _hash_map();
-                $new_res->exchangeArray($res);
-                return $new_res;
-            } else {
-                return call_user_func_array('_list', $res);
-            }
-        default:
-            return $res;
-        }
+        return _to_mal($res);
     case "try*":
         $a1 = $ast[1];
         $a2 = $ast[2];
@@ -161,6 +152,27 @@ function MAL_EVAL($ast, $env) {
     case "fn*":
         return _function('MAL_EVAL', 'native',
                          $ast[2], $env, $ast[1]);
+    case "$":
+        $var = MAL_EVAL($ast[1], $env);
+        if (_symbol_Q($var)) {
+          $varname = $var->value;
+        } elseif (gettype($var) === "string") {
+          $varname = $var;
+        } else {
+          throw new Exception("$ arg unknown type: " . gettype($var));
+        }
+        if (in_array($varname, $_SUPERGLOBALS)) {
+            $val = $GLOBALS[$varname];
+        } else {
+            $val = ${$varname};
+        }
+        return _to_mal($val);
+    case "!":
+        $fn = $ast[1]->value;
+        $el = eval_ast($ast->slice(2), $env);
+        $args = _to_php($el);
+        $res = call_user_func_array($fn, $args);
+        return _to_mal($res);
     default:
         $el = eval_ast($ast, $env);
         $f = $el[0];
