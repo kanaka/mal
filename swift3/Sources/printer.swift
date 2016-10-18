@@ -38,6 +38,6 @@ func pr_str(_ obj: MalVal, _ print_readably: Bool = true) -> String {
     case MalVal.MalAtom(let ma):
         return "(atom \(pr_str(ma.val, print_readably)))"
     default:
-        return String(obj)
+        return String(describing:obj)
     }
 }

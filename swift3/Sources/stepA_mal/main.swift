@@ -163,7 +163,7 @@ func EVAL(_ orig_ast: MalVal, _ orig_env: Env) throws -> MalVal {
                             case MalError.MalException(let obj):
                                 err = obj
                             default:
-                                err = MalVal.MalString(String(exc))
+                                err = MalVal.MalString(String(describing:exc))
                             }
                             return try EVAL(a22, Env(env, binds: list([a21]),
                                                           exprs: list([err])))
@@ -238,7 +238,7 @@ for (k, fn) in core_ns {
 }
 try repl_env.set(MalVal.MalSymbol("eval"),
                  malfunc({ try EVAL($0[0], repl_env) }))
-let pargs = Process.arguments.map { MalVal.MalString($0) }
+let pargs = CommandLine.arguments.map { MalVal.MalString($0) }
 // TODO: weird way to get empty list, fix this
 var args = pargs[pargs.startIndex..<pargs.startIndex]
 if pargs.index(pargs.startIndex, offsetBy:2) < pargs.endIndex {
@@ -256,8 +256,8 @@ try rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* 
 try rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 
-if Process.arguments.count > 1 {
-    try rep("(load-file \"" + Process.arguments[1] + "\")")
+if CommandLine.arguments.count > 1 {
+    try rep("(load-file \"" + CommandLine.arguments[1] + "\")")
     exit(0)
 }
 
