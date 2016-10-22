@@ -21,4 +21,4 @@
 
 (dm get> (Key)
    (or (find> This Key)
-      (throw 'err (MAL-error (pack "'" Key "' not found"))) ) )
+      (throw 'err (MAL-error (MAL-string (pack "'" Key "' not found")))) ) )

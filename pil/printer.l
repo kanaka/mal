@@ -12,7 +12,7 @@
          (vector (pr-list Value PrintReadably "[" "]"))
          (map (pr-list Value PrintReadably "{" "}"))
          (atom (pack "(atom " (pr-str Value PrintReadably) ")"))
-         (T (pretty Value) (throw 'err (MAL-error "[pr-str] unimplemented type"))) ) ) )
+         (T (pretty Value) (throw 'err (MAL-error (MAL-string "[pr-str] unimplemented type")))) ) ) )
 
 (de repr (X)
    (let Chars (chop X)

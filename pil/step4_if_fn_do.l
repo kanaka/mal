@@ -82,8 +82,8 @@
       (let Output (catch 'err (rep Input))
          (if (isa '+MALError Output)
             (let Message (MAL-value Output)
-               (unless (= Message "end of token stream")
-                  (prinl "[error] " Message) ) )
+               (unless (= (MAL-value Message) "end of token stream")
+                  (prinl "[error] " (pr-str Message)) ) )
             (prinl Output) ) ) ) )
 
 (prinl)

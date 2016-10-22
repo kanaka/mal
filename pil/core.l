@@ -31,7 +31,7 @@
    (let (Seq* (MAL-value Seq) N* (MAL-value N))
       (if (< N* (length Seq*))
          (nth Seq* (inc N*) 1)
-         (throw 'err (MAL-error "out of bounds")) ) ) )
+         (throw 'err (MAL-error (MAL-string "out of bounds"))) ) ) )
 
 (def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))

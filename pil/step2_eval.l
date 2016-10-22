@@ -29,7 +29,7 @@
          (symbol
             (if (assoc Value Env)
                (cdr @)
-               (throw 'err (MAL-error (pack "'" Value "' not found"))) ) )
+               (throw 'err (MAL-error (MAL-string (pack "'" Value "' not found")))) ) )
          (list (MAL-list (mapcar '((Form) (EVAL Form Env)) Value)))
          (vector (MAL-vector (mapcar '((Form) (EVAL Form Env)) Value)))
          (map (MAL-map (mapcar '((Form) (EVAL Form Env)) Value)))
@@ -51,8 +51,8 @@
             (let Output (catch 'err (rep Input))
                 (if (isa '+MALError Output)
                    (let Message (MAL-value Output)
-                      (unless (= Message "end of token stream")
-                         (prinl "[error] " Message) ) )
+                      (unless (= (MAL-value Message) "end of token stream")
+                         (prinl "[error] " (pr-str Message)) ) )
                    (prinl Output) ) ) ) ) ) )
 
 (prinl)
