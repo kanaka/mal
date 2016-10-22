@@ -3,13 +3,23 @@
          B* (MAL-type B))
       (cond
          ((and (= A* 'map) (= B* 'map))
-          # TODO
-          NIL)
+          (MAL-map-= (MAL-value A) (MAL-value B)) )
          ((and (memq A* '(list vector)) (memq B* '(list vector)))
           (MAL-seq-= (MAL-value A) (MAL-value B)) )
          ((= A* B*)
           (= (MAL-value A) (MAL-value B)) )
          (T NIL) ) ) )
+
+(de MAL-map-= (As Bs)
+   (when (= (length As) (length Bs))
+      (let (As* (chunk As) Bs* (chunk Bs))
+         (catch 'result
+            (while As*
+               (let (A (pop 'As*) Key (MAL-value (car A)) Val (cdr A)
+                     B (find '((X) (= Key (MAL-value (car X)))) Bs*) )
+                  (when (or (not B) (not (MAL-= Val (cdr B))))
+                     (throw 'result NIL) ) ) )
+            T ) ) ) )
 
 (de MAL-seq-= (As Bs)
    (when (= (length As) (length Bs))
@@ -17,21 +27,36 @@
          (while As
             (ifn (MAL-= (pop 'As) (pop 'Bs))
                (throw 'result NIL) ) )
-         T) ) )
+         T ) ) )
 
 (de MAL-seq? (X)
    (memq (MAL-type X) '(list vector)) )
 
+(de MAL-f (X)
+   (MAL-value (if (isa '+Func X) (get X 'fn) X)) )
+
 (de MAL-swap! @
-   (let (X (next) Fn (next) Args (rest)
-         F (MAL-value (if (isa '+Func Fn) (get Fn 'fn) Fn)) )
-      (put X 'value (apply F Args (MAL-value X))) ) )
+   (let (X (next) Fn (next) Args (rest))
+      (put X 'value (apply (MAL-f Fn) Args (MAL-value X))) ) )
 
 (de MAL-nth (Seq N)
    (let (Seq* (MAL-value Seq) N* (MAL-value N))
       (if (< N* (length Seq*))
          (nth Seq* (inc N*) 1)
          (throw 'err (MAL-error (MAL-string "out of bounds"))) ) ) )
+
+(de chunk (List)
+   (make
+      (for (L List L (cddr L))
+         (link (cons (car L) (cadr L))) ) ) )
+
+(de MAL-dissoc @
+   (let (Map (next) Args (rest))
+      (MAL-map
+         (make
+            (for (L (MAL-value Map) L (cddr L))
+               (unless (find '((X) (MAL-= (car L) X)) Args)
+                  (link (car L) (cadr L)) ) ) ) ) ) )
 
 (def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))
@@ -70,4 +95,30 @@
 
      (nth . `(MAL-fn MAL-nth))
      (first . `(MAL-fn '((X) (if (MAL-seq? X) (or (car (MAL-value X)) *MAL-nil) *MAL-nil))))
-     (rest . `(MAL-fn '((X) (if (MAL-seq? X) (MAL-list (cdr (MAL-value X))) (MAL-list NIL))))) ) )
+     (rest . `(MAL-fn '((X) (if (MAL-seq? X) (MAL-list (cdr (MAL-value X))) (MAL-list NIL)))))
+
+     (throw . `(MAL-fn '((X) (throw 'err (MAL-error X)))))
+
+     (apply . `(MAL-fn '(@ (let (Fn (next) X (rest)) (apply (MAL-f Fn) (append (head -1 X) (MAL-value (last X))))))))
+     (map . `(MAL-fn '((Fn Seq) (MAL-list (mapcar (MAL-f Fn) (MAL-value Seq))))))
+
+     (nil? . `(MAL-fn '((X) (if (= (MAL-type X) 'nil) *MAL-true *MAL-false))))
+     (true? . `(MAL-fn '((X) (if (= (MAL-type X) 'true) *MAL-true *MAL-false))))
+     (false? . `(MAL-fn '((X) (if (= (MAL-type X) 'false) *MAL-true *MAL-false))))
+     (symbol? . `(MAL-fn '((X) (if (= (MAL-type X) 'symbol) *MAL-true *MAL-false))))
+     (keyword? . `(MAL-fn '((X) (if (= (MAL-type X) 'keyword) *MAL-true *MAL-false))))
+     (vector? . `(MAL-fn '((X) (if (= (MAL-type X) 'vector) *MAL-true *MAL-false))))
+     (map? . `(MAL-fn '((X) (if (= (MAL-type X) 'map) *MAL-true *MAL-false))))
+     (sequential? . `(MAL-fn '((X) (if (MAL-seq? X) *MAL-true *MAL-false))))
+
+     (symbol . `(MAL-fn '((Name) (MAL-symbol (MAL-value Name)))))
+     (keyword . `(MAL-fn '((X) (if (= (MAL-type X) 'keyword) X (MAL-keyword (MAL-value X))))))
+     (vector . `(MAL-fn '(@ (MAL-vector (rest)))))
+     (hash-map . `(MAL-fn '(@ (MAL-map (rest)))))
+
+     (assoc . `(MAL-fn '(@ (let (Map (next) Args (rest)) (MAL-map (append (MAL-value Map) Args))))))
+     (dissoc . `(MAL-fn MAL-dissoc))
+     (get . `(MAL-fn '((Map Key) (or (and (<> (MAL-type Map) 'nil) (cdr (find '((X) (MAL-= (car X) Key)) (chunk (MAL-value Map))))) *MAL-nil))))
+     (contains? . `(MAL-fn '((Map Key) (if (find '((X) (MAL-= (car X) Key)) (chunk (MAL-value Map))) *MAL-true *MAL-false))))
+     (keys . `(MAL-fn '((Map) (MAL-list (mapcar car (chunk (MAL-value Map)))))))
+     (vals . `(MAL-fn '((Map) (MAL-list (extract cdr (chunk (MAL-value Map))))))) ) )
