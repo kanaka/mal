@@ -3,22 +3,28 @@ Global Unique:
 Z%  : boxed memory values
 ZI  : start of unused memory (index into Z%)
 ZK  : start of free list (index into Z%)
+ZT  : top of memory after repl env allocations
 
 S$  : string memory storage
-ZJ  : next free index in S$
+S   : next free index in S$
 
-S%  : logic/call stack (Z% indexes)
-X   : top element of S% stack
+X%  : logic/call stack (Z% indexes)
+X   : top element of X% stack
 
-ZR% : pending release stack (index into Z%, eval level)
-ZM% : top element of ZR% stack
+Y%  : pending release stack [index into Z%, eval level]
+Y   : top element of Y% stack
 
-RE% : root repl environment
+D   : root repl environment
 
 ER  : error type (-2: none, -1: string, >=0: object)
 ER$ : error string (ER=-1)
 
+BI  : ENV_NEW_BINDS binds list
+EX  : ENV_NEW_BINDS expressions list
 LV  : EVAL stack call level/depth
+
+IDX : reader current string position
+
 
 Calling arguments/temporaries:
 
@@ -39,6 +45,18 @@ R   : common return value
 T   : common temp, type
 V   : hash map value
 
+A0  : EVAL ast elements
+A1  : EVAL ast elements
+A2  : EVAL ast elements
+A3  : EVAL ast elements
+B1  : LIST2/LIST3 param
+B2  : LIST2/LIST3 param
+B3  : LIST3 param
+CZ  : DO_CONCAT stack position
+CUR : READ_TOKEN current character index
+EF  : ENV_FIND cur env ptr
+P1  : PR_MEMORY, CHECK_FREE_LIST start
+P2  : PR_MEMORY, CHECK_FREE_LIST end
 SZ  : size argument to ALLOC
 
 Reused/temporaries:
@@ -48,4 +66,4 @@ J   : REPLACE
 
 Unused:
 
-D, G, L, M, N, Q, U, W, Y
+G, L, M, N, Q, U, W

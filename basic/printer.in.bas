@@ -2,9 +2,11 @@ REM PR_STR(AZ, PR) -> R$
 PR_STR:
   RR$=""
   PR_STR_RECUR:
-  T=Z%(AZ,0)AND15
+  T=Z%(AZ,0)AND31
   REM PRINT "AZ: "+STR$(AZ)+", T: "+STR$(T)+", V: "+STR$(Z%(AZ,1))
   IF T=0 THEN R$="nil":RETURN
+  REM if metadata, then get actual object
+  IF T>=16 THEN AZ=Z%(AZ,1):GOTO PR_STR_RECUR
   ON T GOTO PR_BOOLEAN,PR_INTEGER,PR_UNKNOWN,PR_STRING_MAYBE,PR_SYMBOL,PR_SEQ,PR_SEQ,PR_SEQ,PR_FUNCTION,PR_MAL_FUNCTION,PR_MAL_FUNCTION,PR_ATOM,PR_ENV,PR_RECUR,PR_FREE
 
   PR_UNKNOWN:
@@ -46,8 +48,8 @@ PR_STR:
     IF T=8 THEN RR$=RR$+"{"
     REM push the type and where we are in the sequence
     X=X+2
-    S%(X-1)=T
-    S%(X)=AZ
+    X%(X-1)=T
+    X%(X)=AZ
     PR_SEQ_LOOP:
       IF Z%(AZ,1)=0 THEN PR_SEQ_DONE
       AZ=AZ+1
@@ -55,15 +57,15 @@ PR_STR:
       REM if we just rendered a non-sequence, then append it
       IF T<6 OR T>8 THEN RR$=RR$+R$
       REM restore current seq type
-      T=S%(X-1)
+      T=X%(X-1)
       REM Go to next list element
-      AZ=Z%(S%(X),1)
-      S%(X)=AZ
+      AZ=Z%(X%(X),1)
+      X%(X)=AZ
       IF Z%(AZ,1)<>0 THEN RR$=RR$+" "
       GOTO PR_SEQ_LOOP
     PR_SEQ_DONE:
       REM get type
-      T=S%(X-1)
+      T=X%(X-1)
       REM pop where we are the sequence and type
       X=X-2
       IF T=6 THEN RR$=RR$+")"

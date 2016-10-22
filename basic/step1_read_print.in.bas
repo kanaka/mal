@@ -43,7 +43,7 @@ REM MAIN program
 MAIN:
   GOSUB INIT_MEMORY
 
-  ZT%=ZI: REM top of memory after base repl_env
+  ZT=ZI: REM top of memory after base repl_env
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
@@ -56,7 +56,7 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    REM P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
+    REM P1=ZT: P2=-1: GOSUB PR_MEMORY
     GOSUB PR_MEMORY_SUMMARY
     END
 

@@ -17,26 +17,26 @@ EVAL_AST:
   LV=LV+1
 
   REM push A and E on the stack
-  X=X+2:S%(X-1)=E:S%(X)=A
+  X=X+2:X%(X-1)=E:X%(X)=A
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
   GOSUB DEREF_A
 
-  T=Z%(A,0)AND15
+  T=Z%(A,0)AND31
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
   R=A:GOSUB DEREF_R
-  Z%(R,0)=Z%(R,0)+16
+  Z%(R,0)=Z%(R,0)+32
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
     H=E:K=A:GOSUB HASHMAP_GET
     GOSUB DEREF_R
     IF T3=0 THEN ER=-1:ER$="'"+S$(Z%(A,1))+"' not found":GOTO EVAL_AST_RETURN
-    Z%(R,0)=Z%(R,0)+16
+    Z%(R,0)=Z%(R,0)+32
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
@@ -46,28 +46,28 @@ EVAL_AST:
     REM make space on the stack
     X=X+4
     REM push type of sequence
-    S%(X-3)=T
+    X%(X-3)=T
     REM push sequence index
-    S%(X-2)=-1
+    X%(X-2)=-1
     REM push future return value (new sequence)
-    S%(X-1)=R
+    X%(X-1)=R
     REM push previous new sequence entry
-    S%(X)=R
+    X%(X)=R
 
     EVAL_AST_SEQ_LOOP:
       REM update index
-      S%(X-2)=S%(X-2)+1
+      X%(X-2)=X%(X-2)+1
 
       REM check if we are done evaluating the source sequence
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (S%(X-3)=8) AND ((S%(X-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
+      IF (X%(X-3)=8) AND ((X%(X-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
         R=A+1:GOSUB DEREF_R: REM deref to target of referred entry
-        Z%(R,0)=Z%(R,0)+16: REM inc ref cnt of referred value
+        Z%(R,0)=Z%(R,0)+32: REM inc ref cnt of referred value
         GOTO EVAL_AST_ADD_VALUE
 
       EVAL_AST_DO_EVAL:
@@ -79,18 +79,18 @@ EVAL_AST:
       EVAL_AST_ADD_VALUE:
 
       REM update previous value pointer to evaluated entry
-      Z%(S%(X)+1,1)=R
+      Z%(X%(X)+1,1)=R
 
       IF ER<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
       REM same new sequence entry type
-      T=S%(X-3):L=0:N=0:GOSUB ALLOC
+      T=X%(X-3):L=0:N=0:GOSUB ALLOC
 
       REM update previous sequence entry value to point to new entry
-      Z%(S%(X),1)=R
+      Z%(X%(X),1)=R
       REM update previous ptr to current entry
-      S%(X)=R
+      X%(X)=R
 
       REM process the next sequence entry from source list
       A=Z%(A,1)
@@ -98,14 +98,14 @@ EVAL_AST:
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
       REM get return value (new seq), index, and seq type
-      R=S%(X-1)
+      R=X%(X-1)
       REM pop previous, return, index and type
       X=X-4
       GOTO EVAL_AST_RETURN
 
   EVAL_AST_RETURN:
     REM pop A and E off the stack
-    E=S%(X-1):A=S%(X):X=X-2
+    E=X%(X-1):A=X%(X):X=X-2
 
     LV=LV-1
     RETURN
@@ -115,7 +115,7 @@ EVAL:
   LV=LV+1: REM track basic return stack level
 
   REM push A and E on the stack
-  X=X+2:S%(X-1)=E:S%(X)=A
+  X=X+2:X%(X-1)=E:X%(X)=A
 
   REM AZ=A:PR=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
@@ -130,7 +130,7 @@ EVAL:
 
   APPLY_LIST:
     GOSUB EMPTY_Q
-    IF R THEN R=A:Z%(R,0)=Z%(R,0)+16:GOTO EVAL_RETURN
+    IF R THEN R=A:Z%(R,0)=Z%(R,0)+32:GOTO EVAL_RETURN
 
     EVAL_INVOKE:
       GOSUB EVAL_AST
@@ -142,7 +142,7 @@ EVAL:
 
       AR=Z%(R,1): REM rest
       R=F:GOSUB DEREF_R:F=R
-      IF (Z%(F,0)AND15)<>9 THEN ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
+      IF (Z%(F,0)AND31)<>9 THEN ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       AY=R3:GOSUB RELEASE
       GOTO EVAL_RETURN
@@ -153,10 +153,10 @@ EVAL:
 
 
     REM trigger GC
-    TA%=FRE(0)
+    TA=FRE(0)
 
     REM pop A and E off the stack
-    E=S%(X-1):A=S%(X):X=X-2
+    E=X%(X-1):A=X%(X):X=X-2
 
     RETURN
 
@@ -203,14 +203,14 @@ MAL_PRINT:
   RETURN
 
 REM REP(A$) -> R$
-REM Assume RE% has repl_env
+REM Assume D has repl_env
 REP:
   R1=0:R2=0
   GOSUB MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  A=R:E=RE%:GOSUB EVAL
+  A=R:E=D:GOSUB EVAL
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
@@ -231,25 +231,25 @@ MAIN:
   LV=0
 
   REM create repl_env
-  GOSUB HASHMAP:RE%=R
+  GOSUB HASHMAP:D=R
 
   REM + function
   A=1:GOSUB NATIVE_FUNCTION
-  H=RE%:K$="+":V=R:GOSUB ASSOC1_S:RE%=R
+  H=D:K$="+":V=R:GOSUB ASSOC1_S:D=R
 
   REM - function
   A=2:GOSUB NATIVE_FUNCTION
-  H=RE%:K$="-":V=R:GOSUB ASSOC1_S:RE%=R
+  H=D:K$="-":V=R:GOSUB ASSOC1_S:D=R
 
   REM * function
   A=3:GOSUB NATIVE_FUNCTION
-  H=RE%:K$="*":V=R:GOSUB ASSOC1_S:RE%=R
+  H=D:K$="*":V=R:GOSUB ASSOC1_S:D=R
 
   REM / function
   A=4:GOSUB NATIVE_FUNCTION
-  H=RE%:K$="/":V=R:GOSUB ASSOC1_S:RE%=R
+  H=D:K$="/":V=R:GOSUB ASSOC1_S:D=R
 
-  ZT%=ZI: REM top of memory after base repl_env
+  ZT=ZI: REM top of memory after base repl_env
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
@@ -262,7 +262,7 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    REM P1%=ZT%: P2%=-1: GOSUB PR_MEMORY
+    REM P1=ZT: P2=-1: GOSUB PR_MEMORY
     GOSUB PR_MEMORY_SUMMARY
     END
 
