@@ -133,7 +133,7 @@
          (T Ast) ) ) )
 
 (set> *ReplEnv 'eval (MAL-fn (curry (*ReplEnv) (Form) (EVAL Form *ReplEnv))))
-(set> *ReplEnv '*ARGV* (MAL-list (mapcar MAL-string (argv))))
+(set> *ReplEnv '*ARGV* (MAL-list (mapcar MAL-string (cdr (argv)))))
 
 (de PRINT (Ast)
    (pr-str Ast T) )
@@ -149,7 +149,7 @@
 (load-history ".mal_history")
 
 (if (argv)
-   (rep (pack "(load-file \"" (opt) "\")"))
+   (rep (pack "(load-file \"" (car (argv)) "\")"))
    (use Input
       (until (=0 (setq Input (readline "user> ")))
          (let Output (catch 'err (rep Input))
