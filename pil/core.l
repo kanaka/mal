@@ -58,6 +58,25 @@
                (unless (find '((X) (MAL-= (car L) X)) Args)
                   (link (car L) (cadr L)) ) ) ) ) ) )
 
+(de MAL-seq (X)
+   (if (or (= (MAL-type X) 'nil) (not (MAL-value X)))
+      *MAL-nil
+      (case (MAL-type X)
+         (list X)
+         (vector (MAL-list (MAL-value X)))
+         (string (MAL-list (mapcar MAL-string (chop (MAL-value X))))) ) ) )
+
+(de MAL-conj @
+   (let (Seq (next) Args (rest))
+      (if (= (MAL-type Seq) 'vector)
+         (MAL-vector (append (MAL-value Seq) Args))
+         (MAL-list (append (reverse Args) (MAL-value Seq))) ) ) )
+
+(de clone (X)
+   (let X* (new (val X))
+      (maps '((C) (put X* (cdr C) (car C))) X)
+      X* ) )
+
 (def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))
      (- . `(MAL-fn '((A B) (MAL-number (- (MAL-value A) (MAL-value B))))))
@@ -107,6 +126,7 @@
      (false? . `(MAL-fn '((X) (if (= (MAL-type X) 'false) *MAL-true *MAL-false))))
      (symbol? . `(MAL-fn '((X) (if (= (MAL-type X) 'symbol) *MAL-true *MAL-false))))
      (keyword? . `(MAL-fn '((X) (if (= (MAL-type X) 'keyword) *MAL-true *MAL-false))))
+     (string? . `(MAL-fn '((X) (if (= (MAL-type X) 'string) *MAL-true *MAL-false))))
      (vector? . `(MAL-fn '((X) (if (= (MAL-type X) 'vector) *MAL-true *MAL-false))))
      (map? . `(MAL-fn '((X) (if (= (MAL-type X) 'map) *MAL-true *MAL-false))))
      (sequential? . `(MAL-fn '((X) (if (MAL-seq? X) *MAL-true *MAL-false))))
@@ -121,4 +141,12 @@
      (get . `(MAL-fn '((Map Key) (or (and (<> (MAL-type Map) 'nil) (cdr (find '((X) (MAL-= (car X) Key)) (chunk (MAL-value Map))))) *MAL-nil))))
      (contains? . `(MAL-fn '((Map Key) (if (find '((X) (MAL-= (car X) Key)) (chunk (MAL-value Map))) *MAL-true *MAL-false))))
      (keys . `(MAL-fn '((Map) (MAL-list (mapcar car (chunk (MAL-value Map)))))))
-     (vals . `(MAL-fn '((Map) (MAL-list (extract cdr (chunk (MAL-value Map))))))) ) )
+     (vals . `(MAL-fn '((Map) (MAL-list (extract cdr (chunk (MAL-value Map)))))))
+
+     (with-meta . `(MAL-fn '((X Meta) (let X* (clone X) (put X* 'meta Meta) X*))))
+     (meta . `(MAL-fn '((X) (or (MAL-meta X) *MAL-nil))))
+
+     (readline . `(MAL-fn '((Prompt) (let Output (readline (MAL-value Prompt)) (if (=0 Output) NIL (MAL-string Output))))))
+     (time-ms . `(MAL-fn '(() (MAL-number (/ (usec) 1000)))))
+     (conj . `(MAL-fn MAL-conj))
+     (seq . `(MAL-fn MAL-seq)) ) )
