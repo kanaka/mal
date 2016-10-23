@@ -50,6 +50,18 @@
       (for (L List L (cddr L))
          (link (cons (car L) (cadr L))) ) ) )
 
+(de join (List)
+   (mapcan '((X) (list (car X) (cdr X))) List) )
+
+(de MAL-assoc @
+   (let (Map (next) Args (rest))
+      (MAL-map
+         (append Args
+            (join
+               (filter '((X) (not (find '((Y) (MAL-= (car Y) (car X)))
+                                     (chunk Args) ) ) )
+                  (chunk (MAL-value Map)) ) ) ) ) ) )
+
 (de MAL-dissoc @
    (let (Map (next) Args (rest))
       (MAL-map
@@ -136,7 +148,7 @@
      (vector . `(MAL-fn '(@ (MAL-vector (rest)))))
      (hash-map . `(MAL-fn '(@ (MAL-map (rest)))))
 
-     (assoc . `(MAL-fn '(@ (let (Map (next) Args (rest)) (MAL-map (append (MAL-value Map) Args))))))
+     (assoc . `(MAL-fn MAL-assoc))
      (dissoc . `(MAL-fn MAL-dissoc))
      (get . `(MAL-fn '((Map Key) (or (and (<> (MAL-type Map) 'nil) (cdr (find '((X) (MAL-= (car X) Key)) (chunk (MAL-value Map))))) *MAL-nil))))
      (contains? . `(MAL-fn '((Map Key) (if (find '((X) (MAL-= (car X) Key)) (chunk (MAL-value Map))) *MAL-true *MAL-false))))
