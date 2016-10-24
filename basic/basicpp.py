@@ -81,7 +81,9 @@ def remove_indent(orig_lines):
 
 def misc_fixups(orig_lines):
     text = "\n".join(orig_lines)
-    text = re.sub(r"\bTHEN GOTO\b", r"THEN", text)
+    text = re.sub(r"\bTHEN GOTO\b", "THEN", text)
+    text = re.sub(r"\bPRINT \"", "PRINT\"", text)
+    text = re.sub(r"\bIF ", "IF", text)
     return text.split("\n")
 
 def finalize(lines, args):
@@ -103,47 +105,60 @@ def finalize(lines, args):
             lines.append("%s %s" % (lnum, line))
             lnum += 1
 
+    def update_labels_lines(text, a,b):
+        stext = ""
+        while stext != text:
+            stext = text
+            text = re.sub(r"(THEN) %s\b" % a, r"THEN %s" % b, stext)
+            #text = re.sub(r"(THEN)%s\b" % a, r"THEN%s" % b, stext)
+            text = re.sub(r"(ON [^:]* GOTO [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
+            text = re.sub(r"(ON [^:]* GOSUB [^:\n]*)\b%s\b" % a, r"\g<2>%s" % b, text)
+            text = re.sub(r"(GOSUB) %s\b" % a, r"\1 %s" % b, text)
+            text = re.sub(r"(GOTO) %s\b" % a, r"\1 %s" % b, text)
+            #text = re.sub(r"(GOTO)%s\b" % a, r"\1%s" % b, text)
+        return text
+
     if not args.keep_labels:
         src_lines = lines
         text = "\n".join(lines)
         # search for and replace GOTO/GOSUBs
         for label, lnum in labels_lines.items():
-            stext = ""
-            while stext != text:
-                stext = text
-                text = re.sub(r"(THEN) %s\b" % label, r"THEN %s" % lnum, stext)
-                text = re.sub(r"(ON [^:]* GOTO [^:]*)\b%s\b" % label, r"\g<1>%s" % lnum, text)
-                text = re.sub(r"(ON [^:]* GOSUB [^:]*)\b%s\b" % label, r"\g<2>%s" % lnum, text)
-                text = re.sub(r"(GOSUB) %s\b" % label, r"\1 %s" % lnum, text)
-                text = re.sub(r"(GOTO) %s\b" % label, r"\1 %s" % lnum, text)
+            text = update_labels_lines(text, label, lnum)
         lines = text.split("\n")
 
     if args.combine_lines:
+        renumber = {}
         src_lines = lines
         lines = []
         pos = 0
         acc_line = ""
+        def renum(line):
+            lnum = len(lines)+1
+            renumber[old_num] = lnum
+            return "%s %s" % (lnum, line)
         while pos < len(src_lines):
             line = src_lines[pos]
             # TODO: handle args.keep_labels and (not args.number_lines)
             m = re.match(r"^([0-9]*) (.*)$", line)
-            lnum = int(m.group(1))
-            rest_line = m.group(2)
+            old_num = int(m.group(1))
+            line = m.group(2)
 
             if acc_line == "":
                 # Starting a new line
-                acc_line = line
-            elif lnum in lines_labels:
-                # This is a GOTO/GOSUB target line so it must be on
-                # a line by itself
+                acc_line = renum(line)
+            elif old_num in lines_labels or re.match(r"^ *FOR\b.*", line):
+                # This is a GOTO/GOSUB target or FOR loop so it must
+                # be on a line by itself
                 lines.append(acc_line)
-                acc_line = line
+                acc_line = renum(line)
             elif re.match(r".*\b(?:GOTO|THEN|RETURN)\b.*", acc_line):
+                # GOTO/THEN/RETURN are last thing on the line
                 lines.append(acc_line)
-                acc_line = line
-            elif len(acc_line) + 1 + len(rest_line) < 80:
+                acc_line = renum(line)
+            # TODO: not sure why this is 88 rather than 80
+            elif len(acc_line) + 1 + len(line) < 88:
                 # Continue building up the line
-                acc_line = acc_line + ":" + rest_line
+                acc_line = acc_line + ":" + line
                 # GOTO/IF/RETURN must be the last things on a line so
                 # start a new line
                 if re.match(r".*\b(?:GOTO|THEN|RETURN)\b.*", line):
@@ -152,10 +167,19 @@ def finalize(lines, args):
             else:
                 # Too long so start a new line
                 lines.append(acc_line)
-                acc_line = line
+                acc_line = renum(line)
             pos += 1
         if acc_line != "":
             lines.append(acc_line)
+
+        # Finally renumber GOTO/GOSUBS
+        src_lines = lines
+        text = "\n".join(lines)
+        # search for and replace GOTO/GOSUBs
+        for a in sorted(renumber.keys()):
+            b = renumber[a]
+            text = update_labels_lines(text, a, b)
+        lines = text.split("\n")
 
 
     return lines

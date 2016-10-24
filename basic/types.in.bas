@@ -27,7 +27,7 @@ REM                    14  ->  Z% index of metdata object
 INIT_MEMORY:
   T=FRE(0)
 
-  Z1=2048+512: REM Z% (boxed memory) size (4 bytes each)
+  Z1=2048+1024: REM Z% (boxed memory) size (4 bytes each)
   Z2=256: REM S$ (string memory) size (3 bytes each)
   Z3=256: REM X% (call stack) size (2 bytes each)
   Z4=64: REM Y% (release stack) size (4 bytes each)

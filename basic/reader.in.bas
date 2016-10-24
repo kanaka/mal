@@ -1,42 +1,63 @@
-REM READ_TOKEN(A$, IDX) -> T$
+REM READ_TOKEN(A$, RI, RF) -> T$
 READ_TOKEN:
-  CUR=IDX
-  REM PRINT "READ_TOKEN: "+STR$(CUR)+", "+MID$(A$,CUR,1)
-  T$=MID$(A$,CUR,1)
+  RJ=RI
+  IF RF=1 THEN GOSUB READ_FILE_CHUNK
+  REM PRINT "READ_TOKEN: "+STR$(RJ)+", "+MID$(A$,RJ,1)
+  T$=MID$(A$,RJ,1)
   IF T$="(" OR T$=")" OR T$="[" OR T$="]" OR T$="{" OR T$="}" THEN RETURN
   IF T$="'" OR T$="`" OR T$="@" THEN RETURN
-  IF T$="~" AND NOT MID$(A$,CUR+1,1)="@" THEN RETURN
+  IF T$="~" AND NOT MID$(A$,RJ+1,1)="@" THEN RETURN
   S1=0:S2=0: REM S1: INSTRING?, S2: ESCAPED?
   IF T$=CHR$(34) THEN S1=1
-  CUR=CUR+1
+  RJ=RJ+1
   READ_TOKEN_LOOP:
-    IF CUR>LEN(A$) THEN RETURN
-    CH$=MID$(A$,CUR,1)
+    IF RF=1 THEN GOSUB READ_FILE_CHUNK
+    IF RJ>LEN(A$) THEN RETURN
+    CH$=MID$(A$,RJ,1)
     IF S2 THEN GOTO READ_TOKEN_CONT
     IF S1 THEN GOTO READ_TOKEN_CONT
     IF CH$=" " OR CH$="," THEN RETURN
+    IF CH$=" " OR CH$="," OR CH$=CHR$(13) OR CH$=CHR$(10) THEN RETURN
     IF CH$="(" OR CH$=")" OR CH$="[" OR CH$="]" OR CH$="{" OR CH$="}" THEN RETURN
     READ_TOKEN_CONT:
     T$=T$+CH$
     IF T$="~@" THEN RETURN
-    CUR=CUR+1
+    RJ=RJ+1
     IF S1 AND S2 THEN S2=0:GOTO READ_TOKEN_LOOP
     IF S1 AND S2=0 AND CH$=CHR$(92) THEN S2=1:GOTO READ_TOKEN_LOOP
     IF S1 AND S2=0 AND CH$=CHR$(34) THEN RETURN
     GOTO READ_TOKEN_LOOP
 
+READ_FILE_CHUNK:
+  IF RS=1 THEN RETURN
+  IF RI>1 THEN A$=MID$(A$,RI,LEN(A$)-RI+1):RI=1:RJ=RJ-RI+1
+  READ_FILE_CHUNK_LOOP:
+    IF LEN(A$)>RJ+9 THEN RETURN
+    GET#2,C$:A$=A$+C$
+    IF (ST AND 64) THEN RS=1:A$=A$+CHR$(10)+")":RETURN
+    IF (ST AND 255) THEN RS=1:ER=-1:ER$="File read error "+STR$(ST):RETURN
+    GOTO READ_FILE_CHUNK_LOOP
+
 SKIP_SPACES:
-  CH$=MID$(A$,IDX,1)
-  IF (CH$<>" ") AND (CH$<>",") AND (CH$<>CHR$(13)) AND (CH$<>CHR$(10)) THEN RETURN
-  IDX=IDX+1
+  IF RF=1 THEN GOSUB READ_FILE_CHUNK
+  CH$=MID$(A$,RI,1)
+  IF CH$<>" " AND CH$<>"," AND CH$<>CHR$(13) AND CH$<>CHR$(10) THEN RETURN
+  RI=RI+1
   GOTO SKIP_SPACES
+
+SKIP_TO_EOL:
+  IF RF=1 THEN GOSUB READ_FILE_CHUNK
+  CH$=MID$(A$,RI+1,1)
+  RI=RI+1
+  IF CH$="" OR CH$=CHR$(13) OR CH$=CHR$(10) THEN RETURN
+  GOTO SKIP_TO_EOL
 
 
 READ_ATOM:
   R=0
   RETURN
 
-REM READ_FORM(A$, IDX) -> R
+REM READ_FORM(A$, RI, RF) -> R
 READ_FORM:
   IF ER<>-2 THEN RETURN
   GOSUB SKIP_SPACES
@@ -55,7 +76,7 @@ READ_FORM:
   IF T$="@" THEN AS$="deref":GOTO READ_MACRO
   CH$=MID$(T$,1,1)
   REM PRINT "CH$: ["+CH$+"]("+STR$(ASC(CH$))+")"
-  IF (CH$=";") THEN R=0:GOTO READ_TO_EOL
+  IF (CH$=";") THEN R=0:GOSUB SKIP_TO_EOL:GOTO READ_FORM
   IF CH$>="0" AND CH$<="9" THEN GOTO READ_NUMBER
   IF CH$="-" THEN GOTO READ_SYMBOL_MAYBE
 
@@ -69,11 +90,6 @@ READ_FORM:
   IF CH$="}" THEN T=8:GOTO READ_SEQ_END
   GOTO READ_SYMBOL
 
-  READ_TO_EOL:
-    CH$=MID$(A$,IDX+1,1)
-    IDX=IDX+1
-    IF CH$="" OR CH$=CHR$(13) OR CH$=CHR$(10) THEN GOTO READ_FORM
-    GOTO READ_TO_EOL
   READ_NIL_BOOL:
     REM PRINT "READ_NIL_BOOL"
     R=T
@@ -84,7 +100,7 @@ READ_FORM:
     T=2:L=VAL(T$):GOSUB ALLOC
     GOTO READ_FORM_DONE
   READ_MACRO:
-    IDX=IDX+LEN(T$)
+    RI=RI+LEN(T$)
     REM to call READ_FORM recursively, SD needs to be saved, set to
     REM 0 for the call and then restored afterwards.
     X=X+2:X%(X-1)=(T$="^"):X%(X)=SD: REM push macro type and SD
@@ -156,7 +172,7 @@ READ_FORM:
     X=X+1
     X%(X)=R
 
-    IDX=IDX+LEN(T$)
+    RI=RI+LEN(T$)
     GOTO READ_FORM
 
   READ_SEQ_END:
@@ -171,7 +187,7 @@ READ_FORM:
 
 
   READ_FORM_DONE:
-    IDX=IDX+LEN(T$)
+    RI=RI+LEN(T$)
 
     T8=R: REM save previous value
 
@@ -211,7 +227,21 @@ READ_FORM:
 
 REM READ_STR(A$) -> R
 READ_STR:
-  IDX=1
+  RI=1: REM index into A$
+  RF=0: REM not reading from file
   SD=0: REM sequence read depth
   GOSUB READ_FORM
+  RETURN
+
+REM READ_FILE(A$) -> R
+READ_FILE:
+  RI=1: REM index into A$
+  RJ=1: REM READ_TOKEN sub-index
+  RF=1: REM reading from file
+  RS=0: REM file read state (1: EOF)
+  SD=0: REM sequence read depth
+  OPEN 2,8,0,A$
+  REM READ_FILE_CHUNK adds terminating ")"
+  A$="(do ":GOSUB READ_FORM
+  CLOSE 2
   RETURN

@@ -14,15 +14,14 @@ CHECK_FREE_LIST:
     RETURN
 
 PR_MEMORY_SUMMARY:
-  GOSUB CHECK_FREE_LIST: REM get count in P2
   PRINT
-  PRINT "Free memory (FRE)      : "+STR$(FRE(0))
-  PRINT "Value memory (Z%)      : "+STR$(ZI-1)+" /"+STR$(Z1)
-  PRINT "                         ";
-  PRINT " used:"+STR$(ZI-1-P2)+", freed:"+STR$(P2);
-  PRINT ", post repl_env:"+STR$(ZT)
-  PRINT "String values (S$)    : "+STR$(S)+" /"+STR$(Z2)
-  PRINT "Call stack size (X%)  : "+STR$(X+1)+" /"+STR$(Z3)
+  PRINT "Free (FRE)   :"+STR$(FRE(0))
+  PRINT "Values (Z%)  :"+STR$(ZI-1)+" /"+STR$(Z1)
+  GOSUB CHECK_FREE_LIST: REM get count in P2
+  PRINT "               used:"+STR$(ZI-1-P2)+", freed:"+STR$(P2);
+  PRINT ", after repl_env:"+STR$(ZT)
+  PRINT "Strings (S$) :"+STR$(S)+" /"+STR$(Z2)
+  PRINT "Stack (X%)   :"+STR$(X+1)+" /"+STR$(Z3)
   RETURN
 
 REM REM PR_MEMORY(P1, P2) -> nil

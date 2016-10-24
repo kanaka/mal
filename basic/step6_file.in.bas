@@ -346,11 +346,11 @@ RE:
   R1=0
   GOSUB MAL_READ
   R1=R
-  IF ER<>-2 THEN GOTO REP_DONE
+  IF ER<>-2 THEN GOTO RE_DONE
 
   A=R:E=D:GOSUB EVAL
 
-  REP_DONE:
+  RE_DONE:
     REM Release memory from MAL_READ
     IF R1<>0 THEN AY=R1:GOSUB RELEASE
     RETURN: REM caller must release result of EVAL
@@ -395,8 +395,7 @@ MAIN:
   A$="(def! not (fn* (a) (if a false true)))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
-  A$="(def! load-file (fn* (f) (eval (read-string (str "
-  A$=A$+CHR$(34)+"(do "+CHR$(34)+" (slurp f) "+CHR$(34)+")"+CHR$(34)+")))))"
+  A$="(def! load-file (fn* (f) (eval (read-file f))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
   REM load the args file

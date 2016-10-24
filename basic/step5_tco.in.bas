@@ -346,11 +346,11 @@ RE:
   R1=0
   GOSUB MAL_READ
   R1=R
-  IF ER<>-2 THEN GOTO REP_DONE
+  IF ER<>-2 THEN GOTO RE_DONE
 
   A=R:E=D:GOSUB EVAL
 
-  REP_DONE:
+  RE_DONE:
     REM Release memory from MAL_READ
     IF R1<>0 THEN AY=R1:GOSUB RELEASE
     RETURN: REM caller must release result of EVAL
