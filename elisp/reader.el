@@ -1,3 +1,8 @@
+;; HACK: `text-quoting-style' prettifies quotes in error messages on
+;; Emacs 25.1, but no longer does from 25.2 upwards...
+(when (and (= emacs-major-version 25) (= emacs-minor-version 1))
+  (setq text-quoting-style 'grave))
+
 (defvar tokens nil)
 
 (defun peek ()
