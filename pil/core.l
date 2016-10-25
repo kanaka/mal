@@ -89,6 +89,16 @@
       (maps '((C) (put X* (cdr C) (car C))) X)
       X* ) )
 
+(de pil-to-mal (X)
+   (cond
+      ((not X) *MAL-nil)
+      ((=T X) *MAL-true)
+      ((num? X) (MAL-number X))
+      ((str? X) (MAL-string X))
+      ((sym? X) (MAL-symbol X))
+      ((lst? X) (MAL-list (mapcar pil-to-mal X)))
+      (T (MAL-string (sym X))) ) )
+
 (def '*Ns
    '((+ . `(MAL-fn '((A B) (MAL-number (+ (MAL-value A) (MAL-value B))))))
      (- . `(MAL-fn '((A B) (MAL-number (- (MAL-value A) (MAL-value B))))))
@@ -161,4 +171,6 @@
      (readline . `(MAL-fn '((Prompt) (let Output (readline (MAL-value Prompt)) (if (=0 Output) NIL (MAL-string Output))))))
      (time-ms . `(MAL-fn '(() (MAL-number (/ (usec) 1000)))))
      (conj . `(MAL-fn MAL-conj))
-     (seq . `(MAL-fn MAL-seq)) ) )
+     (seq . `(MAL-fn MAL-seq))
+
+     (pil-eval . `(MAL-fn '((Input) (pil-to-mal (run (str (MAL-value Input))))))) ) )
