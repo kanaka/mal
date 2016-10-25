@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 59 languages:
+Mal is implemented in 60 languages:
 
 * Ada
 * GNU awk
@@ -50,6 +50,7 @@ Mal is implemented in 59 languages:
 * Perl
 * Perl 6
 * PHP
+* Picolisp
 * PL/pgSQL (Postgres)
 * PL/SQL (Oracle)
 * Postscript
@@ -620,6 +621,18 @@ to run.
 ```
 cd php
 php stepX_YYY.php
+```
+
+### Picolisp
+
+*The Picolisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Picolisp implementation requires libreadline and Picolisp 3.1.11
+or later.
+
+```
+cd pil
+./run
 ```
 
 ### PL/pgSQL (Postgres SQL Procedural Language)
