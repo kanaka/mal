@@ -281,6 +281,11 @@ function NewNativeFn(funcname)
   return ObjNewWithMeta("nativefunction", fn, g:MalNil)
 endfunction
 
+function NewNativeFnLambda(lambdaexpr)
+  let fn = {"Func": a:lambdaexpr, "name": "inline"}
+  return ObjNewWithMeta("nativefunction", fn, g:MalNil)
+endfunction
+
 let g:MalNil = NilNew()
 let g:MalTrue = TrueNew()
 let g:MalFalse = FalseNew()

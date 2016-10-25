@@ -64,27 +64,11 @@ function REP(str, env)
   return PRINT(EVAL(READ(a:str), a:env))
 endfunction
 
-function MalAdd(args)
-  return IntegerNew(ObjValue(a:args[0]) + ObjValue(a:args[1]))
-endfunction
-
-function MalSub(args)
-  return IntegerNew(ObjValue(a:args[0]) - ObjValue(a:args[1]))
-endfunction
-
-function MalMul(args)
-  return IntegerNew(ObjValue(a:args[0]) * ObjValue(a:args[1]))
-endfunction
-
-function MalDiv(args)
-  return IntegerNew(ObjValue(a:args[0]) / ObjValue(a:args[1]))
-endfunction
-
 let repl_env = {}
-let repl_env["+"] = function("MalAdd")
-let repl_env["-"] = function("MalSub")
-let repl_env["*"] = function("MalMul")
-let repl_env["/"] = function("MalDiv")
+let repl_env["+"] = {a -> IntegerNew(a[0].val + a[1].val)}
+let repl_env["-"] = {a -> IntegerNew(a[0].val - a[1].val)}
+let repl_env["*"] = {a -> IntegerNew(a[0].val * a[1].val)}
+let repl_env["/"] = {a -> IntegerNew(a[0].val / a[1].val)}
 
 while 1
   let [eof, line] = Readline("user> ")

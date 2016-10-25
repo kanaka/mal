@@ -1,82 +1,5 @@
 " core module
 
-function MalEqualQ(args)
-  return BoolNew(EqualQ(a:args[0], a:args[1]))
-endfunction
-
-function MalLt(args)
-  return BoolNew(ObjValue(a:args[0]) < ObjValue(a:args[1]))
-endfunction
-
-function MalLte(args)
-  return BoolNew(ObjValue(a:args[0]) <= ObjValue(a:args[1]))
-endfunction
-
-function MalGt(args)
-  return BoolNew(ObjValue(a:args[0]) > ObjValue(a:args[1]))
-endfunction
-
-function MalGte(args)
-  return BoolNew(ObjValue(a:args[0]) >= ObjValue(a:args[1]))
-endfunction
-
-function MalAdd(args)
-  return IntegerNew(ObjValue(a:args[0]) + ObjValue(a:args[1]))
-endfunction
-
-function MalSub(args)
-  return IntegerNew(ObjValue(a:args[0]) - ObjValue(a:args[1]))
-endfunction
-
-function MalMul(args)
-  return IntegerNew(ObjValue(a:args[0]) * ObjValue(a:args[1]))
-endfunction
-
-function MalDiv(args)
-  return IntegerNew(ObjValue(a:args[0]) / ObjValue(a:args[1]))
-endfunction
-
-function MalTimeMs(args)
-  " vimtimems() is implemented in vimextras.c
-  return IntegerNew(libcallnr("libvimextras.so", "vimtimems", 0))
-endfunction
-
-function MalList(args)
-  return ListNew(a:args)
-endfunction
-
-function MalListQ(args)
-  return BoolNew(ListQ(a:args[0]))
-endfunction
-
-function MalVector(args)
-  return VectorNew(a:args)
-endfunction
-
-function MalVectorQ(args)
-  return BoolNew(VectorQ(a:args[0]))
-endfunction
-
-function MalSequentialQ(args)
-  return BoolNew(SequentialQ(a:args[0]))
-endfunction
-
-function MalHashMap(args)
-  return HashBuild(a:args)
-endfunction
-
-function MalMapQ(args)
-  return BoolNew(HashQ(a:args[0]))
-endfunction
-
-function MalEmptyQ(args)
-  return BoolNew(EmptyQ(a:args[0]))
-endfunction
-
-function MalCount(args)
-  return IntegerNew(ListCount(a:args[0]))
-endfunction
-
 function MalAssoc(args)
   let hash = copy(ObjValue(a:args[0]))
   let new_elements = HashBuild(a:args[1:])
@@ -122,41 +45,9 @@ function MalKeys(args)
   return ListNew(listobjs)
 endfunction
 
-function MalVals(args)
-  return ListNew(values(ObjValue(a:args[0])))
-endfunction
-
-function MalPrStr(args)
-  return StringNew(join(map(copy(a:args), 'PrStr(v:val, 1)'), " "))
-endfunction
-
-function MalStr(args)
-  return StringNew(join(map(copy(a:args), 'PrStr(v:val, 0)'), ""))
-endfunction
-
-function MalPrn(args)
-  call PrintLn(join(map(copy(a:args), 'PrStr(v:val, 1)'), " "))
-  return g:MalNil
-endfunction
-
-function MalPrintLn(args)
-  call PrintLn(join(map(copy(a:args), 'PrStr(v:val, 0)'), " "))
-  return g:MalNil
-endfunction
-
-function MalReadString(args)
-  return ReadStr(ObjValue(a:args[0]))
-endfunction
-
 function MalReadLine(args)
   let [eof, line] = Readline(ObjValue(a:args[0]))
   return eof ? g:MalNil : StringNew(line)
-endfunction
-
-function MalSlurp(args)
-  let filename = ObjValue(a:args[0])
-  let lines = readfile(filename, "b")
-  return StringNew(join(lines, "\n"))
 endfunction
 
 function MalCons(args)
@@ -171,18 +62,6 @@ function MalConcat(args)
     let res = res + ObjValue(list)
   endfor
   return ListNew(res)
-endfunction
-
-function MalFirst(args)
-  return NilQ(a:args[0]) ? g:MalNil : ListFirst(a:args[0])
-endfunction
-
-function MalNth(args)
-  return ListNth(a:args[0], ObjValue(a:args[1]))
-endfunction
-
-function MalRest(args)
-  return NilQ(a:args[0]) ? ListNew([]) : ListRest(a:args[0])
 endfunction
 
 function MalApply(args)
@@ -227,38 +106,6 @@ function MalThrow(args)
   throw "__MalException__"
 endfunction
 
-function MalNilQ(args)
-  return BoolNew(NilQ(a:args[0]))
-endfunction
-
-function MalTrueQ(args)
-  return BoolNew(TrueQ(a:args[0]))
-endfunction
-
-function MalFalseQ(args)
-  return BoolNew(FalseQ(a:args[0]))
-endfunction
-
-function MalSymbol(args)
-  return SymbolNew(ObjValue(a:args[0]))
-endfunction
-
-function MalSymbolQ(args)
-  return BoolNew(SymbolQ(a:args[0]))
-endfunction
-
-function MalStringQ(args)
-  return BoolNew(StringQ(a:args[0]))
-endfunction
-
-function MalKeyword(args)
-  return KeywordNew(ObjValue(a:args[0]))
-endfunction
-
-function MalKeywordQ(args)
-  return BoolNew(KeywordQ(a:args[0]))
-endfunction
-
 function ConjList(list, elements)
   let newlist = a:list
   for e in a:elements
@@ -292,42 +139,9 @@ function MalSeq(args)
   elseif VectorQ(obj)
     return ListNew(ObjValue(obj))
   elseif StringQ(obj)
-    return ListNew(map(split(ObjValue(obj), '\zs'), 'StringNew(v:val)'))
+    return ListNew(map(split(ObjValue(obj), '\zs'), {_, c -> StringNew(c)}))
   endif
   throw "seq requires string or list or vector or nil"
-endfunction
-
-function MalMeta(args)
-  return ObjMeta(a:args[0])
-endfunction
-
-function MalWithMeta(args)
-  let obj = a:args[0]
-  return ObjNewWithMeta(ObjType(obj), copy(ObjValue(obj)), a:args[1])
-endfunction
-
-function MalAtom(args)
-  return AtomNew(a:args[0])
-endfunction
-
-function MalAtomQ(args)
-  return BoolNew(AtomQ(a:args[0]))
-endfunction
-
-function MalDeref(args)
-  return ObjValue(a:args[0])
-endfunction
-
-function MalResetBang(args)
-  return ObjSetValue(a:args[0], a:args[1])
-endfunction
-
-function MalSwapBang(args)
-  let atomval = ObjValue(a:args[0])
-  let funcobj = a:args[1]
-  let args = a:args[2:]
-  let res = MalApply([funcobj, ListNew([atomval] + args)])
-  return ObjSetValue(a:args[0], res)
 endfunction
 
 function VimToMal(e)
@@ -355,69 +169,63 @@ function VimToMal(e)
   endif
 endfunction
 
-function MalVimStar(args)
-  let vimexpr = ObjValue(a:args[0])
-  let vimres = eval(vimexpr)
-  return VimToMal(vimres)
-endfunction
-
 let CoreNs = {
-  \ "=":           NewNativeFn("MalEqualQ"),
-  \ "<":           NewNativeFn("MalLt"),
-  \ "<=":          NewNativeFn("MalLte"),
-  \ ">":           NewNativeFn("MalGt"),
-  \ ">=":          NewNativeFn("MalGte"),
-  \ "+":           NewNativeFn("MalAdd"),
-  \ "-":           NewNativeFn("MalSub"),
-  \ "*":           NewNativeFn("MalMul"),
-  \ "/":           NewNativeFn("MalDiv"),
-  \ "time-ms":     NewNativeFn("MalTimeMs"),
-  \ "nil?":        NewNativeFn("MalNilQ"),
-  \ "true?":       NewNativeFn("MalTrueQ"),
-  \ "false?":      NewNativeFn("MalFalseQ"),
-  \ "symbol":      NewNativeFn("MalSymbol"),
-  \ "symbol?":     NewNativeFn("MalSymbolQ"),
-  \ "string?":     NewNativeFn("MalStringQ"),
-  \ "keyword":     NewNativeFn("MalKeyword"),
-  \ "keyword?":    NewNativeFn("MalKeywordQ"),
-  \ "list":        NewNativeFn("MalList"),
-  \ "list?":       NewNativeFn("MalListQ"),
-  \ "vector":      NewNativeFn("MalVector"),
-  \ "vector?":     NewNativeFn("MalVectorQ"),
-  \ "sequential?": NewNativeFn("MalSequentialQ"),
-  \ "hash-map":    NewNativeFn("MalHashMap"),
-  \ "map?":        NewNativeFn("MalMapQ"),
-  \ "empty?":      NewNativeFn("MalEmptyQ"),
-  \ "count":       NewNativeFn("MalCount"),
+  \ "=":           NewNativeFnLambda({a -> BoolNew(EqualQ(a[0], a[1]))}),
+  \ "<":           NewNativeFnLambda({a -> BoolNew(ObjValue(a[0]) < ObjValue(a[1]))}),
+  \ "<=":          NewNativeFnLambda({a -> BoolNew(ObjValue(a[0]) <= ObjValue(a[1]))}),
+  \ ">":           NewNativeFnLambda({a -> BoolNew(ObjValue(a[0]) > ObjValue(a[1]))}),
+  \ ">=":          NewNativeFnLambda({a -> BoolNew(ObjValue(a[0]) >= ObjValue(a[1]))}),
+  \ "+":           NewNativeFnLambda({a -> IntegerNew(ObjValue(a[0]) + ObjValue(a[1]))}),
+  \ "-":           NewNativeFnLambda({a -> IntegerNew(ObjValue(a[0]) - ObjValue(a[1]))}),
+  \ "*":           NewNativeFnLambda({a -> IntegerNew(ObjValue(a[0]) * ObjValue(a[1]))}),
+  \ "/":           NewNativeFnLambda({a -> IntegerNew(ObjValue(a[0]) / ObjValue(a[1]))}),
+  \ "time-ms":     NewNativeFnLambda({a -> IntegerNew(libcallnr("libvimextras.so", "vimtimems", 0))}),
+  \ "nil?":        NewNativeFnLambda({a -> BoolNew(NilQ(a[0]))}),
+  \ "true?":       NewNativeFnLambda({a -> BoolNew(TrueQ(a[0]))}),
+  \ "false?":      NewNativeFnLambda({a -> BoolNew(FalseQ(a[0]))}),
+  \ "symbol":      NewNativeFnLambda({a -> SymbolNew(ObjValue(a[0]))}),
+  \ "symbol?":     NewNativeFnLambda({a -> BoolNew(SymbolQ(a[0]))}),
+  \ "string?":     NewNativeFnLambda({a -> BoolNew(StringQ(a[0]))}),
+  \ "keyword":     NewNativeFnLambda({a -> KeywordNew(ObjValue(a[0]))}),
+  \ "keyword?":    NewNativeFnLambda({a -> BoolNew(KeywordQ(a[0]))}),
+  \ "list":        NewNativeFnLambda({a -> ListNew(a)}),
+  \ "list?":       NewNativeFnLambda({a -> BoolNew(ListQ(a[0]))}),
+  \ "vector":      NewNativeFnLambda({a -> VectorNew(a)}),
+  \ "vector?":     NewNativeFnLambda({a -> BoolNew(VectorQ(a[0]))}),
+  \ "sequential?": NewNativeFnLambda({a -> BoolNew(SequentialQ(a[0]))}),
+  \ "hash-map":    NewNativeFnLambda({a -> HashBuild(a)}),
+  \ "map?":        NewNativeFnLambda({a -> BoolNew(HashQ(a[0]))}),
+  \ "empty?":      NewNativeFnLambda({a -> BoolNew(EmptyQ(a[0]))}),
+  \ "count":       NewNativeFnLambda({a -> IntegerNew(ListCount(a[0]))}),
   \ "assoc":       NewNativeFn("MalAssoc"),
   \ "dissoc":      NewNativeFn("MalDissoc"),
   \ "get":         NewNativeFn("MalGet"),
   \ "contains?":   NewNativeFn("MalContainsQ"),
   \ "keys":        NewNativeFn("MalKeys"),
-  \ "vals":        NewNativeFn("MalVals"),
-  \ "pr-str":      NewNativeFn("MalPrStr"),
-  \ "str":         NewNativeFn("MalStr"),
-  \ "prn":         NewNativeFn("MalPrn"),
-  \ "println":     NewNativeFn("MalPrintLn"),
-  \ "read-string": NewNativeFn("MalReadString"),
+  \ "vals":        NewNativeFnLambda({a -> ListNew(values(ObjValue(a[0])))}),
+  \ "pr-str":      NewNativeFnLambda({a -> StringNew(join(map(copy(a), {_, e -> PrStr(e, 1)}), " "))}),
+  \ "str":         NewNativeFnLambda({a -> StringNew(join(map(copy(a), {_, e -> PrStr(e, 0)}), ""))}),
+  \ "prn":         NewNativeFnLambda({a -> [PrintLn(join(map(copy(a), {_, e -> PrStr(e, 1)}), " ")), g:MalNil][1]}),
+  \ "println":     NewNativeFnLambda({a -> [PrintLn(join(map(copy(a), {_, e -> PrStr(e, 0)}), " ")), g:MalNil][1]}),
+  \ "read-string": NewNativeFnLambda({a -> ReadStr(ObjValue(a[0]))}),
   \ "readline":    NewNativeFn("MalReadLine"),
-  \ "slurp":       NewNativeFn("MalSlurp"),
+  \ "slurp":       NewNativeFnLambda({a -> StringNew(join(readfile(ObjValue(a[0]), "b"), "\n"))}),
   \ "cons":        NewNativeFn("MalCons"),
   \ "concat":      NewNativeFn("MalConcat"),
-  \ "first":       NewNativeFn("MalFirst"),
-  \ "nth":         NewNativeFn("MalNth"),
-  \ "rest":        NewNativeFn("MalRest"),
+  \ "first":       NewNativeFnLambda({a -> NilQ(a[0]) ? g:MalNil : ListFirst(a[0])}),
+  \ "nth":         NewNativeFnLambda({a -> ListNth(a[0], ObjValue(a[1]))}),
+  \ "rest":        NewNativeFnLambda({a -> NilQ(a[0]) ? ListNew([]) : ListRest(a[0])}),
   \ "apply":       NewNativeFn("MalApply"),
   \ "map":         NewNativeFn("MalMap"),
   \ "throw":       NewNativeFn("MalThrow"),
   \ "conj":        NewNativeFn("MalConj"),
   \ "seq":         NewNativeFn("MalSeq"),
-  \ "meta":        NewNativeFn("MalMeta"),
-  \ "with-meta":   NewNativeFn("MalWithMeta"),
-  \ "atom":        NewNativeFn("MalAtom"),
-  \ "atom?":       NewNativeFn("MalAtomQ"),
-  \ "deref":       NewNativeFn("MalDeref"),
-  \ "reset!":      NewNativeFn("MalResetBang"),
-  \ "swap!":       NewNativeFn("MalSwapBang"),
-  \ "vim*":        NewNativeFn("MalVimStar")
+  \ "meta":        NewNativeFnLambda({a -> ObjMeta(a[0])}),
+  \ "with-meta":   NewNativeFnLambda({a -> ObjNewWithMeta(ObjType(a[0]), copy(ObjValue(a[0])), a[1])}),
+  \ "atom":        NewNativeFnLambda({a -> AtomNew(a[0])}),
+  \ "atom?":       NewNativeFnLambda({a -> BoolNew(AtomQ(a[0]))}),
+  \ "deref":       NewNativeFnLambda({a -> ObjValue(a[0])}),
+  \ "reset!":      NewNativeFnLambda({a -> ObjSetValue(a[0], a[1])}),
+  \ "swap!":       NewNativeFnLambda({a -> ObjSetValue(a[0], MalApply([a[1], ListNew([ObjValue(a[0])] + a[2:])]))}),
+  \ "vim*":        NewNativeFnLambda({a -> VimToMal(eval(ObjValue(a[0])))})
   \ }
