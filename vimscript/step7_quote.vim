@@ -150,12 +150,7 @@ function REP(str, env)
 endfunction
 
 function GetArgvList()
-  let args = argv()
-  let list = []
-  for arg in args[1:]
-    call add(list, StringNew(arg))
-  endfor
-  return ListNew(list)
+  return ListNew(map(copy(argv()[1:]), {_, arg -> StringNew(arg)}))
 endfunction
 
 set maxfuncdepth=10000
