@@ -11,8 +11,8 @@ endfunction
 
 " Returns [is_eof, line_string]
 function Readline(prompt)
-  " Use the vimreadline() function defined in vimreadline.c and compiled
-  " into libvimreadline.so
+  " Use the vimreadline() function defined in vimextras.c and compiled
+  " into libvimextras.so
   call s:buildlibvimreadline()
   let res = libcall("libvimextras.so", "vimreadline", a:prompt)
   if res[0] == "E"
