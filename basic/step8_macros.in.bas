@@ -110,7 +110,11 @@ MACROEXPAND:
     IF (Z%(B,0)AND31)<>11 THEN GOTO MACROEXPAND_DONE
   
     REM apply
-    F=B:AR=Z%(A,1):GOSUB APPLY
+    X=X+1:X%(X)=5: REM push APPLY return label/address
+    F=B:AR=Z%(A,1):GOTO APPLY
+    REM APPLY return label/address popped by APPLY
+    APPLY_RETURN_MACROEXPAND:
+
     A=R
 
     AY=X%(X)
@@ -171,6 +175,9 @@ EVAL_AST:
       REM check if we are done evaluating the source sequence
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
+      REM if we are returning to DO, then skip last element
+      IF X%(X-6)=2 AND Z%(Z%(A,1),1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
+
       REM if hashmap, skip eval of even entries (keys)
       IF (X%(X-3)=8) AND ((X%(X-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
@@ -223,7 +230,6 @@ EVAL_AST:
     REM pop EVAL AST return label/address
     RN=X%(X):X=X-1
     ON RN GOTO EVAL_AST_RETURN_1,EVAL_AST_RETURN_2,EVAL_AST_RETURN_3
-    RETURN
 
 REM EVAL(A, E)) -> R
 EVAL:
@@ -231,6 +237,8 @@ EVAL:
 
   REM push A and E on the stack
   X=X+2:X%(X-1)=E:X%(X)=A
+
+  REM PRINT "EVAL A:"+STR$(A)+",X:"+STR$(X)+",LV:"+STR$(LV)+",FRE:"+STR$(FRE(0))
 
   EVAL_TCO_RECUR:
 
@@ -339,19 +347,26 @@ EVAL:
 
     EVAL_DO:
       A=Z%(A,1): REM rest
-
-      REM TODO: TCO
+      X=X+1:X%(X)=A: REM push/save A
 
       REM push EVAL_AST return label/address
       X=X+1:X%(X)=2
       GOTO EVAL_AST
+      REM return label/address already popped by EVAL_AST
       EVAL_AST_RETURN_2:
 
-      X=X+1:X%(X)=R: REM push eval'd list
-      A=R:GOSUB LAST: REM return the last element
-      AY=X%(X):X=X-1: REM pop eval'd list
-      GOSUB RELEASE: REM release the eval'd list
-      GOTO EVAL_RETURN
+      REM cleanup
+      AY=R: REM get eval'd list for release
+
+      A=X%(X):X=X-1: REM pop/restore original A for LAST
+      GOSUB LAST: REM get last element for return
+      A=R: REM new recur AST
+
+      REM cleanup
+      GOSUB RELEASE: REM release eval'd list
+      AY=A:GOSUB RELEASE: REM release LAST value (not sure why)
+
+      GOTO EVAL_TCO_RECUR: REM TCO loop
 
     EVAL_QUOTE:
       R=Z%(A,1)+1:GOSUB DEREF_R
@@ -444,7 +459,11 @@ EVAL:
       ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
 
       EVAL_DO_FUNCTION:
-        GOSUB DO_FUNCTION
+        REM regular function
+        IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO DO_TCO_FUNCTION_RETURN_EVAL
+        REM for recur functions (apply, map, swap!), use GOTO
+        IF Z%(F,1)>60 THEN X=X+1:X%(X)=2:GOTO DO_TCO_FUNCTION
+        DO_TCO_FUNCTION_RETURN_EVAL:
 
         REM pop and release f/args
         AY=X%(X):X=X-1:GOSUB RELEASE
@@ -534,7 +553,7 @@ REP:
     IF R2<>0 THEN AY=R2:GOSUB RELEASE
     IF R1<>0 THEN AY=R1:GOSUB RELEASE
     R$=RT$
-    RETURN
+    GOTO REP_RETURN
 
 REM MAIN program
 MAIN:
@@ -588,13 +607,14 @@ MAIN:
     A$="(load-file (first -*ARGS*-))"
     GOSUB RE
     IF ER<>-2 THEN GOSUB PRINT_ERROR
-    END
+    GOTO QUIT
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
-    A$=R$:GOSUB REP: REM call REP
+    A$=R$:GOTO REP: REM call REP
+    REP_RETURN:
 
     IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$

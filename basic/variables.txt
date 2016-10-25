@@ -56,11 +56,15 @@ P2  : PR_MEMORY, CHECK_FREE_LIST end
 SZ  : size argument to ALLOC
 
 Reused/temporaries:
-
 A0  : EVAL ast elements
 A1  : EVAL ast elements
 A2  : EVAL ast elements
 A3  : EVAL ast elements
+
+ED  : EQUAL_Q recursion depth counter
+RD  : PR_OBJECT recursion depth
+SD  : READ_STR sequence read recursion depth
+
 CH$ : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
 I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
 J   : REPLACE

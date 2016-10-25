@@ -112,7 +112,6 @@ EVAL_AST:
     REM pop EVAL AST return label/address
     RN=X%(X):X=X-1
     ON RN GOTO EVAL_AST_RETURN_1,EVAL_AST_RETURN_2,EVAL_AST_RETURN_3
-    RETURN
 
 REM EVAL(A, E)) -> R
 EVAL:
@@ -120,6 +119,8 @@ EVAL:
 
   REM push A and E on the stack
   X=X+2:X%(X-1)=E:X%(X)=A
+
+  REM PRINT "EVAL A:"+STR$(A)+",X:"+STR$(X)+",LV:"+STR$(LV)+",FRE:"+STR$(FRE(0))
 
   EVAL_TCO_RECUR:
 
@@ -215,6 +216,7 @@ EVAL:
       REM push EVAL_AST return label/address
       X=X+1:X%(X)=2
       GOTO EVAL_AST
+      REM return label/address already popped by EVAL_AST
       EVAL_AST_RETURN_2:
 
       X=X+1:X%(X)=R: REM push eval'd list
@@ -276,7 +278,11 @@ EVAL:
       ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
 
       EVAL_DO_FUNCTION:
-        GOSUB DO_FUNCTION
+        REM regular function
+        IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO DO_TCO_FUNCTION_RETURN_EVAL
+        REM for recur functions (apply, map, swap!), use GOTO
+        IF Z%(F,1)>60 THEN X=X+1:X%(X)=2:GOTO DO_TCO_FUNCTION
+        DO_TCO_FUNCTION_RETURN_EVAL:
 
         REM pop and release f/args
         AY=X%(X):X=X-1:GOSUB RELEASE

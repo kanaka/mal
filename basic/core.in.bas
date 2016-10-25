@@ -1,3 +1,191 @@
+REM APPLY should really be in types.in.bas but it is here because it
+REM has return labels into DO_TCO_FUNCTION so it will cause syntax
+REM errors for steps1-3 if it is in types.in.bas because there are
+REM unresolved labels.
+
+REM APPLY(F, AR) -> R
+REM   - restores E
+REM   - call using GOTO and with return label/address on the stack
+APPLY:
+  REM if metadata, get the actual object
+  IF (Z%(F,0)AND31)>=16 THEN F=Z%(F,1)
+
+  IF (Z%(F,0)AND31)=9 THEN GOTO APPLY_FUNCTION
+  IF (Z%(F,0)AND31)=10 THEN GOTO APPLY_MAL_FUNCTION
+  IF (Z%(F,0)AND31)=11 THEN GOTO APPLY_MAL_FUNCTION
+
+  APPLY_FUNCTION:
+    REM regular function
+    IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO DO_TCO_FUNCTION_RETURN_APPLY
+    REM for recur functions (apply, map, swap!), use GOTO
+    IF Z%(F,1)>60 THEN X=X+1:X%(X)=1:GOTO DO_TCO_FUNCTION
+    DO_TCO_FUNCTION_RETURN_APPLY:
+    GOTO APPLY_DONE
+
+  APPLY_MAL_FUNCTION:
+    X=X+1:X%(X)=E: REM save the current environment
+
+    REM create new environ using env and params stored in the
+    REM function and bind the params to the apply arguments
+    O=Z%(F+1,1):BI=Z%(F+1,0):EX=AR:GOSUB ENV_NEW_BINDS
+
+    A=Z%(F,1):E=R:GOSUB EVAL
+
+    AY=E:GOSUB RELEASE: REM release the new environment
+
+    E=X%(X):X=X-1: REM pop/restore the saved environment
+
+  APPLY_DONE:
+    REM pop APPLY return label/address
+    RN=X%(X):X=X-1
+    ON RN GOTO APPLY_RETURN_1,APPLY_RETURN_2,APPLY_RETURN_MAP,APPLY_RETURN_SWAP,APPLY_RETURN_MACROEXPAND
+
+
+REM DO_TCO_FUNCTION(F, AR)
+REM   - similar to DO_FUNCTION but non-GOSUB version for potentially
+REM     recursive function (apply, map, swap!)
+DO_TCO_FUNCTION:
+  FF=Z%(F,1)
+
+  REM Get argument values
+  R=AR+1:GOSUB DEREF_R:AA=R
+  R=Z%(AR,1)+1:GOSUB DEREF_R:AB=R
+
+  ON FF-60 GOTO DO_APPLY,DO_MAP,DO_SWAP_BANG
+
+  DO_APPLY:
+    F=AA
+    AR=Z%(AR,1)
+    A=AR:GOSUB COUNT:R4=R
+
+    A=Z%(AR+1,1)
+    REM no intermediate args, but not a list, so convert it first
+    IF R4<=1 AND (Z%(A,0)AND31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
+    REM no intermediate args, just call APPLY directly
+    IF R4<=1 THEN GOTO DO_APPLY_1
+
+    REM prepend intermediate args to final args element
+    A=AR:B=0:C=R4-1:GOSUB SLICE
+    REM release the terminator of new list (we skip over it)
+    AY=Z%(R6,1):GOSUB RELEASE
+    REM attach end of slice to final args element
+    Z%(R6,1)=Z%(A+1,1)
+    Z%(Z%(A+1,1),0)=Z%(Z%(A+1,1),0)+32
+
+    GOTO DO_APPLY_2
+
+    DO_APPLY_1:
+      X=X+1:X%(X)=1: REM push APPLY return label/address
+      AR=A:GOTO APPLY
+      REM APPLY return label/address popped by APPLY
+      APPLY_RETURN_1:
+
+      GOTO DO_TCO_FUNCTION_RETURN
+
+    DO_APPLY_2:
+      X=X+1:X%(X)=R: REM push/save new args for release
+
+      X=X+1:X%(X)=2: REM push APPLY return label/address
+      AR=R:GOTO APPLY
+      REM APPLY return label/address popped by APPLY
+      APPLY_RETURN_2:
+
+      AY=X%(X):X=X-1:GOSUB RELEASE: REM pop/release new args
+      GOTO DO_TCO_FUNCTION_RETURN
+
+  DO_MAP:
+    F=AA
+
+    REM first result list element
+    T=6:L=0:N=0:GOSUB ALLOC
+
+    REM push future return val, prior entry, F and AB
+    X=X+4:X%(X-3)=R:X%(X-2)=0:X%(X-1)=F:X%(X)=AB
+
+    DO_MAP_LOOP:
+      REM set previous to current if not the first element
+      IF X%(X-2)<>0 THEN Z%(X%(X-2),1)=R
+      REM update previous reference to current
+      X%(X-2)=R
+
+      IF Z%(AB,1)=0 THEN GOTO DO_MAP_DONE
+
+      REM create argument list for apply call
+      Z%(3,0)=Z%(3,0)+32
+      REM inc ref cnt of referred argument
+      T=6:L=3:N=Z%(AB+1,1):GOSUB ALLOC
+
+      REM push argument list
+      X=X+1:X%(X)=R
+
+      X=X+1:X%(X)=3: REM push APPLY return label/address
+      AR=R:GOTO APPLY
+      REM APPLY return label/address popped by APPLY
+      APPLY_RETURN_MAP:
+
+      REM pop apply args are release them
+      AY=X%(X):X=X-1:GOSUB RELEASE
+
+      REM set the result value
+      Z%(X%(X-2)+1,1)=R
+
+      REM restore F
+      F=X%(X-1)
+
+      REM update AB to next source element
+      X%(X)=Z%(X%(X),1)
+      AB=X%(X)
+
+      REM allocate next element
+      T=6:L=0:N=0:GOSUB ALLOC
+
+      GOTO DO_MAP_LOOP
+
+    DO_MAP_DONE:
+      REM get return val
+      R=X%(X-3)
+      REM pop everything off stack
+      X=X-4
+      GOTO DO_TCO_FUNCTION_RETURN
+
+
+  DO_SWAP_BANG:
+    F=AB
+
+    REM add atom to front of the args list
+    T=6:L=Z%(Z%(AR,1),1):N=Z%(AA,1):GOSUB ALLOC: REM cons
+    AR=R
+
+    REM push args for release after
+    X=X+1:X%(X)=AR
+
+    REM push atom
+    X=X+1:X%(X)=AA
+
+    X=X+1:X%(X)=4: REM push APPLY return label/address
+    GOTO APPLY
+    REM APPLY return label/address popped by APPLY
+    APPLY_RETURN_SWAP:
+
+    REM pop atom
+    AA=X%(X):X=X-1
+
+    REM pop and release args
+    AY=X%(X):X=X-1:GOSUB RELEASE
+
+    REM use reset to update the value
+    AB=R:GOSUB DO_RESET_BANG
+
+    REM but decrease ref cnt of return by 1 (not sure why)
+    AY=R:GOSUB RELEASE
+
+    GOTO DO_TCO_FUNCTION_RETURN
+
+  DO_TCO_FUNCTION_RETURN:
+    REM pop EVAL AST return label/address
+    RN=X%(X):X=X-1
+    ON RN GOTO DO_TCO_FUNCTION_RETURN_APPLY,DO_TCO_FUNCTION_RETURN_EVAL
+
 
 REM DO_FUNCTION(F, AR)
 DO_FUNCTION:
@@ -10,7 +198,7 @@ DO_FUNCTION:
 
   REM Switch on the function number
   IF FF>59 THEN ER=-1:ER$="unknown function"+STR$(FF):RETURN
-  ON FF/10+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_59
+  ON FF/10+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_56
 
   DO_1_9:
   ON FF GOTO DO_EQUAL_Q,DO_THROW,DO_NIL_Q,DO_TRUE_Q,DO_FALSE_Q,DO_STRING_Q,DO_SYMBOL,DO_SYMBOL_Q,DO_KEYWORD
@@ -21,9 +209,9 @@ DO_FUNCTION:
   DO_30_39:
   ON FF-29 GOTO DO_VECTOR_Q,DO_HASH_MAP,DO_MAP_Q,DO_ASSOC,DO_THROW,DO_GET,DO_CONTAINS,DO_KEYS,DO_VALS,DO_SEQUENTIAL_Q
   DO_40_49:
-  ON FF-39 GOTO DO_CONS,DO_CONCAT,DO_NTH,DO_FIRST,DO_REST,DO_EMPTY_Q,DO_COUNT,DO_APPLY,DO_MAP,DO_THROW
-  DO_50_59:
-  ON FF-49 GOTO DO_THROW,DO_WITH_META,DO_META,DO_ATOM,DO_ATOM_Q,DO_DEREF,DO_RESET_BANG,DO_SWAP_BANG,DO_EVAL,DO_READ_FILE
+  ON FF-39 GOTO DO_CONS,DO_CONCAT,DO_NTH,DO_FIRST,DO_REST,DO_EMPTY_Q,DO_COUNT,DO_THROW,DO_THROW,DO_WITH_META
+  DO_50_56:
+  ON FF-49 GOTO DO_META,DO_ATOM,DO_ATOM_Q,DO_DEREF,DO_RESET_BANG,DO_EVAL,DO_READ_FILE
 
   DO_EQUAL_Q:
     A=AA:B=AB:GOSUB EQUAL_Q
@@ -148,7 +336,7 @@ DO_FUNCTION:
     T=2:L=Z%(AA,1)/Z%(AB,1):GOSUB ALLOC
     RETURN
   DO_TIME_MS:
-    R=0
+    T=2:L=INT((TI-BT)*16.667):GOSUB ALLOC
     RETURN
 
   DO_LIST:
@@ -301,81 +489,6 @@ DO_FUNCTION:
     A=AA:GOSUB COUNT
     T=2:L=R:GOSUB ALLOC
     RETURN
-  DO_APPLY:
-    F=AA
-    AR=Z%(AR,1)
-    A=AR:GOSUB COUNT:R4=R
-
-    A=Z%(AR+1,1)
-    REM no intermediate args, but not a list, so convert it first
-    IF R4<=1 AND (Z%(A,0)AND31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
-    REM no intermediate args, just call APPLY directly
-    IF R4<=1 THEN AR=A:GOSUB APPLY:RETURN
-
-    REM prepend intermediate args to final args element
-    A=AR:B=0:C=R4-1:GOSUB SLICE
-    REM release the terminator of new list (we skip over it)
-    AY=Z%(R6,1):GOSUB RELEASE
-    REM attach end of slice to final args element
-    Z%(R6,1)=Z%(A+1,1)
-    Z%(Z%(A+1,1),0)=Z%(Z%(A+1,1),0)+32
-
-    DO_APPLY_2:
-      X=X+1:X%(X)=R: REM push/save new args for release
-      AR=R:GOSUB APPLY
-      AY=X%(X):X=X-1:GOSUB RELEASE: REM pop/release new args
-      RETURN
-  DO_MAP:
-    F=AA
-
-    REM first result list element
-    T=6:L=0:N=0:GOSUB ALLOC
-
-    REM push future return val, prior entry, F and AB
-    X=X+4:X%(X-3)=R:X%(X-2)=0:X%(X-1)=F:X%(X)=AB
-
-    DO_MAP_LOOP:
-      REM set previous to current if not the first element
-      IF X%(X-2)<>0 THEN Z%(X%(X-2),1)=R
-      REM update previous reference to current
-      X%(X-2)=R
-
-      IF Z%(AB,1)=0 THEN GOTO DO_MAP_DONE
-
-      REM create argument list for apply call
-      Z%(3,0)=Z%(3,0)+32
-      REM inc ref cnt of referred argument
-      T=6:L=3:N=Z%(AB+1,1):GOSUB ALLOC
-
-      REM push argument list
-      X=X+1:X%(X)=R
-
-      AR=R:GOSUB APPLY
-
-      REM pop apply args are release them
-      AY=X%(X):X=X-1:GOSUB RELEASE
-
-      REM set the result value
-      Z%(X%(X-2)+1,1)=R
-
-      REM restore F
-      F=X%(X-1)
-
-      REM update AB to next source element
-      X%(X)=Z%(X%(X),1)
-      AB=X%(X)
-
-      REM allocate next element
-      T=6:L=0:N=0:GOSUB ALLOC
-
-      GOTO DO_MAP_LOOP
-
-    DO_MAP_DONE:
-      REM get return val
-      R=X%(X-3)
-      REM pop everything off stack
-      X=X-4
-      RETURN
 
   DO_WITH_META:
     T=Z%(AA,0)AND31
@@ -408,41 +521,13 @@ DO_FUNCTION:
     REM update value
     Z%(AA,1)=R
     RETURN
-  DO_SWAP_BANG:
-    F=AB
 
-    REM add atom to front of the args list
-    T=6:L=Z%(Z%(AR,1),1):N=Z%(AA,1):GOSUB ALLOC: REM cons
-    AR=R
-
-    REM push args for release after
-    X=X+1:X%(X)=AR
-
-    REM push atom
-    X=X+1:X%(X)=AA
-
-    GOSUB APPLY
-
-    REM pop atom
-    AA=X%(X):X=X-1
-
-    REM pop and release args
-    AY=X%(X):X=X-1:GOSUB RELEASE
-
-    REM use reset to update the value
-    AB=R:GOSUB DO_RESET_BANG
-
-    REM but decrease ref cnt of return by 1 (not sure why)
-    AY=R:GOSUB RELEASE
-
-    RETURN
-
-  DO_PR_MEMORY:
-    P1=ZT:P2=-1:GOSUB PR_MEMORY
-    RETURN
-  DO_PR_MEMORY_SUMMARY:
-    GOSUB PR_MEMORY_SUMMARY
-    RETURN
+  REM DO_PR_MEMORY:
+  REM   P1=ZT:P2=-1:GOSUB PR_MEMORY
+  REM   RETURN
+  REM DO_PR_MEMORY_SUMMARY:
+  REM   GOSUB PR_MEMORY_SUMMARY
+  REM   RETURN
 
   DO_EVAL:
     A=AA:E=D:GOSUB EVAL
@@ -513,19 +598,23 @@ INIT_CORE_NS:
   K$="rest":A=44:GOSUB INIT_CORE_SET_FUNCTION
   K$="empty?":A=45:GOSUB INIT_CORE_SET_FUNCTION
   K$="count":A=46:GOSUB INIT_CORE_SET_FUNCTION
-  K$="apply":A=47:GOSUB INIT_CORE_SET_FUNCTION
-  K$="map":A=48:GOSUB INIT_CORE_SET_FUNCTION
 
-  K$="with-meta":A=51:GOSUB INIT_CORE_SET_FUNCTION
-  K$="meta":A=52:GOSUB INIT_CORE_SET_FUNCTION
-  K$="atom":A=53:GOSUB INIT_CORE_SET_FUNCTION
-  K$="atom?":A=54:GOSUB INIT_CORE_SET_FUNCTION
-  K$="deref":A=55:GOSUB INIT_CORE_SET_FUNCTION
-  K$="reset!":A=56:GOSUB INIT_CORE_SET_FUNCTION
-  K$="swap!":A=57:GOSUB INIT_CORE_SET_FUNCTION
+  REM K$="conj":A=47:GOSUB INIT_CORE_SET_FUNCTION
+  REM K$="seq":A=48:GOSUB INIT_CORE_SET_FUNCTION
 
-  K$="eval":A=58:GOSUB INIT_CORE_SET_FUNCTION
+  K$="with-meta":A=49:GOSUB INIT_CORE_SET_FUNCTION
+  K$="meta":A=50:GOSUB INIT_CORE_SET_FUNCTION
+  K$="atom":A=51:GOSUB INIT_CORE_SET_FUNCTION
+  K$="atom?":A=52:GOSUB INIT_CORE_SET_FUNCTION
+  K$="deref":A=53:GOSUB INIT_CORE_SET_FUNCTION
+  K$="reset!":A=54:GOSUB INIT_CORE_SET_FUNCTION
 
-  K$="read-file":A=59:GOSUB INIT_CORE_SET_FUNCTION
+  K$="eval":A=55:GOSUB INIT_CORE_SET_FUNCTION
+  K$="read-file":A=56:GOSUB INIT_CORE_SET_FUNCTION
+
+  REM these are in DO_TCO_FUNCTION
+  K$="apply":A=61:GOSUB INIT_CORE_SET_FUNCTION
+  K$="map":A=62:GOSUB INIT_CORE_SET_FUNCTION
+  K$="swap!":A=63:GOSUB INIT_CORE_SET_FUNCTION
 
   RETURN

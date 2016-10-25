@@ -111,8 +111,8 @@ def finalize(lines, args):
             stext = text
             text = re.sub(r"(THEN) %s\b" % a, r"THEN %s" % b, stext)
             #text = re.sub(r"(THEN)%s\b" % a, r"THEN%s" % b, stext)
-            text = re.sub(r"(ON [^:]* GOTO [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
-            text = re.sub(r"(ON [^:]* GOSUB [^:\n]*)\b%s\b" % a, r"\g<2>%s" % b, text)
+            text = re.sub(r"(ON [^:\n]* GOTO [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
+            text = re.sub(r"(ON [^:\n]* GOSUB [^:\n]*)\b%s\b" % a, r"\g<2>%s" % b, text)
             text = re.sub(r"(GOSUB) %s\b" % a, r"\1 %s" % b, text)
             text = re.sub(r"(GOTO) %s\b" % a, r"\1 %s" % b, text)
             #text = re.sub(r"(GOTO)%s\b" % a, r"\1%s" % b, text)

@@ -64,8 +64,8 @@ INIT_MEMORY:
   REM pending release stack
   Y=-1:DIM Y%(Z4,1): REM stack of Z% indexes
 
-  REM PRINT "Lisp data memory: "+STR$(T-FRE(0))
-  REM PRINT "Interpreter working memory: "+STR$(FRE(0))
+  BT=TI
+
   RETURN
 
 
@@ -262,37 +262,52 @@ REM general functions
 
 REM EQUAL_Q(A, B) -> R
 EQUAL_Q:
+  ED=0: REM recursion depth
+  R=-1: REM return value
+
+  EQUAL_Q_RECUR:
+
   GOSUB DEREF_A
   GOSUB DEREF_B
 
-  R=0
+  REM push A and B
+  X=X+2:X%(X-1)=A:X%(X)=B
+  ED=ED+1
+
   U1=Z%(A,0)AND31
   U2=Z%(B,0)AND31
-  IF NOT (U1=U2 OR ((U1=6 OR U1=7) AND (U2=6 OR U2=7))) THEN RETURN
-  IF U1=6 THEN GOTO EQUAL_Q_SEQ
-  IF U1=7 THEN GOTO EQUAL_Q_SEQ
-  IF U1=8 THEN GOTO EQUAL_Q_HM
+  IF U1>5 AND U1<8 AND U2>5 AND U2<8 THEN GOTO EQUAL_Q_SEQ
+  IF U1=8 AND U2=8 THEN GOTO EQUAL_Q_HM
 
-  IF Z%(A,1)=Z%(B,1) THEN R=1
-  RETURN
+  IF U1<>U2 OR Z%(A,1)<>Z%(B,1) THEN R=0
+  GOTO EQUAL_Q_DONE
 
   EQUAL_Q_SEQ:
-    IF (Z%(A,1)=0) AND (Z%(B,1)=0) THEN R=1:RETURN
-    IF (Z%(A,1)=0) OR (Z%(B,1)=0) THEN R=0:RETURN
+    IF (Z%(A,1)=0) AND (Z%(B,1)=0) THEN GOTO EQUAL_Q_DONE
+    IF (Z%(A,1)=0) OR (Z%(B,1)=0) THEN R=0:GOTO EQUAL_Q_DONE
 
-    REM push A and B
-    X=X+2:X%(X-1)=A:X%(X)=B
     REM compare the elements
-    A=Z%(A+1,1):B=Z%(B+1,1):GOSUB EQUAL_Q
-    REM pop A and B
-    A=X%(X-1):B=X%(X):X=X-2
-    IF R=0 THEN RETURN
+    A=Z%(A+1,1):B=Z%(B+1,1)
+    GOTO EQUAL_Q_RECUR
 
+  EQUAL_Q_SEQ_CONTINUE:
     REM next elements of the sequences
-    A=Z%(A,1):B=Z%(B,1):GOTO EQUAL_Q_SEQ
+    A=X%(X-1):B=X%(X)
+    A=Z%(A,1):B=Z%(B,1)
+    X%(X-1)=A:X%(X)=B
+    GOTO EQUAL_Q_SEQ
+
   EQUAL_Q_HM:
     R=0
-    RETURN
+    GOTO EQUAL_Q_DONE
+
+  EQUAL_Q_DONE:
+    X=X-2: REM pop current A and B
+    ED=ED-1
+    IF R>-1 AND ED>0 THEN GOTO EQUAL_Q_DONE: REM unwind
+    IF ED=0 AND R=-1 THEN R=1
+    IF ED=0 THEN RETURN
+    GOTO EQUAL_Q_SEQ_CONTINUE
 
 REM string functions
 
@@ -302,9 +317,12 @@ STRING_:
   IF S=0 THEN GOTO STRING_NOT_FOUND
 
   REM search for matching string in S$
-  FOR I=0 TO S-1
+  I=0
+  STRING_LOOP:
+    IF I>S-1 THEN GOTO STRING_NOT_FOUND
     IF AS$=S$(I) THEN R=I:RETURN
-    NEXT I
+    I=I+1
+    GOTO STRING_LOOP
 
   STRING_NOT_FOUND:
     S$(S)=AS$
@@ -502,34 +520,3 @@ REM MAL_FUNCTION(A, P, E) -> R
 MAL_FUNCTION:
   T=10:L=A:M=P:N=E:GOSUB ALLOC
   RETURN
-
-REM APPLY(F, AR) -> R
-REM   restores E
-APPLY:
-  REM if metadata, get the actual object
-  IF (Z%(F,0)AND31)>=16 THEN F=Z%(F,1)
-
-  IF (Z%(F,0)AND31)=9 THEN GOTO DO_APPLY_FUNCTION
-  IF (Z%(F,0)AND31)=10 THEN GOTO DO_APPLY_MAL_FUNCTION
-  IF (Z%(F,0)AND31)=11 THEN GOTO DO_APPLY_MAL_FUNCTION
-
-  DO_APPLY_FUNCTION:
-    GOSUB DO_FUNCTION
-
-    RETURN
-
-  DO_APPLY_MAL_FUNCTION:
-    X=X+1:X%(X)=E: REM save the current environment
-
-    REM create new environ using env and params stored in the
-    REM function and bind the params to the apply arguments
-    O=Z%(F+1,1):BI=Z%(F+1,0):EX=AR:GOSUB ENV_NEW_BINDS
-
-    A=Z%(F,1):E=R:GOSUB EVAL
-
-    AY=E:GOSUB RELEASE: REM release the new environment
-
-    E=X%(X):X=X-1: REM pop/restore the saved environment
-
-    RETURN
-
