@@ -15,17 +15,9 @@ function EvalAst(ast, env)
     end
     return a:env[varname]
   elseif ListQ(a:ast)
-    let ret = []
-    for e in a:ast.val
-      call add(ret, EVAL(e, a:env))
-    endfor
-    return ListNew(ret)
+    return ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif VectorQ(a:ast)
-    let ret = []
-    for e in a:ast.val
-      call add(ret, EVAL(e, a:env))
-    endfor
-    return VectorNew(ret)
+    return VectorNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif HashQ(a:ast)
     let ret = {}
     for [k,v] in items(a:ast.val)

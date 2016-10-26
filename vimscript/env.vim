@@ -15,7 +15,6 @@ function NewEnvWithBinds(outer, binds, exprs)
   while i < ListCount(a:binds)
     let varname = ListNth(a:binds, i).val
     if varname == "&"
-      " TODO
       let restvarname = ListNth(a:binds, i + 1).val
       let restvarvalues = ListDrop(a:exprs, i)
       call env.set(restvarname, restvarvalues)
