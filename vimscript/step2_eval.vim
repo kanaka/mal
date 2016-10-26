@@ -9,26 +9,26 @@ endfunction
 
 function EvalAst(ast, env)
   if SymbolQ(a:ast)
-    let varname = ObjValue(a:ast)
+    let varname = a:ast.val
     if !has_key(a:env, varname)
       throw "'" . varname . "' not found"
     end
     return a:env[varname]
   elseif ListQ(a:ast)
     let ret = []
-    for e in ObjValue(a:ast)
+    for e in a:ast.val
       call add(ret, EVAL(e, a:env))
     endfor
     return ListNew(ret)
   elseif VectorQ(a:ast)
     let ret = []
-    for e in ObjValue(a:ast)
+    for e in a:ast.val
       call add(ret, EVAL(e, a:env))
     endfor
     return VectorNew(ret)
   elseif HashQ(a:ast)
     let ret = {}
-    for [k,v] in items(ObjValue(a:ast))
+    for [k,v] in items(a:ast.val)
       let keyobj = HashParseKey(k)
       let newkey = EVAL(keyobj, a:env)
       let newval = EVAL(v, a:env)
@@ -52,8 +52,8 @@ function EVAL(ast, env)
   " apply list
   let el = EvalAst(a:ast, a:env)
 
-  let Fn = ObjValue(el)[0]
-  return Fn(ObjValue(el)[1:-1])
+  let Fn = el.val[0]
+  return Fn(el.val[1:-1])
 endfunction
 
 function PRINT(exp)

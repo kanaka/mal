@@ -10,23 +10,23 @@ endfunction
 
 function EvalAst(ast, env)
   if SymbolQ(a:ast)
-    let varname = ObjValue(a:ast)
+    let varname = a:ast.val
     return a:env.get(varname)
   elseif ListQ(a:ast)
     let ret = []
-    for e in ObjValue(a:ast)
+    for e in a:ast.val
       call add(ret, EVAL(e, a:env))
     endfor
     return ListNew(ret)
   elseif VectorQ(a:ast)
     let ret = []
-    for e in ObjValue(a:ast)
+    for e in a:ast.val
       call add(ret, EVAL(e, a:env))
     endfor
     return VectorNew(ret)
   elseif HashQ(a:ast)
     let ret = {}
-    for [k,v] in items(ObjValue(a:ast))
+    for [k,v] in items(a:ast.val)
       let keyobj = HashParseKey(k)
       let newkey = EVAL(keyobj, a:env)
       let newval = EVAL(v, a:env)
@@ -47,27 +47,27 @@ function EVAL(ast, env)
     return a:ast
   endif
 
-  let first_symbol = ObjValue(ObjValue(a:ast)[0])
+  let first_symbol = a:ast.val[0].val
   if first_symbol == "def!"
-    let a1 = ObjValue(a:ast)[1]
-    let a2 = ObjValue(a:ast)[2]
-    return a:env.set(ObjValue(a1), EVAL(a2, a:env))
+    let a1 = a:ast.val[1]
+    let a2 = a:ast.val[2]
+    return a:env.set(a1.val, EVAL(a2, a:env))
   elseif first_symbol == "let*"
-    let a1 = ObjValue(a:ast)[1]
-    let a2 = ObjValue(a:ast)[2]
+    let a1 = a:ast.val[1]
+    let a2 = a:ast.val[2]
     let let_env = NewEnv(a:env)
-    let let_binds = ObjValue(a1)
+    let let_binds = a1.val
     let i = 0
     while i < len(let_binds)
-      call let_env.set(ObjValue(let_binds[i]), EVAL(let_binds[i+1], let_env))
+      call let_env.set(let_binds[i].val, EVAL(let_binds[i+1], let_env))
       let i = i + 2
     endwhile
     return EVAL(a2, let_env)
   else
     " apply list
     let el = EvalAst(a:ast, a:env)
-    let Fn = ObjValue(el)[0]
-    return Fn(ObjValue(el)[1:-1])
+    let Fn = el.val[0]
+    return Fn(el.val[1:-1])
   endif
 
 endfunction

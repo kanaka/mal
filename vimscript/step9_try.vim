@@ -20,9 +20,9 @@ function Quasiquote(ast)
     return ListNew([SymbolNew("quote"), a:ast])
   endif
   let a0 = ListFirst(a:ast)
-  if SymbolQ(a0) && ObjValue(a0) == "unquote"
+  if SymbolQ(a0) && a0.val == "unquote"
     return ListNth(a:ast, 1)
-  elseif PairQ(a0) && SymbolQ(ListFirst(a0)) && ObjValue(ListFirst(a0)) == "splice-unquote"
+  elseif PairQ(a0) && SymbolQ(ListFirst(a0)) && ListFirst(a0).val == "splice-unquote"
     return ListNew([SymbolNew("concat"), ListNth(a0, 1), Quasiquote(ListRest(a:ast))])
   else
     return ListNew([SymbolNew("cons"), Quasiquote(a0), Quasiquote(ListRest(a:ast))])
@@ -37,7 +37,7 @@ function IsMacroCall(ast, env)
   if !SymbolQ(a0)
     return 0
   endif
-  let macroname = ObjValue(a0)
+  let macroname = a0.val
   if empty(a:env.find(macroname))
     return 0
   endif
@@ -47,7 +47,7 @@ endfunction
 function MacroExpand(ast, env)
   let ast = a:ast
   while IsMacroCall(ast, a:env)
-    let macroobj = a:env.get(ObjValue(ListFirst(ast)))
+    let macroobj = a:env.get(ListFirst(ast).val)
     let macroargs = ListRest(ast)
     let ast = FuncInvoke(macroobj, macroargs)
   endwhile
@@ -56,23 +56,23 @@ endfunction
 
 function EvalAst(ast, env)
   if SymbolQ(a:ast)
-    let varname = ObjValue(a:ast)
+    let varname = a:ast.val
     return a:env.get(varname)
   elseif ListQ(a:ast)
     let ret = []
-    for e in ObjValue(a:ast)
+    for e in a:ast.val
       call add(ret, EVAL(e, a:env))
     endfor
     return ListNew(ret)
   elseif VectorQ(a:ast)
     let ret = []
-    for e in ObjValue(a:ast)
+    for e in a:ast.val
       call add(ret, EVAL(e, a:env))
     endfor
     return VectorNew(ret)
   elseif HashQ(a:ast)
     let ret = {}
-    for [k,v] in items(ObjValue(a:ast))
+    for [k,v] in items(a:ast.val)
       let keyobj = HashParseKey(k)
       let newkey = EVAL(keyobj, a:env)
       let newval = EVAL(v, a:env)
@@ -115,19 +115,19 @@ function EVAL(ast, env)
     endif
 
     let first = ListFirst(ast)
-    let first_symbol = SymbolQ(first) ? ObjValue(first) : ""
+    let first_symbol = SymbolQ(first) ? first.val : ""
     if first_symbol == "def!"
-      let a1 = ObjValue(ast)[1]
-      let a2 = ObjValue(ast)[2]
-      return env.set(ObjValue(a1), EVAL(a2, env))
+      let a1 = ast.val[1]
+      let a2 = ast.val[2]
+      return env.set(a1.val, EVAL(a2, env))
     elseif first_symbol == "let*"
-      let a1 = ObjValue(ast)[1]
-      let a2 = ObjValue(ast)[2]
+      let a1 = ast.val[1]
+      let a2 = ast.val[2]
       let env = NewEnv(env)
-      let let_binds = ObjValue(a1)
+      let let_binds = a1.val
       let i = 0
       while i < len(let_binds)
-        call env.set(ObjValue(let_binds[i]), EVAL(let_binds[i+1], env))
+        call env.set(let_binds[i].val, EVAL(let_binds[i+1], env))
         let i = i + 2
       endwhile
       let ast = a2
@@ -141,19 +141,19 @@ function EVAL(ast, env)
       let a1 = ListNth(ast, 1)
       let a2 = ListNth(ast, 2)
       let macro = MarkAsMacro(EVAL(a2, env))
-      return env.set(ObjValue(a1), macro)
+      return env.set(a1.val, macro)
     elseif first_symbol == "macroexpand"
       return MacroExpand(ListNth(ast, 1), env)
     elseif first_symbol == "if"
-      let condvalue = EVAL(ObjValue(ast)[1], env)
+      let condvalue = EVAL(ast.val[1], env)
       if FalseQ(condvalue) || NilQ(condvalue)
-        if len(ObjValue(ast)) < 4
+        if len(ast.val) < 4
           return g:MalNil
         else
-          let ast = ObjValue(ast)[3]
+          let ast = ast.val[3]
         endif
       else
-        let ast = ObjValue(ast)[2]
+        let ast = ast.val[2]
       endif
       " TCO
     elseif first_symbol == "try*"
@@ -165,7 +165,7 @@ function EVAL(ast, env)
           throw v:exception
         endif
 
-        let exc_var = ObjValue(ListNth(catch_clause, 1))
+        let exc_var = ListNth(catch_clause, 1).val
         if v:exception == "__MalException__"
           let exc_value = g:MalExceptionObj
         else
@@ -175,7 +175,7 @@ function EVAL(ast, env)
         return EVAL(ListNth(catch_clause, 2), catch_env)
       endtry
     elseif first_symbol == "do"
-      let astlist = ObjValue(ast)
+      let astlist = ast.val
       call EvalAst(ListNew(astlist[1:-2]), env)
       let ast = astlist[-1]
       " TCO
@@ -194,7 +194,7 @@ function EVAL(ast, env)
       if NativeFunctionQ(funcobj)
         return NativeFuncInvoke(funcobj, args)
       elseif FunctionQ(funcobj)
-        let fn = ObjValue(funcobj)
+        let fn = funcobj.val
         let ast = fn.ast
         let env = NewEnvWithBinds(fn.env, fn.params, args)
         " TCO
