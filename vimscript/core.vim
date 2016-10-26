@@ -221,7 +221,7 @@ let CoreNs = {
   \ "conj":        NewNativeFn("MalConj"),
   \ "seq":         NewNativeFn("MalSeq"),
   \ "meta":        NewNativeFnLambda({a -> ObjMeta(a[0])}),
-  \ "with-meta":   NewNativeFnLambda({a -> ObjNewWithMeta(ObjType(a[0]), copy(a[0].val), a[1])}),
+  \ "with-meta":   NewNativeFnLambda({a -> ObjNewWithMeta(a[0].type, copy(a[0].val), a[1])}),
   \ "atom":        NewNativeFnLambda({a -> AtomNew(a[0])}),
   \ "atom?":       NewNativeFnLambda({a -> BoolNew(AtomQ(a[0]))}),
   \ "deref":       NewNativeFnLambda({a -> a[0].val}),

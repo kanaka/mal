@@ -8,10 +8,6 @@ function ObjNew(obj_type, obj_val)
   return {"type": a:obj_type, "val": a:obj_val}
 endfunction
 
-function ObjType(obj)
-  return a:obj["type"]
-endfunction
-
 function ObjHasMeta(obj)
   return ObjQ(a:obj) && has_key(a:obj, "meta")
 endfunction
@@ -35,47 +31,47 @@ function ObjQ(obj)
 endfunction
 
 function SymbolQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "symbol"
+  return ObjQ(a:obj) && a:obj.type == "symbol"
 endfunction
 
 function StringQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "string"
+  return ObjQ(a:obj) && a:obj.type == "string"
 endfunction
 
 function KeywordQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "keyword"
+  return ObjQ(a:obj) && a:obj.type == "keyword"
 endfunction
 
 function AtomQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "atom"
+  return ObjQ(a:obj) && a:obj.type == "atom"
 endfunction
 
 function NilQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "nil"
+  return ObjQ(a:obj) && a:obj.type == "nil"
 endfunction
 
 function TrueQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "true"
+  return ObjQ(a:obj) && a:obj.type == "true"
 endfunction
 
 function FalseQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "false"
+  return ObjQ(a:obj) && a:obj.type == "false"
 endfunction
 
 function IntegerQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "integer"
+  return ObjQ(a:obj) && a:obj.type == "integer"
 endfunction
 
 function FloatQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "float"
+  return ObjQ(a:obj) && a:obj.type == "float"
 endfunction
 
 function ListQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "list"
+  return ObjQ(a:obj) && a:obj.type == "list"
 endfunction
 
 function VectorQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "vector"
+  return ObjQ(a:obj) && a:obj.type == "vector"
 endfunction
 
 function SequentialQ(obj)
@@ -83,19 +79,19 @@ function SequentialQ(obj)
 endfunction
 
 function HashQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "hash"
+  return ObjQ(a:obj) && a:obj.type == "hash"
 endfunction
 
 function FunctionQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "function" && !a:obj.val.is_macro
+  return ObjQ(a:obj) && a:obj.type == "function" && !a:obj.val.is_macro
 endfunction
 
 function MacroQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "function" && a:obj.val.is_macro
+  return ObjQ(a:obj) && a:obj.type == "function" && a:obj.val.is_macro
 endfunction
 
 function NativeFunctionQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "nativefunction"
+  return ObjQ(a:obj) && a:obj.type == "nativefunction"
 endfunction
 
 function NilNew()
@@ -152,9 +148,9 @@ endfunction
 
 function HashMakeKey(obj)
   if !StringQ(a:obj) && !KeywordQ(a:obj)
-    throw "expected hash-map key string, got: " . ObjType(a:obj));
+    throw "expected hash-map key string, got: " . a:obj.type);
   endif
-  return ObjType(a:obj) . "#" . a:obj.val
+  return a:obj.type . "#" . a:obj.val
 endfunction
 
 function HashParseKey(str)
@@ -216,7 +212,7 @@ function EqualQ(x, y)
     return SequentialEqualQ(a:x, a:y)
   elseif HashQ(a:x) && HashQ(a:y)
     return HashEqualQ(a:x, a:y)
-  elseif ObjType(a:x) != ObjType(a:y)
+  elseif a:x.type != a:y.type
     return 0
   else
     return a:x.val == a:y.val
