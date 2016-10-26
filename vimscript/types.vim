@@ -9,7 +9,7 @@ function ObjNew(obj_type, obj_val)
 endfunction
 
 function ObjHasMeta(obj)
-  return ObjQ(a:obj) && has_key(a:obj, "meta")
+  return has_key(a:obj, "meta")
 endfunction
 
 function ObjMeta(obj)
@@ -26,72 +26,68 @@ function ObjSetMeta(obj, newmeta)
   return a:newmeta
 endfunction
 
-function ObjQ(obj)
-  return type(a:obj) == type({})
-endfunction
-
 function SymbolQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "symbol"
+  return a:obj.type == "symbol"
 endfunction
 
 function StringQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "string"
+  return a:obj.type == "string"
 endfunction
 
 function KeywordQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "keyword"
+  return a:obj.type == "keyword"
 endfunction
 
 function AtomQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "atom"
+  return a:obj.type == "atom"
 endfunction
 
 function NilQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "nil"
+  return a:obj.type == "nil"
 endfunction
 
 function TrueQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "true"
+  return a:obj.type == "true"
 endfunction
 
 function FalseQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "false"
+  return a:obj.type == "false"
 endfunction
 
 function IntegerQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "integer"
+  return a:obj.type == "integer"
 endfunction
 
 function FloatQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "float"
+  return a:obj.type == "float"
 endfunction
 
 function ListQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "list"
+  return a:obj.type == "list"
 endfunction
 
 function VectorQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "vector"
+  return a:obj.type == "vector"
 endfunction
 
 function SequentialQ(obj)
-  return ObjQ(a:obj) && ListQ(a:obj) || VectorQ(a:obj)
+  return ListQ(a:obj) || VectorQ(a:obj)
 endfunction
 
 function HashQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "hash"
+  return a:obj.type == "hash"
 endfunction
 
 function FunctionQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "function" && !a:obj.val.is_macro
+  return a:obj.type == "function" && !a:obj.val.is_macro
 endfunction
 
 function MacroQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "function" && a:obj.val.is_macro
+  return a:obj.type == "function" && a:obj.val.is_macro
 endfunction
 
 function NativeFunctionQ(obj)
-  return ObjQ(a:obj) && a:obj.type == "nativefunction"
+  return a:obj.type == "nativefunction"
 endfunction
 
 function NilNew()
