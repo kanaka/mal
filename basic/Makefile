@@ -1,4 +1,4 @@
-BASICPP_OPTS = --number-lines --combine-lines
+BASICPP_OPTS = --combine-lines
 
 step%.bas: step%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
@@ -9,16 +9,16 @@ step%.prg: step%.bas
 	petcat -text -w2 -o $@ $<.tmp
 	#rm $<.tmp
 
-STEP0_DEPS = readline.in.bas
-STEP1_DEPS = $(STEP0_DEPS) debug.in.bas types.in.bas reader.in.bas printer.in.bas
-STEP3_DEPS = $(STEP1_DEPS) env.in.bas
-STEP4_DEPS = $(STEP3_DEPS) core.in.bas
+STEPS4_A = step4_if_fn_do.bas step5_tco.bas step6_file.bas \
+           step7_quote.bas step8_macros.bas step9_try.bas stepA_mal.bas
+STEPS3_A = step3_env.bas $(STEPS4_A)
+STEPS1_A = step1_read_print.bas step2_eval.bas $(STEPS3_A)
+STEPS0_A = step0_repl.bas $(STEPS1_A)
 
-step0_repl.bas: $(STEP0_DEPS)
-step1_read_print.bas step2_eval.bas: $(STEP1_DEPS)
-step3_env.bas: $(STEP3_DEPS)
-step4_if_fn_do.bas step5_tco.bas step6_file.bas step7_quote.bas: $(STEP4_DEPS)
-step8_macros.bas step9_try.bas stepA_mal.bas: $(STEP4_DEPS)
+$(STEPS0_A): readline.in.bas
+$(STEPS1_A): debug.in.bas types.in.bas reader.in.bas printer.in.bas
+$(STEPS3_A): env.in.bas
+$(STEPS4_A): core.in.bas
 
 tests/%.bas: tests/%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
@@ -34,7 +34,10 @@ mal.prg: stepA_mal.prg
 SOURCES_LISP = env.in.bas core.in.bas stepA_mal.in.bas
 SOURCES = readline.in.bas types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
 
-.PHONY: stats
+.PHONY: clean stats
+
+clean:
+	rm -f $(STEPS0_A) $(subst .bas,.prg,$(STEPS0_A))
 
 stats: $(SOURCES)
 	@wc $^

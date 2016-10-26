@@ -20,10 +20,6 @@ def parse_args():
                         help='Keep line identing')
     parser.add_argument('--skip-misc-fixups', action='store_true', default=False,
                         help='Skip miscellaneous fixup/shrink fixups')
-    parser.add_argument('--number-lines', action='store_true', default=False,
-                        help='Number the lines')
-    parser.add_argument('--keep-labels', action='store_true', default=False,
-                        help='Keep string labels instead of replacing with line numbers')
     parser.add_argument('--combine-lines', action='store_true', default=False,
                         help='Combine lines using the ":" separator')
 
@@ -55,7 +51,7 @@ def resolve_includes(orig_lines, keep_rems=0):
 def drop_blank_lines(orig_lines):
     lines = []
     for line in orig_lines:
-        if re.match(r"^\w*$", line): continue
+        if re.match(r"^\W*$", line): continue
         lines.append(line)
     return lines
 
@@ -89,43 +85,105 @@ def misc_fixups(orig_lines):
 def finalize(lines, args):
     labels_lines = {}
     lines_labels = {}
+    call_index = {}
 
-    # number lines
-    if args.number_lines:
-        src_lines = lines
-        lines = []
-        lnum=1
-        for line in src_lines:
-            if not args.keep_labels:
-                m = re.match(r"^ *([^ ]*): *$", line)
-                if m:
-                    labels_lines[m.groups(1)[0]] = lnum
-                    lines_labels[lnum] = m.groups(1)[0]
-                    continue
-            lines.append("%s %s" % (lnum, line))
+    cur_sub = None
+
+    # number lines, remove labels (but track line number), and replace
+    # CALLs with a stack based GOTO
+    src_lines = lines
+    lines = []
+    lnum=1
+    for line in src_lines:
+
+        # Drop labels (track line number for GOTO/GOSUB)
+        m = re.match(r"^ *([^ ]*): *$", line)
+        if m:
+            label = m.groups(1)[0]
+            labels_lines[label] = lnum
+            lines_labels[lnum] = label
+            continue
+
+        if re.match(r".*\bCALL  *([^ :]*) *:", line):
+            raise Exception("CALL is not the last thing on line %s" % lnum)
+
+        # Replace CALLs (track line number for replacement later)
+        #m = re.match(r"\bCALL  *([^ :]*) *$", line)
+        m = re.match(r"(.*)\bCALL  *([^ :]*) *$", line)
+        if m:
+            prefix = m.groups(1)[0]
+            sub = m.groups(1)[1]
+            if not call_index.has_key(sub):
+                call_index[sub] = 0
+            call_index[sub] += 1
+            label = sub+"_"+str(call_index[sub])
+
+            # Replace the CALL with stack based GOTO
+            lines.append("%s %sX=X+1:X%%(X)=%s:GOTO %s" % (
+                lnum, prefix, call_index[sub], sub))
             lnum += 1
 
-    def update_labels_lines(text, a,b):
+            # Add the return spot
+            labels_lines[label] = lnum
+            lines_labels[lnum] = label
+            lines.append("%s X=X-1" % lnum)
+            lnum += 1
+            continue
+
+        lines.append("%s %s" % (lnum, line))
+        lnum += 1
+
+    # remove SUB (but track lines), and replace END SUB with ON GOTO
+    # that returns to original caller
+    src_lines = lines
+    lines = []
+    lnum=1
+    for line in src_lines:
+        # Drop subroutine defs (track line number for CALLS)
+        m = re.match(r"^([0-9][0-9]*)  *SUB  *([^ ]*) *$", line)
+        if m:
+            lnum =  int(m.groups(1)[0])+1
+            label = m.groups(1)[1]
+            cur_sub = label
+            labels_lines[label] = lnum
+            lines_labels[lnum] = label
+            continue
+
+        # Drop END SUB (track line number for replacement later)
+        m = re.match(r"^([0-9][0-9]*)  *END SUB *$", line)
+        if m:
+            if cur_sub == None:
+                raise Exception("END SUB found without preceeding SUB")
+            lnum =  int(m.groups(1)[0])
+            index = call_index[cur_sub]
+
+            ret_labels = [cur_sub+"_"+str(i) for i in range(1, index+1)]
+            line = "%s ON X%%(X) GOTO %s" % (lnum, ",".join(ret_labels))
+            cur_sub = None
+
+        lines.append(line)
+
+    def update_labels_lines(text, a, b):
         stext = ""
         while stext != text:
             stext = text
             text = re.sub(r"(THEN) %s\b" % a, r"THEN %s" % b, stext)
             #text = re.sub(r"(THEN)%s\b" % a, r"THEN%s" % b, stext)
             text = re.sub(r"(ON [^:\n]* GOTO [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
-            text = re.sub(r"(ON [^:\n]* GOSUB [^:\n]*)\b%s\b" % a, r"\g<2>%s" % b, text)
+            text = re.sub(r"(ON [^:\n]* GOSUB [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
             text = re.sub(r"(GOSUB) %s\b" % a, r"\1 %s" % b, text)
             text = re.sub(r"(GOTO) %s\b" % a, r"\1 %s" % b, text)
             #text = re.sub(r"(GOTO)%s\b" % a, r"\1%s" % b, text)
         return text
 
-    if not args.keep_labels:
-        src_lines = lines
-        text = "\n".join(lines)
-        # search for and replace GOTO/GOSUBs
-        for label, lnum in labels_lines.items():
-            text = update_labels_lines(text, label, lnum)
-        lines = text.split("\n")
+    # search for and replace GOTO/GOSUBs
+    src_lines = lines
+    text = "\n".join(lines)
+    for label, lnum in labels_lines.items():
+        text = update_labels_lines(text, label, lnum)
+    lines = text.split("\n")
 
+    # combine lines
     if args.combine_lines:
         renumber = {}
         src_lines = lines
@@ -138,7 +196,6 @@ def finalize(lines, args):
             return "%s %s" % (lnum, line)
         while pos < len(src_lines):
             line = src_lines[pos]
-            # TODO: handle args.keep_labels and (not args.number_lines)
             m = re.match(r"^([0-9]*) (.*)$", line)
             old_num = int(m.group(1))
             line = m.group(2)

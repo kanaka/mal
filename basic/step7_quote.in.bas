@@ -14,24 +14,20 @@ MAL_READ:
   GOSUB READ_STR
   RETURN
 
-REM PAIR_Q(B) -> R
-PAIR_Q:
-  R=0
-  IF (Z%(B,0)AND31)<>6 AND (Z%(B,0)AND31)<>7 THEN RETURN
-  IF (Z%(B,1)=0) THEN RETURN
-  R=1
-  RETURN
-
 REM QUASIQUOTE(A) -> R
-QUASIQUOTE:
-  B=A:GOSUB PAIR_Q
-  IF R=1 THEN GOTO QQ_UNQUOTE
+SUB QUASIQUOTE
+  REM pair?
+  IF (Z%(A,0)AND31)<6 OR (Z%(A,0)AND31)>7 THEN GOTO QQ_QUOTE
+  IF (Z%(A,1)=0) THEN GOTO QQ_QUOTE
+  GOTO QQ_UNQUOTE
+
+  QQ_QUOTE:
     REM ['quote, ast]
     AS$="quote":T=5:GOSUB STRING
     B2=R:B1=A:GOSUB LIST2
     AY=B2:GOSUB RELEASE
 
-    RETURN
+    GOTO QQ_DONE
 
   QQ_UNQUOTE:
     R=A+1:GOSUB DEREF_R
@@ -41,21 +37,24 @@ QUASIQUOTE:
       R=Z%(A,1)+1:GOSUB DEREF_R
       Z%(R,0)=Z%(R,0)+32
 
-      RETURN
+      GOTO QQ_DONE
 
   QQ_SPLICE_UNQUOTE:
     REM push A on the stack
     X=X+1:X%(X)=A
     REM rest of cases call quasiquote on ast[1..]
-    A=Z%(A,1):GOSUB QUASIQUOTE:T6=R
+    A=Z%(A,1):CALL QUASIQUOTE
+    T6=R
     REM pop A off the stack
     A=X%(X):X=X-1
 
     REM set A to ast[0] for last two cases
     A=A+1:GOSUB DEREF_A
 
-    B=A:GOSUB PAIR_Q
-    IF R=0 THEN GOTO QQ_DEFAULT
+    REM pair?
+    IF (Z%(A,0)AND31)<6 OR (Z%(A,0)AND31)>7 THEN GOTO QQ_DEFAULT
+    IF (Z%(A,1)=0) THEN GOTO QQ_DEFAULT
+
     B=A+1:GOSUB DEREF_B
     IF (Z%(B,0)AND31)<>5 THEN GOTO QQ_DEFAULT
     IF S$(Z%(B,1))<>"splice-unquote" THEN QQ_DEFAULT
@@ -67,7 +66,7 @@ QUASIQUOTE:
       REM release inner quasiquoted since outer list takes ownership
       AY=B1:GOSUB RELEASE
       AY=B3:GOSUB RELEASE
-      RETURN
+      GOTO QQ_DONE
 
   QQ_DEFAULT:
     REM ['cons, quasiquote(ast[0]), quasiquote(ast[1..])]
@@ -75,7 +74,8 @@ QUASIQUOTE:
     REM push T6 on the stack
     X=X+1:X%(X)=T6
     REM A set above to ast[0]
-    GOSUB QUASIQUOTE:B2=R
+    CALL QUASIQUOTE
+    B2=R
     REM pop T6 off the stack
     T6=X%(X):X=X-1
 
@@ -85,13 +85,12 @@ QUASIQUOTE:
     AY=B1:GOSUB RELEASE
     AY=B2:GOSUB RELEASE
     AY=B3:GOSUB RELEASE
-    RETURN
+  QQ_DONE:
+END SUB
 
 
 REM EVAL_AST(A, E) -> R
-REM called using GOTO to avoid basic return address stack usage
-REM top of stack should have return label index
-EVAL_AST:
+SUB EVAL_AST
   REM push A and E on the stack
   X=X+2:X%(X-1)=E:X%(X)=A
 
@@ -109,7 +108,8 @@ EVAL_AST:
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
-    K=A:GOSUB ENV_GET
+    K=A:GOTO ENV_GET
+    ENV_GET_RETURN:
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
@@ -148,7 +148,7 @@ EVAL_AST:
 
       EVAL_AST_DO_EVAL:
         REM call EVAL for each entry
-        A=A+1:GOSUB EVAL
+        A=A+1:CALL EVAL
         A=A-1
         GOSUB DEREF_R: REM deref to target of evaluated entry
 
@@ -185,13 +185,10 @@ EVAL_AST:
   EVAL_AST_RETURN:
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
+END SUB
 
-    REM pop EVAL AST return label/address
-    RN=X%(X):X=X-1
-    ON RN GOTO EVAL_AST_RETURN_1,EVAL_AST_RETURN_2,EVAL_AST_RETURN_3
-
-REM EVAL(A, E)) -> R
-EVAL:
+REM EVAL(A, E) -> R
+SUB EVAL
   LV=LV+1: REM track basic return stack level
 
   REM push A and E on the stack
@@ -209,11 +206,7 @@ EVAL:
   GOSUB LIST_Q
   IF R THEN GOTO APPLY_LIST
   REM ELSE
-    REM push EVAL_AST return label/address
-    X=X+1:X%(X)=1
-    GOTO EVAL_AST
-    EVAL_AST_RETURN_1:
-
+    CALL EVAL_AST
     GOTO EVAL_RETURN
 
   APPLY_LIST:
@@ -252,7 +245,7 @@ EVAL:
       GOSUB EVAL_GET_A2: REM set A1 and A2
 
       X=X+1:X%(X)=A1: REM push A1
-      A=A2:GOSUB EVAL: REM eval a2
+      A=A2:CALL EVAL: REM eval a2
       A1=X%(X):X=X-1: REM pop A1
 
       IF ER<>-2 THEN GOTO EVAL_RETURN
@@ -276,7 +269,7 @@ EVAL:
 
         X=X+1:X%(X)=A1: REM push A1
         REM eval current A1 odd element
-        A=Z%(A1,1)+1:GOSUB EVAL
+        A=Z%(A1,1)+1:CALL EVAL
         A1=X%(X):X=X-1: REM pop A1
 
         REM set environment: even A1 key to odd A1 eval'd above
@@ -300,11 +293,7 @@ EVAL:
       A=Z%(A,1): REM rest
       X=X+1:X%(X)=A: REM push/save A
 
-      REM push EVAL_AST return label/address
-      X=X+1:X%(X)=2
-      GOTO EVAL_AST
-      REM return label/address already popped by EVAL_AST
-      EVAL_AST_RETURN_2:
+      CALL EVAL_AST
 
       REM cleanup
       AY=R: REM get eval'd list for release
@@ -326,7 +315,7 @@ EVAL:
 
     EVAL_QUASIQUOTE:
       R=Z%(A,1)+1:GOSUB DEREF_R
-      A=R:GOSUB QUASIQUOTE
+      A=R:CALL QUASIQUOTE
       REM add quasiquote result to pending release queue to free when
       REM next lower EVAL level returns (LV)
       Y=Y+1:Y%(Y,0)=R:Y%(Y,1)=LV
@@ -337,7 +326,7 @@ EVAL:
       GOSUB EVAL_GET_A1: REM set A1
       REM push A
       X=X+1:X%(X)=A
-      A=A1:GOSUB EVAL
+      A=A1:CALL EVAL
       REM pop A
       A=X%(X):X=X-1
       IF (R=0) OR (R=1) THEN GOTO EVAL_IF_FALSE
@@ -359,10 +348,7 @@ EVAL:
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
-      REM push EVAL_AST return label/address
-      X=X+1:X%(X)=3
-      GOTO EVAL_AST
-      EVAL_AST_RETURN_3:
+      CALL EVAL_AST
 
       REM if error, return f/args for release by caller
       IF ER<>-2 THEN GOTO EVAL_RETURN
@@ -387,10 +373,10 @@ EVAL:
 
       EVAL_DO_FUNCTION:
         REM regular function
-        IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO DO_TCO_FUNCTION_RETURN_EVAL
+        IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
         REM for recur functions (apply, map, swap!), use GOTO
-        IF Z%(F,1)>60 THEN X=X+1:X%(X)=2:GOTO DO_TCO_FUNCTION
-        DO_TCO_FUNCTION_RETURN_EVAL:
+        IF Z%(F,1)>60 THEN CALL DO_TCO_FUNCTION
+        EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args
         AY=X%(X):X=X-1:GOSUB RELEASE
@@ -437,7 +423,7 @@ EVAL:
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
 
-    RETURN
+END SUB
 
 REM PRINT(A) -> R$
 MAL_PRINT:
@@ -453,7 +439,7 @@ RE:
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
 
-  A=R:E=D:GOSUB EVAL
+  A=R:E=D:CALL EVAL
 
   RE_DONE:
     REM Release memory from MAL_READ
@@ -462,13 +448,13 @@ RE:
 
 REM REP(A$) -> R$
 REM Assume D has repl_env
-REP:
+SUB REP
   R1=0:R2=0
   GOSUB MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  A=R:E=D:GOSUB EVAL
+  A=R:E=D:CALL EVAL
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
@@ -480,7 +466,7 @@ REP:
     IF R2<>0 THEN AY=R2:GOSUB RELEASE
     IF R1<>0 THEN AY=R1:GOSUB RELEASE
     R$=RT$
-    GOTO REP_RETURN
+END SUB
 
 REM MAIN program
 MAIN:
@@ -531,8 +517,7 @@ MAIN:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
-    A$=R$:GOTO REP: REM call REP
-    REP_RETURN:
+    A$=R$:CALL REP: REM call REP
 
     IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$

@@ -15,9 +15,7 @@ MAL_READ:
   RETURN
 
 REM EVAL_AST(A, E) -> R
-REM called using GOTO to avoid basic return address stack usage
-REM top of stack should have return label index
-EVAL_AST:
+SUB EVAL_AST
   REM push A and E on the stack
   X=X+2:X%(X-1)=E:X%(X)=A
 
@@ -35,7 +33,8 @@ EVAL_AST:
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
-    K=A:GOSUB ENV_GET
+    K=A:GOTO ENV_GET
+    ENV_GET_RETURN:
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
@@ -71,7 +70,7 @@ EVAL_AST:
 
       EVAL_AST_DO_EVAL:
         REM call EVAL for each entry
-        A=A+1:GOSUB EVAL
+        A=A+1:CALL EVAL
         A=A-1
         GOSUB DEREF_R: REM deref to target of evaluated entry
 
@@ -108,13 +107,10 @@ EVAL_AST:
   EVAL_AST_RETURN:
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
+END SUB
 
-    REM pop EVAL AST return label/address
-    RN=X%(X):X=X-1
-    ON RN GOTO EVAL_AST_RETURN_1,EVAL_AST_RETURN_2,EVAL_AST_RETURN_3
-
-REM EVAL(A, E)) -> R
-EVAL:
+REM EVAL(A, E) -> R
+SUB EVAL
   LV=LV+1: REM track basic return stack level
 
   REM push A and E on the stack
@@ -132,11 +128,7 @@ EVAL:
   GOSUB LIST_Q
   IF R THEN GOTO APPLY_LIST
   REM ELSE
-    REM push EVAL_AST return label/address
-    X=X+1:X%(X)=1
-    GOTO EVAL_AST
-    EVAL_AST_RETURN_1:
-
+    CALL EVAL_AST
     GOTO EVAL_RETURN
 
   APPLY_LIST:
@@ -173,7 +165,7 @@ EVAL:
       GOSUB EVAL_GET_A2: REM set A1 and A2
 
       X=X+1:X%(X)=A1: REM push A1
-      A=A2:GOSUB EVAL: REM eval a2
+      A=A2:CALL EVAL: REM eval a2
       A1=X%(X):X=X-1: REM pop A1
 
       IF ER<>-2 THEN GOTO EVAL_RETURN
@@ -195,7 +187,7 @@ EVAL:
 
         X=X+1:X%(X)=A1: REM push A1
         REM eval current A1 odd element
-        A=Z%(A1,1)+1:GOSUB EVAL
+        A=Z%(A1,1)+1:CALL EVAL
         A1=X%(X):X=X-1: REM pop A1
 
         REM set environment: even A1 key to odd A1 eval'd above
@@ -208,16 +200,12 @@ EVAL:
 
       EVAL_LET_LOOP_DONE:
         A2=X%(X):X=X-1: REM pop A2
-        A=A2:GOSUB EVAL: REM eval A2 using let_env
+        A=A2:CALL EVAL: REM eval A2 using let_env
         GOTO EVAL_RETURN
     EVAL_DO:
       A=Z%(A,1): REM rest
 
-      REM push EVAL_AST return label/address
-      X=X+1:X%(X)=2
-      GOTO EVAL_AST
-      REM return label/address already popped by EVAL_AST
-      EVAL_AST_RETURN_2:
+      CALL EVAL_AST
 
       X=X+1:X%(X)=R: REM push eval'd list
       A=R:GOSUB LAST: REM return the last element
@@ -229,7 +217,7 @@ EVAL:
       GOSUB EVAL_GET_A1: REM set A1
       REM push A
       X=X+1:X%(X)=A
-      A=A1:GOSUB EVAL
+      A=A1:CALL EVAL
       REM pop A
       A=X%(X):X=X-1
       IF (R=0) OR (R=1) THEN GOTO EVAL_IF_FALSE
@@ -251,10 +239,7 @@ EVAL:
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
-      REM push EVAL_AST return label/address
-      X=X+1:X%(X)=3
-      GOTO EVAL_AST
-      EVAL_AST_RETURN_3:
+      CALL EVAL_AST
 
       REM if error, return f/args for release by caller
       IF ER<>-2 THEN GOTO EVAL_RETURN
@@ -279,10 +264,10 @@ EVAL:
 
       EVAL_DO_FUNCTION:
         REM regular function
-        IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO DO_TCO_FUNCTION_RETURN_EVAL
+        IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO EVAL_DO_FUNCTION_SKIP
         REM for recur functions (apply, map, swap!), use GOTO
-        IF Z%(F,1)>60 THEN X=X+1:X%(X)=2:GOTO DO_TCO_FUNCTION
-        DO_TCO_FUNCTION_RETURN_EVAL:
+        IF Z%(F,1)>60 THEN CALL DO_TCO_FUNCTION
+        EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args
         AY=X%(X):X=X-1:GOSUB RELEASE
@@ -329,7 +314,7 @@ EVAL:
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
 
-    RETURN
+END SUB
 
 REM PRINT(A) -> R$
 MAL_PRINT:
@@ -345,7 +330,7 @@ RE:
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
 
-  A=R:E=D:GOSUB EVAL
+  A=R:E=D:CALL EVAL
 
   RE_DONE:
     REM Release memory from MAL_READ
@@ -354,13 +339,13 @@ RE:
 
 REM REP(A$) -> R$
 REM Assume D has repl_env
-REP:
+SUB REP
   R1=0:R2=0
   GOSUB MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO REP_DONE
 
-  A=R:E=D:GOSUB EVAL
+  A=R:E=D:CALL EVAL
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
@@ -372,7 +357,7 @@ REP:
     IF R2<>0 THEN AY=R2:GOSUB RELEASE
     IF R1<>0 THEN AY=R1:GOSUB RELEASE
     R$=RT$
-    RETURN
+END SUB
 
 REM MAIN program
 MAIN:
@@ -396,7 +381,7 @@ MAIN:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EOF=1 THEN GOTO QUIT
 
-    A$=R$:GOSUB REP: REM call REP
+    A$=R$:CALL REP: REM call REP
 
     IF ER<>-2 THEN GOSUB PRINT_ERROR:GOTO REPL_LOOP
     PRINT R$

@@ -1,12 +1,11 @@
 REM APPLY should really be in types.in.bas but it is here because it
-REM has return labels into DO_TCO_FUNCTION so it will cause syntax
-REM errors for steps1-3 if it is in types.in.bas because there are
-REM unresolved labels.
+REM calls DO_TCO_FUNCTION so it will cause syntax errors for steps1-3
+REM if it is in types.in.bas because there are unresolved labels.
 
 REM APPLY(F, AR) -> R
 REM   - restores E
 REM   - call using GOTO and with return label/address on the stack
-APPLY:
+SUB APPLY
   REM if metadata, get the actual object
   IF (Z%(F,0)AND31)>=16 THEN F=Z%(F,1)
 
@@ -16,10 +15,9 @@ APPLY:
 
   APPLY_FUNCTION:
     REM regular function
-    IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO DO_TCO_FUNCTION_RETURN_APPLY
+    IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO APPLY_DONE
     REM for recur functions (apply, map, swap!), use GOTO
-    IF Z%(F,1)>60 THEN X=X+1:X%(X)=1:GOTO DO_TCO_FUNCTION
-    DO_TCO_FUNCTION_RETURN_APPLY:
+    IF Z%(F,1)>60 THEN CALL DO_TCO_FUNCTION
     GOTO APPLY_DONE
 
   APPLY_MAL_FUNCTION:
@@ -29,22 +27,18 @@ APPLY:
     REM function and bind the params to the apply arguments
     O=Z%(F+1,1):BI=Z%(F+1,0):EX=AR:GOSUB ENV_NEW_BINDS
 
-    A=Z%(F,1):E=R:GOSUB EVAL
+    A=Z%(F,1):E=R:CALL EVAL
 
     AY=E:GOSUB RELEASE: REM release the new environment
 
     E=X%(X):X=X-1: REM pop/restore the saved environment
 
   APPLY_DONE:
-    REM pop APPLY return label/address
-    RN=X%(X):X=X-1
-    ON RN GOTO APPLY_RETURN_1,APPLY_RETURN_2,APPLY_RETURN_MAP,APPLY_RETURN_SWAP,APPLY_RETURN_MACROEXPAND
+END SUB
 
 
 REM DO_TCO_FUNCTION(F, AR)
-REM   - similar to DO_FUNCTION but non-GOSUB version for potentially
-REM     recursive function (apply, map, swap!)
-DO_TCO_FUNCTION:
+SUB DO_TCO_FUNCTION
   FF=Z%(F,1)
 
   REM Get argument values
@@ -75,23 +69,17 @@ DO_TCO_FUNCTION:
     GOTO DO_APPLY_2
 
     DO_APPLY_1:
-      X=X+1:X%(X)=1: REM push APPLY return label/address
-      AR=A:GOTO APPLY
-      REM APPLY return label/address popped by APPLY
-      APPLY_RETURN_1:
+      AR=A:CALL APPLY
 
-      GOTO DO_TCO_FUNCTION_RETURN
+      GOTO DO_TCO_FUNCTION_DONE
 
     DO_APPLY_2:
       X=X+1:X%(X)=R: REM push/save new args for release
 
-      X=X+1:X%(X)=2: REM push APPLY return label/address
-      AR=R:GOTO APPLY
-      REM APPLY return label/address popped by APPLY
-      APPLY_RETURN_2:
+      AR=R:CALL APPLY
 
       AY=X%(X):X=X-1:GOSUB RELEASE: REM pop/release new args
-      GOTO DO_TCO_FUNCTION_RETURN
+      GOTO DO_TCO_FUNCTION_DONE
 
   DO_MAP:
     F=AA
@@ -118,10 +106,7 @@ DO_TCO_FUNCTION:
       REM push argument list
       X=X+1:X%(X)=R
 
-      X=X+1:X%(X)=3: REM push APPLY return label/address
-      AR=R:GOTO APPLY
-      REM APPLY return label/address popped by APPLY
-      APPLY_RETURN_MAP:
+      AR=R:CALL APPLY
 
       REM pop apply args are release them
       AY=X%(X):X=X-1:GOSUB RELEASE
@@ -146,7 +131,7 @@ DO_TCO_FUNCTION:
       R=X%(X-3)
       REM pop everything off stack
       X=X-4
-      GOTO DO_TCO_FUNCTION_RETURN
+      GOTO DO_TCO_FUNCTION_DONE
 
 
   DO_SWAP_BANG:
@@ -162,10 +147,7 @@ DO_TCO_FUNCTION:
     REM push atom
     X=X+1:X%(X)=AA
 
-    X=X+1:X%(X)=4: REM push APPLY return label/address
-    GOTO APPLY
-    REM APPLY return label/address popped by APPLY
-    APPLY_RETURN_SWAP:
+    CALL APPLY
 
     REM pop atom
     AA=X%(X):X=X-1
@@ -179,12 +161,10 @@ DO_TCO_FUNCTION:
     REM but decrease ref cnt of return by 1 (not sure why)
     AY=R:GOSUB RELEASE
 
-    GOTO DO_TCO_FUNCTION_RETURN
+    GOTO DO_TCO_FUNCTION_DONE
 
-  DO_TCO_FUNCTION_RETURN:
-    REM pop EVAL AST return label/address
-    RN=X%(X):X=X-1
-    ON RN GOTO DO_TCO_FUNCTION_RETURN_APPLY,DO_TCO_FUNCTION_RETURN_EVAL
+  DO_TCO_FUNCTION_DONE:
+END SUB
 
 
 REM DO_FUNCTION(F, AR)
@@ -530,7 +510,7 @@ DO_FUNCTION:
   REM   RETURN
 
   DO_EVAL:
-    A=AA:E=D:GOSUB EVAL
+    A=AA:E=D:CALL EVAL
     RETURN
 
   DO_READ_FILE:
