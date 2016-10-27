@@ -48,12 +48,16 @@ INIT_MEMORY:
   Z%(2,0)=1:Z%(2,1)=1
   Z%(3,0)=6+32:Z%(3,1)=0
   Z%(4,0)=0:Z%(4,1)=0
+  Z%(5,0)=7+32:Z%(5,1)=0
+  Z%(6,0)=0:Z%(6,1)=0
+  Z%(7,0)=8+32:Z%(7,1)=0
+  Z%(8,0)=0:Z%(8,1)=0
 
   REM start of unused memory
-  ZI=5
+  ZI=9
 
   REM start of free list
-  ZK=5
+  ZK=9
 
   REM string memory storage
   S=0:DIM S$(Z2)
@@ -454,7 +458,9 @@ REM hashmap functions
 
 REM HASHMAP() -> R
 HASHMAP:
-  T=8:L=0:N=0:GOSUB ALLOC
+  REM just point to static empty hash-map
+  R=7
+  Z%(R,0)=Z%(R,0)+32
   RETURN
 
 REM ASSOC1(H, K, V) -> R

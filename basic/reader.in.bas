@@ -156,11 +156,9 @@ READ_FORM:
     REM PRINT "READ_SEQ"
     SD=SD+1: REM increase read sequence depth
 
-    REM allocate first sequence entry and space for value
-    L=0:N=0:GOSUB ALLOC: REM T alread set above
-
-    REM set reference value/pointer to new embedded sequence
-    IF SD>1 THEN Z%(X%(X)+1,1)=R
+    REM point to empty sequence to start off
+    R=(T-5)*2+1: REM calculate location of empty seq
+    Z%(R,0)=Z%(R,0)+32
 
     REM push start ptr on the stack
     X=X+1
@@ -182,34 +180,35 @@ READ_FORM:
     SD=SD-1: REM decrease read sequence depth
     R=X%(X-2): REM ptr to start of sequence to return
     T=X%(X-1): REM type prior to recur
-    X=X-3: REM pop previous, type, and start off the stack
+    X=X-3: REM pop start, type and previous off the stack
     GOTO READ_FORM_DONE
 
 
   READ_FORM_DONE:
     RI=RI+LEN(T$)
 
-    T8=R: REM save previous value
-
     REM check read sequence depth
     IF SD=0 THEN RETURN
-    REM PRINT "READ_FORM_DONE next list entry"
-
-    REM allocate new sequence entry and space for value
-    REM set type to previous type, with ref count of 1 (from previous)
-    T=X%(X-1):L=0:N=0:GOSUB ALLOC
 
     REM previous element
     T7=X%(X)
-    REM set previous list element to point to new element
-    Z%(T7,1)=R
-    REM set the list value pointer
-    Z%(T7+1,1)=T8
 
-    IF T7=X%(X-2) THEN GOTO READ_FORM_SKIP_FIRST
+    REM allocate new sequence entry, set type to previous type, set
+    REM next to previous next or previous (if first)
+    L=Z%(T7,1)
+    IF T7<9 THEN L=T7
+    T8=R: REM save previous value for release
+    T=X%(X-1):N=R:GOSUB ALLOC
+    AY=T8:GOSUB RELEASE: REM list takes ownership
+
+    REM if previous element is the first element then set
+    REM the first to the new element
+    IF T7<9 THEN X%(X-2)=R:GOTO READ_FORM_SKIP_FIRST
+    REM set previous list element to point to new element
     Z%(T7,1)=R
 
     READ_FORM_SKIP_FIRST:
+
     REM update previous pointer to current element
     X%(X)=R
     GOTO READ_FORM
