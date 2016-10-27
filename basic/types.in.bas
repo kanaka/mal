@@ -380,12 +380,14 @@ EMPTY_Q:
   IF Z%(A,1)=0 THEN R=1
   RETURN
 
-REM COUNT(A) -> R
+REM COUNT(B) -> R
+REM - returns length of list, not a Z% index
+REM - modifies B
 COUNT:
   R=-1
   DO_COUNT_LOOP:
     R=R+1
-    IF Z%(A,1)<>0 THEN A=Z%(A,1):GOTO DO_COUNT_LOOP
+    IF Z%(B,1)<>0 THEN B=Z%(B,1):GOTO DO_COUNT_LOOP
   RETURN
 
 REM LAST(A) -> R

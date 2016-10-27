@@ -60,7 +60,7 @@ SUB EVAL_AST
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
+      IF (X%(X-3)=8) AND ((X%(X-2)AND1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -119,6 +119,8 @@ SUB EVAL
   REM PRINT "EVAL A:"+STR$(A)+",X:"+STR$(X)+",LV:"+STR$(LV)+",FRE:"+STR$(FRE(0))
 
   EVAL_TCO_RECUR:
+
+  IF ER<>-2 THEN GOTO EVAL_RETURN
 
   REM AZ=A:PR=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
@@ -190,6 +192,8 @@ SUB EVAL
         A=Z%(A1,1)+1:CALL EVAL
         A1=X%(X):X=X-1: REM pop A1
 
+        IF ER<>-2 THEN GOTO EVAL_LET_LOOP_DONE
+
         REM set environment: even A1 key to odd A1 eval'd above
         K=A1+1:V=R:GOSUB ENV_SET
         AY=R:GOSUB RELEASE: REM release our use, ENV_SET took ownership
@@ -229,7 +233,8 @@ SUB EVAL
       EVAL_IF_FALSE:
         AY=R:GOSUB RELEASE
         REM if no false case (A3), return nil
-        IF Z%(Z%(Z%(A,1),1),1)=0 THEN R=0:GOTO EVAL_RETURN
+        B=A:GOSUB COUNT
+        IF R<4 THEN R=0:GOTO EVAL_RETURN
         GOSUB EVAL_GET_A3: REM set A1 - A3 after EVAL
         A=A3:GOTO EVAL_TCO_RECUR: REM TCO loop
 

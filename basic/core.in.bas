@@ -50,7 +50,7 @@ SUB DO_TCO_FUNCTION
   DO_APPLY:
     F=AA
     AR=Z%(AR,1)
-    A=AR:GOSUB COUNT:R4=R
+    B=AR:GOSUB COUNT:R4=R
 
     A=Z%(AR+1,1)
     REM no intermediate args, but not a list, so convert it first
@@ -108,11 +108,13 @@ SUB DO_TCO_FUNCTION
 
       AR=R:CALL APPLY
 
-      REM pop apply args are release them
+      REM pop apply args and release them
       AY=X%(X):X=X-1:GOSUB RELEASE
 
       REM set the result value
       Z%(X%(X-2)+1,1)=R
+
+      IF ER<>-2 THEN GOTO DO_MAP_DONE
 
       REM restore F
       F=X%(X-1)
@@ -127,8 +129,11 @@ SUB DO_TCO_FUNCTION
       GOTO DO_MAP_LOOP
 
     DO_MAP_DONE:
-      REM get return val
-      R=X%(X-3)
+      REM if no error, get return val
+      IF ER=-2 THEN R=X%(X-3)
+      REM otherwise, free the return value and return nil
+      IF ER<>-2 THEN R=0:AY=X%(X-3):GOSUB RELEASE
+
       REM pop everything off stack
       X=X-4
       GOTO DO_TCO_FUNCTION_DONE
@@ -178,7 +183,7 @@ DO_FUNCTION:
 
   REM Switch on the function number
   IF FF>59 THEN ER=-1:ER$="unknown function"+STR$(FF):RETURN
-  ON FF/10+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_56
+  ON FF/10+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_59
 
   DO_1_9:
   ON FF GOTO DO_EQUAL_Q,DO_THROW,DO_NIL_Q,DO_TRUE_Q,DO_FALSE_Q,DO_STRING_Q,DO_SYMBOL,DO_SYMBOL_Q,DO_KEYWORD
@@ -190,8 +195,9 @@ DO_FUNCTION:
   ON FF-29 GOTO DO_VECTOR_Q,DO_HASH_MAP,DO_MAP_Q,DO_ASSOC,DO_THROW,DO_GET,DO_CONTAINS,DO_KEYS,DO_VALS,DO_SEQUENTIAL_Q
   DO_40_49:
   ON FF-39 GOTO DO_CONS,DO_CONCAT,DO_NTH,DO_FIRST,DO_REST,DO_EMPTY_Q,DO_COUNT,DO_THROW,DO_THROW,DO_WITH_META
-  DO_50_56:
+  DO_50_59:
   ON FF-49 GOTO DO_META,DO_ATOM,DO_ATOM_Q,DO_DEREF,DO_RESET_BANG,DO_EVAL,DO_READ_FILE
+  REM ,DO_PR_MEMORY_SUMMARY
 
   DO_EQUAL_Q:
     A=AA:B=AB:GOSUB EQUAL_Q
@@ -437,8 +443,8 @@ DO_FUNCTION:
       AB=R
       GOTO DO_CONCAT_LOOP
   DO_NTH:
+    B=AA:GOSUB COUNT
     B=Z%(AB,1)
-    A=AA:GOSUB COUNT
     IF R<=B THEN R=0:ER=-1:ER$="nth: index out of range":RETURN
     DO_NTH_LOOP:
       IF B=0 THEN GOTO DO_NTH_DONE
@@ -466,7 +472,7 @@ DO_FUNCTION:
     IF Z%(AA,1)=0 THEN R=2
     RETURN
   DO_COUNT:
-    A=AA:GOSUB COUNT
+    B=AA:GOSUB COUNT
     T=2:L=R:GOSUB ALLOC
     RETURN
 
@@ -591,6 +597,7 @@ INIT_CORE_NS:
 
   K$="eval":A=55:GOSUB INIT_CORE_SET_FUNCTION
   K$="read-file":A=56:GOSUB INIT_CORE_SET_FUNCTION
+  REM K$="pr-memory-summary":A=57:GOSUB INIT_CORE_SET_FUNCTION
 
   REM these are in DO_TCO_FUNCTION
   K$="apply":A=61:GOSUB INIT_CORE_SET_FUNCTION

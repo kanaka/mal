@@ -199,7 +199,9 @@ READ_FORM:
     IF T7<9 THEN L=T7
     T8=R: REM save previous value for release
     T=X%(X-1):N=R:GOSUB ALLOC
-    AY=T8:GOSUB RELEASE: REM list takes ownership
+    REM list takes ownership
+    IF L<9 THEN AY=L:GOSUB RELEASE
+    AY=T8:GOSUB RELEASE
 
     REM if previous element is the first element then set
     REM the first to the new element

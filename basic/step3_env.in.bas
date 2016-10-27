@@ -61,7 +61,7 @@ SUB EVAL_AST
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
+      IF (X%(X-3)=8) AND ((X%(X-2)AND1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -118,6 +118,8 @@ SUB EVAL
 
   REM push A and E on the stack
   X=X+2:X%(X-1)=E:X%(X)=A
+
+  IF ER<>-2 THEN GOTO EVAL_RETURN
 
   REM AZ=A:PR=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
@@ -185,6 +187,8 @@ SUB EVAL
         REM eval current A1 odd element
         A=Z%(A1,1)+1:CALL EVAL
         A1=X%(X):X=X-1: REM pop A1
+
+        IF ER<>-2 THEN GOTO EVAL_LET_LOOP_DONE
 
         REM set environment: even A1 key to odd A1 eval'd above
         K=A1+1:V=R:GOSUB ENV_SET

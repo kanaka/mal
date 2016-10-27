@@ -62,7 +62,7 @@ SUB EVAL_AST
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2) AND 1)=0) THEN GOTO EVAL_AST_DO_REF
+      IF (X%(X-3)=8) AND ((X%(X-2)AND1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -116,6 +116,8 @@ SUB EVAL
 
   REM push A and E on the stack
   X=X+2:X%(X-1)=E:X%(X)=A
+
+  IF ER<>-2 THEN GOTO EVAL_RETURN
 
   REM AZ=A:PR=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
