@@ -814,8 +814,7 @@ make
 
 *The Vimscript implementation was created by [Dov Murik](https://github.com/dubek)*
 
-The Vimscript implementation of mal requires Vim to run.  It has been tested
-with Vim 7.4.
+The Vimscript implementation of mal requires Vim 8.0 to run.
 
 ```
 cd vimscript

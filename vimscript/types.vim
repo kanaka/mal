@@ -8,16 +8,8 @@ function ObjNew(obj_type, obj_val)
   return {"type": a:obj_type, "val": a:obj_val}
 endfunction
 
-function ObjType(obj)
-  return a:obj["type"]
-endfunction
-
-function ObjValue(obj)
-  return a:obj["val"]
-endfunction
-
 function ObjHasMeta(obj)
-  return ObjQ(a:obj) && has_key(a:obj, "meta")
+  return has_key(a:obj, "meta")
 endfunction
 
 function ObjMeta(obj)
@@ -34,72 +26,68 @@ function ObjSetMeta(obj, newmeta)
   return a:newmeta
 endfunction
 
-function ObjQ(obj)
-  return type(a:obj) == type({})
-endfunction
-
 function SymbolQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "symbol"
+  return a:obj.type == "symbol"
 endfunction
 
 function StringQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "string"
+  return a:obj.type == "string"
 endfunction
 
 function KeywordQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "keyword"
+  return a:obj.type == "keyword"
 endfunction
 
 function AtomQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "atom"
+  return a:obj.type == "atom"
 endfunction
 
 function NilQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "nil"
+  return a:obj.type == "nil"
 endfunction
 
 function TrueQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "true"
+  return a:obj.type == "true"
 endfunction
 
 function FalseQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "false"
+  return a:obj.type == "false"
 endfunction
 
 function IntegerQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "integer"
+  return a:obj.type == "integer"
 endfunction
 
 function FloatQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "float"
+  return a:obj.type == "float"
 endfunction
 
 function ListQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "list"
+  return a:obj.type == "list"
 endfunction
 
 function VectorQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "vector"
+  return a:obj.type == "vector"
 endfunction
 
 function SequentialQ(obj)
-  return ObjQ(a:obj) && ListQ(a:obj) || VectorQ(a:obj)
+  return ListQ(a:obj) || VectorQ(a:obj)
 endfunction
 
 function HashQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "hash"
+  return a:obj.type == "hash"
 endfunction
 
 function FunctionQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "function" && !ObjValue(a:obj).is_macro
+  return a:obj.type == "function" && !a:obj.val.is_macro
 endfunction
 
 function MacroQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "function" && ObjValue(a:obj).is_macro
+  return a:obj.type == "function" && a:obj.val.is_macro
 endfunction
 
 function NativeFunctionQ(obj)
-  return ObjQ(a:obj) && ObjType(a:obj) == "nativefunction"
+  return a:obj.type == "nativefunction"
 endfunction
 
 function NilNew()
@@ -156,9 +144,9 @@ endfunction
 
 function HashMakeKey(obj)
   if !StringQ(a:obj) && !KeywordQ(a:obj)
-    throw "expected hash-map key string, got: " . ObjType(a:obj));
+    throw "expected hash-map key string, got: " . a:obj.type);
   endif
-  return ObjType(a:obj) . "#" . ObjValue(a:obj)
+  return a:obj.type . "#" . a:obj.val
 endfunction
 
 function HashParseKey(str)
@@ -186,12 +174,12 @@ function HashBuild(elements)
 endfunction
 
 function HashEqualQ(x, y)
-  if len(ObjValue(a:x)) != len(ObjValue(a:y))
+  if len(a:x.val) != len(a:y.val)
     return 0
   endif
-  for k in keys(ObjValue(a:x))
-    let vx = ObjValue(a:x)[k]
-    let vy = ObjValue(a:y)[k]
+  for k in keys(a:x.val)
+    let vx = a:x.val[k]
+    let vy = a:y.val[k]
     if empty(vy) || !EqualQ(vx, vy)
       return 0
     endif
@@ -200,13 +188,13 @@ function HashEqualQ(x, y)
 endfunction
 
 function SequentialEqualQ(x, y)
-  if len(ObjValue(a:x)) != len(ObjValue(a:y))
+  if len(a:x.val) != len(a:y.val)
     return 0
   endif
   let i = 0
-  while i < len(ObjValue(a:x))
-    let ex = ObjValue(a:x)[i]
-    let ey = ObjValue(a:y)[i]
+  while i < len(a:x.val)
+    let ex = a:x.val[i]
+    let ey = a:y.val[i]
     if !EqualQ(ex, ey)
       return 0
     endif
@@ -220,34 +208,34 @@ function EqualQ(x, y)
     return SequentialEqualQ(a:x, a:y)
   elseif HashQ(a:x) && HashQ(a:y)
     return HashEqualQ(a:x, a:y)
-  elseif ObjType(a:x) != ObjType(a:y)
+  elseif a:x.type != a:y.type
     return 0
   else
-    return ObjValue(a:x) == ObjValue(a:y)
+    return a:x.val == a:y.val
   endif
 endfunction
 
 function EmptyQ(list)
-  return empty(ObjValue(a:list))
+  return empty(a:list.val)
 endfunction
 
 function ListCount(list)
-  return len(ObjValue(a:list))
+  return len(a:list.val)
 endfunction
 
 function ListNth(list, index)
-  if a:index >= len(ObjValue(a:list))
+  if a:index >= len(a:list.val)
     throw "nth: index out of range"
   endif
-  return ObjValue(a:list)[a:index]
+  return a:list.val[a:index]
 endfunction
 
 function ListFirst(list)
-  return get(ObjValue(a:list), 0, g:MalNil)
+  return get(a:list.val, 0, g:MalNil)
 endfunction
 
 function ListDrop(list, drop_elements)
-  return ListNew(ObjValue(a:list)[a:drop_elements :])
+  return ListNew(a:list.val[a:drop_elements :])
 endfunction
 
 function ListRest(list)
@@ -255,18 +243,18 @@ function ListRest(list)
 endfunction
 
 function FuncInvoke(funcobj, args)
-  let fn = ObjValue(a:funcobj)
+  let fn = a:funcobj.val
   let funcenv = NewEnvWithBinds(fn.env, fn.params, a:args)
   return EVAL(fn.ast, funcenv)
 endfunction
 
 function NativeFuncInvoke(funcobj, argslist)
-  let fn = ObjValue(a:funcobj)
-  return fn.Func(ObjValue(a:argslist))
+  let fn = a:funcobj.val
+  return fn.Func(a:argslist.val)
 endfunction
 
 function MarkAsMacro(funcobj)
-  let fn = ObjValue(a:funcobj)
+  let fn = a:funcobj.val
   let fn.is_macro = 1
   return a:funcobj
 endfunction
@@ -278,6 +266,11 @@ endfunction
 
 function NewNativeFn(funcname)
   let fn = {"Func": function(a:funcname), "name": a:funcname}
+  return ObjNewWithMeta("nativefunction", fn, g:MalNil)
+endfunction
+
+function NewNativeFnLambda(lambdaexpr)
+  let fn = {"Func": a:lambdaexpr, "name": "inline"}
   return ObjNewWithMeta("nativefunction", fn, g:MalNil)
 endfunction
 

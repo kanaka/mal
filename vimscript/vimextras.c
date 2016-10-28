@@ -27,10 +27,10 @@ char* vimreadline(char* prompt) {
     return buf;
 }
 
-#define UNIXTIME_2000_01_01 946684800
+#define UNIXTIME_BASE 1451606400 /* = Unix time of 2016-01-01 */
 
 /*
- * Returns the number of milliseconds since 2000-01-01 00:00:00 UTC.
+ * Returns the number of milliseconds since 2016-01-01 00:00:00 UTC.
  *
  * This date is chosen (instead of the standard 1970 epoch) so the number of
  * milliseconds will not exceed a 32-bit integer, which is the limit for Vim
@@ -40,5 +40,5 @@ int vimtimems(int dummy) {
     struct timeval tv;
     (void) dummy; /* unused */
     gettimeofday(&tv, NULL);
-    return (tv.tv_sec - UNIXTIME_2000_01_01) * 1000 + (tv.tv_usec / 1000);
+    return (tv.tv_sec - UNIXTIME_BASE) * 1000 + (tv.tv_usec / 1000);
 }
