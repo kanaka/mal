@@ -32,7 +32,7 @@ proc eval(ast: MalType, env: Table[string, MalType]): MalType =
 
 proc print(exp: MalType): string = exp.pr_str
 
-template wrapNumberFun(op: expr): expr =
+template wrapNumberFun(op): untyped =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
 
 let repl_env = toTable({
