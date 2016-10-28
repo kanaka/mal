@@ -36,6 +36,6 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    PRINT "Free: "+STR$(FRE(0))
+    REM PRINT "Free: "+STR$(FRE(0))
     END
 

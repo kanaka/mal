@@ -603,8 +603,16 @@ MAIN:
   A$=A$+" forms to cond"+CHR$(34)+")) (cons 'cond (rest (rest xs)))))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
+  A$="(def! *gensym-counter* (atom 0))"
+  GOSUB RE:AY=R:GOSUB RELEASE
+
+  A$="(def! gensym (fn* [] (symbol (str "+CHR$(34)+"G__"+CHR$(34)
+  A$=A$+" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+  GOSUB RE:AY=R:GOSUB RELEASE
+
   A$="(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs)"
-  A$=A$+" `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+  A$=A$+" (let* (condvar (gensym)) `(let* (~condvar ~(first xs))"
+  A$=A$+" (if ~condvar ~condvar (or ~@(rest xs)))))))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
   REM load the args file
@@ -648,8 +656,7 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    REM P1=ZT: P2=-1: GOSUB PR_MEMORY
-    GOSUB PR_MEMORY_SUMMARY
+    REM GOSUB PR_MEMORY_SUMMARY
     END
 
   PRINT_ERROR:

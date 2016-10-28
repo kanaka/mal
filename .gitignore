@@ -106,3 +106,15 @@ vb/*.dll
 vimscript/mal.vim
 clisp/*.fas
 clisp/*.lib
+basic/step0_repl.bas
+basic/step1_read_print.bas
+basic/step2_eval.bas
+basic/step3_env.bas
+basic/step4_if_fn_do.bas
+basic/step5_tco.bas
+basic/step6_file.bas
+basic/step7_quote.bas
+basic/step8_macros.bas
+basic/step9_try.bas
+basic/stepA_mal.bas
+basic/*.prg
