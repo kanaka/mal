@@ -79,7 +79,7 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = Env(env)
+        var let_env = env
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
@@ -124,7 +124,7 @@ proc eval(ast: MalType, env: Env): MalType =
 
       of "do":
         let last = ast.list.high
-        let el = (list ast.list[1 .. <last]).eval_ast(env)
+        discard (list ast.list[1 .. <last]).eval_ast(env)
         ast = ast.list[last]
         # Continue loop (TCO)
 
