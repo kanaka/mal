@@ -81,6 +81,7 @@ PR_STR:
     T1=AZ
     AZ=Z%(T1+1,0):GOSUB PR_STR_RECUR
     T7$="(fn* "+R$
+    RR$=""
     AZ=Z%(T1,1):GOSUB PR_STR_RECUR
     R$=T7$+" "+R$+")"
     RETURN

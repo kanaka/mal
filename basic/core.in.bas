@@ -276,8 +276,6 @@ DO_FUNCTION:
     RETURN
   DO_SLURP:
     R$=""
-    REM OPEN 1,8,2,S$(Z%(AA,1))+",SEQ,R"
-    REM OPEN 1,8,2,S$(Z%(AA,1))
     OPEN 1,8,0,S$(Z%(AA,1))
     DO_SLURP_LOOP:
       A$=""
