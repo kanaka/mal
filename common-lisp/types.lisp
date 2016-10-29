@@ -1,7 +1,8 @@
 (defpackage :types
   (:use :common-lisp
         :genhash)
-  (:export ;; Accessors
+  (:export :mal-data-value=
+           ;; Accessors
            :mal-data-value
            :mal-data-type
            :mal-data-meta
@@ -52,16 +53,35 @@
            :mal-builtin-fn-p
 
            :any
-
            :switch-mal-type
+
+           ;; Singleton values
+           :mal-nil
+           :mal-true
+           :mal-false
 
            ;; Hashing mal values
            :make-mal-value-hash-table
+           ;; Error types
+           :mal-exception
+           ;; Exceptions raised by the runtime
+           :mal-runtime-exception
+           ;; Error
+           :mal-error
 
            ;; Utilities
            :apply-unwrapped-values))
 
 (in-package :types)
+
+(define-condition mal-error (error)
+  nil)
+
+(define-condition mal-exception (error)
+  nil)
+
+(define-condition mal-runtime-exception (mal-exception)
+  nil)
 
 (defstruct mal-data
   (value nil :read-only t)
@@ -103,6 +123,10 @@
 (define-mal-type atom)
 
 (define-mal-type builtin-fn)
+
+(defvar mal-nil (make-mal-nil nil))
+(defvar mal-true (make-mal-boolean t))
+(defvar mal-false (make-mal-boolean nil))
 
 ;; Generic type
 (defvar any)
