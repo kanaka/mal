@@ -116,6 +116,17 @@
                (append (list (types:mal-data-value atom))
                        args))))
 
+(defun mal-cons (element list)
+  (types:make-mal-list (cons element
+                             (map 'list
+                                  #'identity
+                                  (types:mal-data-value list)))))
+
+(defun mal-concat (&rest lists)
+  (types:make-mal-list (apply #'concatenate
+                              'list
+                              (mapcar #'types:mal-data-value lists))))
+
 (defvar ns
   (list
    (cons (types:make-mal-symbol "+") (types:make-mal-builtin-fn #'mal-add))
@@ -141,4 +152,6 @@
    (cons (types:make-mal-symbol "atom?") (types:make-mal-builtin-fn #'mal-atom?))
    (cons (types:make-mal-symbol "deref") (types:make-mal-builtin-fn #'mal-deref))
    (cons (types:make-mal-symbol "reset!") (types:make-mal-builtin-fn #'mal-reset!))
-   (cons (types:make-mal-symbol "swap!") (types:make-mal-builtin-fn #'mal-swap!))))
+   (cons (types:make-mal-symbol "swap!") (types:make-mal-builtin-fn #'mal-swap!))
+   (cons (types:make-mal-symbol "cons") (types:make-mal-builtin-fn #'mal-cons))
+   (cons (types:make-mal-symbol "concat") (types:make-mal-builtin-fn #'mal-concat))))
