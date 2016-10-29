@@ -1,0 +1,17 @@
+;; Testing basic pil interop
+
+(pil-eval "T")
+;=>true
+
+(pil-eval "NIL")
+;=>nil
+
+(pil-eval "(+ 1 1)")
+;=>2
+
+(pil-eval "(cons 1 2 3 NIL)")
+;=>(1 2 3)
+
+(pil-eval "(use (@A @O) (match '(@A and @O) '(Alpha and Omega)) (prinl @A) (prinl @O))")
+Alpha
+Omega

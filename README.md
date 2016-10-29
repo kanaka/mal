@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 59 languages:
+Mal is implemented in 60 languages:
 
 * Ada
 * GNU awk
@@ -50,6 +50,7 @@ Mal is implemented in 59 languages:
 * Perl
 * Perl 6
 * PHP
+* Picolisp
 * PL/pgSQL (Postgres)
 * PL/SQL (Oracle)
 * Postscript
@@ -514,11 +515,11 @@ cd make
 make -f stepX_YYY.mk
 ```
 
-### Nim 0.11.0
+### Nim 0.15.2
 
 *The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
 
-Running the Nim implementation of mal requires Nim 0.11.0 or later.
+The Nim implementation of mal has been tested with Nim 0.15.2.
 
 ```
 cd nim
@@ -620,6 +621,18 @@ to run.
 ```
 cd php
 php stepX_YYY.php
+```
+
+### Picolisp
+
+*The Picolisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Picolisp implementation requires libreadline and Picolisp 3.1.11
+or later.
+
+```
+cd pil
+./run
 ```
 
 ### PL/pgSQL (Postgres SQL Procedural Language)
@@ -801,8 +814,7 @@ make
 
 *The Vimscript implementation was created by [Dov Murik](https://github.com/dubek)*
 
-The Vimscript implementation of mal requires Vim to run.  It has been tested
-with Vim 7.4.
+The Vimscript implementation of mal requires Vim 8.0 to run.
 
 ```
 cd vimscript

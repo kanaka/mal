@@ -11,23 +11,15 @@ endfunction
 
 function EvalAst(ast, env)
   if SymbolQ(a:ast)
-    let varname = ObjValue(a:ast)
+    let varname = a:ast.val
     return a:env.get(varname)
   elseif ListQ(a:ast)
-    let ret = []
-    for e in ObjValue(a:ast)
-      call add(ret, EVAL(e, a:env))
-    endfor
-    return ListNew(ret)
+    return ListNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif VectorQ(a:ast)
-    let ret = []
-    for e in ObjValue(a:ast)
-      call add(ret, EVAL(e, a:env))
-    endfor
-    return VectorNew(ret)
+    return VectorNew(map(copy(a:ast.val), {_, e -> EVAL(e, a:env)}))
   elseif HashQ(a:ast)
     let ret = {}
-    for [k,v] in items(ObjValue(a:ast))
+    for [k,v] in items(a:ast.val)
       let keyobj = HashParseKey(k)
       let newkey = EVAL(keyobj, a:env)
       let newval = EVAL(v, a:env)
@@ -49,37 +41,37 @@ function EVAL(ast, env)
   endif
 
   let first = ListFirst(a:ast)
-  let first_symbol = SymbolQ(first) ? ObjValue(first) : ""
+  let first_symbol = SymbolQ(first) ? first.val : ""
   if first_symbol == "def!"
-    let a1 = ObjValue(a:ast)[1]
-    let a2 = ObjValue(a:ast)[2]
-    let ret = a:env.set(ObjValue(a1), EVAL(a2, a:env))
+    let a1 = a:ast.val[1]
+    let a2 = a:ast.val[2]
+    let ret = a:env.set(a1.val, EVAL(a2, a:env))
     return ret
   elseif first_symbol == "let*"
-    let a1 = ObjValue(a:ast)[1]
-    let a2 = ObjValue(a:ast)[2]
+    let a1 = a:ast.val[1]
+    let a2 = a:ast.val[2]
     let let_env = NewEnv(a:env)
-    let let_binds = ObjValue(a1)
+    let let_binds = a1.val
     let i = 0
     while i < len(let_binds)
-      call let_env.set(ObjValue(let_binds[i]), EVAL(let_binds[i+1], let_env))
+      call let_env.set(let_binds[i].val, EVAL(let_binds[i+1], let_env))
       let i = i + 2
     endwhile
     return EVAL(a2, let_env)
   elseif first_symbol == "if"
-    let condvalue = EVAL(ObjValue(a:ast)[1], a:env)
+    let condvalue = EVAL(a:ast.val[1], a:env)
     if FalseQ(condvalue) || NilQ(condvalue)
-      if len(ObjValue(a:ast)) < 4
+      if len(a:ast.val) < 4
         return g:MalNil
       else
-        return EVAL(ObjValue(a:ast)[3], a:env)
+        return EVAL(a:ast.val[3], a:env)
       endif
     else
-      return EVAL(ObjValue(a:ast)[2], a:env)
+      return EVAL(a:ast.val[2], a:env)
     endif
   elseif first_symbol == "do"
     let el = EvalAst(ListRest(a:ast), a:env)
-    return ObjValue(el)[-1]
+    return el.val[-1]
   elseif first_symbol == "fn*"
     let fn = NewFn(ListNth(a:ast, 2), a:env, ListNth(a:ast, 1))
     return fn

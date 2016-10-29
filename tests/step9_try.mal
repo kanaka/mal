@@ -260,6 +260,15 @@
 (keyword? (nth (vals {"a" :abc "b" :def}) 0))
 ;=>true
 
+;; Testing whether assoc updates properly
+(def! hm4 (assoc {:a 1 :b 2} :a 3 :c 1))
+(get hm4 :a)
+;=>3
+(get hm4 :b)
+;=>2
+(get hm4 :c)
+;=>1
+
 ;; Testing nil as hash-map values
 (contains? {:abc nil} :abc)
 ;=>true
