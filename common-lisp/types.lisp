@@ -52,6 +52,10 @@
            :make-mal-builtin-fn
            :mal-builtin-fn-p
 
+           :fn
+           :make-mal-fn
+           :mal-fn-p
+
            :any
            :switch-mal-type
 
@@ -70,7 +74,8 @@
            :mal-error
 
            ;; Utilities
-           :apply-unwrapped-values))
+           :apply-unwrapped-values
+           :apply-unwrapped-values-prefer-bool))
 
 (in-package :types)
 
@@ -122,6 +127,7 @@
 
 (define-mal-type atom)
 
+(define-mal-type fn)
 (define-mal-type builtin-fn)
 
 (defvar mal-nil (make-mal-nil nil))
@@ -130,17 +136,6 @@
 
 ;; Generic type
 (defvar any)
-
-(defun mal-data-value= (value1 value2)
-  (equal (mal-data-value value1)
-         (mal-data-value value2)))
-
-(defun make-mal-value-hash-table ()
-  (unless (gethash 'mal-data-value-hash genhash::*hash-test-designator-map*)
-    (genhash:register-test-designator 'mal-data-value-hash
-                                      #'sxhash
-                                      #'mal-data-value=))
-  (genhash:make-generic-hash-table :test 'mal-data-value-hash))
 
 (defmacro switch-mal-type (ast &body forms)
   `(let ((type (mal-data-type ,ast)))
@@ -152,6 +147,50 @@
                              (list 'equal (list 'quote (car form)) 'type))
                          (cadr form)))
                  forms))))
+
+(defun mal-sequence= (value1 value2)
+  (let ((sequence1 (map 'list #'identity (mal-data-value value1)))
+        (sequence2 (map 'list #'identity (mal-data-value value2))))
+    (when (= (length sequence1) (length sequence2))
+      (every #'identity
+             (loop
+                for x in sequence1
+                for y in sequence2
+                collect (mal-data-value= x y))))))
+
+(defun mal-hash-map= (value1 value2)
+  (let ((map1 (mal-data-value value1))
+        (map2 (mal-data-value value2))
+        (identical t))
+    (when (= (genhash:generic-hash-table-count map1)
+             (genhash:generic-hash-table-count map2))
+      (genhash:hashmap (lambda (key value)
+                         (declare (ignorable value))
+                         (setf identical
+                               (and identical (mal-data-value= (genhash:hashref key map1)
+                                                               (genhash:hashref key map2)))))
+                       map1)
+      identical)))
+
+(defun mal-data-value= (value1 value2)
+  (when (and (typep value1 'mal-data)
+             (typep value2 'mal-data))
+    (if (equal (mal-data-type value1) (mal-data-type value2))
+        (switch-mal-type value1
+          (list (mal-sequence= value1 value2))
+          (vector (mal-sequence= value1 value2))
+          (hash-map (mal-hash-map= value1 value2))
+          (any (equal (mal-data-value value1) (mal-data-value value2))))
+        (when (or (and (mal-list-p value1) (mal-vector-p value2))
+                  (and (mal-list-p value2) (mal-vector-p value1)))
+          (mal-sequence= value1 value2)))))
+
+(defun make-mal-value-hash-table ()
+  (unless (gethash 'mal-data-value-hash genhash::*hash-test-designator-map*)
+    (genhash:register-test-designator 'mal-data-value-hash
+                                      #'sxhash
+                                      #'mal-data-value=))
+  (genhash:make-generic-hash-table :test 'mal-data-value-hash))
 
 (defun wrap-value (value &key booleanp listp)
   (typecase value

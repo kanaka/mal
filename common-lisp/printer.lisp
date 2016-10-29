@@ -58,4 +58,5 @@
       (types:vector (pr-mal-sequence "[" ast "]" print-readably))
       (types:hash-map (pr-mal-hash-map ast print-readably))
       (types:atom (format nil "(atom ~a)" (pr-str (types:mal-data-value ast))))
-      (types:builtin-fn "#<builtin-func"))))
+      (types:builtin-fn "#<func>")
+      (types:builtin-fn "#<builtin-func>"))))
