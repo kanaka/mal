@@ -13,6 +13,17 @@
        types:mal-true
        types:mal-false))
 
+(define-condition index-error (types:mal-error)
+  ((size :initarg :size :reader index-error-size)
+   (index :initarg :index :reader index-error-index)
+   (sequence :initarg :sequence :reader index-error-sequence))
+  (:report (lambda (condition stream)
+             (format stream
+                     "Index out of range (~a), length is ~a but index given was ~a"
+                     (printer:pr-str (index-error-sequence condition))
+                     (index-error-size condition)
+                     (index-error-index condition)))))
+
 (defun mal-add (value1 value2)
   (types:apply-unwrapped-values '+ value1 value2))
 
@@ -127,6 +138,23 @@
                               'list
                               (mapcar #'types:mal-data-value lists))))
 
+(defun mal-nth (sequence index)
+  (or (nth (types:mal-data-value index)
+           (map 'list #'identity (types:mal-data-value sequence)))
+      (error 'index-error
+             :size (length (mal-value sequence))
+             :index (mal-value index)
+             :sequence sequence)))
+
+(defun mal-first (sequence)
+  (or (first (map 'list #'identity (types:mal-data-value sequence)))
+      (types:make-mal-nil nil)))
+
+(defun mal-rest (sequence)
+  (types:make-mal-list (rest (map 'list
+                                  #'identity
+                                  (types:mal-data-value sequence)))))
+
 (defvar ns
   (list
    (cons (types:make-mal-symbol "+") (types:make-mal-builtin-fn #'mal-add))
@@ -154,4 +182,7 @@
    (cons (types:make-mal-symbol "reset!") (types:make-mal-builtin-fn #'mal-reset!))
    (cons (types:make-mal-symbol "swap!") (types:make-mal-builtin-fn #'mal-swap!))
    (cons (types:make-mal-symbol "cons") (types:make-mal-builtin-fn #'mal-cons))
-   (cons (types:make-mal-symbol "concat") (types:make-mal-builtin-fn #'mal-concat))))
+   (cons (types:make-mal-symbol "concat") (types:make-mal-builtin-fn #'mal-concat))
+   (cons (types:make-mal-symbol "nth") (types:make-mal-builtin-fn #'mal-nth))
+   (cons (types:make-mal-symbol "first") (types:make-mal-builtin-fn #'mal-first))
+   (cons (types:make-mal-symbol "rest") (types:make-mal-builtin-fn #'mal-rest))))
