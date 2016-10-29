@@ -280,6 +280,70 @@
   (wrap-boolean (or (types:mal-vector-p value)
                     (types:mal-list-p value))))
 
+(defun mal-readline (prompt)
+  (format *standard-output* (types:mal-data-value prompt))
+  (force-output *standard-output*)
+  (types:wrap-value (read-line *standard-input* nil)))
+
+(defun mal-string? (value)
+  (wrap-boolean (types:mal-string-p value)))
+
+(defun mal-time-ms ()
+  (types:make-mal-number (round (/ (get-internal-real-time)
+                                   (/ internal-time-units-per-second
+                                      1000)))))
+
+(defun mal-conj (value &rest elements)
+  (cond ((types:mal-list-p value)
+         (types:make-mal-list (append (nreverse elements)
+                                      (types:mal-data-value value))))
+        ((types:mal-vector-p value)
+         (types:make-mal-vector (concatenate 'vector
+                                             (types:mal-data-value value)
+                                             elements)))
+        (t (error 'types:mal-user-exception))))
+
+(defun mal-seq (value)
+  (if (zerop (length (types:mal-data-value value)))
+      types:mal-nil
+      (cond ((types:mal-list-p value)
+             value)
+            ((types:mal-vector-p value)
+             (types:make-mal-list (map 'list
+                                       #'identity
+                                       (types:mal-data-value value))))
+            ((types:mal-string-p value)
+             (types:make-mal-list  (map 'list
+                                        (lambda (char)
+                                          (types:make-mal-string (make-string 1 :initial-element char)))
+                                        (types:mal-data-value value))))
+            (t (error 'types:mal-user-exception)))))
+
+(defun mal-with-meta (value meta)
+  (funcall (switch-mal-type value
+                            (types:string #'types:make-mal-string)
+                            (types:symbol #'types:make-mal-symbol)
+                            (types:list #'types:make-mal-list)
+                            (types:vector #'types:make-mal-vector)
+                            (types:hash-map #'types:make-mal-hash-map)
+                            (types:fn #'types:make-mal-fn)
+                            (types:builtin-fn #'types:make-mal-builtin-fn))
+           (types:mal-data-value value)
+           :meta meta
+           :attrs (types:mal-data-attrs value)))
+
+(defun mal-meta (value)
+  (or (types:mal-data-meta value)
+      types:mal-nil))
+
+;; Since a nil in Common LISP may mean an empty list or boolean false or
+;; simply nil, the caller can specify the preferred type while evaluating an
+;; expression
+(defun mal-cl-eval (code &optional booleanp listp)
+  (types:wrap-value (eval (read-from-string (types:mal-data-value code)))
+                    :booleanp (and booleanp (types:mal-data-value booleanp))
+                    :listp (and listp (types:mal-data-value listp))))
+
 (defvar ns
   (list
    (cons (types:make-mal-symbol "+") (types:make-mal-builtin-fn #'mal-add))
@@ -331,4 +395,12 @@
    (cons (types:make-mal-symbol "contains?") (types:make-mal-builtin-fn #'mal-contains?))
    (cons (types:make-mal-symbol "keys") (types:make-mal-builtin-fn #'mal-keys))
    (cons (types:make-mal-symbol "vals") (types:make-mal-builtin-fn #'mal-vals))
-   (cons (types:make-mal-symbol "sequential?") (types:make-mal-builtin-fn #'mal-sequential?))))
+   (cons (types:make-mal-symbol "sequential?") (types:make-mal-builtin-fn #'mal-sequential?))
+   (cons (types:make-mal-symbol "readline") (types:make-mal-builtin-fn #'mal-readline))
+   (cons (types:make-mal-symbol "string?") (types:make-mal-builtin-fn #'mal-string?))
+   (cons (types:make-mal-symbol "time-ms") (types:make-mal-builtin-fn #'mal-time-ms))
+   (cons (types:make-mal-symbol "conj") (types:make-mal-builtin-fn #'mal-conj))
+   (cons (types:make-mal-symbol "seq") (types:make-mal-builtin-fn #'mal-seq))
+   (cons (types:make-mal-symbol "with-meta") (types:make-mal-builtin-fn #'mal-with-meta))
+   (cons (types:make-mal-symbol "meta") (types:make-mal-builtin-fn #'mal-meta))
+   (cons (types:make-mal-symbol "cl-eval") (types:make-mal-builtin-fn #'mal-cl-eval))))
