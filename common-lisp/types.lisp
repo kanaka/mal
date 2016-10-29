@@ -70,6 +70,8 @@
            :mal-exception
            ;; Exceptions raised by the runtime
            :mal-runtime-exception
+           ;; Exception raised by user code
+           :mal-user-exception
            ;; Error
            :mal-error
 
@@ -89,6 +91,9 @@
 
 (define-condition mal-runtime-exception (mal-exception)
   nil)
+
+(define-condition mal-user-exception (mal-exception)
+  ((data :accessor mal-exception-data :initarg :data)))
 
 (defstruct mal-data
   (value nil)
