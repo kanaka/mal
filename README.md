@@ -11,7 +11,7 @@ Mal is implemented in 61 languages:
 * Ada
 * GNU awk
 * Bash shell
-* Basic (C64 and QBasic)
+* BASIC (C64 and QBasic)
 * C
 * C++
 * C#
@@ -155,10 +155,10 @@ cd bash
 bash stepX_YYY.sh
 ```
 
-### Basic (C64 and QBasic)
+### BASIC (C64 and QBasic)
 
-The Basic implementation uses a preprocessor that can generate Basic
-code that is compatible with both C64 Basic (CBM v2) and QBasic. The
+The BASIC implementation uses a preprocessor that can generate BASIC
+code that is compatible with both C64 BASIC (CBM v2) and QBasic. The
 C64 mode has been tested with
 [cbmbasic](https://github.com/kanaka/cbmbasic) (the patched version is
 currently required to fix issues with line input) and the QBasic mode
