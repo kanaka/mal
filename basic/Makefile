@@ -1,4 +1,5 @@
-BASICPP_OPTS = --combine-lines
+MODE = cbm
+BASICPP_OPTS = --mode $(MODE)
 
 STEPS4_A = step4_if_fn_do.bas step5_tco.bas step6_file.bas \
            step7_quote.bas step8_macros.bas step9_try.bas stepA_mal.bas
@@ -20,7 +21,7 @@ tests/%.bas: tests/%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
 
 
-# C64 image rules
+# CBM/C64 image rules
 
 step%.prg: step%.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp

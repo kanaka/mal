@@ -19,7 +19,7 @@ MAL_READ:
 REM QUASIQUOTE(A) -> R
 SUB QUASIQUOTE
   REM pair?
-  IF (Z%(A,0)AND31)<6 OR (Z%(A,0)AND31)>7 THEN GOTO QQ_QUOTE
+  IF (Z%(A,0)AND 31)<6 OR (Z%(A,0)AND 31)>7 THEN GOTO QQ_QUOTE
   IF (Z%(A,1)=0) THEN GOTO QQ_QUOTE
   GOTO QQ_UNQUOTE
 
@@ -33,7 +33,7 @@ SUB QUASIQUOTE
 
   QQ_UNQUOTE:
     R=A+1:GOSUB DEREF_R
-    IF (Z%(R,0)AND31)<>5 THEN GOTO QQ_SPLICE_UNQUOTE
+    IF (Z%(R,0)AND 31)<>5 THEN GOTO QQ_SPLICE_UNQUOTE
     IF S$(Z%(R,1))<>"unquote" THEN GOTO QQ_SPLICE_UNQUOTE
       REM [ast[1]]
       R=Z%(A,1)+1:GOSUB DEREF_R
@@ -54,11 +54,11 @@ SUB QUASIQUOTE
     A=A+1:GOSUB DEREF_A
 
     REM pair?
-    IF (Z%(A,0)AND31)<6 OR (Z%(A,0)AND31)>7 THEN GOTO QQ_DEFAULT
+    IF (Z%(A,0)AND 31)<6 OR (Z%(A,0)AND 31)>7 THEN GOTO QQ_DEFAULT
     IF (Z%(A,1)=0) THEN GOTO QQ_DEFAULT
 
     B=A+1:GOSUB DEREF_B
-    IF (Z%(B,0)AND31)<>5 THEN GOTO QQ_DEFAULT
+    IF (Z%(B,0)AND 31)<>5 THEN GOTO QQ_DEFAULT
     IF S$(Z%(B,1))<>"splice-unquote" THEN QQ_DEFAULT
       REM ['concat, ast[0][1], quasiquote(ast[1..])]
 
@@ -97,18 +97,18 @@ SUB MACROEXPAND
 
   MACROEXPAND_LOOP:
     REM list?
-    IF (Z%(A,0)AND31)<>6 THEN GOTO MACROEXPAND_DONE
+    IF (Z%(A,0)AND 31)<>6 THEN GOTO MACROEXPAND_DONE
     REM non-empty?
     IF Z%(A,1)=0 THEN GOTO MACROEXPAND_DONE
     B=A+1:GOSUB DEREF_B
     REM symbol? in first position
-    IF (Z%(B,0)AND31)<>5 THEN GOTO MACROEXPAND_DONE
+    IF (Z%(B,0)AND 31)<>5 THEN GOTO MACROEXPAND_DONE
     REM defined in environment?
     K=B:CALL ENV_FIND
     IF R=-1 THEN GOTO MACROEXPAND_DONE
     B=T4:GOSUB DEREF_B
     REM macro?
-    IF (Z%(B,0)AND31)<>11 THEN GOTO MACROEXPAND_DONE
+    IF (Z%(B,0)AND 31)<>11 THEN GOTO MACROEXPAND_DONE
   
     F=B:AR=Z%(A,1):CALL APPLY
     A=R
@@ -134,7 +134,7 @@ SUB EVAL_AST
 
   GOSUB DEREF_A
 
-  T=Z%(A,0)AND31
+  T=Z%(A,0)AND 31
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
@@ -174,7 +174,7 @@ SUB EVAL_AST
       IF X%(X-6)=2 AND Z%(Z%(A,1),1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2)AND1)=0) THEN GOTO EVAL_AST_DO_REF
+      IF (X%(X-3)=8) AND ((X%(X-2)AND 1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -261,8 +261,8 @@ SUB EVAL
     R=A0:GOSUB DEREF_R:A0=R
 
     REM get symbol in A$
-    IF (Z%(A0,0)AND31)<>5 THEN A$=""
-    IF (Z%(A0,0)AND31)=5 THEN A$=S$(Z%(A0,1))
+    IF (Z%(A0,0)AND 31)<>5 THEN A$=""
+    IF (Z%(A0,0)AND 31)=5 THEN A$=S$(Z%(A0,1))
 
     IF A$="def!" THEN GOTO EVAL_DEF
     IF A$="let*" THEN GOTO EVAL_LET
@@ -468,10 +468,10 @@ SUB EVAL
       R=F:GOSUB DEREF_R:F=R
 
       REM if metadata, get the actual object
-      IF (Z%(F,0)AND31)>=16 THEN F=Z%(F,1)
+      IF (Z%(F,0)AND 31)>=16 THEN F=Z%(F,1)
 
-      IF (Z%(F,0)AND31)=9 THEN GOTO EVAL_DO_FUNCTION
-      IF (Z%(F,0)AND31)=10 THEN GOTO EVAL_DO_MAL_FUNCTION
+      IF (Z%(F,0)AND 31)=9 THEN GOTO EVAL_DO_FUNCTION
+      IF (Z%(F,0)AND 31)=10 THEN GOTO EVAL_DO_MAL_FUNCTION
 
       REM if error, pop and return f/args for release by caller
       R=X%(X):X=X-1
@@ -524,7 +524,8 @@ SUB EVAL
     GOSUB RELEASE_PEND
 
     REM trigger GC
-    TA=FRE(0)
+    #cbm TA=FRE(0)
+    #qbasic TA=0
 
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
@@ -630,7 +631,7 @@ MAIN:
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
-    IF EOF=1 THEN GOTO QUIT
+    IF EZ=1 THEN GOTO QUIT
 
     A$=R$:CALL REP: REM call REP
 

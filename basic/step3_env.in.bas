@@ -24,7 +24,7 @@ SUB EVAL_AST
 
   GOSUB DEREF_A
 
-  T=Z%(A,0)AND31
+  T=Z%(A,0)AND 31
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
@@ -61,7 +61,7 @@ SUB EVAL_AST
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2)AND1)=0) THEN GOTO EVAL_AST_DO_REF
+      IF (X%(X-3)=8) AND ((X%(X-2)AND 1)=0) THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -140,8 +140,8 @@ SUB EVAL
     R=A0:GOSUB DEREF_R:A0=R
 
     REM get symbol in A$
-    IF (Z%(A0,0)AND31)<>5 THEN A$=""
-    IF (Z%(A0,0)AND31)=5 THEN A$=S$(Z%(A0,1))
+    IF (Z%(A0,0)AND 31)<>5 THEN A$=""
+    IF (Z%(A0,0)AND 31)=5 THEN A$=S$(Z%(A0,1))
 
     IF A$="def!" THEN GOTO EVAL_DEF
     IF A$="let*" THEN GOTO EVAL_LET
@@ -212,7 +212,7 @@ SUB EVAL
 
       AR=Z%(R,1): REM rest
       R=F:GOSUB DEREF_R:F=R
-      IF (Z%(F,0)AND31)<>9 THEN ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
+      IF (Z%(F,0)AND 31)<>9 THEN ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       AY=R3:GOSUB RELEASE
       GOTO EVAL_RETURN
@@ -226,9 +226,9 @@ SUB EVAL
 
     LV=LV-1: REM track basic return stack level
 
-
     REM trigger GC
-    TA=FRE(0)
+    #cbm TA=FRE(0)
+    #qbasic TA=0
 
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
@@ -329,7 +329,7 @@ MAIN:
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
-    IF EOF=1 THEN GOTO QUIT
+    IF EZ=1 THEN GOTO QUIT
 
     A$=R$:CALL REP: REM call REP
 

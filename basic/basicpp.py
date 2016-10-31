@@ -10,8 +10,9 @@ def debug(*args, **kwargs):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Preprocess Basic code.')
-    parser.add_argument('infile', type=str,
-                        help='the Basic file to preprocess')
+    parser.add_argument('infiles', type=str, nargs='+',
+                        help='the Basic files to preprocess')
+    parser.add_argument('--mode', choices=["cbm", "qbasic"], default="cbm")
     parser.add_argument('--keep-rems', action='store_true', default=False,
                         help='The type of REMs to keep (0 (none) -> 4 (all)')
     parser.add_argument('--keep-blank-lines', action='store_true', default=False,
@@ -20,12 +21,17 @@ def parse_args():
                         help='Keep line identing')
     parser.add_argument('--skip-misc-fixups', action='store_true', default=False,
                         help='Skip miscellaneous fixup/shrink fixups')
-    parser.add_argument('--combine-lines', action='store_true', default=False,
-                        help='Combine lines using the ":" separator')
+    parser.add_argument('--skip-combine-lines', action='store_true', default=False,
+                        help='Do not combine lines using the ":" separator')
 
     args = parser.parse_args()
-    if args.combine_lines and args.keep_rems:
-        parser.error("--combine-lines and --keep-rems are mutually exclusive")
+    if args.keep_rems and not args.skip_combine_lines:
+        debug("Option --keep-rems implies --skip-combine-lines ")
+        args.skip_combine_lines = True
+
+    if args.mode == 'qbasic' and not args.skip_misc_fixups:
+        debug("Mode 'qbasic' implies --skip-misc-fixups")
+        args.skip_misc_fixups = True
 
     return args
 
@@ -46,6 +52,17 @@ def resolve_includes(orig_lines, keep_rems=0):
                 debug("Ignoring already included file: %s" % f)
         else:
             lines.append(line)
+    return lines
+
+def resolve_mode(orig_lines, mode):
+    lines = []
+    for line in orig_lines:
+        m = re.match(r"^ *#([^ ]*) (.*)$", line)
+        if m:
+            if m.group(1) == mode:
+                lines.append(m.group(2))
+            continue
+        lines.append(line)
     return lines
 
 def drop_blank_lines(orig_lines):
@@ -80,6 +97,7 @@ def misc_fixups(orig_lines):
     text = re.sub(r"\bTHEN GOTO\b", "THEN", text)
     text = re.sub(r"\bPRINT \"", "PRINT\"", text)
     text = re.sub(r"\bIF ", "IF", text)
+    text = re.sub(r"AND ([0-9])", r"AND\g<1>", text)
     return text.split("\n")
 
 def finalize(lines, args):
@@ -184,7 +202,7 @@ def finalize(lines, args):
     lines = text.split("\n")
 
     # combine lines
-    if args.combine_lines:
+    if not args.skip_combine_lines:
         renumber = {}
         src_lines = lines
         lines = []
@@ -244,25 +262,29 @@ def finalize(lines, args):
 if __name__ == '__main__':
     args = parse_args()
 
-    debug("Preprocessing basic file '"+args.infile+"'")
+    debug("Preprocessing basic files: "+", ".join(args.infiles))
 
     # read in lines
-    lines = [l.rstrip() for l in open(args.infile).readlines()]
-    debug("Number of original lines: %s" % len(lines))
+    lines = [l.rstrip() for f in args.infiles
+            for l in open(f).readlines()]
+    debug("Original lines: %s" % len(lines))
 
     # pull in include files
     lines = resolve_includes(lines, keep_rems=args.keep_rems)
-    debug("Number of lines after includes: %s" % len(lines))
+    debug("Lines after includes: %s" % len(lines))
+
+    lines = resolve_mode(lines, mode=args.mode)
+    debug("Lines after resolving mode specific lines: %s" % len(lines))
 
     # drop blank lines
     if not args.keep_blank_lines:
         lines = drop_blank_lines(lines)
-        debug("Number of lines after dropping blank lines: %s" % len(lines))
+        debug("Lines after dropping blank lines: %s" % len(lines))
 
     # keep/drop REMs
     if not args.keep_rems:
         lines = drop_rems(lines)
-        debug("Number of lines after dropping REMs: %s" % len(lines))
+        debug("Lines after dropping REMs: %s" % len(lines))
 
     # keep/remove the indenting
     if not args.keep_indent:
@@ -274,5 +296,6 @@ if __name__ == '__main__':
 
     # number lines, drop/keep labels, combine lines
     lines = finalize(lines, args)
+    debug("Lines after finalizing: %s" % len(lines))
 
     print("\n".join(lines))

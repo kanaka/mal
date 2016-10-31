@@ -25,7 +25,8 @@ REM metadata        16-31  ->  Z% index of object with this metadata
 REM                    14  ->  Z% index of metdata object
 
 INIT_MEMORY:
-  T=FRE(0)
+  #cbm TA=FRE(0)
+  #qbasic TA=0
 
   Z1=2048+1024+256: REM Z% (boxed memory) size (4 bytes each)
   Z2=256: REM S$ (string memory) size (3 bytes each)
@@ -159,7 +160,7 @@ RELEASE:
   REM nil, false, true
   IF AY<3 THEN GOTO RELEASE_TOP
 
-  U6=Z%(AY,0)AND31: REM type
+  U6=Z%(AY,0)AND 31: REM type
 
   REM AZ=AY: PR=1: GOSUB PR_STR
   REM PRINT "RELEASE AY:"+STR$(AY)+"["+R$+"] (byte0:"+STR$(Z%(AY,0))+")"
@@ -248,17 +249,17 @@ RELEASE_PEND:
 
 REM DEREF_R(R) -> R
 DEREF_R:
-  IF (Z%(R,0)AND31)=14 THEN R=Z%(R,1):GOTO DEREF_R
+  IF (Z%(R,0)AND 31)=14 THEN R=Z%(R,1):GOTO DEREF_R
   RETURN
 
 REM DEREF_A(A) -> A
 DEREF_A:
-  IF (Z%(A,0)AND31)=14 THEN A=Z%(A,1):GOTO DEREF_A
+  IF (Z%(A,0)AND 31)=14 THEN A=Z%(A,1):GOTO DEREF_A
   RETURN
 
 REM DEREF_B(B) -> B
 DEREF_B:
-  IF (Z%(B,0)AND31)=14 THEN B=Z%(B,1):GOTO DEREF_B
+  IF (Z%(B,0)AND 31)=14 THEN B=Z%(B,1):GOTO DEREF_B
   RETURN
 
 
@@ -278,8 +279,8 @@ EQUAL_Q:
   X=X+2:X%(X-1)=A:X%(X)=B
   ED=ED+1
 
-  U1=Z%(A,0)AND31
-  U2=Z%(B,0)AND31
+  U1=Z%(A,0)AND 31
+  U2=Z%(B,0)AND 31
   IF U1>5 AND U1<8 AND U2>5 AND U2<8 THEN GOTO EQUAL_Q_SEQ
   IF U1=8 AND U2=8 THEN GOTO EQUAL_Q_HM
 
@@ -360,7 +361,7 @@ REM sequence functions
 REM FORCE_SEQ_TYPE(A,T) -> R
 FORCE_SEQ_TYPE:
   REM if it's already the right type, inc ref cnt and return it
-  IF (Z%(A,0)AND31)=T THEN R=A:Z%(R,0)=Z%(R,0)+32:RETURN
+  IF (Z%(A,0)AND 31)=T THEN R=A:Z%(R,0)=Z%(R,0)+32:RETURN
   REM otherwise, copy first element to turn it into correct type
   B=A+1:GOSUB DEREF_B: REM value to copy
   L=Z%(A,1):N=B:GOSUB ALLOC: REM T already set
@@ -371,7 +372,7 @@ FORCE_SEQ_TYPE:
 REM LIST_Q(A) -> R
 LIST_Q:
   R=0
-  IF (Z%(A,0)AND31)=6 THEN R=1
+  IF (Z%(A,0)AND 31)=6 THEN R=1
   RETURN
 
 REM EMPTY_Q(A) -> R

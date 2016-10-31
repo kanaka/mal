@@ -2,7 +2,7 @@ REM PR_STR(AZ, PR) -> R$
 PR_STR:
   RR$=""
   PR_STR_RECUR:
-  T=Z%(AZ,0)AND31
+  T=Z%(AZ,0)AND 31
   REM PRINT "AZ: "+STR$(AZ)+", T: "+STR$(T)+", V: "+STR$(Z%(AZ,1))
   IF T=0 THEN R$="nil":RETURN
   REM if metadata, then get actual object

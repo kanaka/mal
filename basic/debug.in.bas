@@ -5,7 +5,7 @@ CHECK_FREE_LIST:
   P2=0
   CHECK_FREE_LIST_LOOP:
     IF P1>=ZI THEN GOTO CHECK_FREE_LIST_DONE
-    IF (Z%(P1,0)AND31)<>15 THEN P2=-1:GOTO CHECK_FREE_LIST_DONE
+    IF (Z%(P1,0)AND 31)<>15 THEN P2=-1:GOTO CHECK_FREE_LIST_DONE
     P2=P2+(Z%(P1,0)AND-32)/32
     P1=Z%(P1,1)
     GOTO CHECK_FREE_LIST_LOOP
@@ -15,7 +15,7 @@ CHECK_FREE_LIST:
 
 PR_MEMORY_SUMMARY:
   PRINT
-  PRINT "Free (FRE)   :"+STR$(FRE(0))
+  #cbm PRINT "Free (FRE)   :"+STR$(FRE(0))
   PRINT "Values (Z%)  :"+STR$(ZI-1)+" /"+STR$(Z1)
   GOSUB CHECK_FREE_LIST: REM get count in P2
   PRINT "               used:"+STR$(ZI-1-P2)+", freed:"+STR$(P2);
@@ -35,14 +35,14 @@ REM   I=P1
 REM   PR_MEMORY_VALUE_LOOP:
 REM     IF I>P2 THEN GOTO PR_MEMORY_AFTER_VALUES
 REM     PRINT " "+STR$(I);
-REM     IF (Z%(I,0)AND31)=15 THEN GOTO PR_MEMORY_FREE
+REM     IF (Z%(I,0)AND 31)=15 THEN GOTO PR_MEMORY_FREE
 REM       PRINT ": ref cnt: "+STR$((Z%(I,0)AND-32)/32);
-REM       PRINT ", type: "+STR$(Z%(I,0)AND31)+", value: "+STR$(Z%(I,1));
-REM       IF (Z%(I,0)AND31)=4 THEN PRINT "    '"+S$(Z%(I,1))+"'";
-REM       IF (Z%(I,0)AND31)=5 THEN PRINT "    "+S$(Z%(I,1))+"";
+REM       PRINT ", type: "+STR$(Z%(I,0)AND 31)+", value: "+STR$(Z%(I,1));
+REM       IF (Z%(I,0)AND 31)=4 THEN PRINT "    '"+S$(Z%(I,1))+"'";
+REM       IF (Z%(I,0)AND 31)=5 THEN PRINT "    "+S$(Z%(I,1))+"";
 REM       PRINT
 REM       I=I+1
-REM       IF (Z%(I-1,0)AND31)<>10 THEN GOTO PR_MEMORY_VALUE_LOOP
+REM       IF (Z%(I-1,0)AND 31)<>10 THEN GOTO PR_MEMORY_VALUE_LOOP
 REM         PRINT " "+STR$(I)+":            ";
 REM         PRINT "params: "+STR$(Z%(I+1,0))+", env:"+STR$(Z%(I+1,1))
 REM         I=I+1
@@ -80,7 +80,7 @@ REM   PR_OBJ_LOOP:
 REM     IF RD=0 THEN RETURN
 REM     I=X%(X):RD=RD-1:X=X-1
 REM 
-REM     P2=Z%(I,0)AND31
+REM     P2=Z%(I,0)AND 31
 REM     PRINT " "+STR$(I);
 REM     PRINT ": ref cnt: "+STR$((Z%(I,0)AND-32)/32);
 REM     PRINT ", type: "+STR$(P2)+", value: "+STR$(Z%(I,1));

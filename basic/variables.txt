@@ -18,6 +18,7 @@ D   : root repl environment
 
 ER  : error type (-2: none, -1: string, >=0: object)
 ER$ : error string (ER=-1)
+EZ  : READLINE EOF
 
 BI  : ENV_NEW_BINDS binds list
 EX  : ENV_NEW_BINDS expressions list

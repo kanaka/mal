@@ -47,7 +47,7 @@ MAIN:
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
-    IF EOF=1 THEN GOTO QUIT
+    IF EZ=1 THEN GOTO QUIT
 
     A$=R$:CALL REP: REM call REP
 

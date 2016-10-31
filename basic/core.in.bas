@@ -7,11 +7,11 @@ REM   - restores E
 REM   - call using GOTO and with return label/address on the stack
 SUB APPLY
   REM if metadata, get the actual object
-  IF (Z%(F,0)AND31)>=16 THEN F=Z%(F,1)
+  IF (Z%(F,0)AND 31)>=16 THEN F=Z%(F,1)
 
-  IF (Z%(F,0)AND31)=9 THEN GOTO APPLY_FUNCTION
-  IF (Z%(F,0)AND31)=10 THEN GOTO APPLY_MAL_FUNCTION
-  IF (Z%(F,0)AND31)=11 THEN GOTO APPLY_MAL_FUNCTION
+  IF (Z%(F,0)AND 31)=9 THEN GOTO APPLY_FUNCTION
+  IF (Z%(F,0)AND 31)=10 THEN GOTO APPLY_MAL_FUNCTION
+  IF (Z%(F,0)AND 31)=11 THEN GOTO APPLY_MAL_FUNCTION
 
   APPLY_FUNCTION:
     REM regular function
@@ -54,7 +54,7 @@ SUB DO_TCO_FUNCTION
 
     A=Z%(AR+1,1)
     REM no intermediate args, but not a list, so convert it first
-    IF R4<=1 AND (Z%(A,0)AND31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
+    IF R4<=1 AND (Z%(A,0)AND 31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
     REM no intermediate args, just call APPLY directly
     IF R4<=1 THEN GOTO DO_APPLY_1
 
@@ -183,7 +183,7 @@ DO_FUNCTION:
 
   REM Switch on the function number
   IF FF>59 THEN ER=-1:ER$="unknown function"+STR$(FF):RETURN
-  ON FF/10+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_59
+  ON INT(FF/10)+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_59
 
   DO_1_9:
   ON FF GOTO DO_EQUAL_Q,DO_THROW,DO_NIL_Q,DO_TRUE_Q,DO_FALSE_Q,DO_STRING_Q,DO_SYMBOL,DO_SYMBOL_Q,DO_KEYWORD
@@ -222,7 +222,7 @@ DO_FUNCTION:
     RETURN
   DO_STRING_Q:
     R=1
-    IF (Z%(AA,0)AND31)<>4 THEN RETURN
+    IF (Z%(AA,0)AND 31)<>4 THEN RETURN
     IF MID$(S$(Z%(AA,1)),1,1)=CHR$(127) THEN RETURN
     R=2
     RETURN
@@ -231,7 +231,7 @@ DO_FUNCTION:
     RETURN
   DO_SYMBOL_Q:
     R=1
-    IF (Z%(AA,0)AND31)=5 THEN R=2
+    IF (Z%(AA,0)AND 31)=5 THEN R=2
     RETURN
   DO_KEYWORD:
     A=Z%(AA,1)
@@ -242,7 +242,7 @@ DO_FUNCTION:
     RETURN
   DO_KEYWORD_Q:
     R=1
-    IF (Z%(AA,0)AND31)<>4 THEN RETURN
+    IF (Z%(AA,0)AND 31)<>4 THEN RETURN
     IF MID$(S$(Z%(AA,1)),1,1)<>CHR$(127) THEN RETURN
     R=2
     RETURN
@@ -271,19 +271,24 @@ DO_FUNCTION:
     RETURN
   DO_READLINE:
     A$=S$(Z%(AA,1)):GOSUB READLINE
-    IF EOF=1 THEN EOF=0:R=0:RETURN
+    IF EZ=1 THEN EZ=0:R=0:RETURN
     AS$=R$:T=4:GOSUB STRING
     RETURN
   DO_SLURP:
     R$=""
-    OPEN 1,8,0,S$(Z%(AA,1))
+    #cbm OPEN 1,8,0,S$(Z%(AA,1))
+    #qbasic A$=S$(Z%(AA,1))
+    #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:ER$="File not found":RETURN
+    #qbasic OPEN A$ FOR INPUT AS #1
     DO_SLURP_LOOP:
       A$=""
-      GET#1,A$
+      #cbm GET#1,A$
+      #qbasic A$=INPUT$(1,1)
+      #qbasic IF EOF(1) THEN RS=1:A$=A$+CHR$(10)+")":GOTO DO_SLURP_DONE
       IF ASC(A$)=10 THEN R$=R$+CHR$(13)
       IF (ASC(A$)<>10) AND (A$<>"") THEN R$=R$+A$
-      IF (ST AND 64) THEN GOTO DO_SLURP_DONE
-      IF (ST AND 255) THEN ER=-1:ER$="File read error "+STR$(ST):RETURN
+      #cbm IF (ST AND 64) THEN GOTO DO_SLURP_DONE
+      #cbm IF (ST AND 255) THEN ER=-1:ER$="File read error "+STR$(ST):RETURN
       GOTO DO_SLURP_LOOP
     DO_SLURP_DONE:
       CLOSE 1
@@ -336,14 +341,14 @@ DO_FUNCTION:
     RETURN
   DO_VECTOR_Q:
     R=1
-    IF (Z%(AA,0)AND31)=7 THEN R=2
+    IF (Z%(AA,0)AND 31)=7 THEN R=2
     RETURN
   DO_HASH_MAP:
     A=AR:T=8:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_MAP_Q:
     R=1
-    IF (Z%(AA,0)AND31)=8 THEN R=2
+    IF (Z%(AA,0)AND 31)=8 THEN R=2
     RETURN
   DO_ASSOC:
     H=AA
@@ -397,7 +402,7 @@ DO_FUNCTION:
 
   DO_SEQUENTIAL_Q:
     R=1
-    IF (Z%(AA,0)AND31)=6 OR (Z%(AA,0)AND31)=7 THEN R=2
+    IF (Z%(AA,0)AND 31)=6 OR (Z%(AA,0)AND 31)=7 THEN R=2
     RETURN
   DO_CONS:
     T=6:L=AB:N=AA:GOSUB ALLOC
@@ -481,13 +486,13 @@ DO_FUNCTION:
     RETURN
 
   DO_WITH_META:
-    T=Z%(AA,0)AND31
+    T=Z%(AA,0)AND 31
     REM remove existing metadata first
     IF T>=16 THEN AA=Z%(AA,1):GOTO DO_WITH_META
     T=T+16:L=AA:N=AB:GOSUB ALLOC
     RETURN
   DO_META:
-    IF (Z%(AA,0)AND31)<16 THEN R=0:RETURN
+    IF (Z%(AA,0)AND 31)<16 THEN R=0:RETURN
     R=Z%(AA+1,1)
     Z%(R,0)=Z%(R,0)+32
     RETURN
@@ -496,7 +501,7 @@ DO_FUNCTION:
     RETURN
   DO_ATOM_Q:
     R=1
-    IF (Z%(AA,0)AND31)=12 THEN R=2
+    IF (Z%(AA,0)AND 31)=12 THEN R=2
     RETURN
   DO_DEREF:
     R=Z%(AA,1):GOSUB DEREF_R
