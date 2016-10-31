@@ -27,6 +27,8 @@ abc-def
 ;=>(+ 1 2)
 ()
 ;=>()
+(nil)
+;=>(nil)
 ((3 4))
 ;=>((3 4))
 (+ 1 (+ 2 3))
@@ -96,6 +98,8 @@ false
 ;=>(unquote 1)
 ~(1 2 3)
 ;=>(unquote (1 2 3))
+`(1 ~a 3)
+;=>(quasiquote (1 (unquote a) 3))
 ~@(1 2 3)
 ;=>(splice-unquote (1 2 3))
 

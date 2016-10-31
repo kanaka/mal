@@ -15,14 +15,4 @@
         (swap! atm (fn* [a] (concat (rest a) (list (first a)))))))
     10))
 
-;;(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
-;;(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
-;;
-;;(println "iters/s:"
-;;  (run-fn-for
-;;    (fn* []
-;;      (do 
-;;        (sumdown 10)
-;;        (fib 12)))
-;;    3))
 ;;(prn "Done: basic macros/atom test")

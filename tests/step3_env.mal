@@ -29,6 +29,14 @@ mynum
 MYNUM
 ;=>222
 
+;; Check env lookup non-fatal error
+(abc 1 2 3)
+; .*\'abc\' not found.*
+;; Check that error aborts def!
+(def! w 123)
+(def! w (abc))
+w
+;=>123
 
 ;; Testing let*
 (let* (z 9) z)
@@ -41,6 +49,9 @@ x
 ;=>6
 (let* (p (+ 2 3) q (+ 2 p)) (+ p q))
 ;=>12
+(def! y (let* (z 7) z))
+y
+;=>7
 
 ;; Testing outer environment
 (def! a 4)

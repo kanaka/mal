@@ -6,11 +6,12 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 59 languages:
+Mal is implemented in 60 languages:
 
 * Ada
 * GNU awk
 * Bash shell
+* Basic (C64 and QBasic)
 * C
 * C++
 * C#
@@ -152,6 +153,35 @@ gawk -O -f stepX_YYY.awk
 cd bash
 bash stepX_YYY.sh
 ```
+
+### Basic (C64 and QBasic)
+
+The Basic implementation uses a preprocessor that can generate Basic
+code that is compatible with both C64 Basic (CBM v2) and QBasic. The
+C64 mode has been tested with
+[cbmbasic](https://github.com/kanaka/cbmbasic) (the patched version is
+currently required to fix issues with line input) and the QBasic mode
+has been tested with [qb64](http://www.qb64.net/).
+
+Generate C64 code and run it using cbmbasic:
+
+```
+cd basic
+make stepX_YYY.bas
+STEP=stepX_YYY ./run
+```
+
+Generate QBasic code and load it into qb64:
+
+```
+cd basic
+make MODE=qbasic stepX_YYY.bas
+./qb64 stepX_YYY.bas
+```
+
+Thanks to [Steven Syrek](https://github.com/sjsyrek) for the original
+inspiration for this implementation.
+
 
 ### C
 

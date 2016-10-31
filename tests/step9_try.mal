@@ -223,24 +223,6 @@
 (count (keys (assoc hm2 "b" 2 "c" 3)))
 ;=>3
 
-(def! hm3 (assoc hm2 "b" 2))
-(count (keys hm3))
-;=>2
-(count (vals hm3))
-;=>2
-
-(dissoc hm3 "a")
-;=>{"b" 2}
-
-(dissoc hm3 "a" "b")
-;=>{}
-
-(dissoc hm3 "a" "b" "c")
-;=>{}
-
-(count (keys hm3))
-;=>2
-
 ;; Testing keywords as hash-map keys
 (get {:abc 123} :abc)
 ;=>123
@@ -250,8 +232,6 @@
 ;=>false
 (assoc {} :bcd 234)
 ;=>{:bcd 234}
-(dissoc {:cde 345 :fgh 456} :cde)
-;=>{:fgh 456}
 (keyword? (nth (keys {:abc 123 :def 456}) 0))
 ;=>true
 ;;; TODO: support : in strings in make impl
@@ -265,30 +245,6 @@
 ;=>true
 (assoc {} :bcd nil)
 ;=>{:bcd nil}
-(dissoc {:cde nil :fgh 456} :cde)
-;=>{:fgh 456}
-
-;; Testing equality of hash-maps
-(= {} {})
-;=>true
-(= {:a 11 :b 22} (hash-map :b 22 :a 11))
-;=>true
-(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
-;=>true
-(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
-;=>true
-(= {:a 11 :b 22} (hash-map :b 23 :a 11))
-;=>false
-(= {:a 11 :b 22} (hash-map :a 11))
-;=>false
-(= {:a [11 22]} {:a (list 11 22)})
-;=>true
-(= {:a 11 :b 22} (list :a 11 :b 22))
-;=>false
-(= {} [])
-;=>false
-(= [] {})
-;=>false
 
 ;;
 ;; Additional str and pr-str tests
@@ -334,8 +290,53 @@
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
 
+;;
 ;; Testing throwing non-strings
 (try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
 ; "err:" (1 2 3)
 ;=>7
+
+;;
+;; Testing dissoc
+(def! hm3 (assoc hm2 "b" 2))
+(count (keys hm3))
+;=>2
+(count (vals hm3))
+;=>2
+(dissoc hm3 "a")
+;=>{"b" 2}
+(dissoc hm3 "a" "b")
+;=>{}
+(dissoc hm3 "a" "b" "c")
+;=>{}
+(count (keys hm3))
+;=>2
+
+(dissoc {:cde 345 :fgh 456} :cde)
+;=>{:fgh 456}
+(dissoc {:cde nil :fgh 456} :cde)
+;=>{:fgh 456}
+
+;;
+;; Testing equality of hash-maps
+(= {} {})
+;=>true
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :b 23 :a 11))
+;=>false
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
+(= {} [])
+;=>false
+(= [] {})
+;=>false
 

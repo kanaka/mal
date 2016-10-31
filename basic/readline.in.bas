@@ -1,0 +1,33 @@
+REM READLINE(A$) -> R$
+READLINE:
+  EZ=0
+  PROMPT$=A$
+  PRINT PROMPT$;
+  CH$="":LI$="":CH=0
+  READCH:
+    #cbm GET CH$
+    #qbasic CH$=INKEY$
+    IF CH$="" THEN GOTO READCH
+    CH=ASC(CH$)
+    REM PRINT CH
+    #qbasic IF ASC(CH$)=8 THEN CH=20:CH$=CHR$(20)
+    IF CH=4 OR CH=0 THEN EZ=1:GOTO RL_DONE: REM EOF
+    IF CH=127 OR CH=20 THEN GOSUB RL_BACKSPACE
+    IF CH=127 OR CH=20 THEN GOTO READCH
+    IF (CH<32 OR CH>127) AND CH<>13 THEN GOTO READCH
+    PRINT CH$;
+    IF LEN(LI$)<255 AND CH$<>CHR$(13) THEN LI$=LI$+CH$
+    IF LEN(LI$)<255 AND CH$<>CHR$(13) THEN GOTO READCH
+  RL_DONE:
+    R$=LI$
+    RETURN
+
+  REM Assumes LI$ has input buffer
+  RL_BACKSPACE:
+    IF LEN(LI$)=0 THEN RETURN
+    LI$=LEFT$(LI$, LEN(LI$)-1)
+    #cbm PRINT CHR$(157)+" "+CHR$(157);
+    #qbasic LOCATE ,POS(0)-1
+    #qbasic PRINT " ";
+    #qbasic LOCATE ,POS(0)-1
+    RETURN 

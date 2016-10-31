@@ -1,0 +1,26 @@
+diff --git a/runtime.c b/runtime.c
+index 3066580..c635bd4 100644
+--- a/runtime.c
++++ b/runtime.c
+@@ -535,7 +535,8 @@ printf("CHROUT: %d @ %x,%x,%x,%x\n", A, a, b, c, d);
+                     left_cursor();
+                     break;
+                 case '"':
+-                    kernal_quote = 1;
++                    // jdm: this doesn't match C64 behavior
++                    //kernal_quote = 1;
+                     // fallthrough
+                 default:
+                     putchar(A);
+@@ -838,8 +839,10 @@ GETIN() {
+         /*Notice that EOF is also turned off in non-canonical mode*/
+         A = getchar();
+         if (A == 255) { A = 4; } // map actual EOF to 4
++
++        // jdm: this doesn't match C64 behavior
+         /* Simulate echo */
+-        if (A != 0 && A != 4) { putchar(A); }
++        //if (A != 0 && A != 4) { putchar(A); }
+ 
+         /*restore the old settings*/
+         tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
