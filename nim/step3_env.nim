@@ -48,7 +48,7 @@ proc eval(ast: MalType, env: var Env): MalType =
 
 proc print(exp: MalType): string = exp.pr_str
 
-template wrapNumberFun(op: expr): expr =
+template wrapNumberFun(op): untyped =
   fun proc(xs: varargs[MalType]): MalType = number op(xs[0].number, xs[1].number)
 
 var repl_env = initEnv()

@@ -80,7 +80,7 @@ DOCKERIZE =
 IMPLS = ada awk bash basic c d chuck clojure coffee clisp cpp crystal cs erlang elisp \
 	elixir es6 factor forth fsharp go groovy guile haskell haxe \
 	io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
-	nim objc objpascal perl perl6 php plpgsql plsql powershell ps \
+	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
 	python r racket rpython ruby rust scala swift swift3 tcl vb vhdl \
 	vimscript
 
@@ -185,6 +185,7 @@ objpascal_STEP_TO_PROG = objpascal/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 perl6_STEP_TO_PROG =   perl6/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
+pil_STEP_TO_PROG =     pil/$($(1)).l
 plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
 plsql_STEP_TO_PROG =   plsql/$($(1)).sql
 powershell_STEP_TO_PROG =  powershell/$($(1)).ps1

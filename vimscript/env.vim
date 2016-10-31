@@ -13,10 +13,9 @@ function NewEnvWithBinds(outer, binds, exprs)
   let env = NewEnv(a:outer)
   let i = 0
   while i < ListCount(a:binds)
-    let varname = ObjValue(ListNth(a:binds, i))
+    let varname = ListNth(a:binds, i).val
     if varname == "&"
-      " TODO
-      let restvarname = ObjValue(ListNth(a:binds, i + 1))
+      let restvarname = ListNth(a:binds, i + 1).val
       let restvarvalues = ListDrop(a:exprs, i)
       call env.set(restvarname, restvarvalues)
       break

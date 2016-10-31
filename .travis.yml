@@ -49,6 +49,7 @@ matrix:
     - {env: IMPL=perl,      services: [docker]}
     - {env: IMPL=perl6,     services: [docker]}
     - {env: IMPL=php,       services: [docker]}
+    - {env: IMPL=pil,       services: [docker]}
     - {env: IMPL=plpgsql,   services: [docker]}
 #    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}
