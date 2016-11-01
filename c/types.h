@@ -6,6 +6,8 @@
 #ifdef USE_GC
 
 #include <gc/gc.h>
+void nop_free(void* ptr);
+void GC_setup();
 char* GC_strdup(const char *src);
 #define MAL_GC_SETUP()  GC_setup()
 #define MAL_GC_MALLOC   GC_MALLOC
