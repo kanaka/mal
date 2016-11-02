@@ -120,3 +120,5 @@ basic/step9_try.bas
 basic/stepA_mal.bas
 basic/*.prg
 common-lisp/*.image
+common-lisp/*.fasl
+common-lisp/*.lib
