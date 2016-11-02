@@ -1,6 +1,8 @@
 (defpackage :core
   (:use :common-lisp
+        :utils
         :types
+        :reader
         :printer)
   (:export :ns))
 
@@ -90,6 +92,30 @@
                                             value1
                                             value2))
 
+(defun mal-read-string (value)
+  (reader:read-str (types:mal-data-value value)))
+
+(defun mal-slurp (filename)
+  (types:apply-unwrapped-values 'read-file-string filename))
+
+(defun mal-atom (value)
+  (types:make-mal-atom value))
+
+(defun mal-atom? (value)
+  (wrap-boolean (types:mal-atom-p value)))
+
+(defun mal-deref (atom)
+  (types:mal-data-value atom))
+
+(defun mal-reset! (atom value)
+  (setf (types:mal-data-value atom) value))
+
+(defun mal-swap! (atom fn &rest args)
+  (setf (types:mal-data-value atom)
+        (apply (types:mal-data-value fn)
+               (append (list (types:mal-data-value atom))
+                       args))))
+
 (defvar ns
   (list
    (cons (types:make-mal-symbol "+") (types:make-mal-builtin-fn #'mal-add))
@@ -108,4 +134,11 @@
    (cons (types:make-mal-symbol "<") (types:make-mal-builtin-fn #'mal-<))
    (cons (types:make-mal-symbol ">") (types:make-mal-builtin-fn #'mal->))
    (cons (types:make-mal-symbol "<=") (types:make-mal-builtin-fn #'mal-<=))
-   (cons (types:make-mal-symbol ">=") (types:make-mal-builtin-fn #'mal->=))))
+   (cons (types:make-mal-symbol ">=") (types:make-mal-builtin-fn #'mal->=))
+   (cons (types:make-mal-symbol "read-string") (types:make-mal-builtin-fn #'mal-read-string))
+   (cons (types:make-mal-symbol "slurp") (types:make-mal-builtin-fn #'mal-slurp))
+   (cons (types:make-mal-symbol "atom") (types:make-mal-builtin-fn #'mal-atom))
+   (cons (types:make-mal-symbol "atom?") (types:make-mal-builtin-fn #'mal-atom?))
+   (cons (types:make-mal-symbol "deref") (types:make-mal-builtin-fn #'mal-deref))
+   (cons (types:make-mal-symbol "reset!") (types:make-mal-builtin-fn #'mal-reset!))
+   (cons (types:make-mal-symbol "swap!") (types:make-mal-builtin-fn #'mal-swap!))))

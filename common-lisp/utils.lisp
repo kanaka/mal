@@ -2,7 +2,9 @@
   (:use :common-lisp
         :uiop)
   (:export :replace-all
-           :getenv))
+           :getenv
+           :read-file-string
+           :raw-command-line-arguments))
 
 (in-package :utils)
 

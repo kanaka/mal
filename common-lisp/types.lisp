@@ -74,6 +74,8 @@
            :mal-error
 
            ;; Utilities
+           :wrap-value
+           :unwrap-value
            :apply-unwrapped-values
            :apply-unwrapped-values-prefer-bool))
 
@@ -89,7 +91,7 @@
   nil)
 
 (defstruct mal-data
-  (value nil :read-only t)
+  (value nil)
   (type nil :read-only t)
   meta
   attrs)
@@ -210,9 +212,9 @@
     (vector (make-mal-vector (map 'vector #'wrap-value value)))
     (hash-table (make-mal-hash-map (let ((new-hash-table (make-mal-value-hash-table)))
                                      (loop
-                                      for key being the hash-keys of value
-                                      do (setf (gethash (wrap-value key) new-hash-table)
-                                               (wrap-value (gethash key value))))
+                                        for key being the hash-keys of value
+                                        do (setf (gethash (wrap-value key) new-hash-table)
+                                                 (wrap-value (gethash key value))))
                                      new-hash-table)))))
 
 (defun unwrap-value (value)
