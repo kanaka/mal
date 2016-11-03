@@ -24,7 +24,7 @@ PR_STR:
     R$=STR$(T5)
     IF T5<0 THEN RETURN
     REM Remove initial space
-    R$=RIGHT$(R$, LEN(R$)-1)
+    R$=RIGHT$(R$,LEN(R$)-1)
     RETURN
   PR_STRING_MAYBE:
     R$=S$(Z%(AZ,1))

@@ -95,12 +95,20 @@ def remove_indent(orig_lines):
 def misc_fixups(orig_lines):
     text = "\n".join(orig_lines)
     text = re.sub(r"\bTHEN GOTO\b", "THEN", text)
-    text = re.sub(r"\bPRINT \"", "PRINT\"", text)
+    #text = re.sub(r"AND ([0-9])", r"AND\g<1>", text)
+
+    # More aggressive space removal
     text = re.sub(r"\bIF ", "IF", text)
-    text = re.sub(r"AND ([0-9])", r"AND\g<1>", text)
+    text = re.sub(r"\bPRINT *", "PRINT", text)
+    text = re.sub(r" *GOTO *", "GOTO", text)
+    text = re.sub(r" *GOSUB *", "GOSUB", text)
+    text = re.sub(r"\bDIM ", "DIM", text)
+    text = re.sub(r" *THEN *", r"THEN", text)
+    text = re.sub(r"([^A-Z]) *AND *", r"\g<1>AND", text)
+    text = re.sub(r"([^A-Z]) *OR *", r"\g<1>OR", text)
     return text.split("\n")
 
-def finalize(lines, args):
+def finalize(lines, args, mode):
     labels_lines = {}
     lines_labels = {}
     call_index = {}
@@ -122,12 +130,12 @@ def finalize(lines, args):
             lines_labels[lnum] = label
             continue
 
-        if re.match(r".*\bCALL  *([^ :]*) *:", line):
+        if re.match(r".*CALL  *([^ :]*) *:", line):
             raise Exception("CALL is not the last thing on line %s" % lnum)
 
         # Replace CALLs (track line number for replacement later)
         #m = re.match(r"\bCALL  *([^ :]*) *$", line)
-        m = re.match(r"(.*)\bCALL  *([^ :]*) *$", line)
+        m = re.match(r"(.*)CALL  *([^ :]*) *$", line)
         if m:
             prefix = m.groups(1)[0]
             sub = m.groups(1)[1]
@@ -137,8 +145,12 @@ def finalize(lines, args):
             label = sub+"_"+str(call_index[sub])
 
             # Replace the CALL with stack based GOTO
-            lines.append("%s %sX=X+1:X%%(X)=%s:GOTO %s" % (
-                lnum, prefix, call_index[sub], sub))
+            if mode == "cbm":
+                lines.append("%s %sX=X+1:X%%(X)=%s:GOTO%s" % (
+                    lnum, prefix, call_index[sub], sub))
+            else:
+                lines.append("%s %sX=X+1:X%%(X)=%s:GOTO %s" % (
+                    lnum, prefix, call_index[sub], sub))
             lnum += 1
 
             # Add the return spot
@@ -185,12 +197,16 @@ def finalize(lines, args):
         stext = ""
         while stext != text:
             stext = text
-            text = re.sub(r"(THEN) %s\b" % a, r"THEN %s" % b, stext)
+            text = re.sub(r"(THEN *)%s\b" % a, r"\g<1>%s" % b, stext)
             #text = re.sub(r"(THEN)%s\b" % a, r"THEN%s" % b, stext)
-            text = re.sub(r"(ON [^:\n]* GOTO [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
-            text = re.sub(r"(ON [^:\n]* GOSUB [^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
-            text = re.sub(r"(GOSUB) %s\b" % a, r"\1 %s" % b, text)
-            text = re.sub(r"(GOTO) %s\b" % a, r"\1 %s" % b, text)
+            if mode == "cbm":
+                text = re.sub(r"ON *([^:\n]*) *GOTO *([^:\n]*)\b%s\b" % a, r"ON\g<1>GOTO\g<2>%s" % b, text)
+                text = re.sub(r"ON *([^:\n]*) *GOSUB *([^:\n]*)\b%s\b" % a, r"ON\g<1>GOSUB\g<2>%s" % b, text)
+            else:
+                text = re.sub(r"(ON [^:\n]* *GOTO *[^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
+                text = re.sub(r"(ON [^:\n]* *GOSUB *[^:\n]*)\b%s\b" % a, r"\g<1>%s" % b, text)
+            text = re.sub(r"(GOSUB *)%s\b" % a, r"\g<1>%s" % b, text)
+            text = re.sub(r"(GOTO *)%s\b" % a, r"\g<1>%s" % b, text)
             #text = re.sub(r"(GOTO)%s\b" % a, r"\1%s" % b, text)
         return text
 
@@ -226,7 +242,7 @@ def finalize(lines, args):
                 # be on a line by itself
                 lines.append(acc_line)
                 acc_line = renum(line)
-            elif re.match(r".*\b(?:GOTO|THEN|RETURN)\b.*", acc_line):
+            elif re.match(r".*(?:GOTO|THEN|RETURN).*", acc_line):
                 # GOTO/THEN/RETURN are last thing on the line
                 lines.append(acc_line)
                 acc_line = renum(line)
@@ -236,7 +252,7 @@ def finalize(lines, args):
                 acc_line = acc_line + ":" + line
                 # GOTO/IF/RETURN must be the last things on a line so
                 # start a new line
-                if re.match(r".*\b(?:GOTO|THEN|RETURN)\b.*", line):
+                if re.match(r".*(?:GOTO|THEN|RETURN).*", line):
                     lines.append(acc_line)
                     acc_line = ""
             else:
@@ -295,7 +311,7 @@ if __name__ == '__main__':
         lines = misc_fixups(lines)
 
     # number lines, drop/keep labels, combine lines
-    lines = finalize(lines, args)
+    lines = finalize(lines, args, mode=args.mode)
     debug("Lines after finalizing: %s" % len(lines))
 
     print("\n".join(lines))

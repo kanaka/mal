@@ -25,7 +25,7 @@ READLINE:
   REM Assumes LI$ has input buffer
   RL_BACKSPACE:
     IF LEN(LI$)=0 THEN RETURN
-    LI$=LEFT$(LI$, LEN(LI$)-1)
+    LI$=LEFT$(LI$,LEN(LI$)-1)
     #cbm PRINT CHR$(157)+" "+CHR$(157);
     #qbasic LOCATE ,POS(0)-1
     #qbasic PRINT " ";
