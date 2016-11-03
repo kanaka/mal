@@ -67,7 +67,7 @@ INIT_MEMORY:
   X=-1:DIM X%(Z3): REM stack of Z% indexes
 
   REM pending release stack
-  Y=-1:DIM Y%(Z4,1): REM stack of Z% indexes
+  Y=-1:DIM Y%(Z4,1): REM stack of Z% indexes and level/LV values
 
   BT=TI
 
@@ -350,9 +350,9 @@ REPLACE:
   J=LEN(T3$)
   REPLACE_LOOP:
     IF I>J THEN RETURN
-    CH$=MID$(T3$,I,LEN(S1$))
-    IF CH$=S1$ THEN R$=R$+S2$:I=I+LEN(S1$)
-    IF CH$<>S1$ THEN R$=R$+MID$(T3$,I,1):I=I+1
+    C$=MID$(T3$,I,LEN(S1$))
+    IF C$=S1$ THEN R$=R$+S2$:I=I+LEN(S1$)
+    IF C$<>S1$ THEN R$=R$+MID$(T3$,I,1):I=I+1
     GOTO REPLACE_LOOP
 
 

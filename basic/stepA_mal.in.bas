@@ -590,7 +590,7 @@ MAIN:
   ZT=ZI: REM top of memory after base repl_env
 
   REM core.mal: defined using the language itself
-  #cbm A$="(def! *host-language* "+CHR$(34)+"C64 Basic"+CHR$(34)+")"
+  #cbm A$="(def! *host-language* "+CHR$(34)+"C64 BASIC"+CHR$(34)+")"
   #qbasic A$="(def! *host-language* "+CHR$(34)+"QBasic"+CHR$(34)+")"
   GOSUB RE:AY=R:GOSUB RELEASE
 
@@ -643,9 +643,9 @@ MAIN:
 
   REPL:
     REM print the REPL startup header
-    A$="(println (str "+CHR$(34)+"Mal ["+CHR$(34)+" *host-language* "
-    A$=A$+CHR$(34)+"]"+CHR$(34)+"))"
-    GOSUB RE:AY=R:GOSUB RELEASE
+    REM save memory by printing this directly
+    #cbm PRINT "Mal [C64 BASIC]"
+    #qbasic PRINT "Mal [C64 QBasic]"
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser

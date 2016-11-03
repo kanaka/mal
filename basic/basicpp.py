@@ -94,18 +94,26 @@ def remove_indent(orig_lines):
 
 def misc_fixups(orig_lines):
     text = "\n".join(orig_lines)
-    text = re.sub(r"\bTHEN GOTO\b", "THEN", text)
-    #text = re.sub(r"AND ([0-9])", r"AND\g<1>", text)
 
-    # More aggressive space removal
+    # Remove GOTO after THEN
+    text = re.sub(r"\bTHEN GOTO\b", "THEN", text)
+
+    # Remove spaces after keywords
     text = re.sub(r"\bIF ", "IF", text)
     text = re.sub(r"\bPRINT *", "PRINT", text)
+    text = re.sub(r"\bDIM ", "DIM", text)
+    text = re.sub(r"\OPEN ", "OPEN", text)
+    text = re.sub(r"\bGET ", "GET", text)
+
+    # Remove spaces around GOTO/GOSUB/THEN
     text = re.sub(r" *GOTO *", "GOTO", text)
     text = re.sub(r" *GOSUB *", "GOSUB", text)
-    text = re.sub(r"\bDIM ", "DIM", text)
     text = re.sub(r" *THEN *", r"THEN", text)
+
+    # Remove spaces around AND/OR except after variables
     text = re.sub(r"([^A-Z]) *AND *", r"\g<1>AND", text)
     text = re.sub(r"([^A-Z]) *OR *", r"\g<1>OR", text)
+
     return text.split("\n")
 
 def finalize(lines, args, mode):
@@ -156,8 +164,6 @@ def finalize(lines, args, mode):
             # Add the return spot
             labels_lines[label] = lnum
             lines_labels[lnum] = label
-            lines.append("%s X=X-1" % lnum)
-            lnum += 1
             continue
 
         lines.append("%s %s" % (lnum, line))
@@ -188,7 +194,10 @@ def finalize(lines, args, mode):
             index = call_index[cur_sub]
 
             ret_labels = [cur_sub+"_"+str(i) for i in range(1, index+1)]
-            line = "%s ON X%%(X) GOTO %s" % (lnum, ",".join(ret_labels))
+            if mode == "cbm":
+                line = "%s X=X-1:ONX%%(X+1)GOTO%s" % (lnum, ",".join(ret_labels))
+            else:
+                line = "%s X=X-1:ON X%%(X+1) GOTO %s" % (lnum, ",".join(ret_labels))
             cur_sub = None
 
         lines.append(line)
