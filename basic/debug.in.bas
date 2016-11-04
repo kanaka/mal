@@ -30,8 +30,8 @@ PR_MEMORY_SUMMARY:
   #cbm PRINT "Free (FRE)   :"+STR$(P0)
   GOSUB CHECK_FREE_LIST: REM get count in P2
   PRINT "Values (Z%)  :"+STR$(ZI-1-P2)+" /"+STR$(Z1)
-  PRINT "               max:"+STR$(ZI-1);
-  PRINT ", freed:"+STR$(P2)+", after repl_env:"+STR$(ZT)
+  REM PRINT "               max:"+STR$(ZI-1);
+  REM PRINT ", freed:"+STR$(P2)+", after repl_env:"+STR$(ZT)
   GOSUB COUNT_STRINGS
   PRINT "Strings (S$) :"+STR$(P2)+" /"+STR$(Z2)
   PRINT "Stack (X%)   :"+STR$(X+1)+" /"+STR$(Z3)

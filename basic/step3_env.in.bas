@@ -121,7 +121,7 @@ SUB EVAL
 
   IF ER<>-2 THEN GOTO EVAL_RETURN
 
-  REM AZ=A:PR=1:GOSUB PR_STR
+  REM AZ=A:B=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
 
   GOSUB DEREF_A
@@ -169,7 +169,7 @@ SUB EVAL
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
       REM set a1 in env to a2
-      K=A1:V=R:GOSUB ENV_SET
+      K=A1:C=R:GOSUB ENV_SET
       GOTO EVAL_RETURN
 
     EVAL_LET:
@@ -178,7 +178,7 @@ SUB EVAL
 
       X=X+1:X%(X)=A2: REM push/save A2
       REM create new environment with outer as current environment
-      O=E:GOSUB ENV_NEW
+      C=E:GOSUB ENV_NEW
       E=R
       EVAL_LET_LOOP:
         IF Z%(A1,1)=0 THEN GOTO EVAL_LET_LOOP_DONE
@@ -191,7 +191,7 @@ SUB EVAL
         IF ER<>-2 THEN GOTO EVAL_LET_LOOP_DONE
 
         REM set environment: even A1 key to odd A1 eval'd above
-        K=A1+1:V=R:GOSUB ENV_SET
+        K=A1+1:C=R:GOSUB ENV_SET
         AY=R:GOSUB RELEASE: REM release our use, ENV_SET took ownership
 
         REM skip to the next pair of A1 elements
@@ -212,13 +212,13 @@ SUB EVAL
 
       AR=Z%(R,1): REM rest
       R=F:GOSUB DEREF_R:F=R
-      IF (Z%(F,0)AND 31)<>9 THEN ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
+      IF (Z%(F,0)AND 31)<>9 THEN ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       AY=R3:GOSUB RELEASE
       GOTO EVAL_RETURN
 
   EVAL_RETURN:
-    REM AZ=R: PR=1: GOSUB PR_STR
+    REM AZ=R: B=1: GOSUB PR_STR
     REM PRINT "EVAL_RETURN R: ["+R$+"] ("+STR$(R)+"), LV:"+STR$(LV)+",ER:"+STR$(ER)
 
     REM release environment if not the top one on the stack
@@ -227,8 +227,8 @@ SUB EVAL
     LV=LV-1: REM track basic return stack level
 
     REM trigger GC
-    #cbm TA=FRE(0)
-    #qbasic TA=0
+    #cbm T=FRE(0)
+    #qbasic T=0
 
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
@@ -243,18 +243,18 @@ DO_FUNCTION:
   AR$=R$
 
   REM Get the function number
-  FF=Z%(F,1)
+  G=Z%(F,1)
 
   REM Get argument values
   R=AR+1:GOSUB DEREF_R:AA=Z%(R,1)
   R=Z%(AR,1)+1:GOSUB DEREF_R:AB=Z%(R,1)
 
   REM Switch on the function number
-  IF FF=1 THEN GOTO DO_ADD
-  IF FF=2 THEN GOTO DO_SUB
-  IF FF=3 THEN GOTO DO_MULT
-  IF FF=4 THEN GOTO DO_DIV
-  ER=-1:ER$="unknown function"+STR$(FF):RETURN
+  IF G=1 THEN GOTO DO_ADD
+  IF G=2 THEN GOTO DO_SUB
+  IF G=3 THEN GOTO DO_MULT
+  IF G=4 THEN GOTO DO_DIV
+  ER=-1:E$="unknown function"+STR$(G):RETURN
 
   DO_ADD:
     T=2:L=AA+AB:GOSUB ALLOC
@@ -274,7 +274,7 @@ DO_FUNCTION:
 
 REM PRINT(A) -> R$
 MAL_PRINT:
-  AZ=A:PR=1:GOSUB PR_STR
+  AZ=A:B=1:GOSUB PR_STR
   RETURN
 
 REM REP(A$) -> R$
@@ -306,24 +306,24 @@ MAIN:
   LV=0
 
   REM create repl_env
-  O=-1:GOSUB ENV_NEW:D=R
+  C=-1:GOSUB ENV_NEW:D=R
 
   E=D
   REM + function
   A=1:GOSUB NATIVE_FUNCTION
-  K$="+":V=R:GOSUB ENV_SET_S
+  K$="+":C=R:GOSUB ENV_SET_S
 
   REM - function
   A=2:GOSUB NATIVE_FUNCTION
-  K$="-":V=R:GOSUB ENV_SET_S
+  K$="-":C=R:GOSUB ENV_SET_S
 
   REM * function
   A=3:GOSUB NATIVE_FUNCTION
-  K$="*":V=R:GOSUB ENV_SET_S
+  K$="*":C=R:GOSUB ENV_SET_S
 
   REM / function
   A=4:GOSUB NATIVE_FUNCTION
-  K$="/":V=R:GOSUB ENV_SET_S
+  K$="/":C=R:GOSUB ENV_SET_S
 
   ZT=ZI: REM top of memory after base repl_env
 
@@ -342,7 +342,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: "+ER$
-    ER=-2:ER$=""
+    PRINT "Error: "+E$
+    ER=-2:E$=""
     RETURN
 

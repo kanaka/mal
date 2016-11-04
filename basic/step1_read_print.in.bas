@@ -19,7 +19,7 @@ END SUB
 
 REM PRINT(A) -> R$
 MAL_PRINT:
-  AZ=A:PR=1:GOSUB PR_STR
+  AZ=A:B=1:GOSUB PR_STR
   RETURN
 
 REM REP(A$) -> R$
@@ -60,7 +60,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: "+ER$
-    ER=-2:ER$=""
+    PRINT "Error: "+E$
+    ER=-2:E$=""
     RETURN
 

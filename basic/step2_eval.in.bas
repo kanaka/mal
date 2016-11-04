@@ -35,7 +35,7 @@ SUB EVAL_AST
   EVAL_AST_SYMBOL:
     H=E:K=A:GOSUB HASHMAP_GET
     GOSUB DEREF_R
-    IF T3=0 THEN ER=-1:ER$="'"+S$(Z%(A,1))+"' not found":GOTO EVAL_AST_RETURN
+    IF T3=0 THEN ER=-1:E$="'"+S$(Z%(A,1))+"' not found":GOTO EVAL_AST_RETURN
     Z%(R,0)=Z%(R,0)+32
     GOTO EVAL_AST_RETURN
 
@@ -119,7 +119,7 @@ SUB EVAL
 
   IF ER<>-2 THEN GOTO EVAL_RETURN
 
-  REM AZ=A:PR=1:GOSUB PR_STR
+  REM AZ=A:B=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
 
   GOSUB DEREF_A
@@ -144,7 +144,7 @@ SUB EVAL
 
       AR=Z%(R,1): REM rest
       R=F:GOSUB DEREF_R:F=R
-      IF (Z%(F,0)AND 31)<>9 THEN ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
+      IF (Z%(F,0)AND 31)<>9 THEN ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
       AY=R3:GOSUB RELEASE
       GOTO EVAL_RETURN
@@ -154,8 +154,8 @@ SUB EVAL
     LV=LV-1: REM track basic return stack level
 
     REM trigger GC
-    #cbm TA=FRE(0)
-    #qbasic TA=0
+    #cbm T=FRE(0)
+    #qbasic T=0
 
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
@@ -170,18 +170,18 @@ DO_FUNCTION:
   AR$=R$
 
   REM Get the function number
-  FF=Z%(F,1)
+  G=Z%(F,1)
 
   REM Get argument values
   R=AR+1:GOSUB DEREF_R:AA=Z%(R,1)
   R=Z%(AR,1)+1:GOSUB DEREF_R:AB=Z%(R,1)
 
   REM Switch on the function number
-  IF FF=1 THEN GOTO DO_ADD
-  IF FF=2 THEN GOTO DO_SUB
-  IF FF=3 THEN GOTO DO_MULT
-  IF FF=4 THEN GOTO DO_DIV
-  ER=-1:ER$="unknown function"+STR$(FF):RETURN
+  IF G=1 THEN GOTO DO_ADD
+  IF G=2 THEN GOTO DO_SUB
+  IF G=3 THEN GOTO DO_MULT
+  IF G=4 THEN GOTO DO_DIV
+  ER=-1:E$="unknown function"+STR$(G):RETURN
 
   DO_ADD:
     T=2:L=AA+AB:GOSUB ALLOC
@@ -201,7 +201,7 @@ DO_FUNCTION:
 
 REM PRINT(A) -> R$
 MAL_PRINT:
-  AZ=A:PR=1:GOSUB PR_STR
+  AZ=A:B=1:GOSUB PR_STR
   RETURN
 
 REM REP(A$) -> R$
@@ -237,19 +237,19 @@ MAIN:
 
   REM + function
   A=1:GOSUB NATIVE_FUNCTION
-  H=D:K$="+":V=R:GOSUB ASSOC1_S:D=R
+  H=D:K$="+":C=R:GOSUB ASSOC1_S:D=R
 
   REM - function
   A=2:GOSUB NATIVE_FUNCTION
-  H=D:K$="-":V=R:GOSUB ASSOC1_S:D=R
+  H=D:K$="-":C=R:GOSUB ASSOC1_S:D=R
 
   REM * function
   A=3:GOSUB NATIVE_FUNCTION
-  H=D:K$="*":V=R:GOSUB ASSOC1_S:D=R
+  H=D:K$="*":C=R:GOSUB ASSOC1_S:D=R
 
   REM / function
   A=4:GOSUB NATIVE_FUNCTION
-  H=D:K$="/":V=R:GOSUB ASSOC1_S:D=R
+  H=D:K$="/":C=R:GOSUB ASSOC1_S:D=R
 
   ZT=ZI: REM top of memory after base repl_env
 
@@ -268,7 +268,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: "+ER$
-    ER=-2:ER$=""
+    PRINT "Error: "+E$
+    ER=-2:E$=""
     RETURN
 

@@ -17,11 +17,9 @@ Y   : top element of Y% stack
 D   : root repl environment
 
 ER  : error type (-2: none, -1: string, >=0: object)
-ER$ : error string (ER=-1)
+E$  : error string (ER=-1)
 EZ  : READLINE EOF
 
-BI  : ENV_NEW_BINDS binds list
-EX  : ENV_NEW_BINDS expressions list
 LV  : EVAL stack call level/depth
 
 RI  : reader current string position
@@ -30,66 +28,63 @@ RJ  : READ_TOKEN current character index
 
 Calling arguments/temporaries:
 
-A   : common call arguments (especially EVAL, EVAL_AST)
-B   : common call arguments
-C   : SLICE argument, READLINE temp.
+A   : common call argument (especially EVAL, EVAL_AST)
+A$  : common call argument (READLINE, reader, string temp, key value)
+B   : common call argument
+B$  : STRING arg (HASHMAP_GET temp)
+C   : common call argument
 E   : environment (EVAL, EVAL_AST)
 F   : function
 H   : hash map
 K   : hash map key (Z% index)
-K$  : hash map key string
 L   : ALLOC* Z%(R,1) default
 M   : ALLOC* Z%(R+1,0) default
 N   : ALLOC* Z%(R+1,1) default
-O   : outer environment
-P   : MAL_FUNCTION
 R   : common return value
-T   : common temp, type
-V   : hash map value
+R$  : common string return value
+T   : type arg, common temp
 
-B1  : LIST2/LIST3 param
-B2  : LIST2/LIST3 param
-B3  : LIST3 param
-CZ  : DO_CONCAT stack position
-EF  : ENV_FIND cur env ptr
+AY  : RELEASE/FREE arg
+AZ  : PR_STR arg
 P1  : PR_MEMORY, CHECK_FREE_LIST start
 P2  : PR_MEMORY, CHECK_FREE_LIST end
 SZ  : size argument to ALLOC
+S1$ : REPLACE needle
+S2$ : REPLACE replacement
 
-Reused/temporaries:
+Other temporaries:
 A0  : EVAL ast elements
 A1  : EVAL ast elements
 A2  : EVAL ast elements
 A3  : EVAL ast elements
 
+CZ  : DO_CONCAT stack position
 ED  : EQUAL_Q recursion depth counter
 RD  : PR_OBJECT recursion depth
 SD  : READ_STR sequence read recursion depth
 
+
 C$  : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
+G   : function value ON GOTO switch flag
 I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
 J   : REPLACE
 S1  : READ_TOKEN in a string?
 S2  : READ_TOKEN escaped?
 T$  : READ_* current token string
-T1$ : HASHMAP_GET temp
-T2$ : HASHMAP_GET temp
-T1  : PR_STR, and core DO_KEYS_VALS temp
-T2  :
-T3  :
-T4  :
-T5  :
-T6  :
-T7  : READ_FORM and PR_STR temp
-T8  :
-T9  :
-TA  :
-U1  :
-U2  :
-U3  :
-U4  :
-U6  :
+T1  : EQUAL_Q, PR_STR, and core DO_KEYS_VALS temp
+T2  : EQUAL_Q, DO_KEY_VALS, HASH_MAP_GET
+T3  : HASHMAP_GET temp and return value
+T3$ : REPLACE temp
+T4  : ENV_FIND temp and return value
+T6  : LAST and QUASIQUOTE temp
+T7  : READ_FORM temp
+T8  : READ_FORM_DONE temp
+T9  : PR_STR_SEQ temp
+U3  : ALLOC
+U4  : ALLOC
+U6  : RELEASE
+U7  : RELEASE
 
 Unused:
 
-G, Q, U, W
+O, Q, U, V, W

@@ -25,9 +25,9 @@ SUB QUASIQUOTE
 
   QQ_QUOTE:
     REM ['quote, ast]
-    AS$="quote":T=5:GOSUB STRING
-    B2=R:B1=A:GOSUB LIST2
-    AY=B2:GOSUB RELEASE
+    B$="quote":T=5:GOSUB STRING
+    B=R:A=A:GOSUB LIST2
+    AY=B:GOSUB RELEASE
 
     GOTO QQ_DONE
 
@@ -62,12 +62,12 @@ SUB QUASIQUOTE
     IF S$(Z%(B,1))<>"splice-unquote" THEN QQ_DEFAULT
       REM ['concat, ast[0][1], quasiquote(ast[1..])]
 
-      B=Z%(A,1)+1:GOSUB DEREF_B:B2=B
-      AS$="concat":T=5:GOSUB STRING:B3=R
-      B1=T6:GOSUB LIST3
+      B=Z%(A,1)+1:GOSUB DEREF_B:B=B
+      B$="concat":T=5:GOSUB STRING:C=R
+      A=T6:GOSUB LIST3
       REM release inner quasiquoted since outer list takes ownership
-      AY=B1:GOSUB RELEASE
-      AY=B3:GOSUB RELEASE
+      AY=A:GOSUB RELEASE
+      AY=C:GOSUB RELEASE
       GOTO QQ_DONE
 
   QQ_DEFAULT:
@@ -77,16 +77,16 @@ SUB QUASIQUOTE
     X=X+1:X%(X)=T6
     REM A set above to ast[0]
     CALL QUASIQUOTE
-    B2=R
+    B=R
     REM pop T6 off the stack
     T6=X%(X):X=X-1
 
-    AS$="cons":T=5:GOSUB STRING:B3=R
-    B1=T6:GOSUB LIST3
+    B$="cons":T=5:GOSUB STRING:C=R
+    A=T6:GOSUB LIST3
     REM release inner quasiquoted since outer list takes ownership
-    AY=B1:GOSUB RELEASE
-    AY=B2:GOSUB RELEASE
-    AY=B3:GOSUB RELEASE
+    AY=A:GOSUB RELEASE
+    AY=B:GOSUB RELEASE
+    AY=C:GOSUB RELEASE
   QQ_DONE:
 END SUB
 
@@ -236,7 +236,7 @@ SUB EVAL
 
   IF ER<>-2 THEN GOTO EVAL_RETURN
 
-  REM AZ=A:PR=1:GOSUB PR_STR
+  REM AZ=A:B=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
 
   GOSUB DEREF_A
@@ -297,7 +297,7 @@ SUB EVAL
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
       REM set a1 in env to a2
-      K=A1:V=R:GOSUB ENV_SET
+      K=A1:C=R:GOSUB ENV_SET
       GOTO EVAL_RETURN
 
     EVAL_LET:
@@ -308,7 +308,7 @@ SUB EVAL
       X=X+1:X%(X)=E: REM push env for for later release
 
       REM create new environment with outer as current environment
-      O=E:GOSUB ENV_NEW
+      C=E:GOSUB ENV_NEW
       E=R
       EVAL_LET_LOOP:
         IF Z%(A1,1)=0 THEN GOTO EVAL_LET_LOOP_DONE
@@ -321,7 +321,7 @@ SUB EVAL
         IF ER<>-2 THEN GOTO EVAL_LET_LOOP_DONE
 
         REM set environment: even A1 key to odd A1 eval'd above
-        K=A1+1:V=R:GOSUB ENV_SET
+        K=A1+1:C=R:GOSUB ENV_SET
         AY=R:GOSUB RELEASE: REM release our use, ENV_SET took ownership
 
         REM skip to the next pair of A1 elements
@@ -382,7 +382,7 @@ SUB EVAL
       Z%(R,0)=Z%(R,0)+1
 
       REM set A1 in env to A2
-      K=A1:V=R:GOSUB ENV_SET
+      K=A1:C=R:GOSUB ENV_SET
       GOTO EVAL_RETURN
 
     EVAL_MACROEXPAND:
@@ -418,7 +418,7 @@ SUB EVAL
 
     EVAL_FN:
       GOSUB EVAL_GET_A2: REM set A1 and A2
-      A=A2:P=A1:GOSUB MAL_FUNCTION
+      A=A2:B=A1:GOSUB MAL_FUNCTION
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
@@ -443,7 +443,7 @@ SUB EVAL
 
       REM if error, pop and return f/args for release by caller
       R=X%(X):X=X-1
-      ER=-1:ER$="apply of non-function":GOTO EVAL_RETURN
+      ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
 
       EVAL_DO_FUNCTION:
         REM regular function
@@ -460,7 +460,7 @@ SUB EVAL
         E4=E: REM save the current environment for release
 
         REM create new environ using env stored with function
-        O=Z%(F+1,1):BI=Z%(F+1,0):EX=AR:GOSUB ENV_NEW_BINDS
+        C=Z%(F+1,1):A=Z%(F+1,0):B=AR:GOSUB ENV_NEW_BINDS
 
         REM release previous env if it is not the top one on the
         REM stack (X%(X-2)) because our new env refers to it and
@@ -480,7 +480,7 @@ SUB EVAL
         E=R:GOTO EVAL_TCO_RECUR: REM TCO loop
 
   EVAL_RETURN:
-    REM AZ=R: PR=1: GOSUB PR_STR
+    REM AZ=R: B=1: GOSUB PR_STR
     REM PRINT "EVAL_RETURN R: ["+R$+"] ("+STR$(R)+"), LV:"+STR$(LV)+",ER:"+STR$(ER)
 
     REM release environment if not the top one on the stack
@@ -492,8 +492,8 @@ SUB EVAL
     GOSUB RELEASE_PEND
 
     REM trigger GC
-    #cbm TA=FRE(0)
-    #qbasic TA=0
+    #cbm T=FRE(0)
+    #qbasic T=0
 
     REM pop A and E off the stack
     E=X%(X-1):A=X%(X):X=X-2
@@ -502,7 +502,7 @@ END SUB
 
 REM PRINT(A) -> R$
 MAL_PRINT:
-  AZ=A:PR=1:GOSUB PR_STR
+  AZ=A:B=1:GOSUB PR_STR
   RETURN
 
 REM RE(A$) -> R
@@ -550,7 +550,7 @@ MAIN:
   LV=0
 
   REM create repl_env
-  O=-1:GOSUB ENV_NEW:D=R
+  C=-1:GOSUB ENV_NEW:D=R
 
   REM core.EXT: defined in Basic
   E=D:GOSUB INIT_CORE_NS: REM set core functions in repl_env
@@ -612,7 +612,7 @@ MAIN:
     END
 
   PRINT_ERROR:
-    PRINT "Error: "+ER$
-    ER=-2:ER$=""
+    PRINT "Error: "+E$
+    ER=-2:E$=""
     RETURN
 

@@ -38,7 +38,7 @@ READ_FILE_CHUNK:
     #qbasic IF EOF(2) THEN RS=1:A$=A$+CHR$(10)+")":RETURN
     A$=A$+C$
     #cbm IF (ST AND 64) THEN RS=1:A$=A$+CHR$(10)+")":RETURN
-    #cbm IF (ST AND 255) THEN RS=1:ER=-1:ER$="File read error "+STR$(ST):RETURN
+    #cbm IF (ST AND 255) THEN RS=1:ER=-1:E$="File read error "+STR$(ST):RETURN
     GOTO READ_FILE_CHUNK_LOOP
 
 SKIP_SPACES:
@@ -65,18 +65,18 @@ READ_FORM:
   IF ER<>-2 THEN RETURN
   GOSUB SKIP_SPACES
   GOSUB READ_TOKEN
-  IF T$="" AND SD>0 THEN ER$="unexpected EOF":GOTO READ_FORM_ABORT
+  IF T$="" AND SD>0 THEN E$="unexpected EOF":GOTO READ_FORM_ABORT
   REM PRINT "READ_FORM T$: ["+T$+"]"
   IF T$="" THEN R=0:GOTO READ_FORM_DONE
   IF T$="nil" THEN T=0:GOTO READ_NIL_BOOL
   IF T$="false" THEN T=1:GOTO READ_NIL_BOOL
   IF T$="true" THEN T=2:GOTO READ_NIL_BOOL
-  IF T$="'" THEN AS$="quote":GOTO READ_MACRO
-  IF T$="`" THEN AS$="quasiquote":GOTO READ_MACRO
-  IF T$="~" THEN AS$="unquote":GOTO READ_MACRO
-  IF T$="~@" THEN AS$="splice-unquote":GOTO READ_MACRO
-  IF T$="^" THEN AS$="with-meta":GOTO READ_MACRO
-  IF T$="@" THEN AS$="deref":GOTO READ_MACRO
+  IF T$="'" THEN B$="quote":GOTO READ_MACRO
+  IF T$="`" THEN B$="quasiquote":GOTO READ_MACRO
+  IF T$="~" THEN B$="unquote":GOTO READ_MACRO
+  IF T$="~@" THEN B$="splice-unquote":GOTO READ_MACRO
+  IF T$="^" THEN B$="with-meta":GOTO READ_MACRO
+  IF T$="@" THEN B$="deref":GOTO READ_MACRO
   C$=MID$(T$,1,1)
   REM PRINT "C$: ["+C$+"]("+STR$(ASC(C$))+")"
   IF (C$=";") THEN R=0:GOSUB SKIP_TO_EOL:GOTO READ_FORM
@@ -108,7 +108,7 @@ READ_FORM:
     REM 0 for the call and then restored afterwards.
     X=X+2:X%(X-1)=(T$="^"):X%(X)=SD: REM push macro type and SD
 
-    REM AS$ is set above
+    REM B$ is set above
     T=5:GOSUB STRING:X=X+1:X%(X)=R
 
     SD=0:GOSUB READ_FORM:X=X+1:X%(X)=R
@@ -116,18 +116,18 @@ READ_FORM:
     IF X%(X-3) THEN GOTO READ_MACRO_3
 
     READ_MACRO_2:
-      B2=X%(X-1):B1=X%(X):GOSUB LIST2
+      B=X%(X-1):A=X%(X):GOSUB LIST2
       GOTO READ_MACRO_DONE
 
     READ_MACRO_3:
       SD=0:GOSUB READ_FORM
-      B3=X%(X-1):B2=R:B1=X%(X):GOSUB LIST3
-      AY=B3:GOSUB RELEASE
+      C=X%(X-1):B=R:A=X%(X):GOSUB LIST3
+      AY=C:GOSUB RELEASE
 
     READ_MACRO_DONE:
       REM release values, list has ownership
-      AY=B2:GOSUB RELEASE
-      AY=B1:GOSUB RELEASE
+      AY=B:GOSUB RELEASE
+      AY=A:GOSUB RELEASE
 
       SD=X%(X-2):X=X-4: REM get SD and pop the stack
       T$="": REM necessary to prevent unexpected EOF errors
@@ -135,24 +135,24 @@ READ_FORM:
   READ_STRING:
     REM PRINT "READ_STRING"
     T7$=MID$(T$,LEN(T$),1)
-    IF T7$<>CHR$(34) THEN ER$="expected '"+CHR$(34)+"'":GOTO READ_FORM_ABORT
+    IF T7$<>CHR$(34) THEN E$="expected '"+CHR$(34)+"'":GOTO READ_FORM_ABORT
     R$=MID$(T$,2,LEN(T$)-2)
     S1$=CHR$(92)+CHR$(34):S2$=CHR$(34):GOSUB REPLACE: REM unescape quotes
     S1$=CHR$(92)+"n":S2$=CHR$(13):GOSUB REPLACE: REM unescape newlines
     S1$=CHR$(92)+CHR$(92):S2$=CHR$(92):GOSUB REPLACE: REM unescape backslashes
     REM intern string value
-    AS$=R$:T=4:GOSUB STRING
+    B$=R$:T=4:GOSUB STRING
     GOTO READ_FORM_DONE
   READ_KEYWORD:
     R$=CHR$(127)+MID$(T$,2,LEN(T$)-1)
-    AS$=R$:T=4:GOSUB STRING
+    B$=R$:T=4:GOSUB STRING
     GOTO READ_FORM_DONE
   READ_SYMBOL_MAYBE:
     C$=MID$(T$,2,1)
     IF C$>="0" AND C$<="9" THEN GOTO READ_NUMBER
   READ_SYMBOL:
     REM PRINT "READ_SYMBOL"
-    AS$=T$:T=5:GOSUB STRING
+    B$=T$:T=5:GOSUB STRING
     GOTO READ_FORM_DONE
 
   READ_SEQ:
@@ -178,8 +178,8 @@ READ_FORM:
 
   READ_SEQ_END:
     REM PRINT "READ_SEQ_END"
-    IF SD=0 THEN ER$="unexpected '"+C$+"'":GOTO READ_FORM_ABORT
-    IF X%(X-1)<>T THEN ER$="sequence mismatch":GOTO READ_FORM_ABORT
+    IF SD=0 THEN E$="unexpected '"+C$+"'":GOTO READ_FORM_ABORT
+    IF X%(X-1)<>T THEN E$="sequence mismatch":GOTO READ_FORM_ABORT
     SD=SD-1: REM decrease read sequence depth
     R=X%(X-2): REM ptr to start of sequence to return
     T=X%(X-1): REM type prior to recur
@@ -245,7 +245,7 @@ READ_FILE:
   RS=0: REM file read state (1: EOF)
   SD=0: REM sequence read depth
   #cbm OPEN 2,8,0,A$
-  #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:ER$="File not found":RETURN
+  #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
   #qbasic OPEN A$ FOR INPUT AS #2
   REM READ_FILE_CHUNK adds terminating ")"
   A$="(do ":GOSUB READ_FORM

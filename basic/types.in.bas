@@ -25,20 +25,20 @@ REM metadata        16-31  ->  Z% index of object with this metadata
 REM                    14  ->  Z% index of metdata object
 
 INIT_MEMORY:
-  #cbm TA=FRE(0)
-  #qbasic TA=0
+  #cbm T=FRE(0)
+  #qbasic T=0
 
-  Z1=2048+1024+512: REM Z% (boxed memory) size (4 bytes each)
+  Z1=2048+1024+512+128: REM Z% (boxed memory) size (4 bytes each)
   Z2=200: REM S$/S% (string memory) size (3+2 bytes each)
   Z3=200: REM X% (call stack) size (2 bytes each)
   Z4=64: REM Y% (release stack) size (4 bytes each)
 
   REM global error state
   REM  -2 : no error
-  REM  -1 : string error in ER$
+  REM  -1 : string error in E$
   REM >=0 : pointer to error object
   ER=-2
-  ER$=""
+  E$=""
 
   REM TODO: for performance, define all/most non-array variables here
   REM so that the array area doesn't have to be shifted down everytime
@@ -167,13 +167,13 @@ RELEASE:
   U6=Z%(AY,0)AND 31: REM type
   U7=Z%(AY,1): REM main value/reference
 
-  REM AZ=AY: PR=1: GOSUB PR_STR
+  REM AZ=AY: B=1: GOSUB PR_STR
   REM PRINT "RELEASE AY:"+STR$(AY)+"["+R$+"] (byte0:"+STR$(Z%(AY,0))+")"
 
   REM sanity check not already freed
-  IF (U6)=15 THEN ER=-1:ER$="Free of free memory: "+STR$(AY):RETURN
+  IF (U6)=15 THEN ER=-1:E$="RELEASE of free: "+STR$(AY):RETURN
   IF U6=14 THEN GOTO RELEASE_REFERENCE
-  IF Z%(AY,0)<15 THEN ER=-1:ER$="Free of freed object: "+STR$(AY):RETURN
+  IF Z%(AY,0)<15 THEN ER=-1:E$="Unowned object: "+STR$(AY):RETURN
 
   REM decrease reference count by one
   Z%(AY,0)=Z%(AY,0)-32
@@ -189,8 +189,6 @@ RELEASE:
   IF U6>=16 THEN GOTO RELEASE_METADATA
   IF U6=12 THEN GOTO RELEASE_ATOM
   IF U6=13 THEN GOTO RELEASE_ENV
-  IF U6=15 THEN ER=-1:ER$="RELEASE of already freed: "+STR$(AY):RETURN
-  ER=-1:ER$="RELEASE not defined for type "+STR$(U6):RETURN
 
   RELEASE_SIMPLE:
     REM simple type (no recursing), just call FREE on it
@@ -202,14 +200,14 @@ RELEASE:
     GOTO RELEASE_TOP
   RELEASE_STRING:
     REM string type, release interned string, then FREE reference
-    IF S%(U7)=0 THEN ER=-1:ER$="RELEASE of free string:"+STR$(S%(U7)):RETURN
+    IF S%(U7)=0 THEN ER=-1:E$="RELEASE of free string:"+STR$(S%(U7)):RETURN
     S%(U7)=S%(U7)-1
     IF S%(U7)=0 THEN S$(U7)="": REM free BASIC string
     REM free the atom itself
     GOTO RELEASE_SIMPLE
   RELEASE_SEQ:
     IF U7=0 THEN GOTO RELEASE_SIMPLE_2
-    IF Z%(AY+1,0)<>14 THEN ER=-1:ER$="invalid list value"+STR$(AY+1):RETURN
+    IF Z%(AY+1,0)<>14 THEN ER=-1:E$="invalid list value"+STR$(AY+1):RETURN
     REM add value and next element to stack
     RC=RC+2:X=X+2
     X%(X-1)=Z%(AY+1,1):X%(X)=U7
@@ -292,12 +290,12 @@ EQUAL_Q:
   X=X+2:X%(X-1)=A:X%(X)=B
   ED=ED+1
 
-  U1=Z%(A,0)AND 31
-  U2=Z%(B,0)AND 31
-  IF U1>5 AND U1<8 AND U2>5 AND U2<8 THEN GOTO EQUAL_Q_SEQ
-  IF U1=8 AND U2=8 THEN GOTO EQUAL_Q_HM
+  T1=Z%(A,0)AND 31
+  T2=Z%(B,0)AND 31
+  IF T1>5 AND T1<8 AND T2>5 AND T2<8 THEN GOTO EQUAL_Q_SEQ
+  IF T1=8 AND T2=8 THEN GOTO EQUAL_Q_HM
 
-  IF U1<>U2 OR Z%(A,1)<>Z%(B,1) THEN R=0
+  IF T1<>T2 OR Z%(A,1)<>Z%(B,1) THEN R=0
   GOTO EQUAL_Q_DONE
 
   EQUAL_Q_SEQ:
@@ -329,7 +327,7 @@ EQUAL_Q:
 
 REM string functions
 
-REM STRING(AS$, T) -> R
+REM STRING(B$, T) -> R
 REM intern string and allocate reference (return Z% index)
 STRING:
   IF S=0 THEN GOTO STRING_NOT_FOUND
@@ -338,7 +336,7 @@ STRING:
   I=0
   STRING_FIND_LOOP:
     IF I>S-1 THEN GOTO STRING_NOT_FOUND
-    IF S%(I)>0 AND AS$=S$(I) THEN GOTO STRING_DONE
+    IF S%(I)>0 AND B$=S$(I) THEN GOTO STRING_DONE
     I=I+1
     GOTO STRING_FIND_LOOP
 
@@ -357,8 +355,8 @@ STRING:
     REM fallthrough
 
   STRING_SET:
-REM IF I>85 THEN PRINT "STRING:"+STR$(I)+" "+AS$
-    S$(I)=AS$
+REM IF I>85 THEN PRINT "STRING:"+STR$(I)+" "+B$
+    S$(I)=B$
     REM fallthrough
 
   STRING_DONE:
@@ -460,23 +458,23 @@ SLICE:
     I=I+1
     GOTO SLICE_LOOP
 
-REM LIST2(B2,B1) -> R
+REM LIST2(B,A) -> R
 LIST2:
-  REM last element is 3 (empty list), second element is B1
-  T=6:L=3:N=B1:GOSUB ALLOC
+  REM last element is 3 (empty list), second element is A
+  T=6:L=3:N=A:GOSUB ALLOC
 
-  REM first element is B2
-  T=6:L=R:N=B2:GOSUB ALLOC
+  REM first element is B
+  T=6:L=R:N=B:GOSUB ALLOC
   AY=L:GOSUB RELEASE: REM new list takes ownership of previous
 
   RETURN
 
-REM LIST3(B3,B2,B1) -> R
+REM LIST3(C,B,A) -> R
 LIST3:
   GOSUB LIST2
 
-  REM first element is B3
-  T=6:L=R:N=B3:GOSUB ALLOC
+  REM first element is C
+  T=6:L=R:N=C:GOSUB ALLOC
   AY=L:GOSUB RELEASE: REM new list takes ownership of previous
 
   RETURN
@@ -491,24 +489,24 @@ HASHMAP:
   Z%(R,0)=Z%(R,0)+32
   RETURN
 
-REM ASSOC1(H, K, V) -> R
+REM ASSOC1(H, K, C) -> R
 ASSOC1:
-  REM deref K and V
-  R=V:GOSUB DEREF_R:V=R
+  REM deref K and C
+  R=C:GOSUB DEREF_R:C=R
   R=K:GOSUB DEREF_R:K=R
 
   REM value ptr
-  T=8:L=H:N=V:GOSUB ALLOC
+  T=8:L=H:N=C:GOSUB ALLOC
   AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
   REM key ptr
   T=8:L=R:N=K:GOSUB ALLOC
   AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
   RETURN
 
-REM ASSOC1(H, K$, V) -> R
+REM ASSOC1(H, K$, C) -> R
 ASSOC1_S:
   REM add the key string
-  AS$=K$:T=4:GOSUB STRING
+  B$=K$:T=4:GOSUB STRING
   K=R:GOSUB ASSOC1
   AY=K:GOSUB RELEASE: REM map took ownership of key
   RETURN
@@ -516,7 +514,7 @@ ASSOC1_S:
 REM HASHMAP_GET(H, K) -> R
 HASHMAP_GET:
   H2=H
-  T1$=S$(Z%(K,1)): REM search key string
+  B$=S$(Z%(K,1)): REM search key string
   T3=0: REM whether found or not (for HASHMAP_CONTAINS)
   R=0
   HASHMAP_GET_LOOP:
@@ -527,9 +525,8 @@ HASHMAP_GET:
     HASHMAP_GET_DEREF:
       IF Z%(T2,0)=14 THEN T2=Z%(T2,1):GOTO HASHMAP_GET_DEREF
     REM get key string
-    T2$=S$(Z%(T2,1))
     REM if they are equal, we found it
-    IF T1$=T2$ THEN T3=1:R=Z%(H2,1)+1:RETURN
+    IF B$=S$(Z%(T2,1)) THEN T3=1:R=Z%(H2,1)+1:RETURN
     REM skip to next key
     H2=Z%(Z%(H2,1),1)
     GOTO HASHMAP_GET_LOOP
@@ -548,7 +545,7 @@ NATIVE_FUNCTION:
   T=9:L=A:GOSUB ALLOC
   RETURN
 
-REM MAL_FUNCTION(A, P, E) -> R
+REM MAL_FUNCTION(A, B, E) -> R
 MAL_FUNCTION:
-  T=10:L=A:M=P:N=E:GOSUB ALLOC
+  T=10:L=A:M=B:N=E:GOSUB ALLOC
   RETURN
