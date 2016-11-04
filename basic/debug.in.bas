@@ -1,4 +1,4 @@
-REM CHECK_FREE_LIST
+REM CHECK_FREE_LIST() -> P2
 CHECK_FREE_LIST:
   REM start and accumulator
   P1=ZK
@@ -13,16 +13,52 @@ CHECK_FREE_LIST:
     IF P2=-1 THEN PRINT "corrupt free list at "+STR$(P1)
     RETURN
 
+REM COUNT_STRINGS() -> P2
+COUNT_STRINGS:
+  P1=0
+  P2=0
+  COUNT_STRINGS_LOOP:
+    IF P1>S-1 THEN RETURN
+    IF S%(P1)>0 THEN P2=P2+1
+    P1=P1+1
+    GOTO COUNT_STRINGS_LOOP
+
 PR_MEMORY_SUMMARY:
+  #cbm P0=FRE(0)
+
   PRINT
-  #cbm PRINT "Free (FRE)   :"+STR$(FRE(0))
-  PRINT "Values (Z%)  :"+STR$(ZI-1)+" /"+STR$(Z1)
+  #cbm PRINT "Free (FRE)   :"+STR$(P0)
   GOSUB CHECK_FREE_LIST: REM get count in P2
-  PRINT "               used:"+STR$(ZI-1-P2)+", freed:"+STR$(P2);
-  PRINT ", after repl_env:"+STR$(ZT)
-  PRINT "Strings (S$) :"+STR$(S)+" /"+STR$(Z2)
+  PRINT "Values (Z%)  :"+STR$(ZI-1-P2)+" /"+STR$(Z1)
+  PRINT "               max:"+STR$(ZI-1);
+  PRINT ", freed:"+STR$(P2)+", after repl_env:"+STR$(ZT)
+  GOSUB COUNT_STRINGS
+  PRINT "Strings (S$) :"+STR$(P2)+" /"+STR$(Z2)
   PRINT "Stack (X%)   :"+STR$(X+1)+" /"+STR$(Z3)
   RETURN
+
+REM #cbm PR_MEMORY_MAP:
+REM   #cbm PRINT
+REM   #cbm P1=PEEK(43)+PEEK(44)*256
+REM   #cbm P2=PEEK(45)+PEEK(46)*256
+REM   #cbm P3=PEEK(47)+PEEK(48)*256
+REM   #cbm P4=PEEK(49)+PEEK(50)*256
+REM   #cbm P5=PEEK(51)+PEEK(52)*256
+REM   #cbm P6=PEEK(53)+PEEK(54)*256
+REM   #cbm P7=PEEK(55)+PEEK(56)*256
+REM   #cbm PRINT "BASIC beg.   :"STR$(P1)
+REM   #cbm PRINT "Variable beg.:"STR$(P2)
+REM   #cbm PRINT "Array beg.   :"STR$(P3)
+REM   #cbm PRINT "Array end    :"STR$(P4)
+REM   #cbm PRINT "String beg.  :"STR$(P5)
+REM   #cbm PRINT "String cur.  :"STR$(P6)
+REM   #cbm PRINT "BASIC end    :"STR$(P7)
+REM   #cbm PRINT
+REM   #cbm PRINT "Program Code :"STR$(P2-P1)
+REM   #cbm PRINT "Variables    :"STR$(P3-P2)
+REM   #cbm PRINT "Arrays       :"STR$(P4-P3)
+REM   #cbm PRINT "String Heap  :"STR$(P7-P5)
+REM   #cbm RETURN
 
 REM REM PR_MEMORY(P1, P2) -> nil
 REM PR_MEMORY:

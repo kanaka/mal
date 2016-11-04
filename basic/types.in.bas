@@ -29,8 +29,8 @@ INIT_MEMORY:
   #qbasic TA=0
 
   Z1=2048+1024+512: REM Z% (boxed memory) size (4 bytes each)
-  Z2=256: REM S$ (string memory) size (3 bytes each)
-  Z3=256: REM X% (call stack) size (2 bytes each)
+  Z2=200: REM S$/S% (string memory) size (3+2 bytes each)
+  Z3=200: REM X% (call stack) size (2 bytes each)
   Z4=64: REM Y% (release stack) size (4 bytes each)
 
   REM global error state
@@ -39,6 +39,10 @@ INIT_MEMORY:
   REM >=0 : pointer to error object
   ER=-2
   ER$=""
+
+  REM TODO: for performance, define all/most non-array variables here
+  REM so that the array area doesn't have to be shifted down everytime
+  REM a new non-array variable is defined
 
   REM boxed element memory
   DIM Z%(Z1,1): REM TYPE ARRAY
@@ -61,7 +65,7 @@ INIT_MEMORY:
   ZK=9
 
   REM string memory storage
-  S=0:DIM S$(Z2)
+  S=0:DIM S$(Z2):DIM S%(Z2)
 
   REM call/logic stack
   X=-1:DIM X%(Z3): REM stack of Z% indexes
@@ -161,6 +165,7 @@ RELEASE:
   IF AY<3 THEN GOTO RELEASE_TOP
 
   U6=Z%(AY,0)AND 31: REM type
+  U7=Z%(AY,1): REM main value/reference
 
   REM AZ=AY: PR=1: GOSUB PR_STR
   REM PRINT "RELEASE AY:"+STR$(AY)+"["+R$+"] (byte0:"+STR$(Z%(AY,0))+")"
@@ -177,8 +182,9 @@ RELEASE:
   IF Z%(AY,0)>=32 GOTO RELEASE_TOP
 
   REM switch on type
-  IF (U6<=5) OR (U6=9) THEN GOTO RELEASE_SIMPLE
-  IF (U6>=6) AND (U6<=8) THEN GOTO RELEASE_SEQ
+  IF U6<=3 OR U6=9 THEN GOTO RELEASE_SIMPLE
+  IF U6=4 OR U6=5 THEN GOTO RELEASE_STRING
+  IF U6>=6 AND U6<=8 THEN GOTO RELEASE_SEQ
   IF U6=10 OR U6=11 THEN GOTO RELEASE_MAL_FUNCTION
   IF U6>=16 THEN GOTO RELEASE_METADATA
   IF U6=12 THEN GOTO RELEASE_ATOM
@@ -194,34 +200,41 @@ RELEASE:
     REM free the current element and continue
     SZ=2:GOSUB FREE
     GOTO RELEASE_TOP
+  RELEASE_STRING:
+    REM string type, release interned string, then FREE reference
+    IF S%(U7)=0 THEN ER=-1:ER$="RELEASE of free string:"+STR$(S%(U7)):RETURN
+    S%(U7)=S%(U7)-1
+    IF S%(U7)=0 THEN S$(U7)="": REM free BASIC string
+    REM free the atom itself
+    GOTO RELEASE_SIMPLE
   RELEASE_SEQ:
-    IF Z%(AY,1)=0 THEN GOTO RELEASE_SIMPLE_2
+    IF U7=0 THEN GOTO RELEASE_SIMPLE_2
     IF Z%(AY+1,0)<>14 THEN ER=-1:ER$="invalid list value"+STR$(AY+1):RETURN
     REM add value and next element to stack
     RC=RC+2:X=X+2
-    X%(X-1)=Z%(AY+1,1):X%(X)=Z%(AY,1)
+    X%(X-1)=Z%(AY+1,1):X%(X)=U7
     GOTO RELEASE_SIMPLE_2
   RELEASE_ATOM:
     REM add contained/referred value
-    RC=RC+1:X=X+1:X%(X)=Z%(AY,1)
+    RC=RC+1:X=X+1:X%(X)=U7
     REM free the atom itself
     GOTO RELEASE_SIMPLE
   RELEASE_MAL_FUNCTION:
     REM add ast, params and environment to stack
     RC=RC+3:X=X+3
-    X%(X-2)=Z%(AY,1):X%(X-1)=Z%(AY+1,0):X%(X)=Z%(AY+1,1)
+    X%(X-2)=U7:X%(X-1)=Z%(AY+1,0):X%(X)=Z%(AY+1,1)
     REM free the current 2 element mal_function and continue
     SZ=2:GOSUB FREE
     GOTO RELEASE_TOP
   RELEASE_METADATA:
     REM add object and metadata object
     RC=RC+2:X=X+2
-    X%(X-1)=Z%(AY,1):X%(X)=Z%(AY+1,1)
+    X%(X-1)=U7:X%(X)=Z%(AY+1,1)
     SZ=2:GOSUB FREE
     GOTO RELEASE_TOP
   RELEASE_ENV:
     REM add the hashmap data to the stack
-    RC=RC+1:X=X+1:X%(X)=Z%(AY,1)
+    RC=RC+1:X=X+1:X%(X)=U7
     REM if no outer set
     IF Z%(AY+1,1)=-1 THEN GOTO RELEASE_ENV_FREE
     REM add outer environment to the stack
@@ -231,9 +244,9 @@ RELEASE:
       SZ=2:GOSUB FREE
       GOTO RELEASE_TOP
   RELEASE_REFERENCE:
-    IF Z%(AY,1)=0 THEN GOTO RELEASE_SIMPLE
+    IF U7=0 THEN GOTO RELEASE_SIMPLE
     REM add the referred element to the stack
-    RC=RC+1:X=X+1:X%(X)=Z%(AY,1)
+    RC=RC+1:X=X+1:X%(X)=U7
     REM free the current element and continue
     SZ=1:GOSUB FREE
     GOTO RELEASE_TOP
@@ -316,31 +329,43 @@ EQUAL_Q:
 
 REM string functions
 
-REM STRING_(AS$) -> R
-REM intern string (returns string index, not Z% index)
-STRING_:
+REM STRING(AS$, T) -> R
+REM intern string and allocate reference (return Z% index)
+STRING:
   IF S=0 THEN GOTO STRING_NOT_FOUND
 
   REM search for matching string in S$
   I=0
-  STRING_LOOP:
+  STRING_FIND_LOOP:
     IF I>S-1 THEN GOTO STRING_NOT_FOUND
-    IF AS$=S$(I) THEN R=I:RETURN
+    IF S%(I)>0 AND AS$=S$(I) THEN GOTO STRING_DONE
     I=I+1
-    GOTO STRING_LOOP
+    GOTO STRING_FIND_LOOP
 
   STRING_NOT_FOUND:
-    S$(S)=AS$
-    R=S
-    S=S+1
-    RETURN
+    I=S-1
+    STRING_FIND_GAP_LOOP:
+      REM TODO: don't search core function names (store position)
+      IF I=-1 THEN GOTO STRING_NEW
+      IF S%(I)=0 THEN GOTO STRING_SET
+      I=I-1
+      GOTO STRING_FIND_GAP_LOOP
 
-REM STRING(AS$, T) -> R
-REM intern string and allocate reference (return Z% index)
-STRING:
-  GOSUB STRING_
-  L=R:GOSUB ALLOC
-  RETURN
+  STRING_NEW:
+    I=S
+    S=S+1
+    REM fallthrough
+
+  STRING_SET:
+REM IF I>85 THEN PRINT "STRING:"+STR$(I)+" "+AS$
+    S$(I)=AS$
+    REM fallthrough
+
+  STRING_DONE:
+    S%(I)=S%(I)+1
+REM PRINT "STRING ref: "+S$(I)+" (idx:"+STR$(I)+", ref "+STR$(S%(I))+")"
+    L=I:GOSUB ALLOC
+    RETURN
 
 REM REPLACE(R$, S1$, S2$) -> R$
 REPLACE:
@@ -482,10 +507,8 @@ ASSOC1:
 
 REM ASSOC1(H, K$, V) -> R
 ASSOC1_S:
-  S$(S)=K$
   REM add the key string
-  T=4:L=S:GOSUB ALLOC
-  S=S+1
+  AS$=K$:T=4:GOSUB STRING
   K=R:GOSUB ASSOC1
   AY=K:GOSUB RELEASE: REM map took ownership of key
   RETURN

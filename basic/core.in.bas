@@ -227,18 +227,17 @@ DO_FUNCTION:
     R=2
     RETURN
   DO_SYMBOL:
-    T=5:L=Z%(AA,1):GOSUB ALLOC
+    AS$=S$(Z%(AA,1))
+    T=5:GOSUB STRING
     RETURN
   DO_SYMBOL_Q:
     R=1
     IF (Z%(AA,0)AND 31)=5 THEN R=2
     RETURN
   DO_KEYWORD:
-    A=Z%(AA,1)
-    AS$=S$(A)
+    AS$=S$(Z%(AA,1))
     IF MID$(AS$,1,1)<>CHR$(127) THEN AS$=CHR$(127)+AS$
-    GOSUB STRING_
-    T=4:L=R:GOSUB ALLOC
+    T=4:GOSUB STRING
     RETURN
   DO_KEYWORD_Q:
     R=1
@@ -525,7 +524,9 @@ DO_FUNCTION:
   REM   RETURN
 
   DO_EVAL:
+    X=X+1:X%(X)=E: REM push/save environment
     A=AA:E=D:CALL EVAL
+    E=X%(X):X=X-1: REM pop/restore previous environment
     RETURN
 
   DO_READ_FILE:
