@@ -106,22 +106,32 @@ READ_FORM:
     RI=RI+LEN(T$)
     REM to call READ_FORM recursively, SD needs to be saved, set to
     REM 0 for the call and then restored afterwards.
-    X=X+2:X%(X-1)=(T$="^"):X%(X)=SD: REM push macro type and SD
+    REM push macro type and SD
+    Q=-1*(T$="^"):GOSUB PUSH_Q
+    Q=SD:GOSUB PUSH_Q
 
     REM B$ is set above
-    T=5:GOSUB STRING:X=X+1:X%(X)=R
+    T=5:GOSUB STRING
+    GOSUB PUSH_R
 
-    SD=0:GOSUB READ_FORM:X=X+1:X%(X)=R
+    SD=0:GOSUB READ_FORM
+    GOSUB PUSH_R
 
-    IF X%(X-3) THEN GOTO READ_MACRO_3
+    Q=3:GOSUB PEEK_Q_Q
+    IF Q THEN GOTO READ_MACRO_3
 
     READ_MACRO_2:
-      B=X%(X-1):A=X%(X):GOSUB LIST2
+      GOSUB PEEK_Q_1:B=Q
+      GOSUB PEEK_Q:A=Q
+      GOSUB LIST2
       GOTO READ_MACRO_DONE
 
     READ_MACRO_3:
       SD=0:GOSUB READ_FORM
-      C=X%(X-1):B=R:A=X%(X):GOSUB LIST3
+      GOSUB PEEK_Q_1:C=Q
+      B=R
+      GOSUB PEEK_Q:A=Q
+      GOSUB LIST3
       AY=C:GOSUB RELEASE
 
     READ_MACRO_DONE:
@@ -129,7 +139,11 @@ READ_FORM:
       AY=B:GOSUB RELEASE
       AY=A:GOSUB RELEASE
 
-      SD=X%(X-2):X=X-4: REM get SD and pop the stack
+      REM get SD and pop the stack
+      GOSUB POP_Q
+      GOSUB POP_Q
+      GOSUB POP_Q:SD=Q
+      GOSUB POP_Q
       T$="": REM necessary to prevent unexpected EOF errors
       GOTO READ_FORM_DONE
   READ_STRING:
@@ -164,14 +178,11 @@ READ_FORM:
     Z%(R,0)=Z%(R,0)+32
 
     REM push start ptr on the stack
-    X=X+1
-    X%(X)=R
+    GOSUB PUSH_R
     REM push current sequence type
-    X=X+1
-    X%(X)=T
+    Q=T:GOSUB PUSH_Q
     REM push previous ptr on the stack
-    X=X+1
-    X%(X)=R
+    GOSUB PUSH_R
 
     RI=RI+LEN(T$)
     GOTO READ_FORM
@@ -179,11 +190,12 @@ READ_FORM:
   READ_SEQ_END:
     REM PRINT "READ_SEQ_END"
     IF SD=0 THEN E$="unexpected '"+C$+"'":GOTO READ_FORM_ABORT
-    IF X%(X-1)<>T THEN E$="sequence mismatch":GOTO READ_FORM_ABORT
+    GOSUB PEEK_Q_1
+    IF Q<>T THEN E$="sequence mismatch":GOTO READ_FORM_ABORT
     SD=SD-1: REM decrease read sequence depth
-    R=X%(X-2): REM ptr to start of sequence to return
-    T=X%(X-1): REM type prior to recur
-    X=X-3: REM pop start, type and previous off the stack
+    GOSUB POP_Q: REM pop previous
+    GOSUB POP_Q:T=Q: REM type prior to recur
+    GOSUB POP_R: REM ptr to start of sequence to return
     GOTO READ_FORM_DONE
 
 
@@ -194,28 +206,29 @@ READ_FORM:
     IF SD=0 THEN RETURN
 
     REM previous element
-    T7=X%(X)
+    GOSUB PEEK_Q:T7=Q
 
     REM allocate new sequence entry, set type to previous type, set
     REM next to previous next or previous (if first)
     L=Z%(T7,1)
     IF T7<9 THEN L=T7
     T8=R: REM save previous value for release
-    T=X%(X-1):N=R:GOSUB ALLOC
+    GOSUB PEEK_Q_1:T=Q
+    N=R:GOSUB ALLOC
     REM list takes ownership
     IF L<9 THEN AY=L:GOSUB RELEASE
     AY=T8:GOSUB RELEASE
 
     REM if previous element is the first element then set
     REM the first to the new element
-    IF T7<9 THEN X%(X-2)=R:GOTO READ_FORM_SKIP_FIRST
+    IF T7<9 THEN Q=R:GOSUB PUT_Q_2:GOTO READ_FORM_SKIP_FIRST
     REM set previous list element to point to new element
     Z%(T7,1)=R
 
     READ_FORM_SKIP_FIRST:
 
     REM update previous pointer to current element
-    X%(X)=R
+    Q=R:GOSUB PUT_Q
     GOTO READ_FORM
 
   READ_FORM_ABORT:
@@ -223,9 +236,12 @@ READ_FORM:
     R=0
     READ_FORM_ABORT_UNWIND:
       IF SD=0 THEN RETURN
-      X=X-3: REM pop previous, type, and start off the stack
-      SD=SD-1
-      IF SD=0 THEN AY=X%(X+1):GOSUB RELEASE
+      SD=SD-1: REM decrease read sequence depth
+      REM pop previous, type, and start off the stack
+      GOSUB POP_Q
+      GOSUB POP_Q
+      GOSUB POP_Q:AY=Q
+      IF SD=0 THEN GOSUB RELEASE
       GOTO READ_FORM_ABORT_UNWIND
 
 

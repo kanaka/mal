@@ -43,6 +43,7 @@ N   : ALLOC* Z%(R+1,1) default
 R   : common return value
 R$  : common string return value
 T   : type arg, common temp
+Q   : PUSH*, POP*, PEEK* return value (and PEEK_Q_Q call arg)
 
 AY  : RELEASE/FREE arg
 AZ  : PR_STR arg
@@ -87,4 +88,4 @@ U7  : RELEASE
 
 Unused:
 
-O, Q, U, V, W
+O, U, V, W

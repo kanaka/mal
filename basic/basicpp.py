@@ -40,7 +40,7 @@ def resolve_includes(orig_lines, keep_rems=0):
     included = {}
     lines = []
     for line in orig_lines:
-        m = re.match(r"^ *REM \$INCLUDE: '([^']*)' *$", line)
+        m = re.match(r"^ *REM \$INCLUDE: '([^'\n]*)' *$", line)
         if m and m.group(1) not in included:
             f = m.group(1)
             if f not in included:
@@ -57,7 +57,7 @@ def resolve_includes(orig_lines, keep_rems=0):
 def resolve_mode(orig_lines, mode):
     lines = []
     for line in orig_lines:
-        m = re.match(r"^ *#([^ ]*) (.*)$", line)
+        m = re.match(r"^ *#([^ \n]*) *([^\n]*)$", line)
         if m:
             if m.group(1) == mode:
                 lines.append(m.group(2))
@@ -88,7 +88,7 @@ def drop_rems(orig_lines):
 def remove_indent(orig_lines):
     lines = []
     for line in orig_lines:
-        m = re.match(r"^ *([^ ].*)$", line)
+        m = re.match(r"^ *([^ \n].*)$", line)
         lines.append(m.group(1))
     return lines
 
@@ -104,6 +104,7 @@ def misc_fixups(orig_lines):
     text = re.sub(r"\bDIM ", "DIM", text)
     text = re.sub(r"\OPEN ", "OPEN", text)
     text = re.sub(r"\bGET ", "GET", text)
+    text = re.sub(r"\bPOKE ", "POKE", text)
 
     # Remove spaces around GOTO/GOSUB/THEN
     text = re.sub(r" *GOTO *", "GOTO", text)
@@ -131,19 +132,19 @@ def finalize(lines, args, mode):
     for line in src_lines:
 
         # Drop labels (track line number for GOTO/GOSUB)
-        m = re.match(r"^ *([^ ]*): *$", line)
+        m = re.match(r"^ *([^ :\n]*): *$", line)
         if m:
             label = m.groups(1)[0]
             labels_lines[label] = lnum
             lines_labels[lnum] = label
             continue
 
-        if re.match(r".*CALL  *([^ :]*) *:", line):
+        if re.match(r".*CALL  *([^ :\n]*) *:", line):
             raise Exception("CALL is not the last thing on line %s" % lnum)
 
         # Replace CALLs (track line number for replacement later)
         #m = re.match(r"\bCALL  *([^ :]*) *$", line)
-        m = re.match(r"(.*)CALL  *([^ :]*) *$", line)
+        m = re.match(r"(.*)CALL  *([^ :\n]*) *$", line)
         if m:
             prefix = m.groups(1)[0]
             sub = m.groups(1)[1]
@@ -154,7 +155,7 @@ def finalize(lines, args, mode):
 
             # Replace the CALL with stack based GOTO
             if mode == "cbm":
-                lines.append("%s %sX=X+1:X%%(X)=%s:GOTO%s" % (
+                lines.append("%s %sQ=%s:GOSUBPUSH_Q:GOTO%s" % (
                     lnum, prefix, call_index[sub], sub))
             else:
                 lines.append("%s %sX=X+1:X%%(X)=%s:GOTO %s" % (
@@ -176,7 +177,7 @@ def finalize(lines, args, mode):
     lnum=1
     for line in src_lines:
         # Drop subroutine defs (track line number for CALLS)
-        m = re.match(r"^([0-9][0-9]*)  *SUB  *([^ ]*) *$", line)
+        m = re.match(r"^([0-9][0-9]*)  *SUB  *([^ \n]*) *$", line)
         if m:
             lnum =  int(m.groups(1)[0])+1
             label = m.groups(1)[1]
@@ -195,7 +196,7 @@ def finalize(lines, args, mode):
 
             ret_labels = [cur_sub+"_"+str(i) for i in range(1, index+1)]
             if mode == "cbm":
-                line = "%s X=X-1:ONX%%(X+1)GOTO%s" % (lnum, ",".join(ret_labels))
+                line = "%s GOSUBPOP_Q:ONQGOTO%s" % (lnum, ",".join(ret_labels))
             else:
                 line = "%s X=X-1:ON X%%(X+1) GOTO %s" % (lnum, ",".join(ret_labels))
             cur_sub = None

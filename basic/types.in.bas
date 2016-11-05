@@ -28,10 +28,12 @@ INIT_MEMORY:
   #cbm T=FRE(0)
   #qbasic T=0
 
-  Z1=2048+1024+512+128: REM Z% (boxed memory) size (4 bytes each)
+  Z1=3950: REM Z% (boxed memory) size (4 bytes each)
   Z2=200: REM S$/S% (string memory) size (3+2 bytes each)
-  Z3=200: REM X% (call stack) size (2 bytes each)
-  Z4=64: REM Y% (release stack) size (4 bytes each)
+  #qbasic Z3=200: REM X% (call stack) size (2 bytes each)
+  #cbm Z3=49152: REM X starting point at $C000 (2 bytes each)
+  #qbasic Z4=64: REM Y% (release stack) size (4 bytes each)
+  #cbm Z4=52992: REM Y starting point at $CF00 (4 bytes each)
 
   REM global error state
   REM  -2 : no error
@@ -68,15 +70,77 @@ INIT_MEMORY:
   S=0:DIM S$(Z2):DIM S%(Z2)
 
   REM call/logic stack
-  X=-1:DIM X%(Z3): REM stack of Z% indexes
+  #qbasic X=-1:DIM X%(Z3): REM stack of Z% indexes
+  #cbm X=Z3-2: REM stack of 1920 Z% indexes at $C000
 
   REM pending release stack
-  Y=-1:DIM Y%(Z4,1): REM stack of Z% indexes and level/LV values
+  #qbasic Y=-1:DIM Y%(Z4,1): REM stack of Z% indexes and level/LV values
+  #cbm Y=Z4-4: REM stack of 64 Y% indexes/levels at $CF00
 
   BT=TI
 
   RETURN
 
+
+REM stack functions
+
+#qbasic PUSH_A:
+#qbasic   X=X+1:X%(X)=A:RETURN
+#qbasic POP_A:
+#qbasic   A=X%(X):X=X-1:RETURN
+#qbasic 
+#qbasic PUSH_R:
+#qbasic   X=X+1:X%(X)=R:RETURN
+#qbasic POP_R:
+#qbasic   R=X%(X):X=X-1:RETURN
+#qbasic 
+#qbasic PUSH_Q:
+#qbasic   X=X+1:X%(X)=Q:RETURN
+#qbasic POP_Q:
+#qbasic   Q=X%(X):X=X-1:RETURN
+#qbasic PEEK_Q:
+#qbasic   Q=X%(X):RETURN
+#qbasic PEEK_Q_1:
+#qbasic   Q=X%(X-1):RETURN
+#qbasic PEEK_Q_2:
+#qbasic   Q=X%(X-2):RETURN
+#qbasic PEEK_Q_Q:
+#qbasic   Q=X%(X-Q):RETURN
+#qbasic PUT_Q:
+#qbasic   X%(X)=Q:RETURN
+#qbasic PUT_Q_1:
+#qbasic   X%(X-1)=Q:RETURN
+#qbasic PUT_Q_2:
+#qbasic   X%(X-2)=Q:RETURN
+
+#cbm PUSH_A:
+#cbm   X=X+2:POKE X,A AND255:POKE X+1,A/256:RETURN
+#cbm POP_A:
+#cbm   A=PEEK(X)+PEEK(X+1)*256:X=X-2:RETURN
+#cbm 
+#cbm PUSH_R:
+#cbm   X=X+2:POKE X,R AND255:POKE X+1,R/256:RETURN
+#cbm POP_R:
+#cbm   R=PEEK(X)+PEEK(X+1)*256:X=X-2:RETURN
+#cbm 
+#cbm PUSH_Q:
+#cbm   X=X+2:POKE X,Q AND255:POKE X+1,Q/256:RETURN
+#cbm POP_Q:
+#cbm   Q=PEEK(X)+PEEK(X+1)*256:X=X-2:RETURN
+#cbm PEEK_Q:
+#cbm   Q=PEEK(X)+PEEK(X+1)*256:RETURN
+#cbm PEEK_Q_1:
+#cbm   Q=PEEK(X-2)+PEEK(X-1)*256:RETURN
+#cbm PEEK_Q_2:
+#cbm   Q=PEEK(X-4)+PEEK(X-3)*256:RETURN
+#cbm PEEK_Q_Q:
+#cbm   Q=PEEK(X-Q*2)+PEEK(X-Q*2+1)*256:RETURN
+#cbm PUT_Q:
+#cbm   POKE X,Q AND255:POKE X+1,Q/256:RETURN
+#cbm PUT_Q_1:
+#cbm   POKE X-2,Q AND255:POKE X-1,Q/256:RETURN
+#cbm PUT_Q_2:
+#cbm   POKE X-4,Q AND255:POKE X-3,Q/256:RETURN
 
 REM memory functions
 
@@ -156,7 +220,7 @@ RELEASE:
   IF RC=0 THEN RETURN
 
   REM pop next object to release, decrease remaining count
-  AY=X%(X):X=X-1
+  GOSUB POP_Q:AY=Q
   RC=RC-1
 
   RELEASE_ONE:
@@ -209,34 +273,41 @@ RELEASE:
     IF U7=0 THEN GOTO RELEASE_SIMPLE_2
     IF Z%(AY+1,0)<>14 THEN ER=-1:E$="invalid list value"+STR$(AY+1):RETURN
     REM add value and next element to stack
-    RC=RC+2:X=X+2
-    X%(X-1)=Z%(AY+1,1):X%(X)=U7
+    RC=RC+2
+    Q=Z%(AY+1,1):GOSUB PUSH_Q
+    Q=U7:GOSUB PUSH_Q
     GOTO RELEASE_SIMPLE_2
   RELEASE_ATOM:
     REM add contained/referred value
-    RC=RC+1:X=X+1:X%(X)=U7
+    RC=RC+1
+    Q=U7:GOSUB PUSH_Q
     REM free the atom itself
     GOTO RELEASE_SIMPLE
   RELEASE_MAL_FUNCTION:
     REM add ast, params and environment to stack
-    RC=RC+3:X=X+3
-    X%(X-2)=U7:X%(X-1)=Z%(AY+1,0):X%(X)=Z%(AY+1,1)
+    RC=RC+3
+    Q=U7:GOSUB PUSH_Q
+    Q=Z%(AY+1,0):GOSUB PUSH_Q
+    Q=Z%(AY+1,1):GOSUB PUSH_Q
     REM free the current 2 element mal_function and continue
     SZ=2:GOSUB FREE
     GOTO RELEASE_TOP
   RELEASE_METADATA:
     REM add object and metadata object
-    RC=RC+2:X=X+2
-    X%(X-1)=U7:X%(X)=Z%(AY+1,1)
+    RC=RC+2
+    Q=U7:GOSUB PUSH_Q
+    Q=Z%(AY+1,1):GOSUB PUSH_Q
     SZ=2:GOSUB FREE
     GOTO RELEASE_TOP
   RELEASE_ENV:
     REM add the hashmap data to the stack
-    RC=RC+1:X=X+1:X%(X)=U7
+    RC=RC+1
+    Q=U7:GOSUB PUSH_Q
     REM if no outer set
     IF Z%(AY+1,1)=-1 THEN GOTO RELEASE_ENV_FREE
     REM add outer environment to the stack
-    RC=RC+1:X=X+1:X%(X)=Z%(AY+1,1)
+    RC=RC+1
+    Q=Z%(AY+1,1):GOSUB PUSH_Q
     RELEASE_ENV_FREE:
       REM free the current 2 element environment and continue
       SZ=2:GOSUB FREE
@@ -244,19 +315,39 @@ RELEASE:
   RELEASE_REFERENCE:
     IF U7=0 THEN GOTO RELEASE_SIMPLE
     REM add the referred element to the stack
-    RC=RC+1:X=X+1:X%(X)=U7
+    RC=RC+1
+    Q=U7:GOSUB PUSH_Q
     REM free the current element and continue
     SZ=1:GOSUB FREE
     GOTO RELEASE_TOP
 
-REM RELEASE_PEND(LV) -> nil
-RELEASE_PEND:
-  IF Y<0 THEN RETURN
-  IF Y%(Y,1)<=LV THEN RETURN
-  REM PRINT "RELEASE_PEND releasing:"+STR$(Y%(Y,0))
-  AY=Y%(Y,0):GOSUB RELEASE
-  Y=Y-1
-  GOTO RELEASE_PEND
+
+REM release stack functions
+
+#qbasic PEND_A_LV:
+#qbasic   Y=Y+1:Y%(Y,0)=A:Y%(Y,1)=LV:RETURN
+#qbasic
+#qbasic REM RELEASE_PEND(LV) -> nil
+#qbasic RELEASE_PEND:
+#qbasic   IF Y<0 THEN RETURN
+#qbasic   IF Y%(Y,1)<=LV THEN RETURN
+#qbasic   REM PRINT "RELEASE_PEND releasing:"+STR$(Y%(Y,0))
+#qbasic   AY=Y%(Y,0):GOSUB RELEASE
+#qbasic   Y=Y-1
+#qbasic   GOTO RELEASE_PEND
+
+#cbm PEND_A_LV:
+#cbm   Y=Y+4:POKE Y,A AND255:POKE Y+1,A/256
+#cbm         POKE Y+2,LV AND255:POKE Y+3,LV/256:RETURN
+#cbm
+#cbm REM RELEASE_PEND(LV) -> nil
+#cbm RELEASE_PEND:
+#cbm   IF Y<Z4 THEN RETURN
+#cbm   IF (PEEK(Y+2)+PEEK(Y+3)*256)<=LV THEN RETURN
+#cbm   REM PRINT "RELEASE_PEND releasing:"+STR$(Y%(Y,0))
+#cbm   AY=(PEEK(Y)+PEEK(Y+1)*256):GOSUB RELEASE
+#cbm   Y=Y-4
+#cbm   GOTO RELEASE_PEND
 
 REM DEREF_R(R) -> R
 DEREF_R:
@@ -287,7 +378,8 @@ EQUAL_Q:
   GOSUB DEREF_B
 
   REM push A and B
-  X=X+2:X%(X-1)=A:X%(X)=B
+  GOSUB PUSH_A
+  Q=B:GOSUB PUSH_Q
   ED=ED+1
 
   T1=Z%(A,0)AND 31
@@ -308,9 +400,11 @@ EQUAL_Q:
 
   EQUAL_Q_SEQ_CONTINUE:
     REM next elements of the sequences
-    A=X%(X-1):B=X%(X)
+    GOSUB PEEK_Q_1:A=Q
+    GOSUB PEEK_Q:B=Q
     A=Z%(A,1):B=Z%(B,1)
-    X%(X-1)=A:X%(X)=B
+    Q=A:GOSUB PUT_Q_1
+    Q=B:GOSUB PUT_Q
     GOTO EQUAL_Q_SEQ
 
   EQUAL_Q_HM:
@@ -318,7 +412,9 @@ EQUAL_Q:
     GOTO EQUAL_Q_DONE
 
   EQUAL_Q_DONE:
-    X=X-2: REM pop current A and B
+    REM pop current A and B
+    GOSUB POP_Q
+    GOSUB POP_Q
     ED=ED-1
     IF R>-1 AND ED>0 THEN GOTO EQUAL_Q_DONE: REM unwind
     IF ED=0 AND R=-1 THEN R=1

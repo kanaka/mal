@@ -1,7 +1,7 @@
 GOTO MAIN
 
-REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'types.in.bas'
+REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
 

@@ -44,9 +44,8 @@ PR_STR:
     RETURN
   PR_SEQ:
     REM push the type and where we are in the sequence
-    X=X+2
-    X%(X-1)=T
-    X%(X)=AZ
+    Q=T:GOSUB PUSH_Q
+    Q=AZ:GOSUB PUSH_Q
     REM save the current rendered string
     S$(S)=R$:S=S+1
     PR_SEQ_LOOP:
@@ -55,19 +54,19 @@ PR_STR:
       REM append what we just rendered it
       S$(S-1)=S$(S-1)+R$
       REM restore current seq type
-      T=X%(X-1)
+      GOSUB PEEK_Q_1:T=Q
       REM Go to next list element
-      AZ=Z%(X%(X),1)
-      X%(X)=AZ
+      GOSUB PEEK_Q
+      AZ=Z%(Q,1)
+      Q=AZ:GOSUB PUT_Q
       IF Z%(AZ,1)<>0 THEN S$(S-1)=S$(S-1)+" "
       GOTO PR_SEQ_LOOP
     PR_SEQ_DONE:
       REM restore the current string
       S=S-1:R$=S$(S)
-      REM get type
-      T=X%(X-1)
       REM pop where we are the sequence and type
-      X=X-2
+      GOSUB POP_Q
+      GOSUB POP_Q:T=Q: REM get type
       IF T=6 THEN R$="("+R$+")"
       IF T=7 THEN R$="["+R$+"]"
       IF T=8 THEN R$="{"+R$+"}"

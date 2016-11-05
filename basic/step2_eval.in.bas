@@ -1,7 +1,7 @@
 GOTO MAIN
 
-REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'types.in.bas'
+REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
 
@@ -17,7 +17,8 @@ SUB EVAL_AST
   LV=LV+1
 
   REM push A and E on the stack
-  X=X+2:X%(X-1)=E:X%(X)=A
+  Q=E:GOSUB PUSH_Q
+  GOSUB PUSH_A
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
@@ -43,26 +44,25 @@ SUB EVAL_AST
     REM allocate the first entry (T already set above)
     L=0:N=0:GOSUB ALLOC
 
-    REM make space on the stack
-    X=X+4
     REM push type of sequence
-    X%(X-3)=T
+    Q=T:GOSUB PUSH_Q
     REM push sequence index
-    X%(X-2)=-1
+    Q=0:GOSUB PUSH_Q
     REM push future return value (new sequence)
-    X%(X-1)=R
+    GOSUB PUSH_R
     REM push previous new sequence entry
-    X%(X)=R
+    GOSUB PUSH_R
 
     EVAL_AST_SEQ_LOOP:
-      REM update index
-      X%(X-2)=X%(X-2)+1
-
       REM check if we are done evaluating the source sequence
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2)AND 1)=0) THEN GOTO EVAL_AST_DO_REF
+      Q=3:GOSUB PEEK_Q_Q:T=Q
+      REM get and update index
+      GOSUB PEEK_Q_2
+      Q=Q+1:GOSUB PUT_Q_2
+      IF T=8 AND ((Q-1)AND 1)=0 THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -79,18 +79,21 @@ SUB EVAL_AST
       EVAL_AST_ADD_VALUE:
 
       REM update previous value pointer to evaluated entry
-      Z%(X%(X)+1,1)=R
+      GOSUB PEEK_Q
+      Z%(Q+1,1)=R
 
       IF ER<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
       REM same new sequence entry type
-      T=X%(X-3):L=0:N=0:GOSUB ALLOC
+      Q=3:GOSUB PEEK_Q_Q:T=Q
+      L=0:N=0:GOSUB ALLOC
 
       REM update previous sequence entry value to point to new entry
-      Z%(X%(X),1)=R
+      GOSUB PEEK_Q
+      Z%(Q,1)=R
       REM update previous ptr to current entry
-      X%(X)=R
+      Q=R:GOSUB PUT_Q
 
       REM process the next sequence entry from source list
       A=Z%(A,1)
@@ -98,14 +101,16 @@ SUB EVAL_AST
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
       REM get return value (new seq), index, and seq type
-      R=X%(X-1)
+      GOSUB PEEK_Q_1
+      R=Q
       REM pop previous, return, index and type
-      X=X-4
+      GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q
       GOTO EVAL_AST_RETURN
 
   EVAL_AST_RETURN:
     REM pop A and E off the stack
-    E=X%(X-1):A=X%(X):X=X-2
+    GOSUB POP_A
+    GOSUB POP_Q:E=Q
 
     LV=LV-1
 END SUB
@@ -115,7 +120,8 @@ SUB EVAL
   LV=LV+1: REM track basic return stack level
 
   REM push A and E on the stack
-  X=X+2:X%(X-1)=E:X%(X)=A
+  Q=E:GOSUB PUSH_Q
+  GOSUB PUSH_A
 
   IF ER<>-2 THEN GOTO EVAL_RETURN
 
@@ -158,7 +164,8 @@ SUB EVAL
     #qbasic T=0
 
     REM pop A and E off the stack
-    E=X%(X-1):A=X%(X):X=X-2
+    GOSUB POP_A
+    GOSUB POP_Q:E=Q
 
 END SUB
 

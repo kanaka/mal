@@ -34,7 +34,8 @@ PR_MEMORY_SUMMARY:
   REM PRINT ", freed:"+STR$(P2)+", after repl_env:"+STR$(ZT)
   GOSUB COUNT_STRINGS
   PRINT "Strings (S$) :"+STR$(P2)+" /"+STR$(Z2)
-  PRINT "Stack (X%)   :"+STR$(X+1)+" /"+STR$(Z3)
+  #qbasic PRINT "Stack (X%)   :"+STR$(X+1)+" /"+STR$(Z3)
+  #cbm PRINT "Stack        :"+STR$(X+2-Z3)+" / 1920"
   RETURN
 
 REM #cbm PR_MEMORY_MAP:

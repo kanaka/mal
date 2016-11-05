@@ -21,7 +21,7 @@ SUB APPLY
     GOTO APPLY_DONE
 
   APPLY_MAL_FUNCTION:
-    X=X+1:X%(X)=E: REM save the current environment
+    Q=E:GOSUB PUSH_Q: REM save the current environment
 
     REM create new environ using env and params stored in the
     REM function and bind the params to the apply arguments
@@ -31,7 +31,7 @@ SUB APPLY
 
     AY=E:GOSUB RELEASE: REM release the new environment
 
-    E=X%(X):X=X-1: REM pop/restore the saved environment
+    GOSUB POP_Q:E=Q: REM pop/restore the saved environment
 
   APPLY_DONE:
 END SUB
@@ -74,11 +74,13 @@ SUB DO_TCO_FUNCTION
       GOTO DO_TCO_FUNCTION_DONE
 
     DO_APPLY_2:
-      X=X+1:X%(X)=R: REM push/save new args for release
+      GOSUB PUSH_R: REM push/save new args for release
 
       AR=R:CALL APPLY
 
-      AY=X%(X):X=X-1:GOSUB RELEASE: REM pop/release new args
+      REM pop/release new args
+      GOSUB POP_Q:AY=Q
+      GOSUB RELEASE
       GOTO DO_TCO_FUNCTION_DONE
 
   DO_MAP:
@@ -88,13 +90,17 @@ SUB DO_TCO_FUNCTION
     T=6:L=0:N=0:GOSUB ALLOC
 
     REM push future return val, prior entry, F and AB
-    X=X+4:X%(X-3)=R:X%(X-2)=0:X%(X-1)=F:X%(X)=AB
+    GOSUB PUSH_R
+    Q=0:GOSUB PUSH_Q
+    Q=F:GOSUB PUSH_Q
+    Q=AB:GOSUB PUSH_Q
 
     DO_MAP_LOOP:
       REM set previous to current if not the first element
-      IF X%(X-2)<>0 THEN Z%(X%(X-2),1)=R
+      GOSUB PEEK_Q_2
+      IF Q<>0 THEN Z%(Q,1)=R
       REM update previous reference to current
-      X%(X-2)=R
+      Q=R:GOSUB PUT_Q_2
 
       IF Z%(AB,1)=0 THEN GOTO DO_MAP_DONE
 
@@ -104,24 +110,28 @@ SUB DO_TCO_FUNCTION
       T=6:L=3:N=Z%(AB+1,1):GOSUB ALLOC
 
       REM push argument list
-      X=X+1:X%(X)=R
+      GOSUB PUSH_R
 
       AR=R:CALL APPLY
 
       REM pop apply args and release them
-      AY=X%(X):X=X-1:GOSUB RELEASE
+      GOSUB POP_Q:AY=Q
+      GOSUB RELEASE
 
       REM set the result value
-      Z%(X%(X-2)+1,1)=R
+      GOSUB PEEK_Q_2
+      Z%(Q+1,1)=R
 
       IF ER<>-2 THEN GOTO DO_MAP_DONE
 
       REM restore F
-      F=X%(X-1)
+      GOSUB PEEK_Q_1:F=Q
 
       REM update AB to next source element
-      X%(X)=Z%(X%(X),1)
-      AB=X%(X)
+      GOSUB PEEK_Q
+      Q=Z%(Q,1)
+      AB=Q
+      GOSUB PUT_Q
 
       REM allocate next element
       T=6:L=0:N=0:GOSUB ALLOC
@@ -129,13 +139,14 @@ SUB DO_TCO_FUNCTION
       GOTO DO_MAP_LOOP
 
     DO_MAP_DONE:
-      REM if no error, get return val
-      IF ER=-2 THEN R=X%(X-3)
+      Q=3:GOSUB PEEK_Q_Q: REM get return val
+      REM if no error, set the return val
+      IF ER=-2 THEN R=Q
       REM otherwise, free the return value and return nil
-      IF ER<>-2 THEN R=0:AY=X%(X-3):GOSUB RELEASE
+      IF ER<>-2 THEN R=0:AY=Q:GOSUB RELEASE
 
       REM pop everything off stack
-      X=X-4
+      GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q
       GOTO DO_TCO_FUNCTION_DONE
 
 
@@ -147,18 +158,19 @@ SUB DO_TCO_FUNCTION
     AR=R
 
     REM push args for release after
-    X=X+1:X%(X)=AR
+    Q=AR:GOSUB PUSH_Q
 
     REM push atom
-    X=X+1:X%(X)=AA
+    Q=AA:GOSUB PUSH_Q
 
     CALL APPLY
 
     REM pop atom
-    AA=X%(X):X=X-1
+    GOSUB POP_Q:AA=Q
 
     REM pop and release args
-    AY=X%(X):X=X-1:GOSUB RELEASE
+    GOSUB POP_Q:AY=Q
+    GOSUB RELEASE
 
     REM use reset to update the value
     AB=R:GOSUB DO_RESET_BANG
@@ -418,21 +430,22 @@ DO_FUNCTION:
 
     REM multiple arguments
     DO_CONCAT_MULT:
+      REM TODO: something other than direct X access?
       CZ=X: REM save current stack position
       REM push arguments onto the stack
       DO_CONCAT_STACK:
         R=AR+1:GOSUB DEREF_R
-        X=X+1:X%(X)=R: REM push sequence
+        GOSUB PUSH_R: REM push sequence
         AR=Z%(AR,1)
         IF Z%(AR,1)<>0 THEN GOTO DO_CONCAT_STACK
 
     REM pop last argument as our seq to prepend to
-    AB=X%(X):X=X-1
+    GOSUB POP_Q:AB=Q
     REM last arg/seq is not copied so we need to inc ref to it
     Z%(AB,0)=Z%(AB,0)+32
     DO_CONCAT_LOOP:
       IF X=CZ THEN R=AB:RETURN
-      AA=X%(X):X=X-1: REM pop off next seq to prepend
+      GOSUB POP_Q:AA=Q: REM pop off next seq to prepend
       IF Z%(AA,1)=0 THEN GOTO DO_CONCAT_LOOP: REM skip empty seqs
       A=AA:B=0:C=-1:GOSUB SLICE
 
@@ -524,9 +537,9 @@ DO_FUNCTION:
   REM   RETURN
 
   DO_EVAL:
-    X=X+1:X%(X)=E: REM push/save environment
+    Q=E:GOSUB PUSH_Q: REM push/save environment
     A=AA:E=D:CALL EVAL
-    E=X%(X):X=X-1: REM pop/restore previous environment
+    GOSUB POP_Q:E=Q
     RETURN
 
   DO_READ_FILE:

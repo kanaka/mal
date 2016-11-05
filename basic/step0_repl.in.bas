@@ -8,9 +8,9 @@ MAL_READ:
   RETURN
 
 REM EVAL(A$, E) -> R$
-SUB EVAL
+EVAL:
   R$=A$
-END SUB
+  RETURN
 
 REM PRINT(A$) -> R$
 MAL_PRINT:
@@ -18,11 +18,11 @@ MAL_PRINT:
   RETURN
 
 REM REP(A$) -> R$
-SUB REP
+REP:
   GOSUB MAL_READ
-  A=R:CALL EVAL
+  A=R:GOSUB EVAL
   A=R:GOSUB MAL_PRINT
-END SUB
+  RETURN
 
 REM MAIN program
 MAIN:
@@ -30,7 +30,7 @@ MAIN:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EZ=1 THEN GOTO QUIT
 
-    A$=R$:CALL REP: REM call REP
+    A$=R$:GOSUB REP: REM call REP
 
     PRINT R$
     GOTO REPL_LOOP

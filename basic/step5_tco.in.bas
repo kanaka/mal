@@ -1,7 +1,7 @@
 GOTO MAIN
 
-REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'types.in.bas'
+REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'reader.in.bas'
 REM $INCLUDE: 'printer.in.bas'
 REM $INCLUDE: 'env.in.bas'
@@ -17,7 +17,8 @@ MAL_READ:
 REM EVAL_AST(A, E) -> R
 SUB EVAL_AST
   REM push A and E on the stack
-  X=X+2:X%(X-1)=E:X%(X)=A
+  Q=E:GOSUB PUSH_Q
+  GOSUB PUSH_A
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
@@ -41,29 +42,29 @@ SUB EVAL_AST
     REM allocate the first entry (T already set above)
     L=0:N=0:GOSUB ALLOC
 
-    REM make space on the stack
-    X=X+4
     REM push type of sequence
-    X%(X-3)=T
+    Q=T:GOSUB PUSH_Q
     REM push sequence index
-    X%(X-2)=-1
+    Q=0:GOSUB PUSH_Q
     REM push future return value (new sequence)
-    X%(X-1)=R
+    GOSUB PUSH_R
     REM push previous new sequence entry
-    X%(X)=R
+    GOSUB PUSH_R
 
     EVAL_AST_SEQ_LOOP:
-      REM update index
-      X%(X-2)=X%(X-2)+1
-
       REM check if we are done evaluating the source sequence
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if we are returning to DO, then skip last element
-      IF X%(X-6)=2 AND Z%(Z%(A,1),1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
+      Q=6:GOSUB PEEK_Q_Q
+      IF Q=2 AND Z%(Z%(A,1),1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM if hashmap, skip eval of even entries (keys)
-      IF (X%(X-3)=8) AND ((X%(X-2)AND 1)=0) THEN GOTO EVAL_AST_DO_REF
+      Q=3:GOSUB PEEK_Q_Q:T=Q
+      REM get and update index
+      GOSUB PEEK_Q_2
+      Q=Q+1:GOSUB PUT_Q_2
+      IF T=8 AND ((Q-1)AND 1)=0 THEN GOTO EVAL_AST_DO_REF
       GOTO EVAL_AST_DO_EVAL
 
       EVAL_AST_DO_REF:
@@ -80,36 +81,41 @@ SUB EVAL_AST
       EVAL_AST_ADD_VALUE:
 
       REM update previous value pointer to evaluated entry
-      Z%(X%(X)+1,1)=R
+      GOSUB PEEK_Q
+      Z%(Q+1,1)=R
 
       IF ER<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM allocate the next entry
       REM same new sequence entry type
-      T=X%(X-3):L=0:N=0:GOSUB ALLOC
+      Q=3:GOSUB PEEK_Q_Q:T=Q
+      L=0:N=0:GOSUB ALLOC
 
       REM update previous sequence entry value to point to new entry
-      Z%(X%(X),1)=R
+      GOSUB PEEK_Q
+      Z%(Q,1)=R
       REM update previous ptr to current entry
-      X%(X)=R
+      Q=R:GOSUB PUT_Q
 
       REM process the next sequence entry from source list
       A=Z%(A,1)
 
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
+      GOSUB PEEK_Q_1
       REM if no error, get return value (new seq)
-      IF ER=-2 THEN R=X%(X-1)
+      IF ER=-2 THEN R=Q
       REM otherwise, free the return value and return nil
-      IF ER<>-2 THEN R=0:AY=X%(X-1):GOSUB RELEASE
+      IF ER<>-2 THEN R=0:AY=Q:GOSUB RELEASE
 
       REM pop previous, return, index and type
-      X=X-4
+      GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q
       GOTO EVAL_AST_RETURN
 
   EVAL_AST_RETURN:
     REM pop A and E off the stack
-    E=X%(X-1):A=X%(X):X=X-2
+    GOSUB POP_A
+    GOSUB POP_Q:E=Q
 END SUB
 
 REM EVAL(A, E) -> R
@@ -117,7 +123,8 @@ SUB EVAL
   LV=LV+1: REM track basic return stack level
 
   REM push A and E on the stack
-  X=X+2:X%(X-1)=E:X%(X)=A
+  Q=E:GOSUB PUSH_Q
+  GOSUB PUSH_A
 
   REM PRINT "EVAL A:"+STR$(A)+",X:"+STR$(X)+",LV:"+STR$(LV)+",FRE:"+STR$(FRE(0))
 
@@ -169,9 +176,9 @@ SUB EVAL
       REM PRINT "def!"
       GOSUB EVAL_GET_A2: REM set A1 and A2
 
-      X=X+1:X%(X)=A1: REM push A1
+      Q=A1:GOSUB PUSH_Q
       A=A2:CALL EVAL: REM eval a2
-      A1=X%(X):X=X-1: REM pop A1
+      GOSUB POP_Q:A1=Q
 
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
@@ -183,8 +190,8 @@ SUB EVAL
       REM PRINT "let*"
       GOSUB EVAL_GET_A2: REM set A1 and A2
 
-      X=X+1:X%(X)=A2: REM push/save A2
-      X=X+1:X%(X)=E: REM push env for for later release
+      Q=A2:GOSUB PUSH_Q: REM push/save A2
+      Q=E:GOSUB PUSH_Q: REM push env for for later release
 
       REM create new environment with outer as current environment
       C=E:GOSUB ENV_NEW
@@ -192,10 +199,10 @@ SUB EVAL
       EVAL_LET_LOOP:
         IF Z%(A1,1)=0 THEN GOTO EVAL_LET_LOOP_DONE
 
-        X=X+1:X%(X)=A1: REM push A1
+        Q=A1:GOSUB PUSH_Q: REM push A1
         REM eval current A1 odd element
         A=Z%(A1,1)+1:CALL EVAL
-        A1=X%(X):X=X-1: REM pop A1
+        GOSUB POP_Q:A1=Q: REM pop A1
 
         IF ER<>-2 THEN GOTO EVAL_LET_LOOP_DONE
 
@@ -208,24 +215,25 @@ SUB EVAL
         GOTO EVAL_LET_LOOP
 
       EVAL_LET_LOOP_DONE:
-        E4=X%(X):X=X-1: REM pop previous env
+        GOSUB POP_Q:E4=Q: REM pop previous env
 
         REM release previous environment if not the current EVAL env
-        IF E4<>X%(X-2) THEN AY=E4:GOSUB RELEASE
+        GOSUB PEEK_Q_2
+        IF E4<>Q THEN AY=E4:GOSUB RELEASE
 
-        A2=X%(X):X=X-1: REM pop A2
+        GOSUB POP_Q:A2=Q: REM pop A2
         A=A2:GOTO EVAL_TCO_RECUR: REM TCO loop
 
     EVAL_DO:
       A=Z%(A,1): REM rest
-      X=X+1:X%(X)=A: REM push/save A
+      GOSUB PUSH_A: REM push/save A
 
       CALL EVAL_AST
 
       REM cleanup
       AY=R: REM get eval'd list for release
 
-      A=X%(X):X=X-1: REM pop/restore original A for LAST
+      GOSUB POP_A: REM pop/restore original A for LAST
       GOSUB LAST: REM get last element for return
       A=R: REM new recur AST
 
@@ -237,11 +245,9 @@ SUB EVAL
 
     EVAL_IF:
       GOSUB EVAL_GET_A1: REM set A1
-      REM push A
-      X=X+1:X%(X)=A
+      GOSUB PUSH_A: REM push/save A
       A=A1:CALL EVAL
-      REM pop A
-      A=X%(X):X=X-1
+      GOSUB POP_A: REM pop/restore A
       IF (R=0) OR (R=1) THEN GOTO EVAL_IF_FALSE
 
       EVAL_IF_TRUE:
@@ -268,7 +274,7 @@ SUB EVAL
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
       REM push f/args for release after call
-      X=X+1:X%(X)=R
+      GOSUB PUSH_R
 
       F=R+1
 
@@ -282,7 +288,7 @@ SUB EVAL
       IF (Z%(F,0)AND 31)=10 THEN GOTO EVAL_DO_MAL_FUNCTION
 
       REM if error, pop and return f/args for release by caller
-      R=X%(X):X=X-1
+      GOSUB POP_R
       ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
 
       EVAL_DO_FUNCTION:
@@ -293,7 +299,8 @@ SUB EVAL
         EVAL_DO_FUNCTION_SKIP:
 
         REM pop and release f/args
-        AY=X%(X):X=X-1:GOSUB RELEASE
+        GOSUB POP_Q:AY=Q
+        GOSUB RELEASE
         GOTO EVAL_RETURN
 
       EVAL_DO_MAL_FUNCTION:
@@ -305,16 +312,18 @@ SUB EVAL
         REM release previous env if it is not the top one on the
         REM stack (X%(X-2)) because our new env refers to it and
         REM we no longer need to track it (since we are TCO recurring)
-        IF E4<>X%(X-2) THEN AY=E4:GOSUB RELEASE
+        GOSUB PEEK_Q_2
+        IF E4<>Q THEN AY=E4:GOSUB RELEASE
 
         REM claim the AST before releasing the list containing it
         A=Z%(F,1):Z%(A,0)=Z%(A,0)+32
         REM add AST to pending release queue to free as soon as EVAL
         REM actually returns (LV+1)
-        Y=Y+1:Y%(Y,0)=A:Y%(Y,1)=LV+1
+        LV=LV+1:GOSUB PEND_A_LV:LV=LV-1
 
         REM pop and release f/args
-        AY=X%(X):X=X-1:GOSUB RELEASE
+        GOSUB POP_Q:AY=Q
+        GOSUB RELEASE
 
         REM A set above
         E=R:GOTO EVAL_TCO_RECUR: REM TCO loop
@@ -324,7 +333,8 @@ SUB EVAL
     REM PRINT "EVAL_RETURN R: ["+R$+"] ("+STR$(R)+"), LV:"+STR$(LV)+",ER:"+STR$(ER)
 
     REM release environment if not the top one on the stack
-    IF E<>X%(X-1) THEN AY=E:GOSUB RELEASE
+    GOSUB PEEK_Q_1
+    IF E<>Q THEN AY=E:GOSUB RELEASE
 
     LV=LV-1: REM track basic return stack level
 
@@ -336,7 +346,8 @@ SUB EVAL
     #qbasic T=0
 
     REM pop A and E off the stack
-    E=X%(X-1):A=X%(X):X=X-2
+    GOSUB POP_A
+    GOSUB POP_Q:E=Q
 
 END SUB
 
