@@ -1,5 +1,3 @@
-REM POKE 1, PEEK(1)AND248: REM enable all ROM areas as RAM
-REM POKE 55,0: POKE 56,192: CLR: REM move BASIC end from $A000 to $C000
 GOTO MAIN
 
 REM $INCLUDE: 'types.in.bas'
