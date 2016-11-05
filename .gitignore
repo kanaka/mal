@@ -27,6 +27,7 @@
 logs
 old
 
+ada/obj/
 awk/mal.awk
 bash/mal.sh
 clojure/mal.jar
