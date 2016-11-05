@@ -229,8 +229,7 @@ mono ./stepX_YYY.exe
 
 *The ChucK implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 
-The ChucK implementation has been tested with ChucK 1.3.5.2 on Arch
-Linux.
+The ChucK implementation has been tested with ChucK 1.3.5.2.
 
 ```
 cd chuck
