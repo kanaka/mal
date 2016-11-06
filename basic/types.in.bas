@@ -28,7 +28,7 @@ INIT_MEMORY:
   #cbm T=FRE(0)
   #qbasic T=0
 
-  Z1=3950: REM Z% (boxed memory) size (4 bytes each)
+  Z1=4096: REM Z% (boxed memory) size (4 bytes each)
   Z2=200: REM S$/S% (string memory) size (3+2 bytes each)
   #qbasic Z3=200: REM X% (call stack) size (2 bytes each)
   #cbm Z3=49152: REM X starting point at $C000 (2 bytes each)
@@ -154,31 +154,31 @@ ALLOC:
   SZ=2
   IF T<6 OR T=9 OR T=12 OR T=14 THEN SZ=1
   REM PRINT "ALLOC T: "+STR$(T)+", SZ: "+STR$(SZ)+", ZK: "+STR$(ZK)
-  U3=ZK
-  U4=ZK
+  U=ZK
+  V=ZK
   ALLOC_LOOP:
-    IF U4=ZI THEN GOTO ALLOC_UNUSED
+    IF V=ZI THEN GOTO ALLOC_UNUSED
     REM TODO sanity check that type is 15
-    IF ((Z%(U4,0)AND-32)/32)=SZ THEN GOTO ALLOC_MIDDLE
-    REM PRINT "ALLOC search: U3: "+STR$(U3)+", U4: "+STR$(U4)
-    U3=U4: REM previous set to current
-    U4=Z%(U4,1): REM current set to next
+    IF ((Z%(V,0)AND-32)/32)=SZ THEN GOTO ALLOC_MIDDLE
+    REM PRINT "ALLOC search: U: "+STR$(U)+", V: "+STR$(V)
+    U=V: REM previous set to current
+    V=Z%(V,1): REM current set to next
     GOTO ALLOC_LOOP
   ALLOC_MIDDLE:
-    REM PRINT "ALLOC_MIDDLE: U3: "+STR$(U3)+", U4: "+STR$(U4)
-    R=U4
+    REM PRINT "ALLOC_MIDDLE: U: "+STR$(U)+", V: "+STR$(V)
+    R=V
     REM set free pointer (ZK) to next free
-    IF U4=ZK THEN ZK=Z%(U4,1)
+    IF V=ZK THEN ZK=Z%(V,1)
     REM set previous free to next free
-    IF U4<>ZK THEN Z%(U3,1)=Z%(U4,1)
+    IF V<>ZK THEN Z%(U,1)=Z%(V,1)
     GOTO ALLOC_DONE
   ALLOC_UNUSED:
-    REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U3: "+STR$(U3)+", U4: "+STR$(U4)
-    R=U4
+    REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U: "+STR$(U)+", V: "+STR$(V)
+    R=V
     ZI=ZI+SZ
-    IF U3=U4 THEN ZK=ZI
+    IF U=V THEN ZK=ZI
     REM set previous free to new memory top
-    IF U3<>U4 THEN Z%(U3,1)=ZI
+    IF U<>V THEN Z%(U,1)=ZI
     GOTO ALLOC_DONE
   ALLOC_DONE:
     Z%(R,0)=T+32
@@ -228,15 +228,15 @@ RELEASE:
   REM nil, false, true
   IF AY<3 THEN GOTO RELEASE_TOP
 
-  U6=Z%(AY,0)AND 31: REM type
-  U7=Z%(AY,1): REM main value/reference
+  U=Z%(AY,0)AND 31: REM type
+  V=Z%(AY,1): REM main value/reference
 
   REM AZ=AY: B=1: GOSUB PR_STR
   REM PRINT "RELEASE AY:"+STR$(AY)+"["+R$+"] (byte0:"+STR$(Z%(AY,0))+")"
 
   REM sanity check not already freed
-  IF (U6)=15 THEN ER=-1:E$="RELEASE of free: "+STR$(AY):RETURN
-  IF U6=14 THEN GOTO RELEASE_REFERENCE
+  IF (U)=15 THEN ER=-1:E$="RELEASE of free: "+STR$(AY):RETURN
+  IF U=14 THEN GOTO RELEASE_REFERENCE
   IF Z%(AY,0)<15 THEN ER=-1:E$="Unowned object: "+STR$(AY):RETURN
 
   REM decrease reference count by one
@@ -246,13 +246,13 @@ RELEASE:
   IF Z%(AY,0)>=32 GOTO RELEASE_TOP
 
   REM switch on type
-  IF U6<=3 OR U6=9 THEN GOTO RELEASE_SIMPLE
-  IF U6=4 OR U6=5 THEN GOTO RELEASE_STRING
-  IF U6>=6 AND U6<=8 THEN GOTO RELEASE_SEQ
-  IF U6=10 OR U6=11 THEN GOTO RELEASE_MAL_FUNCTION
-  IF U6>=16 THEN GOTO RELEASE_METADATA
-  IF U6=12 THEN GOTO RELEASE_ATOM
-  IF U6=13 THEN GOTO RELEASE_ENV
+  IF U<=3 OR U=9 THEN GOTO RELEASE_SIMPLE
+  IF U=4 OR U=5 THEN GOTO RELEASE_STRING
+  IF U>=6 AND U<=8 THEN GOTO RELEASE_SEQ
+  IF U=10 OR U=11 THEN GOTO RELEASE_MAL_FUNCTION
+  IF U>=16 THEN GOTO RELEASE_METADATA
+  IF U=12 THEN GOTO RELEASE_ATOM
+  IF U=13 THEN GOTO RELEASE_ENV
 
   RELEASE_SIMPLE:
     REM simple type (no recursing), just call FREE on it
@@ -264,29 +264,29 @@ RELEASE:
     GOTO RELEASE_TOP
   RELEASE_STRING:
     REM string type, release interned string, then FREE reference
-    IF S%(U7)=0 THEN ER=-1:E$="RELEASE of free string:"+STR$(S%(U7)):RETURN
-    S%(U7)=S%(U7)-1
-    IF S%(U7)=0 THEN S$(U7)="": REM free BASIC string
+    IF S%(V)=0 THEN ER=-1:E$="RELEASE of free string:"+STR$(S%(V)):RETURN
+    S%(V)=S%(V)-1
+    IF S%(V)=0 THEN S$(V)="": REM free BASIC string
     REM free the atom itself
     GOTO RELEASE_SIMPLE
   RELEASE_SEQ:
-    IF U7=0 THEN GOTO RELEASE_SIMPLE_2
+    IF V=0 THEN GOTO RELEASE_SIMPLE_2
     IF Z%(AY+1,0)<>14 THEN ER=-1:E$="invalid list value"+STR$(AY+1):RETURN
     REM add value and next element to stack
     RC=RC+2
     Q=Z%(AY+1,1):GOSUB PUSH_Q
-    Q=U7:GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
     GOTO RELEASE_SIMPLE_2
   RELEASE_ATOM:
     REM add contained/referred value
     RC=RC+1
-    Q=U7:GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
     REM free the atom itself
     GOTO RELEASE_SIMPLE
   RELEASE_MAL_FUNCTION:
     REM add ast, params and environment to stack
     RC=RC+3
-    Q=U7:GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
     Q=Z%(AY+1,0):GOSUB PUSH_Q
     Q=Z%(AY+1,1):GOSUB PUSH_Q
     REM free the current 2 element mal_function and continue
@@ -295,14 +295,14 @@ RELEASE:
   RELEASE_METADATA:
     REM add object and metadata object
     RC=RC+2
-    Q=U7:GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
     Q=Z%(AY+1,1):GOSUB PUSH_Q
     SZ=2:GOSUB FREE
     GOTO RELEASE_TOP
   RELEASE_ENV:
     REM add the hashmap data to the stack
     RC=RC+1
-    Q=U7:GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
     REM if no outer set
     IF Z%(AY+1,1)=-1 THEN GOTO RELEASE_ENV_FREE
     REM add outer environment to the stack
@@ -313,10 +313,10 @@ RELEASE:
       SZ=2:GOSUB FREE
       GOTO RELEASE_TOP
   RELEASE_REFERENCE:
-    IF U7=0 THEN GOTO RELEASE_SIMPLE
+    IF V=0 THEN GOTO RELEASE_SIMPLE
     REM add the referred element to the stack
     RC=RC+1
-    Q=U7:GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
     REM free the current element and continue
     SZ=1:GOSUB FREE
     GOTO RELEASE_TOP
@@ -463,15 +463,15 @@ REM PRINT "STRING ref: "+S$(I)+" (idx:"+STR$(I)+", ref "+STR$(S%(I))+")"
 
 REM REPLACE(R$, S1$, S2$) -> R$
 REPLACE:
-  T3$=R$
+  R3$=R$
   R$=""
   I=1
-  J=LEN(T3$)
+  J=LEN(R3$)
   REPLACE_LOOP:
     IF I>J THEN RETURN
-    C$=MID$(T3$,I,LEN(S1$))
+    C$=MID$(R3$,I,LEN(S1$))
     IF C$=S1$ THEN R$=R$+S2$:I=I+LEN(S1$)
-    IF C$<>S1$ THEN R$=R$+MID$(T3$,I,1):I=I+1
+    IF C$<>S1$ THEN R$=R$+MID$(R3$,I,1):I=I+1
     GOTO REPLACE_LOOP
 
 
@@ -531,20 +531,20 @@ REM returns R6 as reference to last element of slice
 REM returns A as next element following slice (of original)
 SLICE:
   I=0
-  R5=-1: REM temporary for return as R
+  W=-1: REM temporary for return as R
   R6=0: REM previous list element
   SLICE_LOOP:
     REM always allocate at least one list element
     T=6:L=0:N=0:GOSUB ALLOC
-    IF R5=-1 THEN R5=R
-    IF R5<>-1 THEN Z%(R6,1)=R
+    IF W=-1 THEN W=R
+    IF W<>-1 THEN Z%(R6,1)=R
     REM advance A to position B
     SLICE_FIND_B:
       IF I<B AND Z%(A,1)<>0 THEN A=Z%(A,1):I=I+1:GOTO SLICE_FIND_B
     REM if current position is C, then return
-    IF C<>-1 AND I>=C THEN R=R5:RETURN
+    IF C<>-1 AND I>=C THEN R=W:RETURN
     REM if we reached end of A, then return
-    IF Z%(A,1)=0 THEN R=R5:RETURN
+    IF Z%(A,1)=0 THEN R=W:RETURN
     R6=R: REM save previous list element
     REM copy value and inc ref cnt
     Z%(R6+1,1)=Z%(A+1,1)
@@ -609,28 +609,27 @@ ASSOC1_S:
 
 REM HASHMAP_GET(H, K) -> R
 HASHMAP_GET:
-  H2=H
   B$=S$(Z%(K,1)): REM search key string
-  T3=0: REM whether found or not (for HASHMAP_CONTAINS)
+  R3=0: REM whether found or not (for HASHMAP_CONTAINS)
   R=0
   HASHMAP_GET_LOOP:
     REM no matching key found
-    IF Z%(H2,1)=0 THEN R=0:RETURN
+    IF Z%(H,1)=0 THEN R=0:RETURN
     REM follow value ptrs
-    T2=H2+1
+    T2=H+1
     HASHMAP_GET_DEREF:
       IF Z%(T2,0)=14 THEN T2=Z%(T2,1):GOTO HASHMAP_GET_DEREF
     REM get key string
     REM if they are equal, we found it
-    IF B$=S$(Z%(T2,1)) THEN T3=1:R=Z%(H2,1)+1:RETURN
+    IF B$=S$(Z%(T2,1)) THEN R3=1:R=Z%(H,1)+1:RETURN
     REM skip to next key
-    H2=Z%(Z%(H2,1),1)
+    H=Z%(Z%(H,1),1)
     GOTO HASHMAP_GET_LOOP
 
 REM HASHMAP_CONTAINS(H, K) -> R
 HASHMAP_CONTAINS:
   GOSUB HASHMAP_GET
-  R=T3
+  R=R3
   RETURN
 
 

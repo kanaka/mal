@@ -99,7 +99,7 @@ SUB MACROEXPAND
     REM defined in environment?
     K=B:CALL ENV_FIND
     IF R=-1 THEN GOTO MACROEXPAND_DONE
-    B=T4:GOSUB DEREF_B
+    B=R4:GOSUB DEREF_B
     REM macro?
     IF (Z%(B,0)AND 31)<>11 THEN GOTO MACROEXPAND_DONE
 
@@ -330,11 +330,11 @@ SUB EVAL
         GOTO EVAL_LET_LOOP
 
       EVAL_LET_LOOP_DONE:
-        GOSUB POP_Q:E4=Q: REM pop previous env
+        GOSUB POP_Q:AY=Q: REM pop previous env
 
         REM release previous environment if not the current EVAL env
         GOSUB PEEK_Q_2
-        IF E4<>Q THEN AY=E4:GOSUB RELEASE
+        IF AY<>Q THEN GOSUB RELEASE
 
         GOSUB POP_Q:A2=Q: REM pop A2
         A=A2:GOTO EVAL_TCO_RECUR: REM TCO loop
@@ -490,7 +490,7 @@ SUB EVAL
         GOTO EVAL_RETURN
 
       EVAL_DO_MAL_FUNCTION:
-        E4=E: REM save the current environment for release
+        Q=E:GOSUB PUSH_Q: REM save the current environment for release
 
         REM create new environ using env stored with function
         C=Z%(F+1,1):A=Z%(F+1,0):B=AR:GOSUB ENV_NEW_BINDS
@@ -498,8 +498,9 @@ SUB EVAL
         REM release previous env if it is not the top one on the
         REM stack (X%(X-2)) because our new env refers to it and
         REM we no longer need to track it (since we are TCO recurring)
+        GOSUB POP_Q:AY=Q
         GOSUB PEEK_Q_2
-        IF E4<>Q THEN AY=E4:GOSUB RELEASE
+        IF AY<>Q THEN GOSUB RELEASE
 
         REM claim the AST before releasing the list containing it
         A=Z%(F,1):Z%(A,0)=Z%(A,0)+32
@@ -571,13 +572,11 @@ SUB REP
   IF ER<>-2 THEN GOTO REP_DONE
 
   A=R:GOSUB MAL_PRINT
-  RT$=R$
 
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
     IF R2<>0 THEN AY=R2:GOSUB RELEASE
     IF R1<>0 THEN AY=R1:GOSUB RELEASE
-    R$=RT$
 END SUB
 
 REM MAIN program

@@ -3,11 +3,11 @@ REM ENV_NEW(C) -> R
 ENV_NEW:
   REM allocate the data hashmap
   GOSUB HASHMAP
-  ET=R
+  AY=R
 
   REM set the outer and data pointer
   T=13:L=R:N=C:GOSUB ALLOC
-  AY=ET:GOSUB RELEASE: REM environment takes ownership
+  GOSUB RELEASE: REM environment takes ownership
   RETURN
 
 REM see RELEASE types.in.bas for environment cleanup
@@ -68,15 +68,15 @@ ENV_SET_S:
 
 REM ENV_FIND(E, K) -> R
 REM   Returns environment (R) containing K. If found, value found is
-REM   in T4
+REM   in R4
 SUB ENV_FIND
   T=E
   ENV_FIND_LOOP:
     H=Z%(T,1)
-    REM More efficient to use GET for value (R) and contains? (T3)
+    REM More efficient to use GET for value (R) and contains? (R3)
     GOSUB HASHMAP_GET
-    REM if we found it, save value in T4 for ENV_GET
-    IF T3=1 THEN T4=R:GOTO ENV_FIND_DONE
+    REM if we found it, save value in R4 for ENV_GET
+    IF R3=1 THEN R4=R:GOTO ENV_FIND_DONE
     T=Z%(T+1,1): REM get outer environment
     IF T<>-1 THEN GOTO ENV_FIND_LOOP
   ENV_FIND_DONE:
@@ -87,6 +87,6 @@ REM ENV_GET(E, K) -> R
 ENV_GET:
   CALL ENV_FIND
   IF R=-1 THEN R=0:ER=-1:E$="'"+S$(Z%(K,1))+"' not found":GOTO ENV_GET_RETURN
-  R=T4:GOSUB DEREF_R
+  R=R4:GOSUB DEREF_R
   Z%(R,0)=Z%(R,0)+32
   GOTO ENV_GET_RETURN

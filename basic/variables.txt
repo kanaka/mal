@@ -1,6 +1,10 @@
 Global Unique:
 
 Z%  : boxed memory values
+Z1  : Z% size
+Z2  : S$ size
+Z3  : stack start address (cbm) or X% size (qbasic)
+Z4  : release stack start address (cbm) or Y% size (qbasic)
 ZI  : start of unused memory (index into Z%)
 ZK  : start of free list (index into Z%)
 ZT  : top of memory after repl env allocations
@@ -16,6 +20,7 @@ Y   : top element of Y% stack
 
 D   : root repl environment
 
+BT  : begin time (TI)
 ER  : error type (-2: none, -1: string, >=0: object)
 E$  : error string (ER=-1)
 EZ  : READLINE EOF
@@ -31,12 +36,13 @@ Calling arguments/temporaries:
 A   : common call argument (especially EVAL, EVAL_AST)
 A$  : common call argument (READLINE, reader, string temp, key value)
 B   : common call argument
-B$  : STRING arg (HASHMAP_GET temp)
-C   : common call argument
+B$  : STRING arg (HASHMAP_GET temp), PR_STR_SEQ seperator
+C   : common call argument, DO_TCO_FUNCTION temp in DO_APPLY
 E   : environment (EVAL, EVAL_AST)
 F   : function
 H   : hash map
 K   : hash map key (Z% index)
+K$  : INIT_CORE_SET_FUNCTION and ENV_SET_S
 L   : ALLOC* Z%(R,1) default
 M   : ALLOC* Z%(R+1,0) default
 N   : ALLOC* Z%(R+1,1) default
@@ -45,19 +51,29 @@ R$  : common string return value
 T   : type arg, common temp
 Q   : PUSH*, POP*, PEEK* return value (and PEEK_Q_Q call arg)
 
+AR  : APPLY, DO_*_FUNCTION arg list
 AY  : RELEASE/FREE arg
 AZ  : PR_STR arg
 P1  : PR_MEMORY, CHECK_FREE_LIST start
 P2  : PR_MEMORY, CHECK_FREE_LIST end
+R1  : REP, RE - MAL_READ result temp
+R2  : REP, RE - EVAL result temp
+R3  : HASHMAP_GET temp and return value
+R4  : ENV_FIND temp and return value
+R6  : SLICE return value (last element)
 SZ  : size argument to ALLOC
 S1$ : REPLACE needle
 S2$ : REPLACE replacement
 
+
 Other temporaries:
+
 A0  : EVAL ast elements
 A1  : EVAL ast elements
 A2  : EVAL ast elements
 A3  : EVAL ast elements
+AA  : DO_*_FUNCTION arg1
+AB  : DO_*_FUNCTION arg2
 
 CZ  : DO_CONCAT stack position
 ED  : EQUAL_Q recursion depth counter
@@ -69,23 +85,27 @@ C$  : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
 G   : function value ON GOTO switch flag
 I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
 J   : REPLACE
+U   : ALLOC, RELEASE, PR_STR temp
+V   : ALLOC, RELEASE, PR_STR_SEQ temp
+W   : SLICE temp
+RC  : RELEASE remaining number of elements to release
+RF  : reader reading from file flag
+RS  : reader EOF state (1=EOF)
 S1  : READ_TOKEN in a string?
 S2  : READ_TOKEN escaped?
 T$  : READ_* current token string
 T1  : EQUAL_Q, PR_STR, and core DO_KEYS_VALS temp
 T2  : EQUAL_Q, DO_KEY_VALS, HASH_MAP_GET
-T3  : HASHMAP_GET temp and return value
 T3$ : REPLACE temp
-T4  : ENV_FIND temp and return value
-T6  : LAST and QUASIQUOTE temp
-T7  : READ_FORM temp
-T8  : READ_FORM_DONE temp
-T9  : PR_STR_SEQ temp
-U3  : ALLOC
-U4  : ALLOC
-U6  : RELEASE
-U7  : RELEASE
+T6  : LAST and QUASIQUOTE temp (step2-3 EVAL temp)
+T7$ : READ_FORM:READ_STRING character temp
+
 
 Unused:
 
-O, U, V, W
+O
+
+
+Counting number of times each variable is assigned:
+	sed 's/:/\n /g' readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas stepA_mal.in.bas | grep "[A-Z][A-Z0-9]*[%$]*=" | sed 's/.*[^A-Z]\([A-Z][A-Z0-9]*[%$]*\)=.*/\1/g' | sort | uniq -c | sort -n
+

@@ -31,7 +31,7 @@ PR_STR:
     IF LEN(R$)=0 THEN GOTO PR_STRING
     IF MID$(R$,1,1)=CHR$(127) THEN R$=":"+MID$(R$,2,LEN(R$)-1):RETURN
   PR_STRING:
-    IF B=1 THEN PR_STRING_READABLY
+    IF B=1 THEN GOTO PR_STRING_READABLY
     RETURN
   PR_STRING_READABLY:
     S1$="\":S2$="\\":GOSUB REPLACE: REM escape backslash "
@@ -49,7 +49,7 @@ PR_STR:
     REM save the current rendered string
     S$(S)=R$:S=S+1
     PR_SEQ_LOOP:
-      IF Z%(AZ,1)=0 THEN PR_SEQ_DONE
+      IF Z%(AZ,1)=0 THEN GOTO PR_SEQ_DONE
       AZ=AZ+1:GOSUB PR_STR
       REM append what we just rendered it
       S$(S-1)=S$(S-1)+R$
@@ -95,15 +95,17 @@ PR_STR:
     R$="#<free"+STR$(AZ)+", next"+STR$(U)+">"
     RETURN
     
-REM PR_STR_SEQ(AZ, B, SE$) -> R$
+REM PR_STR_SEQ(AZ, B, B$) -> R$
+REM   - B is print_readably
+REM   - B$ is the separator
 PR_STR_SEQ:
-  T9=AZ
+  V=AZ
   S$(S)="":S=S+1
   PR_STR_SEQ_LOOP:
-    IF Z%(T9,1)=0 THEN S=S-1:R$=S$(S):RETURN
-    AZ=T9+1:GOSUB PR_STR
+    IF Z%(V,1)=0 THEN S=S-1:R$=S$(S):RETURN
+    AZ=V+1:GOSUB PR_STR
     REM goto the next sequence element
-    T9=Z%(T9,1)
-    IF Z%(T9,1)=0 THEN S$(S-1)=S$(S-1)+R$
-    IF Z%(T9,1)<>0 THEN S$(S-1)=S$(S-1)+R$+SE$
+    V=Z%(V,1)
+    IF Z%(V,1)=0 THEN S$(S-1)=S$(S-1)+R$
+    IF Z%(V,1)<>0 THEN S$(S-1)=S$(S-1)+R$+B$
     GOTO PR_STR_SEQ_LOOP

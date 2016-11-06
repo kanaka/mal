@@ -210,7 +210,7 @@ SUB EVAL
         GOTO EVAL_RETURN
     EVAL_INVOKE:
       CALL EVAL_AST
-      R3=R
+      T6=R
 
       REM if error, return f/args for release by caller
       IF ER<>-2 THEN GOTO EVAL_RETURN
@@ -220,7 +220,7 @@ SUB EVAL
       R=F:GOSUB DEREF_R:F=R
       IF (Z%(F,0)AND 31)<>9 THEN ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
-      AY=R3:GOSUB RELEASE
+      AY=T6:GOSUB RELEASE
       GOTO EVAL_RETURN
 
   EVAL_RETURN:

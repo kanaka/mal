@@ -2,7 +2,7 @@ REM READLINE(A$) -> R$
 READLINE:
   EZ=0
   PRINT A$;
-  C$="":LI$="":C=0
+  C$="":R$="":C=0
   READCH:
     #cbm GET C$
     #qbasic C$=INKEY$
@@ -15,16 +15,15 @@ READLINE:
     IF C=127 OR C=20 THEN GOTO READCH
     IF (C<32 OR C>127) AND C<>13 THEN GOTO READCH
     PRINT C$;
-    IF LEN(LI$)<255 AND C$<>CHR$(13) THEN LI$=LI$+C$
-    IF LEN(LI$)<255 AND C$<>CHR$(13) THEN GOTO READCH
+    IF LEN(R$)<255 AND C$<>CHR$(13) THEN R$=R$+C$
+    IF LEN(R$)<255 AND C$<>CHR$(13) THEN GOTO READCH
   RL_DONE:
-    R$=LI$
     RETURN
 
-  REM Assumes LI$ has input buffer
+  REM Assumes R$ has input buffer
   RL_BACKSPACE:
-    IF LEN(LI$)=0 THEN RETURN
-    LI$=LEFT$(LI$,LEN(LI$)-1)
+    IF LEN(R$)=0 THEN RETURN
+    R$=LEFT$(R$,LEN(R$)-1)
     #cbm PRINT CHR$(157)+" "+CHR$(157);
     #qbasic LOCATE ,POS(0)-1
     #qbasic PRINT " ";

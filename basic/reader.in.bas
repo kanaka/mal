@@ -205,25 +205,25 @@ READ_FORM:
     REM check read sequence depth
     IF SD=0 THEN RETURN
 
-    REM previous element
-    GOSUB PEEK_Q:T7=Q
+    GOSUB PEEK_Q: REM previous element
 
     REM allocate new sequence entry, set type to previous type, set
     REM next to previous next or previous (if first)
-    L=Z%(T7,1)
-    IF T7<9 THEN L=T7
-    T8=R: REM save previous value for release
+    L=Z%(Q,1)
+    IF Q<9 THEN L=Q
+    AY=R: REM save previous value for release
     GOSUB PEEK_Q_1:T=Q
     N=R:GOSUB ALLOC
     REM list takes ownership
+    GOSUB RELEASE
     IF L<9 THEN AY=L:GOSUB RELEASE
-    AY=T8:GOSUB RELEASE
 
     REM if previous element is the first element then set
     REM the first to the new element
-    IF T7<9 THEN Q=R:GOSUB PUT_Q_2:GOTO READ_FORM_SKIP_FIRST
+    GOSUB PEEK_Q: REM previous element
+    IF Q<9 THEN Q=R:GOSUB PUT_Q_2:GOTO READ_FORM_SKIP_FIRST
     REM set previous list element to point to new element
-    Z%(T7,1)=R
+    Z%(Q,1)=R
 
     READ_FORM_SKIP_FIRST:
 
