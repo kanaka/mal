@@ -1,0 +1,98 @@
+def _printLn(s string) MalVal {
+  printLn(s)
+  return gNil
+}
+
+const ns StringMap<fn(List<MalVal>) MalVal> = {
+  "eval":  (a List<MalVal>) => EVAL(a[0], repl_env),
+  "=":     (a List<MalVal>) => MalVal.fromBool(a[0].equal(a[1])),
+  "throw": (a List<MalVal>) => { throw MalUserError.new(a[0]) },
+
+  "nil?":     (a List<MalVal>) => MalVal.fromBool(a[0] is MalNil),
+  "true?":    (a List<MalVal>) => MalVal.fromBool(a[0] is MalTrue),
+  "false?":   (a List<MalVal>) => MalVal.fromBool(a[0] is MalFalse),
+  "string?":  (a List<MalVal>) => MalVal.fromBool(a[0] is MalString),
+  "symbol":   (a List<MalVal>) => MalSymbol.new((a[0] as MalString).val),
+  "symbol?":  (a List<MalVal>) => MalVal.fromBool(a[0] is MalSymbol),
+  "keyword":  (a List<MalVal>) => MalKeyword.new((a[0] as MalString).val),
+  "keyword?": (a List<MalVal>) => MalVal.fromBool(a[0] is MalKeyword),
+
+  "pr-str":  (a List<MalVal>) => MalString.new(" ".join(a.map<string>(e => pr_str(e, true)))),
+  "str":     (a List<MalVal>) => MalString.new("".join(a.map<string>(e => pr_str(e, false)))),
+  "prn":     (a List<MalVal>) => _printLn(" ".join(a.map<string>(e => pr_str(e, true)))),
+  "println": (a List<MalVal>) => _printLn(" ".join(a.map<string>(e => pr_str(e, false)))),
+  "read-string": (a List<MalVal>) => read_str((a[0] as MalString).val),
+  "readline":    (a List<MalVal>) => {
+                   const line = readLine((a[0] as MalString).val)
+                   return line == null ? gNil : MalString.new(line)
+                 },
+  "slurp":   (a List<MalVal>) => MalString.new(readFile((a[0] as MalString).val)),
+
+  "<":  (a List<MalVal>) => MalVal.fromBool((a[0] as MalNumber).val < (a[1] as MalNumber).val),
+  "<=": (a List<MalVal>) => MalVal.fromBool((a[0] as MalNumber).val <= (a[1] as MalNumber).val),
+  ">":  (a List<MalVal>) => MalVal.fromBool((a[0] as MalNumber).val > (a[1] as MalNumber).val),
+  ">=": (a List<MalVal>) => MalVal.fromBool((a[0] as MalNumber).val >= (a[1] as MalNumber).val),
+  "+":  (a List<MalVal>) => MalNumber.new((a[0] as MalNumber).val + (a[1] as MalNumber).val),
+  "-":  (a List<MalVal>) => MalNumber.new((a[0] as MalNumber).val - (a[1] as MalNumber).val),
+  "*":  (a List<MalVal>) => MalNumber.new((a[0] as MalNumber).val * (a[1] as MalNumber).val),
+  "/":  (a List<MalVal>) => MalNumber.new((a[0] as MalNumber).val / (a[1] as MalNumber).val),
+  "time-ms": (a List<MalVal>) => MalNumber.new(timeMs),
+
+  "list":      (a List<MalVal>) => MalList.new(a),
+  "list?":     (a List<MalVal>) => MalVal.fromBool(a[0] is MalList),
+  "vector":    (a List<MalVal>) => MalVector.new(a),
+  "vector?":   (a List<MalVal>) => MalVal.fromBool(a[0] is MalVector),
+  "hash-map":  (a List<MalVal>) => MalHashMap.fromList(a),
+  "map?":      (a List<MalVal>) => MalVal.fromBool(a[0] is MalHashMap),
+  "assoc":     (a List<MalVal>) => (a[0] as MalHashMap).assoc(a.slice(1)),
+  "dissoc":    (a List<MalVal>) => (a[0] as MalHashMap).dissoc(a.slice(1)),
+  "get":       (a List<MalVal>) => a[0] is MalNil ? gNil : (a[0] as MalHashMap).get(a[1]),
+  "contains?": (a List<MalVal>) => MalVal.fromBool((a[0] as MalHashMap).contains(a[1])),
+  "keys":      (a List<MalVal>) => MalList.new((a[0] as MalHashMap).keys),
+  "vals":      (a List<MalVal>) => MalList.new((a[0] as MalHashMap).vals),
+
+  "sequential?": (a List<MalVal>) => MalVal.fromBool(a[0] is MalSequential),
+  "cons":   (a List<MalVal>) => {
+              var list List<MalVal> = (a[1] as MalSequential).val.clone
+              list.prepend(a[0])
+              return MalList.new(list)
+            },
+  "concat": (a List<MalVal>) => {
+              var list List<MalVal> = []
+              a.each(e => list.append((e as MalSequential).val))
+              return MalList.new(list)
+            },
+  "nth":    (a List<MalVal>) => (a[0] as MalSequential).nth((a[1] as MalNumber).val),
+  "first":  (a List<MalVal>) => a[0] is MalNil ? gNil : (a[0] as MalSequential).first,
+  "rest":   (a List<MalVal>) => a[0] is MalNil ? MalList.new([]) : (a[0] as MalSequential).rest,
+  "empty?": (a List<MalVal>) => MalVal.fromBool((a[0] as MalSequential).count == 0),
+  "count":  (a List<MalVal>) => a[0] is MalNil ? MalNumber.new(0) : MalNumber.new((a[0] as MalSequential).count),
+  "apply":  (a List<MalVal>) => {
+              const f = a[0] as MalCallable
+              var args = a.slice(1, a.count - 1)
+              args.append((a[a.count - 1] as MalSequential).val)
+	      return f.call(args)
+            },
+  "map":    (a List<MalVal>) => {
+              const f = a[0] as MalCallable
+              return MalList.new((a[1] as MalSequential).val.map<MalVal>(e => f.call([e])))
+            },
+
+  "conj": (a List<MalVal>) => (a[0] as MalSequential).conj(a.slice(1)),
+  "seq":  (a List<MalVal>) => a[0].seq,
+
+  "meta":      (a List<MalVal>) => a[0].meta,
+  "with-meta": (a List<MalVal>) => a[0].withMeta(a[1]),
+  "atom":      (a List<MalVal>) => MalAtom.new(a[0]),
+  "atom?":     (a List<MalVal>) => MalVal.fromBool(a[0] is MalAtom),
+  "deref":     (a List<MalVal>) => (a[0] as MalAtom).val,
+  "reset!":    (a List<MalVal>) => (a[0] as MalAtom).resetBang(a[1]),
+  "swap!":     (a List<MalVal>) => {
+                 var atom = a[0] as MalAtom
+                 const oldVal = atom.val
+                 var callArgs = a.slice(2)
+                 callArgs.prepend(oldVal)
+                 const newVal = (a[1] as MalCallable).call(callArgs)
+                 return atom.resetBang(newVal)
+               },
+}

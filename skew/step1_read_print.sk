@@ -1,0 +1,29 @@
+def READ(str string) MalVal {
+  return read_str(str)
+}
+
+def EVAL(ast MalVal, env StringMap<string>) MalVal {
+  return ast
+}
+
+def PRINT(exp MalVal) string {
+  return exp?.print(true)
+}
+
+def REP(str string) string {
+  return PRINT(EVAL(READ(str), {}))
+}
+
+@entry
+def main {
+  var line string
+  while (line = readLine("user> ")) != null {
+    if line == "" { continue }
+    try {
+      printLn(REP(line))
+    }
+    catch e MalError {
+      printLn("Error: \(e.message)")
+    }
+  }
+}

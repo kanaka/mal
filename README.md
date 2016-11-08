@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 62 languages:
+Mal is implemented in 63 languages:
 
 * Ada
 * GNU awk
@@ -64,6 +64,7 @@ Mal is implemented in 62 languages:
 * Ruby
 * Rust
 * Scala
+* Skew
 * Swift
 * Swift 3
 * Tcl
@@ -801,6 +802,19 @@ sbt 'run-main stepX_YYY'
 sbt compile
 scala -classpath target/scala*/classes stepX_YYY
 ```
+
+### Skew ###
+
+*The Skew implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Skew implementation of mal has been tested with Skew 0.7.42.
+
+```
+cd skew
+make
+node stepX_YYY.js
+```
+
 
 ### Swift
 

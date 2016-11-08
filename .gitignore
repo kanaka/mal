@@ -101,6 +101,7 @@ r/lib
 scala/mal.jar
 scala/target
 scala/project
+skew/*.js
 tcl/mal.tcl
 vb/*.exe
 vb/*.dll

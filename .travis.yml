@@ -62,6 +62,7 @@ matrix:
     - {env: IMPL=ruby,      services: [docker]}
     - {env: IMPL=rust,      services: [docker]}
     - {env: IMPL=scala,     services: [docker]}
+    - {env: IMPL=skew,      services: [docker]}
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7}
     - {env: IMPL=swift3,    services: [docker]}
     - {env: IMPL=swift3 NO_DOCKER=1, os: osx, osx_image: xcode8}
