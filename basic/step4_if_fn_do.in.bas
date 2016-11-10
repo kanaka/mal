@@ -237,7 +237,7 @@ SUB EVAL
       EVAL_IF_FALSE:
         AY=R:GOSUB RELEASE
         REM if no false case (A3), return nil
-        B=A:GOSUB COUNT
+        GOSUB COUNT
         IF R<4 THEN R=0:GOTO EVAL_RETURN
         GOSUB EVAL_GET_A3: REM set A1 - A3 after EVAL
         A=A3:GOTO EVAL_TCO_RECUR: REM TCO loop

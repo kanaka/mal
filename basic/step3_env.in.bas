@@ -210,7 +210,7 @@ SUB EVAL
         GOTO EVAL_RETURN
     EVAL_INVOKE:
       CALL EVAL_AST
-      T6=R
+      W=R
 
       REM if error, return f/args for release by caller
       IF ER<>-2 THEN GOTO EVAL_RETURN
@@ -220,7 +220,7 @@ SUB EVAL
       R=F:GOSUB DEREF_R:F=R
       IF (Z%(F,0)AND 31)<>9 THEN ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
       GOSUB DO_FUNCTION
-      AY=T6:GOSUB RELEASE
+      AY=W:GOSUB RELEASE
       GOTO EVAL_RETURN
 
   EVAL_RETURN:
@@ -254,8 +254,8 @@ DO_FUNCTION:
   G=Z%(F,1)
 
   REM Get argument values
-  R=AR+1:GOSUB DEREF_R:AA=Z%(R,1)
-  R=Z%(AR,1)+1:GOSUB DEREF_R:AB=Z%(R,1)
+  R=AR+1:GOSUB DEREF_R:A=Z%(R,1)
+  R=Z%(AR,1)+1:GOSUB DEREF_R:B=Z%(R,1)
 
   REM Switch on the function number
   IF G=1 THEN GOTO DO_ADD
@@ -265,16 +265,16 @@ DO_FUNCTION:
   ER=-1:E$="unknown function"+STR$(G):RETURN
 
   DO_ADD:
-    T=2:L=AA+AB:GOSUB ALLOC
+    T=2:L=A+B:GOSUB ALLOC
     GOTO DO_FUNCTION_DONE
   DO_SUB:
-    T=2:L=AA-AB:GOSUB ALLOC
+    T=2:L=A-B:GOSUB ALLOC
     GOTO DO_FUNCTION_DONE
   DO_MULT:
-    T=2:L=AA*AB:GOSUB ALLOC
+    T=2:L=A*B:GOSUB ALLOC
     GOTO DO_FUNCTION_DONE
   DO_DIV:
-    T=2:L=AA/AB:GOSUB ALLOC
+    T=2:L=A/B:GOSUB ALLOC
     GOTO DO_FUNCTION_DONE
 
   DO_FUNCTION_DONE:
@@ -319,19 +319,19 @@ MAIN:
   E=D
   REM + function
   A=1:GOSUB NATIVE_FUNCTION
-  K$="+":C=R:GOSUB ENV_SET_S
+  B$="+":C=R:GOSUB ENV_SET_S
 
   REM - function
   A=2:GOSUB NATIVE_FUNCTION
-  K$="-":C=R:GOSUB ENV_SET_S
+  B$="-":C=R:GOSUB ENV_SET_S
 
   REM * function
   A=3:GOSUB NATIVE_FUNCTION
-  K$="*":C=R:GOSUB ENV_SET_S
+  B$="*":C=R:GOSUB ENV_SET_S
 
   REM / function
   A=4:GOSUB NATIVE_FUNCTION
-  K$="/":C=R:GOSUB ENV_SET_S
+  B$="/":C=R:GOSUB ENV_SET_S
 
   ZT=ZI: REM top of memory after base repl_env
 

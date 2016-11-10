@@ -28,8 +28,8 @@ INIT_MEMORY:
   #cbm T=FRE(0)
   #qbasic T=0
 
-  Z1=4096: REM Z% (boxed memory) size (4 bytes each)
-  Z2=200: REM S$/S% (string memory) size (3+2 bytes each)
+  Z1=4195: REM Z% (boxed memory) size (4 bytes each)
+  Z2=199: REM S$/S% (string memory) size (3+2 bytes each)
   #qbasic Z3=200: REM X% (call stack) size (2 bytes each)
   #cbm Z3=49152: REM X starting point at $C000 (2 bytes each)
   #qbasic Z4=64: REM Y% (release stack) size (4 bytes each)
@@ -50,15 +50,22 @@ INIT_MEMORY:
   DIM Z%(Z1,1): REM TYPE ARRAY
 
   REM Predefine nil, false, true, and an empty list
-  Z%(0,0)=0:Z%(0,1)=0
-  Z%(1,0)=1:Z%(1,1)=0
+  FOR I=0 TO 8:Z%(I,0)=0:Z%(I,1)=0:NEXT I
+  Z%(1,0)=1
   Z%(2,0)=1:Z%(2,1)=1
   Z%(3,0)=6+32:Z%(3,1)=0
-  Z%(4,0)=0:Z%(4,1)=0
   Z%(5,0)=7+32:Z%(5,1)=0
-  Z%(6,0)=0:Z%(6,1)=0
   Z%(7,0)=8+32:Z%(7,1)=0
-  Z%(8,0)=0:Z%(8,1)=0
+
+REM  Z%(0,0)=0:Z%(0,1)=0
+REM  Z%(1,0)=1:Z%(1,1)=0
+REM  Z%(2,0)=1:Z%(2,1)=1
+REM  Z%(3,0)=6+32:Z%(3,1)=0
+REM  Z%(4,0)=0:Z%(4,1)=0
+REM  Z%(5,0)=7+32:Z%(5,1)=0
+REM  Z%(6,0)=0:Z%(6,1)=0
+REM  Z%(7,0)=8+32:Z%(7,1)=0
+REM  Z%(8,0)=0:Z%(8,1)=0
 
   REM start of unused memory
   ZI=9
@@ -155,30 +162,28 @@ ALLOC:
   IF T<6 OR T=9 OR T=12 OR T=14 THEN SZ=1
   REM PRINT "ALLOC T: "+STR$(T)+", SZ: "+STR$(SZ)+", ZK: "+STR$(ZK)
   U=ZK
-  V=ZK
+  R=ZK
   ALLOC_LOOP:
-    IF V=ZI THEN GOTO ALLOC_UNUSED
+    IF R=ZI THEN GOTO ALLOC_UNUSED
     REM TODO sanity check that type is 15
-    IF ((Z%(V,0)AND-32)/32)=SZ THEN GOTO ALLOC_MIDDLE
-    REM PRINT "ALLOC search: U: "+STR$(U)+", V: "+STR$(V)
-    U=V: REM previous set to current
-    V=Z%(V,1): REM current set to next
+    IF ((Z%(R,0)AND-32)/32)=SZ THEN GOTO ALLOC_MIDDLE
+    REM PRINT "ALLOC search: U: "+STR$(U)+", R: "+STR$(R)
+    U=R: REM previous set to current
+    R=Z%(R,1): REM current set to next
     GOTO ALLOC_LOOP
   ALLOC_MIDDLE:
-    REM PRINT "ALLOC_MIDDLE: U: "+STR$(U)+", V: "+STR$(V)
-    R=V
+    REM PRINT "ALLOC_MIDDLE: U: "+STR$(U)+", R: "+STR$(R)
     REM set free pointer (ZK) to next free
-    IF V=ZK THEN ZK=Z%(V,1)
+    IF R=ZK THEN ZK=Z%(R,1)
     REM set previous free to next free
-    IF V<>ZK THEN Z%(U,1)=Z%(V,1)
+    IF R<>ZK THEN Z%(U,1)=Z%(R,1)
     GOTO ALLOC_DONE
   ALLOC_UNUSED:
-    REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U: "+STR$(U)+", V: "+STR$(V)
-    R=V
+    REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U: "+STR$(U)+", R: "+STR$(R)
     ZI=ZI+SZ
-    IF U=V THEN ZK=ZI
+    IF U=R THEN ZK=ZI
     REM set previous free to new memory top
-    IF U<>V THEN Z%(U,1)=ZI
+    IF U<>R THEN Z%(U,1)=ZI
     GOTO ALLOC_DONE
   ALLOC_DONE:
     Z%(R,0)=T+32
@@ -236,8 +241,7 @@ RELEASE:
 
   REM sanity check not already freed
   IF (U)=15 THEN ER=-1:E$="RELEASE of free: "+STR$(AY):RETURN
-  IF U=14 THEN GOTO RELEASE_REFERENCE
-  IF Z%(AY,0)<15 THEN ER=-1:E$="Unowned object: "+STR$(AY):RETURN
+  IF Z%(AY,0)<15 THEN ER=-1:E$="Unowned: "+STR$(AY):RETURN
 
   REM decrease reference count by one
   Z%(AY,0)=Z%(AY,0)-32
@@ -246,43 +250,46 @@ RELEASE:
   IF Z%(AY,0)>=32 GOTO RELEASE_TOP
 
   REM switch on type
-  IF U<=3 OR U=9 THEN GOTO RELEASE_SIMPLE
-  IF U=4 OR U=5 THEN GOTO RELEASE_STRING
-  IF U>=6 AND U<=8 THEN GOTO RELEASE_SEQ
-  IF U=10 OR U=11 THEN GOTO RELEASE_MAL_FUNCTION
-  IF U>=16 THEN GOTO RELEASE_METADATA
-  IF U=12 THEN GOTO RELEASE_ATOM
-  IF U=13 THEN GOTO RELEASE_ENV
+  SZ=1: REM default FREE size, adjusted by RELEASE_*
+  IF U>=16 THEN GOSUB RELEASE_METADATA
+
+REM  IF U<=3 OR U=9 THEN GOSUB RELEASE_SIMPLE
+REM  IF U=4 OR U=5 THEN GOSUB RELEASE_STRING
+REM  IF U>=6 AND U<=8 THEN GOSUB RELEASE_SEQ
+REM  IF U=10 OR U=11 THEN GOSUB RELEASE_MAL_FUNCTION
+REM  IF U>=16 THEN GOSUB RELEASE_METADATA
+REM  IF U=12 THEN GOSUB RELEASE_ATOM
+REM  IF U=13 THEN GOSUB RELEASE_ENV
+
+  ON U+1 GOSUB RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_STRING,RELEASE_STRING,RELEASE_SEQ,RELEASE_SEQ,RELEASE_SEQ,RELEASE_SIMPLE,RELEASE_MAL_FUNCTION,RELEASE_MAL_FUNCTION,RELEASE_ATOM,RELEASE_ENV
+
+  REM free the current element and continue, SZ already set
+  GOSUB FREE
+  GOTO RELEASE_TOP
 
   RELEASE_SIMPLE:
-    REM simple type (no recursing), just call FREE on it
-    SZ=1:GOSUB FREE
-    GOTO RELEASE_TOP
-  RELEASE_SIMPLE_2:
-    REM free the current element and continue
-    SZ=2:GOSUB FREE
-    GOTO RELEASE_TOP
+    RETURN
   RELEASE_STRING:
     REM string type, release interned string, then FREE reference
     IF S%(V)=0 THEN ER=-1:E$="RELEASE of free string:"+STR$(S%(V)):RETURN
     S%(V)=S%(V)-1
     IF S%(V)=0 THEN S$(V)="": REM free BASIC string
     REM free the atom itself
-    GOTO RELEASE_SIMPLE
+    RETURN
   RELEASE_SEQ:
-    IF V=0 THEN GOTO RELEASE_SIMPLE_2
+    IF V=0 THEN SZ=2:RETURN
     IF Z%(AY+1,0)<>14 THEN ER=-1:E$="invalid list value"+STR$(AY+1):RETURN
     REM add value and next element to stack
     RC=RC+2
     Q=Z%(AY+1,1):GOSUB PUSH_Q
     Q=V:GOSUB PUSH_Q
-    GOTO RELEASE_SIMPLE_2
+    SZ=2:RETURN
   RELEASE_ATOM:
     REM add contained/referred value
     RC=RC+1
     Q=V:GOSUB PUSH_Q
     REM free the atom itself
-    GOTO RELEASE_SIMPLE
+    RETURN
   RELEASE_MAL_FUNCTION:
     REM add ast, params and environment to stack
     RC=RC+3
@@ -290,36 +297,21 @@ RELEASE:
     Q=Z%(AY+1,0):GOSUB PUSH_Q
     Q=Z%(AY+1,1):GOSUB PUSH_Q
     REM free the current 2 element mal_function and continue
-    SZ=2:GOSUB FREE
-    GOTO RELEASE_TOP
+    SZ=2:RETURN
   RELEASE_METADATA:
     REM add object and metadata object
     RC=RC+2
     Q=V:GOSUB PUSH_Q
     Q=Z%(AY+1,1):GOSUB PUSH_Q
-    SZ=2:GOSUB FREE
-    GOTO RELEASE_TOP
+    SZ=2:RETURN
   RELEASE_ENV:
     REM add the hashmap data to the stack
     RC=RC+1
     Q=V:GOSUB PUSH_Q
-    REM if no outer set
-    IF Z%(AY+1,1)=-1 THEN GOTO RELEASE_ENV_FREE
+    REM if outer set, add outer env to stack
+    IF Z%(AY+1,1)<>-1 THEN RC=RC+1:Q=Z%(AY+1,1):GOSUB PUSH_Q
     REM add outer environment to the stack
-    RC=RC+1
-    Q=Z%(AY+1,1):GOSUB PUSH_Q
-    RELEASE_ENV_FREE:
-      REM free the current 2 element environment and continue
-      SZ=2:GOSUB FREE
-      GOTO RELEASE_TOP
-  RELEASE_REFERENCE:
-    IF V=0 THEN GOTO RELEASE_SIMPLE
-    REM add the referred element to the stack
-    RC=RC+1
-    Q=V:GOSUB PUSH_Q
-    REM free the current element and continue
-    SZ=1:GOSUB FREE
-    GOTO RELEASE_TOP
+    SZ=2:RETURN
 
 
 REM release stack functions
@@ -391,8 +383,8 @@ EQUAL_Q:
   GOTO EQUAL_Q_DONE
 
   EQUAL_Q_SEQ:
-    IF (Z%(A,1)=0) AND (Z%(B,1)=0) THEN GOTO EQUAL_Q_DONE
-    IF (Z%(A,1)=0) OR (Z%(B,1)=0) THEN R=0:GOTO EQUAL_Q_DONE
+    IF Z%(A,1)=0 AND Z%(B,1)=0 THEN GOTO EQUAL_Q_DONE
+    IF Z%(A,1)=0 OR Z%(B,1)=0 THEN R=0:GOTO EQUAL_Q_DONE
 
     REM compare the elements
     A=Z%(A+1,1):B=Z%(B+1,1)
@@ -463,15 +455,15 @@ REM PRINT "STRING ref: "+S$(I)+" (idx:"+STR$(I)+", ref "+STR$(S%(I))+")"
 
 REM REPLACE(R$, S1$, S2$) -> R$
 REPLACE:
-  R3$=R$
+  T3$=R$
   R$=""
   I=1
-  J=LEN(R3$)
+  J=LEN(T3$)
   REPLACE_LOOP:
     IF I>J THEN RETURN
-    C$=MID$(R3$,I,LEN(S1$))
+    C$=MID$(T3$,I,LEN(S1$))
     IF C$=S1$ THEN R$=R$+S2$:I=I+LEN(S1$)
-    IF C$<>S1$ THEN R$=R$+MID$(R3$,I,1):I=I+1
+    IF C$<>S1$ THEN R$=R$+MID$(T3$,I,1):I=I+1
     GOTO REPLACE_LOOP
 
 
@@ -500,28 +492,29 @@ EMPTY_Q:
   IF Z%(A,1)=0 THEN R=1
   RETURN
 
-REM COUNT(B) -> R
+REM COUNT(A) -> R
 REM - returns length of list, not a Z% index
-REM - modifies B
 COUNT:
+  GOSUB PUSH_A
   R=-1
   DO_COUNT_LOOP:
     R=R+1
-    IF Z%(B,1)<>0 THEN B=Z%(B,1):GOTO DO_COUNT_LOOP
+    IF Z%(A,1)<>0 THEN A=Z%(A,1):GOTO DO_COUNT_LOOP
+  GOSUB POP_A
   RETURN
 
 REM LAST(A) -> R
 LAST:
   REM TODO check that actually a list/vector
   IF Z%(A,1)=0 THEN R=0:RETURN: REM empty seq, return nil
-  T6=0
+  W=0
   LAST_LOOP:
     IF Z%(A,1)=0 THEN GOTO LAST_DONE: REM end, return previous value
-    T6=A: REM current becomes previous entry
+    W=A: REM current becomes previous entry
     A=Z%(A,1): REM next entry
     GOTO LAST_LOOP
   LAST_DONE:
-    R=T6+1:GOSUB DEREF_R
+    R=W+1:GOSUB DEREF_R
     Z%(R,0)=Z%(R,0)+32
     RETURN
 
@@ -599,10 +592,10 @@ ASSOC1:
   AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
   RETURN
 
-REM ASSOC1(H, K$, C) -> R
+REM ASSOC1_S(H, B$, C) -> R
 ASSOC1_S:
   REM add the key string
-  B$=K$:T=4:GOSUB STRING
+  T=4:GOSUB STRING
   K=R:GOSUB ASSOC1
   AY=K:GOSUB RELEASE: REM map took ownership of key
   RETURN

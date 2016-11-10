@@ -43,7 +43,7 @@ SUB QUASIQUOTE
     GOSUB PUSH_A
     REM rest of cases call quasiquote on ast[1..]
     A=Z%(A,1):CALL QUASIQUOTE
-    T6=R
+    W=R
     GOSUB POP_A
 
     REM set A to ast[0] for last two cases
@@ -60,7 +60,7 @@ SUB QUASIQUOTE
 
       B=Z%(A,1)+1:GOSUB DEREF_B:B=B
       B$="concat":T=5:GOSUB STRING:C=R
-      A=T6:GOSUB LIST3
+      A=W:GOSUB LIST3
       REM release inner quasiquoted since outer list takes ownership
       AY=A:GOSUB RELEASE
       AY=C:GOSUB RELEASE
@@ -69,14 +69,14 @@ SUB QUASIQUOTE
   QQ_DEFAULT:
     REM ['cons, quasiquote(ast[0]), quasiquote(ast[1..])]
 
-    Q=T6:GOSUB PUSH_Q
+    Q=W:GOSUB PUSH_Q
     REM A set above to ast[0]
     CALL QUASIQUOTE
     B=R
-    GOSUB POP_Q:T6=Q
+    GOSUB POP_Q:W=Q
 
     B$="cons":T=5:GOSUB STRING:C=R
-    A=T6:GOSUB LIST3
+    A=W:GOSUB LIST3
     REM release inner quasiquoted since outer list takes ownership
     AY=A:GOSUB RELEASE
     AY=B:GOSUB RELEASE
@@ -345,7 +345,7 @@ SUB EVAL
       EVAL_IF_FALSE:
         AY=R:GOSUB RELEASE
         REM if no false case (A3), return nil
-        B=A:GOSUB COUNT
+        GOSUB COUNT
         IF R<4 THEN R=0:GOTO EVAL_RETURN
         GOSUB EVAL_GET_A3: REM set A1 - A3 after EVAL
         A=A3:GOTO EVAL_TCO_RECUR: REM TCO loop

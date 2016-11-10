@@ -58,7 +58,7 @@ ENV_SET:
   R=C
   RETURN
 
-REM ENV_SET_S(E, K$, C) -> R
+REM ENV_SET_S(E, B$, C) -> R
 ENV_SET_S:
   H=Z%(E,1)
   GOSUB ASSOC1_S

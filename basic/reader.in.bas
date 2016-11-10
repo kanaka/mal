@@ -29,16 +29,16 @@ READ_TOKEN:
     GOTO READ_TOKEN_LOOP
 
 READ_FILE_CHUNK:
-  IF RS=1 THEN RETURN
+  IF EZ=1 THEN RETURN
   IF RI>1 THEN A$=MID$(A$,RI,LEN(A$)-RI+1):RI=1:RJ=RJ-RI+1
   READ_FILE_CHUNK_LOOP:
     IF LEN(A$)>RJ+9 THEN RETURN
     #cbm GET#2,C$
     #qbasic C$=INPUT$(1,2)
-    #qbasic IF EOF(2) THEN RS=1:A$=A$+CHR$(10)+")":RETURN
+    #qbasic IF EOF(2) THEN EZ=1:A$=A$+CHR$(10)+")":RETURN
     A$=A$+C$
-    #cbm IF (ST AND 64) THEN RS=1:A$=A$+CHR$(10)+")":RETURN
-    #cbm IF (ST AND 255) THEN RS=1:ER=-1:E$="File read error "+STR$(ST):RETURN
+    #cbm IF (ST AND 64) THEN EZ=1:A$=A$+CHR$(10)+")":RETURN
+    #cbm IF (ST AND 255) THEN EZ=1:ER=-1:E$="File read error "+STR$(ST):RETURN
     GOTO READ_FILE_CHUNK_LOOP
 
 SKIP_SPACES:
@@ -148,8 +148,8 @@ READ_FORM:
       GOTO READ_FORM_DONE
   READ_STRING:
     REM PRINT "READ_STRING"
-    T7$=MID$(T$,LEN(T$),1)
-    IF T7$<>CHR$(34) THEN E$="expected '"+CHR$(34)+"'":GOTO READ_FORM_ABORT
+    C=ASC(MID$(T$,LEN(T$),1))
+    IF C<>34 THEN E$="expected '"+CHR$(34)+"'":GOTO READ_FORM_ABORT
     R$=MID$(T$,2,LEN(T$)-2)
     S1$=CHR$(92)+CHR$(34):S2$=CHR$(34):GOSUB REPLACE: REM unescape quotes
     S1$=CHR$(92)+"n":S2$=CHR$(13):GOSUB REPLACE: REM unescape newlines
@@ -258,7 +258,7 @@ READ_FILE:
   RI=1: REM index into A$
   RJ=1: REM READ_TOKEN sub-index
   RF=1: REM reading from file
-  RS=0: REM file read state (1: EOF)
+  EZ=0: REM file read state (1: EOF)
   SD=0: REM sequence read depth
   #cbm OPEN 2,8,0,A$
   #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
@@ -266,4 +266,5 @@ READ_FILE:
   REM READ_FILE_CHUNK adds terminating ")"
   A$="(do ":GOSUB READ_FORM
   CLOSE 2
+  EZ=0
   RETURN

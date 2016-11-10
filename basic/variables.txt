@@ -23,7 +23,7 @@ D   : root repl environment
 BT  : begin time (TI)
 ER  : error type (-2: none, -1: string, >=0: object)
 E$  : error string (ER=-1)
-EZ  : READLINE EOF
+EZ  : READLINE EOF return, READ_FILE EOF temp
 
 LV  : EVAL stack call level/depth
 
@@ -37,12 +37,12 @@ A   : common call argument (especially EVAL, EVAL_AST)
 A$  : common call argument (READLINE, reader, string temp, key value)
 B   : common call argument
 B$  : STRING arg (HASHMAP_GET temp), PR_STR_SEQ seperator
+    : INIT_CORE_SET_FUNCTION, ENV_SET_S, ASSOC1_S
 C   : common call argument, DO_TCO_FUNCTION temp in DO_APPLY
 E   : environment (EVAL, EVAL_AST)
 F   : function
 H   : hash map
 K   : hash map key (Z% index)
-K$  : INIT_CORE_SET_FUNCTION and ENV_SET_S
 L   : ALLOC* Z%(R,1) default
 M   : ALLOC* Z%(R+1,0) default
 N   : ALLOC* Z%(R+1,1) default
@@ -72,33 +72,27 @@ A0  : EVAL ast elements
 A1  : EVAL ast elements
 A2  : EVAL ast elements
 A3  : EVAL ast elements
-AA  : DO_*_FUNCTION arg1
-AB  : DO_*_FUNCTION arg2
 
 CZ  : DO_CONCAT stack position
 ED  : EQUAL_Q recursion depth counter
 RD  : PR_OBJECT recursion depth
 SD  : READ_STR sequence read recursion depth
 
-
 C$  : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
 G   : function value ON GOTO switch flag
 I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
 J   : REPLACE
 U   : ALLOC, RELEASE, PR_STR temp
-V   : ALLOC, RELEASE, PR_STR_SEQ temp
-W   : SLICE temp
+V   : RELEASE, PR_STR_SEQ temp
+W   : SLICE, LAST, QUASIQUOTE, step2-3 EVAL temp
 RC  : RELEASE remaining number of elements to release
 RF  : reader reading from file flag
-RS  : reader EOF state (1=EOF)
 S1  : READ_TOKEN in a string?
 S2  : READ_TOKEN escaped?
 T$  : READ_* current token string
-T1  : EQUAL_Q, PR_STR, and core DO_KEYS_VALS temp
+T1  : EQUAL_Q, PR_STR, DO_KEYS_VALS temp
 T2  : EQUAL_Q, DO_KEY_VALS, HASH_MAP_GET
 T3$ : REPLACE temp
-T6  : LAST and QUASIQUOTE temp (step2-3 EVAL temp)
-T7$ : READ_FORM:READ_STRING character temp
 
 
 Unused:
