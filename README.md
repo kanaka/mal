@@ -21,6 +21,7 @@ Mal is implemented in 61 languages:
 * CoffeeScript
 * Crystal
 * D
+* Dart
 * Elixir
 * Emacs Lisp
 * Erlang
@@ -291,6 +292,17 @@ readline library.
 cd d
 make
 ./stepX_YYY
+```
+
+### Dart
+
+*The Dart implementation was created by [Harry Terkelsen](https://github.com/hterkelsen)*
+
+The Dart implementation has been tested with Dart 1.20.
+
+```
+cd dart
+dart ./stepX_YYY
 ```
 
 ### Emacs Lisp
