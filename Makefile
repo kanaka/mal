@@ -77,11 +77,12 @@ DOCKERIZE =
 # Settings
 #
 
-IMPLS = ada awk bash c d chuck clojure coffee cpp crystal cs dart erlang elisp \
-	elixir es6 factor forth fsharp go groovy guile haskell haxe \
-	io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
-	nim objc objpascal perl perl6 php plpgsql plsql ps python r \
-	racket rpython ruby rust scala swift swift3 tcl vb vhdl vimscript
+IMPLS = ada awk bash basic c d chuck clojure coffee clisp cpp crystal cs dart \
+        erlang elisp elixir es6 factor forth fsharp go groovy guile haskell \
+        haxe io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
+	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
+	python r racket rpython ruby rust scala swift swift3 tcl vb vhdl \
+	vimscript
 
 step0 = step0_repl
 step1 = step1_read_print
