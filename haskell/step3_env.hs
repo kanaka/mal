@@ -1,6 +1,6 @@
 import System.IO (hFlush, stdout)
 import Control.Monad (mapM)
-import Control.Monad.Error (runErrorT)
+import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map as Map
 import qualified Data.Traversable as DT
@@ -95,7 +95,7 @@ repl_loop env = do
         Nothing -> return ()
         Just "" -> repl_loop env
         Just str -> do
-            res <- runErrorT $ rep env str
+            res <- runExceptT $ rep env str
             out <- case res of
                 Left (StringError str) -> return $ "Error: " ++ str
                 Left (MalValError mv) -> return $ "Error: " ++ (show mv)

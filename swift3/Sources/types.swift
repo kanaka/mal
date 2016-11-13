@@ -1,5 +1,5 @@
 
-enum MalError: ErrorProtocol {
+enum MalError: Error {
     case Reader(msg: String)
     case General(msg: String)
     case MalException(obj: MalVal)
@@ -152,18 +152,18 @@ func hash_map(_ arr: Array<MalVal>) throws -> MalVal {
 
 
 // function functions
-func malfunc(_ fn: (Array<MalVal>) throws -> MalVal) -> MalVal {
+func malfunc(_ fn: @escaping (Array<MalVal>) throws -> MalVal) -> MalVal {
     return MV.MalFunc(fn, ast: nil, env: nil, params: nil,
                       macro: false, meta: nil)
 }
-func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
+func malfunc(_ fn: @escaping (Array<MalVal>) throws -> MalVal,
              ast: Array<MalVal>?,
              env: Env?,
              params: Array<MalVal>?) -> MalVal {
     return MV.MalFunc(fn, ast: ast, env: env, params: params,
                       macro: false, meta: nil)
 }
-func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
+func malfunc(_ fn: @escaping (Array<MalVal>) throws -> MalVal,
              ast: Array<MalVal>?,
              env: Env?,
              params: Array<MalVal>?,
@@ -172,7 +172,7 @@ func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
     return MV.MalFunc(fn, ast: ast, env: env, params: params,
                       macro: macro, meta: meta != nil ? [meta!] : nil)
 }
-func malfunc(_ fn: (Array<MalVal>) throws -> MalVal,
+func malfunc(_ fn: @escaping (Array<MalVal>) throws -> MalVal,
              ast: Array<MalVal>?,
              env: Env?,
              params: Array<MalVal>?,

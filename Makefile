@@ -108,12 +108,14 @@ regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
 test_EXCLUDES += test^bash^step5   # never completes at 10,000
+test_EXCLUDES += test^basic^step5  # too slow, and limited to ints of 2^16
 test_EXCLUDES += test^logo^step5   # too slow for 10,000
 test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
 test_EXCLUDES += test^mal^step5    # host impl dependent
 test_EXCLUDES += test^matlab^step5 # never completes at 10,000
 test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
 test_EXCLUDES += test^plsql^step5  # too slow for 10,000
+test_EXCLUDES += test^powershell^step5  # too slow for 10,000
 
 perf_EXCLUDES = mal  # TODO: fix this
 
@@ -144,11 +146,13 @@ STEP_TEST_FILES = $(strip $(wildcard \
 ada_STEP_TO_PROG =     ada/$($(1))
 awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
+basic_STEP_TO_PROG =   basic/$($(1)).bas
 c_STEP_TO_PROG =       c/$($(1))
 d_STEP_TO_PROG =       d/$($(1))
 chuck_STEP_TO_PROG =   chuck/$($(1)).ck
 clojure_STEP_TO_PROG = clojure/target/$($(1)).jar
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
+clisp_STEP_TO_PROG = clisp/$($(1)).fas
 cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
@@ -181,8 +185,10 @@ objpascal_STEP_TO_PROG = objpascal/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 perl6_STEP_TO_PROG =   perl6/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
+pil_STEP_TO_PROG =     pil/$($(1)).l
 plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
 plsql_STEP_TO_PROG =   plsql/$($(1)).sql
+powershell_STEP_TO_PROG =  powershell/$($(1)).ps1
 ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
@@ -247,6 +253,8 @@ get_argvtest_cmd = $(call get_run_prefix,$(1),$(2)) ../run_argv_test.sh
 
 vimscript_TEST_OPTS = --test-timeout 30
 ifeq ($(MAL_IMPL),vimscript)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+else ifeq ($(MAL_IMPL),powershell)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 endif
 

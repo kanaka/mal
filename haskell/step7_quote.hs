@@ -1,7 +1,7 @@
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Control.Monad (mapM)
-import Control.Monad.Error (runErrorT)
+import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map as Map
 import qualified Data.Traversable as DT
@@ -91,7 +91,7 @@ apply_ast ast@(MalList (MalSymbol "do" : args) _) env = do
             el <- eval_ast (MalList args Nil) env
             case el of
                  (MalList lst _) -> return $ last lst
-            
+
 apply_ast ast@(MalList (MalSymbol "if" : args) _) env = do
     case args of
          (a1 : a2 : a3 : []) -> do
@@ -153,7 +153,7 @@ repl_loop env = do
         Nothing -> return ()
         Just "" -> repl_loop env
         Just str -> do
-            res <- runErrorT $ rep env str
+            res <- runExceptT $ rep env str
             out <- case res of
                 Left (StringError str) -> return $ "Error: " ++ str
                 Left (MalValError mv) -> return $ "Error: " ++ (show mv)
@@ -174,12 +174,12 @@ main = do
     env_set repl_env (MalSymbol "*ARGV*") (MalList [] Nil)
 
     -- core.mal: defined using the language itself
-    runErrorT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
-    runErrorT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+    runExceptT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
+    runExceptT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 
     if length args > 0 then do
         env_set repl_env (MalSymbol "*ARGV*") (MalList (map MalString (drop 1 args)) Nil)
-        runErrorT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")" 
+        runExceptT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")"
         return ()
-    else 
+    else
         repl_loop repl_env

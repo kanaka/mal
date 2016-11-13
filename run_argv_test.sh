@@ -23,7 +23,7 @@ fi
 
 root="$(dirname $0)"
 
-out="$( $@ $root/tests/print_argv.mal aaa bbb ccc )"
+out="$( $@ $root/tests/print_argv.mal aaa bbb ccc | tr -d '\r' )"
 assert_equal '("aaa" "bbb" "ccc")' "$out"
 
 # Note: The 'make' implementation cannot handle arguments with spaces in them,
@@ -32,7 +32,7 @@ assert_equal '("aaa" "bbb" "ccc")' "$out"
 # out="$( $@ $root/tests/print_argv.mal aaa 'bbb ccc' ddd )"
 # assert_equal '("aaa" "bbb ccc" "ddd")' "$out"
 
-out="$( $@ $root/tests/print_argv.mal )"
+out="$( $@ $root/tests/print_argv.mal | tr -d '\r' )"
 assert_equal '()' "$out"
 
 echo 'Passed all *ARGV* tests'

@@ -1,7 +1,7 @@
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Control.Monad (mapM)
-import Control.Monad.Error (runErrorT)
+import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Map as Map
 import qualified Data.Traversable as DT
@@ -55,7 +55,7 @@ macroexpand ast@(MalList (a0 : args) _) env = do
     mc <- is_macro_call ast env
     if mc then do
         mac <- env_get env a0
-        case mac of 
+        case mac of
              MalFunc {fn=(Fn f)} -> do
                 new_ast <- f args
                 macroexpand new_ast env
@@ -122,16 +122,16 @@ apply_ast ast@(MalList (MalSymbol "defmacro!" : args) _) env = do
                                             meta=Nil} in
                         liftIO $ env_set env a1 new_func
                 _ -> throwStr "defmacro! on non-function"
-         _ -> throwStr "invalid defmacro!" 
+         _ -> throwStr "invalid defmacro!"
 apply_ast ast@(MalList (MalSymbol "macroexpand" : args) _) env = do
     case args of
          (a1 : []) -> macroexpand a1 env
-         _ -> throwStr "invalid macroexpand" 
+         _ -> throwStr "invalid macroexpand"
 apply_ast ast@(MalList (MalSymbol "try*" : args) _) env = do
     case args of
          (a1 : []) -> eval a1 env
          (a1 : (MalList ((MalSymbol "catch*") : a21 : a22 : []) _) : []) -> do
-            res <- liftIO $ runErrorT $ eval a1 env
+            res <- liftIO $ runExceptT $ eval a1 env
             case res of
                 Right val -> return val
                 Left err -> do
@@ -149,7 +149,7 @@ apply_ast ast@(MalList (MalSymbol "do" : args) _) env = do
             el <- eval_ast (MalList args Nil) env
             case el of
                  (MalList lst _) -> return $ last lst
-            
+
 apply_ast ast@(MalList (MalSymbol "if" : args) _) env = do
     case args of
          (a1 : a2 : a3 : []) -> do
@@ -221,7 +221,7 @@ repl_loop env = do
         Nothing -> return ()
         Just "" -> repl_loop env
         Just str -> do
-            res <- runErrorT $ rep env str
+            res <- runExceptT $ rep env str
             out <- case res of
                 Left (StringError str) -> return $ "Error: " ++ str
                 Left (MalValError mv) -> return $ "Error: " ++ (show mv)
@@ -242,14 +242,14 @@ main = do
     env_set repl_env (MalSymbol "*ARGV*") (MalList [] Nil)
 
     -- core.mal: defined using the language itself
-    runErrorT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
-    runErrorT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
-    runErrorT $ rep repl_env "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
-    runErrorT $ rep repl_env "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
+    runExceptT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
+    runExceptT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+    runExceptT $ rep repl_env "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+    runExceptT $ rep repl_env "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 
     if length args > 0 then do
         env_set repl_env (MalSymbol "*ARGV*") (MalList (map MalString (drop 1 args)) Nil)
-        runErrorT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")" 
+        runExceptT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")"
         return ()
-    else 
+    else
         repl_loop repl_env

@@ -8,11 +8,13 @@ matrix:
     - {env: IMPL=ada,       services: [docker]}
     - {env: IMPL=awk,       services: [docker]}
     - {env: IMPL=bash,      services: [docker]}
+    - {env: IMPL=basic,     services: [docker]}
     - {env: IMPL=c,         services: [docker]}
     - {env: IMPL=cpp,       services: [docker]}
     - {env: IMPL=coffee,    services: [docker]}
     - {env: IMPL=cs,        services: [docker]}
     - {env: IMPL=chuck,     services: [docker]}
+    - {env: IMPL=clisp,     services: [docker]}
     - {env: IMPL=clojure,   services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
     - {env: IMPL=d,         services: [docker]}
@@ -47,9 +49,11 @@ matrix:
     - {env: IMPL=perl,      services: [docker]}
     - {env: IMPL=perl6,     services: [docker]}
     - {env: IMPL=php,       services: [docker]}
+    - {env: IMPL=pil,       services: [docker]}
     - {env: IMPL=plpgsql,   services: [docker]}
 #    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}
+    - {env: IMPL=powershell, services: [docker]}
     - {env: IMPL=python,    services: [docker]}
     - {env: IMPL=r,         services: [docker]}
     - {env: IMPL=racket,    services: [docker]}

@@ -80,6 +80,7 @@ MalVal *EVAL(MalVal *ast, Env *env) {
         MalVal *a1 = _nth(ast, 1),
                *a2 = _nth(ast, 2);
         MalVal *res = EVAL(a2, env);
+        if (mal_error) return NULL;
         env_set(env, a1, res);
         return res;
     } else if (strcmp("let*", a0->val.string) == 0) {

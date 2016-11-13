@@ -127,6 +127,7 @@ class Runner():
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
                     self.buf += new_data
+                self.buf = self.buf.replace("\r\r", "\r")
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)

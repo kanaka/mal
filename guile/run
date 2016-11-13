@@ -1,2 +1,3 @@
 #!/bin/bash
-exec guile --no-auto-compile -L $(dirname $0) $(dirname $0)/${STEP:-stepA_mal}.scm "${@}"
+# XDG_CACHE_HOME is where guile stores the compiled files
+XDG_CACHE_HOME=.cache/ exec guile -L $(dirname $0) $(dirname $0)/${STEP:-stepA_mal}.scm "${@}"

@@ -6,15 +6,17 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 57 languages:
+Mal is implemented in 61 languages:
 
 * Ada
 * GNU awk
 * Bash shell
+* BASIC (C64 and QBasic)
 * C
 * C++
 * C#
 * ChucK
+* GNU CLISP
 * Clojure
 * CoffeeScript
 * Crystal
@@ -49,9 +51,11 @@ Mal is implemented in 57 languages:
 * Perl
 * Perl 6
 * PHP
+* Picolisp
 * PL/pgSQL (Postgres)
 * PL/SQL (Oracle)
 * Postscript
+* PowerShell
 * Python
 * RPython
 * R
@@ -151,6 +155,35 @@ cd bash
 bash stepX_YYY.sh
 ```
 
+### BASIC (C64 and QBasic)
+
+The BASIC implementation uses a preprocessor that can generate BASIC
+code that is compatible with both C64 BASIC (CBM v2) and QBasic. The
+C64 mode has been tested with
+[cbmbasic](https://github.com/kanaka/cbmbasic) (the patched version is
+currently required to fix issues with line input) and the QBasic mode
+has been tested with [qb64](http://www.qb64.net/).
+
+Generate C64 code and run it using cbmbasic:
+
+```
+cd basic
+make stepX_YYY.bas
+STEP=stepX_YYY ./run
+```
+
+Generate QBasic code and load it into qb64:
+
+```
+cd basic
+make MODE=qbasic stepX_YYY.bas
+./qb64 stepX_YYY.bas
+```
+
+Thanks to [Steven Syrek](https://github.com/sjsyrek) for the original
+inspiration for this implementation.
+
+
 ### C
 
 The C implementation of mal requires the following libraries (lib and
@@ -196,11 +229,22 @@ mono ./stepX_YYY.exe
 
 *The ChucK implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 
-The ChucK implementation has been tested with ChucK 1.3.5.2 on Arch
-Linux.
+The ChucK implementation has been tested with ChucK 1.3.5.2.
 
 ```
 cd chuck
+./run
+```
+
+### GNU CLISP
+
+*The GNU CLISP implementation was created by [Iqbal Ansari](https://github.com/iqbalansari)*
+
+The implementation has been tested with GNU CLISP v2.49 on Ubuntu 16.04, 14.04 and 12.04
+
+```
+cd clisp
+make
 ./run
 ```
 
@@ -376,10 +420,8 @@ guile -L ./ stepX_YYY.scm
 
 ### Haskell
 
-Install the Haskell compiler (ghc/ghci), the Haskell platform and
-either the editline package (BSD) or the readline package (GPL). On
-Ubuntu these packages are: ghc, haskell-platform,
-libghc-readline-dev/libghc-editline-dev
+The Haskell implementation requires the ghc compiler version 7.10.1 or
+later and also the Haskell parsec and readline (or editline) packages.
 
 ```
 cd haskell
@@ -502,11 +544,11 @@ cd make
 make -f stepX_YYY.mk
 ```
 
-### Nim 0.11.0
+### Nim 0.15.2
 
 *The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
 
-Running the Nim implementation of mal requires Nim 0.11.0 or later.
+The Nim implementation of mal has been tested with Nim 0.15.2.
 
 ```
 cd nim
@@ -610,14 +652,16 @@ cd php
 php stepX_YYY.php
 ```
 
-### Postscript Level 2/3
+### Picolisp
 
-The Postscript implementation of mal requires ghostscript to run. It
-has been tested with ghostscript 9.10.
+*The Picolisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Picolisp implementation requires libreadline and Picolisp 3.1.11
+or later.
 
 ```
-cd ps
-gs -q -dNODISPLAY -I./ stepX_YYY.ps
+cd pil
+./run
 ```
 
 ### PL/pgSQL (Postgres SQL Procedural Language)
@@ -657,6 +701,26 @@ cd plsql
 ./wrap.sh stepX_YYY.sql
     # OR
 ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
+```
+
+### Postscript Level 2/3
+
+The Postscript implementation of mal requires ghostscript to run. It
+has been tested with ghostscript 9.10.
+
+```
+cd ps
+gs -q -dNODISPLAY -I./ stepX_YYY.ps
+```
+
+### PowerShell
+
+The PowerShell implementation of mal requires the PowerShell script
+language. It has been tested with PowerShell 6.0.0 Alpha 9 on Linux.
+
+```
+cd powershell
+powershell ./stepX_YYY.ps1
 ```
 
 ### Python (2.X or 3.X)
@@ -779,8 +843,7 @@ make
 
 *The Vimscript implementation was created by [Dov Murik](https://github.com/dubek)*
 
-The Vimscript implementation of mal requires Vim to run.  It has been tested
-with Vim 7.4.
+The Vimscript implementation of mal requires Vim 8.0 to run.
 
 ```
 cd vimscript
