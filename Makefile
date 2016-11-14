@@ -77,9 +77,9 @@ DOCKERIZE =
 # Settings
 #
 
-IMPLS = ada awk bash basic c d chuck clojure coffee clisp cpp crystal cs erlang elisp \
-	elixir es6 factor forth fsharp go groovy guile haskell haxe \
-	io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
+IMPLS = ada awk bash basic c d chuck clojure coffee clisp cpp crystal cs dart \
+	erlang elisp elixir es6 factor forth fsharp go groovy guile haskell \
+	haxe io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
 	python r racket rpython ruby rust scala swift swift3 tcl vb vhdl \
 	vimscript
@@ -157,6 +157,7 @@ clisp_STEP_TO_PROG = clisp/$($(1)).fas
 cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+dart_STEP_TO_PROG =    dart/$($(1)).dart
 elisp_STEP_TO_PROG =   elisp/$($(1)).el
 elixir_STEP_TO_PROG =  elixir/lib/mix/tasks/$($(1)).ex
 erlang_STEP_TO_PROG =  erlang/$($(1))
