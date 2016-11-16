@@ -58,7 +58,7 @@ P1  : PR_MEMORY, CHECK_FREE_LIST start
 P2  : PR_MEMORY, CHECK_FREE_LIST end
 R1  : REP, RE - MAL_READ result temp
 R2  : REP, RE - EVAL result temp
-R3  : HASHMAP_GET temp and return value
+R3  : HASHMAP_GET, DO_HASH_MAP, DO_KEYS_VALS temp and return value
 R4  : ENV_FIND temp and return value
 R6  : SLICE return value (last element)
 SZ  : size argument to ALLOC
@@ -84,7 +84,7 @@ I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
 J   : REPLACE
 U   : ALLOC, RELEASE, PR_STR temp
 V   : RELEASE, PR_STR_SEQ temp
-W   : SLICE, LAST, QUASIQUOTE, step2-3 EVAL temp
+W   : SLICE, LAST, QUASIQUOTE, DO_HASH_MAP, DO_KEYS_VALS, step2-3 EVAL temp
 RC  : RELEASE remaining number of elements to release
 RF  : reader reading from file flag
 S1  : READ_TOKEN in a string?

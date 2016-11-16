@@ -4,7 +4,7 @@ PR_STR:
   PR_STR_RECUR:
   T=Z%(AZ,0)AND 31
   U=Z%(AZ,1)
-  REM PRINT "AZ: "+STR$(AZ)+", T: "+STR$(T)+", C: "+STR$(U)
+  REM PRINT "AZ: "+STR$(AZ)+", T: "+STR$(T)+", U: "+STR$(U)
   IF T=0 THEN R$="nil":RETURN
   REM if metadata, then get actual object
   IF T>=16 THEN AZ=U:GOTO PR_STR_RECUR
@@ -50,9 +50,14 @@ PR_STR:
     S$(S)=R$:S=S+1
     PR_SEQ_LOOP:
       IF Z%(AZ,1)=0 THEN GOTO PR_SEQ_DONE
-      AZ=AZ+1:GOSUB PR_STR
+      IF T<>8 THEN AZ=AZ+1:GOSUB PR_STR:GOSUB PEEK_Q_1:T=Q
+      IF T=8 THEN AZ=Z%(AZ+1,0):GOSUB PR_STR:GOSUB PEEK_Q_1:T=Q
       REM append what we just rendered it
       S$(S-1)=S$(S-1)+R$
+
+      REM if this is a hash-map, print the next element
+      IF T=8 THEN GOSUB PEEK_Q:AZ=Z%(Q+1,1):GOSUB PR_STR:S$(S-1)=S$(S-1)+" "+R$
+
       REM restore current seq type
       GOSUB PEEK_Q_1:T=Q
       REM Go to next list element

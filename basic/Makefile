@@ -23,7 +23,7 @@ tests/%.bas: tests/%.in.bas
 
 # CBM/C64 image rules
 
-step%.prg: step%.bas
+%.prg: %.bas
 	cat $< | tr "A-Z" "a-z" > $<.tmp
 	#cat $< | sed 's/["]\@<!\<\w\+\>["]\@!/\L&/g' > $<.tmp
 	petcat -w2 -nc -o $@ $<.tmp

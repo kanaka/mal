@@ -2,6 +2,8 @@ GOTO MAIN
 
 REM $INCLUDE: 'readline.in.bas'
 
+REM $INCLUDE: 'debug.in.bas'
+
 REM READ(A$) -> R$
 MAL_READ:
   R$=A$
@@ -36,6 +38,6 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    REM PRINT "Free: "+STR$(FRE(0))
+    REM GOSUB PR_MEMORY_SUMMARY_SMALL
     END
 

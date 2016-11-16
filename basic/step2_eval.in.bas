@@ -22,89 +22,60 @@ SUB EVAL_AST
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
-  GOSUB DEREF_A
-
   T=Z%(A,0)AND 31
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
-  R=A:GOSUB DEREF_R
+  R=A
   Z%(R,0)=Z%(R,0)+32
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
     H=E:K=A:GOSUB HASHMAP_GET
-    GOSUB DEREF_R
-    IF R3=0 THEN ER=-1:E$="'"+S$(Z%(A,1))+"' not found":GOTO EVAL_AST_RETURN
+    IF R3=0 THEN R=-1:ER=-1:E$="'"+S$(Z%(A,1))+"' not found":GOTO EVAL_AST_RETURN
     Z%(R,0)=Z%(R,0)+32
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
-    REM allocate the first entry (T already set above)
-    L=0:N=0:GOSUB ALLOC
-
-    REM push type of sequence
-    Q=T:GOSUB PUSH_Q
-    REM push sequence index
-    Q=0:GOSUB PUSH_Q
-    REM push future return value (new sequence)
-    GOSUB PUSH_R
-    REM push previous new sequence entry
-    GOSUB PUSH_R
+    REM setup the stack for the loop
+    GOSUB MAP_LOOP_START
 
     EVAL_AST_SEQ_LOOP:
       REM check if we are done evaluating the source sequence
       IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
-      REM if hashmap, skip eval of even entries (keys)
-      Q=3:GOSUB PEEK_Q_Q:T=Q
-      REM get and update index
-      GOSUB PEEK_Q_2
-      Q=Q+1:GOSUB PUT_Q_2
-      IF T=8 AND ((Q-1)AND 1)=0 THEN GOTO EVAL_AST_DO_REF
-      GOTO EVAL_AST_DO_EVAL
+      REM call EVAL for each entry
+      GOSUB PUSH_A
+      IF T<>8 THEN GOSUB VAL_A
+      IF T=8 THEN A=Z%(A+1,1)
+      Q=T:GOSUB PUSH_Q: REM push/save type
+      CALL EVAL
+      GOSUB POP_Q:T=Q: REM pop/restore type
+      GOSUB POP_A
 
-      EVAL_AST_DO_REF:
-        R=A+1:GOSUB DEREF_R: REM deref to target of referred entry
-        Z%(R,0)=Z%(R,0)+32: REM inc ref cnt of referred value
-        GOTO EVAL_AST_ADD_VALUE
+      REM if error, release the unattached element
+      REM TODO: is R=0 correct?
+      IF ER<>-2 THEN AY=R:GOSUB RELEASE:R=0:GOTO EVAL_AST_SEQ_LOOP_DONE
 
-      EVAL_AST_DO_EVAL:
-        REM call EVAL for each entry
-        A=A+1:CALL EVAL
-        A=A-1
-        GOSUB DEREF_R: REM deref to target of evaluated entry
+      REM for hash-maps, copy the key (inc ref since we are going to
+      REM release it below)
+      IF T=8 THEN M=Z%(A+1,0):Z%(M,0)=Z%(M,0)+32
 
-      EVAL_AST_ADD_VALUE:
+      REM value evaluated above
+      N=R
 
-      REM update previous value pointer to evaluated entry
-      GOSUB PEEK_Q
-      Z%(Q+1,1)=R
-
-      IF ER<>-2 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
-
-      REM allocate the next entry
-      REM same new sequence entry type
-      Q=3:GOSUB PEEK_Q_Q:T=Q
-      L=0:N=0:GOSUB ALLOC
-
-      REM update previous sequence entry value to point to new entry
-      GOSUB PEEK_Q
-      Z%(Q,1)=R
-      REM update previous ptr to current entry
-      Q=R:GOSUB PUT_Q
+      REM update the return sequence structure
+      REM release N (and M if T=8) since seq takes full ownership
+      C=1:GOSUB MAP_LOOP_UPDATE
 
       REM process the next sequence entry from source list
       A=Z%(A,1)
 
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
-      REM get return value (new seq), index, and seq type
-      GOSUB PEEK_Q_1
-      R=Q
-      REM pop previous, return, index and type
-      GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q:GOSUB POP_Q
+      REM cleanup stack and get return value
+      GOSUB MAP_LOOP_DONE
       GOTO EVAL_AST_RETURN
 
   EVAL_AST_RETURN:
@@ -128,8 +99,6 @@ SUB EVAL
   REM AZ=A:B=1:GOSUB PR_STR
   REM PRINT "EVAL: "+R$+" [A:"+STR$(A)+", LV:"+STR$(LV)+"]"
 
-  GOSUB DEREF_A
-
   GOSUB LIST_Q
   IF R THEN GOTO APPLY_LIST
   REM ELSE
@@ -146,12 +115,13 @@ SUB EVAL
 
       REM if error, return f/args for release by caller
       IF ER<>-2 THEN GOTO EVAL_RETURN
-      F=R+1
 
       AR=Z%(R,1): REM rest
-      R=F:GOSUB DEREF_R:F=R
-      IF (Z%(F,0)AND 31)<>9 THEN ER=-1:E$="apply of non-function":GOTO EVAL_RETURN
+      GOSUB VAL_R:F=R
+
+      IF (Z%(F,0)AND 31)<>9 THEN R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
       GOSUB DO_FUNCTION
+      EVAL_INVOKE_DONE:
       AY=W:GOSUB RELEASE
       GOTO EVAL_RETURN
 
@@ -180,8 +150,8 @@ DO_FUNCTION:
   G=Z%(F,1)
 
   REM Get argument values
-  R=AR+1:GOSUB DEREF_R:A=Z%(R,1)
-  R=Z%(AR,1)+1:GOSUB DEREF_R:B=Z%(R,1)
+  R=AR:GOSUB VAL_R:A=Z%(R,1)
+  R=Z%(AR,1):GOSUB VAL_R:B=Z%(R,1)
 
   REM Switch on the function number
   IF G=1 THEN GOTO DO_ADD
@@ -214,7 +184,7 @@ MAL_PRINT:
 REM REP(A$) -> R$
 REM Assume D has repl_env
 SUB REP
-  R1=0:R2=0
+  R1=-1:R2=-1
   GOSUB MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO REP_DONE
@@ -224,13 +194,11 @@ SUB REP
   IF ER<>-2 THEN GOTO REP_DONE
 
   A=R:GOSUB MAL_PRINT
-  RT$=R$
 
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
-    IF R2<>0 THEN AY=R2:GOSUB RELEASE
-    IF R1<>0 THEN AY=R1:GOSUB RELEASE
-    R$=RT$
+    AY=R2:GOSUB RELEASE
+    AY=R1:GOSUB RELEASE
 END SUB
 
 REM MAIN program
@@ -263,6 +231,7 @@ MAIN:
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EZ=1 THEN GOTO QUIT
+    IF R$="" THEN GOTO REPL_LOOP
 
     A$=R$:CALL REP: REM call REP
 
@@ -271,7 +240,7 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    REM GOSUB PR_MEMORY_SUMMARY
+    REM GOSUB PR_MEMORY_SUMMARY_SMALL
     END
 
   PRINT_ERROR:

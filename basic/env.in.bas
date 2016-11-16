@@ -20,14 +20,14 @@ ENV_NEW_BINDS:
   ENV_NEW_BINDS_LOOP:
     IF Z%(A,1)=0 THEN R=E:RETURN
     REM get/deref the key from A
-    R=A+1:GOSUB DEREF_R
+    R=A:GOSUB VAL_R
     K=R
 
     IF S$(Z%(K,1))="&" THEN GOTO EVAL_NEW_BINDS_VARGS
 
     EVAL_NEW_BINDS_1x1:
       REM get/deref the key from B
-      R=B+1:GOSUB DEREF_R
+      R=B:GOSUB VAL_R
       C=R
       REM set the binding in the environment data
       GOSUB ENV_SET
@@ -39,7 +39,7 @@ ENV_NEW_BINDS:
     EVAL_NEW_BINDS_VARGS:
       REM get/deref the key from next element of A
       A=Z%(A,1)
-      R=A+1:GOSUB DEREF_R
+      R=A:GOSUB VAL_R
       K=R
       REM the value is the remaining list in B
       A=B:T=6:GOSUB FORCE_SEQ_TYPE
@@ -76,17 +76,17 @@ SUB ENV_FIND
     REM More efficient to use GET for value (R) and contains? (R3)
     GOSUB HASHMAP_GET
     REM if we found it, save value in R4 for ENV_GET
-    IF R3=1 THEN R4=R:GOTO ENV_FIND_DONE
+    IF R3=1 THEN R4=R:R=T:GOTO ENV_FIND_DONE
     T=Z%(T+1,1): REM get outer environment
-    IF T<>-1 THEN GOTO ENV_FIND_LOOP
+    IF T>0 THEN GOTO ENV_FIND_LOOP
+    R=-1
   ENV_FIND_DONE:
-    R=T
 END SUB
 
 REM ENV_GET(E, K) -> R
 ENV_GET:
   CALL ENV_FIND
-  IF R=-1 THEN R=0:ER=-1:E$="'"+S$(Z%(K,1))+"' not found":GOTO ENV_GET_RETURN
-  R=R4:GOSUB DEREF_R
+  IF R=-1 THEN ER=-1:E$="'"+S$(Z%(K,1))+"' not found":GOTO ENV_GET_RETURN
+  R=R4
   Z%(R,0)=Z%(R,0)+32
   GOTO ENV_GET_RETURN

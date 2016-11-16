@@ -10,7 +10,7 @@ REM                    14      value (unless empty)
 REM vector next/val    7   ->  next Z% index (0 for last)
 REM                    14      value (unless empty)
 REM hashmap next/val   8   ->  next Z% index (0 for last)
-REM                    14      key/value (alternating)
+REM                    key     value
 REM function           9   ->  function index
 REM mal function       10  ->  body AST Z% index
 REM                    param   env Z% index
@@ -50,9 +50,9 @@ INIT_MEMORY:
   DIM Z%(Z1,1): REM TYPE ARRAY
 
   REM Predefine nil, false, true, and an empty list
-  FOR I=0 TO 8:Z%(I,0)=0:Z%(I,1)=0:NEXT I
-  Z%(1,0)=1
-  Z%(2,0)=1:Z%(2,1)=1
+  FOR I=0 TO 8:Z%(I,0)=32:Z%(I,1)=0:NEXT I
+  Z%(1,0)=1+32
+  Z%(2,0)=1+32:Z%(2,1)=1
   Z%(3,0)=6+32:Z%(3,1)=0
   Z%(5,0)=7+32:Z%(5,1)=0
   Z%(7,0)=8+32:Z%(7,1)=0
@@ -180,6 +180,7 @@ ALLOC:
     GOTO ALLOC_DONE
   ALLOC_UNUSED:
     REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U: "+STR$(U)+", R: "+STR$(R)
+    IF R+SZ>Z1 THEN PRINT "Out of mal memory!":END
     ZI=ZI+SZ
     IF U=R THEN ZK=ZI
     REM set previous free to new memory top
@@ -188,17 +189,17 @@ ALLOC:
   ALLOC_DONE:
     Z%(R,0)=T+32
     REM set Z%(R,1) to default L
-    IF T>=6 AND T<>9 AND L>0 THEN Z%(L,0)=Z%(L,0)+32
+    IF T>=6 AND T<>9 THEN Z%(L,0)=Z%(L,0)+32
     Z%(R,1)=L
 
     IF SZ=1 THEN RETURN
     Z%(R+1,0)=14: REM default for 6-8, and 13, and >=16 (metadata)
 
-    REM function/macro sets Z%(R+1,0) to default M
-    IF T=10 OR T=11 THEN Z%(M,0)=Z%(M,0)+32:Z%(R+1,0)=M
+    REM function/macro/hash-map sets Z%(R+1,0) to default M
+    IF T=8 OR T=10 OR T=11 THEN Z%(M,0)=Z%(M,0)+32:Z%(R+1,0)=M
 
     REM seq, function/macro, environment sets Z%(R+1,1) to default N
-    IF N>0 THEN Z%(N,0)=Z%(N,0)+32
+    Z%(N,0)=Z%(N,0)+32
     Z%(R+1,1)=N
     RETURN
 
@@ -229,9 +230,7 @@ RELEASE:
   RC=RC-1
 
   RELEASE_ONE:
-
-  REM nil, false, true
-  IF AY<3 THEN GOTO RELEASE_TOP
+  IF AY=-1 THEN RETURN
 
   U=Z%(AY,0)AND 31: REM type
   V=Z%(AY,1): REM main value/reference
@@ -240,11 +239,15 @@ RELEASE:
   REM PRINT "RELEASE AY:"+STR$(AY)+"["+R$+"] (byte0:"+STR$(Z%(AY,0))+")"
 
   REM sanity check not already freed
-  IF (U)=15 THEN ER=-1:E$="RELEASE of free: "+STR$(AY):RETURN
-  IF Z%(AY,0)<15 THEN ER=-1:E$="Unowned: "+STR$(AY):RETURN
+  IF (U)=15 THEN PRINT "RELEASE of free:"+STR$(AY):END
+  IF Z%(AY,0)<15 THEN PRINT "RELEASE of unowned:"+STR$(AY):END
 
   REM decrease reference count by one
   Z%(AY,0)=Z%(AY,0)-32
+
+  REM nil, false, true, empty sequences
+  IF AY<9 AND Z%(AY,0)<32 THEN PRINT "RELEASE of empty:"+STR$(AY):END
+  IF AY<9 THEN GOTO RELEASE_TOP
 
   REM our reference count is not 0, so don't release
   IF Z%(AY,0)>=32 GOTO RELEASE_TOP
@@ -261,7 +264,7 @@ REM  IF U>=16 THEN GOSUB RELEASE_METADATA
 REM  IF U=12 THEN GOSUB RELEASE_ATOM
 REM  IF U=13 THEN GOSUB RELEASE_ENV
 
-  ON U+1 GOSUB RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_STRING,RELEASE_STRING,RELEASE_SEQ,RELEASE_SEQ,RELEASE_SEQ,RELEASE_SIMPLE,RELEASE_MAL_FUNCTION,RELEASE_MAL_FUNCTION,RELEASE_ATOM,RELEASE_ENV
+  ON U+1 GOSUB RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_SIMPLE,RELEASE_STRING,RELEASE_STRING,RELEASE_SEQ,RELEASE_SEQ,RELEASE_HASH_MAP,RELEASE_SIMPLE,RELEASE_MAL_FUNCTION,RELEASE_MAL_FUNCTION,RELEASE_ATOM,RELEASE_ENV
 
   REM free the current element and continue, SZ already set
   GOSUB FREE
@@ -277,13 +280,23 @@ REM  IF U=13 THEN GOSUB RELEASE_ENV
     REM free the atom itself
     RETURN
   RELEASE_SEQ:
-    IF V=0 THEN SZ=2:RETURN
+    SZ=2
+    IF V=0 THEN RETURN
     IF Z%(AY+1,0)<>14 THEN ER=-1:E$="invalid list value"+STR$(AY+1):RETURN
     REM add value and next element to stack
     RC=RC+2
     Q=Z%(AY+1,1):GOSUB PUSH_Q
     Q=V:GOSUB PUSH_Q
-    SZ=2:RETURN
+    RETURN
+  RELEASE_HASH_MAP:
+    SZ=2
+    IF V=0 THEN RETURN
+    REM add key, value and next element to stack
+    RC=RC+3
+    Q=Z%(AY+1,0):GOSUB PUSH_Q
+    Q=Z%(AY+1,1):GOSUB PUSH_Q
+    Q=V:GOSUB PUSH_Q
+    RETURN
   RELEASE_ATOM:
     REM add contained/referred value
     RC=RC+1
@@ -309,7 +322,7 @@ REM  IF U=13 THEN GOSUB RELEASE_ENV
     RC=RC+1
     Q=V:GOSUB PUSH_Q
     REM if outer set, add outer env to stack
-    IF Z%(AY+1,1)<>-1 THEN RC=RC+1:Q=Z%(AY+1,1):GOSUB PUSH_Q
+    IF Z%(AY+1,1)<>0 THEN RC=RC+1:Q=Z%(AY+1,1):GOSUB PUSH_Q
     REM add outer environment to the stack
     SZ=2:RETURN
 
@@ -341,19 +354,19 @@ REM release stack functions
 #cbm   Y=Y-4
 #cbm   GOTO RELEASE_PEND
 
-REM DEREF_R(R) -> R
-DEREF_R:
-  IF (Z%(R,0)AND 31)=14 THEN R=Z%(R,1):GOTO DEREF_R
+REM VAL_R(R) -> R
+VAL_R:
+  R=Z%(R+1,1)
   RETURN
 
-REM DEREF_A(A) -> A
-DEREF_A:
-  IF (Z%(A,0)AND 31)=14 THEN A=Z%(A,1):GOTO DEREF_A
+REM VAL_A(A) -> A
+VAL_A:
+  A=Z%(A+1,1)
   RETURN
 
-REM DEREF_B(B) -> B
-DEREF_B:
-  IF (Z%(B,0)AND 31)=14 THEN B=Z%(B,1):GOTO DEREF_B
+REM VAL_B(B) -> B
+VAL_B:
+  B=Z%(B+1,1)
   RETURN
 
 
@@ -365,9 +378,6 @@ EQUAL_Q:
   R=-1: REM return value
 
   EQUAL_Q_RECUR:
-
-  GOSUB DEREF_A
-  GOSUB DEREF_B
 
   REM push A and B
   GOSUB PUSH_A
@@ -443,13 +453,11 @@ STRING:
     REM fallthrough
 
   STRING_SET:
-REM IF I>85 THEN PRINT "STRING:"+STR$(I)+" "+B$
     S$(I)=B$
     REM fallthrough
 
   STRING_DONE:
     S%(I)=S%(I)+1
-REM PRINT "STRING ref: "+S$(I)+" (idx:"+STR$(I)+", ref "+STR$(S%(I))+")"
     L=I:GOSUB ALLOC
     RETURN
 
@@ -473,10 +481,56 @@ REM FORCE_SEQ_TYPE(A,T) -> R
 FORCE_SEQ_TYPE:
   REM if it's already the right type, inc ref cnt and return it
   IF (Z%(A,0)AND 31)=T THEN R=A:Z%(R,0)=Z%(R,0)+32:RETURN
+  REM if it's empty, return the empty sequence match T
+  IF A<9 THEN R=(T-5)*2+1:Z%(R,0)=Z%(R,0)+32:RETURN
   REM otherwise, copy first element to turn it into correct type
-  B=A+1:GOSUB DEREF_B: REM value to copy
+  B=A:GOSUB VAL_B: REM value to copy
   L=Z%(A,1):N=B:GOSUB ALLOC: REM T already set
   IF Z%(A,1)=0 THEN RETURN
+  RETURN
+
+REM MAP_LOOP_START(T):
+REM   - setup stack for map loop
+MAP_LOOP_START:
+  REM point to empty sequence to start off
+  R=(T-5)*2+1: REM calculate location of empty seq
+  Z%(R,0)=Z%(R,0)+32
+
+  GOSUB PUSH_R: REM push return ptr
+  GOSUB PUSH_R: REM push empty ptr
+  GOSUB PUSH_R: REM push current ptr
+  RETURN
+
+REM MAP_LOOP_UPDATE(C,N):
+REM MAP_LOOP_UPDATE(C,M,N):
+REM  - called after N (and M if T=8) are set
+REM  - C indicates whether to free N (and M if T=8)
+REM  - update the structure of the return sequence
+MAP_LOOP_UPDATE:
+  GOSUB PEEK_Q_1:L=Q: REM empty ptr
+
+  GOSUB ALLOC: REM allocate new sequence element
+
+  REM sequence took ownership
+  AY=L:GOSUB RELEASE
+  IF C THEN AY=N:GOSUB RELEASE
+  IF C AND T=8 THEN AY=M:GOSUB RELEASE
+
+  REM if not first element, set current next to point to new element
+  GOSUB PEEK_Q
+  IF Q>8 THEN Z%(Q,1)=R
+  REM if first element, set return to new element
+  IF Q<9 THEN Q=R:GOSUB PUT_Q_2
+  Q=R:GOSUB PUT_Q: REM update current ptr to new element
+
+  RETURN
+
+REM MAP_LOOP_DONE() -> R
+REM   - cleanup stack and set return value
+MAP_LOOP_DONE:
+  GOSUB POP_Q: REM pop current ptr
+  GOSUB POP_Q: REM pop empty ptr
+  GOSUB POP_R: REM pop return ptr
   RETURN
 
 
@@ -514,34 +568,37 @@ LAST:
     A=Z%(A,1): REM next entry
     GOTO LAST_LOOP
   LAST_DONE:
-    R=W+1:GOSUB DEREF_R
+    R=W:GOSUB VAL_R
     Z%(R,0)=Z%(R,0)+32
     RETURN
 
 REM SLICE(A,B,C) -> R
 REM make copy of sequence A from index B to C
-REM returns R6 as reference to last element of slice
+REM returns R6 as reference to last element of slice before empty
 REM returns A as next element following slice (of original)
 SLICE:
   I=0
-  W=-1: REM temporary for return as R
-  R6=0: REM previous list element
+  R=3: REM always a list
+  Z%(R,0)=Z%(R,0)+32
+  R6=-1: REM last list element before empty
+  W=R: REM temporary for return as R
+  REM advance A to position B
+  SLICE_FIND_B:
+    IF I<B AND Z%(A,1)<>0 THEN A=Z%(A,1):I=I+1:GOTO SLICE_FIND_B
   SLICE_LOOP:
-    REM always allocate at least one list element
-    T=6:L=0:N=0:GOSUB ALLOC
-    IF W=-1 THEN W=R
-    IF W<>-1 THEN Z%(R6,1)=R
-    REM advance A to position B
-    SLICE_FIND_B:
-      IF I<B AND Z%(A,1)<>0 THEN A=Z%(A,1):I=I+1:GOTO SLICE_FIND_B
     REM if current position is C, then return
     IF C<>-1 AND I>=C THEN R=W:RETURN
     REM if we reached end of A, then return
     IF Z%(A,1)=0 THEN R=W:RETURN
-    R6=R: REM save previous list element
-    REM copy value and inc ref cnt
-    Z%(R6+1,1)=Z%(A+1,1)
-    R=A+1:GOSUB DEREF_R:Z%(R,0)=Z%(R,0)+32
+    REM allocate new list element with copied value
+    T=6:L=3:N=Z%(A+1,1):GOSUB ALLOC
+    REM sequence took ownership
+    AY=L:GOSUB RELEASE
+    REM if not first element, set last to point to new element
+    IF R6>-1 THEN Z%(R6,1)=R
+    REM if first element, set return value to new element
+    IF R6=-1 THEN W=R
+    R6=R: REM update last list element
     REM advance to next element of A
     A=Z%(A,1)
     I=I+1
@@ -580,15 +637,8 @@ HASHMAP:
 
 REM ASSOC1(H, K, C) -> R
 ASSOC1:
-  REM deref K and C
-  R=C:GOSUB DEREF_R:C=R
-  R=K:GOSUB DEREF_R:K=R
-
-  REM value ptr
-  T=8:L=H:N=C:GOSUB ALLOC
-  AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
-  REM key ptr
-  T=8:L=R:N=K:GOSUB ALLOC
+  REM create key/value entry
+  T=8:L=H:M=K:N=C:GOSUB ALLOC
   AY=L:GOSUB RELEASE: REM we took ownership of previous hashmap
   RETURN
 
@@ -601,6 +651,7 @@ ASSOC1_S:
   RETURN
 
 REM HASHMAP_GET(H, K) -> R
+REM   - returns R3 with whether we found it or not
 HASHMAP_GET:
   B$=S$(Z%(K,1)): REM search key string
   R3=0: REM whether found or not (for HASHMAP_CONTAINS)
@@ -608,15 +659,10 @@ HASHMAP_GET:
   HASHMAP_GET_LOOP:
     REM no matching key found
     IF Z%(H,1)=0 THEN R=0:RETURN
-    REM follow value ptrs
-    T2=H+1
-    HASHMAP_GET_DEREF:
-      IF Z%(T2,0)=14 THEN T2=Z%(T2,1):GOTO HASHMAP_GET_DEREF
-    REM get key string
-    REM if they are equal, we found it
-    IF B$=S$(Z%(T2,1)) THEN R3=1:R=Z%(H,1)+1:RETURN
-    REM skip to next key
-    H=Z%(Z%(H,1),1)
+    REM get search string is equal to key string we found it
+    IF B$=S$(Z%(Z%(H+1,0),1)) THEN R3=1:R=Z%(H+1,1):RETURN
+    REM skip to next key/value
+    H=Z%(H,1)
     GOTO HASHMAP_GET_LOOP
 
 REM HASHMAP_CONTAINS(H, K) -> R

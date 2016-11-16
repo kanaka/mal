@@ -31,12 +31,10 @@ SUB REP
   IF ER<>-2 THEN GOTO REP_DONE
 
   A=R:GOSUB MAL_PRINT
-  RT$=R$
 
   REP_DONE:
     REM Release memory from EVAL
     AY=R:GOSUB RELEASE
-    R$=RT$
 END SUB
 
 REM MAIN program
@@ -48,6 +46,7 @@ MAIN:
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
     IF EZ=1 THEN GOTO QUIT
+    IF R$="" THEN GOTO REPL_LOOP
 
     A$=R$:CALL REP: REM call REP
 
@@ -56,7 +55,7 @@ MAIN:
     GOTO REPL_LOOP
 
   QUIT:
-    REM GOSUB PR_MEMORY_SUMMARY
+    REM GOSUB PR_MEMORY_SUMMARY_SMALL
     END
 
   PRINT_ERROR:
