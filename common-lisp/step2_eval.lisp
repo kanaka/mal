@@ -110,7 +110,20 @@
 
 (defun main (&optional (argv nil argv-provided-p))
   (declare (ignorable argv argv-provided-p))
+
   (setf *use-readline-p* (not (or (string= (uiop:getenv "PERL_RL") "false")
                                   (string= (uiop:getenv "TERM") "dumb"))))
+
+  ;; In GNU CLISP's batch mode the standard-input seems to be set to some sort
+  ;; of input string-stream, this interacts wierdly with the PERL_RL enviroment
+  ;; variable which the test runner sets causing `read-line' on *standard-input*
+  ;; to fail with an empty stream error. The following reinitializes the
+  ;; standard streams
+  ;;
+  ;; See http://www.gnu.org/software/clisp/impnotes/streams-interactive.html
+  #+clisp (setf *standard-input* (ext:make-stream :input)
+                *standard-output* (ext:make-stream :output :buffered t)
+                *error-output* (ext:make-stream :error :buffered t))
+
   (loop do (let ((line (mal-readline "user> ")))
              (if line (mal-writeline (rep line)) (return)))))
