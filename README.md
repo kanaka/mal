@@ -16,7 +16,7 @@ Mal is implemented in 62 languages:
 * C++
 * C#
 * ChucK
-* GNU CLISP
+* Common Lisp
 * Clojure
 * CoffeeScript
 * Crystal
@@ -237,14 +237,17 @@ cd chuck
 ./run
 ```
 
-### GNU CLISP
+### Common Lisp
 
-*The GNU CLISP implementation was created by [Iqbal Ansari](https://github.com/iqbalansari)*
+*The Common Lisp implementation was created by [Iqbal Ansari](https://github.com/iqbalansari)*
 
-The implementation has been tested with GNU CLISP v2.49 on Ubuntu 16.04, 14.04 and 12.04
+The implementation has been tested with SBCL, CCL, CMUCL, GNU CLISP, ECL and
+Allegro CL on Ubuntu 16.04 and Ubuntu 12.04, see
+the [README][common-lisp/README.org] for more details. Provided you have the
+dependencies mentioned installed, do the following to run the implementation
 
 ```
-cd clisp
+cd common-lisp
 make
 ./run
 ```
