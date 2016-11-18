@@ -192,11 +192,18 @@
                   (and (mal-list-p value2) (mal-vector-p value1)))
           (mal-sequence= value1 value2)))))
 
+(defun mal-sxhash (value)
+  (sxhash (mal-data-value value)))
+
 (defun make-mal-value-hash-table ()
   (unless (gethash 'mal-data-value-hash genhash::*hash-test-designator-map*)
-    (genhash:register-test-designator 'mal-data-value-hash
-                                      #'sxhash
-                                      #'mal-data-value=))
+    ;; ECL's implementation of sxhash does not work well with compound types
+    ;; so using a custom hash function which hashes the underlying value
+    (let ((hash-function #+ecl #'mal-sxhash
+                         #-ecl #'sxhash))
+      (genhash:register-test-designator 'mal-data-value-hash
+                                        hash-function
+                                        #'mal-data-value=)))
   (genhash:make-generic-hash-table :test 'mal-data-value-hash))
 
 (defun wrap-value (value &key booleanp listp)
