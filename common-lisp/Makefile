@@ -28,8 +28,12 @@ all : stepA_mal
 
 hist/%_impl: ;
 
+# CL_LAUNCH_VERSION is only defined while building it. We change to the
+# directory of the CL_LAUNCH_FILE in --wrap script so that the script can find the dumped
+# image even if invoked from some directory different from where it
+# currently resides
 step% : step%.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp core.lisp hist/%_impl
-	cl-launch --verbose --lisp $(LISP) --source-registry $(ROOT_DIR) --system $@ --dump images/$@.$(LISP).image -o $@ --entry 'mal:main'
+	cl-launch --wrap 'if [ -z "$$CL_LAUNCH_VERSION" ] ; then cd "$$(dirname $$CL_LAUNCH_FILE)" ; fi' --verbose --lisp $(LISP) --source-registry $(ROOT_DIR) --system $@ --dump images/$@.$(LISP).image -o $@ --entry 'mal:main'
 
 clean:
 	find . -name 'step*' -executable -exec git check-ignore \{\} \; -delete
