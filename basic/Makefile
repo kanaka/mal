@@ -13,7 +13,7 @@ step%.bas: step%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
 
 $(STEPS0_A): readline.in.bas
-$(STEPS1_A): debug.in.bas types.in.bas reader.in.bas printer.in.bas
+$(STEPS1_A): debug.in.bas mem.in.bas types.in.bas reader.in.bas printer.in.bas
 $(STEPS3_A): env.in.bas
 $(STEPS4_A): core.in.bas
 

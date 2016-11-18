@@ -7,15 +7,15 @@ REM   - restores E
 REM   - call using GOTO and with return label/address on the stack
 SUB APPLY
   REM if metadata, get the actual object
-  IF (Z%(F,0)AND 31)>=16 THEN F=Z%(F,1)
+  IF (Z%(F)AND 31)=14 THEN F=Z%(F+1)
 
-  ON (Z%(F,0)AND 31)-8 GOTO APPLY_FUNCTION,APPLY_MAL_FUNCTION,APPLY_MAL_FUNCTION
+  ON (Z%(F)AND 31)-8 GOTO APPLY_FUNCTION,APPLY_MAL_FUNCTION,APPLY_MAL_FUNCTION
 
   APPLY_FUNCTION:
     REM regular function
-    IF Z%(F,1)<60 THEN GOSUB DO_FUNCTION:GOTO APPLY_DONE
+    IF Z%(F+1)<60 THEN GOSUB DO_FUNCTION:GOTO APPLY_DONE
     REM for recur functions (apply, map, swap!), use GOTO
-    IF Z%(F,1)>60 THEN CALL DO_TCO_FUNCTION
+    IF Z%(F+1)>60 THEN CALL DO_TCO_FUNCTION
     GOTO APPLY_DONE
 
   APPLY_MAL_FUNCTION:
@@ -23,9 +23,9 @@ SUB APPLY
 
     REM create new environ using env and params stored in the
     REM function and bind the params to the apply arguments
-    C=Z%(F+1,1):A=Z%(F+1,0):B=AR:GOSUB ENV_NEW_BINDS
+    C=Z%(F+3):A=Z%(F+2):B=AR:GOSUB ENV_NEW_BINDS
 
-    A=Z%(F,1):E=R:CALL EVAL
+    A=Z%(F+1):E=R:CALL EVAL
 
     AY=E:GOSUB RELEASE: REM release the new environment
 
@@ -37,22 +37,22 @@ END SUB
 
 REM DO_TCO_FUNCTION(F, AR)
 SUB DO_TCO_FUNCTION
-  G=Z%(F,1)
+  G=Z%(F+1)
 
   REM Get argument values
-  A=AR:GOSUB VAL_A
-  B=Z%(AR,1):GOSUB VAL_B
+  A=Z%(AR+2)
+  B=Z%(Z%(AR+1)+2)
 
   ON G-60 GOTO DO_APPLY,DO_MAP,DO_SWAP_BANG
 
   DO_APPLY:
     F=A
-    AR=Z%(AR,1)
+    AR=Z%(AR+1)
     A=AR:GOSUB COUNT:C=R
 
-    A=Z%(AR+1,1)
+    A=Z%(AR+2)
     REM no intermediate args, but not a list, so convert it first
-    IF C<=1 AND (Z%(A,0)AND 31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
+    IF C<=1 AND (Z%(A)AND 31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
     REM no intermediate args, just call APPLY directly
     IF C<=1 THEN GOTO DO_APPLY_1
 
@@ -61,10 +61,10 @@ SUB DO_TCO_FUNCTION
     REM release the terminator of new list (we skip over it)
     REM we already checked for an empty list above, so R6 is pointer
     REM a real non-empty list
-    AY=Z%(R6,1):GOSUB RELEASE
+    AY=Z%(R6+1):GOSUB RELEASE
     REM attach end of slice to final args element
-    Z%(R6,1)=Z%(A+1,1)
-    Z%(Z%(A+1,1),0)=Z%(Z%(A+1,1),0)+32
+    Z%(R6+1)=Z%(A+2)
+    Z%(Z%(A+2))=Z%(Z%(A+2))+32
 
     GOTO DO_APPLY_2
 
@@ -90,10 +90,10 @@ SUB DO_TCO_FUNCTION
     T=6:GOSUB MAP_LOOP_START
 
     DO_MAP_LOOP:
-      IF Z%(B,1)=0 THEN GOTO DO_MAP_DONE
+      IF Z%(B+1)=0 THEN GOTO DO_MAP_DONE
 
       REM create argument list for apply
-      T=6:L=3:N=Z%(B+1,1):GOSUB ALLOC
+      T=6:L=6:M=Z%(B+2):GOSUB ALLOC
 
       GOSUB PUSH_R: REM push argument list
       Q=F:GOSUB PUSH_Q: REM push F
@@ -106,13 +106,13 @@ SUB DO_TCO_FUNCTION
       GOSUB POP_Q: REM pop apply args and release them
       AY=Q:GOSUB RELEASE
 
-      B=Z%(B,1): REM go to the next element
+      REM main value is result of apply
+      M=R
+
+      B=Z%(B+1): REM go to the next element
 
       REM if error, release the unattached element
       IF ER<>-2 THEN AY=R:GOSUB RELEASE:GOTO DO_MAP_DONE
-
-      REM main value is result of apply
-      N=R
 
       REM update the return sequence structure
       REM release N since list takes full ownership
@@ -129,7 +129,7 @@ SUB DO_TCO_FUNCTION
     F=B
 
     REM add atom to front of the args list
-    T=6:L=Z%(Z%(AR,1),1):N=Z%(A,1):GOSUB ALLOC: REM cons
+    T=6:L=Z%(Z%(AR+1)+1):M=Z%(A+1):GOSUB ALLOC: REM cons
     AR=R
 
     REM push args for release after
@@ -162,25 +162,25 @@ REM RETURN_INC_REF(R) -> R
 REM   - return R with 1 ref cnt increase
 REM   - called with GOTO as a return RETURN
 RETURN_INC_REF:
-  Z%(R,0)=Z%(R,0)+32
+  Z%(R)=Z%(R)+32
   RETURN
 
 REM RETURN_TRUE_FALSE(R) -> R
 REM   - take BASIC true/false R, return mal true/false R with ref cnt
 REM   - called with GOTO as a return RETURN
 RETURN_TRUE_FALSE:
-  IF R THEN R=2
-  IF R=0 THEN R=1
+  IF R THEN R=4
+  IF R=0 THEN R=2
   GOTO RETURN_INC_REF
 
 REM DO_FUNCTION(F, AR)
 DO_FUNCTION:
   REM Get the function number
-  G=Z%(F,1)
+  G=Z%(F+1)
 
   REM Get argument values
-  A=AR:GOSUB VAL_A
-  B=Z%(AR,1):GOSUB VAL_B
+  A=Z%(AR+2)
+  B=Z%(Z%(AR+1)+2)
 
   REM Switch on the function number
   IF G>59 THEN ER=-1:E$="unknown function"+STR$(G):RETURN
@@ -204,40 +204,40 @@ DO_FUNCTION:
     GOTO RETURN_TRUE_FALSE
   DO_THROW:
     ER=A
-    Z%(ER,0)=Z%(ER,0)+32
+    Z%(ER)=Z%(ER)+32
     R=-1
     RETURN
   DO_NIL_Q:
     R=A=0
     GOTO RETURN_TRUE_FALSE
   DO_TRUE_Q:
-    R=A=2
+    R=A=4
     GOTO RETURN_TRUE_FALSE
   DO_FALSE_Q:
-    R=A=1
+    R=A=2
     GOTO RETURN_TRUE_FALSE
   DO_STRING_Q:
     R=0
-    IF (Z%(A,0)AND 31)<>4 THEN GOTO RETURN_TRUE_FALSE
-    IF MID$(S$(Z%(A,1)),1,1)=CHR$(127) THEN GOTO RETURN_TRUE_FALSE
+    IF (Z%(A)AND 31)<>4 THEN GOTO RETURN_TRUE_FALSE
+    IF MID$(S$(Z%(A+1)),1,1)=CHR$(127) THEN GOTO RETURN_TRUE_FALSE
     R=1
     GOTO RETURN_TRUE_FALSE
   DO_SYMBOL:
-    B$=S$(Z%(A,1))
+    B$=S$(Z%(A+1))
     T=5:GOSUB STRING
     RETURN
   DO_SYMBOL_Q:
-    R=(Z%(A,0)AND 31)=5
+    R=(Z%(A)AND 31)=5
     GOTO RETURN_TRUE_FALSE
   DO_KEYWORD:
-    B$=S$(Z%(A,1))
+    B$=S$(Z%(A+1))
     IF MID$(B$,1,1)<>CHR$(127) THEN B$=CHR$(127)+B$
     T=4:GOSUB STRING
     RETURN
   DO_KEYWORD_Q:
     R=0
-    IF (Z%(A,0)AND 31)<>4 THEN GOTO RETURN_TRUE_FALSE
-    IF MID$(S$(Z%(A,1)),1,1)<>CHR$(127) THEN GOTO RETURN_TRUE_FALSE
+    IF (Z%(A)AND 31)<>4 THEN GOTO RETURN_TRUE_FALSE
+    IF MID$(S$(Z%(A+1)),1,1)<>CHR$(127) THEN GOTO RETURN_TRUE_FALSE
     R=1
     GOTO RETURN_TRUE_FALSE
 
@@ -260,18 +260,18 @@ DO_FUNCTION:
     R=0
     GOTO RETURN_INC_REF
   DO_READ_STRING:
-    A$=S$(Z%(A,1))
+    A$=S$(Z%(A+1))
     GOSUB READ_STR
     RETURN
   DO_READLINE:
-    A$=S$(Z%(A,1)):GOSUB READLINE
+    A$=S$(Z%(A+1)):GOSUB READLINE
     IF EZ=1 THEN EZ=0:R=0:GOTO RETURN_INC_REF
     B$=R$:T=4:GOSUB STRING
     RETURN
   DO_SLURP:
     R$=""
-    #cbm OPEN 1,8,0,S$(Z%(A,1))
-    #qbasic A$=S$(Z%(A,1))
+    #cbm OPEN 1,8,0,S$(Z%(A+1))
+    #qbasic A$=S$(Z%(A+1))
     #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
     #qbasic OPEN A$ FOR INPUT AS #1
     DO_SLURP_LOOP:
@@ -290,29 +290,29 @@ DO_FUNCTION:
       RETURN
 
   DO_LT:
-    R=Z%(A,1)<Z%(B,1)
+    R=Z%(A+1)<Z%(B+1)
     GOTO RETURN_TRUE_FALSE
   DO_LTE:
-    R=Z%(A,1)<=Z%(B,1)
+    R=Z%(A+1)<=Z%(B+1)
     GOTO RETURN_TRUE_FALSE
   DO_GT:
-    R=Z%(A,1)>Z%(B,1)
+    R=Z%(A+1)>Z%(B+1)
     GOTO RETURN_TRUE_FALSE
   DO_GTE:
-    R=Z%(A,1)>=Z%(B,1)
+    R=Z%(A+1)>=Z%(B+1)
     GOTO RETURN_TRUE_FALSE
 
   DO_ADD:
-    T=2:L=Z%(A,1)+Z%(B,1):GOSUB ALLOC
+    T=2:L=Z%(A+1)+Z%(B+1):GOSUB ALLOC
     RETURN
   DO_SUB:
-    T=2:L=Z%(A,1)-Z%(B,1):GOSUB ALLOC
+    T=2:L=Z%(A+1)-Z%(B+1):GOSUB ALLOC
     RETURN
   DO_MULT:
-    T=2:L=Z%(A,1)*Z%(B,1):GOSUB ALLOC
+    T=2:L=Z%(A+1)*Z%(B+1):GOSUB ALLOC
     RETURN
   DO_DIV:
-    T=2:L=Z%(A,1)/Z%(B,1):GOSUB ALLOC
+    T=2:L=Z%(A+1)/Z%(B+1):GOSUB ALLOC
     RETURN
   DO_TIME_MS:
     T=2:L=INT((TI-BT)*16.667):GOSUB ALLOC
@@ -328,7 +328,7 @@ DO_FUNCTION:
     A=AR:T=7:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_VECTOR_Q:
-    R=(Z%(A,0)AND 31)=7
+    R=(Z%(A)AND 31)=7
     GOTO RETURN_TRUE_FALSE
   DO_HASH_MAP:
     REM setup the stack for the loop
@@ -336,12 +336,12 @@ DO_FUNCTION:
 
     A=AR
     DO_HASH_MAP_LOOP:
-      IF Z%(A,1)=0 THEN GOTO DO_HASH_MAP_LOOP_DONE
+      IF Z%(A+1)=0 THEN GOTO DO_HASH_MAP_LOOP_DONE
 
-      M=Z%(A+1,1)
-      N=Z%(Z%(A,1)+1,1)
+      M=Z%(A+2)
+      N=Z%(Z%(A+1)+2)
 
-      A=Z%(Z%(A,1),1): REM skip two
+      A=Z%(Z%(A+1)+1): REM skip two
 
       REM update the return sequence structure
       REM do not release M and N since we are pulling them from the
@@ -356,18 +356,18 @@ DO_FUNCTION:
       RETURN
 
   DO_MAP_Q:
-    R=(Z%(A,0)AND 31)=8
+    R=(Z%(A)AND 31)=8
     GOTO RETURN_TRUE_FALSE
   DO_ASSOC:
     H=A
-    AR=Z%(AR,1)
+    AR=Z%(AR+1)
     DO_ASSOC_LOOP:
-      R=AR:GOSUB VAL_R:K=R
-      R=Z%(AR,1):GOSUB VAL_R:C=R
-      Z%(H,0)=Z%(H,0)+32
+      K=Z%(AR+2)
+      C=Z%(Z%(AR+1)+2)
+      Z%(H)=Z%(H)+32
       GOSUB ASSOC1:H=R
-      AR=Z%(Z%(AR,1),1)
-      IF AR=0 OR Z%(AR,1)=0 THEN RETURN
+      AR=Z%(Z%(AR+1)+1)
+      IF AR=0 OR Z%(AR+1)=0 THEN RETURN
       GOTO DO_ASSOC_LOOP
   DO_GET:
     IF A=0 THEN R=0:GOTO RETURN_INC_REF
@@ -386,12 +386,12 @@ DO_FUNCTION:
     T=6:GOSUB MAP_LOOP_START
 
     DO_KEYS_VALS_LOOP:
-      IF Z%(A,1)=0 THEN GOTO DO_KEYS_VALS_LOOP_DONE
+      IF Z%(A+1)=0 THEN GOTO DO_KEYS_VALS_LOOP_DONE
 
-      IF T1=0 THEN N=Z%(A+1,0)
-      IF T1=1 THEN N=Z%(A+1,1)
+      IF T1=0 THEN M=Z%(A+2)
+      IF T1=1 THEN M=Z%(A+3)
 
-      A=Z%(A,1): REM next element
+      A=Z%(A+1): REM next element
 
       REM update the return sequence structure
       REM do not release N since we are pulling it from the
@@ -406,17 +406,17 @@ DO_FUNCTION:
       RETURN
 
   DO_SEQUENTIAL_Q:
-    R=(Z%(A,0)AND 31)=6 OR (Z%(A,0)AND 31)=7
+    R=(Z%(A)AND 31)=6 OR (Z%(A)AND 31)=7
     GOTO RETURN_TRUE_FALSE
   DO_CONS:
-    T=6:L=B:N=A:GOSUB ALLOC
+    T=6:L=B:M=A:GOSUB ALLOC
     RETURN
   DO_CONCAT:
     REM if empty arguments, return empty list
-    IF Z%(AR,1)=0 THEN R=3:GOTO RETURN_INC_REF
+    IF Z%(AR+1)=0 THEN R=6:GOTO RETURN_INC_REF
 
     REM single argument
-    IF Z%(Z%(AR,1),1)<>0 THEN GOTO DO_CONCAT_MULT
+    IF Z%(Z%(AR+1)+1)<>0 THEN GOTO DO_CONCAT_MULT
       REM force to list type
       T=6:GOSUB FORCE_SEQ_TYPE
       RETURN
@@ -427,19 +427,19 @@ DO_FUNCTION:
       CZ=X: REM save current stack position
       REM push arguments onto the stack
       DO_CONCAT_STACK:
-        R=AR:GOSUB VAL_R
+        R=Z%(AR+2)
         GOSUB PUSH_R: REM push sequence
-        AR=Z%(AR,1)
-        IF Z%(AR,1)<>0 THEN GOTO DO_CONCAT_STACK
+        AR=Z%(AR+1)
+        IF Z%(AR+1)<>0 THEN GOTO DO_CONCAT_STACK
 
     REM pop last argument as our seq to prepend to
     GOSUB POP_Q:B=Q
     REM last arg/seq is not copied so we need to inc ref to it
-    Z%(B,0)=Z%(B,0)+32
+    Z%(B)=Z%(B)+32
     DO_CONCAT_LOOP:
       IF X=CZ THEN R=B:RETURN
       GOSUB POP_A: REM pop off next seq to prepend
-      IF Z%(A,1)=0 THEN GOTO DO_CONCAT_LOOP: REM skip empty seqs
+      IF Z%(A+1)=0 THEN GOTO DO_CONCAT_LOOP: REM skip empty seqs
       Q=B:GOSUB PUSH_Q
       B=0:C=-1:GOSUB SLICE
       GOSUB POP_Q:B=Q
@@ -447,37 +447,37 @@ DO_FUNCTION:
       REM release the terminator of new list (we skip over it)
       REM we already checked for an empty list above, so R6 is pointer
       REM a real non-empty list
-      AY=Z%(R6,1):GOSUB RELEASE
+      AY=Z%(R6+1):GOSUB RELEASE
       REM attach new list element before terminator (last actual
       REM element to the next sequence
-      Z%(R6,1)=B
+      Z%(R6+1)=B
 
       B=R
       GOTO DO_CONCAT_LOOP
   DO_NTH:
     GOSUB COUNT
-    B=Z%(B,1)
+    B=Z%(B+1)
     IF R<=B THEN R=-1:ER=-1:E$="nth: index out of range":RETURN
     DO_NTH_LOOP:
       IF B=0 THEN GOTO DO_NTH_DONE
       B=B-1
-      A=Z%(A,1)
+      A=Z%(A+1)
       GOTO DO_NTH_LOOP
     DO_NTH_DONE:
-      R=Z%(A+1,1)
+      R=Z%(A+2)
       GOTO RETURN_INC_REF
   DO_FIRST:
     R=0
     IF A=0 THEN GOTO RETURN_INC_REF
-    IF Z%(A,1)<>0 THEN R=A:GOSUB VAL_R
+    IF Z%(A+1)<>0 THEN R=Z%(A+2)
     GOTO RETURN_INC_REF
   DO_REST:
-    IF A=0 THEN R=3:GOTO RETURN_INC_REF
-    IF Z%(A,1)<>0 THEN A=Z%(A,1): REM get the next sequence element
+    IF A=0 THEN R=6:GOTO RETURN_INC_REF
+    IF Z%(A+1)<>0 THEN A=Z%(A+1): REM get the next sequence element
     T=6:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_EMPTY_Q:
-    R=Z%(A,1)=0
+    R=Z%(A+1)=0
     GOTO RETURN_TRUE_FALSE
   DO_COUNT:
     GOSUB COUNT
@@ -491,32 +491,32 @@ DO_FUNCTION:
     GOTO RETURN_INC_REF
 
   DO_WITH_META:
-    T=Z%(A,0)AND 31
+    T=Z%(A)AND 31
     REM remove existing metadata first
-    IF T>=16 THEN A=Z%(A,1):GOTO DO_WITH_META
-    T=T+16:L=A:N=B:GOSUB ALLOC
+    IF T=14 THEN A=Z%(A+1):GOTO DO_WITH_META
+    T=14:L=A:M=B:GOSUB ALLOC
     RETURN
   DO_META:
     R=0
-    IF (Z%(A,0)AND 31)>15 THEN R=Z%(A+1,1)
+    IF (Z%(A)AND 31)=14 THEN R=Z%(A+2)
     GOTO RETURN_INC_REF
   DO_ATOM:
     T=12:L=A:GOSUB ALLOC
     RETURN
   DO_ATOM_Q:
-    R=(Z%(A,0)AND 31)=12
+    R=(Z%(A)AND 31)=12
     GOTO RETURN_TRUE_FALSE
   DO_DEREF:
-    R=Z%(A,1)
+    R=Z%(A+1)
     GOTO RETURN_INC_REF
   DO_RESET_BANG:
     R=B
     REM release current value
-    AY=Z%(A,1):GOSUB RELEASE
+    AY=Z%(A+1):GOSUB RELEASE
     REM inc ref by 2 for atom ownership and since we are returning it
-    Z%(R,0)=Z%(R,0)+64
+    Z%(R)=Z%(R)+64
     REM update value
-    Z%(A,1)=R
+    Z%(A+1)=R
     RETURN
 
   REM DO_PR_MEMORY:
@@ -536,7 +536,7 @@ DO_FUNCTION:
     RETURN
 
   DO_READ_FILE:
-    A$=S$(Z%(A,1))
+    A$=S$(Z%(A+1))
     GOSUB READ_FILE
     RETURN
 

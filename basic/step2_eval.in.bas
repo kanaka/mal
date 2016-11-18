@@ -1,5 +1,6 @@
 GOTO MAIN
 
+REM $INCLUDE: 'mem.in.bas'
 REM $INCLUDE: 'types.in.bas'
 REM $INCLUDE: 'readline.in.bas'
 REM $INCLUDE: 'reader.in.bas'
@@ -22,19 +23,19 @@ SUB EVAL_AST
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
-  T=Z%(A,0)AND 31
+  T=Z%(A)AND 31
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
   R=A
-  Z%(R,0)=Z%(R,0)+32
+  Z%(R)=Z%(R)+32
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
     H=E:K=A:GOSUB HASHMAP_GET
-    IF R3=0 THEN R=-1:ER=-1:E$="'"+S$(Z%(A,1))+"' not found":GOTO EVAL_AST_RETURN
-    Z%(R,0)=Z%(R,0)+32
+    IF R3=0 THEN R=-1:ER=-1:E$="'"+S$(Z%(A+1))+"' not found":GOTO EVAL_AST_RETURN
+    Z%(R)=Z%(R)+32
     GOTO EVAL_AST_RETURN
 
   EVAL_AST_SEQ:
@@ -43,16 +44,17 @@ SUB EVAL_AST
 
     EVAL_AST_SEQ_LOOP:
       REM check if we are done evaluating the source sequence
-      IF Z%(A,1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
+      IF Z%(A+1)=0 THEN GOTO EVAL_AST_SEQ_LOOP_DONE
 
       REM call EVAL for each entry
       GOSUB PUSH_A
-      IF T<>8 THEN GOSUB VAL_A
-      IF T=8 THEN A=Z%(A+1,1)
+      IF T<>8 THEN A=Z%(A+2)
+      IF T=8 THEN A=Z%(A+3)
       Q=T:GOSUB PUSH_Q: REM push/save type
       CALL EVAL
       GOSUB POP_Q:T=Q: REM pop/restore type
       GOSUB POP_A
+      M=R
 
       REM if error, release the unattached element
       REM TODO: is R=0 correct?
@@ -60,17 +62,15 @@ SUB EVAL_AST
 
       REM for hash-maps, copy the key (inc ref since we are going to
       REM release it below)
-      IF T=8 THEN M=Z%(A+1,0):Z%(M,0)=Z%(M,0)+32
+      IF T=8 THEN N=M:M=Z%(A+2):Z%(M)=Z%(M)+32
 
-      REM value evaluated above
-      N=R
 
       REM update the return sequence structure
       REM release N (and M if T=8) since seq takes full ownership
       C=1:GOSUB MAP_LOOP_UPDATE
 
       REM process the next sequence entry from source list
-      A=Z%(A,1)
+      A=Z%(A+1)
 
       GOTO EVAL_AST_SEQ_LOOP
     EVAL_AST_SEQ_LOOP_DONE:
@@ -107,7 +107,7 @@ SUB EVAL
 
   APPLY_LIST:
     GOSUB EMPTY_Q
-    IF R THEN R=A:Z%(R,0)=Z%(R,0)+32:GOTO EVAL_RETURN
+    IF R THEN R=A:Z%(R)=Z%(R)+32:GOTO EVAL_RETURN
 
     EVAL_INVOKE:
       CALL EVAL_AST
@@ -116,10 +116,10 @@ SUB EVAL
       REM if error, return f/args for release by caller
       IF ER<>-2 THEN GOTO EVAL_RETURN
 
-      AR=Z%(R,1): REM rest
-      GOSUB VAL_R:F=R
+      AR=Z%(R+1): REM rest
+      F=Z%(R+2)
 
-      IF (Z%(F,0)AND 31)<>9 THEN R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
+      IF (Z%(F)AND 31)<>9 THEN R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
       GOSUB DO_FUNCTION
       EVAL_INVOKE_DONE:
       AY=W:GOSUB RELEASE
@@ -147,11 +147,11 @@ DO_FUNCTION:
   AR$=R$
 
   REM Get the function number
-  G=Z%(F,1)
+  G=Z%(F+1)
 
   REM Get argument values
-  R=AR:GOSUB VAL_R:A=Z%(R,1)
-  R=Z%(AR,1):GOSUB VAL_R:B=Z%(R,1)
+  A=Z%(Z%(AR+2)+1)
+  B=Z%(Z%(Z%(AR+1)+2)+1)
 
   REM Switch on the function number
   IF G=1 THEN GOTO DO_ADD

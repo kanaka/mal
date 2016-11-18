@@ -54,8 +54,9 @@ Q   : PUSH*, POP*, PEEK* return value (and PEEK_Q_Q call arg)
 AR  : APPLY, DO_*_FUNCTION arg list
 AY  : RELEASE/FREE arg
 AZ  : PR_STR arg
-P1  : PR_MEMORY, CHECK_FREE_LIST start
-P2  : PR_MEMORY, CHECK_FREE_LIST end
+P1  : PR_MEMORY, PR_OBJECT, CHECK_FREE_LIST start
+P2  : PR_MEMORY, PR_OBJECT, CHECK_FREE_LIST end
+P3  : PR_OBJECT, PR_MEMORY_VALUE
 R1  : REP, RE - MAL_READ result temp
 R2  : REP, RE - EVAL result temp
 R3  : HASHMAP_GET, DO_HASH_MAP, DO_KEYS_VALS temp and return value
@@ -79,9 +80,9 @@ RD  : PR_OBJECT recursion depth
 SD  : READ_STR sequence read recursion depth
 
 C$  : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
-G   : function value ON GOTO switch flag
-I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT
-J   : REPLACE
+G   : function value ON GOTO switch flag, EVAL_AST changed flag
+I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT, PR_MEMORY_VALUE
+J   : REPLACE, PR_MEMORY_VALUE
 U   : ALLOC, RELEASE, PR_STR temp
 V   : RELEASE, PR_STR_SEQ temp
 W   : SLICE, LAST, QUASIQUOTE, DO_HASH_MAP, DO_KEYS_VALS, step2-3 EVAL temp

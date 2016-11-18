@@ -65,7 +65,7 @@ SUB READ_FORM
   IF ER<>-2 THEN GOTO READ_FORM_RETURN
   GOSUB READ_TOKEN
   REM PRINT "READ_FORM T$: ["+T$+"]"
-  IF T$="" THEN R=0:Z%(R,0)=Z%(R,0)+32:GOTO READ_FORM_RETURN
+  IF T$="" THEN R=0:Z%(R)=Z%(R)+32:GOTO READ_FORM_RETURN
   IF T$="nil" THEN T=0:GOTO READ_NIL_BOOL
   IF T$="false" THEN T=1:GOTO READ_NIL_BOOL
   IF T$="true" THEN T=2:GOTO READ_NIL_BOOL
@@ -91,8 +91,8 @@ SUB READ_FORM
 
   READ_NIL_BOOL:
     REM PRINT "READ_NIL_BOOL"
-    R=T
-    Z%(R,0)=Z%(R,0)+32
+    R=T*2
+    Z%(R)=Z%(R)+32
     GOTO READ_FORM_RETURN
   READ_NUMBER:
     REM PRINT "READ_NUMBER"
@@ -181,18 +181,14 @@ SUB READ_FORM
     IF ER<>-2 OR T$=CHR$(Q) THEN GOTO READ_SEQ_DONE
 
     CALL READ_FORM
+    M=R: REM value (or key for hash-maps)
 
     REM if error, release the unattached element
     IF ER<>-2 THEN AY=R:GOSUB RELEASE:GOTO READ_SEQ_DONE
 
     REM if this is a hash-map, READ_FORM again
     IF T=8 THEN GOSUB PUSH_R:CALL READ_FORM
-    IF T=8 THEN GOSUB POP_Q:M=Q: REM key value
-
-    REM main value
-    REM for list/vector this is result of the first READ_FORM 
-    N=R
-
+    IF T=8 THEN N=R:GOSUB POP_Q:M=Q: REM set key and value
 
     REM update the return sequence structure
     REM release N since list takes full ownership
@@ -206,11 +202,9 @@ SUB READ_FORM
     GOSUB MAP_LOOP_DONE
 
     GOSUB POP_Q: REM pop end character ptr
-REM P1=R:PRINT "READ_SEQ R:":GOSUB PR_OBJECT
     GOTO READ_FORM_RETURN
 
   READ_FORM_RETURN:
-REM    IF ER<>-2 THEN R=0:Z%(R,0)=Z%(R,0)+32
     RI=RI+LEN(T$)
     GOSUB POP_Q:T=Q: REM restore current value of T
 

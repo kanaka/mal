@@ -5,9 +5,9 @@ CHECK_FREE_LIST:
   P2=0
   CHECK_FREE_LIST_LOOP:
     IF P1>=ZI THEN GOTO CHECK_FREE_LIST_DONE
-    IF (Z%(P1,0)AND 31)<>15 THEN P2=-1:GOTO CHECK_FREE_LIST_DONE
-    P2=P2+(Z%(P1,0)AND-32)/32
-    P1=Z%(P1,1)
+    IF (Z%(P1)AND 31)<>15 THEN P2=-1:GOTO CHECK_FREE_LIST_DONE
+    P2=P2+(Z%(P1)AND-32)/32
+    P1=Z%(P1+1)
     GOTO CHECK_FREE_LIST_LOOP
   CHECK_FREE_LIST_DONE:
     IF P2=-1 THEN PRINT "corrupt free list at "+STR$(P1)
@@ -19,11 +19,13 @@ PR_MEMORY_SUMMARY_SMALL:
   GOSUB CHECK_FREE_LIST
   #cbm PRINT "Free:"+STR$(FRE(0))+", ";
   PRINT "Values:"+STR$(ZI-1-P2)+", Emptys:";
-  FOR I=0 TO 7
-    IF I<>4 AND I<>6 THEN PRINT STR$(INT(Z%(I,0)/32))+",";
-    NEXT I
+  FOR I=0 TO 4 STEP 2:GOSUB PR_MEMORY_SUMMARY_SMALL_1:NEXT I
+  FOR I=6 TO 12 STEP 3:GOSUB PR_MEMORY_SUMMARY_SMALL_1:NEXT I
   PRINT
   RETURN
+  PR_MEMORY_SUMMARY_SMALL_1:
+    PRINT STR$(INT(Z%(I)/32))+",";
+    RETURN
 
 REM REM COUNT_STRINGS() -> P2
 REM COUNT_STRINGS:
@@ -73,36 +75,132 @@ REM   #cbm PRINT "Arrays       :"STR$(P4-P3)
 REM   #cbm PRINT "String Heap  :"STR$(P7-P5)
 REM   #cbm RETURN
 REM 
+REM REM PR_MEMORY_VALUE(I) -> J:
+REM REM   - I is memory value to print
+REM REM   - I is returned as last byte of value printed
+REM REM   - J is returned as type
+REM PR_MEMORY_VALUE:
+REM   J=Z%(I)AND 31
+REM   P3=Z%(I+1)
+REM   PRINT " "+STR$(I)+": type:"+STR$(J);
+REM   IF J<>15 THEN PRINT ", refs:"+STR$((Z%(I)-J)/32);
+REM   IF J=15 THEN PRINT ", size:"+STR$((Z%(I)AND-32)/32);
+REM   PRINT ", ["+STR$(Z%(I));+" |"+STR$(P3);
+REM   IF J<6 OR J=9 OR J=12 OR J=15 THEN PRINT " | --- | --- ]";:GOTO PR_MEM_SKIP
+REM   PRINT " |"+STR$(Z%(I+2));
+REM   IF J=6 OR J=7 OR J=13 OR J=14 THEN PRINT " | --- ]";:GOTO PR_MEM_SKIP
+REM   PRINT " |"+STR$(Z%(I+3))+" ]";
+REM   PR_MEM_SKIP:
+REM   PRINT " >> ";
+REM   ON J+1 GOTO PR_ENTRY_NIL,PR_ENTRY_BOOL,PR_ENTRY_INT,PR_ENTRY_FLOAT,PR_ENTRY_STR,PR_ENTRY_SYM,PR_ENTRY_LIST,PR_ENTRY_VECTOR,PR_ENTRY_HASH_MAP,PR_ENTRY_FN,PR_ENTRY_MALFN,PR_ENTRY_MAC,PR_ENTRY_ATOM,PR_ENTRY_ENV,PR_ENTRY_META,PR_ENTRY_FREE
+REM   PRINT "Unknown type:"+STR$(J):END
+REM 
+REM   PR_ENTRY_NIL:
+REM     PRINT "nil"
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_BOOL:
+REM     IF P3=0 THEN PRINT "false"
+REM     IF P3=1 THEN PRINT "true"
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_INT:
+REM   PR_ENTRY_FLOAT:
+REM     PRINT STR$(P3)
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_STR:
+REM     PRINT "'"+S$(P3)+"'"
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_SYM:
+REM     PRINT S$(P3)
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_LIST:
+REM     I=I+2
+REM     IF I<16 THEN PRINT "()":RETURN
+REM     PRINT "(..."+STR$(Z%(I))+" ...)"
+REM     RETURN
+REM   PR_ENTRY_VECTOR:
+REM     I=I+2
+REM     IF I<16 THEN PRINT "[]":RETURN
+REM     PRINT "[..."+STR$(Z%(I))+" ...]"
+REM     RETURN
+REM   PR_ENTRY_HASH_MAP:
+REM     I=I+3
+REM     IF I<16 THEN PRINT "{}":RETURN
+REM     IF J=8 THEN PRINT "{... key:"+STR$(Z%(I-1))+", val:"+STR$(Z%(I))+" ...}"
+REM     RETURN
+REM   PR_ENTRY_FN:
+REM     PRINT "#<fn"+STR$(P3)+">"
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_MALFN:
+REM   PR_ENTRY_MAC:
+REM     IF I=11 THEN PRINT "MACRO ";
+REM     PRINT "(fn* param:"+STR$(Z%(I))+", env:"+STR$(Z%(I+1))+")"
+REM     I=I+3
+REM     RETURN
+REM   PR_ENTRY_ATOM:
+REM     PRINT "(atom val:"+STR$(P3)+")"
+REM     I=I+1
+REM     RETURN
+REM   PR_ENTRY_ENV:
+REM     PRINT "#<env hm:"+STR$(P3)+", outer:"+STR$(Z%(I+2))+">"
+REM     I=I+2
+REM     RETURN
+REM   PR_ENTRY_META:
+REM     PRINT "#<meta obj:"+STR$(P3)+", meta:"+STR$(Z%(I+2))+">"
+REM     I=I+2
+REM     RETURN
+REM   PR_ENTRY_FREE:
+REM     PRINT "FREE next:"+STR$(P3);
+REM     IF I=ZK THEN PRINT " (free list start)";
+REM     PRINT
+REM     I=I-1+(Z%(I)AND-32)/32
+REM     RETURN
+REM 
+REM REM PR_OBJECT(P1) -> nil
+REM PR_OBJECT:
+REM   RD=0
+REM 
+REM   IF P1=-1 THEN PRINT "  "+STR$(-1)+": ---":RETURN
+REM   RD=RD+1
+REM   Q=P1:GOSUB PUSH_Q
+REM 
+REM   PR_OBJ_LOOP:
+REM     IF RD=0 THEN RETURN
+REM     RD=RD-1
+REM 
+REM     GOSUB PEEK_Q:I=Q
+REM     REM IF I<15 THEN GOSUB POP_Q:GOTO PR_OBJ_LOOP
+REM     GOSUB PR_MEMORY_VALUE
+REM     REM J holds type now
+REM     GOSUB POP_Q:I=Q
+REM 
+REM     IF J<6 OR J=9 THEN GOTO PR_OBJ_LOOP: REM no contained references
+REM     REM reference in first position
+REM     IF Z%(I+1)<>0 THEN RD=RD+1:Q=Z%(I+1):GOSUB PUSH_Q
+REM     IF J=12 OR J=15 THEN PR_OBJ_LOOP: REM no more reference
+REM     REM reference in second position
+REM     IF Z%(I+2)<>0 THEN RD=RD+1:Q=Z%(I+2):GOSUB PUSH_Q
+REM     IF J=6 OR J=7 OR J=13 OR J=14 THEN PR_OBJ_LOOP: REM no more references
+REM     IF Z%(I+3)<>0 THEN RD=RD+1:Q=Z%(I+3):GOSUB PUSH_Q
+REM     GOTO PR_OBJ_LOOP
+REM 
 REM REM PR_MEMORY(P1, P2) -> nil
 REM PR_MEMORY:
 REM   IF P2<P1 THEN P2=ZI-1
-REM   PRINT "vvvvvv"
-REM   PRINT "Z% Value Memory"+STR$(P1)+"->"+STR$(P2);
+REM   PRINT "Values (Z%)"+STR$(P1)+" ->"+STR$(P2);
 REM   PRINT " (ZI: "+STR$(ZI)+", ZK: "+STR$(ZK)+"):"
 REM   IF P2<P1 THEN PRINT "  ---":GOTO PR_MEMORY_AFTER_VALUES
 REM   I=P1
 REM   PR_MEMORY_VALUE_LOOP:
 REM     IF I>P2 THEN GOTO PR_MEMORY_AFTER_VALUES
-REM     PRINT " "+STR$(I);
-REM     IF (Z%(I,0)AND 31)=15 THEN GOTO PR_MEMORY_FREE
-REM       PRINT ": ref cnt: "+STR$((Z%(I,0)AND-32)/32);
-REM       PRINT ", type: "+STR$(Z%(I,0)AND 31)+", value: "+STR$(Z%(I,1));
-REM       IF (Z%(I,0)AND 31)=4 THEN PRINT "    '"+S$(Z%(I,1))+"'";
-REM       IF (Z%(I,0)AND 31)=5 THEN PRINT "    "+S$(Z%(I,1))+"";
-REM       PRINT
-REM       I=I+1
-REM       IF (Z%(I-1,0)AND 31)<>10 THEN GOTO PR_MEMORY_VALUE_LOOP
-REM         PRINT " "+STR$(I)+":            ";
-REM         PRINT "params: "+STR$(Z%(I+1,0))+", env:"+STR$(Z%(I+1,1))
-REM         I=I+1
-REM       GOTO PR_MEMORY_VALUE_LOOP
-REM     PR_MEMORY_FREE:
-REM       PRINT ": FREE size: "+STR$((Z%(I,0)AND-32)/32)+", next: "+STR$(Z%(I,1));
-REM       IF I=ZK THEN PRINT " (free list start)";
-REM       PRINT
-REM       IF (Z%(I,0)AND-32)=64 THEN I=I+1:PRINT " "+STR$(I)+": ---"
-REM       I=I+1
-REM       GOTO PR_MEMORY_VALUE_LOOP
+REM     GOSUB PR_MEMORY_VALUE
+REM     I=I+1
+REM     GOTO PR_MEMORY_VALUE_LOOP
 REM   PR_MEMORY_AFTER_VALUES:
 REM   PRINT "S$ String Memory (S: "+STR$(S)+"):"
 REM   IF S<=0 THEN PRINT "  ---":GOTO PR_MEMORY_SKIP_STRINGS
@@ -120,43 +218,5 @@ REM #qbasic  FOR I=0 TO X
 REM #qbasic    #qbasic PRINT " "+STR$(I)+": "+STR$(X%(I))
 REM #qbasic    NEXT I
 REM   PR_MEMORY_SKIP_STACK:
-REM   PRINT "^^^^^^"
 REM   RETURN
 REM 
-REM REM PR_OBJECT(P1) -> nil
-REM PR_OBJECT:
-REM   RD=0
-REM 
-REM   IF P1=-1 THEN PRINT "  "+STR$(-1)+": ---":RETURN
-REM   RD=RD+1
-REM   Q=P1:GOSUB PUSH_Q
-REM 
-REM   PR_OBJ_LOOP:
-REM     IF RD=0 THEN RETURN
-REM     GOSUB POP_Q:I=Q
-REM     RD=RD-1
-REM 
-REM     P2=Z%(I,0)AND 31
-REM     P3=Z%(I,1)
-REM     PRINT " "+STR$(I);
-REM     PRINT ": ref cnt:"+STR$((Z%(I,0)AND-32)/32);
-REM     PRINT ", type:"+STR$(P2)+", value: "+STR$(Z%(I,1));
-REM     IF P2=2 THEN PRINT "    "+STR$(Z%(I,1));
-REM     IF P2=4 THEN PRINT "    '"+S$(Z%(I,1))+"'";
-REM     IF P2=5 THEN PRINT "    "+S$(Z%(I,1));
-REM     IF P2=6 AND P3>0 THEN PRINT "    ()";
-REM     IF P2=6 AND P3=0 THEN PRINT "    )";
-REM     IF P2=7 AND P3>0 THEN PRINT "    []";
-REM     IF P2=7 AND P3=0 THEN PRINT "    ]";
-REM     IF P2=8 AND P3>0 THEN PRINT "    {}";
-REM     IF P2=8 AND P3=0 THEN PRINT "    }";
-REM     IF P2=9 THEN PRINT "    #<fn"+STR$(P3)+">";
-REM     PRINT
-REM     IF P2=8 THEN PRINT " "+STR$(I+1)+":              key:"+STR$(Z%(I+1,0));
-REM     IF P2=8 THEN PRINT ", value:"+STR$(Z%(I+1,1))
-REM 
-REM     IF P2<=5 OR P2=9 THEN GOTO PR_OBJ_LOOP
-REM     IF Z%(I,1)<>0 THEN RD=RD+1:Q=Z%(I,1):GOSUB PUSH_Q
-REM     IF P2=8 AND I<>7 THEN RD=RD+2:Q=Z%(I+1,1):GOSUB PUSH_Q:Q=Z%(I+1,0):GOSUB PUSH_Q
-REM     IF P2>5 AND P2<8 THEN RD=RD+1:Q=I+1:GOSUB PUSH_Q
-REM     GOTO PR_OBJ_LOOP
