@@ -170,3 +170,21 @@
 
   (loop do (let ((line (mal-readline "user> ")))
              (if line (mal-writeline (rep line)) (return)))))
+
+;;; Workaround for CMUCL's printing of "Reloaded library ... " messages when an
+;;; image containing foreign libraries is restored. The extra messages cause the
+;;; MAL testcases to fail
+
+#+cmucl (progn
+          (defvar *old-standard-output* *standard-output*
+            "Keep track of current value standard output, this is restored after image restore completes")
+
+          (defun muffle-output ()
+            (setf *standard-output* (make-broadcast-stream)))
+
+          (defun restore-output ()
+            (setf *standard-output* *old-standard-output*))
+
+          (pushnew #'muffle-output ext:*after-save-initializations*)
+          (setf ext:*after-save-initializations*
+                (append ext:*after-save-initializations* (list #'restore-output))))
