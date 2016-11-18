@@ -39,21 +39,23 @@
                                    (types:mal-data-value value2)))))
 
 (defun mal-prn (&rest strings)
-  (format t
-          "~{~a~^ ~}"
-          (mapcar (lambda (string) (printer:pr-str string t))
-                  strings))
-  (terpri)
-  (force-output *standard-output*)
+  ;; Using write-line instead of (format *standard-output* ... ) since the later prints
+  ;; and extra newline at start in GNU CLISP, if environment variable PERL_RL is true
+  ;; or terminal is dumb
+  (write-line (format nil
+                      "~{~a~^ ~}"
+                      (mapcar (lambda (string) (printer:pr-str string t))
+                              strings)))
   (types:make-mal-nil nil))
 
 (defun mal-println (&rest strings)
-  (format t
-          "~{~a~^ ~}"
-          (mapcar (lambda (string) (printer:pr-str string nil))
-                  strings))
-  (terpri)
-  (force-output *standard-output*)
+  ;; Using write-line instead of (format *standard-output* ... ) since the later prints
+  ;; and extra newline at start in GNU CLISP, if environment variable PERL_RL is true
+  ;; or terminal is dumb
+  (write-line (format nil
+                      "~{~a~^ ~}"
+                      (mapcar (lambda (string) (printer:pr-str string nil))
+                              strings)))
   (types:make-mal-nil nil))
 
 (defun mal-pr-str (&rest strings)
