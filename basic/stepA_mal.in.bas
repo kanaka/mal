@@ -515,7 +515,7 @@ REM RE(A$) -> R
 REM Assume D has repl_env
 REM caller must release result
 RE:
-  R1=0
+  R1=-1
   GOSUB MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
@@ -524,18 +524,15 @@ RE:
 
   RE_DONE:
     REM Release memory from MAL_READ
-    IF R1<>0 THEN AY=R1:GOSUB RELEASE
+    AY=R1:GOSUB RELEASE
     RETURN: REM caller must release result of EVAL
 
 REM REP(A$) -> R$
 REM Assume D has repl_env
 SUB REP
-  R1=-1:R2=-1
-  GOSUB MAL_READ
-  R1=R
-  IF ER<>-2 THEN GOTO REP_DONE
+  R2=-1
 
-  A=R:E=D:CALL EVAL
+  GOSUB RE
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
@@ -544,7 +541,6 @@ SUB REP
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
     AY=R2:GOSUB RELEASE
-    AY=R1:GOSUB RELEASE
 END SUB
 
 REM MAIN program
