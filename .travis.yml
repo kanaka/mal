@@ -14,7 +14,6 @@ matrix:
     - {env: IMPL=coffee,    services: [docker]}
     - {env: IMPL=cs,        services: [docker]}
     - {env: IMPL=chuck,     services: [docker]}
-    - {env: IMPL=clisp,     services: [docker]}
     - {env: IMPL=clojure,   services: [docker]}
     - {env: IMPL=common-lisp, services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
