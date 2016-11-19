@@ -1,5 +1,15 @@
 REM general functions
 
+REM TYPE_A(A) -> T
+TYPE_A:
+  T=Z%(A)AND 31
+  RETURN
+
+REM TYPE_F(F) -> T
+TYPE_F:
+  T=Z%(F)AND 31
+  RETURN
+
 REM EQUAL_Q(A, B) -> R
 EQUAL_Q:
   ED=0: REM recursion depth
@@ -12,12 +22,12 @@ EQUAL_Q:
   Q=B:GOSUB PUSH_Q
   ED=ED+1
 
-  T1=Z%(A)AND 31
+  GOSUB TYPE_A
   T2=Z%(B)AND 31
-  IF T1>5 AND T1<8 AND T2>5 AND T2<8 THEN GOTO EQUAL_Q_SEQ
-  IF T1=8 AND T2=8 THEN GOTO EQUAL_Q_HM
+  IF T>5 AND T<8 AND T2>5 AND T2<8 THEN GOTO EQUAL_Q_SEQ
+  IF T=8 AND T2=8 THEN GOTO EQUAL_Q_HM
 
-  IF T1<>T2 OR Z%(A+1)<>Z%(B+1) THEN R=0
+  IF T<>T2 OR Z%(A+1)<>Z%(B+1) THEN R=0
   GOTO EQUAL_Q_DONE
 
   EQUAL_Q_SEQ:
@@ -108,9 +118,9 @@ REM sequence functions
 REM FORCE_SEQ_TYPE(A,T) -> R
 FORCE_SEQ_TYPE:
   REM if it's already the right type, inc ref cnt and return it
-  IF (Z%(A)AND 31)=T THEN R=A:Z%(R)=Z%(R)+32:RETURN
+  IF (Z%(A)AND 31)=T THEN R=A:GOTO INC_REF_R
   REM if it's empty, return the empty sequence match T
-  IF A<16 THEN R=(T-4)*3:Z%(R)=Z%(R)+32:RETURN
+  IF A<16 THEN R=(T-4)*3:GOTO INC_REF_R
   REM otherwise, copy first element to turn it into correct type
   B=Z%(A+2): REM value to copy
   L=Z%(A+1):M=B:GOSUB ALLOC: REM T already set
@@ -122,12 +132,11 @@ REM   - setup stack for map loop
 MAP_LOOP_START:
   REM point to empty sequence to start off
   R=(T-4)*3: REM calculate location of empty seq
-  Z%(R)=Z%(R)+32
 
   GOSUB PUSH_R: REM push return ptr
   GOSUB PUSH_R: REM push empty ptr
   GOSUB PUSH_R: REM push current ptr
-  RETURN
+  GOTO INC_REF_R
 
 REM MAP_LOOP_UPDATE(C,M):
 REM MAP_LOOP_UPDATE(C,M,N):
@@ -165,7 +174,8 @@ MAP_LOOP_DONE:
 REM LIST_Q(A) -> R
 LIST_Q:
   R=0
-  IF (Z%(A)AND 31)=6 THEN R=1
+  GOSUB TYPE_A
+  IF T=6 THEN R=1
   RETURN
 
 REM EMPTY_Q(A) -> R
@@ -197,8 +207,7 @@ LAST:
     GOTO LAST_LOOP
   LAST_DONE:
     R=Z%(W+2)
-    Z%(R)=Z%(R)+32
-    RETURN
+    GOTO INC_REF_R
 
 REM SLICE(A,B,C) -> R
 REM make copy of sequence A from index B to C
@@ -207,7 +216,7 @@ REM returns A as next element following slice (of original)
 SLICE:
   I=0
   R=6: REM always a list
-  Z%(R)=Z%(R)+32
+  GOSUB INC_REF_R
   R6=-1: REM last list element before empty
   W=R: REM temporary for return as R
   REM advance A to position B
@@ -260,8 +269,7 @@ REM HASHMAP() -> R
 HASHMAP:
   REM just point to static empty hash-map
   R=12
-  Z%(R)=Z%(R)+32
-  RETURN
+  GOTO INC_REF_R
 
 REM ASSOC1(H, K, C) -> R
 ASSOC1:
@@ -299,15 +307,3 @@ HASHMAP_CONTAINS:
   R=R3
   RETURN
 
-
-REM function functions
-
-REM NATIVE_FUNCTION(A) -> R
-NATIVE_FUNCTION:
-  T=9:L=A:GOSUB ALLOC
-  RETURN
-
-REM MAL_FUNCTION(A, B, E) -> R
-MAL_FUNCTION:
-  T=10:L=A:M=B:N=E:GOSUB ALLOC
-  RETURN

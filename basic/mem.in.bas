@@ -257,6 +257,23 @@ RELEASE:
     RETURN
 
 
+REM INC_REF_R(R) -> R
+REM   - return R with 1 ref cnt increase
+REM   - call with GOTO to return at caller callsite
+REM   - call with GOSUB to return to caller
+INC_REF_R:
+  Z%(R)=Z%(R)+32
+  RETURN
+
+REM RETURN_TRUE_FALSE(R) -> R
+REM   - take BASIC true/false R, return mal true/false R with ref cnt
+REM   - called with GOTO as a return RETURN
+RETURN_TRUE_FALSE:
+  IF R THEN R=4
+  IF R=0 THEN R=2
+  GOTO INC_REF_R
+
+
 REM release stack functions
 
 #qbasic PEND_A_LV:
@@ -289,7 +306,7 @@ INIT_MEMORY:
   #cbm T=FRE(0)
   #qbasic T=0
 
-  Z1=8191+400: REM Z% (boxed memory) size (2 bytes each)
+  Z1=8191+650: REM Z% (boxed memory) size (2 bytes each)
   Z2=199: REM S$/S% (string memory) size (3+2 bytes each)
   #qbasic Z3=200: REM X% (call stack) size (2 bytes each)
   #cbm Z3=49152: REM X starting point at $C000 (2 bytes each)

@@ -18,7 +18,8 @@ MAL_READ:
 REM QUASIQUOTE(A) -> R
 SUB QUASIQUOTE
   REM pair?
-  IF (Z%(A)AND 31)<6 OR (Z%(A)AND 31)>7 THEN GOTO QQ_QUOTE
+  GOSUB TYPE_A
+  IF T<6 OR T>7 THEN GOTO QQ_QUOTE
   IF (Z%(A+1)=0) THEN GOTO QQ_QUOTE
   GOTO QQ_UNQUOTE
 
@@ -36,7 +37,7 @@ SUB QUASIQUOTE
     IF S$(Z%(R+1))<>"unquote" THEN GOTO QQ_SPLICE_UNQUOTE
       REM [ast[1]]
       R=Z%(Z%(A+1)+2)
-      Z%(R)=Z%(R)+32
+      GOSUB INC_REF_R
 
       GOTO QQ_DONE
 
@@ -51,7 +52,8 @@ SUB QUASIQUOTE
     A=Z%(A+2)
 
     REM pair?
-    IF (Z%(A)AND 31)<6 OR (Z%(A)AND 31)>7 THEN GOTO QQ_DEFAULT
+    GOSUB TYPE_A
+    IF T<6 OR T>7 THEN GOTO QQ_DEFAULT
     IF (Z%(A+1)=0) THEN GOTO QQ_DEFAULT
 
     B=Z%(A+2)
@@ -91,7 +93,8 @@ SUB MACROEXPAND
 
   MACROEXPAND_LOOP:
     REM list?
-    IF (Z%(A)AND 31)<>6 THEN GOTO MACROEXPAND_DONE
+    GOSUB TYPE_A
+    IF T<>6 THEN GOTO MACROEXPAND_DONE
     REM non-empty?
     IF Z%(A+1)=0 THEN GOTO MACROEXPAND_DONE
     B=Z%(A+2)
@@ -127,13 +130,13 @@ SUB EVAL_AST
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
-  T=Z%(A)AND 31
+  GOSUB TYPE_A
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
   R=A
-  Z%(R)=Z%(R)+32
+  GOSUB INC_REF_R
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
@@ -224,7 +227,7 @@ SUB EVAL
     IF R<>1 THEN GOTO EVAL_NOT_LIST
 
     GOSUB EMPTY_Q
-    IF R THEN R=A:Z%(R)=Z%(R)+32:GOTO EVAL_RETURN
+    IF R THEN R=A:GOSUB INC_REF_R:GOTO EVAL_RETURN
 
     A0=Z%(A+2)
 
@@ -327,7 +330,7 @@ SUB EVAL
 
     EVAL_QUOTE:
       R=Z%(Z%(A+1)+2)
-      Z%(R)=Z%(R)+32
+      GOSUB INC_REF_R
       GOTO EVAL_RETURN
 
     EVAL_QUASIQUOTE:
@@ -362,7 +365,7 @@ SUB EVAL
       R=A
 
       REM since we are returning it unevaluated, inc the ref cnt
-      Z%(R)=Z%(R)+32
+      GOSUB INC_REF_R
       GOTO EVAL_RETURN
 
     EVAL_TRY:
@@ -383,7 +386,7 @@ SUB EVAL
       A=A2:GOSUB EVAL_GET_A2: REM set A1 and A2 from catch block
 
       REM create object for ER=-1 type raw string errors
-      IF ER=-1 THEN B$=E$:T=4:GOSUB STRING:ER=R:Z%(R)=Z%(R)+32
+      IF ER=-1 THEN B$=E$:T=4:GOSUB STRING:ER=R:GOSUB INC_REF_R
 
       REM bind the catch symbol to the error object
       K=A1:C=ER:GOSUB ENV_SET
@@ -411,13 +414,13 @@ SUB EVAL
         AY=R:GOSUB RELEASE
         REM if no false case (A3), return nil
         GOSUB COUNT
-        IF R<4 THEN R=0:Z%(R)=Z%(R)+32:GOTO EVAL_RETURN
+        IF R<4 THEN R=0:GOSUB INC_REF_R:GOTO EVAL_RETURN
         GOSUB EVAL_GET_A3: REM set A1 - A3 after EVAL
         A=A3:GOTO EVAL_TCO_RECUR: REM TCO loop
 
     EVAL_FN:
       GOSUB EVAL_GET_A2: REM set A1 and A2
-      A=A2:B=A1:GOSUB MAL_FUNCTION
+      T=10:L=A2:M=A1:N=E:GOSUB ALLOC: REM mal function
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
@@ -433,10 +436,10 @@ SUB EVAL
       F=Z%(R+2)
 
       REM if metadata, get the actual object
-      IF (Z%(F)AND 31)=14 THEN F=Z%(F+1)
+      GOSUB TYPE_F
+      IF T=14 THEN F=Z%(F+1):GOSUB TYPE_F
 
-      IF (Z%(F)AND 31)=9 THEN GOTO EVAL_DO_FUNCTION
-      IF (Z%(F)AND 31)=10 THEN GOTO EVAL_DO_MAL_FUNCTION
+      ON T-8 GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION,EVAL_DO_MAL_FUNCTION
 
       REM if error, pop and return f/args for release by caller
       GOSUB POP_R
@@ -626,7 +629,7 @@ MAIN:
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
     PRINT:GOSUB PR_MEMORY_SUMMARY_SMALL
-    REM GOSUB PR_MEMORY_MAP
+    GOSUB PR_MEMORY_MAP
     REM P1=0:P2=ZI:GOSUB PR_MEMORY
     REM P1=D:GOSUB PR_OBJECT
     REM P1=ZK:GOSUB PR_OBJECT

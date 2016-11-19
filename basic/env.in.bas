@@ -85,5 +85,5 @@ ENV_GET:
   CALL ENV_FIND
   IF R=-1 THEN ER=-1:E$="'"+S$(Z%(K+1))+"' not found":GOTO ENV_GET_RETURN
   R=R4
-  Z%(R)=Z%(R)+32
+  GOSUB INC_REF_R
   GOTO ENV_GET_RETURN

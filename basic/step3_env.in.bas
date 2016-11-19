@@ -24,13 +24,13 @@ SUB EVAL_AST
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
-  T=Z%(A)AND 31
+  GOSUB TYPE_A
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
   R=A
-  Z%(R)=Z%(R)+32
+  GOSUB INC_REF_R
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
@@ -107,7 +107,7 @@ SUB EVAL
 
   APPLY_LIST:
     GOSUB EMPTY_Q
-    IF R THEN R=A:Z%(R)=Z%(R)+32:GOTO EVAL_RETURN
+    IF R THEN R=A:GOSUB INC_REF_R:GOTO EVAL_RETURN
 
     A0=Z%(A+2)
 
@@ -181,7 +181,8 @@ SUB EVAL
       AR=Z%(R+1): REM rest
       F=Z%(R+2)
 
-      IF (Z%(F)AND 31)<>9 THEN R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
+      GOSUB TYPE_F
+      IF T<>9 THEN R=-1:ER=-1:E$="apply of non-function":GOTO EVAL_INVOKE_DONE
       GOSUB DO_FUNCTION
       EVAL_INVOKE_DONE:
       AY=W:GOSUB RELEASE
@@ -272,19 +273,19 @@ MAIN:
 
   E=D
   REM + function
-  A=1:GOSUB NATIVE_FUNCTION
+  T=9:L=1:GOSUB ALLOC: REM native function
   B$="+":C=R:GOSUB ENV_SET_S
 
   REM - function
-  A=2:GOSUB NATIVE_FUNCTION
+  T=9:L=2:GOSUB ALLOC: REM native function
   B$="-":C=R:GOSUB ENV_SET_S
 
   REM * function
-  A=3:GOSUB NATIVE_FUNCTION
+  T=9:L=3:GOSUB ALLOC: REM native function
   B$="*":C=R:GOSUB ENV_SET_S
 
   REM / function
-  A=4:GOSUB NATIVE_FUNCTION
+  T=9:L=4:GOSUB ALLOC: REM native function
   B$="/":C=R:GOSUB ENV_SET_S
 
   ZT=ZI: REM top of memory after base repl_env

@@ -7,9 +7,10 @@ REM   - restores E
 REM   - call using GOTO and with return label/address on the stack
 SUB APPLY
   REM if metadata, get the actual object
-  IF (Z%(F)AND 31)=14 THEN F=Z%(F+1)
+  GOSUB TYPE_F
+  IF T=14 THEN F=Z%(F+1):GOSUB TYPE_F
 
-  ON (Z%(F)AND 31)-8 GOTO APPLY_FUNCTION,APPLY_MAL_FUNCTION,APPLY_MAL_FUNCTION
+  ON T-8 GOTO APPLY_FUNCTION,APPLY_MAL_FUNCTION,APPLY_MAL_FUNCTION
 
   APPLY_FUNCTION:
     REM regular function
@@ -43,6 +44,7 @@ SUB DO_TCO_FUNCTION
   A=Z%(AR+2)
   B=Z%(Z%(AR+1)+2)
 
+REM PRINT "F:"+STR$(F)+", Z%(F):"+STR$(Z%(F))+", G:"+STR$(G)
   ON G-60 GOTO DO_APPLY,DO_MAP,DO_SWAP_BANG
 
   DO_APPLY:
@@ -52,7 +54,8 @@ SUB DO_TCO_FUNCTION
 
     A=Z%(AR+2)
     REM no intermediate args, but not a list, so convert it first
-    IF C<=1 AND (Z%(A)AND 31)<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
+    GOSUB TYPE_A
+    IF C<=1 AND T<>6 THEN T=6:GOSUB FORCE_SEQ_TYPE:GOTO DO_APPLY_2
     REM no intermediate args, just call APPLY directly
     IF C<=1 THEN GOTO DO_APPLY_1
 
@@ -63,8 +66,9 @@ SUB DO_TCO_FUNCTION
     REM a real non-empty list
     AY=Z%(R6+1):GOSUB RELEASE
     REM attach end of slice to final args element
-    Z%(R6+1)=Z%(A+2)
-    Z%(Z%(A+2))=Z%(Z%(A+2))+32
+    A2=Z%(A+2)
+    Z%(R6+1)=A2
+    Z%(A2)=Z%(A2)+32
 
     GOTO DO_APPLY_2
 
@@ -136,12 +140,12 @@ SUB DO_TCO_FUNCTION
     Q=AR:GOSUB PUSH_Q
 
     REM push atom
-    Q=A:GOSUB PUSH_Q
+    GOSUB PUSH_A
 
     CALL APPLY
 
     REM pop atom
-    GOSUB POP_Q:A=Q
+    GOSUB POP_A
 
     REM pop and release args
     GOSUB POP_Q:AY=Q
@@ -158,29 +162,14 @@ SUB DO_TCO_FUNCTION
   DO_TCO_FUNCTION_DONE:
 END SUB
 
-REM RETURN_INC_REF(R) -> R
-REM   - return R with 1 ref cnt increase
-REM   - called with GOTO as a return RETURN
-RETURN_INC_REF:
-  Z%(R)=Z%(R)+32
-  RETURN
-
-REM RETURN_TRUE_FALSE(R) -> R
-REM   - take BASIC true/false R, return mal true/false R with ref cnt
-REM   - called with GOTO as a return RETURN
-RETURN_TRUE_FALSE:
-  IF R THEN R=4
-  IF R=0 THEN R=2
-  GOTO RETURN_INC_REF
-
 REM DO_FUNCTION(F, AR)
 DO_FUNCTION:
   REM Get the function number
   G=Z%(F+1)
 
   REM Get argument values
-  A=Z%(AR+2)
-  B=Z%(Z%(AR+1)+2)
+  A=Z%(AR+2):A1=Z%(A+1)
+  B=Z%(Z%(AR+1)+2):B1=Z%(B+1)
 
   REM Switch on the function number
   IF G>59 THEN ER=-1:E$="unknown function"+STR$(G):RETURN
@@ -218,26 +207,29 @@ DO_FUNCTION:
     GOTO RETURN_TRUE_FALSE
   DO_STRING_Q:
     R=0
-    IF (Z%(A)AND 31)<>4 THEN GOTO RETURN_TRUE_FALSE
-    IF MID$(S$(Z%(A+1)),1,1)=CHR$(127) THEN GOTO RETURN_TRUE_FALSE
+    GOSUB TYPE_A
+    IF T<>4 THEN GOTO RETURN_TRUE_FALSE
+    IF MID$(S$(A1),1,1)=CHR$(127) THEN GOTO RETURN_TRUE_FALSE
     R=1
     GOTO RETURN_TRUE_FALSE
   DO_SYMBOL:
-    B$=S$(Z%(A+1))
+    B$=S$(A1)
     T=5:GOSUB STRING
     RETURN
   DO_SYMBOL_Q:
-    R=(Z%(A)AND 31)=5
+    GOSUB TYPE_A
+    R=T=5
     GOTO RETURN_TRUE_FALSE
   DO_KEYWORD:
-    B$=S$(Z%(A+1))
+    B$=S$(A1)
     IF MID$(B$,1,1)<>CHR$(127) THEN B$=CHR$(127)+B$
     T=4:GOSUB STRING
     RETURN
   DO_KEYWORD_Q:
     R=0
-    IF (Z%(A)AND 31)<>4 THEN GOTO RETURN_TRUE_FALSE
-    IF MID$(S$(Z%(A+1)),1,1)<>CHR$(127) THEN GOTO RETURN_TRUE_FALSE
+    GOSUB TYPE_A
+    IF T<>4 THEN GOTO RETURN_TRUE_FALSE
+    IF MID$(S$(A1),1,1)<>CHR$(127) THEN GOTO RETURN_TRUE_FALSE
     R=1
     GOTO RETURN_TRUE_FALSE
 
@@ -253,25 +245,25 @@ DO_FUNCTION:
     AZ=AR:B=1:B$=" ":GOSUB PR_STR_SEQ
     PRINT R$
     R=0
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
   DO_PRINTLN:
     AZ=AR:B=0:B$=" ":GOSUB PR_STR_SEQ
     PRINT R$
     R=0
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
   DO_READ_STRING:
-    A$=S$(Z%(A+1))
+    A$=S$(A1)
     GOSUB READ_STR
     RETURN
   DO_READLINE:
-    A$=S$(Z%(A+1)):GOSUB READLINE
-    IF EZ=1 THEN EZ=0:R=0:GOTO RETURN_INC_REF
+    A$=S$(A1):GOSUB READLINE
+    IF EZ=1 THEN EZ=0:R=0:GOTO INC_REF_R
     B$=R$:T=4:GOSUB STRING
     RETURN
   DO_SLURP:
     R$=""
-    #cbm OPEN 1,8,0,S$(Z%(A+1))
-    #qbasic A$=S$(Z%(A+1))
+    #cbm OPEN 1,8,0,S$(A1)
+    #qbasic A$=S$(A1)
     #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
     #qbasic OPEN A$ FOR INPUT AS #1
     DO_SLURP_LOOP:
@@ -290,29 +282,29 @@ DO_FUNCTION:
       RETURN
 
   DO_LT:
-    R=Z%(A+1)<Z%(B+1)
+    R=A1<B1
     GOTO RETURN_TRUE_FALSE
   DO_LTE:
-    R=Z%(A+1)<=Z%(B+1)
+    R=A1<=B1
     GOTO RETURN_TRUE_FALSE
   DO_GT:
-    R=Z%(A+1)>Z%(B+1)
+    R=A1>B1
     GOTO RETURN_TRUE_FALSE
   DO_GTE:
-    R=Z%(A+1)>=Z%(B+1)
+    R=A1>=B1
     GOTO RETURN_TRUE_FALSE
 
   DO_ADD:
-    T=2:L=Z%(A+1)+Z%(B+1):GOSUB ALLOC
+    T=2:L=A1+B1:GOSUB ALLOC
     RETURN
   DO_SUB:
-    T=2:L=Z%(A+1)-Z%(B+1):GOSUB ALLOC
+    T=2:L=A1-B1:GOSUB ALLOC
     RETURN
   DO_MULT:
-    T=2:L=Z%(A+1)*Z%(B+1):GOSUB ALLOC
+    T=2:L=A1*B1:GOSUB ALLOC
     RETURN
   DO_DIV:
-    T=2:L=Z%(A+1)/Z%(B+1):GOSUB ALLOC
+    T=2:L=A1/B1:GOSUB ALLOC
     RETURN
   DO_TIME_MS:
     T=2:L=INT((TI-BT)*16.667):GOSUB ALLOC
@@ -320,7 +312,7 @@ DO_FUNCTION:
 
   DO_LIST:
     R=AR
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
   DO_LIST_Q:
     GOSUB LIST_Q
     GOTO RETURN_TRUE_FALSE
@@ -328,7 +320,8 @@ DO_FUNCTION:
     A=AR:T=7:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_VECTOR_Q:
-    R=(Z%(A)AND 31)=7
+    GOSUB TYPE_A
+    R=T=7
     GOTO RETURN_TRUE_FALSE
   DO_HASH_MAP:
     REM setup the stack for the loop
@@ -356,7 +349,8 @@ DO_FUNCTION:
       RETURN
 
   DO_MAP_Q:
-    R=(Z%(A)AND 31)=8
+    GOSUB TYPE_A
+    R=T=8
     GOTO RETURN_TRUE_FALSE
   DO_ASSOC:
     H=A
@@ -370,9 +364,9 @@ DO_FUNCTION:
       IF AR=0 OR Z%(AR+1)=0 THEN RETURN
       GOTO DO_ASSOC_LOOP
   DO_GET:
-    IF A=0 THEN R=0:GOTO RETURN_INC_REF
+    IF A=0 THEN R=0:GOTO INC_REF_R
     H=A:K=B:GOSUB HASHMAP_GET
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
   DO_CONTAINS:
     H=A:K=B:GOSUB HASHMAP_CONTAINS
     GOTO RETURN_TRUE_FALSE
@@ -406,14 +400,15 @@ DO_FUNCTION:
       RETURN
 
   DO_SEQUENTIAL_Q:
-    R=(Z%(A)AND 31)=6 OR (Z%(A)AND 31)=7
+    GOSUB TYPE_A
+    R=T=6 OR T=7
     GOTO RETURN_TRUE_FALSE
   DO_CONS:
     T=6:L=B:M=A:GOSUB ALLOC
     RETURN
   DO_CONCAT:
     REM if empty arguments, return empty list
-    IF Z%(AR+1)=0 THEN R=6:GOTO RETURN_INC_REF
+    IF Z%(AR+1)=0 THEN R=6:GOTO INC_REF_R
 
     REM single argument
     IF Z%(Z%(AR+1)+1)<>0 THEN GOTO DO_CONCAT_MULT
@@ -455,8 +450,8 @@ DO_FUNCTION:
       B=R
       GOTO DO_CONCAT_LOOP
   DO_NTH:
+    B=B1
     GOSUB COUNT
-    B=Z%(B+1)
     IF R<=B THEN R=-1:ER=-1:E$="nth: index out of range":RETURN
     DO_NTH_LOOP:
       IF B=0 THEN GOTO DO_NTH_DONE
@@ -465,19 +460,19 @@ DO_FUNCTION:
       GOTO DO_NTH_LOOP
     DO_NTH_DONE:
       R=Z%(A+2)
-      GOTO RETURN_INC_REF
+      GOTO INC_REF_R
   DO_FIRST:
     R=0
-    IF A=0 THEN GOTO RETURN_INC_REF
-    IF Z%(A+1)<>0 THEN R=Z%(A+2)
-    GOTO RETURN_INC_REF
+    IF A=0 THEN GOTO INC_REF_R
+    IF A1<>0 THEN R=Z%(A+2)
+    GOTO INC_REF_R
   DO_REST:
-    IF A=0 THEN R=6:GOTO RETURN_INC_REF
-    IF Z%(A+1)<>0 THEN A=Z%(A+1): REM get the next sequence element
+    IF A=0 THEN R=6:GOTO INC_REF_R
+    IF A1<>0 THEN A=A1: REM get the next sequence element
     T=6:GOSUB FORCE_SEQ_TYPE
     RETURN
   DO_EMPTY_Q:
-    R=Z%(A+1)=0
+    R=A1=0
     GOTO RETURN_TRUE_FALSE
   DO_COUNT:
     GOSUB COUNT
@@ -485,33 +480,36 @@ DO_FUNCTION:
     RETURN
   DO_CONJ:
     R=0
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
   DO_SEQ:
     R=0
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
 
   DO_WITH_META:
-    T=Z%(A)AND 31
+    GOSUB TYPE_A
     REM remove existing metadata first
-    IF T=14 THEN A=Z%(A+1):GOTO DO_WITH_META
+    IF T=14 THEN A=A1:GOTO DO_WITH_META
     T=14:L=A:M=B:GOSUB ALLOC
     RETURN
   DO_META:
     R=0
-    IF (Z%(A)AND 31)=14 THEN R=Z%(A+2)
-    GOTO RETURN_INC_REF
+    GOSUB TYPE_A
+    IF T=14 THEN R=Z%(A+2)
+    GOTO INC_REF_R
   DO_ATOM:
     T=12:L=A:GOSUB ALLOC
     RETURN
   DO_ATOM_Q:
-    R=(Z%(A)AND 31)=12
+    GOSUB TYPE_A
+    R=T=12
     GOTO RETURN_TRUE_FALSE
   DO_DEREF:
-    R=Z%(A+1)
-    GOTO RETURN_INC_REF
+    R=A1
+    GOTO INC_REF_R
   DO_RESET_BANG:
     R=B
     REM release current value
+    REM can't use A1 here because DO_RESET_BANG is called from swap!
     AY=Z%(A+1):GOSUB RELEASE
     REM inc ref by 2 for atom ownership and since we are returning it
     Z%(R)=Z%(R)+64
@@ -526,7 +524,7 @@ DO_FUNCTION:
     REM GOSUB PR_MEMORY_SUMMARY
     GOSUB PR_MEMORY_SUMMARY_SMALL
     R=0
-    GOTO RETURN_INC_REF
+    GOTO INC_REF_R
     RETURN
 
   DO_EVAL:
@@ -536,12 +534,12 @@ DO_FUNCTION:
     RETURN
 
   DO_READ_FILE:
-    A$=S$(Z%(A+1))
+    A$=S$(A1)
     GOSUB READ_FILE
     RETURN
 
 INIT_CORE_SET_FUNCTION:
-  GOSUB NATIVE_FUNCTION
+  T=9:L=A:GOSUB ALLOC: REM native function
   C=R:GOSUB ENV_SET_S
   A=A+1
   RETURN

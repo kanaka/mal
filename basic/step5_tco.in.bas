@@ -23,13 +23,13 @@ SUB EVAL_AST
 
   IF ER<>-2 THEN GOTO EVAL_AST_RETURN
 
-  T=Z%(A)AND 31
+  GOSUB TYPE_A
   IF T=5 THEN GOTO EVAL_AST_SYMBOL
   IF T>=6 AND T<=8 THEN GOTO EVAL_AST_SEQ
 
   REM scalar: deref to actual value and inc ref cnt
   R=A
-  Z%(R)=Z%(R)+32
+  GOSUB INC_REF_R
   GOTO EVAL_AST_RETURN
 
   EVAL_AST_SYMBOL:
@@ -114,7 +114,7 @@ SUB EVAL
 
   APPLY_LIST:
     GOSUB EMPTY_Q
-    IF R THEN R=A:Z%(R)=Z%(R)+32:GOTO EVAL_RETURN
+    IF R THEN R=A:GOSUB INC_REF_R:GOTO EVAL_RETURN
 
     A0=Z%(A+2)
 
@@ -225,13 +225,13 @@ SUB EVAL
         AY=R:GOSUB RELEASE
         REM if no false case (A3), return nil
         GOSUB COUNT
-        IF R<4 THEN R=0:Z%(R)=Z%(R)+32:GOTO EVAL_RETURN
+        IF R<4 THEN R=0:GOSUB INC_REF_R:GOTO EVAL_RETURN
         GOSUB EVAL_GET_A3: REM set A1 - A3 after EVAL
         A=A3:GOTO EVAL_TCO_RECUR: REM TCO loop
 
     EVAL_FN:
       GOSUB EVAL_GET_A2: REM set A1 and A2
-      A=A2:B=A1:GOSUB MAL_FUNCTION
+      T=10:L=A2:M=A1:N=E:GOSUB ALLOC: REM mal function
       GOTO EVAL_RETURN
 
     EVAL_INVOKE:
@@ -247,10 +247,10 @@ SUB EVAL
       F=Z%(R+2)
 
       REM if metadata, get the actual object
-      IF (Z%(F)AND 31)=14 THEN F=Z%(F+1)
+      GOSUB TYPE_F
+      IF T=14 THEN F=Z%(F+1):GOSUB TYPE_F
 
-      IF (Z%(F)AND 31)=9 THEN GOTO EVAL_DO_FUNCTION
-      IF (Z%(F)AND 31)=10 THEN GOTO EVAL_DO_MAL_FUNCTION
+      ON T-8 GOTO EVAL_DO_FUNCTION,EVAL_DO_MAL_FUNCTION,EVAL_DO_MAL_FUNCTION
 
       REM if error, pop and return f/args for release by caller
       GOSUB POP_R
@@ -326,7 +326,7 @@ REM RE(A$) -> R
 REM Assume D has repl_env
 REM caller must release result
 RE:
-  R1=0
+  R1=-1
   GOSUB MAL_READ
   R1=R
   IF ER<>-2 THEN GOTO RE_DONE
@@ -335,18 +335,15 @@ RE:
 
   RE_DONE:
     REM Release memory from MAL_READ
-    IF R1<>0 THEN AY=R1:GOSUB RELEASE
+    AY=R1:GOSUB RELEASE
     RETURN: REM caller must release result of EVAL
 
 REM REP(A$) -> R$
 REM Assume D has repl_env
 SUB REP
-  R1=-1:R2=-1
-  GOSUB MAL_READ
-  R1=R
-  IF ER<>-2 THEN GOTO REP_DONE
+  R2=-1
 
-  A=R:E=D:CALL EVAL
+  GOSUB RE
   R2=R
   IF ER<>-2 THEN GOTO REP_DONE
 
@@ -355,7 +352,6 @@ SUB REP
   REP_DONE:
     REM Release memory from MAL_READ and EVAL
     AY=R2:GOSUB RELEASE
-    AY=R1:GOSUB RELEASE
 END SUB
 
 REM MAIN program
