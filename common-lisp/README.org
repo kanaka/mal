@@ -5,31 +5,35 @@
 This is a reasonably portable implementation of MAL in Common Lisp. It has been
 tested to work with following Common Lisp implementations
 
-- Steel Bank Common Lisp ([[http://sbcl.org/]])
-- Clozure Common Lisp ([[http://ccl.clozure.com/]])
-- CMU Common Lisp ([[https://www.cons.org/cmucl/]])
-- GNU CLISP ([[http://www.clisp.org/]])
-- Embeddable Common Lisp ([[https://common-lisp.net/project/ecl/]])
-- Allegro CL ([[http://franz.com/products/allegro-common-lisp/]])
+- Steel Bank Common Lisp [[http://sbcl.org/]]
+- Clozure Common Lisp [[http://ccl.clozure.com/]]
+- CMU Common Lisp [[https://www.cons.org/cmucl/]]
+- GNU CLISP [[http://www.clisp.org/]]
+- Embeddable Common Lisp [[https://common-lisp.net/project/ecl/]]
+- Allegro CL [[http://franz.com/products/allegro-common-lisp/]]
+- Armed Bear Common Lisp [[http://abcl.org/]]
 
-[[http://www.cliki.net/cl-launch][cl-launch]] to build command line runnable scripts/images for the above
+[[http://www.cliki.net/cl-launch][cl-launch]] to build command line runnable scripts/images for most of the above
 implementations.
 
 ** Dependencies
 
-*** [[http://www.cliki.net/cl-launch][cl-launch]]
-    For building command line executable scripts
+- cl-launch
+  For building command line executable scripts. See [[http://www.cliki.net/cl-launch][cl-launch]]
 
-*** [[https://www.quicklisp.org/beta/][quicklisp]]
-    For installing dependencies
+- quicklisp
+  For installing dependencies. See [[https://www.quicklisp.org/beta/][quicklisp]]
 
-*** ~readline~ (~libreadline-dev~ on Ubuntu)
-    For readline integration. If you wish to run the implementation using Allegro
-    CL, you will also have to install the 32 bit version of readline
-    (~lib32readline-dev~ on Ubuntu)
-*** (Optional) ~asdf~ (~cl-asdf~ on Ubuntu)
-    This is needed if you want to run the implementation using GNU CLISP, since
-    GNU CLISP does not ship with ~asdf~ and ~cl-launch~ depends on it.
+- readline
+  For readline integration. You can install it on Ubuntu using apt the package
+  is ~libreadline-dev~. If you wish to run the implementation using Allegro CL,
+  you will also have to install the 32 bit version of readline
+  (~lib32readline-dev~ on Ubuntu)
+
+- (Optional) asdf
+  This is needed if you want to run the implementation using GNU CLISP, since
+  GNU CLISP does not ship with ~asdf~ and ~cl-launch~ depends on it. You can
+  install it on Ubuntu using apt the package is ~cl-asdf~
 
 ** Running using different implementations
 
@@ -46,6 +50,7 @@ implementation. The nicknames that work currently are
 | GNU CLISP              | clisp    |
 | Embeddable Common Lisp | ecl      |
 | Allegro CL             | allegro  |
+| Armed Bear Common Lisp | abcl     |
 |------------------------+----------|
 
 For example to build with GNU CLISP, you need to do the following
@@ -67,6 +72,7 @@ be the capitalization of the given nickname.
 | GNU CLISP              | CLISP       |
 | Embeddable Common Lisp | ECL         |
 | Allegro CL             | ALLEGRO     |
+| Armed Bear Common Lisp | ABCL        |
 |------------------------+-------------|
 
 For example to build MAL with Clozure CL installed in
@@ -83,6 +89,6 @@ building it.
 
 ** Interop
 
-There is some basically interop in the form ~cl-eval~ which takes a string and
+There is some basic interop in the form ~cl-eval~ which takes a string and
 evaluates it as Common Lisp code, the result is returned in form of a MAL value,
-you are limited to code that produces values that have MAL counterparts.
+as such you are limited to code that produces values that have MAL counterparts.
