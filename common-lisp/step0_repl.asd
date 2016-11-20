@@ -4,8 +4,8 @@
   (when (probe-file quicklisp-init)
     (load quicklisp-init)))
 
-(ql:quickload :cl-readline)
-(ql:quickload :uiop)
+(ql:quickload :uiop :silent t)
+(ql:quickload :cl-readline :silent t)
 
 (defpackage #:mal-asd
   (:use :cl :asdf))

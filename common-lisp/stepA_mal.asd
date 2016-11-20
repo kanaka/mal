@@ -4,10 +4,10 @@
   (when (probe-file quicklisp-init)
     (load quicklisp-init)))
 
-(ql:quickload :uiop)
-(ql:quickload :cl-readline)
-(ql:quickload :cl-ppcre)
-(ql:quickload :genhash)
+(ql:quickload :uiop :silent t :verbose nil)
+(ql:quickload :cl-readline :silent t)
+(ql:quickload :cl-ppcre :silent t)
+(ql:quickload :genhash :silent t)
 
 (defpackage #:mal-asd
   (:use :cl :asdf))
