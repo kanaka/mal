@@ -197,10 +197,11 @@
 
 (defun make-mal-value-hash-table ()
   (unless (gethash 'mal-data-value-hash genhash::*hash-test-designator-map*)
-    ;; ECL's implementation of sxhash does not work well with compound types
-    ;; so using a custom hash function which hashes the underlying value
-    (let ((hash-function #+ecl #'mal-sxhash
-                         #-ecl #'sxhash))
+    ;; ECL and ABCL's implementations of sxhash do not work well with compound
+    ;; types, use a custom hash function which hashes the underlying value
+    ;; instead
+    (let ((hash-function #+(or ecl abcl) #'mal-sxhash
+                         #-(or ecl abcl) #'sxhash))
       (genhash:register-test-designator 'mal-data-value-hash
                                         hash-function
                                         #'mal-data-value=)))
