@@ -1,13 +1,12 @@
-(require "dependencies")
-
 (defpackage :mal
   (:use :common-lisp
-        :readline
         :types
         :env
         :reader
         :printer
-        :core))
+        :core
+        :utils)
+  (:export :main))
 
 (in-package :mal)
 
@@ -22,6 +21,7 @@
                          "applying"
                          "defining macro")))))
 
+
 (defvar *repl-env* (env:create-mal-env))
 
 (dolist (binding core:ns)
@@ -29,40 +29,33 @@
                (car binding)
                (cdr binding)))
 
+(defvar mal-def! (make-mal-symbol "def!"))
+(defvar mal-let* (make-mal-symbol "let*"))
+(defvar mal-do (make-mal-symbol "do"))
+(defvar mal-if (make-mal-symbol "if"))
+(defvar mal-fn* (make-mal-symbol "fn*"))
 (defvar mal-quote (make-mal-symbol "quote"))
 (defvar mal-quasiquote (make-mal-symbol "quasiquote"))
 (defvar mal-unquote (make-mal-symbol "unquote"))
 (defvar mal-splice-unquote (make-mal-symbol "splice-unquote"))
 (defvar mal-cons (make-mal-symbol "cons"))
 (defvar mal-concat (make-mal-symbol "concat"))
-(defvar mal-macroexpand (make-mal-symbol "macroexpand"))
-(defvar mal-def! (make-mal-symbol "def!"))
 (defvar mal-defmacro! (make-mal-symbol "defmacro!"))
-(defvar mal-let* (make-mal-symbol "let*"))
-(defvar mal-do (make-mal-symbol "do"))
-(defvar mal-if (make-mal-symbol "if"))
-(defvar mal-fn* (make-mal-symbol "fn*"))
-(defvar mal-try* (make-mal-symbol "try*"))
-(defvar mal-catch* (make-mal-symbol "catch*"))
-
-(env:set-env *repl-env*
-             (types:make-mal-symbol "eval")
-             (types:make-mal-builtin-fn (lambda (ast)
-                                          (mal-eval ast *repl-env*))))
+(defvar mal-macroexpand (make-mal-symbol "macroexpand"))
 
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
-       (mal-data-value sequence)))
+       (types:mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (mal-data-value hash-map))
-        (new-hash-table (make-hash-table :test 'types:mal-value=)))
-    (loop
-       for key being the hash-keys of hash-map-value
-       do (setf (gethash (mal-eval key env) new-hash-table)
-                (mal-eval (gethash key hash-map-value) env)))
-    (make-mal-hash-map new-hash-table)))
+  (let ((hash-map-value (types:mal-data-value hash-map))
+        (new-hash-table (types:make-mal-value-hash-table)))
+    (genhash:hashmap (lambda (key value)
+                       (setf (genhash:hashref (mal-eval key env) new-hash-table)
+                             (mal-eval value env)))
+                     hash-map-value)
+    (types:make-mal-hash-map new-hash-table)))
 
 (defun eval-ast (ast env)
   (switch-mal-type ast
@@ -75,21 +68,21 @@
 (defun is-pair (value)
   (and (or (mal-list-p value)
            (mal-vector-p value))
-       (not (zerop (length (mal-data-value value))))))
+       (< 0 (length (types:mal-data-value value)))))
 
 (defun quasiquote (ast)
   (if (not (is-pair ast))
       (types:make-mal-list (list mal-quote ast))
-      (let ((forms (map 'list #'identity (mal-data-value ast))))
+      (let ((forms (map 'list #'identity (types:mal-data-value ast))))
         (cond
-          ((mal-value= mal-unquote (first forms))
+          ((types:mal-data-value= mal-unquote (first forms))
            (second forms))
 
           ((and (is-pair (first forms))
-                (mal-value= mal-splice-unquote
-                            (first (mal-data-value (first forms)))))
+                (types:mal-data-value= mal-splice-unquote
+                            (first (types:mal-data-value (first forms)))))
            (types:make-mal-list (list mal-concat
-                                      (second (mal-data-value (first forms)))
+                                      (second (types:mal-data-value (first forms)))
                                       (quasiquote (make-mal-list (cdr forms))))))
 
           (t (types:make-mal-list (list mal-cons
@@ -97,9 +90,8 @@
                                         (quasiquote (make-mal-list (cdr forms))))))))))
 
 (defun is-macro-call (ast env)
-  (when (and (types:mal-list-p ast)
-             (not (zerop (length (mal-data-value ast)))))
-    (let* ((func-symbol (first (mal-data-value ast)))
+  (when (types:mal-list-p ast)
+    (let* ((func-symbol (first (types:mal-data-value ast)))
            (func (when (types:mal-symbol-p func-symbol)
                    (env:find-env env func-symbol))))
       (and func
@@ -111,9 +103,12 @@
      while (is-macro-call ast env)
      do (let* ((forms (types:mal-data-value ast))
                (func (env:get-env env (first forms))))
-          (setf ast (apply (mal-data-value func)
+          (setf ast (apply (types:mal-data-value func)
                            (cdr forms)))))
   ast)
+
+(defun mal-read (string)
+  (reader:read-str string))
 
 (defun mal-eval (ast env)
   (loop
@@ -121,22 +116,22 @@
      do (cond
           ((null ast) (return types:mal-nil))
           ((not (types:mal-list-p ast)) (return (eval-ast ast env)))
-          ((zerop (length (mal-data-value ast))) (return ast))
-          (t (let ((forms (mal-data-value ast)))
+          ((zerop (length (types:mal-data-value ast))) (return ast))
+          (t (let ((forms (types:mal-data-value ast)))
                (cond
-                 ((mal-value= mal-quote (first forms))
+                 ((types:mal-data-value= mal-quote (first forms))
                   (return (second forms)))
 
-                 ((mal-value= mal-quasiquote (first forms))
+                 ((types:mal-data-value= mal-quasiquote (first forms))
                   (setf ast (quasiquote (second forms))))
 
-                 ((mal-value= mal-macroexpand (first forms))
+                 ((types:mal-data-value= mal-macroexpand (first forms))
                   (return (mal-macroexpand (second forms) env)))
 
-                 ((mal-value= mal-def! (first forms))
+                 ((types:mal-data-value= mal-def! (first forms))
                   (return (env:set-env env (second forms) (mal-eval (third forms) env))))
 
-                 ((mal-value= mal-defmacro! (first forms))
+                 ((types:mal-data-value= mal-defmacro! (first forms))
                   (let ((value (mal-eval (third forms) env)))
                     (return (if (types:mal-fn-p value)
                                 (env:set-env env
@@ -148,12 +143,12 @@
                                        :form value
                                        :context "macro")))))
 
-                 ((mal-value= mal-let* (first forms))
+                 ((types:mal-data-value= mal-let* (first forms))
                   (let ((new-env (env:create-mal-env :parent env))
                         ;; Convert a potential vector to a list
                         (bindings (map 'list
                                        #'identity
-                                       (mal-data-value (second forms)))))
+                                       (types:mal-data-value (second forms)))))
 
                     (mapcar (lambda (binding)
                               (env:set-env new-env
@@ -168,48 +163,31 @@
                     (setf ast (third forms)
                           env new-env)))
 
-                 ((mal-value= mal-do (first forms))
+                 ((types:mal-data-value= mal-do (first forms))
                   (mapc (lambda (form) (mal-eval form env))
                         (butlast (cdr forms)))
                   (setf ast (car (last forms))))
 
-                 ((mal-value= mal-if (first forms))
+                 ((types:mal-data-value= mal-if (first forms))
                   (let ((predicate (mal-eval (second forms) env)))
-                    (setf ast (if (or (mal-value= predicate types:mal-nil)
-                                      (mal-value= predicate types:mal-false))
+                    (setf ast (if (or (types:mal-data-value= predicate types:mal-nil)
+                                      (types:mal-data-value= predicate types:mal-false))
                                   (fourth forms)
                                   (third forms)))))
 
-                 ((mal-value= mal-fn* (first forms))
+                 ((types:mal-data-value= mal-fn* (first forms))
                   (return (let ((arglist (second forms))
                                 (body (third forms)))
                             (types:make-mal-fn (lambda (&rest args)
                                                  (mal-eval body (env:create-mal-env :parent env
                                                                                     :binds (map 'list
                                                                                                 #'identity
-                                                                                                (mal-data-value arglist))
+                                                                                                (types:mal-data-value arglist))
                                                                                     :exprs args)))
                                                :attrs (list (cons 'params arglist)
                                                             (cons 'ast body)
                                                             (cons 'env env)
                                                             (cons 'is-macro nil))))))
-
-                 ((mal-value= mal-try* (first forms))
-                  (handler-case
-                      (return (mal-eval (second forms) env))
-                    ((or types:mal-exception types:mal-error) (condition)
-                      (when (third forms)
-                        (let ((catch-forms (types:mal-data-value (third forms))))
-                          (when (mal-value= mal-catch*
-                                            (first catch-forms))
-                            (return (mal-eval (third catch-forms)
-                                              (env:create-mal-env :parent env
-                                                                  :binds (list (second catch-forms))
-                                                                  :exprs (list (if (or (typep condition 'types:mal-runtime-exception)
-                                                                                       (typep condition 'types:mal-error))
-                                                                                   (types:make-mal-string (format nil "~a" condition))
-                                                                                   (types::mal-exception-data condition)))))))))
-                     (error condition))))
 
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
@@ -220,17 +198,14 @@
                                      env (env:create-mal-env :parent (cdr (assoc 'env attrs))
                                                              :binds (map 'list
                                                                          #'identity
-                                                                         (mal-data-value (cdr (assoc 'params attrs))))
+                                                                         (types:mal-data-value (cdr (assoc 'params attrs))))
                                                              :exprs (cdr evaluated-list)))))
                             ((types:mal-builtin-fn-p function)
-                             (return (apply (mal-data-value function)
+                             (return (apply (types:mal-data-value function)
                                             (cdr evaluated-list))))
                             (t (error 'invalid-function
                                       :form function
                                       :context "apply")))))))))))
-
-(defun mal-read (string)
-  (reader:read-str string))
 
 (defun mal-print (expression)
   (printer:pr-str expression))
@@ -241,53 +216,24 @@
                            *repl-env*))
     (types:mal-error (condition)
       (format nil
-              "Error: ~a"
+              "~a"
               condition))
-    (types:mal-runtime-exception (condition)
-      (format nil
-              "Exception: ~a"
-              condition))
-    (types:mal-user-exception (condition)
-      (format nil
-              "Exception: ~a"
-              (pr-str (types::mal-exception-data condition))))
     (error (condition)
       (format nil
               "Internal error: ~a"
               condition))))
 
+(env:set-env *repl-env*
+             (types:make-mal-symbol "eval")
+             (types:make-mal-builtin-fn (lambda (ast)
+                                          (mal-eval ast *repl-env*))))
+
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
-(rep "(def! *ARGV* (list))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-(rep "(def! *host-language* \"clisp\")")
-(rep "(def! *gensym-counter* (atom 0))")
-(rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
-(rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
-(rep "(defmacro! defbuiltin! (fn* (arglist & forms) `(define-builtin '~arglist '~@forms)))")
+(rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
-(env:set-env *repl-env*
-             (types:make-mal-symbol "*ARGV*")
-             (types:wrap-value (cdr common-lisp-user::*args*)
-                               :listp t))
-
-;; Readline setup
-;;; The test runner sets this environment variable, in which case we do
-;;; use readline since tests do not work with the readline interface
-(defvar use-readline-p (not (string= (ext:getenv "PERL_RL") "false")))
-
-(defvar *history-file* (namestring (merge-pathnames (user-homedir-pathname)
-                                                    ".mal-clisp-history")))
-
-(defun load-history ()
-  (readline:read-history *history-file*))
-
-(defun save-history ()
-  (readline:write-history *history-file*))
-
-;; Setup history
-(when use-readline-p
-  (load-history))
+(defvar *use-readline-p* nil)
 
 (defun raw-input (prompt)
   (format *standard-output* prompt)
@@ -295,35 +241,67 @@
   (read-line *standard-input* nil))
 
 (defun mal-readline (prompt)
-  (let ((input (if use-readline-p
-                   (readline:readline prompt)
-                   (raw-input prompt))))
-    (when (and use-readline-p
-               input
-               (not (zerop (length input))))
-      (readline:add-history input))
-    input))
+  (if *use-readline-p*
+      (cl-readline:readline :prompt prompt
+                            :add-history t
+                            :novelty-check (lambda (old new)
+                                             (not (string= old new))))
+      (raw-input prompt)))
 
 (defun mal-writeline (string)
   (when string
-    (write-line string)))
+    (write-line string)
+    (force-output *standard-output*)))
 
 (defun repl ()
-  (rep "(println (str \"Mal [\" *host-language* \"]\"))");
   (loop do (let ((line (mal-readline "user> ")))
              (if line
                  (mal-writeline (rep line))
-                 (return))))
-  (when use-readline-p
-    (save-history)))
+                 (return)))))
 
-(defun main ()
-  (if (null common-lisp-user::*args*)
-      ;; Do not start REPL inside Emacs
-      (unless (member :swank *features*)
-        (repl))
-      (rep (format nil
-                   "(load-file \"~a\")"
-                   (car common-lisp-user::*args*)))))
+(defun run-file (file)
+  (rep (format nil "(load-file \"~a\")" file)))
 
-(main)
+(defun main (&optional (argv nil argv-provided-p))
+
+  (setf *use-readline-p* (not (or (string= (uiop:getenv "PERL_RL") "false")
+                                  (string= (uiop:getenv "TERM") "dumb"))))
+
+  ;; In GNU CLISP's batch mode the standard-input seems to be set to some sort
+  ;; of input string-stream, this interacts wierdly with the PERL_RL enviroment
+  ;; variable which the test runner sets causing `read-line' on *standard-input*
+  ;; to fail with an empty stream error. The following reinitializes the
+  ;; standard streams
+  ;;
+  ;; See http://www.gnu.org/software/clisp/impnotes/streams-interactive.html
+  #+clisp (setf *standard-input* (ext:make-stream :input)
+                *standard-output* (ext:make-stream :output :buffered t)
+                *error-output* (ext:make-stream :error :buffered t))
+
+  (let ((args (if argv-provided-p
+                  argv
+                  (cdr (utils:raw-command-line-arguments)))))
+    (env:set-env *repl-env*
+                 (types:make-mal-symbol "*ARGV*")
+                 (types:wrap-value (cdr args) :listp t))
+    (if (null args)
+        (repl)
+        (run-file (car args)))))
+
+;;; Workaround for CMUCL's printing of "Reloaded library ... " messages when an
+;;; image containing foreign libraries is restored. The extra messages cause the
+;;; MAL testcases to fail
+
+#+cmucl (progn
+          (defvar *old-standard-output* *standard-output*
+            "Keep track of current value standard output, this is restored after image restore completes")
+
+          (defun muffle-output ()
+            (setf *standard-output* (make-broadcast-stream)))
+
+          (defun restore-output ()
+            (setf *standard-output* *old-standard-output*))
+
+          (pushnew #'muffle-output ext:*after-save-initializations*)
+          (setf ext:*after-save-initializations*
+                (append ext:*after-save-initializations* (list #'restore-output))))

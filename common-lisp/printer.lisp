@@ -1,5 +1,11 @@
 (defpackage :printer
-  (:use :common-lisp :utils :types)
+  (:use :common-lisp
+        :types
+        :genhash)
+  (:import-from :cl-ppcre
+                :regex-replace)
+  (:import-from :utils
+                :replace-all)
   (:export :pr-str))
 
 (in-package :printer)
@@ -20,19 +26,19 @@
                  "{"
                  (format nil
                          "~{~a~^ ~}"
-                         (let (entries)
-                           (maphash (lambda (key value)
-                                      (push (format nil
-                                                    "~a ~a"
-                                                    (pr-str key print-readably)
-                                                    (pr-str value print-readably))
-                                            entries))
-                                    hash-map-value)
-                           (nreverse entries)))
+                         (let (repr)
+                           (genhash:hashmap (lambda (key value)
+                                              (push (format nil
+                                                            "~a ~a"
+                                                            (pr-str key print-readably)
+                                                            (pr-str value print-readably))
+                                                    repr))
+                                            hash-map-value)
+                           repr))
                  "}")))
 
 (defun pr-string (ast &optional (print-readably t))
-  (if print-readably
+    (if print-readably
       (utils:replace-all (prin1-to-string (types:mal-data-value ast))
                          "
 "
@@ -46,11 +52,11 @@
       (types:boolean (if (types:mal-data-value ast) "true" "false"))
       (types:nil "nil")
       (types:string (pr-string ast print-readably))
-      (types:symbol (types:mal-data-value ast))
-      (types:keyword (types:mal-data-value ast))
+      (types:symbol (format nil "~a" (types:mal-data-value ast)))
+      (types:keyword (format nil "~a" (types:mal-data-value ast)))
       (types:list (pr-mal-sequence "(" ast ")" print-readably))
       (types:vector (pr-mal-sequence "[" ast "]" print-readably))
       (types:hash-map (pr-mal-hash-map ast print-readably))
       (types:atom (format nil "(atom ~a)" (pr-str (types:mal-data-value ast))))
-      (types:fn "#<function>")
-      (types:builtin-fn "#<builtin function>"))))
+      (types:builtin-fn "#<func>")
+      (types:builtin-fn "#<builtin-func>"))))

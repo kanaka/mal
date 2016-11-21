@@ -1,6 +1,10 @@
 (defpackage :utils
-  (:use :common-lisp)
-  (:export :replace-all))
+  (:use :common-lisp
+        :uiop)
+  (:export :replace-all
+           :getenv
+           :read-file-string
+           :raw-command-line-arguments))
 
 (in-package :utils)
 

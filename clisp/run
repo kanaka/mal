@@ -1,2 +1,0 @@
-#!/bin/bash
-exec clisp $(dirname $0)/${STEP:-stepA_mal}.fas "${@}"

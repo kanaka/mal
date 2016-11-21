@@ -1,13 +1,11 @@
-(require "dependencies")
-
 (defpackage :mal
   (:use :common-lisp
-        :readline
         :types
         :env
         :reader
         :printer
-        :core))
+        :core)
+  (:export :main))
 
 (in-package :mal)
 
@@ -30,13 +28,13 @@
        (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (mal-data-value hash-map))
-        (new-hash-table (make-hash-table :test 'types:mal-value=)))
-    (loop
-       for key being the hash-keys of hash-map-value
-       do (setf (gethash key new-hash-table)
-                (mal-eval (gethash key hash-map-value) env)))
-    (make-mal-hash-map new-hash-table)))
+  (let ((hash-map-value (types:mal-data-value hash-map))
+        (new-hash-table (types:make-mal-value-hash-table)))
+    (genhash:hashmap (lambda (key value)
+                       (setf (genhash:hashref (mal-eval key env) new-hash-table)
+                             (mal-eval value env)))
+                     hash-map-value)
+    (types:make-mal-hash-map new-hash-table)))
 
 (defun eval-ast (ast env)
   (switch-mal-type ast
@@ -69,21 +67,21 @@
 (defun eval-list (ast env)
   (let ((forms (mal-data-value ast)))
     (cond
-      ((mal-value= mal-def! (first forms))
+      ((mal-data-value= mal-def! (first forms))
        (env:set-env env (second forms) (mal-eval (third forms) env)))
-      ((mal-value= mal-let* (first forms))
+      ((mal-data-value= mal-let* (first forms))
        (eval-let* forms env))
-      ((mal-value= mal-do (first forms))
+      ((mal-data-value= mal-do (first forms))
        (car (last (mapcar (lambda (form) (mal-eval form env))
                           (cdr forms)))))
-      ((mal-value= mal-if (first forms))
+      ((mal-data-value= mal-if (first forms))
        (let ((predicate (mal-eval (second forms) env)))
-         (mal-eval (if (or (mal-value= predicate types:mal-nil)
-                           (mal-value= predicate types:mal-false))
+         (mal-eval (if (or (mal-data-value= predicate types:mal-nil)
+                           (mal-data-value= predicate types:mal-false))
                        (fourth forms)
                        (third forms))
                    env)))
-      ((mal-value= mal-fn* (first forms))
+      ((mal-data-value= mal-fn* (first forms))
        (types:make-mal-fn (let ((arglist (second forms))
                                 (body (third forms)))
                             (lambda (&rest args)
@@ -115,14 +113,6 @@
   (handler-case
       (mal-print (mal-eval (mal-read string)
                            *repl-env*))
-    (reader:eof (condition)
-      (format nil
-              "~a"
-              condition))
-    (env:undefined-symbol (condition)
-      (format nil
-              "~a"
-              condition))
     (error (condition)
       (format nil
               "~a"
@@ -130,23 +120,7 @@
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
-;; Readline setup
-;;; The test runner sets this environment variable, in which case we do
-;;; use readline since tests do not work with the readline interface
-(defvar use-readline-p (not (string= (ext:getenv "PERL_RL") "false")))
-
-(defvar *history-file* (namestring (merge-pathnames (user-homedir-pathname)
-                                                         ".mal-clisp-history")))
-
-(defun load-history ()
-  (readline:read-history *history-file*))
-
-(defun save-history ()
-  (readline:write-history *history-file*))
-
-;; Setup history
-(when use-readline-p
-  (load-history))
+(defvar *use-readline-p* nil)
 
 (defun raw-input (prompt)
   (format *standard-output* prompt)
@@ -154,27 +128,52 @@
   (read-line *standard-input* nil))
 
 (defun mal-readline (prompt)
-  (let ((input (if use-readline-p
-                   (readline:readline prompt)
-                   (raw-input prompt))))
-    (when (and use-readline-p
-               input
-               (not (zerop (length input))))
-      (readline:add-history input))
-    input))
+  (if *use-readline-p*
+      (cl-readline:readline :prompt prompt
+                            :add-history t
+                            :novelty-check (lambda (old new)
+                                             (not (string= old new))))
+      (raw-input prompt)))
 
 (defun mal-writeline (string)
   (when string
-    (write-line string)))
+    (write-line string)
+    (force-output *standard-output*)))
 
-(defun main ()
+(defun main (&optional (argv nil argv-provided-p))
+  (declare (ignorable argv argv-provided-p))
+
+  (setf *use-readline-p* (not (or (string= (uiop:getenv "PERL_RL") "false")
+                                  (string= (uiop:getenv "TERM") "dumb"))))
+
+  ;; In GNU CLISP's batch mode the standard-input seems to be set to some sort
+  ;; of input string-stream, this interacts wierdly with the PERL_RL enviroment
+  ;; variable which the test runner sets causing `read-line' on *standard-input*
+  ;; to fail with an empty stream error. The following reinitializes the
+  ;; standard streams
+  ;;
+  ;; See http://www.gnu.org/software/clisp/impnotes/streams-interactive.html
+  #+clisp (setf *standard-input* (ext:make-stream :input)
+                *standard-output* (ext:make-stream :output :buffered t)
+                *error-output* (ext:make-stream :error :buffered t))
+
   (loop do (let ((line (mal-readline "user> ")))
-             (if line
-                 (mal-writeline (rep line))
-                 (return))))
-  (when use-readline-p
-    (save-history)))
+             (if line (mal-writeline (rep line)) (return)))))
 
-;; Do not start REPL inside Emacs
-(unless (member :swank *features*)
-  (main))
+;;; Workaround for CMUCL's printing of "Reloaded library ... " messages when an
+;;; image containing foreign libraries is restored. The extra messages cause the
+;;; MAL testcases to fail
+
+#+cmucl (progn
+          (defvar *old-standard-output* *standard-output*
+            "Keep track of current value standard output, this is restored after image restore completes")
+
+          (defun muffle-output ()
+            (setf *standard-output* (make-broadcast-stream)))
+
+          (defun restore-output ()
+            (setf *standard-output* *old-standard-output*))
+
+          (pushnew #'muffle-output ext:*after-save-initializations*)
+          (setf ext:*after-save-initializations*
+                (append ext:*after-save-initializations* (list #'restore-output))))
