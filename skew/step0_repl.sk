@@ -1,0 +1,24 @@
+def READ(str string) string {
+  return str
+}
+
+def EVAL(ast string, env StringMap<string>) string {
+  return ast
+}
+
+def PRINT(exp string) string {
+  return exp
+}
+
+def REP(str string) string {
+  return PRINT(EVAL(READ(str), {}))
+}
+
+@entry
+def main {
+  var line string
+  while (line = readLine("user> ")) != null {
+    if line == "" { continue }
+    printLn(REP(line))
+  }
+}

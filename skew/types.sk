@@ -1,0 +1,250 @@
+class MalError {
+  const message string
+}
+
+class MalUserError {
+  const data MalVal
+}
+
+class MalVal {
+  var _meta MalVal = gNil
+  def toHashKey string { throw MalError.new("Not allowed as hash map key") }
+  def print(readable bool) string
+  def equal(o MalVal) bool
+  def isSymbol(name string) bool { return false }
+  def seq MalVal { throw MalError.new("seq: called on non-sequence") }
+  def meta MalVal { return _meta }
+  def _setMeta(newMeta MalVal) { _meta = newMeta }
+  def withMeta(newMeta MalVal) MalVal {
+    var res = self.clone
+    res._setMeta(newMeta)
+    return res
+  }
+  def clone MalVal
+}
+
+namespace MalVal {
+  def fromHashKey(key string) MalVal {
+    if key.startsWith("S_") { return MalString.new(key.slice(2)) }
+    else if key.startsWith("K_") { return MalKeyword.new(key.slice(2)) }
+    else { throw "Illegal hash key string" }
+  }
+  def fromBool(b bool) MalVal { return b ? gTrue : gFalse }
+}
+
+class MalNil : MalVal {
+  over print(readable bool) string { return "nil" }
+  over equal(o MalVal) bool { return o is MalNil }
+  over seq MalVal { return gNil }
+  over clone MalVal { return self }
+}
+const gNil = MalNil.new
+
+class MalTrue : MalVal {
+  over print(readable bool) string { return "true" }
+  over equal(o MalVal) bool { return o is MalTrue }
+  over clone MalVal { return self }
+}
+const gTrue = MalTrue.new
+
+class MalFalse : MalVal {
+  over print(readable bool) string { return "false" }
+  over equal(o MalVal) bool { return o is MalFalse }
+  over clone MalVal { return self }
+}
+const gFalse = MalFalse.new
+
+class MalNumber : MalVal {
+  const _data int
+  over print(readable bool) string { return _data.toString }
+  def val int { return _data }
+  over equal(o MalVal) bool { return o is MalNumber && (o as MalNumber).val == val }
+  over clone MalVal { return self }
+}
+
+class MalSymbol : MalVal {
+  const _data string
+  over print(readable bool) string { return _data }
+  def val string { return _data }
+  over equal(o MalVal) bool { return o is MalSymbol && (o as MalSymbol).val == val }
+  over isSymbol(name string) bool { return _data == name }
+  over clone MalVal { return MalSymbol.new(_data) }
+}
+
+class MalString : MalVal {
+  const _data string
+  over print(readable bool) string { return readable ? "\"\(escaped_data)\"" : _data }
+  over toHashKey string { return "S_\(_data)" }
+  def val string { return _data }
+  over equal(o MalVal) bool { return o is MalString && (o as MalString).val == val }
+  def escaped_data string {
+    return _data.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"").replaceAll("\n", "\\n")
+  }
+  over seq MalVal { return _data.count == 0 ? gNil : MalList.new(_data.split("").map<MalVal>(e => MalString.new(e))) }
+  over clone MalVal { return MalString.new(_data) }
+}
+
+class MalKeyword : MalVal {
+  const _data string
+  over print(readable bool) string { return ":\(_data)" }
+  over toHashKey string { return "K_\(_data)" }
+  def val string { return _data }
+  over equal(o MalVal) bool { return o is MalKeyword && (o as MalKeyword).val == val }
+  over clone MalVal { return MalKeyword.new(_data) }
+}
+
+class MalSequential : MalVal {
+  const _data List<MalVal>
+  def val List<MalVal> { return _data }
+  def isEmpty bool { return _data.isEmpty }
+  def asOneString(readable bool) string {
+    return " ".join(_data.map<string>(v => v.print(readable)))
+  }
+  def count int { return _data.count }
+  def [](index int) MalVal { return _data[index] }
+  over equal(o MalVal) bool {
+    if !(o is MalSequential) { return false }
+    const oval = (o as MalSequential).val
+    if val.count != oval.count { return false }
+    for i in 0..val.count {
+      if !val[i].equal(oval[i]) { return false }
+    }
+    return true
+  }
+  def nth(position int) MalVal {
+    if position >= count { throw MalError.new("nth: index out of range") }
+    return val[position]
+  }
+  def first MalVal {
+    if isEmpty { return gNil }
+    return val[0]
+  }
+  def rest MalVal {
+    if isEmpty { return MalList.new([]) }
+    return MalList.new(val.slice(1))
+  }
+  def conj(args List<MalVal>) MalVal
+}
+
+class MalList : MalSequential {
+  over print(readable bool) string { return "(" + asOneString(readable) + ")" }
+  over seq MalVal { return isEmpty ? gNil : self }
+  over conj(args List<MalVal>) MalVal {
+    var res = args.clone
+    res.reverse
+    res.append(_data)
+    return MalList.new(res)
+  }
+  over clone MalVal { return MalList.new(_data) }
+}
+
+class MalVector : MalSequential {
+  over print(readable bool) string { return "[" + asOneString(readable) + "]" }
+  over seq MalVal { return isEmpty ? gNil : MalList.new(_data) }
+  over conj(args List<MalVal>) MalVal {
+    var res = _data.clone
+    res.append(args)
+    return MalVector.new(res)
+  }
+  over clone MalVal { return MalVector.new(_data) }
+}
+
+class MalHashMap : MalVal {
+  const _data StringMap<MalVal>
+  over print(readable bool) string {
+    var pairs List<string> = []
+    _data.each((k string, v MalVal) => pairs.append("\(MalVal.fromHashKey(k).print(readable)) \(v.print(readable))"))
+    return "{" + " ".join(pairs) + "}"
+  }
+  def val StringMap<MalVal> { return _data }
+  over equal(o MalVal) bool {
+    if !(o is MalHashMap) { return false }
+    const oh = o as MalHashMap
+    if oh.val.count != val.count { return false }
+    var allEqual = true
+    _data.each((k string, v MalVal) => {
+      if !(k in oh.val) || !(v.equal(oh.val[k])) {
+        allEqual = false
+      }
+    })
+    return allEqual
+  }
+  def assoc(kv_list List<MalVal>) MalVal {
+    var new_data = _data.clone
+    for i = 0; i < kv_list.count; i += 2 {
+      new_data[kv_list[i].toHashKey] = kv_list[i + 1]
+    }
+    return MalHashMap.new(new_data)
+  }
+  def dissoc(keys List<MalVal>) MalVal {
+    var new_data = _data.clone
+    for key in keys {
+      new_data.remove(key.toHashKey)
+    }
+    return MalHashMap.new(new_data)
+  }
+  def get(key MalVal) MalVal { return _data.get(key.toHashKey, gNil) }
+  def contains(key MalVal) bool { return key.toHashKey in _data }
+  def keys List<MalVal> {
+    return _data.keys.map<MalVal>(k => MalVal.fromHashKey(k))
+  }
+  def vals List<MalVal> { return _data.values }
+  over clone MalVal { return MalHashMap.new(_data) }
+}
+
+namespace MalHashMap {
+  def fromList(kv_list List<MalVal>) MalHashMap {
+    var result StringMap<MalVal> = {}
+    for i = 0; i < kv_list.count; i += 2 {
+      result[kv_list[i].toHashKey] = kv_list[i + 1]
+    }
+    return MalHashMap.new(result)
+  }
+}
+
+class MalCallable : MalVal {
+  const func fn(List<MalVal>) MalVal
+  def call(args List<MalVal>) MalVal {
+    return func(args)
+  }
+}
+
+class MalNativeFunc : MalCallable {
+  over print(readable bool) string { return "#<NativeFunction>" }
+  over equal(o MalVal) bool { return false }
+  over clone MalVal { return MalNativeFunc.new(func) }
+}
+
+class MalFunc : MalCallable {
+  const ast MalVal
+  const params MalSequential
+  const env Env
+  var _macro bool = false
+  def new(aAst MalVal, aParams MalSequential, aEnv Env, aFunc fn(List<MalVal>) MalVal) {
+    super(aFunc)
+    ast = aAst
+    params = aParams
+    env = aEnv
+  }
+  def isMacro bool { return _macro }
+  def setAsMacro { _macro = true }
+  over print(readable bool) string { return "#<Function args=" + params.print(true) + ">" }
+  over equal(o MalVal) bool { return false }
+  over clone MalVal {
+    var f = MalFunc.new(ast, params, env, func)
+    if isMacro { f.setAsMacro }
+    return f
+  }
+}
+
+class MalAtom : MalVal {
+  var _data MalVal
+  over print(readable bool) string { return "(atom \(_data.print(readable)))" }
+  def val MalVal { return _data }
+  over equal(o MalVal) bool { return o is MalAtom && val.equal((o as MalAtom).val) }
+  def resetBang(newData MalVal) MalVal {
+    _data = newData
+    return _data
+  }
+  over clone MalVal { return MalAtom.new(_data) }
+}

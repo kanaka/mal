@@ -1,0 +1,110 @@
+def READ(str string) MalVal {
+  return read_str(str)
+}
+
+def eval_ast(ast MalVal, env Env) MalVal {
+  if ast is MalSymbol {
+    return env.get(ast as MalSymbol)
+  } else if ast is MalList {
+    return MalList.new((ast as MalList).val.map<MalVal>(e => EVAL(e, env)))
+  } else if ast is MalVector {
+    return MalVector.new((ast as MalVector).val.map<MalVal>(e => EVAL(e, env)))
+  } else if ast is MalHashMap {
+    var result List<MalVal> = []
+    (ast as MalHashMap).val.each((k string, v MalVal) => {
+      result.append(EVAL(MalVal.fromHashKey(k), env))
+      result.append(EVAL(v, env))
+    })
+    return MalHashMap.fromList(result)
+  } else {
+    return ast
+  }
+}
+
+def EVAL(ast MalVal, env Env) MalVal {
+  while true {
+    if !(ast is MalList) { return eval_ast(ast, env) }
+    const astList = ast as MalList
+    if astList.isEmpty { return ast }
+    const a0sym = astList[0] as MalSymbol
+    if a0sym.val == "def!" {
+      return env.set(astList[1] as MalSymbol, EVAL(astList[2], env))
+    } else if a0sym.val == "let*" {
+      var letenv = Env.new(env)
+      const assigns = astList[1] as MalSequential
+      for i = 0; i < assigns.count; i += 2 {
+        letenv.set(assigns[i] as MalSymbol, EVAL(assigns[i + 1], letenv))
+      }
+      ast = astList[2]
+      env = letenv
+      continue # TCO
+    } else if a0sym.val == "do" {
+      const parts = astList.val.slice(1)
+      eval_ast(MalList.new(parts.slice(0, parts.count - 1)), env)
+      ast = parts[parts.count - 1]
+      continue # TCO
+    } else if a0sym.val == "if" {
+      const condRes = EVAL(astList[1], env)
+      if condRes is MalNil || condRes is MalFalse {
+        ast = astList.count > 3 ? astList[3] : gNil
+      } else {
+        ast = astList[2]
+      }
+      continue # TCO
+    } else if a0sym.val == "fn*" {
+      const argsNames = astList[1] as MalSequential
+      return MalFunc.new(astList[2], argsNames, env, (args List<MalVal>) => EVAL(astList[2], Env.new(env, argsNames.val, args)))
+    } else {
+      const evaledList = eval_ast(ast, env) as MalList
+      const fn = evaledList[0]
+      const callArgs = evaledList.val.slice(1)
+      if fn is MalNativeFunc {
+        return (fn as MalNativeFunc).call(callArgs)
+      } else if fn is MalFunc {
+        const f = fn as MalFunc
+        ast = f.ast
+        env = Env.new(f.env, f.params.val, callArgs)
+        continue # TCO
+      } else {
+        throw MalError.new("Expected function as head of list")
+      }
+    }
+  }
+}
+
+def PRINT(exp MalVal) string {
+  return exp?.print(true)
+}
+
+var repl_env = Env.new(null)
+
+def RE(str string) MalVal {
+  return EVAL(READ(str), repl_env)
+}
+
+def REP(str string) string {
+  return PRINT(RE(str))
+}
+
+@entry
+def main {
+  # core.sk: defined using Skew
+  ns.each((name, func) => repl_env.set(MalSymbol.new(name), MalNativeFunc.new(func)))
+
+  # core.mal: defined using the language itself
+  RE("(def! not (fn* (a) (if a false true)))")
+
+  var line string
+  while (line = readLine("user> ")) != null {
+    if line == "" { continue }
+    try {
+      printLn(REP(line))
+    }
+    catch e MalError {
+      printLn("Error: \(e.message)")
+    }
+    catch e Error {
+      printLn("Error: \(e.message)")
+    }
+  }
+}
