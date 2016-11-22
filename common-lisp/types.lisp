@@ -223,10 +223,10 @@
     (list (make-mal-list (map 'list #'wrap-value value)))
     (vector (make-mal-vector (map 'vector #'wrap-value value)))
     (hash-table (make-mal-hash-map (let ((new-hash-table (make-mal-value-hash-table)))
-                                     (loop
-                                        for key being the hash-keys of value
-                                        do (setf (gethash (wrap-value key) new-hash-table)
-                                                 (wrap-value (gethash key value))))
+                                     (genhash:hashmap (lambda (key value)
+                                                        (setf (genhash:hashref (wrap-value key) new-hash-table)
+                                                              (wrap-value value)))
+                                                      value)
                                      new-hash-table)))))
 
 (defun unwrap-value (value)
@@ -235,10 +235,10 @@
     (vector (map 'vector #'unwrap-value (mal-data-value value)))
     (hash-map (let ((hash-table (make-hash-table))
                     (hash-map-value (mal-data-value value)))
-                (loop
-                   for key being the hash-keys of hash-map-value
-                   do (setf (gethash (mal-data-value key) hash-table)
-                            (mal-data-value (gethash key hash-map-value))))
+                (genhash:hashmap (lambda (key value)
+                                   (setf (genhash:hashref (mal-data-value key) hash-table)
+                                         (mal-data-value value)))
+                                 hash-map-value)
                 hash-table))
     (any (mal-data-value value))))
 
