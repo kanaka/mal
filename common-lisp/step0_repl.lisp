@@ -1,6 +1,7 @@
 (defpackage :mal
-  (:use :common-lisp
-        :uiop)
+  (:use :common-lisp)
+  (:import-from :uiop
+                :getenv)
   (:export :main))
 
 (in-package :mal)

@@ -4,8 +4,13 @@
         :env
         :reader
         :printer
-        :core
-        :utils)
+        :core)
+  (:import-from :genhash
+                :hashref
+                :hashmap)
+  (:import-from :utils
+                :listify
+                :getenv)
   (:export :main))
 
 (in-package :mal)
@@ -148,10 +153,7 @@
 
                  ((types:mal-data-value= mal-let* (first forms))
                   (let ((new-env (env:create-mal-env :parent env))
-                        ;; Convert a potential vector to a list
-                        (bindings (map 'list
-                                       #'identity
-                                       (types:mal-data-value (second forms)))))
+                        (bindings (utils:listify (types:mal-data-value (second forms)))))
 
                     (mapcar (lambda (binding)
                               (env:set-env new-env

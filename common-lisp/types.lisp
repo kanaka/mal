@@ -1,6 +1,8 @@
 (defpackage :types
   (:use :common-lisp
         :genhash)
+  (:import-from :utils
+                :listify)
   (:export :mal-data-value=
            ;; Accessors
            :mal-data-value
@@ -155,8 +157,8 @@
                  forms))))
 
 (defun mal-sequence= (value1 value2)
-  (let ((sequence1 (map 'list #'identity (mal-data-value value1)))
-        (sequence2 (map 'list #'identity (mal-data-value value2))))
+  (let ((sequence1 (utils:listify (mal-data-value value1)))
+        (sequence2 (utils:listify (mal-data-value value2))))
     (when (= (length sequence1) (length sequence2))
       (every #'identity
              (loop
@@ -181,6 +183,7 @@
 (defun mal-data-value= (value1 value2)
   (when (and (typep value1 'mal-data)
              (typep value2 'mal-data))
+
     (if (equal (mal-data-type value1) (mal-data-type value2))
         (switch-mal-type value1
           (list (mal-sequence= value1 value2))
@@ -211,9 +214,9 @@
     (number (make-mal-number value))
     ;; This needs to be before symbol since nil is a symbol
     (null (funcall (cond
-                    (booleanp #'make-mal-boolean)
-                    (listp #'make-mal-list)
-                    (t #'make-mal-nil))
+                     (booleanp #'make-mal-boolean)
+                     (listp #'make-mal-list)
+                     (t #'make-mal-nil))
                    value))
     ;; This needs to before symbol since t, nil are symbols
     (boolean (make-mal-boolean value))

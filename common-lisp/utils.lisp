@@ -4,7 +4,8 @@
   (:export :replace-all
            :getenv
            :read-file-string
-           :raw-command-line-arguments))
+           :raw-command-line-arguments
+           :listify))
 
 (in-package :utils)
 
@@ -22,3 +23,7 @@ is replaced with replacement."
                         :end (or pos (length string)))
        when pos do (write-string replacement out)
        while pos)))
+
+(defun listify (sequence)
+  "Convert a sequence to a list"
+  (map 'list #'identity sequence))

@@ -3,8 +3,12 @@
         :types
         :env
         :reader
-        :printer
-        :genhash)
+        :printer)
+  (:import-from :genhash
+                :hashref
+                :hashmap)
+  (:import-from :utils
+                :getenv)
   (:export :main))
 
 (in-package :mal)
@@ -111,8 +115,8 @@
 (defun main (&optional (argv nil argv-provided-p))
   (declare (ignorable argv argv-provided-p))
 
-  (setf *use-readline-p* (not (or (string= (uiop:getenv "PERL_RL") "false")
-                                  (string= (uiop:getenv "TERM") "dumb"))))
+  (setf *use-readline-p* (not (or (string= (utils:getenv "PERL_RL") "false")
+                                  (string= (utils:getenv "TERM") "dumb"))))
 
   ;; In GNU CLISP's batch mode the standard-input seems to be set to some sort
   ;; of input string-stream, this interacts wierdly with the PERL_RL enviroment

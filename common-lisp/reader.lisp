@@ -1,7 +1,8 @@
 (defpackage :reader
   (:use :common-lisp
-        :types
-        :genhash)
+        :types)
+  (:import-from :genhash
+                :hashref)
   (:import-from :cl-ppcre
                 :create-scanner
                 :do-matches-as-strings
