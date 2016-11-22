@@ -27,4 +27,5 @@
                (:file "printer")
                (:file "core")
                (:file "step7_quote"))
-  :depends-on (:uiop :cl-readline :cl-ppcre :genhash))
+  :depends-on (:uiop :cl-readline :cl-ppcre :genhash)
+  :pathname "src/")

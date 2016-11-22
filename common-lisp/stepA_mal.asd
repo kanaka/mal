@@ -27,4 +27,5 @@
                (:file "printer")
                (:file "core")
                (:file "stepA_mal"))
-  :depends-on (:uiop :cl-readline :cl-ppcre :genhash))
+  :depends-on (:uiop :cl-readline :cl-ppcre :genhash)
+  :pathname "src/")

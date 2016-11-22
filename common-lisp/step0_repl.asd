@@ -19,4 +19,5 @@
   :description "Implementation of step 0 of MAL in Common Lisp"
   :serial t
   :components ((:file "step0_repl"))
-  :depends-on (:uiop :cl-readline))
+  :depends-on (:uiop :cl-readline)
+  :pathname "src/")

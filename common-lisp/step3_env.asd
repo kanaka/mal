@@ -26,4 +26,5 @@
                (:file "reader")
                (:file "printer")
                (:file "step3_env"))
-  :depends-on (:uiop :cl-readline :cl-ppcre :genhash))
+  :depends-on (:uiop :cl-readline :cl-ppcre :genhash)
+  :pathname "src/")

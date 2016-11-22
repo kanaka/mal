@@ -12,8 +12,8 @@ define steps
 endef
 
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-SOURCES_LISP := env.lisp core.lisp stepA_mal.lisp
-SOURCES := utils.lisp types.lisp reader.lisp printer.lisp $(SOURCES_LISP)
+SOURCES_LISP := src/env.lisp src/core.lisp src/stepA_mal.lisp
+SOURCES := src/utils.lisp src/types.lisp src/reader.lisp src/printer.lisp $(SOURCES_LISP)
 LISP ?= sbcl
 ABCL ?= abcl
 
@@ -33,7 +33,7 @@ hist/%_impl: ;
 # directory of the CL_LAUNCH_FILE in --wrap script so that the script can find the dumped
 # image even if invoked from some directory different from where it
 # currently resides
-step% : step%.lisp utils.lisp types.lisp env.lisp printer.lisp reader.lisp core.lisp hist/%_impl
+step% : src/step%.lisp src/utils.lisp src/types.lisp src/env.lisp src/printer.lisp src/reader.lisp src/core.lisp hist/%_impl
 ifeq ($(LISP),abcl)
 	echo -n '#!/bin/sh\ncd `dirname $$0` ; $(ABCL) --noinform --noinit --nosystem --load run-abcl.lisp -- $@ $$@' > $@
 	chmod +x $@
