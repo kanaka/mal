@@ -1,41 +1,32 @@
 (defpackage :printer
   (:use :common-lisp
-        :types
-        :genhash)
+        :types)
+  (:import-from :genhash
+                :hashmap)
   (:import-from :cl-ppcre
                 :regex-replace)
   (:import-from :utils
-                :replace-all)
+                :replace-all
+                :listify)
   (:export :pr-str))
 
 (in-package :printer)
 
 (defun pr-mal-sequence (start-delimiter sequence end-delimiter &optional (print-readably t))
-  (concatenate 'string
-               start-delimiter
-               (format nil
-                       "~{~a~^ ~}"
-                       (map 'list (lambda (value)
-                                    (pr-str value print-readably))
-                            (types:mal-data-value sequence)))
-               end-delimiter))
+  (format nil
+          "~a~{~a~^ ~}~a"
+          start-delimiter
+          (mapcar (lambda (value)
+                    (pr-str value print-readably))
+                  (utils:listify (types:mal-data-value sequence)))
+          end-delimiter))
 
-(defun pr-mal-hash-map (hash-map &optional (print-readably t))
-  (let ((hash-map-value (types:mal-data-value hash-map)))
-    (concatenate 'string
-                 "{"
-                 (format nil
-                         "~{~a~^ ~}"
-                         (let (repr)
-                           (genhash:hashmap (lambda (key value)
-                                              (push (format nil
-                                                            "~a ~a"
-                                                            (pr-str key print-readably)
-                                                            (pr-str value print-readably))
-                                                    repr))
-                                            hash-map-value)
-                           repr))
-                 "}")))
+(defun pr-mal-hash-map (hash-map &optional (print-readably t) &aux repr)
+  (genhash:hashmap (lambda (key value)
+                     (push (pr-str value print-readably) repr)
+                     (push (pr-str key   print-readably) repr))
+                   (types:mal-data-value hash-map))
+  (format nil "{~{~a ~a~^ ~}}" repr))
 
 (defun pr-string (ast &optional (print-readably t))
     (if print-readably

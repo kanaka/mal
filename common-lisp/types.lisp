@@ -105,13 +105,8 @@
 
 ;; Create a constructor and predicate for given type
 (defmacro define-mal-type (type)
-  (let ((constructor (intern (string-upcase (concatenate 'string
-                                                         "make-mal-"
-                                                         (symbol-name type)))))
-        (predicate (intern (string-upcase (concatenate 'string
-                                                       "mal-"
-                                                       (symbol-name type)
-                                                       "-p")))))
+  (let ((constructor (intern (format nil "MAKE-MAL-~a" (symbol-name type))))
+        (predicate (intern (format nil "MAL-~a-P" (symbol-name type)))))
     `(progn (defun ,constructor (value &key meta attrs)
               (make-mal-data :type ',type
                              :value value
