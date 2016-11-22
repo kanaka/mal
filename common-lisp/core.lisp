@@ -145,8 +145,8 @@
   (or (nth (types:mal-data-value index)
            (map 'list #'identity (types:mal-data-value sequence)))
       (error 'index-error
-             :size (length (mal-value sequence))
-             :index (mal-value index)
+             :size (length (types:mal-data-value sequence))
+             :index (types:mal-data-value index)
              :sequence sequence)))
 
 (defun mal-first (sequence)
