@@ -124,7 +124,6 @@
 (define-mal-type symbol)
 (define-mal-type keyword)
 (define-mal-type string)
-;; TODO true, false and nil should ideally be singleton
 (define-mal-type boolean)
 (define-mal-type nil)
 
