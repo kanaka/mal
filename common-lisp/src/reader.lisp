@@ -1,6 +1,7 @@
 (defpackage :reader
   (:use :common-lisp
-        :types)
+        :types
+        :alexandria)
   (:import-from :genhash
                 :hashref)
   (:import-from :cl-ppcre
@@ -85,9 +86,7 @@ raised"
   (let ((actual-token (pop (token-reader-tokens reader))))
     (when (and token-provided-p
                (not (equal actual-token token)))
-      (error 'unexpected-token
-             :expected token
-             :actual actual-token)))
+      (error 'unexpected-token :expected token :actual actual-token)))
   reader)
 
 (defun parse-string (token)
@@ -97,8 +96,7 @@ raised"
                                              "\\n"
                                              "
 "))
-      (error 'eof
-             :context "string")))
+      (error 'eof :context "string")))
 
 (defun read-form-with-meta (reader)
   (consume reader)
@@ -107,20 +105,18 @@ raised"
 
     (when (or (null meta)
               (null value))
-      (error 'eof
-             :context "object metadata"))
+      (error 'eof :context "object metadata"))
 
     (make-mal-list (list (make-mal-symbol "with-meta") value meta))))
 
 (defun expand-quote (reader)
-  (let ((quote (next reader)))
-    (make-mal-list (list (make-mal-symbol (cond
-                                            ((string= quote "'") "quote")
-                                            ((string= quote "`") "quasiquote")
-                                            ((string= quote "~") "unquote")
-                                            ((string= quote "~@") "splice-unquote")
-                                            ((string= quote "@") "deref")))
-                         (read-form reader)))))
+  (let ((quote-sym (make-mal-symbol (switch ((next reader) :test #'string=)
+                                      ("'" "quote")
+                                      ("`" "quasiquote")
+                                      ("~" "unquote")
+                                      ("~@" "splice-unquote")
+                                      ("@" "deref")))))
+    (make-mal-list (list quote-sym (read-form reader)))))
 
 (defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
   ;; Consume the opening brace
@@ -129,10 +125,9 @@ raised"
     (loop
        for token = (peek reader)
        while (cond
-               ((null token) (error 'eof
-                                    :context (if (string= delimiter ")")
-                                                 "list"
-                                                 "vector")))
+               ((null token) (error 'eof :context (if (string= delimiter ")")
+                                                      "list"
+                                                      "vector")))
                ((string= token delimiter) (return))
                (t (push (read-form reader) forms))))
     ;; Consume the closing brace
@@ -147,14 +142,12 @@ raised"
     (loop
        for token = (peek reader)
        while (cond
-               ((null token) (error 'eof
-                                    :context "hash-map"))
+               ((null token) (error 'eof :context "hash-map"))
                ((string= token "}") (return))
                (t (let ((key (read-form reader))
                         (value (read-form reader)))
                     (if (null value)
-                        (error 'eof
-                               :context "hash-map")
+                        (error 'eof :context "hash-map")
                         (push (cons key value) forms))))))
     ;; Consume the closing brace
     (consume reader)
@@ -181,19 +174,18 @@ raised"
       (t (make-mal-symbol token)))))
 
 (defun read-form (reader)
-  (let ((token (peek reader)))
-    (cond
-      ((null token) nil)
-      ((string= token "(") (make-mal-list (read-mal-sequence reader
-                                                             ")"
-                                                             'list)))
-      ((string= token "[") (make-mal-vector (read-mal-sequence reader
-                                                               "]"
-                                                               'vector)))
-      ((string= token "{") (make-mal-hash-map (read-hash-map reader)))
-      ((string= token "^") (read-form-with-meta reader))
-      ((member token '("'" "`" "~" "~@" "@") :test #'string=) (expand-quote reader))
-      (t (read-atom reader)))))
+  (switch ((peek reader) :test #'equal)
+    (nil nil)
+    ("(" (make-mal-list (read-mal-sequence reader ")" 'list)))
+    ("[" (make-mal-vector (read-mal-sequence reader "]" 'vector)))
+    ("{" (make-mal-hash-map (read-hash-map reader)))
+    ("^" (read-form-with-meta reader))
+    ("'" (expand-quote reader))
+    ("`" (expand-quote reader))
+    ("~" (expand-quote reader))
+    ("~@" (expand-quote reader))
+    ("@" (expand-quote reader))
+    (t (read-atom reader))))
 
 (defun read-str (string)
   (read-form (make-token-reader :tokens (tokenize string))))

@@ -8,6 +8,7 @@
 (ql:quickload :cl-readline :silent t)
 (ql:quickload :cl-ppcre :silent t)
 (ql:quickload :genhash :silent t)
+(ql:quickload :alexandria :silent t)
 
 (defpackage #:mal-asd
   (:use :cl :asdf))

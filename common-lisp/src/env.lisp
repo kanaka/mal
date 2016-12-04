@@ -30,38 +30,38 @@
   (parent nil :read-only t))
 
 (defun find-env (env symbol)
-  (let ((value (gethash (types:mal-data-value symbol)
-                        (mal-env-bindings env)))
-        (parent (mal-env-parent env)))
-    (cond
-      (value value)
-      (parent (find-env parent symbol))
-      (t nil))))
+  (when env
+    (or (gethash (mal-data-value symbol)
+                 (mal-env-bindings env))
+        (find-env (mal-env-parent env) symbol))))
 
 (defun get-env (env symbol)
-  (let ((value (find-env env symbol)))
-    (if value
-        value
-        (error 'undefined-symbol
-               :symbol (format nil "~a" (types:mal-data-value symbol))))))
+  (or (find-env env symbol)
+      (error 'undefined-symbol
+             :symbol (format nil "~a" (mal-data-value symbol)))))
 
 (defun set-env (env symbol value)
   (setf (gethash (types:mal-data-value symbol)
                  (mal-env-bindings env))
         value))
 
-(defun create-mal-env (&key (parent nil) (binds nil) (exprs nil))
-  (let ((env (make-mal-env :parent parent)))
-    (loop
-       while binds
-       do (let ((key (pop binds)))
-            (if (string= (types:mal-data-value key) "&")
-                (let ((key (pop binds)))
-                  (unless key
-                    (error 'arity-mismatch
-                           :required (length binds)
-                           :provided (length exprs)))
-                  (set-env env key (types:make-mal-list exprs))
-                  (setq binds nil))
-                (set-env env key (pop exprs)))))
-    env))
+(defun create-mal-env (&key parent binds exprs)
+  (let ((env (make-mal-env :parent parent))
+        (params-length (length binds))
+        (arg-length (length exprs)))
+
+    (flet ((arity-mismatch ()
+             (error 'arity-mismatch
+                    :required params-length
+                    :provided arg-length)))
+      (loop
+         for key = (pop binds)
+         while key
+         do (if (string/= (mal-data-value key) "&")
+                (set-env env key (or (pop exprs)
+                                     (arity-mismatch)))
+                (progn (set-env env
+                                (or (pop binds) (arity-mismatch))
+                                (make-mal-list exprs))
+                       (setq binds nil))))
+      env)))
