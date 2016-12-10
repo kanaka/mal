@@ -172,7 +172,8 @@ DO_FUNCTION:
   B=Z%(Z%(AR+1)+2):B1=Z%(B+1)
 
   REM Switch on the function number
-  IF G>59 THEN ER=-1:E$="unknown function"+STR$(G):RETURN
+  REM MEMORY DEBUGGING:
+  REM IF G>59 THEN ER=-1:E$="unknown function"+STR$(G):RETURN
   ON INT(G/10)+1 GOTO DO_1_9,DO_10_19,DO_20_29,DO_30_39,DO_40_49,DO_50_59
 
   DO_1_9:
@@ -406,48 +407,41 @@ DO_FUNCTION:
     T=6:L=B:M=A:GOSUB ALLOC
     RETURN
   DO_CONCAT:
-    REM if empty arguments, return empty list
-    IF Z%(AR+1)=0 THEN R=6:GOTO INC_REF_R
+    REM always a list
+    R=6:GOSUB INC_REF_R
+    GOSUB PUSH_R: REM current value
+    GOSUB PUSH_R: REM return value
 
-    REM single argument
-    IF Z%(Z%(AR+1)+1)<>0 THEN GOTO DO_CONCAT_MULT
-      REM force to list type
-      T=6:GOSUB FORCE_SEQ_TYPE
+    DO_CONCAT_LOOP:
+      IF AR<16 THEN GOTO DO_CONCAT_DONE: REM no more elements
+
+      REM slice/copy current element to a list
+      A=Z%(AR+2)
+      IF A<16 THEN GOTO DO_CONCAT_LOOP_NEXT: REM skip empty elements
+      B=0:C=-1:GOSUB SLICE
+
+      GOSUB PEEK_Q: REM return value
+      REM if this is the first element, set return element
+      IF Q=6 THEN Q=R:GOSUB PUT_Q:GOTO DO_CONCAT_LOOP_AGAIN
+      REM otherwise Q<>6, so attach current to sliced
+      GOSUB PEEK_Q_1
+      Z%(Q+1)=R
+
+      DO_CONCAT_LOOP_AGAIN:
+        REM update current to end of sliced list
+        Q=R6:GOSUB PUT_Q_1
+        REM dec empty since no longer part of slice
+        AY=6:GOSUB RELEASE
+      DO_CONCAT_LOOP_NEXT:
+        REM next list element
+        AR=Z%(AR+1)
+        GOTO DO_CONCAT_LOOP
+
+    DO_CONCAT_DONE:
+      GOSUB POP_R: REM pop return value
+      GOSUB POP_Q: REM pop current
       RETURN
 
-    REM multiple arguments
-    DO_CONCAT_MULT:
-      REM TODO: something other than direct X access?
-      CZ=X: REM save current stack position
-      REM push arguments onto the stack
-      DO_CONCAT_STACK:
-        R=Z%(AR+2)
-        GOSUB PUSH_R: REM push sequence
-        AR=Z%(AR+1)
-        IF Z%(AR+1)<>0 THEN GOTO DO_CONCAT_STACK
-
-    REM pop last argument as our seq to prepend to
-    GOSUB POP_Q:B=Q
-    REM last arg/seq is not copied so we need to inc ref to it
-    Z%(B)=Z%(B)+32
-    DO_CONCAT_LOOP:
-      IF X=CZ THEN R=B:RETURN
-      GOSUB POP_A: REM pop off next seq to prepend
-      IF Z%(A+1)=0 THEN GOTO DO_CONCAT_LOOP: REM skip empty seqs
-      Q=B:GOSUB PUSH_Q
-      B=0:C=-1:GOSUB SLICE
-      GOSUB POP_Q:B=Q
-
-      REM release the terminator of new list (we skip over it)
-      REM we already checked for an empty list above, so R6 is pointer
-      REM a real non-empty list
-      AY=Z%(R6+1):GOSUB RELEASE
-      REM attach new list element before terminator (last actual
-      REM element to the next sequence
-      Z%(R6+1)=B
-
-      B=R
-      GOTO DO_CONCAT_LOOP
   DO_NTH:
     B=B1
     GOSUB COUNT

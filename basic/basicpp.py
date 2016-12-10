@@ -105,14 +105,18 @@ def misc_fixups(orig_lines):
     text = re.sub(r"\OPEN ", "OPEN", text)
     text = re.sub(r"\bGET ", "GET", text)
     text = re.sub(r"\bPOKE ", "POKE", text)
+    text = re.sub(r"\bCLOSE ", "CLOSE", text)
+    text = re.sub(r"\bFOR ", "FOR", text)
+    text = re.sub(r" TO ", "TO", text)
+    text = re.sub(r"\bNEXT ", "NEXT", text)
 
     # Remove spaces around GOTO/GOSUB/THEN
     text = re.sub(r" *GOTO *", "GOTO", text)
     text = re.sub(r" *GOSUB *", "GOSUB", text)
     text = re.sub(r" *THEN *", r"THEN", text)
 
-    # Remove spaces around AND/OR except after variables
-    text = re.sub(r"([^A-Z]) *AND *", r"\g<1>AND", text)
+    # Remove spaces around AND/OR except after ST
+    text = re.sub(r"(?<!ST) *AND *", r"AND", text)
     text = re.sub(r"([^A-Z]) *OR *", r"\g<1>OR", text)
 
     return text.split("\n")

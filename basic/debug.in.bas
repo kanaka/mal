@@ -4,14 +4,12 @@ CHECK_FREE_LIST:
   P1=ZK
   P2=0
   CHECK_FREE_LIST_LOOP:
-    IF P1>=ZI THEN GOTO CHECK_FREE_LIST_DONE
-    IF (Z%(P1)AND 31)<>15 THEN P2=-1:GOTO CHECK_FREE_LIST_DONE
+    IF P1>=ZI THEN RETURN
+    REM MEMORY DEBUGGING:
+    REM IF (Z%(P1)AND 31)<>15 THEN PRINT "corrupt free:"+STR$(P1):END
     P2=P2+(Z%(P1)AND-32)/32
     P1=Z%(P1+1)
     GOTO CHECK_FREE_LIST_LOOP
-  CHECK_FREE_LIST_DONE:
-    IF P2=-1 THEN PRINT "corrupt free list at "+STR$(P1)
-    RETURN
 
 PR_MEMORY_SUMMARY_SMALL:
   #cbm P0=FRE(0)
@@ -51,30 +49,30 @@ REM   PRINT "Strings (S$) :"+STR$(P2)+" /"+STR$(Z2)
 REM   #qbasic PRINT "Stack (X%)   :"+STR$(X+1)+" /"+STR$(Z3)
 REM   #cbm PRINT "Stack        :"+STR$(X+2-Z3)+" / 1920"
 REM   RETURN
-
-#cbm PR_MEMORY_MAP:
-  #cbm PRINT
-  #cbm P1=PEEK(43)+PEEK(44)*256
-  #cbm P2=PEEK(45)+PEEK(46)*256
-  #cbm P3=PEEK(47)+PEEK(48)*256
-  #cbm P4=PEEK(49)+PEEK(50)*256
-  #cbm P5=PEEK(51)+PEEK(52)*256
-  #cbm P6=PEEK(53)+PEEK(54)*256
-  #cbm P7=PEEK(55)+PEEK(56)*256
-  #cbm PRINT "BASIC beg.   :"STR$(P1)
-  #cbm PRINT "Variable beg.:"STR$(P2)
-  #cbm PRINT "Array beg.   :"STR$(P3)
-  #cbm PRINT "Array end    :"STR$(P4)
-  #cbm PRINT "String beg.  :"STR$(P5)
-  #cbm PRINT "String cur.  :"STR$(P6)
-  #cbm PRINT "BASIC end    :"STR$(P7)
-  #cbm PRINT
-  #cbm PRINT "Program Code :"STR$(P2-P1)
-  #cbm PRINT "Variables    :"STR$(P3-P2)
-  #cbm PRINT "Arrays       :"STR$(P4-P3)
-  #cbm PRINT "String Heap  :"STR$(P7-P5)
-  #cbm RETURN
-
+REM 
+REM #cbm PR_MEMORY_MAP:
+REM   #cbm PRINT
+REM   #cbm P1=PEEK(43)+PEEK(44)*256
+REM   #cbm P2=PEEK(45)+PEEK(46)*256
+REM   #cbm P3=PEEK(47)+PEEK(48)*256
+REM   #cbm P4=PEEK(49)+PEEK(50)*256
+REM   #cbm P5=PEEK(51)+PEEK(52)*256
+REM   #cbm P6=PEEK(53)+PEEK(54)*256
+REM   #cbm P7=PEEK(55)+PEEK(56)*256
+REM   #cbm PRINT "BASIC beg.   :"STR$(P1)
+REM   #cbm PRINT "Variable beg.:"STR$(P2)
+REM   #cbm PRINT "Array beg.   :"STR$(P3)
+REM   #cbm PRINT "Array end    :"STR$(P4)
+REM   #cbm PRINT "String beg.  :"STR$(P5)
+REM   #cbm PRINT "String cur.  :"STR$(P6)
+REM   #cbm PRINT "BASIC end    :"STR$(P7)
+REM   #cbm PRINT
+REM   #cbm PRINT "Program Code :"STR$(P2-P1)
+REM   #cbm PRINT "Variables    :"STR$(P3-P2)
+REM   #cbm PRINT "Arrays       :"STR$(P4-P3)
+REM   #cbm PRINT "String Heap  :"STR$(P7-P5)
+REM   #cbm RETURN
+REM 
 REM REM PR_MEMORY_VALUE(I) -> J:
 REM REM   - I is memory value to print
 REM REM   - I is returned as last byte of value printed

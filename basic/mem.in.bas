@@ -1,5 +1,5 @@
 REM Memory layout:
-REM 
+REM
 REM type            bytes
 REM ----------      ----------
 REM nil             ref/ 0 |  0          |              |
@@ -20,7 +20,7 @@ REM environment     ref/13 | hmap Z% idx | outer Z% idx |
 REM metadata        ref/14 | obj Z% idx  | meta Z% idx  |
 REM FREE             sz/15 | next Z% idx |              |
 REM
-REM The first 15 locations are constant/persistent values:
+REM Locations 0-15 are for constant/persistent values:
 REM    0: nil
 REM    2: false
 REM    4: true
@@ -39,12 +39,12 @@ REM stack functions
 #qbasic   X=X+1:X%(X)=A:RETURN
 #qbasic POP_A:
 #qbasic   A=X%(X):X=X-1:RETURN
-#qbasic 
+#qbasic
 #qbasic PUSH_R:
 #qbasic   X=X+1:X%(X)=R:RETURN
 #qbasic POP_R:
 #qbasic   R=X%(X):X=X-1:RETURN
-#qbasic 
+#qbasic
 #qbasic PUSH_Q:
 #qbasic   X=X+1:X%(X)=Q:RETURN
 #qbasic POP_Q:
@@ -68,12 +68,12 @@ REM stack functions
 #cbm   X=X+2:POKE X,A AND255:POKE X+1,A/256:RETURN
 #cbm POP_A:
 #cbm   A=PEEK(X)+PEEK(X+1)*256:X=X-2:RETURN
-#cbm 
+#cbm
 #cbm PUSH_R:
 #cbm   X=X+2:POKE X,R AND255:POKE X+1,R/256:RETURN
 #cbm POP_R:
 #cbm   R=PEEK(X)+PEEK(X+1)*256:X=X-2:RETURN
-#cbm 
+#cbm
 #cbm PUSH_Q:
 #cbm   X=X+2:POKE X,Q AND255:POKE X+1,Q/256:RETURN
 #cbm POP_Q:
@@ -125,7 +125,7 @@ ALLOC:
     GOTO ALLOC_DONE
   ALLOC_UNUSED:
     REM PRINT "ALLOC_UNUSED ZI: "+STR$(ZI)+", U: "+STR$(U)+", R: "+STR$(R)
-    IF R+SZ>Z1 THEN PRINT "Out of mal memory!":END
+    IF R+SZ>Z1 THEN GOSUB PR_MEMORY_SUMMARY_SMALL:PRINT "Out of mal memory!":END
     ZI=ZI+SZ
     IF U=R THEN ZK=ZI
     REM set previous free to new memory top
@@ -184,14 +184,16 @@ RELEASE:
   REM PRINT "RELEASE AY:"+STR$(AY)+" ["+R$+"] (byte0:"+STR$(Z%(AY))+", SZ:"+STR$(SZ)+")"
 
   REM sanity check not already freed
-  IF (U)=15 THEN PRINT "RELEASE of free:"+STR$(AY):END
-  IF Z%(AY)<15 THEN PRINT "RELEASE of unowned:"+STR$(AY):END
+  REM MEMORY DEBUGGING:
+  REM IF U=15 THEN PRINT "RELEASE of free:"+STR$(AY):END
+  REM IF Z%(AY)<15 THEN PRINT "RELEASE of unowned:"+STR$(AY):END
 
   REM decrease reference count by one
   Z%(AY)=Z%(AY)-32
 
   REM nil, false, true, empty sequences
-  IF AY<16 AND Z%(AY)<32 THEN PRINT "RELEASE of empty:"+STR$(AY):END
+  REM MEMORY DEBUGGING:
+  REM IF AY<16 AND Z%(AY)<32 THEN PRINT "RELEASE of empty:"+STR$(AY):END
   IF AY<16 THEN GOTO RELEASE_TOP
 
   REM our reference count is not 0, so don't release
@@ -208,7 +210,8 @@ RELEASE:
     RETURN
   RELEASE_STRING:
     REM string type, release interned string, then FREE reference
-    IF S%(V)=0 THEN ER=-1:E$="RELEASE of free string:"+STR$(S%(V)):RETURN
+    REM MEMORY DEBUGGING:
+    REM IF S%(V)=0 THEN PRINT "RELEASE of free string:"+STR$(S%(V)):END
     S%(V)=S%(V)-1
     IF S%(V)=0 THEN S$(V)="": REM free BASIC string
     REM free the atom itself
@@ -306,7 +309,7 @@ INIT_MEMORY:
   #cbm T=FRE(0)
   #qbasic T=0
 
-  Z1=8191+650: REM Z% (boxed memory) size (2 bytes each)
+  Z1=8191+1024: REM Z% (boxed memory) size (2 bytes each)
   Z2=199: REM S$/S% (string memory) size (3+2 bytes each)
   #qbasic Z3=200: REM X% (call stack) size (2 bytes each)
   #cbm Z3=49152: REM X starting point at $C000 (2 bytes each)

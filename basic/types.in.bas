@@ -221,7 +221,7 @@ SLICE:
   W=R: REM temporary for return as R
   REM advance A to position B
   SLICE_FIND_B:
-    IF I<B AND Z%(A+1)<>0 THEN A=Z%(A,1):I=I+1:GOTO SLICE_FIND_B
+    IF I<B AND Z%(A+1)<>0 THEN A=Z%(A+1):I=I+1:GOTO SLICE_FIND_B
   SLICE_LOOP:
     REM if current position is C, then return
     IF C<>-1 AND I>=C THEN R=W:RETURN

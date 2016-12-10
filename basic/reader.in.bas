@@ -8,8 +8,7 @@ READ_TOKEN:
   GOSUB READ_CHAR
   IF C$=";" THEN GOSUB SKIP_TO_EOL:GOTO READ_TOKEN
   T$=C$
-  IF T$="(" OR T$=")" OR T$="[" OR T$="]" OR T$="{" OR T$="}" THEN RETURN
-  IF T$="'" OR T$="`" OR T$="@" THEN RETURN
+  IF T$="(" OR T$=")" OR T$="[" OR T$="]" OR T$="{" OR T$="}" OR T$="'" OR T$="`" OR T$="@" THEN RETURN
   GOSUB PEEK_CHAR: REM peek at next character
   IF T$="~" AND C$<>"@" THEN RETURN
   S1=0:S2=0: REM S1: INSTRING?, S2: ESCAPED?
