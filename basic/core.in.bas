@@ -257,27 +257,26 @@ DO_FUNCTION:
     RETURN
   DO_READLINE:
     A$=S$(A1):GOSUB READLINE
-    IF EZ=1 THEN EZ=0:R=0:GOTO INC_REF_R
+    IF EZ>0 THEN EZ=0:R=0:GOTO INC_REF_R
     B$=R$:T=4:GOSUB STRING
     RETURN
   DO_SLURP:
     R$=""
-    #cbm OPEN 1,8,0,S$(A1)
+    EZ=0
+    #cbm OPEN 2,8,0,S$(A1)
     #qbasic A$=S$(A1)
     #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
-    #qbasic OPEN A$ FOR INPUT AS #1
+    #qbasic OPEN A$ FOR INPUT AS #2
     DO_SLURP_LOOP:
-      A$=""
-      #cbm GET#1,A$
-      #qbasic A$=INPUT$(1,1)
-      #qbasic IF EOF(1) THEN EZ=1:A$=A$+CHR$(10)+")":GOTO DO_SLURP_DONE
-      IF ASC(A$)=10 THEN R$=R$+CHR$(13)
-      IF (ASC(A$)<>10) AND (A$<>"") THEN R$=R$+A$
-      #cbm IF (ST AND 64) THEN GOTO DO_SLURP_DONE
-      #cbm IF (ST AND 255) THEN ER=-1:E$="File read error "+STR$(ST):RETURN
+      C$=""
+      RJ=1:GOSUB READ_FILE_CHAR
+      IF ASC(C$)=10 THEN R$=R$+CHR$(13)
+      IF (ASC(C$)<>10) AND (C$<>"") THEN R$=R$+C$
+      IF EZ>0 THEN GOTO DO_SLURP_DONE
       GOTO DO_SLURP_LOOP
     DO_SLURP_DONE:
-      CLOSE 1
+      CLOSE 2
+      IF ER>-2 THEN RETURN
       B$=R$:T=4:GOSUB STRING
       RETURN
 

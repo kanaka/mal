@@ -1,59 +1,82 @@
-REM READ_TOKEN(A$, RI, RF) -> T$
+REM READ_TOKEN(RF=0, A$, RI) -> T$
+REM READ_TOKEN(RF=1) -> T$
 READ_TOKEN:
+  IF RF=1 THEN RF=2:T$="(":RETURN
+  IF RF=2 THEN RF=3:T$="do":RETURN
   GOSUB SKIP_SPACES
-  RJ=RI
-  IF RF=1 THEN GOSUB READ_FILE_CHUNK
-  REM PRINT "READ_TOKEN: "+STR$(RJ)+", "+MID$(A$,RJ,1)
-  T$=MID$(A$,RJ,1)
-  IF T$=";" THEN GOSUB SKIP_TO_EOL:GOTO READ_TOKEN
+  REM PRINT "READ_TOKEN: "+STR$(RI)+", "+MID$(A$,RI,1)
+  GOSUB READ_CHAR
+  IF C$=";" THEN GOSUB SKIP_TO_EOL:GOTO READ_TOKEN
+  T$=C$
   IF T$="(" OR T$=")" OR T$="[" OR T$="]" OR T$="{" OR T$="}" THEN RETURN
   IF T$="'" OR T$="`" OR T$="@" THEN RETURN
-  IF T$="~" AND NOT MID$(A$,RJ+1,1)="@" THEN RETURN
+  GOSUB PEEK_CHAR: REM peek at next character
+  IF T$="~" AND C$<>"@" THEN RETURN
   S1=0:S2=0: REM S1: INSTRING?, S2: ESCAPED?
   IF T$=CHR$(34) THEN S1=1
-  RJ=RJ+1
   READ_TOKEN_LOOP:
-    IF RF=1 THEN GOSUB READ_FILE_CHUNK
-    IF RJ>LEN(A$) THEN RETURN
-    C$=MID$(A$,RJ,1)
-    IF S2 THEN GOTO READ_TOKEN_CONT
+    GOSUB PEEK_CHAR: REM peek at next character
+    IF C$="" THEN RETURN
     IF S1 THEN GOTO READ_TOKEN_CONT
-    IF C$=" " OR C$="," THEN RETURN
     IF C$=" " OR C$="," OR C$=CHR$(13) OR C$=CHR$(10) THEN RETURN
     IF C$="(" OR C$=")" OR C$="[" OR C$="]" OR C$="{" OR C$="}" THEN RETURN
     READ_TOKEN_CONT:
+    GOSUB READ_CHAR
     T$=T$+C$
     IF T$="~@" THEN RETURN
-    RJ=RJ+1
-    IF S1 AND S2 THEN S2=0:GOTO READ_TOKEN_LOOP
-    IF S1 AND S2=0 AND C$=CHR$(92) THEN S2=1:GOTO READ_TOKEN_LOOP
-    IF S1 AND S2=0 AND C$=CHR$(34) THEN RETURN
+    IF S1=0 OR S2=1 THEN S2=0:GOTO READ_TOKEN_LOOP
+    REM S1=1 (INSTRING?) and S2=0 (not ESCAPED?)
+    IF C$=CHR$(92) THEN S2=1
+    IF C$=CHR$(34) THEN RETURN
     GOTO READ_TOKEN_LOOP
 
-READ_FILE_CHUNK:
-  IF EZ=1 THEN RETURN
-  IF RI>1 THEN A$=MID$(A$,RI,LEN(A$)-RI+1):RI=1:RJ=RJ-RI+1
-  READ_FILE_CHUNK_LOOP:
-    IF LEN(A$)>RJ+9 THEN RETURN
-    #cbm GET#2,C$
-    #qbasic C$=INPUT$(1,2)
-    #qbasic IF EOF(2) THEN EZ=1:A$=A$+CHR$(10)+")":RETURN
-    A$=A$+C$
-    #cbm IF (ST AND 64) THEN EZ=1:A$=A$+CHR$(10)+")":RETURN
-    #cbm IF (ST AND 255) THEN EZ=1:ER=-1:E$="File read error "+STR$(ST):RETURN
-    GOTO READ_FILE_CHUNK_LOOP
+
+REM READ_CHAR(A$, RI) -> C$
+READ_CHAR:
+  RJ=1:GOSUB DO_READ_CHAR
+  RETURN
+
+REM PEEK_CHAR(A$, RI) -> C$
+PEEK_CHAR:
+  RJ=0:GOSUB DO_READ_CHAR
+  RETURN
+
+REM DO_READ_CHAR(RJ, A$, RI):
+REM   - RI is position in A$
+REM   - RJ=1 is read, RJ=0 is peek
+DO_READ_CHAR:
+  C$=""
+  IF RF>0 THEN GOTO READ_FILE_CHAR
+  IF RI<=LEN(A$) THEN C$=MID$(A$,RI,1):RI=RI+RJ
+  RETURN
+
+REM READ_FILE_CHAR(RJ) -> C$
+REM   - RJ=1 is read, RJ=0 is peek
+REM   - D$ is global used for already read pending character
+REM   - EZ is global used for end of file state
+READ_FILE_CHAR:
+  IF D$<>"" THEN C$=D$:IF RJ=0 THEN RETURN
+  IF D$<>"" AND RJ=1 THEN D$="":RETURN
+  D$=""
+  IF EZ>2 THEN C$=""
+  IF EZ=2 THEN C$=")"
+  IF EZ=1 THEN C$=CHR$(10)
+  IF EZ>0 THEN EZ=EZ+RJ:RETURN
+  #cbm GET#2,C$
+  #qbasic C$=INPUT$(1,2)
+  #qbasic IF EOF(2) THEN EZ=1:RETURN
+  IF RJ=0 THEN D$=C$
+  #cbm IF (ST AND 64) THEN EZ=1:RETURN
+  #cbm IF (ST AND 255) THEN EZ=1:ER=-1:E$="File read error"+STR$(ST)
+  RETURN
 
 SKIP_SPACES:
-  IF RF=1 THEN GOSUB READ_FILE_CHUNK
-  C$=MID$(A$,RI,1)
-  IF C$<>" " AND C$<>"," AND C$<>CHR$(13) AND C$<>CHR$(10) THEN RETURN
-  RI=RI+1
-  GOTO SKIP_SPACES
+  GOSUB PEEK_CHAR: REM peek at next character
+  IF C$=" " OR C$="," OR C$=CHR$(13) OR C$=CHR$(10) THEN GOSUB READ_CHAR:GOTO SKIP_SPACES
+  RETURN
 
 SKIP_TO_EOL:
-  IF RF=1 THEN GOSUB READ_FILE_CHUNK
-  C$=MID$(A$,RI+1,1)
-  RI=RI+1
+  GOSUB READ_CHAR
   IF C$="" OR C$=CHR$(13) OR C$=CHR$(10) THEN RETURN
   GOTO SKIP_TO_EOL
 
@@ -83,9 +106,9 @@ SUB READ_FORM
   IF C$=CHR$(34) THEN GOTO READ_STRING
   IF C$=":" THEN GOTO READ_KEYWORD
   REM set end character in Q and read the sequence
-  IF C$="(" THEN T=6:Q=ASC(")"):GOTO READ_SEQ_START
-  IF C$="[" THEN T=7:Q=ASC("]"):GOTO READ_SEQ_START
-  IF C$="{" THEN T=8:Q=ASC("}"):GOTO READ_SEQ_START
+  IF C$="(" THEN T=6:Q=41:GOTO READ_SEQ_START: REM ")"
+  IF C$="[" THEN T=7:Q=93:GOTO READ_SEQ_START: REM "]"
+  IF C$="{" THEN T=8:Q=125:GOTO READ_SEQ_START: REM "}"
   IF C$=")" OR C$="]" OR C$="}" THEN R=-1:ER=-1:E$="unexpected "+C$:GOTO READ_FORM_RETURN
   GOTO READ_SYMBOL
 
@@ -99,7 +122,6 @@ SUB READ_FORM
     T=2:L=VAL(T$):GOSUB ALLOC
     GOTO READ_FORM_RETURN
   READ_MACRO:
-    RI=RI+LEN(T$)
     REM push macro type
     Q=-1*(T$="^"):GOSUB PUSH_Q
 
@@ -166,19 +188,22 @@ SUB READ_FORM
     GOTO READ_FORM_RETURN
 
   READ_SEQ_START:
-    RI=RI+LEN(T$)
     SD=SD+1
 
     GOSUB PUSH_Q: REM push return character
 
-    REM setup the stack for the loop
+    REM setup the stack for the loop, T has type
     GOSUB MAP_LOOP_START
 
   READ_SEQ_LOOP:
-    GOSUB READ_TOKEN: REM peek at token
-    IF T$="" THEN ER=-1:E$="unexpected EOF"
+
+    REM TODO: reduce redundancy with READ_TOKEN
+    GOSUB SKIP_SPACES
+    GOSUB PEEK_CHAR: REM peek at next character
+    IF C$="" THEN ER=-1:E$="unexpected EOF":GOTO READ_SEQ_DONE
+    IF C$=";" THEN GOSUB SKIP_TO_EOL:GOTO READ_SEQ_LOOP
     Q=3:GOSUB PEEK_Q_Q
-    IF ER<>-2 OR T$=CHR$(Q) THEN GOTO READ_SEQ_DONE
+    IF C$=CHR$(Q) THEN GOSUB READ_CHAR:GOTO READ_SEQ_DONE
 
     CALL READ_FORM
     M=R: REM value (or key for hash-maps)
@@ -205,7 +230,6 @@ SUB READ_FORM
     GOTO READ_FORM_RETURN
 
   READ_FORM_RETURN:
-    RI=RI+LEN(T$)
     GOSUB POP_Q:T=Q: REM restore current value of T
 
 END SUB
@@ -221,16 +245,14 @@ READ_STR:
 
 REM READ_FILE(A$) -> R
 READ_FILE:
-  RI=1: REM index into A$
-  RJ=1: REM READ_TOKEN sub-index
   RF=1: REM reading from file
   EZ=0: REM file read state (1: EOF)
   SD=0: REM sequence read depth
+  D$="": REM pending read/peek character
   #cbm OPEN 2,8,0,A$
   #qbasic IF NOT _FILEEXISTS(A$) THEN ER=-1:E$="File not found":RETURN
   #qbasic OPEN A$ FOR INPUT AS #2
-  REM READ_FILE_CHUNK adds terminating ")"
-  A$="(do "
+  REM READ_TOKEN adds "(do ... )"
   CALL READ_FORM
   CLOSE 2
   EZ=0

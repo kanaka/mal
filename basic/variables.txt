@@ -54,8 +54,8 @@ Q   : PUSH*, POP*, PEEK* return value (and PEEK_Q_Q call arg)
 AR  : APPLY, DO_*_FUNCTION arg list
 AY  : RELEASE/FREE arg
 AZ  : PR_STR arg
-P1  : PR_MEMORY, PR_OBJECT, CHECK_FREE_LIST start
-P2  : PR_MEMORY, PR_OBJECT, CHECK_FREE_LIST end
+P1  : PR_MEMORY*, PR_OBJECT, CHECK_FREE_LIST start
+P2  : PR_MEMORY*, PR_OBJECT, CHECK_FREE_LIST end
 P3  : PR_OBJECT, PR_MEMORY_VALUE
 R1  : REP, RE - MAL_READ result temp
 R2  : REP, RE - EVAL result temp
@@ -81,12 +81,14 @@ RD  : PR_OBJECT recursion depth
 SD  : READ_STR sequence read recursion depth
 
 C$  : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
+D$  : READ_TOKEN/READ_FILE_CHAR temp
 G   : function value ON GOTO switch flag, EVAL_AST changed flag
 I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT, PR_MEMORY_VALUE
 J   : REPLACE, PR_MEMORY_VALUE
 U   : ALLOC, RELEASE, PR_STR temp
 V   : RELEASE, PR_STR_SEQ temp
 W   : SLICE, LAST, QUASIQUOTE, DO_HASH_MAP, DO_KEYS_VALS, step2-3 EVAL temp
+P   : PR_MEMORY_SUMMARY_SMALL
 RC  : RELEASE remaining number of elements to release
 RF  : reader reading from file flag
 S1  : READ_TOKEN in a string?

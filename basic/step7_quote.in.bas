@@ -469,6 +469,8 @@ MAIN:
   A$="(def! -*ARGS*- (load-file "+CHR$(34)+".args.mal"+CHR$(34)+"))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
+  IF ER>-2 THEN GOSUB PRINT_ERROR:END
+
   REM set the argument list
   A$="(def! *ARGV* (rest -*ARGS*-))"
   GOSUB RE:AY=R:GOSUB RELEASE
@@ -477,12 +479,14 @@ MAIN:
   A$="(first -*ARGS*-)"
   GOSUB RE
 
-  REM if there is an argument, then run it as a program
-  IF R<>0 THEN AY=R:GOSUB RELEASE:GOTO RUN_PROG
   REM no arguments, start REPL loop
-  IF R=0 THEN GOTO REPL_LOOP
+  IF R<16 THEN GOTO REPL_LOOP
+
+  REM if there is an argument, then run it as a program
 
   RUN_PROG:
+    REM free up first arg because we get it again
+    AY=R:GOSUB RELEASE
     REM run a single mal program and exit
     A$="(load-file (first -*ARGS*-))"
     GOSUB RE
