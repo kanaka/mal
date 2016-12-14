@@ -612,7 +612,7 @@ MAIN:
     REM print the REPL startup header
     REM save memory by printing this directly
     #cbm PRINT "Mal [C64 BASIC]"
-    #qbasic PRINT "Mal [C64 QBasic]"
+    #qbasic PRINT "Mal [QBasic]"
 
   REPL_LOOP:
     A$="user> ":GOSUB READLINE: REM call input parser
