@@ -103,9 +103,15 @@ module REPL
         try
             Some(eval env ast)
         with
-        | Error.EvalError(msg) 
-        | Error.ReaderError(msg) ->
-            printfn "%s" msg
+        | Error.EvalError(str)
+        | Error.ReaderError(str) ->
+            printfn "%s" str
+            None
+        | Error.MalError(node) ->
+            printfn "%s" (Printer.pr_str [node])
+            None
+        | ex ->
+            printfn "%s" (ex.Message)
             None
 
     let PRINT v =
