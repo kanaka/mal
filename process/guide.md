@@ -109,7 +109,9 @@ quux_STEP_TO_PROG = mylang/$($(1)).qx
 
 * Add a "run" script to you implementation directory that listens to
   the "STEP" environment variable for the implementation step to run
-  and defaults to "stepA_mal".  The following are examples of "run"
+  and defaults to "stepA_mal". Make sure the run script has the
+  executable file permission set (or else the test runner might fail with a
+  permission denied error message). The following are examples of "run"
   scripts for a compiled language and an interpreted language (where
   the interpreter is named "quux"):
 
