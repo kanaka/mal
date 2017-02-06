@@ -28,29 +28,17 @@ type EnvType interface {
 
 // Scalars
 func Nil_Q(obj MalType) bool {
-	if obj == nil {
-		return true
-	} else {
-		return false
-	}
+	return obj == nil
 }
 
 func True_Q(obj MalType) bool {
-	switch tobj := obj.(type) {
-	case bool:
-		return tobj == true
-	default:
-		return false
-	}
+	b, ok := obj.(bool)
+	return ok && b == true
 }
 
 func False_Q(obj MalType) bool {
-	switch tobj := obj.(type) {
-	case bool:
-		return tobj == false
-	default:
-		return false
-	}
+	b, ok := obj.(bool)
+	return ok && b == false
 }
 
 // Symbols
@@ -59,10 +47,8 @@ type Symbol struct {
 }
 
 func Symbol_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "Symbol"
+	_, ok := obj.(Symbol)
+	return ok
 }
 
 // Keywords
@@ -71,23 +57,14 @@ func NewKeyword(s string) (MalType, error) {
 }
 
 func Keyword_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	switch s := obj.(type) {
-	case string:
-		return strings.HasPrefix(s, "\u029e")
-	default:
-		return false
-	}
+	s, ok := obj.(string)
+	return ok && strings.HasPrefix(s, "\u029e")
 }
 
 // Strings
 func String_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "string"
+	_, ok := obj.(string)
+	return ok
 }
 
 // Functions
@@ -97,10 +74,8 @@ type Func struct {
 }
 
 func Func_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "Func"
+	_, ok := obj.(Func)
+	return ok
 }
 
 type MalFunc struct {
@@ -114,10 +89,8 @@ type MalFunc struct {
 }
 
 func MalFunc_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "MalFunc"
+	_, ok := obj.(MalFunc)
+	return ok
 }
 
 func (f MalFunc) SetMacro() MalType {
@@ -159,10 +132,8 @@ func NewList(a ...MalType) MalType {
 }
 
 func List_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "List"
+	_, ok := obj.(List)
+	return ok
 }
 
 // Vectors
@@ -172,10 +143,8 @@ type Vector struct {
 }
 
 func Vector_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "Vector"
+	_, ok := obj.(Vector)
+	return ok
 }
 
 func GetSlice(seq MalType) ([]MalType, error) {
@@ -215,10 +184,8 @@ func NewHashMap(seq MalType) (MalType, error) {
 }
 
 func HashMap_Q(obj MalType) bool {
-	if obj == nil {
-		return false
-	}
-	return reflect.TypeOf(obj).Name() == "HashMap"
+	_, ok := obj.(HashMap)
+	return ok
 }
 
 // Atoms
@@ -233,12 +200,8 @@ func (a *Atom) Set(val MalType) MalType {
 }
 
 func Atom_Q(obj MalType) bool {
-	switch obj.(type) {
-	case *Atom:
-		return true
-	default:
-		return false
-	}
+	_, ok := obj.(*Atom)
+	return ok
 }
 
 // General functions
