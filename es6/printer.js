@@ -1,15 +1,13 @@
-import { _symbol, _symbol_Q, _list_Q, _vector_Q, _hash_map_Q, Atom } from './types'
+import { _symbol, _list_Q, Vector, Atom } from './types'
 
 export function pr_str(obj, print_readably) {
     if (typeof print_readably === 'undefined') { print_readably = true }
     var _r = print_readably
     if (_list_Q(obj)) {
-        var ret = obj.map(function(e) { return pr_str(e,_r) })
-        return "(" + ret.join(' ') + ")"
-    } else if (_vector_Q(obj)) {
-        var ret = obj.map(function(e) { return pr_str(e,_r) })
-        return "[" + ret.join(' ') + "]"
-    } else if (_hash_map_Q(obj)) {
+        return "(" + obj.map(e => pr_str(e,_r)).join(' ') + ")"
+    } else if (obj instanceof Vector) {
+        return "[" + obj.map(e => pr_str(e,_r)).join(' ') + "]"
+    } else if (obj instanceof Map) {
         var ret = []
         for (let [k,v] of obj) {
             ret.push(pr_str(k,_r), pr_str(v,_r))
@@ -20,12 +18,12 @@ export function pr_str(obj, print_readably) {
             return ':' + obj.slice(1)
         } else if (_r) {
             return '"' + obj.replace(/\\/g, "\\\\")
-                .replace(/"/g, '\\"')
-                .replace(/\n/g, "\\n") + '"' // string
+                            .replace(/"/g, '\\"')
+                            .replace(/\n/g, "\\n") + '"'
         } else {
             return obj
         }
-    } else if (_symbol_Q(obj)) {
+    } else if (typeof obj === 'symbol') {
         return Symbol.keyFor(obj)
     } else if (obj === null) {
         return "nil"
