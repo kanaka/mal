@@ -36,11 +36,8 @@ $(OBJS): %.o: %.vhdl $(OTHER_OBJS)
 $(patsubst %.o,%,$(filter step%,$(OBJS))): $(OTHER_OBJS)
 $(BINS): %: %.o
 	ghdl -e -g $@
-
-# The ghdl linker creates a lowercase executable file; rename it to stepA_mal
-stepA_mal: stepA_mal.o
-	ghdl -e -g $@
-	mv stepa_mal stepA_mal
+	# ghdl linker creates a lowercase executable; rename it to stepA_mal
+	if [ "$@" = "stepA_mal" ]; then mv stepa_mal $@; fi
 
 clean:
 	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) work-obj93.cf mal

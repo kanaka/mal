@@ -84,6 +84,8 @@ IMPLS = ada awk bash basic c d chuck clojure coffee common-lisp cpp crystal cs d
 	python r racket rpython ruby rust scala skew swift swift3 tcl vb vhdl \
 	vimscript
 
+EXTENSION = .mal
+
 step0 = step0_repl
 step1 = step1_read_print
 step2 = step2_eval
@@ -95,6 +97,9 @@ step7 = step7_quote
 step8 = step8_macros
 step9 = step9_try
 stepA = stepA_mal
+
+argv_STEP = step6_file
+
 
 regress_step0 = step0
 regress_step1 = step1
@@ -144,7 +149,7 @@ opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE
 # being tested.
 STEP_TEST_FILES = $(strip $(wildcard \
 		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
-		      $(1)/tests/$($(s)).mal tests/$($(s)).mal)))
+		      $(1)/tests/$($(s))$(EXTENSION) tests/$($(s))$(EXTENSION))))
 
 # Map of step (e.g. "step8") to executable file for that step
 ada_STEP_TO_PROG =     ada/$($(1))
@@ -319,7 +324,7 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	      echo 'Testing $@; step file: $+, test file: $(test)' && \
 	      echo 'Running: $(call get_runtest_cmd,$(impl),$(step)) ../$(test) -- ../$(impl)/run' && \
 	      $(call get_runtest_cmd,$(impl),$(step)) ../$(test) -- ../$(impl)/run && \
-	      $(if $(filter tests/step6_file.mal,$(test)),\
+	      $(if $(filter tests/$(argv_STEP)$(EXTENSION),$(test)),\
 	        echo '----------------------------------------------' && \
 	        echo 'Testing ARGV of $@; step file: $+' && \
 	        echo 'Running: $(call get_argvtest_cmd,$(impl),$(step)) ../$(impl)/run ' && \
