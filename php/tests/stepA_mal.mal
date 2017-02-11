@@ -29,6 +29,11 @@
 (! date "Y-m-d" 0)
 ;=>"1970-01-01"
 
+;; testing native function with mal callback
+
+(! array_map (fn* [t] (if (> t 3) t)) [1 2 3 4 5 6])
+;=>(nil nil nil 4 5 6)
+
 ;; testing superglobal variable access
 
 (get ($ "_SERVER") "PHP_SELF")

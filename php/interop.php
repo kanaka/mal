@@ -19,8 +19,6 @@ function _to_php($obj) {
         return ${$obj->value};
     } elseif (_atom_Q($obj)) {
         return $obj->value;
-    } elseif (_function_Q($obj)) {
-        return $obj->func;
     } else {
         return $obj;
     }
