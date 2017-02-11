@@ -1,11 +1,11 @@
 ["do",
 
-["load-file", ["`", "miniMAL-core.json"]],
-["load-file", ["`", "types.json"]],
-["load-file", ["`", "reader.json"]],
-["load-file", ["`", "printer.json"]],
-["load-file", ["`", "env.json"]],
-["load-file", ["`", "core.json"]],
+["load", ["`", "miniMAL-core.json"]],
+["load", ["`", "types.json"]],
+["load", ["`", "reader.json"]],
+["load", ["`", "printer.json"]],
+["load", ["`", "env.json"]],
+["load", ["`", "core.json"]],
 
 ["def", "READ", ["fn", ["strng"], ["read-str", "strng"]]],
 
@@ -154,7 +154,7 @@
 ["env-set", "repl-env", ["symbol", ["`", "eval"]],
                         ["fn", ["ast"], ["EVAL", "ast", "repl-env"]]],
 ["env-set", "repl-env", ["symbol", ["`", "*ARGV*"]],
-                        ["slice", "*ARGV*", 1]],
+                        ["slice", "ARGS", 1]],
 
 ["`", "core.mal: defined using mal itself"],
 ["rep", ["`", "(def! *host-language* \"miniMAL\")"]],
@@ -165,8 +165,8 @@
 ["rep", ["`", "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"]],
 ["rep", ["`", "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"]],
 
-["if", ["not", ["empty?", "*ARGV*"]],
-  ["println", ["rep", ["str", ["`", "(load-file \""], ["get", "*ARGV*", 0], ["`", "\")"]]]],
+["if", ["not", ["empty?", "ARGS"]],
+  ["println", ["rep", ["str", ["`", "(load-file \""], ["get", "ARGS", 0], ["`", "\")"]]]],
   ["do",
     ["rep", ["`", "(println (str \"Mal [\" *host-language* \"]\"))"]],
     ["repl", ["`", "user> "], "rep"]]],

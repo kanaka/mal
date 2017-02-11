@@ -27,7 +27,7 @@
       "hm"]]]],
 
 ["def", "_get", ["fn", ["obj", "key"],
-  ["if", ["nil?", "obj"],
+  ["if", ["null?", "obj"],
     null,
     ["if", ["contains?", "obj", "key"],
       ["get", "obj", "key"],
@@ -77,7 +77,7 @@
     ["if", [">", ["count", "obj"], 0],
       [".", "obj", ["`", "split"], ["`", ""]],
       null],
-  ["if", ["nil?", "obj"],
+  ["if", ["null?", "obj"],
     null,
     ["throw", "seq: called on non-sequence"]
   ]]]]]],
@@ -98,7 +98,7 @@
     null]]],
 
 ["def", "reset!", ["fn", ["atm", "val"],
-  ["set", "atm", ["`", "val"], "val"]]],
+  ["do", ["set", "atm", ["`", "val"], "val"], "val"]]],
 
 ["def", "swap!", ["fn", ["atm", "f", "&", "args"],
   ["let", ["fn", ["if", ["malfunc?", "f"], ["get", "f", ["`", "fn"]], "f"],
@@ -113,7 +113,7 @@
    ["`", "="], "equal?",
    ["`", "throw"], "throw",
 
-   ["`", "nil?"], "nil?",
+   ["`", "nil?"], "null?",
    ["`", "true?"], "true?",
    ["`", "false?"], "false?",
    ["`", "string?"], "_string?",

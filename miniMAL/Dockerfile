@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -24,8 +24,8 @@ WORKDIR /mal
 # For building node modules
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 0.12 stable
-RUN curl -sL https://deb.nodesource.com/setup_0.12 | bash -
+# Add nodesource apt repo config for 7.X
+RUN curl -sL https://deb.nodesource.com/setup_7.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
@@ -35,4 +35,5 @@ RUN ln -sf nodejs /usr/bin/node
 
 ENV NPM_CONFIG_CACHE /mal/.npm
 
+# install miniMAL
 RUN npm install -g minimal-lisp

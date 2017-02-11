@@ -1,11 +1,11 @@
 ["do",
 
-["load-file", ["`", "miniMAL-core.json"]],
-["load-file", ["`", "types.json"]],
-["load-file", ["`", "reader.json"]],
-["load-file", ["`", "printer.json"]],
-["load-file", ["`", "env.json"]],
-["load-file", ["`", "core.json"]],
+["load", ["`", "miniMAL-core.json"]],
+["load", ["`", "types.json"]],
+["load", ["`", "reader.json"]],
+["load", ["`", "printer.json"]],
+["load", ["`", "env.json"]],
+["load", ["`", "core.json"]],
 
 ["def", "READ", ["fn", ["strng"], ["read-str", "strng"]]],
 
@@ -94,14 +94,14 @@
 ["env-set", "repl-env", ["symbol", ["`", "eval"]],
                         ["fn", ["ast"], ["EVAL", "ast", "repl-env"]]],
 ["env-set", "repl-env", ["symbol", ["`", "*ARGV*"]],
-                        ["slice", "*ARGV*", 1]],
+                        ["slice", "ARGS", 1]],
 
 ["`", "core.mal: defined using mal itself"],
 ["rep", ["`", "(def! not (fn* (a) (if a false true)))"]],
 ["rep", ["`", "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]],
 
-["if", ["not", ["empty?", "*ARGV*"]],
-  ["rep", ["str", ["`", "(load-file \""], ["get", "*ARGV*", 0], ["`", "\")"]]],
+["if", ["not", ["empty?", "ARGS"]],
+  ["rep", ["str", ["`", "(load-file \""], ["get", "ARGS", 0], ["`", "\")"]]],
   ["repl", ["`", "user> "], "rep"]],
 
 null
