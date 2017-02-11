@@ -1,19 +1,35 @@
-(ns step6-file
-    (:require [clojure.repl]
-              [readline]
-              [reader]
-              [printer]
-              [env]
-              [core])
-    (:gen-class))
+(ns mal.step7-quote
+  (:require [mal.readline :as readline]
+            #?(:clj [clojure.repl])
+            [mal.reader :as reader]
+            [mal.printer :as printer]
+            [mal.env :as env]
+            [mal.core :as core])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    (reader/read-string strng)))
+  (reader/read-string strng))
 
 ;; eval
 (declare EVAL)
+(defn is-pair [x]
+  (and (sequential? x) (> (count x) 0)))
+
+(defn quasiquote [ast]
+  (cond
+    (not (is-pair ast))
+    (list 'quote ast)
+
+    (= 'unquote (first ast))
+    (second ast)
+
+    (and (is-pair (first ast)) (= 'splice-unquote (ffirst ast)))
+    (list 'concat (-> ast first second) (quasiquote (rest ast)))
+
+    :else
+    (list 'cons (quasiquote (first ast)) (quasiquote (rest ast)))))
+
 (defn eval-ast [ast env]
   (cond
     (symbol? ast) (env/env-get env ast)
@@ -49,6 +65,12 @@
                 (doseq [[b e] (partition 2 a1)]
                   (env/env-set let-env b (EVAL e let-env)))
                 (recur a2 let-env))
+
+              'quote
+              a1
+
+              'quasiquote
+              (recur (quasiquote a1) env)
 
               'do
               (do (eval-ast (->> ast (drop-last) (drop 1)) env)
@@ -104,8 +126,8 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
-          (catch Throwable e
-            (clojure.repl/pst e))))
+          #?(:clj  (catch Throwable e (clojure.repl/pst e))
+             :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))
 
 (defn -main [& args]

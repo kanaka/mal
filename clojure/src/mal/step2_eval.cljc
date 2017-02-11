@@ -1,21 +1,21 @@
-(ns step2-eval
-    (:require [clojure.repl]
-              [readline]
-              [reader]
-              [printer])
-    (:gen-class))
+(ns mal.step2-eval
+  (:require [mal.readline :as readline]
+            #?(:clj [clojure.repl])
+            [mal.reader :as reader]
+            [mal.printer :as printer])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    (reader/read-string strng)))
+  (reader/read-string strng))
 
 ;; eval
 (declare EVAL)
 (defn eval-ast [ast env]
   (cond
     (symbol? ast) (or (get env ast)
-                      (throw (Error. (str ast " not found"))))
+                      (throw (#?(:clj Error.
+                                 :cljs js/Error.) (str ast " not found"))))
 
     (seq? ast)    (doall (map #(EVAL % env) ast))
 
@@ -60,8 +60,8 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
-          (catch Throwable e
-            (clojure.repl/pst e))))
+          #?(:clj  (catch Throwable e (clojure.repl/pst e))
+             :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))
 
 (defn -main [& args]

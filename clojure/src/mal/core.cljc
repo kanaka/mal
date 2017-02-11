@@ -1,10 +1,22 @@
-(ns core
-  (:require [readline]
-            [printer]))
+(ns mal.core
+  (:require [mal.readline :as readline]
+            [mal.reader :as reader]
+            [mal.printer :as printer]))
 
 ;; Errors/exceptions
 (defn mal_throw [obj]
   (throw (ex-info "mal exception" {:data obj})))
+
+;; String functions
+#?(:cljs (defn slurp [f] (.readFileSync (js/require "fs") f "utf-8")))
+
+;; Numeric functions
+#?(:clj  (defn time-ms [] (System/currentTimeMillis))
+   :cljs (defn time-ms [] (.getTime (js/Date.))))
+
+;; Atom functions
+#?(:clj  (defn atom? [atm] (= (type atm) clojure.lang.Atom))
+   :cljs (defn atom? [atm] (satisfies? IAtom atm)))
 
 ;; Metadata functions
 ;; - store metadata at :meta key of the real metadata
@@ -43,7 +55,7 @@
    ['- -]
    ['* *]
    ['/ /]
-   ['time-ms (fn time-ms [] (System/currentTimeMillis))]
+   ['time-ms time-ms]
   
    ['list list]
    ['list? seq?]
@@ -75,7 +87,7 @@
    ['with-meta mal_with_meta]
    ['meta mal_meta]
    ['atom atom]
-   ['atom? (fn atom? [atm] (= (type atm) clojure.lang.Atom))]
+   ['atom? atom?]
    ['deref deref]
    ['reset! reset!]
    ['swap! swap!]])

@@ -1,4 +1,4 @@
-(ns readline
+(ns mal.readline
     (:require [clojure.string :refer [split]]
               [clojure.java.io :refer [file]]
               [net.n01se.clojure-jna :as jna]))

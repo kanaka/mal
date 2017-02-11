@@ -1,16 +1,15 @@
-(ns step5-tco
-    (:require [clojure.repl]
-              [readline]
-              [reader]
-              [printer]
-              [env]
-              [core])
-    (:gen-class))
+(ns mal.step4-if-fn-do
+  (:require [mal.readline :as readline]
+            #?(:clj [clojure.repl])
+            [mal.reader :as reader]
+            [mal.printer :as printer]
+            [mal.env :as env]
+            [mal.core :as core])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    (reader/read-string strng)))
+  (reader/read-string strng))
 
 ;; eval
 (declare EVAL)
@@ -28,8 +27,7 @@
     :else         ast))
 
 (defn EVAL [ast env]
-  (loop [ast ast
-         env env]
+    ;; indented to match later steps
     ;;(prn "EVAL" ast (keys @env)) (flush)
     (if (not (seq? ast))
       (eval-ast ast env)
@@ -48,36 +46,28 @@
               (let [let-env (env/env env)]
                 (doseq [[b e] (partition 2 a1)]
                   (env/env-set let-env b (EVAL e let-env)))
-                (recur a2 let-env))
+                (EVAL a2 let-env))
 
               'do
-              (do (eval-ast (->> ast (drop-last) (drop 1)) env)
-                  (recur (last ast) env))
+              (last (eval-ast (rest ast) env))
 
               'if
               (let [cond (EVAL a1 env)]
                 (if (or (= cond nil) (= cond false))
                   (if (> (count ast) 2)
-                    (recur a3 env)
+                    (EVAL a3 env)
                     nil)
-                  (recur a2 env)))
+                  (EVAL a2 env)))
 
               'fn*
-              (with-meta
-                (fn [& args]
-                  (EVAL a2 (env/env env a1 (or args '()))))
-                {:expression a2
-                 :environment env
-                 :parameters a1})
+              (fn [& args]
+                (EVAL a2 (env/env env a1 (or args '()))))
 
               ;; apply
               (let [el (eval-ast ast env)
                     f (first el)
-                    args (rest el)
-                    {:keys [expression environment parameters]} (meta f)]
-                (if expression
-                  (recur expression (env/env environment parameters args))
-                  (apply f args))))))))
+                    args (rest el)]
+                (apply f args))))))
 
 ;; print
 (defn PRINT [exp] (pr-str exp))
@@ -101,8 +91,8 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
-          (catch Throwable e
-            (clojure.repl/pst e))))
+          #?(:clj  (catch Throwable e (clojure.repl/pst e))
+             :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))
 
 (defn -main [& args]

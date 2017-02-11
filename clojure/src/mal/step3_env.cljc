@@ -1,15 +1,14 @@
-(ns step3-env
-    (:require [clojure.repl]
-              [readline]
-              [reader]
-              [printer]
-              [env])
-    (:gen-class))
+(ns mal.step3-env
+  (:require [mal.readline :as readline]
+            #?(:clj [clojure.repl])
+            [mal.reader :as reader]
+            [mal.printer :as printer]
+            [mal.env :as env])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    (reader/read-string strng)))
+  (reader/read-string strng))
 
 ;; eval
 (declare EVAL)
@@ -75,8 +74,8 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
-          (catch Throwable e
-            (clojure.repl/pst e))))
+          #?(:clj  (catch Throwable e (clojure.repl/pst e))
+             :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))
 
 (defn -main [& args]

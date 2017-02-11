@@ -1,17 +1,16 @@
-(ns step9-try
-    (:refer-clojure :exclude [macroexpand])
-    (:require [clojure.repl]
-              [readline]
-              [reader]
-              [printer]
-              [env]
-              [core])
-    (:gen-class))
+(ns mal.step8-macros
+  (:refer-clojure :exclude [macroexpand])
+  (:require [mal.readline :as readline]
+            #?(:clj [clojure.repl])
+            [mal.reader :as reader]
+            [mal.printer :as printer]
+            [mal.env :as env]
+            [mal.core :as core])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    (reader/read-string strng)))
+  (reader/read-string strng))
 
 ;; eval
 (declare EVAL)
@@ -98,20 +97,6 @@
               'macroexpand
               (macroexpand a1 env)
 
-              'try*
-              (if (= 'catch* (nth a2 0))
-                (try
-                  (EVAL a1 env)
-                  (catch clojure.lang.ExceptionInfo ei
-                    (EVAL (nth a2 2) (env/env env
-                                              [(nth a2 1)]
-                                              [(:data (ex-data ei))])))
-                  (catch Throwable t
-                    (EVAL (nth a2 2) (env/env env
-                                              [(nth a2 1)]
-                                              [(.getMessage t)]))))
-                (EVAL a1 env))
-
               'do
               (do (eval-ast (->> ast (drop-last) (drop 1)) env)
                   (recur (last ast) env))
@@ -168,8 +153,8 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
-          (catch Throwable e
-            (clojure.repl/pst e))))
+          #?(:clj  (catch Throwable e (clojure.repl/pst e))
+             :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))
 
 (defn -main [& args]

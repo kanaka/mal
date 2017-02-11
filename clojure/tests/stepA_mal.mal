@@ -1,17 +1,22 @@
-;; Testing basic clojure interop
+;; Testing basic clojure/clojurescript interop
 
-(clj* "7")
+(def! clj (= *host-language* "clojure"))
+(def! cljs (= *host-language* "clojurescript"))
+
+(if clj (clj* "7") (js* "7"))
 ;=>7
 
-(clj* "\"abc\"")
+(if clj (clj* "\"abc\"") (js* "\"abc\""))
 ;=>"abc"
 
-(clj* "{\"abc\" 123}")
+(if clj (clj* "{\"abc\" 123}") {"abc" 123})
 ;=>{"abc" 123}
 
-(clj* "(prn \"foo\")")
+(if clj (clj* "(prn \"foo\")") (js* "console.log('\"foo\"')"))
 ; "foo"
 ;=>nil
 
-(clj* "(for [x [1 2 3]] (+ 1 x))")
+(if clj (clj* "(for [x [1 2 3]] (+ 1 x))") '(2 3 4))
 ;=>(2 3 4)
+(if cljs (js* "[1,2,3].map(function(x) {return 1+x})") [2 3 4])
+;=>[2 3 4]

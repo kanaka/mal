@@ -1,17 +1,16 @@
-(ns stepA-mal
-    (:refer-clojure :exclude [macroexpand])
-    (:require [clojure.repl]
-              [readline]
-              [reader]
-              [printer]
-              [env]
-              [core])
-    (:gen-class))
+(ns mal.stepA-mal
+  (:refer-clojure :exclude [macroexpand])
+  (:require [mal.readline :as readline]
+            #?(:clj [clojure.repl])
+            [mal.reader :as reader]
+            [mal.printer :as printer]
+            [mal.env :as env]
+            [mal.core :as core])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
-  (let [line (if strng strng (read-line))]
-    (reader/read-string strng)))
+  (reader/read-string strng))
 
 ;; eval
 (declare EVAL)
@@ -99,20 +98,27 @@
               (macroexpand a1 env)
 
               'clj*
-              (eval (reader/read-string a1))
+              #?(:clj  (eval (reader/read-string a1))
+                 :cljs (throw (ex-info "clj* unsupported in ClojureScript mode" {})))
+
+              'js*
+              #?(:clj  (throw (ex-info "js* unsupported in Clojure mode" {}))
+                 :cljs (js->clj (js/eval a1)))
 
               'try*
               (if (= 'catch* (nth a2 0))
                 (try
                   (EVAL a1 env)
-                  (catch clojure.lang.ExceptionInfo ei
+                  (catch #?(:clj  clojure.lang.ExceptionInfo
+                            :cljs ExceptionInfo) ei
                     (EVAL (nth a2 2) (env/env env
                                               [(nth a2 1)]
                                               [(:data (ex-data ei))])))
-                  (catch Throwable t
+                  (catch #?(:clj Throwable :cljs :default) t
                     (EVAL (nth a2 2) (env/env env
                                               [(nth a2 1)]
-                                              [(.getMessage t)]))))
+                                              [#?(:clj (.getMessage t)
+                                                  :cljs (.-message t))]))))
                 (EVAL a1 env))
 
               'do
@@ -159,7 +165,8 @@
 (env/env-set repl-env '*ARGV* ())
 
 ;; core.mal: defined using the language itself
-(rep "(def! *host-language* \"clojure\")")
+#?(:clj  (rep "(def! *host-language* \"clojure\")")
+   :cljs (rep "(def! *host-language* \"clojurescript\")"))
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* [f] (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -174,8 +181,8 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
-          (catch Throwable e
-            (clojure.repl/pst e))))
+          #?(:clj  (catch Throwable e (clojure.repl/pst e))
+             :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))
 
 (defn -main [& args]

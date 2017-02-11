@@ -1,4 +1,4 @@
-(ns env)
+(ns mal.env)
 
 (defn env [& [outer binds exprs]]
   ;;(prn "env" binds exprs)
@@ -27,7 +27,8 @@
 (defn env-get [env k]
   (let [e (env-find env k)]
     (when-not e
-      (throw (Exception. (str "'" k "' not found"))))
+      (throw (#?(:clj Exception.
+                 :cljs js/Error.) (str "'" k "' not found"))))
     (get @e k)))
 
 (defn env-set [env k v]

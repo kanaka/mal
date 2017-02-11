@@ -48,6 +48,8 @@ PYTHON = python
 USE_MATLAB =
 # python, js, cpp, or neko are currently supported
 HAXE_MODE = neko
+# clj or cljs are currently supported (Clojure vs ClojureScript/lumo)
+CLJ_MODE = clj
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -67,8 +69,6 @@ miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
 plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
 plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
 perl6_TEST_OPTS = --test-timeout=60
-
-DOCKERIZE=
 
 # Run target/rule within docker image for the implementation
 DOCKERIZE =
@@ -133,6 +133,9 @@ haxe_STEP_TO_PROG_python = haxe/$($(1)).py
 haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
 haxe_STEP_TO_PROG_js     = haxe/$($(1)).js
 
+clojure_STEP_TO_PROG_clj  = clojure/target/$($(1)).jar
+clojure_STEP_TO_PROG_cljs = clojure/src/mal/$($(1)).cljc
+
 opt_DEFERRABLE      = $(if $(strip $(DEFERRABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERRABLE)),--deferrable,--no-deferrable),--no-deferrable)
 opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
 
@@ -151,7 +154,7 @@ basic_STEP_TO_PROG =   basic/$($(1)).bas
 c_STEP_TO_PROG =       c/$($(1))
 d_STEP_TO_PROG =       d/$($(1))
 chuck_STEP_TO_PROG =   chuck/$($(1)).ck
-clojure_STEP_TO_PROG = clojure/target/$($(1)).jar
+clojure_STEP_TO_PROG = $(clojure_STEP_TO_PROG_$(CLJ_MODE))
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 common-lisp_STEP_TO_PROG =  common-lisp/$($(1))
 cpp_STEP_TO_PROG =     cpp/$($(1))
@@ -234,6 +237,7 @@ get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
     -w /mal/$(call actual_impl,$(1)) \
+    $(if $(filter clojure,$(1)),-e CLJ_MODE=$(CLJ_MODE),) \
     $(if $(filter haxe,$(1)),-e HAXE_MODE=$(HAXE_MODE),) \
     $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(foreach env,$(3),-e $(env)) \

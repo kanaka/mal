@@ -1,7 +1,6 @@
-(ns step0-repl
-  (:require [readline])
-  (:gen-class))
-
+(ns mal.step0-repl
+  (:require [mal.readline :as readline])
+  #?(:clj (:gen-class)))
 
 ;; read
 (defn READ [& [strng]]
@@ -21,7 +20,8 @@
 (defn repl-loop []
   (let [line (readline/readline "user> ")]
     (when line
-      (println (rep line))
+      (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
+        (println (rep line)))
       (recur))))
 
 (defn -main [& args]
