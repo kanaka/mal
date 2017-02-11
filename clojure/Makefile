@@ -5,7 +5,7 @@ SOURCES_LISP = src/mal/env.cljc src/mal/core.cljc src/mal/stepA_mal.cljc
 SRCS = $(SOURCES_BASE) src/mal/env.cljc src/mal/core.cljc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: deps node_modules
+all: $(if $(filter cljs,$(CLJ_MODE)),node_modules,deps)
 
 dist: mal.jar mal
 
