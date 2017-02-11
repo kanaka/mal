@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use types::{MalVal, MalRet, _nil, list, err_string};
 use types::MalType::{Sym, List, Vector};
 
-struct EnvType {
+pub struct EnvType {
     data: HashMap<String,MalVal>,
     outer: Option<Env>,
 }

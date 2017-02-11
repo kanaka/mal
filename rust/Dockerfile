@@ -24,12 +24,18 @@ WORKDIR /mal
 # Install g++ for any C/C++ based implementations
 RUN apt-get -y install g++
 
-RUN apt-get -y install pkg-config
+# Based on https://github.com/Scorpil/docker-rust/blob/master/stable/Dockerfile
 
-# rust install script requirements
-RUN apt-get -y install git sudo
+ENV RUST_ARCHIVE=rust-1.14.0-x86_64-unknown-linux-gnu.tar.gz
+ENV RUST_DOWNLOAD_URL=https://static.rust-lang.org/dist/$RUST_ARCHIVE
 
-ENV MULTIRUST_HOME /opt/multirust
-RUN curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh > /tmp/blastoff.sh && chmod +x /tmp/blastoff.sh && /tmp/blastoff.sh --yes && rm /tmp/blastoff.sh
+RUN mkdir /rust
+WORKDIR /rust
 
-ENV CARGO_HOME /tmp/.cargo
+RUN curl -fsOSL $RUST_DOWNLOAD_URL \
+    && curl -s $RUST_DOWNLOAD_URL.sha256 | sha256sum -c - \
+    && tar -C /rust -xzf $RUST_ARCHIVE --strip-components=1 \
+    && rm $RUST_ARCHIVE \
+    && ./install.sh
+
+ENV CARGO_HOME /mal/.cargo

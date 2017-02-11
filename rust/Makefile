@@ -8,7 +8,7 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 #####################
 
-SRCS = step1_read_print.rs step2_eval.rs step3_env.rs \
+SRCS = step0_repl.rs step1_read_print.rs step2_eval.rs step3_env.rs \
        step4_if_fn_do.rs step5_tco.rs step6_file.rs step7_quote.rs \
        step8_macros.rs step9_try.rs stepA_mal.rs
 BINS = $(SRCS:%.rs=target/release/%)

@@ -40,13 +40,13 @@ pub fn readline(prompt: &str) -> Option<String> {
 
 // --------------------------------------------
 
-static mut history_loaded : bool = false;
+static mut HISTORY_LOADED : bool = false;
 static HISTORY_FILE: &'static str = "/home/joelm/.mal-history";
 
 fn load_history() {
     unsafe {
-        if history_loaded { return; }
-        history_loaded = true;
+        if HISTORY_LOADED { return; }
+        HISTORY_LOADED = true;
     }
 
     let file = match File::open(HISTORY_FILE) {
