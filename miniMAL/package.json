@@ -3,7 +3,6 @@
     "version": "0.0.1",
     "description": "Make a Lisp (mal) language implemented in miniMAL",
     "dependencies": {
-        "minimal-lisp": "1.0.2",
-        "ffi": "2.0.x"
+        "minimal-lisp": "1.0.2"
     }
 }

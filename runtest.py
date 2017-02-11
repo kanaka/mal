@@ -29,8 +29,12 @@ def log(data, end='\n'):
     sys.stdout.flush()
 
 # TODO: do we need to support '\n' too
-sep = "\r\n"
-#sep = "\n"
+import platform
+if platform.system().find("CYGWIN_NT") >= 0:
+    # TODO: this is weird, is this really right on Cygwin?
+    sep = "\n\r\n"
+else:
+    sep = "\r\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
@@ -241,7 +245,13 @@ def assert_prompt(runner, prompts, timeout):
 
 
 # Wait for the initial prompt
-assert_prompt(r, ['user> ', 'mal-user> '], args.start_timeout)
+try:
+    assert_prompt(r, ['user> ', 'mal-user> '], args.start_timeout)
+except:
+    _, exc, _ = sys.exc_info()
+    log("\nException: %s" % repr(exc))
+    log("Output before exception:\n%s" % r.buf)
+    sys.exit(1)
 
 # Send the pre-eval code if any
 if args.pre_eval:
