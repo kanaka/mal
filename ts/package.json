@@ -1,0 +1,19 @@
+{
+  "name": "mal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Make a Lisp (mal) language implemented in TypeScript",
+  "scripts": {
+    "test": "npm run test:step0",
+    "test:step0": "cd .. && make 'test^ts^step0'"
+  },
+  "dependencies": {
+    "ffi": "^2.2.0"
+  },
+  "devDependencies": {
+    "@types/ffi": "0.0.19",
+    "@types/node": "^7.0.5",
+    "typescript": "^2.1.6",
+    "typescript-formatter": "^4.1.1"
+  }
+}
