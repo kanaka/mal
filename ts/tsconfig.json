@@ -11,5 +11,8 @@
         "newLine": "LF",
         "strictNullChecks": true,
         "sourceMap": false
-    }
+    },
+    "exclude": [
+        "node_modules"
+    ]
 }

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "npm run test:step0",
     "test:step0": "cd .. && make 'test^ts^step0'"
+    "build": "tsfmt -r && tsc -p ./",
   },
   "dependencies": {
     "ffi": "^2.2.0"
