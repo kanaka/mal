@@ -1,4 +1,4 @@
-export type MalType = MalList | MalNumber | MalString | MalNull | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap;
+export type MalType = MalList | MalNumber | MalString | MalNull | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap | MalFunction;
 
 export class MalList {
     type: "list" = "list";
@@ -74,5 +74,15 @@ export class MalHashMap {
             }
             this.map.set(key, value);
         }
+    }
+}
+
+export class MalFunction {
+    static instanceOf(f: MalType): f is MalFunction {
+        return f instanceof MalFunction;
+    }
+
+    type: "function" = "function";
+    constructor(public func: (...args: (MalType | undefined)[]) => MalType) {
     }
 }

@@ -34,5 +34,7 @@ export function prStr(v: MalType, printReadably = true): string {
             return "nil";
         case "keyword":
             return `:${v.v.substr(1)}`;
+        case "function":
+            throw new Error(`invalid state`);
     }
 }
