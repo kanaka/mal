@@ -5,10 +5,11 @@
   "description": "Make a Lisp (mal) language implemented in TypeScript",
   "scripts": {
     "build": "tsfmt -r && tsc -p ./",
-    "test": "npm run build && npm run test:step0 && npm run test:step1 && npm run test:step2",
+    "test": "npm run build && npm run test:step0 && npm run test:step1 && npm run test:step2 && npm run test:step3",
     "test:step0": "cd .. && make 'test^ts^step0'",
     "test:step1": "cd .. && make 'test^ts^step1'",
-    "test:step2": "cd .. && make 'test^ts^step2'"
+    "test:step2": "cd .. && make 'test^ts^step2'",
+    "test:step3": "cd .. && make 'test^ts^step3'"
   },
   "dependencies": {
     "ffi": "^2.2.0"
