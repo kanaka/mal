@@ -67,7 +67,7 @@ export class MalHashMap {
     map = new Map<MalType, MalType>();
     constructor(list: MalType[]) {
         while (list.length !== 0) {
-            const key = list.shift() !;
+            const key = list.shift()!;
             const value = list.shift();
             if (value == null) {
                 throw new Error("unexpected hash length");

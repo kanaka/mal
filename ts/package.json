@@ -16,7 +16,7 @@
   "devDependencies": {
     "@types/ffi": "0.0.19",
     "@types/node": "^7.0.5",
-    "typescript": "^2.1.6",
-    "typescript-formatter": "^4.1.1"
+    "typescript": "^2.2.1",
+    "typescript-formatter": "^4.1.2"
   }
 }
