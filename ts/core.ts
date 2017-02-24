@@ -35,6 +35,25 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             const content = fs.readFileSync(v.v, "UTF-8");
             return new MalString(content);
         },
+        cons(a: MalType, b: MalType) {
+            if (!MalList.is(b) && !MalVector.is(b)) {
+                throw new Error(`unexpected symbol: ${b.type}, expected: list or vector`);
+            }
+
+            return new MalList([a].concat(b.list));
+        },
+        concat(...args: MalType[]) {
+            const list = args
+                .map(arg => {
+                    if (!MalList.is(arg) && !MalVector.is(arg)) {
+                        throw new Error(`unexpected symbol: ${arg.type}, expected: list or vector`);
+                    }
+                    return arg;
+                })
+                .reduce((p, c) => p.concat(c.list), [] as MalType[]);
+
+            return new MalList(list);
+        },
         list(...args: MalType[]): MalList {
             return new MalList(args);
         },
