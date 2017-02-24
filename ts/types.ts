@@ -78,8 +78,15 @@ export class MalList {
     }
 
     type: "list" = "list";
+    meta?: MalType;
 
     constructor(public list: MalType[]) {
+    }
+
+    withMeta(meta: MalType) {
+        const v = new MalList(this.list);
+        v.meta = meta;
+        return v;
     }
 }
 
@@ -89,7 +96,15 @@ export class MalNumber {
     }
 
     type: "number" = "number";
+    meta?: MalType;
+
     constructor(public v: number) {
+    }
+
+    withMeta(meta: MalType) {
+        const v = new MalNumber(this.v);
+        v.meta = meta;
+        return v;
     }
 }
 
@@ -99,7 +114,15 @@ export class MalString {
     }
 
     type: "string" = "string";
+    meta?: MalType;
+
     constructor(public v: string) {
+    }
+
+    withMeta(meta: MalType) {
+        const v = new MalString(this.v);
+        v.meta = meta;
+        return v;
     }
 }
 
@@ -109,9 +132,15 @@ export class MalNull {
     }
 
     static instance = new MalNull();
+
     type: "null" = "null";
+    meta?: MalType;
 
     private constructor() { }
+
+    withMeta(_meta: MalType): MalNull {
+        throw new Error(`not supported`);
+    }
 }
 
 export class MalBoolean {
@@ -120,7 +149,15 @@ export class MalBoolean {
     }
 
     type: "boolean" = "boolean";
+    meta?: MalType;
+
     constructor(public v: boolean) {
+    }
+
+    withMeta(meta: MalType) {
+        const v = new MalBoolean(this.v);
+        v.meta = meta;
+        return v;
     }
 }
 
@@ -143,8 +180,13 @@ export class MalSymbol {
     }
 
     type: "symbol" = "symbol";
+    meta?: MalType;
 
     private constructor(public v: string) {
+    }
+
+    withMeta(_meta: MalType): MalSymbol {
+        throw new Error(`not supported`);
     }
 }
 
@@ -167,8 +209,13 @@ export class MalKeyword {
     }
 
     type: "keyword" = "keyword";
+    meta?: MalType;
 
     private constructor(public v: string) {
+    }
+
+    withMeta(_meta: MalType): MalKeyword {
+        throw new Error(`not supported`);
     }
 }
 
@@ -178,7 +225,15 @@ export class MalVector {
     }
 
     type: "vector" = "vector";
+    meta?: MalType;
+
     constructor(public list: MalType[]) {
+    }
+
+    withMeta(meta: MalType) {
+        const v = new MalVector(this.list);
+        v.meta = meta;
+        return v;
     }
 }
 
@@ -190,6 +245,7 @@ export class MalHashMap {
     type: "hash-map" = "hash-map";
     stringMap: { [key: string]: MalType } = {};
     keywordMap = new Map<MalType, MalType>();
+    meta?: MalType;
 
     constructor(list: MalType[]) {
         while (list.length !== 0) {
@@ -206,6 +262,12 @@ export class MalHashMap {
                 throw new Error(`unexpected key symbol: ${key.type}, expected: keyword or string`);
             }
         }
+    }
+
+    withMeta(meta: MalType) {
+        const v = this.assoc([]);
+        v.meta = meta;
+        return v;
     }
 
     has(key: MalKeyword | MalString) {
@@ -323,8 +385,21 @@ export class MalFunction {
     env: Env;
     params: MalSymbol[];
     isMacro: boolean;
+    meta?: MalType;
 
     private constructor() { }
+
+    withMeta(meta: MalType) {
+        const f = new MalFunction();
+        f.func = this.func;
+        f.ast = this.ast;
+        f.env = this.env;
+        f.params = this.params;
+        f.isMacro = this.isMacro;
+        f.meta = meta;
+
+        return f;
+    }
 
     newEnv(args: MalType[]) {
         return new Env(this.env, this.params, args);
@@ -337,7 +412,14 @@ export class MalAtom {
     }
 
     type: "atom" = "atom";
+    meta?: MalType;
 
     constructor(public v: MalType) {
+    }
+
+    withMeta(meta: MalType) {
+        const v = new MalAtom(this.v);
+        v.meta = meta;
+        return v;
     }
 }

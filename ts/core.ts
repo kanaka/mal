@@ -1,11 +1,25 @@
 import * as fs from "fs";
 
+import { readline } from "./node_readline";
+
 import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalKeyword, MalHashMap, MalAtom, equals } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
 export const ns: Map<MalSymbol, MalFunction> = (() => {
     const ns: { [symbol: string]: typeof MalFunction.prototype.func; } = {
+        readline(v: MalType) {
+            if (!MalString.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: string`);
+            }
+
+            const ret = readline(v.v);
+            if (ret == null) {
+                return MalNull.instance;
+            }
+
+            return new MalString(ret);
+        },
         "pr-str"(...args: MalType[]): MalString {
             return new MalString(args.map(v => prStr(v, true)).join(" "));
         },
@@ -247,6 +261,9 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
 
             return new MalBoolean(a.v >= b.v);
         },
+        "time-ms"() {
+            return new MalNumber(Date.now());
+        },
         "nil?"(v: MalType) {
             return new MalBoolean(MalNull.is(v));
         },
@@ -255,6 +272,9 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         },
         "false?"(v: MalType) {
             return new MalBoolean(MalBoolean.is(v) && !v.v);
+        },
+        "string?"(v: MalType) {
+            return new MalBoolean(MalString.is(v));
         },
         "symbol?"(v: MalType) {
             return new MalBoolean(MalSymbol.is(v));
@@ -340,6 +360,49 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         },
         "sequential?"(v: MalType) {
             return new MalBoolean(MalList.is(v) || MalVector.is(v));
+        },
+        conj(list: MalType, ...args: MalType[]) {
+            switch (list.type) {
+                case "list":
+                    const newList = new MalList(list.list);
+                    args.forEach(arg => newList.list.unshift(arg));
+                    return newList;
+                case "vector":
+                    return new MalVector([...list.list, ...args]);
+            }
+
+            throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
+        },
+        seq(v: MalType) {
+            if (MalList.is(v)) {
+                if (v.list.length === 0) {
+                    return MalNull.instance;
+                }
+                return v;
+            }
+            if (MalVector.is(v)) {
+                if (v.list.length === 0) {
+                    return MalNull.instance;
+                }
+                return new MalList(v.list);
+            }
+            if (MalString.is(v)) {
+                if (v.v.length === 0) {
+                    return MalNull.instance;
+                }
+                return new MalList(v.v.split("").map(s => new MalString(s)));
+            }
+            if (MalNull.is(v)) {
+                return MalNull.instance;
+            }
+
+            throw new Error(`unexpected symbol: ${v.type}, expected: list or vector or string`);
+        },
+        "with-meta"(v: MalType, m: MalType) {
+            return v.withMeta(m);
+        },
+        meta(v: MalType) {
+            return v.meta || MalNull.instance;
         },
     };
 

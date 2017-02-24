@@ -78,12 +78,9 @@ function evalSexp(ast: MalType, env: Env): MalType {
                         continue loop;
                     }
                     case "do": {
-                        const [, ...list] = ast.list;
-                        const ret = evalAST(new MalList(list), env);
-                        if (!MalList.is(ret) && !MalVector.is(ret)) {
-                            throw new Error(`unexpected return type: ${ret.type}, expected: list or vector`);
-                        }
-                        ast = ret.list[ret.list.length - 1];
+                        const list = ast.list.slice(1, -1);
+                        evalAST(new MalList(list), env);
+                        ast = ast.list[ast.list.length - 1];
                         continue loop;
                     }
                     case "if": {
