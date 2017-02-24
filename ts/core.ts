@@ -1,4 +1,7 @@
-import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, equals } from "./types";
+import * as fs from "fs";
+
+import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalAtom, equals } from "./types";
+import { readStr } from "./reader";
 import { prStr } from "./printer";
 
 export const ns: Map<MalSymbol, MalFunction> = (() => {
@@ -18,6 +21,19 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             const str = args.map(v => prStr(v, false)).join(" ");
             console.log(str);
             return MalNull.instance;
+        },
+        "read-string"(v: MalType) {
+            if (!MalString.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: string`);
+            }
+            return readStr(v.v);
+        },
+        slurp(v: MalType) {
+            if (!MalString.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: string`);
+            }
+            const content = fs.readFileSync(v.v, "UTF-8");
+            return new MalString(content);
         },
         list(...args: MalType[]): MalList {
             return new MalList(args);
@@ -39,6 +55,35 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
                 return new MalNumber(0);
             }
             throw new Error(`unexpected symbol: ${v.type}`);
+        },
+        atom(v: MalType): MalAtom {
+            return new MalAtom(v);
+        },
+        "atom?"(v: MalType): MalBoolean {
+            return new MalBoolean(MalAtom.is(v));
+        },
+        deref(v: MalType): MalType {
+            if (!MalAtom.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: atom`);
+            }
+            return v.v;
+        },
+        "reset!"(atom: MalType, v: MalType): MalType {
+            if (!MalAtom.is(atom)) {
+                throw new Error(`unexpected symbol: ${atom.type}, expected: atom`);
+            }
+            atom.v = v;
+            return v;
+        },
+        "swap!"(atom: MalType, f: MalType, ...args: MalType[]): MalType {
+            if (!MalAtom.is(atom)) {
+                throw new Error(`unexpected symbol: ${atom.type}, expected: atom`);
+            }
+            if (!MalFunction.is(f)) {
+                throw new Error(`unexpected symbol: ${f.type}, expected: function`);
+            }
+            atom.v = f.func(...[atom.v].concat(args));
+            return atom.v;
         },
         "+"(a: MalType, b: MalType): MalNumber {
             if (!MalNumber.is(a)) {

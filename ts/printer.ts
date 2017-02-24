@@ -36,5 +36,7 @@ export function prStr(v: MalType, printReadably = true): string {
             return `:${v.v.substr(1)}`;
         case "function":
             return "#<function>";
+        case "atom":
+            return `(atom ${prStr(v.v, printReadably)})`;
     }
 }
