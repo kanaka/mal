@@ -35,12 +35,12 @@ export class Env {
     get(key: MalSymbol): MalType {
         const env = this.find(key);
         if (!env) {
-            throw new Error(`${key.v} not found`);
+            throw new Error(`'${key.v}' not found`);
         }
 
         const v = env.data.get(key);
         if (!v) {
-            throw new Error(`${key.v} is not exists`);
+            throw new Error(`'${key.v}' not found`);
         }
 
         return v;

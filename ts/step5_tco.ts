@@ -24,7 +24,7 @@ function evalAST(ast: MalType, env: Env): MalType {
             return new MalVector(ast.list.map(ast => evalSexp(ast, env)));
         case "hash-map":
             const list: MalType[] = [];
-            for (const [key, value] of ast.map) {
+            for (const [key, value] of ast.entries()) {
                 list.push(key);
                 list.push(evalSexp(value, env));
             }

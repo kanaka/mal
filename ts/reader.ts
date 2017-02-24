@@ -130,7 +130,7 @@ function readAtom(reader: Reader): MalType {
         return new MalString(v);
     }
     if (token[0] === ":") {
-        return new MalKeyword(token.substr(1));
+        return MalKeyword.get(token.substr(1));
     }
     switch (token) {
         case "nil":

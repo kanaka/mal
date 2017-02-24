@@ -1,6 +1,6 @@
 import * as fs from "fs";
 
-import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalAtom, equals } from "./types";
+import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalKeyword, MalHashMap, MalAtom, equals } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
@@ -139,6 +139,31 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             atom.v = f.func(...[atom.v].concat(args));
             return atom.v;
         },
+        throw(v: MalType): MalType {
+            throw v;
+        },
+        apply(f: MalType, ...list: MalType[]) {
+            if (!MalFunction.is(f)) {
+                throw new Error(`unexpected symbol: ${f.type}, expected: function`);
+            }
+
+            const tail = list[list.length - 1];
+            if (!MalList.is(tail) && !MalVector.is(tail)) {
+                throw new Error(`unexpected symbol: ${tail.type}, expected: list or vector`);
+            }
+            const args = list.slice(0, -1).concat(tail.list);
+            return f.func(...args);
+        },
+        map(f: MalType, list: MalType) {
+            if (!MalFunction.is(f)) {
+                throw new Error(`unexpected symbol: ${f.type}, expected: function`);
+            }
+            if (!MalList.is(list) && !MalVector.is(list)) {
+                throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
+            }
+
+            return new MalList(list.list.map(v => f.func(v)));
+        },
         "+"(a: MalType, b: MalType): MalNumber {
             if (!MalNumber.is(a)) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
@@ -221,6 +246,100 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             }
 
             return new MalBoolean(a.v >= b.v);
+        },
+        "nil?"(v: MalType) {
+            return new MalBoolean(MalNull.is(v));
+        },
+        "true?"(v: MalType) {
+            return new MalBoolean(MalBoolean.is(v) && v.v);
+        },
+        "false?"(v: MalType) {
+            return new MalBoolean(MalBoolean.is(v) && !v.v);
+        },
+        "symbol?"(v: MalType) {
+            return new MalBoolean(MalSymbol.is(v));
+        },
+        symbol(v: MalType) {
+            if (!MalString.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: string`);
+            }
+            return MalSymbol.get(v.v);
+        },
+        keyword(v: MalType) {
+            if (!MalString.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: string`);
+            }
+            return MalKeyword.get(v.v);
+        },
+        "keyword?"(v: MalType) {
+            return new MalBoolean(MalKeyword.is(v));
+        },
+        vector(...args: MalType[]): MalVector {
+            return new MalVector(args);
+        },
+        "vector?"(v: MalType): MalBoolean {
+            return new MalBoolean(MalVector.is(v));
+        },
+        "hash-map"(...args: MalType[]) {
+            return new MalHashMap(args);
+        },
+        "map?"(v: MalType): MalBoolean {
+            return new MalBoolean(MalHashMap.is(v));
+        },
+        assoc(v: MalType, ...args: MalType[]) {
+            if (!MalHashMap.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
+            }
+            return v.assoc(args);
+        },
+        dissoc(v: MalType, ...args: MalType[]) {
+            if (!MalHashMap.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
+            }
+            return v.dissoc(args);
+        },
+        get(v: MalType, key: MalType) {
+            if (MalNull.is(v)) {
+                return MalNull.instance;
+            }
+            if (!MalHashMap.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
+            }
+            if (!MalString.is(key) && !MalKeyword.is(key)) {
+                throw new Error(`unexpected symbol: ${key.type}, expected: string or keyword`);
+            }
+
+            return v.get(key) || MalNull.instance;
+        },
+        "contains?"(v: MalType, key: MalType) {
+            if (MalNull.is(v)) {
+                return MalNull.instance;
+            }
+            if (!MalHashMap.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
+            }
+            if (!MalString.is(key) && !MalKeyword.is(key)) {
+                throw new Error(`unexpected symbol: ${key.type}, expected: string or keyword`);
+            }
+
+            return new MalBoolean(v.has(key));
+        },
+        keys(v: MalType) {
+            if (!MalHashMap.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
+            }
+
+            return new MalList([...v.keys()]);
+        },
+        vals(v: MalType) {
+            if (!MalHashMap.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
+            }
+
+            return new MalList([...v.vals()]);
+        },
+        "sequential?"(v: MalType) {
+            return new MalBoolean(MalList.is(v) || MalVector.is(v));
         },
     };
 

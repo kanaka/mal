@@ -8,7 +8,7 @@ export function prStr(v: MalType, printReadably = true): string {
             return `[${v.list.map(v => prStr(v, printReadably)).join(" ")}]`;
         case "hash-map":
             let result = "{";
-            for (const [key, value] of v.map) {
+            for (const [key, value] of v.entries()) {
                 if (result !== "{") {
                     result += " ";
                 }
@@ -33,7 +33,7 @@ export function prStr(v: MalType, printReadably = true): string {
         case "null":
             return "nil";
         case "keyword":
-            return `:${v.v.substr(1)}`;
+            return `:${v.v}`;
         case "function":
             return "#<function>";
         case "atom":

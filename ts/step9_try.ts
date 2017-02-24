@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { MalType, MalString, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction } from "./types";
+import { MalType, MalString, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isAST } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -187,6 +187,28 @@ function evalSexp(ast: MalType, env: Env): MalType {
                     }
                     case "macroexpand": {
                         return macroexpand(ast.list[1], env);
+                    }
+                    case "try*": {
+                        try {
+                            return evalSexp(ast.list[1], env);
+                        } catch (e) {
+                            const catchBody = ast.list[2];
+                            if (!MalList.is(catchBody) && !MalVector.is(catchBody)) {
+                                throw new Error(`unexpected return type: ${catchBody.type}, expected: list or vector`);
+                            }
+                            const catchSymbol = catchBody.list[0];
+                            if (MalSymbol.is(catchSymbol) && catchSymbol.v === "catch*") {
+                                const errorSymbol = catchBody.list[1];
+                                if (!MalSymbol.is(errorSymbol)) {
+                                    throw new Error(`unexpected return type: ${errorSymbol.type}, expected: symbol`);
+                                }
+                                if (!isAST(e)) {
+                                    e = new MalString((e as Error).message);
+                                }
+                                return evalSexp(catchBody.list[2], new Env(env, [errorSymbol], [e]));
+                            }
+                            throw e;
+                        }
                     }
                     case "do": {
                         const [, ...list] = ast.list;

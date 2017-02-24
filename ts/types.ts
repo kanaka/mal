@@ -21,6 +21,28 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
     ) {
         return listEquals(a.list, b.list);
     }
+    if (MalHashMap.is(a) && MalHashMap.is(b)) {
+        if (a.keywordMap.size !== b.keywordMap.size) {
+            return false;
+        }
+        if (Object.keys(a.stringMap).length !== Object.keys(b.stringMap).length) {
+            return false;
+        }
+        for (const [aK, aV] of a.entries()) {
+            if (!MalString.is(aK) && !MalKeyword.is(aK)) {
+                throw new Error(`unexpected symbol: ${aK.type}, expected: string or keyword`);
+            }
+            const bV = b.get(aK);
+            if (MalNull.is(aV) && MalNull.is(bV)) {
+                continue;
+            }
+            if (!equals(aV, bV)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
     if (
         (MalNumber.is(a) && MalNumber.is(b))
         || (MalString.is(a) && MalString.is(b))
@@ -44,6 +66,10 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
         }
         return true;
     }
+}
+
+export function isAST(v: MalType): v is MalType {
+    return !!v.type;
 }
 
 export class MalList {
@@ -127,9 +153,22 @@ export class MalKeyword {
         return f instanceof MalKeyword;
     }
 
+    static map = new Map<symbol, MalKeyword>();
+
+    static get(name: string): MalKeyword {
+        const sym = Symbol.for(name);
+        let token = this.map.get(sym);
+        if (token) {
+            return token;
+        }
+        token = new MalKeyword(name);
+        this.map.set(sym, token);
+        return token;
+    }
+
     type: "keyword" = "keyword";
-    constructor(public v: string) {
-        this.v = String.fromCodePoint(0x29E) + this.v;
+
+    private constructor(public v: string) {
     }
 }
 
@@ -149,7 +188,9 @@ export class MalHashMap {
     }
 
     type: "hash-map" = "hash-map";
-    map = new Map<MalType, MalType>();
+    stringMap: { [key: string]: MalType } = {};
+    keywordMap = new Map<MalType, MalType>();
+
     constructor(list: MalType[]) {
         while (list.length !== 0) {
             const key = list.shift()!;
@@ -157,8 +198,86 @@ export class MalHashMap {
             if (value == null) {
                 throw new Error("unexpected hash length");
             }
-            this.map.set(key, value);
+            if (MalKeyword.is(key)) {
+                this.keywordMap.set(key, value);
+            } else if (MalString.is(key)) {
+                this.stringMap[key.v] = value;
+            } else {
+                throw new Error(`unexpected key symbol: ${key.type}, expected: keyword or string`);
+            }
         }
+    }
+
+    has(key: MalKeyword | MalString) {
+        if (MalKeyword.is(key)) {
+            return !!this.keywordMap.get(key);
+        }
+        return !!this.stringMap[key.v];
+    }
+
+    get(key: MalKeyword | MalString) {
+        if (MalKeyword.is(key)) {
+            return this.keywordMap.get(key) || MalNull.instance;
+        }
+        return this.stringMap[key.v] || MalNull.instance;
+    }
+
+    entries(): [MalType, MalType][] {
+        const list: [MalType, MalType][] = [];
+
+        for (const [k, v] of this.keywordMap) {
+            list.push([k, v]);
+        }
+        Object.keys(this.stringMap).forEach(v => list.push([new MalString(v), this.stringMap[v]]));
+
+        return list;
+    }
+
+    keys(): MalType[] {
+        const list: MalType[] = [];
+        for (const v of this.keywordMap.keys()) {
+            list.push(v);
+        }
+        Object.keys(this.stringMap).forEach(v => list.push(new MalString(v)));
+        return list;
+    }
+
+    vals(): MalType[] {
+        const list: MalType[] = [];
+        for (const v of this.keywordMap.values()) {
+            list.push(v);
+        }
+        Object.keys(this.stringMap).forEach(v => list.push(this.stringMap[v]));
+        return list;
+    }
+
+    assoc(args: MalType[]): MalHashMap {
+        const list: MalType[] = [];
+        this.keywordMap.forEach((value, key) => {
+            list.push(key);
+            list.push(value);
+        });
+        Object.keys(this.stringMap).forEach(keyStr => {
+            list.push(new MalString(keyStr));
+            list.push(this.stringMap[keyStr]);
+        });
+
+        return new MalHashMap(list.concat(args));
+    }
+
+    dissoc(args: MalType[]): MalHashMap {
+        const newHashMap = this.assoc([]);
+
+        args.forEach(arg => {
+            if (MalString.is(arg)) {
+                delete newHashMap.stringMap[arg.v];
+            } else if (MalKeyword.is(arg)) {
+                newHashMap.keywordMap.delete(arg);
+            } else {
+                throw new Error(`unexpected symbol: ${arg.type}, expected: keyword or string`);
+            }
+        });
+        return newHashMap;
     }
 }
 
