@@ -76,7 +76,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
     }
     const result = evalAST(ast, env) as MalList;
     const [f, ...rest] = result.list;
-    if (!MalFunction.instanceOf(f)) {
+    if (!MalFunction.is(f)) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
     }
     return f.func(...rest);

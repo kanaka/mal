@@ -134,7 +134,7 @@ function readAtom(reader: Reader): MalType {
     }
     switch (token) {
         case "nil":
-            return new MalNull();
+            return MalNull.instance;
         case "true":
             return new MalBoolean(true);
         case "false":

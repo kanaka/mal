@@ -1,10 +1,19 @@
-import { MalType, MalSymbol } from "./types";
+import { MalType, MalSymbol, MalList } from "./types";
 
 export class Env {
     data: Map<MalSymbol, MalType>;
 
-    constructor(public outer?: Env) {
+    constructor(public outer?: Env, binds: MalSymbol[] = [], exprts: MalType[] = []) {
         this.data = new Map();
+
+        for (let i = 0; i < binds.length; i++) {
+            const bind = binds[i];
+            if (bind.v === "&") {
+                this.set(binds[i + 1], new MalList(exprts.slice(i)));
+                break;
+            }
+            this.set(bind, exprts[i]);
+        }
     }
 
     set(key: MalSymbol, value: MalType): MalType {

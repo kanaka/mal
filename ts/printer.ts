@@ -3,16 +3,16 @@ import { MalType } from "./types";
 export function prStr(v: MalType, printReadably = true): string {
     switch (v.type) {
         case "list":
-            return `(${v.list.map(v => prStr(v)).join(" ")})`;
+            return `(${v.list.map(v => prStr(v, printReadably)).join(" ")})`;
         case "vector":
-            return `[${v.list.map(v => prStr(v)).join(" ")}]`;
+            return `[${v.list.map(v => prStr(v, printReadably)).join(" ")}]`;
         case "hash-map":
             let result = "{";
             for (const [key, value] of v.map) {
                 if (result !== "{") {
                     result += " ";
                 }
-                result += `${prStr(key)} ${prStr(value)}`;
+                result += `${prStr(key, printReadably)} ${prStr(value, printReadably)}`;
             }
             result += "}";
             return result;
@@ -35,6 +35,6 @@ export function prStr(v: MalType, printReadably = true): string {
         case "keyword":
             return `:${v.v.substr(1)}`;
         case "function":
-            throw new Error(`invalid state`);
+            return "#<function>";
     }
 }
