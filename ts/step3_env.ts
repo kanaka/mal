@@ -75,11 +75,11 @@ function evalSexp(ast: MalType, env: Env): MalType {
             }
     }
     const result = evalAST(ast, env) as MalList;
-    const [f, ...rest] = result.list;
+    const [f, ...args] = result.list;
     if (!MalFunction.is(f)) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
     }
-    return f.func(...rest);
+    return f.func(...args);
 }
 
 function print(exp: MalType): string {
@@ -87,10 +87,10 @@ function print(exp: MalType): string {
 }
 
 const replEnv = new Env();
-replEnv.set(MalSymbol.get("+"), new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v + b!.v)));
-replEnv.set(MalSymbol.get("-"), new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v - b!.v)));
-replEnv.set(MalSymbol.get("*"), new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v * b!.v)));
-replEnv.set(MalSymbol.get("/"), new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v / b!.v)));
+replEnv.set(MalSymbol.get("+"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v + b!.v)));
+replEnv.set(MalSymbol.get("-"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v - b!.v)));
+replEnv.set(MalSymbol.get("*"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v * b!.v)));
+replEnv.set(MalSymbol.get("/"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v / b!.v)));
 
 function rep(str: string): string {
     return print(evalSexp(read(str), replEnv));

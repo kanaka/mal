@@ -126,6 +126,6 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
     };
 
     const map = new Map<MalSymbol, MalFunction>();
-    Object.keys(ns).forEach(key => map.set(MalSymbol.get(key), new MalFunction(ns[key])));
+    Object.keys(ns).forEach(key => map.set(MalSymbol.get(key), MalFunction.fromBootstrap(ns[key])));
     return map;
 })();

@@ -1,3 +1,5 @@
+import { Env } from "./env";
+
 export type MalType = MalList | MalNumber | MalString | MalNull | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap | MalFunction;
 
 export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
@@ -160,12 +162,51 @@ export class MalHashMap {
     }
 }
 
+type MalF = (...args: (MalType | undefined)[]) => MalType;
+
 export class MalFunction {
     static is(f: MalType): f is MalFunction {
         return f instanceof MalFunction;
     }
 
+    static fromLisp(evalSexpr: (ast: MalType, env: Env) => MalType, env: Env, params: MalSymbol[], bodyAst: MalType): MalFunction {
+        const f = new MalFunction();
+        f.func = (...args) => evalSexpr(bodyAst, new Env(env, params, malTypes2malSymbols(args)));
+        f.env = env;
+        f.params = params;
+        f.ast = bodyAst;
+
+        return f;
+
+        function malTypes2malSymbols(args: (MalType | undefined)[]): MalSymbol[] {
+            return args.map(arg => {
+                if (!arg) {
+                    throw new Error(`undefined argument`);
+                }
+                if (!MalSymbol.is(arg)) {
+                    throw new Error(`unexpected token type: ${arg.type}, expected: symbol`);
+                }
+                return arg;
+            });
+        }
+    }
+
+    static fromBootstrap(func: MalF): MalFunction {
+        const f = new MalFunction();
+        f.func = func;
+        return f;
+    }
+
     type: "function" = "function";
-    constructor(public func: (...args: (MalType | undefined)[]) => MalType) {
+
+    func: MalF;
+    ast: MalType;
+    env: Env;
+    params: MalSymbol[];
+
+    private constructor() { }
+
+    newEnv(args: MalType[]) {
+        return new Env(this.env, this.params, args);
     }
 }

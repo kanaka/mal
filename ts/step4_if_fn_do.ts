@@ -111,7 +111,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                         }
                         return arg;
                     });
-                    return new MalFunction((...fnArgs: MalType[]) => {
+                    return MalFunction.fromBootstrap((...fnArgs: MalType[]) => {
                         return evalSexp(binds, new Env(env, symbols, fnArgs));
                     });
                 }
@@ -121,11 +121,11 @@ function evalSexp(ast: MalType, env: Env): MalType {
     if (!MalList.is(result) && !MalVector.is(result)) {
         throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
     }
-    const [f, ...rest] = result.list;
+    const [f, ...args] = result.list;
     if (!MalFunction.is(f)) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
     }
-    return f.func(...rest);
+    return f.func(...args);
 }
 
 function print(exp: MalType): string {

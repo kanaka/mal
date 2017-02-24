@@ -44,11 +44,11 @@ function evalSexp(ast: MalType, env: MalEnvironment): MalType {
         return ast;
     }
     const result = evalAST(ast, env) as MalList;
-    const [f, ...rest] = result.list;
+    const [f, ...args] = result.list;
     if (!MalFunction.is(f)) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
     }
-    return f.func(...rest);
+    return f.func(...args);
 }
 
 function print(exp: MalType): string {
@@ -56,10 +56,10 @@ function print(exp: MalType): string {
 }
 
 const replEnv: MalEnvironment = {
-    "+": new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v + b!.v)),
-    "-": new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v - b!.v)),
-    "*": new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v * b!.v)),
-    "/": new MalFunction((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v / b!.v)),
+    "+": MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v + b!.v)),
+    "-": MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v - b!.v)),
+    "*": MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v * b!.v)),
+    "/": MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v / b!.v)),
 };
 function rep(str: string): string {
     return print(evalSexp(read(str), replEnv));
