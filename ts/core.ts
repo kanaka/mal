@@ -75,6 +75,41 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             }
             throw new Error(`unexpected symbol: ${v.type}`);
         },
+        nth(list: MalType, idx: MalType) {
+            if (!MalList.is(list) && !MalVector.is(list)) {
+                throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
+            }
+            if (!MalNumber.is(idx)) {
+                throw new Error(`unexpected symbol: ${idx.type}, expected: number`);
+            }
+
+            const v = list.list[idx.v];
+            if (!v) {
+                throw new Error("nth: index out of range");
+            }
+
+            return v;
+        },
+        first(v: MalType) {
+            if (MalNull.is(v)) {
+                return MalNull.instance;
+            }
+            if (!MalList.is(v) && !MalVector.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: list or vector`);
+            }
+
+            return v.list[0] || MalNull.instance;
+        },
+        rest(v: MalType) {
+            if (MalNull.is(v)) {
+                return new MalList([]);
+            }
+            if (!MalList.is(v) && !MalVector.is(v)) {
+                throw new Error(`unexpected symbol: ${v.type}, expected: list or vector`);
+            }
+
+            return new MalList(v.list.slice(1));
+        },
         atom(v: MalType): MalAtom {
             return new MalAtom(v);
         },

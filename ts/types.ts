@@ -175,6 +175,7 @@ export class MalFunction {
         f.env = env;
         f.params = params;
         f.ast = bodyAst;
+        f.isMacro = false;
 
         return f;
 
@@ -191,6 +192,8 @@ export class MalFunction {
     static fromBootstrap(func: MalF): MalFunction {
         const f = new MalFunction();
         f.func = func;
+        f.isMacro = false;
+
         return f;
     }
 
@@ -200,6 +203,7 @@ export class MalFunction {
     ast: MalType;
     env: Env;
     params: MalSymbol[];
+    isMacro: boolean;
 
     private constructor() { }
 
