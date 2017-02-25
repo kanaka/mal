@@ -55,7 +55,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                     if (!value) {
                         throw new Error(`unexpected syntax`);
                     }
-                    return env.set(key, evalMal(value, env))
+                    return env.set(key, evalMal(value, env));
                 }
                 case "let*": {
                     let letEnv = new Env(env);

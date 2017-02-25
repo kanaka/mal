@@ -4,7 +4,7 @@ import * as fs from "fs";
 
 // IMPORTANT: choose one
 const RL_LIB = "libreadline";  // NOTE: libreadline is GPL
-//var RL_LIB = "libedit";
+// var RL_LIB = "libedit";
 
 const HISTORY_FILE = path.join(process.env.HOME, ".mal-history");
 

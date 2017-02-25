@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { Node, MalType, MalNumber, MalList, MalVector, MalHashMap, MalSymbol, MalFunction } from "./types";
+import { Node, MalType, MalNumber, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
 import { Env } from "./env";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
@@ -48,35 +48,41 @@ function evalMal(ast: MalType, env: Env): MalType {
             switch (first.v) {
                 case "def!": {
                     const [, key, value] = ast.list;
-                    if (key instanceof MalSymbol === false) {
+                    if (key.type !== Node.Symbol) {
                         throw new Error(`unexpected toke type: ${key.type}, expected: symbol`);
                     }
                     if (!value) {
                         throw new Error(`unexpected syntax`);
                     }
-                    return env.set(key as MalSymbol, evalMal(value, env))
+                    return env.set(key, evalMal(value, env));
                 }
                 case "let*": {
                     let letEnv = new Env(env);
                     const pairs = ast.list[1];
-                    if (pairs instanceof MalList === false && pairs instanceof MalVector === false) {
+                    if (!isSeq(pairs)) {
                         throw new Error(`unexpected toke type: ${pairs.type}, expected: list or vector`);
                     }
-                    const list = (pairs as (MalList | MalVector)).list;
+                    const list = pairs.list;
                     for (let i = 0; i < list.length; i += 2) {
                         const key = list[i];
                         const value = list[i + 1];
+                        if (key.type !== Node.Symbol) {
+                            throw new Error(`unexpected token type: ${key.type}, expected: symbol`);
+                        }
                         if (!key || !value) {
                             throw new Error(`unexpected syntax`);
                         }
 
-                        letEnv.set(key as MalSymbol, evalMal(value, letEnv));
+                        letEnv.set(key, evalMal(value, letEnv));
                     }
                     return evalMal(ast.list[2], letEnv);
                 }
             }
     }
-    const result = evalAST(ast, env) as MalList;
+    const result = evalAST(ast, env);
+    if (!isSeq(result)) {
+        throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
+    }
     const [f, ...args] = result.list;
     if (f.type !== Node.Function) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);

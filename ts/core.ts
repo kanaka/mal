@@ -176,7 +176,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalList(args);
         },
         "list?"(v: MalType): MalBoolean {
-            return new MalBoolean(v instanceof MalList);
+            return new MalBoolean(v.type === Node.List);
         },
         vector(...args: MalType[]): MalVector {
             return new MalVector(args);

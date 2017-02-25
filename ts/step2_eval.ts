@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { Node, MalType, MalNumber, MalList, MalVector, MalHashMap, MalFunction } from "./types";
+import { Node, MalType, MalNumber, MalList, MalVector, MalHashMap, MalFunction, isSeq } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
@@ -45,7 +45,10 @@ function evalMal(ast: MalType, env: MalEnvironment): MalType {
     if (ast.list.length === 0) {
         return ast;
     }
-    const result = evalAST(ast, env) as MalList;
+    const result = evalAST(ast, env);
+    if (!isSeq(result)) {
+        throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
+    }
     const [f, ...args] = result.list;
     if (f.type !== Node.Function) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
