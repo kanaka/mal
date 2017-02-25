@@ -2,7 +2,7 @@ import * as fs from "fs";
 
 import { readline } from "./node_readline";
 
-import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalKeyword, MalHashMap, MalAtom, equals } from "./types";
+import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalKeyword, MalHashMap, MalAtom, equals, isSeq } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
@@ -244,10 +244,10 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         },
 
         "sequential?"(v: MalType) {
-            return new MalBoolean(MalList.is(v) || MalVector.is(v));
+            return new MalBoolean(isSeq(v));
         },
         cons(a: MalType, b: MalType) {
-            if (!MalList.is(b) && !MalVector.is(b)) {
+            if (!isSeq(b)) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: list or vector`);
             }
 
@@ -256,7 +256,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         concat(...args: MalType[]) {
             const list = args
                 .map(arg => {
-                    if (!MalList.is(arg) && !MalVector.is(arg)) {
+                    if (!isSeq(arg)) {
                         throw new Error(`unexpected symbol: ${arg.type}, expected: list or vector`);
                     }
                     return arg;
@@ -266,7 +266,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalList(list);
         },
         nth(list: MalType, idx: MalType) {
-            if (!MalList.is(list) && !MalVector.is(list)) {
+            if (!isSeq(list)) {
                 throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
             }
             if (!MalNumber.is(idx)) {
@@ -284,7 +284,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             if (MalNull.is(v)) {
                 return MalNull.instance;
             }
-            if (!MalList.is(v) && !MalVector.is(v)) {
+            if (!isSeq(v)) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: list or vector`);
             }
 
@@ -294,20 +294,20 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             if (MalNull.is(v)) {
                 return new MalList([]);
             }
-            if (!MalList.is(v) && !MalVector.is(v)) {
+            if (!isSeq(v)) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: list or vector`);
             }
 
             return new MalList(v.list.slice(1));
         },
         "empty?"(v: MalType): MalBoolean {
-            if (!MalList.is(v) && !MalVector.is(v)) {
+            if (!isSeq(v)) {
                 return new MalBoolean(false);
             }
             return new MalBoolean(v.list.length === 0);
         },
         count(v: MalType): MalNumber {
-            if (MalList.is(v) || MalVector.is(v)) {
+            if (isSeq(v)) {
                 return new MalNumber(v.list.length);
             }
             if (MalNull.is(v)) {
@@ -321,7 +321,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             }
 
             const tail = list[list.length - 1];
-            if (!MalList.is(tail) && !MalVector.is(tail)) {
+            if (!isSeq(tail)) {
                 throw new Error(`unexpected symbol: ${tail.type}, expected: list or vector`);
             }
             const args = list.slice(0, -1).concat(tail.list);
@@ -331,7 +331,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             if (!MalFunction.is(f)) {
                 throw new Error(`unexpected symbol: ${f.type}, expected: function`);
             }
-            if (!MalList.is(list) && !MalVector.is(list)) {
+            if (!isSeq(list)) {
                 throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
             }
 

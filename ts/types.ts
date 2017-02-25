@@ -3,22 +3,14 @@ import { Env } from "./env";
 export type MalType = MalList | MalNumber | MalString | MalNull | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap | MalFunction | MalAtom;
 
 export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
-    if (strict && a.constructor !== b.constructor) {
+    if (strict && a.type !== b.type) {
         return false;
-    } else if (
-        (MalList.is(a) || MalVector.is(a))
-        && (MalList.is(b) || MalVector.is(b))
-    ) {
-        return listEquals(a.list, b.list);
     }
 
     if (MalNull.is(a) && MalNull.is(b)) {
         return true;
     }
-    if (
-        (MalList.is(a) && MalList.is(b))
-        || (MalVector.is(a) && MalVector.is(b))
-    ) {
+    if (isSeq(a) && isSeq(b)) {
         return listEquals(a.list, b.list);
     }
     if (MalHashMap.is(a) && MalHashMap.is(b)) {
@@ -66,6 +58,10 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
         }
         return true;
     }
+}
+
+export function isSeq(ast: MalType): ast is MalList | MalVector {
+    return MalList.is(ast) || MalVector.is(ast);
 }
 
 export function isAST(v: MalType): v is MalType {

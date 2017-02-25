@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { MalType, MalString, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction } from "./types";
+import { MalType, MalString, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -15,7 +15,7 @@ function quasiquote(ast: MalType): MalType {
     if (!isPair(ast)) {
         return new MalList([MalSymbol.get("quote"), ast]);
     }
-    if (!MalList.is(ast) && !MalVector.is(ast)) {
+    if (!isSeq(ast)) {
         throw new Error(`unexpected token type: ${ast.type}, expected: list or vector`);
     }
     const [arg1, arg2] = ast.list;
@@ -23,7 +23,7 @@ function quasiquote(ast: MalType): MalType {
         return arg2;
     }
     if (isPair(arg1)) {
-        if (!MalList.is(arg1) && !MalVector.is(arg1)) {
+        if (!isSeq(arg1)) {
             throw new Error(`unexpected token type: ${arg1.type}, expected: list or vector`);
         }
         const [arg11, arg12] = arg1.list;
@@ -43,7 +43,7 @@ function quasiquote(ast: MalType): MalType {
     ]);
 
     function isPair(ast: MalType) {
-        if (!MalList.is(ast) && !MalVector.is(ast)) {
+        if (!isSeq(ast)) {
             return false;
         }
 
@@ -101,7 +101,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                     case "let*": {
                         env = new Env(env);
                         const pairs = ast.list[1];
-                        if (!MalList.is(pairs) && !MalVector.is(pairs)) {
+                        if (!isSeq(pairs)) {
                             throw new Error(`unexpected token type: ${pairs.type}, expected: list or vector`);
                         }
                         for (let i = 0; i < pairs.list.length; i += 2) {
@@ -152,7 +152,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                     }
                     case "fn*": {
                         const [, params, bodyAst] = ast.list;
-                        if (!MalList.is(params) && !MalVector.is(params)) {
+                        if (!isSeq(params)) {
                             throw new Error(`unexpected return type: ${params.type}, expected: list or vector`);
                         }
                         const symbols = params.list.map(param => {
@@ -166,7 +166,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                 }
         }
         const result = evalAST(ast, env);
-        if (!MalList.is(result) && !MalVector.is(result)) {
+        if (!isSeq(result)) {
             throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
         }
         const [f, ...args] = result.list;

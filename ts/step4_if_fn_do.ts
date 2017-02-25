@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { MalType, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction } from "./types";
+import { MalType, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -60,7 +60,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                 case "let*": {
                     let letEnv = new Env(env);
                     const pairs = ast.list[1];
-                    if (!MalList.is(pairs) && !MalVector.is(pairs)) {
+                    if (!isSeq(pairs)) {
                         throw new Error(`unexpected token type: ${pairs.type}, expected: list or vector`);
                     }
                     for (let i = 0; i < pairs.list.length; i += 2) {
@@ -80,7 +80,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                 case "do": {
                     const [, ...list] = ast.list;
                     const ret = evalAST(new MalList(list), env);
-                    if (!MalList.is(ret) && !MalVector.is(ret)) {
+                    if (!isSeq(ret)) {
                         throw new Error(`unexpected return type: ${ret.type}, expected: list or vector`);
                     }
                     return ret.list[ret.list.length - 1];
@@ -104,7 +104,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                 }
                 case "fn*": {
                     const [, args, binds] = ast.list;
-                    if (!MalList.is(args) && !MalVector.is(args)) {
+                    if (!isSeq(args)) {
                         throw new Error(`unexpected return type: ${args.type}, expected: list or vector`);
                     }
                     const symbols = args.list.map(arg => {
@@ -120,7 +120,7 @@ function evalMal(ast: MalType, env: Env): MalType {
             }
     }
     const result = evalAST(ast, env);
-    if (!MalList.is(result) && !MalVector.is(result)) {
+    if (!isSeq(result)) {
         throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
     }
     const [f, ...args] = result.list;
