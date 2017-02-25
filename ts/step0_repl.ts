@@ -1,23 +1,26 @@
 import { readline } from "./node_readline";
 
-function read(v: string): any {
+// READ
+function read(str: string): any {
     // TODO
-    return v;
+    return str;
 }
 
-function evalAST(v: any): any {
+// EVAL
+function evalMal(ast: any, _env?: any): any {
     // TODO
-    return v;
+    return ast;
 }
 
-function print(v: any): string {
+// PRINT
+function print(exp: any): string {
     // TODO
-    return v;
+    return exp;
 }
 
-function rep(v: string): string {
+function rep(str: string): string {
     // TODO
-    return print(evalAST(read(v)));
+    return print(evalMal(read(str)));
 }
 
 while (true) {

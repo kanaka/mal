@@ -4,21 +4,24 @@ import { MalType } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
-function read(v: string): MalType {
-    return readStr(v);
+// READ
+function read(str: string): MalType {
+    return readStr(str);
 }
 
-function evalAST(v: any): any {
+// EVAL
+function evalMal(ast: any, _env?: any): any {
     // TODO
-    return v;
+    return ast;
 }
 
-function print(v: MalType): string {
-    return prStr(v);
+// PRINT
+function print(exp: MalType): string {
+    return prStr(exp);
 }
 
-function rep(v: string): string {
-    return print(evalAST(read(v)));
+function rep(str: string): string {
+    return print(evalMal(read(str)));
 }
 
 while (true) {

@@ -350,9 +350,9 @@ export class MalFunction {
         return f instanceof MalFunction;
     }
 
-    static fromLisp(evalSexpr: (ast: MalType, env: Env) => MalType, env: Env, params: MalSymbol[], bodyAst: MalType): MalFunction {
+    static fromLisp(evalMal: (ast: MalType, env: Env) => MalType, env: Env, params: MalSymbol[], bodyAst: MalType): MalFunction {
         const f = new MalFunction();
-        f.func = (...args) => evalSexpr(bodyAst, new Env(env, params, checkUndefined(args)));
+        f.func = (...args) => evalMal(bodyAst, new Env(env, params, checkUndefined(args)));
         f.env = env;
         f.params = params;
         f.ast = bodyAst;

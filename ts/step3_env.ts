@@ -5,6 +5,7 @@ import { Env } from "./env";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
+// READ
 function read(str: string): MalType {
     return readStr(str);
 }
@@ -18,14 +19,14 @@ function evalAST(ast: MalType, env: Env): MalType {
             }
             return f;
         case "list":
-            return new MalList(ast.list.map(ast => evalSexp(ast, env)));
+            return new MalList(ast.list.map(ast => evalMal(ast, env)));
         case "vector":
-            return new MalVector(ast.list.map(ast => evalSexp(ast, env)));
+            return new MalVector(ast.list.map(ast => evalMal(ast, env)));
         case "hash-map":
             const list: MalType[] = [];
             for (const [key, value] of ast.entries()) {
                 list.push(key);
-                list.push(evalSexp(value, env));
+                list.push(evalMal(value, env));
             }
             return new MalHashMap(list);
         default:
@@ -33,7 +34,8 @@ function evalAST(ast: MalType, env: Env): MalType {
     }
 }
 
-function evalSexp(ast: MalType, env: Env): MalType {
+// EVAL
+function evalMal(ast: MalType, env: Env): MalType {
     if (ast.type !== "list") {
         return evalAST(ast, env);
     }
@@ -52,7 +54,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                     if (!value) {
                         throw new Error(`unexpected syntax`);
                     }
-                    return env.set(key as MalSymbol, evalSexp(value, env))
+                    return env.set(key as MalSymbol, evalMal(value, env))
                 }
                 case "let*": {
                     let letEnv = new Env(env);
@@ -68,9 +70,9 @@ function evalSexp(ast: MalType, env: Env): MalType {
                             throw new Error(`unexpected syntax`);
                         }
 
-                        letEnv.set(key as MalSymbol, evalSexp(value, letEnv));
+                        letEnv.set(key as MalSymbol, evalMal(value, letEnv));
                     }
-                    return evalSexp(ast.list[2], letEnv);
+                    return evalMal(ast.list[2], letEnv);
                 }
             }
     }
@@ -82,19 +84,20 @@ function evalSexp(ast: MalType, env: Env): MalType {
     return f.func(...args);
 }
 
+// PRINT
 function print(exp: MalType): string {
     return prStr(exp);
 }
 
 const replEnv = new Env();
+function rep(str: string): string {
+    return print(evalMal(read(str), replEnv));
+}
+
 replEnv.set(MalSymbol.get("+"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v + b!.v)));
 replEnv.set(MalSymbol.get("-"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v - b!.v)));
 replEnv.set(MalSymbol.get("*"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v * b!.v)));
 replEnv.set(MalSymbol.get("/"), MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v / b!.v)));
-
-function rep(str: string): string {
-    return print(evalSexp(read(str), replEnv));
-}
 
 while (true) {
     const line = readline("user> ");

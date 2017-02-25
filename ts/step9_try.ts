@@ -6,6 +6,7 @@ import * as core from "./core";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
+// READ
 function read(str: string): MalType {
     return readStr(str);
 }
@@ -50,7 +51,7 @@ function quasiquote(ast: MalType): MalType {
     }
 }
 
-function isMacroCall(ast: MalType, env: Env): boolean {
+function isMacro(ast: MalType, env: Env): boolean {
     if (!MalList.is(ast) && !MalVector.is(ast)) {
         return false;
     }
@@ -72,7 +73,7 @@ function isMacroCall(ast: MalType, env: Env): boolean {
 }
 
 function macroexpand(ast: MalType, env: Env): MalType {
-    while (isMacroCall(ast, env)) {
+    while (isMacro(ast, env)) {
         if (!MalList.is(ast) && !MalVector.is(ast)) {
             throw new Error(`unexpected token type: ${ast.type}, expected: list or vector`);
         }
@@ -99,14 +100,14 @@ function evalAST(ast: MalType, env: Env): MalType {
             }
             return f;
         case "list":
-            return new MalList(ast.list.map(ast => evalSexp(ast, env)));
+            return new MalList(ast.list.map(ast => evalMal(ast, env)));
         case "vector":
-            return new MalVector(ast.list.map(ast => evalSexp(ast, env)));
+            return new MalVector(ast.list.map(ast => evalMal(ast, env)));
         case "hash-map":
             const list: MalType[] = [];
             for (const [key, value] of ast.entries()) {
                 list.push(key);
-                list.push(evalSexp(value, env));
+                list.push(evalMal(value, env));
             }
             return new MalHashMap(list);
         default:
@@ -114,7 +115,8 @@ function evalAST(ast: MalType, env: Env): MalType {
     }
 }
 
-function evalSexp(ast: MalType, env: Env): MalType {
+// EVAL
+function evalMal(ast: MalType, env: Env): MalType {
     loop: while (true) {
         if (ast.type !== "list") {
             return evalAST(ast, env);
@@ -140,7 +142,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                         if (!value) {
                             throw new Error(`unexpected syntax`);
                         }
-                        return env.set(key, evalSexp(value, env))
+                        return env.set(key, evalMal(value, env))
                     }
                     case "let*": {
                         env = new Env(env);
@@ -158,7 +160,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                                 throw new Error(`unexpected syntax`);
                             }
 
-                            env.set(key, evalSexp(value, env));
+                            env.set(key, evalMal(value, env));
                         }
                         ast = ast.list[2];
                         continue loop;
@@ -178,7 +180,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                         if (!value) {
                             throw new Error(`unexpected syntax`);
                         }
-                        const f = evalSexp(value, env);
+                        const f = evalMal(value, env);
                         if (!MalFunction.is(f)) {
                             throw new Error(`unexpected token type: ${f.type}, expected: function`);
                         }
@@ -190,7 +192,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                     }
                     case "try*": {
                         try {
-                            return evalSexp(ast.list[1], env);
+                            return evalMal(ast.list[1], env);
                         } catch (e) {
                             const catchBody = ast.list[2];
                             if (!MalList.is(catchBody) && !MalVector.is(catchBody)) {
@@ -205,7 +207,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                                 if (!isAST(e)) {
                                     e = new MalString((e as Error).message);
                                 }
-                                return evalSexp(catchBody.list[2], new Env(env, [errorSymbol], [e]));
+                                return evalMal(catchBody.list[2], new Env(env, [errorSymbol], [e]));
                             }
                             throw e;
                         }
@@ -218,7 +220,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                     }
                     case "if": {
                         const [, cond, thenExpr, elseExrp] = ast.list;
-                        const ret = evalSexp(cond, env);
+                        const ret = evalMal(cond, env);
                         let b = true;
                         if (MalBoolean.is(ret) && !ret.v) {
                             b = false;
@@ -245,7 +247,7 @@ function evalSexp(ast: MalType, env: Env): MalType {
                             }
                             return param;
                         });
-                        return MalFunction.fromLisp(evalSexp, env, symbols, bodyAst);
+                        return MalFunction.fromLisp(evalMal, env, symbols, bodyAst);
                     }
                 }
         }
@@ -267,11 +269,17 @@ function evalSexp(ast: MalType, env: Env): MalType {
     }
 }
 
+// PRINT
 function print(exp: MalType): string {
     return prStr(exp);
 }
 
 const replEnv = new Env();
+function rep(str: string): string {
+    return print(evalMal(read(str), replEnv));
+}
+
+// core.EXT: defined using Racket
 core.ns.forEach((value, key) => {
     replEnv.set(key, value);
 });
@@ -279,9 +287,8 @@ replEnv.set(MalSymbol.get("eval"), MalFunction.fromBootstrap(ast => {
     if (!ast) {
         throw new Error(`undefined argument`);
     }
-    return evalSexp(ast, replEnv);
+    return evalMal(ast, replEnv);
 }));
-
 replEnv.set(MalSymbol.get("*ARGV*"), new MalList([]));
 
 // core.mal: defined using the language itself
@@ -294,10 +301,6 @@ if (typeof process !== "undefined" && 2 < process.argv.length) {
     replEnv.set(MalSymbol.get("*ARGV*"), new MalList(process.argv.slice(3).map(s => new MalString(s))));
     rep(`(load-file "${process.argv[2]}")`);
     process.exit(0);
-}
-
-function rep(str: string): string {
-    return print(evalSexp(read(str), replEnv));
 }
 
 while (true) {

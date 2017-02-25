@@ -4,6 +4,7 @@ import { MalType, MalNumber, MalList, MalVector, MalHashMap, MalFunction } from 
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
+// READ
 function read(str: string): MalType {
     return readStr(str);
 }
@@ -21,14 +22,14 @@ function evalAST(ast: MalType, env: MalEnvironment): MalType {
             }
             return f;
         case "list":
-            return new MalList(ast.list.map(ast => evalSexp(ast, env)));
+            return new MalList(ast.list.map(ast => evalMal(ast, env)));
         case "vector":
-            return new MalVector(ast.list.map(ast => evalSexp(ast, env)));
+            return new MalVector(ast.list.map(ast => evalMal(ast, env)));
         case "hash-map":
             const list: MalType[] = [];
             for (const [key, value] of ast.entries()) {
                 list.push(key);
-                list.push(evalSexp(value, env));
+                list.push(evalMal(value, env));
             }
             return new MalHashMap(list);
         default:
@@ -36,7 +37,8 @@ function evalAST(ast: MalType, env: MalEnvironment): MalType {
     }
 }
 
-function evalSexp(ast: MalType, env: MalEnvironment): MalType {
+// EVAL
+function evalMal(ast: MalType, env: MalEnvironment): MalType {
     if (ast.type !== "list") {
         return evalAST(ast, env);
     }
@@ -51,6 +53,7 @@ function evalSexp(ast: MalType, env: MalEnvironment): MalType {
     return f.func(...args);
 }
 
+// PRINT
 function print(exp: MalType): string {
     return prStr(exp);
 }
@@ -62,7 +65,7 @@ const replEnv: MalEnvironment = {
     "/": MalFunction.fromBootstrap((a?: MalNumber, b?: MalNumber) => new MalNumber(a!.v / b!.v)),
 };
 function rep(str: string): string {
-    return print(evalSexp(read(str), replEnv));
+    return print(evalMal(read(str), replEnv));
 }
 
 while (true) {
