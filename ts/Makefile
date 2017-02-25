@@ -2,23 +2,13 @@ SOURCES_BASE = types.ts reader.ts printer.ts
 SOURCES_LISP = env.ts core.ts stepA_mal.ts
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: node_modules dist
+all: node_modules ts
 
 node_modules:
 	npm install
 
-dist: mal.js mal
-
-%.js: %.js
-	./node_modules/.bin/tsc -p ./
-
-mal.js: $(SOURCES)
-	./node_modules/.bin/tsc -p ./
-
-mal: mal.js
-	echo "#!/usr/bin/env node" > $@
-	cat $< >> $@
-	chmod +x $@
+ts: node_modules
+	$(npm bin)/tsc -p ./
 
 clean:
 	rm -f *.js mal
