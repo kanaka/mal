@@ -856,6 +856,17 @@ cd tcl
 tclsh ./stepX_YYY.tcl
 ```
 
+### TypeScript
+
+The TypeScript implementation of mal requires the TypeScript 2.2 compiler.
+It has been tested with Node.js v7.6.0.
+
+```
+cd ts
+make
+node ./stepX_YYY.js
+```
+
 ### VHDL
 
 *The VHDL implementation was created by [Dov Murik](https://github.com/dubek)*

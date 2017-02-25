@@ -8,7 +8,7 @@ node_modules:
 	npm install
 
 ts: node_modules
-	$(npm bin)/tsc -p ./
+	./node_modules/.bin/tsc -p ./
 
 clean:
 	rm -f *.js mal
