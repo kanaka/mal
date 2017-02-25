@@ -1,4 +1,4 @@
-import { MalType, MalList, MalString, MalNumber, MalBoolean, MalNull, MalKeyword, MalSymbol, MalVector, MalHashMap } from "./types";
+import { MalType, MalList, MalString, MalNumber, MalBoolean, MalNil, MalKeyword, MalSymbol, MalVector, MalHashMap } from "./types";
 
 class Reader {
     position = 0;
@@ -134,7 +134,7 @@ function readAtom(reader: Reader): MalType {
     }
     switch (token) {
         case "nil":
-            return MalNull.instance;
+            return MalNil.instance;
         case "true":
             return new MalBoolean(true);
         case "false":

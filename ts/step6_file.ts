@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { Node, MalType, MalString, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
+import { Node, MalType, MalString, MalNil, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -91,7 +91,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                         let b = true;
                         if (ret.type === Node.Boolean && !ret.v) {
                             b = false;
-                        } else if (ret.type === Node.Null) {
+                        } else if (ret.type === Node.Nil) {
                             b = false;
                         }
                         if (b) {
@@ -99,7 +99,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                         } else if (elseExrp) {
                             ast = elseExrp;
                         } else {
-                            ast = MalNull.instance;
+                            ast = MalNil.instance;
                         }
                         continue loop;
                     }

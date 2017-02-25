@@ -1,12 +1,12 @@
 import { Env } from "./env";
 
-export type MalType = MalList | MalNumber | MalString | MalNull | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap | MalFunction | MalAtom;
+export type MalType = MalList | MalNumber | MalString | MalNil | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap | MalFunction | MalAtom;
 
 export const enum Node {
     List = 1,
     Number,
     String,
-    Null,
+    Nil,
     Boolean,
     Symbol,
     Keyword,
@@ -21,7 +21,7 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
         return false;
     }
 
-    if (a.type === Node.Null && b.type === Node.Null) {
+    if (a.type === Node.Nil && b.type === Node.Nil) {
         return true;
     }
     if (isSeq(a) && isSeq(b)) {
@@ -39,7 +39,7 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
                 throw new Error(`unexpected symbol: ${aK.type}, expected: string or keyword`);
             }
             const bV = b.get(aK);
-            if (aV.type === Node.Null && bV.type === Node.Null) {
+            if (aV.type === Node.Nil && bV.type === Node.Nil) {
                 continue;
             }
             if (!equals(aV, bV)) {
@@ -124,16 +124,24 @@ export class MalString {
     }
 }
 
-export class MalNull {
+export class MalNil {
 
-    static instance = new MalNull();
+    private static _instance?: MalNil;
 
-    type: Node.Null = Node.Null;
+    static get instance(): MalNil {
+        if (this._instance) {
+            return this._instance;
+        }
+        this._instance = new MalNil();
+        return this._instance;
+    }
+
+    type: Node.Nil = Node.Nil;
     meta?: MalType;
 
     private constructor() { }
 
-    withMeta(_meta: MalType): MalNull {
+    withMeta(_meta: MalType): MalNil {
         throw new Error(`not supported`);
     }
 }
@@ -254,9 +262,9 @@ export class MalHashMap {
 
     get(key: MalKeyword | MalString) {
         if (key.type === Node.Keyword) {
-            return this.keywordMap.get(key) || MalNull.instance;
+            return this.keywordMap.get(key) || MalNil.instance;
         }
-        return this.stringMap[key.v] || MalNull.instance;
+        return this.stringMap[key.v] || MalNil.instance;
     }
 
     entries(): [MalType, MalType][] {

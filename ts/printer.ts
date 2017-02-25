@@ -30,7 +30,7 @@ export function prStr(v: MalType, printReadably = true): string {
             } else {
                 return v.v;
             }
-        case Node.Null:
+        case Node.Nil:
             return "nil";
         case Node.Keyword:
             return `:${v.v}`;
