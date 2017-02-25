@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { MalType, MalBoolean, MalNull, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
+import { Node, MalType, MalNull, MalList, MalVector, MalHashMap, MalFunction, isSeq } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -13,17 +13,17 @@ function read(str: string): MalType {
 
 function evalAST(ast: MalType, env: Env): MalType {
     switch (ast.type) {
-        case "symbol":
+        case Node.Symbol:
             const f = env.get(ast);
             if (!f) {
                 throw new Error(`unknown symbol: ${ast.v}`);
             }
             return f;
-        case "list":
+        case Node.List:
             return new MalList(ast.list.map(ast => evalMal(ast, env)));
-        case "vector":
+        case Node.Vector:
             return new MalVector(ast.list.map(ast => evalMal(ast, env)));
-        case "hash-map":
+        case Node.HashMap:
             const list: MalType[] = [];
             for (const [key, value] of ast.entries()) {
                 list.push(key);
@@ -37,7 +37,7 @@ function evalAST(ast: MalType, env: Env): MalType {
 
 // EVAL
 function evalMal(ast: MalType, env: Env): MalType {
-    if (ast.type !== "list") {
+    if (ast.type !== Node.List) {
         return evalAST(ast, env);
     }
     if (ast.list.length === 0) {
@@ -45,11 +45,11 @@ function evalMal(ast: MalType, env: Env): MalType {
     }
     const first = ast.list[0];
     switch (first.type) {
-        case "symbol":
+        case Node.Symbol:
             switch (first.v) {
                 case "def!": {
                     const [, key, value] = ast.list;
-                    if (!MalSymbol.is(key)) {
+                    if (key.type !== Node.Symbol) {
                         throw new Error(`unexpected token type: ${key.type}, expected: symbol`);
                     }
                     if (!value) {
@@ -66,7 +66,7 @@ function evalMal(ast: MalType, env: Env): MalType {
                     for (let i = 0; i < pairs.list.length; i += 2) {
                         const key = pairs.list[i];
                         const value = pairs.list[i + 1];
-                        if (!MalSymbol.is(key)) {
+                        if (key.type !== Node.Symbol) {
                             throw new Error(`unexpected token type: ${key.type}, expected: symbol`);
                         }
                         if (!key || !value) {
@@ -89,9 +89,9 @@ function evalMal(ast: MalType, env: Env): MalType {
                     const [, cond, thenExpr, elseExrp] = ast.list;
                     const ret = evalMal(cond, env);
                     let b = true;
-                    if (MalBoolean.is(ret) && !ret.v) {
+                    if (ret.type === Node.Boolean && !ret.v) {
                         b = false;
-                    } else if (MalNull.is(ret)) {
+                    } else if (ret.type === Node.Null) {
                         b = false;
                     }
                     if (b) {
@@ -107,11 +107,11 @@ function evalMal(ast: MalType, env: Env): MalType {
                     if (!isSeq(args)) {
                         throw new Error(`unexpected return type: ${args.type}, expected: list or vector`);
                     }
-                    const symbols = args.list.map(arg => {
-                        if (!MalSymbol.is(arg)) {
-                            throw new Error(`unexpected return type: ${arg.type}, expected: symbol`);
+                    const symbols = args.list.map(param => {
+                        if (param.type !== Node.Symbol) {
+                            throw new Error(`unexpected return type: ${param.type}, expected: symbol`);
                         }
-                        return arg;
+                        return param;
                     });
                     return MalFunction.fromBootstrap((...fnArgs: MalType[]) => {
                         return evalMal(binds, new Env(env, symbols, fnArgs));
@@ -124,7 +124,7 @@ function evalMal(ast: MalType, env: Env): MalType {
         throw new Error(`unexpected return type: ${result.type}, expected: list or vector`);
     }
     const [f, ...args] = result.list;
-    if (!MalFunction.is(f)) {
+    if (f.type !== Node.Function) {
         throw new Error(`unexpected token: ${f.type}, expected: function`);
     }
     return f.func(...args);

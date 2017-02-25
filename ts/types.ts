@@ -2,18 +2,32 @@ import { Env } from "./env";
 
 export type MalType = MalList | MalNumber | MalString | MalNull | MalBoolean | MalSymbol | MalKeyword | MalVector | MalHashMap | MalFunction | MalAtom;
 
+export const enum Node {
+    List = 1,
+    Number,
+    String,
+    Null,
+    Boolean,
+    Symbol,
+    Keyword,
+    Vector,
+    HashMap,
+    Function,
+    Atom,
+}
+
 export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
     if (strict && a.type !== b.type) {
         return false;
     }
 
-    if (MalNull.is(a) && MalNull.is(b)) {
+    if (a.type === Node.Null && b.type === Node.Null) {
         return true;
     }
     if (isSeq(a) && isSeq(b)) {
         return listEquals(a.list, b.list);
     }
-    if (MalHashMap.is(a) && MalHashMap.is(b)) {
+    if (a.type === Node.HashMap && b.type === Node.HashMap) {
         if (a.keywordMap.size !== b.keywordMap.size) {
             return false;
         }
@@ -21,11 +35,11 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
             return false;
         }
         for (const [aK, aV] of a.entries()) {
-            if (!MalString.is(aK) && !MalKeyword.is(aK)) {
+            if (aK.type !== Node.String && aK.type !== Node.Keyword) {
                 throw new Error(`unexpected symbol: ${aK.type}, expected: string or keyword`);
             }
             const bV = b.get(aK);
-            if (MalNull.is(aV) && MalNull.is(bV)) {
+            if (aV.type === Node.Null && bV.type === Node.Null) {
                 continue;
             }
             if (!equals(aV, bV)) {
@@ -36,11 +50,11 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
         return true;
     }
     if (
-        (MalNumber.is(a) && MalNumber.is(b))
-        || (MalString.is(a) && MalString.is(b))
-        || (MalBoolean.is(a) && MalBoolean.is(b))
-        || (MalSymbol.is(a) && MalSymbol.is(b))
-        || (MalKeyword.is(a) && MalKeyword.is(b))
+        (a.type === Node.Number && b.type === Node.Number)
+        || (a.type === Node.String && b.type === Node.String)
+        || (a.type === Node.Boolean && b.type === Node.Boolean)
+        || (a.type === Node.Symbol && b.type === Node.Symbol)
+        || (a.type === Node.Keyword && b.type === Node.Keyword)
     ) {
         return a.v === b.v;
     }
@@ -61,7 +75,7 @@ export function equals(a: MalType, b: MalType, strict?: boolean): boolean {
 }
 
 export function isSeq(ast: MalType): ast is MalList | MalVector {
-    return MalList.is(ast) || MalVector.is(ast);
+    return ast.type === Node.List || ast.type === Node.Vector;
 }
 
 export function isAST(v: MalType): v is MalType {
@@ -69,11 +83,7 @@ export function isAST(v: MalType): v is MalType {
 }
 
 export class MalList {
-    static is(f: MalType): f is MalList {
-        return f instanceof MalList;
-    }
-
-    type: "list" = "list";
+    type: Node.List = Node.List;
     meta?: MalType;
 
     constructor(public list: MalType[]) {
@@ -87,11 +97,7 @@ export class MalList {
 }
 
 export class MalNumber {
-    static is(f: MalType): f is MalNumber {
-        return f instanceof MalNumber;
-    }
-
-    type: "number" = "number";
+    type: Node.Number = Node.Number;
     meta?: MalType;
 
     constructor(public v: number) {
@@ -105,11 +111,7 @@ export class MalNumber {
 }
 
 export class MalString {
-    static is(f: MalType): f is MalString {
-        return f instanceof MalString;
-    }
-
-    type: "string" = "string";
+    type: Node.String = Node.String;
     meta?: MalType;
 
     constructor(public v: string) {
@@ -123,13 +125,10 @@ export class MalString {
 }
 
 export class MalNull {
-    static is(f: MalType): f is MalNull {
-        return f instanceof MalNull;
-    }
 
     static instance = new MalNull();
 
-    type: "null" = "null";
+    type: Node.Null = Node.Null;
     meta?: MalType;
 
     private constructor() { }
@@ -140,11 +139,7 @@ export class MalNull {
 }
 
 export class MalBoolean {
-    static is(f: MalType): f is MalBoolean {
-        return f instanceof MalBoolean;
-    }
-
-    type: "boolean" = "boolean";
+    type: Node.Boolean = Node.Boolean;
     meta?: MalType;
 
     constructor(public v: boolean) {
@@ -158,10 +153,6 @@ export class MalBoolean {
 }
 
 export class MalSymbol {
-    static is(f: MalType): f is MalSymbol {
-        return f instanceof MalSymbol;
-    }
-
     static map = new Map<symbol, MalSymbol>();
 
     static get(name: string): MalSymbol {
@@ -175,7 +166,7 @@ export class MalSymbol {
         return token;
     }
 
-    type: "symbol" = "symbol";
+    type: Node.Symbol = Node.Symbol;
     meta?: MalType;
 
     private constructor(public v: string) {
@@ -187,10 +178,6 @@ export class MalSymbol {
 }
 
 export class MalKeyword {
-    static is(f: MalType): f is MalKeyword {
-        return f instanceof MalKeyword;
-    }
-
     static map = new Map<symbol, MalKeyword>();
 
     static get(name: string): MalKeyword {
@@ -204,7 +191,7 @@ export class MalKeyword {
         return token;
     }
 
-    type: "keyword" = "keyword";
+    type: Node.Keyword = Node.Keyword;
     meta?: MalType;
 
     private constructor(public v: string) {
@@ -216,11 +203,7 @@ export class MalKeyword {
 }
 
 export class MalVector {
-    static is(f: MalType): f is MalVector {
-        return f instanceof MalVector;
-    }
-
-    type: "vector" = "vector";
+    type: Node.Vector = Node.Vector;
     meta?: MalType;
 
     constructor(public list: MalType[]) {
@@ -234,11 +217,7 @@ export class MalVector {
 }
 
 export class MalHashMap {
-    static is(f: MalType): f is MalHashMap {
-        return f instanceof MalHashMap;
-    }
-
-    type: "hash-map" = "hash-map";
+    type: Node.HashMap = Node.HashMap;
     stringMap: { [key: string]: MalType } = {};
     keywordMap = new Map<MalType, MalType>();
     meta?: MalType;
@@ -250,9 +229,9 @@ export class MalHashMap {
             if (value == null) {
                 throw new Error("unexpected hash length");
             }
-            if (MalKeyword.is(key)) {
+            if (key.type === Node.Keyword) {
                 this.keywordMap.set(key, value);
-            } else if (MalString.is(key)) {
+            } else if (key.type === Node.String) {
                 this.stringMap[key.v] = value;
             } else {
                 throw new Error(`unexpected key symbol: ${key.type}, expected: keyword or string`);
@@ -267,14 +246,14 @@ export class MalHashMap {
     }
 
     has(key: MalKeyword | MalString) {
-        if (MalKeyword.is(key)) {
+        if (key.type === Node.Keyword) {
             return !!this.keywordMap.get(key);
         }
         return !!this.stringMap[key.v];
     }
 
     get(key: MalKeyword | MalString) {
-        if (MalKeyword.is(key)) {
+        if (key.type === Node.Keyword) {
             return this.keywordMap.get(key) || MalNull.instance;
         }
         return this.stringMap[key.v] || MalNull.instance;
@@ -327,9 +306,9 @@ export class MalHashMap {
         const newHashMap = this.assoc([]);
 
         args.forEach(arg => {
-            if (MalString.is(arg)) {
+            if (arg.type === Node.String) {
                 delete newHashMap.stringMap[arg.v];
-            } else if (MalKeyword.is(arg)) {
+            } else if (arg.type === Node.Keyword) {
                 newHashMap.keywordMap.delete(arg);
             } else {
                 throw new Error(`unexpected symbol: ${arg.type}, expected: keyword or string`);
@@ -342,10 +321,6 @@ export class MalHashMap {
 type MalF = (...args: (MalType | undefined)[]) => MalType;
 
 export class MalFunction {
-    static is(f: MalType): f is MalFunction {
-        return f instanceof MalFunction;
-    }
-
     static fromLisp(evalMal: (ast: MalType, env: Env) => MalType, env: Env, params: MalSymbol[], bodyAst: MalType): MalFunction {
         const f = new MalFunction();
         f.func = (...args) => evalMal(bodyAst, new Env(env, params, checkUndefined(args)));
@@ -374,8 +349,7 @@ export class MalFunction {
         return f;
     }
 
-    type: "function" = "function";
-
+    type: Node.Function = Node.Function;
     func: MalF;
     ast: MalType;
     env: Env;
@@ -403,11 +377,7 @@ export class MalFunction {
 }
 
 export class MalAtom {
-    static is(f: MalType): f is MalAtom {
-        return f instanceof MalAtom;
-    }
-
-    type: "atom" = "atom";
+    type: Node.Atom = Node.Atom;
     meta?: MalType;
 
     constructor(public v: MalType) {

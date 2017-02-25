@@ -1,12 +1,12 @@
-import { MalType } from "./types";
+import { Node, MalType } from "./types";
 
 export function prStr(v: MalType, printReadably = true): string {
     switch (v.type) {
-        case "list":
+        case Node.List:
             return `(${v.list.map(v => prStr(v, printReadably)).join(" ")})`;
-        case "vector":
+        case Node.Vector:
             return `[${v.list.map(v => prStr(v, printReadably)).join(" ")}]`;
-        case "hash-map":
+        case Node.HashMap:
             let result = "{";
             for (const [key, value] of v.entries()) {
                 if (result !== "{") {
@@ -16,11 +16,11 @@ export function prStr(v: MalType, printReadably = true): string {
             }
             result += "}";
             return result;
-        case "number":
-        case "symbol":
-        case "boolean":
+        case Node.Number:
+        case Node.Symbol:
+        case Node.Boolean:
             return `${v.v}`;
-        case "string":
+        case Node.String:
             if (printReadably) {
                 const str = v.v
                     .replace(/\\/g, "\\\\")
@@ -30,13 +30,13 @@ export function prStr(v: MalType, printReadably = true): string {
             } else {
                 return v.v;
             }
-        case "null":
+        case Node.Null:
             return "nil";
-        case "keyword":
+        case Node.Keyword:
             return `:${v.v}`;
-        case "function":
+        case Node.Function:
             return "#<function>";
-        case "atom":
+        case Node.Atom:
             return `(atom ${prStr(v.v, printReadably)})`;
     }
 }

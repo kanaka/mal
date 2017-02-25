@@ -2,7 +2,7 @@ import * as fs from "fs";
 
 import { readline } from "./node_readline";
 
-import { MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalKeyword, MalHashMap, MalAtom, equals, isSeq } from "./types";
+import { Node, MalType, MalSymbol, MalFunction, MalNull, MalList, MalVector, MalBoolean, MalNumber, MalString, MalKeyword, MalHashMap, MalAtom, equals, isSeq } from "./types";
 import { readStr } from "./reader";
 import { prStr } from "./printer";
 
@@ -16,34 +16,34 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         },
 
         "nil?"(v: MalType) {
-            return new MalBoolean(MalNull.is(v));
+            return new MalBoolean(v.type === Node.Null);
         },
         "true?"(v: MalType) {
-            return new MalBoolean(MalBoolean.is(v) && v.v);
+            return new MalBoolean(v.type === Node.Boolean && v.v);
         },
         "false?"(v: MalType) {
-            return new MalBoolean(MalBoolean.is(v) && !v.v);
+            return new MalBoolean(v.type === Node.Boolean && !v.v);
         },
         "string?"(v: MalType) {
-            return new MalBoolean(MalString.is(v));
+            return new MalBoolean(v.type === Node.String);
         },
         symbol(v: MalType) {
-            if (!MalString.is(v)) {
+            if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
             return MalSymbol.get(v.v);
         },
         "symbol?"(v: MalType) {
-            return new MalBoolean(MalSymbol.is(v));
+            return new MalBoolean(v.type === Node.Symbol);
         },
         keyword(v: MalType) {
-            if (!MalString.is(v)) {
+            if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
             return MalKeyword.get(v.v);
         },
         "keyword?"(v: MalType) {
-            return new MalBoolean(MalKeyword.is(v));
+            return new MalBoolean(v.type === Node.Keyword);
         },
 
         "pr-str"(...args: MalType[]): MalString {
@@ -63,13 +63,13 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return MalNull.instance;
         },
         "read-string"(v: MalType) {
-            if (!MalString.is(v)) {
+            if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
             return readStr(v.v);
         },
         readline(v: MalType) {
-            if (!MalString.is(v)) {
+            if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
 
@@ -81,7 +81,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalString(ret);
         },
         slurp(v: MalType) {
-            if (!MalString.is(v)) {
+            if (v.type !== Node.String) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: string`);
             }
             const content = fs.readFileSync(v.v, "UTF-8");
@@ -89,80 +89,80 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         },
 
         "<"(a: MalType, b: MalType): MalBoolean {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalBoolean(a.v < b.v);
         },
         "<="(a: MalType, b: MalType): MalBoolean {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalBoolean(a.v <= b.v);
         },
         ">"(a: MalType, b: MalType): MalBoolean {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalBoolean(a.v > b.v);
         },
         ">="(a: MalType, b: MalType): MalBoolean {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalBoolean(a.v >= b.v);
         },
         "+"(a: MalType, b: MalType): MalNumber {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalNumber(a.v + b.v);
         },
         "-"(a: MalType, b: MalType): MalNumber {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalNumber(a.v - b.v);
         },
         "*"(a: MalType, b: MalType): MalNumber {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
             return new MalNumber(a.v * b.v);
         },
         "/"(a: MalType, b: MalType): MalNumber {
-            if (!MalNumber.is(a)) {
+            if (a.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${a.type}, expected: number`);
             }
-            if (!MalNumber.is(b)) {
+            if (b.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${b.type}, expected: number`);
             }
 
@@ -182,61 +182,61 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalVector(args);
         },
         "vector?"(v: MalType): MalBoolean {
-            return new MalBoolean(MalVector.is(v));
+            return new MalBoolean(v.type === Node.Vector);
         },
         "hash-map"(...args: MalType[]) {
             return new MalHashMap(args);
         },
         "map?"(v: MalType): MalBoolean {
-            return new MalBoolean(MalHashMap.is(v));
+            return new MalBoolean(v.type === Node.HashMap);
         },
         assoc(v: MalType, ...args: MalType[]) {
-            if (!MalHashMap.is(v)) {
+            if (v.type !== Node.HashMap) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
             }
             return v.assoc(args);
         },
         dissoc(v: MalType, ...args: MalType[]) {
-            if (!MalHashMap.is(v)) {
+            if (v.type !== Node.HashMap) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
             }
             return v.dissoc(args);
         },
         get(v: MalType, key: MalType) {
-            if (MalNull.is(v)) {
+            if (v.type === Node.Null) {
                 return MalNull.instance;
             }
-            if (!MalHashMap.is(v)) {
+            if (v.type !== Node.HashMap) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
             }
-            if (!MalString.is(key) && !MalKeyword.is(key)) {
+            if (key.type !== Node.String && key.type !== Node.Keyword) {
                 throw new Error(`unexpected symbol: ${key.type}, expected: string or keyword`);
             }
 
             return v.get(key) || MalNull.instance;
         },
         "contains?"(v: MalType, key: MalType) {
-            if (MalNull.is(v)) {
+            if (v.type === Node.Null) {
                 return MalNull.instance;
             }
-            if (!MalHashMap.is(v)) {
+            if (v.type !== Node.HashMap) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
             }
-            if (!MalString.is(key) && !MalKeyword.is(key)) {
+            if (key.type !== Node.String && key.type !== Node.Keyword) {
                 throw new Error(`unexpected symbol: ${key.type}, expected: string or keyword`);
             }
 
             return new MalBoolean(v.has(key));
         },
         keys(v: MalType) {
-            if (!MalHashMap.is(v)) {
+            if (v.type !== Node.HashMap) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
             }
 
             return new MalList([...v.keys()]);
         },
         vals(v: MalType) {
-            if (!MalHashMap.is(v)) {
+            if (v.type !== Node.HashMap) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: hash-map`);
             }
 
@@ -269,7 +269,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             if (!isSeq(list)) {
                 throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
             }
-            if (!MalNumber.is(idx)) {
+            if (idx.type !== Node.Number) {
                 throw new Error(`unexpected symbol: ${idx.type}, expected: number`);
             }
 
@@ -281,7 +281,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return v;
         },
         first(v: MalType) {
-            if (MalNull.is(v)) {
+            if (v.type === Node.Null) {
                 return MalNull.instance;
             }
             if (!isSeq(v)) {
@@ -291,7 +291,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return v.list[0] || MalNull.instance;
         },
         rest(v: MalType) {
-            if (MalNull.is(v)) {
+            if (v.type === Node.Null) {
                 return new MalList([]);
             }
             if (!isSeq(v)) {
@@ -310,13 +310,13 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             if (isSeq(v)) {
                 return new MalNumber(v.list.length);
             }
-            if (MalNull.is(v)) {
+            if (v.type === Node.Null) {
                 return new MalNumber(0);
             }
             throw new Error(`unexpected symbol: ${v.type}`);
         },
         apply(f: MalType, ...list: MalType[]) {
-            if (!MalFunction.is(f)) {
+            if (f.type !== Node.Function) {
                 throw new Error(`unexpected symbol: ${f.type}, expected: function`);
             }
 
@@ -328,7 +328,7 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return f.func(...args);
         },
         map(f: MalType, list: MalType) {
-            if (!MalFunction.is(f)) {
+            if (f.type !== Node.Function) {
                 throw new Error(`unexpected symbol: ${f.type}, expected: function`);
             }
             if (!isSeq(list)) {
@@ -340,36 +340,36 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
 
         conj(list: MalType, ...args: MalType[]) {
             switch (list.type) {
-                case "list":
+                case Node.List:
                     const newList = new MalList(list.list);
                     args.forEach(arg => newList.list.unshift(arg));
                     return newList;
-                case "vector":
+                case Node.Vector:
                     return new MalVector([...list.list, ...args]);
             }
 
             throw new Error(`unexpected symbol: ${list.type}, expected: list or vector`);
         },
         seq(v: MalType) {
-            if (MalList.is(v)) {
+            if (v.type === Node.List) {
                 if (v.list.length === 0) {
                     return MalNull.instance;
                 }
                 return v;
             }
-            if (MalVector.is(v)) {
+            if (v.type === Node.Vector) {
                 if (v.list.length === 0) {
                     return MalNull.instance;
                 }
                 return new MalList(v.list);
             }
-            if (MalString.is(v)) {
+            if (v.type === Node.String) {
                 if (v.v.length === 0) {
                     return MalNull.instance;
                 }
                 return new MalList(v.v.split("").map(s => new MalString(s)));
             }
-            if (MalNull.is(v)) {
+            if (v.type === Node.Null) {
                 return MalNull.instance;
             }
 
@@ -386,26 +386,26 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
             return new MalAtom(v);
         },
         "atom?"(v: MalType): MalBoolean {
-            return new MalBoolean(MalAtom.is(v));
+            return new MalBoolean(v.type === Node.Atom);
         },
         deref(v: MalType): MalType {
-            if (!MalAtom.is(v)) {
+            if (v.type !== Node.Atom) {
                 throw new Error(`unexpected symbol: ${v.type}, expected: atom`);
             }
             return v.v;
         },
         "reset!"(atom: MalType, v: MalType): MalType {
-            if (!MalAtom.is(atom)) {
+            if (atom.type !== Node.Atom) {
                 throw new Error(`unexpected symbol: ${atom.type}, expected: atom`);
             }
             atom.v = v;
             return v;
         },
         "swap!"(atom: MalType, f: MalType, ...args: MalType[]): MalType {
-            if (!MalAtom.is(atom)) {
+            if (atom.type !== Node.Atom) {
                 throw new Error(`unexpected symbol: ${atom.type}, expected: atom`);
             }
-            if (!MalFunction.is(f)) {
+            if (f.type !== Node.Function) {
                 throw new Error(`unexpected symbol: ${f.type}, expected: function`);
             }
             atom.v = f.func(...[atom.v].concat(args));
