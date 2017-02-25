@@ -133,9 +133,9 @@ function print(exp: MalType): string {
 }
 
 const replEnv = new Env();
-for (const [key, value] of core.ns) {
+core.ns.forEach((value, key) => {
     replEnv.set(key, value);
-}
+});
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");

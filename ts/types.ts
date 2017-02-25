@@ -287,9 +287,9 @@ export class MalHashMap {
     entries(): [MalType, MalType][] {
         const list: [MalType, MalType][] = [];
 
-        for (const [k, v] of this.keywordMap) {
+        this.keywordMap.forEach((v, k) => {
             list.push([k, v]);
-        }
+        });
         Object.keys(this.stringMap).forEach(v => list.push([new MalString(v), this.stringMap[v]]));
 
         return list;
@@ -297,18 +297,18 @@ export class MalHashMap {
 
     keys(): MalType[] {
         const list: MalType[] = [];
-        for (const v of this.keywordMap.keys()) {
-            list.push(v);
-        }
+        this.keywordMap.forEach((_v, k) => {
+            list.push(k);
+        });
         Object.keys(this.stringMap).forEach(v => list.push(new MalString(v)));
         return list;
     }
 
     vals(): MalType[] {
         const list: MalType[] = [];
-        for (const v of this.keywordMap.values()) {
+        this.keywordMap.forEach(v => {
             list.push(v);
-        }
+        });
         Object.keys(this.stringMap).forEach(v => list.push(this.stringMap[v]));
         return list;
     }

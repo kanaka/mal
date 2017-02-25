@@ -139,9 +139,9 @@ function print(exp: MalType): string {
 }
 
 const replEnv = new Env();
-for (const [key, value] of core.ns) {
+core.ns.forEach((value, key) => {
     replEnv.set(key, value);
-}
+});
 replEnv.set(MalSymbol.get("eval"), MalFunction.fromBootstrap(ast => {
     if (!ast) {
         throw new Error(`undefined argument`);
