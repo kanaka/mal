@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 63 languages:
+Mal is implemented in 64 languages:
 
 * Ada
 * GNU awk
@@ -68,6 +68,7 @@ Mal is implemented in 63 languages:
 * Swift
 * Swift 3
 * Tcl
+* TypeScript
 * VHDL
 * Vimscript
 * Visual Basic.NET
@@ -858,8 +859,10 @@ tclsh ./stepX_YYY.tcl
 
 ### TypeScript
 
+*The TypeScript implementation was created by [vvakame](https://github.com/vvakame)*
+
 The TypeScript implementation of mal requires the TypeScript 2.2 compiler.
-It has been tested with Node.js v7.6.0.
+It has been tested with Node.js v6.
 
 ```
 cd ts

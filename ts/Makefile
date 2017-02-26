@@ -2,23 +2,29 @@ SOURCES_BASE = types.ts reader.ts printer.ts
 SOURCES_LISP = env.ts core.ts stepA_mal.ts
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: node_modules ts
+STEPS = step0_repl step1_read_print step2_eval step3_env \
+	step4_if_fn_do step5_tco step6_file step7_quote \
+	step8_macros step9_try stepA_mal
+
+all: ts
 
 node_modules:
 	npm install
 
-ts: node_modules
+step%.js: node_modules
 	./node_modules/.bin/tsc -p ./
 
+
+.PHONY: ts clean stats tests $(TESTS)
+
+ts: $(foreach s,$(STEPS),$(s).js)
+
 clean:
-	rm -f *.js mal
-
-
-.PHONY: stats tests $(TESTS)
+	rm -f *.js
 
 stats: $(SOURCES)
 	@wc $^
-	@printf "%5s %5s %5s %s\n" `egrep "^\w*#|^\w*$$" $^ | wc` "[comments/blanks]"
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
 stats-lisp: $(SOURCES_LISP)
 	@wc $^
-	@printf "%5s %5s %5s %s\n" `egrep "^\w*#|^\w*$$" $^ | wc` "[comments/blanks]"
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
