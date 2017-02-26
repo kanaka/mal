@@ -1,0 +1,30 @@
+{
+  "name": "mal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Make a Lisp (mal) language implemented in TypeScript",
+  "scripts": {
+    "build": "tsfmt -r && tsc -p ./",
+    "test": "npm run build && npm run test:step0 && npm run test:step1 && npm run test:step2 && npm run test:step3 && npm run test:step4 && npm run test:step5 && npm run test:step6 && npm run test:step7 && npm run test:step8 && npm run test:step9 && npm run test:stepA",
+    "test:step0": "cd .. && make 'test^ts^step0'",
+    "test:step1": "cd .. && make 'test^ts^step1'",
+    "test:step2": "cd .. && make 'test^ts^step2'",
+    "test:step3": "cd .. && make 'test^ts^step3'",
+    "test:step4": "cd .. && make 'test^ts^step4'",
+    "test:step5": "cd .. && make 'test^ts^step5'",
+    "test:step6": "cd .. && make 'test^ts^step6'",
+    "test:step7": "cd .. && make 'test^ts^step7'",
+    "test:step8": "cd .. && make 'test^ts^step8'",
+    "test:step9": "cd .. && make 'test^ts^step9'",
+    "test:stepA": "cd .. && make 'test^ts^stepA'"
+  },
+  "dependencies": {
+    "ffi": "^2.2.0"
+  },
+  "devDependencies": {
+    "@types/ffi": "0.0.19",
+    "@types/node": "^7.0.5",
+    "typescript": "^2.2.1",
+    "typescript-formatter": "^4.1.2"
+  }
+}
