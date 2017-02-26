@@ -19,7 +19,7 @@ class Reader {
 export function readStr(input: string): MalType {
     const tokens = tokenizer(input);
     const reader = new Reader(tokens);
-    return readFrom(reader);
+    return readForm(reader);
 }
 
 function tokenizer(input: string): string[] {
@@ -42,7 +42,7 @@ function tokenizer(input: string): string[] {
     return tokens;
 }
 
-function readFrom(reader: Reader): MalType {
+function readForm(reader: Reader): MalType {
     const token = reader.peek();
     switch (token) {
         case "(":
@@ -65,8 +65,8 @@ function readFrom(reader: Reader): MalType {
             {
                 reader.next();
                 const sym = MalSymbol.get("with-meta");
-                const target = readFrom(reader);
-                return new MalList([sym, readFrom(reader), target]);
+                const target = readForm(reader);
+                return new MalList([sym, readForm(reader), target]);
             }
         default:
             return readAtom(reader);
@@ -75,7 +75,7 @@ function readFrom(reader: Reader): MalType {
     function readSymbol(name: string) {
         reader.next();
         const sym = MalSymbol.get(name);
-        const target = readFrom(reader);
+        const target = readForm(reader);
         return new MalList([sym, target]);
     }
 }
@@ -105,7 +105,7 @@ function readParen(reader: Reader, ctor: { new (list: MalType[]): MalType; }, op
         } else if (!next) {
             throw new Error("unexpected EOF");
         }
-        list.push(readFrom(reader));
+        list.push(readForm(reader));
     }
     reader.next(); // drop close paren
 
