@@ -102,7 +102,12 @@ conference (yes the presentation is a mal program). At Midwest.io
 2015, Joel Martin gave a presentation on Mal titled "Achievement
 Unlocked: A Better Path to Language Learning".
 [Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
-[Slides](http://kanaka.github.io/midwest.io.mal/).
+[Slides](http://kanaka.github.io/midwest.io.mal/). More recently
+Joel gave a presentation on "Make Your Own Lisp Interpreter in
+10 Incremental Steps" at LambdaConf 2016: [Part
+1](https://www.youtube.com/watch?v=jVhupfthTEk), [Part
+2](https://www.youtube.com/watch?v=X5OQBMGpaTU),
+[Slides](http://kanaka.github.io/lambdaconf/).
 
 If you are interesting in creating a mal implementation (or just
 interested in using mal for something), please drop by the #mal
