@@ -1,0 +1,2 @@
+;; REXX: skipping non-TCO recursion
+;; Reason: regina rexx interpreter segfaults (unrecoverable)

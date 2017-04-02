@@ -81,7 +81,7 @@ IMPLS = ada awk bash basic c d chuck clojure coffee common-lisp cpp crystal cs d
 	erlang elisp elixir es6 factor forth fsharp go groovy gst guile haskell \
 	haxe io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
-	python r racket rpython ruby rust scala skew swift swift3 tcl ts vb vhdl \
+	python r racket rexx rpython ruby rust scala skew swift swift3 tcl ts vb vhdl \
 	vimscript livescript
 
 EXTENSION = .mal
@@ -203,6 +203,7 @@ ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
 racket_STEP_TO_PROG =  racket/$($(1)).rkt
+rexx_STEP_TO_PROG =    rexx/$($(1)).rexx
 rpython_STEP_TO_PROG = rpython/$($(1))
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/release/$($(1))
