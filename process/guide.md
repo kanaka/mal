@@ -329,7 +329,7 @@ expression support.
   * `~@`: Captures the special two-characters `~@` (tokenized).
 
   * ```[\[\]{}()'`~^@]```: Captures any special single character, one of
-    ```[]{}'`~^@``` (tokenized).
+    ```[]{}()'`~^@``` (tokenized).
 
   * `"(?:\\.|[^\\"])*"`: Starts capturing at a double-quote and stops at the
     next double-quote unless it was proceeded by a backslash in which case it
