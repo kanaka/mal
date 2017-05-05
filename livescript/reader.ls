@@ -23,7 +23,12 @@ export read_str = (str) ->
     str
     |> tokenizer
     |> (tokens) -> new Reader tokens
-    |> read_form
+    |> (reader) ->
+        result = read_form reader
+        if reader.peek!
+            throw new Error "expected EOF, got #{reader.peek!}"
+        result
+
 
 # This function will take a single string and return an array/list 
 # of all the tokens (strings) in it.
@@ -56,26 +61,28 @@ tokenizer = (str) ->
 
 read_form = (reader) ->
     if reader.peek! == '('
-        read_list reader
+        read_list reader, ')'
+    else if reader.peek! == '['
+        read_list reader, ']'
     else if reader.peek!?
         read_atom reader
     else
         throw new Error 'parse error: expected a form'
 
-read_list = (reader) ->
+read_list = (reader, end) ->
     list = []
-    reader.next! # accept '('
+    reader.next! # accept '(' or '['
     loop
         token = reader.peek!
         if not token?
-            throw new Error 'expected \')\', got EOF'
-        else if token == ')'
+            throw new Error "expected '#{end}', got EOF"
+        else if token == end
             reader.next!
             break
         
         list.push read_form reader
     
-    return list
+    return {type: if end == ')' then \list else \vector, value: list}
 
 special_chars = '[]{}\'`~^@'
 
@@ -84,7 +91,7 @@ read_atom = (reader) ->
     if token[0] == '"'
         {type: \string, value: reader.next!}
     else if token.match /^-?\d+$/
-        {type: \int, value: reader.next!}
+        {type: \int, value: parseInt reader.next!}
     else if token != '~@' and token not in special_chars
         {type: \symbol, value: reader.next!}
     else

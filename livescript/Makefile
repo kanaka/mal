@@ -1,7 +1,7 @@
 TESTS =
 
 SOURCES_BASE = reader.js printer.js
-SOURCES_LISP = 
+SOURCES_LISP =
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: $(SOURCES) node_modules
