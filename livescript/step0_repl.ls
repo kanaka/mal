@@ -1,23 +1,28 @@
-readline = require 'readline'
+readline = require './node_readline'
 {id} = require 'prelude-ls'
 
 
 READ = id
-EVAL = ->
+EVAL = id
 PRINT = id
-rep = (line) ->
 
+rep = (line) -> PRINT EVAL READ line
 
-rl = readline.createInterface do
-    input : process.stdin
-    output : process.stdout
-    prompt: 'user> '
+loop
+  line = readline.readline 'user> '
+  break if not line? or line == ''
+  console.log rep line
 
-rl.on 'line', (line) ->
-    console.log rep line
-    rl.prompt!
+# rl = readline.createInterface do
+#     input : process.stdin
+#     output : process.stdout
+#     prompt: 'user> '
 
-rl.on 'close', ->
-    process.exit 0
+# rl.prompt!
 
-rl.prompt!
+# rl.on 'line', (line) ->
+#     console.log rep line
+#     rl.prompt!
+
+# rl.on 'close', ->
+#     process.exit 0

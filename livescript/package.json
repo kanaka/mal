@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "prelude-ls": "^1.1.2"
+    "prelude-ls": "^1.1.2",
+    "ffi": "2.0.x"
   },
   "devDependencies": {},
   "scripts": {
