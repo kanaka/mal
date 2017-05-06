@@ -1,6 +1,6 @@
 TESTS =
 
-SOURCES_BASE = reader.js printer.js
+SOURCES_BASE = reader.js printer.js env.js
 SOURCES_LISP =
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
