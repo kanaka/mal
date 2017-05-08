@@ -28,75 +28,84 @@ list-to-pairs = (list) ->
         |> map (idx) -> [list[idx], list[idx+1]]
 
 
-eval_ast = (env, {type, value}: ast) -->
+eval_simple = (env, {type, value}: ast) ->
     switch type
     | \symbol => env.get value
-    | \vector => do
-        type: \vector
+    | \list, \vector => do
+        type: type
         value: value |> map eval_ast env
+    | otherwise => ast
 
-    | \list =>
-        # Empty list, return empty list.
-        if value.length == 0
-            ast
-        
-        # Symbol definition.
-        else if is-symbol value[0], 'def!'
-            if value.length != 3
-                throw new Error "def! expected 2 parameters, 
-                                 got #{value.length - 1}"
-            
-            # Name is in the first parameter, and is not evaluated.
-            name = value[1]
-            if name.type != \symbol
-                throw new Error "expected a symbol 
-                                 for the first parameter of def!, 
-                                 got a #{name.type}"
-            
-            # Evaluate the second parameter and store 
-            # it under name in the env.
-            env.set name.value, (eval_ast env, value[2])
 
-        # Create a new environment.
-        else if is-symbol value[0], 'let*'
-            if value.length != 3
-                throw new Error "let* expected 2 parameters, 
-                                 got #{value.length - 1}"
+eval_ast = (env, {type, value}: ast) -->
+    if type != \list then eval_simple env, ast
+    else if value.length == 0 then ast
+    else if value[0].type == \symbol
+        params = value[1 to]
+        switch value[0].value
+        | 'def!' => eval_def env, params
+        | 'let*' => eval_let env, params
+        | otherwise => eval_apply env, value
+    else
+        eval_apply env, value
 
-            binding_list = value[1]
-            if binding_list.type not in [\list \vector]
-                throw new Error "expected 1st parameter of let* to 
-                                 be a binding list (or vector), 
-                                 got a #{binding_list.type}"
-            else if binding_list.value.length % 2 != 0
-                throw new Error "binding list of let* must have an even 
-                                 number of parameters"
 
-            # Make a new environment with the 
-            # current environment as outer.
-            let_env = new Env env
+check_params = (name, params, expected) ->
+    if params.length != expected
+        throw new Error "#{name} expected #{expected} parameters, 
+                         got #{params.length}"
 
-            # Evaluate all binding values in the
-            # new environment.
-            binding_list.value
-            |> list-to-pairs
-            |> each ([binding_name, binding_value]) ->
-                if binding_name.type != \symbol
-                    throw new Error "expected a symbol as binding name, 
-                                     got a #{binding_name.type}"
 
-                let_env.set binding_name.value, (eval_ast let_env, binding_value)
+eval_def = (env, params) ->
+    check_params 'def!', params, 2
 
-            # Evaluate the 'body' of let* with the new environment.
-            eval_ast let_env, value[2]
-        else
-            [fn, ...args] = value |> map eval_ast env
-            if fn.type != \function
-                throw new Error fn.value, ' is not a function'
-            fn.value.apply env, args
+    # Name is in the first parameter, and is not evaluated.
+    name = params[0]
+    if name.type != \symbol
+        throw new Error "expected a symbol for the first parameter 
+                         of def!, got a #{name.type}"
+    
+    # Evaluate the second parameter and store 
+    # it under name in the env.
+    env.set name.value, (eval_ast env, params[1])
 
-    | otherwise =>
-        ast
+
+eval_let = (env, params) ->
+    check_params 'let*', params, 2
+
+    binding_list = params[0]
+    if binding_list.type not in [\list \vector]
+        throw new Error "expected 1st parameter of let* to 
+                         be a binding list (or vector), 
+                         got a #{binding_list.type}"
+    else if binding_list.value.length % 2 != 0
+        throw new Error "binding list of let* must have an even 
+                         number of parameters"
+
+    # Make a new environment with the 
+    # current environment as outer.
+    let_env = new Env env
+
+    # Evaluate all binding values in the
+    # new environment.
+    binding_list.value
+    |> list-to-pairs
+    |> each ([binding_name, binding_value]) ->
+        if binding_name.type != \symbol
+            throw new Error "expected a symbol as binding name, 
+                             got a #{binding_name.type}"
+
+        let_env.set binding_name.value, (eval_ast let_env, binding_value)
+
+    # Evaluate the 'body' of let* with the new environment.
+    eval_ast let_env, params[1]
+
+
+eval_apply = (env, list) ->
+    [fn, ...args] = list |> map eval_ast env
+    if fn.type != \function
+        throw new Error fn.value, ' is not a function'
+    fn.value.apply env, args
 
 
 rep = (line) ->

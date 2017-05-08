@@ -85,10 +85,14 @@ read_list = (reader, end) ->
     return {type: if end == ')' then \list else \vector, value: list}
 
 special_chars = '[]{}\'`~^@'
+constants = [\true \false \nil]
 
 read_atom = (reader) ->
     token = reader.peek!
-    if token[0] == '"'
+    if token in constants
+        {type: \const, value: reader.next!}
+    else if token[0] == '"'
+        # TODO decode string
         {type: \string, value: reader.next!}
     else if token.match /^-?\d+$/
         {type: \int, value: parseInt reader.next!}
