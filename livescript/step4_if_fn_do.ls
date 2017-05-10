@@ -1,26 +1,25 @@
 readline = require './node_readline'
-{id, map, each, last, all, unique, zip} = require 'prelude-ls'
+{id, map, each, last, all, unique, zip, Obj, elem-index} = require 'prelude-ls'
 {read_str} = require './reader'
 {pr_str} = require './printer'
 {Env} = require './env'
 {runtime-error, ns} = require './core'
+{list-to-pairs} = require './utils'
 
 
 is-thruthy = ({type, value}) -> 
     type != \const or value not in [\nil \false]
 
 
-list-to-pairs = (list) ->
-    [0 to (list.length - 2) by 2] \
-        |> map (idx) -> [list[idx], list[idx+1]]
+fmap-ast = (fn, {type, value}: ast) -->
+    {type: type, value: fn value}
 
 
 eval_simple = (env, {type, value}: ast) ->
     switch type
     | \symbol => env.get value
-    | \list, \vector => do
-        type: type
-        value: value |> map eval_ast env
+    | \list, \vector => ast |> fmap-ast map eval_ast env
+    | \map => ast |> fmap-ast Obj.map eval_ast env
     | otherwise => ast
 
 
@@ -119,13 +118,21 @@ eval_fn = (env, params) ->
     if params[0].type not in [\list \vector]
         runtime-error "'fn*' expected first parameter to be a list or vector."
 
-    # TODO also support (& args)
-    #      and (a & args)
-
     if not all (.type == \symbol), params[0].value
         runtime-error "'fn*' expected only symbols in the parameters list."
 
     binds = params[0].value |> map (.value)
+    vargs = null
+
+    # Parse variadic bind.
+    if binds.length >= 2
+        [...rest, amper, name] = binds
+        if amper == '&' and name != '&'
+            binds = rest
+            vargs = name
+
+    if elem-index '&', binds
+        runtime-error "'fn*' invalid usage of variadic parameters."
 
     if (unique binds).length != binds.length
         runtime-error "'fn*' duplicate symbols in parameters list."
@@ -133,14 +140,24 @@ eval_fn = (env, params) ->
     body = params[1]
 
     fn_instance = (...values) ->
-        if values.length != binds.length
+        if not vargs and values.length != binds.length
             runtime-error "function expected #{binds.length} parameters, 
+                           got #{values.length}"
+        else if vargs and values.length < binds.length
+            runtime-error "function expected at least 
+                           #{binds.length} parameters, 
                            got #{values.length}"
 
         # Set binds to values in the new env.
         fn_env = new Env env
+
         for [name, value] in (zip binds, values)
             fn_env.set name, value
+
+        if vargs
+            fn_env.set vargs, do
+                type: \list
+                value: values.slice binds.length
 
         # Evaluate the function body with the new environment.
         eval_ast fn_env, body
@@ -165,7 +182,7 @@ rep = (line) ->
     line
     |> read_str
     |> eval_ast repl_env
-    |> pr_str
+    |> (ast) -> pr_str ast, print_readably=true
 
 
 loop

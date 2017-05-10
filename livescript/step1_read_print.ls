@@ -1,6 +1,6 @@
 readline = require './node_readline'
 {id} = require 'prelude-ls'
-{read_str} = require './reader'
+{read_str, OnlyComment} = require './reader'
 {pr_str} = require './printer'
 
 
@@ -13,5 +13,6 @@ loop
     break if not line? or line == ''
     try
         console.log rep line
-    catch {message}
-        console.log message
+    catch {message}: ex
+        if ex not instanceof OnlyComment
+            console.log message

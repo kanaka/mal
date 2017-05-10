@@ -1,5 +1,5 @@
 readline = require './node_readline'
-{id, map} = require 'prelude-ls'
+{id, map, Obj} = require 'prelude-ls'
 {read_str} = require './reader'
 {pr_str} = require './printer'
 
@@ -32,6 +32,8 @@ eval_ast = (repl_env, {type, value}: ast) -->
             fn.value.apply repl_env, result.slice 1
         else
             {type: type, value: result}
+    | \map =>
+        {type: \map, value: value |> Obj.map eval_ast repl_env}
     | otherwise =>
         ast
 

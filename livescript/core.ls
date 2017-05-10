@@ -1,4 +1,4 @@
-{zip, map, apply, and-list, join} = require 'prelude-ls'
+{zip, map, apply, and-list, join, Obj} = require 'prelude-ls'
 {pr_str} = require './printer'
 
 
@@ -6,7 +6,7 @@ export runtime-error = (msg) -> throw new Error msg
 
 
 fn = (body) -> {type: \function, value: body}
-const-nil = {type: \const, value: \nil}
+const-nil = -> {type: \const, value: \nil}
 const-int = (int) -> {type: \int, value: int}
 const-bool = (bool) -> {type: \const, value: if bool then \true else \false}
 const-str = (str) -> {type: \string, value: str}
@@ -36,27 +36,31 @@ export ns = do
     'list': fn (...list) -> {type: \list, value: list}
     'list?': fn (param) -> const-bool param.type == \list
 
-    'empty?': fn (param) ->
-        if not list-or-vector param 
-            runtime-error "'empty?' expected first parameter 
-                           to be of type list or vector, 
-                           got a #{param.type}."
+    'empty?': fn ({type, value}) ->
+        switch type
+        | \const =>
+            if value == \nil
+            then const-bool true
+            else runtime-error "'empty?' is not supported on #{value}"
+        | \list, \vector =>
+            const-bool value.length == 0
+        | \map =>
+            const-bool Obj.empty value
+        | otherwise =>
+            runtime-error "'empty?' is not supported on type #{type}"
 
-        const-bool param.value.length == 0
-
-    'count': fn (param) ->
-        if not list-or-vector param
-            runtime-error "'count' expected first parameter 
-                           to be of type list or vector, 
-                           got a #{param.type}."
-
-        const-int param.value.length
-
-    'prn': fn (param) ->
-        if param
-            console.log pr_str param
-
-        const-nil
+    'count': fn ({type, value}) ->
+        switch type
+        | \const =>
+            if value == \nil
+            then const-int 0
+            else runtime-error "'count' is not supported on #{value}"
+        | \list, \vector =>
+            const-int value.length
+        | \map =>
+            value |> Obj.keys |> (.length) |> const-int
+        | otherwise =>
+            runtime-error "'count' is not supported on type #{type}"
 
     '=': fn (a, b) -> const-bool (deep-equals a, b)
     '<': fn (a, b) -> const-bool a.value < b.value
@@ -64,6 +68,27 @@ export ns = do
     '<=': fn (a, b) -> const-bool a.value <= b.value
     '>=': fn (a, b) -> const-bool a.value >= b.value
 
-    'not': fn (a) -> const-bool (a.type == \const and a.value == \false)
+    'not': fn ({type, value}) ->
+        const-bool (type == \const and value == \false)
 
-    'str': fn (...params) -> const-str (params |> map pr_str |> join '')
+    'pr-str': fn (...params) ->
+        params |> map (p) -> pr_str p, print_readably=true
+               |> join ' '
+               |> const-str
+
+    'str': fn (...params) ->
+        params |> map (p) -> pr_str p, print_readably=false
+               |> join ''
+               |> const-str
+
+    'prn': fn (...params) ->
+        params |> map (p) -> pr_str p, print_readably=true
+               |> join ' '
+               |> console.log
+               |> const-nil
+
+    'println': fn (...params) ->
+        params |> map (p) -> pr_str p, print_readbly=false
+               |> join ' '
+               |> console.log
+               |> const-nil
