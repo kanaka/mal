@@ -1,4 +1,4 @@
-{zip, map, apply, and-list, join, Obj} = require 'prelude-ls'
+{zip, map, apply, and-list, join, Obj, concat, all} = require 'prelude-ls'
 {pr_str} = require './printer'
 {read_str} = require './reader'
 fs = require 'fs'
@@ -29,9 +29,14 @@ deep-equals = (a, b) ->
     else false
 
 
-check-type = (name, required-type, given-type) ->
-    if required-type != given-type
-        runtime-error "'#{name}' is not supported on #{given-type}"
+check-param = (name, idx, test, expected, actual) ->
+    if not test
+        runtime-error "'#{name}' expected parameter #{idx} 
+                       to be #{expected}, got #{actual}"
+
+
+check-type = (name, idx, expected, actual) ->
+    check-param name, idx, expected == actual, expected, actual
 
 
 export ns = do
@@ -101,7 +106,7 @@ export ns = do
                |> const-nil
 
     'read-string': fn ({type, value}) ->
-        check-type 'read-string', \string, type
+        check-type 'read-string', 0, \string, type
         read_str value
 
     'slurp': fn (filename) ->
@@ -114,15 +119,15 @@ export ns = do
     'atom': fn (value) -> {type: \atom, value: value}
     'atom?': fn (atom) -> const-bool atom.type == \atom
     'deref': fn (atom) ->
-        check-type 'deref', \atom, atom.type
+        check-type 'deref', 0, \atom, atom.type
         atom.value
 
     'reset!': fn (atom, value) ->
-        check-type 'reset!', \atom, atom.type
+        check-type 'reset!', 0, \atom, atom.type
         atom.value = value
 
     'swap!': fn (atom, fn, ...args) ->
-        check-type 'swap!', \atom, atom.type
+        check-type 'swap!', 0, \atom, atom.type
         if fn.type != \function
             runtime-error "'swap!' expected the second parameter 
                            to be a function, got a #{fn.type}"
@@ -132,3 +137,15 @@ export ns = do
             atom.value = atom.value.eval!
 
         atom.value
+
+    'cons': fn (value, list) ->
+        check-param 'cons', 1, (list-or-vector list),
+            'list or vector', list.type
+
+        {type: \list, value: [value] ++ list.value}
+
+    'concat': fn (...params) ->
+        if not all list-or-vector, params
+            runtime-error "'concat' expected all parameters to be a list or vector"
+
+        {type: \list, value: params |> map (.value) |> concat}
