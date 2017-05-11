@@ -1,5 +1,7 @@
 {zip, map, apply, and-list, join, Obj} = require 'prelude-ls'
 {pr_str} = require './printer'
+{read_str} = require './reader'
+fs = require 'fs'
 
 
 export runtime-error = (msg) -> throw new Error msg
@@ -25,6 +27,11 @@ deep-equals = (a, b) ->
             |> map (apply deep-equals)
             |> and-list  # all must be true (equals)
     else false
+
+
+check-type = (name, required-type, given-type) ->
+    if required-type != given-type
+        runtime-error "'#{name}' is not supported on #{given-type}"
 
 
 export ns = do
@@ -92,3 +99,36 @@ export ns = do
                |> join ' '
                |> console.log
                |> const-nil
+
+    'read-string': fn ({type, value}) ->
+        check-type 'read-string', \string, type
+        read_str value
+
+    'slurp': fn (filename) ->
+        if filename.type != \string
+            runtime-error "'slurp' expected the first parameter
+                           to be a string, got a #{filename.type}"
+
+        const-str <| fs.readFileSync filename.value, 'utf8'
+
+    'atom': fn (value) -> {type: \atom, value: value}
+    'atom?': fn (atom) -> const-bool atom.type == \atom
+    'deref': fn (atom) ->
+        check-type 'deref', \atom, atom.type
+        atom.value
+
+    'reset!': fn (atom, value) ->
+        check-type 'reset!', \atom, atom.type
+        atom.value = value
+
+    'swap!': fn (atom, fn, ...args) ->
+        check-type 'swap!', \atom, atom.type
+        if fn.type != \function
+            runtime-error "'swap!' expected the second parameter 
+                           to be a function, got a #{fn.type}"
+
+        atom.value = fn.value.apply @, [atom.value] ++ args
+        if atom.value.type == \tco # TODO make this a method.
+            atom.value = atom.value.eval!
+
+        atom.value

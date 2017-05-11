@@ -16,6 +16,7 @@ export pr_str = ({type, value}: ast, print_readably=true) ->
     | \vector   => '[' + (pr_list value, print_readably) + ']'
     | \map      => '{' + (pr_map value, print_readably) + '}'
     | \function => '#<function>'
+    | \atom     => '(atom ' + (pr_str value) + ')'
 
 
 encode-string = (str) ->

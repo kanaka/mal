@@ -24,12 +24,6 @@ class Reader
             @tokens[@pos]
 
 
-accept-comment = (reader) ->
-    token = reader.peek!
-    if token? and token.startsWith ';'
-        throw new OnlyComment
-
-
 eof-or-comment = (reader) ->
     token = reader.peek!
     if token? and not token.startsWith ';'
@@ -41,9 +35,8 @@ export read_str = (str) ->
     |> tokenizer
     |> (tokens) -> new Reader tokens
     |> (reader) ->
-        accept-comment reader
         result = read_form reader
-        eof-or-comment reader
+        if token? then parse-error "expected EOF, got '#{token}'"
         result
 
 
@@ -64,13 +57,14 @@ tokenizer = (str) ->
     while re.lastIndex < str.length
         idx = re.lastIndex
         m = re.exec str
-        # console.log 'at ', idx, 'matched', m
         if not m
             # Allow whitespace or commas at the end of the input.
             break if /[\s,]+/.exec str.substring idx
             parse-error "parse error at character #{idx}"
 
-        tokens.push m[1]
+        tok = m[1]
+        # Ignore comments.
+        if tok[0] != ';' then tokens.push m[1]
     
     tokens
 
