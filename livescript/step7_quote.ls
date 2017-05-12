@@ -210,8 +210,8 @@ is-pair = (ast) -> ast.type in [\list \vector] and ast.value.length != 0
 
 
 eval_quasiquote = (env, params) ->
-    # if params.length != 1
-    #     runtime-error "quasiquote expected 1 parameter, got #{params.length}"
+    if params.length != 1
+        runtime-error "quasiquote expected 1 parameter, got #{params.length}"
 
     ast = params[0]
     new-ast = if not is-pair ast

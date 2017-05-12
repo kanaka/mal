@@ -150,3 +150,28 @@ export ns = do
             runtime-error "'concat' expected all parameters to be a list or vector"
 
         {type: \list, value: params |> map (.value) |> concat}
+
+    'nth': fn (list, index) ->
+        check-param 'nth', 0, (list-or-vector list),
+            'list or vector', list.type
+        check-param 'nth', 1, index.type == \int,
+            'int', index.type
+
+        if index.value < 0 or index.value >= list.value.length
+            runtime-error 'list index out of bounds'
+
+        list.value[index.value]
+
+    'first': fn (list) ->
+        check-param 'first', 0, (list-or-vector list),
+            'list or vector', list.type
+
+        if list.value.length == 0
+        then const-nil!
+        else list.value[0]
+
+    'rest': fn (list) ->
+        check-param 'rest', 0, (list-or-vector list),
+            'list or vector', list.type
+
+        {type: \list, value: list.value.slice 1}
