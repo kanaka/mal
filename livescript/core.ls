@@ -6,6 +6,11 @@ fs = require 'fs'
 
 export runtime-error = (msg) -> throw new Error msg
 
+export unpack-tco = (ast) ->
+    if ast.type == \tco
+    then ast.eval!
+    else ast
+
 
 fn = (body) -> {type: \function, value: body}
 const-nil = -> {type: \const, value: \nil}
@@ -132,11 +137,7 @@ export ns = do
             runtime-error "'swap!' expected the second parameter 
                            to be a function, got a #{fn.type}"
 
-        atom.value = fn.value.apply @, [atom.value] ++ args
-        if atom.value.type == \tco # TODO make this a method.
-            atom.value = atom.value.eval!
-
-        atom.value
+        atom.value = unpack-tco (fn.value.apply @, [atom.value] ++ args)
 
     'cons': fn (value, list) ->
         check-param 'cons', 1, (list-or-vector list),

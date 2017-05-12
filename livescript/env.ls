@@ -11,6 +11,11 @@ export class Env
         else if @outer? then @outer.find symbol
 
     get: (symbol) ->
+        result = @try-get symbol
+        if not result
+        then throw new Error "symbol not found: #{symbol}"
+        else result
+
+    try-get: (symbol) ->
         env = @find symbol
         if env then env.data[symbol]
-        else throw new Error "symbol not found: #{symbol}"
