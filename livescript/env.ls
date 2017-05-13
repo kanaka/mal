@@ -13,7 +13,7 @@ export class Env
     get: (symbol) ->
         result = @try-get symbol
         if not result
-        then throw new Error "symbol not found: #{symbol}"
+        then throw new Error "'#{symbol}' not found"
         else result
 
     try-get: (symbol) ->

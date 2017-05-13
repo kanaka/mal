@@ -181,3 +181,38 @@ export ns = do
             'list or vector', list.type
 
         {type: \list, value: list.value.slice 1}
+
+    'throw': fn (value) -> throw value
+
+    'apply': fn (fn, ...params, list) ->
+        check-type 'apply', 0, \function, fn.type
+        if not list then runtime-error "apply expected at least two parameters"
+        check-param 'apply', params.length+1, (list-or-vector list),
+            'list or vector', list.type
+
+        unpack-tco fn.value.apply @, params ++ list.value
+
+    'map': fn (fn, list) ->
+        check-type 'map', 0, \function, fn.type
+        check-param 'map', 1, (list-or-vector list),
+            'list or vector', list.type
+
+        mapped-list = list.value |> map (value) ->
+            unpack-tco fn.value.apply @, [value]
+
+        {type: \list, value: mapped-list}
+
+    'nil?': fn (ast) -> const-bool (ast.type == \const and ast.value == \nil)
+    'true?': fn (ast) -> const-bool (ast.type == \const and ast.value == \true)
+    'false?': fn (ast) -> const-bool (ast.type == \const and ast.value == \false)
+    'symbol?': fn (ast) -> const-bool ast.type == \symbol
+
+    'symbol': fn (str) ->
+        check-type 'symbol', 0, \string, str.type
+        {type: \symbol, value: str.value}
+
+    'keyword': fn (str) ->
+        check-type 'keyword', 0, \string, str.type
+        {type: \keyword, value: str.value}
+
+    'keyword?': fn (ast) -> const-bool ast.type == \keyword
