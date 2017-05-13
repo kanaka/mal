@@ -307,6 +307,27 @@ rep '
       (read-string
         (str "(do " (slurp f) ")")))))'
 
+# Define cond.
+rep '
+(defmacro! cond
+  (fn* (& xs)
+    (if (> (count xs) 0)
+      (list \'if (first xs)
+        (if (> (count xs) 1)
+          (nth xs 1)
+          (throw "odd number of forms to cond"))
+        (cons \'cond (rest (rest xs)))))))'
+
+# Define or.
+rep '
+(defmacro! or
+  (fn* (& xs)
+    (if (empty? xs)
+      nil
+      (if (= 1 (count xs))
+        (first xs)
+        `(let* (or_FIXME ~(first xs))
+          (if or_FIXME or_FIXME (or ~@(rest xs))))))))'
 
 # Parse program arguments.
 # The first two (exe and core-file) are, respectively,

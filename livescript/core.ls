@@ -163,6 +163,9 @@ export ns = do
         list.value[index.value]
 
     'first': fn (list) ->
+        if list.type == \const and list.value == \nil
+            return const-nil!
+
         check-param 'first', 0, (list-or-vector list),
             'list or vector', list.type
 
@@ -171,6 +174,9 @@ export ns = do
         else list.value[0]
 
     'rest': fn (list) ->
+        if list.type == \const and list.value == \nil
+            return {type: \list, value: []}
+
         check-param 'rest', 0, (list-or-vector list),
             'list or vector', list.type
 
