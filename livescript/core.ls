@@ -1,6 +1,10 @@
-{zip, map, apply, and-list, join, Obj, concat, all} = require 'prelude-ls'
+{
+    zip, map, apply, and-list, join, Obj, concat, all,
+    pairs-to-obj, obj-to-pairs, reject, keys, values,
+    difference, empty
+} = require 'prelude-ls'
 {pr_str} = require './printer'
-{read_str} = require './reader'
+{read_str, list-to-map, map-keyword, keyword-prefix} = require './reader'
 fs = require 'fs'
 
 
@@ -20,18 +24,25 @@ const-str = (str) -> {type: \string, value: str}
 
 list-or-vector = ({type}) -> type in [\list \vector]
 
+are-lists-equal = (equals-fn, a, b) ->
+    if a.length != b.length then false
+    else zip a, b |> map (apply equals-fn) |> and-list
+
 deep-equals = (a, b) ->
-    if not list-or-vector a then
-        if a.type != b.type then false
-        else a.value == b.value
-    else if list-or-vector b then
-        if a.value.length != b.value.length then false
-        else
-            # Compare all elements of a and b with deep-equals.
-            zip a.value, b.value
-            |> map (apply deep-equals)
-            |> and-list  # all must be true (equals)
-    else false
+    if (list-or-vector a) and (list-or-vector b) then
+        are-lists-equal deep-equals, a.value, b.value
+    else if a.type == \map and b.type == \map then
+        a-keys = keys a.value
+        b-keys = keys b.value
+        if a-keys.length == b-keys.length and \
+            empty (difference a-keys, b-keys)
+            #if are-lists-equal (==), a-keys, b-keys
+            a-keys |> map (key) -> [a.value[key], b.value[key]]
+                   |> map (apply deep-equals)
+                   |> and-list
+        else false
+    else if a.type != b.type then false
+    else a.value == b.value
 
 
 check-param = (name, idx, test, expected, actual) ->
@@ -213,6 +224,68 @@ export ns = do
 
     'keyword': fn (str) ->
         check-type 'keyword', 0, \string, str.type
-        {type: \keyword, value: str.value}
+        {type: \keyword, value: ':' + str.value}
 
     'keyword?': fn (ast) -> const-bool ast.type == \keyword
+
+    'vector': fn (...params) -> {type: \vector, value: params}
+    'vector?': fn (ast) -> const-bool ast.type == \vector
+
+    'hash-map': fn (...params) -> list-to-map params
+
+    'map?': fn (ast) -> const-bool ast.type == \map
+
+    'assoc': fn (m, ...params) ->
+        check-type 'assoc', 0, \map, m.type
+
+        # Turn the params into a map, this is kind of hacky.
+        params-map = list-to-map params
+
+        # Copy the map by cloning (prototyping).
+        new-map = ^^m.value
+
+        for k, v of params-map.value
+            new-map[k] = v
+
+        {type: \map, value: new-map}
+
+    'dissoc': fn (m, ...keys) ->
+        check-type 'dissoc', 0, \map, m.type
+
+        # Convert keyword to map key strings.
+        str-keys = keys |> map map-keyword
+
+        new-map = m.value
+            |> obj-to-pairs
+            |> reject ([key, value]) -> key in str-keys
+            |> pairs-to-obj
+
+        {type: \map, value: new-map}
+
+    'get': fn (m, key) ->
+        if m.type == \const and m.value == \nil
+        then return const-nil!
+
+        check-type 'get', 0, \map, m.type
+        str-key = map-keyword key
+        value = m.value[str-key]
+        if value then value else const-nil!
+
+    'contains?': fn (m, key) ->
+        check-type 'contains?', 0, \map, m.type
+        str-key = map-keyword key
+        const-bool (str-key of m.value)
+
+    'keys': fn (m) ->
+        check-type 'keys', 0, \map, m.type
+        result = keys m.value |> map (key) ->
+            if key.startsWith keyword-prefix
+            then {type: \keyword, value: key.substring 1}
+            else {type: \string, value: key}
+        {type: \list, value: result}
+
+    'vals': fn (m) ->
+        check-type 'vals', 0, \map, m.type
+        {type: \list, value: values m.value}
+
+    'sequential?': fn (ast) -> const-bool list-or-vector ast

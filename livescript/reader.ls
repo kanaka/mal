@@ -135,20 +135,20 @@ decode-string = (str) ->
 
 export keyword-prefix = '\u029e'
 
+export map-keyword = (key) ->
+    switch key.type
+    | \string => key.value
+    | \keyword => keyword-prefix + key.value
+    | otherwise =>
+        parse-error "#{key.type} can't be a map key"
 
-list-to-map = (list) ->
+export list-to-map = (list) ->
     if list.length % 2 != 0
         parse-error "map should have an even number 
                      of elements, got #{list.length}"
 
     list-to-pairs list
-    |> map ([key, value]) ->
-        switch key.type
-        | \string => [key.value, value]
-        | \keyword => [keyword-prefix + key.value, value]
-        | otherwise =>
-            parse-error "map can only have strings or keywords as keys, 
-                         got a #{key.type}"
+    |> map ([key, value]) -> [(map-keyword key), value]
     |> pairs-to-obj
     |> (obj) -> {type: \map, value: obj}
 
