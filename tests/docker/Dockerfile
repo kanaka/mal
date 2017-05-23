@@ -1,3 +1,6 @@
+# WARNING: This file is deprecated. Each implementation now has its
+# own Dockerfile.
+
 FROM ubuntu:utopic
 MAINTAINER Joel Martin <github@martintribe.org>
 
