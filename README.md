@@ -566,11 +566,11 @@ cd make
 make -f stepX_YYY.mk
 ```
 
-### Nim 0.15.2
+### Nim 0.17.0
 
 *The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
 
-The Nim implementation of mal has been tested with Nim 0.15.2.
+The Nim implementation of mal has been tested with Nim 0.17.0.
 
 ```
 cd nim

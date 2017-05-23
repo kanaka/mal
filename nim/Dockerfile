@@ -26,10 +26,10 @@ RUN apt-get -y install g++
 
 # Nim
 RUN apt-get -y install xz-utils
-RUN cd /tmp && curl -O http://nim-lang.org/download/nim-0.16.0.tar.xz \
-    && tar xvJf /tmp/nim-0.16.0.tar.xz && cd nim-0.16.0 \
+RUN cd /tmp && curl -O http://nim-lang.org/download/nim-0.17.0.tar.xz \
+    && tar xvJf /tmp/nim-0.17.0.tar.xz && cd nim-0.17.0 \
     && make && sh install.sh /usr/local/bin \
     && cp bin/nim /usr/local/bin/ \
-    && rm -r /tmp/nim-0.16.0
+    && rm -r /tmp/nim-0.17.0
 
 ENV HOME /mal
