@@ -1,16 +1,18 @@
-TESTS =
+SOURCES_BASE = reader.ls printer.ls env.ls core.ls utils.ls
+SOURCES_STEPS = step0_repl.ls step1_read_print.ls step2_eval.ls \
+	step4_if_fn_do.ls step5_tco.ls step6_file.ls step7_quote.ls \
+	step8_macros.ls step9_try.ls stepA_mal.ls
+SOURCES = $(SOURCES_BASE) $(SOURCES_STEPS)
 
-SOURCES_BASE = reader.js printer.js env.js core.js utils.js
-SOURCES_LISP =
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+BINS = $(SOURCES:%.ls=%.js)
 
-all: $(SOURCES) node_modules
+all: $(BINS) node_modules
 
 node_modules:
 	npm install
 
-%.js: %.ls $(SOURCES)
+%.js: %.ls
 	lsc -d -c $(@:%.js=%.ls)
 
 clean:
-	rm -f *.js
+	rm -f $(BINS)
