@@ -6,13 +6,15 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_STEPS)
 
 BINS = $(SOURCES:%.ls=%.js)
 
-all: $(BINS) node_modules
+LSC = node_modules/.bin/lsc
+
+all: node_modules $(BINS)
 
 node_modules:
 	npm install
 
 %.js: %.ls
-	lsc -d -c $(@:%.js=%.ls)
+	$(LSC) -d -c $(@:%.js=%.ls)
 
 clean:
 	rm -f $(BINS)

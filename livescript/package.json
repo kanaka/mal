@@ -4,10 +4,12 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "prelude-ls": "^1.1.2",
-    "ffi": "2.0.x"
+    "ffi": "2.0.x",
+    "prelude-ls": "^1.1.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "livescript": "^1.5.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
