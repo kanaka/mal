@@ -124,3 +124,6 @@ common-lisp/*.fasl
 common-lisp/*.lib
 common-lisp/images/*
 common-lisp/hist/*
+livescript/*.js
+!livescript/node_readline.js
+livescript/node_modules
