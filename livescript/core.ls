@@ -1,11 +1,13 @@
+
 {
     zip, map, apply, and-list, join, Obj, concat, all,
     pairs-to-obj, obj-to-pairs, reject, keys, values,
-    difference, empty
+    difference, empty, reverse, chars
 } = require 'prelude-ls'
 {pr_str} = require './printer'
 {read_str, list-to-map, map-keyword, keyword-prefix} = require './reader'
 fs = require 'fs'
+{readline} = require './node_readline'
 
 
 export runtime-error = (msg) -> throw new Error msg
@@ -14,7 +16,6 @@ export unpack-tco = (ast) ->
     if ast.type == \tco
     then ast.eval!
     else ast
-
 
 fn = (body) -> {type: \function, value: body}
 const-nil = -> {type: \const, value: \nil}
@@ -97,7 +98,7 @@ export ns = do
     '>=': fn (a, b) -> const-bool a.value >= b.value
 
     'not': fn ({type, value}) ->
-        const-bool (type == \const and value == \false)
+        const-bool (type == \const and value in [\false \nil])
 
     'pr-str': fn (...params) ->
         params |> map (p) -> pr_str p, print_readably=true
@@ -289,3 +290,53 @@ export ns = do
         {type: \list, value: values m.value}
 
     'sequential?': fn (ast) -> const-bool list-or-vector ast
+
+    'with-meta': fn (ast, m) ->
+        ast with {meta: m}
+
+    'meta': fn (ast) ->
+        if ast.meta
+        then ast.meta
+        else const-nil!
+
+    'readline': fn (prompt) ->
+        check-type 'readline', 0, \string, prompt.type
+        result = readline prompt.value
+        if result?
+        then const-str result
+        else const-nil!
+
+    'time-ms': fn ->
+        const-int (new Date).getTime!
+
+    'conj': fn (list, ...params) ->
+        check-param 'conj', 0, (list-or-vector list),
+            'list or vector', list.type
+
+        if list.type == \list
+            type: \list
+            value: (reverse params) ++ list.value
+        else
+            type: \vector
+            value: list.value ++ params
+
+    'string?': fn (ast) -> const-bool ast.type == \string
+
+    'seq': fn (seq) ->
+        switch seq.type
+        | \list =>
+            if seq.value.length
+            then seq
+            else const-nil!
+        | \vector =>
+            if seq.value.length
+            then {type: \list, value: seq.value}
+            else const-nil!
+        | \string =>
+            if seq.value.length
+            then {type: \list, value: chars seq.value |> map const-str}
+            else const-nil!
+        | otherwise =>
+            if seq.type == \const and seq.value == \nil
+            then const-nil!
+            else runtime-error "unsupported type for 'seq': #{seq.type}"
