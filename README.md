@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 64 languages:
+Mal is implemented in 65 languages:
 
 * Ada
 * GNU awk
@@ -39,6 +39,7 @@ Mal is implemented in 64 languages:
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
 * Kotlin
+* LiveScript
 * Logo
 * Lua
 * GNU Make
@@ -523,6 +524,18 @@ The Kotlin implementation of mal has been tested with Kotlin 1.0.
 cd kotlin
 make
 java -jar stepX_YYY.jar
+```
+
+### LiveScript
+
+*The LiveScript implementation was created by [Jos van Bakel](https://github.com/c0deaddict)*
+
+The LiveScript implementation of mal has been tested with LiveScript 1.5.
+
+```
+cd livescript
+make
+node_modules/.bin/lsc stepX_YYY.ls
 ```
 
 ### Logo
