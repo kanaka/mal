@@ -1,5 +1,5 @@
 SOURCES_BASE = #reader.ls printer.ls env.ls core.ls utils.ls
-SOURCES_STEPS = step0_repl.elm #step1_read_print.ls step2_eval.ls \
+SOURCES_STEPS = step0_repl.elm step1_read_print.elm #step2_eval.ls \
 	step4_if_fn_do.ls step5_tco.ls step6_file.ls step7_quote.ls \
 	step8_macros.ls step9_try.ls stepA_mal.ls
 SOURCES_LISP = #env.ls core.ls stepA_mal.ls
@@ -7,17 +7,20 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_STEPS)
 
 BINS = $(SOURCES:%.elm=%.js)
 
-ELM_MAKE = node_modules/.bin/elm-make
+ELM = node_modules/.bin/elm
 
 all: node_modules $(BINS)
 
 node_modules:
 	npm install
 
-%.js: %.elm node_modules
-	$(ELM_MAKE) $(@:%.js=%.elm) --output $@
+elm_packages:
+	$(ELM) package install
 
-# step1_read_print.js: utils.js reader.js printer.js
+%.js: %.elm node_modules
+	$(ELM) make $(@:%.js=%.elm) --output $@
+
+step1_read_print.js: Reader.elm Printer.elm Utils.elm Types.elm
 # step2_eval.js: utils.js reader.js printer.js
 # step3_env.js: utils.js reader.js printer.js env.js
 # step4_if_fn_do.js: utils.js reader.js printer.js env.js core.js
