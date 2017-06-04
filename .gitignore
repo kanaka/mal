@@ -127,3 +127,8 @@ common-lisp/hist/*
 livescript/*.js
 !livescript/node_readline.js
 livescript/node_modules
+elm/node_modules
+elm/elm-stuff
+elm/*.js
+!elm/node_readline.js
+!elm/bootstrap.js
