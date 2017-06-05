@@ -180,7 +180,7 @@ formatError ms stream =
         location =
             currentLocation stream
     in
-        "Parse error: expected a: "
+        "Parse error: "
             ++ String.join ", " ms
             ++ " "
             ++ "(at "

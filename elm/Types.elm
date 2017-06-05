@@ -14,6 +14,7 @@ type MalExpr
     | MalList (List MalExpr)
     | MalVector (Array MalExpr)
     | MalMap (Dict String MalExpr)
+    | MalFunction (List MalExpr -> Result String MalExpr)
 
 
 {-| Keywords are prefixed by this char for usage in a MalMap.

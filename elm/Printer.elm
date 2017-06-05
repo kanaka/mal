@@ -39,6 +39,9 @@ printString readably ast =
         MalMap map ->
             printMap readably map
 
+        MalFunction _ ->
+            "#<function>"
+
 
 printRawString : Bool -> String -> String
 printRawString readably str =

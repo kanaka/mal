@@ -1,30 +1,29 @@
 port module Main exposing (..)
 
-import Platform exposing (programWithFlags)
+{-| Your IDE might complain that the Json.Decode import
+is not used, but it is. Without it you'll get a runtime exception.
+-}
+
 import Json.Decode
+import Platform exposing (programWithFlags)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
 import Printer exposing (printString)
 import Utils exposing (maybeToList)
 
 
--- Output a string to stdout
-
-
+{-| Output a string to stdout
+-}
 port output : String -> Cmd msg
 
 
-
--- Read a line from the stdin
-
-
+{-| Read a line from the stdin
+-}
 port readLine : String -> Cmd msg
 
 
-
--- Received a line from the stdin (in response to readLine).
-
-
+{-| Received a line from the stdin (in response to readLine).
+-}
 port input : (Maybe String -> msg) -> Sub msg
 
 
@@ -64,6 +63,7 @@ update msg model =
                 outputCmd =
                     rep line |> Maybe.map output
 
+                -- Don't print output when 'rep' returns Nothing.
                 cmds =
                     maybeToList outputCmd ++ [ readLine prompt ]
             in
@@ -80,6 +80,13 @@ prompt =
     "user> "
 
 
+{-| read can return three things:
+
+Ok (Just expr) -> parsed okay
+Ok Nothing -> empty string (only whitespace and/or comments)
+Err msg -> parse error
+
+-}
 read : String -> Result String (Maybe MalExpr)
 read =
     readString
@@ -95,6 +102,8 @@ print =
     printString True
 
 
+{-| Read-Eval-Print
+-}
 rep : String -> Maybe String
 rep =
     let

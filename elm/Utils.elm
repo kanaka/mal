@@ -5,6 +5,7 @@ module Utils
         , makeCall
         , wrap
         , maybeToList
+        , zip
         )
 
 import Regex exposing (replace, regex, HowMany(All))
@@ -71,3 +72,16 @@ maybeToList m =
 
         Nothing ->
             []
+
+
+zip : List a -> List b -> List ( a, b )
+zip a b =
+    case ( a, b ) of
+        ( [], _ ) ->
+            []
+
+        ( _, [] ) ->
+            []
+
+        ( x :: xs, y :: ys ) ->
+            ( x, y ) :: zip xs ys
