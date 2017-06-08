@@ -1,14 +1,7 @@
-module Env exposing (Env, make, set, get)
+module Env exposing (make, set, get)
 
-import Types exposing (MalExpr(..))
+import Types exposing (MalExpr(..), Env(..))
 import Dict exposing (Dict)
-
-
-type Env
-    = Env
-        { outer : Maybe Env
-        , data : Dict String MalExpr
-        }
 
 
 make : Maybe Env -> Env

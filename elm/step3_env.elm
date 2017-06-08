@@ -1,10 +1,7 @@
 port module Main exposing (..)
 
-{-| Your IDE might complain that the Json.Decode import
-is not used, but it is. Without it you'll get a runtime exception.
--}
-
-import Json.Decode
+import IO exposing (..)
+import Json.Decode exposing (decodeValue)
 import Platform exposing (programWithFlags)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
@@ -16,27 +13,12 @@ import Array
 import Env exposing (Env)
 
 
-{-| Output a string to stdout
--}
-port output : String -> Cmd msg
-
-
-{-| Read a line from the stdin
--}
-port readLine : String -> Cmd msg
-
-
-{-| Received a line from the stdin (in response to readLine).
--}
-port input : (Maybe String -> msg) -> Sub msg
-
-
 main : Program Flags Model Msg
 main =
     programWithFlags
         { init = init
         , update = update
-        , subscriptions = \model -> input Input
+        , subscriptions = \model -> input (decodeValue decodeIO >> Input)
         }
 
 
@@ -52,7 +34,7 @@ type alias Model =
 
 
 type Msg
-    = Input (Maybe String)
+    = Input (Result String IO)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -81,32 +63,32 @@ initReplEnv =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Input (Just line) ->
+        Input (Ok (LineRead (Just line))) ->
             case rep model.env line of
                 Nothing ->
                     ( model, readLine prompt )
 
                 Just ( result, newEnv ) ->
-                    ( { model | env = newEnv }
-                    , Cmd.batch
-                        [ makeOutput result
-                        , readLine prompt
-                        ]
-                    )
+                    ( { model | env = newEnv }, writeLine (makeOutput result) )
 
-        Input Nothing ->
+        Input (Ok LineWritten) ->
+            ( model, readLine prompt )
+
+        Input (Ok (LineRead Nothing)) ->
             ( model, Cmd.none )
 
+        Input (Err msg) ->
+            Debug.crash msg ( model, Cmd.none )
 
-makeOutput : Result String String -> Cmd msg
+
+makeOutput : Result String String -> String
 makeOutput result =
-    output <|
-        case result of
-            Ok str ->
-                str
+    case result of
+        Ok str ->
+            str
 
-            Err msg ->
-                "ERR:" ++ msg
+        Err msg ->
+            "ERR:" ++ msg
 
 
 prompt : String

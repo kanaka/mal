@@ -1,16 +1,8 @@
 port module Main exposing (..)
 
+import IO exposing (..)
+import Json.Decode exposing (decodeValue)
 import Platform exposing (programWithFlags)
-import Json.Decode
-
-
-port output : String -> Cmd msg
-
-
-port readLine : String -> Cmd msg
-
-
-port input : (Maybe String -> msg) -> Sub msg
 
 
 main : Program Flags Model Msg
@@ -18,7 +10,8 @@ main =
     programWithFlags
         { init = init
         , update = update
-        , subscriptions = \model -> input Input
+        , subscriptions =
+            \model -> input (decodeValue decodeIO >> Input)
         }
 
 
@@ -33,7 +26,7 @@ type alias Model =
 
 
 type Msg
-    = Input (Maybe String)
+    = Input (Result String IO)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -44,16 +37,17 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Input (Just line) ->
-            ( model
-            , Cmd.batch
-                [ output (rep line)
-                , readLine prompt
-                ]
-            )
+        Input (Ok (LineRead (Just line))) ->
+            ( model, writeLine (rep line) )
 
-        Input Nothing ->
+        Input (Ok LineWritten) ->
+            ( model, readLine prompt )
+
+        Input (Ok (LineRead Nothing)) ->
             ( model, Cmd.none )
+
+        Input (Err msg) ->
+            Debug.crash msg ( model, Cmd.none )
 
 
 prompt : String

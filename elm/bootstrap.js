@@ -9,12 +9,13 @@ var app = mod.Main.worker({
     args: args.slice(1)
 });
 
-// Hook up the output and readLine ports of the app.
-app.ports.output.subscribe(function(line) {
+// Hook up the writeLine and readLine ports of the app.
+app.ports.writeLine.subscribe(function(line) {
     console.log(line);
+    app.ports.input.send({"tag": "lineWritten"});
 });
 
 app.ports.readLine.subscribe(function(prompt) {
     var line = readline.readline(prompt);
-    app.ports.input.send(line);
+    app.ports.input.send({"tag": "lineRead", "line": line});
 });

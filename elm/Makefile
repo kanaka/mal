@@ -1,10 +1,10 @@
-SOURCES_BASE = #reader.ls printer.ls env.ls core.ls utils.ls
-SOURCES_STEPS = step0_repl.elm step1_read_print.elm step2_eval.elm \
-	step3_env.elm # \
-	step4_if_fn_do.ls step5_tco.ls step6_file.ls step7_quote.ls \
-	step8_macros.ls step9_try.ls stepA_mal.ls
+SOURCES_BASE = Reader.elm Printer.elm Utils.elm Types.elm Env.elm \
+	Core.elm Eval.elm IO.elm
+SOURCES_STEPS = step0_repl.elm step4_if_fn_do.elm #step1_read_print.elm step2_eval.elm \
+	step3_env.elm step4_if_fn_do.elm #step5_tco.ls step6_file.ls \
+	step7_quote.ls step8_macros.ls step9_try.ls stepA_mal.ls
 SOURCES_LISP = #env.ls core.ls stepA_mal.ls
-SOURCES = $(SOURCES_BASE) $(SOURCES_STEPS)
+SOURCES = $(SOURCES_STEPS)
 
 BINS = $(SOURCES:%.elm=%.js)
 
@@ -22,9 +22,9 @@ elm_packages:
 	$(ELM) make $(@:%.js=%.elm) --output $@
 
 step1_read_print.js: Reader.elm Printer.elm Utils.elm Types.elm
-step2_eval.js: Reader.elm Printer.elm Utils.elm Types.elm
-step3_env.js: Reader.elm Printer.elm Utils.elm Types.elm Env.elm
-# step4_if_fn_do.js: utils.js reader.js printer.js env.js core.js
+#step2_eval.js: Reader.elm Printer.elm Utils.elm Types.elm
+#step3_env.js: Reader.elm Printer.elm Utils.elm Types.elm Env.elm
+step4_if_fn_do.js: $(SOURCES_BASE)
 # step5_tco.js: utils.js reader.js printer.js env.js core.js
 # step6_file.js: utils.js reader.js printer.js env.js core.js
 # step7_quote.js: utils.js reader.js printer.js env.js core.js

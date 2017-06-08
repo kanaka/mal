@@ -6,6 +6,7 @@ module Utils
         , wrap
         , maybeToList
         , zip
+        , last
         )
 
 import Regex exposing (replace, regex, HowMany(All))
@@ -85,3 +86,16 @@ zip a b =
 
         ( x :: xs, y :: ys ) ->
             ( x, y ) :: zip xs ys
+
+
+last : List a -> Maybe a
+last list =
+    case list of
+        [] ->
+            Nothing
+
+        [ x ] ->
+            Just x
+
+        x :: xs ->
+            last xs
