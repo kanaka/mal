@@ -4,32 +4,32 @@ import Types exposing (..)
 import IO exposing (IO)
 
 
-apply : Eval a -> EvalState -> EvalContext a
+apply : Eval a -> Env -> EvalContext a
 apply (Eval f) state =
     f state
 
 
-run : EvalState -> Eval a -> EvalContext a
+run : Env -> Eval a -> EvalContext a
 run state e =
     apply e state
 
 
-withState : (EvalState -> Eval a) -> Eval a
-withState f =
+withEnv : (Env -> Eval a) -> Eval a
+withEnv f =
     Eval <|
         \state ->
             apply (f state) state
 
 
-putState : EvalState -> Eval ()
-putState state =
+setEnv : Env -> Eval ()
+setEnv state =
     Eval <|
         \_ ->
             apply (succeed ()) state
 
 
-modifyState : (EvalState -> EvalState) -> Eval ()
-modifyState f =
+modifyEnv : (Env -> Env) -> Eval ()
+modifyEnv f =
     Eval <|
         \state ->
             apply (succeed ()) (f state)
@@ -77,10 +77,6 @@ andThen f e =
 
                 ( state, EvalIO cmd cont ) ->
                     ( state, EvalIO cmd (cont >> andThen f) )
-
-
-
--- Debug.log "wrapping EvalIO" ( state, EvalIO cmd cont )
 
 
 fail : String -> Eval a

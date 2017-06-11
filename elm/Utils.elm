@@ -7,6 +7,7 @@ module Utils
         , maybeToList
         , zip
         , last
+        , justValues
         )
 
 import Regex exposing (replace, regex, HowMany(All))
@@ -99,3 +100,16 @@ last list =
 
         x :: xs ->
             last xs
+
+
+justValues : List (Maybe a) -> List a
+justValues list =
+    case list of
+        [] ->
+            []
+
+        (Just x) :: rest ->
+            x :: (justValues rest)
+
+        Nothing :: rest ->
+            justValues rest

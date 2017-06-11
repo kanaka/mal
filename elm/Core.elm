@@ -47,6 +47,9 @@ ns =
         {- count -}
         count args =
             case args of
+                [ MalNil ] ->
+                    Eval.succeed (MalInt 0)
+
                 [ MalList list ] ->
                     Eval.succeed <| MalInt (List.length list)
 
@@ -101,7 +104,7 @@ ns =
                 >> String.join " "
                 >> writeLine
     in
-        Env.make Nothing
+        Env.global
             |> Env.set "+" (MalFunction <| binaryOp (+) MalInt)
             |> Env.set "-" (MalFunction <| binaryOp (-) MalInt)
             |> Env.set "*" (MalFunction <| binaryOp (*) MalInt)
@@ -119,3 +122,11 @@ ns =
             |> Env.set "str" (MalFunction str)
             |> Env.set "prn" (MalFunction prn)
             |> Env.set "println" (MalFunction println)
+
+
+malInit : List String
+malInit =
+    [ """(def! not
+            (fn* (a)
+                (if a false true)))"""
+    ]

@@ -8,7 +8,7 @@ import Platform exposing (programWithFlags)
 import Types exposing (..)
 import Reader exposing (readString)
 import Printer exposing (printString)
-import Utils exposing (maybeToList, zip, last)
+import Utils exposing (maybeToList, zip, last, justValues)
 import Env
 import Core
 import Eval
@@ -29,77 +29,101 @@ type alias Flags =
     }
 
 
-type alias Model =
-    { args : List String
-    , env : Env
-    , cont : Maybe (IO -> Eval MalExpr)
-    }
+type Model
+    = InitIO Env (IO -> Eval MalExpr)
+    | InitError String
+    | ReplActive Env
+    | ReplIO Env (IO -> Eval MalExpr)
 
 
 init : Flags -> ( Model, Cmd Msg )
 init { args } =
-    ( { args = args
-      , env = Core.ns
-      , cont = Nothing
-      }
-    , readLine prompt
-    )
+    let
+        initEnv =
+            Core.ns
+
+        evalMalInit =
+            Core.malInit
+                |> List.map rep
+                |> justValues
+                |> List.foldl
+                    (\b a -> a |> Eval.andThen (\_ -> b))
+                    (Eval.succeed MalNil)
+    in
+        runInit initEnv evalMalInit
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case model.cont of
-        Nothing ->
-            normalUpdate msg model
+    case model of
+        InitError _ ->
+            -- ignore all
+            ( model, Cmd.none )
 
-        Just cont ->
+        InitIO env cont ->
             case msg of
                 Input (Ok io) ->
-                    run { model | cont = Nothing } (cont io)
+                    runInit env (cont io)
+
+                Input (Err msg) ->
+                    Debug.crash msg ( model, Cmd.none )
+
+        ReplActive env ->
+            case msg of
+                Input (Ok (LineRead (Just line))) ->
+                    case rep line of
+                        Just expr ->
+                            run env expr
+
+                        Nothing ->
+                            ( model, readLine prompt )
+
+                Input (Ok LineWritten) ->
+                    ( model, readLine prompt )
+
+                Input (Ok (LineRead Nothing)) ->
+                    -- Ctrl+D = The End.
+                    ( model, Cmd.none )
+
+                Input (Err msg) ->
+                    Debug.crash msg ( model, Cmd.none )
+
+        ReplIO env cont ->
+            case msg of
+                Input (Ok io) ->
+                    run env (cont io)
 
                 Input (Err msg) ->
                     Debug.crash msg ( model, Cmd.none )
 
 
-normalUpdate : Msg -> Model -> ( Model, Cmd Msg )
-normalUpdate msg model =
-    case msg of
-        Input (Ok (LineRead (Just line))) ->
-            rep line
-                |> Maybe.map (run model)
-                |> Maybe.withDefault (( model, readLine prompt ))
+runInit : Env -> Eval MalExpr -> ( Model, Cmd Msg )
+runInit env expr =
+    case Eval.run env expr of
+        ( env, EvalOk expr ) ->
+            -- Init went okay, start REPL.
+            ( ReplActive env, readLine prompt )
 
-        Input (Ok LineWritten) ->
-            ( model, readLine prompt )
+        ( env, EvalErr msg ) ->
+            -- Init failed, don't start REPL.
+            ( InitError msg, writeLine ("ERR:" ++ msg) )
 
-        Input (Ok (LineRead Nothing)) ->
-            ( model, Cmd.none )
-
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        ( env, EvalIO cmd cont ) ->
+            -- IO in init.
+            ( InitIO env cont, cmd )
 
 
-run : Model -> Eval MalExpr -> ( Model, Cmd Msg )
-run model e =
-    case Eval.run { env = model.env } e of
-        ( { env }, EvalOk expr ) ->
-            ( { model | env = env }, writeLine (print expr) )
+run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
+run env expr =
+    case Eval.run env expr of
+        ( env, EvalOk expr ) ->
+            ( ReplActive env, writeLine (print expr) )
 
-        ( { env }, EvalErr msg ) ->
-            ( { model | env = env }, writeLine ("ERR:" ++ msg) )
+        ( env, EvalErr msg ) ->
+            ( ReplActive env, writeLine ("ERR:" ++ msg) )
 
-        ( { env }, EvalIO cmd cont ) ->
-            ( { model | cont = Just cont }, cmd )
-
-
-makeOutput : Result String String -> String
-makeOutput result =
-    case result of
-        Ok str ->
-            str
-
-        Err msg ->
-            "ERR:" ++ msg
+        ( env, EvalIO cmd cont ) ->
+            ( ReplIO env cont, cmd )
 
 
 prompt : String
@@ -164,9 +188,9 @@ evalAst ast =
     case ast of
         MalSymbol sym ->
             -- Lookup symbol in env and return value or raise error if not found.
-            Eval.withState
-                (\state ->
-                    case Env.get sym state.env of
+            Eval.withEnv
+                (\env ->
+                    case Env.get sym env of
                         Ok val ->
                             Eval.succeed val
 
@@ -220,10 +244,7 @@ evalDef args =
             eval uneValue
                 |> Eval.andThen
                     (\value ->
-                        Eval.modifyState
-                            (\state ->
-                                { state | env = Env.set name value state.env }
-                            )
+                        Eval.modifyEnv (Env.set name value)
                             |> Eval.andThen (\_ -> Eval.succeed value)
                     )
 
@@ -240,7 +261,7 @@ evalLet args =
                     eval expr
                         |> Eval.andThen
                             (\value ->
-                                Eval.modifyState (\state -> { state | env = Env.set name value state.env })
+                                Eval.modifyEnv (Env.set name value)
                                     |> Eval.andThen
                                         (\_ ->
                                             if List.isEmpty rest then
@@ -254,9 +275,21 @@ evalLet args =
                     Eval.fail "let* expected an even number of binds (symbol expr ..)"
 
         go binds body =
-            Eval.modifyState (\state -> { state | env = Env.make (Just state.env) })
+            Eval.modifyEnv Env.push
                 |> Eval.andThen (\_ -> evalBinds binds)
                 |> Eval.andThen (\_ -> eval body)
+                |> Eval.andThen
+                    (\res ->
+                        Eval.withEnv
+                            (\env ->
+                                case Env.pop env of
+                                    Ok env ->
+                                        Eval.setEnv env |> Eval.map (\_ -> res)
+
+                                    Err msg ->
+                                        Eval.fail msg
+                            )
+                    )
     in
         case args of
             [ MalList binds, body ] ->
@@ -317,56 +350,106 @@ evalIf args =
 evalFn : List MalExpr -> Eval MalExpr
 evalFn args =
     let
-        extractSymbols list acc =
+        {- Extract symbols from the binds list and verify their uniqueness -}
+        extractSymbols acc list =
             case list of
                 [] ->
                     Ok (List.reverse acc)
 
                 (MalSymbol name) :: rest ->
-                    extractSymbols rest (name :: acc)
+                    if List.member name acc then
+                        Err "all binds must have unique names"
+                    else
+                        extractSymbols (name :: acc) rest
 
                 _ ->
                     Err "all binds in fn* must be a symbol"
 
-        bindArgs env pairs =
-            case pairs of
-                [] ->
-                    env
+        parseBinds list =
+            case List.reverse list of
+                var :: "&" :: rest ->
+                    Ok <| bindVarArgs (List.reverse rest) var
 
-                ( bind, arg ) :: rest ->
-                    bindArgs (Env.set bind arg env) rest
+                _ ->
+                    if List.member "&" list then
+                        Err "varargs separator '&' is used incorrectly"
+                    else
+                        Ok <| bindArgs list
 
-        makeEnv binds args env =
-            zip binds args
-                |> bindArgs (Env.make (Just env))
+        extractAndParse =
+            extractSymbols [] >> Result.andThen parseBinds
+
+        bindArgs binds args =
+            let
+                numBinds =
+                    List.length binds
+            in
+                if List.length args /= numBinds then
+                    Err <|
+                        "function expected "
+                            ++ (toString numBinds)
+                            ++ " arguments"
+                else
+                    Ok <| zip binds args
+
+        bindVarArgs binds var args =
+            let
+                minArgs =
+                    List.length binds
+
+                varArgs =
+                    MalList (List.drop minArgs args)
+            in
+                if List.length args < minArgs then
+                    Err <|
+                        "function expected at least "
+                            ++ (toString minArgs)
+                            ++ " arguments"
+                else
+                    Ok <| zip binds args ++ [ ( var, varArgs ) ]
+
+        makeFn frameId binder body args =
+            case binder args of
+                Ok bound ->
+                    Eval.withEnv
+                        (\env ->
+                            Eval.modifyEnv (Env.enter frameId bound)
+                                |> Eval.andThen (\_ -> eval body)
+                                |> Eval.andThen
+                                    (\res ->
+                                        Eval.modifyEnv (Env.leave env.currentFrameId)
+                                            |> Eval.map (\_ -> res)
+                                    )
+                        )
+
+                Err msg ->
+                    Eval.fail msg
+
+        go bindsList body =
+            case extractAndParse bindsList of
+                Ok binder ->
+                    Eval.modifyEnv Env.ref
+                        -- reference the current frame.
+                        |> Eval.andThen
+                            (\_ ->
+                                Eval.withEnv
+                                    (\env ->
+                                        Eval.succeed
+                                            (MalFunction
+                                                (makeFn env.currentFrameId binder body)
+                                            )
+                                    )
+                            )
+
+                Err msg ->
+                    Eval.fail msg
     in
         case args of
             [ MalList bindsList, body ] ->
-                case extractSymbols bindsList [] of
-                    Ok binds ->
-                        let
-                            fn args =
-                                if List.length args /= List.length binds then
-                                    Eval.fail <|
-                                        "function expected "
-                                            ++ (toString (List.length binds))
-                                            ++ " arguments, got "
-                                            ++ (toString (List.length binds))
-                                else
-                                    -- TODO: push state and pop afterwards!
-                                    -- TODO or temporary change state?
-                                    Eval.withState
-                                        (\state ->
-                                            Eval.putState ({ state | env = makeEnv binds args state.env })
-                                                |> Eval.andThen (\_ -> eval body)
-                                                |> Eval.andThen (\res -> Eval.putState state |> Eval.map (\_ -> res))
-                                        )
-                        in
-                            Eval.succeed (MalFunction fn)
+                go bindsList body
 
-                    -- TODO explicitly pass current env
-                    Err msg ->
-                        Eval.fail msg
+            [ MalVector bindsVec, body ] ->
+                go (Array.toList bindsVec) body
 
             _ ->
                 Eval.fail "fn* expected two args: binds list and body"

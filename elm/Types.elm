@@ -9,15 +9,17 @@ type Msg
     = Input (Result String IO)
 
 
-type Env
-    = Env
-        { outer : Maybe Env
-        , data : Dict String MalExpr
-        }
+type alias Frame =
+    { outerId : Maybe Int
+    , data : Dict String MalExpr
+    , refCnt : Int
+    }
 
 
-type alias EvalState =
-    { env : Env
+type alias Env =
+    { frames : Dict Int Frame
+    , nextFrameId : Int
+    , currentFrameId : Int
     }
 
 
@@ -28,11 +30,11 @@ type EvalResult res
 
 
 type alias EvalContext res =
-    ( EvalState, EvalResult res )
+    ( Env, EvalResult res )
 
 
 type alias EvalFn res =
-    EvalState -> EvalContext res
+    Env -> EvalContext res
 
 
 type Eval res
