@@ -150,6 +150,33 @@ eval : MalExpr -> Eval MalExpr
 eval ast =
     Debug.log "eval " (printString True ast)
         |> (\_ ->
+                evalNoApply ast
+                    |> Eval.andThen
+                        (\ast ->
+                            case ast of
+                                MalApply { frameId, bound, body } ->
+                                    Eval.withEnv
+                                        (\env ->
+                                            Eval.modifyEnv (Env.enter frameId bound)
+                                                |> Eval.andThen (\_ -> evalNoApply body)
+                                                |> Eval.andThen
+                                                    (\res ->
+                                                        Eval.modifyEnv (Env.leave env.currentFrameId)
+                                                            |> Eval.map (\_ -> res)
+                                                    )
+                                        )
+                                        |> Eval.andThen eval
+
+                                _ ->
+                                    Eval.succeed ast
+                        )
+           )
+
+
+evalNoApply : MalExpr -> Eval MalExpr
+evalNoApply ast =
+    Debug.log "evalNoApply " (printString True ast)
+        |> (\_ ->
                 case ast of
                     MalList [] ->
                         Eval.succeed ast
@@ -286,7 +313,7 @@ evalLet args =
         go binds body =
             Eval.modifyEnv Env.push
                 |> Eval.andThen (\_ -> evalBinds binds)
-                |> Eval.andThen (\_ -> eval body)
+                |> Eval.andThen (\_ -> evalNoApply body)
                 |> Eval.andThen
                     (\res ->
                         Eval.modifyEnv Env.pop
@@ -306,17 +333,13 @@ evalLet args =
 
 evalDo : List MalExpr -> Eval MalExpr
 evalDo args =
-    let
-        returnLast list =
-            case last list of
-                Just value ->
-                    Eval.succeed value
+    case List.reverse args of
+        last :: rest ->
+            evalList (List.reverse rest)
+                |> Eval.andThen (\_ -> evalNoApply last)
 
-                Nothing ->
-                    Eval.fail "do expected at least one arg"
-    in
-        evalList args
-            |> Eval.andThen returnLast
+        [] ->
+            Eval.fail "do expected at least one arg"
 
 
 evalIf : List MalExpr -> Eval MalExpr
@@ -330,7 +353,7 @@ evalIf args =
                 |> Eval.map isThruthy
                 |> Eval.andThen
                     (\cond ->
-                        eval
+                        evalNoApply
                             (if cond then
                                 trueExpr
                              else
@@ -418,7 +441,14 @@ evalFn args =
                         \args ->
                             case binder args of
                                 Ok bound ->
-                                    Eval.enter frameId bound (eval body)
+                                    Eval.succeed <|
+                                        -- TODO : choice Env.enter prematurely?
+                                        -- I think it is needed by the garbage collect..
+                                        MalApply
+                                            { frameId = frameId
+                                            , bound = bound
+                                            , body = body
+                                            }
 
                                 Err msg ->
                                     Eval.fail msg

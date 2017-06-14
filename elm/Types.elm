@@ -20,6 +20,8 @@ type alias Env =
     { frames : Dict Int Frame
     , nextFrameId : Int
     , currentFrameId : Int
+    , atoms : Dict Int MalExpr
+    , nextAtomId : Int
     }
 
 
@@ -27,6 +29,10 @@ type EvalResult res
     = EvalErr String
     | EvalOk res
     | EvalIO (Cmd Msg) (IO -> Eval res)
+
+
+
+-- TODO EvalTCO Env -> Eval MalExpr (?)
 
 
 type alias EvalContext res =
@@ -41,6 +47,23 @@ type Eval res
     = Eval (EvalFn res)
 
 
+type alias MalFn =
+    List MalExpr -> Eval MalExpr
+
+
+type MalFunction
+    = CoreFunc MalFn
+    | UserFunc { frameId : Int, fn : MalFn }
+
+
+type alias TcoFn =
+    () -> Eval MalExpr
+
+
+type alias Bound =
+    List ( String, MalExpr )
+
+
 type MalExpr
     = MalNil
     | MalBool Bool
@@ -51,7 +74,9 @@ type MalExpr
     | MalList (List MalExpr)
     | MalVector (Array MalExpr)
     | MalMap (Dict String MalExpr)
-    | MalFunction (List MalExpr -> Eval MalExpr)
+    | MalFunction MalFunction
+    | MalApply { frameId : Int, bound : Bound, body : MalExpr }
+    | MalAtom Int
 
 
 {-| Keywords are prefixed by this char for usage in a MalMap.

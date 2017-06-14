@@ -2,6 +2,8 @@ module Eval exposing (..)
 
 import Types exposing (..)
 import IO exposing (IO)
+import Env
+import Printer
 
 
 apply : Eval a -> Env -> EvalContext a
@@ -84,3 +86,17 @@ fail msg =
     Eval <|
         \state ->
             ( state, EvalErr msg )
+
+
+enter : Int -> List ( String, MalExpr ) -> Eval a -> Eval a
+enter frameId bound body =
+    withEnv
+        (\env ->
+            modifyEnv (Env.enter frameId bound)
+                |> andThen (\_ -> body)
+                |> andThen
+                    (\res ->
+                        modifyEnv (Env.leave env.currentFrameId)
+                            |> map (\_ -> res)
+                    )
+        )

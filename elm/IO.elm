@@ -3,6 +3,7 @@ port module IO
         ( IO(..)
         , writeLine
         , readLine
+        , readFile
         , input
         , decodeIO
         )
@@ -20,6 +21,11 @@ port writeLine : String -> Cmd msg
 port readLine : String -> Cmd msg
 
 
+{-| Read the contents of a file
+-}
+port readFile : String -> Cmd msg
+
+
 {-| Received a response for a command.
 -}
 port input : (Value -> msg) -> Sub msg
@@ -28,6 +34,8 @@ port input : (Value -> msg) -> Sub msg
 type IO
     = LineRead (Maybe String)
     | LineWritten
+    | FileRead String
+    | Exception String
 
 
 decodeIO : Decoder IO
@@ -45,6 +53,14 @@ decodeTag tag =
 
         "lineWritten" ->
             succeed LineWritten
+
+        "fileRead" ->
+            field "contents" string
+                |> map FileRead
+
+        "exception" ->
+            field "message" string
+                |> map Exception
 
         _ ->
             fail <|

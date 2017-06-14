@@ -2,7 +2,7 @@ module Printer exposing (..)
 
 import Array exposing (Array)
 import Dict exposing (Dict)
-import Types exposing (MalExpr(..), keywordPrefix)
+import Types exposing (Env, MalExpr(..), keywordPrefix)
 import Utils exposing (encodeString, wrap)
 
 
@@ -41,6 +41,12 @@ printString readably ast =
 
         MalFunction _ ->
             "#<function>"
+
+        MalAtom atomId ->
+            "#<atom:" ++ (toString atomId) ++ ">"
+
+        MalApply _ ->
+            "#<apply>"
 
 
 printRawString : Bool -> String -> String
@@ -88,3 +94,36 @@ printMap readably =
             >> List.map printEntry
             >> String.join " "
             >> wrap "{" "}"
+
+
+printEnv : Env -> String
+printEnv env =
+    let
+        printOuterId =
+            Maybe.map toString >> Maybe.withDefault "nil"
+
+        printHeader frameId { outerId, refCnt } =
+            "#"
+                ++ (toString frameId)
+                ++ " outer="
+                ++ printOuterId outerId
+                ++ " refCnt="
+                ++ (toString refCnt)
+
+        printFrame frameId frame =
+            String.join "\n"
+                ((printHeader frameId frame)
+                    :: (Dict.foldr printDatum [] frame.data)
+                )
+
+        printFrameAcc k v acc =
+            printFrame k v :: acc
+
+        printDatum k v acc =
+            (k ++ " = " ++ (printString True v)) :: acc
+    in
+        "--- Environment ---\n"
+            ++ "Current frame: #"
+            ++ (toString env.currentFrameId)
+            ++ "\n\n"
+            ++ String.join "\n\n" (Dict.foldr printFrameAcc [] env.frames)
