@@ -272,4 +272,8 @@ malInit =
     [ """(def! not
             (fn* (a)
                 (if a false true)))"""
+    , """(def! load-file
+            (fn* (f)
+                (eval (read-string
+                    (str "(do " (slurp f) ")")))))"""
     ]

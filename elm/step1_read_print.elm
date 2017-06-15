@@ -55,6 +55,9 @@ update msg model =
         Input (Ok (LineRead Nothing)) ->
             ( model, Cmd.none )
 
+        Input (Ok io) ->
+            Debug.crash "unexpected IO received: " io
+
         Input (Err msg) ->
             Debug.crash msg ( model, Cmd.none )
 

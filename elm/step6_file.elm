@@ -39,8 +39,12 @@ type Model
 init : Flags -> ( Model, Cmd Msg )
 init { args } =
     let
+        makeFn =
+            CoreFunc >> MalFunction
+
         initEnv =
             Core.ns
+                |> Env.set "eval" (makeFn malEval)
 
         evalMalInit =
             Core.malInit
@@ -174,6 +178,16 @@ eval ast =
             |> Eval.andThen (Eval.runLoop apply)
 
 
+malEval : List MalExpr -> Eval MalExpr
+malEval args =
+    case args of
+        [ expr ] ->
+            eval expr
+
+        _ ->
+            Eval.fail "unsupported arguments"
+
+
 evalApply : ApplyRec -> Eval MalExpr
 evalApply { frameId, bound, body } =
     Eval.withEnv
@@ -295,7 +309,7 @@ evalDef args =
             eval uneValue
                 |> Eval.andThen
                     (\value ->
-                        Eval.modifyEnv (Env.def name value)
+                        Eval.modifyEnv (Env.set name value)
                             |> Eval.andThen (\_ -> Eval.succeed value)
                     )
 

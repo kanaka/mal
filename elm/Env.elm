@@ -9,6 +9,7 @@ module Env
         , ref
         , get
         , set
+        , def
         , newAtom
         , getAtom
         , setAtom
@@ -223,8 +224,8 @@ emptyFrame outerId =
     }
 
 
-set : String -> MalExpr -> Env -> Env
-set name expr env =
+setInFrame : Int -> String -> MalExpr -> Env -> Env
+setInFrame frameId name expr env =
     let
         updateFrame =
             Maybe.map
@@ -232,13 +233,20 @@ set name expr env =
                     { frame | data = Dict.insert name expr frame.data }
                 )
 
-        frameId =
-            env.currentFrameId
-
         newFrames =
             Dict.update frameId updateFrame env.frames
     in
         { env | frames = newFrames }
+
+
+set : String -> MalExpr -> Env -> Env
+set name expr env =
+    setInFrame env.currentFrameId name expr env
+
+
+def : String -> MalExpr -> Env -> Env
+def =
+    setInFrame globalFrameId
 
 
 get : String -> Env -> Result String MalExpr

@@ -3,7 +3,7 @@ port module Main exposing (..)
 import IO exposing (..)
 import Json.Decode exposing (decodeValue)
 import Platform exposing (programWithFlags)
-import Types exposing (MalExpr(..))
+import Types exposing (MalExpr(..), MalFunction(..))
 import Reader exposing (readString)
 import Printer exposing (printString)
 import Utils exposing (maybeToList, zip)
@@ -49,6 +49,9 @@ init { args } =
 initReplEnv : ReplEnv
 initReplEnv =
     let
+        makeFn =
+            CoreFunc >> MalFunction
+
         binaryOp fn args =
             case args of
                 [ MalInt x, MalInt y ] ->
@@ -58,10 +61,10 @@ initReplEnv =
                     Err "unsupported arguments"
     in
         Dict.fromList
-            [ ( "+", MalFunction <| binaryOp (+) )
-            , ( "-", MalFunction <| binaryOp (-) )
-            , ( "*", MalFunction <| binaryOp (*) )
-            , ( "/", MalFunction <| binaryOp (//) )
+            [ ( "+", makeFn <| binaryOp (+) )
+            , ( "-", makeFn <| binaryOp (-) )
+            , ( "*", makeFn <| binaryOp (*) )
+            , ( "/", makeFn <| binaryOp (//) )
             ]
 
 

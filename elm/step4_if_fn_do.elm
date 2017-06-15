@@ -148,48 +148,45 @@ read =
 
 eval : MalExpr -> Eval MalExpr
 eval ast =
-    Debug.log "eval " (printString True ast)
-        |> (\_ ->
-                case ast of
-                    MalList [] ->
-                        Eval.succeed ast
+    case ast of
+        MalList [] ->
+            Eval.succeed ast
 
-                    MalList ((MalSymbol "def!") :: args) ->
-                        evalDef args
+        MalList ((MalSymbol "def!") :: args) ->
+            evalDef args
 
-                    MalList ((MalSymbol "let*") :: args) ->
-                        evalLet args
+        MalList ((MalSymbol "let*") :: args) ->
+            evalLet args
 
-                    MalList ((MalSymbol "do") :: args) ->
-                        evalDo args
+        MalList ((MalSymbol "do") :: args) ->
+            evalDo args
 
-                    MalList ((MalSymbol "if") :: args) ->
-                        evalIf args
+        MalList ((MalSymbol "if") :: args) ->
+            evalIf args
 
-                    MalList ((MalSymbol "fn*") :: args) ->
-                        evalFn args
+        MalList ((MalSymbol "fn*") :: args) ->
+            evalFn args
 
-                    MalList list ->
-                        evalList list
-                            |> Eval.andThen
-                                (\newList ->
-                                    case newList of
-                                        [] ->
-                                            Eval.fail "can't happen"
+        MalList list ->
+            evalList list
+                |> Eval.andThen
+                    (\newList ->
+                        case newList of
+                            [] ->
+                                Eval.fail "can't happen"
 
-                                        (MalFunction (CoreFunc fn)) :: args ->
-                                            fn args
+                            (MalFunction (CoreFunc fn)) :: args ->
+                                fn args
 
-                                        (MalFunction (UserFunc { fn })) :: args ->
-                                            fn args
+                            (MalFunction (UserFunc { fn })) :: args ->
+                                fn args
 
-                                        fn :: _ ->
-                                            Eval.fail ((printString True fn) ++ " is not a function")
-                                )
+                            fn :: _ ->
+                                Eval.fail ((printString True fn) ++ " is not a function")
+                    )
 
-                    _ ->
-                        evalAst ast
-           )
+        _ ->
+            evalAst ast
 
 
 evalAst : MalExpr -> Eval MalExpr
@@ -253,7 +250,7 @@ evalDef args =
             eval uneValue
                 |> Eval.andThen
                     (\value ->
-                        Eval.modifyEnv (Env.set name value)
+                        Eval.modifyEnv (Env.def name value)
                             |> Eval.andThen (\_ -> Eval.succeed value)
                     )
 
