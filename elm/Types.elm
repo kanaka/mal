@@ -5,6 +5,11 @@ import Dict exposing (Dict)
 import IO exposing (IO)
 
 
+type Either a b
+    = Left a
+    | Right b
+
+
 type Msg
     = Input (Result String IO)
 
@@ -22,6 +27,7 @@ type alias Env =
     , currentFrameId : Int
     , atoms : Dict Int MalExpr
     , nextAtomId : Int
+    , debug : Bool
     }
 
 
@@ -31,20 +37,12 @@ type EvalResult res
     | EvalIO (Cmd Msg) (IO -> Eval res)
 
 
-
--- TODO EvalTCO Env -> Eval MalExpr (?)
-
-
 type alias EvalContext res =
     ( Env, EvalResult res )
 
 
-type alias EvalFn res =
+type alias Eval res =
     Env -> EvalContext res
-
-
-type Eval res
-    = Eval (EvalFn res)
 
 
 type alias MalFn =
@@ -54,6 +52,10 @@ type alias MalFn =
 type MalFunction
     = CoreFunc MalFn
     | UserFunc { frameId : Int, fn : MalFn }
+
+
+type alias ApplyRec =
+    { frameId : Int, bound : Bound, body : MalExpr }
 
 
 type alias TcoFn =
@@ -75,7 +77,7 @@ type MalExpr
     | MalVector (Array MalExpr)
     | MalMap (Dict String MalExpr)
     | MalFunction MalFunction
-    | MalApply { frameId : Int, bound : Bound, body : MalExpr }
+    | MalApply ApplyRec
     | MalAtom Int
 
 

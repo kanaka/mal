@@ -146,77 +146,92 @@ read =
     readString
 
 
+debug : String -> a -> Eval b -> Eval b
+debug msg value e =
+    Eval.withEnv
+        (\env ->
+            Env.debug env msg value
+                |> always e
+        )
+
+
 eval : MalExpr -> Eval MalExpr
 eval ast =
-    Debug.log "eval " (printString True ast)
-        |> (\_ ->
-                evalNoApply ast
-                    |> Eval.andThen
-                        (\ast ->
-                            case ast of
-                                MalApply { frameId, bound, body } ->
-                                    Eval.withEnv
-                                        (\env ->
-                                            Eval.modifyEnv (Env.enter frameId bound)
-                                                |> Eval.andThen (\_ -> evalNoApply body)
-                                                |> Eval.andThen
-                                                    (\res ->
-                                                        Eval.modifyEnv (Env.leave env.currentFrameId)
-                                                            |> Eval.map (\_ -> res)
-                                                    )
-                                        )
-                                        |> Eval.andThen eval
-
-                                _ ->
-                                    Eval.succeed ast
+    let
+        apply expr =
+            case expr of
+                MalApply app ->
+                    Left
+                        (debug "evalApply"
+                            (printString True expr)
+                            (evalApply app)
                         )
-           )
+
+                _ ->
+                    Right expr
+    in
+        evalNoApply ast
+            |> Eval.andThen (Eval.runLoop apply)
+
+
+evalApply : ApplyRec -> Eval MalExpr
+evalApply { frameId, bound, body } =
+    Eval.withEnv
+        (\env ->
+            Eval.modifyEnv (Env.enter frameId bound)
+                |> Eval.andThen (\_ -> evalNoApply body)
+                |> Eval.andThen
+                    (\res ->
+                        Eval.modifyEnv (Env.leave env.currentFrameId)
+                            |> Eval.map (\_ -> res)
+                    )
+        )
 
 
 evalNoApply : MalExpr -> Eval MalExpr
 evalNoApply ast =
-    Debug.log "evalNoApply " (printString True ast)
-        |> (\_ ->
-                case ast of
-                    MalList [] ->
-                        Eval.succeed ast
+    debug "evalNoApply"
+        (printString True ast)
+        (case ast of
+            MalList [] ->
+                Eval.succeed ast
 
-                    MalList ((MalSymbol "def!") :: args) ->
-                        evalDef args
+            MalList ((MalSymbol "def!") :: args) ->
+                evalDef args
 
-                    MalList ((MalSymbol "let*") :: args) ->
-                        evalLet args
+            MalList ((MalSymbol "let*") :: args) ->
+                evalLet args
 
-                    MalList ((MalSymbol "do") :: args) ->
-                        evalDo args
+            MalList ((MalSymbol "do") :: args) ->
+                evalDo args
 
-                    MalList ((MalSymbol "if") :: args) ->
-                        evalIf args
+            MalList ((MalSymbol "if") :: args) ->
+                evalIf args
 
-                    MalList ((MalSymbol "fn*") :: args) ->
-                        evalFn args
+            MalList ((MalSymbol "fn*") :: args) ->
+                evalFn args
 
-                    MalList list ->
-                        evalList list
-                            |> Eval.andThen
-                                (\newList ->
-                                    case newList of
-                                        [] ->
-                                            Eval.fail "can't happen"
+            MalList list ->
+                evalList list
+                    |> Eval.andThen
+                        (\newList ->
+                            case newList of
+                                [] ->
+                                    Eval.fail "can't happen"
 
-                                        (MalFunction (CoreFunc fn)) :: args ->
-                                            fn args
+                                (MalFunction (CoreFunc fn)) :: args ->
+                                    fn args
 
-                                        (MalFunction (UserFunc { fn })) :: args ->
-                                            fn args
+                                (MalFunction (UserFunc { fn })) :: args ->
+                                    fn args
 
-                                        fn :: _ ->
-                                            Eval.fail ((printString True fn) ++ " is not a function")
-                                )
+                                fn :: _ ->
+                                    Eval.fail ((printString True fn) ++ " is not a function")
+                        )
 
-                    _ ->
-                        evalAst ast
-           )
+            _ ->
+                evalAst ast
+        )
 
 
 evalAst : MalExpr -> Eval MalExpr

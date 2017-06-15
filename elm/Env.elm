@@ -1,6 +1,7 @@
 module Env
     exposing
-        ( global
+        ( debug
+        , global
         , push
         , pop
         , enter
@@ -20,6 +21,14 @@ import Array
 import Set
 
 
+debug : Env -> String -> a -> a
+debug env msg value =
+    if env.debug then
+        Debug.log msg value
+    else
+        value
+
+
 globalFrameId : Int
 globalFrameId =
     0
@@ -32,6 +41,7 @@ global =
     , currentFrameId = globalFrameId
     , atoms = Dict.empty
     , nextAtomId = 0
+    , debug = True
     }
 
 
@@ -91,8 +101,7 @@ enter : Int -> List ( String, MalExpr ) -> Env -> Env
 enter parentFrameId binds env =
     let
         frameId =
-            Debug.log "enter #"
-                env.nextFrameId
+            debug env "enter #" env.nextFrameId
 
         newFrame =
             setBinds binds (emptyFrame (Just parentFrameId))
@@ -108,8 +117,7 @@ leave : Int -> Env -> Env
 leave orgFrameId env =
     let
         frameId =
-            Debug.log "leave #"
-                env.currentFrameId
+            debug env "leave #" env.currentFrameId
     in
         { env
             | currentFrameId = orgFrameId
@@ -134,12 +142,6 @@ ref env =
         { env | frames = newFrames }
 
 
-
--- TODO: when disposing, deref all function's frames?
--- TODO: is that enough instead of a GC? no: don't know how often the function is referenced.
--- TODO: consideration: keep refCnt for MalFunction, or implement a light GC.
-
-
 deref : Maybe Frame -> Maybe Frame
 deref =
     Maybe.andThen
@@ -149,12 +151,6 @@ deref =
             else
                 Just { frame | refCnt = frame.refCnt - 1 }
         )
-
-
-
--- TODO need a GC.
--- given a Env, see which frames are not reachable.
--- in MalFunction need to refer to the frameId.
 
 
 {-| Given an Env see which frames are not reachable from the
@@ -170,11 +166,11 @@ gc env =
             data |> Dict.values |> countList acc
 
         countRefs expr acc =
-            Debug.log (toString expr) <|
+            debug env ("gc-visit " ++ (toString expr)) <|
                 case expr of
                     MalFunction (UserFunc { frameId }) ->
                         if not (Set.member frameId acc) then
-                            Debug.log "counting" <|
+                            debug env "gc-counting" <|
                                 case Dict.get frameId env.frames of
                                     Just frame ->
                                         countFrame (Set.insert frameId acc) frame
@@ -198,6 +194,11 @@ gc env =
 
         initSet =
             Set.fromList [ globalFrameId, env.currentFrameId ]
+
+        reportUnused frames used =
+            Dict.diff frames used
+                |> debug env "unused frames"
+                |> (\_ -> frames)
     in
         case Dict.get globalFrameId env.frames of
             Nothing ->
@@ -206,10 +207,11 @@ gc env =
             Just globalFrame ->
                 countFrame initSet globalFrame
                     |> Set.toList
-                    |> Debug.log "used frames"
+                    |> debug env "used frames"
                     |> List.map (\frameId -> ( frameId, emptyFrame Nothing ))
                     |> Dict.fromList
-                    |> Dict.intersect (Debug.log "cur frames" env.frames)
+                    |> reportUnused env.frames
+                    |> Dict.intersect env.frames
                     |> (\frames -> { env | frames = frames })
 
 

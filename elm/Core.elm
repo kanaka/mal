@@ -221,6 +221,21 @@ ns =
 
         gc args =
             Eval.withEnv (Env.gc >> Printer.printEnv >> writeLine)
+
+        setDebug enabled =
+            Eval.modifyEnv
+                (\env ->
+                    { env | debug = enabled }
+                )
+                |> Eval.andThen (\_ -> Eval.succeed MalNil)
+
+        debug args =
+            case args of
+                [ MalBool True ] ->
+                    setDebug True
+
+                _ ->
+                    setDebug False
     in
         Env.global
             |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
@@ -249,6 +264,7 @@ ns =
             |> Env.set "reset!" (makeFn reset)
             |> Env.set "swap!" (makeFn swap)
             |> Env.set "gc" (makeFn gc)
+            |> Env.set "debug!" (makeFn debug)
 
 
 malInit : List String
