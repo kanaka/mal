@@ -41,7 +41,7 @@ global =
     , currentFrameId = globalFrameId
     , atoms = Dict.empty
     , nextAtomId = 0
-    , debug = True
+    , debug = False
     }
 
 
