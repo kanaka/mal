@@ -298,7 +298,7 @@ evalDef args =
             eval uneValue
                 |> Eval.andThen
                     (\value ->
-                        Eval.modifyEnv (Env.def name value)
+                        Eval.modifyEnv (Env.set name value)
                             |> Eval.andThen (\_ -> Eval.succeed value)
                     )
 

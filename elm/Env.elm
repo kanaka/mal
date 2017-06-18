@@ -1,15 +1,16 @@
 module Env
     exposing
         ( debug
+        , globalFrameId
         , global
         , push
         , pop
+        , jump
         , enter
         , leave
         , ref
         , get
         , set
-        , def
         , newAtom
         , getAtom
         , setAtom
@@ -44,6 +45,11 @@ global =
     , nextAtomId = 0
     , debug = False
     }
+
+
+jump : Int -> Env -> Env
+jump frameId env =
+    { env | currentFrameId = frameId }
 
 
 push : Env -> Env
@@ -242,11 +248,6 @@ setInFrame frameId name expr env =
 set : String -> MalExpr -> Env -> Env
 set name expr env =
     setInFrame env.currentFrameId name expr env
-
-
-def : String -> MalExpr -> Env -> Env
-def =
-    setInFrame globalFrameId
 
 
 get : String -> Env -> Result String MalExpr

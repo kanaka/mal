@@ -234,7 +234,16 @@ malEval : List MalExpr -> Eval MalExpr
 malEval args =
     case args of
         [ expr ] ->
-            eval expr
+            Eval.withEnv
+                (\env ->
+                    Eval.modifyEnv (Env.jump Env.globalFrameId)
+                        |> Eval.andThen (\_ -> eval expr)
+                        |> Eval.andThen
+                            (\res ->
+                                Eval.modifyEnv (Env.jump env.currentFrameId)
+                                    |> Eval.andThen (\_ -> Eval.succeed res)
+                            )
+                )
 
         _ ->
             Eval.fail "unsupported arguments"
@@ -364,7 +373,7 @@ evalDef args =
             eval uneValue
                 |> Eval.andThen
                     (\value ->
-                        Eval.modifyEnv (Env.def name value)
+                        Eval.modifyEnv (Env.set name value)
                             |> Eval.andThen (\_ -> Eval.succeed value)
                     )
 
