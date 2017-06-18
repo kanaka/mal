@@ -108,3 +108,13 @@ runLoop f expr env =
 
         Right expr ->
             ( env, EvalOk expr )
+
+
+fromResult : Result String a -> Eval a
+fromResult res =
+    case res of
+        Ok val ->
+            succeed val
+
+        Err msg ->
+            fail msg

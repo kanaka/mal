@@ -24,16 +24,21 @@ main =
         }
 
 
+type alias Args =
+    List String
+
+
 type alias Flags =
-    { args : List String
+    { args : Args
     }
 
 
 type Model
-    = InitIO Env (IO -> Eval MalExpr)
-    | InitError String
+    = InitIO Args Env (IO -> Eval MalExpr)
+    | ScriptIO Env (IO -> Eval MalExpr)
     | ReplActive Env
     | ReplIO Env (IO -> Eval MalExpr)
+    | Stopped
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -45,6 +50,7 @@ init { args } =
         initEnv =
             Core.ns
                 |> Env.set "eval" (makeFn malEval)
+                |> Env.set "*ARGV*" (MalList (args |> List.map MalString))
 
         evalMalInit =
             Core.malInit
@@ -54,20 +60,27 @@ init { args } =
                     (\b a -> a |> Eval.andThen (\_ -> b))
                     (Eval.succeed MalNil)
     in
-        runInit initEnv evalMalInit
+        runInit args initEnv evalMalInit
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case model of
-        InitError _ ->
-            -- ignore all
+        Stopped ->
             ( model, Cmd.none )
 
-        InitIO env cont ->
+        InitIO args env cont ->
             case msg of
                 Input (Ok io) ->
-                    runInit env (cont io)
+                    runInit args env (cont io)
+
+                Input (Err msg) ->
+                    Debug.crash msg
+
+        ScriptIO env cont ->
+            case msg of
+                Input (Ok io) ->
+                    runScriptLoop env (cont io)
 
                 Input (Err msg) ->
                     Debug.crash msg
@@ -104,27 +117,66 @@ update msg model =
                     Debug.crash msg ( model, Cmd.none )
 
 
-runInit : Env -> Eval MalExpr -> ( Model, Cmd Msg )
-runInit env expr =
+runInit : Args -> Env -> Eval MalExpr -> ( Model, Cmd Msg )
+runInit args env expr =
     case Eval.run env expr of
         ( env, EvalOk expr ) ->
-            -- Init went okay, start REPL.
-            ( ReplActive env, readLine prompt )
+            -- Init went okay.
+            case args of
+                -- If we got no args: start REPL.
+                [] ->
+                    ( ReplActive env, readLine prompt )
+
+                -- Run the script in the first argument.
+                -- Put the rest of the arguments as *ARGV*.
+                filename :: argv ->
+                    runScript filename argv env
 
         ( env, EvalErr msg ) ->
             -- Init failed, don't start REPL.
-            ( InitError msg, writeLine ("ERR:" ++ msg) )
+            ( Stopped, writeLine ("ERR:" ++ msg) )
 
         ( env, EvalIO cmd cont ) ->
             -- IO in init.
-            ( InitIO env cont, cmd )
+            ( InitIO args env cont, cmd )
+
+
+runScript : String -> List String -> Env -> ( Model, Cmd Msg )
+runScript filename argv env =
+    let
+        malArgv =
+            MalList (List.map MalString argv)
+
+        newEnv =
+            env |> Env.set "*ARGV*" malArgv
+
+        program =
+            MalList
+                [ MalSymbol "load-file"
+                , MalString filename
+                ]
+    in
+        runScriptLoop newEnv (eval program)
+
+
+runScriptLoop : Env -> Eval MalExpr -> ( Model, Cmd Msg )
+runScriptLoop env expr =
+    case Eval.run env expr of
+        ( env, EvalOk expr ) ->
+            ( Stopped, Cmd.none )
+
+        ( env, EvalErr msg ) ->
+            ( Stopped, writeLine ("ERR:" ++ msg) )
+
+        ( env, EvalIO cmd cont ) ->
+            ( ScriptIO env cont, cmd )
 
 
 run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
 run env expr =
     case Eval.run env expr of
         ( env, EvalOk expr ) ->
-            ( ReplActive env, writeLine (print expr) )
+            ( ReplActive env, writeLine (print env expr) )
 
         ( env, EvalErr msg ) ->
             ( ReplActive env, writeLine ("ERR:" ++ msg) )
@@ -150,11 +202,11 @@ read =
     readString
 
 
-debug : String -> a -> Eval b -> Eval b
-debug msg value e =
+debug : String -> (Env -> a) -> Eval b -> Eval b
+debug msg f e =
     Eval.withEnv
         (\env ->
-            Env.debug env msg value
+            Env.debug env msg (f env)
                 |> always e
         )
 
@@ -167,7 +219,7 @@ eval ast =
                 MalApply app ->
                     Left
                         (debug "evalApply"
-                            (printString True expr)
+                            (\env -> printString env True expr)
                             (evalApply app)
                         )
 
@@ -205,7 +257,7 @@ evalApply { frameId, bound, body } =
 evalNoApply : MalExpr -> Eval MalExpr
 evalNoApply ast =
     debug "evalNoApply"
-        (printString True ast)
+        (\env -> printString env True ast)
         (case ast of
             MalList [] ->
                 Eval.succeed ast
@@ -236,11 +288,14 @@ evalNoApply ast =
                                 (MalFunction (CoreFunc fn)) :: args ->
                                     fn args
 
-                                (MalFunction (UserFunc { fn })) :: args ->
-                                    fn args
+                                (MalFunction (UserFunc { lazyFn })) :: args ->
+                                    lazyFn args
 
                                 fn :: _ ->
-                                    Eval.fail ((printString True fn) ++ " is not a function")
+                                    Eval.withEnv
+                                        (\env ->
+                                            Eval.fail ((printString env True fn) ++ " is not a function")
+                                        )
                         )
 
             _ ->
@@ -309,7 +364,7 @@ evalDef args =
             eval uneValue
                 |> Eval.andThen
                     (\value ->
-                        Eval.modifyEnv (Env.set name value)
+                        Eval.modifyEnv (Env.def name value)
                             |> Eval.andThen (\_ -> Eval.succeed value)
                     )
 
@@ -464,24 +519,27 @@ evalFn args =
 
         makeFn frameId binder body =
             MalFunction <|
-                UserFunc
-                    { frameId = frameId
-                    , fn =
-                        \args ->
-                            case binder args of
-                                Ok bound ->
-                                    Eval.succeed <|
-                                        -- TODO : choice Env.enter prematurely?
-                                        -- I think it is needed by the garbage collect..
-                                        MalApply
-                                            { frameId = frameId
-                                            , bound = bound
-                                            , body = body
-                                            }
+                let
+                    lazyFn args =
+                        case binder args of
+                            Ok bound ->
+                                Eval.succeed <|
+                                    -- TODO : choice Env.enter prematurely?
+                                    -- I think it is needed by the garbage collect..
+                                    MalApply
+                                        { frameId = frameId
+                                        , bound = bound
+                                        , body = body
+                                        }
 
-                                Err msg ->
-                                    Eval.fail msg
-                    }
+                            Err msg ->
+                                Eval.fail msg
+                in
+                    UserFunc
+                        { frameId = frameId
+                        , lazyFn = lazyFn
+                        , eagerFn = lazyFn >> Eval.andThen eval
+                        }
 
         go bindsList body =
             case extractAndParse bindsList of
@@ -511,9 +569,9 @@ evalFn args =
                 Eval.fail "fn* expected two args: binds list and body"
 
 
-print : MalExpr -> String
-print =
-    printString True
+print : Env -> MalExpr -> String
+print env =
+    printString env True
 
 
 {-| Read-Eval-Print.

@@ -5,8 +5,10 @@ import Env
 import Eval
 import Printer exposing (printString)
 import Array
+import Dict
 import IO exposing (IO(..))
 import Reader
+import Utils exposing (zip)
 
 
 ns : Env
@@ -63,28 +65,101 @@ ns =
                 _ ->
                     Eval.fail "unsupported arguments"
 
+        equalLists a b =
+            case ( a, b ) of
+                ( [], [] ) ->
+                    True
+
+                ( x :: xs, y :: ys ) ->
+                    if deepEquals x y then
+                        equalLists xs ys
+                    else
+                        False
+
+                _ ->
+                    False
+
+        compareListTo list other =
+            case other of
+                MalList otherList ->
+                    equalLists list otherList
+
+                MalVector vec ->
+                    equalLists list (Array.toList vec)
+
+                _ ->
+                    False
+
+        equalMaps a b =
+            if Dict.keys a /= Dict.keys b then
+                False
+            else
+                zip (Dict.values a) (Dict.values b)
+                    |> List.map (uncurry deepEquals)
+                    |> List.all identity
+
+        deepEquals a b =
+            case ( a, b ) of
+                ( MalList list, MalList otherList ) ->
+                    equalLists list otherList
+
+                ( MalList list, MalVector vec ) ->
+                    equalLists list (Array.toList vec)
+
+                ( MalList _, _ ) ->
+                    False
+
+                ( MalVector vec, MalList list ) ->
+                    equalLists (Array.toList vec) list
+
+                ( MalVector vec, MalVector otherVec ) ->
+                    equalLists (Array.toList vec) (Array.toList otherVec)
+
+                ( MalVector _, _ ) ->
+                    False
+
+                ( MalMap map, MalMap otherMap ) ->
+                    equalMaps map otherMap
+
+                ( MalMap _, _ ) ->
+                    False
+
+                ( _, MalMap _ ) ->
+                    False
+
+                _ ->
+                    a == b
+
         {- = -}
         equals args =
             case args of
                 [ a, b ] ->
-                    Eval.succeed <| MalBool (a == b)
+                    Eval.succeed <| MalBool (deepEquals a b)
 
                 _ ->
                     Eval.fail "unsupported arguments"
 
         {- pr-str -}
-        prStr =
-            List.map (printString True)
-                >> String.join " "
-                >> MalString
-                >> Eval.succeed
+        prStr args =
+            Eval.withEnv
+                (\env ->
+                    args
+                        |> List.map (printString env True)
+                        |> String.join " "
+                        |> MalString
+                        |> Eval.succeed
+                )
 
         {- str -}
-        str =
-            List.map (printString False)
-                >> String.join ""
-                >> MalString
-                >> Eval.succeed
+        str args =
+            Eval.withEnv
+                (\env ->
+                    args
+                        |> List.map (printString env False)
+                        |> String.join ""
+                        |> MalString
+                        |> Eval.succeed
+                )
 
         {- helper function to write a string to stdout -}
         writeLine str =
@@ -98,15 +173,23 @@ ns =
                             Eval.fail "wrong IO, expected LineWritten"
                 )
 
-        prn =
-            List.map (printString True)
-                >> String.join " "
-                >> writeLine
+        prn args =
+            Eval.withEnv
+                (\env ->
+                    args
+                        |> List.map (printString env True)
+                        |> String.join " "
+                        |> writeLine
+                )
 
-        println =
-            List.map (printString False)
-                >> String.join " "
-                >> writeLine
+        println args =
+            Eval.withEnv
+                (\env ->
+                    args
+                        |> List.map (printString env False)
+                        |> String.join " "
+                        |> writeLine
+                )
 
         printEnv args =
             case args of
@@ -196,12 +279,13 @@ ns =
                 CoreFunc fn ->
                     fn args
 
-                UserFunc { fn } ->
-                    fn args
+                UserFunc { eagerFn } ->
+                    eagerFn args
 
         swap args =
             case args of
                 (MalAtom atomId) :: (MalFunction func) :: args ->
+                    -- TODO eval apply here!
                     Eval.withEnv
                         (\env ->
                             let
@@ -236,6 +320,44 @@ ns =
 
                 _ ->
                     setDebug False
+
+        typeof args =
+            case args of
+                [ MalInt _ ] ->
+                    Eval.succeed <| MalSymbol "int"
+
+                [ MalBool _ ] ->
+                    Eval.succeed <| MalSymbol "bool"
+
+                [ MalString _ ] ->
+                    Eval.succeed <| MalSymbol "string"
+
+                [ MalKeyword _ ] ->
+                    Eval.succeed <| MalSymbol "keyword"
+
+                [ MalSymbol _ ] ->
+                    Eval.succeed <| MalSymbol "symbol"
+
+                [ MalNil ] ->
+                    Eval.succeed <| MalSymbol "nil"
+
+                [ MalList _ ] ->
+                    Eval.succeed <| MalSymbol "vector"
+
+                [ MalVector _ ] ->
+                    Eval.succeed <| MalSymbol "vector"
+
+                [ MalMap _ ] ->
+                    Eval.succeed <| MalSymbol "vector"
+
+                [ MalFunction _ ] ->
+                    Eval.succeed <| MalSymbol "function"
+
+                [ MalAtom _ ] ->
+                    Eval.succeed <| MalSymbol "atom"
+
+                _ ->
+                    Eval.fail "unsupported arguments"
     in
         Env.global
             |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
@@ -265,6 +387,7 @@ ns =
             |> Env.set "swap!" (makeFn swap)
             |> Env.set "gc" (makeFn gc)
             |> Env.set "debug!" (makeFn debug)
+            |> Env.set "typeof" (makeFn typeof)
 
 
 malInit : List String

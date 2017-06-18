@@ -4,10 +4,11 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Types exposing (Env, MalExpr(..), keywordPrefix)
 import Utils exposing (encodeString, wrap)
+import Env
 
 
-printString : Bool -> MalExpr -> String
-printString readably ast =
+printString : Env -> Bool -> MalExpr -> String
+printString env readably ast =
     case ast of
         MalNil ->
             "nil"
@@ -22,7 +23,7 @@ printString readably ast =
             toString int
 
         MalString str ->
-            printRawString readably str
+            printRawString env readably str
 
         MalSymbol sym ->
             sym
@@ -31,49 +32,53 @@ printString readably ast =
             kw
 
         MalList list ->
-            printList readably list
+            printList env readably list
 
         MalVector vec ->
-            printVector readably vec
+            printVector env readably vec
 
         MalMap map ->
-            printMap readably map
+            printMap env readably map
 
         MalFunction _ ->
             "#<function>"
 
         MalAtom atomId ->
-            "#<atom:" ++ (toString atomId) ++ ">"
+            let
+                value =
+                    Env.getAtom atomId env
+            in
+                "(atom " ++ (printString env True value) ++ ")"
 
         MalApply _ ->
             "#<apply>"
 
 
-printRawString : Bool -> String -> String
-printRawString readably str =
+printRawString : Env -> Bool -> String -> String
+printRawString env readably str =
     if readably then
         encodeString str
     else
         str
 
 
-printList : Bool -> List MalExpr -> String
-printList readably =
-    List.map (printString readably)
+printList : Env -> Bool -> List MalExpr -> String
+printList env readably =
+    List.map (printString env readably)
         >> String.join " "
         >> wrap "(" ")"
 
 
-printVector : Bool -> Array MalExpr -> String
-printVector readably =
-    Array.map (printString readably)
+printVector : Env -> Bool -> Array MalExpr -> String
+printVector env readably =
+    Array.map (printString env readably)
         >> Array.toList
         >> String.join " "
         >> wrap "[" "]"
 
 
-printMap : Bool -> Dict String MalExpr -> String
-printMap readably =
+printMap : Env -> Bool -> Dict String MalExpr -> String
+printMap env readably =
     let
         -- Strip off the keyword prefix if it is there.
         printKey k =
@@ -82,13 +87,13 @@ printMap readably =
                     if prefix == keywordPrefix then
                         rest
                     else
-                        printRawString readably k
+                        printRawString env readably k
 
                 _ ->
-                    printRawString readably k
+                    printRawString env readably k
 
         printEntry ( k, v ) =
-            (printKey k) ++ " " ++ (printString readably v)
+            (printKey k) ++ " " ++ (printString env readably v)
     in
         Dict.toList
             >> List.map printEntry
@@ -120,7 +125,7 @@ printEnv env =
             printFrame k v :: acc
 
         printDatum k v acc =
-            (k ++ " = " ++ (printString True v)) :: acc
+            (k ++ " = " ++ (printString env True v)) :: acc
     in
         "--- Environment ---\n"
             ++ "Current frame: #"

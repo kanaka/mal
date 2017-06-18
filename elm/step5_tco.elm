@@ -120,7 +120,7 @@ run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
 run env expr =
     case Eval.run env expr of
         ( env, EvalOk expr ) ->
-            ( ReplActive env, writeLine (print expr) )
+            ( ReplActive env, writeLine (print env expr) )
 
         ( env, EvalErr msg ) ->
             ( ReplActive env, writeLine ("ERR:" ++ msg) )
@@ -146,11 +146,11 @@ read =
     readString
 
 
-debug : String -> a -> Eval b -> Eval b
-debug msg value e =
+debug : String -> (Env -> a) -> Eval b -> Eval b
+debug msg f e =
     Eval.withEnv
         (\env ->
-            Env.debug env msg value
+            Env.debug env msg (f env)
                 |> always e
         )
 
@@ -163,7 +163,7 @@ eval ast =
                 MalApply app ->
                     Left
                         (debug "evalApply"
-                            (printString True expr)
+                            (\env -> printString env True expr)
                             (evalApply app)
                         )
 
@@ -191,7 +191,7 @@ evalApply { frameId, bound, body } =
 evalNoApply : MalExpr -> Eval MalExpr
 evalNoApply ast =
     debug "evalNoApply"
-        (printString True ast)
+        (\env -> printString env True ast)
         (case ast of
             MalList [] ->
                 Eval.succeed ast
@@ -222,11 +222,14 @@ evalNoApply ast =
                                 (MalFunction (CoreFunc fn)) :: args ->
                                     fn args
 
-                                (MalFunction (UserFunc { fn })) :: args ->
-                                    fn args
+                                (MalFunction (UserFunc { lazyFn })) :: args ->
+                                    lazyFn args
 
                                 fn :: _ ->
-                                    Eval.fail ((printString True fn) ++ " is not a function")
+                                    Eval.withEnv
+                                        (\env ->
+                                            Eval.fail ((printString env True fn) ++ " is not a function")
+                                        )
                         )
 
             _ ->
@@ -450,24 +453,27 @@ evalFn args =
 
         makeFn frameId binder body =
             MalFunction <|
-                UserFunc
-                    { frameId = frameId
-                    , fn =
-                        \args ->
-                            case binder args of
-                                Ok bound ->
-                                    Eval.succeed <|
-                                        -- TODO : choice Env.enter prematurely?
-                                        -- I think it is needed by the garbage collect..
-                                        MalApply
-                                            { frameId = frameId
-                                            , bound = bound
-                                            , body = body
-                                            }
+                let
+                    lazyFn args =
+                        case binder args of
+                            Ok bound ->
+                                Eval.succeed <|
+                                    -- TODO : choice Env.enter prematurely?
+                                    -- I think it is needed by the garbage collect..
+                                    MalApply
+                                        { frameId = frameId
+                                        , bound = bound
+                                        , body = body
+                                        }
 
-                                Err msg ->
-                                    Eval.fail msg
-                    }
+                            Err msg ->
+                                Eval.fail msg
+                in
+                    UserFunc
+                        { frameId = frameId
+                        , lazyFn = lazyFn
+                        , eagerFn = lazyFn >> Eval.andThen eval
+                        }
 
         go bindsList body =
             case extractAndParse bindsList of
@@ -497,9 +503,9 @@ evalFn args =
                 Eval.fail "fn* expected two args: binds list and body"
 
 
-print : MalExpr -> String
-print =
-    printString True
+print : Env -> MalExpr -> String
+print env =
+    printString env True
 
 
 {-| Read-Eval-Print.

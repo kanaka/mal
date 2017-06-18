@@ -6,7 +6,7 @@ import Platform exposing (programWithFlags)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
 import Printer exposing (printString)
-import Utils exposing (maybeToList)
+import Env
 
 
 main : Program Flags Model Msg
@@ -86,7 +86,7 @@ eval ast =
 
 print : MalExpr -> String
 print =
-    printString True
+    printString Env.global True
 
 
 {-| Read-Eval-Print
