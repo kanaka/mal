@@ -246,11 +246,7 @@ evalApply { frameId, bound, body } =
         (\env ->
             Eval.modifyEnv (Env.enter frameId bound)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.andThen
-                    (\res ->
-                        Eval.modifyEnv (Env.leave env.currentFrameId)
-                            |> Eval.map (\_ -> res)
-                    )
+                |> Eval.ignore (Eval.modifyEnv (Env.leave env.currentFrameId))
         )
 
 
@@ -390,11 +386,7 @@ evalLet args =
             Eval.modifyEnv Env.push
                 |> Eval.andThen (\_ -> evalBinds binds)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.andThen
-                    (\res ->
-                        Eval.modifyEnv Env.pop
-                            |> Eval.map (\_ -> res)
-                    )
+                |> Eval.ignore (Eval.modifyEnv Env.pop)
     in
         case args of
             [ MalList binds, body ] ->
@@ -535,18 +527,15 @@ evalFn args =
         go bindsList body =
             extractAndParse bindsList
                 |> Eval.fromResult
+                -- reference the current frame.
+                |> Eval.ignore (Eval.modifyEnv Env.ref)
                 |> Eval.andThen
                     (\binder ->
-                        Eval.modifyEnv Env.ref
-                            -- reference the current frame.
-                            |> Eval.andThen
-                                (\_ ->
-                                    Eval.withEnv
-                                        (\env ->
-                                            Eval.succeed
-                                                (makeFn env.currentFrameId binder body)
-                                        )
-                                )
+                        Eval.withEnv
+                            (\env ->
+                                Eval.succeed
+                                    (makeFn env.currentFrameId binder body)
+                            )
                     )
     in
         case args of

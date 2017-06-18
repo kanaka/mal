@@ -118,3 +118,15 @@ fromResult res =
 
         Err msg ->
             fail msg
+
+
+{-| Chain the left and right Eval but ignore the right's result.
+-}
+ignore : Eval b -> Eval a -> Eval a
+ignore right left =
+    left
+        |> andThen
+            (\res ->
+                right
+                    |> andThen (\_ -> succeed res)
+            )

@@ -358,6 +358,30 @@ ns =
 
                 _ ->
                     Eval.fail "unsupported arguments"
+
+        cons args =
+            case args of
+                [ e, MalList list ] ->
+                    Eval.succeed <| MalList (e :: list)
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        concat args =
+            let
+                go arg acc =
+                    case arg of
+                        MalList list ->
+                            Eval.succeed (acc ++ list)
+
+                        MalVector vec ->
+                            Eval.succeed (acc ++ Array.toList vec)
+
+                        _ ->
+                            Eval.fail "unsupported arguments"
+            in
+                List.foldl (go >> Eval.andThen) (Eval.succeed []) args
+                    |> Eval.map MalList
     in
         Env.global
             |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
@@ -388,6 +412,8 @@ ns =
             |> Env.set "gc" (makeFn gc)
             |> Env.set "debug!" (makeFn debug)
             |> Env.set "typeof" (makeFn typeof)
+            |> Env.set "cons" (makeFn cons)
+            |> Env.set "concat" (makeFn concat)
 
 
 malInit : List String

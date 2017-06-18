@@ -1,8 +1,8 @@
 SOURCES_BASE = Reader.elm Printer.elm Utils.elm Types.elm Env.elm \
 	Core.elm Eval.elm IO.elm
-SOURCES_STEPS = step0_repl.elm step4_if_fn_do.elm step5_tco.elm step6_file.elm step1_read_print.elm #step2_eval.elm \
-	#step3_env.elm \
-	step7_quote.ls step8_macros.ls step9_try.ls stepA_mal.ls
+SOURCES_STEPS = step0_repl.elm step4_if_fn_do.elm step5_tco.elm step6_file.elm step1_read_print.elm step7_quote.elm 
+	#step2_eval.elm step3_env.elm \
+	step8_macros.ls step9_try.ls stepA_mal.ls
 SOURCES_LISP = #env.ls core.ls stepA_mal.ls
 SOURCES = $(SOURCES_STEPS)
 
@@ -27,7 +27,7 @@ step1_read_print.js: Reader.elm Printer.elm Utils.elm Types.elm
 step4_if_fn_do.js: $(SOURCES_BASE)
 step5_tco.js: $(SOURCES_BASE)
 step6_file.js: $(SOURCES_BASE)
-# step7_quote.js: utils.js reader.js printer.js env.js core.js
+step7_quote.js: $(SOURCES_BASE)
 # step8_macros.js: utils.js reader.js printer.js env.js core.js
 # step9_try.js: utils.js reader.js printer.js env.js core.js
 # stepA_mal.js: utils.js reader.js printer.js env.js core.js
