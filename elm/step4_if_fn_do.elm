@@ -43,7 +43,7 @@ init { args } =
             Core.ns
 
         evalMalInit =
-            Core.malInit
+            malInit
                 |> List.map rep
                 |> justValues
                 |> List.foldl
@@ -51,6 +51,14 @@ init { args } =
                     (Eval.succeed MalNil)
     in
         runInit initEnv evalMalInit
+
+
+malInit : List String
+malInit =
+    [ """(def! not
+            (fn* (a)
+                (if a false true)))"""
+    ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -425,6 +433,7 @@ evalFn args =
                         { frameId = frameId
                         , lazyFn = fn
                         , eagerFn = fn
+                        , isMacro = False
                         }
 
         go bindsList body =

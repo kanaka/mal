@@ -1,6 +1,6 @@
 module Core exposing (..)
 
-import Types exposing (MalExpr(..), MalFunction(..), Eval, Env)
+import Types exposing (MalExpr(..), MalFunction(..), Eval, Env, keywordPrefix)
 import Env
 import Eval
 import Printer exposing (printString)
@@ -285,7 +285,6 @@ ns =
         swap args =
             case args of
                 (MalAtom atomId) :: (MalFunction func) :: args ->
-                    -- TODO eval apply here!
                     Eval.withEnv
                         (\env ->
                             let
@@ -364,6 +363,9 @@ ns =
                 [ e, MalList list ] ->
                     Eval.succeed <| MalList (e :: list)
 
+                [ e, MalVector vec ] ->
+                    Eval.succeed <| MalList (e :: (Array.toList vec))
+
                 _ ->
                     Eval.fail "unsupported arguments"
 
@@ -382,6 +384,327 @@ ns =
             in
                 List.foldl (go >> Eval.andThen) (Eval.succeed []) args
                     |> Eval.map MalList
+
+        nth args =
+            let
+                get list index =
+                    if index < 0 then
+                        Nothing
+                    else if index == 0 then
+                        List.head list
+                    else
+                        case list of
+                            [] ->
+                                Nothing
+
+                            _ :: rest ->
+                                get rest (index - 1)
+
+                make res =
+                    case res of
+                        Just value ->
+                            Eval.succeed value
+
+                        Nothing ->
+                            Eval.fail "index out of bounds"
+            in
+                case args of
+                    [ MalList list, MalInt index ] ->
+                        make <| get list index
+
+                    [ MalVector vec, MalInt index ] ->
+                        make <| Array.get index vec
+
+                    _ ->
+                        Eval.fail "unsupported arguments"
+
+        first args =
+            let
+                make =
+                    Eval.succeed << Maybe.withDefault MalNil
+            in
+                case args of
+                    [ MalNil ] ->
+                        Eval.succeed MalNil
+
+                    [ MalList list ] ->
+                        make <| List.head list
+
+                    [ MalVector vec ] ->
+                        make <| Array.get 0 vec
+
+                    _ ->
+                        Eval.fail "unsupported arguments"
+
+        rest args =
+            case args of
+                [ MalNil ] ->
+                    Eval.succeed <| MalList []
+
+                [ MalList [] ] ->
+                    Eval.succeed <| MalList []
+
+                [ MalList (head :: tail) ] ->
+                    Eval.succeed <| MalList tail
+
+                [ MalVector vec ] ->
+                    Array.toList vec
+                        |> List.tail
+                        |> Maybe.withDefault []
+                        |> MalList
+                        |> Eval.succeed
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        throw args =
+            case args of
+                [ MalString msg ] ->
+                    Eval.fail msg
+
+                _ ->
+                    Eval.fail "undefined exception"
+
+        apply args =
+            case args of
+                (MalFunction func) :: rest ->
+                    callFn func rest
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        map args =
+            let
+                go func list acc =
+                    case list of
+                        [] ->
+                            Eval.succeed <| MalList <| List.reverse acc
+
+                        inv :: rest ->
+                            callFn func [ inv ]
+                                |> Eval.andThen
+                                    (\outv ->
+                                        go func rest (outv :: acc)
+                                    )
+            in
+                case args of
+                    [ MalFunction func, MalList list ] ->
+                        go func list []
+
+                    [ MalFunction func, MalVector vec ] ->
+                        go func (Array.toList vec) []
+
+                    _ ->
+                        Eval.fail "unsupported arguments"
+
+        isNil args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        MalNil :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isTrue args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalBool True) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isFalse args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalBool False) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isSymbol args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalSymbol _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isKeyword args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalKeyword _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isVector args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalVector _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isMap args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalMap _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        symbol args =
+            case args of
+                [ MalString str ] ->
+                    Eval.succeed <| MalSymbol str
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        keyword args =
+            case args of
+                [ MalString str ] ->
+                    Eval.succeed <| MalKeyword (String.cons ':' str)
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        vector args =
+            Eval.succeed <| MalVector <| Array.fromList args
+
+        parseKey key =
+            case key of
+                MalString str ->
+                    Ok str
+
+                MalKeyword keyword ->
+                    Ok <| String.cons keywordPrefix keyword
+
+                _ ->
+                    Err "map key must be a symbol or keyword"
+
+        buildMap list acc =
+            case list of
+                [] ->
+                    Eval.succeed <| MalMap acc
+
+                key :: value :: rest ->
+                    parseKey key
+                        |> Eval.fromResult
+                        |> Eval.andThen
+                            (\key ->
+                                buildMap rest (Dict.insert key value acc)
+                            )
+
+                _ ->
+                    Eval.fail "expected an even number of key-value pairs"
+
+        hashMap args =
+            buildMap args Dict.empty
+
+        assoc args =
+            case args of
+                (MalMap dict) :: rest ->
+                    buildMap rest dict
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        dissoc args =
+            let
+                go keys acc =
+                    case keys of
+                        [] ->
+                            Eval.succeed <| MalMap acc
+
+                        key :: rest ->
+                            parseKey key
+                                |> Eval.fromResult
+                                |> Eval.andThen
+                                    (\key ->
+                                        go rest (Dict.remove key acc)
+                                    )
+            in
+                case args of
+                    (MalMap dict) :: keys ->
+                        go keys dict
+
+                    _ ->
+                        Eval.fail "unsupported arguments"
+
+        get args =
+            case args of
+                [ MalNil, key ] ->
+                    Eval.succeed MalNil
+
+                [ MalMap dict, key ] ->
+                    parseKey key
+                        |> Eval.fromResult
+                        |> Eval.map
+                            (\key ->
+                                Dict.get key dict
+                                    |> Maybe.withDefault MalNil
+                            )
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        contains args =
+            case args of
+                [ MalMap dict, key ] ->
+                    parseKey key
+                        |> Eval.fromResult
+                        |> Eval.map (\key -> Dict.member key dict)
+                        |> Eval.map MalBool
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        unparseKey key =
+            case String.uncons key of
+                Just ( prefix, rest ) ->
+                    if prefix == keywordPrefix then
+                        MalKeyword rest
+                    else
+                        MalString key
+
+                _ ->
+                    MalString key
+
+        keys args =
+            case args of
+                [ MalMap dict ] ->
+                    Dict.keys dict
+                        |> List.map unparseKey
+                        |> MalList
+                        |> Eval.succeed
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        vals args =
+            case args of
+                [ MalMap dict ] ->
+                    Dict.values dict
+                        |> MalList
+                        |> Eval.succeed
+
+                _ ->
+                    Eval.fail "unsupported arguments"
     in
         Env.global
             |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
@@ -414,15 +737,24 @@ ns =
             |> Env.set "typeof" (makeFn typeof)
             |> Env.set "cons" (makeFn cons)
             |> Env.set "concat" (makeFn concat)
-
-
-malInit : List String
-malInit =
-    [ """(def! not
-            (fn* (a)
-                (if a false true)))"""
-    , """(def! load-file
-            (fn* (f)
-                (eval (read-string
-                    (str "(do " (slurp f) ")")))))"""
-    ]
+            |> Env.set "nth" (makeFn nth)
+            |> Env.set "first" (makeFn first)
+            |> Env.set "rest" (makeFn rest)
+            |> Env.set "throw" (makeFn throw)
+            |> Env.set "nil?" (makeFn isNil)
+            |> Env.set "true?" (makeFn isTrue)
+            |> Env.set "false?" (makeFn isFalse)
+            |> Env.set "symbol?" (makeFn isSymbol)
+            |> Env.set "keyword?" (makeFn isKeyword)
+            |> Env.set "vector?" (makeFn isVector)
+            |> Env.set "map?" (makeFn isMap)
+            |> Env.set "symbol" (makeFn symbol)
+            |> Env.set "keyword" (makeFn keyword)
+            |> Env.set "vector" (makeFn vector)
+            |> Env.set "hash-map" (makeFn hashMap)
+            |> Env.set "assoc" (makeFn assoc)
+            |> Env.set "dissoc" (makeFn dissoc)
+            |> Env.set "get" (makeFn get)
+            |> Env.set "contains?" (makeFn contains)
+            |> Env.set "keys" (makeFn keys)
+            |> Env.set "vals" (makeFn vals)

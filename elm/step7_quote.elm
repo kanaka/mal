@@ -8,7 +8,7 @@ import Platform exposing (programWithFlags)
 import Types exposing (..)
 import Reader exposing (readString)
 import Printer exposing (printString)
-import Utils exposing (maybeToList, zip, last, justValues)
+import Utils exposing (maybeToList, zip, last, justValues, makeCall)
 import Env
 import Core
 import Eval
@@ -53,7 +53,7 @@ init { args } =
                 |> Env.set "*ARGV*" (MalList (args |> List.map MalString))
 
         evalMalInit =
-            Core.malInit
+            malInit
                 |> List.map rep
                 |> justValues
                 |> List.foldl
@@ -61,6 +61,18 @@ init { args } =
                     (Eval.succeed MalNil)
     in
         runInit args initEnv evalMalInit
+
+
+malInit : List String
+malInit =
+    [ """(def! not
+            (fn* (a)
+                (if a false true)))"""
+    , """(def! load-file
+            (fn* (f)
+                (eval (read-string
+                    (str "(do " (slurp f) ")")))))"""
+    ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -214,7 +226,7 @@ debug msg f e =
 eval : MalExpr -> Eval MalExpr
 eval ast =
     let
-        apply expr =
+        apply expr env =
             case expr of
                 MalApply app ->
                     Left
@@ -234,7 +246,16 @@ malEval : List MalExpr -> Eval MalExpr
 malEval args =
     case args of
         [ expr ] ->
-            eval expr
+            Eval.withEnv
+                (\env ->
+                    Eval.modifyEnv (Env.jump Env.globalFrameId)
+                        |> Eval.andThen (\_ -> eval expr)
+                        |> Eval.andThen
+                            (\res ->
+                                Eval.modifyEnv (Env.jump env.currentFrameId)
+                                    |> Eval.andThen (\_ -> Eval.succeed res)
+                            )
+                )
 
         _ ->
             Eval.fail "unsupported arguments"
@@ -272,6 +293,18 @@ evalNoApply ast =
 
             MalList ((MalSymbol "fn*") :: args) ->
                 evalFn args
+
+            MalList ((MalSymbol "quote") :: args) ->
+                evalQuote args
+
+            MalList ((MalSymbol "quasiquote") :: args) ->
+                case args of
+                    [ expr ] ->
+                        -- TCO.
+                        evalNoApply (evalQuasiQuote expr)
+
+                    _ ->
+                        Eval.fail "unsupported arguments"
 
             MalList list ->
                 evalList list
@@ -522,6 +555,7 @@ evalFn args =
                         { frameId = frameId
                         , lazyFn = lazyFn
                         , eagerFn = lazyFn >> Eval.andThen eval
+                        , isMacro = False
                         }
 
         go bindsList body =
@@ -547,6 +581,50 @@ evalFn args =
 
             _ ->
                 Eval.fail "fn* expected two args: binds list and body"
+
+
+evalQuote : List MalExpr -> Eval MalExpr
+evalQuote args =
+    case args of
+        [ expr ] ->
+            Eval.succeed expr
+
+        _ ->
+            Eval.fail "unsupported arguments"
+
+
+evalQuasiQuote : MalExpr -> MalExpr
+evalQuasiQuote expr =
+    let
+        apply list empty =
+            case list of
+                [ MalSymbol "unquote", ast ] ->
+                    ast
+
+                (MalList [ MalSymbol "splice-unquote", ast ]) :: rest ->
+                    makeCall "concat"
+                        [ ast
+                        , evalQuasiQuote (MalList rest)
+                        ]
+
+                ast :: rest ->
+                    makeCall "cons"
+                        [ evalQuasiQuote ast
+                        , evalQuasiQuote (MalList rest)
+                        ]
+
+                _ ->
+                    makeCall "quote" [ empty ]
+    in
+        case expr of
+            MalList list ->
+                apply list (MalList [])
+
+            MalVector vec ->
+                apply (Array.toList vec) (MalVector Array.empty)
+
+            ast ->
+                makeCall "quote" [ ast ]
 
 
 print : Env -> MalExpr -> String

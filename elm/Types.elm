@@ -31,7 +31,8 @@ type alias Env =
     }
 
 
-type alias EvalCont a = IO -> Eval a
+type alias EvalCont a =
+    IO -> Eval a
 
 
 type EvalResult res
@@ -54,7 +55,12 @@ type alias MalFn =
 
 type MalFunction
     = CoreFunc MalFn
-    | UserFunc { frameId : Int, lazyFn : MalFn, eagerFn : MalFn }
+    | UserFunc
+        { frameId : Int
+        , lazyFn : MalFn
+        , eagerFn : MalFn
+        , isMacro : Bool
+        }
 
 
 type alias ApplyRec =

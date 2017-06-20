@@ -66,6 +66,19 @@ andThen f e env =
             ( env, EvalIO cmd (cont >> andThen f) )
 
 
+catchError : (String -> Eval a) -> Eval a -> Eval a
+catchError f e env =
+    case apply e env of
+        ( env, EvalOk res ) ->
+            ( env, EvalOk res )
+
+        ( env, EvalErr msg ) ->
+            apply (f msg) env
+
+        ( env, EvalIO cmd cont ) ->
+            ( env, EvalIO cmd (cont >> catchError f) )
+
+
 fail : String -> Eval a
 fail msg env =
     ( env, EvalErr msg )
@@ -92,9 +105,9 @@ Stops if f returns (Right expr).
 Tail call optimized.
 
 -}
-runLoop : (MalExpr -> Either (Eval MalExpr) MalExpr) -> MalExpr -> Eval MalExpr
+runLoop : (MalExpr -> Env -> Either (Eval MalExpr) MalExpr) -> MalExpr -> Eval MalExpr
 runLoop f expr env =
-    case f expr of
+    case f expr env of
         Left e ->
             case apply e env of
                 ( env, EvalOk expr ) ->

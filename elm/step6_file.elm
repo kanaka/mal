@@ -53,7 +53,7 @@ init { args } =
                 |> Env.set "*ARGV*" (MalList (args |> List.map MalString))
 
         evalMalInit =
-            Core.malInit
+            malInit
                 |> List.map rep
                 |> justValues
                 |> List.foldl
@@ -61,6 +61,18 @@ init { args } =
                     (Eval.succeed MalNil)
     in
         runInit args initEnv evalMalInit
+
+
+malInit : List String
+malInit =
+    [ """(def! not
+            (fn* (a)
+                (if a false true)))"""
+    , """(def! load-file
+            (fn* (f)
+                (eval (read-string
+                    (str "(do " (slurp f) ")")))))"""
+    ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -214,7 +226,7 @@ debug msg f e =
 eval : MalExpr -> Eval MalExpr
 eval ast =
     let
-        apply expr =
+        apply expr env =
             case expr of
                 MalApply app ->
                     Left
@@ -548,6 +560,7 @@ evalFn args =
                         { frameId = frameId
                         , lazyFn = lazyFn
                         , eagerFn = lazyFn >> Eval.andThen eval
+                        , isMacro = False
                         }
 
         go bindsList body =
