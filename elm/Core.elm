@@ -838,7 +838,7 @@ ns =
                             case msg of
                                 GotTime time ->
                                     Time.inMilliseconds time
-                                        |> truncate
+                                        |> floor
                                         |> MalInt
                                         |> Eval.succeed
 
