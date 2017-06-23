@@ -36,7 +36,7 @@ type alias EvalCont a =
 
 
 type EvalResult res
-    = EvalErr String
+    = EvalErr MalExpr
     | EvalOk res
     | EvalIO (Cmd Msg) (EvalCont res)
 
@@ -60,6 +60,7 @@ type MalFunction
         , lazyFn : MalFn
         , eagerFn : MalFn
         , isMacro : Bool
+        , meta : Maybe MalExpr
         }
 
 

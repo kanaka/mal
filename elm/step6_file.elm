@@ -146,7 +146,7 @@ runInit args env expr =
 
         ( env, EvalErr msg ) ->
             -- Init failed, don't start REPL.
-            ( Stopped, writeLine ("ERR:" ++ msg) )
+            ( Stopped, writeLine (printError env msg) )
 
         ( env, EvalIO cmd cont ) ->
             -- IO in init.
@@ -178,7 +178,7 @@ runScriptLoop env expr =
             ( Stopped, Cmd.none )
 
         ( env, EvalErr msg ) ->
-            ( Stopped, writeLine ("ERR:" ++ msg) )
+            ( Stopped, writeLine (printError env msg) )
 
         ( env, EvalIO cmd cont ) ->
             ( ScriptIO env cont, cmd )
@@ -191,7 +191,7 @@ run env expr =
             ( ReplActive env, writeLine (print env expr) )
 
         ( env, EvalErr msg ) ->
-            ( ReplActive env, writeLine ("ERR:" ++ msg) )
+            ( ReplActive env, writeLine (printError env msg) )
 
         ( env, EvalIO cmd cont ) ->
             ( ReplIO env cont, cmd )
@@ -561,6 +561,7 @@ evalFn args =
                         , lazyFn = lazyFn
                         , eagerFn = lazyFn >> Eval.andThen eval
                         , isMacro = False
+                        , meta = Nothing
                         }
 
         go bindsList body =
@@ -594,6 +595,11 @@ evalFn args =
 print : Env -> MalExpr -> String
 print env =
     printString env True
+
+
+printError : Env -> MalExpr -> String
+printError env expr =
+    "ERR:" ++ (printString env False expr)
 
 
 {-| Read-Eval-Print.

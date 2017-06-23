@@ -266,7 +266,7 @@ get name env =
                         Nothing ->
                             frame.outerId
                                 |> Maybe.map go
-                                |> Maybe.withDefault (Err "symbol not found")
+                                |> Maybe.withDefault (Err <| "'" ++ name ++ "' not found")
     in
         go env.currentFrameId
 

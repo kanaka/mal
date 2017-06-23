@@ -1,6 +1,6 @@
 SOURCES = step0_repl.elm step1_read_print.elm \
 	step4_if_fn_do.elm step5_tco.elm step6_file.elm step7_quote.elm  \
-	step8_macros.elm step9_try.elm # stepA_mal.ls	\
+	step8_macros.elm step9_try.elm stepA_mal.elm
 	#step2_eval.elm step3_env.elm
 
 BINS = $(SOURCES:%.elm=%.js)
@@ -33,7 +33,7 @@ step6_file.js: $(STEP4_SOURCES)
 step7_quote.js: $(STEP4_SOURCES)
 step8_macros.js: $(STEP4_SOURCES)
 step9_try.js: $(STEP4_SOURCES)
-# stepA_mal.js: utils.js reader.js printer.js env.js core.js
+stepA_mal.js: $(STEP4_SOURCES)
 
 clean:
 	rm -f $(BINS)

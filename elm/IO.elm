@@ -9,6 +9,7 @@ port module IO
         )
 
 import Json.Decode exposing (..)
+import Time exposing (Time)
 
 
 {-| Output a string to stdout
@@ -36,6 +37,7 @@ type IO
     | LineWritten
     | FileRead String
     | Exception String
+    | GotTime Time
 
 
 decodeIO : Decoder IO

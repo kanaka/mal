@@ -66,7 +66,7 @@ andThen f e env =
             ( env, EvalIO cmd (cont >> andThen f) )
 
 
-catchError : (String -> Eval a) -> Eval a -> Eval a
+catchError : (MalExpr -> Eval a) -> Eval a -> Eval a
 catchError f e env =
     case apply e env of
         ( env, EvalOk res ) ->
@@ -81,7 +81,12 @@ catchError f e env =
 
 fail : String -> Eval a
 fail msg env =
-    ( env, EvalErr msg )
+    ( env, EvalErr <| MalString msg )
+
+
+throw : MalExpr -> Eval a
+throw ex env =
+    ( env, EvalErr ex )
 
 
 enter : Int -> List ( String, MalExpr ) -> Eval a -> Eval a

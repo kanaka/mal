@@ -1,6 +1,6 @@
 module Core exposing (..)
 
-import Types exposing (MalExpr(..), MalFunction(..), Eval, Env, keywordPrefix)
+import Types exposing (..)
 import Env
 import Eval
 import Printer exposing (printString)
@@ -9,6 +9,8 @@ import Dict
 import IO exposing (IO(..))
 import Reader
 import Utils exposing (zip)
+import Time
+import Task
 
 
 ns : Env
@@ -459,8 +461,8 @@ ns =
 
         throw args =
             case args of
-                [ MalString msg ] ->
-                    Eval.fail msg
+                ex :: _ ->
+                    Eval.throw ex
 
                 _ ->
                     Eval.fail "undefined exception"
@@ -468,7 +470,18 @@ ns =
         apply args =
             case args of
                 (MalFunction func) :: rest ->
-                    callFn func rest
+                    case List.reverse rest of
+                        (MalList last) :: middle ->
+                            callFn func ((List.reverse middle) ++ last)
+
+                        (MalVector last) :: middle ->
+                            callFn func
+                                ((List.reverse middle)
+                                    ++ (Array.toList last)
+                                )
+
+                        _ ->
+                            Eval.fail "apply expected the last argument to be a list or vector"
 
                 _ ->
                     Eval.fail "unsupported arguments"
@@ -562,6 +575,29 @@ ns =
                 MalBool <|
                     case args of
                         (MalMap _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isString args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalString _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
+        isSequential args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalList _) :: _ ->
+                            True
+
+                        (MalVector _) :: _ ->
                             True
 
                         _ ->
@@ -705,6 +741,113 @@ ns =
 
                 _ ->
                     Eval.fail "unsupported arguments"
+
+        readLine args =
+            case args of
+                [ MalString prompt ] ->
+                    Eval.io (IO.readLine prompt)
+                        (\msg ->
+                            case msg of
+                                LineRead (Just line) ->
+                                    Eval.succeed (MalString line)
+
+                                LineRead Nothing ->
+                                    Eval.succeed MalNil
+
+                                _ ->
+                                    Eval.fail "wrong IO, expected LineRead"
+                        )
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        withMeta args =
+            case args of
+                [ MalFunction (UserFunc func), meta ] ->
+                    Eval.succeed <| MalFunction <| UserFunc { func | meta = Just meta }
+
+                _ ->
+                    Eval.fail "with-meta expected a user function and a map"
+
+        meta args =
+            case args of
+                [ MalFunction (UserFunc { meta }) ] ->
+                    Eval.succeed (Maybe.withDefault MalNil meta)
+
+                _ ->
+                    Eval.succeed MalNil
+
+        conj args =
+            case args of
+                (MalList list) :: rest ->
+                    Eval.succeed <|
+                        MalList <|
+                            (List.reverse rest)
+                                ++ list
+
+                (MalVector vec) :: rest ->
+                    Eval.succeed <|
+                        MalVector <|
+                            Array.append
+                                vec
+                                (Array.fromList rest)
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        seq args =
+            case args of
+                [ MalNil ] ->
+                    Eval.succeed MalNil
+
+                [ MalList [] ] ->
+                    Eval.succeed MalNil
+
+                [ MalString "" ] ->
+                    Eval.succeed MalNil
+
+                [ (MalList _) as list ] ->
+                    Eval.succeed list
+
+                [ MalVector vec ] ->
+                    Eval.succeed <|
+                        if Array.isEmpty vec then
+                            MalNil
+                        else
+                            MalList <| Array.toList vec
+
+                [ MalString str ] ->
+                    Eval.succeed <|
+                        MalList <|
+                            (String.toList str
+                                |> List.map String.fromChar
+                                |> List.map MalString
+                            )
+
+                _ ->
+                    Eval.fail "unsupported arguments"
+
+        requestTime =
+            Task.perform (GotTime >> Ok >> Input) Time.now
+
+        timeMs args =
+            case args of
+                [] ->
+                    Eval.io requestTime
+                        (\msg ->
+                            case msg of
+                                GotTime time ->
+                                    Time.inMilliseconds time
+                                        |> truncate
+                                        |> MalInt
+                                        |> Eval.succeed
+
+                                _ ->
+                                    Eval.fail "wrong IO, expected GotTime"
+                        )
+
+                _ ->
+                    Eval.fail "time-ms takes no arguments"
     in
         Env.global
             |> Env.set "+" (makeFn <| binaryOp (+) MalInt)
@@ -741,6 +884,8 @@ ns =
             |> Env.set "first" (makeFn first)
             |> Env.set "rest" (makeFn rest)
             |> Env.set "throw" (makeFn throw)
+            |> Env.set "apply" (makeFn apply)
+            |> Env.set "map" (makeFn map)
             |> Env.set "nil?" (makeFn isNil)
             |> Env.set "true?" (makeFn isTrue)
             |> Env.set "false?" (makeFn isFalse)
@@ -748,6 +893,8 @@ ns =
             |> Env.set "keyword?" (makeFn isKeyword)
             |> Env.set "vector?" (makeFn isVector)
             |> Env.set "map?" (makeFn isMap)
+            |> Env.set "string?" (makeFn isString)
+            |> Env.set "sequential?" (makeFn isSequential)
             |> Env.set "symbol" (makeFn symbol)
             |> Env.set "keyword" (makeFn keyword)
             |> Env.set "vector" (makeFn vector)
@@ -758,3 +905,9 @@ ns =
             |> Env.set "contains?" (makeFn contains)
             |> Env.set "keys" (makeFn keys)
             |> Env.set "vals" (makeFn vals)
+            |> Env.set "readline" (makeFn readLine)
+            |> Env.set "with-meta" (makeFn withMeta)
+            |> Env.set "meta" (makeFn meta)
+            |> Env.set "conj" (makeFn conj)
+            |> Env.set "seq" (makeFn seq)
+            |> Env.set "time-ms" (makeFn timeMs)

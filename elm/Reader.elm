@@ -18,24 +18,9 @@ ws =
     many (comment <|> string "," <|> whitespace)
 
 
-nil : Parser s MalExpr
-nil =
-    MalNil <$ string "nil" <?> "nil"
-
-
 int : Parser s MalExpr
 int =
     MalInt <$> Combine.Num.int <?> "int"
-
-
-bool : Parser s MalExpr
-bool =
-    MalBool
-        <$> choice
-                [ True <$ string "true"
-                , False <$ string "false"
-                ]
-        <?> "bool"
 
 
 symbolString : Parser s String
@@ -43,11 +28,26 @@ symbolString =
     regex "[^\\s\\[\\]{}('\"`,;)]+"
 
 
-symbol : Parser s MalExpr
-symbol =
-    MalSymbol
-        <$> symbolString
-        <?> "symbol"
+symbolOrConst : Parser s MalExpr
+symbolOrConst =
+    let
+        make sym =
+            case sym of
+                "nil" ->
+                    MalNil
+
+                "true" ->
+                    MalBool True
+
+                "false" ->
+                    MalBool False
+
+                _ ->
+                    MalSymbol sym
+    in
+        make
+            <$> symbolString
+            <?> "symbol"
 
 
 keywordString : Parser s String
@@ -112,11 +112,9 @@ atom : Parser s MalExpr
 atom =
     choice
         [ int
-        , bool
-        , str
-        , nil
         , keyword
-        , symbol
+        , symbolOrConst
+        , str
         ]
         <?> "atom"
 
@@ -159,7 +157,7 @@ withMeta =
                     makeCall "with-meta" [ expr, meta ]
             in
                 make
-                    <$> (string "^" *> map)
+                    <$> (string "^" *> form)
                     <*> form
                     <?> "with-meta"
 
