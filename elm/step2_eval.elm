@@ -3,13 +3,15 @@ port module Main exposing (..)
 import IO exposing (..)
 import Json.Decode exposing (decodeValue)
 import Platform exposing (programWithFlags)
-import Types exposing (MalExpr(..), MalFunction(..))
+import Types exposing (..)
 import Reader exposing (readString)
 import Printer exposing (printString)
 import Utils exposing (maybeToList, zip)
 import Dict exposing (Dict)
-import Tuple exposing (mapFirst)
+import Tuple exposing (mapFirst, second)
 import Array
+import Eval
+import Env
 
 
 main : Program Flags Model Msg
@@ -55,10 +57,10 @@ initReplEnv =
         binaryOp fn args =
             case args of
                 [ MalInt x, MalInt y ] ->
-                    Ok <| MalInt (fn x y)
+                    Eval.succeed <| MalInt (fn x y)
 
                 _ ->
-                    Err "unsupported arguments"
+                    Eval.fail "unsupported arguments"
     in
         Dict.fromList
             [ ( "+", makeFn <| binaryOp (+) )
@@ -84,6 +86,9 @@ update msg model =
 
         Input (Ok (LineRead Nothing)) ->
             ( model, Cmd.none )
+
+        Input (Ok io) ->
+            Debug.crash "unexpected IO received: " io
 
         Input (Err msg) ->
             Debug.crash msg ( model, Cmd.none )
@@ -129,11 +134,19 @@ eval env ast =
                         [] ->
                             ( Err "can't happen", newEnv )
 
-                        (MalFunction fn) :: args ->
-                            ( fn args, newEnv )
+                        (MalFunction (CoreFunc fn)) :: args ->
+                            case second <| Eval.run Env.global (fn args) of
+                                EvalOk res ->
+                                    ( Ok res, newEnv )
+
+                                EvalErr msg ->
+                                    ( Err (print msg), newEnv )
+
+                                _ ->
+                                    Debug.crash "can't happen"
 
                         fn :: _ ->
-                            ( Err ((printString True fn) ++ " is not a function"), newEnv )
+                            ( Err ((print fn) ++ " is not a function"), newEnv )
 
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
@@ -219,7 +232,7 @@ tryMapList fn list =
 
 print : MalExpr -> String
 print =
-    printString True
+    printString Env.global True
 
 
 {-| Read-Eval-Print. rep returns:
