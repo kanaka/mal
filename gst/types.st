@@ -144,3 +144,9 @@ MALError subclass: MALEmptyInput [
 
     messageText [ ^'Empty input' ]
 ]
+
+MALError subclass: MALUnknownSymbol [
+    MALUnknownSymbol class >> new [ ^super new ]
+
+    messageText [ ^'''', self basicMessageText, ''' not found']
+]

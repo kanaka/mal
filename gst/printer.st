@@ -2,6 +2,7 @@ FileStream fileIn: 'types.st'.
 
 Object subclass: Printer [
     Printer class >> prStr: sexp printReadably: printReadably [
+        sexp class = BlockClosure ifTrue: [ ^'#<block>' ].
         sexp type = #true ifTrue: [ ^'true' ].
         sexp type = #false ifTrue: [ ^'false' ].
         sexp type = #nil ifTrue: [ ^'nil' ].
