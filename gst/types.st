@@ -44,6 +44,15 @@ Object subclass: MALObject [
         ].
         stream nextPutAll: '>'.
     ]
+
+    = x [
+        self type ~= x type ifTrue: [ ^false ].
+        ^self value = x value
+    ]
+
+    hash [
+        ^self value hash
+    ]
 ]
 
 MALObject subclass: MALTrue [
@@ -102,11 +111,21 @@ MALObject subclass: MALList [
     MALList class >> new: value [
         ^super new: #list value: value meta: nil.
     ]
+
+    = x [
+        (x type ~= #list and: [ x type ~= #vector ]) ifTrue: [ ^false ].
+        ^self value = x value
+    ]
 ]
 
 MALObject subclass: MALVector [
     MALVector class >> new: value [
         ^super new: #vector value: value meta: nil.
+    ]
+
+    = x [
+        (x type ~= #vector and: [ x type ~= #list ]) ifTrue: [ ^false ].
+        ^self value = x value
     ]
 ]
 
