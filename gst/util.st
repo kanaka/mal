@@ -28,3 +28,9 @@ String extend [
         ^'"', text, '"'
     ]
 ]
+
+BlockClosure extend [
+    valueWithExit [
+        ^self value: [ ^nil ]
+    ]
+]
