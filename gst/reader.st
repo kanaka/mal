@@ -161,7 +161,7 @@ Object subclass: Reader [
     ]
 
     peek [
-        ^storage at: index ifAbsent: [ ^nil ]
+        ^storage at: index ifAbsent: [ nil ]
     ]
 
     next [

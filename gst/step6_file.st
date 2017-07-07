@@ -38,7 +38,7 @@ Object subclass: MAL [
     ]
 
     MAL class >> EVAL: aSexp env: anEnv [
-        | sexp env ast a0 a0_ a1 a1_ a2 a3 an forms function args |
+        | sexp env ast a0 a0_ a1 a1_ a2 a3 forms function args |
 
         "NOTE: redefinition of method arguments is not allowed"
         sexp := aSexp.
