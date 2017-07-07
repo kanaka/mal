@@ -33,6 +33,11 @@ Object subclass: MALObject [
         ^object
     ]
 
+    isPair [
+        ^(self type = #list or: [ self type = #vector ]) and:
+            [ self value notEmpty ]
+    ]
+
     printOn: stream [
         stream nextPutAll: '<';
             nextPutAll: self class printString;

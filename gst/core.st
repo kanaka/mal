@@ -84,3 +84,9 @@ Core Ns at: #'swap!' put:
         a value: result.
         result
     ].
+
+Core Ns at: #cons put:
+    [ :args | MALList new: (args second value copyWithFirst: args first) ].
+Core Ns at: #concat put:
+    [ :args | MALList new: (OrderedCollection join:
+        (args collect: [ :arg | arg value ])) ].
