@@ -32,6 +32,10 @@ Object subclass: Printer [
             ^self prMap: sexp printReadably: printReadably
         ].
 
+        sexp type = #atom ifTrue: [
+            ^'(atom ', (self prStr: sexp value printReadably: printReadably), ')'
+        ].
+
         Error halt: 'unimplemented type'
     ]
 

@@ -1,5 +1,6 @@
 FileStream fileIn: 'types.st'.
 FileStream fileIn: 'printer.st'.
+FileStream fileIn: 'reader.st'.
 
 Object subclass: Core [
     Ns := Dictionary new.
@@ -57,3 +58,29 @@ Core Ns at: #> put:
     [ :args | Core coerce: [ args first value > args second value ] ].
 Core Ns at: #>= put:
     [ :args | Core coerce: [ args first value >= args second value ] ].
+
+Core Ns at: #'read-string' put:
+    [ :args | Reader readStr: args first value ].
+Core Ns at: #slurp put:
+    [ :args | MALString new: (File path: args first value) contents ].
+
+Core Ns at: #atom put:
+    [ :args | MALAtom new: args first ].
+Core Ns at: #'atom?' put:
+    [ :args | Core coerce: [ args first type = #atom ] ].
+Core Ns at: #deref put:
+    [ :args | args first value ].
+Core Ns at: #'reset!' put:
+    [ :args | args first value: args second. args second ].
+Core Ns at: #'swap!' put:
+    [ :args |
+        | a f x xs result |
+        a := args first.
+        f := args second.
+        f class = Func ifTrue: [ f := f fn ].
+        x := a value.
+        xs := args allButFirst: 2.
+        result := f value: (xs copyWithFirst: x).
+        a value: result.
+        result
+    ].

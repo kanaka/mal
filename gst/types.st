@@ -5,11 +5,11 @@ Object subclass: MALObject [
     value [ ^value ]
     meta [ ^meta ]
 
-    setValue: aValue [
+    value: aValue [
         value := aValue.
     ]
 
-    setMeta: aMeta [
+    meta: aMeta [
         meta := aMeta.
     ]
 
@@ -29,7 +29,7 @@ Object subclass: MALObject [
     withMeta: meta [
         | object |
         object := self deepCopy.
-        object setMeta: meta.
+        object meta: meta.
         ^object
     ]
 
