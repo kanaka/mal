@@ -250,11 +250,7 @@ malEval args =
                 (\env ->
                     Eval.modifyEnv (Env.jump Env.globalFrameId)
                         |> Eval.andThen (\_ -> eval expr)
-                        |> Eval.andThen
-                            (\res ->
-                                Eval.modifyEnv (Env.jump env.currentFrameId)
-                                    |> Eval.andThen (\_ -> Eval.succeed res)
-                            )
+                        |> Eval.finally (Env.jump env.currentFrameId)
                 )
 
         _ ->

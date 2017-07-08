@@ -53,6 +53,9 @@ map f e env =
             ( env, EvalIO cmd (cont >> map f) )
 
 
+{-| Chain two Eval's together. The function f takes the result from
+the left eval and generates a new Eval.
+-}
 andThen : (a -> Eval b) -> Eval a -> Eval b
 andThen f e env =
     case apply e env of
@@ -64,6 +67,21 @@ andThen f e env =
 
         ( env, EvalIO cmd cont ) ->
             ( env, EvalIO cmd (cont >> andThen f) )
+
+
+{-| Apply a transformation to the Env, for a Ok and a Err.
+-}
+finally : (Env -> Env) -> Eval a -> Eval a
+finally f e env =
+    case apply e env of
+        ( env, EvalOk res ) ->
+            ( f env, EvalOk res )
+
+        ( env, EvalErr msg ) ->
+            ( f env, EvalErr msg )
+
+        ( env, EvalIO cmd cont ) ->
+            ( env, EvalIO cmd (cont >> finally f) )
 
 
 catchError : (MalExpr -> Eval a) -> Eval a -> Eval a

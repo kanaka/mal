@@ -47,6 +47,16 @@ global =
     }
 
 
+getFrame : Int -> Env -> Frame
+getFrame frameId env =
+    case Dict.get frameId env.frames of
+        Just frame ->
+            frame
+
+        Nothing ->
+            Debug.crash <| "frame #" ++ (toString frameId) ++ " not found"
+
+
 jump : Int -> Env -> Env
 jump frameId env =
     { env | currentFrameId = frameId }
@@ -73,24 +83,19 @@ pop env =
     let
         frameId =
             env.currentFrameId
+
+        frame =
+            getFrame frameId env
     in
-        case Dict.get frameId env.frames of
-            Just currentFrame ->
-                case currentFrame.outerId of
-                    Just outerId ->
-                        { env
-                            | currentFrameId = outerId
-                            , frames = Dict.update frameId deref env.frames
-                        }
+        case frame.outerId of
+            Just outerId ->
+                { env
+                    | currentFrameId = outerId
+                    , frames = Dict.update frameId free env.frames
+                }
 
-                    _ ->
-                        Debug.crash "tried to pop global frame"
-
-            Nothing ->
-                Debug.crash <|
-                    "current frame "
-                        ++ (toString frameId)
-                        ++ " doesn't exist"
+            _ ->
+                Debug.crash "tried to pop global frame"
 
 
 setBinds : List ( String, MalExpr ) -> Frame -> Frame
@@ -128,29 +133,39 @@ leave orgFrameId env =
     in
         { env
             | currentFrameId = orgFrameId
-            , frames = Dict.update frameId deref env.frames
+            , frames = Dict.update frameId free env.frames
         }
 
 
-{-| Increase refCnt for the current frame
+{-| Increase refCnt for the current frame,
+and all it's parent frames.
 -}
 ref : Env -> Env
 ref env =
     let
-        incRef =
-            Maybe.map
-                (\frame ->
+        go frameId env =
+            let
+                frame =
+                    getFrame frameId env
+
+                newFrame =
                     { frame | refCnt = frame.refCnt + 1 }
-                )
 
-        newFrames =
-            Dict.update env.currentFrameId incRef env.frames
+                newEnv =
+                    { env | frames = Dict.insert frameId newFrame env.frames }
+            in
+                case frame.outerId of
+                    Just outerId ->
+                        go outerId newEnv
+
+                    Nothing ->
+                        newEnv
     in
-        { env | frames = newFrames }
+        go env.currentFrameId env
 
 
-deref : Maybe Frame -> Maybe Frame
-deref =
+free : Maybe Frame -> Maybe Frame
+free =
     Maybe.andThen
         (\frame ->
             if frame.refCnt == 1 then
@@ -162,6 +177,9 @@ deref =
 
 {-| Given an Env see which frames are not reachable from the
 global frame. Return a new Env without the unreachable frames.
+
+TODO include current expression.
+
 -}
 gc : Env -> Env
 gc env =
@@ -230,9 +248,12 @@ emptyFrame outerId =
     }
 
 
-setInFrame : Int -> String -> MalExpr -> Env -> Env
-setInFrame frameId name expr env =
+set : String -> MalExpr -> Env -> Env
+set name expr env =
     let
+        frameId =
+            env.currentFrameId
+
         updateFrame =
             Maybe.map
                 (\frame ->
@@ -245,28 +266,22 @@ setInFrame frameId name expr env =
         { env | frames = newFrames }
 
 
-set : String -> MalExpr -> Env -> Env
-set name expr env =
-    setInFrame env.currentFrameId name expr env
-
-
 get : String -> Env -> Result String MalExpr
 get name env =
     let
         go frameId =
-            case Dict.get frameId env.frames of
-                Nothing ->
-                    Err <| "frame " ++ (toString frameId) ++ " not found"
+            let
+                frame =
+                    getFrame frameId env
+            in
+                case Dict.get name frame.data of
+                    Just value ->
+                        Ok value
 
-                Just frame ->
-                    case Dict.get name frame.data of
-                        Just value ->
-                            Ok value
-
-                        Nothing ->
-                            frame.outerId
-                                |> Maybe.map go
-                                |> Maybe.withDefault (Err <| "'" ++ name ++ "' not found")
+                    Nothing ->
+                        frame.outerId
+                            |> Maybe.map go
+                            |> Maybe.withDefault (Err <| "'" ++ name ++ "' not found")
     in
         go env.currentFrameId
 

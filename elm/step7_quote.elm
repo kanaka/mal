@@ -250,11 +250,7 @@ malEval args =
                 (\env ->
                     Eval.modifyEnv (Env.jump Env.globalFrameId)
                         |> Eval.andThen (\_ -> eval expr)
-                        |> Eval.andThen
-                            (\res ->
-                                Eval.modifyEnv (Env.jump env.currentFrameId)
-                                    |> Eval.andThen (\_ -> Eval.succeed res)
-                            )
+                        |> Eval.finally (Env.jump env.currentFrameId)
                 )
 
         _ ->
@@ -267,7 +263,7 @@ evalApply { frameId, bound, body } =
         (\env ->
             Eval.modifyEnv (Env.enter frameId bound)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.ignore (Eval.modifyEnv (Env.leave env.currentFrameId))
+                |> Eval.finally (Env.leave env.currentFrameId)
         )
 
 
@@ -419,7 +415,7 @@ evalLet args =
             Eval.modifyEnv Env.push
                 |> Eval.andThen (\_ -> evalBinds binds)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.ignore (Eval.modifyEnv Env.pop)
+                |> Eval.finally Env.pop
     in
         case args of
             [ MalList binds, body ] ->
