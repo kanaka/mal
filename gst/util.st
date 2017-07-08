@@ -33,4 +33,8 @@ BlockClosure extend [
     valueWithExit [
         ^self value: [ ^nil ]
     ]
+
+    "HACK"
+    type [ ^#closure ]
+    value [ ^nil ]
 ]

@@ -11,8 +11,6 @@ Object subclass: MAL [
     ]
 
     MAL class >> evalAst: sexp env: env [
-        sexp class = BlockClosure ifTrue: [^sexp ].
-
         sexp type = #symbol ifTrue: [
             ^env get: sexp value
         ].
@@ -76,7 +74,7 @@ Object subclass: MAL [
             a0_ := a0 value.
             a0 type = #symbol ifTrue: [
                 f := env find: a0_.
-                (f notNil and: [ f class ~= BlockClosure ]) ifTrue: [
+                (f notNil and: [ f class = Func ]) ifTrue: [
                     ^f isMacro
                 ]
             ]
@@ -111,7 +109,7 @@ Object subclass: MAL [
 
         [
             [ :continue |
-                (sexp class = BlockClosure or: [ sexp type ~= #list ]) ifTrue: [
+                sexp type ~= #list ifTrue: [
                     ^self evalAst: sexp env: env
                 ].
                 sexp value isEmpty ifTrue: [
@@ -126,99 +124,97 @@ Object subclass: MAL [
                 ast := sexp value.
                 a0 := ast first.
 
-                a0 class ~= BlockClosure ifTrue: [
-                    a0_ := ast first value.
-                    a0_ = #'def!' ifTrue: [
-                        | result |
+                a0_ := ast first value.
+                a0_ = #'def!' ifTrue: [
+                    | result |
+                    a1_ := ast second value.
+                    a2 := ast third.
+                    result := self EVAL: a2 env: env.
+                    env set: a1_ value: result.
+                    ^result
+                ].
+
+                a0_ = #'defmacro!' ifTrue: [
+                    | result |
+                    a1_ := ast second value.
+                    a2 := ast third.
+                    result := self EVAL: a2 env: env.
+                    result isMacro: true.
+                    env set: a1_ value: result.
+                    ^result
+                ].
+
+                a0_ = #'macroexpand' ifTrue: [
+                    a1 := ast second.
+                    ^self macroexpand: a1 env: env
+                ].
+
+                a0_ = #'let*' ifTrue: [
+                    | env_ |
+                        env_ := Env new: env.
+                    a1_ := ast second value.
+                    a2 := ast third.
+                    1 to: a1_ size by: 2 do:
+                        [ :i | env_ set: (a1_ at: i) value
+                                    value: (self EVAL: (a1_ at: i + 1)
+                                                 env: env_) ].
+                    env := env_.
+                    sexp := a2.
+                    continue value "TCO"
+                ].
+
+                a0_ = #do ifTrue: [
+                    | forms last |
+                    ast size < 2 ifTrue: [
+                        forms := {}.
+                        last := MALObject Nil.
+                    ] ifFalse: [
+                        forms := ast copyFrom: 2 to: ast size - 1.
+                        last := ast last.
+                    ].
+
+                    forms do: [ :form | self EVAL: form env: env ].
+                    sexp := last.
+                    continue value "TCO"
+                ].
+
+                a0_ = #if ifTrue: [
+                    | condition |
+                    a1 := ast second.
+                    a2 := ast third.
+                    a3 := ast at: 4 ifAbsent: [ MALObject Nil ].
+                    condition := self EVAL: a1 env: env.
+
+                    (condition type = #false or:
+                         [ condition type = #nil ]) ifTrue: [
+                             sexp := a3
+                         ] ifFalse: [
+                             sexp := a2
+                         ].
+                    continue value "TCO"
+                ].
+
+                a0_ = #quote ifTrue: [
+                    a1 := ast second.
+                    ^a1
+                ].
+
+                a0_ = #quasiquote ifTrue: [
+                    | result |
+                    a1 := ast second.
+                    sexp := self quasiquote: a1.
+                    continue value "TCO"
+                ].
+
+                a0_ = #'fn*' ifTrue: [
+                    | binds env_ fn |
                         a1_ := ast second value.
-                        a2 := ast third.
-                        result := self EVAL: a2 env: env.
-                        env set: a1_ value: result.
-                        ^result
-                    ].
-
-                    a0_ = #'defmacro!' ifTrue: [
-                        | result |
-                        a1_ := ast second value.
-                        a2 := ast third.
-                        result := self EVAL: a2 env: env.
-                        result isMacro: true.
-                        env set: a1_ value: result.
-                        ^result
-                    ].
-
-                    a0_ = #'macroexpand' ifTrue: [
-                        a1 := ast second.
-                        ^self macroexpand: a1 env: env
-                    ].
-
-                    a0_ = #'let*' ifTrue: [
-                        | env_ |
-                            env_ := Env new: env.
-                        a1_ := ast second value.
-                        a2 := ast third.
-                        1 to: a1_ size by: 2 do:
-                            [ :i | env_ set: (a1_ at: i) value
-                                        value: (self EVAL: (a1_ at: i + 1)
-                                                     env: env_) ].
-                        env := env_.
-                        sexp := a2.
-                        continue value "TCO"
-                    ].
-
-                    a0_ = #do ifTrue: [
-                        | forms last |
-                        ast size < 2 ifTrue: [
-                            forms := {}.
-                            last := MALObject Nil.
-                        ] ifFalse: [
-                            forms := ast copyFrom: 2 to: ast size - 1.
-                            last := ast last.
-                        ].
-
-                        forms do: [ :form | self EVAL: form env: env ].
-                        sexp := last.
-                        continue value "TCO"
-                    ].
-
-                    a0_ = #if ifTrue: [
-                        | condition |
-                        a1 := ast second.
-                        a2 := ast third.
-                        a3 := ast at: 4 ifAbsent: [ MALObject Nil ].
-                        condition := self EVAL: a1 env: env.
-
-                        (condition type = #false or:
-                             [ condition type = #nil ]) ifTrue: [
-                                 sexp := a3
-                             ] ifFalse: [
-                                 sexp := a2
-                             ].
-                        continue value "TCO"
-                    ].
-
-                    a0_ = #quote ifTrue: [
-                        a1 := ast second.
-                        ^a1
-                    ].
-
-                    a0_ = #quasiquote ifTrue: [
-                        | result |
-                        a1 := ast second.
-                        sexp := self quasiquote: a1.
-                        continue value "TCO"
-                    ].
-
-                    a0_ = #'fn*' ifTrue: [
-                        | binds env_ fn |
-                            a1_ := ast second value.
-                        binds := a1_ collect: [ :item | item value ].
-                        a2 := ast third.
-                        fn := [ :args |
-                            self EVAL: a2 env:
-                                (Env new: env binds: binds exprs: args) ].
-                        ^Func new: a2 params: binds env: env fn: fn
-                    ]
+                    binds := a1_ collect: [ :item | item value ].
+                    a2 := ast third.
+                    fn := [ :args |
+                        self EVAL: a2 env:
+                            (Env new: env binds: binds exprs: args) ].
+                    ^Func new: a2 params: binds env: env fn: fn
                 ].
 
                 forms := (self evalAst: sexp env: env) value.
