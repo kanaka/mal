@@ -1,11 +1,16 @@
 Object subclass: Func [
-    | ast params env fn meta |
+    | ast params env fn isMacro meta |
 
     ast [ ^ast ]
     params [ ^params ]
     env [ ^env ]
     fn [ ^fn ]
+    isMacro [ ^isMacro ]
     meta [ ^meta ]
+
+    isMacro: bool [
+        isMacro := bool
+    ]
 
     meta: aMeta [
         meta := aMeta
@@ -23,6 +28,7 @@ Object subclass: Func [
         params := someParams.
         env := anEnv.
         fn := aFn.
+        isMacro := false
     ]
 
     withMeta: meta [

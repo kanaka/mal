@@ -174,3 +174,9 @@ MALError subclass: MALUnknownSymbol [
 
     messageText [ ^'''', self basicMessageText, ''' not found']
 ]
+
+MALError subclass: MALOutOfBounds [
+    MALOutOfBounds class >> new [ ^super new ]
+
+    messageText [ ^'Out of bounds' ]
+]

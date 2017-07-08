@@ -90,3 +90,29 @@ Core Ns at: #cons put:
 Core Ns at: #concat put:
     [ :args | MALList new: (OrderedCollection join:
         (args collect: [ :arg | arg value ])) ].
+Core Ns at: #nth put:
+    [ :args |
+        | items index |
+        items := args first value.
+        index := args second value + 1.
+        items at: index ifAbsent: [ MALOutOfBounds new signal ]
+    ].
+Core Ns at: #first put:
+    [ :args |
+        args first type = #nil ifTrue: [
+            MALObject Nil
+        ] ifFalse: [
+            args first value at: 1 ifAbsent: [ MALObject Nil ].
+        ]
+    ].
+Core Ns at: #rest put:
+    [ :args |
+        | items rest |
+        items := args first value.
+        (args first type = #nil or: [ items isEmpty ]) ifTrue: [
+            rest := {}
+        ] ifFalse: [
+            rest := items allButFirst
+        ].
+        MALList new: (OrderedCollection from: rest)
+    ].
