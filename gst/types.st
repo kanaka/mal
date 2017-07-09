@@ -149,6 +149,8 @@ MALObject subclass: MALAtom [
 Error subclass: MALError [
     description [ ^'A MAL-related error' ]
     isResumable [ ^true ]
+
+    data [ ^self messageText ]
 ]
 
 MALError subclass: MALUnterminatedSequence [
@@ -179,4 +181,11 @@ MALError subclass: MALOutOfBounds [
     MALOutOfBounds class >> new [ ^super new ]
 
     messageText [ ^'Out of bounds' ]
+]
+
+MALError subclass: MALCustomError [
+    MALCustomError class >> new [ ^super new ]
+
+    messageText [ ^Printer prStr: self basicMessageText printReadably: true ]
+    data [ ^self basicMessageText ]
 ]

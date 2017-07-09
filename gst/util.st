@@ -1,4 +1,4 @@
-OrderedCollection extend [
+SequenceableCollection extend [
     asDictionary [
         | dict assoc |
         dict := Dictionary new.

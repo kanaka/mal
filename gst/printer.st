@@ -53,6 +53,6 @@ Object subclass: Printer [
             [ :item |
                 (self prStr: item key printReadably: printReadably), ' ',
                     (self prStr: item value printReadably: printReadably) ].
-        ^'{', (items join: ', '), '}'
+        ^'{', (items join: ' '), '}'
     ]
 ]
