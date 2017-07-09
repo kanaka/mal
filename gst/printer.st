@@ -1,5 +1,3 @@
-FileStream fileIn: 'types.st'.
-
 Object subclass: Printer [
     Printer class >> prStr: sexp printReadably: printReadably [
         sexp type = #fn ifTrue: [ ^'#<fn>' ].

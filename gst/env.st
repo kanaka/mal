@@ -1,5 +1,3 @@
-FileStream fileIn: 'types.st'.
-
 Object subclass: Env [
     | data outer |
 

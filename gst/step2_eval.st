@@ -1,6 +1,17 @@
-FileStream fileIn: 'readline.st'.
-FileStream fileIn: 'reader.st'.
-FileStream fileIn: 'printer.st'.
+String extend [
+    String >> loadRelative [
+        | scriptPath scriptDirectory |
+        scriptPath := ContextPart thisContext currentFileName.
+        scriptDirectory := FilePath stripFileNameFor: scriptPath.
+        FileStream fileIn: (FilePath append: self to: scriptDirectory)
+    ]
+]
+
+'readline.st' loadRelative.
+'util.st' loadRelative.
+'types.st' loadRelative.
+'reader.st' loadRelative.
+'printer.st' loadRelative.
 
 Object subclass: MAL [
     MAL class >> READ: input [

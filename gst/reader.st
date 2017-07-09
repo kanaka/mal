@@ -1,6 +1,3 @@
-FileStream fileIn: 'types.st'.
-FileStream fileIn: 'util.st'.
-
 Object subclass: Reader [
     | storage index |
 

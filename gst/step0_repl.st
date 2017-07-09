@@ -1,4 +1,13 @@
-FileStream fileIn: 'readline.st'.
+String extend [
+    String >> loadRelative [
+        | scriptPath scriptDirectory |
+        scriptPath := ContextPart thisContext currentFileName.
+        scriptDirectory := FilePath stripFileNameFor: scriptPath.
+        FileStream fileIn: (FilePath append: self to: scriptDirectory)
+    ]
+]
+
+'readline.st' loadRelative.
 
 Object subclass: MAL [
     MAL class >> READ: input [

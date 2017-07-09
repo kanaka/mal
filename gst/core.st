@@ -1,8 +1,3 @@
-FileStream fileIn: 'types.st'.
-FileStream fileIn: 'printer.st'.
-FileStream fileIn: 'reader.st'.
-FileStream fileIn: 'readline.st'.
-
 Object subclass: Core [
     Ns := Dictionary new.
     Core class >> Ns [ ^Ns ]
