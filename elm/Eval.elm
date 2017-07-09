@@ -84,6 +84,26 @@ finally f e env =
             ( env, EvalIO cmd (cont >> finally f) )
 
 
+gcPass : Eval MalExpr -> Eval MalExpr
+gcPass e env =
+    let
+        go env t expr =
+            if env.gcCounter >= env.gcInterval then
+                ( Env.gc expr env, t expr )
+            else
+                ( env, t expr )
+    in
+        case apply e env of
+            ( env, EvalOk res ) ->
+                go env EvalOk res
+
+            ( env, EvalErr msg ) ->
+                go env EvalErr msg
+
+            ( env, EvalIO cmd cont ) ->
+                ( env, EvalIO cmd (cont >> gcPass) )
+
+
 catchError : (MalExpr -> Eval a) -> Eval a -> Eval a
 catchError f e env =
     case apply e env of
@@ -105,20 +125,6 @@ fail msg env =
 throw : MalExpr -> Eval a
 throw ex env =
     ( env, EvalErr ex )
-
-
-enter : Int -> List ( String, MalExpr ) -> Eval a -> Eval a
-enter frameId bound body =
-    withEnv
-        (\env ->
-            modifyEnv (Env.enter frameId bound)
-                |> andThen (always body)
-                |> andThen
-                    (\res ->
-                        modifyEnv (Env.leave env.currentFrameId)
-                            |> map (always res)
-                    )
-        )
 
 
 {-| Apply f to expr repeatedly.

@@ -36,6 +36,11 @@ globalFrameId =
     0
 
 
+defaultGcInterval : Int
+defaultGcInterval =
+    3
+
+
 global : Env
 global =
     { frames = Dict.singleton globalFrameId (emptyFrame Nothing)
@@ -44,6 +49,8 @@ global =
     , atoms = Dict.empty
     , nextAtomId = 0
     , debug = False
+    , gcInterval = defaultGcInterval
+    , gcCounter = 0
     }
 
 
@@ -55,6 +62,84 @@ getFrame frameId env =
 
         Nothing ->
             Debug.crash <| "frame #" ++ (toString frameId) ++ " not found"
+
+
+emptyFrame : Maybe Int -> Frame
+emptyFrame outerId =
+    { outerId = outerId
+    , data = Dict.empty
+    , refCnt = 1
+    }
+
+
+set : String -> MalExpr -> Env -> Env
+set name expr env =
+    let
+        frameId =
+            env.currentFrameId
+
+        updateFrame =
+            Maybe.map
+                (\frame ->
+                    { frame | data = Dict.insert name expr frame.data }
+                )
+
+        newFrames =
+            Dict.update frameId updateFrame env.frames
+    in
+        { env | frames = newFrames }
+
+
+get : String -> Env -> Result String MalExpr
+get name env =
+    let
+        go frameId =
+            let
+                frame =
+                    getFrame frameId env
+            in
+                case Dict.get name frame.data of
+                    Just value ->
+                        Ok value
+
+                    Nothing ->
+                        frame.outerId
+                            |> Maybe.map go
+                            |> Maybe.withDefault (Err <| "'" ++ name ++ "' not found")
+    in
+        go env.currentFrameId
+
+
+newAtom : MalExpr -> Env -> ( Env, Int )
+newAtom value env =
+    let
+        atomId =
+            env.nextAtomId
+
+        newEnv =
+            { env
+                | atoms = Dict.insert atomId value env.atoms
+                , nextAtomId = atomId + 1
+            }
+    in
+        ( newEnv, atomId )
+
+
+getAtom : Int -> Env -> MalExpr
+getAtom atomId env =
+    case Dict.get atomId env.atoms of
+        Just value ->
+            value
+
+        Nothing ->
+            Debug.crash <| "atom " ++ (toString atomId) ++ " not found"
+
+
+setAtom : Int -> MalExpr -> Env -> Env
+setAtom atomId value env =
+    { env
+        | atoms = Dict.insert atomId value env.atoms
+    }
 
 
 jump : Int -> Env -> Env
@@ -160,8 +245,11 @@ ref env =
 
                     Nothing ->
                         newEnv
+
+        newEnv =
+            go env.currentFrameId env
     in
-        go env.currentFrameId env
+        { newEnv | gcCounter = newEnv.gcCounter + 1 }
 
 
 free : Maybe Frame -> Maybe Frame
@@ -176,143 +264,99 @@ free =
 
 
 {-| Given an Env see which frames are not reachable from the
-global frame. Return a new Env without the unreachable frames.
+global frame, or from the current expression.
 
-TODO include current expression.
+Return a new Env with the unreachable frames removed.
 
 -}
-gc : Env -> Env
-gc env =
+gc : MalExpr -> Env -> Env
+gc currentExpr env =
     let
         countList acc =
             List.foldl countRefs acc
 
-        countFrame acc { data } =
+        countFrame { data } acc =
             data |> Dict.values |> countList acc
 
+        recur frameId acc =
+            if not (Set.member frameId acc) then
+                let
+                    frame =
+                        getFrame frameId env
+
+                    newAcc =
+                        (Set.insert frameId acc)
+                in
+                    countFrame frame newAcc
+            else
+                acc
+
         countRefs expr acc =
-            debug env ("gc-visit " ++ (toString expr)) <|
-                case expr of
-                    MalFunction (UserFunc { frameId }) ->
-                        if not (Set.member frameId acc) then
-                            debug env "gc-counting" <|
-                                case Dict.get frameId env.frames of
-                                    Just frame ->
-                                        countFrame (Set.insert frameId acc) frame
+            case expr of
+                MalFunction (UserFunc { frameId }) ->
+                    recur frameId acc
 
-                                    Nothing ->
-                                        Debug.crash ("frame " ++ (toString frameId) ++ " not found in GC")
-                        else
-                            acc
+                MalApply { frameId } ->
+                    recur frameId acc
 
-                    MalList list ->
-                        countList acc list
+                MalList list ->
+                    countList acc list
 
-                    MalVector vec ->
-                        countList acc (Array.toList vec)
+                MalVector vec ->
+                    countList acc (Array.toList vec)
 
-                    MalMap map ->
-                        countList acc (Dict.values map)
+                MalMap map ->
+                    countList acc (Dict.values map)
 
-                    _ ->
-                        acc
+                MalAtom atomId ->
+                    let
+                        value =
+                            getAtom atomId env
+                    in
+                        countRefs value acc
+
+                _ ->
+                    acc
 
         initSet =
             Set.fromList [ globalFrameId, env.currentFrameId ]
 
-        reportUnused frames used =
-            Dict.diff frames used
-                |> debug env "unused frames"
-                |> (\_ -> frames)
-    in
-        case Dict.get globalFrameId env.frames of
-            Nothing ->
-                Debug.crash "global frame not found"
-
-            Just globalFrame ->
-                countFrame initSet globalFrame
-                    |> Set.toList
-                    |> debug env "used frames"
-                    |> List.map (\frameId -> ( frameId, emptyFrame Nothing ))
-                    |> Dict.fromList
-                    |> reportUnused env.frames
-                    |> Dict.intersect env.frames
-                    |> (\frames -> { env | frames = frames })
-
-
-emptyFrame : Maybe Int -> Frame
-emptyFrame outerId =
-    { outerId = outerId
-    , data = Dict.empty
-    , refCnt = 1
-    }
-
-
-set : String -> MalExpr -> Env -> Env
-set name expr env =
-    let
-        frameId =
-            env.currentFrameId
-
-        updateFrame =
-            Maybe.map
-                (\frame ->
-                    { frame | data = Dict.insert name expr frame.data }
-                )
-
-        newFrames =
-            Dict.update frameId updateFrame env.frames
-    in
-        { env | frames = newFrames }
-
-
-get : String -> Env -> Result String MalExpr
-get name env =
-    let
-        go frameId =
+        expandParents frameId acc =
             let
                 frame =
                     getFrame frameId env
             in
-                case Dict.get name frame.data of
-                    Just value ->
-                        Ok value
+                case frame.outerId of
+                    Just parentId ->
+                        Set.insert parentId acc
 
                     Nothing ->
-                        frame.outerId
-                            |> Maybe.map go
-                            |> Maybe.withDefault (Err <| "'" ++ name ++ "' not found")
-    in
-        go env.currentFrameId
+                        acc
 
+        expandAllFrames frames =
+            Set.foldl expandParents frames frames
 
-newAtom : MalExpr -> Env -> ( Env, Int )
-newAtom value env =
-    let
-        atomId =
-            env.nextAtomId
+        makeEmptyFrame frameId =
+            ( frameId, emptyFrame Nothing )
 
-        newEnv =
+        globalFrame =
+            getFrame globalFrameId env
+
+        makeNewEnv newFrames =
             { env
-                | atoms = Dict.insert atomId value env.atoms
-                , nextAtomId = atomId + 1
+                | frames = newFrames
+                , gcCounter = 0
             }
+
+        keepFilter keep frameId _ =
+            Set.member frameId keep
+
+        filterFrames frames keep =
+            Dict.filter (keepFilter keep) frames
     in
-        ( newEnv, atomId )
-
-
-getAtom : Int -> Env -> MalExpr
-getAtom atomId env =
-    case Dict.get atomId env.atoms of
-        Just value ->
-            value
-
-        Nothing ->
-            Debug.crash <| "atom " ++ (toString atomId) ++ " not found"
-
-
-setAtom : Int -> MalExpr -> Env -> Env
-setAtom atomId value env =
-    { env
-        | atoms = Dict.insert atomId value env.atoms
-    }
+        initSet
+            |> countRefs currentExpr
+            |> countFrame globalFrame
+            |> expandAllFrames
+            |> filterFrames env.frames
+            |> makeNewEnv

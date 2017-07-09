@@ -305,7 +305,7 @@ ns =
                     Eval.fail "unsupported arguments"
 
         gc args =
-            Eval.withEnv (Env.gc >> Printer.printEnv >> writeLine)
+            Eval.withEnv (Env.gc MalNil >> Printer.printEnv >> writeLine)
 
         setDebug enabled =
             Eval.modifyEnv
@@ -316,11 +316,14 @@ ns =
 
         debug args =
             case args of
-                [ MalBool True ] ->
-                    setDebug True
+                [ MalBool value ] ->
+                    setDebug value
 
                 _ ->
-                    setDebug False
+                    Eval.withEnv
+                        (\env ->
+                            Eval.succeed (MalBool env.debug)
+                        )
 
         typeof args =
             case args of

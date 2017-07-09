@@ -188,11 +188,8 @@ evalApply { frameId, bound, body } =
         (\env ->
             Eval.modifyEnv (Env.enter frameId bound)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.andThen
-                    (\res ->
-                        Eval.modifyEnv (Env.leave env.currentFrameId)
-                            |> Eval.map (\_ -> res)
-                    )
+                |> Eval.finally (Env.leave env.currentFrameId)
+                |> Eval.gcPass
         )
 
 
@@ -466,8 +463,6 @@ evalFn args =
                         case binder args of
                             Ok bound ->
                                 Eval.succeed <|
-                                    -- TODO : choice Env.enter prematurely?
-                                    -- I think it is needed by the garbage collect..
                                     MalApply
                                         { frameId = frameId
                                         , bound = bound

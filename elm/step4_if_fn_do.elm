@@ -423,7 +423,12 @@ evalFn args =
                 fn args =
                     case binder args of
                         Ok bound ->
-                            Eval.enter frameId bound (eval body)
+                            Eval.withEnv
+                                (\env ->
+                                    Eval.modifyEnv (Env.enter frameId bound)
+                                        |> Eval.andThen (always (eval body))
+                                        |> Eval.finally (Env.leave env.currentFrameId)
+                                )
 
                         Err msg ->
                             Eval.fail msg

@@ -28,6 +28,8 @@ type alias Env =
     , atoms : Dict Int MalExpr
     , nextAtomId : Int
     , debug : Bool
+    , gcInterval : Int
+    , gcCounter : Int
     }
 
 
