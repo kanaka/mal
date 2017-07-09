@@ -1,24 +1,19 @@
-Object subclass: Func [
-    | ast params env fn isMacro meta |
+MALObject subclass: Func [
+    | ast params env fn isMacro |
 
     ast [ ^ast ]
     params [ ^params ]
     env [ ^env ]
     fn [ ^fn ]
     isMacro [ ^isMacro ]
-    meta [ ^meta ]
 
     isMacro: bool [
         isMacro := bool
     ]
 
-    meta: aMeta [
-        meta := aMeta
-    ]
-
     Func class >> new: ast params: params env: env fn: fn [
         | func |
-        func := super new.
+        func := super new: #func value: fn meta: nil.
         func init: ast params: params env: env fn: fn.
         ^func
     ]
@@ -29,12 +24,5 @@ Object subclass: Func [
         env := anEnv.
         fn := aFn.
         isMacro := false
-    ]
-
-    withMeta: meta [
-        | func |
-        func := self deepCopy.
-        func meta: meta.
-        ^func
     ]
 ]

@@ -146,6 +146,23 @@ MALObject subclass: MALAtom [
     ]
 ]
 
+MALObject subclass: Fn [
+    | fn |
+
+    fn [ ^fn ]
+
+    Fn class >> new: fn [
+        | f |
+        f := super new: #fn value: fn meta: nil.
+        f init: fn.
+        ^f
+    ]
+
+    init: f [
+        fn := f.
+    ]
+]
+
 Error subclass: MALError [
     description [ ^'A MAL-related error' ]
     isResumable [ ^true ]

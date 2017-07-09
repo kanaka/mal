@@ -89,12 +89,12 @@ Object subclass: MAL [
             a1_ := ast second value.
             binds := a1_ collect: [ :item | item value ].
             a2 := ast third.
-            ^[ :args | self EVAL: a2 env:
+            ^Fn new: [ :args | self EVAL: a2 env:
                            (Env new: env binds: binds exprs: args) ]
         ].
 
         forms := (self evalAst: sexp env: env) value.
-        function := forms first.
+        function := forms first fn.
         args := forms allButFirst asArray.
         ^function value: args
     ]

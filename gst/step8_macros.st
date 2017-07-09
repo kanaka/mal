@@ -74,7 +74,7 @@ Object subclass: MAL [
             a0_ := a0 value.
             a0 type = #symbol ifTrue: [
                 f := env find: a0_.
-                (f notNil and: [ f class = Func ]) ifTrue: [
+                (f notNil and: [ f type = #func ]) ifTrue: [
                     ^f isMacro
                 ]
             ]
@@ -221,8 +221,8 @@ Object subclass: MAL [
                 function := forms first.
                 args := forms allButFirst asArray.
 
-                function class = BlockClosure ifTrue: [ ^function value: args ].
-                function class = Func ifTrue: [
+                function type = #fn ifTrue: [ ^function fn value: args ].
+                function type = #func ifTrue: [
                     | env_ |
                     sexp := function ast.
                     env_ := Env new: function env binds: function params
@@ -254,7 +254,7 @@ argv notEmpty ifTrue: [ argv := argv allButFirst ].
 argv := OrderedCollection from: (argv collect: [ :arg | MALString new: arg ]).
 
 Core Ns keysAndValuesDo: [ :op :block | replEnv set: op value: block ].
-replEnv set: #eval value: [ :args | MAL EVAL: args first env: replEnv ].
+replEnv set: #eval value: (Fn new: [ :args | MAL EVAL: args first env: replEnv ]).
 replEnv set: #'*ARGV*' value: (MALList new: argv).
 
 MAL rep: '(def! not (fn* (a) (if a false true)))' env: replEnv.

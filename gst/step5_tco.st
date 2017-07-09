@@ -123,8 +123,8 @@ Object subclass: MAL [
                 function := forms first.
                 args := forms allButFirst asArray.
 
-                function class = BlockClosure ifTrue: [ ^function value: args ].
-                function class = Func ifTrue: [
+                function type = #fn ifTrue: [ ^function fn value: args ].
+                function type = #func ifTrue: [
                     | env_ |
                     sexp := function ast.
                     env_ := Env new: function env binds: function params
