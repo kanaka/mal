@@ -20,8 +20,8 @@ Object subclass: Env [
         1 to: binds size do:
             [ :i | (binds at: i) = #& ifTrue: [
                 | rest |
-                rest := MALList new: (exprs copyFrom: i).
-                self set: (binds at: i + 1) value: rest.
+                rest := OrderedCollection from: (exprs copyFrom: i).
+                self set: (binds at: i + 1) value: (MALList new: rest).
                 ^nil
             ] ifFalse: [
                 self set: (binds at: i) value: (exprs at: i)
