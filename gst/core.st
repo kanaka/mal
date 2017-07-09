@@ -1,6 +1,7 @@
 FileStream fileIn: 'types.st'.
 FileStream fileIn: 'printer.st'.
 FileStream fileIn: 'reader.st'.
+FileStream fileIn: 'readline.st'.
 
 Object subclass: Core [
     Ns := Dictionary new.
@@ -78,6 +79,17 @@ Core Ns at: #slurp put:
     (Fn new: [ :args | MALString new: (File path: args first value) contents ]).
 Core Ns at: #throw put:
     (Fn new: [ :args | MALCustomError new signal: args first ]).
+Core Ns at: #readline put:
+    (Fn new: [ :args |
+        | result |
+        result := ReadLine readLine: args first value.
+        result isString ifTrue: [
+            MALString new: result
+        ] ifFalse: [
+            MALObject Nil
+        ] ]).
+Core Ns at: #'time-ms' put:
+    (Fn new: [ :args | MALNumber new: Time millisecondClock ]).
 
 Core Ns at: #atom put:
     (Fn new: [ :args | MALAtom new: args first ]).
@@ -122,6 +134,36 @@ Core Ns at: #rest put:
             rest := items allButFirst
         ].
         MALList new: (OrderedCollection from: rest) ]).
+Core Ns at: #conj put:
+    (Fn new: [ :args |
+        | kind result items |
+        kind := args first type.
+        result := args first value.
+        items := args allButFirst.
+
+        kind = #list ifTrue: [
+            MALList new: (OrderedCollection from: items reverse, result)
+        ] ifFalse: [
+            MALVector new: (OrderedCollection from: result, items)
+        ] ]).
+Core Ns at: #seq put:
+    (Fn new: [ :args |
+        | kind storage result |
+        kind := args first type.
+        storage := args first value.
+        Core nilable: args else: [
+            storage isEmpty ifTrue: [
+                MALObject Nil
+            ] ifFalse: [
+               kind = #string ifTrue: [
+                   result := (OrderedCollection from: storage) collect:
+                       [ :char | MALString new: char asString ].
+                   MALList new: result
+               ] ifFalse: [
+                   MALList new: (OrderedCollection from: storage)
+               ]
+            ]
+        ] ]).
 
 Core Ns at: #apply put:
     (Fn new: [ :args |
@@ -142,6 +184,14 @@ Core Ns at: #map put:
         result := items collect: [ :item | f value: {item} ].
         MALList new: (OrderedCollection from: result) ]).
 
+Core Ns at: #meta put:
+    (Fn new: [ :args |
+        | meta |
+        meta := args first meta.
+        meta isNil ifTrue: [ MALObject Nil ] ifFalse: [ meta ] ]).
+Core Ns at: #'with-meta' put:
+    (Fn new: [ :args | args first withMeta: args second ]).
+
 Core Ns at: #'nil?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #nil ] ]).
 Core Ns at: #'true?' put:
@@ -152,6 +202,8 @@ Core Ns at: #'symbol?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #symbol ] ]).
 Core Ns at: #'keyword?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #keyword ] ]).
+Core Ns at: #'string?' put:
+    (Fn new: [ :args | Core coerce: [ args first type = #string ] ]).
 Core Ns at: #'vector?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #vector ] ]).
 Core Ns at: #'map?' put:
