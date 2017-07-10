@@ -36,6 +36,7 @@ matrix:
     - {env: IMPL=js,        services: [docker]}
     - {env: IMPL=julia,     services: [docker]}
     - {env: IMPL=kotlin,    services: [docker]}
+    - {env: IMPL=livescript, services: [docker]}
     - {env: IMPL=logo,      services: [docker]}
     - {env: IMPL=lua,       services: [docker]}
     - {env: IMPL=make,      services: [docker]}
