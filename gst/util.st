@@ -33,8 +33,29 @@ BlockClosure extend [
     valueWithExit [
         ^self value: [ ^nil ]
     ]
+]
 
-    "HACK"
-    type [ ^#closure ]
-    value [ ^nil ]
+"NOTE: bugfix version from 3.2.91 for 3.2.4"
+Namespace current: Kernel [
+
+MatchingRegexResults extend [
+    at: anIndex [
+	<category: 'accessing'>
+	| reg text |
+	anIndex = 0 ifTrue: [^self match].
+	cache isNil ifTrue: [cache := Array new: registers size].
+	(cache at: anIndex) isNil
+	    ifTrue:
+		[reg := registers at: anIndex.
+		text := reg isNil
+			    ifTrue: [nil]
+			    ifFalse: [
+				reg isEmpty
+					ifTrue: ['']
+					ifFalse: [self subject copyFrom: reg first to: reg last]].
+		cache at: anIndex put: text].
+	^cache at: anIndex
+    ]
+]
+
 ]
