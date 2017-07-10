@@ -47,7 +47,7 @@ Object subclass: MAL [
     ]
 
     MAL class >> quasiquote: ast [
-        | result a a0 a0_ a0_0 a0_1 rest |
+        | result a a0 a0_ a0_0 rest |
         ast isPair ifFalse: [
             result := {MALSymbol new: #quote. ast}.
             ^MALList new: (OrderedCollection from: result)
@@ -61,12 +61,12 @@ Object subclass: MAL [
         a0 isPair ifTrue: [
             a0_ := a0 value.
             a0_0 := a0_ first.
-            a0_1 := a0_ second.
 
             (a0_0 type = #symbol and:
              [ a0_0 value = #'splice-unquote' ]) ifTrue: [
                 rest := MALList new: a allButFirst.
-                result := {MALSymbol new: #concat. a0_1.
+                result := {MALSymbol new: #concat.
+                           a0_ second.
                            self quasiquote: rest}.
                 ^MALList new: (OrderedCollection from: result)
             ]
