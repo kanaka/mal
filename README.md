@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 65 languages:
+Mal is implemented in 66 languages:
 
 * Ada
 * GNU awk
@@ -32,6 +32,7 @@ Mal is implemented in 65 languages:
 * Go
 * Groovy
 * GNU Guile
+* GNU Smalltalk
 * Haskell
 * Haxe
 * Io
@@ -439,6 +440,17 @@ groovy ./stepX_YYY.groovy
 ```
 cd guile
 guile -L ./ stepX_YYY.scm
+```
+
+### GNU Smalltalk
+
+*The Smalltalk implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Smalltalk implementation of mal has been tested with GNU Smalltalk 3.2.91.
+
+```
+cd gst
+./run
 ```
 
 ### Haskell
