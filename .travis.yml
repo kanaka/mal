@@ -28,6 +28,7 @@ matrix:
     - {env: IMPL=fsharp,    services: [docker]}
     - {env: IMPL=go,        services: [docker]}
     - {env: IMPL=groovy,    services: [docker]}
+    - {env: IMPL=gst,       services: [docker]}
     - {env: IMPL=guile,     services: [docker]}
     - {env: IMPL=haskell,   services: [docker]}
     - {env: IMPL=haxe,      services: [docker]}
