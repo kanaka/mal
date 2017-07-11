@@ -35,6 +35,33 @@ BlockClosure extend [
     ]
 ]
 
+Object extend [
+    toMALValue [
+        self = true ifTrue: [ ^MALObject True ].
+        self = false ifTrue: [ ^MALObject False ].
+        self = nil ifTrue: [ ^MALObject Nil ].
+        self isNumber ifTrue: [ ^MALNumber new: self ].
+        self isString ifTrue: [ ^MALString new: self ].
+        self isSymbol ifTrue: [ ^MALSymbol new: self ].
+        self isArray ifTrue: [
+            ^MALVector new: (self asOrderedCollection collect:
+                                 [ :item | item toMALValue ])
+        ].
+        self isSequenceable ifTrue: [
+            ^MALList new: (self asOrderedCollection collect:
+                               [ :item | item toMALValue ])
+        ].
+        self class = Dictionary ifTrue: [
+            | result |
+            result := Dictionary new.
+            self keysAndValuesDo: [ :key :value |
+                result at: key toMALValue put: value toMALValue
+            ].
+            ^MALMap new: result
+        ]
+    ]
+]
+
 "NOTE: bugfix version from 3.2.91 for 3.2.4"
 Namespace current: Kernel [
 

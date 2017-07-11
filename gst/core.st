@@ -85,6 +85,8 @@ Core Ns at: #readline put:
         ] ]).
 Core Ns at: #'time-ms' put:
     (Fn new: [ :args | MALNumber new: Time millisecondClock ]).
+Core Ns at: #'gst-eval' put:
+    (Fn new: [ :args | (Behavior evaluate: args first value) toMALValue ]).
 
 Core Ns at: #atom put:
     (Fn new: [ :args | MALAtom new: args first ]).
