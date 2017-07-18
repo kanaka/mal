@@ -266,7 +266,7 @@ malEval args =
                 (\env ->
                     Eval.modifyEnv (Env.jump Env.globalFrameId)
                         |> Eval.andThen (\_ -> eval expr)
-                        |> Eval.finally (Env.jump env.currentFrameId)
+                        |> Eval.finally Env.leave
                 )
 
         _ ->
@@ -279,8 +279,8 @@ evalApply { frameId, bound, body } =
         (\env ->
             Eval.modifyEnv (Env.enter frameId bound)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.finally (Env.leave env.currentFrameId)
-                |> Eval.gcPass
+                |> Eval.finally Env.leave
+                |> Eval.gcPass []
         )
 
 
@@ -606,7 +606,7 @@ evalFn args =
                     UserFunc
                         { frameId = frameId
                         , lazyFn = lazyFn
-                        , eagerFn = lazyFn >> Eval.andThen eval
+                        , eagerFn = \_ -> lazyFn >> Eval.andThen eval
                         , isMacro = False
                         , meta = Nothing
                         }
@@ -689,7 +689,7 @@ macroexpand expr =
                     case Env.get name env of
                         Ok (MalFunction (UserFunc fn)) ->
                             if fn.isMacro then
-                                Left <| fn.eagerFn args
+                                Left <| fn.eagerFn [] args
                             else
                                 Right expr
 

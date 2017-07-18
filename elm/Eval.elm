@@ -3,6 +3,7 @@ module Eval exposing (..)
 import Types exposing (..)
 import IO exposing (IO)
 import Env
+import Printer exposing (printEnv)
 
 
 apply : Eval a -> Env -> EvalContext a
@@ -89,6 +90,12 @@ gcPass e env =
     let
         go env t expr =
             if env.gcCounter >= env.gcInterval then
+                --Debug.log
+                --    ("before GC: "
+                --        ++ (printEnv env)
+                --    )
+                --    ""
+                --    |> always ( Env.gc env, t expr )
                 ( Env.gc expr env, t expr )
             else
                 ( env, t expr )
@@ -172,3 +179,21 @@ ignore right left =
                 right
                     |> andThen (\_ -> succeed res)
             )
+
+
+withStack : Eval a -> Eval a
+withStack e =
+    withEnv
+        (\env ->
+            e
+                |> ignore
+                    (modifyEnv
+                        (Env.restoreRefs env.stack)
+                    )
+        )
+
+
+pushRef : MalExpr -> Eval a -> Eval a
+pushRef ref e =
+    modifyEnv (Env.pushRef ref)
+        |> andThen (always e)

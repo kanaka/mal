@@ -16,6 +16,7 @@ type Msg
 
 type alias Frame =
     { outerId : Maybe Int
+    , exitId : Maybe Int
     , data : Dict String MalExpr
     , refCnt : Int
     }
@@ -30,6 +31,7 @@ type alias Env =
     , debug : Bool
     , gcInterval : Int
     , gcCounter : Int
+    , stack : List MalExpr
     }
 
 

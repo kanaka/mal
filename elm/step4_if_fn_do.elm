@@ -187,7 +187,7 @@ eval ast =
                                 fn args
 
                             (MalFunction (UserFunc { eagerFn })) :: args ->
-                                eagerFn args
+                                eagerFn [] args
 
                             fn :: _ ->
                                 Eval.withEnv
@@ -427,7 +427,7 @@ evalFn args =
                                 (\env ->
                                     Eval.modifyEnv (Env.enter frameId bound)
                                         |> Eval.andThen (always (eval body))
-                                        |> Eval.finally (Env.leave env.currentFrameId)
+                                        |> Eval.finally Env.leave
                                 )
 
                         Err msg ->
@@ -437,7 +437,7 @@ evalFn args =
                     UserFunc
                         { frameId = frameId
                         , lazyFn = fn
-                        , eagerFn = fn
+                        , eagerFn = always fn
                         , isMacro = False
                         , meta = Nothing
                         }

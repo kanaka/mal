@@ -277,7 +277,7 @@ malEval args =
                 (\env ->
                     Eval.modifyEnv (Env.jump Env.globalFrameId)
                         |> Eval.andThen (\_ -> eval expr)
-                        |> Eval.finally (Env.jump env.currentFrameId)
+                        |> Eval.finally Env.leave
                 )
 
         _ ->
@@ -290,7 +290,7 @@ evalApply { frameId, bound, body } =
         (\env ->
             Eval.modifyEnv (Env.enter frameId bound)
                 |> Eval.andThen (\_ -> evalNoApply body)
-                |> Eval.finally (Env.leave env.currentFrameId)
+                |> Eval.finally Env.leave
                 |> Eval.gcPass
         )
 
@@ -368,9 +368,14 @@ evalNoApply ast =
                 _ ->
                     evalAst ast
     in
-        debug "evalNoApply"
-            (\env -> printString env True ast)
-            (macroexpand ast |> Eval.andThen go)
+        macroexpand ast
+            |> Eval.andThen go
+            |> Eval.andThen
+                (\res ->
+                    debug "evalNoApply"
+                        (\env -> (printString env True ast) ++ " = " ++ (printString env True res))
+                        (Eval.succeed res)
+                )
 
 
 evalAst : MalExpr -> Eval MalExpr
@@ -413,10 +418,10 @@ evalList list =
                     eval x
                         |> Eval.andThen
                             (\val ->
-                                go rest (val :: acc)
+                                Eval.pushRef val <| go rest (val :: acc)
                             )
     in
-        go list []
+        Eval.withStack <| go list []
 
 
 evalDef : List MalExpr -> Eval MalExpr

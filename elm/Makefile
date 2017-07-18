@@ -1,4 +1,4 @@
-SOURCES = step0_repl.elm step1_read_print.elm step2_eval.elm \
+SOURCES = stepA_mal.elm #step0_repl.elm step1_read_print.elm step2_eval.elm \
 	step3_env.elm step4_if_fn_do.elm step5_tco.elm step6_file.elm \
 	step7_quote.elm step8_macros.elm step9_try.elm stepA_mal.elm
 

@@ -500,12 +500,12 @@ ns =
                             callFn func [ inv ]
                                 |> Eval.andThen
                                     (\outv ->
-                                        go func rest (outv :: acc)
+                                        Eval.pushRef outv (go func rest (outv :: acc))
                                     )
             in
                 case args of
                     [ MalFunction func, MalList list ] ->
-                        go func list []
+                        Eval.withStack (go func list [])
 
                     [ MalFunction func, MalVector vec ] ->
                         go func (Array.toList vec) []

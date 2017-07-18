@@ -2,7 +2,7 @@ module Printer exposing (..)
 
 import Array exposing (Array)
 import Dict exposing (Dict)
-import Types exposing (Env, MalExpr(..), keywordPrefix)
+import Types exposing (Env, MalExpr(..), keywordPrefix, MalFunction(..))
 import Utils exposing (encodeString, wrap)
 import Env
 
@@ -40,6 +40,18 @@ printString env readably ast =
         MalMap map ->
             printMap env readably map
 
+        MalFunction (UserFunc { frameId, meta }) ->
+            "#<function "
+                ++ (toString frameId)
+                ++ (case meta of
+                        Nothing ->
+                            ""
+
+                        Just meta ->
+                            " meta=" ++ printString env True meta
+                   )
+                ++ ">"
+
         MalFunction _ ->
             "#<function>"
 
@@ -50,8 +62,19 @@ printString env readably ast =
             in
                 "(atom " ++ (printString env True value) ++ ")"
 
-        MalApply _ ->
-            "#<apply>"
+        MalApply { frameId, bound } ->
+            "#<apply " ++ (toString frameId) ++ " bound=" ++ (printBound env True bound) ++ ">"
+
+
+printBound : Env -> Bool -> List ( String, MalExpr ) -> String
+printBound env readably =
+    let
+        printEntry name value =
+            name ++ "=" ++ (printString env readably value)
+    in
+        List.map (uncurry printEntry)
+            >> String.join " "
+            >> wrap "(" ")"
 
 
 printRawString : Env -> Bool -> String -> String
@@ -107,11 +130,13 @@ printEnv env =
         printOuterId =
             Maybe.map toString >> Maybe.withDefault "nil"
 
-        printHeader frameId { outerId, refCnt } =
+        printHeader frameId { outerId, exitId, refCnt } =
             "#"
                 ++ (toString frameId)
                 ++ " outer="
                 ++ printOuterId outerId
+                ++ " exit="
+                ++ printOuterId exitId
                 ++ " refCnt="
                 ++ (toString refCnt)
 
@@ -125,7 +150,7 @@ printEnv env =
             printFrame k v :: acc
 
         printDatum k v acc =
-            (k ++ " = " ++ (printString env True v)) :: acc
+            (k ++ " = " ++ (printString env False v)) :: acc
     in
         "--- Environment ---\n"
             ++ "Current frame: #"

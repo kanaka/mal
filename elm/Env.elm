@@ -3,17 +3,19 @@ module Env
         ( debug
         , globalFrameId
         , global
-        , push
-        , pop
-        , jump
-        , enter
-        , leave
-        , ref
         , get
         , set
         , newAtom
         , getAtom
         , setAtom
+        , push
+        , pop
+        , enter
+        , jump
+        , leave
+        , ref
+        , pushRef
+        , restoreRefs
         , gc
         )
 
@@ -38,12 +40,12 @@ globalFrameId =
 
 defaultGcInterval : Int
 defaultGcInterval =
-    3
+    10
 
 
 global : Env
 global =
-    { frames = Dict.singleton globalFrameId (emptyFrame Nothing)
+    { frames = Dict.singleton globalFrameId (emptyFrame Nothing Nothing)
     , nextFrameId = globalFrameId + 1
     , currentFrameId = globalFrameId
     , atoms = Dict.empty
@@ -51,11 +53,12 @@ global =
     , debug = False
     , gcInterval = defaultGcInterval
     , gcCounter = 0
+    , stack = []
     }
 
 
-getFrame : Int -> Env -> Frame
-getFrame frameId env =
+getFrame : Env -> Int -> Frame
+getFrame env frameId =
     case Dict.get frameId env.frames of
         Just frame ->
             frame
@@ -64,9 +67,10 @@ getFrame frameId env =
             Debug.crash <| "frame #" ++ (toString frameId) ++ " not found"
 
 
-emptyFrame : Maybe Int -> Frame
-emptyFrame outerId =
+emptyFrame : Maybe Int -> Maybe Int -> Frame
+emptyFrame outerId exitId =
     { outerId = outerId
+    , exitId = exitId
     , data = Dict.empty
     , refCnt = 1
     }
@@ -96,7 +100,7 @@ get name env =
         go frameId =
             let
                 frame =
-                    getFrame frameId env
+                    getFrame env frameId
             in
                 case Dict.get name frame.data of
                     Just value ->
@@ -142,11 +146,6 @@ setAtom atomId value env =
     }
 
 
-jump : Int -> Env -> Env
-jump frameId env =
-    { env | currentFrameId = frameId }
-
-
 push : Env -> Env
 push env =
     let
@@ -154,7 +153,10 @@ push env =
             env.nextFrameId
 
         newFrame =
-            emptyFrame (Just env.currentFrameId)
+            emptyFrame (Just env.currentFrameId) Nothing
+
+        bogus =
+            debug env "push" frameId
     in
         { env
             | currentFrameId = frameId
@@ -170,7 +172,10 @@ pop env =
             env.currentFrameId
 
         frame =
-            getFrame frameId env
+            getFrame env frameId
+
+        bogus =
+            debug env "pop" frameId
     in
         case frame.outerId of
             Just outerId ->
@@ -194,14 +199,19 @@ setBinds binds frame =
                 { frame | data = Dict.insert name expr frame.data }
 
 
+{-| Enter a new frame with a set of binds
+-}
 enter : Int -> List ( String, MalExpr ) -> Env -> Env
-enter parentFrameId binds env =
+enter outerId binds env =
     let
         frameId =
             debug env "enter #" env.nextFrameId
 
+        exitId =
+            env.currentFrameId
+
         newFrame =
-            setBinds binds (emptyFrame (Just parentFrameId))
+            setBinds binds (emptyFrame (Just outerId) (Just exitId))
     in
         { env
             | currentFrameId = frameId
@@ -210,15 +220,55 @@ enter parentFrameId binds env =
         }
 
 
-leave : Int -> Env -> Env
-leave orgFrameId env =
+{-| Jump into a frame
+-}
+jump : Int -> Env -> Env
+jump frameId env =
+    let
+        setExitId =
+            Maybe.map
+                (\frame ->
+                    { frame
+                        | exitId = Just env.currentFrameId
+                        , refCnt = frame.refCnt + 1
+                    }
+                )
+
+        bogus =
+            debug env "jump #" frameId
+    in
+        { env
+            | currentFrameId = frameId
+            , frames = Dict.update frameId setExitId env.frames
+        }
+
+
+leave : Env -> Env
+leave env =
     let
         frameId =
             debug env "leave #" env.currentFrameId
+
+        frame =
+            getFrame env frameId
+
+        exitId =
+            case frame.exitId of
+                Just exitId ->
+                    exitId
+
+                Nothing ->
+                    Debug.crash <|
+                        "frame #"
+                            ++ (toString frameId)
+                            ++ " doesn't have an exitId"
     in
         { env
-            | currentFrameId = orgFrameId
-            , frames = Dict.update frameId free env.frames
+            | currentFrameId = exitId
+            , frames =
+                env.frames
+                    |> Dict.insert frameId { frame | exitId = Nothing }
+                    |> Dict.update frameId free
         }
 
 
@@ -231,7 +281,7 @@ ref env =
         go frameId env =
             let
                 frame =
-                    getFrame frameId env
+                    getFrame env frameId
 
                 newFrame =
                     { frame | refCnt = frame.refCnt + 1 }
@@ -263,6 +313,16 @@ free =
         )
 
 
+pushRef : MalExpr -> Env -> Env
+pushRef ref env =
+    { env | stack = ref :: env.stack }
+
+
+restoreRefs : List MalExpr -> Env -> Env
+restoreRefs refs env =
+    { env | stack = refs }
+
+
 {-| Given an Env see which frames are not reachable from the
 global frame, or from the current expression.
 
@@ -270,10 +330,12 @@ Return a new Env with the unreachable frames removed.
 
 -}
 gc : MalExpr -> Env -> Env
-gc currentExpr env =
+gc expr env =
     let
+        -- bogus =
+        --     Debug.log "GC stack = " env.stack
         countList acc =
-            List.foldl countRefs acc
+            List.foldl countExpr acc
 
         countFrame { data } acc =
             data |> Dict.values |> countList acc
@@ -282,22 +344,28 @@ gc currentExpr env =
             if not (Set.member frameId acc) then
                 let
                     frame =
-                        getFrame frameId env
+                        getFrame env frameId
 
                     newAcc =
-                        (Set.insert frameId acc)
+                        Set.insert frameId acc
                 in
                     countFrame frame newAcc
             else
                 acc
 
-        countRefs expr acc =
+        countBound bound acc =
+            bound
+                |> List.map Tuple.second
+                |> countList acc
+
+        countExpr expr acc =
             case expr of
                 MalFunction (UserFunc { frameId }) ->
                     recur frameId acc
 
-                MalApply { frameId } ->
+                MalApply { frameId, bound } ->
                     recur frameId acc
+                        |> countBound bound
 
                 MalList list ->
                     countList acc list
@@ -313,7 +381,7 @@ gc currentExpr env =
                         value =
                             getAtom atomId env
                     in
-                        countRefs value acc
+                        countExpr value acc
 
                 _ ->
                     acc
@@ -321,26 +389,42 @@ gc currentExpr env =
         initSet =
             Set.fromList [ globalFrameId, env.currentFrameId ]
 
-        expandParents frameId acc =
+        countFrames frames acc =
+            Set.toList frames
+                |> List.map (getFrame env)
+                |> List.foldl countFrame acc
+
+        expand frameId frame fn acc =
+            case fn frame of
+                Nothing ->
+                    acc
+
+                Just parentId ->
+                    Set.insert parentId acc
+
+        expandBoth frameId =
             let
                 frame =
-                    getFrame frameId env
+                    getFrame env frameId
             in
-                case frame.outerId of
-                    Just parentId ->
-                        Set.insert parentId acc
+                expand frameId frame .outerId
+                    >> expand frameId frame .exitId
 
-                    Nothing ->
-                        acc
+        expandParents frames =
+            Set.foldl expandBoth frames frames
 
-        expandAllFrames frames =
-            Set.foldl expandParents frames frames
+        loop acc =
+            let
+                newAcc =
+                    expandParents acc
 
-        makeEmptyFrame frameId =
-            ( frameId, emptyFrame Nothing )
-
-        globalFrame =
-            getFrame globalFrameId env
+                newParents =
+                    Set.diff newAcc acc
+            in
+                if Set.isEmpty newParents then
+                    newAcc
+                else
+                    loop <| countFrames newParents newAcc
 
         makeNewEnv newFrames =
             { env
@@ -353,10 +437,16 @@ gc currentExpr env =
 
         filterFrames frames keep =
             Dict.filter (keepFilter keep) frames
+
+        reportUnused frames keep =
+            Set.diff (Set.fromList (Dict.keys frames)) keep
+                |> Debug.log "\n\nUNUSED FRAMES\n\n"
+                |> always keep
     in
-        initSet
-            |> countRefs currentExpr
-            |> countFrame globalFrame
-            |> expandAllFrames
+        countFrames initSet initSet
+            |> countExpr expr
+            |> (flip countList) env.stack
+            |> loop
+            --            |> reportUnused env.frames
             |> filterFrames env.frames
             |> makeNewEnv
