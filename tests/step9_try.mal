@@ -55,6 +55,8 @@
 ;=>nil
 (apply list (list))
 ;=>()
+(apply symbol? (list (quote two)))
+;=>true
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
