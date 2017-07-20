@@ -120,6 +120,12 @@
 ;=>false
 (= "abc" "ABC")
 ;=>false
+(= true true)
+;=>true
+(= false false)
+;=>true
+(= nil nil)
+;=>true
 
 (= (list) (list))
 ;=>true
