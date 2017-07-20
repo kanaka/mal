@@ -1,7 +1,7 @@
 String extend [
     String >> loadRelative [
         | scriptPath scriptDirectory |
-        scriptPath := ContextPart thisContext currentFileName.
+        scriptPath := thisContext currentFileName.
         scriptDirectory := FilePath stripFileNameFor: scriptPath.
         FileStream fileIn: (FilePath append: self to: scriptDirectory)
     ]
