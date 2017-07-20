@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 66 languages:
+Mal is implemented in 67 languages:
 
 * Ada
 * GNU awk
@@ -63,6 +63,7 @@ Mal is implemented in 66 languages:
 * RPython
 * R
 * Racket
+* Rexx
 * Ruby
 * Rust
 * Scala
@@ -806,6 +807,18 @@ compiler/interpreter to run.
 ```
 cd racket
 ./stepX_YYY.rkt
+```
+
+### Rexx
+
+*The Rexx implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Rexx implementation of mal has been tested with Regina Rexx 3.6.
+
+```
+cd rexx
+make
+rexx -a ./stepX_YYY.rexxpp
 ```
 
 ### Ruby (1.9+)
