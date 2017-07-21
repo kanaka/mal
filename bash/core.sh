@@ -74,7 +74,7 @@ time_ms () {
 
 # String functions
 
-string? () { _string? "${1}" && r="${__true}" || r="${__false}"; }
+string? () { _string? "${1}" && ( ! _keyword? "${1}" ) && r="${__true}" || r="${__false}"; }
 
 pr_str () {
     local res=""
