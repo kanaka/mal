@@ -216,7 +216,7 @@ vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
 guile_STEP_TO_PROG =   guile/$($(1)).scm
 livescript_STEP_TO_PROG = livescript/$($(1)).js
-elm_STEP_TO_PROG =     elm/$($(1)).elm
+elm_STEP_TO_PROG =     elm/$($(1)).js
 
 
 # Needed some argument munging
