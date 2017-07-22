@@ -3,7 +3,6 @@ module Eval exposing (..)
 import Types exposing (..)
 import IO exposing (IO)
 import Env
-import Printer exposing (printEnv)
 
 
 apply : Eval a -> Env -> EvalContext a
@@ -197,3 +196,30 @@ pushRef : MalExpr -> Eval a -> Eval a
 pushRef ref e =
     modifyEnv (Env.pushRef ref)
         |> andThen (always e)
+
+
+inGlobal : Eval a -> Eval a
+inGlobal body =
+    let
+        enter env =
+            setEnv
+                { env
+                    | keepFrames = env.currentFrameId :: env.keepFrames
+                    , currentFrameId = Env.globalFrameId
+                }
+
+        leave oldEnv newEnv =
+            { newEnv
+                | keepFrames = oldEnv.keepFrames
+                , currentFrameId = oldEnv.currentFrameId
+            }
+    in
+        withEnv
+            (\env ->
+                if env.currentFrameId /= Env.globalFrameId then
+                    enter env
+                        |> andThen (always body)
+                        |> finally (leave env)
+                else
+                    body
+            )

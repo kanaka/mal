@@ -32,6 +32,7 @@ type alias Env =
     , gcInterval : Int
     , gcCounter : Int
     , stack : List MalExpr
+    , keepFrames : List Int
     }
 
 

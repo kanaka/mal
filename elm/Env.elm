@@ -11,7 +11,6 @@ module Env
         , push
         , pop
         , enter
-        , jump
         , leave
         , ref
         , pushRef
@@ -54,6 +53,7 @@ global =
     , gcInterval = defaultGcInterval
     , gcCounter = 0
     , stack = []
+    , keepFrames = []
     }
 
 
@@ -220,29 +220,6 @@ enter outerId binds env =
         }
 
 
-{-| Jump into a frame
--}
-jump : Int -> Env -> Env
-jump frameId env =
-    let
-        setExitId =
-            Maybe.map
-                (\frame ->
-                    { frame
-                        | exitId = Just env.currentFrameId
-                        , refCnt = frame.refCnt + 1
-                    }
-                )
-
-        bogus =
-            debug env "jump #" frameId
-    in
-        { env
-            | currentFrameId = frameId
-            , frames = Dict.update frameId setExitId env.frames
-        }
-
-
 leave : Env -> Env
 leave env =
     let
@@ -332,8 +309,6 @@ Return a new Env with the unreachable frames removed.
 gc : MalExpr -> Env -> Env
 gc expr env =
     let
-        -- bogus =
-        --     Debug.log "GC stack = " env.stack
         countList acc =
             List.foldl countExpr acc
 
@@ -387,7 +362,10 @@ gc expr env =
                     acc
 
         initSet =
-            Set.fromList [ globalFrameId, env.currentFrameId ]
+            Set.fromList
+                ([ globalFrameId, env.currentFrameId ]
+                    ++ env.keepFrames
+                )
 
         countFrames frames acc =
             Set.toList frames
@@ -437,16 +415,10 @@ gc expr env =
 
         filterFrames frames keep =
             Dict.filter (keepFilter keep) frames
-
-        reportUnused frames keep =
-            Set.diff (Set.fromList (Dict.keys frames)) keep
-                |> Debug.log "\n\nUNUSED FRAMES\n\n"
-                |> always keep
     in
         countFrames initSet initSet
             |> countExpr expr
             |> (flip countList) env.stack
             |> loop
-            --            |> reportUnused env.frames
             |> filterFrames env.frames
             |> makeNewEnv
