@@ -60,6 +60,4 @@
    ["atom?" atom?]
    ["deref" deref]
    ["reset!" reset!]
-   ["swap!" swap!]
-   ["gc" gc]
-   ["pr-env" pr-env]])
+   ["swap!" swap!]])
