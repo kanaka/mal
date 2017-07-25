@@ -1,0 +1,23 @@
+;; Testing basic Rexx interop
+;;
+;; Note that in Rexx "everything is a string". Numeric outputs are converted to
+;; Mal numbers.
+
+(rexx-eval "3 ** 4")
+;=>81
+
+(rexx-eval "words('a bb ' || 'ccc dddd')")
+;=>4
+
+(rexx-eval "d2x(254)")
+;=>"FE"
+
+(rexx-eval "say 'hello' 12.34 upper('rexx')" nil)
+; hello 12.34 REXX
+;=>nil
+
+(rexx-eval "foo = 8" "foo + 3")
+;=>11
+
+(rexx-eval "parse version s1 s2 s3 s4 s5" "'rexx_version=' || s2")
+;=>"rexx_version=5.00"

@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 65 languages:
+Mal is implemented in 67 languages:
 
 * Ada
 * GNU awk
@@ -33,6 +33,7 @@ Mal is implemented in 65 languages:
 * Go
 * Groovy
 * GNU Guile
+* GNU Smalltalk
 * Haskell
 * Haxe
 * Io
@@ -63,6 +64,7 @@ Mal is implemented in 65 languages:
 * RPython
 * R
 * Racket
+* Rexx
 * Ruby
 * Rust
 * Scala
@@ -454,6 +456,17 @@ cd guile
 guile -L ./ stepX_YYY.scm
 ```
 
+### GNU Smalltalk
+
+*The Smalltalk implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Smalltalk implementation of mal has been tested with GNU Smalltalk 3.2.91.
+
+```
+cd gst
+./run
+```
+
 ### Haskell
 
 The Haskell implementation requires the ghc compiler version 7.10.1 or
@@ -592,11 +605,11 @@ cd make
 make -f stepX_YYY.mk
 ```
 
-### Nim 0.15.2
+### Nim 0.17.0
 
 *The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
 
-The Nim implementation of mal has been tested with Nim 0.15.2.
+The Nim implementation of mal has been tested with Nim 0.17.0.
 
 ```
 cd nim
@@ -807,6 +820,18 @@ compiler/interpreter to run.
 ```
 cd racket
 ./stepX_YYY.rkt
+```
+
+### Rexx
+
+*The Rexx implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Rexx implementation of mal has been tested with Regina Rexx 3.6.
+
+```
+cd rexx
+make
+rexx -a ./stepX_YYY.rexxpp
 ```
 
 ### Ruby (1.9+)

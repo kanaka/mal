@@ -1,0 +1,11 @@
+(gst-eval "1 + 1")
+;=>2
+
+(gst-eval "{1. 2. 3}")
+;=>[1 2 3]
+
+(gst-eval "#('a' 'b' 'c') join: ' '")
+;=>"a b c"
+
+(gst-eval "'Hello World!' displayNl")
+; Hello World!

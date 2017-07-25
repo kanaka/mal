@@ -29,3 +29,6 @@ RUN curl -sL https://deb.nodesource.com/setup_7.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
+
+ENV NPM_CONFIG_CACHE /mal/.npm
+
