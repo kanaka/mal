@@ -12,7 +12,7 @@ RUN apt-get -y update
 RUN apt-get -y install make python
 
 # Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y install curl libreadline-dev libedit-dev netbase
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -29,3 +29,6 @@ RUN curl -sL https://deb.nodesource.com/setup_7.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
+
+ENV HOME /mal
+ENV NPM_CONFIG_CACHE /mal/.npm
