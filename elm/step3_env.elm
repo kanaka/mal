@@ -135,15 +135,12 @@ eval env ast =
                             ( Err "can't happen", newEnv )
 
                         (MalFunction (CoreFunc fn)) :: args ->
-                            case second <| Eval.run Env.global (fn args) of
-                                EvalOk res ->
+                            case Eval.runSimple (fn args) of
+                                Ok res ->
                                     ( Ok res, newEnv )
 
-                                EvalErr msg ->
+                                Err msg ->
                                     ( Err (print msg), newEnv )
-
-                                _ ->
-                                    Debug.crash "can't happen"
 
                         fn :: _ ->
                             ( Err ((print fn) ++ " is not a function"), newEnv )

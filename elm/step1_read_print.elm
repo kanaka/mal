@@ -5,8 +5,7 @@ import Json.Decode exposing (decodeValue)
 import Platform exposing (programWithFlags)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
-import Printer exposing (printString)
-import Env
+import Printer exposing (printStr)
 
 
 main : Program Flags Model Msg
@@ -86,7 +85,7 @@ eval ast =
 
 print : MalExpr -> String
 print =
-    printString Env.global True
+    printStr True
 
 
 {-| Read-Eval-Print
