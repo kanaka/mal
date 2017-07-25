@@ -6,7 +6,8 @@ SOURCES_LISP = Env.elm Core.elm Eval.elm stepA_mal.elm
 
 BINS = $(SOURCES:%.elm=%.js)
 
-ELM = node_modules/.bin/elm
+ELM_MAKE = node_modules/.bin/elm-make
+ELM_PACKAGE = node_modules/.bin/elm-package
 
 all: node_modules elm_packages $(BINS)
 
@@ -14,10 +15,10 @@ node_modules:
 	npm install
 
 elm_packages:
-	$(ELM) package install -y
+	$(ELM_PACKAGE) install -y
 
 %.js: %.elm node_modules elm_packages
-	$(ELM) make $(@:%.js=%.elm) --output $@
+	$(ELM_MAKE) $(@:%.js=%.elm) --output $@
 
 STEP0_SOURCES = IO.elm
 STEP1_SOURCES = $(STEP0_SOURCES) Reader.elm Printer.elm Utils.elm Types.elm Env.elm
