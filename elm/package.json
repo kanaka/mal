@@ -1,0 +1,17 @@
+{
+  "name": "mal-elm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bootstrap.js",
+  "dependencies": {
+    "ffi": "2.0.x"
+  },
+  "devDependencies": {
+    "elm": "^0.18.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

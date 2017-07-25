@@ -23,6 +23,7 @@ Mal is implemented in 67 languages:
 * D
 * Dart
 * Elixir
+* Elm
 * Emacs Lisp
 * Erlang
 * ES6 (ECMAScript 6 / ECMAScript 2015)
@@ -345,6 +346,18 @@ cd elixir
 mix stepX_YYY
 # Or with readline/line editing functionality:
 iex -S mix stepX_YYY
+```
+
+### Elm
+
+*The Elm implementation was created by [Jos van Bakel](https://github.com/c0deaddict)*
+
+The Elm implementation of mal has been tested with Elm 0.18.0
+
+```
+cd elm
+make stepX_YYY.js
+STEP=stepX_YYY ./run
 ```
 
 ### Erlang
