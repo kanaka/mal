@@ -19,8 +19,9 @@ ENV HOME=/var/run/postgresql
 
 WORKDIR /mal
 
-# Travis runs as user ID 1001 so add that user
+# Travis runs as a couple of different users so add them
 RUN useradd -ou 1001 -m -s /bin/bash -G sudo,postgres travis
+RUN useradd -ou 2000 -m -s /bin/bash -G sudo,postgres travis2
 
 # Enable postgres and travis users to sudo for postgres startup
 RUN echo "%sudo ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
@@ -29,6 +30,7 @@ RUN echo "%sudo ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 RUN sed -i 's/peer$/peer map=mal/' /etc/postgresql/9.4/main/pg_hba.conf
 RUN echo "mal postgres postgres" >> /etc/postgresql/9.4/main/pg_ident.conf
 RUN echo "mal travis postgres" >> /etc/postgresql/9.4/main/pg_ident.conf
+RUN echo "mal travis2 postgres" >> /etc/postgresql/9.4/main/pg_ident.conf
 
 # Add entrypoint.sh which starts postgres then run bash/command
 ADD entrypoint.sh /entrypoint.sh
