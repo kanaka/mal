@@ -5,13 +5,12 @@ import Json.Decode exposing (decodeValue)
 import Platform exposing (programWithFlags)
 import Types exposing (..)
 import Reader exposing (readString)
-import Printer exposing (printString)
+import Printer exposing (printStr)
 import Utils exposing (maybeToList, zip)
 import Dict exposing (Dict)
 import Tuple exposing (mapFirst, second)
 import Array
 import Eval
-import Env
 
 
 main : Program Flags Model Msg
@@ -135,15 +134,12 @@ eval env ast =
                             ( Err "can't happen", newEnv )
 
                         (MalFunction (CoreFunc fn)) :: args ->
-                            case second <| Eval.run Env.global (fn args) of
-                                EvalOk res ->
+                            case Eval.runSimple (fn args) of
+                                Ok res ->
                                     ( Ok res, newEnv )
 
-                                EvalErr msg ->
+                                Err msg ->
                                     ( Err (print msg), newEnv )
-
-                                _ ->
-                                    Debug.crash "can't happen"
 
                         fn :: _ ->
                             ( Err ((print fn) ++ " is not a function"), newEnv )
@@ -232,7 +228,7 @@ tryMapList fn list =
 
 print : MalExpr -> String
 print =
-    printString Env.global True
+    printStr True
 
 
 {-| Read-Eval-Print. rep returns:

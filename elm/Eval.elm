@@ -223,3 +223,16 @@ inGlobal body =
                 else
                     body
             )
+
+
+runSimple : Eval a -> Result MalExpr a
+runSimple e =
+    case run Env.global e of
+        ( _, EvalOk res ) ->
+            Ok res
+
+        ( _, EvalErr msg ) ->
+            Err msg
+
+        _ ->
+            Debug.crash "can't happen"

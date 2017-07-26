@@ -7,6 +7,11 @@ import Utils exposing (encodeString, wrap)
 import Env
 
 
+printStr : Bool -> MalExpr -> String
+printStr =
+    printString Env.global
+
+
 printString : Env -> Bool -> MalExpr -> String
 printString env readably ast =
     case ast of
@@ -40,18 +45,6 @@ printString env readably ast =
         MalMap map ->
             printMap env readably map
 
-        MalFunction (UserFunc { frameId, meta }) ->
-            "#<function "
-                ++ (toString frameId)
-                ++ (case meta of
-                        Nothing ->
-                            ""
-
-                        Just meta ->
-                            " meta=" ++ printString env True meta
-                   )
-                ++ ">"
-
         MalFunction _ ->
             "#<function>"
 
@@ -62,8 +55,8 @@ printString env readably ast =
             in
                 "(atom " ++ (printString env True value) ++ ")"
 
-        MalApply { frameId, bound } ->
-            "#<apply " ++ (toString frameId) ++ " bound=" ++ (printBound env True bound) ++ ">"
+        MalApply _ ->
+            "#<apply>"
 
 
 printBound : Env -> Bool -> List ( String, MalExpr ) -> String
