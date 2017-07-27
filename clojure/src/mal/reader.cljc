@@ -1,7 +1,9 @@
 (ns mal.reader
     (:refer-clojure :exclude [read-string])
-    (:require [clojure.tools.reader :as r]
-              [clojure.tools.reader.reader-types :as rt]))
+    #?(:clj  (:require [clojure.tools.reader :as r]
+                       [clojure.tools.reader.reader-types :as rt]))
+    #?(:cljs (:require [cljs.tools.reader :as r]
+                       [cljs.tools.reader.reader-types :as rt])))
 
 ;; change tools.reader syntax-quote to quasiquote
 (defn- wrap [sym]

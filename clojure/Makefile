@@ -5,7 +5,7 @@ SOURCES_LISP = src/mal/env.cljc src/mal/core.cljc src/mal/stepA_mal.cljc
 SRCS = $(SOURCES_BASE) src/mal/env.cljc src/mal/core.cljc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: $(if $(filter cljs,$(CLJ_MODE)),node_modules,deps)
+DEPS = $(if $(filter cljs,$(CLJ_MODE)),node_modules,deps)
 
 dist: mal.jar mal
 
@@ -20,6 +20,11 @@ SHELL := bash
 mal: mal.jar
 	cat <(echo -e '#!/bin/sh\nexec java -jar "$$0" "$$@"') mal.jar > $@
 	chmod +x mal
+
+src/mal/%.cljc: $(DEPS)
+	@true
+
+#src/mal/stepA_mal.cljc: $(DEPS)
 
 target/%.jar: src/mal/%.cljc $(SRCS)
 	lein with-profile $(word 1,$(subst _, ,$*)) uberjar

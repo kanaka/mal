@@ -40,8 +40,14 @@ ENV LEIN_JVM_OPTS -Duser.home=/mal
 # For building node modules
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 7.X
-RUN curl -sL https://deb.nodesource.com/setup_7.x | bash -
+# Add nodesource apt repo config for 8.X
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
 
-# Install nodejs. Install ffi and lumo-cljs modules globally
-RUN apt-get -y install nodejs && npm install -g ffi lumo-cljs
+# Install nodejs.
+RUN apt-get -y install nodejs
+
+## Install ffi and lumo-cljs modules globally
+#RUN npm install -g ffi lumo-cljs
+
+ENV HOME=/mal
+

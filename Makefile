@@ -237,7 +237,15 @@ actual_impl = $(if $(filter mal,$(1)),$(MAL_IMPL),$(1))
 # Returns nothing if DOCKERIZE is not set, otherwise returns the
 # docker prefix necessary to run make within the docker environment
 # for this impl
-get_build_prefix = $(if $(strip $(DOCKERIZE)),docker run -it --rm -u $(shell id -u) -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal -w /mal/$(1) $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) $(call impl_to_image,$(1)) ,)
+get_build_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
+    docker run \
+    -it --rm -u $(shell id -u) \
+    -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
+    -w /mal/$(1) \
+    $(if $(filter clojure,$(1)),-e CLJ_MODE=$(CLJ_MODE),) \
+    $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
+    $(call impl_to_image,$(1)) \
+    ,))
 
 # Takes impl and step arguments
 # Returns a command prefix (docker command and environment variables)
@@ -304,7 +312,7 @@ ALL_REPL = $(strip $(sort \
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	$(foreach impl,$(word 1,$(subst /, ,$(@))),\
 	  $(if $(DOCKERIZE), \
-	    $(call get_build_prefix,$(impl))$(MAKE) $(patsubst $(impl)/%,%,$(@)), \
+	    $(call get_build_prefix,$(impl)) $(MAKE) $(patsubst $(impl)/%,%,$(@)), \
 	    $(MAKE) -C $(impl) $(subst $(impl)/,,$(@))))
 
 # Allow IMPL, and IMPL^STEP

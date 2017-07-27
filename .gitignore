@@ -1,11 +1,14 @@
 .bash_history
 .cache
+.config
 .mal-history
 .crystal
 .lein
 .m2
 .ivy2
 .sbt
+.npm
+.node-gyp
 */experiments
 */node_modules
 *.o
