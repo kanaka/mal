@@ -22,7 +22,9 @@ else
 fi
 
 ${MAKE} TEST_OPTS="--debug-file ../${ACTION}.err" \
-    MAL_IMPL=${MAL_IMPL} ${ACTION}^${IMPL}
+    MAL_IMPL=${MAL_IMPL} \
+    CLJ_MODE=${CLJ_MODE} \
+    ${ACTION}^${IMPL}
 
 # no failure so remove error log
 rm -f ${ACTION}.err || true

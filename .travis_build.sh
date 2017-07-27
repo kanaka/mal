@@ -21,7 +21,9 @@ if [ -z "${NO_DOCKER}" ]; then
             make -C ${BUILD_IMPL} step9_try || true
     fi
     docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl} \
-        make -C ${BUILD_IMPL}
+        make CLJ_MODE=${CLJ_MODE} \
+            -C ${BUILD_IMPL}
 else
-    make -C ${BUILD_IMPL}
+    make CLJ_MODE=${CLJ_MODE} \
+        -C ${BUILD_IMPL}
 fi
