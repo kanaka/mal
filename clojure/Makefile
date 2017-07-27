@@ -14,7 +14,7 @@ deps:
 
 mal.jar: $(SOURCES)
 	lein with-profile stepA uberjar
-	cp target/mal-0.0.1-SNAPSHOT-standalone.jar $@
+	cp target/stepA_mal.jar $@
 
 SHELL := bash
 mal: mal.jar
