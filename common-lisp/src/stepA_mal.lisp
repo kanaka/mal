@@ -5,12 +5,16 @@
         :reader
         :printer
         :core)
+  (:import-from :cl-readline
+                :readline
+                :register-function)
   (:import-from :genhash
                 :hashref
                 :hashmap)
   (:import-from :utils
                 :listify
-                :getenv)
+                :getenv
+                :common-prefix)
   (:export :main))
 
 (in-package :mal)
@@ -262,6 +266,18 @@
 
 (defvar *use-readline-p* nil)
 
+(defun complete-toplevel-symbols (input &rest ignored)
+  (declare (ignorable ignored))
+
+  (let (candidates)
+    (loop for key being the hash-keys of (env:mal-env-bindings *repl-env*)
+       when (let ((pos (search input key))) (and pos (zerop pos)))
+       do (push key candidates))
+
+    (if (= 1 (length candidates))
+        (cons (car candidates) candidates)
+        (cons (apply #'utils:common-prefix candidates) candidates))))
+
 (defun raw-input (prompt)
   (format *standard-output* prompt)
   (force-output *standard-output*)
@@ -269,10 +285,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (rl:readline :prompt prompt
-                            :add-history t
-                            :novelty-check (lambda (old new)
-                                             (not (string= old new))))
+      (rl:readline :prompt prompt :add-history t :novelty-check #'string/=)
       (raw-input prompt)))
 
 (defun mal-writeline (string)
@@ -305,6 +318,10 @@
   #+clisp (setf *standard-input* (ext:make-stream :input)
                 *standard-output* (ext:make-stream :output :buffered t)
                 *error-output* (ext:make-stream :error :buffered t))
+
+  ;; CCL fails with a error while registering completion function
+  ;; See also https://github.com/mrkkrp/cl-readline/issues/5
+  #-ccl (rl:register-function :complete #'complete-toplevel-symbols)
 
   (let ((args (if argv-provided-p
                   argv

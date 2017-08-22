@@ -4,6 +4,8 @@
         :printer)
   (:import-from :utils
                 :getenv)
+  (:import-from :cl-readline
+                :readline)
   (:export :main))
 
 (in-package :mal)
@@ -33,10 +35,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (rl:readline :prompt prompt
-                            :add-history t
-                            :novelty-check (lambda (old new)
-                                             (not (string= old new))))
+      (rl:readline :prompt prompt :add-history t :novelty-check #'string/=)
       (raw-input prompt)))
 
 (defun mal-writeline (string)

@@ -5,7 +5,8 @@
            :create-mal-env
            :get-env
            :find-env
-           :set-env))
+           :set-env
+           :mal-env-bindings))
 
 (in-package :env)
 
