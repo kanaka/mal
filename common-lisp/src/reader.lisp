@@ -31,7 +31,7 @@
   ((context :initarg :context :reader context))
   (:report (lambda (condition stream)
              (format stream
-                     "EOF encountered while reading ~a"
+                     "EOF encountered while reading '~a'"
                      (context condition))))
   (:documentation "Error raised when EOF is encountered while reading."))
 
@@ -98,17 +98,6 @@ raised"
 "))
       (error 'eof :context "string")))
 
-(defun read-form-with-meta (reader)
-  (consume reader)
-  (let ((meta (read-form reader))
-        (value (read-form reader)))
-
-    (when (or (null meta)
-              (null value))
-      (error 'eof :context "object metadata"))
-
-    (make-mal-list (list (make-mal-symbol "with-meta") value meta))))
-
 (defun expand-quote (reader)
   (let ((quote-sym (make-mal-symbol (switch ((next reader) :test #'string=)
                                       ("'" "quote")
@@ -118,66 +107,61 @@ raised"
                                       ("@" "deref")))))
     (make-mal-list (list quote-sym (read-form reader)))))
 
-(defun read-mal-sequence (reader &optional (delimiter ")") (constructor 'list))
-  ;; Consume the opening brace
-  (consume reader)
-  (let (forms)
-    (loop
-       for token = (peek reader)
-       while (cond
-               ((null token) (error 'eof :context (if (string= delimiter ")")
-                                                      "list"
-                                                      "vector")))
-               ((string= token delimiter) (return))
-               (t (push (read-form reader) forms))))
+(defun read-mal-sequence (reader &optional (type 'list) &aux forms)
+  (let ((context (string-downcase (symbol-name type)))
+        (delimiter (if (equal type 'list) ")" "]")))
+
+    ;; Consume the opening brace
+    (consume reader)
+
+    (setf forms (loop
+                   until (string= (peek reader) delimiter)
+                   collect (read-form-or-eof reader context)))
+
     ;; Consume the closing brace
     (consume reader)
-    (apply constructor (nreverse forms))))
+
+    (apply type forms)))
 
 (defun read-hash-map (reader)
-  ;; Consume the open brace
-  (consume reader)
-  (let (forms
-        (hash-map (types:make-mal-value-hash-table)))
+  (let ((map (make-mal-value-hash-table))
+        (context "hash-map"))
+
+    ;; Consume the open brace
+    (consume reader)
+
     (loop
-       for token = (peek reader)
-       while (cond
-               ((null token) (error 'eof :context "hash-map"))
-               ((string= token "}") (return))
-               (t (let ((key (read-form reader))
-                        (value (read-form reader)))
-                    (if (null value)
-                        (error 'eof :context "hash-map")
-                        (push (cons key value) forms))))))
+       until (string= (peek reader) "}")
+       do (setf (hashref (read-form-or-eof reader context) map)
+                (read-form-or-eof reader context)))
+
     ;; Consume the closing brace
     (consume reader)
-    ;; Construct the hash table
-    (dolist (key-value (nreverse forms))
-      (setf (genhash:hashref (car key-value) hash-map) (cdr key-value)))
-    hash-map))
+
+    map))
 
 (defun read-atom (reader)
   (let ((token (next reader)))
-    (cond
-      ((string= token "false")
-       mal-false)
-      ((string= token "true")
-       mal-true)
-      ((string= token "nil")
-       mal-nil)
-      ((char= (char token 0) #\")
-       (make-mal-string (parse-string token)))
-      ((char= (char token 0) #\:)
-       (make-mal-keyword token))
-      ((scan *number-re* token)
-       (make-mal-number (read-from-string token)))
-      (t (make-mal-symbol token)))))
+    (cond ((string= token "false") mal-false)
+          ((string= token "true") mal-true)
+          ((string= token "nil") mal-nil)
+          ((char= (char token 0) #\") (make-mal-string (parse-string token)))
+          ((char= (char token 0) #\:) (make-mal-keyword token))
+          ((scan *number-re* token) (make-mal-number (read-from-string token)))
+          (t (make-mal-symbol token)))))
+
+(defun read-form-with-meta (reader)
+  (consume reader)
+
+  (let ((meta (read-form-or-eof reader "object meta"))
+        (value (read-form-or-eof reader "object meta")))
+    (make-mal-list (list (make-mal-symbol "with-meta") value meta))))
 
 (defun read-form (reader)
   (switch ((peek reader) :test #'equal)
     (nil nil)
-    ("(" (make-mal-list (read-mal-sequence reader ")" 'list)))
-    ("[" (make-mal-vector (read-mal-sequence reader "]" 'vector)))
+    ("(" (make-mal-list (read-mal-sequence reader 'list)))
+    ("[" (make-mal-vector (read-mal-sequence reader 'vector)))
     ("{" (make-mal-hash-map (read-hash-map reader)))
     ("^" (read-form-with-meta reader))
     ("'" (expand-quote reader))
@@ -186,6 +170,10 @@ raised"
     ("~@" (expand-quote reader))
     ("@" (expand-quote reader))
     (t (read-atom reader))))
+
+(defun read-form-or-eof (reader context)
+  (or (read-form reader)
+      (error 'eof :context context)))
 
 (defun read-str (string)
   (read-form (make-token-reader :tokens (tokenize string))))
