@@ -15,11 +15,9 @@
            :mal-number-p
 
            :boolean
-           :make-mal-boolean
            :mal-boolean-p
 
            :nil
-           :make-mal-nil
            :mal-nil-p
 
            :string
