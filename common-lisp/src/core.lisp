@@ -10,9 +10,7 @@
 (in-package :core)
 
 (defmacro wrap-boolean (form)
-  `(if ,form
-       types:mal-true
-       types:mal-false))
+  `(if ,form mal-true mal-false))
 
 (define-condition index-error (types:mal-error)
   ((size :initarg :size :reader index-error-size)
@@ -46,7 +44,7 @@
                       "~{~a~^ ~}"
                       (mapcar (lambda (string) (printer:pr-str string t))
                               strings)))
-  (types:make-mal-nil nil))
+  mal-nil)
 
 (defun mal-println (&rest strings)
   ;; Using write-line instead of (format *standard-output* ... ) since the later prints
@@ -56,7 +54,7 @@
                       "~{~a~^ ~}"
                       (mapcar (lambda (string) (printer:pr-str string nil))
                               strings)))
-  (types:make-mal-nil nil))
+  mal-nil)
 
 (defun mal-pr-str (&rest strings)
   (types:make-mal-string (format nil
@@ -131,10 +129,7 @@
                        args))))
 
 (defun mal-cons (element list)
-  (types:make-mal-list (cons element
-                             (map 'list
-                                  #'identity
-                                  (types:mal-data-value list)))))
+  (types:make-mal-list (cons element (listify (types:mal-data-value list)))))
 
 (defun mal-concat (&rest lists)
   (types:make-mal-list (apply #'concatenate
@@ -143,37 +138,30 @@
 
 (defun mal-nth (sequence index)
   (or (nth (types:mal-data-value index)
-           (map 'list #'identity (types:mal-data-value sequence)))
+           (listify (types:mal-data-value sequence)))
       (error 'index-error
              :size (length (types:mal-data-value sequence))
              :index (types:mal-data-value index)
              :sequence sequence)))
 
 (defun mal-first (sequence)
-  (or (first (map 'list #'identity (types:mal-data-value sequence)))
-      (types:make-mal-nil nil)))
+  (or (first (listify (types:mal-data-value sequence))) mal-nil))
 
 (defun mal-rest (sequence)
-  (types:make-mal-list (rest (map 'list
-                                  #'identity
-                                  (types:mal-data-value sequence)))))
+  (types:make-mal-list (rest (listify (types:mal-data-value sequence)))))
 
 (defun mal-throw (value)
   (error 'types:mal-user-exception
          :data value))
 
 (defun mal-apply (fn &rest values)
-  (let ((final-arg (map 'list
-                        #'identity
-                        (types:mal-data-value (car (last values)))))
-        (butlast-args (butlast values)))
+  (let ((last (listify (types:mal-data-value (car (last values)))))
+        (butlast (butlast values)))
     (apply (types:mal-data-value fn)
-           (append butlast-args final-arg))))
+           (append butlast last))))
 
 (defun mal-map (fn sequence)
-  (let ((applicants (map 'list
-                         #'identity
-                         (types:mal-data-value sequence))))
+  (let ((applicants (listify (types:mal-data-value sequence))))
     (types:make-mal-list (mapcar (types:mal-data-value fn)
                                  applicants))))
 
@@ -311,9 +299,7 @@
       (cond ((types:mal-list-p value)
              value)
             ((types:mal-vector-p value)
-             (types:make-mal-list (map 'list
-                                       #'identity
-                                       (types:mal-data-value value))))
+             (types:make-mal-list (listify (types:mal-data-value value))))
             ((types:mal-string-p value)
              (types:make-mal-list  (map 'list
                                         (lambda (char)
