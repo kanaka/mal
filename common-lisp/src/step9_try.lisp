@@ -313,7 +313,7 @@
                   (cdr (utils:raw-command-line-arguments)))))
     (env:set-env *repl-env*
                  (types:make-mal-symbol "*ARGV*")
-                 (types:wrap-value (cdr args) :listp t))
+                 (make-mal-list (mapcar #'make-mal-string (cdr args))))
     (if (null args)
         (repl)
         (run-file (car args)))))

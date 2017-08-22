@@ -19,30 +19,26 @@
 (env:set-env *repl-env*
              (types:make-mal-symbol "+")
              (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '+
-                                                                        value1
-                                                                        value2))))
+                                          (make-mal-number (+ (mal-data-value value1)
+                                                              (mal-data-value value2))))))
 
 (env:set-env *repl-env*
              (types:make-mal-symbol "-")
              (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '-
-                                                                        value1
-                                                                        value2))))
+                                          (make-mal-number (- (mal-data-value value1)
+                                                              (mal-data-value value2))))))
 
 (env:set-env *repl-env*
              (types:make-mal-symbol "*")
              (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '*
-                                                                        value1
-                                                                        value2))))
+                                          (make-mal-number (* (mal-data-value value1)
+                                                              (mal-data-value value2))))))
 
 (env:set-env *repl-env*
              (types:make-mal-symbol "/")
              (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '/
-                                                                        value1
-                                                                        value2))))
+                                          (make-mal-number (/ (mal-data-value value1)
+                                                              (mal-data-value value2))))))
 
 (defvar mal-def! (make-mal-symbol "def!"))
 (defvar mal-let* (make-mal-symbol "let*"))

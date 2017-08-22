@@ -73,13 +73,7 @@
            ;; Exception raised by user code
            :mal-user-exception
            ;; Error
-           :mal-error
-
-           ;; Utilities
-           :wrap-value
-           :unwrap-value
-           :apply-unwrapped-values
-           :apply-unwrapped-values-prefer-bool))
+           :mal-error))
 
 (in-package :types)
 
@@ -201,45 +195,3 @@
                                         hash-function
                                         #'mal-data-value=)))
   (genhash:make-generic-hash-table :test 'mal-data-value-hash))
-
-(defun wrap-value (value &key booleanp listp)
-  (typecase value
-    (number (make-mal-number value))
-    ;; This needs to be before symbol since nil is a symbol
-    (null (funcall (cond
-                     (booleanp #'make-mal-boolean)
-                     (listp #'make-mal-list)
-                     (t #'make-mal-nil))
-                   value))
-    ;; This needs to before symbol since t, nil are symbols
-    (boolean (make-mal-boolean value))
-    (keyword (make-mal-keyword value))
-    (symbol (make-mal-symbol (symbol-name value)))
-    (string (make-mal-string value))
-    (list (make-mal-list (map 'list #'wrap-value value)))
-    (vector (make-mal-vector (map 'vector #'wrap-value value)))
-    (hash-table (make-mal-hash-map (let ((new-hash-table (make-mal-value-hash-table)))
-                                     (genhash:hashmap (lambda (key value)
-                                                        (setf (genhash:hashref (wrap-value key) new-hash-table)
-                                                              (wrap-value value)))
-                                                      value)
-                                     new-hash-table)))))
-
-(defun unwrap-value (value)
-  (switch-mal-type value
-    (list (mapcar #'unwrap-value (mal-data-value value)))
-    (vector (map 'vector #'unwrap-value (mal-data-value value)))
-    (hash-map (let ((hash-table (make-hash-table))
-                    (hash-map-value (mal-data-value value)))
-                (genhash:hashmap (lambda (key value)
-                                   (setf (genhash:hashref (mal-data-value key) hash-table)
-                                         (mal-data-value value)))
-                                 hash-map-value)
-                hash-table))
-    (any (mal-data-value value))))
-
-(defun apply-unwrapped-values (op &rest values)
-  (wrap-value (apply op (mapcar #'unwrap-value values))))
-
-(defun apply-unwrapped-values-prefer-bool (op &rest values)
-  (wrap-value (apply op (mapcar #'unwrap-value values)) :booleanp t))

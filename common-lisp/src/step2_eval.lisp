@@ -17,27 +17,23 @@
 
 (setf (genhash:hashref (types:make-mal-symbol "+") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:apply-unwrapped-values '+
-                                                                 value1
-                                                                 value2))))
+                                   (make-mal-number (+ (mal-data-value value1)
+                                                       (mal-data-value value2))))))
 
 (setf (genhash:hashref (types:make-mal-symbol "-") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:apply-unwrapped-values '-
-                                                                 value1
-                                                                 value2))))
+                                   (make-mal-number (- (mal-data-value value1)
+                                                       (mal-data-value value2))))))
 
 (setf (genhash:hashref (types:make-mal-symbol "*") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:apply-unwrapped-values '*
-                                                                 value1
-                                                                 value2))))
+                                   (make-mal-number (* (mal-data-value value1)
+                                                       (mal-data-value value2))))))
 
 (setf (genhash:hashref (types:make-mal-symbol "/") *repl-env*)
       (types:make-mal-builtin-fn (lambda (value1 value2)
-                                   (types:apply-unwrapped-values '/
-                                                                 value1
-                                                                 value2))))
+                                   (make-mal-number (/ (mal-data-value value1)
+                                                       (mal-data-value value2))))))
 
 (defun lookup-env (symbol env)
   (let ((value (genhash:hashref symbol env)))

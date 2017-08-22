@@ -40,13 +40,13 @@
            ns)))
 
 (defmal + (value1 value2)
-  (apply-unwrapped-values '+ value1 value2))
+  (make-mal-number (+ (mal-data-value value1) (mal-data-value value2))))
 
 (defmal - (value1 value2)
-  (apply-unwrapped-values '- value1 value2))
+  (make-mal-number (- (mal-data-value value1) (mal-data-value value2))))
 
 (defmal * (value1 value2)
-  (apply-unwrapped-values '* value1 value2))
+  (make-mal-number (* (mal-data-value value1) (mal-data-value value2))))
 
 (defmal / (value1 value2)
   (make-mal-number (round (/ (mal-data-value value1) (mal-data-value value2)))))
@@ -93,7 +93,7 @@
   (wrap-boolean (zerop (length (types:mal-data-value value)))))
 
 (defmal count (value)
-  (types:apply-unwrapped-values 'length value))
+  (make-mal-number (length (mal-data-value value))))
 
 (defmal = (value1 value2)
   (wrap-boolean (types:mal-data-value= value1 value2)))
@@ -114,7 +114,7 @@
   (reader:read-str (types:mal-data-value value)))
 
 (defmal slurp (filename)
-  (types:apply-unwrapped-values 'read-file-string filename))
+  (make-mal-string (read-file-string (mal-data-value filename))))
 
 (defmal atom (value)
   (types:make-mal-atom value))
@@ -268,7 +268,7 @@
 (defmal readline (prompt)
   (format *standard-output* (types:mal-data-value prompt))
   (force-output *standard-output*)
-  (types:wrap-value (read-line *standard-input* nil)))
+  (make-mal-string (read-line *standard-input* nil)))
 
 (defmal string? (value)
   (wrap-boolean (types:mal-string-p value)))
@@ -340,6 +340,6 @@
 ;; simply nil, the caller can specify the preferred type while evaluating an
 ;; expression
 (defmal cl-eval (code &optional booleanp listp)
-  (types:wrap-value (eval (read-from-string (types:mal-data-value code)))
-                    :booleanp (and booleanp (types:mal-data-value booleanp))
-                    :listp (and listp (types:mal-data-value listp))))
+  (wrap-value (eval (read-from-string (mal-data-value code)))
+              (and booleanp (mal-data-value booleanp))
+              (and listp (mal-data-value listp))))

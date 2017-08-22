@@ -260,11 +260,11 @@
 
 (env:set-env *repl-env*
              (types:make-mal-symbol "*cl-implementation*")
-             (types:wrap-value (lisp-implementation-type)))
+             (make-mal-string (lisp-implementation-type)))
 
 (env:set-env *repl-env*
              (types:make-mal-symbol "*cl-version*")
-             (types:wrap-value (lisp-implementation-version)))
+             (make-mal-string (lisp-implementation-version)))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
@@ -325,7 +325,7 @@
                   (cdr (utils:raw-command-line-arguments)))))
     (env:set-env *repl-env*
                  (types:make-mal-symbol "*ARGV*")
-                 (types:wrap-value (cdr args) :listp t))
+                 (make-mal-list (mapcar #'make-mal-string (cdr args))))
     (if (null args)
         (repl)
         (run-file (car args)))))
