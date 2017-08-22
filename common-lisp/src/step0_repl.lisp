@@ -27,7 +27,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (cl-readline:readline :prompt prompt
+      (rl:readline :prompt prompt
                             :add-history t
                             :novelty-check (lambda (old new)
                                              (not (string= old new))))

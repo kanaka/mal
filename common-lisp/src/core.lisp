@@ -10,7 +10,7 @@
 
 (in-package :core)
 
-(define-condition index-error (types:mal-error)
+(define-condition index-error (mal-error)
   ((size :initarg :size :reader index-error-size)
    (index :initarg :index :reader index-error-index)
    (sequence :initarg :sequence :reader index-error-sequence))
@@ -87,16 +87,16 @@
   (make-mal-list values))
 
 (defmal list? (value)
-  (wrap-boolean (or (types:mal-nil-p value) (types:mal-list-p value))))
+  (wrap-boolean (or (mal-nil-p value) (mal-list-p value))))
 
 (defmal empty? (value)
-  (wrap-boolean (zerop (length (types:mal-data-value value)))))
+  (wrap-boolean (zerop (length (mal-data-value value)))))
 
 (defmal count (value)
   (make-mal-number (length (mal-data-value value))))
 
 (defmal = (value1 value2)
-  (wrap-boolean (types:mal-data-value= value1 value2)))
+  (wrap-boolean (mal-data-value= value1 value2)))
 
 (defmal < (value1 value2)
   (wrap-boolean (< (mal-data-value value1) (mal-data-value value2))))
@@ -111,114 +111,114 @@
   (wrap-boolean (>= (mal-data-value value1) (mal-data-value value2))))
 
 (defmal read-string (value)
-  (reader:read-str (types:mal-data-value value)))
+  (reader:read-str (mal-data-value value)))
 
 (defmal slurp (filename)
   (make-mal-string (read-file-string (mal-data-value filename))))
 
 (defmal atom (value)
-  (types:make-mal-atom value))
+  (make-mal-atom value))
 
 (defmal atom? (value)
-  (wrap-boolean (types:mal-atom-p value)))
+  (wrap-boolean (mal-atom-p value)))
 
 (defmal deref (atom)
-  (types:mal-data-value atom))
+  (mal-data-value atom))
 
 (defmal reset! (atom value)
-  (setf (types:mal-data-value atom) value))
+  (setf (mal-data-value atom) value))
 
 (defmal swap! (atom fn &rest args)
-  (setf (types:mal-data-value atom)
-        (apply (types:mal-data-value fn)
-               (append (list (types:mal-data-value atom)) args))))
+  (setf (mal-data-value atom)
+        (apply (mal-data-value fn)
+               (append (list (mal-data-value atom)) args))))
 
 (defmal cons (element list)
-  (types:make-mal-list (cons element (listify (types:mal-data-value list)))))
+  (make-mal-list (cons element (listify (mal-data-value list)))))
 
 (defmal concat (&rest lists)
-  (types:make-mal-list (apply #'concatenate 'list (mapcar #'types:mal-data-value lists))))
+  (make-mal-list (apply #'concatenate 'list (mapcar #'mal-data-value lists))))
 
 (defmal nth (sequence index)
-  (or (nth (types:mal-data-value index)
-           (listify (types:mal-data-value sequence)))
+  (or (nth (mal-data-value index)
+           (listify (mal-data-value sequence)))
       (error 'index-error
-             :size (length (types:mal-data-value sequence))
-             :index (types:mal-data-value index)
+             :size (length (mal-data-value sequence))
+             :index (mal-data-value index)
              :sequence sequence)))
 
 (defmal first (sequence)
-  (or (first (listify (types:mal-data-value sequence))) mal-nil))
+  (or (first (listify (mal-data-value sequence))) mal-nil))
 
 (defmal rest (sequence)
-  (types:make-mal-list (rest (listify (types:mal-data-value sequence)))))
+  (make-mal-list (rest (listify (mal-data-value sequence)))))
 
 (defmal throw (value)
-  (error 'types:mal-user-exception :data value))
+  (error 'mal-user-exception :data value))
 
 (defmal apply (fn &rest values)
-  (let ((last (listify (types:mal-data-value (car (last values)))))
+  (let ((last (listify (mal-data-value (car (last values)))))
         (butlast (butlast values)))
-    (apply (types:mal-data-value fn) (append butlast last))))
+    (apply (mal-data-value fn) (append butlast last))))
 
 (defmal map (fn sequence)
-  (let ((applicants (listify (types:mal-data-value sequence))))
-    (types:make-mal-list (mapcar (types:mal-data-value fn) applicants))))
+  (let ((applicants (listify (mal-data-value sequence))))
+    (make-mal-list (mapcar (mal-data-value fn) applicants))))
 
 (defmal nil? (value)
-  (wrap-boolean (types:mal-nil-p value)))
+  (wrap-boolean (mal-nil-p value)))
 
 (defmal true? (value)
-  (wrap-boolean (and (types:mal-boolean-p value) (types:mal-data-value value))))
+  (wrap-boolean (and (mal-boolean-p value) (mal-data-value value))))
 
 (defmal false? (value)
-  (wrap-boolean (and (types:mal-boolean-p value) (not (types:mal-data-value value)))))
+  (wrap-boolean (and (mal-boolean-p value) (not (mal-data-value value)))))
 
 (defmal symbol (string)
-  (types:make-mal-symbol (types:mal-data-value string)))
+  (make-mal-symbol (mal-data-value string)))
 
 (defmal symbol? (value)
-  (wrap-boolean (types:mal-symbol-p value)))
+  (wrap-boolean (mal-symbol-p value)))
 
 (defmal keyword (keyword)
-  (if (types:mal-keyword-p keyword)
+  (if (mal-keyword-p keyword)
       keyword
-      (types:make-mal-keyword (format nil ":~a" (types:mal-data-value keyword)))))
+      (make-mal-keyword (format nil ":~a" (mal-data-value keyword)))))
 
 (defmal keyword? (value)
-  (wrap-boolean (types:mal-keyword-p value)))
+  (wrap-boolean (mal-keyword-p value)))
 
 (defmal vector (&rest elements)
-  (types:make-mal-vector (map 'vector #'identity elements)))
+  (make-mal-vector (map 'vector #'identity elements)))
 
 (defmal vector? (value)
-  (wrap-boolean (types:mal-vector-p value)))
+  (wrap-boolean (mal-vector-p value)))
 
 (defmal hash-map (&rest elements)
-  (let ((hash-map (types:make-mal-value-hash-table)))
+  (let ((hash-map (make-mal-value-hash-table)))
    (loop for (key value) on elements
        by #'cddr
-       do (setf (genhash:hashref key hash-map) value))
-    (types:make-mal-hash-map hash-map)))
+       do (setf (hashref key hash-map) value))
+    (make-mal-hash-map hash-map)))
 
 (defmal map? (value)
-  (wrap-boolean (types:mal-hash-map-p value)))
+  (wrap-boolean (mal-hash-map-p value)))
 
 (defmal assoc (hash-map &rest elements)
-  (let ((hash-map-value (types:mal-data-value hash-map))
-        (new-hash-map (types:make-mal-value-hash-table)))
+  (let ((hash-map-value (mal-data-value hash-map))
+        (new-hash-map (make-mal-value-hash-table)))
 
-    (genhash:hashmap (lambda (key value)
-                       (declare (ignorable value))
-                       (setf (genhash:hashref key new-hash-map)
-                             (genhash:hashref key hash-map-value)))
-                     hash-map-value)
+    (hashmap (lambda (key value)
+               (declare (ignorable value))
+               (setf (hashref key new-hash-map)
+                     (hashref key hash-map-value)))
+             hash-map-value)
 
     (loop for (key value) on elements
        by #'cddr
-       do (setf (genhash:hashref key new-hash-map) value))
+       do (setf (hashref key new-hash-map) value))
 
-    (types:make-mal-hash-map new-hash-map)))
+    (make-mal-hash-map new-hash-map)))
 
 (defmal dissoc (hash-map &rest elements)
   (let ((hash-map-value (mal-data-value hash-map))
@@ -234,14 +234,14 @@
     (make-mal-hash-map new-hash-map)))
 
 (defmal get (hash-map key)
-  (or (and (types:mal-hash-map-p hash-map) (genhash:hashref key (types:mal-data-value hash-map)))
+  (or (and (mal-hash-map-p hash-map) (hashref key (mal-data-value hash-map)))
       types:mal-nil))
 
 (defmal contains? (hash-map key)
   (if (genhash:hashref key (types:mal-data-value hash-map)) types:mal-true types:mal-false))
 
 (defmal keys (hash-map)
-  (let ((hash-map-value (types:mal-data-value hash-map))
+  (let ((hash-map-value (mal-data-value hash-map))
         keys)
 
     (hashmap (lambda (key value)
@@ -252,7 +252,7 @@
     (make-mal-list (nreverse keys))))
 
 (defmal vals (hash-map)
-  (let ((hash-map-value (types:mal-data-value hash-map))
+  (let ((hash-map-value (mal-data-value hash-map))
         values)
 
     (hashmap (lambda (key value)
@@ -263,30 +263,30 @@
     (make-mal-list (nreverse values))))
 
 (defmal sequential? (value)
-  (wrap-boolean (or (types:mal-vector-p value) (types:mal-list-p value))))
+  (wrap-boolean (or (mal-vector-p value) (mal-list-p value))))
 
 (defmal readline (prompt)
-  (format *standard-output* (types:mal-data-value prompt))
+  (format *standard-output* (mal-data-value prompt))
   (force-output *standard-output*)
   (make-mal-string (read-line *standard-input* nil)))
 
 (defmal string? (value)
-  (wrap-boolean (types:mal-string-p value)))
+  (wrap-boolean (mal-string-p value)))
 
 (defmal time-ms ()
-  (types:make-mal-number (round (/ (get-internal-real-time)
-                                   (/ internal-time-units-per-second
-                                      1000)))))
+  (make-mal-number (round (/ (get-internal-real-time)
+                             (/ internal-time-units-per-second
+                                1000)))))
 
 (defmal conj (value &rest elements)
-  (cond ((types:mal-list-p value)
-         (types:make-mal-list (append (nreverse elements)
-                                      (types:mal-data-value value))))
-        ((types:mal-vector-p value)
-         (types:make-mal-vector (concatenate 'vector
-                                             (types:mal-data-value value)
-                                             elements)))
-        (t (error 'types:mal-user-exception))))
+  (cond ((mal-list-p value)
+         (make-mal-list (append (nreverse elements)
+                                (mal-data-value value))))
+        ((mal-vector-p value)
+         (make-mal-vector (concatenate 'vector
+                                       (mal-data-value value)
+                                       elements)))
+        (t (error 'mal-user-exception))))
 
 (defmal seq (value)
   (if (zerop (length (mal-data-value value)))
@@ -301,16 +301,16 @@
 
 (defmal with-meta (value meta)
   (funcall (switch-mal-type value
-                            (types:string #'types:make-mal-string)
-                            (types:symbol #'types:make-mal-symbol)
-                            (types:list #'types:make-mal-list)
-                            (types:vector #'types:make-mal-vector)
-                            (types:hash-map #'types:make-mal-hash-map)
-                            (types:fn #'types:make-mal-fn)
-                            (types:builtin-fn #'types:make-mal-builtin-fn))
-           (types:mal-data-value value)
+             (types:string #'make-mal-string)
+             (types:symbol #'make-mal-symbol)
+             (types:list #'make-mal-list)
+             (types:vector #'make-mal-vector)
+             (types:hash-map #'make-mal-hash-map)
+             (types:fn #'make-mal-fn)
+             (types:builtin-fn #'make-mal-builtin-fn))
+           (mal-data-value value)
            :meta meta
-           :attrs (types:mal-data-attrs value)))
+           :attrs (mal-data-attrs value)))
 
 (defmal meta (value)
   (or (types:mal-data-meta value) types:mal-nil))

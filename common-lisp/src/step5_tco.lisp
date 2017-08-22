@@ -18,9 +18,7 @@
 (defvar *repl-env* (env:create-mal-env))
 
 (dolist (binding core:ns)
-  (env:set-env *repl-env*
-               (car binding)
-               (cdr binding)))
+  (env:set-env *repl-env* (car binding) (cdr binding)))
 
 (defvar mal-def! (make-mal-symbol "def!"))
 (defvar mal-let* (make-mal-symbol "let*"))
@@ -34,13 +32,13 @@
        (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (types:mal-data-value hash-map))
-        (new-hash-table (types:make-mal-value-hash-table)))
+  (let ((hash-map-value (mal-data-value hash-map))
+        (new-hash-table (make-mal-value-hash-table)))
     (genhash:hashmap (lambda (key value)
                        (setf (genhash:hashref (mal-eval key env) new-hash-table)
                              (mal-eval value env)))
                      hash-map-value)
-    (types:make-mal-hash-map new-hash-table)))
+    (make-mal-hash-map new-hash-table)))
 
 (defun eval-ast (ast env)
   (switch-mal-type ast
@@ -56,8 +54,8 @@
 (defun mal-eval (ast env)
   (loop
      do (cond
-          ((null ast) (return types:mal-nil))
-          ((not (types:mal-list-p ast)) (return (eval-ast ast env)))
+          ((null ast) (return mal-nil))
+          ((not (mal-list-p ast)) (return (eval-ast ast env)))
           ((zerop (length (mal-data-value ast))) (return ast))
           (t (let ((forms (mal-data-value ast)))
                (cond
@@ -66,13 +64,13 @@
 
                  ((mal-data-value= mal-let* (first forms))
                   (let ((new-env (env:create-mal-env :parent env))
-                        (bindings (utils:listify (types:mal-data-value (second forms)))))
+                        (bindings (utils:listify (mal-data-value (second forms)))))
 
                     (mapcar (lambda (binding)
                               (env:set-env new-env
                                            (car binding)
                                            (mal-eval (or (cdr binding)
-                                                         types:mal-nil)
+                                                         mal-nil)
                                                      new-env)))
                             (loop
                                for (symbol value) on bindings
@@ -88,31 +86,29 @@
 
                  ((mal-data-value= mal-if (first forms))
                   (let ((predicate (mal-eval (second forms) env)))
-                    (setf ast (if (or (mal-data-value= predicate types:mal-nil)
-                                      (mal-data-value= predicate types:mal-false))
+                    (setf ast (if (or (mal-data-value= predicate mal-nil)
+                                      (mal-data-value= predicate mal-false))
                                   (fourth forms)
                                   (third forms)))))
 
                  ((mal-data-value= mal-fn* (first forms))
                   (return (let ((arglist (second forms))
                                 (body (third forms)))
-                            (types:make-mal-fn (lambda (&rest args)
-                                                 (mal-eval body (env:create-mal-env :parent env
-                                                                                    :binds (map 'list
-                                                                                                #'identity
-                                                                                                (mal-data-value arglist))
-                                                                                    :exprs args)))
-                                               :attrs (list (cons 'params arglist)
-                                                            (cons 'ast body)
-                                                            (cons 'env env))))))
+                            (make-mal-fn (lambda (&rest args)
+                                           (mal-eval body (env:create-mal-env :parent env
+                                                                              :binds (listify (mal-data-value arglist))
+                                                                              :exprs args)))
+                                         :attrs (list (cons 'params arglist)
+                                                      (cons 'ast body)
+                                                      (cons 'env env))))))
 
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
-                      (if (not (types:mal-fn-p function))
+                      (if (not (mal-fn-p function))
                           (return (apply (mal-data-value function)
                                          (cdr evaluated-list)))
-                          (let* ((attrs (types:mal-data-attrs function)))
+                          (let* ((attrs (mal-data-attrs function)))
                             (setf ast (cdr (assoc 'ast attrs))
                                   env (env:create-mal-env :parent (cdr (assoc 'env attrs))
                                                           :binds (map 'list
@@ -125,12 +121,9 @@
 
 (defun rep (string)
   (handler-case
-      (mal-print (mal-eval (mal-read string)
-                           *repl-env*))
+      (mal-print (mal-eval (mal-read string) *repl-env*))
     (error (condition)
-      (format nil
-              "~a"
-              condition))))
+      (format nil "~a" condition))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
@@ -143,7 +136,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (cl-readline:readline :prompt prompt
+      (rl:readline :prompt prompt
                             :add-history t
                             :novelty-check (lambda (old new)
                                              (not (string= old new))))

@@ -17,28 +17,28 @@
 (defvar *repl-env* (env:create-mal-env))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "+")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (make-mal-number (+ (mal-data-value value1)
-                                                              (mal-data-value value2))))))
+             (make-mal-symbol "+")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (+ (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "-")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (make-mal-number (- (mal-data-value value1)
-                                                              (mal-data-value value2))))))
+             (make-mal-symbol "-")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (- (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "*")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (make-mal-number (* (mal-data-value value1)
-                                                              (mal-data-value value2))))))
+             (make-mal-symbol "*")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (* (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "/")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (make-mal-number (/ (mal-data-value value1)
-                                                              (mal-data-value value2))))))
+             (make-mal-symbol "/")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (/ (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (defvar mal-def! (make-mal-symbol "def!"))
 (defvar mal-let* (make-mal-symbol "let*"))
@@ -46,16 +46,16 @@
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
-       (types:mal-data-value sequence)))
+       (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (types:mal-data-value hash-map))
-        (new-hash-table (types:make-mal-value-hash-table)))
+  (let ((hash-map-value (mal-data-value hash-map))
+        (new-hash-table (make-mal-value-hash-table)))
     (genhash:hashmap (lambda (key value)
                        (setf (genhash:hashref (mal-eval key env) new-hash-table)
                              (mal-eval value env)))
                      hash-map-value)
-    (types:make-mal-hash-map new-hash-table)))
+    (make-mal-hash-map new-hash-table)))
 
 (defun eval-ast (ast env)
   (switch-mal-type ast
@@ -67,13 +67,13 @@
 
 (defun eval-let* (forms env)
   (let ((new-env (env:create-mal-env :parent env))
-        (bindings (utils:listify (types:mal-data-value (second forms)))))
+        (bindings (utils:listify (mal-data-value (second forms)))))
 
     (mapcar (lambda (binding)
               (env:set-env new-env
                            (car binding)
                            (mal-eval (or (cdr binding)
-                                         types:mal-nil)
+                                         mal-nil)
                                      new-env)))
             (loop
                for (symbol value) on bindings
@@ -90,7 +90,7 @@
       ((mal-data-value= mal-let* (first forms))
        (eval-let* forms env))
       (t (let ((evaluated-list (eval-ast ast env)))
-           (apply (types:mal-data-value (car evaluated-list))
+           (apply (mal-data-value (car evaluated-list))
                   (cdr evaluated-list)))))))
 
 (defun mal-read (string)
@@ -98,8 +98,8 @@
 
 (defun mal-eval (ast env)
   (cond
-    ((null ast) types:mal-nil)
-    ((not (types:mal-list-p ast)) (eval-ast ast env))
+    ((null ast) mal-nil)
+    ((not (mal-list-p ast)) (eval-ast ast env))
     ((zerop (length (mal-data-value ast))) ast)
     (t (eval-list ast env))))
 
@@ -108,12 +108,9 @@
 
 (defun rep (string)
   (handler-case
-      (mal-print (mal-eval (mal-read string)
-                           *repl-env*))
+      (mal-print (mal-eval (mal-read string) *repl-env*))
     (error (condition)
-      (format nil
-              "~a"
-              condition))))
+      (format nil "~a" condition))))
 
 (defvar *use-readline-p* nil)
 
@@ -124,7 +121,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (cl-readline:readline :prompt prompt
+      (rl:readline :prompt prompt
                             :add-history t
                             :novelty-check (lambda (old new)
                                              (not (string= old new))))

@@ -20,12 +20,9 @@
 
 (defun rep (string)
   (handler-case
-      (mal-print (mal-eval (mal-read string)
-                           (make-hash-table :test #'equal)))
+      (mal-print (mal-eval (mal-read string) (make-hash-table :test #'equal)))
     (reader:eof (condition)
-      (format nil
-              "~a"
-              condition))))
+      (format nil "~a" condition))))
 
 (defvar *use-readline-p* nil)
 
@@ -36,7 +33,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (cl-readline:readline :prompt prompt
+      (rl:readline :prompt prompt
                             :add-history t
                             :novelty-check (lambda (old new)
                                              (not (string= old new))))

@@ -68,6 +68,7 @@
            :make-mal-value-hash-table
            ;; Error types
            :mal-exception
+           :mal-exception-data
            ;; Exceptions raised by the runtime
            :mal-runtime-exception
            ;; Exception raised by user code
@@ -77,14 +78,11 @@
 
 (in-package :types)
 
-(define-condition mal-error (error)
-  nil)
+(define-condition mal-error (error) nil)
 
-(define-condition mal-exception (error)
-  nil)
+(define-condition mal-exception (error) nil)
 
-(define-condition mal-runtime-exception (mal-exception)
-  nil)
+(define-condition mal-runtime-exception (mal-exception) nil)
 
 (define-condition mal-user-exception (mal-exception)
   ((data :accessor mal-exception-data :initarg :data)))
@@ -136,35 +134,33 @@
   `(let ((type (mal-data-type ,ast)))
      (cond
        ,@(mapcar (lambda (form)
-                   (list (if (or (equal (car form) t)
-                                 (equal (car form) 'any))
-                             t
+                   (list (or (equal (car form) t)
+                             (equal (car form) 'any)
                              (list 'equal (list 'quote (car form)) 'type))
                          (cadr form)))
                  forms))))
 
 (defun mal-sequence= (value1 value2)
-  (let ((sequence1 (utils:listify (mal-data-value value1)))
-        (sequence2 (utils:listify (mal-data-value value2))))
+  (let ((sequence1 (listify (mal-data-value value1)))
+        (sequence2 (listify (mal-data-value value2))))
+
     (when (= (length sequence1) (length sequence2))
-      (every #'identity
-             (loop
-                for x in sequence1
-                for y in sequence2
-                collect (mal-data-value= x y))))))
+      (every #'identity (loop for x in sequence1
+                           for y in sequence2
+                           collect (mal-data-value= x y))))))
 
 (defun mal-hash-map= (value1 value2)
   (let ((map1 (mal-data-value value1))
         (map2 (mal-data-value value2))
         (identical t))
-    (when (= (genhash:generic-hash-table-count map1)
-             (genhash:generic-hash-table-count map2))
-      (genhash:hashmap (lambda (key value)
-                         (declare (ignorable value))
-                         (setf identical
-                               (and identical (mal-data-value= (genhash:hashref key map1)
-                                                               (genhash:hashref key map2)))))
-                       map1)
+    (when (= (generic-hash-table-count map1)
+             (generic-hash-table-count map2))
+      (hashmap (lambda (key value)
+                 (declare (ignorable value))
+                 (setf identical
+                       (and identical (mal-data-value= (hashref key map1)
+                                                       (hashref key map2)))))
+               map1)
       identical)))
 
 (defun mal-data-value= (value1 value2)
@@ -191,7 +187,7 @@
     ;; instead
     (let ((hash-function #+(or ecl abcl) #'mal-sxhash
                          #-(or ecl abcl) #'sxhash))
-      (genhash:register-test-designator 'mal-data-value-hash
-                                        hash-function
-                                        #'mal-data-value=)))
-  (genhash:make-generic-hash-table :test 'mal-data-value-hash))
+      (register-test-designator 'mal-data-value-hash
+                                hash-function
+                                #'mal-data-value=)))
+  (make-generic-hash-table :test 'mal-data-value-hash))

@@ -9,14 +9,14 @@
 
 (in-package :env)
 
-(define-condition undefined-symbol (types:mal-runtime-exception)
+(define-condition undefined-symbol (mal-runtime-exception)
   ((symbol :initarg :symbol :reader symbol))
   (:report (lambda (condition stream)
              (format stream
                      "'~a' not found"
                      (symbol condition)))))
 
-(define-condition arity-mismatch (types:mal-runtime-exception)
+(define-condition arity-mismatch (mal-runtime-exception)
   ((required :initarg :required :reader required)
    (provided :initarg :provided :reader provided))
   (:report (lambda (condition stream)
@@ -41,9 +41,7 @@
              :symbol (format nil "~a" (mal-data-value symbol)))))
 
 (defun set-env (env symbol value)
-  (setf (gethash (types:mal-data-value symbol)
-                 (mal-env-bindings env))
-        value))
+  (setf (gethash (mal-data-value symbol) (mal-env-bindings env)) value))
 
 (defun create-mal-env (&key parent binds exprs)
   (let ((env (make-mal-env :parent parent))
