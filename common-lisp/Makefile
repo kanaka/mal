@@ -56,7 +56,7 @@ else
 endif
 
 clean:
-	find . -name 'step*' -executable -exec git check-ignore \{\} \; -delete
+	find . -maxdepth 1 -name 'step*' -executable -delete
 	rm -f *.lib *.fas[l] images/* hist/*_impl
 
 stats: $(SOURCES)
