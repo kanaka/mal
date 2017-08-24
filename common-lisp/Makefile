@@ -13,7 +13,10 @@ endef
 
 LISP ?= sbcl
 ABCL ?= abcl
+MKCL ?= mkcl
 
+# TODO: In theory cl-launch should be able to build standalone executable using
+# MKCL unfortunately the executable crashes on startup
 STANDALONE_EXE = sbcl clisp ccl ecl cmucl
 
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -51,8 +54,15 @@ ifneq ($(filter $(LISP),$(STANDALONE_EXE)),)
 else ifeq ($(LISP),abcl)
 	echo -n '#!/bin/sh\ncd `dirname $$0` ; $(ABCL) --noinform --noinit --nosystem --load run-abcl.lisp -- $@ $$@' > $@
 	chmod +x $@
-else
+else ifeq ($(LISP),mkcl)
+	$(MKCL) -eval '(progn (require "asdf") (push *default-pathname-defaults* asdf:*central-registry*) (asdf:load-system "$@") (quit))'
+	echo -n '#!/bin/sh\ncd `dirname $$0` ; $(MKCL) -q -load run-mkcl.lisp -- $@ $$@' > $@
+	chmod +x $@
+else ifeq ($(LISP),allegro)
 	cl-launch --wrap 'if [ -z "$$CL_LAUNCH_VERSION" ] ; then cd "$$(dirname $$CL_LAUNCH_FILE)" ; fi' --verbose --lisp $(LISP) --source-registry $(ROOT_DIR) --system $@ --dump images/$@.$(LISP).image -o $@ --entry 'mal:main'
+else
+	@echo "Unsupported Lisp implementation $(LISP)"
+	@exit 1
 endif
 
 clean:

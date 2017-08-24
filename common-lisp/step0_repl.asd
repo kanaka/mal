@@ -5,7 +5,8 @@
     (load quicklisp-init)))
 
 (ql:quickload :uiop :silent t)
-(ql:quickload :cl-readline :silent t)
+#-mkcl (ql:quickload :cl-readline :silent t)
+#+mkcl (load "fake-readline.lisp")
 
 (defpackage #:mal-asd
   (:use :cl :asdf))
