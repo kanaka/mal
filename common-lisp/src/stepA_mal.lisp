@@ -196,7 +196,7 @@
                  ((mal-data-value= mal-try* (first forms))
                   (handler-case
                       (return (mal-eval (second forms) env))
-                    ((or mal-exception mal-error) (condition)
+                    (error (condition)
                       (when (third forms)
                         (let ((catch-forms (mal-data-value (third forms))))
                           (when (mal-data-value= mal-catch*
@@ -204,11 +204,9 @@
                             (return (mal-eval (third catch-forms)
                                               (env:create-mal-env :parent env
                                                                   :binds (list (second catch-forms))
-                                                                  :exprs (list (if (or (typep condition 'mal-runtime-exception)
-                                                                                       (typep condition 'mal-error))
-                                                                                   (make-mal-string (format nil "~a" condition))
-                                                                                   (mal-exception-data condition)))))))))
-                     (error condition))))
+                                                                  :exprs (list (if (typep condition 'mal-user-exception)
+                                                                                   (mal-exception-data condition)
+                                                                                   (make-mal-string (format nil "~a" condition)))))))))))))
 
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
