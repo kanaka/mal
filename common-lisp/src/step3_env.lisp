@@ -5,6 +5,15 @@
         :reader
         :printer
         :genhash)
+  (:import-from :cl-readline
+                :readline
+                :register-function)
+  (:import-from :genhash
+                :hashref
+                :hashmap)
+  (:import-from :utils
+                :getenv
+                :common-prefix)
   (:export :main))
 
 (in-package :mal)
@@ -12,32 +21,28 @@
 (defvar *repl-env* (env:create-mal-env))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "+")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '+
-                                                                        value1
-                                                                        value2))))
+             (make-mal-symbol "+")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (+ (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "-")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '-
-                                                                        value1
-                                                                        value2))))
+             (make-mal-symbol "-")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (- (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "*")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '*
-                                                                        value1
-                                                                        value2))))
+             (make-mal-symbol "*")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (* (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (env:set-env *repl-env*
-             (types:make-mal-symbol "/")
-             (types:make-mal-builtin-fn (lambda (value1 value2)
-                                          (types:apply-unwrapped-values '/
-                                                                        value1
-                                                                        value2))))
+             (make-mal-symbol "/")
+             (make-mal-builtin-fn (lambda (value1 value2)
+                                    (make-mal-number (/ (mal-data-value value1)
+                                                        (mal-data-value value2))))))
 
 (defvar mal-def! (make-mal-symbol "def!"))
 (defvar mal-let* (make-mal-symbol "let*"))
@@ -45,16 +50,16 @@
 (defun eval-sequence (sequence env)
   (map 'list
        (lambda (ast) (mal-eval ast env))
-       (types:mal-data-value sequence)))
+       (mal-data-value sequence)))
 
 (defun eval-hash-map (hash-map env)
-  (let ((hash-map-value (types:mal-data-value hash-map))
-        (new-hash-table (types:make-mal-value-hash-table)))
+  (let ((hash-map-value (mal-data-value hash-map))
+        (new-hash-table (make-mal-value-hash-table)))
     (genhash:hashmap (lambda (key value)
                        (setf (genhash:hashref (mal-eval key env) new-hash-table)
                              (mal-eval value env)))
                      hash-map-value)
-    (types:make-mal-hash-map new-hash-table)))
+    (make-mal-hash-map new-hash-table)))
 
 (defun eval-ast (ast env)
   (switch-mal-type ast
@@ -66,16 +71,13 @@
 
 (defun eval-let* (forms env)
   (let ((new-env (env:create-mal-env :parent env))
-        ;; Convert a potential vector to a list
-        (bindings (map 'list
-                       #'identity
-                       (types:mal-data-value (second forms)))))
+        (bindings (utils:listify (mal-data-value (second forms)))))
 
     (mapcar (lambda (binding)
               (env:set-env new-env
                            (car binding)
                            (mal-eval (or (cdr binding)
-                                         types:mal-nil)
+                                         mal-nil)
                                      new-env)))
             (loop
                for (symbol value) on bindings
@@ -92,7 +94,7 @@
       ((mal-data-value= mal-let* (first forms))
        (eval-let* forms env))
       (t (let ((evaluated-list (eval-ast ast env)))
-           (apply (types:mal-data-value (car evaluated-list))
+           (apply (mal-data-value (car evaluated-list))
                   (cdr evaluated-list)))))))
 
 (defun mal-read (string)
@@ -100,8 +102,8 @@
 
 (defun mal-eval (ast env)
   (cond
-    ((null ast) types:mal-nil)
-    ((not (types:mal-list-p ast)) (eval-ast ast env))
+    ((null ast) mal-nil)
+    ((not (mal-list-p ast)) (eval-ast ast env))
     ((zerop (length (mal-data-value ast))) ast)
     (t (eval-list ast env))))
 
@@ -110,14 +112,23 @@
 
 (defun rep (string)
   (handler-case
-      (mal-print (mal-eval (mal-read string)
-                           *repl-env*))
+      (mal-print (mal-eval (mal-read string) *repl-env*))
     (error (condition)
-      (format nil
-              "~a"
-              condition))))
+      (format nil "~a" condition))))
 
 (defvar *use-readline-p* nil)
+
+(defun complete-toplevel-symbols (input &rest ignored)
+  (declare (ignorable ignored))
+
+  (let (candidates)
+    (loop for key being the hash-keys of (env:mal-env-bindings *repl-env*)
+       when (let ((pos (search input key))) (and pos (zerop pos)))
+       do (push key candidates))
+
+    (if (= 1 (length candidates))
+        (cons (car candidates) candidates)
+        (cons (apply #'utils:common-prefix candidates) candidates))))
 
 (defun raw-input (prompt)
   (format *standard-output* prompt)
@@ -126,10 +137,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (cl-readline:readline :prompt prompt
-                            :add-history t
-                            :novelty-check (lambda (old new)
-                                             (not (string= old new))))
+      (rl:readline :prompt prompt :add-history t :novelty-check #'string/=)
       (raw-input prompt)))
 
 (defun mal-writeline (string)
@@ -140,8 +148,8 @@
 (defun main (&optional (argv nil argv-provided-p))
   (declare (ignorable argv argv-provided-p))
 
-  (setf *use-readline-p* (not (or (string= (uiop:getenv "PERL_RL") "false")
-                                  (string= (uiop:getenv "TERM") "dumb"))))
+  (setf *use-readline-p* (not (or (string= (utils:getenv "PERL_RL") "false")
+                                  (string= (utils:getenv "TERM") "dumb"))))
 
   ;; In GNU CLISP's batch mode the standard-input seems to be set to some sort
   ;; of input string-stream, this interacts wierdly with the PERL_RL enviroment
@@ -153,6 +161,10 @@
   #+clisp (setf *standard-input* (ext:make-stream :input)
                 *standard-output* (ext:make-stream :output :buffered t)
                 *error-output* (ext:make-stream :error :buffered t))
+
+  ;; CCL fails with a error while registering completion function
+  ;; See also https://github.com/mrkkrp/cl-readline/issues/5
+  #-ccl (rl:register-function :complete #'complete-toplevel-symbols)
 
   (loop do (let ((line (mal-readline "user> ")))
              (if line (mal-writeline (rep line)) (return)))))

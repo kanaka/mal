@@ -4,7 +4,9 @@
   (:export :replace-all
            :getenv
            :read-file-string
-           :raw-command-line-arguments))
+           :raw-command-line-arguments
+           :listify
+           :common-prefix))
 
 (in-package :utils)
 
@@ -22,3 +24,19 @@ is replaced with replacement."
                         :end (or pos (length string)))
        when pos do (write-string replacement out)
        while pos)))
+
+(defun listify (sequence)
+  "Convert a sequence to a list"
+  (map 'list #'identity sequence))
+
+(defun common-prefix (&rest strings)
+  (if (not strings)
+      ""
+      (let* ((char-lists (mapcar (lambda (string) (coerce string 'list)) strings))
+             (char-tuples (apply #'mapcar #'list char-lists))
+             (count 0))
+        (loop for char-tuple in char-tuples
+           while (every (lambda (char) (equal char (car char-tuple))) char-tuple)
+           do (incf count))
+
+        (subseq (car strings) 0 count))))

@@ -2,19 +2,19 @@
 
 ** Introduction
 
-This is a reasonably portable implementation of MAL in Common Lisp. It has been
-tested to work with following Common Lisp implementations
+This is a portable implementation of MAL in Common Lisp. It has been tested to
+work with following Common Lisp implementations
 
 - Steel Bank Common Lisp [[http://sbcl.org/]]
 - Clozure Common Lisp [[http://ccl.clozure.com/]]
 - CMU Common Lisp [[https://www.cons.org/cmucl/]]
 - GNU CLISP [[http://www.clisp.org/]]
 - Embeddable Common Lisp [[https://common-lisp.net/project/ecl/]]
+- ManKai Common Lisp https://common-lisp.net/project/mkcl/
 - Allegro CL [[http://franz.com/products/allegro-common-lisp/]]
 - Armed Bear Common Lisp [[http://abcl.org/]]
 
-[[http://www.cliki.net/cl-launch][cl-launch]] to build command line runnable scripts/images for most of the above
-implementations.
+[[http://www.cliki.net/cl-launch][cl-launch]] to build executable/wrapper scripts for most of the above implementations.
 
 ** Dependencies
 
@@ -49,6 +49,7 @@ implementation. The nicknames that work currently are
 | CMU Common Lisp        | cmucl    |
 | GNU CLISP              | clisp    |
 | Embeddable Common Lisp | ecl      |
+| ManKai Common Lisp     | mkcl     |
 | Allegro CL             | allegro  |
 | Armed Bear Common Lisp | abcl     |
 |------------------------+----------|
@@ -71,6 +72,7 @@ be the capitalization of the given nickname.
 | CMU Common Lisp        | CMUCL       |
 | GNU CLISP              | CLISP       |
 | Embeddable Common Lisp | ECL         |
+| ManKai Common Lisp     | MKCL        |
 | Allegro CL             | ALLEGRO     |
 | Armed Bear Common Lisp | ABCL        |
 |------------------------+-------------|
@@ -92,3 +94,7 @@ building it.
 There is some basic interop in the form ~cl-eval~ which takes a string and
 evaluates it as Common Lisp code, the result is returned in form of a MAL value,
 as such you are limited to code that produces values that have MAL counterparts.
+
+** Known Issues
+   ABCL takes a long to boot as such it needs to be run with ~TEST_OPTS~ set to
+   ~--start-timeout 120~

@@ -5,7 +5,8 @@
     (load quicklisp-init)))
 
 (ql:quickload :uiop :silent t)
-(ql:quickload :cl-readline :silent t)
+#-mkcl (ql:quickload :cl-readline :silent t)
+#+mkcl (load "fake-readline.lisp")
 
 (defpackage #:mal-asd
   (:use :cl :asdf))
@@ -19,4 +20,5 @@
   :description "Implementation of step 0 of MAL in Common Lisp"
   :serial t
   :components ((:file "step0_repl"))
-  :depends-on (:uiop :cl-readline))
+  :depends-on (:uiop :cl-readline)
+  :pathname "src/")

@@ -1,8 +1,11 @@
 (defpackage :mal
   (:use :common-lisp
         :reader
-        :printer
-        :utils)
+        :printer)
+  (:import-from :utils
+                :getenv)
+  (:import-from :cl-readline
+                :readline)
   (:export :main))
 
 (in-package :mal)
@@ -11,6 +14,7 @@
   (reader:read-str string))
 
 (defun mal-eval (ast env)
+  (declare (ignorable env))
   ast)
 
 (defun mal-print (expression)
@@ -18,12 +22,9 @@
 
 (defun rep (string)
   (handler-case
-      (mal-print (mal-eval (mal-read string)
-                           (make-hash-table :test #'equal)))
+      (mal-print (mal-eval (mal-read string) (make-hash-table :test #'equal)))
     (reader:eof (condition)
-      (format nil
-              "~a"
-              condition))))
+      (format nil "~a" condition))))
 
 (defvar *use-readline-p* nil)
 
@@ -34,10 +35,7 @@
 
 (defun mal-readline (prompt)
   (if *use-readline-p*
-      (cl-readline:readline :prompt prompt
-                            :add-history t
-                            :novelty-check (lambda (old new)
-                                             (not (string= old new))))
+      (rl:readline :prompt prompt :add-history t :novelty-check #'string/=)
       (raw-input prompt)))
 
 (defun mal-writeline (string)
@@ -48,8 +46,8 @@
 (defun main (&optional (argv nil argv-provided-p))
   (declare (ignorable argv argv-provided-p))
 
-  (setf *use-readline-p* (not (or (string= (uiop:getenv "PERL_RL") "false")
-                                  (string= (uiop:getenv "TERM") "dumb"))))
+  (setf *use-readline-p* (not (or (string= (utils:getenv "PERL_RL") "false")
+                                  (string= (utils:getenv "TERM") "dumb"))))
 
   ;; In GNU CLISP's batch mode the standard-input seems to be set to some sort
   ;; of input string-stream, this interacts wierdly with the PERL_RL enviroment
