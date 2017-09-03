@@ -1,12 +1,11 @@
 #!/bin/bash
 case ${SCM_MODE:-chibi} in
-    chibi)       exec chibi-scheme   $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    kawa)        exec kawa --r7rs    $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    chicken)     exec csi -R r7rs -s $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    gauche)      exec gosh           $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    picrin)      exec picrin         $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    sagittarius) exec sagittarius -n $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    cyclone)     exec icyc -s        $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    foment)      exec foment         $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    chibi)       exec chibi-scheme       $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    kawa)        exec kawa --r7rs        $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    chicken)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
+    gauche)      exec gosh -I.           $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    sagittarius) exec sagittarius -n -L. $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    cyclone)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
+    foment)      exec foment             $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
     *) echo "Invalid SCM_MODE: ${SCM_MODE}"; exit 2 ;;
 esac

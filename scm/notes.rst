@@ -35,6 +35,10 @@ Matrix
  Automatic library load   y   y   x   y   n   y   x   y   ?   ?   ?
 ------------------------ --- --- --- --- --- --- --- --- --- --- ---
  (scheme char)            y   y   y   y   n   y   y   y   ?   ?   ?
+------------------------ --- --- --- --- --- --- --- --- --- --- ---
+ Error objects            y   y   y   y   ?   y   n   y   ?   ?   ?
+------------------------ --- --- --- --- --- --- --- --- --- --- ---
+ Step #1                  y   y   y   y   ?   y   n   n   ?   ?   ?
 ======================== === === === === === === === === === === ===
 
 Notes
@@ -104,3 +108,37 @@ unfortunately Picrin doesn't implement this namespace at all and
 throws parts of it into ``(scheme base)`` instead, without the
 mandatory unicode support.  This and the preceding failures are reason
 enough for me to exclude it from this comparison.
+
+Error objects
+-------------
+
+While there is an exception system, there is no need to use ``raise``
+when the more convenient ``error`` is available.  Cyclone doesn't yet
+support its helper procedures though, so I've written my own
+replacements for them for its current internal representation (a list
+of the message and the arguments).  This will most certainly break
+once it actually starts supporting them...
+
+Step #1
+-------
+
+This is about whether the tests for step #1 have been passed
+successfully.  Foment fails here as it sends ANSI escapes to the test
+rig, but works again after a recent bugfix.  Cyclone had a
+show-stopping bug where the last symbol token had one garbage byte too
+many, I've fixed this and another bug about the write representation
+locally for now.
+
+Bug reports
+===========
+
+- https://github.com/justinethier/cyclone/issues/216
+- https://github.com/justinethier/cyclone/issues/217
+- https://github.com/justinethier/cyclone/issues/219
+- https://github.com/justinethier/cyclone/issues/220
+- https://github.com/justinethier/cyclone/issues/221
+- https://github.com/leftmike/foment/issues/14
+- https://github.com/leftmike/foment/issues/15
+- https://github.com/leftmike/foment/issues/16
+- https://github.com/leftmike/foment/issues/17
+- https://github.com/leftmike/foment/issues/18
