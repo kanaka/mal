@@ -1,7 +1,7 @@
 SOURCES_BASE = lib/reader.sld lib/printer.sld lib/types.sld
 SOURCES_LISP = lib/env.sld lib/func.sld lib/core.sld stepA_mal.scm
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
-BINS = step0_repl step1_read_print step2_eval
+BINS = step0_repl step1_read_print step2_eval step3_env
 
 SYMLINK = ln -sfr
 RM = rm -f
@@ -23,24 +23,30 @@ symlinks:
 	$(SYMLINK) lib/reader.sld lib.reader.scm
 	$(SYMLINK) lib/printer.sld lib/printer.scm
 	$(SYMLINK) lib/printer.sld lib.printer.scm
+	$(SYMLINK) lib/env.sld lib/env.scm
+	$(SYMLINK) lib/env.sld lib.env.scm
 
 chicken:
 	$(CSCSO) lib.util.scm
 	$(CSCSO) lib.types.scm
 	$(CSCSO) lib.reader.scm
 	$(CSCSO) lib.printer.scm
+	$(CSCSO) lib.env.scm
 	$(CSC) step0_repl.scm
 	$(CSC) step1_read_print.scm
 	$(CSC) step2_eval.scm
+	$(CSC) step3_env.scm
 
 cyclone:
 	$(CYCLONE) lib/util.sld
 	$(CYCLONE) lib/types.sld
 	$(CYCLONE) lib/reader.sld
 	$(CYCLONE) lib/printer.sld
+	$(CYCLONE) lib/env.sld
 	$(CYCLONE) step0_repl.scm
 	$(CYCLONE) step1_read_print.scm
 	$(CYCLONE) step2_eval.scm
+	$(CYCLONE) step3_env.scm
 
 clean:
 	$(RM) lib/*.scm lib/*.so lib/*.c lib/*.o lib/*.meta
