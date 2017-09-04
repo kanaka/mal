@@ -1,7 +1,7 @@
 SOURCES_BASE = lib/reader.sld lib/printer.sld lib/types.sld
 SOURCES_LISP = lib/env.sld lib/func.sld lib/core.sld stepA_mal.scm
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
-BINS = step0_repl step1_read_print
+BINS = step0_repl step1_read_print step2_eval
 
 SYMLINK = ln -sfr
 RM = rm -f
@@ -31,6 +31,7 @@ chicken:
 	$(CSCSO) lib.printer.scm
 	$(CSC) step0_repl.scm
 	$(CSC) step1_read_print.scm
+	$(CSC) step2_eval.scm
 
 cyclone:
 	$(CYCLONE) lib/util.sld
@@ -39,6 +40,7 @@ cyclone:
 	$(CYCLONE) lib/printer.sld
 	$(CYCLONE) step0_repl.scm
 	$(CYCLONE) step1_read_print.scm
+	$(CYCLONE) step2_eval.scm
 
 clean:
 	$(RM) lib/*.scm lib/*.so lib/*.c lib/*.o lib/*.meta

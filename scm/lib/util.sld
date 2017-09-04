@@ -2,6 +2,8 @@
 
 (export call-with-input-string call-with-output-string
         str prn debug
+        string-intersperse
+        list->alist alist->list alist-ref alist-map
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -79,6 +81,18 @@
         (let ((kv (car items)))
           (loop (cdr items)
                 (cons (cdr kv) (cons (car kv) acc)))))))
+
+(define (alist-ref key alist)
+  (let loop ((items alist))
+    (if (pair? items)
+        (let ((item (car items)))
+          (if (eqv? (car item) key)
+              (cdr item)
+              (loop (cdr items))))
+        #f)))
+
+(define (alist-map proc items)
+  (map (lambda (item) (proc (car item) (cdr item))) items))
 
 )
 
