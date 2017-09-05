@@ -39,6 +39,10 @@ Matrix
  Error objects            y   y   y   y   ?   y   n   y   ?   ?   ?
 ------------------------ --- --- --- --- --- --- --- --- --- --- ---
  Step #1                  y   y   y   y   ?   y   n   n   ?   ?   ?
+------------------------ --- --- --- --- --- --- --- --- --- --- ---
+ (srfi 1)                 y   y   y   y   y   y   y   n   ?   ?   ?
+------------------------ --- --- --- --- --- --- --- --- --- --- ---
+ Step #4                  y   y   y   y   ?   y   n   n   ?   ?   ?
 ======================== === === === === === === === === === === ===
 
 Notes
@@ -128,6 +132,29 @@ rig, but works again after a recent bugfix.  Cyclone had a
 show-stopping bug where the last symbol token had one garbage byte too
 many, I've fixed this and another bug about the write representation
 locally for now.
+
+(srfi 1)
+--------
+
+The infamous list processing SRFI.  It contains many goodies you'd
+taken for granted in other programming languages, such as a procedure
+for retrieving the last element of a list.  All implementation except
+Foment have it, so I just write my own list helpers as needed.  No big
+deal.
+
+Step #4
+-------
+
+Step #2 and #3 worked without any hitch, step #4 however exposes some
+shortcuts I've taken.  R7RS states for certain procedures that
+evaluation order is unspecified to allow for optimizations for pure
+functions, Cyclone makes use of this for ``map``.  ``begin`` is
+guaranteed to go from left to right, an explicit loop also works.  My
+clever trick of repurposing ``read`` and ``write`` for parsing and
+serializing machine-readable strings backfired as R7RS only specifies
+that backslashes and double-quotes need to be quoted, newlines may be
+quoted but don't have to.  For this reason I rolled my own serializer
+that takes care of all of those characters.
 
 Bug reports
 ===========

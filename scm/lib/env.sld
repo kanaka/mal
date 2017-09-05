@@ -5,6 +5,7 @@
 (import (scheme base))
 
 (import (lib util))
+(import (lib types))
 
 (begin
 
@@ -17,11 +18,15 @@
 (define (make-env outer . rest)
   (let ((env (%make-env outer '())))
     (when (pair? rest)
-      (let ((binds (car rest))
-            (exprs (cadr rest)))
-        (for-each (lambda (bind expr) (env-set env bind expr))
-                  binds
-                  exprs)))
+      (let loop ((binds (car rest))
+                 (exprs (cadr rest)))
+        (when (pair? binds)
+          (let ((bind (car binds)))
+            (if (eq? bind '&)
+                (env-set env (cadr binds) (mal-list exprs))
+                (begin
+                  (env-set env bind (car exprs))
+                  (loop (cdr binds) (cdr exprs))))))))
     env))
 
 (define (env-set env key value)

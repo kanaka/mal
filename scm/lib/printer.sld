@@ -23,7 +23,17 @@
           ((string) (call-with-output-string
                      (lambda (port)
                        (if print-readably
-                           (write value port)
+                           (begin
+                             (display #\" port)
+                             (string-for-each
+                              (lambda (char)
+                                (case char
+                                  ((#\\) (display "\\\\" port))
+                                  ((#\") (display "\\\"" port))
+                                  ((#\newline) (display "\\n" port))
+                                  (else (display char port))))
+                              value)
+                             (display #\" port))
                            (display value port)))))
           ((keyword) (string-append ":" (symbol->string value)))
           ((symbol) (symbol->string value))

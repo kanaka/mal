@@ -3,7 +3,7 @@
 (export call-with-input-string call-with-output-string
         str prn debug
         string-intersperse
-        list->alist alist->list alist-ref alist-map
+        list->alist alist->list alist-ref alist-map ->list
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -93,6 +93,11 @@
 
 (define (alist-map proc items)
   (map (lambda (item) (proc (car item) (cdr item))) items))
+
+(define (->list items)
+  (if (vector? items)
+      (vector->list items)
+      items))
 
 )
 
