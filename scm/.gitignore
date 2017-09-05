@@ -1,0 +1,9 @@
+lib/*.scm
+lib/*.so
+lib/*.c
+lib/*.o
+lib/*.meta
+lib.*.scm
+*.so
+*.c
+*.o
