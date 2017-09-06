@@ -41,7 +41,7 @@
      (for-each (lambda (item) (display item port)) items))))
 
 (define (prn . items)
-  (for-each write items)
+  (for-each (lambda (item) (write item) (display " ")) items)
   (newline))
 
 (define (debug . items)

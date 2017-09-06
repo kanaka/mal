@@ -3,7 +3,9 @@
 (export mal-object? mal-type mal-value mal-value-set!
         mal-true mal-false mal-nil
         mal-number mal-string mal-symbol mal-keyword
-        mal-list mal-vector mal-map mal-atom)
+        mal-list mal-vector mal-map mal-atom
+
+        make-func func? func-ast func-params func-env func-fn)
 
 (import (scheme base))
 
@@ -43,6 +45,14 @@
 
 (define (mal-atom item)
   (make-mal-object 'atom item #f))
+
+(define-record-type func
+  (make-func ast params env fn)
+  func?
+  (ast func-ast)
+  (params func-params)
+  (env func-env)
+  (fn func-fn))
 
 )
 
