@@ -3,7 +3,8 @@
 (export call-with-input-string call-with-output-string
         str prn debug
         string-intersperse
-        list->alist alist->list alist-ref alist-map ->list
+        list->alist alist->list alist-ref alist-map
+        ->list cdr-safe
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -98,6 +99,11 @@
   (if (vector? items)
       (vector->list items)
       items))
+
+(define (cdr-safe x)
+  (if (pair? x)
+      (cdr x)
+      '()))
 
 )
 

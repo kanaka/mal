@@ -46,6 +46,7 @@
             ((list) (pr-list value "(" ")" print-readably))
             ((vector) (pr-list (vector->list value) "[" "]" print-readably))
             ((map) (pr-list (alist->list value) "{" "}" print-readably))
+            ((atom) (string-append "(atom " (pr-str value print-readably) ")"))
             (else (error "unknown type"))))))))
 
 (define (pr-list items starter ender print-readably)

@@ -43,6 +43,8 @@ Matrix
  (srfi 1)                 y   y   y   y   y   y   y   n   ?   ?   ?
 ------------------------ --- --- --- --- --- --- --- --- --- --- ---
  Step #4                  y   y   y   y   ?   y   n   n   ?   ?   ?
+------------------------ --- --- --- --- --- --- --- --- --- --- ---
+ Step #6                  y   y   y   y   ?   y   n   y   ?   ?   ?
 ======================== === === === === === === === === === === ===
 
 Notes
@@ -156,6 +158,16 @@ that backslashes and double-quotes need to be quoted, newlines may be
 quoted but don't have to.  For this reason I rolled my own serializer
 that takes care of all of those characters.
 
+Step #6
+-------
+
+Step #5 wasn't a problem either, however this step introduced basic
+file I/O.  To read a complete file into a string I read a fixed size
+string from the file port until EOF is returned and stuff each chunk
+into the string port.  This strategy yields an infinite loop with
+Cyclone as it doesn't ever return EOF.  I've handed in a PR to fix
+this.
+
 Bug reports
 ===========
 
@@ -164,6 +176,7 @@ Bug reports
 - https://github.com/justinethier/cyclone/issues/219
 - https://github.com/justinethier/cyclone/issues/220
 - https://github.com/justinethier/cyclone/issues/221
+- https://github.com/justinethier/cyclone/pull/222
 - https://github.com/leftmike/foment/issues/14
 - https://github.com/leftmike/foment/issues/15
 - https://github.com/leftmike/foment/issues/16
