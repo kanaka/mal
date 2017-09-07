@@ -4,7 +4,7 @@
         str prn debug
         string-intersperse
         list->alist alist->list alist-ref alist-map
-        ->list cdr-safe
+        ->list car-safe cdr-safe
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -99,6 +99,11 @@
   (if (vector? items)
       (vector->list items)
       items))
+
+(define (car-safe x)
+  (if (pair? x)
+      (car x)
+      '()))
 
 (define (cdr-safe x)
   (if (pair? x)

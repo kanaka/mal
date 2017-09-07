@@ -16,9 +16,6 @@
 (define (coerce x)
   (if x mal-true mal-false))
 
-(define (mal-instance-of? x type)
-  (and (mal-object? x) (eq? (mal-type x) type)))
-
 (define (->printed-string args print-readably sep)
   (let ((items (map (lambda (arg) (pr-str arg print-readably)) args)))
     (string-intersperse items sep)))
@@ -108,6 +105,23 @@
 
     (cons . ,(lambda (x xs) (mal-list (cons x (->list (mal-value xs))))))
     (concat . ,(lambda args (mal-list (apply append (map (lambda (arg) (->list (mal-value arg))) args)))))
+    (nth . ,(lambda (x n) (let ((items (->list (mal-value x)))
+                                (index (mal-value n)))
+                            (if (< index (length items))
+                                (list-ref items index)
+                                (error (str "Out of range: " index))))))
+    (first . ,(lambda (x) (if (eq? x mal-nil)
+                              mal-nil
+                              (let ((items (->list (mal-value x))))
+                                (if (null? items)
+                                    mal-nil
+                                    (car items))))))
+    (rest . ,(lambda (x) (if (eq? x mal-nil)
+                             (mal-list '())
+                             (let ((items (->list (mal-value x))))
+                               (if (null? items)
+                                   (mal-list '())
+                                   (mal-list (cdr items)))))))
 
     ))
 

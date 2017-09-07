@@ -5,7 +5,10 @@
         mal-number mal-string mal-symbol mal-keyword
         mal-list mal-vector mal-map mal-atom
 
-        make-func func? func-ast func-params func-env func-fn)
+        make-func func? func-ast func-params func-env
+        func-fn func-macro? func-macro?-set!
+
+        mal-instance-of?)
 
 (import (scheme base))
 
@@ -47,12 +50,19 @@
   (make-mal-object 'atom item #f))
 
 (define-record-type func
-  (make-func ast params env fn)
+  (%make-func ast params env fn macro?)
   func?
   (ast func-ast)
   (params func-params)
   (env func-env)
-  (fn func-fn))
+  (fn func-fn)
+  (macro? func-macro? func-macro?-set!))
+
+(define (make-func ast params env fn)
+  (%make-func ast params env fn #f))
+
+(define (mal-instance-of? x type)
+  (and (mal-object? x) (eq? (mal-type x) type)))
 
 )
 
