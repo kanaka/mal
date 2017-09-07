@@ -106,6 +106,9 @@
                   (mal-value-set! atom value)
                   value)))
 
+    (cons . ,(lambda (x xs) (mal-list (cons x (->list (mal-value xs))))))
+    (concat . ,(lambda args (mal-list (apply append (map (lambda (arg) (->list (mal-value arg))) args)))))
+
     ))
 
 )
