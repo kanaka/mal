@@ -5,6 +5,7 @@
         string-intersperse
         list->alist alist->list alist-ref alist-map
         ->list car-safe cdr-safe contains? last butlast
+        readline
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -138,6 +139,14 @@
       (if (pair? tail)
           (loop tail (cons (car items) acc))
           (reverse acc)))))
+
+(define (readline prompt)
+  (display prompt)
+  (flush-output-port)
+  (let ((input (read-line)))
+    (if (eof-object? input)
+        #f
+        input)))
 
 )
 

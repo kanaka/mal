@@ -93,14 +93,6 @@
 
 (rep "(def! not (fn* (a) (if a false true)))")
 
-(define (readline prompt)
-  (display prompt)
-  (flush-output-port)
-  (let ((input (read-line)))
-    (if (eof-object? input)
-        #f
-        input)))
-
 (define (main)
   (let loop ()
     (let ((input (readline "user> ")))

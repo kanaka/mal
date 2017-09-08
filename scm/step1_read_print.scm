@@ -18,14 +18,6 @@
 (define (rep input)
   (PRINT (EVAL (READ input))))
 
-(define (readline prompt)
-  (display prompt)
-  (flush-output-port)
-  (let ((input (read-line)))
-    (if (eof-object? input)
-        #f
-        input)))
-
 (define (main)
   (let loop ()
     (let ((input (readline "user> ")))

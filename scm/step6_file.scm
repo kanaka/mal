@@ -107,14 +107,6 @@
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
-(define (readline prompt)
-  (display prompt)
-  (flush-output-port)
-  (let ((input (read-line)))
-    (if (eof-object? input)
-        #f
-        input)))
-
 (define (main)
   (let loop ()
     (let ((input (readline "user> ")))

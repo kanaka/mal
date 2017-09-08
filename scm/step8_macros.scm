@@ -178,14 +178,6 @@
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
 
-(define (readline prompt)
-  (display prompt)
-  (flush-output-port)
-  (let ((input (read-line)))
-    (if (eof-object? input)
-        #f
-        input)))
-
 (define (main)
   (let loop ()
     (let ((input (readline "user> ")))
