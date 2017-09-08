@@ -5,6 +5,7 @@
 (import (scheme base))
 (import (scheme write))
 (import (scheme file))
+(import (scheme time))
 
 (import (lib types))
 (import (lib util))
@@ -92,6 +93,9 @@
                (display chunk out)
                (loop)))))))))
 
+(define (time-ms)
+  (* (/ (current-jiffy) (jiffies-per-second)) 1000.0))
+
 (define ns
   `((+ . ,(lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))))
     (- . ,(lambda (a b) (mal-number (- (mal-value a) (mal-value b)))))
@@ -126,6 +130,9 @@
     (read-string . ,(lambda (string) (read-str (mal-value string))))
     (slurp . ,(lambda (path) (mal-string (slurp (mal-value path)))))
     (throw . ,(lambda (x) (raise (cons 'user-error x))))
+    (readline . ,(lambda (prompt) (let ((output (readline (mal-value prompt))))
+                                    (if output (mal-string output) mal-nil))))
+    (time-ms . ,(lambda () (mal-number (time-ms))))
 
     (atom . ,(lambda (x) (mal-atom x)))
     (atom? . ,(lambda (x) (coerce (mal-instance-of? x 'atom))))
@@ -156,6 +163,33 @@
                                (if (null? items)
                                    (mal-list '())
                                    (mal-list (cdr items)))))))
+    (conj . ,(lambda (coll . args)
+               (let ((items (mal-value coll)))
+                 (cond
+                  ((vector? items)
+                   (mal-vector (vector-append items (list->vector args))))
+                  ((list? items)
+                   (mal-list (append (reverse args) items)))
+                  (else
+                   (error "invalid collection type"))))))
+    (seq . ,(lambda (x) (if (eq? x mal-nil)
+                            mal-nil
+                            (let ((value (mal-value x)))
+                              (case (mal-type x)
+                                ((list)
+                                 (if (null? value)
+                                     mal-nil
+                                     x))
+                                ((vector)
+                                 (if (zero? (vector-length value))
+                                     mal-nil
+                                     (mal-list (vector->list value))))
+                                ((string)
+                                 (if (zero? (string-length value))
+                                     mal-nil
+                                     (mal-list (map mal-string (explode value)))))
+                                (else
+                                 (error "invalid collection type")))))))
 
     (apply . ,(lambda (f . args) (apply (if (func? f) (func-fn f) f)
                                         (if (pair? (cdr args))
@@ -168,6 +202,7 @@
     (nil? . ,(lambda (x) (coerce (eq? x mal-nil))))
     (true? . ,(lambda (x) (coerce (eq? x mal-true))))
     (false? . ,(lambda (x) (coerce (eq? x mal-false))))
+    (string? . ,(lambda (x) (coerce (mal-instance-of? x 'string))))
     (symbol? . ,(lambda (x) (coerce (mal-instance-of? x 'symbol))))
     (symbol . ,(lambda (x) (mal-symbol (string->symbol (mal-value x)))))
     (keyword? . ,(lambda (x) (coerce (mal-instance-of? x 'keyword))))
@@ -186,6 +221,26 @@
     (contains? . ,(lambda (m key) (coerce (mal-map-ref key (mal-value m)))))
     (keys . ,(lambda (m) (mal-list (map car (mal-value m)))))
     (vals . ,(lambda (m) (mal-list (map cdr (mal-value m)))))
+
+    (with-meta . ,(lambda (x meta)
+                    (cond
+                     ((mal-object? x)
+                      (make-mal-object (mal-type x) (mal-value x) meta))
+                     ((func? x)
+                      (let ((func (make-func (func-ast x) (func-params x)
+                                             (func-env x) (func-fn x))))
+                        (func-macro?-set! func (func-macro? x))
+                        (func-meta-set! func meta)
+                        func))
+                     (else
+                      (error "unsupported type")))))
+    (meta . ,(lambda (x) (cond
+                          ((mal-object? x)
+                           (or (mal-meta x) mal-nil))
+                          ((func? x)
+                           (or (func-meta x) mal-nil))
+                          (else
+                           mal-nil))))
 
     ))
 

@@ -1,12 +1,12 @@
 (define-library (lib types)
 
-(export mal-object? mal-type mal-value mal-value-set!
+(export make-mal-object mal-object? mal-type mal-value mal-value-set! mal-meta
         mal-true mal-false mal-nil
         mal-number mal-string mal-symbol mal-keyword
         mal-list mal-vector mal-map mal-atom
 
         make-func func? func-ast func-params func-env
-        func-fn func-macro? func-macro?-set!
+        func-fn func-macro? func-macro?-set! func-meta func-meta-set!
 
         mal-instance-of?)
 
@@ -50,16 +50,17 @@
   (make-mal-object 'atom item #f))
 
 (define-record-type func
-  (%make-func ast params env fn macro?)
+  (%make-func ast params env fn macro? meta)
   func?
   (ast func-ast)
   (params func-params)
   (env func-env)
   (fn func-fn)
-  (macro? func-macro? func-macro?-set!))
+  (macro? func-macro? func-macro?-set!)
+  (meta func-meta func-meta-set!))
 
 (define (make-func ast params env fn)
-  (%make-func ast params env fn #f))
+  (%make-func ast params env fn #f #f))
 
 (define (mal-instance-of? x type)
   (and (mal-object? x) (eq? (mal-type x) type)))

@@ -69,7 +69,7 @@
                 (skip-comment port)
                 (loop tokens))
                ((special-char? char)
-                (loop (cons (list->string (list char)) tokens)))
+                (loop (cons (char->string char) tokens)))
                (else
                 (loop (cons (tokenize-word port char) tokens))))))))))
 

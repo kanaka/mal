@@ -2,7 +2,8 @@
 
 (export call-with-input-string call-with-output-string
         str prn debug
-        string-intersperse
+        string-intersperse explode
+        char->string
         list->alist alist->list alist-ref alist-map
         ->list car-safe cdr-safe contains? last butlast
         readline
@@ -62,6 +63,12 @@
 
 (define (string-intersperse items sep)
   (apply string-append (intersperse items sep)))
+
+(define (char->string char)
+  (list->string (list char)))
+
+(define (explode string)
+  (map char->string (string->list string)))
 
 (define (list->alist items)
   (let loop ((items items)
