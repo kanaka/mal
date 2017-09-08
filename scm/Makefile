@@ -2,18 +2,20 @@ SOURCES_BASE = lib/reader.sld lib/printer.sld lib/types.sld
 SOURCES_LISP = lib/env.sld lib/core.sld stepA_mal.scm
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tco
-BINS += step6_file step7_quote step8_macros
+BINS += step6_file step7_quote step8_macros step9_try
 
 SYMLINK = ln -sfr
 RM = rm -f
+RMR = rm -rf
 
-CSC = csc -O2 -R r7rs
-CSCSO = csc -O2 -R r7rs -sJ
+KAWA = kawa --r7rs --no-warn-unused -d out -C
+CSC = csc -O3 -R r7rs
+CSCSO = $(CSC) -sJ
 CYCLONE = cyclone -O2
 
 all: symlinks
 
-.PHONY: symlinks chicken cyclone clean stats stats-lisp
+.PHONY: symlinks kawa chicken cyclone clean stats stats-lisp
 
 symlinks:
 	$(SYMLINK) lib/util.sld lib/util.scm
@@ -28,6 +30,24 @@ symlinks:
 	$(SYMLINK) lib/env.sld lib.env.scm
 	$(SYMLINK) lib/core.sld lib/core.scm
 	$(SYMLINK) lib/core.sld lib.core.scm
+
+kawa:
+	$(KAWA) lib/util.scm
+	$(KAWA) lib/types.scm
+	$(KAWA) lib/reader.scm
+	$(KAWA) lib/printer.scm
+	$(KAWA) lib/env.scm
+	$(KAWA) lib/core.scm
+	$(KAWA) step0_repl.scm
+	$(KAWA) step1_read_print.scm
+	$(KAWA) step2_eval.scm
+	$(KAWA) step3_env.scm
+	$(KAWA) step4_if_fn_do.scm
+	$(KAWA) step5_tco.scm
+	$(KAWA) step6_file.scm
+	$(KAWA) step7_quote.scm
+	$(KAWA) step8_macros.scm
+	$(KAWA) step9_try.scm
 
 chicken:
 	$(CSCSO) lib.util.scm
@@ -45,6 +65,7 @@ chicken:
 	$(CSC) step6_file.scm
 	$(CSC) step7_quote.scm
 	$(CSC) step8_macros.scm
+	$(CSC) step9_try.scm
 
 cyclone:
 	$(CYCLONE) lib/util.sld
@@ -62,10 +83,12 @@ cyclone:
 	$(CYCLONE) step6_file.scm
 	$(CYCLONE) step7_quote.scm
 	$(CYCLONE) step8_macros.scm
+	$(CYCLONE) step9_try.scm
 
 clean:
 	$(RM) lib/*.scm lib/*.so lib/*.c lib/*.o lib/*.meta
 	$(RM) lib.*.scm *.so *.c *.o $(BINS)
+	$(RMR) out
 
 stats: $(SOURCES)
 	@wc $^

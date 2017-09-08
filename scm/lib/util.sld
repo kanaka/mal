@@ -4,7 +4,7 @@
         str prn debug
         string-intersperse
         list->alist alist->list alist-ref alist-map
-        ->list car-safe cdr-safe
+        ->list car-safe cdr-safe contains? last butlast
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -17,7 +17,7 @@
 ;; HACK: cyclone currently implements error the SICP way
 (cond-expand
  (cyclone
-  (define error-object? pair?)
+  (define (error-object? x) (and (pair? x) (string? (car x))))
   (define error-object-message car)
   (define error-object-irritants cdr))
  (else))
@@ -83,14 +83,16 @@
           (loop (cdr items)
                 (cons (cdr kv) (cons (car kv) acc)))))))
 
-(define (alist-ref key alist)
-  (let loop ((items alist))
-    (if (pair? items)
-        (let ((item (car items)))
-          (if (eqv? (car item) key)
-              (cdr item)
-              (loop (cdr items))))
-        #f)))
+(define (alist-ref key alist . args)
+  (let ((test (if (pair? args) (car args) eqv?))
+        (default (if (> (length args) 1) (cadr args) #f)))
+    (let loop ((items alist))
+      (if (pair? items)
+          (let ((item (car items)))
+            (if (test (car item) key)
+                (cdr item)
+                (loop (cdr items))))
+          default))))
 
 (define (alist-map proc items)
   (map (lambda (item) (proc (car item) (cdr item))) items))
@@ -109,6 +111,33 @@
   (if (pair? x)
       (cdr x)
       '()))
+
+(define (contains? items test)
+  (let loop ((items items))
+    (if (pair? items)
+        (if (test (car items))
+            #t
+            (loop (cdr items)))
+        #f)))
+
+(define (last items)
+  (when (null? items)
+    (error "empty argument"))
+  (let loop ((items items))
+    (let ((tail (cdr items)))
+      (if (pair? tail)
+          (loop tail)
+          (car items)))))
+
+(define (butlast items)
+  (when (null? items)
+    (error "empty argument"))
+  (let loop ((items items)
+             (acc '()))
+    (let ((tail (cdr items)))
+      (if (pair? tail)
+          (loop tail (cons (car items) acc))
+          (reverse acc)))))
 
 )
 

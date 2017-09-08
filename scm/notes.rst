@@ -177,6 +177,8 @@ Bug reports
 - https://github.com/justinethier/cyclone/issues/220
 - https://github.com/justinethier/cyclone/issues/221
 - https://github.com/justinethier/cyclone/pull/222
+- https://github.com/justinethier/cyclone/issues/224
+- https://github.com/justinethier/cyclone/issues/225
 - https://github.com/leftmike/foment/issues/14
 - https://github.com/leftmike/foment/issues/15
 - https://github.com/leftmike/foment/issues/16

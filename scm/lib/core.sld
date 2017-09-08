@@ -32,7 +32,7 @@
            (memq b-type '(list vector)))
       (mal-list-equal? (->list a-value) (->list b-value)))
      ((and (eq? a-type 'map) (eq? b-type 'map))
-      (error "TODO"))
+      (mal-map-equal? a-value b-value))
      (else
       (and (eq? a-type b-type)
            (equal? a-value b-value))))))
@@ -47,6 +47,39 @@
       (if (mal-equal? (car as) (car bs))
           (loop (cdr as) (cdr bs))
           #f)))))
+
+(define (mal-map-ref key m . default)
+  (if (pair? default)
+      (alist-ref key m mal-equal? (car default))
+      (alist-ref key m mal-equal?)))
+
+(define (mal-map-equal? as bs)
+  (if (not (= (length as) (length bs)))
+      #f
+      (let loop ((as as))
+        (if (pair? as)
+            (let* ((item (car as))
+                   (key (car item))
+                   (value (cdr item)))
+              (if (mal-equal? (mal-map-ref key bs) value)
+                  (loop (cdr as))
+                  #f))
+            #t))))
+
+(define (mal-map-dissoc m keys)
+  (let loop ((items m)
+             (acc '()))
+    (if (pair? items)
+        (let* ((item (car items))
+               (key (car item)))
+          (if (contains? keys (lambda (x) (mal-equal? key x)))
+              (loop (cdr items) acc)
+              (loop (cdr items) (cons item acc))))
+        (reverse acc))))
+
+(define (mal-map-assoc m kvs)
+  (let ((kvs (list->alist kvs)))
+    (append kvs (mal-map-dissoc m (map car kvs)))))
 
 (define (slurp path)
   (call-with-output-string
@@ -92,6 +125,7 @@
 
     (read-string . ,(lambda (string) (read-str (mal-value string))))
     (slurp . ,(lambda (path) (mal-string (slurp (mal-value path)))))
+    (throw . ,(lambda (x) (raise (cons 'user-error x))))
 
     (atom . ,(lambda (x) (mal-atom x)))
     (atom? . ,(lambda (x) (coerce (mal-instance-of? x 'atom))))
@@ -122,6 +156,36 @@
                                (if (null? items)
                                    (mal-list '())
                                    (mal-list (cdr items)))))))
+
+    (apply . ,(lambda (f . args) (apply (if (func? f) (func-fn f) f)
+                                        (if (pair? (cdr args))
+                                            (append (butlast args)
+                                                    (->list (mal-value (last args))))
+                                            (->list (mal-value (car args)))))))
+    (map . ,(lambda (f items) (mal-list (map (if (func? f) (func-fn f) f)
+                                             (->list (mal-value items))))))
+
+    (nil? . ,(lambda (x) (coerce (eq? x mal-nil))))
+    (true? . ,(lambda (x) (coerce (eq? x mal-true))))
+    (false? . ,(lambda (x) (coerce (eq? x mal-false))))
+    (symbol? . ,(lambda (x) (coerce (mal-instance-of? x 'symbol))))
+    (symbol . ,(lambda (x) (mal-symbol (string->symbol (mal-value x)))))
+    (keyword? . ,(lambda (x) (coerce (mal-instance-of? x 'keyword))))
+    (keyword . ,(lambda (x) (mal-keyword (string->symbol (mal-value x)))))
+    (vector? . ,(lambda (x) (coerce (mal-instance-of? x 'vector))))
+    (vector . ,(lambda args (mal-vector (list->vector args))))
+    (map? . ,(lambda (x) (coerce (mal-instance-of? x 'map))))
+    (hash-map . ,(lambda args (mal-map (list->alist args))))
+    (sequential? . ,(lambda (x) (coerce (and (mal-object? x)
+                                             (memq (mal-type x)
+                                                   '(list vector))))))
+
+    (assoc . ,(lambda (m . kvs) (mal-map (mal-map-assoc (mal-value m) kvs))))
+    (dissoc . ,(lambda (m . keys) (mal-map (mal-map-dissoc (mal-value m) keys))))
+    (get . ,(lambda (m key) (mal-map-ref key (mal-value m) mal-nil)))
+    (contains? . ,(lambda (m key) (coerce (mal-map-ref key (mal-value m)))))
+    (keys . ,(lambda (m) (mal-list (map car (mal-value m)))))
+    (vals . ,(lambda (m) (mal-list (map cdr (mal-value m)))))
 
     ))
 

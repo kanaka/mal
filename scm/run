@@ -1,9 +1,9 @@
 #!/bin/bash
 case ${SCM_MODE:-chibi} in
     chibi)       exec chibi-scheme       $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    kawa)        exec kawa --r7rs        $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    chicken)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
+    kawa)        cd $(dirname $0)/out && exec kawa -f ${STEP:-stepA_mal}      "${@}" ;;
     gauche)      exec gosh -I.           $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    chicken)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
     sagittarius) exec sagittarius -n -L. $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
     cyclone)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
     foment)      exec foment             $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
