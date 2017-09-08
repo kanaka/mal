@@ -127,10 +127,10 @@
 (define (rep input)
   (PRINT (EVAL (READ input) repl-env)))
 
-(define argv (cdr (command-line)))
+(define args (cdr (command-line)))
 
 (env-set repl-env 'eval (lambda (ast) (EVAL ast repl-env)))
-(env-set repl-env '*ARGV* (mal-list (map mal-string (cdr-safe argv))))
+(env-set repl-env '*ARGV* (mal-list (map mal-string (cdr-safe args))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
@@ -158,6 +158,6 @@
         (loop))))
   (newline))
 
-(if (null? argv)
+(if (null? args)
     (main)
-    (rep (string-append "(load-file \"" (car argv) "\")")))
+    (rep (string-append "(load-file \"" (car args) "\")")))
