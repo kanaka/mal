@@ -6,6 +6,9 @@
 (import (scheme write))
 (import (scheme file))
 (import (scheme time))
+(import (scheme read))
+(import (scheme eval))
+(import (scheme repl))
 
 (import (lib types))
 (import (lib util))
@@ -103,6 +106,26 @@
 (define (time-ms)
   (* (/ (current-jiffy) (jiffies-per-second)) 1000.0))
 
+(define (->mal-object x)
+  (cond
+   ((boolean? x) (if x mal-true mal-false))
+   ((char? x) (mal-string (char->string x)))
+   ((procedure? x) x)
+   ((symbol? x) (mal-symbol x))
+   ((number? x) (mal-number x))
+   ((string? x) (mal-string x))
+   ((or (null? x) (pair? x))
+    (mal-list (map ->mal-object x)))
+   ((vector? x)
+    (mal-vector (vector-map ->mal-object x)))
+   (else
+    (error "unknown type"))))
+
+(define (scm-eval input)
+  (call-with-input-string input
+    (lambda (port)
+      (->mal-object (eval (read port) (interaction-environment))))))
+
 (define ns
   `((+ . ,(lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))))
     (- . ,(lambda (a b) (mal-number (- (mal-value a) (mal-value b)))))
@@ -140,6 +163,7 @@
     (readline . ,(lambda (prompt) (let ((output (readline (mal-value prompt))))
                                     (if output (mal-string output) mal-nil))))
     (time-ms . ,(lambda () (mal-number (time-ms))))
+    (scm-eval . ,(lambda (input) (scm-eval (mal-value input))))
 
     (atom . ,(lambda (x) (mal-atom x)))
     (atom? . ,(lambda (x) (coerce (mal-instance-of? x 'atom))))
