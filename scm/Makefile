@@ -4,13 +4,14 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tco
 BINS += step6_file step7_quote step8_macros step9_try stepA_mal
 
+MKDIR = mkdir -p
 SYMLINK = ln -sfr
 RM = rm -f
 RMR = rm -rf
 
 KAWA = kawa --r7rs --no-warn-unused -d out -C
 KAWAM = kawa --r7rs --no-warn-unused -d out --main -C
-CSC = csc -O3 -R r7rs
+CSC = CHICKEN_REPOSITORY=$(CURDIR)/eggs csc -O3 -R r7rs
 CSCSO = $(CSC) -sJ
 CYCLONE = cyclone -O2
 
@@ -19,18 +20,19 @@ all: symlinks
 .PHONY: symlinks kawa chicken cyclone clean stats stats-lisp
 
 symlinks:
+	$(MKDIR) eggs
 	$(SYMLINK) lib/util.sld lib/util.scm
-	$(SYMLINK) lib/util.sld lib.util.scm
+	$(SYMLINK) lib/util.sld eggs/lib.util.scm
 	$(SYMLINK) lib/types.sld lib/types.scm
-	$(SYMLINK) lib/types.sld lib.types.scm
+	$(SYMLINK) lib/types.sld eggs/lib.types.scm
 	$(SYMLINK) lib/reader.sld lib/reader.scm
-	$(SYMLINK) lib/reader.sld lib.reader.scm
+	$(SYMLINK) lib/reader.sld eggs/lib.reader.scm
 	$(SYMLINK) lib/printer.sld lib/printer.scm
-	$(SYMLINK) lib/printer.sld lib.printer.scm
+	$(SYMLINK) lib/printer.sld eggs/lib.printer.scm
 	$(SYMLINK) lib/env.sld lib/env.scm
-	$(SYMLINK) lib/env.sld lib.env.scm
+	$(SYMLINK) lib/env.sld eggs/lib.env.scm
 	$(SYMLINK) lib/core.sld lib/core.scm
-	$(SYMLINK) lib/core.sld lib.core.scm
+	$(SYMLINK) lib/core.sld eggs/lib.core.scm
 
 kawa:
 	$(KAWA) lib/util.scm
@@ -52,12 +54,14 @@ kawa:
 	$(KAWAM) stepA_mal.scm
 
 chicken:
-	$(CSCSO) lib.util.scm
-	$(CSCSO) lib.types.scm
-	$(CSCSO) lib.reader.scm
-	$(CSCSO) lib.printer.scm
-	$(CSCSO) lib.env.scm
-	$(CSCSO) lib.core.scm
+	chicken-install -init eggs
+	CHICKEN_REPOSITORY=$(CURDIR)/eggs chicken-install r7rs
+	$(CSCSO) eggs/lib.util.scm
+	$(CSCSO) eggs/lib.types.scm
+	$(CSCSO) eggs/lib.reader.scm
+	$(CSCSO) eggs/lib.printer.scm
+	$(CSCSO) eggs/lib.env.scm
+	$(CSCSO) eggs/lib.core.scm
 	$(CSC) step0_repl.scm
 	$(CSC) step1_read_print.scm
 	$(CSC) step2_eval.scm
@@ -93,6 +97,7 @@ clean:
 	$(RM) lib/*.scm lib/*.so lib/*.c lib/*.o lib/*.meta
 	$(RM) lib.*.scm *.so *.c *.o $(BINS)
 	$(RMR) out
+	$(RMR) eggs
 
 stats: $(SOURCES)
 	@wc $^

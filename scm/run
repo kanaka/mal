@@ -1,11 +1,15 @@
 #!/bin/bash
+basedir=$(dirname $0)
+kawa=${KAWA_JAR:-/usr/share/kawa/lib/kawa.jar}
+step=${STEP:-stepA_mal}
+
 case ${SCM_MODE:-chibi} in
-    chibi)       exec chibi-scheme       $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    kawa)        java -cp /usr/share/kawa/lib/kawa.jar:out ${STEP:-stepA_mal} "${@}" ;;
-    gauche)      exec gosh -I.           $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    chicken)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
-    sagittarius) exec sagittarius -n -L. $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
-    cyclone)     exec                    $(dirname $0)/${STEP:-stepA_mal}     "${@}" ;;
-    foment)      exec foment             $(dirname $0)/${STEP:-stepA_mal}.scm "${@}" ;;
+    chibi)       exec chibi-scheme -I$basedir $basedir/$step.scm      "${@}" ;;
+    kawa)        exec java -cp $kawa:$basedir/out $step               "${@}" ;;
+    gauche)      exec gosh -I$basedir $basedir/$step.scm              "${@}" ;;
+    chicken)     CHICKEN_REPOSITORY=$basedir/eggs exec $basedir/$step "${@}" ;;
+    sagittarius) exec sagittarius -n -L$basedir $basedir/$step.scm    "${@}" ;;
+    cyclone)     exec $basedir/$step                                  "${@}" ;;
+    foment)      exec foment $basedir/$step.scm                       "${@}" ;;
     *) echo "Invalid SCM_MODE: ${SCM_MODE}"; exit 2 ;;
 esac
