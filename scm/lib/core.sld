@@ -82,6 +82,13 @@
   (let ((kvs (list->alist kvs)))
     (append kvs (mal-map-dissoc m (map car kvs)))))
 
+(define (map-in-order proc items)
+  (let loop ((items items)
+             (acc '()))
+    (if (null? items)
+        (reverse acc)
+        (loop (cdr items) (cons (proc (car items)) acc)))))
+
 (define (slurp path)
   (call-with-output-string
    (lambda (out)
@@ -196,8 +203,9 @@
                                             (append (butlast args)
                                                     (->list (mal-value (last args))))
                                             (->list (mal-value (car args)))))))
-    (map . ,(lambda (f items) (mal-list (map (if (func? f) (func-fn f) f)
-                                             (->list (mal-value items))))))
+    (map . ,(lambda (f items) (mal-list (map-in-order
+                                         (if (func? f) (func-fn f) f)
+                                         (->list (mal-value items))))))
 
     (nil? . ,(lambda (x) (coerce (eq? x mal-nil))))
     (true? . ,(lambda (x) (coerce (eq? x mal-true))))
