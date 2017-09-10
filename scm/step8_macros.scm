@@ -52,13 +52,11 @@
   (if (mal-instance-of? ast 'list)
       (let ((op (car-safe (mal-value ast))))
         (if (mal-instance-of? op 'symbol)
-            (let* ((symbol (mal-value op))
-                   (env (env-find env symbol)))
-              (if env
-                  (let ((x (env-get env symbol)))
-                    (if (and (func? x) (func-macro? x))
-                        #t
-                        #f))
+            (let ((x (env-find env (mal-value op))))
+              (if x
+                  (if (and (func? x) (func-macro? x))
+                      #t
+                      #f)
                   #f))
             #f))
       #f))

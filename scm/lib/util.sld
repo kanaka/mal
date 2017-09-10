@@ -6,7 +6,7 @@
         char->string
         list->alist alist->list alist-ref alist-map
         ->list car-safe cdr-safe contains? last butlast
-        readline
+        identity readline
 
         ;; HACK: cyclone doesn't have those
         error-object? error-object-message error-object-irritants)
@@ -146,6 +146,8 @@
       (if (pair? tail)
           (loop tail (cons (car items) acc))
           (reverse acc)))))
+
+(define (identity x) x)
 
 (define (readline prompt)
   (display prompt)

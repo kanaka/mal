@@ -34,14 +34,14 @@
 
 (define (env-find env key)
   (cond
-   ((alist-ref key (env-data env)) env)
+   ((alist-ref key (env-data env)) => identity)
    ((env-outer env) => (lambda (outer) (env-find outer key)))
    (else #f)))
 
 (define (env-get env key)
-  (let ((env (env-find env key)))
-    (if env
-        (alist-ref key (env-data env))
+  (let ((value (env-find env key)))
+    (if value
+        value
         (error (str "'" key "' not found")))))
 
 )
