@@ -8,7 +8,12 @@
 (import (scheme time))
 (import (scheme read))
 (import (scheme eval))
-(import (scheme repl))
+;; HACK: cyclone doesn't implement environments yet, but its eval
+;; behaves as if you were using the repl environment
+(cond-expand
+ (cyclone)
+ (else
+  (import (scheme repl))))
 
 (import (lib types))
 (import (lib util))
@@ -124,7 +129,11 @@
 (define (scm-eval input)
   (call-with-input-string input
     (lambda (port)
-      (->mal-object (eval (read port) (interaction-environment))))))
+      (cond-expand
+       (cyclone
+        (->mal-object (eval (read port))))
+       (else
+        (->mal-object (eval (read port) (interaction-environment))))))))
 
 (define ns
   `((+ . ,(lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))))
