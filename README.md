@@ -46,7 +46,7 @@ Mal is implemented in 68 languages:
 * Lua
 * GNU Make
 * mal itself
-* MATLAB
+* Matlab (GNU Octave and MATLAB)
 * [miniMAL](https://github.com/kanaka/miniMAL)
 * Nim
 * Object Pascal
@@ -652,18 +652,19 @@ make
 ./stepX_YYY
 ```
 
-### MATLAB
+### MatLab (GNU Octave and MATLAB)
 
-The MATLAB implementation of mal has been tested with MATLAB version
-R2014a on Linux. Note that MATLAB is a commercial product. It should
-be fairly simple to support GNU Octave once it support classdef object
-syntax.
+The MatLab implementation has been tested with GNU Octave 4.2.1.
+It has also been tested with MATLAB version R2014a on Linux. Note that
+MATLAB is a commercial product.
 
 ```
 cd matlab
 ./stepX_YYY
+octave -q --no-gui --no-history --eval "stepX_YYY();quit;"
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY();quit;"
     # OR with command line arguments
+octave -q --no-gui --no-history --eval "stepX_YYY('arg1','arg2');quit;"
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY('arg1','arg2');quit;"
 ```
 
