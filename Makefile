@@ -44,12 +44,14 @@ all help:
 
 MAL_IMPL = js
 
-PYTHON = python
-USE_MATLAB =
-# python, js, cpp, or neko are currently supported
-HAXE_MODE = neko
-# clj or cljs are currently supported (Clojure vs ClojureScript/lumo)
-CLJ_MODE = clj
+# clj or cljs (Clojure vs ClojureScript/lumo)
+clojure_MODE = clj
+# python, js, cpp, or neko
+haxe_MODE = neko
+# octave or matlab
+matlab_MODE = octave
+# python, python2 or python3
+python_MODE = python
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -159,7 +161,7 @@ basic_STEP_TO_PROG =   basic/$($(1)).bas
 c_STEP_TO_PROG =       c/$($(1))
 d_STEP_TO_PROG =       d/$($(1))
 chuck_STEP_TO_PROG =   chuck/$($(1)).ck
-clojure_STEP_TO_PROG = $(clojure_STEP_TO_PROG_$(CLJ_MODE))
+clojure_STEP_TO_PROG = $(clojure_STEP_TO_PROG_$(clojure_MODE))
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
 common-lisp_STEP_TO_PROG =  common-lisp/$($(1))
 cpp_STEP_TO_PROG =     cpp/$($(1))
@@ -178,7 +180,7 @@ groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
 gst_STEP_TO_PROG =     gst/$($(1)).st
 java_STEP_TO_PROG =    java/target/classes/mal/$($(1)).class
 haskell_STEP_TO_PROG = haskell/$($(1))
-haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(HAXE_MODE))
+haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(haxe_MODE))
 io_STEP_TO_PROG =      io/$($(1)).io
 julia_STEP_TO_PROG =   julia/$($(1)).jl
 js_STEP_TO_PROG =      js/$($(1)).js
@@ -242,7 +244,7 @@ get_build_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
     -w /mal/$(1) \
-    $(if $(filter clojure,$(1)),-e CLJ_MODE=$(CLJ_MODE),) \
+    $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
     $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(call impl_to_image,$(1)) \
     ,))
@@ -255,14 +257,13 @@ get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
     -w /mal/$(call actual_impl,$(1)) \
-    $(if $(filter clojure,$(1)),-e CLJ_MODE=$(CLJ_MODE),) \
-    $(if $(filter haxe,$(1)),-e HAXE_MODE=$(HAXE_MODE),) \
+    $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
     $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(foreach env,$(3),-e $(env)) \
     $(call impl_to_image,$(call actual_impl,$(1))) \
     ,\
     env STEP=$($2) MAL_IMPL=$(MAL_IMPL) \
-    $(if $(filter haxe,$(1)),HAXE_MODE=$(HAXE_MODE),) \
+    $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),) \
     $(if $(filter factor,$(1)),FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(3)))
 

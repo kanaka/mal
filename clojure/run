@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:$(dirname $0)/node_modules/.bin
 STEP=${STEP:-stepA_mal}
-if [ "${CLJ_MODE}" = "cljs" ]; then
+if [ "${clojure_MODE}" = "cljs" ]; then
   exec lumo -c $(dirname $0)/src -m mal.${STEP//_/-} "${@}"
 else
   exec java -jar $(dirname $0)/target/${STEP}.jar "${@}"

@@ -17,7 +17,7 @@ Mal is implemented in 68 languages:
 * C#
 * ChucK
 * Common Lisp
-* Clojure
+* Clojure (Clojure and ClojureScript)
 * CoffeeScript
 * Crystal
 * D
@@ -35,7 +35,7 @@ Mal is implemented in 68 languages:
 * GNU Guile
 * GNU Smalltalk
 * Haskell
-* Haxe
+* Haxe (Neko, Python, C++ and JavaScript)
 * Io
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
@@ -60,7 +60,7 @@ Mal is implemented in 68 languages:
 * PL/SQL (Oracle)
 * Postscript
 * PowerShell
-* Python
+* Python (2.X and 3.X)
 * RPython
 * R
 * Racket
@@ -478,7 +478,7 @@ make
 ./stepX_YYY
 ```
 
-### Haxe
+### Haxe (Neko, Python, C++ and JavaScript)
 
 The Haxe implementation of mal requires Haxe version 3.2 to compile.
 Four different Haxe targets are supported: Neko, Python, C++, and
@@ -785,7 +785,7 @@ cd powershell
 powershell ./stepX_YYY.ps1
 ```
 
-### Python (2.X or 3.X)
+### Python (2.X and 3.X)
 
 ```
 cd python

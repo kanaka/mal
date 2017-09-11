@@ -1,11 +1,11 @@
-CLJ_MODE ?= clj
-SOURCES_UTIL = src/mal/readline.$(CLJ_MODE)
+clojure_MODE ?= clj
+SOURCES_UTIL = src/mal/readline.$(clojure_MODE)
 SOURCES_BASE = $(SOURCES_UTIL) src/mal/printer.cljc
 SOURCES_LISP = src/mal/env.cljc src/mal/core.cljc src/mal/stepA_mal.cljc
 SRCS = $(SOURCES_BASE) src/mal/env.cljc src/mal/core.cljc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-DEPS = $(if $(filter cljs,$(CLJ_MODE)),node_modules,deps)
+DEPS = $(if $(filter cljs,$(clojure_MODE)),node_modules,deps)
 
 dist: mal.jar mal
 
