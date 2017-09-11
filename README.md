@@ -876,7 +876,7 @@ after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
 
 ```
-cd scm
+cd scheme
 make symlinks
 # chibi
 SCM_MODE=chibi ./run
