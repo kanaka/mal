@@ -6,7 +6,7 @@ ACTION=${1}
 IMPL=${2}
 MAL_IMPL=${3:-js}
 
-mode_var=${MAL_IMPL}_MODE
+mode_var=${IMPL}_MODE
 mode_val=${!mode_var}
 
 echo "ACTION: ${ACTION}"

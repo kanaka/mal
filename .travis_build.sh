@@ -4,7 +4,7 @@ set -ex
 
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
 
-mode_var=${MAL_IMPL}_MODE
+mode_var=${IMPL}_MODE
 mode_val=${!mode_var}
 
 # If NO_DOCKER is blank then launch use a docker image, otherwise
