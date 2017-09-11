@@ -239,7 +239,7 @@ actual_impl = $(if $(filter mal,$(1)),$(MAL_IMPL),$(1))
 # Returns nothing if DOCKERIZE is not set, otherwise returns the
 # docker prefix necessary to run make within the docker environment
 # for this impl
-get_build_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
+get_build_command = $(strip $(if $(strip $(DOCKERIZE)),\
     docker run \
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
@@ -247,7 +247,9 @@ get_build_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
     $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
     $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(call impl_to_image,$(1)) \
-    ,))
+    $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),) \
+    ,\
+    $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),)))
 
 # Takes impl and step arguments
 # Returns a command prefix (docker command and environment variables)
@@ -313,8 +315,8 @@ ALL_REPL = $(strip $(sort \
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	$(foreach impl,$(word 1,$(subst /, ,$(@))),\
 	  $(if $(DOCKERIZE), \
-	    $(call get_build_prefix,$(impl)) $(MAKE) $(patsubst $(impl)/%,%,$(@)), \
-	    $(MAKE) -C $(impl) $(subst $(impl)/,,$(@))))
+	    $(call get_build_command,$(impl)) $(patsubst $(impl)/%,%,$(@)), \
+	    $(call get_build_command,$(impl)) -C $(impl) $(subst $(impl)/,,$(@))))
 
 # Allow IMPL, and IMPL^STEP
 .SECONDEXPANSION:
@@ -441,10 +443,10 @@ $(2):
 	@echo "----------------------------------------------"; \
 	$$(foreach impl,$$(word 2,$$(subst ^, ,$$(@))),\
 	  $$(if $$(DOCKERIZE), \
-	    echo "Running: $$(call get_build_prefix,$$(impl))$$(MAKE) --no-print-directory $(1)"; \
-	    $$(call get_build_prefix,$$(impl))$$(MAKE) --no-print-directory $(1), \
-	    echo "Running: $$(MAKE) --no-print-directory -C $$(impl) $(1)"; \
-	    $$(MAKE) --no-print-directory -C $$(impl) $(1)))
+	    echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory $(1)"; \
+	    $$(call get_build_command,$$(impl)) --no-print-directory $(1), \
+	    echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory -C $$(impl) $(1)"; \
+	    $$(call get_build_command,$$(impl)) --no-print-directory -C $$(impl) $(1)))
 endef
 
 recur_impls_ = $(filter-out $(foreach impl,$($(1)_EXCLUDES),$(1)^$(impl)),$(foreach impl,$(IMPLS),$(1)^$(impl)))
