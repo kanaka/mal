@@ -4,12 +4,12 @@ defmodule Mal.Mixfile do
   def project do
     [app: :mal,
      version: "0.0.1",
-     elixir: "~> 1.0",
+     elixir: "~> 1.5",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps,
+     deps: deps(),
      default_task: "stepA_mal",
-     escript: escript]
+     escript: escript()]
   end
 
   def escript do

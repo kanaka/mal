@@ -1,12 +1,12 @@
 defmodule Mix.Tasks.Step1ReadPrint do
-  def run(_), do: loop
+  def run(_), do: loop()
 
   defp loop do
     Mal.Core.readline("user> ")
       |> read_eval_print
       |> IO.puts
 
-    loop
+    loop()
   end
 
   defp read(input) do
