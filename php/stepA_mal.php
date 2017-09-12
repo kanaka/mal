@@ -124,7 +124,7 @@ function MAL_EVAL($ast, $env) {
         if ($a2[0]->value === "catch*") {
             try {
                 return MAL_EVAL($a1, $env);
-            } catch (Error $e) {
+            } catch (_Error $e) {
                 $catch_env = new Env($env, array($a2[1]),
                                             array($e->obj));
                 return MAL_EVAL($a2[2], $catch_env);

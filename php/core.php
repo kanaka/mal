@@ -6,7 +6,7 @@ require_once 'reader.php';
 require_once 'printer.php';
 
 // Error/Exception functions
-function mal_throw($obj) { throw new Error($obj); }
+function mal_throw($obj) { throw new _Error($obj); }
 
 
 // String functions

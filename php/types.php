@@ -2,7 +2,7 @@
 
 
 // Errors/Exceptions
-class Error extends Exception {
+class _Error extends Exception {
     public $obj = null;
     public function __construct($obj) {
         parent::__construct("Mal Error", 0, null);
