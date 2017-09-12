@@ -3,6 +3,7 @@ SOURCES_LISP = lib/env.sld lib/core.sld stepA_mal.scm
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tco
 BINS += step6_file step7_quote step8_macros step9_try stepA_mal
+scheme_MODE ?= chibi
 
 MKDIR = mkdir -p
 SYMLINK = ln -sfr
@@ -15,9 +16,15 @@ CSC = CHICKEN_REPOSITORY=$(CURDIR)/eggs csc -O3 -R r7rs
 CSCSO = $(CSC) -sJ
 CYCLONE = cyclone -O2
 
-all: symlinks
+DEPS = $(if $(filter kawa,$(scheme_MODE)),kawa,\
+       $(if $(filter chicken,$(scheme_MODE)),chicken,\
+       $(if $(filter cyclone,$(scheme_MODE)),cyclone)))
 
-.PHONY: symlinks kawa chicken cyclone clean stats stats-lisp
+all: symlinks build
+
+.PHONY: symlinks build kawa chicken cyclone clean stats stats-lisp
+
+build: $(DEPS)
 
 symlinks:
 	$(MKDIR) eggs

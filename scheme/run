@@ -3,7 +3,7 @@ basedir=$(dirname $0)
 kawa=${KAWA_JAR:-/usr/share/kawa/lib/kawa.jar}
 step=${STEP:-stepA_mal}
 
-case ${SCM_MODE:-chibi} in
+case ${scheme_MODE:-chibi} in
     chibi)       exec chibi-scheme -I$basedir $basedir/$step.scm      "${@}" ;;
     kawa)        exec java -cp $kawa:$basedir/out $step               "${@}" ;;
     gauche)      exec gosh -I$basedir $basedir/$step.scm              "${@}" ;;
@@ -11,5 +11,5 @@ case ${SCM_MODE:-chibi} in
     sagittarius) exec sagittarius -n -L$basedir $basedir/$step.scm    "${@}" ;;
     cyclone)     exec $basedir/$step                                  "${@}" ;;
     foment)      exec foment $basedir/$step.scm                       "${@}" ;;
-    *) echo "Invalid SCM_MODE: ${SCM_MODE}"; exit 2 ;;
+    *) echo "Invalid scheme_MODE: ${scheme_MODE}"; exit 2 ;;
 esac

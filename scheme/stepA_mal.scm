@@ -184,7 +184,7 @@
 
 (env-set repl-env 'eval (lambda (ast) (EVAL ast repl-env)))
 (env-set repl-env '*ARGV* (mal-list (map mal-string (cdr-safe args))))
-(let ((scheme (or (get-environment-variable "SCM_MODE") "chibi")))
+(let ((scheme (or (get-environment-variable "scheme_MODE") "chibi")))
   (env-set repl-env '*host-language* (mal-string (str "scheme (" scheme ")"))))
 
 (rep "(def! not (fn* (a) (if a false true)))")

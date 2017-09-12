@@ -864,7 +864,7 @@ sbt compile
 scala -classpath target/scala*/classes stepX_YYY
 ```
 
-### Scheme ###
+### Scheme (R7RS) ###
 
 *The Scheme implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 
@@ -879,22 +879,22 @@ after figuring out how libraries are loaded and adjusting the
 cd scheme
 make symlinks
 # chibi
-SCM_MODE=chibi ./run
+scheme_MODE=chibi ./run
 # kawa
 make kawa
-SCM_MODE=kawa ./run
+scheme_MODE=kawa ./run
 # gauche
-SCM_MODE=gauche ./run
+scheme_MODE=gauche ./run
 # chicken
 make chicken
-SCM_MODE=chicken ./run
+scheme_MODE=chicken ./run
 # sagittarius
-SCM_MODE=sagittarius ./run
+scheme_MODE=sagittarius ./run
 # cyclone
 make cyclone
-SCM_MODE=cyclone ./run
+scheme_MODE=cyclone ./run
 # foment
-SCM_MODE=foment ./run
+scheme_MODE=foment ./run
 ```
 
 ### Skew ###
