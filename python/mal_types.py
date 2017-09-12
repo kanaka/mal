@@ -31,10 +31,10 @@ def _equal_Q(a, b):
         return True
     elif _hash_map_Q(a):
         akeys = a.keys()
-        akeys.sort()
         bkeys = b.keys()
-        bkeys.sort()
         if len(akeys) != len(bkeys): return False
+        akeys.sort()
+        bkeys.sort()
         for i in range(len(akeys)):
             if akeys[i] != bkeys[i]: return False
             if not _equal_Q(a[akeys[i]], b[bkeys[i]]): return False
