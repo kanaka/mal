@@ -124,6 +124,7 @@ test_EXCLUDES += test^matlab^step5 # never completes at 10,000
 test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
 test_EXCLUDES += test^plsql^step5  # too slow for 10,000
 test_EXCLUDES += test^powershell^step5  # too slow for 10,000
+test_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),test^haxe^step5,) # cpp finishes 10,000, segfaults at 100,000
 
 perf_EXCLUDES = mal  # TODO: fix this
 
