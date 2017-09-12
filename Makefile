@@ -83,7 +83,7 @@ IMPLS = ada awk bash basic c d chuck clojure coffee common-lisp cpp crystal cs d
 	haxe hy io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
 	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
-	ts vb vhdl vimscript livescript elm
+	ts vb vhdl vimscript yorick livescript elm
 
 EXTENSION = .mal
 
@@ -238,6 +238,7 @@ ts_STEP_TO_PROG =      ts/$($(1)).js
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
+yorick_STEP_TO_PROG =  yorick/$($(1)).i
 guile_STEP_TO_PROG =   guile/$($(1)).scm
 livescript_STEP_TO_PROG = livescript/$($(1)).js
 elm_STEP_TO_PROG =     elm/$($(1)).js
