@@ -8,12 +8,12 @@ STEPS = step0_repl step1_read_print step2_eval step3_env \
 	step4_if_fn_do step5_tco step6_file step7_quote \
 	step8_macros step9_try stepA_mal
 
-haxe_MODE = neko
+haxe_MODE ?= neko
 dist_neko = mal.n
 dist_python = mal.py
 dist_cpp = cpp/mal
 
-all: all-neko all-python all-cpp all-js
+all: all-$(haxe_MODE)
 
 all-neko: $(foreach x,$(STEPS),$(x).n)
 
