@@ -6,6 +6,9 @@ ACTION=${1}
 IMPL=${2}
 MAL_IMPL=${3:-js}
 
+mode_var=${IMPL}_MODE
+mode_val=${!mode_var}
+
 echo "ACTION: ${ACTION}"
 echo "IMPL: ${IMPL}"
 echo "MAL_IMPL: ${MAL_IMPL}"
@@ -23,7 +26,7 @@ fi
 
 ${MAKE} TEST_OPTS="--debug-file ../${ACTION}.err" \
     MAL_IMPL=${MAL_IMPL} \
-    CLJ_MODE=${CLJ_MODE} \
+     ${mode_val:+${mode_var}=${mode_val}} \
     ${ACTION}^${IMPL}
 
 # no failure so remove error log

@@ -14,8 +14,8 @@ matrix:
     - {env: IMPL=coffee,    services: [docker]}
     - {env: IMPL=cs,        services: [docker]}
     - {env: IMPL=chuck,     services: [docker]}
-    - {env: IMPL=clojure CLJ_MODE=clj,  services: [docker]}
-    - {env: IMPL=clojure CLJ_MODE=cljs, services: [docker]}
+    - {env: IMPL=clojure clojure_MODE=clj,  services: [docker]}
+    - {env: IMPL=clojure clojure_MODE=cljs, services: [docker]}
     - {env: IMPL=common-lisp, services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
     - {env: IMPL=d,         services: [docker]}
@@ -33,7 +33,10 @@ matrix:
     - {env: IMPL=gst,       services: [docker]}
     - {env: IMPL=guile,     services: [docker]}
     - {env: IMPL=haskell,   services: [docker]}
-    - {env: IMPL=haxe,      services: [docker]}
+    - {env: IMPL=haxe haxe_MODE=neko,   services: [docker]}
+    - {env: IMPL=haxe haxe_MODE=python, services: [docker]}
+    - {env: IMPL=haxe haxe_MODE=cpp,    services: [docker]}
+    - {env: IMPL=haxe haxe_MODE=js,     services: [docker]}
     - {env: IMPL=io,        services: [docker]}
     - {env: IMPL=java,      services: [docker]}
     - {env: IMPL=js,        services: [docker]}
@@ -59,7 +62,8 @@ matrix:
 #    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}
     - {env: IMPL=powershell, services: [docker]}
-    - {env: IMPL=python,    services: [docker]}
+    - {env: IMPL=python python_MODE=python2, services: [docker]}
+    - {env: IMPL=python python_MODE=python3, services: [docker]}
     - {env: IMPL=r,         services: [docker]}
     - {env: IMPL=racket,    services: [docker]}
     - {env: IMPL=rexx,      services: [docker]}

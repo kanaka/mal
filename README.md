@@ -17,7 +17,7 @@ Mal is implemented in 69 languages:
 * C#
 * ChucK
 * Common Lisp
-* Clojure
+* Clojure (Clojure and ClojureScript)
 * CoffeeScript
 * Crystal
 * D
@@ -35,7 +35,7 @@ Mal is implemented in 69 languages:
 * GNU Guile
 * GNU Smalltalk
 * Haskell
-* Haxe
+* Haxe (Neko, Python, C++ and JavaScript)
 * Io
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
@@ -46,7 +46,7 @@ Mal is implemented in 69 languages:
 * Lua
 * GNU Make
 * mal itself
-* MATLAB
+* Matlab (GNU Octave and MATLAB)
 * [miniMAL](https://github.com/kanaka/miniMAL)
 * Nim
 * Object Pascal
@@ -60,7 +60,7 @@ Mal is implemented in 69 languages:
 * PL/SQL (Oracle)
 * Postscript
 * PowerShell
-* Python
+* Python (2.X and 3.X)
 * RPython
 * R
 * Racket
@@ -479,7 +479,7 @@ make
 ./stepX_YYY
 ```
 
-### Haxe
+### Haxe (Neko, Python, C++ and JavaScript)
 
 The Haxe implementation of mal requires Haxe version 3.2 to compile.
 Four different Haxe targets are supported: Neko, Python, C++, and
@@ -653,18 +653,19 @@ make
 ./stepX_YYY
 ```
 
-### MATLAB
+### MatLab (GNU Octave and MATLAB)
 
-The MATLAB implementation of mal has been tested with MATLAB version
-R2014a on Linux. Note that MATLAB is a commercial product. It should
-be fairly simple to support GNU Octave once it support classdef object
-syntax.
+The MatLab implementation has been tested with GNU Octave 4.2.1.
+It has also been tested with MATLAB version R2014a on Linux. Note that
+MATLAB is a commercial product.
 
 ```
 cd matlab
 ./stepX_YYY
+octave -q --no-gui --no-history --eval "stepX_YYY();quit;"
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY();quit;"
     # OR with command line arguments
+octave -q --no-gui --no-history --eval "stepX_YYY('arg1','arg2');quit;"
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY('arg1','arg2');quit;"
 ```
 
@@ -785,7 +786,7 @@ cd powershell
 powershell ./stepX_YYY.ps1
 ```
 
-### Python (2.X or 3.X)
+### Python (2.X and 3.X)
 
 ```
 cd python
