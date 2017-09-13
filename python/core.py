@@ -109,8 +109,7 @@ def with_meta(obj, meta):
     return new_obj
 
 def meta(obj):
-    if hasattr(obj, "__meta__"): return obj.__meta__
-    else:                        return None
+    return getattr(obj, "__meta__", None)
 
 
 # Atoms functions
