@@ -71,6 +71,13 @@ matrix:
     - {env: IMPL=ruby,      services: [docker]}
     - {env: IMPL=rust,      services: [docker]}
     - {env: IMPL=scala,     services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=chibi,       services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=kawa,        services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=gauche,      services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=chicken,     services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=sagittarius, services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=cyclone,     services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=foment,      services: [docker]}
     - {env: IMPL=skew,      services: [docker]}
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7}
     - {env: IMPL=swift3,    services: [docker]}
