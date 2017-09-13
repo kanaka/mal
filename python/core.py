@@ -36,7 +36,7 @@ def assoc(src_hm, *key_vals):
 def dissoc(src_hm, *keys):
     hm = copy.copy(src_hm)
     for key in keys:
-        if key in hm: del hm[key]
+        hm.pop(key, None)
     return hm
 
 def get(hm, key):
