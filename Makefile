@@ -52,6 +52,8 @@ haxe_MODE = neko
 matlab_MODE = octave
 # python, python2 or python3
 python_MODE = python
+# scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
+scheme_MODE = chibi
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -83,8 +85,8 @@ IMPLS = ada awk bash basic c d chuck clojure coffee common-lisp cpp crystal cs d
 	erlang elisp elixir es6 factor forth fsharp go groovy gst guile haskell \
 	haxe io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
 	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
-	python r racket rexx rpython ruby rust scala skew swift swift3 tcl ts vb vhdl \
-	vimscript livescript elm
+	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
+	ts vb vhdl vimscript livescript elm
 
 EXTENSION = .mal
 
@@ -143,6 +145,14 @@ haxe_STEP_TO_PROG_js     = haxe/$($(1)).js
 
 clojure_STEP_TO_PROG_clj  = clojure/target/$($(1)).jar
 clojure_STEP_TO_PROG_cljs = clojure/src/mal/$($(1)).cljc
+
+scheme_STEP_TO_PROG_chibi       = scheme/$($(1)).scm
+scheme_STEP_TO_PROG_kawa        = scheme/out/$($(1)).class
+scheme_STEP_TO_PROG_gauche      = scheme/$($(1)).scm
+scheme_STEP_TO_PROG_chicken     = scheme/$($(1))
+scheme_STEP_TO_PROG_sagittarius = scheme/$($(1)).scm
+scheme_STEP_TO_PROG_cyclone     = scheme/$($(1))
+scheme_STEP_TO_PROG_foment      = scheme/$($(1)).scm
 
 opt_DEFERRABLE      = $(if $(strip $(DEFERRABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERRABLE)),--deferrable,--no-deferrable),--no-deferrable)
 opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
@@ -211,6 +221,7 @@ rpython_STEP_TO_PROG = rpython/$($(1))
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
 rust_STEP_TO_PROG =    rust/target/release/$($(1))
 scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
+scheme_STEP_TO_PROG =  $(scheme_STEP_TO_PROG_$(scheme_MODE))
 skew_STEP_TO_PROG =    skew/$($(1)).js
 swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))

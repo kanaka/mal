@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 68 languages:
+Mal is implemented in 69 languages:
 
 * Ada
 * GNU awk
@@ -68,6 +68,7 @@ Mal is implemented in 68 languages:
 * Ruby
 * Rust
 * Scala
+* Scheme (R7RS)
 * Skew
 * Swift
 * Swift 3
@@ -862,6 +863,39 @@ sbt 'run-main stepX_YYY'
     # OR
 sbt compile
 scala -classpath target/scala*/classes stepX_YYY
+```
+
+### Scheme (R7RS) ###
+
+*The Scheme implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+
+The Scheme implementation of mal has been tested with Chibi-Scheme
+0.7.3, Kawa 2.4, Gauche 0.9.5, CHICKEN 4.11.0, Sagittarius 0.8.3,
+Cyclone 0.6.3 (Git version) and Foment 0.4 (Git version).  You should
+be able to get it running on other conforming R7RS implementations
+after figuring out how libraries are loaded and adjusting the
+`Makefile` and `run` script accordingly.
+
+```
+cd scheme
+make symlinks
+# chibi
+scheme_MODE=chibi ./run
+# kawa
+make kawa
+scheme_MODE=kawa ./run
+# gauche
+scheme_MODE=gauche ./run
+# chicken
+make chicken
+scheme_MODE=chicken ./run
+# sagittarius
+scheme_MODE=sagittarius ./run
+# cyclone
+make cyclone
+scheme_MODE=cyclone ./run
+# foment
+scheme_MODE=foment ./run
 ```
 
 ### Skew ###

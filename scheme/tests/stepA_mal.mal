@@ -1,0 +1,16 @@
+;; Testing basic Scheme interop
+
+(scm-eval "(+ 1 1)")
+;=>2
+
+(scm-eval "(begin (display \"Hello World!\") (newline))")
+; "Hello World!"
+
+(scm-eval "(string->list \"MAL\")")
+;=>("M" "A" "L")
+
+(scm-eval "(map + '(1 2 3) '(4 5 6))")
+;=>(5 7 9)
+
+(scm-eval "(string-map (lambda (c) (integer->char (+ 65 (modulo (+ (- (char->integer c) 65) 13) 26)))) \"ZNY\")")
+;=>"MAL"
