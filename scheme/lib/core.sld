@@ -133,7 +133,8 @@
        (cyclone
         (->mal-object (eval (read port))))
        (else
-        (->mal-object (eval (read port) (interaction-environment))))))))
+        (->mal-object (eval (read port) (environment '(scheme base)
+                                                     '(scheme write)))))))))
 
 (define ns
   `((+ . ,(lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))))

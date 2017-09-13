@@ -12,6 +12,5 @@
 (scm-eval "(map + '(1 2 3) '(4 5 6))")
 ;=>(5 7 9)
 
-(scm-eval "(define (rot13 c) (integer->char (+ 65 (modulo (+ (- (char->integer c) 65) 13) 26))))")
-(scm-eval "(string-map rot13 \"ZNY\")")
+(scm-eval "(string-map (lambda (c) (integer->char (+ 65 (modulo (+ (- (char->integer c) 65) 13) 26)))) \"ZNY\")")
 ;=>"MAL"
