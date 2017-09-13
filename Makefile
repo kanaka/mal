@@ -53,7 +53,7 @@ matlab_MODE = octave
 # python, python2 or python3
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
-scheme_MODE = scheme
+scheme_MODE = chibi
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
