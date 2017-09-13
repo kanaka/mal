@@ -8,4 +8,4 @@ lib.*.scm
 *.c
 *.o
 out/
-eggs/
+eggs/*
