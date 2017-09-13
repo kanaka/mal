@@ -3,12 +3,18 @@ basedir=$(dirname $0)
 kawa=${KAWA_JAR:-/usr/share/kawa/lib/kawa.jar}
 step=${STEP:-stepA_mal}
 
+if [[ $(which sash 2>/dev/null) ]]; then
+    sagittarius=sash
+elif [[ $(which sagittarius 2>/dev/null) ]]; then
+    sagittarius=sagittarius
+fi
+
 case ${scheme_MODE:-chibi} in
     chibi)       exec chibi-scheme -I$basedir $basedir/$step.scm      "${@}" ;;
     kawa)        exec java -cp $kawa:$basedir/out $step               "${@}" ;;
     gauche)      exec gosh -I$basedir $basedir/$step.scm              "${@}" ;;
     chicken)     CHICKEN_REPOSITORY=$basedir/eggs exec $basedir/$step "${@}" ;;
-    sagittarius) exec sagittarius -n -L$basedir $basedir/$step.scm    "${@}" ;;
+    sagittarius) exec $sagittarius -n -L$basedir $basedir/$step.scm   "${@}" ;;
     cyclone)     exec $basedir/$step                                  "${@}" ;;
     foment)      exec foment $basedir/$step.scm                       "${@}" ;;
     *) echo "Invalid scheme_MODE: ${scheme_MODE}"; exit 2 ;;
