@@ -40,8 +40,8 @@ def dissoc(src_hm, *keys):
     return hm
 
 def get(hm, key):
-    if hm and key in hm:
-        return hm[key]
+    if hm is not None:
+        return hm.get(key)
     else:
         return None
 
