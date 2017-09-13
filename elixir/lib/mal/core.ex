@@ -75,7 +75,7 @@ defmodule Mal.Core do
   def readline(prompt) do
     IO.write(:stdio, prompt)
     IO.read(:stdio, :line)
-      |> String.strip(?\n)
+      |> String.trim("\n")
   end
 
   defp convert_vector({type, ast, meta}) when type == :map do
@@ -223,9 +223,9 @@ defmodule Mal.Core do
   end
 
   defp seq([nil]), do: nil
-  defp seq([{:list, [], meta}]), do: nil
+  defp seq([{:list, [], _meta}]), do: nil
   defp seq([{:list, ast, meta}]), do: {:list, ast, meta}
-  defp seq([{:vector, [], meta}]), do: nil
+  defp seq([{:vector, [], _meta}]), do: nil
   defp seq([{:vector, ast, meta}]), do: {:list, ast, meta}
   defp seq([""]), do: nil
   defp seq([s]), do: {:list, String.split(s, "", trim: true), nil}

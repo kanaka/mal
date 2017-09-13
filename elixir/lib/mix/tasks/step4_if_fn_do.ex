@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Step4IfFnDo do
     Mal.Reader.read_str(input)
   end
 
-  defp eval_bindings([], _env), do: _env
+  defp eval_bindings([], env), do: env
   defp eval_bindings([{:symbol, key}, binding | tail], env) do
     evaluated = eval(binding, env)
     Mal.Env.set(env, key, evaluated)
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Step4IfFnDo do
   end
   defp eval_bindings(_bindings, _env), do: throw({:error, "Unbalanced let* bindings"})
 
-  defp eval({:list, [], _} = empty_ast, env), do: empty_ast
+  defp eval({:list, [], _} = empty_ast, _env), do: empty_ast
   defp eval({:list, ast, meta}, env), do: eval_list(ast, env, meta)
   defp eval(ast, env), do: eval_ast(ast, env)
 
