@@ -1329,6 +1329,7 @@ implementation. Let us continue!
 * In the main program, use the `rep` function to define two new
   control structures macros. Here are the string arguments for `rep`
   to define these macros:
+  * TODO: note throw is not present until step9
   * `cond`: "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
   * `or`: "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 

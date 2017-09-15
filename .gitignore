@@ -9,6 +9,7 @@
 .sbt
 .npm
 .node-gyp
+.elm
 */experiments
 */node_modules
 *.o

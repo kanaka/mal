@@ -127,6 +127,7 @@ class Runner():
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
                 #print("new_data: '%s'" % new_data)
                 debug(new_data)
+                # Perform newline cleanup
                 if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
