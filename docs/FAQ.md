@@ -101,7 +101,7 @@ functionality goes into which step:
   a scientific fact that many small rewards are more motivating than
   a single large reward (citation intentionally omitted, get a small
   reward by googling it yourself). Each step in mal adds new
-  functionality that can actually be exercised by the implementor and,
+  functionality that can actually be exercised by the implementer and,
   just as importantly, easily tested.
 
 Also, the step structure of mal/make-a-lisp is not perfect. It never

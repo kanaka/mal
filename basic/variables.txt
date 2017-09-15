@@ -36,7 +36,7 @@ Calling arguments/temporaries:
 A   : common call argument (especially EVAL, EVAL_AST)
 A$  : common call argument (READLINE, reader, string temp, key value)
 B   : common call argument
-B$  : STRING arg (HASHMAP_GET temp), PR_STR_SEQ seperator
+B$  : STRING arg (HASHMAP_GET temp), PR_STR_SEQ separator
     : INIT_CORE_SET_FUNCTION, ENV_SET_S, ASSOC1_S
 C   : common call argument, DO_TCO_FUNCTION temp in DO_APPLY
 E   : environment (EVAL, EVAL_AST)

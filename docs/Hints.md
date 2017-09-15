@@ -1,4 +1,4 @@
-# Mal/Make-a-Lisp Implmentation Hints
+# Mal/Make-a-Lisp Implementation Hints
 
 <a name="milliseconds"></a>
 
@@ -81,7 +81,7 @@ it is considered legitimate for upstream inclusion.
 ### How do I read the command-line arguments if my language runtime doesn't support access to them?
 
 Most languages give access to the command-line arguments that were passed to
-the program, either as an arguement to the `main` function (like `argc` and
+the program, either as an argument to the `main` function (like `argc` and
 `argv` in C) or as a global variable (like `sys.argv` in Python).  If your
 target language doesn't have such mechanisms, consider adding a wrapper script
 that will read the command-line arguments that were passed to the script and

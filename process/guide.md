@@ -523,7 +523,7 @@ repl_env = {'+': lambda a,b: a+b,
   `eval_ast` switches on the type of `ast` as follows:
 
   * symbol: lookup the symbol in the environment structure and return
-    the value or raise an error no value is found
+    the value or raise an error if no value is found
   * list: return a new list that is the result of calling `EVAL` on
     each of the members of the list
   * otherwise just return the original `ast` value
@@ -1518,7 +1518,7 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
 
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
-  containing thename of the current implementation.
+  containing the name of the current implementation.
 
 * When the REPL starts up (as opposed to when it is called with
   a script and/or arguments), call the `rep` function with this string
