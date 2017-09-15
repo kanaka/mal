@@ -80,7 +80,7 @@ Make:
     - allow '_' in make variable names
     - hash-map with space in key string
     - errors should propagate up from within load-file
-    - GC: expore using "undefined" directive in Make 3.82
+    - GC: explore using "undefined" directive in Make 3.82
 
 Mal:
     - line numbers in errors

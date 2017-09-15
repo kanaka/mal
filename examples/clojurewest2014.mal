@@ -84,7 +84,7 @@
     "- performance"
     "- namespaces"
     "- keywords"
-    "- GC (in bash, make, C implmentations)"
+    "- GC (in bash, make, C implementations)"
     "- lots of other things")
    (list
     (title "why?")

@@ -30,7 +30,7 @@ can be used to make and run this implementation.
 
         ./docker make
 
-    * run one of the implemenations:
+    * run one of the implementations:
 
         ./docker run ./stepA_mal
 
