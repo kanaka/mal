@@ -37,6 +37,8 @@ all help:
 	@echo
 	@echo 'make "docker-build^IMPL"          # build docker image for IMPL'
 	@echo
+	@echo 'make "docker-shell^IMPL"          # start bash shell in docker image for IMPL'
+	@echo
 
 #
 # Command line settings
@@ -276,10 +278,10 @@ get_build_command = $(strip $(if $(strip $(DOCKERIZE)),\
     ,\
     $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),)))
 
-# Takes impl and step arguments
+# Takes impl and step args. Optional env vars and dockerize args
 # Returns a command prefix (docker command and environment variables)
 # necessary to launch the given impl and step
-get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
+get_run_prefix = $(strip $(if $(strip $(DOCKERIZE) $(4)),\
     docker run -e STEP=$($2) -e MAL_IMPL=$(MAL_IMPL) \
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
@@ -314,6 +316,8 @@ ALL_TESTS = $(filter-out $(test_EXCLUDES),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
+
+DOCKER_SHELL = $(foreach impl,$(DO_IMPLS),docker-shell^$(impl))
 
 IMPL_PERF = $(foreach impl,$(filter-out $(perf_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
 
@@ -377,29 +381,26 @@ $(STEP_TESTS): $$(foreach step,$$(subst test^,,$$@),$$(filter %^$$(step),$$(ALL_
 
 
 #
-# Dist rules
-#
-
-dist: $(IMPL_DIST)
-
-$(IMPL_DIST):
-	@echo "----------------------------------------------"; \
-	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
-	  echo "Running: make -C $(impl) dist"; \
-	  $(MAKE) --no-print-directory -C $(impl) dist)
-
-
-#
 # Docker build rules
 #
 
 docker-build: $(DOCKER_BUILD)
 
 $(DOCKER_BUILD):
-	echo "----------------------------------------------"; \
+	@echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  echo "Running: docker build -t $(call impl_to_image,$(impl)) .:"; \
 	  cd $(impl) && docker build -t $(call impl_to_image,$(impl)) .)
+
+#
+# Docker shell rules
+#
+
+$(DOCKER_SHELL):
+	@echo "----------------------------------------------"; \
+	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Running: $(call get_run_prefix,$(impl),stepA,,dockerize) bash"; \
+	  $(call get_run_prefix,$(impl),stepA,,dockerize) bash)
 
 
 #
