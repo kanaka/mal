@@ -8,7 +8,8 @@ matrix:
     - {env: IMPL=ada,       services: [docker]}
     - {env: IMPL=awk,       services: [docker]}
     - {env: IMPL=bash,      services: [docker]}
-    - {env: IMPL=basic,     services: [docker]}
+    - {env: IMPL=basic basic_MODE=cbm,    services: [docker]}
+    - {env: IMPL=basic basic_MODE=qbasic, services: [docker]}
     - {env: IMPL=c,         services: [docker]}
     - {env: IMPL=cpp,       services: [docker]}
     - {env: IMPL=coffee,    services: [docker]}

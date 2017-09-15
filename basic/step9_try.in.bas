@@ -614,7 +614,8 @@ MAIN:
 
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
-    END
+    #cbm END
+    #qbasic SYSTEM
 
   PRINT_ERROR:
     REM if the error is an object, then print and free it

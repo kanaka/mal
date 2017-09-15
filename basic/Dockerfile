@@ -32,3 +32,15 @@ RUN cd /tmp && \
     cd .. && \
     rm -r cbmbasic*
 
+RUN apt-get install -y g++ mesa-common-dev libglu1-mesa-dev libasound2-dev wget
+RUN cd /tmp && \
+    curl -L http://www.qb64.net/release/official/2017_02_09__02_14_38-1.1-20170120.51/linux/qb64-1.1-20170120.51-lnx.tar.gz | tar xzf - && \
+    cd qb64 && \
+    find . -name '*.sh' -exec sed -i "s/\r//g" {} \; && \
+    env EUID=1 ./setup_lnx.sh && \
+    mkdir -p /usr/share/qb64 && \
+    cp -a qb64 internal LICENSE programs source /usr/share/qb64/ && \
+    echo '#!/bin/sh\ncd /usr/share/qb64\n./qb64 "${@}"' > /usr/bin/qb64 && \
+    chmod +x /usr/bin/qb64
+
+

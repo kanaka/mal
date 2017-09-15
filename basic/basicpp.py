@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument('infiles', type=str, nargs='+',
                         help='the Basic files to preprocess')
     parser.add_argument('--mode', choices=["cbm", "qbasic"], default="cbm")
+    parser.add_argument('--sub-mode', choices=["noui", "ui"], default="noui")
     parser.add_argument('--keep-rems', action='store_true', default=False,
                         help='The type of REMs to keep (0 (none) -> 4 (all)')
     parser.add_argument('--keep-blank-lines', action='store_true', default=False,
@@ -25,6 +26,7 @@ def parse_args():
                         help='Do not combine lines using the ":" separator')
 
     args = parser.parse_args()
+    args.full_mode = "%s-%s" % (args.mode, args.sub_mode)
     if args.keep_rems and not args.skip_combine_lines:
         debug("Option --keep-rems implies --skip-combine-lines ")
         args.skip_combine_lines = True
@@ -36,30 +38,37 @@ def parse_args():
     return args
 
 # pull in include files
-def resolve_includes(orig_lines, keep_rems=0):
+def resolve_includes(orig_lines, args):
     included = {}
-    lines = []
-    for line in orig_lines:
-        m = re.match(r"^ *REM \$INCLUDE: '([^'\n]*)' *$", line)
-        if m and m.group(1) not in included:
-            f = m.group(1)
-            if f not in included:
+    lines = orig_lines[:]
+    position = 0
+    while position < len(lines):
+        line = lines[position]
+        m = re.match(r"^(?:#([^ ]*) )? *REM \$INCLUDE: '([^'\n]*)' *$", line)
+        if m:
+            mode = m.group(1)
+            f = m.group(2)
+            if mode and mode != args.mode and mode != args.full_mode:
+                position += 1
+            elif f not in included:
                 ilines = [l.rstrip() for l in open(f).readlines()]
-                if keep_rems: lines.append("REM vvv BEGIN '%s' vvv" % f)
-                lines.extend(ilines)
-                if keep_rems: lines.append("REM ^^^ END '%s' ^^^" % f)
+                if args.keep_rems: lines.append("REM vvv BEGIN '%s' vvv" % f)
+                lines[position:position+1] = ilines
+                if args.keep_rems: lines.append("REM ^^^ END '%s' ^^^" % f)
             else:
                 debug("Ignoring already included file: %s" % f)
         else:
-            lines.append(line)
+            position += 1
     return lines
 
-def resolve_mode(orig_lines, mode):
+def resolve_mode(orig_lines, args):
     lines = []
     for line in orig_lines:
         m = re.match(r"^ *#([^ \n]*) *([^\n]*)$", line)
         if m:
-            if m.group(1) == mode:
+            if m.group(1) == args.mode:
+                lines.append(m.group(2))
+            elif m.group(1) == args.full_mode:
                 lines.append(m.group(2))
             continue
         lines.append(line)
@@ -121,7 +130,7 @@ def misc_fixups(orig_lines):
 
     return text.split("\n")
 
-def finalize(lines, args, mode):
+def finalize(lines, args):
     labels_lines = {}
     lines_labels = {}
     call_index = {}
@@ -158,7 +167,7 @@ def finalize(lines, args, mode):
             label = sub+"_"+str(call_index[sub])
 
             # Replace the CALL with stack based GOTO
-            if mode == "cbm":
+            if args.mode == "cbm":
                 lines.append("%s %sQ=%s:GOSUBPUSH_Q:GOTO%s" % (
                     lnum, prefix, call_index[sub], sub))
             else:
@@ -199,7 +208,7 @@ def finalize(lines, args, mode):
             index = call_index[cur_sub]
 
             ret_labels = [cur_sub+"_"+str(i) for i in range(1, index+1)]
-            if mode == "cbm":
+            if args.mode == "cbm":
                 line = "%s GOSUBPOP_Q:ONQGOTO%s" % (lnum, ",".join(ret_labels))
             else:
                 line = "%s X=X-1:ON X%%(X+1) GOTO %s" % (lnum, ",".join(ret_labels))
@@ -213,7 +222,7 @@ def finalize(lines, args, mode):
             stext = text
             text = re.sub(r"(THEN *)%s\b" % a, r"\g<1>%s" % b, stext)
             #text = re.sub(r"(THEN)%s\b" % a, r"THEN%s" % b, stext)
-            if mode == "cbm":
+            if args.mode == "cbm":
                 text = re.sub(r"ON *([^:\n]*) *GOTO *([^:\n]*)\b%s\b" % a, r"ON\g<1>GOTO\g<2>%s" % b, text)
                 text = re.sub(r"ON *([^:\n]*) *GOSUB *([^:\n]*)\b%s\b" % a, r"ON\g<1>GOSUB\g<2>%s" % b, text)
             else:
@@ -286,6 +295,13 @@ def finalize(lines, args, mode):
             text = update_labels_lines(text, a, b)
         lines = text.split("\n")
 
+    # Force non-UI QBasic to use text console. LINE INPUT also needs
+    # to be used instead in character-by-character READLINE
+    if args.full_mode == "qbasic-noui":
+        # Add console program prefix for qb64/qbasic
+        lines = ["$CONSOLE",
+                 "$SCREENHIDE",
+                 "_DEST _CONSOLE"] + lines
 
     return lines
 
@@ -300,10 +316,10 @@ if __name__ == '__main__':
     debug("Original lines: %s" % len(lines))
 
     # pull in include files
-    lines = resolve_includes(lines, keep_rems=args.keep_rems)
+    lines = resolve_includes(lines, args)
     debug("Lines after includes: %s" % len(lines))
 
-    lines = resolve_mode(lines, mode=args.mode)
+    lines = resolve_mode(lines, args)
     debug("Lines after resolving mode specific lines: %s" % len(lines))
 
     # drop blank lines
@@ -325,7 +341,7 @@ if __name__ == '__main__':
         lines = misc_fixups(lines)
 
     # number lines, drop/keep labels, combine lines
-    lines = finalize(lines, args, mode=args.mode)
+    lines = finalize(lines, args)
     debug("Lines after finalizing: %s" % len(lines))
 
     print("\n".join(lines))

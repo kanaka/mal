@@ -1,5 +1,7 @@
-MODE = cbm
-BASICPP_OPTS = --mode $(MODE)
+basic_MODE = cbm
+BASICPP_OPTS = --mode $(basic_MODE)
+
+QB64 = qb64
 
 STEPS4_A = step4_if_fn_do.bas step5_tco.bas step6_file.bas \
            step7_quote.bas step8_macros.bas step9_try.bas stepA_mal.bas
@@ -7,19 +9,23 @@ STEPS3_A = step3_env.bas $(STEPS4_A)
 STEPS1_A = step1_read_print.bas step2_eval.bas $(STEPS3_A)
 STEPS0_A = step0_repl.bas $(STEPS1_A)
 
+$(STEPS0_A): readline.in.bas readline_line.in.bas readline_char.in.bas
+$(STEPS1_A): debug.in.bas mem.in.bas types.in.bas reader.in.bas printer.in.bas
+$(STEPS3_A): env.in.bas
+$(STEPS4_A): core.in.bas
+
+
 all: $(STEPS0_A)
 
 step%.bas: step%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
 
-$(STEPS0_A): readline.in.bas
-$(STEPS1_A): debug.in.bas mem.in.bas types.in.bas reader.in.bas printer.in.bas
-$(STEPS3_A): env.in.bas
-$(STEPS4_A): core.in.bas
-
 tests/%.bas: tests/%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@
 
+# QBasic specific compilation rule
+step%: step%.bas
+	$(QB64) -x $(abspath $<) -o $(abspath $@)
 
 # CBM/C64 image rules
 
@@ -51,11 +57,13 @@ mal.d64: mal.prg .args.mal.prg core.mal.prg
 .PHONY: clean stats
 
 clean:
-	rm -f $(STEPS0_A) *.d64 *.prg
+	rm -f $(STEPS0_A) $(subst .bas,,$(STEPS0_A)) *.d64 *.prg qb64
+	rm -rf ./internal
 
 
 SOURCES_LISP = env.in.bas core.in.bas stepA_mal.in.bas
-SOURCES = readline.in.bas types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
+SOURCES = readline.in.bas readline_line.in.bas readline_char.in.bas \
+	  types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
 
 stats: $(SOURCES)
 	@wc $^

@@ -416,7 +416,8 @@ MAIN:
 
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
-    END
+    #cbm END
+    #qbasic SYSTEM
 
   PRINT_ERROR:
     PRINT "Error: "+E$

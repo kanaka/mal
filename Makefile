@@ -46,6 +46,8 @@ all help:
 
 MAL_IMPL = js
 
+# cbm or qbasic
+basic_MODE = cbm
 # clj or cljs (Clojure vs ClojureScript/lumo)
 clojure_MODE = clj
 # python, js, cpp, or neko
@@ -149,6 +151,9 @@ endif
 # Implementation specific utility functions
 #
 
+basic_STEP_TO_PROG_cbm    = basic/$($(1)).bas
+basic_STEP_TO_PROG_qbasic = basic/$($(1))
+
 haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
 haxe_STEP_TO_PROG_python = haxe/$($(1)).py
 haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
@@ -170,6 +175,7 @@ ada_STEP_TO_PROG =     ada/$($(1))
 awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
 basic_STEP_TO_PROG =   basic/$($(1)).bas
+basic_STEP_TO_PROG =   $(basic_STEP_TO_PROG_$(basic_MODE))
 c_STEP_TO_PROG =       c/$($(1))
 d_STEP_TO_PROG =       d/$($(1))
 chuck_STEP_TO_PROG =   chuck/$($(1)).ck

@@ -1,4 +1,8 @@
 #!/bin/bash
 cd $(dirname $0)
 (echo "(list $(for a in "${@}"; do echo -n "\"${a}\""; done))") > .args.mal
-exec cbmbasic ${STEP:-stepA_mal}.bas "${@}"
+case ${basic_MODE:-cbm} in
+    cbm)    exec cbmbasic ${STEP:-stepA_mal}.bas "${@}" ;;
+    qbasic) exec ./${STEP:-stepA_mal} "${@}" ;;
+    *)      echo "Invalid basic_MODE: ${basic_MODE}"; exit 2 ;;
+esac

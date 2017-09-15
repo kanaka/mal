@@ -271,7 +271,8 @@ DO_FUNCTION:
     DO_SLURP_LOOP:
       C$=""
       RJ=1:GOSUB READ_FILE_CHAR
-      IF ASC(C$)=10 THEN R$=R$+CHR$(13)
+      #cbm IF ASC(C$)=10 THEN R$=R$+CHR$(13)
+      #qbasic IF ASC(C$)=10 THEN R$=R$+CHR$(10)
       IF (ASC(C$)<>10) AND (C$<>"") THEN R$=R$+C$
       IF EZ>0 THEN GOTO DO_SLURP_DONE
       GOTO DO_SLURP_LOOP

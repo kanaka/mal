@@ -627,12 +627,12 @@ MAIN:
 
   QUIT:
     REM GOSUB PR_MEMORY_SUMMARY_SMALL
-    PRINT:GOSUB PR_MEMORY_SUMMARY_SMALL
     REM GOSUB PR_MEMORY_MAP
     REM P1=0:P2=ZI:GOSUB PR_MEMORY
     REM P1=D:GOSUB PR_OBJECT
     REM P1=ZK:GOSUB PR_OBJECT
-    END
+    #cbm END
+    #qbasic SYSTEM
 
   PRINT_ERROR:
     REM if the error is an object, then print and free it

@@ -37,7 +37,8 @@ PR_STR:
   PR_STRING_READABLY:
     S1$="\":S2$="\\":GOSUB REPLACE: REM escape backslash "
     S1$=CHR$(34):S2$="\"+CHR$(34):GOSUB REPLACE: REM escape quotes "
-    S1$=CHR$(13):S2$="\n":GOSUB REPLACE: REM escape newlines
+    #cbm S1$=CHR$(13):S2$="\n":GOSUB REPLACE: REM escape newlines
+    #qbasic S1$=CHR$(10):S2$="\n":GOSUB REPLACE: REM escape newlines
     R$=CHR$(34)+R$+CHR$(34)
     RETURN
   PR_SYMBOL:
