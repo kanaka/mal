@@ -383,7 +383,8 @@ INIT_MEMORY:
   ZK=16
 
   REM start of time clock
-  BT=TI
+  #cbm BT=TI
+  #qbasic BT#=TIMER(0.001)
 
   RETURN
 
