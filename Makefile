@@ -66,19 +66,12 @@ REGRESS =
 DEFERRABLE=1
 OPTIONAL=1
 
-# Extra implementation specific options to pass to runtest.py
-logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
-miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
-plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
-plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
-perl6_TEST_OPTS = --test-timeout=60
-
 # Run target/rule within docker image for the implementation
 DOCKERIZE =
 
+
 #
-# Settings
+# Implementation specific settings
 #
 
 IMPLS = ada awk bash basic c d chuck clojure coffee common-lisp cpp crystal cs dart \
@@ -134,8 +127,24 @@ dist_EXCLUDES += mal
 # TODO: still need to implement dist
 dist_EXCLUDES += guile io julia matlab swift
 
+
+# Extra options to pass to runtest.py
+logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
+miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
+plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
+plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
+perl6_TEST_OPTS = --test-timeout=60
+vimscript_TEST_OPTS = --test-timeout 30
+ifeq ($(MAL_IMPL),vimscript)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+else ifeq ($(MAL_IMPL),powershell)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+endif
+
+
 #
-# Utility functions
+# Implementation specific utility functions
 #
 
 haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
@@ -153,16 +162,6 @@ scheme_STEP_TO_PROG_chicken     = scheme/$($(1))
 scheme_STEP_TO_PROG_sagittarius = scheme/$($(1)).scm
 scheme_STEP_TO_PROG_cyclone     = scheme/$($(1))
 scheme_STEP_TO_PROG_foment      = scheme/$($(1)).scm
-
-opt_DEFERRABLE      = $(if $(strip $(DEFERRABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERRABLE)),--deferrable,--no-deferrable),--no-deferrable)
-opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
-
-# Return list of test files for a given step. If REGRESS is set then
-# test files will include step 2 tests through tests for the step
-# being tested.
-STEP_TEST_FILES = $(strip $(wildcard \
-		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
-		      $(1)/tests/$($(s))$(EXTENSION) tests/$($(s))$(EXTENSION))))
 
 # Map of step (e.g. "step8") to executable file for that step
 ada_STEP_TO_PROG =     ada/$($(1))
@@ -235,11 +234,25 @@ livescript_STEP_TO_PROG = livescript/$($(1)).js
 elm_STEP_TO_PROG =     elm/$($(1)).js
 
 
+#
+# General settings and utility functions
+#
+
 # Needed some argument munging
 COMMA = ,
 noop =
 SPACE = $(noop) $(noop)
 export FACTOR_ROOTS := .
+
+opt_DEFERRABLE      = $(if $(strip $(DEFERRABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERRABLE)),--deferrable,--no-deferrable),--no-deferrable)
+opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
+
+# Return list of test files for a given step. If REGRESS is set then
+# test files will include step 2 tests through tests for the step
+# being tested.
+STEP_TEST_FILES = $(strip $(wildcard \
+		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
+		      $(1)/tests/$($(s))$(EXTENSION) tests/$($(s))$(EXTENSION))))
 
 # DOCKERIZE utility functions
 lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
@@ -290,13 +303,6 @@ get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb
 # Returns the runtest command prefix (with runtest options) for testing the given step
 get_argvtest_cmd = $(call get_run_prefix,$(1),$(2)) ../run_argv_test.sh
 
-vimscript_TEST_OPTS = --test-timeout 30
-ifeq ($(MAL_IMPL),vimscript)
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
-else ifeq ($(MAL_IMPL),powershell)
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
-endif
-
 # Derived lists
 STEPS = $(sort $(filter step%,$(.VARIABLES)))
 DO_IMPLS = $(filter-out $(SKIP_IMPLS),$(IMPLS))
@@ -316,9 +322,13 @@ ALL_REPL = $(strip $(sort \
              $(foreach impl,$(DO_IMPLS),\
                $(foreach step,$(STEPS),repl^$(impl)^$(step)))))
 
+
 #
 # Build rules
 #
+
+# Enable secondary expansion for all rules
+.SECONDEXPANSION:
 
 # Build a program in an implementation directory
 # Make sure we always try and build first because the dependencies are
@@ -331,10 +341,8 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	    $(call get_build_command,$(impl)) -C $(impl) $(subst $(impl)/,,$(@))))
 
 # Allow IMPL, and IMPL^STEP
-.SECONDEXPANSION:
 $(DO_IMPLS): $$(foreach s,$$(STEPS),$$(call $$(@)_STEP_TO_PROG,$$(s)))
 
-.SECONDEXPANSION:
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 2,$$(subst ^, ,$$(@))))
 
 
@@ -342,7 +350,6 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(s
 # Test rules
 #
 
-.SECONDEXPANSION:
 $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
@@ -364,10 +371,8 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 test: $(ALL_TESTS)
 tests: $(ALL_TESTS)
 
-.SECONDEXPANSION:
 $(IMPL_TESTS): $$(filter $$@^%,$$(ALL_TESTS))
 
-.SECONDEXPANSION:
 $(STEP_TESTS): $$(foreach step,$$(subst test^,,$$@),$$(filter %^$$(step),$$(ALL_TESTS)))
 
 
@@ -377,7 +382,6 @@ $(STEP_TESTS): $$(foreach step,$$(subst test^,,$$@),$$(filter %^$$(step),$$(ALL_
 
 dist: $(IMPL_DIST)
 
-.SECONDEXPANSION:
 $(IMPL_DIST):
 	@echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
@@ -391,7 +395,6 @@ $(IMPL_DIST):
 
 docker-build: $(DOCKER_BUILD)
 
-.SECONDEXPANSION:
 $(DOCKER_BUILD):
 	echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
@@ -405,7 +408,6 @@ $(DOCKER_BUILD):
 
 perf: $(IMPL_PERF)
 
-.SECONDEXPANSION:
 $(IMPL_PERF):
 	@echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
@@ -423,23 +425,20 @@ $(IMPL_PERF):
 # REPL invocation rules
 #
 
-.SECONDEXPANSION:
 $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
 	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)); \
 	    echo 'REPL implementation $(impl), step file: $+'; \
-	    echo 'Running: $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run'; \
-	    $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run;))
+	    echo 'Running: $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run $(RUN_ARGS)'; \
+	    $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run $(RUN_ARGS);))
 
 # Allow repl^IMPL^STEP and repl^IMPL (which starts REPL of stepA)
-.SECONDEXPANSION:
 $(IMPL_REPL): $$@^stepA
 
 #
 # Utility functions
 #
-.SECONDEXPANSION:
 print-%:
 	@echo "$($(*))"
 
@@ -450,7 +449,6 @@ print-%:
 define recur_template
 .PHONY: $(1)
 $(1): $(2)
-.SECONDEXPANSION:
 $(2):
 	@echo "----------------------------------------------"; \
 	$$(foreach impl,$$(word 2,$$(subst ^, ,$$(@))),\
