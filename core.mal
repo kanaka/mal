@@ -84,4 +84,25 @@
             (list form x))
           `(->> (->> ~x ~form) ~@more))))))
 
+(define (cm s xs c)
+  (if (empty? xs)
+      ()
+      (cons (list c (symbol (str s '- (first xs)))) (cm s (rest xs) (+ c 1)))))
+
+(defmacro! struct
+  (fn* (& xs)
+       (let* (id (first xs) fs (cm id (nth xs 1) 1))
+         (cons 'do
+               (cons `(def! ~id
+                        (fn* (& xs)
+                             (apply vector (cons (quote ~id) xs))))
+                     (cons `(def! ~(symbol (str id "?"))
+                              (fn* (s)
+                                   (and (vector? s) (= (count s) ~(+ (count fs) 1)) (= (nth s 0) (quote ~id)))))
+                           (map (fn* (x)
+                                     `(def! ~(nth x 1)
+                                        (fn* (s)
+                                             (nth s ~(nth x 0)))))
+                                fs)))))))
+
 nil
