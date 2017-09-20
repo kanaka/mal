@@ -32,9 +32,9 @@ So jump right in (er ... start the climb)!
 
 You might already have a language in mind that you want to use.
 Technically speaking, mal can be implemented in any sufficiently
-complete programming language (i.e. Turing complete), however, there are a few
-language features that can make the task MUCH easier. Here are some of
-them in rough order of importance:
+complete programming language (i.e. Turing complete), however, there
+are a few language features that can make the task MUCH easier. Here
+are some of them in rough order of importance:
 
 * A sequential compound data structure (e.g. arrays, lists,
   vectors, etc)
@@ -1329,8 +1329,11 @@ implementation. Let us continue!
 * In the main program, use the `rep` function to define two new
   control structures macros. Here are the string arguments for `rep`
   to define these macros:
-  * TODO: note throw is not present until step9
   * `cond`: "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+    * Note that `cond` calls the `throw` function when `cond` is
+      called with an odd number of args. The `throw` function is
+      implemented in the next step, but it will still serve it's
+      purpose here by causing an undefined symbol error.
   * `or`: "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 
 
@@ -1513,8 +1516,17 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   entered by the user is returned as a string. If the user sends an
   end-of-file (usually Ctrl-D), then nil is returned.
 
-* Add meta-data support to mal functions. TODO. Should be separate
-  from the function macro flag.
+* Add meta-data support to mal functions by adding a new metadata
+  attribute on mal functions that refers to another mal value/type
+  (nil by default). Add the following metadata related core functions:
+  * `meta`: this takes a single mal function argument and returns the
+    value of the metadata attribute.
+  * `with-meta`: this function takes two arguments. The first argument
+    is a mal function and the second argument is another mal
+    value/type to set as metadata. A copy of the mal function is
+    returned that has its `meta` attribute set to the second argument.
+    Note that it is important that the environment and macro attribute
+    of mal function are retained when it is copied.
 
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
@@ -1606,15 +1618,15 @@ For extra information read [Peter Seibel's thorough discussion about
 
 #### Optional additions
 
-* Add metadata support to mal functions, other composite data
-  types, and native functions.
+* Add metadata support to other composite data types (lists, vectors
+  and hash-maps), and to native functions.
 * Add the following new core functions:
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
     not possible, since another point in time (`time-ms` is usually
     used relatively to measure time durations).  After `time-ms` is
-    implemented, you can run the mal implementation performance
-    benchmarks by running `make perf^quux`.
+    implemented, you can run the performance micro-benchmarks by
+    running `make perf^quux`.
   * `conj`: takes a collection and one or more elements as arguments
     and returns a new collection which includes the original
     collection and the new elements.  If the collection is a list, a
@@ -1640,13 +1652,35 @@ For extra information read [Peter Seibel's thorough discussion about
     function should be added in `quux/tests/stepA_mal.mal` (see the
     [tests for `lua-eval`](../lua/tests/stepA_mal.mal) as an example).
 
+### Next Steps
 
-## TODO:
-
-* simplify: "X argument (list element Y)" -> ast[Y]
-* list of types with metadata: mal functions (required for
-  self-hosting), list, vector, hash-map, native functions (optional
-  for self-hosting).
-* more clarity about when to peek and poke in read_list and read_form
-* tokenizer: use first group rather than whole match (to eliminate
-  whitespace/commas)
+* Join the #mal IRC channel. It's fairly quiet but there are bursts of
+  interesting conversation related to mal, Lisps, esoteric programming
+  languages, etc.
+* If you have created an implementation for a new target language (or
+  a unique and interesting variant of an existing implementation),
+  consider sending a pull request to add it into the main mal
+  repository. The [FAQ](FAQ.md#add_implementation) describes general
+  requirements for getting an implementation merged into the main
+  repository.
+* Take your interpreter implementation and have it emit source code in
+  the target language rather than immediately evaluating it. In other
+  words, create a compiler.
+* Pick a new target language and implement mal in it. Pick a language
+  that is very different from any that you already know.
+* Use your mal implementation to implement a real world project. Many
+  of these will force you to address interop. Some ideas:
+  * Web server (with mal as CGI language for extra points)
+  * An IRC/Slack chat bot
+  * An editor (GUI or curses) with mal as a scripting/extension
+    language.
+  * An AI player for a game like Chess or Go.
+* Implement a feature in your mal implementation that is not covered
+  by this guide. Some ideas:
+  * Namespaces
+  * Multi-threading support
+  * Errors with line numbers and/or stack traces.
+  * Lazy sequences
+  * Clojure-style protocols
+  * Full call/cc (call-with-current-continuation) support
+  * Explicit TCO (i.e. `recur`) with tail-position error checking

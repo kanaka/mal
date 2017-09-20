@@ -10,6 +10,11 @@ General:
         - mention that identifier names are suggested. some have run
           into collisions with READ,EVAL,PRINT in case insensitive
           languages
+        - simplify: "X argument (list element Y)" -> ast[Y]
+        - more clarity about when to peek and poke in read_list and
+          read_form
+        - tokenizer: use first group rather than whole match (to
+          eliminate whitespace/commas)
 
 All Implementations:
     - regular expression matching in runtest
