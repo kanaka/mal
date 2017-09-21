@@ -1,6 +1,6 @@
 (import [hy.models [HyInteger :as Int HyKeyword :as Keyword
                     HyString :as Str HySymbol :as Sym HyDict :as Map]])
-
+(import [mal_types [Atom]])
 
 (defn escape [s]
   (-> (str s) (.replace "\\" "\\\\")
@@ -19,4 +19,5 @@
       (= t tuple)   (+ "(" (.join " " (map (fn [x] (pr-str x _r)) obj)) ")")
       (= t list)    (+ "[" (.join " " (map (fn [x] (pr-str x _r)) obj)) "]")
       (= t Map)     (+ "{" (.join " " (map (fn [x] (pr-str x _r)) obj)) "}")
+      (instance? Atom obj) (+ "(atom " (pr-str obj.val _r) ")")
       True          (str obj))))

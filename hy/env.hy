@@ -15,9 +15,9 @@
 
 (defn env-find [env k]
   (if
-    (.has_key env k)       env
-    (.has_key env ':outer) (env-find (get env ':outer) k)
-    True                   None))
+    (.has_key env k)  env
+    (get env ':outer) (env-find (get env ':outer) k)
+    True              None))
 
 (defn env-get [env k]
   (setv e (env-find env k))
