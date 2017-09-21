@@ -5,8 +5,12 @@
 
 (defn equal [a b]
   (if (and (coll? a) (coll? b) (= (len a) (len b)))
-    (every? (fn [[a b]] (equal a b)) (zip a b))
-    (= a b)))
+      (every? (fn [[a b]] (equal a b)) (zip a b))
+
+      (= (type a) (type b))
+      (= a b)
+
+      False))
 
 (def ns
   {"=" equal
@@ -17,7 +21,7 @@
    "println" (fn [&rest a] (print (.join " " (map (fn [e] (pr-str e False)) a))))
    "read-string" read-str
    "slurp"   (fn [a] (Str (-> a open .read)))
-  
+
    "<"  <
    "<=" <=
    ">"  >
@@ -30,6 +34,8 @@
    "list"   (fn [&rest args] (tuple args))
    "list?"  (fn [a] (instance? tuple a))
 
+   "cons"   (fn [a b] (tuple (chain [a] b)))
+   "concat" (fn [&rest a] (tuple (apply chain a)))
    "empty?" empty?
    "count"  (fn [a] (if (none? a) 0 (len a)))
 
