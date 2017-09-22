@@ -36,6 +36,9 @@
 
    "cons"   (fn [a b] (tuple (chain [a] b)))
    "concat" (fn [&rest a] (tuple (apply chain a)))
+   "nth"    (fn [a b] (get a b))
+   "first"  (fn [a] (if (none? a) None (first a)))
+   "rest"   (fn [a] (if (none? a) (,) (tuple (rest a))))
    "empty?" empty?
    "count"  (fn [a] (if (none? a) 0 (len a)))
 
