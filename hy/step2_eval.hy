@@ -21,21 +21,21 @@
     True                  ast))
 
 (defn EVAL [ast env]
-  (if (not (instance? tuple ast))
-      (eval-ast ast env)
+  ;; indented to match later steps
+      (if (not (instance? tuple ast))
+        (eval-ast ast env)
 
-      ;; apply list
-      ;; indented to match later steps
-            (if
-              (empty? ast)
-              ast
+        ;; apply list
+              (if
+                (empty? ast)
+                ast
 
-              ;; apply
-              (do
-                (setv el (eval-ast ast env)
-                      f (first el)
-                      args (rest el))
-                (apply f args)))))
+                ;; apply
+                (do
+                  (setv el (eval-ast ast env)
+                        f (first el)
+                        args (list (rest el)))
+                  (apply f args)))))
 
 ;; print
 (defn PRINT [exp]

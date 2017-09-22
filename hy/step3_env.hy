@@ -23,34 +23,34 @@
     True                  ast))
 
 (defn EVAL [ast env]
-  ;;(print "EVAL:" ast (type ast) (instance? tuple ast))
-  (if (not (instance? tuple ast))
-      (eval-ast ast env)
+  ;;(print "EVAL:" ast (type ast))
+  ;; indented to match later steps
+      (if (not (instance? tuple ast))
+        (eval-ast ast env)
 
-      ;; apply list
-      ;; indented to match later steps
-          (do
-            (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
-            (if
-              (none? a0)
-              ast
+        ;; apply list
+            (do
+              (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
+              (if
+                (none? a0)
+                ast
 
-              (= (Sym "def!") a0)
-              (env-set env a1 (EVAL a2 env))
+                (= (Sym "def!") a0)
+                (env-set env a1 (EVAL a2 env))
 
-              (= (Sym "let*") a0)
-              (do
-                (setv env (env-new env))
-                (for [[b e] (partition a1 2)]
-                  (env-set env b (EVAL e env)))
-                (EVAL a2 env))
+                (= (Sym "let*") a0)
+                (do
+                  (setv env (env-new env))
+                  (for [[b e] (partition a1 2)]
+                    (env-set env b (EVAL e env)))
+                  (EVAL a2 env))
 
-              ;; apply
-              (do
-                (setv el (eval-ast ast env)
-                      f (first el)
-                      args (rest el))
-                (apply f args))))))
+                ;; apply
+                (do
+                  (setv el (eval-ast ast env)
+                        f (first el)
+                        args (list (rest el)))
+                  (apply f args))))))
 
 ;; print
 (defn PRINT [exp]

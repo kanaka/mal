@@ -24,51 +24,51 @@
     True                  ast))
 
 (defn EVAL [ast env]
-  ;;(print "EVAL:" ast (type ast) (instance? tuple ast))
-  (if (not (instance? tuple ast))
-      (eval-ast ast env)
+  ;;(print "EVAL:" ast (type ast))
+  ;; indented to match later steps
+      (if (not (instance? tuple ast))
+        (eval-ast ast env)
 
-      ;; apply list
-      ;; indented to match later steps
-          (do
-            (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
-            (if
-              (none? a0)
-              ast
+        ;; apply list
+            (do
+              (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
+              (if
+                (none? a0)
+                ast
 
-              (= (Sym "def!") a0)
-              (env-set env a1 (EVAL a2 env))
+                (= (Sym "def!") a0)
+                (env-set env a1 (EVAL a2 env))
 
-              (= (Sym "let*") a0)
-              (do
-                (setv env (env-new env))
-                (for [[b e] (partition a1 2)]
-                  (env-set env b (EVAL e env)))
-                (EVAL a2 env))
+                (= (Sym "let*") a0)
+                (do
+                  (setv env (env-new env))
+                  (for [[b e] (partition a1 2)]
+                    (env-set env b (EVAL e env)))
+                  (EVAL a2 env))
 
-              (= (Sym "do") a0)
-              (last (eval-ast (list (rest ast)) env))
+                (= (Sym "do") a0)
+                (last (eval-ast (list (rest ast)) env))
 
-              (= (Sym "if") a0)
-              (do
-                (setv cond (EVAL a1 env))
-                (if (or (none? cond) (and (instance? bool cond)
-                                          (= cond False)))
-                  (if (> (len ast) 2)
-                    (EVAL (nth ast 3) env)
-                    None)
-                  (EVAL a2 env)))
+                (= (Sym "if") a0)
+                (do
+                  (setv cond (EVAL a1 env))
+                  (if (or (none? cond) (and (instance? bool cond)
+                                            (= cond False)))
+                    (if (> (len ast) 2)
+                      (EVAL (nth ast 3) env)
+                      None)
+                    (EVAL a2 env)))
 
-              (= (Sym "fn*") a0)
-              (fn [&rest args]
-                (EVAL a2 (env-new env a1 (or args []))))
+                (= (Sym "fn*") a0)
+                (fn [&rest args]
+                  (EVAL a2 (env-new env a1 (or args []))))
 
-              ;; apply
-              (do
-                (setv el (eval-ast ast env)
-                      f (first el)
-                      args (list (rest el)))
-                (apply f args))))))
+                ;; apply
+                (do
+                  (setv el (eval-ast ast env)
+                        f (first el)
+                        args (list (rest el)))
+                  (apply f args))))))
 
 ;; print
 (defn PRINT [exp]

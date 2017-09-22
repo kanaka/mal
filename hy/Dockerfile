@@ -22,7 +22,7 @@ WORKDIR /mal
 ##########################################################
 
 # Hy
-RUN apt-get -y install python-pip
-RUN pip install hy && \
+RUN apt-get -y install python-pip && \
+    pip install hy && \
     mkdir /.cache && \
     chmod uog+rwx /.cache
