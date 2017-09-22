@@ -1,6 +1,7 @@
 (import [hy.models [HyKeyword :as Keyword HyString :as Str HySymbol :as Sym]])
 (import [copy [copy]])
-(import [mal_types [MalException Atom]])
+(import [time [time]])
+(import [mal_types [MalException Atom clone]])
 (import [reader [read-str]])
 (import [printer [pr-str]])
 
@@ -26,6 +27,7 @@
    "nil?"     none?
    "true?"    (fn [a] (and (instance? bool a) (= a True)))
    "false?"   (fn [a] (and (instance? bool a) (= a False)))
+   "string?"  (fn [a] (and (string? a) (not (keyword? a))))
    "symbol"   (fn [a] (Sym a))
    "symbol?"  (fn [a] (instance? Sym a))
    "keyword"  (fn [a] (Keyword (if (keyword? a) a (+ ":" a))))
@@ -36,6 +38,7 @@
    "prn"     (fn [&rest a] (print (.join " " (map (fn [e] (pr-str e True)) a))))
    "println" (fn [&rest a] (print (.join " " (map (fn [e] (pr-str e False)) a))))
    "read-string" read-str
+   "readline" (fn [a] (Str (raw_input a)))
    "slurp"   (fn [a] (Str (-> a open .read)))
 
    "<"  <
@@ -46,6 +49,7 @@
    "-"  -
    "*"  *
    "/"  (fn [a b] (int (/ a b)))
+   "time-ms"   (fn [] (int (* 1000 (time))))
 
    "list"      (fn [&rest args] (tuple args))
    "list?"     (fn [a] (instance? tuple a))
@@ -73,6 +77,14 @@
    "apply"  (fn [f &rest a] (apply f (+ (list (butlast a)) (list (last a)))))
    "map"    (fn [f a] (tuple (map f a)))
 
+   "conj"   (fn [a &rest xs] (if (instance? list a) (+ a (list xs))
+                                 (tuple (+ (tuple (reversed xs)) a))))
+   "seq"    (fn [a] (if (or (none? a) (empty? a)) None
+                        (string? a) (tuple (map Str a))
+                        (tuple a)))
+
+   "meta"   (fn [a] (if (hasattr a "meta") a.meta))
+   "with-meta" (fn [a b] (setv a (clone a)) (setv a.meta b) a)
    "atom"   (fn [a] (Atom a))
    "atom?"  (fn [a] (instance? Atom a))
    "deref"  (fn [a] a.val)
