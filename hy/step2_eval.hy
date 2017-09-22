@@ -1,6 +1,5 @@
 #!/usr/bin/env hy
 
-(import [hy.models [HyDict :as Map]])
 (import sys traceback)
 (import [reader [read-str Blank]])
 (import [printer [pr-str]])
@@ -14,7 +13,9 @@
   (if
     (symbol? ast)         (if (.has_key env ast) (get env ast)
                               (raise (Exception (+ ast " not found"))))
-    (instance? Map ast)   (Map (map (fn [x] (EVAL x env)) ast))
+    (instance? dict ast)  (dict (map (fn [k]
+                                       [(EVAL k env) (EVAL (get ast k) env)])
+                                     ast))
     (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
     (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))
     True                  ast))

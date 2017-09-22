@@ -1,6 +1,6 @@
 #!/usr/bin/env hy
 
-(import [hy.models [HyDict :as Map HyString :as Str HySymbol :as Sym]])
+(import [hy.models [HyString :as Str HySymbol :as Sym]])
 (import sys traceback)
 (import [reader [read-str Blank]])
 (import [printer [pr-str]])
@@ -13,7 +13,7 @@
 
 ;; eval
 (defn pair? [x]
-  (and (coll? x) (> (len x) 0)))
+  (and (core.sequential? x) (> (len x) 0)))
 
 (defn QUASIQUOTE [ast]
   (if
@@ -50,7 +50,9 @@
   ;;(print "eval-ast:" ast (type ast))
   (if
     (symbol? ast)         (env-get env ast)
-    (instance? Map ast)   (Map (map (fn [x] (EVAL x env)) ast))
+    (instance? dict ast)  (dict (map (fn [k]
+                                       [(EVAL k env) (EVAL (get ast k) env)])
+                                     ast))
     (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
     (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))
     True                  ast))

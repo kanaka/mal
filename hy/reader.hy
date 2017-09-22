@@ -1,5 +1,5 @@
 (import [hy.models [HyInteger :as Int HyKeyword :as Keyword
-                    HyString :as Str HySymbol :as Sym HyDict :as Map]]
+                    HyString :as Str HySymbol :as Sym]]
         [re])
 
 (defclass Blank [Exception])
@@ -82,7 +82,7 @@
     (= "[" token)  (read-seq rdr "[" "]")
 
     (= "}" token)  (raise (Exception "unexpected '}'"))
-    (= "{" token)  (Map (read-seq rdr "{" "}"))
+    (= "{" token)  (dict (partition (read-seq rdr "{" "}") 2))
 
     True           (read-atom rdr)))
 
