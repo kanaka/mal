@@ -1,5 +1,6 @@
-(import [hy.models [HyString :as Str]])
-(import [mal_types [Atom]])
+(import [hy.models [HyKeyword :as Keyword HyString :as Str HySymbol :as Sym]])
+(import [copy [copy]])
+(import [mal_types [MalException Atom]])
 (import [reader [read-str]])
 (import [printer [pr-str]])
 
@@ -19,7 +20,16 @@
       False))
 
 (def ns
-  {"=" equal
+  {"="        equal
+   "throw"    (fn [a] (raise (MalException a)))
+
+   "nil?"     none?
+   "true?"    (fn [a] (and (instance? bool a) (= a True)))
+   "false?"   (fn [a] (and (instance? bool a) (= a False)))
+   "symbol"   (fn [a] (Sym a))
+   "symbol?"  (fn [a] (instance? Sym a))
+   "keyword"  (fn [a] (Keyword (if (keyword? a) a (+ ":" a))))
+   "keyword?" (fn [a] (keyword? a))
 
    "pr-str"  (fn [&rest a] (Str (.join " " (map (fn [e] (pr-str e True)) a))))
    "str"     (fn [&rest a] (Str (.join "" (map (fn [e] (pr-str e False)) a))))
@@ -37,9 +47,22 @@
    "*"  *
    "/"  (fn [a b] (int (/ a b)))
 
-   "list"   (fn [&rest args] (tuple args))
-   "list?"  (fn [a] (instance? tuple a))
+   "list"      (fn [&rest args] (tuple args))
+   "list?"     (fn [a] (instance? tuple a))
+   "vector"    (fn [&rest a] (list a))
+   "vector?"   (fn [a] (instance? list a))
+   "hash-map"  (fn [&rest a] (dict (partition a 2)))
+   "map?"      (fn [a] (instance? dict a))
+   "assoc"     (fn [m &rest a] (setv m (copy m))
+                               (for [[k v] (partition a 2)] (assoc m k v)) m)
+   "dissoc"    (fn [m &rest a] (setv m (copy m))
+                               (for [k a] (if (.has_key m k) (.pop m k))) m)
+   "get"       (fn [m a] (if (and m (.has_key m a)) (get m a)))
+   "contains?" (fn [m a] (if (none? m) None (.has_key m a)))
+   "keys"      (fn [m] (tuple (.keys m)))
+   "vals"      (fn [m] (tuple (.values m)))
 
+   "sequential?" sequential?
    "cons"   (fn [a b] (tuple (chain [a] b)))
    "concat" (fn [&rest a] (tuple (apply chain a)))
    "nth"    (fn [a b] (get a b))
