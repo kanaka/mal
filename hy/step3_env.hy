@@ -25,38 +25,38 @@
 (defn EVAL [ast env]
   ;;(print "EVAL:" ast (type ast) (instance? tuple ast))
   (if (not (instance? tuple ast))
-    (eval-ast ast env)
+      (eval-ast ast env)
 
-    ;; apply list
-    (do
-      (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
-      (if
-        (none? a0)
-        ast
+      ;; apply list
+      ;; indented to match later steps
+          (do
+            (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
+            (if
+              (none? a0)
+              ast
 
-        (= (Sym "def!") a0)
-        (env-set env a1 (EVAL a2 env))
+              (= (Sym "def!") a0)
+              (env-set env a1 (EVAL a2 env))
 
-        (= (Sym "let*") a0)
-        (do
-          (setv let-env (env-new env))
-          (for [[b e] (partition a1 2)]
-            (env-set let-env b (EVAL e let-env)))
-          (EVAL a2 let-env))
+              (= (Sym "let*") a0)
+              (do
+                (setv env (env-new env))
+                (for [[b e] (partition a1 2)]
+                  (env-set env b (EVAL e env)))
+                (EVAL a2 env))
 
-        ;; apply
-        (do
-          (setv el (eval-ast ast env)
-                f (first el)
-                args (rest el))
-          (apply f args))))))
+              ;; apply
+              (do
+                (setv el (eval-ast ast env)
+                      f (first el)
+                      args (rest el))
+                (apply f args))))))
 
 ;; print
 (defn PRINT [exp]
   (pr-str exp True))
 
 ;; repl
-
 (def repl-env {'+ +
                '- -
                '* *
@@ -65,12 +65,15 @@
 (defn REP [str]
   (PRINT (EVAL (READ str) repl-env)))
 
-(while True
-  (try
-    (do (setv line (raw_input "user> "))
-        (if (= "" line) (continue))
-        (print (REP line)))
-    (except [EOFError] (break))
-    (except [Blank])
-    (except []
-      (print (.join "" (apply traceback.format_exception (.exc_info sys)))))))
+(defmain [&rest args]
+  ;; indented to match later steps
+      (while True
+        (try
+          (do (setv line (raw_input "user> "))
+              (if (= "" line) (continue))
+              (print (REP line)))
+          (except [EOFError] (break))
+          (except [Blank])
+          (except []
+            (print (.join "" (apply traceback.format_exception
+                                    (.exc_info sys))))))))

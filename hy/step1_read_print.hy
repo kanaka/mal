@@ -16,12 +16,15 @@
 (defn REP [str]
   (PRINT (EVAL (READ str) {})))
 
-(while True
-  (try
-    (do (setv line (raw_input "user> "))
-        (if (= "" line) (continue))
-        (print (REP line)))
-    (except [EOFError] (break))
-    (except [Blank])
-    (except []
-      (print (.join "" (apply traceback.format_exception (.exc_info sys)))))))
+(defmain [&rest args]
+  ;; indented to match later steps
+      (while True
+        (try
+          (do (setv line (raw_input "user> "))
+              (if (= "" line) (continue))
+              (print (REP line)))
+          (except [EOFError] (break))
+          (except [Blank])
+          (except []
+            (print (.join "" (apply traceback.format_exception
+                                    (.exc_info sys))))))))

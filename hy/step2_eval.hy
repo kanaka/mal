@@ -22,22 +22,26 @@
 
 (defn EVAL [ast env]
   (if (not (instance? tuple ast))
-    (eval-ast ast env)
+      (eval-ast ast env)
 
-    (if
-      (empty? ast) ast
-      (do
-        (setv el (eval-ast ast env)
-              f (first el)
-              args (rest el))
-        (apply f args)))))
+      ;; apply list
+      ;; indented to match later steps
+            (if
+              (empty? ast)
+              ast
+
+              ;; apply
+              (do
+                (setv el (eval-ast ast env)
+                      f (first el)
+                      args (rest el))
+                (apply f args)))))
 
 ;; print
 (defn PRINT [exp]
   (pr-str exp True))
 
 ;; repl
-
 (def repl-env {'+ +
                '- -
                '* *
@@ -46,12 +50,15 @@
 (defn REP [str]
   (PRINT (EVAL (READ str) repl-env)))
 
-(while True
-  (try
-    (do (setv line (raw_input "user> "))
-        (if (= "" line) (continue))
-        (print (REP line)))
-    (except [EOFError] (break))
-    (except [Blank])
-    (except []
-      (print (.join "" (apply traceback.format_exception (.exc_info sys)))))))
+(defmain [&rest args]
+  ;; indented to match later steps
+      (while True
+        (try
+          (do (setv line (raw_input "user> "))
+              (if (= "" line) (continue))
+              (print (REP line)))
+          (except [EOFError] (break))
+          (except [Blank])
+          (except []
+            (print (.join "" (apply traceback.format_exception
+                                    (.exc_info sys))))))))

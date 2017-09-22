@@ -12,9 +12,11 @@
 (defn REP [str]
   (PRINT (EVAL (READ str) {})))
 
-(while True
-  (try
-    (do (setv line (raw_input "user> "))
-        (if (= "" line) (continue))
-        (print (REP line)))
-    (except [EOFError] (break))))
+(defmain [&rest args]
+  ;; indented to match later steps
+      (while True
+        (try
+          (do (setv line (raw_input "user> "))
+              (if (= "" line) (continue))
+              (print (REP line)))
+          (except [EOFError] (break)))))

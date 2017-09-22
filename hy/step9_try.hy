@@ -64,7 +64,7 @@
   (while True
     (if (not (instance? tuple ast))
       (setv res (eval-ast ast env))
-  
+
       ;; apply list
       (do
         (setv ast (macroexpand ast env))
@@ -76,10 +76,10 @@
             (if
               (none? a0)
               (setv res ast)
-  
+
               (= (Sym "def!") a0)
               (setv res (env-set env a1 (EVAL a2 env)))
-  
+
               (= (Sym "let*") a0)
               (do
                 (setv env (env-new env))
@@ -93,7 +93,7 @@
 
               (= (Sym "quasiquote") a0)
               (do (setv ast (QUASIQUOTE a1)) (continue)) ;; TCO
-  
+
               (= (Sym "defmacro!") a0)
               (do (setv func (EVAL a2 env)
                         func.macro True)
@@ -114,12 +114,12 @@
                       (EVAL (nth a2 2) (env-new env [(nth a2 1)]
                                                     [exc]))))
                   (EVAL a1 env)))
-                
+
               (= (Sym "do") a0)
               (do (eval-ast (list (butlast (rest ast))) env)
                   (setv ast (last ast))
                   (continue)) ;; TCO
-  
+
               (= (Sym "if") a0)
               (do
                 (setv cond (EVAL a1 env))
@@ -129,7 +129,7 @@
                     (do (setv ast (nth ast 3)) (continue)) ;; TCO
                     (setv res None))
                   (do (setv ast a2) (continue)))) ;; TCO
-  
+
               (= (Sym "fn*") a0)
               (setv func (fn [&rest args]
                            (EVAL a2 (env-new env a1 (or args []))))
@@ -164,7 +164,7 @@
 (for [k core.ns]
   (env-set repl-env (Sym k) (get core.ns k)))
 (env-set repl-env (Sym "eval") (fn [ast] (EVAL ast repl-env)))
-(env-set repl-env (Sym "*ARGV*") (tuple (map Str (rest (rest sys.argv)))))
+(env-set repl-env (Sym "*ARGV*") (, ))
 
 ;; core.mal: defined using the language itself
 (REP "(def! not (fn* [a] (if a false true)))")
@@ -172,17 +172,19 @@
 (REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
-
-(when (>= (len sys.argv) 2)
-  (REP (+ "(load-file \"" (get sys.argv 1) "\")"))
-  (sys.exit 0)) 
-
-(while True
-  (try
-    (do (setv line (raw_input "user> "))
-        (if (= "" line) (continue))
-        (print (REP line)))
-    (except [EOFError] (break))
-    (except [Blank])
-    (except []
-      (print (.join "" (apply traceback.format_exception (.exc_info sys)))))))
+(defmain [&rest args]
+  (if (>= (len args) 2)
+    (do
+      (env-set repl-env (Sym "*ARGV*") (tuple (map Str (rest (rest args)))))
+      (REP (+ "(load-file \"" (get args 1) "\")")))
+    (do
+      (while True
+        (try
+          (do (setv line (raw_input "user> "))
+              (if (= "" line) (continue))
+              (print (REP line)))
+          (except [EOFError] (break))
+          (except [Blank])
+          (except []
+            (print (.join "" (apply traceback.format_exception
+                                    (.exc_info sys))))))))))
