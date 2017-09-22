@@ -38,6 +38,7 @@ matrix:
     - {env: IMPL=haxe haxe_MODE=python, services: [docker]}
     - {env: IMPL=haxe haxe_MODE=cpp,    services: [docker]}
     - {env: IMPL=haxe haxe_MODE=js,     services: [docker]}
+    - {env: IMPL=hy,        services: [docker]}
     - {env: IMPL=io,        services: [docker]}
     - {env: IMPL=java,      services: [docker]}
     - {env: IMPL=js,        services: [docker]}
