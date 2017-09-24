@@ -1,0 +1,33 @@
+;; Testing basic Yorick interop
+
+(yorick-eval "7")
+;=>7
+
+(yorick-eval "\"7\" + \"89\"")
+;=>"789"
+
+(yorick-eval "123 == 123")
+;=>1
+
+(yorick-eval "123 == 456")
+;=>0
+
+(yorick-eval "[7, 8, 9]")
+;=>(7 8 9)
+
+(yorick-eval "write, format=\"%s-%d\\x0A\", \"hello\", 1234; return nil;")
+; hello-1234
+;=>nil
+
+(yorick-eval "extern my_global_var; my_global_var = 8; return nil;")
+(yorick-eval "my_global_var")
+;=>8
+
+(yorick-eval "a = [7, 8, 9]; return a + 10;")
+;=>(17 18 19)
+
+(yorick-eval "[\"ab\", \"cd\", \"ef\"] + [\"X\", \"Y\", \"Z\"]")
+;=>("abX" "cdY" "efZ")
+
+(yorick-eval "strpart(\"ABCDEFGHIJ\", 4:7)")
+;=>"DEFG"

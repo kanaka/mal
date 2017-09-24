@@ -267,6 +267,24 @@ func mal_swap_bang(a)
 
 func mal_eval(a) { return EVAL(*a(1), repl_env); }
 
+func yorick_to_mal(e)
+{
+  if (is_void(e)) return MAL_NIL
+  if (is_scalar(e)) {
+    if (is_numerical(e)) return MalNumber(val=e)
+    else if (is_string(e)) return MalString(val=e)
+    else return MalString(val=totxt(e))
+  } else {
+    seq = array(pointer, numberof(e))
+    for (i = 1; i <= numberof(e); ++i) {
+      seq(i) = &yorick_to_mal(e(i))
+    }
+    return MalList(val=&seq)
+  }
+}
+
+func mal_yorick_eval(a) { return yorick_to_mal(exec(a(1)->val)); }
+
 core_ns = h_new()
 
 h_set, core_ns, "=",           mal_equal
@@ -335,6 +353,7 @@ h_set, core_ns, "reset!",      mal_reset_bang
 h_set, core_ns, "swap!",       mal_swap_bang
 
 h_set, core_ns, "eval",        mal_eval
+h_set, core_ns, "yorick-eval", mal_yorick_eval
 
 func call_core_fn(name, args_list)
 {
