@@ -48,10 +48,11 @@ NUMBER_REGEXP = regcomp("^-?[0-9]+$")
 
 func unescape(s)
 {
-  s1 = strpart(s, 2:-1) // remove surrounding quotes
-  s2 = streplaceall(s1, "\\n", "\n")
-  s3 = streplaceall(s2, "\\\"", "\"")
-  return streplaceall(s3, "\\\\", "\\")
+  s = strpart(s, 2:-1) // remove surrounding quotes
+  s = streplaceall(s, "\\\\", "\x01")
+  s = streplaceall(s, "\\n", "\n")
+  s = streplaceall(s, "\\\"", "\"")
+  return streplaceall(s, "\x01", "\\")
 }
 
 func read_atom(rdr)
