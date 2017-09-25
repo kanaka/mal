@@ -78,12 +78,12 @@ DOCKERIZE =
 # Implementation specific settings
 #
 
-IMPLS = ada awk bash basic c d chuck clojure coffee common-lisp cpp crystal cs dart \
-	erlang elisp elixir es6 factor forth fsharp go groovy gst guile haskell \
-	haxe hy io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
-	nim objc objpascal perl perl6 php pil plpgsql plsql powershell ps \
+IMPLS = ada awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
+	elisp elixir elm erlang es6 factor forth fsharp go groovy gst guile haskell \
+	haxe hy io java js julia kotlin livescript logo lua make mal matlab miniMAL \
+	nim objc objpascal ocaml perl perl6 php pil plpgsql plsql powershell ps \
 	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
-	ts vb vhdl vimscript yorick livescript elm
+	ts vb vhdl vimscript yorick
 
 EXTENSION = .mal
 
@@ -136,9 +136,9 @@ dist_EXCLUDES += guile io julia matlab swift
 logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
+perl6_TEST_OPTS = --test-timeout=60
 plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
 plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
-perl6_TEST_OPTS = --test-timeout=60
 vimscript_TEST_OPTS = --test-timeout 30
 ifeq ($(MAL_IMPL),vimscript)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
@@ -154,13 +154,13 @@ endif
 basic_STEP_TO_PROG_cbm    = basic/$($(1)).bas
 basic_STEP_TO_PROG_qbasic = basic/$($(1))
 
+clojure_STEP_TO_PROG_clj  = clojure/target/$($(1)).jar
+clojure_STEP_TO_PROG_cljs = clojure/src/mal/$($(1)).cljc
+
 haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
 haxe_STEP_TO_PROG_python = haxe/$($(1)).py
 haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
 haxe_STEP_TO_PROG_js     = haxe/$($(1)).js
-
-clojure_STEP_TO_PROG_clj  = clojure/target/$($(1)).jar
-clojure_STEP_TO_PROG_cljs = clojure/src/mal/$($(1)).cljc
 
 scheme_STEP_TO_PROG_chibi       = scheme/$($(1)).scm
 scheme_STEP_TO_PROG_kawa        = scheme/out/$($(1)).class
@@ -174,10 +174,8 @@ scheme_STEP_TO_PROG_foment      = scheme/$($(1)).scm
 ada_STEP_TO_PROG =     ada/$($(1))
 awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
-basic_STEP_TO_PROG =   basic/$($(1)).bas
 basic_STEP_TO_PROG =   $(basic_STEP_TO_PROG_$(basic_MODE))
 c_STEP_TO_PROG =       c/$($(1))
-d_STEP_TO_PROG =       d/$($(1))
 chuck_STEP_TO_PROG =   chuck/$($(1)).ck
 clojure_STEP_TO_PROG = $(clojure_STEP_TO_PROG_$(clojure_MODE))
 coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
@@ -185,9 +183,11 @@ common-lisp_STEP_TO_PROG =  common-lisp/$($(1))
 cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+d_STEP_TO_PROG =       d/$($(1))
 dart_STEP_TO_PROG =    dart/$($(1)).dart
 elisp_STEP_TO_PROG =   elisp/$($(1)).el
 elixir_STEP_TO_PROG =  elixir/lib/mix/tasks/$($(1)).ex
+elm_STEP_TO_PROG =     elm/$($(1)).js
 erlang_STEP_TO_PROG =  erlang/$($(1))
 es6_STEP_TO_PROG =     es6/build/$($(1)).js
 factor_STEP_TO_PROG =  factor/$($(1))/$($(1)).factor
@@ -196,23 +196,26 @@ fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
 go_STEP_TO_PROG =      go/$($(1))
 groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
 gst_STEP_TO_PROG =     gst/$($(1)).st
-java_STEP_TO_PROG =    java/target/classes/mal/$($(1)).class
+guile_STEP_TO_PROG =   guile/$($(1)).scm
 haskell_STEP_TO_PROG = haskell/$($(1))
 haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(haxe_MODE))
 hy_STEP_TO_PROG =      hy/$($(1)).hy
 io_STEP_TO_PROG =      io/$($(1)).io
-julia_STEP_TO_PROG =   julia/$($(1)).jl
+java_STEP_TO_PROG =    java/target/classes/mal/$($(1)).class
 js_STEP_TO_PROG =      js/$($(1)).js
+julia_STEP_TO_PROG =   julia/$($(1)).jl
 kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
+livescript_STEP_TO_PROG = livescript/$($(1)).js
+logo_STEP_TO_PROG =    logo/$($(1)).lg
 lua_STEP_TO_PROG =     lua/$($(1)).lua
 make_STEP_TO_PROG =    make/$($(1)).mk
 mal_STEP_TO_PROG =     mal/$($(1)).mal
-ocaml_STEP_TO_PROG =   ocaml/$($(1))
 matlab_STEP_TO_PROG =  matlab/$($(1)).m
 miniMAL_STEP_TO_PROG = miniMAL/$($(1)).json
 nim_STEP_TO_PROG =     nim/$($(1))
 objc_STEP_TO_PROG =    objc/$($(1))
 objpascal_STEP_TO_PROG = objpascal/$($(1))
+ocaml_STEP_TO_PROG =   ocaml/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 perl6_STEP_TO_PROG =   perl6/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
@@ -239,9 +242,6 @@ vb_STEP_TO_PROG =      vb/$($(1)).exe
 vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
 yorick_STEP_TO_PROG =  yorick/$($(1)).i
-guile_STEP_TO_PROG =   guile/$($(1)).scm
-livescript_STEP_TO_PROG = livescript/$($(1)).js
-elm_STEP_TO_PROG =     elm/$($(1)).js
 
 
 #
