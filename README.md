@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 70 languages:
+Mal is implemented in 71 languages:
 
 * Ada
 * GNU awk
@@ -78,6 +78,7 @@ Mal is implemented in 70 languages:
 * VHDL
 * Vimscript
 * Visual Basic.NET
+* Yorick
 
 
 Mal is a learning tool. See the [make-a-lisp process
@@ -1004,6 +1005,17 @@ required to build and run the VB.NET implementation.
 cd vb
 make
 mono ./stepX_YYY.exe
+```
+
+### Yorick
+
+*The Yorick implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Yorick implementation of mal was tested on Yorick 2.2.04.
+
+```
+cd yorick
+yorick -batch ./stepX_YYY.i
 ```
 
 
