@@ -273,6 +273,9 @@ a
 "abc\\def\\ghi"
 ;=>"abc\\def\\ghi"
 
+"\\n"
+;=>"\\n"
+
 ;; Testing pr-str
 
 (pr-str)
