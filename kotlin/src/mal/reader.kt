@@ -139,7 +139,11 @@ fun read_atom(reader: Reader): MalType {
     } else if (groups[4]?.value != null) {
         FALSE
     } else if (groups[5]?.value != null) {
-        MalString((groups[5]?.value as String).replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\"))
+        MalString((groups[5]?.value as String).replace(Regex("""\\(.)"""))
+            { m: MatchResult ->
+                if (m.groups[1]?.value == "n") "\n"
+                else m.groups[1]?.value.toString()
+            })
     } else if (groups[6]?.value != null) {
         MalKeyword(groups[6]?.value as String)
     } else if (groups[7]?.value != null) {
