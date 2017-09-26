@@ -10,12 +10,14 @@ SequenceableCollection extend [
 
 String extend [
     parse [
-        |text|
+        |text canary|
+        canary := 8r177 asCharacter asString.
         text := self copyFrom: 2 to: self size - 1.
+        text := text copyReplaceAll: '\\' with: canary.
         text := text copyReplaceAll: '\"' with: '"'.
         text := text copyReplaceAll: '\n' with: '
 '.
-        text := text copyReplaceAll: '\\' with: '\'.
+        text := text copyReplaceAll: canary with: '\'.
         ^text
     ]
 

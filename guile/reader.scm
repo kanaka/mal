@@ -78,21 +78,14 @@
           (lp (cddr next)))))))))
 
 (define (read_atom reader)
-  (define (->str s)
-    (string-sub
-     (string-sub
-      (string-sub s "\\\\\"" "\"")
-      "\\\\n" "\n")
-     "\\\\\\\\" "\\"))
   (let ((token (reader 'next)))
     (cond
      ((string-match "^-?[0-9][0-9.]*$" token)
       => (lambda (m) (string->number (match:substring m 0))))
-     ((string-match "^\"(.*)(.)$" token)
-      => (lambda (m)
-           (if (string=? "\"" (match:substring m 2))
-               (->str (match:substring m 1))
-               (throw 'mal-error "expected '\"'"))))
+     ((eqv? (string-ref token 0) #\")
+      (if (eqv? (string-ref token (- (string-length token) 1)) #\")
+          (with-input-from-string token read)
+          (throw 'mal-error "expected '\"'")))
      ((string-match "^:(.*)" token)
       => (lambda (m) (string->keyword (match:substring m 1))))
      ((string=? "nil" token) nil)
