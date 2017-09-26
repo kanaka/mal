@@ -90,12 +90,20 @@ raised"
   reader)
 
 (defun parse-string (token)
+  ;; read-from-string doesn't handle \n
   (if (and (> (length token) 1)
            (scan *string-re* token))
-      (read-from-string (utils:replace-all token
-                                             "\\n"
-                                             "
-"))
+      (let ((input (subseq token 1 (1- (length token)))))
+        (with-output-to-string (out)
+          (with-input-from-string (in input)
+            (loop while (peek-char nil in nil)
+                  do (let ((char (read-char in)))
+                       (if (eql char #\\ )
+                           (let ((char (read-char in)))
+                             (if (eql char #\n)
+                                 (terpri out)
+                               (princ char out)))
+                         (princ char out)))))))
       (error 'eof :context "string")))
 
 (defun expand-quote (reader)
