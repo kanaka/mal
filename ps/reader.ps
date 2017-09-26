@@ -102,9 +102,10 @@ end } def
         /cnt cnt 1 add def
     } loop
     str start cnt getinterval % the matched string
-    (\\") (") replace
-    (\\n) (\n) replace
-    (\\\\) (\\) replace
+    (\\\\) (\177) replace
+    (\\")  (") replace
+    (\\n)  (\n) replace
+    (\177) (\\) replace
     str idx % return: new_string string new_idx
 end } def
 

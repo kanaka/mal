@@ -61,7 +61,7 @@ proc read_hash_map(r: var Reader): MalType =
 proc read_atom(r: var Reader): MalType =
   let t = r.next
   if t.match(intRE): number t.parseInt
-  elif t[0] == '"':  str t[1 .. <t.high].replace("\\\"", "\"").replace("\\n", "\n").replace("\\\\", "\\")
+  elif t[0] == '"':  str t[1 .. <t.high].multiReplace(("\\\"", "\""), ("\\n", "\n"), ("\\\\", "\\"))
   elif t[0] == ':':  keyword t[1 .. t.high]
   elif t == "nil":   nilObj
   elif t == "true":  trueObj

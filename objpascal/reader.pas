@@ -110,9 +110,10 @@ begin
         else if RE.Match[6] <> '' then
         begin
             Str := copy(Token, 2, Length(Token)-2);
-            Str := StringReplace(Str, '\"', '"', [rfReplaceAll]);
-            Str := StringReplace(Str, '\n', #10, [rfReplaceAll]);
-            Str := StringReplace(Str, '\\', '\', [rfReplaceAll]);
+            Str := StringReplace(Str, '\\', #127, [rfReplaceAll]);
+            Str := StringReplace(Str, '\"', '"',  [rfReplaceAll]);
+            Str := StringReplace(Str, '\n', #10,  [rfReplaceAll]);
+            Str := StringReplace(Str, #127, '\',  [rfReplaceAll]);
             read_atom := TMalString.Create(Str)
         end
         else if RE.Match[7] <> '' then
