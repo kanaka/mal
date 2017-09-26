@@ -16,9 +16,10 @@ classdef reader
                 atm = str2double(token);
             elseif strcmp(token(1), '"')
                 atm = token(2:length(token)-1);
+                atm = strrep(atm, '\\', char(255));
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
-                atm = strrep(atm, '\\', '\');
+                atm = strrep(atm, char(255), '\');
             elseif strcmp(token(1), ':')
                 s = token(2:end);
                 atm = type_utils.keyword(s);
