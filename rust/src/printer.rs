@@ -1,4 +1,5 @@
 use types::MalVal;
+use regex::Captures;
 
 pub fn escape_str(s: &str) -> String {
     let mut escaped = String::new();
@@ -22,10 +23,10 @@ pub fn escape_str(s: &str) -> String {
 }
 
 pub fn unescape_str(s: &str) -> String {
-    let re1 = regex!(r#"\\""#);
-    let re2 = regex!(r#"\\n"#);
-    let re3 = regex!(r#"\\\\"#);
-    re3.replace_all(&re2.replace_all(&re1.replace_all(&s, "\""), "\n"), "\\")
+    let re = regex!(r#"\\(.)"#);
+    re.replace_all(&s, |caps: &Captures| {
+        format!("{}", if &caps[1] == "n" { "\n" } else { &caps[1] })
+    })
 }
 
 pub fn pr_list(lst: &Vec<MalVal>, pr: bool,
