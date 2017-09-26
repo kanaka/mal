@@ -118,9 +118,8 @@ MalType read_atom(Reader reader) {
     var sanitizedToken = token
         // remove surrounding quotes
         .substring(1, token.length - 1)
-        .replaceAll(r'\"', '"')
-        .replaceAll(r'\n', '\n')
-        .replaceAll(r'\\', '\\');
+        .replaceAllMapped(new RegExp("\\\\(.)"),
+                          (Match m) => m[1] == 'n' ? '\n' : m[1]);
     return new MalString(sanitizedToken);
   }
 
