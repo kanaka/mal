@@ -124,9 +124,7 @@ function readAtom(reader: Reader): MalType {
     }
     if (token[0] === '"') {
         const v = token.slice(1, token.length - 1)
-            .replace(/\\"/g, '"')
-            .replace(/\\n/g, "\n")
-            .replace(/\\\\/g, "\\");
+            .replace(/\\(.)/g, (_, c: string) => c == 'n' ? '\n' : c)
         return new MalString(v);
     }
     if (token[0] === ":") {

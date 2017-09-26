@@ -98,10 +98,11 @@ NSObject * read_atom(Reader * rdr) {
             return [MalFalse alloc]; // TODO: intern
         } else if ([match rangeAtIndex:6].location < -1ULL/2) { // string
             NSString * str = [token substringWithRange:[match rangeAtIndex:6]];
-            return [[[str
+            return [[[[str
+                        stringByReplacingOccurrencesOfString:@"\\\\" withString:@"\u029e"]
                       stringByReplacingOccurrencesOfString:@"\\\"" withString:@"\""]
                      stringByReplacingOccurrencesOfString:@"\\n" withString:@"\n"]
-                    stringByReplacingOccurrencesOfString:@"\\\\" withString:@"\\"];
+                    stringByReplacingOccurrencesOfString:@"\u029e" withString:@"\\"];
         } else if ([match rangeAtIndex:7].location < -1ULL/2) { // keyword
             return [NSString stringWithFormat:@"\u029e%@",
                     [token substringWithRange:[match rangeAtIndex:7]]];

@@ -79,9 +79,10 @@ func read_string(_ rdr: Reader) throws -> MalVal {
     }
     let matchStr = rdr.str.substring(with: 
         rdr.str.index(after: start)..<rdr.str.index(before: rdr.pos))
-    let s1 = matchStr.replacingOccurrences(of: "\\\"", with: "\"")
+    let s0 = matchStr.replacingOccurrences(of: "\\\\", with: "\u{029e}")
+    let s1 = s0.replacingOccurrences(of: "\\\"", with: "\"")
     let s2 = s1.replacingOccurrences(of: "\\n", with: "\n")
-    let s3 = s2.replacingOccurrences(of: "\\\\", with: "\\")
+    let s3 = s2.replacingOccurrences(of: "\u{029e}", with: "\\")
     return MalVal.MalString(s3)
 }
 

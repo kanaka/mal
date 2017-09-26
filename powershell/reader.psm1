@@ -33,9 +33,10 @@ function read_atom([Reader] $rdr) {
         return [convert]::ToInt32($token, 10)
     } elseif ($token -match "^`".*`"") {
         $s = $token.Substring(1,$token.Length-2)
+        $s = $s -replace "\\\\", "$([char]0x29e)"
         $s = $s -replace "\\`"", "`""
         $s = $s -replace "\\n", "`n"
-        $s = $s -replace "\\\\", "\"
+        $s = $s -replace "$([char]0x29e)", "\"
         return $s
     } elseif ($token -match ":.*") {
         return "$([char]0x29e)$($token.substring(1))"
