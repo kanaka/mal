@@ -51,9 +51,9 @@ def read_atom(reader):
             return MalStr(u"")
         else:
             s = unicode(token[1:end])
-            s = types._replace(u'\\\\', u"\u029e", s)
-            s = types._replace(u'\\"', u'"', s)
-            s = types._replace(u'\\n', u"\n", s)
+            s = types._replace(u'\\\\',   u"\u029e", s)
+            s = types._replace(u'\\"',    u'"', s)
+            s = types._replace(u'\\n',    u"\n", s)
             s = types._replace(u"\u029e", u"\\", s)
             return MalStr(s)
     elif token[0] == ':':           return _keywordu(unicode(token[1:]))

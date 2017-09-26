@@ -71,9 +71,10 @@ namespace Mal {
             } else if (match.Groups[6].Value != String.Empty) {
                 string str = match.Groups[6].Value;
                 str = str.Substring(1, str.Length-2)
-                    .Replace("\\\"", "\"")
-                    .Replace("\\n", "\n")
-                    .Replace("\\\\", "\\");
+                    .Replace("\\\\",   "\u029e")
+                    .Replace("\\\"",   "\"")
+                    .Replace("\\n",    "\n")
+                    .Replace("\u029e", "\\");
                 return new Mal.types.MalString(str);
             } else if (match.Groups[7].Value != String.Empty) {
                 return new Mal.types.MalString("\u029e" + match.Groups[7].Value);

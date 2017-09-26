@@ -25,9 +25,10 @@
     (!= (get t 0) ";")))
 
 (defn unescape [s]
-  (-> s (.replace "\\\"" "\"")
-        (.replace "\\n" "\n")
-        (.replace "\\\\" "\\")))
+  (-> s (.replace "\\\\"   "\u029e")
+        (.replace "\\\""   "\"")
+        (.replace "\\n"    "\n")
+        (.replace "\u029e" "\\")))
 
 (defn read-atom [rdr]
   (setv token (.next rdr))
