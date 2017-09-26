@@ -39,9 +39,10 @@ BEGIN
     ELSIF token ~ '^".*"' THEN  -- string
         -- string
         str := substring(token FROM 2 FOR (char_length(token)-2));
+        str := replace(str, '\\', chr(CAST(x'7f' AS integer)));
         str := replace(str, '\"', '"');
         str := replace(str, '\n', E'\n');
-        str := replace(str, '\\', E'\\');
+        str := replace(str, chr(CAST(x'7f' AS integer)), E'\\');
         result := types._stringv(str);
     ELSIF token ~ '^:.*' THEN  -- keyword
         -- keyword

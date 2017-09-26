@@ -78,14 +78,6 @@ Reader *tokenize(char *line) {
 }
 
 
-char *replace_str(const char *str, const char *old, const char *new)
-{
-    GRegex *reg = g_regex_new (old, 0, 0, NULL);
-    char *str_tmp = g_regex_replace_literal(reg, str, -1, 0, new, 0, NULL);
-    MAL_GC_FREE(reg);
-    return str_tmp;
-}
-
 MalVal *read_atom(Reader *reader) {
     char *token;
     GRegex *regex;
@@ -117,12 +109,7 @@ MalVal *read_atom(Reader *reader) {
         atom = &mal_false;
     } else if (g_match_info_fetch_pos(matchInfo, 6, &pos, NULL) && pos != -1) {
         //g_print("read_atom string: %s\n", token);
-        char *str_tmp = replace_str(g_match_info_fetch(matchInfo, 6), "\\\\\"", "\"");
-        char *str_tmp2 = replace_str(str_tmp, "\\\\n", "\n");
-        MAL_GC_FREE(str_tmp);
-        char *str_tmp3 = replace_str(str_tmp2, "\\\\\\\\", "\\");
-        MAL_GC_FREE(str_tmp2);
-        atom = malval_new_string(str_tmp3);
+        atom = malval_new_string(g_strcompress(g_match_info_fetch(matchInfo, 6)));
     } else if (g_match_info_fetch_pos(matchInfo, 7, &pos, NULL) && pos != -1) {
         //g_print("read_atom keyword\n");
         atom = malval_new_keyword(MAL_GC_STRDUP(g_match_info_fetch(matchInfo, 7)));
