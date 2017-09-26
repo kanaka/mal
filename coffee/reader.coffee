@@ -24,9 +24,7 @@ read_atom = (rdr) ->
   else if token.match /^-?[0-9][0-9.]*$/ then parseFloat token,10
   else if token[0] == '"'
     token.slice(1, token.length-1)
-      .replace(/\\"/g, '"')
-      .replace(/\\n/g, "\n")
-      .replace(/\\\\/g, "\\")
+      .replace(/\\(.)/g, (_, c) -> if c == 'n' then '\n' else c)
   else if token[0] == ':' then types._keyword(token[1..])
   else if token == "nil" then null
   else if token == "true" then true

@@ -81,9 +81,9 @@ class Reader
     when token == "true"    then true
     when token == "false"   then false
     when token == "nil"     then nil
-    when token[0] == '"'    then token[1..-2].gsub(/\\"/, "\"")
-                                             .gsub(/\\n/, "\n")
-                                             .gsub(/\\\\/, "\\")
+    when token[0] == '"'    then token[1..-2].gsub(/\\(.)/, {"\\\"" => "\"",
+                                                             "\\n"  => "\n",
+                                                             "\\\\" => "\\"})
     when token[0] == ':'    then "\u029e#{token[1..-1]}"
     else                         Mal::Symbol.new token
     end

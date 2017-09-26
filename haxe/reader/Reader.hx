@@ -58,15 +58,20 @@ class Reader {
             case _ if (re_int.match(token)):
                 MalInt(Std.parseInt(token));
             case _ if (re_str.match(token)):
-                var re1 = ~/\\"/g,
+                var re1 = ~/\\\\/g,
                     re2 = ~/\\n/g,
-                    re3 = ~/\\\\/g,
+                    re3 = ~/\\"/g,
+                    re4 = ~/\x7f/g,
                     s = token.substr(1, token.length-2);
-                MalString(re3.replace(
-                           re2.replace(
-                             re1.replace(s, "\""),
-                             "\n"),
-                           "\\"));
+                MalString(re4.replace(
+                            re3.replace(
+                              re2.replace(
+                                re1.replace(
+                                  s,
+                                  "\x7f"),
+                                "\n"),
+                              "\""),
+                            "\\"));
             case _:
                 MalSymbol(token);
         }
