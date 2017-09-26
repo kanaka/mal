@@ -14,9 +14,10 @@ READ_ATOM () {
         [0-9]*)  _number "${token}" ;;
         -[0-9]*) _number "${token}" ;;
         \"*)    token="${token:1:-1}"
+                token="${token//\\\\/${__keyw}}"
                 token="${token//\\\"/\"}"
                 token="${token//\\n/$'\n'}"
-                token="${token//\\\\/\\}"
+                token="${token//${__keyw}/\\}"
                 _string "${token}" ;;
         :*)     _keyword "${token:1}" ;;
         nil)    r="${__nil}" ;;

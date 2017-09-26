@@ -33,9 +33,7 @@ function read_atom (reader) {
         return parseFloat(token,10);     // float
     } else if (token[0] === "\"") {
         return token.slice(1,token.length-1) 
-            .replace(/\\"/g, '"')
-            .replace(/\\n/g, "\n")
-            .replace(/\\\\/g, "\\"); // string
+            .replace(/\\(.)/g, function (_, c) { return c === "n" ? "\n" : c})
     } else if (token[0] === ":") {
         return types._keyword(token.slice(1));
     } else if (token === "nil") {

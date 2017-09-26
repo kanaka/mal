@@ -168,10 +168,11 @@ SUB READ_FORM
     C=ASC(MID$(T$,LEN(T$),1))
     IF C<>34 THEN R=-1:ER=-1:E$="expected '"+CHR$(34)+"'":GOTO READ_FORM_RETURN
     R$=MID$(T$,2,LEN(T$)-2)
+    S1$=CHR$(92)+CHR$(92):S2$=CHR$(127):GOSUB REPLACE: REM protect backslashes
     S1$=CHR$(92)+CHR$(34):S2$=CHR$(34):GOSUB REPLACE: REM unescape quotes
     #cbm S1$=CHR$(92)+"n":S2$=CHR$(13):GOSUB REPLACE: REM unescape newlines
     #qbasic S1$=CHR$(92)+"n":S2$=CHR$(10):GOSUB REPLACE: REM unescape newlines
-    S1$=CHR$(92)+CHR$(92):S2$=CHR$(92):GOSUB REPLACE: REM unescape backslashes
+    S1$=CHR$(127):S2$=CHR$(92):GOSUB REPLACE: REM unescape backslashes
     REM intern string value
     B$=R$:T=4:GOSUB STRING
     GOTO READ_FORM_RETURN
