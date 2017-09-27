@@ -85,10 +85,8 @@ defmodule Mal.Reader do
     cond do
       String.starts_with?(token, "\"") and String.ends_with?(token, "\"") ->
         token
-          |> String.slice(1..-2)
-          |> String.replace("\\\"", "\"")
-          |> String.replace("\\n", "\n")
-          |> String.replace("\\\\", "\\")
+          |> Code.string_to_quoted
+          |> elem(1)
 
       integer?(token) ->
         Integer.parse(token)

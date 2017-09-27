@@ -28,7 +28,8 @@ MalReader := Object clone do (
     numberRegex := Regex with("^-?[0-9]+$")
 
     read_string := method(token,
-        token exSlice(1, -1) replaceSeq("\\\"", "\"") replaceSeq("\\n", "\n") replaceSeq("\\\\", "\\")
+        placeholder := 127 asCharacter
+        token exSlice(1, -1) replaceSeq("\\\\", placeholder) replaceSeq("\\\"", "\"") replaceSeq("\\n", "\n") replaceSeq(placeholder, "\\")
     )
 
     read_atom := method(rdr,
