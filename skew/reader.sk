@@ -30,7 +30,7 @@ def tokenize(str string) List<string> {
 }
 
 def unescape(s string) string {
-  return s.replaceAll("\\\"", "\"").replaceAll("\\n", "\n").replaceAll("\\\\", "\\")
+  return s.replaceAll("\\\\", "\x01").replaceAll("\\\"", "\"").replaceAll("\\n", "\n").replaceAll("\x01", "\\")
 }
 
 def read_atom(rdr Reader) MalVal {

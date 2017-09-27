@@ -42,12 +42,20 @@ function Tokenize(str)
   return tokens
 endfunction
 
+function UnescapeChar(seq)
+  if a:seq == '\"'
+    return '"'
+  elseif a:seq == '\n'
+    return "\n"
+  elseif a:seq == '\\'
+    return '\'
+  else
+    return a:seq
+  endif
+endfunction
+
 function ParseString(token)
-  let str = a:token[1:-2]
-  let str = substitute(str, '\\"', '"', "g")
-  let str = substitute(str, '\\n', "\n", "g")
-  let str = substitute(str, '\\\\', "\\", "g")
-  return str
+  return substitute(a:token[1:-2], '\\.', '\=UnescapeChar(submatch(0))', "g")
 endfunction
 
 function ReadAtom(rdr)
