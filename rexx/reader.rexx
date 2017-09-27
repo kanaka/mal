@@ -95,9 +95,10 @@ is_number: procedure /* is_number(token) */
 parse_string: procedure /* parse_string(token) */
   token = arg(1)
   res = substr(token, 2, length(token) - 2) /* Remove quotes */
+  res = changestr("\\", res, '01'x)
   res = changestr("\n", res, '0A'x)
   res = changestr('\"', res, '"')
-  res = changestr("\\", res, '5C'x)
+  res = changestr('01'x, res, '5C'x)
   return res
 
 parse_keyword: procedure /* parse_keyword(token) */
