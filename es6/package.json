@@ -3,11 +3,10 @@
     "version": "0.0.1",
     "description": "Make a Lisp (mal) language implemented in ES6 (ECMAScript 6 / ECMAScript 2015)",
     "dependencies": {
-        "ffi": "2.0.x",
-        "node-uglifier": "0.4.3"
+        "@std/esm": "^0.11.0",
+        "ffi": "2.0.x"
     },
-    "devDependencies": {
-        "babel-cli": "^6.0.0",
-        "babel-plugin-transform-es2015-modules-commonjs": "*"
+    "@std/esm": {
+        "cjs": true
     }
 }

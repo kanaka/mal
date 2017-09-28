@@ -1,4 +1,4 @@
-import { _symbol, _list_Q, Vector, Atom } from './types'
+import { _list_Q, _keyword_Q, Vector, Atom } from './types'
 
 export function pr_str(obj, print_readably) {
     if (typeof print_readably === 'undefined') { print_readably = true }
@@ -14,7 +14,7 @@ export function pr_str(obj, print_readably) {
         }
         return "{" + ret.join(' ') + "}"
     } else if (typeof obj === "string") {
-        if (obj[0] === '\u029e') {
+        if (_keyword_Q(obj)) {
             return ':' + obj.slice(1)
         } else if (_r) {
             return '"' + obj.replace(/\\/g, "\\\\")

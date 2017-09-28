@@ -19,12 +19,19 @@ export function _equal_Q (a, b) {
 
 export function _clone(obj, new_meta) {
     let new_obj = null
-    if      (_list_Q(obj))            { new_obj = obj.slice(0) }
-    else if (obj instanceof Vector)   { new_obj = Vector.from(obj.slice(0)) }
-    else if (obj instanceof Map)      { new_obj = new Map(obj.entries()) }
-    else if (obj instanceof Function) { new_obj = obj.clone() }
-    else                              { throw Error("Invalid clone") }
-    if (new_meta !== undefined)       { new_obj.meta = new_meta }
+    if (_list_Q(obj)) {
+        new_obj = obj.slice(0)
+    } else if (obj instanceof Vector) {
+        new_obj = Vector.from(obj)
+    } else if (obj instanceof Map) {
+        new_obj = new Map(obj.entries())
+    } else if (obj instanceof Function) {
+        let f = (...a) => obj.apply(f, a)  // new function instance
+        new_obj = Object.assign(f, obj)    // copy original properties
+    } else {
+        throw Error('Unsupported type for clone')
+    }
+    if (typeof new_meta !== 'undefined') { new_obj.meta = new_meta }
     return new_obj
 }
 
@@ -33,31 +40,24 @@ export function _malfunc(f, ast, env, params, meta=null, ismacro=false) {
     return Object.assign(f, {ast, env, params, meta, ismacro})
 }
 export const _malfunc_Q = f => f.ast ? true : false
-Function.prototype.clone = function() {
-    let f = (...a) => this.apply(f, a)  // new function instance
-    return Object.assign(f, this)       // copy original properties
-}
 
 
 // Keywords
 export const _keyword = obj => _keyword_Q(obj) ? obj : '\u029e' + obj
 export const _keyword_Q = obj => typeof obj === 'string' && obj[0] === '\u029e'
 
-// Sequence collections
+// Lists
 export const _list_Q = obj => Array.isArray(obj) && !(obj instanceof Vector)
 
-export class Vector extends Array {}
+// Vectors
+export class Vector extends Array { }
 
+// Maps
 export function _assoc_BANG(hm, ...args) {
     if (args.length % 2 === 1) {
         throw new Error('Odd number of assoc arguments')
     }
-    // Use iterator/Array.from when it works
     for (let i=0; i<args.length; i+=2) { hm.set(args[i], args[i+1]) }
-    return hm
-}
-export function _dissoc_BANG(hm, ...args) {
-    for (let i=0; i<args.length; i++) { hm.delete(args[i]) }
     return hm
 }
 

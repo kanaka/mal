@@ -1,5 +1,5 @@
-import { _equal_Q, _clone, _keyword, _keyword_Q,
-         _list_Q, Vector, _assoc_BANG, _dissoc_BANG, Atom } from './types'
+import { _equal_Q, _clone, _keyword, _keyword_Q } from './types'
+import { _list_Q, Vector, _assoc_BANG, Atom } from './types'
 import { pr_str } from './printer'
 import { readline } from './node_readline'
 import { read_str } from './reader'
@@ -22,16 +22,12 @@ function slurp(f) {
 }
 
 // Sequence functions
-function conj(o, ...a) {
-    return _list_Q(o) ? a.reverse().concat(o) : Vector.from(o.concat(a))
-}
-
 function seq(obj) {
     if (_list_Q(obj)) {
         return obj.length > 0 ? obj : null
     } else if (obj instanceof Vector) {
         return obj.length > 0 ? Array.from(obj.slice(0)) : null
-    } else if (typeof obj === "string" && obj[0] !== '\u029e') {
+    } else if (typeof obj === "string" && !_keyword_Q(obj)) {
         return obj.length > 0 ? obj.split('') : null
     } else if (obj === null) {
         return null
@@ -48,7 +44,7 @@ export const core_ns = new Map([
     ['nil?', a => a === null],
     ['true?', a => a === true],
     ['false?', a => a === false],
-    ['string?', a => typeof a === "string" && a[0] !== '\u029e'],
+    ['string?', a => typeof a === "string" && !_keyword_Q(a)],
     ['symbol', a => Symbol.for(a)],
     ['symbol?', a => typeof a === 'symbol'],
     ['keyword', _keyword],
@@ -79,7 +75,8 @@ export const core_ns = new Map([
     ['hash-map', (...a) => _assoc_BANG(new Map(), ...a)],
     ['map?', a => a instanceof Map],
     ['assoc', (m,...a) => _assoc_BANG(_clone(m), ...a)],
-    ['dissoc', (m,...a) => _dissoc_BANG(_clone(m), ...a)],
+    ['dissoc', (m,...a) => { let n = _clone(m); a.forEach(k => n.delete(k));
+                             return n}],
     ['get', (m,a) => m === null ? null : m.has(a) ? m.get(a) : null],
     ['contains?', (m,a) => m.has(a)],
     ['keys', a => Array.from(a.keys())],
@@ -96,7 +93,8 @@ export const core_ns = new Map([
     ['apply', (f,...a) => f(...a.slice(0, -1).concat(a[a.length-1]))],
     ['map', (f,a) => Array.from(a.map(x => f(x)))],
 
-    ['conj', conj],
+    ['conj', (s,...a) => _list_Q(s) ? a.reverse().concat(s)
+                                    : Vector.from(s.concat(a))],
     ['seq', seq],
 
     ['meta', a => 'meta' in a ? a['meta'] : null],

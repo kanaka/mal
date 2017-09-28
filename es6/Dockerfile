@@ -25,15 +25,10 @@ WORKDIR /mal
 RUN apt-get -y install g++
 
 # Add nodesource apt repo config for 7.X
-RUN curl -sL https://deb.nodesource.com/setup_7.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
 
 # Link common name
-RUN ln -sf nodejs /usr/bin/node
-
 ENV NPM_CONFIG_CACHE /mal/.npm
-
-# ES6
-RUN npm install -g babel-cli babel-plugin-transform-es2015-modules-commonjs

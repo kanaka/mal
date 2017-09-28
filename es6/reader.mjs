@@ -1,4 +1,4 @@
-import { _keyword, Vector, _assoc_BANG } from './types'
+import { _keyword, _assoc_BANG, Vector } from './types';
 
 export class BlankException extends Error {}
 
@@ -66,7 +66,7 @@ function read_list(reader, start, end) {
 
 // read vector of tokens
 function read_vector(reader) {
-    return Vector.from(read_list(reader, '[', ']'))
+    return Vector.from(read_list(reader, '[', ']'));
 }
 
 // read hash-map key/value pairs

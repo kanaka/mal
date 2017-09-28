@@ -52,7 +52,7 @@ erlang/ebin
 erlang/.rebar
 erlang/src/*.beam
 es6/mal.js
-es6/build
+es6/.esm-cache
 factor/mal.factor
 forth/mal.fs
 fsharp/*.exe

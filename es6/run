@@ -1,2 +1,2 @@
 #!/bin/bash
-exec node $(dirname $0)/build/${STEP:-stepA_mal}.js "${@}"
+exec node -r @std/esm $(dirname $0)/${STEP:-stepA_mal}.mjs "${@}"
