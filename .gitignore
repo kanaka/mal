@@ -1,5 +1,6 @@
 .bash_history
 .cache
+.cargo
 .config
 .mal-history
 .crystal
@@ -79,6 +80,7 @@ lua/linenoise.so
 lua/mal.lua
 make/mal.mk
 mal/mal.mal
+matlab/octave-workspace
 miniMAL/mal.json
 nim/nimcache*
 objc/*.d
