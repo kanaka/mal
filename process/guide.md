@@ -351,7 +351,7 @@ expression support.
   subclass type. For example, if your language is object oriented,
   then you can define a top level MalType (in `types.qx`) that all
   your mal data types inherit from. The MalList type (which also
-  inherits from MalType) will contains a list/array of other MalTypes.
+  inherits from MalType) will contain a list/array of other MalTypes.
   If your language is dynamically typed then you can likely just
   return a plain list/array of other mal types.
 

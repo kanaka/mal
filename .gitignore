@@ -139,3 +139,7 @@ elm/elm-stuff
 elm/*.js
 !elm/node_readline.js
 !elm/bootstrap.js
+
+# java2
+java2/out
+java2/lib
