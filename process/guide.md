@@ -1642,7 +1642,7 @@ For extra information read [Peter Seibel's thorough discussion about
     containing the original string split into single character
     strings.
 * For interop with the target language, add this core function:
-  * `quux-eval`: takes a string, evaluates it in the target language,
+  * `quux-eval`: takes a string or sexp, evaluates it in the target language,
     and returns the result converted to the relevant Mal type. You
     may also add other interop functions as you see fit; Clojure, for
     example, has a function called `.` which allows calling Java
