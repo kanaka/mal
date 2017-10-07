@@ -1,0 +1,3 @@
+(def! procedure/number?
+      (fn* (x)
+           (not (or (nil? x) (true? x) (false? x) (string? x) (symbol? x) (keyword? x) (list? x) (vector? x) (map? x) (atom? x)))))
