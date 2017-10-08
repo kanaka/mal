@@ -1635,7 +1635,7 @@ For extra information read [Peter Seibel's thorough discussion about
     new vector is returned with the elements added to the end of the
     given vector.
   * `string?`: returns true if the parameter is a string.
-  * `procedure?`: returns true if the parameter is a function.
+  * `fn?`: returns true if the parameter is a function.
   * `number?`: returns true if the parameter is a number.
   * `seq`: takes a list, vector, string, or nil. If an empty list,
     empty vector, or empty string ("") is passed in then nil is
