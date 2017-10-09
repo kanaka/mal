@@ -3,7 +3,7 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 ifeq ($(uname_S),Darwin)
 	# Native build on yosemite. Requires: brew install readline
 	CXX=g++
-	READLINE=/usr/local/Cellar/readline/6.3.8
+	READLINE=/usr/local/opt/readline
 	INCPATHS=-I$(READLINE)/include
 	LIBPATHS=-L$(READLINE)/lib
 else
