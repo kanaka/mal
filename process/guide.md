@@ -1635,6 +1635,10 @@ For extra information read [Peter Seibel's thorough discussion about
     new vector is returned with the elements added to the end of the
     given vector.
   * `string?`: returns true if the parameter is a string.
+  * `number?`: returns true if the parameter is a number.
+  * `fn?`: returns true if the parameter is a function (internal or
+    user-defined).
+  * `macro?`: returns true if the parameter is a macro.
   * `seq`: takes a list, vector, string, or nil. If an empty list,
     empty vector, or empty string ("") is passed in then nil is
     returned. Otherwise, a list is returned unchanged, a vector is
