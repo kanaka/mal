@@ -41,6 +41,11 @@ func False_Q(obj MalType) bool {
 	return ok && b == false
 }
 
+func Number_Q(obj MalType) bool {
+	_, ok := obj.(int)
+	return ok
+}
+
 // Symbols
 type Symbol struct {
 	Val string

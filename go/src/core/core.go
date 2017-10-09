@@ -20,6 +20,19 @@ func throw(a []MalType) (MalType, error) {
 	return nil, MalError{a[0]}
 }
 
+func fn_q(a []MalType) (MalType, error) {
+	switch f := a[0].(type) {
+	case MalFunc:
+		return !f.GetMacro(), nil
+	case Func:
+		return true, nil
+	case func([]MalType) (MalType, error):
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
 // String functions
 
 func pr_str(a []MalType) (MalType, error) {
@@ -463,6 +476,13 @@ var NS = map[string]MalType{
 	},
 	"keyword?": func(a []MalType) (MalType, error) {
 		return Keyword_Q(a[0]), nil
+	},
+	"number?": func(a []MalType) (MalType, error) {
+		return Number_Q(a[0]), nil
+	},
+	"fn?": fn_q,
+	"macro?": func(a []MalType) (MalType, error) {
+		return MalFunc_Q(a[0]) && a[0].(MalFunc).GetMacro(), nil
 	},
 
 	"pr-str":  func(a []MalType) (MalType, error) { return pr_str(a) },

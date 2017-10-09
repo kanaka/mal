@@ -11,6 +11,13 @@ func mal_symbol(a) { return MalSymbol(val=a(1)->val); }
 func mal_symbol_q(a) { return new_boolean(structof(*a(1)) == MalSymbol); }
 func mal_keyword(a) { return MalKeyword(val=a(1)->val); }
 func mal_keyword_q(a) { return new_boolean(structof(*a(1)) == MalKeyword); }
+func mal_number_q(a) { return new_boolean(structof(*a(1)) == MalNumber); }
+func mal_fn_q(a)
+{
+  if (structof(*a(1)) == MalNativeFunction) return MAL_TRUE;
+  return new_boolean(structof(*a(1)) == MalFunction && !a(1)->macro);
+}
+func mal_macro_q(a) { return new_boolean(structof(*a(1)) == MalFunction && a(1)->macro); }
 
 func string_helper(a, delimiter, readable)
 {
@@ -298,6 +305,9 @@ h_set, core_ns, "symbol",      mal_symbol
 h_set, core_ns, "symbol?",     mal_symbol_q
 h_set, core_ns, "keyword",     mal_keyword
 h_set, core_ns, "keyword?",    mal_keyword_q
+h_set, core_ns, "number?",     mal_number_q
+h_set, core_ns, "fn?",         mal_fn_q
+h_set, core_ns, "macro?",      mal_macro_q
 
 h_set, core_ns, "pr-str",      mal_pr_str
 h_set, core_ns, "str",         mal_str

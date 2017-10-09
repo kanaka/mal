@@ -44,6 +44,9 @@ new_number: procedure /* new_number(n) */
   n = arg(1)
   return "numb_" || n
 
+number?: procedure /* number?(obj) */
+  return obj_type(arg(1)) == "numb"
+
 new_nil: procedure /* new_nil() */
   return "nill_0"
 
