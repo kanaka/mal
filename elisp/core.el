@@ -223,8 +223,7 @@
 
     (meta . ,(mal-fn (lambda (mal-object) (or (mal-meta mal-object) mal-nil))))
     (with-meta . ,(mal-fn (lambda (mal-object meta)
-                            ;; TODO: doesn't work on hashtables
-                            (let ((mal-object* (copy-tree mal-object t)))
+                            (let ((mal-object* (copy-sequence mal-object)))
                               (setf (aref mal-object* 2) meta)
                               mal-object*))))
 
