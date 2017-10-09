@@ -1,0 +1,7 @@
+(def! read-args (fn* [args]
+  (let* [arg (readline "arg> ")]
+    (if (or (nil? arg) (empty? arg))
+      args
+      (read-args (conj args arg))))))
+
+(prn "The args you entered are:" (read-args []))
