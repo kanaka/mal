@@ -17,6 +17,7 @@
 // @import reader.ck
 // @import printer.ck
 // @import env.ck
+// @import func.ck
 // @import types/MalSubr.ck
 // @import types/subr/*.ck
 
