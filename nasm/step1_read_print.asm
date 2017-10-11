@@ -6,15 +6,65 @@
 ;;
         
 ;; Data structures
+;; ===============
+;;
 ;; Memory management is done by having two fixed-size datatypes,
 ;; Cons and Array.
 ;;
 ;; Both Cons and Array have the following in common:
 ;; a type field at the start, a reference count, followed by data
 ;; [ type (8) | (8) | refs (16) | data ]
-        
-        
+;;
+;;
+;; Type bit fields
+;; ---------------
+;;
+;; The 8-bit type fields describe the Block, Container and Content type.
+;;
+;; The Block type is used for memory management, to determine the kind of memory block
+;; The Container type indicates the data structure that the Cons or Array block is being used to represent
+;; The Content type indicates the raw type of the data in the content
+;;
+;;  Block type [1 bit]: 
+;;  0    0 - Cons memory block
+;;  1    1 - Array memory block
 ;; 
+;;  Container type [3 bits]:
+;;  0    0 - Value (single boxed value for Cons blocks, vector for Array blocks).
+;;  2    1 - List (value followed by pointer). Only for Cons blocks
+;;  4    2 - Symbol (special char array). Only for Array blocks
+;;  6    3 - Keyword
+;;  8    4 - Map
+;; 10    5 - Function
+;;
+;;  Content type [4 bits]:
+;;  0   0 - Nil
+;; 16   1 - Bool
+;; 32   2 - Char
+;; 48   3 - Int
+;; 64   4 - Float
+;; 80   5 - Pointer (memory address)
+;;
+;; These represent MAL data types as follows:
+;;
+;; MAL type     Block     Container     Content
+;; --------- | -------- | ---------- | ---------
+;; integer      Cons       Value         Int    
+;; symbol       Array      Symbol        Char
+;; list         Cons       List          Any
+;; nil          Cons       Value         Nil
+;; true         Cons       Value         Bool  (1)
+;; false        Cons       Value         Bool  (0)
+;; string       Array      Value         Char
+;; keyword      Array      Keyword       Char
+;; vector       Array      Value         Int/Float
+;; hash-map     Array      Map           Pointer (?TBD)
+;; atom         Cons       Value         Pointer
+;;
+        
+;; Cons type.
+;; Used to store either a single value with type information
+;; or a pair of (value, Pointer or Nil) to represent a list
 STRUC Cons
 .typecar: RESB 1                ; Type information for car (8 bit)
 .typecdr: RESB 1                ; Type information for cdr (8 bits)
@@ -38,12 +88,38 @@ STRUC Array
 ENDSTRUC
 
 ;; Type information
-%define type_char 1              ; Character type
-%define type_integer 2           ; Integer type
-%define type_float 3             ; Floating point number
-%define type_atom   64           ; 1 if just an atom, not a list or array
-%define type_array  128          ; Last bit tests if array or cons
 
+%define block_mask 1       ; LSB for block type 
+%define container_mask 2 + 4 + 8 ; Next three bits for container type
+%define content_mask 16 + 32 + 64 + 128 ; Four bits for content type
+        
+;; Block types
+%define block_cons  0
+%define block_array 1
+
+;; Container types
+%define container_value  0
+%define container_list 2
+%define container_symbol 4
+%define container_keyword 6
+%define container_map 8
+%define container_function 10
+
+;; Content type
+%define content_nil  0
+%define content_bool 16
+%define content_char 32
+%define content_int 48
+%define content_float 64
+%define content_pointer 80      ; Memory pointer (to Cons or Array)
+%define content_function 96     ; Function pointer
+
+;; Common combinations for MAL types
+%define maltype_integer  (block_cons + container_value + content_int)
+%define maltype_string  (block_array + container_value + content_char)
+%define maltype_symbol  (block_array + container_symbol + content_char)
+
+        
 %include "reader.asm"
         
         
@@ -52,11 +128,11 @@ ENDSTRUC
 section .data
 
 ;str: ISTRUC Array
-;AT Array.type,  db   type_char + type_array
+;AT Array.type,  db   maltype_string
 ;AT Array.length, dd  6
 ;AT Array.data, db 'hello',10
 ;IEND
-
+        
 ;; ------------------------------------------
 ;; Fixed strings for printing
         
@@ -102,7 +178,7 @@ heap_array_store: resb heap_array_limit * Array.size
 .end: 
         
 section .text
-
+        
 ;; ------------------------------------------
 ;; Array alloc_array()
 ;;
@@ -134,7 +210,7 @@ alloc_array:
         
 .initialise_array:
         ; Address of Array now in rax
-        mov BYTE [rax + Array.type], type_array
+        mov BYTE [rax + Array.type], block_array
         mov WORD [rax + Array.refcount], 1 ; Only one reference
         mov DWORD [rax + Array.length], 0
         mov QWORD [rax + Array.next], 0 ; null next address
@@ -237,8 +313,8 @@ release_cons:
 .free:
         ; Get and push cdr onto stack
         mov rcx, [rsi + Cons.cdr]
-        push rcx
-        push rsi
+        push rcx                ; Content of CDR
+        push rsi                ; Original Cons object being released
         
         mov rax, [heap_cons_free] ; Get the current head
         mov [rsi + Cons.cdr], rax ; Put current head into the "cdr" field
@@ -247,51 +323,41 @@ release_cons:
         ; Check if the CAR needs to be released
         
         mov al, BYTE [rsi+Cons.typecar]
-        mov bl, type_atom
-        and bl, al              ; bl now zero if a list or array
-        jnz .free_cdr
+        and al, content_mask    ; Test content type
+        cmp al, content_pointer
+        jne .free_cdr           ; Jump if CAR not pointer
 
+        ; CAR is a pointer to either a Cons or Array
         ; Get the address stored in CAR
         mov rsi, [rsi + Cons.car]
-        
-        ; test if type is array or cons
-        mov bl, type_array
-        and bl, al              ; bl now zero if cons
-        jnz .car_array
-
-        ; CAR is a Cons
-        call release_cons
-        jmp .free_cdr
-        
-.car_array:
-        ; CAR is an Array
-        call release_array
-        
+        call release_object
 .free_cdr:
         pop rcx                 ; This was rsi, the original Cons
         pop rsi                 ; This was rcx, the original Cons.cdr
 
         ; Get the type from the original Cons
         mov al, BYTE [rcx+Cons.typecdr]
-        mov bl, type_atom
-        and bl, al              ; bl now zero if a list or array
-        jnz .done
-
-        ; test if type is array or cons
-        mov bl, type_array
-        and bl, al              ; bl now zero if cons
-        jnz .cdr_array
-
-        ; CAR is a Cons
-        call release_cons
-        ret
+        and al, content_mask    ; Test content type
+        cmp al, content_pointer
+        jne .done
         
-.cdr_array:
-        ; CAR is an Array
-        call release_array
+        call release_object
 .done:
         ret
 
+
+;; Releases either a Cons or Array
+;; Address of object in RSI
+release_object:
+        mov al, BYTE [rsi]          ; Get first byte
+        and al, block_mask          ; Test block type
+        cmp al, block_array         ; Test if it's an array
+        je .array
+        call release_cons
+        ret
+.array:
+        call release_array
+        ret
         
 ;; -------------------------------------------
 ;; Prints a raw string to stdout
@@ -322,7 +388,7 @@ print_string:
         
         ; Check that we have a char array
         mov al, [rsi]
-        cmp al, type_char + type_array
+        cmp al, maltype_string
         jne .error
         
         ; write(1, string, length)
@@ -459,7 +525,7 @@ read_line:
         ; Address in rax
         call alloc_array
         ; Mark it as a character array (string)
-        mov BYTE [rax + Array.type], type_char + type_array
+        mov BYTE [rax + Array.type], maltype_string
 
         push rax                ; Save pointer to string
         
