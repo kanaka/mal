@@ -128,11 +128,16 @@ ns = {
         'nil?': types._nil_Q,
         'true?': types._true_Q,
         'false?': types._false_Q,
+        'number?': types._number_Q,
         'string?': types._string_Q,
         'symbol': types._symbol,
         'symbol?': types._symbol_Q,
         'keyword': types._keyword,
         'keyword?': types._keyword_Q,
+        'fn?': lambda x: (types._function_Q(x) and not hasattr(x, '_ismacro_')),
+        'macro?': lambda x: (types._function_Q(x) and
+                             hasattr(x, '_ismacro_') and
+                             x._ismacro_),
 
         'pr-str': pr_str,
         'str': do_str,

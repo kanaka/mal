@@ -8,7 +8,7 @@ use Time::HiRes qw(time);
 use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
              _nil_Q _true_Q _false_Q
-             _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q
+             _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
              _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
@@ -217,11 +217,14 @@ our $core_ns = {
     'nil?' => sub { _nil_Q($_[0]->nth(0)) ? $true : $false },
     'true?' => sub { _true_Q($_[0]->nth(0)) ? $true : $false },
     'false?' => sub { _false_Q($_[0]->nth(0)) ? $true : $false },
+    'number?' => sub { _number_Q($_[0]->nth(0)) ? $true : $false },
     'symbol'  => sub { Symbol->new(${$_[0]->nth(0)}) },
     'symbol?' => sub { _symbol_Q($_[0]->nth(0)) ? $true : $false },
     'string?' => sub { _string_Q($_[0]->nth(0)) ? $true : $false },
     'keyword'  => sub { _keyword(${$_[0]->nth(0)}) },
     'keyword?' => sub { _keyword_Q($_[0]->nth(0)) ? $true : $false },
+    'fn?' => sub { (_sub_Q($_[0]->nth(0)) || (_function_Q($_[0]->nth(0)) && !$_[0]->nth(0)->{ismacro})) ? $true : $false },
+    'macro?' => sub { (_function_Q($_[0]->nth(0)) && $_[0]->nth(0)->{ismacro}) ? $true : $false },
 
     'pr-str' =>  sub { pr_str($_[0]) },
     'str' =>     sub { str($_[0]) },
