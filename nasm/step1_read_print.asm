@@ -81,7 +81,7 @@ STRUC Array
 .type: RESB 1                    ; Type information (8 bits)
 .control: RESB 1                 ; Control data (8 bits)
 .refcount: RESW 1                ; Number of references to this Array (16 bit)
-.length: RESD 1                  ; Number of elements in array (32 bit)
+.length: RESD 1                  ; Number of elements in this part of the array (32 bit)
 .next RESQ 1                     ; Pointer to the next chunk (64 bit)
 .data: RESQ array_chunk_len      ; Data storage
 .size:                           ; Total size of struc
@@ -442,6 +442,8 @@ itostring:
 
         ; Get an Array object to put the string into
         call alloc_array        ; Address in RAX
+
+        mov [rax], BYTE maltype_string ; mark as a string
         
         ; put length into string
         mov     [rax + Array.length], ecx
