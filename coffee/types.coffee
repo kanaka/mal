@@ -83,6 +83,7 @@ E._function = (evalfn, ast, env, params) ->
   fn.__ismacro__ = false
   fn
 E._function_Q = _function_Q = (o) -> !!o.__ast__
+E._macro_Q = _macro_Q = (o) -> _function_Q(o) and o.__ismacro__
 
 # Lists
 E._list_Q = _list_Q = (o) -> Array.isArray(o) && !o.__isvector__

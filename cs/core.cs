@@ -65,6 +65,15 @@ namespace Mal {
                 }
             } );
 
+        static MalFunc number_Q = new MalFunc(
+            a => a[0] is MalInt ? True : False);
+
+        static MalFunc function_Q = new MalFunc(
+            a => a[0] is MalFunc && !((MalFunc)a[0]).isMacro() ? True : False);
+
+        static MalFunc macro_Q = new MalFunc(
+            a => a[0] is MalFunc && ((MalFunc)a[0]).isMacro() ? True : False);
+
 
         // Number functions
         static MalFunc time_ms = new MalFunc(
@@ -325,6 +334,9 @@ namespace Mal {
             {"string?", string_Q},
             {"keyword", keyword},
             {"keyword?", keyword_Q},
+            {"number?", number_Q},
+            {"fn?", function_Q},
+            {"macro?", macro_Q},
 
             {"pr-str", pr_str},
             {"str", str},

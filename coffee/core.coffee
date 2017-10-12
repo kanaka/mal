@@ -47,6 +47,9 @@ exports.ns = {
   'symbol?': types._symbol_Q,
   'keyword': types._keyword,
   'keyword?': types._keyword_Q,
+  'number?': (a) -> typeof a == 'number',
+  'fn?': (a) -> typeof a == 'function' and not types._macro_Q(a),
+  'macro?': types._macro_Q,
 
   'pr-str': (a...) -> a.map((exp) -> _pr_str(exp,true)).join(" "),
   'str': (a...) -> a.map((exp) -> _pr_str(exp,false)).join(""),
