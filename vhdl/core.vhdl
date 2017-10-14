@@ -226,17 +226,16 @@ package body core is
     assert false severity failure;
   end function gettimeofday;
 
-  -- Returns the number of milliseconds since 2000-01-01 00:00:00 UTC because
-  -- a standard VHDL integer is 32-bit and therefore cannot hold the number of
+  -- Returns the number of milliseconds since last midnight UTC because a
+  -- standard VHDL integer is 32-bit and therefore cannot hold the number of
   -- milliseconds since 1970-01-01.
   procedure fn_time_ms(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
     variable tv: c_timeval;
     variable dummy: c_timezone;
     variable rc: integer;
-    constant utc_2000_01_01: c_seconds64 := 946684800 c_sec; -- UNIX time at 2000-01-01 00:00:00 UTC
   begin
     rc := gettimeofday(tv, dummy);
-    new_number(((tv.tv_sec - utc_2000_01_01) / 1 c_sec) * 1000 + (tv.tv_usec / 1000 c_usec), result);
+    new_number(((tv.tv_sec / 1 c_sec) mod 86400) * 1000 + (tv.tv_usec / 1000 c_usec), result);
   end procedure fn_time_ms;
 
   procedure fn_list(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
@@ -610,12 +609,6 @@ package body core is
   end procedure define_core_function;
 
   procedure define_core_functions(e: inout env_ptr) is
-    variable is_eof: boolean;
-    variable input_line, result, err: line;
-    variable sym: mal_val_ptr;
-    variable fn: mal_val_ptr;
-    variable outer: env_ptr;
-    variable repl_env: env_ptr;
   begin
     define_core_function(e, "=");
     define_core_function(e, "throw");
