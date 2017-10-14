@@ -118,15 +118,22 @@ ENDSTRUC
 %define maltype_integer  (block_cons + container_value + content_int)
 %define maltype_string  (block_array + container_value + content_char)
 %define maltype_symbol  (block_array + container_symbol + content_char)
-
+%define maltype_nil  (block_cons + container_value + content_nil)
         
 %include "reader.asm"
+%include "printer.asm"
         
         
         global  _start
 
 section .data
 
+test_string1: db 10, "test1", 10
+.len: equ $ - test_string1
+
+test_string2: db 10, "test2", 10
+.len: equ $ - test_string2    
+        
 ;str: ISTRUC Array
 ;AT Array.type,  db   maltype_string
 ;AT Array.length, dd  6
@@ -158,12 +165,12 @@ error_cons_memory_limit: db "Error: Run out of memory for Cons objects. Increase
 ;; is free'd it is pushed onto the heap_x_free list.
         
         
-%define heap_cons_limit 1     ; Number of cons objects which can be created
+%define heap_cons_limit 10     ; Number of cons objects which can be created
 
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 1     ; Number of array objects which can be created
+%define heap_array_limit 4     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0
@@ -230,6 +237,15 @@ alloc_array:
 ;; onto the free list
 release_array:
         mov ax, WORD [rsi + Array.refcount]
+
+        push rsi
+        push rdx
+        mov rsi, test_string1
+        mov rdx, test_string1.len
+        call print_rawstring
+        pop rdx
+        pop rsi
+        
         dec ax
         mov WORD [rsi + Array.refcount], ax
         jz .free                ; If the count reaches zero then put on free list
@@ -358,6 +374,49 @@ release_object:
 .array:
         call release_array
         ret
+
+;; -------------------------------------------
+;; String type
+
+;; Create a new string, address in RAX
+string_new:
+        call alloc_array
+        mov [rax], BYTE maltype_string
+        ret
+
+;; Convert a raw string to a String type
+;;
+;; Input: Address of raw string in RSI, length in EDX
+;; Output: Address of string in RAX
+;;
+;; Modifies registers: R8,R9,RCX
+raw_to_string:
+        push rsi
+        push rdx
+        call string_new         ; String now in RAX
+        pop rdx
+        pop rsi
+        mov [rax + Array.length], DWORD edx
+        mov r8, rax
+        add r8, Array.data      ; Address of string data
+        mov r9, rsi             ; Address of raw data
+        mov ecx, edx            ; Count
+.copy_loop:
+        
+        mov bl, BYTE [r9]
+        mov [r8], BYTE bl
+        inc r8
+        inc r9
+        dec ecx
+        jnz .copy_loop
+        ret
+        
+        
+        
+;; Appends a character to a string
+;; Input: Address of string in RSI, character in CL
+string_append_char:
+        ret
         
 ;; -------------------------------------------
 ;; Prints a raw string to stdout
@@ -468,17 +527,6 @@ itostring:
         pop     rcx
         
         ret
-
-;; ----------------------------
-;; int stringtoi(String)
-;;
-;; Convert a string (char array) to an integer
-;;
-;; Address of input string is in RSI
-;; Output integer in RAX
-stringtoi: 
-
-        ret
         
 ;------------------------------------------
 ; void exit()
@@ -493,11 +541,6 @@ quit_error:
         mov     rdi, 1                 ; exit code 1
         syscall
 
-
-;; Takes a string as input and processes it into a form
-read:
-        mov rax, rsi            ; Return the input
-        ret
         
 ;; Evaluates a form
 eval:
@@ -511,7 +554,7 @@ print:
 
 ;; Read-Eval-Print in sequence
 rep_seq:
-        call read
+        call read_str
         mov rsi, rax            ; Output of read into input of eval
         call eval
         mov rsi, rax            ; Output of eval into input of print 
@@ -596,10 +639,28 @@ _start:
         je .mainLoopEnd
 
         push rax                ; Save address of the string
+
+        ; Put into read_str
+        mov rsi, rax
+        call read_str
+        push rax
+        
+        ; Put into pr_str
+        mov rsi, rax
+        call pr_str
+        push rax
         
         mov rsi, rax            ; Put into input of print_string
         call print_string
 
+        ; Release string from pr_str
+        pop rsi
+        call release_array
+        
+        ; Release the Cons from read_str
+        pop rsi
+        call release_cons
+        
         ; Release the string
         pop rsi
         call release_array
