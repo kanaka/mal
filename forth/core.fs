@@ -218,6 +218,25 @@ defcore atom?    drop @ mal-type @ Atom       = mal-bool ;;
 defcore true?    drop @ mal-true  = mal-bool ;;
 defcore false?   drop @ mal-false = mal-bool ;;
 defcore nil?     drop @ mal-nil   = mal-bool ;;
+defcore number?  drop @ mal-type @ MalInt = mal-bool ;;
+defcore fn?
+    drop @
+    dup mal-type @ MalUserFn = if
+        MalUserFn/is-macro? @ if
+            mal-false
+        else
+            mal-true
+        endif
+    else
+        mal-type @ MalNativeFn = if
+            mal-true
+        else
+            mal-false
+        endif
+    endif ;;
+defcore macro?   drop @ dup mal-type @ MalUserFn =
+                        swap MalUserFn/is-macro? @
+                        and mal-bool ;;
 
 defcore sequential? drop @ sequential? ;;
 

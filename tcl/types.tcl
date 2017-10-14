@@ -73,6 +73,10 @@ proc integer_new {num} {
     obj_new "integer" $num
 }
 
+proc integer_q {obj} {
+    expr {[obj_type $obj] == "integer"}
+}
+
 proc symbol_new {name} {
     obj_new "symbol" $name
 }
