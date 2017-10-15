@@ -188,6 +188,20 @@ def self.keyword?(args)
   head.is_a?(String) && !head.empty? && head[0] == '\u029e'
 end
 
+def self.number?(args)
+  args.first.unwrap.is_a?(Int64)
+end
+
+def self.fn?(args)
+  return false if args.first.macro?
+  head = args.first.unwrap
+  head.is_a?(Mal::Func) || head.is_a?(Mal::Closure)
+end
+
+def self.macro?(args)
+  args.first.macro?
+end
+
 def self.vector(args)
   args.to_mal(Mal::Vector)
 end
@@ -411,6 +425,9 @@ NS = {
   "string?"     => func(:string?),
   "keyword"     => func(:keyword),
   "keyword?"    => func(:keyword?),
+  "number?"     => func(:number?),
+  "fn?"         => func(:fn?),
+  "macro?"      => func(:macro?),
   "vector"      => func(:vector),
   "vector?"     => func(:vector?),
   "hash-map"    => func(:hash_map),
