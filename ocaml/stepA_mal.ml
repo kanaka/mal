@@ -14,14 +14,12 @@ let rec quasiquote ast =
        Types.list [Types.symbol "cons"; quasiquote head; quasiquote (Types.list tail) ]
     | ast -> Types.list [Types.symbol "quote"; ast]
 
-let kw_macro = T.Keyword "macro"
-
 let is_macro_call ast env =
   match ast with
   | T.List { T.value = s :: args } ->
      (match (try Env.get env s with _ -> T.Nil) with
       | T.Fn { T.meta = T.Map { T.value = meta } }
-        -> Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta)
+        -> Types.MalMap.mem Core.kw_macro meta && Types.to_bool (Types.MalMap.find Core.kw_macro meta)
       | _ -> false)
   | _ -> false
 
@@ -61,7 +59,7 @@ and eval ast env =
     | T.List { T.value = [(T.Symbol { T.value = "defmacro!" }); key; expr] } ->
        (match (eval expr env) with
           | T.Fn { T.value = f; T.meta = meta } ->
-             let fn = T.Fn { T.value = f; meta = Core.assoc [meta; kw_macro; (T.Bool true)]}
+             let fn = T.Fn { T.value = f; meta = Core.assoc [meta; Core.kw_macro; (T.Bool true)]}
              in Env.set env key fn; fn
           | _ -> raise (Invalid_argument "devmacro! value must be a fn"))
     | T.List { T.value = [(T.Symbol { T.value = "let*" }); (T.Vector { T.value = bindings }); body] }
