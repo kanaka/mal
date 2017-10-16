@@ -174,6 +174,9 @@
 (defmal false? (value)
   (wrap-boolean (and (mal-boolean-p value) (not (mal-data-value value)))))
 
+(defmal number? (value)
+  (wrap-boolean (mal-number-p value)))
+
 (defmal symbol (string)
   (make-mal-symbol (mal-data-value string)))
 
@@ -193,6 +196,15 @@
 
 (defmal vector? (value)
   (wrap-boolean (mal-vector-p value)))
+
+(defmal fn? (value)
+  (wrap-boolean (or (mal-builtin-fn-p value)
+                    (and (mal-fn-p value)
+                         (not (cdr (assoc :is-macro (mal-data-attrs value))))))))
+
+(defmal macro? (value)
+  (wrap-boolean (and (mal-fn-p value)
+                     (cdr (assoc :is-macro (mal-data-attrs value))))))
 
 (defmal hash-map (&rest elements)
   (let ((hash-map (make-mal-value-hash-table)))
