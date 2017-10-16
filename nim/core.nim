@@ -224,6 +224,9 @@ let ns* = {
   "symbol?": fun symbol_q,
   "keyword": fun keyword,
   "keyword?": fun keyword_q,
+  "number?": fun number_q,
+  "fn?": fun fn_q,
+  "macro?": fun macro_q,
 
   "with-meta": fun with_meta,
   "meta": fun meta,

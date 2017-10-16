@@ -18,7 +18,7 @@ proc quasiquote(ast: MalType): MalType =
 
 proc is_macro_call(ast: MalType, env: Env): bool =
   ast.kind == List and ast.list[0].kind == Symbol and
-    env.find(ast.list[0].str) != nil and env.get(ast.list[0].str).macro_q
+    env.find(ast.list[0].str) != nil and env.get(ast.list[0].str).fun_is_macro
 
 proc macroexpand(ast: MalType, env: Env): MalType =
   result = ast
