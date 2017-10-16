@@ -499,6 +499,9 @@ pub fn ns() -> HashMap<String,MalVal> {
     ns.insert("symbol?".to_string(), func(types::symbol_q));
     ns.insert("keyword".to_string(), func(types::_keyword));
     ns.insert("keyword?".to_string(), func(types::keyword_q));
+    ns.insert("number?".to_string(), func(types::int_q));
+    ns.insert("fn?".to_string(), func(types::fn_q));
+    ns.insert("macro?".to_string(), func(types::macro_q));
 
     ns.insert("pr-str".to_string(), func(pr_str));
     ns.insert("str".to_string(), func(str));

@@ -207,6 +207,15 @@ pub fn string_q(a:Vec<MalVal>) -> MalRet {
 }
 
 pub fn _int(i: isize) -> MalVal { Rc::new(Int(i)) }
+pub fn int_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to number? call");
+    }
+    match *a[0] {
+        Int(_) => Ok(_true()),
+        _      => Ok(_false()),
+    }
+}
 
 
 // Symbols
@@ -370,6 +379,24 @@ pub fn malfunc(eval: fn(MalVal, Env) -> MalRet,
 }
 pub fn malfuncd(mfd: MalFuncData, meta: MalVal) -> MalVal {
     Rc::new(MalFunc(mfd,meta))
+}
+pub fn fn_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to fn? call");
+    }
+    match *a[0] {
+        Func(..) | MalFunc(MalFuncData { is_macro: false, .. }, _) => Ok(_true()),
+        _                                                          => Ok(_false()),
+    }
+}
+pub fn macro_q(a:Vec<MalVal>) -> MalRet {
+    if a.len() != 1 {
+        return err_str("Wrong arity to macro? call");
+    }
+    match *a[0] {
+        MalFunc(MalFuncData { is_macro: true, .. }, _) => Ok(_true()),
+        _                                              => Ok(_false()),
+    }
 }
 
 
