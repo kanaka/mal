@@ -75,6 +75,48 @@ pr_str:
         call itostring
         ret
 .list:
+        mov r12, rsi            ; Input list
+        
+        call string_new         ; String in rax
+        ; Put '(' onto string
+        mov rsi, rax
+        mov cl, '('
+        call string_append_char
+        
+        ; loop through list
+        push rsi                ; Save output string
+        
+        ; Extract values and print
+        ; mov bl, BYTE [r12]
+        ; xor bl, container_list  ; Change from list to value
+        ; mov BYTE [r12], bl
+        ; mov rsi, r12
+
+        mov rsi, r12
+        mov BYTE [rsi], maltype_integer
+        call pr_str             ; String in rax
+        
+        ; mov bl, BYTE [r12]
+        ; xor bl, container_list  ; Change from value to list
+        ; mov BYTE [r12], bl
+        
+        pop rsi                 ; Restore output string
+        ; concatenate strings in rax and rsi
+        mov rdx, rax            ; String to be copied
+
+        push rax
+        push rbx
+        push rcx
+        call string_append_string
+        pop rcx
+        pop rbx
+        pop rax
+        
+        ; put ')' at the end of the string
+        mov cl, ')'
+        call string_append_char
+        
+        mov rax, rsi
         ret
 .symbol:
         ret

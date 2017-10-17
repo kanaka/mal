@@ -82,11 +82,15 @@ read_str:
         ; Start new list
         call alloc_cons         ; Address in rax
 
+        mov [rax], BYTE (block_cons + container_list + content_nil)
+        
+        
         cmp r13, 0
         jne .list_link_last
         
         ; This is the top-level list
         mov r15, rax
+        jmp .list_done
         
 .list_link_last:
         ; The new list is nested
@@ -104,6 +108,17 @@ read_str:
 
         ; --------------------------------
 .list_end:
+
+        ; Check if there is a list
+        cmp r13, 0
+        jne .list_end_ok
+
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        
+        ret
+
+.list_end_ok:
         
         ; Put the current list into r8
         mov r8, r13
@@ -113,6 +128,7 @@ read_str:
         
         jmp .append_object ; Add R8 to list in R13
 
+        
         ; --------------------------------
 .append_object:
         ; Append Cons in R8 to list in R13

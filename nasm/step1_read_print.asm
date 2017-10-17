@@ -190,6 +190,8 @@ section .text
 ;; Array alloc_array()
 ;;
 ;; Returns the address of an Array object in RAX
+;;
+;; Working registers: rbx
 alloc_array:
         
         ; Get the address of a free array
@@ -382,6 +384,7 @@ release_object:
 string_new:
         call alloc_array
         mov [rax], BYTE maltype_string
+        mov QWORD [rax + Array.next], 0
         ret
 
 ;; Convert a raw string to a String type
@@ -416,6 +419,125 @@ raw_to_string:
 ;; Appends a character to a string
 ;; Input: Address of string in RSI, character in CL
 string_append_char:
+        mov eax, DWORD [rsi + Array.length]
+        inc eax
+        mov DWORD [rsi + Array.length], eax
+        dec eax
+        add rax, rsi
+        add rax, Array.data            ; End of data
+        mov [rax], BYTE cl        
+        ret
+
+;; Appends a string to the end of a string
+;; 
+;; Input:  String to be modified in RSI
+;;         String to be copied in RDX
+;;
+;; Output: Modified string in RSI
+;;
+;; Working registers:
+;;   rax   Array chunk for output (copied to)
+;;   rbx   Array chunk for input (copied from)
+;;   cl    Character being copied
+;;   r8    Address of destination
+;;   r9    Destination end address
+;;   r10   Address of source 
+;;   r11   Source end address
+string_append_string:
+        ; copy source Array address to rbx
+        mov rbx, rdx
+        
+        ; source data address in r10
+        mov r10, rbx
+        add r10, Array.data     ; Start of the data
+
+        ; source data end address in r11
+        mov r11, r10
+        mov r8d, DWORD [rbx + Array.length]
+        add r11, r8
+        
+        ; Find the end of the string in RSI
+        ; and put the address of the Array object into rax
+        mov rax, rsi
+.find_string_end:
+        mov r8, QWORD [rax + Array.next]
+        cmp r8, 0               ; Next chunk is null
+        je .got_dest_end        ; so reached end
+        
+        mov rax, r8             ; Go to next chunk
+        jmp .find_string_end
+.got_dest_end:
+        
+        ; destination data address into r8
+        mov r8, rax
+        add r8, Array.data
+        add r8d, DWORD [rax + Array.length]
+
+        ; destination data end into r9
+        mov r9, rax
+        add r9, Array.size
+        
+.copy_loop:        
+        ; Copy one byte from source to destination
+        mov cl, BYTE [r10]
+        mov BYTE [r8], cl
+
+        ; move source to next byte
+        inc r10
+        ; Check if we've reached the end of this Array
+        cmp r10, r11
+        jne .source_ok
+
+        ; have reached the end of the source Array
+        mov rbx, QWORD [rbx + Array.next]     ; Get the next Array address
+        cmp rbx, 0              ; Test if it's null
+        je .finished            ; No more, so we're done
+        ; Move on to next Array object
+        
+        ; Get source address into r10
+        mov r10, rbx
+        add r10, Array.data     ; Start of the data
+
+        ; Source end address
+        mov r11, rbx
+        add r11, Array.size
+        
+.source_ok:
+
+        ; Move destination to next byte
+        inc r8
+        ; Check if we've reached end of the Array
+        cmp r8, r9
+        jne .copy_loop          ; Next byte
+
+        ; Reached the end of the destination
+        ; Need to allocate another Array
+        push rax
+        push rbx
+        call alloc_array        ; New Array in rax
+        mov r8, rax             ; copy to r8
+        pop rbx
+        pop rax
+
+        ; Previous Array in rax.
+        ; Add a reference to the new array and set length
+        mov QWORD [rax + Array.next], r8
+        mov DWORD [rax + Array.length], (Array.size - Array.data)
+        mov rax, r8             ; new array
+        add r8, Array.data      ; Start of data
+        
+        mov r9, rax
+        add r9, Array.size
+        
+.finished:
+        ; Compare r8 (destination) with data start
+        ; to get length of string
+        sub r8, rax
+        sub r8, Array.data
+        inc r8
+        ; r8 now contains length
+        mov DWORD [rax + Array.length], r8d
+        
         ret
         
 ;; -------------------------------------------
@@ -500,9 +622,7 @@ itostring:
         jnz     .divideLoop      ; jump if not zero to the label divideLoop
 
         ; Get an Array object to put the string into
-        call alloc_array        ; Address in RAX
-
-        mov [rax], BYTE maltype_string ; mark as a string
+        call string_new        ; Address in RAX
         
         ; put length into string
         mov     [rax + Array.length], ecx
@@ -622,6 +742,19 @@ read_line:
 
         
 _start:
+
+        ; mov rsi, test_string1
+        ; mov edx, test_string1.len
+        ; call raw_to_string      ; address in rax
+        ; push rax
+        ; mov rsi, test_string2
+        ; mov edx, test_string2.len
+        ; call raw_to_string
+        ; pop rsi
+        ; mov rdx, rax
+        ; call string_append_string
+        ; call print_string
+        
         
         ; -----------------------------
         ; Main loop
