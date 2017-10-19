@@ -76,7 +76,7 @@ read_str:
 
         ; rax now contains the first object
         cmp cl, ')'            ; Check if it was end of list
-        je .list_has_contents
+        jne .list_has_contents
         mov cl, 0               ; so ')' doesn't propagate to nested lists
         pop r13
         pop r12
@@ -106,7 +106,8 @@ read_str:
         mov cl, BYTE [rax]
         or cl, container_list
         mov [rax], BYTE cl
-        
+
+        mov r12, rax            ; Start of current list
         mov r13, rax            ; Set current list
         cmp r15, 0              ; Test if first list
         jne .list_read_loop
