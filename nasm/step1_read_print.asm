@@ -139,6 +139,19 @@ test_string2: db 10, "test2", 10
 ;AT Array.length, dd  6
 ;AT Array.data, db 'hello',10
 ;IEND
+
+test_cons: ISTRUC Cons
+AT Cons.typecar, db ( maltype_integer + 2 )
+AT Cons.typecdr, db 0
+AT Cons.car, dq 123
+IEND
+
+test_cons2: ISTRUC Cons
+AT Cons.typecar, db ( maltype_integer + 2 )
+AT Cons.typecdr, db content_pointer
+AT Cons.car, dq 456
+AT Cons.cdr, dq test_cons
+IEND
         
 ;; ------------------------------------------
 ;; Fixed strings for printing
@@ -239,14 +252,6 @@ alloc_array:
 ;; onto the free list
 release_array:
         mov ax, WORD [rsi + Array.refcount]
-
-        push rsi
-        push rdx
-        mov rsi, test_string1
-        mov rdx, test_string1.len
-        call print_rawstring
-        pop rdx
-        pop rsi
         
         dec ax
         mov WORD [rsi + Array.refcount], ax
@@ -755,6 +760,12 @@ _start:
         ; call string_append_string
         ; call print_string
         
+
+        ; Test printing short list of integers
+        ; mov rsi, test_cons2
+        ; call pr_str
+        ; mov rsi, rax
+        ; call print_string
         
         ; -----------------------------
         ; Main loop

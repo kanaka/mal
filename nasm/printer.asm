@@ -18,15 +18,21 @@ section .text
 ;;
 ;; Output: Address of string in RAX
 ;;
-;; Modifies: RCX
-;; Calls: raw_to_string, 
+;; Modifies:
+;;  RCX
+;;  R12
+;;  R13
+;; Calls: raw_to_string,
+;;
+;; 
 pr_str: 
 
         ; Get the type
         mov cl, BYTE [rsi]
-
+        
         ; Check if it's already a string
         cmp cl, maltype_string
+        
         jne .not_string
         mov rax, rsi
         ret
@@ -75,45 +81,80 @@ pr_str:
         call itostring
         ret
 .list:
+        
         mov r12, rsi            ; Input list
         
         call string_new         ; String in rax
+        mov r13, rax            ; Output string in r13
+        
         ; Put '(' onto string
         mov rsi, rax
         mov cl, '('
         call string_append_char
         
         ; loop through list
-        push rsi                ; Save output string
+.list_loop:
         
         ; Extract values and print
-        ; mov bl, BYTE [r12]
-        ; xor bl, container_list  ; Change from list to value
-        ; mov BYTE [r12], bl
-        ; mov rsi, r12
-
+        
         mov rsi, r12
-        mov BYTE [rsi], maltype_integer
-        call pr_str             ; String in rax
-        
-        ; mov bl, BYTE [r12]
-        ; xor bl, container_list  ; Change from value to list
-        ; mov BYTE [r12], bl
-        
-        pop rsi                 ; Restore output string
-        ; concatenate strings in rax and rsi
-        mov rdx, rax            ; String to be copied
+        mov cl, BYTE [rsi]      ; Get type
 
-        push rax
-        push rbx
-        push rcx
-        call string_append_string
-        pop rcx
-        pop rbx
-        pop rax
+        ; Check if it's a pointer (address)
+        mov ch, cl
+        and ch, content_mask
+        cmp ch, content_pointer
+        je .list_loop_pointer
         
+        ; A value (nil, int etc. or function)
+        xor cl, container_list  ; Remove list type -> value
+        mov BYTE [rsi], cl
+
+        push r13
+        push r12
+        call pr_str             ; String in rax
+        pop r12
+        pop r13
+        
+        mov cl, BYTE [r12]
+        or cl, container_list  ; Restore list type
+        mov  BYTE [r12], cl
+        jmp .list_loop_got_str
+.list_loop_pointer:
+        mov rsi, [rsi + Cons.car] ; Address of object
+        push r13
+        push r12
+        call pr_str             ; String in rax
+        pop r12
+        pop r13
+        
+.list_loop_got_str:
+        ; concatenate strings in rax and rsi
+        mov rsi, r13            ; Output string
+        mov rdx, rax            ; String to be copied
+        
+        call string_append_string
+
+        ; Check if this is the end of the list
+        mov cl, BYTE [r12 + Cons.typecdr]
+        cmp cl, content_nil
+        je .list_finished
+
+        ; More left in the list
+        
+        ; Add space between values
+        mov cl, ' '
+        mov rsi, r13
+        call string_append_char
+        
+        ; Get next Cons
+        mov r12, [r12 + Cons.cdr]
+        jmp .list_loop
+        
+.list_finished:
         ; put ')' at the end of the string
         mov cl, ')'
+        mov rsi, r13
         call string_append_char
         
         mov rax, rsi
