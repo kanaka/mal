@@ -24,6 +24,10 @@ section .text
 ;;  R8   ** State must be preserved
 ;;  R9   ** 
 ;;  R10  **
+;;  R12
+;;  R13
+;;  R14   Original stack pointer on call
+;;  R15   Top-level list, so all can be released on error
 ;;
 read_str:
         ; Initialise tokenizer
@@ -64,22 +68,17 @@ read_str:
         ; --------------------------------
         
 .list_start:
-        ; Push current list onto stack
-        push r12
-        push r13
-
+        
         ; Get the first value
         ; Note that we call rather than jmp because the first
         ; value needs to be treated differently. There's nothing
         ; to append to yet...
         call .read_loop
-
+        
         ; rax now contains the first object
         cmp cl, ')'            ; Check if it was end of list
         jne .list_has_contents
         mov cl, 0               ; so ')' doesn't propagate to nested lists
-        pop r13
-        pop r12
         ret                    ; Returns 'nil' given "()"
 .list_has_contents:
         ; If this is a Cons then use it
@@ -118,8 +117,12 @@ read_str:
         ; (which may be other lists)
         ; until we get a ')' token
 
+        push r12
+        push r13
         call .read_loop         ; object in rax
-
+        pop r13
+        pop r12
+        
         cmp cl, ')'            ; Check if it was end of list
         je .list_done
 
@@ -163,9 +166,6 @@ read_str:
 
         mov [rax], BYTE (container_list + content_int)
         
-        ; Pop previous list (if any)
-        pop r13
-        pop r12
         ret
 
         ; --------------------------------
@@ -177,14 +177,16 @@ read_str:
 
         mov rsp, r14            ; Rewind stack pointer
         cmp r15, 0              ; Check if there is a list
-        jne .return_nil
+        je .return_nil
         mov rsi, r15
         call release_cons       ; releases everything recursively
         ; fall through to return_nil
 .return_nil:
         ; Allocates a new Cons object with nil and returns
         ; Cleanup should happen before jumping here
+        push rcx
         call alloc_cons
+        pop rcx
         mov [rax], BYTE maltype_nil
         ret
 
@@ -337,7 +339,12 @@ tokenizer_next:
         sub cl, '0'            ; Convert to number between 0 and 9
         movzx ebx, cl
         add edx, ebx
-
+        
+        ; Push current state of the tokenizer
+        push r9
+        push r10
+        push r11
+        
         ; Peek at next character
         call tokenizer_next_char ; Next char in CL
         
@@ -345,6 +352,9 @@ tokenizer_next:
         jl .integer_finished
         cmp cl, '9'
         jg .integer_finished
+
+        ; Discard old state by moving stack pointer
+        add rsp, 24             ; 3 * 8 bytes
         
         imul edx, 10
         
@@ -352,8 +362,12 @@ tokenizer_next:
         
 .integer_finished:
         ; Next char not an int
-
-
+        
+        ; Restore state of the tokenizer
+        pop r11
+        pop r10
+        pop r9
+        
         push rdx                ; Save the integer
         ; Get a Cons object to put the result into
         call alloc_cons
@@ -456,9 +470,9 @@ tokenizer_next:
         
 .tilde_no_amp:
         ; Restore state of the tokenizer
-        pop rbx
-        pop rax
-        pop rsi
+        pop r11
+        pop r10
+        pop r9
         ; fall through to found
         
 .found:
