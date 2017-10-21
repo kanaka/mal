@@ -11,6 +11,9 @@ unquote_symbol_string: db "unquote"
 
 splice_unquote_symbol_string: db "splice-unquote"
 .len: equ $ - splice_unquote_symbol_string
+
+error_string_unexpected_end: db "Error: Unexpected end of input. Could be a missing )", 10
+.len: equ $ - error_string_unexpected_end
         
 section .text
 
@@ -61,6 +64,13 @@ read_str:
         jne .got_token
 
         ; Unexpected end of tokens
+        push r14
+        push r15
+        mov rdx, error_string_unexpected_end.len
+        mov rsi, error_string_unexpected_end
+        call print_rawstring
+        pop r15
+        pop r14
         jmp .unwind
         
 .got_token:
