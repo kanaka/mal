@@ -1,4 +1,16 @@
+section .data
 
+quote_symbol_string: db "quote"
+.len: equ $ - quote_symbol_string
+        
+quasiquote_symbol_string: db "quasiquote"
+.len: equ $ - quasiquote_symbol_string
+
+unquote_symbol_string: db "unquote"
+.len: equ $ - unquote_symbol_string
+
+splice_unquote_symbol_string: db "splice-unquote"
+.len: equ $ - splice_unquote_symbol_string
         
 section .text
 
@@ -53,7 +65,11 @@ read_str:
         
 .got_token:
 
-        cmp cl, 'i'
+        cmp cl, 'i'             ; An integer. Cons object in RAX
+        je .finished
+        cmp cl, '"'             ; A string. Array object in RAX
+        je .finished
+        cmp cl, 's'
         je .finished
         
         cmp cl, '('
@@ -61,6 +77,15 @@ read_str:
         
         cmp cl, ')'
         je .return_nil          ; Note: if reading a list, cl will be tested in the list reader
+
+        cmp cl, 39              ; quote '
+        je .handle_quote
+        cmp cl, '`'
+        je .handle_quasiquote
+        cmp cl, '~'
+        je .handle_unquote
+        cmp cl, 1
+        je .handle_splice_unquote
         
         ; Unknown
         jmp .return_nil
@@ -124,7 +149,7 @@ read_str:
         pop r12
         
         cmp cl, ')'            ; Check if it was end of list
-        je .list_done
+        je .list_done          ; Have nil object in rax
 
         ; Test if this is a Cons value
         mov cl, BYTE [rax]
@@ -159,15 +184,104 @@ read_str:
         jmp .list_read_loop
         
 .list_done:
+        ; Release nil object in rax
+        mov rsi, rax
+        call release_cons
+        
         ; Terminate the list
         mov [r13 + Cons.typecdr], BYTE content_nil
         mov QWORD [r13 + Cons.cdr], QWORD 0
         mov rax, r12            ; Start of current list
-
-        mov [rax], BYTE (container_list + content_int)
         
         ret
 
+        ; --------------------------------
+.handle_quote:
+        ; Turn 'a into (quote a)
+        call alloc_cons         ; Address in rax
+        mov r12, rax
+
+        ; Get a symbol "quote"
+        push r8
+        push r9
+        mov rsi, quote_symbol_string
+        mov edx, quote_symbol_string.len
+        call raw_to_string      ; Address in rax
+        pop r9
+        pop r8
+
+.wrap_next_object:
+        mov [rax], BYTE maltype_symbol
+        mov [r12], BYTE (block_cons + container_list + content_pointer)
+        mov [r12 + Cons.car], rax
+        
+        ; Get the next object
+        push r12
+        call .read_loop         ; object in rax
+        pop r12
+
+        mov r13, rax            ; Put object to be quoted in r13
+
+        call alloc_cons         ; Address in rax
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        mov [rax + Cons.car], r13
+        mov [rax + Cons.typecdr], BYTE content_nil
+        
+        ; Cons object in rax. Append to object in r12
+        mov [r12 + Cons.typecdr], BYTE content_pointer
+        mov [r12 + Cons.cdr], rax
+
+        mov rax, r12
+        ret
+
+        ; --------------------------------
+.handle_quasiquote:
+        ; Turn `a into (quasiquote a)
+        call alloc_cons         ; Address in rax
+        mov r12, rax
+
+        ; Get a symbol "quasiquote"
+        push r8
+        push r9
+        mov rsi, quasiquote_symbol_string
+        mov edx, quasiquote_symbol_string.len
+        call raw_to_string      ; Address in rax
+        pop r9
+        pop r8
+        jmp .wrap_next_object   ; From there the same as handle_quote
+
+        ; --------------------------------
+.handle_unquote:
+        ; Turn ~a into (unquote a)
+        call alloc_cons         ; Address in rax
+        mov r12, rax
+
+        ; Get a symbol "unquote"
+        push r8
+        push r9
+        mov rsi, unquote_symbol_string
+        mov edx, unquote_symbol_string.len
+        call raw_to_string      ; Address in rax
+        pop r9
+        pop r8
+        jmp .wrap_next_object   ; From there the same as handle_quote
+
+        ; --------------------------------
+.handle_splice_unquote:
+        ; Turn ~@a into (unquote a)
+        call alloc_cons         ; Address in rax
+        mov r12, rax
+
+        ; Get a symbol "unquote"
+        push r8
+        push r9
+        mov rsi, splice_unquote_symbol_string
+        mov edx, splice_unquote_symbol_string.len
+        call raw_to_string      ; Address in rax
+        pop r9
+        pop r8
+        jmp .wrap_next_object   ; From there the same as handle_quote
+        
         ; --------------------------------
 .finished:
         ret
@@ -188,6 +302,7 @@ read_str:
         call alloc_cons
         pop rcx
         mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
         ret
 
         
@@ -262,6 +377,7 @@ tokenizer_next_char:
 ;; - Pair '~@', represented by code 1
 ;; - A string: " in CL, and address in RAX
 ;; - An integer: 'i' in CL
+;; - A symbol: 's' in CL, address in RAX
 ;;
 ;; Address of object in RAX
 ;;
@@ -382,12 +498,78 @@ tokenizer_next:
         mov cl, 'i'             ; Mark as an integer
         ret
 
+        ; -------------------------------------------
 .handle_symbol:
+        ; Read characters until reaching whitespace, special character or end
 
+        call string_new         
+        mov rsi, rax  ; Output string in rsi
         
+.symbol_loop:
+        ; Put the current character into the array
+        call string_append_char
         
+        ; Push current state of the tokenizer
+        push r9
+        push r10
+        push r11
+        
+        call tokenizer_next_char
+        cmp cl, 0               ; End of characters
+        je .symbol_finished
+        
+        cmp cl, ' '             ; Space
+        je .symbol_finished           
+        cmp cl, ','             ; Comma
+        je .symbol_finished
+        cmp cl, 9               ; Tab
+        
+        cmp cl, '('
+        je .symbol_finished
+        cmp cl, ')'
+        je .symbol_finished
+        cmp cl, '['
+        je .symbol_finished
+        cmp cl, ']'
+        je .symbol_finished
+        cmp cl, '{'
+        je .symbol_finished
+        cmp cl, '}'
+        je .symbol_finished
+        cmp cl, 39              ; character '
+        je .symbol_finished
+        cmp cl, 96              ; character `
+        je .symbol_finished
+        cmp cl, '^'
+        je .symbol_finished
+        cmp cl, '@'
+        je .symbol_finished
+        cmp cl, '~'
+        je .symbol_finished
+        cmp cl, ';'             ; Start of a comment
+        je .symbol_finished
+        cmp cl, 34              ; Opening string quotes
+        je .symbol_finished
+
+        ; Keeping current character
+        ; Discard old state by moving stack pointer
+        add rsp, 24             ; 3 * 8 bytes
+
+        jmp .symbol_loop        ; Append to array
+        
+.symbol_finished:
+        ; Not keeping current character
+        ; Restore state of the tokenizer
+        pop r11
+        pop r10
+        pop r9
+
+        mov rax, rsi
+        mov [rax], BYTE maltype_symbol ; Mark as a symbol
+        mov cl, 's'                    ; used by read_str
         ret
 
+        ; --------------------------------------------
 .handle_string:
         ; Get an array to put the string into
         
@@ -469,6 +651,7 @@ tokenizer_next:
         ret
         
 .tilde_no_amp:
+        mov cl, '~'
         ; Restore state of the tokenizer
         pop r11
         pop r10

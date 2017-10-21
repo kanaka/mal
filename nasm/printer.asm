@@ -132,9 +132,17 @@ pr_str:
         ; concatenate strings in rax and rsi
         mov rsi, r13            ; Output string
         mov rdx, rax            ; String to be copied
-        
+
+        push rsi                ; Save output string
+        push rax                ; save temporary string
         call string_append_string
 
+        ; Release the string
+        pop rsi                 ; Was in rax, temporary string
+        call release_array
+
+        pop rsi                 ; restore output string
+        
         ; Check if this is the end of the list
         mov cl, BYTE [r12 + Cons.typecdr]
         cmp cl, content_nil
@@ -160,5 +168,29 @@ pr_str:
         mov rax, rsi
         ret
 .symbol:
+        ; Make a copy of the string
+        call string_new         ; in rax
+        mov ebx, DWORD [rsi + Array.length]
+        mov [rax + Array.length], ebx
+        mov rcx, rsi
+        add rcx, Array.data     ; Start of input data
+        mov rdx, rsi
+        add rdx, Array.size     ; End of input data
+        mov r12, rax
+        add r12, Array.data     ; Start of output data
+.symbol_copy_loop:
+        ; Copy [rax] -> [r12]
+        mov rbx, [rcx]
+        mov [r12], rbx
+        add rcx, 8              ; Next 64 bits of input
+        cmp rcx, rdx
+        je .symbol_finished
+        
+        add r12, 8              ; Next 64 bits of output
+        jmp .symbol_copy_loop
+.symbol_finished:
+        
+        
+        
         ret
         

@@ -801,9 +801,9 @@ _start:
         pop rsi
         call release_array
         
-        ; Release the Cons from read_str
+        ; Release the object from read_str
         pop rsi
-        call release_cons
+        call release_object     ; Could be Cons or Array
         
         ; Release the string
         pop rsi
