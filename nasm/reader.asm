@@ -104,6 +104,8 @@ read_str:
         cmp cl, ')'            ; Check if it was end of list
         jne .list_has_contents
         mov cl, 0               ; so ')' doesn't propagate to nested lists
+        ; Set list to empty
+        mov [rax], BYTE maltype_empty_list
         ret                    ; Returns 'nil' given "()"
 .list_has_contents:
         ; If this is a Cons then use it
@@ -439,12 +441,54 @@ tokenizer_next:
 
         ; Could be number or symbol
 
+        cmp cl, '-'             ; Minus sign
+        je .handle_minus
+        mov ch, 0
+        
         ; Check for a character 0-9
         cmp cl, '0'
         jl .handle_symbol
         cmp cl, '9'
         jg .handle_symbol
 
+        ; Here an integer
+        jmp .handle_integer
+        
+.handle_minus:
+
+        ; Push current state of the tokenizer
+        push r9
+        push r10
+        push r11
+        
+        ; Get the next character
+        call tokenizer_next_char
+        
+        ; Check if it is a number
+        cmp cl, '0'
+        jl .minus_not_number
+        cmp cl, '9'
+        jg .minus_not_number
+
+        ; Here is a number
+        mov ch, '-'              ; Put '-' in ch for later
+
+        ; Discard old state by moving stack pointer
+        add rsp, 24             ; 3 * 8 bytes
+        
+        jmp .handle_integer
+        
+.minus_not_number:
+
+        ; Restore state
+        pop r11
+        pop r10
+        pop r9
+
+        mov cl, '-'             ; Put back
+
+        jmp .handle_symbol
+        
 .handle_integer:
         ; Start integer
         ; accumulate in EDX
@@ -489,7 +533,13 @@ tokenizer_next:
         call alloc_cons
         
         pop rdx                 ; Restore integer
-        
+
+        ; Check if the number should be negative
+        cmp ch, '-'
+        jne .integer_store
+        neg rdx
+
+.integer_store:
         ; Address of Cons now in RAX
         mov [rax], BYTE maltype_integer
 

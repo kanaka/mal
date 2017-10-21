@@ -38,12 +38,14 @@
 ;; 10    5 - Function
 ;;
 ;;  Content type [4 bits]:
-;;  0   0 - Nil
-;; 16   1 - Bool
-;; 32   2 - Char
-;; 48   3 - Int
-;; 64   4 - Float
-;; 80   5 - Pointer (memory address)
+;;   0   0 - Nil
+;;  16   1 - Bool
+;;  32   2 - Char
+;;  48   3 - Int
+;;  64   4 - Float
+;;  80   5 - Pointer (memory address)
+;;  96   6 - Function (instruction address)
+;; 112   7 - Empty (distinct from Nil)
 ;;
 ;; These represent MAL data types as follows:
 ;;
@@ -113,12 +115,14 @@ ENDSTRUC
 %define content_float 64
 %define content_pointer 80      ; Memory pointer (to Cons or Array)
 %define content_function 96     ; Function pointer
-
+%define content_empty 112
+        
 ;; Common combinations for MAL types
 %define maltype_integer  (block_cons + container_value + content_int)
 %define maltype_string  (block_array + container_value + content_char)
 %define maltype_symbol  (block_array + container_symbol + content_char)
 %define maltype_nil  (block_cons + container_value + content_nil)
+%define maltype_empty_list (block_cons + container_list + content_empty)
         
 %include "reader.asm"
 %include "printer.asm"
@@ -606,12 +610,25 @@ print_string:
 ;; Return string address in RAX
 itostring:
         ; Save registers to restore afterwards
+        push    rbx
         push    rcx
         push    rdx
         push    rsi
         push    rdi
         
         mov     rcx, 0          ; counter of how many bytes we need to print in the end
+
+        mov rbx, rax            ; Original input
+        
+        ; Check if the number is negative
+        cmp rax, 0
+        jge .divideLoop
+
+        ; a negative number. To get the '-' sign
+        ; at the front the test is done again at the end
+        ; using the value stored in rbx
+
+        neg rax                 ; Make it positive
         
 .divideLoop:
         inc     rcx             ; count each byte to print - number of characters
@@ -626,6 +643,16 @@ itostring:
         cmp     rax, 0          ; can the integer be divided anymore?
         jnz     .divideLoop      ; jump if not zero to the label divideLoop
 
+        ; Check if the value was negative (in rbx)
+        cmp rbx, 0
+        jge .create_string
+
+        ; a negative number
+        dec rsp
+        mov     BYTE [rsp], '-'
+        inc rcx
+
+.create_string:
         ; Get an Array object to put the string into
         call string_new        ; Address in RAX
         
@@ -650,6 +677,7 @@ itostring:
         pop     rsi
         pop     rdx
         pop     rcx
+        pop     rbx
         
         ret
         
