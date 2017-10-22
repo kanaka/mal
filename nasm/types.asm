@@ -53,7 +53,7 @@
 ;; string       Array      Value         Char
 ;; keyword      Array      Keyword       Char
 ;; vector       Array      Value         Int/Float
-;; hash-map     Array      Map           Pointer (?TBD)
+;; hash-map     Cons       Map           Alternate key, values
 ;; atom         Cons       Value         Pointer
 ;;
         
@@ -247,6 +247,9 @@ release_array:
 ;; Cons alloc_cons()
 ;;
 ;; Returns the address of a Cons object in RAX
+;;
+;; Modifies:
+;;   RBX
 alloc_cons:
         
         ; Get the address of a free cons
@@ -348,6 +351,21 @@ release_object:
         call release_array
         ret
 
+;; Increment reference count of Cons or Array
+;; Address of object in RSI
+;;
+;; This code makes use of the fact that the reference
+;; count is in the same place in Cons and Array types
+;;
+;; Modifies
+;;   RAX
+incref_object:
+        mov ax, WORD [rsi + Cons.refcount] ; Same for Array
+        inc ax
+        ; Check for overflow?
+        mov [rsi + Cons.refcount], WORD ax
+        ret
+        
 ;; -------------------------------------------
 ;; String type
 
@@ -626,4 +644,118 @@ itostring:
         
         ret
 
+;; ------------------------------------------------------------
+;; Map type
         
+map_new:
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_map + content_empty)
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+        
+        
+;; Add to map. Input is a list with an even number of values
+;; as (key, value, key, value, ...)
+;;
+;; Inputs:
+;;    RSI - Map to append to. This is not modified
+;;    RDI - List to add to the map
+;; Outputs:
+;;    RAX - New map
+;;
+;; Modifies:
+;;    RCX
+map_add:
+        ; Check type of input
+        mov cl, BYTE [rsi]
+        mov cl, ch
+        and ch, block_mask + container_mask
+        cmp ch, block_cons + container_map
+        jne .error
+        
+        mov cl, BYTE [rdi]
+        and cl, block_mask + container_mask
+        cmp cl, block_cons + container_list
+        jne .error
+        
+        xor r8, r8              ; Zero r8
+        
+.copy_input:
+        ; Copy input list, changing container type
+        call alloc_cons
+
+        mov cl, BYTE [rdi]
+        and cl, content_mask    ; Keep the content
+        add cl, block_cons + container_map
+        mov [rax], BYTE cl      ; Set type
+        mov rcx, [rdi+Cons.car] ; Copy data
+        mov [rax+Cons.car], rcx
+        
+        cmp cl, (block_cons + container_map + content_pointer)
+        jne .copy_not_pointer
+
+        ; Copying a pointer to data
+        ; so need to increase the reference count
+        mov bx, WORD [rcx + Cons.refcount] ; Same offset for Array
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.copy_not_pointer:
+
+        ; Check if this is the first object
+        cmp r8, 0
+        jnz .copy_not_first
+        mov r8, rax             ; Save start of map to R8
+        mov r9, rax             ; Last cons in R9
+        jmp .copy_next
+        
+.copy_not_first:
+        ; Append to R9
+        mov [r9+Cons.cdr], rax
+        mov [r9+Cons.typecdr], BYTE content_pointer
+
+        ; Put new Cons in R9 as the latest in the list
+        mov r9, rax
+
+.copy_next:
+        ; Check if we've reached the end
+        mov cl, BYTE [rdi + Cons.typecdr]
+        cmp cl, content_nil
+        je .copy_finished
+
+        ; Not yet. Get next Cons and keep going
+        mov rdi, [rdi + Cons.cdr]
+        jmp .copy_input
+        
+.copy_finished:
+        ; Start of map in r8, end in r9
+        
+        ; Check if the original map is empty
+        mov cl, [rsi]
+        and cl, content_mask
+        cmp cl, content_empty
+        je .return
+
+        ; Put old map on the end of the new map
+        ; For now this avoids the need to overwrite
+        ; values in the map, since a search will find
+        ; the new values first. 
+
+        mov [r9 + Cons.cdr], rsi
+        mov [r9 + Cons.typecdr], BYTE content_pointer
+        
+        ; Increment reference count
+        mov bx, WORD [rsi + Cons.refcount]
+        inc bx
+        mov [rsi + Cons.refcount], WORD bx
+        
+.return:
+        mov rax, r8
+        ret
+        
+.error:
+        ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
