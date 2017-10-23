@@ -93,9 +93,9 @@ _start:
         call read_str
         push rax
 
-        ; Add together
+        ; Compare objects
         mov rsi, rax
-        call core_add
+        call core_equal_p
         
         ; Put into pr_str
         mov rsi, rax

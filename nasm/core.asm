@@ -84,3 +84,36 @@ core_arithmetic:
         mov [rax], BYTE maltype_nil
         mov [rax + Cons.typecdr], BYTE content_nil
         ret
+
+;; Test objects for equality
+core_equal_p:
+        ; Check that rsi contains a list
+        mov cl, BYTE [rsi]
+        and cl, block_mask + container_mask
+        cmp cl, block_cons + container_list
+        jne .error
+        
+        ; Check that the list has a second pointer
+        mov cl, BYTE [rsi + Cons.typecdr]
+        cmp cl, content_pointer
+        jne .error
+        
+        ; move second pointer into rdi
+        mov rdi, [rsi + Cons.cdr]
+
+        ; Compare rsi and rdi objects
+        call compare_objects    ; result in rax
+        
+        ; for now put result into Cons
+        mov rdi, rax
+        call alloc_cons
+        mov [rax], BYTE maltype_integer
+        mov [rax + Cons.typecdr], BYTE content_nil
+        mov [rax + Cons.car], rdi
+        ret
+.error:
+        ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret

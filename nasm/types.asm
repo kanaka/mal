@@ -644,6 +644,163 @@ itostring:
         
         ret
 
+        
+;; ------------------------------------------------------------
+;; Object comparison
+;;
+;; These comparison functions take two objects
+;; in RSI and RDI
+;; and return a code (not an object) in RAX
+;;
+;;  RAX = 0    Objects are equal
+;;        1    RSI object is greater than RDI
+;;        2    RSI object is less than RDI
+;;       -1    Different object types, or no ordering
+;;
+;; Note that the ordering of objects depends on the type
+;;    strings  - Alphabetical
+;;   
+;; 
+;;
+
+;; Given an object in RSI, follows pointers
+;; to return the value object in RAX
+;;
+;; Modifies registers:
+;;   RCX
+compare_get_value:
+        mov cl, BYTE [rsi]
+        mov ch, cl
+        and ch, block_mask
+        jnz .nop                ; Got an Array
+
+        ; Here got Cons
+        mov ch, cl
+        and ch, content_mask
+        cmp ch, content_pointer
+        jne .nop                ; Not a pointer
+
+        ; Got a pointer, so follow and return
+        mov rax, [rsi + Cons.car]
+        ret
+.nop:
+        mov rax, rsi
+        ret
+
+;; Compare two objects. Note that this does not compare lists
+;; but will just compare the first element
+;;
+;; Modifies registers
+;;    RCX
+;;    RBX
+compare_objects:
+        ; Get the value that RSI points to
+        call compare_get_value
+        mov rbx, rax            ; Save in RBX
+        ; Get the value that RDI points to
+        mov rsi, rdi
+        call compare_get_value
+        mov rdi, rax
+        mov rsi, rbx
+
+        ; now get types
+        mov cl, BYTE [rsi]      ; Type of RSI
+        mov bl, BYTE [rdi]      ; Type of RDI
+
+        ; Don't care about container type
+        and cl, block_mask + content_mask
+        and bl, block_mask + content_mask
+        
+        cmp bl, cl              ; compare block and content
+        jne .different_types
+
+        ; Here the same block, content type
+        ; May be different container (value/list, string/symbol)
+        cmp bl, block_cons + content_nil
+        je .objects_equal      ; nil
+
+        cmp bl, block_array + content_char
+        je compare_char_array      ; strings, symbols
+        
+        cmp bl, block_cons + content_int
+        je .integers
+
+        ; Unknown
+        jmp .different_types
+        
+.integers:
+        ; two Cons objects, both containing integers
+        mov rbx, [rsi + Cons.car]
+        cmp rbx, [rdi + Cons.car]
+        je .objects_equal
+        jl .rdi_greater
+        jmp .rsi_greater
+        
+.objects_equal:
+        mov rax, 0
+        ret
+
+.rsi_greater:                   ; rsi > rdi
+        mov rax, 1
+        ret
+        
+.rdi_greater:                   ; rdi > rsi
+        mov rax, 2
+        ret
+        
+.different_types:
+        mov rax, -1
+        ret
+        
+
+;; Char array objects (strings, symbols, keywords) in RSI and RDI
+;; Return code in RAX
+;;
+;; Modifies registers:
+;;   RBX
+;;   RCX
+;;   RDX
+compare_char_array:
+        ; Check length
+        mov eax, DWORD [rsi + Array.length]
+        mov ebx, DWORD [rdi + Array.length]
+        cmp eax, ebx
+        jne .different
+
+        ; same length
+        mov rbx, rsi
+        add rbx, Array.data
+        mov rcx, rdi
+        add rcx, Array.data
+.compare_loop:
+        ; get next character
+        mov dl, BYTE [rbx]
+        cmp dl, BYTE [rcx]
+        jl .rdi_greater
+        jg .rsi_greater
+
+        ; equal
+        inc rbx
+        inc rcx
+        dec eax
+        jnz .compare_loop
+
+        ; equal
+        mov rax, 0
+        ret
+        
+.rsi_greater:                   ; rsi > rdi
+        mov rax, 1
+        ret
+        
+.rdi_greater:                   ; rdi > rsi
+        mov rax, 2
+        ret
+        
+.different:
+        mov rax, -1
+        ret
+        
 ;; ------------------------------------------------------------
 ;; Map type
         
