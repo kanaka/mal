@@ -50,6 +50,7 @@ function _false_Q($obj) { return $obj === false; }
 function _string_Q($obj) {
     return is_string($obj) && strpos($obj, chr(0x7f)) !== 0;
 }
+function _number_Q($obj) { return is_int($obj); }
 
 
 // Symbols
@@ -114,6 +115,7 @@ function _function($func, $type='platform',
     return new FunctionClass($func, $type, $ast, $env, $params, $ismacro);
 }
 function _function_Q($obj) { return $obj instanceof FunctionClass; }
+function _fn_Q($obj) { return $obj instanceof Closure; }
 
 
 // Parent class of list, vector, hash-map
