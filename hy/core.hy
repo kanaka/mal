@@ -27,7 +27,7 @@
    "nil?"     none?
    "true?"    (fn [a] (and (instance? bool a) (= a True)))
    "false?"   (fn [a] (and (instance? bool a) (= a False)))
-   "number?"  (fn [a] (instance? int a))
+   "number?"  (fn [a] (and (not (instance? bool a)) (instance? int a)))
    "string?"  (fn [a] (and (string? a) (not (keyword? a))))
    "symbol"   (fn [a] (Sym a))
    "symbol?"  (fn [a] (instance? Sym a))
