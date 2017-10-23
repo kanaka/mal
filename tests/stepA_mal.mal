@@ -100,7 +100,7 @@
 ;; TODO move these to optional functionality after adding them to all
 ;; implementations
 ;;
-;; Testing string? function
+;; Testing number? function
 (number? 123)
 ;=>true
 (number? -1)
