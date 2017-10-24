@@ -145,6 +145,9 @@ core_ns <- list(
     "symbol?"=.symbol_q,
     "keyword"=new.keyword,
     "keyword?"=.keyword_q,
+    "number?"=.number_q,
+    "fn?"=.fn_q,
+    "macro?"=.macro_q,
 
     "pr-str"=pr_str,
     "str"=str,

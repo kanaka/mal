@@ -104,6 +104,8 @@ new.keyword <- function(name) concat("\u029e", name)
          "<U+029E>" == substring(obj,1,8))
 }
 
+.number_q <- function(obj) "numeric" == class(obj) || "integer" == class(obj)
+
 # Functions
 
 malfunc <- function(eval, ast, env, params) {
@@ -127,6 +129,9 @@ fapply <- function(mf, args) {
         do.call(mf,args)
     }
 }
+
+.fn_q <- function(obj) "function" == class(obj) || (.malfunc_q(obj) && !obj$ismacro)
+.macro_q <- function(obj) .malfunc_q(obj) && obj$ismacro
 
 # Lists
 new.list <- function(...) new.listl(list(...))
