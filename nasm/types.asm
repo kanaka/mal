@@ -687,7 +687,8 @@ compare_get_value:
         mov rax, rsi
         ret
 
-;; Compare two objects. Note that this does not compare lists
+;; Compare two objects in RSI and RDI.
+;; Note that this does not compare lists
 ;; but will just compare the first element
 ;;
 ;; Modifies registers
@@ -916,3 +917,95 @@ map_add:
         mov [rax], BYTE maltype_nil
         mov [rax + Cons.typecdr], BYTE content_nil
         ret
+
+;; Find a key in a map
+;;
+;; Inputs: RSI - map
+;;         RDI - key
+;;
+;; Outputs: RAX - Cons object containing value in CAR
+;;
+;; If value is found then the Zero Flag is set
+;;
+;; Examples:
+;;     {a 1 b 2} find a ->  {1 b 2}
+;;     {1 2 3 4} find a ->  {4}
+map_find:
+        mov al, BYTE [rsi]
+        cmp al, maltype_empty_map
+        je .not_found
+
+.map_loop:
+        ; compare RSI and RDI, ignoring differences in container
+        push rsi
+        push rdi
+        call compare_objects
+        pop rdi
+        pop rsi
+        
+        ; rax is now zero if objects are equal
+        cmp rax, 0
+        je .found
+
+        ; Move along two cons to the next key
+        mov al, [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .error              ; Expecting value after key
+        
+        mov rsi, [rsi + Cons.cdr] ; Get value
+        mov al, [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .not_found
+        
+        mov rsi, [rsi + Cons.cdr] ; Get next key
+        
+        jmp .map_loop           ; Test next key
+        
+.found:
+        
+        lahf                    ; flags in AH
+        or ah, 64               ; set zero flag
+        sahf
+        
+        ; key in rsi. Get next value
+        mov al, [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .error              ; Expecting value after key
+        
+        mov rsi, [rsi + Cons.cdr]
+        
+        ; increment reference count
+        mov ax, WORD [rsi + Cons.refcount]
+        inc ax
+        mov [rsi + Cons.refcount], WORD ax
+        ; Put address in rax
+        mov rax, rsi
+        ret
+
+.not_found:
+        lahf                    ; flags in AH
+        and ah, 255-64          ; remove zero flag
+        sahf
+        
+        ; last cons in rsi
+        ; increment reference count
+        mov ax, WORD [rsi + Cons.refcount]
+        inc ax
+        mov [rsi + Cons.refcount], WORD ax
+        ; Put address in rax
+        mov rax, rsi
+        
+        ret
+
+.error:
+        
+        lahf                    ; flags in AH
+        or ah, 255-64               ; set zero flag
+        sahf
+        
+        ; return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+        
