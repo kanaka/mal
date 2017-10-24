@@ -116,7 +116,7 @@ ENDSTRUC
 %define maltype_symbol  (block_array + container_symbol + content_char)
 %define maltype_nil  (block_cons + container_value + content_nil)
 %define maltype_empty_list (block_cons + container_list + content_empty)
-
+%define maltype_empty_map (block_cons + container_map + content_empty)
         
 ;; ------------------------------------------
 

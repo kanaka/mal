@@ -104,18 +104,22 @@ pr_str:
         and ch, container_mask
         jz .value
 
-        cmp ch, 2
+        cmp ch, container_list
         je .list
 
-        cmp ch, 4
+        cmp ch, container_symbol
         je .symbol
 
+        cmp ch, container_map
+        je .map
+        
         ; Unknown
         mov rsi, unknown_type_string
         mov edx, unknown_type_string.len
         call raw_to_string      ; Puts a String in RAX
         ret
         
+        ; --------------------------------
 .value:
         mov ch, cl
         and ch, content_mask
@@ -129,16 +133,20 @@ pr_str:
         call raw_to_string      ; Puts a String in RAX
         ret
         
+        ; --------------------------------
 .value_nil:
         mov rsi, nil_value_string
         mov edx, nil_value_string.len
         call raw_to_string
         ret
         
+        ; --------------------------------
 .value_int:
         mov rax, [rsi + Cons.car]
         call itostring
         ret
+        
+        ; --------------------------------
 .list:
         
         mov r12, rsi            ; Input list
@@ -229,6 +237,8 @@ pr_str:
         
         mov rax, rsi
         ret
+
+        ; --------------------------------
 .symbol:
         ; Make a copy of the string
         call string_new         ; in rax
@@ -251,8 +261,97 @@ pr_str:
         add r12, 8              ; Next 64 bits of output
         jmp .symbol_copy_loop
 .symbol_finished:
-        
-        
-        
         ret
+
+        ; --------------------------------
+.map:
         
+        mov r12, rsi            ; Input map
+        
+        call string_new         ; String in rax
+        mov r13, rax            ; Output string in r13
+        
+        ; Put '{' onto string
+        mov rsi, rax
+        mov cl, '{'
+        call string_append_char
+        
+        ; loop through map
+.map_loop:
+        
+        ; Extract values and print
+        
+        mov rsi, r12
+        mov cl, BYTE [rsi]      ; Get type
+
+        ; Check if it's a pointer (address)
+        mov ch, cl
+        and ch, content_mask
+        cmp ch, content_pointer
+        je .map_loop_pointer
+
+        cmp ch, content_empty
+        je .map_check_end
+        
+        ; A value (nil, int etc. or function)
+        xor cl, container_map  ; Remove map type -> value
+        mov BYTE [rsi], cl
+
+        push r13
+        push r12
+        call pr_str             ; String in rax
+        pop r12
+        pop r13
+        
+        mov cl, BYTE [r12]
+        or cl, container_map  ; Restore map type
+        mov  BYTE [r12], cl
+        jmp .map_loop_got_str
+.map_loop_pointer:
+        mov rsi, [rsi + Cons.car] ; Address of object
+        push r13
+        push r12
+        call pr_str             ; String in rax
+        pop r12
+        pop r13
+        
+.map_loop_got_str:
+        ; concatenate strings in rax and rsi
+        mov rsi, r13            ; Output string
+        mov rdx, rax            ; String to be copied
+
+        push rsi                ; Save output string
+        push rax                ; save temporary string
+        call string_append_string
+
+        ; Release the string
+        pop rsi                 ; Was in rax, temporary string
+        call release_array
+
+        pop rsi                 ; restore output string
+.map_check_end:
+        ; Check if this is the end of the map
+        mov cl, BYTE [r12 + Cons.typecdr]
+        cmp cl, content_nil
+        je .map_finished
+
+        ; More left in the map
+        
+        ; Add space between values
+        mov cl, ' '
+        mov rsi, r13
+        call string_append_char
+        
+        ; Get next Cons
+        mov r12, [r12 + Cons.cdr]
+        jmp .map_loop
+        
+.map_finished:
+        ; put '}' at the end of the string
+        mov cl, '}'
+        mov rsi, r13
+        call string_append_char
+        
+        mov rax, rsi
+        ret
+

@@ -1,5 +1,7 @@
 section .data
 
+;; Reader macro strings
+        
 quote_symbol_string: db "quote"
 .len: equ $ - quote_symbol_string
         
@@ -12,8 +14,16 @@ unquote_symbol_string: db "unquote"
 splice_unquote_symbol_string: db "splice-unquote"
 .len: equ $ - splice_unquote_symbol_string
 
+deref_symbol_string: db "deref"
+.len: equ $ - deref_symbol_string
+        
+;; Error message strings
+        
 error_string_unexpected_end: db "Error: Unexpected end of input. Could be a missing )", 10
 .len: equ $ - error_string_unexpected_end
+
+error_string_bracket_not_brace: db "Error: Expecting '}' but got ')'"
+.len: equ $ - error_string_bracket_not_brace  
         
 section .text
 
@@ -64,14 +74,9 @@ read_str:
         jne .got_token
 
         ; Unexpected end of tokens
-        push r14
-        push r15
         mov rdx, error_string_unexpected_end.len
         mov rsi, error_string_unexpected_end
-        call print_rawstring
-        pop r15
-        pop r14
-        jmp .unwind
+        jmp .error
         
 .got_token:
 
@@ -84,10 +89,16 @@ read_str:
         
         cmp cl, '('
         je .list_start
-        
+
         cmp cl, ')'
         je .return_nil          ; Note: if reading a list, cl will be tested in the list reader
 
+        cmp cl, '{'
+        je .map_start
+        
+        cmp cl, '}'             ; cl tested in map reader
+        je .return_nil
+        
         cmp cl, 39              ; quote '
         je .handle_quote
         cmp cl, '`'
@@ -96,6 +107,8 @@ read_str:
         je .handle_unquote
         cmp cl, 1
         je .handle_splice_unquote
+        cmp cl, '@'
+        je .handle_deref
         
         ; Unknown
         jmp .return_nil
@@ -208,6 +221,113 @@ read_str:
         ret
 
         ; --------------------------------
+        
+.map_start:
+        
+        ; Get the first value
+        ; Note that we call rather than jmp because the first
+        ; value needs to be treated differently. There's nothing
+        ; to append to yet...
+        call .read_loop
+        
+        ; rax now contains the first object
+        cmp cl, '}'            ; Check if it was end of map
+        jne .map_has_contents
+        mov cl, 0               ; so '}' doesn't propagate to nested maps
+        ; Set map to empty
+        mov [rax], BYTE maltype_empty_map
+        ret                    ; Returns 'nil' given "()"
+.map_has_contents:
+        ; If this is a Cons then use it
+        ; If not, then need to allocate a Cons
+        mov cl, BYTE [rax]
+        mov ch, cl
+        and ch, (block_mask + container_mask)   ; Tests block and container type
+        jz .map_is_value
+
+        ; If here then not a simple value, so need to allocate
+        ; a Cons object
+        
+        ; Start new map
+        push rax
+        call alloc_cons         ; Address in rax
+        pop rbx
+        mov [rax], BYTE (block_cons + container_map + content_pointer)
+        mov [rax + Cons.car], rbx
+        ; Now have Cons in RAX, containing pointer to object as car
+        
+.map_is_value:
+        ; Cons in RAX
+        ; Make sure it's marked as a map
+        mov cl, BYTE [rax]
+        or cl, container_map
+        mov [rax], BYTE cl
+
+        mov r12, rax            ; Start of current map
+        mov r13, rax            ; Set current map
+        cmp r15, 0              ; Test if first map
+        jne .map_read_loop
+        mov r15, rax            ; Save the first, for unwinding
+        
+.map_read_loop:
+        ; Repeatedly get the next value in the map
+        ; (which may be other maps)
+        ; until we get a '}' token
+
+        push r12
+        push r13
+        call .read_loop         ; object in rax
+        pop r13
+        pop r12
+        
+        cmp cl, '}'            ; Check if it was end of map
+        je .map_done          ; Have nil object in rax
+
+        ; Test if this is a Cons value
+        mov cl, BYTE [rax]
+        mov ch, cl
+        and ch, (block_mask + container_mask)   ; Tests block and container type
+        jz .map_loop_is_value
+
+        ; If here then not a simple value, so need to allocate
+        ; a Cons object
+        
+        ; Start new map
+        push rax
+        call alloc_cons         ; Address in rax
+        pop rbx
+        mov [rax], BYTE (block_cons + container_map + content_pointer)
+        mov [rax + Cons.car], rbx
+        ; Now have Cons in RAX, containing pointer to object as car
+        
+.map_loop_is_value:
+        ; Cons in RAX
+
+        ; Make sure it's marked as a map
+        mov cl, BYTE [rax]
+        or cl, container_map
+        mov [rax], BYTE cl
+        
+        ; Append to r13
+        mov [r13 + Cons.typecdr], BYTE content_pointer
+        mov [r13 + Cons.cdr], rax
+        mov r13, rax            ; Set current map
+        
+        jmp .map_read_loop
+        
+.map_done:
+        ; Release nil object in rax
+        mov rsi, rax
+        call release_cons
+        
+        ; Terminate the map
+        mov [r13 + Cons.typecdr], BYTE content_nil
+        mov QWORD [r13 + Cons.cdr], QWORD 0
+        mov rax, r12            ; Start of current map
+        
+        ret
+        
+        ; --------------------------------
 .handle_quote:
         ; Turn 'a into (quote a)
         call alloc_cons         ; Address in rax
@@ -293,11 +413,40 @@ read_str:
         pop r9
         pop r8
         jmp .wrap_next_object   ; From there the same as handle_quote
+
+        ; --------------------------------
+
+.handle_deref:
+        ; Turn @a into (deref a)
+
+        call alloc_cons         ; Address in rax
+        mov r12, rax
+
+        ; Get a symbol "deref"
+        push r8
+        push r9
+        mov rsi, deref_symbol_string
+        mov edx, deref_symbol_string.len
+        call raw_to_string      ; Address in rax
+        pop r9
+        pop r8
+        jmp .wrap_next_object   ; From there the same as handle_quote
+
         
         ; --------------------------------
 .finished:
         ret
 
+.error:
+        ; Jump here on error with raw string in RSI
+        ; and string length in rdx
+        push r14
+        push r15
+        call print_rawstring
+        pop r15
+        pop r14
+        
+        ; fall through to unwind
 .unwind:
         ; Jump to here cleans up
 
