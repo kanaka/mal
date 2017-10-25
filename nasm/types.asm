@@ -39,6 +39,7 @@
 ;;  80   5 - Pointer (memory address)
 ;;  96   6 - Function (instruction address)
 ;; 112   7 - Empty (distinct from Nil)
+;; 
 ;;
 ;; These represent MAL data types as follows:
 ;;
@@ -804,7 +805,10 @@ compare_char_array:
         
 ;; ------------------------------------------------------------
 ;; Map type
-        
+;;
+;; This uses a list (Cons type) to represent key-value pairs in
+;; a single chain. The only map which consists of an odd number of Cons
+;; objects is the empty map, created by map_new
 map_new:
         call alloc_cons
         mov [rax], BYTE (block_cons + container_map + content_empty)
@@ -920,11 +924,16 @@ map_add:
 
 ;; Find a key in a map
 ;;
-;; Inputs: RSI - map
-;;         RDI - key
+;; Inputs: RSI - map  [ Modified ]
+;;         RDI - key  [ Modified ]
 ;;
 ;; Outputs: RAX - Cons object containing value in CAR
 ;;
+;; Modifies registers:
+;;   RBX [compare_objects, alloc_cons]
+;;   RCX [compare_objects]
+;;
+;; 
 ;; If value is found then the Zero Flag is set
 ;;
 ;; Examples:
@@ -1008,4 +1017,145 @@ map_find:
         mov [rax], BYTE maltype_nil
         mov [rax + Cons.typecdr], BYTE content_nil
         ret
+
+;; Map set
+;;
+;; Sets a key-value pair in a map
+;;
+;; Inputs: RSI - map [modified]
+;;         RDI - key [modified]
+;;         RCX - value
+;;
+map_set:
+        ; Save inputs in less volatile registers
+        mov r8, rsi             ; map
+        mov r9, rdi             ; key
+        mov r10, rcx            ; value
+        
+        ; Find the key, to see if it already exists in the map
+        call map_find           ; Cons object in RAX
+        je .found_key
+
+        ; Key not in map. RAX should be address of the last
+        ; value in the map, or empty
+        mov rbx, r8
+        cmp bl, maltype_empty_map
+        je .set_key
+
+        ; Append key
+        push rax
+        call alloc_cons         ; New Cons in rax
+        pop rbx                 ; Last Cons in map
+
+        ; append rax to rbx
+        mov [rbx + Cons.typecdr], BYTE content_pointer
+        mov [rbx + Cons.cdr], rax
+        jmp .set_key            ; Put key into rax
+        
+.found_key:
+        ; Key already in map, so replace value
+        ; address in RAX
+
+        ; check type of value already there
+        mov bl, BYTE [rax]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .set_value          ; Not a pointer, just overwrite
+
+        ; A pointer, so need to release
+        mov rsi, [rax + Cons.car] ; Address of object
+        push rax
+        call release_object
+        pop rax
+        
+        jmp .set_value          ; put value into Cons
+        
+.set_key:
+        ; Put key (R9) in RAX
+
+        ; Check the type of object
+        mov bl, BYTE [r9]
+        mov bh, bl
+        and bh, block_mask
+        jnz .set_key_pointer  ; Array, so point to it
+
+        ; Here a Cons object
+        mov bh, bl
+        and bh, container_mask
+        cmp bl, container_value
+        jne .set_key_pointer  ; Not a simple value, so point to it
+        ; A value, so copy
+        mov rcx, [r9 + Cons.car]
+        mov [rax + Cons.car], rcx
+
+        ; Set the type
+        and bl, content_mask
+        or bl, (block_cons + container_map)
+        mov [rax], BYTE bl
+
+        jmp .set_key_done
+        
+.set_key_pointer:
+        ; The key is a pointer
+
+        mov [rax + Cons.car], r9
+        mov [rax], BYTE (block_cons + container_map + content_pointer)
+        ; Increment reference count
+        mov bx, WORD [r9 + Cons.refcount]
+        inc bx
+        mov [r9 + Cons.refcount], bx
+        ; fall through to .set_key_done
+        
+.set_key_done:
+        ; Key in RAX. allocate and append a Cons for the value
+        push rax
+        call alloc_cons      ; value Cons in rax
+        pop rbx                 ; key Cons
+        ; append rax to rbx
+        mov [rbx + Cons.typecdr], BYTE content_pointer
+        mov [rbx + Cons.cdr], rax
+
+        ; fall through to .set_value
+        
+        ; --------------------------------
+.set_value:
+        ; Set the value into the Cons at [rax]
+
+        ; Check the type of object
+        mov bl, BYTE [r10]
+        mov bh, bl
+        and bh, block_mask
+        jnz .set_value_pointer  ; Array, so point to it
+
+        ; Here a Cons object
+        mov bh, bl
+        and bh, container_mask
+        cmp bl, container_value
+        jne .set_value_pointer  ; Not a simple value, so point to it
+        ; A value, so copy
+        mov rcx, [r10 + Cons.car]
+        mov [rax + Cons.car], rcx
+
+        ; Set the type
+        and bl, content_mask
+        or bl, (block_cons + container_map)
+        mov [rax], BYTE bl
+
+        jmp .finished
+        
+.set_value_pointer:
+        mov [rax + Cons.car], r10 ; Put address into CAR
+        mov [rax], BYTE (block_cons + container_map + content_pointer) ; Mark as a pointer
+        ; Increment reference count
+        mov bx, WORD [r10 + Cons.refcount]
+        inc bx
+        mov [r10 + Cons.refcount], bx
+        ; fall through to .finished
+        
+.finished:
+        ; Put the map into rax
+        mov rax, r8
+        ret
+        
+        
         
