@@ -79,6 +79,9 @@ ns = Dict{Any,Any}(
     symbol("symbol?") => (a) -> typeof(a) === Symbol,
     symbol("keyword") => (a) -> a[1] == '\u029e' ? a : "\u029e$(a)",
     symbol("keyword?") => keyword_Q,
+    symbol("number?") => (a) -> isa(a, AbstractFloat) || isa(a, Int64),
+    symbol("fn?") => (a) -> isa(a, Function) || (isa(a, types.MalFunc) && !a.ismacro),
+    symbol("macro?") => (a) -> isa(a, types.MalFunc) && a.ismacro,
 
     symbol("pr-str") => (a...) -> join(map((e)->pr_str(e, true),a)," "),
     :str => (a...) -> join(map((e)->pr_str(e, false),a),""),

@@ -117,6 +117,10 @@ val ns = hashMapOf(
             if (param is MalKeyword) param else MalKeyword((a.nth(0) as MalString).value)
         }),
         envPair("keyword?", { a: ISeq -> if (a.nth(0) is MalKeyword) TRUE else FALSE }),
+        envPair("number?", { a: ISeq -> if (a.nth(0) is MalInteger) TRUE else FALSE }),
+        envPair("fn?", { a: ISeq -> if ((a.nth(0) as? MalFunction)?.is_macro ?: true) FALSE else TRUE }),
+        envPair("macro?", { a: ISeq -> if ((a.nth(0) as? MalFunction)?.is_macro ?: false) TRUE else FALSE }),
+
         envPair("vector", { a: ISeq -> MalVector(a) }),
         envPair("vector?", { a: ISeq -> if (a.nth(0) is MalVector) TRUE else FALSE }),
 
