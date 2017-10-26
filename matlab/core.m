@@ -230,6 +230,9 @@ classdef core
             n('symbol?') = @(a) isa(a, 'types.Symbol');
             n('keyword') = @(a) type_utils.keyword(a);
             n('keyword?') = @(a) type_utils.keyword_Q(a);
+            n('number?') = @(a) type_utils.number_Q(a);
+            n('fn?') = @(a) type_utils.fn_Q(a);
+            n('macro?') = @(a) type_utils.macro_Q(a);
 
             n('pr-str') = @(varargin) core.pr_str(varargin{:});
             n('str') = @(varargin) core.do_str(varargin{:});

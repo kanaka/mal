@@ -74,6 +74,19 @@ classdef type_utils
             ret = strcmp(class(obj), 'char') && ~type_utils.keyword_Q(obj);
         end
 
+        function ret = number_Q(obj)
+            ret = strcmp(class(obj), 'double');
+        end
+
+        function ret = fn_Q(obj)
+            ret = isa(obj,'function_handle') || ...
+                  (isa(obj,'types.Function') && ~obj.is_macro);
+        end
+
+        function ret = macro_Q(obj)
+            ret = isa(obj,'types.Function') && obj.is_macro;
+        end
+
         function print_stack(err)
             for i=1:numel(err.stack)
                 stack = err.stack(i);
