@@ -145,7 +145,7 @@ error_cons_memory_limit: db "Error: Run out of memory for Cons objects. Increase
 ;; is free'd it is pushed onto the heap_x_free list.
         
         
-%define heap_cons_limit 10     ; Number of cons objects which can be created
+%define heap_cons_limit 20     ; Number of cons objects which can be created
 
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
@@ -403,8 +403,18 @@ raw_to_string:
         dec ecx
         jnz .copy_loop
         ret
-        
-        
+
+;; Convert a raw string to a symbol
+;; 
+;; Input: Address of raw string in RSI, length in EDX
+;; Output: Address of string in RAX
+;;
+;; Modifies registers: R8,R9,RCX
+raw_to_symbol:
+        call raw_to_string
+        ; set the content type
+        mov [rax], BYTE (block_array + container_symbol + content_char)
+        ret
         
 ;; Appends a character to a string
 ;; Input: Address of string in RSI, character in CL
@@ -983,24 +993,24 @@ map_find:
         
         mov rsi, [rsi + Cons.cdr]
         
-        ; increment reference count
-        mov ax, WORD [rsi + Cons.refcount]
-        inc ax
-        mov [rsi + Cons.refcount], WORD ax
+        ; ; increment reference count
+        ; mov ax, WORD [rsi + Cons.refcount]
+        ; inc ax
+        ; mov [rsi + Cons.refcount], WORD ax
         ; Put address in rax
         mov rax, rsi
         ret
 
 .not_found:
         lahf                    ; flags in AH
-        and ah, 255-64          ; remove zero flag
+        and ah, 255-64          ; clear zero flag
         sahf
         
         ; last cons in rsi
         ; increment reference count
-        mov ax, WORD [rsi + Cons.refcount]
-        inc ax
-        mov [rsi + Cons.refcount], WORD ax
+        ; mov ax, WORD [rsi + Cons.refcount]
+        ; inc ax
+        ; mov [rsi + Cons.refcount], WORD ax
         ; Put address in rax
         mov rax, rsi
         
@@ -1009,7 +1019,7 @@ map_find:
 .error:
         
         lahf                    ; flags in AH
-        or ah, 255-64               ; set zero flag
+        and ah, 255-64          ; clear zero flag
         sahf
         
         ; return nil
@@ -1022,9 +1032,9 @@ map_find:
 ;;
 ;; Sets a key-value pair in a map
 ;;
-;; Inputs: RSI - map [modified]
-;;         RDI - key [modified]
-;;         RCX - value
+;; Inputs: RSI - map [not modified]
+;;         RDI - key [not modified]
+;;         RCX - value [not modified]
 ;;
 map_set:
         ; Save inputs in less volatile registers
@@ -1038,10 +1048,10 @@ map_set:
 
         ; Key not in map. RAX should be address of the last
         ; value in the map, or empty
-        mov rbx, r8
+        mov bl, BYTE [rax]
         cmp bl, maltype_empty_map
         je .set_key
-
+        
         ; Append key
         push rax
         call alloc_cons         ; New Cons in rax
@@ -1055,7 +1065,7 @@ map_set:
 .found_key:
         ; Key already in map, so replace value
         ; address in RAX
-
+        
         ; check type of value already there
         mov bl, BYTE [rax]
         and bl, content_mask
@@ -1078,7 +1088,7 @@ map_set:
         mov bh, bl
         and bh, block_mask
         jnz .set_key_pointer  ; Array, so point to it
-
+        
         ; Here a Cons object
         mov bh, bl
         and bh, container_mask
@@ -1097,7 +1107,7 @@ map_set:
         
 .set_key_pointer:
         ; The key is a pointer
-
+        
         mov [rax + Cons.car], r9
         mov [rax], BYTE (block_cons + container_map + content_pointer)
         ; Increment reference count
@@ -1120,7 +1130,7 @@ map_set:
         ; --------------------------------
 .set_value:
         ; Set the value into the Cons at [rax]
-
+        
         ; Check the type of object
         mov bl, BYTE [r10]
         mov bh, bl
@@ -1153,9 +1163,178 @@ map_set:
         ; fall through to .finished
         
 .finished:
-        ; Put the map into rax
-        mov rax, r8
+        ; Restore inputs
+        mov rsi, r8
+        mov rdi, r9
+        mov rcx, r10
         ret
         
+;; Get a value from a map, incrementing the reference count
+;; of the object returned
+;;
+;; Inputs: RSI - map
+;;         RDI - key
+;;
+;; Returns: If found, Zero Flag is set and address in RAX
+;;          If not found, Zero Flag cleared
+;;
+;; Modifies registers:
+;;   RAX
+;;   RBX
+;;   RCX
+;;   R8
+;;   R9
+map_get:
+        ; Save inputs
+        mov r8, rsi             ; map
+        mov r9, rdi             ; key
+
+        call map_find           ; Cons object in RAX
+        je .found_key
+
+        ; Not found
         
+        mov rsi, r8
+        mov rdi, r9
         
+        lahf                    ; flags in AH
+        and ah, 255-64          ; clear zero flag
+        sahf
+        
+        ret
+        ; ---------------
+.found_key:
+        ; Check if the object in RAX is a value or pointer
+        mov bl, BYTE [rax]
+        and bl, content_mask
+        cmp bl, content_pointer
+        je .got_pointer
+
+        ; A value, so copy
+
+        push rax
+        push rbx
+        call alloc_cons         ; cons in rax
+        pop rbx                 ; content type in bl
+        pop rcx                 ; Object to copy
+        
+        add bl, block_cons + container_value
+        mov [rax], BYTE bl      ; set type
+        mov [rax + Cons.typecdr], BYTE content_nil
+
+        ; Copy value
+        mov rbx, [rcx + Cons.car]
+        mov [rax + Cons.car], rbx
+
+        jmp .finished_found
+        
+.got_pointer:
+        ; A pointer, so get the address
+        mov rax, [rax + Cons.car]
+
+        ; increment reference count
+        mov bx, WORD [rax + Cons.refcount]
+        inc bx
+        mov [rax + Cons.refcount], bx
+
+        ; Fall through to .finished_found
+.finished_found:
+        mov rsi, r8
+        mov rdi, r9
+
+        ret
+        
+;; ------------------------------------------------------------
+;; Environment type
+;; 
+;; These are lists of maps. The head of the list is the
+;; current environment, and CDR points to the outer environment
+;;
+;; ( {} {} ... )
+
+;; Return a new Environment type in RAX
+;;
+;; Modifies registers:
+;;   RAX
+;;   RBX
+env_new:
+        call map_new            ; map in RAX
+        push rax
+        call alloc_cons         ; Cons in RAX
+        pop rbx                 ; map in RBX
+
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        ; CDR type already set to nil in alloc_cons
+        mov [rax + Cons.car], rbx
+        
+        ret
+
+;; Environment set
+;;
+;; Sets a key-value pair in an environment
+;;
+;; Inputs: RSI - env [not modified]
+;;         RDI - key [not modified]
+;;         RCX - value [not modified]
+;;
+env_set:
+        push rsi
+        ; Get the first CAR, which should be a map
+        mov rsi, [rsi + Cons.car]
+        call map_set
+        pop rsi
+        ret
+        
+;; Environment get
+;; 
+;; Get a value from an environment, incrementing the reference count
+;; of the object returned
+;;
+;; Inputs: RSI - environment
+;;         RDI - key
+;;
+;; Returns: If found, Zero Flag is set and address in RAX
+;;          If not found, Zero Flag cleared
+env_get:
+        push rsi
+        ; Get the map in CAR
+        mov rsi, [rsi + Cons.car]
+        call map_get
+        je .found
+
+        ; Not found, so try outer
+        pop rsi
+
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .not_found
+        
+        mov rsi, [rsi + Cons.cdr] ; outer 
+        jmp env_get
+.found:
+        pop rsi
+        ret
+
+.not_found:
+        lahf                    ; flags in AH
+        and ah, 255-64          ; clear zero flag
+        sahf
+        ret
+        
+;; ------------------------------------------------------------
+;; Function type
+;;
+;; Functions are consist of a list
+;;   - First car is the function address to call
+;;   
+;;   ( addr   )
+;;
+;;
+
+;; Address of native function in RSI
+;; returns Function object in RAX
+native_function:        
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_function + content_function)
+        mov [rax + Cons.car], rsi
+        ret

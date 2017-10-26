@@ -2,8 +2,101 @@
 ;;
 ;;
 
+section .data
+
+core_add_symbol: db "+"
+.len: equ $ - core_add_symbol
+        
+core_sub_symbol: db "-"
+.len: equ $ - core_sub_symbol
+        
+core_mul_symbol: db "*"
+.len: equ $ - core_mul_symbol
+        
+core_div_symbol: db "/"
+.len: equ $ - core_div_symbol   
+        
 section .text
 
+;; Create an Environment with core functions
+;;
+;; Returns Environment in RAX
+;;
+;;
+core_environment:
+        ; Create the top-level environment
+        call env_new            ; in RAX
+        push rax
+
+        ; -----------------
+        ; add
+        mov rsi, core_add_symbol
+        mov edx, core_add_symbol.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, core_add
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
+
+        ; -----------------
+        ; sub
+        push rsi                ; environment
+        mov rsi, core_sub_symbol
+        mov edx, core_sub_symbol.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, core_sub
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
+        
+        
+        ; -----------------
+        ; mul
+        push rsi                ; environment
+        mov rsi, core_mul_symbol
+        mov edx, core_mul_symbol.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, core_mul
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
+
+        ; -----------------
+        ; div
+        push rsi                ; environment
+        mov rsi, core_div_symbol
+        mov edx, core_div_symbol.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, core_div
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
+        
+        ; -----------------
+        ; Put the environment in RAX
+        mov rax, rsi
+        ret
+        
 ;; Adds a list of numbers, address in RSI
 ;; Returns the sum as a number object with address in RAX
 ;; Since most of the code is common to all operators,

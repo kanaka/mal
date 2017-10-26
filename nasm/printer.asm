@@ -5,10 +5,13 @@
 section .data
 unknown_type_string: db "#<UNKNOWN>"
 .len: equ $ - unknown_type_string
-        
+
 unknown_value_string: db "#<UNKNOWN VALUE>"
 .len: equ $ - unknown_value_string
 
+function_type_string: db "#<FUNCTION>"
+.len: equ $ - function_type_string
+        
 nil_value_string: db "nil"
 .len: equ $ - nil_value_string
         
@@ -112,6 +115,9 @@ pr_str:
 
         cmp ch, container_map
         je .map
+
+        cmp ch, container_function
+        je .function
         
         ; Unknown
         mov rsi, unknown_type_string
@@ -354,4 +360,10 @@ pr_str:
         
         mov rax, rsi
         ret
-
+        
+        ; --------------------------------
+.function:
+        mov rsi, function_type_string
+        mov edx, function_type_string.len
+        call raw_to_string      ; Puts a String in RAX
+        ret

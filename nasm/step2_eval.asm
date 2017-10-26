@@ -70,7 +70,15 @@ rep_seq:
 
 
 _start:
+        ; Create and print the core environment
+        call core_environment   ; Environment in RAX
+
+        mov rsi, rax
+        call pr_str
         
+        mov rsi, rax            ; Put into input of print_string
+        call print_string
+
         ; -----------------------------
         ; Main loop
         
@@ -93,12 +101,9 @@ _start:
         call read_str
         push rax
 
-        ; Compare objects
-        mov rsi, rax
-        call core_equal_p
         
         ; Put into pr_str
-        mov rsi, rax
+        mov rsi, rax            
         call pr_str
         push rax
         
