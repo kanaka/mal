@@ -15,6 +15,10 @@ core_mul_symbol: db "*"
         
 core_div_symbol: db "/"
 .len: equ $ - core_div_symbol   
+
+core_equal_symbol: db "="
+.len: equ $ - core_equal_symbol
+        
         
 section .text
 
@@ -91,12 +95,32 @@ core_environment:
         pop rdi                 ; key (symbol)
         pop rsi                 ; environment
         call env_set
+
+        ; -----------------
+        ; equal (=)
+        push rsi                ; environment
+        mov rsi, core_equal_symbol
+        mov edx, core_equal_symbol.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, core_equal_p
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
         
         ; -----------------
         ; Put the environment in RAX
         mov rax, rsi
         ret
-        
+
+;; ----------------------------------------------------
+
+;; Integer arithmetic operations
+;; 
 ;; Adds a list of numbers, address in RSI
 ;; Returns the sum as a number object with address in RAX
 ;; Since most of the code is common to all operators,

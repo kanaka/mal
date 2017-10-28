@@ -145,12 +145,12 @@ error_cons_memory_limit: db "Error: Run out of memory for Cons objects. Increase
 ;; is free'd it is pushed onto the heap_x_free list.
         
         
-%define heap_cons_limit 20     ; Number of cons objects which can be created
+%define heap_cons_limit 50     ; Number of cons objects which can be created
 
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 10     ; Number of array objects which can be created
+%define heap_array_limit 20     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0
@@ -1204,6 +1204,7 @@ map_get:
         ret
         ; ---------------
 .found_key:
+        
         ; Check if the object in RAX is a value or pointer
         mov bl, BYTE [rax]
         and bl, content_mask
@@ -1242,6 +1243,11 @@ map_get:
         mov rsi, r8
         mov rdi, r9
 
+        mov rbx, rax
+        lahf                    ; flags in AH
+        or ah, 64               ; set zero flag
+        sahf
+        mov rax, rbx
         ret
         
 ;; ------------------------------------------------------------
