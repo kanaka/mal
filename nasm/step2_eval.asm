@@ -38,12 +38,15 @@ eval_ast:
         and ah, container_mask
         cmp ah, container_list
         je .list
-
-        ; Not a list
+        
+        ;cmp ah, container_map
+        ;je .map
+        
+        ; Not a list or a map
         cmp ah, container_symbol
         je .symbol
-
-        ; Not a symbol or a list
+        
+        ; Not a symbol, list or map
         call incref_object      ; Increment reference count
         
         mov rax, rsi
@@ -95,7 +98,7 @@ eval_ast:
         push r8
         push r9
         mov rsi, [rsi + Cons.car] ; Get the address
-        call eval_ast             ; Evaluate it, result in rax
+        call eval             ; Evaluate it, result in rax
         pop r9
         pop r8
         pop rsi
@@ -103,10 +106,10 @@ eval_ast:
         ; Check the type it's evaluated to
         mov bl, BYTE [rax]
         mov bh, bl
-        and bh, container_mask
-        cmp bh, container_value
+        and bh, (block_mask + container_mask)
+        cmp bh, (block_cons + container_value)
         je .list_append
-
+        
         ; Not a value, so need a pointer to it
         push rax
         call alloc_cons
@@ -142,12 +145,128 @@ eval_ast:
         
 .list_done:
         mov rax, r8            ; Return the list
+        ret
+        
+        ; ---------------------
+.map:
+        ; Create a new map, evaluating all the values
+        mov r10, rsi            ; input in R10
+        call map_keys           
+        mov r11, rax            ; Get list of keys in R11
+        mov r13, rax            ; Head of list in R13
+        
+        call map_new
+        mov r12, rax            ; new map in R12
+
+.map_loop:
+
+        ; Check the type of the key
+        mov al, BYTE [r13]
+        and al, content_mask
+        cmp al, content_pointer
+        je .map_key_pointer
+
+        mov [r13], BYTE al      ; Remove list container
+        
+        ; Get next value
+        mov rsi, r10
+        mov rdi, r13
+        call map_get            ; Result in RAX
+
+        ; Evaluate
+        
+        
+        mov rsi, r12
+        mov rdi, r13
+        mov rcx, rax
+        call map_set
+
+        ; put back list container
+        mov al, BYTE [r13]
+        or al, container_list
+        mov [r13], BYTE al
+        
+        jmp .map_next
+        
+.map_key_pointer:
+        mov rsi, r10
+        mov rdi, [r13 + Cons.car]
+        call map_get            ; Result in RAX
+
+        ; Evaluate
+        
+        mov rsi, r12
+        mov rdi, [r13 + Cons.car]
+        mov rcx, rax
+        call map_set
+        
+.map_next:
+        
+        mov al, BYTE [r13 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .map_done
+
+        mov r13, [r13 + Cons.cdr] ; next key
+        jmp .map_loop
+
+.map_done:
+        ; Release list of keys
+        mov rsi, r11
+        call release_cons
+        
+        mov rax, r12
+        ret
+        ; ---------------------
 .done:
         ret
 
 ;; Evaluates a form in RSI
 eval:
+        ; Check type
+        mov al, BYTE [rsi]
+        cmp al, maltype_empty_list
+        je .empty_list           ; empty list, return unchanged
+
+        and al, container_mask
+        cmp al, container_list
+        je .list
+        
+        ; Not a list. Evaluate and return
         call eval_ast
+        ret
+.list:
+        ; A list
+        call eval_ast
+
+        ; Check that the first element of the return is a function
+        mov bl, BYTE [rax]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .list_not_function
+        
+        mov rbx, [rax + Cons.car] ; Get the address
+        mov cl, BYTE [rbx]
+        cmp cl, maltype_function
+        jne .list_not_function
+        
+        ; Call the function with the rest of the list in RSI
+        push rax
+        mov rsi, [rax + Cons.cdr] ; Rest of list
+        mov rdi, rbx ; Function object in RDI
+        call [rbx + Cons.car]   ; Call function
+        ; Result in rax
+        pop rsi                 ; eval'ed list
+        push rax
+        call release_cons
+        pop rax
+        ret
+
+.list_not_function:
+        ; Not a function. Probably an error
+        ret
+        
+.empty_list:
+        mov rax, rsi
         ret
         
 ;; Prints the result

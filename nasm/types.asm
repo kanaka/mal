@@ -118,6 +118,7 @@ ENDSTRUC
 %define maltype_nil  (block_cons + container_value + content_nil)
 %define maltype_empty_list (block_cons + container_list + content_empty)
 %define maltype_empty_map (block_cons + container_map + content_empty)
+%define maltype_function (block_cons + container_function + content_function)
         
 ;; ------------------------------------------
 
@@ -1092,8 +1093,9 @@ map_set:
         ; Here a Cons object
         mov bh, bl
         and bh, container_mask
-        cmp bl, container_value
+        cmp bh, container_value
         jne .set_key_pointer  ; Not a simple value, so point to it
+        
         ; A value, so copy
         mov rcx, [r9 + Cons.car]
         mov [rax + Cons.car], rcx
@@ -1249,6 +1251,88 @@ map_get:
         sahf
         mov rax, rbx
         ret
+
+;; Get a list of keys
+;; 
+;; Input: Map in RSI
+;;
+;; Returns: List in RAX
+;;
+;; Modifies registers:
+;;   RAX
+;;   RBX
+;;   RCX
+;;   R8
+;;   R9
+map_keys:
+        ; check type
+        mov al, BYTE [rsi]
+        cmp al, maltype_empty_map
+        je .empty_map
+
+        and al, container_mask
+        cmp al, container_map
+        jne .empty_map          ; error
+        
+        xor r8, r8              ; Return list
+        
+        ; Take the current value
+.loop:
+        ; Create a new Cons for this key
+        call alloc_cons
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        add cl, block_cons + container_list
+        mov [rax], BYTE cl      ; Set type
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx          ; Set value
+
+        and cl, content_mask
+        cmp cl, content_pointer
+        jne .append
+
+        ; A pointer, so increment reference count
+        mov cx, WORD [rbx + Cons.refcount]
+        inc cx
+        mov [rbx + Cons.refcount], WORD cx
+        
+.append:
+        cmp r8, 0
+        je .first
+
+        ; appending
+        mov [r9 + Cons.typecdr], BYTE content_pointer
+        mov [r9 + Cons.cdr], rax
+        mov r9, rax
+        jmp .next
+.first:
+        ; First key, so put into r8
+        mov r8, rax
+        mov r9, rax
+.next:
+        ; First get the value
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done              ; error. Should be a value
+        mov rsi, [rsi + Cons.cdr]
+
+        ; Get the next key
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+        mov rsi, [rsi + Cons.cdr]
+        jmp .loop
+.done:
+        ; Finished, return the list
+        mov rax, r8
+        ret
+        
+.empty_map:
+        ; return empty list
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        ret
+        
         
 ;; ------------------------------------------------------------
 ;; Environment type

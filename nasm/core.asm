@@ -18,7 +18,9 @@ core_div_symbol: db "/"
 
 core_equal_symbol: db "="
 .len: equ $ - core_equal_symbol
-        
+
+core_keys_symbol: db "keys"
+.len: equ $ - core_keys_symbol      
         
 section .text
 
@@ -111,6 +113,22 @@ core_environment:
         pop rdi                 ; key (symbol)
         pop rsi                 ; environment
         call env_set
+
+        ; -----------------
+        ; keys
+        push rsi                ; environment
+        mov rsi, core_keys_symbol
+        mov edx, core_keys_symbol.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, core_keys
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
         
         ; -----------------
         ; Put the environment in RAX
@@ -181,7 +199,7 @@ core_arithmetic:
         imul rax, [rsi + Cons.car]
         jmp .add_loop
 .do_division:
-        xor rdx, rdx            ; Zero high bits
+        cqo                     ; Sign extend RAX into RDX
         mov rcx, [rsi + Cons.car]
         idiv rcx
         jmp .add_loop
@@ -233,4 +251,12 @@ core_equal_p:
         call alloc_cons
         mov [rax], BYTE maltype_nil
         mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+
+;; Given a map, returns a list of keys
+;; Input: List in RSI with one Map element
+;; Returns: List in RAX
+core_keys:
+        mov rsi, [rsi + Cons.car]
+        call map_keys
         ret
