@@ -39,8 +39,8 @@ eval_ast:
         cmp ah, container_list
         je .list
         
-        ;cmp ah, container_map
-        ;je .map
+        cmp ah, container_map
+        je .map
         
         ; Not a list or a map
         cmp ah, container_symbol
@@ -150,72 +150,136 @@ eval_ast:
         ; ---------------------
 .map:
         ; Create a new map, evaluating all the values
-        mov r10, rsi            ; input in R10
-        call map_keys           
-        mov r11, rax            ; Get list of keys in R11
-        mov r13, rax            ; Head of list in R13
         
-        call map_new
-        mov r12, rax            ; new map in R12
+        ; Check if the map is empty
+        cmp al, maltype_empty_map
+        jne .map_not_empty
+
+        ; map empty. Just return it
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.map_not_empty:
+        
+        mov r10, rsi            ; input in R10
+        xor r12, r12            ; New map in r12
+        
+        ; Now loop through each key-value pair
+        ; NOTE: This method relies on the implementation
+        ; of map as a list    
 
 .map_loop:
+        ; Copy the key
+        call alloc_cons         ; New Cons in RAX
+
+        mov bl, [r10 + Cons.typecar] ; Type in BL
+        mov [rax + Cons.typecar], bl
+        mov rcx, [r10 + Cons.car] ; Value in RCX
+        mov [rax + Cons.car], rcx
 
         ; Check the type of the key
-        mov al, BYTE [r13]
-        and al, content_mask
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .map_got_key        ; a value
+
+        ; a pointer, so increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.map_got_key:
+        cmp r12,0
+        jne .append_key
+
+        ; First key
+        mov r12, rax
+        mov r13, rax
+        jmp .map_value
+        
+.append_key:
+        ; Appending to previous value in r13
+        mov [r13 + Cons.typecdr], BYTE content_pointer
+        mov [r13 + Cons.cdr], rax
+        mov r13, rax
+        
+.map_value:
+        ; Check that we have a value
+        mov al, BYTE [r10 + Cons.typecdr]
         cmp al, content_pointer
-        je .map_key_pointer
+        jne .map_error_missing_value
+        mov r10, [r10 + Cons.cdr]
 
-        mov [r13], BYTE al      ; Remove list container
-        
-        ; Get next value
-        mov rsi, r10
-        mov rdi, r13
-        call map_get            ; Result in RAX
+        ; Now got value in r10
 
-        ; Evaluate
-        
-        
-        mov rsi, r12
-        mov rdi, r13
-        mov rcx, rax
-        call map_set
+        ; Check the type of the value
+        mov bl, [r10 + Cons.typecar] ; Type in BL
+        and bl, content_mask
+        cmp bl, content_pointer
+        je .map_value_pointer
 
-        ; put back list container
-        mov al, BYTE [r13]
-        or al, container_list
-        mov [r13], BYTE al
+        ; Not a pointer, so make a copy
+        call alloc_cons
+        mov bl, [r10 + Cons.typecar]
+        mov [rax + Cons.typecar], bl
+        mov rcx, [r10 + Cons.car]
+        mov [rax + Cons.car], rcx
         
-        jmp .map_next
+        jmp .map_got_value
+.map_value_pointer:
+        ; A pointer, so need to evaluate
+        push r10                ; Input
+        push r12                ; start of result
+        push r13                ; Current head of result
+        mov rsi, [r10 + Cons.car] ; Get the address
+        call eval               ; Evaluate it, result in rax
+        pop r13
+        pop r12
+        pop r10
         
-.map_key_pointer:
-        mov rsi, r10
-        mov rdi, [r13 + Cons.car]
-        call map_get            ; Result in RAX
+        ; Check the type it's evaluated to
+        mov bl, BYTE [rax]
+        mov bh, bl
+        and bh, (block_mask + container_mask)
+        cmp bh, (block_cons + container_value)
+        
+        jne .map_eval_pointer
 
-        ; Evaluate
+        ; A value, so just change the type to a map
+        and bl, content_mask
+        add bl, (block_cons + container_map)
+        mov [rax], BYTE bl
+        jmp .map_got_value
         
-        mov rsi, r12
-        mov rdi, [r13 + Cons.car]
-        mov rcx, rax
-        call map_set
+.map_eval_pointer:
+        ; Not a value, so need a pointer to it
+        push rax
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_map + content_pointer)
+        pop rbx                 ; Address to point to
+        mov [rax + Cons.car], rbx
         
-.map_next:
+.map_got_value:
+        ; Append RAX to list in R13
+        mov [r13 + Cons.typecdr], BYTE content_pointer
+        mov [r13 + Cons.cdr], rax
+        mov r13, rax
         
-        mov al, BYTE [r13 + Cons.typecdr]
+        ; Check if there's another key
+        mov al, BYTE [r10 + Cons.typecdr]
         cmp al, content_pointer
-        jne .map_done
-
-        mov r13, [r13 + Cons.cdr] ; next key
+        jne .map_done          ; finished map
+        mov r10, [r10 + Cons.cdr] ; next in map
         jmp .map_loop
 
 .map_done:
-        ; Release list of keys
-        mov rsi, r11
-        call release_cons
-        
         mov rax, r12
         ret
+        
+.map_error_missing_value:
+        mov rax, r12
+        ret
+        
         ; ---------------------
 .done:
         ret
