@@ -1,6 +1,6 @@
 ;; 
-;; nasm -felf64 step1_read_print.asm && ld step1_read_print.o && ./a.out
-
+;; nasm -felf64 step3_env.asm && ld step3_env.o && ./a.out
+;;
 ;; Calling convention: Address of input is in RSI
 ;;                     Address of return value is in RAX
 ;;
@@ -26,7 +26,20 @@ section .data
         
 prompt_string: db 10,"user> "      ; The string to print at the prompt
 .len: equ $ - prompt_string
-  
+
+
+def_symbol: ISTRUC Array
+AT Array.type,  db   maltype_symbol
+AT Array.length, dd  4
+AT Array.data, db 'def!'
+IEND
+        
+let_symbol: ISTRUC Array
+AT Array.type,  db   maltype_symbol
+AT Array.length, dd  4
+AT Array.data, db 'let*'
+IEND
+        
 section .text   
         
 ;; Evaluates a form in RSI
@@ -299,8 +312,129 @@ eval:
         ; Not a list. Evaluate and return
         call eval_ast
         ret
+
+        ; --------------------
 .list:
         ; A list
+        
+        ; Check if the first element is a symbol
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .list_eval
+
+        mov rbx, [rsi + Cons.car]
+        mov al, BYTE [rbx]
+        cmp al, maltype_symbol
+        jne .list_eval
+        
+        ; Is a symbol, address in RBX
+        push rsi
+
+        ; Compare against def!
+        mov rsi, rbx
+        mov rdi, def_symbol
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .def_symbol
+        
+        push rsi
+        mov rdi, let_symbol
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .let_symbol
+        
+        ; Unrecognised
+        jmp .list_eval
+        
+.def_symbol:
+        ; Define a new symbol in current environment
+        
+        ; call alloc_cons
+        ; mov [rax], BYTE maltype_nil
+        ; mov [rax + Cons.typecdr], BYTE content_nil
+        ; ret
+        
+        ; Next item should be a symbol
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .def_error_missing_arg
+        mov rsi, [rsi + Cons.cdr]
+        
+        ; Now should have a symbol
+        
+        mov al, BYTE [rsi + Cons.typecar]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .def_error_expecting_symbol
+        mov r8, [rsi + Cons.car] ; Symbol (?)
+
+        mov al, BYTE [r8]
+        cmp al, maltype_symbol
+        jne .def_error_expecting_symbol
+
+        ; R8 now contains a symbol
+        
+        ; expecting a value or pointer next
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .def_error_missing_arg
+        mov rsi, [rsi + Cons.cdr]
+
+        ; Check if this is a pointer
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_pointer
+        je .def_pointer
+
+        ; A value, so copy
+        push rax
+        call alloc_cons
+        pop rbx                 ; BL now contains type
+        and bl, content_mask
+        add bl, (block_cons + container_value)
+        mov [rax], BYTE bl
+        mov rcx, [rsi + Cons.car]
+        mov [rax + Cons.car], rcx
+        mov rsi, rax
+        
+        jmp .def_got_value
+
+.def_pointer:
+        ; A pointer, so evaluate
+        push r8                 ; the symbol
+        mov rsi, [rsi + Cons.car] ; Pointer
+        call eval
+        mov rsi, rax
+        pop r8
+        
+.def_got_value:
+        ; Symbol in R8, value in RSI
+        mov rdi, r8             ; key (symbol)
+        mov rcx, rsi            ; Value
+        mov rsi, [repl_env]
+        call env_set
+        
+        mov rax, rcx            ; Return the value
+        ret
+       
+.def_error_missing_arg:
+        
+.def_error_expecting_symbol:    
+        
+        mov rax, rsi
+        ret
+
+        ; -----------------------------
+.let_symbol:
+        ; Create a new environment
+        
+        jmp .list_not_function
+.list_eval:
+        
         call eval_ast
 
         ; Check that the first element of the return is a function
@@ -356,12 +490,6 @@ _start:
 
         mov [repl_env], rax     ; store in memory
         
-        mov rsi, rax
-        call pr_str
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
-
         ; -----------------------------
         ; Main loop
         

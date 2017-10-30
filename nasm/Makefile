@@ -11,3 +11,7 @@ step1_read_print: step1_read_print.asm $(COMPONENTS)
 step2_eval: step2_eval.asm $(COMPONENTS)
 	nasm -felf64 step2_eval.asm
 	ld -o $@ step2_eval.o
+
+step3_env: step3_env.asm $(COMPONENTS)
+	nasm -felf64 step3_env.asm
+	ld -o $@ step3_env.o
