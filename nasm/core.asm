@@ -31,6 +31,7 @@ section .text
 ;;
 core_environment:
         ; Create the top-level environment
+        xor rsi, rsi            ; Set outer to nil
         call env_new            ; in RAX
         push rax
 

@@ -26,7 +26,20 @@ section .data
         
 prompt_string: db 10,"user> "      ; The string to print at the prompt
 .len: equ $ - prompt_string
-  
+
+
+def_symbol: ISTRUC Array
+AT Array.type,  db   maltype_symbol
+AT Array.length, dd  4
+AT Array.data, db 'def!'
+IEND
+        
+let_symbol: ISTRUC Array
+AT Array.type,  db   maltype_symbol
+AT Array.length, dd  4
+AT Array.data, db 'let*'
+IEND
+        
 section .text   
         
 ;; Evaluates a form in RSI
@@ -299,8 +312,53 @@ eval:
         ; Not a list. Evaluate and return
         call eval_ast
         ret
+
+        ; --------------------
 .list:
         ; A list
+
+        ; Check if the first element is a symbol
+        mov al, BYTE [rsi]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .list_eval
+
+        mov rbx, [rsi + Cons.car]
+        mov al, BYTE [rbx]
+        cmp al, maltype_symbol
+        jne .list_eval
+
+        ; Is a symbol, address in RBX
+        push rsi
+
+        ; Compare against def!
+        mov rsi, rbx
+        mov rdi, def_symbol
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .def_symbol
+
+        push rsi
+        mov rdi, let_symbol
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .let_symbol
+        
+        ; Unrecognised
+        jmp .list_eval
+        
+.def_symbol:
+        ; Define a new symbol in current environment
+
+        jmp .list_not_function
+.let_symbol:
+        ; Create a new environment
+        
+        jmp .list_not_function
+.list_eval:
+        
         call eval_ast
 
         ; Check that the first element of the return is a function

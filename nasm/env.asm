@@ -17,7 +17,11 @@ AT Array.data, db '*env*'
 IEND
 
 section .text
-        
+
+;; Create a new Environment
+;;
+;; Input: outer Environment in RSI. If zero, then nil outer.
+;; 
 ;; Return a new Environment type in RAX
 ;;
 ;; Modifies registers:
@@ -32,7 +36,13 @@ env_new:
         mov [rax], BYTE (block_cons + container_list + content_pointer)
         ; CDR type already set to nil in alloc_cons
         mov [rax + Cons.car], rbx
-        
+
+        cmp rsi, 0
+        jne .set_outer
+        ret                     ; No outer, just return
+.set_outer:
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        mov [rax + Cons.cdr], rsi
         ret
 
 ;; Environment set
@@ -80,14 +90,14 @@ env_get:
         ret
         
 .not_env_symbol:
-        
+        push rsi
         ; Get the map in CAR
         mov rsi, [rsi + Cons.car]
         call map_get
+        pop rsi
         je .found
 
         ; Not found, so try outer
-        pop rsi
 
         mov al, BYTE [rsi + Cons.typecdr]
         cmp al, content_pointer
@@ -96,7 +106,6 @@ env_get:
         mov rsi, [rsi + Cons.cdr] ; outer 
         jmp env_get
 .found:
-        pop rsi
         ret
 
 .not_found:

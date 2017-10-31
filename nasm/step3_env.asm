@@ -27,7 +27,18 @@ section .data
 prompt_string: db 10,"user> "      ; The string to print at the prompt
 .len: equ $ - prompt_string
 
+error_string: db 27,'[31m',"Error",27,'[0m',": "
+.len: equ $ - error_string
 
+not_found_string: db " not found.",10
+.len: equ $ - not_found_string
+
+def_missing_arg_string: db "missing argument to def!",10
+.len: equ $ - def_missing_arg_string
+
+def_expecting_symbol_string: db "expecting symbol as first argument to def!",10
+.len: equ $ - def_expecting_symbol_string
+        
 def_symbol: ISTRUC Array
 AT Array.type,  db   maltype_symbol
 AT Array.length, dd  4
@@ -68,12 +79,27 @@ eval_ast:
         
 .symbol:
         ; look in environment
+        push rsi
         mov rdi, rsi            ; symbol is the key
         mov rsi, [repl_env]     ; Environment
         call env_get
+        pop rsi
         je .done                ; result in RAX
         
         ; Not found, should raise an error
+        push rsi
+        mov rsi, error_string
+        mov rdx, error_string.len
+        call print_rawstring    ; print 'Error: '
+
+        pop rsi
+        mov edx, [rsi + Array.length]
+        add rsi, Array.data
+        call print_rawstring    ; print symbol
+
+        mov rsi, not_found_string
+        mov rdx, not_found_string.len
+        call print_rawstring    ; print ' not found'
         
         ; Return nil
         call alloc_cons
@@ -422,10 +448,34 @@ eval:
         ret
        
 .def_error_missing_arg:
+        mov rsi, error_string
+        mov rdx, error_string.len
+        call print_rawstring    ; print 'Error: '
+
+        mov rsi, def_missing_arg_string
+        mov rdx, def_missing_arg_string.len
+        call print_rawstring
         
-.def_error_expecting_symbol:    
+        ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
         
-        mov rax, rsi
+        
+.def_error_expecting_symbol:
+        mov rsi, error_string
+        mov rdx, error_string.len
+        call print_rawstring    ; print 'Error: '
+
+        mov rsi, def_expecting_symbol_string
+        mov rdx, def_expecting_symbol_string.len
+        call print_rawstring
+        
+        ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
         ret
 
         ; -----------------------------
