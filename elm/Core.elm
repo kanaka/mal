@@ -543,6 +543,16 @@ ns =
                         _ ->
                             False
 
+        isNumber args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalInt _) :: _ ->
+                            True
+
+                        _ ->
+                            False
+
         isSymbol args =
             Eval.succeed <|
                 MalBool <|
@@ -602,6 +612,34 @@ ns =
 
                         (MalVector _) :: _ ->
                             True
+
+                        _ ->
+                            False
+
+        isFn args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalFunction (CoreFunc _)) :: _ ->
+                            True
+                        (MalFunction (UserFunc fn)) :: _ ->
+                            if fn.isMacro then
+                                False
+                            else
+                                True
+
+                        _ ->
+                            False
+
+        isMacro args =
+            Eval.succeed <|
+                MalBool <|
+                    case args of
+                        (MalFunction (UserFunc fn)) :: _ ->
+                            if fn.isMacro then
+                                True
+                            else
+                                False
 
                         _ ->
                             False
@@ -892,12 +930,15 @@ ns =
             |> Env.set "nil?" (makeFn isNil)
             |> Env.set "true?" (makeFn isTrue)
             |> Env.set "false?" (makeFn isFalse)
+            |> Env.set "number?" (makeFn isNumber)
             |> Env.set "symbol?" (makeFn isSymbol)
             |> Env.set "keyword?" (makeFn isKeyword)
             |> Env.set "vector?" (makeFn isVector)
             |> Env.set "map?" (makeFn isMap)
             |> Env.set "string?" (makeFn isString)
             |> Env.set "sequential?" (makeFn isSequential)
+            |> Env.set "fn?" (makeFn isFn)
+            |> Env.set "macro?" (makeFn isMacro)
             |> Env.set "symbol" (makeFn symbol)
             |> Env.set "keyword" (makeFn keyword)
             |> Env.set "vector" (makeFn vector)
