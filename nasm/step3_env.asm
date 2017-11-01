@@ -52,9 +52,16 @@ AT Array.data, db 'let*'
 IEND
         
 section .text   
-        
-;; Evaluates a form in RSI
+
+;; ----------------------------------------------
+;; Evaluates a form
+;;
+;; Inputs: RSI   Form to evaluate
+;;         RDI   Environment
+;; 
 eval_ast:
+        mov r15, rdi             ; Save Env in r15
+        
         ; Check the type
         mov al, BYTE [rsi]
 
@@ -80,8 +87,9 @@ eval_ast:
 .symbol:
         ; look in environment
         push rsi
-        mov rdi, rsi            ; symbol is the key
-        mov rsi, [repl_env]     ; Environment
+        xchg rsi, rdi
+        ; symbol is the key in rdi
+        ; Environment in rsi
         call env_get
         pop rsi
         je .done                ; result in RAX
@@ -137,8 +145,11 @@ eval_ast:
         push rsi
         push r8
         push r9
+        push r15                  ; Env
         mov rsi, [rsi + Cons.car] ; Get the address
+        mov rdi, r15
         call eval             ; Evaluate it, result in rax
+        pop r15
         pop r9
         pop r8
         pop rsi
@@ -271,8 +282,11 @@ eval_ast:
         push r10                ; Input
         push r12                ; start of result
         push r13                ; Current head of result
+        push r15                ; Env
         mov rsi, [r10 + Cons.car] ; Get the address
+        mov rdi, r15
         call eval               ; Evaluate it, result in rax
+        pop r15
         pop r13
         pop r12
         pop r10
@@ -324,8 +338,17 @@ eval_ast:
 .done:
         ret
 
-;; Evaluates a form in RSI
+;; ----------------------------------------------------
+;; Evaluates a form
+;;      
+;; Input: RSI   Form to evaluate
+;;        RDI   Environment
+;;
+;; Returns: Result in RAX
+;;
 eval:
+        mov r15, rdi            ; Env
+        
         ; Check type
         mov al, BYTE [rsi]
         cmp al, maltype_empty_list
@@ -356,18 +379,23 @@ eval:
         
         ; Is a symbol, address in RBX
         push rsi
-
+        push rbx
+        
         ; Compare against def!
         mov rsi, rbx
         mov rdi, def_symbol
         call compare_char_array
+        pop rbx
         pop rsi
         cmp rax, 0
         je .def_symbol
         
         push rsi
+        push rbx
+        mov rsi, rbx
         mov rdi, let_symbol
         call compare_char_array
+        pop rbx
         pop rsi
         cmp rax, 0
         je .let_symbol
@@ -377,12 +405,7 @@ eval:
         
 .def_symbol:
         ; Define a new symbol in current environment
-        
-        ; call alloc_cons
-        ; mov [rax], BYTE maltype_nil
-        ; mov [rax + Cons.typecdr], BYTE content_nil
-        ; ret
-        
+                
         ; Next item should be a symbol
         mov al, BYTE [rsi + Cons.typecdr]
         cmp al, content_pointer
@@ -432,16 +455,19 @@ eval:
 .def_pointer:
         ; A pointer, so evaluate
         push r8                 ; the symbol
+        push r15                ; Env
         mov rsi, [rsi + Cons.car] ; Pointer
+        mov rdi, r15
         call eval
         mov rsi, rax
+        pop r15
         pop r8
         
 .def_got_value:
         ; Symbol in R8, value in RSI
         mov rdi, r8             ; key (symbol)
         mov rcx, rsi            ; Value
-        mov rsi, [repl_env]
+        mov rsi, r15            ; Environment
         call env_set
         
         mov rax, rcx            ; Return the value
@@ -481,10 +507,127 @@ eval:
         ; -----------------------------
 .let_symbol:
         ; Create a new environment
+
+        mov r11, rsi
         
-        jmp .list_not_function
+        mov rsi, r15     ; Outer env
+        call env_new
+        mov r14, rax            ; New environment in r14
+        
+        ; Second element should be the bindings
+        
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .let_error_missing_bindings
+        mov r11, [r11 + Cons.cdr]
+        
+        mov al, BYTE [r11]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .let_error_bindings_list
+        
+        mov r12, [r11 + Cons.car] ; should be bindings list
+        mov al, BYTE [r12]
+        and al, (block_mask + container_mask)
+        cmp al, block_cons + container_list
+        jne .let_error_bindings_list
+        
+        ; R12 now contains a list with an even number of items
+        ; The first should be a symbol, then a value to evaluate
+
+.let_bind_loop:
+
+        ; Get the symbol
+        mov al, BYTE [r12]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .let_error_bind_symbol
+
+        mov r13, [r12 + Cons.car] ; Symbol (?)
+        mov al, BYTE [r13]
+        cmp al, maltype_symbol
+        jne .let_error_bind_symbol
+
+        ; R13 now contains a symbol to bind
+        ; The next item in the bindings list (R12)
+        ; should be a value or expression to evaluate
+
+        mov al, BYTE [r12 + Cons.typecdr]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .let_error_bind_value
+        mov r12, [r12 + Cons.cdr]
+        
+        ; got value in R12
+        
+        ; Check the type of the value
+        mov bl, [r12 + Cons.typecar] ; Type in BL
+        and bl, content_mask
+        cmp bl, content_pointer
+        je .let_value_pointer
+
+        ; Not a pointer, so make a copy
+        call alloc_cons
+        mov bl, [r12 + Cons.typecar]
+        and bl, content_mask
+        ;or bl, (block_cons + container_value) ; 0
+        mov [rax + Cons.typecar], bl
+        mov rcx, [r12 + Cons.car]
+        mov [rax + Cons.car], rcx
+
+        jmp .let_got_value
+        
+.let_value_pointer:
+        ; A pointer, so need to evaluate
+        push r11                 ; let* form list
+        push r12                 ; Position in bindings list
+        push r13                 ; symbol to bind
+        push r14                 ; new environment
+        mov rsi, [r12 + Cons.car] ; Get the address
+        mov rdi, r14
+        call eval               ; Evaluate it, result in rax
+        pop r14
+        pop r13
+        pop r12
+        pop r11
+        
+.let_got_value:
+
+        mov rsi, r14            ; Env
+        mov rdi, r13            ; key
+        mov rcx, rax            ; value
+        call env_set
+        
+        ; Check if there are more bindings
+        mov al, BYTE [r12 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .let_done_binding
+        mov r12, [r12 + Cons.cdr] ; Next
+        jmp .let_bind_loop
+        
+.let_done_binding:
+        ; Done bindings.
+        ; Evaluate next item in let* form in new environment
+        
+        
+        mov rax, r14
+        ret
+        
+.let_error_missing_bindings:
+.let_error_bindings_list:       ; expected a list, got something else
+.let_error_bind_symbol:         ; expected a symbol, got something else
+.let_error_bind_value:          ; Missing value in binding list
+        
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+        
+        ; -----------------------------
+        
 .list_eval:
-        
+
+        mov rdi, r15            ; Environment
         call eval_ast
 
         ; Check that the first element of the return is a function
@@ -563,7 +706,8 @@ _start:
         push rax                ; Save AST
 
         ; Eval
-        mov rsi, rax
+        mov rsi, rax            ; Form to evaluate
+        mov rdi, [repl_env]     ; Environment
         call eval
         push rax                ; Save result
         

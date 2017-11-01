@@ -151,7 +151,7 @@ error_cons_memory_limit: db "Error: Run out of memory for Cons objects. Increase
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 20     ; Number of array objects which can be created
+%define heap_array_limit 50     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0
@@ -1037,6 +1037,10 @@ map_find:
 ;;         RDI - key [not modified]
 ;;         RCX - value [not modified]
 ;;
+;; Modifies registers:
+;;   R8
+;;   R9
+;;   R10
 map_set:
         ; Save inputs in less volatile registers
         mov r8, rsi             ; map

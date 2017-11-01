@@ -53,6 +53,10 @@ env_new:
 ;;         RDI - key [not modified]
 ;;         RCX - value [not modified]
 ;;
+;; Modifies registers:
+;;   R8
+;;   R9
+;;   R10
 env_set:
         push rsi
         ; Get the first CAR, which should be a map
