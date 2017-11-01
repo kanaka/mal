@@ -628,8 +628,10 @@ eval:
 .list_eval:
 
         mov rdi, r15            ; Environment
+        push r15
         call eval_ast
-
+        pop r15
+        
         ; Check that the first element of the return is a function
         mov bl, BYTE [rax]
         and bl, content_mask
@@ -643,10 +645,12 @@ eval:
         
         ; Call the function with the rest of the list in RSI
         push rax
+        push r15
         mov rsi, [rax + Cons.cdr] ; Rest of list
         mov rdi, rbx ; Function object in RDI
         call [rbx + Cons.car]   ; Call function
         ; Result in rax
+        pop r15
         pop rsi                 ; eval'ed list
         push rax
         call release_cons
