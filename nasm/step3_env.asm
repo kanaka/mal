@@ -38,6 +38,22 @@ def_missing_arg_string: db "missing argument to def!",10
 
 def_expecting_symbol_string: db "expecting symbol as first argument to def!",10
 .len: equ $ - def_expecting_symbol_string
+
+
+let_missing_bindings_string: db "let* missing bindings",10
+.len: equ $ - let_missing_bindings_string
+
+let_bindings_list_string: db "let* expected a list of bindings",10
+.len: equ $ - let_bindings_list_string
+
+let_bind_symbol_string: db "let* expected a symbol in bindings list",10
+.len: equ $ - let_bind_symbol_string
+
+let_bind_value_string: db "let* missing value in bindings list",10
+.len: equ $ - let_bind_value_string 
+
+let_missing_body_string: db "let* missing body",10
+.len: equ $ - let_missing_body_string
         
 def_symbol: ISTRUC Array
 AT Array.type,  db   maltype_symbol
@@ -508,11 +524,11 @@ eval:
 .let_symbol:
         ; Create a new environment
 
-        mov r11, rsi
+        mov r11, rsi            ; Let form in R11
         
-        mov rsi, r15     ; Outer env
+        mov rsi, r15            ; Outer env
         call env_new
-        mov r14, rax            ; New environment in r14
+        mov r14, rax            ; New environment in R14
         
         ; Second element should be the bindings
         
@@ -597,6 +613,10 @@ eval:
         mov rdi, r13            ; key
         mov rcx, rax            ; value
         call env_set
+
+        ; Release the value
+        mov rsi, rcx            ; The value
+        call release_object
         
         ; Check if there are more bindings
         mov al, BYTE [r12 + Cons.typecdr]
@@ -608,15 +628,78 @@ eval:
 .let_done_binding:
         ; Done bindings.
         ; Evaluate next item in let* form in new environment
+
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .let_error_missing_body
+        mov r11, [r11 + Cons.cdr] ; Now contains value to evaluate
+        ; Check type of the value
+        mov al, BYTE [r11]
+        and al, block_mask + content_mask
+        cmp al, content_pointer
+        je .body_pointer
+
+        ; Just a value, so copy
+        call alloc_cons
+        mov bl, BYTE [r11]
+        and bl, content_mask
+        mov [rax], BYTE bl      ; set type
+        mov rbx, [r11 + Cons.car]
+        mov [rax + Cons.car], rbx ; copy value
+        jmp .let_done
         
+.body_pointer:
+        ; Evaluate using new environment
         
-        mov rax, r14
+        mov rsi, r11
+        mov rdi, r14            ; New environment
+        push r14
+        call eval
+        pop r14
+        
+.let_done:
+        ; Release the environment
+        mov rsi, r14
+        push rax
+        call release_object
+        pop rax
         ret
         
 .let_error_missing_bindings:
+        mov rsi, let_missing_bindings_string
+        mov rdx, let_missing_bindings_string.len
+        jmp .let_handle_error
+        
 .let_error_bindings_list:       ; expected a list, got something else
+        mov rsi, let_bindings_list_string
+        mov rdx, let_bindings_list_string.len
+        jmp .let_handle_error
+        
 .let_error_bind_symbol:         ; expected a symbol, got something else
+        mov rsi, let_bind_symbol_string
+        mov rdx, let_bind_symbol_string.len
+        jmp .let_handle_error
+        
 .let_error_bind_value:          ; Missing value in binding list
+        mov rsi, let_bind_value_string
+        mov rdx, let_bind_value_string.len
+        jmp .let_handle_error
+        
+.let_error_missing_body:        ; Missing body to evaluate
+        mov rsi, let_missing_body_string
+        mov rdx, let_missing_body_string.len
+        jmp .let_handle_error
+        
+.let_handle_error:
+        push rsi
+        push rdx
+        mov rsi, error_string
+        mov rdx, error_string.len
+        call print_rawstring    ; print 'Error: '
+
+        pop rdx
+        pop rsi
+        call print_rawstring    ; print message
         
         call alloc_cons
         mov [rax], BYTE maltype_nil

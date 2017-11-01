@@ -20,8 +20,10 @@ section .text
 
 ;; Create a new Environment
 ;;
-;; Input: outer Environment in RSI. If zero, then nil outer.
-;; 
+;; Input: outer Environment in RSI.
+;;         - If zero, then nil outer.
+;;         - If not zero, increments reference count
+;;                   
 ;; Return a new Environment type in RAX
 ;;
 ;; Modifies registers:
@@ -43,6 +45,11 @@ env_new:
 .set_outer:
         mov [rax + Cons.typecdr], BYTE content_pointer
         mov [rax + Cons.cdr], rsi
+
+        ; increment reference counter of outer
+        mov rbx, rax            ; because incref_object modifies rax
+        call incref_object
+        mov rax, rbx
         ret
 
 ;; Environment set
@@ -53,6 +60,9 @@ env_new:
 ;;         RDI - key [not modified]
 ;;         RCX - value [not modified]
 ;;
+;; Increments reference counts of key and value
+;; if pointers to them are created
+;; 
 ;; Modifies registers:
 ;;   R8
 ;;   R9
