@@ -18,6 +18,9 @@ section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
+
+;; Error handler list
+error_handler: resq 1
         
 section .data
 
@@ -70,6 +73,133 @@ IEND
 section .text   
 
 ;; ----------------------------------------------
+;; 
+;; Error handling
+;;
+;; A handler consists of:
+;;  - A stack pointer address to reset to
+;;  - An address to jump to
+;;  - An optional data structure to pass
+;;
+;; When jumped to, an error handler will be given:
+;;   - the object thrown in RSI
+;;   - the optional data structure in RDI
+;; 
+        
+
+;; Add an error handler to the front of the list
+;;
+;; Input: RSI - Stack pointer
+;;        RDI - Address to jump to
+;;        RCX - Data structure. Set to zero for none.
+;;            If not zero, reference count incremented
+;;
+;; Modifies registers:
+;;    RAX
+;;    RBX
+error_handler_push:
+        call alloc_cons
+        ; car will point to a list (stack, addr, data)
+        ; cdr will point to the previous handler
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        mov rbx, [error_handler]
+        cmp rbx, 0              ; Check if previous handler was zero
+        je .create_handler      ; Zero, so leave null
+        ; Not zero, so create pointer to it
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        mov [rax + Cons.cdr], rbx
+
+        ; note: not incrementing reference count, since
+        ; we're replacing one reference with another
+.create_handler:
+        mov [error_handler], rax ; new error handler
+        
+        mov rdx, rax
+        call alloc_cons
+        mov [rdx + Cons.car], rax
+        ; Store stack pointer
+        mov [rax], BYTE (block_cons + container_list + content_function)
+        mov [rax + Cons.car], rsi ; stack pointer
+        
+        mov rdx, rax
+        call alloc_cons
+        mov [rdx + Cons.typecdr], BYTE content_pointer
+        mov [rdx + Cons.cdr], rax
+        ; Store function pointer to jump to 
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        mov [rax + Cons.car], rdi
+
+        ; Check if there is an object to pass to handler
+        cmp rcx, 0
+        je .done
+
+        ; Set the final CDR to point to the object
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        mov [rax + Cons.cdr], rcx
+
+        mov rsi, rcx
+        call incref_object
+        
+.done:
+        ret
+        
+        
+;; Removes an error handler from the list
+;;
+;; Modifies registers:
+;;    RSI
+;;    RAX
+;;    RCX
+error_handler_pop:
+        ; get the address
+        mov rsi, [error_handler]
+        cmp rsi, 0
+        je .done                ; Nothing to remove
+        
+        push rsi
+        mov rsi, [rsi + Cons.cdr] ; next handler
+        mov [error_handler], rsi
+        call incref_object        ; needed because releasing soon
+        
+        pop rsi                 ; handler being removed
+        call release_cons
+        
+.done:
+        ret
+        
+        
+;; Throw an error
+;;   Object to pass to handler should be in RSI
+error_throw:
+        ; Get the next error handler
+        mov rax, [error_handler]
+        cmp rax, 0
+        je .no_handler
+        
+        ; Got a handler
+        mov rax, [rax + Cons.car] ; handler
+        mov rbx, [rax + Cons.car] ; stack pointer
+        mov rax, [rax + Cons.cdr]
+        mov rcx, [rax + Cons.car] ; function
+        mov rdi, [rax + Cons.cdr] ; data structure
+
+        ; Reset stack
+        mov rsp, rbx
+
+        ; Jump to the handler
+        jmp rcx
+        
+.no_handler:
+        ; Print the object in RSI then quit
+        cmp rsi, 0
+        je .done                ; nothing to print
+        call pr_str
+        mov rsi, rax
+        call print_string
+.done:
+        jmp quit_error
+        
+;; ----------------------------------------------
 ;; Evaluates a form
 ;;
 ;; Inputs: RSI   Form to evaluate
@@ -110,13 +240,14 @@ eval_ast:
         pop rsi
         je .done                ; result in RAX
         
-        ; Not found, should raise an error
+        ; Not found, throw an error
         push rsi
         mov rsi, error_string
         mov rdx, error_string.len
         call print_rawstring    ; print 'Error: '
 
         pop rsi
+        push rsi
         mov edx, [rsi + Array.length]
         add rsi, Array.data
         call print_rawstring    ; print symbol
@@ -124,12 +255,9 @@ eval_ast:
         mov rsi, not_found_string
         mov rdx, not_found_string.len
         call print_rawstring    ; print ' not found'
-        
-        ; Return nil
-        call alloc_cons
-        mov [rax], BYTE maltype_nil
-        mov [rax + Cons.typecdr], BYTE content_nil
-        ret
+        pop rsi
+
+        jmp error_throw
         
 .list:
         ; Evaluate each element of the list
@@ -470,6 +598,10 @@ eval:
 
 .def_pointer:
         ; A pointer, so evaluate
+        
+        ; This may throw an error, so define a handler
+        
+        
         push r8                 ; the symbol
         push r15                ; Env
         mov rsi, [rsi + Cons.car] ; Pointer
@@ -490,36 +622,29 @@ eval:
         ret
        
 .def_error_missing_arg:
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
-
         mov rsi, def_missing_arg_string
         mov rdx, def_missing_arg_string.len
-        call print_rawstring
-        
-        ; Return nil
-        call alloc_cons
-        mov [rax], BYTE maltype_nil
-        mov [rax + Cons.typecdr], BYTE content_nil
-        ret
-        
+        jmp .def_handle_error
         
 .def_error_expecting_symbol:
+        mov rsi, def_expecting_symbol_string
+        mov rdx, def_expecting_symbol_string.len
+        jmp .def_handle_error
+
+.def_handle_error:
+        push rsi
+        push rdx
         mov rsi, error_string
         mov rdx, error_string.len
         call print_rawstring    ; print 'Error: '
-
-        mov rsi, def_expecting_symbol_string
-        mov rdx, def_expecting_symbol_string.len
-        call print_rawstring
         
-        ; Return nil
-        call alloc_cons
-        mov [rax], BYTE maltype_nil
-        mov [rax + Cons.typecdr], BYTE content_nil
-        ret
+        pop rdx
+        pop rsi
+        call print_rawstring    ; print message
 
+        xor rsi, rsi            ; no object to throw
+        jmp error_throw         ; No return
+        
         ; -----------------------------
 .let_symbol:
         ; Create a new environment
@@ -691,6 +816,8 @@ eval:
         jmp .let_handle_error
         
 .let_handle_error:
+        push r11                ; For printing later
+        
         push rsi
         push rdx
         mov rsi, error_string
@@ -701,10 +828,8 @@ eval:
         pop rsi
         call print_rawstring    ; print message
         
-        call alloc_cons
-        mov [rax], BYTE maltype_nil
-        mov [rax + Cons.typecdr], BYTE content_nil
-        ret
+        pop rsi                 ; let* form
+        jmp error_throw         ; No return
         
         ; -----------------------------
         
@@ -769,6 +894,12 @@ _start:
         call core_environment   ; Environment in RAX
 
         mov [repl_env], rax     ; store in memory
+
+        ; Set the error handler
+        mov rsi, rsp            ; Stack pointer
+        mov rdi, .catch         ; Address to jump to
+        xor rcx, rcx            ; No data
+        call error_handler_push
         
         ; -----------------------------
         ; Main loop
@@ -826,4 +957,16 @@ _start:
 .mainLoopEnd:
         
         jmp quit
+        
+.catch:
+        ; Jumps here on error
+
+        ; Check if an object was thrown
+        cmp rsi, 0
+        je .catch_done_print                ; nothing to print
+        call pr_str
+        mov rsi, rax
+        call print_string
+.catch_done_print:
+        jmp .mainLoop           ; Go back to the prompt
         
