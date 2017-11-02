@@ -85,6 +85,25 @@ let core_ns: Dictionary<String,(Array<MalVal>) throws -> MalVal> = [
         default: return MV.MalFalse
         }
     },
+    "number?": {
+        switch $0[0] {
+        case MV.MalInt(_): return MV.MalTrue
+        default: return MV.MalFalse
+        }
+    },
+    "fn?": {
+        switch $0[0] {
+        case MalVal.MalFunc(_, nil, _, _, _, _),
+             MalVal.MalFunc(_, _, _, _, false, _): return MV.MalTrue
+        default: return MV.MalFalse
+        }
+    },
+    "macro?": {
+        switch $0[0] {
+        case MalVal.MalFunc(_, _, _, _, true, _): return MV.MalTrue
+        default: return MV.MalFalse
+        }
+    },
 
     "pr-str":  {
         // TODO: if the following two statements are combined into one, we get

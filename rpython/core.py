@@ -38,6 +38,9 @@ def symbol(args):
 def symbol_Q(args): return wrap_tf(types._symbol_Q(args[0]))
 def keyword(args): return types._keyword(args[0])
 def keyword_Q(args): return wrap_tf(types._keyword_Q(args[0]))
+def number_Q(args): return wrap_tf(types._int_Q(args[0]))
+def function_Q(args): return wrap_tf(types._function_Q(args[0]) and not args[0].ismacro)
+def macro_Q(args): return wrap_tf(types._function_Q(args[0]) and args[0].ismacro)
 
 
 # String functions
@@ -375,6 +378,9 @@ ns = {
         'symbol?': symbol_Q,
         'keyword': keyword,
         'keyword?': keyword_Q,
+        'number?': number_Q,
+        'fn?': function_Q,
+        'macro?': macro_Q,
 
         'pr-str': pr_str,
         'str': do_str,

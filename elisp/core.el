@@ -177,6 +177,7 @@
     (true? . ,(mal-fn (lambda (arg) (if (mal-true-p arg) mal-true mal-false))))
     (false? . ,(mal-fn (lambda (arg) (if (mal-false-p arg) mal-true mal-false))))
 
+    (number? . ,(mal-fn (lambda (arg) (if (mal-number-p arg) mal-true mal-false))))
     (symbol? . ,(mal-fn (lambda (arg) (if (mal-symbol-p arg) mal-true mal-false))))
     (keyword? . ,(mal-fn (lambda (arg) (if (mal-keyword-p arg) mal-true mal-false))))
     (string? . ,(mal-fn (lambda (arg) (if (mal-string-p arg) mal-true mal-false))))
@@ -193,6 +194,15 @@
                              (mal-map map)))))
 
     (sequential? . ,(mal-fn 'mal-seq-p))
+    (fn? . ,(mal-fn (lambda (arg) (if (or (mal-fn-p arg)
+                                          (and (mal-func-p arg)
+                                               (not (mal-func-macro-p arg))))
+                                      mal-true
+                                    mal-false))))
+    (macro? . ,(mal-fn (lambda (arg) (if (and (mal-func-p arg)
+                                              (mal-func-macro-p arg))
+                                         mal-true
+                                       mal-false))))
 
     (get . ,(mal-fn (lambda (map key) (if (mal-map-p map) (or (gethash key (mal-value map)) mal-nil) mal-nil))))
     (contains? . ,(mal-fn (lambda (map key) (if (gethash key (mal-value map)) mal-true mal-false))))

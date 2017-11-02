@@ -57,11 +57,16 @@
     'nil?     _nil?
     'true?    (lambda (x) (eq? x #t))
     'false?   (lambda (x) (eq? x #f))
+    'number?  number?
     'symbol   (lambda (s) (if (symbol? s) s (string->symbol s)))
     'symbol?  symbol?
     'string?  _string?
     'keyword  (lambda (s) (if (_keyword? s) s (_keyword s)))
     'keyword? _keyword?
+    'fn?      (lambda (s) (if (malfunc? s)
+                              (not (malfunc-macro? s))
+                              (procedure? s)))
+    'macro?   (lambda (s) (and (malfunc? s) (malfunc-macro? s)))
 
     'pr-str   (lambda a (pr_lst a #t " "))
     'str      (lambda a (pr_lst a #f ""))

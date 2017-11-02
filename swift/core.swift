@@ -61,6 +61,18 @@ private func fn_keywordQ(obj: MalVal) throws -> Bool {
     return is_keyword(obj)
 }
 
+private func fn_numberQ(obj: MalVal) throws -> Bool {
+    return is_integer(obj) || is_float(obj)
+}
+
+private func fn_functionQ(obj: MalVal) throws -> Bool {
+    return is_function(obj)
+}
+
+private func fn_macroQ(obj: MalVal) throws -> Bool {
+    return is_macro(obj)
+}
+
 private func fn_prstr(args: MalVarArgs) throws -> String {
     let args_str_array = args.value.map { pr_str($0, true) }
     return args_str_array.joinWithSeparator(" ")
@@ -688,6 +700,9 @@ let ns: [String: MalBuiltin.Signature] = [
     "symbol?":      { try unwrap_args($0, forFunction: fn_symbolQ) },
     "keyword":      { try unwrap_args($0, forFunction: fn_keyword) },
     "keyword?":     { try unwrap_args($0, forFunction: fn_keywordQ) },
+    "number?":      { try unwrap_args($0, forFunction: fn_numberQ) },
+    "fn?":          { try unwrap_args($0, forFunction: fn_functionQ) },
+    "macro?":       { try unwrap_args($0, forFunction: fn_macroQ) },
 
     "pr-str":       { try unwrap_args($0, forFunction: fn_prstr) },
     "str":          { try unwrap_args($0, forFunction: fn_str) },

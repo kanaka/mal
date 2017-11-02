@@ -20,6 +20,29 @@ false_p([Arg]) ->
 false_p(_) ->
     {error, "false? takes a single argument"}.
 
+number_p([{integer, _}]) ->
+    true;
+number_p([_]) ->
+    false;
+number_p(_) ->
+    {error, "number? takes a single argument"}.
+
+fn_p([{function, _, _}]) ->
+    true;
+fn_p([{closure, _, _, _, _, _}]) ->
+    true;
+fn_p([_]) ->
+    false;
+fn_p(_) ->
+    {error, "fn? takes a single argument"}.
+
+macro_p([{macro, _, _, _}]) ->
+    true;
+macro_p([_]) ->
+    false;
+macro_p(_) ->
+    {error, "macro? takes a single argument"}.
+
 count([{Type, List, _Meta}]) when Type == list orelse Type == vector ->
     {integer, length(List)};
 count([nil]) ->
@@ -324,6 +347,7 @@ ns() ->
         "empty?" => fun empty_q/1,
         "false?" => fun false_p/1,
         "first" => fun first/1,
+        "fn?" => fun fn_p/1,
         "get" => fun types:map_get/1,
         "hash-map" => fun types:hash_map/1,
         "keys" => fun types:map_keys/1,
@@ -331,11 +355,13 @@ ns() ->
         "keyword?" => fun types:keyword_p/1,
         "list" => fun types:list/1,
         "list?" => fun types:list_p/1,
+        "macro?" => fun macro_p/1,
         "map" => fun map_f/1,
         "map?" => fun types:map_p/1,
         "meta" => fun types:meta/1,
         "nil?" => fun nil_p/1,
         "nth" => fun nth/1,
+        "number?" => fun number_p/1,
         "pr-str" => fun pr_str/1,
         "println" => fun println/1,
         "prn" => fun prn/1,

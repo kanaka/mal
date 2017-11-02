@@ -195,6 +195,8 @@ Core Ns at: #'true?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #true ] ]).
 Core Ns at: #'false?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #false ] ]).
+Core Ns at: #'number?' put:
+    (Fn new: [ :args | Core coerce: [ args first type = #number ] ]).
 Core Ns at: #'symbol?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #symbol ] ]).
 Core Ns at: #'keyword?' put:
@@ -208,6 +210,13 @@ Core Ns at: #'map?' put:
 Core Ns at: #'sequential?' put:
     (Fn new: [ :args | Core coerce: [ args first type = #list or:
                                      [ args first type = #vector ] ] ]).
+Core Ns at: #'fn?' put:
+    (Fn new: [ :args | Core coerce: [ args first type = #fn or:
+                                     [ args first type = #func and:
+                                      [ args first isMacro not ] ] ] ]).
+Core Ns at: #'macro?' put:
+    (Fn new: [ :args | Core coerce: [ args first type = #func and:
+                                     [ args first isMacro ] ] ]).
 
 Core Ns at: #symbol put:
     (Fn new: [ :args | MALSymbol new: args first value asSymbol ]).

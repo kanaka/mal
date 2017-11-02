@@ -64,6 +64,7 @@ BUILTIN_ISA("atom?",        malAtom);
 BUILTIN_ISA("keyword?",     malKeyword);
 BUILTIN_ISA("list?",        malList);
 BUILTIN_ISA("map?",         malHash);
+BUILTIN_ISA("number?",      malInteger);
 BUILTIN_ISA("sequential?",  malSequence);
 BUILTIN_ISA("string?",      malString);
 BUILTIN_ISA("symbol?",      malSymbol);
@@ -241,6 +242,19 @@ BUILTIN("first")
     return seq->first();
 }
 
+BUILTIN("fn?")
+{
+    CHECK_ARGS_IS(1);
+    malValuePtr arg = *argsBegin++;
+
+    // Lambdas are functions, unless they're macros.
+    if (const malLambda* lambda = DYNAMIC_CAST(malLambda, arg)) {
+        return mal::boolean(!lambda->isMacro());
+    }
+    // Builtins are functions.
+    return mal::boolean(DYNAMIC_CAST(malBuiltIn, arg));
+}
+
 BUILTIN("get")
 {
     CHECK_ARGS_IS(2);
@@ -268,6 +282,15 @@ BUILTIN("keyword")
     CHECK_ARGS_IS(1);
     ARG(malString, token);
     return mal::keyword(":" + token->value());
+}
+
+BUILTIN("macro?")
+{
+    CHECK_ARGS_IS(1);
+
+    // Macros are implemented as lambdas, with a special flag.
+    const malLambda* lambda = DYNAMIC_CAST(malLambda, *argsBegin);
+    return mal::boolean((lambda != NULL) && lambda->isMacro());
 }
 
 BUILTIN("meta")

@@ -45,6 +45,15 @@ export const ns: Map<MalSymbol, MalFunction> = (() => {
         "keyword?"(v: MalType) {
             return new MalBoolean(v.type === Node.Keyword);
         },
+        "number?"(v: MalType) {
+            return new MalBoolean(v.type === Node.Number);
+        },
+        "fn?"(v: MalType) {
+            return new MalBoolean(v.type === Node.Function && !v.isMacro);
+        },
+        "macro?"(v: MalType) {
+            return new MalBoolean(v.type === Node.Function && v.isMacro);
+        },
 
         "pr-str"(...args: MalType[]): MalString {
             return new MalString(args.map(v => prStr(v, true)).join(" "));

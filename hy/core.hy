@@ -27,11 +27,15 @@
    "nil?"     none?
    "true?"    (fn [a] (and (instance? bool a) (= a True)))
    "false?"   (fn [a] (and (instance? bool a) (= a False)))
+   "number?"  (fn [a] (and (not (instance? bool a)) (instance? int a)))
    "string?"  (fn [a] (and (string? a) (not (keyword? a))))
    "symbol"   (fn [a] (Sym a))
    "symbol?"  (fn [a] (instance? Sym a))
    "keyword"  (fn [a] (Keyword (if (keyword? a) a (+ ":" a))))
    "keyword?" (fn [a] (keyword? a))
+   "fn?"      (fn [a] (and (callable a) (or (not (hasattr a "macro"))
+                                            (not a.macro))))
+   "macro?"   (fn [a] (and (callable a) (and (hasattr a "macro") a.macro)))
 
    "pr-str"  (fn [&rest a] (Str (.join " " (map (fn [e] (pr-str e True)) a))))
    "str"     (fn [&rest a] (Str (.join "" (map (fn [e] (pr-str e False)) a))))

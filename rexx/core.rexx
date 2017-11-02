@@ -34,6 +34,15 @@ mal_keyword: procedure expose values. /* mal_keyword(a) */
 mal_keyword?: procedure expose values. /* mal_keyword?(a) */
   return new_boolean(keyword?(arg(1)))
 
+mal_number?: procedure expose values. /* mal_number?(a) */
+  return new_boolean(number?(arg(1)))
+
+mal_fn?: procedure expose values. /* mal_fn?(a) */
+  return new_boolean(nativefn?(arg(1)) | (func?(arg(1)) & (func_is_macro(arg(1)) \= 1)))
+
+mal_macro?: procedure expose values. /* mal_macro?(a) */
+  return new_boolean(func_macro?(arg(1)))
+
 mal_pr_str: procedure expose values. /* mal_pr_str(...) */
   res = ""
   do i=1 to arg()
@@ -439,6 +448,9 @@ get_core_ns: procedure /* get_core_ns() */
          "symbol?     mal_symbol?"     ,
          "keyword     mal_keyword"     ,
          "keyword?    mal_keyword?"    ,
+         "number?     mal_number?"     ,
+         "fn?         mal_fn?"         ,
+         "macro?      mal_macro?"      ,
                                        ,
          "pr-str      mal_pr_str"      ,
          "str         mal_str"         ,

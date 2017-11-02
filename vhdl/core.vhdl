@@ -66,6 +66,21 @@ package body core is
     new_boolean(args.seq_val(0).val_type = mal_keyword, result);
   end procedure fn_keyword_q;
 
+  procedure fn_number_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    new_boolean(args.seq_val(0).val_type = mal_number, result);
+  end procedure fn_number_q;
+
+  procedure fn_function_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    new_boolean((args.seq_val(0).val_type = mal_fn and not args.seq_val(0).func_val.f_is_macro) or args.seq_val(0).val_type = mal_nativefn, result);
+  end procedure fn_function_q;
+
+  procedure fn_macro_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    new_boolean(args.seq_val(0).val_type = mal_fn and args.seq_val(0).func_val.f_is_macro, result);
+  end procedure fn_macro_q;
+
   procedure fn_pr_str(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
     variable s: line;
   begin
@@ -533,6 +548,9 @@ package body core is
     elsif f.all = "symbol?"     then fn_symbol_q(args, result, err);
     elsif f.all = "keyword"     then fn_keyword(args, result, err);
     elsif f.all = "keyword?"    then fn_keyword_q(args, result, err);
+    elsif f.all = "number?"     then fn_number_q(args, result, err);
+    elsif f.all = "fn?"         then fn_function_q(args, result, err);
+    elsif f.all = "macro?"      then fn_macro_q(args, result, err);
     elsif f.all = "pr-str"      then fn_pr_str(args, result, err);
     elsif f.all = "str"         then fn_str(args, result, err);
     elsif f.all = "prn"         then fn_prn(args, result, err);
@@ -609,6 +627,9 @@ package body core is
     define_core_function(e, "symbol?");
     define_core_function(e, "keyword");
     define_core_function(e, "keyword?");
+    define_core_function(e, "number?");
+    define_core_function(e, "fn?");
+    define_core_function(e, "macro?");
     define_core_function(e, "pr-str");
     define_core_function(e, "str");
     define_core_function(e, "prn");

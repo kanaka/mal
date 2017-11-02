@@ -114,6 +114,9 @@ CREATE OR REPLACE PACKAGE types IS
     FUNCTION symbol(M IN OUT NOCOPY mal_table, name varchar) RETURN integer;
     FUNCTION keyword(M IN OUT NOCOPY mal_table, name varchar) RETURN integer;
     FUNCTION keyword_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean;
+    FUNCTION number_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean;
+    FUNCTION function_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean;
+    FUNCTION macro_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean;
 
     -- sequence functions
     FUNCTION seq(M IN OUT NOCOPY mal_table,
@@ -379,6 +382,38 @@ BEGIN
         ELSE
             RETURN FALSE;
         END IF;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+
+FUNCTION number_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean IS
+    str  CLOB;
+BEGIN
+    IF M(val).type_id IN (3,4) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+
+FUNCTION function_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean IS
+    str  CLOB;
+BEGIN
+    IF M(val).type_id = 11 THEN
+        RETURN TRUE;
+    ELSIF M(val).type_id = 12 THEN
+        RETURN TREAT(M(val) AS mal_func_T).is_macro = 0;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+
+FUNCTION macro_Q(M IN OUT NOCOPY mal_table, val integer) RETURN boolean IS
+    str  CLOB;
+BEGIN
+    IF M(val).type_id = 12 THEN
+        RETURN TREAT(M(val) AS mal_func_T).is_macro > 0;
     ELSE
         RETURN FALSE;
     END IF;

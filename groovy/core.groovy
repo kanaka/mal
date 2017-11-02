@@ -1,6 +1,7 @@
 import types
 import types.MalException
 import types.MalSymbol
+import types.MalFunc
 import reader
 import printer
 
@@ -72,6 +73,10 @@ class core {
         "symbol?": { a -> a[0] instanceof MalSymbol },
         "keyword": { a -> types.keyword(a[0]) },
         "keyword?": { a -> types.keyword_Q(a[0]) },
+        "number?": { a -> a[0] instanceof Integer },
+        "fn?": { a -> (a[0] instanceof MalFunc && !a[0].ismacro) ||
+                      a[0] instanceof Closure },
+        "macro?": { a -> a[0] instanceof MalFunc && a[0].ismacro },
 
         "pr-str": core.&do_pr_str,
         "str": core.&do_str,

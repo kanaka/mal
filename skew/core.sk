@@ -16,6 +16,10 @@ const ns StringMap<fn(List<MalVal>) MalVal> = {
   "symbol?":  (a List<MalVal>) => MalVal.fromBool(a[0] is MalSymbol),
   "keyword":  (a List<MalVal>) => MalKeyword.new((a[0] as MalString).val),
   "keyword?": (a List<MalVal>) => MalVal.fromBool(a[0] is MalKeyword),
+  "number?":  (a List<MalVal>) => MalVal.fromBool(a[0] is MalNumber),
+  "fn?":      (a List<MalVal>) => MalVal.fromBool(a[0] is MalNativeFunc ||
+                                                  (a[0] is MalFunc && !(a[0] as MalFunc).isMacro)),
+  "macro?":   (a List<MalVal>) => MalVal.fromBool(a[0] is MalFunc && (a[0] as MalFunc).isMacro),
 
   "pr-str":  (a List<MalVal>) => MalString.new(" ".join(a.map<string>(e => pr_str(e, true)))),
   "str":     (a List<MalVal>) => MalString.new("".join(a.map<string>(e => pr_str(e, false)))),

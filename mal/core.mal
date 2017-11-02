@@ -1,14 +1,31 @@
+(def! _fn? (fn* [x]
+  (if (fn? x)
+    (if (get (meta x) "ismacro")
+      false
+      true)
+    false)))
+
+(def! macro? (fn* [x]
+  (if (fn? x)
+    (if (get (meta x) "ismacro")
+      true
+      false)
+    false)))
+
 (def! core_ns
   [["=" =]
    ["throw" throw]
    ["nil?" nil?]
    ["true?" true?]
    ["false?" false?]
+   ["number?" number?]
    ["string?" string?]
    ["symbol" symbol]
    ["symbol?" symbol?]
    ["keyword" keyword]
    ["keyword?" keyword?]
+   ["fn?" _fn?]
+   ["macro?" macro?]
 
    ["pr-str" pr-str]
    ["str" str]

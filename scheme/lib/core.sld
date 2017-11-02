@@ -244,6 +244,7 @@
     (nil? . ,(lambda (x) (coerce (eq? x mal-nil))))
     (true? . ,(lambda (x) (coerce (eq? x mal-true))))
     (false? . ,(lambda (x) (coerce (eq? x mal-false))))
+    (number? . ,(lambda (x) (coerce (mal-instance-of? x 'number))))
     (string? . ,(lambda (x) (coerce (mal-instance-of? x 'string))))
     (symbol? . ,(lambda (x) (coerce (mal-instance-of? x 'symbol))))
     (symbol . ,(lambda (x) (mal-symbol (string->symbol (mal-value x)))))
@@ -256,6 +257,9 @@
     (sequential? . ,(lambda (x) (coerce (and (mal-object? x)
                                              (memq (mal-type x)
                                                    '(list vector))))))
+    (fn? . ,(lambda (x) (coerce (or (procedure? x)
+                                    (and (func? x) (not (func-macro? x)))))))
+    (macro? . ,(lambda (x) (coerce (and (func? x) (func-macro? x)))))
 
     (assoc . ,(lambda (m . kvs) (mal-map (mal-map-assoc (mal-value m) kvs))))
     (dissoc . ,(lambda (m . keys) (mal-map (mal-map-dissoc (mal-value m) keys))))

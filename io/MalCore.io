@@ -83,6 +83,10 @@ MalCore := Object clone do(
         "symbol?",  block(a, a at(0) type == "MalSymbol"),
         "keyword",  block(a, MalKeyword with(a at(0))),
         "keyword?", block(a, a at(0) type == "MalKeyword"),
+        "number?",  block(a, a at(0) type == "Number"),
+        "fn?",      block(a, (a at(0) type == "Block") or
+                             ((a at(0) type == "MalFunc") and (a at(0) isMacro not))),
+        "macro?",   block(a, (a at(0) type == "MalFunc") and (a at(0) isMacro)),
 
         "pr-str",  block(a, a map(s, s malPrint(true)) join(" ")),
         "str",     block(a, a map(s, s malPrint(false)) join("")),

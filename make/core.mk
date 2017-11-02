@@ -76,7 +76,8 @@ subs = $(strip \
 
 
 # Function functions
-function? = $(if $(call _function?,$(1)),$(__true),$(__false))
+fn? = $(if $(call _function?,$(1)),$(if $(_macro_$(1)),$(__false),$(__true)),$(__false))
+macro? = $(if $(_macro_$(1)),$(__true),$(__false))
 
 
 # List functions
@@ -239,7 +240,9 @@ core_ns = type obj_type \
           symbol? symbol? \
           keyword keyword \
           keyword? keyword? \
-          function? function? \
+          number? number? \
+          fn? fn? \
+          macro? macro? \
           \
           pr-str pr_str \
           str str \
@@ -249,7 +252,6 @@ core_ns = type obj_type \
           read-string read_str \
           slurp slurp \
           subs subs \
-          number? number? \
           < number_lt \
           <= number_lte \
           > number_gt \

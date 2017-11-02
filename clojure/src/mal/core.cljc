@@ -39,6 +39,9 @@
    ['symbol? symbol?]
    ['keyword keyword]
    ['keyword? keyword?]
+   ['number? number?]
+   ['fn? (fn [o] (if (and (fn? o) (not (:ismacro (meta o)))) true false))]
+   ['macro? (fn [o] (if (and (fn? o) (:ismacro (meta o))) true false))]
 
    ['pr-str pr-str]
    ['str printer/_str]

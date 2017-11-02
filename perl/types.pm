@@ -6,7 +6,7 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
                     $nil $true $false _nil_Q _true_Q _false_Q
-                    _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q
+                    _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
                     _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
 
 use Data::Dumper;
@@ -103,6 +103,7 @@ sub _false_Q { return $_[0] eq $false }
     package Integer;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
+sub _number_Q { (ref $_[0]) =~ /^Integer/ }
 
 
 {
@@ -212,6 +213,9 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
         return &{ $self->{eval} }($self->{ast}, gen_env($self, $_[1]));
     }
 }
+
+sub _sub_Q { (ref $_[0]) =~ /^CODE/ }
+sub _function_Q { (ref $_[0]) =~ /^Function/ }
 
 
 # FunctionRef

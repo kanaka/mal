@@ -94,6 +94,11 @@ function M._nil_Q(obj)
     return obj == Nil
 end
 
+-- Numbers
+function M._number_Q(obj)
+    return type(obj) == "number"
+end
+
 -- Strings
 function M._string_Q(obj)
     return type(obj) == "string"
@@ -185,6 +190,12 @@ function M.MalFunc:new(fn, ast, env, params)
 end
 function M._malfunc_Q(obj)
     return utils.instanceOf(obj, M.MalFunc)
+end
+function M._fn_Q(obj)
+    return type(obj) == "function" or (M._malfunc_Q(obj) and not obj.ismacro)
+end
+function M._macro_Q(obj)
+    return M._malfunc_Q(obj) and obj.ismacro
 end
 
 -- Atoms

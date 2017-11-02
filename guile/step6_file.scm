@@ -37,7 +37,7 @@
 
 (define (eval_func ast env)
   (define (_eval o) (EVAL o env))
-  (define (func? x) (and=> ((env 'get) x) is-func?))
+  (define (func? x) (and=> ((env 'get) x) is-func))
   (cond
    ((func? (car ast))
     => (lambda (c)

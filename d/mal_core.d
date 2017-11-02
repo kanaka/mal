@@ -53,6 +53,24 @@ static MalType mal_keyword_q(MalType[] a ...)
     return bool_to_mal(s.is_keyword());
 }
 
+static MalType mal_fn_q(MalType[] a ...)
+{
+    verify_args_count(a, 1);
+    auto builtinfn = cast(MalBuiltinFunc) a[0];
+    if (builtinfn !is null) return mal_true;
+    auto malfunc = cast(MalFunc) a[0];
+    if (malfunc !is null) return bool_to_mal(!malfunc.is_macro);
+    return mal_false;
+}
+
+static MalType mal_macro_q(MalType[] a ...)
+{
+    verify_args_count(a, 1);
+    auto malfunc = cast(MalFunc) a[0];
+    if (malfunc !is null) return bool_to_mal(malfunc.is_macro);
+    return mal_false;
+}
+
 static MalType mal_pr_str(MalType[] a ...)
 {
     auto items_strs = a.map!(e => pr_str(e, true));
@@ -341,6 +359,9 @@ static this()
         "string?":  &mal_string_q,
         "keyword":  &mal_keyword,
         "keyword?": &mal_keyword_q,
+        "number?":  (a ...) => mal_type_q!MalInteger(a),
+        "fn?":      &mal_fn_q,
+        "macro?":   &mal_macro_q,
 
         "pr-str":   &mal_pr_str,
         "str":      &mal_str,

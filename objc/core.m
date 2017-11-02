@@ -48,6 +48,16 @@ NSObject * wrap_tf(BOOL val) {
                        ![args[0] isKindOfClass:[MalSymbol class]] &&
                        !string_Q(args[0]));
     },
+    @"number?": ^(NSArray *args){
+        return wrap_tf([args[0] isKindOfClass:[NSNumber class]]);
+    },
+    @"fn?": ^(NSArray *args){
+        return wrap_tf(block_Q(args[0]) ||
+		       ([args[0] isKindOfClass:[MalFunc class]] && ![(MalFunc *)args[0] isMacro]));
+    },
+    @"macro?": ^(NSArray *args){
+        return wrap_tf([args[0] isKindOfClass:[MalFunc class]] && [(MalFunc *)args[0] isMacro]);
+    },
 
     @"pr-str": ^(NSArray *args){
         NSMutableArray * res = [NSMutableArray array];

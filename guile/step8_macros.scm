@@ -37,7 +37,7 @@
 
 (define (eval_func ast env)
   (define (_eval o) (EVAL o env))
-  (define (func? x) (and=> ((env 'get) x) is-func?))
+  (define (func? x) (and=> ((env 'get) x) is-func))
   (cond
    ((func? (car ast))
     => (lambda (c)
@@ -55,7 +55,7 @@
 (define (is_macro_call ast env)
   (and (list? ast)
        (> (length ast) 0)
-       (and=> (env-check (car ast) env) is-macro?)))
+       (and=> (env-check (car ast) env) is-macro)))
 
 (define (_macroexpand ast env)
   (cond

@@ -103,7 +103,7 @@
                    (env:find-env env func-symbol))))
       (and func
            (mal-fn-p func)
-           (cdr (assoc 'is-macro (mal-data-attrs func)))))))
+           (cdr (assoc :is-macro (mal-data-attrs func)))))))
 
 (defun mal-macroexpand (ast env)
   (loop
@@ -144,7 +144,7 @@
                                 (env:set-env env
                                              (second forms)
                                              (progn
-                                               (setf (cdr (assoc 'is-macro (mal-data-attrs value))) t)
+                                               (setf (cdr (assoc :is-macro (mal-data-attrs value))) t)
                                                value))
                                 (error 'invalid-function
                                        :form value
@@ -186,21 +186,21 @@
                                            (mal-eval body (env:create-mal-env :parent env
                                                                               :binds (listify (mal-data-value arglist))
                                                                               :exprs args)))
-                                         :attrs (list (cons 'params arglist)
-                                                      (cons 'ast body)
-                                                      (cons 'env env)
-                                                      (cons 'is-macro nil))))))
+                                         :attrs (list (cons :params arglist)
+                                                      (cons :ast body)
+                                                      (cons :env env)
+                                                      (cons :is-macro nil))))))
 
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
                       ;; If first element is a mal function unwrap it
                       (cond ((mal-fn-p function)
                              (let* ((attrs (mal-data-attrs function)))
-                               (setf ast (cdr (assoc 'ast attrs))
-                                     env (env:create-mal-env :parent (cdr (assoc 'env attrs))
+                               (setf ast (cdr (assoc :ast attrs))
+                                     env (env:create-mal-env :parent (cdr (assoc :env attrs))
                                                              :binds (map 'list
                                                                          #'identity
-                                                                         (mal-data-value (cdr (assoc 'params attrs))))
+                                                                         (mal-data-value (cdr (assoc :params attrs))))
                                                              :exprs (cdr evaluated-list)))))
                             ((mal-builtin-fn-p function)
                              (return (apply (mal-data-value function)

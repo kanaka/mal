@@ -40,6 +40,23 @@ proc mal_keyword_q {a} {
     bool_new [keyword_q [lindex $a 0]]
 }
 
+proc mal_number_q {a} {
+    bool_new [integer_q [lindex $a 0]]
+}
+
+proc mal_fn_q {a} {
+    set f [lindex $a 0]
+    switch [obj_type $f] {
+        function { return [bool_new [expr {![macro_q $f]}]] }
+        nativefunction { return $::mal_true }
+        default { return $::mal_false }
+    }
+}
+
+proc mal_macro_q {a} {
+    bool_new [macro_q [lindex $a 0]]
+}
+
 proc render_array {arr readable delim} {
     set res {}
     foreach e $arr {
@@ -383,6 +400,9 @@ set core_ns [dict create \
     "string?"      [nativefunction_new mal_string_q] \
     "keyword"      [nativefunction_new mal_keyword] \
     "keyword?"     [nativefunction_new mal_keyword_q] \
+    "number?"      [nativefunction_new mal_number_q] \
+    "fn?"          [nativefunction_new mal_fn_q] \
+    "macro?"       [nativefunction_new mal_macro_q] \
     \
     "pr-str"       [nativefunction_new mal_pr_str] \
     "str"          [nativefunction_new mal_str] \

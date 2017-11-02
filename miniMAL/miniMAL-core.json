@@ -31,6 +31,10 @@
     ["=", ["`", "String"],
           [".-", [".-", "a", ["`", "constructor"]],
                  ["`", "name"]]]]]],
+["def", "number?", ["fn", ["a"],
+  ["=", ["`", "[object Number]"], ["classOf", "a"]]]],
+["def", "function?", ["fn", ["a"],
+  ["isa", "a", "Function"]]],
 
 ["def", "pr-list*", ["fn", ["a", "b", "c"],
   [".", ["map", ["fn", ["x"],

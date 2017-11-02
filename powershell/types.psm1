@@ -271,6 +271,10 @@ function new-malfunc($ast, $params, $env, $fn, $macro, $meta) {
 function malfunc?($obj) {
     $obj -is [MalFunc]
 }
+
+function fn?($obj) {
+    $obj -is [System.Management.Automation.ScriptBlock]
+}
 #
 # General functions
 #

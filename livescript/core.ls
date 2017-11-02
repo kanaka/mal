@@ -229,6 +229,10 @@ export ns = do
 
     'keyword?': fn (ast) -> const-bool ast.type == \keyword
 
+    'number?': fn (ast) -> const-bool ast.type == \int
+    'fn?': fn (ast) -> const-bool (ast.type == \function and not ast.is_macro)
+    'macro?': fn (ast) -> const-bool (ast.type == \function and ast.is_macro)
+
     'vector': fn (...params) -> {type: \vector, value: params}
     'vector?': fn (ast) -> const-bool ast.type == \vector
 

@@ -169,6 +169,15 @@ Map<MalSymbol, MalBuiltin> ns = <MalSymbol, MalBuiltin>{
   new MalSymbol('keyword?'): new MalBuiltin((List<MalType> args) {
     return new MalBool(args.first is MalKeyword);
   }),
+  new MalSymbol('number?'): new MalBuiltin((List<MalType> args) {
+    return new MalBool(args.first is MalInt);
+  }),
+  new MalSymbol('fn?'): new MalBuiltin((List<MalType> args) {
+    return new MalBool(args.first is MalCallable && !(args.first.isMacro));
+  }),
+  new MalSymbol('macro?'): new MalBuiltin((List<MalType> args) {
+    return new MalBool(args.first is MalCallable && args.first.isMacro);
+  }),
   new MalSymbol('vector'): new MalBuiltin((List<MalType> args) {
     return new MalVector(args);
   }),

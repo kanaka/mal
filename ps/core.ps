@@ -6,6 +6,23 @@
 % Takes arbitrary data and throws it as an exception.
 /throw { 0 _nth _throw } def
 
+% Predicates
+
+/fn? {
+  0 _nth
+  dup _mal_function? { %if mal_function
+    /macro? get true eq not %if not marked as macro
+  }{
+   _function? %if function
+  } ifelse
+} def
+
+/macro? {
+  0 _nth
+  dup _mal_function? { %if user defined function
+    /macro? get true eq %if marked as macro
+  }{ false } ifelse
+} def
 
 % Hash Map functions
 
@@ -256,6 +273,9 @@ end } def
     (symbol?) { 0 _nth _symbol? }
     (keyword) { 0 _nth _keyword }
     (keyword?) { 0 _nth _keyword? }
+    (number?) { 0 _nth type /integertype eq }
+    (fn?)     { fn? }
+    (macro?)  { macro? }
 
     (pr-str)  { /data get ( ) true _pr_str_args }
     (str)     { /data get () false _pr_str_args }

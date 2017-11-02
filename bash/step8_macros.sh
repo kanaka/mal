@@ -132,7 +132,7 @@ EVAL () {
               [[ "${__ERROR}" ]] && return 1
               ENV_SET "${env}" "${a1}" "${r}"
               return ;;
-        let*) ENV "${env}"; local let_env="${r}"
+        let__STAR__) ENV "${env}"; local let_env="${r}"
               local let_pairs=(${ANON["${a1}"]})
               local idx=0
               #echo "let: [${let_pairs[*]}] for ${a2}"
@@ -187,7 +187,7 @@ EVAL () {
               fi
               # Continue loop
               ;;
-        fn*)  _function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
+        fn__STAR__)  _function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
                          EVAL \"${a2}\" \"\${r}\"" \
                         "${a2}" "${env}" "${a1}"
               return ;;

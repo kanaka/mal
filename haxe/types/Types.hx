@@ -73,6 +73,13 @@ class Types {
         }
     }
 
+    public static function _fn_Q(x:MalType) {
+        return switch (x) {
+            case MalFunc(_,_,_,_,ismacro,_): !ismacro;
+            case _: false;
+        }
+    }
+
     public static function _macro_Q(x:MalType) {
         return switch (x) {
             case MalFunc(_,_,_,_,ismacro,_): ismacro;
@@ -123,6 +130,14 @@ class Types {
             case _: false;
         }
     }
+
+    public static function number_Q(x:MalType) {
+        return switch (x) {
+            case MalInt(_): true;
+            case _: false;
+        }
+    }
+
 
     // Sequence operations
     public static function list_Q(x:MalType) {

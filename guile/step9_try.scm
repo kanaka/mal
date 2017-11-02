@@ -37,7 +37,7 @@
 
 (define (eval_func ast env)
   (define (_eval o) (EVAL o env))
-  (define (func? x) (and=> (env-check x env) is-func?))
+  (define (func? x) (and=> (env-check x env) is-func))
   ;;(format #t "AAA: ~a~%" (func? (car ast)))
   (cond
    ((func? (car ast))
@@ -56,7 +56,7 @@
 (define (is_macro_call ast env)
   (and (list? ast)
        (> (length ast) 0)
-       (and=> (env-check (car ast) env) is-macro?)))
+       (and=> (env-check (car ast) env) is-macro)))
 
 (define (_macroexpand ast env)
   (cond

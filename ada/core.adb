@@ -587,6 +587,39 @@ package body Core is
    end Is_Keyword;
 
 
+   function Is_Number (Rest_Handle : Mal_Handle) return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+   begin
+      First_Param := Car (Deref_List (Rest_Handle).all);
+      return New_Bool_Mal_Type (Deref (First_Param).Sym_Type = Int);
+   end Is_Number;
+
+
+   function Is_Fn (Rest_Handle : Mal_Handle) return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+      Res : Boolean;
+   begin
+      First_Param := Car (Deref_List (Rest_Handle).all);
+      case Deref (First_Param).Sym_Type is
+         when Func =>
+            Res := True;
+         when Lambda =>
+	    Res := not Deref_Lambda (First_Param).Get_Is_Macro;
+         when others =>
+	    Res := False;
+      end case;
+      return New_Bool_Mal_Type (Res);
+   end Is_Fn;
+
+
+   function Is_Macro (Rest_Handle : Mal_Handle) return Types.Mal_Handle is
+      First_Param : Mal_Handle;
+   begin
+      First_Param := Car (Deref_List (Rest_Handle).all);
+      return New_Bool_Mal_Type (Deref (First_Param).Sym_Type = Lambda and then Deref_Lambda (First_Param).Get_Is_Macro);
+   end Is_Macro;
+
+
    function New_List (Rest_Handle : Mal_Handle)
    return Types.Mal_Handle is
       Rest_List : Types.List_Mal_Type;
@@ -1125,6 +1158,18 @@ package body Core is
       Envs.Set (Repl_Env,
            "keyword?",
            New_Func_Mal_Type ("keyword?", Is_Keyword'access));
+
+      Envs.Set (Repl_Env,
+           "number?",
+           New_Func_Mal_Type ("number?", Is_Number'access));
+
+      Envs.Set (Repl_Env,
+           "fn?",
+           New_Func_Mal_Type ("fn?", Is_Fn'access));
+
+      Envs.Set (Repl_Env,
+           "macro?",
+           New_Func_Mal_Type ("macro?", Is_Macro'access));
 
       Envs.Set (Repl_Env,
            "pr-str",

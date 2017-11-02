@@ -102,9 +102,9 @@
                                                  (mal-eval body (env:create-mal-env :parent env
                                                                                     :binds (listify (mal-data-value arglist))
                                                                                     :exprs args)))
-                                               :attrs (list (cons 'params arglist)
-                                                            (cons 'ast body)
-                                                            (cons 'env env))))))
+                                               :attrs (list (cons :params arglist)
+                                                            (cons :ast body)
+                                                            (cons :env env))))))
 
                  (t (let* ((evaluated-list (eval-ast ast env))
                            (function (car evaluated-list)))
@@ -113,11 +113,11 @@
                           (return (apply (mal-data-value function)
                                          (cdr evaluated-list)))
                           (let* ((attrs (mal-data-attrs function)))
-                            (setf ast (cdr (assoc 'ast attrs))
-                                  env (env:create-mal-env :parent (cdr (assoc 'env attrs))
+                            (setf ast (cdr (assoc :ast attrs))
+                                  env (env:create-mal-env :parent (cdr (assoc :env attrs))
                                                           :binds (map 'list
                                                                       #'identity
-                                                                      (mal-data-value (cdr (assoc 'params attrs))))
+                                                                      (mal-data-value (cdr (assoc :params attrs))))
                                                           :exprs (cdr evaluated-list)))))))))))))
 
 (defun mal-print (expression)

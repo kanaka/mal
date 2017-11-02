@@ -79,6 +79,9 @@ module Env
               wrap "string?" Core.isString
               wrap "keyword?" Core.isKeyword
               wrap "keyword" Core.keyword
+              wrap "number?" Core.isNumber
+              wrap "fn?" Core.isFn
+              wrap "macro?" Core.isMacro
               wrap "sequential?" Core.isSequential
               wrap "vector?" Core.isVector
               wrap "vector" Core.vector
