@@ -97,9 +97,30 @@
 ;=>(1 2 3)
 
 ;; ------------------------------------------------------------------
-;; TODO move these to optional functionality after adding them to all
-;; implementations
+
+;>>> soft=True
+;>>> optional=True
 ;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
+;;
+;; Testing string? function
+(string? "")
+;=>true
+(string? 'abc)
+;=>false
+(string? "abc")
+;=>true
+(string? :abc)
+;=>false
+(string? (keyword "abc"))
+;=>false
+(string? 234)
+;=>false
+(string? nil)
+;=>false
+
 ;; Testing number? function
 (number? 123)
 ;=>true
@@ -136,31 +157,6 @@
 (macro? "+")
 ;=>false
 (macro? :+)
-;=>false
-
-;; ------------------------------------------------------------------
-
-;>>> soft=True
-;>>> optional=True
-;;
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
-
-;;
-;; Testing string? function
-(string? "")
-;=>true
-(string? 'abc)
-;=>false
-(string? "abc")
-;=>true
-(string? :abc)
-;=>false
-(string? (keyword "abc"))
-;=>false
-(string? 234)
-;=>false
-(string? nil)
 ;=>false
 
 
