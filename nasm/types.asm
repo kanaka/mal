@@ -23,22 +23,25 @@
 ;;  1    1 - Array memory block
 ;; 
 ;;  Container type [3 bits]:
-;;  0    0 - Value (single boxed value for Cons blocks, vector for Array blocks).
+;;  0    0 - Value (single boxed value for Cons blocks, multiple values for Array blocks).
 ;;  2    1 - List (value followed by pointer). Only for Cons blocks
 ;;  4    2 - Symbol (special char array). Only for Array blocks
-;;  6    3 - Keyword
+;;  6    3 - Keyword. Only for Array blocks
 ;;  8    4 - Map
 ;; 10    5 - Function
+;; 12    6 - Macro
+;; 14    7 - Vector
 ;;
 ;;  Content type [4 bits]:
 ;;   0   0 - Nil
-;;  16   1 - Bool
+;;  16   1 - True
 ;;  32   2 - Char
 ;;  48   3 - Int
 ;;  64   4 - Float
 ;;  80   5 - Pointer (memory address)
 ;;  96   6 - Function (instruction address)
 ;; 112   7 - Empty (distinct from Nil)
+;; 208   8 - False
 ;; 
 ;;
 ;; These represent MAL data types as follows:
@@ -48,12 +51,12 @@
 ;; integer      Cons       Value         Int    
 ;; symbol       Array      Symbol        Char
 ;; list         Cons       List          Any
+;; vector       Cons       Vector        Any
 ;; nil          Cons       Value         Nil
-;; true         Cons       Value         Bool  (1)
-;; false        Cons       Value         Bool  (0)
+;; true         Cons       Value         True
+;; false        Cons       Value         False
 ;; string       Array      Value         Char
 ;; keyword      Array      Keyword       Char
-;; vector       Array      Value         Int/Float
 ;; hash-map     Cons       Map           Alternate key, values
 ;; atom         Cons       Value         Pointer
 ;;
@@ -100,16 +103,19 @@ ENDSTRUC
 %define container_keyword 6
 %define container_map 8
 %define container_function 10
-
+%define container_macro 12
+%define container_vector 14
+        
 ;; Content type
 %define content_nil  0
-%define content_bool 16
+%define content_true 16
 %define content_char 32
 %define content_int 48
 %define content_float 64
 %define content_pointer 80      ; Memory pointer (to Cons or Array)
 %define content_function 96     ; Function pointer
 %define content_empty 112
+%define content_false 208
         
 ;; Common combinations for MAL types
 %define maltype_integer  (block_cons + container_value + content_int)
@@ -119,7 +125,9 @@ ENDSTRUC
 %define maltype_empty_list (block_cons + container_list + content_empty)
 %define maltype_empty_map (block_cons + container_map + content_empty)
 %define maltype_function (block_cons + container_function + content_function)
-        
+%define maltype_macro (block_cons + container_macro + content_function)
+%define maltype_true (block_cons + container_value + content_true)
+%define maltype_false (block_cons + container_value + content_false)
 ;; ------------------------------------------
 
 section .data

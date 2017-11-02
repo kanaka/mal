@@ -2,28 +2,37 @@
 ;;
 ;;
 
+%include "macros.mac"
+        
 section .data
 
-core_add_symbol: db "+"
-.len: equ $ - core_add_symbol
-        
-core_sub_symbol: db "-"
-.len: equ $ - core_sub_symbol
-        
-core_mul_symbol: db "*"
-.len: equ $ - core_mul_symbol
-        
-core_div_symbol: db "/"
-.len: equ $ - core_div_symbol   
-
-core_equal_symbol: db "="
-.len: equ $ - core_equal_symbol
-
-core_keys_symbol: db "keys"
-.len: equ $ - core_keys_symbol      
+        static core_add_symbol, db "+"
+        static core_sub_symbol, db "-"
+        static core_mul_symbol, db "*"
+        static core_div_symbol, db "/"
+        static core_equal_symbol, db "="
+        static core_keys_symbol, db "keys"   
         
 section .text
 
+;; Add a native function to the core environment
+;; This is used in core_environment
+%macro core_env_native 2
+        push rsi                ; environment
+        mov rsi, %1
+        mov edx, %1.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, %2
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
+%endmacro
+        
 ;; Create an Environment with core functions
 ;;
 ;; Returns Environment in RAX
@@ -32,104 +41,17 @@ section .text
 core_environment:
         ; Create the top-level environment
         xor rsi, rsi            ; Set outer to nil
-        call env_new            ; in RAX
-        push rax
+        call env_new            
+        mov rsi, rax            ; Environment in RSI
 
-        ; -----------------
-        ; add
-        mov rsi, core_add_symbol
-        mov edx, core_add_symbol.len
-        call raw_to_symbol      ; Symbol in RAX
-        push rax
-        
-        mov rsi, core_add
-        call native_function    ; Function in RAX
-        
-        mov rcx, rax            ; value (function)
-        pop rdi                 ; key (symbol)
-        pop rsi                 ; environment
-        call env_set
+        core_env_native core_add_symbol, core_add
+        core_env_native core_sub_symbol, core_sub
+        core_env_native core_mul_symbol, core_mul
+        core_env_native core_div_symbol, core_div
 
-        ; -----------------
-        ; sub
-        push rsi                ; environment
-        mov rsi, core_sub_symbol
-        mov edx, core_sub_symbol.len
-        call raw_to_symbol      ; Symbol in RAX
-        push rax
-        
-        mov rsi, core_sub
-        call native_function    ; Function in RAX
-        
-        mov rcx, rax            ; value (function)
-        pop rdi                 ; key (symbol)
-        pop rsi                 ; environment
-        call env_set
-        
-        
-        ; -----------------
-        ; mul
-        push rsi                ; environment
-        mov rsi, core_mul_symbol
-        mov edx, core_mul_symbol.len
-        call raw_to_symbol      ; Symbol in RAX
-        push rax
-        
-        mov rsi, core_mul
-        call native_function    ; Function in RAX
-        
-        mov rcx, rax            ; value (function)
-        pop rdi                 ; key (symbol)
-        pop rsi                 ; environment
-        call env_set
+        core_env_native core_equal_symbol, core_equal_p
 
-        ; -----------------
-        ; div
-        push rsi                ; environment
-        mov rsi, core_div_symbol
-        mov edx, core_div_symbol.len
-        call raw_to_symbol      ; Symbol in RAX
-        push rax
-        
-        mov rsi, core_div
-        call native_function    ; Function in RAX
-        
-        mov rcx, rax            ; value (function)
-        pop rdi                 ; key (symbol)
-        pop rsi                 ; environment
-        call env_set
-
-        ; -----------------
-        ; equal (=)
-        push rsi                ; environment
-        mov rsi, core_equal_symbol
-        mov edx, core_equal_symbol.len
-        call raw_to_symbol      ; Symbol in RAX
-        push rax
-        
-        mov rsi, core_equal_p
-        call native_function    ; Function in RAX
-        
-        mov rcx, rax            ; value (function)
-        pop rdi                 ; key (symbol)
-        pop rsi                 ; environment
-        call env_set
-
-        ; -----------------
-        ; keys
-        push rsi                ; environment
-        mov rsi, core_keys_symbol
-        mov edx, core_keys_symbol.len
-        call raw_to_symbol      ; Symbol in RAX
-        push rax
-        
-        mov rsi, core_keys
-        call native_function    ; Function in RAX
-        
-        mov rcx, rax            ; value (function)
-        pop rdi                 ; key (symbol)
-        pop rsi                 ; environment
-        call env_set
+        core_env_native core_keys_symbol, core_keys
         
         ; -----------------
         ; Put the environment in RAX

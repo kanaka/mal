@@ -1,0 +1,17 @@
+;; Some useful macros
+        
+%ifndef MACROS_MAC 
+%define MACROS_MAC
+        
+;; Define a static data value
+;;
+;; static label value
+;;
+%macro static 2+
+        %1: %2
+        %1.len: equ $ - %1
+%endmacro
+
+        
+%endif
+        

@@ -2,18 +2,15 @@
 ;;; 
 ;;;
 
-section .data
-unknown_type_string: db "#<UNKNOWN>"
-.len: equ $ - unknown_type_string
-
-unknown_value_string: db "#<UNKNOWN VALUE>"
-.len: equ $ - unknown_value_string
-
-function_type_string: db "#<FUNCTION>"
-.len: equ $ - function_type_string
+%include "macros.mac"
         
-nil_value_string: db "nil"
-.len: equ $ - nil_value_string
+section .data
+
+        ; Constant strings for printing
+        static unknown_type_string, db "#<unknown>"
+        static unknown_value_string, db "#<unknown value>"
+        static function_type_string, db "#<function>"
+        static nil_value_string, db "nil"
         
 section .text
 
