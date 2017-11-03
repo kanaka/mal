@@ -27,48 +27,31 @@ section .data
 ;; ------------------------------------------
 ;; Fixed strings for printing
         
-prompt_string: db 10,"user> "      ; The string to print at the prompt
-.len: equ $ - prompt_string
+        static prompt_string, db 10,"user> "      ; The string to print at the prompt
 
-error_string: db 27,'[31m',"Error",27,'[0m',": "
-.len: equ $ - error_string
+        static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-not_found_string: db " not found.",10
-.len: equ $ - not_found_string
+        static not_found_string, db " not found.",10
 
-def_missing_arg_string: db "missing argument to def!",10
-.len: equ $ - def_missing_arg_string
+        static def_missing_arg_string, db "missing argument to def!",10
 
-def_expecting_symbol_string: db "expecting symbol as first argument to def!",10
-.len: equ $ - def_expecting_symbol_string
+        static def_expecting_symbol_string, db "expecting symbol as first argument to def!",10
+
+        static let_missing_bindings_string, db "let* missing bindings",10
+
+        static let_bindings_list_string, db "let* expected a list of bindings",10
+
+        static let_bind_symbol_string, db "let* expected a symbol in bindings list",10
+
+        static let_bind_value_string, db "let* missing value in bindings list",10
+
+        static let_missing_body_string, db "let* missing body",10
 
 
-let_missing_bindings_string: db "let* missing bindings",10
-.len: equ $ - let_missing_bindings_string
-
-let_bindings_list_string: db "let* expected a list of bindings",10
-.len: equ $ - let_bindings_list_string
-
-let_bind_symbol_string: db "let* expected a symbol in bindings list",10
-.len: equ $ - let_bind_symbol_string
-
-let_bind_value_string: db "let* missing value in bindings list",10
-.len: equ $ - let_bind_value_string 
-
-let_missing_body_string: db "let* missing body",10
-.len: equ $ - let_missing_body_string
+;; Symbols used for comparison
         
-def_symbol: ISTRUC Array
-AT Array.type,  db   maltype_symbol
-AT Array.length, dd  4
-AT Array.data, db 'def!'
-IEND
-        
-let_symbol: ISTRUC Array
-AT Array.type,  db   maltype_symbol
-AT Array.length, dd  4
-AT Array.data, db 'let*'
-IEND
+        static_symbol def_symbol, 'def!'
+        static_symbol let_symbol, 'let*'
         
 section .text   
 

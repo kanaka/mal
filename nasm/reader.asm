@@ -13,8 +13,14 @@ section .data
         
 ;; Error message strings
         
-static error_string_unexpected_end, db "Error: Unexpected end of input. Could be a missing )", 10
-static error_string_bracket_not_brace, db "Error: Expecting '}' but got ')'"
+        static error_string_unexpected_end, db "Error: Unexpected end of input. Could be a missing )", 10
+        static error_string_bracket_not_brace, db "Error: Expecting '}' but got ')'"
+
+;; Symbols for comparison
+
+        static_symbol nil_symbol, 'nil'
+        static_symbol true_symbol, 'true'
+        static_symbol false_symbol, 'false'
         
 section .text
 
@@ -75,8 +81,8 @@ read_str:
         je .finished
         cmp cl, '"'             ; A string. Array object in RAX
         je .finished
-        cmp cl, 's'
-        je .finished
+        cmp cl, 's'             ; A symbol
+        je .symbol
         
         cmp cl, '('
         je .list_start
@@ -535,7 +541,61 @@ read_str:
         pop r9
         pop r8
         jmp .wrap_next_object   ; From there the same as handle_quote
+        
+        ; --------------------------------
+.symbol:
+        ; symbol is in RAX
+        ; Some symbols are have their own type
+        ; - nil, true, false
+        ;
 
+        mov rsi, rax
+        mov rdi, nil_symbol
+        push rsi
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .symbol_nil
+        
+        mov rdi, true_symbol
+        push rsi
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .symbol_true
+
+        mov rdi, false_symbol
+        push rsi
+        call compare_char_array
+        pop rsi
+        cmp rax, 0
+        je .symbol_false
+
+        ; not a special symbol, so return
+        mov rax, rsi
+        ret
+        
+.symbol_nil:
+        ; symbol in rsi not needed
+        call release_array
+
+        call alloc_cons
+        mov [rax], BYTE maltype_nil ; a nil type
+        ret
+        
+.symbol_true:
+        call release_array
+
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+        
+.symbol_false:
+        call release_array
+
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
         
         ; --------------------------------
 .finished:

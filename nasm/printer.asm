@@ -11,6 +11,8 @@ section .data
         static unknown_value_string, db "#<unknown value>"
         static function_type_string, db "#<function>"
         static nil_value_string, db "nil"
+        static true_value_string, db "true"
+        static false_value_string, db "false"
         
 section .text
 
@@ -131,9 +133,15 @@ pr_str:
         and ch, content_mask
         jz .value_nil
 
-        cmp ch, 48
+        cmp ch, content_int
         je .value_int
 
+        cmp ch, content_true
+        je .value_true
+
+        cmp ch, content_false
+        je .value_false
+        
         mov rsi, unknown_value_string
         mov edx, unknown_value_string.len
         call raw_to_string      ; Puts a String in RAX
@@ -143,6 +151,18 @@ pr_str:
 .value_nil:
         mov rsi, nil_value_string
         mov edx, nil_value_string.len
+        call raw_to_string
+        ret
+
+.value_true:
+        mov rsi, true_value_string
+        mov edx, true_value_string.len
+        call raw_to_string
+        ret
+        
+.value_false:
+        mov rsi, false_value_string
+        mov edx, false_value_string.len
         call raw_to_string
         ret
         
