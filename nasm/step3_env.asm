@@ -39,7 +39,7 @@ section .data
 
         static let_missing_bindings_string, db "let* missing bindings",10
 
-        static let_bindings_list_string, db "let* expected a list of bindings",10
+        static let_bindings_list_string, db "let* expected a list or vector of bindings",10
 
         static let_bind_symbol_string, db "let* expected a symbol in bindings list",10
 
@@ -259,7 +259,8 @@ eval_ast:
         cmp ah, content_pointer
         je .list_pointer
         
-        ; A value, so copy
+        ; A value in RSI, so copy
+        
         call alloc_cons
         mov bl, BYTE [rsi]
         and bl, content_mask
@@ -290,7 +291,7 @@ eval_ast:
         mov bh, bl
         and bh, (block_mask + container_mask)
         cmp bh, (block_cons + container_value)
-        je .list_append
+        je .list_eval_value
         
         ; Not a value, so need a pointer to it
         push rax
@@ -298,8 +299,29 @@ eval_ast:
         mov [rax], BYTE (block_cons + container_list + content_pointer)
         pop rbx                 ; Address to point to
         mov [rax + Cons.car], rbx
-        ; Fall through to .list_append
+        jmp .list_append
         
+.list_eval_value:
+        ; Got value in RAX, so copy
+        push rax
+        call alloc_cons         ; Copy in RAX
+        pop rbx                 ; Value to copy in RBX
+        mov cl, BYTE [rbx]
+        and cl, content_mask
+        or  cl, (block_cons + container_list)
+        mov [rax], BYTE cl      ; set type
+        mov rcx, [rbx + Cons.car]
+        mov [rax + Cons.car], rcx ; copy value
+
+        ; Release the value in RBX
+        push rsi
+        push rax
+        mov rsi, rbx
+        call release_cons
+        pop rax
+        pop rsi
+        
+        ; Fall through to .list_append
 .list_append:
         ; In RAX
         
@@ -510,7 +532,7 @@ eval_ast:
         mov bh, bl
         and bh, (block_mask + container_mask)
         cmp bh, (block_cons + container_value)
-        je .vector_append_value
+        je .vector_eval_value
         
         ; Not a value, so need a pointer to it
         push rax
@@ -520,9 +542,25 @@ eval_ast:
         mov [rax + Cons.car], rbx
         jmp .vector_append
 
-.vector_append_value:
-        or bl, container_vector
-        mov [rax], BYTE bl
+.vector_eval_value:
+        ; Got value in RAX, so copy
+        push rax
+        call alloc_cons         ; Copy in RAX
+        pop rbx                 ; Value to copy in RBX
+        mov cl, BYTE [rbx]
+        and cl, content_mask
+        or  cl, (block_cons + container_vector)
+        mov [rax], BYTE cl      ; set type
+        mov rcx, [rbx + Cons.car]
+        mov [rax + Cons.car], rcx ; copy value
+
+        ; Release the value in RBX
+        push rsi
+        push rax
+        mov rsi, rbx
+        call release_cons
+        pop rax
+        pop rsi
         
 .vector_append:
         ; In RAX
@@ -745,14 +783,19 @@ eval:
         mov r12, [r11 + Cons.car] ; should be bindings list
         mov al, BYTE [r12]
         and al, (block_mask + container_mask)
+        ; Can be either a list or vector
         cmp al, block_cons + container_list
-        jne .let_error_bindings_list
+        je .let_bind_loop
+        cmp al, block_cons + container_vector
+        je .let_bind_loop
         
+        ; Not a list or vector
+        jmp .let_error_bindings_list
+        
+.let_bind_loop:
         ; R12 now contains a list with an even number of items
         ; The first should be a symbol, then a value to evaluate
-
-.let_bind_loop:
-
+        
         ; Get the symbol
         mov al, BYTE [r12]
         and al, content_mask
@@ -851,7 +894,7 @@ eval:
 .body_pointer:
         ; Evaluate using new environment
         
-        mov rsi, r11
+        mov rsi, [r11 + Cons.car] ; Object pointed to
         mov rdi, r14            ; New environment
         push r14
         call eval
@@ -870,7 +913,7 @@ eval:
         mov rdx, let_missing_bindings_string.len
         jmp .let_handle_error
         
-.let_error_bindings_list:       ; expected a list, got something else
+.let_error_bindings_list:       ; expected a list or vector, got something else
         mov rsi, let_bindings_list_string
         mov rdx, let_bindings_list_string.len
         jmp .let_handle_error

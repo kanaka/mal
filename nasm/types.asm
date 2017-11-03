@@ -302,6 +302,12 @@ alloc_cons:
 ;; Decrements the reference count of the cons in RSI
 ;; If the count reaches zero then push the cons
 ;; onto the free list
+;;
+;; Modifies registers:
+;;    RAX
+;;    RBX
+;;    RCX
+;;    
 release_cons:
         mov ax, WORD [rsi + Cons.refcount]
         dec ax
