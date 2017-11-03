@@ -60,6 +60,8 @@
 ;; hash-map     Cons       Map           Alternate key, values
 ;; atom         Cons       Value         Pointer
 ;;
+
+%include "macros.mac"
         
 ;; Cons type.
 ;; Used to store either a single value with type information
@@ -124,6 +126,7 @@ ENDSTRUC
 %define maltype_nil  (block_cons + container_value + content_nil)
 %define maltype_empty_list (block_cons + container_list + content_empty)
 %define maltype_empty_map (block_cons + container_map + content_empty)
+%define maltype_empty_vector (block_cons + container_vector + content_empty)
 %define maltype_function (block_cons + container_function + content_function)
 %define maltype_macro (block_cons + container_macro + content_function)
 %define maltype_true (block_cons + container_value + content_true)
@@ -134,15 +137,9 @@ section .data
         
 ;; Fixed strings for printing
 
-              
-error_msg_print_string: db "Error in print string",10
-.len: equ $ - error_msg_print_string
-        
-error_array_memory_limit: db "Error: Run out of memory for Array objects. Increase heap_array_limit.",10
-.len: equ $ - error_array_memory_limit
-
-error_cons_memory_limit: db "Error: Run out of memory for Cons objects. Increase heap_cons_limit.",10
-.len: equ $ - error_cons_memory_limit
+        static error_msg_print_string, db "Error in print string",10
+        static error_array_memory_limit,  db "Error: Run out of memory for Array objects. Increase heap_array_limit.",10
+        static error_cons_memory_limit, db "Error: Run out of memory for Cons objects. Increase heap_cons_limit.",10
         
 ;; ------------------------------------------
 ;; Memory management
@@ -159,7 +156,7 @@ error_cons_memory_limit: db "Error: Run out of memory for Cons objects. Increase
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 40     ; Number of array objects which can be created
+%define heap_array_limit 50     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0

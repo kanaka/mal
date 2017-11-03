@@ -56,11 +56,14 @@ eval_ast:
         cmp ah, container_map
         je .map
         
-        ; Not a list or a map
+        cmp ah, container_vector
+        je .vector
+        
+        ; Not a list, map or vector
         cmp ah, container_symbol
         je .symbol
         
-        ; Not a symbol, list or map
+        ; Not a symbol, list, map or vector
         call incref_object      ; Increment reference count
         
         mov rax, rsi
@@ -292,6 +295,91 @@ eval_ast:
         
 .map_error_missing_value:
         mov rax, r12
+        ret
+        
+        ; ------------------------------
+.vector:
+        ; Evaluate each element of the vector
+        ;        
+        xor r8, r8              ; The vector to return
+        ; r9 contains head of vector
+
+.vector_loop:
+        mov al, BYTE [rsi]      ; Check type
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_pointer
+        je .vector_pointer
+        
+        ; A value, so copy
+        call alloc_cons
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        add bl, (block_cons + container_vector)
+        mov [rax], BYTE bl      ; set type
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx ; copy value
+
+        ; Result in RAX
+        jmp .vector_append
+        
+.vector_pointer:
+        ; Vector element is a pointer to something
+        push rsi
+        push r8
+        push r9
+        mov rsi, [rsi + Cons.car] ; Get the address
+        call eval             ; Evaluate it, result in rax
+        pop r9
+        pop r8
+        pop rsi
+        
+        ; Check the type it's evaluated to
+        mov bl, BYTE [rax]
+        mov bh, bl
+        and bh, (block_mask + container_mask)
+        cmp bh, (block_cons + container_value)
+        je .vector_append_value
+        
+        ; Not a value, so need a pointer to it
+        push rax
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_vector + content_pointer)
+        pop rbx                 ; Address to point to
+        mov [rax + Cons.car], rbx
+        jmp .vector_append
+
+.vector_append_value:
+        or bl, container_vector
+        mov [rax], BYTE bl
+        
+.vector_append:
+        ; In RAX
+        
+        cmp r8, 0               ; Check if this is the first
+        je .vector_first
+
+        ; append to r9
+        mov [r9 + Cons.cdr], rax
+        mov [r9 + Cons.typecdr], BYTE content_pointer
+        mov r9, rax
+        jmp .vector_next
+        
+.vector_first:
+        mov r8, rax
+        mov r9, rax
+        ; fall through to .vector_next
+        
+.vector_next:
+        ; Check if there's another
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .vector_done          ; finished vector
+        mov rsi, [rsi + Cons.cdr] ; next in vector
+        jmp .vector_loop
+        
+.vector_done:
+        mov rax, r8            ; Return the vector
         ret
         
         ; ---------------------

@@ -1,29 +1,20 @@
+%include "macros.mac"
+
 section .data
 
 ;; Reader macro strings
+
+        static quote_symbol_string, db "quote"
+        static quasiquote_symbol_string, db "quasiquote"
+        static unquote_symbol_string, db "unquote"
+        static splice_unquote_symbol_string, db "splice-unquote"
+        static deref_symbol_string, db "deref"
         
-quote_symbol_string: db "quote"
-.len: equ $ - quote_symbol_string
-        
-quasiquote_symbol_string: db "quasiquote"
-.len: equ $ - quasiquote_symbol_string
-
-unquote_symbol_string: db "unquote"
-.len: equ $ - unquote_symbol_string
-
-splice_unquote_symbol_string: db "splice-unquote"
-.len: equ $ - splice_unquote_symbol_string
-
-deref_symbol_string: db "deref"
-.len: equ $ - deref_symbol_string
         
 ;; Error message strings
         
-error_string_unexpected_end: db "Error: Unexpected end of input. Could be a missing )", 10
-.len: equ $ - error_string_unexpected_end
-
-error_string_bracket_not_brace: db "Error: Expecting '}' but got ')'"
-.len: equ $ - error_string_bracket_not_brace  
+static error_string_unexpected_end, db "Error: Unexpected end of input. Could be a missing )", 10
+static error_string_bracket_not_brace, db "Error: Expecting '}' but got ')'"
         
 section .text
 
@@ -97,6 +88,12 @@ read_str:
         je .map_start
         
         cmp cl, '}'             ; cl tested in map reader
+        je .return_nil
+
+        cmp cl, '['
+        je .vector_start
+
+        cmp cl, ']'             ; cl tested in vector reader
         je .return_nil
         
         cmp cl, 39              ; quote '
@@ -327,6 +324,113 @@ read_str:
         
         ret
         
+        ; --------------------------------
+        
+.vector_start:
+        
+        ; Get the first value
+        ; Note that we call rather than jmp because the first
+        ; value needs to be treated differently. There's nothing
+        ; to append to yet...
+        call .read_loop
+        
+        ; rax now contains the first object
+        cmp cl, ']'            ; Check if it was end of vector
+        jne .vector_has_contents
+        mov cl, 0               ; so ']' doesn't propagate to nested vectors
+        ; Set vector to empty
+        mov [rax], BYTE maltype_empty_vector
+        ret                    ; Returns 'nil' given "()"
+.vector_has_contents:
+        ; If this is a Cons then use it
+        ; If not, then need to allocate a Cons
+        mov cl, BYTE [rax]
+        mov ch, cl
+        and ch, (block_mask + container_mask)   ; Tests block and container type
+        jz .vector_is_value
+
+        ; If here then not a simple value, so need to allocate
+        ; a Cons object
+        
+        ; Start new vector
+        push rax
+        call alloc_cons         ; Address in rax
+        pop rbx
+        mov [rax], BYTE (block_cons + container_vector + content_pointer)
+        mov [rax + Cons.car], rbx
+        ; Now have Cons in RAX, containing pointer to object as car
+        
+.vector_is_value:
+        ; Cons in RAX
+        ; Make sure it's marked as a vector
+        mov cl, BYTE [rax]
+        or cl, container_vector
+        mov [rax], BYTE cl
+
+        mov r12, rax            ; Start of current vector
+        mov r13, rax            ; Set current vector
+        cmp r15, 0              ; Test if first vector
+        jne .vector_read_loop
+        mov r15, rax            ; Save the first, for unwinding
+        
+.vector_read_loop:
+        ; Repeatedly get the next value in the vector
+        ; (which may be other vectors)
+        ; until we get a ']' token
+
+        push r12
+        push r13
+        call .read_loop         ; object in rax
+        pop r13
+        pop r12
+        
+        cmp cl, ']'            ; Check if it was end of vector
+        je .vector_done          ; Have nil object in rax
+
+        ; Test if this is a Cons value
+        mov cl, BYTE [rax]
+        mov ch, cl
+        and ch, (block_mask + container_mask)   ; Tests block and container type
+        jz .vector_loop_is_value
+
+        ; If here then not a simple value, so need to allocate
+        ; a Cons object
+        
+        ; Start new vector
+        push rax
+        call alloc_cons         ; Address in rax
+        pop rbx
+        mov [rax], BYTE (block_cons + container_vector + content_pointer)
+        mov [rax + Cons.car], rbx
+        ; Now have Cons in RAX, containing pointer to object as car
+        
+.vector_loop_is_value:
+        ; Cons in RAX
+
+        ; Make sure it's marked as a vector
+        mov cl, BYTE [rax]
+        or cl, container_vector
+        mov [rax], BYTE cl
+        
+        ; Append to r13
+        mov [r13 + Cons.typecdr], BYTE content_pointer
+        mov [r13 + Cons.cdr], rax
+        mov r13, rax            ; Set current vector
+        
+        jmp .vector_read_loop
+        
+.vector_done:
+        ; Release nil object in rax
+        mov rsi, rax
+        call release_cons
+        
+        ; Terminate the vector
+        mov [r13 + Cons.typecdr], BYTE content_nil
+        mov QWORD [r13 + Cons.cdr], QWORD 0
+        mov rax, r12            ; Start of current vector
+        
+        ret
+
         ; --------------------------------
 .handle_quote:
         ; Turn 'a into (quote a)

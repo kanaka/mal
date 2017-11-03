@@ -97,7 +97,7 @@ pr_str:
 
         ; ----------------------------
 .not_string:
-        ; Now test the container type (value, list)
+        ; Now test the container type (value, list, map, vector)
         
         mov ch, cl
 
@@ -113,6 +113,9 @@ pr_str:
         cmp ch, container_map
         je .map
 
+        cmp ch, container_vector
+        je .vector
+        
         cmp ch, container_function
         je .function
         
@@ -352,6 +355,98 @@ pr_str:
 .map_finished:
         ; put '}' at the end of the string
         mov cl, '}'
+        mov rsi, r13
+        call string_append_char
+        
+        mov rax, rsi
+        ret
+        
+        ; --------------------------------
+.vector:
+        
+        mov r12, rsi            ; Input vector
+        
+        call string_new         ; String in rax
+        mov r13, rax            ; Output string in r13
+        
+        ; Put '[' onto string
+        mov rsi, rax
+        mov cl, '['
+        call string_append_char
+        
+        ; loop through vector
+.vector_loop:
+        
+        ; Extract values and print
+        
+        mov rsi, r12
+        mov cl, BYTE [rsi]      ; Get type
+
+        ; Check if it's a pointer (address)
+        mov ch, cl
+        and ch, content_mask
+        cmp ch, content_pointer
+        je .vector_loop_pointer
+
+        cmp ch, content_empty
+        je .vector_check_end
+        
+        ; A value (nil, int etc. or function)
+        xor cl, container_vector  ; Remove vector type -> value
+        mov BYTE [rsi], cl
+
+        push r13
+        push r12
+        call pr_str             ; String in rax
+        pop r12
+        pop r13
+        
+        mov cl, BYTE [r12]
+        or cl, container_vector  ; Restore vector type
+        mov  BYTE [r12], cl
+        jmp .vector_loop_got_str
+.vector_loop_pointer:
+        mov rsi, [rsi + Cons.car] ; Address of object
+        push r13
+        push r12
+        call pr_str             ; String in rax
+        pop r12
+        pop r13
+        
+.vector_loop_got_str:
+        ; concatenate strings in rax and rsi
+        mov rsi, r13            ; Output string
+        mov rdx, rax            ; String to be copied
+
+        push rsi                ; Save output string
+        push rax                ; save temporary string
+        call string_append_string
+
+        ; Release the string
+        pop rsi                 ; Was in rax, temporary string
+        call release_array
+
+        pop rsi                 ; restore output string
+.vector_check_end:
+        ; Check if this is the end of the vector
+        mov cl, BYTE [r12 + Cons.typecdr]
+        cmp cl, content_nil
+        je .vector_finished
+
+        ; More left in the vector
+        
+        ; Add space between values
+        mov cl, ' '
+        mov rsi, r13
+        call string_append_char
+        
+        ; Get next Cons
+        mov r12, [r12 + Cons.cdr]
+        jmp .vector_loop
+        
+.vector_finished:
+        ; put ']' at the end of the string
+        mov cl, ']'
         mov rsi, r13
         call string_append_char
         
