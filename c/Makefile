@@ -27,6 +27,9 @@ OTHER_HDRS = types.h readline.h reader.h printer.h       core.h interop.h
 GLIB_CFLAGS ?= $(shell pkg-config --cflags glib-2.0)
 GLIB_LDFLAGS ?= $(shell pkg-config --libs glib-2.0)
 
+FFI_CFLAGS ?= $(shell pkg-config libffi --cflags)
+FFI_LDFLAGS ?= $(shell pkg-config libffi --libs)
+
 
 ifeq ($(shell uname -s),Darwin)
 CFLAGS +=-DOSX=1
@@ -45,8 +48,8 @@ CFLAGS += -DUSE_GC=1
 LDFLAGS += -lgc
 endif
 
-CFLAGS += $(GLIB_CFLAGS)
-LDFLAGS += -l$(RL_LIBRARY) $(GLIB_LDFLAGS) -ldl -lffi 
+CFLAGS += $(GLIB_CFLAGS) $(FFI_CFLAGS)
+LDFLAGS += -l$(RL_LIBRARY) $(GLIB_LDFLAGS) $(FFI_LDFLAGS) -ldl
 
 #####################
 
