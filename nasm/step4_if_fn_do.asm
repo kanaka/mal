@@ -231,19 +231,15 @@ eval_ast:
         
         ; Not found, throw an error
         push rsi
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
-
+        print_str_mac error_string ; print 'Error: ' 
+        
         pop rsi
         push rsi
         mov edx, [rsi + Array.length]
         add rsi, Array.data
         call print_rawstring    ; print symbol
-
-        mov rsi, not_found_string
-        mov rdx, not_found_string.len
-        call print_rawstring    ; print ' not found'
+        
+        print_str_mac not_found_string ; print ' not found'
         pop rsi
 
         jmp error_throw
@@ -763,9 +759,7 @@ eval:
 .def_handle_error:
         push rsi
         push rdx
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
+        print_str_mac error_string   ; print 'Error: '
         
         pop rdx
         pop rsi
@@ -954,9 +948,8 @@ eval:
         
         push rsi
         push rdx
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
+        
+        print_str_mac error_string   ; print 'Error: '
 
         pop rdx
         pop rsi
@@ -1045,12 +1038,211 @@ eval:
         ; -----------------------------
         
 .if_symbol:
+        mov r11, rsi            ; if form in R11
+        ; Environment in R15
 
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .if_no_condition
+        
+        mov r11, [r11 + Cons.cdr] ; Should be a condition
+
+        ; Check if value or pointer
+        mov al, BYTE [r11]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .if_cond_value
+
+        ; A pointer, so evaluate
+
+        push r15
+        push r11
+        mov rsi, [r11 + Cons.car]  ; Form
+        mov rdi, r15            ; Env
+        call eval               ; Result in RAX
+        pop r11
+        pop r15
+
+        ; Get type
+        mov bl, BYTE [rax]
+
+        ; release value
+        push rbx
+        mov rsi, rax
+        call release_object
+        pop rbx
+
+        ; Check type
+        cmp bl, maltype_nil
+        je .if_false
+        cmp bl, maltype_false
+        je .if_false
+        
+        jmp .if_true
+        
+.if_cond_value:
+
+        ; A value
+        cmp al, content_nil
+        je .if_false
+        cmp al, content_false
+        je .if_false
+        
+        jmp .if_true
+
+.if_false:
+        ; Skip the next item
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .if_nil
+        
+        mov r11, [r11 + Cons.cdr]
+        
+.if_true:
+        ; Get the next item in the list and evaluate it
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .if_nil
+
+        mov r11, [r11 + Cons.cdr]
+        
+        ; Check if value or pointer
+        mov al, BYTE [r11]
+        and al, content_mask
+        cmp al, content_pointer
+        je .if_got_pointer
+        
+.if_got_value:
+        ; copy value in r11
+        call alloc_cons
+        mov bl, BYTE [r11]
+        and bl, content_mask
+        mov [rax], BYTE bl
+        mov rbx, [r11 + Cons.car]
+        mov [rax + Cons.car], rbx
+        ret
+        
+.if_got_pointer:
+        mov rsi, [r11 + Cons.car]  ; Form
+        mov rdi, r15            ; Env
+        call eval
+        ret
+        
+.if_no_condition:               ; just (if) without a condition
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+
+.if_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
         
         ; -----------------------------
         
 .fn_symbol:
+        mov r11, rsi            ; fn form in R11
+        ; Environment in R15
 
+        ; Get the binds and body of the function
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .fn_empty
+        
+        mov r11, [r11 + Cons.cdr]
+        mov al, BYTE [r11]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .fn_binds_not_list
+        
+        mov r12, [r11 + Cons.car]  ; Should be binds list
+        mov al, BYTE [r12]
+        and al, (block_mask + container_mask)
+        cmp al, (block_cons + container_list) 
+        je .fn_got_binds        ; Can be list
+        cmp al, (block_cons + container_vector)
+        je .fn_got_binds        ; or vector
+        jmp .fn_binds_not_list
+        
+.fn_got_binds:
+
+        ; Next get the body of the function
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .fn_no_body
+
+        mov r11, [r11 + Cons.cdr]
+        ; Check value or pointer
+        mov al, BYTE [r11]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .fn_got_body        ; Body in r11
+        mov r11, [r11 + Cons.car]
+.fn_got_body:
+
+        ; Now put into function type
+        ;   Addr is "apply_fn", the address to call
+        ;   Env in R15
+        ;   Binds in R12
+        ;   Body in R11
+
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_function + content_function)
+        mov rbx, apply_fn
+        mov [rax + Cons.car], rbx ; Address of apply function
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        
+        mov r13, rax            ; Return list in R13
+        
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_function + content_pointer)
+        mov [rax + Cons.car], r15 ; Environment
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        
+        mov [r13 + Cons.cdr], rax ; Append to list
+        mov r14, rax
+        
+        push rax
+        mov rsi, r15
+        call incref_object
+        pop rax
+        
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_function + content_pointer)
+        mov [rax + Cons.car], r12 ; Binds list
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        
+        mov [r14 + Cons.cdr], rax ; Append to list
+        mov r14, rax
+
+        push rax
+        mov rsi, r12
+        call incref_object
+        pop rax
+        
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_function + content_pointer)
+        mov [rax + Cons.car], r11 ; Body of function
+        
+        mov [r14 + Cons.cdr], rax
+
+        mov rsi, r11
+        call incref_object
+        
+        mov rax, r13
+        ret
+        
+.fn_empty:
+.fn_binds_not_list:
+.fn_no_body:
+        
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+        
         
         ; -----------------------------
         
@@ -1093,6 +1285,38 @@ eval:
 .empty_list:
         mov rax, rsi
         ret
+
+;; Applies a user-defined function
+;;
+;; Input: RSI - Arguments to bind
+;;        RDI - Function object
+apply_fn:
+        push rsi
+        ; Extract values from the list in RDI
+        mov rax, [rdi + Cons.cdr]
+        mov rsi, [rax + Cons.car] ; Env
+        mov rax, [rax + Cons.cdr]
+        mov rdi, [rax + Cons.car] ; Binds
+        pop rcx                   ; Exprs
+        
+        push rax
+        call env_new_bind
+        mov rdi, rax       ; New environment in RDI
+        pop rax            ; Function object
+        
+        mov rax, [rax + Cons.cdr]
+        mov rsi, [rax + Cons.car] ; Body
+
+        push rdi                ; Environment
+        call eval
+        pop rsi
+
+        ; Release the environment
+        push rax
+        call release_object
+        pop rax
+        
+        ret
         
 ;; Prints the result
 print:
@@ -1127,9 +1351,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        mov rdx, prompt_string.len ; number of bytes
-        mov rsi, prompt_string        ; address of raw string to output
-        call print_rawstring
+        print_str_mac prompt_string
 
         call read_line
         

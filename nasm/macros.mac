@@ -29,6 +29,14 @@
         AT Array.data, db %2
         IEND
 %endmacro
+
+;; Macro for printing raw string
+;;
+%macro print_str_mac 1
+        mov rsi, %1             ; String address
+        mov rdx, %1.len         ; Length of string
+        call print_rawstring
+%endmacro
         
 %endif
         

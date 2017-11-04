@@ -1,4 +1,6 @@
-      
+
+%include "macros.mac"
+        
 ;; ------------------------------------------------------------
 ;; Environment type
 ;; 
@@ -6,16 +8,17 @@
 ;; current environment, and CDR points to the outer environment
 ;;
 ;; ( {} {} ... )
-
-
-section .data
         
-env_symbol: ISTRUC Array
-AT Array.type,  db   maltype_symbol
-AT Array.length, dd  5
-AT Array.data, db '*env*'
-IEND
+section .data
 
+;; Symbols used for comparison
+        static_symbol env_symbol, '*env*'
+
+;; Error message strings
+
+        static env_binds_error_string, db "Expecting symbol in binds list",10
+        static env_binds_missing_string, db "Missing expression in bind",10
+        
 section .text
 
 ;; Create a new Environment
@@ -52,6 +55,116 @@ env_new:
         mov rax, rbx
         ret
 
+;; Create a new environment using a binding list
+;;
+;; Input: RSI - Outer environment
+;;        RDI - Binds, a list of symbols
+;;        RCX - Exprs, a list of values to bind each symbol to
+;;
+;; Modifies registers
+;;    RBX
+;;    R8
+;;    R9
+;;    R10
+;;    R11
+;;    R12
+;;    R13
+env_new_bind:
+        mov r11, rdi            ; binds list in R11
+        mov r12, rcx            ; expr list in R12
+        
+        call env_new 
+        mov r13, rax             ; New environment in R13
+
+.bind_loop:
+        ; Check the type in the bind list
+        mov bl, BYTE [r11]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .bind_not_symbol
+
+        mov rdi, [r11 + Cons.car] ; Symbol object?
+        mov bl, BYTE [rdi]
+        cmp bl, maltype_symbol
+        jne .bind_not_symbol
+
+        ; RDI now contains a symbol
+        ; Check the type in expr
+
+        mov bl, BYTE [r12]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        je .value_pointer
+        
+        ; A value. Need to remove the container type
+        xchg bl,bh
+        mov [r12], BYTE bl
+        xchg bl,bh
+        mov rcx, r12            ; Value
+        mov rsi, r13            ; Env
+        push rbx
+        call env_set
+        pop rbx
+        ; Restore original type
+        mov [r12], BYTE bl
+        jmp .next
+
+.value_pointer:
+        ; A pointer to something, so just pass address to env_set
+        mov rcx, [r12 + Cons.car]
+        mov rsi, r13
+        call env_set
+        ; Fall through to next
+.next:
+        ; Check if there is a next
+        mov bl, BYTE [r11 + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .done
+
+        ; Got another symbol
+        mov r11, [r11 + Cons.cdr] ; Next symbol
+
+        ; Check if there's an expression to bind to
+        mov bl, BYTE [r12 + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .bind_missing_expr
+
+        mov r12, [r12 + Cons.cdr] ; Next expression
+        jmp .bind_loop
+.done:
+        mov rax, r13            ; Env
+        ret
+        
+.bind_not_symbol:               ; Expecting a symbol
+        push r11                ; Binds list
+
+        ; Release the environment
+        mov rsi, r13
+        call release_object
+        
+        print_str_mac error_string   ; print 'Error: '
+        
+        print_str_mac env_binds_error_string
+        
+        pop rsi                 ; Throw binds list
+        jmp error_throw
+
+.bind_missing_expr:
+        push r11                ; Binds list
+
+        ; Release the environment
+        mov rsi, r13
+        call release_object
+        
+        print_str_mac error_string   ; print 'Error: '
+        
+        print_str_mac env_binds_missing_string
+        
+        pop rsi                 ; Throw binds list
+        jmp error_throw
+
+        
 ;; Environment set
 ;;
 ;; Sets a key-value pair in an environment

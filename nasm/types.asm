@@ -1160,7 +1160,7 @@ map_set:
         ; Here a Cons object
         mov bh, bl
         and bh, container_mask
-        cmp bl, container_value
+        cmp bh, container_value
         jne .set_value_pointer  ; Not a simple value, so point to it
         ; A value, so copy
         mov rcx, [r10 + Cons.car]
@@ -1357,8 +1357,11 @@ map_keys:
 ;;
 ;; Functions are consist of a list
 ;;   - First car is the function address to call
-;;   
-;;   ( addr   )
+;;   - Second is the environment
+;;   - Third is the binds list
+;;   - Fourth is the body of the function
+;;
+;;   ( addr env binds body )
 ;;
 ;;
 
