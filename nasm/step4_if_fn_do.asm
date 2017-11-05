@@ -55,6 +55,11 @@ section .data
         static_symbol do_symbol, 'do'
         static_symbol if_symbol, 'if'
         static_symbol fn_symbol, 'fn*'
+
+;; Empty list value, passed to functions without args
+;; Note this is just a single byte, so the rest of the
+;; list must never be accessed.
+static_empty_list: db maltype_empty_list
         
 section .text   
 
@@ -1263,11 +1268,20 @@ eval:
         mov cl, BYTE [rbx]
         cmp cl, maltype_function
         jne .list_not_function
-        
+
+        ; Check the rest of the args
+        mov cl, BYTE [rax + Cons.typecdr]
+        cmp cl, content_pointer
+        je .list_got_args
+        ; No arguments
+        mov rsi, static_empty_list ; Point to an empty list
+        jmp  .list_function_call
+.list_got_args:
+        mov rsi, [rax + Cons.cdr] ; Rest of list
+.list_function_call:
         ; Call the function with the rest of the list in RSI
         push rax
         push r15
-        mov rsi, [rax + Cons.cdr] ; Rest of list
         mov rdi, rbx ; Function object in RDI
         call [rbx + Cons.car]   ; Call function
         ; Result in rax

@@ -24,6 +24,7 @@ section .text
 ;;  RCX
 ;;  R12
 ;;  R13
+;;  R14
 ;; Calls: raw_to_string,
 ;;
 ;; 

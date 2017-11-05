@@ -6,13 +6,29 @@
         
 section .data
 
+;; Symbols for comparison
         static core_add_symbol, db "+"
         static core_sub_symbol, db "-"
         static core_mul_symbol, db "*"
         static core_div_symbol, db "/"
-        static core_equal_symbol, db "="
-        static core_keys_symbol, db "keys"   
+
+        static core_listp_symbol, db "list?"
+        static core_emptyp_symbol, db "empty?"
         
+        static core_equal_symbol, db "="
+
+        static core_count_symbol, db "count"
+        static core_keys_symbol, db "keys"
+
+        static core_list_symbol, db "list"
+
+        static core_pr_str_symbol, db "pr-str"
+        static core_prn_symbol, db "prn"
+        
+;; Strings
+
+        static core_emptyp_error_string, db "empty? expects a list, vector or map",10
+        static core_count_error_string, db "count expects a list or vector",10
 section .text
 
 ;; Add a native function to the core environment
@@ -48,10 +64,18 @@ core_environment:
         core_env_native core_sub_symbol, core_sub
         core_env_native core_mul_symbol, core_mul
         core_env_native core_div_symbol, core_div
-
+        
+        core_env_native core_listp_symbol, core_listp
+        core_env_native core_emptyp_symbol, core_emptyp
+        core_env_native core_count_symbol, core_count
+        
         core_env_native core_equal_symbol, core_equal_p
-
+        
         core_env_native core_keys_symbol, core_keys
+        core_env_native core_list_symbol, core_list
+
+        core_env_native core_pr_str_symbol, core_pr_str
+        core_env_native core_prn_symbol, core_prn
         
         ; -----------------
         ; Put the environment in RAX
@@ -176,10 +200,238 @@ core_equal_p:
         mov [rax + Cons.typecdr], BYTE content_nil
         ret
 
+;; Test if a given object is a list
+;; Input list in RSI
+;; Returns true or false in RAX
+core_listp:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .false              ; Should be a pointer to a list
+
+        mov rax, [rsi + Cons.car]
+        mov al, BYTE [rax]
+        and al, (block_mask + container_mask)
+        cmp al, (block_cons + container_list)
+        jne .false
+
+        ; Is a list, return true
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+        
+.false:
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+
+;; Test if the given list, vector or map is empty
+core_emptyp:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .error              ; Expected a container
+        mov rax, [rsi + Cons.car]
+        mov al, BYTE [rax]
+        cmp al, maltype_empty_list
+        je .true
+        cmp al, maltype_empty_vector
+        je .true
+        cmp al, maltype_empty_map
+        je .true
+
+        ; false
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+.true:
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+.error:
+        push rsi
+        print_str_mac error_string
+        print_str_mac core_emptyp_error_string
+        pop rsi
+        jmp error_throw
+
+;; Count the number of elements in given list or vector
+core_count:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .error              ; Expected a container
+
+        mov rsi, [rsi + Cons.car]
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, (block_mask + container_mask)
+        cmp ah, (block_cons + container_list)
+        je .start_count
+        cmp ah, (block_cons + container_vector)
+        je .start_count
+        
+        jmp .error              ; Not a list or vector
+        
+.start_count:
+        
+        xor rbx,rbx
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_empty
+        je .done                ; Empty list or vector
+
+.loop:
+        inc rbx
+
+        ; Check if there's another
+        mov al, [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+
+        mov rsi, [rsi + Cons.cdr]
+        jmp .loop
+        
+.done:                          ; Count is in RBX
+
+        push rbx
+        call alloc_cons
+        pop rbx
+        mov [rax], BYTE maltype_integer
+        mov [rax + Cons.car], rbx
+        ret
+        
+.error:
+        push rsi
+        print_str_mac error_string
+        print_str_mac core_count_error_string
+        pop rsi
+        jmp error_throw
+        
+        
 ;; Given a map, returns a list of keys
 ;; Input: List in RSI with one Map element
 ;; Returns: List in RAX
 core_keys:
         mov rsi, [rsi + Cons.car]
         call map_keys
+        ret
+
+;; Return arguments as a list
+;; 
+core_list:
+        call incref_object
+        mov rax, rsi
+        ret
+
+;; ------------------------------------------------
+;; String functions
+
+;; Convert arguments to a readable string, separated by a space
+;; 
+core_pr_str:
+        
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_empty
+        je .empty              ; Nothing to print
+
+        xor r8, r8              ; Return string in r8
+        
+.loop:
+        cmp ah, content_pointer
+        je .got_pointer
+        
+        ; A value. Remove list container
+        xchg ah, al
+        mov [rsi], BYTE al
+        xchg ah, al
+        push rsi
+        push rax
+        call pr_str
+        pop rbx
+        pop rsi
+        mov [rsi], BYTE bl      ; restore type
+        jmp .got_string
+        
+.got_pointer:
+        push rsi
+        call pr_str
+        ret
+        
+        ;mov rsi, [rsi + Cons.car] ; Address pointed to
+        call pr_str
+        ;call string_new
+        pop rsi
+        
+.got_string:
+        ; String now in rax
+        
+        cmp r8, 0
+        jne .append
+
+        ; first string
+        mov r8, rax             ; Output string 
+        jmp .next
+        
+.append:
+        push rsi
+        push rax
+        
+        mov rsi, r8             ; Output string 
+        mov rdx, rax            ; String to be copied
+        call string_append_string
+        mov r8, rax
+        
+        pop rsi                 ; Was in rax, temporary string
+        call release_array      ; Release the string
+
+        pop rsi                 ; Restore input
+
+.next:
+        ; Check if there's another
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+
+        ; More inputs
+        mov rsi, [rsi + Cons.cdr] ; pointer
+
+        ; Add separator
+        push rsi
+        mov rsi, r8
+        mov cl, ' '
+        call string_append_char
+        pop rsi
+
+        ; Get the type in ah for comparison at start of loop
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, content_mask
+        
+        jmp .loop
+.done:
+        ; No more input, so return
+        mov rax, r8
+        ret
+        
+.empty:
+        call string_new         ; An empty string
+        ret
+        
+;; Print arguments readably, return nil
+core_prn:
+        ; Convert to string
+        call core_pr_str
+        ; print the string
+        mov rsi, rax
+        push rsi                ; Save the string address
+        call print_string
+        pop rsi
+        call release_array      ; Release the string
+
+        ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
         ret
