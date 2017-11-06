@@ -1331,11 +1331,6 @@ apply_fn:
         pop rax
         
         ret
-        
-;; Prints the result
-print:
-        mov rax, rsi            ; Return the input
-        ret
 
 ;; Read-Eval-Print in sequence
 rep_seq:
@@ -1343,7 +1338,7 @@ rep_seq:
         mov rsi, rax            ; Output of read into input of eval
         call eval
         mov rsi, rax            ; Output of eval into input of print 
-        call print
+        call pr_str
         mov rsi, rax            ; Return value
         ret
 

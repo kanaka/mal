@@ -69,7 +69,7 @@ core_environment:
         core_env_native core_emptyp_symbol, core_emptyp
         core_env_native core_count_symbol, core_count
         
-        core_env_native core_equal_symbol, core_equal_p
+        core_env_native core_equal_symbol, core_equalp
         
         core_env_native core_keys_symbol, core_keys
         core_env_native core_list_symbol, core_list
@@ -167,10 +167,13 @@ core_arithmetic:
         mov [rax + Cons.typecdr], BYTE content_nil
         ret
 
-;; Test objects for equality
-core_equal_p:
+;; compare objects for equality
+core_equalp:
         ; Check that rsi contains a list
         mov cl, BYTE [rsi]
+        cmp cl, maltype_empty_list
+        je .error
+        
         and cl, block_mask + container_mask
         cmp cl, block_cons + container_list
         jne .error
@@ -183,23 +186,42 @@ core_equal_p:
         ; move second pointer into rdi
         mov rdi, [rsi + Cons.cdr]
 
-        ; Compare rsi and rdi objects
-        call compare_objects    ; result in rax
+        ; Remove next pointers
+        mov cl, BYTE [rsi + Cons.typecdr]
+        mov [rsi + Cons.typecdr], BYTE 0
         
-        ; for now put result into Cons
-        mov rdi, rax
+        mov bl, BYTE [rdi + Cons.typecdr]
+        mov [rdi + Cons.typecdr], BYTE 0
+
+        push rbx
+        push rcx
+        
+        ; Compare the objects recursively
+        call compare_objects_rec
+
+        ; Restore next pointers
+        pop rcx
+        pop rbx
+        mov [rsi + Cons.typecdr], BYTE cl
+        mov [rdi + Cons.typecdr], BYTE bl
+        
+        je .true
+
+        
+.false:
         call alloc_cons
-        mov [rax], BYTE maltype_integer
-        mov [rax + Cons.typecdr], BYTE content_nil
-        mov [rax + Cons.car], rdi
+        mov [rax], BYTE maltype_false
+        ret
+.true:
+        call alloc_cons
+        mov [rax], BYTE maltype_true
         ret
 .error:
-        ; Return nil
-        call alloc_cons
-        mov [rax], BYTE maltype_nil
-        mov [rax + Cons.typecdr], BYTE content_nil
-        ret
-
+        push rsi
+        print_str_mac error_string ; print 'Error: '
+        pop rsi
+        jmp error_throw
+        
 ;; Test if a given object is a list
 ;; Input list in RSI
 ;; Returns true or false in RAX
@@ -349,7 +371,9 @@ core_pr_str:
         xchg ah, al
         push rsi
         push rax
+        push r8
         call pr_str
+        pop r8
         pop rbx
         pop rsi
         mov [rsi], BYTE bl      ; restore type
@@ -357,12 +381,10 @@ core_pr_str:
         
 .got_pointer:
         push rsi
+        push r8
+        mov rsi, [rsi + Cons.car] ; Address pointed to
         call pr_str
-        ret
-        
-        ;mov rsi, [rsi + Cons.car] ; Address pointed to
-        call pr_str
-        ;call string_new
+        pop r8
         pop rsi
         
 .got_string:

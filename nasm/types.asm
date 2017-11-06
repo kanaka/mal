@@ -777,6 +777,98 @@ compare_objects:
         ret
         
 
+;; Recursively check objects, including lists
+;; 
+;; Inputs: Objects in RSI and RDI
+;;
+;; Sets ZF if equal, clears flag otherwise
+compare_objects_rec:
+        ; Compare rsi and rdi objects
+        
+        ; Check type
+        mov al, BYTE [rsi]
+        mov bl, BYTE [rdi]
+        cmp al, bl
+        jne .false
+
+        ; Check the container type
+        and bl, block_mask
+        jnz .array
+        
+        ; Check if a pointer to something
+        and al, content_mask
+        cmp al, content_pointer
+        je .pointer
+
+        ; Get the values
+        
+        mov rbx, [rsi + Cons.car]
+        mov rcx, [rdi + Cons.car]
+        cmp rbx, rcx
+        jne .false
+        
+        ; Value is the same, so get next
+        jmp .next
+
+.array:
+        ; Comparing arrays
+        call compare_char_array
+        cmp rax, 0
+        ret                     ; Array has no next
+        
+.pointer:
+
+        mov rbx, [rsi + Cons.car]
+        mov rcx, [rdi + Cons.car]
+        cmp rbx, rcx
+        je .next                ; Equal pointers
+        
+        push rsi
+        push rdi
+        ; Put the addresses to compare into RSI and RDI
+        mov rsi, rbx
+        mov rdi, rcx
+        call compare_objects_rec
+        pop rdi
+        pop rsi
+        jne .false
+        ; fall through to .next
+        
+.next:
+        ; Check if both have a 'cdr' pointer
+        mov al, BYTE [rsi + Cons.typecdr]
+        mov bl, BYTE [rdi + Cons.typecdr]
+        
+        cmp al, content_pointer
+        je .rsi_has_next
+        
+        ; No next pointer in RSI
+        cmp bl, content_pointer
+        je .false               ; RDI has a next pointer
+
+        ; Neither have a next pointer, so done
+        jmp .true
+        
+.rsi_has_next:
+        cmp bl, content_pointer
+        jne .false              ; RDI has no next pointer
+        
+        ; Both have a next pointer, so keep going
+        mov rsi, [rsi + Cons.cdr]
+        mov rdi, [rdi + Cons.cdr]
+        jmp compare_objects_rec
+        
+.false:
+        lahf                    ; flags in AH
+        and ah, 255-64          ; clear zero flag
+        sahf
+        ret
+.true:
+        lahf                    ; flags in AH
+        or ah, 64               ; set zero flag
+        sahf
+        ret
+        
 ;; Char array objects (strings, symbols, keywords) in RSI and RDI
 ;; Return code in RAX
 ;;

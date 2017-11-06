@@ -22,6 +22,7 @@ section .text
 ;;
 ;; Modifies:
 ;;  RCX
+;;  R8   
 ;;  R12
 ;;  R13
 ;;  R14
