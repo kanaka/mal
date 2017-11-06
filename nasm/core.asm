@@ -16,6 +16,10 @@ section .data
         static core_emptyp_symbol, db "empty?"
         
         static core_equal_symbol, db "="
+        static core_gt_symbol, db ">"
+        static core_lt_symbol, db "<"
+        static core_ge_symbol, db ">="
+        static core_le_symbol, db "<="
 
         static core_count_symbol, db "count"
         static core_keys_symbol, db "keys"
@@ -29,6 +33,7 @@ section .data
 
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
         static core_count_error_string, db "count expects a list or vector",10
+        static core_numeric_expect_ints, db "comparison operator expected two numbers",10
 section .text
 
 ;; Add a native function to the core environment
@@ -70,6 +75,10 @@ core_environment:
         core_env_native core_count_symbol, core_count
         
         core_env_native core_equal_symbol, core_equalp
+        core_env_native core_gt_symbol, core_gt
+        core_env_native core_lt_symbol, core_lt
+        core_env_native core_ge_symbol, core_ge
+        core_env_native core_le_symbol, core_le
         
         core_env_native core_keys_symbol, core_keys
         core_env_native core_list_symbol, core_list
@@ -219,6 +228,73 @@ core_equalp:
 .error:
         push rsi
         print_str_mac error_string ; print 'Error: '
+        pop rsi
+        jmp error_throw
+
+;; -----------------------------------------------------------------
+;; Numerical comparisons
+
+
+core_gt:
+        mov rcx, core_compare_num.gt
+        jmp core_compare_num
+core_lt:
+        mov rcx, core_compare_num.lt
+        jmp core_compare_num
+core_ge:
+        mov rcx, core_compare_num.ge
+        jmp core_compare_num
+core_le:
+        mov rcx, core_compare_num.le  
+        ;jmp core_compare_num
+core_compare_num:
+        ; The first argument should be an int
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, maltype_integer
+        jne .error
+
+        ; Check that there's a second argument
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .error
+        mov rax, [rsi + Cons.car]
+        mov rdi, [rsi + Cons.cdr]
+
+        ; The second arg should also be an int
+        mov bl, BYTE [rdi]
+        and bl, content_mask
+        cmp bl, maltype_integer
+        jne .error
+
+        mov rbx, [rdi + Cons.car]
+
+        cmp rax, rbx
+        jmp rcx                 ; Address set above
+.gt:
+        jg .true
+        jmp .false
+.lt:
+        jl .true
+        jmp .false
+.ge:
+        jge .true
+        jmp .false
+.le:
+        jle .true
+        ;jmp .false
+.false:
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+.true:
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+.error:
+        push rsi
+        print_str_mac error_string ; print 'Error: '
+        print_str_mac core_numeric_expect_ints
         pop rsi
         jmp error_throw
         

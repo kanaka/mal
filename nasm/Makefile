@@ -15,3 +15,7 @@ step2_eval: step2_eval.asm $(COMPONENTS)
 step3_env: step3_env.asm $(COMPONENTS)
 	nasm -felf64 step3_env.asm
 	ld -o $@ step3_env.o
+
+step4_if_fn_do: step4_if_fn_do.asm $(COMPONENTS)
+	nasm -felf64 step4_if_fn_do.asm
+	ld -o $@ step4_if_fn_do.o

@@ -151,12 +151,12 @@ section .data
 ;; is free'd it is pushed onto the heap_x_free list.
         
         
-%define heap_cons_limit 100     ; Number of cons objects which can be created
+%define heap_cons_limit 1000     ; Number of cons objects which can be created
 
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 50     ; Number of array objects which can be created
+%define heap_array_limit 300     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0
