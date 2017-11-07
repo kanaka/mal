@@ -357,11 +357,16 @@ core_emptyp:
 core_count:
         mov al, BYTE [rsi]
         and al, content_mask
+        
+        cmp al, content_nil
+        je .zero
+        
         cmp al, content_pointer
         jne .error              ; Expected a container
 
         mov rsi, [rsi + Cons.car]
         mov al, BYTE [rsi]
+        
         mov ah, al
         and ah, (block_mask + container_mask)
         cmp ah, (block_cons + container_list)
@@ -389,7 +394,9 @@ core_count:
 
         mov rsi, [rsi + Cons.cdr]
         jmp .loop
-        
+
+.zero:                          ; Return zero count
+        mov rbx, 0
 .done:                          ; Count is in RBX
 
         push rbx
@@ -522,8 +529,15 @@ core_pr_str:
 core_prn:
         ; Convert to string
         call core_pr_str
-        ; print the string
         mov rsi, rax
+
+        ; Put newline at the end
+        push rsi
+        mov cl, 10              ; newline
+        call string_append_char
+        pop rsi
+        
+        ; print the string
         push rsi                ; Save the string address
         call print_string
         pop rsi

@@ -68,6 +68,9 @@ pr_str:
         cmp cl, '"'             ;
         je .string_escape_char
 
+        cmp cl, 92              ; Escape '\'
+        je .string_escape_char
+        
         cmp cl, 10              ; Newline
         je .string_newline
 

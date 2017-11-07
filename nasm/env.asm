@@ -75,11 +75,14 @@ env_new_bind:
         
         call env_new 
         mov r13, rax             ; New environment in R13
-
+        
 .bind_loop:
         ; Check the type in the bind list
         mov bl, BYTE [r11]
         and bl, content_mask
+        cmp bl, content_empty
+        je .done                ; No bindings
+        
         cmp bl, content_pointer
         jne .bind_not_symbol
 

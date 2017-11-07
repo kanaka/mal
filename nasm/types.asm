@@ -386,6 +386,7 @@ incref_object:
 string_new:
         call alloc_array
         mov [rax], BYTE maltype_string
+        mov DWORD [rax + Array.length], 0
         mov QWORD [rax + Array.next], 0
         ret
 
@@ -884,6 +885,10 @@ compare_char_array:
         jne .different
 
         ; same length
+
+        cmp eax, 0
+        je .equal               ; Both zero length
+        
         mov rbx, rsi
         add rbx, Array.data
         mov rcx, rdi
@@ -895,13 +900,13 @@ compare_char_array:
         jl .rdi_greater
         jg .rsi_greater
 
-        ; equal
+        ; this character is equal
         inc rbx
         inc rcx
         dec eax
-        jnz .compare_loop
+        jnz .compare_loop       ; Next character
 
-        ; equal
+.equal:
         mov rax, 0
         ret
         

@@ -55,11 +55,19 @@ section .data
         static_symbol do_symbol, 'do'
         static_symbol if_symbol, 'if'
         static_symbol fn_symbol, 'fn*'
-
+        
 ;; Empty list value, passed to functions without args
 ;; Note this is just a single byte, so the rest of the
 ;; list must never be accessed.
-static_empty_list: db maltype_empty_list
+static_empty_list: ISTRUC Cons
+AT Cons.typecar, db maltype_empty_list
+AT Cons.typecdr, db 0
+AT Cons.refcount, dw -1
+IEND
+        
+;; Startup string. This is evaluated on startup
+        static mal_startup_string, db "(def! not (fn* (a) (if a false true)))"
+        
         
 section .text   
 
@@ -1183,8 +1191,14 @@ eval:
         mov al, BYTE [r11]
         and al, content_mask
         cmp al, content_pointer
-        jne .fn_got_body        ; Body in r11
+        jne .fn_is_value        ; Body in r11
         mov r11, [r11 + Cons.car]
+        jmp .fn_got_body
+
+.fn_is_value:
+        ; Body is just a value, no expression
+        mov [r11], BYTE al      ; Mark as value, not list
+        
 .fn_got_body:
 
         ; Now put into function type
@@ -1304,6 +1318,8 @@ eval:
 ;;
 ;; Input: RSI - Arguments to bind
 ;;        RDI - Function object
+;;
+;; Output: Result in RAX
 apply_fn:
         push rsi
         ; Extract values from the list in RDI
@@ -1311,16 +1327,29 @@ apply_fn:
         mov rsi, [rax + Cons.car] ; Env
         mov rax, [rax + Cons.cdr]
         mov rdi, [rax + Cons.car] ; Binds
+        mov rax, [rax + Cons.cdr]
+        mov rax, [rax + Cons.car] ; Body
         pop rcx                   ; Exprs
         
+        ; Check the type of the body
+        mov bl, BYTE [rax]
+        and bl, block_mask + container_mask
+        jnz .bind               
+        ; Just a value (in RAX). No eval needed
+        
+        push rax
+        mov rsi, rax
+        call incref_object
+        pop rax
+        ret
+.bind:
+        ; Create a new environment, binding arguments
         push rax
         call env_new_bind
         mov rdi, rax       ; New environment in RDI
-        pop rax            ; Function object
-        
-        mov rax, [rax + Cons.cdr]
-        mov rsi, [rax + Cons.car] ; Body
+        pop rsi            ; Body
 
+        ; Evaluate the function body
         push rdi                ; Environment
         call eval
         pop rsi
@@ -1331,6 +1360,7 @@ apply_fn:
         pop rax
         
         ret
+        
 
 ;; Read-Eval-Print in sequence
 rep_seq:
@@ -1354,6 +1384,31 @@ _start:
         mov rdi, .catch         ; Address to jump to
         xor rcx, rcx            ; No data
         call error_handler_push
+
+        ; Evaluate the startup string
+
+        mov rsi, mal_startup_string
+        mov edx, mal_startup_string.len
+        call raw_to_string      ; String in RAX
+
+        push rax
+        mov rsi, rax
+        call read_str           ; AST in RAX
+        pop rsi                 ; string
+
+        push rax                ; AST
+        call release_array      ; string
+        pop rsi                 ; AST
+
+        push rsi
+        mov rdi, [repl_env]     ; Environment
+        call eval
+        pop rsi
+        
+        push rax
+        call release_object     ; AST
+        pop rsi
+        call release_object     ; Return from eval
         
         ; -----------------------------
         ; Main loop
