@@ -46,7 +46,8 @@ section .data
         static let_bind_value_string, db "let* missing value in bindings list",10
 
         static let_missing_body_string, db "let* missing body",10
-
+        static eval_list_not_function, db "list does not begin with a function",10
+        
 
 ;; Symbols used for comparison
         
@@ -55,15 +56,6 @@ section .data
         static_symbol do_symbol, 'do'
         static_symbol if_symbol, 'if'
         static_symbol fn_symbol, 'fn*'
-        
-;; Empty list value, passed to functions without args
-;; Note this is just a single byte, so the rest of the
-;; list must never be accessed.
-static_empty_list: ISTRUC Cons
-AT Cons.typecar, db maltype_empty_list
-AT Cons.typecdr, db 0
-AT Cons.refcount, dw -1
-IEND
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(def! not (fn* (a) (if a false true)))"
@@ -233,6 +225,11 @@ eval_ast:
         ret
         
 .symbol:
+        ; Check if first character of symbol is ':'
+        mov al, BYTE [rsi + Array.data]
+        cmp al, ':'
+        je .keyword
+        
         ; look in environment
         push rsi
         xchg rsi, rdi
@@ -256,7 +253,15 @@ eval_ast:
         pop rsi
 
         jmp error_throw
-
+        
+        ; ------------------------------
+        
+.keyword:
+        ; Just return keywords unaltered
+        call incref_object
+        mov rax, rsi
+        ret
+        
         ; ------------------------------
 .list:
         ; Evaluate each element of the list
@@ -638,7 +643,7 @@ eval:
         ; Check type
         mov al, BYTE [rsi]
         cmp al, maltype_empty_list
-        je .empty_list           ; empty list, return unchanged
+        je .return_nil
 
         and al, container_mask
         cmp al, container_list
@@ -654,6 +659,7 @@ eval:
         
         ; Check if the first element is a symbol
         mov al, BYTE [rsi]
+        
         and al, content_mask
         cmp al, content_pointer
         jne .list_eval
@@ -1107,7 +1113,7 @@ eval:
         ; Skip the next item
         mov al, BYTE [r11 + Cons.typecdr]
         cmp al, content_pointer
-        jne .if_nil
+        jne .return_nil
         
         mov r11, [r11 + Cons.cdr]
         
@@ -1115,7 +1121,7 @@ eval:
         ; Get the next item in the list and evaluate it
         mov al, BYTE [r11 + Cons.typecdr]
         cmp al, content_pointer
-        jne .if_nil
+        jne .return_nil         ; Nothing to return
 
         mov r11, [r11 + Cons.cdr]
         
@@ -1147,7 +1153,7 @@ eval:
         mov [rax + Cons.typecdr], BYTE content_nil
         ret
 
-.if_nil:
+.return_nil:
         call alloc_cons
         mov [rax], BYTE maltype_nil
         mov [rax + Cons.typecdr], BYTE content_nil
@@ -1266,11 +1272,12 @@ eval:
         ; -----------------------------
         
 .list_eval:
-
+        push rsi
         mov rdi, r15            ; Environment
         push r15
         call eval_ast
         pop r15
+        pop rsi
         
         ; Check that the first element of the return is a function
         mov bl, BYTE [rax]
@@ -1287,8 +1294,13 @@ eval:
         mov cl, BYTE [rax + Cons.typecdr]
         cmp cl, content_pointer
         je .list_got_args
+        
         ; No arguments
-        mov rsi, static_empty_list ; Point to an empty list
+        push rbx
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        pop rbx
+        mov rsi, rax
         jmp  .list_function_call
 .list_got_args:
         mov rsi, [rax + Cons.cdr] ; Rest of list
@@ -1308,11 +1320,16 @@ eval:
 
 .list_not_function:
         ; Not a function. Probably an error
-        ret
+        push rsi
+
+        mov rsi, rax
+        call release_object
         
-.empty_list:
-        mov rax, rsi
-        ret
+        print_str_mac error_string
+        print_str_mac eval_list_not_function
+        pop rsi
+        jmp error_throw
+        
 
 ;; Applies a user-defined function
 ;;

@@ -789,11 +789,19 @@ compare_objects_rec:
         ; Check type
         mov al, BYTE [rsi]
         mov bl, BYTE [rdi]
-        cmp al, bl
+        
+        mov ah, al
+        mov bh, bl
+        
+        ; Don't distinguish between [] and ()
+        and ah, (block_mask + content_mask)
+        and bh, (block_mask + content_mask)
+        
+        cmp ah, bh
         jne .false
-
+        
         ; Check the container type
-        and bl, block_mask
+        and bh, block_mask
         jnz .array
         
         ; Check if a pointer to something
@@ -813,6 +821,11 @@ compare_objects_rec:
 
 .array:
         ; Comparing arrays
+
+        ; Container type (symbol/string) does matter
+        cmp al, bl
+        jne .false
+        
         call compare_char_array
         cmp rax, 0
         ret                     ; Array has no next

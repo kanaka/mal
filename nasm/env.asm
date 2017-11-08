@@ -13,11 +13,13 @@ section .data
 
 ;; Symbols used for comparison
         static_symbol env_symbol, '*env*'
-
+        static_symbol ampersand_symbol, '&'
+        
 ;; Error message strings
 
-        static env_binds_error_string, db "Expecting symbol in binds list",10
-        static env_binds_missing_string, db "Missing expression in bind",10
+        static env_binds_error_string, db "Env expecting symbol in binds list",10
+        static env_binds_missing_string, db "Env missing expression in bind",10
+        static env_missing_symbol_after_amp_string, db "Env missing symbol after &",10
         
 section .text
 
@@ -92,11 +94,24 @@ env_new_bind:
         jne .bind_not_symbol
 
         ; RDI now contains a symbol
+
+        ; Check if it is '&'
+        mov rsi, ampersand_symbol
+        push rdi
+        call compare_char_array ; Compares RSI and RDI
+        pop rdi
+        cmp rax, 0
+        je .variadic            ; Bind rest of args to following symbol
+        
         ; Check the type in expr
 
         mov bl, BYTE [r12]
         mov bh, bl
         and bh, content_mask
+
+        cmp bh, content_empty
+        je .bind_missing_expr   ; No expression
+        
         cmp bh, content_pointer
         je .value_pointer
         
@@ -120,7 +135,7 @@ env_new_bind:
         call env_set
         ; Fall through to next
 .next:
-        ; Check if there is a next
+        ; Check if there is a next symbol
         mov bl, BYTE [r11 + Cons.typecdr]
         cmp bl, content_pointer
         jne .done
@@ -131,13 +146,57 @@ env_new_bind:
         ; Check if there's an expression to bind to
         mov bl, BYTE [r12 + Cons.typecdr]
         cmp bl, content_pointer
-        jne .bind_missing_expr
+        jne .next_no_expr       ; No expr, but symbol could be &
 
         mov r12, [r12 + Cons.cdr] ; Next expression
+        jmp .bind_loop
+        
+.next_no_expr:
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        mov r12, rax
+        
         jmp .bind_loop
 .done:
         mov rax, r13            ; Env
         ret
+
+.variadic:
+        ; R11 Cons contains '&' symbol
+        ; Bind next symbol to the rest of the list in R12
+        mov bl, BYTE [r11 + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .missing_symbol_after_amp
+
+        mov r11, [r11 + Cons.cdr]
+        
+        mov bl, BYTE [r11]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .bind_not_symbol
+        
+        mov rdi, [r11 + Cons.car] ; Symbol object?
+        mov bl, BYTE [rdi]
+        cmp bl, maltype_symbol
+        jne .bind_not_symbol
+        
+        ; Bind symbol in RDI to R12
+        mov rcx, r12            ; Value
+        mov rsi, r13            ; Env
+        call env_set
+        jmp .done
+        
+.missing_symbol_after_amp:
+        push r12
+
+        ; Release the environment
+        mov rsi, r13
+        call release_object
+        
+        print_str_mac error_string   ; print 'Error: '
+        print_str_mac env_missing_symbol_after_amp_string
+        pop rsi
+        jmp error_throw
         
 .bind_not_symbol:               ; Expecting a symbol
         push r11                ; Binds list
@@ -154,8 +213,10 @@ env_new_bind:
         jmp error_throw
 
 .bind_missing_expr:
+        ; Have a symbol, but no expression.
+        
         push r11                ; Binds list
-
+        
         ; Release the environment
         mov rsi, r13
         call release_object
