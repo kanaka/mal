@@ -431,14 +431,39 @@ raw_to_symbol:
         
 ;; Appends a character to a string
 ;; Input: Address of string in RSI, character in CL
+;;
+;; Modifies
+;;    RAX
 string_append_char:
+        push rsi
+        ; Get the end of the string
+.get_end:
+        mov rax, [rsi + Array.next]
+        cmp rax, 0
+        jz .got_dest_end
+        mov rsi, rax
+        jmp .get_end
+.got_dest_end:
+
+        ; Check if this chunk is full
         mov eax, DWORD [rsi + Array.length]
+        cmp eax, (array_chunk_len*8)
+        jne .append
+        
+        ; full, need to allocate another
+        call alloc_array
+        mov [rsi + Array.next], rax
+        mov rsi, rax
+        xor eax, eax            ; Set length to zero
+.append:
         inc eax
         mov DWORD [rsi + Array.length], eax
         dec eax
         add rax, rsi
         add rax, Array.data            ; End of data
-        mov [rax], BYTE cl        
+        mov [rax], BYTE cl
+        
+        pop rsi                 ; Restore original value
         ret
 
 ;; Appends a string to the end of a string
@@ -468,6 +493,9 @@ string_append_string:
         mov r11, r10
         mov r8d, DWORD [rbx + Array.length]
         add r11, r8
+
+        cmp r8d, 0
+        je .return              ; Appending zero-size array
         
         ; Find the end of the string in RSI
         ; and put the address of the Array object into rax
@@ -485,7 +513,7 @@ string_append_string:
         mov r8, rax
         add r8, Array.data
         add r8d, DWORD [rax + Array.length]
-
+        
         ; destination data end into r9
         mov r9, rax
         add r9, Array.size
@@ -500,7 +528,7 @@ string_append_string:
         ; Check if we've reached the end of this Array
         cmp r10, r11
         jne .source_ok
-
+        
         ; have reached the end of the source Array
         mov rbx, QWORD [rbx + Array.next]     ; Get the next Array address
         cmp rbx, 0              ; Test if it's null
@@ -523,6 +551,7 @@ string_append_string:
         cmp r8, r9
         jne .copy_loop          ; Next byte
 
+.alloc_dest:
         ; Reached the end of the destination
         ; Need to allocate another Array
         push rax
@@ -541,6 +570,7 @@ string_append_string:
         
         mov r9, rax
         add r9, Array.size
+        jmp .copy_loop
         
 .finished:
         ; Compare r8 (destination) with data start
@@ -550,7 +580,7 @@ string_append_string:
         inc r8
         ; r8 now contains length
         mov DWORD [rax + Array.length], r8d
-        
+.return:        
         ret        
 
 ;; ------------------------------------------
@@ -567,11 +597,19 @@ print_string:
         mov al, [rsi]
         cmp al, maltype_string
         jne .error
-        
+
+.print_chunk:
         ; write(1, string, length)
+        push rsi
         mov   edx,  [rsi + Array.length] ; number of bytes
         add   rsi, Array.data         ; address of raw string to output
         call print_rawstring
+        pop rsi
+        
+        ; Check if this is the end
+        mov rsi, QWORD [rsi + Array.next]
+        cmp rsi, 0
+        jne .print_chunk        ; next chunk
         
         ; Restore registers
         pop rsi
