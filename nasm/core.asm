@@ -28,6 +28,8 @@ section .data
 
         static core_pr_str_symbol, db "pr-str"
         static core_prn_symbol, db "prn"
+        static core_str_symbol, db "str"
+        static core_println_symbol, db "println"
         
 ;; Strings
 
@@ -85,6 +87,8 @@ core_environment:
 
         core_env_native core_pr_str_symbol, core_pr_str
         core_env_native core_prn_symbol, core_prn
+        core_env_native core_str_symbol, core_str
+        core_env_native core_println_symbol, core_println
         
         ; -----------------
         ; Put the environment in RAX
@@ -435,7 +439,11 @@ core_list:
 ;; Convert arguments to a readable string, separated by a space
 ;; 
 core_pr_str:
-        
+        mov rdi, 1              ; print_readably
+        jmp core_str_functions
+core_str:
+        xor rdi, rdi
+core_str_functions:
         mov al, BYTE [rsi]
         mov ah, al
         and ah, content_mask
@@ -503,13 +511,17 @@ core_pr_str:
         ; More inputs
         mov rsi, [rsi + Cons.cdr] ; pointer
 
+        cmp rdi, 0              ; print_readably
+        je .end_append_char     ; No separator if not printing readably
+        
         ; Add separator
         push rsi
         mov rsi, r8
         mov cl, ' '
         call string_append_char
         pop rsi
-
+.end_append_char:
+        
         ; Get the type in ah for comparison at start of loop
         mov al, BYTE [rsi]
         mov ah, al
@@ -527,8 +539,11 @@ core_pr_str:
         
 ;; Print arguments readably, return nil
 core_prn:
-        ; Convert to string
         call core_pr_str
+        jmp core_prn_functions
+core_println:
+        call core_str
+core_prn_functions:
         mov rsi, rax
 
         ; Put newline at the end

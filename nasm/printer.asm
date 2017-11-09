@@ -17,6 +17,7 @@ section .data
 section .text
 
 ;; Input: Address of object in RSI
+;;        print_readably in RDI. Set to zero for false
 ;;
 ;; Output: Address of string in RAX
 ;;
@@ -41,6 +42,11 @@ pr_str:
 
         ; ---------------------------
         ; Handle string
+
+        cmp rdi, 0
+        je .string_not_readable
+        
+        ; printing readably, so escape characters
         
         call string_new         ; Output string in rax
         
@@ -100,6 +106,12 @@ pr_str:
 
         mov [rax + Array.length], DWORD r12d
         
+        ret
+
+.string_not_readable:
+        ; Just return the string
+        call incref_object
+        mov rax, rsi
         ret
 
         ; ----------------------------

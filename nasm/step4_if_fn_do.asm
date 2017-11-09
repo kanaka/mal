@@ -184,6 +184,7 @@ error_throw:
         ; Print the object in RSI then quit
         cmp rsi, 0
         je .done                ; nothing to print
+        mov rdi, 1              ; print_readably
         call pr_str
         mov rsi, rax
         call print_string
@@ -1454,7 +1455,8 @@ _start:
         push rax                ; Save result
         
         ; Put into pr_str
-        mov rsi, rax            
+        mov rsi, rax
+        mov rdi, 1              ; print_readably
         call pr_str
         push rax                ; Save output string
         
@@ -1488,6 +1490,7 @@ _start:
         ; Check if an object was thrown
         cmp rsi, 0
         je .catch_done_print                ; nothing to print
+        mov rdi, 1
         call pr_str
         mov rsi, rax
         call print_string
