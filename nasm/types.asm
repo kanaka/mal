@@ -387,8 +387,12 @@ incref_object:
         
 ;; -------------------------------------------
 ;; String type
-
+;;
 ;; Create a new string, address in RAX
+;;
+;; Modifies registers
+;;     RBX
+;; 
 string_new:
         call alloc_array
         mov [rax], BYTE maltype_string

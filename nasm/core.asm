@@ -30,6 +30,9 @@ section .data
         static core_prn_symbol, db "prn"
         static core_str_symbol, db "str"
         static core_println_symbol, db "println"
+
+        static core_read_string_symbol, db "read-string"
+        static core_slurp_symbol, db "slurp"
         
 ;; Strings
 
@@ -89,6 +92,9 @@ core_environment:
         core_env_native core_prn_symbol, core_prn
         core_env_native core_str_symbol, core_str
         core_env_native core_println_symbol, core_println
+
+        core_env_native core_read_string_symbol, core_read_string
+        core_env_native core_slurp_symbol, core_slurp
         
         ; -----------------
         ; Put the environment in RAX
@@ -559,6 +565,51 @@ core_prn_functions:
         call release_array      ; Release the string
 
         ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+
+;; Given a string, calls read_str to get an AST
+core_read_string:
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_pointer
+        jne .no_string
+        
+        mov rsi, [rsi + Cons.car]
+        mov al, BYTE [rsi]
+        cmp al, maltype_string
+        jne .no_string
+        
+        call read_str
+        ret
+        
+.no_string:
+        ; Didn't get a string input
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+
+;; Reads a file into a string
+core_slurp:
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_pointer
+        jne .no_string
+        
+        mov rsi, [rsi + Cons.car]
+        mov al, BYTE [rsi]
+        cmp al, maltype_string
+        jne .no_string
+
+        call read_file
+        ret
+        
+.no_string:
+        ; Didn't get a string input
         call alloc_cons
         mov [rax], BYTE maltype_nil
         ret
