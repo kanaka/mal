@@ -65,6 +65,7 @@ env_new:
 ;;
 ;; Modifies registers
 ;;    RBX
+;;    RDX
 ;;    R8
 ;;    R9
 ;;    R10

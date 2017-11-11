@@ -19,3 +19,7 @@ step3_env: step3_env.asm $(COMPONENTS)
 step4_if_fn_do: step4_if_fn_do.asm $(COMPONENTS)
 	nasm -felf64 step4_if_fn_do.asm
 	ld -o $@ step4_if_fn_do.o
+
+step5_tco: step5_tco.asm $(COMPONENTS)
+	nasm -felf64 step5_tco.asm
+	ld -o $@ step5_tco.o

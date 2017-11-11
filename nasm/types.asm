@@ -353,6 +353,12 @@ release_cons:
 
 ;; Releases either a Cons or Array
 ;; Address of object in RSI
+;;
+;; May modify:
+;;    RAX
+;;    RBX
+;;    RCX
+;; 
 release_object:
         mov al, BYTE [rsi]          ; Get first byte
         and al, block_mask          ; Test block type
