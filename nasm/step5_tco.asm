@@ -770,6 +770,11 @@ eval:
         push r15                ; Env
         mov rsi, [rsi + Cons.car] ; Pointer
         mov rdi, r15
+
+        xchg rsi, rdi
+        call incref_object      ; Environment increment refs
+        xchg rsi, rdi           ; since it will be decremented by eval
+        
         call eval
         mov rsi, rax
         pop r15
@@ -958,7 +963,7 @@ eval:
         mov rsi, r14
         call release_object
         pop rax
-        jmp .return
+        ret                     ; already released env
         
 .let_error_missing_bindings:
         mov rsi, let_missing_bindings_string
