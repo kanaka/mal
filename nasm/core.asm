@@ -34,12 +34,21 @@ section .data
         static core_read_string_symbol, db "read-string"
         static core_slurp_symbol, db "slurp"
         static core_eval_symbol, db "eval"
+
+        static core_atom_symbol, db "atom"
+        static core_deref_symbol, db "deref"
+        static core_atomp_symbol, db "atom?"
+        static core_reset_symbol, db "reset!"
         
 ;; Strings
 
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
         static core_count_error_string, db "count expects a list or vector",10
         static core_numeric_expect_ints, db "comparison operator expected two numbers",10
+
+        static core_deref_not_atom, db "Error: argument to deref is not an atom"
+        static core_reset_not_atom, db "Error: argument to reset is not an atom"
+        static core_reset_no_value, db "Error: missing value argument to reset"
 section .text
 
 ;; Add a native function to the core environment
@@ -97,6 +106,11 @@ core_environment:
         core_env_native core_read_string_symbol, core_read_string
         core_env_native core_slurp_symbol, core_slurp
         core_env_native core_eval_symbol, core_eval
+
+        core_env_native core_atom_symbol, core_atom
+        core_env_native core_deref_symbol, core_deref
+        core_env_native core_atomp_symbol, core_atomp
+        core_env_native core_reset_symbol, core_reset
         
         ; -----------------
         ; Put the environment in RAX
@@ -641,3 +655,197 @@ core_eval:
 
         call eval
         ret
+
+;; Create an atom
+core_atom:
+        push rsi
+        call alloc_cons         ; To hold the pointer
+        pop rsi
+        mov [rax], BYTE maltype_atom
+
+        ; Check the type of the first argument
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        je .pointer
+
+        ; A value
+        
+        ; make a copy
+        push rax
+        push rsi
+        push rbx
+        call alloc_cons
+        pop rbx
+
+        mov bl, bh
+        mov [rax], BYTE bl      ; Set type
+        
+        mov rbx, rax
+        pop rsi
+        pop rax
+        
+        mov rcx, [rsi + Cons.car]
+        mov [rbx + Cons.car], rcx ; Set value
+        
+        ; Set the atom to point to it
+        mov [rax + Cons.car], rbx
+        
+        ret
+        
+.pointer:
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx
+
+        push rax
+        mov rsi, rbx
+        call incref_object      ; Storing in atom
+        pop rax
+        ret
+
+;; Get the value from the atom
+core_deref:
+        ; Check the type of the first argument
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        jne .not_atom
+
+        ; Get the atom
+        mov rsi, [rsi + Cons.car]
+        mov bl, BYTE [rsi]
+        cmp bl, maltype_atom
+        jne .not_atom
+
+        ; Return what it points to
+        mov rsi, [rsi + Cons.car]
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.not_atom:
+        ; Not an atom, so throw an error
+        mov rsi, core_deref_not_atom
+        mov edx, core_deref_not_atom.len
+        call raw_to_symbol
+        mov rsi, rax
+        jmp error_throw
+
+;; Test if given object is an atom
+core_atomp:
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        jne .false
+
+        mov rsi, [rsi + Cons.car]
+        mov bl, BYTE [rsi]
+        cmp bl, maltype_atom
+        jne .false
+
+        ; Got an atom, return true
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+
+.false:
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+
+;; Change the value of an atom
+core_reset:
+        ; Check the type of the first argument
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        jne .not_atom
+
+        ; Get the atom
+        mov rax, [rsi + Cons.car] ; Atom in RAX
+        mov bl, BYTE [rax]
+        cmp bl, maltype_atom
+        jne .not_atom
+
+        ; Get the next argument
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .no_value
+        
+        mov rsi, [rsi + Cons.cdr]
+        
+        ; Got something in RSI
+        ; release the current value of the atom
+        push rax
+        push rsi
+
+        mov rsi, [rax + Cons.car] ; The value the atom points to
+        call release_object
+
+        pop rsi
+        pop rax
+        
+        ; Check the type of the first argument
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        je .pointer
+
+        ; A value
+        
+        ; make a copy
+        push rax
+        push rsi
+        push rbx
+        call alloc_cons
+        pop rbx
+
+        mov bl, bh
+        mov [rax], BYTE bl      ; Set type
+        
+        mov rbx, rax
+        pop rsi
+        pop rax
+        
+        mov rcx, [rsi + Cons.car]
+        mov [rbx + Cons.car], rcx ; Set value
+        
+        ; Set the atom to point to it
+        mov [rax + Cons.car], rbx
+        
+        ; Increment refcount since return value will be released
+        mov rsi, rbx
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.pointer:
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx
+
+        mov rsi, rbx
+        call incref_object      ; Storing in atom
+        call incref_object      ; Returning
+        mov rax, rsi
+        ret
+        
+.not_atom:
+        ; Not an atom, so throw an error
+        mov rsi, core_reset_not_atom
+        mov edx, core_reset_not_atom.len
+        call raw_to_symbol
+        mov rsi, rax
+        jmp error_throw
+
+.no_value:
+        ; No value given
+        mov rsi, core_reset_no_value
+        mov edx, core_reset_no_value.len
+        call raw_to_symbol
+        mov rsi, rax
+        jmp error_throw

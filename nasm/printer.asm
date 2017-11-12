@@ -137,6 +137,9 @@ pr_str:
         
         cmp ch, container_function
         je .function
+
+        cmp ch, container_atom
+        je .atom
         
         ; Unknown
         mov rsi, unknown_type_string
@@ -495,4 +498,28 @@ pr_str:
         mov rsi, function_type_string
         mov edx, function_type_string.len
         call raw_to_string      ; Puts a String in RAX
+        ret
+
+        ; --------------------------------
+.atom:
+        mov rsi, [rsi + Cons.car] ; What the atom points to
+        
+        call string_new         ; String in rax
+
+        ; Start string with '(atom'
+        mov rbx, '(atom   '
+        mov [rax + Array.data], rbx
+        mov [rax + Array.length], DWORD 6
+        
+        push rax
+        call pr_str
+        mov rdx, rax            ; string to be copied
+        pop rsi                 ; Output string
+
+        call string_append_string
+
+        ; closing bracket
+        mov cl, ')'
+        call string_append_char
+        mov rax, rsi
         ret

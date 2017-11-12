@@ -23,3 +23,7 @@ step4_if_fn_do: step4_if_fn_do.asm $(COMPONENTS)
 step5_tco: step5_tco.asm $(COMPONENTS)
 	nasm -felf64 step5_tco.asm
 	ld -o $@ step5_tco.o
+
+step6_file: step6_file.asm $(COMPONENTS)
+	nasm -felf64 step6_file.asm
+	ld -o $@ step6_file.o

@@ -29,7 +29,7 @@
 ;;  6    3 - Keyword. Only for Array blocks
 ;;  8    4 - Map
 ;; 10    5 - Function
-;; 12    6 - Macro
+;; 12    6 - Atom
 ;; 14    7 - Vector
 ;;
 ;;  Content type [4 bits]:
@@ -42,6 +42,7 @@
 ;;  96   6 - Function (instruction address)
 ;; 112   7 - Empty (distinct from Nil)
 ;; 208   8 - False
+;; 224   9 - Macro
 ;; 
 ;;
 ;; These represent MAL data types as follows:
@@ -58,7 +59,7 @@
 ;; string       Array      Value         Char
 ;; keyword      Array      Keyword       Char
 ;; hash-map     Cons       Map           Alternate key, values
-;; atom         Cons       Value         Pointer
+;; atom         Cons       Atom          Pointer
 ;;
 
 %include "macros.mac"
@@ -105,7 +106,7 @@ ENDSTRUC
 %define container_keyword 6
 %define container_map 8
 %define container_function 10
-%define container_macro 12
+%define container_atom 12
 %define container_vector 14
         
 ;; Content type
@@ -118,6 +119,7 @@ ENDSTRUC
 %define content_function 96     ; Function pointer
 %define content_empty 112
 %define content_false 208
+%define content_macro 224 
         
 ;; Common combinations for MAL types
 %define maltype_integer  (block_cons + container_value + content_int)
@@ -131,6 +133,8 @@ ENDSTRUC
 %define maltype_macro (block_cons + container_macro + content_function)
 %define maltype_true (block_cons + container_value + content_true)
 %define maltype_false (block_cons + container_value + content_false)
+%define maltype_atom (block_cons + container_atom + content_pointer)
+        
 ;; ------------------------------------------
 
 section .data
