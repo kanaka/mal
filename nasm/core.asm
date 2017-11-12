@@ -33,6 +33,7 @@ section .data
 
         static core_read_string_symbol, db "read-string"
         static core_slurp_symbol, db "slurp"
+        static core_eval_symbol, db "eval"
         
 ;; Strings
 
@@ -95,6 +96,7 @@ core_environment:
 
         core_env_native core_read_string_symbol, core_read_string
         core_env_native core_slurp_symbol, core_slurp
+        core_env_native core_eval_symbol, core_eval
         
         ; -----------------
         ; Put the environment in RAX
@@ -612,4 +614,30 @@ core_slurp:
         ; Didn't get a string input
         call alloc_cons
         mov [rax], BYTE maltype_nil
+        ret
+
+;; Evaluate an expression in the REPL environment
+;;
+core_eval:
+        mov al, BYTE [rsi]
+        mov ah, al
+        and ah, content_mask
+        cmp ah, content_pointer
+        je .pointer
+
+        ; Just a value, so return it
+        call incref_object
+        ret
+        
+.pointer:
+        ; A pointer, so need to eval
+        mov rsi, [rsi + Cons.car]
+        
+        mov rdi, [repl_env]     ; Environment
+        
+        xchg rsi, rdi
+        call incref_object      ; Environment increment refs
+        xchg rsi, rdi           ; since it will be decremented by eval
+
+        call eval
         ret

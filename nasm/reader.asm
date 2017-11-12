@@ -731,7 +731,12 @@ tokenizer_next:
         cmp cl, ','             ; Comma
         je .next_char
         cmp cl, 9               ; Tab
-
+        je .next_char
+        cmp cl, 10              ; Line Feed
+        je .next_char
+        cmp cl, 13              ; Carriage Return
+        je .next_char
+        
         ; Special characters. These are returned in CL as-is
         cmp cl, '('
         je .found
