@@ -639,6 +639,64 @@ print_string:
         call print_rawstring
         ; exit
         jmp quit_error        
+
+;; Copy a string
+;;
+;; Input: RSI - String to copy
+;;
+;; Output: New string in RAX
+;;
+;; Modifies:
+;;    RBX
+;;    RCX
+;;    RDX
+;;    RSI
+;;
+string_copy:
+        call string_new         ; new string in RAX
+        
+        push rsi
+        push rax
+        
+        ; Get lengths
+        mov ebx, DWORD [rsi + Array.length]
+        mov [rax + Array.length], ebx
+
+        ; Copy the whole block of data
+        ; Not sure if this is quicker than copying byte-by-byte
+        ; Could divide ebx by 8 (rounded up) to get the number
+        ; of blocks needed
+        
+        add rsi, Array.data     ; Start of input data
+        add rax, Array.data     ; Start of output data
+        mov ecx, array_chunk_len ; Number of 64-bit chunks
+        
+.loop:
+        mov rbx, QWORD [rsi]
+        mov [rax], QWORD rbx
+        add rsi, 8
+        add rax, 8
+        dec ecx
+        jnz .loop
+        
+        pop rax
+        pop rsi
+        ; Now check if there's another block
+        mov rsi, [rsi + Array.next]
+        cmp rsi, 0
+        jz .done                ; Result in RAX
+
+        ; Another array chunk
+        push rax                ; Save output
+        
+        call string_copy        ; Copy next chunk
+        mov rbx, rax            ; The copy in RBX
+        
+        pop rax
+        ; append
+        mov [rax + Array.next], rbx
+.done:
+        ret
         
 ;; ------------------------------------------
 ;; String itostring(Integer number)

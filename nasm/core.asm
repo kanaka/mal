@@ -506,24 +506,37 @@ core_str_functions:
         cmp r8, 0
         jne .append
 
-        ; first string
-        mov r8, rax             ; Output string 
+        ; first string. Since this string will be
+        ; appended to, it needs to be a copy
+        push rsi                ; input
+        
+        push rax                ; string to copy
+        mov rsi, rax
+        call string_copy        ; New string in RAX
+        pop rsi                 ; copied string
+        
+        push rax                ; the copy
+        call release_object     ; release the copied string
+        pop r8                  ; the copy
+
+        pop rsi                 ; input
+        
         jmp .next
         
 .append:
+        push r8
         push rsi
         push rax
         
         mov rsi, r8             ; Output string 
         mov rdx, rax            ; String to be copied
         call string_append_string
-        mov r8, rax
         
         pop rsi                 ; Was in rax, temporary string
         call release_array      ; Release the string
 
         pop rsi                 ; Restore input
-
+        pop r8                  ; Output string
 .next:
         ; Check if there's another
         mov al, BYTE [rsi + Cons.typecdr]
@@ -537,11 +550,13 @@ core_str_functions:
         je .end_append_char     ; No separator if not printing readably
         
         ; Add separator
+        push r8
         push rsi
         mov rsi, r8
         mov cl, ' '
         call string_append_char
         pop rsi
+        pop r8
 .end_append_char:
         
         ; Get the type in ah for comparison at start of loop
@@ -641,6 +656,11 @@ core_eval:
 
         ; Just a value, so return it
         call incref_object
+        
+        mov al, BYTE [rsi]
+        and al, content_mask
+        mov [rsi], BYTE al      ; Removes list
+        mov rax, rsi
         ret
         
 .pointer:
