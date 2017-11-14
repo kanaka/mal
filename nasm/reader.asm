@@ -762,7 +762,7 @@ tokenizer_next:
         je .handle_tilde
         
         cmp cl, ';'             ; Start of a comment
-        je .tokens_finished
+        je .comment
 
         cmp cl, 34             ; Opening string quotes
         je .handle_string
@@ -781,6 +781,20 @@ tokenizer_next:
 
         ; Here an integer
         jmp .handle_integer
+
+.comment:
+        ; Start of a comment. Keep reading until a new line or end
+        
+        ; Fetch the next char into CL
+        call tokenizer_next_char
+        
+        cmp cl, 0
+        je .found               ; End, no more tokens
+
+        cmp cl, 10
+        je .next_char           ; Next line, start reading again
+
+        jmp .comment
         
 .handle_minus:
 
@@ -901,6 +915,11 @@ tokenizer_next:
         cmp cl, ','             ; Comma
         je .symbol_finished
         cmp cl, 9               ; Tab
+        je .symbol_finished
+        cmp cl, 10              ; Line Feed
+        je .symbol_finished
+        cmp cl, 13              ; Carriage Return
+        je .symbol_finished
         
         cmp cl, '('
         je .symbol_finished
@@ -1006,11 +1025,7 @@ tokenizer_next:
         ret
         
         ; ---------------------------------
-        
-.tokens_finished:
-        mov cl, 0               ; End of tokens
-        ret
-        
+                
 .handle_tilde:
         ; Could have '~' or '~@'. Need to peek at the next char
 
@@ -1034,8 +1049,7 @@ tokenizer_next:
         pop r11
         pop r10
         pop r9
-        ; fall through to found
-        
+        ; fall through to .found
 .found:
         ret
 
