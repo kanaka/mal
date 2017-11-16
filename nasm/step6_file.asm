@@ -1350,7 +1350,15 @@ eval:
         call eval_ast           ; List of evaluated forms in RAX
         pop r15
         pop rsi
-        
+
+
+.list_exec:
+        ; This point can be called to run a function
+        ; used by swap!
+        ; 
+        ; Inputs: RAX - List with function as first element
+        ;               NOTE: This list is released
+        ; 
         ; Check that the first element of the return is a function
         mov bl, BYTE [rax]
         and bl, content_mask

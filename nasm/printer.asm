@@ -98,6 +98,8 @@ pr_str:
 
 .string_finished:
 
+        
+        
         mov [r12], BYTE '"'     ; At the end
         inc r12
         ; Calculate length of string

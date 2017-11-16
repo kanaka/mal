@@ -96,11 +96,11 @@ ENDSTRUC
 %define content_mask 16 + 32 + 64 + 128 ; Four bits for content type
         
 ;; Block types
-%define block_cons  0
+%define block_cons  0           ; Note: This must be zero
 %define block_array 1
 
 ;; Container types
-%define container_value  0
+%define container_value  0      ; Note: This must be zero
 %define container_list 2
 %define container_symbol 4
 %define container_keyword 6

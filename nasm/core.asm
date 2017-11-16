@@ -39,7 +39,7 @@ section .data
         static core_deref_symbol, db "deref"
         static core_atomp_symbol, db "atom?"
         static core_reset_symbol, db "reset!"
-        
+        static core_swap_symbol, db "swap!"
 ;; Strings
 
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
@@ -111,6 +111,7 @@ core_environment:
         core_env_native core_deref_symbol, core_deref
         core_env_native core_atomp_symbol, core_atomp
         core_env_native core_reset_symbol, core_reset
+        core_env_native core_swap_symbol, core_swap
         
         ; -----------------
         ; Put the environment in RAX
@@ -868,4 +869,110 @@ core_reset:
         mov edx, core_reset_no_value.len
         call raw_to_symbol
         mov rsi, rax
+        jmp error_throw
+
+;; Applies a function to an atom, along with optional arguments
+;;
+;; In RSI should be a list consisting of
+;;  [ atom, pointer->Function , args...]
+;;
+;; The atom is dereferenced, and inserted into the list:
+;; 
+;;  [ pointer->Function , atom value , args...]
+;;
+;; This is then passed to eval.list_exec
+;; which executes the function
+;;
+core_swap:
+        ; Check the type of the first argument (an atom)
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        jne .not_atom
+
+        ; Get the atom
+        mov r8, [rsi + Cons.car] ; Atom in R8
+        mov bl, BYTE [r8]
+        cmp bl, maltype_atom
+        jne .not_atom
+
+        ; Get the second argument (a function)
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .no_function
+
+        mov r9, [rsi + Cons.cdr] ; List with function first
+        
+        ; Get a new Cons to insert into the list
+        ; containing the value in the atom
+        call alloc_cons         ; In RAX
+
+        ; Splice into the list
+        mov bl, BYTE [r9 + Cons.typecdr]
+        mov rcx, [r9 + Cons.cdr]
+        mov [rax + Cons.typecdr], bl
+        mov [rax + Cons.cdr], rcx
+        mov [r9 + Cons.typecdr], BYTE content_pointer
+        mov [r9 + Cons.cdr], rax
+        
+        ; Now get the value in the atom
+        mov rdx, [r8 + Cons.car] ; The object pointed to
+
+        ; Check what it is
+        mov bl, BYTE [rdx]
+        mov bh, bl
+        and bh, (block_mask + container_mask)
+        jz .atom_value         ; Just a value
+
+        ; Not a simple value, so point to it
+        mov [rax + Cons.car], rdx
+        mov [rax], BYTE (container_list + content_pointer)
+        jmp .list_done
+        
+.atom_value:
+        ; Copy the value
+        mov rcx, [rdx + Cons.car]
+        mov [rax + Cons.car], rcx
+        and bl, content_mask    ; keep just the content
+        or bl, container_list   ; mark as part of a list
+        mov [rax], BYTE bl
+
+.list_done:
+        ; Now have a list with function followed by args
+        ; This is the same state as after a call to eval_ast
+        ; 
+        ; Note: Because eval releases the environment in R15
+        ;       on return, this needs to have its references
+        ;       incremented before the call
+        ;
+        ; The list passed in RAX will be released by eval
+
+        mov rsi, r15
+        call incref_object
+
+        mov rax, r9
+        push r8                 ; The atom
+        call eval.list_exec     ; Result in RAX
+        pop r8
+        
+        ; release the current value of the atom
+        push rax                ; The result
+        mov rsi, [r8 + Cons.car]
+        call release_object
+        pop rsi
+
+        ; Put into atom
+        mov [r8 + Cons.car], rsi
+        
+        ; Increase reference of new object
+        ; because when it is returned it will be released
+        push rsi
+        call incref_object 
+        pop rax
+        ret
+        
+.not_atom:
+.no_function:
+        xor rsi,rsi
         jmp error_throw
