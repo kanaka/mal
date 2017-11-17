@@ -57,12 +57,15 @@ section .data
         static_symbol do_symbol, 'do'
         static_symbol if_symbol, 'if'
         static_symbol fn_symbol, 'fn*'
+
+        static_symbol argv_symbol, '*ARGV*'
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) )"
-        
-        
-section .text   
+
+;; Command to run, appending the name of the script to run
+        static run_script_string, db "(load-file ",34
+section .text
 
 ;; ----------------------------------------------
 ;; 
@@ -1488,13 +1491,49 @@ apply_fn:
         
 
 ;; Read-Eval-Print in sequence
+;;
+;; Input string in RSI
 rep_seq:
+        ; -------------
+        ; Read
         call read_str
-        mov rsi, rax            ; Output of read into input of eval
+        push rax                ; Save AST
+
+        ; -------------
+        ; Eval
+        mov rsi, rax            ; Form to evaluate
+        mov rdi, [repl_env]     ; Environment
+
+        xchg rsi, rdi
+        call incref_object      ; Environment increment refs
+        xchg rsi, rdi           ; since it will be decremented by eval
+        
         call eval
-        mov rsi, rax            ; Output of eval into input of print 
+        push rax                ; Save result of eval
+
+        ; -------------
+        ; Print
+        
+        ; Put into pr_str
+        mov rsi, rax
+        mov rdi, 1              ; print_readably
         call pr_str
-        mov rsi, rax            ; Return value
+        push rax                ; Save output string
+        
+        mov rsi, rax            ; Put into input of print_string
+        call print_string
+
+        ; Release string from pr_str
+        pop rsi
+        call release_array
+
+        ; Release result of eval
+        pop rsi
+        call release_object
+        
+        ; Release the object from read_str
+        pop rsi
+        call release_object     ; Could be Cons or Array
         ret
 
 
@@ -1539,6 +1578,21 @@ _start:
         call release_object     ; AST
         pop rsi
         call release_object     ; Return from eval
+
+        ; -----------------------------
+        ; Check command-line arguments
+
+        pop rax                 ; Number of arguments
+        cmp rax, 1              ; Always have at least one, the path to executable
+        jg run_script
+
+        ; No extra arguments, so just set *ARGV* to an empty list
+        call alloc_cons         ; in RAX
+        mov [rax], BYTE maltype_empty_list
+        mov rcx, rax            ; value (empty list)
+        mov rdi, argv_symbol    ; symbol (*ARGV*)
+        mov rsi, [repl_env]     ; environment
+        call env_set
         
         ; -----------------------------
         ; Main loop
@@ -1557,40 +1611,7 @@ _start:
         
         ; Put into read_str
         mov rsi, rax
-        call read_str
-        push rax                ; Save AST
-
-        ; Eval
-        mov rsi, rax            ; Form to evaluate
-        mov rdi, [repl_env]     ; Environment
-
-        xchg rsi, rdi
-        call incref_object      ; Environment increment refs
-        xchg rsi, rdi           ; since it will be decremented by eval
-        
-        call eval
-        push rax                ; Save result
-        
-        ; Put into pr_str
-        mov rsi, rax
-        mov rdi, 1              ; print_readably
-        call pr_str
-        push rax                ; Save output string
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
-
-        ; Release string from pr_str
-        pop rsi
-        call release_array
-
-        ; Release result of eval
-        pop rsi
-        call release_object
-        
-        ; Release the object from read_str
-        pop rsi
-        call release_object     ; Could be Cons or Array
+        call rep_seq
         
         ; Release the input string
         pop rsi
@@ -1614,3 +1635,80 @@ _start:
 .catch_done_print:
         jmp .mainLoop           ; Go back to the prompt
         
+
+        
+run_script:
+        ; Called with number of command-line arguments in RAX
+        mov r8, rax
+        pop rbx                 ; executable
+        dec r8
+        
+        pop rsi                  ; Address of first arg
+        call cstring_to_string   ; string in RAX
+        mov r9, rax
+        
+        ; get the rest of the args
+        xor r10, r10            ; Zero       
+        dec r8
+        jz .no_args
+        
+        ; Got some arguments
+.arg_loop:  
+        ; Got an argument left. 
+        pop rsi                 ; Address of C string
+        call cstring_to_string  ; String in RAX
+        mov r12, rax
+        
+        ;Make a Cons to point to the string
+        call alloc_cons         ; in RAX
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        mov [rax + Cons.car], r12
+        
+        test r10, r10
+        jnz .append
+
+        ; R10 zero, so first arg
+        mov r10, rax            ; Head of list
+        mov r11, rax            ; Tail of list
+        jmp .next
+.append:
+        ; R10 not zero, so append to list tail
+        mov [r11 + Cons.cdr], rax
+        mov [r11 + Cons.typecdr], BYTE content_pointer
+        mov r11, rax
+.next:
+        dec r8
+        jnz .arg_loop
+        jmp .got_args
+        
+.no_args:
+        ; No arguments. Create an emoty list
+        call alloc_cons         ; in RAX
+        mov [rax], BYTE maltype_empty_list
+        mov r10, rax
+        
+.got_args:
+        push r9                 ; File name string
+        
+        mov rcx, r10            ; value (list)
+        mov rdi, argv_symbol    ; symbol (*ARGV*)
+        mov rsi, [repl_env]     ; environment
+        call env_set
+        
+        mov rsi, run_script_string ; load-file function
+        mov edx, run_script_string.len
+        call raw_to_string      ; String in RAX
+
+        mov rsi, rax
+        pop rdx                 ; File name string
+        call string_append_string
+
+        mov cl, 34              ; "
+        call string_append_char
+        mov cl, ')'
+        call string_append_char ; closing brace
+
+        ; Read-Eval-Print "(load-file <file>)"
+        call rep_seq 
+
+        jmp quit

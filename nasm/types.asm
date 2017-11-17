@@ -442,6 +442,41 @@ raw_to_symbol:
         ; set the content type
         mov [rax], BYTE (block_array + container_symbol + content_char)
         ret
+
+;; Convert a NUL terminated C string to string
+;;
+;; Input: RSI - Address of string
+;;
+;; Returns: String in RAX
+;;
+;; Modifies:
+;;   RBX
+;;   RCX
+;;   RDX
+        
+cstring_to_string:
+        push rsi
+        call string_new         ; in RAX
+        pop rsi
+
+        mov rbx, rax
+        add rbx, Array.data     ; Start of output
+        mov rcx, rax
+        add rcx, Array.size     ; End of output
+.loop:
+        mov dl, BYTE [rsi]
+        test dl, dl             ; Check if NUL (0)
+        jz .done
+        mov [rbx], BYTE dl
+        inc rbx
+        inc rsi
+        jmp .loop
+.done:
+        sub rbx, rax
+        sub rbx, Array.data
+        ; rbx now contains the length
+        mov [rax + Array.length], DWORD ebx
+        ret
         
 ;; Appends a character to a string
 ;; Input: Address of string in RSI, character in CL
@@ -453,7 +488,7 @@ string_append_char:
         ; Get the end of the string
 .get_end:
         mov rax, [rsi + Array.next]
-        cmp rax, 0
+        test rax, rax
         jz .got_dest_end
         mov rsi, rax
         jmp .get_end
