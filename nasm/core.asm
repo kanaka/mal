@@ -928,6 +928,12 @@ core_swap:
         ; Not a simple value, so point to it
         mov [rax + Cons.car], rdx
         mov [rax], BYTE (container_list + content_pointer)
+
+        ; Since the list will be released after eval
+        ; we need to increment the reference count
+        mov rsi, rdx
+        call incref_object
+        
         jmp .list_done
         
 .atom_value:
