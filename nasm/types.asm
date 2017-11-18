@@ -551,7 +551,7 @@ string_append_string:
         mov rax, rsi
 .find_string_end:
         mov r8, QWORD [rax + Array.next]
-        cmp r8, 0               ; Next chunk is null
+        test r8, r8             ; Next chunk is 0
         je .got_dest_end        ; so reached end
         
         mov rax, r8             ; Go to next chunk
@@ -580,7 +580,7 @@ string_append_string:
         
         ; have reached the end of the source Array
         mov rbx, QWORD [rbx + Array.next]     ; Get the next Array address
-        cmp rbx, 0              ; Test if it's null
+        test rbx, rbx           ; Test if it's null
         je .finished            ; No more, so we're done
         ; Move on to next Array object
         
@@ -589,8 +589,8 @@ string_append_string:
         add r10, Array.data     ; Start of the data
 
         ; Source end address
-        mov r11, rbx
-        add r11, Array.size
+        mov r11d, DWORD [rbx + Array.length] ; Length of the array
+        add r11, r10
         
 .source_ok:
 
