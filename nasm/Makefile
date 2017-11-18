@@ -27,3 +27,10 @@ step5_tco: step5_tco.asm $(COMPONENTS)
 step6_file: step6_file.asm $(COMPONENTS)
 	nasm -felf64 step6_file.asm
 	ld -o $@ step6_file.o
+
+%.o: %.asm
+	nasm -felf64 $<
+
+%: %.o
+	ld -o $@ $<
+
