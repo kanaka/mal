@@ -40,6 +40,10 @@ section .data
         static core_atomp_symbol, db "atom?"
         static core_reset_symbol, db "reset!"
         static core_swap_symbol, db "swap!"
+
+        static core_cons_symbol, db "cons"
+        static core_concat_symbol, db "concat"
+        
 ;; Strings
 
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
@@ -49,6 +53,11 @@ section .data
         static core_deref_not_atom, db "Error: argument to deref is not an atom"
         static core_reset_not_atom, db "Error: argument to reset is not an atom"
         static core_reset_no_value, db "Error: missing value argument to reset"
+
+        static core_cons_missing_arg, db "Error: missing argument to cons"
+        static core_cons_not_vector, db "Error: cons expects a list or vector"
+        
+        static core_concat_not_list, db "Error: concat expects lists or vectors"
 section .text
 
 ;; Add a native function to the core environment
@@ -112,6 +121,9 @@ core_environment:
         core_env_native core_atomp_symbol, core_atomp
         core_env_native core_reset_symbol, core_reset
         core_env_native core_swap_symbol, core_swap
+
+        core_env_native core_cons_symbol, core_cons
+        core_env_native core_concat_symbol, core_concat
         
         ; -----------------
         ; Put the environment in RAX
@@ -981,4 +993,193 @@ core_swap:
 .not_atom:
 .no_function:
         xor rsi,rsi
+        jmp error_throw
+
+
+;; Takes two arguments, and prepends the first argument onto the second
+;; The second argument can be a list or a vector, but the return is always
+;; a list
+core_cons:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty
+        je .missing_args
+
+        mov r8, rsi             ; The object to prepend
+
+        ; Check if there's a second argument
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .missing_args
+        
+        mov rsi, [rsi + Cons.cdr]
+
+        ; Check that the second argument is a list or vector
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_vector
+        
+        mov r9, [rsi + Cons.car] ; Should be a list or vector
+        mov al, BYTE [r9]
+        and al, container_mask
+        cmp al, container_list
+        je .got_args
+        cmp al, container_vector
+        je .got_args
+        jmp .not_vector
+        
+.got_args:
+        ; Got an object in R8 and list/vector in R9
+
+        ;call alloc_cons
+        ;mov r9, rax
+        ;mov [r9], BYTE container_list + content_nil ;; NOTE: Segfault if list changed to vector. Printer?
+        
+        call alloc_cons         ; new Cons in RAX
+
+        ; Mark as the same content in a list container
+        mov bl, BYTE [r8]
+        and bl, content_mask
+        mov bh, bl              ; Save content in BH for checking if pointer later
+        or bl, block_cons + container_list
+        mov [rax], BYTE bl
+        
+        ; Copy the content
+        mov rcx, [r8 + Cons.car]
+        mov [rax + Cons.car], rcx
+        
+        ; Put the list into CDR
+        mov [rax + Cons.cdr], r9
+        ; mark CDR as a pointer
+        mov [rax + Cons.typecdr], BYTE content_pointer
+
+        push rax                ; popped before return
+        
+        ; Check if the new Cons contains a pointer
+        cmp bh, content_pointer
+        jne .done
+
+        ; A pointer, so increment number of references
+        mov rsi, rcx
+        call incref_object
+        
+.done:
+        ; Increment reference count of list
+        mov rsi, r9
+        call incref_object
+        pop rax
+
+        ret
+        
+.missing_args:
+        mov rsi, core_cons_missing_arg
+        mov edx,core_cons_missing_arg.len
+        jmp .throw
+        
+.not_vector:
+        mov rsi, core_cons_not_vector
+        mov edx, core_cons_not_vector.len
+        
+.throw:
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
+
+
+;; Concatenate lists, returning a new list
+;;
+;; Notes:
+;;    * The last list does not need to be copied, but all others do
+;;
+core_concat:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty
+        je .missing_args
+
+        cmp al, content_pointer
+        jne .not_list
+        
+        ; Check if there is only one argument
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        je .start_loop                ; Start copy loop
+
+        ; Only one input.
+        ; Just increment reference count and return
+        
+        mov rsi, [rsi + Cons.car]
+        call incref_object
+        mov rax, rsi
+        ret
+
+.start_loop:  ; Have at least two inputs
+        xor r11, r11            ; Head of list. Start in R12
+        
+.loop:  
+        
+        ; Check the type
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_list
+        
+        ; Check if this is the last
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .last
+
+        ; not the last list, so need to copy
+
+        push rsi
+        mov rsi, [rsi + Cons.car] ; The list
+        call cons_seq_copy        ; Copy in RAX
+        pop rsi
+
+        ; Check if this is the first
+        test r11, r11
+        jnz .append
+
+        ; First list
+        mov r11, rbx            ; Last Cons in list
+        mov r12, rax            ; Output list
+        jmp .next
+.append:
+        ; End of previous list points to start of new list
+        mov [r11 + Cons.cdr], rax 
+        mov [r11 + Cons.typecdr], BYTE content_pointer
+        ; Put end of new list into R11
+        mov r11, rbx
+        
+.next:
+        mov rsi, [rsi + Cons.cdr]
+        jmp .loop
+
+.last:
+        ; last list, so can just prepend
+        mov rsi, [rsi + Cons.car]
+        
+        call incref_object
+        
+        mov [r11 + Cons.cdr], rsi
+        mov [r11 + Cons.typecdr], BYTE content_pointer
+
+        mov rax, r12            ; output list
+        ret
+        
+.missing_args:
+        ; Return nil
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+.not_list:
+        ; Got an argument which is not a list
+        mov rsi, core_concat_not_list
+        mov edx, core_concat_not_list.len
+        
+.throw:
+        call raw_to_string
+        mov rsi, rax
         jmp error_throw

@@ -225,17 +225,19 @@ pr_str:
         je .list_check_end
         
         ; A value (nil, int etc. or function)
-        xor cl, container_list  ; Remove list type -> value
+        mov ch, cl              ; Save type, container
+        and cl, content_mask    ; Remove list type -> value
         mov BYTE [rsi], cl
 
+        push rcx
         push r13
         push r12
         call pr_str             ; String in rax
         pop r12
         pop r13
-        
-        mov cl, BYTE [r12]
-        or cl, container_list  ; Restore list type
+        pop rcx
+
+        mov cl, ch              ; Restore list type
         mov  BYTE [r12], cl
         jmp .list_loop_got_str
 .list_loop_pointer:
@@ -434,17 +436,19 @@ pr_str:
         je .vector_check_end
         
         ; A value (nil, int etc. or function)
-        xor cl, container_vector  ; Remove vector type -> value
+        mov ch, cl              ; Save type, container
+        and cl, content_mask    ; Remove vector type -> value
         mov BYTE [rsi], cl
 
+        push rcx
         push r13
         push r12
         call pr_str             ; String in rax
         pop r12
         pop r13
-        
-        mov cl, BYTE [r12]
-        or cl, container_vector  ; Restore vector type
+        pop rcx
+
+        mov cl, ch              ; Restore vector type
         mov  BYTE [r12], cl
         jmp .vector_loop_got_str
 .vector_loop_pointer:

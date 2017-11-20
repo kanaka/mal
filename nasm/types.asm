@@ -388,6 +388,85 @@ incref_object:
         ; Check for overflow?
         mov [rsi + Cons.refcount], WORD ax
         ret
+
+;; -------------------------------------------
+;; Copying lists/vectors
+;; This does a shallow copy, copying only the
+;; top level of objects. Any objects pointed to are not copied
+;;
+;; Input: RSI - address of list/vector
+;;
+;; Returns: New list/vector in RAX, last Cons in RBX
+;;
+;; Modifies:
+;;    RBX
+;;    RCX
+;;    RDX
+;;    R8
+;;    R9
+;;    R10
+;;
+cons_seq_copy:
+        push rsi                ; Restored at the end
+        
+        mov r8, rsi             ; Input in R8
+        xor r9, r9              ; Head of list in R9, start in R10
+.loop:
+        ; Check the type
+        mov cl, BYTE [r8]
+        mov ch, cl
+        and ch, block_mask
+        jnz .not_seq            ; Not a Cons object
+        
+        call alloc_cons
+        mov rdx, rax            ; New Cons in RDX
+        mov [rdx], BYTE cl      ; Copy type in RCX
+        mov rbx, [r8 + Cons.car]  ; Value in RBX
+        mov [rdx + Cons.car], rbx ; Copy value
+        
+        and cl, content_mask
+        cmp cl, content_pointer
+        jne .copied
+        
+        ; A pointer, so increment the reference count
+        mov rsi, rbx
+        call incref_object
+        
+.copied:
+        ; Check if this is the first
+        test r9,r9
+        jnz .append
+
+        ; First Cons
+        mov r9, rdx
+        mov r10, rdx            ; Start of the list, will be returned
+        jmp .next
+        
+.append:
+        ; Appending to last Cons
+        mov [r9 + Cons.cdr], rdx
+        mov [r9 + Cons.typecdr], BYTE content_pointer
+        ; Replace
+        mov r9, rdx
+        
+.next:
+        ; Check if there's another
+        mov al, BYTE [r8 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done               ; No more
+        ; Got another
+        mov r8, [r8 + Cons.cdr]
+        jmp .loop
+
+.done:
+        pop rsi                 ; Restore input
+        mov rax, r10            ; Output list
+        mov rbx, r9             ; Last Cons
+        ret
+        
+.not_seq:
+        xor rsi,rsi
+        jmp error_throw
         
 ;; -------------------------------------------
 ;; String type
