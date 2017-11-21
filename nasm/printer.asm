@@ -265,8 +265,8 @@ pr_str:
 .list_check_end:
         ; Check if this is the end of the list
         mov cl, BYTE [r12 + Cons.typecdr]
-        cmp cl, content_nil
-        je .list_finished
+        cmp cl, content_pointer
+        jne .list_finished
 
         ; More left in the list
         
@@ -344,18 +344,20 @@ pr_str:
         je .map_check_end
         
         ; A value (nil, int etc. or function)
-        xor cl, container_map  ; Remove map type -> value
-        mov BYTE [rsi], cl
+        xchg ch, cl
+        mov [rsi], BYTE cl      ; Remove map type -> value
+        xchg ch, cl 
 
+        push rcx
         push r13
         push r12
         call pr_str             ; String in rax
         pop r12
         pop r13
+        pop rcx
         
-        mov cl, BYTE [r12]
-        or cl, container_map  ; Restore map type
-        mov  BYTE [r12], cl
+        mov cl, BYTE [r12]      ; Restore map type
+        
         jmp .map_loop_got_str
 .map_loop_pointer:
         mov rsi, [rsi + Cons.car] ; Address of object
@@ -476,8 +478,8 @@ pr_str:
 .vector_check_end:
         ; Check if this is the end of the vector
         mov cl, BYTE [r12 + Cons.typecdr]
-        cmp cl, content_nil
-        je .vector_finished
+        cmp cl, content_pointer
+        jne .vector_finished
 
         ; More left in the vector
         

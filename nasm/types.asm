@@ -160,7 +160,7 @@ section .data
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 300     ; Number of array objects which can be created
+%define heap_array_limit 1000     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0
@@ -622,8 +622,8 @@ string_append_string:
         mov r8d, DWORD [rbx + Array.length]
         add r11, r8
 
-        cmp r8d, 0
-        je .return              ; Appending zero-size array
+        test r8d, r8d
+        jz .return              ; Appending zero-size array
         
         ; Find the end of the string in RSI
         ; and put the address of the Array object into rax
@@ -645,6 +645,10 @@ string_append_string:
         ; destination data end into r9
         mov r9, rax
         add r9, Array.size
+
+        ; Check if we are at the end of the destination
+        cmp r8, r9
+        je .alloc_dest
         
 .copy_loop:        
         ; Copy one byte from source to destination

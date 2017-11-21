@@ -1169,9 +1169,9 @@ core_concat:
         ret
         
 .missing_args:
-        ; Return nil
+        ; Return empty list
         call alloc_cons
-        mov [rax], BYTE maltype_nil
+        mov [rax], BYTE maltype_empty_list
         ret
         
 .not_list:
