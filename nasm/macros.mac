@@ -25,6 +25,7 @@
         
         %1: ISTRUC Array
         AT Array.type,  db   maltype_symbol
+        AT Array.refcount, dw 1
         AT Array.length, dd  slen
         AT Array.data, db %2
         IEND

@@ -1130,11 +1130,18 @@ core_concat:
         cmp al, content_pointer
         jne .last
 
+        ; Check if the list is empty
+        mov rbx, [rsi + Cons.car] ; The list
+        mov al, BYTE [rbx]
+        and al, content_mask
+        cmp al, content_empty   ; If empty list or vector
+        je .next                ; Skip to next
+        
         ; not the last list, so need to copy
 
         push rsi
-        mov rsi, [rsi + Cons.car] ; The list
-        call cons_seq_copy        ; Copy in RAX
+        mov rsi, rbx ; The list
+        call cons_seq_copy        ; Copy in RAX, last Cons in RBX
         pop rsi
 
         ; Check if this is the first
@@ -1159,12 +1166,18 @@ core_concat:
 .last:
         ; last list, so can just prepend
         mov rsi, [rsi + Cons.car]
+
+        ; Check if the list is empty
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty   ; If empty list or vector
+        je .done                ; Omit the empty list
         
         call incref_object
         
         mov [r11 + Cons.cdr], rsi
         mov [r11 + Cons.typecdr], BYTE content_pointer
-
+.done:
         mov rax, r12            ; output list
         ret
         

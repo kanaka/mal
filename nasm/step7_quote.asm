@@ -62,6 +62,10 @@ section .data
 
         static_symbol quote_symbol, 'quote'
         static_symbol quasiquote_symbol, 'quasiquote'
+        static_symbol unquote_symbol, 'unquote'
+        static_symbol splice_unquote_symbol, 'splice-unquote'
+        static_symbol concat_symbol, 'concat'
+        static_symbol cons_symbol, 'cons'
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) )"
@@ -716,6 +720,9 @@ eval:
 
         eval_cmp_symbol quote_symbol ; quote
         je .quote_symbol
+
+        eval_cmp_symbol quasiquote_symbol ; quasiquote
+        je .quasiquote_symbol
         
         ; Unrecognised
         jmp .list_eval
@@ -1381,6 +1388,50 @@ eval:
         
         ; -----------------------------
         
+.quasiquote_symbol:
+        ; call quasiquote function with first argument
+        
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .return_nil         ; quasiquote empty, so return nil
+
+        mov r11, rsi            ; Save original AST in R11
+        
+        mov rsi, [rsi + Cons.cdr]
+
+        ; Check if this is a value or pointer
+        mov al, BYTE [rsi + Cons.typecar]
+        and al, content_mask
+        cmp al, content_pointer
+        je .quasiquote_pointer
+        
+        ; RSI contains a value. Remove the list container
+        mov [rsi + Cons.typecar], BYTE al
+        call incref_object
+        mov rax, rsi
+        jmp .return
+        
+.quasiquote_pointer:
+        ; RSI contains a pointer, so get the object pointed to
+        mov rsi, [rsi + Cons.car]
+
+        call quasiquote
+        ret
+        
+        push r15                ; Environment
+        push r11                ; Original AST
+        call quasiquote
+        ; New AST in RAX
+        pop rsi                 ; Old AST
+        push rax
+        call release_object     ; Release old AST
+        pop rsi
+        pop rdi                 ; Environment
+
+        jmp eval                ; Tail call
+        
+        ; -----------------------------
+        
 .list_eval:
         push rsi
         mov rdi, r15            ; Environment
@@ -1523,8 +1574,349 @@ apply_fn:
         
         jmp eval           ; Tail call
         ; The new environment (in RDI) will be released by eval
+
+
+;; Set ZF if RSI is a non-empty list or vector
+;; Modifies RAX, does not modify RSI
+is_pair:
+        mov al, BYTE [rsi]
+        test al, block_mask
+        jnz .false              ; Not a Cons
+        cmp al, maltype_empty_list
+        je .false               ; Empty list
+        cmp al, maltype_empty_vector
+        je .false               ; Empty vector
+        
+        ; Something non empty
+        and al, container_mask
+        cmp al, container_list
+        jmp .true
+        cmp al, container_vector
+        jmp .true
+        ; Not a list or vector -> false
+
+.false:
+        lahf                    ; flags in AH
+        and ah, 255-64          ; clear zero flag
+        sahf
+        ret
+.true:
+        lahf                    ; flags in AH
+        or ah, 64               ; set zero flag
+        sahf
+        ret
+        
+;; Called by eval with AST in RSI
+quasiquote:
+        ; i. Check if AST is an empty list
+        call is_pair
+        jne .quote_ast
+        
+        ; ii. Check if the first element of RSI is the symbol
+        ;     'unquote'
+
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_unquote        ; Not a pointer
+        
+        mov rdi, [rsi + Cons.car] ; Get the pointer
+        mov cl, BYTE [rdi]
+        cmp cl, maltype_symbol
+        jne .not_unquote
+
+        ; Compare against 'unquote'
+        mov r8, rsi
+        mov r9, rax
+        
+        mov rsi, unquote_symbol
+        call compare_char_array
+        test rax, rax
+
+        mov rax, r9
+        mov rsi, r8
+        
+        je .unquote
+        
+.not_unquote:
+        ; iii. Handle splice-unquote
+        ;      RSI -> ( ( splice-unquote ? ) ? )
+        
+        ; Test if RSI contains a pointer
+        
+        cmp al, content_pointer
+        jne .not_splice
+        
+        mov rbx, [rsi + Cons.car] ; Get the object pointer
+        
+        ; RBX -> ( splice-unquote ? )
+        
+        xchg rbx, rsi
+        call is_pair
+        xchg rbx, rsi
+        jne .not_splice         ; First element not a pair
+        
+        ; Check if this list in RBX starts with 'splice-unquote' symbol
+        mov al, BYTE [rbx]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_splice
+        
+        
+        mov rdi, [rbx + Cons.car] ; Get the pointer
+        mov al, BYTE [rdi]
+        cmp al, maltype_symbol
+        jne .not_splice
+        
+        mov r8, rsi
+        mov r9, rbx
+        
+        ; Compare against 'splice-unquote'
+        mov rsi, splice_unquote_symbol
+        call compare_char_array
+        test rax, rax
+
+        mov rbx, r9
+        mov rsi, r8
+
+        je .splice_unquote
+        
+.not_splice:
+
+        ; iv. Cons first and rest of AST in RSI
+
+        ; Check if this is the end of the list
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .quote_ast          ; Put in quote
+
+        ; Not the end of the AST, so need to cons
+        ; check if pointer or value
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        cmp cl, content_pointer
+        je .cons_pointer
+
+        ; a value, so copy
+        call alloc_cons
+        or cl, container_list
+        mov [rax], BYTE cl      ; List + Content
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx
+        mov rcx, rax
+        jmp .cons_first
+        
+.cons_pointer:
+        ; Get the pointer and increment references
+        mov rcx, [rsi + Cons.car]
+        xchg rcx, rsi
+        call incref_object
+        xchg rcx, rsi           ; Object in RCX
+
+        call alloc_cons
+        mov [rax], BYTE (container_list + content_pointer)
+        mov [rax + Cons.car], rcx ; The value
+        mov rcx, rax
+        
+.cons_first:
+        ; Have Cons with first object in RCX
+
+        ; Call quasiquote on the rest of the AST
+        push rcx
+        mov rsi, [rsi + Cons.cdr]
+        call quasiquote
+        mov rdx, rax            ; List in RDX
+        pop rcx                 ; Value in RCX
+
+        ; cons RCX and RDX
+        ; Work from the end of the list to the front
+
+        call alloc_cons
+        mov [rax], BYTE (container_list + content_pointer)
+        mov [rax + Cons.car], rdx ; The rest of AST
+
+        ; Link to the RCX Cons
+        mov [rcx + Cons.typecdr], BYTE content_pointer
+        mov [rcx + Cons.cdr], rax
+        mov rdx, rcx
+        
+        call alloc_cons         ; Cons for cons symbol
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        mov [rax + Cons.cdr], rdx
+        mov rdx, rax
+        
+        ; Get the cons symbol
+        mov rsi, cons_symbol
+        call incref_object
+
+        mov [rdx], BYTE (container_list + content_pointer)
+        mov [rdx + Cons.car], rsi
+        
+        mov rax, rdx
+        ret
+        
+.quote_ast:
+        ; Return (quote RSI)
+
+        call incref_object      ; RSI reference count
+        
+        ; Cons for RSI
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        mov [rax + Cons.car], rsi
+        mov rsi, rax
+
+        ; Cons for quote symbol
+        call alloc_cons
+        mov rbx, rax
+        mov [rbx + Cons.typecdr], BYTE content_pointer
+        mov [rbx + Cons.cdr], rsi
+
+        ; Get a quote symbol, incrementing references
+        mov rsi, quote_symbol
+        call incref_object
+
+        ; Put into the Cons in RBX
+        mov [rbx + Cons.car], rsi
+        mov [rbx], BYTE (block_cons + container_list + content_pointer)
+        mov rax, rbx
+        ret
+        ; -----------------------
+        
+.unquote:
+
+        ; Got unquote symbol. Return second element of RSI
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .empty_list              ; No second element
+        
+        mov rsi, [rsi + Cons.cdr]
+
+        ; Check if it's a value or pointer
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        cmp cl, content_pointer
+        je .unquote_pointer
+
+        ; A value, so need a new Cons
+        call alloc_cons
+        mov [rax], BYTE cl      ; content
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx ; Copy content
+        ret
+       
+.unquote_pointer:
+        mov rsi, [rsi + Cons.car]
+        call incref_object
+        mov rax, rsi
+        ret
+
+        ; -----------------------
+.splice_unquote:
+        ; RSI -> ( RBX->( splice-unquote A ) B )
+        ; 
+        ; RBX Car points to splice-unquote symbol
+
+        ; Check if there is anything after the symbol
+        mov al, BYTE [rbx + Cons.typecdr]
+        cmp al, content_pointer
+        jne .splice_unquote_empty
+
+        ; Point to the second element of the splice-unquote list
+        mov rcx, [rbx + Cons.cdr]
+        
+        ; Check whether it's a value or pointer
+        mov al, BYTE [rcx]
+        and al, content_mask
+        cmp al, content_pointer
+        je .splice_unquote_pointer
+
+        ; A value, so change the container to a value
+        mov [rcx], BYTE al
+        ; Remove pointer from RBX
+        mov [rbx + Cons.typecdr], BYTE 0
+        jmp .splice_unquote_first ; Got the value in RCX
+        
+.splice_unquote_pointer:
+        mov rcx, [rcx + Cons.car] ; Get the object pointed to
+        xchg rcx, rsi
+        call incref_object
+        xchg rcx, rsi           ; Object in RCX
+        
+.splice_unquote_first:          ; Got the first object in RCX
+
+        ; Check if RSI contains anything else
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .splice_unquote_notail
+
+        mov rsi, [rsi + Cons.cdr]
+        
+        ; Now have:
+        ; ( ( splice-unquote A ) B )
+        ; RCX->A RSI->( B )
+        ; Need to call quasiquote on the rest of the list
+        push rcx
+        call quasiquote
+        mov rdx, rax
+        pop rcx
+        ; Need to concat rcx and rdx
+        ; Work from the end of the list to the front
+        
+        call alloc_cons
+        mov [rax], BYTE (container_list + content_pointer)
+        mov [rax + Cons.car], rdx ; The rest of AST
+        mov rdx, rax              ; Push list into RDX
+
+        call alloc_cons
+        mov [rax], BYTE (container_list + content_pointer)
+        mov [rax + Cons.car], rcx ; The splice-unquote object
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        mov [rax + Cons.cdr], rdx
+        mov rdx, rax
+        
+        call alloc_cons         ; Cons for concat symbol
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        mov [rax + Cons.cdr], rdx
+        mov rdx, rax
+
+        ; Get the concat symbol
+        mov rsi, concat_symbol
+        call incref_object
+
+        mov [rdx], BYTE (container_list + content_pointer)
+        mov [rdx + Cons.car], rsi
+        
+        mov rax, rdx
+        ret
+        
+.splice_unquote_notail:
+        ; Just return the object in RCX
+        ; since nothing to concatenate with
+        mov rax, rcx
+        ret
+
+.splice_unquote_empty:
+        ; Nothing in the (splice-unquote) list, so ignore
+        ; Just call quasiquote on the rest of RSI
+
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .empty_list         ; Nothing else
+
+        mov rsi, [rsi + Cons.cdr]
+        jmp quasiquote          ; Tail call
+        
+.empty_list:
+        ; Return an empty list
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        ret
+
+        
         
 
+        
 ;; Read-Eval-Print in sequence
 ;;
 ;; Input string in RSI
