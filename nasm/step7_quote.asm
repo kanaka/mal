@@ -1415,8 +1415,8 @@ eval:
         ; RSI contains a pointer, so get the object pointed to
         mov rsi, [rsi + Cons.car]
 
-        call quasiquote
-        ret
+        ;call quasiquote
+        ;ret
         
         push r15                ; Environment
         push r11                ; Original AST
@@ -1707,15 +1707,16 @@ quasiquote:
         jmp .cons_first
         
 .cons_pointer:
-        ; Get the pointer and increment references
-        mov rcx, [rsi + Cons.car]
-        xchg rcx, rsi
-        call incref_object
-        xchg rcx, rsi           ; Object in RCX
-
+        ; Get the pointer and call quasiquote
+        push rsi
+        mov rsi, [rsi + Cons.car]
+        call quasiquote
+        mov rcx, rax
+        pop rsi
+        
         call alloc_cons
         mov [rax], BYTE (container_list + content_pointer)
-        mov [rax + Cons.car], rcx ; The value
+        mov [rax + Cons.car], rcx
         mov rcx, rax
         
 .cons_first:
