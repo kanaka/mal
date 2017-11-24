@@ -1031,10 +1031,6 @@ core_cons:
         
 .got_args:
         ; Got an object in R8 and list/vector in R9
-
-        ;call alloc_cons
-        ;mov r9, rax
-        ;mov [r9], BYTE container_list + content_nil ;; NOTE: Segfault if list changed to vector. Printer?
         
         call alloc_cons         ; new Cons in RAX
 
@@ -1048,12 +1044,19 @@ core_cons:
         ; Copy the content
         mov rcx, [r8 + Cons.car]
         mov [rax + Cons.car], rcx
+
+        ; Check if R9 is empty
+        mov cl, BYTE [r9]
+        and cl, content_mask
+        cmp cl, content_empty
+        je .end_append          ; Don't append the list
         
         ; Put the list into CDR
         mov [rax + Cons.cdr], r9
         ; mark CDR as a pointer
         mov [rax + Cons.typecdr], BYTE content_pointer
 
+.end_append:
         push rax                ; popped before return
         
         ; Check if the new Cons contains a pointer
@@ -1107,9 +1110,52 @@ core_concat:
         je .start_loop                ; Start copy loop
 
         ; Only one input.
+        mov rsi, [rsi + Cons.car]
+        
+        ; Check if it's a list or vector
+        mov al, BYTE [rsi]
+        mov cl, al
+        and al, container_mask
+        cmp al, (block_cons + container_list)
+        je .single_list
+
+        cmp al, (block_cons + container_vector)
+        jne .not_list           ; not a list or vector
+
+        ; A vector. Need to create a new Cons
+        ; for the first element, to mark it as a list
+        
+        call alloc_cons
+        and cl, content_mask
+        or cl, container_list
+        mov [rax], BYTE cl      ; Set type
+
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx ; Set content
+
+        mov dl, BYTE [rsi + Cons.typecdr]
+        mov [rax + Cons.typecdr], BYTE dl ; CDR type
+        
+        mov rbx, [rsi + Cons.cdr]
+        mov [rax + Cons.cdr], rbx ; Set CDR content
+
+        ; Check if CDR is a pointer
+        cmp dl, content_pointer
+        je .single_vector_incref
+        ; not a pointer, just return
+        ret
+        
+.single_vector_incref:
+        ; increment the reference count of object pointed to
+        mov r12, rax            ; The return Cons
+        mov rsi, rbx            ; The object address
+        call incref_object
+        mov rax, r12
+        ret
+        
+.single_list:
         ; Just increment reference count and return
         
-        mov rsi, [rsi + Cons.car]
         call incref_object
         mov rax, rsi
         ret
@@ -1164,11 +1210,12 @@ core_concat:
         jmp .loop
 
 .last:
-        ; last list, so can just prepend
+        ; last list, so can just append
         mov rsi, [rsi + Cons.car]
 
         ; Check if the list is empty
         mov al, BYTE [rsi]
+        mov ah, al
         and al, content_mask
         cmp al, content_empty   ; If empty list or vector
         je .done                ; Omit the empty list
@@ -1178,7 +1225,13 @@ core_concat:
         mov [r11 + Cons.cdr], rsi
         mov [r11 + Cons.typecdr], BYTE content_pointer
 .done:
+        ; Make sure that return is a list
+        mov bl, BYTE [r12]
+        and bl, content_mask
+        or bl, container_list
+        mov [r12], BYTE bl
         mov rax, r12            ; output list
+        
         ret
         
 .missing_args:
