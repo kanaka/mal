@@ -1590,11 +1590,11 @@ is_pair:
         ; Something non empty
         and al, container_mask
         cmp al, container_list
-        jmp .true
+        je .true
         cmp al, container_vector
-        jmp .true
+        je .true
         ; Not a list or vector -> false
-
+        
 .false:
         lahf                    ; flags in AH
         and ah, 255-64          ; clear zero flag
@@ -1685,12 +1685,6 @@ quasiquote:
 
         ; iv. Cons first and rest of AST in RSI
 
-        ; Check if this is the end of the list
-        mov al, BYTE [rsi + Cons.typecdr]
-        cmp al, content_pointer
-        jne .quote_ast          ; Put in quote
-
-        ; Not the end of the AST, so need to cons
         ; check if pointer or value
         mov cl, BYTE [rsi]
         and cl, content_mask
@@ -1723,12 +1717,34 @@ quasiquote:
         ; Have Cons with first object in RCX
 
         ; Call quasiquote on the rest of the AST
+        ; Check if this is the end of the list
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .cons_ast_end
+        
+        mov rsi, [rsi + Cons.cdr] ; Rest of the list
+
+        call incref_object      ; Will release after quasiquote call
+        
+        jmp .cons_quasiquote_ast
+        
+.cons_ast_end:
+        ; End of the AST, so make an empty list
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        mov rsi, rax
+        
+.cons_quasiquote_ast:
         push rcx
-        mov rsi, [rsi + Cons.cdr]
+        push rsi
         call quasiquote
         mov rdx, rax            ; List in RDX
+        
+        pop rsi
+        call release_object     ; Release input
+        
         pop rcx                 ; Value in RCX
-
+        
         ; cons RCX and RDX
         ; Work from the end of the list to the front
 

@@ -1042,13 +1042,13 @@ core_cons:
         mov [rax], BYTE bl
         
         ; Copy the content
-        mov rcx, [r8 + Cons.car]
+        mov rcx, [r8 + Cons.car] ; Content in RCX
         mov [rax + Cons.car], rcx
 
         ; Check if R9 is empty
-        mov cl, BYTE [r9]
-        and cl, content_mask
-        cmp cl, content_empty
+        mov dl, BYTE [r9]
+        and dl, content_mask
+        cmp dl, content_empty
         je .end_append          ; Don't append the list
         
         ; Put the list into CDR
@@ -1056,23 +1056,25 @@ core_cons:
         ; mark CDR as a pointer
         mov [rax + Cons.typecdr], BYTE content_pointer
 
-.end_append:
-        push rax                ; popped before return
-        
-        ; Check if the new Cons contains a pointer
-        cmp bh, content_pointer
-        jne .done
-
-        ; A pointer, so increment number of references
-        mov rsi, rcx
-        call incref_object
-        
-.done:
-        ; Increment reference count of list
+        ; Increment reference count
+        push rax
         mov rsi, r9
         call incref_object
         pop rax
+        
+.end_append:
+        ; Check if the new Cons contains a pointer
+        mov bl, BYTE [rax]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .done
 
+        ; A pointer, so increment number of references
+        push rax
+        mov rsi, rcx
+        call incref_object
+        pop rax
+.done:
         ret
         
 .missing_args:
