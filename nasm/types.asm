@@ -130,7 +130,7 @@ ENDSTRUC
 %define maltype_empty_map (block_cons + container_map + content_empty)
 %define maltype_empty_vector (block_cons + container_vector + content_empty)
 %define maltype_function (block_cons + container_function + content_function)
-%define maltype_macro (block_cons + container_macro + content_function)
+%define maltype_macro (block_cons + container_function + content_macro)
 %define maltype_true (block_cons + container_value + content_true)
 %define maltype_false (block_cons + container_value + content_false)
 %define maltype_atom (block_cons + container_atom + content_pointer)
@@ -489,25 +489,75 @@ string_new:
 ;; Output: Address of string in RAX
 ;;
 ;; Modifies registers: R8,R9,RCX
+;;
 raw_to_string:
+        ; Save registers to restore at the end
+        push r10
+        push r11
+        
         push rsi
         push rdx
         call string_new         ; String now in RAX
         pop rdx
         pop rsi
-        mov [rax + Array.length], DWORD edx
+        
         mov r8, rax
         add r8, Array.data      ; Address of string data
+        mov r10, rax
+        add r10, Array.size     ; End of the destination data
+        mov r11, rax            ; First Array to return
+        
         mov r9, rsi             ; Address of raw data
         mov ecx, edx            ; Count
-.copy_loop:
         
+.copy_loop:
+        test ecx, ecx           ; Check if count is zero
+        jz .done
+        
+        ; Copy one byte
         mov bl, BYTE [r9]
         mov [r8], BYTE bl
+
+        ; Move the destination
         inc r8
+        cmp r8, r10
+        jne .dest_ok
+        
+        ; Hit the end. Set the length of the array
+        mov [rax + Array.length], DWORD (array_chunk_len * 8)
+
+        push rax                ; Last Array
+        push rsi
+        push rdx
+        call string_new         ; String now in RAX
+        pop rdx
+        pop rsi
+        pop rbx                 ; Last Array
+        mov [rbx + Array.next], rax ; Point to new Array
+        
+        mov r8, rax
+        add r8, Array.data      ; Address of string data
+        mov r10, rax
+        add r10, Array.size     ; End of the destination data
+        
+.dest_ok:
+        
         inc r9
         dec ecx
-        jnz .copy_loop
+        jmp .copy_loop
+.done:
+        ; Set the length of the destination array
+        sub r8, Array.data
+        sub r8, rax
+        mov [rax + Array.length], DWORD r8d
+
+        ; Move first Array into RAX
+        mov rax, r11
+
+        ; Restore registers
+        pop r11
+        pop r10
+        
         ret
 
 ;; Convert a raw string to a symbol
