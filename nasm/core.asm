@@ -45,6 +45,8 @@ section .data
         static core_concat_symbol, db "concat"
 
         static core_first_symbol, db "first"
+        static core_rest_symbol, db "rest"
+        static core_nth_symbol, db "nth"
         
 ;; Strings
 
@@ -63,6 +65,15 @@ section .data
 
         static core_first_missing_arg, db "Error: missing argument to first"
         static core_first_not_list, db "Error: first expects a list or vector"
+        
+        static core_rest_missing_arg, db "Error: missing argument to rest"
+        static core_rest_not_list, db "Error: rest expects a list or vector"
+
+        static core_nth_missing_arg, db "Error: missing argument to nth"
+        static core_nth_not_list, db "Error: nth expects a list or vector as first argument"
+        static core_nth_not_int, db "Error: nth expects an integer as second argument"
+        static core_nth_out_of_range, db "Error: nth index out of range"
+        
 section .text
 
 ;; Add a native function to the core environment
@@ -131,6 +142,9 @@ core_environment:
         core_env_native core_concat_symbol, core_concat
         
         core_env_native core_first_symbol, core_first
+        core_env_native core_rest_symbol, core_rest
+        core_env_native core_nth_symbol, core_nth
+        
         
         ; -----------------
         ; Put the environment in RAX
@@ -1333,3 +1347,172 @@ core_first:
         mov rsi, rax
         jmp error_throw
     
+
+;; Return a list with the first element removed
+core_rest:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty
+        je .missing_args
+
+        cmp al, content_nil
+        je .return_nil
+        
+        cmp al, content_pointer
+        jne .not_list
+
+        ; Get the list
+        mov rsi, [rsi + Cons.car]
+
+        mov al, BYTE [rsi]
+
+        ; Check for nil
+        cmp al, maltype_nil
+        je .return_nil
+        
+        mov ah, al
+        and ah, (block_mask + container_mask)
+        cmp ah, container_list
+        je .got_list
+        cmp ah, container_vector
+        jne .not_list           ; Not a list or vector
+        
+.got_list:
+        ; Check if list is empty
+        and al, content_mask
+        cmp al, content_empty
+        je .empty_list
+
+        ; Check if there is more in the list
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        je .return_rest
+        
+        ; No more list, so return empty list
+.empty_list:
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        ret
+        
+.return_rest:
+
+        mov rsi, [rsi + Cons.cdr]
+        call incref_object
+        mov rax, rsi
+        ret
+
+.return_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+.missing_args:
+        mov rsi, core_rest_missing_arg
+        mov edx, core_rest_missing_arg.len
+        jmp .throw
+        
+.not_list:
+        mov rsi, core_rest_not_list
+        mov edx, core_rest_not_list.len
+.throw:
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
+
+
+;; Return the nth element of a list or vector
+core_nth:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty
+        je .missing_args
+
+        cmp al, content_nil
+        je .return_nil
+        
+        cmp al, content_pointer
+        jne .not_list
+
+        ; Get the list into R8
+        mov r8, [rsi + Cons.car]
+        
+        ; Check if we have a second argument
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .missing_args
+
+        mov r9, [rsi + Cons.cdr]
+        
+        ; Check that it is a number
+        mov al, BYTE [r9]
+        and al, content_mask
+        cmp al, content_int
+        jne .not_int
+
+        ; Get the number in RBX
+        mov rbx, [r9 + Cons.car]
+
+        ; Now loop through the list, moving along n elements
+.loop:
+        test rbx, rbx           ; Test if zero
+        jz .done
+
+        ; Move along next element
+
+        mov al, BYTE [r8 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .out_of_range       ; No element
+
+        mov r8, [r8 + Cons.cdr]
+        dec rbx
+        jmp .loop        
+        
+.done:
+        ; Take the head of the list in R8
+        mov al, BYTE [r8]
+        and al, content_mask
+        cmp al, content_pointer
+        je .return_pointer
+
+        ; Copy a value
+        mov cl, al
+        call alloc_cons
+        mov [rax], BYTE cl
+        mov rcx, [r8 + Cons.car]
+        mov [rax + Cons.car], rcx
+        ret
+        
+.return_pointer:
+        mov rsi, [r8 + Cons.car]
+        call incref_object
+        mov rax, rsi
+        ret
+
+.return_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+.missing_args:
+        mov rsi, core_nth_missing_arg
+        mov edx, core_nth_missing_arg.len
+        jmp .throw
+        
+.not_list:
+        mov rsi, core_nth_not_list
+        mov edx, core_nth_not_list.len
+        jmp .throw
+
+.not_int:
+        mov rsi, core_nth_not_int
+        mov edx, core_nth_not_int.len
+        jmp .throw
+        
+.out_of_range:
+        mov rsi, core_nth_out_of_range
+        mov edx, core_nth_out_of_range.len
+        
+.throw:
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
