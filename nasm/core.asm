@@ -43,6 +43,8 @@ section .data
 
         static core_cons_symbol, db "cons"
         static core_concat_symbol, db "concat"
+
+        static core_first_symbol, db "first"
         
 ;; Strings
 
@@ -58,6 +60,9 @@ section .data
         static core_cons_not_vector, db "Error: cons expects a list or vector"
         
         static core_concat_not_list, db "Error: concat expects lists or vectors"
+
+        static core_first_missing_arg, db "Error: missing argument to first"
+        static core_first_not_list, db "Error: first expects a list or vector"
 section .text
 
 ;; Add a native function to the core environment
@@ -124,6 +129,8 @@ core_environment:
 
         core_env_native core_cons_symbol, core_cons
         core_env_native core_concat_symbol, core_concat
+        
+        core_env_native core_first_symbol, core_first
         
         ; -----------------
         ; Put the environment in RAX
@@ -1251,3 +1258,78 @@ core_concat:
         call raw_to_string
         mov rsi, rax
         jmp error_throw
+
+
+;; Returns the first element of a list
+;;
+core_first:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty
+        je .missing_args
+
+        cmp al, content_nil
+        je .return_nil
+        
+        cmp al, content_pointer
+        jne .not_list
+
+        ; Get the list
+        mov rsi, [rsi + Cons.car]
+
+        mov al, BYTE [rsi]
+
+        ; Check for nil
+        cmp al, maltype_nil
+        je .return_nil
+        
+        mov ah, al
+        and ah, (block_mask + container_mask)
+        cmp ah, container_list
+        je .got_list
+        cmp ah, container_vector
+        jne .not_list           ; Not a list or vector
+        
+.got_list:
+        ; Check if list is empty
+        and al, content_mask
+        cmp al, content_empty
+        je .return_nil
+
+        cmp al, content_pointer
+        je .return_pointer
+
+        ; Returning a value, so need to copy
+        mov cl, al
+        call alloc_cons
+        mov [rax], BYTE cl      ; Set type
+
+        ; Copy value
+        mov rcx, [rsi + Cons.car]
+        mov [rax + Cons.car], rcx
+        ret
+        
+.return_pointer:
+        mov rsi, [rsi + Cons.car]
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.return_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+.missing_args:
+        mov rsi, core_first_missing_arg
+        mov edx, core_first_missing_arg.len
+        jmp .throw
+        
+.not_list:
+        mov rsi, core_first_not_list
+        mov edx, core_first_not_list.len
+.throw:
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
+    
