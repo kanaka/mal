@@ -69,7 +69,9 @@ section .data
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) )"
-
+        
+        ;static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) )"
+        
 ;; Command to run, appending the name of the script to run
         static run_script_string, db "(load-file ",34
 section .text
@@ -307,12 +309,13 @@ eval_ast:
         push r8
         push r9
         push r15                  ; Env
-        mov rsi, [rsi + Cons.car] ; Get the address
-        mov rdi, r15
+        mov rdi, [rsi + Cons.car] ; Get the address
+        mov rsi, r15
 
-        xchg rsi, rdi
         call incref_object      ; Environment increment refs
-        xchg rsi, rdi 
+        xchg rsi, rdi           ; Env in RDI, AST in RSI
+        
+        call incref_object      ; AST increment refs
         
         call eval             ; Evaluate it, result in rax
         pop r15
@@ -476,6 +479,8 @@ eval_ast:
         xchg rsi, rdi
         call incref_object      ; Environment increment refs
         xchg rsi, rdi
+
+        call incref_object
         
         call eval               ; Evaluate it, result in rax
         pop r15
@@ -564,6 +569,8 @@ eval_ast:
         xchg rsi, rdi
         call incref_object      ; Environment increment refs
         xchg rsi, rdi
+
+        call incref_object
         
         call eval             ; Evaluate it, result in rax
         pop r15
@@ -659,16 +666,19 @@ eval_ast:
 ;; ----------------------------------------------------
 ;; Evaluates a form
 ;;      
-;; Input: RSI   Form to evaluate
-;;        RDI   Environment
+;; Input: RSI   AST to evaluate   [ Released ]
+;;        RDI   Environment       [ Released ]
 ;;
 ;; Returns: Result in RAX
 ;;
-;; Note: The environment in RDI will have its reference count
-;; reduced by one (released). This is to make tail call optimisation easier
+;; Note: Both the form and environment will have their reference count
+;; reduced by one (released). This is for tail call optimisation (Env),
+;; quasiquote and macroexpand (AST)
 ;; 
 eval:
         mov r15, rdi            ; Env
+
+        push rsi                ; AST pushed, must be popped before return
         
         ; Check type
         mov al, BYTE [rsi]
@@ -790,6 +800,8 @@ eval:
         xchg rsi, rdi
         call incref_object      ; Environment increment refs
         xchg rsi, rdi           ; since it will be decremented by eval
+
+        call incref_object      ; AST increment refs
         
         call eval
         mov rsi, rax
@@ -916,6 +928,9 @@ eval:
         push r13                 ; symbol to bind
         push r14                 ; new environment
         mov rsi, [r12 + Cons.car] ; Get the address
+        
+        call incref_object      ; Increment ref count of AST
+        
         mov rdi, r14
         call eval               ; Evaluate it, result in rax
         pop r14
@@ -968,6 +983,13 @@ eval:
         ; Evaluate using new environment
         
         mov rsi, [r11 + Cons.car] ; Object pointed to
+        call incref_object        ; will be released by eval
+        
+        mov r11, rsi              ; save new AST
+        pop rsi                   ; Old AST
+        call release_object
+        mov rsi, r11            ; New AST
+        
         mov rdi, r14            ; New environment
 
         jmp eval                ; Tail call
@@ -977,6 +999,12 @@ eval:
         ; Release the new environment
         push rax
         mov rsi, r14
+        call release_object
+        pop rax
+
+        ; Release the AST
+        pop rsi
+        push rax
         call release_object
         pop rax
         ret                     ; already released env
@@ -1061,6 +1089,8 @@ eval:
                                 ; since eval will release Env
         
         mov rsi, [r11 + Cons.car]  ; Form
+        call incref_object         ; Increment ref count since eval will release
+        
         mov rdi, r15            ; Env
         call eval               ; Result in RAX
         
@@ -1103,14 +1133,29 @@ eval:
         mov [rax], BYTE bl
         mov rbx, [r11 + Cons.car]
         mov [rax + Cons.car], rbx
+
+        ; release the AST
+        pop rsi
+        mov r15, rax            ; not modified by release
+        call release_object
+        mov rax, r15
+        
         ret
 
 .do_body_expr_return:
         ; An expression to evaluate as the last form
         ; Tail call optimise, jumping to eval
         ; Don't increment Env reference count
+
         
-        mov rsi, [r11 + Cons.car]  ; Form
+        mov rsi, [r11 + Cons.car]  ; new AST form
+        call incref_object         ; This will be released by eval
+
+        mov r11, rsi              ; Save new AST
+        pop rsi                   ; Remove old AST from stack
+        call release_object
+        mov rsi, r11
+        
         mov rdi, r15            ; Env
         jmp eval                ; Tail call
         
@@ -1119,6 +1164,10 @@ eval:
 
         mov rsi, r15
         call release_object     ; Release Env
+
+        ; release the AST
+        pop rsi
+        call release_object
         
         call alloc_cons
         mov [rax], BYTE maltype_nil
@@ -1152,6 +1201,8 @@ eval:
         call incref_object      ; Increase Env reference
         
         mov rsi, [r11 + Cons.car]  ; Form
+        call incref_object         ; Increase Form/AST ref count
+        
         mov rdi, r15            ; Env
         call eval               ; Result in RAX
         pop r11
@@ -1219,6 +1270,13 @@ eval:
         
 .if_got_pointer:
         mov rsi, [r11 + Cons.car]  ; Form
+        call incref_object        ; Will be released by eval
+
+        mov r11, rsi
+        pop rsi
+        call release_object     ; Release old AST
+        mov rsi, r11            ; New AST
+        
         mov rdi, r15            ; Env
         jmp eval                ; Tail call
         
@@ -1239,12 +1297,16 @@ eval:
         mov [rax + Cons.typecdr], BYTE content_nil
 
 .return:
-        push rax
         ; Release environment
         mov rsi, r15
+        mov r15, rax            ; Save RAX (return value)
         call release_object
-        pop rax
-        
+
+        ; Release the AST
+        pop rsi                 ; Pushed at start of eval
+        call release_object
+
+        mov rax, r15            ; return value
         ret
         
         ; -----------------------------
@@ -1419,15 +1481,17 @@ eval:
         ;ret
         
         push r15                ; Environment
-        push r11                ; Original AST
+        ; Original AST already on stack
+        
         call quasiquote
         ; New AST in RAX
-        pop rsi                 ; Old AST
-        push rax
-        call release_object     ; Release old AST
-        pop rsi
         pop rdi                 ; Environment
+        pop rsi                 ; Old AST
 
+        mov r11, rax            ; New AST
+        call release_object     ; Release old AST
+        mov rsi, r11            ; New AST in RSI
+        
         jmp eval                ; Tail call
         
         ; -----------------------------
@@ -1520,6 +1584,9 @@ eval:
 ;;        R15 - Env (will be released)
 ;; 
 ;; Output: Result in RAX
+;;
+;; This is jumped to from eval, so if it returns
+;; then it will return to the caller of eval, not to eval
 apply_fn:
         push rsi
         ; Extract values from the list in RDI
@@ -1537,7 +1604,8 @@ apply_fn:
         jnz .bind               
         ; Just a value (in RAX). No eval needed
         
-        push rax
+        mov r14, rax            ; Save return value in R14
+        
         mov rsi, rax
         call incref_object
 
@@ -1548,12 +1616,16 @@ apply_fn:
         ; Release the environment
         mov rsi, r15
         call release_object
+
+        ; Release the AST, pushed at start of eval
+        pop rsi
+        call release_object
         
-        pop rax
+        mov rax, r14
         ret
 .bind:
         ; Create a new environment, binding arguments
-        push rax
+        push rax                ; Body
         
         push rdx
         call env_new_bind
@@ -1571,6 +1643,7 @@ apply_fn:
         call release_object
         
         pop rsi            ; Body
+        call incref_object ; Will be released by eval
         
         jmp eval           ; Tail call
         ; The new environment (in RDI) will be released by eval
@@ -1606,7 +1679,9 @@ is_pair:
         sahf
         ret
         
-;; Called by eval with AST in RSI
+;; Called by eval with AST in RSI [ modified ]
+;; Returns new AST in RAX
+        
 quasiquote:
         ; i. Check if AST is an empty list
         call is_pair
@@ -1941,8 +2016,7 @@ rep_seq:
         ; -------------
         ; Read
         call read_str
-        push rax                ; Save AST
-
+        
         ; -------------
         ; Eval
         mov rsi, rax            ; Form to evaluate
@@ -1952,7 +2026,7 @@ rep_seq:
         call incref_object      ; Environment increment refs
         xchg rsi, rdi           ; since it will be decremented by eval
         
-        call eval
+        call eval               ; This releases Env and Form/AST
         push rax                ; Save result of eval
 
         ; -------------
@@ -1975,9 +2049,8 @@ rep_seq:
         pop rsi
         call release_object
         
-        ; Release the object from read_str
-        pop rsi
-        call release_object     ; Could be Cons or Array
+        ; The AST from read_str is released by eval
+        
         ret
 
 
@@ -2006,21 +2079,16 @@ _start:
 
         push rax                ; AST
         call release_array      ; string
-        pop rsi                 ; AST
-
-        push rsi
-        mov rdi, [repl_env]     ; Environment
-
-        xchg rsi, rdi
+        pop rdi                 ; AST in RDI
+        
+        mov rsi, [repl_env]     ; Environment in RSI
+        
         call incref_object      ; Environment increment refs
-        xchg rsi, rdi           ; since it will be decremented by eval
+        xchg rsi, rdi           ; Env in RDI, AST in RSI
         
         call eval
-        pop rsi
         
-        push rax
-        call release_object     ; AST
-        pop rsi
+        mov rsi, rax
         call release_object     ; Return from eval
 
         ; -----------------------------

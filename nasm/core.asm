@@ -699,14 +699,15 @@ core_eval:
         
 .pointer:
         ; A pointer, so need to eval
-        mov rsi, [rsi + Cons.car]
+        mov rdi, [rsi + Cons.car]
         
-        mov rdi, [repl_env]     ; Environment
+        mov rsi, [repl_env]     ; Environment
         
-        xchg rsi, rdi
         call incref_object      ; Environment increment refs
-        xchg rsi, rdi           ; since it will be decremented by eval
+        xchg rsi, rdi           ; Env in RDI, AST in RSI
 
+        call incref_object      ; AST increment refs
+        
         call eval
         ret
 
