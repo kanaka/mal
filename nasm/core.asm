@@ -1357,7 +1357,7 @@ core_rest:
         je .missing_args
 
         cmp al, content_nil
-        je .return_nil
+        je .empty_list
         
         cmp al, content_pointer
         jne .not_list

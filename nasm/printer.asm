@@ -10,6 +10,7 @@ section .data
         static unknown_type_string, db "#<unknown>"
         static unknown_value_string, db "#<unknown value>"
         static function_type_string, db "#<function>"
+        static macro_type_string, db "#<macro>"
         static nil_value_string, db "nil"
         static true_value_string, db "true"
         static false_value_string, db "false"
@@ -138,7 +139,7 @@ pr_str:
         je .vector
         
         cmp ch, container_function
-        je .function
+        je .function_or_macro
 
         cmp ch, container_atom
         je .atom
@@ -502,9 +503,19 @@ pr_str:
         ret
         
         ; --------------------------------
-.function:
+.function_or_macro:
+        cmp cl, maltype_macro
+        je .macro
+
+        ; a function
         mov rsi, function_type_string
         mov edx, function_type_string.len
+        call raw_to_string      ; Puts a String in RAX
+        ret
+
+.macro:
+        mov rsi, macro_type_string
+        mov edx, macro_type_string.len
         call raw_to_string      ; Puts a String in RAX
         ret
 
