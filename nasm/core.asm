@@ -1398,8 +1398,58 @@ core_rest:
 .return_rest:
 
         mov rsi, [rsi + Cons.cdr]
+
+        ; Check if this is a list or a vector
+        mov cl, BYTE [rsi]
+        mov ch, cl
+        and ch, container_mask
+        cmp ch, container_list
+        je .return_list
+
+        ; Need to allocate a new Cons to replace this first element
+        call alloc_cons
+        and cl, content_mask
+        mov ch, cl              ; Save CAR content type in ch
+        or cl, container_list   ; Keep content type, set container type to list
+        mov [rax], BYTE cl
+
+        mov dl, BYTE [rsi + Cons.typecdr] ; CDR type in DL
+        mov [rax + Cons.typecdr], BYTE dl
+        
+        ; Copy content of CAR and CDR
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx
+
+        mov rcx, [rsi + Cons.cdr]
+        mov [rax + Cons.cdr], rcx ; Note: Might be pointer
+
+        ; Check if car contains a pointer
+        cmp ch, content_pointer
+        jne .check_cdr
+
+        ; CAR contains a pointer, so increment reference count
+        
+        mov r8, rax             ; Save return Cons
+        mov rsi, rbx            ; Content of CAR
+        call incref_object
+        mov rax, r8             ; Restore return Cons
+        
+.check_cdr:        
+        ; Check if cdr contains a pointer
+        cmp dl, content_pointer
+        jne .return             ; Not a pointer, so just return
+        
+        ; A pointer, so increment its reference count
+        mov rbx, rax            ; Save the return Cons
+        mov rsi, rcx            ; The pointer in CDR
+        call incref_object
+        mov rax, rbx            ; Restore the return Cons
+        ret
+        
+.return_list:
         call incref_object
         mov rax, rsi
+.return:
         ret
 
 .return_nil:
