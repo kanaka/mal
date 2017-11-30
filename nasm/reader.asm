@@ -666,8 +666,10 @@ tokenizer_next_chunk:
         cmp r10, 0
         je .no_more
         ; More chunks left
+        push rsi
         mov rsi, r10
         call tokenizer_init
+        pop rsi
         ret
 .no_more:
         ; No more chunks left. R10 is zero
