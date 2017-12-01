@@ -666,7 +666,7 @@ tokenizer_next_chunk:
         cmp r10, 0
         je .no_more
         ; More chunks left
-        push rsi
+        push rsi                ; Because symbol reading uses RSI (tokenizer_next.handle_symbol)
         mov rsi, r10
         call tokenizer_init
         pop rsi

@@ -47,7 +47,16 @@ section .data
         static core_first_symbol, db "first"
         static core_rest_symbol, db "rest"
         static core_nth_symbol, db "nth"
-        
+
+        static core_nilp_symbol, db "nil?"
+        static core_truep_symbol, db "true?"
+        static core_falsep_symbol, db "false?"
+        static core_numberp_symbol, db "number?"
+
+        static core_symbolp_symbol, db "symbol?"
+        static core_stringp_symbol, db "string?"
+        static core_fnp_symbol, db "fn?"
+        static core_macrop_symbol, db "macro?"
 ;; Strings
 
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
@@ -73,7 +82,8 @@ section .data
         static core_nth_not_list, db "Error: nth expects a list or vector as first argument"
         static core_nth_not_int, db "Error: nth expects an integer as second argument"
         static core_nth_out_of_range, db "Error: nth index out of range"
-        
+
+        static core_value_p_missing_args, db "Error: value predicate (nil/true/false) missing args"
 section .text
 
 ;; Add a native function to the core environment
@@ -145,6 +155,15 @@ core_environment:
         core_env_native core_rest_symbol, core_rest
         core_env_native core_nth_symbol, core_nth
         
+        core_env_native core_nilp_symbol, core_nilp
+        core_env_native core_truep_symbol, core_truep
+        core_env_native core_falsep_symbol, core_falsep
+        core_env_native core_numberp_symbol, core_numberp
+
+        core_env_native core_symbolp_symbol, core_symbolp
+        core_env_native core_stringp_symbol, core_stringp
+        core_env_native core_fnp_symbol, core_fnp
+        core_env_native core_macrop_symbol, core_macrop
         
         ; -----------------
         ; Put the environment in RAX
@@ -790,6 +809,22 @@ core_deref:
 
 ;; Test if given object is an atom
 core_atomp:
+        mov al, maltype_atom
+        jmp core_pointer_type_p
+core_symbolp:
+        mov al, maltype_symbol
+        jmp core_pointer_type_p
+core_stringp:
+        mov al, maltype_string
+        jmp core_pointer_type_p
+core_fnp:
+        mov al, maltype_function
+        jmp core_pointer_type_p
+core_macrop:
+        mov al, maltype_macro
+        jmp core_pointer_type_p
+        
+core_pointer_type_p:
         mov bl, BYTE [rsi]
         mov bh, bl
         and bh, content_mask
@@ -798,7 +833,7 @@ core_atomp:
 
         mov rsi, [rsi + Cons.car]
         mov bl, BYTE [rsi]
-        cmp bl, maltype_atom
+        cmp bl, al
         jne .false
 
         ; Got an atom, return true
@@ -1567,3 +1602,44 @@ core_nth:
         call raw_to_string
         mov rsi, rax
         jmp error_throw
+
+;; Check if the argument is a given value type
+core_nilp:
+        mov al, BYTE content_nil
+        jmp core_value_type_p
+core_truep:
+        mov al, BYTE content_true
+        jmp core_value_type_p
+core_falsep:
+        mov al, BYTE content_false
+        jmp core_value_type_p
+core_numberp:
+        mov al, BYTE content_int
+;; predicates for nil, true, false and number jump here
+core_value_type_p:
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        cmp bl, content_empty
+        je .missing_args
+
+        cmp al, bl
+        je .true
+        
+        ; false
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+.true:
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+        
+.missing_args:
+        mov rsi, core_value_p_missing_args
+        mov edx, core_value_p_missing_args.len
+        
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
+
+        
