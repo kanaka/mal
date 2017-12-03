@@ -57,6 +57,10 @@ section .data
         static core_stringp_symbol, db "string?"
         static core_fnp_symbol, db "fn?"
         static core_macrop_symbol, db "macro?"
+
+        static core_containsp_symbol, db "contains?"
+        static core_vectorp_symbol, db "vector?"
+        static core_mapp_symbol, db "map?"
 ;; Strings
 
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
@@ -84,6 +88,9 @@ section .data
         static core_nth_out_of_range, db "Error: nth index out of range"
 
         static core_value_p_missing_args, db "Error: value predicate (nil/true/false) missing args"
+
+        static core_containsp_not_map, db "Error: contains? expects map as first argument"
+        static core_containsp_no_key, db "Error: contains? missing key argument"
 section .text
 
 ;; Add a native function to the core environment
@@ -164,6 +171,11 @@ core_environment:
         core_env_native core_stringp_symbol, core_stringp
         core_env_native core_fnp_symbol, core_fnp
         core_env_native core_macrop_symbol, core_macrop
+
+        core_env_native core_containsp_symbol, core_containsp
+
+        core_env_native core_vectorp_symbol, core_vectorp
+        core_env_native core_mapp_symbol, core_mapp
         
         ; -----------------
         ; Put the environment in RAX
@@ -381,6 +393,15 @@ core_compare_num:
 ;; Input list in RSI
 ;; Returns true or false in RAX
 core_listp:
+        mov bl, (block_cons + container_list)
+        jmp core_container_p
+core_vectorp:
+        mov bl, (block_cons + container_vector)
+        jmp core_container_p
+core_mapp:
+        mov bl, (block_cons + container_map)
+        ;jmp core_container_p     
+core_container_p:
         mov al, BYTE [rsi]
         and al, content_mask
         cmp al, content_pointer
@@ -389,7 +410,7 @@ core_listp:
         mov rax, [rsi + Cons.car]
         mov al, BYTE [rax]
         and al, (block_mask + container_mask)
-        cmp al, (block_cons + container_list)
+        cmp al, bl
         jne .false
 
         ; Is a list, return true
@@ -501,13 +522,73 @@ core_keys:
         call map_keys
         ret
 
+;; Given a map and a key, return true if the key is in the map
+;;
+core_containsp:
+        ; Check the type of the first argument
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .not_map
+
+        mov rcx, [rsi + Cons.car]  ; Map in RCX
+        mov bl, BYTE [rcx]
+        and bl, (block_mask + container_mask)
+        cmp bl, container_map
+        jne .not_map
+        
+        ; Check second argument
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .no_key
+        mov rsi, [rsi + Cons.cdr]
+        mov dl, BYTE [rsi]
+        and dl, content_mask
+        cmp dl, content_pointer
+        jne .key_value
+
+        ; Pointer, so put into RDI
+        mov rdi, [rsi + Cons.car]
+        jmp .find
+        
+.key_value:
+        ; A value
+        mov [rsi], BYTE dl
+        mov rdi, rsi            ; Value in RDI
+        
+.find:
+        mov rsi, rcx            ; Map
+        call map_find
+        je .true
+
+        ; false
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+.true:
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+        
+.not_map:
+        mov rsi, core_containsp_not_map
+        mov edx, core_containsp_not_map.len
+        jmp .throw
+.no_key:
+        mov rsi, core_containsp_no_key
+        mov edx, core_containsp_no_key.len
+.throw:
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
+        
 ;; Return arguments as a list
 ;; 
 core_list:
         call incref_object
         mov rax, rsi
         ret
-
+        
 ;; ------------------------------------------------
 ;; String functions
 
