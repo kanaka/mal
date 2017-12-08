@@ -1602,8 +1602,7 @@ eval:
         call eval_ast           ; List of evaluated forms in RAX
         pop r15
         pop rsi
-
-
+        
 .list_exec:
         ; This point can be called to run a function
         ; used by swap!
@@ -1655,11 +1654,10 @@ eval:
         ; Result in rax
         pop r15
         pop rsi                 ; eval'ed list
-
+        
         push rax
         call release_cons
-        pop rax
-
+        pop rax 
         jmp .return             ; Releases Env
 
 .list_not_function:
@@ -1739,6 +1737,15 @@ apply_fn:
 
         mov rdi, rax       ; New environment in RDI
 
+        ; Note: Need to increment the reference count
+        ; of the function body before releasing anything,
+        ; since if the function was defined in-place (lambda)
+        ; then the body may be released early
+        
+        pop rsi            ; Body
+        call incref_object ; Will be released by eval
+        mov r8, rsi        ; Body in R8
+        
         ; Release the list passed in RDX
         mov rsi, rdx
         call release_cons
@@ -1750,9 +1757,8 @@ apply_fn:
         ; Release the old AST
         mov rsi, r14
         call release_object
-        
-        pop rsi            ; Body
-        call incref_object ; Will be released by eval
+
+        mov rsi, r8             ; Body
         
         jmp eval           ; Tail call
         ; The new environment (in RDI) will be released by eval
