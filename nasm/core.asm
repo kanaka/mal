@@ -65,6 +65,8 @@ section .data
         static core_throw_symbol, db "throw"
         
         static core_map_symbol, db "map"
+        static core_apply_symbol, db "apply"
+        
 ;; Strings
 
         static core_arith_missing_args, db "integer arithmetic missing arguments"
@@ -102,7 +104,10 @@ section .data
         static core_map_missing_args, db "Error: map expects two arguments (function, list/vector)"
         static core_map_not_function, db "Error: map expects a ufunction for first argument"
         static core_map_not_seq, db "Error: map expects a list or vector as second argument"
-        
+
+        static core_apply_not_function, db "Error: apply expects function as first argument"
+        static core_apply_missing_args, db "Error: apply missing arguments"
+        static core_apply_not_seq, db "Error: apply last argument must be list or vector"
 section .text
 
 ;; Add a native function to the core environment
@@ -193,6 +198,7 @@ core_environment:
         core_env_native core_throw_symbol, core_throw
 
         core_env_native core_map_symbol, core_map
+        core_env_native core_apply_symbol, core_apply
         
         ; -----------------
         ; Put the environment in RAX
@@ -1957,5 +1963,161 @@ core_map:
 .not_seq:
         ; Second argument not list or vector
         load_static core_map_not_seq
+        jmp core_throw_str
+        
+
+;; Applies a function to a list of arguments, concatenated with
+;; a final list of args
+;; (function, ..., [])
+core_apply:
+        ; First argument should be a function
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_function
+
+        mov r8, [rsi + Cons.car] ; function in R8
+        mov al, BYTE [r8]
+        cmp al, maltype_function
+        jne .not_function
+
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .missing_args
+        
+        xor r9,r9
+        ; Optional args, followed by final list/vector
+.loop:
+        mov rsi, [rsi + Cons.cdr]
+        
+        ; Check if this is the last
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .last
+
+        ; Not the last, so copy
+        call alloc_cons         ; New Cons in RAX
+        mov bl, BYTE [rsi]
+        mov [rax], BYTE bl
+        mov rcx, [rsi + Cons.car]
+        mov [rax + Cons.car], rcx
+
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .got_value
+
+        ; A pointer, so increment reference
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.got_value:
+        ; Now append this Cons to the list
+        test r9,r9
+        jnz .append
+
+        ; First
+        mov r9, rax             ; Start of the list
+        mov r10, rax            ; End of the list
+        jmp .loop
+        
+.append:
+        mov [r10 + Cons.typecdr], BYTE content_pointer
+        mov [r10 + Cons.cdr], rax
+        mov r10, rax
+        jmp .loop
+        
+.last:
+        ; Check that it's a list or vector
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_seq
+        
+        mov rsi, [rsi + Cons.car] ; Vector/list in RSI
+        mov al, BYTE [rsi]
+        and al, container_mask
+        cmp al, container_list
+        je .last_seq
+        cmp al, container_vector
+        jne .not_seq
+        
+.last_seq:
+        ; Check if there were any previous args
+        test r9, r9
+        jnz .last_append
+
+        ; R9 is zero, so no previous args
+        mov r9, rsi
+        jmp .run
+        
+.last_append:
+        ; Append RSI to the end of the list [R9]...[R10]
+        mov [r10 + Cons.typecdr], BYTE content_pointer
+        mov [r10 + Cons.cdr], rsi
+        
+.run:
+        ; Have arguments list in R9
+        mov rsi, r9
+        ; Here have function in R8, args in RSI
+        ; Check whether the function is built-in or user
+        mov rax, [r8 + Cons.car]
+        cmp rax, apply_fn
+        je .user_function
+        
+        ; A built-in function
+        push r8                 ; function
+        push r9                 ; input list/vector
+        push r10                ; End of return list
+        push rsi
+        
+        call rax
+        ; Result in RAX
+
+        pop rsi
+        pop r10
+        pop r9
+        pop r8
+
+        push rax
+        call release_object     ; Release arguments
+        pop rax
+        
+        ret
+        
+.user_function:
+        ; a user-defined function, so need to evaluate
+        ; RSI - Args
+        
+        mov rdi, r8             ; Function in RDI
+        mov rdx, rsi            ; Release args after binding
+
+        mov rsi, r15            ; Environment
+        call incref_object      ; Released by eval
+        call incref_object      ; also released from R13
+        mov r13, r15
+
+        mov rsi, rdx
+        
+        push r8
+        push r9
+        push r10
+        call apply_fn           ; Result in RAX
+        pop r10
+        pop r9
+        pop r8
+        
+        ret
+                
+.not_function:
+        load_static core_apply_not_function
+        jmp core_throw_str
+
+.missing_args:
+        load_static core_apply_missing_args
+        jmp core_throw_str
+
+.not_seq:
+        load_static core_apply_not_seq
         jmp core_throw_str
         
