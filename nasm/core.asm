@@ -80,6 +80,9 @@ section .data
         static core_reset_not_atom, db "Error: argument to reset is not an atom"
         static core_reset_no_value, db "Error: missing value argument to reset"
 
+        static core_swap_not_atom, db "Error: swap! expects atom as first argument"
+        static core_swap_no_function, db "Error: swap! expects function as second argument"
+        
         static core_cons_missing_arg, db "Error: missing argument to cons"
         static core_cons_not_vector, db "Error: cons expects a list or vector"
         
@@ -1074,8 +1077,8 @@ core_swap:
         jne .not_atom
 
         ; Get the atom
-        mov r8, [rsi + Cons.car] ; Atom in R8
-        mov bl, BYTE [r8]
+        mov r9, [rsi + Cons.car] ; Atom in R9
+        mov bl, BYTE [r9]
         cmp bl, maltype_atom
         jne .not_atom
 
@@ -1084,22 +1087,42 @@ core_swap:
         cmp bl, content_pointer
         jne .no_function
 
-        mov r9, [rsi + Cons.cdr] ; List with function first
+        mov rsi, [rsi + Cons.cdr] ; List with function first
+
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .no_function
+
+        mov r8, [rsi + Cons.car] ; Function in R8
+        mov al, BYTE [r8]
+        cmp al, maltype_function
+        jne .no_function
         
-        ; Get a new Cons to insert into the list
+        ; Get a new Cons 
         ; containing the value in the atom
         call alloc_cons         ; In RAX
 
-        ; Splice into the list
-        mov bl, BYTE [r9 + Cons.typecdr]
-        mov rcx, [r9 + Cons.cdr]
+        ; Prepend to the list
+        mov bl, BYTE [rsi + Cons.typecdr]
         mov [rax + Cons.typecdr], bl
+        cmp bl, content_pointer
+        jne .done_prepend
+
+        ; A pointer to more args,
+
+        mov rcx, [rsi + Cons.cdr]
         mov [rax + Cons.cdr], rcx
-        mov [r9 + Cons.typecdr], BYTE content_pointer
-        mov [r9 + Cons.cdr], rax
+        
+        ; increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.done_prepend:
         
         ; Now get the value in the atom
-        mov rdx, [r8 + Cons.car] ; The object pointed to
+        mov rdx, [r9 + Cons.car] ; The object pointed to
 
         ; Check what it is
         mov bl, BYTE [rdx]
@@ -1113,10 +1136,11 @@ core_swap:
 
         ; Since the list will be released after eval
         ; we need to increment the reference count
-        mov rsi, rdx
-        call incref_object
+        mov bx, WORD [rdx + Cons.refcount]
+        inc bx
+        mov [rdx + Cons.refcount], WORD bx
         
-        jmp .list_done
+        jmp .run
         
 .atom_value:
         ; Copy the value
@@ -1126,44 +1150,75 @@ core_swap:
         or bl, container_list   ; mark as part of a list
         mov [rax], BYTE bl
 
-.list_done:
-        ; Now have a list with function followed by args
-        ; This is the same state as after a call to eval_ast
-        ; 
-        ; Note: Because eval releases the environment in R15
-        ;       on return, this needs to have its references
-        ;       incremented before the call
-        ;
-        ; The list passed in RAX will be released by eval
+.run:
+        mov rsi, rax
+        
+        ; Here have function in R8, args in RSI
+        ; Check whether the function is built-in or user
+        mov rax, [r8 + Cons.car]
+        cmp rax, apply_fn
+        je .user_function
+        
+        ; A built-in function
+        push r9                 ; atom
+        push rsi                ; Args
+        
+        call rax
+        ; Result in RAX
 
-        mov rsi, r15
-        call incref_object
+        pop rsi
+        pop r9
 
-        mov rax, r9
-        push r8                 ; The atom
-        call eval.list_exec     ; Result in RAX
-        pop r8
+        push rax
+        call release_object     ; Release arguments
+        pop rax
+        
+        jmp .got_return
+        
+.user_function:
+        ; a user-defined function, so need to evaluate
+        ; RSI - Args
+        
+        mov rdi, r8             ; Function in RDI
+        mov rdx, rsi            ; Release args after binding
+
+        mov rsi, r15            ; Environment
+        call incref_object      ; Released by eval
+        call incref_object      ; also released from R13
+        mov r13, r15
+
+        mov rsi, rdx
+        
+        push r9
+        call apply_fn           ; Result in RAX
+        pop r9
+        
+.got_return:
+        ; Have a return result in RAX
         
         ; release the current value of the atom
         push rax                ; The result
-        mov rsi, [r8 + Cons.car]
+        mov rsi, [r9 + Cons.car]
         call release_object
-        pop rsi
+        pop rax
 
         ; Put into atom
-        mov [r8 + Cons.car], rsi
+        mov [r9 + Cons.car], rax
         
         ; Increase reference of new object
         ; because when it is returned it will be released
-        push rsi
-        call incref_object 
-        pop rax
+        mov bx, WORD [rax + Cons.refcount]
+        inc bx
+        mov [rax + Cons.refcount], WORD bx
+        
         ret
         
 .not_atom:
+        load_static core_swap_not_atom
+        jmp core_throw_str
 .no_function:
-        xor rsi,rsi
-        jmp error_throw
+        load_static core_swap_no_function
+        jmp core_throw_str
 
 
 ;; Takes two arguments, and prepends the first argument onto the second
