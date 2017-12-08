@@ -12,6 +12,12 @@
         %1.len: equ $ - %1
 %endmacro
 
+;; Puts address of data in RSI, length in EDX
+%macro load_static 1
+        mov rsi, %1
+        mov edx, %1.len
+%endmacro
+        
 ;; Define a symbol which can be compared against
 ;;
 ;; static_symbol  name, string

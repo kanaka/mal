@@ -61,8 +61,15 @@ section .data
         static core_containsp_symbol, db "contains?"
         static core_vectorp_symbol, db "vector?"
         static core_mapp_symbol, db "map?"
+
+        static core_throw_symbol, db "throw"
+        
+        static core_map_symbol, db "map"
 ;; Strings
 
+        static core_arith_missing_args, db "integer arithmetic missing arguments"
+        static core_arith_not_int, db "non-integer argument to integer arithmetic"
+        
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
         static core_count_error_string, db "count expects a list or vector",10
         static core_numeric_expect_ints, db "comparison operator expected two numbers",10
@@ -91,6 +98,11 @@ section .data
 
         static core_containsp_not_map, db "Error: contains? expects map as first argument"
         static core_containsp_no_key, db "Error: contains? missing key argument"
+
+        static core_map_missing_args, db "Error: map expects two arguments (function, list/vector)"
+        static core_map_not_function, db "Error: map expects a ufunction for first argument"
+        static core_map_not_seq, db "Error: map expects a list or vector as second argument"
+        
 section .text
 
 ;; Add a native function to the core environment
@@ -110,6 +122,7 @@ section .text
         pop rsi                 ; environment
         call env_set
 %endmacro
+
         
 ;; Create an Environment with core functions
 ;;
@@ -176,6 +189,10 @@ core_environment:
 
         core_env_native core_vectorp_symbol, core_vectorp
         core_env_native core_mapp_symbol, core_mapp
+
+        core_env_native core_throw_symbol, core_throw
+
+        core_env_native core_map_symbol, core_map
         
         ; -----------------
         ; Put the environment in RAX
@@ -184,6 +201,17 @@ core_environment:
 
 ;; ----------------------------------------------------
 
+;; Jumped to from many core functions, with
+;; string address in RSI and length in EDX
+core_throw_str:
+        call raw_to_string
+        mov rsi, rax
+        jmp error_throw
+
+;; ----------------------------------------------------
+
+     
+        
 ;; Integer arithmetic operations
 ;; 
 ;; Adds a list of numbers, address in RSI
@@ -208,11 +236,15 @@ core_arithmetic:
         mov ch, cl
         and ch, block_mask
         cmp ch, block_cons
-        jne .error
+        jne .missing_args
+
         mov ch, cl
         and ch, content_mask
+        cmp ch, content_empty
+        je .missing_args
+
         cmp ch, content_int
-        jne .error
+        jne .not_int
 
         ; Put the starting value in rax
         mov rax, [rsi + Cons.car]
@@ -220,18 +252,16 @@ core_arithmetic:
 .add_loop:
         ; Fetch the next value
         mov cl, [rsi + Cons.typecdr]
-        cmp cl, content_nil
-        je .finished            ; Nothing let
         cmp cl, content_pointer
-        jne .error
-
+        jne .finished  ; Nothing let
+        
         mov rsi, [rsi + Cons.cdr] ; Get next cons
 
         ; Check that it is an integer
         mov cl, BYTE [rsi]
         and cl, content_mask
         cmp cl, content_int
-        jne .error
+        jne .not_int
 
         ; Jump to the required operation, address in RBX
         jmp rbx
@@ -260,12 +290,13 @@ core_arithmetic:
         mov [rax], BYTE maltype_integer
         mov [rax + Cons.car], rbx
         ret
-.error:
-        ; Return nil
-        call alloc_cons
-        mov [rax], BYTE maltype_nil
-        mov [rax + Cons.typecdr], BYTE content_nil
-        ret
+        
+.missing_args:
+        load_static core_arith_missing_args
+        jmp core_throw_str
+.not_int:
+        load_static core_arith_not_int
+        jmp core_throw_str
 
 ;; compare objects for equality
 core_equalp:
@@ -571,16 +602,11 @@ core_containsp:
         ret
         
 .not_map:
-        mov rsi, core_containsp_not_map
-        mov edx, core_containsp_not_map.len
-        jmp .throw
+        load_static core_containsp_not_map
+        jmp core_throw_str
 .no_key:
-        mov rsi, core_containsp_no_key
-        mov edx, core_containsp_no_key.len
-.throw:
-        call raw_to_string
-        mov rsi, rax
-        jmp error_throw
+        load_static core_containsp_no_key
+        jmp core_throw_str
         
 ;; Return arguments as a list
 ;; 
@@ -1216,18 +1242,12 @@ core_cons:
         ret
         
 .missing_args:
-        mov rsi, core_cons_missing_arg
-        mov edx,core_cons_missing_arg.len
-        jmp .throw
+        load_static core_cons_missing_arg
+        jmp core_throw_str
         
 .not_vector:
-        mov rsi, core_cons_not_vector
-        mov edx, core_cons_not_vector.len
-        
-.throw:
-        call raw_to_string
-        mov rsi, rax
-        jmp error_throw
+        load_static core_cons_not_vector
+        jmp core_throw_str
 
 
 ;; Concatenate lists, returning a new list
@@ -1723,4 +1743,219 @@ core_value_type_p:
         mov rsi, rax
         jmp error_throw
 
+;; Throws an exception
+core_throw:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_empty
+        je .throw_nil          ; No arguments
+
+        cmp al, content_pointer
+        je .throw_pointer
+
+        ; A value. Remove list content type
+        mov [rsi], BYTE al
+        jmp error_throw
+        
+.throw_pointer:
+        mov rsi, [rsi + Cons.car]
+        jmp error_throw
+        
+.throw_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov rsi, rax
+        jmp error_throw
+        
+;; Applies a function to a list or vector
+;;
+;; Uses registers
+;;    R8  - function
+;;    R9  - Input list/vector
+;;    R10  - Current end of return list (for appending)
+core_map:
+        xor r10,r10             ; Zero, signal no list
+        
+        ; First argument should be a function
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        cmp bl, content_empty
+        je .missing_args
+
+        ; Check the first argument is a pointer
+        cmp bl, content_pointer
+        jne .not_function
+        
+        mov r8, [rsi + Cons.car] ; Function in R8
+        mov bl, BYTE [r8]
+        cmp bl, maltype_function
+        jne .not_function
+
+        ; Check for second argument
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .missing_args
+
+        mov rsi, [rsi + Cons.cdr]
+        
+        ; Should be a pointer to a list or vector
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .not_seq
+
+        mov r9, [rsi + Cons.car] ; List or vector in R9
+
+        mov bl, BYTE [r9]
+
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_empty
+        je .empty_list
+        
+        and bl, (block_mask + container_mask)
+        cmp bl, container_list
+        je .start
+        cmp bl, container_vector
+        je .start
+        
+        ; not list or vector
+        jmp .not_seq
+        
+.start:
+        ; Got function in R8, list or vector in R9
+        
+        mov cl, BYTE [r9]
+        and cl, content_mask
+
+        call alloc_cons
+        mov [rax], BYTE cl      ; set content type
+        mov rbx, [r9 + Cons.car]
+        mov [rax + Cons.car], rbx ; Copy content
+        mov rsi, rax
+
+        cmp cl, content_pointer
+        jne .run
+
+        ; A pointer, so increment ref count
+
+        mov rcx, rsi
+        mov rsi, rbx
+        call incref_object
+        mov rsi, rcx
+        
+.run:
+        ; Here have function in R8, args in RSI
+        ; Check whether the function is built-in or user
+        mov rax, [r8 + Cons.car]
+        cmp rax, apply_fn
+        je .user_function
+        
+        ; A built-in function
+        push r8                 ; function
+        push r9                 ; input list/vector
+        push r10                ; End of return list
+        push rsi
+        
+        call rax
+        ; Result in RAX
+
+        pop rsi
+        pop r10
+        pop r9
+        pop r8
+
+        push rax
+        call release_object     ; Release arguments
+        pop rax
+        
+        jmp .got_return
+        
+.user_function:
+        ; a user-defined function, so need to evaluate
+        ; RSI - Args
+        
+        mov rdi, r8             ; Function in RDI
+        mov rdx, rsi            ; Release args after binding
+
+        mov rsi, r15            ; Environment
+        call incref_object      ; Released by eval
+        call incref_object      ; also released from R13
+        mov r13, r15
+
+        mov rsi, rdx
+        
+        push r8
+        push r9
+        push r10
+        call apply_fn           ; Result in RAX
+        pop r10
+        pop r9
+        pop r8
+        
+.got_return:
+        ; Have a return result in RAX
+        ; Check if it's a value type
+        mov bl, BYTE [rax]
+        mov bh, bl
+        and bl, (block_mask + container_mask)
+        jz .return_value
+
+        ; A more complicated type, point to it
+        mov rcx, rax
+        call alloc_cons         ; Create a Cons for address
+        mov [rax], BYTE (container_list + content_pointer)
+        mov [rax + Cons.car], rcx
+        jmp .update_return
+        
+.return_value:
+        mov bl, bh
+        and bl, content_mask
+        or bl, container_list
+        mov [rax], BYTE bl      ; mark as a list
+        
+.update_return:
+        ; Now append to result list
+        test r10,r10
+        jnz .append
+
+        ; First value
+        mov r10, rax            ; End of list
+        push r10                ; popped before return
+        jmp .next
+.append:
+        mov [r10 + Cons.cdr], rax ; Point to new Cons
+        mov [r10 + Cons.typecdr], BYTE content_pointer
+        mov r10, rax
+.next:
+        ; Check if there is another value
+        mov al, [r9 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done               ; no more 
+
+        mov r9, [r9 + Cons.cdr] ; next
+        jmp .start
+        
+.done:
+        pop rax                 ; Pushed in .update_return
+        ret
+        
+.empty_list:
+        ; Got an empty list, so return an empty list
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        ret
+        
+.missing_args:
+        ; Either zero or one args, expect two
+        load_static core_map_missing_args
+        jmp core_throw_str
+.not_function:
+        ; First argument not a function
+        load_static core_map_not_function
+        jmp core_throw_str
+.not_seq:
+        ; Second argument not list or vector
+        load_static core_map_not_seq
+        jmp core_throw_str
         
