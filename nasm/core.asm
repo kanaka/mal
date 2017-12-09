@@ -59,13 +59,19 @@ section .data
         static core_macrop_symbol, db "macro?"
 
         static core_containsp_symbol, db "contains?"
+        static core_get_symbol, db "get"
         static core_vectorp_symbol, db "vector?"
         static core_mapp_symbol, db "map?"
-
+        static core_sequentialp_symbol, db "sequential?"
+        
         static core_throw_symbol, db "throw"
         
         static core_map_symbol, db "map"
         static core_apply_symbol, db "apply"
+
+        static core_symbol_symbol, db "symbol"
+        static core_vector_symbol, db "vector"
+        static core_hashmap_symbol, db "hash-map"
         
 ;; Strings
 
@@ -104,6 +110,9 @@ section .data
         static core_containsp_not_map, db "Error: contains? expects map as first argument"
         static core_containsp_no_key, db "Error: contains? missing key argument"
 
+        static core_get_not_map, db "Error: get expects map as first argument"
+        static core_get_no_key, db "Error: get missing key argument"
+
         static core_map_missing_args, db "Error: map expects two arguments (function, list/vector)"
         static core_map_not_function, db "Error: map expects a ufunction for first argument"
         static core_map_not_seq, db "Error: map expects a list or vector as second argument"
@@ -111,6 +120,8 @@ section .data
         static core_apply_not_function, db "Error: apply expects function as first argument"
         static core_apply_missing_args, db "Error: apply missing arguments"
         static core_apply_not_seq, db "Error: apply last argument must be list or vector"
+
+        static core_symbol_not_string, db "Error: symbol expects a string argument"
 section .text
 
 ;; Add a native function to the core environment
@@ -194,14 +205,20 @@ core_environment:
         core_env_native core_macrop_symbol, core_macrop
 
         core_env_native core_containsp_symbol, core_containsp
-
+        core_env_native core_get_symbol, core_get
+        
         core_env_native core_vectorp_symbol, core_vectorp
         core_env_native core_mapp_symbol, core_mapp
-
+        core_env_native core_sequentialp_symbol, core_sequentialp
+        
         core_env_native core_throw_symbol, core_throw
 
         core_env_native core_map_symbol, core_map
         core_env_native core_apply_symbol, core_apply
+
+        core_env_native core_symbol_symbol, core_symbol
+        core_env_native core_vector_symbol, core_vector
+        core_env_native core_hashmap_symbol, core_hashmap
         
         ; -----------------
         ; Put the environment in RAX
@@ -463,6 +480,33 @@ core_container_p:
         mov [rax], BYTE maltype_false
         ret
 
+;; Return true if vector or list
+core_sequentialp:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .false              ; Should be a pointer
+
+        mov rax, [rsi + Cons.car]
+        mov al, BYTE [rax]
+        and al, (block_mask + container_mask)
+        cmp al, container_list
+        je .true
+        cmp al, container_vector
+        jne .false
+.true:
+        ; Is a list or vector, return true
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+        
+.false:
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+
+
+        
 ;; Test if the given list, vector or map is empty
 core_emptyp:
         mov al, BYTE [rsi]
@@ -616,12 +660,151 @@ core_containsp:
 .no_key:
         load_static core_containsp_no_key
         jmp core_throw_str
+
+
+;; Given a map and a key, return the value in the map
+;; or nil if not found
+;;
+core_get:
+        ; Check the type of the first argument
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .not_map
+        
+        mov rcx, [rsi + Cons.car]  ; Map in RCX
+        mov bl, BYTE [rcx]
+        and bl, (block_mask + container_mask)
+        cmp bl, container_map
+        jne .not_map
+        
+        ; Check second argument
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .no_key
+        mov rsi, [rsi + Cons.cdr]
+        mov dl, BYTE [rsi]
+        and dl, content_mask
+        cmp dl, content_pointer
+        jne .key_value
+
+        ; Pointer, so put into RDI
+        mov rdi, [rsi + Cons.car]
+        jmp .find
+        
+.key_value:
+        ; A value
+        mov [rsi], BYTE dl
+        mov rdi, rsi            ; Value in RDI
+        
+.find:
+        mov rsi, rcx            ; Map
+        call map_get            ; Value in RAX
+        je .found
+
+        ; Not found
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+.found:
+        ret
+        
+.not_map:
+        load_static core_get_not_map
+        jmp core_throw_str
+.no_key:
+        load_static core_get_no_key
+        jmp core_throw_str
+
         
 ;; Return arguments as a list
 ;; 
 core_list:
         call incref_object
         mov rax, rsi
+        ret
+
+;; Convert arguments into a vector
+core_vector:
+        ; Copy first element and mark as vector
+        call alloc_cons         ; in RAX
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        mov bh, bl              ; store content for comparison
+        or bl, container_vector
+        mov [rax], BYTE bl      ; Set type
+        
+        mov rcx, [rsi + Cons.car]
+        mov [rax + Cons.car], rcx ; Set content
+
+        ; Check if the first element is a pointer
+        cmp bh, content_pointer
+        jne .done_car
+        
+        ; A pointer, so increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+
+.done_car:
+        ; Copy the CDR type and content
+        mov bl, [rsi + Cons.typecdr]
+        mov [rax + Cons.typecdr], bl
+
+        mov rdx, [rsi + Cons.cdr]
+        mov [rax + Cons.cdr], rdx
+        
+        cmp bl, content_pointer
+        jne .done
+
+        ; A pointer
+        mov bx, WORD [rdx + Cons.refcount]
+        inc bx
+        mov [rdx + Cons.refcount], WORD bx
+        
+.done:
+        ret
+
+        
+;; Convert arguments into a map
+core_hashmap:
+        ; Copy first element and mark as map
+        call alloc_cons         ; in RAX
+        mov bl, BYTE [rsi]
+        and bl, content_mask
+        mov bh, bl              ; store content for comparison
+        or bl, container_map
+        mov [rax], BYTE bl      ; Set type
+        
+        mov rcx, [rsi + Cons.car]
+        mov [rax + Cons.car], rcx ; Set content
+
+        ; Check if the first element is a pointer
+        cmp bh, content_pointer
+        jne .done_car
+        
+        ; A pointer, so increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+
+.done_car:
+        ; Copy the CDR type and content
+        mov bl, [rsi + Cons.typecdr]
+        mov [rax + Cons.typecdr], bl
+
+        mov rdx, [rsi + Cons.cdr]
+        mov [rax + Cons.cdr], rdx
+        
+        cmp bl, content_pointer
+        jne .done
+
+        ; A pointer
+        mov bx, WORD [rdx + Cons.refcount]
+        inc bx
+        mov [rdx + Cons.refcount], WORD bx
+        
+.done:
         ret
         
 ;; ------------------------------------------------
@@ -2175,4 +2358,25 @@ core_apply:
 .not_seq:
         load_static core_apply_not_seq
         jmp core_throw_str
+
+;; Converts a string to a symbol
+core_symbol:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_string
+
+        mov rsi, [rsi + Cons.car]
+        mov al, BYTE [rsi]
+        cmp al, maltype_string
+        jne .not_string
+
+        ; Copy the string
+        call string_copy        ; result in RAX
+
+        mov [rax], BYTE maltype_symbol
+        ret
         
+.not_string:
+        load_static core_symbol_not_string
+        jmp core_throw_str
