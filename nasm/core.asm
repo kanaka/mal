@@ -57,6 +57,7 @@ section .data
         static core_stringp_symbol, db "string?"
         static core_fnp_symbol, db "fn?"
         static core_macrop_symbol, db "macro?"
+        static core_keywordp_symbol, db "keyword?"
 
         static core_containsp_symbol, db "contains?"
         static core_get_symbol, db "get"
@@ -72,6 +73,7 @@ section .data
         static core_symbol_symbol, db "symbol"
         static core_vector_symbol, db "vector"
         static core_hashmap_symbol, db "hash-map"
+        static core_keyword_symbol, db "keyword"
         
 ;; Strings
 
@@ -122,6 +124,8 @@ section .data
         static core_apply_not_seq, db "Error: apply last argument must be list or vector"
 
         static core_symbol_not_string, db "Error: symbol expects a string argument"
+
+        static core_keyword_not_string, db "Error: keyword expects a string argument"
 section .text
 
 ;; Add a native function to the core environment
@@ -203,7 +207,8 @@ core_environment:
         core_env_native core_stringp_symbol, core_stringp
         core_env_native core_fnp_symbol, core_fnp
         core_env_native core_macrop_symbol, core_macrop
-
+        core_env_native core_keywordp_symbol, core_keywordp
+        
         core_env_native core_containsp_symbol, core_containsp
         core_env_native core_get_symbol, core_get
         
@@ -219,6 +224,7 @@ core_environment:
         core_env_native core_symbol_symbol, core_symbol
         core_env_native core_vector_symbol, core_vector
         core_env_native core_hashmap_symbol, core_hashmap
+        core_env_native core_keyword_symbol, core_keyword
         
         ; -----------------
         ; Put the environment in RAX
@@ -668,7 +674,12 @@ core_containsp:
 core_get:
         ; Check the type of the first argument
         mov bl, BYTE [rsi]
+        
         and bl, content_mask
+        
+        cmp bl, content_nil
+        jmp .not_found
+        
         cmp bl, content_pointer
         jne .not_map
         
@@ -702,6 +713,7 @@ core_get:
         call map_get            ; Value in RAX
         je .found
 
+.not_found:
         ; Not found
         call alloc_cons
         mov [rax], BYTE maltype_nil
@@ -1136,6 +1148,34 @@ core_pointer_type_p:
         jne .false
 
         ; Got an atom, return true
+        call alloc_cons
+        mov [rax], BYTE maltype_true
+        ret
+
+.false:
+        call alloc_cons
+        mov [rax], BYTE maltype_false
+        ret
+
+;; Tests if argument is a keyword
+core_keywordp:
+        mov bl, BYTE [rsi]
+        mov bh, bl
+        and bh, content_mask
+        cmp bh, content_pointer
+        jne .false
+
+        mov rsi, [rsi + Cons.car]
+        mov bl, BYTE [rsi]
+        cmp bl, maltype_symbol
+        jne .false
+
+        ; Check if first character is ':'
+        mov bl, BYTE [rsi + Array.data]
+        cmp bl, ':'
+        jne .false
+
+        ; Return true
         call alloc_cons
         mov [rax], BYTE maltype_true
         ret
@@ -2379,4 +2419,34 @@ core_symbol:
         
 .not_string:
         load_static core_symbol_not_string
+        jmp core_throw_str
+
+;; Converts a string to a keyword
+core_keyword:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_string
+
+        mov r8, [rsi + Cons.car] ; String in R8
+        mov al, BYTE [r8]
+        cmp al, maltype_string
+        jne .not_string
+
+        call string_new         ; String in RAX
+        mov rsi, rax
+        mov cl, ':'
+        call string_append_char ; Puts ':' first
+        
+        mov rdx, r8
+        call string_append_string ; append
+
+        ; Mark as keyword
+        mov [rsi], BYTE maltype_symbol
+        
+        mov rax, rsi
+        ret
+        
+.not_string:
+        load_static core_keyword_not_string
         jmp core_throw_str
