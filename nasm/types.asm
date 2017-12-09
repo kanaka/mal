@@ -155,7 +155,7 @@ section .data
 ;; is free'd it is pushed onto the heap_x_free list.
         
         
-%define heap_cons_limit 1000     ; Number of cons objects which can be created
+%define heap_cons_limit 2000     ; Number of cons objects which can be created
 
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
@@ -1010,6 +1010,9 @@ compare_objects:
         mov cl, BYTE [rsi]      ; Type of RSI
         mov bl, BYTE [rdi]      ; Type of RDI
 
+        mov ch, cl
+        mov bh, bl
+        
         ; Don't care about container type
         and cl, block_mask + content_mask
         and bl, block_mask + content_mask
@@ -1019,6 +1022,19 @@ compare_objects:
 
         ; Here the same block, content type
         ; May be different container (value/list, string/symbol)
+
+        ; Need to distinguish between map and vector/list
+        and ch, container_mask
+        and bh, container_mask
+        cmp ch, bh
+        je .same_container
+        ; if either is a map, then different types
+        cmp ch, container_map
+        je .different_types
+        cmp bh, container_map
+        je .different_types
+        
+.same_container:
         cmp bl, block_cons + content_nil
         je .objects_equal      ; nil
 
@@ -1077,6 +1093,22 @@ compare_objects_rec:
         
         cmp ah, bh
         jne .false
+
+        ; Need to distinguish between map and vector/list
+        mov ah, al
+        mov bh, bl
+        
+        and ah, container_mask
+        and bh, container_mask
+        cmp ah, bh
+        je .same_container
+        ; if either is a map, then different types
+        cmp ah, container_map
+        je .false
+        cmp bh, container_map
+        je .false
+        
+.same_container:
         
         ; Check the container type
         and bh, block_mask
@@ -1223,6 +1255,59 @@ map_new:
         call alloc_cons
         mov [rax], BYTE (block_cons + container_map + content_empty)
         mov [rax + Cons.typecdr], BYTE content_nil
+        ret
+
+;; Copy map
+;;
+;; Input:  RSI - map
+;;
+;; Returns: new map in RAX
+;;
+;; Modifies:
+;;    RAX, RBX, RCX, R13, R14, R15
+;;
+map_copy:
+        mov r14, rsi
+        
+        call alloc_cons
+        mov r15, rax            ; start of new map
+        xor r13, r13
+.loop:
+        mov bl, BYTE [rsi]
+        mov rcx, [rsi + Cons.car]
+        mov [rax], BYTE bl      ; copy type
+        mov [rax + Cons.car], rcx ; copy value
+
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .set_cdr
+
+        ; A pointer in CAR. Increase reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.set_cdr:
+        test r13,r13
+        jz .next
+        
+        ; R13 contains last Cons
+        mov [r13 + Cons.typecdr], BYTE content_pointer
+        mov [r13 + Cons.cdr], rax
+.next:
+        mov r13, rax
+
+        ; Check if there's another Cons
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .done               ; no more
+        
+        mov rsi, [rsi + Cons.cdr] ; next
+        call alloc_cons
+        jmp .loop
+.done:
+        mov rax, r15
+        mov rsi, r14
         ret
         
         

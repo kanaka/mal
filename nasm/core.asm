@@ -74,6 +74,8 @@ section .data
         static core_vector_symbol, db "vector"
         static core_hashmap_symbol, db "hash-map"
         static core_keyword_symbol, db "keyword"
+
+        static core_assoc_symbol, db "assoc"
         
 ;; Strings
 
@@ -126,6 +128,12 @@ section .data
         static core_symbol_not_string, db "Error: symbol expects a string argument"
 
         static core_keyword_not_string, db "Error: keyword expects a string argument"
+
+        static core_list_not_seq, db "Error: list expects a list or vector"
+
+        static core_assoc_not_map, db "Error: assoc expects a map as first argument"
+        static core_assoc_missing_value, db "Error: assoc missing value"
+        
 section .text
 
 ;; Add a native function to the core environment
@@ -225,6 +233,8 @@ core_environment:
         core_env_native core_vector_symbol, core_vector
         core_env_native core_hashmap_symbol, core_hashmap
         core_env_native core_keyword_symbol, core_keyword
+
+        core_env_native core_assoc_symbol, core_assoc
         
         ; -----------------
         ; Put the environment in RAX
@@ -678,7 +688,7 @@ core_get:
         and bl, content_mask
         
         cmp bl, content_nil
-        jmp .not_found
+        je .not_found
         
         cmp bl, content_pointer
         jne .not_map
@@ -694,6 +704,7 @@ core_get:
         cmp bl, content_pointer
         jne .no_key
         mov rsi, [rsi + Cons.cdr]
+        
         mov dl, BYTE [rsi]
         and dl, content_mask
         cmp dl, content_pointer
@@ -736,6 +747,10 @@ core_list:
         mov rax, rsi
         ret
 
+.not_seq:
+        load_static core_list_not_seq
+        jmp core_throw_str
+        
 ;; Convert arguments into a vector
 core_vector:
         ; Copy first element and mark as vector
@@ -1147,7 +1162,16 @@ core_pointer_type_p:
         cmp bl, al
         jne .false
 
-        ; Got an atom, return true
+        ; Check for keyword (not symbol)
+        cmp al, maltype_symbol
+        jne .true
+
+        mov al, BYTE [rsi + Array.data]
+        cmp al, ':'
+        je .false               ; a keyword
+        
+.true:
+        ; Return true
         call alloc_cons
         mov [rax], BYTE maltype_true
         ret
@@ -2326,7 +2350,54 @@ core_apply:
         jnz .last_append
 
         ; R9 is zero, so no previous args
+
+        ; check that this is a list
+        ; and convert vector to list
+
         mov r9, rsi
+        
+        ; Check if R9 is a list
+        mov al, BYTE [r9]
+        mov cl, al
+        and al, container_mask
+        cmp al, container_list
+        je .run
+
+        ; Convert vector to list by copying first element
+
+        call alloc_cons
+        and cl, content_mask
+        or cl, container_list
+        mov [rax], BYTE cl
+        mov rdx, [r9 + Cons.car]
+        mov [rax + Cons.car], rdx
+        
+        ; check if contains a pointer
+        cmp cl, (container_list + content_pointer)
+        jne .copy_cdr
+        
+        ; A pointer, so increment reference
+        mov bx, WORD [rdx + Cons.refcount]
+        inc bx
+        mov [rdx + Cons.refcount], WORD bx
+        
+.copy_cdr:
+        mov bl, BYTE [r9 + Cons.typecdr]
+        mov rcx, [r9 + Cons.cdr]
+        mov [rax + Cons.typecdr], BYTE bl
+        mov [rax + Cons.cdr], rcx
+
+        ; Replace R9 with this new element
+        mov r9, rax
+        
+        cmp bl, content_pointer
+        jne .run
+
+        ; A pointer, so increment reference
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
         jmp .run
         
 .last_append:
@@ -2449,4 +2520,129 @@ core_keyword:
         
 .not_string:
         load_static core_keyword_not_string
+        jmp core_throw_str
+
+;; Sets values in a map
+core_assoc:
+        ; check first arg
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_map
+        
+        mov r8, [rsi + Cons.car] ; map in R8
+        mov al, BYTE [r8]
+        and al, container_mask
+        cmp al, container_map
+        jne .not_map
+
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        je .start
+
+        ; No keys to set, so just increment and return
+        mov rsi, r8
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.start:
+        mov r11, [rsi + Cons.cdr] ; List of keys/values in R11
+
+        ; Copy the original list
+        mov rsi, r8
+        call map_copy
+        mov rsi, rax            ; new map in RSI
+
+.loop:
+        ; Get key then value from R11 list
+
+        mov cl, BYTE [r11]
+        and cl, content_mask
+        cmp cl, content_pointer
+        je .key_pointer
+
+        ; Key is a value, so copy into a Cons
+        call alloc_cons
+        mov [rax], BYTE cl
+        mov rbx, [r11 + Cons.car]
+        mov [rax + Cons.car], rbx
+        mov rdi, rax            ; Key in RDI
+        jmp .get_value
+        
+.key_pointer:
+        mov rdi, [r11 + Cons.car]
+        ; increment reference count because the key will be
+        ; released after setting (to allow value Cons to be
+        ; freed)
+
+        mov bx, WORD [rdi + Cons.refcount]
+        inc bx
+        mov [rdi + Cons.refcount], WORD bx
+        
+.get_value:
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .missing_value
+
+        mov r11, [r11 + Cons.cdr]
+
+        ; Check if value is a pointer
+        mov cl, BYTE [r11]
+        and cl, content_mask
+        cmp cl, content_pointer
+        je .value_pointer
+        
+        ; Value is a value, so copy into a Cons
+        call alloc_cons
+        mov [rax], BYTE cl
+        mov rbx, [r11 + Cons.car]
+        mov [rax + Cons.car], rbx
+        mov rcx, rax            ; Key in RCX
+        jmp .set_pair
+
+.value_pointer:
+        mov rcx, [r11 + Cons.car]
+        ; increment reference count because the value will be
+        ; released after setting (to allow value Cons to be
+        ; freed)
+
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.set_pair:
+        ; Here have:
+        ; map in RSI
+        ; key in RDI
+        ; value in RCX
+        
+        call map_set
+
+        mov r8, rsi             ; map
+        mov rsi, rdi            ; key
+        call release_object
+        mov rsi, rcx            ; value
+        call release_object
+        mov rsi, r8             ; map
+
+        ; Check if there's another pair
+        mov al, BYTE [r11 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+        
+        ; got another pair
+        mov r11, [r11 + Cons.cdr]
+        jmp .loop
+        
+.done:
+        mov rax, rsi            ; new map
+        ret
+        
+.not_map:
+        load_static core_assoc_not_map
+        jmp core_throw_str
+        
+.missing_value:
+        load_static core_assoc_missing_value
         jmp core_throw_str
