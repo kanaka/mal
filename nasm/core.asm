@@ -78,6 +78,8 @@ section .data
 
         static core_assoc_symbol, db "assoc"
         static core_dissoc_symbol, db "dissoc"
+
+        static core_readline_symbol, db "readline"
         
 ;; Strings
 
@@ -247,6 +249,8 @@ core_environment:
 
         core_env_native core_assoc_symbol, core_assoc
         core_env_native core_dissoc_symbol, core_dissoc
+
+        core_env_native core_readline_symbol, core_readline
         
         ; -----------------
         ; Put the environment in RAX
@@ -2859,3 +2863,42 @@ core_dissoc:
 .missing_value:
         load_static core_dissoc_missing_value
         jmp core_throw_str
+
+
+;; Takes a string prompt for the user, and returns
+;; a string or nil
+core_readline:
+        ; Check the input 
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .no_prompt
+
+        mov rsi, [rsi + Cons.car]
+        mov al, BYTE [rsi]
+        cmp al, maltype_string
+        jne .no_prompt
+
+        ; Got a string in RSI
+        call print_string
+
+.no_prompt:
+
+        ; Get string from user
+        call read_line
+        
+        ; Check if we have a zero-length string
+        cmp DWORD [rax+Array.length], 0
+        je .return_nil
+
+        ; return the string in RAX
+        ret
+        
+.return_nil:
+        ; release string in RAX
+        mov rsi, rax
+        call release_array
+
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
