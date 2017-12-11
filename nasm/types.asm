@@ -994,8 +994,8 @@ compare_get_value:
 ;; but will just compare the first element
 ;;
 ;; Modifies registers
-;;    RCX
-;;    RBX
+;;    RAX, RBX, RCX, RDX
+;;
 compare_objects:
         ; Get the value that RSI points to
         call compare_get_value
@@ -1823,7 +1823,90 @@ map_keys:
         call alloc_cons
         mov [rax], BYTE maltype_empty_list
         ret
+
+;; Get a list of values
+;; 
+;; Input: Map in RSI
+;;
+;; Returns: List in RAX
+;;
+;; Modifies registers:
+;;   RAX
+;;   RBX
+;;   RCX
+;;   R8
+;;   R9
+map_vals:
+        ; check type
+        mov al, BYTE [rsi]
+        cmp al, maltype_empty_map
+        je .empty_map
+
+        and al, container_mask
+        cmp al, container_map
+        jne .empty_map          ; error
         
+        xor r8, r8              ; Return list
+        
+.loop:
+        ; Here should have a key in RSI
+
+        ; First get the value
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done              ; error. Should be a value
+        
+        mov rsi, [rsi + Cons.cdr] ; Now have value in RSI
+        
+        ; Create a new Cons for this value
+        call alloc_cons
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        add cl, block_cons + container_list
+        mov [rax], BYTE cl      ; Set type
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx          ; Set value
+
+        and cl, content_mask
+        cmp cl, content_pointer
+        jne .append
+
+        ; A pointer, so increment reference count
+        mov cx, WORD [rbx + Cons.refcount]
+        inc cx
+        mov [rbx + Cons.refcount], WORD cx
+        
+.append:
+        cmp r8, 0
+        je .first
+
+        ; appending
+        mov [r9 + Cons.typecdr], BYTE content_pointer
+        mov [r9 + Cons.cdr], rax
+        mov r9, rax
+        jmp .next
+.first:
+        ; First key, so put into r8
+        mov r8, rax
+        mov r9, rax
+.next:
+        ; Get the next key
+        mov al, BYTE [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+        mov rsi, [rsi + Cons.cdr]
+        jmp .loop
+.done:
+        ; Finished, return the list
+        mov rax, r8
+        ret
+        
+.empty_map:
+        ; return empty list
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
+        ret
+
         
 ;; ------------------------------------------------------------
 ;; Function type

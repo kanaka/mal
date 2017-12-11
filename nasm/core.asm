@@ -23,6 +23,7 @@ section .data
 
         static core_count_symbol, db "count"
         static core_keys_symbol, db "keys"
+        static core_vals_symbol, db "vals"
 
         static core_list_symbol, db "list"
 
@@ -76,6 +77,7 @@ section .data
         static core_keyword_symbol, db "keyword"
 
         static core_assoc_symbol, db "assoc"
+        static core_dissoc_symbol, db "dissoc"
         
 ;; Strings
 
@@ -84,6 +86,10 @@ section .data
         
         static core_emptyp_error_string, db "empty? expects a list, vector or map",10
         static core_count_error_string, db "count expects a list or vector",10
+
+        static core_keys_not_map, db "keys expects a map as first argument"
+        static core_vals_not_map, db "vals expects a map as first argument"
+        
         static core_numeric_expect_ints, db "comparison operator expected two numbers",10
 
         static core_deref_not_atom, db "Error: argument to deref is not an atom"
@@ -133,6 +139,9 @@ section .data
 
         static core_assoc_not_map, db "Error: assoc expects a map as first argument"
         static core_assoc_missing_value, db "Error: assoc missing value"
+
+        static core_dissoc_not_map, db "dissoc expects a map as first argument"
+        static core_dissoc_missing_value, db "Missing value in map passed to dissoc"
         
 section .text
 
@@ -182,6 +191,8 @@ core_environment:
         core_env_native core_le_symbol, core_le
         
         core_env_native core_keys_symbol, core_keys
+        core_env_native core_vals_symbol, core_vals
+        
         core_env_native core_list_symbol, core_list
 
         core_env_native core_pr_str_symbol, core_pr_str
@@ -235,6 +246,7 @@ core_environment:
         core_env_native core_keyword_symbol, core_keyword
 
         core_env_native core_assoc_symbol, core_assoc
+        core_env_native core_dissoc_symbol, core_dissoc
         
         ; -----------------
         ; Put the environment in RAX
@@ -618,10 +630,32 @@ core_count:
 ;; Input: List in RSI with one Map element
 ;; Returns: List in RAX
 core_keys:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_map
+        
         mov rsi, [rsi + Cons.car]
         call map_keys
         ret
-
+.not_map:
+        load_static core_keys_not_map
+        jmp core_throw_str
+        
+;; Get a list of values from a map
+core_vals:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_map
+        
+        mov rsi, [rsi + Cons.car]
+        call map_vals
+        ret
+.not_map:
+        load_static core_vals_not_map
+        jmp core_throw_str
+        
 ;; Given a map and a key, return true if the key is in the map
 ;;
 core_containsp:
@@ -2645,4 +2679,183 @@ core_assoc:
         
 .missing_value:
         load_static core_assoc_missing_value
+        jmp core_throw_str
+
+
+;; Removes keys from a map by making
+;; a copy of a map without the given keys
+core_dissoc:
+        ; Check that the first argument is a map
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .not_map
+
+        mov r8, [rsi + Cons.car] ; Map in R8
+        mov al, BYTE [r8]
+        mov ah, al
+        and al, container_mask
+        cmp al, container_map
+        jne .not_map
+
+        ; Check if the map is empty
+        cmp ah, maltype_empty_map
+        je .inc_and_return
+        
+        ; Now check if there are other arguments
+
+        mov al, [rsi + Cons.typecdr]
+        cmp al, content_pointer
+        je .start
+
+.inc_and_return:
+        ; No keys to remove
+        ; just increment the map reference count and return
+        mov rsi, r8
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.start:
+        ; Some keys to remove
+        mov r9, [rsi + Cons.cdr]
+
+        ; R9 now contains a list of keys
+        ; R8 contains the map to copy
+
+        xor r11, r11            ; Head of list to return
+        ; R12 contains tail
+        
+.loop:  
+        ; Check the key in R8 against the list in R9
+        mov r10, r9             ; point in list being searched
+
+        ; loop through the list in R10
+        ; comparing each element against R8
+.search_loop:
+        mov rsi, r8
+        mov rdi, r10
+        call compare_objects
+        test rax, rax
+        jz .found               ; objects are equal
+        
+        ; Not found so check next in list
+        mov al, BYTE [r10 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .not_found          ; End of list
+        
+        mov r10, [r10 + Cons.cdr] ; next
+        jmp .search_loop
+        
+.found:
+        ; Removing this key, so skip
+        mov al, BYTE [r8 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .missing_value
+        
+        mov r8, [r8 + Cons.cdr] ; now a value
+        jmp .next
+        
+.not_found:
+        ; Key not in list, so keeping
+        ; Create a Cons to copy
+        call alloc_cons
+        mov bl, [r8]
+        mov rcx, [r8 + Cons.car]
+
+        mov [rax], BYTE bl
+        mov [rax + Cons.car], rcx
+        
+        ; Check if a pointer or value
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .done_key           ; A value
+
+        ; a pointer, so increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.done_key:
+        ; append to list
+
+        test r11, r11
+        jnz .key_append
+
+        ; First one
+        mov r11, rax
+        mov r12, rax
+        jmp .copy_value
+.key_append:
+        
+        mov [r12 + Cons.typecdr], BYTE content_pointer
+        mov [r12 + Cons.cdr], rax
+        mov r12, rax
+
+.copy_value:
+
+        ; Check there is a value
+        mov al, BYTE [r8 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .missing_value
+
+        mov r8, [r8 + Cons.cdr] ; Value
+
+        ; Same as for key; create a Cons and copy
+        call alloc_cons
+        mov bl, [r8]
+        mov rcx, [r8 + Cons.car]
+
+        mov [rax], BYTE bl
+        mov [rax + Cons.car], rcx
+        
+        ; Check if a pointer or value
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .done_value           ; A value
+
+        ; a pointer, so increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+
+.done_value:
+        ; append to list
+        mov [r12 + Cons.typecdr], BYTE content_pointer
+        mov [r12 + Cons.cdr], rax
+        mov r12, rax
+        
+.next:
+        ; Here R8 contains a value
+        
+        ; Check if there's another key
+        mov al, [r8 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+
+        ; Still more
+
+        mov r8, [r8 + Cons.cdr]
+        jmp .loop
+        
+.done:
+        ; Check if the map is empty
+        test r11, r11
+        jz .return_empty
+        
+        ; not empty, so return
+        mov rax, r11
+        ret
+
+.return_empty:
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_map
+        ret
+        
+.not_map:
+        load_static core_dissoc_not_map
+        jmp core_throw_str
+
+.missing_value:
+        load_static core_dissoc_missing_value
         jmp core_throw_str
