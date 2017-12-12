@@ -80,6 +80,9 @@ section .data
         static core_dissoc_symbol, db "dissoc"
 
         static core_readline_symbol, db "readline"
+
+        static core_meta_symbol, db "meta"
+        static core_with_meta_symbol, db "with-meta"
         
 ;; Strings
 
@@ -144,6 +147,9 @@ section .data
 
         static core_dissoc_not_map, db "dissoc expects a map as first argument"
         static core_dissoc_missing_value, db "Missing value in map passed to dissoc"
+
+        static core_with_meta_no_function, db "with-meta expects a function as first argument"
+        static core_with_meta_no_value, db "with-meta expects a value as second argument"
         
 section .text
 
@@ -251,6 +257,9 @@ core_environment:
         core_env_native core_dissoc_symbol, core_dissoc
 
         core_env_native core_readline_symbol, core_readline
+
+        core_env_native core_meta_symbol, core_meta
+        core_env_native core_with_meta_symbol, core_with_meta
         
         ; -----------------
         ; Put the environment in RAX
@@ -2902,3 +2911,145 @@ core_readline:
         call alloc_cons
         mov [rax], BYTE maltype_nil
         ret
+
+
+;; Return the meta data associated with a given function
+core_meta:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .return_nil
+
+        mov rsi, [rsi + Cons.car]
+        mov al, BYTE [rsi]
+        cmp al, (block_cons + container_function + content_function)
+        jne .return_nil
+
+        ; Here got a function
+        mov rsi, [rsi + Cons.cdr]
+
+        ; RSI should now contain the meta data
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        cmp cl, content_pointer
+        je .pointer
+
+        ; A value, so copy
+        call alloc_cons
+        mov [rax], BYTE cl
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx
+        ret
+        
+.pointer:
+        ; A pointer, so increment reference count and return
+        mov rsi, [rsi + Cons.car]
+        call incref_object
+        mov rax, rsi
+        ret
+        
+.return_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+
+;; Associates a value with a function (native or user)
+core_with_meta:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        jne .no_function
+
+        mov r8, [rsi + Cons.car] ; Function in R8
+        mov al, BYTE [r8]
+        cmp al, (block_cons + container_function + content_function)
+        jne .no_function
+        
+        mov bl, BYTE [rsi + Cons.typecdr]
+        cmp bl, content_pointer
+        jne .no_value
+        
+        mov rsi, [rsi + Cons.cdr]
+
+        ; Function in R8, new value in RSI
+
+        call alloc_cons
+        mov [rax], BYTE (block_cons + container_function + content_function)      ; Type
+        mov rbx, [r8 + Cons.car]
+        mov [rax + Cons.car], rbx ; Function address
+        
+        mov r10, rax            ; Return address
+
+        ; Copy the meta data
+
+        mov r8, [r8 + Cons.cdr] ; R8 now old meta data (not used)
+        
+        call alloc_cons
+        
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        mov ch, cl
+        or cl, container_function
+        mov [rax], BYTE cl      ; Set type
+
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx ; Copy value
+
+        ; append to function
+        mov [r10 + Cons.typecdr], BYTE content_pointer
+        mov [r10 + Cons.cdr], rax
+        mov r11, rax
+        
+        ; Check if meta is a value or pointer
+        cmp ch, content_pointer
+        jne .copy_rest
+
+        ; increment reference count of meta
+        mov cx, WORD [rbx + Cons.refcount]
+        inc cx
+        mov [rbx + Cons.refcount], WORD cx
+        
+.copy_rest:
+        ; Copy remainder of function (if any)
+        ; If a user function, has (env binds body)
+        mov al, [r8 + Cons.typecdr]
+        cmp al, content_pointer
+        jne .done
+
+        ; Still more to copy
+        mov r8, [r8 + Cons.cdr]
+        
+        call alloc_cons
+        mov bl, BYTE [r8]
+        mov [rax], BYTE bl      ; Copy type
+        mov rcx, [r8 + Cons.car]
+        mov [rax + Cons.car], rcx ; Copy value
+
+        ; append
+        mov [r11 + Cons.typecdr], BYTE content_pointer
+        mov [r11 + Cons.cdr], rax
+        mov r11, rax
+
+        ; Check if it's a pointer
+        and bl, content_mask
+        cmp bl, content_pointer
+        jne .copy_rest
+
+        ; a pointer, so increment reference count
+        mov bx, WORD [rcx + Cons.refcount]
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        jmp .copy_rest
+        
+.done:
+        mov rax, r10
+        ret
+        
+.no_function:
+        load_static core_with_meta_no_function
+        jmp core_throw_str
+
+.no_value:
+        load_static core_with_meta_no_value
+        jmp core_throw_str

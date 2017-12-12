@@ -9,7 +9,7 @@ section .data
         static unquote_symbol_string, db "unquote"
         static splice_unquote_symbol_string, db "splice-unquote"
         static deref_symbol_string, db "deref"
-        
+        static with_meta_symbol_string, db "with-meta"
         
 ;; Error message strings
         
@@ -112,6 +112,9 @@ read_str:
         je .handle_splice_unquote
         cmp cl, '@'
         je .handle_deref
+        
+        cmp cl, '^'
+        je .handle_with_meta
         
         ; Unknown
         jmp .return_nil
@@ -523,7 +526,7 @@ read_str:
         pop r9
         pop r8
         jmp .wrap_next_object   ; From there the same as handle_quote
-
+        
         ; --------------------------------
 
 .handle_deref:
@@ -541,6 +544,61 @@ read_str:
         pop r9
         pop r8
         jmp .wrap_next_object   ; From there the same as handle_quote
+
+        ; --------------------------------
+
+.handle_with_meta:
+        ; Turn ^ a b into (with-meta b a)
+
+        call alloc_cons         ; Address in rax
+        mov r12, rax
+
+        ; Get a symbol "with-meta"
+        push r8
+        push r9
+        mov rsi, with_meta_symbol_string
+        mov edx, with_meta_symbol_string.len
+        call raw_to_string      ; Address in rax
+        pop r9
+        pop r8
+
+        mov [rax], BYTE maltype_symbol
+        mov [r12], BYTE (block_cons + container_list + content_pointer)
+        mov [r12 + Cons.car], rax
+
+        ; Get the next two objects
+        push r12
+        call .read_loop         ; object in rax
+        pop r12
+        push rax
+        push r12
+        call .read_loop         ; in RAX
+        pop r12
+
+        mov r13, rax
+        
+        call alloc_cons         ; Address in rax
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        mov [rax + Cons.car], r13
+        
+        ; Cons object in rax. Append to object in r12
+        mov [r12 + Cons.typecdr], BYTE content_pointer
+        mov [r12 + Cons.cdr], rax
+
+        mov r13, rax
+
+        call alloc_cons         ; Address in rax
+        mov [rax], BYTE (block_cons + container_list + content_pointer)
+        
+        pop rdi                 ; First object
+        mov [rax + Cons.car], rdi
+
+        ; Append to object in R13
+        mov [r13 + Cons.typecdr], BYTE content_pointer
+        mov [r13 + Cons.cdr], rax
+
+        mov rax, r12
+        ret
         
         ; --------------------------------
 .symbol:

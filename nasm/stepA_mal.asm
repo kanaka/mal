@@ -1471,19 +1471,32 @@ eval:
         mov [rax + Cons.typecdr], BYTE content_pointer
         
         mov r13, rax            ; Return list in R13
+
+        ; Meta
+
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        mov [rax + Cons.typecdr], BYTE content_pointer
+
+        mov [r13 + Cons.cdr], rax ; Append
+        mov r14, rax
+        
+        ; Env
         
         call alloc_cons
         mov [rax], BYTE (block_cons + container_function + content_pointer)
         mov [rax + Cons.car], r15 ; Environment
         mov [rax + Cons.typecdr], BYTE content_pointer
         
-        mov [r13 + Cons.cdr], rax ; Append to list
+        mov [r14 + Cons.cdr], rax ; Append to list
         mov r14, rax
         
         push rax
         mov rsi, r15
         call incref_object
         pop rax
+
+        ; Binds
         
         call alloc_cons
         mov [rax], BYTE (block_cons + container_function + content_pointer)
@@ -1909,6 +1922,7 @@ apply_fn:
         push rsi
         ; Extract values from the list in RDI
         mov rax, [rdi + Cons.cdr]
+        mov rax, [rax + Cons.cdr] ; Meta (don't need)
         mov rsi, [rax + Cons.car] ; Env
         mov rax, [rax + Cons.cdr]
         mov rdi, [rax + Cons.car] ; Binds

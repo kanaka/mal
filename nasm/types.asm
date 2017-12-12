@@ -1913,18 +1913,27 @@ map_vals:
 ;;
 ;; Functions are consist of a list
 ;;   - First car is the function address to call
-;;   - Second is the environment
-;;   - Third is the binds list
-;;   - Fourth is the body of the function
+;;   - Second is the Meta data (nil by default)
+;;   - Third is the environment
+;;   - Fourth is the binds list
+;;   - Fifth is the body of the function
 ;;
-;;   ( addr env binds body )
+;;   ( addr meta env binds body )
 ;;
 ;;
 
 ;; Address of native function in RSI
 ;; returns Function object in RAX
-native_function:        
-        call alloc_cons
+native_function:
+        call alloc_cons         ; for meta
+        mov [rax], BYTE maltype_nil
+        push rax
+        
+        call alloc_cons         ; For function address
         mov [rax], BYTE (block_cons + container_function + content_function)
         mov [rax + Cons.car], rsi
+
+        mov [rax + Cons.typecdr], BYTE content_pointer
+        pop rbx                 ; meta
+        mov [rax + Cons.cdr], rbx
         ret
