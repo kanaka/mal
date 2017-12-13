@@ -1648,6 +1648,16 @@ core_concat:
         mov rbx, [rsi + Cons.car]
         mov [rax + Cons.car], rbx ; Set content
 
+        ; Check if CAR is a pointer
+        cmp cl, (container_list + content_pointer)
+        jne .single_done_car
+
+        ; a pointer, so increment reference count
+        mov cx, WORD [rbx + Cons.refcount]
+        inc cx
+        mov [rbx + Cons.refcount], WORD cx
+        
+.single_done_car:
         mov dl, BYTE [rsi + Cons.typecdr]
         mov [rax + Cons.typecdr], BYTE dl ; CDR type
         
