@@ -1024,8 +1024,8 @@ compare_objects:
         ; May be different container (value/list, string/symbol)
 
         ; Need to distinguish between map and vector/list
-        and ch, container_mask
-        and bh, container_mask
+        and ch, (block_mask + container_mask)
+        and bh, (block_mask + container_mask)
         cmp ch, bh
         je .same_container
         ; if either is a map, then different types
@@ -1098,8 +1098,8 @@ compare_objects_rec:
         mov ah, al
         mov bh, bl
         
-        and ah, container_mask
-        and bh, container_mask
+        and ah, (block_mask + container_mask)
+        and bh, (block_mask + container_mask)
         cmp ah, bh
         je .same_container
         ; if either is a map, then different types
@@ -1131,7 +1131,7 @@ compare_objects_rec:
 
 .array:
         ; Comparing arrays
-
+        
         ; Container type (symbol/string) does matter
         cmp al, bl
         jne .false
