@@ -887,10 +887,14 @@ core_hashmap:
 ;; Convert arguments to a readable string, separated by a space
 ;; 
 core_pr_str:
-        mov rdi, 1              ; print_readably
+        mov rdi, 3              ; print_readably & separator
         jmp core_str_functions
 core_str:
         xor rdi, rdi
+        jmp core_str_functions
+core_str_sep:
+        mov rdi, 2              ; separator
+        
 core_str_functions:
         mov al, BYTE [rsi]
         mov ah, al
@@ -972,8 +976,8 @@ core_str_functions:
         ; More inputs
         mov rsi, [rsi + Cons.cdr] ; pointer
 
-        cmp rdi, 0              ; print_readably
-        je .end_append_char     ; No separator if not printing readably
+        test rdi, 2             ; print_readably
+        jz .end_append_char     ; No separator
         
         ; Add separator
         push r8
@@ -1005,7 +1009,7 @@ core_prn:
         call core_pr_str
         jmp core_prn_functions
 core_println:
-        call core_str
+        call core_str_sep
 core_prn_functions:
         mov rsi, rax
 
@@ -1865,7 +1869,7 @@ core_rest:
 
         ; Get the list
         mov rsi, [rsi + Cons.car]
-
+        
         mov al, BYTE [rsi]
 
         ; Check for nil
@@ -1880,7 +1884,7 @@ core_rest:
         jne .not_list           ; Not a list or vector
         
 .got_list:
-        ; Check if list is empty
+        ; Check if list or vector is empty
         and al, content_mask
         cmp al, content_empty
         je .empty_list
@@ -1897,9 +1901,11 @@ core_rest:
         ret
         
 .return_rest:
-
+        
         mov rsi, [rsi + Cons.cdr]
 
+        
+        
         ; Check if this is a list or a vector
         mov cl, BYTE [rsi]
         mov ch, cl
@@ -1917,25 +1923,29 @@ core_rest:
         mov dl, BYTE [rsi + Cons.typecdr] ; CDR type in DL
         mov [rax + Cons.typecdr], BYTE dl
         
-        ; Copy content of CAR and CDR
+        ; Copy content of CAR
         mov rbx, [rsi + Cons.car]
         mov [rax + Cons.car], rbx
-
-        mov rcx, [rsi + Cons.cdr]
-        mov [rax + Cons.cdr], rcx ; Note: Might be pointer
-
+        
         ; Check if car contains a pointer
         cmp ch, content_pointer
         jne .check_cdr
-
+        
         ; CAR contains a pointer, so increment reference count
         
         mov r8, rax             ; Save return Cons
+        mov r9, rsi             ; Save input list
         mov rsi, rbx            ; Content of CAR
         call incref_object
         mov rax, r8             ; Restore return Cons
+        mov rsi, r9             ; Restore input list
         
-.check_cdr:        
+.check_cdr:
+        ; Copy content of CDR
+        
+        mov rcx, [rsi + Cons.cdr]
+        mov [rax + Cons.cdr], rcx ; Note: Might be pointer
+        
         ; Check if cdr contains a pointer
         cmp dl, content_pointer
         jne .return             ; Not a pointer, so just return

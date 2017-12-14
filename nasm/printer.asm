@@ -18,7 +18,7 @@ section .data
 section .text
 
 ;; Input: Address of object in RSI
-;;        print_readably in RDI. Set to zero for false
+;;        print_readably in RDI. First bit set to zero for false
 ;;
 ;; Output: Address of string in RAX
 ;;
@@ -44,8 +44,8 @@ pr_str:
         ; ---------------------------
         ; Handle string
 
-        cmp rdi, 0
-        je .string_not_readable
+        test rdi, 1
+        jz .string_not_readable
         
         ; printing readably, so escape characters
         
