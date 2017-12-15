@@ -83,6 +83,8 @@ section .data
 
         static core_meta_symbol, db "meta"
         static core_with_meta_symbol, db "with-meta"
+
+        static core_time_ms_symbol, db "time-ms"
         
 ;; Strings
 
@@ -260,6 +262,8 @@ core_environment:
 
         core_env_native core_meta_symbol, core_meta
         core_env_native core_with_meta_symbol, core_with_meta
+
+        core_env_native core_time_ms_symbol, core_time_ms
         
         ; -----------------
         ; Put the environment in RAX
@@ -3073,3 +3077,15 @@ core_with_meta:
 .no_value:
         load_static core_with_meta_no_value
         jmp core_throw_str
+
+
+;; Returns the current time in ms
+core_time_ms:
+        call clock_time_ms
+        mov rsi, rax
+        
+        call alloc_cons
+        mov [rax], BYTE maltype_integer
+        mov [rax + Cons.car], rsi
+        ret
+        

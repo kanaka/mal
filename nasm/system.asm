@@ -6,6 +6,10 @@
 section .data
         static error_open_file_string, db "Error opening file "
         static error_read_file_string, db "Error reading file "
+
+section .bss
+        
+timespec:  RESQ 2 
         
 section .text
         
@@ -204,3 +208,26 @@ read_file:
         call raw_to_string
         mov rsi, rax
         jmp error_throw
+
+
+        
+;; Returns the time in ms in RAX
+clock_time_ms:
+        mov rax, 228            ; clock_gettime
+        mov rdi, 0              ; CLOCK_REALTIME
+        mov rsi, timespec
+        syscall
+        
+        mov rax, [timespec + 8] ; nanoseconds
+        cqo                     ; Sign extend RAX into RDX
+        mov rcx, 1000000
+        idiv rcx                ; Divide RAX by 1e6 -> ms
+        mov rbx, rax
+        ; -> ms in RBX
+
+        mov rax, [timespec]     ; Seconds
+        mov rcx, 1000
+        imul rcx               ; Convert to ms
+        add rax, rbx          ; Add RBX
+        
+        ret
