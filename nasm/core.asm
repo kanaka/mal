@@ -797,10 +797,6 @@ core_list:
         call incref_object
         mov rax, rsi
         ret
-
-.not_seq:
-        load_static core_list_not_seq
-        jmp core_throw_str
         
 ;; Convert arguments into a vector
 core_vector:
@@ -2432,8 +2428,14 @@ core_apply:
         mov cl, al
         and al, container_mask
         cmp al, container_list
-        je .run
+        jne .last_convert_to_list
 
+        ; Already a list, just increment reference count
+        mov rsi, r9
+        call incref_object
+        jmp .run
+
+.last_convert_to_list:
         ; Convert vector to list by copying first element
 
         call alloc_cons
