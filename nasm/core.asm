@@ -1754,6 +1754,10 @@ core_concat:
         mov [r11 + Cons.cdr], rsi
         mov [r11 + Cons.typecdr], BYTE content_pointer
 .done:
+        ; Check there is anything to return
+        test r11, r11
+        jz .empty_list
+        
         ; Make sure that return is a list
         mov bl, BYTE [r12]
         and bl, content_mask
@@ -1761,6 +1765,11 @@ core_concat:
         mov [r12], BYTE bl
         mov rax, r12            ; output list
         
+        ret
+
+.empty_list:
+        call alloc_cons
+        mov [rax], BYTE maltype_empty_list
         ret
         
 .missing_args:
