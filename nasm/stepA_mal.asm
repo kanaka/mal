@@ -1732,7 +1732,8 @@ eval:
         
         push R9
         push R10
-
+        push r15                ; Env
+        
         ; Set the error handler
         mov rsi, rsp            ; Stack pointer
         mov rdi, .catch         ; Address to jump to
@@ -1747,12 +1748,14 @@ eval:
         mov rsi, r8             ; The form to evaluate (A)
         
         call incref_object      ; AST released by eval
-
+        
         call eval
+        
         mov r8, rax             ; Result in R8
         
+        pop r15                 ; Environment
         ; Discard B and C
-        ;add rsi, 8              ; pop R10 and R9
+        ;add rsi, 8             ; pop R10 and R9
         pop r10
         pop r9
         
@@ -1765,7 +1768,12 @@ eval:
         ; Jumps here on error
         ; Value thrown in RSI
         ;
-        
+
+        push rsi
+        call error_handler_pop
+        pop rsi
+
+        pop r15                 ; Env
         pop r12                 ; B (symbol to bind)
         pop r13                 ; C (form to evaluate)
 
@@ -1799,9 +1807,11 @@ eval:
         mov rdi, rsi            ; Env in RDI (will be released)
         mov rsi, [r13 + Cons.car] ; Form to evaluate
         call incref_object      ; will be released
-        
-        call eval
 
+        push r15
+        call eval
+        pop r15
+        
         jmp .return
         
 .try_missing_catch:
