@@ -144,6 +144,9 @@ section .data
         static error_msg_print_string, db "Error in print string",10
         static error_array_memory_limit,  db "Error: Run out of memory for Array objects. Increase heap_array_limit.",10
         static error_cons_memory_limit, db "Error: Run out of memory for Cons objects. Increase heap_cons_limit.",10
+
+        static error_cons_double_free, db "Error: double free error releasing Cons"
+        static error_array_double_free, db "Error: double free error releasing Array"
         
 ;; ------------------------------------------
 ;; Memory management
@@ -155,12 +158,12 @@ section .data
 ;; is free'd it is pushed onto the heap_x_free list.
         
         
-%define heap_cons_limit 2000     ; Number of cons objects which can be created
+%define heap_cons_limit 5000     ; Number of cons objects which can be created
 
 heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
-%define heap_array_limit 1000     ; Number of array objects which can be created
+%define heap_array_limit 2000     ; Number of array objects which can be created
         
 heap_array_next: dd heap_array_store
 heap_array_free: dq 0
@@ -229,6 +232,10 @@ alloc_array:
 ;; onto the free list
 release_array:
         mov ax, WORD [rsi + Array.refcount]
+
+        ; Check if reference count is already zero
+        test ax,ax
+        jz .double_free
         
         dec ax
         mov WORD [rsi + Array.refcount], ax
@@ -254,6 +261,11 @@ release_array:
         call release_array
         ret
 
+.double_free:
+        load_static error_cons_double_free
+        call print_rawstring
+        jmp error_throw
+        
 ;; ------------------------------------------
 ;; Cons alloc_cons()
 ;;
@@ -314,6 +326,11 @@ alloc_cons:
 ;;    
 release_cons:
         mov ax, WORD [rsi + Cons.refcount]
+
+        ; Check if already released
+        test ax,ax
+        jz .double_free
+        
         dec ax
         mov WORD [rsi + Cons.refcount], ax
         jz .free                ; If the count reaches zero then put on free list
@@ -354,6 +371,10 @@ release_cons:
 .done:
         ret
 
+.double_free:                   ; Already released
+        load_static error_cons_double_free
+        call print_rawstring
+        jmp error_throw
 
 ;; Releases either a Cons or Array
 ;; Address of object in RSI
@@ -367,12 +388,8 @@ release_object:
         mov al, BYTE [rsi]          ; Get first byte
         and al, block_mask          ; Test block type
         cmp al, block_array         ; Test if it's an array
-        je .array
-        call release_cons
-        ret
-.array:
-        call release_array
-        ret
+        je release_array
+        jmp release_cons
 
 ;; Increment reference count of Cons or Array
 ;; Address of object in RSI

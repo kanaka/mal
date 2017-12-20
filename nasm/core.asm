@@ -1802,7 +1802,7 @@ core_first:
         
         cmp al, content_pointer
         jne .not_list
-
+        
         ; Get the list
         mov rsi, [rsi + Cons.car]
 
@@ -2272,7 +2272,9 @@ core_map:
         push r8
         push r9
         push r10
+        push r15
         call apply_fn           ; Result in RAX
+        pop r15
         pop r10
         pop r9
         pop r8
@@ -2486,6 +2488,7 @@ core_apply:
         ; Append RSI to the end of the list [R9]...[R10]
         mov [r10 + Cons.typecdr], BYTE content_pointer
         mov [r10 + Cons.cdr], rsi
+        call incref_object
         
 .run:
         ; Have arguments list in R9
