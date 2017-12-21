@@ -2211,14 +2211,16 @@ core_map:
         
         mov cl, BYTE [r9]
         and cl, content_mask
-
+        mov ch, cl
+        or cl, container_list
+        
         call alloc_cons
         mov [rax], BYTE cl      ; set content type
         mov rbx, [r9 + Cons.car]
         mov [rax + Cons.car], rbx ; Copy content
         mov rsi, rax
 
-        cmp cl, content_pointer
+        cmp ch, content_pointer
         jne .run
 
         ; A pointer, so increment ref count
