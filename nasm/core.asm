@@ -85,6 +85,8 @@ section .data
         static core_with_meta_symbol, db "with-meta"
 
         static core_time_ms_symbol, db "time-ms"
+
+        static core_seq_symbol, db "seq"
         
 ;; Strings
 
@@ -152,6 +154,9 @@ section .data
 
         static core_with_meta_no_function, db "with-meta expects a function as first argument"
         static core_with_meta_no_value, db "with-meta expects a value as second argument"
+
+        static core_seq_missing_arg, db "seq missing argument"
+        static core_seq_wrong_type, db "seq expects a list, vector, string or nil"
         
 section .text
 
@@ -264,6 +269,8 @@ core_environment:
         core_env_native core_with_meta_symbol, core_with_meta
 
         core_env_native core_time_ms_symbol, core_time_ms
+
+        core_env_native core_seq_symbol, core_seq
         
         ; -----------------
         ; Put the environment in RAX
@@ -3104,4 +3111,160 @@ core_time_ms:
         mov [rax], BYTE maltype_integer
         mov [rax + Cons.car], rsi
         ret
+
+;; Convert sequences, including strings, into lists
+core_seq:
+        mov al, BYTE [rsi]
+        and al, content_mask
+        cmp al, content_pointer
+        je .pointer
+        
+        cmp al, content_empty
+        je .missing_arg
+
+        cmp al, content_nil
+        jne .wrong_type
+        
+.return_nil:
+        call alloc_cons
+        mov [rax], BYTE maltype_nil
+        ret
+        
+.pointer:
+        mov r8, [rsi + Cons.car]
+        mov al, BYTE [r8]
+
+        cmp al, maltype_string
+        je .string
+
+        mov ah, al
+        and ah, (block_mask + content_mask)
+        cmp ah, (block_cons + content_empty)
+        je .return_nil
+        
+        and al, (block_mask + container_mask)
+        
+        cmp al, (block_cons + container_list)
+        je .list
+        
+        cmp al, (block_cons + container_vector)
+        jne .wrong_type
+
+        ; Convert vector to list by replacing the first Cons
+        call alloc_cons
+        mov bl, BYTE [r8]
+        and bl, content_mask
+        or bl, container_list
+        mov [rax], BYTE bl      ; Set type
+
+        mov rcx, [r8 + Cons.car]
+        mov [rax + Cons.car], rcx
+
+        ; Check if it's a pointer
+        cmp bl, (container_list + content_pointer)
+        jne .copy_cdr
+
+        ; Increment reference count
+        mov bx, WORD [rcx + Cons.refcount] ; Same for Array
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.copy_cdr:
+        mov rcx, [r8 + Cons.cdr]
+        mov [rax + Cons.cdr], rcx
+
+        mov bl, [r8 + Cons.typecdr]
+        mov [rax + Cons.typecdr], bl
+
+        cmp bl, content_pointer
+        jne .return
+        
+        ; Increment reference count
+        mov bx, WORD [rcx + Cons.refcount] ; Same for Array
+        inc bx
+        mov [rcx + Cons.refcount], WORD bx
+        
+.return:
+        ret
+        
+.list:
+        ; Return list unchanged
+        mov rsi, r8
+        call incref_object
+        mov rax, r8
+        ret
+
+.string:
+        ; Split a string into characters
+        ; Input string in R8
+        
+        mov ebx, DWORD [r8 + Array.length]
+        test ebx,ebx
+        jz .return_nil          ; empty string
+
+        ; Not empty, so allocate first Cons
+        call alloc_cons
+        mov r9, rax             ; Return Cons in R9
+        mov r10, rax            ; End of list in R10
+
+.loop:
+        mov ebx, DWORD [r8 + Array.length]
+        mov r11, r8
+        add r11, Array.data     ; Start of string data in R11
+        mov r12, r11
+        add r12, rbx            ; End of string data in R12
+        
+.inner_loop:
+        ; Get a new string
+        call string_new         ; in RAX
+        mov bl, BYTE [r11]      ; Get the next character
+        mov [rax + Array.data], BYTE bl
+        mov [rax + Array.length], DWORD 1
+        
+        ; Put string into Cons at end of list
+        mov [r10 + Cons.car], rax
+        
+        ; Set type
+        mov [r10], BYTE (container_list + content_pointer)
+        
+        inc r11
+        cmp r11, r12
+        je .inner_done
+        
+        ; more characters, so allocate another Cons
+        call alloc_cons
+
+        mov [r10 + Cons.typecdr], BYTE content_pointer
+        mov [r10 + Cons.cdr], rax
+        mov r10, rax
+        jmp .inner_loop
+        
+.inner_done:
+        ; No more characters in this Array
+        ; check if there are more
+        mov r8, QWORD [r8 + Array.next]     ; Get the next Array address
+        test r8, r8           ; Test if it's null
+        jz .string_finished
+
+        ; Another chunk in the string
+        
+        call alloc_cons
+        mov [r10 + Cons.typecdr], BYTE content_pointer
+        mov [r10 + Cons.cdr], rax
+        mov r10, rax
+        jmp .loop
+        
+.string_finished:
+        mov rax, r9
+        ret
+        
+.missing_arg:
+        ; No arguments
+        load_static core_seq_missing_arg
+        jmp core_throw_str
+        
+.wrong_type:
+        ; Not a list, vector, string or nil
+        load_static core_seq_wrong_type
+        jmp core_throw_str
         
