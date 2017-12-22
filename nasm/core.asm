@@ -1428,7 +1428,7 @@ core_swap:
         
         ; Now get the value in the atom
         mov rdx, [r9 + Cons.car] ; The object pointed to
-
+        
         ; Check what it is
         mov bl, BYTE [rdx]
         mov bh, bl
@@ -1506,7 +1506,7 @@ core_swap:
         mov rsi, [r9 + Cons.car]
         call release_object
         pop rax
-
+        
         ; Put into atom
         mov [r9 + Cons.car], rax
         
@@ -2290,6 +2290,7 @@ core_map:
         
 .got_return:
         ; Have a return result in RAX
+        
         ; Check if it's a value type
         mov bl, BYTE [rax]
         mov bh, bl
@@ -2304,10 +2305,40 @@ core_map:
         jmp .update_return
         
 .return_value:
+        ; Check if this value is shared (e.g. in an atom)
+        mov cx, WORD [rax + Cons.refcount]
+        dec cx
+        jz .return_value_modify ; If reference count is 1
+        
+        ; Need to copy to avoid modifying
+        push rsi
+        mov rsi, rax            ; Original in RSI
+
+        mov cl, bh              ; Type
+        call alloc_cons
+        and cl, content_mask
+        or cl, container_list
+        mov [rax], BYTE cl      ; mark as a list
+        
+        mov rbx, [rsi + Cons.car]
+        mov [rax + Cons.car], rbx ; copy content
+        
+        ; Release original
+        push rax
+        call release_object
+        pop rax
+        pop rsi
+        
+        jmp .update_return
+        
+.return_value_modify:
+        ; Only one reference,
+        ; so can change the container type to list.
+        ; Original type in bh
         mov bl, bh
         and bl, content_mask
         or bl, container_list
-        mov [rax], BYTE bl      ; mark as a list
+        mov [rax], BYTE bl
         
 .update_return:
         ; Now append to result list
