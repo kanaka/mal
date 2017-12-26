@@ -1815,27 +1815,6 @@ apply_fn:
         mov rax, [rax + Cons.car] ; Body
         pop rcx                   ; Exprs
 
-;;;
-        ; push rax
-        ; push rcx
-        ; push rsi
-        ; push rdi
-        ; push rdx
-        ; push r15
-        ; push r13
-
-        ; mov rsi, rcx
-        ; call core_println
-        
-        ; pop r13
-        ; pop r15
-        ; pop rdx
-        ; pop rdi
-        ; pop rsi
-        ; pop rcx
-        ; pop rax
-
-;;;
         
         ; Check the type of the body
         mov bl, BYTE [rax]
