@@ -160,12 +160,12 @@ section .data
         
 %define heap_cons_limit 5000     ; Number of cons objects which can be created
 
-heap_cons_next: dd  heap_cons_store  ; Address of next cons in memory
+heap_cons_next: dq  heap_cons_store  ; Address of next cons in memory
 heap_cons_free: dq 0            ; Address of start of free list
         
 %define heap_array_limit 2000     ; Number of array objects which can be created
         
-heap_array_next: dd heap_array_store
+heap_array_next: dq heap_array_store
 heap_array_free: dq 0
         
 section .bss
@@ -263,7 +263,8 @@ release_array:
 
 .double_free:
         load_static error_cons_double_free
-        call print_rawstring
+        call raw_to_string
+        mov rsi, rax
         jmp error_throw
         
 ;; ------------------------------------------
@@ -373,7 +374,8 @@ release_cons:
 
 .double_free:                   ; Already released
         load_static error_cons_double_free
-        call print_rawstring
+        call raw_to_string
+        mov rsi, rax
         jmp error_throw
 
 ;; Releases either a Cons or Array

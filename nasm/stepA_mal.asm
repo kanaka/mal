@@ -1866,9 +1866,16 @@ eval:
         je .list_got_args
         
         ; No arguments
-        push rbx
+        
+        push rbx                ; Function object
+        
+        mov rsi, rax            ; List with function first
+        call release_object     ; Can be freed now
+
+        ; Create an empty list for the arguments
         call alloc_cons
         mov [rax], BYTE maltype_empty_list
+        
         pop rbx
         mov rsi, rax
         jmp  .list_function_call
