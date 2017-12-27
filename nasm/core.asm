@@ -189,6 +189,13 @@ core_environment:
         xor rsi, rsi            ; Set outer to nil
         call env_new            
         mov rsi, rax            ; Environment in RSI
+        
+        core_env_native core_cons_symbol, core_cons
+        core_env_native core_concat_symbol, core_concat
+        
+        core_env_native core_first_symbol, core_first
+        core_env_native core_rest_symbol, core_rest
+        core_env_native core_nth_symbol, core_nth
 
         core_env_native core_add_symbol, core_add
         core_env_native core_sub_symbol, core_sub
@@ -224,13 +231,6 @@ core_environment:
         core_env_native core_atomp_symbol, core_atomp
         core_env_native core_reset_symbol, core_reset
         core_env_native core_swap_symbol, core_swap
-
-        core_env_native core_cons_symbol, core_cons
-        core_env_native core_concat_symbol, core_concat
-        
-        core_env_native core_first_symbol, core_first
-        core_env_native core_rest_symbol, core_rest
-        core_env_native core_nth_symbol, core_nth
         
         core_env_native core_nilp_symbol, core_nilp
         core_env_native core_truep_symbol, core_truep
