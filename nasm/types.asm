@@ -262,6 +262,7 @@ release_array:
         ret
 
 .double_free:
+        ret
         load_static error_cons_double_free
         call raw_to_string
         mov rsi, rax
@@ -373,6 +374,7 @@ release_cons:
         ret
 
 .double_free:                   ; Already released
+        ret
         load_static error_cons_double_free
         call raw_to_string
         mov rsi, rax

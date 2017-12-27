@@ -1,5 +1,5 @@
 ;; 
-;; nasm -felf64 step1_read_print.asm && ld step1_read_print.o && ./a.out
+;; nasm -felf64 step2_eval.asm && ld step2_eval.o && ./a.out
 
 ;; Calling convention: Address of input is in RSI
 ;;                     Address of return value is in RAX
@@ -13,6 +13,7 @@ global  _start
 %include "reader.asm"           ; String -> Data structures
 %include "core.asm"             ; Core functions
 %include "printer.asm"          ; Data structures -> String
+%include "exceptions.asm"       ; Error handling
         
 section .bss
         
@@ -27,6 +28,8 @@ section .data
 prompt_string: db 10,"user> "      ; The string to print at the prompt
 .len: equ $ - prompt_string
 
+error_string: db 27,'[31m',"Error",27,'[0m',": "
+.len: equ $ - error_string
 
 def_symbol: ISTRUC Array
 AT Array.type,  db   maltype_symbol
@@ -40,8 +43,12 @@ AT Array.length, dd  4
 AT Array.data, db 'let*'
 IEND
         
-section .text   
-        
+section .text
+
+;; This is a dummy function so that core routines compile
+apply_fn:
+        jmp quit
+
 ;; Evaluates a form in RSI
 eval_ast:
         ; Check the type
@@ -537,6 +544,7 @@ _start:
         
         ; Put into pr_str
         mov rsi, rax            
+        mov rdi, 1              ; print readably
         call pr_str
         push rax                ; Save output string
         

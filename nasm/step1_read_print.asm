@@ -11,7 +11,8 @@ global  _start
 %include "system.asm"           ; System calls
 %include "reader.asm"           ; String -> Data structures
 %include "printer.asm"          ; Data structures -> String
-        
+%include "exceptions.asm"       ; Error handling
+
 section .data
 
 test_string1: db 10, "test1", 10
@@ -94,6 +95,7 @@ _start:
         
         ; Put into pr_str
         mov rsi, rax
+        mov rdi, 1              ; print readably
         call pr_str
         push rax
         
