@@ -49,6 +49,7 @@ Mal is implemented in 71 languages:
 * mal itself
 * Matlab (GNU Octave and MATLAB)
 * [miniMAL](https://github.com/kanaka/miniMAL)
+* NASM
 * Nim
 * Object Pascal
 * Objective C
@@ -615,6 +616,19 @@ IMPL_STEPA_CMD ../mal/stepX_YYY.mal
 ```
 cd make
 make -f stepX_YYY.mk
+```
+
+### NASM
+
+*The NASM implementation was created by [Ben Dudson](https://github.com/bendudson)*
+
+The NASM implementation of mal is written for x86-64 Linux, and has been tested
+with Linux 3.16.0-4-amd64 and NASM version 2.11.05.
+
+```
+cd nasm
+make
+./stepX_YYY
 ```
 
 ### Nim 0.17.0
