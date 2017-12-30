@@ -81,7 +81,7 @@ matrix:
     - {env: IMPL=scheme scheme_MODE=cyclone,     services: [docker]}
 #    - {env: IMPL=scheme scheme_MODE=foment,      services: [docker]}
     - {env: IMPL=skew,      services: [docker]}
-    - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7}
+    - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7.3}
     - {env: IMPL=swift3,    services: [docker]}
     - {env: IMPL=swift3 NO_DOCKER=1, os: osx, osx_image: xcode8}
     - {env: IMPL=tcl,       services: [docker]}
