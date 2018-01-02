@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -21,6 +21,6 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-# Install nasm
-RUN apt-get -y install nasm
+# Install nasm and ld
+RUN apt-get -y install nasm binutils
 
