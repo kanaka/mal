@@ -1527,6 +1527,11 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
     returned that has its `meta` attribute set to the second argument.
     Note that it is important that the environment and macro attribute
     of mal function are retained when it is copied.
+  * Add a reader-macro that expands the token "^" to
+    return a new list that contains the symbol "with-meta" and the
+    result of reading the next next form (2nd argument) (`read_form`) and the
+    next form (1st argument) in that order
+    (metadata comes first with the ^ macro and the function second).
 
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
