@@ -139,6 +139,9 @@
 (map (fn* (a) (* 2 a)) [1 2 3])
 ;=>(2 4 6)
 
+(map (fn* [& args] (list? args)) [1 2])
+;=>(true true)
+
 ;; Testing vector functions
 
 (vector? [10 11])
