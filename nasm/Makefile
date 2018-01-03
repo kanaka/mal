@@ -3,6 +3,7 @@ STEPS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tc
 
 COMPONENTS = env.asm core.asm reader.asm printer.asm types.asm system.asm exceptions.asm
 
+
 all: $(STEPS)
 
 %.o: %.asm $(COMPONENTS)
@@ -10,6 +11,10 @@ all: $(STEPS)
 
 %: %.o
 	ld -o $@ $<
+
+.PHONY: clean
+clean:
+	rm -f $(STEPS) $(STEPS:%=%.o)
 
 ######################
 
