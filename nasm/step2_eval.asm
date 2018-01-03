@@ -19,37 +19,38 @@ section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
-        
+
 section .data
 
 ;; ------------------------------------------
 ;; Fixed strings for printing
         
-prompt_string: db 10,"user> "      ; The string to print at the prompt
-.len: equ $ - prompt_string
+        static prompt_string, db 10,"user> "      ; The string to print at the prompt
 
-error_string: db 27,'[31m',"Error",27,'[0m',": "
-.len: equ $ - error_string
+        static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-def_symbol: ISTRUC Array
-AT Array.type,  db   maltype_symbol
-AT Array.length, dd  4
-AT Array.data, db 'def!'
-IEND
+
+;; Symbols used for comparison
         
-let_symbol: ISTRUC Array
-AT Array.type,  db   maltype_symbol
-AT Array.length, dd  4
-AT Array.data, db 'let*'
-IEND
-        
+        static_symbol def_symbol, 'def!'
+        static_symbol let_symbol, 'let*'
+
 section .text
+
+;; Takes a string as input and processes it into a form
+read:
+        jmp read_str           ; In reader.asm
 
 ;; This is a dummy function so that core routines compile
 apply_fn:
         jmp quit
 
+
+;; ----------------------------------------------
 ;; Evaluates a form in RSI
+;;
+;; Inputs: RSI   Form to evaluate
+;; 
 eval_ast:
         ; Check the type
         mov al, BYTE [rsi]
@@ -104,7 +105,8 @@ eval_ast:
         cmp ah, content_pointer
         je .list_pointer
         
-        ; A value, so copy
+        ; A value in RSI, so copy
+        
         call alloc_cons
         mov bl, BYTE [rsi]
         and bl, content_mask
@@ -393,7 +395,13 @@ eval_ast:
 .done:
         ret
 
-;; Evaluates a form in RSI
+;; ----------------------------------------------------
+;; Evaluates a form
+;;      
+;; Input: RSI   Form to evaluate
+;;
+;; Returns: Result in RAX
+;;
 eval:
         ; Check type
         mov al, BYTE [rsi]
@@ -489,17 +497,29 @@ eval:
         
 ;; Prints the result
 print:
-        mov rax, rsi            ; Return the input
-        ret
+        mov rdi, 1              ; print readably
+        jmp pr_str
 
 ;; Read-Eval-Print in sequence
 rep_seq:
-        call read_str
+        call read
+        push rax                ; Save form
+        
         mov rsi, rax            ; Output of read into input of eval
         call eval
-        mov rsi, rax            ; Output of eval into input of print 
-        call print
-        mov rsi, rax            ; Return value
+        push rax                ; Save result
+        
+        mov rsi, rax            ; Output of eval into input of print
+        call print              ; String in RAX
+
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
+        call release_object
+        pop rsi                 ; Form returned by read
+        call release_object
+        mov rax, r8
+        
         ret
 
 
@@ -520,8 +540,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        mov rdx, prompt_string.len ; number of bytes
-        mov rsi, prompt_string        ; address of raw string to output
+        load_static prompt_string ; Into RSI and EDX
         call print_rawstring
 
         call read_line
@@ -530,38 +549,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
-        mov rsi, rax
-        call read_str
-        push rax                ; Save AST
+        push rax                ; Save address of the string
 
-        ; Eval
         mov rsi, rax
-        call eval
-        push rax                ; Save result
-        
-        ; Put into pr_str
-        mov rsi, rax            
-        mov rdi, 1              ; print readably
-        call pr_str
-        push rax                ; Save output string
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
         
         mov rsi, rax            ; Put into input of print_string
         call print_string
 
-        ; Release string from pr_str
+        ; Release string from rep_seq
         pop rsi
         call release_array
-
-        ; Release result of eval
-        pop rsi
-        call release_object
-        
-        ; Release the object from read_str
-        pop rsi
-        call release_object     ; Could be Cons or Array
         
         ; Release the input string
         pop rsi

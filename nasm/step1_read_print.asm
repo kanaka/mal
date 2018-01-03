@@ -15,57 +15,43 @@ global  _start
 
 section .data
 
-test_string1: db 10, "test1", 10
-.len: equ $ - test_string1
-
-test_string2: db 10, "test2", 10
-.len: equ $ - test_string2    
-        
-;str: ISTRUC Array
-;AT Array.type,  db   maltype_string
-;AT Array.length, dd  6
-;AT Array.data, db 'hello',10
-;IEND
-
-test_cons: ISTRUC Cons
-AT Cons.typecar, db ( maltype_integer + 2 )
-AT Cons.typecdr, db 0
-AT Cons.car, dq 123
-IEND
-
-test_cons2: ISTRUC Cons
-AT Cons.typecar, db ( maltype_integer + 2 )
-AT Cons.typecdr, db content_pointer
-AT Cons.car, dq 456
-AT Cons.cdr, dq test_cons
-IEND
-        
 ;; ------------------------------------------
 ;; Fixed strings for printing
+
+        static prompt_string, db 10,"user> "      ; The string to print at the prompt
         
-prompt_string: db 10,"user> "      ; The string to print at the prompt
-.len: equ $ - prompt_string
-  
-section .text   
+section .text
+
+;; Takes a string as input and processes it into a form
+read:
+        jmp read_str           ; In reader.asm
         
-;; Evaluates a form
+;; Evaluates a form in RSI
 eval:
         mov rax, rsi            ; Return the input
         ret
         
 ;; Prints the result
 print:
-        mov rax, rsi            ; Return the input
-        ret
+        mov rdi, 1              ; print readably
+        jmp pr_str
 
 ;; Read-Eval-Print in sequence
 rep_seq:
-        call read_str
+        call read
+        push rax                ; Save form
+        
         mov rsi, rax            ; Output of read into input of eval
         call eval
-        mov rsi, rax            ; Output of eval into input of print 
-        call print
-        mov rsi, rax            ; Return value
+
+        mov rsi, rax            ; Output of eval into input of print       
+        call print              ; String in RAX
+
+        mov r8, rax             ; Save output
+        pop rsi                 ; Form returned by read
+        call release_object
+        mov rax, r8
+        
         ret
 
 
@@ -76,8 +62,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        mov rdx, prompt_string.len ; number of bytes
-        mov rsi, prompt_string        ; address of raw string to output
+        load_static prompt_string ; Into RSI and EDX
         call print_rawstring
 
         call read_line
@@ -88,29 +73,19 @@ _start:
 
         push rax                ; Save address of the string
 
-        ; Put into read_str
         mov rsi, rax
-        call read_str
-        push rax
-        
-        ; Put into pr_str
-        mov rsi, rax
-        mov rdi, 1              ; print readably
-        call pr_str
-        push rax
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
         
         mov rsi, rax            ; Put into input of print_string
         call print_string
 
-        ; Release string from pr_str
+        ; Release string from rep_seq
         pop rsi
         call release_array
         
-        ; Release the object from read_str
-        pop rsi
-        call release_object     ; Could be Cons or Array
-        
-        ; Release the string
+        ; Release the input string
         pop rsi
         call release_array
         

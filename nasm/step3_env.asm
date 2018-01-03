@@ -19,7 +19,7 @@ section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
-        
+
 section .data
 
 ;; ------------------------------------------
@@ -50,8 +50,12 @@ section .data
         
         static_symbol def_symbol, 'def!'
         static_symbol let_symbol, 'let*'
-        
-section .text   
+
+section .text
+
+;; Takes a string as input and processes it into a form
+read:
+        jmp read_str           ; In reader.asm
 
 ;; This is a dummy function so that core routines compile
 apply_fn:
@@ -59,7 +63,7 @@ apply_fn:
 
 
 ;; ----------------------------------------------
-;; Evaluates a form
+;; Evaluates a form in RSI
 ;;
 ;; Inputs: RSI   Form to evaluate
 ;;         RDI   Environment
@@ -869,17 +873,30 @@ eval:
         
 ;; Prints the result
 print:
-        mov rax, rsi            ; Return the input
-        ret
+        mov rdi, 1              ; print readably
+        jmp pr_str
 
 ;; Read-Eval-Print in sequence
 rep_seq:
-        call read_str
+        call read
+        push rax                ; Save form
+        
         mov rsi, rax            ; Output of read into input of eval
+        mov rdi, [repl_env]     ; Environment
         call eval
-        mov rsi, rax            ; Output of eval into input of print 
-        call print
-        mov rsi, rax            ; Return value
+        push rax                ; Save result
+        
+        mov rsi, rax            ; Output of eval into input of print
+        call print              ; String in RAX
+
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
+        call release_object
+        pop rsi                 ; Form returned by read
+        call release_object
+        mov rax, r8
+        
         ret
 
 
@@ -900,8 +917,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        mov rdx, prompt_string.len ; number of bytes
-        mov rsi, prompt_string        ; address of raw string to output
+        load_static prompt_string ; Into RSI and EDX
         call print_rawstring
 
         call read_line
@@ -910,38 +926,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
-        mov rsi, rax
-        call read_str
-        push rax                ; Save AST
+        push rax                ; Save address of the string
 
-        ; Eval
-        mov rsi, rax            ; Form to evaluate
-        mov rdi, [repl_env]     ; Environment
-        call eval
-        push rax                ; Save result
-        
-        ; Put into pr_str
-        mov rsi, rax            
-        call pr_str
-        push rax                ; Save output string
+        mov rsi, rax
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
         
         mov rsi, rax            ; Put into input of print_string
         call print_string
 
-        ; Release string from pr_str
+        ; Release string from rep_seq
         pop rsi
         call release_array
-
-        ; Release result of eval
-        pop rsi
-        call release_object
-        
-        ; Release the object from read_str
-        pop rsi
-        call release_object     ; Could be Cons or Array
         
         ; Release the input string
         pop rsi
