@@ -19,7 +19,7 @@ section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
-        
+
 section .data
 
 ;; ------------------------------------------
@@ -29,7 +29,7 @@ section .data
 
         static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-        static not_found_string, db " not found.",10
+        static not_found_string, db " not found"
 
         static def_missing_arg_string, db "missing argument to def!",10
 
@@ -589,6 +589,9 @@ eval:
         
         ; Unrecognised
         jmp .list_eval
+
+              
+        ; -----------------------------
         
 .def_symbol:
         ; Define a new symbol in current environment
@@ -643,7 +646,6 @@ eval:
         ; A pointer, so evaluate
         
         ; This may throw an error, so define a handler
-        
         
         push r8                 ; the symbol
         push r15                ; Env
@@ -1312,9 +1314,16 @@ eval:
         je .list_got_args
         
         ; No arguments
-        push rbx
+        
+        push rbx                ; Function object
+        
+        mov rsi, rax            ; List with function first
+        call release_object     ; Can be freed now
+
+        ; Create an empty list for the arguments
         call alloc_cons
         mov [rax], BYTE maltype_empty_list
+        
         pop rbx
         mov rsi, rax
         jmp  .list_function_call
@@ -1471,25 +1480,16 @@ rep_seq:
 
         ; -------------
         ; Print
-        
-        ; Put into pr_str
-        mov rsi, rax
-        mov rdi, 1              ; print_readably
-        call pr_str
-        push rax                ; Save output string
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
 
-        ; Release string from pr_str
-        pop rsi
-        call release_array
+        mov rsi, rax            ; Output of eval into input of print
+        mov rdi, 1              ; print readably
+        call pr_str             ; String in RAX
 
-        ; Release result of eval
-        pop rsi
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
         call release_object
-        
-        ; The AST from read_str is released by eval
+        mov rax, r8
         
         ret
 
@@ -1544,11 +1544,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
+        push rax                ; Save address of the string
+
         mov rsi, rax
-        call rep_seq
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
+        
+        mov rsi, rax            ; Put into input of print_string
+        call print_string
+
+        ; Release string from rep_seq
+        pop rsi
+        call release_array
         
         ; Release the input string
         pop rsi

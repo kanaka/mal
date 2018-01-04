@@ -148,7 +148,7 @@ read:
         jmp read_str           ; In reader.asm
 
 ;; ----------------------------------------------
-;; Evaluates a form in RSI
+;; Evaluates a form
 ;;
 ;; Inputs: RSI   Form to evaluate
 ;; 
@@ -499,7 +499,7 @@ eval_ast:
 ;; ----------------------------------------------------
 ;; Evaluates a form
 ;;      
-;; Input: RSI   Form to evaluate
+;; Input: RSI   AST to evaluate
 ;;
 ;; Returns: Result in RAX
 ;;
@@ -520,18 +520,18 @@ eval:
         ; --------------------
 .list:
         ; A list
-
+        
         ; Check if the first element is a symbol
         mov al, BYTE [rsi]
-        and bl, content_mask
-        cmp bl, content_pointer
+        and al, content_mask
+        cmp al, content_pointer
         jne .list_eval
 
         mov rbx, [rsi + Cons.car]
         mov al, BYTE [rbx]
         cmp al, maltype_symbol
         jne .list_eval
-
+        
         ; Is a symbol, address in RBX
         push rsi
 
@@ -542,7 +542,7 @@ eval:
         pop rsi
         cmp rax, 0
         je .def_symbol
-
+        
         push rsi
         mov rdi, let_symbol
         call compare_char_array
@@ -603,13 +603,20 @@ print:
 
 ;; Read-Eval-Print in sequence
 rep_seq:
+        ; -------------
+        ; Read
         call read
         push rax                ; Save form
-        
+
+        ; -------------
+        ; Eval
         mov rsi, rax            ; Output of read into input of eval
         call eval
         push rax                ; Save result
         
+        ; -------------
+        ; Print
+
         mov rsi, rax            ; Output of eval into input of print
         call print              ; String in RAX
 
@@ -643,8 +650,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        load_static prompt_string ; Into RSI and EDX
-        call print_rawstring
+        print_str_mac prompt_string
 
         call read_line
         

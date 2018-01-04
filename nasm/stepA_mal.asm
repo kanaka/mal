@@ -56,7 +56,6 @@ section .data
         
 ;; Symbols used for comparison
 
-        ; Special symbols
         static_symbol def_symbol, 'def!'
         static_symbol let_symbol, 'let*'
         static_symbol do_symbol, 'do'
@@ -75,7 +74,6 @@ section .data
         static_symbol splice_unquote_symbol, 'splice-unquote'
         static_symbol concat_symbol, 'concat'
         static_symbol cons_symbol, 'cons'
-        ;
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do  (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ",34,"odd number of forms to cond",34,")) (cons 'cond (rest (rest xs)))))))   (def! *gensym-counter* (atom 0))   (def! gensym (fn* [] (symbol (str ",34,"G__",34," (swap! *gensym-counter* (fn* [x] (+ 1 x))))))) (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))   (def! *host-language* ",34,"nasm",34,") (def! conj nil) )"
@@ -1458,10 +1456,6 @@ eval:
 .quasiquote_pointer:
         ; RSI contains a pointer, so get the object pointed to
         mov rsi, [rsi + Cons.car]
-
-        ; Uncomment these two lines to test quasiquote
-        ;call quasiquote
-        ;ret
         
         push r15                ; Environment
         ; Original AST already on stack
@@ -1506,7 +1500,7 @@ eval:
         call macroexpand   ; May release and replace RSI
         
         mov rax, rsi
-        jmp .return ; Releases original AST        
+        jmp .return ; Releases original AST
         
         ; -----------------------------
         
@@ -1623,7 +1617,7 @@ eval:
         
         pop r15                 ; Environment
         ; Discard B and C
-        ;add rsi, 8             ; pop R10 and R9
+        ;add rsi, 8              ; pop R10 and R9
         pop r10
         pop r9
         
@@ -1814,7 +1808,6 @@ apply_fn:
         mov rax, [rax + Cons.cdr]
         mov rax, [rax + Cons.car] ; Body
         pop rcx                   ; Exprs
-
         
         ; Check the type of the body
         mov bl, BYTE [rax]
@@ -2398,25 +2391,16 @@ rep_seq:
 
         ; -------------
         ; Print
-        
-        ; Put into pr_str
-        mov rsi, rax
-        mov rdi, 1              ; print_readably
-        call pr_str
-        push rax                ; Save output string
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
 
-        ; Release string from pr_str
-        pop rsi
-        call release_array
+        mov rsi, rax            ; Output of eval into input of print
+        mov rdi, 1              ; print readably
+        call pr_str             ; String in RAX
 
-        ; Release result of eval
-        pop rsi
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
         call release_object
-        
-        ; The AST from read_str is released by eval
+        mov rax, r8
         
         ret
 
@@ -2502,11 +2486,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
+        push rax                ; Save address of the string
+
         mov rsi, rax
-        call rep_seq
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
+        
+        mov rsi, rax            ; Put into input of print_string
+        call print_string
+
+        ; Release string from rep_seq
+        pop rsi
+        call release_array
         
         ; Release the input string
         pop rsi

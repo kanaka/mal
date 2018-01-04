@@ -16,7 +16,7 @@ section .data
 
 ;; ------------------------------------------
 ;; Fixed strings for printing
-
+        
         static prompt_string, db 10,"user> "      ; The string to print at the prompt
         
 section .text
@@ -25,7 +25,8 @@ section .text
 read:
         mov rax, rsi            ; Return the input
         ret
-        
+
+;; ----------------------------------------------
 ;; Evaluates a form
 eval:
         mov rax, rsi            ; Return the input
@@ -38,12 +39,21 @@ print:
 
 ;; Read-Eval-Print in sequence
 rep_seq:
+        ; -------------
+        ; Read
         call read
+
+        ; -------------
+        ; Eval
         mov rsi, rax            ; Output of read into input of eval
         call eval
+        
+        ; -------------
+        ; Print
+
         mov rsi, rax            ; Output of eval into input of print 
         call print
-        mov rsi, rax            ; Return value
+        
         ret
 
 
@@ -54,8 +64,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        load_static prompt_string ; Into RSI and EDX
-        call print_rawstring
+        print_str_mac prompt_string
 
         call read_line
         

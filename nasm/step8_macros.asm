@@ -19,7 +19,7 @@ section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
-        
+
 section .data
 
 ;; ------------------------------------------
@@ -29,7 +29,7 @@ section .data
 
         static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-        static not_found_string, db " not found.",10
+        static not_found_string, db " not found"
 
         static def_missing_arg_string, db "missing argument to def!",10
 
@@ -51,8 +51,7 @@ section .data
         static if_missing_condition_string, db "missing condition in if expression",10
 
 ;; Symbols used for comparison
-
-        ; Special symbols
+        
         static_symbol def_symbol, 'def!'
         static_symbol let_symbol, 'let*'
         static_symbol do_symbol, 'do'
@@ -69,7 +68,6 @@ section .data
         static_symbol splice_unquote_symbol, 'splice-unquote'
         static_symbol concat_symbol, 'concat'
         static_symbol cons_symbol, 'cons'
-        ;
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do  (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ",34,"odd number of forms to cond",34,")) (cons 'cond (rest (rest xs))))))) (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs)))))))) )"
@@ -1415,10 +1413,6 @@ eval:
 .quasiquote_pointer:
         ; RSI contains a pointer, so get the object pointed to
         mov rsi, [rsi + Cons.car]
-
-        ; Uncomment these two lines to test quasiquote
-        ;call quasiquote
-        ;ret
         
         push r15                ; Environment
         ; Original AST already on stack
@@ -1499,9 +1493,16 @@ eval:
         je .list_got_args
         
         ; No arguments
-        push rbx
+        
+        push rbx                ; Function object
+        
+        mov rsi, rax            ; List with function first
+        call release_object     ; Can be freed now
+
+        ; Create an empty list for the arguments
         call alloc_cons
         mov [rax], BYTE maltype_empty_list
+        
         pop rbx
         mov rsi, rax
         jmp  .list_function_call
@@ -2113,6 +2114,24 @@ macroexpand:
 .done:
         pop r15
         ret
+
+;; Read and eval
+read_eval:
+        ; -------------
+        ; Read
+        call read_str
+        
+        ; -------------
+        ; Eval
+        mov rsi, rax            ; Form to evaluate
+        mov rdi, [repl_env]     ; Environment
+
+        xchg rsi, rdi
+        call incref_object      ; Environment increment refs
+        xchg rsi, rdi           ; since it will be decremented by eval
+        
+        jmp eval               ; This releases Env and Form/AST
+        
         
 ;; Read-Eval-Print in sequence
 ;;
@@ -2136,25 +2155,16 @@ rep_seq:
 
         ; -------------
         ; Print
-        
-        ; Put into pr_str
-        mov rsi, rax
-        mov rdi, 1              ; print_readably
-        call pr_str
-        push rax                ; Save output string
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
 
-        ; Release string from pr_str
-        pop rsi
-        call release_array
+        mov rsi, rax            ; Output of eval into input of print
+        mov rdi, 1              ; print readably
+        call pr_str             ; String in RAX
 
-        ; Release result of eval
-        pop rsi
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
         call release_object
-        
-        ; The AST from read_str is released by eval
+        mov rax, r8
         
         ret
 
@@ -2224,11 +2234,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
+        push rax                ; Save address of the string
+
         mov rsi, rax
-        call rep_seq
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
+        
+        mov rsi, rax            ; Put into input of print_string
+        call print_string
+
+        ; Release string from rep_seq
+        pop rsi
+        call release_array
         
         ; Release the input string
         pop rsi
@@ -2325,7 +2343,7 @@ run_script:
         mov cl, ')'
         call string_append_char ; closing brace
 
-        ; Read-Eval-Print "(load-file <file>)"
-        call rep_seq 
+        ; Read-Eval "(load-file <file>)"
+        call read_eval 
 
         jmp quit

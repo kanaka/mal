@@ -13,15 +13,13 @@ global  _start
 %include "reader.asm"           ; String -> Data structures
 %include "core.asm"             ; Core functions
 %include "printer.asm"          ; Data structures -> String
+%include "exceptions.asm"       ; Error handling
         
 section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
 
-;; Error handler list
-error_handler: resq 1
-        
 section .data
 
 ;; ------------------------------------------
@@ -31,7 +29,7 @@ section .data
 
         static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-        static not_found_string, db " not found.",10
+        static not_found_string, db " not found"
 
         static def_missing_arg_string, db "missing argument to def!",10
 
@@ -69,141 +67,11 @@ section .data
         
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) )"
-        
-        ;static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) )"
-        
+
 ;; Command to run, appending the name of the script to run
         static run_script_string, db "(load-file ",34
 section .text
 
-;; ----------------------------------------------
-;; 
-;; Error handling
-;;
-;; A handler consists of:
-;;  - A stack pointer address to reset to
-;;  - An address to jump to
-;;  - An optional data structure to pass
-;;
-;; When jumped to, an error handler will be given:
-;;   - the object thrown in RSI
-;;   - the optional data structure in RDI
-;; 
-        
-
-;; Add an error handler to the front of the list
-;;
-;; Input: RSI - Stack pointer
-;;        RDI - Address to jump to
-;;        RCX - Data structure. Set to zero for none.
-;;            If not zero, reference count incremented
-;;
-;; Modifies registers:
-;;    RAX
-;;    RBX
-error_handler_push:
-        call alloc_cons
-        ; car will point to a list (stack, addr, data)
-        ; cdr will point to the previous handler
-        mov [rax], BYTE (block_cons + container_list + content_pointer)
-        mov rbx, [error_handler]
-        cmp rbx, 0              ; Check if previous handler was zero
-        je .create_handler      ; Zero, so leave null
-        ; Not zero, so create pointer to it
-        mov [rax + Cons.typecdr], BYTE content_pointer
-        mov [rax + Cons.cdr], rbx
-
-        ; note: not incrementing reference count, since
-        ; we're replacing one reference with another
-.create_handler:
-        mov [error_handler], rax ; new error handler
-        
-        mov rdx, rax
-        call alloc_cons
-        mov [rdx + Cons.car], rax
-        ; Store stack pointer
-        mov [rax], BYTE (block_cons + container_list + content_function)
-        mov [rax + Cons.car], rsi ; stack pointer
-        
-        mov rdx, rax
-        call alloc_cons
-        mov [rdx + Cons.typecdr], BYTE content_pointer
-        mov [rdx + Cons.cdr], rax
-        ; Store function pointer to jump to 
-        mov [rax], BYTE (block_cons + container_list + content_pointer)
-        mov [rax + Cons.car], rdi
-
-        ; Check if there is an object to pass to handler
-        cmp rcx, 0
-        je .done
-
-        ; Set the final CDR to point to the object
-        mov [rax + Cons.typecdr], BYTE content_pointer
-        mov [rax + Cons.cdr], rcx
-
-        mov rsi, rcx
-        call incref_object
-        
-.done:
-        ret
-        
-        
-;; Removes an error handler from the list
-;;
-;; Modifies registers:
-;;    RSI
-;;    RAX
-;;    RCX
-error_handler_pop:
-        ; get the address
-        mov rsi, [error_handler]
-        cmp rsi, 0
-        je .done                ; Nothing to remove
-        
-        push rsi
-        mov rsi, [rsi + Cons.cdr] ; next handler
-        mov [error_handler], rsi
-        call incref_object        ; needed because releasing soon
-        
-        pop rsi                 ; handler being removed
-        call release_cons
-        
-.done:
-        ret
-        
-        
-;; Throw an error
-;;   Object to pass to handler should be in RSI
-error_throw:
-        ; Get the next error handler
-        mov rax, [error_handler]
-        cmp rax, 0
-        je .no_handler
-        
-        ; Got a handler
-        mov rax, [rax + Cons.car] ; handler
-        mov rbx, [rax + Cons.car] ; stack pointer
-        mov rax, [rax + Cons.cdr]
-        mov rcx, [rax + Cons.car] ; function
-        mov rdi, [rax + Cons.cdr] ; data structure
-
-        ; Reset stack
-        mov rsp, rbx
-
-        ; Jump to the handler
-        jmp rcx
-        
-.no_handler:
-        ; Print the object in RSI then quit
-        cmp rsi, 0
-        je .done                ; nothing to print
-        mov rdi, 1              ; print_readably
-        call pr_str
-        mov rsi, rax
-        call print_string
-.done:
-        jmp quit_error
-        
 ;; ----------------------------------------------
 ;; Evaluates a form
 ;;
@@ -736,6 +604,9 @@ eval:
         
         ; Unrecognised
         jmp .list_eval
+
+              
+        ; -----------------------------
         
 .def_symbol:
         ; Define a new symbol in current environment
@@ -791,7 +662,6 @@ eval:
         
         ; This may throw an error, so define a handler
         
-        
         push r8                 ; the symbol
         push r15                ; Env
         mov rsi, [rsi + Cons.car] ; Pointer
@@ -805,6 +675,7 @@ eval:
         
         call eval
         mov rsi, rax
+
         pop r15
         pop r8
         
@@ -927,11 +798,15 @@ eval:
         push r12                 ; Position in bindings list
         push r13                 ; symbol to bind
         push r14                 ; new environment
+
+        mov rsi, r14
+        call incref_object
+        mov rdi, r14
+        
         mov rsi, [r12 + Cons.car] ; Get the address
         
         call incref_object      ; Increment ref count of AST
         
-        mov rdi, r14
         call eval               ; Evaluate it, result in rax
         pop r14
         pop r13
@@ -1146,7 +1021,6 @@ eval:
         ; An expression to evaluate as the last form
         ; Tail call optimise, jumping to eval
         ; Don't increment Env reference count
-
         
         mov rsi, [r11 + Cons.car]  ; new AST form
         call incref_object         ; This will be released by eval
@@ -1383,6 +1257,8 @@ eval:
         mov rsi, r15
         call incref_object
         pop rax
+
+        ; Binds
         
         call alloc_cons
         mov [rax], BYTE (block_cons + container_function + content_pointer)
@@ -1476,9 +1352,6 @@ eval:
 .quasiquote_pointer:
         ; RSI contains a pointer, so get the object pointed to
         mov rsi, [rsi + Cons.car]
-
-        ;call quasiquote
-        ;ret
         
         push r15                ; Environment
         ; Original AST already on stack
@@ -1503,8 +1376,7 @@ eval:
         call eval_ast           ; List of evaluated forms in RAX
         pop r15
         pop rsi
-
-
+        
 .list_exec:
         ; This point can be called to run a function
         ; used by swap!
@@ -1529,9 +1401,16 @@ eval:
         je .list_got_args
         
         ; No arguments
-        push rbx
+        
+        push rbx                ; Function object
+        
+        mov rsi, rax            ; List with function first
+        call release_object     ; Can be freed now
+
+        ; Create an empty list for the arguments
         call alloc_cons
         mov [rax], BYTE maltype_empty_list
+        
         pop rbx
         mov rsi, rax
         jmp  .list_function_call
@@ -1545,7 +1424,7 @@ eval:
 
         mov rbx, [rbx + Cons.car]   ; Call function
         cmp rbx, apply_fn
-        je apply_fn             ; Jump to user function apply
+        je apply_fn_jmp             ; Jump to user function apply
         
         ; A built-in function, so call (no recursion)
         push rax
@@ -1556,11 +1435,10 @@ eval:
         ; Result in rax
         pop r15
         pop rsi                 ; eval'ed list
-
+        
         push rax
         call release_cons
-        pop rax
-
+        pop rax 
         jmp .return             ; Releases Env
 
 .list_not_function:
@@ -1582,11 +1460,16 @@ eval:
 ;;        RDI - Function object
 ;;        RDX - list to release after binding
 ;;        R15 - Env (will be released)
+;;        R13 - AST released before return
+;;
 ;; 
 ;; Output: Result in RAX
 ;;
 ;; This is jumped to from eval, so if it returns
 ;; then it will return to the caller of eval, not to eval
+apply_fn_jmp:
+        ; This is jumped to from eval with AST on the stack
+        pop r13
 apply_fn:
         push rsi
         ; Extract values from the list in RDI
@@ -1617,8 +1500,8 @@ apply_fn:
         mov rsi, r15
         call release_object
 
-        ; Release the AST, pushed at start of eval
-        pop rsi
+        ; Release the AST
+        mov rsi, r13
         call release_object
         
         mov rax, r14
@@ -1627,23 +1510,36 @@ apply_fn:
         ; Create a new environment, binding arguments
         push rax                ; Body
         
+        mov r14, r13            ; Old AST. R13 used by env_new_bind
+        
         push rdx
         call env_new_bind
         pop rdx
 
         mov rdi, rax       ; New environment in RDI
 
+        ; Note: Need to increment the reference count
+        ; of the function body before releasing anything,
+        ; since if the function was defined in-place (lambda)
+        ; then the body may be released early
+        
+        pop rsi            ; Body
+        call incref_object ; Will be released by eval
+        mov r8, rsi        ; Body in R8
+        
         ; Release the list passed in RDX
-.release:
         mov rsi, rdx
         call release_cons
 
         ; Release the environment
         mov rsi, r15
         call release_object
-        
-        pop rsi            ; Body
-        call incref_object ; Will be released by eval
+
+        ; Release the old AST
+        mov rsi, r14
+        call release_object
+
+        mov rsi, r8             ; Body
         
         jmp eval           ; Tail call
         ; The new environment (in RDI) will be released by eval
@@ -1681,7 +1577,6 @@ is_pair:
         
 ;; Called by eval with AST in RSI [ modified ]
 ;; Returns new AST in RAX
-        
 quasiquote:
         ; i. Check if AST is an empty list
         call is_pair
@@ -2007,7 +1902,23 @@ quasiquote:
 
         
         
+;; Read and eval
+read_eval:
+        ; -------------
+        ; Read
+        call read_str
+        
+        ; -------------
+        ; Eval
+        mov rsi, rax            ; Form to evaluate
+        mov rdi, [repl_env]     ; Environment
 
+        xchg rsi, rdi
+        call incref_object      ; Environment increment refs
+        xchg rsi, rdi           ; since it will be decremented by eval
+        
+        jmp eval               ; This releases Env and Form/AST
+        
         
 ;; Read-Eval-Print in sequence
 ;;
@@ -2031,25 +1942,16 @@ rep_seq:
 
         ; -------------
         ; Print
-        
-        ; Put into pr_str
-        mov rsi, rax
-        mov rdi, 1              ; print_readably
-        call pr_str
-        push rax                ; Save output string
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
 
-        ; Release string from pr_str
-        pop rsi
-        call release_array
+        mov rsi, rax            ; Output of eval into input of print
+        mov rdi, 1              ; print readably
+        call pr_str             ; String in RAX
 
-        ; Release result of eval
-        pop rsi
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
         call release_object
-        
-        ; The AST from read_str is released by eval
+        mov rax, r8
         
         ret
 
@@ -2119,11 +2021,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
+        push rax                ; Save address of the string
+
         mov rsi, rax
-        call rep_seq
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
+        
+        mov rsi, rax            ; Put into input of print_string
+        call print_string
+
+        ; Release string from rep_seq
+        pop rsi
+        call release_array
         
         ; Release the input string
         pop rsi
@@ -2220,7 +2130,7 @@ run_script:
         mov cl, ')'
         call string_append_char ; closing brace
 
-        ; Read-Eval-Print "(load-file <file>)"
-        call rep_seq 
+        ; Read-Eval "(load-file <file>)"
+        call read_eval 
 
         jmp quit

@@ -11,7 +11,6 @@ global  _start
 %include "env.asm"              ; Environment type
 %include "system.asm"           ; System calls
 %include "reader.asm"           ; String -> Data structures
-%include "core.asm"             ; Core functions
 %include "printer.asm"          ; Data structures -> String
 %include "exceptions.asm"       ; Error handling
         
@@ -29,7 +28,7 @@ section .data
 
         static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-        static not_found_string, db " not found.",10
+        static not_found_string, db " not found"
 
         static def_missing_arg_string, db "missing argument to def!",10
 
@@ -50,20 +49,123 @@ section .data
         
         static_symbol def_symbol, 'def!'
         static_symbol let_symbol, 'let*'
-
+        
+        static core_add_symbol, db "+"  
+        static core_sub_symbol, db "-"
+        static core_mul_symbol, db "*"
+        static core_div_symbol, db "/"
+        
 section .text
 
+;; Integer arithmetic operations
+;; 
+;; Adds a list of numbers, address in RSI
+;; Returns the sum as a number object with address in RAX
+;; Since most of the code is common to all operators,
+;; RBX is used to jump to the required instruction
+core_add:
+        mov rbx, core_arithmetic.do_addition
+        jmp core_arithmetic
+core_sub:
+        mov rbx, core_arithmetic.do_subtraction
+        jmp core_arithmetic
+core_mul:
+        mov rbx, core_arithmetic.do_multiply
+        jmp core_arithmetic
+core_div:
+        mov rbx, core_arithmetic.do_division
+        ; Fall through to core_arithmetic
+core_arithmetic:
+        ; Check that the first object is a number
+        mov cl, BYTE [rsi]
+        mov ch, cl
+        and ch, block_mask
+        cmp ch, block_cons
+        jne .missing_args
+
+        mov ch, cl
+        and ch, content_mask
+        cmp ch, content_empty
+        je .missing_args
+
+        cmp ch, content_int
+        jne .not_int
+
+        ; Put the starting value in rax
+        mov rax, [rsi + Cons.car]
+        
+.add_loop:
+        ; Fetch the next value
+        mov cl, [rsi + Cons.typecdr]
+        cmp cl, content_pointer
+        jne .finished  ; Nothing let
+        
+        mov rsi, [rsi + Cons.cdr] ; Get next cons
+
+        ; Check that it is an integer
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        cmp cl, content_int
+        jne .not_int
+
+        ; Jump to the required operation, address in RBX
+        jmp rbx
+        
+.do_addition:
+        add rax, [rsi + Cons.car]
+        jmp .add_loop
+.do_subtraction:
+        sub rax, [rsi + Cons.car]
+        jmp .add_loop
+.do_multiply:
+        imul rax, [rsi + Cons.car]
+        jmp .add_loop
+.do_division:
+        cqo                     ; Sign extend RAX into RDX
+        mov rcx, [rsi + Cons.car]
+        idiv rcx
+        jmp .add_loop
+        
+.finished:
+        ; Value in rbx
+        push rax
+        ; Get a Cons object to put the result into
+        call alloc_cons
+        pop rbx
+        mov [rax], BYTE maltype_integer
+        mov [rax + Cons.car], rbx
+        ret
+        
+.missing_args:
+.not_int:
+        jmp quit
+        
+;; Add a native function to the core environment
+;; This is used in core_environment
+%macro core_env_native 2
+        push rsi                ; environment
+        mov rsi, %1
+        mov edx, %1.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, %2
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call env_set
+%endmacro
+
+        
+        
 ;; Takes a string as input and processes it into a form
 read:
         jmp read_str           ; In reader.asm
 
-;; This is a dummy function so that core routines compile
-apply_fn:
-        jmp quit
-
-
 ;; ----------------------------------------------
-;; Evaluates a form in RSI
+;; Evaluates a form
 ;;
 ;; Inputs: RSI   Form to evaluate
 ;;         RDI   Environment
@@ -108,19 +210,15 @@ eval_ast:
         
         ; Not found, throw an error
         push rsi
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
-
+        print_str_mac error_string ; print 'Error: ' 
+        
         pop rsi
         push rsi
         mov edx, [rsi + Array.length]
         add rsi, Array.data
         call print_rawstring    ; print symbol
-
-        mov rsi, not_found_string
-        mov rdx, not_found_string.len
-        call print_rawstring    ; print ' not found'
+        
+        print_str_mac not_found_string ; print ' not found'
         pop rsi
 
         jmp error_throw
@@ -475,10 +573,27 @@ eval_ast:
 .done:
         ret
 
+
+        
+;; Comparison of symbols for eval function
+;; Compares the symbol in RSI with specified symbol
+;; Preserves RSI and RBX
+;; Modifies RDI
+%macro eval_cmp_symbol 1
+        push rsi
+        push rbx
+        mov rsi, rbx
+        mov rdi, %1
+        call compare_char_array
+        pop rbx
+        pop rsi
+        test rax, rax           ; ZF set if rax = 0 (equal)
+%endmacro
+        
 ;; ----------------------------------------------------
 ;; Evaluates a form
 ;;      
-;; Input: RSI   Form to evaluate
+;; Input: RSI   AST to evaluate
 ;;        RDI   Environment
 ;;
 ;; Returns: Result in RAX
@@ -515,26 +630,13 @@ eval:
         jne .list_eval
         
         ; Is a symbol, address in RBX
-        push rsi
-        push rbx
         
-        ; Compare against def!
-        mov rsi, rbx
-        mov rdi, def_symbol
-        call compare_char_array
-        pop rbx
-        pop rsi
-        cmp rax, 0
+        ; Compare against special form symbols
+        
+        eval_cmp_symbol def_symbol ; def!
         je .def_symbol
         
-        push rsi
-        push rbx
-        mov rsi, rbx
-        mov rdi, let_symbol
-        call compare_char_array
-        pop rbx
-        pop rsi
-        cmp rax, 0
+        eval_cmp_symbol let_symbol ; let*
         je .let_symbol
         
         ; Unrecognised
@@ -627,9 +729,7 @@ eval:
 .def_handle_error:
         push rsi
         push rdx
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
+        print_str_mac error_string   ; print 'Error: '
         
         pop rdx
         pop rsi
@@ -645,7 +745,7 @@ eval:
         mov r11, rsi            ; Let form in R11
         
         mov rsi, r15            ; Outer env
-        call env_new
+        call env_new            ; Increments R15's ref count
         mov r14, rax            ; New environment in R14
         
         ; Second element should be the bindings
@@ -818,9 +918,8 @@ eval:
         
         push rsi
         push rdx
-        mov rsi, error_string
-        mov rdx, error_string.len
-        call print_rawstring    ; print 'Error: '
+        
+        print_str_mac error_string   ; print 'Error: '
 
         pop rdx
         pop rsi
@@ -832,11 +931,12 @@ eval:
         ; -----------------------------
         
 .list_eval:
-
+        push rsi
         mov rdi, r15            ; Environment
         push r15
-        call eval_ast
+        call eval_ast           ; List of evaluated forms in RAX
         pop r15
+        pop rsi
         
         ; Check that the first element of the return is a function
         mov bl, BYTE [rax]
@@ -878,14 +978,21 @@ print:
 
 ;; Read-Eval-Print in sequence
 rep_seq:
+        ; -------------
+        ; Read
         call read
         push rax                ; Save form
-        
-        mov rsi, rax            ; Output of read into input of eval
+
+        ; -------------
+        ; Eval
+        mov rsi, rax            ; Form to evaluate
         mov rdi, [repl_env]     ; Environment
         call eval
         push rax                ; Save result
         
+        ; -------------
+        ; Print
+
         mov rsi, rax            ; Output of eval into input of print
         call print              ; String in RAX
 
@@ -902,9 +1009,17 @@ rep_seq:
 
 _start:
         ; Create and print the core environment
-        call core_environment   ; Environment in RAX
+        call env_new   ; Environment in RAX
 
         mov [repl_env], rax     ; store in memory
+
+        mov rsi, rax            ; Environment
+
+        ; Add +,-,*,/ to environment
+        core_env_native core_add_symbol, core_add
+        core_env_native core_sub_symbol, core_sub
+        core_env_native core_mul_symbol, core_mul
+        core_env_native core_div_symbol, core_div
 
         ; Set the error handler
         mov rsi, rsp            ; Stack pointer
@@ -917,8 +1032,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        load_static prompt_string ; Into RSI and EDX
-        call print_rawstring
+        print_str_mac prompt_string
 
         call read_line
         
@@ -955,6 +1069,7 @@ _start:
         ; Check if an object was thrown
         cmp rsi, 0
         je .catch_done_print                ; nothing to print
+        mov rdi, 1
         call pr_str
         mov rsi, rax
         call print_string

@@ -17,7 +17,7 @@ section .data
 
 ;; ------------------------------------------
 ;; Fixed strings for printing
-
+        
         static prompt_string, db 10,"user> "      ; The string to print at the prompt
         
 section .text
@@ -25,8 +25,12 @@ section .text
 ;; Takes a string as input and processes it into a form
 read:
         jmp read_str           ; In reader.asm
-        
-;; Evaluates a form in RSI
+
+;; ----------------------------------------------
+;; Evaluates a form
+;;
+;; Inputs: RSI   Form to evaluate
+;; 
 eval:
         mov rax, rsi            ; Return the input
         ret
@@ -38,13 +42,20 @@ print:
 
 ;; Read-Eval-Print in sequence
 rep_seq:
+        ; -------------
+        ; Read
         call read
         push rax                ; Save form
-        
+
+        ; -------------
+        ; Eval
         mov rsi, rax            ; Output of read into input of eval
         call eval
+        
+        ; -------------
+        ; Print
 
-        mov rsi, rax            ; Output of eval into input of print       
+        mov rsi, rax            ; Output of eval into input of print
         call print              ; String in RAX
 
         mov r8, rax             ; Save output
@@ -62,8 +73,7 @@ _start:
         
 .mainLoop:
         ; print the prompt
-        load_static prompt_string ; Into RSI and EDX
-        call print_rawstring
+        print_str_mac prompt_string
 
         call read_line
         

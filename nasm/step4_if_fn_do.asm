@@ -19,7 +19,7 @@ section .bss
         
 ;; Top-level (REPL) environment
 repl_env:resq 1
-        
+
 section .data
 
 ;; ------------------------------------------
@@ -29,7 +29,7 @@ section .data
 
         static error_string, db 27,'[31m',"Error",27,'[0m',": "
 
-        static not_found_string, db " not found.",10
+        static not_found_string, db " not found"
 
         static def_missing_arg_string, db "missing argument to def!",10
 
@@ -498,13 +498,13 @@ eval_ast:
         call compare_char_array
         pop rbx
         pop rsi
-        cmp rax, 0
+        test rax, rax           ; ZF set if rax = 0 (equal)
 %endmacro
         
 ;; ----------------------------------------------------
 ;; Evaluates a form
 ;;      
-;; Input: RSI   Form to evaluate
+;; Input: RSI   AST to evaluate
 ;;        RDI   Environment
 ;;
 ;; Returns: Result in RAX
@@ -531,7 +531,6 @@ eval:
         
         ; Check if the first element is a symbol
         mov al, BYTE [rsi]
-        
         and al, content_mask
         cmp al, content_pointer
         jne .list_eval
@@ -562,6 +561,9 @@ eval:
         
         ; Unrecognised
         jmp .list_eval
+
+              
+        ; -----------------------------
         
 .def_symbol:
         ; Define a new symbol in current environment
@@ -617,13 +619,13 @@ eval:
         
         ; This may throw an error, so define a handler
         
-        
         push r8                 ; the symbol
         push r15                ; Env
         mov rsi, [rsi + Cons.car] ; Pointer
         mov rdi, r15
         call eval
         mov rsi, rax
+
         pop r15
         pop r8
         
@@ -666,7 +668,7 @@ eval:
         mov r11, rsi            ; Let form in R11
         
         mov rsi, r15            ; Outer env
-        call env_new
+        call env_new            ; Increments R15's ref count
         mov r14, rax            ; New environment in R14
         
         ; Second element should be the bindings
@@ -885,7 +887,6 @@ eval:
         mov rsi, rax
         call release_object
 .do_next:
-
         mov r11, [r11 + Cons.cdr] ; Next in list
         
         jmp .do_symbol_loop
@@ -954,7 +955,7 @@ eval:
         pop r11
         pop r15
 
-        ; Get type
+        ; Get type of result
         mov bl, BYTE [rax]
 
         ; release value
@@ -1105,6 +1106,8 @@ eval:
         mov rsi, r15
         call incref_object
         pop rax
+
+        ; Binds
         
         call alloc_cons
         mov [rax], BYTE (block_cons + container_function + content_pointer)
@@ -1147,7 +1150,7 @@ eval:
         push rsi
         mov rdi, r15            ; Environment
         push r15
-        call eval_ast
+        call eval_ast           ; List of evaluated forms in RAX
         pop r15
         pop rsi
         
@@ -1208,7 +1211,9 @@ eval:
 ;; Input: RSI - Arguments to bind
 ;;        RDI - Function object
 ;;
+;; 
 ;; Output: Result in RAX
+;;
 apply_fn:
         push rsi
         ; Extract values from the list in RDI
@@ -1252,13 +1257,36 @@ apply_fn:
         
 
 ;; Read-Eval-Print in sequence
+;;
+;; Input string in RSI
 rep_seq:
+        ; -------------
+        ; Read
         call read_str
-        mov rsi, rax            ; Output of read into input of eval
+        push rax                ; Save form
+
+        ; -------------
+        ; Eval
+        mov rsi, rax            ; Form to evaluate
+        mov rdi, [repl_env]     ; Environment
         call eval
-        mov rsi, rax            ; Output of eval into input of print 
-        call pr_str
-        mov rsi, rax            ; Return value
+        push rax                ; Save result
+        
+        ; -------------
+        ; Print
+
+        mov rsi, rax            ; Output of eval into input of print
+        mov rdi, 1              ; print readably
+        call pr_str             ; String in RAX
+
+        mov r8, rax             ; Save output
+
+        pop rsi                 ; Result from eval
+        call release_object
+        pop rsi                 ; Form returned by read
+        call release_object
+        mov rax, r8
+        
         ret
 
 
@@ -1279,7 +1307,7 @@ _start:
         mov rsi, mal_startup_string
         mov edx, mal_startup_string.len
         call raw_to_string      ; String in RAX
-
+        
         push rax
         mov rsi, rax
         call read_str           ; AST in RAX
@@ -1312,39 +1340,19 @@ _start:
         cmp DWORD [rax+Array.length], 0
         je .mainLoopEnd
 
-        push rax                ; Save address of the input string
-        
-        ; Put into read_str
-        mov rsi, rax
-        call read_str
-        push rax                ; Save AST
+        push rax                ; Save address of the string
 
-        ; Eval
-        mov rsi, rax            ; Form to evaluate
-        mov rdi, [repl_env]     ; Environment
-        call eval
-        push rax                ; Save result
-        
-        ; Put into pr_str
         mov rsi, rax
-        mov rdi, 1              ; print_readably
-        call pr_str
-        push rax                ; Save output string
+        call rep_seq            ; Read-Eval-Print
+
+        push rax                ; Save returned string
         
         mov rsi, rax            ; Put into input of print_string
         call print_string
 
-        ; Release string from pr_str
+        ; Release string from rep_seq
         pop rsi
         call release_array
-
-        ; Release result of eval
-        pop rsi
-        call release_object
-        
-        ; Release the object from read_str
-        pop rsi
-        call release_object     ; Could be Cons or Array
         
         ; Release the input string
         pop rsi
