@@ -1,0 +1,49 @@
+;; Some useful macros
+        
+%ifndef MACROS_MAC 
+%define MACROS_MAC
+        
+;; Define a static data value
+;;
+;; static label value
+;;
+%macro static 2+
+        %1: %2
+        %1.len: equ $ - %1
+%endmacro
+
+;; Puts address of data in RSI, length in EDX
+%macro load_static 1
+        mov rsi, %1
+        mov edx, %1.len
+%endmacro
+        
+;; Define a symbol which can be compared against
+;;
+;; static_symbol  name, string
+;;
+;; Example:
+;;
+;;     static_symbol def_symbol, 'def!'
+;;
+%macro static_symbol 2
+        %strlen slen %2         ; length of string
+        
+        %1: ISTRUC Array
+        AT Array.type,  db   maltype_symbol
+        AT Array.refcount, dw 1
+        AT Array.length, dd  slen
+        AT Array.data, db %2
+        IEND
+%endmacro
+
+;; Macro for printing raw string
+;;
+%macro print_str_mac 1
+        mov rsi, %1             ; String address
+        mov rdx, %1.len         ; Length of string
+        call print_rawstring
+%endmacro
+        
+%endif
+        
