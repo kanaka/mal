@@ -8,10 +8,8 @@
 global  _start
         
 %include "types.asm"            ; Data types, memory
-%include "env.asm"              ; Environment type
 %include "system.asm"           ; System calls
 %include "reader.asm"           ; String -> Data structures
-%include "core.asm"             ; Core functions
 %include "printer.asm"          ; Data structures -> String
 %include "exceptions.asm"       ; Error handling
         
@@ -34,17 +32,120 @@ section .data
         
         static_symbol def_symbol, 'def!'
         static_symbol let_symbol, 'let*'
-
+        
+        static core_add_symbol, db "+"  
+        static core_sub_symbol, db "-"
+        static core_mul_symbol, db "*"
+        static core_div_symbol, db "/"
+        
 section .text
 
+;; Integer arithmetic operations
+;; 
+;; Adds a list of numbers, address in RSI
+;; Returns the sum as a number object with address in RAX
+;; Since most of the code is common to all operators,
+;; RBX is used to jump to the required instruction
+core_add:
+        mov rbx, core_arithmetic.do_addition
+        jmp core_arithmetic
+core_sub:
+        mov rbx, core_arithmetic.do_subtraction
+        jmp core_arithmetic
+core_mul:
+        mov rbx, core_arithmetic.do_multiply
+        jmp core_arithmetic
+core_div:
+        mov rbx, core_arithmetic.do_division
+        ; Fall through to core_arithmetic
+core_arithmetic:
+        ; Check that the first object is a number
+        mov cl, BYTE [rsi]
+        mov ch, cl
+        and ch, block_mask
+        cmp ch, block_cons
+        jne .missing_args
+
+        mov ch, cl
+        and ch, content_mask
+        cmp ch, content_empty
+        je .missing_args
+
+        cmp ch, content_int
+        jne .not_int
+
+        ; Put the starting value in rax
+        mov rax, [rsi + Cons.car]
+        
+.add_loop:
+        ; Fetch the next value
+        mov cl, [rsi + Cons.typecdr]
+        cmp cl, content_pointer
+        jne .finished  ; Nothing let
+        
+        mov rsi, [rsi + Cons.cdr] ; Get next cons
+
+        ; Check that it is an integer
+        mov cl, BYTE [rsi]
+        and cl, content_mask
+        cmp cl, content_int
+        jne .not_int
+
+        ; Jump to the required operation, address in RBX
+        jmp rbx
+        
+.do_addition:
+        add rax, [rsi + Cons.car]
+        jmp .add_loop
+.do_subtraction:
+        sub rax, [rsi + Cons.car]
+        jmp .add_loop
+.do_multiply:
+        imul rax, [rsi + Cons.car]
+        jmp .add_loop
+.do_division:
+        cqo                     ; Sign extend RAX into RDX
+        mov rcx, [rsi + Cons.car]
+        idiv rcx
+        jmp .add_loop
+        
+.finished:
+        ; Value in rbx
+        push rax
+        ; Get a Cons object to put the result into
+        call alloc_cons
+        pop rbx
+        mov [rax], BYTE maltype_integer
+        mov [rax + Cons.car], rbx
+        ret
+        
+.missing_args:
+.not_int:
+        jmp quit
+        
+;; Add a native function to the core environment
+;; This is used in core_environment
+%macro core_env_native 2
+        push rsi                ; environment
+        mov rsi, %1
+        mov edx, %1.len
+        call raw_to_symbol      ; Symbol in RAX
+        push rax
+        
+        mov rsi, %2
+        call native_function    ; Function in RAX
+        
+        mov rcx, rax            ; value (function)
+        pop rdi                 ; key (symbol)
+        pop rsi                 ; environment
+        call map_set
+%endmacro
+
+        
+        
 ;; Takes a string as input and processes it into a form
 read:
         jmp read_str           ; In reader.asm
-
-;; This is a dummy function so that core routines compile
-apply_fn:
-        jmp quit
-
 
 ;; ----------------------------------------------
 ;; Evaluates a form in RSI
@@ -81,7 +182,7 @@ eval_ast:
         ; look in environment
         mov rdi, rsi            ; symbol is the key
         mov rsi, [repl_env]     ; Environment
-        call env_get
+        call map_get
         je .done                ; result in RAX
         
         ; Not found, should raise an error
@@ -525,16 +626,18 @@ rep_seq:
 
 _start:
         ; Create and print the core environment
-        call core_environment   ; Environment in RAX
+        call map_new   ; Environment in RAX
 
         mov [repl_env], rax     ; store in memory
-        
-        mov rsi, rax
-        call pr_str
-        
-        mov rsi, rax            ; Put into input of print_string
-        call print_string
 
+        mov rsi, rax            ; Environment
+
+        ; Add +,-,*,/ to environment
+        core_env_native core_add_symbol, core_add
+        core_env_native core_sub_symbol, core_sub
+        core_env_native core_mul_symbol, core_mul
+        core_env_native core_div_symbol, core_div
+        
         ; -----------------------------
         ; Main loop
         
