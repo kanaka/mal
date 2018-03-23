@@ -59,14 +59,14 @@ RUN cd /tmp && git clone https://github.com/leftmike/foment \
 # Gerbil
 RUN apt-get -y install openssl libssl-dev sqlite3 libsqlite3-dev
 RUN cd /tmp && git clone https://github.com/gambit/gambit && cd gambit \
-    && ./configure --prefix=/gambit --enable-single-host && make && make install \
+    && ./configure --prefix=/opt/gambit --enable-single-host && make && make install \
     && rm -rf /tmp/gambit
-ENV PATH "$PATH:/gambit/bin"
+ENV PATH "$PATH:/opt/gambit/bin"
 RUN cd /tmp && git clone https://github.com/vyzo/gerbil \
     && cd gerbil/src && ./build.sh \
-    && mkdir /gerbil && mv /tmp/gerbil/bin /gerbil && mv /tmp/gerbil/lib /gerbil \
+    && mkdir /opt/gerbil && mv /tmp/gerbil/bin /opt/gerbil && mv /tmp/gerbil/lib /opt/gerbil \
     && rm -rf /tmp/gerbil
-ENV PATH "$PATH:/gerbil/bin"
-ENV GERBIL_HOME /gerbil
+ENV PATH "$PATH:/opt/gerbil/bin"
+ENV GERBIL_HOME /opt/gerbil
 
 ENV HOME /mal
