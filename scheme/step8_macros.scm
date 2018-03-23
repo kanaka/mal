@@ -176,7 +176,7 @@
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
 
-(define (main)
+(define (interactive-main)
   (let loop ()
     (let ((input (readline "user> ")))
       (when input
@@ -191,6 +191,14 @@
         (loop))))
   (newline))
 
-(if (null? args)
-    (main)
-    (rep (string-append "(load-file \"" (car args) "\")")))
+(cond-expand
+  (gerbil
+   (export main)
+   (define (main . args)
+     (if (null? args)
+       (interactive-main)
+       (rep (string-append "(load-file \"" (car args) "\")")))))
+  (else
+   (if (null? args)
+     (interactive-main)
+     (rep (string-append "(load-file \"" (car args) "\")")))))

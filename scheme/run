@@ -22,5 +22,6 @@ case ${scheme_MODE:-chibi} in
     sagittarius) exec $sagittarius -n -L$basedir $basedir/$step.scm   "${@}" ;;
     cyclone)     exec $basedir/$step                                  "${@}" ;;
     foment)      exec foment $basedir/$step.scm                       "${@}" ;;
+    gerbil)      GERBIL_LOADPATH=$basedir/gxc.out exec $basedir/gxc.out/bin/$step "${@}" ;;
     *) echo "Invalid scheme_MODE: ${scheme_MODE}"; exit 2 ;;
 esac

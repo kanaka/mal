@@ -80,4 +80,8 @@
         (loop))))
   (newline))
 
-(main)
+(cond-expand
+  (gerbil
+   (export main))
+  (else
+   (main)))
