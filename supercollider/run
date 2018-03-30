@@ -1,2 +1,2 @@
 #!/bin/bash
-exec sclang $(dirname $0)/${STEP:-stepA_mal}.sc "${@}"
+exec sclang -l $(dirname $0)/sclang_conf.yaml $(dirname $0)/${STEP:-stepA_mal}.sc "${@}"

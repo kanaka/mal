@@ -2,9 +2,13 @@ SOURCES_BASE = reader.sc printer.sc types.sc
 SOURCES_LISP = env.sc core.sc stepA_mal.sc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all:
+all: sclang_conf.yaml
+
+sclang_conf.yaml:
+	@printf 'includePaths:\n  - $(CURDIR)/lib\n' > sclang_conf.yaml
 
 clean:
+	$(RM) sclang_conf.yaml
 
 stats: $(SOURCES)
 	@wc $^
