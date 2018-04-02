@@ -1,5 +1,5 @@
 SOURCES_BASE = reader.sc printer.sc types.sc
-SOURCES_LISP = env.sc core.sc stepA_mal.sc
+SOURCES_LISP = env.sc func.sc core.sc stepA_mal.sc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all: sclang_conf.yaml
