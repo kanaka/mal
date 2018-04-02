@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:17.10
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
