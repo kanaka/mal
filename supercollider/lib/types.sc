@@ -9,7 +9,7 @@ MALEmptyInputError : MALError {}
 
 MALObject {
 	classvar <t, <f, <n;
-	var <value, <meta;
+	var <>value, <meta;
 
 	*new {
 		|value, meta|
@@ -53,6 +53,8 @@ MALVector : MALObject {
 }
 
 MALMap : MALObject {}
+
+MALAtom : MALObject {}
 
 + MALObject {
 	*initClass {

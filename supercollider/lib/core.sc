@@ -3,6 +3,14 @@ Core {
 
 	*coerce { |x| if (x) { ^MALObject.t } { ^MALObject.f } }
 
+	*swap {
+		|atom, fn, args|
+		var f = fn;
+		if (fn.class == Func) { f = fn.fn };
+		atom.value = f.(*([atom.value] ++ args));
+		^atom.value
+	}
+
 	*initClass {
 		ns = Dictionary.newFrom([
 			'+', { |a, b| MALInt(a.value + b.value) },
@@ -25,6 +33,15 @@ Core {
 			'str', { |...xs| MALString(xs.collect { |x| Printer.prStr(x) }.join("")) },
 			'prn', { |...xs| xs.collect { |x| Printer.prStr(x, true) }.join(" ").postln; MALObject.n },
 			'println', { |...xs| xs.collect { |x| Printer.prStr(x) }.join(" ").postln; MALObject.n},
+
+			'read-string', { |str| Reader.readStr(str.value) },
+			'slurp', { |path| MALString(File.use(path.value, "r", { |f| f.readAllString })) },
+
+			'atom', { |x| MALAtom(x) },
+			'atom?', { |x| Core.coerce(x.class == MALAtom) },
+			'deref', { |atom| atom.value },
+			'reset!', { |atom, x| atom.value = x; x },
+			'swap!', { |atom, fn ...args| Core.swap(atom, fn, args) },
 		])
 	}
 }

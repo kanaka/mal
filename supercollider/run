@@ -1,2 +1,3 @@
 #!/bin/bash
-exec sclang -l $(dirname $0)/sclang_conf.yaml $(dirname $0)/${STEP:-stepA_mal}.sc "${@}"
+old_IFS="${IFS}"; IFS=$'\v'; export SC_ARGS="${*}"; IFS="${old_IFS}"
+exec sclang -l $(dirname $0)/sclang_conf.yaml $(dirname $0)/${STEP:-stepA_mal}.sc "${@}" 2>/dev/null

@@ -15,6 +15,7 @@ Printer {
 			MALList, { Printer.prList(sexp.value, printReadably, "(", ")") },
 			MALVector, { Printer.prList(sexp.value, printReadably, "[", "]") },
 			MALMap, { Printer.prList(sexp.value.asPairs, printReadably, "{", "}") },
+			MALAtom, { "(atom %)".format(Printer.prStr(sexp.value, printReadably)) },
 			Function, { "#<fn>" },
 			Func, { "#<func>" },
 			{ "unknown type".error.throw })
