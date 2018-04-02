@@ -125,5 +125,6 @@ var main = {
 Core.ns.pairsDo { |key, value| replEnv.set(key, value) };
 rep.("(def! not (fn* (a) (if a false true)))");
 
+"REAL OUTPUT HERE".postln;
 main.();
 exit(0);

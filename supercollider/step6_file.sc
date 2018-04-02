@@ -131,6 +131,7 @@ replEnv.set('*ARGV*', MALList(List.newFrom(argv[1..].collect { |x| MALString(x) 
 rep.("(def! not (fn* (a) (if a false true)))");
 rep.("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 
+"REAL OUTPUT HERE".postln;
 if (argv.notEmpty) {
 	rep.("(load-file \"%\")".format(argv[0]));
 } { main.() };

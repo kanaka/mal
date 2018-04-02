@@ -70,5 +70,6 @@ var main = {
 	};
 };
 
+"REAL OUTPUT HERE".postln;
 main.();
 exit(0);

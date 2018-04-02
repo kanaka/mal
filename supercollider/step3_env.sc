@@ -87,5 +87,6 @@ replEnv.set('-', { |a, b| MALInt(a.value - b.value) });
 replEnv.set('*', { |a, b| MALInt(a.value * b.value) });
 replEnv.set('/', { |a, b| MALInt(a.value / b.value) });
 
+"REAL OUTPUT HERE".postln;
 main.();
 exit(0);
