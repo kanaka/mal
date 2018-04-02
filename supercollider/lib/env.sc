@@ -2,8 +2,20 @@ MALEnv {
 	var outer, data;
 
 	*new {
-		|outer|
-		var data = Dictionary.new;
+		arg outer, binds = [], exprs = [];
+		var data = Dictionary.new, i = 0;
+		while { i < binds.size } {
+			var bind = binds[i], expr = exprs[i];
+			if (bind == '&') {
+				bind = binds[i + 1];
+				expr = MALList(exprs[i..]);
+				data[bind] = expr;
+				i = binds.size
+			} {
+				data[bind] = expr;
+				i = i + 1
+			}
+		};
 		^super.newCopyArgs(outer, data)
 	}
 

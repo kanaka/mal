@@ -1,13 +1,13 @@
 Printer {
 	*prStr {
-		|sexp, printReadably|
+		|sexp, printReadably = false|
 		^switch (sexp.class,
 			MALTrue, { "true" },
 			MALFalse, { "false" },
 			MALNil, { "nil" },
 			MALInt, { sexp.value.asString },
 			MALSymbol, { sexp.value.asString },
-			MALString, { if (printReadably.notNil) {
+			MALString, { if (printReadably) {
 				sexp.value.asCompileString.replace("\n", "\\n")
 			} { sexp.value }
 			},
