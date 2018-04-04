@@ -42,6 +42,9 @@ Core {
 			'deref', { |atom| atom.value },
 			'reset!', { |atom, x| atom.value = x; x },
 			'swap!', { |atom, fn ...args| Core.swap(atom, fn, args) },
+
+			'cons', { |x, xs| MALList(List.newFrom([x] ++ xs.value)) },
+			'concat', { |...xs| MALList(List.newFrom(xs.collect(_.value).reduce('++'))) },
 		])
 	}
 }
