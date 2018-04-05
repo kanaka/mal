@@ -1,8 +1,8 @@
 Func {
-	var <ast, <params, <env, <fn;
+	var <ast, <params, <env, <fn, <>isMacro;
 
 	*new {
-		|ast, params, env, fn|
-		^super.newCopyArgs(ast, params, env, fn)
+		|ast, params, env, fn, isMacro = false|
+		^super.newCopyArgs(ast, params, env, fn, isMacro)
 	}
 }

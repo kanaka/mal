@@ -45,6 +45,9 @@ Core {
 
 			'cons', { |x, xs| MALList(List.newFrom([x] ++ xs.value)) },
 			'concat', { |...xs| MALList(List.newFrom(xs.collect(_.value).reduce('++'))) },
+			'nth', { |xs, i| if (i.value < xs.value.size) { xs.value[i.value] } { MALError("out of bounds").throw } },
+			'first', { |xs| if (xs.class == MALNil or: { xs.value.isEmpty }) { MALObject.n } { xs.value[0] } },
+			'rest', { |xs| if (xs.class == MALNil or: { xs.value.isEmpty }) { MALList(List.new) } { MALList(List.newFrom(xs.value[1..])) } },
 		])
 	}
 }
