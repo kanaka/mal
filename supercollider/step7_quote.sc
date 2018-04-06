@@ -56,77 +56,58 @@ var quasiquote = {
 
 var eval = {
 	|sexp, env|
-	{
-		|return|
-		var a0, a1, a2, a2_, a3, op, args;
-		{
-			{
-				|continue|
-				if (sexp.class == MALList) {
-					# a0, a1, a2, a3 = sexp.value;
-					if (sexp.value.notEmpty) {
-						if (a0.class == MALSymbol && specialForms.includes(a0.value)) {
-							switch(a0.value,
-								'def!', {
-									return.(env.set(a1.value, eval.(a2, env)))
-								},
-								'let*', {
-									var env_ = MALEnv(env);
-									a1.value.pairsDo {
-										|key, value|
-										env_.set(key.value, eval.(value, env_))
-									};
-									env = env_;
-									sexp = a2;
-									continue.value // TCO
-								},
-								'do', {
-									var forms = sexp.value.copyRange(1, sexp.value.size - 2);
-									forms.do { |form| eval.(form, env) };
-									sexp = sexp.value[sexp.value.size - 1];
-									continue.value // TCO
-								},
-								'if', {
-									var condition = eval.(a1, env);
-									if ([MALFalse, MALNil].includes(condition.class)) {
-										if (a3.notNil) {
-											sexp = a3;
-											continue.value // TCO
-										} {
-											sexp = MALObject.n;
-											continue.value // TCO
-										}
-									} {
-										sexp = a2;
-										continue.value // TCO
-									}
-								},
-								'fn*', {
-									var binds = a1.value.collect(_.value),
-									fn = { |...args| eval.(a2, MALEnv(env, binds, args)) };
-									return.(Func(a2, binds, env, fn))
-								},
-								'quote', {
-									return.(a1)
-								},
-								'quasiquote', {
-									sexp = quasiquote.(a1);
-									continue.value // TCO
-								},
-								{ "unknown special form".error.throw })
+	var a0, a1, a2, a2_, a3, op, args;
+	if (sexp.class == MALList) {
+		# a0, a1, a2, a3 = sexp.value;
+		if (sexp.value.notEmpty) {
+			if (a0.class == MALSymbol && specialForms.includes(a0.value)) {
+				switch(a0.value,
+					'def!', {
+						env.set(a1.value, eval.(a2, env))
+					},
+					'let*', {
+						var env_ = MALEnv(env);
+						a1.value.pairsDo {
+							|key, value|
+							env_.set(key.value, eval.(value, env_))
+						};
+						eval.(a2, env_) // TCO
+					},
+					'do', {
+						var forms = sexp.value.copyRange(1, sexp.value.size - 2);
+						forms.do { |form| eval.(form, env) };
+						eval.(sexp.value[sexp.value.size - 1], env) // TCO
+					},
+					'if', {
+						var condition = eval.(a1, env);
+						if ([MALFalse, MALNil].includes(condition.class)) {
+							if (a3.notNil) {
+								eval.(a3, env) // TCO
+							} { sexp = MALObject.n }
 						} {
-							# op ...args = evalAst.(sexp, env).value;
-							if (op.class == Func) {
-								sexp = op.ast;
-								env = MALEnv(op.env, op.params, args);
-								continue.value // TCO
-							} { return.(op.value(*args)) }
+							eval.(a2, env) // TCO
 						}
-					} { return.(sexp) }
-				} { return.(evalAst.(sexp, env)) }
-			}.block
-		}.loop
-	}.block
+					},
+					'fn*', {
+						var binds = a1.value.collect(_.value),
+						fn = { |...args| eval.(a2, MALEnv(env, binds, args)) };
+						Func(a2, binds, env, fn)
+					},
+					'quote', {
+						a1
+					},
+					'quasiquote', {
+						eval.(quasiquote.(a1), env) // TCO
+					},
+					{ "unknown special form".error.throw })
+			} {
+				# op ...args = evalAst.(sexp, env).value;
+				if (op.class == Func) {
+					eval.(op.ast, MALEnv(op.env, op.params, args)) // TCO
+				} { op.value(*args) }
+			}
+		} { sexp }
+	} { evalAst.(sexp, env) }
 };
 
 var print = {
