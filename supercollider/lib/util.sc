@@ -10,4 +10,9 @@
 			^this
 		}
 	}
+
+	readline {
+		this.post;
+		^File.use("/dev/stdin", "r") { |f| f.getLine }
+	}
 }
