@@ -48,6 +48,30 @@ Core {
 			'nth', { |xs, i| if (i.value < xs.value.size) { xs.value[i.value] } { MALError("out of bounds").throw } },
 			'first', { |xs| if (xs.class == MALNil or: { xs.value.isEmpty }) { MALObject.n } { xs.value[0] } },
 			'rest', { |xs| if (xs.class == MALNil or: { xs.value.isEmpty }) { MALList(List.new) } { MALList(List.newFrom(xs.value[1..])) } },
+
+			'throw', { |x| MALError(x).throw },
+			'apply', { |fn ...args| var f = fn; if (fn.class == Func) { f = fn.fn }; f.value(*(args.copyRange(0, args.size - 2) ++ args[args.size - 1].value)) },
+			'map', { |fn, xs| var f = fn; if (fn.class == Func) { f = fn.fn }; MALList(List.newFrom(xs.value.collect(f.value(_)))) },
+
+			'nil?', { |x| Core.coerce(x.class == MALNil) },
+			'true?', { |x| Core.coerce(x.class == MALTrue) },
+			'false?', { |x| Core.coerce(x.class == MALFalse) },
+			'symbol?', { |x| Core.coerce(x.class == MALSymbol) },
+			'symbol', { |string| MALSymbol(string.value.asSymbol) },
+			'keyword?', { |x| Core.coerce(x.class == MALKeyword) },
+			'keyword', { |string| MALKeyword(string.value.asSymbol) },
+			'vector?', { |x| Core.coerce(x.class == MALVector) },
+			'vector', { |...xs| MALVector(List.newFrom(xs)) },
+			'map?', { |x| Core.coerce(x.class == MALMap) },
+			'hash-map', { |...xs| MALMap(Dictionary.newFrom(xs)) },
+			'sequential?', { |x| Core.coerce([MALList, MALVector].includes(x.class)) },
+
+			'assoc', { |m ...kvs| MALMap(Dictionary.newFrom(m.value.asPairs ++ kvs)) },
+			'dissoc', { |m ...ks| var dict = Dictionary.newFrom(m.value.asPairs); ks.do { |key| dict.removeAt(key) }; MALMap(dict) },
+			'get', { |m, k| if (m.class == MALNil) { m } { m.value.atFail(k) { MALObject.n } } },
+			'contains?', { |m, k| Core.coerce(m.value.at(k).notNil) },
+			'keys', { |m| MALList(List.newFrom(m.value.keys)) },
+			'vals', { |m| MALList(List.newFrom(m.value.values)) },
 		])
 	}
 }

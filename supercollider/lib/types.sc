@@ -26,6 +26,10 @@ MALObject {
 		|other|
 		^this.class == other.class && this.value == other.value
 	}
+
+	hash {
+		^this.class.hash bitXor: this.value.hash
+	}
 }
 
 MALTrue : MALObject {}
