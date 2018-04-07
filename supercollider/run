@@ -1,3 +1,2 @@
 #!/bin/bash
-old_IFS="${IFS}"; IFS=$'\v'; export SC_ARGS="${*}"; IFS="${old_IFS}"
 exec ./wrapper.js sclang -l $(dirname $0)/sclang_conf.yaml $(dirname $0)/${STEP:-stepA_mal}.sc "${@}"

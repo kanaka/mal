@@ -169,7 +169,7 @@ var main = {
 	};
 };
 
-var argv = "SC_ARGS".getenv.split($\v).reject { |x| x.isEmpty };
+var argv = thisProcess.argv;
 
 Core.ns.pairsDo { |key, value| replEnv.set(key, value) };
 replEnv.set('eval', { |ast| eval.(ast, replEnv) });
