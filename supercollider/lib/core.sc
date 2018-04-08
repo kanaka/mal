@@ -11,6 +11,21 @@ Core {
 		^atom.value
 	}
 
+	*seq {
+		 |x|
+		^switch(x.class,
+			MALList, { if (x.value.isEmpty)
+				{ MALObject.n }
+				{ x } },
+			MALVector, { if (x.value.isEmpty)
+				{ MALObject.n }
+				{ MALList(x.value) } },
+			MALString, { if (x.value.isEmpty)
+				{ MALObject.n }
+				{ MALList(List.newFrom(x.value.explode.collect { |s| MALString(s) })) } },
+			{ MALObject.n })
+	}
+
 	*initClass {
 		ns = Dictionary.newFrom([
 			'+', { |a, b| MALInt(a.value + b.value) },
@@ -56,10 +71,14 @@ Core {
 			'nil?', { |x| Core.coerce(x.class == MALNil) },
 			'true?', { |x| Core.coerce(x.class == MALTrue) },
 			'false?', { |x| Core.coerce(x.class == MALFalse) },
+			'number?', { |x| Core.coerce(x.class == MALInt) },
 			'symbol?', { |x| Core.coerce(x.class == MALSymbol) },
 			'symbol', { |string| MALSymbol(string.value.asSymbol) },
 			'keyword?', { |x| Core.coerce(x.class == MALKeyword) },
 			'keyword', { |string| MALKeyword(string.value.asSymbol) },
+			'string?', { |x| Core.coerce(x.class == MALString) },
+			'fn?', { |x| Core.coerce(switch(x.class, Function, { true }, Func, { x.isMacro.not }, { false } )) },
+			'macro?', { |x| Core.coerce(x.class == Func and: { x.isMacro }) },
 			'vector?', { |x| Core.coerce(x.class == MALVector) },
 			'vector', { |...xs| MALVector(List.newFrom(xs)) },
 			'map?', { |x| Core.coerce(x.class == MALMap) },
@@ -72,6 +91,13 @@ Core {
 			'contains?', { |m, k| Core.coerce(m.value.at(k).notNil) },
 			'keys', { |m| MALList(List.newFrom(m.value.keys)) },
 			'vals', { |m| MALList(List.newFrom(m.value.values)) },
+
+			'readline', { |prompt| var input = prompt.value.readline; if (input.notNil) { MALString(input) } { MALObject.n } },
+			'meta', { |x| if (x.class == Function or: { x.meta.isNil }) { MALObject.n } { x.meta } },
+			'with-meta', { |x, meta| var y = x.copy; y.meta = meta; y },
+			'time-ms', { MALInt(Process.elapsedTime * 1000) },
+			'conj', { |xs ...args| if (xs.class == MALList) { MALList(List.newFrom( args.reverse ++ xs.value)) } { MALVector(List.newFrom(xs.value ++ args)) } },
+			'seq', { |x| Core.seq(x) },
 		])
 	}
 }

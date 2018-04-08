@@ -15,4 +15,8 @@
 		this.post;
 		^File.use("/dev/stdin", "r") { |f| f.getLine }
 	}
+
+	explode {
+		^this.ascii.collect { |c| c.asAscii.asString }
+	}
 }
