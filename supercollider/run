@@ -1,2 +1,2 @@
 #!/bin/bash
-exec ./wrapper.js sclang -l $(dirname $0)/sclang_conf.yaml $(dirname $0)/${STEP:-stepA_mal}.sc "${@}"
+exec $(dirname $0)/wrapper.js sclang -l $(dirname $0)/sclang_conf.yaml $(dirname $0)/${STEP:-stepA_mal}.sc "${@}"
