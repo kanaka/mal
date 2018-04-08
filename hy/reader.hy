@@ -30,28 +30,31 @@
 
 (defn read_form [rdr]
   (setv token (.peek rdr))
-  (if (= "(" token) (do (.next rdr) (read_s_exp rdr))
-      (= "[" token) (do (.next rdr) (read_list rdr))
-      (= "{" token) (do (.next rdr) (read_hash_map rdr))
-      (= "'" token) (do (.next rdr) (read_quote rdr))
-      (= "`" token) (do (.next rdr) (read_quasiquote rdr))
-      (= "~" token) (do (.next rdr) (read_unquote rdr))
-      (= "~@" token) (do (.next rdr) (read_splice_unquote rdr))
-      (= "@" token) (do (.next rdr) (read_deref rdr))
-      (= "^" token) (do (.next rdr) (read_with_meta rdr))
-      (and (= "\"" (get token 0))
+  (if (= "(" token)  (read_s_exp rdr)
+      (= "[" token)  (read_list rdr)
+      (= "{" token)  (read_hash_map rdr)
+      (= "'" token)  (read_quote rdr)
+      (= "`" token)  (read_quasiquote rdr)
+      (= "~" token)  (read_unquote rdr)
+      (= "~@" token) (read_splice_unquote rdr)
+      (= "@" token)  (read_deref rdr)
+      (= "^" token)  (read_with_meta rdr)
+      (and (= "\""  (get token 0))
            (!= "\"" (get token -1))) (raise (ValueError "expected '\"', got EOF"))
       True (read_atom rdr)))
 
 (defn read_with_meta [rdr]
+  (.next rdr)
   (setv arg2 (read-form rdr))
   (setv arg1 (read-form rdr))
   (tuple [(sym "with-meta") arg1 arg2]))
 
 (defn read_deref [rdr]
+  (.next rdr)
   (tuple [(sym "deref") (read-form rdr)]))
 
 (defn read_hash_map [rdr]
+  (.next rdr)
   (setv end "}")
   (setv result {})
   (while True
@@ -64,18 +67,23 @@
     (.update result {key token})))
 
 (defn read_quote [rdr]
+  (.next rdr)
   (tuple [(sym "quote") (read-form rdr)]))
 
 (defn read_quasiquote [rdr]
+  (.next rdr)
   (tuple [(sym "quasiquote") (read-form rdr)]))
 
 (defn read_unquote [rdr]
+  (.next rdr)
   (tuple [(sym "unquote") (read-form rdr)]))
 
 (defn read_splice_unquote [rdr]
+  (.next rdr)
   (tuple [(sym "splice-unquote") (read-form rdr)]))
 
 (defn read_list [rdr]
+  (.next rdr)
   (setv end "]")
   (setv result [])
   (while True
@@ -86,6 +94,7 @@
     (.append result (read_form rdr))))
 
 (defn read_s_exp [rdr]
+  (.next rdr)
   (setv end ")")
   (setv result [])
   (while True
