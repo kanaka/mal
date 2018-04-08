@@ -62,14 +62,13 @@ MAL8 {
 
 	isMacroCall {
 		|ast, env|
-		var a0;
+		var a0, def;
 		if (ast.class != MALList) { ^false };
 		if (ast.value.isEmpty) { ^false };
 		a0 = ast.value[0];
-		if (a0.class == MALSymbol) {
-			var def = env.find(a0.value);
-			^def.class == Func and: { def.isMacro }
-		}
+		if (a0.class != MALSymbol) { ^false };
+		def = env.find(a0.value);
+		^def.class == Func and: { def.isMacro }
 	}
 
 	macroexpand {
