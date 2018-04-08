@@ -94,7 +94,7 @@ MAL5 {
 				|err|
 				switch (err.class,
 					MALEmptyInputError, {},
-					MALError, { "error: %\n".postf(err.what) },
+					MALError, { "error: %\n".postf(err.errorString) },
 					{ err.reportError }
 				)
 			}

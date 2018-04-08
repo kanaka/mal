@@ -3,9 +3,15 @@ MALError : Error {
 		|what|
 		^super.new(what)
 	}
+
+	errorString { ^what }
 }
 
-MALEmptyInputError : MALError {}
+MALEmptyInputError : MALError {
+	*new {
+		^super.new("empty input")
+	}
+}
 
 MALObject {
 	classvar <t, <f, <n;

@@ -139,7 +139,7 @@ MAL9 {
 					var result;
 					try { result = this.eval(a1, env) } {
 						|err|
-						var what = err.what, sym, form, env_;
+						var what = err.errorString, sym, form, env_;
 						if (what.class == String) { what = MALString(what) };
 						sym = a2.value[1].value;
 						form = a2.value[2];
@@ -177,7 +177,7 @@ MAL9 {
 				|err|
 				switch (err.class,
 					MALEmptyInputError, {},
-					MALError, { "error: %\n".postf(err.what) },
+					MALError, { "error: %\n".postf(err.errorString) },
 					{ err.reportError }
 				)
 			}

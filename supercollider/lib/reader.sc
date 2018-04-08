@@ -53,7 +53,7 @@ Reader {
 	*readForm {
 		|reader|
 		var token = reader.peek;
-		if (token.isNil) { MALEmptyInputError.new.throw };
+		if (token.isNil) { MALEmptyInputError("empty input").throw };
 		if (token == "'") { ^Reader.readSimpleMacro(reader, \quote) };
 		if (token == "`") { ^Reader.readSimpleMacro(reader, \quasiquote) };
 		if (token == "~") { ^Reader.readSimpleMacro(reader, \unquote) };
