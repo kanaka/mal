@@ -1,22 +1,22 @@
-#!/usr/bin/env hy
+#! /usr/bin/env hy
 
-(defn READ [str]
-  str)
+(defn READ [arg]
+  arg)
 
-(defn EVAL [ast env]
-  ast)
+(defn EVAL [arg]
+  arg)
 
-(defn PRINT [exp]
- exp)
+(defn PRINT [arg]
+  arg)
 
-(defn REP [str]
-  (PRINT (EVAL (READ str) {})))
+(defn rep [arg]
+  (PRINT (EVAL (READ arg))))
 
 (defmain [&rest args]
-  ;; indented to match later steps
-      (while True
-        (try
-          (do (setv line (raw_input "user> "))
-              (if (= "" line) (continue))
-              (print (REP line)))
-          (except [EOFError] (break)))))
+  (while True
+    (try
+      (do
+        (setv arg (input "user> "))
+        (when (= "" arg) (continue))
+        (print (rep arg)))
+      (except [e EOFError] (break)))))
