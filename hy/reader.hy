@@ -1,93 +1,114 @@
-(import [hy.models [HyInteger :as Int HyKeyword :as Keyword
-                    HyString :as Str HySymbol :as Sym]]
-        [re])
+#! /usr/bin/env hy
 
-(defclass Blank [Exception])
+(import re)
+(import [hy.models [HySymbol :as sym]])
 
 (defclass Reader []
-  (defn --init-- [self tokens &optional [position 0]]
-    (setv self.tokens tokens self.position position))
+  (defn __init__ [self tokens &optional [position 0]]
+    (setv self.tokens tokens)
+    (setv self.position position))
   (defn next [self]
-    (setv self.position (+ 1 self.position))
+    (setv self.position (+ self.position 1))
     (get self.tokens (- self.position 1)))
   (defn peek [self]
     (if (> (len self.tokens) self.position)
-      (get self.tokens self.position)
-      None)))
+        (get self.tokens self.position)
+        None)))
 
-(def tok-re (.compile re "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:[\\\\].|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}()'\"`@,;]+)"))
-(def int-re (.compile re "-?[0-9]+$"))
+(defn tokenizer [str]
+  (re.findall
+    r"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\"])*\"?|'[^\s]*|;.*|[^\s\[\]{}('\"`,;)]*)"
+    str))
 
-(defn tokenize [str]
-  (list-comp
-    t
-    (t (.findall re tok-re str))
-    (!= (get t 0) ";")))
+(defn read_str [str]
+  (setv tokens (tokenizer str))
+  (setv reader (Reader tokens))
+  (try
+    (read_form reader)
+    (except [e ValueError]
+      (print e))))
 
-(defn unescape [s]
-  (-> s (.replace "\\\\"   "\u029e")
-        (.replace "\\\""   "\"")
-        (.replace "\\n"    "\n")
-        (.replace "\u029e" "\\")))
+(defn read_form [rdr]
+  (setv token (.peek rdr))
+  (if (= "(" token)  (read_s_exp rdr)
+      (= "[" token)  (read_list rdr)
+      (= "{" token)  (read_hash_map rdr)
+      (= "'" token)  (read_quote rdr)
+      (= "`" token)  (read_quasiquote rdr)
+      (= "~" token)  (read_unquote rdr)
+      (= "~@" token) (read_splice_unquote rdr)
+      (= "@" token)  (read_deref rdr)
+      (= "^" token)  (read_with_meta rdr)
+      (and (= "\""  (get token 0))
+           (!= "\"" (get token -1))) (raise (ValueError "expected '\"', got EOF"))
+      True (read_atom rdr)))
 
-(defn read-atom [rdr]
+(defn read_with_meta [rdr]
+  (.next rdr)
+  (setv arg2 (read-form rdr))
+  (setv arg1 (read-form rdr))
+  (tuple [(sym "with-meta") arg1 arg2]))
+
+(defn read_deref [rdr]
+  (.next rdr)
+  (tuple [(sym "deref") (read-form rdr)]))
+
+(defn read_hash_map [rdr]
+  (.next rdr)
+  (setv end "}")
+  (setv result {})
+  (while True
+    (setv key (.peek rdr))
+    (if
+      (= end key) (do (.next rdr) (return result))
+      (= "" key) (raise (ValueError (.format "expected '{0}', get EOF" end))))
+    (setv key (read_form rdr))
+    (setv token (read_form rdr))
+    (.update result {key token})))
+
+(defn read_quote [rdr]
+  (.next rdr)
+  (tuple [(sym "quote") (read-form rdr)]))
+
+(defn read_quasiquote [rdr]
+  (.next rdr)
+  (tuple [(sym "quasiquote") (read-form rdr)]))
+
+(defn read_unquote [rdr]
+  (.next rdr)
+  (tuple [(sym "unquote") (read-form rdr)]))
+
+(defn read_splice_unquote [rdr]
+  (.next rdr)
+  (tuple [(sym "splice-unquote") (read-form rdr)]))
+
+(defn read_list [rdr]
+  (.next rdr)
+  (setv end "]")
+  (setv result [])
+  (while True
+    (setv token (.peek rdr))
+    (if
+      (= end token) (do (.next rdr) (return result))
+      (= "" token) (raise (ValueError (.format "expected '{0}', got EOF" end))))
+    (.append result (read_form rdr))))
+
+(defn read_s_exp [rdr]
+  (.next rdr)
+  (setv end ")")
+  (setv result [])
+  (while True
+    (setv token (.peek rdr))
+    (if
+      (= end token) (do (.next rdr) (return (tuple result)))
+      (= "" token) (raise (ValueError (.format "expected '{0}', got EOF" end))))
+    (.append result (read_form rdr))))
+
+(defn read_atom [rdr]
   (setv token (.next rdr))
   (if
-    (.match re int-re token) (int token)
-    (= "\"" (get token 0))   (Str (unescape (cut token 1 -1)))
-    (= ":" (get token 0))    (Keyword token)
-    (= "nil" token)          None
-    (= "true" token)         True
-    (= "false" token)        False
-    True                     (Sym token)))
-
-(defn read-seq [rdr &optional [start "("] [end ")"]]
-  (setv ast   (list)
-        token (.next rdr))
-  (if (!= token start)
-    (raise (Exception (+ "expected '" start "'")))
-    (do 
-      (setv token (.peek rdr))
-      (while (!= token end)
-        (if (not token) (raise (Exception (+ "expected '" end
-                                             ", got EOF"))))
-        (.append ast (read-form rdr))
-        (setv token (.peek rdr)))
-      (.next rdr)
-      ast)))
-
-(defn read-form [rdr]
-  (setv token (.peek rdr))
-  (if
-    (= ";" (get token 0)) (.next rdr)
-
-    (= "'" token)  (do (.next rdr)
-                       (tuple [(Sym "quote") (read-form rdr)]))
-    (= "`" token)  (do (.next rdr)
-                       (tuple [(Sym "quasiquote") (read-form rdr)]))
-    (= "~" token)  (do (.next rdr)
-                       (tuple [(Sym "unquote") (read-form rdr)]))
-    (= "~@" token) (do (.next rdr)
-                       (tuple [(Sym "splice-unquote")
-                                      (read-form rdr)]))
-    (= "^" token)  (do (.next rdr)
-                       (setv meta (read-form rdr))
-                       (tuple [(Sym "with-meta") (read-form rdr) meta]))
-    (= "@" token)  (do (.next rdr)
-                       (tuple [(Sym "deref") (read-form rdr)]))
-
-    (= ")" token)  (raise (Exception "unexpected ')'"))
-    (= "(" token)  (tuple (read-seq rdr "(" ")"))
-
-    (= "]" token)  (raise (Exception "unexpected ')'"))
-    (= "[" token)  (read-seq rdr "[" "]")
-
-    (= "}" token)  (raise (Exception "unexpected '}'"))
-    (= "{" token)  (dict (partition (read-seq rdr "{" "}") 2))
-
-    True           (read-atom rdr)))
-
-(defn read-str [str]
-  (setv tokens (tokenize str))
-  (if (= 0 (len tokens)) (raise (Blank "blank line")))
-  (read-form (Reader tokens)))
+    (re.match r"-?[0-9]+$" token) (int token)
+    (= "nil" token) None
+    (= "true" token) True
+    (= "false" token) False
+    True (sym token)))

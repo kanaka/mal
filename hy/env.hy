@@ -1,31 +1,28 @@
-(import [hy.models [HySymbol :as Sym]])
+#! /usr/bin/env hy
 
-(defn env-new [&optional [outer None] [binds []] [exprs []]]
-  (setv env {:outer outer})
-  (while binds
-    (if
-      (= (Sym "&") (first binds))
-      (do (assoc env (nth binds 1) (tuple exprs)) (break))
+(defclass Env []
+  (defn __init__ [self]
+    (setv self.data {:outer None}))
+  (defn set [self key value]
+    (assoc self.data key value))
+  (defn find [self key]
+    (try (get self.data key)
+         (except [e KeyError]
+           (setv outer (get self.data :outer))
+           (if (none? outer)
+               None
+               (.find outer)))))
+  (defn get [self key]
+    (setv value (self.find key))
+    (if (none? value)
+        (raise (ValueError "not found"))
+        value)))
 
-      True
-      (do (assoc env (first binds) (first exprs))
-          (setv binds (list (rest binds))
-                exprs (list (rest exprs))))))
-  env)
-
-(defn env-find [env k]
-  (if
-    (.has_key env k)  env
-    (get env ':outer) (env-find (get env ':outer) k)
-    True              None))
-
-(defn env-get [env k]
-  (setv e (env-find env k))
-  (if-not e
-    (raise (Exception (+ "'" k "' not found"))))
-  (get e k))
-
-(defn env-set [env k v]
-  (assoc env k v)
-  v)
-
+(defmain [&rest args]
+  (setv e (Env))
+  (.set e "hoge" "hige")
+  (.find e "hoge")
+  (.find e "foo")
+  (.get e "hoge")
+  (.get e "foo")
+  )

@@ -1,79 +1,46 @@
-#!/usr/bin/env hy
+#! /usr/bin/env hy
 
-(import [hy.models [HySymbol :as Sym]])
-(import sys traceback)
-(import [reader [read-str Blank]])
-(import [printer [pr-str]])
-(import [env [env-new env-get env-set]])
+(import [reader [read_str]])
+(import [printer [pr_str]])
+(import [hy.models [HySymbol :as sym]])
 
-;; read
-(defn READ [str]
-  (read-str str))
+(setv repl_env {"+" (fn [a b] (+ a b))
+                "-" (fn [a b] (- a b))
+                "*" (fn [a b] (* a b))
+                "/" (fn [a b] (int (/ a b)))})
 
-;; eval
-(defn eval-ast [ast env]
-  ;;(print "eval-ast:" ast (type ast))
-  (if
-    (symbol? ast)         (env-get env ast)
-    (instance? dict ast)  (dict (map (fn [k]
-                                       [(EVAL k env) (EVAL (get ast k) env)])
-                                     ast))
-    (instance? tuple ast) (tuple (map (fn [x] (EVAL x env)) ast))
-    (instance? list ast)  (list (map (fn [x] (EVAL x env)) ast))
-    True                  ast))
+(defn eval_ast [ast]
+  (if (= list (type ast)) (return (list-comp
+                                    (eval_ast e)
+                                    [e ast]))
+      (= dict (type ast)) (return (dict-comp
+                                    key (eval_ast value)
+                                    [[key value] (.items ast)])))
+  (if-not (and (= tuple (type ast))
+               (= 3 (len ast))
+               (= sym (type (get ast 0))))
+          (return ast))
+  ((get repl_env (get ast 0))
+    (eval_ast (get ast 1))
+    (eval_ast (get ast 2))))
 
-(defn EVAL [ast env]
-  ;;(print "EVAL:" ast (type ast))
-  ;; indented to match later steps
-      (if (not (instance? tuple ast))
-        (eval-ast ast env)
+(defn READ [arg]
+  (read_str arg))
 
-        ;; apply list
-            (do
-              (setv [a0 a1 a2] [(nth ast 0) (nth ast 1) (nth ast 2)])
-              (if
-                (none? a0)
-                ast
+(defn EVAL [ast]
+  (eval_ast ast))
 
-                (= (Sym "def!") a0)
-                (env-set env a1 (EVAL a2 env))
+(defn PRINT [arg]
+  (pr_str arg))
 
-                (= (Sym "let*") a0)
-                (do
-                  (setv env (env-new env))
-                  (for [[b e] (partition a1 2)]
-                    (env-set env b (EVAL e env)))
-                  (EVAL a2 env))
-
-                ;; apply
-                (do
-                  (setv el (eval-ast ast env)
-                        f (first el)
-                        args (list (rest el)))
-                  (apply f args))))))
-
-;; print
-(defn PRINT [exp]
-  (pr-str exp True))
-
-;; repl
-(def repl-env {'+ +
-               '- -
-               '* *
-               '/ (fn [a b] (int (/ a b)))})
-
-(defn REP [str]
-  (PRINT (EVAL (READ str) repl-env)))
+(defn rep [arg]
+  (PRINT (EVAL (READ arg))))
 
 (defmain [&rest args]
-  ;; indented to match later steps
-      (while True
-        (try
-          (do (setv line (raw_input "user> "))
-              (if (= "" line) (continue))
-              (print (REP line)))
-          (except [EOFError] (break))
-          (except [Blank])
-          (except []
-            (print (.join "" (apply traceback.format_exception
-                                    (.exc_info sys))))))))
+  (while True
+    (try
+      (do
+        (setv arg (input "user> "))
+        (when (= "" arg) (continue))
+        (print (rep arg)))
+      (except [e EOFError] (break)))))

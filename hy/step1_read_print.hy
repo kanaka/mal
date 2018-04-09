@@ -1,30 +1,25 @@
-#!/usr/bin/env hy
+#! /usr/bin/env hy
 
-(import sys traceback)
-(import [reader [read-str Blank]])
-(import [printer [pr-str]])
+(import [reader [read_str]])
+(import [printer [pr_str]])
 
-(defn READ [str]
-  (read-str str))
+(defn READ [arg]
+  (read_str arg))
 
-(defn EVAL [ast env]
-  ast)
+(defn EVAL [arg]
+  arg)
 
-(defn PRINT [exp]
-  (pr-str exp True))
+(defn PRINT [arg]
+  (pr_str arg))
 
-(defn REP [str]
-  (PRINT (EVAL (READ str) {})))
+(defn rep [arg]
+  (PRINT (EVAL (READ arg))))
 
 (defmain [&rest args]
-  ;; indented to match later steps
-      (while True
-        (try
-          (do (setv line (raw_input "user> "))
-              (if (= "" line) (continue))
-              (print (REP line)))
-          (except [EOFError] (break))
-          (except [Blank])
-          (except []
-            (print (.join "" (apply traceback.format_exception
-                                    (.exc_info sys))))))))
+  (while True
+    (try
+      (do
+        (setv arg (input "user> "))
+        (when (= "" arg) (continue))
+        (print (rep arg)))
+      (except [e EOFError] (break)))))
