@@ -54,6 +54,7 @@ erlang/src/*.beam
 es6/mal.js
 es6/.esm-cache
 factor/mal.factor
+fantom/lib
 forth/mal.fs
 fsharp/*.exe
 fsharp/*.dll

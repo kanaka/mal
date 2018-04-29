@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 72 languages:
+Mal is implemented in 73 languages:
 
 * Ada
 * GNU awk
@@ -29,6 +29,7 @@ Mal is implemented in 72 languages:
 * ES6 (ECMAScript 6 / ECMAScript 2015)
 * F#
 * Factor
+* Fantom
 * Forth
 * Go
 * Groovy
@@ -417,6 +418,18 @@ The Factor implementation of mal has been tested with Factor 0.97
 ```
 cd factor
 FACTOR_ROOTS=. factor -run=stepX_YYY
+```
+
+### Fantom
+
+*The Fantom implementation was created by [Dov Murik](https://github.com/dubek)*
+
+The Fantom implementation of mal has been tested with Fantom 1.0.70.
+
+```
+cd fantom
+make lib/fan/stepX_YYY.pod
+STEP=stepX_YYY ./run
 ```
 
 ### Forth
