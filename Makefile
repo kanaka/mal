@@ -79,7 +79,7 @@ DOCKERIZE =
 #
 
 IMPLS = ada awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
-	elisp elixir elm erlang es6 factor forth fsharp go groovy gst guile haskell \
+	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gst guile haskell \
 	haxe hy io java js julia kotlin livescript logo lua make mal matlab miniMAL \
 	nasm nim objc objpascal ocaml perl perl6 php pil plpgsql plsql powershell ps \
 	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
@@ -191,6 +191,7 @@ elm_STEP_TO_PROG =     elm/$($(1)).js
 erlang_STEP_TO_PROG =  erlang/$($(1))
 es6_STEP_TO_PROG =     es6/$($(1)).mjs
 factor_STEP_TO_PROG =  factor/$($(1))/$($(1)).factor
+fantom_STEP_TO_PROG =  fantom/lib/fan/$($(1)).pod
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
 go_STEP_TO_PROG =      go/$($(1))
