@@ -1,0 +1,2 @@
+#!/bin/bash
+exec java -cp $(dirname $0):$(dirname $0)/lib/jline-2.13.jar mal.${STEP:-stepA_mal} "${@}"
