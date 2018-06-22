@@ -32,7 +32,7 @@ matrix:
     - {env: IMPL=fsharp,    services: [docker]}
     - {env: IMPL=go,        services: [docker]}
     - {env: IMPL=groovy,    services: [docker]}
-    - {env: IMPL=gst,       services: [docker]}
+    - {env: IMPL=gnu-smalltalk, services: [docker]}
     - {env: IMPL=guile,     services: [docker]}
     - {env: IMPL=haskell,   services: [docker]}
     - {env: IMPL=haxe haxe_MODE=neko,   services: [docker]}
@@ -61,7 +61,7 @@ matrix:
     - {env: IMPL=perl,      services: [docker]}
     - {env: IMPL=perl6,     services: [docker]}
     - {env: IMPL=php,       services: [docker]}
-    - {env: IMPL=pil,       services: [docker]}
+    - {env: IMPL=picolisp,  services: [docker]}
     - {env: IMPL=plpgsql,   services: [docker]}
 #    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}

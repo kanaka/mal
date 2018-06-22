@@ -480,7 +480,7 @@ guile -L ./ stepX_YYY.scm
 The Smalltalk implementation of mal has been tested with GNU Smalltalk 3.2.91.
 
 ```
-cd gst
+cd gnu-smalltalk
 ./run
 ```
 
@@ -761,7 +761,7 @@ The Picolisp implementation requires libreadline and Picolisp 3.1.11
 or later.
 
 ```
-cd pil
+cd picolisp
 ./run
 ```
 
