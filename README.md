@@ -259,7 +259,7 @@ cd chuck
 
 The implementation has been tested with SBCL, CCL, CMUCL, GNU CLISP, ECL and
 Allegro CL on Ubuntu 16.04 and Ubuntu 12.04, see
-the [README][common-lisp/README.org] for more details. Provided you have the
+the [README](common-lisp/README.org) for more details. Provided you have the
 dependencies mentioned installed, do the following to run the implementation
 
 ```
