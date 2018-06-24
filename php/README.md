@@ -32,11 +32,11 @@ Eval PHP code:
 
 Native function call:
 
-	(! date "Y-m-d" 0)
-	1970-01-01
+	(php/date "Y-m-d" 0)
+	"1970-01-01"
 
 Accessing PHP "superglobal" variables:
 
-	(get ($ "_SERVER") "PHP_SELF")
-	./mal
+	(get php/_SERVER "PHP_SELF")
+	"./mal"
 

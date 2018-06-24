@@ -45,4 +45,20 @@ function _to_mal($obj) {
     }
 }
 
+function _to_native($name, $env) {
+  if (is_callable($name)) {
+    return _function(function() use ($name) {
+      $args = array_map("_to_php", func_get_args());
+      $res = call_user_func_array($name, $args);
+      return _to_mal($res);
+    });
+  } else if (in_array($name, ["_SERVER", "_GET", "_POST", "_FILES", "_REQUEST", "_SESSION", "_ENV", "_COOKIE"])) {
+      $val = $GLOBALS[$name];
+  } else if (defined($name)) {
+      $val = constant($name);
+  } else {
+      $val = ${$name};
+  }
+  return _to_mal($val);
+}
 ?>
