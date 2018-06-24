@@ -90,6 +90,7 @@ objpascal/regexpr/Source/RegExpr.ppu
 perl/mal.pl
 perl6/.precomp/
 php/mal.php
+php/mal-web.php
 ps/mal.ps
 python/mal.pyz
 r/mal.r

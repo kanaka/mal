@@ -225,13 +225,7 @@ rep("(def! *gensym-counter* (atom 0))");
 rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))");
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))");
 
-// if we're called in a webserver context, auto-resolve to mal file
-if (php_sapi_name() != "cli") {
-    $malfile = str_replace(".php", ".mal", $_SERVER['SCRIPT_FILENAME']);
-    rep('(load-file "' . $malfile . '")');
-    exit(0);
-}
-
+// run mal file
 if (count($argv) > 1) {
     rep('(load-file "' . $argv[1] . '")');
     exit(0);
