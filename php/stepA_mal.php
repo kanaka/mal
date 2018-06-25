@@ -72,7 +72,6 @@ function eval_ast($ast, $env) {
 }
 
 function MAL_EVAL($ast, $env) {
-    $_SUPERGLOBALS = ["_SERVER", "_GET", "_POST", "_FILES", "_REQUEST", "_SESSION", "_ENV", "_COOKIE"];
     while (true) {
 
     #echo "MAL_EVAL: " . _pr_str($ast) . "\n";
@@ -152,27 +151,8 @@ function MAL_EVAL($ast, $env) {
     case "fn*":
         return _function('MAL_EVAL', 'native',
                          $ast[2], $env, $ast[1]);
-    case "$":
-        $var = MAL_EVAL($ast[1], $env);
-        if (_symbol_Q($var)) {
-          $varname = $var->value;
-        } elseif (gettype($var) === "string") {
-          $varname = $var;
-        } else {
-          throw new Exception("$ arg unknown type: " . gettype($var));
-        }
-        if (in_array($varname, $_SUPERGLOBALS)) {
-            $val = $GLOBALS[$varname];
-        } else {
-            $val = ${$varname};
-        }
-        return _to_mal($val);
-    case "!":
-        $fn = $ast[1]->value;
-        $el = eval_ast($ast->slice(2), $env);
-        $args = _to_php($el);
-        $res = call_user_func_array($fn, $args);
-        return _to_mal($res);
+    case "to-native":
+        return _to_native($ast[1]->value, $env);
     default:
         $el = eval_ast($ast, $env);
         $f = $el[0];

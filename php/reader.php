@@ -27,7 +27,7 @@ function _real_token($s) {
 }
 
 function tokenize($str) {
-    $pat = "/[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\s\[\]{}('\"`,;)]*)/";
+    $pat = "/[\s,]*(php\/|~@|[\[\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\s\[\]{}('\"`,;)]*)/";
     preg_match_all($pat, $str, $matches);
     return array_values(array_filter($matches[1], '_real_token'));
 }
@@ -100,6 +100,10 @@ function read_form($reader) {
 
     case '@':  $reader->next();
                return _list(_symbol('deref'),
+                               read_form($reader));
+
+    case 'php/': $reader->next();
+               return _list(_symbol('to-native'),
                                read_form($reader));
 
     case ')': throw new Exception("unexpected ')'");
