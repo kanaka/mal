@@ -1217,6 +1217,10 @@ make "docker-build^IMPL"
   out. These dependencies are download to dot-files in the /mal
   directory so they will persist between runs.
 
+## Projects using mal
+
+ * [malc](https://github.com/dubek/malc) - Mal (Make A Lisp) compiler. Compiles a Mal program to LLVM assembly language, then binary.
+ * [frock](https://github.com/chr15m/frock) - Clojure-flavoured PHP. Uses mal/php to run programs.
 
 ## License
 
