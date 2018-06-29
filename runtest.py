@@ -133,6 +133,13 @@ class Runner():
                 else:
                     self.buf += new_data
                 self.buf = self.buf.replace("\r\r", "\r")
+                # Remove ANSI codes generally
+                #ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+                # Remove rustyline ANSI CSI codes:
+                #  - [6C - CR + cursor forward
+                #  - [6K - CR + erase in line
+                ansi_escape = re.compile(r'\r\x1B\[[0-9]*[CK]')
+                self.buf = ansi_escape.sub('', self.buf)
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
