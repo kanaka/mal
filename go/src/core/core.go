@@ -446,28 +446,52 @@ func swap_BANG(a []MalType) (MalType, error) {
 // core namespace
 var NS = map[string]MalType{
 	"=": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return Equal_Q(a[0], a[1]), nil
 	},
 	"throw": throw,
 	"nil?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Nil_Q(a[0]), nil
 	},
 	"true?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return True_Q(a[0]), nil
 	},
 	"false?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return False_Q(a[0]), nil
 	},
 	"symbol": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Symbol{a[0].(string)}, nil
 	},
 	"symbol?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Symbol_Q(a[0]), nil
 	},
 	"string?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return (String_Q(a[0]) && !Keyword_Q(a[0])), nil
 	},
 	"keyword": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		if Keyword_Q(a[0]) {
 			return a[0], nil
 		} else {
@@ -475,13 +499,22 @@ var NS = map[string]MalType{
 		}
 	},
 	"keyword?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Keyword_Q(a[0]), nil
 	},
 	"number?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Number_Q(a[0]), nil
 	},
 	"fn?": fn_q,
 	"macro?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return MalFunc_Q(a[0]) && a[0].(MalFunc).GetMacro(), nil
 	},
 
@@ -490,35 +523,65 @@ var NS = map[string]MalType{
 	"prn":     func(a []MalType) (MalType, error) { return prn(a) },
 	"println": func(a []MalType) (MalType, error) { return println(a) },
 	"read-string": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return reader.Read_str(a[0].(string))
 	},
 	"slurp": slurp,
 	"readline": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return readline.Readline(a[0].(string))
 	},
 
 	"<": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) < a[1].(int), nil
 	},
 	"<=": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) <= a[1].(int), nil
 	},
 	">": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) > a[1].(int), nil
 	},
 	">=": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) >= a[1].(int), nil
 	},
 	"+": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) + a[1].(int), nil
 	},
 	"-": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) - a[1].(int), nil
 	},
 	"*": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) * a[1].(int), nil
 	},
 	"/": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) / a[1].(int), nil
 	},
 	"time-ms": time_ms,
@@ -527,30 +590,45 @@ var NS = map[string]MalType{
 		return List{a, nil}, nil
 	},
 	"list?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return List_Q(a[0]), nil
 	},
 	"vector": func(a []MalType) (MalType, error) {
 		return Vector{a, nil}, nil
 	},
 	"vector?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Vector_Q(a[0]), nil
 	},
 	"hash-map": func(a []MalType) (MalType, error) {
 		return NewHashMap(List{a, nil})
 	},
 	"map?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return HashMap_Q(a[0]), nil
 	},
 	"assoc":  assoc,
 	"dissoc": dissoc,
 	"get":    get,
 	"contains?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return contains_Q(a[0], a[1])
 	},
 	"keys": keys,
 	"vals": vals,
 
 	"sequential?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Sequential_Q(a[0]), nil
 	},
 	"cons":   cons,
@@ -568,12 +646,25 @@ var NS = map[string]MalType{
 	"with-meta": with_meta,
 	"meta":      meta,
 	"atom": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return &Atom{a[0], nil}, nil
 	},
 	"atom?": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 1); e != nil {
+			return nil, e
+		}
 		return Atom_Q(a[0]), nil
 	},
 	"deref":  deref,
 	"reset!": reset_BANG,
 	"swap!":  swap_BANG,
+}
+
+func assertArgNum(a []MalType, n int) error {
+	if len(a) != n {
+		return errors.New("wrong number of arguments")
+	}
+	return nil
 }
