@@ -1,6 +1,6 @@
 ;; Testing evaluation of excessive arguments
 (+ 1 2 3)
-;=>Error: wrong number of arguments
+;=>Error: wrong number of arguments (3 instead of 2)
 
 ;; Valid call
 (+ 1 2)
@@ -9,15 +9,15 @@
 
 ;; Testing evaluation of missing arguments
 (+ 1)
-;=>Error: wrong number of arguments
+;=>Error: wrong number of arguments (1 instead of 2)
 
 ;; Testing evaluation of missing arguments
 (+)
-;=>Error: wrong number of arguments
+;=>Error: wrong number of arguments (0 instead of 2)
 
 ;; Testing evaluation of excessive arguments
 (= 1 2 3)
-;=>Error: wrong number of arguments
+;=>Error: wrong number of arguments (3 instead of 2)
 
 ;; Valid call
 (= 1 2)
@@ -26,9 +26,9 @@
 
 ;; Testing evaluation of missing arguments
 (= 1)
-;=>Error: wrong number of arguments
+;=>Error: wrong number of arguments (1 instead of 2)
 
 ;; Testing evaluation of missing arguments
 (=)
-;=>Error: wrong number of arguments
+;=>Error: wrong number of arguments (0 instead of 2)
 
