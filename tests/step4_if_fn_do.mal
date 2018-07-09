@@ -243,6 +243,8 @@ a
 ;; Testing language defined not function
 (not false)
 ;=>true
+(not nil)
+;=>true
 (not true)
 ;=>false
 (not "a")
