@@ -52,6 +52,22 @@ function _to_native($name, $env) {
       $res = call_user_func_array($name, $args);
       return _to_mal($res);
     });
+  // special case for language constructs
+  } else if ($name == "print") {
+    return _function(function($value) {
+      print(_to_php($value));
+      return null;
+    });
+  } else if ($name == "exit") {
+    return _function(function($value) {
+      exit(_to_php($value));
+      return null;
+    });
+  } else if ($name == "require") {
+    return _function(function($value) {
+      require(_to_php($value));
+      return null;
+    });
   } else if (in_array($name, ["_SERVER", "_GET", "_POST", "_FILES", "_REQUEST", "_SESSION", "_ENV", "_COOKIE"])) {
       $val = $GLOBALS[$name];
   } else if (defined($name)) {
