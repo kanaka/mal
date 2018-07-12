@@ -1,36 +1,38 @@
-#####################
 
-SOURCES_BASE = src/types.rs src/readline.rs \
-	       src/reader.rs src/printer.rs \
-	       src/env.rs src/core.rs
-SOURCES_LISP = src/env.rs src/core.rs src/bin/stepA_mal.rs
+UPPER_STEPS = step4_if_fn_do step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
+STEPS = step0_repl step1_read_print step2_eval step3_env $(UPPER_STEPS)
+
+SOURCES_BASE = types.rs reader.rs printer.rs
+SOURCES_LISP = env.rs core.rs stepA_mal.rs
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-#####################
-
-SRCS = step0_repl.rs step1_read_print.rs step2_eval.rs step3_env.rs \
-       step4_if_fn_do.rs step5_tco.rs step6_file.rs step7_quote.rs \
-       step8_macros.rs step9_try.rs stepA_mal.rs
-BINS = $(SRCS:%.rs=target/release/%)
-
-#####################
-
-all: $(BINS)
+all: $(STEPS)
 
 dist: mal
 
-mal: target/release/stepA_mal
+mal: stepA_mal
 	cp $< $@
 
-# TODO: would be nice to build just the step requested
-$(BINS): target/release/%: src/bin/%.rs $(wildcard src/*.rs)
-	cargo build --release
+%: %.rs
+	cargo build --release --bin $*
+	cp target/release/$* $@
+
+STEP0_DEPS = readline.rs
+STEP1_DEPS = $(STEP0_DEPS) types.rs reader.rs printer.rs
+STEP3_DEPS = $(STEP1_DEPS) env.rs
+STEP4_DEPS = $(STEP3_DEPS) core.rs
+
+step0_repl: $(STEP0_DEPS)
+step1_read_print step2_eval: $(STEP1_DEPS)
+step3_env: $(STEP3_DEPS)
+$(UPPER_STEPS): $(STEP4_DEPS)
+
+.PHONY: clean stats stats-lisp
 
 clean:
 	cargo clean
+	rm -f $(STEPS)
 	rm -f mal
-
-.PHONY: stats stats-lisp mal
 
 stats: $(SOURCES)
 	@wc $^
@@ -38,3 +40,4 @@ stats: $(SOURCES)
 stats-lisp: $(SOURCES_LISP)
 	@wc $^
 	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
+
