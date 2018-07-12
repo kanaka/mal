@@ -6,7 +6,7 @@ import * as fs from "fs";
 const RL_LIB = "libreadline";  // NOTE: libreadline is GPL
 // var RL_LIB = "libedit";
 
-const HISTORY_FILE = path.join(process.env.HOME, ".mal-history");
+const HISTORY_FILE = path.join(process.env.HOME || ".", ".mal-history");
 
 const rllib = ffi.Library(RL_LIB, {
     "readline": ["string", ["string"]],

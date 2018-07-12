@@ -24,6 +24,5 @@ WORKDIR /mal
 RUN apt-get -y install build-essential
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
 RUN apt-get -y install nodejs
-RUN ln -sf nodejs /usr/bin/node
 
 ENV NPM_CONFIG_CACHE /mal/.npm
