@@ -102,17 +102,36 @@ func PRINT(exp MalType) (string, error) {
 
 var repl_env = map[string]MalType{
 	"+": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) + a[1].(int), nil
 	},
 	"-": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) - a[1].(int), nil
 	},
 	"*": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) * a[1].(int), nil
 	},
 	"/": func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) / a[1].(int), nil
 	},
+}
+
+func assertArgNum(a []MalType, n int) error {
+	if len(a) != n {
+		return errors.New("wrong number of arguments")
+	}
+	return nil
 }
 
 // repl
