@@ -81,7 +81,7 @@ matrix:
     - {env: IMPL=scheme scheme_MODE=chicken,     services: [docker]}
     - {env: IMPL=scheme scheme_MODE=sagittarius, services: [docker]}
     - {env: IMPL=scheme scheme_MODE=cyclone,     services: [docker]}
-#    - {env: IMPL=scheme scheme_MODE=foment,      services: [docker]}
+    - {env: IMPL=scheme scheme_MODE=foment,      services: [docker]}
     - {env: IMPL=skew,      services: [docker]}
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7.3}
     - {env: IMPL=swift3,    services: [docker]}
