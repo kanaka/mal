@@ -15,7 +15,7 @@
            new-acc-ms (+ acc-ms elapsed)]
       ;(do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
       (if (>= new-acc-ms max-ms)
-        iters
+        last-iters
         (run-fn-for* fn max-ms new-acc-ms iters)))))
 
 (def! run-fn-for
