@@ -49,7 +49,7 @@ matrix:
     - {env: IMPL=logo,      services: [docker]}
     - {env: IMPL=lua,       services: [docker]}
     - {env: IMPL=make,      services: [docker]}
-    - {env: IMPL=mal BUILD_IMPL=js NO_PERF=1, services: [docker]}
+    - {env: IMPL=mal BUILD_IMPL=js, services: [docker]}
     - {env: IMPL=matlab, services: [docker]} # Uses Octave
     - {env: IMPL=miniMAL,   services: [docker]}
     - {env: IMPL=nasm,      services: [docker]}
