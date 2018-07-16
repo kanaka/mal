@@ -1669,9 +1669,9 @@ For extra information read [Peter Seibel's thorough discussion about
 * If you have created an implementation for a new target language (or
   a unique and interesting variant of an existing implementation),
   consider sending a pull request to add it into the main mal
-  repository. The [FAQ](FAQ.md#add_implementation) describes general
-  requirements for getting an implementation merged into the main
-  repository.
+  repository. The [FAQ](../docs/FAQ.md#will-you-add-my-new-implementation)
+  describes general requirements for getting an implementation merged
+  into the main repository.
 * Take your interpreter implementation and have it emit source code in
   the target language rather than immediately evaluating it. In other
   words, create a compiler.
