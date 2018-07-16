@@ -125,8 +125,6 @@ test_EXCLUDES += test^plsql^step5  # too slow for 10,000
 test_EXCLUDES += test^powershell^step5  # too slow for 10,000
 test_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),test^haxe^step5,) # cpp finishes 10,000, segfaults at 100,000
 
-perf_EXCLUDES = mal  # TODO: fix this
-
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
 dist_EXCLUDES += guile io julia matlab swift
