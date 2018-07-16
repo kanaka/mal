@@ -24,4 +24,4 @@
       ;; Warm it up first
       (run-fn-for* fn 1000 0 0)
       ;; Now do the test
-      (/ (run-fn-for* fn (* 1000 max-secs) 0 0) 3))))
+      (run-fn-for* fn (* 1000 max-secs) 0 0))))
