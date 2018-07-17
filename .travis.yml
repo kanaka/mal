@@ -24,7 +24,7 @@ matrix:
     - {env: IMPL=elisp,     services: [docker]}
     - {env: IMPL=elixir,    services: [docker]}
     - {env: IMPL=elm,       services: [docker]}
-    - {env: IMPL=erlang NO_PERF=1, services: [docker]} # perf runs out of memory
+    - {env: IMPL=erlang,    services: [docker]} # perf runs out of memory
     - {env: IMPL=es6,       services: [docker]}
     - {env: IMPL=factor,    services: [docker]}
     - {env: IMPL=fantom,    services: [docker]}
