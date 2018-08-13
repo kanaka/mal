@@ -18,6 +18,8 @@
 	      mal_times/2,
               mal_atom/2,
               mal_atom_q/2,
+              mal_concat/2,
+              mal_cons/2,
               mal_deref/2,
               mal_ns/1,
               mal_read_string/2,
@@ -136,6 +138,17 @@ mal_deref([Atom], _) :- throw(atom_does_not_exist(Atom)).
 mal_reset([atom(Atom), Value], Value) :-
     nb_setval(Atom, Value).
 
+mal_cons([First, vector(List)], list([First | List])).
+mal_cons([First, list(List)], list([First | List])).
+
+mal_concat([], list([])).
+mal_concat([vector(List) | Lists], list(Value)) :-
+    mal_concat(Lists, list(Rest)),
+    append(List, Rest, Value).
+mal_concat([list(List) | Lists], list(Value)) :-
+    mal_concat(Lists, list(Rest)),
+    append(List, Rest, Value).
+
 mal_ns(NS) :-
     list_to_assoc(
         [
@@ -150,6 +163,8 @@ mal_ns(NS) :-
             '>='-mal_lte,
             'atom'-mal_atom,
             'atom?'-mal_atom_q,
+            'concat'-mal_concat,
+            'cons'-mal_cons,
             'count'-mal_count,
             'deref'-mal_deref,
             'empty?'-mal_emptyq,
