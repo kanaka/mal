@@ -85,8 +85,8 @@ IMPLS = ada awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d d
 	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
 	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp plpgsql \
-	plsql powershell ps python r racket rexx rpython ruby rust scala scheme skew \
-	swift swift3 swift4 tcl ts vb vhdl vimscript wasm yorick
+	plsql powershell ps prolog python r racket rexx rpython ruby rust scala scheme \
+	skew swift swift3 swift4 tcl ts vb vhdl vimscript wasm yorick
 
 EXTENSION = .mal
 
@@ -219,13 +219,14 @@ nim_STEP_TO_PROG =     nim/$($(1))
 objc_STEP_TO_PROG =    objc/$($(1))
 objpascal_STEP_TO_PROG = objpascal/$($(1))
 ocaml_STEP_TO_PROG =   ocaml/$($(1))
-perl_STEP_TO_PROG =    perl/$($(1)).pl
 perl6_STEP_TO_PROG =   perl6/$($(1)).pl
+perl_STEP_TO_PROG =    perl/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
 picolisp_STEP_TO_PROG = picolisp/$($(1)).l
 plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
 plsql_STEP_TO_PROG =   plsql/$($(1)).sql
 powershell_STEP_TO_PROG =  powershell/$($(1)).ps1
+prolog_STEP_TO_PROG =  prolog/$($(1)).pl
 ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
