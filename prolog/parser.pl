@@ -11,6 +11,14 @@ symbol_chars([C| Cs]) -->
 symbol_chars([C]) -->
     symbol_char(C).
 
+mal_keyword(keyword(Token)) -->
+    { var(Token) },
+    ":", symbol_chars(Chars),
+    { atom_chars(Token, [':' | Chars]) }.
+mal_keyword(keyword(Token)) -->
+    { nonvar(Token), atom_chars(Token, Chars) },
+    symbol_chars(Chars).
+
 mal_symbol(symbol(Token)) -->
     { var(Token) },
     symbol_chars(Chars), { atom_chars(Token, Chars) }.
@@ -39,6 +47,7 @@ mal_integer(integer(Number)) -->
 
 mal_atomic(Atom) -->
     (mal_integer(Atom), !);
+    mal_keyword(Atom);
     mal_symbol(Atom).
 
 mal_blanks --> blanks.
@@ -84,9 +93,9 @@ mal_special(list([symbol('with-meta'), F2, F1])) -->
     { var(F1), var(F2) },
     "^", mal_form(F1), mal_blanks, mal_form(F2).
 
-str_char('\n') -->
+str_char('\n') --> % 10 is newline.
     "\\n", !.
-str_char('"') -->
+str_char('"') --> % 34 is double quote.
     "\\\"", !.
 str_char('\\') -->
     "\\\\", !.
@@ -98,6 +107,13 @@ str_chars([C| Cs]) -->
 str_chars([C]) -->
     str_char(C).
 
+:- dynamic print_readably/1.
+print_readably(true).
+
+mal_string(string(Str)) -->
+    { print_readably(false),
+      string_chars(Str, Chars) },
+    Chars.
 mal_string(string("")) -->
    "\"\"".
 mal_string(string(Str)) -->
@@ -112,11 +128,16 @@ mal_string(string(Str)) -->
     "\"", str_chars(_), eos,
     { throw(syntax_error("expected '\"', got EOF")) }.
 
+mal_fn(fn(_, _, _)) --> "#<function>".
+
 mal_form(Form) -->
     mal_string(Form)
     ; mal_special(Form)
     ; mal_atomic(Form)
     ; mal_seq(Form).
+mal_form(Form) -->
+    { nonvar(Form) },
+    mal_fn(Form).
 
 mal_comment --> ";", string_without("\n", _), "\n".
 mal_comment --> ";", string_without("\n", _), eos.
