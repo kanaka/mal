@@ -45,10 +45,17 @@ mal_integer(integer(Number)) -->
     digits(Chars),
     { number_chars_(Number, Chars) }.
 
+mal_nil(nil) --> "nil".
+mal_false(false) --> "false".
+mal_true(true) --> "true".
+
 mal_atomic(Atom) -->
-    (mal_integer(Atom), !);
-    mal_keyword(Atom);
-    mal_symbol(Atom).
+    mal_nil(Atom)
+    ; mal_false(Atom)
+    ; mal_true(Atom)
+    ; (mal_integer(Atom), !)
+    ; mal_keyword(Atom)
+    ; mal_symbol(Atom).
 
 mal_blanks --> blanks.
 mal_blanks --> ",", mal_blanks.
