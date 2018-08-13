@@ -16,7 +16,13 @@
 	      mal_prn/2,
 	      mal_str/2,
 	      mal_times/2,
-              mal_ns/1
+              mal_atom/2,
+              mal_atom_q/2,
+              mal_deref/2,
+              mal_ns/1,
+              mal_read_string/2,
+              mal_reset/2,
+              mal_slurp/2
 	  ]).
 
 :- use_module(library(assoc)).
@@ -76,6 +82,14 @@ mal_pr_str(Forms, string(Str)) :-
     phrase(mal_forms(Forms), Chars),
     string_chars(Str, Chars).
 
+mal_read_string([string(Str)], Form) :-
+    string_chars(Str, Chars),
+    phrase(mal_forms([Form]), Chars) ; Form = nil.
+
+mal_slurp([string(Str)], string(Content)) :-
+    string_chars(File, Str),
+    read_file_to_string(File, Content, []).
+
 mal_str_([], "").
 mal_str_([Form | Forms], Str) :-
     mal_pr_str([Form], string(Str_1)),
@@ -113,6 +127,15 @@ mal_atom(Args, Atom) :-
     nb_setval('atom#', 0),
     mal_atom(Args, Atom).
 
+mal_atom_q([atom(Arg)], true) :- nb_current(Arg, _).
+mal_atom_q([_], false).
+
+mal_deref([atom(Arg)], Value) :- nb_current(Arg, Value).
+mal_deref([Atom], _) :- throw(atom_does_not_exist(Atom)).
+
+mal_reset([atom(Atom), Value], Value) :-
+    nb_setval(Atom, Value).
+
 mal_ns(NS) :-
     list_to_assoc(
         [
@@ -125,6 +148,8 @@ mal_ns(NS) :-
             '='-mal_eq,
             '>'-mal_lt,
             '>='-mal_lte,
+            'atom'-mal_atom,
+            'atom?'-mal_atom_q,
             'count'-mal_count,
             'deref'-mal_deref,
             'empty?'-mal_emptyq,
@@ -133,6 +158,9 @@ mal_ns(NS) :-
             'pr-str'-mal_pr_str,
             'println'-mal_println,
             'prn'-mal_prn,
+            'read-string'-mal_read_string,
+            'reset!'-mal_reset,
+            'slurp'-mal_slurp,
             'str'-mal_str
         ],
         NS
