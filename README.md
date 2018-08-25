@@ -891,6 +891,8 @@ cd rust
 cargo run --release --bin stepX_YYY
 ```
 
+There is also a separate implementation in [Rust by Tim Morgan](https://github.com/seven1m/mal-rust).
+
 ### Scala ###
 
 Install scala and sbt (http://www.scala-sbt.org/0.13/tutorial/Installing-sbt-on-Linux.html):
