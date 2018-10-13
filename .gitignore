@@ -144,3 +144,5 @@ elm/elm-stuff
 elm/*.js
 !elm/node_readline.js
 !elm/bootstrap.js
+wasm/*.wat
+wasm/*.wasm
