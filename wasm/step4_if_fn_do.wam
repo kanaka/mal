@@ -1,4 +1,4 @@
-(module $step3_env
+(module $step4_if_fn_do
 
   (global $repl_env (mut i32) (i32.const 0))
 
@@ -85,12 +85,6 @@
     $res
   )
 
-  (type $fnT (func (param i32) (result i32)))
-
-  (table anyfunc
-    (elem
-      $add $subtract $multiply $divide))
-
   (func $MAL_GET_A1 (param $ast i32) (result i32)
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr $ast)))
   (func $MAL_GET_A2 (param $ast i32) (result i32)
@@ -99,25 +93,27 @@
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast)))))
 
   (func $EVAL (param $ast i32 $env i32) (result i32)
-    (local $res i32)
+    (local $res i32 $el i32)
     (local $type i32 $ftype i32 $f_args i32 $f i32 $args i32)
-    (local $a0 i32 $a0sym i32 $a1 i32 $a2 i32)
-    (local $let_env i32)
+    (local $a0 i32 $a0sym i32 $a1 i32 $a2 i32 $a3 i32)
+    (local $let_env i32 $fn_env i32 $a i32)
 
     (set_local $res 0)
     (set_local $f_args 0)
     (set_local $f 0)
     (set_local $args 0)
-    (set_local $type ($TYPE $ast))
 
     ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
 
-    (if (get_global $error_type) (return 0))
+    (if (get_global $error_type)
+      (return 0))
 
-    (if (i32.ne $type (get_global $LIST_T)) (return ($EVAL_AST $ast $env)))
+    (if (i32.ne ($TYPE $ast) (get_global $LIST_T))
+      (return ($EVAL_AST $ast $env)))
 
     ;; APPLY_LIST
-    (if ($EMPTY_Q $ast) (return ($INC_REF $ast)))
+    (if ($EMPTY_Q $ast)
+      (return ($INC_REF $ast)))
 
     (set_local $a0 ($MEM_VAL1_ptr $ast))
     (set_local $a0sym "")
@@ -164,6 +160,38 @@
         (set_local $res ($EVAL $a2 $let_env))
         ;; EVAL_RETURN
         ($RELEASE $let_env))
+    (else (if (i32.eqz ($strcmp "do" $a0sym))
+      (then
+        (set_local $el ($EVAL_AST ($MEM_VAL0_ptr $ast) $env))
+        (set_local $res ($LAST $el))
+        ($RELEASE $el))
+    (else (if (i32.eqz ($strcmp "if" $a0sym))
+      (then
+        (set_local $a1 ($MAL_GET_A1 $ast))
+        (set_local $res ($EVAL $a1 $env))
+
+        (if (get_global $error_type)
+          (then (nop))
+        (else (if (OR (i32.eq $res (get_global $NIL))
+                      (i32.eq $res (get_global $FALSE)))
+          (then
+            ($RELEASE $res)
+            ;; if no false case (A3), return nil
+            (if (i32.lt_u ($COUNT $ast) 4)
+              (then
+                (set_local $res ($INC_REF (get_global $NIL))))
+              (else
+                (set_local $a3 ($MAL_GET_A3 $ast))
+                (set_local $res ($EVAL $a3 $env)))))
+        (else
+          ($RELEASE $res)
+          (set_local $a2 ($MAL_GET_A2 $ast))
+          (set_local $res ($EVAL $a2 $env)))))))
+    (else (if (i32.eqz ($strcmp "fn*" $a0sym))
+      (then
+        (set_local $a1 ($MAL_GET_A1 $ast))
+        (set_local $a2 ($MAL_GET_A2 $ast))
+        (set_local $res ($ALLOC (get_global $MALFUNC_T) $a2 $a1 $env)))
     (else
       ;; EVAL_INVOKE
       (set_local $res ($EVAL_AST $ast $env))
@@ -180,12 +208,30 @@
       (set_local $ftype ($TYPE $f))
       (if (i32.eq $ftype (get_global $FUNCTION_T))
         (then
-          (set_local $res (call_indirect (type $fnT) $args ($VAL0 $f))))
-        (else
-          ($THROW_STR_1 "apply of non-function type: %d\n" $type)
-          (set_local $res 0)))
+          (set_local $res (call_indirect (type $fnT) $args ($VAL0 $f)))
+          ;; release f/args
+          ($RELEASE $f_args))
+      (else (if (i32.eq $ftype (get_global $MALFUNC_T))
+        (then
+          (set_local $fn_env ($ENV_NEW_BINDS ($MEM_VAL2_ptr $f)
+                                             ($MEM_VAL1_ptr $f) $args))
 
-      ($RELEASE $f_args)))))
+          ;; claim the AST before releasing the list containing it
+          (set_local $a ($MEM_VAL0_ptr $f))
+          (drop ($INC_REF $a))
+
+          ;; release f/args
+          ($RELEASE $f_args)
+
+          (set_local $res ($EVAL $a $fn_env))
+          ;; EVAL_RETURN
+          ($RELEASE $fn_env)
+          ($RELEASE $a))
+      (else
+        ;; create new environment using env and params stored in function
+        ($THROW_STR_1 "apply of non-function type: %d\n" $type)
+        (set_local $res 0)
+        ($RELEASE $f_args)))))))))))))))
 
     $res
   )
@@ -196,44 +242,34 @@
   )
 
   ;; REPL
-  (func $REP (param $line i32 $env i32) (result i32)
-    (local $mv1 i32 $mv2 i32 $ms i32)
+  (func $RE (param $line i32 $env i32) (result i32)
+    (local $mv1 i32 $res i32)
     (block $rep_done
       (set_local $mv1 ($READ $line))
       (if (get_global $error_type) (br $rep_done))
 
-      (set_local $mv2 ($EVAL $mv1 $env))
+      (set_local $res ($EVAL $mv1 $env))
+    )
+
+    ;; release memory from MAL_READ
+    ($RELEASE $mv1)
+    $res
+  )
+
+  (func $REP (param $line i32 $env i32) (result i32)
+    (local $mv2 i32 $ms i32)
+    (block $rep_done
+      (set_local $mv2 ($RE $line $env))
       (if (get_global $error_type) (br $rep_done))
 
 ;;      ($PR_MEMORY -1 -1)
       (set_local $ms ($PRINT $mv2))
     )
 
-    ;; release memory from MAL_READ and EVAL
+    ;; release memory from RE
     ($RELEASE $mv2)
-    ($RELEASE $mv1)
     $ms
   )
-
-  (func $add (param $args i32) (result i32)
-    ($INTEGER
-      (i32.add ($VAL0 ($MEM_VAL1_ptr $args))
-               ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
-  (func $subtract (param $args i32) (result i32)
-    ($INTEGER
-      (i32.sub_s ($VAL0 ($MEM_VAL1_ptr $args))
-                 ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
-  (func $multiply (param $args i32) (result i32)
-    ($INTEGER
-      (i32.mul_s ($VAL0 ($MEM_VAL1_ptr $args))
-                 ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
-  (func $divide (param $args i32) (result i32)
-    ($INTEGER
-      (i32.div_s ($VAL0 ($MEM_VAL1_ptr $args))
-                 ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
-  (func $pr_memory (param $args i32) (result i32)
-    ($PR_MEMORY -1 -1)
-    ($INC_REF (get_global $NIL)))
 
   (func $main (result i32)
     (local $line i32 $res i32 $repl_env i32)
@@ -248,10 +284,11 @@
     (set_global $repl_env ($ENV_NEW (get_global $NIL)))
     (set_local $repl_env (get_global $repl_env))
 
-    (drop ($ENV_SET_S $repl_env "+" ($FUNCTION 0)))
-    (drop ($ENV_SET_S $repl_env "-" ($FUNCTION 1)))
-    (drop ($ENV_SET_S $repl_env "*" ($FUNCTION 2)))
-    (drop ($ENV_SET_S $repl_env "/" ($FUNCTION 3)))
+    ;; core.EXT: defined in wasm
+    ($add_core_ns $repl_env)
+
+    ;; core.mal: defined using the language itself
+    ($RELEASE ($RE "(def! not (fn* (a) (if a false true)))" $repl_env))
 
     ;;($PR_MEMORY -1 -1)
 

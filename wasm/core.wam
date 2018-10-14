@@ -1,0 +1,754 @@
+(module $core
+
+
+  ;; it would be nice to have this in types.wam but it uses
+  ;; ENV_NEW_BINDS which is not available until step3 but types is
+  ;; used in step1
+
+  (func $APPLY (param $f i32) (param $args i32) (result i32)
+    (local $res i32 $env i32 $ftype i32 $a i32)
+    (set_local $f ($DEREF_META $f))
+    (set_local $ftype ($TYPE $f))
+    (if (i32.eq $ftype (get_global $FUNCTION_T))
+      (then
+        ;; Must be kept in sync with EVAL's FUNCTION_T evaluation
+        (if (i32.eq ($VAL0 $f) 0) ;; eval
+          (then
+            (set_local $res ($EVAL ($MEM_VAL1_ptr $args)
+                                   (get_global $repl_env))))
+          (else
+            (set_local $res (call_indirect (type $fnT) $args ($VAL0 $f))))))
+    (else (if (OR (i32.eq $ftype (get_global $MALFUNC_T))
+                  (i32.eq $ftype (get_global $MACRO_T)))
+      (then
+        ;; create new environment using env and params stored in function
+        (set_local $env ($ENV_NEW_BINDS ($MEM_VAL2_ptr $f)
+                                        ($MEM_VAL1_ptr $f) $args))
+
+        ;; claim the AST before releasing the list containing it
+        (set_local $a ($MEM_VAL0_ptr $f))
+        (drop ($INC_REF $a))
+
+        (set_local $res ($EVAL $a $env))
+
+        ($RELEASE $env)
+        ($RELEASE $a))
+    (else
+      ($THROW_STR_1 "APPLY of non-function type: %d\n" $ftype)
+      (set_local $res 0)))))
+    $res
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; core functions
+
+  (type $fnT (func (param i32) (result i32)))
+
+  (func $equal_Q (param $args i32) (result i32)
+    ($TRUE_FALSE ($EQUAL_Q ($MEM_VAL1_ptr $args)
+                           ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))))
+
+  (func $throw (param $args i32) (result i32)
+    (set_global $error_type 2)
+    (set_global $error_val ($INC_REF ($MEM_VAL1_ptr $args)))
+    0
+  )
+
+  (func $nil_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
+                         (get_global $NIL_T))))
+  (func $true_Q (param $args i32) (result i32)
+    (local $ast i32)
+    (set_local $ast ($MEM_VAL1_ptr $args))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $BOOLEAN_T))
+                      (i32.eq ($VAL0 $ast) 1)))
+  )
+  (func $false_Q (param $args i32) (result i32)
+    (local $ast i32)
+    (set_local $ast ($MEM_VAL1_ptr $args))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $BOOLEAN_T))
+                      (i32.eq ($VAL0 $ast) 0)))
+  )
+  (func $number_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
+                         (get_global $INTEGER_T))))
+  (func $string_Q (param $args i32) (result i32)
+    (local $mv i32)
+    (set_local $mv ($MEM_VAL1_ptr $args))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $mv) (get_global $STRING_T))
+                      (i32.ne (i32.load8_u ($to_String $mv))
+                              (CHR "\x7f"))))
+  )
+
+  (func $keyword (param $args i32) (result i32)
+    (local $str i32)
+    (set_local $str ($to_String ($MEM_VAL1_ptr $args)))
+    (if i32 (i32.eq (i32.load8_u $str) (CHR "\x7f"))
+      (then ($INC_REF ($MEM_VAL1_ptr $args)))
+      (else
+        (drop ($sprintf_1 (get_global $util_buf) "\x7f%s" $str))
+        ($STRING (get_global $STRING_T) (get_global $util_buf))))
+  )
+
+  (func $keyword_Q (param $args i32) (result i32)
+    (local $ast i32)
+    (set_local $ast ($MEM_VAL1_ptr $args))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $STRING_T))
+                      (i32.eq (i32.load8_u ($to_String $ast))
+                              (CHR "\x7f"))))
+  )
+  (func $fn_Q (param $args i32) (result i32)
+    (local $type i32)
+    (set_local $type ($TYPE ($MEM_VAL1_ptr $args)))
+    ($TRUE_FALSE (OR (i32.eq $type (get_global $FUNCTION_T))
+                     (i32.eq $type (get_global $MALFUNC_T)))))
+  (func $macro_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
+                         (get_global $MACRO_T))))
+
+  (func $symbol (param $args i32) (result i32)
+    ($STRING (get_global $SYMBOL_T) ($to_String ($MEM_VAL1_ptr $args))))
+
+  (func $symbol_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
+                         (get_global $SYMBOL_T))))
+
+  (func $core_pr_str (param $args i32) (result i32)
+    ($pr_str_seq $args 1 " "))
+  (func $str (param $args i32) (result i32)
+    ($pr_str_seq $args 0 ""))
+  (func $prn (param $args i32) (result i32)
+    (local $res i32)
+    (set_local $res ($pr_str_seq $args 1 " "))
+    ($printf_1 "%s\n" ($to_String $res))
+    ($RELEASE $res)
+    ($INC_REF (get_global $NIL))
+  )
+  (func $println (param $args i32) (result i32)
+    (local $res i32)
+    (set_local $res ($pr_str_seq $args 0 " "))
+    ($printf_1 "%s\n" ($to_String $res))
+    ($RELEASE $res)
+    ($INC_REF (get_global $NIL))
+  )
+
+  (func $core_readline (param $args i32) (result i32)
+    (local $line i32 $mv i32)
+    (set_local $line ($readline ($to_String ($MEM_VAL1_ptr $args))))
+    (if (i32.eqz $line) (return ($INC_REF (get_global $NIL))))
+    (set_local $mv ($STRING (get_global $STRING_T) $line))
+    ($free $line)
+    $mv
+  )
+
+  (func $read_string (param $args i32) (result i32)
+    ($read_str ($to_String ($MEM_VAL1_ptr $args))))
+
+  (func $slurp (param $args i32) (result i32)
+    (local $content i32 $mv i32)
+    (set_local $content ($read_file ($to_String ($MEM_VAL1_ptr $args))))
+    (if (i32.le_s $content 0)
+      (then
+        ($THROW_STR_1 "failed to read file '%s'" ($to_String ($MEM_VAL1_ptr $args)))
+        (return ($INC_REF (get_global $NIL)))))
+    (set_local $mv ($STRING (get_global $STRING_T) $content))
+    ($free $content)
+    $mv
+  )
+
+  (func $lt (param $args i32) (result i32)
+    ($TRUE_FALSE
+      (i32.lt_s ($VAL0 ($MEM_VAL1_ptr $args))
+                ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $lte (param $args i32) (result i32)
+    ($TRUE_FALSE
+      (i32.le_s ($VAL0 ($MEM_VAL1_ptr $args))
+                ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $gt (param $args i32) (result i32)
+    ($TRUE_FALSE
+      (i32.gt_s ($VAL0 ($MEM_VAL1_ptr $args))
+                ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $gte (param $args i32) (result i32)
+    ($TRUE_FALSE
+      (i32.ge_s ($VAL0 ($MEM_VAL1_ptr $args))
+                ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $add (param $args i32) (result i32)
+    ($INTEGER
+      (i32.add ($VAL0 ($MEM_VAL1_ptr $args))
+               ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $subtract (param $args i32) (result i32)
+    ($INTEGER
+      (i32.sub_s ($VAL0 ($MEM_VAL1_ptr $args))
+                 ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $multiply (param $args i32) (result i32)
+    ($INTEGER
+      (i32.mul_s ($VAL0 ($MEM_VAL1_ptr $args))
+                 ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+  (func $divide (param $args i32) (result i32)
+    ($INTEGER
+      (i32.div_s ($VAL0 ($MEM_VAL1_ptr $args))
+                 ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
+
+  (func $time_ms (param $args i32) (result i32)
+    ($INTEGER ($get_time_ms)))
+
+  ;;;
+
+  (func $list (param $args i32) (result i32)
+    ($INC_REF $args))
+
+  (func $list_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($DEREF_META ($MEM_VAL1_ptr $args)))
+                         (get_global $LIST_T))))
+
+  (func $vector (param $args i32) (result i32)
+    ($FORCE_SEQ_TYPE (get_global $VECTOR_T) $args))
+
+  (func $vector_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($DEREF_META ($MEM_VAL1_ptr $args)))
+                         (get_global $VECTOR_T))))
+
+  (func $hash_map (param $args i32) (result i32)
+    (local $res i32 $type i32 $val2 i32 $val3 i32 $c i32)
+    (local $ret i32 $empty i32 $current i32) ;; MAP_LOOP stack
+    (set_local $type (get_global $HASHMAP_T))
+
+    ;; MAP_LOOP_START
+    (set_local $res ($MAP_LOOP_START $type))
+    ;; push MAP_LOOP stack
+    ;;; empty = current = ret = res
+    (set_local $ret $res)
+    (set_local $current $res)
+    (set_local $empty $res)
+
+    ;; READ_SEQ_LOOP
+    (block $done
+      (loop $loop
+        (if (i32.eqz ($VAL0 $args)) (br $done))
+
+        (set_local $val2 ($INC_REF ($MEM_VAL1_ptr $args)))
+        (set_local $val3 ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
+
+        ;; skip two
+        (set_local $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
+
+        ;; update the return sequence structure
+        ;; MAP_LOOP_UPDATE
+        (set_local $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
+        (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+          ;; if first element, set return to new element
+          (set_local $ret $res))
+        ;; update current to point to new element
+        (set_local $current $res)
+
+        (br $loop)
+      )
+    )
+
+    ;; MAP_LOOP_DONE
+    $ret
+  )
+
+
+  (func $hash_map_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($DEREF_META ($MEM_VAL1_ptr $args)))
+                         (get_global $HASHMAP_T))))
+
+  (func $assoc (param $args i32) (result i32)
+    (local $hm i32 $key i32)
+    (set_local $hm ($MEM_VAL1_ptr $args))
+    (set_local $args ($MEM_VAL0_ptr $args))
+    (drop ($INC_REF $hm))
+    (block $done
+      (loop $loop
+        (if (OR (i32.eqz ($VAL0 $args))
+                (i32.eqz ($VAL0 ($MEM_VAL0_ptr $args))))
+          (br $done))
+        (set_local $hm ($ASSOC1 $hm ($MEM_VAL1_ptr $args)
+                                ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
+        (set_local $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
+
+        (br $loop)
+      )
+    )
+    $hm
+  )
+
+  (func $get (param $args i32) (result i32)
+    (local $hm i32 $key i32)
+    (set_local $hm ($MEM_VAL1_ptr $args))
+    (set_local $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    (if i32 (i32.eq $hm (get_global $NIL))
+      (then ($INC_REF (get_global $NIL)))
+      (else ($INC_REF (i32.wrap/i64 ($HASHMAP_GET $hm $key)))))
+  )
+
+  (func $contains_Q (param $args i32) (result i32)
+    (local $hm i32 $key i32)
+    (set_local $hm ($MEM_VAL1_ptr $args))
+    (set_local $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    ($TRUE_FALSE
+      (if i32 (i32.eq $hm (get_global $NIL))
+        (then 0)
+        (else (i32.wrap/i64
+                (i64.shr_u ($HASHMAP_GET $hm $key) (i64.const 32))))))
+  )
+
+  (func $keys_or_vals (param $hm i32 $keys i32) (result i32)
+    (local $res i32 $val2 i32)
+    (local $ret i32 $empty i32 $current i32) ;; MAP_LOOP stack
+
+    ;; MAP_LOOP_START
+    (set_local $res ($MAP_LOOP_START (get_global $LIST_T)))
+    ;; push MAP_LOOP stack
+    ;;; empty = current = ret = res
+    (set_local $ret $res)
+    (set_local $current $res)
+    (set_local $empty $res)
+
+    (block $done
+      (loop $loop
+        (if (i32.eqz ($VAL0 $hm)) (br $done))
+
+        (if $keys
+          (then (set_local $val2 ($INC_REF ($MEM_VAL1_ptr $hm))))
+          (else (set_local $val2 ($INC_REF ($MEM_VAL2_ptr $hm)))))
+
+        ;; next element
+        (set_local $hm ($MEM_VAL0_ptr $hm))
+
+        ;; update the return sequence structure
+        ;; do not release val2 since we are pulling it from the
+        ;; arguments and not creating it here
+        ;; MAP_LOOP_UPDATE
+        (set_local $res ($MAP_LOOP_UPDATE (get_global $LIST_T)
+                                          $empty $current $val2 0))
+        (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+          ;; if first element, set return to new element
+          (set_local $ret $res))
+        ;; update current to point to new element
+        (set_local $current $res)
+
+	(br $loop)
+      )
+    )
+
+    ;; MAP_LOOP_DONE
+    $ret
+  )
+
+  (func $keys (param $args i32) (result i32)
+    ($keys_or_vals ($MEM_VAL1_ptr $args) 1))
+
+  (func $vals (param $args i32) (result i32)
+    ($keys_or_vals ($MEM_VAL1_ptr $args) 0))
+
+  (func $sequential_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (OR (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
+                             (get_global $LIST_T))
+                     (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
+                             (get_global $VECTOR_T)))))
+
+  (func $cons (param $args i32) (result i32)
+    ($LIST ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)) ($MEM_VAL1_ptr $args)))
+
+  (func $concat (param $args i32) (result i32)
+    (local $res i32 $current i32 $sl i32 $last i32 $last_sl i64 $arg i32)
+    (set_local $res ($INC_REF (get_global $EMPTY_LIST)))
+    (set_local $current $res)
+    (set_local $sl 0)
+    (set_local $last 0)
+    (block $done
+      (loop $loop
+        (if (i32.le_u $args (get_global $EMPTY_HASHMAP))
+          (br $done))
+        (set_local $arg ($MEM_VAL1_ptr $args))
+        ;; skip empty elements
+        (if (i32.le_s $arg (get_global $EMPTY_HASHMAP))
+          (then
+            (set_local $args ($MEM_VAL0_ptr $args))
+            (br $loop)))
+        (set_local $last_sl ($SLICE $arg 0 -1))
+        (set_local $sl (i32.wrap/i64 $last_sl))
+        (set_local $last (i32.wrap/i64 (i64.shr_u $last_sl (i64.const 32))))
+        (if (i32.eq $res (get_global $EMPTY_LIST))
+          (then
+            ;; if this is the first element, set the return to the slice
+            (set_local $res $sl))
+          (else
+            ;; otherwise attach current to sliced
+            (i32.store ($VAL0_ptr $current) ($IDX $sl))))
+        ;; update current to end of sliced list
+        (set_local $current $last)
+        ;; release empty since no longer part of the slice
+        ($RELEASE (get_global $EMPTY_LIST))
+
+        (set_local $args ($MEM_VAL0_ptr $args))
+        (br $loop)
+      )
+    )
+    $res
+  )
+
+  (func $nth (param $args i32) (result i32)
+    (local $a i32 $idx i32 $i i32)
+    (set_local $a ($MEM_VAL1_ptr $args))
+    (set_local $idx ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
+
+    (set_local $i 0)
+    (block $done
+      (loop $loop
+        (if (OR (i32.ge_s $i $idx) (i32.eqz ($VAL0 $a)))
+          (br $done))
+        (set_local $i (i32.add $i 1))
+        (set_local $a ($MEM_VAL0_ptr $a))
+        (br $loop)
+      )
+    )
+    (if (i32.eq ($VAL0 $a) 0)
+      (then
+        ($THROW_STR_0 "nth: index out of range")
+        (return 0)))
+
+    ($INC_REF ($MEM_VAL1_ptr $a))
+  )
+
+  (func $first (param $args i32) (result i32)
+    (local $res i32 $a i32)
+    (set_local $res (get_global $NIL))
+    (set_local $a ($MEM_VAL1_ptr $args))
+    (if (AND (i32.ne $a (get_global $NIL))
+             (i32.ne ($VAL0 $a) 0))
+      (set_local $res ($MEM_VAL1_ptr $a)))
+    ($INC_REF $res)
+  )
+
+  (func $rest (param $args i32) (result i32)
+    (local $a i32)
+    (set_local $a ($MEM_VAL1_ptr $args))
+    (if (i32.eq $a (get_global $NIL))
+      (return ($INC_REF (get_global $EMPTY_LIST))))
+    (if (i32.ne ($VAL0 $a) 0)
+      (set_local $a ($MEM_VAL0_ptr $a)))
+    ($FORCE_SEQ_TYPE (get_global $LIST_T) $a)
+  )
+
+  ;;;
+
+  (func $empty_Q (param $args i32) (result i32)
+    ($TRUE_FALSE ($EMPTY_Q ($MEM_VAL1_ptr $args))))
+
+  (func $count (param $args i32) (result i32)
+    ($INTEGER ($COUNT ($MEM_VAL1_ptr $args))))
+
+  (func $apply (param $args i32) (result i32)
+    (local $f i32 $f_args i32 $rest_args i32 $rest_count i32)
+    (local $last_sl i64 $last i32 $res i32)
+
+    (set_local $f ($MEM_VAL1_ptr $args))
+    (set_local $rest_args ($MEM_VAL0_ptr $args))
+    (set_local $rest_count ($COUNT $rest_args))
+
+    (if (i32.le_s $rest_count 1)
+      (then
+        ;; no intermediate args
+        (if (i32.ne ($TYPE ($MEM_VAL1_ptr $rest_args)) (get_global $LIST_T))
+          (then
+            ;; not a list, so convert it first
+            (set_local $f_args ($FORCE_SEQ_TYPE (get_global $LIST_T)
+                                                ($MEM_VAL1_ptr $rest_args))))
+          (else
+            ;; inc ref since we will release after APPLY
+            (set_local $f_args ($INC_REF ($MEM_VAL1_ptr $rest_args))))))
+      (else
+        ;; 1 or more intermediate args
+        (set_local $last_sl ($SLICE $rest_args 0 (i32.sub_s $rest_count 1)))
+        (set_local $f_args (i32.wrap/i64 $last_sl))
+        (set_local $last (i32.wrap/i64 (i64.shr_u $last_sl (i64.const 32))))
+        ;; release the terminator of the new list (we skip over it)
+        ;; we already checked for an empty list above, so $last is
+        ;; a real non-empty list
+        ($RELEASE ($MEM_VAL0_ptr $last))
+        ;; attach end of slice to final args element
+        (i32.store ($VAL0_ptr $last) ($IDX ($LAST $rest_args)))
+        ))
+
+    (set_local $res ($APPLY $f $f_args))
+
+    ;; release new args
+    ($RELEASE $f_args)
+    $res
+  )
+
+  (func $map (param $args i32) (result i32)
+    (local $f i32 $rest_args i32 $f_args i32 $res i32)
+    (local $ret i32 $empty i32 $current i32) ;; MAP_LOOP stack
+
+    (set_local $f ($MEM_VAL1_ptr $args))
+    (set_local $rest_args ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+
+    ;; MAP_LOOP_START
+    (set_local $res ($MAP_LOOP_START (get_global $LIST_T)))
+    ;; push MAP_LOOP stack
+    ;;; empty = current = ret = res
+    (set_local $ret $res)
+    (set_local $current $res)
+    (set_local $empty $res)
+
+    (block $done
+      (loop $loop
+        (if (i32.eqz ($VAL1 $rest_args)) (br $done))
+
+        ;; create argument list for apply
+        (set_local $f_args ($ALLOC (get_global $LIST_T)
+                                   (get_global $EMPTY_LIST)
+                                   ($MEM_VAL1_ptr $rest_args)
+                                   0))
+
+        (set_local $res ($APPLY $f $f_args))
+        ($RELEASE $f_args)
+
+        ;; go to the next element
+        (set_local $rest_args ($MEM_VAL0_ptr $rest_args))
+
+        (if (get_global $error_type)
+          (then
+            ;; if error, release the unattached element
+            ($RELEASE $res)
+            (br $done)))
+
+        ;; update the return sequence structure
+        ;; MAP_LOOP_UPDATE
+        (set_local $res ($MAP_LOOP_UPDATE (get_global $LIST_T)
+                                          $empty $current $res 0))
+        (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+          ;; if first element, set return to new element
+          (set_local $ret $res))
+        ;; update current to point to new element
+        (set_local $current $res)
+
+	(br $loop)
+      )
+    )
+
+    ;; MAP_LOOP_DONE
+    $ret
+  )
+
+  ;;;
+
+  (func $with_meta (param $args i32) (result i32)
+    (local $mv i32 $meta i32)
+    (set_local $mv ($MEM_VAL1_ptr $args))
+    (set_local $meta ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    ;; remove existing metadata first
+    ($ALLOC (get_global $METADATA_T) ($DEREF_META $mv) $meta 0)
+  )
+
+  (func $meta (param $args i32) (result i32)
+    (if i32 (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (get_global $METADATA_T))
+      (then ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL1_ptr $args))))
+      (else ($INC_REF (get_global $NIL)))))
+
+  (func $atom (param $args i32) (result i32)
+    ($ALLOC_SCALAR (get_global $ATOM_T) ($VAL1 $args)))
+
+  (func $atom_Q (param $args i32) (result i32)
+    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (get_global $ATOM_T))))
+
+  (func $deref (param $args i32) (result i32)
+    ($INC_REF ($MEM_VAL0_ptr ($MEM_VAL1_ptr $args))))
+
+  (func $_reset_BANG (param $atom i32 $val i32) (result i32)
+    ;; release current value since we are about to overwrite it
+    ($RELEASE ($MEM_VAL0_ptr $atom))
+    ;; inc ref by 2 for atom ownership and since we are returning it
+    (drop ($INC_REF ($INC_REF $val)))
+    ;; update the value
+    (i32.store ($VAL0_ptr $atom) ($IDX $val))
+    $val
+  )
+
+  (func $reset_BANG (param $args i32) (result i32)
+    (local $atom i32 $val i32)
+    (set_local $atom ($MEM_VAL1_ptr $args))
+    (set_local $val ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    ($_reset_BANG $atom $val)
+  )
+
+  (func $swap_BANG (param $args i32) (result i32)
+    (local $atom i32 $f_args i32 $s_args i32 $rest_args i32 $f i32 $res i32)
+    (set_local $atom ($MEM_VAL1_ptr $args))
+    (set_local $f_args ($MEM_VAL0_ptr $args))
+    (set_local $rest_args ($MEM_VAL0_ptr $f_args))
+    (set_local $f ($MEM_VAL1_ptr $f_args))
+    (set_local $res 0)
+    ;; add atom value to front of the args list
+    (set_local $s_args ($LIST $rest_args ($MEM_VAL0_ptr $atom))) ;; cons
+    (set_local $res ($APPLY $f $s_args))
+    ;; release args
+    ($RELEASE $s_args)
+    ;; use reset to update the value
+    (drop ($_reset_BANG $atom $res))
+    ;; but decrease the ref cnt of return by 1 (not sure why)
+    ($RELEASE $res)
+    $res
+  )
+
+  ;;;
+
+  (func $pr_memory_summary (param $args i32) (result i32)
+    ($PR_MEMORY_SUMMARY_SMALL)
+    ($INC_REF (get_global $NIL))
+  )
+
+  (func $nop (param $args i32) (result i32)
+    ($INC_REF (get_global $NIL)))
+
+  (table
+    anyfunc
+    (elem $nop ;; placeholder for eval which will use 0
+          $equal_Q
+          $throw
+          $nil_Q
+          $true_Q
+          $false_Q
+          $number_Q
+          $string_Q
+          $symbol
+          $symbol_Q
+          $keyword
+          $keyword_Q
+          $fn_Q
+          $macro_Q
+
+          ;; 14
+          $core_pr_str
+          $str
+          $prn
+          $println
+          $core_readline
+          $read_string
+          $slurp
+          $lt
+          $lte
+          $gt
+          $gte
+          $add
+          $subtract
+          $multiply
+          $divide
+          $time_ms
+
+          ;; 30
+          $list
+          $list_Q
+          $vector
+          $vector_Q
+          $hash_map
+          $hash_map_Q
+          $assoc
+          $nop ;; $dissoc
+          $get
+          $contains_Q
+          $keys
+          $vals
+
+          ;; 42
+          $sequential_Q
+          $cons
+          $concat
+          $nth
+          $first
+          $rest
+          $empty_Q
+          $count
+          $apply
+          $map
+          $nop ;; $conj
+          $nop ;; $seq
+
+          ;; 54
+          $with_meta
+          $meta
+          $atom
+          $atom_Q
+          $deref
+          $reset_BANG
+          $swap_BANG
+
+          $pr_memory_summary
+    )
+  )
+
+  (func $add_core_ns (param $env i32)
+    ;;(drop ($ENV_SET_S $env "eval"        ($FUNCTION 0)))
+    (drop ($ENV_SET_S $env "="           ($FUNCTION 1)))
+    (drop ($ENV_SET_S $env "throw"       ($FUNCTION 2)))
+    (drop ($ENV_SET_S $env "nil?"        ($FUNCTION 3)))
+    (drop ($ENV_SET_S $env "true?"       ($FUNCTION 4)))
+    (drop ($ENV_SET_S $env "false?"      ($FUNCTION 5)))
+    (drop ($ENV_SET_S $env "number?"     ($FUNCTION 6)))
+    (drop ($ENV_SET_S $env "string?"     ($FUNCTION 7)))
+    (drop ($ENV_SET_S $env "symbol"      ($FUNCTION 8)))
+    (drop ($ENV_SET_S $env "symbol?"     ($FUNCTION 9)))
+    (drop ($ENV_SET_S $env "keyword"     ($FUNCTION 10)))
+    (drop ($ENV_SET_S $env "keyword?"    ($FUNCTION 11)))
+    (drop ($ENV_SET_S $env "fn?"         ($FUNCTION 12)))
+    (drop ($ENV_SET_S $env "macro?"      ($FUNCTION 13)))
+
+    (drop ($ENV_SET_S $env "pr-str"      ($FUNCTION 14)))
+    (drop ($ENV_SET_S $env "str"         ($FUNCTION 15)))
+    (drop ($ENV_SET_S $env "prn"         ($FUNCTION 16)))
+    (drop ($ENV_SET_S $env "println"     ($FUNCTION 17)))
+    (drop ($ENV_SET_S $env "readline"    ($FUNCTION 18)))
+    (drop ($ENV_SET_S $env "read-string" ($FUNCTION 19)))
+    (drop ($ENV_SET_S $env "slurp"       ($FUNCTION 20)))
+    (drop ($ENV_SET_S $env "<"           ($FUNCTION 21)))
+    (drop ($ENV_SET_S $env "<="          ($FUNCTION 22)))
+    (drop ($ENV_SET_S $env ">"           ($FUNCTION 23)))
+    (drop ($ENV_SET_S $env ">="          ($FUNCTION 24)))
+    (drop ($ENV_SET_S $env "+"           ($FUNCTION 25)))
+    (drop ($ENV_SET_S $env "-"           ($FUNCTION 26)))
+    (drop ($ENV_SET_S $env "*"           ($FUNCTION 27)))
+    (drop ($ENV_SET_S $env "/"           ($FUNCTION 28)))
+    (drop ($ENV_SET_S $env "time-ms"     ($FUNCTION 29)))
+
+    (drop ($ENV_SET_S $env "list"        ($FUNCTION 30)))
+    (drop ($ENV_SET_S $env "list?"       ($FUNCTION 31)))
+    (drop ($ENV_SET_S $env "vector"      ($FUNCTION 32)))
+    (drop ($ENV_SET_S $env "vector?"     ($FUNCTION 33)))
+    (drop ($ENV_SET_S $env "hash-map"    ($FUNCTION 34)))
+    (drop ($ENV_SET_S $env "map?"        ($FUNCTION 35)))
+    (drop ($ENV_SET_S $env "assoc"       ($FUNCTION 36)))
+    (drop ($ENV_SET_S $env "dissoc"      ($FUNCTION 37)))
+    (drop ($ENV_SET_S $env "get"         ($FUNCTION 38)))
+    (drop ($ENV_SET_S $env "contains?"   ($FUNCTION 39)))
+    (drop ($ENV_SET_S $env "keys"        ($FUNCTION 40)))
+    (drop ($ENV_SET_S $env "vals"        ($FUNCTION 41)))
+
+    (drop ($ENV_SET_S $env "sequential?" ($FUNCTION 42)))
+    (drop ($ENV_SET_S $env "cons"        ($FUNCTION 43)))
+    (drop ($ENV_SET_S $env "concat"      ($FUNCTION 44)))
+    (drop ($ENV_SET_S $env "nth"         ($FUNCTION 45)))
+    (drop ($ENV_SET_S $env "first"       ($FUNCTION 46)))
+    (drop ($ENV_SET_S $env "rest"        ($FUNCTION 47)))
+    (drop ($ENV_SET_S $env "empty?"      ($FUNCTION 48)))
+    (drop ($ENV_SET_S $env "count"       ($FUNCTION 49)))
+    (drop ($ENV_SET_S $env "apply"       ($FUNCTION 50)))
+    (drop ($ENV_SET_S $env "map"         ($FUNCTION 51)))
+
+    (drop ($ENV_SET_S $env "conj"        ($FUNCTION 52)))
+    (drop ($ENV_SET_S $env "seq"         ($FUNCTION 53)))
+
+    (drop ($ENV_SET_S $env "with-meta"   ($FUNCTION 54)))
+    (drop ($ENV_SET_S $env "meta"        ($FUNCTION 55)))
+    (drop ($ENV_SET_S $env "atom"        ($FUNCTION 56)))
+    (drop ($ENV_SET_S $env "atom?"       ($FUNCTION 57)))
+    (drop ($ENV_SET_S $env "deref"       ($FUNCTION 58)))
+    (drop ($ENV_SET_S $env "reset!"      ($FUNCTION 59)))
+    (drop ($ENV_SET_S $env "swap!"       ($FUNCTION 60)))
+
+    (drop ($ENV_SET_S $env "pr-memory-summary"       ($FUNCTION 61)))
+  )
+)

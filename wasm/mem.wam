@@ -30,13 +30,19 @@
 
   (func $MEM_VAL0_ptr (param $mv i32) (result i32)
     (i32.add (get_global $mem)
-             (i32.mul_u (i32.load (i32.add $mv 4)) 8)))
+             (i32.mul_u (i32.load (i32.add $mv 4)) 4)))
   (func $MEM_VAL1_ptr (param $mv i32) (result i32)
     (i32.add (get_global $mem)
-             (i32.mul_u (i32.load (i32.add $mv 8)) 8)))
+             (i32.mul_u (i32.load (i32.add $mv 8)) 4)))
   (func $MEM_VAL2_ptr (param $mv i32) (result i32)
     (i32.add (get_global $mem)
-             (i32.mul_u (i32.load (i32.add $mv 12)) 8)))
+             (i32.mul_u (i32.load (i32.add $mv 12)) 4)))
+
+  ;; Returns the memory index mem of mv
+  ;; Will usually be used with a load or store by the caller
+  (func $IDX (param $mv i32) (result i32)
+    ;; MalVal memory 64 bit (2 * i32) aligned
+    (i32.div_u (i32.sub_u $mv (get_global $mem)) 4))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -44,13 +50,7 @@
   (func $MalVal_ptr (param $mv_idx i32) (result i32)
     ;; MalVal memory 64 bit (2 * i32) aligned
     ;;; mem[mv_idx].refcnt_type
-    (i32.add (get_global $mem) (i32.mul_u $mv_idx 8)))
-
-  ;; Returns the memory index mem of mv
-  ;; Will usually be used with a load or store by the caller
-  (func $MalVal_index (param $mv i32) (result i32)
-    ;; MalVal memory 64 bit (2 * i32) aligned
-    (i32.div_u (i32.sub_u $mv (get_global $mem)) 8))
+    (i32.add (get_global $mem) (i32.mul_u $mv_idx 4)))
 
   ;; Returns the address of 'mem[mv_idx].refcnt_type'
   (func $MalVal_refcnt_type (param $mv_idx i32) (result i32)
@@ -60,31 +60,40 @@
     ;;; type = mv->refcnt_type & 31
     (i32.and (i32.load $mv) 0x1f)) ;; 0x1f == 31
 
+  (func $SET_TYPE (param $mv i32 $type i32)
+    ;;; type = mv->refcnt_type & 31
+    ;;; mv->refcnt_type += - (mv->refcnt_type & 31) + type
+    (i32.store $mv (i32.or
+                     (i32.and $type 0x1f) ;; 0x1f == 31
+                     (i32.and (i32.load $mv) 0xffffffe1)))
+  )
+
+
   (func $REFS (param $mv i32) (result i32)
     ;;; type = mv->refcnt_type & 31
     (i32.shr_u (i32.load $mv) 5)) ;; / 32
 
   ;; Returns the address of 'mem[mv_idx].val[val]'
   ;; Will usually be used with a load or store by the caller
-  (func $MalVal_val_ptr (param $mv_idx i32) (param $val i32) (result i32)
+  (func $MalVal_val_ptr (param $mv_idx i32 $val i32) (result i32)
     (i32.add (i32.add ($MalVal_ptr $mv_idx) 4)
              (i32.mul_u $val 4)))
 
   ;; Returns the value of 'mem[mv_idx].val[val]'
-  (func $MalVal_val (param $mv_idx i32) (param $val i32) (result i32)
+  (func $MalVal_val (param $mv_idx i32 $val i32) (result i32)
     (i32.load ($MalVal_val_ptr $mv_idx $val)))
 
   (func $MalType_size (param $type i32) (result i32)
     ;;; if (type <= 5 || type == 9 || type == 12)
-    (if i32 (i32.or (i32.le_u $type 5)
-                    (i32.or (i32.eq $type 9)
-                            (i32.eq $type 12)))
+    (if i32 (OR (i32.le_u $type 5)
+                (i32.eq $type 9)
+                (i32.eq $type 12))
       (then 2)
       (else
         ;;; else if (type == 8 || type == 10 || type == 11)
-        (if i32 (i32.or (i32.eq $type 8)
-                        (i32.or (i32.eq $type 10)
-                                (i32.eq $type 11)))
+        (if i32 (OR (i32.eq $type 8)
+                    (i32.eq $type 10)
+                    (i32.eq $type 11))
           (then 4)
           (else 3)))))
 
@@ -110,10 +119,12 @@
 
     ($init_sprintf_mem)
 
-    ;; 100 character error_str static buffer
-    (set_global $error_str "                                                                                                    ")
-    ;; 256 character token static buffer
-    (set_global $token "                                                                                                                                                                                                                                                                ")
+    ;; error_str string buffer
+    (set_global $error_str (STATIC_ARRAY 100))
+    ;; reader token string buffer
+    (set_global $token_buf (STATIC_ARRAY 256))
+    ;; printer string buffer
+    (set_global $printer_buf (STATIC_ARRAY 4096))
 
     (set_local $heap_size (i32.add (get_global $MEM_SIZE)
                                    (get_global $STRING_MEM_SIZE)))
@@ -154,11 +165,9 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; memory management
 
-  (func $ALLOC_INTERNAL (param $type i32) (param $val1 i32)
-               (param $val2 i32) (param $val3 i32) (result i32)
-    (local $prev i32)
-    (local $res i32)
-    (local $size i32)
+  (func $ALLOC_INTERNAL (param $type i32
+                               $val1 i32 $val2 i32 $val3 i32) (result i32)
+    (local $prev i32 $res i32 $size i32)
     (set_local $prev (get_global $mem_free_list))
     (set_local $res (get_global $mem_free_list))
     (set_local $size ($MalType_size $type))
@@ -218,7 +227,8 @@
     ;;; mem[res].val[0] = val1
     (i32.store ($MalVal_val_ptr $res 0) $val1)
     ;;; if (type > 5 && type != 9)
-    (if (i32.and (i32.gt_u $type 5) (i32.ne $type 9))
+    (if (AND (i32.gt_u $type 5)
+             (i32.ne $type 9))
       (then
         ;; inc refcnt of referenced value
         ;;; mem[val1].refcnt_type += 32
@@ -247,28 +257,22 @@
     ($MalVal_ptr $res)
   )
 
-  (func $ALLOC_SCALAR (param $type i32) (param $val1 i32) (result i32)
+  (func $ALLOC_SCALAR (param $type i32 $val1 i32) (result i32)
     ($ALLOC_INTERNAL $type $val1 0 0)
   )
 
-  (func $ALLOC (param $type i32) (param $val1 i32)
-               (param $val2 i32) (param $val3 i32) (result i32)
-    ($ALLOC_INTERNAL $type
-                     ($MalVal_index $val1)
-                     ($MalVal_index $val2)
-                     ($MalVal_index $val3))
+  (func $ALLOC (param $type i32 $val1 i32 $val2 i32 $val3 i32) (result i32)
+    ($ALLOC_INTERNAL $type ($IDX $val1) ($IDX $val2) ($IDX $val3))
   )
 
   (func $RELEASE (param $mv i32)
-    (local $idx i32)
-    (local $type i32)
-    (local $size i32)
+    (local $idx i32 $type i32 $size i32)
 
     ;; Ignore NULLs
     ;;; if (mv == NULL) { return; }
     (if (i32.eqz $mv) (return))
     ;;; idx = mv - mem
-    (set_local $idx ($MalVal_index $mv))
+    (set_local $idx ($IDX $mv))
     ;;; type = mv->refcnt_type & 31
     (set_local $type (i32.and (i32.load $mv) 0x1f)) ;; 0x1f == 31
     ;;; size = MalType_size(type)
@@ -309,8 +313,8 @@
       (return))
 
     (block $done
-      (block (block (block (block (block (block
-      (br_table 0 0 0 0 1 1 2 2 3 5 5 5 5 4 5 5 5 $type))
+      (block (block (block (block (block (block (block (block (block
+      (br_table 0 0 0 0 1 1 2 2 3 0 4 4 5 6 7 8 8 $type))
       ;; nil, boolean, integer, float
       (br $done))
       ;; string, kw, symbol
@@ -332,12 +336,27 @@
           ($RELEASE ($MEM_VAL2_ptr $mv))
           ($RELEASE ($MEM_VAL1_ptr $mv))))
       (br $done))
+      ;; mal / macro function
+      ;; release ast, params, and environment
+      ($RELEASE ($MEM_VAL2_ptr $mv))
+      ($RELEASE ($MEM_VAL1_ptr $mv))
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      (br $done))
+      ;; atom
+      ;; release contained/referred value
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      (br $done))
       ;; env
       ;; if outer is set then release outer
       (if (i32.ne ($MalVal_val $idx 1) 0)
         ($RELEASE ($MEM_VAL1_ptr $mv)))
-      ;; release the hashmap data
+      ;; release the env data (hashmap)
       ($RELEASE ($MEM_VAL0_ptr $mv))
+      (br $done))
+      ;; metadata
+      ;; release object and metdata object
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      ($RELEASE ($MEM_VAL1_ptr $mv))
       (br $done))
       ;; default/unknown
     )
@@ -356,13 +375,10 @@
   ;; Allocate a string as follows:
   ;; refcnt (i32 set to 1), string data, NULL byte
   (func $STRING_DUPE (param $str i32) (result i32)
-    (local $len i32)
-    (local $cur i32)
-    (local $new i32)
-    (local $idx i32)
+    (local $len i32 $cur i32 $new i32 $idx i32)
 
     ;; Calculate length of string needed
-    (set_local $len ($STRING_LEN $str))
+    (set_local $len ($strlen $str))
 
     ;; leading i32 refcnt + trailing NULL
     (set_local $new ($malloc (i32.add 5 $len)))
@@ -375,23 +391,19 @@
     (i32.store8_u (i32.add $cur $len) 0)
 
     ;; Copy the characters
-    ($MEM_COPY $cur $str $len)
+    ($memmove $cur $str $len)
     $new
   )
 
   ;; Duplicate regular character array string into a Mal string and
   ;; return the MalVal pointer
-  (func $STRING (param $type i32) (param $str i32) (result i32)
-    ($ALLOC_SCALAR
-          $type
-          ($STRING_DUPE $str))
+  (func $STRING (param $type i32 $str i32) (result i32)
+    ($ALLOC_SCALAR $type ($STRING_DUPE $str))
   )
 
   (func $RELEASE_STRING (param $mv i32)
     (local $str i32)
-    (set_local $str ($MalVal_val
-                          ($MalVal_index $mv)
-                          0))
+    (set_local $str ($MalVal_val ($IDX $mv) 0))
 
     ;; DEBUG
 ;;    ($printf_1 "RELEASE_STRING - calling free on: %d" $str)

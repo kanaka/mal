@@ -1,6 +1,6 @@
-(module $step1_read_print
-  (import "env" "memory" (memory $0 256))
-  (import "env" "memoryBase" (global $memoryBase i32))
+(module $step2_eval
+
+  (global $repl_env (mut i32) (i32.const 0))
 
   ;; READ
   (func $READ (param $str i32) (result i32)
@@ -8,19 +8,15 @@
   )
 
   ;; EVAL
-  (func $EVAL_AST (param $ast i32) (param $env i32) (result i32)
-    (local $res i32)
-    (local $val2 i32)
-    (local $val3 i32)
-    (local $ret i32)
-    (local $empty i32)
-    (local $current i32)
-    (local $type i32)
+  (func $EVAL_AST (param $ast i32 $env i32) (result i32)
+    (local $res i32 $val2 i32 $val3 i32 $type i32 $found i32)
+    (local $ret i32 $empty i32 $current i32)
     (local $res2 i64)
-    (local $found i32)
 
     (if (get_global $error_type) (return 0))
     (set_local $type ($TYPE $ast))
+
+    ;;($PR_VALUE ">>> EVAL_AST ast: '%s'\n" $ast)
 
     ;;; switch(type)
     (block $done
@@ -50,8 +46,7 @@
       (block $done
         (loop $loop
           ;; check if we are done evaluating the source sequence
-          (if (i32.eq ($VAL0 $ast) 0)
-            (br $done))
+          (if (i32.eq ($VAL0 $ast) 0) (br $done))
 
           (if (i32.eq $type (get_global $HASHMAP_T))
             (then
@@ -73,7 +68,7 @@
             (then
               (set_local $val3 $val2)
               (set_local $val2 ($MEM_VAL1_ptr $ast))
-              (drop ($INC_REF $ast))))
+              (drop ($INC_REF $val2))))
 
           ;; MAP_LOOP_UPDATE
           (set_local $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
@@ -105,13 +100,9 @@
     (elem
       $add $subtract $multiply $divide))
 
-  (func $EVAL (param $ast i32) (param $env i32) (result i32)
+  (func $EVAL (param $ast i32 $env i32) (result i32)
     (local $res i32)
-    (local $f_args i32)
-    (local $f i32)
-    (local $args i32)
-    (local $type i32)
-    (local $ftype i32)
+    (local $type i32 $ftype i32 $f_args i32 $f i32 $args i32)
 
     (set_local $res 0)
     (set_local $f_args 0)
@@ -154,14 +145,12 @@
 
   ;; PRINT
   (func $PRINT (param $ast i32) (result i32)
-    ($pr_str $ast)
+    ($pr_str $ast 1)
   )
 
   ;; REPL
-  (func $rep (param $line i32) (param $env i32) (result i32)
-    (local $mv1 i32)
-    (local $mv2 i32)
-    (local $ms i32)
+  (func $REP (param $line i32 $env i32) (result i32)
+    (local $mv1 i32 $mv2 i32 $ms i32)
     (block $rep_done
       (set_local $mv1 ($READ $line))
       (if (get_global $error_type) (br $rep_done))
@@ -197,10 +186,7 @@
                  ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
 
   (func $main (result i32)
-    ;; Constant location/value definitions
-    (local $line i32)
-    (local $res i32)
-    (local $repl_env i32)
+    (local $line i32 $res i32 $repl_env i32)
 
     ;; DEBUG
     ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
@@ -209,20 +195,17 @@
     ($printf_1 "mem: 0x%x\n" (get_global $mem))
 ;;    ($printf_1 "string_mem: %d\n" (get_global $string_mem))
 
-    (set_local $repl_env ($HASHMAP))
+    (set_global $repl_env ($HASHMAP))
+    (set_local $repl_env (get_global $repl_env))
 
     (set_local $repl_env ($ASSOC1_S $repl_env "+" ($FUNCTION 0)))
     (set_local $repl_env ($ASSOC1_S $repl_env "-" ($FUNCTION 1)))
     (set_local $repl_env ($ASSOC1_S $repl_env "*" ($FUNCTION 2)))
     (set_local $repl_env ($ASSOC1_S $repl_env "/" ($FUNCTION 3)))
 
-    ($PR_MEMORY -1 -1)
-;;    ($PR_MEMORY_RAW (get_global $mem)
-;;          (i32.add (get_global $mem)
-;;                   (i32.mul_u (get_global $mem_unused_start)
-;;                              8)))
+    ;;($PR_MEMORY -1 -1)
 
-    ;; Start
+    ;; Start REPL
     (block $repl_done
       (loop $repl_loop
         (set_local $line ($readline "user> "))
@@ -231,7 +214,7 @@
           (then
             ($free $line)
             (br $repl_loop)))
-        (set_local $res ($rep $line $repl_env))
+        (set_local $res ($REP $line $repl_env))
         (if (get_global $error_type)
           (then
             ($printf_1 "Error: %s\n" (get_global $error_str))
@@ -244,7 +227,7 @@
         (br $repl_loop)))
 
     ($print "\n")
-    ($PR_MEMORY -1 -1)
+    ;;($PR_MEMORY -1 -1)
     0
   )
 

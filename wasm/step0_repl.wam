@@ -1,6 +1,4 @@
 (module $step0_repl
-  (import "env" "memory" (memory $0 256))
-  (import "env" "memoryBase" (global $memoryBase i32))
 
   ;; READ
   (func $READ (param $str i32) (result i32)
@@ -25,7 +23,7 @@
     ;; Constant location/value definitions
     (local $line i32)
 
-    ;; Start
+    ;; Start REPL
     (block $repl_done
       (loop $repl_loop
         (set_local $line ($readline "user> "))

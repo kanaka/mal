@@ -1,0 +1,226 @@
+(module $string
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Copy len bytes from src to dst
+  ;; Returns len
+  (func $memmove  (param $dst i32 $src i32 $len i32)
+    (local $idx i32)
+    (set_local $idx 0)
+    (loop $copy
+          (i32.store8_u (i32.add $idx $dst)
+                        (i32.load8_u (i32.add $idx $src)))
+      (set_local $idx (i32.add 1 $idx))
+      (br_if $copy (i32.lt_u $idx $len))
+    )
+  )
+
+  (func $strlen (param $str i32) (result i32)
+    (local $cur i32)
+    (set_local $cur $str)
+    (loop $count
+      (if (i32.ne 0 (i32.load8_u $cur))
+        (then
+          (set_local $cur (i32.add $cur 1))
+          (br $count)))
+    )
+    (i32.sub_u $cur $str)
+  )
+
+  ;; Based on https://stackoverflow.com/a/25705264/471795
+  ;; This could be made much more efficient
+  (func $strstr (param $haystack i32 $needle i32) (result i32)
+    (local $i i32 $needle_len i32 $len i32)
+
+    (set_local $needle_len ($strlen $needle))
+    (set_local $len ($strlen $haystack))
+
+    (if (i32.eq $needle_len 0) (return $haystack))
+
+    (set_local $i 0)
+    (block $done
+      (loop $loop
+        (if (i32.gt_s $i (i32.sub_s $len $needle_len)) (br $done))
+
+        (if (AND (i32.eq (i32.load8_u $haystack 0)
+                         (i32.load8_u $needle 0))
+                 (i32.eqz ($strncmp $haystack $needle $needle_len)))
+          (return $haystack))
+        (set_local $haystack (i32.add $haystack 1))
+        (set_local $i (i32.add $i 1))
+        (br $loop)
+      )
+    )
+    0
+  )
+
+  (func $atoi (param $str i32) (result i32)
+    (local $acc i32)
+    (local $i i32)
+    (local $neg i32)
+    (local $ch i32)
+    (set_local $acc 0)
+    (set_local $i 0)
+    (set_local $neg 0)
+    (block $done
+      (loop $loop
+        (set_local $ch (i32.load8_u (i32.add $str $i)))
+        (if (AND (i32.ne $ch (CHR "-"))
+                 (OR (i32.lt_u $ch (CHR "0"))
+                     (i32.gt_u $ch (CHR "9"))))
+          (br $done))
+        (set_local $i (i32.add $i 1))
+        (if (i32.eq $ch (CHR "-"))
+          (then
+            (set_local $neg 1))
+          (else
+            (set_local $acc (i32.add (i32.mul_u $acc 10)
+                                     (i32.sub_u $ch (CHR "0"))))))
+        (br $loop)
+      )
+    )
+    (if i32 $neg
+      (then (i32.sub_s 0 $acc))
+      (else $acc))
+  )
+
+  (func $strcmp (param $s1 i32 $s2 i32) (result i32)
+    (block $done
+      (loop $loop
+        (if (OR (i32.eqz (i32.load8_u $s1)) (i32.eqz (i32.load8_u $s2)))
+          (br $done))
+        (if (i32.ne (i32.load8_u $s1) (i32.load8_u $s2))
+          (br $done))
+        (set_local $s1 (i32.add $s1 1))
+        (set_local $s2 (i32.add $s2 1))
+        (br $loop)
+      )
+    )
+    (if i32 (i32.eq (i32.load8_u $s1) (i32.load8_u $s2))
+      (then 0)
+      (else
+        (if i32 (i32.lt_u (i32.load8_u $s1) (i32.load8_u $s2))
+          (then -1)
+          (else 1))))
+  )
+
+  (func $strncmp (param $s1 i32 $s2 i32 $len i32) (result i32)
+    (local $i i32)
+    (set_local $i 0)
+    (if (i32.eq $len 0) (return 0))
+    (block $done
+      (loop $loop
+        (if (i32.ge_u $i $len) (br $done))
+        (if (i32.eqz (i32.load8_u (i32.add $i $s1))) (br $done))
+        (if (i32.ne (i32.load8_u (i32.add $i $s1))
+                    (i32.load8_u (i32.add $i $s2))) (br $done))
+        (set_local $i (i32.add $i 1))
+        (br $loop)
+      )
+    )
+    (if (OR (i32.eq $i $len)
+            (i32.eq (i32.load8_u (i32.add $i $s1))
+                    (i32.load8_u (i32.add $i $s2))))
+      (return 0))
+    (if i32 (i32.lt_u (i32.load8_u (i32.add $i $s1))
+                      (i32.load8_u (i32.add $i $s2)))
+      (then -1)
+      (else 1))
+  )
+
+  ;; Writes new string to grass with all needles in haystack replaced.
+  ;; If the length of replace is equal to of less than needle then
+  ;; grass can be NULL.
+  ;; Returns length of grass.
+  (func $REPLACE3 (param $grass i32 $haystack i32
+                         $needle0 i32 $replace0 i32
+                         $needle1 i32 $replace1 i32
+                         $needle2 i32 $replace2 i32) (result i32)
+    (local $needle i32 $replace i32)
+    (local $haystack_len i32 $needle_len i32 $replace_len i32)
+    (local $src_str i32 $dst_str i32 $s i32 $found_tmp i32 $found i32)
+    (local $replace_s i32 $replace_len_s i32 $needle_len_s i32)
+
+    (set_local $haystack_len ($strlen $haystack))
+    (set_local $src_str $haystack)
+    (set_local $dst_str $grass)
+
+    ;; in-place
+    (if (i32.eqz $grass)
+      (then
+        ;; check that we aren't expanding in place
+        (set_local $s 0)
+        (block $done
+          (loop $loop
+            (if (i32.ge_u $s 3) (br $done))
+            (set_local $needle (if i32 (i32.eq $s 0)   $needle0
+                                 (if i32 (i32.eq $s 1) $needle1
+                                                       $needle2)))
+            (set_local $replace (if i32 (i32.eq $s 0)   $replace0
+                                  (if i32 (i32.eq $s 1) $replace1
+                                                        $replace2)))
+            (set_local $needle_len ($strlen $needle))
+            (set_local $replace_len ($strlen $replace))
+            (if (i32.gt_u $replace_len $needle_len)
+              (then
+                ($print "REPLACE: invalid expanding in-place call\n")
+                ($exit 1)))
+            (set_local $s (i32.add $s 1))
+            (br $loop)
+          )
+        )
+        (set_local $grass $haystack)
+        (set_local $dst_str $grass)))
+
+    (block $done1
+      (loop $loop1
+        (if (i32.ge_s (i32.sub_s $src_str $haystack) $haystack_len)
+          (br $done1))
+
+        ;; Find the earliest match
+        (set_local $found 0)
+        (set_local $s 0)
+        (block $done2
+          (loop $loop2
+            (if (i32.ge_u $s 3) (br $done2))
+            (set_local $needle (if i32 (i32.eq $s 0)   $needle0
+                                 (if i32 (i32.eq $s 1) $needle1
+                                                       $needle2)))
+            (set_local $replace (if i32 (i32.eq $s 0)   $replace0
+                                  (if i32 (i32.eq $s 1) $replace1
+                                                        $replace2)))
+            (set_local $s (i32.add $s 1))
+            (set_local $found_tmp ($strstr $src_str $needle))
+            (if (i32.eqz $found_tmp) (br $loop2))
+            (if (OR (i32.eqz $found) (i32.lt_s $found_tmp $found))
+              (then
+                (set_local $found $found_tmp)
+                (set_local $needle_len_s ($strlen $needle))
+                (set_local $replace_s $replace)
+                (set_local $replace_len_s ($strlen $replace))))
+            (br $loop2)
+          )
+        )
+        (if (i32.eqz $found) (br $done1))
+        ;; copy before the match
+        ($memmove $dst_str $src_str (i32.add (i32.sub_s $found $src_str) 1))
+        (set_local $dst_str (i32.add $dst_str (i32.sub_s $found $src_str)))
+        ;; add the replace string
+        ($memmove $dst_str $replace_s (i32.add $replace_len_s 1))
+        (set_local $dst_str (i32.add $dst_str $replace_len_s))
+        ;; Move to after the match
+        (set_local $src_str (i32.add $found $needle_len_s))
+        (br $loop1)
+      )
+    )
+
+    ;; Copy the left-over
+    ($memmove $dst_str $src_str ($strlen $src_str))
+    (set_local $dst_str (i32.add $dst_str ($strlen $src_str)))
+    (i32.store8_u $dst_str (CHR "\x00"))
+
+    (i32.sub_s $dst_str $grass)
+  )
+
+)
+
