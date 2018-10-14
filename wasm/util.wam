@@ -1,0 +1,254 @@
+(module $util
+  (import "env" "malloc" (func $malloc (param i32) (result i32)))
+  (import "env" "free" (func $free (param i32)))
+  (import "env" "exit" (func $exit (param i32)))
+
+  (import "env" "stdout" (global $stdout i32))
+  (import "env" "putchar" (func $putchar (param i32) (result i32)))
+  (import "env" "fputs" (func $fputs (param i32 i32) (result i32)))
+  ;;(import "env" "readline" (func $readline (param i32) (result i32)))
+  (import "libedit.so" "readline" (func $readline (param i32) (result i32)))
+  ;;(import "libreadline.so" "readline" (func $readline (param i32) (result i32)))
+
+  (global $sprintf_buf (mut i32) 0)
+
+  (func $init_sprintf_mem
+    ;; 256 character sprintf static buffer
+    (set_global $sprintf_buf "                                                                                                                                                                                                                                                                ")
+    )
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Copy len chatacters from src to dst
+  ;; Returns len
+  (func $MEM_COPY (param $dst i32) (param $src i32) (param $len i32)
+    (local $idx i32)
+    (set_local $idx 0)
+    (loop $copy
+          (i32.store8_u (i32.add $idx $dst)
+                        (i32.load8_u (i32.add $idx $src)))
+      (set_local $idx (i32.add 1 $idx))
+      (br_if $copy (i32.lt_u $idx $len))
+    )
+  )
+
+  (func $STRING_LEN (param $str i32) (result i32)
+    (local $cur i32)
+    (set_local $cur $str)
+    (loop $count
+      (if (i32.ne 0 (i32.load8_u $cur))
+        (then
+          (set_local $cur (i32.add $cur 1))
+          (br $count)))
+    )
+    (i32.sub_u $cur $str)
+  )
+
+  (func $ATOI (param $str i32) (result i32)
+    (local $acc i32)
+    (local $i i32)
+    (local $neg i32)
+    (local $ch i32)
+    (set_local $acc 0)
+    (set_local $i 0)
+    (set_local $neg 0)
+    (block $done
+      (loop $loop
+        (set_local $ch (i32.load8_u (i32.add $str $i)))
+        (if (i32.and (i32.ne $ch (CHR "-"))
+                     (i32.or (i32.lt_u $ch (CHR "0"))
+                             (i32.gt_u $ch (CHR "9"))))
+          (br $done))
+        (set_local $i (i32.add $i 1))
+        (if (i32.eq $ch (CHR "-"))
+          (then
+            (set_local $neg 1))
+          (else
+            (set_local $acc (i32.add (i32.mul_u $acc 10)
+                                     (i32.sub_u $ch (CHR "0"))))))
+        (br $loop)
+      )
+    )
+    (if i32 $neg
+      (then (i32.sub_s 0 $acc))
+      (else $acc))
+  )
+
+  (func $strcmp (param $s1 i32) (param $s2 i32) (result i32)
+    (block $done
+      (loop $loop
+        (if (i32.or (i32.eqz (i32.load8_u $s1))
+                    (i32.eqz (i32.load8_u $s2)))
+          (br $done))
+        (if (i32.ne (i32.load8_u $s1)
+                    (i32.load8_u $s2))
+          (br $done))
+        (set_local $s1 (i32.add $s1 1))
+        (set_local $s2 (i32.add $s2 1))
+        (br $loop)
+      )
+    )
+    (if i32 (i32.eq (i32.load8_u $s1)
+                    (i32.load8_u $s2))
+      (then 0)
+      (else
+        (if i32 (i32.lt_u (i32.load8_u $s1)
+                          (i32.load8_u $s2))
+          (then -1)
+          (else 1))))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $print (param $addr i32)
+    (drop ($fputs $addr (get_global $stdout))))
+
+  (func $printf_1 (param $fmt i32)
+        (param $v0 i32)
+    (drop ($sprintf_6 (get_global $sprintf_buf) $fmt $v0 0 0 0 0 0))
+    ($print (get_global $sprintf_buf))
+  )
+
+  (func $printf_2 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32)
+    (drop ($sprintf_6 (get_global $sprintf_buf) $fmt $v0 $v1 0 0 0 0))
+    ($print (get_global $sprintf_buf))
+  )
+
+  (func $printf_3 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+    (drop ($sprintf_6 (get_global $sprintf_buf) $fmt $v0 $v1 $v2 0 0 0))
+    ($print (get_global $sprintf_buf))
+  )
+
+  (func $printf_4 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32)
+    (drop ($sprintf_6 (get_global $sprintf_buf) $fmt $v0 $v1 $v2 $v3 0 0))
+    ($print (get_global $sprintf_buf))
+  )
+
+  (func $printf_5 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32) (param $v4 i32)
+    (drop ($sprintf_6 (get_global $sprintf_buf) $fmt $v0 $v1 $v2 $v3 $v4 0))
+    ($print (get_global $sprintf_buf))
+  )
+
+  (func $printf_6 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32) (param $v4 i32) (param $v5 i32)
+    (drop ($sprintf_6 (get_global $sprintf_buf) $fmt $v0 $v1 $v2 $v3 $v4 $v5))
+    ($print (get_global $sprintf_buf))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $_sprintdigit (param $str i32) (param $num i32) (param $base i32)
+    (local $n i32)
+    (local $ch i32)
+    (set_local $n (i32.rem_u $num $base))
+    (set_local $ch (if (result i32) (i32.lt_u $n 10)
+                     48
+                     55))
+    (i32.store8_u $str (i32.add $n $ch))
+  )
+
+  ;; TODO: switch to snprint* (add buffer len)
+  (func $_sprintnum (param $str i32) (param $num i32) (param $base i32)
+                  (result i32)
+    (if (i32.and (i32.eq $base 10)
+                 (i32.lt_s $num 0))
+      (then
+        ;; Print '-' if negative
+        (i32.store8_u $str (CHR "-"))
+        (set_local $str (i32.add $str 1))
+        ;; Reverse the sign
+        (set_local $num (i32.sub_s 0 $num))))
+    (if (i32.gt_u (i32.div_u $num $base) 0)
+      (set_local
+        $str
+        ($_sprintnum $str (i32.div_u $num $base) $base)))
+    ($_sprintdigit $str $num $base)
+    (i32.add 1 $str)
+  )
+
+  ;; TODO: switch to snprint* (add buffer len)
+  (func $sprintf_1 (param $str i32) (param $fmt i32)
+        (param $v0 i32) (result i32)
+    ($sprintf_6 $str $fmt $v0 0 0 0 0 0)
+  )
+
+  (func $sprintf_6 (param $str i32) (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32) (param $v4 i32) (param $v5 i32)
+        (result i32)
+    (local $ch i32)
+    (local $pstr i32)
+    (local $v i32)
+    (local $vidx i32)
+    (local $len i32)
+    (set_local $pstr $str)
+    (set_local $vidx 0)
+
+    (block $done
+      (loop $loop
+        (block $after_v
+          (block (block (block (block (block (block
+          (br_table 0 1 2 3 4 5 0 $vidx))
+          (; 0 ;) (set_local $v $v0) (br $after_v))
+          (; 1 ;) (set_local $v $v1) (br $after_v))
+          (; 2 ;) (set_local $v $v2) (br $after_v))
+          (; 3 ;) (set_local $v $v3) (br $after_v))
+          (; 4 ;) (set_local $v $v4) (br $after_v))
+          (; 5 ;) (set_local $v $v5) (br $after_v)
+        )
+
+        ;;; while ((ch=*(fmt++)))
+        (set_local $ch (i32.load8_u $fmt))
+        (set_local $fmt (i32.add 1 $fmt))
+        (if (i32.eqz $ch) (br $done))
+        ;; TODO: check buffer length
+
+        (if (i32.ne $ch (CHR "%"))
+          (then
+            ;; TODO: check buffer length
+            (i32.store8_u $pstr $ch)
+            (set_local $pstr (i32.add 1 $pstr))
+            (br $loop)))
+
+        ;;; ch=*(fmt++)
+        (set_local $ch (i32.load8_u $fmt))
+        (set_local $fmt (i32.add 1 $fmt))
+
+        (if (i32.eq (CHR "d") $ch)
+          (then
+            (set_local $pstr ($_sprintnum $pstr $v 10)))
+        (else (if (i32.eq (CHR "x") $ch)
+          (then
+            (set_local $pstr ($_sprintnum $pstr $v 10)))
+        (else (if (i32.eq (CHR "s") $ch)
+          (then
+            (set_local $len ($STRING_LEN $v))
+            ($MEM_COPY $pstr $v $len)
+            (set_local $pstr (i32.add $pstr $len)))
+        (else (if (i32.eq (CHR "c") $ch)
+          (then
+            (i32.store8_u $pstr $v)
+            (set_local $pstr (i32.add $pstr 1)))
+        (else
+          ($print "Illegal format character: ")
+          (drop ($putchar $ch))
+          (drop ($putchar (CHR "\n")))
+          ($exit 3)))))))))
+
+        (set_local $vidx (i32.add 1 $vidx))
+        (br $loop)
+      )
+    )
+
+    (i32.store8_u $pstr (CHR "\x00"))
+    $pstr
+  )
+
+)
+

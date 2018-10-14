@@ -1,0 +1,139 @@
+(module $printer
+
+  (func $pr_str_val (param $res i32) (param $mv i32) (result i32)
+    (local $type i32)
+    (local $val0 i32)
+    (local $sval i32)
+    (set_local $type ($TYPE $mv))
+    (set_local $val0 ($MalVal_val ($MalVal_index $mv)
+                           0))
+
+    ;;; switch(type)
+    (block $done
+      (block $default
+      (block (block (block (block (block (block (block (block
+      (block (block (block (block (block (block (block (block
+      (br_table 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 $type))
+      ;; 0: nil
+      ($MEM_COPY $res "nil" 4)
+      (set_local $res (i32.add 3 $res))
+      (br $done))
+      ;; 1: boolean
+      (if (i32.eq $val0 0)
+        (then
+          ;; false
+          ($MEM_COPY $res "false" 5)
+          (set_local $res (i32.add 5 $res)))
+        (else
+          ;; true
+          ($MEM_COPY $res "true" 4)
+          (set_local $res (i32.add 4 $res))))
+      (br $done))
+      ;; 2: integer
+      (set_local $res ($sprintf_1 $res "%d" $val0))
+      (br $done))
+      ;; 3: float/ERROR
+      (set_local $res ($sprintf_1 $res "%d" " *** GOT FLOAT *** "))
+      (br $done))
+      ;; 4: string/kw
+      (set_local $sval ($to_String $mv))
+      (if (i32.eq (i32.load8_u $sval) (CHR "\x7f"))
+        (then
+          (set_local $res ($sprintf_1 $res ":%s" (i32.add $sval 1))))
+        (else
+          (set_local $res ($sprintf_1 $res "\"%s\"" ($to_String $mv)))))
+      (br $done))
+      ;; 5: symbol
+      (set_local $res ($sprintf_1 $res "%s" ($to_String $mv)))
+      (br $done))
+      ;; 6: list, fallthrouogh
+      )
+      ;; 7: vector, fallthrough
+      )
+      ;; 8: hashmap
+      (set_local
+        $res ($sprintf_1 $res "%c"
+                         (if i32 (i32.eq $type (get_global $LIST_T))
+                           (CHR "(")
+                           (else (if i32 (i32.eq $type (get_global $VECTOR_T))
+                                   (CHR "[")
+                                   (else (CHR "{")))))))
+      ;; PR_SEQ_LOOP
+      ;;; while (VAL0(mv) != 0)
+      (block $done_seq
+        (loop $seq_loop
+          (if (i32.eq ($VAL0 $mv) 0)
+            (br $done_seq))
+          ;;; res = pr_str_val(res, MEM_VAL1(mv), print_readably)
+          (set_local $res ($pr_str_val $res ($MEM_VAL1_ptr $mv)))
+
+          ;; if this is a hash-map, print the next element
+          (if (i32.eq $type (get_global $HASHMAP_T))
+            (then
+              ;;; res += snprintf(res, 2, " ")
+              (set_local $res ($sprintf_1 $res " " 0))
+              (set_local $res ($pr_str_val $res ($MEM_VAL2_ptr $mv)))))
+          ;;; mv = MEM_VAL0(mv)
+          (set_local $mv ($MEM_VAL0_ptr $mv))
+          ;;; if (VAL0(mv) != 0)
+          (if (i32.ne ($VAL0 $mv) 0)
+            ;;; res += snprintf(res, 2, " ")
+            (set_local $res ($sprintf_1 $res " " 0)))
+          ;;($print "here4\n")
+          (br $seq_loop)
+        )
+      )
+
+      (set_local
+        $res ($sprintf_1 $res "%c"
+                         (if i32 (i32.eq $type (get_global $LIST_T))
+                           (CHR ")")
+                           (else (if i32 (i32.eq $type (get_global $VECTOR_T))
+                                   (CHR "]")
+                                   (else (CHR "}")))))))
+      (br $done))
+      ;; 9: function
+      ($MEM_COPY $res "#<fn ...>" 10)
+      (set_local $res (i32.add 9 $res))
+      (br $done))
+      ;; 10: mal function
+      ($MEM_COPY $res "(fn* ...)" 10)
+      (set_local $res (i32.add 9 $res))
+      (br $done))
+      ;; 11: macro fn
+      ($print "macro fn")
+      ($MEM_COPY $res "#<macro ...>" 13)
+      (set_local $res (i32.add 12 $res))
+      (br $done))
+      ;; 12: atom
+      ($MEM_COPY $res "(atom ...)" 11)
+      (set_local $res (i32.add 10 $res))
+      (br $done))
+      ;; 13: environment
+      ($MEM_COPY $res "#<mem ...>" 11)
+      (set_local $res (i32.add 10 $res))
+      (br $done))
+      ;; 14: metadata
+      ($MEM_COPY $res "#<meta ...>" 12)
+      (set_local $res (i32.add 11 $res))
+      (br $done))
+      ;; 15: FREE
+      ($MEM_COPY $res "#<free ...>" 12)
+      (set_local $res (i32.add 11 $res))
+      (br $done))
+      ;; 16: default
+      ($MEM_COPY $res "#<unknown>" 11)
+      (set_local $res (i32.add 10 $res))
+    )
+
+    $res
+  )
+
+  (func $pr_str (param $mv i32) (result i32)
+    (drop ($pr_str_val (get_global $sprintf_buf) $mv))
+    ($STRING (get_global $STRING_T) (get_global $sprintf_buf))
+  )
+
+  (export "pr_str" (func $pr_str))
+
+)

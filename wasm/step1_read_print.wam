@@ -1,0 +1,88 @@
+(module $step1_read_print
+  (import "env" "memory" (memory $0 256))
+  (import "env" "memoryBase" (global $memoryBase i32))
+
+  ;; READ
+  (func $READ (param $str i32) (result i32)
+    ($read_str $str)
+  )
+
+  ;; EVAL
+  (func $EVAL (param $ast i32) (param $env i32) (result i32)
+    $ast
+  )
+
+  ;; PRINT
+  (func $PRINT (param $ast i32) (result i32)
+    ($pr_str $ast)
+  )
+
+  ;; REPL
+  (func $rep (param $line i32) (param $env i32) (result i32)
+    (local $mv1 i32)
+    (local $mv2 i32)
+    (local $ms i32)
+    (block $rep_done
+      (set_local $mv1 ($READ $line))
+      (if (get_global $error_type) (br $rep_done))
+
+      (set_local $mv2 ($EVAL $mv1 $env))
+      (if (get_global $error_type) (br $rep_done))
+
+;;      ($PR_MEMORY -1 -1)
+      (set_local $ms ($PRINT $mv2))
+    )
+
+;;    ($PR_MEMORY -1 -1)
+    ($RELEASE $mv1)
+    $ms
+  )
+
+  (func $main (result i32)
+    ;; Constant location/value definitions
+    (local $line i32)
+    (local $res i32)
+
+    ;; DEBUG
+    ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
+    ($printf_1 "heap_start: 0x%x\n" (get_global $heap_start))
+    ($printf_1 "heap_end: 0x%x\n" (get_global $heap_end))
+    ($printf_1 "mem: 0x%x\n" (get_global $mem))
+;;    ($printf_1 "string_mem: %d\n" (get_global $string_mem))
+    ($PR_MEMORY -1 -1)
+;;    ($PR_MEMORY_RAW (get_global $mem)
+;;          (i32.add (get_global $mem)
+;;                   (i32.mul_u (get_global $mem_unused_start)
+;;                              8)))
+
+    ;; Start
+    (block $repl_done
+      (loop $repl_loop
+        (set_local $line ($readline "user> "))
+        (if (i32.eqz $line) (br $repl_done))
+        (if (i32.eq (i32.load8_u $line) 0)
+          (then
+            ($free $line)
+            (br $repl_loop)))
+        (set_local $res ($rep $line 0))
+        (if (get_global $error_type)
+          (then
+            ($printf_1 "Error: %s\n" (get_global $error_str))
+            (set_global $error_type 0))
+          (else
+            ($printf_1 "%s\n" ($to_String $res))))
+        ($RELEASE $res)
+;;        ($PR_MEMORY -1 -1)
+        ($free $line)
+        (br $repl_loop)))
+
+    ($print "\n")
+    ($PR_MEMORY -1 -1)
+    0
+  )
+
+
+  (export "_main" (func $main))
+  (export "__post_instantiate" (func $init_memory))
+)
+

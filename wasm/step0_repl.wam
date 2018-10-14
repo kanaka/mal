@@ -2,20 +2,24 @@
   (import "env" "memory" (memory $0 256))
   (import "env" "memoryBase" (global $memoryBase i32))
 
+  ;; READ
   (func $READ (param $str i32) (result i32)
-    (get_local $str))
+    $str
+  )
 
   (func $EVAL (param $ast i32) (param $env i32) (result i32)
-    (get_local $ast))
+    $ast
+  )
 
+  ;; PRINT
   (func $PRINT (param $ast i32) (result i32)
-    (get_local $ast))
+    $ast
+  )
 
-  (func $rep (param $str i32) (result i32)
-    (call $PRINT
-          (call $EVAL
-                (call $READ (get_local $str))
-                (i32.const 0))))
+  ;; REPL
+  (func $rep (param $line i32) (result i32)
+    ($PRINT ($EVAL ($READ $line) 0))
+  )
 
   (func $main (result i32)
     ;; Constant location/value definitions
@@ -24,14 +28,14 @@
     ;; Start
     (block $repl_done
       (loop $repl_loop
-        (set_local $line (call $readline (STRING "user> ")))
-        (if (i32.eqz (get_local $line)) (br $repl_done))
-        (call $printf_1 (STRING "%s\n") (call $rep (get_local $line)))
-        (call $free (get_local $line))
+        (set_local $line ($readline "user> "))
+        (if (i32.eqz $line) (br $repl_done))
+        ($printf_1 "%s\n" ($rep $line))
+        ($free $line)
         (br $repl_loop)))
 
-    (call $print (STRING "\n"))
-    (i32.const 0)
+    ($print "\n")
+    0
   )
 
 
