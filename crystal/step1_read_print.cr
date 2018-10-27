@@ -1,6 +1,6 @@
 #! /usr/bin/env crystal run
 
-require "./readline"
+require "readline"
 require "./reader"
 require "./printer"
 
@@ -15,7 +15,7 @@ module Mal
   end
 
   def eval(x)
-      x
+    x
   end
 
   def print(result)
@@ -27,7 +27,7 @@ module Mal
   end
 end
 
-while line = my_readline("user> ")
+while line = Readline.readline("user> ", true)
   begin
     puts Mal.rep(line)
   rescue e

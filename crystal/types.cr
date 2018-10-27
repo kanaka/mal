@@ -1,50 +1,14 @@
 require "./printer"
 
 module Mal
-  class Symbol
-    property :str
-    def initialize(@str : String)
-    end
-
-    def ==(other : Symbol)
-      @str == other.str
-    end
-  end
-
-  class List < Array(Type)
-  end
-
-  class Vector < Array(Type)
-  end
-
-  class HashMap < Hash(String, Type)
-  end
-
-  class Atom
-    property :val
-    def initialize(@val : Type)
-    end
-
-    def ==(rhs : Atom)
-      @val == rhs.val
-    end
-  end
-
-  class Closure
-    property :ast, :params, :env, :fn
-    def initialize(@ast : Type, @params : List | Vector, @env : Env, @fn : Func)
-    end
-  end
-
   class Type
     alias Func = (Array(Type) -> Type)
-    alias ValueType = Nil | Bool | Int64 | String | Symbol | List | Vector | HashMap | Func | Closure | Atom
 
     property :is_macro, :meta
 
     def initialize(@val : ValueType)
       @is_macro = false
-      @meta = nil as Type?
+      @meta = nil.as(Type | Nil)
     end
 
     def initialize(other : Type)
@@ -96,6 +60,45 @@ module Mal
     rel_op :<, :>, :<=, :>=
   end
 
+  class Symbol
+    property :str
+
+    def initialize(@str : String)
+    end
+
+    def ==(other : Symbol)
+      @str == other.str
+    end
+  end
+
+  class List < Array(Type)
+  end
+
+  class Vector < Array(Type)
+  end
+
+  class HashMap < Hash(String, Type)
+  end
+
+  class Atom
+    property :val
+
+    def initialize(@val : Type)
+    end
+
+    def ==(rhs : Atom)
+      @val == rhs.val
+    end
+  end
+
+  class Closure
+    property :ast, :params, :env, :fn
+
+    def initialize(@ast : Type, @params : Array(Mal::Type) | List | Vector, @env : Env, @fn : Func)
+    end
+  end
+
+  alias Type::ValueType = Nil | Bool | Int64 | String | Symbol | List | Vector | HashMap | Func | Closure | Atom
   alias Func = Type::Func
 end
 
@@ -105,7 +108,6 @@ end
 
 class Array
   def to_mal(t = Mal::List)
-    each_with_object(t.new){|e, l| l << e}
+    each_with_object(t.new) { |e, l| l << e }
   end
 end
-
