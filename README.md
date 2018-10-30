@@ -290,7 +290,7 @@ coffee ./stepX_YYY
 
 *The Crystal implementation of mal was created by [Linda_pp](https://github.com/rhysd)*
 
-The Crystal implementation of mal has been tested with Crystal 0.18.4.
+The Crystal implementation of mal has been tested with Crystal 0.26.1.
 
 ```
 cd crystal

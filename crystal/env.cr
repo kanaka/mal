@@ -2,7 +2,6 @@ require "./types"
 require "./error"
 
 module Mal
-
   class Env
     property data
 
@@ -23,10 +22,10 @@ module Mal
 
         if sym.str == "&"
           eval_error "missing variable parameter name" if binds.size == idx
-          next_param = binds[idx+1].unwrap
+          next_param = binds[idx + 1].unwrap
           eval_error "bind name must be symbol" unless next_param.is_a? Mal::Symbol
           var_args = Mal::List.new
-          exprs[idx..-1].each{|e| var_args << e} if idx < exprs.size
+          exprs[idx..-1].each { |e| var_args << e } if idx < exprs.size
           @data[next_param.str] = Mal::Type.new var_args
           break
         end
@@ -64,5 +63,4 @@ module Mal
       e.data[key]
     end
   end
-
 end

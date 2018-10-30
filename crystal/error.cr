@@ -9,6 +9,7 @@ module Mal
 
   class RuntimeException < Exception
     getter :thrown
+
     def initialize(@thrown : Type)
       super()
     end
