@@ -233,13 +233,12 @@
   )
 
   (func $read_form (param $str i32) (result i32)
-    ;;($STRING (get_global $STRING_T) $str)
     (local $tok i32 $c0 i32 $c1 i32 $res i32 $slen i32)
 
     (if (get_global $error_type) (return 0))
 
     (set_local $tok ($read_token $str))
-;;    ($debug ">>> read_form 1:" $tok)
+    ;;($printf_1 ">>> read_form 1: %s\n" $tok)
     ;;; c0 = token[0]
     (set_local $c0 (i32.load8_u $tok))
     (set_local $c1 (i32.load8_u (i32.add $tok 1)))

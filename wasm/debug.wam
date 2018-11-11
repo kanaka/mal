@@ -1,5 +1,9 @@
 (module $debug
 
+  (func $checkpoint_user_memory
+    (set_global $mem_user_start (get_global $mem_unused_start))
+  )
+
   (func $CHECK_FREE_LIST (result i32)
     (local $first i32 $count i32)
     (set_local $first (i32.add
@@ -90,36 +94,26 @@
     (set_local $size ($MalVal_size $mv))
     (set_local $val0 ($MalVal_val $idx 0))
 
-    ;;; printf(" %3d: type: %2d", idx, type)
-    ($printf_2 " %d: type: %d" $idx $type)
+    ($printf_2 "%4d: type %2d" $idx $type)
 
     (if (i32.eq $type 15)
-      (then
-        ;;; printf(", size: %2d", size)
-        ($printf_1 ", size: %d" $size))
-      (else
-        ;;;  printf(", refs: %2d", (mv->refcnt_type - type)>>5)
-        ($printf_1 ", refs: %d" ($REFS $mv))))
+      (then ($printf_1 ", size %2d" $size))
+      (else ($printf_1 ", refs %2d" ($REFS $mv))))
 
-    ;;; printf(", [ %3d | %3d", mv->refcnt_type, val0)
     (if (OR (i32.eq $type (get_global $STRING_T))
             (i32.eq $type (get_global $SYMBOL_T)))
       ;; for strings/symbolx pointers, print hex values
-      (then ($printf_2 ", [ 0x%x | 0x%x" ($MalVal_refcnt_type $idx) $val0))
-      (else ($printf_2 ", [ %d | %d" ($MalVal_refcnt_type $idx) $val0)))
+      (then ($printf_2 " [%4d|%3ds" ($MalVal_refcnt_type $idx) $val0))
+      (else ($printf_2 " [%4d|%4d" ($MalVal_refcnt_type $idx) $val0)))
 
     (if (i32.eq $size 2)
       (then
-        ($print " | --- | --- ]"))
+        ($print "|----|----]"))
       (else
-        ;;; printf(" | %3d", mv->val[1])
-        ($printf_1 " | %d" ($MalVal_val $idx 1))
+        ($printf_1 "|%4d" ($MalVal_val $idx 1))
         (if (i32.eq $size 3)
-          (then
-            ($print " | --- ]"))
-          (else
-            ;;; printf(" | %3d ]", mv->val[2])
-            ($printf_1 " | %d ]" ($MalVal_val $idx 2))))))
+          (then ($print "|----]"))
+          (else ($printf_1 "|%4d]" ($MalVal_val $idx 2))))))
 
     ;;; printf(" >> ")
     ($print " >> ")
@@ -157,7 +151,7 @@
           ($print "()"))
         (else
           ;;; printf("(... %d ...), next: %d\n", mv->val[1], mv->val[0])
-          ($printf_2 "(... 0x%x ...), next: 0x%x"
+          ($printf_2 "(... %d ...), next: %d"
                      ($MalVal_val $idx 1)
                      ($MalVal_val $idx 0))))
       (br $done))

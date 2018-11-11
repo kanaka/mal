@@ -542,6 +542,7 @@
     ($add_core_ns $repl_env)
     (drop ($ENV_SET_S $repl_env "eval" ($FUNCTION 0)))
 
+    ($checkpoint_user_memory)
 
     ;; core.mal: defined using the language itself
     ($RELEASE ($RE "(def! *host-language* \"WebAssembly\")" $repl_env))
