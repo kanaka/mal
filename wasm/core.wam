@@ -86,8 +86,8 @@
     (if i32 (i32.eq (i32.load8_u $str) (CHR "\x7f"))
       (then ($INC_REF ($MEM_VAL1_ptr $args)))
       (else
-        (drop ($sprintf_1 (get_global $util_buf) "\x7f%s" $str))
-        ($STRING (get_global $STRING_T) (get_global $util_buf))))
+        (drop ($sprintf_1 (get_global $printf_buf) "\x7f%s" $str))
+        ($STRING (get_global $STRING_T) (get_global $printf_buf))))
   )
 
   (func $keyword_Q (param $args i32) (result i32)
@@ -134,10 +134,10 @@
 
   (func $core_readline (param $args i32) (result i32)
     (local $line i32 $mv i32)
-    (set_local $line ($readline ($to_String ($MEM_VAL1_ptr $args))))
-    (if (i32.eqz $line) (return ($INC_REF (get_global $NIL))))
+    (set_local $line (STATIC_ARRAY 201))
+    (if (i32.eqz ($readline ($to_String ($MEM_VAL1_ptr $args)) $line))
+      (return ($INC_REF (get_global $NIL))))
     (set_local $mv ($STRING (get_global $STRING_T) $line))
-    ($free $line)
     $mv
   )
 
@@ -145,14 +145,15 @@
     ($read_str ($to_String ($MEM_VAL1_ptr $args))))
 
   (func $slurp (param $args i32) (result i32)
-    (local $content i32 $mv i32)
-    (set_local $content ($read_file ($to_String ($MEM_VAL1_ptr $args))))
-    (if (i32.le_s $content 0)
+    (local $mv i32 $size i32)
+    (set_local $mv ($STRING_INIT (get_global $STRING_T)))
+    (set_local $size ($read_file ($to_String ($MEM_VAL1_ptr $args))
+                                 ($to_String $mv)))
+    (if (i32.eqz $size)
       (then
         ($THROW_STR_1 "failed to read file '%s'" ($to_String ($MEM_VAL1_ptr $args)))
         (return ($INC_REF (get_global $NIL)))))
-    (set_local $mv ($STRING (get_global $STRING_T) $content))
-    ($free $content)
+    (set_local $mv ($STRING_FINALIZE $mv $size))
     $mv
   )
 

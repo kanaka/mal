@@ -165,12 +165,12 @@
     (set_local $f 0)
     (set_local $args 0)
 
-    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
-
     (if (get_global $error_type)
       (then
         (set_local $res 0)
         (br $EVAL_return)))
+
+    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
 
     (if (i32.ne ($TYPE $ast) (get_global $LIST_T))
       (then
@@ -240,6 +240,7 @@
         ;; EVAL the rest through second to last
         (set_local $el ($EVAL_AST ($MEM_VAL0_ptr $ast) $env 1))
         (set_local $ast ($LAST $ast))
+        ($RELEASE $ast) ;; we already own it via ast
         ($RELEASE $el)
         (br $TCO_loop))
     (else (if (i32.eqz ($strcmp "quote" $a0sym))
@@ -393,6 +394,7 @@
     (local $line i32 $res i32 $repl_env i32)
     ;; argument processing
     (local $i i32 $ret i32 $empty i32 $current i32 $tmp i32 $val2 i32)
+    (set_local $line (STATIC_ARRAY 201))
 
     ;; DEBUG
 ;;    ($printf_1 "argc: 0x%x\n" $argc)
@@ -408,6 +410,8 @@
     ;; core.EXT: defined in wasm
     ($add_core_ns $repl_env)
     (drop ($ENV_SET_S $repl_env "eval" ($FUNCTION 0)))
+
+    ($checkpoint_user_memory)
 
     ;; core.mal: defined using the language itself
     ($RELEASE ($RE "(def! not (fn* (a) (if a false true)))" $repl_env))
@@ -464,12 +468,8 @@
     ;; Start REPL
     (block $repl_done
       (loop $repl_loop
-        (set_local $line ($readline "user> "))
-        (if (i32.eqz $line) (br $repl_done))
-        (if (i32.eq (i32.load8_u $line) 0)
-          (then
-            ($free $line)
-            (br $repl_loop)))
+        (br_if $repl_done (i32.eqz ($readline "user> " $line)))
+        (br_if $repl_loop (i32.eq (i32.load8_u $line) 0))
         (set_local $res ($REP $line $repl_env))
         (if (get_global $error_type)
           (then
@@ -478,9 +478,10 @@
           (else
             ($printf_1 "%s\n" ($to_String $res))))
         ($RELEASE $res)
-;;        ($PR_MEMORY -1 -1)
-        ($free $line)
-        (br $repl_loop)))
+        ;;($PR_MEMORY_SUMMARY_SMALL)
+        (br $repl_loop)
+      )
+    )
 
     ($print "\n")
     ;;($PR_MEMORY -1 -1)

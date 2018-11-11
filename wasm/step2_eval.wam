@@ -112,8 +112,9 @@
 
     (if (get_global $error_type) (return 0))
 
-    (if (i32.ne $type (get_global $LIST_T))
-      (return ($EVAL_AST $ast $env)))
+    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
+
+    (if (i32.ne $type (get_global $LIST_T)) (return ($EVAL_AST $ast $env)))
 
     ;; APPLY_LIST
     (if ($EMPTY_Q $ast) (return ($INC_REF $ast)))
@@ -187,6 +188,7 @@
 
   (func $main (result i32)
     (local $line i32 $res i32 $repl_env i32)
+    (set_local $line (STATIC_ARRAY 201))
 
     ;; DEBUG
     ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
@@ -208,12 +210,8 @@
     ;; Start REPL
     (block $repl_done
       (loop $repl_loop
-        (set_local $line ($readline "user> "))
-        (if (i32.eqz $line) (br $repl_done))
-        (if (i32.eq (i32.load8_u $line) 0)
-          (then
-            ($free $line)
-            (br $repl_loop)))
+        (br_if $repl_done (i32.eqz ($readline "user> " $line)))
+        (br_if $repl_loop (i32.eq (i32.load8_u $line) 0))
         (set_local $res ($REP $line $repl_env))
         (if (get_global $error_type)
           (then
@@ -222,9 +220,10 @@
           (else
             ($printf_1 "%s\n" ($to_String $res))))
         ($RELEASE $res)
-;;        ($PR_MEMORY -1 -1)
-        ($free $line)
-        (br $repl_loop)))
+        ;;($PR_MEMORY_SUMMARY_SMALL)
+        (br $repl_loop)
+      )
+    )
 
     ($print "\n")
     ;;($PR_MEMORY -1 -1)

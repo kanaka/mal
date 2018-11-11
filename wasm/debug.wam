@@ -2,6 +2,7 @@
 
   (func $checkpoint_user_memory
     (set_global $mem_user_start (get_global $mem_unused_start))
+    (set_global $string_mem_user_start (get_global $string_mem_next))
   )
 
   (func $CHECK_FREE_LIST (result i32)
@@ -211,10 +212,42 @@
     (i32.add $size $idx)
   )
 
+  (func $PR_STRINGS (param $start i32)
+    (local $ms i32 $idx i32)
+    ($printf_2 "String - showing %d -> %d:\n"
+               $start (i32.sub_s (get_global $string_mem_next)
+                                 (get_global $string_mem)))
+    (if (i32.le_s (i32.sub_s (get_global $string_mem_next)
+                             (get_global $string_mem))
+                  $start)
+      (then ($print " ---\n"))
+      (else
+        (set_local $ms (get_global $string_mem))
+        (block $done
+          (loop $loop
+            (if (i32.ge_u $ms (get_global $string_mem_next))
+              (br $done))
+            (set_local $idx (i32.sub_u $ms (get_global $string_mem)))
+            (if (i32.ge_s $idx $start)
+              ($printf_4 "%4d: refs %2d, size %2d >> '%s'\n"
+                         $idx
+                         (i32.load16_u $ms)
+                         (i32.load16_u (i32.add $ms 2))
+                         (i32.add $ms 4)))
+
+            (set_local $ms (i32.add $ms (i32.load16_u (i32.add $ms 2))))
+            (br $loop)
+          )
+        )))
+  )
+
   (func $PR_MEMORY (param $start i32 $end i32)
-    (local $idx i32)
+    (local $string_start i32 $idx i32)
     (if (i32.lt_s $start 0)
-      (set_local $start (get_global $mem_user_start)))
+      (then
+        (set_local $start (get_global $mem_user_start))
+        (set_local $string_start (i32.sub_s (get_global $string_mem_user_start)
+                                            (get_global $string_mem)))))
     (if (i32.lt_s $end 0)
       (set_local $end (get_global $mem_unused_start)))
     ;;; printf("Values - (mem) showing %d -> %d", start, end)
@@ -241,6 +274,7 @@
             (br $loopvals)
           )
         )))
+    ($PR_STRINGS $string_start)
     ($PR_MEMORY_SUMMARY_SMALL)
   )
 

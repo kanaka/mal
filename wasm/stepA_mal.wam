@@ -1,4 +1,4 @@
-(module $step8_macros
+(module $stepA_mal
 
   (global $repl_env (mut i32) (i32.const 0))
 
@@ -60,12 +60,12 @@
     $res
   )
 
-  (global $mac_ast_stack (mut i32) (i32.const 0))
-  (global $mac_ast_stack_top (mut i32) (i32.const -1))
+  (global $mac_stack (mut i32) (i32.const 0))
+  (global $mac_stack_top (mut i32) (i32.const -1))
 
   (func $MACROEXPAND (param $orig_ast i32 $env i32) (result i32)
     (local $ast i32 $mac i32 $mac_env i64)
-    (set_global $mac_ast_stack (STATIC_ARRAY 128))
+    (set_global $mac_stack (STATIC_ARRAY 1024)) ;; 256 * 4
     (set_local $ast $orig_ast)
     (set_local $mac 0)
     (block $done
@@ -89,16 +89,18 @@
         ;; to the pending release list.
         (if (i32.ne $ast $orig_ast)
           (then
-            (set_global $mac_ast_stack_top
-                        (i32.add (get_global $mac_ast_stack_top) 1))
+            (set_global $mac_stack_top
+                        (i32.add (get_global $mac_stack_top) 1))
+            (if (i32.ge_s (i32.mul_s (get_global $mac_stack_top) 4) 1024) ;; 256 * 4
+              ($fatal 7 "Exhausted mac_stack!\n"))
             (i32.store (i32.add
-                         (get_global $mac_ast_stack)
-                         (i32.mul_s (get_global $mac_ast_stack_top) 4))
+                         (get_global $mac_stack)
+                         (i32.mul_s (get_global $mac_stack_top) 4))
               $ast)))
         (if (get_global $error_type)
           (br $done))
 
-      (br $loop)
+        (br $loop)
       )
     )
     $ast
@@ -196,12 +198,14 @@
     (local $ftype i32 $f_args i32 $f i32 $args i32)
     (local $a0 i32 $a0sym i32 $a1 i32 $a2 i32)
     (local $err i32)
+    (local $orig_mac_stack_top i32)
 
     (set_local $ast $orig_ast)
     (set_local $env $orig_env)
     (set_local $prev_ast 0)
     (set_local $prev_env 0)
     (set_local $res 0)
+    (set_local $orig_mac_stack_top (get_global $mac_stack_top))
 
     (block $EVAL_return
     (loop $TCO_loop
@@ -210,12 +214,12 @@
     (set_local $f 0)
     (set_local $args 0)
 
-    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
-
     (if (get_global $error_type)
       (then
         (set_local $res 0)
         (br $EVAL_return)))
+
+    ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
 
     (if (i32.ne ($TYPE $ast) (get_global $LIST_T))
       (then
@@ -293,6 +297,7 @@
         ;; EVAL the rest through second to last
         (set_local $el ($EVAL_AST ($MEM_VAL0_ptr $ast) $env 1))
         (set_local $ast ($LAST $ast))
+        ($RELEASE $ast) ;; we already own it via ast
         ($RELEASE $el)
         (br $TCO_loop))
     (else (if (i32.eqz ($strcmp "quote" $a0sym))
@@ -334,7 +339,6 @@
         (if (i32.eqz (get_global $error_type))
           (br $EVAL_return))
         ;; if there is an error and res is set, we need to free it
-        ($printf_1 "res value: %d\n" $res)
         ($RELEASE $res)
         ;; if there is no catch block then return
         (if (i32.eqz ($VAL0 ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast))))
@@ -470,6 +474,23 @@
     (if (i32.ne $env $orig_env) ($RELEASE $env))
     (if $prev_ast ($RELEASE $prev_ast))
 
+    ;; release memory from MACROEXPAND
+    ;; TODO: needs to happen here so self-hosting doesn't leak
+    (block $done
+      (loop $loop
+        (if (i32.le_s (get_global $mac_stack_top) $orig_mac_stack_top)
+          (br $done))
+;;($printf_1 "free orig_mac_stack_top: %d\n" $orig_mac_stack_top)
+;;($printf_1 "free mac_stack_top: %d\n" (get_global $mac_stack_top))
+        ($RELEASE (i32.load (i32.add
+                              (get_global $mac_stack)
+                              (i32.mul_s (get_global $mac_stack_top) 4))))
+        (set_global $mac_stack_top
+                    (i32.sub_s (get_global $mac_stack_top) 1))
+        (br $loop)
+      )
+    )
+
     $res
   )
 
@@ -490,20 +511,6 @@
 
     ;; release memory from MAL_READ
     ($RELEASE $mv1)
-    ;; release memory from MACROEXPAND
-    ;; TODO: needs to happen in EVAL
-    (block $done
-      (loop $loop
-        (if (i32.lt_s (get_global $mac_ast_stack_top) 0)
-          (br $done))
-        ($RELEASE (i32.load (i32.add
-                              (get_global $mac_ast_stack)
-                              (i32.mul_s (get_global $mac_ast_stack_top) 4))))
-        (set_global $mac_ast_stack_top
-                    (i32.sub_s (get_global $mac_ast_stack_top) 1))
-        (br $loop)
-      )
-    )
     $res
   )
 
@@ -526,6 +533,7 @@
     (local $line i32 $res i32 $repl_env i32)
     ;; argument processing
     (local $i i32 $ret i32 $empty i32 $current i32 $tmp i32 $val2 i32)
+    (set_local $line (STATIC_ARRAY 201))
 
     ;; DEBUG
 ;;    ($printf_1 "argc: 0x%x\n" $argc)
@@ -605,12 +613,8 @@
     ;; Start REPL
     (block $repl_done
       (loop $repl_loop
-        (set_local $line ($readline "user> "))
-        (if (i32.eqz $line) (br $repl_done))
-        (if (i32.eq (i32.load8_u $line) 0)
-          (then
-            ($free $line)
-            (br $repl_loop)))
+        (br_if $repl_done (i32.eqz ($readline "user> " $line)))
+        (br_if $repl_loop (i32.eq (i32.load8_u $line) 0))
         (set_local $res ($REP $line $repl_env))
         (if (get_global $error_type)
           (then
@@ -619,9 +623,10 @@
           (else
             ($printf_1 "%s\n" ($to_String $res))))
         ($RELEASE $res)
-        ($free $line)
         ;;($PR_MEMORY_SUMMARY_SMALL)
-        (br $repl_loop)))
+        (br $repl_loop)
+      )
+    )
 
     ($print "\n")
     ;;($PR_MEMORY -1 -1)

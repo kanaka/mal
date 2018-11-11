@@ -1,4 +1,6 @@
-STEP0_DEPS = string.wam util.wam
+MODE ?= libc
+
+STEP0_DEPS = platform_$(MODE).wam string.wam printf.wam
 STEP1_DEPS = $(STEP0_DEPS) types.wam mem.wam debug.wam reader.wam printer.wam
 STEP3_DEPS = $(STEP1_DEPS) env.wam
 STEP4_DEPS = $(STEP3_DEPS) core.wam

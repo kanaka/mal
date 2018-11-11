@@ -162,9 +162,7 @@
             (set_local $needle_len ($strlen $needle))
             (set_local $replace_len ($strlen $replace))
             (if (i32.gt_u $replace_len $needle_len)
-              (then
-                ($print "REPLACE: invalid expanding in-place call\n")
-                ($exit 1)))
+              ($fatal 7 "REPLACE: invalid expanding in-place call\n"))
             (set_local $s (i32.add $s 1))
             (br $loop)
           )

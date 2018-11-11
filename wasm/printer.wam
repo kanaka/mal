@@ -147,26 +147,28 @@
 
   (func $pr_str_internal (param $seq i32) (param $mv i32)
         (param $print_readably i32) (param $sep i32) (result i32)
-    (local $res i32)
-    (set_local $res (get_global $printer_buf))
-    (i32.store8_u $res 0)
+    (local $res i32 $res_str i32)
+    (set_local $res ($STRING_INIT (get_global $STRING_T)))
+    (set_local $res_str ($to_String $res))
 
     (if $seq
       (then
         (block $done
           (loop $loop
-            (if (i32.eqz ($VAL0 $mv)) (br $done))
-            (set_local $res ($pr_str_val $res ($MEM_VAL1_ptr $mv) $print_readably))
+            (br_if $done (i32.eqz ($VAL0 $mv)))
+            (set_local $res_str ($pr_str_val $res_str ($MEM_VAL1_ptr $mv) $print_readably))
             (set_local $mv ($MEM_VAL0_ptr $mv))
             (if (i32.ne ($VAL0 $mv) 0)
-              (set_local $res ($sprintf_1 $res "%s" $sep)))
+              (set_local $res_str ($sprintf_1 $res_str "%s" $sep)))
             (br $loop)
           )
         ))
       (else
-        (set_local $res ($pr_str_val $res $mv $print_readably))))
+        (set_local $res_str ($pr_str_val $res_str $mv $print_readably))))
 
-    ($STRING (get_global $STRING_T) (get_global $printer_buf))
+    (set_local $res ($STRING_FINALIZE $res (i32.sub_s $res_str ($to_String $res))))
+
+    $res
   )
 
   (func $pr_str (param $mv i32 $print_readably i32) (result i32)
