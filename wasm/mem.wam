@@ -98,8 +98,7 @@
           (else 3)))))
 
   (func $MalVal_size (param $mv i32) (result i32)
-    (local $type i32)
-    (set_local $type ($TYPE $mv))
+    (LET $type ($TYPE $mv))
     ;; if (type == FREE_T)
     (if i32 (i32.eq $type (get_global $FREE_T))
       (then
@@ -113,7 +112,7 @@
   ;; init_memory
 
   (func $init_memory
-    (local $heap_size i32)
+    (LET $heap_size 0)
 
 ;;    ($print ">>> init_memory\n")
 
@@ -170,10 +169,9 @@
 
   (func $ALLOC_INTERNAL (param $type i32
                                $val1 i32 $val2 i32 $val3 i32) (result i32)
-    (local $prev i32 $res i32 $size i32)
-    (set_local $prev (get_global $mem_free_list))
-    (set_local $res (get_global $mem_free_list))
-    (set_local $size ($MalType_size $type))
+    (LET $prev (get_global $mem_free_list)
+         $res  (get_global $mem_free_list)
+         $size ($MalType_size $type))
 
     (block $loop_done
       (loop $loop
@@ -267,7 +265,7 @@
   )
 
   (func $RELEASE (param $mv i32)
-    (local $idx i32 $type i32 $size i32)
+    (LET $idx 0 $type 0 $size 0)
 
     ;; Ignore NULLs
     ;;; if (mv == NULL) { return; }
@@ -373,8 +371,7 @@
 
   ;; find string in string memory or 0 if not found
   (func $FIND_STRING (param $str i32) (result i32)
-    (local $ms i32)
-    (set_local $ms (get_global $string_mem))
+    (LET $ms (get_global $string_mem))
     (block $done
       (loop $loop
         (br_if $done (i32.ge_s $ms (get_global $string_mem_next)))
@@ -392,7 +389,7 @@
   ;; size is number of characters in the string not including the
   ;; trailing NULL
   (func $ALLOC_STRING (param $str i32 $size i32 $intern i32) (result i32)
-    (local $ms i32)
+    (LET $ms 0)
 
     ;; search for matching string in string_mem
     (if $intern
@@ -420,7 +417,7 @@
   )
 
   (func $RELEASE_STRING (param $ms i32)
-    (local $size i32 $next i32 $ms_idx i32 $idx i32 $type i32 $mv i32)
+    (LET $size 0 $next 0 $ms_idx 0 $idx 0 $type 0 $mv 0)
 
     (if (i32.le_s (i32.load16_u $ms) 0)
       (then

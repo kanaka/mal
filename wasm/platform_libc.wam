@@ -37,10 +37,9 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (func $readline (param $prompt i32 $buf i32) (result i32)
-    (local $line i32 $len i32)
-    (set_local $len 0)
+    (LET $line ($lib_readline $prompt)
+         $len  0)
 
-    (set_local $line ($lib_readline $prompt))
     (if $line
       (then
         ($lib_add_history $line)
@@ -55,10 +54,11 @@
 
   ;; Returns malloc'd string. Must be free by caller
   (func $read_file (param $path i32 $buf i32) (result i32)
-    (local $fst i32 $fd i32 $st_size i32 $sz i32)
-    (set_local $fst (STATIC_ARRAY 100)) ;; at least STAT_SIZE
+    (LET $fst     (STATIC_ARRAY 100)  ;; at least STAT_SIZE
+         $fd      ($lib_open $path (get_global $O_RDONLY) 0)
+         $st_size 0
+         $sz      0)
 
-    (set_local $fd ($lib_open $path (get_global $O_RDONLY) 0))
     (if (i32.lt_s $fd 0)
       (then
         ($printf_1 "ERROR: slurp failed to open '%s'\n" $path)
@@ -83,8 +83,10 @@
 
 
   (func $get_time_ms (result i32)
-    (local $tv i32 $secs i32 $usecs i32 $msecs i32)
-    (set_local $tv (STATIC_ARRAY 10)) ;; at least TIMEVAL_SIZE
+    (LET $tv    (STATIC_ARRAY 10) ;; at least TIMEVAL_SIZE
+         $secs  0
+         $usecs 0
+         $msecs 0)
     (drop ($lib_gettimeofday $tv 0))
     (set_local $secs (i32.load (i32.add $tv (get_global $TV_SEC_OFFSET))))
     ;; subtract 30 years to make sure secs is positive and can be

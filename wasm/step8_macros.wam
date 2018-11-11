@@ -9,16 +9,14 @@
 
   ;; EVAL
   (func $is_pair (param $ast i32) (result i32)
-    (local $type i32)
-    (set_local $type ($TYPE $ast))
+    (LET $type ($TYPE $ast))
     (AND (OR (i32.eq $type (get_global $LIST_T))
              (i32.eq $type (get_global $VECTOR_T)))
          (i32.ne ($VAL0 $ast) 0))
   )
 
   (func $QUASIQUOTE (param $ast i32) (result i32)
-    (local $sym i32 $res i32 $second i32 $third i32)
-    (set_local $res 0)
+    (LET $res 0 $sym 0 $second 0 $third 0)
     (if (i32.eqz ($is_pair $ast)) ;; QQ_QUOTE
       (then
         (set_local $sym ($STRING (get_global $SYMBOL_T) "quote"))
@@ -64,24 +62,22 @@
   (global $mac_stack_top (mut i32) (i32.const -1))
 
   (func $MACROEXPAND (param $orig_ast i32 $env i32) (result i32)
-    (local $ast i32 $mac i32 $mac_env i64)
-    (set_global $mac_stack (STATIC_ARRAY 1024)) ;; 256 * 4
-    (set_local $ast $orig_ast)
-    (set_local $mac 0)
+    (local $mac_env i64)
+    (LET $ast $orig_ast
+         $mac 0)
+    (set_global $mac_stack (STATIC_ARRAY 1024)) ;; 256 * 4, TODO: move to init
     (block $done
       (loop $loop
-        (if (OR (i32.ne ($TYPE $ast) (get_global $LIST_T)) ;; a list
-                (i32.eqz ($VAL0 $ast))                     ;; non-empty
-                (i32.ne ($TYPE ($MEM_VAL1_ptr $ast))       ;; leading symbol
-                        (get_global $SYMBOL_T)))     
-          (br $done))
+        (br_if $done
+               (OR (i32.ne ($TYPE $ast) (get_global $LIST_T)) ;; a list
+                   (i32.eqz ($VAL0 $ast))                     ;; non-empty
+                   (i32.ne ($TYPE ($MEM_VAL1_ptr $ast))       ;; leading symbol
+                           (get_global $SYMBOL_T))))
 	(set_local $mac_env ($ENV_FIND $env ($MEM_VAL1_ptr $ast)))
 	(set_local $mac (i32.wrap/i64 (i64.shr_u $mac_env (i64.const 32))))
-        (if (OR (i32.eqz (i32.wrap/i64 $mac_env))          ;; defined in env
-                (i32.ne ($TYPE $mac)                       ;; a macro
-                        (get_global $MACRO_T)))
-          (then
-            (br $done)))
+        (br_if $done (OR (i32.eqz (i32.wrap/i64 $mac_env))    ;; defined in env
+                         (i32.ne ($TYPE $mac)                 ;; a macro
+                                 (get_global $MACRO_T))))
 
         (set_local $ast ($APPLY $mac ($MEM_VAL0_ptr $ast)))
         ;; PEND_A_LV
@@ -97,8 +93,7 @@
                          (get_global $mac_stack)
                          (i32.mul_s (get_global $mac_stack_top) 4))
               $ast)))
-        (if (get_global $error_type)
-          (br $done))
+        (br_if $done (get_global $error_type))
 
         (br $loop)
       )
@@ -107,8 +102,8 @@
   )
 
   (func $EVAL_AST (param $ast i32 $env i32 $skiplast i32) (result i32)
-    (local $res i32 $val2 i32 $val3 i32 $type i32 $found i32)
-    (local $ret i32 $empty i32 $current i32)
+    (LET $res 0 $val2 0 $val3 0 $type 0 $found 0
+         $ret 0 $empty 0 $current 0)
 
     (if (get_global $error_type) (return 0))
     (set_local $type ($TYPE $ast))
@@ -135,10 +130,10 @@
       (block $done
         (loop $loop
           ;; check if we are done evaluating the source sequence
-          (if (i32.eq ($VAL0 $ast) 0) (br $done))
+          (br_if $done (i32.eq ($VAL0 $ast) 0))
 
           (if $skiplast
-            (if (i32.eqz ($VAL0 ($MEM_VAL0_ptr $ast)) 0) (br $done)))
+            (br_if $done (i32.eqz ($VAL0 ($MEM_VAL0_ptr $ast)) 0)))
 
           (if (i32.eq $type (get_global $HASHMAP_T))
             (then
@@ -194,17 +189,12 @@
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast)))))
 
   (func $EVAL (param $orig_ast i32 $orig_env i32) (result i32)
-    (local $ast i32 $env i32 $prev_ast i32 $prev_env i32 $res i32 $el i32)
-    (local $ftype i32 $f_args i32 $f i32 $args i32)
-    (local $a0 i32 $a0sym i32 $a1 i32 $a2 i32)
-    (local $orig_mac_stack_top i32)
-
-    (set_local $ast $orig_ast)
-    (set_local $env $orig_env)
-    (set_local $prev_ast 0)
-    (set_local $prev_env 0)
-    (set_local $res 0)
-    (set_local $orig_mac_stack_top (get_global $mac_stack_top))
+    (LET $ast $orig_ast
+         $env $orig_env
+         $orig_mac_stack_top (get_global $mac_stack_top)
+         $prev_ast 0 $prev_env 0 $res 0 $el 0
+         $ftype 0 $f_args 0 $f 0 $args 0
+         $a0 0 $a0sym 0 $a1 0 $a2 0)
 
     (block $EVAL_return
     (loop $TCO_loop
@@ -249,7 +239,7 @@
         (set_local $a1 ($MAL_GET_A1 $ast))
         (set_local $a2 ($MAL_GET_A2 $ast))
         (set_local $res ($EVAL $a2 $env))
-        (if (get_global $error_type) (br $EVAL_return))
+        (br_if $EVAL_return (get_global $error_type))
 
         ;; set a1 in env to a2
         (set_local $res ($ENV_SET $env $a1 $res))
@@ -265,12 +255,11 @@
 
         (block $done
           (loop $loop
-            (if (i32.eqz ($VAL0 $a1))
-              (br $done))
+            (br_if $done (i32.eqz ($VAL0 $a1)))
             ;; eval current A1 odd element
             (set_local $res ($EVAL ($MEM_VAL1_ptr ($MEM_VAL0_ptr $a1)) $env))
 
-            (if (get_global $error_type) (br $done))
+            (br_if $done (get_global $error_type))
 
             ;; set key/value in the let environment
             (set_local $res ($ENV_SET $env ($MEM_VAL1_ptr $a1) $res))
@@ -317,8 +306,7 @@
         (set_local $a2 ($MAL_GET_A2 $ast))
         (set_local $res ($EVAL $a2 $env))
         ($SET_TYPE $res (get_global $MACRO_T))
-        (if (get_global $error_type)
-          (br $EVAL_return))
+        (br_if $EVAL_return (get_global $error_type))
 
         ;; set a1 in env to a2
         (set_local $res ($ENV_SET $env $a1 $res))
@@ -430,10 +418,7 @@
     ;; TODO: needs to happen here so self-hosting doesn't leak
     (block $done
       (loop $loop
-        (if (i32.le_s (get_global $mac_stack_top) $orig_mac_stack_top)
-          (br $done))
-;;($printf_1 "free orig_mac_stack_top: %d\n" $orig_mac_stack_top)
-;;($printf_1 "free mac_stack_top: %d\n" (get_global $mac_stack_top))
+        (br_if $done (i32.le_s (get_global $mac_stack_top) $orig_mac_stack_top))
         ($RELEASE (i32.load (i32.add
                               (get_global $mac_stack)
                               (i32.mul_s (get_global $mac_stack_top) 4))))
@@ -453,10 +438,10 @@
 
   ;; REPL
   (func $RE (param $line i32 $env i32) (result i32)
-    (local $mv1 i32 $res i32)
-    (block $rep_done
+    (LET $mv1 0 $res 0)
+    (block $done
       (set_local $mv1 ($READ $line))
-      (if (get_global $error_type) (br $rep_done))
+      (br_if $done (get_global $error_type))
 
       (set_local $res ($EVAL $mv1 $env))
     )
@@ -467,10 +452,10 @@
   )
 
   (func $REP (param $line i32 $env i32) (result i32)
-    (local $mv2 i32 $ms i32)
-    (block $rep_done
+    (LET $mv2 0 $ms 0)
+    (block $done
       (set_local $mv2 ($RE $line $env))
-      (if (get_global $error_type) (br $rep_done))
+      (br_if $done (get_global $error_type))
 
 ;;      ($PR_MEMORY -1 -1)
       (set_local $ms ($PRINT $mv2))
@@ -482,10 +467,10 @@
   )
 
   (func $main (param $argc i32 $argv i32) (result i32)
-    (local $line i32 $res i32 $repl_env i32)
-    ;; argument processing
-    (local $i i32 $ret i32 $empty i32 $current i32 $tmp i32 $val2 i32)
-    (set_local $line (STATIC_ARRAY 201))
+    (LET $line (STATIC_ARRAY 201)
+         $res 0 $repl_env 0
+         ;; argument processing
+         $i 0 $ret 0 $empty 0 $current 0 $tmp 0 $val2 0)
 
     ;; DEBUG
 ;;    ($printf_1 "argc: 0x%x\n" $argc)
@@ -522,7 +507,7 @@
     (set_local $i 2)
     (block $done
       (loop $loop
-        (if (i32.ge_u $i $argc) (br $done))
+        (br_if $done (i32.ge_u $i $argc))
 
 	(set_local $val2 ($STRING (get_global $STRING_T)
                                   (i32.load (i32.add $argv (i32.mul_u $i 4)))))

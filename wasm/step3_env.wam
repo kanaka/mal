@@ -9,8 +9,8 @@
 
   ;; EVAL
   (func $EVAL_AST (param $ast i32 $env i32) (result i32)
-    (local $res i32 $val2 i32 $val3 i32 $type i32 $found i32)
-    (local $ret i32 $empty i32 $current i32)
+    (LET $res 0 $val2 0 $val3 0 $type 0 $found 0
+         $ret 0 $empty 0 $current 0)
 
     (if (get_global $error_type) (return 0))
     (set_local $type ($TYPE $ast))
@@ -37,7 +37,7 @@
       (block $done
         (loop $loop
           ;; check if we are done evaluating the source sequence
-          (if (i32.eq ($VAL0 $ast) 0) (br $done))
+          (br_if $done (i32.eq ($VAL0 $ast) 0))
 
           (if (i32.eq $type (get_global $HASHMAP_T))
             (then
@@ -99,12 +99,11 @@
     ($MEM_VAL1_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr ($MEM_VAL0_ptr $ast)))))
 
   (func $EVAL (param $ast i32 $env i32) (result i32)
-    (local $res i32)
-    (local $ftype i32 $f_args i32 $f i32 $args i32)
-    (local $a0 i32 $a0sym i32 $a1 i32 $a2 i32)
-    (local $let_env i32)
+    (LET $res 0
+         $ftype 0 $f_args 0 $f 0 $args 0
+         $a0 0 $a0sym 0 $a1 0 $a2 0
+         $let_env 0)
 
-    (set_local $res 0)
     (set_local $f_args 0)
     (set_local $f 0)
     (set_local $args 0)
@@ -117,7 +116,8 @@
       (return ($EVAL_AST $ast $env)))
 
     ;; APPLY_LIST
-    (if ($EMPTY_Q $ast) (return ($INC_REF $ast)))
+    (if ($EMPTY_Q $ast)
+      (return ($INC_REF $ast)))
 
     (set_local $a0 ($MEM_VAL1_ptr $ast))
     (set_local $a0sym "")
@@ -143,13 +143,12 @@
 
         (block $done
           (loop $loop
-            (if (i32.eqz ($VAL0 $a1))
-              (br $done))
+            (br_if $done (i32.eqz ($VAL0 $a1)))
             ;; eval current A1 odd element
             (set_local $res ($EVAL ($MEM_VAL1_ptr ($MEM_VAL0_ptr $a1))
                                    $let_env))
 
-            (if (get_global $error_type) (br $done))
+            (br_if $done (get_global $error_type))
 
             ;; set key/value in the let environment
             (set_local $res ($ENV_SET $let_env ($MEM_VAL1_ptr $a1) $res))
@@ -170,12 +169,11 @@
       (set_local $f_args $res)
 
       ;; if error, return f/args for release by caller
-      (if (get_global $error_type) (return $f_args))
+      (if (get_global $error_type)
+        (return $f_args))
 
-      ;; rest
-      (set_local $args ($MEM_VAL0_ptr $f_args))
-      ;; value
-      (set_local $f ($MEM_VAL1_ptr $f_args))
+      (set_local $args ($MEM_VAL0_ptr $f_args)) ;; rest
+      (set_local $f ($MEM_VAL1_ptr $f_args)) ;; value
 
       (set_local $ftype ($TYPE $f))
       (if (i32.eq $ftype (get_global $FUNCTION_T))
@@ -197,13 +195,13 @@
 
   ;; REPL
   (func $REP (param $line i32 $env i32) (result i32)
-    (local $mv1 i32 $mv2 i32 $ms i32)
-    (block $rep_done
+    (LET $mv1 0 $mv2 0 $ms 0)
+    (block $done
       (set_local $mv1 ($READ $line))
-      (if (get_global $error_type) (br $rep_done))
+      (br_if $done (get_global $error_type))
 
       (set_local $mv2 ($EVAL $mv1 $env))
-      (if (get_global $error_type) (br $rep_done))
+      (br_if $done (get_global $error_type))
 
 ;;      ($PR_MEMORY -1 -1)
       (set_local $ms ($PRINT $mv2))
@@ -236,14 +234,15 @@
     ($INC_REF (get_global $NIL)))
 
   (func $main (result i32)
-    (local $line i32 $res i32 $repl_env i32)
-    (set_local $line (STATIC_ARRAY 201))
+    (LET $line (STATIC_ARRAY 201)
+         $res 0 $repl_env 0)
 
     ;; DEBUG
-    ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
-    ($printf_1 "heap_start: 0x%x\n" (get_global $heap_start))
-    ($printf_1 "heap_end: 0x%x\n" (get_global $heap_end))
-    ($printf_1 "mem: 0x%x\n" (get_global $mem))
+;;    ($printf_1 "argc: 0x%x\n" $argc)
+;;    ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
+;;    ($printf_1 "heap_start: 0x%x\n" (get_global $heap_start))
+;;    ($printf_1 "heap_end: 0x%x\n" (get_global $heap_end))
+;;    ($printf_1 "mem: 0x%x\n" (get_global $mem))
 ;;    ($printf_1 "string_mem: %d\n" (get_global $string_mem))
 
     (set_global $repl_env ($ENV_NEW (get_global $NIL)))

@@ -25,10 +25,8 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (func $readline (param $prompt i32 $buf i32) (result i32)
-    (local $res i32)
-
     ;; TODO: don't hardcode count to 200
-    (set_local $res ($lib_readline $prompt $buf 200))
+    (LET $res ($lib_readline $prompt $buf 200))
     (if $res
       ($lib_add_history $buf))
     $res
@@ -37,8 +35,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (func $read_file (param $path i32 $buf i32) (result i32)
-    (local $size i32)
-    (set_local $size ($lib_read_file $path $buf))
+    (LET $size ($lib_read_file $path $buf))
     ;; Add null to string
     (i32.store8_u (i32.add $buf $size) 0)
     (i32.add $size 1)

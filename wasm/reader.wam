@@ -5,16 +5,14 @@
   (global $read_index  (mut i32) 0)
 
   (func $skip_spaces (param $str i32) (result i32)
-    (local $found i32 $c i32)
-    (set_local $found 0)
-    (set_local $c (i32.load8_u (i32.add $str (get_global $read_index))))
+    (LET $found 0
+         $c (i32.load8_u (i32.add $str (get_global $read_index))))
     (block $done
       (loop $loop
         ;;; while (c == ' ' || c == ',' || c == '\n')
-        (if (AND (i32.ne $c (CHR " "))
-                 (i32.ne $c (CHR ","))
-                 (i32.ne $c (CHR "\n")))
-          (br $done))
+        (br_if $done (AND (i32.ne $c (CHR " "))
+                          (i32.ne $c (CHR ","))
+                          (i32.ne $c (CHR "\n"))))
         (set_local $found 1)
         ;;; c=str[++(*index)]
         (set_global $read_index (i32.add (get_global $read_index) 1))
@@ -27,9 +25,8 @@
   )
 
   (func $skip_to_eol (param $str i32) (result i32)
-    (local $found i32 $c i32)
-    (set_local $found 0)
-    (set_local $c (i32.load8_c (i32.add $str (get_global $read_index))))
+    (LET $found 0
+         $c (i32.load8_c (i32.add $str (get_global $read_index))))
     (if (i32.eq $c (CHR ";"))
       (then
         (set_local $found 1)
@@ -40,9 +37,8 @@
             (set_local $c (i32.load8_u (i32.add $str
                                                 (get_global $read_index))))
             ;;; while (c != '\0' && c != '\n')
-            (if (AND (i32.ne $c (CHR "\x00"))
-                     (i32.ne $c (CHR "\n")))
-              (br $loop))
+            (br_if $loop (AND (i32.ne $c (CHR "\x00"))
+                              (i32.ne $c (CHR "\n"))))
           )
         )))
 ;;    ($debug ">>> skip_to_eol:" $found)
@@ -52,17 +48,17 @@
   (func $skip_spaces_comments (param $str i32)
     (loop $loop
       ;; skip spaces
-      (if ($skip_spaces $str) (br $loop))
+      (br_if $loop ($skip_spaces $str))
       ;; skip comments
-      (if ($skip_to_eol $str) (br $loop))
+      (br_if $loop ($skip_to_eol $str))
     )
   )
 
   (func $read_token (param $str i32) (result i32)
-    (local $token_index i32 $instring i32 $escaped i32 $c i32)
-    (set_local $token_index 0)
-    (set_local $instring 0)
-    (set_local $escaped 0)
+    (LET $token_index 0
+         $instring    0
+         $escaped     0
+         $c           0)
 
     ($skip_spaces_comments $str)
 
@@ -101,21 +97,20 @@
             (set_local $c (i32.load8_u
                             (i32.add $str (get_global $read_index))))
             ;;; if (c == '\0') break
-            (if (i32.eq $c 0) (br $done))
+            (br_if $done (i32.eq $c 0))
             ;;; if (!instring)
             (if (i32.eqz $instring)
               (then
                 ;; next character is token delimiter
-                (if (OR (i32.eq $c (CHR "("))
-                        (i32.eq $c (CHR ")"))
-                        (i32.eq $c (CHR "["))
-                        (i32.eq $c (CHR "]"))
-                        (i32.eq $c (CHR "{"))
-                        (i32.eq $c (CHR "}"))
-                        (i32.eq $c (CHR " "))
-                        (i32.eq $c (CHR ","))
-                        (i32.eq $c (CHR "\n")))
-                  (br $done))))
+                (br_if $done (OR (i32.eq $c (CHR "("))
+                                 (i32.eq $c (CHR ")"))
+                                 (i32.eq $c (CHR "["))
+                                 (i32.eq $c (CHR "]"))
+                                 (i32.eq $c (CHR "{"))
+                                 (i32.eq $c (CHR "}"))
+                                 (i32.eq $c (CHR " "))
+                                 (i32.eq $c (CHR ","))
+                                 (i32.eq $c (CHR "\n"))))))
             ;; read next character
             ;;; token[token_index++] = str[(*index)++]
             (i32.store8_u (i32.add (get_global $token_buf) $token_index)
@@ -124,11 +119,12 @@
             (set_local $token_index (i32.add $token_index 1))
             (set_global $read_index (i32.add (get_global $read_index) 1))
             ;;; if (token[0] == '~' && token[1] == '@') break
-            (if (AND (i32.eq (i32.load8_u (i32.add (get_global $token_buf) 0))
-                             (CHR "~"))
-                     (i32.eq (i32.load8_u (i32.add (get_global $token_buf) 1))
-                             (CHR "@")))
-              (br $done))
+            (br_if $done (AND (i32.eq (i32.load8_u
+                                        (i32.add (get_global $token_buf) 0))
+                                      (CHR "~"))
+                              (i32.eq (i32.load8_u
+                                        (i32.add (get_global $token_buf) 1))
+                                      (CHR "@"))))
 
             ;;; if ((!instring) || escaped)
             (if (OR (i32.eqz $instring) $escaped)
@@ -137,8 +133,7 @@
                 (br $loop)))
             (if (i32.eq $c (CHR "\\"))
               (set_local $escaped 1))
-            (if (i32.eq $c (CHR "\""))
-              (br $done))
+            (br_if $done (i32.eq $c (CHR "\"")))
             (br $loop)
           )
         )))
@@ -149,18 +144,14 @@
   )
 
   (func $read_seq (param $str i32 $type i32 $end i32) (result i32)
-    (local $res i32 $val2 i32 $val3 i32 $c i32)
-
-    ;; MAP_LOOP stack
-    (local $ret i32 $empty i32 $current i32)
-
-    ;; MAP_LOOP_START
-    (set_local $res ($MAP_LOOP_START $type))
-    ;; push MAP_LOOP stack
-    ;;; empty = current = ret = res
-    (set_local $ret $res)
-    (set_local $current $res)
-    (set_local $empty $res)
+    (LET $res ($MAP_LOOP_START $type)
+         $val2 0
+         $val3 0
+         $c 0
+         ;; MAP_LOOP stack
+         $ret $res
+         $empty $res
+         $current $res)
 
     ;; READ_SEQ_LOOP
     (block $done
@@ -213,10 +204,10 @@
   )
 
   (func $read_macro (param $str i32 $sym i32 $with_meta i32) (result i32)
-    (local $first i32 $second i32 $third i32 $res i32)
-    (set_local $first ($STRING (get_global $SYMBOL_T) $sym))
-    (set_local $second ($read_form $str))
-    (set_local $res $second)
+    (LET $first ($STRING (get_global $SYMBOL_T) $sym)
+         $second ($read_form $str)
+         $third 0
+         $res $second)
     (if (get_global $error_type) (return $res))
     (if (i32.eqz $with_meta)
       (then
@@ -233,7 +224,7 @@
   )
 
   (func $read_form (param $str i32) (result i32)
-    (local $tok i32 $c0 i32 $c1 i32 $res i32 $slen i32)
+    (LET $tok 0 $c0 0 $c1 0 $res 0 $slen 0)
 
     (if (get_global $error_type) (return 0))
 

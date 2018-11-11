@@ -5,8 +5,7 @@
   ;; Copy len bytes from src to dst
   ;; Returns len
   (func $memmove  (param $dst i32 $src i32 $len i32)
-    (local $idx i32)
-    (set_local $idx 0)
+    (LET $idx 0)
     (loop $copy
           (i32.store8_u (i32.add $idx $dst)
                         (i32.load8_u (i32.add $idx $src)))
@@ -16,8 +15,7 @@
   )
 
   (func $strlen (param $str i32) (result i32)
-    (local $cur i32)
-    (set_local $cur $str)
+    (LET $cur $str)
     (loop $count
       (if (i32.ne 0 (i32.load8_u $cur))
         (then
@@ -30,10 +28,9 @@
   ;; Based on https://stackoverflow.com/a/25705264/471795
   ;; This could be made much more efficient
   (func $strstr (param $haystack i32 $needle i32) (result i32)
-    (local $i i32 $needle_len i32 $len i32)
-
-    (set_local $needle_len ($strlen $needle))
-    (set_local $len ($strlen $haystack))
+    (LET $i          0
+         $needle_len ($strlen $needle)
+         $len        ($strlen $haystack))
 
     (if (i32.eq $needle_len 0) (return $haystack))
 
@@ -55,13 +52,10 @@
   )
 
   (func $atoi (param $str i32) (result i32)
-    (local $acc i32)
-    (local $i i32)
-    (local $neg i32)
-    (local $ch i32)
-    (set_local $acc 0)
-    (set_local $i 0)
-    (set_local $neg 0)
+    (LET $acc 0
+         $i   0
+         $neg 0
+         $ch  0)
     (block $done
       (loop $loop
         (set_local $ch (i32.load8_u (i32.add $str $i)))
@@ -105,8 +99,7 @@
   )
 
   (func $strncmp (param $s1 i32 $s2 i32 $len i32) (result i32)
-    (local $i i32)
-    (set_local $i 0)
+    (LET $i 0)
     (if (i32.eq $len 0) (return 0))
     (block $done
       (loop $loop
@@ -136,14 +129,12 @@
                          $needle0 i32 $replace0 i32
                          $needle1 i32 $replace1 i32
                          $needle2 i32 $replace2 i32) (result i32)
-    (local $needle i32 $replace i32)
-    (local $haystack_len i32 $needle_len i32 $replace_len i32)
-    (local $src_str i32 $dst_str i32 $s i32 $found_tmp i32 $found i32)
-    (local $replace_s i32 $replace_len_s i32 $needle_len_s i32)
-
-    (set_local $haystack_len ($strlen $haystack))
-    (set_local $src_str $haystack)
-    (set_local $dst_str $grass)
+    (LET $haystack_len ($strlen $haystack)
+         $src_str      $haystack
+         $dst_str      $grass
+         $s 0 $found_tmp 0 $found 0
+         $needle 0 $replace 0 $needle_len 0 $replace_len 0
+         $replace_s 0 $replace_len_s 0 $needle_len_s 0)
 
     ;; in-place
     (if (i32.eqz $grass)

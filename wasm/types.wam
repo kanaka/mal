@@ -73,9 +73,8 @@
   )
 
   (func $EQUAL_Q (param $a i32 $b i32) (result i32)
-    (local $ta i32 $tb i32)
-    (set_local $ta ($TYPE $a))
-    (set_local $tb ($TYPE $b))
+    (LET $ta ($TYPE $a)
+         $tb ($TYPE $b))
 
     (if (AND (OR (i32.eq $ta (get_global $LIST_T))
                  (i32.eq $ta (get_global $VECTOR_T)))
@@ -138,9 +137,7 @@
   ;; Duplicate regular character array string into a Mal string and
   ;; return the MalVal pointer
   (func $STRING (param $type i32 $str i32) (result i32)
-    (local $ms i32)
-    ;; TODO: assert mv is a string/keyword/symbol
-    (set_local $ms ($ALLOC_STRING $str ($strlen $str) 1))
+    (LET $ms ($ALLOC_STRING $str ($strlen $str) 1))
     ($ALLOC_SCALAR $type (i32.sub_u $ms (get_global $string_mem)))
   )
 
@@ -148,10 +145,10 @@
   ;; mv and return the interned version. If no duplicate is found,
   ;; return NULL.
   (func $INTERN_STRING (param $mv i32) (result i32)
-    (local $res i32 $ms i32 $existing_ms i32 $tmp i32)
-    (set_local $res 0)
-    (set_local $ms ($to_MalString $mv))
-    (set_local $existing_ms ($FIND_STRING (i32.add $ms 4)))
+    (LET $res         0
+         $ms          ($to_MalString $mv)
+         $existing_ms ($FIND_STRING (i32.add $ms 4))
+         $tmp         0)
     (if (AND $existing_ms (i32.lt_s $existing_ms $ms))
       (then
         (set_local $tmp $mv)
@@ -164,16 +161,14 @@
   )
 
   (func $STRING_INIT (param $type i32) (result i32)
-    (local $ms i32)
-    (set_local $ms ($ALLOC_STRING "" 0 0))
+    (LET $ms ($ALLOC_STRING "" 0 0))
     ($ALLOC_SCALAR $type (i32.sub_s $ms (get_global $string_mem)))
   )
 
   (func $STRING_FINALIZE (param $mv i32 $size i32) (result i32)
-    (local $tmp i32 $ms i32)
     ;; Check if the new string can be interned.
-    (set_local $tmp ($INTERN_STRING $mv))
-    (set_local $ms ($to_MalString $mv))
+    (LET $tmp ($INTERN_STRING $mv)
+         $ms  ($to_MalString $mv))
     (if $tmp
       (then
         (set_local $mv $tmp))
@@ -198,16 +193,15 @@
   ;; sequence functions
 
   (func $MAP_LOOP_START (param $type i32) (result i32)
-    (local $res i32)
-    (set_local $res (if i32 (i32.eq $type (get_global $LIST_T))
-                      (get_global $EMPTY_LIST)
-                    (else (if i32 (i32.eq $type (get_global $VECTOR_T))
-                      (get_global $EMPTY_VECTOR)
-                    (else (if i32 (i32.eq $type (get_global $HASHMAP_T))
-                      (get_global $EMPTY_HASHMAP)
-                    (else
-                      ($THROW_STR_1 "read_seq invalid type %d" $type)
-                      0)))))))
+    (LET $res (if i32 (i32.eq $type (get_global $LIST_T))
+                (get_global $EMPTY_LIST)
+              (else (if i32 (i32.eq $type (get_global $VECTOR_T))
+                (get_global $EMPTY_VECTOR)
+              (else (if i32 (i32.eq $type (get_global $HASHMAP_T))
+                (get_global $EMPTY_HASHMAP)
+              (else
+                ($THROW_STR_1 "read_seq invalid type %d" $type)
+                0)))))))
 
     ($INC_REF $res)
   )
@@ -215,9 +209,8 @@
   (func $MAP_LOOP_UPDATE (param $type i32) (param $empty i32)
         (param $current i32) (param $val2 i32) (param $val3 i32)
         (result i32)
-    (local $res i32)
+    (LET $res ($ALLOC $type $empty $val2 $val3))
 
-    (set_local $res ($ALLOC $type $empty $val2 $val3))
     ;; sequence took ownership
     ($RELEASE $empty)
     ($RELEASE $val2)
@@ -231,7 +224,7 @@
   )
 
   (func $FORCE_SEQ_TYPE (param $type i32) (param $mv i32) (result i32)
-    (local $res i32)
+    (LET $res 0)
     ;; if it's already the right type, inc ref cnt and return it
     (if (i32.eq $type ($TYPE $mv)) (return ($INC_REF $mv)))
     ;; if it's empty, return the sequence match
@@ -247,17 +240,15 @@
 
   (func $LIST2 (param $first i32 $second i32) (result i32)
     ;; last element is empty list
-    (local $tmp i32 $res i32)
-    (set_local $tmp ($LIST (get_global $EMPTY_LIST) $second))
-    (set_local $res ($LIST $tmp $first))
+    (LET $tmp ($LIST (get_global $EMPTY_LIST) $second)
+         $res ($LIST $tmp $first))
     ($RELEASE $tmp) ;; new list takes ownership of previous
     $res
   )
 
   (func $LIST3 (param $first i32 $second i32 $third i32) (result i32)
-    (local $tmp i32 $res i32)
-    (set_local $tmp ($LIST2 $second $third))
-    (set_local $res ($LIST $tmp $first))
+    (LET $tmp ($LIST2 $second $third)
+         $res ($LIST $tmp $first))
     ($RELEASE $tmp) ;; new list takes ownership of previous
     $res
   )
@@ -271,8 +262,7 @@
   )
 
   (func $COUNT (param $mv i32) (result i32)
-    (local $cnt i32)
-    (set_local $cnt 0)
+    (LET $cnt 0)
     (block $done
       (loop $loop
         (if (i32.eq ($VAL0 $mv) 0) (br $done))
@@ -285,7 +275,7 @@
   )
 
   (func $LAST (param $mv i32) (result i32)
-    (local $cur i32)
+    (LET $cur 0)
     ;; TODO: check that actually a list/vector
     (if (i32.eq ($VAL0 $mv) 0)
       ;; empty seq, return nil
@@ -309,11 +299,10 @@
   ;; set after to element following slice (or original)
   (func $SLICE (param $seq i32) (param $start i32) (param $end i32)
         (result i64)
-    (local $idx i32 $res i32 $tmp i32 $last i32)
-    (set_local $idx 0)
-    (set_local $res ($INC_REF (get_global $EMPTY_LIST)))
-    (set_local $last 0)
-    (set_local $tmp $res)
+    (LET $idx  0
+         $res  ($INC_REF (get_global $EMPTY_LIST))
+         $last 0
+         $tmp  $res)
     ;; advance seq to start
     (block $done
       (loop $loop
@@ -367,28 +356,25 @@
   )
 
   (func $ASSOC1 (param $hm i32 $k i32 $v i32) (result i32)
-    (local $res i32)
-    (set_local $res ($ALLOC (get_global $HASHMAP_T) $hm $k $v))
+    (LET $res ($ALLOC (get_global $HASHMAP_T) $hm $k $v))
     ;; we took ownership of previous release
     ($RELEASE $hm)
     $res
   )
 
   (func $ASSOC1_S (param $hm i32 $k i32 $v i32) (result i32)
-    (local $kmv i32 $res i32)
-    (set_local $kmv ($STRING (get_global $STRING_T) $k))
-    (set_local $res ($ASSOC1 $hm $kmv $v))
+    (LET $kmv ($STRING (get_global $STRING_T) $k)
+         $res ($ASSOC1 $hm $kmv $v))
     ;; map took ownership of key
     ($RELEASE $kmv)
     $res
   )
 
   (func $HASHMAP_GET (param $hm i32) (param $key_mv i32) (result i64)
-    (local $res i32 $found i32 $key i32 $test_key_mv i32)
-
-    (set_local $key ($to_String $key_mv))
-    (set_local $found 0)
-
+    (LET $key         ($to_String $key_mv)
+         $found       0
+         $res         0
+         $test_key_mv 0)
 
     (block $done
       (loop $loop

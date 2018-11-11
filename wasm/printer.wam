@@ -3,9 +3,9 @@
   (global $printer_buf   (mut i32) 0)
 
   (func $pr_str_val (param $res i32 $mv i32 $print_readably i32) (result i32)
-    (local $type i32 $val0 i32 $sval i32)
-    (set_local $type ($TYPE $mv))
-    (set_local $val0 ($VAL0 $mv))
+    (LET $type ($TYPE $mv)
+         $val0 ($VAL0 $mv)
+         $sval 0)
 
     ;;; switch(type)
     (block $done
@@ -70,8 +70,7 @@
       ;;; while (VAL0(mv) != 0)
       (block $done_seq
         (loop $seq_loop
-          (if (i32.eq ($VAL0 $mv) 0)
-            (br $done_seq))
+          (br_if $done_seq (i32.eq ($VAL0 $mv) 0))
           ;;; res = pr_str_val(res, MEM_VAL1(mv), print_readably)
           (set_local $res ($pr_str_val $res ($MEM_VAL1_ptr $mv) $print_readably))
 
@@ -147,9 +146,8 @@
 
   (func $pr_str_internal (param $seq i32) (param $mv i32)
         (param $print_readably i32) (param $sep i32) (result i32)
-    (local $res i32 $res_str i32)
-    (set_local $res ($STRING_INIT (get_global $STRING_T)))
-    (set_local $res_str ($to_String $res))
+    (LET $res     ($STRING_INIT (get_global $STRING_T))
+         $res_str ($to_String $res))
 
     (if $seq
       (then

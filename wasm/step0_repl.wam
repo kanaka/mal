@@ -21,8 +21,7 @@
 
   (func $main (result i32)
     ;; Constant location/value definitions
-    (local $line i32)
-    (set_local $line (STATIC_ARRAY 201))
+    (LET $line (STATIC_ARRAY 201))
 
     ;; DEBUG
     ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
@@ -32,7 +31,6 @@
       (loop $repl_loop
         (br_if $repl_done (i32.eqz ($readline "user> " $line)))
         (br_if $repl_loop (i32.eq (i32.load8_u $line) 0))
-        ;;($printf_1 "here1 %d\n", 7);
         ($printf_1 "%s\n" ($rep $line))
         (br $repl_loop)
       )

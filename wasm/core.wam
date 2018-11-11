@@ -58,14 +58,12 @@
     ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
                          (get_global $NIL_T))))
   (func $true_Q (param $args i32) (result i32)
-    (local $ast i32)
-    (set_local $ast ($MEM_VAL1_ptr $args))
+    (LET $ast ($MEM_VAL1_ptr $args))
     ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $BOOLEAN_T))
                       (i32.eq ($VAL0 $ast) 1)))
   )
   (func $false_Q (param $args i32) (result i32)
-    (local $ast i32)
-    (set_local $ast ($MEM_VAL1_ptr $args))
+    (LET $ast ($MEM_VAL1_ptr $args))
     ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $BOOLEAN_T))
                       (i32.eq ($VAL0 $ast) 0)))
   )
@@ -73,16 +71,14 @@
     ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
                          (get_global $INTEGER_T))))
   (func $string_Q (param $args i32) (result i32)
-    (local $mv i32)
-    (set_local $mv ($MEM_VAL1_ptr $args))
+    (LET $mv ($MEM_VAL1_ptr $args))
     ($TRUE_FALSE (AND (i32.eq ($TYPE $mv) (get_global $STRING_T))
                       (i32.ne (i32.load8_u ($to_String $mv))
                               (CHR "\x7f"))))
   )
 
   (func $keyword (param $args i32) (result i32)
-    (local $str i32)
-    (set_local $str ($to_String ($MEM_VAL1_ptr $args)))
+    (LET $str ($to_String ($MEM_VAL1_ptr $args)))
     (if i32 (i32.eq (i32.load8_u $str) (CHR "\x7f"))
       (then ($INC_REF ($MEM_VAL1_ptr $args)))
       (else
@@ -91,15 +87,13 @@
   )
 
   (func $keyword_Q (param $args i32) (result i32)
-    (local $ast i32)
-    (set_local $ast ($MEM_VAL1_ptr $args))
+    (LET $ast ($MEM_VAL1_ptr $args))
     ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $STRING_T))
                       (i32.eq (i32.load8_u ($to_String $ast))
                               (CHR "\x7f"))))
   )
   (func $fn_Q (param $args i32) (result i32)
-    (local $type i32)
-    (set_local $type ($TYPE ($MEM_VAL1_ptr $args)))
+    (LET $type ($TYPE ($MEM_VAL1_ptr $args)))
     ($TRUE_FALSE (OR (i32.eq $type (get_global $FUNCTION_T))
                      (i32.eq $type (get_global $MALFUNC_T)))))
   (func $macro_Q (param $args i32) (result i32)
@@ -118,23 +112,21 @@
   (func $str (param $args i32) (result i32)
     ($pr_str_seq $args 0 ""))
   (func $prn (param $args i32) (result i32)
-    (local $res i32)
-    (set_local $res ($pr_str_seq $args 1 " "))
+    (LET $res ($pr_str_seq $args 1 " "))
     ($printf_1 "%s\n" ($to_String $res))
     ($RELEASE $res)
     ($INC_REF (get_global $NIL))
   )
   (func $println (param $args i32) (result i32)
-    (local $res i32)
-    (set_local $res ($pr_str_seq $args 0 " "))
+    (LET $res ($pr_str_seq $args 0 " "))
     ($printf_1 "%s\n" ($to_String $res))
     ($RELEASE $res)
     ($INC_REF (get_global $NIL))
   )
 
   (func $core_readline (param $args i32) (result i32)
-    (local $line i32 $mv i32)
-    (set_local $line (STATIC_ARRAY 201))
+    (LET $line (STATIC_ARRAY 201)
+         $mv 0)
     (if (i32.eqz ($readline ($to_String ($MEM_VAL1_ptr $args)) $line))
       (return ($INC_REF (get_global $NIL))))
     (set_local $mv ($STRING (get_global $STRING_T) $line))
@@ -145,10 +137,9 @@
     ($read_str ($to_String ($MEM_VAL1_ptr $args))))
 
   (func $slurp (param $args i32) (result i32)
-    (local $mv i32 $size i32)
-    (set_local $mv ($STRING_INIT (get_global $STRING_T)))
-    (set_local $size ($read_file ($to_String ($MEM_VAL1_ptr $args))
-                                 ($to_String $mv)))
+    (LET $mv   ($STRING_INIT (get_global $STRING_T))
+         $size ($read_file ($to_String ($MEM_VAL1_ptr $args))
+                           ($to_String $mv)))
     (if (i32.eqz $size)
       (then
         ($THROW_STR_1 "failed to read file '%s'" ($to_String ($MEM_VAL1_ptr $args)))
@@ -210,22 +201,20 @@
                          (get_global $VECTOR_T))))
 
   (func $hash_map (param $args i32) (result i32)
-    (local $res i32 $type i32 $val2 i32 $val3 i32 $c i32)
-    (local $ret i32 $empty i32 $current i32) ;; MAP_LOOP stack
-    (set_local $type (get_global $HASHMAP_T))
-
-    ;; MAP_LOOP_START
-    (set_local $res ($MAP_LOOP_START $type))
-    ;; push MAP_LOOP stack
-    ;;; empty = current = ret = res
-    (set_local $ret $res)
-    (set_local $current $res)
-    (set_local $empty $res)
+    (LET $type    (get_global $HASHMAP_T)
+         $res     ($MAP_LOOP_START $type)
+         $val2    0
+         $val3    0
+         $c       0
+         ;; push MAP_LOOP stack
+         $ret     $res
+         $current $res
+         $empty   $res)
 
     ;; READ_SEQ_LOOP
     (block $done
       (loop $loop
-        (if (i32.eqz ($VAL0 $args)) (br $done))
+        (br_if $done (i32.eqz ($VAL0 $args)))
 
         (set_local $val2 ($INC_REF ($MEM_VAL1_ptr $args)))
         (set_local $val3 ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
@@ -256,15 +245,15 @@
                          (get_global $HASHMAP_T))))
 
   (func $assoc (param $args i32) (result i32)
-    (local $hm i32 $key i32)
-    (set_local $hm ($MEM_VAL1_ptr $args))
+    (LET $hm ($MEM_VAL1_ptr $args)
+         $key 0)
     (set_local $args ($MEM_VAL0_ptr $args))
+
     (drop ($INC_REF $hm))
     (block $done
       (loop $loop
-        (if (OR (i32.eqz ($VAL0 $args))
-                (i32.eqz ($VAL0 ($MEM_VAL0_ptr $args))))
-          (br $done))
+        (br_if $done (OR (i32.eqz ($VAL0 $args))
+                         (i32.eqz ($VAL0 ($MEM_VAL0_ptr $args)))))
         (set_local $hm ($ASSOC1 $hm ($MEM_VAL1_ptr $args)
                                 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
         (set_local $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
@@ -276,18 +265,16 @@
   )
 
   (func $get (param $args i32) (result i32)
-    (local $hm i32 $key i32)
-    (set_local $hm ($MEM_VAL1_ptr $args))
-    (set_local $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    (LET $hm  ($MEM_VAL1_ptr $args)
+         $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     (if i32 (i32.eq $hm (get_global $NIL))
       (then ($INC_REF (get_global $NIL)))
       (else ($INC_REF (i32.wrap/i64 ($HASHMAP_GET $hm $key)))))
   )
 
   (func $contains_Q (param $args i32) (result i32)
-    (local $hm i32 $key i32)
-    (set_local $hm ($MEM_VAL1_ptr $args))
-    (set_local $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    (LET $hm  ($MEM_VAL1_ptr $args)
+         $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ($TRUE_FALSE
       (if i32 (i32.eq $hm (get_global $NIL))
         (then 0)
@@ -296,20 +283,16 @@
   )
 
   (func $keys_or_vals (param $hm i32 $keys i32) (result i32)
-    (local $res i32 $val2 i32)
-    (local $ret i32 $empty i32 $current i32) ;; MAP_LOOP stack
-
-    ;; MAP_LOOP_START
-    (set_local $res ($MAP_LOOP_START (get_global $LIST_T)))
-    ;; push MAP_LOOP stack
-    ;;; empty = current = ret = res
-    (set_local $ret $res)
-    (set_local $current $res)
-    (set_local $empty $res)
+    (LET $res     ($MAP_LOOP_START (get_global $LIST_T))
+         $val2    0
+         ;; MAP_LOOP stack
+         $ret     $res
+         $current $res
+         $empty   $res)
 
     (block $done
       (loop $loop
-        (if (i32.eqz ($VAL0 $hm)) (br $done))
+        (br_if $done (i32.eqz ($VAL0 $hm)))
 
         (if $keys
           (then (set_local $val2 ($INC_REF ($MEM_VAL1_ptr $hm))))
@@ -354,15 +337,15 @@
     ($LIST ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)) ($MEM_VAL1_ptr $args)))
 
   (func $concat (param $args i32) (result i32)
-    (local $res i32 $current i32 $sl i32 $last i32 $last_sl i64 $arg i32)
-    (set_local $res ($INC_REF (get_global $EMPTY_LIST)))
-    (set_local $current $res)
-    (set_local $sl 0)
-    (set_local $last 0)
+    (local $last_sl i64)
+    (LET $res     ($INC_REF (get_global $EMPTY_LIST))
+         $current $res
+         $sl      0
+         $last    0
+         $arg     0)
     (block $done
       (loop $loop
-        (if (i32.le_u $args (get_global $EMPTY_HASHMAP))
-          (br $done))
+        (br_if $done (i32.le_u $args (get_global $EMPTY_HASHMAP)))
         (set_local $arg ($MEM_VAL1_ptr $args))
         ;; skip empty elements
         (if (i32.le_s $arg (get_global $EMPTY_HASHMAP))
@@ -392,15 +375,13 @@
   )
 
   (func $nth (param $args i32) (result i32)
-    (local $a i32 $idx i32 $i i32)
-    (set_local $a ($MEM_VAL1_ptr $args))
-    (set_local $idx ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
+    (LET $a   ($MEM_VAL1_ptr $args)
+         $idx ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+         $i   0)
 
-    (set_local $i 0)
     (block $done
       (loop $loop
-        (if (OR (i32.ge_s $i $idx) (i32.eqz ($VAL0 $a)))
-          (br $done))
+        (br_if $done (OR (i32.ge_s $i $idx) (i32.eqz ($VAL0 $a))))
         (set_local $i (i32.add $i 1))
         (set_local $a ($MEM_VAL0_ptr $a))
         (br $loop)
@@ -415,9 +396,8 @@
   )
 
   (func $first (param $args i32) (result i32)
-    (local $res i32 $a i32)
-    (set_local $res (get_global $NIL))
-    (set_local $a ($MEM_VAL1_ptr $args))
+    (LET $res (get_global $NIL)
+         $a   ($MEM_VAL1_ptr $args))
     (if (AND (i32.ne $a (get_global $NIL))
              (i32.ne ($VAL0 $a) 0))
       (set_local $res ($MEM_VAL1_ptr $a)))
@@ -425,8 +405,7 @@
   )
 
   (func $rest (param $args i32) (result i32)
-    (local $a i32)
-    (set_local $a ($MEM_VAL1_ptr $args))
+    (LET $a ($MEM_VAL1_ptr $args))
     (if (i32.eq $a (get_global $NIL))
       (return ($INC_REF (get_global $EMPTY_LIST))))
     (if (i32.ne ($VAL0 $a) 0)
@@ -443,12 +422,13 @@
     ($INTEGER ($COUNT ($MEM_VAL1_ptr $args))))
 
   (func $apply (param $args i32) (result i32)
-    (local $f i32 $f_args i32 $rest_args i32 $rest_count i32)
-    (local $last_sl i64 $last i32 $res i32)
-
-    (set_local $f ($MEM_VAL1_ptr $args))
-    (set_local $rest_args ($MEM_VAL0_ptr $args))
-    (set_local $rest_count ($COUNT $rest_args))
+    (local $last_sl i64)
+    (LET $f          ($MEM_VAL1_ptr $args)
+         $f_args     0
+         $rest_args  ($MEM_VAL0_ptr $args)
+         $rest_count ($COUNT $rest_args)
+         $last       0
+         $res        0)
 
     (if (i32.le_s $rest_count 1)
       (then
@@ -482,23 +462,18 @@
   )
 
   (func $map (param $args i32) (result i32)
-    (local $f i32 $rest_args i32 $f_args i32 $res i32)
-    (local $ret i32 $empty i32 $current i32) ;; MAP_LOOP stack
-
-    (set_local $f ($MEM_VAL1_ptr $args))
-    (set_local $rest_args ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
-
-    ;; MAP_LOOP_START
-    (set_local $res ($MAP_LOOP_START (get_global $LIST_T)))
-    ;; push MAP_LOOP stack
-    ;;; empty = current = ret = res
-    (set_local $ret $res)
-    (set_local $current $res)
-    (set_local $empty $res)
+    (LET $f         ($MEM_VAL1_ptr $args)
+         $rest_args ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))
+         $f_args    0
+         $res       ($MAP_LOOP_START (get_global $LIST_T)) 
+         ;; push MAP_LOOP stack
+         $ret       $res
+         $current   $res
+         $empty     $res)
 
     (block $done
       (loop $loop
-        (if (i32.eqz ($VAL1 $rest_args)) (br $done))
+        (br_if $done (i32.eqz ($VAL1 $rest_args)))
 
         ;; create argument list for apply
         (set_local $f_args ($ALLOC (get_global $LIST_T)
@@ -539,9 +514,8 @@
   ;;;
 
   (func $with_meta (param $args i32) (result i32)
-    (local $mv i32 $meta i32)
-    (set_local $mv ($MEM_VAL1_ptr $args))
-    (set_local $meta ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    (LET $mv   ($MEM_VAL1_ptr $args)
+         $meta ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ;; remove existing metadata first
     ($ALLOC (get_global $METADATA_T) ($DEREF_META $mv) $meta 0)
   )
@@ -572,21 +546,19 @@
 
   (func $reset_BANG (param $args i32) (result i32)
     (local $atom i32 $val i32)
-    (set_local $atom ($MEM_VAL1_ptr $args))
-    (set_local $val ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
+    (LET $atom ($MEM_VAL1_ptr $args)
+         $val  ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ($_reset_BANG $atom $val)
   )
 
   (func $swap_BANG (param $args i32) (result i32)
-    (local $atom i32 $f_args i32 $s_args i32 $rest_args i32 $f i32 $res i32)
-    (set_local $atom ($MEM_VAL1_ptr $args))
-    (set_local $f_args ($MEM_VAL0_ptr $args))
-    (set_local $rest_args ($MEM_VAL0_ptr $f_args))
-    (set_local $f ($MEM_VAL1_ptr $f_args))
-    (set_local $res 0)
-    ;; add atom value to front of the args list
-    (set_local $s_args ($LIST $rest_args ($MEM_VAL0_ptr $atom))) ;; cons
-    (set_local $res ($APPLY $f $s_args))
+    (LET $atom      ($MEM_VAL1_ptr $args)
+         $f_args    ($MEM_VAL0_ptr $args)
+         $rest_args ($MEM_VAL0_ptr $f_args)
+         ;; add atom value to front of the args list
+         $s_args    ($LIST $rest_args ($MEM_VAL0_ptr $atom)) ;; cons
+         $f         ($MEM_VAL1_ptr $f_args)
+         $res       ($APPLY $f $s_args))
     ;; release args
     ($RELEASE $s_args)
     ;; use reset to update the value
