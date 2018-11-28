@@ -1,15 +1,17 @@
 import { _equal_Q, _clone, _keyword, _keyword_Q } from './types'
 import { _list_Q, Vector, _assoc_BANG, Atom } from './types'
 import { pr_str } from './printer'
-import { readline } from './node_readline'
+import rl from './node_readline'
+const readline = rl.readline
 import { read_str } from './reader'
+import { readFileSync } from 'fs'
 
 function _error(e) { throw new Error(e) }
 
 // String functions
 function slurp(f) {
-    if (typeof require !== 'undefined') {
-        return require('fs').readFileSync(f, 'utf-8')
+    if (typeof process !== 'undefined') {
+        return readFileSync(f, 'utf-8')
     } else {
         var req = new XMLHttpRequest()
         req.open('GET', f, false)

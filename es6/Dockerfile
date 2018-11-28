@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:18.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -24,11 +24,11 @@ WORKDIR /mal
 # For building node modules
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 7.X
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
+# Add nodesource apt repo config for 10.x stable
+RUN apt-get -y install gnupg
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
 
-# Link common name
 ENV NPM_CONFIG_CACHE /mal/.npm

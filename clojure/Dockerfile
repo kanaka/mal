@@ -1,4 +1,4 @@
-FROM ubuntu:17.10
+FROM ubuntu:18.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -40,11 +40,14 @@ ENV LEIN_JVM_OPTS -Duser.home=/mal
 # For building node modules
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 8.X
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
+# Add nodesource apt repo config for 10.x stable
+RUN apt-get -y install gnupg
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
 
-# Install nodejs.
+# Install nodejs
 RUN apt-get -y install nodejs
+
+ENV NPM_CONFIG_CACHE /mal/.npm
 
 ## Install ffi and lumo-cljs modules globally
 #RUN npm install -g ffi lumo-cljs

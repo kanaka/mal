@@ -1,4 +1,5 @@
-import { readline } from './node_readline'
+import rl from './node_readline.js'
+const readline = rl.readline
 import { BlankException, read_str } from './reader'
 import { pr_str } from './printer'
 

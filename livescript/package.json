@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "ffi": "2.0.x",
+    "ffi-napi": "2.4.x",
     "prelude-ls": "^1.1.2"
   },
   "devDependencies": {
-    "livescript": "^1.5.0"
+    "livescript": "^1.6.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

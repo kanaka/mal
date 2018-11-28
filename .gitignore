@@ -71,6 +71,8 @@ haxe/*.js
 java/mal.jar
 java/target/
 java/dependency-reduced-pom.xml
+.npm/
+.node-gyp/
 js/mal.js
 js/web/mal.js
 kotlin/*.jar
@@ -103,6 +105,7 @@ ps/mal.ps
 python/mal.pyz
 r/mal.r
 ruby/mal.rb
+.cargo/
 rust/target/
 rust/Cargo.lock
 rust/.cargo

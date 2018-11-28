@@ -1,4 +1,5 @@
-import { readline } from './node_readline'
+import rl from './node_readline.js'
+const readline = rl.readline
 
 // read
 const READ = str => str

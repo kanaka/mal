@@ -19,10 +19,10 @@
     "test:stepA": "cd .. && make 'test^ts^stepA'"
   },
   "dependencies": {
-    "ffi": "^2.2.0"
+    "ffi-napi": "^2.4.0"
   },
   "devDependencies": {
-    "@types/ffi": "0.0.19",
+    "@types/ffi-napi": "2.4.0",
     "@types/node": "^7.0.5",
     "typescript": "^2.2.1",
     "typescript-formatter": "^4.1.2"

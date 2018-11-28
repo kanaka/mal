@@ -1,5 +1,5 @@
 import * as path from "path";
-import * as ffi from "ffi";
+import * as ffi from "ffi-napi";
 import * as fs from "fs";
 
 // IMPORTANT: choose one

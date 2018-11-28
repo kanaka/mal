@@ -4,7 +4,7 @@ var RL_LIB = "libreadline";  // NOTE: libreadline is GPL
 
 var HISTORY_FILE = require('path').join(process.env.HOME, '.mal-history');
 
-var ffi = require('ffi'),
+var ffi = require('ffi-napi'),
     fs = require('fs');
 
 var rllib = ffi.Library(RL_LIB, {
