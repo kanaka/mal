@@ -57,13 +57,14 @@
   (pr-str exp True))
 
 ;; repl
-(def repl-env {'+ +
-               '- -
-               '* *
-               '/ (fn [a b] (int (/ a b)))})
-
+(def repl-env (env-new))
 (defn REP [str]
   (PRINT (EVAL (READ str) repl-env)))
+
+(env-set repl-env '+ +)
+(env-set repl-env '- -)
+(env-set repl-env '* *)
+(env-set repl-env '/ /)
 
 (defmain [&rest args]
   ;; indented to match later steps

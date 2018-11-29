@@ -61,7 +61,7 @@
         ["`", []],
         ["cons", ["read-form", "rdr"],
                  ["read-list-entries", "rdr", "start", "end"]]],
-      ["throw", ["str", ["`", "expected "], "end"]]]]]],
+      ["throw", ["str", ["`", "expected "], "end", ["`", ", got EOF"]]]]]]],
 
 ["def", "read-list", ["fn", ["rdr", "start", "end"],
   ["let", ["token", ["rdr-next", "rdr"]],

@@ -39,12 +39,12 @@ classdef reader
             seq = {};
             token = rdr.next();
             if not(strcmp(token, start))
-                error(sprintf('expected ''%s''', start));
+                error(sprintf('expected ''%s'', got EOF', start));
             end
             token = rdr.peek();
             while true
                 if eq(token, false)
-                    error(sprintf('expected ''%s''', last));
+                    error(sprintf('expected ''%s'', got EOF', last));
                 end
                 if strcmp(token, last), break, end
                 seq{end+1} = reader.read_form(rdr);

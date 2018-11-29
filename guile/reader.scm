@@ -38,7 +38,7 @@
 (define (delim-read reader delim)
   (let lp((next (reader 'peek)) (ret '()))
     (cond
-     ((null? next) (throw 'mal-error (format #f "expected '~a'" delim)))
+     ((null? next) (throw 'mal-error (format #f "expected '~a', got EOF" delim)))
      ((string=? next delim) (reader 'next) (reverse ret))
      (else
       (let* ((cur (read_form reader))
@@ -85,7 +85,7 @@
      ((eqv? (string-ref token 0) #\")
       (if (eqv? (string-ref token (- (string-length token) 1)) #\")
           (with-input-from-string token read)
-          (throw 'mal-error "expected '\"'")))
+          (throw 'mal-error "expected '\"', got EOF")))
      ((string-match "^:(.*)" token)
       => (lambda (m) (string->keyword (match:substring m 1))))
      ((string=? "nil" token) nil)
