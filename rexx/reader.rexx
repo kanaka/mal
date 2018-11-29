@@ -119,7 +119,7 @@ read_atom: procedure expose values. tokens. pos /* read_atom() */
       return new_symbol(token)
     end
 
-read_sequence: procedure expose values. tokens. pos /* read_sequence(type, end_char) */
+read_sequence: procedure expose values. tokens. pos err /* read_sequence(type, end_char) */
   type = arg(1)
   end_char = arg(2)
   pos = pos + 1 /* Consume the open paren */
@@ -133,6 +133,10 @@ read_sequence: procedure expose values. tokens. pos /* read_sequence(type, end_c
     else
       seq = seq || " " || element
     token = tokens.pos
+    if token == "" then do
+      err = "expected '" || end_char || "', got EOF"
+      return "ERR"
+    end
   end
   pos = pos + 1 /* Consume the close paren */
   return new_seq(type, seq)

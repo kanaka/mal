@@ -24,7 +24,7 @@ end
 function M.tokenize(str)
     local results = {}
     local re_pos = 1
-    local re = rex.new("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;[^\n]*|[^\\s\\[\\]{}('\"`,;)]*)", rex.flags().EXTENDED)
+    local re = rex.new("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;[^\n]*|[^\\s\\[\\]{}('\"`,;)]*)", rex.flags().EXTENDED)
     while true do
         local s, e, t = re:exec(str, re_pos)
         if not s or s > e then break end
@@ -44,6 +44,9 @@ function M.read_atom(rdr)
     if int_re:exec(token) then       return tonumber(token)
     elseif float_re:exec(token) then return tonumber(token)
     elseif string.sub(token,1,1) == '"' then
+        if string.sub(token,-1) ~= '"' then
+            throw("expected '\"', got EOF")
+        end
         local sval = string.sub(token,2,string.len(token)-1)
         sval = string.gsub(sval, '\\\\', '\177')
         sval = string.gsub(sval, '\\"', '"')

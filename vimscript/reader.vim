@@ -24,6 +24,7 @@ function Tokenize(str)
                    \   "\\~@\\|" .
                    \   "[\\[\\]{}()'`~^@]\\|" .
                    \   "\"\\%(\\\\.\\|[^\\\\\"]\\)*\"\\|" .
+                   \   "\"\\%(\\\\.\\|[^\\\\\"]\\)*\\|" .
                    \   ";[^\\n]*\\|" .
                    \   "[^[:blank:]\\n\\[\\]{}('\"`,;)]*" .
                    \ "\\)"
@@ -66,6 +67,8 @@ function ReadAtom(rdr)
     return FloatNew(str2float(token))
   elseif token =~ "^\".*\"$"
     return StringNew(ParseString(token))
+  elseif token =~ "^\".*$"
+    throw "expected '\"', got EOF"
   elseif token =~ "^:"
     return KeywordNew(token[1:-1])
   elseif token == "nil"
@@ -87,11 +90,12 @@ function ReadTokensList(rdr, start, last)
   endif
   let token = a:rdr.peek()
   while token != a:last
-    if token == ""
-      throw "expected '" . a:last . "', got EOF"
-    endif
     call add(elements, ReadForm(a:rdr))
-    let token = a:rdr.peek()
+    try
+      let token = a:rdr.peek()
+    catch
+      throw "expected '" . a:last . "', got EOF"
+    endtry
   endwhile
   call a:rdr.nexttoken()
   return elements

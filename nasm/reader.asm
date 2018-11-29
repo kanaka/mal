@@ -13,7 +13,7 @@ section .data
         
 ;; Error message strings
         
-        static error_string_unexpected_end, db "Error: Unexpected end of input. Could be a missing )", 10
+        static error_string_unexpected_end, db "Error: Unexpected end of input (EOF). Could be a missing ) or ]", 10
         static error_string_bracket_not_brace, db "Error: Expecting '}' but got ')'"
 
 ;; Symbols for comparison

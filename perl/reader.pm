@@ -22,7 +22,7 @@ use Data::Dumper;
 
 sub tokenize {
     my($str) = @_;
-    my @tokens = $str =~ /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
+    my @tokens = $str =~ /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
     return grep {! /^;|^$/} @tokens;
 }
 
@@ -31,11 +31,14 @@ sub read_atom {
     my $token = $rdr->next();
     given ($token) {
         when(/^-?[0-9]+$/) { return Integer->new($token) }
-        when(/^"/) {
+        when(/^".*"$/) {
             my %escaped_chars = ( "\\\\" => "\\", "\\\"" => "\"", "\\n" => "\n" );
             my $str = substr $token, 1, -1;
             $str =~ s/\\./$escaped_chars{$&}/ge;
             return String->new($str)
+        }
+        when(/^".*/) {
+            die "expected '\"', got EOF";
         }
         when(/^:/) { return _keyword(substr($token,1)) }
         when(/^nil$/) { return $nil }
@@ -55,10 +58,12 @@ sub read_list {
     if ($token ne $start) {
         die "expected '$start'";
     }
-    while (($token = $rdr->peek()) ne $end) {
-        if (! defined $token) {
+    while (1) {
+        $token = $rdr->peek();
+        if (! defined($token)) {
             die "expected '$end', got EOF";
         }
+        last if ($token eq $end);
         push(@lst, read_form($rdr));
     }
     $rdr->next();
