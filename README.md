@@ -891,7 +891,10 @@ cd rust
 cargo run --release --bin stepX_YYY
 ```
 
-There is also a separate implementation in [Rust by Tim Morgan](https://github.com/seven1m/mal-rust).
+Alternative out-of-tee Rust implementations:
+
+* [by Tim Morgan](https://github.com/seven1m/mal-rust).
+* [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
 
 ### Scala ###
 
