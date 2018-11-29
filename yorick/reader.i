@@ -71,14 +71,14 @@ func read_seq(rdr, start_char, end_char)
 {
   token = reader_next(rdr)
   if (token != start_char) {
-    return MalError(message=("expected '" + start_char + "'"))
+    return MalError(message=("expected '" + start_char + "', got EOF"))
   }
 
   elements = []
   token = reader_peek(rdr)
   while (token != end_char) {
     if (token == string(0)) {
-      return MalError(message=("expected '" + end_char + "'"))
+      return MalError(message=("expected '" + end_char + "', got EOF"))
     }
     e = read_form(rdr)
     if (structof(e) == MalError) return e

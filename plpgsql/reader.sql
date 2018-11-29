@@ -68,12 +68,12 @@ BEGIN
     token := tokens[p];
     p := p + 1;
     IF token <> first THEN
-        RAISE EXCEPTION 'expected ''%''', first;
+        RAISE EXCEPTION 'expected ''%'', got EOF', first;
     END IF;
     items := ARRAY[]::integer[];
     LOOP
         IF p > array_length(tokens, 1) THEN
-            RAISE EXCEPTION 'expected ''%''', last;
+            RAISE EXCEPTION 'expected ''%'', got EOF', last;
         END IF;
         token := tokens[p];
         IF token = last THEN EXIT; END IF;

@@ -31,14 +31,14 @@ proc tokenize str {
 proc read_tokens_list {reader start_char end_char} {
     set token [$reader next]
     if {$token != $start_char} {
-        error "expected '$start_char'"
+        error "expected '$start_char', got EOF"
     }
 
     set elements {}
     set token [$reader peek]
     while {$token != $end_char} {
         if {$token == ""} {
-            error "expected '$end_char'"
+            error "expected '$end_char', got EOF"
         }
         lappend elements [read_form $reader]
         set token [$reader peek]

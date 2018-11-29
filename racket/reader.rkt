@@ -42,7 +42,7 @@
 (define (read_list_entries rdr end)
   (let ([tok (send rdr peek)])
     (cond
-        [(eq? tok '()) (raise (string-append "expected '" end "'"))]
+        [(eq? tok '()) (raise (string-append "expected '" end "', got EOF"))]
         [(equal? end tok) '()]
         [else
           (cons (read_form rdr) (read_list_entries rdr end))])))
@@ -53,7 +53,7 @@
       (let ([lst (read_list_entries rdr end)])
         (send rdr next)
         lst)
-      (raise (string-append "expected '" start "'")))))
+      (raise (string-append "expected '" start "', got EOF")))))
 
 (define (read_form rdr)
   (let ([token (send rdr peek)])
