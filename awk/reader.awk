@@ -1,10 +1,10 @@
 function reader_read_string(token,    v, r)
 {
 	token = substr(token, 1, length(token) - 1)
-	gsub(/\\\\/, "\u029e", token)
+	gsub(/\\\\/, "\xf7", token)
 	gsub(/\\"/, "\"", token)
 	gsub(/\\n/, "\n", token)
-	gsub("\u029e", "\\", token)
+	gsub("\xf7", "\\", token)
 	return token
 }
 
