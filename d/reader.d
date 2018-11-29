@@ -103,7 +103,7 @@ MalType read_atom(Reader reader)
 MalType[] read_items(Reader reader, string start, string end)
 {
     auto open_paren = reader.next();
-    if (open_paren != start) throw new Exception("expected '" ~ start ~ "'");
+    if (open_paren != start) throw new Exception("expected '" ~ start ~ "', got EOF");
 
     string token;
     MalType[] res;
@@ -111,7 +111,7 @@ MalType[] read_items(Reader reader, string start, string end)
     {
         if (token is null)
         {
-            throw new Exception("expected '" ~ end ~ "'");
+            throw new Exception("expected '" ~ end ~ "', got EOF");
         }
         res ~= read_form(reader);
     }

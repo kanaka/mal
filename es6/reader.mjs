@@ -12,7 +12,7 @@ class Reader {
 }
 
 function tokenize(str) {
-    const re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g
+    const re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g
     let match = null
     let results = []
     while ((match = re.exec(str)[1]) != '') {
@@ -30,6 +30,9 @@ function read_atom (reader) {
     } else if (token.match(/^-?[0-9][0-9.]*$/)) {
         return parseFloat(token,10)     // float
     } else if (token[0] === "\"") {
+        if (token.slice(-1) !== "\"") {
+            throw new Error("expected '\"', got EOF");
+        }
         return token.slice(1,token.length-1)
             .replace(/\\(.)/g, (_, c) => c === "n" ? "\n" : c)
     } else if (token[0] === ":") {

@@ -11,7 +11,7 @@ defmodule Mal.Reader do
   end
 
   def tokenize(input) do
-    regex = ~r/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
+    regex = ~r/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/
     Regex.scan(regex, input, capture: :all_but_first)
       |> List.flatten
       |> List.delete_at(-1) # Remove the last match, which is an empty string
@@ -87,6 +87,9 @@ defmodule Mal.Reader do
         token
           |> Code.string_to_quoted
           |> elem(1)
+
+      String.starts_with?(token, "\"") ->
+        throw({:error, "expected '\"', got EOF"})
 
       integer?(token) ->
         Integer.parse(token)

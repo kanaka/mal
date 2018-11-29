@@ -254,7 +254,7 @@ package body Reader is
          loop
 
             if Is_Null (MTA) then
-               return New_Error_Mal_Type (Str => "expected '" & Close & "'");
+               return New_Error_Mal_Type (Str => "expected '" & Close & "', got EOF");
             end if;
 
             exit when Deref (MTA).Sym_Type = Sym and then
@@ -386,7 +386,7 @@ package body Reader is
 
    exception
       when String_Error =>
-        return New_Error_Mal_Type (Str => "expected '""'");
+        return New_Error_Mal_Type (Str => "expected '""', got EOF");
    end Read_Str;
    
 

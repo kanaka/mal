@@ -27,7 +27,7 @@ class Reader {
 
     // Static functions grouped with Reader class
     static function tokenize(str:String) {
-        var re = ~/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
+        var re = ~/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
         var tokens = new Array<String>();
         var pos = 0;
         while (re.matchSub(str, pos)) {
@@ -45,6 +45,7 @@ class Reader {
     static function read_atom(rdr:Reader) {
         var re_int = ~/^-?[0-9][0-9]*$/;
         var re_str = ~/^".*"$/;
+        var re_str_bad = ~/^".*$/;
         var token = rdr.next();
         return switch (token) {
             case "nil":
@@ -72,6 +73,8 @@ class Reader {
                                 "\n"),
                               "\""),
                             "\\"));
+            case _ if (re_str.match(token)):
+                throw 'expected \'"\', got EOF';
             case _:
                 MalSymbol(token);
         }

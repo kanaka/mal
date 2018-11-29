@@ -34,7 +34,7 @@ DEFER: read-form
 :: read-sequence ( seq closer exemplar -- seq maltype )
     seq [
         [
-            [ "expected " closer append throw ]
+            [ "expected " closer ", got EOF" append throw ]
             [ dup first closer = ] if-empty
         ] [
             read-form ,
