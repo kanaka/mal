@@ -173,14 +173,14 @@
 
 ;; Testing do form
 (do (prn "prn output1"))
-; "prn output1"
+;/"prn output1"
 ;=>nil
 (do (prn "prn output2") 7)
-; "prn output2"
+;/"prn output2"
 ;=>7
 (do (prn "prn output1") (prn "prn output2") (+ 1 2))
-; "prn output1"
-; "prn output2"
+;/"prn output1"
+;/"prn output2"
 ;=>3
 
 (do (def! a 6) 7 (+ a 8))
@@ -341,69 +341,69 @@ a
 
 ;; Testing prn
 (prn)
-; 
+;/
 ;=>nil
 
 (prn "")
-; ""
+;/""
 ;=>nil
 
 (prn "abc")
-; "abc"
+;/"abc"
 ;=>nil
 
 (prn "abc  def" "ghi jkl")
-; "abc  def" "ghi jkl"
+;/"abc  def" "ghi jkl"
 
 (prn "\"")
-; "\""
+;/"\\""
 ;=>nil
 
 (prn "abc\ndef\nghi")
-; "abc\ndef\nghi"
+;/"abc\\ndef\\nghi"
 ;=>nil
 
 (prn "abc\\def\\ghi")
-; "abc\\def\\ghi"
+;/"abc\\\\def\\\\ghi"
 nil
 
 (prn (list 1 2 "abc" "\"") "def")
-; (1 2 "abc" "\"") "def"
+;/\(1 2 "abc" "\\""\) "def"
 ;=>nil
 
 
 ;; Testing println
 (println)
-; 
+;/
 ;=>nil
 
 (println "")
-; 
+;/
 ;=>nil
 
 (println "abc")
-; abc
+;/abc
 ;=>nil
 
 (println "abc  def" "ghi jkl")
-; abc  def ghi jkl
+;/abc  def ghi jkl
 
 (println "\"")
-; "
+;/"
 ;=>nil
 
 (println "abc\ndef\nghi")
-; abc
-; def
-; ghi
+;/abc
+;/def
+;/ghi
 ;=>nil
 
 (println "abc\\def\\ghi")
-; abc\def\ghi
+;/abc\\def\\ghi
 ;=>nil
 
 (println (list 1 2 "abc" "\"") "def")
-; (1 2 abc ") def
+;/\(1 2 abc "\) def
 ;=>nil
 
 ;>>> optional=True

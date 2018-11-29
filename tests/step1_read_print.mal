@@ -75,15 +75,18 @@ false
 ;=>""
 
 ;; Testing reader errors
-;;; TODO: fix these so they fail correctly
 (1 2
-; expected ')', got EOF
+;/.*(EOF|end of input|unbalanced).*
 [1 2
-; expected ']', got EOF
+;/.*(EOF|end of input|unbalanced).*
+
+;;; These should throw some error with no return value
 "abc
-; expected '"', got EOF
+;/.+
 (1 "abc
-; expected ')', got EOF
+;/.+
+(1 "abc"
+;/.+
 
 ;; Testing read of quoting
 '1

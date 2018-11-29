@@ -215,15 +215,19 @@ class TestReader:
                     self.line_num += 1
                     self.data.pop(0)
                     break
-                elif line[0:2] == "; ":
+                elif line[0:2] == ";/":
                     self.out = self.out + line[2:] + sep
                     self.line_num += 1
                     self.data.pop(0)
                 else:
-                    self.ret = "*"
+                    self.ret = ""
                     break
-            if self.ret: break
+            if self.ret != None: break
 
+        if self.out[-2:] == sep and not self.ret:
+            # If there is no return value, output should not end in
+            # separator
+            self.out = self.out[0:-2]
         return self.form
 
 args = parser.parse_args(sys.argv[1:])
@@ -293,8 +297,11 @@ while t.next():
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
-    expected = ["%s%s%s%s" % (t.form, sep, t.out, t.ret),
-                "%s%s%s%s%s%s" % (t.form, sep, t.form, sep, t.out, t.ret)]
+    expects = ["%s%s%s%s" % (re.escape(t.form), sep,
+                              t.out, re.escape(t.ret)),
+               "%s%s%s%s%s%s" % (re.escape(t.form), sep,
+                                  re.escape(t.form), sep,
+                                  t.out, re.escape(t.ret))]
 
     r.writeline(t.form)
     try:
@@ -302,7 +309,11 @@ while t.next():
         res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if t.ret == "*" or res in expected:
+        if (t.ret == "" and t.out == ""):
+            log(" -> SUCCESS (result ignored)")
+            pass_cnt += 1
+        elif (re.search(expects[0], res, re.S) or
+                re.search(expects[1], res, re.S)):
             log(" -> SUCCESS")
             pass_cnt += 1
         else:
@@ -314,11 +325,12 @@ while t.next():
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
                 fail_type = ""
-            log("    Expected : %s" % repr(expected[0]))
+            log("    Expected : %s" % repr(expects[0]))
             log("    Got      : %s" % repr(res))
             failed_test = """%sFAILED TEST (line %d): %s -> [%s,%s]:
     Expected : %s
-    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out), t.ret, repr(expected[0]), repr(res))
+    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out),
+                        t.ret, repr(expects[0]), repr(res))
             failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()

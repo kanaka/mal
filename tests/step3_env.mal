@@ -31,7 +31,7 @@ MYNUM
 
 ;; Check env lookup non-fatal error
 (abc 1 2 3)
-; .*\'abc\' not found.*
+;/.*\'?abc\'? not found.*
 ;; Check that error aborts def!
 (def! w 123)
 (def! w (abc))

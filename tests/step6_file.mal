@@ -99,7 +99,7 @@
 
 ;; Testing comments in a file
 (load-file "../tests/incB.mal")
-; "incB.mal finished"
+;/"incB.mal finished"
 ;=>"incB.mal return string"
 (inc4 7)
 ;=>11

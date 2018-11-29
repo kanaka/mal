@@ -5,11 +5,11 @@
 ;=>123
 
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
-; "exc is:" "'abc' not found"
+;/"exc is:" "'abc' not found"
 ;=>nil
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
-; "exc:" "my exception"
+;/"exc:" "my exception"
 ;=>7
 
 ;;; Test that throw is a function:
@@ -48,10 +48,10 @@
 (apply + 4 (list 5))
 ;=>9
 (apply prn (list 1 2 "3" (list)))
-; 1 2 "3" ()
+;/1 2 "3" \(\)
 ;=>nil
 (apply prn 1 2 (list "3" (list)))
-; 1 2 "3" ()
+;/1 2 "3" \(\)
 ;=>nil
 (apply list (list))
 ;=>()
@@ -124,7 +124,7 @@
 (apply + 4 [5])
 ;=>9
 (apply prn 1 2 ["3" 4])
-; 1 2 "3" 4
+;/1 2 "3" 4
 ;=>nil
 (apply list [])
 ;=>()
@@ -307,7 +307,7 @@
 ;;
 ;; Testing throwing non-strings
 (try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" (1 2 3)
+;/"err:" \(1 2 3\)
 ;=>7
 
 ;;
