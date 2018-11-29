@@ -13,7 +13,11 @@ READ_ATOM () {
     case "${token}" in
         [0-9]*)  _number "${token}" ;;
         -[0-9]*) _number "${token}" ;;
-        \"*)    token="${token:1:-1}"
+        \"*)    if [ "${token: -1}" != "\"" ]; then
+                    _error "expected '\"', got EOF"
+                    return
+                fi
+                token="${token:1:-1}"
                 token="${token//\\\\/${__keyw}}"
                 token="${token//\\\"/\"}"
                 token="${token//\\n/$'\n'}"
@@ -46,7 +50,7 @@ READ_SEQ () {
     while [[ "${token}" != "${end}" ]]; do
         if [[ ! "${token}" ]]; then
             r=
-            _error "exepected '${end}', got EOF"
+            _error "expected '${end}', got EOF"
             return
         fi
         READ_FORM
@@ -118,7 +122,7 @@ TOKENIZE () {
             chunk=$(( chunk + ${chunksz} ))
         fi
         (( ${#str} == 0 )) && break
-        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|(\"(\\.|[^\\\"])*\")|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@\,]+)|^[,]|^[[:space:]]+ ]]
+        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|(\"(\\.|[^\\\"])*\"?)|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@\,]+)|^[,]|^[[:space:]]+ ]]
         match=${BASH_REMATCH[0]}
         str="${str:${#match}}"
         token="${match//$'\n'/}"

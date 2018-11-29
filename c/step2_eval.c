@@ -34,7 +34,9 @@ MalVal *eval_ast(MalVal *ast, GHashTable *env) {
     if (ast->type == MAL_SYMBOL) {
         //g_print("EVAL symbol: %s\n", ast->val.string);
         // TODO: check if not found
-        return g_hash_table_lookup(env, ast->val.string);
+        MalVal *res = g_hash_table_lookup(env, ast->val.string);
+        assert(res, "'%s' not found", ast->val.string);
+        return res;
     } else if ((ast->type == MAL_LIST) || (ast->type == MAL_VECTOR)) {
         //g_print("EVAL sequential: %s\n", _pr_str(ast,1));
         MalVal *el = _map2((MalVal *(*)(void*, void*))EVAL, ast, env);

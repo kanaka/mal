@@ -46,7 +46,7 @@ function reader_read_list(reader, type, end,    idx, len, ret)
 	}
 	types_heap[idx]["len"] = len
 	types_release(type idx)
-	return "!\"expect " end ", got EOF"
+	return "!\"expected '" end "', got EOF"
 }
 
 function reader_read_hash(reader,    idx, key, val)
@@ -79,7 +79,7 @@ function reader_read_hash(reader,    idx, key, val)
 		types_heap[idx][key] = val
 	}
 	types_release("{" idx)
-	return "!\"expect }, got EOF"
+	return "!\"expected '}', got EOF"
 }
 
 function reader_read_abbrev(reader, symbol,    val, idx)
