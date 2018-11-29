@@ -145,7 +145,7 @@ class Runner():
                     match = regexp.search(self.buf)
                     if match:
                         end = match.end()
-                        buf = self.buf[0:end-len(prompt)]
+                        buf = self.buf[0:match.start()]
                         self.buf = self.buf[end:]
                         self.last_prompt = prompt
                         return buf
@@ -254,7 +254,7 @@ def assert_prompt(runner, prompts, timeout):
 
 # Wait for the initial prompt
 try:
-    assert_prompt(r, ['user> ', 'mal-user> '], args.start_timeout)
+    assert_prompt(r, ['[^\s()<>]+> '], args.start_timeout)
 except:
     _, exc, _ = sys.exc_info()
     log("\nException: %s" % repr(exc))
@@ -299,8 +299,7 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt(['\r\nuser> ', '\nuser> ',
-                                '\r\nmal-user> ', '\nmal-user> '],
+        res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if t.ret == "*" or res in expected:
