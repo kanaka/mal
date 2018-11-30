@@ -80,6 +80,13 @@ defcore str ( argv argc )
 defcore read-string drop @ unpack-str read-str ;;
 defcore slurp drop @ unpack-str slurp-file MalString. ;;
 
+create core-buff 128 allot
+defcore readline ( argv argc -- mal-string )
+    drop @ unpack-str type stdout flush-file drop
+    core-buff 128 stdin read-line throw
+    if core-buff swap MalString. else drop mal-nil endif ;;
+
+
 defcore cons ( argv[item,coll] argc )
     drop dup @ swap cell+ @ ( item coll )
     to-list conj ;;

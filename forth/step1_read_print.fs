@@ -21,12 +21,23 @@ create buff 128 allot
       stack-leak-detect
       buff 128 stdin read-line throw
     while ( num-bytes-read )
-      buff swap ( str-addr str-len )
-      ['] rep
-      \ execute safe-type
-      catch ?dup 0= if safe-type else ." Caught error " . endif
-      cr
-      stack-leak-detect <> if ." --stack leak--" cr endif
+      dup 0 <> if
+        buff swap ( str-addr str-len )
+        ['] rep
+        \ execute ['] nop \ uncomment to see stack traces
+        catch ?dup 0= if
+            safe-type cr
+            stack-leak-detect <> if ." --stack leak--" cr endif
+        else { errno }
+            begin stack-leak-detect = until
+            errno 1 <> if
+                s" forth-errno" MalKeyword. errno MalInt. MalMap/Empty assoc
+                to exception-object
+            endif
+            ." Uncaught exception: "
+            exception-object pr-str safe-type cr
+        endif
+      endif
     repeat ;
 
 read-lines
