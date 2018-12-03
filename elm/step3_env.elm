@@ -95,7 +95,7 @@ makeOutput result =
             str
 
         Err msg ->
-            "ERR:" ++ msg
+            "Error: " ++ msg
 
 
 prompt : String

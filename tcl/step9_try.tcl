@@ -267,7 +267,12 @@ while {true} {
         continue
     }
     if { [catch { puts [REP $line $repl_env] } exception] } {
-        puts "Error: $exception"
+        if {$exception == "__MalException__"} {
+            set res [pr_str $::mal_exception_obj 1]
+            puts "Error: $res"
+        } else {
+            puts "Error: $exception"
+        }
         if { $DEBUG_MODE } {
             puts $::errorInfo
         }

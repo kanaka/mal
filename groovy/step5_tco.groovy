@@ -106,7 +106,7 @@ while (true) {
     try {
         println REP(line)
     } catch(MalException ex) {
-        println "Error: ${ex.message}"
+        println "Error: ${printer.pr_str(ex.obj, true)}"
     } catch(StackOverflowError ex) {
         println "Error: ${ex}"
     } catch(ex) {

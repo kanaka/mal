@@ -79,7 +79,7 @@ while (line = readline.readline("user> ")) != null
     continue if exc instanceof reader.BlankException
     if exc.stack? and exc.stack.length > 2000
       console.log exc.stack.slice(0,1000) + "\n  ..." + exc.stack.slice(-1000)
-    else if exc.stack? console.log exc.stack
-    else               console.log exc
+    else if exc.stack? then console.log exc.stack
+    else                    console.log exc
 
 # vim: ts=2:sw=2

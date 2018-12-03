@@ -128,7 +128,9 @@ Mal.rep "(def! not (fn* (a) (if a false true)))"
 while line = Readline.readline("user> ")
   begin
     puts Mal.rep(line)
+  rescue e : Mal::RuntimeException
+    STDERR.puts "Error: #{pr_str(e.thrown, true)}"
   rescue e
-    STDERR.puts e
+    STDERR.puts "Error: #{e}"
   end
 end

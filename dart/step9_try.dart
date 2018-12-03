@@ -198,6 +198,10 @@ MalType EVAL(MalType ast, Env env) {
             continue;
           } else if (symbol.value == 'try*') {
             var body = args.first;
+            if (args.length < 2) {
+                ast = EVAL(body, env);
+                continue;
+            }
             var catchClause = args[1] as MalList;
             try {
               ast = EVAL(body, env);
@@ -237,22 +241,7 @@ MalType EVAL(MalType ast, Env env) {
 String PRINT(MalType x) => printer.pr_str(x);
 
 String rep(String x) {
-  var parsed;
-  try {
-    parsed = READ(x);
-  } on reader.ParseException catch (e) {
-    return e.message;
-  }
-
-  var evaledAst;
-  try {
-    evaledAst = EVAL(parsed, replEnv);
-  } on NotFoundException catch (e) {
-    return "'${e.value}' not found";
-  } on MalNativeException catch (e) {
-    return "${e.error}";
-  }
-  return PRINT(evaledAst);
+  return PRINT(EVAL(READ(x), replEnv));
 }
 
 const prompt = 'user> ';
@@ -269,6 +258,15 @@ main(List<String> args) {
     var output;
     try {
       output = rep(input);
+    } on reader.ParseException catch (e) {
+      stdout.writeln("Error: '${e.message}'");
+      continue;
+    } on NotFoundException catch (e) {
+      stdout.writeln("Error: '${e.value}' not found");
+      continue;
+    } on MalException catch (e) {
+      stdout.writeln("Error: ${printer.pr_str(e.value)}");
+      continue;
     } on reader.NoInputException {
       continue;
     }

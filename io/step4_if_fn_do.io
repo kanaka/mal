@@ -70,6 +70,9 @@ loop(
     if(line isEmpty, continue)
     e := try(REP(line) println)
     e catch(Exception,
-        ("Error: " .. (e error)) println
+        if(e type == "MalException",
+            ("Error: " .. ((e val) malPrint(true))) println,
+            ("Error: " .. (e error)) println
+        )
     )
 )

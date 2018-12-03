@@ -99,6 +99,8 @@ and eval ast env =
        eval (quasiquote ast) env
     | T.List { T.value = [T.Symbol { T.value = "macroexpand" }; ast] } ->
        macroexpand ast env
+    | T.List { T.value = [T.Symbol { T.value = "try*" }; scary]} ->
+       (eval scary env)
     | T.List { T.value = [T.Symbol { T.value = "try*" }; scary ;
                           T.List { T.value = [T.Symbol { T.value = "catch*" };
                                               local ; handler]}]} ->
@@ -107,7 +109,7 @@ and eval ast env =
            let value = match exn with
              | Types.MalExn value -> value
              | Invalid_argument msg -> T.String msg
-             | _ -> (T.String "OCaml exception") in
+             | e -> (T.String (Printexc.to_string e)) in
            let sub_env = Env.make (Some env) in
            Env.set sub_env local value;
            eval handler sub_env)
@@ -160,8 +162,8 @@ let rec main =
              | Invalid_argument x ->
                 output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
                 flush stderr
-             | _ ->
-                output_string stderr ("Erroringness!\n");
+             | e ->
+                output_string stderr ((Printexc.to_string e) ^ "\n");
                 flush stderr
         done
       end

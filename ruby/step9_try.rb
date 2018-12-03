@@ -174,7 +174,11 @@ while line = _readline("user> ")
     begin
         puts REP[line]
     rescue Exception => e
-        puts "Error: #{e}" 
+        if e.is_a? MalException
+            puts "Error: #{_pr_str(e.data, true)}" 
+        else
+            puts "Error: #{e}" 
+        end
         puts "\t#{e.backtrace.join("\n\t")}"
     end
 end

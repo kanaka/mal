@@ -122,7 +122,10 @@ module REPL
         | List(_, [_; _; _]) -> raise <| Error.argMismatch ()
         | _ -> raise <| Error.wrongArity ()
 
+
     and tryForm env = function
+        | [exp] ->
+            eval env exp
         | [exp; catchClause] ->
             try
                 eval env exp
@@ -160,27 +163,10 @@ module REPL
         | node -> node |> eval_ast env
 
     let READ input =
-        try
-            Reader.read_str input
-        with
-        | Error.ReaderError(msg) ->
-            printfn "%s" msg
-            []
+        Reader.read_str input
 
     let EVAL env ast =
-        try
-            Some(eval env ast)
-        with
-        | Error.EvalError(str)
-        | Error.ReaderError(str) ->
-            printfn "%s" str
-            None
-        | Error.MalError(node) ->
-            printfn "%s" (Printer.pr_str [node])
-            None
-        | ex ->
-            printfn "%s" (ex.Message)
-            None
+        Some(eval env ast)
 
     let PRINT v =
         v
@@ -256,6 +242,15 @@ module REPL
                 match Readline.read "user> " mode with
                 | null -> 0
                 | input ->
-                    REP env input
+                    try
+                        REP env input
+                    with
+                    | Error.EvalError(str)
+                    | Error.ReaderError(str) ->
+                        printfn "Error: %s" str
+                    | Error.MalError(node) ->
+                        printfn "Error: %s" (Printer.pr_str [node])
+                    | ex ->
+                        printfn "Error: %s" (ex.Message)
                     loop ()
             loop ()

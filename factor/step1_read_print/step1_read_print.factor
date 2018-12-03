@@ -11,7 +11,11 @@ IN: step1_read_print
 : PRINT ( maltype -- str ) pr-str ;
 
 : REP ( str -- str )
-    [ READ EVAL ] [ nip ] recover PRINT ;
+    [
+        READ EVAL PRINT
+    ] [
+        nip pr-str "Error: " swap append
+    ] recover ;
 
 : REPL ( -- )
     [

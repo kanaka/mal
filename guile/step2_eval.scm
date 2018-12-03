@@ -21,8 +21,8 @@
     (* . ,*)
     (/ . ,/)))
 
-(define (READ)
-  (read_str (_readline "user> ")))
+(define (READ str)
+  (read_str str))
 
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
@@ -37,17 +37,12 @@
      ht)
     (else ast)))
 
-(define (eval_func ast env)
-  (define expr (eval_ast ast env))
-  (match expr
-    (((? procedure? proc) args ...)
-     (apply proc args))
-    (else (throw 'mal-error (format #f "'~a' not found" (car expr))))))
-
 (define (EVAL ast env)
   (match ast
     (() ast)
-    ((? list?) (eval_func ast env))
+    ((? list?)
+     (let ((el (eval_ast ast env)))
+        (apply (car el) (cdr el))))
     (else (eval_ast ast env))))
 
 (define (PRINT exp)
@@ -59,11 +54,14 @@
 
 (define (REPL)
   (LOOP
-   (catch 'mal-error
-          (lambda () (PRINT (EVAL (READ) *toplevel*)))
-          (lambda (k . e)
-            (if (string=? (car e) "blank line")
-                (display "")
-                (format #t "Error: ~a~%" (car e)))))))
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (catch 'mal-error
+                (lambda () (PRINT (EVAL (READ line) *toplevel*)))
+                (lambda (k . e)
+                  (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
 
 (REPL)

@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { Node, MalType, MalNil, MalList, MalVector, MalHashMap, MalFunction, isSeq } from "./types";
+import { Node, MalType, MalNil, MalList, MalVector, MalHashMap, MalFunction, isAST, isSeq } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -165,7 +165,11 @@ while (true) {
     try {
         console.log(rep(line));
     } catch (e) {
-        const err: Error = e;
-        console.error(err.message);
+        if (isAST(e)) {
+            console.error("Error:", prStr(e));
+        } else {
+            const err: Error = e;
+            console.error("Error:", err.message);
+        }
     }
 }

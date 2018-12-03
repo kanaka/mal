@@ -30,11 +30,9 @@ def _equal_Q(a, b):
             if not _equal_Q(a[i], b[i]): return False
         return True
     elif _hash_map_Q(a):
-        akeys = a.keys()
-        bkeys = b.keys()
+        akeys = sorted(a.keys())
+        bkeys = sorted(b.keys())
         if len(akeys) != len(bkeys): return False
-        akeys.sort()
-        bkeys.sort()
         for i in range(len(akeys)):
             if akeys[i] != bkeys[i]: return False
             if not _equal_Q(a[akeys[i]], b[bkeys[i]]): return False
@@ -58,6 +56,13 @@ def _clone(obj):
     else:
         return copy.copy(obj)
 
+#
+# Exception type
+#
+
+class MalException(Exception):
+    def __init__(self, object):
+        self.object = object
 
 # Scalars
 def _nil_Q(exp):    return exp is None

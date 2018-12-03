@@ -20,8 +20,8 @@
   (receive (b e) (unzip2 core.ns)
     (make-Env #:binds b #:exprs (map make-func e))))
 
-(define (READ)
-  (read_str (_readline "user> ")))
+(define (READ str)
+  (read_str str))
 
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
@@ -31,18 +31,10 @@
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
-     (hash-for-each (lambda (k v) (hash-set! ht k (_eval v))) ht)
-     ht)
+     ;; NOTE: we must allocate a new hashmap here to avoid any side-effects, or
+     ;;       there'll be strange bugs!!!
+     (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
     (else ast)))
-
-(define (eval_func ast env)
-  (define (_eval o) (EVAL o env))
-  (define (func? x) (and=> ((env 'get) x) is-func))
-  (cond
-   ((func? (car ast))
-    => (lambda (c)
-         (callable-apply c (map _eval (cdr ast)))))
-   (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
 (define (eval_seq ast env)
   (cond
@@ -72,7 +64,8 @@
       (cond
        ;; NOTE: reverse is very important here!
        ((null? next) (values (reverse k) (reverse v)))
-       ((null? (cdr next)) (throw 'mal-error "let*: Invalid binding form" kvs)) 
+       ((null? (cdr next))
+        (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (define (_quasiquote obj)
     (match obj
@@ -109,7 +102,8 @@
            (tco-loop body new-env)))
         (('do rest ...)
          (cond
-          ((null? rest) (throw 'mal-error "do: Invalid form!" rest))
+          ((null? rest)
+           (throw 'mal-error (format #f "do: Invalid form! '~a'" rest)))
           ((= 1 (length rest)) (tco-loop (car rest) env))
           (else
            (let ((mexpr (take rest (1- (length rest))))
@@ -120,22 +114,26 @@
          (cond
           ((and (not (null? els)) (not (null? (cdr els))))
            ;; Invalid `if' form
-           (throw 'mal-error "if: failed to match any pattern in form " ast))
+           (throw 'mal-error
+                  (format #f "if: failed to match any pattern in form '~a'" ast)))
           ((cond-true? (EVAL cnd env)) (tco-loop thn env))
           (else (if (null? els) nil (tco-loop (car els) env)))))
         (('fn* params body ...) ; function definition
-         (make-func
+         (make-anonymous-func
           (lambda args
             (let ((nenv (make-Env #:outer env #:binds (->list params) #:exprs args)))
               (cond
-               ((null? body) (throw 'mal-error "fn*: bad lambda in form " ast))
+               ((null? body)
+                (throw 'mal-error (format #f "fn*: bad lambda in form '~a'" ast)))
                ((= 1 (length body)) (tco-loop (car body) nenv))
                (else
                 (let ((mexpr (take body (1- (length body))))
                       (tail-call (car (take-right body 1))))
                   (eval_seq mexpr nenv)
                   (tco-loop tail-call nenv))))))))
-        (else (eval_func ast env))))))
+        (else
+          (let ((el (map (lambda (x) (EVAL x env)) ast)))
+            (callable-apply (car el) (cdr el))))))))
 
 (define (EVAL-string str)
   (EVAL (read_str str) *toplevel*))
@@ -149,12 +147,15 @@
 
 (define (REPL)
   (LOOP
-   (catch 'mal-error
-          (lambda () (PRINT (EVAL (READ) *toplevel*)))
-          (lambda (k . e)
-            (if (string=? (car e) "blank line")
-                (display "")
-                (format #t "Error: ~a~%" (car e)))))))
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (catch 'mal-error
+                (lambda () (PRINT (EVAL (READ line) *toplevel*)))
+                (lambda (k . e)
+                  (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
 
 ;; initialization
 ((*toplevel* 'set) 'eval (make-func (lambda (ast) (EVAL ast *toplevel*))))

@@ -120,6 +120,8 @@ def EVAL(ast, env):
         elif u"macroexpand" == a0sym:
             return macroexpand(ast[1], env)
         elif u"try*" == a0sym:
+            if len(ast) < 3:
+                return EVAL(ast[1], env);
             a1, a2 = ast[1], ast[2]
             a20 = a2[0]
             if isinstance(a20, MalSym):

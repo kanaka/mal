@@ -134,7 +134,7 @@ func EVAL(ast, env)
       return macroexpand(*lst(2), env)
     } else if (a1 == "try*") {
       ret = EVAL(*lst(2), env)
-      if (structof(ret) == MalError) {
+      if (structof(ret) == MalError && numberof(lst) > 2) {
         exc = *ret.obj
         if (is_void(exc)) {
           exc = MalString(val=ret.message)
@@ -255,7 +255,14 @@ func main(void)
     if (!line) break
     if (strlen(line) > 0) {
       result = REP(line, repl_env)
-      if (structof(result) == MalError) write, format="Error: %s\n", result.message
+      if (structof(result) == MalError) {
+        exc = *result.obj
+        if (is_void(exc)) {
+          write, format="Error: %s\n", result.message
+        } else {
+          write, format="Error: %s\n", pr_str(exc, 1)
+        }
+      }
       else write, format="%s\n", result
     }
   }

@@ -2,6 +2,7 @@
 
 (import [hy.models [HyString :as Str HySymbol :as Sym]])
 (import sys traceback)
+(import [mal_types [MalException]])
 (import [reader [read-str Blank]])
 (import [printer [pr-str]])
 (import [env [env-new env-get env-set]])
@@ -119,6 +120,9 @@
               (print (REP line)))
           (except [EOFError] (break))
           (except [Blank])
-          (except []
-            (print (.join "" (apply traceback.format_exception
-                                    (.exc_info sys))))))))))
+          (except [e Exception]
+            (setv msg (.rstrip (.join "" (apply traceback.format_exception
+                                                (.exc_info sys)))))
+            (if (instance? MalException e)
+              (setv msg (+ (.rstrip msg) ": " (pr-str e.val True))))
+            (print msg)))))))

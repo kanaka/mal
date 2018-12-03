@@ -132,5 +132,7 @@ while true {
         print("Error: \(msg)")
     } catch (MalError.General(let msg)) {
         print("Error: \(msg)")
+    } catch (MalError.MalException(let obj)) {
+        print("Error: \(pr_str(obj, true))")
     }
 }

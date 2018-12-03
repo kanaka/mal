@@ -128,7 +128,8 @@ let init env = begin
                in concat));
 
   Env.set env (Types.symbol "nth")
-    (Types.fn (function [xs; T.Int i] -> List.nth (seq xs) i | _ -> T.Nil));
+    (Types.fn (function [xs; T.Int i] ->
+        (try List.nth (seq xs) i with _ -> raise (Invalid_argument "nth: index out of range")) | _ -> T.Nil));
   Env.set env (Types.symbol "first")
     (Types.fn (function
                 | [xs] -> (match seq xs with x :: _ -> x | _ -> T.Nil)

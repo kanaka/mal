@@ -263,14 +263,6 @@ class MalClosure extends MalCallable {
   }
 }
 
-class MalNativeException implements Exception {
-  final Error error;
-
-  MalNativeException(this.error);
-
-  String toString() => error.toString();
-}
-
 class MalException implements Exception {
   final MalType value;
 

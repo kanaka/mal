@@ -118,8 +118,13 @@ classdef core
 
         function ret = nth(seq, idx)
             if idx+1 > length(seq)
-                throw(MException('Range:nth', ...
-                                 'nth: index out of range'))
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    error('Range:nth', ...
+                          'nth: index out of range');
+                else
+                    throw(MException('Range:nth', ...
+                                     'nth: index out of range'))
+                end
             end
             ret = seq.get(idx+1);
         end
@@ -180,8 +185,13 @@ classdef core
             elseif isa(obj, 'types.Nil')
                 ret = type_utils.nil;
             else
-                throw(MException('Type:seq',...
-                                 'seq: called on non-sequence'))
+                if exist('OCTAVE_VERSION', 'builtin') ~= 0
+                    error('Type:seq', ...
+                          'seq: called on non-sequence');
+                else
+                    throw(MException('Type:seq',...
+                                     'seq: called on non-sequence'))
+                end
             end
         end
 

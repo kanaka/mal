@@ -841,7 +841,7 @@ package body Types is
 
       end loop;
 
-      raise Mal_Exception with "Nth (list): Index out of range";
+      raise Runtime_Exception with "Nth (list): Index out of range";
 
    end Nth;
 
@@ -1064,7 +1064,7 @@ package body Types is
 
       else
 
-         raise Mal_Exception with "Bind failed in Apply";
+         raise Runtime_Exception with "Bind failed in Apply";
 
       end if;
 

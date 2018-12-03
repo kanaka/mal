@@ -32,13 +32,13 @@ int main()
 
     // Set the initial prompt
     snprintf(prompt, sizeof(prompt), "user> ");
- 
+
     for(;;) {
         ast = READ(prompt);
         if (!ast) return 0;
         exp = EVAL(ast, NULL);
         puts(PRINT(exp));
- 
+
         free(ast); // Free input string
     }
 }

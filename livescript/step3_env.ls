@@ -120,5 +120,7 @@ loop
     break if not line? or line == ''
     try
         console.log rep line
-    catch {message}
-        console.error message
+    catch error
+        if error.message
+        then console.error error.message
+        else console.error "Error:", pr_str error, print_readably=true

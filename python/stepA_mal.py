@@ -102,14 +102,19 @@ def EVAL(ast, env):
             f = eval(ast[1])
             return f(*el)
         elif "try*" == a0:
+            if len(ast) < 3:
+                return EVAL(ast[1], env)
             a1, a2 = ast[1], ast[2]
             if a2[0] == "catch*":
+                err = None
                 try:
-                    return EVAL(a1, env);
+                    return EVAL(a1, env)
+                except types.MalException as exc:
+                    err = exc.object
                 except Exception as exc:
-                    exc = exc.args[0]
-                    catch_env = Env(env, [a2[1]], [exc])
-                    return EVAL(a2[2], catch_env)
+                    err = exc.args[0]
+                catch_env = Env(env, [a2[1]], [err])
+                return EVAL(a2[2], catch_env)
             else:
                 return EVAL(a1, env);
         elif "do" == a0:
@@ -173,5 +178,7 @@ while True:
         if line == "": continue
         print(REP(line))
     except reader.Blank: continue
+    except types.MalException as e:
+        print("Error:", printer._pr_str(e.object))
     except Exception as e:
         print("".join(traceback.format_exception(*sys.exc_info())))

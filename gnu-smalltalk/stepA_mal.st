@@ -220,6 +220,9 @@ Object subclass: MAL [
                 a0_ = #'try*' ifTrue: [
                     | A B C |
                     A := ast second.
+                    ast at: 3 ifAbsent: [
+                        ^self EVAL: A env: env.
+                    ].
                     a2_ := ast third value.
                     B := a2_ second value.
                     C := a2_ third.

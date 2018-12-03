@@ -104,7 +104,7 @@
                 (macroexpand a1 env)
 
                 (= (Sym "try*") a0)
-                (if (= (Sym "catch*") (nth a2 0))
+                (if (and a2 (= (Sym "catch*") (nth a2 0)))
                   (try
                     (EVAL a1 env)
                     (except [e Exception]
@@ -190,6 +190,9 @@
               (print (REP line)))
           (except [EOFError] (break))
           (except [Blank])
-          (except []
-            (print (.join "" (apply traceback.format_exception
-                                    (.exc_info sys))))))))))
+          (except [e Exception]
+            (setv msg (.rstrip (.join "" (apply traceback.format_exception
+                                                (.exc_info sys)))))
+            (if (instance? MalException e)
+              (setv msg (+ (.rstrip msg) ": " (pr-str e.val True))))
+            (print msg)))))))

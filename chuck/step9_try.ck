@@ -212,7 +212,7 @@ fun MalObject EVAL(MalObject m, Env env)
             {
                 EVAL(ast[1], env) @=> MalObject value;
 
-                if( value.type != "error" )
+                if( (value.type != "error") || (ast.size() < 3) )
                 {
                     return value;
                 }
@@ -429,15 +429,7 @@ repl_env.set("*ARGV*", MalList.create(MalArgv(args)));
 fun string errorMessage(MalObject m)
 {
     (m$MalError).value() @=> MalObject value;
-
-    if( value.type == "string" )
-    {
-        return Printer.pr_str(value, false);
-    }
-    else
-    {
-        return "exception: " + Printer.pr_str(value, true);
-    }
+    return "exception: " + Printer.pr_str(value, true);
 }
 
 fun string rep(string input)

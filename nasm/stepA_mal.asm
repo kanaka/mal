@@ -2515,6 +2515,11 @@ _start:
         ; Check if an object was thrown
         cmp rsi, 0
         je .catch_done_print                ; nothing to print
+
+        push rsi
+        print_str_mac error_string   ; print 'Error: '
+        pop rsi
+
         mov rdi, 1
         call pr_str
         mov rsi, rax

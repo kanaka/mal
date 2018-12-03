@@ -194,10 +194,11 @@
                                                       (cons :is-macro nil))))))
 
                  ((mal-data-value= mal-try* (first forms))
-                  (handler-case
-                      (return (mal-eval (second forms) env))
-                    (error (condition)
-                      (when (third forms)
+                  (if (not (third forms))
+                    (return (mal-eval (second forms) env))
+                    (handler-case
+                        (return (mal-eval (second forms) env))
+                      (error (condition)
                         (let ((catch-forms (mal-data-value (third forms))))
                           (when (mal-data-value= mal-catch*
                                                  (first catch-forms))

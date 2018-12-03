@@ -108,6 +108,8 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
+        if ast.list.len <= 2:
+            return a1.eval(env)
         if a2.list[0].str == "catch*":
           try:
             return a1.eval(env)
@@ -189,6 +191,10 @@ while true:
     echo line.rep
   except Blank: discard
   except IOError: quit()
+  except MalError:
+    let exc = (ref MalError) getCurrentException()
+    echo "Error: " & exc.t.list[0].pr_str
   except:
+    stdout.write "Error: "
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

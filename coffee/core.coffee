@@ -38,7 +38,7 @@ with_meta = (obj,m) ->
 
 exports.ns = {
   '=': (a,b) -> types._equal_Q(a,b),
-  'throw': (a) -> throw a,
+  'throw': (a) -> throw {"object": a},
   'nil?': types._nil_Q,
   'true?': types._true_Q,
   'false?': types._false_Q,

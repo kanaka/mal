@@ -254,8 +254,12 @@ while (1) {
                     # ignore and continue
                 }
                 default {
-                    chomp $err;
-                    print "Error: $err\n";
+                    if (ref $err) {
+                        print "Error: ".printer::_pr_str($err)."\n";
+                    } else {
+                        chomp $err;
+                        print "Error: $err\n";
+                    }
                 }
             }
         };

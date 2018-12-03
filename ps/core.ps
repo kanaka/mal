@@ -107,6 +107,19 @@ end } def
     } ifelse } ifelse
 } def
 
+% [seq idx] -> nth -> obj
+/nth { 3 dict begin
+    /args exch def
+    /seq args 0 _nth /data get def
+    /idx args 1 _nth def
+    idx seq length lt {
+        seq idx get
+    }{
+        (nth: index out of range) _throw
+    } ifelse
+end } def
+
+
 % [obj] -> do_count -> number
 /do_count {
     0 _nth dup _nil? {
@@ -259,7 +272,6 @@ end } def
     new_val
 end } def
 
-
 % core_ns is namespace of core functions
 
 /core_ns <<
@@ -310,7 +322,7 @@ end } def
     (sequential?) { 0 _nth _sequential? }
     (cons)    { cons }
     (concat)  { do_concat }
-    (nth)     { dup 0 _nth exch 1 _nth _nth }
+    (nth)     { nth }
     (first)   { first }
     (rest)    { rest }
     (empty?)  { 0 _nth _count 0 eq }

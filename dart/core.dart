@@ -131,7 +131,7 @@ Map<MalSymbol, MalBuiltin> ns = <MalSymbol, MalBuiltin>{
     try {
       return indexable[index.value];
     } on RangeError catch (e) {
-      throw new MalNativeException(e);
+      throw new MalException(new MalString(e.toString()));
     }
   }),
   new MalSymbol('first'): new MalBuiltin((List<MalType> args) {

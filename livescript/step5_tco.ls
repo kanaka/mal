@@ -186,7 +186,7 @@ eval_fn = (env, params) ->
 eval_apply = (env, list) ->
     [fn, ...args] = list |> map eval_ast env
     if fn.type != \function
-        runtime-error "#{fn.value} is not a function"
+        runtime-error "#{fn.value} is not a function, got a #{fn.type}"
 
     fn.value.apply env, args
 
@@ -208,5 +208,7 @@ loop
     break if not line? or line == ''
     try
         console.log rep line
-    catch {message}
-        console.error message
+    catch error
+        if error.message
+        then console.error error.message
+        else console.error "Error:", pr_str error, print_readably=true

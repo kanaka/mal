@@ -60,20 +60,7 @@ EVAL(MalType ast, Map<MalSymbol, Function> env) {
 String PRINT(MalType x) => printer.pr_str(x);
 
 String rep(String x) {
-  var parsed;
-  try {
-    parsed = READ(x);
-  } on reader.ParseException catch (e) {
-    return e.message;
-  }
-
-  var evaledAst;
-  try {
-    evaledAst = EVAL(parsed, replEnv);
-  } on NotFoundException catch (e) {
-    return "'${e.value}' not found";
-  }
-  return PRINT(evaledAst);
+  return PRINT(EVAL(READ(x), replEnv));
 }
 
 const prompt = 'user> ';
@@ -85,6 +72,12 @@ main() {
     var output;
     try {
       output = rep(input);
+    } on reader.ParseException catch (e) {
+      stdout.writeln("Error: '${e.message}'");
+      continue;
+    } on NotFoundException catch (e) {
+      stdout.writeln("Error: '${e.value}' not found");
+      continue;
     } on reader.NoInputException {
       continue;
     }

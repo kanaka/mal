@@ -194,6 +194,9 @@ function evalMal(ast: MalType, env: Env): MalType {
                         try {
                             return evalMal(ast.list[1], env);
                         } catch (e) {
+                            if (ast.list.length < 3) {
+                                throw e;
+                            }
                             const catchBody = ast.list[2];
                             if (!isSeq(catchBody)) {
                                 throw new Error(`unexpected return type: ${catchBody.type}, expected: list or vector`);
@@ -314,7 +317,11 @@ while (true) {
     try {
         console.log(rep(line));
     } catch (e) {
-        const err: Error = e;
-        console.error(err.message);
+        if (isAST(e)) {
+            console.error("Error:", prStr(e));
+        } else {
+            const err: Error = e;
+            console.error("Error:", err.message);
+        }
     }
 }

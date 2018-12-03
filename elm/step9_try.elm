@@ -724,7 +724,7 @@ print env =
 
 printError : Env -> MalExpr -> String
 printError env expr =
-    "ERR:" ++ (printString env False expr)
+    "Error: " ++ (printString env False expr)
 
 
 {-| Read-Eval-Print.

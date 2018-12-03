@@ -30,7 +30,7 @@ while (true) {
     try {
         println REP(line)
     } catch(MalException ex) {
-        println "Error: ${ex.message}"
+        println "Error: ${printer.pr_str(ex.obj, true)}"
     } catch(ex) {
         println "Error: $ex"
         ex.printStackTrace()

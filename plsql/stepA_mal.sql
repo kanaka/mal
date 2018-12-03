@@ -445,7 +445,11 @@ BEGIN
                     io.close(1);  -- close output stream
                     RETURN 0;
                 END IF;
-                io.writeline('Error: ' || SQLERRM);
+                IF SQLCODE <> -20000 THEN
+                    io.writeline('Error: ' || SQLERRM);
+                ELSE
+                    io.writeline('Error: ' || printer.pr_str(M, H, err_val));
+                END IF;
                 io.writeline(dbms_utility.format_error_backtrace);
         END;
     END LOOP;

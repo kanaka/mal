@@ -2,13 +2,13 @@ import copy, time
 from itertools import chain
 
 import mal_types as types
-from mal_types import List, Vector
+from mal_types import MalException, List, Vector
 import mal_readline
 import reader
 import printer
 
 # Errors/Exceptions
-def throw(exc): raise Exception(exc)
+def throw(obj): raise MalException(obj)
 
 
 # String functions

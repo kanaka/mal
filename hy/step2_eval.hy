@@ -59,6 +59,6 @@
               (print (REP line)))
           (except [EOFError] (break))
           (except [Blank])
-          (except []
+          (except [e Exception]
             (print (.join "" (apply traceback.format_exception
                                     (.exc_info sys))))))))

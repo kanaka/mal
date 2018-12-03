@@ -247,7 +247,11 @@ while 1
   try
     call PrintLn(REP(line, repl_env))
   catch
-    call PrintLn("Error: " . v:exception)
+    if v:exception == "__MalException__"
+      call PrintLn("Error: " . PrStr(g:MalExceptionObj, 1))
+    else
+      call PrintLn("Error: " . v:exception)
+    end
   endtry
 endwhile
 qall!

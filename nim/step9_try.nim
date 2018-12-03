@@ -17,7 +17,7 @@ proc quasiquote(ast: MalType): MalType =
     return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
 
 proc is_macro_call(ast: MalType, env: Env): bool =
-  ast.kind == List and ast.list[0].kind == Symbol and
+  ast.kind == List and ast.list.len > 0 and ast.list[0].kind == Symbol and
     env.find(ast.list[0].str) != nil and env.get(ast.list[0].str).fun_is_macro
 
 proc macroexpand(ast: MalType, env: Env): MalType =
@@ -108,6 +108,8 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
+        if ast.list.len <= 2:
+            return a1.eval(env)
         if a2.list[0].str == "catch*":
           try:
             return a1.eval(env)
@@ -149,11 +151,9 @@ proc eval(ast: MalType, env: Env): MalType =
           a2.eval(newEnv)
         return malfun(fn, a2, a1, env)
 
-      else:
-        defaultApply()
+      else: defaultApply()
 
-    else:
-      defaultApply()
+    else: defaultApply()
 
 proc print(exp: MalType): string = exp.pr_str
 
@@ -185,6 +185,11 @@ while true:
     let line = readLineFromStdin("user> ")
     echo line.rep
   except Blank: discard
+  except IOError: quit()
+  except MalError:
+    let exc = (ref MalError) getCurrentException()
+    echo "Error: " & exc.t.list[0].pr_str
   except:
+    stdout.write "Error: "
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

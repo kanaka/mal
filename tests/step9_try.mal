@@ -1,4 +1,12 @@
 ;;
+;; Testing throw
+
+(throw "err1")
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*err1.*
+(throw {:msg "err2"})
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
+
+;;
 ;; Testing try*/catch*
 
 (try* 123 (catch* e 456))
@@ -6,6 +14,11 @@
 
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
 ;/"exc is:" "'abc' not found"
+;=>nil
+
+;; Make sure error from core can be caught
+(try* (nth [] 1) (catch* exc (prn "exc is:" exc)))
+;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
@@ -303,6 +316,11 @@
 ;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
+
+;;
+;; Testing try* without catch*
+(try* xyz)
+;/.*\'?xyz\'? not found.*
 
 ;;
 ;; Testing throwing non-strings

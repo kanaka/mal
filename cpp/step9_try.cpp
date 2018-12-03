@@ -50,8 +50,11 @@ static String safeRep(const String& input, malEnvPtr env)
     catch (malEmptyInputException&) {
         return String();
     }
+    catch (malValuePtr& mv) {
+        return "Error: " + mv->print(true);
+    }
     catch (String& s) {
-        return s;
+        return "Error: " + s;
     };
 }
 

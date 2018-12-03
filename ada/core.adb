@@ -193,7 +193,7 @@ package body Core is
             New_Val := Deref_Lambda (Func_Param).Apply (Param_List);
          when Func =>
             New_Val := Deref_Func (Func_Param).Call_Func (Param_List);
-         when others => raise Mal_Exception with "Swap with bad func";
+         when others => raise Runtime_Exception with "Swap with bad func";
       end case;
       Deref_Atom (Atom_Param).Set_Atom (New_Val);
       return New_Val;
@@ -272,7 +272,7 @@ package body Core is
          when Nil    => return Null_List (List_List);
          when others => null;
       end case;
-      raise Evaluation_Error with "Expecting a List";
+      raise Runtime_Exception with "Expecting a List";
       return Null_List (List_List);
    end Eval_As_List;
 
@@ -449,14 +449,14 @@ package body Core is
 
             else
 
-               raise Mal_Exception with "Bind failed in Apply";
+               raise Runtime_Exception with "Bind failed in Apply";
 
             end if;
 
          end;
 
       else  -- neither a Lambda or a Func
-         raise Mal_Exception;
+         raise Runtime_Exception with "Deref called on non-Func/Lambda";
       end if;
 
    end Apply;
@@ -938,7 +938,7 @@ package body Core is
                Rest_List := Deref_List (Cdr (Rest_List)).all;
             end loop;
             return Res;
-         when Hashed_List => raise Mal_Exception with "Conj on Hashed_Map";
+         when Hashed_List => raise Runtime_Exception with "Conj on Hashed_Map";
       end case;
    end Conj;
 
@@ -964,7 +964,7 @@ package body Core is
                   else
                      return Vector.Duplicate (Vector.Deref_Vector (First_Param).all);
                   end if;
-               when others => raise Mal_Exception;
+               when others => raise Runtime_Exception;
             end case;
          when Str =>
             declare
@@ -984,7 +984,7 @@ package body Core is
                   return Res;
                end if;
             end;
-         when others => raise Mal_Exception;
+         when others => raise Runtime_Exception;
       end case;
    end Seq;
 

@@ -20,27 +20,10 @@ module REPL
         | node -> node |> eval_ast env
 
     let READ input =
-        try
-            Reader.read_str input
-        with
-        | Error.ReaderError(msg) ->
-            printfn "%s" msg
-            []
+        Reader.read_str input
 
     let EVAL env ast =
-        try
-            Some(eval env ast)
-        with
-        | Error.EvalError(str)
-        | Error.ReaderError(str) ->
-            printfn "%s" str
-            None
-        | Error.MalError(node) ->
-            printfn "%s" (Printer.pr_str [node])
-            None
-        | ex ->
-            printfn "%s" (ex.Message)
-            None
+        Some(eval env ast)
 
     let PRINT v =
         v
@@ -61,11 +44,20 @@ module REPL
             Readline.Mode.Terminal
 
     [<EntryPoint>]
-    let rec main args =
+    let main args =
         let mode = getReadlineMode args
         let env = Env.makeRootEnv ()
-        match Readline.read "user> " mode with
-        | null -> 0
-        | input -> 
-            REP env input
-            main args
+        let rec loop () =
+            match Readline.read "user> " mode with
+            | null -> 0
+            | input ->
+                try
+                    REP env input
+                with
+                | Error.EvalError(str)
+                | Error.ReaderError(str) ->
+                    printfn "Error: %s" str
+                | ex ->
+                    printfn "Error: %s" (ex.Message)
+                loop ()
+        loop ()

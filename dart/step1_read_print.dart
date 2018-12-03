@@ -11,13 +11,7 @@ MalType EVAL(MalType x) => x;
 String PRINT(MalType x) => printer.pr_str(x);
 
 String rep(String x) {
-  var parsed;
-  try {
-    parsed = READ(x);
-  } on reader.ParseException catch (e) {
-    return e.message;
-  }
-  return PRINT(EVAL(parsed));
+  return PRINT(EVAL(READ(x)));
 }
 
 const prompt = 'user> ';
@@ -29,6 +23,9 @@ main() {
     var output;
     try {
       output = rep(input);
+    } on reader.ParseException catch (e) {
+      stdout.writeln("Error: '${e.message}'");
+      continue;
     } on reader.NoInputException {
       continue;
     }

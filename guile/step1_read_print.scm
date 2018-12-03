@@ -15,8 +15,8 @@
 
 (import (readline) (reader) (printer))
 
-(define (READ)
-  (read_str (_readline "user> ")))
+(define (READ str)
+  (read_str str))
 
 (define (EVAL ast env) ast)
 
@@ -29,11 +29,14 @@
 
 (define (REPL)
   (LOOP
-   (catch 'mal-error
-          (lambda () (PRINT (EVAL (READ) '())))
-          (lambda (k . e)
-            (if (string=? (car e) "blank line")
-                (display "")
-                (format #t "Error: ~a~%" (car e)))))))
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (catch 'mal-error
+                (lambda () (PRINT (EVAL (READ line) '())))
+                (lambda (k . e)
+                  (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
 
 (REPL)

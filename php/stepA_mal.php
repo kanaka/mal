@@ -222,6 +222,8 @@ do {
         }
     } catch (BlankException $e) {
         continue;
+    } catch (_Error $e) {
+        echo "Error: " . _pr_str($e->obj, True) . "\n";
     } catch (Exception $e) {
         echo "Error: " . $e->getMessage() . "\n";
         echo $e->getTraceAsString() . "\n";

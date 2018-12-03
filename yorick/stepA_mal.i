@@ -134,7 +134,7 @@ func EVAL(ast, env)
       return macroexpand(*lst(2), env)
     } else if (a1 == "try*") {
       ret = EVAL(*lst(2), env)
-      if (structof(ret) == MalError) {
+      if (structof(ret) == MalError && numberof(lst) > 2) {
         exc = *ret.obj
         if (is_void(exc)) {
           exc = MalString(val=ret.message)
@@ -223,12 +223,10 @@ func prepare_argv_list(args)
 }
 
 repl_env = nil
-stdin_file = open("/dev/stdin", "r")
 
 func main(void)
 {
   extern repl_env
-  extern stdin_file
   repl_env = env_new(pointer(0))
 
   // core.i: defined using Yorick
@@ -254,13 +252,21 @@ func main(void)
   }
 
   RE, "(println (str \"Mal [\" *host-language* \"]\"))", repl_env
+  stdin_file = open("/dev/stdin", "r")
   while (1) {
     write, format="%s", "user> "
     line = rdline(stdin_file, prompt="")
     if (!line) break
     if (strlen(line) > 0) {
       result = REP(line, repl_env)
-      if (structof(result) == MalError) write, format="Error: %s\n", result.message
+      if (structof(result) == MalError) {
+        exc = *result.obj
+        if (is_void(exc)) {
+          write, format="Error: %s\n", result.message
+        } else {
+          write, format="Error: %s\n", pr_str(exc, 1)
+        }
+      }
       else write, format="%s\n", result
     }
   }

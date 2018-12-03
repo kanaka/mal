@@ -32,10 +32,12 @@ module REPL
             Readline.Mode.Terminal
 
     [<EntryPoint>]
-    let rec main args =
+    let main args =
         let mode = getReadlineMode args
-        match Readline.read "user> " mode with
-        | null -> 0
-        | input -> 
-            REP input
-            main args
+        let rec loop () =
+            match Readline.read "user> " mode with
+            | null -> 0
+            | input -> 
+                REP input
+                loop()
+        loop ()

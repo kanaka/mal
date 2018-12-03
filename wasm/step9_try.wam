@@ -515,9 +515,9 @@
 
   (func $main (param $argc i32 $argv i32) (result i32)
     (LET $line (STATIC_ARRAY 201)
-         $res 0 $repl_env 0
+         $res 0 $repl_env 0 $ms 0
          ;; argument processing
-         $i 0 $ret 0 $empty 0 $current 0 $tmp 0 $val2 0)
+         $i 0 $ret 0 $empty 0 $current 0 $val2 0)
 
     ;; DEBUG
 ;;    ($printf_1 "argc: 0x%x\n" $argc)
@@ -598,7 +598,14 @@
         (set_local $res ($REP $line $repl_env))
         (if (get_global $error_type)
           (then
-            ($printf_1 "Error: %s\n" (get_global $error_str))
+            (if (i32.eq 2 (get_global $error_type))
+              (then
+                (set_local $ms ($pr_str (get_global $error_val) 1))
+                ($printf_1 "Error: %s\n" ($to_String $ms))
+                ($RELEASE $ms)
+                ($RELEASE (get_global $error_val)))
+              (else
+                ($printf_1 "Error: %s\n" (get_global $error_str))))
             (set_global $error_type 0))
           (else
             ($printf_1 "%s\n" ($to_String $res))))

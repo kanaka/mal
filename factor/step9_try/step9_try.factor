@@ -50,8 +50,12 @@ DEFER: EVAL
 :: eval-try* ( params env -- maltype )
     [ params first env EVAL ]
     [
-        params second second env new-env [ env-set ] keep
-        params second third swap EVAL
+        params length 1 > [
+            params second second env new-env [ env-set ] keep
+            params second third swap EVAL
+        ] [
+            throw
+        ] if
     ] recover ;
 
 : args-split ( bindlist -- bindlist restbinding/f )
@@ -121,7 +125,11 @@ M: callable apply call( x -- y ) f ;
 : PRINT ( maltype -- str ) pr-str ;
 
 : REP ( str -- str )
-    [ READ repl-env get EVAL ] [ nip ] recover PRINT ;
+    [
+        READ repl-env get EVAL PRINT
+    ] [
+        nip pr-str "Error: " swap append
+    ] recover ;
 
 : REPL ( -- )
     [

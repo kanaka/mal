@@ -76,7 +76,10 @@
   ["try",
     ["PRINT", ["EVAL", ["READ", "strng"], "repl-env"]],
     ["catch", "exc",
-      ["str", ["`", "Error: "], [".", "exc", ["`", "toString"]]]]]]],
+      ["str", ["`", "Error: "],
+        ["if", ["isa", "exc", "Error"],
+          [".", "exc", ["`", "toString"]],
+          ["pr-str", "exc", true]]]]]]],
 
 ["`", "core.mal: defined using miniMAL"],
 ["map", ["fn", ["k"], ["env-set", "repl-env",

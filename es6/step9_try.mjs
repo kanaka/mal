@@ -155,7 +155,7 @@ while (true) {
         if (line) { console.log(REP(line)) }
     } catch (exc) {
         if (exc instanceof BlankException) { continue }
-        if (exc.stack) { console.log(exc.stack) }
-        else           { console.log(`Error: ${exc}`) }
+        if (exc instanceof Error) { console.warn(exc.stack) }
+        else { console.warn(`Error: ${pr_str(exc, true)}`) }
     }
 }
