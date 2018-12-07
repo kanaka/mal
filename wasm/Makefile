@@ -25,3 +25,13 @@ step7_quote.wasm step8_macros.wasm step9_try.wasm stepA_mal.wasm: $(STEP4_DEPS)
 
 clean:
 	rm -f *.wast *.wasm
+
+.PHONY: stats tests
+
+stats: $(STEP4_DEPS) stepA_mal.wam
+	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
+stats-lisp: $(filter-out $(STEP1_DEPS),$(STEP4_DEPS)) stepA_mal.wam
+	@wc $^
+	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
+
