@@ -61,10 +61,10 @@
       ;; 8: hashmap
       (set_local
         $res ($sprintf_1 $res "%c"
-                         (if i32 (i32.eq $type (get_global $LIST_T))
-                           (CHR "(")
-                           (else (if i32 (i32.eq $type (get_global $VECTOR_T))
-                                   (CHR "[")
+                         (if (result i32) (i32.eq $type (get_global $LIST_T))
+                           (then (CHR "("))
+                           (else (if (result i32) (i32.eq $type (get_global $VECTOR_T))
+                                   (then (CHR "["))
                                    (else (CHR "{")))))))
       ;; PR_SEQ_LOOP
       ;;; while (VAL0(mv) != 0)
@@ -93,10 +93,10 @@
 
       (set_local
         $res ($sprintf_1 $res "%c"
-                         (if i32 (i32.eq $type (get_global $LIST_T))
-                           (CHR ")")
-                           (else (if i32 (i32.eq $type (get_global $VECTOR_T))
-                                   (CHR "]")
+                         (if (result i32) (i32.eq $type (get_global $LIST_T))
+                           (then (CHR ")"))
+                           (else (if (result i32) (i32.eq $type (get_global $VECTOR_T))
+                                   (then (CHR "]"))
                                    (else (CHR "}")))))))
       (br $done))
       ;; 9: function

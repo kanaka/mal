@@ -298,6 +298,7 @@
     (else
       (return ($STRING (get_global $SYMBOL_T) $tok))))
     ))))))))))))))))))))))))))))))))
+    0 ;; not reachable
   )
 
   (func $read_str (param $str i32) (result i32)

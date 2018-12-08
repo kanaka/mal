@@ -79,7 +79,7 @@
 
   (func $keyword (param $args i32) (result i32)
     (LET $str ($to_String ($MEM_VAL1_ptr $args)))
-    (if i32 (i32.eq (i32.load8_u $str) (CHR "\x7f"))
+    (if (result i32) (i32.eq (i32.load8_u $str) (CHR "\x7f"))
       (then ($INC_REF ($MEM_VAL1_ptr $args)))
       (else
         (drop ($sprintf_1 (get_global $printf_buf) "\x7f%s" $str))
@@ -267,7 +267,7 @@
   (func $get (param $args i32) (result i32)
     (LET $hm  ($MEM_VAL1_ptr $args)
          $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
-    (if i32 (i32.eq $hm (get_global $NIL))
+    (if (result i32) (i32.eq $hm (get_global $NIL))
       (then ($INC_REF (get_global $NIL)))
       (else ($INC_REF (i32.wrap/i64 ($HASHMAP_GET $hm $key)))))
   )
@@ -276,7 +276,7 @@
     (LET $hm  ($MEM_VAL1_ptr $args)
          $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ($TRUE_FALSE
-      (if i32 (i32.eq $hm (get_global $NIL))
+      (if (result i32) (i32.eq $hm (get_global $NIL))
         (then 0)
         (else (i32.wrap/i64
                 (i64.shr_u ($HASHMAP_GET $hm $key) (i64.const 32))))))
@@ -521,7 +521,7 @@
   )
 
   (func $meta (param $args i32) (result i32)
-    (if i32 (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (get_global $METADATA_T))
+    (if (result i32) (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (get_global $METADATA_T))
       (then ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL1_ptr $args))))
       (else ($INC_REF (get_global $NIL)))))
 
@@ -545,7 +545,6 @@
   )
 
   (func $reset_BANG (param $args i32) (result i32)
-    (local $atom i32 $val i32)
     (LET $atom ($MEM_VAL1_ptr $args)
          $val  ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ($_reset_BANG $atom $val)

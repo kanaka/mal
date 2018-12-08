@@ -68,7 +68,7 @@
     ;; Calculate smallest to most significant digit
     (loop $loop
       (set_local $digit (i32.rem_u $val $radix))
-      (i32.store8 $pbuf (if i32 (i32.lt_u $digit 10)
+      (i32.store8 $pbuf (if (result i32) (i32.lt_u $digit 10)
                             (i32.add (CHR "0") $digit)
                             (i32.sub (i32.add (CHR "A") $digit) 10)))
       (set_local $pbuf (i32.add $pbuf 1))

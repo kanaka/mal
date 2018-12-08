@@ -59,7 +59,7 @@
   )
 
   (func $TRUE_FALSE (param $val i32) (result i32)
-    ($INC_REF (if i32 $val (get_global $TRUE) (get_global $FALSE)))
+    ($INC_REF (if (result i32) $val (get_global $TRUE) (get_global $FALSE)))
   )
 
   (func $THROW_STR_0 (param $fmt i32)
@@ -99,16 +99,17 @@
     (else (if (AND (i32.eq $ta (get_global $HASHMAP_T))
                    (i32.eq $tb (get_global $HASHMAP_T)))
       ;; EQUAL_Q_HM
-      (return 1))
+      (then (return 1))
     ;; TODO: remove this once strings are interned
     (else (if (OR (AND (i32.eq $ta (get_global $STRING_T))
                        (i32.eq $tb (get_global $STRING_T)))
                   (AND (i32.eq $ta (get_global $SYMBOL_T))
                        (i32.eq $tb (get_global $SYMBOL_T))))
-      (return (i32.eqz ($strcmp ($to_String $a) ($to_String $b))))
+      (then (return (i32.eqz ($strcmp ($to_String $a) ($to_String $b)))))
     (else
       (return (AND (i32.eq $ta $tb)
-                   (i32.eq ($VAL0 $a) ($VAL0 $b)))))))))
+                   (i32.eq ($VAL0 $a) ($VAL0 $b))))))))))
+    0 ;; not reachable
   )
 
   (func $DEREF_META (param $mv i32) (result i32)
@@ -193,12 +194,12 @@
   ;; sequence functions
 
   (func $MAP_LOOP_START (param $type i32) (result i32)
-    (LET $res (if i32 (i32.eq $type (get_global $LIST_T))
-                (get_global $EMPTY_LIST)
-              (else (if i32 (i32.eq $type (get_global $VECTOR_T))
-                (get_global $EMPTY_VECTOR)
-              (else (if i32 (i32.eq $type (get_global $HASHMAP_T))
-                (get_global $EMPTY_HASHMAP)
+    (LET $res (if (result i32) (i32.eq $type (get_global $LIST_T))
+                (then (get_global $EMPTY_LIST))
+              (else (if (result i32) (i32.eq $type (get_global $VECTOR_T))
+                (then (get_global $EMPTY_VECTOR))
+              (else (if (result i32) (i32.eq $type (get_global $HASHMAP_T))
+                (then (get_global $EMPTY_HASHMAP))
               (else
                 ($THROW_STR_1 "read_seq invalid type %d" $type)
                 0)))))))

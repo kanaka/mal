@@ -40,7 +40,7 @@
           (br_if $done (i32.eq ($VAL0 $ast) 0))
 
           (if $skiplast
-            (br_if $done (i32.eqz ($VAL0 ($MEM_VAL0_ptr $ast)) 0)))
+            (br_if $done (i32.eqz ($VAL0 ($MEM_VAL0_ptr $ast)))))
 
           (if (i32.eq $type (get_global $HASHMAP_T))
             (then

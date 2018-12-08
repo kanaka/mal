@@ -47,7 +47,7 @@
         ($memmove $buf $line $len)
         ($lib_free $line)))
     (i32.store8 (i32.add $buf $len) (CHR "\x00"))
-    (return (if i32 $line 1 0))
+    (return (if (result i32) $line 1 0))
   )
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -39,8 +39,8 @@
       (loop $loop
         (if (i32.gt_s $i (i32.sub $len $needle_len)) (br $done))
 
-        (if (AND (i32.eq (i32.load8_u $haystack 0)
-                         (i32.load8_u $needle 0))
+        (if (AND (i32.eq (i32.load8_u $haystack)
+                         (i32.load8_u $needle))
                  (i32.eqz ($strncmp $haystack $needle $needle_len)))
           (return $haystack))
         (set_local $haystack (i32.add $haystack 1))
@@ -73,7 +73,7 @@
         (br $loop)
       )
     )
-    (if i32 $neg
+    (if (result i32) $neg
       (then (i32.sub 0 $acc))
       (else $acc))
   )
@@ -90,10 +90,10 @@
         (br $loop)
       )
     )
-    (if i32 (i32.eq (i32.load8_u $s1) (i32.load8_u $s2))
+    (if (result i32) (i32.eq (i32.load8_u $s1) (i32.load8_u $s2))
       (then 0)
       (else
-        (if i32 (i32.lt_u (i32.load8_u $s1) (i32.load8_u $s2))
+        (if (result i32) (i32.lt_u (i32.load8_u $s1) (i32.load8_u $s2))
           (then -1)
           (else 1))))
   )
@@ -115,7 +115,7 @@
             (i32.eq (i32.load8_u (i32.add $i $s1))
                     (i32.load8_u (i32.add $i $s2))))
       (return 0))
-    (if i32 (i32.lt_u (i32.load8_u (i32.add $i $s1))
+    (if (result i32) (i32.lt_u (i32.load8_u (i32.add $i $s1))
                       (i32.load8_u (i32.add $i $s2)))
       (then -1)
       (else 1))
@@ -144,11 +144,11 @@
         (block $done
           (loop $loop
             (if (i32.ge_u $s 3) (br $done))
-            (set_local $needle (if i32 (i32.eq $s 0)   $needle0
-                                 (if i32 (i32.eq $s 1) $needle1
+            (set_local $needle (if (result i32) (i32.eq $s 0)   $needle0
+                                 (if (result i32) (i32.eq $s 1) $needle1
                                                        $needle2)))
-            (set_local $replace (if i32 (i32.eq $s 0)   $replace0
-                                  (if i32 (i32.eq $s 1) $replace1
+            (set_local $replace (if (result i32) (i32.eq $s 0)   $replace0
+                                  (if (result i32) (i32.eq $s 1) $replace1
                                                         $replace2)))
             (set_local $needle_len ($strlen $needle))
             (set_local $replace_len ($strlen $replace))
@@ -172,11 +172,11 @@
         (block $done2
           (loop $loop2
             (if (i32.ge_u $s 3) (br $done2))
-            (set_local $needle (if i32 (i32.eq $s 0)   $needle0
-                                 (if i32 (i32.eq $s 1) $needle1
+            (set_local $needle (if (result i32) (i32.eq $s 0)   $needle0
+                                 (if (result i32) (i32.eq $s 1) $needle1
                                                        $needle2)))
-            (set_local $replace (if i32 (i32.eq $s 0)   $replace0
-                                  (if i32 (i32.eq $s 1) $replace1
+            (set_local $replace (if (result i32) (i32.eq $s 0)   $replace0
+                                  (if (result i32) (i32.eq $s 1) $replace1
                                                         $replace2)))
             (set_local $s (i32.add $s 1))
             (set_local $found_tmp ($strstr $src_str $needle))

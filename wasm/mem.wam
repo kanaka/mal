@@ -85,13 +85,13 @@
 
   (func $MalType_size (param $type i32) (result i32)
     ;;; if (type <= 5 || type == 9 || type == 12)
-    (if i32 (OR (i32.le_u $type 5)
+    (if (result i32) (OR (i32.le_u $type 5)
                 (i32.eq $type 9)
                 (i32.eq $type 12))
       (then 2)
       (else
         ;;; else if (type == 8 || type == 10 || type == 11)
-        (if i32 (OR (i32.eq $type 8)
+        (if (result i32) (OR (i32.eq $type 8)
                     (i32.eq $type 10)
                     (i32.eq $type 11))
           (then 4)
@@ -100,7 +100,7 @@
   (func $MalVal_size (param $mv i32) (result i32)
     (LET $type ($TYPE $mv))
     ;; if (type == FREE_T)
-    (if i32 (i32.eq $type (get_global $FREE_T))
+    (if (result i32) (i32.eq $type (get_global $FREE_T))
       (then
         ;;; return (mv->refcnt_type & 0xffe0)>>5
         (i32.shr_u (i32.and (i32.load $mv) 0xffe0) 5)) ;;; / 32
