@@ -7,7 +7,7 @@
   (func $memmove  (param $dst i32 $src i32 $len i32)
     (LET $idx 0)
     (loop $copy
-          (i32.store8_u (i32.add $idx $dst)
+          (i32.store8 (i32.add $idx $dst)
                         (i32.load8_u (i32.add $idx $src)))
       (set_local $idx (i32.add 1 $idx))
       (br_if $copy (i32.lt_u $idx $len))
@@ -22,7 +22,7 @@
           (set_local $cur (i32.add $cur 1))
           (br $count)))
     )
-    (i32.sub_u $cur $str)
+    (i32.sub $cur $str)
   )
 
   ;; Based on https://stackoverflow.com/a/25705264/471795
@@ -37,7 +37,7 @@
     (set_local $i 0)
     (block $done
       (loop $loop
-        (if (i32.gt_s $i (i32.sub_s $len $needle_len)) (br $done))
+        (if (i32.gt_s $i (i32.sub $len $needle_len)) (br $done))
 
         (if (AND (i32.eq (i32.load8_u $haystack 0)
                          (i32.load8_u $needle 0))
@@ -68,13 +68,13 @@
           (then
             (set_local $neg 1))
           (else
-            (set_local $acc (i32.add (i32.mul_u $acc 10)
-                                     (i32.sub_u $ch (CHR "0"))))))
+            (set_local $acc (i32.add (i32.mul $acc 10)
+                                     (i32.sub $ch (CHR "0"))))))
         (br $loop)
       )
     )
     (if i32 $neg
-      (then (i32.sub_s 0 $acc))
+      (then (i32.sub 0 $acc))
       (else $acc))
   )
 
@@ -163,7 +163,7 @@
 
     (block $done1
       (loop $loop1
-        (if (i32.ge_s (i32.sub_s $src_str $haystack) $haystack_len)
+        (if (i32.ge_s (i32.sub $src_str $haystack) $haystack_len)
           (br $done1))
 
         ;; Find the earliest match
@@ -192,8 +192,8 @@
         )
         (if (i32.eqz $found) (br $done1))
         ;; copy before the match
-        ($memmove $dst_str $src_str (i32.add (i32.sub_s $found $src_str) 1))
-        (set_local $dst_str (i32.add $dst_str (i32.sub_s $found $src_str)))
+        ($memmove $dst_str $src_str (i32.add (i32.sub $found $src_str) 1))
+        (set_local $dst_str (i32.add $dst_str (i32.sub $found $src_str)))
         ;; add the replace string
         ($memmove $dst_str $replace_s (i32.add $replace_len_s 1))
         (set_local $dst_str (i32.add $dst_str $replace_len_s))
@@ -206,9 +206,9 @@
     ;; Copy the left-over
     ($memmove $dst_str $src_str ($strlen $src_str))
     (set_local $dst_str (i32.add $dst_str ($strlen $src_str)))
-    (i32.store8_u $dst_str (CHR "\x00"))
+    (i32.store8 $dst_str (CHR "\x00"))
 
-    (i32.sub_s $dst_str $grass)
+    (i32.sub $dst_str $grass)
   )
 
 )

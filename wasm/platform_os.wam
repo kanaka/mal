@@ -37,7 +37,7 @@
   (func $read_file (param $path i32 $buf i32) (result i32)
     (LET $size ($lib_read_file $path $buf))
     ;; Add null to string
-    (i32.store8_u (i32.add $buf $size) 0)
+    (i32.store8 (i32.add $buf $size) 0)
     (i32.add $size 1)
   )
 

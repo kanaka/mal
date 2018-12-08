@@ -8,7 +8,7 @@
   (func $CHECK_FREE_LIST (result i32)
     (LET $first (i32.add
                   (get_global $mem)
-                  (i32.mul_u (get_global $mem_free_list) 4))
+                  (i32.mul (get_global $mem_free_list) 4))
          $count 0)
 
     (block $done
@@ -16,10 +16,10 @@
         (br_if $done
                (i32.ge_s $first
                          (i32.add (get_global $mem)
-                                  (i32.mul_u (get_global $mem_unused_start)
+                                  (i32.mul (get_global $mem_unused_start)
                                              4))))
         (set_local $count (i32.add $count ($MalVal_size $first)))
-        (set_local $first (i32.add (get_global $mem) (i32.mul_u 4 ($VAL0 $first))))
+        (set_local $first (i32.add (get_global $mem) (i32.mul 4 ($VAL0 $first))))
         (br $loop)
       )
     )
@@ -27,8 +27,8 @@
   )
 
   (func $PR_MEMORY_SUMMARY_SMALL
-    (LET $free (i32.sub_s (get_global $MEM_SIZE)
-                          (i32.mul_u (get_global $mem_unused_start) 4))
+    (LET $free (i32.sub (get_global $MEM_SIZE)
+                          (i32.mul (get_global $mem_unused_start) 4))
          $free_list_count ($CHECK_FREE_LIST)
          $mv              (get_global $NIL)
          $mem_ref_count   0)
@@ -37,22 +37,22 @@
       (loop $loop
         (br_if $done (i32.ge_s $mv (i32.add
                                      (get_global $mem)
-                                     (i32.mul_u (get_global $mem_unused_start)
+                                     (i32.mul (get_global $mem_unused_start)
                                                 4))))
         (if (i32.ne ($TYPE $mv) (get_global $FREE_T))
           (set_local $mem_ref_count (i32.add $mem_ref_count
                                              (i32.shr_u
                                                (i32.load $mv)
                                                5))))
-        (set_local $mv (i32.add $mv (i32.mul_u 4 ($MalVal_size $mv))))
+        (set_local $mv (i32.add $mv (i32.mul 4 ($MalVal_size $mv))))
         (br $loop)
       )
     )
 
     ($printf_3 "Free: %d, Values: %d (refs: %d), Emptys: "
                $free
-               (i32.sub_s
-                 (i32.sub_s (get_global $mem_unused_start) 1)
+               (i32.sub
+                 (i32.sub (get_global $mem_unused_start) 1)
                  $free_list_count)
                $mem_ref_count)
     (set_local $mv (get_global $NIL))
@@ -210,9 +210,9 @@
     (LET $ms  0
          $idx 0)
     ($printf_2 "String - showing %d -> %d:\n"
-               $start (i32.sub_s (get_global $string_mem_next)
+               $start (i32.sub (get_global $string_mem_next)
                                  (get_global $string_mem)))
-    (if (i32.le_s (i32.sub_s (get_global $string_mem_next)
+    (if (i32.le_s (i32.sub (get_global $string_mem_next)
                              (get_global $string_mem))
                   $start)
       (then ($print " ---\n"))
@@ -221,7 +221,7 @@
         (block $done
           (loop $loop
             (br_if $done (i32.ge_u $ms (get_global $string_mem_next)))
-            (set_local $idx (i32.sub_u $ms (get_global $string_mem)))
+            (set_local $idx (i32.sub $ms (get_global $string_mem)))
             (if (i32.ge_s $idx $start)
               ($printf_4 "%4d: refs %2d, size %2d >> '%s'\n"
                          $idx
@@ -241,7 +241,7 @@
     (if (i32.lt_s $start 0)
       (then
         (set_local $start (get_global $mem_user_start))
-        (set_local $string_start (i32.sub_s (get_global $string_mem_user_start)
+        (set_local $string_start (i32.sub (get_global $string_mem_user_start)
                                             (get_global $string_mem)))))
     (if (i32.lt_s $end 0)
       (set_local $end (get_global $mem_unused_start)))

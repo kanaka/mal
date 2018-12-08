@@ -26,7 +26,7 @@
 
   (func $skip_to_eol (param $str i32) (result i32)
     (LET $found 0
-         $c (i32.load8_c (i32.add $str (get_global $read_index))))
+         $c (i32.load8_u (i32.add $str (get_global $read_index))))
     (if (i32.eq $c (CHR ";"))
       (then
         (set_local $found 1)
@@ -68,7 +68,7 @@
     (set_global $read_index (i32.add (get_global $read_index) 1))
     ;; read first character
     ;;; token[token_index++] = c
-    (i32.store8_u (i32.add (get_global $token_buf) $token_index) $c)
+    (i32.store8 (i32.add (get_global $token_buf) $token_index) $c)
     (set_local $token_index (i32.add $token_index 1))
     ;; single/double character token
     (if (OR (i32.eq $c (CHR "("))
@@ -113,7 +113,7 @@
                                  (i32.eq $c (CHR "\n"))))))
             ;; read next character
             ;;; token[token_index++] = str[(*index)++]
-            (i32.store8_u (i32.add (get_global $token_buf) $token_index)
+            (i32.store8 (i32.add (get_global $token_buf) $token_index)
                           (i32.load8_u
                             (i32.add $str (get_global $read_index))))
             (set_local $token_index (i32.add $token_index 1))
@@ -139,7 +139,7 @@
         )))
 
     ;;; token[token_index] = '\0'
-    (i32.store8_u (i32.add (get_global $token_buf) $token_index) 0)
+    (i32.store8 (i32.add (get_global $token_buf) $token_index) 0)
     (get_global $token_buf)
   )
 
@@ -246,7 +246,7 @@
         (return ($INTEGER ($atoi $tok))))
     (else (if (i32.eq $c0 (CHR ":"))
       (then
-        (i32.store8_u $tok (CHR "\x7f"))
+        (i32.store8 $tok (CHR "\x7f"))
         (return ($STRING (get_global $STRING_T) $tok)))
     (else (if (i32.eq $c0 (CHR "\""))
       (then
@@ -258,7 +258,7 @@
           (else
             ;; unescape backslashes, quotes, and newlines
             ;; remove the trailing quote
-            (i32.store8_u (i32.add $tok $slen) (CHR "\x00"))
+            (i32.store8 (i32.add $tok $slen) (CHR "\x00"))
             (set_local $tok (i32.add $tok 1))
             (drop ($REPLACE3 0 $tok
                              "\\\"" "\""

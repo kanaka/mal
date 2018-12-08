@@ -138,7 +138,7 @@
   ;; return the MalVal pointer
   (func $STRING (param $type i32 $str i32) (result i32)
     (LET $ms ($ALLOC_STRING $str ($strlen $str) 1))
-    ($ALLOC_SCALAR $type (i32.sub_u $ms (get_global $string_mem)))
+    ($ALLOC_SCALAR $type (i32.sub $ms (get_global $string_mem)))
   )
 
   ;; Find first duplicate (internet) of mv. If one is found, free up
@@ -153,16 +153,16 @@
       (then
         (set_local $tmp $mv)
         (set_local $res ($ALLOC_SCALAR (get_global $STRING_T)
-                                       (i32.sub_s $existing_ms
+                                       (i32.sub $existing_ms
                                                   (get_global $string_mem))))
-        (i32.store16_u $existing_ms (i32.add (i32.load16_u $existing_ms) 1))
+        (i32.store16 $existing_ms (i32.add (i32.load16_u $existing_ms) 1))
         ($RELEASE $tmp)))
     $res
   )
 
   (func $STRING_INIT (param $type i32) (result i32)
     (LET $ms ($ALLOC_STRING "" 0 0))
-    ($ALLOC_SCALAR $type (i32.sub_s $ms (get_global $string_mem)))
+    ($ALLOC_SCALAR $type (i32.sub $ms (get_global $string_mem)))
   )
 
   (func $STRING_FINALIZE (param $mv i32 $size i32) (result i32)
@@ -174,7 +174,7 @@
         (set_local $mv $tmp))
       (else
         ;;; ms->size = sizeof(MalString) + size + 1
-        (i32.store16_u (i32.add $ms 2)
+        (i32.store16 (i32.add $ms 2)
                      (i32.add (i32.add 4 $size) 1))
         ;;; string_mem_next = (void *)ms  + ms->size
         (set_global $string_mem_next
@@ -346,7 +346,7 @@
 
     ;; combine last/res as hi 32/low 32 of i64
     (i64.or
-      (i64.shl_u (i64.extend_u/i32 $last) (i64.const 32))
+      (i64.shl (i64.extend_u/i32 $last) (i64.const 32))
       (i64.extend_u/i32 $res))
   )
 
@@ -398,7 +398,7 @@
     )
 
     ;; combine found/res as hi 32/low 32 of i64
-    (i64.or (i64.shl_u (i64.extend_u/i32 $found) (i64.const 32))
+    (i64.or (i64.shl (i64.extend_u/i32 $found) (i64.const 32))
             (i64.extend_u/i32 $res))
   )
 

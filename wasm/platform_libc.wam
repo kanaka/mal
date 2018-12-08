@@ -46,7 +46,7 @@
         (set_local $len ($strlen $line))
         ($memmove $buf $line $len)
         ($lib_free $line)))
-    (i32.store8_u (i32.add $buf $len) (CHR "\x00"))
+    (i32.store8 (i32.add $buf $len) (CHR "\x00"))
     (return (if i32 $line 1 0))
   )
 
@@ -75,7 +75,7 @@
         ($printf_1 "ERROR: slurp failed to stat '%s'\n" $path)
         (return 0)))
     ;; Add null to string
-    (i32.store8_u (i32.add $buf $st_size) 0)
+    (i32.store8 (i32.add $buf $st_size) 0)
     (i32.add 1 $st_size)
   )
 
@@ -91,9 +91,9 @@
     (set_local $secs (i32.load (i32.add $tv (get_global $TV_SEC_OFFSET))))
     ;; subtract 30 years to make sure secs is positive and can be
     ;; multiplied by 1000
-    (set_local $secs (i32.sub_s $secs 0x38640900))
+    (set_local $secs (i32.sub $secs 0x38640900))
     (set_local $usecs (i32.load (i32.add $tv (get_global $TV_USEC_OFFSET))))
-    (set_local $msecs (i32.add (i32.mul_u $secs 1000)
+    (set_local $msecs (i32.add (i32.mul $secs 1000)
                                (i32.div_u $usecs 1000)))
     $msecs
   )

@@ -425,7 +425,7 @@
         (br_if $done (i32.ge_u $i $argc))
 
 	(set_local $val2 ($STRING (get_global $STRING_T)
-                                  (i32.load (i32.add $argv (i32.mul_u $i 4)))))
+                                  (i32.load (i32.add $argv (i32.mul $i 4)))))
 
         ;; MAP_LOOP_UPDATE
         (set_local $res ($MAP_LOOP_UPDATE

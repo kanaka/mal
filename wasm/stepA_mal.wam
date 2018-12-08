@@ -87,11 +87,11 @@
           (then
             (set_global $mac_stack_top
                         (i32.add (get_global $mac_stack_top) 1))
-            (if (i32.ge_s (i32.mul_s (get_global $mac_stack_top) 4) 1024) ;; 256 * 4
+            (if (i32.ge_s (i32.mul (get_global $mac_stack_top) 4) 1024) ;; 256 * 4
               ($fatal 7 "Exhausted mac_stack!\n"))
             (i32.store (i32.add
                          (get_global $mac_stack)
-                         (i32.mul_s (get_global $mac_stack_top) 4))
+                         (i32.mul (get_global $mac_stack_top) 4))
               $ast)))
         (br_if $done (get_global $error_type))
 
@@ -468,9 +468,9 @@
         (br_if $done (i32.le_s (get_global $mac_stack_top) $orig_mac_stack_top))
         ($RELEASE (i32.load (i32.add
                               (get_global $mac_stack)
-                              (i32.mul_s (get_global $mac_stack_top) 4))))
+                              (i32.mul (get_global $mac_stack_top) 4))))
         (set_global $mac_stack_top
-                    (i32.sub_s (get_global $mac_stack_top) 1))
+                    (i32.sub (get_global $mac_stack_top) 1))
         (br $loop)
       )
     )
@@ -559,7 +559,7 @@
         (br_if $done (i32.ge_u $i $argc))
 
 	(set_local $val2 ($STRING (get_global $STRING_T)
-                                  (i32.load (i32.add $argv (i32.mul_u $i 4)))))
+                                  (i32.load (i32.add $argv (i32.mul $i 4)))))
 
         ;; MAP_LOOP_UPDATE
         (set_local $res ($MAP_LOOP_UPDATE

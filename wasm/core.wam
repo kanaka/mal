@@ -170,11 +170,11 @@
                ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $subtract (param $args i32) (result i32)
     ($INTEGER
-      (i32.sub_s ($VAL0 ($MEM_VAL1_ptr $args))
+      (i32.sub ($VAL0 ($MEM_VAL1_ptr $args))
                  ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $multiply (param $args i32) (result i32)
     ($INTEGER
-      (i32.mul_s ($VAL0 ($MEM_VAL1_ptr $args))
+      (i32.mul ($VAL0 ($MEM_VAL1_ptr $args))
                  ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $divide (param $args i32) (result i32)
     ($INTEGER
@@ -443,7 +443,7 @@
             (set_local $f_args ($INC_REF ($MEM_VAL1_ptr $rest_args))))))
       (else
         ;; 1 or more intermediate args
-        (set_local $last_sl ($SLICE $rest_args 0 (i32.sub_s $rest_count 1)))
+        (set_local $last_sl ($SLICE $rest_args 0 (i32.sub $rest_count 1)))
         (set_local $f_args (i32.wrap/i64 $last_sl))
         (set_local $last (i32.wrap/i64 (i64.shr_u $last_sl (i64.const 32))))
         ;; release the terminator of the new list (we skip over it)

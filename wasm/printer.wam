@@ -164,7 +164,7 @@
       (else
         (set_local $res_str ($pr_str_val $res_str $mv $print_readably))))
 
-    (set_local $res ($STRING_FINALIZE $res (i32.sub_s $res_str ($to_String $res))))
+    (set_local $res ($STRING_FINALIZE $res (i32.sub $res_str ($to_String $res))))
 
     $res
   )

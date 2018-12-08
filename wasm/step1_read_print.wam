@@ -48,7 +48,7 @@
 
 ;;    ($PR_MEMORY_RAW
 ;;      (get_global $mem) (i32.add (get_global $mem)
-;;                                 (i32.mul_u (get_global $mem_unused_start) 4)))
+;;                                 (i32.mul (get_global $mem_unused_start) 4)))
 
     (drop ($STRING (get_global $STRING_T) "uvw"))
     (drop ($STRING (get_global $STRING_T) "xyz"))

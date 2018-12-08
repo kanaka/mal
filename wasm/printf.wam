@@ -51,7 +51,7 @@
   (func $_sprintdigit (param $str i32) (param $num i32) (param $base i32)
     (LET $n  (i32.rem_u $num $base)
          $ch (if (result i32) (i32.lt_u $n 10) 48 55))
-    (i32.store8_u $str (i32.add $n $ch))
+    (i32.store8 $str (i32.add $n $ch))
   )
 
   ;; TODO: add max buf length (i.e. snprintnum)
@@ -63,24 +63,24 @@
     (if (AND (i32.lt_s $val 0) (i32.eq $radix 10))
       (then
         (set_local $neg 1)
-        (set_local $val (i32.sub_s 0 $val))))
+        (set_local $val (i32.sub 0 $val))))
 
     ;; Calculate smallest to most significant digit
     (loop $loop
       (set_local $digit (i32.rem_u $val $radix))
-      (i32.store8_u $pbuf (if i32 (i32.lt_u $digit 10)
+      (i32.store8 $pbuf (if i32 (i32.lt_u $digit 10)
                             (i32.add (CHR "0") $digit)
-                            (i32.sub_u (i32.add (CHR "A") $digit) 10)))
+                            (i32.sub (i32.add (CHR "A") $digit) 10)))
       (set_local $pbuf (i32.add $pbuf 1))
       (set_local $val (i32.div_u $val $radix))
       (br_if $loop (i32.gt_u $val 0))
     )
 
-    (set_local $i (i32.sub_u $pbuf $buf))
+    (set_local $i (i32.sub $pbuf $buf))
     (block $done
       (loop $loop
         (br_if $done (i32.ge_u $i $pad_cnt))
-        (i32.store8_u $pbuf $pad_char)
+        (i32.store8 $pbuf $pad_char)
         (set_local $pbuf (i32.add $pbuf 1))
         (set_local $i (i32.add $i 1))
         (br $loop)
@@ -89,22 +89,22 @@
 
     (if $neg
       (then
-        (i32.store8_u $pbuf (CHR "-"))
+        (i32.store8 $pbuf (CHR "-"))
         (set_local $pbuf (i32.add $pbuf 1))))
 
-    (i32.store8_u $pbuf (CHR "\x00"))
+    (i32.store8 $pbuf (CHR "\x00"))
 
     ;; now reverse it
-    (set_local $len (i32.sub_u $pbuf $buf))
+    (set_local $len (i32.sub $pbuf $buf))
     (set_local $i 0)
     (block $done
       (loop $loop
         (br_if $done (i32.ge_u $i (i32.div_u $len 2)))
 
         (set_local $j (i32.load8_u (i32.add $buf $i)))
-        (set_local $k (i32.add $buf (i32.sub_u (i32.sub_u $len $i) 1)))
-        (i32.store8_u (i32.add $buf $i) (i32.load8_u $k))
-        (i32.store8_u $k $j)
+        (set_local $k (i32.add $buf (i32.sub (i32.sub $len $i) 1)))
+        (i32.store8 (i32.add $buf $i) (i32.load8_u $k))
+        (i32.store8 $k $j)
         (set_local $i (i32.add $i 1))
         (br $loop)
       )
@@ -149,7 +149,7 @@
         (if (i32.ne $ch (CHR "%"))
           (then
             ;; TODO: check buffer length
-            (i32.store8_u $pstr $ch)
+            (i32.store8 $pstr $ch)
             (set_local $pstr (i32.add 1 $pstr))
             (br $loop)))
 
@@ -172,9 +172,9 @@
                 (set_local $fmt (i32.add 1 $fmt))
                 (br_if $done (i32.eqz $ch))))
             (loop $loop
-              (set_local $pad_cnt (i32.mul_s $pad_cnt 10))
+              (set_local $pad_cnt (i32.mul $pad_cnt 10))
               (set_local $pad_cnt (i32.add $pad_cnt
-                                           (i32.sub_s $ch (CHR "0"))))
+                                           (i32.sub $ch (CHR "0"))))
               (set_local $ch (i32.load8_u $fmt))
               (set_local $fmt (i32.add 1 $fmt))
               (br_if $loop (AND (i32.ge_s $ch (CHR "0"))
@@ -193,9 +193,9 @@
             (block $done
               (loop $loop
                 (br_if $done (i32.le_s $pad_cnt $len))
-                (i32.store8_u $pstr (CHR " "))
+                (i32.store8 $pstr (CHR " "))
                 (set_local $pstr (i32.add $pstr 1))
-                (set_local $pad_cnt (i32.sub_s $pad_cnt 1))
+                (set_local $pad_cnt (i32.sub $pad_cnt 1))
                 (br $loop)
               )
             )
@@ -203,11 +203,11 @@
             (set_local $pstr (i32.add $pstr $len)))
         (else (if (i32.eq (CHR "c") $ch)
           (then
-            (i32.store8_u $pstr $v)
+            (i32.store8 $pstr $v)
             (set_local $pstr (i32.add $pstr 1)))
         (else (if (i32.eq (CHR "%") $ch)
           (then
-            (i32.store8_u $pstr (CHR "%"))
+            (i32.store8 $pstr (CHR "%"))
             (set_local $pstr (i32.add $pstr 1))
             (br $loop)) ;; don't increase vidx
         (else
@@ -219,7 +219,7 @@
       )
     )
 
-    (i32.store8_u $pstr (CHR "\x00"))
+    (i32.store8 $pstr (CHR "\x00"))
     $pstr
   )
 

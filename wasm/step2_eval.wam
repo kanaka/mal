@@ -174,11 +174,11 @@
                ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $subtract (param $args i32) (result i32)
     ($INTEGER
-      (i32.sub_s ($VAL0 ($MEM_VAL1_ptr $args))
+      (i32.sub ($VAL0 ($MEM_VAL1_ptr $args))
                  ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $multiply (param $args i32) (result i32)
     ($INTEGER
-      (i32.mul_s ($VAL0 ($MEM_VAL1_ptr $args))
+      (i32.mul ($VAL0 ($MEM_VAL1_ptr $args))
                  ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $divide (param $args i32) (result i32)
     ($INTEGER
