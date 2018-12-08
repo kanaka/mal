@@ -6,7 +6,7 @@
 
 Mal is a Clojure inspired Lisp interpreter.
 
-Mal is implemented in 73 languages:
+Mal is implemented in 74 languages:
 
 * Ada
 * GNU awk
@@ -80,6 +80,7 @@ Mal is implemented in 73 languages:
 * VHDL
 * Vimscript
 * Visual Basic.NET
+* WebAssembly (wasm)
 * Yorick
 
 
@@ -1037,6 +1038,19 @@ required to build and run the VB.NET implementation.
 cd vb
 make
 mono ./stepX_YYY.exe
+```
+
+### WebAssembly (wasm) ###
+
+The WebAssembly implementation has been written in
+[Wam](https://github.com/kanaka/wam) (WebAssembly Macro language) and
+runs under the [wac/wace](https://github.com/kanaka/wac) WebAssembly
+runtime.
+
+```
+cd wasm
+make
+wace ./stepX_YYY.wasm
 ```
 
 ### Yorick

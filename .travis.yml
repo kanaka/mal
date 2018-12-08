@@ -91,6 +91,7 @@ matrix:
     - {env: IMPL=vb,        services: [docker]}
     - {env: IMPL=vhdl,      services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}
+    - {env: IMPL=wasm,      services: [docker]}
     - {env: IMPL=yorick,    services: [docker]}
 
 script:
