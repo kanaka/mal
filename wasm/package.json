@@ -1,0 +1,8 @@
+{
+    "name": "mal",
+    "version": "0.0.1",
+    "description": "Make a Lisp (mal) language implemented in Javascript",
+    "dependencies": {
+        "@kanaka/wamp": "1.0.4"
+    }
+}
