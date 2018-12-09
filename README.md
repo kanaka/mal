@@ -116,7 +116,10 @@ Unlocked: A Better Path to Language Learning".
 Joel gave a presentation on "Make Your Own Lisp Interpreter in
 10 Incremental Steps" at LambdaConf 2016: [Part
 1](https://www.youtube.com/watch?v=jVhupfthTEk), [Part
-2](https://www.youtube.com/watch?v=X5OQBMGpaTU),
+2](https://www.youtube.com/watch?v=X5OQBMGpaTU), [Part
+3](https://www.youtube.com/watch?v=6mARZzGgX4U), [Part
+4](https://www.youtube.com/watch?v=dCO1SYR5kDU),
+
 [Slides](http://kanaka.github.io/lambdaconf/).
 
 If you are interesting in creating a mal implementation (or just
@@ -1042,7 +1045,7 @@ mono ./stepX_YYY.exe
 
 ### WebAssembly (wasm) ###
 
-The WebAssembly implementation has been written in
+The WebAssembly implementation is written in
 [Wam](https://github.com/kanaka/wam) (WebAssembly Macro language) and
 runs under the [wac/wace](https://github.com/kanaka/wac) WebAssembly
 runtime.
