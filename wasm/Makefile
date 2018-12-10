@@ -1,4 +1,4 @@
-MODE ?= libc
+MODE ?= $(if $(filter wace_fooboot node js,$(wasm_MODE)),os,libc)
 
 WASM_AS ?= wasm-as
 WAMP ?= node_modules/.bin/wamp
