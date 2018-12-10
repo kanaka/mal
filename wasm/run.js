@@ -75,7 +75,7 @@ async function loadWebAssembly(filename, args) {
   const module = await WebAssembly.compile(wasm_bin)
   let memory = new WebAssembly.Memory({ initial: 256 })
   // Core imports
-  function fputs(addr, stream) {
+  function printline(addr, stream) {
       console.log(get_string(memory, addr).replace(/\n$/, ''))
   }
 
@@ -94,6 +94,10 @@ async function loadWebAssembly(filename, args) {
       return put_string(memory, buf, contents)
   }
 
+  function time_ms() {
+      return (new Date()).getTime()
+  }
+
   // Marshal arguments
   const memoryStart = 0
   let memoryBase = marshal_argv(memory, memoryStart, args)
@@ -104,12 +108,10 @@ async function loadWebAssembly(filename, args) {
   imports = {}
   imports.env = {}
   imports.env.exit = process.exit
-  imports.env.stdout = 1
-  imports.env.fputs = fputs;
+  imports.env.printline = printline
   imports.env.readline = readline
-  // ignore add_history, node_readline.readline already calls it
-  imports.env.add_history = (buf) => { }
   imports.env.read_file = read_file
+  imports.env.time_ms = time_ms
 
   imports.env.memory = memory
   imports.env.memoryBase = memoryBase

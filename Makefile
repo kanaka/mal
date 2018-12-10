@@ -58,7 +58,7 @@ matlab_MODE = octave
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
 scheme_MODE = chibi
-# node wace_libc wace_fooboot
+# js wace_libc wace_fooboot
 wasm_MODE = wace_libc
 
 # Extra options to pass to runtest.py
