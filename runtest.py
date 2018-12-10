@@ -68,7 +68,7 @@ parser.add_argument('--no-optional', dest='optional', action='store_false',
         help="Disable optional tests that follow a ';>>> optional=True'")
 parser.set_defaults(optional=True)
 
-parser.add_argument('test_file', type=argparse.FileType('r'),
+parser.add_argument('test_file', type=str,
         help="a test file formatted as with mal test data")
 parser.add_argument('mal_cmd', nargs="*",
         help="Mal implementation command line. Use '--' to "
@@ -148,14 +148,14 @@ class Runner():
                         buf = self.buf[0:match.start()]
                         self.buf = self.buf[end:]
                         self.last_prompt = prompt
-                        return buf
+                        return buf.replace("^M", "\r")
         return None
 
     def writeline(self, str):
         def _to_bytes(s):
             return bytes(s, "utf-8") if IS_PY_3 else s
 
-        self.stdin.write(_to_bytes(str + "\n"))
+        self.stdin.write(_to_bytes(str.replace('\r', '\x16\r') + "\n"))
 
     def cleanup(self):
         #print "cleaning up"
@@ -169,7 +169,8 @@ class Runner():
 class TestReader:
     def __init__(self, test_file):
         self.line_num = 0
-        self.data = test_file.read().split('\n')
+        f = open(test_file, newline='') if IS_PY_3 else open(test_file)
+        self.data = f.read().split('\n')
         self.soft = False
         self.deferrable = False
         self.optional = False
@@ -292,7 +293,7 @@ while t.next():
 
     if t.form == None: continue
 
-    log("TEST: %s -> [%s,%s]" % (t.form, repr(t.out), t.ret), end='')
+    log("TEST: %s -> [%s,%s]" % (repr(t.form), repr(t.out), t.ret), end='')
 
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
@@ -349,7 +350,7 @@ TEST RESULTS (for %s):
   %3d: failing tests
   %3d: passing tests
   %3d: total tests
-""" % (args.test_file.name, soft_fail_cnt, fail_cnt,
+""" % (args.test_file, soft_fail_cnt, fail_cnt,
         pass_cnt, test_cnt)
 log(results)
 
