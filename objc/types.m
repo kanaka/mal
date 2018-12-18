@@ -91,6 +91,10 @@ NSArray * _rest(NSArray * obj) {
     return _array[index];
 }
 
+- (id)copyWithZone:(NSZone *)zone {
+    return [[MalVector alloc] initWithArray:[_array copy]];
+}
+
 @end
 
 
