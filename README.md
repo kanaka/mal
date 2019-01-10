@@ -108,7 +108,7 @@ The mal (make a lisp) steps are:
 Mal was presented publicly for the first time in a lightning talk at
 Clojure West 2014 (unfortunately there is no video). See
 examples/clojurewest2014.mal for the presentation that was given at the
-conference (yes the presentation is a mal program). At Midwest.io
+conference (yes, the presentation is a mal program). At Midwest.io
 2015, Joel Martin gave a presentation on Mal titled "Achievement
 Unlocked: A Better Path to Language Learning".
 [Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
@@ -131,7 +131,7 @@ FAQ](docs/FAQ.md) where I attempt to answer some common questions.
 
 The simplest way to run any given implementation is to use docker.
 Every implementation has a docker image pre-built with language
-dependencies installed. You can launch the REPL using a convenience
+dependencies installed. You can launch the REPL using a convenient
 target in the top level Makefile (where IMPL is the implementation
 directory name and stepX is the step to run):
 
@@ -1232,10 +1232,10 @@ make "docker-build^IMPL"
 **Notes**:
 * Docker images are named *"kanaka/mal-test-IMPL"*
 * JVM-based language implementations (Groovy, Java, Clojure, Scala):
-  you will probably need to run these implementations once manually
-  first (make DOCKERIZE=1 "repl^IMPL")before you can run tests because
+  you will probably need to run this command once manually
+  first `make DOCKERIZE=1 "repl^IMPL"` before you can run tests because
   runtime dependencies need to be downloaded to avoid the tests timing
-  out. These dependencies are download to dot-files in the /mal
+  out. These dependencies are downloaded to dot-files in the /mal
   directory so they will persist between runs.
 
 ## Projects using mal
