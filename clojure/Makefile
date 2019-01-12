@@ -1,6 +1,6 @@
 clojure_MODE ?= clj
 SOURCES_UTIL = src/mal/readline.$(clojure_MODE)
-SOURCES_BASE = $(SOURCES_UTIL) src/mal/printer.cljc
+SOURCES_BASE = $(SOURCES_UTIL) src/mal/reader.cljc src/mal/printer.cljc
 SOURCES_LISP = src/mal/env.cljc src/mal/core.cljc src/mal/stepA_mal.cljc
 SRCS = $(SOURCES_BASE) src/mal/env.cljc src/mal/core.cljc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)

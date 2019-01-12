@@ -42,7 +42,7 @@
                 (apply f args)))))
 
 ;; print
-(defn PRINT [exp] (pr-str exp))
+(defn PRINT [exp] (printer/pr-str exp))
 
 ;; repl
 (def repl-env {'+ +

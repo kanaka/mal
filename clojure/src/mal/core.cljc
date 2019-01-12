@@ -1,7 +1,9 @@
 (ns mal.core
-  (:require [mal.readline :as readline]
+  (:refer-clojure :exclude [pr-str])
+  (:require [clojure.string :refer [join]]
+            [mal.readline :as readline]
             [mal.reader :as reader]
-            [mal.printer :as printer]))
+            [mal.printer :refer [pr-str atom?]]))
 
 ;; Errors/exceptions
 (defn mal_throw [obj]
@@ -13,10 +15,6 @@
 ;; Numeric functions
 #?(:clj  (defn time-ms [] (System/currentTimeMillis))
    :cljs (defn time-ms [] (.getTime (js/Date.))))
-
-;; Atom functions
-#?(:clj  (defn atom? [atm] (= (type atm) clojure.lang.Atom))
-   :cljs (defn atom? [atm] (satisfies? IAtom atm)))
 
 ;; Metadata functions
 ;; - store metadata at :meta key of the real metadata
@@ -43,10 +41,10 @@
    ['fn? (fn [o] (if (and (fn? o) (not (:ismacro (meta o)))) true false))]
    ['macro? (fn [o] (if (and (fn? o) (:ismacro (meta o))) true false))]
 
-   ['pr-str pr-str]
-   ['str printer/_str]
-   ['prn prn]
-   ['println println]
+   ['pr-str (fn [& xs] (join " " (map #(pr-str % true) xs)))]
+   ['str (fn [& xs] (join "" (map #(pr-str % false) xs)))]
+   ['prn (fn [& xs] (println (join " " (map #(pr-str % true) xs))))]
+   ['println (fn [& xs] (println (join " " (map #(pr-str % false) xs))))]
    ['readline readline/readline]
    ['read-string reader/read-string]
    ['slurp slurp]
@@ -59,7 +57,7 @@
    ['* *]
    ['/ /]
    ['time-ms time-ms]
-  
+
    ['list list]
    ['list? seq?]
    ['vector vector]
@@ -72,17 +70,17 @@
    ['contains? contains?]
    ['keys (fn [hm] (let [ks (keys hm)] (if (nil? ks) '() ks)))]
    ['vals (fn [hm] (let [vs (vals hm)] (if (nil? vs) '() vs)))]
-   
+
    ['sequential? sequential?]
    ['cons cons]
-   ['concat concat]
+   ['concat #(apply list (apply concat %&))]
    ['nth nth]
    ['first first]
    ['rest rest]
    ['empty? empty?]
    ['count count]
    ['apply apply]
-   ['map #(doall (map %1 %2))] 
+   ['map #(apply list (map %1 %2))]
 
    ['conj conj]
    ['seq (fn [obj] (seq (if (string? obj) (map str obj) obj)))]

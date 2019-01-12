@@ -14,7 +14,7 @@
   ast)
 
 ;; print
-(defn PRINT [exp] (pr-str exp))
+(defn PRINT [exp] (printer/pr-str exp))
 
 ;; repl
 (defn rep
