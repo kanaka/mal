@@ -94,7 +94,7 @@ async function loadWebAssembly(filename, args) {
       return put_string(memory, buf, contents)
   }
 
-  function time_ms() {
+  function get_time_ms() {
       return (new Date()).getTime()
   }
 
@@ -111,7 +111,11 @@ async function loadWebAssembly(filename, args) {
   imports.env.printline = printline
   imports.env.readline = readline
   imports.env.read_file = read_file
-  imports.env.time_ms = time_ms
+  imports.env.get_time_ms = get_time_ms
+
+
+  imports.env.stdout = 0
+  imports.env.fputs = printline
 
   imports.env.memory = memory
   imports.env.memoryBase = memoryBase

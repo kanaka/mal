@@ -321,7 +321,6 @@
          $res 0 $repl_env 0 $ms 0)
 
     ;; DEBUG
-;;    ($printf_1 "argc: 0x%x\n" $argc)
 ;;    ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
 ;;    ($printf_1 "heap_start: 0x%x\n" (get_global $heap_start))
 ;;    ($printf_1 "heap_end: 0x%x\n" (get_global $heap_end))

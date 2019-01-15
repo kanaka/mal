@@ -1,4 +1,4 @@
-MODE ?= $(if $(filter node js,$(wasm_MODE)),js,$(if $(filter wace_fooboot,$(wasm_MODE)),os,libc))
+MODE ?= $(if $(filter node js wace_fooboot,$(wasm_MODE)),os,libc)
 
 WASM_AS ?= wasm-as
 WAMP ?= node_modules/.bin/wamp
