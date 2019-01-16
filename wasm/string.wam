@@ -9,7 +9,7 @@
     (loop $copy
           (i32.store8 (i32.add $idx $dst)
                         (i32.load8_u (i32.add $idx $src)))
-      (set_local $idx (i32.add 1 $idx))
+      (local.set $idx (i32.add 1 $idx))
       (br_if $copy (i32.lt_u $idx $len))
     )
   )
@@ -19,7 +19,7 @@
     (loop $count
       (if (i32.ne 0 (i32.load8_u $cur))
         (then
-          (set_local $cur (i32.add $cur 1))
+          (local.set $cur (i32.add $cur 1))
           (br $count)))
     )
     (i32.sub $cur $str)
@@ -34,7 +34,7 @@
 
     (if (i32.eq $needle_len 0) (return $haystack))
 
-    (set_local $i 0)
+    (local.set $i 0)
     (block $done
       (loop $loop
         (if (i32.gt_s $i (i32.sub $len $needle_len)) (br $done))
@@ -43,8 +43,8 @@
                          (i32.load8_u $needle))
                  (i32.eqz ($strncmp $haystack $needle $needle_len)))
           (return $haystack))
-        (set_local $haystack (i32.add $haystack 1))
-        (set_local $i (i32.add $i 1))
+        (local.set $haystack (i32.add $haystack 1))
+        (local.set $i (i32.add $i 1))
         (br $loop)
       )
     )
@@ -58,17 +58,17 @@
          $ch  0)
     (block $done
       (loop $loop
-        (set_local $ch (i32.load8_u (i32.add $str $i)))
+        (local.set $ch (i32.load8_u (i32.add $str $i)))
         (if (AND (i32.ne $ch (CHR "-"))
                  (OR (i32.lt_u $ch (CHR "0"))
                      (i32.gt_u $ch (CHR "9"))))
           (br $done))
-        (set_local $i (i32.add $i 1))
+        (local.set $i (i32.add $i 1))
         (if (i32.eq $ch (CHR "-"))
           (then
-            (set_local $neg 1))
+            (local.set $neg 1))
           (else
-            (set_local $acc (i32.add (i32.mul $acc 10)
+            (local.set $acc (i32.add (i32.mul $acc 10)
                                      (i32.sub $ch (CHR "0"))))))
         (br $loop)
       )
@@ -85,8 +85,8 @@
           (br $done))
         (if (i32.ne (i32.load8_u $s1) (i32.load8_u $s2))
           (br $done))
-        (set_local $s1 (i32.add $s1 1))
-        (set_local $s2 (i32.add $s2 1))
+        (local.set $s1 (i32.add $s1 1))
+        (local.set $s2 (i32.add $s2 1))
         (br $loop)
       )
     )
@@ -107,7 +107,7 @@
         (if (i32.eqz (i32.load8_u (i32.add $i $s1))) (br $done))
         (if (i32.ne (i32.load8_u (i32.add $i $s1))
                     (i32.load8_u (i32.add $i $s2))) (br $done))
-        (set_local $i (i32.add $i 1))
+        (local.set $i (i32.add $i 1))
         (br $loop)
       )
     )
@@ -140,26 +140,26 @@
     (if (i32.eqz $grass)
       (then
         ;; check that we aren't expanding in place
-        (set_local $s 0)
+        (local.set $s 0)
         (block $done
           (loop $loop
             (if (i32.ge_u $s 3) (br $done))
-            (set_local $needle (if (result i32) (i32.eq $s 0)   $needle0
+            (local.set $needle (if (result i32) (i32.eq $s 0)   $needle0
                                  (if (result i32) (i32.eq $s 1) $needle1
                                                        $needle2)))
-            (set_local $replace (if (result i32) (i32.eq $s 0)   $replace0
+            (local.set $replace (if (result i32) (i32.eq $s 0)   $replace0
                                   (if (result i32) (i32.eq $s 1) $replace1
                                                         $replace2)))
-            (set_local $needle_len ($strlen $needle))
-            (set_local $replace_len ($strlen $replace))
+            (local.set $needle_len ($strlen $needle))
+            (local.set $replace_len ($strlen $replace))
             (if (i32.gt_u $replace_len $needle_len)
               ($fatal 7 "REPLACE: invalid expanding in-place call\n"))
-            (set_local $s (i32.add $s 1))
+            (local.set $s (i32.add $s 1))
             (br $loop)
           )
         )
-        (set_local $grass $haystack)
-        (set_local $dst_str $grass)))
+        (local.set $grass $haystack)
+        (local.set $dst_str $grass)))
 
     (block $done1
       (loop $loop1
@@ -167,45 +167,45 @@
           (br $done1))
 
         ;; Find the earliest match
-        (set_local $found 0)
-        (set_local $s 0)
+        (local.set $found 0)
+        (local.set $s 0)
         (block $done2
           (loop $loop2
             (if (i32.ge_u $s 3) (br $done2))
-            (set_local $needle (if (result i32) (i32.eq $s 0)   $needle0
+            (local.set $needle (if (result i32) (i32.eq $s 0)   $needle0
                                  (if (result i32) (i32.eq $s 1) $needle1
                                                        $needle2)))
-            (set_local $replace (if (result i32) (i32.eq $s 0)   $replace0
+            (local.set $replace (if (result i32) (i32.eq $s 0)   $replace0
                                   (if (result i32) (i32.eq $s 1) $replace1
                                                         $replace2)))
-            (set_local $s (i32.add $s 1))
-            (set_local $found_tmp ($strstr $src_str $needle))
+            (local.set $s (i32.add $s 1))
+            (local.set $found_tmp ($strstr $src_str $needle))
             (if (i32.eqz $found_tmp) (br $loop2))
             (if (OR (i32.eqz $found) (i32.lt_s $found_tmp $found))
               (then
-                (set_local $found $found_tmp)
-                (set_local $needle_len_s ($strlen $needle))
-                (set_local $replace_s $replace)
-                (set_local $replace_len_s ($strlen $replace))))
+                (local.set $found $found_tmp)
+                (local.set $needle_len_s ($strlen $needle))
+                (local.set $replace_s $replace)
+                (local.set $replace_len_s ($strlen $replace))))
             (br $loop2)
           )
         )
         (if (i32.eqz $found) (br $done1))
         ;; copy before the match
         ($memmove $dst_str $src_str (i32.add (i32.sub $found $src_str) 1))
-        (set_local $dst_str (i32.add $dst_str (i32.sub $found $src_str)))
+        (local.set $dst_str (i32.add $dst_str (i32.sub $found $src_str)))
         ;; add the replace string
         ($memmove $dst_str $replace_s (i32.add $replace_len_s 1))
-        (set_local $dst_str (i32.add $dst_str $replace_len_s))
+        (local.set $dst_str (i32.add $dst_str $replace_len_s))
         ;; Move to after the match
-        (set_local $src_str (i32.add $found $needle_len_s))
+        (local.set $src_str (i32.add $found $needle_len_s))
         (br $loop1)
       )
     )
 
     ;; Copy the left-over
     ($memmove $dst_str $src_str ($strlen $src_str))
-    (set_local $dst_str (i32.add $dst_str ($strlen $src_str)))
+    (local.set $dst_str (i32.add $dst_str ($strlen $src_str)))
     (i32.store8 $dst_str (CHR "\x00"))
 
     (i32.sub $dst_str $grass)

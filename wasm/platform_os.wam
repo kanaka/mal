@@ -17,7 +17,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (func $print (param $addr i32)
-    (drop ($lib_fputs $addr (get_global $lib_stdout))))
+    (drop ($lib_fputs $addr (global.get $lib_stdout))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

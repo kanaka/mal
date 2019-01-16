@@ -18,8 +18,8 @@ node_modules/.bin/wamp:
 	npm install
 
 %.wasm: %.wam
-	$(WAMP) $(filter %.wam,$^) > $*.wast
-	$(WASM_AS) $*.wast -o $@
+	$(WAMP) $(filter %.wam,$^) > $*.wat
+	$(WASM_AS) $*.wat -o $@
 
 step0_repl.wasm: $(STEP0_DEPS)
 step1_read_print.wasm step2_eval.wasm: $(STEP1_DEPS)
@@ -30,7 +30,7 @@ step7_quote.wasm step8_macros.wasm step9_try.wasm stepA_mal.wasm: $(STEP4_DEPS)
 .PHONY: clean
 
 clean:
-	rm -f *.wast *.wasm
+	rm -f *.wat *.wasm
 
 .PHONY: stats tests
 

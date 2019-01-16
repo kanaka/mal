@@ -7,35 +7,35 @@
 
   (func $APPLY (param $f i32) (param $args i32) (result i32)
     (local $res i32 $env i32 $ftype i32 $a i32)
-    (set_local $f ($DEREF_META $f))
-    (set_local $ftype ($TYPE $f))
-    (if (i32.eq $ftype (get_global $FUNCTION_T))
+    (local.set $f ($DEREF_META $f))
+    (local.set $ftype ($TYPE $f))
+    (if (i32.eq $ftype (global.get $FUNCTION_T))
       (then
         ;; Must be kept in sync with EVAL's FUNCTION_T evaluation
         (if (i32.eq ($VAL0 $f) 0) ;; eval
           (then
-            (set_local $res ($EVAL ($MEM_VAL1_ptr $args)
-                                   (get_global $repl_env))))
+            (local.set $res ($EVAL ($MEM_VAL1_ptr $args)
+                                   (global.get $repl_env))))
           (else
-            (set_local $res (call_indirect (type $fnT) $args ($VAL0 $f))))))
-    (else (if (OR (i32.eq $ftype (get_global $MALFUNC_T))
-                  (i32.eq $ftype (get_global $MACRO_T)))
+            (local.set $res (call_indirect (type $fnT) $args ($VAL0 $f))))))
+    (else (if (OR (i32.eq $ftype (global.get $MALFUNC_T))
+                  (i32.eq $ftype (global.get $MACRO_T)))
       (then
         ;; create new environment using env and params stored in function
-        (set_local $env ($ENV_NEW_BINDS ($MEM_VAL2_ptr $f)
+        (local.set $env ($ENV_NEW_BINDS ($MEM_VAL2_ptr $f)
                                         ($MEM_VAL1_ptr $f) $args))
 
         ;; claim the AST before releasing the list containing it
-        (set_local $a ($MEM_VAL0_ptr $f))
+        (local.set $a ($MEM_VAL0_ptr $f))
         (drop ($INC_REF $a))
 
-        (set_local $res ($EVAL $a $env))
+        (local.set $res ($EVAL $a $env))
 
         ($RELEASE $env)
         ($RELEASE $a))
     (else
       ($THROW_STR_1 "APPLY of non-function type: %d\n" $ftype)
-      (set_local $res 0)))))
+      (local.set $res 0)))))
     $res
   )
 
@@ -49,30 +49,30 @@
                            ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))))
 
   (func $throw (param $args i32) (result i32)
-    (set_global $error_type 2)
-    (set_global $error_val ($INC_REF ($MEM_VAL1_ptr $args)))
+    (global.set $error_type 2)
+    (global.set $error_val ($INC_REF ($MEM_VAL1_ptr $args)))
     0
   )
 
   (func $nil_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
-                         (get_global $NIL_T))))
+                         (global.get $NIL_T))))
   (func $true_Q (param $args i32) (result i32)
     (LET $ast ($MEM_VAL1_ptr $args))
-    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $BOOLEAN_T))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (global.get $BOOLEAN_T))
                       (i32.eq ($VAL0 $ast) 1)))
   )
   (func $false_Q (param $args i32) (result i32)
     (LET $ast ($MEM_VAL1_ptr $args))
-    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $BOOLEAN_T))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (global.get $BOOLEAN_T))
                       (i32.eq ($VAL0 $ast) 0)))
   )
   (func $number_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
-                         (get_global $INTEGER_T))))
+                         (global.get $INTEGER_T))))
   (func $string_Q (param $args i32) (result i32)
     (LET $mv ($MEM_VAL1_ptr $args))
-    ($TRUE_FALSE (AND (i32.eq ($TYPE $mv) (get_global $STRING_T))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $mv) (global.get $STRING_T))
                       (i32.ne (i32.load8_u ($to_String $mv))
                               (CHR "\x7f"))))
   )
@@ -82,30 +82,30 @@
     (if (result i32) (i32.eq (i32.load8_u $str) (CHR "\x7f"))
       (then ($INC_REF ($MEM_VAL1_ptr $args)))
       (else
-        (drop ($sprintf_1 (get_global $printf_buf) "\x7f%s" $str))
-        ($STRING (get_global $STRING_T) (get_global $printf_buf))))
+        (drop ($sprintf_1 (global.get $printf_buf) "\x7f%s" $str))
+        ($STRING (global.get $STRING_T) (global.get $printf_buf))))
   )
 
   (func $keyword_Q (param $args i32) (result i32)
     (LET $ast ($MEM_VAL1_ptr $args))
-    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (get_global $STRING_T))
+    ($TRUE_FALSE (AND (i32.eq ($TYPE $ast) (global.get $STRING_T))
                       (i32.eq (i32.load8_u ($to_String $ast))
                               (CHR "\x7f"))))
   )
   (func $fn_Q (param $args i32) (result i32)
     (LET $type ($TYPE ($MEM_VAL1_ptr $args)))
-    ($TRUE_FALSE (OR (i32.eq $type (get_global $FUNCTION_T))
-                     (i32.eq $type (get_global $MALFUNC_T)))))
+    ($TRUE_FALSE (OR (i32.eq $type (global.get $FUNCTION_T))
+                     (i32.eq $type (global.get $MALFUNC_T)))))
   (func $macro_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
-                         (get_global $MACRO_T))))
+                         (global.get $MACRO_T))))
 
   (func $symbol (param $args i32) (result i32)
-    ($STRING (get_global $SYMBOL_T) ($to_String ($MEM_VAL1_ptr $args))))
+    ($STRING (global.get $SYMBOL_T) ($to_String ($MEM_VAL1_ptr $args))))
 
   (func $symbol_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
-                         (get_global $SYMBOL_T))))
+                         (global.get $SYMBOL_T))))
 
   (func $core_pr_str (param $args i32) (result i32)
     ($pr_str_seq $args 1 " "))
@@ -115,21 +115,21 @@
     (LET $res ($pr_str_seq $args 1 " "))
     ($printf_1 "%s\n" ($to_String $res))
     ($RELEASE $res)
-    ($INC_REF (get_global $NIL))
+    ($INC_REF (global.get $NIL))
   )
   (func $println (param $args i32) (result i32)
     (LET $res ($pr_str_seq $args 0 " "))
     ($printf_1 "%s\n" ($to_String $res))
     ($RELEASE $res)
-    ($INC_REF (get_global $NIL))
+    ($INC_REF (global.get $NIL))
   )
 
   (func $core_readline (param $args i32) (result i32)
     (LET $line (STATIC_ARRAY 201)
          $mv 0)
     (if (i32.eqz ($readline ($to_String ($MEM_VAL1_ptr $args)) $line))
-      (return ($INC_REF (get_global $NIL))))
-    (set_local $mv ($STRING (get_global $STRING_T) $line))
+      (return ($INC_REF (global.get $NIL))))
+    (local.set $mv ($STRING (global.get $STRING_T) $line))
     $mv
   )
 
@@ -137,14 +137,14 @@
     ($read_str ($to_String ($MEM_VAL1_ptr $args))))
 
   (func $slurp (param $args i32) (result i32)
-    (LET $mv   ($STRING_INIT (get_global $STRING_T))
+    (LET $mv   ($STRING_INIT (global.get $STRING_T))
          $size ($read_file ($to_String ($MEM_VAL1_ptr $args))
                            ($to_String $mv)))
     (if (i32.eqz $size)
       (then
         ($THROW_STR_1 "failed to read file '%s'" ($to_String ($MEM_VAL1_ptr $args)))
-        (return ($INC_REF (get_global $NIL)))))
-    (set_local $mv ($STRING_FINALIZE $mv $size))
+        (return ($INC_REF (global.get $NIL)))))
+    (local.set $mv ($STRING_FINALIZE $mv $size))
     $mv
   )
 
@@ -191,17 +191,17 @@
 
   (func $list_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($DEREF_META ($MEM_VAL1_ptr $args)))
-                         (get_global $LIST_T))))
+                         (global.get $LIST_T))))
 
   (func $vector (param $args i32) (result i32)
-    ($FORCE_SEQ_TYPE (get_global $VECTOR_T) $args))
+    ($FORCE_SEQ_TYPE (global.get $VECTOR_T) $args))
 
   (func $vector_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($DEREF_META ($MEM_VAL1_ptr $args)))
-                         (get_global $VECTOR_T))))
+                         (global.get $VECTOR_T))))
 
   (func $hash_map (param $args i32) (result i32)
-    (LET $type    (get_global $HASHMAP_T)
+    (LET $type    (global.get $HASHMAP_T)
          $res     ($MAP_LOOP_START $type)
          $val2    0
          $val3    0
@@ -216,20 +216,20 @@
       (loop $loop
         (br_if $done (i32.eqz ($VAL0 $args)))
 
-        (set_local $val2 ($INC_REF ($MEM_VAL1_ptr $args)))
-        (set_local $val3 ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
+        (local.set $val2 ($INC_REF ($MEM_VAL1_ptr $args)))
+        (local.set $val3 ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
 
         ;; skip two
-        (set_local $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
+        (local.set $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
 
         ;; update the return sequence structure
         ;; MAP_LOOP_UPDATE
-        (set_local $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
-        (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+        (local.set $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
+        (if (i32.le_u $current (global.get $EMPTY_HASHMAP))
           ;; if first element, set return to new element
-          (set_local $ret $res))
+          (local.set $ret $res))
         ;; update current to point to new element
-        (set_local $current $res)
+        (local.set $current $res)
 
         (br $loop)
       )
@@ -242,21 +242,21 @@
 
   (func $hash_map_Q (param $args i32) (result i32)
     ($TRUE_FALSE (i32.eq ($TYPE ($DEREF_META ($MEM_VAL1_ptr $args)))
-                         (get_global $HASHMAP_T))))
+                         (global.get $HASHMAP_T))))
 
   (func $assoc (param $args i32) (result i32)
     (LET $hm ($MEM_VAL1_ptr $args)
          $key 0)
-    (set_local $args ($MEM_VAL0_ptr $args))
+    (local.set $args ($MEM_VAL0_ptr $args))
 
     (drop ($INC_REF $hm))
     (block $done
       (loop $loop
         (br_if $done (OR (i32.eqz ($VAL0 $args))
                          (i32.eqz ($VAL0 ($MEM_VAL0_ptr $args)))))
-        (set_local $hm ($ASSOC1 $hm ($MEM_VAL1_ptr $args)
+        (local.set $hm ($ASSOC1 $hm ($MEM_VAL1_ptr $args)
                                 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))
-        (set_local $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
+        (local.set $args ($MEM_VAL0_ptr ($MEM_VAL0_ptr $args)))
 
         (br $loop)
       )
@@ -267,23 +267,23 @@
   (func $get (param $args i32) (result i32)
     (LET $hm  ($MEM_VAL1_ptr $args)
          $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
-    (if (result i32) (i32.eq $hm (get_global $NIL))
-      (then ($INC_REF (get_global $NIL)))
-      (else ($INC_REF (i32.wrap/i64 ($HASHMAP_GET $hm $key)))))
+    (if (result i32) (i32.eq $hm (global.get $NIL))
+      (then ($INC_REF (global.get $NIL)))
+      (else ($INC_REF (i32.wrap_i64 ($HASHMAP_GET $hm $key)))))
   )
 
   (func $contains_Q (param $args i32) (result i32)
     (LET $hm  ($MEM_VAL1_ptr $args)
          $key ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ($TRUE_FALSE
-      (if (result i32) (i32.eq $hm (get_global $NIL))
+      (if (result i32) (i32.eq $hm (global.get $NIL))
         (then 0)
-        (else (i32.wrap/i64
+        (else (i32.wrap_i64
                 (i64.shr_u ($HASHMAP_GET $hm $key) (i64.const 32))))))
   )
 
   (func $keys_or_vals (param $hm i32 $keys i32) (result i32)
-    (LET $res     ($MAP_LOOP_START (get_global $LIST_T))
+    (LET $res     ($MAP_LOOP_START (global.get $LIST_T))
          $val2    0
          ;; MAP_LOOP stack
          $ret     $res
@@ -295,23 +295,23 @@
         (br_if $done (i32.eqz ($VAL0 $hm)))
 
         (if $keys
-          (then (set_local $val2 ($INC_REF ($MEM_VAL1_ptr $hm))))
-          (else (set_local $val2 ($INC_REF ($MEM_VAL2_ptr $hm)))))
+          (then (local.set $val2 ($INC_REF ($MEM_VAL1_ptr $hm))))
+          (else (local.set $val2 ($INC_REF ($MEM_VAL2_ptr $hm)))))
 
         ;; next element
-        (set_local $hm ($MEM_VAL0_ptr $hm))
+        (local.set $hm ($MEM_VAL0_ptr $hm))
 
         ;; update the return sequence structure
         ;; do not release val2 since we are pulling it from the
         ;; arguments and not creating it here
         ;; MAP_LOOP_UPDATE
-        (set_local $res ($MAP_LOOP_UPDATE (get_global $LIST_T)
+        (local.set $res ($MAP_LOOP_UPDATE (global.get $LIST_T)
                                           $empty $current $val2 0))
-        (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+        (if (i32.le_u $current (global.get $EMPTY_HASHMAP))
           ;; if first element, set return to new element
-          (set_local $ret $res))
+          (local.set $ret $res))
         ;; update current to point to new element
-        (set_local $current $res)
+        (local.set $current $res)
 
 	(br $loop)
       )
@@ -329,45 +329,45 @@
 
   (func $sequential_Q (param $args i32) (result i32)
     ($TRUE_FALSE (OR (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
-                             (get_global $LIST_T))
+                             (global.get $LIST_T))
                      (i32.eq ($TYPE ($MEM_VAL1_ptr $args))
-                             (get_global $VECTOR_T)))))
+                             (global.get $VECTOR_T)))))
 
   (func $cons (param $args i32) (result i32)
     ($LIST ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)) ($MEM_VAL1_ptr $args)))
 
   (func $concat (param $args i32) (result i32)
     (local $last_sl i64)
-    (LET $res     ($INC_REF (get_global $EMPTY_LIST))
+    (LET $res     ($INC_REF (global.get $EMPTY_LIST))
          $current $res
          $sl      0
          $last    0
          $arg     0)
     (block $done
       (loop $loop
-        (br_if $done (i32.le_u $args (get_global $EMPTY_HASHMAP)))
-        (set_local $arg ($MEM_VAL1_ptr $args))
+        (br_if $done (i32.le_u $args (global.get $EMPTY_HASHMAP)))
+        (local.set $arg ($MEM_VAL1_ptr $args))
         ;; skip empty elements
-        (if (i32.le_s $arg (get_global $EMPTY_HASHMAP))
+        (if (i32.le_s $arg (global.get $EMPTY_HASHMAP))
           (then
-            (set_local $args ($MEM_VAL0_ptr $args))
+            (local.set $args ($MEM_VAL0_ptr $args))
             (br $loop)))
-        (set_local $last_sl ($SLICE $arg 0 -1))
-        (set_local $sl (i32.wrap/i64 $last_sl))
-        (set_local $last (i32.wrap/i64 (i64.shr_u $last_sl (i64.const 32))))
-        (if (i32.eq $res (get_global $EMPTY_LIST))
+        (local.set $last_sl ($SLICE $arg 0 -1))
+        (local.set $sl (i32.wrap_i64 $last_sl))
+        (local.set $last (i32.wrap_i64 (i64.shr_u $last_sl (i64.const 32))))
+        (if (i32.eq $res (global.get $EMPTY_LIST))
           (then
             ;; if this is the first element, set the return to the slice
-            (set_local $res $sl))
+            (local.set $res $sl))
           (else
             ;; otherwise attach current to sliced
             (i32.store ($VAL0_ptr $current) ($IDX $sl))))
         ;; update current to end of sliced list
-        (set_local $current $last)
+        (local.set $current $last)
         ;; release empty since no longer part of the slice
-        ($RELEASE (get_global $EMPTY_LIST))
+        ($RELEASE (global.get $EMPTY_LIST))
 
-        (set_local $args ($MEM_VAL0_ptr $args))
+        (local.set $args ($MEM_VAL0_ptr $args))
         (br $loop)
       )
     )
@@ -382,8 +382,8 @@
     (block $done
       (loop $loop
         (br_if $done (OR (i32.ge_s $i $idx) (i32.eqz ($VAL0 $a))))
-        (set_local $i (i32.add $i 1))
-        (set_local $a ($MEM_VAL0_ptr $a))
+        (local.set $i (i32.add $i 1))
+        (local.set $a ($MEM_VAL0_ptr $a))
         (br $loop)
       )
     )
@@ -396,21 +396,21 @@
   )
 
   (func $first (param $args i32) (result i32)
-    (LET $res (get_global $NIL)
+    (LET $res (global.get $NIL)
          $a   ($MEM_VAL1_ptr $args))
-    (if (AND (i32.ne $a (get_global $NIL))
+    (if (AND (i32.ne $a (global.get $NIL))
              (i32.ne ($VAL0 $a) 0))
-      (set_local $res ($MEM_VAL1_ptr $a)))
+      (local.set $res ($MEM_VAL1_ptr $a)))
     ($INC_REF $res)
   )
 
   (func $rest (param $args i32) (result i32)
     (LET $a ($MEM_VAL1_ptr $args))
-    (if (i32.eq $a (get_global $NIL))
-      (return ($INC_REF (get_global $EMPTY_LIST))))
+    (if (i32.eq $a (global.get $NIL))
+      (return ($INC_REF (global.get $EMPTY_LIST))))
     (if (i32.ne ($VAL0 $a) 0)
-      (set_local $a ($MEM_VAL0_ptr $a)))
-    ($FORCE_SEQ_TYPE (get_global $LIST_T) $a)
+      (local.set $a ($MEM_VAL0_ptr $a)))
+    ($FORCE_SEQ_TYPE (global.get $LIST_T) $a)
   )
 
   ;;;
@@ -433,19 +433,19 @@
     (if (i32.le_s $rest_count 1)
       (then
         ;; no intermediate args
-        (if (i32.ne ($TYPE ($MEM_VAL1_ptr $rest_args)) (get_global $LIST_T))
+        (if (i32.ne ($TYPE ($MEM_VAL1_ptr $rest_args)) (global.get $LIST_T))
           (then
             ;; not a list, so convert it first
-            (set_local $f_args ($FORCE_SEQ_TYPE (get_global $LIST_T)
+            (local.set $f_args ($FORCE_SEQ_TYPE (global.get $LIST_T)
                                                 ($MEM_VAL1_ptr $rest_args))))
           (else
             ;; inc ref since we will release after APPLY
-            (set_local $f_args ($INC_REF ($MEM_VAL1_ptr $rest_args))))))
+            (local.set $f_args ($INC_REF ($MEM_VAL1_ptr $rest_args))))))
       (else
         ;; 1 or more intermediate args
-        (set_local $last_sl ($SLICE $rest_args 0 (i32.sub $rest_count 1)))
-        (set_local $f_args (i32.wrap/i64 $last_sl))
-        (set_local $last (i32.wrap/i64 (i64.shr_u $last_sl (i64.const 32))))
+        (local.set $last_sl ($SLICE $rest_args 0 (i32.sub $rest_count 1)))
+        (local.set $f_args (i32.wrap_i64 $last_sl))
+        (local.set $last (i32.wrap_i64 (i64.shr_u $last_sl (i64.const 32))))
         ;; release the terminator of the new list (we skip over it)
         ;; we already checked for an empty list above, so $last is
         ;; a real non-empty list
@@ -454,7 +454,7 @@
         (i32.store ($VAL0_ptr $last) ($IDX ($LAST $rest_args)))
         ))
 
-    (set_local $res ($APPLY $f $f_args))
+    (local.set $res ($APPLY $f $f_args))
 
     ;; release new args
     ($RELEASE $f_args)
@@ -465,7 +465,7 @@
     (LET $f         ($MEM_VAL1_ptr $args)
          $rest_args ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))
          $f_args    0
-         $res       ($MAP_LOOP_START (get_global $LIST_T)) 
+         $res       ($MAP_LOOP_START (global.get $LIST_T)) 
          ;; push MAP_LOOP stack
          $ret       $res
          $current   $res
@@ -476,18 +476,18 @@
         (br_if $done (i32.eqz ($VAL1 $rest_args)))
 
         ;; create argument list for apply
-        (set_local $f_args ($ALLOC (get_global $LIST_T)
-                                   (get_global $EMPTY_LIST)
+        (local.set $f_args ($ALLOC (global.get $LIST_T)
+                                   (global.get $EMPTY_LIST)
                                    ($MEM_VAL1_ptr $rest_args)
                                    0))
 
-        (set_local $res ($APPLY $f $f_args))
+        (local.set $res ($APPLY $f $f_args))
         ($RELEASE $f_args)
 
         ;; go to the next element
-        (set_local $rest_args ($MEM_VAL0_ptr $rest_args))
+        (local.set $rest_args ($MEM_VAL0_ptr $rest_args))
 
-        (if (get_global $error_type)
+        (if (global.get $error_type)
           (then
             ;; if error, release the unattached element
             ($RELEASE $res)
@@ -495,13 +495,13 @@
 
         ;; update the return sequence structure
         ;; MAP_LOOP_UPDATE
-        (set_local $res ($MAP_LOOP_UPDATE (get_global $LIST_T)
+        (local.set $res ($MAP_LOOP_UPDATE (global.get $LIST_T)
                                           $empty $current $res 0))
-        (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+        (if (i32.le_u $current (global.get $EMPTY_HASHMAP))
           ;; if first element, set return to new element
-          (set_local $ret $res))
+          (local.set $ret $res))
         ;; update current to point to new element
-        (set_local $current $res)
+        (local.set $current $res)
 
 	(br $loop)
       )
@@ -517,19 +517,19 @@
     (LET $mv   ($MEM_VAL1_ptr $args)
          $meta ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args)))
     ;; remove existing metadata first
-    ($ALLOC (get_global $METADATA_T) ($DEREF_META $mv) $meta 0)
+    ($ALLOC (global.get $METADATA_T) ($DEREF_META $mv) $meta 0)
   )
 
   (func $meta (param $args i32) (result i32)
-    (if (result i32) (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (get_global $METADATA_T))
+    (if (result i32) (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (global.get $METADATA_T))
       (then ($INC_REF ($MEM_VAL1_ptr ($MEM_VAL1_ptr $args))))
-      (else ($INC_REF (get_global $NIL)))))
+      (else ($INC_REF (global.get $NIL)))))
 
   (func $atom (param $args i32) (result i32)
-    ($ALLOC_SCALAR (get_global $ATOM_T) ($VAL1 $args)))
+    ($ALLOC_SCALAR (global.get $ATOM_T) ($VAL1 $args)))
 
   (func $atom_Q (param $args i32) (result i32)
-    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (get_global $ATOM_T))))
+    ($TRUE_FALSE (i32.eq ($TYPE ($MEM_VAL1_ptr $args)) (global.get $ATOM_T))))
 
   (func $deref (param $args i32) (result i32)
     ($INC_REF ($MEM_VAL0_ptr ($MEM_VAL1_ptr $args))))
@@ -571,14 +571,14 @@
 
   (func $pr_memory_summary (param $args i32) (result i32)
     ($PR_MEMORY_SUMMARY_SMALL)
-    ($INC_REF (get_global $NIL))
+    ($INC_REF (global.get $NIL))
   )
 
   (func $nop (param $args i32) (result i32)
-    ($INC_REF (get_global $NIL)))
+    ($INC_REF (global.get $NIL)))
 
   (table
-    anyfunc
+    funcref
     (elem $nop ;; placeholder for eval which will use 0
           $equal_Q
           $throw

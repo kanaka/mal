@@ -32,7 +32,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (func $print (param $addr i32)
-    (drop ($lib_fputs $addr (get_global $lib_stdout))))
+    (drop ($lib_fputs $addr (global.get $lib_stdout))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -43,7 +43,7 @@
     (if $line
       (then
         ($lib_add_history $line)
-        (set_local $len ($strlen $line))
+        (local.set $len ($strlen $line))
         ($memmove $buf $line $len)
         ($lib_free $line)))
     (i32.store8 (i32.add $buf $len) (CHR "\x00"))
@@ -55,7 +55,7 @@
   ;; Returns malloc'd string. Must be free by caller
   (func $read_file (param $path i32 $buf i32) (result i32)
     (LET $fst     (STATIC_ARRAY 100)  ;; at least STAT_SIZE
-         $fd      ($lib_open $path (get_global $O_RDONLY) 0)
+         $fd      ($lib_open $path (global.get $O_RDONLY) 0)
          $st_size 0
          $sz      0)
 
@@ -63,13 +63,13 @@
       (then
         ($printf_1 "ERROR: slurp failed to open '%s'\n" $path)
         (return 0)))
-    (if (i32.lt_s ($lib___fxstat (get_global $STAT_VER_LINUX) $fd $fst) 0)
+    (if (i32.lt_s ($lib___fxstat (global.get $STAT_VER_LINUX) $fd $fst) 0)
       (then
         ($printf_1 "ERROR: slurp failed to stat '%s'\n" $path)
         (return 0)))
-    (set_local $st_size (i32.load
-                          (i32.add $fst (get_global $STAT_ST_SIZE_OFFSET))))
-    (set_local $sz ($lib_read $fd $buf $st_size))
+    (local.set $st_size (i32.load
+                          (i32.add $fst (global.get $STAT_ST_SIZE_OFFSET))))
+    (local.set $sz ($lib_read $fd $buf $st_size))
     (if (i32.ne $sz $st_size)
       (then
         ($printf_1 "ERROR: slurp failed to stat '%s'\n" $path)
@@ -88,12 +88,12 @@
          $usecs 0
          $msecs 0)
     (drop ($lib_gettimeofday $tv 0))
-    (set_local $secs (i32.load (i32.add $tv (get_global $TV_SEC_OFFSET))))
+    (local.set $secs (i32.load (i32.add $tv (global.get $TV_SEC_OFFSET))))
     ;; subtract 30 years to make sure secs is positive and can be
     ;; multiplied by 1000
-    (set_local $secs (i32.sub $secs 0x38640900))
-    (set_local $usecs (i32.load (i32.add $tv (get_global $TV_USEC_OFFSET))))
-    (set_local $msecs (i32.add (i32.mul $secs 1000)
+    (local.set $secs (i32.sub $secs 0x38640900))
+    (local.set $usecs (i32.load (i32.add $tv (global.get $TV_USEC_OFFSET))))
+    (local.set $msecs (i32.add (i32.mul $secs 1000)
                                (i32.div_u $usecs 1000)))
     $msecs
   )

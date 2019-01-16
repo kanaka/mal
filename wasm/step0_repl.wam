@@ -24,7 +24,7 @@
     (LET $line (STATIC_ARRAY 201))
 
     ;; DEBUG
-    ;;($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
+    ;;($printf_1 "memoryBase: 0x%x\n" (global.get $memoryBase))
 
     ;; Start REPL
     (block $repl_done

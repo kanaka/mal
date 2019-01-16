@@ -12,8 +12,8 @@
     (LET $res 0 $val2 0 $val3 0 $type 0 $found 0
          $ret 0 $empty 0 $current 0)
 
-    (if (get_global $error_type) (return 0))
-    (set_local $type ($TYPE $ast))
+    (if (global.get $error_type) (return 0))
+    (local.set $type ($TYPE $ast))
 
     ;;($PR_VALUE ">>> EVAL_AST ast: '%s'\n" $ast)
 
@@ -23,63 +23,63 @@
       (br_table 2 2 2 2 2 0 1 1 1 2 2 2 2 2 2 2 $type))
       ;; symbol
       ;; found/res returned as hi 32/lo 32 of i64
-      (set_local $res ($ENV_GET $env $ast))
+      (local.set $res ($ENV_GET $env $ast))
       (br $done))
       ;; list, vector, hashmap
       ;; MAP_LOOP_START
-      (set_local $res ($MAP_LOOP_START $type))
+      (local.set $res ($MAP_LOOP_START $type))
       ;; push MAP_LOOP stack
       ;;; empty = current = ret = res
-      (set_local $ret $res)
-      (set_local $current $res)
-      (set_local $empty $res)
+      (local.set $ret $res)
+      (local.set $current $res)
+      (local.set $empty $res)
 
       (block $done
         (loop $loop
           ;; check if we are done evaluating the source sequence
           (br_if $done (i32.eq ($VAL0 $ast) 0))
 
-          (if (i32.eq $type (get_global $HASHMAP_T))
+          (if (i32.eq $type (global.get $HASHMAP_T))
             (then
-              (set_local $res ($EVAL ($MEM_VAL2_ptr $ast) $env)))
+              (local.set $res ($EVAL ($MEM_VAL2_ptr $ast) $env)))
             (else
-              (set_local $res ($EVAL ($MEM_VAL1_ptr $ast) $env))))
-          (set_local $val2 $res)
+              (local.set $res ($EVAL ($MEM_VAL1_ptr $ast) $env))))
+          (local.set $val2 $res)
 
           ;; if error, release the unattached element
-          (if (get_global $error_type)
+          (if (global.get $error_type)
             (then
               ($RELEASE $res)
-              (set_local $res 0)
+              (local.set $res 0)
               (br $done)))
 
           ;; for hash-maps, copy the key (inc ref since we are going
           ;; to release it below)
-          (if (i32.eq $type (get_global $HASHMAP_T))
+          (if (i32.eq $type (global.get $HASHMAP_T))
             (then
-              (set_local $val3 $val2)
-              (set_local $val2 ($MEM_VAL1_ptr $ast))
+              (local.set $val3 $val2)
+              (local.set $val2 ($MEM_VAL1_ptr $ast))
               (drop ($INC_REF $val2))))
 
           ;; MAP_LOOP_UPDATE
-          (set_local $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
-          (if (i32.le_u $current (get_global $EMPTY_HASHMAP))
+          (local.set $res ($MAP_LOOP_UPDATE $type $empty $current $val2 $val3))
+          (if (i32.le_u $current (global.get $EMPTY_HASHMAP))
             ;; if first element, set return to new element
-            (set_local $ret $res))
+            (local.set $ret $res))
           ;; update current to point to new element
-          (set_local $current $res)
+          (local.set $current $res)
 
-          (set_local $ast ($MEM_VAL0_ptr $ast))
+          (local.set $ast ($MEM_VAL0_ptr $ast))
 
           (br $loop)
         )
       )
       ;; MAP_LOOP_DONE
-      (set_local $res $ret)
+      (local.set $res $ret)
       ;; EVAL_AST_RETURN: nothing to do
       (br $done))
       ;; default
-      (set_local $res ($INC_REF $ast))
+      (local.set $res ($INC_REF $ast))
     )
 
     $res
@@ -87,7 +87,7 @@
 
   (type $fnT (func (param i32) (result i32)))
 
-  (table anyfunc
+  (table funcref
     (elem
       $add $subtract $multiply $divide))
 
@@ -104,84 +104,84 @@
          $a0 0 $a0sym 0 $a1 0 $a2 0
          $let_env 0)
 
-    (set_local $f_args 0)
-    (set_local $f 0)
-    (set_local $args 0)
+    (local.set $f_args 0)
+    (local.set $f 0)
+    (local.set $args 0)
 
-    (if (get_global $error_type) (return 0))
+    (if (global.get $error_type) (return 0))
 
     ;;($PR_VALUE ">>> EVAL ast: '%s'\n" $ast)
 
-    (if (i32.ne ($TYPE $ast) (get_global $LIST_T))
+    (if (i32.ne ($TYPE $ast) (global.get $LIST_T))
       (return ($EVAL_AST $ast $env)))
 
     ;; APPLY_LIST
     (if ($EMPTY_Q $ast)
       (return ($INC_REF $ast)))
 
-    (set_local $a0 ($MEM_VAL1_ptr $ast))
-    (set_local $a0sym "")
-    (if (i32.eq ($TYPE $a0) (get_global $SYMBOL_T))
-      (set_local $a0sym ($to_String $a0)))
+    (local.set $a0 ($MEM_VAL1_ptr $ast))
+    (local.set $a0sym "")
+    (if (i32.eq ($TYPE $a0) (global.get $SYMBOL_T))
+      (local.set $a0sym ($to_String $a0)))
 
     (if (i32.eqz ($strcmp "def!" $a0sym))
       (then
-        (set_local $a1 ($MAL_GET_A1 $ast))
-        (set_local $a2 ($MAL_GET_A2 $ast))
-        (set_local $res ($EVAL $a2 $env))
-        (if (get_global $error_type) (return $res))
+        (local.set $a1 ($MAL_GET_A1 $ast))
+        (local.set $a2 ($MAL_GET_A2 $ast))
+        (local.set $res ($EVAL $a2 $env))
+        (if (global.get $error_type) (return $res))
 
         ;; set a1 in env to a2
-        (set_local $res ($ENV_SET $env $a1 $res)))
+        (local.set $res ($ENV_SET $env $a1 $res)))
     (else (if (i32.eqz ($strcmp "let*" $a0sym))
       (then
-        (set_local $a1 ($MAL_GET_A1 $ast))
-        (set_local $a2 ($MAL_GET_A2 $ast))
+        (local.set $a1 ($MAL_GET_A1 $ast))
+        (local.set $a2 ($MAL_GET_A2 $ast))
 
         ;; create new environment with outer as current environment
-        (set_local $let_env ($ENV_NEW $env))
+        (local.set $let_env ($ENV_NEW $env))
 
         (block $done
           (loop $loop
             (br_if $done (i32.eqz ($VAL0 $a1)))
             ;; eval current A1 odd element
-            (set_local $res ($EVAL ($MEM_VAL1_ptr ($MEM_VAL0_ptr $a1))
+            (local.set $res ($EVAL ($MEM_VAL1_ptr ($MEM_VAL0_ptr $a1))
                                    $let_env))
 
-            (br_if $done (get_global $error_type))
+            (br_if $done (global.get $error_type))
 
             ;; set key/value in the let environment
-            (set_local $res ($ENV_SET $let_env ($MEM_VAL1_ptr $a1) $res))
+            (local.set $res ($ENV_SET $let_env ($MEM_VAL1_ptr $a1) $res))
             ;; release our use, ENV_SET took ownership
             ($RELEASE $res)
 
             ;; skip to the next pair of a1 elements
-            (set_local $a1 ($MEM_VAL0_ptr ($MEM_VAL0_ptr $a1)))
+            (local.set $a1 ($MEM_VAL0_ptr ($MEM_VAL0_ptr $a1)))
             (br $loop)
           )
         )
-        (set_local $res ($EVAL $a2 $let_env))
+        (local.set $res ($EVAL $a2 $let_env))
         ;; EVAL_RETURN
         ($RELEASE $let_env))
     (else
       ;; EVAL_INVOKE
-      (set_local $res ($EVAL_AST $ast $env))
-      (set_local $f_args $res)
+      (local.set $res ($EVAL_AST $ast $env))
+      (local.set $f_args $res)
 
       ;; if error, return f/args for release by caller
-      (if (get_global $error_type)
+      (if (global.get $error_type)
         (return $f_args))
 
-      (set_local $args ($MEM_VAL0_ptr $f_args)) ;; rest
-      (set_local $f ($MEM_VAL1_ptr $f_args)) ;; value
+      (local.set $args ($MEM_VAL0_ptr $f_args)) ;; rest
+      (local.set $f ($MEM_VAL1_ptr $f_args)) ;; value
 
-      (set_local $ftype ($TYPE $f))
-      (if (i32.eq $ftype (get_global $FUNCTION_T))
+      (local.set $ftype ($TYPE $f))
+      (if (i32.eq $ftype (global.get $FUNCTION_T))
         (then
-          (set_local $res (call_indirect (type $fnT) $args ($VAL0 $f))))
+          (local.set $res (call_indirect (type $fnT) $args ($VAL0 $f))))
         (else
           ($THROW_STR_1 "apply of non-function type: %d\n" $ftype)
-          (set_local $res 0)))
+          (local.set $res 0)))
 
       ($RELEASE $f_args)))))
 
@@ -197,14 +197,14 @@
   (func $REP (param $line i32 $env i32) (result i32)
     (LET $mv1 0 $mv2 0 $ms 0)
     (block $done
-      (set_local $mv1 ($READ $line))
-      (br_if $done (get_global $error_type))
+      (local.set $mv1 ($READ $line))
+      (br_if $done (global.get $error_type))
 
-      (set_local $mv2 ($EVAL $mv1 $env))
-      (br_if $done (get_global $error_type))
+      (local.set $mv2 ($EVAL $mv1 $env))
+      (br_if $done (global.get $error_type))
 
 ;;      ($PR_MEMORY -1 -1)
-      (set_local $ms ($PRINT $mv2))
+      (local.set $ms ($PRINT $mv2))
     )
 
     ;; release memory from MAL_READ and EVAL
@@ -231,21 +231,21 @@
                  ($VAL0 ($MEM_VAL1_ptr ($MEM_VAL0_ptr $args))))))
   (func $pr_memory (param $args i32) (result i32)
     ($PR_MEMORY -1 -1)
-    ($INC_REF (get_global $NIL)))
+    ($INC_REF (global.get $NIL)))
 
   (func $main (result i32)
     (LET $line (STATIC_ARRAY 201)
          $res 0 $repl_env 0)
 
     ;; DEBUG
-;;    ($printf_1 "memoryBase: 0x%x\n" (get_global $memoryBase))
-;;    ($printf_1 "heap_start: 0x%x\n" (get_global $heap_start))
-;;    ($printf_1 "heap_end: 0x%x\n" (get_global $heap_end))
-;;    ($printf_1 "mem: 0x%x\n" (get_global $mem))
-;;    ($printf_1 "string_mem: %d\n" (get_global $string_mem))
+;;    ($printf_1 "memoryBase: 0x%x\n" (global.get $memoryBase))
+;;    ($printf_1 "heap_start: 0x%x\n" (global.get $heap_start))
+;;    ($printf_1 "heap_end: 0x%x\n" (global.get $heap_end))
+;;    ($printf_1 "mem: 0x%x\n" (global.get $mem))
+;;    ($printf_1 "string_mem: %d\n" (global.get $string_mem))
 
-    (set_global $repl_env ($ENV_NEW (get_global $NIL)))
-    (set_local $repl_env (get_global $repl_env))
+    (global.set $repl_env ($ENV_NEW (global.get $NIL)))
+    (local.set $repl_env (global.get $repl_env))
 
     (drop ($ENV_SET_S $repl_env "+" ($FUNCTION 0)))
     (drop ($ENV_SET_S $repl_env "-" ($FUNCTION 1)))
@@ -259,11 +259,11 @@
       (loop $repl_loop
         (br_if $repl_done (i32.eqz ($readline "user> " $line)))
         (br_if $repl_loop (i32.eq (i32.load8_u $line) 0))
-        (set_local $res ($REP $line $repl_env))
-        (if (get_global $error_type)
+        (local.set $res ($REP $line $repl_env))
+        (if (global.get $error_type)
           (then
-            ($printf_1 "Error: %s\n" (get_global $error_str))
-            (set_global $error_type 0))
+            ($printf_1 "Error: %s\n" (global.get $error_str))
+            (global.set $error_type 0))
           (else
             ($printf_1 "%s\n" ($to_String $res))))
         ($RELEASE $res)
