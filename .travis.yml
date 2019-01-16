@@ -93,6 +93,7 @@ matrix:
     - {env: IMPL=vimscript, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=wace_libc, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=node,      services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=warpy,     services: [docker]}
     - {env: IMPL=yorick,    services: [docker]}
 
 script:
