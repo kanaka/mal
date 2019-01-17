@@ -95,7 +95,9 @@ async function loadWebAssembly(filename, args) {
   }
 
   function get_time_ms() {
-      return (new Date()).getTime()
+      // subtract 30 years to make sure it fits into i32 without
+      // wrapping or becoming negative
+      return (new Date()).getTime() - 0x38640900
   }
 
   // Marshal arguments
