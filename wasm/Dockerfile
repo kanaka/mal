@@ -91,6 +91,6 @@ RUN git clone https://github.com/kanaka/wac/ && \
 # warpy
 #
 RUN git clone https://github.com/kanaka/warpy/ && \
-    cd warpy  && \
+    cd warpy &&  \
     make warpy-nojit && \
     cp warpy-nojit /usr/bin/warpy
