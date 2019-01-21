@@ -309,11 +309,11 @@ expression support.
   returns the token at the current position.
 
 * Add a function `read_str` in `reader.qx`. This function
-  will call `tokenizer` and then create a new Reader object instance
+  will call `tokenize` and then create a new Reader object instance
   with the tokens. Then it will call `read_form` with the Reader
   instance.
 
-* Add a function `tokenizer` in `reader.qx`. This function will take
+* Add a function `tokenize` in `reader.qx`. This function will take
   a single string and return an array/list
   of all the tokens (strings) in it. The following regular expression
   (PCRE) will match all mal tokens.
