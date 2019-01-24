@@ -35,7 +35,7 @@ public class reader {
 
     public static ArrayList<String> tokenize(String str) {
         ArrayList<String> tokens = new ArrayList<String>();
-        Pattern pattern = Pattern.compile("[\\s ,]*(~@|[\\[\\]{}()'`~@]|\"(?:[\\\\].|[^\\\\\"])*\"|;.*|[^\\s \\[\\]{}()'\"`~@,;]*)");
+        Pattern pattern = Pattern.compile("[\\s ,]*(~@|[\\[\\]{}()'`~@]|\"(?:[\\\\].|[^\\\\\"])*\"?|;.*|[^\\s \\[\\]{}()'\"`~@,;]*)");
         Matcher matcher = pattern.matcher(str);
         while (matcher.find()) {
             String token = matcher.group(1);
@@ -51,7 +51,7 @@ public class reader {
     public static MalVal read_atom(Reader rdr)
             throws ParseError {
         String token = rdr.next();
-        Pattern pattern = Pattern.compile("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|:(.*)|(^[^\"]*$)");
+        Pattern pattern = Pattern.compile("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)");
         Matcher matcher = pattern.matcher(token);
         if (!matcher.find()) {
             throw new ParseError("unrecognized token '" + token + "'");
@@ -67,9 +67,11 @@ public class reader {
         } else if (matcher.group(6) != null) {
             return new MalString(StringEscapeUtils.unescapeJson(matcher.group(6)));
         } else if (matcher.group(7) != null) {
-            return new MalString("\u029e" + matcher.group(7));
+            throw new ParseError("expected '\"', got EOF");
         } else if (matcher.group(8) != null) {
-            return new MalSymbol(matcher.group(8));
+            return new MalString("\u029e" + matcher.group(8));
+        } else if (matcher.group(9) != null) {
+            return new MalSymbol(matcher.group(9));
         } else {
             throw new ParseError("unrecognized '" + matcher.group(0) + "'");
         }

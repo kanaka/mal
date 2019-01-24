@@ -166,7 +166,7 @@ SUB READ_FORM
   READ_STRING:
     REM PRINT "READ_STRING"
     C=ASC(MID$(T$,LEN(T$),1))
-    IF C<>34 THEN R=-1:ER=-1:E$="expected '"+CHR$(34)+"'":GOTO READ_FORM_RETURN
+    IF C<>34 THEN R=-1:ER=-1:E$="expected '"+CHR$(34)+"', got EOF":GOTO READ_FORM_RETURN
     R$=MID$(T$,2,LEN(T$)-2)
     S1$=CHR$(92)+CHR$(92):S2$=CHR$(127):GOSUB REPLACE: REM protect backslashes
     S1$=CHR$(92)+CHR$(34):S2$=CHR$(34):GOSUB REPLACE: REM unescape quotes

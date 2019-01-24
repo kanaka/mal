@@ -318,7 +318,7 @@ expression support.
   of all the tokens (strings) in it. The following regular expression
   (PCRE) will match all mal tokens.
 ```
-[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)
+[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
 ```
 * For each match captured within the parenthesis starting at char 6 of the
   regular expression a new token will be created.
@@ -331,9 +331,11 @@ expression support.
   * ```[\[\]{}()'`~^@]```: Captures any special single character, one of
     ```[]{}()'`~^@``` (tokenized).
 
-  * `"(?:\\.|[^\\"])*"`: Starts capturing at a double-quote and stops at the
+  * `"(?:\\.|[^\\"])*"?`: Starts capturing at a double-quote and stops at the
     next double-quote unless it was proceeded by a backslash in which case it
-    includes it until the next double-quote (tokenized).
+    includes it until the next double-quote (tokenized). It will also
+    match unbalanced strings (no ending double-quote) which should be
+    reported as an error.
 
   * `;.*`: Captures any sequence of characters starting with `;` (tokenized).
 

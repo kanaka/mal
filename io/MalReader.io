@@ -16,7 +16,7 @@ MalReader := Object clone do (
         )
     )
 
-    tokenizerRegex := Regex with("[\\s ,]*(~@|[\\[\\]{}()'`~@]|\"(?:[\\\\].|[^\\\\\"])*\"|;.*|[^\\s \\[\\]{}()'\"`~@,;]*)")
+    tokenizerRegex := Regex with("[\\s ,]*(~@|[\\[\\]{}()'`~@]|\"(?:[\\\\].|[^\\\\\"])*\"?|;.*|[^\\s \\[\\]{}()'\"`~@,;]*)")
 
     tokenize := method(str,
         tokenizerRegex matchesIn(str) \
@@ -28,6 +28,7 @@ MalReader := Object clone do (
     numberRegex := Regex with("^-?[0-9]+$")
 
     read_string := method(token,
+        (token endsWithSeq("\"")) ifFalse(Exception raise("expected '\"', got EOF"))
         placeholder := 127 asCharacter
         token exSlice(1, -1) replaceSeq("\\\\", placeholder) replaceSeq("\\\"", "\"") replaceSeq("\\n", "\n") replaceSeq(placeholder, "\\")
     )

@@ -17,6 +17,8 @@
 
 (def tok-re (.compile re "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:[\\\\].|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}()'\"`@,;]+)"))
 (def int-re (.compile re "-?[0-9]+$"))
+(def str-re (.compile re "^\".*\"$"))
+(def str-bad-re (.compile re "^\".*$"))
 
 (defn tokenize [str]
   (list-comp
@@ -34,7 +36,8 @@
   (setv token (.next rdr))
   (if
     (.match re int-re token) (int token)
-    (= "\"" (get token 0))   (Str (unescape (cut token 1 -1)))
+    (.match re str-re token) (Str (unescape (cut token 1 -1)))
+    (.match re str-bad-re token) (raise (Exception (+ "expected '\"', got EOF")))
     (= ":" (get token 0))    (Keyword token)
     (= "nil" token)          None
     (= "true" token)         True

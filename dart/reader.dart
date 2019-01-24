@@ -1,7 +1,7 @@
 import 'types.dart';
 
 final malRegExp = new RegExp(
-    r"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)""");
+    r"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)""");
 
 class Reader {
   final List<String> tokens;
@@ -115,6 +115,9 @@ MalType read_atom(Reader reader) {
   }
 
   if (token[0] == '"') {
+    if (token[token.length -1 ] != '"') {
+      throw new ParseException("expected '\"', got EOF");
+    }
     var sanitizedToken = token
         // remove surrounding quotes
         .substring(1, token.length - 1)

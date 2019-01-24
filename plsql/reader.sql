@@ -44,7 +44,7 @@ CREATE OR REPLACE PACKAGE BODY reader AS
 -- tokenize:
 -- takes a string and returns a nested table of token strings
 FUNCTION tokenize(str varchar) RETURN tokens IS
-    re      varchar2(100) := '[[:space:] ,]*(~@|[][{}()''`~@]|"(([\].|[^\"])*)"|;[^' || chr(10) || ']*|[^][[:space:] {}()''"`~@,;]*)';
+    re      varchar2(100) := '[[:space:] ,]*(~@|[][{}()''`~@]|"(([\].|[^\"])*)"?|;[^' || chr(10) || ']*|[^][[:space:] {}()''"`~@,;]*)';
     tok     CLOB;
     toks    tokens := tokens();
     cnt     integer;
@@ -90,6 +90,9 @@ BEGIN
         str := REPLACE(str, '\n', chr(10));
         str := REPLACE(str, '\\', chr(92));
         result := types.string(M, str);
+    ELSIF REGEXP_LIKE(token, '^".*') THEN  -- unclosed string
+        raise_application_error(-20003,
+            'expected ''"'', got EOF', TRUE);
     ELSIF REGEXP_LIKE(token, '^:.*') THEN  -- keyword
          -- keyword
          result := types.keyword(M, SUBSTR(token, 2, LENGTH(token)-1));
@@ -127,7 +130,7 @@ BEGIN
         token := rdr.peek();
         IF token IS NULL THEN
             raise_application_error(-20003,
-                'expected ''' || last || '''', TRUE);
+                'expected ''' || last || ''', got EOF', TRUE);
         END IF;
         IF token = last THEN EXIT; END IF;
         items.EXTEND();

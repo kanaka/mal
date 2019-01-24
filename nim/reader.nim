@@ -1,7 +1,7 @@
 import re, strutils, sequtils, types
 
 let
-  tokenRE = re"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)"""
+  tokenRE = re"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"""
   intRE   = re"-?[0-9]+$"
 
 type
@@ -61,7 +61,9 @@ proc read_hash_map(r: var Reader): MalType =
 proc read_atom(r: var Reader): MalType =
   let t = r.next
   if t.match(intRE): number t.parseInt
-  elif t[0] == '"':  str t[1 .. <t.high].multiReplace(("\\\"", "\""), ("\\n", "\n"), ("\\\\", "\\"))
+  elif t[0] == '"':
+    if t[^1] != '"': raise newException(ValueError, "expected '\"', got EOF")
+    str t[1 .. <t.high].multiReplace(("\\\"", "\""), ("\\n", "\n"), ("\\\\", "\\"))
   elif t[0] == ':':  keyword t[1 .. t.high]
   elif t == "nil":   nilObj
   elif t == "true":  trueObj

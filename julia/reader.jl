@@ -26,7 +26,7 @@ end
 
 
 function tokenize(str)
-    re = r"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"|;.*|[^\s\[\]{}('\"`,;)]*)"
+    re = r"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;.*|[^\s\[\]{}('\"`,;)]*)"
     tokens = map((m) -> m.captures[1], eachmatch(re, str))
     filter((t) -> t != "" && t[1] != ';', tokens)
 end
@@ -41,6 +41,8 @@ function read_atom(rdr)
         replace(token[2:end-1], r"\\.", (r) -> get(Dict("\\n"=>"\n",
                                                         "\\\""=>"\"",
                                                         "\\\\"=>"\\"), r, r))
+    elseif ismatch(r"^\".*$", token)
+        error("expected '\"', got EOF")
     elseif token[1] == ':'
         "\u029e$(token[2:end])"
     elseif token == "nil"

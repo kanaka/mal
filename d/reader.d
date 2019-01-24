@@ -44,7 +44,7 @@ class Reader
     }
 }
 
-auto tokenize_ctr = ctRegex!(r"[\s,]*(~@|[\[\]{}()'`~^@]|" `"` `(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"` r"`,;)]*)");
+auto tokenize_ctr = ctRegex!(r"[\s,]*(~@|[\[\]{}()'`~^@]|" `"` `(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"` r"`,;)]*)");
 
 string[] tokenize(string str)
 {
@@ -87,6 +87,10 @@ MalType read_atom(Reader reader)
                 case ':':
                     return new MalString("\u029e" ~ token[1..$]);
                 case '"':
+                    if (token[$-1] != '"')
+                    {
+                        throw new Exception("expected '\"', got EOF");
+                    }
                     return parse_string(token);
                 default:
                     auto captures = matchFirst(token, integer_ctr);

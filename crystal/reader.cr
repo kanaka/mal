@@ -81,9 +81,11 @@ class Reader
     when token == "true"    then true
     when token == "false"   then false
     when token == "nil"     then nil
-    when token[0] == '"' then token[1..-2].gsub(/\\(.)/, {"\\\"" => "\"",
-                                                          "\\n"  => "\n",
-                                                          "\\\\" => "\\"})
+    when token[0] == '"'
+      parse_error "expected '\"', got EOF" if token[-1] != '"'
+      token[1..-2].gsub(/\\(.)/, {"\\\"" => "\"",
+                                  "\\n"  => "\n",
+                                  "\\\\" => "\\"})
     when token[0] == ':' then "\u029e#{token[1..-1]}"
     else                      Mal::Symbol.new token
     end
@@ -121,7 +123,7 @@ class Reader
 end
 
 def tokenize(str)
-  regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
+  regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/
   str.scan(regex).map { |m| m[1] }.reject(&.empty?)
 end
 

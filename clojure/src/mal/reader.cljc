@@ -17,6 +17,7 @@
 
 (def tok-re #"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:[\\].|[^\\\"])*\"?|;.*|[^\s\[\]{}()'\"`@,;]+)")
 (def int-re #"^-?[0-9]+$")
+(def badstr-re #"^\"(.*)[^\"]$")
 (def str-re #"^\"(.*)\"$")
 
 (defn tokenize [s]
@@ -32,14 +33,15 @@
 (defn read-atom [rdr]
   (let [token (rdr-next rdr)]
     (cond
-     (re-seq int-re token) #?(:cljs (js/parseInt token)
-                              :clj (Integer/parseInt token))
-     (re-seq str-re token) (unescape (second (re-find str-re token)))
-     (= \: (get token 0))  (keyword (subs token 1))
-     (= "nil" token)       nil
-     (= "true" token)      true
-     (= "false" token)     false
-     :else                 (symbol token))))
+     (re-seq int-re token)    #?(:cljs (js/parseInt token)
+                                 :clj (Integer/parseInt token))
+     (re-seq badstr-re token) (throw-str (str "expected '\"', got EOF"))
+     (re-seq str-re token)    (unescape (second (re-find str-re token)))
+     (= \: (get token 0))     (keyword (subs token 1))
+     (= "nil" token)          nil
+     (= "true" token)         true
+     (= "false" token)        false
+     :else                    (symbol token))))
 
 (declare read-form)
 

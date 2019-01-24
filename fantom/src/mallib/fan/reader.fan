@@ -18,7 +18,7 @@ class Reader
 {
   private static Str[] tokenize(Str s)
   {
-    r := Regex <|[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)|>
+    r := Regex <|[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)|>
     m := r.matcher(s)
     tokens := Str[,]
     while (m.find())
@@ -39,10 +39,14 @@ class Reader
   {
     token := reader.next
     intRegex := Regex <|^-?\d+$|>
+    strRegex := Regex <|^".*"|>
+    strBadRegex := Regex <|^".*|>
     if (token == "nil") return MalNil.INSTANCE
     if (token == "true") return MalTrue.INSTANCE
     if (token == "false") return MalFalse.INSTANCE
     if (intRegex.matches(token)) return MalInteger(token.toInt)
+    if (strRegex.matches(token)) return MalString.make(unescape_str(token[1..-2]))
+    if (strBadRegex.matches(token)) throw Err("expected '\"', got EOF")
     if (token[0] == '"') return MalString.make(unescape_str(token[1..-2]))
     if (token[0] == ':') return MalString.makeKeyword(token[1..-1])
     return MalSymbol(token)

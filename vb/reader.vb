@@ -48,7 +48,7 @@ Namespace Mal
 
         Shared Function tokenize(str As String) As List(Of String)
             Dim tokens As New List(Of String)
-            Dim pattern As String = "[\s ,]*(~@|[\[\]{}()'`~@]|""(?:[\\].|[^\\""])*""|;.*|[^\s \[\]{}()'""`~@,;]*)"
+            Dim pattern As String = "[\s ,]*(~@|[\[\]{}()'`~@]|""(?:[\\].|[^\\""])*""?|;.*|[^\s \[\]{}()'""`~@,;]*)"
             Dim regex As New Regex(pattern)
             For Each match As Match In regex.Matches(str)
                 Dim token As String = match.Groups(1).Value
@@ -64,7 +64,7 @@ Namespace Mal
 
         Shared Function read_atom(rdr As Reader) As MalVal
             Dim token As String = rdr.get_next()
-            Dim pattern As String = "(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*"")$|^:(.*)|(^[^""]*$)"
+            Dim pattern As String = "(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*)|^:(.*)|(^[^""]*$)"
             Dim regex As Regex = New Regex(pattern)
             Dim match As Match = regex.Match(token)
             'Console.WriteLine("token: ^" + token + "$")
@@ -81,6 +81,9 @@ Namespace Mal
                 return Mal.types.MalFalse
             Else If match.Groups(6).Value <> String.Empty Then
                 Dim str As String = match.Groups(6).Value
+                If str(str.Length-1) <> """" Then
+                    throw New ParseError("expected '""', got EOF")
+                End If
                 return New Mal.types.MalString(
                         str.Substring(1, str.Length-2) _
                         .Replace("\\",         ChrW(&H029e)) _

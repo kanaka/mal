@@ -21,7 +21,7 @@ Reader.next <- function(rdr) {
 }
 
 tokenize <- function(str) {
-    re <- "[\\s,]*(~@|[\\[\\]\\{\\}\\(\\)'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\\s\\[\\]\\{\\}\\('\"`,;\\)]*)"
+    re <- "[\\s,]*(~@|[\\[\\]\\{\\}\\(\\)'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]\\{\\}\\('\"`,;\\)]*)"
     m <- lapply(regmatches(str, gregexpr(re, str, perl=TRUE)), 
                 function(e) sub("^[\\s,]+", "", e, perl=TRUE))
     res <- list()
@@ -43,6 +43,9 @@ read_atom <- function(rdr) {
     } else if (re_match("^-?[0-9][0-9.]*$", token)) {
         as.double(token)
     } else if (substr(token,1,1) == "\"") {
+        if (substr(token, nchar(token), nchar(token)) != "\"") {
+            throw("expected '\"', got EOF")
+        }
         gsub("\x7f", "\\\\",
             gsub("\\\\n", "\n",
                  gsub("\\\\\"", "\"",

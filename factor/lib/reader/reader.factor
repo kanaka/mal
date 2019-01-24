@@ -4,19 +4,23 @@ USING: arrays combinators grouping hashtables kernel lists locals
 make lib.types math.parser regexp sequences splitting strings ;
 IN: lib.reader
 
-CONSTANT: token-regex R/ (~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)~^@]+)/
+CONSTANT: token-regex R/ (~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)~^@]+)/
 
 DEFER: read-form
 
 : (read-string) ( str -- maltype )
-    rest but-last R/ \\./ [
-        {
-            { [ dup >string "\\\\" = ] [ drop "\\" ] }
-            { [ dup >string "\\n"  = ] [ drop "\n" ] }
-            { [ dup >string "\\\"" = ] [ drop "\"" ] }
-            [ ]
-        } cond
-    ] re-replace-with ;
+    dup last CHAR: " = [
+        rest but-last R/ \\./ [
+            {
+                { [ dup >string "\\\\" = ] [ drop "\\" ] }
+                { [ dup >string "\\n"  = ] [ drop "\n" ] }
+                { [ dup >string "\\\"" = ] [ drop "\"" ] }
+                [ ]
+            } cond
+        ] re-replace-with
+    ] [
+        "expected '\"', got EOF" throw
+    ] if ;
 
 : (read-atom) ( str -- maltype )
     {

@@ -1,7 +1,7 @@
 #include "yeti_regex.i"
 require, "types.i"
 
-TOKENIZER_REGEXP = regcomp("[[:space:],]*(~@|[][{}()'`~@]|\"([\\].|[^\\\"])*\"|;.*|[^][[:space:]{}()'\"`~@,;]*)", newline=1)
+TOKENIZER_REGEXP = regcomp("[[:space:],]*(~@|[][{}()'`~@]|\"([\\].|[^\\\"])*\"?|;.*|[^][[:space:]{}()'\"`~@,;]*)", newline=1)
 
 func tokenize(str)
 {
@@ -45,6 +45,8 @@ func reader_next(rdr)
 }
 
 NUMBER_REGEXP = regcomp("^-?[0-9]+$")
+STR_REGEXP = regcomp("^\".*\"$")
+STR_BAD_REGEXP = regcomp("^\".*$")
 
 func unescape(s)
 {
@@ -62,7 +64,8 @@ func read_atom(rdr)
   else if (token == "true") return MAL_TRUE
   else if (token == "false") return MAL_FALSE
   else if (regmatch(NUMBER_REGEXP, token)) return MalNumber(val=tonum(token))
-  else if (strpart(token, 1:1) == "\"") return MalString(val=unescape(token))
+  else if (regmatch(STR_REGEXP, token)) return MalString(val=unescape(token))
+  else if (regmatch(STR_BAD_REGEXP, token)) return MalError(message=("expected '\"', got EOF"))
   else if (strpart(token, 1:1) == ":") return MalKeyword(val=strpart(token, 2:))
   else return MalSymbol(val=token)
 }

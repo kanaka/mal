@@ -17,7 +17,7 @@ class Reader {
 }
 
 def tokenize(str string) List<string> {
-  var re = RegExp.new("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\\s\\[\\]{}('\"`,;)]*)", "g")
+  var re = RegExp.new("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)", "g")
   var tokens List<string> = []
   var match string
   while (match = re.exec(str)[1]) != "" {

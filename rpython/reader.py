@@ -28,7 +28,7 @@ class Reader():
             return None
 
 def tokenize(str):
-    re_str = "[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:[\\\\].|[^\\\\\"])*\"|;.*|[^\s\[\]{}()'\"`@,;]+)"
+    re_str = "[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:[\\\\].|[^\\\\\"])*\"?|;.*|[^\s\[\]{}()'\"`@,;]+)"
     if IS_RPYTHON:
         tok_re = re_str
     else:
@@ -47,8 +47,10 @@ def read_atom(reader):
 ##    elif re.match(float_re, token): return int(token)
     elif token[0] == '"':
         end = len(token)-1
-        if end < 2:
+        if end == 1:
             return MalStr(u"")
+        elif end < 1 or token[end] != '"':
+            types.throw_str("expected '\"', got EOF")
         else:
             s = unicode(token[1:end])
             s = types._replace(u'\\\\',   u"\u029e", s)

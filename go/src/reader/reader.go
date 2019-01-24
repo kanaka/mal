@@ -42,7 +42,7 @@ func tokenize(str string) []string {
 	results := make([]string, 0, 1)
 	// Work around lack of quoting in backtick
 	re := regexp.MustCompile(`[\s,]*(~@|[\[\]{}()'` + "`" +
-		`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"` + "`" +
+		`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"` + "`" +
 		`,;)]*)`)
 	for _, group := range re.FindAllStringSubmatch(str, -1) {
 		if (group[1] == "") || (group[1][0] == ';') {
@@ -66,6 +66,9 @@ func read_atom(rdr Reader) (MalType, error) {
 		}
 		return i, nil
 	} else if (*token)[0] == '"' {
+		if (*token)[len(*token)-1] != '"' {
+			return nil, errors.New("expected '\"', got EOF")
+		}
 		str := (*token)[1 : len(*token)-1]
 		return strings.Replace(
 			strings.Replace(

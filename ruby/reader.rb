@@ -16,7 +16,7 @@ end
 
 
 def tokenize(str)
-    re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
+    re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/
     return str.scan(re).map{|m| m[0]}.select{ |t|
         t != "" && t[0..0] != ";"
     }
@@ -32,6 +32,7 @@ def read_atom(rdr)
         when /^-?[0-9]+$/ then       token.to_i # integer
         when /^-?[0-9][0-9.]*$/ then token.to_f # float
         when /^".*"$/ then           parse_str(token) # string
+        when /^".*$/ then            raise "expected '\"', got EOF"
         when /^:/ then               "\u029e" + token[1..-1] # keyword
         when "nil" then              nil
         when "true" then             true

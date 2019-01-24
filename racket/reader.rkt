@@ -22,7 +22,7 @@
 
 (define (tokenize str)
   (filter-not (lambda (s) (or (equal? s "") (equal? (substring s 0 1) ";")))
-    (regexp-match* #px"[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;[^\n]*|[^\\s\\[\\]{}('\"`,;)]*)"
+    (regexp-match* #px"[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;[^\n]*|[^\\s\\[\\]{}('\"`,;)]*)"
                    str #:match-select cadr)))
 
 (define (read_atom rdr)
@@ -33,6 +33,8 @@
            (string->number token)]
           [(regexp-match #px"^\".*\"$" token)
            (with-input-from-string token read)]
+          [(regexp-match #px"^\".*$" token)
+           (raise "expected '\"', got EOF")]
           [(regexp-match #px"^:" token) (_keyword (substring token 1))]
           [(equal? "nil" token) nil]
           [(equal? "true" token) #t]

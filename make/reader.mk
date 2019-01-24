@@ -85,7 +85,7 @@ $(foreach ch,$(word 1,$($(1))),\
     $(call __string,$(strip $(call READ_STRING,$(1))))\
     $(eval $(if $(filter $(DQUOTE),$(word 1,$($(1)))),\
            $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1)))),\
-           $(call _error,Expected '$(DQUOTE)' in; $($(1))))),\
+           $(call _error,Expected '$(DQUOTE)' in; $($(1))$(COMMA) got EOF))),\
   $(if $(filter $(COLON),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
     $(call _keyword,$(call READ_KEYWORD,$(1))),\

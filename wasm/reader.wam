@@ -253,7 +253,7 @@
         (local.set $slen ($strlen (i32.add $tok 1)))
         (if (i32.ne (i32.load8_u (i32.add $tok $slen)) (CHR "\""))
           (then
-            ($THROW_STR_0 "expected '\"'")
+            ($THROW_STR_0 "expected '\"', got EOF")
             (return 0))
           (else
             ;; unescape backslashes, quotes, and newlines

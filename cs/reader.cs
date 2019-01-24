@@ -39,7 +39,7 @@ namespace Mal {
 
         public static List<string> tokenize(string str) {
             List<string> tokens = new List<string>();
-            string pattern = @"[\s ,]*(~@|[\[\]{}()'`~@]|""(?:[\\].|[^\\""])*""|;.*|[^\s \[\]{}()'""`~@,;]*)";
+            string pattern = @"[\s ,]*(~@|[\[\]{}()'`~@]|""(?:[\\].|[^\\""])*""?|;.*|[^\s \[\]{}()'""`~@,;]*)";
             Regex regex = new Regex(pattern);
             foreach (Match match in regex.Matches(str)) {
                 string token = match.Groups[1].Value;
@@ -53,7 +53,7 @@ namespace Mal {
 
         public static MalVal read_atom(Reader rdr) {
             string token = rdr.next();
-            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*"")$|:(.*)|(^[^""]*$)";
+            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*)|:(.*)|(^[^""]*$)";
             Regex regex = new Regex(pattern);
             Match match = regex.Match(token);
             //Console.WriteLine("token: ^" + token + "$");
@@ -70,6 +70,9 @@ namespace Mal {
                 return Mal.types.False;
             } else if (match.Groups[6].Value != String.Empty) {
                 string str = match.Groups[6].Value;
+                if (str[str.Length-1] != '"') {
+                    throw new ParseError("expected '\"', got EOF");
+                }
                 str = str.Substring(1, str.Length-2)
                     .Replace("\\\\",   "\u029e")
                     .Replace("\\\"",   "\"")

@@ -23,7 +23,7 @@ export function readStr(input: string): MalType {
 }
 
 function tokenizer(input: string): string[] {
-    const regexp = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
+    const regexp = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
     const tokens: string[] = [];
     while (true) {
         const matches = regexp.exec(input);
@@ -123,6 +123,9 @@ function readAtom(reader: Reader): MalType {
         return new MalNumber(v);
     }
     if (token[0] === '"') {
+        if (token.slice(-1) !== '"') {
+            throw new Error("expected '\"', got EOF");
+        }
         const v = token.slice(1, token.length - 1)
             .replace(/\\(.)/g, (_, c: string) => c == 'n' ? '\n' : c)
         return new MalString(v);

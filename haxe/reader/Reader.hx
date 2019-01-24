@@ -73,7 +73,7 @@ class Reader {
                                 "\n"),
                               "\""),
                             "\\"));
-            case _ if (re_str.match(token)):
+            case _ if (re_str_bad.match(token)):
                 throw 'expected \'"\', got EOF';
             case _:
                 MalSymbol(token);

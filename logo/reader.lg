@@ -84,7 +84,7 @@ while [not emptyp :rest] [
   make "w word :w :c
   make "rest butfirst :rest
 ]
-(throw "error [Expected closing quotes])
+(throw "error [Expected closing quotes, not EOF])
 end
 
 to read_next_token :s
