@@ -1,8 +1,8 @@
 (defproject mal "0.0.1-SNAPSHOT"
   :description "Make-A-Lisp"
 
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojure/tools.reader "0.8.3"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [org.clojure/tools.reader "1.3.2"]
                  [net.n01se/clojure-jna "1.0.0"]]
 
   ;; To run a step with correct readline behavior:
