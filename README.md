@@ -8,57 +8,57 @@ Mal is a Clojure inspired Lisp interpreter.
 
 Mal is implemented in 74 languages:
 
-* Ada
-* GNU awk
-* Bash shell
+* Ada - *created by [Chris Moore](https://github.com/zmower)*
+* GNU awk - *created by [Miutsuru Kariya](https://github.com/kariya-mitsuru)*
+* Bash 4
 * BASIC (C64 and QBasic)
 * C
-* C++
+* C++ - *created by [Stephen Thirlwall](https://github.com/sdt)*
 * C#
-* ChucK
-* Common Lisp
+* ChucK - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* Common Lisp - *created by [Iqbal Ansari](https://github.com/iqbalansari)*
 * Clojure (Clojure and ClojureScript)
 * CoffeeScript
-* Crystal
-* D
-* Dart
-* Elixir
-* Elm
-* Emacs Lisp
-* Erlang
+* Crystal - *created by [Linda_pp](https://github.com/rhysd)*
+* D - *created by [Dov Murik](https://github.com/dubek)*
+* Dart - *created by [Harry Terkelsen](https://github.com/hterkelsen)*
+* Elixir - *created by [Martin Ek](https://github.com/ekmartin)*
+* Elm - *created by [Jos van Bakel](https://github.com/c0deaddict)*
+* Emacs Lisp - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* Erlang - *created by [Nathan Fiedler](https://github.com/nlfiedler)*
 * ES6 (ECMAScript 6 / ECMAScript 2015)
-* F#
-* Factor
-* Fantom
-* Forth
+* F# - *created by [Peter Stephens](https://github.com/pstephens)*
+* Factor - *created by [Jordan Lewis](https://github.com/jordanlewis)*
+* Fantom - *created by [Dov Murik](https://github.com/dubek)*
+* Forth - *created by [Chris Houser](https://github.com/chouser)*
 * Go
 * Groovy
-* GNU Guile
-* GNU Smalltalk
+* GNU Guile - *created by [Mu Lei](https://github.com/NalaGinrut).*
+* GNU Smalltalk - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 * Haskell
 * Haxe (Neko, Python, C++ and JavaScript)
 * Hy
-* Io
+* Io - *created by [Dov Murik](https://github.com/dubek)*
 * Java
 * JavaScript ([Online Demo](http://kanaka.github.io/mal))
 * Julia
-* Kotlin
-* LiveScript
-* Logo
+* Kotlin - *created by [Javier Fernandez-Ivern](https://github.com/ivern)*
+* LiveScript - *created by [Jos van Bakel](https://github.com/c0deaddict)*
+* Logo - *created by [Dov Murik](https://github.com/dubek)*
 * Lua
 * GNU Make
 * mal itself
 * Matlab (GNU Octave and MATLAB)
 * [miniMAL](https://github.com/kanaka/miniMAL)
-* NASM
-* Nim
+* NASM - *created by [Ben Dudson](https://github.com/bendudson)*
+* Nim - *created by [Dennis Felsing](https://github.com/def-)*
 * Object Pascal
 * Objective C
-* OCaml
+* OCaml - *created by [Chris Houser](https://github.com/chouser)*
 * Perl
-* Perl 6
+* Perl 6 - *created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
 * PHP
-* Picolisp
+* Picolisp - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 * PL/pgSQL (Postgres)
 * PL/SQL (Oracle)
 * Postscript
@@ -67,21 +67,21 @@ Mal is implemented in 74 languages:
 * RPython
 * R
 * Racket
-* Rexx
+* Rexx - *created by [Dov Murik](https://github.com/dubek)*
 * Ruby
 * Rust
 * Scala
-* Scheme (R7RS)
-* Skew
-* Swift
+* Scheme (R7RS) *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* Skew - *created by [Dov Murik](https://github.com/dubek)*
+* Swift - *created by [Keith Rollin](https://github.com/keith-rollin)*
 * Swift 3
-* Tcl
-* TypeScript
-* VHDL
-* Vimscript
+* Tcl - *created by [Dov Murik](https://github.com/dubek)*
+* TypeScript - *created by [Masahiro Wakame](https://github.com/vvakame)*
+* VHDL - *created by [Dov Murik](https://github.com/dubek)*
+* Vimscript - *created by [Dov Murik](https://github.com/dubek)*
 * Visual Basic.NET
 * WebAssembly (wasm)
-* Yorick
+* Yorick - *created by [Dov Murik](https://github.com/dubek)*
 
 
 Mal is a learning tool. See the [make-a-lisp process
@@ -144,8 +144,6 @@ make DOCKERIZE=1 "repl^IMPL"
 
 ### Ada
 
-*The Ada implementation was created by [Chris Moore](https://github.com/zmower)*
-
 The Ada implementation was developed with GNAT 4.9 on debian. It also
 compiles unchanged on windows if you have windows versions of git,
 GNAT and (optionally) make.  There are no external dependencies
@@ -158,8 +156,6 @@ make
 ```
 
 ### GNU awk
-
-*The GNU awk implementation was created by [Miutsuru kariya](https://github.com/kariya-mitsuru)*
 
 The GNU awk implementation of mal has been tested with GNU awk 4.1.1.
 
@@ -218,8 +214,6 @@ make
 
 ### C++
 
-*The C++ implementation was created by [Stephen Thirlwall (sdt)](https://github.com/sdt)*
-
 The C++ implementation of mal requires g++-4.9 or clang++-3.5 and
 a readline compatible library to build. See the `cpp/README.md` for
 more details:
@@ -247,8 +241,6 @@ mono ./stepX_YYY.exe
 
 ### ChucK
 
-*The ChucK implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-
 The ChucK implementation has been tested with ChucK 1.3.5.2.
 
 ```
@@ -257,8 +249,6 @@ cd chuck
 ```
 
 ### Common Lisp
-
-*The Common Lisp implementation was created by [Iqbal Ansari](https://github.com/iqbalansari)*
 
 The implementation has been tested with SBCL, CCL, CMUCL, GNU CLISP, ECL and
 Allegro CL on Ubuntu 16.04 and Ubuntu 12.04, see
@@ -291,8 +281,6 @@ coffee ./stepX_YYY
 
 ### Crystal
 
-*The Crystal implementation of mal was created by [Linda_pp](https://github.com/rhysd)*
-
 The Crystal implementation of mal has been tested with Crystal 0.26.1.
 
 ```
@@ -305,8 +293,6 @@ make   # needed to run tests
 
 ### D
 
-*The D implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The D implementation of mal was tested with GDC 4.8.  It requires the GNU
 readline library.
 
@@ -318,8 +304,6 @@ make
 
 ### Dart
 
-*The Dart implementation was created by [Harry Terkelsen](https://github.com/hterkelsen)*
-
 The Dart implementation has been tested with Dart 1.20.
 
 ```
@@ -328,8 +312,6 @@ dart ./stepX_YYY
 ```
 
 ### Emacs Lisp
-
-*The Emacs Lisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 
 The Emacs Lisp implementation of mal has been tested with Emacs 24.3
 and 24.5.  While there is very basic readline editing (`<backspace>`
@@ -345,8 +327,6 @@ rlwrap emacs -Q --batch --load stepX_YYY.el
 
 ### Elixir
 
-*The Elixir implementation was created by [Martin Ek (ekmartin)](https://github.com/ekmartin)*
-
 The Elixir implementation of mal has been tested with Elixir 1.0.5.
 
 ```
@@ -358,8 +338,6 @@ iex -S mix stepX_YYY
 
 ### Elm
 
-*The Elm implementation was created by [Jos van Bakel](https://github.com/c0deaddict)*
-
 The Elm implementation of mal has been tested with Elm 0.18.0
 
 ```
@@ -369,8 +347,6 @@ STEP=stepX_YYY ./run
 ```
 
 ### Erlang
-
-*The Erlang implementation was created by [Nathan Fiedler (nlfiedler)](https://github.com/nlfiedler)*
 
 The Erlang implementation of mal requires [Erlang/OTP R17](http://www.erlang.org/download.html)
 and [rebar](https://github.com/rebar/rebar) to build.
@@ -398,8 +374,6 @@ node build/stepX_YYY.js
 
 ### F# ###
 
-*The F# implementation was created by [Peter Stephens (pstephens)](https://github.com/pstephens)*
-
 The F# implementation of mal has been tested on Linux using the Mono
 F# compiler (fsharpc) and the Mono runtime (version 3.12.1). The mono C#
 compiler (mcs) is also necessary to compile the readline dependency. All are
@@ -413,8 +387,6 @@ mono ./stepX_YYY.exe
 
 ### Factor
 
-*The Factor implementation was created by [Jordan Lewis (jordanlewis)](https://github.com/jordanlewis)*
-
 The Factor implementation of mal has been tested with Factor 0.97
 ([factorcode.org](http://factorcode.org)).
 
@@ -425,8 +397,6 @@ FACTOR_ROOTS=. factor -run=stepX_YYY
 
 ### Fantom
 
-*The Fantom implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The Fantom implementation of mal has been tested with Fantom 1.0.70.
 
 ```
@@ -436,8 +406,6 @@ STEP=stepX_YYY ./run
 ```
 
 ### Forth
-
-*The Forth implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
 
 ```
 cd forth
@@ -469,16 +437,12 @@ groovy ./stepX_YYY.groovy
 
 ### GNU Guile 2.1+
 
-*The Guile implementation was created by [Mu Lei (NalaGinrut)](https://github.com/NalaGinrut).*
-
 ```
 cd guile
 guile -L ./ stepX_YYY.scm
 ```
 
 ### GNU Smalltalk
-
-*The Smalltalk implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 
 The Smalltalk implementation of mal has been tested with GNU Smalltalk 3.2.91.
 
@@ -531,8 +495,6 @@ cd hy
 
 ### Io
 
-*The Io implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The Io implementation of mal has been tested with Io version 20110905.
 
 ```
@@ -571,8 +533,6 @@ julia stepX_YYY.jl
 
 ### Kotlin
 
-*The Kotlin implementation was created by [Javier Fernandez-Ivern](https://github.com/ivern)*
-
 The Kotlin implementation of mal has been tested with Kotlin 1.0.
 
 ```
@@ -583,8 +543,6 @@ java -jar stepX_YYY.jar
 
 ### LiveScript
 
-*The LiveScript implementation was created by [Jos van Bakel](https://github.com/c0deaddict)*
-
 The LiveScript implementation of mal has been tested with LiveScript 1.5.
 
 ```
@@ -594,8 +552,6 @@ node_modules/.bin/lsc stepX_YYY.ls
 ```
 
 ### Logo
-
-*The Logo implementation was created by [Dov Murik](https://github.com/dubek)*
 
 The Logo implementation of mal has been tested with UCBLogo 6.0.
 
@@ -637,8 +593,6 @@ make -f stepX_YYY.mk
 
 ### NASM
 
-*The NASM implementation was created by [Ben Dudson](https://github.com/bendudson)*
-
 The NASM implementation of mal is written for x86-64 Linux, and has been tested
 with Linux 3.16.0-4-amd64 and NASM version 2.11.05.
 
@@ -649,8 +603,6 @@ make
 ```
 
 ### Nim 0.17.0
-
-*The Nim implementation was created by [Dennis Felsing (def-)](https://github.com/def-)*
 
 The Nim implementation of mal has been tested with Nim 0.17.0.
 
@@ -686,8 +638,6 @@ make
 ```
 
 ### OCaml 4.01.0
-
-*The OCaml implementation was created by [Chris Houser (chouser)](https://github.com/chouser)*
 
 ```
 cd ocaml
@@ -738,8 +688,6 @@ perl stepX_YYY.pl
 
 ### Perl 6
 
-*The Perl 6 implementation was created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
-
 The Perl 6 implementation was tested on Rakudo Perl 6 2016.04.
 
 ```
@@ -758,8 +706,6 @@ php stepX_YYY.php
 ```
 
 ### Picolisp
-
-*The Picolisp implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
 
 The Picolisp implementation requires libreadline and Picolisp 3.1.11
 or later.
@@ -868,8 +814,6 @@ cd racket
 
 ### Rexx
 
-*The Rexx implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The Rexx implementation of mal has been tested with Regina Rexx 3.6.
 
 ```
@@ -909,8 +853,6 @@ scala -classpath target/scala*/classes stepX_YYY
 
 ### Scheme (R7RS) ###
 
-*The Scheme implementation was created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-
 The Scheme implementation of mal has been tested with Chibi-Scheme
 0.7.3, Kawa 2.4, Gauche 0.9.5, CHICKEN 4.11.0, Sagittarius 0.8.3,
 Cyclone 0.6.3 (Git version) and Foment 0.4 (Git version).  You should
@@ -942,8 +884,6 @@ scheme_MODE=foment ./run
 
 ### Skew ###
 
-*The Skew implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The Skew implementation of mal has been tested with Skew 0.7.42.
 
 ```
@@ -954,8 +894,6 @@ node stepX_YYY.js
 
 
 ### Swift
-
-*The Swift implementation was created by [Keith Rollin](https://github.com/keith-rollin)*
 
 The Swift implementation of mal requires the Swift 2.0 compiler (XCode
 7.0) to build. Older versions will not work due to changes in the
@@ -980,8 +918,6 @@ make
 
 ### Tcl 8.6
 
-*The Tcl implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The Tcl implementation of mal requires Tcl 8.6 to run.  For readline line
 editing support, install tclreadline.
 
@@ -991,8 +927,6 @@ tclsh ./stepX_YYY.tcl
 ```
 
 ### TypeScript
-
-*The TypeScript implementation was created by [vvakame](https://github.com/vvakame)*
 
 The TypeScript implementation of mal requires the TypeScript 2.2 compiler.
 It has been tested with Node.js v6.
@@ -1005,8 +939,6 @@ node ./stepX_YYY.js
 
 ### VHDL
 
-*The VHDL implementation was created by [Dov Murik](https://github.com/dubek)*
-
 The VHDL implementation of mal has been tested with GHDL 0.29.
 
 ```
@@ -1016,8 +948,6 @@ make
 ```
 
 ### Vimscript
-
-*The Vimscript implementation was created by [Dov Murik](https://github.com/dubek)*
 
 The Vimscript implementation of mal requires Vim 8.0 to run.
 
@@ -1052,8 +982,6 @@ wace ./stepX_YYY.wasm
 ```
 
 ### Yorick
-
-*The Yorick implementation was created by [Dov Murik](https://github.com/dubek)*
 
 The Yorick implementation of mal was tested on Yorick 2.2.04.
 
