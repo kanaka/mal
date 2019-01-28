@@ -606,8 +606,9 @@ logo stepX_YYY.lg
 
 ### Lua
 
-Running the Lua implementation of mal requires lua 5.1 or later,
-luarocks and the lua-rex-pcre library installed.
+The Lua implementation of mal has been tested with Lua 5.2. The
+implementation requires that luarocks and the lua-rex-pcre library
+are installed.
 
 ```
 cd lua
