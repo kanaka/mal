@@ -8,80 +8,80 @@ Mal is a Clojure inspired Lisp interpreter.
 
 Mal is implemented in 74 languages:
 
-* Ada - *created by [Chris Moore](https://github.com/zmower)*
-* GNU awk - *created by [Miutsuru Kariya](https://github.com/kariya-mitsuru)*
-* Bash 4
-* BASIC (C64 and QBasic)
-* C
-* C++ - *created by [Stephen Thirlwall](https://github.com/sdt)*
-* C#
-* ChucK - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-* Common Lisp - *created by [Iqbal Ansari](https://github.com/iqbalansari)*
-* Clojure (Clojure and ClojureScript)
-* CoffeeScript
-* Crystal - *created by [Linda_pp](https://github.com/rhysd)*
-* D - *created by [Dov Murik](https://github.com/dubek)*
-* Dart - *created by [Harry Terkelsen](https://github.com/hterkelsen)*
-* Elixir - *created by [Martin Ek](https://github.com/ekmartin)*
-* Elm - *created by [Jos van Bakel](https://github.com/c0deaddict)*
-* Emacs Lisp - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-* Erlang - *created by [Nathan Fiedler](https://github.com/nlfiedler)*
-* ES6 (ECMAScript 6 / ECMAScript 2015)
-* F# - *created by [Peter Stephens](https://github.com/pstephens)*
-* Factor - *created by [Jordan Lewis](https://github.com/jordanlewis)*
-* Fantom - *created by [Dov Murik](https://github.com/dubek)*
-* Forth - *created by [Chris Houser](https://github.com/chouser)*
-* Go
-* Groovy
-* GNU Guile - *created by [Mu Lei](https://github.com/NalaGinrut).*
-* GNU Smalltalk - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-* Haskell
-* Haxe (Neko, Python, C++ and JavaScript)
-* Hy
-* Io - *created by [Dov Murik](https://github.com/dubek)*
-* Java
-* JavaScript ([Online Demo](http://kanaka.github.io/mal))
-* Julia
-* Kotlin - *created by [Javier Fernandez-Ivern](https://github.com/ivern)*
-* LiveScript - *created by [Jos van Bakel](https://github.com/c0deaddict)*
-* Logo - *created by [Dov Murik](https://github.com/dubek)*
-* Lua
-* GNU Make
-* mal itself
-* Matlab (GNU Octave and MATLAB)
-* [miniMAL](https://github.com/kanaka/miniMAL)
-* NASM - *created by [Ben Dudson](https://github.com/bendudson)*
-* Nim - *created by [Dennis Felsing](https://github.com/def-)*
-* Object Pascal
-* Objective C
-* OCaml - *created by [Chris Houser](https://github.com/chouser)*
-* Perl
-* Perl 6 - *created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
-* PHP
-* Picolisp - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-* PL/pgSQL (Postgres)
-* PL/SQL (Oracle)
-* Postscript
-* PowerShell
-* Python (2.X and 3.X)
-* RPython
-* R
-* Racket
-* Rexx - *created by [Dov Murik](https://github.com/dubek)*
-* Ruby
-* Rust
-* Scala
-* Scheme (R7RS) *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
-* Skew - *created by [Dov Murik](https://github.com/dubek)*
-* Swift - *created by [Keith Rollin](https://github.com/keith-rollin)*
-* Swift 3
-* Tcl - *created by [Dov Murik](https://github.com/dubek)*
-* TypeScript - *created by [Masahiro Wakame](https://github.com/vvakame)*
-* VHDL - *created by [Dov Murik](https://github.com/dubek)*
-* Vimscript - *created by [Dov Murik](https://github.com/dubek)*
-* Visual Basic.NET
-* WebAssembly (wasm)
-* Yorick - *created by [Dov Murik](https://github.com/dubek)*
+* **Ada** - *created by [Chris Moore](https://github.com/zmower)*
+* **GNU awk** - *created by [Miutsuru Kariya](https://github.com/kariya-mitsuru)*
+* **Bash 4**
+* **BASIC** (C64 and QBasic)
+* **C**
+* **C++** - *created by [Stephen Thirlwall](https://github.com/sdt)*
+* **C#**
+* **ChucK** - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* **Common Lisp** - *created by [Iqbal Ansari](https://github.com/iqbalansari)*
+* **Clojure** (Clojure and ClojureScript)
+* **CoffeeScript**
+* **Crystal** - *created by [Linda_pp](https://github.com/rhysd)*
+* **D** - *created by [Dov Murik](https://github.com/dubek)*
+* **Dart** - *created by [Harry Terkelsen](https://github.com/hterkelsen)*
+* **Elixir** - *created by [Martin Ek](https://github.com/ekmartin)*
+* **Elm** - *created by [Jos van Bakel](https://github.com/c0deaddict)*
+* **Emacs Lisp** - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* **Erlang** - *created by [Nathan Fiedler](https://github.com/nlfiedler)*
+* **ES6** (ECMAScript 6 / ECMAScript 2015)
+* **F#** - *created by [Peter Stephens](https://github.com/pstephens)*
+* **Factor** - *created by [Jordan Lewis](https://github.com/jordanlewis)*
+* **Fantom** - *created by [Dov Murik](https://github.com/dubek)*
+* **Forth** - *created by [Chris Houser](https://github.com/chouser)*
+* **Go**
+* **Groovy**
+* **GNU Guile** - *created by [Mu Lei](https://github.com/NalaGinrut).*
+* **GNU Smalltalk** - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* **Haskell**
+* **Haxe** (Neko, Python, C++ and JavaScript)
+* **Hy**
+* **Io** - *created by [Dov Murik](https://github.com/dubek)*
+* **Java**
+* **JavaScript** ([Online Demo](http://kanaka.github.io/mal))
+* **Julia**
+* **Kotlin** - *created by [Javier Fernandez-Ivern](https://github.com/ivern)*
+* **LiveScript** - *created by [Jos van Bakel](https://github.com/c0deaddict)*
+* **Logo** - *created by [Dov Murik](https://github.com/dubek)*
+* **Lua**
+* **GNU Make**
+* **mal itself**
+* **Matlab** (GNU Octave and MATLAB)
+* **[miniMAL](https://github.com/kanaka/miniMAL)**
+* **NASM** - *created by [Ben Dudson](https://github.com/bendudson)*
+* **Nim** - *created by [Dennis Felsing](https://github.com/def-)*
+* **Object Pascal**
+* **Objective C**
+* **OCaml** - *created by [Chris Houser](https://github.com/chouser)*
+* **Perl**
+* **Perl 6** - *created by [Hinrik Örn Sigurðsson](https://github.com/hinrik)*
+* **PHP**
+* **Picolisp** - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* **PL/pgSQL** (Postgres)
+* **PL/SQL** (Oracle)
+* **Postscript**
+* **PowerShell**
+* **Python** (2.X and 3.X)
+* **RPython**
+* **R**
+* **Racket**
+* **Rexx** - *created by [Dov Murik](https://github.com/dubek)*
+* **Ruby**
+* **Rust**
+* **Scala**
+* **Scheme (R7RS)** - *created by [Vasilij Schneidermann](https://github.com/wasamasa)*
+* **Skew** - *created by [Dov Murik](https://github.com/dubek)*
+* **Swift** - *created by [Keith Rollin](https://github.com/keith-rollin)*
+* **Swift 3**
+* **Tcl** - *created by [Dov Murik](https://github.com/dubek)*
+* **TypeScript** - *created by [Masahiro Wakame](https://github.com/vvakame)*
+* **VHDL** - *created by [Dov Murik](https://github.com/dubek)*
+* **Vimscript** - *created by [Dov Murik](https://github.com/dubek)*
+* **Visual Basic.NET**
+* **WebAssembly** (wasm)
+* **Yorick** - *created by [Dov Murik](https://github.com/dubek)*
 
 
 Mal is a learning tool. See the [make-a-lisp process
