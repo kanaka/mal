@@ -13,24 +13,28 @@ local M = {}
 
 function pr_str(...)
     return table.concat(
-        utils.map(function(e) return _pr_str(e, true) end, arg), " ")
+        utils.map(function(e) return _pr_str(e, true) end,
+                  table.pack(...)), " ")
 end
 
 function str(...)
     return table.concat(
-        utils.map(function(e) return _pr_str(e, false) end, arg), "")
+        utils.map(function(e) return _pr_str(e, false) end,
+                  table.pack(...)), "")
 end
 
 function prn(...)
     print(table.concat(
-        utils.map(function(e) return _pr_str(e, true) end, arg), " "))
+        utils.map(function(e) return _pr_str(e, true) end,
+                  table.pack(...)), " "))
     io.flush()
     return Nil
 end
 
 function println(...)
     print(table.concat(
-        utils.map(function(e) return _pr_str(e, false) end, arg), " "))
+        utils.map(function(e) return _pr_str(e, false) end,
+                  table.pack(...)), " "))
     io.flush()
     return Nil
 end
@@ -55,11 +59,11 @@ end
 -- hash map functions
 
 function assoc(hm, ...)
-    return types._assoc_BANG(types.copy(hm), unpack(arg))
+    return types._assoc_BANG(types.copy(hm), ...)
 end
 
 function dissoc(hm, ...)
-    return types._dissoc_BANG(types.copy(hm), unpack(arg))
+    return types._dissoc_BANG(types.copy(hm), ...)
 end
 
 function get(hm, key)
@@ -93,6 +97,7 @@ function cons(a,lst)
 end
 
 function concat(...)
+    local arg = table.pack(...)
     local new_lst = {}
     for i = 1, #arg do
         for j = 1, #arg[i] do
@@ -127,12 +132,13 @@ function rest(a)
 end
 
 function apply(f, ...)
+    local arg = table.pack(...)
     if types._malfunc_Q(f) then
         f = f.fn
     end
     local args = concat(types.slice(arg, 1, #arg-1),
                         arg[#arg])
-    return f(unpack(args))
+    return f(table.unpack(args))
 end
 
 function map(f, lst)
@@ -162,13 +168,14 @@ function swap_BANG(atm,f,...)
     if types._malfunc_Q(f) then
         f = f.fn
     end
-    local args = List:new(arg)
+    local args = List:new(table.pack(...))
     table.insert(args, 1, atm.val)
-    atm.val = f(unpack(args))
+    atm.val = f(table.unpack(args))
     return atm.val
 end
 
 local function conj(obj, ...)
+    local arg = table.pack(...)
     local new_obj = types.copy(obj)
     if types._list_Q(new_obj) then
         for i, v in ipairs(arg) do
@@ -267,9 +274,9 @@ M.ns = {
     ['/'] =  function(a,b) return math.floor(a/b) end,
     ['time-ms'] = function() return math.floor(socket.gettime() * 1000) end,
 
-    list = function(...) return List:new(arg) end,
+    list = function(...) return List:new(table.pack(...)) end,
     ['list?'] = function(a) return types._list_Q(a) end,
-    vector = function(...) return types.Vector:new(arg) end,
+    vector = function(...) return types.Vector:new(table.pack(...)) end,
     ['vector?'] = types._vector_Q,
     ['hash-map'] = types.hash_map,
     ['map?'] = types._hash_map_Q,

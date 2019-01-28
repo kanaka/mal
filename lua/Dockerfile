@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:18.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -22,7 +22,7 @@ WORKDIR /mal
 ##########################################################
 
 # Lua
-RUN apt-get -y install lua5.1 lua-rex-pcre luarocks
+RUN apt-get -y install lua5.2 liblua5.2-dev lua-rex-pcre luarocks
 RUN luarocks install linenoise
 RUN luarocks install luasocket
 

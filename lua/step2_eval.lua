@@ -42,7 +42,7 @@ function EVAL(ast, env)
     if #ast == 0 then return ast end
     local args = eval_ast(ast, env)
     local f = table.remove(args, 1)
-    return f(unpack(args))
+    return f(table.unpack(args))
 end
 
 -- print

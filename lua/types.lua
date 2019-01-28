@@ -161,18 +161,20 @@ function M.HashMap:new(val)
     return setmetatable(newObj, self)
 end
 function M.hash_map(...)
-    return M._assoc_BANG(M.HashMap:new(), unpack(arg))
+    return M._assoc_BANG(M.HashMap:new(), ...)
 end
 function M._hash_map_Q(obj)
     return utils.instanceOf(obj, M.HashMap)
 end
 function M._assoc_BANG(hm, ...)
+    local arg = table.pack(...)
     for i = 1, #arg, 2 do
         hm[arg[i]] = arg[i+1]
     end
     return hm
 end
 function M._dissoc_BANG(hm, ...)
+    local arg = table.pack(...)
     for i = 1, #arg do
         hm[arg[i]] = nil
     end
