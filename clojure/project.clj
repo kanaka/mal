@@ -2,7 +2,6 @@
   :description "Make-A-Lisp"
 
   :dependencies [[org.clojure/clojure "1.10.0"]
-                 [org.clojure/tools.reader "1.3.2"]
                  [net.n01se/clojure-jna "1.0.0"]]
 
   ;; To run a step with correct readline behavior:
