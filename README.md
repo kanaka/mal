@@ -895,11 +895,6 @@ cd rust
 cargo run --release --bin stepX_YYY
 ```
 
-Alternative out-of-tee Rust implementations:
-
-* [by Tim Morgan](https://github.com/seven1m/mal-rust).
-* [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
-
 ### Scala ###
 
 Install scala and sbt (http://www.scala-sbt.org/0.13/tutorial/Installing-sbt-on-Linux.html):
@@ -1238,6 +1233,21 @@ make "docker-build^IMPL"
   runtime dependencies need to be downloaded to avoid the tests timing
   out. These dependencies are downloaded to dot-files in the /mal
   directory so they will persist between runs.
+
+
+## External Implementations
+
+The following implementations are maintained as separate projects:
+
+### HolyC
+
+* [by Alexander Bagnalla](https://github.com/bagnalla/holyc_mal)
+
+### Rust
+
+* [by Tim Morgan](https://github.com/seven1m/mal-rust)
+* [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
+
 
 ## Projects using mal
 
