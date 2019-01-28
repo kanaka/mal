@@ -19,7 +19,7 @@
 ;=>{"abc" 789}
 
 (fantom-eval "echo(\"hello\")")
-; hello
+;/hello
 ;=>nil
 
 (fantom-eval "[\"a\",\"b\",\"c\"].join(\" \") { \"X${it}Y\" }")

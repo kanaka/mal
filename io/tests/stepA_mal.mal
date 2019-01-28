@@ -19,7 +19,7 @@
 ;=>{"abc" 789}
 
 (io-eval "\"hello\" println")
-; hello
+;/hello
 ;=>"hello"
 
 (io-eval "Lobby foo := 8")

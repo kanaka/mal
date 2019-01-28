@@ -13,10 +13,10 @@
 ;=>{"abc" 123}
 
 (if clj (clj* "(prn \"foo\")") (js* "console.log('\"foo\"')"))
-; "foo"
+;/"foo"
 ;=>nil
 
-(if clj (clj* "(for [x [1 2 3]] (+ 1 x))") '(2 3 4))
+(if clj (clj* "(apply list (for [x [1 2 3]] (+ 1 x)))") '(2 3 4))
 ;=>(2 3 4)
 (if cljs (js* "[1,2,3].map(function(x) {return 1+x})") [2 3 4])
 ;=>[2 3 4]

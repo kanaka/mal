@@ -13,7 +13,7 @@
 ;=>"FE"
 
 (rexx-eval "say 'hello' 12.34 upper('rexx')" nil)
-; hello 12.34 REXX
+;/hello 12.34 REXX
 ;=>nil
 
 (rexx-eval "foo = 8" "foo + 3")

@@ -13,7 +13,7 @@
 ;=>{"abc" 789}
 
 (rb* "print 'hello\n'")
-; hello
+;/hello
 ;=>nil
 
 (rb* "$foo=8;")

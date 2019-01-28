@@ -14,7 +14,7 @@
 
 ;; Testing Python statements
 (py!* "print('hello')")
-; hello
+;/hello
 ;=>nil
 
 (py!* "foo = 19 % 4")

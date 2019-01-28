@@ -204,8 +204,7 @@ class TestReader:
                     return True
                 continue
             elif line[0:1] == ";":         # unexpected comment
-                log("Test data error at line %d:\n%s" % (self.line_num, line))
-                return None
+                raise Exception("Test data error at line %d:\n%s" % (self.line_num, line))
             self.form = line   # the line is a form to send
 
             # Now find the output and return value

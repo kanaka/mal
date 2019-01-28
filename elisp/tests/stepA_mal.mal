@@ -13,7 +13,7 @@
 ;=>(1 2 3)
 
 (elisp-eval "(progn (princ \"Hello World!\n\") nil)")
-; Hello World!
+;/Hello World!
 ;=>nil
 
 (elisp-eval "(setq emacs-version-re (rx (+ digit) \".\" digit \".\" digit))")

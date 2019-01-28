@@ -16,7 +16,7 @@
 ;=>(7 8 9)
 
 (yorick-eval "write, format=\"%s-%d\\x0A\", \"hello\", 1234; return nil;")
-; hello-1234
+;/hello-1234
 ;=>nil
 
 (yorick-eval "extern my_global_var; my_global_var = 8; return nil;")
