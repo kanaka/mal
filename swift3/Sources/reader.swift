@@ -113,7 +113,7 @@ func read_atom(_ rdr: Reader) throws -> MalVal {
         throw MalError.Reader(msg: "Empty string passed to read_atom")
     }
     switch rdr.str[rdr.pos] {
-    case "-" where !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
+    case "-" where rdr.str.characters.count == 1 || !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
         return try read_symbol(rdr)
     case let c where int_char.contains(c):
         return read_int(rdr)
