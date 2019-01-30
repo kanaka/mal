@@ -994,6 +994,14 @@ yorick -batch ./stepX_YYY.i
 
 ## Running tests
 
+The top level Makefile has a number of useful targets to assist with
+implementation development and testing. The `help` target provides
+a list of the targets and options:
+
+```
+make help
+```
+
 ### Functional tests
 
 The are over 600 generic functional tests (for all implementations)
@@ -1002,9 +1010,6 @@ containing tests specific to that step. The `runtest.py` test harness
 launches a Mal step implementation and then feeds the tests one at
 a time to the implementation and compares the output/return value to
 the expected output/return value.
-
-To simplify the process of running tests, a top level Makefile is
-provided with convenient test targets.
 
 * To run all the tests across all implementations (be prepared to wait):
 
