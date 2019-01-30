@@ -32,6 +32,7 @@ all help:
 	@echo 'make MAL_IMPL=IMPL "test^mal..."  # use IMPL for self-host tests'
 	@echo 'make REGRESS=1 "test..."          # test with previous step tests too'
 	@echo 'make DOCKERIZE=1 ...              # to dockerize above rules/targets'
+	@echo 'make TEST_OPTS="--opt ..."        # options to pass to runtest.py'
 	@echo
 	@echo 'Other:'
 	@echo
