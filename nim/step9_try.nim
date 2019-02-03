@@ -79,7 +79,7 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = env
+        var let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):

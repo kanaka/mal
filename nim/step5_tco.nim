@@ -2,7 +2,7 @@ import rdstdin, tables, sequtils, types, reader, printer, env, core
 
 proc read(str: string): MalType = str.read_str
 
-proc eval(ast: MalType, env: var Env): MalType
+proc eval(ast: MalType, env: Env): MalType
 
 proc eval_ast(ast: MalType, env: var Env): MalType =
   case ast.kind
@@ -19,8 +19,9 @@ proc eval_ast(ast: MalType, env: var Env): MalType =
   else:
     result = ast
 
-proc eval(ast: MalType, env: var Env): MalType =
+proc eval(ast: MalType, env: Env): MalType =
   var ast = ast
+  var env = env
 
   template defaultApply =
     let el = ast.eval_ast(env)
@@ -50,7 +51,7 @@ proc eval(ast: MalType, env: var Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = env
+        var let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):

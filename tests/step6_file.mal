@@ -125,3 +125,8 @@ mymap
 (g 3)
 ;=>81
 
+;; Checking that eval does not use local environments.
+(def! a 1)
+;=>1
+(let* (a 2) (eval (read-string "a")))
+;=>1
