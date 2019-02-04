@@ -17,7 +17,7 @@ proc quasiquote(ast: MalType): MalType =
     return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
 
 proc is_macro_call(ast: MalType, env: Env): bool =
-  ast.kind == List and ast.list[0].kind == Symbol and
+  ast.kind == List and ast.list.len > 0 and ast.list[0].kind == Symbol and
     env.find(ast.list[0].str) != nil and env.get(ast.list[0].str).fun_is_macro
 
 proc macroexpand(ast: MalType, env: Env): MalType =
@@ -78,7 +78,7 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = env
+        var let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
