@@ -332,7 +332,7 @@ expression support.
     ```[]{}()'`~^@``` (tokenized).
 
   * `"(?:\\.|[^\\"])*"?`: Starts capturing at a double-quote and stops at the
-    next double-quote unless it was proceeded by a backslash in which case it
+    next double-quote unless it was preceded by a backslash in which case it
     includes it until the next double-quote (tokenized). It will also
     match unbalanced strings (no ending double-quote) which should be
     reported as an error.
