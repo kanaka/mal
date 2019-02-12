@@ -106,7 +106,9 @@ The make-a-lisp steps are:
 * [step9_try](process/guide.md#step9)
 * [stepA_mal](process/guide.md#stepA)
 
-Each make-a-lisp step has an associated architectural diagram. That elements that new for that step are highlighted in red.  Here is the final diagram for [step A](process/guide.md#stepA):
+Each make-a-lisp step has an associated architectural diagram. That elements
+that are new for that step are highlighted in red.
+Here is the final diagram for [step A](process/guide.md#stepA):
 
 ![stepA_mal architecture](process/stepA_mal.png)
 
