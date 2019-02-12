@@ -4,9 +4,9 @@
 
 ## Description
 
-Mal is a Clojure inspired Lisp interpreter.
+**1. Mal is a Clojure inspired Lisp interpreter**
 
-Mal is implemented in 74 languages:
+**2. Mal is implemented in 74 languages**
 
 * **Ada** - *created by [Chris Moore](https://github.com/zmower)*
 * **GNU awk** - *created by [Miutsuru Kariya](https://github.com/kariya-mitsuru)*
@@ -84,13 +84,15 @@ Mal is implemented in 74 languages:
 * **Yorick** - *created by [Dov Murik](https://github.com/dubek)*
 
 
-Mal is a learning tool. See the [make-a-lisp process
-guide](process/guide.md). Each implementation of mal is separated into
+**3. Mal is a learning tool**
+
+Each implementation of mal is separated into
 11 incremental, self-contained (and testable) steps that demonstrate
 core concepts of Lisp. The last step is capable of self-hosting
-(running the mal implementation of mal).
+(running the mal implementation of mal). See the [make-a-lisp process
+guide](process/guide.md). 
 
-The mal (make a lisp) steps are:
+The make-a-lisp steps are:
 
 * [step0_repl](process/guide.md#step0)
 * [step1_read_print](process/guide.md#step1)
@@ -104,28 +106,36 @@ The mal (make a lisp) steps are:
 * [step9_try](process/guide.md#step9)
 * [stepA_mal](process/guide.md#stepA)
 
+Each make-a-lisp step has an associated architectural diagram. That elements that new for that step are highlighted in red.  Here is the final diagram for [step A](process/guide.md#stepA):
 
-Mal was presented publicly for the first time in a lightning talk at
-Clojure West 2014 (unfortunately there is no video). See
-examples/clojurewest2014.mal for the presentation that was given at the
-conference (yes, the presentation is a mal program). At Midwest.io
-2015, Joel Martin gave a presentation on Mal titled "Achievement
-Unlocked: A Better Path to Language Learning".
-[Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
-[Slides](http://kanaka.github.io/midwest.io.mal/). More recently
-Joel gave a presentation on "Make Your Own Lisp Interpreter in
-10 Incremental Steps" at LambdaConf 2016:
-[Part 1](https://www.youtube.com/watch?v=jVhupfthTEk),
-[Part 2](https://www.youtube.com/watch?v=X5OQBMGpaTU),
-[Part 3](https://www.youtube.com/watch?v=6mARZzGgX4U),
-[Part 4](https://www.youtube.com/watch?v=dCO1SYR5kDU),
-[Slides](http://kanaka.github.io/lambdaconf/).
+![stepA_mal architecture](process/stepA_mal.png)
 
 If you are interesting in creating a mal implementation (or just
 interested in using mal for something), please drop by the #mal
 channel on freenode. In addition to the [make-a-lisp process
 guide](process/guide.md) there is also a [mal/make-a-lisp
 FAQ](docs/FAQ.md) where I attempt to answer some common questions.
+
+
+## Presentations
+
+Mal was presented publicly for the first time in a lightning talk at
+Clojure West 2014 (unfortunately there is no video). See
+examples/clojurewest2014.mal for the presentation that was given at the
+conference (yes, the presentation is a mal program).
+
+At Midwest.io 2015, Joel Martin gave a presentation on Mal titled
+"Achievement Unlocked: A Better Path to Language Learning".
+[Video](https://www.youtube.com/watch?v=lgyOAiRtZGw),
+[Slides](http://kanaka.github.io/midwest.io.mal/).
+
+More recently Joel gave a presentation on "Make Your Own Lisp Interpreter
+in 10 Incremental Steps" at LambdaConf 2016:
+[Part 1](https://www.youtube.com/watch?v=jVhupfthTEk),
+[Part 2](https://www.youtube.com/watch?v=X5OQBMGpaTU),
+[Part 3](https://www.youtube.com/watch?v=6mARZzGgX4U),
+[Part 4](https://www.youtube.com/watch?v=dCO1SYR5kDU),
+[Slides](http://kanaka.github.io/lambdaconf/).
 
 ## Building/running implementations
 
