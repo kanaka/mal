@@ -37,9 +37,7 @@
 (mal-object vector)
 (mal-object map)
 
-(mal-object env)
 (mal-object atom)
-
 (mal-object fn)
 (mal-object func)
 
