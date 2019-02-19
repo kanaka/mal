@@ -1194,9 +1194,10 @@ The following implementations are maintained as separate projects:
 * [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
 
 
-## Projects using mal
+## Other mal Related Projects
 
  * [malc](https://github.com/dubek/malc) - Mal (Make A Lisp) compiler. Compiles a Mal program to LLVM assembly language, then binary.
+ * [malcc](https://git.sr.ht/~tim/malcc) - malcc is an incremental compiler implementation for the Mal language. It uses the Tiny C Compiler as the compiler backend and has full support for the Mal language, including macros, tail-call elimination, and even run-time eval.
  * [frock](https://github.com/chr15m/frock) - Clojure-flavoured PHP. Uses mal/php to run programs.
 
 ## License
