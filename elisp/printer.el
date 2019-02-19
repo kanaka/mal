@@ -12,8 +12,8 @@
       (number-to-string (mal-value form)))
      ((eq type 'string)
       (if print-readably
-          ;; HACK prin1-to-string does only quotes and backslashes
-          (replace-regexp-in-string "\n" "\\\\n" (prin1-to-string value))
+          (let ((print-escape-newlines t))
+            (prin1-to-string value))
         value))
      ((or (eq type 'symbol) (eq type 'keyword))
       (symbol-name value))
