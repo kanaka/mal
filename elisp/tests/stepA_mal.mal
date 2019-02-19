@@ -16,6 +16,6 @@
 ;/Hello World!
 ;=>nil
 
-(elisp-eval "(setq emacs-version-re (rx (+ digit) \".\" digit \".\" digit))")
+(elisp-eval "(setq emacs-version-re (rx (+ digit) \".\" digit))")
 (elisp-eval "(and (string-match-p emacs-version-re emacs-version) t)")
 ;=>true
