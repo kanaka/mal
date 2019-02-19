@@ -54,3 +54,5 @@
                   (lambda (item) (concat (car item) " " (cdr item)))
                   (nreverse pairs) " ")))
       (concat "{" items "}"))))
+
+(provide 'printer)

@@ -15,3 +15,5 @@
 
 (defun mal-func-macro-p (mal-func)
   (aref (aref mal-func 1) 4))
+
+(provide 'func)

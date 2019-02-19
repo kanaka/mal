@@ -1,15 +1,10 @@
 ;; -*- lexical-binding: t; -*-
 
-(defun load-relative (file)
-  (let* ((current-file (or load-file-name buffer-file-name))
-         (current-file-directory (file-name-directory current-file)))
-    (load (expand-file-name file current-file-directory) nil t)))
-
-(load-relative "types.el")
-(load-relative "env.el")
-(load-relative "reader.el")
-(load-relative "printer.el")
-(load-relative "core.el")
+(require 'types)
+(require 'mal-env)
+(require 'reader)
+(require 'printer)
+(require 'core)
 
 (defvar repl-env (mal-env))
 

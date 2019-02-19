@@ -153,3 +153,5 @@
           ;; assume anything else is a symbol
           (mal-symbol (intern token))))
       (signal 'end-of-token-stream nil))))
+
+(provide 'reader)

@@ -30,3 +30,5 @@
     (if (not value)
         (error "'%s' not found" key)
       value)))
+
+(provide 'mal-env)
