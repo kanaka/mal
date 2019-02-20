@@ -97,6 +97,8 @@ class Main
         case "macroexpand":
           return macroexpand(astList[1], env)
         case "try*":
+          if (astList.count < 3)
+            return EVAL(astList[1], env)
           MalVal exc := MalNil.INSTANCE
           try
             return EVAL(astList[1], env)
