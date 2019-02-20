@@ -322,7 +322,8 @@ architecture test of stepA_mal is
               new_env(catch_env, env, vars, call_args);
               EVAL(ast.seq_val(2).seq_val(2), catch_env, result, err);
             else
-              new_nil(result);
+              err := sub_err;
+              return;
             end if;
           end if;
           return;
