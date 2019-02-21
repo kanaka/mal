@@ -104,10 +104,14 @@ forever [
       output _macroexpand nth :ast 1 :env ]
 
     [[[symbol try*]]
+      localmake "a1 nth :ast 1
+      if (_count :ast) < 3 [
+        output _eval :a1 :env
+      ]
       localmake "result nil_new
-      catch "error [make "result _eval nth :ast 1 :env]
+      catch "error [make "result _eval :a1 :env]
       localmake "exception error
-      ifelse or emptyp :exception ((_count :ast) < 3) [
+      ifelse emptyp :exception [
         output :result
       ] [
         localmake "e first butfirst :exception
