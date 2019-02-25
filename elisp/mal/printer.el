@@ -55,4 +55,4 @@
                   (nreverse pairs) " ")))
       (concat "{" items "}"))))
 
-(provide 'printer)
+(provide 'mal/printer)

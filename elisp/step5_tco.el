@@ -1,12 +1,12 @@
 ;; -*- lexical-binding: t; -*-
 
 (setq debug-on-error t)
-(require 'types)
-(require 'func)
-(require 'mal-env)
-(require 'reader)
-(require 'printer)
-(require 'core)
+(require 'mal/types)
+(require 'mal/func)
+(require 'mal/env)
+(require 'mal/reader)
+(require 'mal/printer)
+(require 'mal/core)
 
 (defvar repl-env (mal-env))
 

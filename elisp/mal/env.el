@@ -31,4 +31,4 @@
         (error "'%s' not found" key)
       value)))
 
-(provide 'mal-env)
+(provide 'mal/env)

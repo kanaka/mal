@@ -1,5 +1,5 @@
-SOURCES_BASE = reader.el printer.el types.el
-SOURCES_LISP = env.el func.el core.el stepA_mal.el
+SOURCES_BASE = mal/reader.el mal/printer.el mal/types.el
+SOURCES_LISP = mal/env.el mal/func.el mal/core.el stepA_mal.el
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 all:

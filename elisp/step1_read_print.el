@@ -1,6 +1,6 @@
-(require 'types)
-(require 'reader)
-(require 'printer)
+(require 'mal/types)
+(require 'mal/reader)
+(require 'mal/printer)
 
 (defun READ (input)
   (read-str input))

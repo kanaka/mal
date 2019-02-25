@@ -101,4 +101,4 @@ Defaults to `error'."
 (define-error 'end-of-token-stream "End of token stream" 'mal)
 (define-error 'mal-custom "Custom error" 'mal)
 
-(provide 'types)
+(provide 'mal/types)

@@ -1,7 +1,7 @@
-(require 'types)
-(require 'mal-env)
-(require 'reader)
-(require 'printer)
+(require 'mal/types)
+(require 'mal/env)
+(require 'mal/reader)
+(require 'mal/printer)
 
 (defvar repl-env (mal-env))
 (mal-env-set repl-env '+ (lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))))

@@ -259,4 +259,4 @@
     (elisp-eval . ,(mal-fn (lambda (string) (elisp-to-mal (eval (read (mal-value string)))))))
     ))
 
-(provide 'core)
+(provide 'mal/core)

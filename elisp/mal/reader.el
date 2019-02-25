@@ -154,4 +154,4 @@
           (mal-symbol (intern token))))
       (signal 'end-of-token-stream nil))))
 
-(provide 'reader)
+(provide 'mal/reader)

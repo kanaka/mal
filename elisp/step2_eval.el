@@ -1,6 +1,6 @@
-(require 'types)
-(require 'reader)
-(require 'printer)
+(require 'mal/types)
+(require 'mal/reader)
+(require 'mal/printer)
 
 (defvar repl-env (make-hash-table :test 'eq))
 (puthash '+ (lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))) repl-env)

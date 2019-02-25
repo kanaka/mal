@@ -1,10 +1,10 @@
 ;; -*- lexical-binding: t; -*-
 
-(require 'types)
-(require 'mal-env)
-(require 'reader)
-(require 'printer)
-(require 'core)
+(require 'mal/types)
+(require 'mal/env)
+(require 'mal/reader)
+(require 'mal/printer)
+(require 'mal/core)
 
 (defvar repl-env (mal-env))
 
