@@ -123,7 +123,7 @@
                                 (mal-string (error-message-string err))))
                         (env* (mal-env env (list identifier) (list err*))))
                    (throw 'return (EVAL form env*)))
-               (signal (car err) (list (cadr err)))))))
+               (signal (car err) (cdr err))))))
          ((eq a0* 'do)
           (let* ((a0... (cdr a))
                  (butlast (butlast a0...))
