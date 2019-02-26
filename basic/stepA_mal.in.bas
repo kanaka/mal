@@ -367,19 +367,20 @@ SUB EVAL
 
     EVAL_TRY:
       REM PRINT "try*"
-      GOSUB EVAL_GET_A1: REM set A1, A2, and A3
+      GOSUB EVAL_GET_A1: REM set A1
 
       GOSUB PUSH_A: REM push/save A
       A=A1:CALL EVAL: REM eval A1
       GOSUB POP_A: REM pop/restore A
 
-      REM if there is not error or catch block then return
-      IF ER=-2 OR Z%(A+1)=0 THEN GOTO EVAL_RETURN
+      GOSUB EVAL_GET_A2: REM set A1 and A2
+
+      REM if there is no error or catch block then return
+      IF ER=-2 OR A2=0 THEN GOTO EVAL_RETURN
 
       REM create environment for the catch block eval
       C=E:GOSUB ENV_NEW:E=R
 
-      GOSUB EVAL_GET_A2: REM set A1 and A2
       A=A2:GOSUB EVAL_GET_A2: REM set A1 and A2 from catch block
 
       REM create object for ER=-1 type raw string errors
