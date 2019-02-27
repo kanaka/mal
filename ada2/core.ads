@@ -1,17 +1,19 @@
-with Environments;
-with Types; pragma Elaborate_All (Types);
+limited with Environments;
+with Types.Mal;
 
-package Core is
+package Core with Elaborate_Body is
 
-   type Eval_Callback_Type is access
-     function (Ast : in Types.Mal_Type;
-               Env : in Environments.Ptr) return Types.Mal_Type;
+   --  Initialization of this package fills Environments.Repl with
+   --  built-in functions.
 
-   procedure Add_Built_In_Functions
-     (Repl          : in Environments.Ptr;
-      Eval_Callback : in not null Eval_Callback_Type);
+   Eval_Ref : access function (Ast : in Types.Mal.T;
+                               Env : in Environments.Ptr)
+                              return Types.Mal.T;
+   --  Set by the main program at startup.
 
    Exception_Throwed : exception;
-   Last_Exception    : Types.Mal_Type;
+   Last_Exception    : Types.Mal.T;
+   --  When the exception is throwed, Last_Exception is set with the
+   --  related Data.
 
 end Core;

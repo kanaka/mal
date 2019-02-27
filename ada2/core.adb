@@ -2,580 +2,477 @@ with Ada.Calendar; use type Ada.Calendar.Time;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
-with Atoms; use type Atoms.Ptr;
-with Lists;
-with Maps;
-with Names;
+
+with Environments;
+with Types.Atoms;
+with Types.Builtins;
+with Types.Functions;
+with Types.Lists;
+with Types.Maps;
+with Types.Symbols.Names;
 with Printer;
 with Reader;
-with Strings; use type Strings.Ptr;
 
 package body Core is
 
+   package ASU renames Ada.Strings.Unbounded;
    use Types;
+   use Types.Lists;
+   use type Mal.T;
+   use type Mal.T_Array;
 
    Start_Time : constant Ada.Calendar.Time := Ada.Calendar.Clock;
 
-   Eval : Eval_Callback_Type;
+   function Apply (Func : in Mal.T;
+                   Args : in Mal.T_Array;
+                   Name : in String) return Mal.T with Inline;
+   --  If Func is not executable, report an exception using "name" as
+   --  the built-in function name.
 
-   function Concatenation_Of_Pr_Str
-     (Args           : in Mal_Type_Array;
-      Print_Readably : in Boolean := True;
-      Separator      : in String  := " ")
-     return Ada.Strings.Unbounded.Unbounded_String;
-
-   function Apply         (Args : in Mal_Type_Array) return Mal_Type;
-   function Assoc         (Args : in Mal_Type_Array) return Mal_Type;
-   function Atom          (Args : in Mal_Type_Array) return Mal_Type;
-   function Concat        (Args : in Mal_Type_Array) return Mal_Type;
-   function Conj          (Args : in Mal_Type_Array) return Mal_Type;
-   function Cons          (Args : in Mal_Type_Array) return Mal_Type;
-   function Contains      (Args : in Mal_Type_Array) return Mal_Type;
-   function Count         (Args : in Mal_Type_Array) return Mal_Type;
-   function Deref         (Args : in Mal_Type_Array) return Mal_Type;
-   function Dissoc        (Args : in Mal_Type_Array) return Mal_Type;
-   function Equals        (Args : in Mal_Type_Array) return Mal_Type;
-   function First         (Args : in Mal_Type_Array) return Mal_Type;
-   function Get           (Args : in Mal_Type_Array) return Mal_Type;
-   function Hash_Map      (Args : in Mal_Type_Array) return Mal_Type;
-   function Is_Empty      (Args : in Mal_Type_Array) return Mal_Type;
-   function Is_False      (Args : in Mal_Type_Array) return Mal_Type;
-   function Is_Sequential (Args : in Mal_Type_Array) return Mal_Type;
-   function Is_True       (Args : in Mal_Type_Array) return Mal_Type;
-   function Keys          (Args : in Mal_Type_Array) return Mal_Type;
-   function Keyword       (Args : in Mal_Type_Array) return Mal_Type;
-   function List          (Args : in Mal_Type_Array) return Mal_Type;
-   function Map           (Args : in Mal_Type_Array) return Mal_Type;
-   function Meta          (Args : in Mal_Type_Array) return Mal_Type;
-   function Nth           (Args : in Mal_Type_Array) return Mal_Type;
-   function Pr_Str        (Args : in Mal_Type_Array) return Mal_Type;
-   function Println       (Args : in Mal_Type_Array) return Mal_Type;
-   function Prn           (Args : in Mal_Type_Array) return Mal_Type;
-   function Read_String   (Args : in Mal_Type_Array) return Mal_Type;
-   function Readline      (Args : in Mal_Type_Array) return Mal_Type;
-   function Reset         (Args : in Mal_Type_Array) return Mal_Type;
-   function Rest          (Args : in Mal_Type_Array) return Mal_Type;
-   function Seq           (Args : in Mal_Type_Array) return Mal_Type;
-   function Slurp         (Args : in Mal_Type_Array) return Mal_Type;
-   function Str           (Args : in Mal_Type_Array) return Mal_Type;
-   function Swap          (Args : in Mal_Type_Array) return Mal_Type;
-   function Symbol        (Args : in Mal_Type_Array) return Mal_Type;
-   function Throw         (Args : in Mal_Type_Array) return Mal_Type;
-   function Time_Ms       (Args : in Mal_Type_Array) return Mal_Type;
-   function Vals          (Args : in Mal_Type_Array) return Mal_Type;
-   function Vector        (Args : in Mal_Type_Array) return Mal_Type;
-   function With_Meta     (Args : in Mal_Type_Array) return Mal_Type;
+   generic
+      Kind : in Kind_Type;
+      Name : in String;
+   function Generic_Kind_Test (Args : in Mal.T_Array) return Mal.T;
+   function Generic_Kind_Test (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1
+       then raise Argument_Error with Name & ": expects 1 argument"
+       else (Kind_Boolean, Args (Args'First).Kind = Kind));
 
    generic
       with function Ada_Operator (Left, Right : in Integer) return Integer;
-   function Generic_Mal_Operator (Args : in Mal_Type_Array) return Mal_Type;
-   function Generic_Mal_Operator (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Number, Atoms.No_Element,
-       Ada_Operator (Args (Args'First).Integer_Value,
-                     Args (Args'First + 1).Integer_Value));
-   function Addition    is new Generic_Mal_Operator ("+");
-   function Subtraction is new Generic_Mal_Operator ("-");
-   function Product     is new Generic_Mal_Operator ("*");
-   function Division    is new Generic_Mal_Operator ("/");
+      Name : in String;
+   function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T;
+   function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 2
+       then raise Argument_Error with Name & ": expects 2 arguments"
+       elsif (for some A of Args => A.Kind /= Kind_Number)
+       then raise Argument_Error with Name & ": expects numbers"
+       else (Kind_Number, Ada_Operator (Args (Args'First).Ada_Number,
+                                        Args (Args'Last).Ada_Number)));
 
    generic
       with function Ada_Operator (Left, Right : in Integer) return Boolean;
-   function Generic_Comparison (Args : in Mal_Type_Array) return Mal_Type;
-   function Generic_Comparison (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element,
-       Ada_Operator (Args (Args'First).Integer_Value,
-                     Args (Args'First + 1).Integer_Value));
-   function Greater_Than  is new Generic_Comparison (">");
-   function Greater_Equal is new Generic_Comparison (">=");
-   function Less_Than     is new Generic_Comparison ("<");
-   function Less_Equal    is new Generic_Comparison ("<=");
+      Name : in String;
+   function Generic_Comparison (Args : in Mal.T_Array) return Mal.T;
+   function Generic_Comparison (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 2
+       then raise Argument_Error with Name & ": expects 2 arguments"
+       elsif (for some A of Args => A.Kind /= Kind_Number)
+       then raise Argument_Error with Name & ": expects numbers"
+       else (Kind_Boolean, Ada_Operator (Args (Args'First).Ada_Number,
+                                         Args (Args'Last).Ada_Number)));
 
-   generic
-      Kind : Kind_Type;
-   function Generic_Kind_Test (Args : in Mal_Type_Array) return Mal_Type;
-   function Generic_Kind_Test (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element, Args (Args'First).Kind = Kind);
-   function Is_Atom    is new Generic_Kind_Test (Kind_Atom);
-   function Is_Keyword is new Generic_Kind_Test (Kind_Keyword);
-   function Is_List    is new Generic_Kind_Test (Kind_List);
-   function Is_Map     is new Generic_Kind_Test (Kind_Map);
-   function Is_Nil     is new Generic_Kind_Test (Kind_Nil);
-   function Is_String  is new Generic_Kind_Test (Kind_String);
-   function Is_Symbol  is new Generic_Kind_Test (Kind_Symbol);
-   function Is_Vector  is new Generic_Kind_Test (Kind_Vector);
+   --  Built-in functions from this package.
+   function Addition      is new Generic_Mal_Operator ("+", "+");
+   function Apply         (Args : in Mal.T_Array) return Mal.T;
+   function Division      is new Generic_Mal_Operator ("/", "/");
+   function Equals        (Args : in Mal.T_Array) return Mal.T;
+   function Eval          (Args : in Mal.T_Array) return Mal.T;
+   function Greater_Equal is new Generic_Comparison (">=", ">=");
+   function Greater_Than  is new Generic_Comparison (">", ">");
+   function Is_Atom       is new Generic_Kind_Test (Kind_Atom, "atom?");
+   function Is_False      (Args : in Mal.T_Array) return Mal.T;
+   function Is_Function   (Args : in Mal.T_Array) return Mal.T;
+   function Is_Keyword    is new Generic_Kind_Test (Kind_Keyword, "keyword?");
+   function Is_List       is new Generic_Kind_Test (Kind_List, "list?");
+   function Is_Macro      is new Generic_Kind_Test (Kind_Macro, "macro?");
+   function Is_Map        is new Generic_Kind_Test (Kind_Map, "map?");
+   function Is_Nil        is new Generic_Kind_Test (Kind_Nil, "nil?");
+   function Is_Number     is new Generic_Kind_Test (Kind_Number, "number?");
+   function Is_Sequential (Args : in Mal.T_Array) return Mal.T;
+   function Is_String     is new Generic_Kind_Test (Kind_String, "string?");
+   function Is_Symbol     is new Generic_Kind_Test (Kind_Symbol, "symbol?");
+   function Is_True       (Args : in Mal.T_Array) return Mal.T;
+   function Is_Vector     is new Generic_Kind_Test (Kind_Vector, "vector?");
+   function Keyword       (Args : in Mal.T_Array) return Mal.T;
+   function Less_Equal    is new Generic_Comparison ("<=", "<=");
+   function Less_Than     is new Generic_Comparison ("<", "<");
+   function Map           (Args : in Mal.T_Array) return Mal.T;
+   function Meta          (Args : in Mal.T_Array) return Mal.T;
+   function Pr_Str        (Args : in Mal.T_Array) return Mal.T;
+   function Println       (Args : in Mal.T_Array) return Mal.T;
+   function Prn           (Args : in Mal.T_Array) return Mal.T;
+   function Product       is new Generic_Mal_Operator ("*", "*");
+   function Read_String   (Args : in Mal.T_Array) return Mal.T;
+   function Readline      (Args : in Mal.T_Array) return Mal.T;
+   function Seq           (Args : in Mal.T_Array) return Mal.T;
+   function Slurp         (Args : in Mal.T_Array) return Mal.T;
+   function Str           (Args : in Mal.T_Array) return Mal.T;
+   function Subtraction   is new Generic_Mal_Operator ("-", "-");
+   function Swap          (Args : in Mal.T_Array) return Mal.T;
+   function Symbol        (Args : in Mal.T_Array) return Mal.T;
+   function Throw         (Args : in Mal.T_Array) return Mal.T;
+   function Time_Ms       (Args : in Mal.T_Array) return Mal.T;
+   function With_Meta     (Args : in Mal.T_Array) return Mal.T;
 
    ----------------------------------------------------------------------
 
-   procedure Add_Built_In_Functions
-     (Repl          : in Environments.Ptr;
-      Eval_Callback : in not null Eval_Callback_Type)
-   is
-      function N (N : in Native_Function_Access) return Mal_Type
-        is (Kind_Native, Atoms.No_Element, N) with Inline;
+   function Apply (Func : in Mal.T;
+                   Args : in Mal.T_Array;
+                   Name : in String)
+                  return Mal.T is
    begin
-      Eval := Eval_Callback;
-
-      Repl.Increase_Capacity (57);
-
-      Repl.Set (Names.Apply,         N (Apply'Access));
-      Repl.Set (Names.Assoc,         N (Assoc'Access));
-      Repl.Set (Names.Asterisk,      N (Product'Access));
-      Repl.Set (Names.Atom,          N (Atom'Access));
-      Repl.Set (Names.Concat,        N (Concat'Access));
-      Repl.Set (Names.Conj,          N (Conj'Access));
-      Repl.Set (Names.Cons,          N (Cons'Access));
-      Repl.Set (Names.Contains,      N (Contains'Access));
-      Repl.Set (Names.Count,         N (Count'Access));
-      Repl.Set (Names.Deref,         N (Deref'Access));
-      Repl.Set (Names.Dissoc,        N (Dissoc'Access));
-      Repl.Set (Names.Equals,        N (Equals'Access));
-      Repl.Set (Names.First,         N (First'Access));
-      Repl.Set (Names.Get,           N (Get'Access));
-      Repl.Set (Names.Greater_Equal, N (Greater_Equal'Access));
-      Repl.Set (Names.Greater_Than,  N (Greater_Than'Access));
-      Repl.Set (Names.Hash_Map,      N (Hash_Map'Access));
-      Repl.Set (Names.Is_Atom,       N (Is_Atom'Access));
-      Repl.Set (Names.Is_Empty,      N (Is_Empty'Access));
-      Repl.Set (Names.Is_False,      N (Is_False'Access));
-      Repl.Set (Names.Is_Keyword,    N (Is_Keyword'Access));
-      Repl.Set (Names.Is_List,       N (Is_List'Access));
-      Repl.Set (Names.Is_Map,        N (Is_Map'Access));
-      Repl.Set (Names.Is_Nil,        N (Is_Nil'Access));
-      Repl.Set (Names.Is_Sequential, N (Is_Sequential'Access));
-      Repl.Set (Names.Is_String,     N (Is_String'Access));
-      Repl.Set (Names.Is_Symbol,     N (Is_Symbol'Access));
-      Repl.Set (Names.Is_True,       N (Is_True'Access));
-      Repl.Set (Names.Is_Vector,     N (Is_Vector'Access));
-      Repl.Set (Names.Keys,          N (Keys'Access));
-      Repl.Set (Names.Keyword,       N (Keyword'Access));
-      Repl.Set (Names.Less_Equal,    N (Less_Equal'Access));
-      Repl.Set (Names.Less_Than,     N (Less_Than'Access));
-      Repl.Set (Names.List,          N (List'Access));
-      Repl.Set (Names.Map,           N (Map'Access));
-      Repl.Set (Names.Meta,          N (Meta'Access));
-      Repl.Set (Names.Minus,         N (Subtraction'Access));
-      Repl.Set (Names.Nth,           N (Nth'Access));
-      Repl.Set (Names.Plus,          N (Addition'Access));
-      Repl.Set (Names.Pr_Str,        N (Pr_Str'Access));
-      Repl.Set (Names.Println,       N (Println'Access));
-      Repl.Set (Names.Prn,           N (Prn'Access));
-      Repl.Set (Names.Read_String,   N (Read_String'Access));
-      Repl.Set (Names.Readline,      N (Readline'Access));
-      Repl.Set (Names.Reset,         N (Reset'Access));
-      Repl.Set (Names.Rest,          N (Rest'Access));
-      Repl.Set (Names.Seq,           N (Seq'Access));
-      Repl.Set (Names.Slash,         N (Division'Access));
-      Repl.Set (Names.Slurp,         N (Slurp'Access));
-      Repl.Set (Names.Str,           N (Str'Access));
-      Repl.Set (Names.Swap,          N (Swap'Access));
-      Repl.Set (Names.Symbol,        N (Symbol'Access));
-      Repl.Set (Names.Throw,         N (Throw'Access));
-      Repl.Set (Names.Time_Ms,       N (Time_Ms'Access));
-      Repl.Set (Names.Vals,          N (Vals'Access));
-      Repl.Set (Names.Vector,        N (Vector'Access));
-      Repl.Set (Names.With_Meta,     N (With_Meta'Access));
-   end Add_Built_In_Functions;
-
-   function Apply (Args : in Mal_Type_Array) return Mal_Type
-   is
-      Func    : Mal_Type  renames Args (Args'First);
-      List    : Lists.Ptr renames Args (Args'Last).L;
-      Actuals : Mal_Type_Array (1 .. Args'Length - 2 + List.Length);
-   begin
-      Actuals (1 .. Args'Length - 2) := Args (Args'First + 1 .. Args'Last - 1);
-      for I in 1 .. List.Length loop
-         Actuals (Args'Length - 2 + I) := List.Element (I);
-      end loop;
-      if Func.Kind = Kind_Native then
-         return Func.Native.all (Actuals);
-      else
+      case Func.Kind is
+      when Kind_Builtin =>
+         return Func.Builtin.all (Args);
+      when Kind_Builtin_With_Meta =>
+         return Func.Builtin_With_Meta.Data.all (Args);
+      when Kind_Function =>
          declare
-            Env : constant Environments.Ptr
-              := Environments.Alloc (Outer => Func.Environment);
+            Env : constant Environments.Ptr := Func.Function_Value.Closure.Sub;
          begin
-            Env.Set_Binds (Func.Formals, Actuals);
-            return Eval.all (Func.Expression.Deref, Env);
+            Func.Function_Value.Set_Binds (Env, Args);
+            return Eval_Ref.all (Func.Function_Value.Expression, Env);
          end;
-      end if;
+      when others =>
+         raise Argument_Error with Name & ": cannot execute "
+           & ASU.To_String (Printer.Pr_Str (Func));
+      end case;
    end Apply;
 
-   function Assoc (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Map, Atoms.No_Element,
-       Args (Args'First).Map.Assoc (Args (Args'First + 1 .. Args'Last)));
+   function Apply (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length < 2 then
+          raise Argument_Error with "apply: expects at least 2 arguments"
+       elsif Args (Args'Last).Kind not in Kind_List | Kind_Vector then
+          raise Argument_Error with "apply: last arg must a be list or vector"
+       else
+          Apply (Args (Args'First),
+                 Args (Args'First + 1 .. Args'Last - 1) & Args (Args'Last).L,
+                 "apply"));
 
-   function Atom (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Atom, Atoms.No_Element, Atoms.Alloc (Args (Args'First)));
+   function Equals (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 2 then
+          raise Argument_Error with "=: expects 2 arguments"
+       else
+          (Kind_Boolean, Args (Args'First) = Args (Args'Last)));
 
-   function Concat (Args : in Mal_Type_Array) return Mal_Type
-   is
-      L      : array (Args'Range) of Lists.Ptr;
-      Sum    : Natural := 0;
-      Result : Lists.Ptr;
+   function Eval (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "eval: expects 1 argument"
+       else
+          (Eval_Ref.all (Args (Args'First), Environments.Repl)));
+
+   function Is_False (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "false?: expects 1 argument"
+       else (Kind_Boolean, Args (Args'First).Kind = Kind_Boolean
+                           and then not Args (Args'First).Ada_Boolean));
+
+   function Is_Function (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "count: expects 1 argument"
+       else
+          (Kind_Boolean, Args (Args'First).Kind in
+             Kind_Function | Kind_Builtin | Kind_Builtin_With_Meta));
+
+   function Is_Sequential (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "sequential?: expects 1 argument"
+       else
+          (Kind_Boolean, Args (Args'First).Kind in Kind_List | Kind_Vector));
+
+   function Is_True (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "true?: expects 1 argument"
+       else
+          (Kind_Boolean, Args (Args'First).Kind = Kind_Boolean
+                         and then Args (Args'First).Ada_Boolean));
+
+   function Keyword (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "keyword: expects 1 argument"
+       elsif Args (Args'First).Kind not in Kind_Keyword | Kind_String then
+          raise Argument_Error with "keyword: expects a keyword or a string"
+       else
+          (Kind_Keyword, Args (Args'First).S));
+
+   function Map (Args : in Mal.T_Array) return Mal.T is
    begin
-      for I in Args'Range loop
-         L (I) := Args (I).L;
-         Sum := Sum + L (I).Length;
-      end loop;
-      Result := Lists.Alloc (Sum);
-      Sum := 0;
-      for LI of L loop
-         for J in 1 .. LI.Length loop
-            Sum := Sum + 1;
-            Result.Replace_Element (Sum, LI.Element (J));
-         end loop;
-      end loop;
-      return (Kind_List, Atoms.No_Element, Result);
-   end Concat;
-
-   function Concatenation_Of_Pr_Str
-     (Args           : in Mal_Type_Array;
-      Print_Readably : in Boolean := True;
-      Separator      : in String  := " ")
-     return Ada.Strings.Unbounded.Unbounded_String
-   is
-      use Ada.Strings.Unbounded;
-      Result : Unbounded_String;
-   begin
-      if 1 <= Args'Length then
-         Append (Result, Printer.Pr_Str (Args (Args'First), Print_Readably));
-         for I in Args'First + 1 .. Args'Last loop
-            Append (Result, Separator);
-            Append (Result, Printer.Pr_Str (Args (I), Print_Readably));
-         end loop;
+      if Args'Length /= 2 then
+         raise Argument_Error with "map: expects 2 arguments";
+      elsif Args (Args'Last).Kind not in Kind_List | Kind_Vector then
+         raise Argument_Error with "map: arg  2 must be a list or vector";
       end if;
-      return Result;
-   end Concatenation_Of_Pr_Str;
-
-   function Conj (Args : in Mal_Type_Array) return Mal_Type
-   is
-      List   : Lists.Ptr renames Args (Args'First).L;
-      Result : constant Lists.Ptr
-        := Lists.Alloc (List.Length + Args'Length - 1);
-   begin
-      if Args (Args'First).Kind = Kind_List then
-         for I in Args'First + 1 .. Args'Last loop
-            Result.Replace_Element (Args'Last + 1 - I, Args (I));
-         end loop;
-         for I in 1 .. List.Length loop
-            Result.Replace_Element (Args'Length + I - 1, List.Element (I));
-         end loop;
-         return (Kind_List, Atoms.No_Element, Result);
-      else
-         for I in 1 .. Args'Length - 1 loop
-            Result.Replace_Element (List.Length + I, Args (Args'First + I));
-         end loop;
-         for I in 1 .. List.Length loop
-            Result.Replace_Element (I, List.Element (I));
-         end loop;
-         return (Kind_Vector, Atoms.No_Element, Result);
-      end if;
-   end Conj;
-
-   function Cons (Args : in Mal_Type_Array) return Mal_Type
-   is
-      List   : Lists.Ptr renames Args (Args'First + 1).L;
-      Result : constant Lists.Ptr := Lists.Alloc (1 + List.Length);
-   begin
-      Result.Replace_Element (1, Args (Args'First));
-      for I in 1 .. List.Length loop
-         Result.Replace_Element (I + 1, List.Element (I));
-      end loop;
-      return (Kind_List, Atoms.No_Element, Result);
-   end Cons;
-
-   function Contains (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element,
-       Args (Args'First).Map.Contains (Args (Args'First + 1)));
-
-   function Count (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Number, Atoms.No_Element,
-       (if Args (Args'First).Kind = Kind_Nil
-          then 0
-          else Args (Args'First).L.Length));
-
-   function Deref (Args : in Mal_Type_Array) return Mal_Type
-   is (Args (Args'First).Reference.Deref);
-
-   function Dissoc (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Map, Atoms.No_Element,
-       Args (Args'First).Map.Dissoc (Args (Args'First + 1 .. Args'Last)));
-
-   function Equals (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element,
-       Args (Args'First) = Args (Args'First + 1));
-
-   function First (Args : in Mal_Type_Array) return Mal_Type
-   is (if Args (Args'First).Kind = Kind_Nil
-         or else Args (Args'First).L.Length = 0
-         then (Kind_Nil, Atoms.No_Element)
-         else Args (Args'First).L.Element (1));
-
-   function Get (Args : in Mal_Type_Array) return Mal_Type is
-   begin
-      if Args (Args'First).Kind = Kind_Nil then
-         return (Kind_Nil, Atoms.No_Element);
-      else
-         return Args (Args'First).Map.Get (Args (Args'First + 1));
-      end if;
-   exception
-      when Maps.Unknown_Key =>
-         return (Kind_Nil, Atoms.No_Element);
-   end Get;
-
-   function Hash_Map (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Map, Atoms.No_Element, Maps.Hash_Map (Args));
-
-   function Is_Empty (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element, Args (Args'First).L.Length = 0);
-
-   function Is_False (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element,
-       Args (Args'First).Kind = Kind_Boolean
-         and then not Args (Args'First).Boolean_Value);
-
-   function Is_True (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element,
-       Args (Args'First).Kind = Kind_Boolean
-         and then Args (Args'First).Boolean_Value);
-
-   function Is_Sequential (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Boolean, Atoms.No_Element,
-       Args (Args'First).Kind in Kind_List | Kind_Vector);
-
-   function Keyword (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Keyword, Atoms.No_Element, Args (Args'First).S);
-
-   function Keys (Args : in Mal_Type_Array) return Mal_Type
-   is
-      M      : Maps.Ptr renames Args (Args'First).Map;
-      Result : constant Mal_Type := (Kind_List, Atoms.No_Element,
-                                     Lists.Alloc (M.Length));
-      I      : Natural := 0;
-      procedure Process (Key, Element : in Mal_Type);
-      procedure Process (Key, Element : in Mal_Type) is
+      declare
+         R  : Mal.T_Array (1 .. Args (Args'Last).L.Length);
       begin
-         I := I + 1;
-         Result.L.Replace_Element (I, Key);
-         pragma Unreferenced (Element);
-      end Process;
-   begin
-      M.Iterate (Process'Access);
-      return Result;
-   end Keys;
-
-   function List (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_List, Atoms.No_Element, Lists.Alloc (Args));
-
-   function Map (Args : in Mal_Type_Array) return Mal_Type
-   is
-      Func    : Mal_Type  renames Args (Args'First);
-      List    : Lists.Ptr renames Args (Args'First + 1).L;
-      Actuals : Mal_Type_Array (1 .. 1);
-      Result  : constant Lists.Ptr := Lists.Alloc (List.Length);
-   begin
-      for I in 1 .. List.Length loop
-         Actuals (1) := List.Element (I);
-         if Func.Kind = Kind_Native then
-            Result.Replace_Element (I, Func.Native.all (Actuals));
-         else
-            declare
-               Env : constant Environments.Ptr
-                 := Environments.Alloc (Func.Environment);
-            begin
-               Env.Set_Binds (Func.Formals, Actuals);
-               Result.Replace_Element (I, Eval.all (Func.Expression.Deref,
-                                                    Env));
-            end;
-         end if;
-      end loop;
-      return (Kind_List, Atoms.No_Element, Result);
+         for I in R'Range loop
+            R (I) := Apply (Args (Args'First),
+                            Mal.T_Array'(1 => Args (Args'Last).L.Element (I)),
+                            "map");
+         end loop;
+         return Lists.List (R);
+      end;
    end Map;
 
-   function Meta (Args : in Mal_Type_Array) return Mal_Type
-   is (if Args (Args'First).Meta = Atoms.No_Element
-         then (Kind_Nil, Atoms.No_Element)
-         else Args (Args'First).Meta.Deref);
+   function Meta (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "meta: expects 1 argument"
+       else
+         (case Args (Args'First).Kind is
+            when Kind_List | Kind_Vector =>
+               Args (Args'First).L.Meta,
+            when Kind_Map =>
+               Args (Args'First).Map.Meta,
+            when Kind_Function =>
+               Args (Args'First).Function_Value.Meta,
+            when Kind_Builtin_With_Meta =>
+               Args (Args'First).Builtin_With_Meta.Meta,
+            when others =>
+               Mal.Nil));
 
-   function Nth (Args : in Mal_Type_Array) return Mal_Type
-   is (Args (Args'First).L.Element (1 + Args (Args'First + 1).Integer_Value));
-
-   function Pr_Str (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_String, Atoms.No_Element, Strings.Alloc
-         (Ada.Strings.Unbounded.To_String (Concatenation_Of_Pr_Str (Args))));
-
-   function Println (Args : in Mal_Type_Array) return Mal_Type is
+   function Pr_Str (Args : in Mal.T_Array) return Mal.T is
    begin
-      Ada.Text_IO.Unbounded_IO.Put_Line (Concatenation_Of_Pr_Str
-                                           (Args, Print_Readably => False));
-      return (Kind_Nil, Atoms.No_Element);
-   end Println;
-
-   function Prn (Args : in Mal_Type_Array) return Mal_Type is
-   begin
-      Ada.Text_IO.Unbounded_IO.Put_Line (Concatenation_Of_Pr_Str (Args));
-      return (Kind_Nil, Atoms.No_Element);
-   end Prn;
-
-   function Readline (Args : in Mal_Type_Array) return Mal_Type is
-   begin
-      Ada.Text_IO.Put (Args (Args'First).S.Deref);
-      return (Kind_String, Atoms.No_Element,
-              Strings.Alloc (Ada.Text_IO.Get_Line));
-   exception
-      when Ada.Text_IO.End_Error =>
-         return (Kind_Nil, Atoms.No_Element);
-   end Readline;
-
-   function Read_String (Args : in Mal_Type_Array) return Mal_Type
-   is (Reader.Read_Str (Args (Args'First).S.Deref));
-
-   function Reset (Args : in Mal_Type_Array) return Mal_Type is
-   begin
-      Args (Args'First).Reference.Set (Args (Args'Last));
-      return Args (Args'Last);
-   end Reset;
-
-   function Rest (Args : in Mal_Type_Array) return Mal_Type
-   is
-      List : Mal_Type renames Args (Args'First);
-      Len  : Natural;
-   begin
-      return Result : Mal_Type (Kind_List) do
-         if List.Kind /= Kind_Nil then
-            Len := List.L.Length;
-            if 0 < Len then
-               Len := Len - 1;
-               Result.L := Lists.Alloc (Len);
-               for I in 1 .. Len loop
-                  Result.L.Replace_Element (I, List.L.Element (I + 1));
-               end loop;
-            end if;
+      return R : Mal.T := (Kind_String, ASU.Null_Unbounded_String) do
+         if 0 < Args'Length then
+            ASU.Append (R.S, Printer.Pr_Str (Args (Args'First)));
+            for I in Args'First + 1 .. Args'Last loop
+               ASU.Append (R.S, ' ');
+               ASU.Append (R.S, Printer.Pr_Str (Args (I)));
+            end loop;
          end if;
       end return;
-   end Rest;
+   end Pr_Str;
 
-   function Seq (Args : in Mal_Type_Array) return Mal_Type is
+   function Println (Args : in Mal.T_Array) return Mal.T is
+      use Ada.Text_IO.Unbounded_IO;
    begin
-      if Args (Args'First).Kind = Kind_String then
-         declare
-            S      : constant String := Args (Args'First).S.Deref;
-            Result : Lists.Ptr;
-         begin
-            if S'Length = 0 then
-               return (Kind_Nil, Atoms.No_Element);
-            else
-               Result := Lists.Alloc (S'Length);
-               for I in S'Range loop
-                  Result.Replace_Element (I - S'First + 1, Mal_Type'
-                                            (Kind_String, Atoms.No_Element,
-                                             Strings.Alloc (S (I .. I))));
-               end loop;
-               return (Kind_List, Atoms.No_Element, Result);
-            end if;
-         end;
-      elsif Args (Args'First).Kind = Kind_Nil
-        or else Args (Args'First).L.Length = 0
-      then
-         return (Kind_Nil, Atoms.No_Element);
-      else
-         return (Kind_List, Atoms.No_Element, Args (Args'First).L);
+      if 0 < Args'Length then
+         Put (Printer.Pr_Str (Args (Args'First), Readably => False));
+         for I in Args'First + 1 .. Args'Last loop
+            Ada.Text_IO.Put (' ');
+            Put (Printer.Pr_Str (Args (I), Readably => False));
+         end loop;
       end if;
+      Ada.Text_IO.New_Line;
+      return Mal.Nil;
+   end Println;
+
+   function Prn (Args : in Mal.T_Array) return Mal.T is
+   begin
+      if 0 < Args'Length then
+         Ada.Text_IO.Unbounded_IO.Put (Printer.Pr_Str (Args (Args'First)));
+         for I in Args'First + 1 .. Args'Last loop
+            Ada.Text_IO.Put (' ');
+            Ada.Text_IO.Unbounded_IO.Put (Printer.Pr_Str (Args (I)));
+         end loop;
+      end if;
+      Ada.Text_IO.New_Line;
+      return Mal.Nil;
+   end Prn;
+
+   function Readline (Args : in Mal.T_Array) return Mal.T is
+   begin
+      if Args'Length /= 1 then
+         raise Argument_Error with "readline: expects 1 argument";
+      elsif Args (Args'First).Kind not in Kind_Keyword | Kind_String then
+         raise Argument_Error with "readline: expects a keyword or string";
+      else
+         Ada.Text_IO.Unbounded_IO.Put (Args (Args'First).S);
+         return (Kind_String, Ada.Text_IO.Unbounded_IO.Get_Line);
+      end if;
+   exception
+      when Ada.Text_IO.End_Error =>
+         return Mal.Nil;
+   end Readline;
+
+   function Read_String (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "read-string: expects 1 argument"
+       elsif Args (Args'First).Kind /= Kind_String then
+          raise Argument_Error with "read-string: expects a string"
+       else
+          Reader.Read_Str (ASU.To_String (Args (Args'First).S)));
+
+   function Seq (Args : in Mal.T_Array) return Mal.T is
+   begin
+      if Args'Length /= 1 then
+         raise Argument_Error with "seq: expects 1 argument";
+      end if;
+      case Args (Args'First).Kind is
+         when Kind_Nil =>
+            return Mal.Nil;
+         when Kind_String =>
+            if ASU.Length (Args (Args'First).S) = 0 then
+               return Mal.Nil;
+            else
+               declare
+                  A1 : constant ASU.Unbounded_String := Args (Args'First).S;
+                  R  : Mal.T_Array (1 .. ASU.Length (A1));
+               begin
+                  for I in R'Range loop
+                     R (I) := (Kind_String, ASU.Unbounded_Slice (A1, I, I));
+                  end loop;
+                  return Lists.List (R);
+               end;
+            end if;
+         when Kind_List | Kind_Vector =>
+            if Args (Args'First).L.Length = 0 then
+               return Mal.Nil;
+            else
+               return (Kind_List, Args (Args'First).L);
+            end if;
+         when others =>
+            raise Argument_Error with "seq: expects a string, list or vector";
+      end case;
    end Seq;
 
-   function Slurp (Args : in Mal_Type_Array) return Mal_Type
-   is
-      use Ada.Strings.Unbounded;
+   function Slurp (Args : in Mal.T_Array) return Mal.T is
       use Ada.Text_IO;
       File   : File_Type;
-      Buffer : Unbounded_String;
+      Buffer : ASU.Unbounded_String;
    begin
-      Open (File, In_File, Args (Args'First).S.Deref);
-      while not End_Of_File (File) loop
-         Append (Buffer, Get_Line (File));
-         Append (Buffer, Ada.Characters.Latin_1.LF);
-      end loop;
-      Close (File);
-      return (Kind_String, Atoms.No_Element,
-              Strings.Alloc (To_String (Buffer)));
+      if Args'Length /= 1 then
+         raise Argument_Error with "slurp: expects 1 argument";
+      elsif Args (Args'First).Kind /= Kind_String then
+         raise Argument_Error with "slurp: expects a string";
+      else
+         Open (File, In_File, ASU.To_String (Args (Args'First).S));
+         while not End_Of_File (File) loop
+            ASU.Append (Buffer, Get_Line (File));
+            ASU.Append (Buffer, Ada.Characters.Latin_1.LF);
+         end loop;
+         Close (File);
+         return (Kind_String, Buffer);
+      end if;
    exception
       when others =>
          Close (File);
          raise;
    end Slurp;
 
-   function Str (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_String, Atoms.No_Element, Strings.Alloc
-         (Ada.Strings.Unbounded.To_String
-            (Concatenation_Of_Pr_Str (Args,
-                                      Print_Readably => False,
-                                      Separator      => ""))));
-
-   function Swap (Args : in Mal_Type_Array) return Mal_Type
-   is
-      Atom    : Mal_Type renames Args (Args'First);
-      Func    : Mal_Type renames Args (Args'First + 1);
-      Actuals : Mal_Type_Array (Args'First + 1 .. Args'Last);
-      Result  : Mal_Type;
+   function Str (Args : in Mal.T_Array) return Mal.T is
    begin
-      Actuals (Actuals'First) := Atom.Reference.Deref;
-      for I in Actuals'First + 1 .. Args'Last loop
-         Actuals (I) := Args (I);
-      end loop;
-      if Func.Kind = Kind_Native then
-         Result := Func.Native.all (Actuals);
-      else
-         declare
-            Env : constant Environments.Ptr
-              := Environments.Alloc (Outer => Func.Environment);
-         begin
-            Env.Set_Binds (Func.Formals, Actuals);
-            Result := Eval.all (Func.Expression.Deref, Env);
-         end;
+      return R : Mal.T := (Kind_String, ASU.Null_Unbounded_String) do
+         for Arg of Args loop
+            ASU.Append (R.S, Printer.Pr_Str (Arg, Readably => False));
+         end loop;
+      end return;
+   end Str;
+
+   function Swap (Args : in Mal.T_Array) return Mal.T is
+   begin
+      if Args'Length < 2 then
+         raise Argument_Error with "swap!: expects at least 2 arguments";
+      elsif Args (Args'First).Kind /= Kind_Atom then
+         raise Argument_Error with "swap!: arg 1 must be an atom";
       end if;
-      Atom.Reference.Set (Result);
-      return Result;
+      declare
+         X  : Mal.T renames Atoms.Deref (Args (Args'First .. Args'First));
+         FX : Mal.T renames Apply (Args (Args'First + 1),
+                                   X & Args (Args'First + 2 .. Args'Last),
+                                   "swap!");
+      begin
+         return Atoms.Reset (Mal.T_Array'(Args (Args'First), FX));
+      end;
    end Swap;
 
-   function Symbol (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Symbol, Atoms.No_Element, Args (Args'First).S);
+   function Symbol (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 1 then
+          raise Argument_Error with "symbol?: expects 1 argument"
+       else
+          (Kind_Symbol,
+           Symbols.Constructor (ASU.To_String (Args (Args'First).S))));
 
-   function Throw (Args : in Mal_Type_Array) return Mal_Type is
+   function Throw (Args : in Mal.T_Array) return Mal.T is
    begin
-      Last_Exception := Args (Args'First);
-      raise Exception_Throwed;
-      return (Kind_Nil, Atoms.No_Element); --  GNAT wants a return.
+      if Args'Length /= 1 then
+         raise Argument_Error with "throw: expects 1 argument";
+      else
+         Last_Exception := Args (Args'First);
+         raise Exception_Throwed;
+         return Mal.Nil; --  GNAT wants a return.
+      end if;
    end Throw;
 
-   function Time_Ms (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Number, Atoms.No_Element,
-       Integer (1000.0 * (Ada.Calendar.Clock - Start_Time)));
+   function Time_Ms (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 0 then
+          raise Argument_Error with "time: expects no argument"
+       else
+          (Kind_Number, Integer (1000.0 * (Ada.Calendar.Clock - Start_Time))));
 
-   function Vals (Args : in Mal_Type_Array) return Mal_Type
-   is
-      M      : Maps.Ptr renames Args (Args'First).Map;
-      Result : constant Mal_Type := (Kind_List, Atoms.No_Element,
-                                     Lists.Alloc (M.Length));
-      I      : Natural := 0;
-      procedure Process (Key, Element : in Mal_Type);
-      procedure Process (Key, Element : in Mal_Type) is
-      begin
-         I := I + 1;
-         Result.L.Replace_Element (I, Element);
-         pragma Unreferenced (Key);
-      end Process;
-   begin
-      M.Iterate (Process'Access);
-      return Result;
-   end Vals;
+   function With_Meta (Args : in Mal.T_Array) return Mal.T
+   is (if Args'Length /= 2 then
+          raise Argument_Error with "with-meta: expects 2 arguments"
+       else (case Args (Args'First).Kind is
+          when Kind_Builtin_With_Meta =>
+             Args (Args'First).Builtin_With_Meta.With_Meta (Args (Args'Last)),
+          when Kind_Builtin =>
+             Builtins.With_Meta (Args (Args'First).Builtin, Args (Args'Last)),
+          when Kind_List =>
+             (Kind_List, Args (Args'First).L.With_Meta (Args (Args'Last))),
+          when Kind_Vector =>
+             (Kind_Vector, Args (Args'First).L.With_Meta (Args (Args'Last))),
+          when Kind_Map =>
+             Args (Args'First).Map.With_Meta (Args (Args'Last)),
+          when Kind_Function =>
+             Args (Args'First).Function_Value.With_Meta (Args (Args'Last)),
+          when others =>
+             Args (Args'First)));
 
-   function Vector (Args : in Mal_Type_Array) return Mal_Type
-   is (Kind_Vector, Atoms.No_Element, Lists.Alloc (Args));
-
-   function With_Meta (Args : in Mal_Type_Array) return Mal_Type is
-   begin
-      return Result : Mal_Type := Args (Args'First) do
-         Result.Meta := Atoms.Alloc (Args (Args'First + 1));
-      end return;
-   end With_Meta;
-
+   use Symbols;
+   R : Environments.Ptr renames Environments.Repl;
+   B : Kind_Type renames Kind_Builtin;
+begin
+   R.Set (Constructor ("+"),           (B, Addition'Access));
+   R.Set (Constructor ("apply"),       (B, Apply'Access));
+   R.Set (Constructor ("assoc"),       (B, Maps.Assoc'Access));
+   R.Set (Constructor ("atom"),        (B, Atoms.Atom'Access));
+   R.Set (Constructor ("concat"),      (B, Lists.Concat'Access));
+   R.Set (Constructor ("conj"),        (B, Lists.Conj'Access));
+   R.Set (Constructor ("cons"),        (B, Lists.Cons'Access));
+   R.Set (Constructor ("contains?"),   (B, Maps.Contains'Access));
+   R.Set (Constructor ("count"),       (B, Lists.Count'Access));
+   R.Set (Names.Deref,                 (B, Atoms.Deref'Access));
+   R.Set (Constructor ("dissoc"),      (B, Maps.Dissoc'Access));
+   R.Set (Constructor ("/"),           (B, Division'Access));
+   R.Set (Constructor ("="),           (B, Equals'Access));
+   R.Set (Constructor ("eval"),        (B, Eval'Access));
+   R.Set (Constructor ("first"),       (B, Lists.First'Access));
+   R.Set (Constructor ("get"),         (B, Maps.Get'Access));
+   R.Set (Constructor (">="),          (B, Greater_Equal'Access));
+   R.Set (Constructor (">"),           (B, Greater_Than'Access));
+   R.Set (Constructor ("hash-map"),    (B, Maps.Hash_Map'Access));
+   R.Set (Constructor ("atom?"),       (B, Is_Atom'Access));
+   R.Set (Constructor ("empty?"),      (B, Lists.Is_Empty'Access));
+   R.Set (Constructor ("false?"),      (B, Is_False'Access));
+   R.Set (Constructor ("fn?"),         (B, Is_Function'Access));
+   R.Set (Constructor ("keyword?"),    (B, Is_Keyword'Access));
+   R.Set (Constructor ("list?"),       (B, Is_List'Access));
+   R.Set (Constructor ("macro?"),      (B, Is_Macro'Access));
+   R.Set (Constructor ("map?"),        (B, Is_Map'Access));
+   R.Set (Constructor ("nil?"),        (B, Is_Nil'Access));
+   R.Set (Constructor ("number?"),     (B, Is_Number'Access));
+   R.Set (Constructor ("sequential?"), (B, Is_Sequential'Access));
+   R.Set (Constructor ("string?"),     (B, Is_String'Access));
+   R.Set (Constructor ("symbol?"),     (B, Is_Symbol'Access));
+   R.Set (Constructor ("true?"),       (B, Is_True'Access));
+   R.Set (Constructor ("vector?"),     (B, Is_Vector'Access));
+   R.Set (Constructor ("keys"),        (B, Maps.Keys'Access));
+   R.Set (Constructor ("keyword"),     (B, Keyword'Access));
+   R.Set (Constructor ("<="),          (B, Less_Equal'Access));
+   R.Set (Constructor ("<"),           (B, Less_Than'Access));
+   R.Set (Constructor ("list"),        (B, Lists.List'Access));
+   R.Set (Constructor ("map"),         (B, Map'Access));
+   R.Set (Constructor ("meta"),        (B, Meta'Access));
+   R.Set (Constructor ("nth"),         (B, Lists.Nth'Access));
+   R.Set (Constructor ("pr-str"),      (B, Pr_Str'Access));
+   R.Set (Constructor ("println"),     (B, Println'Access));
+   R.Set (Constructor ("prn"),         (B, Prn'Access));
+   R.Set (Constructor ("*"),           (B, Product'Access));
+   R.Set (Constructor ("read-string"), (B, Read_String'Access));
+   R.Set (Constructor ("readline"),    (B, Readline'Access));
+   R.Set (Constructor ("reset!"),      (B, Atoms.Reset'Access));
+   R.Set (Constructor ("rest"),        (B, Lists.Rest'Access));
+   R.Set (Constructor ("seq"),         (B, Seq'Access));
+   R.Set (Constructor ("slurp"),       (B, Slurp'Access));
+   R.Set (Constructor ("str"),         (B, Str'Access));
+   R.Set (Constructor ("-"),           (B, Subtraction'Access));
+   R.Set (Constructor ("swap!"),       (B, Swap'Access));
+   R.Set (Constructor ("symbol"),      (B, Symbol'Access));
+   R.Set (Constructor ("throw"),       (B, Throw'Access));
+   R.Set (Constructor ("time-ms"),     (B, Time_Ms'Access));
+   R.Set (Constructor ("vals"),        (B, Maps.Vals'Access));
+   R.Set (Constructor ("vector"),      (B, Lists.Vector'Access));
+   R.Set (Names.With_Meta,             (B, With_Meta'Access));
 end Core;

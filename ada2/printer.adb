@@ -1,55 +1,48 @@
 with Ada.Characters.Latin_1;
-with Atoms;
-with Lists;
-with Maps;
-with Strings;
+
+with Types.Atoms;
+with Types.Functions;
+with Types.Lists;
+with Types.Maps;
 
 package body Printer is
 
    use Ada.Strings.Unbounded;
    use Types;
 
-   procedure Print_Form (Buffer         : in out Unbounded_String;
-                         Ast            : in     Mal_Type;
-                         Print_Readably : in     Boolean);
-   procedure Print_List (Buffer         : in out Unbounded_String;
-                         List           : in     Lists.Ptr;
-                         Print_Readably : in     Boolean)
-     with Inline;
-   procedure Print_Function (Buffer         : in out Unbounded_String;
-                             Formals        : in     Lists.Ptr;
-                             Expression     : in     Atoms.Ptr;
-                             Print_Readably : in     Boolean)
-     with Inline;
-   procedure Print_Map (Buffer         : in out Unbounded_String;
-                        Map            : in     Maps.Ptr;
-                        Print_Readably : in     Boolean)
-     with Inline;
+   procedure Print_Form (Buffer   : in out Unbounded_String;
+                         Ast      : in     Mal.T;
+                         Readably : in     Boolean);
+   procedure Print_List (Buffer   : in out Unbounded_String;
+                         List     : in     Lists.Ptr;
+                         Readably : in     Boolean) with Inline;
+   procedure Print_Function (Buffer   : in out Unbounded_String;
+                             Fn       : in     Functions.Ptr;
+                             Readably : in     Boolean) with Inline;
+   procedure Print_Map (Buffer   : in out Unbounded_String;
+                        Map      : in     Maps.Ptr;
+                        Readably : in     Boolean) with Inline;
 
    ----------------------------------------------------------------------
 
-   procedure Print_Form (Buffer         : in out Unbounded_String;
-                         Ast            : in     Mal_Type;
-                         Print_Readably : in     Boolean) is
+   procedure Print_Form (Buffer   : in out Unbounded_String;
+                         Ast      : in     Mal.T;
+                         Readably : in     Boolean) is
    begin
       case Ast.Kind is
-
          when Kind_Nil =>
             Append (Buffer, "nil");
-
          when Kind_Boolean =>
-            if Ast.Boolean_Value then
+            if Ast.Ada_Boolean then
                Append (Buffer, "true");
             else
                Append (Buffer, "false");
             end if;
-
          when Kind_Symbol =>
-            Append (Buffer, Ast.S.Deref);
-
+            Append (Buffer, Ast.Symbol.To_String);
          when Kind_Number =>
             declare
-               Img : constant String := Integer'Image (Ast.Integer_Value);
+               Img : constant String := Ast.Ada_Number'Img;
                F   : Positive := Img'First;
             begin
                if Img (F) = ' ' then
@@ -57,121 +50,113 @@ package body Printer is
                end if;
                Append (Buffer, Img (F .. Img'Last));
             end;
-
          when Kind_Keyword =>
             Append (Buffer, ':');
-            Append (Buffer, Ast.S.Deref);
-
+            Append (Buffer, Ast.S);
          when Kind_String =>
-            if Print_Readably then
+            if Readably then
                Append (Buffer, '"');
-               for C of Ast.S.Deref loop
-                  case C is
-                     when '"' | '\' =>
-                        Append (Buffer, '\');
-                        Append (Buffer, C);
-                     when Ada.Characters.Latin_1.LF =>
-                        Append (Buffer, "\n");
-                     when others =>
-                        Append (Buffer, C);
-                  end case;
-               end loop;
+               declare
+                  C : Character;
+               begin
+                  for I in 1 .. Length (Ast.S) loop
+                     C := Element (Ast.S, I);
+                     case C is
+                        when '"' | '\' =>
+                           Append (Buffer, '\');
+                           Append (Buffer, C);
+                        when Ada.Characters.Latin_1.LF =>
+                           Append (Buffer, "\n");
+                        when others =>
+                           Append (Buffer, C);
+                     end case;
+                  end loop;
+               end;
                Append (Buffer, '"');
             else
-               Append (Buffer, Ast.S.Deref);
+               Append (Buffer, Ast.S);
             end if;
-
          when Kind_List =>
             Append (Buffer, '(');
-            Print_List (Buffer, Ast.L, Print_Readably);
+            Print_List (Buffer, Ast.L, Readably);
             Append (Buffer, ')');
          when Kind_Vector =>
             Append (Buffer, '[');
-            Print_List (Buffer, Ast.L, Print_Readably);
+            Print_List (Buffer, Ast.L, Readably);
             Append (Buffer, ']');
-
          when Kind_Map =>
-            Print_Map (Buffer, Ast.Map, Print_Readably);
-
-         when Kind_Native =>
+            Print_Map (Buffer, Ast.Map, Readably);
+         when Kind_Builtin | Kind_Builtin_With_Meta =>
             Append (Buffer, "#<built-in>");
          when Kind_Function =>
             Append (Buffer, "#<function ");
-            Print_Function (Buffer, Ast.Formals, Ast.Expression,
-                            Print_Readably);
+            Print_Function (Buffer, Ast.Function_Value, Readably);
             Append (Buffer, '>');
          when Kind_Macro =>
             Append (Buffer, "#<macro ");
-            Print_Function (Buffer, Ast.Mac_Formals, Ast.Mac_Expression,
-                            Print_Readably);
+            Print_Function (Buffer, Ast.Function_Value, Readably);
             Append (Buffer, '>');
-
          when Kind_Atom =>
             Append (Buffer, "(atom ");
-            Print_Form (Buffer, Ast.Reference.Deref, Print_Readably);
+            Print_Form (Buffer, Atoms.Deref (Mal.T_Array'(1 => Ast)),
+                        Readably);
             Append (Buffer, ')');
-
       end case;
    end Print_Form;
 
-   procedure Print_Function (Buffer         : in out Unbounded_String;
-                             Formals        : in     Lists.Ptr;
-                             Expression     : in     Atoms.Ptr;
-                             Print_Readably : in     Boolean) is
+   procedure Print_Function (Buffer   : in out Unbounded_String;
+                             Fn       : in     Functions.Ptr;
+                             Readably : in     Boolean) is
    begin
-      if 0 < Formals.Length then
-         Print_List (Buffer, Formals, Print_Readably);
-         Append (Buffer, " -> ");
-         Print_Form (Buffer, Expression.Deref, Print_Readably);
-      end if;
+      Print_List (Buffer, Fn.Formals, Readably);
+      Append (Buffer, " -> ");
+      Print_Form (Buffer, Fn.Expression, Readably);
    end Print_Function;
 
-   procedure Print_List (Buffer         : in out Unbounded_String;
-                         List           : in     Lists.Ptr;
-                         Print_Readably : in     Boolean) is
+   procedure Print_List (Buffer   : in out Unbounded_String;
+                         List     : in     Lists.Ptr;
+                         Readably : in     Boolean) is
    begin
-      if 1 <= List.Length then
-         Print_Form (Buffer, List.Element (1), Print_Readably);
+      if 0 < List.Length then
+         Print_Form (Buffer, List.Element (1), Readably);
          for I in 2 .. List.Length loop
             Append (Buffer, ' ');
-            Print_Form (Buffer, List.Element (I), Print_Readably);
+            Print_Form (Buffer, List.Element (I), Readably);
          end loop;
       end if;
    end Print_List;
 
-   procedure Print_Map (Buffer         : in out Unbounded_String;
-                        Map            : in     Maps.Ptr;
-                        Print_Readably : in     Boolean)
-   is
+   procedure Print_Map (Buffer   : in out Unbounded_String;
+                        Map      : in     Maps.Ptr;
+                        Readably : in     Boolean) is
       Is_First : Boolean := True;
-      procedure Process (Key     : in Mal_Type;
-                         Element : in Mal_Type);
-      procedure Process (Key     : in Mal_Type;
-                         Element : in Mal_Type) is
+      procedure Process (Key     : in Mal.T;
+                         Element : in Mal.T);
+      procedure Iterate is new Maps.Iterate (Process);
+      procedure Process (Key     : in Mal.T;
+                         Element : in Mal.T) is
       begin
          if Is_First then
             Is_First := False;
          else
             Append (Buffer, ' ');
          end if;
-         Print_Form (Buffer, Key, Print_Readably);
+         Print_Form (Buffer, Key, Readably);
          Append (Buffer, ' ');
-         Print_Form (Buffer, Element, Print_Readably);
+         Print_Form (Buffer, Element, Readably);
       end Process;
    begin
       Append (Buffer, '{');
-      Map.Iterate (Process'Access);
+      Iterate (Map);
       Append (Buffer, '}');
    end Print_Map;
 
-   function Pr_Str (Ast            : in Mal_Type;
-                    Print_Readably : in Boolean  := True)
-                   return Unbounded_String
-   is
-      Result : Unbounded_String;
+   function Pr_Str (Ast      : in Mal.T;
+                    Readably : in Boolean := True) return Unbounded_String is
    begin
-      Print_Form (Result, Ast, Print_Readably);
-      return Result;
+      return Buffer : Unbounded_String do
+         Print_Form (Buffer, Ast, Readably);
+      end return;
    end Pr_Str;
 
 end Printer;
