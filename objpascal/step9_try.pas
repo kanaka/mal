@@ -215,6 +215,8 @@ begin
         except
             On E : Exception do
             begin
+                if Length(Arr) < 3 then
+                    raise;
                 SetLength(Err, 1);
                 if E.ClassType = TMalException then
                     Err[0] := (E as TMalException).Val

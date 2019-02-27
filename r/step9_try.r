@@ -75,9 +75,8 @@ EVAL <- function(ast, env) {
     repeat {
 
     #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
-    if (!.list_q(ast)) {
-        return(eval_ast(ast, env))
-    }
+    if (!.list_q(ast)) { return(eval_ast(ast, env)) }
+    if (length(ast) == 0) { return(ast) }
 
     # apply list
     ast <- macroexpand(ast, env)
@@ -122,7 +121,7 @@ EVAL <- function(ast, env) {
                                          new.list(a2[[2]]),
                                          new.list(edata$exc))))
         } else {
-            throw(err)
+            throw(edata$exc)
         }
     } else if (a0sym == "do") {
         eval_ast(slice(ast,2,length(ast)-1), env)

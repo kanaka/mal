@@ -75,9 +75,8 @@ EVAL <- function(ast, env) {
     repeat {
 
     #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
-    if (!.list_q(ast)) {
-        return(eval_ast(ast, env))
-    }
+    if (!.list_q(ast)) { return(eval_ast(ast, env)) }
+    if (length(ast) == 0) { return(ast) }
 
     # apply list
     ast <- macroexpand(ast, env)
