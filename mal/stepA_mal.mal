@@ -110,15 +110,16 @@
               (MACROEXPAND a1 env))
 
             (= 'try* a0)
-            (if (= 'catch* (nth (nth ast 2) 0))
+            (if (or (< (count ast) 3)
+                    (not (= 'catch* (nth (nth ast 2) 0))))
+              (EVAL (nth ast 1) env)
               (try*
                 (EVAL (nth ast 1) env)
                 (catch* exc
                   (EVAL (nth (nth ast 2) 2)
                         (new-env env
                                  [(nth (nth ast 2)1)]
-                                 [exc]))))
-              (EVAL (nth ast 1) env))
+                                 [exc])))))
 
             (= 'do a0)
             (let* [el (eval-ast (rest ast) env)]
