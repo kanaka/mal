@@ -1,56 +1,50 @@
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
-with Interfaces.C.Strings; use type Interfaces.C.Strings.chars_ptr;
+with Interfaces.C.Strings;
+
 with Printer;
 with Reader;
-with Types;
+with Types.Mal;
 
 procedure Step1_Read_Print is
 
-   function Read (Source : in String) return Types.Mal_Type
+   package ASU renames Ada.Strings.Unbounded;
+   use Types;
+
+   function Read (Source : in String) return Mal.T
      renames Reader.Read_Str;
 
-   function Eval (Ast : in Types.Mal_Type) return Types.Mal_Type
-     is (Ast);
+   function Eval (Ast : in Mal.T) return Mal.T
+   is (Ast);
 
-   function Print (Ast            : in Types.Mal_Type;
-                   Print_Readably : in Boolean        := True)
-                  return Ada.Strings.Unbounded.Unbounded_String
+   function Print (Ast      : in Mal.T;
+                   Readably : in Boolean := True) return ASU.Unbounded_String
      renames Printer.Pr_Str;
 
-   function Rep (Source : in String)
-                return Ada.Strings.Unbounded.Unbounded_String
-   is (Print (Eval (Read (Source))))
-     with Inline;
+   function Rep (Source : in String) return ASU.Unbounded_String
+   is (Print (Eval (Read (Source)))) with Inline;
 
-   procedure Interactive_Loop
-     with Inline;
+   procedure Interactive_Loop;
 
    ----------------------------------------------------------------------
 
-   procedure Interactive_Loop
-   is
-
-      function Readline (Prompt : in Interfaces.C.char_array)
-                        return Interfaces.C.Strings.chars_ptr
+   procedure Interactive_Loop is
+      use Interfaces.C, Interfaces.C.Strings;
+      function Readline (Prompt : in char_array) return chars_ptr
         with Import, Convention => C, External_Name => "readline";
-
-      procedure Add_History (Line : in Interfaces.C.Strings.chars_ptr)
+      procedure Add_History (Line : in chars_ptr)
         with Import, Convention => C, External_Name => "add_history";
-
-      procedure Free (Line : in Interfaces.C.Strings.chars_ptr)
+      procedure Free (Line : in chars_ptr)
         with Import, Convention => C, External_Name => "free";
-
-      Prompt : constant Interfaces.C.char_array
-        := Interfaces.C.To_C ("user> ");
-      C_Line : Interfaces.C.Strings.chars_ptr;
+      Prompt : constant char_array := To_C ("user> ");
+      C_Line : chars_ptr;
    begin
       loop
          C_Line := Readline (Prompt);
-         exit when C_Line = Interfaces.C.Strings.Null_Ptr;
+         exit when C_Line = Null_Ptr;
          declare
-            Line : constant String := Interfaces.C.Strings.Value (C_Line);
+            Line : constant String := Value (C_Line);
          begin
             if Line /= "" then
                Add_History (C_Line);
@@ -60,9 +54,9 @@ procedure Step1_Read_Print is
          exception
             when Reader.Empty_Source =>
                null;
-            when E : others =>
+            when E : Reader.Reader_Error =>
                Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
-               --  but go on proceeding.
+            --  Other exceptions are unexpected.
          end;
       end loop;
       Ada.Text_IO.New_Line;

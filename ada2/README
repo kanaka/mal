@@ -1,0 +1,42 @@
+Comparison with the first Ada implementation.
+
+The first implementation was deliberately compatible with all Ada
+compilers, while this one illustrates various Ada 2012 features, like
+assertions, preconditions, invariants, initial assignment for limited
+types, limited imports...
+
+The variant MAL type is implemented with a discriminant instead of
+object-style dispatching.  This allows more static and dynamic checks,
+but also two crucial performance improvements:
+* Nil, boolean and integers are passed by value without dynamic
+  allocation.
+* Lists are implemented as C-style arrays, and most of them can be
+  allocated on the stack.
+
+Once each component has an explicit interface, various optimizations
+have been added: unique allocation of symbols, stack-style allocation
+of environments in the current execution path, reuse of existing
+memory when the reference count reaches 1...
+
+The eventual performances compete with C-style languages, allthough
+all user input is checked (implicit language-defined checks like array
+bounds and discriminant consistency are only enabled during tests).
+
+There are also similarities with the first implementation.  For
+example, both rely on user-defined finalization to handle recursive
+structures without garbage collecting.
+
+
+About reference reference counting.
+
+* The finalize procedure may be called twice, so it does nothing when
+  the reference count is zero, meaning that we are reaching Finalize
+  recursively.
+* In implementations, a consistent object (that will be deallocated
+  automatically) must be built before any exception is raised by user
+  code (for example 'map' may run user functions).
+
+
+Known bugs: the third step of the perf^ada2 target fails during the
+final storage deallocation when the executable is built with -gnatp. I
+have failed to understand why so far.
