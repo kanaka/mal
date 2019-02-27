@@ -134,6 +134,9 @@ int main () {
             printf("%s\n", [[REP(line, repl_env) description] UTF8String]);
         } @catch(NSString *e) {
             printf("Error: %s\n", [e UTF8String]);
+        } @catch(NSObject *e) {
+            NSObject * exc = e;
+            printf("Exception: %s\n", [_pr_str(exc, true) UTF8String]);
         } @catch(NSException *e) {
             if ([[e name] isEqualTo:@"ReaderContinue"]) { continue; }
             printf("Exception: %s\n", [[e reason] UTF8String]);

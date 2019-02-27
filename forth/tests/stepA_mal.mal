@@ -6,7 +6,7 @@
 (. "greetings" 'MalString.)
 ;=>"greetings"
 (. "hello" 'type 'cr 'mal-nil)
-; hello
+;/hello
 ;=>nil
 
 ;; Interop on non-literals
@@ -31,11 +31,11 @@
 ;=>7
 (def! prn-chars (fn* (start count) (if (> count 0) (do (prn (. start 1 'MalString.)) (prn-chars (+ start 1) (- count 1))))))
 (let* (msg (string-parts "sketchy")) (prn-chars (first msg) (first (rest msg))))
-; "s"
-; "k"
-; "e"
-; "t"
-; "c"
-; "h"
-; "y"
+;/"s"
+;/"k"
+;/"e"
+;/"t"
+;/"c"
+;/"h"
+;/"y"
 ;=>nil

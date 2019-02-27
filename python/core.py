@@ -2,13 +2,13 @@ import copy, time
 from itertools import chain
 
 import mal_types as types
-from mal_types import List, Vector
+from mal_types import MalException, List, Vector
 import mal_readline
 import reader
 import printer
 
 # Errors/Exceptions
-def throw(exc): raise Exception(exc)
+def throw(obj): raise MalException(obj)
 
 
 # String functions
@@ -36,12 +36,12 @@ def assoc(src_hm, *key_vals):
 def dissoc(src_hm, *keys):
     hm = copy.copy(src_hm)
     for key in keys:
-        if key in hm: del hm[key]
+        hm.pop(key, None)
     return hm
 
 def get(hm, key):
-    if hm and key in hm:
-        return hm[key]
+    if hm is not None:
+        return hm.get(key)
     else:
         return None
 
@@ -109,8 +109,7 @@ def with_meta(obj, meta):
     return new_obj
 
 def meta(obj):
-    if hasattr(obj, "__meta__"): return obj.__meta__
-    else:                        return None
+    return getattr(obj, "__meta__", None)
 
 
 # Atoms functions
@@ -129,11 +128,16 @@ ns = {
         'nil?': types._nil_Q,
         'true?': types._true_Q,
         'false?': types._false_Q,
+        'number?': types._number_Q,
         'string?': types._string_Q,
         'symbol': types._symbol,
         'symbol?': types._symbol_Q,
         'keyword': types._keyword,
         'keyword?': types._keyword_Q,
+        'fn?': lambda x: (types._function_Q(x) and not hasattr(x, '_ismacro_')),
+        'macro?': lambda x: (types._function_Q(x) and
+                             hasattr(x, '_ismacro_') and
+                             x._ismacro_),
 
         'pr-str': pr_str,
         'str': do_str,

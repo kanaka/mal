@@ -29,8 +29,12 @@ def log(data, end='\n'):
     sys.stdout.flush()
 
 # TODO: do we need to support '\n' too
-sep = "\r\n"
-#sep = "\n"
+import platform
+if platform.system().find("CYGWIN_NT") >= 0:
+    # TODO: this is weird, is this really right on Cygwin?
+    sep = "\n\r\n"
+else:
+    sep = "\r\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
@@ -64,7 +68,7 @@ parser.add_argument('--no-optional', dest='optional', action='store_false',
         help="Disable optional tests that follow a ';>>> optional=True'")
 parser.set_defaults(optional=True)
 
-parser.add_argument('test_file', type=argparse.FileType('r'),
+parser.add_argument('test_file', type=str,
         help="a test file formatted as with mal test data")
 parser.add_argument('mal_cmd', nargs="*",
         help="Mal implementation command line. Use '--' to "
@@ -123,26 +127,35 @@ class Runner():
                 new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
                 #print("new_data: '%s'" % new_data)
                 debug(new_data)
+                # Perform newline cleanup
                 if self.no_pty:
                     self.buf += new_data.replace("\n", "\r\n")
                 else:
                     self.buf += new_data
+                self.buf = self.buf.replace("\r\r", "\r")
+                # Remove ANSI codes generally
+                #ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+                # Remove rustyline ANSI CSI codes:
+                #  - [6C - CR + cursor forward
+                #  - [6K - CR + erase in line
+                ansi_escape = re.compile(r'\r\x1B\[[0-9]*[CK]')
+                self.buf = ansi_escape.sub('', self.buf)
                 for prompt in prompts:
                     regexp = re.compile(prompt)
                     match = regexp.search(self.buf)
                     if match:
                         end = match.end()
-                        buf = self.buf[0:end-len(prompt)]
+                        buf = self.buf[0:match.start()]
                         self.buf = self.buf[end:]
                         self.last_prompt = prompt
-                        return buf
+                        return buf.replace("^M", "\r")
         return None
 
     def writeline(self, str):
         def _to_bytes(s):
             return bytes(s, "utf-8") if IS_PY_3 else s
 
-        self.stdin.write(_to_bytes(str + "\n"))
+        self.stdin.write(_to_bytes(str.replace('\r', '\x16\r') + "\n"))
 
     def cleanup(self):
         #print "cleaning up"
@@ -156,7 +169,8 @@ class Runner():
 class TestReader:
     def __init__(self, test_file):
         self.line_num = 0
-        self.data = test_file.read().split('\n')
+        f = open(test_file, newline='') if IS_PY_3 else open(test_file)
+        self.data = f.read().split('\n')
         self.soft = False
         self.deferrable = False
         self.optional = False
@@ -190,8 +204,7 @@ class TestReader:
                     return True
                 continue
             elif line[0:1] == ";":         # unexpected comment
-                log("Test data error at line %d:\n%s" % (self.line_num, line))
-                return None
+                raise Exception("Test data error at line %d:\n%s" % (self.line_num, line))
             self.form = line   # the line is a form to send
 
             # Now find the output and return value
@@ -202,15 +215,19 @@ class TestReader:
                     self.line_num += 1
                     self.data.pop(0)
                     break
-                elif line[0:2] == "; ":
+                elif line[0:2] == ";/":
                     self.out = self.out + line[2:] + sep
                     self.line_num += 1
                     self.data.pop(0)
                 else:
-                    self.ret = "*"
+                    self.ret = ""
                     break
-            if self.ret: break
+            if self.ret != None: break
 
+        if self.out[-2:] == sep and not self.ret:
+            # If there is no return value, output should not end in
+            # separator
+            self.out = self.out[0:-2]
         return self.form
 
 args = parser.parse_args(sys.argv[1:])
@@ -240,7 +257,13 @@ def assert_prompt(runner, prompts, timeout):
 
 
 # Wait for the initial prompt
-assert_prompt(r, ['user> ', 'mal-user> '], args.start_timeout)
+try:
+    assert_prompt(r, ['[^\s()<>]+> '], args.start_timeout)
+except:
+    _, exc, _ = sys.exc_info()
+    log("\nException: %s" % repr(exc))
+    log("Output before exception:\n%s" % r.buf)
+    sys.exit(1)
 
 # Send the pre-eval code if any
 if args.pre_eval:
@@ -269,22 +292,28 @@ while t.next():
 
     if t.form == None: continue
 
-    log("TEST: %s -> [%s,%s]" % (t.form, repr(t.out), t.ret), end='')
+    log("TEST: %s -> [%s,%s]" % (repr(t.form), repr(t.out), t.ret), end='')
 
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
-    expected = ["%s%s%s%s" % (t.form, sep, t.out, t.ret),
-                "%s%s%s%s%s%s" % (t.form, sep, t.form, sep, t.out, t.ret)]
+    expects = ["%s%s%s%s" % (re.escape(t.form), sep,
+                              t.out, re.escape(t.ret)),
+               "%s%s%s%s%s%s" % (re.escape(t.form), sep,
+                                  re.escape(t.form), sep,
+                                  t.out, re.escape(t.ret))]
 
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt(['\r\nuser> ', '\nuser> ',
-                                '\r\nmal-user> ', '\nmal-user> '],
+        res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
-        if t.ret == "*" or res in expected:
+        if (t.ret == "" and t.out == ""):
+            log(" -> SUCCESS (result ignored)")
+            pass_cnt += 1
+        elif (re.search(expects[0], res, re.S) or
+                re.search(expects[1], res, re.S)):
             log(" -> SUCCESS")
             pass_cnt += 1
         else:
@@ -296,11 +325,12 @@ while t.next():
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
                 fail_type = ""
-            log("    Expected : %s" % repr(expected[0]))
+            log("    Expected : %s" % repr(expects[0]))
             log("    Got      : %s" % repr(res))
             failed_test = """%sFAILED TEST (line %d): %s -> [%s,%s]:
     Expected : %s
-    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out), t.ret, repr(expected[0]), repr(res))
+    Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out),
+                        t.ret, repr(expects[0]), repr(res))
             failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()
@@ -319,7 +349,7 @@ TEST RESULTS (for %s):
   %3d: failing tests
   %3d: passing tests
   %3d: total tests
-""" % (args.test_file.name, soft_fail_cnt, fail_cnt,
+""" % (args.test_file, soft_fail_cnt, fail_cnt,
         pass_cnt, test_cnt)
 log(results)
 

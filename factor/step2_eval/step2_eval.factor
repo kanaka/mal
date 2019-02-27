@@ -43,7 +43,11 @@ DEFER: EVAL
 : PRINT ( maltype -- str ) pr-str ;
 
 : REP ( str -- str )
-    [ READ repl-env EVAL ] [ nip ] recover PRINT ;
+    [
+        READ repl-env EVAL PRINT
+    ] [
+        nip pr-str "Error: " swap append
+    ] recover ;
 
 : REPL ( -- )
     [

@@ -6,6 +6,23 @@
 % Takes arbitrary data and throws it as an exception.
 /throw { 0 _nth _throw } def
 
+% Predicates
+
+/fn? {
+  0 _nth
+  dup _mal_function? { %if mal_function
+    /macro? get true eq not %if not marked as macro
+  }{
+   _function? %if function
+  } ifelse
+} def
+
+/macro? {
+  0 _nth
+  dup _mal_function? { %if user defined function
+    /macro? get true eq %if marked as macro
+  }{ false } ifelse
+} def
 
 % Hash Map functions
 
@@ -89,6 +106,19 @@ end } def
         _list_from_array
     } ifelse } ifelse
 } def
+
+% [seq idx] -> nth -> obj
+/nth { 3 dict begin
+    /args exch def
+    /seq args 0 _nth /data get def
+    /idx args 1 _nth def
+    idx seq length lt {
+        seq idx get
+    }{
+        (nth: index out of range) _throw
+    } ifelse
+end } def
+
 
 % [obj] -> do_count -> number
 /do_count {
@@ -242,7 +272,6 @@ end } def
     new_val
 end } def
 
-
 % core_ns is namespace of core functions
 
 /core_ns <<
@@ -256,6 +285,9 @@ end } def
     (symbol?) { 0 _nth _symbol? }
     (keyword) { 0 _nth _keyword }
     (keyword?) { 0 _nth _keyword? }
+    (number?) { 0 _nth type /integertype eq }
+    (fn?)     { fn? }
+    (macro?)  { macro? }
 
     (pr-str)  { /data get ( ) true _pr_str_args }
     (str)     { /data get () false _pr_str_args }
@@ -290,7 +322,7 @@ end } def
     (sequential?) { 0 _nth _sequential? }
     (cons)    { cons }
     (concat)  { do_concat }
-    (nth)     { dup 0 _nth exch 1 _nth _nth }
+    (nth)     { nth }
     (first)   { first }
     (rest)    { rest }
     (empty?)  { 0 _nth _count 0 eq }

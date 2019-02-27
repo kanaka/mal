@@ -4,6 +4,9 @@ set -ex
 
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
 
+mode_var=${IMPL}_MODE
+mode_val=${!mode_var}
+
 # If NO_DOCKER is blank then launch use a docker image, otherwise
 # use the Travis image/tools directly.
 if [ -z "${NO_DOCKER}" ]; then
@@ -21,7 +24,9 @@ if [ -z "${NO_DOCKER}" ]; then
             make -C ${BUILD_IMPL} step9_try || true
     fi
     docker run -it -u $(id -u) -v `pwd`:/mal kanaka/mal-test-${img_impl} \
-        make -C ${BUILD_IMPL}
+        make ${mode_val:+${mode_var}=${mode_val}} \
+            -C ${BUILD_IMPL}
 else
-    make -C ${BUILD_IMPL}
+    make ${mode_val:+${mode_var}=${mode_val}} \
+        -C ${BUILD_IMPL}
 fi

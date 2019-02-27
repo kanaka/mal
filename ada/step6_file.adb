@@ -9,9 +9,7 @@ with Reader;
 with Smart_Pointers;
 with Types;
 
-
 procedure Step6_File is
-
 
    use Types;
 
@@ -269,21 +267,21 @@ procedure Step6_File is
 
                      else
 
-                        raise Mal_Exception with "Bind failed in Apply";
+                        raise Runtime_Exception with "Bind failed in Apply";
 
                      end if;
 
                   end;
 
                else  -- neither a Lambda or a Func
-                  raise Mal_Exception;
+                  raise Runtime_Exception with "Deref called on non-Func/Lambda";
                end if;
 
             end;
 
          end if;
 
-      else
+      else -- not a List_List
 
          return Eval_Ast (Param, Env);
 
@@ -296,7 +294,6 @@ procedure Step6_File is
    begin
       return Printer.Pr_Str (Param);
    end Print;
-
 
    function Rep (Param : String; Env : Envs.Env_Handle) return String is
       AST, Evaluated_AST : Types.Mal_Handle;
@@ -352,6 +349,8 @@ begin
 
    Repl_Env := Envs.New_Env;
 
+   -- Core init also creates the first environment.
+   -- This is needed for the def!'s below.
    Core.Init (Repl_Env);
 
    -- Register the eval command.  This needs to be done here rather than Core.Init
@@ -359,7 +358,6 @@ begin
    Envs.Set (Repl_Env, "eval", New_Func_Mal_Type ("eval", Do_Eval'Unrestricted_Access));
 
    RE ("(def! not (fn* (a) (if a false true)))");
-
    RE ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))");
 
    -- Command line processing.
@@ -399,7 +397,13 @@ begin
             when E : others =>
                Ada.Text_IO.Put_Line
                  (Ada.Text_IO.Standard_Error,
-                  Ada.Exceptions.Exception_Information (E));
+                  "Error: " & Ada.Exceptions.Exception_Information (E));
+               if Types.Mal_Exception_Value /= Smart_Pointers.Null_Smart_Pointer then
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     Printer.Pr_Str (Types.Mal_Exception_Value));
+                  Types.Mal_Exception_Value := Smart_Pointers.Null_Smart_Pointer;
+               end if;
          end;
       end loop;
    end if;

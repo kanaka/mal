@@ -1,8 +1,8 @@
 module Types
 (MalVal (..), MalError (..), IOThrows (..), Fn (..), EnvData (..), Env,
  throwStr, throwMalVal, _get_call, _to_list,
- _func, _malfunc,
- _nil_Q, _true_Q, _false_Q, _string_Q, _symbol_Q, _keyword_Q,
+ _func, _malfunc, _fn_Q, _macro_Q,
+ _nil_Q, _true_Q, _false_Q, _string_Q, _symbol_Q, _keyword_Q, _number_Q,
  _list_Q, _vector_Q, _hash_map_Q, _atom_Q)
 where
 
@@ -98,6 +98,14 @@ _malfunc_meta ast env params fn meta = MalFunc {fn=(Fn fn), ast=ast,
                                                 env=env, params=params,
                                                 macro=False, meta=meta}
 
+_fn_Q (MalFunc {macro=False}) = MalTrue
+_fn_Q (Func _ _)              = MalTrue
+_fn_Q _                       = MalFalse
+
+_macro_Q (MalFunc {macro=True}) = MalTrue
+_macro_Q _                      = MalFalse
+
+
 -- Scalars
 _nil_Q Nil = MalTrue
 _nil_Q _   = MalFalse
@@ -117,6 +125,9 @@ _string_Q _                        = MalFalse
 
 _keyword_Q (MalString ('\x029e':_)) = MalTrue
 _keyword_Q _                        = MalFalse
+
+_number_Q (MalNumber _) = MalTrue
+_number_Q _             = MalFalse
 
 -- Lists
 

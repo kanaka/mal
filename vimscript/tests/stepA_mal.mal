@@ -33,9 +33,9 @@
 ;; Test access to Vim predefined variables
 ;;
 
-(vim* "v:progname")
-;=>"vim"
+;;; (vim* "v:progname")
+;;; ;=>"vim"
 
-;; v:version is 704 for Vim 7.4
-(> (vim* "v:version") 700)
+;; v:version is 800 for Vim 8.0
+(>= (vim* "v:version") 800)
 ;=>true

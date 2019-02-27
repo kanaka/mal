@@ -10,6 +10,6 @@
 ;=>nil
 ;;; For implementations without their own TCO this should fail and
 ;;; leave res1 unchanged
-(def! res1 (sum-to 10000))
+(def! res1 (sum-to 100000))
 res1
 ;=>nil

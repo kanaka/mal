@@ -16,7 +16,7 @@
 ;=>false
 
 (logo-eval "print [hello world]")
-; hello world
+;/hello world
 ;=>nil
 
 (logo-eval "make \"foo 8")

@@ -14,7 +14,7 @@ private let token_pattern =
         "|" +
         "[\\[\\]{}()`'~^@]" +               // Punctuation: Any one of []{}()`'~^@
         "|" +
-        "\"(?:\\\\.|[^\\\\\"])*\"" +        // Quoted string: characters other than \ or ", or any escaped characters
+        "\"(?:\\\\.|[^\\\\\"])*\"?" +       // Quoted string: characters other than \ or ", or any escaped characters
         "|" +
         ";.*" +                             // Comment: semicolon followed by anything
         "|" +
@@ -35,6 +35,8 @@ private let atom_pattern =
     "(^false$)" +               // false
     "|" +
     "(^\".*\"$)" +              // String
+    "|" +
+    "(^\".*$)" +              // Invalid/unclosed string
     "|" +
     "(:.*)" +                   // Keyword
     "|" +
@@ -112,9 +114,11 @@ private func read_atom(token: String) throws -> MalVal {
             return make_false()
         } else if have_match(match, at_index: 7) {         // String
             return make_string(unescape(token))
-        } else if have_match(match, at_index: 8) {         // Keyword
+        } else if have_match(match, at_index: 8) {         // Invalid/unclosed string
+            try throw_error("expected '\"', got EOF")
+        } else if have_match(match, at_index: 9) {         // Keyword
             return make_keyword(token[token.startIndex.successor() ..< token.endIndex])
-        } else if have_match(match, at_index: 9) {         // Symbol
+        } else if have_match(match, at_index: 10) {        // Symbol
             return make_symbol(token)
         }
     }

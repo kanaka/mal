@@ -27,12 +27,6 @@ if (typeof require !== 'undefined' && require.main === module) {
     while (true) {
         var line = readline.readline("user> ");
         if (line === null) { break; }
-        try {
-            if (line) { printer.println(rep(line)); }
-        } catch (exc) {
-
-            if (exc.stack) { printer.println(exc.stack); }
-            else           { printer.println(exc); }
-        }
+        if (line) { printer.println(rep(line)); }
     }
 }

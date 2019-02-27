@@ -74,7 +74,7 @@ time_ms () {
 
 # String functions
 
-string? () { _string? "${1}" && r="${__true}" || r="${__false}"; }
+string? () { _string? "${1}" && ( ! _keyword? "${1}" ) && r="${__true}" || r="${__false}"; }
 
 pr_str () {
     local res=""
@@ -92,14 +92,14 @@ prn () {
     local res=""
     for x in "${@}"; do _pr_str "${x}" yes; res="${res} ${r}"; done
     echo "${res:1}"
-    r="${__nil}"; 
+    r="${__nil}";
 }
 
 println () {
     local res=""
     for x in "${@}"; do _pr_str "${x}"; res="${res} ${r}"; done
     echo "${res:1}"
-    r="${__nil}"; 
+    r="${__nil}";
 }
 
 readline () {
@@ -119,7 +119,8 @@ slurp () {
 
 
 # Function functions
-function? () { _function? "${1}" && r="${__true}" || r="${__false}"; }
+function? () { _function? "${1}" && [ -z "${ANON["${1}_ismacro_"]}" ] && r="${__true}" || r="${__false}"; }
+macro? () { _function? "${1}" && [ "${ANON["${1}_ismacro_"]}" ] && r="${__true}" || r="${__false}"; }
 
 
 # List functions
@@ -364,6 +365,9 @@ declare -A core_ns=(
     [symbol?]=symbol?
     [keyword]=keyword
     [keyword?]=keyword?
+    [number?]=number?
+    [fn?]=function?
+    [macro?]=macro?
 
     [pr-str]=pr_str
     [str]=str

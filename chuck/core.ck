@@ -14,10 +14,10 @@ public class Core
  "nth", "first", "rest",
  "throw",
  "apply", "map",
- "nil?", "true?", "false?", "symbol?", "keyword?", "vector?", "map?",
+ "nil?", "true?", "false?", "number?", "symbol?", "keyword?", "vector?", "map?",
  "symbol", "keyword", "vector", "hash-map",
  "assoc", "dissoc", "get", "contains?", "keys", "vals",
- "sequential?",
+ "sequential?", "fn?", "macro?",
  "readline", "meta", "with-meta",
  "time-ms", "conj", "string?", "seq"] @=> Core.names;
 MalSubr ns[0] @=> Core.ns;
@@ -67,6 +67,7 @@ new MalMap @=> Core.ns["map"];
 new MalIsNil @=> Core.ns["nil?"];
 new MalIsTrue @=> Core.ns["true?"];
 new MalIsFalse @=> Core.ns["false?"];
+new MalIsNumber @=> Core.ns["number?"];
 new MalIsSymbol @=> Core.ns["symbol?"];
 new MalIsKeyword @=> Core.ns["keyword?"];
 new MalIsVector @=> Core.ns["vector?"];
@@ -85,6 +86,8 @@ new MalKeys @=> Core.ns["keys"];
 new MalVals @=> Core.ns["vals"];
 
 new MalSequential @=> Core.ns["sequential?"];
+new MalIsFn @=> Core.ns["fn?"];
+new MalIsMacro @=> Core.ns["macro?"];
 
 new MalReadline @=> Core.ns["readline"];
 new MalMeta @=> Core.ns["meta"];

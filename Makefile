@@ -32,10 +32,13 @@ all help:
 	@echo 'make MAL_IMPL=IMPL "test^mal..."  # use IMPL for self-host tests'
 	@echo 'make REGRESS=1 "test..."          # test with previous step tests too'
 	@echo 'make DOCKERIZE=1 ...              # to dockerize above rules/targets'
+	@echo 'make TEST_OPTS="--opt ..."        # options to pass to runtest.py'
 	@echo
 	@echo 'Other:'
 	@echo
 	@echo 'make "docker-build^IMPL"          # build docker image for IMPL'
+	@echo
+	@echo 'make "docker-shell^IMPL"          # start bash shell in docker image for IMPL'
 	@echo
 
 #
@@ -44,10 +47,20 @@ all help:
 
 MAL_IMPL = js
 
-PYTHON = python
-USE_MATLAB =
-# python, js, cpp, or neko are currently supported
-HAXE_MODE = neko
+# cbm or qbasic
+basic_MODE = cbm
+# clj or cljs (Clojure vs ClojureScript/lumo)
+clojure_MODE = clj
+# python, js, cpp, or neko
+haxe_MODE = neko
+# octave or matlab
+matlab_MODE = octave
+# python, python2 or python3
+python_MODE = python
+# scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
+scheme_MODE = chibi
+# js wace_libc wace_fooboot
+wasm_MODE = wace_libc
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -60,29 +73,22 @@ REGRESS =
 DEFERRABLE=1
 OPTIONAL=1
 
-# Extra implementation specific options to pass to runtest.py
-logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
-miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
-plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
-plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
-perl6_TEST_OPTS = --test-timeout=60
-
-DOCKERIZE=
-
 # Run target/rule within docker image for the implementation
 DOCKERIZE =
 
+
 #
-# Settings
+# Implementation specific settings
 #
 
-IMPLS = ada ada2 awk bash c d chuck clojure coffee clisp cpp crystal cs erlang elisp \
-	elixir es6 factor forth fsharp go groovy guile haskell haxe \
-	io java julia js kotlin logo lua make mal ocaml matlab miniMAL \
-	nim objc objpascal perl perl6 php plpgsql plsql powershell ps \
-	python r racket rpython ruby rust scala swift swift3 tcl vb vhdl \
-	vimscript
+IMPLS = ada ada2 awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
+	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
+	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
+	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp plpgsql \
+	plsql powershell ps python r racket rexx rpython ruby rust scala scheme skew \
+	swift swift3 tcl ts vb vhdl vimscript wasm yorick
+
+EXTENSION = .mal
 
 step0 = step0_repl
 step1 = step1_read_print
@@ -95,6 +101,9 @@ step7 = step7_quote
 step8 = step8_macros
 step9 = step9_try
 stepA = stepA_mal
+
+argv_STEP = step6_file
+
 
 regress_step0 = step0
 regress_step1 = step1
@@ -109,6 +118,7 @@ regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
 test_EXCLUDES += test^bash^step5   # never completes at 10,000
+test_EXCLUDES += test^basic^step5  # too slow, and limited to ints of 2^16
 test_EXCLUDES += test^logo^step5   # too slow for 10,000
 test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
 test_EXCLUDES += test^mal^step5    # host impl dependent
@@ -116,21 +126,138 @@ test_EXCLUDES += test^matlab^step5 # never completes at 10,000
 test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
 test_EXCLUDES += test^plsql^step5  # too slow for 10,000
 test_EXCLUDES += test^powershell^step5  # too slow for 10,000
-
-perf_EXCLUDES = mal  # TODO: fix this
+test_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),test^haxe^step5,) # cpp finishes 10,000, segfaults at 100,000
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
 dist_EXCLUDES += guile io julia matlab swift
 
+
+# Extra options to pass to runtest.py
+logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
+miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
+perl6_TEST_OPTS = --test-timeout=60
+plpgsql_TEST_OPTS = --start-timeout 60 --test-timeout 180
+plsql_TEST_OPTS = --start-timeout 120 --test-timeout 120
+vimscript_TEST_OPTS = --test-timeout 30
+ifeq ($(MAL_IMPL),vimscript)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+else ifeq ($(MAL_IMPL),powershell)
+mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
+endif
+
+
 #
-# Utility functions
+# Implementation specific utility functions
 #
+
+basic_STEP_TO_PROG_cbm    = basic/$($(1)).bas
+basic_STEP_TO_PROG_qbasic = basic/$($(1))
+
+clojure_STEP_TO_PROG_clj  = clojure/target/$($(1)).jar
+clojure_STEP_TO_PROG_cljs = clojure/src/mal/$($(1)).cljc
 
 haxe_STEP_TO_PROG_neko   = haxe/$($(1)).n
 haxe_STEP_TO_PROG_python = haxe/$($(1)).py
 haxe_STEP_TO_PROG_cpp    = haxe/cpp/$($(1))
 haxe_STEP_TO_PROG_js     = haxe/$($(1)).js
+
+scheme_STEP_TO_PROG_chibi       = scheme/$($(1)).scm
+scheme_STEP_TO_PROG_kawa        = scheme/out/$($(1)).class
+scheme_STEP_TO_PROG_gauche      = scheme/$($(1)).scm
+scheme_STEP_TO_PROG_chicken     = scheme/$($(1))
+scheme_STEP_TO_PROG_sagittarius = scheme/$($(1)).scm
+scheme_STEP_TO_PROG_cyclone     = scheme/$($(1))
+scheme_STEP_TO_PROG_foment      = scheme/$($(1)).scm
+
+# Map of step (e.g. "step8") to executable file for that step
+ada_STEP_TO_PROG =     ada/$($(1))
+ada2_STEP_TO_PROG =    ada2/$($(1))
+awk_STEP_TO_PROG =     awk/$($(1)).awk
+bash_STEP_TO_PROG =    bash/$($(1)).sh
+basic_STEP_TO_PROG =   $(basic_STEP_TO_PROG_$(basic_MODE))
+c_STEP_TO_PROG =       c/$($(1))
+chuck_STEP_TO_PROG =   chuck/$($(1)).ck
+clojure_STEP_TO_PROG = $(clojure_STEP_TO_PROG_$(clojure_MODE))
+coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
+common-lisp_STEP_TO_PROG =  common-lisp/$($(1))
+cpp_STEP_TO_PROG =     cpp/$($(1))
+crystal_STEP_TO_PROG = crystal/$($(1))
+cs_STEP_TO_PROG =      cs/$($(1)).exe
+d_STEP_TO_PROG =       d/$($(1))
+dart_STEP_TO_PROG =    dart/$($(1)).dart
+elisp_STEP_TO_PROG =   elisp/$($(1)).el
+elixir_STEP_TO_PROG =  elixir/lib/mix/tasks/$($(1)).ex
+elm_STEP_TO_PROG =     elm/$($(1)).js
+erlang_STEP_TO_PROG =  erlang/$($(1))
+es6_STEP_TO_PROG =     es6/$($(1)).mjs
+factor_STEP_TO_PROG =  factor/$($(1))/$($(1)).factor
+fantom_STEP_TO_PROG =  fantom/lib/fan/$($(1)).pod
+forth_STEP_TO_PROG =   forth/$($(1)).fs
+fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
+go_STEP_TO_PROG =      go/$($(1))
+groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
+gnu-smalltalk_STEP_TO_PROG = gnu-smalltalk/$($(1)).st
+guile_STEP_TO_PROG =   guile/$($(1)).scm
+haskell_STEP_TO_PROG = haskell/$($(1))
+haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(haxe_MODE))
+hy_STEP_TO_PROG =      hy/$($(1)).hy
+io_STEP_TO_PROG =      io/$($(1)).io
+java_STEP_TO_PROG =    java/target/classes/mal/$($(1)).class
+js_STEP_TO_PROG =      js/$($(1)).js
+julia_STEP_TO_PROG =   julia/$($(1)).jl
+kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
+livescript_STEP_TO_PROG = livescript/$($(1)).js
+logo_STEP_TO_PROG =    logo/$($(1)).lg
+lua_STEP_TO_PROG =     lua/$($(1)).lua
+make_STEP_TO_PROG =    make/$($(1)).mk
+mal_STEP_TO_PROG =     mal/$($(1)).mal
+matlab_STEP_TO_PROG =  matlab/$($(1)).m
+miniMAL_STEP_TO_PROG = miniMAL/$($(1)).json
+nasm_STEP_TO_PROG =    nasm/$($(1))
+nim_STEP_TO_PROG =     nim/$($(1))
+objc_STEP_TO_PROG =    objc/$($(1))
+objpascal_STEP_TO_PROG = objpascal/$($(1))
+ocaml_STEP_TO_PROG =   ocaml/$($(1))
+perl_STEP_TO_PROG =    perl/$($(1)).pl
+perl6_STEP_TO_PROG =   perl6/$($(1)).pl
+php_STEP_TO_PROG =     php/$($(1)).php
+picolisp_STEP_TO_PROG = picolisp/$($(1)).l
+plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
+plsql_STEP_TO_PROG =   plsql/$($(1)).sql
+powershell_STEP_TO_PROG =  powershell/$($(1)).ps1
+ps_STEP_TO_PROG =      ps/$($(1)).ps
+python_STEP_TO_PROG =  python/$($(1)).py
+r_STEP_TO_PROG =       r/$($(1)).r
+racket_STEP_TO_PROG =  racket/$($(1)).rkt
+rexx_STEP_TO_PROG =    rexx/$($(1)).rexxpp
+rpython_STEP_TO_PROG = rpython/$($(1))
+ruby_STEP_TO_PROG =    ruby/$($(1)).rb
+rust_STEP_TO_PROG =    rust/$($(1))
+scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
+scheme_STEP_TO_PROG =  $(scheme_STEP_TO_PROG_$(scheme_MODE))
+skew_STEP_TO_PROG =    skew/$($(1)).js
+swift_STEP_TO_PROG =   swift/$($(1))
+swift3_STEP_TO_PROG =  swift3/$($(1))
+tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
+ts_STEP_TO_PROG =      ts/$($(1)).js
+vb_STEP_TO_PROG =      vb/$($(1)).exe
+vhdl_STEP_TO_PROG =    vhdl/$($(1))
+vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
+wasm_STEP_TO_PROG =    wasm/$($(1)).wasm
+yorick_STEP_TO_PROG =  yorick/$($(1)).i
+
+
+#
+# General settings and utility functions
+#
+
+# Needed some argument munging
+COMMA = ,
+noop =
+SPACE = $(noop) $(noop)
+export FACTOR_ROOTS := .
 
 opt_DEFERRABLE      = $(if $(strip $(DEFERRABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERRABLE)),--deferrable,--no-deferrable),--no-deferrable)
 opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
@@ -140,75 +267,7 @@ opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE
 # being tested.
 STEP_TEST_FILES = $(strip $(wildcard \
 		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
-		      $(1)/tests/$($(s)).mal tests/$($(s)).mal)))
-
-# Map of step (e.g. "step8") to executable file for that step
-ada_STEP_TO_PROG =     ada/$($(1))
-ada2_STEP_TO_PROG =    ada2/$($(1))
-awk_STEP_TO_PROG =     awk/$($(1)).awk
-bash_STEP_TO_PROG =    bash/$($(1)).sh
-c_STEP_TO_PROG =       c/$($(1))
-d_STEP_TO_PROG =       d/$($(1))
-chuck_STEP_TO_PROG =   chuck/$($(1)).ck
-clojure_STEP_TO_PROG = clojure/target/$($(1)).jar
-coffee_STEP_TO_PROG =  coffee/$($(1)).coffee
-clisp_STEP_TO_PROG = clisp/$($(1)).fas
-cpp_STEP_TO_PROG =     cpp/$($(1))
-crystal_STEP_TO_PROG = crystal/$($(1))
-cs_STEP_TO_PROG =      cs/$($(1)).exe
-elisp_STEP_TO_PROG =   elisp/$($(1)).el
-elixir_STEP_TO_PROG =  elixir/lib/mix/tasks/$($(1)).ex
-erlang_STEP_TO_PROG =  erlang/$($(1))
-es6_STEP_TO_PROG =     es6/build/$($(1)).js
-factor_STEP_TO_PROG =  factor/$($(1))/$($(1)).factor
-forth_STEP_TO_PROG =   forth/$($(1)).fs
-fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
-go_STEP_TO_PROG =      go/$($(1))
-groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
-java_STEP_TO_PROG =    java/target/classes/mal/$($(1)).class
-haskell_STEP_TO_PROG = haskell/$($(1))
-haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(HAXE_MODE))
-io_STEP_TO_PROG =      io/$($(1)).io
-julia_STEP_TO_PROG =   julia/$($(1)).jl
-js_STEP_TO_PROG =      js/$($(1)).js
-kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
-lua_STEP_TO_PROG =     lua/$($(1)).lua
-make_STEP_TO_PROG =    make/$($(1)).mk
-mal_STEP_TO_PROG =     mal/$($(1)).mal
-ocaml_STEP_TO_PROG =   ocaml/$($(1))
-matlab_STEP_TO_PROG =  matlab/$($(1)).m
-miniMAL_STEP_TO_PROG = miniMAL/$($(1)).json
-nim_STEP_TO_PROG =     nim/$($(1))
-objc_STEP_TO_PROG =    objc/$($(1))
-objpascal_STEP_TO_PROG = objpascal/$($(1))
-perl_STEP_TO_PROG =    perl/$($(1)).pl
-perl6_STEP_TO_PROG =   perl6/$($(1)).pl
-php_STEP_TO_PROG =     php/$($(1)).php
-plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
-plsql_STEP_TO_PROG =   plsql/$($(1)).sql
-powershell_STEP_TO_PROG =  powershell/$($(1)).ps1
-ps_STEP_TO_PROG =      ps/$($(1)).ps
-python_STEP_TO_PROG =  python/$($(1)).py
-r_STEP_TO_PROG =       r/$($(1)).r
-racket_STEP_TO_PROG =  racket/$($(1)).rkt
-rpython_STEP_TO_PROG = rpython/$($(1))
-ruby_STEP_TO_PROG =    ruby/$($(1)).rb
-rust_STEP_TO_PROG =    rust/target/release/$($(1))
-scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
-swift_STEP_TO_PROG =   swift/$($(1))
-swift3_STEP_TO_PROG =  swift3/$($(1))
-tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
-vb_STEP_TO_PROG =      vb/$($(1)).exe
-vhdl_STEP_TO_PROG =    vhdl/$($(1))
-vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
-guile_STEP_TO_PROG =   guile/$($(1)).scm
-
-
-# Needed some argument munging
-COMMA = ,
-noop =
-SPACE = $(noop) $(noop)
-export FACTOR_ROOTS := .
+		      $(1)/tests/$($(s))$(EXTENSION) tests/$($(s))$(EXTENSION))))
 
 # DOCKERIZE utility functions
 lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
@@ -220,23 +279,33 @@ actual_impl = $(if $(filter mal,$(1)),$(MAL_IMPL),$(1))
 # Returns nothing if DOCKERIZE is not set, otherwise returns the
 # docker prefix necessary to run make within the docker environment
 # for this impl
-get_build_prefix = $(if $(strip $(DOCKERIZE)),docker run -it --rm -u $(shell id -u) -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal -w /mal/$(1) $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) $(call impl_to_image,$(1)) ,)
+get_build_command = $(strip $(if $(strip $(DOCKERIZE)),\
+    docker run \
+    -it --rm -u $(shell id -u) \
+    -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
+    -w /mal/$(1) \
+    $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
+    $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
+    $(call impl_to_image,$(1)) \
+    $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),) \
+    ,\
+    $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),)))
 
-# Takes impl and step arguments
+# Takes impl and step args. Optional env vars and dockerize args
 # Returns a command prefix (docker command and environment variables)
 # necessary to launch the given impl and step
-get_run_prefix = $(strip $(if $(strip $(DOCKERIZE)),\
+get_run_prefix = $(strip $(if $(strip $(DOCKERIZE) $(4)),\
     docker run -e STEP=$($2) -e MAL_IMPL=$(MAL_IMPL) \
     -it --rm -u $(shell id -u) \
     -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
     -w /mal/$(call actual_impl,$(1)) \
-    $(if $(filter haxe,$(1)),-e HAXE_MODE=$(HAXE_MODE),) \
+    $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
     $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(foreach env,$(3),-e $(env)) \
     $(call impl_to_image,$(call actual_impl,$(1))) \
     ,\
     env STEP=$($2) MAL_IMPL=$(MAL_IMPL) \
-    $(if $(filter haxe,$(1)),HAXE_MODE=$(HAXE_MODE),) \
+    $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),) \
     $(if $(filter factor,$(1)),FACTOR_ROOTS=$(FACTOR_ROOTS),) \
     $(3)))
 
@@ -248,13 +317,6 @@ get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
 get_argvtest_cmd = $(call get_run_prefix,$(1),$(2)) ../run_argv_test.sh
-
-vimscript_TEST_OPTS = --test-timeout 30
-ifeq ($(MAL_IMPL),vimscript)
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
-else ifeq ($(MAL_IMPL),powershell)
-mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
-endif
 
 # Derived lists
 STEPS = $(sort $(filter step%,$(.VARIABLES)))
@@ -268,6 +330,8 @@ ALL_TESTS = $(filter-out $(test_EXCLUDES),\
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
+DOCKER_SHELL = $(foreach impl,$(DO_IMPLS),docker-shell^$(impl))
+
 IMPL_PERF = $(foreach impl,$(filter-out $(perf_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
 
 IMPL_REPL = $(foreach impl,$(DO_IMPLS),repl^$(impl))
@@ -275,9 +339,13 @@ ALL_REPL = $(strip $(sort \
              $(foreach impl,$(DO_IMPLS),\
                $(foreach step,$(STEPS),repl^$(impl)^$(step)))))
 
+
 #
 # Build rules
 #
+
+# Enable secondary expansion for all rules
+.SECONDEXPANSION:
 
 # Build a program in an implementation directory
 # Make sure we always try and build first because the dependencies are
@@ -286,14 +354,12 @@ ALL_REPL = $(strip $(sort \
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	$(foreach impl,$(word 1,$(subst /, ,$(@))),\
 	  $(if $(DOCKERIZE), \
-	    $(call get_build_prefix,$(impl))$(MAKE) $(patsubst $(impl)/%,%,$(@)), \
-	    $(MAKE) -C $(impl) $(subst $(impl)/,,$(@))))
+	    $(call get_build_command,$(impl)) $(patsubst $(impl)/%,%,$(@)), \
+	    $(call get_build_command,$(impl)) -C $(impl) $(subst $(impl)/,,$(@))))
 
 # Allow IMPL, and IMPL^STEP
-.SECONDEXPANSION:
 $(DO_IMPLS): $$(foreach s,$$(STEPS),$$(call $$(@)_STEP_TO_PROG,$$(s)))
 
-.SECONDEXPANSION:
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 2,$$(subst ^, ,$$(@))))
 
 
@@ -301,7 +367,6 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(s
 # Test rules
 #
 
-.SECONDEXPANSION:
 $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
@@ -311,7 +376,7 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 	      echo 'Testing $@; step file: $+, test file: $(test)' && \
 	      echo 'Running: $(call get_runtest_cmd,$(impl),$(step)) ../$(test) -- ../$(impl)/run' && \
 	      $(call get_runtest_cmd,$(impl),$(step)) ../$(test) -- ../$(impl)/run && \
-	      $(if $(filter tests/step6_file.mal,$(test)),\
+	      $(if $(filter tests/$(argv_STEP)$(EXTENSION),$(test)),\
 	        echo '----------------------------------------------' && \
 	        echo 'Testing ARGV of $@; step file: $+' && \
 	        echo 'Running: $(call get_argvtest_cmd,$(impl),$(step)) ../$(impl)/run ' && \
@@ -323,25 +388,9 @@ $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(s
 test: $(ALL_TESTS)
 tests: $(ALL_TESTS)
 
-.SECONDEXPANSION:
 $(IMPL_TESTS): $$(filter $$@^%,$$(ALL_TESTS))
 
-.SECONDEXPANSION:
 $(STEP_TESTS): $$(foreach step,$$(subst test^,,$$@),$$(filter %^$$(step),$$(ALL_TESTS)))
-
-
-#
-# Dist rules
-#
-
-dist: $(IMPL_DIST)
-
-.SECONDEXPANSION:
-$(IMPL_DIST):
-	@echo "----------------------------------------------"; \
-	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
-	  echo "Running: make -C $(impl) dist"; \
-	  $(MAKE) --no-print-directory -C $(impl) dist)
 
 
 #
@@ -350,12 +399,21 @@ $(IMPL_DIST):
 
 docker-build: $(DOCKER_BUILD)
 
-.SECONDEXPANSION:
 $(DOCKER_BUILD):
-	echo "----------------------------------------------"; \
+	@echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  echo "Running: docker build -t $(call impl_to_image,$(impl)) .:"; \
 	  cd $(impl) && docker build -t $(call impl_to_image,$(impl)) .)
+
+#
+# Docker shell rules
+#
+
+$(DOCKER_SHELL):
+	@echo "----------------------------------------------"; \
+	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Running: $(call get_run_prefix,$(impl),stepA,,dockerize) bash"; \
+	  $(call get_run_prefix,$(impl),stepA,,dockerize) bash)
 
 
 #
@@ -364,7 +422,6 @@ $(DOCKER_BUILD):
 
 perf: $(IMPL_PERF)
 
-.SECONDEXPANSION:
 $(IMPL_PERF):
 	@echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
@@ -382,23 +439,20 @@ $(IMPL_PERF):
 # REPL invocation rules
 #
 
-.SECONDEXPANSION:
 $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
 	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)); \
 	    echo 'REPL implementation $(impl), step file: $+'; \
-	    echo 'Running: $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run'; \
-	    $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run;))
+	    echo 'Running: $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run $(RUN_ARGS)'; \
+	    $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run $(RUN_ARGS);))
 
 # Allow repl^IMPL^STEP and repl^IMPL (which starts REPL of stepA)
-.SECONDEXPANSION:
 $(IMPL_REPL): $$@^stepA
 
 #
 # Utility functions
 #
-.SECONDEXPANSION:
 print-%:
 	@echo "$($(*))"
 
@@ -409,15 +463,14 @@ print-%:
 define recur_template
 .PHONY: $(1)
 $(1): $(2)
-.SECONDEXPANSION:
 $(2):
 	@echo "----------------------------------------------"; \
 	$$(foreach impl,$$(word 2,$$(subst ^, ,$$(@))),\
 	  $$(if $$(DOCKERIZE), \
-	    echo "Running: $$(call get_build_prefix,$$(impl))$$(MAKE) --no-print-directory $(1)"; \
-	    $$(call get_build_prefix,$$(impl))$$(MAKE) --no-print-directory $(1), \
-	    echo "Running: $$(MAKE) --no-print-directory -C $$(impl) $(1)"; \
-	    $$(MAKE) --no-print-directory -C $$(impl) $(1)))
+	    echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory $(1)"; \
+	    $$(call get_build_command,$$(impl)) --no-print-directory $(1), \
+	    echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory -C $$(impl) $(1)"; \
+	    $$(call get_build_command,$$(impl)) --no-print-directory -C $$(impl) $(1)))
 endef
 
 recur_impls_ = $(filter-out $(foreach impl,$($(1)_EXCLUDES),$(1)^$(impl)),$(foreach impl,$(IMPLS),$(1)^$(impl)))

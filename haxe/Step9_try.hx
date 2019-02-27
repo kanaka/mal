@@ -232,7 +232,11 @@ class Step9_try {
             } catch (exc:haxe.io.Eof) {
                 Compat.exit(0);
             } catch (exc:Dynamic) {
-                Compat.println(exc);
+                if (Type.getClass(exc) == MalException) {
+                    Compat.println("Error: " + Printer.pr_str(exc.obj, true));
+                } else {
+                    Compat.println("Error: " + exc);
+                };
             }
         }
     }

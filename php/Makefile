@@ -1,7 +1,7 @@
 
 TESTS =
 
-SOURCES_BASE = readline.php types.php reader.php printer.php
+SOURCES_BASE = readline.php types.php reader.php printer.php interop.php
 SOURCES_LISP = env.php core.php stepA_mal.php
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
@@ -17,8 +17,11 @@ mal: mal.php
 	cat $< >> $@
 	chmod +x $@
 
+mal-web.php: mal.php
+	cat $< | ( IFS="NON-MATCHING-IFS"; while read -r line; do if [ "$$line" = "// run mal file" ]; then echo "?>"; cat webrunner.php; echo "<?php"; fi; printf '%s\n' "$$line"; done < "$<" ) > $@
+
 clean:
-	rm -f mal.php mal
+	rm -f mal.php mal mal-web.php
 
 .PHONY: stats tests $(TESTS)
 

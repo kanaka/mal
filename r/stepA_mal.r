@@ -193,7 +193,7 @@ repeat {
     tryCatch({
         cat(rep(line),"\n", sep="")
     }, error=function(err) {
-        cat("Error: ", get_error(err),"\n", sep="")
+        cat("Error: ", .pr_str(get_error(err),TRUE),"\n", sep="")
     })
     # R debug/fatal with tracebacks:
     #cat(rep(line),"\n", sep="")

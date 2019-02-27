@@ -35,7 +35,7 @@ class Step1_read_print {
             } catch (exc:haxe.io.Eof) {
                 Compat.exit(0);
             } catch (exc:Dynamic) {
-                Compat.println(exc);
+                Compat.println("Error: " + exc);
             }
         }
     }

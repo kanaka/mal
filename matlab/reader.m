@@ -2,7 +2,7 @@
 classdef reader
     methods (Static = true)
         function tokens = tokenize(str)
-            re = '[\s,]*(~@|[\[\]{}()''`~^@]|"(?:\\.|[^\\"])*"|;[^\n]*|[^\s\[\]{}(''"`,;)]*)';
+            re = '[\s,]*(~@|[\[\]{}()''`~^@]|"(?:\\.|[^\\"])*"?|;[^\n]*|[^\s\[\]{}(''"`,;)]*)';
             % extract the capture group (to ignore spaces and commas)
             tokens = cellfun(@(x) x(1), regexp(str, re, 'tokens'));
             comments = cellfun(@(x) length(x) > 0 && x(1) == ';', tokens);
@@ -15,10 +15,14 @@ classdef reader
             if not(isempty(regexp(token, '^-?[0-9]+$', 'match')))
                 atm = str2double(token);
             elseif strcmp(token(1), '"')
+                if not(token(end) == '"')
+                    error('expected ''"'', got EOF');
+                end
                 atm = token(2:length(token)-1);
+                atm = strrep(atm, '\\', char(255));
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
-                atm = strrep(atm, '\\', '\');
+                atm = strrep(atm, char(255), '\');
             elseif strcmp(token(1), ':')
                 s = token(2:end);
                 atm = type_utils.keyword(s);
@@ -38,12 +42,12 @@ classdef reader
             seq = {};
             token = rdr.next();
             if not(strcmp(token, start))
-                error(sprintf('expected ''%s''', start));
+                error(sprintf('expected ''%s'', got EOF', start));
             end
             token = rdr.peek();
             while true
                 if eq(token, false)
-                    error(sprintf('expected ''%s''', last));
+                    error(sprintf('expected ''%s'', got EOF', last));
                 end
                 if strcmp(token, last), break, end
                 seq{end+1} = reader.read_form(rdr);

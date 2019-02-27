@@ -56,18 +56,18 @@ function EVAL(ast, env)
     elseif 'if' == a0sym then
         local cond = EVAL(a1, env)
         if cond == types.Nil or cond == false then
-            if a3 then return EVAL(a3, env) else return types.Nil end
+            if #ast > 3 then return EVAL(a3, env) else return types.Nil end
         else
             return EVAL(a2, env)
         end
     elseif 'fn*' == a0sym then
         return function(...)
-            return EVAL(a2, Env:new(env, a1, arg))
+            return EVAL(a2, Env:new(env, a1, table.pack(...)))
         end
     else
         local args = eval_ast(ast, env)
         local f = table.remove(args, 1)
-        return f(unpack(args))
+        return f(table.unpack(args))
     end
 end
 

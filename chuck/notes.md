@@ -1,7 +1,7 @@
 # Step 1
 
 - What if I don't have an OOP language?
-- types.qx could be more promently mentioned...
+- types.qx could be more prominently mentioned...
 - A table with all types and suggested object names would be hugely
   useful
 - Same for a list of all errors and their messages
@@ -146,7 +146,7 @@
   this even related?
 - It would be worth to mention that `with-meta` shall clone its
   argument to avoid one of the more sneaky test failure reasons
-- "The value of this entry should be a mal string containing thename
+- "The value of this entry should be a mal string containing the name
   of the current implementation."
 - "When the REPL starts up (as opposed to when it is called with a
   script and/or arguments), call the rep function with this string to

@@ -7,12 +7,18 @@ General:
       ./core.mal to ./lib directory
 
     - Finish guide.md
+        - mention that identifier names are suggested. some have run
+          into collisions with READ,EVAL,PRINT in case insensitive
+          languages
+        - simplify: "X argument (list element Y)" -> ast[Y]
+        - more clarity about when to peek and poke in read_list and
+          read_form
+        - tokenizer: use first group rather than whole match (to
+          eliminate whitespace/commas)
 
 All Implementations:
     - regular expression matching in runtest
     - add re (use in rep) everywhere and use that (to avoid printing)
-    - per impl tests for step5_tco, or at least a better way of
-      enabling/disabling/tweaking per implementation
     - fix stepA soft failures: lua matlab miniMAL perl racket
 
 Other ideas for All:
@@ -50,14 +56,10 @@ Bash:
 
 C:
     - come up with better way to do 20 vararg code
-    - GC: use http://www.hboehm.info/gc/
 
 C#:
     - accumulates line breaks with mal/clojurewest2014.mal
     - interop: http://www.ckode.dk/programming/eval-in-c-yes-its-possible/
-
-Clojure:
-    - fix "\/" exception in mal/clojurewest2014.mal
 
 CoffeeScript:
     - make target to compile to JS
@@ -72,9 +74,9 @@ Haskell:
     - immediately exits mal/clojurewest2014.mal ("\/" exception)
 
 Java:
+    - build step, don't use mvn in run script
     - Use gradle instead of mvn
         http://blog.paralleluniverse.co/2014/05/01/modern-java/
-    - MAL formatting is a bit off with mal/clojurewest2014.mal
 
 Javascript:
     - interop: adopt techniques from miniMAL
@@ -82,18 +84,12 @@ Javascript:
 Make:
     - allow '_' in make variable names
     - hash-map with space in key string
-    - Fix: make -f stepA_mal.mk ../mal/step6_file.mal
-        (slurp "../tests/incA.mal")
-        (read-string "(+ 2 3)")
     - errors should propagate up from within load-file
-    - GC: expore using "undefined" directive in Make 3.82
+    - GC: explore using "undefine" directive in Make 3.82
 
 Mal:
     - line numbers in errors
     - step5_tco
-
-MATLAB:
-    - Port to support both GNU Octave and MATLAB
 
 miniMAL:
     - figure out why {} literals are "static"/persistent
@@ -101,6 +97,9 @@ miniMAL:
 ObjPascal:
     - verify that GC/reference counting works
     - fix comment by itself error at REPL
+
+plpgsql:
+    - maybe combine wrap.sh and run
 
 Perl:
     - fix metadata on native functions
@@ -110,6 +109,14 @@ Postscript:
     - add negative numbers
     - fix blank line after comments
     - fix command line arg processing (doesn't run file specified)
+
+Powershell:
+    - convert function with "abc_def" to "abc-def"
+    - remove extraneous return statements at end of functions
+    - remove unnecessary semi-colons
+    - use ArrayList instead of Array for performance
+    - new test to test Keys/keys as hash-map key
+    - test *? predicates with nil
 
 R:
     - tracebacks in errors
@@ -124,3 +131,9 @@ Rust:
 Scala
     - readline
     - fix exception when finished running something on command line
+
+VHDL:
+    - combine run_vhdl.sh and run
+
+vimscript:
+    - combine run_vimscript.sh and run

@@ -5,7 +5,7 @@ CREATE SCHEMA reader;
 
 CREATE FUNCTION reader.tokenize(str varchar) RETURNS varchar[] AS $$
 DECLARE
-    re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;]*)';
+    re varchar = E'[[:space:] ,]*(~@|[\\[\\]{}()\'`~@]|"(?:[\\\\].|[^\\\\"])*"?|;[^\n]*|[^\\s \\[\\]{}()\'"`~@,;]*)';
 BEGIN
     RETURN ARRAY(SELECT tok FROM
         (SELECT (regexp_matches(str, re, 'g'))[1] AS tok) AS x
@@ -39,10 +39,13 @@ BEGIN
     ELSIF token ~ '^".*"' THEN  -- string
         -- string
         str := substring(token FROM 2 FOR (char_length(token)-2));
+        str := replace(str, '\\', chr(CAST(x'7f' AS integer)));
         str := replace(str, '\"', '"');
         str := replace(str, '\n', E'\n');
-        str := replace(str, '\\', E'\\');
+        str := replace(str, chr(CAST(x'7f' AS integer)), E'\\');
         result := types._stringv(str);
+    ELSIF token ~ '^".*' THEN  -- unclosed string
+        RAISE EXCEPTION 'expected ''"'', got EOF';
     ELSIF token ~ '^:.*' THEN  -- keyword
         -- keyword
         result := types._keywordv(substring(token FROM 2 FOR (char_length(token)-1)));
@@ -67,12 +70,12 @@ BEGIN
     token := tokens[p];
     p := p + 1;
     IF token <> first THEN
-        RAISE EXCEPTION 'expected ''%''', first;
+        RAISE EXCEPTION 'expected ''%'', got EOF', first;
     END IF;
     items := ARRAY[]::integer[];
     LOOP
         IF p > array_length(tokens, 1) THEN
-            RAISE EXCEPTION 'expected ''%''', last;
+            RAISE EXCEPTION 'expected ''%'', got EOF', last;
         END IF;
         token := tokens[p];
         IF token = last THEN EXIT; END IF;

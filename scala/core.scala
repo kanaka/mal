@@ -31,6 +31,21 @@ object core {
     }
   }
 
+  def fn_Q(a: List[Any]) = {
+    a(0) match {
+      case s: Func => true
+      case s: MalFunction => !s.asInstanceOf[MalFunction].ismacro
+      case _ => false
+    }
+  }
+
+  def macro_Q(a: List[Any]) = {
+    a(0) match {
+      case s: MalFunction => s.asInstanceOf[MalFunction].ismacro
+      case _ => false
+    }
+  }
+
   // number functions
   def _bool_op(a: List[Any], op: (Long, Long) => Boolean) = {
     op(a(0).asInstanceOf[Long],a(1).asInstanceOf[Long])
@@ -38,6 +53,10 @@ object core {
 
   def _num_op(a: List[Any], op: (Long, Long) => Long) = {
     op(a(0).asInstanceOf[Long],a(1).asInstanceOf[Long])
+  }
+
+  def number_Q(a: List[Any]) = {
+    a(0).isInstanceOf[Long] || a(0).isInstanceOf[Double]
   }
 
 
@@ -232,11 +251,14 @@ object core {
     "nil?" -> ((a: List[Any]) => a(0) == null),
     "true?" -> ((a: List[Any]) => a(0) == true),
     "false?" -> ((a: List[Any]) => a(0) == false),
+    "number?" -> number_Q _,
     "string?" -> string_Q _,
     "symbol" -> ((a: List[Any]) => Symbol(a(0).asInstanceOf[String])),
     "symbol?" -> ((a: List[Any]) => a(0).isInstanceOf[Symbol]),
     "keyword" -> keyword _,
     "keyword?" -> keyword_Q _,
+    "fn?" -> fn_Q,
+    "macro?" -> macro_Q,
 
     "pr-str" -> ((a: List[Any]) => _pr_list(a, true, " ")),
     "str" -> ((a: List[Any]) => _pr_list(a, false, "")),

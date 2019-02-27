@@ -1,4 +1,5 @@
 with Ada.Command_Line;
+with Ada.Exceptions;
 with Ada.Text_IO;
 with Envs;
 with Eval_Callback;
@@ -254,8 +255,15 @@ begin
    Init (Repl_Env);
 
    loop
-      Ada.Text_IO.Put ("user> ");
-      exit when Ada.Text_IO.End_Of_File;
-      Ada.Text_IO.Put_Line (Rep (Ada.Text_IO.Get_Line, Repl_Env));
+      begin
+         Ada.Text_IO.Put ("user> ");
+         exit when Ada.Text_IO.End_Of_File;
+         Ada.Text_IO.Put_Line (Rep (Ada.Text_IO.Get_Line, Repl_Env));
+      exception
+         when E : others =>
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               Ada.Exceptions.Exception_Information (E));
+      end;
    end loop;
 end Step3_Env;

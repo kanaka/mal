@@ -480,6 +480,9 @@ BEGIN
     WHEN fname = 'symbol?'     THEN RETURN types.tf(M(a(1)).type_id = 7);
     WHEN fname = 'keyword'     THEN RETURN keyword(M, a(1));
     WHEN fname = 'keyword?'    THEN RETURN types.tf(types.keyword_Q(M, a(1)));
+    WHEN fname = 'number?'     THEN RETURN types.tf(types.number_Q(M, a(1)));
+    WHEN fname = 'fn?'         THEN RETURN types.tf(types.function_Q(M, a(1)));
+    WHEN fname = 'macro?'      THEN RETURN types.tf(types.macro_Q(M, a(1)));
 
     WHEN fname = 'pr-str'      THEN RETURN pr_str(M, H, a);
     WHEN fname = 'str'         THEN RETURN str(M, H, a);
@@ -549,6 +552,9 @@ BEGIN
         'symbol?',
         'keyword',
         'keyword?',
+        'number?',
+        'fn?',
+        'macro?',
 
         'pr-str',
         'str',

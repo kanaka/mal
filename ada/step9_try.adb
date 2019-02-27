@@ -423,6 +423,9 @@ procedure Step9_Try is
          elsif Deref (First_Param).Sym_Type = Sym and then
                Deref_Sym (First_Param).Get_Sym = "try*" then
 
+            if Length (Rest_List) = 1 then
+               return Eval (Car (Rest_List), Env);
+            end if;
             declare
                Res : Mal_Handle;
             begin
@@ -484,14 +487,14 @@ procedure Step9_Try is
 
                      else
 
-                        raise Mal_Exception with "Bind failed in Apply";
+                        raise Runtime_Exception with "Bind failed in Apply";
 
                      end if;
 
                   end;
 
                else  -- neither a Lambda or a Func
-                  raise Mal_Exception;
+                  raise Runtime_Exception with "Deref called on non-Func/Lambda";
                end if;
 
             end;
@@ -579,6 +582,8 @@ begin
    RE ("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ""odd number of forms to cond"")) (cons 'cond (rest (rest xs)))))))");
    RE ("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 
+   -- Command line processing.
+
    Cmd_Args := 0;
    Command_Args := Types.New_List_Mal_Type (Types.List_List);
    Command_List := Types.Deref_List (Command_Args);
@@ -614,7 +619,13 @@ begin
             when E : others =>
                Ada.Text_IO.Put_Line
                  (Ada.Text_IO.Standard_Error,
-                  Ada.Exceptions.Exception_Information (E));
+                  "Error: " & Ada.Exceptions.Exception_Information (E));
+               if Types.Mal_Exception_Value /= Smart_Pointers.Null_Smart_Pointer then
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     Printer.Pr_Str (Types.Mal_Exception_Value));
+                  Types.Mal_Exception_Value := Smart_Pointers.Null_Smart_Pointer;
+               end if;
          end;
       end loop;
    end if;

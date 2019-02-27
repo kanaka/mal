@@ -52,7 +52,7 @@ function EVAL(ast, env)
     else
         local args = eval_ast(ast, env)
         local f = table.remove(args, 1)
-        return f(unpack(args))
+        return f(table.unpack(args))
     end
 end
 

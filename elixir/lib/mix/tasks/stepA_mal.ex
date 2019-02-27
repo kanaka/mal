@@ -124,7 +124,7 @@ defmodule Mix.Tasks.StepAMal do
     Mal.Reader.read_str(input)
   end
 
-  defp eval_bindings([], _env), do: _env
+  defp eval_bindings([], env), do: env
   defp eval_bindings([{:symbol, key}, binding | tail], env) do
     evaluated = eval(binding, env)
     Mal.Env.set(env, key, evaluated)
@@ -178,7 +178,7 @@ defmodule Mix.Tasks.StepAMal do
     end
   end
 
-  defp eval({:list, [], _} = empty_ast, env), do: empty_ast
+  defp eval({:list, [], _} = empty_ast, _env), do: empty_ast
   defp eval({:list, _list, _meta} = ast, env) do
     case macroexpand(ast, env) do
       {:list, list, meta} -> eval_list(list, env, meta)

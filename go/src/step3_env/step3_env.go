@@ -164,15 +164,27 @@ func rep(str string) (MalType, error) {
 
 func main() {
 	repl_env.Set(Symbol{"+"}, func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) + a[1].(int), nil
 	})
 	repl_env.Set(Symbol{"-"}, func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) - a[1].(int), nil
 	})
 	repl_env.Set(Symbol{"*"}, func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) * a[1].(int), nil
 	})
 	repl_env.Set(Symbol{"/"}, func(a []MalType) (MalType, error) {
+		if e := assertArgNum(a, 2); e != nil {
+			return nil, e
+		}
 		return a[0].(int) / a[1].(int), nil
 	})
 
@@ -194,4 +206,11 @@ func main() {
 		}
 		fmt.Printf("%v\n", out)
 	}
+}
+
+func assertArgNum(a []MalType, n int) error {
+	if len(a) != n {
+		return errors.New("wrong number of arguments")
+	}
+	return nil
 }

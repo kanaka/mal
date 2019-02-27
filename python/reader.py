@@ -1,5 +1,5 @@
 import re
-from mal_types import (_symbol, _keyword, _list, _vector, _hash_map, _s2u)
+from mal_types import (_symbol, _keyword, _list, _vector, _hash_map, _s2u, _u)
 
 class Blank(Exception): pass
 
@@ -23,7 +23,7 @@ def tokenize(str):
     return [t for t in re.findall(tre, str) if t[0] != ';']
 
 def _unescape(s):
-    return s.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
+    return s.replace('\\\\', _u('\u029e')).replace('\\"', '"').replace('\\n', '\n').replace(_u('\u029e'), '\\')
 
 def read_atom(reader):
     int_re = re.compile(r"-?[0-9]+$")

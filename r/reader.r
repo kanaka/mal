@@ -21,7 +21,7 @@ Reader.next <- function(rdr) {
 }
 
 tokenize <- function(str) {
-    re <- "[\\s,]*(~@|[\\[\\]\\{\\}\\(\\)'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\\s\\[\\]\\{\\}\\('\"`,;\\)]*)"
+    re <- "[\\s,]*(~@|[\\[\\]\\{\\}\\(\\)'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]\\{\\}\\('\"`,;\\)]*)"
     m <- lapply(regmatches(str, gregexpr(re, str, perl=TRUE)), 
                 function(e) sub("^[\\s,]+", "", e, perl=TRUE))
     res <- list()
@@ -43,10 +43,14 @@ read_atom <- function(rdr) {
     } else if (re_match("^-?[0-9][0-9.]*$", token)) {
         as.double(token)
     } else if (substr(token,1,1) == "\"") {
-        gsub("\\\\\\\\", "\\\\",
+        if (substr(token, nchar(token), nchar(token)) != "\"") {
+            throw("expected '\"', got EOF")
+        }
+        gsub("\x7f", "\\\\",
             gsub("\\\\n", "\n",
                  gsub("\\\\\"", "\"",
-                      substr(token, 2, nchar(token)-1))))
+                      gsub("\\\\\\\\", "\x7f",
+                           substr(token, 2, nchar(token)-1)))))
     } else if (substr(token,1,1) == ":") {
         new.keyword(substring(token,2))
     } else if (token == "nil") {

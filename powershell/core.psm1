@@ -103,11 +103,15 @@ $core_ns = @{
     "nil?"        = { param($a); $a -eq $null };
     "true?"       = { param($a); $a -eq $true };
     "false?"      = { param($a); $a -eq $false };
+    "number?"     = { param($a); $a -is [int32] };
     "string?"     = { param($a); string? $a };
     "symbol"      = Get-Command new-symbol;
     "symbol?"     = { param($a); symbol? $a };
     "keyword"     = Get-Command new-keyword;
     "keyword?"    = { param($a); keyword? $a };
+    "fn?"         = { param($a); (fn? $a) -or ((malfunc? $a) -and
+                                               (-not $a.macro)) };
+    "macro?"      = { param($a); (malfunc? $a) -and $a.macro };
 
     "pr-str"      = { pr_seq $args $true  " " };
     "str"         = { pr_seq $args $false "" };

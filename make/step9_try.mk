@@ -32,7 +32,7 @@ $(strip \
 endef
 
 define IS_MACRO_CALL
-$(if $(call _list?,$(1)),$(call ENV_FIND,$(2),_macro_$($(call _nth,$(1),0)_value)),)
+$(if $(call _list?,$(1)),$(if $(call ENV_FIND,$(2),$($(call _nth,$(1),0)_value)),$(_macro_$(call ENV_GET,$(2),$($(call _nth,$(1),0)_value))),),)
 endef
 
 define MACROEXPAND
@@ -96,7 +96,7 @@ $(if $(__ERROR),,\
       $(foreach a1,$(call _nth,$(1),1),\
         $(foreach a2,$(call _nth,$(1),2),\
           $(foreach res,$(call EVAL,$(a2),$(2)),\
-            $(if $(call ENV_SET,$(2),_macro_$($(a1)_value),true),,)\
+            $(eval _macro_$(res) = true)\
             $(if $(call ENV_SET,$(2),$($(a1)_value),$(res)),$(res),)))),\
     $(if $(call _EQ,macroexpand,$($(a0)_value)),\
       $(call MACROEXPAND,$(call _nth,$(1),1),$(2)),\

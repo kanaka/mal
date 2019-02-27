@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:18.04
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -24,14 +24,11 @@ WORKDIR /mal
 # For building node modules
 RUN apt-get -y install g++
 
-# Add nodesource apt repo config for 0.12 stable
-RUN curl -sL https://deb.nodesource.com/setup_0.12 | bash -
+# Add nodesource apt repo config for 10.x stable
+RUN apt-get -y install gnupg
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
 
 # Install nodejs
 RUN apt-get -y install nodejs
 
-# Link common name
-RUN ln -sf nodejs /usr/bin/node
-
 ENV NPM_CONFIG_CACHE /mal/.npm
-

@@ -144,6 +144,8 @@ public class step3_env {
                 System.out.println(PRINT(RE(repl_env, line)));
             } catch (MalContinue e) {
                 continue;
+            } catch (MalException e) {
+                System.out.println("Error: " + printer._pr_str(e.getValue(), false));
             } catch (MalThrowable t) {
                 System.out.println("Error: " + t.getMessage());
                 continue;

@@ -6,8 +6,8 @@ if [ "$#" -gt 0 ]; then
         args="$args,'$a'"
     done
 fi
-if [ -n "$USE_MATLAB" ] ; then
+if [ "$matlab_MODE" = "matlab" ] ; then
     exec matlab -nodisplay -nosplash -nodesktop -nojvm -r "${STEP:-stepA_mal}($args);quit;"
 else
-    exec octave --no-gui --no-history -q --traditional --eval "${STEP:-stepA_mal}($args);quit;"
+    exec octave -q --no-gui --no-history --eval "${STEP:-stepA_mal}($args);quit;"
 fi

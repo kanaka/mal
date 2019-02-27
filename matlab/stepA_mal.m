@@ -142,7 +142,7 @@ function ret = EVAL(ast, env)
                 ret = EVAL(ast.get(3).get(3), catch_env);
                 return;
             else
-                throw(e);
+                rethrow(e);
             end
         end
     case 'do'

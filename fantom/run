@@ -1,0 +1,4 @@
+#!/bin/bash
+export FAN_ENV=util::PathEnv
+export FAN_ENV_PATH="$(dirname $0)"
+exec fan ${STEP:-stepA_mal} "$@"

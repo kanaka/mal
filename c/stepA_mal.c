@@ -66,7 +66,7 @@ int is_macro_call(MalVal *ast, Env *env) {
             env_find(env, a0) &&
             env_get(env, a0)->ismacro;
 }
-    
+
 MalVal *macroexpand(MalVal *ast, Env *env) {
     if (!ast || mal_error) return NULL;
     while (is_macro_call(ast, env)) {
@@ -194,8 +194,11 @@ MalVal *EVAL(MalVal *ast, Env *env) {
                strcmp("try*", a0->val.string) == 0) {
         //g_print("eval apply try*\n");
         MalVal *a1 = _nth(ast, 1);
-        MalVal *a2 = _nth(ast, 2);
         MalVal *res = EVAL(a1, env);
+        if (ast->val.array->len < 3) {
+            return &mal_nil;
+        }
+        MalVal *a2 = _nth(ast, 2);
         if (!mal_error) { return res; }
         MalVal *a20 = _nth(a2, 0);
         if (strcmp("catch*", a20->val.string) == 0) {
@@ -268,9 +271,6 @@ MalVal *EVAL(MalVal *ast, Env *env) {
 // print
 char *PRINT(MalVal *exp) {
     if (mal_error) {
-        fprintf(stderr, "Error: %s\n", mal_error->val.string);
-        malval_free(mal_error);
-        mal_error = NULL;
         return NULL;
     }
     return _pr_str(exp,1);
@@ -292,6 +292,7 @@ MalVal *RE(Env *env, char *prompt, char *str) {
 
 // Setup the initial REPL environment
 Env *repl_env;
+
 MalVal *do_eval(MalVal *ast) { return EVAL(ast, repl_env); }
 
 void init_repl_env(int argc, char *argv[]) {
@@ -337,7 +338,7 @@ int main(int argc, char *argv[])
     // Set the initial prompt and environment
     snprintf(prompt, sizeof(prompt), "user> ");
     init_repl_env(argc, argv);
- 
+
     if (argc > 1) {
         char *cmd = g_strdup_printf("(load-file \"%s\")", argv[1]);
         RE(repl_env, "", cmd);
@@ -353,7 +354,11 @@ int main(int argc, char *argv[])
         }
         output = PRINT(exp);
 
-        if (output) { 
+        if (mal_error) {
+            fprintf(stderr, "Error: %s\n", _pr_str(mal_error,1));
+            malval_free(mal_error);
+            mal_error = NULL;
+        } else if (output) {
             puts(output);
             MAL_GC_FREE(output);        // Free output string
         }

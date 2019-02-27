@@ -1,0 +1,109 @@
+Global Unique:
+
+Z%  : boxed memory values
+Z1  : Z% size
+Z2  : S$ size
+Z3  : stack start address (cbm) or X% size (qbasic)
+Z4  : release stack start address (cbm) or Y% size (qbasic)
+ZI  : start of unused memory (index into Z%)
+ZK  : start of free list (index into Z%)
+ZT  : top of memory after repl env allocations
+
+S$  : string memory storage
+S   : next free index in S$
+
+X%  : logic/call stack (Z% indexes)
+X   : top element of X% stack
+
+Y%  : pending release stack [index into Z%, eval level]
+Y   : top element of Y% stack
+
+D   : root repl environment
+
+BT  : begin time (TI)
+ER  : error type (-2: none, -1: string, >=0: object)
+E$  : error string (ER=-1)
+EZ  : READLINE EOF return, READ_FILE EOF temp
+
+LV  : EVAL stack call level/depth
+
+RI  : reader current string position
+RJ  : READ_TOKEN current character index
+
+
+Calling arguments/temporaries:
+
+A   : common call argument (especially EVAL, EVAL_AST)
+A$  : common call argument (READLINE, reader, string temp, key value)
+B   : common call argument
+B$  : STRING arg (HASHMAP_GET temp), PR_STR_SEQ separator
+    : INIT_CORE_SET_FUNCTION, ENV_SET_S, ASSOC1_S
+C   : common call argument, DO_TCO_FUNCTION temp in DO_APPLY
+E   : environment (EVAL, EVAL_AST)
+F   : function
+H   : hash map
+K   : hash map key (Z% index)
+L   : ALLOC* Z%(R,1) default
+M   : ALLOC* Z%(R+1,0) default
+N   : ALLOC* Z%(R+1,1) default
+R   : common return value
+R$  : common string return value
+T   : type arg, common temp
+Q   : PUSH*, POP*, PEEK* return value (and PEEK_Q_Q call arg)
+
+AR  : APPLY, DO_*_FUNCTION arg list
+AY  : RELEASE/FREE arg
+AZ  : PR_STR arg
+P1  : PR_MEMORY*, PR_OBJECT, CHECK_FREE_LIST start
+P2  : PR_MEMORY*, PR_OBJECT, CHECK_FREE_LIST end
+P3  : PR_OBJECT, PR_MEMORY_VALUE
+R1  : REP, RE - MAL_READ result temp
+R2  : REP, RE - EVAL result temp
+R3  : HASHMAP_GET, DO_HASH_MAP, DO_KEYS_VALS temp and return value
+R4  : ENV_FIND temp and return value
+R6  : SLICE return value (last element)
+SZ  : size argument to ALLOC
+S1$ : REPLACE needle
+S2$ : REPLACE replacement
+
+
+Other temporaries:
+
+A0  : EVAL ast elements
+A1  : EVAL ast elements, DO_FUNCTION temp
+A2  : EVAL ast elements, DO_FUNCTION temp
+A3  : EVAL ast elements
+B1  : DO_FUNCTION temp
+
+CZ  : DO_CONCAT stack position
+ED  : EQUAL_Q recursion depth counter
+RD  : PR_OBJECT recursion depth
+SD  : READ_STR sequence read recursion depth
+
+C$  : READ_TOKEN, SKIP_SPACES, SKIP_TO_EOL current character
+D$  : READ_TOKEN/READ_FILE_CHAR temp
+G   : function value ON GOTO switch flag, EVAL_AST changed flag
+I   : STRING, REPLACE, SLICE, PR_MEMORY, PR_OBJECT, PR_MEMORY_VALUE
+J   : REPLACE, PR_MEMORY_VALUE
+U   : ALLOC, RELEASE, PR_STR temp
+V   : RELEASE, PR_STR_SEQ temp
+W   : SLICE, LAST, QUASIQUOTE, DO_HASH_MAP, DO_KEYS_VALS, step2-3 EVAL temp
+P   : PR_MEMORY_SUMMARY_SMALL
+RC  : RELEASE remaining number of elements to release
+RF  : reader reading from file flag
+S1  : READ_TOKEN in a string?
+S2  : READ_TOKEN escaped?
+T$  : READ_* current token string
+T1  : EQUAL_Q, PR_STR, DO_KEYS_VALS temp
+T2  : EQUAL_Q, DO_KEY_VALS, HASH_MAP_GET
+T3$ : REPLACE temp
+
+
+Unused:
+
+O
+
+
+Counting number of times each variable is assigned:
+	sed 's/:/\n /g' readline.in.bas types.in.bas reader.in.bas printer.in.bas env.in.bas core.in.bas stepA_mal.in.bas | grep "[A-Z][A-Z0-9]*[%$]*=" | sed 's/.*[^A-Z]\([A-Z][A-Z0-9]*[%$]*\)=.*/\1/g' | sort | uniq -c | sort -n
+

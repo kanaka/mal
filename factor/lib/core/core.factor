@@ -3,7 +3,7 @@
 USING: accessors arrays assocs combinators
 combinators.short-circuit fry grouping hash-sets hashtables io
 io.encodings.utf8 io.files kernel lists lib.env lib.printer
-lib.reader lib.types math namespaces readline sequences sets
+lib.reader lib.types math namespaces quotations readline sequences sets
 strings system vectors ;
 IN: lib.core
 
@@ -50,6 +50,9 @@ CONSTANT: ns H{
     { "string?" [ first string? ] }
     { "keyword" [ first <malkeyword> ] }
     { "keyword?" [ first malkeyword? ] }
+    { "number?" [ first number? ] }
+    { "fn?" [ first { [ callable? ] [ { [ malfn? ] [ macro?>> not ] } 1&& ] } 1|| ] }
+    { "macro?" [ first { [ malfn? ] [ macro?>> ] } 1&& ] }
     { "vector" [ >vector ] }
     { "vector?" [ first vector? ] }
     { "hash-map" [ 2 group parse-hashtable ] }

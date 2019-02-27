@@ -103,6 +103,6 @@ while line = _readline("user> ")
         puts REP[line]
     rescue Exception => e
         puts "Error: #{e}" 
-        puts "\t#{e.backtrace.join("\n\t")}"
+        puts "\t#{e.backtrace[0..100].join("\n\t")}"
     end
 end

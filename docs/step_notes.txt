@@ -379,7 +379,7 @@ Step Notes:
             - Now self-hosting!
 
 
-- Extra defintions needed for self-hosting
+- Extra definitions needed for self-hosting
     - core module:
         - symbol?, sequential? (if not already)
         - vector, vector?

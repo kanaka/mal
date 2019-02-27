@@ -25,10 +25,10 @@
   (list
    (list
     (title2 " __  __    _    _")
-    (title2 "|  \/  |  / \  | |")
-    (title2 "| |\/| | / _ \ | | ")
-    (title2 "| |  | |/ ___ \| |___ ")
-    (title2 "|_|  |_/_/   \_\_____|"))
+    (title2 "|  \\/  |  / \\  | |")
+    (title2 "| |\\/| | / _ \\ | | ")
+    (title2 "| |  | |/ ___ \\| |___ ")
+    (title2 "|_|  |_/_/   \\_\\_____|"))
    (list
     (title "gherkin")
     "- a lisp1 written in bash4")
@@ -84,7 +84,7 @@
     "- performance"
     "- namespaces"
     "- keywords"
-    "- GC (in bash, make, C implmentations)"
+    "- GC (in bash, make, C implementations)"
     "- lots of other things")
    (list
     (title "why?")

@@ -17,11 +17,11 @@
         (srfi srfi-1) (ice-9 receive) (env) (core) (types))
 
 (define *toplevel*
-  (receive (b e) (unzip2 core.ns) 
+  (receive (b e) (unzip2 core.ns)
     (make-Env #:binds b #:exprs e)))
 
-(define (READ)
-  (read_str (_readline "user> ")))
+(define (READ str)
+  (read_str str))
 
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
@@ -31,16 +31,10 @@
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
-     (hash-for-each (lambda (k v) (hash-set! ht k (_eval v))) ht)
-     ht)
+     ;; NOTE: we must allocate a new hashmap here to avoid any side-effects, or
+     ;;       there'll be strange bugs!!!
+     (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
     (else ast)))
-
-(define (eval_func ast env)
-  (define expr (eval_ast ast env))
-  (match expr
-    (((? procedure? proc) args ...)
-     (apply proc args))
-    (else (throw 'mal-error (format #f "'~a' not found" (car expr))))))
 
 (define (eval_seq ast env)
   (cond
@@ -51,15 +45,16 @@
     (eval_seq (cdr ast) env))))
 
 (define (EVAL ast env)
-  (define (->list kvs) ((if (vector? kvs) vector->list identity) kvs))
   (define (%unzip2 kvs)
     (let lp((next kvs) (k '()) (v '()))
       (cond
        ;; NOTE: reverse is very important here!
        ((null? next) (values (reverse k) (reverse v)))
-       ((null? (cdr next)) (throw 'mal-error "let*: Invalid binding form" kvs)) 
+       ((null? (cdr next))
+        (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (match ast
+    ((? non-list?) (eval_ast ast env))
     (() ast)
     (('def! k v) ((env 'set) k (EVAL v env)))
     (('let* kvs body)
@@ -68,19 +63,22 @@
        (receive (keys vals) (%unzip2 (->list kvs))
          (for-each setter keys vals))
        (EVAL body new-env)))
-    (('do rest ...) (eval_seq rest env))
+    (('do rest ...)
+     (eval_seq rest env))
     (('if cnd thn els ...)
      (cond
       ((and (not (null? els)) (not (null? (cdr els))))
        ;; Invalid `if' form
-       (throw 'mal-error "failed to match any pattern in form " ast))
+       (throw 'mal-error
+              (format #f "if: failed to match any pattern in form '~a'" ast)))
       ((cond-true? (EVAL cnd env)) (EVAL thn env))
       (else (if (null? els) nil (EVAL (car els) env)))))
     (('fn* params body ...) ; function definition
      (lambda args
        (eval_seq body (make-Env #:outer env #:binds (->list params) #:exprs args))))
-    ((? list?) (eval_func ast env)) ; function calling
-    (else (eval_ast ast env))))
+    (else
+      (let ((el (map (lambda (x) (EVAL x env)) ast)))
+        (apply (car el) (cdr el))))))
 
 (define (PRINT exp)
   (and (not (eof-object? exp))
@@ -91,11 +89,14 @@
 
 (define (REPL)
   (LOOP
-   (catch 'mal-error
-          (lambda () (PRINT (EVAL (READ) *toplevel*)))
-          (lambda (k . e)
-            (if (string=? (car e) "blank line")
-                (display "")
-                (format #t "Error: ~a~%" (car e)))))))
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (catch 'mal-error
+                (lambda () (PRINT (EVAL (READ line) *toplevel*)))
+                (lambda (k . e)
+                  (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
 
 (REPL)

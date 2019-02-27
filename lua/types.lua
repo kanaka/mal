@@ -94,6 +94,11 @@ function M._nil_Q(obj)
     return obj == Nil
 end
 
+-- Numbers
+function M._number_Q(obj)
+    return type(obj) == "number"
+end
+
 -- Strings
 function M._string_Q(obj)
     return type(obj) == "string"
@@ -156,18 +161,20 @@ function M.HashMap:new(val)
     return setmetatable(newObj, self)
 end
 function M.hash_map(...)
-    return M._assoc_BANG(M.HashMap:new(), unpack(arg))
+    return M._assoc_BANG(M.HashMap:new(), ...)
 end
 function M._hash_map_Q(obj)
     return utils.instanceOf(obj, M.HashMap)
 end
 function M._assoc_BANG(hm, ...)
+    local arg = table.pack(...)
     for i = 1, #arg, 2 do
         hm[arg[i]] = arg[i+1]
     end
     return hm
 end
 function M._dissoc_BANG(hm, ...)
+    local arg = table.pack(...)
     for i = 1, #arg do
         hm[arg[i]] = nil
     end
@@ -185,6 +192,12 @@ function M.MalFunc:new(fn, ast, env, params)
 end
 function M._malfunc_Q(obj)
     return utils.instanceOf(obj, M.MalFunc)
+end
+function M._fn_Q(obj)
+    return type(obj) == "function" or (M._malfunc_Q(obj) and not obj.ismacro)
+end
+function M._macro_Q(obj)
+    return M._malfunc_Q(obj) and obj.ismacro
 end
 
 -- Atoms

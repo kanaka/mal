@@ -1,4 +1,4 @@
-FROM ubuntu:wily
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -27,17 +27,18 @@ RUN apt-get -y install clang-3.6 cmake pkg-config \
     libbsd-dev libedit-dev libxml2-dev libsqlite3-dev \
     swig libpython-dev libncurses5-dev
 
-ENV SWIFT_PREFIX swift-3.0-PREVIEW-3
-ENV SWIFT_RELEASE ${SWIFT_PREFIX}-ubuntu15.10
+# TODO: better way to do this?
+RUN ln -sf /usr/lib/llvm-3.6/bin/clang++ /usr/bin/clang++
+RUN ln -sf /usr/lib/llvm-3.6/bin/clang /usr/bin/clang
+
+ENV SWIFT_PREFIX swift-3.0.1-PREVIEW-3
+ENV SWIFT_RELEASE ${SWIFT_PREFIX}-ubuntu16.04
 
 RUN cd /opt && \
-    curl -O https://swift.org/builds/swift-3.0-preview-3/ubuntu1510/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
+    curl -O https://swift.org/builds/swift-3.0.1-preview-3/ubuntu1604/${SWIFT_PREFIX}/${SWIFT_RELEASE}.tar.gz && \
     tar xvzf ${SWIFT_RELEASE}.tar.gz && \
     rm ${SWIFT_RELEASE}.tar.gz
 
 ENV PATH /opt/${SWIFT_RELEASE}/usr/bin/:$PATH
 
-# TODO: better way to do this? And move up.
-RUN ln -sf /usr/lib/llvm-3.6/bin/clang++ /usr/bin/clang++
-RUN ln -sf /usr/lib/llvm-3.6/bin/clang /usr/bin/clang
 

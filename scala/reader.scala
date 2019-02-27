@@ -19,14 +19,18 @@ object reader {
   }
 
   def tokenize(str: String): Array[String] = {
-    val re = """[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)""".r
+    val re = """[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)""".r
     re.findAllMatchIn(str).map{ _.group(1) }
                           .filter{ s => s != "" && s(0) != ';' }
                           .toArray
   }
 
   def parse_str(s: String): String = {
-    s.replace("\\\"", "\"").replace("\\n", "\n").replace("\\\\", "\\")
+    // TODO: use re.replaceAllIn instead for single pass
+    s.replace("\\\\", "\u029e")
+     .replace("\\\"", "\"")
+     .replace("\\n", "\n")
+     .replace("\u029e", "\\")
   }
 
   def read_atom(rdr: Reader): Any = {
@@ -34,11 +38,14 @@ object reader {
     val re_int = """^(-?[0-9]+)$""".r
     val re_flt = """^(-?[0-9][0-9.]*)$""".r
     val re_str =  """^"(.*)"$""".r
+    val re_str_bad =  """^"(.*)$""".r
     val re_key = """^:(.*)$""".r
     return token match {
       case re_int(i) => i.toLong      // integer
       case re_flt(f) => f.toDouble    // float
       case re_str(s) => parse_str(s)  // string
+      case re_str_bad(s) =>
+        throw new Exception("expected '\"', got EOF")
       case re_key(k) => "\u029e" + k  // keyword
       case "nil"     => null
       case "true"    => true

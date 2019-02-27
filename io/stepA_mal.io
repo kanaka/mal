@@ -92,6 +92,7 @@ EVAL := method(ast, env,
                 "macroexpand",
                     return(macroexpand(ast at(1), env)),
                 "try*",
+                    if(ast at(2) == nil, return(EVAL(ast at(1), env)))
                     e := try(result := EVAL(ast at(1), env))
                     e catch(Exception,
                         exc := if(e type == "MalException", e val, e error)
@@ -153,6 +154,9 @@ loop(
     if(line isEmpty, continue)
     e := try(REP(line) println)
     e catch(Exception,
-        ("Error: " .. (e error)) println
+        if(e type == "MalException",
+            ("Error: " .. ((e val) malPrint(true))) println,
+            ("Error: " .. (e error)) println
+        )
     )
 )

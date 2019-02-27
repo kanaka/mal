@@ -91,7 +91,7 @@ package body Types.Vector is
    overriding function Nth (L : Vector_Mal_Type; N : Natural) return Mal_Handle is
    begin
       if N >= L.Length then
-         raise Mal_Exception with "Nth (vector): Index out of range";
+         raise Runtime_Exception with "Nth (vector): Index out of range";
       else
          return Mal_Vectors.Element (L.Vec, Vec_Index (N));
       end if;

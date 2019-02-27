@@ -71,7 +71,11 @@ M: callable apply call( x -- y ) ;
 : PRINT ( maltype -- str ) pr-str ;
 
 : REP ( str -- str )
-    [ READ repl-env get EVAL ] [ nip ] recover PRINT ;
+    [
+        READ repl-env get EVAL PRINT
+    ] [
+        nip pr-str "Error: " swap append
+    ] recover ;
 
 : REPL ( -- )
     [

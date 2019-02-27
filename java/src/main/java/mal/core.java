@@ -49,6 +49,11 @@ public class core {
             return args.nth(0) == False ? True : False;
         }
     };
+    static MalFunction number_Q = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            return args.nth(0) instanceof MalInteger ? True : False;
+        }
+    };
     static MalFunction string_Q = new MalFunction() {
         public MalVal apply(MalList args) throws MalThrowable {
             if (!(args.nth(0) instanceof MalString)) { return False; }
@@ -85,6 +90,18 @@ public class core {
             String s = ((MalString)args.nth(0)).getValue();
             if (s.length() == 0 || s.charAt(0) != '\u029e') { return False; }
             return True;
+        }
+    };
+    static MalFunction fn_Q = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            if (!(args.nth(0) instanceof MalFunction)) { return False; }
+            return ((MalFunction)args.nth(0)).isMacro() ? False : True;
+        }
+    };
+    static MalFunction macro_Q = new MalFunction() {
+        public MalVal apply(MalList args) throws MalThrowable {
+            if (!(args.nth(0) instanceof MalFunction)) { return False; }
+            return ((MalFunction)args.nth(0)).isMacro() ? True : False;
         }
     };
 
@@ -545,11 +562,14 @@ public class core {
         .put("nil?",      nil_Q)
         .put("true?",     true_Q)
         .put("false?",    false_Q)
+        .put("number?",   number_Q)
         .put("string?",   string_Q)
         .put("symbol",    symbol)
         .put("symbol?",   symbol_Q)
         .put("keyword",   keyword)
         .put("keyword?",  keyword_Q)
+        .put("fn?",       fn_Q)
+        .put("macro?",    macro_Q)
 
         .put("pr-str",    pr_str)
         .put("str",       str)

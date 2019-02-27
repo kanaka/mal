@@ -112,9 +112,10 @@ public class String
     fun static string parse(string input)
     {
         slice(input, 1, input.length() - 1) => string output;
+        replaceAll(output, "\\\\", "\177") => output;
         replaceAll(output, "\\\"", "\"") => output;
         replaceAll(output, "\\n", "\n") => output;
-        replaceAll(output, "\\\\", "\\") => output;
+        replaceAll(output, "\177", "\\") => output;
         return output;
     }
 

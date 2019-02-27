@@ -30,7 +30,7 @@ class Reader
   def read_sequence(init, open, close)
     token = self.next
     parse_error "expected '#{open}', got EOF" unless token
-    parse_error "expected '#{open}', got #{token}" unless  token[0] == open
+    parse_error "expected '#{open}', got #{token}" unless token[0] == open
 
     loop do
       token = peek
@@ -81,11 +81,13 @@ class Reader
     when token == "true"    then true
     when token == "false"   then false
     when token == "nil"     then nil
-    when token[0] == '"'    then token[1..-2].gsub(/\\"/, "\"")
-                                             .gsub(/\\n/, "\n")
-                                             .gsub(/\\\\/, "\\")
-    when token[0] == ':'    then "\u029e#{token[1..-1]}"
-    else                         Mal::Symbol.new token
+    when token[0] == '"'
+      parse_error "expected '\"', got EOF" if token[-1] != '"'
+      token[1..-2].gsub(/\\(.)/, {"\\\"" => "\"",
+                                  "\\n"  => "\n",
+                                  "\\\\" => "\\"})
+    when token[0] == ':' then "\u029e#{token[1..-1]}"
+    else                      Mal::Symbol.new token
     end
   end
 
@@ -118,12 +120,11 @@ class Reader
     else read_atom
     end
   end
-
 end
 
 def tokenize(str)
-  regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
-  str.scan(regex).map{|m| m[1]}.reject(&.empty?)
+  regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/
+  str.scan(regex).map { |m| m[1] }.reject(&.empty?)
 end
 
 def read_str(str)
@@ -136,4 +137,3 @@ def read_str(str)
     end
   end
 end
-

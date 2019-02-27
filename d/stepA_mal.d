@@ -317,6 +317,10 @@ void main(string[] args)
         {
             writeln(rep(line, repl_env));
         }
+        catch (MalException e)
+        {
+            writeln("Error: ", pr_str(e.data));
+        }
         catch (Exception e)
         {
             writeln("Error: ", e.msg);

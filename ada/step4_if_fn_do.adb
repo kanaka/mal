@@ -248,7 +248,6 @@ procedure Step4_If_Fn_Do is
       return Printer.Pr_Str (Param);
    end Print;
 
-
    function Rep (Param : String; Env : Envs.Env_Handle) return String is
       AST, Evaluated_AST : Types.Mal_Handle;
    begin
@@ -312,7 +311,13 @@ begin
          when E : others =>
             Ada.Text_IO.Put_Line
               (Ada.Text_IO.Standard_Error,
-               Ada.Exceptions.Exception_Information (E));
+               "Error: " & Ada.Exceptions.Exception_Information (E));
+            if Types.Mal_Exception_Value /= Smart_Pointers.Null_Smart_Pointer then
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error,
+                  Printer.Pr_Str (Types.Mal_Exception_Value));
+               Types.Mal_Exception_Value := Smart_Pointers.Null_Smart_Pointer;
+            end if;
       end;
    end loop;
 end Step4_If_Fn_Do;

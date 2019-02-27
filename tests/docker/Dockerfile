@@ -1,3 +1,6 @@
+# WARNING: This file is deprecated. Each implementation now has its
+# own Dockerfile.
+
 FROM ubuntu:utopic
 MAINTAINER Joel Martin <github@martintribe.org>
 
@@ -116,10 +119,10 @@ RUN luarocks install linenoise
 RUN npm install -g minimal-lisp
 
 # Nim
-RUN cd /tmp && wget http://nim-lang.org/download/nim-0.11.0.tar.xz \
-    && tar xvJf /tmp/nim-0.11.0.tar.xz && cd nim-0.11.0 \
+RUN cd /tmp && wget http://nim-lang.org/download/nim-0.17.0.tar.xz \
+    && tar xvJf /tmp/nim-0.17.0.tar.xz && cd nim-0.17.0 \
     && make && sh install.sh /usr/local/bin \
-    && rm -r /tmp/nim-0.11.0
+    && rm -r /tmp/nim-0.17.0
 
 # OCaml
 RUN apt-get -y install ocaml-batteries-included

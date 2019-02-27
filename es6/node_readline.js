@@ -4,7 +4,7 @@ var RL_LIB = "libreadline";  // NOTE: libreadline is GPL
 
 var HISTORY_FILE = require('path').join(process.env.HOME, '.mal-history');
 
-var ffi = require('ffi'),
+var ffi = require('ffi-napi'),
     fs = require('fs');
 
 var rllib = ffi.Library(RL_LIB, {
@@ -13,7 +13,7 @@ var rllib = ffi.Library(RL_LIB, {
 
 var rl_history_loaded = false;
 
-export function readline(prompt) {
+function readline(prompt) {
     prompt = prompt || "user> ";
 
     if (!rl_history_loaded) {
@@ -41,3 +41,6 @@ export function readline(prompt) {
 
     return line;
 };
+
+//exports.readline = readline
+module.exports = {readline: readline}

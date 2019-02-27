@@ -49,6 +49,23 @@ to mal_keyword_q :a
 output bool_to_mal ((obj_type :a) = "keyword)
 end
 
+to mal_number_q :a
+output bool_to_mal ((obj_type :a) = "number)
+end
+
+to mal_fn_q :a
+case obj_type :a [
+  [[nativefn] output true_new ]
+  [[fn]       output bool_to_mal not fn_is_macro :a]
+  [else       output false_new ]
+]
+end
+
+to mal_macro_q :a
+if ((obj_type :a) = "fn) [ output bool_to_mal fn_is_macro :a ]
+output false_new
+end
+
 to mal_pr_str [:args]
 output obj_new "string pr_seq :args "true " " :space_char
 end
@@ -355,6 +372,9 @@ make "core_ns [
   [[symbol symbol?]     [nativefn mal_symbol_q]]
   [[symbol keyword]     [nativefn mal_keyword]]
   [[symbol keyword?]    [nativefn mal_keyword_q]]
+  [[symbol number?]     [nativefn mal_number_q]]
+  [[symbol fn?]         [nativefn mal_fn_q]]
+  [[symbol macro?]      [nativefn mal_macro_q]]
 
   [[symbol pr-str]      [nativefn mal_pr_str]]
   [[symbol str]         [nativefn mal_str]]

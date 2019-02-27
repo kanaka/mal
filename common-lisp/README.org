@@ -1,0 +1,100 @@
+* Implementation of MAL in Common Lisp
+
+** Introduction
+
+This is a portable implementation of MAL in Common Lisp. It has been tested to
+work with following Common Lisp implementations
+
+- Steel Bank Common Lisp [[http://sbcl.org/]]
+- Clozure Common Lisp [[http://ccl.clozure.com/]]
+- CMU Common Lisp [[https://www.cons.org/cmucl/]]
+- GNU CLISP [[http://www.clisp.org/]]
+- Embeddable Common Lisp [[https://common-lisp.net/project/ecl/]]
+- ManKai Common Lisp https://common-lisp.net/project/mkcl/
+- Allegro CL [[http://franz.com/products/allegro-common-lisp/]]
+- Armed Bear Common Lisp [[http://abcl.org/]]
+
+[[http://www.cliki.net/cl-launch][cl-launch]] to build executable/wrapper scripts for most of the above implementations.
+
+** Dependencies
+
+- cl-launch
+  For building command line executable scripts. See [[http://www.cliki.net/cl-launch][cl-launch]]
+
+- quicklisp
+  For installing dependencies. See [[https://www.quicklisp.org/beta/][quicklisp]]
+
+- readline
+  For readline integration. You can install it on Ubuntu using apt the package
+  is ~libreadline-dev~. If you wish to run the implementation using Allegro CL,
+  you will also have to install the 32 bit version of readline
+  (~lib32readline-dev~ on Ubuntu)
+
+- (Optional) asdf
+  This is needed if you want to run the implementation using GNU CLISP, since
+  GNU CLISP does not ship with ~asdf~ and ~cl-launch~ depends on it. You can
+  install it on Ubuntu using apt the package is ~cl-asdf~
+
+** Running using different implementations
+
+By default the MAL is built using ~sbcl~, you can control this using ~LISP~
+environment variable. The variable should be set to the cl-launch "nickname" for
+implementation. The nicknames that work currently are
+
+|------------------------+----------|
+| Implementation         | Nickname |
+|------------------------+----------|
+| Steel Bank Common Lisp | sbcl     |
+| Clozure Common Lisp    | ccl      |
+| CMU Common Lisp        | cmucl    |
+| GNU CLISP              | clisp    |
+| Embeddable Common Lisp | ecl      |
+| ManKai Common Lisp     | mkcl     |
+| Allegro CL             | allegro  |
+| Armed Bear Common Lisp | abcl     |
+|------------------------+----------|
+
+For example to build with GNU CLISP, you need to do the following
+
+#+BEGIN_SRC sh
+  cd common-lisp ; LISP=clisp make
+#+END_SRC
+
+You can control the implementation binary used for the build using environment
+variables.  For a given implementation nickname, the environment variable will
+be the capitalization of the given nickname.
+
+|------------------------+-------------|
+| Implementation         | Binary Path |
+|------------------------+-------------|
+| Steel Bank Common Lisp | SBCL        |
+| Clozure Common Lisp    | CCL         |
+| CMU Common Lisp        | CMUCL       |
+| GNU CLISP              | CLISP       |
+| Embeddable Common Lisp | ECL         |
+| ManKai Common Lisp     | MKCL        |
+| Allegro CL             | ALLEGRO     |
+| Armed Bear Common Lisp | ABCL        |
+|------------------------+-------------|
+
+For example to build MAL with Clozure CL installed in
+~\~/.roswell/impls/x86-64/linux/ccl-bin/1.11/lx86cl64~, you need to do the
+following
+
+#+BEGIN_SRC sh
+  cd common-lisp ; LISP=ccl CCL=~/.roswell/impls/x86-64/linux/ccl-bin/1.11/lx86cl64 make
+#+END_SRC
+
+You can use the variables ~*cl-implementation*~ and ~*cl-version*~ can be used
+to in MAL REPL to check the Common Lisp implementation and the version used for
+building it.
+
+** Interop
+
+There is some basic interop in the form ~cl-eval~ which takes a string and
+evaluates it as Common Lisp code, the result is returned in form of a MAL value,
+as such you are limited to code that produces values that have MAL counterparts.
+
+** Known Issues
+   ABCL takes a long to boot as such it needs to be run with ~TEST_OPTS~ set to
+   ~--start-timeout 120~

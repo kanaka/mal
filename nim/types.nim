@@ -64,7 +64,7 @@ proc hash_map*(xs: varargs[MalType]): MalType {.procvar.} =
     else: xs[i].str
     result.hash_map[s] = xs[i+1]
 
-proc macro_q*(x: MalType): bool =
+proc fun_is_macro*(x: MalType): bool =
   if x.kind == Fun: result = x.is_macro
   elif x.kind == MalFun: result = x.malfun.is_macro
   else: raise newException(ValueError, "no function")
@@ -123,6 +123,15 @@ proc keyword*(xs: varargs[MalType]): MalType {.procvar.} =
 
 proc keyword_q*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj(xs[0].kind == String and xs[0].str[0] == '\xff')
+
+proc number_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj xs[0].kind == Number
+
+proc fn_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj((xs[0].kind == MalFun or xs[0].kind == Fun) and not xs[0].fun_is_macro)
+
+proc macro_q*(xs: varargs[MalType]): MalType {.procvar.} =
+  boolObj((xs[0].kind == MalFun or xs[0].kind == Fun) and xs[0].fun_is_macro)
 
 proc atom*(xs: varargs[MalType]): MalType {.procvar.} =
   atom(xs[0])

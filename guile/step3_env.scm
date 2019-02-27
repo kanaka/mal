@@ -26,8 +26,8 @@
   (receive (b e) (unzip2 *primitives*) 
     (make-Env #:binds b #:exprs e)))
 
-(define (READ)
-  (read_str (_readline "user> ")))
+(define (READ str)
+  (read_str str))
 
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
@@ -36,16 +36,10 @@
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
     ((? hash-table? ht)
-     (hash-for-each (lambda (k v) (hash-set! ht k (_eval v))) ht)
-     ht)
+     ;; NOTE: we must allocate a new hashmap here to avoid any side-effects, or
+     ;;       there'll be strange bugs!!!
+     (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
     (else ast)))
-
-(define (eval_func ast env)
-  (define expr (eval_ast ast env))
-  (match expr
-    (((? procedure? proc) args ...)
-     (apply proc args))
-    (else (throw 'mal-error (format #f "'~a' not found" (car expr))))))
 
 (define (EVAL ast env)
   (define (->list kvs) ((if (vector? kvs) vector->list identity) kvs))
@@ -54,7 +48,8 @@
       (cond
        ;; NOTE: reverse is very important here!
        ((null? next) (values (reverse k) (reverse v)))
-       ((null? (cdr next)) (throw 'mal-error "let*: Invalid binding form" kvs)) 
+       ((null? (cdr next))
+        (throw 'mal-error (format #f "let*: Invalid binding form '~a'" kvs))) 
        (else (lp (cddr next) (cons (car next) k) (cons (cadr next) v))))))
   (match ast
     ((? (lambda (x) (not (list? x)))) (eval_ast ast env))
@@ -66,7 +61,9 @@
        (receive (keys vals) (%unzip2 (->list kvs))
          (for-each setter keys vals))
        (EVAL body new-env)))
-    (else (eval_func ast env))))
+    (else
+      (let ((el (eval_ast ast env)))
+        (apply (car el) (cdr el))))))
 
 (define (PRINT exp)
   (and (not (eof-object? exp))
@@ -77,11 +74,14 @@
 
 (define (REPL)
   (LOOP
-   (catch 'mal-error
-          (lambda () (PRINT (EVAL (READ) *toplevel*)))
-          (lambda (k . e)
-            (if (string=? (car e) "blank line")
-                (display "")
-                (format #t "Error: ~a~%" (car e)))))))
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (catch 'mal-error
+                (lambda () (PRINT (EVAL (READ line) *toplevel*)))
+                (lambda (k . e)
+                  (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
 
 (REPL)

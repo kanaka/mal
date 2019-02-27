@@ -4,6 +4,7 @@ require_once 'readline.php';
 require_once 'types.php';
 require_once 'reader.php';
 require_once 'printer.php';
+require_once 'interop.php';
 require_once 'env.php';
 require_once 'core.php';
 
@@ -115,25 +116,14 @@ function MAL_EVAL($ast, $env) {
         return macroexpand($ast[1], $env);
     case "php*":
         $res = eval($ast[1]);
-        switch (gettype($res)) {
-        case "array":
-            if ($res !== array_values($res)) {
-                $new_res = _hash_map();
-                $new_res->exchangeArray($res);
-                return $new_res;
-            } else {
-                return call_user_func_array('_list', $res);
-            }
-        default:
-            return $res;
-        }
+        return _to_mal($res);
     case "try*":
         $a1 = $ast[1];
         $a2 = $ast[2];
         if ($a2[0]->value === "catch*") {
             try {
                 return MAL_EVAL($a1, $env);
-            } catch (Error $e) {
+            } catch (_Error $e) {
                 $catch_env = new Env($env, array($a2[1]),
                                             array($e->obj));
                 return MAL_EVAL($a2[2], $catch_env);
@@ -161,6 +151,8 @@ function MAL_EVAL($ast, $env) {
     case "fn*":
         return _function('MAL_EVAL', 'native',
                          $ast[2], $env, $ast[1]);
+    case "to-native":
+        return _to_native($ast[1]->value, $env);
     default:
         $el = eval_ast($ast, $env);
         $f = $el[0];
@@ -197,8 +189,10 @@ $repl_env->set(_symbol('eval'), _function(function($ast) {
     global $repl_env; return MAL_EVAL($ast, $repl_env);
 }));
 $_argv = _list();
-for ($i=2; $i < count($argv); $i++) {
-    $_argv->append($argv[$i]);
+if (isset($argv)) {
+  for ($i=2; $i < count($argv); $i++) {
+      $_argv->append($argv[$i]);
+  }
 }
 $repl_env->set(_symbol('*ARGV*'), $_argv);
 
@@ -211,6 +205,7 @@ rep("(def! *gensym-counter* (atom 0))");
 rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))");
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))");
 
+// run mal file
 if (count($argv) > 1) {
     rep('(load-file "' . $argv[1] . '")');
     exit(0);
@@ -227,6 +222,8 @@ do {
         }
     } catch (BlankException $e) {
         continue;
+    } catch (_Error $e) {
+        echo "Error: " . _pr_str($e->obj, True) . "\n";
     } catch (Exception $e) {
         echo "Error: " . $e->getMessage() . "\n";
         echo $e->getTraceAsString() . "\n";

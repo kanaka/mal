@@ -24,7 +24,7 @@
 ;=>{"abc" 789}
 
 (lua-eval "print('hello')")
-; hello
+;/hello
 ;=>nil
 
 (lua-eval "(function() foo = 8 end)()")

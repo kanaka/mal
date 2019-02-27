@@ -70,7 +70,7 @@ NSArray * tokenize(NSString *str) {
 
 NSObject * read_atom(Reader * rdr) {
     NSRegularExpression *regex = [NSRegularExpression
-        regularExpressionWithPattern:@"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|:(.*)|(^[^\"]*$)"
+        regularExpressionWithPattern:@"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)"
         options:0
         error:NULL];
     NSNumberFormatter *numf = [[NSNumberFormatter alloc] init];
@@ -98,14 +98,17 @@ NSObject * read_atom(Reader * rdr) {
             return [MalFalse alloc]; // TODO: intern
         } else if ([match rangeAtIndex:6].location < -1ULL/2) { // string
             NSString * str = [token substringWithRange:[match rangeAtIndex:6]];
-            return [[[str
+            return [[[[str
+                        stringByReplacingOccurrencesOfString:@"\\\\" withString:@"\u029e"]
                       stringByReplacingOccurrencesOfString:@"\\\"" withString:@"\""]
                      stringByReplacingOccurrencesOfString:@"\\n" withString:@"\n"]
-                    stringByReplacingOccurrencesOfString:@"\\\\" withString:@"\\"];
-        } else if ([match rangeAtIndex:7].location < -1ULL/2) { // keyword
+                    stringByReplacingOccurrencesOfString:@"\u029e" withString:@"\\"];
+        } else if ([match rangeAtIndex:7].location < -1ULL/2) { // string
+            @throw @"read_atom: expected '\"', got EOF";
+        } else if ([match rangeAtIndex:8].location < -1ULL/2) { // keyword
             return [NSString stringWithFormat:@"\u029e%@",
-                    [token substringWithRange:[match rangeAtIndex:7]]];
-        } else if ([match rangeAtIndex:8].location < -1ULL/2) { // symbol
+                    [token substringWithRange:[match rangeAtIndex:8]]];
+        } else if ([match rangeAtIndex:9].location < -1ULL/2) { // symbol
             return [MalSymbol stringWithString:token];
         }
     }

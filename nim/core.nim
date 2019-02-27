@@ -125,7 +125,7 @@ proc seq(xs: varargs[MalType]): MalType =
     if len(xs[0].str) == 0: return nilObj
     result = list()
     for i in countup(0, len(xs[0].str) - 1):
-      result.list.add(str xs[0].str.copy(i,i))
+      result.list.add(str xs[0].str.substr(i,i))
   elif xs[0] == nilObj:
     result = nilObj
   else:
@@ -157,11 +157,11 @@ proc swap_bang(xs: varargs[MalType]): MalType =
 proc time_ms(xs: varargs[MalType]): MalType =
   number int(epochTime() * 1000)
 
-template wrapNumberFun(op: expr): expr =
+template wrapNumberFun(op): untyped =
   fun proc(xs: varargs[MalType]): MalType =
     number op(xs[0].number, xs[1].number)
 
-template wrapBoolFun(op: expr): expr =
+template wrapBoolFun(op): untyped =
   fun proc(xs: varargs[MalType]): MalType =
     if op(xs[0].number, xs[1].number): trueObj else: falseObj
 
@@ -224,6 +224,9 @@ let ns* = {
   "symbol?": fun symbol_q,
   "keyword": fun keyword,
   "keyword?": fun keyword_q,
+  "number?": fun number_q,
+  "fn?": fun fn_q,
+  "macro?": fun macro_q,
 
   "with-meta": fun with_meta,
   "meta": fun meta,

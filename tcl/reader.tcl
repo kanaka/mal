@@ -18,7 +18,7 @@ oo::class create Reader {
 }
 
 proc tokenize str {
-    set re {[\s,]*(~@|[\[\]\{\}()'`~^@]|\"(?:\\.|[^\\\"])*\"|;.*|[^\s\[\]\{\}('\"`~^@,;)]*)}
+    set re {[\s,]*(~@|[\[\]\{\}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;.*|[^\s\[\]\{\}('\"`~^@,;)]*)}
     set tokens {}
     foreach {_ capture} [regexp -line -all -inline $re $str] {
         if {[string length $capture] > 0 && [string range $capture 0 0] != ";"} {
@@ -31,14 +31,14 @@ proc tokenize str {
 proc read_tokens_list {reader start_char end_char} {
     set token [$reader next]
     if {$token != $start_char} {
-        error "expected '$start_char'"
+        error "expected '$start_char', got EOF"
     }
 
     set elements {}
     set token [$reader peek]
     while {$token != $end_char} {
         if {$token == ""} {
-            error "expected '$end_char'"
+            error "expected '$end_char', got EOF"
         }
         lappend elements [read_form $reader]
         set token [$reader peek]
@@ -84,6 +84,7 @@ proc read_atom {reader} {
         ^false$    { return $::mal_false }
         ^:         { return [keyword_new [parse_keyword $token]] }
         ^\".*\"$   { return [string_new [parse_string $token]] }
+        ^\".*$     { error "expected '\"', got EOF" }
         default    { return [symbol_new $token] }
     }
 }

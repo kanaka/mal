@@ -328,6 +328,9 @@ class Core {
         "symbol?" => function(a) { return BoolFn(symbol_Q(a[0])); },
         "keyword" => keyword,
         "keyword?" => function(a) { return BoolFn(keyword_Q(a[0])); },
+        "number?" => function(a) { return BoolFn(number_Q(a[0])); },
+        "fn?" => function(a) { return BoolFn(_fn_Q(a[0])); },
+        "macro?" => function(a) { return BoolFn(_macro_Q(a[0])); },
 
         "pr-str" => pr_str,
         "str" => str,

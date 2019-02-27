@@ -1,0 +1,182 @@
+(module $printer
+
+  (global $printer_buf   (mut i32) 0)
+
+  (func $pr_str_val (param $res i32 $mv i32 $print_readably i32) (result i32)
+    (LET $type ($TYPE $mv)
+         $val0 ($VAL0 $mv)
+         $sval 0)
+
+    ;;; switch(type)
+    (block $done
+      (block $default
+      (block (block (block (block (block (block (block (block
+      (block (block (block (block (block (block (block (block
+      (br_table 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 $type))
+      ;; 0: nil
+      ($memmove $res "nil" 4)
+      (local.set $res (i32.add 3 $res))
+      (br $done))
+      ;; 1: boolean
+      (if (i32.eq $val0 0)
+        (then
+          ;; false
+          ($memmove $res "false" 6)
+          (local.set $res (i32.add 5 $res)))
+        (else
+          ;; true
+          ($memmove $res "true" 5)
+          (local.set $res (i32.add 4 $res))))
+      (br $done))
+      ;; 2: integer
+      (local.set $res ($sprintf_1 $res "%d" $val0))
+      (br $done))
+      ;; 3: float/ERROR
+      (local.set $res ($sprintf_1 $res "%d" " *** GOT FLOAT *** "))
+      (br $done))
+      ;; 4: string/kw
+      (local.set $sval ($to_String $mv))
+      (if (i32.eq (i32.load8_u $sval) (CHR "\x7f"))
+        (then
+          (local.set $res ($sprintf_1 $res ":%s" (i32.add $sval 1))))
+      (else (if $print_readably
+        (then
+          ;; escape backslashes, quotes, and newlines
+          (local.set $res ($sprintf_1 $res "\"" 0))
+          (local.set $res (i32.add $res ($REPLACE3 $res ($to_String $mv)
+                                                   "\\" "\\\\"
+                                                   "\"" "\\\""
+                                                   "\n" "\\n")))
+          (local.set $res ($sprintf_1 $res "\"" 0)))
+      (else
+        (local.set $res ($sprintf_1 $res "%s" $sval))))))
+      (br $done))
+      ;; 5: symbol
+      (local.set $res ($sprintf_1 $res "%s" ($to_String $mv)))
+      (br $done))
+      ;; 6: list, fallthrouogh
+      )
+      ;; 7: vector, fallthrough
+      )
+      ;; 8: hashmap
+      (local.set
+        $res ($sprintf_1 $res "%c"
+                         (if (result i32) (i32.eq $type (global.get $LIST_T))
+                           (then (CHR "("))
+                           (else (if (result i32) (i32.eq $type (global.get $VECTOR_T))
+                                   (then (CHR "["))
+                                   (else (CHR "{")))))))
+      ;; PR_SEQ_LOOP
+      ;;; while (VAL0(mv) != 0)
+      (block $done_seq
+        (loop $seq_loop
+          (br_if $done_seq (i32.eq ($VAL0 $mv) 0))
+          ;;; res = pr_str_val(res, MEM_VAL1(mv), print_readably)
+          (local.set $res ($pr_str_val $res ($MEM_VAL1_ptr $mv) $print_readably))
+
+          ;; if this is a hash-map, print the next element
+          (if (i32.eq $type (global.get $HASHMAP_T))
+            (then
+              ;;; res += snprintf(res, 2, " ")
+              (local.set $res ($sprintf_1 $res " " 0))
+              (local.set $res ($pr_str_val $res ($MEM_VAL2_ptr $mv)
+                                           $print_readably))))
+          ;;; mv = MEM_VAL0(mv)
+          (local.set $mv ($MEM_VAL0_ptr $mv))
+          ;;; if (VAL0(mv) != 0)
+          (if (i32.ne ($VAL0 $mv) 0)
+            ;;; res += snprintf(res, 2, " ")
+            (local.set $res ($sprintf_1 $res " " 0)))
+          (br $seq_loop)
+        )
+      )
+
+      (local.set
+        $res ($sprintf_1 $res "%c"
+                         (if (result i32) (i32.eq $type (global.get $LIST_T))
+                           (then (CHR ")"))
+                           (else (if (result i32) (i32.eq $type (global.get $VECTOR_T))
+                                   (then (CHR "]"))
+                                   (else (CHR "}")))))))
+      (br $done))
+      ;; 9: function
+      ($memmove $res "#<fn ...>" 10)
+      (local.set $res (i32.add 9 $res))
+      (br $done))
+      ;; 10: mal function
+      ($memmove $res "(fn* " 6)
+      (local.set $res (i32.add 5 $res))
+      (local.set $res ($pr_str_val $res ($MEM_VAL1_ptr $mv) $print_readably))
+      ($memmove $res " " 2)
+      (local.set $res (i32.add 1 $res))
+      (local.set $res ($pr_str_val $res ($MEM_VAL0_ptr $mv) $print_readably))
+      ($memmove $res ")" 2)
+      (local.set $res (i32.add 1 $res))
+      (br $done))
+      ;; 11: macro fn
+      ($memmove $res "#<macro ...>" 13)
+      (local.set $res (i32.add 12 $res))
+      (br $done))
+      ;; 12: atom
+      ($memmove $res "(atom " 7)
+      (local.set $res (i32.add 6 $res))
+      (local.set $res ($pr_str_val $res ($MEM_VAL0_ptr $mv) $print_readably))
+      ($memmove $res ")" 2)
+      (local.set $res (i32.add 1 $res))
+      (br $done))
+      ;; 13: environment
+      ($memmove $res "#<mem ...>" 11)
+      (local.set $res (i32.add 10 $res))
+      (br $done))
+      ;; 14: metadata
+      ;; recur on object itself
+      (local.set $res ($pr_str_val $res ($MEM_VAL0_ptr $mv) $print_readably))
+      (br $done))
+      ;; 15: FREE
+      ($memmove $res "#<free ...>" 12)
+      (local.set $res (i32.add 11 $res))
+      (br $done))
+      ;; 16: default
+      ($memmove $res "#<unknown>" 11)
+      (local.set $res (i32.add 10 $res))
+    )
+
+    $res
+  )
+
+  (func $pr_str_internal (param $seq i32) (param $mv i32)
+        (param $print_readably i32) (param $sep i32) (result i32)
+    (LET $res     ($STRING_INIT (global.get $STRING_T))
+         $res_str ($to_String $res))
+
+    (if $seq
+      (then
+        (block $done
+          (loop $loop
+            (br_if $done (i32.eqz ($VAL0 $mv)))
+            (local.set $res_str ($pr_str_val $res_str ($MEM_VAL1_ptr $mv) $print_readably))
+            (local.set $mv ($MEM_VAL0_ptr $mv))
+            (if (i32.ne ($VAL0 $mv) 0)
+              (local.set $res_str ($sprintf_1 $res_str "%s" $sep)))
+            (br $loop)
+          )
+        ))
+      (else
+        (local.set $res_str ($pr_str_val $res_str $mv $print_readably))))
+
+    (local.set $res ($STRING_FINALIZE $res (i32.sub $res_str ($to_String $res))))
+
+    $res
+  )
+
+  (func $pr_str (param $mv i32 $print_readably i32) (result i32)
+    ($pr_str_internal 0 $mv $print_readably "")
+  )
+
+  (func $pr_str_seq (param $mv i32 $print_readably i32 $sep i32) (result i32)
+    ($pr_str_internal 1 $mv $print_readably $sep)
+  )
+
+  (export "pr_str" (func $pr_str))
+
+)

@@ -4,7 +4,7 @@ Mal (make-a-lisp) is licensed under the MPL 2.0 (Mozilla Public
 License 2.0). The text of the MPL 2.0 license is included below and
 can be found at https://www.mozilla.org/MPL/2.0/
 
-Many of the implemenations run or compile using a line editing
+Many of the implementations run or compile using a line editing
 library. In some cases, the implementations provide an option in the
 code to switch between the GNU GPL licensed GNU readline library and
 the BSD licensed editline (libedit) library.

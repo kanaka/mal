@@ -13,7 +13,7 @@
 ;=>"a b c d e f g"
 
 (tcl* "puts \"hello [expr {5 + 6}] world\"")
-; hello 11 world
+;/hello 11 world
 ;=>""
 
 (tcl* "set ::foo 8")

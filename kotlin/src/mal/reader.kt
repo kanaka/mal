@@ -2,8 +2,8 @@ package mal
 
 import kotlin.text.Regex
 
-val TOKEN_REGEX = Regex("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;.*|[^\\s\\[\\]{}('\"`,;)]*)")
-val ATOM_REGEX = Regex("(^-?[0-9]+$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|:(.*)|(^[^\"]*$)")
+val TOKEN_REGEX = Regex("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)")
+val ATOM_REGEX = Regex("(^-?[0-9]+$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)")
 
 class Reader(sequence: Sequence<String>) {
     val tokens = sequence.iterator()
@@ -139,11 +139,17 @@ fun read_atom(reader: Reader): MalType {
     } else if (groups[4]?.value != null) {
         FALSE
     } else if (groups[5]?.value != null) {
-        MalString((groups[5]?.value as String).replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\"))
+        MalString((groups[5]?.value as String).replace(Regex("""\\(.)"""))
+            { m: MatchResult ->
+                if (m.groups[1]?.value == "n") "\n"
+                else m.groups[1]?.value.toString()
+            })
     } else if (groups[6]?.value != null) {
-        MalKeyword(groups[6]?.value as String)
+        throw MalReaderException("expected '\"', got EOF")
     } else if (groups[7]?.value != null) {
-        MalSymbol(groups[7]?.value as String)
+        MalKeyword(groups[7]?.value as String)
+    } else if (groups[8]?.value != null) {
+        MalSymbol(groups[8]?.value as String)
     } else {
         throw MalReaderException("Unrecognized token: " + next)
     }

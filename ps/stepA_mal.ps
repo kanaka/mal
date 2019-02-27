@@ -163,41 +163,45 @@ end } def
             env
             /loop? true def % loop
         }{ /try* a0 eq { %if try*
-            { %try
-                countdictstack /dictcnt exch def
-                count /stackcnt exch def
-                ast 1 _nth env EVAL
-            } stopped { %catch
-                % clean up the dictionary stack
-                1 1 countdictstack dictcnt sub { %foreach added dict
-                    %(popping dict\n) print
-                    pop end % pop idx and pop dict
-                    %(new ast: ) print ast true _pr_str print (\n) print
-                } for
-                % clean up the operand stack
-                count 1 exch 1 exch stackcnt sub { %foreach added operand
-                    %(op stack: ) print pstack
-                    pop pop % pop idx and operand
-                    %(popped op stack\n) print pstack
-                } for
-                % get error data and reset $error dict
-                /errdata get_error_data def
-                $error /newerror false put
-                $error /errorinfo null put
+            ast _count 2 gt { %if has catch* block
+                { %try
+                    countdictstack /dictcnt exch def
+                    count /stackcnt exch def
+                    ast 1 _nth env EVAL
+                } stopped { %catch
+                    % clean up the dictionary stack
+                    1 1 countdictstack dictcnt sub { %foreach added dict
+                        %(popping dict\n) print
+                        pop end % pop idx and pop dict
+                        %(new ast: ) print ast true _pr_str print (\n) print
+                    } for
+                    % clean up the operand stack
+                    count 1 exch 1 exch stackcnt sub { %foreach added operand
+                        %(op stack: ) print pstack
+                        pop pop % pop idx and operand
+                        %(popped op stack\n) print pstack
+                    } for
+                    % get error data and reset $error dict
+                    /errdata get_error_data def
+                    $error /newerror false put
+                    $error /errorinfo null put
 
-                ast _count 3 lt { %if no third (catch*) form
-                    errdata throw
+                    ast _count 3 lt { %if no third (catch*) form
+                        errdata throw
+                    } if
+                    ast 2 _nth 0 _nth (catch*) eq not { %if third form not catch*
+                        (No catch* in throw form) _throw
+                    } if
+                    ast 2 _nth 2 _nth
+                    env
+                        ast 2 _nth 1 _nth 1 _list
+                        errdata 1 _list
+                        env_new
+                    EVAL
                 } if
-                ast 2 _nth 0 _nth (catch*) eq not { %if third form not catch*
-                    (No catch* in throw form) _throw
-                } if
-                ast 2 _nth 2 _nth
-                env
-                    ast 2 _nth 1 _nth 1 _list
-                    errdata 1 _list
-                    env_new
-                EVAL
-            } if
+            }{ % else no catch* block
+                ast 1 _nth env EVAL
+            } ifelse
         }{ /if a0 eq { %if if
             /a1 ast 1 _nth def
             /cond a1 env EVAL def

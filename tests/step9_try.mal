@@ -1,15 +1,28 @@
 ;;
+;; Testing throw
+
+(throw "err1")
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*err1.*
+(throw {:msg "err2"})
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
+
+;;
 ;; Testing try*/catch*
 
 (try* 123 (catch* e 456))
 ;=>123
 
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
-; "exc is:" "'abc' not found"
+;/"exc is:" "'abc' not found"
+;=>nil
+
+;; Make sure error from core can be caught
+(try* (nth [] 1) (catch* exc (prn "exc is:" exc)))
+;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
 
 (try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
-; "exc:" "my exception"
+;/"exc:" "my exception"
 ;=>7
 
 ;;; Test that throw is a function:
@@ -48,13 +61,15 @@
 (apply + 4 (list 5))
 ;=>9
 (apply prn (list 1 2 "3" (list)))
-; 1 2 "3" ()
+;/1 2 "3" \(\)
 ;=>nil
 (apply prn 1 2 (list "3" (list)))
-; 1 2 "3" ()
+;/1 2 "3" \(\)
 ;=>nil
 (apply list (list))
 ;=>()
+(apply symbol? (list (quote two)))
+;=>true
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
@@ -122,7 +137,7 @@
 (apply + 4 [5])
 ;=>9
 (apply prn 1 2 ["3" 4])
-; 1 2 "3" 4
+;/1 2 "3" 4
 ;=>nil
 (apply list [])
 ;=>()
@@ -136,6 +151,9 @@
 ;; Testing map function with vectors
 (map (fn* (a) (* 2 a)) [1 2 3])
 ;=>(2 4 6)
+
+(map (fn* [& args] (list? args)) [1 2])
+;=>(true true)
 
 ;; Testing vector functions
 
@@ -223,24 +241,6 @@
 (count (keys (assoc hm2 "b" 2 "c" 3)))
 ;=>3
 
-(def! hm3 (assoc hm2 "b" 2))
-(count (keys hm3))
-;=>2
-(count (vals hm3))
-;=>2
-
-(dissoc hm3 "a")
-;=>{"b" 2}
-
-(dissoc hm3 "a" "b")
-;=>{}
-
-(dissoc hm3 "a" "b" "c")
-;=>{}
-
-(count (keys hm3))
-;=>2
-
 ;; Testing keywords as hash-map keys
 (get {:abc 123} :abc)
 ;=>123
@@ -250,8 +250,6 @@
 ;=>false
 (assoc {} :bcd 234)
 ;=>{:bcd 234}
-(dissoc {:cde 345 :fgh 456} :cde)
-;=>{:fgh 456}
 (keyword? (nth (keys {:abc 123 :def 456}) 0))
 ;=>true
 ;;; TODO: support : in strings in make impl
@@ -260,35 +258,20 @@
 (keyword? (nth (vals {"a" :abc "b" :def}) 0))
 ;=>true
 
+;; Testing whether assoc updates properly
+(def! hm4 (assoc {:a 1 :b 2} :a 3 :c 1))
+(get hm4 :a)
+;=>3
+(get hm4 :b)
+;=>2
+(get hm4 :c)
+;=>1
+
 ;; Testing nil as hash-map values
 (contains? {:abc nil} :abc)
 ;=>true
 (assoc {} :bcd nil)
 ;=>{:bcd nil}
-(dissoc {:cde nil :fgh 456} :cde)
-;=>{:fgh 456}
-
-;; Testing equality of hash-maps
-(= {} {})
-;=>true
-(= {:a 11 :b 22} (hash-map :b 22 :a 11))
-;=>true
-(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
-;=>true
-(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
-;=>true
-(= {:a 11 :b 22} (hash-map :b 23 :a 11))
-;=>false
-(= {:a 11 :b 22} (hash-map :a 11))
-;=>false
-(= {:a [11 22]} {:a (list 11 22)})
-;=>true
-(= {:a 11 :b 22} (list :a 11 :b 22))
-;=>false
-(= {} [])
-;=>false
-(= [] {})
-;=>false
 
 ;;
 ;; Additional str and pr-str tests
@@ -334,8 +317,58 @@
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
 
+;;
+;; Testing try* without catch*
+(try* xyz)
+;/.*\'?xyz\'? not found.*
+
+;;
 ;; Testing throwing non-strings
 (try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
-; "err:" (1 2 3)
+;/"err:" \(1 2 3\)
 ;=>7
+
+;;
+;; Testing dissoc
+(def! hm3 (assoc hm2 "b" 2))
+(count (keys hm3))
+;=>2
+(count (vals hm3))
+;=>2
+(dissoc hm3 "a")
+;=>{"b" 2}
+(dissoc hm3 "a" "b")
+;=>{}
+(dissoc hm3 "a" "b" "c")
+;=>{}
+(count (keys hm3))
+;=>2
+
+(dissoc {:cde 345 :fgh 456} :cde)
+;=>{:fgh 456}
+(dissoc {:cde nil :fgh 456} :cde)
+;=>{:fgh 456}
+
+;;
+;; Testing equality of hash-maps
+(= {} {})
+;=>true
+(= {:a 11 :b 22} (hash-map :b 22 :a 11))
+;=>true
+(= {:a 11 :b [22 33]} (hash-map :b [22 33] :a 11))
+;=>true
+(= {:a 11 :b {:c 33}} (hash-map :b {:c 33} :a 11))
+;=>true
+(= {:a 11 :b 22} (hash-map :b 23 :a 11))
+;=>false
+(= {:a 11 :b 22} (hash-map :a 11))
+;=>false
+(= {:a [11 22]} {:a (list 11 22)})
+;=>true
+(= {:a 11 :b 22} (list :a 11 :b 22))
+;=>false
+(= {} [])
+;=>false
+(= [] {})
+;=>false
 

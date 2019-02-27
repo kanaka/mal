@@ -75,7 +75,8 @@ EVAL = (ast, env) ->
       try return EVAL(a1, env)
       catch exc
         if a2 && a2[0].name == "catch*"
-          if exc instanceof Error then exc = exc.message
+          if exc.object? then exc = exc.object
+          else exc = exc.message
           return EVAL a2[2], new Env(env, [a2[1]], [exc])
         else
           throw exc
@@ -141,7 +142,11 @@ while (line = readline.readline("user> ")) != null
     continue if exc instanceof reader.BlankException
     if exc.stack? and exc.stack.length > 2000
       console.log exc.stack.slice(0,1000) + "\n  ..." + exc.stack.slice(-1000)
-    else if exc.stack? console.log exc.stack
-    else               console.log exc
+    else if exc.stack?
+      console.log exc.stack
+    else if exc.object?
+      console.log "Error:", printer._pr_str exc.object, true
+    else
+      console.log exc
 
 # vim: ts=2:sw=2

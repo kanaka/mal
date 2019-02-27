@@ -83,7 +83,7 @@
     (title "things it does not have")
     "- performance"
     "- namespaces"
-    "- GC (in bash, make, C implmentations)"
+    "- GC (in bash, make, C implementations)"
     "- protocols :-("
     "- lots of other things")
    (list

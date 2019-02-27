@@ -17,6 +17,7 @@
 // @import reader.ck
 // @import printer.ck
 // @import env.ck
+// @import func.ck
 // @import types/MalSubr.ck
 // @import types/subr/*.ck
 
@@ -137,15 +138,7 @@ new MalDiv @=> repl_env["/"];
 fun string errorMessage(MalObject m)
 {
     (m$MalError).value() @=> MalObject value;
-
-    if( value.type == "string" )
-    {
-        return Printer.pr_str(value, false);
-    }
-    else
-    {
-        return "exception: " + Printer.pr_str(value, true);
-    }
+    return "exception: " + Printer.pr_str(value, true);
 }
 
 fun string rep(string input)

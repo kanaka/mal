@@ -16,7 +16,7 @@ proc quasiquote(ast: MalType): MalType =
   else:
     return list(symbol "cons", quasiquote(ast.list[0]), quasiquote(list(ast.list[1 .. ^1])))
 
-proc eval(ast: MalType, env: var Env): MalType
+proc eval(ast: MalType, env: Env): MalType
 
 proc eval_ast(ast: MalType, env: var Env): MalType =
   case ast.kind
@@ -33,8 +33,9 @@ proc eval_ast(ast: MalType, env: var Env): MalType =
   else:
     result = ast
 
-proc eval(ast: MalType, env: var Env): MalType =
+proc eval(ast: MalType, env: Env): MalType =
   var ast = ast
+  var env = env
 
   template defaultApply =
     let el = ast.eval_ast(env)
@@ -64,7 +65,7 @@ proc eval(ast: MalType, env: var Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = Env(env)
+        var let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
@@ -83,7 +84,7 @@ proc eval(ast: MalType, env: var Env): MalType =
 
       of "do":
         let last = ast.list.high
-        let el = (list ast.list[1 .. <last]).eval_ast(env)
+        discard (list ast.list[1 .. <last]).eval_ast(env)
         ast = ast.list[last]
         # Continue loop (TCO)
 

@@ -1,6 +1,7 @@
 ["do",
 
-["load-file", ["`", "miniMAL-core.json"]],
+
+["load", ["`", "miniMAL-core.json"]],
 
 ["def", "READ", ["fn", ["strng"],
   "strng"]],

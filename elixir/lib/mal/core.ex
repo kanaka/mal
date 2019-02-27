@@ -47,6 +47,8 @@ defmodule Mal.Core do
       "swap!" => &swap!/1,
       "conj" => &conj/1,
       "seq" => &seq/1,
+      "fn?" => &fn?/1,
+      "macro?" => &macro?/1,
       "time-ms" => fn _ -> :erlang.system_time(:milli_seconds) end,
       "readline" => fn [prompt] -> readline(prompt) end,
       "sequential?" => fn arg -> vector?(arg) or list?(arg) end,
@@ -55,6 +57,7 @@ defmodule Mal.Core do
       "true?" => fn [type] -> type == true end,
       "false?" => fn [type] -> type == false end,
       "string?" => fn [obj] -> String.valid?(obj) end,
+      "number?" => fn [obj] -> is_number(obj) end,
       "symbol" => fn [name] -> {:symbol, name} end,
       "read-string" => fn [input] -> Mal.Reader.read_str(input) end,
       "throw" => fn [arg] -> throw({:error, arg}) end,
@@ -75,7 +78,7 @@ defmodule Mal.Core do
   def readline(prompt) do
     IO.write(:stdio, prompt)
     IO.read(:stdio, :line)
-      |> String.strip(?\n)
+      |> String.trim("\n")
   end
 
   defp convert_vector({type, ast, meta}) when type == :map do
@@ -223,11 +226,17 @@ defmodule Mal.Core do
   end
 
   defp seq([nil]), do: nil
-  defp seq([{:list, [], meta}]), do: nil
+  defp seq([{:list, [], _meta}]), do: nil
   defp seq([{:list, ast, meta}]), do: {:list, ast, meta}
-  defp seq([{:vector, [], meta}]), do: nil
+  defp seq([{:vector, [], _meta}]), do: nil
   defp seq([{:vector, ast, meta}]), do: {:list, ast, meta}
   defp seq([""]), do: nil
   defp seq([s]), do: {:list, String.split(s, "", trim: true), nil}
   defp seq(_), do: nil
+
+  defp fn?([%Function{macro: false}]), do: true
+  defp fn?(_), do: false
+
+  defp macro?([%Function{macro: true}]), do: true
+  defp macro?(_), do: false
 end

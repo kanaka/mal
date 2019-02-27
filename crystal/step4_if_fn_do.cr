@@ -1,6 +1,6 @@
 #! /usr/bin/env crystal run
 
-require "./readline"
+require "readline"
 require "./reader"
 require "./printer"
 require "./types"
@@ -15,14 +15,14 @@ module Mal
   extend self
 
   def func_of(env, binds, body)
-    -> (args : Array(Mal::Type)) {
+    ->(args : Array(Mal::Type)) {
       new_env = Mal::Env.new(env, binds, args)
       eval(body, new_env)
-    } as Mal::Func
+    }.as(Mal::Func)
   end
 
   def eval_ast(ast, env)
-    return ast.map{|n| eval(n, env) as Mal::Type} if ast.is_a? Mal::List
+    return ast.map { |n| eval(n, env).as(Mal::Type) } if ast.is_a? Mal::List
 
     val = ast.unwrap
 
@@ -34,11 +34,11 @@ module Mal
         eval_error "'#{val.str}' not found"
       end
     when Mal::List
-      val.each_with_object(Mal::List.new){|n, l| l << eval(n, env)}
+      val.each_with_object(Mal::List.new) { |n, l| l << eval(n, env) }
     when Mal::Vector
-      val.each_with_object(Mal::Vector.new){|n, l| l << eval(n, env)}
+      val.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
     when Mal::HashMap
-      val.each{|k, v| val[k] = eval(v, env)}
+      val.each { |k, v| val[k] = eval(v, env) }
       val
     else
       val
@@ -48,7 +48,7 @@ module Mal
   def eval_invocation(list, env)
     f = eval(list.first, env).unwrap
     eval_error "expected function symbol as the first symbol of list" unless f.is_a? Mal::Func
-    f.call eval_ast(list[1..-1].each_with_object(Mal::List.new){|i, l| l << i}, env)
+    f.call eval_ast(list[1..-1].each_with_object(Mal::List.new) { |i, l| l << i }, env)
   end
 
   def read(str)
@@ -58,7 +58,7 @@ module Mal
   def eval(ast, env)
     list = ast.unwrap
 
-    return eval_ast(ast, env)          unless list.is_a? Mal::List
+    return eval_ast(ast, env) unless list.is_a? Mal::List
     return gen_type Mal::List if list.empty?
 
     head = list.first.unwrap
@@ -96,7 +96,7 @@ module Mal
         when Nil
           list.size >= 4 ? eval(list[3], env) : nil
         when false
-          list.size >= 4 ?  eval(list[3], env) : nil
+          list.size >= 4 ? eval(list[3], env) : nil
         else
           eval(list[2], env)
         end
@@ -117,18 +117,20 @@ module Mal
   end
 
   def rep(str)
-    print(eval(read(str), $repl_env))
+    print(eval(read(str), REPL_ENV))
   end
 end
 
-$repl_env = Mal::Env.new nil
-Mal::NS.each{|k,v| $repl_env.set(k, Mal::Type.new(v))}
+REPL_ENV = Mal::Env.new nil
+Mal::NS.each { |k, v| REPL_ENV.set(k, Mal::Type.new(v)) }
 Mal.rep "(def! not (fn* (a) (if a false true)))"
 
-while line = my_readline("user> ")
+while line = Readline.readline("user> ")
   begin
     puts Mal.rep(line)
+  rescue e : Mal::RuntimeException
+    STDERR.puts "Error: #{pr_str(e.thrown, true)}"
   rescue e
-    STDERR.puts e
+    STDERR.puts "Error: #{e}"
   end
 end

@@ -15,18 +15,24 @@
 
 (import (readline))
 
-(define (READ) (_readline "user> "))
+(define (READ str)
+  str)
 
 (define (EVAL ast env) ast)
 
 (define (PRINT str)
-  (and (not (eof-object? str))
-       (format #t "~a~%" str)))
+  (format #t "~a~%" str))
 
 (define (LOOP continue?)
   (and continue? (REPL)))
 
 (define (REPL)
-  (LOOP (PRINT (EVAL (READ) '()))))
+  (LOOP
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (PRINT (EVAL (READ line) '())))))))
 
 (REPL)

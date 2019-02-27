@@ -34,7 +34,7 @@
 ;=>nil
 
 (perl6-eval "say 'hello' ")
-; hello
+;/hello
 ;=>true
 
 (perl6-eval "sub { my $foo = 8 }()")

@@ -98,10 +98,10 @@ void Tokeniser::nextToken()
 
     String mismatch(m_iter, m_end);
     if (mismatch[0] == '"') {
-        MAL_CHECK(false, "Expected \", got EOF");
+        MAL_CHECK(false, "expected '\"', got EOF");
     }
     else {
-        MAL_CHECK(false, "Unexpected \"%s\"", mismatch.c_str());
+        MAL_CHECK(false, "unexpected '%s'", mismatch.c_str());
     }
 }
 
@@ -129,11 +129,11 @@ malValuePtr readStr(const String& input)
 
 static malValuePtr readForm(Tokeniser& tokeniser)
 {
-    MAL_CHECK(!tokeniser.eof(), "Expected form, got EOF");
+    MAL_CHECK(!tokeniser.eof(), "expected form, got EOF");
     String token = tokeniser.peek();
 
     MAL_CHECK(!std::regex_match(token, closeRegex),
-            "Unexpected \"%s\"", token.c_str());
+            "unexpected '%s'", token.c_str());
 
     if (token == "(") {
         tokeniser.next();
@@ -213,7 +213,7 @@ static void readList(Tokeniser& tokeniser, malValueVec* items,
                       const String& end)
 {
     while (1) {
-        MAL_CHECK(!tokeniser.eof(), "Expected \"%s\", got EOF", end.c_str());
+        MAL_CHECK(!tokeniser.eof(), "expected '%s', got EOF", end.c_str());
         if (tokeniser.peek() == end) {
             tokeniser.next();
             return;

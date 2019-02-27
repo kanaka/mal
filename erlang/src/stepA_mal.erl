@@ -41,7 +41,8 @@ rep(Input, Env) ->
         none -> none;
         Result -> printer:pr_str(Result, true)
     catch
-        error:Reason -> printer:pr_str({error, Reason}, true)
+        error:Reason -> printer:pr_str({error, Reason}, true);
+        throw:Reason -> printer:pr_str({error, printer:pr_str(Reason, true)}, true)
     end.
 
 read(Input) ->

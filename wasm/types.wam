@@ -1,0 +1,417 @@
+;; Mal value memory layout
+;;   type           words
+;;   ----------     ----------
+;;   nil            ref/ 0 |  0           |               |
+;;   false          ref/ 1 |  0           |               |
+;;   true           ref/ 1 |  1           |               |
+;;   integer        ref/ 2 | int          |               |
+;;   float          ref/ 3 | ???          |               |
+;;   string/kw      ref/ 4 | string ptr   |               |
+;;   symbol         ref/ 5 | string ptr   |               |
+;;   list           ref/ 6 | next mem idx | val mem idx   |
+;;   vector         ref/ 7 | next mem idx | val mem idx   |
+;;   hashmap        ref/ 8 | next mem idx | key mem idx   | val mem idx
+;;   function       ref/ 9 | fn idx       |               |
+;;   mal function   ref/10 | body mem idx | param mem idx | env mem idx
+;;   macro fn       ref/11 | body mem idx | param mem idx | env mem idx
+;;   atom           ref/12 | val mem idx  |               |
+;;   environment    ref/13 | hmap mem idx | outer mem idx |
+;;   metadata       ref/14 | obj mem idx  | meta mem idx  |
+;;   FREE            sz/15 | next mem idx |               |
+
+(module $types
+
+  (global $NIL_T                  i32 0)
+  (global $BOOLEAN_T              i32 1)
+  (global $INTEGER_T              i32 2)
+  (global $FLOAT_T                i32 3)
+  (global $STRING_T               i32 4)
+  (global $SYMBOL_T               i32 5)
+  (global $LIST_T                 i32 6)
+  (global $VECTOR_T               i32 7)
+  (global $HASHMAP_T              i32 8)
+  (global $FUNCTION_T             i32 9)
+  (global $MALFUNC_T              i32 10)
+  (global $MACRO_T                i32 11)
+  (global $ATOM_T                 i32 12)
+  (global $ENVIRONMENT_T          i32 13)
+  (global $METADATA_T             i32 14)
+  (global $FREE_T                 i32 15)
+
+  (global $error_type             (mut i32) 0)
+  (global $error_val              (mut i32) 0)
+  ;; Index into static string memory (static.wast)
+  (global $error_str              (mut i32) 0)
+
+  (global $NIL                    (mut i32) 0)
+  (global $FALSE                  (mut i32) 0)
+  (global $TRUE                   (mut i32) 0)
+  (global $EMPTY_LIST             (mut i32) 0)
+  (global $EMPTY_VECTOR           (mut i32) 0)
+  (global $EMPTY_HASHMAP          (mut i32) 0)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; General functions
+
+  (func $INC_REF (param $mv i32) (result i32)
+    (i32.store $mv (i32.add (i32.load $mv) 32))
+    $mv
+  )
+
+  (func $TRUE_FALSE (param $val i32) (result i32)
+    ($INC_REF (if (result i32) $val (global.get $TRUE) (global.get $FALSE)))
+  )
+
+  (func $THROW_STR_0 (param $fmt i32)
+    (drop ($sprintf_1 (global.get $error_str) $fmt ""))
+    (global.set $error_type 1)
+  )
+
+  (func $THROW_STR_1 (param $fmt i32) (param $v0 i32)
+    (drop ($sprintf_1 (global.get $error_str) $fmt $v0))
+    (global.set $error_type 1)
+  )
+
+  (func $EQUAL_Q (param $a i32 $b i32) (result i32)
+    (LET $ta ($TYPE $a)
+         $tb ($TYPE $b))
+
+    (if (AND (OR (i32.eq $ta (global.get $LIST_T))
+                 (i32.eq $ta (global.get $VECTOR_T)))
+             (OR (i32.eq $tb (global.get $LIST_T))
+                 (i32.eq $tb (global.get $VECTOR_T))))
+      (then
+        ;; EQUAL_Q_SEQ
+        (block $done
+          (loop $loop
+            (if (OR (i32.eq ($VAL0 $a) 0) (i32.eq ($VAL0 $b) 0))
+              (br $done))
+            (if ($EQUAL_Q ($MEM_VAL1_ptr $a) ($MEM_VAL1_ptr $b))
+              (then
+                (local.set $a ($MEM_VAL0_ptr $a))
+                (local.set $b ($MEM_VAL0_ptr $b)))
+              (else
+                (return 0)))
+            (br $loop)
+          )
+        )
+        (return (AND (i32.eq ($VAL0 $a) 0) (i32.eq ($VAL0 $b) 0))))
+    (else (if (AND (i32.eq $ta (global.get $HASHMAP_T))
+                   (i32.eq $tb (global.get $HASHMAP_T)))
+      ;; EQUAL_Q_HM
+      (then (return 1))
+    ;; TODO: remove this once strings are interned
+    (else (if (OR (AND (i32.eq $ta (global.get $STRING_T))
+                       (i32.eq $tb (global.get $STRING_T)))
+                  (AND (i32.eq $ta (global.get $SYMBOL_T))
+                       (i32.eq $tb (global.get $SYMBOL_T))))
+      (then (return (i32.eqz ($strcmp ($to_String $a) ($to_String $b)))))
+    (else
+      (return (AND (i32.eq $ta $tb)
+                   (i32.eq ($VAL0 $a) ($VAL0 $b))))))))))
+    0 ;; not reachable
+  )
+
+  (func $DEREF_META (param $mv i32) (result i32)
+    (loop $loop
+      (if (i32.eq ($TYPE $mv) (global.get $METADATA_T))
+        (then
+          (local.set $mv ($MEM_VAL0_ptr $mv))
+          (br $loop)))
+    )
+    $mv
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; string functions
+
+  (func $to_MalString (param $mv i32) (result i32)
+    ;; TODO: assert mv is a string/keyword/symbol
+    (i32.add (global.get $string_mem) ($VAL0 $mv))
+  )
+
+  (func $to_String (param $mv i32) (result i32)
+    ;; skip string refcnt and size
+    (i32.add 4 ($to_MalString $mv))
+  )
+
+  ;; Duplicate regular character array string into a Mal string and
+  ;; return the MalVal pointer
+  (func $STRING (param $type i32 $str i32) (result i32)
+    (LET $ms ($ALLOC_STRING $str ($strlen $str) 1))
+    ($ALLOC_SCALAR $type (i32.sub $ms (global.get $string_mem)))
+  )
+
+  ;; Find first duplicate (internet) of mv. If one is found, free up
+  ;; mv and return the interned version. If no duplicate is found,
+  ;; return NULL.
+  (func $INTERN_STRING (param $mv i32) (result i32)
+    (LET $res         0
+         $ms          ($to_MalString $mv)
+         $existing_ms ($FIND_STRING (i32.add $ms 4))
+         $tmp         0)
+    (if (AND $existing_ms (i32.lt_s $existing_ms $ms))
+      (then
+        (local.set $tmp $mv)
+        (local.set $res ($ALLOC_SCALAR (global.get $STRING_T)
+                                       (i32.sub $existing_ms
+                                                  (global.get $string_mem))))
+        (i32.store16 $existing_ms (i32.add (i32.load16_u $existing_ms) 1))
+        ($RELEASE $tmp)))
+    $res
+  )
+
+  (func $STRING_INIT (param $type i32) (result i32)
+    (LET $ms ($ALLOC_STRING "" 0 0))
+    ($ALLOC_SCALAR $type (i32.sub $ms (global.get $string_mem)))
+  )
+
+  (func $STRING_FINALIZE (param $mv i32 $size i32) (result i32)
+    ;; Check if the new string can be interned.
+    (LET $tmp ($INTERN_STRING $mv)
+         $ms  ($to_MalString $mv))
+    (if $tmp
+      (then
+        (local.set $mv $tmp))
+      (else
+        ;;; ms->size = sizeof(MalString) + size + 1
+        (i32.store16 (i32.add $ms 2)
+                     (i32.add (i32.add 4 $size) 1))
+        ;;; string_mem_next = (void *)ms  + ms->size
+        (global.set $string_mem_next
+                    (i32.add $ms (i32.load16_u (i32.add $ms 2))))))
+    $mv
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; numeric functions
+
+  (func $INTEGER (param $val i32) (result i32)
+    ($ALLOC_SCALAR (global.get $INTEGER_T) $val)
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; sequence functions
+
+  (func $MAP_LOOP_START (param $type i32) (result i32)
+    (LET $res (if (result i32) (i32.eq $type (global.get $LIST_T))
+                (then (global.get $EMPTY_LIST))
+              (else (if (result i32) (i32.eq $type (global.get $VECTOR_T))
+                (then (global.get $EMPTY_VECTOR))
+              (else (if (result i32) (i32.eq $type (global.get $HASHMAP_T))
+                (then (global.get $EMPTY_HASHMAP))
+              (else
+                ($THROW_STR_1 "read_seq invalid type %d" $type)
+                0)))))))
+
+    ($INC_REF $res)
+  )
+
+  (func $MAP_LOOP_UPDATE (param $type i32) (param $empty i32)
+        (param $current i32) (param $val2 i32) (param $val3 i32)
+        (result i32)
+    (LET $res ($ALLOC $type $empty $val2 $val3))
+
+    ;; sequence took ownership
+    ($RELEASE $empty)
+    ($RELEASE $val2)
+    (if (i32.eq $type (global.get $HASHMAP_T))
+      ($RELEASE $val3))
+    (if (i32.gt_u $current (global.get $EMPTY_HASHMAP))
+      ;; if not first element, set current next to point to new element
+      (i32.store ($VAL0_ptr $current) ($IDX $res)))
+
+    $res
+  )
+
+  (func $FORCE_SEQ_TYPE (param $type i32) (param $mv i32) (result i32)
+    (LET $res 0)
+    ;; if it's already the right type, inc ref cnt and return it
+    (if (i32.eq $type ($TYPE $mv)) (return ($INC_REF $mv)))
+    ;; if it's empty, return the sequence match
+    (if (i32.le_u $mv (global.get $EMPTY_HASHMAP))
+      (return ($MAP_LOOP_START $type)))
+    ;; otherwise, copy first element to turn it into correct type
+    ($ALLOC $type ($MEM_VAL0_ptr $mv) ($MEM_VAL1_ptr $mv) 0)
+  )
+
+  (func $LIST (param $seq i32 $first i32) (result i32)
+    ($ALLOC (global.get $LIST_T) $seq $first 0)
+  )
+
+  (func $LIST2 (param $first i32 $second i32) (result i32)
+    ;; last element is empty list
+    (LET $tmp ($LIST (global.get $EMPTY_LIST) $second)
+         $res ($LIST $tmp $first))
+    ($RELEASE $tmp) ;; new list takes ownership of previous
+    $res
+  )
+
+  (func $LIST3 (param $first i32 $second i32 $third i32) (result i32)
+    (LET $tmp ($LIST2 $second $third)
+         $res ($LIST $tmp $first))
+    ($RELEASE $tmp) ;; new list takes ownership of previous
+    $res
+  )
+
+  (func $LIST_Q (param $mv i32) (result i32)
+    (i32.eq ($TYPE $mv) (global.get $LIST_T))
+  )
+
+  (func $EMPTY_Q (param $mv i32) (result i32)
+    (i32.eq ($VAL0 $mv) 0)
+  )
+
+  (func $COUNT (param $mv i32) (result i32)
+    (LET $cnt 0)
+    (block $done
+      (loop $loop
+        (if (i32.eq ($VAL0 $mv) 0) (br $done))
+        (local.set $cnt (i32.add $cnt 1))
+        (local.set $mv ($MEM_VAL0_ptr $mv))
+        (br $loop)
+      )
+    )
+    $cnt
+  )
+
+  (func $LAST (param $mv i32) (result i32)
+    (LET $cur 0)
+    ;; TODO: check that actually a list/vector
+    (if (i32.eq ($VAL0 $mv) 0)
+      ;; empty seq, return nil
+      (return ($INC_REF (global.get $NIL))))
+    (block $done
+      (loop $loop
+        ;; end, return previous value
+        (if (i32.eq ($VAL0 $mv) 0) (br $done))
+        ;; current becomes previous entry
+        (local.set $cur $mv)
+        ;; next entry
+        (local.set $mv ($MEM_VAL0_ptr $mv))
+        (br $loop)
+      )
+    )
+    ($INC_REF ($MEM_VAL1_ptr $cur))
+  )
+
+  ;; make a copy of sequence seq from index start to end
+  ;; set last to last element of slice before the empty
+  ;; set after to element following slice (or original)
+  (func $SLICE (param $seq i32) (param $start i32) (param $end i32)
+        (result i64)
+    (LET $idx  0
+         $res  ($INC_REF (global.get $EMPTY_LIST))
+         $last 0
+         $tmp  $res)
+    ;; advance seq to start
+    (block $done
+      (loop $loop
+        (if (OR (i32.ge_s $idx $start)
+                (i32.eqz ($VAL0 $seq)))
+          (br $done))
+        (local.set $seq ($MEM_VAL0_ptr $seq))
+        (local.set $idx (i32.add $idx 1))
+        (br $loop)
+      )
+    )
+    (block $done
+      (loop $loop
+	;; if current position is at end, then return or if we reached
+        ;; end seq, then return
+        (if (OR (AND (i32.ne $end -1)
+                     (i32.ge_s $idx $end))
+                (i32.eqz ($VAL0 $seq)))
+          (then
+            (local.set $res $tmp)
+            (br $done)))
+        ;; allocate new list element with copied value
+        (local.set $res ($LIST (global.get $EMPTY_LIST)
+                               ($MEM_VAL1_ptr $seq)))
+        ;; sequence took ownership
+        ($RELEASE (global.get $EMPTY_LIST))
+        (if (i32.eqz $last)
+          (then
+            ;; if first element, set return value to new element
+            (local.set $tmp $res))
+          (else
+            ;; if not the first element, set return value to new element
+            (i32.store ($VAL0_ptr $last) ($IDX $res))))
+        (local.set $last $res) ;; update last list element
+        ;; advance to next element of seq
+        (local.set $seq ($MEM_VAL0_ptr $seq))
+        (local.set $idx (i32.add $idx 1))
+        (br $loop)
+      )
+    )
+
+    ;; combine last/res as hi 32/low 32 of i64
+    (i64.or
+      (i64.shl (i64.extend_i32_u $last) (i64.const 32))
+      (i64.extend_i32_u $res))
+  )
+
+  (func $HASHMAP (result i32)
+    ;; just point to static empty hash-map
+    ($INC_REF (global.get $EMPTY_HASHMAP))
+  )
+
+  (func $ASSOC1 (param $hm i32 $k i32 $v i32) (result i32)
+    (LET $res ($ALLOC (global.get $HASHMAP_T) $hm $k $v))
+    ;; we took ownership of previous release
+    ($RELEASE $hm)
+    $res
+  )
+
+  (func $ASSOC1_S (param $hm i32 $k i32 $v i32) (result i32)
+    (LET $kmv ($STRING (global.get $STRING_T) $k)
+         $res ($ASSOC1 $hm $kmv $v))
+    ;; map took ownership of key
+    ($RELEASE $kmv)
+    $res
+  )
+
+  (func $HASHMAP_GET (param $hm i32) (param $key_mv i32) (result i64)
+    (LET $key         ($to_String $key_mv)
+         $found       0
+         $res         0
+         $test_key_mv 0)
+
+    (block $done
+      (loop $loop
+        ;;; if (VAL0(hm) == 0)
+        (if (i32.eq ($VAL0 $hm) 0)
+          (then
+            (local.set $res (global.get $NIL))
+            (br $done)))
+        ;;; test_key_mv = MEM_VAL1(hm)
+        (local.set $test_key_mv ($MEM_VAL1_ptr $hm))
+        ;;; if (strcmp(key, to_String(test_key_mv)) == 0)
+        (if (i32.eq ($strcmp $key ($to_String $test_key_mv)) 0)
+          (then
+            (local.set $found 1)
+            (local.set $res ($MEM_VAL2_ptr $hm))
+            (br $done)))
+        (local.set $hm ($MEM_VAL0_ptr $hm))
+
+        (br $loop)
+      )
+    )
+
+    ;; combine found/res as hi 32/low 32 of i64
+    (i64.or (i64.shl (i64.extend_i32_u $found) (i64.const 32))
+            (i64.extend_i32_u $res))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; function functions
+
+  (func $FUNCTION (param $index i32) (result i32)
+    ($ALLOC_SCALAR (global.get $FUNCTION_T) $index)
+  )
+
+  (func $MALFUNC (param $ast i32 $params i32 $env i32) (result i32)
+    ($ALLOC (global.get $MALFUNC_T) $ast $params $env)
+  )
+
+)

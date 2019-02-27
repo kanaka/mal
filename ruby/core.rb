@@ -13,6 +13,9 @@ $core_ns = {
     :symbol? =>   lambda {|a| a.is_a? Symbol},
     :keyword =>   lambda {|a| "\u029e"+a},
     :keyword? =>  lambda {|a| (a.is_a? String) && "\u029e" == a[0]},
+    :number? =>   lambda {|a| a.is_a? Numeric},
+    :fn? =>       lambda {|a| (a.is_a? Proc) && (!(a.is_a? Function) || !a.is_macro)},
+    :macro? =>    lambda {|a| (a.is_a? Function) && a.is_macro},
 
     :"pr-str" =>  lambda {|*a| a.map {|e| _pr_str(e, true)}.join(" ")},
     :str =>       lambda {|*a| a.map {|e| _pr_str(e, false)}.join("")},

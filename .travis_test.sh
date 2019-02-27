@@ -6,6 +6,9 @@ ACTION=${1}
 IMPL=${2}
 MAL_IMPL=${3:-js}
 
+mode_var=${IMPL}_MODE
+mode_val=${!mode_var}
+
 echo "ACTION: ${ACTION}"
 echo "IMPL: ${IMPL}"
 echo "MAL_IMPL: ${MAL_IMPL}"
@@ -22,7 +25,9 @@ else
 fi
 
 ${MAKE} TEST_OPTS="--debug-file ../${ACTION}.err" \
-    MAL_IMPL=${MAL_IMPL} ${ACTION}^${IMPL}
+    MAL_IMPL=${MAL_IMPL} \
+     ${mode_val:+${mode_var}=${mode_val}} \
+    ${ACTION}^${IMPL}
 
 # no failure so remove error log
 rm -f ${ACTION}.err || true

@@ -7,16 +7,16 @@
         ret_FIXME))))
 
 (def! run-fn-for*
-  (fn* [fn max-ms acc-ms iters]
+  (fn* [fn max-ms acc-ms last-iters]
     (let* [start (time-ms)
            _ (fn)
            elapsed (- (time-ms) start)
-           new-iters (+ 1 iters)
+           iters (+ 1 last-iters)
            new-acc-ms (+ acc-ms elapsed)]
-      ;(do (prn "here:" new-acc-ms "/" max-ms "iters:" new-iters) )
+      ;(do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
       (if (>= new-acc-ms max-ms)
-        (/ (* max-ms iters) new-acc-ms)
-        (run-fn-for* fn max-ms new-acc-ms new-iters)))))
+        last-iters
+        (run-fn-for* fn max-ms new-acc-ms iters)))))
 
 (def! run-fn-for
   (fn* [fn max-secs]
@@ -24,4 +24,4 @@
       ;; Warm it up first
       (run-fn-for* fn 1000 0 0)
       ;; Now do the test
-      (/ (run-fn-for* fn (* 1000 max-secs) 0 0) 3))))
+      (run-fn-for* fn (* 1000 max-secs) 0 0))))

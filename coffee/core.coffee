@@ -38,7 +38,7 @@ with_meta = (obj,m) ->
 
 exports.ns = {
   '=': (a,b) -> types._equal_Q(a,b),
-  'throw': (a) -> throw a,
+  'throw': (a) -> throw {"object": a},
   'nil?': types._nil_Q,
   'true?': types._true_Q,
   'false?': types._false_Q,
@@ -47,6 +47,9 @@ exports.ns = {
   'symbol?': types._symbol_Q,
   'keyword': types._keyword,
   'keyword?': types._keyword_Q,
+  'number?': (a) -> typeof a == 'number',
+  'fn?': (a) -> typeof a == 'function' and not types._macro_Q(a),
+  'macro?': types._macro_Q,
 
   'pr-str': (a...) -> a.map((exp) -> _pr_str(exp,true)).join(" "),
   'str': (a...) -> a.map((exp) -> _pr_str(exp,false)).join(""),

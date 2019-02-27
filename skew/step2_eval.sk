@@ -1,0 +1,64 @@
+def READ(str string) MalVal {
+  return read_str(str)
+}
+
+def eval_ast(ast MalVal, env StringMap<MalVal>) MalVal {
+  if ast is MalSymbol {
+    const name = (ast as MalSymbol).val
+    if !(name in env) {
+      throw MalError.new("'" + name + "' not found")
+    }
+    return env[name]
+  } else if ast is MalList {
+    return MalList.new((ast as MalList).val.map<MalVal>(e => EVAL(e, env)))
+  } else if ast is MalVector {
+    return MalVector.new((ast as MalVector).val.map<MalVal>(e => EVAL(e, env)))
+  } else if ast is MalHashMap {
+    var result List<MalVal> = []
+    (ast as MalHashMap).val.each((k string, v MalVal) => {
+      result.append(EVAL(MalVal.fromHashKey(k), env))
+      result.append(EVAL(v, env))
+    })
+    return MalHashMap.fromList(result)
+  } else {
+    return ast
+  }
+}
+
+def EVAL(ast MalVal, env StringMap<MalVal>) MalVal {
+  if !(ast is MalList) { return eval_ast(ast, env) }
+  var astList = ast as MalList
+  if astList.isEmpty { return ast }
+  var evaledList = eval_ast(ast, env) as MalList
+  var fn = evaledList[0] as MalNativeFunc
+  return fn.call(evaledList.val.slice(1))
+}
+
+def PRINT(exp MalVal) string {
+  return exp?.print(true)
+}
+
+var repl_env StringMap<MalVal> = {
+  "+": MalNativeFunc.new((args List<MalVal>) MalVal => MalNumber.new((args[0] as MalNumber).val + (args[1] as MalNumber).val)),
+  "-": MalNativeFunc.new((args List<MalVal>) MalVal => MalNumber.new((args[0] as MalNumber).val - (args[1] as MalNumber).val)),
+  "*": MalNativeFunc.new((args List<MalVal>) MalVal => MalNumber.new((args[0] as MalNumber).val * (args[1] as MalNumber).val)),
+  "/": MalNativeFunc.new((args List<MalVal>) MalVal => MalNumber.new((args[0] as MalNumber).val / (args[1] as MalNumber).val)),
+}
+
+def REP(str string) string {
+  return PRINT(EVAL(READ(str), repl_env))
+}
+
+@entry
+def main {
+  var line string
+  while (line = readLine("user> ")) != null {
+    if line == "" { continue }
+    try {
+      printLn(REP(line))
+    }
+    catch e MalError {
+      printLn("Error: \(e.message)")
+    }
+  }
+}

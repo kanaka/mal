@@ -52,6 +52,10 @@ function false_Q(Args: TMalArray) : TMal;
 begin
     false_Q := wrap_tf(Args[0] is TMalFalse);
 end;
+function number_Q(Args: TMalArray) : TMal;
+begin
+    number_Q := wrap_tf(Args[0] is TMalInt);
+end;
 function string_Q(Args: TMalArray) : TMal;
 begin
     string_Q := wrap_tf(_string_Q(Args[0]));
@@ -82,6 +86,22 @@ function keyword_Q(Args: TMalArray) : TMal;
 begin
     keyword_Q := wrap_tf((Args[0] is TMalString) and not _string_Q(Args[0]));
 end;
+function fn_Q(Args: TMalArray) : TMal;
+begin
+    if Args[0] is TMalFunc then
+        fn_Q := wrap_tf(not (Args[0] as TMalFunc).isMacro)
+    else
+        fn_Q := TMalFalse.Create;
+end;
+
+function macro_Q(Args: TMalArray) : TMal;
+begin
+    if Args[0] is TMalFunc then
+        macro_Q := wrap_tf((Args[0] as TMalFunc).isMacro)
+    else
+        macro_Q := TMalFalse.Create;
+end;
+
 
 // String functions
 
@@ -541,11 +561,14 @@ begin
     NS['nil?'] := @nil_Q;
     NS['true?'] := @true_Q;
     NS['false?'] := @false_Q;
+    NS['number?'] := @number_Q;
     NS['string?'] := @string_Q;
     NS['symbol'] := @symbol;
     NS['symbol?'] := @symbol_Q;
     NS['keyword'] := @keyword;
     NS['keyword?'] := @keyword_Q;
+    NS['fn?'] := @fn_Q;
+    NS['macro?'] := @macro_Q;
 
     NS['pr-str'] := @do_pr_str;
     NS['str'] := @str;

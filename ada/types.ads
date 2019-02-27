@@ -311,6 +311,8 @@ package Types is
       with function Float_Rel_Op (A, B : Mal_Float) return Boolean;
    function Rel_Op (A, B : Mal_Handle) return Mal_Handle;
 
+   Runtime_Exception : exception;
+
    Mal_Exception : exception;  -- So tempting to call this Mal_Function but...
 
    Mal_Exception_Value : Mal_Handle;  -- Used by mal's throw command

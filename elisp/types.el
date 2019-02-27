@@ -18,7 +18,7 @@
        (defun ,constructor (&optional value meta)
          (vector ',name value meta))
        (defun ,predicate (arg)
-         (and (arrayp arg) (eq (aref arg 0) ',name))))))
+         (and (vectorp arg) (eq (aref arg 0) ',name))))))
 
 (mal-object nil)
 (mal-object true)

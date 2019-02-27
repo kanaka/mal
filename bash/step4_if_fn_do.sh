@@ -49,9 +49,10 @@ EVAL () {
         EVAL_AST "${ast}" "${env}"
         return
     fi
-    _empty? "${ast}" && r="${ast}" && return
 
     # apply list
+    _empty? "${ast}" && r="${ast}" && return
+
     _nth "${ast}" 0; local a0="${r}"
     _nth "${ast}" 1; local a1="${r}"
     _nth "${ast}" 2; local a2="${r}"
@@ -60,7 +61,7 @@ EVAL () {
               [[ "${__ERROR}" ]] && return 1
               ENV_SET "${env}" "${a1}" "${r}"
               return ;;
-        let*) ENV "${env}"; local let_env="${r}"
+        let__STAR__) ENV "${env}"; local let_env="${r}"
               local let_pairs=(${ANON["${a1}"]})
               local idx=0
               #echo "let: [${let_pairs[*]}] for ${a2}"
@@ -91,7 +92,7 @@ EVAL () {
                   EVAL "${a2}" "${env}"
               fi
               return ;;
-        fn*)  _function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
+        fn__STAR__)  _function "ENV \"${env}\" \"${a1}\" \"\${@}\"; \
                          EVAL \"${a2}\" \"\${r}\""
               return ;;
         *)    EVAL_AST "${ast}" "${env}"

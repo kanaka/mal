@@ -27,7 +27,7 @@ class Reader {
 
     // Static functions grouped with Reader class
     static function tokenize(str:String) {
-        var re = ~/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
+        var re = ~/[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
         var tokens = new Array<String>();
         var pos = 0;
         while (re.matchSub(str, pos)) {
@@ -45,6 +45,7 @@ class Reader {
     static function read_atom(rdr:Reader) {
         var re_int = ~/^-?[0-9][0-9]*$/;
         var re_str = ~/^".*"$/;
+        var re_str_bad = ~/^".*$/;
         var token = rdr.next();
         return switch (token) {
             case "nil":
@@ -58,15 +59,22 @@ class Reader {
             case _ if (re_int.match(token)):
                 MalInt(Std.parseInt(token));
             case _ if (re_str.match(token)):
-                var re1 = ~/\\"/g,
+                var re1 = ~/\\\\/g,
                     re2 = ~/\\n/g,
-                    re3 = ~/\\\\/g,
+                    re3 = ~/\\"/g,
+                    re4 = ~/\x7f/g,
                     s = token.substr(1, token.length-2);
-                MalString(re3.replace(
-                           re2.replace(
-                             re1.replace(s, "\""),
-                             "\n"),
-                           "\\"));
+                MalString(re4.replace(
+                            re3.replace(
+                              re2.replace(
+                                re1.replace(
+                                  s,
+                                  "\x7f"),
+                                "\n"),
+                              "\""),
+                            "\\"));
+            case _ if (re_str_bad.match(token)):
+                throw 'expected \'"\', got EOF';
             case _:
                 MalSymbol(token);
         }

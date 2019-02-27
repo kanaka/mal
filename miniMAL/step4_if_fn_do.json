@@ -1,11 +1,11 @@
 ["do",
 
-["load-file", ["`", "miniMAL-core.json"]],
-["load-file", ["`", "types.json"]],
-["load-file", ["`", "reader.json"]],
-["load-file", ["`", "printer.json"]],
-["load-file", ["`", "env.json"]],
-["load-file", ["`", "core.json"]],
+["load", ["`", "miniMAL-core.json"]],
+["load", ["`", "types.json"]],
+["load", ["`", "reader.json"]],
+["load", ["`", "printer.json"]],
+["load", ["`", "env.json"]],
+["load", ["`", "core.json"]],
 
 ["def", "READ", ["fn", ["strng"], ["read-str", "strng"]]],
 
@@ -76,7 +76,10 @@
   ["try",
     ["PRINT", ["EVAL", ["READ", "strng"], "repl-env"]],
     ["catch", "exc",
-      ["str", ["`", "Error: "], [".", "exc", ["`", "toString"]]]]]]],
+      ["str", ["`", "Error: "],
+        ["if", ["isa", "exc", "Error"],
+          [".", "exc", ["`", "toString"]],
+          ["pr-str", "exc", true]]]]]]],
 
 ["`", "core.mal: defined using miniMAL"],
 ["map", ["fn", ["k"], ["env-set", "repl-env",

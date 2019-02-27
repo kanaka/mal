@@ -6,7 +6,7 @@ HISTORY_FILE = require('path').join(process.env.HOME, '.mal-history')
 
 rlwrap = {} # namespace for this module in web context
 
-ffi = require('ffi')
+ffi = require('ffi-napi')
 fs = require('fs')
 
 rllib = ffi.Library(RL_LIB, {

@@ -24,8 +24,8 @@ OBJC_LIBS := -lobjc -lreadline
 else
 #CC = clang -fblocks -fobjc-nonfragile-abi -fobjc-arc
 CC = clang -fblocks -fobjc-nonfragile-abi
-OBJC_FLAGS := $(shell gnustep-config --objc-flags | egrep -v "Entering|Leaving")
-OBJC_LIBS := $(filter-out -shared-libgcc,$(shell gnustep-config --base-libs | egrep -v "Entering|Leaving")) -ldispatch -lreadline
+OBJC_FLAGS := $(shell gnustep-config --objc-flags 2>/dev/null | egrep -v "Entering|Leaving")
+OBJC_LIBS := $(filter-out -shared-libgcc,$(shell gnustep-config --base-libs 2>/dev/null | egrep -v "Entering|Leaving")) -ldispatch -lreadline
 endif
 
 all: $(STEPS)

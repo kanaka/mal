@@ -13,7 +13,7 @@
 ;=>{"abc" 789}
 
 (php* "print \"hello\n\";")
-; hello
+;/hello
 ;=>nil
 
 (php* "global $foo; $foo=8;")
@@ -23,3 +23,23 @@
 (php* "global $f; $f = function($v) { return 1+$v; };")
 (php* "global $f; return array_map($f, array(1,2,3));")
 ;=>(2 3 4)
+
+;; testing native function calling
+
+(php/date "Y-m-d" 0)
+;=>"1970-01-01"
+
+;; testing native function with mal callback
+
+(php/array_map (fn* [t] (if (> t 3) t)) [1 2 3 4 5 6])
+;=>(nil nil nil 4 5 6)
+
+;; testing superglobal variable access
+
+(get php/_SERVER "PHP_SELF")
+;=>"../php/stepA_mal.php"
+
+;; testing PHP constants access
+
+php/FILE_APPEND
+;=>8

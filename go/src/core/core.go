@@ -20,6 +20,19 @@ func throw(a []MalType) (MalType, error) {
 	return nil, MalError{a[0]}
 }
 
+func fn_q(a []MalType) (MalType, error) {
+	switch f := a[0].(type) {
+	case MalFunc:
+		return !f.GetMacro(), nil
+	case Func:
+		return true, nil
+	case func([]MalType) (MalType, error):
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
 // String functions
 
 func pr_str(a []MalType) (MalType, error) {
@@ -102,9 +115,6 @@ func dissoc(a []MalType) (MalType, error) {
 }
 
 func get(a []MalType) (MalType, error) {
-	if len(a) != 2 {
-		return nil, errors.New("get requires 2 arguments")
-	}
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
@@ -141,6 +151,7 @@ func keys(a []MalType) (MalType, error) {
 	}
 	return List{slc, nil}, nil
 }
+
 func vals(a []MalType) (MalType, error) {
 	if !HashMap_Q(a[0]) {
 		return nil, errors.New("keys called on non-hash map")
@@ -160,7 +171,6 @@ func cons(a []MalType) (MalType, error) {
 	if e != nil {
 		return nil, e
 	}
-
 	return List{append([]MalType{val}, lst...), nil}, nil
 }
 
@@ -272,9 +282,6 @@ func apply(a []MalType) (MalType, error) {
 }
 
 func do_map(a []MalType) (MalType, error) {
-	if len(a) != 2 {
-		return nil, errors.New("map requires 2 args")
-	}
 	f := a[0]
 	results := []MalType{}
 	args, e := GetSlice(a[1])
@@ -354,9 +361,6 @@ func seq(a []MalType) (MalType, error) {
 
 // Metadata functions
 func with_meta(a []MalType) (MalType, error) {
-	if len(a) != 2 {
-		return nil, errors.New("with-meta requires 2 args")
-	}
 	obj := a[0]
 	m := a[1]
 	switch tobj := obj.(type) {
@@ -415,9 +419,6 @@ func swap_BANG(a []MalType) (MalType, error) {
 	if !Atom_Q(a[0]) {
 		return nil, errors.New("swap! called with non-atom")
 	}
-	if len(a) < 2 {
-		return nil, errors.New("swap! requires at least 2 args")
-	}
 	atm := a[0].(*Atom)
 	args := []MalType{atm.Val}
 	f := a[1]
@@ -432,128 +433,123 @@ func swap_BANG(a []MalType) (MalType, error) {
 
 // core namespace
 var NS = map[string]MalType{
-	"=": func(a []MalType) (MalType, error) {
-		return Equal_Q(a[0], a[1]), nil
-	},
-	"throw": throw,
-	"nil?": func(a []MalType) (MalType, error) {
-		return Nil_Q(a[0]), nil
-	},
-	"true?": func(a []MalType) (MalType, error) {
-		return True_Q(a[0]), nil
-	},
-	"false?": func(a []MalType) (MalType, error) {
-		return False_Q(a[0]), nil
-	},
-	"symbol": func(a []MalType) (MalType, error) {
-		return Symbol{a[0].(string)}, nil
-	},
-	"symbol?": func(a []MalType) (MalType, error) {
-		return Symbol_Q(a[0]), nil
-	},
-	"string?": func(a []MalType) (MalType, error) {
-		return (String_Q(a[0]) && !Keyword_Q(a[0])), nil
-	},
-	"keyword": func(a []MalType) (MalType, error) {
+	"=":       call2b(Equal_Q),
+	"throw":   call1e(throw),
+	"nil?":    call1b(Nil_Q),
+	"true?":   call1b(True_Q),
+	"false?":  call1b(False_Q),
+	"symbol":  call1e(func(a []MalType) (MalType, error) { return Symbol{a[0].(string)}, nil }),
+	"symbol?": call1b(Symbol_Q),
+	"string?": call1e(func(a []MalType) (MalType, error) { return (String_Q(a[0]) && !Keyword_Q(a[0])), nil }),
+	"keyword": call1e(func(a []MalType) (MalType, error) {
 		if Keyword_Q(a[0]) {
 			return a[0], nil
 		} else {
 			return NewKeyword(a[0].(string))
 		}
-	},
-	"keyword?": func(a []MalType) (MalType, error) {
-		return Keyword_Q(a[0]), nil
-	},
+	}),
+	"keyword?":    call1b(Keyword_Q),
+	"number?":     call1b(Number_Q),
+	"fn?":         call1e(fn_q),
+	"macro?":      call1e(func(a []MalType) (MalType, error) { return MalFunc_Q(a[0]) && a[0].(MalFunc).GetMacro(), nil }),
+	"pr-str":      callNe(pr_str),
+	"str":         callNe(str),
+	"prn":         callNe(prn),
+	"println":     callNe(println),
+	"read-string": call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string)) }),
+	"slurp":       call1e(slurp),
+	"readline":    call1e(func(a []MalType) (MalType, error) { return readline.Readline(a[0].(string)) }),
+	"<":           call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
+	"<=":          call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
+	">":           call2e(func(a []MalType) (MalType, error) { return a[0].(int) > a[1].(int), nil }),
+	">=":          call2e(func(a []MalType) (MalType, error) { return a[0].(int) >= a[1].(int), nil }),
+	"+":           call2e(func(a []MalType) (MalType, error) { return a[0].(int) + a[1].(int), nil }),
+	"-":           call2e(func(a []MalType) (MalType, error) { return a[0].(int) - a[1].(int), nil }),
+	"*":           call2e(func(a []MalType) (MalType, error) { return a[0].(int) * a[1].(int), nil }),
+	"/":           call2e(func(a []MalType) (MalType, error) { return a[0].(int) / a[1].(int), nil }),
+	"time-ms":     call0e(time_ms),
+	"list":        callNe(func(a []MalType) (MalType, error) { return List{a, nil}, nil }),
+	"list?":       call1b(List_Q),
+	"vector":      callNe(func(a []MalType) (MalType, error) { return Vector{a, nil}, nil }),
+	"vector?":     call1b(Vector_Q),
+	"hash-map":    callNe(func(a []MalType) (MalType, error) { return NewHashMap(List{a, nil}) }),
+	"map?":        call1b(HashMap_Q),
+	"assoc":       callNe(assoc),  // at least 3
+	"dissoc":      callNe(dissoc), // at least 2
+	"get":         call2e(get),
+	"contains?":   call2e(func(a []MalType) (MalType, error) { return contains_Q(a[0], a[1]) }),
+	"keys":        call1e(keys),
+	"vals":        call1e(vals),
+	"sequential?": call1b(Sequential_Q),
+	"cons":        call2e(cons),
+	"concat":      callNe(concat),
+	"nth":         call2e(nth),
+	"first":       call1e(first),
+	"rest":        call1e(rest),
+	"empty?":      call1e(empty_Q),
+	"count":       call1e(count),
+	"apply":       callNe(apply), // at least 2
+	"map":         call2e(do_map),
+	"conj":        callNe(conj), // at least 2
+	"seq":         call1e(seq),
+	"with-meta":   call2e(with_meta),
+	"meta":        call1e(meta),
+	"atom":        call1e(func(a []MalType) (MalType, error) { return &Atom{a[0], nil}, nil }),
+	"atom?":       call1b(Atom_Q),
+	"deref":       call1e(deref),
+	"reset!":      call2e(reset_BANG),
+	"swap!":       callNe(swap_BANG),
+}
 
-	"pr-str":  func(a []MalType) (MalType, error) { return pr_str(a) },
-	"str":     func(a []MalType) (MalType, error) { return str(a) },
-	"prn":     func(a []MalType) (MalType, error) { return prn(a) },
-	"println": func(a []MalType) (MalType, error) { return println(a) },
-	"read-string": func(a []MalType) (MalType, error) {
-		return reader.Read_str(a[0].(string))
-	},
-	"slurp": slurp,
-	"readline": func(a []MalType) (MalType, error) {
-		return readline.Readline(a[0].(string))
-	},
+// callXX functions check the number of arguments
+func call0e(f func([]MalType) (MalType, error)) func([]MalType) (MalType, error) {
+	return func(args []MalType) (MalType, error) {
+		if len(args) != 0 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 0)", len(args))
+		}
+		return f(args)
+	}
+}
 
-	"<": func(a []MalType) (MalType, error) {
-		return a[0].(int) < a[1].(int), nil
-	},
-	"<=": func(a []MalType) (MalType, error) {
-		return a[0].(int) <= a[1].(int), nil
-	},
-	">": func(a []MalType) (MalType, error) {
-		return a[0].(int) > a[1].(int), nil
-	},
-	">=": func(a []MalType) (MalType, error) {
-		return a[0].(int) >= a[1].(int), nil
-	},
-	"+": func(a []MalType) (MalType, error) {
-		return a[0].(int) + a[1].(int), nil
-	},
-	"-": func(a []MalType) (MalType, error) {
-		return a[0].(int) - a[1].(int), nil
-	},
-	"*": func(a []MalType) (MalType, error) {
-		return a[0].(int) * a[1].(int), nil
-	},
-	"/": func(a []MalType) (MalType, error) {
-		return a[0].(int) / a[1].(int), nil
-	},
-	"time-ms": time_ms,
+func call1e(f func([]MalType) (MalType, error)) func([]MalType) (MalType, error) {
+	return func(args []MalType) (MalType, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 1)", len(args))
+		}
+		return f(args)
+	}
+}
 
-	"list": func(a []MalType) (MalType, error) {
-		return List{a, nil}, nil
-	},
-	"list?": func(a []MalType) (MalType, error) {
-		return List_Q(a[0]), nil
-	},
-	"vector": func(a []MalType) (MalType, error) {
-		return Vector{a, nil}, nil
-	},
-	"vector?": func(a []MalType) (MalType, error) {
-		return Vector_Q(a[0]), nil
-	},
-	"hash-map": func(a []MalType) (MalType, error) {
-		return NewHashMap(List{a, nil})
-	},
-	"map?": func(a []MalType) (MalType, error) {
-		return HashMap_Q(a[0]), nil
-	},
-	"assoc":  assoc,
-	"dissoc": dissoc,
-	"get":    get,
-	"contains?": func(a []MalType) (MalType, error) {
-		return contains_Q(a[0], a[1])
-	},
-	"keys": keys,
-	"vals": vals,
+func call2e(f func([]MalType) (MalType, error)) func([]MalType) (MalType, error) {
+	return func(args []MalType) (MalType, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
+		}
+		return f(args)
+	}
+}
 
-	"sequential?": func(a []MalType) (MalType, error) {
-		return Sequential_Q(a[0]), nil
-	},
-	"cons":   cons,
-	"concat": concat,
-	"nth":    nth,
-	"first":  first,
-	"rest":   rest,
-	"empty?": empty_Q,
-	"count":  count,
-	"apply":  apply,
-	"map":    do_map,
-	"conj":   conj,
-	"seq":    seq,
+func callNe(f func([]MalType) (MalType, error)) func([]MalType) (MalType, error) {
+	// just for documenting purposes, does not check anything
+	return func(args []MalType) (MalType, error) {
+		return f(args)
+	}
+}
 
-	"with-meta": with_meta,
-	"meta":      meta,
-	"atom": func(a []MalType) (MalType, error) {
-		return &Atom{a[0], nil}, nil
-	},
-	"atom?": func(a []MalType) (MalType, error) {
-		return Atom_Q(a[0]), nil
-	},
-	"deref":  deref,
-	"reset!": reset_BANG,
-	"swap!":  swap_BANG,
+func call1b(f func(MalType) bool) func([]MalType) (MalType, error) {
+	return func(args []MalType) (MalType, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 1)", len(args))
+		}
+		return f(args[0]), nil
+	}
+}
+
+func call2b(f func(MalType, MalType) bool) func([]MalType) (MalType, error) {
+	return func(args []MalType) (MalType, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
+		}
+		return f(args[0], args[1]), nil
+	}
 }

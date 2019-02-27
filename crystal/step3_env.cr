@@ -1,6 +1,6 @@
 #! /usr/bin/env crystal run
 
-require "./readline"
+require "readline"
 require "./reader"
 require "./printer"
 require "./types"
@@ -14,24 +14,24 @@ def eval_error(msg)
 end
 
 def num_func(func)
-  -> (args : Array(Mal::Type)) {
+  ->(args : Array(Mal::Type)) {
     x, y = args[0].unwrap, args[1].unwrap
     eval_error "invalid arguments" unless x.is_a?(Int64) && y.is_a?(Int64)
     Mal::Type.new func.call(x, y)
   }
 end
 
-$repl_env = Mal::Env.new nil
-$repl_env.set("+", Mal::Type.new num_func(->(x : Int64, y : Int64){ x + y }))
-$repl_env.set("-", Mal::Type.new num_func(->(x : Int64, y : Int64){ x - y }))
-$repl_env.set("*", Mal::Type.new num_func(->(x : Int64, y : Int64){ x * y }))
-$repl_env.set("/", Mal::Type.new num_func(->(x : Int64, y : Int64){ x / y }))
+REPL_ENV = Mal::Env.new nil
+REPL_ENV.set("+", Mal::Type.new num_func(->(x : Int64, y : Int64) { x + y }))
+REPL_ENV.set("-", Mal::Type.new num_func(->(x : Int64, y : Int64) { x - y }))
+REPL_ENV.set("*", Mal::Type.new num_func(->(x : Int64, y : Int64) { x * y }))
+REPL_ENV.set("/", Mal::Type.new num_func(->(x : Int64, y : Int64) { x / y }))
 
 module Mal
   extend self
 
   def eval_ast(a, env)
-    return a.map{|n| eval(n, env) } if a.is_a? Array
+    return a.map { |n| eval(n, env) } if a.is_a? Array
 
     Mal::Type.new case ast = a.unwrap
     when Mal::Symbol
@@ -41,12 +41,12 @@ module Mal
         eval_error "'#{ast.str}' not found"
       end
     when Mal::List
-      ast.each_with_object(Mal::List.new){|n, l| l << eval(n, env)}
+      ast.each_with_object(Mal::List.new) { |n, l| l << eval(n, env) }
     when Mal::Vector
-      ast.each_with_object(Mal::Vector.new){|n, l| l << eval(n, env)}
+      ast.each_with_object(Mal::Vector.new) { |n, l| l << eval(n, env) }
     when Mal::HashMap
       new_map = Mal::HashMap.new
-      ast.each{|k, v| new_map[k] = eval(v, env)}
+      ast.each { |k, v| new_map[k] = eval(v, env) }
       new_map
     else
       ast
@@ -71,7 +71,7 @@ module Mal
       eval_error "wrong number of argument for 'def!'" unless ast.size == 3
       a1 = ast[1].unwrap
       eval_error "1st argument of 'def!' must be symbol" unless a1.is_a?(Mal::Symbol)
-      env.set(a1.str, eval(ast[2], env) as Mal::Type)
+      env.set(a1.str, eval(ast[2], env).as(Mal::Type))
     when "let*"
       eval_error "wrong number of argument for 'def!'" unless ast.size == 3
 
@@ -93,7 +93,7 @@ module Mal
       args = eval_ast(ast, env)
 
       if f.is_a?(Mal::Type) && (f2 = f.unwrap).is_a?(Mal::Func)
-        f2.call(args as Array(Mal::Type))
+        f2.call(args.as(Array(Mal::Type)))
       else
         eval_error "expected function symbol as the first symbol of list"
       end
@@ -105,14 +105,16 @@ module Mal
   end
 
   def rep(str)
-    print(eval(read(str), $repl_env))
+    print(eval(read(str), REPL_ENV))
   end
 end
 
-while line = my_readline("user> ")
+while line = Readline.readline("user> ", true)
   begin
     puts Mal.rep(line)
+  rescue e : Mal::RuntimeException
+    STDERR.puts "Error: #{pr_str(e.thrown, true)}"
   rescue e
-    STDERR.puts e
+    STDERR.puts "Error: #{e}"
   end
 end

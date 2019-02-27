@@ -103,6 +103,7 @@ sub eval ($ast is copy, $env is copy) {
       when 'try*' {
         return eval($a1, $env);
         CATCH {
+          .rethrow if !$a2;
           my $ex = $_ ~~ X::MalThrow ?? .value !! MalString(.Str);
           my $new_env = $env;
           $env.set($a2[1].val, $ex);
@@ -150,7 +151,8 @@ sub MAIN ($source_file?, *@args) {
   while (my $line = prompt 'user> ').defined {
     say rep($line);
     CATCH {
-      when X::MalException { .Str.say }
+      when X::MalThrow { say "Error: " ~ pr_str(.value, True) }
+      when X::MalException { say "Error: " ~ .Str }
     }
   }
 }

@@ -1,6 +1,7 @@
 import Compat;
 import types.Types.MalType;
 import types.Types.*;
+import types.MalException;
 import reader.*;
 import printer.*;
 import env.*;
@@ -137,7 +138,11 @@ class Step6_file {
             } catch (exc:haxe.io.Eof) {
                 Compat.exit(0);
             } catch (exc:Dynamic) {
-                Compat.println(exc);
+                if (Type.getClass(exc) == MalException) {
+                    Compat.println("Error: " + Printer.pr_str(exc.obj, true));
+                } else {
+                    Compat.println("Error: " + exc);
+                };
             }
         }
     }

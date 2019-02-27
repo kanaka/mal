@@ -18,5 +18,5 @@
 ;; Testing eval of print statement
 
 (pl* "print 'hello\n';")
-; hello
+;/hello
 ;=>1

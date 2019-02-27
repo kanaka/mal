@@ -74,14 +74,15 @@ func read_string(_ rdr: Reader) throws -> MalVal {
         if rdr.str[cidx] == "\"" { break }
         cidx = rdr.pos
     }
-    if rdr.pos > rdr.str.endIndex {
+    if rdr.str[rdr.str.index(before: rdr.pos)] != "\"" {
         throw MalError.Reader(msg: "Expected '\"', got EOF")
     }
     let matchStr = rdr.str.substring(with: 
         rdr.str.index(after: start)..<rdr.str.index(before: rdr.pos))
-    let s1 = matchStr.replacingOccurrences(of: "\\\"", with: "\"")
+    let s0 = matchStr.replacingOccurrences(of: "\\\\", with: "\u{029e}")
+    let s1 = s0.replacingOccurrences(of: "\\\"", with: "\"")
     let s2 = s1.replacingOccurrences(of: "\\n", with: "\n")
-    let s3 = s2.replacingOccurrences(of: "\\\\", with: "\\")
+    let s3 = s2.replacingOccurrences(of: "\u{029e}", with: "\\")
     return MalVal.MalString(s3)
 }
 
@@ -112,7 +113,7 @@ func read_atom(_ rdr: Reader) throws -> MalVal {
         throw MalError.Reader(msg: "Empty string passed to read_atom")
     }
     switch rdr.str[rdr.pos] {
-    case "-" where !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
+    case "-" where rdr.str.characters.count == 1 || !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
         return try read_symbol(rdr)
     case let c where int_char.contains(c):
         return read_int(rdr)

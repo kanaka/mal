@@ -10,7 +10,7 @@
 ;=>(7 8 9)
 
 (js-eval "console.log('hello');")
-; hello
+;/hello
 ;=>nil
 
 (js-eval "foo=8;")
@@ -27,7 +27,7 @@
 ;=>60
 
 (. "console.log" "abc" 123 '(4 5 6) {"kk" "vv"} (= 1 1) nil)
-; abc 123 [ 4, 5, 6 ] { kk: 'vv' } true null
+;/abc 123 \[ 4, 5, 6 \] \{ kk: 'vv' \} true null
 ;=>nil
 
 (js-eval "myobj = { v: 10, myfunc: function(a,b,c) { return a * b * c * this.v; } }")

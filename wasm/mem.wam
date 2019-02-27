@@ -1,0 +1,465 @@
+(module $mem
+  (global $MEM_SIZE               i32 1048576)
+  (global $STRING_MEM_SIZE        i32 1048576)
+
+  (global $heap_start             (mut i32) 0)
+  (global $heap_end               (mut i32) 0)
+
+  (global $mem                    (mut i32) 0)
+  (global $mem_unused_start       (mut i32) 0)
+  (global $mem_free_list          (mut i32) 0)
+  (global $mem_user_start         (mut i32) 0)
+
+  (global $string_mem             (mut i32) 0)
+  (global $string_mem_next        (mut i32) 0)
+  (global $string_mem_user_start  (mut i32) 0)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; General type storage/pointer functions
+
+  (func $VAL0_ptr (param $mv i32) (result i32)
+    (i32.add $mv 4))
+  (func $VAL1_ptr (param $mv i32) (result i32)
+    (i32.add $mv 8))
+
+  (func $VAL0 (param $mv i32) (result i32)
+    (i32.load (i32.add $mv 4)))
+  (func $VAL1 (param $mv i32) (result i32)
+    (i32.load (i32.add $mv 8)))
+
+
+  (func $MEM_VAL0_ptr (param $mv i32) (result i32)
+    (i32.add (global.get $mem)
+             (i32.mul (i32.load (i32.add $mv 4)) 4)))
+  (func $MEM_VAL1_ptr (param $mv i32) (result i32)
+    (i32.add (global.get $mem)
+             (i32.mul (i32.load (i32.add $mv 8)) 4)))
+  (func $MEM_VAL2_ptr (param $mv i32) (result i32)
+    (i32.add (global.get $mem)
+             (i32.mul (i32.load (i32.add $mv 12)) 4)))
+
+  ;; Returns the memory index mem of mv
+  ;; Will usually be used with a load or store by the caller
+  (func $IDX (param $mv i32) (result i32)
+    ;; MalVal memory 64 bit (2 * i32) aligned
+    (i32.div_u (i32.sub $mv (global.get $mem)) 4))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; Returns the address of 'mem[mv_idx]'
+  (func $MalVal_ptr (param $mv_idx i32) (result i32)
+    ;; MalVal memory 64 bit (2 * i32) aligned
+    ;;; mem[mv_idx].refcnt_type
+    (i32.add (global.get $mem) (i32.mul $mv_idx 4)))
+
+  ;; Returns the address of 'mem[mv_idx].refcnt_type'
+  (func $MalVal_refcnt_type (param $mv_idx i32) (result i32)
+    (i32.load ($MalVal_ptr $mv_idx)))
+
+  (func $TYPE (param $mv i32) (result i32)
+    ;;; type = mv->refcnt_type & 31
+    (i32.and (i32.load $mv) 0x1f)) ;; 0x1f == 31
+
+  (func $SET_TYPE (param $mv i32 $type i32)
+    ;;; type = mv->refcnt_type & 31
+    ;;; mv->refcnt_type += - (mv->refcnt_type & 31) + type
+    (i32.store $mv (i32.or
+                     (i32.and $type 0x1f) ;; 0x1f == 31
+                     (i32.and (i32.load $mv) 0xffffffe1)))
+  )
+
+
+  (func $REFS (param $mv i32) (result i32)
+    ;;; type = mv->refcnt_type & 31
+    (i32.shr_u (i32.load $mv) 5)) ;; / 32
+
+  ;; Returns the address of 'mem[mv_idx].val[val]'
+  ;; Will usually be used with a load or store by the caller
+  (func $MalVal_val_ptr (param $mv_idx i32 $val i32) (result i32)
+    (i32.add (i32.add ($MalVal_ptr $mv_idx) 4)
+             (i32.mul $val 4)))
+
+  ;; Returns the value of 'mem[mv_idx].val[val]'
+  (func $MalVal_val (param $mv_idx i32 $val i32) (result i32)
+    (i32.load ($MalVal_val_ptr $mv_idx $val)))
+
+  (func $MalType_size (param $type i32) (result i32)
+    ;;; if (type <= 5 || type == 9 || type == 12)
+    (if (result i32) (OR (i32.le_u $type 5)
+                (i32.eq $type 9)
+                (i32.eq $type 12))
+      (then 2)
+      (else
+        ;;; else if (type == 8 || type == 10 || type == 11)
+        (if (result i32) (OR (i32.eq $type 8)
+                    (i32.eq $type 10)
+                    (i32.eq $type 11))
+          (then 4)
+          (else 3)))))
+
+  (func $MalVal_size (param $mv i32) (result i32)
+    (LET $type ($TYPE $mv))
+    ;; if (type == FREE_T)
+    (if (result i32) (i32.eq $type (global.get $FREE_T))
+      (then
+        ;;; return (mv->refcnt_type & 0xffe0)>>5
+        (i32.shr_u (i32.and (i32.load $mv) 0xffe0) 5)) ;;; / 32
+      (else
+        ;;; return MalType_size(type)
+        ($MalType_size $type))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; init_memory
+
+  (func $init_memory
+    (LET $heap_size 0)
+
+;;    ($print ">>> init_memory\n")
+
+    ($init_printf_mem)
+
+    ;; error_str string buffer
+    (global.set $error_str (STATIC_ARRAY 100))
+    ;; reader token string buffer
+    (global.set $token_buf (STATIC_ARRAY 256))
+    ;; printer string buffer
+    (global.set $printer_buf (STATIC_ARRAY 4096))
+
+    (local.set $heap_size (i32.add (global.get $MEM_SIZE)
+                                   (global.get $STRING_MEM_SIZE)))
+    (global.set $heap_start (i32.add (global.get $memoryBase)
+                                     (global.get $S_STRING_END)))
+    (global.set $heap_end (i32.add (global.get $heap_start)
+                                   $heap_size))
+
+    (global.set $mem (global.get $heap_start))
+    (global.set $mem_unused_start 0)
+    (global.set $mem_free_list 0)
+
+    (global.set $string_mem (i32.add (global.get $heap_start)
+                                     (global.get $MEM_SIZE)))
+    (global.set $string_mem_next (global.get $string_mem))
+
+    (global.set $mem_user_start (global.get $mem_unused_start))
+    (global.set $string_mem_user_start (global.get $string_mem_next))
+
+    ;; Empty values
+    (global.set $NIL
+                ($ALLOC_SCALAR (global.get $NIL_T) 0))
+    (global.set $FALSE
+                ($ALLOC_SCALAR (global.get $BOOLEAN_T) 0))
+    (global.set $TRUE
+                ($ALLOC_SCALAR (global.get $BOOLEAN_T) 1))
+    (global.set $EMPTY_LIST
+                ($ALLOC (global.get $LIST_T)
+                      (global.get $NIL) (global.get $NIL) (global.get $NIL)))
+    (global.set $EMPTY_VECTOR
+                ($ALLOC (global.get $VECTOR_T)
+                      (global.get $NIL) (global.get $NIL) (global.get $NIL)))
+    (global.set $EMPTY_HASHMAP
+                ($ALLOC (global.get $HASHMAP_T)
+                      (global.get $NIL) (global.get $NIL) (global.get $NIL)))
+
+;;    ($print "<<< init_memory\n")
+
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; memory management
+
+  (func $ALLOC_INTERNAL (param $type i32
+                               $val1 i32 $val2 i32 $val3 i32) (result i32)
+    (LET $prev (global.get $mem_free_list)
+         $res  (global.get $mem_free_list)
+         $size ($MalType_size $type))
+
+    (block $loop_done
+      (loop $loop
+        ;; res == mem_unused_start
+        (if (i32.eq $res (global.get $mem_unused_start))
+          (then
+            ;; ALLOC_UNUSED
+            ;;; if (res + size > MEM_SIZE)
+            (if (i32.gt_u (i32.add $res $size) (global.get $MEM_SIZE))
+              ;; Out of memory, exit
+              ($fatal 7 "Out of mal memory!\n"))
+            ;;; if (mem_unused_start += size)
+            (global.set $mem_unused_start
+                        (i32.add (global.get $mem_unused_start) $size))
+            ;;; if (prev == res)
+            (if (i32.eq $prev $res)
+              (then
+                (global.set $mem_free_list (global.get $mem_unused_start)))
+              (else
+                ;;; mem[prev].val[0] = mem_unused_start
+                (i32.store
+                  ($MalVal_val_ptr $prev 0)
+                  (global.get $mem_unused_start))))
+            (br $loop_done)))
+        ;; if (MalVal_size(mem+res) == size)
+        (if (i32.eq ($MalVal_size ($MalVal_ptr $res))
+                    $size)
+          (then
+            ;; ALLOC_MIDDLE
+            ;;; if (res == mem_free_list)
+            (if (i32.eq $res (global.get $mem_free_list))
+              ;; set free pointer (mem_free_list) to next free
+              ;;; mem_free_list = mem[res].val[0];
+              (global.set $mem_free_list ($MalVal_val $res 0)))
+            ;;  if (res != mem_free_list)
+            (if (i32.ne $res (global.get $mem_free_list))
+              ;; set previous free to next free
+              ;;; mem[prev].val[0] = mem[res].val[0]
+              (i32.store ($MalVal_val_ptr $prev 0) ($MalVal_val $res 0)))
+            (br $loop_done)))
+        ;;; prev = res
+        (local.set $prev $res)
+        ;;; res = mem[res].val[0]
+        (local.set $res ($MalVal_val $res 0))
+        (br $loop)
+      )
+    )
+    ;; ALLOC_DONE
+    ;;; mem[res].refcnt_type = type + 32
+    (i32.store ($MalVal_ptr $res) (i32.add $type 32))
+    ;; set val to default val1
+    ;;; mem[res].val[0] = val1
+    (i32.store ($MalVal_val_ptr $res 0) $val1)
+    ;;; if (type > 5 && type != 9)
+    (if (AND (i32.gt_u $type 5)
+             (i32.ne $type 9))
+      (then
+        ;; inc refcnt of referenced value
+        ;;; mem[val1].refcnt_type += 32
+        (i32.store ($MalVal_ptr $val1)
+                   (i32.add ($MalVal_refcnt_type $val1) 32))))
+    ;;; if (size > 2)
+    (if (i32.gt_u $size 2)
+      (then
+        ;; inc refcnt of referenced value
+        ;;; mem[val2].refcnt_type += 32
+        (i32.store ($MalVal_ptr $val2)
+                   (i32.add ($MalVal_refcnt_type $val2) 32))
+        ;;; mem[res].val[1] = val2
+        (i32.store ($MalVal_val_ptr $res 1) $val2)))
+    ;;; if (size > 3)
+    (if (i32.gt_u $size 3)
+      (then
+        ;; inc refcnt of referenced value
+        ;;; mem[val3].refcnt_type += 32
+        (i32.store ($MalVal_ptr $val3)
+                   (i32.add ($MalVal_refcnt_type $val3) 32))
+        ;;; mem[res].val[2] = val3
+        (i32.store ($MalVal_val_ptr $res 2) $val3)))
+
+    ;;; return mem + res
+    ($MalVal_ptr $res)
+  )
+
+  (func $ALLOC_SCALAR (param $type i32 $val1 i32) (result i32)
+    ($ALLOC_INTERNAL $type $val1 0 0)
+  )
+
+  (func $ALLOC (param $type i32 $val1 i32 $val2 i32 $val3 i32) (result i32)
+    ($ALLOC_INTERNAL $type ($IDX $val1) ($IDX $val2) ($IDX $val3))
+  )
+
+  (func $RELEASE (param $mv i32)
+    (LET $idx 0 $type 0 $size 0)
+
+    ;; Ignore NULLs
+    ;;; if (mv == NULL) { return; }
+    (if (i32.eqz $mv) (return))
+    ;;; idx = mv - mem
+    (local.set $idx ($IDX $mv))
+    ;;; type = mv->refcnt_type & 31
+    (local.set $type (i32.and (i32.load $mv) 0x1f)) ;; 0x1f == 31
+    ;;; size = MalType_size(type)
+    (local.set $size ($MalType_size $type))
+
+    ;; DEBUG
+    ;;; printf(">>> RELEASE idx: %d, type: %d, size: %d\n", idx, type, size)
+
+    (if (i32.eq 0 $mv)
+      ($fatal 7 "RELEASE of NULL!\n"))
+
+    (if (i32.eq (global.get $FREE_T) $type)
+      (then
+        ($printf_2 "RELEASE of already free mv: 0x%x, idx: 0x%x\n" $mv $idx)
+        ($fatal 1 "")))
+    (if (i32.lt_u ($MalVal_refcnt_type $idx) 15)
+      (then
+        ($printf_2 "RELEASE of unowned mv: 0x%x, idx: 0x%x\n" $mv $idx)
+        ($fatal 1 "")))
+
+    ;; decrease reference count by one
+    (i32.store ($MalVal_ptr $idx)
+               (i32.sub ($MalVal_refcnt_type $idx) 32))
+
+    ;; nil, false, true, empty sequences
+    (if (i32.le_u $mv (global.get $EMPTY_HASHMAP))
+      (then
+        (if (i32.lt_u ($MalVal_refcnt_type $idx) 32)
+          (then
+            ($printf_2 "RELEASE of unowned mv: 0x%x, idx: 0x%x\n" $mv $idx)
+            ($fatal 1 "")))
+        (return)))
+
+    ;; our reference count is not 0, so don't release
+    (if (i32.ge_u ($MalVal_refcnt_type $idx) 32)
+      (return))
+
+    (block $done
+      (block (block (block (block (block (block (block (block (block
+      (br_table 0 0 0 0 1 1 2 2 3 0 4 4 5 6 7 8 8 $type))
+      ;; nil, boolean, integer, float
+      (br $done))
+      ;; string, kw, symbol
+      ;; release string, then FREE reference
+      ($RELEASE_STRING (i32.add (global.get $string_mem) ($VAL0 $mv)))
+      (br $done))
+      ;; list, vector
+      (if (i32.ne ($MalVal_val $idx 0) 0)
+        (then
+          ;; release next element and value
+          ($RELEASE ($MEM_VAL0_ptr $mv))
+          ($RELEASE ($MEM_VAL1_ptr $mv))))
+      (br $done))
+      ;; hashmap
+      (if (i32.ne ($MalVal_val $idx 0) 0)
+        (then
+          ;; release next element, value, and key
+          ($RELEASE ($MEM_VAL0_ptr $mv))
+          ($RELEASE ($MEM_VAL2_ptr $mv))
+          ($RELEASE ($MEM_VAL1_ptr $mv))))
+      (br $done))
+      ;; mal / macro function
+      ;; release ast, params, and environment
+      ($RELEASE ($MEM_VAL2_ptr $mv))
+      ($RELEASE ($MEM_VAL1_ptr $mv))
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      (br $done))
+      ;; atom
+      ;; release contained/referred value
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      (br $done))
+      ;; env
+      ;; if outer is set then release outer
+      (if (i32.ne ($MalVal_val $idx 1) 0)
+        ($RELEASE ($MEM_VAL1_ptr $mv)))
+      ;; release the env data (hashmap)
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      (br $done))
+      ;; metadata
+      ;; release object and metdata object
+      ($RELEASE ($MEM_VAL0_ptr $mv))
+      ($RELEASE ($MEM_VAL1_ptr $mv))
+      (br $done))
+      ;; default/unknown
+    )
+
+    ;; FREE, free the current element
+
+    ;; set type(FREE/15) and size
+    ;;; mv->refcnt_type = size*32 + FREE_T
+    (i32.store $mv (i32.add (i32.mul $size 32) (global.get $FREE_T)))
+    (i32.store ($MalVal_val_ptr $idx 0) (global.get $mem_free_list))
+    (global.set $mem_free_list $idx)
+    (if (i32.ge_u $size 3) (i32.store ($MalVal_val_ptr $idx 1) 0))
+    (if (i32.eq $size 4) (i32.store ($MalVal_val_ptr $idx 2) 0))
+  )
+
+  ;; find string in string memory or 0 if not found
+  (func $FIND_STRING (param $str i32) (result i32)
+    (LET $ms (global.get $string_mem))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_s $ms (global.get $string_mem_next)))
+        (if (i32.eqz ($strcmp $str (i32.add $ms 4)))
+          (return $ms))
+
+        (local.set $ms (i32.add $ms (i32.load16_u (i32.add $ms 2))))
+        (br $loop)
+      )
+    )
+    0
+  )
+
+  ;; str is a NULL terminated string
+  ;; size is number of characters in the string not including the
+  ;; trailing NULL
+  (func $ALLOC_STRING (param $str i32 $size i32 $intern i32) (result i32)
+    (LET $ms 0)
+
+    ;; search for matching string in string_mem
+    (if $intern
+      (then
+        (local.set $ms ($FIND_STRING $str))
+        (if $ms
+          (then
+            ;;; ms->refcnt += 1
+            (i32.store16 $ms (i32.add (i32.load16_u $ms) 1))
+            (return $ms)))))
+
+    ;; no existing matching string so create a new one
+    (local.set $ms (global.get $string_mem_next))
+    (i32.store16 $ms 1)
+    ;;; ms->size = sizeof(MalString)+size+1
+    (i32.store16 offset=2 $ms (i32.add (i32.add 4 $size) 1))
+    ($memmove (i32.add $ms 4) $str (i32.add $size 1))
+    ;;; string_mem_next = (void *)ms + ms->size
+    (global.set $string_mem_next
+                ;;(i32.add $ms (i32.load16_u (i32.add $ms 2))))
+                (i32.add $ms (i32.load16_u offset=2 $ms)))
+
+;;($printf_2 "ALLOC_STRING 6 ms 0x%x, refs: %d\n" $ms (i32.load16_u $ms))
+    $ms
+  )
+
+  (func $RELEASE_STRING (param $ms i32)
+    (LET $size 0 $next 0 $ms_idx 0 $idx 0 $type 0 $mv 0)
+
+    (if (i32.le_s (i32.load16_u $ms) 0)
+      (then
+        ($printf_2 "Release of already free string: %d (0x%x)\n"
+                   (i32.sub $ms (global.get $string_mem)) $ms)
+        ($fatal 1 "")))
+
+    ;;; size = ms->size
+    (local.set $size (i32.load16_u (i32.add $ms 2)))
+    ;;; *next = (void *)ms + size
+    (local.set $next (i32.add $ms $size))
+
+    ;;; ms->refcnt -= 1
+    (i32.store16 $ms (i32.sub (i32.load16_u $ms) 1))
+
+    (if (i32.eqz (i32.load16_u $ms))
+      (then
+        (if (i32.gt_s (global.get $string_mem_next) $next)
+          (then
+            ;; If no more references to this string then free it up by
+            ;; shifting up every string afterwards to fill the gap
+            ;; (splice).
+            ($memmove $ms $next (i32.sub (global.get $string_mem_next)
+                                           $next))
+
+            ;; Scan the mem values for string types after the freed
+            ;; string and shift their indexes by size
+            (local.set $ms_idx (i32.sub $ms (global.get $string_mem)))
+            (local.set $idx ($IDX (global.get $EMPTY_HASHMAP)))
+            (loop $loop
+              (local.set $mv ($MalVal_ptr $idx))
+              (local.set $type ($TYPE $mv))
+              (if (AND (i32.gt_s ($VAL0 $mv) $ms_idx)
+                       (OR (i32.eq $type (global.get $STRING_T))
+                           (i32.eq $type (global.get $SYMBOL_T))))
+                (i32.store ($VAL0_ptr $mv) (i32.sub ($VAL0 $mv) $size)))
+              (local.set $idx (i32.add $idx ($MalVal_size $mv)))
+
+              (br_if $loop (i32.lt_s $idx (global.get $mem_unused_start)))
+            )))
+
+        (global.set $string_mem_next
+                    (i32.sub (global.get $string_mem_next) $size))))
+  )
+)

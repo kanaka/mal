@@ -1,6 +1,8 @@
 module T = Types.Types
 let ns = Env.make None
 
+let kw_macro = T.Keyword "macro"
+
 let num_fun t f = Types.fn
   (function
     | [(T.Int a); (T.Int b)] -> t (f a b)
@@ -126,7 +128,8 @@ let init env = begin
                in concat));
 
   Env.set env (Types.symbol "nth")
-    (Types.fn (function [xs; T.Int i] -> List.nth (seq xs) i | _ -> T.Nil));
+    (Types.fn (function [xs; T.Int i] ->
+        (try List.nth (seq xs) i with _ -> raise (Invalid_argument "nth: index out of range")) | _ -> T.Nil));
   Env.set env (Types.symbol "first")
     (Types.fn (function
                 | [xs] -> (match seq xs with x :: _ -> x | _ -> T.Nil)
@@ -146,6 +149,19 @@ let init env = begin
     (Types.fn (function [T.String x] -> T.Keyword x | _ -> T.Nil));
   Env.set env (Types.symbol "keyword?")
     (Types.fn (function [T.Keyword _] -> T.Bool true | _ -> T.Bool false));
+  Env.set env (Types.symbol "number?")
+    (Types.fn (function [T.Int _] -> T.Bool true | _ -> T.Bool false));
+  Env.set env (Types.symbol "fn?")
+    (Types.fn (function
+                | [T.Fn { T.meta = T.Map { T.value = meta } }]
+                  -> mk_bool (not (Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta)))
+                | [T.Fn _] -> T.Bool true
+                | _ -> T.Bool false));
+  Env.set env (Types.symbol "macro?")
+    (Types.fn (function
+                | [T.Fn { T.meta = T.Map { T.value = meta } }]
+                  -> mk_bool (Types.MalMap.mem kw_macro meta && Types.to_bool (Types.MalMap.find kw_macro meta))
+                | _ -> T.Bool false));
   Env.set env (Types.symbol "nil?")
     (Types.fn (function [T.Nil] -> T.Bool true | _ -> T.Bool false));
   Env.set env (Types.symbol "true?")

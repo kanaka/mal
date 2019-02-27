@@ -33,6 +33,11 @@ BEGIN
     RETURN types._wraptf(types._false_Q(args[1]));
 END; $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION core.number_Q(args integer[]) RETURNS integer AS $$
+BEGIN
+    RETURN types._wraptf(types._number_Q(args[1]));
+END; $$ LANGUAGE plpgsql;
+
 CREATE FUNCTION core.string_Q(args integer[]) RETURNS integer AS $$
 BEGIN
     RETURN types._wraptf(types._string_Q(args[1]));
@@ -60,6 +65,16 @@ END; $$ LANGUAGE plpgsql;
 CREATE FUNCTION core.keyword_Q(args integer[]) RETURNS integer AS $$
 BEGIN
     RETURN types._wraptf(types._keyword_Q(args[1]));
+END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION core.fn_Q(args integer[]) RETURNS integer AS $$
+BEGIN
+    RETURN types._wraptf(types._fn_Q(args[1]));
+END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION core.macro_Q(args integer[]) RETURNS integer AS $$
+BEGIN
+    RETURN types._wraptf(types._macro_Q(args[1]));
 END; $$ LANGUAGE plpgsql;
 
 
@@ -495,11 +510,14 @@ INSERT INTO envs.env (env_id, outer_id, data)
         'nil?',        types._function('core.nil_Q'),
         'true?',       types._function('core.true_Q'),
         'false?',      types._function('core.false_Q'),
+        'number?',     types._function('core.number_Q'),
         'string?',     types._function('core.string_Q'),
         'symbol',      types._function('core.symbol'),
         'symbol?',     types._function('core.symbol_Q'),
         'keyword',     types._function('core.keyword'),
         'keyword?',    types._function('core.keyword_Q'),
+        'fn?',         types._function('core.fn_Q'),
+        'macro?',      types._function('core.macro_Q'),
 
         'pr-str',      types._function('core.pr_str'),
         'str',         types._function('core.str'),

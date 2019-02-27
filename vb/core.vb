@@ -104,6 +104,30 @@ Namespace Mal
             End If
         End Function
 
+        Shared Function number_Q(a As MalList) As MalVal
+            If TypeOf a(0) Is MalInt Then
+                return MalTrue
+            Else
+                return MalFalse
+            End If
+        End Function
+
+        Shared Function fn_Q(a As MalList) As MalVal
+            If TypeOf a(0) Is MalFunc AndAlso Not DirectCast(a(0),MalFunc).isMacro() Then
+                return MalTrue
+            Else
+                return MalFalse
+            End If
+        End Function
+
+        Shared Function macro_Q(a As MalList) As MalVal
+            If TypeOf a(0) Is MalFunc AndAlso DirectCast(a(0),MalFunc).isMacro() Then
+                return MalTrue
+            Else
+                return MalFalse
+            End If
+        End Function
+
 
         ' Number functions
         Shared Function lt(a As MalList) As MalVal
@@ -454,6 +478,9 @@ Namespace Mal
             ns.Add("string?", New MalFunc(AddressOf string_Q))
             ns.Add("keyword", new MalFunc(AddressOf keyword))
             ns.Add("keyword?", New MalFunc(AddressOf keyword_Q))
+            ns.Add("number?", New MalFunc(AddressOf number_Q))
+            ns.Add("fn?", New MalFunc(AddressOf fn_Q))
+            ns.Add("macro?", New MalFunc(AddressOf macro_Q))
 
             ns.Add("pr-str",New MalFunc(AddressOf pr_str))
             ns.Add("str", New MalFunc(AddressOf str))

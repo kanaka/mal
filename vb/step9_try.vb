@@ -191,8 +191,8 @@ Namespace Mal
                                            DirectCast(a2,MalList).slice(1,2),
                                            New MalList(exc)))
                         End If
-                        Throw e
                     End If
+                    Throw e
                 End Try
             Case "do"
                 eval_ast(ast.slice(1, ast.size()-1), env)

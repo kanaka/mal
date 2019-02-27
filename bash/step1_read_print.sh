@@ -21,7 +21,7 @@ EVAL () {
 # print
 PRINT () {
     if [[ "${__ERROR}" ]]; then
-        _pr_str "${__ERROR}" yes
+        _pr_str "${__ERROR}" no
         r="Error: ${r}"
         __ERROR=
     else

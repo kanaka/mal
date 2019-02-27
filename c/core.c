@@ -26,7 +26,7 @@ MalVal *equal_Q(MalVal *a, MalVal *b) {
 }
 
 
-// Scalar functions
+// Misc predicates
 
 MalVal *nil_Q(MalVal *seq) { return seq->type & MAL_NIL ? &mal_true : &mal_false; }
 MalVal *true_Q(MalVal *seq) { return seq->type & MAL_TRUE ? &mal_true : &mal_false; }
@@ -38,6 +38,19 @@ MalVal *string_Q(MalVal *seq) {
         return &mal_false;
     }
 }
+MalVal *number_Q(MalVal *obj) {
+    return obj->type & MAL_INTEGER || obj->type & MAL_FLOAT
+        ? &mal_true
+        : &mal_false;
+}
+MalVal *fn_Q(MalVal *obj) {
+    return (obj->type & MAL_FUNCTION_C || obj->type & MAL_FUNCTION_MAL) &&
+           !obj->ismacro
+        ? &mal_true
+        : &mal_false;
+}
+MalVal *macro_Q(MalVal *obj) { return obj->ismacro ? &mal_true : &mal_false; }
+
 
 
 // Symbol functions
@@ -492,7 +505,7 @@ MalVal *swap_BANG(MalVal *args) {
 
 
 
-core_ns_entry core_ns[58] = {
+core_ns_entry core_ns[61] = {
     {"=", (void*(*)(void*))equal_Q, 2},
     {"throw", (void*(*)(void*))throw, 1},
     {"nil?", (void*(*)(void*))nil_Q, 1},
@@ -503,6 +516,9 @@ core_ns_entry core_ns[58] = {
     {"symbol?", (void*(*)(void*))symbol_Q, 1},
     {"keyword", (void*(*)(void*))keyword, 1},
     {"keyword?", (void*(*)(void*))keyword_Q, 1},
+    {"number?", (void*(*)(void*))number_Q, 1},
+    {"fn?", (void*(*)(void*))fn_Q, 1},
+    {"macro?", (void*(*)(void*))macro_Q, 1},
 
     {"pr-str", (void*(*)(void*))pr_str, -1},
     {"str", (void*(*)(void*))str, -1},

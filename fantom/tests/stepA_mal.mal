@@ -1,0 +1,32 @@
+;; Testing basic fantom interop
+
+(fantom-eval "7")
+;=>7
+
+(fantom-eval "return 3 * 9")
+;=>27
+
+(fantom-eval "\"7\"")
+;=>"7"
+
+(fantom-eval "\"abcd\".upper")
+;=>"ABCD"
+
+(fantom-eval "[7,8,9]")
+;=>(7 8 9)
+
+(fantom-eval "[\"abc\": 789]")
+;=>{"abc" 789}
+
+(fantom-eval "echo(\"hello\")")
+;/hello
+;=>nil
+
+(fantom-eval "[\"a\",\"b\",\"c\"].join(\" \") { \"X${it}Y\" }")
+;=>"XaY XbY XcY"
+
+(fantom-eval "[1,2,3].map { 1 + it }")
+;=>(2 3 4)
+
+(fantom-eval "Env.cur.runtime")
+;=>"java"

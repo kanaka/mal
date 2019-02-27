@@ -207,6 +207,15 @@ BEGIN
     RETURN false;
 END; $$ LANGUAGE plpgsql;
 
+-- _number_Q:
+-- takes a value_id
+-- returns the whether value_id is integer or float type
+CREATE FUNCTION types._number_Q(id integer) RETURNS boolean AS $$
+BEGIN
+    RETURN types._tf((SELECT 1 FROM types.value
+            WHERE (type_id = 3 OR type_id = 4)
+            AND value_id = id));
+END; $$ LANGUAGE plpgsql;
 
 -- _valueToString:
 -- takes a value_id for a string
@@ -302,6 +311,28 @@ BEGIN
             RETURNING value_id INTO result;
     END IF;
     RETURN result;
+END; $$ LANGUAGE plpgsql;
+
+-- _fn_Q:
+-- takes a value_id
+-- returns the whether value_id is a function
+CREATE FUNCTION types._fn_Q(id integer) RETURNS boolean AS $$
+BEGIN
+    RETURN types._tf((SELECT 1 FROM types.value
+            WHERE (type_id = 11 OR type_id = 12)
+            AND macro IS NULL
+            AND value_id = id));
+END; $$ LANGUAGE plpgsql;
+
+-- _macro_Q:
+-- takes a value_id
+-- returns the whether value_id is a macro
+CREATE FUNCTION types._macro_Q(id integer) RETURNS boolean AS $$
+BEGIN
+    RETURN types._tf((SELECT 1 FROM types.value
+            WHERE type_id = 12
+            AND macro IS TRUE
+            AND value_id = id));
 END; $$ LANGUAGE plpgsql;
 
 -- ---------------------------------------------------------

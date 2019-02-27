@@ -1,0 +1,285 @@
+(module $debug
+
+  (func $checkpoint_user_memory
+    (global.set $mem_user_start (global.get $mem_unused_start))
+    (global.set $string_mem_user_start (global.get $string_mem_next))
+  )
+
+  (func $CHECK_FREE_LIST (result i32)
+    (LET $first (i32.add
+                  (global.get $mem)
+                  (i32.mul (global.get $mem_free_list) 4))
+         $count 0)
+
+    (block $done
+      (loop $loop
+        (br_if $done
+               (i32.ge_s $first
+                         (i32.add (global.get $mem)
+                                  (i32.mul (global.get $mem_unused_start)
+                                             4))))
+        (local.set $count (i32.add $count ($MalVal_size $first)))
+        (local.set $first (i32.add (global.get $mem) (i32.mul 4 ($VAL0 $first))))
+        (br $loop)
+      )
+    )
+    $count
+  )
+
+  (func $PR_MEMORY_SUMMARY_SMALL
+    (LET $free (i32.sub (global.get $MEM_SIZE)
+                          (i32.mul (global.get $mem_unused_start) 4))
+         $free_list_count ($CHECK_FREE_LIST)
+         $mv              (global.get $NIL)
+         $mem_ref_count   0)
+
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_s $mv (i32.add
+                                     (global.get $mem)
+                                     (i32.mul (global.get $mem_unused_start)
+                                                4))))
+        (if (i32.ne ($TYPE $mv) (global.get $FREE_T))
+          (local.set $mem_ref_count (i32.add $mem_ref_count
+                                             (i32.shr_u
+                                               (i32.load $mv)
+                                               5))))
+        (local.set $mv (i32.add $mv (i32.mul 4 ($MalVal_size $mv))))
+        (br $loop)
+      )
+    )
+
+    ($printf_3 "Free: %d, Values: %d (refs: %d), Emptys: "
+               $free
+               (i32.sub
+                 (i32.sub (global.get $mem_unused_start) 1)
+                 $free_list_count)
+               $mem_ref_count)
+    (local.set $mv (global.get $NIL))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.gt_s $mv (global.get $TRUE)))
+        ($printf_1 "%d," (i32.div_s (i32.load $mv) 32))
+        (local.set $mv (i32.add $mv 8))
+        (br $loop)
+      )
+    )
+    (local.set $mv (global.get $EMPTY_LIST))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.gt_s $mv (global.get $EMPTY_HASHMAP)))
+        ($printf_1 "%d," (i32.div_s (i32.load $mv) 32))
+        (local.set $mv (i32.add $mv 12))
+        (br $loop)
+      )
+    )
+    ($print "\n")
+  )
+
+  (func $PR_VALUE (param $fmt i32 $mv i32)
+    (LET $temp ($pr_str $mv 1))
+    ($printf_1 $fmt ($to_String $temp))
+    ($RELEASE $temp)
+  )
+
+  (func $PR_MEMORY_VALUE (param $idx i32) (result i32)
+    ;;; mv = mem + idx
+    (LET $mv ($MalVal_ptr $idx)
+         $type ($TYPE $mv)
+         $size ($MalVal_size $mv)
+         $val0 ($MalVal_val $idx 0))
+
+    ($printf_2 "%4d: type %2d" $idx $type)
+
+    (if (i32.eq $type 15)
+      (then ($printf_1 ", size %2d" $size))
+      (else ($printf_1 ", refs %2d" ($REFS $mv))))
+
+    (if (OR (i32.eq $type (global.get $STRING_T))
+            (i32.eq $type (global.get $SYMBOL_T)))
+      ;; for strings/symbolx pointers, print hex values
+      (then ($printf_2 " [%4d|%3ds" ($MalVal_refcnt_type $idx) $val0))
+      (else ($printf_2 " [%4d|%4d" ($MalVal_refcnt_type $idx) $val0)))
+
+    (if (i32.eq $size 2)
+      (then
+        ($print "|----|----]"))
+      (else
+        ($printf_1 "|%4d" ($MalVal_val $idx 1))
+        (if (i32.eq $size 3)
+          (then ($print "|----]"))
+          (else ($printf_1 "|%4d]" ($MalVal_val $idx 2))))))
+
+    ;;; printf(" >> ")
+    ($print " >> ")
+
+    (block $done (block $unknown
+      (block (block (block (block (block (block (block (block
+      (block (block (block (block (block (block (block (block
+        (br_table 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+                  $unknown $type))
+      ;; 0: nil
+      ($print "nil")
+      (br $done))
+      ;; 1: boolean
+      (if (i32.eq $val0 0)
+        ;; true
+        ($print "false")
+        ;; false
+        ($print "true"))
+      (br $done))
+      ;; 2: integer
+      ($printf_1 "%d" $val0)
+      (br $done))
+      ;; 3: float/ERROR
+      ($print " *** GOT FLOAT *** ")
+      (br $done))
+      ;; 4: string/kw
+      ($printf_1 "'%s'" ($to_String $mv))
+      (br $done))
+      ;; 5: symbol
+      ($print ($to_String $mv))
+      (br $done))
+      ;; 6: list
+      (if (i32.le_u $mv (global.get $EMPTY_HASHMAP))
+        (then
+          ($print "()"))
+        (else
+          ;;; printf("(... %d ...), next: %d\n", mv->val[1], mv->val[0])
+          ($printf_2 "(... %d ...), next: %d"
+                     ($MalVal_val $idx 1)
+                     ($MalVal_val $idx 0))))
+      (br $done))
+      ;; 7: vector
+      (if (i32.le_u $mv (global.get $EMPTY_HASHMAP))
+        (then
+          ($print "[]"))
+        (else
+          ;;; printf("[... %d ...], next: %d\n", mv->val[1], mv->val[0])val
+          ($printf_2 "[... %d ...], next: %d"
+                     ($MalVal_val $idx 1)
+                     ($MalVal_val $idx 0))))
+      (br $done))
+      ;; 8: hashmap
+      (if (i32.le_u $mv (global.get $EMPTY_HASHMAP))
+        (then
+          ($print "{}"))
+        (else
+          ;;; printf("{... '%s'(%d) : %d ...}\n",
+          ;;         to_String(mem + mv->val[1]), mv->val[1], mv->val[2])
+          ($printf_3 "{... '%s'(%d) : %d ...}"
+                     ($to_String ($MalVal_ptr ($MalVal_val $idx 1)))
+                     ($MalVal_val $idx 1)
+                     ($MalVal_val $idx 2))))
+      (br $done))
+      ;; 9: function
+      ($print "function")
+      (br $done))
+      ;; 10: mal function
+      ($print "mal function")
+      (br $done))
+      ;; 11: macro fn
+      ($print "macro fn")
+      (br $done))
+      ;; 12: atom
+      ($print "atom")
+      (br $done))
+      ;; 13: environment
+      ($print "environment")
+      (br $done))
+      ;; 14: metadata
+      ($print "metadata")
+      (br $done))
+      ;; 15: FREE
+      ($printf_1 "FREE next: 0x%x" $val0)
+      (if (i32.eq $idx (global.get $mem_free_list))
+        ($print " (free start)"))
+      (if (i32.eq $val0 (global.get $mem_unused_start))
+        ($print " (free end)"))
+      (br $done))
+      ;; 16: unknown
+      ($print "unknown")
+    )
+
+    ($print "\n")
+
+    (i32.add $size $idx)
+  )
+
+  (func $PR_STRINGS (param $start i32)
+    (LET $ms  0
+         $idx 0)
+    ($printf_2 "String - showing %d -> %d:\n"
+               $start (i32.sub (global.get $string_mem_next)
+                                 (global.get $string_mem)))
+    (if (i32.le_s (i32.sub (global.get $string_mem_next)
+                             (global.get $string_mem))
+                  $start)
+      (then ($print " ---\n"))
+      (else
+        (local.set $ms (global.get $string_mem))
+        (block $done
+          (loop $loop
+            (br_if $done (i32.ge_u $ms (global.get $string_mem_next)))
+            (local.set $idx (i32.sub $ms (global.get $string_mem)))
+            (if (i32.ge_s $idx $start)
+              ($printf_4 "%4d: refs %2d, size %2d >> '%s'\n"
+                         $idx
+                         (i32.load16_u $ms)
+                         (i32.load16_u (i32.add $ms 2))
+                         (i32.add $ms 4)))
+
+            (local.set $ms (i32.add $ms (i32.load16_u (i32.add $ms 2))))
+            (br $loop)
+          )
+        )))
+  )
+
+  (func $PR_MEMORY (param $start i32 $end i32)
+    (LET $string_start 0
+         $idx          0)
+    (if (i32.lt_s $start 0)
+      (then
+        (local.set $start (global.get $mem_user_start))
+        (local.set $string_start (i32.sub (global.get $string_mem_user_start)
+                                            (global.get $string_mem)))))
+    (if (i32.lt_s $end 0)
+      (local.set $end (global.get $mem_unused_start)))
+    ;;; printf("Values - (mem) showing %d -> %d", start, end)
+    ;;; printf(" (unused start: %d, free list: %d):\n",
+    ;;;        mem_unused_start, mem_free_list)
+    ($printf_4 "Values - (mem) showing 0x%x -> 0x%x (unused start: 0x%x, free list: 0x%x):\n"
+          $start
+          $end
+          (global.get $mem_unused_start)
+          (global.get $mem_free_list))
+
+    (if (i32.le_s $end $start)
+      (then
+        ($print "  ---\n")
+        (local.set $end (global.get $mem_unused_start)))
+      (else
+        (local.set $idx $start)
+        ;;; while (idx < end)
+        (block $loopvals_exit
+          (loop $loopvals
+            (br_if $loopvals_exit (i32.ge_s $idx $end))
+            (local.set $idx ($PR_MEMORY_VALUE $idx))
+            (br $loopvals)
+          )
+        )))
+    ($PR_STRINGS $string_start)
+    ($PR_MEMORY_SUMMARY_SMALL)
+  )
+
+  (func $PR_MEMORY_RAW (param $start i32 $end i32)
+    (block $loop_exit
+      (loop $loop
+        (br_if $loop_exit (i32.ge_u $start $end))
+        ($printf_2 "0x%x 0x%x\n" $start (i32.load $start))
+        (local.set $start (i32.add 4 $start))
+        (br $loop)
+      )
+    )
+  )
+)

@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -22,8 +22,8 @@ WORKDIR /mal
 ##########################################################
 
 # Java and maven deps
-RUN apt-get -y install openjdk-7-jdk
-RUN apt-get -y install maven2
+RUN apt-get -y install openjdk-8-jdk
+RUN apt-get -y install maven
 ENV MAVEN_OPTS -Duser.home=/mal
 
 # GNU Octave
@@ -32,3 +32,4 @@ RUN apt-get -y install software-properties-common && \
     apt-get -y update && \
     apt-get -y install octave
 
+ENV HOME /mal

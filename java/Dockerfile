@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:xenial
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -22,7 +22,7 @@ WORKDIR /mal
 ##########################################################
 
 # Java and maven
-RUN apt-get -y install openjdk-7-jdk
-RUN apt-get -y install maven2
+RUN apt-get -y install openjdk-8-jdk
+RUN apt-get -y install maven
 ENV MAVEN_OPTS -Duser.home=/mal
 

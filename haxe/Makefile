@@ -8,12 +8,12 @@ STEPS = step0_repl step1_read_print step2_eval step3_env \
 	step4_if_fn_do step5_tco step6_file step7_quote \
 	step8_macros step9_try stepA_mal
 
-HAXE_DIST_MODE = neko
+haxe_MODE ?= neko
 dist_neko = mal.n
 dist_python = mal.py
 dist_cpp = cpp/mal
 
-all: all-neko all-python all-cpp all-js
+all: all-$(haxe_MODE)
 
 all-neko: $(foreach x,$(STEPS),$(x).n)
 
@@ -38,18 +38,18 @@ mal.js: stepA_mal.js
 	cp $< $@
 
 
-mal: $(dist_$(HAXE_DIST_MODE))
-	$(if $(filter cpp,$(HAXE_DIST_MODE)),\
+mal: $(dist_$(haxe_MODE))
+	$(if $(filter cpp,$(haxe_MODE)),\
 	  cp $< $@;,\
-        $(if $(filter neko,$(HAXE_DIST_MODE)),\
+        $(if $(filter neko,$(haxe_MODE)),\
 	  nekotools boot $<;,\
-        $(if $(filter js,$(HAXE_DIST_MODE)),\
+        $(if $(filter js,$(haxe_MODE)),\
 	  echo "#!/usr/bin/env node" > $@;\
 	  cat $< >> $@;,\
-        $(if $(filter python,$(HAXE_DIST_MODE)),\
+        $(if $(filter python,$(haxe_MODE)),\
 	  echo "#!/usr/bin/env python3" > $@;\
 	  cat $< >> $@;,\
-	$(error Invalid HAXE_DIST_MODE: $(HAXE_DIST_MODE))))))
+	$(error Invalid haxe_MODE: $(haxe_MODE))))))
 	chmod +x $@
 
 

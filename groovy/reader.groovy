@@ -29,7 +29,7 @@ class reader {
     }
 
     def static tokenizer(String str) {
-        def m = str =~ /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
+        def m = str =~ /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/
         def tokens = []
         while (m.find()) {
             String token = m.group(1)
@@ -44,7 +44,7 @@ class reader {
 
     def static read_atom(Reader rdr) {
         def token = rdr.next()
-        def m = token =~ /(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^"(.*)"$|:(.*)|(^[^"]*$)/
+        def m = token =~ /(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^"(.*)"$|^"(.*)$|:(.*)|(^[^"]*$)/
         if (!m.find()) {
             throw new MalException("unrecognized token '$token'")
         }
@@ -57,11 +57,16 @@ class reader {
         } else if (m.group(5) != null) {
             false
         } else if (m.group(6) != null) {
+            if (token[token.length() - 1] != '"') {
+                throw new MalException("expected '\"', got EOF")
+            }
             StringEscapeUtils.unescapeJava(m.group(6))
         } else if (m.group(7) != null) {
-            "\u029e" + m.group(7)
+            throw new MalException("expected '\"', got EOF")
         } else if (m.group(8) != null) {
-            new MalSymbol(m.group(8))
+            "\u029e" + m.group(8)
+        } else if (m.group(9) != null) {
+            new MalSymbol(m.group(9))
         } else {
             throw new MalException("unrecognized '${m.group(0)}'")
         }

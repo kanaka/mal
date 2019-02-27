@@ -1,0 +1,55 @@
+def argv List<string> {
+  return process.argv.slice(2)
+}
+
+def timeMs int {
+  return Date.new.getTime()
+}
+
+var fs = require("fs")
+
+def readFile(filename string) string {
+  return fs.readFileSync(filename, "utf-8")
+}
+
+def writeString(s string) {
+  fs.writeSync(1, s)
+}
+
+def printLn(s string) {
+  writeString(s)
+  writeString("\n")
+}
+
+def readLine(prompt string) string {
+  writeString(prompt)
+  var buffer = Buffer.new(1024) # in newer Node this should be Buffer.alloc
+  var stdin = fs.openSync("/dev/stdin", "rs")
+  var bytesread int
+  var anycharseen = false
+  var total = 0
+  while (bytesread = fs.readSync(stdin, buffer, total, 1)) > 0 {
+    anycharseen = true
+    var lastchar = buffer.slice(total, total + bytesread).toString()
+    if lastchar == "\n" {
+      break
+    }
+    total += bytesread
+  }
+  fs.closeSync(stdin)
+  return anycharseen ? buffer.slice(0, total).toString() : null
+}
+
+def stringToInt(str string) int {
+  return parseInt(str)
+}
+
+@import {
+  const process dynamic
+  const Buffer dynamic
+  const Date dynamic
+  const Error dynamic
+
+  def parseInt(str string) int
+  def require(name string) dynamic
+}

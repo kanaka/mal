@@ -2,6 +2,7 @@
 
 local table = require('table')
 
+package.path = '../lua/?.lua;' .. package.path
 local readline = require('readline')
 local utils = require('utils')
 local types = require('types')
@@ -51,7 +52,7 @@ end
 function macroexpand(ast, env)
     while is_macro_call(ast, env) do
         local mac = env:get(ast[1])
-        ast = mac.fn(unpack(ast:slice(2)))
+        ast = mac.fn(table.unpack(ast:slice(2)))
     end
     return ast
 end
@@ -129,13 +130,13 @@ function EVAL(ast, env)
     elseif 'if' == a0sym then
         local cond = EVAL(a1, env)
         if cond == types.Nil or cond == false then
-            if a3 then ast = a3 else return types.Nil end -- TCO
+            if #ast > 3 then ast = a3 else return types.Nil end -- TCO
         else
             ast = a2 -- TCO
         end
     elseif 'fn*' == a0sym then
         return types.MalFunc:new(function(...)
-            return EVAL(a2, Env:new(env, a1, arg))
+            return EVAL(a2, Env:new(env, a1, table.pack(...)))
         end, a2, env, a1)
     else
         local args = eval_ast(ast, env)
@@ -144,7 +145,7 @@ function EVAL(ast, env)
             ast = f.ast
             env = Env:new(f.env, f.params, args) -- TCO
         else
-            return f(unpack(args))
+            return f(table.unpack(args))
         end
     end
   end

@@ -66,6 +66,21 @@ package body core is
     new_boolean(args.seq_val(0).val_type = mal_keyword, result);
   end procedure fn_keyword_q;
 
+  procedure fn_number_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    new_boolean(args.seq_val(0).val_type = mal_number, result);
+  end procedure fn_number_q;
+
+  procedure fn_function_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    new_boolean((args.seq_val(0).val_type = mal_fn and not args.seq_val(0).func_val.f_is_macro) or args.seq_val(0).val_type = mal_nativefn, result);
+  end procedure fn_function_q;
+
+  procedure fn_macro_q(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
+  begin
+    new_boolean(args.seq_val(0).val_type = mal_fn and args.seq_val(0).func_val.f_is_macro, result);
+  end procedure fn_macro_q;
+
   procedure fn_pr_str(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
     variable s: line;
   begin
@@ -211,17 +226,16 @@ package body core is
     assert false severity failure;
   end function gettimeofday;
 
-  -- Returns the number of milliseconds since 2000-01-01 00:00:00 UTC because
-  -- a standard VHDL integer is 32-bit and therefore cannot hold the number of
+  -- Returns the number of milliseconds since last midnight UTC because a
+  -- standard VHDL integer is 32-bit and therefore cannot hold the number of
   -- milliseconds since 1970-01-01.
   procedure fn_time_ms(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
     variable tv: c_timeval;
     variable dummy: c_timezone;
     variable rc: integer;
-    constant utc_2000_01_01: c_seconds64 := 946684800 c_sec; -- UNIX time at 2000-01-01 00:00:00 UTC
   begin
     rc := gettimeofday(tv, dummy);
-    new_number(((tv.tv_sec - utc_2000_01_01) / 1 c_sec) * 1000 + (tv.tv_usec / 1000 c_usec), result);
+    new_number(((tv.tv_sec / 1 c_sec) mod 86400) * 1000 + (tv.tv_usec / 1000 c_usec), result);
   end procedure fn_time_ms;
 
   procedure fn_list(args: inout mal_val_ptr; result: out mal_val_ptr; err: out mal_val_ptr) is
@@ -533,6 +547,9 @@ package body core is
     elsif f.all = "symbol?"     then fn_symbol_q(args, result, err);
     elsif f.all = "keyword"     then fn_keyword(args, result, err);
     elsif f.all = "keyword?"    then fn_keyword_q(args, result, err);
+    elsif f.all = "number?"     then fn_number_q(args, result, err);
+    elsif f.all = "fn?"         then fn_function_q(args, result, err);
+    elsif f.all = "macro?"      then fn_macro_q(args, result, err);
     elsif f.all = "pr-str"      then fn_pr_str(args, result, err);
     elsif f.all = "str"         then fn_str(args, result, err);
     elsif f.all = "prn"         then fn_prn(args, result, err);
@@ -592,12 +609,6 @@ package body core is
   end procedure define_core_function;
 
   procedure define_core_functions(e: inout env_ptr) is
-    variable is_eof: boolean;
-    variable input_line, result, err: line;
-    variable sym: mal_val_ptr;
-    variable fn: mal_val_ptr;
-    variable outer: env_ptr;
-    variable repl_env: env_ptr;
   begin
     define_core_function(e, "=");
     define_core_function(e, "throw");
@@ -609,6 +620,9 @@ package body core is
     define_core_function(e, "symbol?");
     define_core_function(e, "keyword");
     define_core_function(e, "keyword?");
+    define_core_function(e, "number?");
+    define_core_function(e, "fn?");
+    define_core_function(e, "macro?");
     define_core_function(e, "pr-str");
     define_core_function(e, "str");
     define_core_function(e, "prn");

@@ -1,0 +1,226 @@
+(module $printf
+
+  (global $printf_buf (mut i32) 0)
+
+  (func $init_printf_mem
+    ;; sprintf static buffer
+    (global.set $printf_buf (STATIC_ARRAY 256))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $printf_1 (param $fmt i32) (param $v0 i32)
+    (drop ($sprintf_6 (global.get $printf_buf) $fmt $v0 0 0 0 0 0))
+    ($print (global.get $printf_buf))
+  )
+
+  (func $printf_2 (param $fmt i32 $v0 i32 $v1 i32)
+    (drop ($sprintf_6 (global.get $printf_buf) $fmt $v0 $v1 0 0 0 0))
+    ($print (global.get $printf_buf))
+  )
+
+  (func $printf_3 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+    (drop ($sprintf_6 (global.get $printf_buf) $fmt $v0 $v1 $v2 0 0 0))
+    ($print (global.get $printf_buf))
+  )
+
+  (func $printf_4 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32)
+    (drop ($sprintf_6 (global.get $printf_buf) $fmt $v0 $v1 $v2 $v3 0 0))
+    ($print (global.get $printf_buf))
+  )
+
+  (func $printf_5 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32) (param $v4 i32)
+    (drop ($sprintf_6 (global.get $printf_buf) $fmt $v0 $v1 $v2 $v3 $v4 0))
+    ($print (global.get $printf_buf))
+  )
+
+  (func $printf_6 (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32) (param $v4 i32) (param $v5 i32)
+    (drop ($sprintf_6 (global.get $printf_buf) $fmt $v0 $v1 $v2 $v3 $v4 $v5))
+    ($print (global.get $printf_buf))
+  )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $_sprintdigit (param $str i32) (param $num i32) (param $base i32)
+    (LET $n  (i32.rem_u $num $base)
+         $ch (if (result i32) (i32.lt_u $n 10) 48 55))
+    (i32.store8 $str (i32.add $n $ch))
+  )
+
+  ;; TODO: add max buf length (i.e. snprintnum)
+  (func $_sprintnum (param $buf i32) (param $val i32) (param $radix i32)
+        (param $pad_cnt i32) (param $pad_char i32) (result i32)
+    (LET $pbuf  $buf
+         $neg 0 $i 0 $j 0 $k 0 $len 0 $digit 0)
+
+    (if (AND (i32.lt_s $val 0) (i32.eq $radix 10))
+      (then
+        (local.set $neg 1)
+        (local.set $val (i32.sub 0 $val))))
+
+    ;; Calculate smallest to most significant digit
+    (loop $loop
+      (local.set $digit (i32.rem_u $val $radix))
+      (i32.store8 $pbuf (if (result i32) (i32.lt_u $digit 10)
+                            (i32.add (CHR "0") $digit)
+                            (i32.sub (i32.add (CHR "A") $digit) 10)))
+      (local.set $pbuf (i32.add $pbuf 1))
+      (local.set $val (i32.div_u $val $radix))
+      (br_if $loop (i32.gt_u $val 0))
+    )
+
+    (local.set $i (i32.sub $pbuf $buf))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u $i $pad_cnt))
+        (i32.store8 $pbuf $pad_char)
+        (local.set $pbuf (i32.add $pbuf 1))
+        (local.set $i (i32.add $i 1))
+        (br $loop)
+      )
+    )
+
+    (if $neg
+      (then
+        (i32.store8 $pbuf (CHR "-"))
+        (local.set $pbuf (i32.add $pbuf 1))))
+
+    (i32.store8 $pbuf (CHR "\x00"))
+
+    ;; now reverse it
+    (local.set $len (i32.sub $pbuf $buf))
+    (local.set $i 0)
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u $i (i32.div_u $len 2)))
+
+        (local.set $j (i32.load8_u (i32.add $buf $i)))
+        (local.set $k (i32.add $buf (i32.sub (i32.sub $len $i) 1)))
+        (i32.store8 (i32.add $buf $i) (i32.load8_u $k))
+        (i32.store8 $k $j)
+        (local.set $i (i32.add $i 1))
+        (br $loop)
+      )
+    )
+
+    (i32.add $buf $len)
+  )
+
+  ;; TODO: switch to snprint* (add buffer len)
+  (func $sprintf_1 (param $str i32) (param $fmt i32)
+        (param $v0 i32) (result i32)
+    ($sprintf_6 $str $fmt $v0 0 0 0 0 0)
+  )
+
+  (func $sprintf_6 (param $str i32) (param $fmt i32)
+        (param $v0 i32) (param $v1 i32) (param $v2 i32)
+        (param $v3 i32) (param $v4 i32) (param $v5 i32)
+        (result i32)
+    (LET $pstr $str
+         $vidx 0 $ch 0 $v 0 $len 0 $pad_cnt 0 $pad_char 0)
+
+    (block $done
+      (loop $loop
+        (block $after_v
+          ;; set $v to the current parameter
+          (block (block (block (block (block (block
+          (br_table 0 1 2 3 4 5 0 $vidx))
+          (; 0 ;) (local.set $v $v0) (br $after_v))
+          (; 1 ;) (local.set $v $v1) (br $after_v))
+          (; 2 ;) (local.set $v $v2) (br $after_v))
+          (; 3 ;) (local.set $v $v3) (br $after_v))
+          (; 4 ;) (local.set $v $v4) (br $after_v))
+          (; 5 ;) (local.set $v $v5) (br $after_v)
+        )
+
+        ;;; while ((ch=*(fmt++)))
+        (local.set $ch (i32.load8_u $fmt))
+        (local.set $fmt (i32.add 1 $fmt))
+        (br_if $done (i32.eqz $ch))
+        ;; TODO: check buffer length
+
+        (if (i32.ne $ch (CHR "%"))
+          (then
+            ;; TODO: check buffer length
+            (i32.store8 $pstr $ch)
+            (local.set $pstr (i32.add 1 $pstr))
+            (br $loop)))
+
+        ;;; ch=*(fmt++)
+        (local.set $ch (i32.load8_u $fmt))
+        (local.set $fmt (i32.add 1 $fmt))
+        (br_if $done (i32.eqz $ch))
+
+        (local.set $pad_cnt 0)
+        (local.set $pad_char (CHR " "))
+        (if (AND (i32.ge_s $ch (CHR "0")) (i32.le_s $ch (CHR "9")))
+          (then
+            ;; padding requested
+            (if (i32.eq $ch (CHR "0"))
+              (then
+                ;; zero padding requested
+                (local.set $pad_char (CHR "0"))
+                ;;; ch=*(fmt++)
+                (local.set $ch (i32.load8_u $fmt))
+                (local.set $fmt (i32.add 1 $fmt))
+                (br_if $done (i32.eqz $ch))))
+            (loop $loop
+              (local.set $pad_cnt (i32.mul $pad_cnt 10))
+              (local.set $pad_cnt (i32.add $pad_cnt
+                                           (i32.sub $ch (CHR "0"))))
+              (local.set $ch (i32.load8_u $fmt))
+              (local.set $fmt (i32.add 1 $fmt))
+              (br_if $loop (AND (i32.ge_s $ch (CHR "0"))
+                                (i32.le_s $ch (CHR "9"))))
+            )))
+
+        (if (i32.eq (CHR "d") $ch)
+          (then
+            (local.set $pstr ($_sprintnum $pstr $v 10 $pad_cnt $pad_char)))
+        (else (if (i32.eq (CHR "x") $ch)
+          (then
+            (local.set $pstr ($_sprintnum $pstr $v 16 $pad_cnt $pad_char)))
+        (else (if (i32.eq (CHR "s") $ch)
+          (then
+            (local.set $len ($strlen $v))
+            (block $done
+              (loop $loop
+                (br_if $done (i32.le_s $pad_cnt $len))
+                (i32.store8 $pstr (CHR " "))
+                (local.set $pstr (i32.add $pstr 1))
+                (local.set $pad_cnt (i32.sub $pad_cnt 1))
+                (br $loop)
+              )
+            )
+            ($memmove $pstr $v $len)
+            (local.set $pstr (i32.add $pstr $len)))
+        (else (if (i32.eq (CHR "c") $ch)
+          (then
+            (i32.store8 $pstr $v)
+            (local.set $pstr (i32.add $pstr 1)))
+        (else (if (i32.eq (CHR "%") $ch)
+          (then
+            (i32.store8 $pstr (CHR "%"))
+            (local.set $pstr (i32.add $pstr 1))
+            (br $loop)) ;; don't increase vidx
+        (else
+          ($printf_1 "Illegal format character: '%c'\n" $ch)
+          ($fatal 3 "")))))))))))
+
+        (local.set $vidx (i32.add 1 $vidx))
+        (br $loop)
+      )
+    )
+
+    (i32.store8 $pstr (CHR "\x00"))
+    $pstr
+  )
+
+)

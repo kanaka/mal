@@ -127,6 +127,32 @@ function core_keywordp(idx)
 	return types_heap[idx][1] ~ /^:/ ? "#true" : "#false"
 }
 
+function core_numberp(idx)
+{
+	if (types_heap[idx]["len"] != 2) {
+		return "!\"Invalid argument length for builtin function 'number?'. Expects exactly 1 argument, supplied " (types_heap[idx]["len"] - 1) "."
+	}
+	return types_heap[idx][1] ~ /^\+/ ? "#true" : "#false"
+}
+
+function core_fnp(idx)
+{
+	if (types_heap[idx]["len"] != 2) {
+		return "!\"Invalid argument length for builtin function 'fn?'. Expects exactly 1 argument, supplied " (types_heap[idx]["len"] - 1) "."
+	}
+	f = types_heap[idx][1]
+	return f ~ /^[$&%]/ && !types_heap[substr(f, 2)]["is_macro"] ? "#true" : "#false"
+}
+
+function core_macrop(idx)
+{
+	if (types_heap[idx]["len"] != 2) {
+		return "!\"Invalid argument length for builtin function 'macro?'. Expects exactly 1 argument, supplied " (types_heap[idx]["len"] - 1) "."
+	}
+	f = types_heap[idx][1]
+	return f ~ /^\$/ && types_heap[substr(f, 2)]["is_macro"] ? "#true" : "#false"
+}
+
 
 
 function core_pr_str(idx,    i, len, result)
@@ -1028,6 +1054,9 @@ function core_init()
 	core_ns["'symbol?"] = "&core_symbolp"
 	core_ns["'keyword"] = "&core_keyword"
 	core_ns["'keyword?"] = "&core_keywordp"
+	core_ns["'number?"] = "&core_numberp"
+	core_ns["'fn?"] = "&core_fnp"
+	core_ns["'macro?"] = "&core_macrop"
 
 	core_ns["'pr-str"] = "&core_pr_str"
 	core_ns["'str"] = "&core_str"

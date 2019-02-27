@@ -6,6 +6,7 @@
 #import "printer.h"
 #import "malfunc.h"
 #import "core.h"
+#import <objc/runtime.h>
 
 NSObject * wrap_tf(BOOL val) {
     return val ? [MalTrue alloc] : [MalFalse alloc];
@@ -47,6 +48,16 @@ NSObject * wrap_tf(BOOL val) {
         return wrap_tf([args[0] isKindOfClass:[NSString class]] &&
                        ![args[0] isKindOfClass:[MalSymbol class]] &&
                        !string_Q(args[0]));
+    },
+    @"number?": ^(NSArray *args){
+        return wrap_tf([args[0] isKindOfClass:[NSNumber class]]);
+    },
+    @"fn?": ^(NSArray *args){
+        return wrap_tf(block_Q(args[0]) ||
+		       ([args[0] isKindOfClass:[MalFunc class]] && ![(MalFunc *)args[0] isMacro]));
+    },
+    @"macro?": ^(NSArray *args){
+        return wrap_tf([args[0] isKindOfClass:[MalFunc class]] && [(MalFunc *)args[0] isMacro]);
     },
 
     @"pr-str": ^(NSArray *args){
@@ -258,7 +269,7 @@ NSObject * wrap_tf(BOOL val) {
         if ([args[0] isKindOfClass:[MalVector class]]) {
             [res addObjectsFromArray:args[0]];
             [res addObjectsFromArray:_rest(args)];
-            return (NSObject *)[MalVector arrayWithArray:res];
+            return (NSObject *)[MalVector fromArray:res];
         } else {
             [res addObjectsFromArray:[[_rest(args) reverseObjectEnumerator]
                                       allObjects]];
@@ -289,20 +300,29 @@ NSObject * wrap_tf(BOOL val) {
         }
     },
 
-    @"meta": ^(NSArray *args){
+    @"meta": ^id (NSArray *args){
         if ([args[0] isKindOfClass:[MalFunc class]]) {
             return [(MalFunc *)args[0] meta];
         } else {
-            return (NSObject *)[NSNull alloc];
+            id res = objc_getAssociatedObject(args[0], @"meta");
+            return res ? res : (NSObject *)[NSNull alloc];
         }
     },
-    @"with-meta": ^(NSArray *args){
+    @"with-meta": ^id (NSArray *args){
         if ([args[0] isKindOfClass:[MalFunc class]]) {
             MalFunc * cmf = [(MalFunc *)args[0] copy];
             cmf.meta = args[1];
             return cmf;
+        } else if (!block_Q(args[0])) {
+            id res = [args[0] copy];
+            objc_setAssociatedObject(res, @"meta", args[1], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            return res;
         } else {
-            @throw @"with-meta: object type not supported";
+            id (^blk)(NSArray *args) = args[0];
+            id (^wrapBlock)(NSArray *args) = ^id (NSArray *args) { return blk(args); };
+            id (^res)(NSArray *args) = [wrapBlock copy]; // under mrc: copy to get a malloc block instead of a stack block.
+            objc_setAssociatedObject(res, @"meta", args[1], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            return res;
         }
     },
     @"atom": ^(NSArray *args){
