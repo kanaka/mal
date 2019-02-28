@@ -716,6 +716,8 @@ macroexpand expr =
 evalTry : List MalExpr -> Eval MalExpr
 evalTry args =
     case args of
+        [ body ] ->
+            eval body
         [ body, MalList [ MalSymbol "catch*", MalSymbol sym, handler ] ] ->
             eval body
                 |> Eval.catchError

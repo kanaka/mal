@@ -142,6 +142,8 @@ eval_list({list, [{symbol, "try*"}, A, {list, [{symbol, "catch*"}, B, C], _M1}],
             env:bind(NewEnv, [B], [Reason]),
             eval(C, NewEnv)
     end;
+eval_list({list, [{symbol, "try*"}, AST], _Meta}, Env) ->
+    eval(AST, Env);
 eval_list({list, [{symbol, "try*"}|_], _Meta}, _Env) ->
     error("try*/catch* must be of the form (try* A (catch* B C))");
 eval_list({list, List, Meta}, Env) ->
