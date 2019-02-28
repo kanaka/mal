@@ -79,7 +79,9 @@
             [(eq? 'macroexpand a0)
              (macroexpand (_nth ast 1) env)]
             [(eq? 'try* a0)
-             (if (eq? 'catch* (_nth (_nth ast 2) 0))
+             (if (or (< (length ast) 3)
+                     (not (eq? 'catch* (_nth (_nth ast 2) 0))))
+               (EVAL (_nth ast 1) env)
                (let ([efn (lambda (exc)
                             (EVAL (_nth (_nth ast 2) 2)
                                   (new Env%
@@ -90,8 +92,7 @@
                    ([mal-exn?  (lambda (exc) (efn (mal-exn-val exc)))]
                     [string?   (lambda (exc) (efn exc))]
                     [exn:fail? (lambda (exc) (efn (format "~a" exc)))])
-                   (EVAL (_nth ast 1) env)))
-               (EVAL (_nth ast 1)))]
+                   (EVAL (_nth ast 1) env))))]
             [(eq? 'do a0)
              (eval-ast (drop (drop-right ast 1) 1) env)
              (EVAL (last ast) env)]

@@ -185,8 +185,13 @@ malValuePtr EVAL(malValuePtr ast, malEnvPtr env)
             }
 
             if (special == "try*") {
-                checkArgsIs("try*", 2, argCount);
                 malValuePtr tryBody = list->item(1);
+
+                if (argCount == 1) {
+                    ast = EVAL(tryBody, env);
+                    continue; // TCO
+                }
+                checkArgsIs("try*", 2, argCount);
                 const malList* catchBlock = VALUE_CAST(malList, list->item(2));
 
                 checkArgsIs("catch*", 2, catchBlock->count() - 1);
@@ -336,15 +341,6 @@ static void installMacros(malEnvPtr env)
     }
 }
 
-malValuePtr readline(const String& prompt)
-{
-    String input;
-    if (s_readLine.get(prompt, input)) {
-        return mal::string(input);
-    }
-    return mal::nilValue();
-}
-
 static const char* malFunctionTable[] = {
     "(def! list (fn* (& items) items))",
     "(def! not (fn* (cond) (if cond false true)))",
@@ -365,3 +361,14 @@ static void installFunctions(malEnvPtr env) {
         rep(function, env);
     }
 }
+
+// Added to keep the linker happy at step A
+malValuePtr readline(const String& prompt)
+{
+    String input;
+    if (s_readLine.get(prompt, input)) {
+        return mal::string(input);
+    }
+    return mal::nilValue();
+}
+
