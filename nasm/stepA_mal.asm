@@ -1631,7 +1631,9 @@ eval:
         jmp .return
 
 .catchless_try:
-        ; Evaluate the form in R8
+        ;; Evaluate the form in R8
+        push r15                ; Environment
+        
         mov rsi, r15
         call incref_object      ; Env released by eval
         mov rdi, r15            ; Env in RDI
@@ -1641,6 +1643,8 @@ eval:
         call incref_object      ; AST released by eval
         
         call eval               ; Result in RAX
+
+        pop r15                 ; Environment
         
         jmp .return
 .catch:
