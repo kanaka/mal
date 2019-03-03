@@ -1539,6 +1539,10 @@ eval:
         ; Check second arg B
 
         mov al, BYTE [rsi + Cons.typecdr]
+        ; If nil (catchless try)
+        cmp al, content_nil
+        je .catchless_try
+        
         cmp al, content_pointer
         jne .try_missing_catch
 
@@ -1590,7 +1594,7 @@ eval:
         ; Now have extracted from (try* A (catch* B C))
         ; A in R8
         ; B in R10
-        ; C in T9
+        ; C in R9
         
         push R9
         push R10
@@ -1625,7 +1629,24 @@ eval:
         call error_handler_pop
         mov rax, r8
         jmp .return
+
+.catchless_try:
+        ;; Evaluate the form in R8
+        push r15                ; Environment
         
+        mov rsi, r15
+        call incref_object      ; Env released by eval
+        mov rdi, r15            ; Env in RDI
+
+        mov rsi, r8             ; The form to evaluate (A)
+        
+        call incref_object      ; AST released by eval
+        
+        call eval               ; Result in RAX
+
+        pop r15                 ; Environment
+        
+        jmp .return
 .catch:
         ; Jumps here on error
         ; Value thrown in RSI
