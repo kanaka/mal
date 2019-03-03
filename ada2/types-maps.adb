@@ -122,7 +122,8 @@ package body Types.Maps is
 
    function Generic_Eval (Container : in Ptr;
                           Env       : in Env_Type)
-                         return Mal.T is
+                         return Mal.T
+   is
       --  Copy the whole hash in order to avoid recomputing the hash
       --  for each key, even if it implies unneeded calls to adjust
       --  and finalize for Mal_Type values.
@@ -244,9 +245,10 @@ package body Types.Maps is
       end;
    end Vals;
 
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T)
-                      return Mal.T is
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T)
+                      return Mal.T
+   is
       Old : Rec renames Data.Ref.all;
       Ref : Acc;
    begin
@@ -254,10 +256,10 @@ package body Types.Maps is
       if Old.Refs = 1 then
          Ref := Data.Ref;
          Old.Refs := 2;
-         Old.Meta := Meta;
+         Old.Meta := Metadata;
       else
          Ref := new Rec'(Data   => Old.Data,
-                         Meta   => Meta,
+                         Meta   => Metadata,
                          others => <>);
       end if;
       return (Kind_Map, (AFC with Ref));

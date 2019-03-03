@@ -45,8 +45,8 @@ procedure Step2_Eval is
       with function Ada_Operator (Left, Right : in Integer) return Integer;
    function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T;
 
-   function Eval_Elements is new Lists.Generic_Eval (Environments.Map, Eval);
-   function Eval_Elements is new Maps.Generic_Eval (Environments.Map, Eval);
+   function Eval_List_Elts is new Lists.Generic_Eval (Environments.Map, Eval);
+   function Eval_Map_Elts  is new Maps.Generic_Eval (Environments.Map, Eval);
 
    ----------------------------------------------------------------------
 
@@ -58,6 +58,10 @@ procedure Step2_Eval is
       --  Ada.Text_IO.Put ("EVAL: ");
       --  Ada.Text_IO.Unbounded_IO.Put_Line (Print (Ast));
       case Ast.Kind is
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
+        | Kind_Keyword | Kind_Macro | Kind_Function
+        | Kind_Builtin_With_Meta | Kind_Builtin =>
+         return Ast;
       when Kind_Symbol =>
          declare
             S : constant String              := Ast.Symbol.To_String;
@@ -71,9 +75,9 @@ procedure Step2_Eval is
             end if;
          end;
       when Kind_Map =>
-         return Eval_Elements (Ast.Map, Env);
+         return Eval_Map_Elts (Ast.Map, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_Elements (Ast.L, Env));
+         return (Kind_Vector, Eval_List_Elts (Ast.L, Env));
       when Kind_List =>
          if Ast.L.Length = 0 then
             return Ast;
@@ -94,8 +98,6 @@ procedure Step2_Eval is
             raise Argument_Error
               with "cannot execute " & ASU.To_String (Print (First));
          end case;
-      when others =>
-         return Ast;
       end case;
    end Eval;
 

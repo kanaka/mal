@@ -12,7 +12,7 @@ package Core with Elaborate_Body is
    --  Set by the main program at startup.
 
    Exception_Throwed : exception;
-   Last_Exception    : Types.Mal.T;
+   Last_Exception    : Types.Mal.T := (Kind => Types.Kind_Nil);
    --  When the exception is throwed, Last_Exception is set with the
    --  related Data.
 

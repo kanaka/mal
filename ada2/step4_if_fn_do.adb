@@ -35,8 +35,8 @@ procedure Step4_If_Fn_Do is
 
    procedure Interactive_Loop (Repl : in Environments.Ptr);
 
-   function Eval_Elements is new Lists.Generic_Eval (Environments.Ptr, Eval);
-   function Eval_Elements is new Maps.Generic_Eval (Environments.Ptr, Eval);
+   function Eval_List_Elts is new Lists.Generic_Eval (Environments.Ptr, Eval);
+   function Eval_Map_Elts  is new Maps.Generic_Eval (Environments.Ptr, Eval);
 
    --  Convenient when the result of eval is of no interest.
    procedure Discard (Ast : in Mal.T) is null;
@@ -52,12 +52,16 @@ procedure Step4_If_Fn_Do is
       --  Ada.Text_IO.Unbounded_IO.Put_Line (Print (Ast));
       --  Environments.Dump_Stack;
       case Ast.Kind is
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
+        | Kind_Keyword | Kind_Macro | Kind_Function
+        | Kind_Builtin_With_Meta | Kind_Builtin =>
+         return Ast;
       when Kind_Symbol =>
          return Env.Get (Ast.Symbol);
       when Kind_Map =>
-         return Eval_Elements (Ast.Map, Env);
+         return Eval_Map_Elts (Ast.Map, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_Elements (Ast.L, Env));
+         return (Kind_Vector, Eval_List_Elts (Ast.L, Env));
       when Kind_List =>
          if Ast.L.Length = 0 then
             return Ast;
@@ -159,7 +163,7 @@ procedure Step4_If_Fn_Do is
             declare
                Args : Mal.T_Array (2 .. Ast.L.Length);
                New_Env : constant Environments.Ptr
-                 := First.Function_Value.Closure.Sub;
+                 := First.Function_Value.Closure.Closure_Sub;
             begin
                for I in Args'Range loop
                   Args (I) := Eval (Ast.L.Element (I), Env);
@@ -171,8 +175,6 @@ procedure Step4_If_Fn_Do is
             raise Argument_Error
               with "cannot execute " & ASU.To_String (Print (First));
          end case;
-      when others =>
-         return Ast;
       end case;
    end Eval;
 

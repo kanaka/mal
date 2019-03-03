@@ -28,9 +28,6 @@ procedure StepA_Mal is
 
    function Quasiquote (Ast : in Mal.T;
                         Env : in Environments.Ptr) return Mal.T;
-   function Quasiquote (List : in Lists.Ptr;
-                        Env  : in Environments.Ptr) return Mal.T with Inline;
-   --  Handle vectors and lists not starting with unquote.
    --  Mergeing quote and quasiquote into eval with a flag triggering
    --  a different behaviour as done for macros in step8 would improve
    --  the performances significantly, but Kanaka finds that it breaks
@@ -46,8 +43,8 @@ procedure StepA_Mal is
 
    procedure Interactive_Loop (Repl : in Environments.Ptr);
 
-   function Eval_Elements is new Lists.Generic_Eval (Environments.Ptr, Eval);
-   function Eval_Elements is new Maps.Generic_Eval (Environments.Ptr, Eval);
+   function Eval_List_Elts is new Lists.Generic_Eval (Environments.Ptr, Eval);
+   function Eval_Map_Elts  is new Maps.Generic_Eval (Environments.Ptr, Eval);
 
    --  Convenient when the result of eval is of no interest.
    procedure Discard (Ast : in Mal.T) is null;
@@ -55,7 +52,8 @@ procedure StepA_Mal is
    ----------------------------------------------------------------------
 
    function Eval (Ast0 : in Mal.T;
-                  Env0 : in Environments.Ptr) return Mal.T is
+                  Env0 : in Environments.Ptr) return Mal.T
+   is
       --  Use local variables, that can be rewritten when tail call
       --  optimization goes to <<Restart>>.
       Ast            : Mal.T            := Ast0;
@@ -69,12 +67,16 @@ procedure StepA_Mal is
       --  Ada.Text_IO.Unbounded_IO.Put_Line (Print (Ast));
       --  Environments.Dump_Stack;
       case Ast.Kind is
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
+        | Kind_Keyword | Kind_Macro | Kind_Function
+        | Kind_Builtin_With_Meta | Kind_Builtin =>
+         return Ast;
       when Kind_Symbol =>
          return Env.Get (Ast.Symbol);
       when Kind_Map =>
-         return Eval_Elements (Ast.Map, Env);
+         return Eval_Map_Elts (Ast.Map, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_Elements (Ast.L, Env));
+         return (Kind_Vector, Eval_List_Elts (Ast.L, Env));
       when Kind_List =>
          if Ast.L.Length = 0 then
             return Ast;
@@ -266,7 +268,7 @@ procedure StepA_Mal is
                for I in Args'Range loop
                   Args (I) := Eval (Ast.L.Element (I), Env);
                end loop;
-               Env.Replace_With_Sub (First.Function_Value.Closure);
+               Env.Replace_With_Closure_Sub (First.Function_Value.Closure);
                First.Function_Value.Set_Binds (Env, Args);
                Ast := First.Function_Value.Expression;
                goto Restart;
@@ -280,14 +282,13 @@ procedure StepA_Mal is
             end;
             if Macroexpanding then
                return Ast;
+            else
+               goto Restart;
             end if;
-            goto Restart;
          when others =>
             raise Argument_Error
               with "cannot execute " & ASU.To_String (Print (First));
          end case;
-      when others =>
-         return Ast;
       end case;
    end Eval;
 
@@ -331,41 +332,55 @@ procedure StepA_Mal is
 
    function Quasiquote (Ast : in Mal.T;
                         Env : in Environments.Ptr) return Mal.T
-   is (case Ast.Kind is
-       when Kind_Vector => Quasiquote (Ast.L, Env),
-       --  When the test is updated, replace Kind_List with Kind_Vector.
-       when Kind_List =>
-          (if 0 < Ast.L.Length
-             and then Ast.L.Element (1).Kind = Kind_Symbol
-             and then Ast.L.Element (1).Symbol = Symbols.Names.Unquote
-           then Eval (Ast.L.Element (2), Env)
-           else Quasiquote (Ast.L, Env)),
-       when others => Ast);
+   is
 
-   function Quasiquote (List : in Lists.Ptr;
-                        Env  : in Environments.Ptr) return Mal.T is
-      --  The final return concatenates these lists.
-      R : Mal.T_Array (1 .. List.Length);
-   begin
-      for I in R'Range loop
-         R (I) := List.Element (I);
-         if R (I).Kind in Kind_List | Kind_Vector
-           and then 0 < R (I).L.Length
-           and then R (I).L.Element (1).Kind = Kind_Symbol
-           and then R (I).L.Element (1).Symbol = Symbols.Names.Splice_Unquote
-         then
-            if R (I).L.Length /= 2 then
-               raise Argument_Error with "splice-unquote: expects 1 argument";
+      function Quasiquote_List (List : in Lists.Ptr) return Mal.T with Inline;
+      --  Handle vectors and lists not starting with unquote.
+
+      function Quasiquote_List (List : in Lists.Ptr) return Mal.T is
+         --  The final return concatenates these lists.
+         R : Mal.T_Array (1 .. List.Length);
+      begin
+         for I in R'Range loop
+            R (I) := List.Element (I);
+            if R (I).Kind in Kind_List | Kind_Vector
+              and then 0 < R (I).L.Length
+              and then R (I).L.Element (1).Kind = Kind_Symbol
+              and then R (I).L.Element (1).Symbol
+                       = Symbols.Names.Splice_Unquote
+            then
+               if R (I).L.Length /= 2 then
+                  raise Argument_Error with "splice-unquote: expects 1 arg";
+               end if;
+               R (I) := Eval (R (I).L.Element (2), Env);
+               if R (I).Kind /= Kind_List then
+                  raise Argument_Error with "splice-unquote: expects a list";
+               end if;
+            else
+               R (I) := Lists.List (Mal.T_Array'(1 => Quasiquote (R (I),
+                                                                  Env)));
             end if;
-            R (I) := Eval (R (I).L.Element (2), Env);
-            if R (I).Kind /= Kind_List then
-               raise Argument_Error with "splice-unquote: expects a list";
+         end loop;
+         return Lists.Concat (R);
+      end Quasiquote_List;
+
+   begin                                --  Quasiquote
+      case Ast.Kind is
+         when Kind_Vector =>
+            --  When the test is updated, replace Kind_List with Kind_Vector.
+            return Quasiquote_List (Ast.L);
+         when Kind_List =>
+            if 0 < Ast.L.Length
+              and then Ast.L.Element (1).Kind = Kind_Symbol
+              and then Ast.L.Element (1).Symbol = Symbols.Names.Unquote
+            then
+               return Eval (Ast.L.Element (2), Env);
+            else
+               return Quasiquote_List (Ast.L);
             end if;
-         else
-            R (I) := Lists.List (Mal.T_Array'(1 => Quasiquote (R (I), Env)));
-         end if;
-      end loop;
-      return Lists.Concat (R);
+         when others =>
+            return Ast;
+      end case;
    end Quasiquote;
 
    ----------------------------------------------------------------------

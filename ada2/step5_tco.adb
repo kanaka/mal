@@ -35,8 +35,8 @@ procedure Step5_Tco is
 
    procedure Interactive_Loop (Repl : in Environments.Ptr);
 
-   function Eval_Elements is new Lists.Generic_Eval (Environments.Ptr, Eval);
-   function Eval_Elements is new Maps.Generic_Eval (Environments.Ptr, Eval);
+   function Eval_List_Elts is new Lists.Generic_Eval (Environments.Ptr, Eval);
+   function Eval_Map_Elts  is new Maps.Generic_Eval (Environments.Ptr, Eval);
 
    --  Convenient when the result of eval is of no interest.
    procedure Discard (Ast : in Mal.T) is null;
@@ -44,7 +44,8 @@ procedure Step5_Tco is
    ----------------------------------------------------------------------
 
    function Eval (Ast0 : in Mal.T;
-                  Env0 : in Environments.Ptr) return Mal.T is
+                  Env0 : in Environments.Ptr) return Mal.T
+   is
       --  Use local variables, that can be rewritten when tail call
       --  optimization goes to <<Restart>>.
       Ast            : Mal.T            := Ast0;
@@ -57,12 +58,16 @@ procedure Step5_Tco is
       --  Ada.Text_IO.Unbounded_IO.Put_Line (Print (Ast));
       --  Environments.Dump_Stack;
       case Ast.Kind is
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
+        | Kind_Keyword | Kind_Macro | Kind_Function
+        | Kind_Builtin_With_Meta | Kind_Builtin =>
+         return Ast;
       when Kind_Symbol =>
          return Env.Get (Ast.Symbol);
       when Kind_Map =>
-         return Eval_Elements (Ast.Map, Env);
+         return Eval_Map_Elts (Ast.Map, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_Elements (Ast.L, Env));
+         return (Kind_Vector, Eval_List_Elts (Ast.L, Env));
       when Kind_List =>
          if Ast.L.Length = 0 then
             return Ast;
@@ -171,7 +176,7 @@ procedure Step5_Tco is
                for I in Args'Range loop
                   Args (I) := Eval (Ast.L.Element (I), Env);
                end loop;
-               Env.Replace_With_Sub (First.Function_Value.Closure);
+               Env.Replace_With_Closure_Sub (First.Function_Value.Closure);
                First.Function_Value.Set_Binds (Env, Args);
                Ast := First.Function_Value.Expression;
                goto Restart;
@@ -180,8 +185,6 @@ procedure Step5_Tco is
             raise Argument_Error
               with "cannot execute " & ASU.To_String (Print (First));
          end case;
-      when others =>
-         return Ast;
       end case;
    end Eval;
 

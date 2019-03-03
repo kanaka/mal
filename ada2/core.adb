@@ -1,31 +1,30 @@
-with Ada.Calendar; use type Ada.Calendar.Time;
+with Ada.Calendar;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
 
-with Environments;
+with Environments; pragma Elaborate_All (Environments);
 with Types.Atoms;
 with Types.Builtins;
 with Types.Functions;
 with Types.Lists;
 with Types.Maps;
-with Types.Symbols.Names;
+with Types.Symbols.Names; pragma Elaborate_All (Types.Symbols);
 with Printer;
 with Reader;
 
 package body Core is
 
-   package ASU renames Ada.Strings.Unbounded;
    use Types;
-   use Types.Lists;
    use type Mal.T;
-   use type Mal.T_Array;
+
+   package ASU renames Ada.Strings.Unbounded;
 
    Start_Time : constant Ada.Calendar.Time := Ada.Calendar.Clock;
 
-   function Apply (Func : in Mal.T;
-                   Args : in Mal.T_Array;
-                   Name : in String) return Mal.T with Inline;
+   function Apply_Helper (Func : in Mal.T;
+                          Args : in Mal.T_Array;
+                          Name : in String) return Mal.T with Inline;
    --  If Func is not executable, report an exception using "name" as
    --  the built-in function name.
 
@@ -107,10 +106,10 @@ package body Core is
 
    ----------------------------------------------------------------------
 
-   function Apply (Func : in Mal.T;
-                   Args : in Mal.T_Array;
-                   Name : in String)
-                  return Mal.T is
+   function Apply_Helper (Func : in Mal.T;
+                          Args : in Mal.T_Array;
+                          Name : in String) return Mal.T
+   is
    begin
       case Func.Kind is
       when Kind_Builtin =>
@@ -119,26 +118,34 @@ package body Core is
          return Func.Builtin_With_Meta.Data.all (Args);
       when Kind_Function =>
          declare
-            Env : constant Environments.Ptr := Func.Function_Value.Closure.Sub;
+            Env : constant Environments.Ptr
+              := Func.Function_Value.Closure.Closure_Sub;
          begin
             Func.Function_Value.Set_Binds (Env, Args);
             return Eval_Ref.all (Func.Function_Value.Expression, Env);
          end;
-      when others =>
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
+        | Kind_Symbol | Kind_Keyword | Kind_List | Kind_Vector | Kind_Map
+        | Kind_Macro =>
          raise Argument_Error with Name & ": cannot execute "
            & ASU.To_String (Printer.Pr_Str (Func));
       end case;
-   end Apply;
+   end Apply_Helper;
 
-   function Apply (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length < 2 then
-          raise Argument_Error with "apply: expects at least 2 arguments"
-       elsif Args (Args'Last).Kind not in Kind_List | Kind_Vector then
-          raise Argument_Error with "apply: last arg must a be list or vector"
-       else
-          Apply (Args (Args'First),
-                 Args (Args'First + 1 .. Args'Last - 1) & Args (Args'Last).L,
-                 "apply"));
+   function Apply (Args : in Mal.T_Array) return Mal.T is
+      use type Lists.Ptr;
+   begin
+      if Args'Length < 2 then
+         raise Argument_Error with "apply: expects at least 2 arguments";
+      elsif Args (Args'Last).Kind not in Kind_List | Kind_Vector then
+         raise Argument_Error with "apply: last arg must a be list or vector";
+      else
+         return Apply_Helper (Args (Args'First),
+                              Args (Args'First + 1 .. Args'Last - 1)
+                                & Args (Args'Last).L,
+                              "apply");
+      end if;
+   end Apply;
 
    function Equals (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 2 then
@@ -150,7 +157,7 @@ package body Core is
    is (if Args'Length /= 1 then
           raise Argument_Error with "eval: expects 1 argument"
        else
-          (Eval_Ref.all (Args (Args'First), Environments.Repl)));
+          Eval_Ref.all (Args (Args'First), Environments.Repl));
 
    function Is_False (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
@@ -197,9 +204,9 @@ package body Core is
          R  : Mal.T_Array (1 .. Args (Args'Last).L.Length);
       begin
          for I in R'Range loop
-            R (I) := Apply (Args (Args'First),
-                            Mal.T_Array'(1 => Args (Args'Last).L.Element (I)),
-                            "map");
+            R (I) := Apply_Helper (Args (Args'First),
+                        Mal.T_Array'(1 => Args (Args'Last).L.Element (I)),
+                                   "map");
          end loop;
          return Lists.List (R);
       end;
@@ -218,8 +225,12 @@ package body Core is
                Args (Args'First).Function_Value.Meta,
             when Kind_Builtin_With_Meta =>
                Args (Args'First).Builtin_With_Meta.Meta,
-            when others =>
-               Mal.Nil));
+            when Kind_Builtin =>
+                Mal.Nil,
+            when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number |
+               Kind_String | Kind_Symbol | Kind_Keyword | Kind_Macro =>
+               raise Argument_Error
+                 with "meta: expects a list, vector, map or function"));
 
    function Pr_Str (Args : in Mal.T_Array) return Mal.T is
    begin
@@ -269,11 +280,12 @@ package body Core is
          raise Argument_Error with "readline: expects a keyword or string";
       else
          Ada.Text_IO.Unbounded_IO.Put (Args (Args'First).S);
-         return (Kind_String, Ada.Text_IO.Unbounded_IO.Get_Line);
+         if Ada.Text_IO.End_Of_File then
+            return Mal.Nil;
+         else
+            return (Kind_String, Ada.Text_IO.Unbounded_IO.Get_Line);
+         end if;
       end if;
-   exception
-      when Ada.Text_IO.End_Error =>
-         return Mal.Nil;
    end Readline;
 
    function Read_String (Args : in Mal.T_Array) return Mal.T
@@ -358,10 +370,11 @@ package body Core is
          raise Argument_Error with "swap!: arg 1 must be an atom";
       end if;
       declare
+         use type Mal.T_Array;
          X  : Mal.T renames Atoms.Deref (Args (Args'First .. Args'First));
-         FX : Mal.T renames Apply (Args (Args'First + 1),
-                                   X & Args (Args'First + 2 .. Args'Last),
-                                   "swap!");
+         FX : Mal.T renames Apply_Helper (Args (Args'First + 1),
+                               X & Args (Args'First + 2 .. Args'Last),
+                                          "swap!");
       begin
          return Atoms.Reset (Mal.T_Array'(Args (Args'First), FX));
       end;
@@ -378,18 +391,21 @@ package body Core is
    begin
       if Args'Length /= 1 then
          raise Argument_Error with "throw: expects 1 argument";
-      else
-         Last_Exception := Args (Args'First);
-         raise Exception_Throwed;
-         return Mal.Nil; --  GNAT wants a return.
       end if;
+      Last_Exception := Args (Args'First);
+      raise Exception_Throwed;
+      return Mal.Nil;                --  GNAT wants a return
    end Throw;
 
-   function Time_Ms (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 0 then
-          raise Argument_Error with "time: expects no argument"
-       else
-          (Kind_Number, Integer (1000.0 * (Ada.Calendar.Clock - Start_Time))));
+   function Time_Ms (Args : in Mal.T_Array) return Mal.T is
+      use type Ada.Calendar.Time;
+   begin
+      if 0 < Args'Length then
+         raise Argument_Error with "time: expects no argument";
+      end if;
+      return (Kind_Number,
+              Integer (1000.0 * (Ada.Calendar.Clock - Start_Time)));
+   end Time_Ms;
 
    function With_Meta (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 2 then
@@ -413,7 +429,7 @@ package body Core is
    use Symbols;
    R : Environments.Ptr renames Environments.Repl;
    B : Kind_Type renames Kind_Builtin;
-begin
+begin                                   --  Core
    R.Set (Constructor ("+"),           (B, Addition'Access));
    R.Set (Constructor ("apply"),       (B, Apply'Access));
    R.Set (Constructor ("assoc"),       (B, Maps.Assoc'Access));

@@ -46,8 +46,8 @@ package Types.Maps is
 
    function Meta (Container : in Ptr) return Mal.T with Inline;
 
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T)
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T)
                       return Mal.T;
 
 private

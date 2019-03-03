@@ -45,9 +45,9 @@ package Types.Functions is
    function Closure    (Item : in Ptr) return Environments.Closure_Ptr
      with Inline;
 
-   function Meta (Item : in Ptr) return Mal.T with inline;
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T)
+   function Meta (Item : in Ptr) return Mal.T with Inline;
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T)
                       return Mal.T with Inline;
 
 private

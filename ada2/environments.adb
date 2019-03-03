@@ -72,6 +72,18 @@ package body Environments is
       end if;
    end Adjust;
 
+   function Closure_Sub (Outer : in Closure_Ptr'Class) return Ptr is
+   begin
+      Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
+      Top := Top + 1;
+      pragma Assert (Stack (Top).Data.Is_Empty);
+      pragma Assert (Stack (Top).Alias = null);
+      Stack (Top) := (Outer_On_Stack => False,
+                      Outer_Ref      => Outer.Ref,
+                      others         => <>);
+      return (Ada.Finalization.Limited_Controlled with Top);
+   end Closure_Sub;
+
    function Copy_Pointer (Env : in Ptr) return Ptr is
    begin
       Stack (Env.Index).Refs := Stack (Env.Index).Refs + 1;
@@ -279,8 +291,8 @@ package body Environments is
       --  unreferenced alias if any.
    end Replace_With_Sub;
 
-   procedure Replace_With_Sub (Env   : in out Ptr;
-                               Outer : in     Closure_Ptr'Class) is
+   procedure Replace_With_Closure_Sub (Env   : in out Ptr;
+                                       Outer : in     Closure_Ptr'Class) is
    begin
       Finalize (Env);
       Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
@@ -291,7 +303,7 @@ package body Environments is
                       Outer_Ref      => Outer.Ref,
                       others         => <>);
       Env.Index := Top;
-   end Replace_With_Sub;
+   end Replace_With_Closure_Sub;
 
    procedure Set (Env         : in Ptr;
                   Key         : in Symbols.Ptr;
@@ -299,18 +311,6 @@ package body Environments is
    begin
       Stack (Env.Index).Data.Include (Key, New_Element);
    end Set;
-
-   function Sub (Outer : in Closure_Ptr'Class) return Ptr is
-   begin
-      Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
-      Top := Top + 1;
-      pragma Assert (Stack (Top).Data.Is_Empty);
-      pragma Assert (Stack (Top).Alias = null);
-      Stack (Top) := (Outer_On_Stack => False,
-                      Outer_Ref      => Outer.Ref,
-                      others         => <>);
-      return (Ada.Finalization.Limited_Controlled with Top);
-   end Sub;
 
    function Sub (Outer : in Ptr) return Ptr is
       R : Stack_Record renames Stack (Outer.Index);

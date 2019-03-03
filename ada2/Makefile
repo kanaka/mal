@@ -30,7 +30,7 @@ steps  := $(step0) $(step13) $(step49) $(stepa)
 .PHONY: all clean
 all: $(steps)
 clean:
-	$(RM) *~ *.ali *.o b~*.ad[bs] gmon.out $(steps)
+	$(RM) *~ *.adt *.ali *.o b~*.ad[bs] gmon.out $(steps)
 
 # Tell Make how to detect out-of-date executables, and let gnatmake do
 # the rest when it must be executed.

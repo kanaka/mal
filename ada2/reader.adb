@@ -7,13 +7,15 @@ with Types.Symbols.Names;
 
 package body Reader is
 
-   use Types;
+   function Read_Str (Source : in String) return Types.Mal.T is
 
-   function Read_Str (Source : in String) return Mal.T is
+      use Types;
+
       First : Positive;
       Last  : Natural := Source'First - 1;
 
       function Read_Form return Mal.T;
+      --  The recursive part of Read_Str.
 
       procedure Find_Next_Token;
       --  Search next token from index Last + 1.
@@ -21,15 +23,8 @@ package body Reader is
       --  Find_Next_Token is normally invoked right before Read_Form,
       --  allowing the caller to check whether First <= Source'Last.
 
-      --  Helpers:
-
-      --  Read_Atom has been merged into the same case/switch
-      --  statement, for clarity and efficiency.
-      function Read_List (Ending : in Character) return Mal.T_Array
-        with Inline;
-      function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T with Inline;
-
       ----------------------------------------------------------------------
+
       procedure Find_Next_Token
       is
          use Ada.Characters.Latin_1;
@@ -97,8 +92,43 @@ package body Reader is
       end Find_Next_Token;
 
       function Read_Form return Mal.T is
+
+         --  Read_Atom has been merged into the same case/switch
+         --  statement, for clarity and efficiency.
+         function Read_List (Ending : in Character) return Mal.T_Array
+           with Inline;
+         function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T
+           with Inline;
+
+         function Read_List (Ending : in Character) return Mal.T_Array is
+            --  Using big arrays on the stack is faster than doing
+            --  repeated dynamic reallocations.
+            Buffer : Mal.T_Array (First + 1 .. Source'Last);
+            B_Last : Natural := Buffer'First - 1;
+         begin
+            loop
+               Find_Next_Token;
+               if Source'Last < First then
+                  raise Reader_Error with "unbalanced '" & Ending & "'";
+               end if;
+               exit when Source (First) = Ending;
+               B_Last := B_Last + 1;
+               Buffer (B_Last) := Read_Form;
+            end loop;
+            return Buffer (Buffer'First .. B_Last);
+         end Read_List;
+
+         function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T is
+         begin
+            Find_Next_Token;
+            if Source'Last < First then
+               raise Reader_Error with "Unfinished '" & Symbol.To_String & "'";
+            end if;
+            return Lists.List (Mal.T_Array'((Kind_Symbol, Symbol), Read_Form));
+         end Read_Quote;
+
          use Ada.Strings.Unbounded;
-      begin
+      begin                             --  Read_Form.
          case Source (First) is
             when '(' =>
                return Lists.List (Read_List (')'));
@@ -187,33 +217,6 @@ package body Reader is
                end if;
          end case;
       end Read_Form;
-
-      function Read_List (Ending : in Character) return Mal.T_Array is
-         --  Using big arrays on the stack is faster than doing
-         --  repeated dynamic reallocations.
-         Buffer : Mal.T_Array (First + 1 .. Source'Last);
-         B_Last : Natural := Buffer'First - 1;
-      begin
-         loop
-            Find_Next_Token;
-            if Source'Last < First then
-               raise Reader_Error with "unbalanced '" & Ending & "'";
-            end if;
-            exit when Source (First) = Ending;
-            B_Last := B_Last + 1;
-            Buffer (B_Last) := Read_Form;
-         end loop;
-         return Buffer (Buffer'First .. B_Last);
-      end Read_List;
-
-      function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T is
-      begin
-         Find_Next_Token;
-         if Source'Last < First then
-            raise Reader_Error with "Unfinished '" & Symbol.To_String & "'";
-         end if;
-         return Lists.List (Mal.T_Array'((Kind_Symbol, Symbol), Read_Form));
-      end Read_Quote;
 
       ----------------------------------------------------------------------
 

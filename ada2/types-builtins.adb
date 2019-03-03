@@ -37,17 +37,17 @@ package body Types.Builtins is
    function Meta (Item : in Ptr_With_Meta) return Mal.T
    is (Item.Ref.all.Meta);
 
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T) return Mal.T
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T) return Mal.T
    is (Kind_Builtin_With_Meta, (Ada.Finalization.Controlled with new Rec'
                                   (Data => Data,
-                                   Meta => Meta,
+                                   Meta => Metadata,
                                    Refs => 1)));
 
-   function With_Meta (Data : in Ptr_With_Meta;
-                       Meta : in Mal.T) return Mal.T
+   function With_Meta (Data     : in Ptr_With_Meta;
+                       Metadata : in Mal.T) return Mal.T
      --  Do not try to reuse the memory. We can hope that this kind of
      --  nonsense will be rare.
-   is (With_Meta (Data.Data, Meta));
+   is (With_Meta (Data.Data, Metadata));
 
 end Types.Builtins;
