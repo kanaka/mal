@@ -22,10 +22,10 @@ package Types.Builtins is
 
    --  Assignment give another reference to the same storage.
 
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T) return Mal.T with Inline;
-   function With_Meta (Data : in Ptr_With_Meta;
-                       Meta : in Mal.T) return Mal.T with Inline;
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T) return Mal.T with Inline;
+   function With_Meta (Data     : in Ptr_With_Meta;
+                       Metadata : in Mal.T) return Mal.T with Inline;
    function Meta (Item : in Ptr_With_Meta) return Mal.T with Inline;
    function Data (Item : in Ptr_With_Meta) return Ptr with Inline;
 

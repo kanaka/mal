@@ -17,7 +17,7 @@ package body Types.Functions is
       Refs    : Natural                  := 1;
       Args    : Lists.Ptr;
       Expr    : Mal.T;
-      Env     : Environments.Closure_Ptr;
+      Env     : Environments.Closure_Ptr := Environments.Null_Closure;
       Varargs : Boolean;
       Meta    : Mal.T                    := Mal.Nil;
    end record;
@@ -91,7 +91,8 @@ package body Types.Functions is
 
    procedure Set_Binds (Item : in Ptr;
                         Env  : in Environments.Ptr;
-                        Args : in Mal.T_Array) is
+                        Args : in Mal.T_Array)
+   is
       R : Rec renames Item.Ref.all;
    begin
       if R.Varargs then
@@ -119,7 +120,8 @@ package body Types.Functions is
 
    procedure Set_Binds (Item : in Ptr;
                         Env  : in Environments.Ptr;
-                        Args : in Lists.Ptr) is
+                        Args : in Lists.Ptr)
+   is
       R : Rec renames Item.Ref.all;
    begin
       if R.Varargs then
@@ -145,9 +147,9 @@ package body Types.Functions is
       end if;
    end Set_Binds;
 
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T)
-                      return Mal.T is
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T) return Mal.T
+   is
       Old : Rec renames Data.Ref.all;
       Ref : Acc;
    begin
@@ -155,13 +157,13 @@ package body Types.Functions is
       if Old.Refs = 1 then
          Ref := Data.Ref;
          Old.Refs := 2;
-         Old.Meta := Meta;
+         Old.Meta := Metadata;
       else
          Ref := new Rec'(Args    => Data.Ref.all.Args,
                          Expr    => Data.Ref.all.Expr,
                          Env     => Data.Ref.all.Env,
                          Varargs => Data.Ref.all.Varargs,
-                         Meta    => Meta,
+                         Meta    => Metadata,
                          others  => <>);
 
       end if;

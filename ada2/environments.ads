@@ -55,13 +55,11 @@ package Environments with Elaborate_Body is
    type Closure_Ptr is tagged private;
    Null_Closure : constant Closure_Ptr;
 
-   function Sub (Outer : in Closure_Ptr'Class) return Ptr;
+   function Closure_Sub (Outer : in Closure_Ptr'Class) return Ptr;
 
-   procedure Replace_With_Sub (Env   : in out Ptr;
-                               Outer : in     Closure_Ptr'Class);
-   --  Like Env := Sub (Outer => Outer); except that Env is finalized
-   --  *before* the assignement, so its memory can be reused by the
-   --  new environment. This is important for tail call optimization.
+   procedure Replace_With_Closure_Sub (Env   : in out Ptr;
+                                       Outer : in     Closure_Ptr'Class);
+   --  Like Env := Closure_Sub (Outer); except that the type is limited.
 
    function New_Closure (Env : in Ptr'Class) return Closure_Ptr;
    --  The class-wide argument does not make much sense, but avoids

@@ -145,7 +145,8 @@ package body Types.Lists is
 
    function Generic_Eval (Container : in Ptr;
                           Env       : in Env_Type)
-                         return Ptr is
+                         return Ptr
+   is
       --  Take care that automatic deallocation happens if an
       --  exception is propagated by user code.
       Old : Rec renames Container.Ref.all;
@@ -237,9 +238,9 @@ package body Types.Lists is
                                        Last   => Args'Length,
                                        others => <>)));
 
-   function With_Meta (Data : in Ptr;
-                       Meta : in Mal.T)
-                      return Ptr is
+   function With_Meta (Data     : in Ptr;
+                       Metadata : in Mal.T) return Ptr
+   is
       Old : Rec renames Data.Ref.all;
       Ref : Acc;
    begin
@@ -247,11 +248,11 @@ package body Types.Lists is
       if Old.Refs = 1 then
          Ref := Data.Ref;
          Old.Refs := 2;
-         Old.Meta := Meta;
+         Old.Meta := Metadata;
       else
          Ref := new Rec'(Last => Old.Last,
                          Data => Old.Data,
-                         Meta => Meta,
+                         Meta => Metadata,
                          others => <>);
       end if;
       return (AFC with Ref);
