@@ -85,7 +85,7 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                         ast = list[2]
                     }
                     continue
-                case "fn*": // fn 是否需要存储？
+                case "fn*": 
                     let fn = {(params: [MalData]) -> MalData in
                         let newEnv = Env(binds: (list[1].listForm as! [Symbol]), exprs: params, outer: env)
                         return try EVAL(list[2], env: newEnv)

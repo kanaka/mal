@@ -23,8 +23,6 @@ typealias Number = Int
 typealias List = Array
 typealias Vector = ContiguousArray
 typealias HashMap = Dictionary
-//typealias MalClosureThrows = ([MalData]) throws -> MalData
-//typealias MalClosure = ([MalData]) -> MalData
 
 struct Symbol: MalData {
     let dataType = MalDataType.Symbol
@@ -83,12 +81,6 @@ struct Function: MalData {
     }
 
 }
-
-//struct WithMeta: MalData {
-//    let dataType = MalDataType.WithMeta
-//    let data: MalData
-//    let meta: MalData
-//}
 
 
 extension String: MalData {

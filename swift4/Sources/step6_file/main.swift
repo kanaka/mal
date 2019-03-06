@@ -47,7 +47,7 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                         return try EVAL(list[2], env: newEnv)
                     } 
                     return Function(ast: list[2], params: (list[1].listForm as! [Symbol]), env:env , fn: fn)
-                // fn 是否需要存储？
+                
                 default:
                     break
                 }
