@@ -1,10 +1,3 @@
-//
-//  env.swift
-//  swift4
-//
-//  Created by LuLouie on 2019/1/7.
-//  Copyright © 2019 llvm.xyz. All rights reserved.
-//
 
 import Foundation
 

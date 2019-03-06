@@ -1,10 +1,3 @@
-//
-//  reader.swift
-//  swift4
-//
-//  Created by LuLouie on 2019/1/6.
-//  Copyright © 2019 llvm.xyz. All rights reserved.
-//
 
 import Foundation
 
