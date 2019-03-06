@@ -5,20 +5,15 @@ limited with Types.Mal;
 package Types.Atoms is
 
    type Ptr is private;
-   --  A wrapper for a pointer counting references.
-
-   --  The default value is invalid, new variables must be assigned
-   --  immediately (a hidden discriminant would prevent this type to
-   --  become a field inside Types.Mal.T, so we check this with a
-   --  private invariant a fallback, an invariant in the private part
-   --  checks that any created object is affected before use.
-
-   --  Assignment give another reference to the same storage.
 
    --  Built-in functions.
    function Atom  (Args : in Mal.T_Array) return Mal.T;
    function Deref (Args : in Mal.T_Array) return Mal.T;
    function Reset (Args : in Mal.T_Array) return Mal.T;
+   function Swap  (Args : in Mal.T_Array) return Mal.T;
+
+   --  Helper for print.
+   function Deref (Item : in Ptr) return Mal.T with Inline;
 
 private
 

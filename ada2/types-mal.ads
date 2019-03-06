@@ -46,6 +46,10 @@ package Types.Mal is
    --  language, and require deep changes (the discriminant can be
    --  changed for an in out or access parameter).
 
+   type T_Array;
+   type T;
+   type Builtin_Ptr is access function (Args : in T_Array) return T;
+
    type T (Kind : Kind_Type := Kind_Nil) is record
       case Kind is
          when Kind_Nil =>
@@ -53,7 +57,7 @@ package Types.Mal is
          when Kind_Boolean =>
             Ada_Boolean               : Boolean;
          when Kind_Number =>
-            Ada_Number                : Integer;
+            Number                    : Integer;
          when Kind_Atom =>
             Atom                      : Atoms.Ptr;
          when Kind_Keyword | Kind_String =>
@@ -61,15 +65,15 @@ package Types.Mal is
          when Kind_Symbol =>
             Symbol                    : Symbols.Ptr;
          when Kind_List | Kind_Vector =>
-            L                         : Lists.Ptr;
+            List                      : Lists.Ptr;
          when Kind_Map =>
             Map                       : Maps.Ptr;
          when Kind_Builtin =>
-            Builtin                   : Builtins.Ptr;
+            Builtin                   : Builtin_Ptr;
          when Kind_Builtin_With_Meta =>
-            Builtin_With_Meta         : Builtins.Ptr_With_Meta;
+            Builtin_With_Meta         : Builtins.Ptr;
          when Kind_Function | Kind_Macro =>
-            Function_Value            : Functions.Ptr;
+            Fn                        : Functions.Ptr;
       end case;
    end record;
 

@@ -35,9 +35,11 @@ clean:
 # Tell Make how to detect out-of-date executables, and let gnatmake do
 # the rest when it must be executed.
 TYPES := \
-  environments.ads         environments.adb         \
+  envs.ads                 envs.adb                 \
+  eval_cb.ads                                       \
   printer.ads              printer.adb              \
   reader.ads               reader.adb               \
+  readline.ads                                      \
   types-atoms.ads          types-atoms.adb          \
   types-builtins.ads       types-builtins.adb       \
   types-functions.ads      types-functions.adb      \
@@ -59,12 +61,13 @@ $(steps) :
 
 .PHONY: steps.diff
 steps.diff:
-	diff -u step1*.adb step2*.adb; \
-	diff -u step2*.adb step3*.adb; \
-	diff -u step3*.adb step4*.adb; \
-	diff -u step4*.adb step5*.adb; \
-	diff -u step5*.adb step6*.adb; \
-	diff -u step6*.adb step7*.adb; \
-	diff -u step7*.adb step8*.adb; \
-	diff -u step8*.adb step9*.adb; \
-	diff -u step9*.adb stepa*.adb || true
+	diff -u step0_*.adb step1_*.adb || true
+	diff -u step1_*.adb step2_*.adb || true
+	diff -u step2_*.adb step3_*.adb || true
+	diff -u step3_*.adb step4_*.adb || true
+	diff -u step4_*.adb step5_*.adb || true
+	diff -u step5_*.adb step6_*.adb || true
+	diff -u step6_*.adb step7_*.adb || true
+	diff -u step7_*.adb step8_*.adb || true
+	diff -u step8_*.adb step9_*.adb || true
+	diff -u step9_*.adb stepa_*.adb || true

@@ -15,14 +15,14 @@ package body Types.Mal is
          Right.Kind = Kind_Boolean
            and then Left.Ada_Boolean = Right.Ada_Boolean,
       when Kind_Number =>
-         Right.Kind = Kind_Number and then Left.Ada_Number = Right.Ada_Number,
+         Right.Kind = Kind_Number and then Left.Number = Right.Number,
       when Kind_Symbol =>
          Right.Kind = Kind_Symbol and then Left.Symbol = Right.Symbol,
       --  Here is the part that differs from the predefined equality.
       when Kind_Keyword | Kind_String =>
          Right.Kind = Left.Kind and then Left.S = Right.S,
       when Kind_List | Kind_Vector =>
-         Right.Kind in Kind_List | Kind_Vector and then Left.L = Right.L,
+         Right.Kind in Kind_List | Kind_Vector and then Left.List = Right.List,
       when Kind_Map =>
          Right.Kind = Kind_Map and then Left.Map = Right.Map,
       when others =>

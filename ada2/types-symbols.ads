@@ -4,18 +4,8 @@ private with Ada.Finalization;
 package Types.Symbols with Preelaborate is
 
    type Ptr is tagged private;
-   --  A wrapper for a pointer counting references.
-
-   --  The default value is invalid, new variables must be assigned
-   --  immediately (a hidden discriminant would prevent this type to
-   --  become a field inside Types.Mal.T, so we check this with a
-   --  private invariant a fallback, an invariant in the private part
-   --  checks that any created object is affected before use.
-
-   --  Assignment give another reference to the same storage.
 
    function Constructor (Source : in String) return Ptr with Inline;
-   --  The only way to assign a valid value.
 
    function To_String (Item : in Ptr) return String with Inline;
 
@@ -24,6 +14,13 @@ package Types.Symbols with Preelaborate is
    function Hash (Item : in Ptr) return Ada.Containers.Hash_Type with Inline;
 
    --  Equality compares the contents.
+
+   type Symbol_Array is array (Positive range <>) of Symbols.Ptr;
+
+   function To_String (Item : in Symbols.Symbol_Array) return String;
+   --  Returns something like "(a b)".  Convenient for error
+   --  reporting, but redundant with Printer (where it is more
+   --  efficient to concatenate directly to an unbounded buffer).
 
 private
 
@@ -42,8 +39,6 @@ private
    --  dictionnary into Ptr, but this actually reduces the speed,
    --  probably because it significantly increases the size of
    --  Mal_Type.
-
-   --  See README for the implementation of reference counting.
 
    type Rec;
    type Acc is access Rec;

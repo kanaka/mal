@@ -1,25 +1,22 @@
-with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
-with Environments;
-with Printer;
+with Envs;
+with Eval_Cb;
 with Types.Lists;
 with Types.Mal;
-with Types.Symbols.Names;
+with Types.Symbols;
 
 package body Types.Functions is
 
    subtype AFC is Ada.Finalization.Controlled;
-   package ASU renames Ada.Strings.Unbounded;
-   use type Types.Symbols.Ptr;
+   use type Envs.Closure_Ptr;
 
-   type Rec is limited record
-      Refs    : Natural                  := 1;
-      Args    : Lists.Ptr;
-      Expr    : Mal.T;
-      Env     : Environments.Closure_Ptr := Environments.Null_Closure;
-      Varargs : Boolean;
-      Meta    : Mal.T                    := Mal.Nil;
+   type Rec (Params_Last : Natural) is limited record
+      Ast    : Mal.T;
+      Refs   : Natural                                 := 1;
+      Env    : Envs.Closure_Ptr                        := Envs.Null_Closure;
+      Meta   : Mal.T                                   := Mal.Nil;
+      Params : Symbols.Symbol_Array (1 .. Params_Last);
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation (Rec, Acc);
@@ -31,11 +28,24 @@ package body Types.Functions is
       Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
    end Adjust;
 
-   function Closure (Item : in Ptr) return Environments.Closure_Ptr
-   is (Item.Ref.all.Env);
+   function Apply (Item : in Ptr;
+                   Args : in Mal.T_Array) return Mal.T is
+   begin
+      pragma Assert (Item.Ref.all.Env /= Envs.Null_Closure);
+      return Eval_Cb.Cb.all (Ast =>                    Item.Ref.all.Ast,
+                             Env => Envs.Sub (Outer => Item.Ref.all.Env,
+                                              Binds => Item.Ref.all.Params,
+                                              Exprs => Args));
+   end Apply;
 
-   function Expression (Item : in Ptr) return Mal.T
-   is (Item.Ref.all.Expr);
+   function Ast (Item : in Ptr) return Mal.T
+   is (Item.Ref.all.Ast);
+
+   function Env (Item : in Ptr) return Envs.Closure_Ptr is
+   begin
+      pragma Assert (Item.Ref.all.Env /= Envs.Null_Closure);
+      return Item.Ref.all.Env;
+   end Env;
 
    procedure Finalize (Object : in out Ptr) is
    begin
@@ -49,25 +59,30 @@ package body Types.Functions is
       end if;
    end Finalize;
 
-   function Formals (Item : in Ptr) return Lists.Ptr
-   is (Item.Ref.all.Args);
+   function Params (Item : in Ptr) return Symbols.Symbol_Array
+   is (Item.Ref.all.Params);
 
-   function Meta (Item : in Ptr) return Mal.T
-   is (Item.Ref.all.Meta);
+   function Meta (Item : in Ptr) return Mal.T is
+   begin
+      pragma Assert (Item.Ref.all.Env /= Envs.Null_Closure);
+      return Item.Ref.all.Meta;
+   end Meta;
 
-   function New_Function (Formals     : in Lists.Ptr;
-                          Expression  : in Mal.T;
-                          Environment : in Environments.Closure_Ptr)
+   function New_Function (Params : in Lists.Ptr;
+                          Ast    : in Mal.T;
+                          Env    : in Envs.Closure_Ptr)
                          return Mal.T
-   is (Kind_Function,
-       (AFC with new Rec'
-          (Args    => Formals,
-           Expr    => Expression,
-           Env     => Environment,
-           Varargs => 1 < Formals.Length
-                      and then Formals.Element (Formals.Length - 1).Symbol
-                               = Symbols.Names.Ampersand,
-           others  => <>)));
+   is
+      Ref : constant Acc := new Rec'(Params_Last => Params.Length,
+                                     Ast         => Ast,
+                                     Env         => Env,
+                                     others      => <>);
+   begin
+      for I in 1 .. Params.Length loop
+         Ref.all.Params (I) := Params.Element (I).Symbol;
+      end loop;
+      return (Kind_Function, (AFC with Ref));
+   end New_Function;
 
    function New_Macro (Item : in Ptr) return Mal.T is
       Old : Rec renames Item.Ref.all;
@@ -77,95 +92,37 @@ package body Types.Functions is
       if Old.Refs = 1 then
          Ref := Item.Ref;
          Old.Refs := 2;
-         Old.Env := Environments.Null_Closure;
-         --  Finalize the previous closure.
+         Old.Env := Envs.Null_Closure;
+         --  Finalize the environment, it will not be used anymore.
          Old.Meta := Mal.Nil;
       else
-         Ref := new Rec'(Args    => Item.Ref.all.Args,
-                         Expr    => Item.Ref.all.Expr,
-                         Varargs => Item.Ref.all.Varargs,
-                         others  => <>);
+         Ref := new Rec'(Params_Last => Old.Params_Last,
+                         Params      => Old.Params,
+                         Ast         => Old.Ast,
+                         others      => <>);
       end if;
       return (Kind_Macro, (AFC with Ref));
    end New_Macro;
 
-   procedure Set_Binds (Item : in Ptr;
-                        Env  : in Environments.Ptr;
-                        Args : in Mal.T_Array)
-   is
-      R : Rec renames Item.Ref.all;
-   begin
-      if R.Varargs then
-         if Args'Length < R.Args.Length - 2 then
-            raise Argument_Error with "expected "
-              & ASU.To_String (Printer.Pr_Str ((Kind_List, R.Args)))
-              & ", got" & Args'Length'Img;
-         end if;
-         for I in 1 .. R.Args.Length - 2 loop
-            Env.Set (R.Args.Element (I).Symbol, Args (Args'First + I - 1));
-         end loop;
-         Env.Set (R.Args.Element (R.Args.Length).Symbol,
-            Lists.List (Args (Args'First + R.Args.Length - 2 .. Args'Last)));
-      else
-         if Args'Length /= R.Args.Length then
-            raise Argument_Error with "expected "
-              & ASU.To_String (Printer.Pr_Str ((Kind_List, R.Args)))
-              & ", got" & Args'Length'Img;
-         end if;
-         for I in 1 .. R.Args.Length loop
-            Env.Set (R.Args.Element (I).Symbol, Args (Args'First + I - 1));
-         end loop;
-      end if;
-   end Set_Binds;
-
-   procedure Set_Binds (Item : in Ptr;
-                        Env  : in Environments.Ptr;
-                        Args : in Lists.Ptr)
-   is
-      R : Rec renames Item.Ref.all;
-   begin
-      if R.Varargs then
-         if Args.Length - 1 < R.Args.Length - 2 then
-            raise Argument_Error with "expected "
-              & ASU.To_String (Printer.Pr_Str ((Kind_List, R.Args)))
-              & ", got" & Natural'Image (Args.Length - 1);
-         end if;
-         for I in 1 .. R.Args.Length - 2 loop
-            Env.Set (R.Args.Element (I).Symbol, Args.Element (1 + I));
-         end loop;
-         Env.Set (R.Args.Element (R.Args.Length).Symbol,
-                  Lists.Slice (Args, R.Args.Length));
-      else
-         if Args.Length - 1 /= R.Args.Length then
-            raise Argument_Error with "expected "
-              & ASU.To_String (Printer.Pr_Str ((Kind_List, R.Args)))
-              & ", got" & Natural'Image (Args.Length - 1);
-         end if;
-         for I in 1 .. R.Args.Length loop
-            Env.Set (R.Args.Element (I).Symbol, Args.Element (1 + I));
-         end loop;
-      end if;
-   end Set_Binds;
-
-   function With_Meta (Data     : in Ptr;
+   function With_Meta (Item     : in Ptr;
                        Metadata : in Mal.T) return Mal.T
    is
-      Old : Rec renames Data.Ref.all;
+      Old : Rec renames Item.Ref.all;
       Ref : Acc;
    begin
+      pragma Assert (Old.Env /= Envs.Null_Closure);
       pragma Assert (0 < Old.Refs);
       if Old.Refs = 1 then
-         Ref := Data.Ref;
+         Ref := Item.Ref;
          Old.Refs := 2;
          Old.Meta := Metadata;
       else
-         Ref := new Rec'(Args    => Data.Ref.all.Args,
-                         Expr    => Data.Ref.all.Expr,
-                         Env     => Data.Ref.all.Env,
-                         Varargs => Data.Ref.all.Varargs,
-                         Meta    => Metadata,
-                         others  => <>);
-
+         Ref := new Rec'(Params_Last => Old.Params_Last,
+                         Params      => Old.Params,
+                         Ast         => Old.Ast,
+                         Env         => Old.Env,
+                         Meta        => Metadata,
+                         others      => <>);
       end if;
       return (Kind_Function, (AFC with Ref));
    end With_Meta;
