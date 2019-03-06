@@ -5,15 +5,6 @@ limited with Types.Mal;
 package Types.Lists is
 
    type Ptr is tagged private;
-   --  A wrapper for a pointer counting references.
-
-   --  The default value is invalid, new variables must be assigned
-   --  immediately (a hidden discriminant would prevent this type to
-   --  become a field inside Types.Mal.T, so we check this with a
-   --  private invariant a fallback, an invariant in the private part
-   --  checks that any created object is affected before use.
-
-   --  Assignment give another reference to the same storage.
 
    --  Built-in functions.
    function Concat   (Args : in Mal.T_Array) return Mal.T;
@@ -23,6 +14,7 @@ package Types.Lists is
    function First    (Args : in Mal.T_Array) return Mal.T;
    function Is_Empty (Args : in Mal.T_Array) return Mal.T;
    function List     (Args : in Mal.T_Array) return Mal.T;
+   function Map      (Args : in Mal.T_Array) return Mal.T;
    function Nth      (Args : in Mal.T_Array) return Mal.T;
    function Rest     (Args : in Mal.T_Array) return Mal.T;
    function Vector   (Args : in Mal.T_Array) return Mal.T;

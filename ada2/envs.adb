@@ -1,7 +1,9 @@
 with Ada.Containers.Hashed_Maps;
 with Ada.Unchecked_Deallocation;
 
-package body Environments is
+with Types.Symbols.Names;
+
+package body Envs is
 
    use Types;
 
@@ -63,6 +65,18 @@ package body Environments is
    procedure Free is new Ada.Unchecked_Deallocation (Heap_Record, Heap_Access);
    procedure Unreference (Reference : in out Heap_Access);
 
+   procedure Set_Binds (M     : in out HM.Map;
+                        Binds : in     Symbols.Symbol_Array;
+                        Exprs : in     Mal.T_Array)
+     with Inline;
+   procedure Set_Binds_Macro (M     : in out HM.Map;
+                              Binds : in     Symbols.Symbol_Array;
+                              Exprs : in     Lists.Ptr)
+     with Inline;
+   --  These two procedures are redundant, but sharing the code would
+   --  be ugly or inefficient. They are separated as inline procedures
+   --  in order to ease comparison, though.
+
    ----------------------------------------------------------------------
 
    procedure Adjust (Object : in out Closure_Ptr) is
@@ -71,18 +85,6 @@ package body Environments is
          Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
       end if;
    end Adjust;
-
-   function Closure_Sub (Outer : in Closure_Ptr'Class) return Ptr is
-   begin
-      Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
-      Top := Top + 1;
-      pragma Assert (Stack (Top).Data.Is_Empty);
-      pragma Assert (Stack (Top).Alias = null);
-      Stack (Top) := (Outer_On_Stack => False,
-                      Outer_Ref      => Outer.Ref,
-                      others         => <>);
-      return (Ada.Finalization.Limited_Controlled with Top);
-   end Closure_Sub;
 
    function Copy_Pointer (Env : in Ptr) return Ptr is
    begin
@@ -231,10 +233,10 @@ package body Environments is
       end if;
    end Finalize;
 
-   function Get (Env    : in     Ptr;
-                 Key    : in     Symbols.Ptr)
-                return Mal.T is
-      Index      : Stack_Index := Env.Index;
+   function Get (Evt : in Ptr;
+                 Key : in Symbols.Ptr) return Mal.T
+   is
+      Index      : Stack_Index := Evt.Index;
       Ref        : Heap_Access;
       Definition : HM.Cursor;
    begin
@@ -291,9 +293,16 @@ package body Environments is
       --  unreferenced alias if any.
    end Replace_With_Sub;
 
-   procedure Replace_With_Closure_Sub (Env   : in out Ptr;
-                                       Outer : in     Closure_Ptr'Class) is
+   procedure Replace_With_Sub (Env   : in out Ptr;
+                               Outer : in     Closure_Ptr'Class;
+                               Binds : in     Symbols.Symbol_Array;
+                               Exprs : in     Mal.T_Array)
+   is
    begin
+      --  Finalize Env before creating the new environment, in case
+      --  this is the last reference and it can be forgotten.
+      --  Automatic assignment would construct the new value before
+      --  finalizing the old one (because this is safer in general).
       Finalize (Env);
       Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
       Top := Top + 1;
@@ -303,7 +312,9 @@ package body Environments is
                       Outer_Ref      => Outer.Ref,
                       others         => <>);
       Env.Index := Top;
-   end Replace_With_Closure_Sub;
+      --  Now we can afford raising exceptions.
+      Set_Binds (Stack (Top).Data, Binds, Exprs);
+   end Replace_With_Sub;
 
    procedure Set (Env         : in Ptr;
                   Key         : in Symbols.Ptr;
@@ -312,7 +323,61 @@ package body Environments is
       Stack (Env.Index).Data.Include (Key, New_Element);
    end Set;
 
-   function Sub (Outer : in Ptr) return Ptr is
+   procedure Set_Binds (M     : in out HM.Map;
+                        Binds : in     Symbols.Symbol_Array;
+                        Exprs : in     Mal.T_Array)
+   is
+      use type Symbols.Ptr;
+      Varargs : constant Boolean := 1 < Binds'Length and then
+        Binds (Binds'Last - 1) = Symbols.Names.Ampersand;
+   begin
+      if (if Varargs then
+             Exprs'Length < Binds'Length - 2
+          else
+             Exprs'Length /= Binds'Length)
+      then
+         raise Argument_Error with "user function expected "
+           & Symbols.To_String (Binds) & ", got"
+           & Integer'Image (Exprs'Length) & " actual parameters";
+      end if;
+      for I in 0 .. Binds'Length - (if Varargs then 3 else 1) loop
+         M.Include (Binds (Binds'First + I), Exprs (Exprs'First + I));
+      end loop;
+      if Varargs then
+         M.Include (Binds (Binds'Last),
+            Lists.List (Exprs (Exprs'First + Binds'Length - 2 .. Exprs'Last)));
+      end if;
+   end Set_Binds;
+
+   procedure Set_Binds_Macro (M     : in out HM.Map;
+                              Binds : in     Symbols.Symbol_Array;
+                              Exprs : in     Lists.Ptr)
+   is
+      use type Symbols.Ptr;
+      Varargs   : constant Boolean := 1 < Binds'Length and then
+        Binds (Binds'Last - 1) = Symbols.Names.Ampersand;
+   begin
+      if (if Varargs then
+             Exprs.Length - 1 < Binds'Length - 2
+          else
+             Exprs.Length - 1 /= Binds'Length)
+      then
+         raise Argument_Error with "macro expected "
+           & Symbols.To_String (Binds) & ", got"
+           & Integer'Image (Exprs.Length - 1) & "actual parameters";
+      end if;
+      for I in 0 .. Binds'Length - (if Varargs then 3 else 1) loop
+         M.Include (Binds (Binds'First + I), Exprs.Element (2 + I));
+      end loop;
+      if Varargs then
+         M.Include (Binds (Binds'Last), Exprs.Slice (Start => Binds'Length));
+      end if;
+   end Set_Binds_Macro;
+
+   function Sub (Outer : in Ptr;
+                 Binds : in Symbols.Symbol_Array;
+                 Exprs : in Lists.Ptr) return Ptr
+   is
       R : Stack_Record renames Stack (Outer.Index);
    begin
       R.Refs := R.Refs + 1;
@@ -321,7 +386,29 @@ package body Environments is
       pragma Assert (Stack (Top).Alias = null);
       Stack (Top) := (Outer_Index => Outer.Index,
                       others      => <>);
+      Set_Binds_Macro (Stack (Top).Data, Binds, Exprs);
       return (Ada.Finalization.Limited_Controlled with Top);
+   end Sub;
+
+   function Sub (Outer : in Closure_Ptr'Class;
+                 Binds : in Symbols.Symbol_Array;
+                 Exprs : in Mal.T_Array) return Ptr
+   is
+   begin
+      Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
+      Top := Top + 1;
+      pragma Assert (Stack (Top).Data.Is_Empty);
+      pragma Assert (Stack (Top).Alias = null);
+      Stack (Top) := (Outer_On_Stack => False,
+                      Outer_Ref      => Outer.Ref,
+                      others         => <>);
+      --  Take care to construct the result before raising any
+      --  exception, so that it is finalized correctly.
+      return R : constant Ptr := (Ada.Finalization.Limited_Controlled with Top)
+      do
+         --  Now we can afford raising exceptions.
+         Set_Binds (Stack (Top).Data, Binds, Exprs);
+      end return;
    end Sub;
 
    procedure Unreference (Reference : in out Heap_Access) is
@@ -345,4 +432,4 @@ package body Environments is
       end loop;
    end Unreference;
 
-end Environments;
+end Envs;

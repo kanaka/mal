@@ -25,8 +25,7 @@ package body Reader is
 
       ----------------------------------------------------------------------
 
-      procedure Find_Next_Token
-      is
+      procedure Find_Next_Token is
          use Ada.Characters.Latin_1;
       begin
          First := Last + 1;

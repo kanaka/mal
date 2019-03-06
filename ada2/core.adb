@@ -3,65 +3,63 @@ with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
 
-with Environments; pragma Elaborate_All (Environments);
+with Envs;
+with Eval_Cb;
 with Types.Atoms;
 with Types.Builtins;
 with Types.Functions;
 with Types.Lists;
 with Types.Maps;
-with Types.Symbols.Names; pragma Elaborate_All (Types.Symbols);
+with Types.Symbols.Names;
 with Printer;
 with Reader;
 
 package body Core is
 
    use Types;
-   use type Mal.T;
-
    package ASU renames Ada.Strings.Unbounded;
 
+   --  Used by time_ms.
    Start_Time : constant Ada.Calendar.Time := Ada.Calendar.Clock;
 
-   function Apply_Helper (Func : in Mal.T;
-                          Args : in Mal.T_Array;
-                          Name : in String) return Mal.T with Inline;
-   --  If Func is not executable, report an exception using "name" as
-   --  the built-in function name.
+   --  In the following helpers, "name" is the one reported by error
+   --  messages.
 
    generic
       Kind : in Kind_Type;
       Name : in String;
    function Generic_Kind_Test (Args : in Mal.T_Array) return Mal.T;
    function Generic_Kind_Test (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 1
-       then raise Argument_Error with Name & ": expects 1 argument"
-       else (Kind_Boolean, Args (Args'First).Kind = Kind));
+   is (if Args'Length /= 1 then
+          raise Argument_Error with Name & ": expects 1 argument"
+       else
+          (Kind_Boolean, Args (Args'First).Kind = Kind));
 
    generic
       with function Ada_Operator (Left, Right : in Integer) return Integer;
       Name : in String;
    function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T;
    function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 2
-       then raise Argument_Error with Name & ": expects 2 arguments"
-       elsif (for some A of Args => A.Kind /= Kind_Number)
-       then raise Argument_Error with Name & ": expects numbers"
-       else (Kind_Number, Ada_Operator (Args (Args'First).Ada_Number,
-                                        Args (Args'Last).Ada_Number)));
-
+   is (if Args'Length /= 2 then
+          raise Argument_Error with Name & ": expects 2 arguments"
+       elsif (for some A of Args => A.Kind /= Kind_Number) then
+          raise Argument_Error with Name & ": expects numbers"
+       else
+          (Kind_Number, Ada_Operator (Args (Args'First).Number,
+                                      Args (Args'Last).Number)));
    generic
       with function Ada_Operator (Left, Right : in Integer) return Boolean;
       Name : in String;
    function Generic_Comparison (Args : in Mal.T_Array) return Mal.T;
    function Generic_Comparison (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 2
-       then raise Argument_Error with Name & ": expects 2 arguments"
-       elsif (for some A of Args => A.Kind /= Kind_Number)
-       then raise Argument_Error with Name & ": expects numbers"
-       else (Kind_Boolean, Ada_Operator (Args (Args'First).Ada_Number,
-                                         Args (Args'Last).Ada_Number)));
+   is (if Args'Length /= 2 then
+          raise Argument_Error with Name & ": expects 2 arguments"
+       elsif (for some A of Args => A.Kind /= Kind_Number) then
+          raise Argument_Error with Name & ": expects numbers"
+       else
+          (Kind_Boolean, Ada_Operator (Args (Args'First).Number,
+                                       Args (Args'Last).Number)));
 
-   --  Built-in functions from this package.
    function Addition      is new Generic_Mal_Operator ("+", "+");
    function Apply         (Args : in Mal.T_Array) return Mal.T;
    function Division      is new Generic_Mal_Operator ("/", "/");
@@ -86,7 +84,6 @@ package body Core is
    function Keyword       (Args : in Mal.T_Array) return Mal.T;
    function Less_Equal    is new Generic_Comparison ("<=", "<=");
    function Less_Than     is new Generic_Comparison ("<", "<");
-   function Map           (Args : in Mal.T_Array) return Mal.T;
    function Meta          (Args : in Mal.T_Array) return Mal.T;
    function Pr_Str        (Args : in Mal.T_Array) return Mal.T;
    function Println       (Args : in Mal.T_Array) return Mal.T;
@@ -98,7 +95,6 @@ package body Core is
    function Slurp         (Args : in Mal.T_Array) return Mal.T;
    function Str           (Args : in Mal.T_Array) return Mal.T;
    function Subtraction   is new Generic_Mal_Operator ("-", "-");
-   function Swap          (Args : in Mal.T_Array) return Mal.T;
    function Symbol        (Args : in Mal.T_Array) return Mal.T;
    function Throw         (Args : in Mal.T_Array) return Mal.T;
    function Time_Ms       (Args : in Mal.T_Array) return Mal.T;
@@ -106,58 +102,49 @@ package body Core is
 
    ----------------------------------------------------------------------
 
-   function Apply_Helper (Func : in Mal.T;
-                          Args : in Mal.T_Array;
-                          Name : in String) return Mal.T
-   is
-   begin
-      case Func.Kind is
-      when Kind_Builtin =>
-         return Func.Builtin.all (Args);
-      when Kind_Builtin_With_Meta =>
-         return Func.Builtin_With_Meta.Data.all (Args);
-      when Kind_Function =>
-         declare
-            Env : constant Environments.Ptr
-              := Func.Function_Value.Closure.Closure_Sub;
-         begin
-            Func.Function_Value.Set_Binds (Env, Args);
-            return Eval_Ref.all (Func.Function_Value.Expression, Env);
-         end;
-      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
-        | Kind_Symbol | Kind_Keyword | Kind_List | Kind_Vector | Kind_Map
-        | Kind_Macro =>
-         raise Argument_Error with Name & ": cannot execute "
-           & ASU.To_String (Printer.Pr_Str (Func));
-      end case;
-   end Apply_Helper;
-
    function Apply (Args : in Mal.T_Array) return Mal.T is
       use type Lists.Ptr;
    begin
       if Args'Length < 2 then
          raise Argument_Error with "apply: expects at least 2 arguments";
       elsif Args (Args'Last).Kind not in Kind_List | Kind_Vector then
-         raise Argument_Error with "apply: last arg must a be list or vector";
-      else
-         return Apply_Helper (Args (Args'First),
-                              Args (Args'First + 1 .. Args'Last - 1)
-                                & Args (Args'Last).L,
-                              "apply");
+         raise Argument_Error with "apply: last arg must be a list or vector";
       end if;
+      declare
+         F : Mal.T renames Args (Args'First);
+         A : constant Mal.T_Array
+           := Args (Args'First + 1 .. Args'Last - 1) & Args (Args'Last).List;
+      begin
+         case F.Kind is
+            when Kind_Builtin =>
+               return F.Builtin.all (A);
+            when Kind_Builtin_With_Meta =>
+               return F.Builtin_With_Meta.Builtin.all (A);
+            when Kind_Function =>
+               return F.Fn.Apply (A);
+            when others =>
+               raise Argument_Error
+                 with "apply: cannot call " & Printer.Img (F);
+         end case;
+      end;
    end Apply;
 
-   function Equals (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 2 then
-          raise Argument_Error with "=: expects 2 arguments"
-       else
-          (Kind_Boolean, Args (Args'First) = Args (Args'Last)));
+   function Equals (Args : in Mal.T_Array) return Mal.T is
+      use type Mal.T;
+   begin
+      if Args'Length /= 2 then
+         raise Argument_Error with "=: expects 2 arguments";
+      else
+         return (Kind_Boolean, Args (Args'First) = Args (Args'Last));
+      end if;
+   end Equals;
 
    function Eval (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
           raise Argument_Error with "eval: expects 1 argument"
        else
-          Eval_Ref.all (Args (Args'First), Environments.Repl));
+          Eval_Cb.Cb.all (Ast => Args (Args'First),
+                          Env => Envs.Repl));
 
    function Is_False (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
@@ -193,81 +180,136 @@ package body Core is
        else
           (Kind_Keyword, Args (Args'First).S));
 
-   function Map (Args : in Mal.T_Array) return Mal.T is
+   function Meta (Args : in Mal.T_Array) return Mal.T is
    begin
-      if Args'Length /= 2 then
-         raise Argument_Error with "map: expects 2 arguments";
-      elsif Args (Args'Last).Kind not in Kind_List | Kind_Vector then
-         raise Argument_Error with "map: arg  2 must be a list or vector";
+      if Args'Length /= 1 then
+         raise Argument_Error with "meta: expects 1 argument";
       end if;
       declare
-         R  : Mal.T_Array (1 .. Args (Args'Last).L.Length);
+         A1 : Mal.T renames Args (Args'First);
       begin
-         for I in R'Range loop
-            R (I) := Apply_Helper (Args (Args'First),
-                        Mal.T_Array'(1 => Args (Args'Last).L.Element (I)),
-                                   "map");
-         end loop;
-         return Lists.List (R);
-      end;
-   end Map;
-
-   function Meta (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 1 then
-          raise Argument_Error with "meta: expects 1 argument"
-       else
-         (case Args (Args'First).Kind is
+         case A1.Kind is
             when Kind_List | Kind_Vector =>
-               Args (Args'First).L.Meta,
+               return A1.List.Meta;
             when Kind_Map =>
-               Args (Args'First).Map.Meta,
+               return A1.Map.Meta;
             when Kind_Function =>
-               Args (Args'First).Function_Value.Meta,
+               return A1.Fn.Meta;
             when Kind_Builtin_With_Meta =>
-               Args (Args'First).Builtin_With_Meta.Meta,
+               return A1.Builtin_With_Meta.Meta;
             when Kind_Builtin =>
-                Mal.Nil,
-            when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number |
-               Kind_String | Kind_Symbol | Kind_Keyword | Kind_Macro =>
+               return Mal.Nil;
+            when others =>
                raise Argument_Error
-                 with "meta: expects a list, vector, map or function"));
+                 with "meta: expects a list, vector, map or function";
+         end case;
+      end;
+   end Meta;
+
+   function Ns return Binding_List
+   is ((Symbols.Constructor ("+"),           Addition'Access),
+       (Symbols.Constructor ("apply"),       Apply'Access),
+       (Symbols.Constructor ("assoc"),       Maps.Assoc'Access),
+       (Symbols.Constructor ("atom"),        Atoms.Atom'Access),
+       (Symbols.Constructor ("concat"),      Lists.Concat'Access),
+       (Symbols.Constructor ("conj"),        Lists.Conj'Access),
+       (Symbols.Constructor ("cons"),        Lists.Cons'Access),
+       (Symbols.Constructor ("contains?"),   Maps.Contains'Access),
+       (Symbols.Constructor ("count"),       Lists.Count'Access),
+       (Symbols.Names.Deref,                 Atoms.Deref'Access),
+       (Symbols.Constructor ("dissoc"),      Maps.Dissoc'Access),
+       (Symbols.Constructor ("/"),           Division'Access),
+       (Symbols.Constructor ("="),           Equals'Access),
+       (Symbols.Constructor ("eval"),        Eval'Access),
+       (Symbols.Constructor ("first"),       Lists.First'Access),
+       (Symbols.Constructor ("get"),         Maps.Get'Access),
+       (Symbols.Constructor (">="),          Greater_Equal'Access),
+       (Symbols.Constructor (">"),           Greater_Than'Access),
+       (Symbols.Constructor ("hash-map"),    Maps.Hash_Map'Access),
+       (Symbols.Constructor ("atom?"),       Is_Atom'Access),
+       (Symbols.Constructor ("empty?"),      Lists.Is_Empty'Access),
+       (Symbols.Constructor ("false?"),      Is_False'Access),
+       (Symbols.Constructor ("fn?"),         Is_Function'Access),
+       (Symbols.Constructor ("keyword?"),    Is_Keyword'Access),
+       (Symbols.Constructor ("list?"),       Is_List'Access),
+       (Symbols.Constructor ("macro?"),      Is_Macro'Access),
+       (Symbols.Constructor ("map?"),        Is_Map'Access),
+       (Symbols.Constructor ("nil?"),        Is_Nil'Access),
+       (Symbols.Constructor ("number?"),     Is_Number'Access),
+       (Symbols.Constructor ("sequential?"), Is_Sequential'Access),
+       (Symbols.Constructor ("string?"),     Is_String'Access),
+       (Symbols.Constructor ("symbol?"),     Is_Symbol'Access),
+       (Symbols.Constructor ("true?"),       Is_True'Access),
+       (Symbols.Constructor ("vector?"),     Is_Vector'Access),
+       (Symbols.Constructor ("keys"),        Maps.Keys'Access),
+       (Symbols.Constructor ("keyword"),     Keyword'Access),
+       (Symbols.Constructor ("<="),          Less_Equal'Access),
+       (Symbols.Constructor ("<"),           Less_Than'Access),
+       (Symbols.Constructor ("list"),        Lists.List'Access),
+       (Symbols.Constructor ("map"),         Lists.Map'Access),
+       (Symbols.Constructor ("meta"),        Meta'Access),
+       (Symbols.Constructor ("nth"),         Lists.Nth'Access),
+       (Symbols.Constructor ("pr-str"),      Pr_Str'Access),
+       (Symbols.Constructor ("println"),     Println'Access),
+       (Symbols.Constructor ("prn"),         Prn'Access),
+       (Symbols.Constructor ("*"),           Product'Access),
+       (Symbols.Constructor ("read-string"), Read_String'Access),
+       (Symbols.Constructor ("readline"),    Readline'Access),
+       (Symbols.Constructor ("reset!"),      Atoms.Reset'Access),
+       (Symbols.Constructor ("rest"),        Lists.Rest'Access),
+       (Symbols.Constructor ("seq"),         Seq'Access),
+       (Symbols.Constructor ("slurp"),       Slurp'Access),
+       (Symbols.Constructor ("str"),         Str'Access),
+       (Symbols.Constructor ("-"),           Subtraction'Access),
+       (Symbols.Constructor ("swap!"),       Atoms.Swap'Access),
+       (Symbols.Constructor ("symbol"),      Symbol'Access),
+       (Symbols.Constructor ("throw"),       Throw'Access),
+       (Symbols.Constructor ("time-ms"),     Time_Ms'Access),
+       (Symbols.Constructor ("vals"),        Maps.Vals'Access),
+       (Symbols.Constructor ("vector"),      Lists.Vector'Access),
+       (Symbols.Names.With_Meta,             With_Meta'Access));
 
    function Pr_Str (Args : in Mal.T_Array) return Mal.T is
+      R       : ASU.Unbounded_String := ASU.Null_Unbounded_String;
+      Started : Boolean := False;
    begin
-      return R : Mal.T := (Kind_String, ASU.Null_Unbounded_String) do
-         if 0 < Args'Length then
-            ASU.Append (R.S, Printer.Pr_Str (Args (Args'First)));
-            for I in Args'First + 1 .. Args'Last loop
-               ASU.Append (R.S, ' ');
-               ASU.Append (R.S, Printer.Pr_Str (Args (I)));
-            end loop;
+      for A of Args loop
+         if Started then
+            ASU.Append (R, ' ');
+         else
+            Started := True;
          end if;
-      end return;
+         ASU.Append (R, Printer.Pr_Str (A));
+      end loop;
+      return (Kind_String, R);
    end Pr_Str;
 
    function Println (Args : in Mal.T_Array) return Mal.T is
-      use Ada.Text_IO.Unbounded_IO;
+      Started : Boolean := False;
    begin
-      if 0 < Args'Length then
-         Put (Printer.Pr_Str (Args (Args'First), Readably => False));
-         for I in Args'First + 1 .. Args'Last loop
+      for A of Args loop
+         if Started then
             Ada.Text_IO.Put (' ');
-            Put (Printer.Pr_Str (Args (I), Readably => False));
-         end loop;
-      end if;
+         else
+            Started := True;
+         end if;
+         Ada.Text_IO.Unbounded_IO.Put (Printer.Pr_Str (A, Readably => False));
+      end loop;
       Ada.Text_IO.New_Line;
       return Mal.Nil;
    end Println;
 
    function Prn (Args : in Mal.T_Array) return Mal.T is
+      Started : Boolean := False;
    begin
-      if 0 < Args'Length then
-         Ada.Text_IO.Unbounded_IO.Put (Printer.Pr_Str (Args (Args'First)));
-         for I in Args'First + 1 .. Args'Last loop
+      for A of Args loop
+         if Started then
             Ada.Text_IO.Put (' ');
-            Ada.Text_IO.Unbounded_IO.Put (Printer.Pr_Str (Args (I)));
-         end loop;
-      end if;
+         else
+            Started := True;
+         end if;
+         Ada.Text_IO.Unbounded_IO.Put (Printer.Pr_Str (A));
+      end loop;
       Ada.Text_IO.New_Line;
       return Mal.Nil;
    end Prn;
@@ -278,13 +320,12 @@ package body Core is
          raise Argument_Error with "readline: expects 1 argument";
       elsif Args (Args'First).Kind not in Kind_Keyword | Kind_String then
          raise Argument_Error with "readline: expects a keyword or string";
+      end if;
+      Ada.Text_IO.Unbounded_IO.Put (Args (Args'First).S);
+      if Ada.Text_IO.End_Of_File then
+         return Mal.Nil;
       else
-         Ada.Text_IO.Unbounded_IO.Put (Args (Args'First).S);
-         if Ada.Text_IO.End_Of_File then
-            return Mal.Nil;
-         else
-            return (Kind_String, Ada.Text_IO.Unbounded_IO.Get_Line);
-         end if;
+         return (Kind_String, Ada.Text_IO.Unbounded_IO.Get_Line);
       end if;
    end Readline;
 
@@ -319,10 +360,10 @@ package body Core is
                end;
             end if;
          when Kind_List | Kind_Vector =>
-            if Args (Args'First).L.Length = 0 then
+            if Args (Args'First).List.Length = 0 then
                return Mal.Nil;
             else
-               return (Kind_List, Args (Args'First).L);
+               return (Kind_List, Args (Args'First).List);
             end if;
          when others =>
             raise Argument_Error with "seq: expects a string, list or vector";
@@ -354,31 +395,13 @@ package body Core is
    end Slurp;
 
    function Str (Args : in Mal.T_Array) return Mal.T is
+      R : ASU.Unbounded_String := ASU.Null_Unbounded_String;
    begin
-      return R : Mal.T := (Kind_String, ASU.Null_Unbounded_String) do
-         for Arg of Args loop
-            ASU.Append (R.S, Printer.Pr_Str (Arg, Readably => False));
-         end loop;
-      end return;
+      for A of Args loop
+         ASU.Append (R, Printer.Pr_Str (A, Readably => False));
+      end loop;
+      return (Kind_String, R);
    end Str;
-
-   function Swap (Args : in Mal.T_Array) return Mal.T is
-   begin
-      if Args'Length < 2 then
-         raise Argument_Error with "swap!: expects at least 2 arguments";
-      elsif Args (Args'First).Kind /= Kind_Atom then
-         raise Argument_Error with "swap!: arg 1 must be an atom";
-      end if;
-      declare
-         use type Mal.T_Array;
-         X  : Mal.T renames Atoms.Deref (Args (Args'First .. Args'First));
-         FX : Mal.T renames Apply_Helper (Args (Args'First + 1),
-                               X & Args (Args'First + 2 .. Args'Last),
-                                          "swap!");
-      begin
-         return Atoms.Reset (Mal.T_Array'(Args (Args'First), FX));
-      end;
-   end Swap;
 
    function Symbol (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
@@ -407,88 +430,33 @@ package body Core is
               Integer (1000.0 * (Ada.Calendar.Clock - Start_Time)));
    end Time_Ms;
 
-   function With_Meta (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 2 then
-          raise Argument_Error with "with-meta: expects 2 arguments"
-       else (case Args (Args'First).Kind is
-          when Kind_Builtin_With_Meta =>
-             Args (Args'First).Builtin_With_Meta.With_Meta (Args (Args'Last)),
-          when Kind_Builtin =>
-             Builtins.With_Meta (Args (Args'First).Builtin, Args (Args'Last)),
-          when Kind_List =>
-             (Kind_List, Args (Args'First).L.With_Meta (Args (Args'Last))),
-          when Kind_Vector =>
-             (Kind_Vector, Args (Args'First).L.With_Meta (Args (Args'Last))),
-          when Kind_Map =>
-             Args (Args'First).Map.With_Meta (Args (Args'Last)),
-          when Kind_Function =>
-             Args (Args'First).Function_Value.With_Meta (Args (Args'Last)),
-          when others =>
-             Args (Args'First)));
+   function With_Meta (Args : in Mal.T_Array) return Mal.T is
+   begin
+      if Args'Length /= 2 then
+         raise Argument_Error with "with-meta: expects 2 arguments";
+      end if;
+      declare
+         A1 : Mal.T renames Args (Args'First);
+         A2 : Mal.T renames Args (Args'Last);
+      begin
+         case A1.Kind is
+            when Kind_Builtin_With_Meta =>
+               return A1.Builtin_With_Meta.With_Meta (A2);
+            when Kind_Builtin =>
+               return Builtins.With_Meta (A1.Builtin, A2);
+            when Kind_List =>
+               return (Kind_List, A1.List.With_Meta (A2));
+            when Kind_Vector =>
+               return (Kind_Vector, A1.List.With_Meta (A2));
+            when Kind_Map =>
+               return A1.Map.With_Meta (A2);
+            when Kind_Function =>
+               return A1.Fn.With_Meta (A2);
+            when others =>
+               raise Argument_Error
+                 with "with-meta: expects a list, vector, map or function";
+         end case;
+      end;
+   end With_Meta;
 
-   use Symbols;
-   R : Environments.Ptr renames Environments.Repl;
-   B : Kind_Type renames Kind_Builtin;
-begin                                   --  Core
-   R.Set (Constructor ("+"),           (B, Addition'Access));
-   R.Set (Constructor ("apply"),       (B, Apply'Access));
-   R.Set (Constructor ("assoc"),       (B, Maps.Assoc'Access));
-   R.Set (Constructor ("atom"),        (B, Atoms.Atom'Access));
-   R.Set (Constructor ("concat"),      (B, Lists.Concat'Access));
-   R.Set (Constructor ("conj"),        (B, Lists.Conj'Access));
-   R.Set (Constructor ("cons"),        (B, Lists.Cons'Access));
-   R.Set (Constructor ("contains?"),   (B, Maps.Contains'Access));
-   R.Set (Constructor ("count"),       (B, Lists.Count'Access));
-   R.Set (Names.Deref,                 (B, Atoms.Deref'Access));
-   R.Set (Constructor ("dissoc"),      (B, Maps.Dissoc'Access));
-   R.Set (Constructor ("/"),           (B, Division'Access));
-   R.Set (Constructor ("="),           (B, Equals'Access));
-   R.Set (Constructor ("eval"),        (B, Eval'Access));
-   R.Set (Constructor ("first"),       (B, Lists.First'Access));
-   R.Set (Constructor ("get"),         (B, Maps.Get'Access));
-   R.Set (Constructor (">="),          (B, Greater_Equal'Access));
-   R.Set (Constructor (">"),           (B, Greater_Than'Access));
-   R.Set (Constructor ("hash-map"),    (B, Maps.Hash_Map'Access));
-   R.Set (Constructor ("atom?"),       (B, Is_Atom'Access));
-   R.Set (Constructor ("empty?"),      (B, Lists.Is_Empty'Access));
-   R.Set (Constructor ("false?"),      (B, Is_False'Access));
-   R.Set (Constructor ("fn?"),         (B, Is_Function'Access));
-   R.Set (Constructor ("keyword?"),    (B, Is_Keyword'Access));
-   R.Set (Constructor ("list?"),       (B, Is_List'Access));
-   R.Set (Constructor ("macro?"),      (B, Is_Macro'Access));
-   R.Set (Constructor ("map?"),        (B, Is_Map'Access));
-   R.Set (Constructor ("nil?"),        (B, Is_Nil'Access));
-   R.Set (Constructor ("number?"),     (B, Is_Number'Access));
-   R.Set (Constructor ("sequential?"), (B, Is_Sequential'Access));
-   R.Set (Constructor ("string?"),     (B, Is_String'Access));
-   R.Set (Constructor ("symbol?"),     (B, Is_Symbol'Access));
-   R.Set (Constructor ("true?"),       (B, Is_True'Access));
-   R.Set (Constructor ("vector?"),     (B, Is_Vector'Access));
-   R.Set (Constructor ("keys"),        (B, Maps.Keys'Access));
-   R.Set (Constructor ("keyword"),     (B, Keyword'Access));
-   R.Set (Constructor ("<="),          (B, Less_Equal'Access));
-   R.Set (Constructor ("<"),           (B, Less_Than'Access));
-   R.Set (Constructor ("list"),        (B, Lists.List'Access));
-   R.Set (Constructor ("map"),         (B, Map'Access));
-   R.Set (Constructor ("meta"),        (B, Meta'Access));
-   R.Set (Constructor ("nth"),         (B, Lists.Nth'Access));
-   R.Set (Constructor ("pr-str"),      (B, Pr_Str'Access));
-   R.Set (Constructor ("println"),     (B, Println'Access));
-   R.Set (Constructor ("prn"),         (B, Prn'Access));
-   R.Set (Constructor ("*"),           (B, Product'Access));
-   R.Set (Constructor ("read-string"), (B, Read_String'Access));
-   R.Set (Constructor ("readline"),    (B, Readline'Access));
-   R.Set (Constructor ("reset!"),      (B, Atoms.Reset'Access));
-   R.Set (Constructor ("rest"),        (B, Lists.Rest'Access));
-   R.Set (Constructor ("seq"),         (B, Seq'Access));
-   R.Set (Constructor ("slurp"),       (B, Slurp'Access));
-   R.Set (Constructor ("str"),         (B, Str'Access));
-   R.Set (Constructor ("-"),           (B, Subtraction'Access));
-   R.Set (Constructor ("swap!"),       (B, Swap'Access));
-   R.Set (Constructor ("symbol"),      (B, Symbol'Access));
-   R.Set (Constructor ("throw"),       (B, Throw'Access));
-   R.Set (Constructor ("time-ms"),     (B, Time_Ms'Access));
-   R.Set (Constructor ("vals"),        (B, Maps.Vals'Access));
-   R.Set (Constructor ("vector"),      (B, Lists.Vector'Access));
-   R.Set (Names.With_Meta,             (B, With_Meta'Access));
 end Core;

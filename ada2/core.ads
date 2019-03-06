@@ -1,19 +1,23 @@
-limited with Environments;
+with Types.Symbols;
 with Types.Mal;
 
 package Core with Elaborate_Body is
 
-   --  Initialization of this package fills Environments.Repl with
-   --  built-in functions.
+   type Binding is record
+      Symbol  : Types.Symbols.Ptr;
+      Builtin : Types.Mal.Builtin_Ptr;
+   end record;
 
-   Eval_Ref : access function (Ast : in Types.Mal.T;
-                               Env : in Environments.Ptr)
-                              return Types.Mal.T;
-   --  Set by the main program at startup.
+   type Binding_List is array (Positive range <>) of Binding;
+
+   function Ns return Binding_List;
+   --  A list of built-in symbols and functionse.
+   --  A constant would make sense, but
+   --  * implementing it in the private part
 
    Exception_Throwed : exception;
-   Last_Exception    : Types.Mal.T := (Kind => Types.Kind_Nil);
-   --  When the exception is throwed, Last_Exception is set with the
-   --  related Data.
+   Last_Exception    : Types.Mal.T := Types.Mal.Nil;
+   --  When the "throw" builtin is executed, it assigns its argument
+   --  to Last_Exception, then raises this Ada exception.
 
 end Core;

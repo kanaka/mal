@@ -5,24 +5,24 @@ with Types.Mal;
 package body Types.Builtins is
 
    type Rec is limited record
-      Data : Ptr;
-      Refs : Natural;
-      Meta : Mal.T;
+      Builtin : Mal.Builtin_Ptr;
+      Refs    : Natural;
+      Meta    : Mal.T;
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation (Rec, Acc);
 
    ----------------------------------------------------------------------
 
-   procedure Adjust (Object : in out Ptr_With_Meta) is
+   procedure Adjust (Object : in out Ptr) is
    begin
       Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
    end Adjust;
 
-   function Data (Item : in Ptr_With_Meta) return Ptr
-   is (Item.Ref.all.Data);
+   function Builtin (Item : in Ptr) return Mal.Builtin_Ptr
+   is (Item.Ref.all.Builtin);
 
-   procedure Finalize (Object : in out Ptr_With_Meta) is
+   procedure Finalize (Object : in out Ptr) is
    begin
       if Object.Ref /= null and then 0 < Object.Ref.all.Refs then
          Object.Ref.all.Refs := Object.Ref.all.Refs - 1;
@@ -34,20 +34,20 @@ package body Types.Builtins is
       end if;
    end Finalize;
 
-   function Meta (Item : in Ptr_With_Meta) return Mal.T
+   function Meta (Item : in Ptr) return Mal.T
    is (Item.Ref.all.Meta);
 
-   function With_Meta (Data     : in Ptr;
+   function With_Meta (Builtin  : in Mal.Builtin_Ptr;
                        Metadata : in Mal.T) return Mal.T
    is (Kind_Builtin_With_Meta, (Ada.Finalization.Controlled with new Rec'
-                                  (Data => Data,
-                                   Meta => Metadata,
-                                   Refs => 1)));
+                                  (Builtin => Builtin,
+                                   Meta    => Metadata,
+                                   Refs    => 1)));
 
-   function With_Meta (Data     : in Ptr_With_Meta;
+   function With_Meta (Item     : in Ptr;
                        Metadata : in Mal.T) return Mal.T
      --  Do not try to reuse the memory. We can hope that this kind of
      --  nonsense will be rare.
-   is (With_Meta (Data.Data, Metadata));
+   is (With_Meta (Item.Ref.all.Builtin, Metadata));
 
 end Types.Builtins;

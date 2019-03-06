@@ -1,9 +1,14 @@
 private with Ada.Finalization;
 
+with Types.Lists;
 with Types.Mal;
 with Types.Symbols;
 
-package Environments with Elaborate_Body is
+package Envs with Elaborate_Body is
+
+   --  This package should be named Env, but Ada does not allow formal
+   --  parameters to be named like a package dependency, and it seems
+   --  that readability inside Eval is more important.
 
    --  This implementation relies on the fact that the caller only
    --  ever references environments in its execution stack.
@@ -32,22 +37,24 @@ package Environments with Elaborate_Body is
    --  The top environment.
 
    function Copy_Pointer (Env : in Ptr) return Ptr with Inline;
-
-   function Sub (Outer : in Ptr) return Ptr with Inline;
+   --  Allows assignment to a freshly created variable.  This is
+   --  required for tail call optimization, but should be avoided
+   --  elsewhere.
 
    procedure Replace_With_Sub (Env : in out Ptr) with Inline;
-   --  Like Env := Sub (Outer => Env); except that Env is finalized
-   --  *before* the assignement, so its memory may be reused by the
-   --  new environment.
+   --  Equivalent to Env := Sub (Outer => Env, empty Binds and Exprs),
+   --  except that such an assignment is forbidden for performance
+   --  reasons.
 
    procedure Set (Env         : in Ptr;
                   Key         : in Types.Symbols.Ptr;
                   New_Element : in Types.Mal.T)
      with Inline;
 
-   function Get (Env : in Ptr;
-                 Key : in Types.Symbols.Ptr)
-                return Types.Mal.T;
+   --  The Find method is merged into the Get method.
+
+   function Get (Evt : in Ptr;
+                 Key : in Types.Symbols.Ptr) return Types.Mal.T;
    Unknown_Key : exception;
 
    --  Function closures.
@@ -55,15 +62,32 @@ package Environments with Elaborate_Body is
    type Closure_Ptr is tagged private;
    Null_Closure : constant Closure_Ptr;
 
-   function Closure_Sub (Outer : in Closure_Ptr'Class) return Ptr;
-
-   procedure Replace_With_Closure_Sub (Env   : in out Ptr;
-                                       Outer : in     Closure_Ptr'Class);
-   --  Like Env := Closure_Sub (Outer); except that the type is limited.
-
    function New_Closure (Env : in Ptr'Class) return Closure_Ptr;
    --  The class-wide argument does not make much sense, but avoids
    --  the compiler wondering on which type is should dispatch.
+
+   function Sub (Outer : in Closure_Ptr'Class;
+                 Binds : in Types.Symbols.Symbol_Array;
+                 Exprs : in Types.Mal.T_Array) return Ptr;
+   --  Construct a new environment with the given closure as outer parent.
+   --  Then call Set with the paired elements of Binds and Exprs,
+   --  handling the "&" special formal parameter if present.
+   --  May raise Argument_Count.
+
+   procedure Replace_With_Sub (Env   : in out Ptr;
+                               Outer : in     Closure_Ptr'Class;
+                               Binds : in     Types.Symbols.Symbol_Array;
+                               Exprs : in     Types.Mal.T_Array);
+   --  Equivalent to Env := Sub (Outer, Binds, Expr); except that such
+   --  an assignment is forbidden for performance reasons.
+
+   function Sub (Outer : in Ptr;
+                 Binds : in Types.Symbols.Symbol_Array;
+                 Exprs : in Types.Lists.Ptr) return Ptr;
+   --  Like Sub above, but dedicated to macros.
+   --  * The Outer parameter is the current environment, not a closure.
+   --  * The Exprs argument is a list.
+   --  * Its first element is skipped.
 
 private
 
@@ -110,4 +134,4 @@ private
    Null_Closure : constant Closure_Ptr
      := (Ada.Finalization.Controlled with null);
 
-end Environments;
+end Envs;

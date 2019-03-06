@@ -87,4 +87,26 @@ package body Types.Symbols is
    function To_String (Item : in Ptr) return String
    is (Item.Ref.all.Data);
 
+   function To_String (Item : in Symbol_Array) return String is
+      I : Natural := Item'Length + 1;
+   begin
+      for S of Item loop
+         I := I + S.Ref.all.Last;
+      end loop;
+      return R : String (1 .. I) do
+         R (1) := '(';
+         I := 2;
+         for S of Item loop
+            if 2 < I then
+               R (I) := ' ';
+               I := I + 1;
+            end if;
+            R (I .. I + S.Ref.all.Last - 1) := S.Ref.all.Data;
+            I := I + S.Ref.all.Last;
+         end loop;
+         pragma Assert (I = R'Last);
+         R (R'Last) := ')';
+      end return;
+   end To_String;
+
 end Types.Symbols;

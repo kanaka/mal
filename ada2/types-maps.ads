@@ -5,15 +5,6 @@ limited with Types.Mal;
 package Types.Maps is
 
    type Ptr is tagged private;
-   --  A wrapper for a pointer counting references.
-
-   --  The default value is invalid, new variables must be assigned
-   --  immediately (a hidden discriminant would prevent this type to
-   --  become a field inside Types.Mal.T, so we check this with a
-   --  private invariant a fallback, an invariant in the private part
-   --  checks that any created object is affected before use.
-
-   --  Assignment give another reference to the same storage.
 
    --  Built-in functions.
    function Assoc    (Args : in Mal.T_Array) return Mal.T;
@@ -51,8 +42,6 @@ package Types.Maps is
                       return Mal.T;
 
 private
-
-   --  See README for the implementation of reference counting.
 
    type Rec;
    type Acc is access Rec;
