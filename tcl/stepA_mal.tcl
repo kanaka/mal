@@ -146,6 +146,9 @@ proc EVAL {ast env} {
                 return [string_new [eval [obj_val $a1]]]
             }
             "try*" {
+                if {$a2 == ""} {
+                    return [EVAL $a1 $env]
+                }
                 set res {}
                 if { [catch { set res [EVAL $a1 $env] } exception] } {
                     set exc_var [obj_val [lindex [obj_val $a2] 1]]

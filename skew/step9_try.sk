@@ -96,6 +96,9 @@ def EVAL(ast MalVal, env Env) MalVal {
     } else if a0sym.val == "macroexpand" {
       return macroexpand(astList[1], env)
     } else if a0sym.val == "try*" {
+      if astList.count < 3 {
+        return EVAL(astList[1], env)
+      }
       var exc MalVal
       try {
         return EVAL(astList[1], env)

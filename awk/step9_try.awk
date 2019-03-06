@@ -257,11 +257,17 @@ function EVAL_defmacro(ast, env,    idx, sym, ret, len)
 function EVAL_try(ast, env,    catch_body, catch_env,    idx, catch, catch_idx, catch_sym, ret, len, str)
 {
 	idx = substr(ast, 2)
-	if (types_heap[idx]["len"] != 3) {
-		len = types_heap[idx]["len"]
+	len = types_heap[idx]["len"]
+	if (len != 2 && len != 3) {
 		types_release(ast)
 		env_release(env)
-		return "!\"Invalid argument length for 'try*'. Expects exactly 2 arguments, supplied" (len - 1) "."
+		return "!\"Invalid argument length for 'try*'. Expects 1 or 2 arguments, supplied" (len - 1) "."
+	}
+	if (len == 2) {
+		ret = EVAL(types_addref(types_heap[idx][1]), env)
+		types_release(ast)
+		env_release(env)
+		return ret
 	}
 	catch = types_heap[idx][2]
 	if (catch !~ /^\(/) {

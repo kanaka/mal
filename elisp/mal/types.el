@@ -37,9 +37,7 @@
 (mal-object vector)
 (mal-object map)
 
-(mal-object env)
 (mal-object atom)
-
 (mal-object fn)
 (mal-object func)
 
@@ -102,3 +100,5 @@ Defaults to `error'."
 (define-error 'unterminated-sequence "Unterminated token sequence" 'mal)
 (define-error 'end-of-token-stream "End of token stream" 'mal)
 (define-error 'mal-custom "Custom error" 'mal)
+
+(provide 'mal/types)

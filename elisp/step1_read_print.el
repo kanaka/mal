@@ -1,11 +1,6 @@
-(defun load-relative (file)
-  (let* ((current-file (or load-file-name buffer-file-name))
-         (current-file-directory (file-name-directory current-file)))
-    (load (expand-file-name file current-file-directory) nil t)))
-
-(load-relative "types.el")
-(load-relative "reader.el")
-(load-relative "printer.el")
+(require 'mal/types)
+(require 'mal/reader)
+(require 'mal/printer)
 
 (defun READ (input)
   (read-str input))

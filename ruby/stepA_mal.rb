@@ -117,7 +117,7 @@ def EVAL(ast, env)
             if a2 && a2[0] == :"catch*"
                 return EVAL(a2[2], Env.new(env, [a2[1]], [exc]))
             else
-                raise esc
+                raise exc
             end
         end
     when :do

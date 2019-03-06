@@ -251,6 +251,9 @@ defmodule Mix.Tasks.StepAMal do
   defp eval_list([{:symbol, "try*"}, try_form, {:list, catch_list, _meta}], env, _) do
     eval_try(try_form, catch_list, env)
   end
+  defp eval_list([{:symbol, "try*"}, try_form], env, _) do
+    eval(try_form, env)
+  end
   defp eval_list([{:symbol, "try*"}, _try_form, _], _env, _) do
     throw({:error, "try* requires a list as the second parameter"})
   end

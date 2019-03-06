@@ -173,6 +173,10 @@ MalType EVAL(MalType ast, Env env)
                 return macroexpand(aste[1], env);
 
             case "try*":
+                if (aste.length < 3)
+                {
+                    return EVAL(aste[1], env);
+                }
                 MalType exc;
                 try
                 {

@@ -1,2 +1,2 @@
 #!/bin/bash
-exec emacs -Q --batch --load $(dirname $0)/${STEP:-stepA_mal}.el "${@}"
+exec emacs -Q --batch -L $(dirname $0) --eval "(setq text-quoting-style 'straight)" --load $(dirname $0)/${STEP:-stepA_mal}.el "${@}"

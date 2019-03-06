@@ -207,7 +207,7 @@ module Mal
       when "macroexpand"
         macroexpand(list[1], env)
       when "try*"
-        catch_list = list[2].unwrap
+        catch_list = list.size >= 3 ? list[2].unwrap : Mal::Type.new(nil)
         return eval(list[1], env) unless catch_list.is_a? Mal::List
 
         catch_head = catch_list.first.unwrap

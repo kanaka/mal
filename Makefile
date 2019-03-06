@@ -86,7 +86,7 @@ IMPLS = ada ada2 awk bash basic c chuck clojure coffee common-lisp cpp crystal c
 	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp plpgsql \
 	plsql powershell ps python r racket rexx rpython ruby rust scala scheme skew \
-	swift swift3 tcl ts vb vhdl vimscript wasm yorick
+	swift swift3 swift4 tcl ts vb vhdl vimscript wasm yorick
 
 EXTENSION = .mal
 
@@ -117,16 +117,16 @@ regress_step8 = $(regress_step7) step8
 regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
-test_EXCLUDES += test^bash^step5   # never completes at 10,000
-test_EXCLUDES += test^basic^step5  # too slow, and limited to ints of 2^16
-test_EXCLUDES += test^logo^step5   # too slow for 10,000
-test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
-test_EXCLUDES += test^mal^step5    # host impl dependent
-test_EXCLUDES += test^matlab^step5 # never completes at 10,000
-test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
-test_EXCLUDES += test^plsql^step5  # too slow for 10,000
-test_EXCLUDES += test^powershell^step5  # too slow for 10,000
-test_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),test^haxe^step5,) # cpp finishes 10,000, segfaults at 100,000
+step5_EXCLUDES += bash        # never completes at 10,000
+step5_EXCLUDES += basic       # too slow, and limited to ints of 2^16
+step5_EXCLUDES += logo        # too slow for 10,000
+step5_EXCLUDES += make        # no TCO capability (iteration or recursion)
+step5_EXCLUDES += mal         # host impl dependent
+step5_EXCLUDES += matlab      # never completes at 10,000
+step5_EXCLUDES += plpgsql     # too slow for 10,000
+step5_EXCLUDES += plsql       # too slow for 10,000
+step5_EXCLUDES += powershell  # too slow for 10,000
+step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
@@ -240,6 +240,7 @@ scheme_STEP_TO_PROG =  $(scheme_STEP_TO_PROG_$(scheme_MODE))
 skew_STEP_TO_PROG =    skew/$($(1)).js
 swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))
+swift4_STEP_TO_PROG =  swift4/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
 ts_STEP_TO_PROG =      ts/$($(1)).js
 vb_STEP_TO_PROG =      vb/$($(1)).exe
@@ -266,7 +267,10 @@ opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE
 # test files will include step 2 tests through tests for the step
 # being tested.
 STEP_TEST_FILES = $(strip $(wildcard \
-		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
+		    $(foreach s,$(if $(strip $(REGRESS)),\
+			$(filter-out $(if $(filter $(1),$(step5_EXCLUDES)),step5,),\
+			  $(regress_$(2)))\
+			,$(2)),\
 		      $(1)/tests/$($(s))$(EXTENSION) tests/$($(s))$(EXTENSION))))
 
 # DOCKERIZE utility functions
@@ -319,11 +323,11 @@ get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb
 get_argvtest_cmd = $(call get_run_prefix,$(1),$(2)) ../run_argv_test.sh
 
 # Derived lists
-STEPS = $(sort $(filter step%,$(.VARIABLES)))
+STEPS = $(sort $(filter-out %_EXCLUDES,$(filter step%,$(.VARIABLES))))
 DO_IMPLS = $(filter-out $(SKIP_IMPLS),$(IMPLS))
 IMPL_TESTS = $(foreach impl,$(DO_IMPLS),test^$(impl))
 STEP_TESTS = $(foreach step,$(STEPS),test^$(step))
-ALL_TESTS = $(filter-out $(test_EXCLUDES),\
+ALL_TESTS = $(filter-out $(foreach e,$(step5_EXCLUDES),test^$(e)^step5),\
               $(strip $(sort \
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))

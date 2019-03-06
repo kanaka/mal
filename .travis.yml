@@ -86,6 +86,8 @@ matrix:
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7.3}
     - {env: IMPL=swift3,    services: [docker]}
     - {env: IMPL=swift3 NO_DOCKER=1, os: osx, osx_image: xcode8}
+    - {env: IMPL=swift4,    services: [docker]}
+    - {env: IMPL=swift4 NO_DOCKER=1, os: osx, osx_image: xcode10}
     - {env: IMPL=tcl,       services: [docker]}
     - {env: IMPL=ts,        services: [docker]}
     - {env: IMPL=vb,        services: [docker]}

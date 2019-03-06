@@ -145,6 +145,7 @@ private fun try_catch(ast: MalList, env: Env): MalType =
     try {
         eval(ast.nth(1), env)
     } catch (e: Exception) {
+        if (ast.count() < 3) { throw e }
         val thrown = if (e is MalException) e else MalException(e.message)
         val symbol = (ast.nth(2) as MalList).nth(1) as MalSymbol
 

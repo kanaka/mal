@@ -245,20 +245,24 @@ defspecial macroexpand ( env list[_,form] -- form )
 
 defspecial try* { env list -- val }
     list MalList/start @ cell+ { arg0 }
-    pre-try
-    env arg0 @ ['] eval catch ?dup 0= if
-        nip
-    else { errno }
-        begin pre-try = until
-        errno 1 <> if
-            s" forth-errno" MalKeyword. errno MalInt. MalMap/Empty assoc
-            to exception-object
+    list MalList/count @ 3 < if
+        env arg0 @ eval
+    else
+        pre-try
+        env arg0 @ ['] eval catch ?dup 0= if
+            nip
+        else { errno }
+            begin pre-try = until
+            errno 1 <> if
+                s" forth-errno" MalKeyword. errno MalInt. MalMap/Empty assoc
+                to exception-object
+            endif
+            arg0 cell+ @ ( list[catch*,sym,form] )
+            MalList/start @ cell+ { catch0 }
+            env MalEnv. { catch-env }
+            catch0 @ exception-object catch-env env/set
+            catch-env  catch0 cell+ @  TCO-eval
         endif
-        arg0 cell+ @ ( list[catch*,sym,form] )
-        MalList/start @ cell+ { catch0 }
-        env MalEnv. { catch-env }
-        catch0 @ exception-object catch-env env/set
-        catch-env  catch0 cell+ @  TCO-eval
     endif ;;
 
 defspecial . { env coll -- rtn-list }

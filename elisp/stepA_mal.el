@@ -1,16 +1,11 @@
 ;; -*- lexical-binding: t; -*-
 
-(defun load-relative (file)
-  (let* ((current-file (or load-file-name buffer-file-name))
-         (current-file-directory (file-name-directory current-file)))
-    (load (expand-file-name file current-file-directory) nil t)))
-
-(load-relative "types.el")
-(load-relative "env.el")
-(load-relative "func.el")
-(load-relative "reader.el")
-(load-relative "printer.el")
-(load-relative "core.el")
+(require 'mal/types)
+(require 'mal/func)
+(require 'mal/env)
+(require 'mal/reader)
+(require 'mal/printer)
+(require 'mal/core)
 
 (defvar repl-env (mal-env))
 
@@ -128,7 +123,7 @@
                                 (mal-string (error-message-string err))))
                         (env* (mal-env env (list identifier) (list err*))))
                    (throw 'return (EVAL form env*)))
-               (apply 'signal err)))))
+               (signal (car err) (cdr err))))))
          ((eq a0* 'do)
           (let* ((a0... (cdr a))
                  (butlast (butlast a0...))

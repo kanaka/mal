@@ -126,6 +126,7 @@ object step9_try {
           return EVAL(a1, env)
         } catch {
           case t: Throwable => {
+            if (rest.length == 0) throw t
             rest(0).asInstanceOf[MalList].value match {
               case List(Symbol("catch*"), a21, a22) => {
                 val exc: Any = t match {

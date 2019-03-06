@@ -1,12 +1,7 @@
-(defun load-relative (file)
-  (let* ((current-file (or load-file-name buffer-file-name))
-         (current-file-directory (file-name-directory current-file)))
-    (load (expand-file-name file current-file-directory) nil t)))
-
-(load-relative "types.el")
-(load-relative "env.el")
-(load-relative "reader.el")
-(load-relative "printer.el")
+(require 'mal/types)
+(require 'mal/env)
+(require 'mal/reader)
+(require 'mal/printer)
 
 (defvar repl-env (mal-env))
 (mal-env-set repl-env '+ (lambda (a b) (mal-number (+ (mal-value a) (mal-value b)))))

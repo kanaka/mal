@@ -144,6 +144,7 @@ eval: procedure expose values. env. err /* eval(ast) */
       when a0sym == "macroexpand" then return macroexpand(word(astval, 2), env_idx)
       when a0sym == "try*" then do
         res = eval(word(astval, 2), env_idx)
+        if words(astval) < 3 then return res
         if res == "ERR" then do
           if word(err, 1) == "__MAL_EXCEPTION__" then
             errobj = word(err, 2)
