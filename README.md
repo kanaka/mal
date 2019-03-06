@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 74 languages**
+**2. Mal is implemented in 75 languages**
 
 | Language | Creator |
 | -------- | ------- |
@@ -77,6 +77,7 @@
 | [Skew](#skew) | [Dov Murik](https://github.com/dubek) |
 | [Swift](#swift) | [Keith Rollin](https://github.com/keith-rollin) |
 | [Swift 3](#swift-3) | [Joel Martin](https://github.com/kanaka)  |
+| [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
 | [Tcl](#tcl-86) | [Dov Murik](https://github.com/dubek) |
 | [TypeScript](#typescript) | [Masahiro Wakame](https://github.com/vvakame) |
 | [VHDL](#vhdl) | [Dov Murik](https://github.com/dubek) |
@@ -926,6 +927,17 @@ has been tested with Swift 3 Preview 3.
 
 ```
 cd swift3
+make
+./stepX_YYY
+```
+
+### Swift 4
+
+The Swift 4 implementation of mal requires the Swift 4.0 compiler. It
+has been tested with Swift 4.2.3 release.
+
+```
+cd swift4
 make
 ./stepX_YYY
 ```
