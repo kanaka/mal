@@ -60,7 +60,7 @@ procedure Step8_Macros is
       <<Restart>>
       --  Ada.Text_IO.New_Line;
       --  Ada.Text_IO.Put ("EVAL: ");
-      --  Ada.Text_IO.Unbounded_IO.Put_Line (Print (Ast));
+      --  Print (Ast);
       --  Envs.Dump_Stack;
       case Ast.Kind is
       when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
@@ -74,16 +74,20 @@ procedure Step8_Macros is
       when Kind_Vector =>
          return (Kind_Vector, Eval_List_Elts (Ast.List, Env));
       when Kind_List =>
-         if Ast.List.Length = 0 then
-            return Ast;
-         end if;
-         First := Ast.List.Element (1);
-         --  Special forms
-         if First.Kind /= Kind_Symbol then
-            --  Evaluate First, in the less frequent case where it is
-            --  not a symbol.
-            First := Eval (First, Env);
-         elsif First.Symbol = Symbols.Names.Def then
+         null;
+      end case;
+
+      --  Ast is a list.
+      if Ast.List.Length = 0 then
+         return Ast;
+      end if;
+      First := Ast.List.Element (1);
+
+      --  Special forms
+      --  Ast is a non-empty list, First is its first element.
+      case First.Kind is
+      when Kind_Symbol =>
+         if First.Symbol = Symbols.Names.Def then
             if Ast.List.Length /= 3 then
                raise Argument_Error with "def!: expects 2 arguments";
             elsif Ast.List.Element (2).Kind /= Kind_Symbol then
@@ -192,13 +196,26 @@ procedure Step8_Macros is
             end if;
             return Ast.List.Element (2);
          else
-            --  Equivalent to First := Eval (First, Env), except that
-            --  we already know enough to spare a recursive call in
-            --  this frequent case.
+            --  Equivalent to First := Eval (First, Env)
+            --  except that we already know enough to spare a recursive call.
             First := Env.Get (First.Symbol);
          end if;
-         --  Apply phase.
-         case First.Kind is
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
+           | Kind_Keyword | Kind_Macro | Kind_Function
+           | Kind_Builtin_With_Meta | Kind_Builtin =>
+         --  Equivalent to First := Eval (First, Env)
+         --  except that we already know enough to spare a recursive call.
+         null;
+      when Kind_List | Kind_Vector | Kind_Map =>
+         --  Lists are definitely worth a recursion, and the two other
+         --  cases should be rare (they will report an error later).
+         First := Eval (First, Env);
+      end case;
+
+      --  Apply phase.
+      --  Ast is a non-empty list,
+      --  First is its non-special evaluated first element.
+      case First.Kind is
          when Kind_Builtin =>
             declare
                Args : Mal.T_Array (2 .. Ast.List.Length);
@@ -233,7 +250,6 @@ procedure Step8_Macros is
             end if;
          when others =>
             raise Argument_Error with "cannot call " & Printer.Img (First);
-         end case;
       end case;
    end Eval;
 
@@ -296,6 +312,9 @@ procedure Step8_Macros is
               and then Ast.List.Element (1).Kind = Kind_Symbol
               and then Ast.List.Element (1).Symbol = Symbols.Names.Unquote
             then
+               if 2 < Ast.List.Length then
+                  raise Argument_Error with "unquote: expects 1 argument";
+               end if;
                return Eval (Ast.List.Element (2), Env);
             else
                return Quasiquote_List (Ast.List);

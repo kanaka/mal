@@ -89,6 +89,9 @@ package Envs with Elaborate_Body is
    --  * The Exprs argument is a list.
    --  * Its first element is skipped.
 
+   --  procedure Dump_Stack (Long : in Boolean := False);
+   --  For debugging.
+
 private
 
    --  There must be a reference level so that functions may keep

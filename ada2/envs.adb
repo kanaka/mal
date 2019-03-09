@@ -1,6 +1,8 @@
 with Ada.Containers.Hashed_Maps;
+--  with Ada.Text_IO.Unbounded_IO;
 with Ada.Unchecked_Deallocation;
 
+--  with Printer;
 with Types.Symbols.Names;
 
 package body Envs is
@@ -92,7 +94,7 @@ package body Envs is
       return (Ada.Finalization.Limited_Controlled with Env.Index);
    end Copy_Pointer;
 
-   --  procedure Dump_Stack (Long : Boolean := False) is
+   --  procedure Dump_Stack (Long : in Boolean := False) is
    --     use Ada.Text_IO;
    --     use Ada.Text_IO.Unbounded_IO;
    --  begin
@@ -336,9 +338,9 @@ package body Envs is
           else
              Exprs'Length /= Binds'Length)
       then
-         raise Argument_Error with "user function expected "
+         raise Argument_Error with "function expected "
            & Symbols.To_String (Binds) & ", got"
-           & Integer'Image (Exprs'Length) & " actual parameters";
+           & Integer'Image (Exprs'Length) & " actual parameter(s)";
       end if;
       for I in 0 .. Binds'Length - (if Varargs then 3 else 1) loop
          M.Include (Binds (Binds'First + I), Exprs (Exprs'First + I));
@@ -364,7 +366,7 @@ package body Envs is
       then
          raise Argument_Error with "macro expected "
            & Symbols.To_String (Binds) & ", got"
-           & Integer'Image (Exprs.Length - 1) & "actual parameters";
+           & Integer'Image (Exprs.Length - 1) & " actual parameter(s)";
       end if;
       for I in 0 .. Binds'Length - (if Varargs then 3 else 1) loop
          M.Include (Binds (Binds'First + I), Exprs.Element (2 + I));

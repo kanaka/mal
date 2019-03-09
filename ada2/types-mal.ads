@@ -46,8 +46,8 @@ package Types.Mal is
    --  language, and require deep changes (the discriminant can be
    --  changed for an in out or access parameter).
 
-   type T_Array;
    type T;
+   type T_Array;
    type Builtin_Ptr is access function (Args : in T_Array) return T;
 
    type T (Kind : Kind_Type := Kind_Nil) is record

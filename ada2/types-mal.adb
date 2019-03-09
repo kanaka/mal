@@ -13,7 +13,7 @@ package body Types.Mal is
          Right.Kind = Kind_Nil,
       when Kind_Boolean =>
          Right.Kind = Kind_Boolean
-           and then Left.Ada_Boolean = Right.Ada_Boolean,
+         and then Left.Ada_Boolean = Right.Ada_Boolean,
       when Kind_Number =>
          Right.Kind = Kind_Number and then Left.Number = Right.Number,
       when Kind_Symbol =>

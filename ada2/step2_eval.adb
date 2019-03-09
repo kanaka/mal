@@ -47,7 +47,7 @@ procedure Step2_Eval is
    begin
       --  Ada.Text_IO.New_Line;
       --  Ada.Text_IO.Put ("EVAL: ");
-      --  Ada.Text_IO.Unbounded_IO.Put_Line (Print (Ast));
+      --  Print (Ast);
       case Ast.Kind is
       when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
         | Kind_Keyword | Kind_Macro | Kind_Function
@@ -70,12 +70,19 @@ procedure Step2_Eval is
       when Kind_Vector =>
          return (Kind_Vector, Eval_List_Elts (Ast.List, Env));
       when Kind_List =>
-         if Ast.List.Length = 0 then
-            return Ast;
-         end if;
-         First := Eval (Ast.List.Element (1), Env);
-         --  Apply phase.
-         case First.Kind is
+         null;
+      end case;
+
+      --  Ast is a list.
+      if Ast.List.Length = 0 then
+         return Ast;
+      end if;
+      First := Eval (Ast.List.Element (1), Env);
+
+      --  Apply phase.
+      --  Ast is a non-empty list,
+      --  First is its non-special evaluated first element.
+      case First.Kind is
          when Kind_Builtin =>
             declare
                Args : Mal.T_Array (2 .. Ast.List.Length);
@@ -87,7 +94,6 @@ procedure Step2_Eval is
             end;
          when others =>
             raise Argument_Error with "cannot call " & Printer.Img (First);
-         end case;
       end case;
    end Eval;
 

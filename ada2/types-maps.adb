@@ -75,8 +75,9 @@ package body Types.Maps is
           raise Argument_Error with "contains: expects 2 arguments"
        elsif Args (Args'First).Kind /= Kind_Map then
           raise Argument_Error with "contains: first arguement must be a map"
-       else (Kind_Boolean,
-             Args (Args'First).Map.Ref.all.Data.Contains (Args (Args'Last))));
+       else
+          (Kind_Boolean,
+           Args (Args'First).Map.Ref.all.Data.Contains (Args (Args'Last))));
 
    function Dissoc (Args : in Mal.T_Array) return Mal.T is
    begin

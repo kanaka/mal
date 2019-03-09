@@ -149,8 +149,9 @@ package body Core is
    function Is_False (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
           raise Argument_Error with "false?: expects 1 argument"
-       else (Kind_Boolean, Args (Args'First).Kind = Kind_Boolean
-                           and then not Args (Args'First).Ada_Boolean));
+       else
+          (Kind_Boolean, Args (Args'First).Kind = Kind_Boolean
+                         and then not Args (Args'First).Ada_Boolean));
 
    function Is_Function (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
@@ -405,7 +406,7 @@ package body Core is
 
    function Symbol (Args : in Mal.T_Array) return Mal.T
    is (if Args'Length /= 1 then
-          raise Argument_Error with "symbol?: expects 1 argument"
+          raise Argument_Error with "symbol: expects 1 argument"
        else
           (Kind_Symbol,
            Symbols.Constructor (ASU.To_String (Args (Args'First).S))));
