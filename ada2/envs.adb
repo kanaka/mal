@@ -318,6 +318,15 @@ package body Envs is
       Set_Binds (Stack (Top).Data, Binds, Exprs);
    end Replace_With_Sub;
 
+   procedure Replace_With_Sub_Macro (Env   : in out Ptr;
+                                     Binds : in     Symbols.Symbol_Array;
+                                     Exprs : in     Lists.Ptr)
+   is
+   begin
+      Replace_With_Sub (Env);
+      Set_Binds_Macro (Stack (Top).Data, Binds, Exprs);
+   end Replace_With_Sub_Macro;
+
    procedure Set (Env         : in Ptr;
                   Key         : in Symbols.Ptr;
                   New_Element : in Mal.T) is

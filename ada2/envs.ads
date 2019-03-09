@@ -46,6 +46,14 @@ package Envs with Elaborate_Body is
    --  except that such an assignment is forbidden for performance
    --  reasons.
 
+   procedure Replace_With_Sub_Macro (Env   : in out Ptr;
+                                     Binds : in     Types.Symbols.Symbol_Array;
+                                     Exprs : in     Types.Lists.Ptr);
+   --  Equivalent to Env := Sub (Outer => Env, Binds, Expr), except
+   --  that such an assignment is forbidden for performance reasons.
+   --  This version is intended for macros: the Exprs argument is a
+   --  list, and its first element is skipped.
+
    procedure Set (Env         : in Ptr;
                   Key         : in Types.Symbols.Ptr;
                   New_Element : in Types.Mal.T)

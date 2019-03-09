@@ -279,13 +279,19 @@ procedure Step9_Try is
                goto Restart;
             end;
          when Kind_Macro =>
-            Ast := Eval (Ast0 => First.Fn.Ast,
-                         Env0 => Envs.Sub (Outer => Env,
-                                           Binds => First.Fn.Params,
-                                           Exprs => Ast.List));
             if Macroexpanding then
-               return Ast;
+               --  Evaluate the macro with tail call optimization.
+               Env.Replace_With_Sub_Macro (Binds => First.Fn.Params,
+                                           Exprs => Ast.List);
+               Ast := First.Fn.Ast;
+               goto Restart;
             else
+               --  Evaluate the macro normally.
+               Ast := Eval (Ast0 => First.Fn.Ast,
+                            Env0 => Envs.Sub (Outer => Env,
+                                              Binds => First.Fn.Params,
+                                              Exprs => Ast.List));
+               --  Then evaluate the result with TCO.
                goto Restart;
             end if;
          when others =>
