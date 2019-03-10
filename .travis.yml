@@ -6,6 +6,7 @@ sudo: required
 matrix:
   include:
     - {env: IMPL=ada,       services: [docker]}
+    - {env: IMPL=ada.2,     services: [docker]}
     - {env: IMPL=awk,       services: [docker]}
     - {env: IMPL=bash,      services: [docker]}
     - {env: IMPL=basic basic_MODE=cbm,    services: [docker]}
