@@ -126,7 +126,7 @@ private
    type Ptr is new Ada.Finalization.Limited_Controlled with record
       Index : Stack_Index := 0;
    end record
-     with Invariant => Index in 1 .. Top;
+     with Invariant => Ptr.Index in 1 .. Top;
    overriding procedure Finalize (Object : in out Ptr) with Inline;
    pragma Finalize_Storage_Only (Ptr);
 

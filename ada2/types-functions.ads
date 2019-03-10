@@ -41,7 +41,7 @@ private
    type Ptr is new Ada.Finalization.Controlled with record
       Ref : Acc := null;
    end record
-     with Invariant => Ref /= null;
+     with Invariant => Ptr.Ref /= null;
    overriding procedure Adjust   (Object : in out Ptr) with Inline;
    overriding procedure Finalize (Object : in out Ptr) with Inline;
    pragma Finalize_Storage_Only (Ptr);
