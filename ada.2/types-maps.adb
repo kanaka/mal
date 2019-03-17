@@ -2,7 +2,8 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Unchecked_Deallocation;
 
-with Types.Lists;
+with Err;
+with Types.Sequences;
 with Types.Mal;
 
 package body Types.Maps is
@@ -11,7 +12,9 @@ package body Types.Maps is
    use type Ada.Containers.Count_Type;
 
    function Hash (Item : in Mal.T) return Ada.Containers.Hash_Type
-     with Inline, Pre => Item.Kind in Kind_Keyword | Kind_String;
+     with Inline;
+   --  This function also checks the kind of the key, and raise an
+   --  error in case of problem.
 
    package HM is new Ada.Containers.Hashed_Maps (Key_Type        => Mal.T,
                                                  Element_Type    => Mal.T,
@@ -27,6 +30,7 @@ package body Types.Maps is
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation (Rec, Acc);
+   Allocations : Natural := 0;
 
    ----------------------------------------------------------------------
 
@@ -35,87 +39,82 @@ package body Types.Maps is
 
    procedure Adjust (Object : in out Ptr) is
    begin
-      Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
+      Object.Ref.all.Refs := @ + 1;
    end Adjust;
 
    function Assoc (Args : in Mal.T_Array) return Mal.T is
-      Binds : constant Natural := Args'Length / 2;
+      Ref : Acc;
    begin
-      if Args'Length mod 2 /= 1 then
-         raise Argument_Error with "assoc: expects an odd argument count";
-      elsif Args (Args'First).Kind /= Kind_Map then
-         raise Argument_Error with "assoc: first argument must be a map";
-      elsif (for some I in 1 .. Binds => Args (Args'First + 2 * I - 1).Kind
-               not in Kind_Keyword | Kind_String)
-      then
-         raise Argument_Error with "assoc: keys must be strings or symbols";
+      Err.Check (Args'Length mod 2 = 1, "expected an odd parameter count");
+      Err.Check (Args (Args'First).Kind = Kind_Map,
+                 "parameter 1 must be a map");
+      --  Avoid exceptions until Ref is controlled.
+      Ref := Args (Args'First).Map.Ref;
+      pragma Assert (0 < Ref.all.Refs);
+      if Ref.all.Refs = 1 then
+         Ref.all.Refs := 2;
+         Ref.all.Meta := Mal.Nil;
+      else
+         Allocations := Allocations + 1;
+         Ref := new Rec'(Data   => Ref.all.Data,
+                         others => <>);
       end if;
-      declare
-         Old : Rec renames Args (Args'First).Map.Ref.all;
-         Ref : Acc;
-      begin
-         pragma Assert (0 < Old.Refs);
-         if Old.Refs = 1 then
-            Ref := Args (Args'First).Map.Ref;
-            Old.Refs := 2;
-            Old.Meta := Mal.Nil;
-         else
-            Ref := new Rec'(Data => Old.Data, others => <>);
-         end if;
-         for I in 1 .. Binds loop
+      return R : constant Mal.T := (Kind_Map, (AFC with Ref)) do
+         for I in 1 .. Args'Length / 2 loop
             Ref.all.Data.Include (Key      => Args (Args'First + 2 * I - 1),
                                   New_Item => Args (Args'First + 2 * I));
+            --  This call checks the kind of the key.
          end loop;
-         return (Kind_Map, (AFC with Ref));
-      end;
+      end return;
    end Assoc;
 
-   function Contains (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 2 then
-          raise Argument_Error with "contains: expects 2 arguments"
-       elsif Args (Args'First).Kind /= Kind_Map then
-          raise Argument_Error with "contains: first arguement must be a map"
-       else
-          (Kind_Boolean,
-           Args (Args'First).Map.Ref.all.Data.Contains (Args (Args'Last))));
+   procedure Check_Allocations is
+   begin
+      pragma Assert (Allocations = 0);
+   end Check_Allocations;
+
+   function Contains (Args : in Mal.T_Array) return Mal.T is
+   begin
+      Err.Check (Args'Length = 2, "expected 2 parameters");
+      Err.Check (Args (Args'First).Kind = Kind_Map,
+                 "parameter 1 must be a map");
+      return (Kind_Boolean,
+              Args (Args'First).Map.Ref.all.Data.Contains (Args (Args'Last)));
+   end Contains;
 
    function Dissoc (Args : in Mal.T_Array) return Mal.T is
+      Ref : Acc;
    begin
-      if Args'Length = 0 then
-         raise Argument_Error with "dissoc: expects at least 1 argument";
-      elsif Args (Args'First).Kind /= Kind_Map then
-         raise Argument_Error with "dissoc: first argument must be a map";
-      elsif (for some I in Args'First + 1 .. Args'Last =>
-               Args (I).Kind not in Kind_Keyword | Kind_String)
-      then
-         raise Argument_Error with "dissoc: keys must be strings or symbols";
+      Err.Check (0 < Args'Length, "expected at least 1 parameter");
+      Err.Check (Args (Args'First).Kind = Kind_Map,
+                 "parameter 1 must be a map");
+      --  Avoid exceptions until Ref is controlled.
+      Ref := Args (Args'First).Map.Ref;
+      pragma Assert (0 < Ref.all.Refs);
+      if Ref.all.Refs = 1 then
+         Ref.all.Refs := 2;
+         Ref.all.Meta := Mal.Nil;
+      else
+         Allocations := Allocations + 1;
+         Ref := new Rec'(Data   => Ref.all.Data,
+                         others => <>);
       end if;
-      declare
-         Old : Rec renames Args (Args'First).Map.Ref.all;
-         Ref : Acc;
-      begin
-         pragma Assert (0 < Old.Refs);
-         if Old.Refs = 1 then
-            Ref := Args (Args'First).Map.Ref;
-            Old.Refs := 2;
-            Old.Meta := Mal.Nil;
-         else
-            Ref := new Rec'(Data => Old.Data, others => <>);
-         end if;
+      return R : constant Mal.T := (Kind_Map, (AFC with Ref)) do
          for I in Args'First + 1 .. Args'Last loop
             Ref.all.Data.Exclude (Args (I));
+            --  This call checks the kind of the key.
          end loop;
-         return (Kind_Map, (AFC with Ref));
-      end;
+      end return;
    end Dissoc;
 
    procedure Finalize (Object : in out Ptr) is
    begin
       if Object.Ref /= null and then 0 < Object.Ref.all.Refs then
-         Object.Ref.all.Refs := Object.Ref.all.Refs - 1;
+         Object.Ref.all.Refs := @ - 1;
          if 0 < Object.Ref.all.Refs then
             Object.Ref := null;
          else
+            Allocations := Allocations - 1;
             Free (Object.Ref);
          end if;
       end if;
@@ -128,23 +127,23 @@ package body Types.Maps is
       --  Copy the whole hash in order to avoid recomputing the hash
       --  for each key, even if it implies unneeded calls to adjust
       --  and finalize for Mal_Type values.
-      Old : Rec renames Container.Ref.all;
-      Ref : Acc;
+      --  Avoid exceptions until Ref is controlled.
+      Ref : Acc := Container.Ref;
    begin
-      pragma Assert (0 < Old.Refs);
-      if Old.Refs = 1 then
-         Ref := Container.Ref;
-         Old.Refs := 2;
-         Old.Meta := Mal.Nil;
+      pragma Assert (0 < Ref.all.Refs);
+      if Ref.all.Refs = 1 then
+         Ref.all.Refs := 2;
+         Ref.all.Meta := Mal.Nil;
       else
-         Ref := new Rec'(Data => Container.Ref.all.Data, others => <>);
+         Allocations := Allocations + 1;
+         Ref := new Rec'(Data   => Ref.all.Data,
+                         others => <>);
       end if;
-      --  Prepare a valid structure before running user code. In case
-      --  an exception is raised, we want memory to be deallocated.
       return R : constant Mal.T := (Kind_Map, (AFC with Ref)) do
          for Position in Ref.all.Data.Iterate loop
             Ref.all.Data.Replace_Element (Position,
                Eval (HM.Element (Position), Env));
+            --  This call may raise exceptions.
          end loop;
       end return;
    end Generic_Eval;
@@ -152,48 +151,48 @@ package body Types.Maps is
    function Get (Args : in Mal.T_Array) return Mal.T is
       Position : HM.Cursor;
    begin
-      if Args'Length /= 2 then
-         raise Argument_Error with "get: expects 2 arguments";
-      elsif Args (Args'Last).Kind not in Kind_Keyword | Kind_String then
-         raise Argument_Error with "get: key must be a keyword or string";
-      end if;
+      Err.Check (Args'Length = 2, "expected 2 parameters");
       case Args (Args'First).Kind is
          when Kind_Nil =>
+            Err.Check (Args (Args'Last).Kind in Kind_Key,
+                       "key must be a keyword or string");
             return Mal.Nil;
          when Kind_Map =>
             Position
               := Args (Args'First).Map.Ref.all.Data.Find (Args (Args'Last));
+            --  This call checks the kind of the key.
             if HM.Has_Element (Position) then
                return HM.Element (Position);
             else
                return Mal.Nil;
             end if;
          when others =>
-            raise Argument_Error with "get: first argument must be a map";
+            Err.Raise_With  ("parameter 1 must be nil or a map");
       end case;
    end Get;
 
-   function Hash (Item : in Mal.T) return Ada.Containers.Hash_Type
-   is (Ada.Strings.Unbounded.Hash (Item.S));
+   function Hash (Item : in Mal.T) return Ada.Containers.Hash_Type is
+   begin
+      Err.Check (Item.Kind in Kind_Key, "keys must be keywords or strings");
+      return (Ada.Strings.Unbounded.Hash (Item.S));
+   end Hash;
 
    function Hash_Map (Args : in Mal.T_Array) return Mal.T is
       Binds : constant Natural := Args'Length / 2;
       Ref   : Acc;
    begin
-      if Args'Length mod 2 /= 0 then
-         raise Argument_Error with "hash-map: expects an even argument count";
-      elsif (for some I in 0 .. Binds - 1 => Args (Args'First + 2 * I).Kind
-               not in Kind_Keyword | Kind_String)
-      then
-         raise Argument_Error with "hash-map: keys must be strings or symbols";
-      end if;
+      Err.Check (Args'Length mod 2 = 0, "expected an even parameter count");
+      Allocations := Allocations + 1;
+      --  Avoid exceptions until Ref is controlled.
       Ref := new Rec;
       Ref.all.Data.Reserve_Capacity (Ada.Containers.Count_Type (Binds));
-      for I in 0 .. Binds - 1 loop
-         Ref.all.Data.Include (Key      => Args (Args'First + 2 * I),
-                               New_Item => Args (Args'First + 2 * I + 1));
-      end loop;
-      return (Kind_Map, (AFC with Ref));
+      return R : constant Mal.T := (Kind_Map, (AFC with Ref)) do
+         for I in 0 .. Binds - 1 loop
+            Ref.all.Data.Include (Key      => Args (Args'First + 2 * I),
+                                  New_Item => Args (Args'First + 2 * I + 1));
+            --  This call checks the kind of the key.
+         end loop;
+      end return;
    end Hash_Map;
 
    procedure Iterate (Container : in Ptr) is
@@ -205,11 +204,9 @@ package body Types.Maps is
 
    function Keys (Args : in Mal.T_Array) return Mal.T is
    begin
-      if Args'Length /= 1 then
-         raise Argument_Error with "keys: expects 1 argument";
-      elsif Args (Args'First).Kind /= Kind_Map then
-         raise Argument_Error with "keys: first argument must a map";
-      end if;
+      Err.Check (Args'Length = 1, "expected 1 parameter");
+      Err.Check (Args (Args'First).Kind = Kind_Map,
+                 "parameter 1 must be a map");
       declare
          A1 : HM.Map renames Args (Args'First).Map.Ref.all.Data;
          R  : Mal.T_Array (1 .. Natural (A1.Length));
@@ -219,7 +216,7 @@ package body Types.Maps is
             R (I) := HM.Key (Position);
             I := I + 1;
          end loop;
-         return Lists.List (R);
+         return Sequences.List (R);
       end;
    end Keys;
 
@@ -228,11 +225,9 @@ package body Types.Maps is
 
    function Vals (Args : in Mal.T_Array) return Mal.T is
    begin
-      if Args'Length /= 1 then
-         raise Argument_Error with "vals: expects 1 argument";
-      elsif Args (Args'First).Kind /= Kind_Map then
-         raise Argument_Error with "vals: first argument must be a map";
-      end if;
+      Err.Check (Args'Length = 1, "expected 1 parameter");
+      Err.Check (Args (Args'First).Kind = Kind_Map,
+                 "parameter 1 must be a map");
       declare
          A1 : HM.Map renames Args (Args'First).Map.Ref.all.Data;
          R  : Mal.T_Array (1 .. Natural (A1.Length));
@@ -242,7 +237,7 @@ package body Types.Maps is
             R (I) := Element;
             I := I + 1;
          end loop;
-         return Lists.List (R);
+         return Sequences.List (R);
       end;
    end Vals;
 
@@ -250,16 +245,16 @@ package body Types.Maps is
                        Metadata : in Mal.T)
                       return Mal.T
    is
-      Old : Rec renames Data.Ref.all;
-      Ref : Acc;
+      --  Avoid exceptions until Ref is controlled.
+      Ref : Acc := Data.Ref;
    begin
-      pragma Assert (0 < Old.Refs);
-      if Old.Refs = 1 then
-         Ref := Data.Ref;
-         Old.Refs := 2;
-         Old.Meta := Metadata;
+      pragma Assert (0 < Ref.all.Refs);
+      if Ref.all.Refs = 1 then
+         Ref.all.Refs := 2;
+         Ref.all.Meta := Metadata;
       else
-         Ref := new Rec'(Data   => Old.Data,
+         Allocations := Allocations + 1;
+         Ref := new Rec'(Data   => Ref.all.Data,
                          Meta   => Metadata,
                          others => <>);
       end if;

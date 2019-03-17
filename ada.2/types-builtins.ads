@@ -18,6 +18,8 @@ package Types.Builtins is
    function Meta (Item : in Ptr) return Mal.T with Inline;
    function Builtin (Item : in Ptr) return Mal.Builtin_Ptr with Inline;
 
+   procedure Check_Allocations;
+
 private
 
    type Rec;

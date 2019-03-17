@@ -1,8 +1,8 @@
 package body Types.Mal is
 
    use type Ada.Strings.Unbounded.Unbounded_String;
-   use type Lists.Ptr;
    use type Maps.Ptr;
+   use type Sequences.Ptr;
    use type Symbols.Ptr;
 
    ----------------------------------------------------------------------
@@ -18,13 +18,14 @@ package body Types.Mal is
          Right.Kind = Kind_Number and then Left.Number = Right.Number,
       when Kind_Symbol =>
          Right.Kind = Kind_Symbol and then Left.Symbol = Right.Symbol,
-      --  Here is the part that differs from the predefined equality.
-      when Kind_Keyword | Kind_String =>
+      when Kind_Key =>
          Right.Kind = Left.Kind and then Left.S = Right.S,
-      when Kind_List | Kind_Vector =>
-         Right.Kind in Kind_List | Kind_Vector and then Left.List = Right.List,
+      --  Here comes the part that differs from the predefined equality.
+      when Kind_Sequence =>
+         Right.Kind in Kind_Sequence and then Left.Sequence = Right.Sequence,
       when Kind_Map =>
          Right.Kind = Kind_Map and then Left.Map = Right.Map,
+      --  Also, comparing functions is an interesting problem.
       when others =>
          False);
 

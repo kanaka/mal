@@ -17,10 +17,8 @@ package Types.Symbols with Preelaborate is
 
    type Symbol_Array is array (Positive range <>) of Symbols.Ptr;
 
-   function To_String (Item : in Symbols.Symbol_Array) return String;
-   --  Returns something like "(a b)".  Convenient for error
-   --  reporting, but redundant with Printer (where it is more
-   --  efficient to concatenate directly to an unbounded buffer).
+   --  Debug.
+   procedure Check_Allocations;
 
 private
 

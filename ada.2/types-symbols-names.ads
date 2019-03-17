@@ -16,7 +16,6 @@ package Types.Symbols.Names is
    Fn             : constant Ptr := Constructor ("fn*");
    Let            : constant Ptr := Constructor ("let*");
    Macroexpand    : constant Ptr := Constructor ("macroexpand");
-   Mal_Do         : constant Ptr := Constructor ("do");
    Mal_If         : constant Ptr := Constructor ("if");
    Quasiquote     : constant Ptr := Constructor ("quasiquote");
    Quote          : constant Ptr := Constructor ("quote");

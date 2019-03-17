@@ -1,26 +1,36 @@
 with Ada.Command_Line;
-with Ada.Exceptions;
+with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
 
 with Core;
 with Envs;
+with Err;
 with Eval_Cb;
 with Printer;
 with Reader;
 with Readline;
-with Types.Functions;
-with Types.Lists;
+with Types.Atoms;
+with Types.Builtins;
+with Types.Fns;
 with Types.Mal;
 with Types.Maps;
+with Types.Sequences;
 with Types.Symbols.Names;
 
 procedure StepA_Mal is
 
-   package ASU renames Ada.Strings.Unbounded;
-   use Types;
+   Dbgenv1 : constant Boolean := Ada.Environment_Variables.Exists ("dbgenv1");
+   Dbgenv0 : constant Boolean
+     := Dbgenv1 or Ada.Environment_Variables.Exists ("dbgenv0");
+   Dbgeval : constant Boolean
+     := Dbgenv0 or Ada.Environment_Variables.Exists ("dbgeval");
 
-   function Read return Mal.T with Inline;
+   use Types;
+   use type Mal.T;
+   package ASU renames Ada.Strings.Unbounded;
+
+   function Read return Mal.T_Array with Inline;
 
    function Eval (Ast0 : in Mal.T;
                   Env0 : in Envs.Ptr) return Mal.T;
@@ -36,13 +46,12 @@ procedure StepA_Mal is
 
    procedure Rep (Env : in Envs.Ptr) with Inline;
 
-   function Eval_List_Elts is new Lists.Generic_Eval (Envs.Ptr, Eval);
-   function Eval_Map_Elts  is new Maps.Generic_Eval  (Envs.Ptr, Eval);
+   function Eval_Seq_Elts is new Sequences.Generic_Eval (Envs.Ptr, Eval);
+   function Eval_Map_Elts is new Maps.Generic_Eval (Envs.Ptr, Eval);
 
-   --  Procedural form of Eval.
-   --  Convenient when the result of eval is of no interest.
-   procedure Eval_P (Ast : in Mal.T;
-                     Env : in Envs.Ptr) with Inline;
+   procedure Exec (Script : in String;
+                   Env    : in Envs.Ptr) with Inline;
+   --  Read the script, eval its elements, but ignore the result.
 
    ----------------------------------------------------------------------
 
@@ -58,181 +67,135 @@ procedure StepA_Mal is
       First          : Mal.T;
    begin
       <<Restart>>
-      --  Ada.Text_IO.New_Line;
-      --  Ada.Text_IO.Put ("EVAL: ");
-      --  Print (Ast);
-      --  Envs.Dump_Stack;
+      if Dbgeval then
+         Ada.Text_IO.New_Line;
+         Ada.Text_IO.Put ("EVAL: ");
+         Print (Ast);
+         if Dbgenv0 then
+            Envs.Dump_Stack (Dbgenv1);
+         end if;
+      end if;
       case Ast.Kind is
-      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
-        | Kind_Keyword | Kind_Macro | Kind_Function
-        | Kind_Builtin_With_Meta | Kind_Builtin =>
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
+        | Kind_Macro | Kind_Function =>
          return Ast;
       when Kind_Symbol =>
          return Env.Get (Ast.Symbol);
       when Kind_Map =>
          return Eval_Map_Elts (Ast.Map, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_List_Elts (Ast.List, Env));
+         return (Kind_Vector, Eval_Seq_Elts (Ast.Sequence, Env));
       when Kind_List =>
          null;
       end case;
 
       --  Ast is a list.
-      if Ast.List.Length = 0 then
+      if Ast.Sequence.Length = 0 then
          return Ast;
       end if;
-      First := Ast.List.Element (1);
+      First := Ast.Sequence (1);
 
       --  Special forms
       --  Ast is a non-empty list, First is its first element.
       case First.Kind is
       when Kind_Symbol =>
          if First.Symbol = Symbols.Names.Def then
-            if Ast.List.Length /= 3 then
-               raise Argument_Error with "def!: expects 2 arguments";
-            elsif Ast.List.Element (2).Kind /= Kind_Symbol then
-               raise Argument_Error with "def!: arg 1 must be a symbol";
-            end if;
-            return R : constant Mal.T := Eval (Ast.List.Element (3), Env) do
-               Env.Set (Ast.List.Element (2).Symbol, R);
+            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence (2).Kind = Kind_Symbol,
+                       "parameter 1 must be a symbol");
+            return R : constant Mal.T := Eval (Ast.Sequence (3), Env) do
+               Env.Set (Ast.Sequence (2).Symbol, R);
             end return;
          elsif First.Symbol = Symbols.Names.Defmacro then
-            if Ast.List.Length /= 3 then
-               raise Argument_Error with "defmacro!: expects 2 arguments";
-            elsif Ast.List.Element (2).Kind /= Kind_Symbol then
-               raise Argument_Error with "defmacro!: arg 1 must be a symbol";
-            end if;
+            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence (2).Kind = Kind_Symbol,
+                       "parameter 1 must be a symbol");
             declare
-               F : constant Mal.T  := Eval (Ast.List.Element (3), Env);
+               F : constant Mal.T  := Eval (Ast.Sequence (3), Env);
             begin
-               if F.Kind /= Kind_Function then
-                  raise Argument_Error with "defmacro!: expects a function";
-               end if;
+               Err.Check (F.Kind = Kind_Fn, "parameter 2 must be a function");
                return R : constant Mal.T := F.Fn.New_Macro do
-                  Env.Set (Ast.List.Element (2).Symbol, R);
+                  Env.Set (Ast.Sequence (2).Symbol, R);
                end return;
             end;
-         elsif First.Symbol = Symbols.Names.Mal_Do then
-            if Ast.List.Length = 1 then
-               raise Argument_Error with "do: expects at least 1 argument";
-            end if;
-            for I in 2 .. Ast.List.Length - 1 loop
-               Eval_P (Ast.List.Element (I), Env);
-            end loop;
-            Ast := Ast.List.Element (Ast.List.Length);
-            goto Restart;
+         --  do is a built-in function, shortening this test cascade.
          elsif First.Symbol = Symbols.Names.Fn then
-            if Ast.List.Length /= 3 then
-               raise Argument_Error with "fn*: expects 3 arguments";
-            elsif Ast.List.Element (2).Kind not in Kind_List | Kind_Vector then
-               raise Argument_Error with "fn*: arg 1 must be a list or vector";
-            elsif (for some F in 1 .. Ast.List.Element (2).List.Length =>
-                     Ast.List.Element (2).List.Element (F).Kind /= Kind_Symbol)
-            then
-               raise Argument_Error with "fn*: arg 2 must contain symbols";
-            end if;
-            return Functions.New_Function (Params => Ast.List.Element (2).List,
-                                           Ast    => Ast.List.Element (3),
-                                           Env    => Env.New_Closure);
+            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence (2).Kind in Kind_Sequence,
+                       "parameter 1 must be a sequence");
+            return Fns.New_Function (Params => Ast.Sequence (2).Sequence,
+                                     Ast    => Ast.Sequence (3),
+                                     Env    => Env.New_Closure);
          elsif First.Symbol = Symbols.Names.Mal_If then
-            if Ast.List.Length not in 3 .. 4 then
-               raise Argument_Error with "if: expects 2 or 3 arguments";
-            end if;
+            Err.Check (Ast.Sequence.Length in 3 .. 4,
+                       "expected 2 or 3 parameters");
             declare
-               Test : constant Mal.T := Eval (Ast.List.Element (2), Env);
+               Test : constant Mal.T := Eval (Ast.Sequence (2), Env);
             begin
-               if (case Test.Kind is
-                   when Kind_Nil => False,
-                   when Kind_Boolean => Test.Ada_Boolean,
-                   when others => True)
-               then
-                  Ast := Ast.List.Element (3);
+               if Test /= Mal.Nil and Test /= (Kind_Boolean, False) then
+                  Ast := Ast.Sequence (3);
                   goto Restart;
-               elsif Ast.List.Length = 3 then
+               elsif Ast.Sequence.Length = 3 then
                   return Mal.Nil;
                else
-                  Ast := Ast.List.Element (4);
+                  Ast := Ast.Sequence (4);
                   goto Restart;
                end if;
             end;
          elsif First.Symbol = Symbols.Names.Let then
-            if Ast.List.Length /= 3 then
-               raise Argument_Error with "let*: expects 3 arguments";
-            elsif Ast.List.Element (2).Kind not in Kind_List | Kind_Vector then
-               raise Argument_Error with "let*: expects a list or vector";
-            end if;
+            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence (2).Kind in Kind_Sequence,
+                       "parameter 1 must be a sequence");
             declare
-               Bindings : constant Lists.Ptr := Ast.List.Element (2).List;
+               Bindings : constant Sequences.Ptr := Ast.Sequence (2).Sequence;
             begin
-               if Bindings.Length mod 2 /= 0 then
-                  raise Argument_Error with "let*: odd number of bindings";
-               end if;
+               Err.Check (Bindings.Length mod 2 = 0,
+                          "parameter 1 must have an even length");
                Env.Replace_With_Sub;
                for I in 1 .. Bindings.Length / 2 loop
-                  if Bindings.Element (2 * I - 1).Kind /= Kind_Symbol then
-                     raise Argument_Error with "let*: keys must be symbols";
-                  end if;
-                  Env.Set (Bindings.Element (2 * I - 1).Symbol,
-                           Eval (Bindings.Element (2 * I), Env));
+                  Err.Check (Bindings (2 * I - 1).Kind = Kind_Symbol,
+                             "binding keys must be symbols");
+                  Env.Set (Bindings (2 * I - 1).Symbol,
+                           Eval (Bindings (2 * I), Env));
                end loop;
-               Ast := Ast.List.Element (3);
+               Ast := Ast.Sequence (3);
                goto Restart;
             end;
          elsif First.Symbol = Symbols.Names.Macroexpand then
-            if Ast.List.Length /= 2 then
-               raise Argument_Error with "macroexpand: expects 1 argument";
-            end if;
+            Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
             Macroexpanding := True;
-            Ast := Ast.List.Element (2);
+            Ast := Ast.Sequence (2);
             goto Restart;
          elsif First.Symbol = Symbols.Names.Quasiquote then
-            if Ast.List.Length /= 2 then
-               raise Argument_Error with "quasiquote: expects 1 argument";
-            end if;
-            return Quasiquote (Ast.List.Element (2), Env);
+            Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
+            return Quasiquote (Ast.Sequence (2), Env);
          elsif First.Symbol = Symbols.Names.Quote then
-            if Ast.List.Length /= 2 then
-               raise Argument_Error with "quote: expects 1 argument";
-            end if;
-            return Ast.List.Element (2);
+            Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
+            return Ast.Sequence (2);
          elsif First.Symbol = Symbols.Names.Try then
-            if Ast.List.Length = 2 then
-               Ast := Ast.List.Element (2);
+            if Ast.Sequence.Length = 2 then
+               Ast := Ast.Sequence (2);
                goto Restart;
-            elsif Ast.List.Length /= 3 then
-               raise Argument_Error with "try*: expects 1 or 2 arguments";
-            elsif Ast.List.Element (3).Kind /= Kind_List then
-               raise Argument_Error with "try*: argument 2 must be a list";
             end if;
+            Err.Check (Ast.Sequence.Length = 3, "expected 1 or 2 parameters");
+            Err.Check (Ast.Sequence (3).Kind = Kind_List,
+                       "parameter 2 must be a list");
             declare
-               A3 : constant Lists.Ptr := Ast.List.Element (3).List;
+               A3 : constant Sequences.Ptr := Ast.Sequence (3).Sequence;
             begin
-               if A3.Length /= 3 then
-                  raise Argument_Error with "try*: arg 2 must have 3 elements";
-               elsif A3.Element (1).Kind /= Kind_Symbol
-                 or else A3.Element (1).Symbol /= Symbols.Names.Catch
-               then
-                  raise Argument_Error with "try*: arg 2 must be 'catch*'";
-               elsif A3.Element (2).Kind /= Kind_Symbol then
-                  raise Argument_Error with "catch*: expects a symbol";
-               end if;
+               Err.Check (A3.Length = 3, "length of parameter 2 must be 3");
+               Err.Check (A3 (1) = (Kind_Symbol, Symbols.Names.Catch),
+                          "parameter 3 must start with 'catch*'");
+               Err.Check (A3 (2).Kind = Kind_Symbol,
+                          "a symbol must follow catch*");
                begin
-                  return Eval (Ast.List.Element (2), Env);
+                  return Eval (Ast.Sequence (2), Env);
                exception
-                  when E : Reader.Empty_Source | Argument_Error
-                    | Reader.Reader_Error | Envs.Unknown_Key =>
-                     Env.Replace_With_Sub;
-                     Env.Set (A3.Element (2).Symbol,
-                              Mal.T'(Kind_String, ASU.To_Unbounded_String
-                                 (Ada.Exceptions.Exception_Message (E))));
-                     Ast := A3.Element (3);
-                     goto Restart;
-                  when Core.Exception_Throwed =>
-                     Env.Replace_With_Sub;
-                     Env.Set (A3.Element (2).Symbol, Core.Last_Exception);
-                     Ast := A3.Element (3);
-                     goto Restart;
-                  --  Other exceptions are unexpected.
+               when Err.Error =>
+                  Env.Replace_With_Sub;
+                  Env.Set (A3 (2).Symbol, Err.Data);
+                  Ast := A3 (3);
+                  goto Restart;
                end;
             end;
          else
@@ -240,13 +203,12 @@ procedure StepA_Mal is
             --  except that we already know enough to spare a recursive call.
             First := Env.Get (First.Symbol);
          end if;
-      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
-           | Kind_Keyword | Kind_Macro | Kind_Function
-           | Kind_Builtin_With_Meta | Kind_Builtin =>
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
+        | Kind_Macro | Kind_Function =>
          --  Equivalent to First := Eval (First, Env)
          --  except that we already know enough to spare a recursive call.
          null;
-      when Kind_List | Kind_Vector | Kind_Map =>
+      when Kind_Sequence | Kind_Map =>
          --  Lists are definitely worth a recursion, and the two other
          --  cases should be rare (they will report an error later).
          First := Eval (First, Env);
@@ -258,28 +220,28 @@ procedure StepA_Mal is
       case First.Kind is
          when Kind_Builtin =>
             declare
-               Args : Mal.T_Array (2 .. Ast.List.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.List.Element (I), Env);
+                  Args (I) := Eval (Ast.Sequence (I), Env);
                end loop;
                return First.Builtin.all (Args);
             end;
          when Kind_Builtin_With_Meta =>
             declare
-               Args : Mal.T_Array (2 .. Ast.List.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.List.Element (I), Env);
+                  Args (I) := Eval (Ast.Sequence (I), Env);
                end loop;
                return First.Builtin_With_Meta.Builtin.all (Args);
             end;
-         when Kind_Function =>
+         when Kind_Fn =>
             declare
-               Args : Mal.T_Array (2 .. Ast.List.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.List.Element (I), Env);
+                  Args (I) := Eval (Ast.Sequence (I), Env);
                end loop;
                Env.Replace_With_Sub (Outer => First.Fn.Env,
                                      Binds => First.Fn.Params,
@@ -288,33 +250,49 @@ procedure StepA_Mal is
                goto Restart;
             end;
          when Kind_Macro =>
-            if Macroexpanding then
-               --  Evaluate the macro with tail call optimization.
-               Env.Replace_With_Sub_Macro (Binds => First.Fn.Params,
-                                           Exprs => Ast.List);
-               Ast := First.Fn.Ast;
-               goto Restart;
-            else
-               --  Evaluate the macro normally.
-               Ast := Eval (Ast0 => First.Fn.Ast,
-                            Env0 => Envs.Sub (Outer => Env,
-                                              Binds => First.Fn.Params,
-                                              Exprs => Ast.List));
-               --  Then evaluate the result with TCO.
-               goto Restart;
-            end if;
+            declare
+               Args : constant Mal.T_Array
+                 := Ast.Sequence.Tail (Ast.Sequence.Length - 1);
+            begin
+               if Macroexpanding then
+                  --  Evaluate the macro with tail call optimization.
+                  Env.Replace_With_Sub (Binds => First.Fn.Params,
+                                        Exprs => Args);
+                  Ast := First.Fn.Ast;
+                  goto Restart;
+               else
+                  --  Evaluate the macro normally.
+                  Ast := Eval (First.Fn.Ast, Envs.Sub
+                                 (Outer => Env,
+                                  Binds => First.Fn.Params,
+                                  Exprs => Args));
+                  --  Then evaluate the result with TCO.
+                  goto Restart;
+               end if;
+            end;
          when others =>
-            raise Argument_Error with "cannot call " & Printer.Img (First);
+            Err.Raise_With ("first element must be a function or macro");
       end case;
+   exception
+      when Err.Error =>
+         if Macroexpanding then
+            Err.Add_Trace_Line ("macroexpand", Ast);
+         else
+            Err.Add_Trace_Line ("eval", Ast);
+         end if;
+         raise;
    end Eval;
 
-   procedure Eval_P (Ast : in Mal.T;
-                     Env : in Envs.Ptr)
+   procedure Exec (Script : in String;
+                   Env    : in Envs.Ptr)
    is
-      Result : constant Mal.T := Eval (Ast, Env);
+      Result : Mal.T;
    begin
+      for Expression of Reader.Read_Str (Script) loop
+         Result := Eval (Expression, Env);
+      end loop;
       pragma Unreferenced (Result);
-   end Eval_P;
+   end Exec;
 
    procedure Print (Ast : in Mal.T) is
    begin
@@ -325,71 +303,70 @@ procedure StepA_Mal is
                         Env : in Envs.Ptr) return Mal.T
    is
 
-      use type Symbols.Ptr;
-
-      function Quasiquote_List (List : in Lists.Ptr) return Mal.T with Inline;
+      function Quasiquote_List (List : in Sequences.Ptr) return Mal.T
+        with Inline;
       --  Handle vectors and lists not starting with unquote.
 
-      function Quasiquote_List (List : in Lists.Ptr) return Mal.T is
+      function Quasiquote_List (List : in Sequences.Ptr) return Mal.T is
          --  The final return concatenates these lists.
          R : Mal.T_Array (1 .. List.Length);
       begin
          for I in R'Range loop
-            R (I) := List.Element (I);
-            if R (I).Kind in Kind_List | Kind_Vector
-              and then 0 < R (I).List.Length
-              and then R (I).List.Element (1).Kind = Kind_Symbol
-              and then R (I).List.Element (1).Symbol
-                       = Symbols.Names.Splice_Unquote
+            R (I) := List (I);
+            if R (I).Kind in Kind_List and then 0 < R (I).Sequence.Length
+              and then R (I).Sequence (1) = (Kind_Symbol,
+                                         Symbols.Names.Splice_Unquote)
             then
-               if R (I).List.Length /= 2 then
-                  raise Argument_Error with "splice-unquote: expects 1 arg";
-               end if;
-               R (I) := Eval (R (I).List.Element (2), Env);
-               if R (I).Kind /= Kind_List then
-                  raise Argument_Error with "splice-unquote: expects a list";
-               end if;
+               Err.Check (R (I).Sequence.Length = 2,
+                          "splice-unquote expects 1 parameter");
+               R (I) := Eval (@.Sequence (2), Env);
+               Err.Check (R (I).Kind = Kind_List,
+                          "splice_unquote expects a list");
             else
-               R (I) := Lists.List (Mal.T_Array'(1 => Quasiquote (R (I),
-                                                                  Env)));
+               R (I) := Sequences.List
+                 (Mal.T_Array'(1 => Quasiquote (@, Env)));
             end if;
          end loop;
-         return Lists.Concat (R);
+         return Sequences.Concat (R);
       end Quasiquote_List;
 
    begin                                --  Quasiquote
       case Ast.Kind is
          when Kind_Vector =>
             --  When the test is updated, replace Kind_List with Kind_Vector.
-            return Quasiquote_List (Ast.List);
+            return Quasiquote_List (Ast.Sequence);
          when Kind_List =>
-            if 0 < Ast.List.Length
-              and then Ast.List.Element (1).Kind = Kind_Symbol
-              and then Ast.List.Element (1).Symbol = Symbols.Names.Unquote
+            if 0 < Ast.Sequence.Length
+              and then Ast.Sequence (1) = (Kind_Symbol, Symbols.Names.Unquote)
             then
-               if 2 < Ast.List.Length then
-                  raise Argument_Error with "unquote: expects 1 argument";
-               end if;
-               return Eval (Ast.List.Element (2), Env);
+               Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
+               return Eval (Ast.Sequence (2), Env);
             else
-               return Quasiquote_List (Ast.List);
+               return Quasiquote_List (Ast.Sequence);
             end if;
          when others =>
             return Ast;
       end case;
+   exception
+      when Err.Error =>
+         Err.Add_Trace_Line ("quasiquote", Ast);
+         raise;
    end Quasiquote;
 
-   function Read return Mal.T is (Reader.Read_Str (Readline.Input ("user> ")));
+   function Read return Mal.T_Array
+   is (Reader.Read_Str (Readline.Input ("user> ")));
 
    procedure Rep (Env : in Envs.Ptr) is
    begin
-      Print (Eval (Read, Env));
+      for Expression of Read loop
+         Print (Eval (Expression, Env));
+      end loop;
    end Rep;
 
    ----------------------------------------------------------------------
 
-   Startup : constant String := "(do "
-     & "(def! not (fn* (a) (if a false true)))"
+   Startup : constant String
+     := "(def! not (fn* (a) (if a false true)))"
      & "(def! load-file (fn* (f)"
      & "  (eval (read-string (str ""(do "" (slurp f) "")"")))))"
      & "(defmacro! cond (fn* (& xs)"
@@ -407,51 +384,50 @@ procedure StepA_Mal is
      & "  (let* (condvar (gensym))"
      & "    `(let* (~condvar ~(first xs))"
      & "      (if ~condvar ~condvar (or ~@(rest xs)))))))))"
-     & "(def! *host-language* ""ada2"")"
-     & ")";
+     & "(def! *host-language* ""ada.2"")";
    Repl : Envs.Ptr renames Envs.Repl;
-   use Ada.Command_Line;
 begin
    --  Show the Eval function to other packages.
    Eval_Cb.Cb := Eval'Unrestricted_Access;
    --  Add Core functions into the top environment.
-   for Binding of Core.Ns loop
-      Repl.Set (Binding.Symbol, (Kind_Builtin, Binding.Builtin));
-   end loop;
+   Core.NS_Add_To_Repl;
    --  Native startup procedure.
-   Eval_P (Reader.Read_Str (Startup), Repl);
+   Exec (Startup, Repl);
    --  Define ARGV from command line arguments.
    declare
+      use Ada.Command_Line;
       Args : Mal.T_Array (2 .. Argument_Count);
    begin
       for I in Args'Range loop
          Args (I) := (Kind_String, ASU.To_Unbounded_String (Argument (I)));
       end loop;
-      Repl.Set (Symbols.Constructor ("*ARGV*"), Lists.List (Args));
+      Repl.Set (Symbols.Constructor ("*ARGV*"), Sequences.List (Args));
    end;
    --  Script?
-   if 0 < Argument_Count then
-      Eval_P (Reader.Read_Str ("(load-file """ & Argument (1) & """)"), Repl);
+   if 0 < Ada.Command_Line.Argument_Count then
+      Exec ("(load-file """ & Ada.Command_Line.Argument (1) & """)", Repl);
    else
-      Eval_P (Reader.Read_Str
-                ("(println (str ""Mal ["" *host-language* ""]""))"), Repl);
+      Exec ("(println (str ""Mal ["" *host-language* ""]""))", Repl);
       loop
          begin
             Rep (Repl);
          exception
             when Readline.End_Of_File =>
                exit;
-            when Reader.Empty_Source =>
-               null;
-            when E : Argument_Error | Reader.Reader_Error | Envs.Unknown_Key =>
-               Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
-            when Core.Exception_Throwed =>
-               Ada.Text_IO.Put ("User exception: ");
-               Ada.Text_IO.Unbounded_IO.Put_Line (Printer.Pr_Str
-                                                    (Core.Last_Exception));
-            --  Other exceptions are unexpected.
+            when Err.Error =>
+               Ada.Text_IO.Unbounded_IO.Put (Err.Trace);
          end;
+         --  Other exceptions are really unexpected.
       end loop;
       Ada.Text_IO.New_Line;
    end if;
+   --  If assertions are enabled, check deallocations.
+   Err.Data := Mal.Nil;  --  Remove references to other packages
+   pragma Debug (Envs.Clear_And_Check_Allocations);
+   pragma Debug (Atoms.Check_Allocations);
+   pragma Debug (Builtins.Check_Allocations);
+   pragma Debug (Fns.Check_Allocations);
+   pragma Debug (Maps.Check_Allocations);
+   pragma Debug (Sequences.Check_Allocations);
+   pragma Debug (Symbols.Check_Allocations);
 end StepA_Mal;

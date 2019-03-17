@@ -1,16 +1,23 @@
+with Ada.Environment_Variables;
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Exceptions;
 with Ada.Strings.Hash;
 with Ada.Text_IO.Unbounded_IO;
 
+with Err;
 with Printer;
 with Reader;
 with Readline;
-with Types.Lists;
+with Types.Atoms;
+with Types.Builtins;
+with Types.Fns;
 with Types.Mal;
 with Types.Maps;
+with Types.Sequences;
+with Types.Symbols;
 
 procedure Step2_Eval is
+
+   Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
 
    use Types;
 
@@ -20,9 +27,8 @@ procedure Step2_Eval is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=",
       "="             => Mal."=");
-   Unknown_Key : exception;
 
-   function Read return Mal.T with Inline;
+   function Read return Mal.T_Array with Inline;
 
    function Eval (Ast : in Mal.T;
                   Env : in Envs.Map) return Mal.T;
@@ -35,8 +41,8 @@ procedure Step2_Eval is
       with function Ada_Operator (Left, Right : in Integer) return Integer;
    function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T;
 
-   function Eval_List_Elts is new Lists.Generic_Eval (Envs.Map, Eval);
-   function Eval_Map_Elts  is new Maps.Generic_Eval  (Envs.Map, Eval);
+   function Eval_Seq_Elts is new Sequences.Generic_Eval (Envs.Map, Eval);
+   function Eval_Map_Elts is new Maps.Generic_Eval (Envs.Map, Eval);
 
    ----------------------------------------------------------------------
 
@@ -45,39 +51,37 @@ procedure Step2_Eval is
    is
       First          : Mal.T;
    begin
-      --  Ada.Text_IO.New_Line;
-      --  Ada.Text_IO.Put ("EVAL: ");
-      --  Print (Ast);
+      if Dbgeval then
+         Ada.Text_IO.New_Line;
+         Ada.Text_IO.Put ("EVAL: ");
+         Print (Ast);
+      end if;
       case Ast.Kind is
-      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_String
-        | Kind_Keyword | Kind_Macro | Kind_Function
-        | Kind_Builtin_With_Meta | Kind_Builtin =>
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
+        | Kind_Macro | Kind_Function =>
          return Ast;
       when Kind_Symbol =>
          declare
             S : constant String      := Ast.Symbol.To_String;
             C : constant Envs.Cursor := Env.Find (S);
          begin
-            if Envs.Has_Element (C) then
-               return (Kind_Builtin, Envs.Element (C));
-            else
-               --  The predefined message does not pass tests.
-               raise Unknown_Key with "'" & S & "' not found";
-            end if;
+            --  The predefined error message does not pass tests.
+            Err.Check (Envs.Has_Element (C), "'" & S & "' not found");
+            return (Kind_Builtin, Envs.Element (C));
          end;
       when Kind_Map =>
          return Eval_Map_Elts (Ast.Map, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_List_Elts (Ast.List, Env));
+         return (Kind_Vector, Eval_Seq_Elts (Ast.Sequence, Env));
       when Kind_List =>
          null;
       end case;
 
       --  Ast is a list.
-      if Ast.List.Length = 0 then
+      if Ast.Sequence.Length = 0 then
          return Ast;
       end if;
-      First := Eval (Ast.List.Element (1), Env);
+      First := Eval (Ast.Sequence (1), Env);
 
       --  Apply phase.
       --  Ast is a non-empty list,
@@ -85,16 +89,20 @@ procedure Step2_Eval is
       case First.Kind is
          when Kind_Builtin =>
             declare
-               Args : Mal.T_Array (2 .. Ast.List.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.List.Element (I), Env);
+                  Args (I) := Eval (Ast.Sequence (I), Env);
                end loop;
                return First.Builtin.all (Args);
             end;
          when others =>
-            raise Argument_Error with "cannot call " & Printer.Img (First);
+            Err.Raise_With ("first element must be a function");
       end case;
+   exception
+      when Err.Error =>
+         Err.Add_Trace_Line ("eval", Ast);
+         raise;
    end Eval;
 
    function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T
@@ -106,11 +114,14 @@ procedure Step2_Eval is
       Ada.Text_IO.Unbounded_IO.Put_Line (Printer.Pr_Str (Ast));
    end Print;
 
-   function Read return Mal.T is (Reader.Read_Str (Readline.Input ("user> ")));
+   function Read return Mal.T_Array
+   is (Reader.Read_Str (Readline.Input ("user> ")));
 
    procedure Rep (Env : in Envs.Map) is
    begin
-      Print (Eval (Read, Env));
+      for Expression of Read loop
+         Print (Eval (Expression, Env));
+      end loop;
    end Rep;
 
    ----------------------------------------------------------------------
@@ -132,12 +143,18 @@ begin
       exception
          when Readline.End_Of_File =>
             exit;
-         when Reader.Empty_Source =>
-            null;
-         when E : Reader.Reader_Error | Unknown_Key =>
-            Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
-         --  Other exceptions are unexpected.
+         when Err.Error =>
+            Ada.Text_IO.Unbounded_IO.Put (Err.Trace);
       end;
+      --  Other exceptions are really unexpected.
    end loop;
    Ada.Text_IO.New_Line;
+   --  If assertions are enabled, check deallocations.
+   Err.Data := Mal.Nil;  --  Remove references to other packages
+   pragma Debug (Atoms.Check_Allocations);
+   pragma Debug (Builtins.Check_Allocations);
+   pragma Debug (Fns.Check_Allocations);
+   pragma Debug (Maps.Check_Allocations);
+   pragma Debug (Sequences.Check_Allocations);
+   pragma Debug (Symbols.Check_Allocations);
 end Step2_Eval;

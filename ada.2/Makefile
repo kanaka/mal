@@ -10,7 +10,7 @@ else
 endif
 
 # Compiler arguments.
-CARGS = -gnat2012 $(OPT) $(ADAFLAGS)
+CARGS = -gnat2020 $(OPT) $(ADAFLAGS)
 # Linker arguments.
 LARGS = $(LDFLAGS) -lreadline
 
@@ -36,14 +36,15 @@ clean:
 # the rest when it must be executed.
 TYPES := \
   envs.ads                 envs.adb                 \
+  err.ads                  err.adb                  \
   eval_cb.ads                                       \
   printer.ads              printer.adb              \
   reader.ads               reader.adb               \
   readline.ads                                      \
   types-atoms.ads          types-atoms.adb          \
   types-builtins.ads       types-builtins.adb       \
-  types-functions.ads      types-functions.adb      \
-  types-lists.ads          types-lists.adb          \
+  types-fns.ads            types-fns.adb            \
+  types-sequences.ads      types-sequences.adb      \
   types-mal.ads            types-mal.adb            \
   types-maps.ads           types-maps.adb           \
   types-symbols-names.ads                           \

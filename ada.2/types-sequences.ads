@@ -2,9 +2,10 @@ private with Ada.Finalization;
 
 limited with Types.Mal;
 
-package Types.Lists is
+package Types.Sequences is
 
-   type Ptr is tagged private;
+   type Ptr is tagged private
+     with Constant_Indexing => Element;
 
    --  Built-in functions.
    function Concat   (Args : in Mal.T_Array) return Mal.T;
@@ -23,8 +24,7 @@ package Types.Lists is
 
    function Element (Container : in Ptr;
                      Index     : in Positive) return Mal.T
-     with Inline;
-   Index_Error : exception;
+     with Inline, Pre => Index <= Length (Container);
 
    function "&" (Left  : in Mal.T_Array;
                  Right : in Ptr) return Mal.T_Array;
@@ -41,15 +41,18 @@ package Types.Lists is
                           Env       : in Env_Type)
                          return Ptr;
 
-   --  Used to spare an intermediate copy for & in macro arguments.
-   function Slice (Item  : in Ptr;
-                   Start : in Positive)
-                  return Mal.T;
+   --  Used in macro implementation.
+   function Tail (Source : in Ptr;
+                  Count  : in Natural) return Mal.T_Array
+     with Inline, Pre => Count <= Length (Source);
 
    function Meta (Item : in Ptr) return Mal.T with Inline;
    function With_Meta (Data     : in Ptr;
                        Metadata : in Mal.T)
                       return Ptr;
+
+   --  Debug.
+   procedure Check_Allocations;
 
 private
 
@@ -72,4 +75,4 @@ private
    overriding function "=" (Left, Right : in Ptr) return Boolean;
    pragma Finalize_Storage_Only (Ptr);
 
-end Types.Lists;
+end Types.Sequences;

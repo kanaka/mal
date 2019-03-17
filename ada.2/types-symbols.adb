@@ -13,6 +13,7 @@ package body Types.Symbols is
       Data : String (1 .. Last);
    end record;
    procedure Free is new Ada.Unchecked_Deallocation (Rec, Acc);
+   Allocations : Natural := 0;
 
    function "<" (Left, Right : in Acc) return Boolean with Inline;
    function Eq  (Left, Right : in Acc) return Boolean with Inline;
@@ -38,17 +39,25 @@ package body Types.Symbols is
 
    procedure Adjust (Object : in out Ptr) is
    begin
-      Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
+      Object.Ref.all.Refs := @ + 1;
    end Adjust;
+
+   procedure Check_Allocations is
+   begin
+      --  See Types.Symbols.Names.
+      pragma Assert (Allocations = 15);
+   end Check_Allocations;
 
    function Constructor (Source : in String) return Ptr is
       Position : constant Sets.Cursor := Keys.Find (Dict, Source);
       Ref      : Acc;
    begin
+      --  Avoid exceptions until Ref is controlled.
       if Sets.Has_Element (Position) then
          Ref := Sets.Element (Position);
          Ref.all.Refs := Ref.all.Refs + 1;
       else
+         Allocations := Allocations + 1;
          Ref := new Rec'(Data => Source,
                          Hash => Ada.Strings.Hash (Source),
                          Last => Source'Length,
@@ -68,11 +77,12 @@ package body Types.Symbols is
    procedure Finalize (Object : in out Ptr) is
    begin
       if Object.Ref /= null and then 0 < Object.Ref.all.Refs then
-         Object.Ref.all.Refs := Object.Ref.all.Refs - 1;
+         Object.Ref.all.Refs := @ - 1;
          if 0 < Object.Ref.all.Refs then
             Object.Ref := null;
          else
             Dict.Delete (Object.Ref);
+            Allocations := Allocations - 1;
             Free (Object.Ref);
          end if;
       end if;
@@ -86,27 +96,5 @@ package body Types.Symbols is
 
    function To_String (Item : in Ptr) return String
    is (Item.Ref.all.Data);
-
-   function To_String (Item : in Symbol_Array) return String is
-      I : Natural := Item'Length + 1;
-   begin
-      for S of Item loop
-         I := I + S.Ref.all.Last;
-      end loop;
-      return R : String (1 .. I) do
-         R (1) := '(';
-         I := 2;
-         for S of Item loop
-            if 2 < I then
-               R (I) := ' ';
-               I := I + 1;
-            end if;
-            R (I .. I + S.Ref.all.Last - 1) := S.Ref.all.Data;
-            I := I + S.Ref.all.Last;
-         end loop;
-         pragma Assert (I = R'Last);
-         R (R'Last) := ')';
-      end return;
-   end To_String;
 
 end Types.Symbols;

@@ -1,19 +1,20 @@
 private with Ada.Finalization;
 
 limited with Envs;
-limited with Types.Lists;
 limited with Types.Mal;
+limited with Types.Sequences;
 limited with Types.Symbols;
 
-package Types.Functions is
+package Types.Fns is
 
    type Ptr is tagged private;
    --  A pointer to an user-defined function or macro.
 
-   function New_Function (Params : in Lists.Ptr;
+   function New_Function (Params : in Sequences.Ptr;
                           Ast    : in Mal.T;
                           Env    : in Envs.Closure_Ptr) return Mal.T
      with Inline;
+   --  Raise an exception if Params contains something else than symbols.
 
    function New_Macro (Item : in Ptr) return Mal.T with Inline;
 
@@ -34,6 +35,8 @@ package Types.Functions is
                        Metadata : in Mal.T) return Mal.T with Inline;
    --  Fails for macros.
 
+   procedure Check_Allocations;
+
 private
 
    type Rec;
@@ -46,4 +49,4 @@ private
    overriding procedure Finalize (Object : in out Ptr) with Inline;
    pragma Finalize_Storage_Only (Ptr);
 
-end Types.Functions;
+end Types.Fns;

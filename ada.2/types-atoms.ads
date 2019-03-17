@@ -15,6 +15,9 @@ package Types.Atoms is
    --  Helper for print.
    function Deref (Item : in Ptr) return Mal.T with Inline;
 
+   --  Debug.
+   procedure Check_Allocations;
+
 private
 
    type Rec;

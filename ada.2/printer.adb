@@ -1,9 +1,9 @@
 with Ada.Characters.Latin_1;
 
 with Types.Atoms;
-with Types.Functions;
+with Types.Fns;
+with Types.Sequences;
 with Types.Symbols;
-with Types.Lists;
 with Types.Maps;
 
 package body Printer is
@@ -11,8 +11,9 @@ package body Printer is
    use Ada.Strings.Unbounded;
    use Types;
 
-   function Pr_Str (Ast      : in Mal.T;
-                    Readably : in Boolean := True) return Unbounded_String
+   procedure Pr_Str (Buffer   : in out Unbounded_String;
+                     Ast      : in     Mal.T;
+                     Readably : in     Boolean          := True)
    is
 
       procedure Print_Form (Form_Ast : in Mal.T);
@@ -21,13 +22,10 @@ package body Printer is
 
       --  Helpers for Print_Form.
       procedure Print_Number   (Number : in Integer)              with Inline;
-      procedure Print_List     (List   : in Lists.Ptr)            with Inline;
+      procedure Print_List     (List   : in Sequences.Ptr)        with Inline;
       procedure Print_Map      (Map    : in Maps.Ptr)             with Inline;
       procedure Print_Readably (S      : in Unbounded_String)     with Inline;
-      procedure Print_Symbols  (List   : in Symbols.Symbol_Array) with Inline;
-
-      Buffer : Unbounded_String := Null_Unbounded_String;
-      --  is appended the result character after character.
+      procedure Print_Function (Fn     : in Fns.Ptr)              with Inline;
 
       ----------------------------------------------------------------------
 
@@ -59,11 +57,11 @@ package body Printer is
                end if;
             when Kind_List =>
                Append (Buffer, '(');
-               Print_List (Form_Ast.List);
+               Print_List (Form_Ast.Sequence);
                Append (Buffer, ')');
             when Kind_Vector =>
                Append (Buffer, '[');
-               Print_List (Form_Ast.List);
+               Print_List (Form_Ast.Sequence);
                Append (Buffer, ']');
             when Kind_Map =>
                Append (Buffer, '{');
@@ -71,17 +69,13 @@ package body Printer is
                Append (Buffer, '}');
             when Kind_Builtin | Kind_Builtin_With_Meta =>
                Append (Buffer, "#<built-in>");
-            when Kind_Function =>
+            when Kind_Fn =>
                Append (Buffer, "#<function (");
-               Print_Symbols (Form_Ast.Fn.Params);
-               Append (Buffer, ") -> ");
-               Print_Form (Form_Ast.Fn.Ast);
+               Print_Function (Form_Ast.Fn);
                Append (Buffer, '>');
             when Kind_Macro =>
                Append (Buffer, "#<macro (");
-               Print_Symbols (Form_Ast.Fn.Params);
-               Append (Buffer, ") -> ");
-               Print_Form (Form_Ast.Fn.Ast);
+               Print_Function (Form_Ast.Fn);
                Append (Buffer, '>');
             when Kind_Atom =>
                Append (Buffer, "(atom ");
@@ -90,22 +84,36 @@ package body Printer is
          end case;
       end Print_Form;
 
-      procedure Print_List (List : in Lists.Ptr) is
+      procedure Print_Function (Fn : in Fns.Ptr) is
          Started : Boolean := False;
       begin
-         for I in 1 .. List.Length loop
+         Append (Buffer, '(');
+         for Param of Fn.Params loop
             if Started then
                Append (Buffer, ' ');
             else
                Started := True;
             end if;
-            Print_Form (List.Element (I));
+            Append (Buffer, Param.To_String);
          end loop;
+         Append (Buffer, ") -> ");
+         Print_Form (Fn.Ast);
+      end Print_Function;
+
+      procedure Print_List (List : in Sequences.Ptr) is
+      begin
+         if 0 < List.Length then
+            Print_Form (List (1));
+            for I in 2 .. List.Length loop
+               Append (Buffer, ' ');
+               Print_Form (List (I));
+            end loop;
+         end if;
       end Print_List;
 
       procedure Print_Map (Map : in Maps.Ptr) is
          procedure Process (Key     : in Mal.T;
-                            Element : in Mal.T);
+                            Element : in Mal.T) with Inline;
          procedure Iterate is new Maps.Iterate (Process);
          Started : Boolean := False;
          procedure Process (Key     : in Mal.T;
@@ -154,24 +162,19 @@ package body Printer is
          end loop;
       end Print_Readably;
 
-      procedure Print_Symbols (List : in Symbols.Symbol_Array) is
-         Started : Boolean := False;
-      begin
-         for S of List loop
-            if Started then
-               Append (Buffer, ' ');
-            else
-               Started := True;
-            end if;
-            Append (Buffer, S.To_String);
-         end loop;
-      end Print_Symbols;
-
       ----------------------------------------------------------------------
 
    begin                                --  Pr_Str
-      Print_Form (Form_Ast => Ast);
-      return Buffer;
+      Print_Form (Ast);
+   end Pr_Str;
+
+   function Pr_Str (Ast      : in Mal.T;
+                    Readably : in Boolean := True) return Unbounded_String
+   is
+   begin
+      return Buffer : Unbounded_String do
+         Pr_Str (Buffer, Ast, Readably);
+      end return;
    end Pr_Str;
 
 end Printer;

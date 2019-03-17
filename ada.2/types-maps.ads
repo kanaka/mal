@@ -41,6 +41,9 @@ package Types.Maps is
                        Metadata : in Mal.T)
                       return Mal.T;
 
+   --  Debug
+   procedure Check_Allocations;
+
 private
 
    type Rec;

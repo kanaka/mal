@@ -1,6 +1,6 @@
 with Ada.Unchecked_Deallocation;
 
-with Printer;
+with Err;
 with Types.Mal;
 
 package body Types.Atoms is
@@ -11,29 +11,35 @@ package body Types.Atoms is
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation (Rec, Acc);
+   Allocations : Natural := 0;
 
    ----------------------------------------------------------------------
 
    procedure Adjust (Object : in out Ptr) is
    begin
-      Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
+      Object.Ref.all.Refs := @ + 1;
    end Adjust;
 
-   function Atom (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 1 then
-          raise Argument_Error with "atom: expects 1 argument"
-        else
-           (Kind_Atom, (Ada.Finalization.Controlled with new Rec'
-                          (Refs => 1,
-                           Data => Args (Args'First)))));
+   function Atom (Args : in Mal.T_Array) return Mal.T is
+   begin
+      Err.Check (Args'Length = 1, "expected 1 parameter");
+      Allocations := Allocations + 1;
+      return (Kind_Atom, (Ada.Finalization.Controlled with new Rec'
+                            (Refs => 1,
+                             Data => Args (Args'First))));
+   end Atom;
 
-   function Deref (Args : in Mal.T_Array) return Mal.T
-   is (if Args'Length /= 1 then
-          raise Argument_Error with "deref: expects 1 argument"
-       elsif Args (Args'First).Kind /= Kind_Atom then
-          raise Argument_Error with "deref: expects an atom"
-       else
-          Args (Args'First).Atom.Ref.all.Data);
+   procedure Check_Allocations is
+   begin
+      pragma Assert (Allocations = 0);
+   end Check_Allocations;
+
+   function Deref (Args : in Mal.T_Array) return Mal.T is
+   begin
+      Err.Check (Args'Length = 1, "expected 1 parameter");
+      Err.Check (Args (Args'First).Kind = Kind_Atom, "expected an atom");
+      return Args (Args'First).Atom.Ref.all.Data;
+   end Deref;
 
    function Deref (Item : in Ptr) return Mal.T
    is (Item.Ref.all.Data);
@@ -41,10 +47,11 @@ package body Types.Atoms is
    procedure Finalize (Object : in out Ptr) is
    begin
       if Object.Ref /= null and then 0 < Object.Ref.all.Refs then
-         Object.Ref.all.Refs := Object.Ref.all.Refs - 1;
+         Object.Ref.all.Refs := @ - 1;
          if 0 < Object.Ref.all.Refs then
             Object.Ref := null;
          else
+            Allocations := Allocations - 1;
             Free (Object.Ref);
          end if;
       end if;
@@ -52,22 +59,18 @@ package body Types.Atoms is
 
    function Reset (Args : in Mal.T_Array) return Mal.T is
    begin
-      if Args'Length /= 2 then
-         raise Argument_Error with "reset: expects 2 arguments";
-      elsif Args (Args'First).Kind /= Kind_Atom then
-         raise Argument_Error with "reset: first argument must be an atom";
-      end if;
+      Err.Check (Args'Length = 2, "expected 2 parameters");
+      Err.Check (Args (Args'First).Kind = Kind_Atom,
+                  "parameter 1 must be an atom");
       Args (Args'First).Atom.Ref.all.Data := Args (Args'Last);
       return Args (Args'Last);
    end Reset;
 
    function Swap (Args : in Mal.T_Array) return Mal.T is
    begin
-      if Args'Length < 2 then
-         raise Argument_Error with "swap!: expects at least 2 arguments";
-      elsif Args (Args'First).Kind /= Kind_Atom then
-         raise Argument_Error with "swap!: first argument must be an atom";
-      end if;
+      Err.Check (2 <= Args'Length, "expected at least 2 parameters");
+      Err.Check (Args (Args'First).Kind = Kind_Atom,
+                 "parameter 1 must be an atom");
       declare
          use type Mal.T_Array;
          X : Mal.T renames Args (Args'First).Atom.Ref.all.Data;
@@ -79,11 +82,10 @@ package body Types.Atoms is
                X := F.Builtin.all (A);
             when Kind_Builtin_With_Meta =>
                X := F.Builtin_With_Meta.Builtin.all (A);
-            when Kind_Function =>
+            when Kind_Fn =>
                X := F.Fn.Apply (A);
             when others =>
-               raise Argument_Error
-                 with "swap!: cannot call " & Printer.Img (F);
+               Err.Raise_With ("parameter 2 must be a function");
          end case;
          return X;
       end;

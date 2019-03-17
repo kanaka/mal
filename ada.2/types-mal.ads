@@ -2,9 +2,9 @@ with Ada.Strings.Unbounded;
 
 with Types.Atoms;
 with Types.Builtins;
-with Types.Functions;
-with Types.Lists;
+with Types.Fns;
 with Types.Maps;
+with Types.Sequences;
 with Types.Symbols;
 
 package Types.Mal is
@@ -60,20 +60,20 @@ package Types.Mal is
             Number                    : Integer;
          when Kind_Atom =>
             Atom                      : Atoms.Ptr;
-         when Kind_Keyword | Kind_String =>
+         when Kind_Key =>
             S                         : Ada.Strings.Unbounded.Unbounded_String;
          when Kind_Symbol =>
             Symbol                    : Symbols.Ptr;
-         when Kind_List | Kind_Vector =>
-            List                      : Lists.Ptr;
+         when Kind_Sequence =>
+            Sequence                  : Sequences.Ptr;
          when Kind_Map =>
             Map                       : Maps.Ptr;
          when Kind_Builtin =>
             Builtin                   : Builtin_Ptr;
          when Kind_Builtin_With_Meta =>
             Builtin_With_Meta         : Builtins.Ptr;
-         when Kind_Function | Kind_Macro =>
-            Fn                        : Functions.Ptr;
+         when Kind_Fn | Kind_Macro =>
+            Fn                        : Fns.Ptr;
       end case;
    end record;
 

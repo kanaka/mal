@@ -1,6 +1,5 @@
 private with Ada.Finalization;
 
-with Types.Lists;
 with Types.Mal;
 with Types.Symbols;
 
@@ -26,7 +25,6 @@ package Envs with Elaborate_Body is
    --  given environment, even during exception propagation.
    --  Since Ptr is limited with a hidden discriminant, any variable
    --  must immediately be assigned with one of
-   --  * Repl (in which case a renaming is probably better),
    --  * Copy_Pointer,
    --  * Sub (either from a Ptr or from a Closure_Ptr).
    --  Usual assignment with reference counting is not provided
@@ -42,17 +40,12 @@ package Envs with Elaborate_Body is
    --  elsewhere.
 
    procedure Replace_With_Sub (Env : in out Ptr) with Inline;
-   --  Equivalent to Env := Sub (Outer => Env, empty Binds and Exprs),
-   --  except that such an assignment is forbidden for performance
-   --  reasons.
+   --  for let*
 
-   procedure Replace_With_Sub_Macro (Env   : in out Ptr;
-                                     Binds : in     Types.Symbols.Symbol_Array;
-                                     Exprs : in     Types.Lists.Ptr);
-   --  Equivalent to Env := Sub (Outer => Env, Binds, Expr), except
-   --  that such an assignment is forbidden for performance reasons.
-   --  This version is intended for macros: the Exprs argument is a
-   --  list, and its first element is skipped.
+   procedure Replace_With_Sub (Env   : in out Ptr;
+                               Binds : in     Types.Symbols.Symbol_Array;
+                               Exprs : in     Types.Mal.T_Array) with Inline;
+   --  when expanding macros.
 
    procedure Set (Env         : in Ptr;
                   Key         : in Types.Symbols.Ptr;
@@ -63,7 +56,7 @@ package Envs with Elaborate_Body is
 
    function Get (Evt : in Ptr;
                  Key : in Types.Symbols.Ptr) return Types.Mal.T;
-   Unknown_Key : exception;
+   --  Raises Core.Error_Exception if the key is not found.
 
    --  Function closures.
 
@@ -77,28 +70,28 @@ package Envs with Elaborate_Body is
    function Sub (Outer : in Closure_Ptr'Class;
                  Binds : in Types.Symbols.Symbol_Array;
                  Exprs : in Types.Mal.T_Array) return Ptr;
-   --  Construct a new environment with the given closure as outer parent.
+   --  when applying functions without tail call optimization.
+   --  Construct a new environment with the given outer parent.
    --  Then call Set with the paired elements of Binds and Exprs,
    --  handling the "&" special formal parameter if present.
-   --  May raise Argument_Count.
+   --  May raise Error.
 
    procedure Replace_With_Sub (Env   : in out Ptr;
                                Outer : in     Closure_Ptr'Class;
                                Binds : in     Types.Symbols.Symbol_Array;
                                Exprs : in     Types.Mal.T_Array);
-   --  Equivalent to Env := Sub (Outer, Binds, Expr); except that such
-   --  an assignment is forbidden for performance reasons.
+   --  when applying functions with tail call optimization.
+   --  Equivalent to Env := Sub (Env, Binds, Exprs), except that such
+   --  an assignment is forbidden or discouraged for performance reasons.
 
    function Sub (Outer : in Ptr;
                  Binds : in Types.Symbols.Symbol_Array;
-                 Exprs : in Types.Lists.Ptr) return Ptr;
-   --  Like Sub above, but dedicated to macros.
-   --  * The Outer parameter is the current environment, not a closure.
-   --  * The Exprs argument is a list.
-   --  * Its first element is skipped.
+                 Exprs : in Types.Mal.T_Array) return Ptr;
+   --  when applying macros
 
-   --  procedure Dump_Stack (Long : in Boolean := False);
-   --  For debugging.
+   --  Debugging.
+   procedure Dump_Stack (Long : in Boolean);
+   procedure Clear_And_Check_Allocations;
 
 private
 

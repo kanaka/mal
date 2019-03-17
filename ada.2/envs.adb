@@ -1,8 +1,10 @@
 with Ada.Containers.Hashed_Maps;
---  with Ada.Text_IO.Unbounded_IO;
+with Ada.Text_IO.Unbounded_IO;
 with Ada.Unchecked_Deallocation;
 
---  with Printer;
+with Err;
+with Printer;
+with Types.Sequences;
 with Types.Symbols.Names;
 
 package body Envs is
@@ -65,99 +67,110 @@ package body Envs is
    --  compatible with the Repl constant.
 
    procedure Free is new Ada.Unchecked_Deallocation (Heap_Record, Heap_Access);
+   Allocations : Natural := 0;
+
    procedure Unreference (Reference : in out Heap_Access);
 
    procedure Set_Binds (M     : in out HM.Map;
                         Binds : in     Symbols.Symbol_Array;
-                        Exprs : in     Mal.T_Array)
-     with Inline;
-   procedure Set_Binds_Macro (M     : in out HM.Map;
-                              Binds : in     Symbols.Symbol_Array;
-                              Exprs : in     Lists.Ptr)
-     with Inline;
-   --  These two procedures are redundant, but sharing the code would
-   --  be ugly or inefficient. They are separated as inline procedures
-   --  in order to ease comparison, though.
+                        Exprs : in     Mal.T_Array);
 
    ----------------------------------------------------------------------
 
    procedure Adjust (Object : in out Closure_Ptr) is
    begin
       if Object.Ref /= null then
-         Object.Ref.all.Refs := Object.Ref.all.Refs + 1;
+         Object.Ref.all.Refs := @ + 1;
       end if;
    end Adjust;
 
+   procedure Clear_And_Check_Allocations is
+   begin
+      pragma Assert (Top = 1);
+      pragma Assert (Stack (1).Refs = 1);
+      Stack (1).Data.Clear;
+      if Stack (1).Alias /= null then
+         pragma Assert (Stack (1).Alias.all.Refs = 0);
+         Allocations := Allocations - 1;
+         Free (Stack (1).Alias);
+      end if;
+      pragma Assert (Allocations = 0);
+   end Clear_And_Check_Allocations;
+
    function Copy_Pointer (Env : in Ptr) return Ptr is
    begin
-      Stack (Env.Index).Refs := Stack (Env.Index).Refs + 1;
+      Stack (Env.Index).Refs := @ + 1;
       return (Ada.Finalization.Limited_Controlled with Env.Index);
    end Copy_Pointer;
 
-   --  procedure Dump_Stack (Long : in Boolean := False) is
-   --     use Ada.Text_IO;
-   --     use Ada.Text_IO.Unbounded_IO;
-   --  begin
-   --     for I in 1 .. Top loop
-   --        if Long then
-   --           Put ("Level");
-   --        end if;
-   --        Put (I'Img);
-   --        if Long then
-   --           New_Line;
-   --           Put_Line ("  refs=" & Stack (I).Refs'Img);
-   --           if Stack (I).Alias = null then
-   --              Put_Line ("  no alias");
-   --           else
-   --              Put_Line ("  an alias with" & Stack (I).Alias.all.Refs'Img
-   --                          & " refs");
-   --           end if;
-   --        end if;
-   --        if Long then
-   --           Put ("  outer=");
-   --        else
-   --           Put (" (->");
-   --        end if;
-   --        if Stack (I).Outer_On_Stack then
-   --           Put (Stack (I).Outer_Index'Img);
-   --        elsif Stack (I).Outer_Ref.all.Outer = null then
-   --           if Long then
-   --              Put ("alias for ");
-   --           end if;
-   --           Put (Stack (I).Outer_Ref.all.Index'Img);
-   --        else
-   --           Put (" closure for ex " & Stack (I).Outer_Ref.all.Index'Img);
-   --        end if;
-   --        if Long then
-   --           New_Line;
-   --        else
-   --           Put ("):");
-   --        end if;
-   --        for P in Stack (I).Data.Iterate loop
-   --           if HM.Element (P).Kind /= Kind_Builtin then --  skip built-ins.
-   --              if Long then
-   --                 Put ("   ");
-   --              else
-   --                 Put (' ');
-   --              end if;
-   --              Put (HM.Key (P).To_String);
-   --              Put (':');
-   --              Put (Printer.Pr_Str (HM.Element (P)));
-   --              if Long then
-   --                 New_Line;
-   --              end if;
-   --           end if;
-   --        end loop;
-   --        if Long then
-   --           Put ("   ... built-ins");
-   --        else
-   --           New_Line;
-   --        end if;
-   --     end loop;
-   --     if Long then
-   --        New_Line;
-   --     end if;
-   --  end Dump_Stack;
+   procedure Dump_Stack (Long : in Boolean) is
+      use Ada.Text_IO;
+      Builtins : Natural := 0;
+   begin
+      for I in 1 .. Top loop
+         if Long then
+            Put ("Level");
+         end if;
+         Put (I'Img);
+         if Long then
+            New_Line;
+            Put_Line ("  refs=" & Stack (I).Refs'Img);
+            if Stack (I).Alias = null then
+               Put_Line ("  no alias");
+            else
+               Put_Line ("  an alias with" & Stack (I).Alias.all.Refs'Img
+                           & " refs");
+            end if;
+         end if;
+         if Long then
+            Put ("  outer=");
+         else
+            Put (" (->");
+         end if;
+         if Stack (I).Outer_On_Stack then
+            Put (Stack (I).Outer_Index'Img);
+         elsif Stack (I).Outer_Ref.all.Outer = null then
+            if Long then
+               Put ("alias for ");
+            end if;
+            Put (Stack (I).Outer_Ref.all.Index'Img);
+         else
+            Put (" closure for ex " & Stack (I).Outer_Ref.all.Index'Img);
+         end if;
+         if Long then
+            New_Line;
+         else
+            Put ("):");
+         end if;
+         for P in Stack (I).Data.Iterate loop
+            if HM.Element (P).Kind = Kind_Builtin then
+               Builtins := Builtins + 1;
+            else
+               if Long then
+                  Put ("   ");
+               else
+                  Put (' ');
+               end if;
+               Put (HM.Key (P).To_String);
+               Put (':');
+               Unbounded_IO.Put (Printer.Pr_Str (HM.Element (P)));
+               if Long then
+                  New_Line;
+               end if;
+            end if;
+         end loop;
+         if Long then
+            Put ("   ...");
+            Put (Integer'Image (Builtins));
+            Put (" built-ins");
+         else
+            New_Line;
+         end if;
+      end loop;
+      if Long then
+         New_Line;
+      end if;
+   end Dump_Stack;
 
    procedure Finalize (Object : in out Closure_Ptr) is
    begin
@@ -168,7 +181,7 @@ package body Envs is
    begin
       if 0 < Object.Index then
          if 0 < Stack (Object.Index).Refs then
-            Stack (Object.Index).Refs := Stack (Object.Index).Refs - 1;
+            Stack (Object.Index).Refs := @ - 1;
          end if;
          Object.Index := 0;
 
@@ -185,6 +198,7 @@ package body Envs is
                   if R.Alias /= null then
                      pragma Assert (R.Alias.all.Outer = null);
                      pragma Assert (R.Alias.all.Refs = 0);
+                     Allocations := Allocations - 1;
                      Free (R.Alias);
                   end if;
                   exit;
@@ -195,6 +209,7 @@ package body Envs is
                   end if;
                elsif R.Alias.all.Refs = 0 then
                   pragma Assert (R.Alias.all.Outer = null);
+                  Allocations := Allocations - 1;
                   Free (R.Alias);
                   R.Data.Clear;
                   if not R.Outer_On_Stack then
@@ -217,10 +232,11 @@ package body Envs is
                         O : Stack_Record renames Stack (R.Outer_Index);
                      begin
                         if O.Alias = null then
+                           Allocations := Allocations + 1;
                            O.Alias := new Heap_Record'(Index  => R.Outer_Index,
                                                        others => <>);
                         else
-                           O.Alias.all.Refs := O.Alias.all.Refs + 1;
+                           O.Alias.all.Refs := @ + 1;
                         end if;
                         R.Alias.all.Outer := O.Alias;
                      end;
@@ -263,16 +279,17 @@ package body Envs is
          end loop Ref_Loop;
          Index := Ref.all.Index;
       end loop Main_Loop;
-      raise Unknown_Key with "'" & Key.To_String & "' not found";
+      Err.Raise_With ("'" & Key.To_String & "' not found");
    end Get;
 
    function New_Closure (Env : in Ptr'Class) return Closure_Ptr is
       Alias : Heap_Access renames Stack (Env.Index).Alias;
    begin
       if Alias = null then
+         Allocations := Allocations + 1;
          Alias := new Heap_Record'(Index => Env.Index, others => <>);
       else
-         Alias.all.Refs := Alias.all.Refs + 1;
+         Alias.all.Refs := @ + 1;
       end if;
       return (Ada.Finalization.Controlled with Alias);
    end New_Closure;
@@ -283,7 +300,7 @@ package body Envs is
       if Env.Index < Top or 1 < R.Refs
         or (R.Alias /= null and then 0 < R.Alias.all.Refs)
       then
-         R.Refs := R.Refs - 1;
+         R.Refs := @ - 1;
          Top := Top + 1;
          pragma Assert (Stack (Top).Data.Is_Empty);
          pragma Assert (Stack (Top).Alias = null);
@@ -304,9 +321,9 @@ package body Envs is
       --  Finalize Env before creating the new environment, in case
       --  this is the last reference and it can be forgotten.
       --  Automatic assignment would construct the new value before
-      --  finalizing the old one (because this is safer in general).
+      --  finalizing the old one.
       Finalize (Env);
-      Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
+      Outer.Ref.all.Refs := @ + 1;
       Top := Top + 1;
       pragma Assert (Stack (Top).Data.Is_Empty);
       pragma Assert (Stack (Top).Alias = null);
@@ -318,14 +335,14 @@ package body Envs is
       Set_Binds (Stack (Top).Data, Binds, Exprs);
    end Replace_With_Sub;
 
-   procedure Replace_With_Sub_Macro (Env   : in out Ptr;
-                                     Binds : in     Symbols.Symbol_Array;
-                                     Exprs : in     Lists.Ptr)
+   procedure Replace_With_Sub (Env   : in out Ptr;
+                               Binds : in     Symbols.Symbol_Array;
+                               Exprs : in     Mal.T_Array)
    is
    begin
       Replace_With_Sub (Env);
-      Set_Binds_Macro (Stack (Top).Data, Binds, Exprs);
-   end Replace_With_Sub_Macro;
+      Set_Binds (Stack (Top).Data, Binds, Exprs);
+   end Replace_With_Sub;
 
    procedure Set (Env         : in Ptr;
                   Key         : in Symbols.Ptr;
@@ -342,62 +359,31 @@ package body Envs is
       Varargs : constant Boolean := 1 < Binds'Length and then
         Binds (Binds'Last - 1) = Symbols.Names.Ampersand;
    begin
-      if (if Varargs then
-             Exprs'Length < Binds'Length - 2
-          else
-             Exprs'Length /= Binds'Length)
-      then
-         raise Argument_Error with "function expected "
-           & Symbols.To_String (Binds) & ", got"
-           & Integer'Image (Exprs'Length) & " actual parameter(s)";
-      end if;
+      Err.Check ((if Varargs then Binds'Length - 2 <= Exprs'Length
+                             else Exprs'Length = Binds'Length),
+                 "actual parameters do not match formal parameters");
       for I in 0 .. Binds'Length - (if Varargs then 3 else 1) loop
          M.Include (Binds (Binds'First + I), Exprs (Exprs'First + I));
       end loop;
       if Varargs then
-         M.Include (Binds (Binds'Last),
-            Lists.List (Exprs (Exprs'First + Binds'Length - 2 .. Exprs'Last)));
+         M.Include (Binds (Binds'Last), Sequences.List
+                      (Exprs (Exprs'First + Binds'Length - 2 .. Exprs'Last)));
       end if;
    end Set_Binds;
 
-   procedure Set_Binds_Macro (M     : in out HM.Map;
-                              Binds : in     Symbols.Symbol_Array;
-                              Exprs : in     Lists.Ptr)
-   is
-      use type Symbols.Ptr;
-      Varargs   : constant Boolean := 1 < Binds'Length and then
-        Binds (Binds'Last - 1) = Symbols.Names.Ampersand;
-   begin
-      if (if Varargs then
-             Exprs.Length - 1 < Binds'Length - 2
-          else
-             Exprs.Length - 1 /= Binds'Length)
-      then
-         raise Argument_Error with "macro expected "
-           & Symbols.To_String (Binds) & ", got"
-           & Integer'Image (Exprs.Length - 1) & " actual parameter(s)";
-      end if;
-      for I in 0 .. Binds'Length - (if Varargs then 3 else 1) loop
-         M.Include (Binds (Binds'First + I), Exprs.Element (2 + I));
-      end loop;
-      if Varargs then
-         M.Include (Binds (Binds'Last), Exprs.Slice (Start => Binds'Length));
-      end if;
-   end Set_Binds_Macro;
-
    function Sub (Outer : in Ptr;
                  Binds : in Symbols.Symbol_Array;
-                 Exprs : in Lists.Ptr) return Ptr
+                 Exprs : in Mal.T_Array) return Ptr
    is
       R : Stack_Record renames Stack (Outer.Index);
    begin
-      R.Refs := R.Refs + 1;
+      R.Refs := @ + 1;
       Top := Top + 1;
       pragma Assert (Stack (Top).Data.Is_Empty);
       pragma Assert (Stack (Top).Alias = null);
       Stack (Top) := (Outer_Index => Outer.Index,
                       others      => <>);
-      Set_Binds_Macro (Stack (Top).Data, Binds, Exprs);
+      Set_Binds (Stack (Top).Data, Binds, Exprs);
       return (Ada.Finalization.Limited_Controlled with Top);
    end Sub;
 
@@ -406,7 +392,7 @@ package body Envs is
                  Exprs : in Mal.T_Array) return Ptr
    is
    begin
-      Outer.Ref.all.Refs := Outer.Ref.all.Refs + 1;
+      Outer.Ref.all.Refs := @ + 1;
       Top := Top + 1;
       pragma Assert (Stack (Top).Data.Is_Empty);
       pragma Assert (Stack (Top).Alias = null);
@@ -429,7 +415,7 @@ package body Envs is
       loop
          exit when Ref = null;
          exit when Ref.all.Refs = 0;
-         Ref.all.Refs := Ref.all.Refs - 1;
+         Ref.all.Refs := @ - 1;
          exit when 0 < Ref.all.Refs;
          exit when Ref.all.Outer = null; -- An alias.  Do not free it
          --  now, it may be useful for another closure.
@@ -437,6 +423,7 @@ package body Envs is
             Tmp : Heap_Access := Ref;
          begin
             Ref := Ref.all.Outer;
+            Allocations := Allocations - 1;
             Free (Tmp);
             pragma Unreferenced (Tmp);
          end;
