@@ -21,9 +21,11 @@
               mal_concat/2,
               mal_cons/2,
               mal_deref/2,
+              mal_first/2,
               mal_ns/1,
               mal_read_string/2,
               mal_reset/2,
+              mal_rest/2,
               mal_slurp/2
 	  ]).
 
@@ -149,6 +151,15 @@ mal_concat([list(List) | Lists], list(Value)) :-
     mal_concat(Lists, list(Rest)),
     append(List, Rest, Value).
 
+mal_nth([list(List), integer(N)], Value) :- nth0(N, List, Value).
+mal_nth([vector(List), integer(N)], Value) :- nth0(N, List, Value).
+
+mal_first([list([First | _])], First).
+mal_first([vector([First | _])], First).
+
+mal_rest([list([_ | Rest])], list(Rest)).
+mal_rest([vector([_ | Rest])], list(Rest)).
+
 mal_ns(NS) :-
     list_to_assoc(
         [
@@ -168,6 +179,7 @@ mal_ns(NS) :-
             'count'-mal_count,
             'deref'-mal_deref,
             'empty?'-mal_emptyq,
+            'first'-mal_first,
             'list'-mal_list,
             'list?'-mal_listq,
             'pr-str'-mal_pr_str,
@@ -175,6 +187,7 @@ mal_ns(NS) :-
             'prn'-mal_prn,
             'read-string'-mal_read_string,
             'reset!'-mal_reset,
+            'rest'-mal_rest,
             'slurp'-mal_slurp,
             'str'-mal_str
         ],
