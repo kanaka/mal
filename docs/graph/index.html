@@ -1,0 +1,99 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        .impl-data {
+            text-align: left !important;
+        }
+        #title {
+            text-align: center;
+            padding: 5px;
+        }
+	#mal {
+            height: 80%;
+            width: 100%;
+	}
+        html, body, #mal, svg {
+            margin: 0px;
+            padding: 0px;
+        }
+    </style>
+</head>
+<body class='with-3d-shadow with-transitions'>
+
+<div>
+    <h2 id="title">Mal Implementation Stats</h2>
+</div>
+
+<div>
+    <table border=0>
+        <tr>
+            <th align=right>Color data:</th>
+            <td>
+                <input type="radio" class="selects" name="ckey" value="syntax">Syntax Style
+                <input type="radio" class="selects" name="ckey" value="type_check">Type Discipline
+                <input type="radio" class="selects" name="ckey" value="author_name">Author
+            </td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <th align=right>X-Axis data:</th>
+            <td>
+                <input type="radio" class="selects" name="xkey" value="perf1">Perf 1
+                <input type="radio" class="selects" name="xkey" value="perf2">Perf 2
+                <input type="radio" class="selects" name="xkey" value="perf3">Perf 3
+                <input type="radio" class="selects" name="xkey" value="rank">Popularity
+                <input type="radio" class="selects" name="xkey" value="sloc">SLOC size
+                <input type="radio" class="selects" name="xkey" value="files">File count
+            </td>
+            <td>&nbsp;</td>
+            <td><input type="checkbox" class="selects" name="xlog" value=true>Logarithmic</td>
+        </tr>
+        <tr>
+            <th align=right>Y-Axis data:</th>
+            <td>
+                <input type="radio" class="selects" name="ykey" value="perf1">Perf 1
+                <input type="radio" class="selects" name="ykey" value="perf2">Perf 2
+                <input type="radio" class="selects" name="ykey" value="perf3">Perf 3
+                <input type="radio" class="selects" name="ykey" value="rank">Popularity
+                <input type="radio" class="selects" name="ykey" value="sloc">SLOC size
+                <input type="radio" class="selects" name="ykey" value="files">File count
+            </td>
+            <td>&nbsp;</td>
+            <td><input type="checkbox" class="selects" name="ylog" value=true>Logarithmic</td>
+        </tr>
+        <tr>
+            <th align=right>Circle size:</th>
+            <td>
+                <input type="radio" class="selects" name="skey" value="perf1">Perf 1
+                <input type="radio" class="selects" name="skey" value="perf2">Perf 2
+                <input type="radio" class="selects" name="skey" value="perf3">Perf 3
+                <input type="radio" class="selects" name="skey" value="rank">Popularity
+                <input type="radio" class="selects" name="skey" value="sloc">SLOC size
+                <input type="radio" class="selects" name="skey" value="files">File count
+            </td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+        </tr>
+    </table>
+</div>
+
+<div id="mal" class="chartWrap">
+    <svg></svg>
+</div>
+
+<script src="graph_languages.js"></script>
+</body>
+
+</html>
