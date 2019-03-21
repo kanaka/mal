@@ -5,17 +5,6 @@ LDFLAGS += -g
 
 #####################
 
-TESTS =
-
-SOURCES_BASE = readline.h readline.c types.h types.c \
-               reader.h reader.c printer.h printer.c \
-               interop.h interop.c
-SOURCES_LISP = env.c core.h core.c stepA_mal.c
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
-
-
-#####################
-
 SRCS = step0_repl.c step1_read_print.c step2_eval.c step3_env.c \
        step4_if_fn_do.c step5_tco.c step6_file.c step7_quote.c \
        step8_macros.c step9_try.c stepA_mal.c
@@ -69,18 +58,3 @@ $(BINS): %: %.o
 
 clean:
 	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) mal
-
-.PHONY: stats stats-lisp tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	./$@ || exit 1; \

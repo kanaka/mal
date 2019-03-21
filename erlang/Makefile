@@ -12,7 +12,7 @@ BINS = $(SRCS:%.erl=%)
 
 #####################
 
-.PHONY: all dist clean stats stats-lisp
+.PHONY: all dist clean
 
 all: $(BINS)
 
@@ -35,10 +35,3 @@ $(foreach b,$(BINS),$(eval $(call dep_template,$(b))))
 clean:
 	rebar clean
 	rm -f mal
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*%|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*%|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

@@ -2,8 +2,6 @@
 
 DEBUG =
 
-TESTS =
-
 SOURCES_BASE = readline.vb types.vb reader.vb printer.vb
 SOURCES_LISP = env.vb core.vb stepA_mal.vb
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
@@ -39,18 +37,3 @@ mal_vb.dll: mal_cs.dll $(LIB_VB_SRCS)
 
 clean:
 	rm -f *.dll *.exe *.mdb
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*'|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*'|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	./$@ || exit 1; \

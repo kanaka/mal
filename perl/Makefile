@@ -1,5 +1,3 @@
-TESTS =
-
 SOURCES_BASE = readline.pm types.pm reader.pm printer.pm \
                interop.pm
 SOURCES_LISP = env.pm core.pm stepA_mal.pl
@@ -25,18 +23,3 @@ mal: mal.pl
 clean:
 	rm -f mal.pl mal fatpacker.trace packlists fatlib/*
 	[ -d fatlib ] && rmdir fatlib || true
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	ruby $@ || exit 1; \

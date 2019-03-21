@@ -1,5 +1,3 @@
-TESTS =
-
 SOURCES_BASE = node_readline.coffee types.coffee \
 	       reader.coffee printer.coffee
 SOURCES_LISP = env.coffee core.coffee stepA_mal.coffee
@@ -23,12 +21,3 @@ mal: mal.coffee
 clean:
 	rm -f mal.coffee mal
 
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `egrep "^\w*#|^\w*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `egrep "^\w*#|^\w*$$" $^ | wc` "[comments/blanks]"

@@ -29,12 +29,5 @@ step4_if_fn_do step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
 clean:
 	rm -rf $(STEP_BINS) mal .crystal
 
-stats: types.cr error.cr reader.cr printer.cr env.cr core.cr stepA_mal.cr
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: env.cr core.cr stepA_mal.cr
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-.PHONY: all clean stats stats-lisp
+.PHONY: all clean
 

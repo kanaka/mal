@@ -30,11 +30,4 @@ $(STEP_BINS): %: %.ml $(MAL_LIB)
 clean:
 	rm -f $(STEP_BINS) mal mal_lib.* *.cmo *.cmx *.cmi *.o
 
-stats: $(MODULES) stepA_mal.ml
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*\(\*|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: env.ml core.ml stepA_mal.ml
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*\(\*|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-.PHONY: all repl clean stats stats-lisp
+.PHONY: all repl clean

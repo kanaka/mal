@@ -2,8 +2,6 @@
 
 DEBUG =
 
-TESTS =
-
 SOURCES_BASE = readline.cs types.cs reader.cs printer.cs
 SOURCES_LISP = env.cs core.cs stepA_mal.cs
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
@@ -43,18 +41,3 @@ mal.dll: $(LIB_SRCS)
 
 clean:
 	rm -f mal *.dll *.exe *.mdb
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	./$@ || exit 1; \

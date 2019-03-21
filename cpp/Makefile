@@ -52,16 +52,3 @@ clean:
 	rm -rf *.o $(TARGETS) libmal.a .deps mal
 
 -include .deps
-
-
-### Stats
-
-.PHONY: stats stats-lisp
-
-stats: $(LIBSOURCES) stepA_mal.cpp
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-stats-lisp: Core.cpp Environment.cpp stepA_mal.cpp
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

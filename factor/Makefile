@@ -1,5 +1,3 @@
-TESTS =
-
 SOURCES_BASE = lib/types/types.factor lib/reader/reader.factor lib/printer/printer.factor
 SOURCES_LISP = lib/env/env.factor lib/core/core.factor stepA_mal/stepA_mal.factor
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
@@ -31,13 +29,3 @@ mal: mal.factor
 
 clean:
 	rm -f mal.factor
-
-.PHONY: stats stats-lisp
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*\!|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*\!|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-

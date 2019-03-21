@@ -2,8 +2,6 @@ SOURCES = step0_repl.elm step1_read_print.elm step2_eval.elm \
 	step3_env.elm step4_if_fn_do.elm step5_tco.elm step6_file.elm \
 	step7_quote.elm step8_macros.elm step9_try.elm stepA_mal.elm
 
-SOURCES_LISP = Env.elm Core.elm Eval.elm stepA_mal.elm
-
 BINS = $(SOURCES:%.elm=%.js)
 
 ELM_MAKE = node_modules/.bin/elm-make
@@ -40,11 +38,3 @@ stepA_mal.js: $(STEP4_SOURCES)
 
 clean:
 	rm -f $(BINS)
-
-stats: $(STEP4_SOURCES) stepA_mal.elm
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `egrep "^\w*(--|\{-|-\})|^\w*$$" $^ | wc` "[comments/blanks]"
-
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `egrep "^\w*(--|\{-|-\})|^\w*$$" $^ | wc` "[comments/blanks]"

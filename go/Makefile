@@ -5,9 +5,6 @@ export GOPATH := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SOURCES_BASE = src/types/types.go src/readline/readline.go \
 	       src/reader/reader.go src/printer/printer.go \
 	       src/env/env.go src/core/core.go
-SOURCES_LISP = src/env/env.go src/core/core.go \
-	       src/stepA_mal/stepA_mal.go
-SOURCES = $(SOURCES_BASE) $(word $(words $(SOURCES_LISP)),${SOURCES_LISP})
 
 #####################
 
@@ -34,12 +31,3 @@ $(foreach b,$(BINS),$(eval $(call dep_template,$(b))))
 
 clean:
 	rm -f $(BINS) mal
-
-.PHONY: stats stats-lisp
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

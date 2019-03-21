@@ -54,21 +54,8 @@ mal.d64: mal.prg .args.mal.prg core.mal.prg
 
 # Clean and Stats rules
 
-.PHONY: clean stats
+.PHONY: clean
 
 clean:
 	rm -f $(STEPS0_A) $(subst .bas,,$(STEPS0_A)) *.d64 *.prg qb64
 	rm -rf ./internal
-
-
-SOURCES_LISP = env.in.bas core.in.bas stepA_mal.in.bas
-SOURCES = readline.in.bas readline_line.in.bas readline_char.in.bas \
-	  types.in.bas reader.in.bas printer.in.bas $(SOURCES_LISP)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*REM |^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*REM |^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-

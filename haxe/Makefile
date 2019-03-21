@@ -1,8 +1,6 @@
 STEP1_DEPS = Compat.hx types/Types.hx reader/Reader.hx printer/Printer.hx
 STEP3_DEPS = $(STEP1_DEPS) env/Env.hx
 STEP4_DEPS = $(STEP3_DEPS) core/Core.hx
-SOURCES = $(STEP4_DEPS) StepA_mal.hx
-SOURCES_LISP = env/Env.hx core/Core.hx StepA_mal.hx
 
 STEPS = step0_repl step1_read_print step2_eval step3_env \
 	step4_if_fn_do step5_tco step6_file step7_quote \
@@ -104,13 +102,3 @@ clean:
 	rm -f mal.n mal.py cpp/mal mal.js mal
 	rm -f step*.py step*.js step*.n
 	[ -e cpp/ ] && rm -r cpp/ || true
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-

@@ -20,8 +20,6 @@ MKCL ?= mkcl
 STANDALONE_EXE = sbcl clisp ccl ecl cmucl
 
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-SOURCES_LISP := src/env.lisp src/core.lisp src/stepA_mal.lisp
-SOURCES := src/utils.lisp src/types.lisp src/reader.lisp src/printer.lisp $(SOURCES_LISP)
 
 # Record the Common Lisp implementation used for all steps built in this
 # invocation This is used in the targets to rebuild the step if the
@@ -29,7 +27,6 @@ SOURCES := src/utils.lisp src/types.lisp src/reader.lisp src/printer.lisp $(SOUR
 $(foreach step, $(call steps), $(call record_lisp,$(patsubst step%,%,$(step)),$(LISP)))
 
 .PRECIOUS: hist/%_impl
-.PHONY: stats
 
 all : stepA_mal
 
@@ -68,11 +65,3 @@ endif
 clean:
 	find . -maxdepth 1 -name 'step*' -executable -delete
 	rm -f *.lib *.fas[l] images/* hist/*_impl
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

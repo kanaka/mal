@@ -1,7 +1,4 @@
 
-TESTS =
-
-
 SOURCES_BASE = src/main/java/mal/readline.java src/main/java/mal/types.java \
                src/main/java/mal/reader.java src/main/java/mal/printer.java
 SOURCES_LISP = src/main/java/mal/env.java src/main/java/mal/core.java \
@@ -31,13 +28,3 @@ target/classes/mal/step%.class: src/main/java/mal/step%.java ${SOURCES}
 clean:
 	mvn clean
 	rm -f mal.jar mal
-
-#.PHONY: stats tests $(TESTS)
-.PHONY: stats
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

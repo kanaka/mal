@@ -1,5 +1,3 @@
-TESTS =
-
 SOURCES_BASE = readline.r types.r reader.r printer.r
 SOURCES_LISP = env.r core.r stepA_mal.r
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
@@ -18,16 +16,6 @@ mal: mal.r
 
 clean:
 	rm -f mal.r mal
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
 
 .PHONY:
 libs: lib/rdyncall

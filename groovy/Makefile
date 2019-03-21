@@ -1,9 +1,5 @@
 CLASSES = types.class reader.class printer.class env.class core.class
 
-SOURCES_BASE = types.groovy reader.groovy printer.groovy
-SOURCES_LISP = env.groovy core.groovy stepA_mal.groovy
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
-
 all: ${CLASSES}
 
 dist: mal.jar
@@ -40,12 +36,3 @@ mal: mal.jar
 clean:
 	rm -f *.class classes/* mal.jar mal
 	rmdir classes || true
-
-.PHONY: stats tests
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

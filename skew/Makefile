@@ -2,8 +2,6 @@ STEPS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
         step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
 
 SOURCES_BASE = util.sk types.sk reader.sk printer.sk
-SOURCES_LISP = env.sk core.sk stepA_mal.sk
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 STEP3_DEPS = $(SOURCES_BASE) env.sk
 STEP4_DEPS = $(STEP3_DEPS) core.sk
@@ -26,11 +24,4 @@ mal: stepA_mal.js
 clean:
 	rm -rf step*.js mal
 
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-.PHONY: all dist clean stats stats-lisp
+.PHONY: all dist clean

@@ -3,14 +3,6 @@ LDFLAGS += -lreadline
 
 #####################
 
-TESTS =
-
-SOURCES_BASE = readline.d types.d reader.d printer.d
-SOURCES_LISP = env.d mal_core.d stepA_mal.d
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
-
-#####################
-
 EARLY_SRCS = step0_repl.d step1_read_print.d step2_eval.d
 LATE_SRCS = step3_env.d step4_if_fn_do.d step5_tco.d step6_file.d \
 	    step7_quote.d step8_macros.d step9_try.d stepA_mal.d
@@ -42,18 +34,3 @@ $(BINS): %: %.o
 
 clean:
 	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) mal
-
-.PHONY: stats stats-lisp tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	./$@ || exit 1; \

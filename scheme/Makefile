@@ -1,6 +1,3 @@
-SOURCES_BASE = lib/util.sld lib/reader.sld lib/printer.sld lib/types.sld
-SOURCES_LISP = lib/env.sld lib/core.sld stepA_mal.scm
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 BINS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do step5_tco
 BINS += step6_file step7_quote step8_macros step9_try stepA_mal
 scheme_MODE ?= chibi
@@ -62,7 +59,7 @@ RMR = rm -rf
 
 all: $(STEPS)
 
-.PHONY: clean stats stats-lisp
+.PHONY: clean
 .PRECIOUS: lib/%.scm eggs/lib.%.scm
 
 eggs/r7rs.so:
@@ -105,10 +102,3 @@ clean:
 	$(RM) lib.*.scm *.so *.c *.o $(BINS)
 	$(RM) eggs/*
 	$(RMR) out
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*;|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

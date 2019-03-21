@@ -226,16 +226,3 @@ dump:
 	@echo "  SWIFT = $(SWIFT)"
 	@echo "SDKROOT = $(SDKROOT)"
 	@echo "  STEPS = $(call get_all_step_numbers)"
-
-#
-# Display source stats
-#
-.PHONY: stats tests $(TESTS)
-
-stats: bridging-header.h $(UTIL_SRC) ./stepA_mal.swift
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: ./env.swift ./core.swift ./stepA_mal.swift
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-

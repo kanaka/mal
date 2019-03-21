@@ -4,9 +4,6 @@ STEP2_DEPS = $(STEP1_DEPS)
 STEP3_DEPS = $(STEP2_DEPS) env.m
 STEP4_DEPS = $(STEP3_DEPS) malfunc.h malfunc.m core.h core.m
 
-SOURCES = $(STEP4_DEPS) stepA_mal.m
-SOURCES_LISP = env.h env.m core.h core.m stepA_mal.m
-
 STEPS = step0_repl step1_read_print step2_eval step3_env \
 	step4_if_fn_do step5_tco step6_file step7_quote \
 	step8_macros step9_try stepA_mal
@@ -51,12 +48,3 @@ step%: step%.m
 
 clean:
 	rm -f $(STEPS) *.o *.d mal
-
-.PHONY: stats tests
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"

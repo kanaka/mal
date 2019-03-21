@@ -1,5 +1,3 @@
-TESTS =
-
 SOURCES_BASE = utils.lua types.lua reader.lua printer.lua
 SOURCES_LISP = env.lua core.lua stepA_mal.lua
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
@@ -27,16 +25,6 @@ mal: mal.lua
 clean:
 	rm -f linenoise.so mal.lua mal
 	rm -rf lib/lua/5.1
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*--|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*--|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
 
 .PHONY: libs
 libs: linenoise.so

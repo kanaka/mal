@@ -2,8 +2,6 @@
 
 DEBUG = 
 
-TESTS =
-
 SOURCES_BASE = types.fs error.fs node.fs printer.fs tokenizer.fs reader.fs \
 	       readline.fs
 SOURCES_LISP = core.fs env.fs stepA_mal.fs
@@ -46,18 +44,3 @@ mal.dll: $(DLL_SOURCES) Mono.Terminal.dll
 
 clean:
 	rm -f mal *.dll *.exe *.mdb
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	./$@ || exit 1; \

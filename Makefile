@@ -62,6 +62,9 @@ scheme_MODE = chibi
 # js wace_libc wace_fooboot
 wasm_MODE = wace_libc
 
+# Path to loccount for counting LOC stats
+LOCCOUNT = loccount
+
 # Extra options to pass to runtest.py
 TEST_OPTS =
 
@@ -337,6 +340,8 @@ DOCKER_SHELL = $(foreach impl,$(DO_IMPLS),docker-shell^$(impl))
 
 IMPL_PERF = $(foreach impl,$(filter-out $(perf_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
 
+IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
+
 IMPL_REPL = $(foreach impl,$(DO_IMPLS),repl^$(impl))
 ALL_REPL = $(strip $(sort \
              $(foreach impl,$(DO_IMPLS),\
@@ -454,6 +459,19 @@ $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(su
 $(IMPL_REPL): $$@^stepA
 
 #
+# Stats test rules
+#
+
+# For a concise summary:
+#   make stats | egrep -A1 "^Stats for|^all" | egrep -v "^all|^--"
+stats: $(IMPL_STATS)
+
+$(IMPL_STATS):
+	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Stats for $(impl):"; \
+	  $(LOCCOUNT) -x "Makefile|node_modules" $(impl))
+
+#
 # Utility functions
 #
 print-%:
@@ -480,10 +498,6 @@ recur_impls_ = $(filter-out $(foreach impl,$($(1)_EXCLUDES),$(1)^$(impl)),$(fore
 
 # recursive clean
 $(eval $(call recur_template,clean,$(call recur_impls_,clean)))
-
-# recursive stats
-$(eval $(call recur_template,stats,$(call recur_impls_,stats)))
-$(eval $(call recur_template,stats-lisp,$(call recur_impls_,stats-lisp)))
 
 # recursive dist
 $(eval $(call recur_template,dist,$(call recur_impls_,dist)))
