@@ -1,11 +1,25 @@
 const malColors = [
-    "#1f77b4","#bf7f0e","#4cb00c","#b62728","#9467bd","#bc664b","#b377c2","#0fbf5f","#bcbd22","#17beef",
-    "#1f6784","#8f7f0e","#4c800c","#862728","#54678d","#8c564b","#8377c2","#0f8f5f","#8c8d22","#178eef",
-    "#1f97d4","#ff7f0e","#4cf00c","#f62728","#c467fd","#fc764b","#f377c2","#0fff5f","#fcfd22","#17feef",
+    "#1f77b4","#bf7f0e","#4cb00c","#b62728","#9467bd","#bc664b","#b377c2","#0fbf6f","#bcbd22","#17beef",
+    "#1f6784","#8f7f0e","#4c800c","#862728","#54678d","#8c564b","#8377c2","#0f8f6f","#8c8d22","#178eef",
+    "#1f97d4","#ff7f0e","#4cf00c","#f62728","#c467fd","#fc764b","#f377c2","#0fff6f","#fcfd22","#17feef",
 ]
 
-const axisSet = new Set(['perf1', 'perf2', 'perf3', 'rank', 'sloc', 'files'])
-const colorSet = new Set(['type_check', 'syntax', 'author_name'])
+const axisMap = {
+    'perf1': 'Perf 1',
+    'perf2': 'Perf 2',
+    'perf3': 'Perf 3',
+    'rank':  'Popularity',
+    'sloc':  'SLOC size',
+    'files': 'File count',
+}
+const colorMap = {
+    'syntax': 'Syntax Style',
+    'type_check': 'Type Discipline',
+    'author_name': 'Author',
+}
+const axisKeySet = new Set(Object.keys(axisMap))
+const colorKeySet = new Set(['type_check', 'syntax', 'author_name'])
+
 const perfSet = new Set(['perf1', 'perf2', 'perf3'])
 const invertSet = new Set(['rank', 'perf1', 'perf2'])
 const perfLogSet = new Set(['perf1', 'perf2', 'sloc', 'files'])
@@ -82,7 +96,7 @@ function malCircleSize(key, min, max, val) {
         let v = p2 ? decodeURIComponent(p2) : true
         if (v in {"true":1,"1":1,"yes":1}) { v = true }
         if (v in {"false":1,"0":1,"no":1}) { v = false }
-        if (k in cfg && (axisSet.has(v) || colorSet.has(v))) {
+        if (k in cfg && (axisKeySet.has(v) || colorKeySet.has(v))) {
             cfg[k] = v
         }
         if ((new Set(['xlog', 'ylog'])).has(k) && typeof v === 'boolean') {
@@ -91,34 +105,41 @@ function malCircleSize(key, min, max, val) {
     }
 })(location.search)
 
-// Set the checked elements based on the the cfg
-for (const key of Object.keys(cfg)) {
-    for (const node of document.getElementsByName(key)) {
-        let val = node.value
-        if (val in {"true":1,"1":1,"yes":1}) { val = true }
-        if (val in {"false":1,"0":1,"no":1}) { val = false }
-        if (val === cfg[key]) {
-            node.checked = true
-        } else {
-            node.checked = false
+// Generate the control buttons and set the checked elements based on
+// the cfg
+function ctlChange(evt) {
+    if (new Set(['xlog', 'ylog']).has(evt.target.name)) {
+        cfg[evt.target.name] = evt.target.checked
+    } else {
+        cfg[evt.target.name] = evt.target.value
+    }
+    const query = Object.entries(cfg).map(([k,v]) => k + "=" + v).join('&')
+    history.pushState(null, '', '?' + query)
+    updateGraphData()
+}
+for (let key of ['ckey', 'xkey', 'ykey', 'skey']) {
+    const parent = document.getElementById(key + '-controls')
+    const ctlMap = ({
+        'ckey': colorMap,
+        'xkey': Object.assign({}, axisMap, {'xlog': 'Logarithmic'}),
+        'ykey': Object.assign({}, axisMap, {'ylog': 'Logarithmic'}),
+        'skey': axisMap,
+    })[key]
+    for (let [val, name] of Object.entries(ctlMap)) {
+        const log = (new Set(['xlog', 'ylog']).has(val)) ? val : false
+        const ctl = document.createElement('input')
+        ctl.class = 'selects'
+        ctl.type = log ? 'checkbox' : 'radio'
+        ctl.name = log ? log : key
+        ctl.value = log ? true : val
+        if ((log && cfg[val] === true) || cfg[key] === val) {
+            ctl.checked = true
         }
+        ctl.addEventListener('change', ctlChange)
+        parent.appendChild(ctl)
+        parent.appendChild(document.createTextNode(name))
     }
 }
-
-// Add onchange to all selector radio buttons/check boxes
-for (let input of document.getElementsByClassName('selects')) {
-    input.addEventListener('change', function(evt) {
-        if (new Set(['xlog', 'ylog']).has(evt.target.name)) {
-            cfg[evt.target.name] = evt.target.checked
-        } else {
-            cfg[evt.target.name] = evt.target.value
-        }
-        const query = Object.entries(cfg).map(([k,v]) => k + "=" + v).join('&')
-        history.pushState(null, '', '?' + query)
-        updateGraphData()
-    })
-}
-
 
 //
 // Graph rendering / updating
@@ -134,7 +155,7 @@ function updateGraphData() {
     // empty the graphData without recreating it
     while (graphData.length > 0) { graphData.pop() }
     graphData.push(...colorList.map(t => ({key: t, values: []})))
-    for (var dir of Object.keys(allData)) {
+    for (let dir of Object.keys(allData)) {
         const impl = allData[dir]
         if (impl[cfg.xkey] > xMax) { xMax = impl[cfg.xkey] }
         if (impl[cfg.ykey] > yMax) { yMax = impl[cfg.ykey] }
@@ -142,7 +163,7 @@ function updateGraphData() {
         if (impl[cfg.skey] < sMin) { sMin = impl[cfg.skey] }
         if (impl[cfg.skey] > sMax) { sMax = impl[cfg.skey] }
     }
-    for (var dir of Object.keys(allData)) {
+    for (let dir of Object.keys(allData)) {
         const impl = allData[dir]
         // Invert size for inverted data
         graphData[colorList.indexOf(impl[cfg.ckey])].values.push({
@@ -162,6 +183,8 @@ function updateGraphData() {
     chart.yScale(malScale(cfg.ylog))
     chart.xAxis.tickValues(malTickValues(cfg.xkey, cfg.xlog))
     chart.yAxis.tickValues(malTickValues(cfg.ykey, cfg.ylog))
+    chart.xAxis.axisLabel(axisMap[cfg.xkey])
+    chart.yAxis.axisLabel(axisMap[cfg.ykey])
 
     // Update the graph
     d3.select('#mal svg')
@@ -182,7 +205,7 @@ nv.addGraph(function() {
         .duration(300)
         .color(malColors)
     chart.dispatch.on('renderEnd', function() {
-        console.log('render complete')
+        //console.log('render complete')
     })
     chart.dispatch.on('stateChange', function(e) {
         nv.log('New State:', JSON.stringify(e))
@@ -203,10 +226,15 @@ nv.addGraph(function() {
             //'<b>Author</b>: <a href="'  + i.author_url + '">' +
             //i.author_name + '</a><br>' +
             '<b>Author</b>: ' + i.author_name + '<br>' +
+            '&nbsp; &nbsp; ' + i.author_url.replace(/https?:\/\//, '') + '<br>' +
             '</p>'
     })
     d3.json("all_data.json", function (error, data) {
         allData = data
+        // NOTE: TODO: major hack to workaround bug with switching
+        // to/from logarithmic mode. Seems to require at least one
+        // value to be less than 1 for it to work
+        allData.rpython.perf2 = 0.9
         updateGraphData()
     })
     return chart

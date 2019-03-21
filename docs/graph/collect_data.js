@@ -189,8 +189,8 @@ async function main() {
     // leave a gap between actual ranked implementations and those
     // with no rankings
     maxRank = curRank + 10
-    maxPerf1 = dataList.reduce((a, d) => d.perf1 > a ? d.perf1 : a, 0) 
-    maxPerf2 = dataList.reduce((a, d) => d.perf2 > a ? d.perf1 : a, 0) 
+    maxPerf1 = dataList.reduce((a, d) => d.perf1 > a ? d.perf1 : a, 0)
+    maxPerf2 = dataList.reduce((a, d) => d.perf2 > a ? d.perf1 : a, 0)
     for (let d of dataList) {
         if (d.rank === null) {
             vlog(`  setting rank to ${maxRank} for ${d.dir}`)

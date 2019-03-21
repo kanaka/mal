@@ -1,97 +1,171 @@
 <html>
 <head>
-    <meta charset="utf-8">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css" rel="stylesheet" type="text/css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+  <meta charset="utf-8">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css" rel="stylesheet" type="text/css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
 
-    <style>
-        text {
-            font: 12px sans-serif;
-        }
-        svg {
-            display: block;
-        }
-        .impl-data {
-            text-align: left !important;
-        }
-        #title {
-            text-align: center;
-            padding: 5px;
-        }
-	#mal {
-            height: 80%;
-            width: 100%;
-	}
-        html, body, #mal, svg {
-            margin: 0px;
-            padding: 0px;
-        }
-    </style>
+  <style>
+    text {
+      font: 12px sans-serif;
+    }
+    svg {
+      display: block;
+    }
+    #notes {
+      border: 2px solid #202020;
+      padding: 4px;
+      margin: 2px 20px 2px 10px;
+      width: 70%;
+      position: absolute;
+      background: #ffffff;
+    }
+    .controls {
+    }
+    #toggle {
+      padding: 2px;
+      margin-right: 10px;
+    }
+    #toggle button {
+      width: 7em;
+      color: #d04444;
+    }
+    #show {
+      display: none;
+    }
+    .impl-data {
+      text-align: left !important;
+    }
+    #title {
+      text-align: center;
+      padding: 5px;
+    }
+    #mal {
+        height: 80%;
+        width: 100%;
+    }
+    html, body, #mal, svg {
+      margin: 0px;
+      padding: 0px;
+    }
+  </style>
 </head>
 <body class='with-3d-shadow with-transitions'>
 
 <div>
-    <h2 id="title">Mal Implementation Stats</h2>
+  <h2 id="title">Mal Implementation Stats</h2>
 </div>
 
-<div>
-    <table border=0>
-        <tr>
-            <th align=right>Color data:</th>
-            <td>
-                <input type="radio" class="selects" name="ckey" value="syntax">Syntax Style
-                <input type="radio" class="selects" name="ckey" value="type_check">Type Discipline
-                <input type="radio" class="selects" name="ckey" value="author_name">Author
-            </td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-        </tr>
-        <tr>
-            <th align=right>X-Axis data:</th>
-            <td>
-                <input type="radio" class="selects" name="xkey" value="perf1">Perf 1
-                <input type="radio" class="selects" name="xkey" value="perf2">Perf 2
-                <input type="radio" class="selects" name="xkey" value="perf3">Perf 3
-                <input type="radio" class="selects" name="xkey" value="rank">Popularity
-                <input type="radio" class="selects" name="xkey" value="sloc">SLOC size
-                <input type="radio" class="selects" name="xkey" value="files">File count
-            </td>
-            <td>&nbsp;</td>
-            <td><input type="checkbox" class="selects" name="xlog" value=true>Logarithmic</td>
-        </tr>
-        <tr>
-            <th align=right>Y-Axis data:</th>
-            <td>
-                <input type="radio" class="selects" name="ykey" value="perf1">Perf 1
-                <input type="radio" class="selects" name="ykey" value="perf2">Perf 2
-                <input type="radio" class="selects" name="ykey" value="perf3">Perf 3
-                <input type="radio" class="selects" name="ykey" value="rank">Popularity
-                <input type="radio" class="selects" name="ykey" value="sloc">SLOC size
-                <input type="radio" class="selects" name="ykey" value="files">File count
-            </td>
-            <td>&nbsp;</td>
-            <td><input type="checkbox" class="selects" name="ylog" value=true>Logarithmic</td>
-        </tr>
-        <tr>
-            <th align=right>Circle size:</th>
-            <td>
-                <input type="radio" class="selects" name="skey" value="perf1">Perf 1
-                <input type="radio" class="selects" name="skey" value="perf2">Perf 2
-                <input type="radio" class="selects" name="skey" value="perf3">Perf 3
-                <input type="radio" class="selects" name="skey" value="rank">Popularity
-                <input type="radio" class="selects" name="skey" value="sloc">SLOC size
-                <input type="radio" class="selects" name="skey" value="files">File count
-            </td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-        </tr>
-    </table>
+<div class="controls">
+  <table border=0>
+    <tr>
+      <td rowspan=4 valign=top>
+        <div id="toggle">
+          <button id="hide" onclick="hide_notes()">Hide Notes</button>
+          <button id="show" onclick="show_notes()">Show Notes</button>
+          <div id="notes">
+            <h3>Important Caveats:</h3>
+            <p>The data on this graph is <b>very</b> specific to <a
+               href="https://github.com/kanaka/mal">Mal</a>.
+            Do not use this data to directly compare programming
+            languages.</p>
+            <ul>
+              <li><b>Bad takeaway</b>: <i>"Language X is faster than
+                      language Y"</i></li>
+              <li><b>Good takeway</b>: <i>"The mal impl in
+                      language X is faster than the one
+                      in language Y for the 'perf 3' microbenchmark"</i></li>
+            </ul>
+            <p>Here are some reasons (non-exhaustive) why this data
+            should be taken with a grain of salt:</p>
+            <ul>
+              <li>The focus of the make-a-lisp process is on learning
+                (either Lisp or the target language). The resulting
+                implementations have a common structure that is
+                intended for <b>understandability and consistency</b>
+                between implementations. They are not structured or
+                intended to have optimal runtime performance or code
+                concision.</li>
+              <li>While the overall structure of each mal
+                implementation is similar, the implementation details
+                are <b>up to the author</b>.</li>
+              <li>Mal implementations are created by <b>different
+                authors</b> and the authors have varying levels of
+                experience with the target language and they often
+                created a mal implementation with the goal of learning
+                the target language.</li>
+              <li>There are hundreds of tests that each implementation
+                must pass before being accepted into the tree.
+                However, the mal language has <b>no formal
+                specification</b> so authors make choices
+                about whether and how to handle edge cases that are
+                not covered by the tests. For example, mal
+                implementations have different levels of runtime error
+                checking.</li>
+              <li>The performance <b>benchmarks are very narrow</b> in
+                focus and these numbers should not be extrapolated
+                casually.  For example, the 'perf 3' microbenchmark
+                repeats a macro and data structure manipulation test
+                repeatedly for 10 seconds and counts the number of
+                iterations through the test.  Languages with runtime
+                optimization (e.g. JIT) tend to do particularly well
+                at this benchmark (RPython, JVM-based, etc).</li>
+            </ul>
+            <h3>Other Notes:</h3>
+            <ul>
+              <li>Syntax style and type discipline are best effort
+                and based on Wikipedia information and personal
+                experience. There are also other aspects to type
+                discipline (strong, gradual, duck, etc) that are not
+                currently included.</li>
+              <li>The language popularity measure is based on the
+                number of stars that the implementation language
+                received on GitHub for the most recent quarter. The
+                information was gathered by the <a
+                href="https://madnight.github.io/githut/#/stars/2018/4">GitHut
+                2.0</a> project and then translated into a ordinal
+                ranking of implementations relative to each other.
+                Not all languages have data so a gap of 10 ticks
+                is introduced between the ranked languages and the
+                languages with no data.</li>
+            </ul>
+          </div>
+        </div>
+      </td>
+      <th align=right>Color data:</th>
+      <td id='ckey-controls'></td>
+    </tr>
+    <tr>
+      <th align=right>X-Axis data:</th>
+      <td id='xkey-controls'></td>
+    </tr>
+    <tr>
+      <th align=right>Y-Axis data:</th>
+      <td id='ykey-controls'></td>
+    </tr>
+    <tr>
+      <th align=right>Circle size:</th>
+      <td id='skey-controls'></td>
+    </tr>
+  </table>
 </div>
 
 <div id="mal" class="chartWrap">
-    <svg></svg>
+  <svg></svg>
 </div>
+
+<script>
+  function hide_notes() {
+    document.getElementById('hide').style.display = "none"
+    document.getElementById('show').style.display = "inline"
+    document.getElementById('notes').style.visibility = "hidden"
+  }
+  function show_notes() {
+    document.getElementById('hide').style.display = "inline"
+    document.getElementById('show').style.display = "none"
+    document.getElementById('notes').style.visibility = ""
+  }
+</script>
 
 <script src="graph_languages.js"></script>
 </body>
