@@ -18,3 +18,7 @@ stepA_mal:	stepa_mal
 clean:
 	rm -f ${PROGS}
 	rm -rf obj
+
+.PHONY: force
+
+force:
