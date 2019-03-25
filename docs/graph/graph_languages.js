@@ -29,7 +29,7 @@ const perfLogSet = new Set(['perf1', 'perf2', 'sloc', 'files'])
 
 let cfg = {
     ckey: 'syntax',
-    xkey: 'star_rank',
+    xkey: 'push_rank',
     ykey: 'perf3',
     skey: 'sloc',
 
