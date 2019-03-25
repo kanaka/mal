@@ -4,6 +4,7 @@
     "description": "Graph Mal Languages",
     "dependencies": {
         "js-yaml": "3.12.2",
+        "csvtojson": "2.0.8",
         "request": "2.88.0",
         "request-promise-native": "1.0.7"
     }

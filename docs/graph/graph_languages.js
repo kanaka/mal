@@ -5,12 +5,15 @@ const malColors = [
 ]
 
 const axisMap = {
-    'perf1': 'Perf 1',
-    'perf2': 'Perf 2',
-    'perf3': 'Perf 3',
-    'rank':  'Popularity',
-    'sloc':  'SLOC size',
-    'files': 'File count',
+    'pull_rank':  'GH PRs',
+    'push_rank':  'GH Pushes',
+    'star_rank':  'GH Stars',
+    'so_rank':    'SO Tags',
+    'perf1':      'Perf 1',
+    'perf2':      'Perf 2',
+    'perf3':      'Perf 3',
+    'sloc':       'SLOC size',
+    'files':      'File count',
 }
 const colorMap = {
     'syntax': 'Syntax Style',
@@ -21,12 +24,12 @@ const axisKeySet = new Set(Object.keys(axisMap))
 const colorKeySet = new Set(['type_check', 'syntax', 'author_name'])
 
 const perfSet = new Set(['perf1', 'perf2', 'perf3'])
-const invertSet = new Set(['rank', 'perf1', 'perf2'])
+const invertSet = new Set(['pull_rank', 'push_rank', 'star_rank', 'so_rank', 'perf1', 'perf2'])
 const perfLogSet = new Set(['perf1', 'perf2', 'sloc', 'files'])
 
 let cfg = {
     ckey: 'syntax',
-    xkey: 'rank',
+    xkey: 'star_rank',
     ykey: 'perf3',
     skey: 'sloc',
 
@@ -45,14 +48,14 @@ let chart
 function malExtent(data, key) {
     let extent = d3.extent(Object.values(data), d => d[key])
     // pad the bottom rank so it's not on the opposite axis line
-    if (key === 'rank') {
+    if (key.endsWith('_rank')) {
         extent[0] = 0.99 // Setting this to 1 breaks log scale render
         extent[extent.length-1] += 1
     }
     // Replace 0's with 0.01 to prevent divide by zero errors
     if (extent[0] === 0) { extent[0] = 0.0001 }
     if (extent[extent.length-1] === 0) { extent[extent.length-1] = 0.0001 }
-    // For rank, perf1 and perf2 reverse the Axis range
+    // For rankings, perf1, and perf2 reverse the Axis range
     if (invertSet.has(key)) {
         extent.reverse()
     }
@@ -121,8 +124,8 @@ for (let key of ['ckey', 'xkey', 'ykey', 'skey']) {
     const parent = document.getElementById(key + '-controls')
     const ctlMap = ({
         'ckey': colorMap,
-        'xkey': Object.assign({}, axisMap, {'xlog': 'Logarithmic'}),
-        'ykey': Object.assign({}, axisMap, {'ylog': 'Logarithmic'}),
+        'xkey': Object.assign({}, axisMap, {'xlog': 'Log Scale'}),
+        'ykey': Object.assign({}, axisMap, {'ylog': 'Log Scale'}),
         'skey': axisMap,
     })[key]
     for (let [val, name] of Object.entries(ctlMap)) {
@@ -213,30 +216,89 @@ nv.addGraph(function() {
     chart.tooltip.contentGenerator(function(obj) {
         const i = obj.point.impl
         return '<h3>' + i.name + '</h3>' +
-            '<p class="impl-data">' +
-            '<b>Syntax Style</b>: ' + i.syntax + '<br>' +
-            '<b>Type Discipline</b>: ' + i.type_check + '<br>' +
-            '<b>Github Stars</b>: ' + (i.star_count || 'unknown') + '<br>' +
-            '<b>GitHut Relative Rank</b>: ' + i.rank + '<br>' +
-            '<br>' +
-            '<b>Perf 1</b>: ' + i.perf1 + ' ms<br>' +
-            '<b>Perf 2</b>: ' + i.perf2 + ' ms<br>' +
-            '<b>Perf 3</b>: ' + i.perf3 + ' iters / 10 sec<br>' +
-            '<b>SLOC</b>: ' + i.sloc + ' lines<br>' +
-            //'<b>Author</b>: <a href="'  + i.author_url + '">' +
-            //i.author_name + '</a><br>' +
-            '<b>Author</b>: ' + i.author_name + '<br>' +
+            '<ul class="impl-data">' +
+            '<li><b>Syntax Style</b>: ' + i.syntax + '<br>' +
+            '<li><b>Type Discipline</b>: ' + i.type_check + '<br>' +
+            '<li><b>GitHub</b>:' +
+            '  <ul>' +
+            '  <li><b>PR Count</b>: ' + (i.pull_count || 'unknown') + '<br>' +
+            '  <li><b>PR Rank</b>: ' + i.pull_rank + '<br>' +
+            '  <li><b>Push Count</b>: ' + (i.push_count || 'unknown') + '<br>' +
+            '  <li><b>Push Rank</b>: ' + i.push_rank + '<br>' +
+            '  <li><b>Star Count</b>: ' + (i.star_count || 'unknown') + '<br>' +
+            '  <li><b>Star Rank</b>: ' + i.star_rank + '<br>' +
+            '  </ul>' +
+            '<li><b>StackOverflow</b>:' +
+            '  <ul>' +
+            '  <li><b>Tag Count</b>: ' + (i.so_count || 'unknown') + '<br>' +
+            '  <li><b>Tag Rank</b>: ' + i.so_rank + '<br>' +
+            '  </ul>' +
+            '<li><br>' +
+            '<li><b>Perf 1</b>: ' + i.perf1 + ' ms<br>' +
+            '<li><b>Perf 2</b>: ' + i.perf2 + ' ms<br>' +
+            '<li><b>Perf 3</b>: ' + i.perf3 + ' iters / 10 sec<br>' +
+            '<li><b>SLOC</b>: ' + i.sloc + ' lines<br>' +
+            '<li><b>Author</b>: ' + i.author_name + '<br>' +
             '&nbsp; &nbsp; ' + i.author_url.replace(/https?:\/\//, '') + '<br>' +
-            '</p>'
+            '</ul>'
     })
+
+    // Load and mangle the data
     d3.json("all_data.json", function (error, data) {
         allData = data
+
+	console.log(`Filling in missing data attributes`)
+        const dataList = Object.values(allData)
+	// leave a gap between ranked impls and those with no rank
+	const rankGap = 10
+        const maxPullRank = Math.max(...dataList.map(d => d.pull_rank))
+        const maxPushRank = Math.max(...dataList.map(d => d.push_rank))
+        const maxStarRank = Math.max(...dataList.map(d => d.star_rank))
+        const maxSORank = Math.max(...dataList.map(d => d.so_rank))
+	const maxPerf1 = dataList.reduce((a, d) => d.perf1 > a ? d.perf1 : a, 0)
+	const maxPerf2 = dataList.reduce((a, d) => d.perf2 > a ? d.perf1 : a, 0)
+	for (let d of dataList) {
+	    if (d.pull_rank === null) {
+		d.pull_rank = maxPullRank + rankGap
+		console.log(`  set pull_rank to ${d.pull_rank} for ${d.dir}`)
+	    }
+	    if (d.push_rank === null) {
+		d.push_rank = maxPushRank + rankGap
+		console.log(`  set push_rank to ${d.push_rank} for ${d.dir}`)
+	    }
+	    if (d.star_rank === null) {
+		d.star_rank = maxStarRank + rankGap
+		console.log(`  set star_rank to ${d.star_rank} for ${d.dir}`)
+	    }
+	    if (d.so_count === 0) {
+		d.so_rank = maxSORank + rankGap
+		console.log(`  set so_rank to ${d.so_rank} for ${d.dir}`)
+	    }
+	    if (d.perf1 === null) {
+		d.perf1 = maxPerf1
+		console.log(`  set perf1 to ${maxPerf1} for ${d.dir}`)
+	    }
+	    if (d.perf2 === null) {
+		d.perf2 = maxPerf2
+		console.log(`  set perf2 to ${maxPerf2} for ${d.dir}`)
+	    }
+	}
+
+	console.log(`Adjusting perf numbers to avoid 0`)
+	for (let d of dataList) {
+	    if (d.perf1 === 0) { d.perf1 = 0.9 }
+	    if (d.perf2 === 0) { d.perf2 = 0.9 }
+	    if (d.perf3 === 0) { d.perf3 = 0.01 }
+	}
+
         // NOTE: TODO: major hack to workaround bug with switching
         // to/from logarithmic mode. Seems to require at least one
         // value to be less than 1 for it to work
         allData.rpython.perf2 = 0.9
+
         updateGraphData()
     })
+
     return chart
 })
 
