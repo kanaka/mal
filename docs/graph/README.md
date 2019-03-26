@@ -27,8 +27,6 @@ for x in $(seq 1 90); do echo ${BUILD}/${x}; mkdir -p logs/${BUILD}; while ! tra
 export SO_TAG_CSV_URL=... # from the query page
 ```
 
-```
-
 * Download GitHub and StackOverflow data and generate the final
   combined data set:
 
