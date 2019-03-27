@@ -53,13 +53,6 @@ Notes for contributors that do not fit in a specific package.
   - too many deallocation happen (via a numeric range check)
   - all storage is not freed (via a dedicated call from the step file)
 
-Known bugs
---
-
-The third step of the perf^ada2 target fails during the final storage
-deallocation when the executable is built with -gnatp. I have failed
-to understand why so far.
-
 Debugging
 --
 

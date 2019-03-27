@@ -5,8 +5,7 @@ ifdef DEBUG
 else
   # -O3 is not recommended as the default by the GCC documentation,
   # and -O2 seems to produce slightly better performances.
-  # See README for a discussion of -gnatp.
-  ADAFLAGS := -O2 -gnatn
+  ADAFLAGS := -O2 -gnatnp
 endif
 
 # Compiler arguments.

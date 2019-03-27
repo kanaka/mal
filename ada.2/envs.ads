@@ -109,10 +109,7 @@ private
    --  We allow the null value so that the empty environment in a
    --  macro does not trigger an allocation.
 
-   --      300 for normal tests
-   --    7_500 for make ada2 && make MAL_IMPL=ada2 test^mal
-   --  150_000 for make ada2 && make perf^ada2
-   type Stack_Index is range 0 .. 150_000;
+   type Stack_Index is range 0 .. 200;
 
    --  See README for the implementation of reference counting.
 

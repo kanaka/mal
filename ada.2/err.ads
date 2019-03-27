@@ -1,3 +1,4 @@
+with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 
 with Types.Mal;
@@ -28,6 +29,10 @@ package Err with Elaborate_Body is
    --  Store the message into Data,
    --  store the message and "Uncaught exception: " into Trace,
    --  then raise Error.
+
+   procedure Raise_In_Mal (E : in Ada.Exceptions.Exception_Occurrence)
+     with Inline, No_Return;
+   --  Raise_With (Ada.Exceptions.Exception_Information (E))
 
    procedure Add_Trace_Line (Action : in String;
                              Ast    : in Types.Mal.T) with Inline;

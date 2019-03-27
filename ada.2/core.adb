@@ -385,9 +385,12 @@ package body Core is
       Close (File);
       return (Kind_String, Buffer);
    exception
-      when others =>
-         Close (File);
-         raise;
+      --  Catch I/O errors, but not Err.Error...
+      when E : Status_Error | Name_Error | Use_Error | Mode_Error =>
+         if Is_Open (File) then
+            Close (File);
+         end if;
+         Err.Raise_In_Mal (E);
    end Slurp;
 
    function Str (Args : in Mal.T_Array) return Mal.T is

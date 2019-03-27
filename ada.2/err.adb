@@ -29,6 +29,15 @@ package body Err is
       end if;
    end Check;
 
+   procedure Raise_In_Mal (E : in Ada.Exceptions.Exception_Occurrence) is
+      Message : String renames Ada.Exceptions.Exception_Information (E);
+   begin
+      Data := (Kind_String, To_Unbounded_String (Message));
+      Set_Unbounded_String (Trace, "Uncaught exception: ");
+      Append (Trace, Message);
+      raise Error;
+   end Raise_In_Mal;
+
    procedure Raise_With (Message : in String) is
    begin
       Data := (Kind_String, To_Unbounded_String (Message));

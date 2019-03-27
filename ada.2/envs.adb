@@ -90,6 +90,9 @@ package body Envs is
       pragma Assert (Stack (1).Refs = 1);
       Stack (1).Data.Clear;
       if Stack (1).Alias /= null then
+         if Stack (1).Alias.all.Refs /= 0 then
+            Dump_Stack (Long => True);
+         end if;
          pragma Assert (Stack (1).Alias.all.Refs = 0);
          Allocations := Allocations - 1;
          Free (Stack (1).Alias);
@@ -98,6 +101,7 @@ package body Envs is
    end Clear_And_Check_Allocations;
 
    function Copy_Pointer (Env : in Ptr) return Ptr is
+      pragma Assert (Env.Index in 1 | Top);
    begin
       Stack (Env.Index).Refs := @ + 1;
       return (Ada.Finalization.Limited_Controlled with Env.Index);
@@ -105,7 +109,6 @@ package body Envs is
 
    procedure Dump_Stack (Long : in Boolean) is
       use Ada.Text_IO;
-      Builtins : Natural := 0;
    begin
       for I in 1 .. Top loop
          if Long then
@@ -143,14 +146,8 @@ package body Envs is
             Put ("):");
          end if;
          for P in Stack (I).Data.Iterate loop
-            if HM.Element (P).Kind = Kind_Builtin then
-               Builtins := Builtins + 1;
-            else
-               if Long then
-                  Put ("   ");
-               else
-                  Put (' ');
-               end if;
+            if HM.Element (P).Kind /= Kind_Builtin or 1 < I then
+               Put ("   ");
                Put (HM.Key (P).To_String);
                Put (':');
                Unbounded_IO.Put (Printer.Pr_Str (HM.Element (P)));
@@ -159,17 +156,8 @@ package body Envs is
                end if;
             end if;
          end loop;
-         if Long then
-            Put ("   ...");
-            Put (Integer'Image (Builtins));
-            Put (" built-ins");
-         else
-            New_Line;
-         end if;
-      end loop;
-      if Long then
          New_Line;
-      end if;
+      end loop;
    end Dump_Stack;
 
    procedure Finalize (Object : in out Closure_Ptr) is
@@ -254,6 +242,7 @@ package body Envs is
    function Get (Evt : in Ptr;
                  Key : in Symbols.Ptr) return Mal.T
    is
+      pragma Assert (Evt.Index in 1 | Top);
       Index      : Stack_Index := Evt.Index;
       Ref        : Heap_Access;
       Definition : HM.Cursor;
@@ -283,6 +272,7 @@ package body Envs is
    end Get;
 
    function New_Closure (Env : in Ptr'Class) return Closure_Ptr is
+      pragma Assert (Env.Index in 1 | Top);
       Alias : Heap_Access renames Stack (Env.Index).Alias;
    begin
       if Alias = null then
@@ -295,6 +285,7 @@ package body Envs is
    end New_Closure;
 
    procedure Replace_With_Sub (Env : in out Ptr) is
+      pragma Assert (Env.Index in 1 | Top);
       R : Stack_Record renames Stack (Env.Index);
    begin
       if Env.Index < Top or 1 < R.Refs
@@ -317,6 +308,7 @@ package body Envs is
                                Binds : in     Symbols.Symbol_Array;
                                Exprs : in     Mal.T_Array)
    is
+      pragma Assert (Env.Index in 1 | Top);
    begin
       --  Finalize Env before creating the new environment, in case
       --  this is the last reference and it can be forgotten.
@@ -339,6 +331,7 @@ package body Envs is
                                Binds : in     Symbols.Symbol_Array;
                                Exprs : in     Mal.T_Array)
    is
+      pragma Assert (Env.Index in 1 | Top);
    begin
       Replace_With_Sub (Env);
       Set_Binds (Stack (Top).Data, Binds, Exprs);
@@ -346,7 +339,9 @@ package body Envs is
 
    procedure Set (Env         : in Ptr;
                   Key         : in Symbols.Ptr;
-                  New_Element : in Mal.T) is
+                  New_Element : in Mal.T)
+   is
+      pragma Assert (Env.Index in 1 | Top);
    begin
       Stack (Env.Index).Data.Include (Key, New_Element);
    end Set;
@@ -375,9 +370,8 @@ package body Envs is
                  Binds : in Symbols.Symbol_Array;
                  Exprs : in Mal.T_Array) return Ptr
    is
-      R : Stack_Record renames Stack (Outer.Index);
+      pragma Assert (Outer.Index in 1 | Top);
    begin
-      R.Refs := @ + 1;
       Top := Top + 1;
       pragma Assert (Stack (Top).Data.Is_Empty);
       pragma Assert (Stack (Top).Alias = null);

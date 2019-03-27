@@ -53,7 +53,7 @@ procedure Step3_Env is
          Ada.Text_IO.Put ("EVAL: ");
          Print (Ast);
          if Dbgenv0 then
-            Envs.Dump_Stack (Dbgenv1);
+            Envs.Dump_Stack (Long => Dbgenv1);
          end if;
       end if;
       case Ast.Kind is
