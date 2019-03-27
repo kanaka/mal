@@ -11,7 +11,7 @@
 | Language | Creator |
 | -------- | ------- |
 | [Ada](#ada) | [Chris Moore](https://github.com/zmower) |
-| [Ada.2](#ada.2) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
+| [Ada.2](#ada2) | [Nicolas Boulenguez](https://github.com/asarhaddon) |
 | [GNU Awk](#gnu-awk) | [Miutsuru Kariya](https://github.com/kariya-mitsuru) |
 | [Bash 4](#bash-4) | [Joel Martin](https://github.com/kanaka)  |
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
