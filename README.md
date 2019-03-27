@@ -1211,7 +1211,7 @@ The following implementations are maintained as separate projects:
 ## Other mal Projects
 
  * [malc](https://github.com/dubek/malc) - Mal (Make A Lisp) compiler. Compiles a Mal program to LLVM assembly language, then binary.
- * [malcc](https://git.sr.ht/~tim/malcc) (@seven1m) - malcc is an incremental compiler implementation for the Mal language. It uses the Tiny C Compiler as the compiler backend and has full support for the Mal language, including macros, tail-call elimination, and even run-time eval.
+ * [malcc](https://git.sr.ht/~tim/malcc) (@seven1m) - malcc is an incremental compiler implementation for the Mal language. It uses the Tiny C Compiler as the compiler backend and has full support for the Mal language, including macros, tail-call elimination, and even run-time eval. ["I Built a Lisp Compiler"](https://mpov.timmorgan.org/i-built-a-lisp-compiler/) post about the process.
  * [frock](https://github.com/chr15m/frock) - Clojure-flavoured PHP. Uses mal/php to run programs.
 
 ## License
