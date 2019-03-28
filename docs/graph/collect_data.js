@@ -29,6 +29,7 @@ const SO_TAG_CSV_URL = process.env['SO_TAG_CSV_URL'] || 'https://data.stackexcha
 
 const githutToNames = {
     'Awk':          ['GNU Awk'],
+    'Ada':          ['Ada', 'Ada #2'],
     'Shell':        ['Bash 4'],
     'JavaScript':   ['JavaScript', 'ES6'],
     'Makefile':     ['GNU Make'],
@@ -45,6 +46,7 @@ const githutToNames = {
     'Visual Basic': ['Visual Basic.NET'],
 }
 const dirToSOTags = {
+    'ada.2':     ['ada'],
     'cpp':       ['c++', 'c++98', 'c++11', 'c++14', 'c++17'],
     'coffee':    ['coffeescript'],
     'crystal':   ['crystal-lang'],

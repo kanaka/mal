@@ -3,6 +3,7 @@ headers:
 
 languages:
   - [ada           , Ada              , Algol  , Static     , []]
+  - [ada.2         , 'Ada #2'         , Algol  , Static     , []]
   - [awk           , GNU Awk          , C      , Dynamic    , []]
   - [bash          , Bash 4           , OTHER  , Dynamic    , []]
   - [basic         , BASIC            , OTHER  , Dynamic    , [cbm, qbasic]]
