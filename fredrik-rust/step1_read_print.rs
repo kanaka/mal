@@ -36,7 +36,7 @@ pub fn main() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-fn read(str: &str) -> reader::Result {
+fn read(str: &str) -> types::Result {
     reader::read_str(str)
 }
 

@@ -1,4 +1,4 @@
-use super::types::MalType;
+use super::types::{MalType, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::error::Error;
@@ -16,8 +16,6 @@ impl ParseError {
         }))
     }
 }
-
-pub type Result = std::result::Result<MalType, Box<Error>>;
 
 impl Error for ParseError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {

@@ -31,5 +31,6 @@ pub fn pr_str(val: &MalType) -> String {
         MalType::Deref(a) => format!("(deref {})", a),
         MalType::Nil => "nil".to_owned(),
         MalType::String(s) => s.to_owned(),
+        MalType::BIF(_) => "<fn>".to_owned(),
     }
 }

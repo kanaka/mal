@@ -1,4 +1,7 @@
-#[derive(Debug)]
+use std::error::Error;
+pub type Result = std::result::Result<MalType, Box<Error>>;
+
+#[derive(Clone)]
 pub enum MalType {
     List(Vec<MalType>),
     Vector(Vec<MalType>),
@@ -14,4 +17,5 @@ pub enum MalType {
     SpliceUnQuote(Box<MalType>),
     WithMeta(Box<MalType>, Box<MalType>),
     Deref(String),
+    BIF(fn(&[MalType]) -> Result),
 }
