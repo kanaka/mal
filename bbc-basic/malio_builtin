@@ -1,0 +1,21 @@
+REM I/O library for mal using normal BBC BASIC I/O statements
+
+DEF PROCmalio_init
+ENDPROC
+
+DEF PROCmalio_print(a$)
+  PRINT a$;
+ENDPROC
+
+DEF PROCmalio_println(a$)
+  PRINT a$
+ENDPROC
+
+DEF FNmalio_input(prompt$)
+  LOCAL ret$
+  PRINT prompt$;
+  LINE INPUT "" ret$
+=ret$
+
+DEF FNmalio_eof
+=FALSE
