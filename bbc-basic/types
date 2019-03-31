@@ -1,0 +1,103 @@
+REM Types library for mal in BBC BASIC
+
+REM  This library should be the only thing that understands the
+REM  implementation of mal data types in BBC BASIC.  All other
+REM  code should use routines in this library to access them.
+
+REM  As far as other code is concerned, a mal object is just an
+REM  opaque 32-bit integer, which might be a pointer, or might not.
+
+REM  Following the 8-bit BASIC implementation, we currently have two
+REM  arrays, Z%() containing most objects and S$() containing strings
+REM  (referenced from Z%()).
+
+REM  See ../basic/mem.in.bas for data representations.
+
+DEF PROCtypes_init
+  LOCAL i%
+  DIM Z%(1000), S$(1000)
+  FOR i% = 0 TO 15
+    Z%(i%) = 0
+  NEXT i%
+  Z%(0) = 32: REM nil
+  Z%(2) = 1+32: REM false
+  Z%(4) = 1+32: Z%(5) = 1: REM true
+  Z%(6) = 6+32: REM empty list
+  next_Z% = 16
+  next_S% = 0
+ENDPROC
+
+DEF FNtype_of(val%)
+=Z%(val%) AND 31
+
+REM ** Nil **
+
+DEF FNnil
+=0
+
+REM ** Integers **
+
+DEF FNis_int(val%)
+=FNtype_of(val%) = 2
+
+DEF FNalloc_int(ival%)
+  LOCAL val%
+  val% = next_Z%
+  next_Z% += 2
+  Z%(val%) = 2+32
+  Z%(val% + 1) = ival%
+=val%
+
+DEF FNunbox_int(val%)
+  IF NOT FNis_int(val%) THEN ERROR 1, "Not an integer"
+=Z%(val% + 1)
+
+REM ** Symbols **
+
+DEF FNis_symbol(val%)
+=FNtype_of(val%) = 5
+
+DEF FNalloc_symbol(sval$)
+  LOCAL s%
+  s% = next_S%
+  next_S% += 1
+  S$(s%) = sval$
+  val% = next_Z%
+  next_Z% += 2
+  Z%(val%) = 5+32
+  Z%(val% + 1) = s%
+=val%
+
+DEF FNunbox_symbol(val%)
+  IF NOT FNis_symbol(val%) THEN ERROR 1, "Not a symbol"
+=S$(Z%(val% + 1))
+
+REM ** Lists **
+
+DEF FNempty
+=6
+
+DEF FNalloc_pair(car%, cdr%)
+  LOCAL val%
+  val% = next_Z%
+  next_Z% += 3
+  Z%(val% + 0) = 6+32
+  Z%(val% + 2) = car%
+  Z%(val% + 1) = cdr%
+=val%
+
+DEF FNis_empty(val%)
+=val% = FNempty
+
+DEF FNis_list(val%)
+=FNtype_of(val%) = 6
+
+DEF FNlist_car(val%)
+  IF NOT FNis_list(val%) THEN ERROR 1, "Can't get car of non-list"
+  IF Z%(val% + 1) = 0 THEN ERROR 1, "Can't get car of empty list"
+=Z%(val% + 2)
+
+DEF FNlist_cdr(val%)
+  IF NOT FNis_list(val%) THEN ERROR 1, "Can't get cdr of non-list"
+  IF Z%(val% + 1) = 0 THEN ERROR 1, "Can't get cdr of empty list"
+=Z%(val% + 1)

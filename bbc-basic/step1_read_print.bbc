@@ -1,0 +1,28 @@
+REM Step 1 of mal in BBC BASIC
+
+LIBRARY "malio_builtin"
+LIBRARY "types"
+LIBRARY "reader"
+LIBRARY "printer"
+
+PROCmalio_init
+PROCtypes_init
+
+REPEAT
+  line$ = FNmalio_input("user> ")
+  PROCmalio_println(FNrep(line$))
+UNTIL FNmalio_eof
+
+END
+
+DEF FNREAD(a$)
+=FNread_str(a$)
+
+DEF FNEVAL(a%)
+=a%
+
+DEF FNPRINT(a%)
+=FNpr_str(a%)
+
+DEF FNrep(a$)
+=FNPRINT(FNEVAL(FNREAD(a$)))

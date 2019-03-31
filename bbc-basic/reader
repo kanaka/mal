@@ -88,3 +88,42 @@ DEF FNtokenize(src$, tokens$())
     tokptr% += 1
   ENDIF
 =tokptr%        
+
+REM  ** More Reader **
+
+DEF FNread_form(tokens$(), RETURN tokptr%)
+  LOCAL tok$
+  tok$ = FNreader_peek(tokens$(), tokptr%)
+  IF MID$(tok$, 1, 1) = "(" THEN =FNread_list(tokens$(), tokptr%)
+=FNread_atom(tokens$(), tokptr%)
+
+DEF FNread_list(tokens$(), RETURN tokptr%)
+  LOCAL tok$
+  tok$ = FNreader_next(tokens$(), tokptr%) : REM skip over "("
+=FNread_list_tail(tokens$(), tokptr%)
+
+DEF FNread_list_tail(tokens$(), RETURN tokptr%)
+  LOCAL tok$, car%, cdr%
+  IF FNreader_peek(tokens$(), tokptr%) = ")" THEN
+     tok$ = FNreader_next(tokens$(), tokptr%)
+    =FNempty
+  ENDIF
+  car% = FNread_form(tokens$(), tokptr%)
+  cdr% = FNread_list_tail(tokens$(), tokptr%)
+=FNalloc_pair(car%, cdr%)
+
+DEF FNis_token_numeric(tok$)
+  LOCAL i%, c%
+  IF LEFT$(tok$, 1) = "-" THEN tok$ = MID$(tok$, 2)
+  IF LEN(tok$) = 0 THEN =FALSE
+  FOR i% = 1 TO LEN(tok$)
+    c% = ASC(MID$(tok$, i%, 1))
+    IF c% < &30 OR c% > &39 THEN =FALSE
+  NEXT i%
+=TRUE
+
+DEF FNread_atom(tokens$(), RETURN tokptr%)
+  LOCAL strval$
+  strval$ = FNreader_next(tokens$(), tokptr%)
+  IF FNis_token_numeric(strval$) THEN =FNalloc_int(VAL(strval$))
+=FNalloc_symbol(strval$)

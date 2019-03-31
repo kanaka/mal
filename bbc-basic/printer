@@ -1,0 +1,16 @@
+REM Printer library for mal in BBC BASIC
+
+DEF FNpr_str(val%)
+  LOCAL ret$
+  IF FNis_int(val%) THEN =STR$(FNunbox_int(val%))
+  IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
+  IF FNis_list(val%) THEN
+    ret$ = "("
+    WHILE NOT FNis_empty(val%)
+      IF LEN(ret$) > 1 THEN ret$ += " "
+      ret$ += FNpr_str(FNlist_car(val%))
+      val% = FNlist_cdr(val%)
+    ENDWHILE
+    =ret$ + ")"
+  ENDIF
+  ERROR 1, "Unprintable value"
