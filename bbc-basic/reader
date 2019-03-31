@@ -35,7 +35,7 @@ DEF FNtokenize(src$, tokens$())
   LOCAL p%, state%, tokstart%, tokptr%, c$, match$, action%
   LOCAL DATA
 
-  state% = 2
+  state% = 1
   tokptr% = 0
   tokstart% = 1
   FOR p% = 1 TO LEN(src$)
@@ -57,39 +57,38 @@ DEF FNtokenize(src$, tokens$())
     REM  next state.  A matching string of "" matches any character,
     REM  and hence marks the end of a state.
 
-    REM  Actions are a bitfield:
-    REM   1: Token boundary before this character
-    REM   2: Token boundary after this character
-    REM   4: Discard this character (must have token boundary before)
+    REM  Actions are:
+    REM   0: Add this character to the current token
+    REM   1: Emit token; start a new token with this character
+    REM   5: Emit token; skip this character
 
     RESTORE +state%
-
-    REM  state 2: Initial state, or inside a bare word
-    DATA " ,",5,2,          "~",1,4, "[]{}()'`^@",3,2, "Q",1,6, ";",1,10, "",0,2
-    REM  state 4: Just seen a "~"
-    DATA " ,",5,2, "@",2,2, "~",1,4, "[]{}()'`^@",3,2, "Q",1,6, ";",1,10, "",0,2
-    REM  state 6: Inside a quoted string
-    DATA "\",0,8, "Q",2,2, "",0,6
-    REM  state 8: After a backslash in a string
-    DATA "",0,6
-    REM  state 10: Inside a comment
-    DATA "",0,10
+    REM  state 1: Initial state, or inside a bare word
+    DATA " ,",5,1,          "~",1,5, "[]{}()'`^@",1,3, "Q",1,7, ";",1,11, "",0,1
+    REM  state 3: Just seen the end of a token
+    DATA " ,",5,1,          "~",1,5, "[]{}()'`^@",1,3, "Q",1,7, ";",1,11, "",1,1
+    REM  state 5: Just seen a "~"
+    DATA " ,",5,1, "@",0,3, "~",1,5, "[]{}()'`^@",1,3, "Q",1,7, ";",1,11, "",1,1
+    REM  state 7: Inside a quoted string
+    DATA "\",0,9, "Q",0,3, "",0,7
+    REM  state 9: After a backslash in a string
+    DATA "",0,7
+    REM  state 11: Inside a comment
+    DATA "",0,11
 
     REM  Find a matching transition from the current state.
+    REM PRINT ;state%;"-->";
     REPEAT
       READ match$, action%, state%
+      REM PRINT "[";match$;"](";action%;",";state%;")";
     UNTIL match$ = "" OR INSTR(match$, c$) > 0
+    REM PRINT ;"-->";state%
 
     REM  Execute any actions.
     IF action% AND 1 AND p% > tokstart% THEN
       tokens$(tokptr%) = MID$(src$, tokstart%, p% - tokstart%)
       tokptr% += 1
       tokstart% = p%
-    ENDIF
-    IF action% AND 2 THEN
-      tokens$(tokptr%) = MID$(src$, tokstart%, p% + 1 - tokstart%)
-      tokptr% += 1
-      tokstart% = p% + 1
     ENDIF
     IF action% AND 4 THEN tokstart% = p% + 1
   NEXT p%
