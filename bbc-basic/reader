@@ -1,0 +1,103 @@
+REM Reader library for mal in BBC BASIC
+
+DEF PROCreader_init
+  reader_running% = FALSE
+  DIM reader_tokens$(255)
+ENDPROC
+
+REM  ** Reader singleton pseudo-object **
+
+REM  To initialise a (the) reader, populate reader_tokens$() and then
+REM  call PROCreader_new.
+DEF PROCreader_new
+  IF reader_running% THEN ERROR "Reader already running"
+  reader_running% = TRUE
+  reader_ptr% = 0
+ENDPROC
+
+DEF PROCreader_free
+  IF NOT reader_running% THEN ERROR "Reader not running"
+  reader_running% = FALSE
+ENDPROC
+
+DEF FNreader_peek
+=reader_tokens$(reader_ptr%)
+
+DEF FNreader_next
+  reader_ptr% = reader_ptr% + 1
+=reader_tokens$(reader_ptr% - 1)
+
+REM  ** Tokenizer **
+
+DEF FNtokenize(src$, tokens$())
+  REM  The tokenizer is implemented explicitly as a deterministic
+  REM  finite automaton.
+  LOCAL p%, state%, tokstart%, tokptr%, c$, match$, action%
+  LOCAL DATA
+
+  state% = 2
+  tokptr% = 0
+  tokstart% = 1
+  FOR p% = 1 TO LEN(src$)
+    c$ = MID$(src$, p%, 1)
+    REM  Convert some characters to ones that are easier to put into
+    REM  DATA statements.  These substitutions are only used for
+    REM  matching: the token still contains the original character.
+    CASE ASC(c$) OF
+      REM  These are the characters that Perl's "\s" escape matches.
+      WHEN 9, 10, 11, 12, 13: c$ = " "
+      REM  Double quotes are hard to put into data statements, so convert
+      REM  them to "Q", first having hidden any actual "Q"
+      WHEN 81: c$ = "P"
+      WHEN 34: c$ = "Q"
+    ENDCASE
+    REM  The state table consists of a DATA statement for each current
+    REM  state, which triples representing transitions.  Each triple
+    REM  consists of a string of characters to match, an action, and a
+    REM  next state.  A matching string of "" matches any character,
+    REM  and hence marks the end of a state.
+
+    REM  Actions are a bitfield:
+    REM   1: Token boundary before this character
+    REM   2: Token boundary after this character
+    REM   4: Discard this character (must have token boundary before)
+
+    PRINT state%; " --("; c$; ")";
+    RESTORE +state%
+
+    REM  state 2: Initial state, or inside a bare word
+    DATA " ,",5,2,          "~",1,4, "[]{}()'`^@",3,2, "Q",1,6, ";",1,10, "",0,2
+    REM  state 4: Just seen a "~"
+    DATA " ,",5,2, "@",2,2, "~",1,4, "[]{}()'`^@",3,2, "Q",1,6, ";",1,10, "",0,2
+    REM  state 6: Inside a quoted string
+    DATA "\",0,8, "Q",2,2, "",0,6
+    REM  state 8: After a backslash in a string
+    DATA "",0,6
+    REM  state 10: Inside a comment
+    DATA "",0,10
+
+    REM  Find a matching transition from the current state.
+    REPEAT
+      READ match$, action%, state%
+      PRINT "{";match$;"}";
+    UNTIL match$ = "" OR INSTR(match$, c$) > 0
+    PRINT "--["; action%; "]-> "; state%
+
+    REM  Execute any actions.
+    IF action% AND 1 AND p% > tokstart% THEN
+      tokens$(tokptr%) = MID$(src$, tokstart%, p% - tokstart%)
+      tokptr% += 1
+      tokstart% = p%
+    ENDIF
+    IF action% AND 2 THEN
+      tokens$(tokptr%) = MID$(src$, tokstart%, p% + 1 - tokstart%)
+      tokptr% += 1
+      tokstart% = p% + 1
+    ENDIF
+    IF action% AND 4 THEN tokstart% = p% + 1
+  NEXT p%
+  IF p% > tokstart% THEN
+    tokens$(tokptr%) = MID$(src$, tokstart%, p% - tokstart%)
+    tokptr% += 1
+  ENDIF
+=tokptr%        
