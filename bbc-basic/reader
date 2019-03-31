@@ -1,31 +1,22 @@
 REM Reader library for mal in BBC BASIC
 
-DEF PROCreader_init
-  reader_running% = FALSE
-  DIM reader_tokens$(255)
-ENDPROC
+REM  ** Reader **
 
-REM  ** Reader singleton pseudo-object **
+REM  The Reader object is implemented as an array and a mutable pointer.
 
-REM  To initialise a (the) reader, populate reader_tokens$() and then
-REM  call PROCreader_new.
-DEF PROCreader_new
-  IF reader_running% THEN ERROR "Reader already running"
-  reader_running% = TRUE
-  reader_ptr% = 0
-ENDPROC
+DEF FNreader_peek(tokens$(), RETURN tokptr%)
+=tokens$(tokptr%)
 
-DEF PROCreader_free
-  IF NOT reader_running% THEN ERROR "Reader not running"
-  reader_running% = FALSE
-ENDPROC
+DEF FNreader_next(token$(), RETURN tokptr%)
+  tokptr% += 1
+=tokens$(tokptr% - 1)
 
-DEF FNreader_peek
-=reader_tokens$(reader_ptr%)
-
-DEF FNreader_next
-  reader_ptr% = reader_ptr% + 1
-=reader_tokens$(reader_ptr% - 1)
+DEF FNread_str(src$)
+  LOCAL ntokens%, tokptr%, tokens$()
+  DIM tokens$(255)
+  ntokens% = FNtokenize(src$, tokens$())
+  tokptr% = 0
+=FNread_form(tokens$(), tokptr%)
 
 REM  ** Tokenizer **
 
