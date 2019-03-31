@@ -62,7 +62,6 @@ DEF FNtokenize(src$, tokens$())
     REM   2: Token boundary after this character
     REM   4: Discard this character (must have token boundary before)
 
-    PRINT state%; " --("; c$; ")";
     RESTORE +state%
 
     REM  state 2: Initial state, or inside a bare word
@@ -79,9 +78,7 @@ DEF FNtokenize(src$, tokens$())
     REM  Find a matching transition from the current state.
     REPEAT
       READ match$, action%, state%
-      PRINT "{";match$;"}";
     UNTIL match$ = "" OR INSTR(match$, c$) > 0
-    PRINT "--["; action%; "]-> "; state%
 
     REM  Execute any actions.
     IF action% AND 1 AND p% > tokstart% THEN
