@@ -1,4 +1,5 @@
 with Ada.Command_Line;
+with Ada.Containers.Vectors;
 with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
@@ -7,11 +8,10 @@ with Core;
 with Envs;
 with Err;
 with Eval_Cb;
+with Garbage_Collected;
 with Printer;
 with Reader;
 with Readline;
-with Types.Atoms;
-with Types.Builtins;
 with Types.Fns;
 with Types.Mal;
 with Types.Maps;
@@ -20,20 +20,19 @@ with Types.Symbols.Names;
 
 procedure Step7_Quote is
 
-   Dbgenv1 : constant Boolean := Ada.Environment_Variables.Exists ("dbgenv1");
-   Dbgenv0 : constant Boolean
-     := Dbgenv1 or Ada.Environment_Variables.Exists ("dbgenv0");
-   Dbgeval : constant Boolean
-     := Dbgenv0 or Ada.Environment_Variables.Exists ("dbgeval");
+   Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
 
    use Types;
    use type Mal.T;
+   package ACL renames Ada.Command_Line;
    package ASU renames Ada.Strings.Unbounded;
 
    function Read return Mal.T_Array with Inline;
 
    function Eval (Ast0 : in Mal.T;
                   Env0 : in Envs.Ptr) return Mal.T;
+   function Eval_Builtin (Args : in Mal.T_Array) return Mal.T;
+   --  The built-in variant needs to see the Repl variable.
 
    function Quasiquote (Ast : in Mal.T;
                         Env : in Envs.Ptr) return Mal.T;
@@ -46,7 +45,6 @@ procedure Step7_Quote is
 
    procedure Rep (Env : in Envs.Ptr) with Inline;
 
-   function Eval_Seq_Elts is new Sequences.Generic_Eval (Envs.Ptr, Eval);
    function Eval_Map_Elts is new Maps.Generic_Eval (Envs.Ptr, Eval);
 
    procedure Exec (Script : in String;
@@ -62,7 +60,7 @@ procedure Step7_Quote is
       --  Use local variables, that can be rewritten when tail call
       --  optimization goes to <<Restart>>.
       Ast            : Mal.T    := Ast0;
-      Env            : Envs.Ptr := Env0.Copy_Pointer;
+      Env            : Envs.Ptr := Env0;
       First          : Mal.T;
    begin
       <<Restart>>
@@ -70,94 +68,103 @@ procedure Step7_Quote is
          Ada.Text_IO.New_Line;
          Ada.Text_IO.Put ("EVAL: ");
          Print (Ast);
-         if Dbgenv0 then
-            Envs.Dump_Stack (Long => Dbgenv1);
-         end if;
+         Envs.Dump_Stack (Env.all);
       end if;
+
       case Ast.Kind is
       when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
         | Kind_Macro | Kind_Function =>
          return Ast;
       when Kind_Symbol =>
-         return Env.Get (Ast.Symbol);
+         return Env.all.Get (Ast.Symbol);
       when Kind_Map =>
-         return Eval_Map_Elts (Ast.Map, Env);
+         return Eval_Map_Elts (Ast.Map.all, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_Seq_Elts (Ast.Sequence, Env));
+         declare
+            Len  : constant Natural := Ast.Sequence.all.Length;
+            List : constant Mal.Sequence_Ptr := Sequences.Constructor (Len);
+         begin
+            for I in 1 .. Len loop
+               List.all.Replace_Element (I, Eval (Ast.Sequence.all (I), Env));
+            end loop;
+            return (Kind_Vector, List);
+         end;
       when Kind_List =>
          null;
       end case;
 
       --  Ast is a list.
-      if Ast.Sequence.Length = 0 then
+      if Ast.Sequence.all.Length = 0 then
          return Ast;
       end if;
-      First := Ast.Sequence (1);
+      First := Ast.Sequence.all (1);
 
       --  Special forms
       --  Ast is a non-empty list, First is its first element.
       case First.Kind is
       when Kind_Symbol =>
          if First.Symbol = Symbols.Names.Def then
-            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
-            Err.Check (Ast.Sequence (2).Kind = Kind_Symbol,
+            Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence.all (2).Kind = Kind_Symbol,
                        "parameter 1 must be a symbol");
-            return R : constant Mal.T := Eval (Ast.Sequence (3), Env) do
-               Env.Set (Ast.Sequence (2).Symbol, R);
+            return R : constant Mal.T := Eval (Ast.Sequence.all (3), Env) do
+               Env.all.Set (Ast.Sequence.all (2).Symbol, R);
             end return;
          --  do is a built-in function, shortening this test cascade.
          elsif First.Symbol = Symbols.Names.Fn then
-            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
-            Err.Check (Ast.Sequence (2).Kind in Kind_Sequence,
+            Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence.all (2).Kind in Kind_Sequence,
                        "parameter 1 must be a sequence");
-            return Fns.New_Function (Params => Ast.Sequence (2).Sequence,
-                                     Ast    => Ast.Sequence (3),
-                                     Env    => Env.New_Closure);
+            return Fns.New_Function
+              (Params => Ast.Sequence.all (2).Sequence.all,
+               Ast    => Ast.Sequence.all (3),
+               Env    => Env);
          elsif First.Symbol = Symbols.Names.Mal_If then
-            Err.Check (Ast.Sequence.Length in 3 .. 4,
+            Err.Check (Ast.Sequence.all.Length in 3 .. 4,
                        "expected 2 or 3 parameters");
             declare
-               Test : constant Mal.T := Eval (Ast.Sequence (2), Env);
+               Test : constant Mal.T := Eval (Ast.Sequence.all (2), Env);
             begin
                if Test /= Mal.Nil and Test /= (Kind_Boolean, False) then
-                  Ast := Ast.Sequence (3);
+                  Ast := Ast.Sequence.all (3);
                   goto Restart;
-               elsif Ast.Sequence.Length = 3 then
+               elsif Ast.Sequence.all.Length = 3 then
                   return Mal.Nil;
                else
-                  Ast := Ast.Sequence (4);
+                  Ast := Ast.Sequence.all (4);
                   goto Restart;
                end if;
             end;
          elsif First.Symbol = Symbols.Names.Let then
-            Err.Check (Ast.Sequence.Length = 3, "expected 2 parameters");
-            Err.Check (Ast.Sequence (2).Kind in Kind_Sequence,
+            Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
+            Err.Check (Ast.Sequence.all (2).Kind in Kind_Sequence,
                        "parameter 1 must be a sequence");
             declare
-               Bindings : constant Sequences.Ptr := Ast.Sequence (2).Sequence;
+               Bindings : constant Mal.Sequence_Ptr
+                 := Ast.Sequence.all (2).Sequence;
             begin
-               Err.Check (Bindings.Length mod 2 = 0,
+               Err.Check (Bindings.all.Length mod 2 = 0,
                           "parameter 1 must have an even length");
-               Env.Replace_With_Sub;
-               for I in 1 .. Bindings.Length / 2 loop
-                  Err.Check (Bindings (2 * I - 1).Kind = Kind_Symbol,
+               Env := Envs.New_Env (Outer => Env);
+               for I in 1 .. Bindings.all.Length / 2 loop
+                  Err.Check (Bindings.all (2 * I - 1).Kind = Kind_Symbol,
                              "binding keys must be symbols");
-                  Env.Set (Bindings (2 * I - 1).Symbol,
-                           Eval (Bindings (2 * I), Env));
+                  Env.all.Set (Bindings.all (2 * I - 1).Symbol,
+                               Eval (Bindings.all (2 * I), Env));
                end loop;
-               Ast := Ast.Sequence (3);
+               Ast := Ast.Sequence.all (3);
                goto Restart;
             end;
          elsif First.Symbol = Symbols.Names.Quasiquote then
-            Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
-            return Quasiquote (Ast.Sequence (2), Env);
+            Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
+            return Quasiquote (Ast.Sequence.all (2), Env);
          elsif First.Symbol = Symbols.Names.Quote then
-            Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
-            return Ast.Sequence (2);
+            Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
+            return Ast.Sequence.all (2);
          else
             --  Equivalent to First := Eval (First, Env)
             --  except that we already know enough to spare a recursive call.
-            First := Env.Get (First.Symbol);
+            First := Env.all.Get (First.Symbol);
          end if;
       when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
         | Kind_Macro | Kind_Function =>
@@ -176,24 +183,24 @@ procedure Step7_Quote is
       case First.Kind is
          when Kind_Builtin =>
             declare
-               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.all.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.Sequence (I), Env);
+                  Args (I) := Eval (Ast.Sequence.all (I), Env);
                end loop;
                return First.Builtin.all (Args);
             end;
          when Kind_Fn =>
             declare
-               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.all.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.Sequence (I), Env);
+                  Args (I) := Eval (Ast.Sequence.all (I), Env);
                end loop;
-               Env.Replace_With_Sub (Outer => First.Fn.Env,
-                                     Binds => First.Fn.Params,
-                                     Exprs => Args);
-               Ast := First.Fn.Ast;
+               Env := Envs.New_Env (Outer => First.Fn.all.Env,
+                                    Binds => First.Fn.all.Params,
+                                    Exprs => Args);
+               Ast := First.Fn.all.Ast;
                goto Restart;
             end;
          when others =>
@@ -225,46 +232,56 @@ procedure Step7_Quote is
                         Env : in Envs.Ptr) return Mal.T
    is
 
-      function Quasiquote_List (List : in Sequences.Ptr) return Mal.T
+      function Quasiquote_List (List : in Sequences.Instance) return Mal.T
         with Inline;
       --  Handle vectors and lists not starting with unquote.
 
-      function Quasiquote_List (List : in Sequences.Ptr) return Mal.T is
-         --  The final return concatenates these lists.
-         R : Mal.T_Array (1 .. List.Length);
+      function Quasiquote_List (List : in Sequences.Instance) return Mal.T is
+         package Vectors is new Ada.Containers.Vectors (Positive, Mal.T);
+         Vector   : Vectors.Vector; --  buffer for concatenation
+         Sequence : Mal.Sequence_Ptr;
+         Tmp      : Mal.T;
       begin
-         for I in R'Range loop
-            R (I) := List (I);
-            if R (I).Kind in Kind_List and then 0 < R (I).Sequence.Length
-              and then R (I).Sequence (1) = (Kind_Symbol,
-                                         Symbols.Names.Splice_Unquote)
+         for I in 1 .. List.Length loop
+            if List (I).Kind in Kind_List
+              and then 0 < List (I).Sequence.all.Length
+              and then List (I).Sequence.all (1)
+                = (Kind_Symbol, Symbols.Names.Splice_Unquote)
             then
-               Err.Check (R (I).Sequence.Length = 2,
+               Err.Check (List (I).Sequence.all.Length = 2,
                           "splice-unquote expects 1 parameter");
-               R (I) := Eval (@.Sequence (2), Env);
-               Err.Check (R (I).Kind = Kind_List,
+               Tmp := Eval (List (I).Sequence.all (2), Env);
+               Err.Check (Tmp.Kind = Kind_List,
                           "splice_unquote expects a list");
+               for I in 1 .. Tmp.Sequence.all.Length loop
+                  Vector.Append (Tmp.Sequence.all (I));
+               end loop;
             else
-               R (I) := Sequences.List
-                 (Mal.T_Array'(1 => Quasiquote (@, Env)));
+               Vector.Append (Quasiquote (List (I), Env));
             end if;
          end loop;
-         return Sequences.Concat (R);
+         --  Now that we know the number of elements, convert to a list.
+         Sequence := Sequences.Constructor (Natural (Vector.Length));
+         for I in 1 .. Natural (Vector.Length) loop
+            Sequence.Replace_Element (I, Vector (I));
+         end loop;
+         return (Kind_List, Sequence);
       end Quasiquote_List;
 
    begin                                --  Quasiquote
       case Ast.Kind is
          when Kind_Vector =>
             --  When the test is updated, replace Kind_List with Kind_Vector.
-            return Quasiquote_List (Ast.Sequence);
+            return Quasiquote_List (Ast.Sequence.all);
          when Kind_List =>
-            if 0 < Ast.Sequence.Length
-              and then Ast.Sequence (1) = (Kind_Symbol, Symbols.Names.Unquote)
+            if 0 < Ast.Sequence.all.Length
+              and then Ast.Sequence.all (1) = (Kind_Symbol,
+                                               Symbols.Names.Unquote)
             then
-               Err.Check (Ast.Sequence.Length = 2, "expected 1 parameter");
-               return Eval (Ast.Sequence (2), Env);
+               Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
+               return Eval (Ast.Sequence.all (2), Env);
             else
-               return Quasiquote_List (Ast.Sequence);
+               return Quasiquote_List (Ast.Sequence.all);
             end if;
          when others =>
             return Ast;
@@ -291,27 +308,37 @@ procedure Step7_Quote is
      := "(def! not (fn* (a) (if a false true)))"
      & "(def! load-file (fn* (f)"
      & "  (eval (read-string (str ""(do "" (slurp f) "")"")))))";
-   Repl : Envs.Ptr renames Envs.Repl;
+   Repl : constant Envs.Ptr := Envs.New_Env;
+   function Eval_Builtin (Args : in Mal.T_Array) return Mal.T is
+   begin
+      Err.Check (Args'Length = 1, "expected 1 parameter");
+      return Eval_Cb.Cb.all (Args (Args'First), Repl);
+   end Eval_Builtin;
+   Script : constant Boolean := 0 < ACL.Argument_Count;
+   Argv   : Mal.Sequence_Ptr;
 begin
    --  Show the Eval function to other packages.
    Eval_Cb.Cb := Eval'Unrestricted_Access;
    --  Add Core functions into the top environment.
-   Core.NS_Add_To_Repl;
+   Core.NS_Add_To_Repl (Repl);
+   Repl.all.Set (Symbols.Constructor ("eval"),
+                 (Kind_Builtin, Eval_Builtin'Unrestricted_Access));
    --  Native startup procedure.
    Exec (Startup, Repl);
    --  Define ARGV from command line arguments.
-   declare
-      use Ada.Command_Line;
-      Args : Mal.T_Array (2 .. Argument_Count);
-   begin
-      for I in Args'Range loop
-         Args (I) := (Kind_String, ASU.To_Unbounded_String (Argument (I)));
+   if Script then
+      Argv := Sequences.Constructor (ACL.Argument_Count - 1);
+      for I in 2 .. ACL.Argument_Count loop
+         Argv.all.Replace_Element
+           (I - 1, (Kind_String, ASU.To_Unbounded_String (ACL.Argument (I))));
       end loop;
-      Repl.Set (Symbols.Constructor ("*ARGV*"), Sequences.List (Args));
-   end;
-   --  Script?
-   if 0 < Ada.Command_Line.Argument_Count then
-      Exec ("(load-file """ & Ada.Command_Line.Argument (1) & """)", Repl);
+   else
+      Argv := Sequences.Constructor (0);
+   end if;
+   Repl.all.Set (Symbols.Constructor ("*ARGV*"), (Kind_List, Argv));
+   --  Execute user commands.
+   if Script then
+      Exec ("(load-file """ & ACL.Argument (1) & """)", Repl);
    else
       loop
          begin
@@ -323,16 +350,17 @@ begin
                Ada.Text_IO.Unbounded_IO.Put (Err.Trace);
          end;
          --  Other exceptions are really unexpected.
+
+         --  Collect garbage.
+         Err.Data := Mal.Nil;
+         Repl.all.Keep;
+         Garbage_Collected.Clean;
       end loop;
       Ada.Text_IO.New_Line;
    end if;
+
    --  If assertions are enabled, check deallocations.
-   Err.Data := Mal.Nil;  --  Remove references to other packages
-   pragma Debug (Envs.Clear_And_Check_Allocations);
-   pragma Debug (Atoms.Check_Allocations);
-   pragma Debug (Builtins.Check_Allocations);
-   pragma Debug (Fns.Check_Allocations);
-   pragma Debug (Maps.Check_Allocations);
-   pragma Debug (Sequences.Check_Allocations);
-   pragma Debug (Symbols.Check_Allocations);
+   pragma Debug (Garbage_Collected.Clean);
+   Garbage_Collected.Check_Allocations;
+   Symbols.Check_Allocations;
 end Step7_Quote;

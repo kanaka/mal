@@ -1,52 +1,48 @@
-private with Ada.Finalization;
-
-limited with Envs;
-limited with Types.Mal;
-limited with Types.Sequences;
-limited with Types.Symbols;
+with Envs;
+with Garbage_Collected;
+with Types.Mal;
+with Types.Sequences;
+with Types.Symbols;
 
 package Types.Fns is
 
-   type Ptr is tagged private;
+   type Instance (<>) is new Garbage_Collected.Instance with private;
    --  A pointer to an user-defined function or macro.
 
-   function New_Function (Params : in Sequences.Ptr;
+   function New_Function (Params : in Types.Sequences.Instance;
                           Ast    : in Mal.T;
-                          Env    : in Envs.Closure_Ptr) return Mal.T
+                          Env    : in Envs.Ptr) return Mal.T
      with Inline;
    --  Raise an exception if Params contains something else than symbols.
 
-   function New_Macro (Item : in Ptr) return Mal.T with Inline;
+   function New_Macro (Item : in Instance) return Mal.T with Inline;
 
-   function Params (Item : in Ptr) return Symbols.Symbol_Array with Inline;
-   function Ast (Item : in Ptr) return Mal.T with Inline;
+   function Params (Item : in Instance) return Symbols.Symbol_Array
+     with Inline;
+   function Ast (Item : in Instance) return Mal.T with Inline;
    --  Useful to print.
 
-   function Apply (Item : in Ptr;
+   function Apply (Item : in Instance;
                    Args : in Mal.T_Array) return Mal.T with Inline;
-   --  Fails for macros.
+   --  Returns null for macros.
 
-   function Env (Item : in Ptr) return Envs.Closure_Ptr with Inline;
-   --  Fails for macros. Required for TCO, instead of Apply.
+   function Env (Item : in Instance) return Envs.Ptr with Inline;
+   --  Returns null for macros.
+   --  Required for TCO, instead of Apply.
 
-   function Meta (Item : in Ptr) return Mal.T with Inline;
-   --  Fails for macros.
-   function With_Meta (Item     : in Ptr;
+   function Meta (Item : in Instance) return Mal.T with Inline;
+   function With_Meta (Item     : in Instance;
                        Metadata : in Mal.T) return Mal.T with Inline;
-   --  Fails for macros.
-
-   procedure Check_Allocations;
 
 private
 
-   type Rec;
-   type Acc is access Rec;
-   type Ptr is new Ada.Finalization.Controlled with record
-      Ref : Acc := null;
-   end record
-     with Invariant => Ptr.Ref /= null;
-   overriding procedure Adjust   (Object : in out Ptr) with Inline;
-   overriding procedure Finalize (Object : in out Ptr) with Inline;
-   pragma Finalize_Storage_Only (Ptr);
+   type Instance (Last : Natural) is new Garbage_Collected.Instance
+     with record
+        F_Ast    : Mal.T;
+        F_Env    : Envs.Ptr;
+        F_Meta   : Mal.T;
+        F_Params : Symbols.Symbol_Array (1 .. Last);
+   end record;
+   overriding procedure Keep_References (Object : in out Instance) with Inline;
 
 end Types.Fns;

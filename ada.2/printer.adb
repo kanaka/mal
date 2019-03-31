@@ -22,10 +22,10 @@ package body Printer is
 
       --  Helpers for Print_Form.
       procedure Print_Number   (Number : in Integer)              with Inline;
-      procedure Print_List     (List   : in Sequences.Ptr)        with Inline;
-      procedure Print_Map      (Map    : in Maps.Ptr)             with Inline;
+      procedure Print_List     (List   : in Sequences.Instance)   with Inline;
+      procedure Print_Map      (Map    : in Maps.Instance)        with Inline;
       procedure Print_Readably (S      : in Unbounded_String)     with Inline;
-      procedure Print_Function (Fn     : in Fns.Ptr)              with Inline;
+      procedure Print_Function (Fn     : in Fns.Instance)         with Inline;
 
       ----------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ package body Printer is
                   Append (Buffer, "false");
                end if;
             when Kind_Symbol =>
-               Append (Buffer, Form_Ast.Symbol.To_String);
+               Append (Buffer, Symbols.To_String (Form_Ast.Symbol));
             when Kind_Number =>
                Print_Number (Form_Ast.Number);
             when Kind_Keyword =>
@@ -57,34 +57,34 @@ package body Printer is
                end if;
             when Kind_List =>
                Append (Buffer, '(');
-               Print_List (Form_Ast.Sequence);
+               Print_List (Form_Ast.Sequence.all);
                Append (Buffer, ')');
             when Kind_Vector =>
                Append (Buffer, '[');
-               Print_List (Form_Ast.Sequence);
+               Print_List (Form_Ast.Sequence.all);
                Append (Buffer, ']');
             when Kind_Map =>
                Append (Buffer, '{');
-               Print_Map (Form_Ast.Map);
+               Print_Map (Form_Ast.Map.all);
                Append (Buffer, '}');
             when Kind_Builtin | Kind_Builtin_With_Meta =>
                Append (Buffer, "#<built-in>");
             when Kind_Fn =>
                Append (Buffer, "#<function (");
-               Print_Function (Form_Ast.Fn);
+               Print_Function (Form_Ast.Fn.all);
                Append (Buffer, '>');
             when Kind_Macro =>
                Append (Buffer, "#<macro (");
-               Print_Function (Form_Ast.Fn);
+               Print_Function (Form_Ast.Fn.all);
                Append (Buffer, '>');
             when Kind_Atom =>
                Append (Buffer, "(atom ");
-               Print_Form (Atoms.Deref (Form_Ast.Atom));
+               Print_Form (Form_Ast.Atom.all.Deref);
                Append (Buffer, ')');
          end case;
       end Print_Form;
 
-      procedure Print_Function (Fn : in Fns.Ptr) is
+      procedure Print_Function (Fn : in Fns.Instance) is
          Started : Boolean := False;
       begin
          Append (Buffer, '(');
@@ -94,13 +94,13 @@ package body Printer is
             else
                Started := True;
             end if;
-            Append (Buffer, Param.To_String);
+            Append (Buffer, Symbols.To_String (Param));
          end loop;
          Append (Buffer, ") -> ");
          Print_Form (Fn.Ast);
       end Print_Function;
 
-      procedure Print_List (List : in Sequences.Ptr) is
+      procedure Print_List (List : in Sequences.Instance) is
       begin
          if 0 < List.Length then
             Print_Form (List (1));
@@ -111,7 +111,7 @@ package body Printer is
          end if;
       end Print_List;
 
-      procedure Print_Map (Map : in Maps.Ptr) is
+      procedure Print_Map (Map : in Maps.Instance) is
          procedure Process (Key     : in Mal.T;
                             Element : in Mal.T) with Inline;
          procedure Iterate is new Maps.Iterate (Process);

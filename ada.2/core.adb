@@ -3,11 +3,10 @@ with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
 
-with Envs;
 with Err;
-with Eval_Cb;
 with Types.Atoms;
 with Types.Builtins;
+with Types.Fns;
 with Types.Mal;
 with Types.Maps;
 with Types.Sequences;
@@ -64,7 +63,6 @@ package body Core is
    function Apply         (Args : in Mal.T_Array) return Mal.T;
    function Division      is new Generic_Mal_Operator ("/");
    function Equals        (Args : in Mal.T_Array) return Mal.T;
-   function Eval          (Args : in Mal.T_Array) return Mal.T;
    function Greater_Equal is new Generic_Comparison (">=");
    function Greater_Than  is new Generic_Comparison (">");
    function Is_Atom       is new Generic_Kind_Test (Kind_Atom);
@@ -108,19 +106,19 @@ package body Core is
       Err.Check (Args (Args'Last).Kind in Kind_Sequence,
                  "last parameter must be a sequence");
       declare
-         use type Sequences.Ptr;
+         use type Sequences.Instance;
          F : Mal.T renames Args (Args'First);
          A : constant Mal.T_Array
            := Args (Args'First + 1 .. Args'Last - 1)
-           & Args (Args'Last).Sequence;
+           & Args (Args'Last).Sequence.all;
       begin
          case F.Kind is
             when Kind_Builtin =>
                return F.Builtin.all (A);
             when Kind_Builtin_With_Meta =>
-               return F.Builtin_With_Meta.Builtin.all (A);
+               return F.Builtin_With_Meta.all.Builtin.all (A);
             when Kind_Fn =>
-               return F.Fn.Apply (A);
+               return F.Fn.all.Apply (A);
             when others =>
                Err.Raise_With ("parameter 1 must be a function");
          end case;
@@ -133,13 +131,6 @@ package body Core is
       Err.Check (Args'Length = 2, "expected 2 parameters");
       return (Kind_Boolean, Args (Args'First) = Args (Args'Last));
    end Equals;
-
-   function Eval (Args : in Mal.T_Array) return Mal.T is
-   begin
-      Err.Check (Args'Length = 1, "expected 1 parameter");
-      return Eval_Cb.Cb.all (Ast => Args (Args'First),
-                             Env => Envs.Repl);
-   end Eval;
 
    function Is_False (Args : in Mal.T_Array) return Mal.T is
    begin
@@ -188,13 +179,13 @@ package body Core is
       begin
          case A1.Kind is
             when Kind_Sequence =>
-               return A1.Sequence.Meta;
+               return A1.Sequence.all.Meta;
             when Kind_Map =>
-               return A1.Map.Meta;
+               return A1.Map.all.Meta;
             when Kind_Fn =>
-               return A1.Fn.Meta;
+               return A1.Fn.all.Meta;
             when Kind_Builtin_With_Meta =>
-               return A1.Builtin_With_Meta.Meta;
+               return A1.Builtin_With_Meta.all.Meta;
             when Kind_Builtin =>
                return Mal.Nil;
             when others =>
@@ -203,14 +194,14 @@ package body Core is
       end;
    end Meta;
 
-   procedure NS_Add_To_Repl is
+   procedure NS_Add_To_Repl (Repl : in Envs.Ptr) is
       procedure P (S : in Symbols.Ptr;
                    B : in Mal.Builtin_Ptr) with Inline;
       procedure P (S : in Symbols.Ptr;
                    B : in Mal.Builtin_Ptr)
       is
       begin
-         Envs.Repl.Set (S, (Kind_Builtin, B));
+         Repl.all.Set (S, (Kind_Builtin, B));
       end P;
    begin
       P (Symbols.Constructor ("+"),           Addition'Access);
@@ -227,7 +218,6 @@ package body Core is
       P (Symbols.Constructor ("/"),           Division'Access);
       P (Symbols.Constructor ("do"),          Mal_Do'Access);
       P (Symbols.Constructor ("="),           Equals'Access);
-      P (Symbols.Constructor ("eval"),        Eval'Access);
       P (Symbols.Constructor ("first"),       Sequences.First'Access);
       P (Symbols.Constructor ("get"),         Maps.Get'Access);
       P (Symbols.Constructor (">="),          Greater_Equal'Access);
@@ -360,7 +350,7 @@ package body Core is
                end;
             end if;
          when Kind_Sequence =>
-            if Args (Args'First).Sequence.Length = 0 then
+            if Args (Args'First).Sequence.all.Length = 0 then
                return Mal.Nil;
             else
                return (Kind_List, Args (Args'First).Sequence);
@@ -427,17 +417,17 @@ package body Core is
       begin
          case A1.Kind is
             when Kind_Builtin_With_Meta =>
-               return A1.Builtin_With_Meta.With_Meta (A2);
+               return Builtins.With_Meta (A1.Builtin_With_Meta.all, A2);
             when Kind_Builtin =>
                return Builtins.With_Meta (A1.Builtin, A2);
             when Kind_List =>
-               return (Kind_List, A1.Sequence.With_Meta (A2));
+               return (Kind_List, Sequences.With_Meta (A1.Sequence.all, A2));
             when Kind_Vector =>
-               return (Kind_Vector, A1.Sequence.With_Meta (A2));
+               return (Kind_Vector, Sequences.With_Meta (A1.Sequence.all, A2));
             when Kind_Map =>
-               return A1.Map.With_Meta (A2);
+               return Maps.With_Meta (A1.Map.all, A2);
             when Kind_Fn =>
-               return A1.Fn.With_Meta (A2);
+               return Fns.With_Meta (A1.Fn.all, A2);
             when others =>
                Err.Raise_With
                  ("parameter 1 must be a function, map or sequence");

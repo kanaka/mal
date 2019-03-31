@@ -1,138 +1,49 @@
-private with Ada.Finalization;
+private with Ada.Containers.Hashed_Maps;
 
+with Garbage_Collected;
 with Types.Mal;
 with Types.Symbols;
 
-package Envs with Elaborate_Body is
+package Envs is
 
    --  This package should be named Env, but Ada does not allow formal
    --  parameters to be named like a package dependency, and it seems
    --  that readability inside Eval is more important.
 
-   --  This implementation relies on the fact that the caller only
-   --  ever references environments in its execution stack.
+   type Instance (<>) is new Garbage_Collected.Instance with private;
+   type Ptr is access Instance;
 
-   --  When a function closure references an environment that the
-   --  execution leaves behind, a dynamically allocated block is used
-   --  instead.
+   No_Binds : Types.Symbols.Symbol_Array renames Types.Symbols.Empty_Array;
+   No_Exprs : constant Types.Mal.T_Array := (1 .. 0 => Types.Mal.Nil);
 
-   --  The eval built-in requires REPL (see the implementation of
-   --  load-file), so we cannot assume that the caller only sees the
-   --  current environment.
+   function New_Env (Outer : in Ptr                        := null;
+                     Binds : in Types.Symbols.Symbol_Array := No_Binds;
+                     Exprs : in Types.Mal.T_Array          := No_Exprs)
+                    return Ptr;
 
-   type Ptr (<>) is tagged limited private;
-   --  This type is controlled in order count the references to a
-   --  given environment, even during exception propagation.
-   --  Since Ptr is limited with a hidden discriminant, any variable
-   --  must immediately be assigned with one of
-   --  * Copy_Pointer,
-   --  * Sub (either from a Ptr or from a Closure_Ptr).
-   --  Usual assignment with reference counting is not provided
-   --  because we want to enforce the use of the more efficient
-   --  Replace_With_Sub.
-
-   Repl : constant Ptr;
-   --  The top environment.
-
-   function Copy_Pointer (Env : in Ptr) return Ptr with Inline;
-   --  Allows assignment to a freshly created variable.  This is
-   --  required for tail call optimization, but should be avoided
-   --  elsewhere.
-
-   procedure Replace_With_Sub (Env : in out Ptr) with Inline;
-   --  for let*
-
-   procedure Replace_With_Sub (Env   : in out Ptr;
-                               Binds : in     Types.Symbols.Symbol_Array;
-                               Exprs : in     Types.Mal.T_Array) with Inline;
-   --  when expanding macros.
-
-   procedure Set (Env         : in Ptr;
-                  Key         : in Types.Symbols.Ptr;
-                  New_Element : in Types.Mal.T)
-     with Inline;
-
-   --  The Find method is merged into the Get method.
-
-   function Get (Evt : in Ptr;
+   function Get (Env : in Instance;
                  Key : in Types.Symbols.Ptr) return Types.Mal.T;
-   --  Raises Core.Error_Exception if the key is not found.
 
-   --  Function closures.
+   procedure Set (Env      : in out Instance;
+                  Key      : in     Types.Symbols.Ptr;
+                  New_Item : in     Types.Mal.T) with Inline;
 
-   type Closure_Ptr is tagged private;
-   Null_Closure : constant Closure_Ptr;
-
-   function New_Closure (Env : in Ptr'Class) return Closure_Ptr;
-   --  The class-wide argument does not make much sense, but avoids
-   --  the compiler wondering on which type is should dispatch.
-
-   function Sub (Outer : in Closure_Ptr'Class;
-                 Binds : in Types.Symbols.Symbol_Array;
-                 Exprs : in Types.Mal.T_Array) return Ptr;
-   --  when applying functions without tail call optimization.
-   --  Construct a new environment with the given outer parent.
-   --  Then call Set with the paired elements of Binds and Exprs,
-   --  handling the "&" special formal parameter if present.
-   --  May raise Error.
-
-   procedure Replace_With_Sub (Env   : in out Ptr;
-                               Outer : in     Closure_Ptr'Class;
-                               Binds : in     Types.Symbols.Symbol_Array;
-                               Exprs : in     Types.Mal.T_Array);
-   --  when applying functions with tail call optimization.
-   --  Equivalent to Env := Sub (Env, Binds, Exprs), except that such
-   --  an assignment is forbidden or discouraged for performance reasons.
-
-   function Sub (Outer : in Ptr;
-                 Binds : in Types.Symbols.Symbol_Array;
-                 Exprs : in Types.Mal.T_Array) return Ptr;
-   --  when applying macros
-
-   --  Debugging.
-   procedure Dump_Stack (Long : in Boolean);
-   procedure Clear_And_Check_Allocations;
+   --  Debug.
+   procedure Dump_Stack (Env : in Instance);
 
 private
 
-   --  There must be a reference level so that functions may keep
-   --  track of their initial environment, and another one for
-   --  reallocations.  The second one is delegated to a predefined Ada
-   --  container.
+   package HM is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Types.Symbols.Ptr,
+      Element_Type    => Types.Mal.T,
+      Hash            => Types.Symbols.Hash,
+      Equivalent_Keys => Types.Symbols."=",
+      "="             => Types.Mal."=");
 
-   --  MAL maps may be tempting, but we do not want to copy the whole
-   --  map for each addition or removal.
-
-   --  Some tests seem to show that a hashmap is three times faster
-   --  than a vector with (key, value) couples.
-
-   --  We allow the null value so that the empty environment in a
-   --  macro does not trigger an allocation.
-
-   type Stack_Index is range 0 .. 200;
-
-   --  See README for the implementation of reference counting.
-
-   type Ptr is new Ada.Finalization.Limited_Controlled with record
-      Index : Stack_Index := 0;
-   end record
-     with Invariant => Ptr.Index in 1 .. Top;
-   overriding procedure Finalize (Object : in out Ptr) with Inline;
-   pragma Finalize_Storage_Only (Ptr);
-
-   Top : Stack_Index := 1;
-   Repl : constant Ptr := (Ada.Finalization.Limited_Controlled with 1);
-
-   type Heap_Record;
-   type Heap_Access is access Heap_Record;
-   type Closure_Ptr is new Ada.Finalization.Controlled with record
-      Ref : Heap_Access := null;
+   type Instance is new Garbage_Collected.Instance with record
+      Outer : Ptr;
+      Data  : HM.Map;
    end record;
-   overriding procedure Adjust   (Object : in out Closure_Ptr) with Inline;
-   overriding procedure Finalize (Object : in out Closure_Ptr) with Inline;
-   pragma Finalize_Storage_Only (Closure_Ptr);
-
-   Null_Closure : constant Closure_Ptr
-     := (Ada.Finalization.Controlled with null);
+   overriding procedure Keep_References (Object : in out Instance) with Inline;
 
 end Envs;

@@ -1,15 +1,11 @@
 with Ada.Text_IO.Unbounded_IO;
 
 with Err;
+with Garbage_Collected;
 with Printer;
 with Reader;
 with Readline;
-with Types.Atoms;
-with Types.Builtins;
-with Types.Fns;
 with Types.Mal;
-with Types.Maps;
-with Types.Sequences;
 with Types.Symbols;
 
 procedure Step1_Read_Print is
@@ -56,14 +52,14 @@ begin
             Ada.Text_IO.Unbounded_IO.Put (Err.Trace);
       end;
       --  Other exceptions are really unexpected.
+
+      --  Collect garbage.
+      Err.Data := Mal.Nil;
+      Garbage_Collected.Clean;
    end loop;
    Ada.Text_IO.New_Line;
    --  If assertions are enabled, check deallocations.
-   Err.Data := Mal.Nil;  --  Remove references to other packages
-   pragma Debug (Atoms.Check_Allocations);
-   pragma Debug (Builtins.Check_Allocations);
-   pragma Debug (Fns.Check_Allocations);
-   pragma Debug (Maps.Check_Allocations);
-   pragma Debug (Sequences.Check_Allocations);
-   pragma Debug (Symbols.Check_Allocations);
+   pragma Debug (Garbage_Collected.Clean);
+   Garbage_Collected.Check_Allocations;
+   Symbols.Check_Allocations;
 end Step1_Read_Print;

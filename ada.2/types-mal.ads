@@ -1,10 +1,10 @@
 with Ada.Strings.Unbounded;
 
-with Types.Atoms;
-with Types.Builtins;
-with Types.Fns;
-with Types.Maps;
-with Types.Sequences;
+limited with Types.Atoms;
+limited with Types.Builtins;
+limited with Types.Fns;
+limited with Types.Maps;
+limited with Types.Sequences;
 with Types.Symbols;
 
 package Types.Mal is
@@ -48,7 +48,13 @@ package Types.Mal is
 
    type T;
    type T_Array;
+
+   type Atom_Ptr is access Atoms.Instance;
    type Builtin_Ptr is access function (Args : in T_Array) return T;
+   type Builtin_With_Meta_Ptr is access Builtins.Instance;
+   type Fn_Ptr is access Fns.Instance;
+   type Map_Ptr is access Maps.Instance;
+   type Sequence_Ptr is access Sequences.Instance;
 
    type T (Kind : Kind_Type := Kind_Nil) is record
       case Kind is
@@ -59,21 +65,21 @@ package Types.Mal is
          when Kind_Number =>
             Number                    : Integer;
          when Kind_Atom =>
-            Atom                      : Atoms.Ptr;
+            Atom                      : Atom_Ptr;
          when Kind_Key =>
             S                         : Ada.Strings.Unbounded.Unbounded_String;
          when Kind_Symbol =>
             Symbol                    : Symbols.Ptr;
          when Kind_Sequence =>
-            Sequence                  : Sequences.Ptr;
+            Sequence                  : Sequence_Ptr;
          when Kind_Map =>
-            Map                       : Maps.Ptr;
+            Map                       : Map_Ptr;
          when Kind_Builtin =>
             Builtin                   : Builtin_Ptr;
          when Kind_Builtin_With_Meta =>
-            Builtin_With_Meta         : Builtins.Ptr;
+            Builtin_With_Meta         : Builtin_With_Meta_Ptr;
          when Kind_Fn | Kind_Macro =>
-            Fn                        : Fns.Ptr;
+            Fn                        : Fn_Ptr;
       end case;
    end record;
 
@@ -82,6 +88,8 @@ package Types.Mal is
    function "=" (Left, Right : in T) return Boolean with Inline;
 
    Nil : constant T := (Kind => Kind_Nil);
+
+   procedure Keep (Object : in Mal.T) with Inline;
 
    type T_Array is array (Positive range <>) of T;
 
