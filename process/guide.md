@@ -74,9 +74,11 @@ add new implementations to mal as efficiently as possible, then you
 SHOULD find the most similar target language implementation and refer
 to it frequently.
 
-If you want a fairly long list of programming languages with an
-approximate measure of popularity, try the [Programming Language
-Popularity Chart](http://langpop.corger.nl/)
+If you want a list of programming languages with an
+approximate measure of popularity try the [RedMonk Programming
+Language
+Rankings](https://redmonk.com/sogrady/2019/03/20/language-rankings-1-19/)
+or the [GitHut 2.0 Project](https://madnight.github.io/githut).
 
 
 ## Getting started
@@ -186,7 +188,7 @@ a textual diff/comparison tool to compare the previous pseudocode step
 with the one you are working on. The architecture diagram images have
 changes from the previous step highlighted in red. There is also
 a concise
-[cheatsheet](http://kanaka.github.io/mal/process/cheatsheet.html) that
+[cheatsheet](http://kanaka.github.io/mal/cheatsheet.html) that
 summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
