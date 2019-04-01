@@ -14,18 +14,18 @@ but also two crucial performance improvements:
 * Lists are implemented as C-style arrays, and most of them can be
   allocated on the stack.
 
-Once each component has an explicit interface, various optimizations
-have been added: unique allocation of symbols, stack-style allocation
-of environments in the current execution path, reuse of allocated
-memory when the reference count reaches 1...
+Another difference is that a minimal form of garbage collecting is
+implemented, removing objects not referenced from the main
+environment. Reference counting is convenient for symbols or strings,
+but never deallocates cyclic structures. The implementation collects
+garbage after each Read-Eval-Print cycle. It would be much more
+difficult to collect garbage inside scripts. If this is ever done, it
+would be better to reimplement load-file in Ada and run a cycle after
+each root evaluation.
 
 The eventual performances compete with C-style languages, allthough
 all user input is checked (implicit language-defined checks like array
 bounds and discriminant consistency are only enabled during tests).
-
-There are also similarities with the first implementation.  For
-example, both rely on user-defined finalization to count references in
-recursive structures instead of a posteriori garbage collection.
 
 Notes for contributors that do not fit in a specific package.
 --
@@ -35,23 +35,28 @@ Notes for contributors that do not fit in a specific package.
   ensuring a valid value during elaboration.
   Note that generic packages cannot export access values.
 
-* All wrapped pointers are non null, new variables must be assigned
+* Symbol pointers are non null, new variables must be assigned
   immediately. This is usually enforced by a hidden discriminant, but
   here we want the type to become a field inside Types.Mal.T. So the
   check happens at run time with a private invariant.
 
-* The finalize procedure may be called twice, so it does nothing when
+  The finalize procedure may be called twice, so it does nothing when
   the reference count is zero, meaning that we are reaching Finalize
   recursively.
 
-* In implementations, a consistent object (that will be deallocated
-  automatically) must be built before any exception is raised by user
-  code (for example the 'map' built-in function may run user code).
+* In implementations with reference counting, a consistent object
+  (that will be deallocated automatically) must be built before any
+  exception is raised by user code (for example the 'map' built-in
+  function may run user code).  Garbage collection simplifies a lot
+  this kind of situations.
 
 * Each module encapsulating dynamic allocation counts allocations and
   deallocations. With debugging options, a failure is reported if
   - too many deallocation happen (via a numeric range check)
   - all storage is not freed (via a dedicated call from the step file)
+
+  The main program only checks that the garbage collector removes all
+  allocations at the end of execution.
 
 Debugging
 --
@@ -61,7 +66,5 @@ TCO cycles).  This has become possible in step9, but has been
 backported to former steps as this is really handy for debugging.
 
 Some environment variables increase verbosity.
-# dbg_reader= ./stepAmal     trace reader recursion
-# dbgeval=    ./stepAmal     eval recursion (or TCO)
-# dbgenv0=    ./stepAmal     eval recursion and environments contents
-# dbgenv1=    ./stepAmal     eval recursion and environment internals
+# dbgread= ./stepAmal     trace reader recursion
+# dbgeval= ./stepAmal     trace eval recursion (including TCO)

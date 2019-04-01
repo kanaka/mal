@@ -1,10 +1,9 @@
-private with Ada.Finalization;
-
-limited with Types.Mal;
+with Garbage_Collected;
+with Types.Mal;
 
 package Types.Sequences is
 
-   type Ptr is tagged private
+   type Instance (<>) is new Garbage_Collected.Instance with private
      with Constant_Indexing => Element;
 
    --  Built-in functions.
@@ -20,59 +19,41 @@ package Types.Sequences is
    function Rest     (Args : in Mal.T_Array) return Mal.T;
    function Vector   (Args : in Mal.T_Array) return Mal.T;
 
-   function Length (Source : in Ptr) return Natural with Inline;
+   function "=" (Left, Right : in Instance) return Boolean with Inline;
 
-   function Element (Container : in Ptr;
+   function Length (Source : in Instance) return Natural with Inline;
+
+   function Element (Container : in Instance;
                      Index     : in Positive) return Mal.T
      with Inline, Pre => Index <= Length (Container);
 
    function "&" (Left  : in Mal.T_Array;
-                 Right : in Ptr) return Mal.T_Array;
+                 Right : in Instance) return Mal.T_Array with Inline;
    --  Used to implement Core.Apply.
 
-   --  Used to evaluate each element of a list/vector.
-   --  Eval is generic because units cannot depend on each other.
-   generic
-      type Env_Type (<>) is limited private;
-      with function Eval (Ast : in Mal.T;
-                          Env : in Env_Type)
-                         return Mal.T;
-   function Generic_Eval (Container : in Ptr;
-                          Env       : in Env_Type)
-                         return Ptr;
+   function Constructor (Length : in Natural) return Mal.Sequence_Ptr
+     with Inline;
+   procedure Replace_Element (Container : in out Instance;
+                              Index     : in     Positive;
+                              New_Item  : in     Mal.T)
+     with Inline, Pre => Index <= Length (Container);
 
    --  Used in macro implementation.
-   function Tail (Source : in Ptr;
+   function Tail (Source : in Instance;
                   Count  : in Natural) return Mal.T_Array
      with Inline, Pre => Count <= Length (Source);
 
-   function Meta (Item : in Ptr) return Mal.T with Inline;
-   function With_Meta (Data     : in Ptr;
+   function Meta (Item : in Instance) return Mal.T with Inline;
+   function With_Meta (Data     : in Instance;
                        Metadata : in Mal.T)
-                      return Ptr;
-
-   --  Debug.
-   procedure Check_Allocations;
+                      return Mal.Sequence_Ptr;
 
 private
 
-   --  It is tempting to use null to represent an empty list, but the
-   --  performance is not improved much, and the code is more complex.
-   --  In addition, the empty list may want to carry metadata.
-
-   --  Similarly, always providing a default value like a pointer to a
-   --  static empty list would not gain much, and probably hide some
-   --  bugs.
-
-   type Rec;
-   type Acc is access Rec;
-   type Ptr is new Ada.Finalization.Controlled with record
-      Ref : Acc := null;
-   end record
-     with Invariant => Ptr.Ref /= null;
-   overriding procedure Adjust   (Object : in out Ptr) with Inline;
-   overriding procedure Finalize (Object : in out Ptr) with Inline;
-   overriding function "=" (Left, Right : in Ptr) return Boolean;
-   pragma Finalize_Storage_Only (Ptr);
+   type Instance (Last : Natural) is new Garbage_Collected.Instance with record
+      F_Meta : Mal.T;
+      Data   : Mal.T_Array (1 .. Last);
+   end record;
+   overriding procedure Keep_References (Object : in out Instance) with Inline;
 
 end Types.Sequences;

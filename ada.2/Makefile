@@ -37,6 +37,7 @@ TYPES := \
   envs.ads                 envs.adb                 \
   err.ads                  err.adb                  \
   eval_cb.ads                                       \
+  garbage_collected.ads    garbage_collected.adb    \
   printer.ads              printer.adb              \
   reader.ads               reader.adb               \
   readline.ads                                      \

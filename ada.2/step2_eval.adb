@@ -4,12 +4,10 @@ with Ada.Strings.Hash;
 with Ada.Text_IO.Unbounded_IO;
 
 with Err;
+with Garbage_Collected;
 with Printer;
 with Reader;
 with Readline;
-with Types.Atoms;
-with Types.Builtins;
-with Types.Fns;
 with Types.Mal;
 with Types.Maps;
 with Types.Sequences;
@@ -41,7 +39,6 @@ procedure Step2_Eval is
       with function Ada_Operator (Left, Right : in Integer) return Integer;
    function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T;
 
-   function Eval_Seq_Elts is new Sequences.Generic_Eval (Envs.Map, Eval);
    function Eval_Map_Elts is new Maps.Generic_Eval (Envs.Map, Eval);
 
    ----------------------------------------------------------------------
@@ -56,6 +53,7 @@ procedure Step2_Eval is
          Ada.Text_IO.Put ("EVAL: ");
          Print (Ast);
       end if;
+
       case Ast.Kind is
       when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
         | Kind_Macro | Kind_Function =>
@@ -70,29 +68,40 @@ procedure Step2_Eval is
             return (Kind_Builtin, Envs.Element (C));
          end;
       when Kind_Map =>
-         return Eval_Map_Elts (Ast.Map, Env);
+         return Eval_Map_Elts (Ast.Map.all, Env);
       when Kind_Vector =>
-         return (Kind_Vector, Eval_Seq_Elts (Ast.Sequence, Env));
+         declare
+            Len  : constant Natural := Ast.Sequence.all.Length;
+            List : constant Mal.Sequence_Ptr := Sequences.Constructor (Len);
+         begin
+            for I in 1 .. Len loop
+               List.all.Replace_Element (I, Eval (Ast.Sequence.all (I), Env));
+            end loop;
+            return (Kind_Vector, List);
+         end;
       when Kind_List =>
          null;
       end case;
 
       --  Ast is a list.
-      if Ast.Sequence.Length = 0 then
+      if Ast.Sequence.all.Length = 0 then
          return Ast;
       end if;
-      First := Eval (Ast.Sequence (1), Env);
+      First := Ast.Sequence.all (1);
+
+      --  Ast is a non-empty list, First is its first element.
+      First := Eval (First, Env);
 
       --  Apply phase.
       --  Ast is a non-empty list,
-      --  First is its non-special evaluated first element.
+      --  First is its evaluated first element.
       case First.Kind is
          when Kind_Builtin =>
             declare
-               Args : Mal.T_Array (2 .. Ast.Sequence.Length);
+               Args : Mal.T_Array (2 .. Ast.Sequence.all.Length);
             begin
                for I in Args'Range loop
-                  Args (I) := Eval (Ast.Sequence (I), Env);
+                  Args (I) := Eval (Ast.Sequence.all (I), Env);
                end loop;
                return First.Builtin.all (Args);
             end;
@@ -147,14 +156,15 @@ begin
             Ada.Text_IO.Unbounded_IO.Put (Err.Trace);
       end;
       --  Other exceptions are really unexpected.
+
+      --  Collect garbage.
+      Err.Data := Mal.Nil;
+      Garbage_Collected.Clean;
    end loop;
    Ada.Text_IO.New_Line;
+
    --  If assertions are enabled, check deallocations.
-   Err.Data := Mal.Nil;  --  Remove references to other packages
-   pragma Debug (Atoms.Check_Allocations);
-   pragma Debug (Builtins.Check_Allocations);
-   pragma Debug (Fns.Check_Allocations);
-   pragma Debug (Maps.Check_Allocations);
-   pragma Debug (Sequences.Check_Allocations);
-   pragma Debug (Symbols.Check_Allocations);
+   pragma Debug (Garbage_Collected.Clean);
+   Garbage_Collected.Check_Allocations;
+   Symbols.Check_Allocations;
 end Step2_Eval;

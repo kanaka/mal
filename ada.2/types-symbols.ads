@@ -3,6 +3,10 @@ private with Ada.Finalization;
 
 package Types.Symbols with Preelaborate is
 
+   --  Like keys, symbols are immutable final nodes in the internal
+   --  data structures. For them, reference counting is probably more
+   --  efficient than garbage collecting.
+
    type Ptr is tagged private;
 
    function Constructor (Source : in String) return Ptr with Inline;
@@ -13,12 +17,18 @@ package Types.Symbols with Preelaborate is
    --  probability to end up as keys in an environment.
    function Hash (Item : in Ptr) return Ada.Containers.Hash_Type with Inline;
 
-   --  Equality compares the contents.
+   --  The implementation ensures that a given content is only
+   --  allocated once, so equality of pointers gives the same result
+   --  than comparing the strings.
 
-   type Symbol_Array is array (Positive range <>) of Symbols.Ptr;
+   type Symbol_Array is array (Positive range <>) of Ptr;
+   Empty_Array : constant Symbol_Array;
+   --  It is convenient to define this here because the default value
+   --  for Ptr is invalid.
 
    --  Debug.
-   procedure Check_Allocations;
+   procedure Check_Allocations with Inline;
+   --  Does nothing if assertions are disabled.
 
 private
 
@@ -48,5 +58,10 @@ private
    overriding procedure Finalize (Object : in out Ptr) with Inline;
    --  Predefined equality is fine.
    pragma Finalize_Storage_Only (Ptr);
+
+   Empty_Array : constant Symbol_Array
+     := (1 .. 0 => (Ada.Finalization.Controlled with null));
+   --  This will not trigger the invariant check because no element is
+   --  ever actually instantiated.
 
 end Types.Symbols;

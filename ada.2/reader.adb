@@ -13,7 +13,7 @@ with Types.Symbols.Names;
 
 package body Reader is
 
-   Debug : constant Boolean := Ada.Environment_Variables.Exists ("dbg_reader");
+   Debug : constant Boolean := Ada.Environment_Variables.Exists ("dbgread");
 
    use Types;
    use type Ada.Strings.Maps.Character_Set;
@@ -37,7 +37,7 @@ package body Reader is
       B_Last : Natural := Buffer'First - 1;
       --  Index in Buffer of the currently written MAL expression.
 
-      procedure Read_Form;
+      function Read_Form return Mal.T;
       --  The recursive part of Read_Str.
 
       --  Helpers for Read_Form:
@@ -58,124 +58,127 @@ package body Reader is
 
       --  Read_Atom has been merged into the same case/switch
       --  statement, for clarity and efficiency.
-      procedure Read_List (Ending      : in Character;
-                           Constructor : in not null Mal.Builtin_Ptr)
-        with Inline;
-      procedure Read_Quote (Symbol : in Symbols.Ptr) with Inline;
-      procedure Read_String with Inline;
-      procedure Read_With_Meta with Inline;
+
+      function Read_List (Ending : in Character) return Natural with Inline;
+      --  Returns the index of the last elements in Buffer.
+      --  The elements have been stored in Buffer (B_Last .. result).
+
+      function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T with Inline;
+
+      function Read_String return Mal.T with Inline;
+
+      function Read_With_Meta return Mal.T with Inline;
 
       ----------------------------------------------------------------------
 
-      procedure Read_List (Ending      : in Character;
-                           Constructor : in not null Mal.Builtin_Ptr) is
+      function Read_List (Ending : in Character) return Natural is
          Opening : constant Character := Source (I);
-         B_First : constant Positive := B_Last;
+         Old     : constant Natural := B_Last;
+         Result  : Positive;
       begin
          I := I + 1;         --  Skip (, [ or {.
          loop
             Skip_Ignored;
             Err.Check (I <= Source'Last, "unbalanced '" & Opening & "'");
             exit when Source (I) = Ending;
-            Read_Form;
             B_Last := B_Last + 1;
+            Buffer (B_Last) := Read_Form;
          end loop;
          I := I + 1;         --  Skip ), ] or }.
-         Buffer (B_First) :=  Constructor.all (Buffer (B_First .. B_Last - 1));
-         B_Last := B_First;
+         Result := B_Last;
+         B_Last := Old;
+         return Result;
       end Read_List;
 
-      procedure Read_Quote (Symbol : in Symbols.Ptr) is
+      function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T is
+         R : constant Mal.Sequence_Ptr := Sequences.Constructor (2);
       begin
-         Buffer (B_Last) := (Kind_Symbol, Symbol);
          I := I + 1;             --  Skip the initial ' or similar.
+         R.Replace_Element (1, (Kind_Symbol, Symbol));
          Skip_Ignored;
-         Err.Check (I <= Source'Last, "Incomplete '" & Symbol.To_String & "'");
-         B_Last := B_Last + 1;
-         Read_Form;
-         B_Last := B_Last - 1;
-         Buffer (B_Last) := Sequences.List (Buffer (B_Last .. B_Last + 1));
+         Err.Check (I <= Source'Last,
+                    "Incomplete '" & Symbols.To_String (Symbol) & "'");
+         R.Replace_Element (2, Read_Form);
+         return (Kind_List, R);
       end Read_Quote;
 
-      procedure Read_Form is
+      function Read_Form return Mal.T is
          --  After I has been increased, current token is be
          --  Source (F .. I - 1).
          F : Positive;
+         R : Mal.T;                   --  The result of this function.
       begin
          case Source (I) is
             when ')' | ']' | '}' =>
                Err.Raise_With ("unbalanced '" & Source (I) & "'");
             when '"' =>
-               Read_String;
+               R := Read_String;
             when ':' =>
                I := I + 1;
                F := I;
                Skip_Symbol;
-               Buffer (B_Last) := (Kind_Keyword,
-                                   Ada.Strings.Unbounded.To_Unbounded_String
-                                     (Source (F .. I - 1)));
+               R := (Kind_Keyword, Ada.Strings.Unbounded.To_Unbounded_String
+                       (Source (F .. I - 1)));
             when '-' =>
                F := I;
                Skip_Digits;
                if F + 1 < I then
-                  Buffer (B_Last) := (Kind_Number,
-                                      Integer'Value (Source (F .. I - 1)));
+                  R := (Kind_Number, Integer'Value (Source (F .. I - 1)));
                else
                   Skip_Symbol;
-                  Buffer (B_Last) := (Kind_Symbol,
-                     Symbols.Constructor (Source (F .. I - 1)));
+                  R := (Kind_Symbol,
+                        Symbols.Constructor (Source (F .. I - 1)));
                end if;
             when '~' =>
                if I < Source'Last and then Source (I + 1) = '@' then
                   I := I + 1;
-                  Read_Quote (Symbols.Names.Splice_Unquote);
+                  R := Read_Quote (Symbols.Names.Splice_Unquote);
                else
-                  Read_Quote (Symbols.Names.Unquote);
+                  R := Read_Quote (Symbols.Names.Unquote);
                end if;
             when '0' .. '9' =>
                F := I;
                Skip_Digits;
-               Buffer (B_Last) := (Kind_Number,
-                                   Integer'Value (Source (F .. I - 1)));
+               R := (Kind_Number, Integer'Value (Source (F .. I - 1)));
             when ''' =>
-               Read_Quote (Symbols.Names.Quote);
+               R := Read_Quote (Symbols.Names.Quote);
             when '`' =>
-               Read_Quote (Symbols.Names.Quasiquote);
+               R := Read_Quote (Symbols.Names.Quasiquote);
             when '@' =>
-               Read_Quote (Symbols.Names.Deref);
+               R := Read_Quote (Symbols.Names.Deref);
             when '^' =>
-               Read_With_Meta;
+               R := Read_With_Meta;
             when '(' =>
-               Read_List (')', Sequences.List'Access);
+               R := Sequences.List (Buffer (B_Last + 1 .. Read_List (')')));
             when '[' =>
-               Read_List (']', Sequences.Vector'Access);
+               R := Sequences.Vector (Buffer (B_Last + 1 .. Read_List (']')));
             when '{' =>
-               Read_List ('}', Maps.Hash_Map'Access);
+               R := Maps.Hash_Map (Buffer (B_Last + 1 .. Read_List ('}')));
             when others =>
                F := I;
                Skip_Symbol;
                if Source (F .. I - 1) = "false" then
-                  Buffer (B_Last) := (Kind_Boolean, False);
+                  R := (Kind_Boolean, False);
                elsif Source (F .. I - 1) = "nil" then
-                  Buffer (B_Last) := Mal.Nil;
+                  R := Mal.Nil;
                elsif Source (F .. I - 1) = "true" then
-                  Buffer (B_Last) := (Kind_Boolean, True);
+                  R := (Kind_Boolean, True);
                else
-                  Buffer (B_Last) := (Kind_Symbol,
-                     Symbols.Constructor (Source (F .. I - 1)));
+                  R := (Kind_Symbol,
+                        Symbols.Constructor (Source (F .. I - 1)));
                end if;
          end case;
          if Debug then
             Ada.Text_IO.Put ("reader: ");
-            Ada.Text_IO.Unbounded_IO.Put_Line (Printer.Pr_Str (Buffer
-                                                                 (B_Last)));
+            Ada.Text_IO.Unbounded_IO.Put_Line (Printer.Pr_Str (R));
          end if;
+         return R;
       end Read_Form;
 
-      procedure Read_String is
+      function Read_String return Mal.T is
          use Ada.Strings.Unbounded;
+         Result : Unbounded_String;
       begin
-         Buffer (B_Last) := (Kind_String, Null_Unbounded_String);
          loop
             I := I + 1;
             Err.Check (I <= Source'Last, "unbalanced '""'");
@@ -187,33 +190,31 @@ package body Reader is
                   Err.Check (I <= Source'Last, "unbalanced '""'");
                   case Source (I) is
                      when '\' | '"' =>
-                        Append (Buffer (B_Last).S, Source (I));
+                        Append (Result, Source (I));
                      when 'n' =>
-                        Append (Buffer (B_Last).S, Ada.Characters.Latin_1.LF);
+                        Append (Result, Ada.Characters.Latin_1.LF);
                      when others =>
-                        Append (Buffer (B_Last).S, Source (I - 1 .. I));
+                        Append (Result, Source (I - 1 .. I));
                   end case;
                when others =>
-                  Append (Buffer (B_Last).S, Source (I));
+                  Append (Result, Source (I));
             end case;
          end loop;
          I := I + 1;                    --  Skip closing double quote.
+         return (Kind_String, Result);
       end Read_String;
 
-      procedure Read_With_Meta is
+      function Read_With_Meta return Mal.T is
+         List : constant Mal.Sequence_Ptr := Sequences.Constructor (3);
       begin
          I := I + 1;                    --  Skip the initial ^.
-         for Argument in 1 .. 2 loop
+         List.all.Replace_Element (1, (Kind_Symbol, Symbols.Names.With_Meta));
+         for I in reverse 2 .. 3 loop
             Skip_Ignored;
             Err.Check (I <= Source'Last, "Incomplete 'with-meta'");
-            Read_Form;
-            B_Last := B_Last + 1;
+            List.all.Replace_Element (I, Read_Form);
          end loop;
-         --  Replace (metadata data) with (with-meta data metadata).
-         B_Last := B_Last - 2;
-         Buffer (B_Last + 2) := Buffer (B_Last);
-         Buffer (B_Last) := (Kind_Symbol, Symbols.Names.With_Meta);
-         Buffer (B_Last) := Sequences.List (Buffer (B_Last .. B_Last + 2));
+         return (Kind_List, List);
       end Read_With_Meta;
 
       procedure Skip_Digits is
@@ -259,7 +260,7 @@ package body Reader is
          Skip_Ignored;
          exit when Source'Last < I;
          B_Last := B_Last + 1;
-         Read_Form;
+         Buffer (B_Last) := Read_Form;
       end loop;
       return Buffer (Buffer'First .. B_Last);
    end Read_Str;
