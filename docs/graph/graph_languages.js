@@ -217,21 +217,21 @@ nv.addGraph(function() {
         const i = obj.point.impl
         return '<h3>' + i.name + '</h3>' +
             '<ul class="impl-data">' +
-            '<li><b>Syntax Style</b>: ' + i.syntax + '<br>' +
-            '<li><b>Type Discipline</b>: ' + i.type_check + '<br>' +
+            '<li><b>Syntax Style</b>: ' + i.syntax +
+            '<li><b>Type Discipline</b>: ' + i.type_check +
             '<li><b>GitHub</b>:' +
             '  <ul>' +
-            '  <li><b>PR Count</b>: ' + (i.pull_count || 'unknown') + '<br>' +
-            '  <li><b>PR Rank</b>: ' + i.pull_rank + '<br>' +
-            '  <li><b>Push Count</b>: ' + (i.push_count || 'unknown') + '<br>' +
-            '  <li><b>Push Rank</b>: ' + i.push_rank + '<br>' +
-            '  <li><b>Star Count</b>: ' + (i.star_count || 'unknown') + '<br>' +
-            '  <li><b>Star Rank</b>: ' + i.star_rank + '<br>' +
+            '  <li><b>PR Count</b>: ' + (i.pull_count || 'unknown') +
+            '  <li><b>PR Rank</b>: ' + i.pull_rank +
+            '  <li><b>Push Count</b>: ' + (i.push_count || 'unknown') +
+            '  <li><b>Push Rank</b>: ' + i.push_rank +
+            '  <li><b>Star Count</b>: ' + (i.star_count || 'unknown') +
+            '  <li><b>Star Rank</b>: ' + i.star_rank +
             '  </ul>' +
             '<li><b>StackOverflow</b>:' +
             '  <ul>' +
-            '  <li><b>Tag Count</b>: ' + (i.so_count || 'unknown') + '<br>' +
-            '  <li><b>Tag Rank</b>: ' + i.so_rank + '<br>' +
+            '  <li><b>Tag Count</b>: ' + (i.so_count || 'unknown') +
+            '  <li><b>Tag Rank</b>: ' + i.so_rank +
             '  </ul>' +
             '<li><br>' +
             '<li><b>Perf 1</b>: ' + i.perf1 + ' ms<br>' +
@@ -239,7 +239,7 @@ nv.addGraph(function() {
             '<li><b>Perf 3</b>: ' + i.perf3 + ' iters / 10 sec<br>' +
             '<li><b>SLOC</b>: ' + i.sloc + ' lines<br>' +
             '<li><b>Author</b>: ' + i.author_name + '<br>' +
-            '&nbsp; &nbsp; ' + i.author_url.replace(/https?:\/\//, '') + '<br>' +
+            '&nbsp; &nbsp; ' + i.author_url.replace(/https?:\/\//, '') +
             '</ul>'
     })
 
