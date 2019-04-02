@@ -9,6 +9,8 @@ edition = "2018"
 rustyline = "^3"
 lazy_static = "1.0.1"
 
+nom="*"
+
 regex = "*"
 # regex = "1.0.0"
 # itertools = "0.7.4"

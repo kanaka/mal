@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt;
 pub type Result = std::result::Result<MalType, Box<Error>>;
 
 #[derive(Clone)]
@@ -18,4 +19,26 @@ pub enum MalType {
     WithMeta(Box<MalType>, Box<MalType>),
     Deref(String),
     BIF(fn(&[MalType]) -> Result),
+}
+
+impl fmt::Debug for MalType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MalType::List(lst) => write!(f, "List({:?})", lst),
+            MalType::Vector(lst) => write!(f, "Vector({:?})", lst),
+            MalType::HashMap(lst) => write!(f, "HashMap({:?})", lst),
+            MalType::Nil => write!(f, "Nil"),
+            MalType::Symbol(s) => write!(f, "Symbol({})", s),
+            MalType::Boolean(b) => write!(f, "Boolean({})", b),
+            MalType::Integer(i) => write!(f, "Integer({})", i),
+            MalType::String(v) => write!(f, "String({})", v),
+            MalType::Quote(v) => write!(f, "Quote({:?})", v),
+            MalType::QuasiQuote(v) => write!(f, "QuasiQuote({:?})", v),
+            MalType::UnQuote(v) => write!(f, "UnQuote({:?})", v),
+            MalType::SpliceUnQuote(v) => write!(f, "SpliceUnQuote({:?})", v),
+            MalType::WithMeta(a, b) => write!(f, "WithMeta({:?}, {:?})", a, b),
+            MalType::Deref(v) => write!(f, "Deref({})", v),
+            MalType::BIF(_) => write!(f, "BIF"),
+        }
+    }
 }

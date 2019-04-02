@@ -215,3 +215,90 @@ fn tokenize(input: &str) -> Vec<String> {
 
     res
 }
+
+// named!(escaped_string<CompleteStr, String>,
+//         delimited!(
+//             char!('"'),
+//             map!(
+//                 many0!(
+//                     alt!(
+//                         tag!("\\\"") => { |_| '"' } |
+//                         none_of!("\"")
+//                     )
+//                 ),
+//                 |v| v.iter().collect::<String>()
+//                 ),
+//             char!('"')
+//             )
+//         );
+
+// named!(p_string<CompleteStr, MalType>, do_parse! (
+//         s: escaped_string >>
+//         (MalType::String(format!(r#""{}""#, s)))
+//         ));
+
+// named!(p_symbol<CompleteStr, MalType>, do_parse! (
+//         s:
+//         ));
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // fn string_match(m: &MalType, b: &str) {
+    //     match m {
+    //         MalType::String(a) => {
+    //             println!("{}", a);
+    //             assert_eq!(a, b);
+    //         }
+    //         _ => assert!(false),
+    //     }
+    // }
+
+    // #[test]
+    // fn reader_parse_string() {
+    //     let r1 = p_string(CompleteStr(r#""fredrik""#));
+    //     string_match(&r1.unwrap().1, "\"fredrik\"");
+
+    //     let r2 = p_string(CompleteStr(r#""\"fredrik\"jansson""#));
+    //     string_match(&r2.unwrap().1, r#""\"fredrik\"jansson""#);
+
+    //     string_match(
+    //         &p_string(CompleteStr(r#""fredrik jansson""#)).unwrap().1,
+    //         r#""fredrik jansson""#,
+    //     );
+    // }
+
+    #[test]
+    fn test_read_str() {
+        match read_str("sym") {
+            Ok(MalType::Symbol(s)) => assert_eq!(s, "sym"),
+            e => panic!("Symbol parsing failed: {:?}", e),
+        }
+
+        match read_str("let*") {
+            Ok(MalType::Symbol(s)) => assert_eq!(s, "let*"),
+            e => panic!("Symbol parsing failed: {:?}", e),
+        }
+
+        match read_str(r#""str""#) {
+            Ok(MalType::String(s)) => assert_eq!(s, "\"str\""),
+            e => panic!("String parsing failed: {:?}", e),
+        }
+
+        match read_str(r#""str\n\"\\""#) {
+            Ok(MalType::String(s)) => assert_eq!(s, r#""str\n\"\\""#),
+            e => panic!("String parsing failed: {:?}", e),
+        }
+
+        match read_str(r#""fredrik jansson""#) {
+            Ok(MalType::String(s)) => assert_eq!(s, r#""fredrik jansson""#),
+            e => panic!("String parsing failed: {:?}", e),
+        }
+
+        match read_str("nil") {
+            Ok(MalType::Nil) => (),
+            e => panic!("Nil parsing failed: {:?}", e),
+        }
+    }
+}
