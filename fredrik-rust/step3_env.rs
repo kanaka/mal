@@ -72,10 +72,10 @@ pub fn main() -> Result<(), Box<std::error::Error>> {
     }
 
     let mut env = Env::new(None);
-    env.set("+", &MalType::BIF(add));
-    env.set("-", &MalType::BIF(sub));
-    env.set("*", &MalType::BIF(mul));
-    env.set("/", &MalType::BIF(div));
+    env.set("+", &MalType::Fn(std::sync::Arc::new(add)));
+    env.set("-", &MalType::Fn(std::sync::Arc::new(sub)));
+    env.set("*", &MalType::Fn(std::sync::Arc::new(mul)));
+    env.set("/", &MalType::Fn(std::sync::Arc::new(div)));
 
     loop {
         let readline = rl.readline("user> ");
@@ -207,8 +207,8 @@ fn eval(v: &MalType, env: &mut Env) -> types::Result {
                         "def!" => eval_def(&l, env),
                         "let*" => eval_let(&l, env),
                         _ => match eval_ast(v, env) {
-                            Ok(MalType::List(elist)) => match elist[0] {
-                                MalType::BIF(f) => f(&elist[1..]),
+                            Ok(MalType::List(elist)) => match &elist[0] {
+                                MalType::Fn(f) => f(&elist[1..]),
                                 _ => EvalError::new("Missing function when evaluating list"),
                             },
                             Ok(_) => EvalError::new("Unknown error when evaluating list"),
@@ -241,5 +241,5 @@ fn eval(v: &MalType, env: &mut Env) -> types::Result {
 }
 
 fn print(s: &types::MalType) {
-    println!("{}", printer::pr_str(s));
+    println!("{}", printer::pr_str(s, true));
 }

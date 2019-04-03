@@ -34,11 +34,21 @@ pub struct Env<'a> {
 }
 
 impl<'a> Env<'a> {
-    pub fn new(outer: Option<&'a Env>) -> Self {
-        Env {
-            outer: outer,
-            data: HashMap::new(),
+    pub fn new_with_binds(outer: Option<&'a Env>, binds: &[MalType], exprs: &[MalType]) -> Self {
+        let mut data = HashMap::new();
+        for (k, v) in binds.iter().zip(exprs.iter()) {
+            match &k {
+                MalType::Symbol(sk) => {
+                    data.insert(sk.to_string(), v.clone());
+                }
+                _ => {}
+            }
         }
+        Env { outer, data }
+    }
+
+    pub fn new(outer: Option<&'a Env>) -> Self {
+        Self::new_with_binds(outer, &[], &[])
     }
 
     pub fn set(&mut self, symbol: &str, val: &MalType) {

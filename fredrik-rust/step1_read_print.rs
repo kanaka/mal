@@ -45,5 +45,5 @@ fn eval(str: &types::MalType) -> &types::MalType {
 }
 
 fn print(s: &types::MalType) {
-    println!("{}", printer::pr_str(s));
+    println!("{}", printer::pr_str(s, false));
 }

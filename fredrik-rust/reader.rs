@@ -126,7 +126,7 @@ fn read_atom(rdr: &mut Reader) -> Result {
             _ => {
                 if &s[0..1] == "\"" {
                     if &s[s.len() - 1..] == "\"" {
-                        Ok(MalType::String(s.to_string()))
+                        Ok(MalType::String(s[1..(s.len() - 1)].to_string()))
                     } else {
                         ParseError::new("unbalanced \"")
                     }

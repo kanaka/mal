@@ -18,7 +18,7 @@ pub enum MalType {
     SpliceUnQuote(Box<MalType>),
     WithMeta(Box<MalType>, Box<MalType>),
     Deref(String),
-    BIF(fn(&[MalType]) -> Result),
+    Fn(std::sync::Arc<Fn(&[MalType]) -> Result>),
 }
 
 impl fmt::Debug for MalType {
@@ -38,7 +38,23 @@ impl fmt::Debug for MalType {
             MalType::SpliceUnQuote(v) => write!(f, "SpliceUnQuote({:?})", v),
             MalType::WithMeta(a, b) => write!(f, "WithMeta({:?}, {:?})", a, b),
             MalType::Deref(v) => write!(f, "Deref({})", v),
-            MalType::BIF(_) => write!(f, "BIF"),
+            MalType::Fn(_) => write!(f, "Fn"),
+        }
+    }
+}
+
+impl PartialEq for MalType {
+    fn eq(&self, other: &MalType) -> bool {
+        match (self, other) {
+            (MalType::List(a), MalType::List(b)) => a == b,
+            (MalType::Vector(a), MalType::Vector(b)) => a == b,
+            (MalType::List(a), MalType::Vector(b)) => a == b,
+            (MalType::Vector(a), MalType::List(b)) => a == b,
+            (MalType::Integer(a), MalType::Integer(b)) => a == b,
+            (MalType::String(a), MalType::String(b)) => a == b,
+            (MalType::Boolean(a), MalType::Boolean(b)) => a == b,
+            (MalType::Nil, MalType::Nil) => true,
+            _ => false,
         }
     }
 }
