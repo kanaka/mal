@@ -1,4 +1,6 @@
 {
-  "labelRegex": "([foreport|backport]):(.+)",
-  "branchRegex": "release/(.+)"
+  "portCheck": {
+    "labelRegex": "([foreport|backport]):(.+)",
+    "branchRegex": "release/(.+)"
+  }
 }
