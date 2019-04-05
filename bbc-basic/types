@@ -30,6 +30,12 @@ ENDPROC
 DEF FNtype_of(val%)
 =Z%(val%) AND 31
 
+DEF FNmalloc(size%)
+  LOCAL val%
+  val% = next_Z%
+  next_Z% += size%
+=val%
+
 REM ** Nil **
 
 DEF FNnil
@@ -42,8 +48,7 @@ DEF FNis_int(val%)
 
 DEF FNalloc_int(ival%)
   LOCAL val%
-  val% = next_Z%
-  next_Z% += 2
+  val% = FNmalloc(2)
   Z%(val%) = 2+32
   Z%(val% + 1) = ival%
 =val%
@@ -62,8 +67,7 @@ DEF FNalloc_symbol(sval$)
   s% = next_S%
   next_S% += 1
   S$(s%) = sval$
-  val% = next_Z%
-  next_Z% += 2
+  val% = FNmalloc(2)
   Z%(val%) = 5+32
   Z%(val% + 1) = s%
 =val%
@@ -79,8 +83,7 @@ DEF FNempty
 
 DEF FNalloc_pair(car%, cdr%)
   LOCAL val%
-  val% = next_Z%
-  next_Z% += 3
+  val% = FNmalloc(3)
   Z%(val% + 0) = 6+32
   Z%(val% + 2) = car%
   Z%(val% + 1) = cdr%
