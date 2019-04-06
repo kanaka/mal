@@ -104,3 +104,33 @@ DEF FNlist_cdr(val%)
   IF NOT FNis_list(val%) THEN ERROR 1, "Can't get cdr of non-list"
   IF Z%(val% + 1) = 0 THEN ERROR 1, "Can't get cdr of empty list"
 =Z%(val% + 1)
+
+REM ** Hashmaps **
+
+REM  To defer implementing mal strings for a bit, hashmap keys are
+REM  currently BASIC strings rather than arbitrary values.
+
+DEF FNempty_hashmap
+=12
+
+DEF FNalloc_hashmap_entry(key$, val%, next%)
+  LOCAL entry%
+  LOCAL s%
+  s% = next_S%
+  next_S% += 1
+  S$(s%) = key$
+  entry% = FNmalloc(4)
+  Z%(entry% + 0) = 32 + 8
+  Z%(entry% + 1) = next%
+  Z%(entry% + 2) = s%
+  Z%(entry% + 3) = val%
+=entry%
+
+DEF FNis_hashmap(val%)
+=FNtype_of(val%) = 8
+
+DEF FNhashmap_get(map%, key$)
+  IF NOT FNis_hashmap(map%) THEN ERROR 1, "Can't get item from a non-hashmap"
+  IF map% = FNempty_hashmap THEN =FNnil
+  IF S$(Z%(map% + 2)) = key$ THEN =Z%(map% + 3)
+=FNhashmap_get(Z%(map% + 1), key$)
