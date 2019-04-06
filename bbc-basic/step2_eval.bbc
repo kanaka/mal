@@ -1,0 +1,62 @@
+REM Step 2 of mal in BBC BASIC
+
+LIBRARY "malio_builtin"
+LIBRARY "types"
+LIBRARY "reader"
+LIBRARY "printer"
+LIBRARY "core"
+
+PROCmalio_init
+PROCtypes_init
+
+repl_env% = FNempty_hashmap
+RESTORE +0
+DATA "+", "-", "*", "/", ""
+i% = 0
+REPEAT
+  READ sym$
+  IF sym$ <> "" THEN
+    repl_env% = FNalloc_hashmap_entry(sym$, FNalloc_corefn(i%), repl_env%)
+  ENDIF
+  i% += 1
+UNTIL sym$ = ""
+
+REPEAT
+  line$ = FNmalio_input("user> ")
+  PROCmalio_println(FNrep(line$))
+UNTIL FNmalio_eof
+
+END
+
+DEF FNREAD(a$)
+=FNread_str(a$)
+
+DEF FNEVAL(ast%, env%)
+  LOCAL args%()
+  IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
+  IF FNis_empty(ast%) THEN =ast%
+  ast% = FNeval_ast(ast%, env%)
+  DIM args%(FNlist_len(FNlist_cdr(ast%)))
+  PROClist_to_array(FNlist_cdr(ast%), args%())
+=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+
+DEF FNPRINT(a%)
+=FNpr_str(a%)
+
+DEF FNrep(a$)
+=FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
+
+DEF FNeval_ast(ast%, env%)
+  LOCAL val%, car%, cdr%
+  IF FNis_symbol(ast%) THEN
+    val% = FNhashmap_get(env%, FNunbox_symbol(ast%))
+    IF val% = FNnil THEN ERROR 1, "Symbol not in environment"
+    =val%
+  ENDIF
+  IF FNis_list(ast%) THEN
+    IF FNis_empty(ast%) THEN =ast%
+    car% = FNEVAL(FNlist_car(ast%), env%)
+    cdr% = FNeval_ast(FNlist_cdr(ast%), env%)
+    =FNalloc_pair(car%, cdr%)
+  ENDIF
+=ast%

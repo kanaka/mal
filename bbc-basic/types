@@ -23,6 +23,7 @@ DEF PROCtypes_init
   Z%(2) = 1+32: REM false
   Z%(4) = 1+32: Z%(5) = 1: REM true
   Z%(6) = 6+32: REM empty list
+  Z%(12) = 8+32: REM empty hashmap
   next_Z% = 16
   next_S% = 0
 ENDPROC
@@ -103,6 +104,40 @@ DEF FNlist_car(val%)
 DEF FNlist_cdr(val%)
   IF NOT FNis_list(val%) THEN ERROR 1, "Can't get cdr of non-list"
   IF Z%(val% + 1) = 0 THEN ERROR 1, "Can't get cdr of empty list"
+=Z%(val% + 1)
+
+DEF FNlist_len(val%)
+  LOCAL i%
+  WHILE NOT FNis_empty(val%)
+    val% = FNlist_cdr(val%)
+    i% += 1
+  ENDWHILE
+= i%
+
+DEF PROClist_to_array(val%, a%())
+  REM  a%() must already be correctly dimensioned.
+  LOCAL i%
+  WHILE NOT FNis_empty(val%)
+    a%(i%) = FNlist_car(val%)
+    val% = FNlist_cdr(val%)
+    i% += 1
+  ENDWHILE
+ENDPROC
+
+REM ** Core functions **
+
+DEF FNis_corefn(val%)
+=FNtype_of(val%) = 9
+
+DEF FNalloc_corefn(fn%)
+  LOCAL val%
+  val% = FNmalloc(2)
+  Z%(val% + 0) = 32 + 9
+  Z%(val% + 1) = fn%
+=val%
+
+DEF FNunbox_corefn(val%)
+  IF NOT FNis_corefn(val%) THEN ERROR 1, "Not a core function"
 =Z%(val% + 1)
 
 REM ** Hashmaps **
