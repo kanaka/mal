@@ -59,6 +59,11 @@ DEF FNunbox_boolean(val%)
   IF Z%(val% + 1) THEN =TRUE
 =FALSE
 
+DEF FNis_truish(val%)
+  IF FNis_nil(val%) THEN =FALSE
+  IF FNis_boolean(val%) THEN IF NOT FNunbox_boolean(val%) THEN =FALSE
+=TRUE
+
 REM ** Integers **
 
 DEF FNis_int(val%)
