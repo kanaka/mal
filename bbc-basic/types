@@ -39,6 +39,9 @@ DEF FNmalloc(size%)
 
 REM ** Nil **
 
+DEF FNis_nil(val%)
+=FNtype_of(val%) = 0
+
 DEF FNnil
 =0
 

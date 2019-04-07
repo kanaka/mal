@@ -2,6 +2,7 @@ REM Printer library for mal in BBC BASIC
 
 DEF FNpr_str(val%)
   LOCAL ret$
+  IF FNis_nil(val%) THEN ="nil"
   IF FNis_int(val%) THEN =STR$(FNunbox_int(val%))
   IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
   IF FNis_list(val%) THEN
