@@ -131,6 +131,14 @@ DEF FNlist_len(val%)
   ENDWHILE
 = i%
 
+DEF FNlist_nth(val%, n%)
+  WHILE n% > 1
+    val% = FNlist_cdr(val%)
+    IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
+    n% -= 1
+  ENDWHILE
+=FNlist_car(val%)
+
 DEF PROClist_to_array(val%, a%())
   REM  a%() must already be correctly dimensioned.
   LOCAL i%
