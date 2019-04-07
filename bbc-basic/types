@@ -45,6 +45,20 @@ DEF FNis_nil(val%)
 DEF FNnil
 =0
 
+REM ** Boolean **
+
+DEF FNis_boolean(val%)
+=FNtype_of(val%) = 1
+
+DEF FNalloc_boolean(bval%)
+  IF bval% THEN =4
+=2
+
+DEF FNunbox_boolean(val%)
+  IF NOT FNis_boolean(val%) THEN ERROR 1, "Not a boolean"
+  IF Z%(val% + 1) THEN =TRUE
+=FALSE
+
 REM ** Integers **
 
 DEF FNis_int(val%)

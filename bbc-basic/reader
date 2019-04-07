@@ -126,5 +126,7 @@ DEF FNread_atom(tokens$(), RETURN tokptr%)
   LOCAL strval$
   strval$ = FNreader_next(tokens$(), tokptr%)
   IF strval$ = "nil" THEN =FNnil
+  IF strval$ = "true" THEN =FNalloc_boolean(TRUE)
+  IF strval$ = "false" THEN =FNalloc_boolean(FALSE)
   IF FNis_token_numeric(strval$) THEN =FNalloc_int(VAL(strval$))
 =FNalloc_symbol(strval$)
