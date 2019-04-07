@@ -11,15 +11,12 @@ PROCmalio_init
 PROCtypes_init
 
 repl_env% = FNalloc_environment(FNnil)
-RESTORE +0
-DATA "+", "-", "*", "/", ""
-i% = 0
+PROCcore_ns : REM This sets the data pointer
 REPEAT
-  READ sym$
+  READ sym$, i%
   IF sym$ <> "" THEN
     PROCenv_set(repl_env%, FNalloc_symbol(sym$), FNalloc_corefn(i%))
   ENDIF
-  i% += 1
 UNTIL sym$ = ""
 
 REPEAT

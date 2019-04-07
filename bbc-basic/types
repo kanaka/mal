@@ -154,6 +154,15 @@ DEF PROClist_to_array(val%, a%())
   ENDWHILE
 ENDPROC
 
+DEF FNarray_to_list(a%())
+  LOCAL i%, val%
+  val% = FNempty
+  IF DIM(a%(), 1) = 0 THEN =val%
+  FOR i% = DIM(a%(), 1) - 1 TO 0 STEP -1
+    val% = FNalloc_pair(a%(i%), val%)
+  NEXT i%
+=val%
+
 REM ** Core functions **
 
 DEF FNis_corefn(val%)

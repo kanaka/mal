@@ -7,22 +7,73 @@ REM  specified arguments.  The other is to us a big CASE statement.
 REM  Following the suggestion in Hints.md, this code takes the latter
 REM  approach.
 
+DEF PROCcore_ns
+  RESTORE +0
+  REM  The actual DATA statements are embedded in the dispatch table below.
+ENDPROC
+
 REM  Call a core function, taking the function number and an array of mal
 REM  objects to pass as arguments.
 DEF FNcore_call(fn%, args%())
   CASE fn% OF
-    WHEN 0 : REM +
+    DATA +, 0
+    WHEN 0
       PROCcore_assert_args("ii", "+", args%())
       =FNalloc_int(FNunbox_int(args%(0)) + FNunbox_int(args%(1)))
-    WHEN 1 : REM -
+    DATA -, 1
+    WHEN 1
       PROCcore_assert_args("ii", "-", args%())
       =FNalloc_int(FNunbox_int(args%(0)) - FNunbox_int(args%(1)))
-    WHEN 2 : REM *
+    DATA *, 2
+    WHEN 2
       PROCcore_assert_args("ii", "*", args%())
       =FNalloc_int(FNunbox_int(args%(0)) * FNunbox_int(args%(1)))
-    WHEN 3 : REM /
+    DATA /, 3
+    WHEN 3
       PROCcore_assert_args("ii", "/", args%())
       =FNalloc_int(FNunbox_int(args%(0)) DIV FNunbox_int(args%(1)))
+    DATA prn, 4
+    WHEN 4
+      PROCcore_assert_args("?", "prn", args%())
+      PROCmalio_println(FNpr_str(args%(0)))
+      =FNnil
+    DATA list, 5
+    WHEN 5
+      =FNarray_to_list(args%())
+    DATA list?, 6
+    WHEN 6
+      PROCcore_assert_args("?", "list?", args%())
+      =FNalloc_boolean(FNis_list(args%(0)))
+    DATA empty?, 7
+    WHEN 7
+      PROCcore_assert_args("l", "empty?", args%())
+      =FNalloc_boolean(FNis_empty(args%(0)))
+    DATA count, 8
+    WHEN 8
+      PROCcore_assert_args("C", "count", args%())
+      IF FNis_nil(args%(0)) THEN =FNalloc_int(0)
+      =FNalloc_int(FNlist_len(args%(0)))
+    DATA =, 9
+    WHEN 9
+      PROCcore_assert_args("??", "=", args%())
+      =FNalloc_boolean(FNcore_equal(args%(0), args%(1)))
+    DATA <, 10
+    WHEN 10
+      PROCcore_assert_args("ii", "<", args%())
+      =FNalloc_boolean(FNunbox_int(args%(0)) < FNunbox_int(args%(1)))
+    DATA <=, 11
+    WHEN 11
+      PROCcore_assert_args("ii", "<=", args%())
+      =FNalloc_boolean(FNunbox_int(args%(0)) <= FNunbox_int(args%(1)))
+    DATA >, 12
+    WHEN 12
+      PROCcore_assert_args("ii", ">", args%())
+      =FNalloc_boolean(FNunbox_int(args%(0)) > FNunbox_int(args%(1)))
+    DATA >=, 13
+    WHEN 13
+      PROCcore_assert_args("ii", ">=", args%())
+      =FNalloc_boolean(FNunbox_int(args%(0)) >= FNunbox_int(args%(1)))
+    DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
 
@@ -31,6 +82,9 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
   REM  number and type of arguments.  spec$ is the argument specification
   REM  as a string.  Each character represents an argument:
   REM  "i" - Must be an integer
+  REM  "l" - Must be a list
+  REM  "C" - Must be 'count'able
+  REM  "?" - Any single argument
 
   LOCAL i%
 
@@ -43,6 +97,31 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
         IF NOT FNis_int(args%(i% - 1)) THEN
 	  ERROR &40E80911, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
 	ENDIF
+      WHEN "l"
+        IF NOT FNis_list(args%(i% - 1)) THEN
+	  ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
+	ENDIF
+      WHEN "C"
+        IF NOT FNis_list(args%(i% - 1)) AND NOT FNis_nil(args%(i% - 1)) THEN
+	  ERROR &40E8091F, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a countable value"
+	ENDIF
+      WHEN "?"
+        REM  Nothing to do here
     ENDCASE
   NEXT i%
 ENDPROC
+
+REM  Innards of the '=' function.
+DEF FNcore_equal(a%, b%)
+  IF a% = b% THEN =TRUE
+  IF FNis_int(a%) AND FNis_int(b%) THEN =FNunbox_int(a%) = FNunbox_int(b%)
+  IF FNis_symbol(a%) AND FNis_symbol(b%) THEN
+    =FNunbox_symbol(a%) = FNunbox_symbol(b%)
+  ENDIF
+  IF FNis_list(a%) AND FNis_list(b%) THEN
+    IF FNis_empty(a%) AND FNis_empty(b%) THEN =TRUE
+    IF FNis_empty(a%) <> FNis_empty(b%) THEN =FALSE
+    IF NOT FNcore_equal(FNlist_car(a%), FNlist_car(b%)) THEN =FALSE
+    =FNcore_equal(FNlist_cdr(a%), FNlist_cdr(b%))
+  ENDIF
+=FALSE
