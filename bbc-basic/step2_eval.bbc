@@ -22,6 +22,8 @@ REPEAT
 UNTIL sym$ = ""
 
 REPEAT
+  REM  Catch all errors apart from "Escape".
+  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
   line$ = FNmalio_input("user> ")
   PROCmalio_println(FNrep(line$))
 UNTIL FNmalio_eof
