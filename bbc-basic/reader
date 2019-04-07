@@ -98,6 +98,11 @@ DEF FNread_form(tokens$(), RETURN tokptr%)
     WHEN "" : ERROR &40E80930, "Unexpected end of input"
     WHEN "(": =FNread_list(tokens$(), tokptr%)
     WHEN ")": ERROR &40E80931, "Unexpected ')'"
+    WHEN "'": =FNreader_macro("quote", tokens$(), tokptr%)
+    WHEN "`": =FNreader_macro("quasiquote", tokens$(), tokptr%)
+    WHEN "~": =FNreader_macro("unquote", tokens$(), tokptr%)
+    WHEN "~@":=FNreader_macro("splice-unquote", tokens$(), tokptr%)
+    WHEN "@": =FNreader_macro("deref", tokens$(), tokptr%)
   ENDCASE
 =FNread_atom(tokens$(), tokptr%)
 
@@ -114,6 +119,14 @@ DEF FNread_list_tail(tokens$(), RETURN tokptr%)
   ENDIF
   car% = FNread_form(tokens$(), tokptr%)
   cdr% = FNread_list_tail(tokens$(), tokptr%)
+=FNalloc_pair(car%, cdr%)
+
+DEF FNreader_macro(quote$, token$(), RETURN tokptr%)
+  LOCAL tok$, car%, cdr%, cdar%
+  tok$ = FNreader_next(tokens$(), tokptr%) : REM skip quoting token
+  car% = FNalloc_symbol(quote$)
+  cdar% = FNread_form(tokens$(), tokptr%)
+  cdr% = FNalloc_pair(cdar%, FNempty)
 =FNalloc_pair(car%, cdr%)
 
 DEF FNis_token_numeric(tok$)
