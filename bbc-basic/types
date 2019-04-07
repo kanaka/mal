@@ -55,7 +55,7 @@ DEF FNalloc_boolean(bval%)
 =2
 
 DEF FNunbox_boolean(val%)
-  IF NOT FNis_boolean(val%) THEN ERROR 1, "Not a boolean"
+  IF NOT FNis_boolean(val%) THEN ERROR &40E80911, "Not a boolean"
   IF Z%(val% + 1) THEN =TRUE
 =FALSE
 
@@ -72,7 +72,7 @@ DEF FNalloc_int(ival%)
 =val%
 
 DEF FNunbox_int(val%)
-  IF NOT FNis_int(val%) THEN ERROR 1, "Not an integer"
+  IF NOT FNis_int(val%) THEN ERROR &40E80912, "Not an integer"
 =Z%(val% + 1)
 
 REM ** Symbols **
@@ -91,7 +91,7 @@ DEF FNalloc_symbol(sval$)
 =val%
 
 DEF FNunbox_symbol(val%)
-  IF NOT FNis_symbol(val%) THEN ERROR 1, "Not a symbol"
+  IF NOT FNis_symbol(val%) THEN ERROR &40E80915, "Not a symbol"
 =S$(Z%(val% + 1))
 
 REM ** Lists **
@@ -114,13 +114,13 @@ DEF FNis_list(val%)
 =FNtype_of(val%) = 6
 
 DEF FNlist_car(val%)
-  IF NOT FNis_list(val%) THEN ERROR 1, "Can't get car of non-list"
-  IF Z%(val% + 1) = 0 THEN ERROR 1, "Can't get car of empty list"
+  IF NOT FNis_list(val%) THEN ERROR &40E80916, "Can't get car of non-list"
+  IF Z%(val% + 1) = 0 THEN ERROR &40E80920, "Can't get car of empty list"
 =Z%(val% + 2)
 
 DEF FNlist_cdr(val%)
-  IF NOT FNis_list(val%) THEN ERROR 1, "Can't get cdr of non-list"
-  IF Z%(val% + 1) = 0 THEN ERROR 1, "Can't get cdr of empty list"
+  IF NOT FNis_list(val%) THEN ERROR &40E80916, "Can't get cdr of non-list"
+  IF Z%(val% + 1) = 0 THEN ERROR &40E80920, "Can't get cdr of empty list"
 =Z%(val% + 1)
 
 DEF FNlist_len(val%)
@@ -154,7 +154,7 @@ DEF FNalloc_corefn(fn%)
 =val%
 
 DEF FNunbox_corefn(val%)
-  IF NOT FNis_corefn(val%) THEN ERROR 1, "Not a core function"
+  IF NOT FNis_corefn(val%) THEN ERROR &40E80919, "Not a core function"
 =Z%(val% + 1)
 
 REM ** Hashmaps **
@@ -182,7 +182,7 @@ DEF FNis_hashmap(val%)
 =FNtype_of(val%) = 8
 
 DEF FNhashmap_get(map%, key$)
-  IF NOT FNis_hashmap(map%) THEN ERROR 1, "Can't get item from a non-hashmap"
+  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
   IF map% = FNempty_hashmap THEN =FNnil
   IF S$(Z%(map% + 2)) = key$ THEN =Z%(map% + 3)
 =FNhashmap_get(Z%(map% + 1), key$)

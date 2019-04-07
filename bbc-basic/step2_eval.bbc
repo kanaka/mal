@@ -52,7 +52,7 @@ DEF FNeval_ast(ast%, env%)
   LOCAL val%, car%, cdr%
   IF FNis_symbol(ast%) THEN
     val% = FNhashmap_get(env%, FNunbox_symbol(ast%))
-    IF val% = FNnil THEN ERROR 1, "Symbol not in environment"
+    IF val% = FNnil THEN ERROR &40E80922, "Symbol not in environment"
     =val%
   ENDIF
   IF FNis_list(ast%) THEN

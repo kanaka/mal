@@ -24,7 +24,7 @@ DEF FNcore_call(fn%, args%())
       PROCcore_assert_args("ii", "/", args%())
       =FNalloc_int(FNunbox_int(args%(0)) DIV FNunbox_int(args%(1)))
   ENDCASE
-ERROR 1, "Call to non-existent core function"
+ERROR &40E809F1, "Call to non-existent core function"
 
 DEF PROCcore_assert_args(spec$, fn$, args%())
   REM  Check that a core function is being provided with the correct
@@ -35,13 +35,13 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
   LOCAL i%
 
   IF DIM(args%(), 1) <> LEN(spec$) THEN
-    ERROR 1, "Core function '"+fn$+"' requires "+STR$(LEN(spec$))+" arguments"
+    ERROR &40E80921, "Core function '"+fn$+"' requires "+STR$(LEN(spec$))+" arguments"
   ENDIF
   FOR i% = 1 TO LEN(spec$)
     CASE MID$(spec$, i%, 1) OF
       WHEN "i"
         IF NOT FNis_int(args%(i% - 1)) THEN
-	  ERROR 1, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
+	  ERROR &40E80911, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
 	ENDIF
     ENDCASE
   NEXT i%

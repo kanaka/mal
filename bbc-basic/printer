@@ -17,4 +17,4 @@ DEF FNpr_str(val%)
     ENDWHILE
     =ret$ + ")"
   ENDIF
-  ERROR 1, "Unprintable value"
+  ERROR &40E809F0, "Unprintable value"
