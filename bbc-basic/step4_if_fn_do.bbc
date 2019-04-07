@@ -70,12 +70,22 @@ DEF FNEVAL(ast%, env%)
 	ENDIF
 	IF FNlist_len(ast%) = 3 THEN =FNnil
 	=FNEVAL(FNlist_nth(ast%, 4), env%)
+      WHEN "fn*"
+	=FNalloc_fn(FNlist_nth(ast%, 3), FNlist_nth(ast%, 2), env%)
     ENDCASE
   ENDIF
   ast% = FNeval_ast(ast%, env%)
-  DIM args%(FNlist_len(FNlist_cdr(ast%)))
-  PROClist_to_array(FNlist_cdr(ast%), args%())
-=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+  car% = FNlist_car(ast%)
+  IF FNis_fn(car%) THEN
+    env% = FNnew_env(FNfn_env(car%), FNfn_param(car%), FNlist_cdr(ast%))
+    =FNEVAL(FNfn_body(car%), env%)
+  ENDIF
+  IF FNis_corefn(car%) THEN
+    DIM args%(FNlist_len(FNlist_cdr(ast%)))  
+    PROClist_to_array(FNlist_cdr(ast%), args%())
+    =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+  ENDIF
+  ERROR &40E80918, "Not a function"
 
 DEF FNPRINT(a%)
 =FNpr_str(a%)

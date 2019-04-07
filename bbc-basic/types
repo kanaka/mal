@@ -200,6 +200,32 @@ DEF FNhashmap_get(map%, key$)
   IF S$(Z%(map% + 2)) = key$ THEN =Z%(map% + 3)
 =FNhashmap_get(Z%(map% + 1), key$)
 
+REM ** Functions **
+
+DEF FNis_fn(val%)
+=FNtype_of(val%) = 10
+
+DEF FNalloc_fn(body%, param%, env%)
+  LOCAL val%
+  val% = FNmalloc(4)
+  Z%(val% + 0) = 32 + 10
+  Z%(val% + 1) = body%
+  Z%(val% + 2) = param%
+  Z%(val% + 3) = env%
+=val%
+
+DEF FNfn_body(val%)
+  IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
+=Z%(val% + 1)
+
+DEF FNfn_param(val%)
+  IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
+=Z%(val% + 2)
+
+DEF FNfn_env(val%)
+  IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
+=Z%(val% + 3)
+
 REM ** Environments **
 
 DEF FNis_environment(val%)

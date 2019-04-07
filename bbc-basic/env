@@ -1,5 +1,14 @@
 REM Environment library for mal in BBC BASIC
 
+DEF FNnew_env(outer%, binds%, exprs%)
+  LOCAL env%
+  env% = FNalloc_environment(outer%)
+  WHILE NOT FNis_empty(binds%)
+    PROCenv_set(env%, FNlist_car(binds%), FNlist_car(exprs%))
+    binds% = FNlist_cdr(binds%) : exprs% = FNlist_cdr(exprs%)
+  ENDWHILE
+=env%
+
 DEF PROCenv_set(env%, keysym%, val%)
   LOCAL data%
   data% = FNenvironment_data(env%)

@@ -8,6 +8,7 @@ DEF FNpr_str(val%)
   ENDIF
   IF FNis_int(val%) THEN =STR$(FNunbox_int(val%))
   IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
+  IF FNis_corefn(val%) OR FNis_fn(val%) THEN ="#<function>"
   IF FNis_list(val%) THEN
     ret$ = "("
     WHILE NOT FNis_empty(val%)
