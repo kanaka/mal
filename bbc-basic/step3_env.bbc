@@ -35,9 +35,29 @@ DEF FNREAD(a$)
 =FNread_str(a$)
 
 DEF FNEVAL(ast%, env%)
-  LOCAL args%()
+  LOCAL args%(), car%
   IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
   IF FNis_empty(ast%) THEN =ast%
+  car% = FNlist_car(ast%)
+  IF FNis_symbol(car%) THEN
+    CASE FNunbox_symbol(car%) OF
+      REM  Special forms
+      WHEN "def!"
+        LOCAL val%
+	val% = FNEVAL(FNlist_nth(ast%, 3), env%)
+        PROCenv_set(env%, FNlist_nth(ast%, 2), val%)
+	=val%
+      WHEN "let*"
+        LOCAL bindings%
+	env% = FNalloc_environment(env%)
+	bindings% = FNlist_nth(ast%, 2)
+	WHILE NOT FNis_empty(bindings%)
+	  PROCenv_set(env%, FNlist_car(bindings%), FNEVAL(FNlist_nth(bindings%, 2), env%))
+	  bindings% = FNlist_cdr(FNlist_cdr(bindings%))
+	ENDWHILE
+	=FNEVAL(FNlist_nth(ast%, 3), env%)
+    ENDCASE
+  ENDIF
   ast% = FNeval_ast(ast%, env%)
   DIM args%(FNlist_len(FNlist_cdr(ast%)))
   PROClist_to_array(FNlist_cdr(ast%), args%())
