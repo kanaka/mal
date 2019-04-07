@@ -186,3 +186,29 @@ DEF FNhashmap_get(map%, key$)
   IF map% = FNempty_hashmap THEN =FNnil
   IF S$(Z%(map% + 2)) = key$ THEN =Z%(map% + 3)
 =FNhashmap_get(Z%(map% + 1), key$)
+
+REM ** Environments **
+
+DEF FNis_environment(val%)
+=FNtype_of(val%) = 13
+
+DEF FNalloc_environment(outer%)
+  LOCAL val%
+  val% = FNmalloc(3)
+  Z%(val% + 0) = 32 + 13
+  Z%(val% + 1) = FNempty_hashmap
+  Z%(val% + 2) = outer%
+=val%
+
+DEF FNenvironment_data(val%)
+  IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
+=Z%(val% + 1)
+
+DEF PROCenvironment_set_data(val%, data%)
+  IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
+  Z%(val% + 1) = data%
+ENDPROC
+
+DEF FNenvironment_outer(val%)
+  IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
+=Z%(val% + 2)

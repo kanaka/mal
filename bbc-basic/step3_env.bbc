@@ -1,0 +1,61 @@
+REM Step 2 of mal in BBC BASIC
+
+LIBRARY "malio_builtin"
+LIBRARY "types"
+LIBRARY "reader"
+LIBRARY "printer"
+LIBRARY "core"
+LIBRARY "env"
+
+PROCmalio_init
+PROCtypes_init
+
+repl_env% = FNalloc_environment(FNnil)
+RESTORE +0
+DATA "+", "-", "*", "/", ""
+i% = 0
+REPEAT
+  READ sym$
+  IF sym$ <> "" THEN
+    PROCenv_set(repl_env%, FNalloc_symbol(sym$), FNalloc_corefn(i%))
+  ENDIF
+  i% += 1
+UNTIL sym$ = ""
+
+REPEAT
+  REM  Catch all errors apart from "Escape".
+  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
+  line$ = FNmalio_input("user> ")
+  PROCmalio_println(FNrep(line$))
+UNTIL FNmalio_eof
+
+END
+
+DEF FNREAD(a$)
+=FNread_str(a$)
+
+DEF FNEVAL(ast%, env%)
+  LOCAL args%()
+  IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
+  IF FNis_empty(ast%) THEN =ast%
+  ast% = FNeval_ast(ast%, env%)
+  DIM args%(FNlist_len(FNlist_cdr(ast%)))
+  PROClist_to_array(FNlist_cdr(ast%), args%())
+=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+
+DEF FNPRINT(a%)
+=FNpr_str(a%)
+
+DEF FNrep(a$)
+=FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
+
+DEF FNeval_ast(ast%, env%)
+  LOCAL val%, car%, cdr%
+  IF FNis_symbol(ast%) THEN =FNenv_get(env%, ast%)
+  IF FNis_list(ast%) THEN
+    IF FNis_empty(ast%) THEN =ast%
+    car% = FNEVAL(FNlist_car(ast%), env%)
+    cdr% = FNeval_ast(FNlist_cdr(ast%), env%)
+    =FNalloc_pair(car%, cdr%)
+  ENDIF
+=ast%

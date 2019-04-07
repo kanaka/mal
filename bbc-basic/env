@@ -1,0 +1,23 @@
+REM Environment library for mal in BBC BASIC
+
+DEF PROCenv_set(env%, keysym%, val%)
+  LOCAL data%
+  data% = FNenvironment_data(env%)
+  data% = FNalloc_hashmap_entry(FNunbox_symbol(keysym%), val%, data%)
+  PROCenvironment_set_data(env%, data%)
+ENDPROC
+
+DEF FNenv_find(env%, keysym%)
+  LOCAL val%, outer%
+  val% = FNhashmap_get(FNenvironment_data(env%), FNunbox_symbol(keysym%))
+  IF NOT FNis_nil(val%) THEN =env%
+  outer% = FNenvironment_outer(env%)
+  IF NOT FNis_nil(outer%) THEN =FNenv_find(outer%, keysym%)
+=FNnil
+
+DEF FNenv_get(env%, keysym%)
+  env% = FNenv_find(env%, keysym%)
+  IF FNis_nil(env%) THEN
+    ERROR &40E80922, "Symbol '"+FNunbox_symbol(keysym%)+"' not found"
+  ENDIF
+=FNhashmap_get(FNenvironment_data(env%), FNunbox_symbol(keysym%))
