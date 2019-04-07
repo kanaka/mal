@@ -15,7 +15,7 @@ REM  See ../basic/mem.in.bas for data representations.
 
 DEF PROCtypes_init
   LOCAL i%
-  DIM Z%(1000), S$(1000)
+  DIM Z%(10000), S$(10000)
   FOR i% = 0 TO 15
     Z%(i%) = 0
   NEXT i%
