@@ -765,10 +765,10 @@ the apply section of `EVAL`.
 
 Try out the basic functionality you have implemented:
 
-  * `(fn* [a] a)` -> `#<function>`
-  * `( (fn* [a] a) 7)` -> `7`
-  * `( (fn* [a] (+ a 1)) 10)` -> `11`
-  * `( (fn* [a b] (+ a b)) 2 3)` -> `5`
+  * `(fn* (a) a)` -> `#<function>`
+  * `( (fn* (a) a) 7)` -> `7`
+  * `( (fn* (a) (+ a 1)) 10)` -> `11`
+  * `( (fn* (a b) (+ a b)) 2 3)` -> `5`
 
 * Add a new file `core.qx` and define an associative data structure
   `ns` (namespace) that maps symbols to functions. Move the numeric
