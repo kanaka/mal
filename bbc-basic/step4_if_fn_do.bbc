@@ -19,6 +19,8 @@ REPEAT
   ENDIF
 UNTIL sym$ = ""
 
+val$ = FNrep("(def! not (fn* (a) (if a false true)))")
+
 REPEAT
   REM  Catch all errors apart from "Escape".
   ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
