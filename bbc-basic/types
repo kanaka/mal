@@ -35,6 +35,13 @@ DEF FNmalloc
   next_Z% += 1
 =val%
 
+DEF FNsalloc(s$)
+  LOCAL val%
+  val% = next_S%
+  S$(val%) = s$
+  next_S% += 1
+=val%
+
 REM ** Nil **
 
 DEF FNis_nil(val%)
@@ -84,13 +91,10 @@ DEF FNis_symbol(val%)
 =FNtype_of(val%) = 5
 
 DEF FNalloc_symbol(sval$)
-  LOCAL s%
-  s% = next_S%
-  next_S% += 1
-  S$(s%) = sval$
+  LOCAL val%
   val% = FNmalloc
   Z%(val%,0) = 5+32
-  Z%(val%,1) = s%
+  Z%(val%,1) = FNsalloc(sval$)
 =val%
 
 DEF FNunbox_symbol(val%)
@@ -187,14 +191,10 @@ DEF FNempty_hashmap
 
 DEF FNalloc_hashmap_entry(key$, val%, next%)
   LOCAL entry%
-  LOCAL s%
-  s% = next_S%
-  next_S% += 1
-  S$(s%) = key$
   entry% = FNmalloc
   Z%(entry%,0) = 32 + 8
   Z%(entry%,1) = next%
-  Z%(entry%,2) = s%
+  Z%(entry%,2) = FNsalloc(key$)
   Z%(entry%,3) = val%
 =entry%
 
