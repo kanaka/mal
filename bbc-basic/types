@@ -16,13 +16,7 @@ REM  is inefficient but should make memory management simpler.
 REM  See ../basic/mem.in.bas for data representations.
 
 DEF PROCtypes_init
-  LOCAL i%, j%
   DIM Z%(3000,3), S$(10000)
-  FOR i% = 0 TO 5
-    FOR j% = 0 TO 3
-      Z%(i%,j%) = 0
-    NEXT j%
-  NEXT i%
   Z%(0,0) = 32: REM nil
   Z%(1,0) = 1+32: REM false
   Z%(2,0) = 1+32: Z%(2,1) = 1: REM true
