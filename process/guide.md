@@ -731,7 +731,7 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
   of the binds list to the respective element of the `exprs` list.
 
 * Add support to `printer.qx` to print functions values. A string
-  literal like "#<function>" is sufficient.
+  literal like "#\<function>" is sufficient.
 
 * Add the following special forms to `EVAL`:
 
