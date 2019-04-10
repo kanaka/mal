@@ -4,8 +4,8 @@ LIBRARY "malio_builtin"
 LIBRARY "types"
 LIBRARY "reader"
 LIBRARY "printer"
-LIBRARY "core"
 LIBRARY "env"
+LIBRARY "core"
 
 PROCmalio_init
 PROCtypes_init
