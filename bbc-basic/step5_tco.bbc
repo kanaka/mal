@@ -1,4 +1,4 @@
-REM Step 2 of mal in BBC BASIC
+REM Step 5 of mal in BBC BASIC
 
 LIBRARY "malio_builtin"
 LIBRARY "types"
