@@ -76,8 +76,8 @@ DEF FNEVAL(ast%, env%)
   ast% = FNeval_ast(ast%, env%)
   car% = FNlist_car(ast%)
   IF FNis_fn(car%) THEN
-    env% = FNnew_env(FNfn_env(car%), FNfn_param(car%), FNlist_cdr(ast%))
-    =FNEVAL(FNfn_body(car%), env%)
+    env% = FNnew_env(FNfn_env(car%), FNfn_params(car%), FNlist_cdr(ast%))
+    =FNEVAL(FNfn_ast(car%), env%)
   ENDIF
   IF FNis_corefn(car%) THEN
     DIM args%(FNlist_len(FNlist_cdr(ast%)))  

@@ -212,20 +212,20 @@ REM ** Functions **
 DEF FNis_fn(val%)
 =FNtype_of(val%) = 10
 
-DEF FNalloc_fn(body%, param%, env%)
+DEF FNalloc_fn(ast%, params%, env%)
   LOCAL val%
   val% = FNmalloc
   Z%(val%,0) = 32 + 10
-  Z%(val%,1) = body%
-  Z%(val%,2) = param%
+  Z%(val%,1) = ast%
+  Z%(val%,2) = params%
   Z%(val%,3) = env%
 =val%
 
-DEF FNfn_body(val%)
+DEF FNfn_ast(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
 =Z%(val%,1)
 
-DEF FNfn_param(val%)
+DEF FNfn_params(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
 =Z%(val%,2)
 
