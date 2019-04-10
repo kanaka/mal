@@ -429,8 +429,9 @@ and each step will give progressively more bang for the buck.
 
 
 * Add support for the other basic data type to your reader and printer
-  functions: string, nil, true, and false. These become mandatory at
-  step 4. When a string is read, the following transformations are
+  functions: string, nil, true, and false. Nil, true, and false
+  become mandatory at step 4, strings at step 6. When a string is read,
+  the following transformations are
   applied: a backslash followed by a doublequote is translated into
   a plain doublequote character, a backslash followed by "n" is
   translated into a newline, and a backslash followed by another
