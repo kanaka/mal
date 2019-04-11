@@ -16,7 +16,9 @@ REM  is inefficient but should make memory management simpler.
 REM  See ../basic/mem.in.bas for data representations.
 
 DEF PROCtypes_init
-  DIM Z%(3000,3), S$(10000)
+  REM  Arbitrarily use half of BASIC's heap as the mal heap, with a bit
+  REM  more for strings.  Each heap entry is sixteen bytes.
+  DIM Z%((HIMEM-LOMEM)/32,3), S$((HIMEM-LOMEM)/64)
   Z%(0,0) = 32: REM nil
   Z%(1,0) = 1+32: REM false
   Z%(2,0) = 1+32: Z%(2,1) = 1: REM true
