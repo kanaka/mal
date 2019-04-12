@@ -13,7 +13,21 @@ REM  (referenced from Z%()).  Unlike that implementation, we use a
 REM  two-dimensional array where each object is a whole row.  This
 REM  is inefficient but should make memory management simpler.
 
-REM  See ../basic/mem.in.bas for data representations.
+REM  Z%(x,0) holds the type and reference count of an object.  The
+REM  bottom 5 bits are the type, and the rest are the reference count.
+
+REM  Types are:
+REM  0   nil
+REM  1   boolean
+REM  2   integer
+REM  5   symbol
+REM  6   list (each object is a cons cell)
+REM  8   hash-map (each object is one entry)
+REM  9   core function
+REM  10  mal function
+REM  13  environment
+
+REM  Formats of individual objects are defined below.
 
 DEF PROCtypes_init
   REM  Arbitrarily use half of BASIC's heap as the mal heap, with a bit
@@ -54,6 +68,8 @@ DEF FNnil
 
 REM ** Boolean **
 
+REM Z%(x,1) = 0 for FALSE, 1 for TRUE
+
 DEF FNis_boolean(val%)
 =FNtype_of(val%) = 1
 
@@ -73,6 +89,8 @@ DEF FNis_truish(val%)
 
 REM ** Integers **
 
+REM  Z%(x,1) = integer value
+
 DEF FNis_int(val%)
 =FNtype_of(val%) = 2
 
@@ -89,6 +107,8 @@ DEF FNunbox_int(val%)
 
 REM ** Symbols **
 
+REM  Z%(x,1) = index in S$() of the value of the symbol
+
 DEF FNis_symbol(val%)
 =FNtype_of(val%) = 5
 
@@ -104,6 +124,12 @@ DEF FNunbox_symbol(val%)
 =S$(Z%(val%,1))
 
 REM ** Lists **
+
+REM  Z%(x,1) = index in Z%() of next pair
+REM  Z%(x,2) = index in Z%() of first element
+
+REM  The empty list is a distinguished value, which happens to have
+REM  both elements nil.
 
 DEF FNempty
 =3
@@ -169,6 +195,8 @@ DEF FNarray_to_list(a%())
 
 REM ** Core functions **
 
+REM  Z%(x,1) = index of function in FNcore_call
+
 DEF FNis_corefn(val%)
 =FNtype_of(val%) = 9
 
@@ -183,7 +211,11 @@ DEF FNunbox_corefn(val%)
   IF NOT FNis_corefn(val%) THEN ERROR &40E80919, "Not a core function"
 =Z%(val%,1)
 
-REM ** Hashmaps **
+REM ** Hash-maps **
+
+REM  Z%(x,1) = index in Z%() of next element
+REM  Z%(x,2) = index in S$() of value
+REM  Z%(x,3) = index in Z%() of value
 
 REM  To defer implementing mal strings for a bit, hashmap keys are
 REM  currently BASIC strings rather than arbitrary values.
@@ -211,6 +243,10 @@ DEF FNhashmap_get(map%, key$)
 
 REM ** Functions **
 
+REM  Z%(x,1) = index in Z%() of ast
+REM  Z%(x,2) = index in Z%() of params
+REM  Z%(x,3) = index in Z%() of env
+
 DEF FNis_fn(val%)
 =FNtype_of(val%) = 10
 
@@ -236,6 +272,9 @@ DEF FNfn_env(val%)
 =Z%(val%,3)
 
 REM ** Environments **
+
+REM  Z%(x,1) = index in Z% of hash-map
+REM  Z%(x,2) = index in Z% of outer environment
 
 DEF FNis_environment(val%)
 =FNtype_of(val%) = 13
