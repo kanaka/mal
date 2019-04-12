@@ -13,6 +13,9 @@ REM  (referenced from Z%()).  Unlike that implementation, we use a
 REM  two-dimensional array where each object is a whole row.  This
 REM  is inefficient but should make memory management simpler.
 
+REM  S%() holds reference counts for the strings in S$().  At present
+REM  these are all 0 or 1.
+
 REM  Z%(x,0) holds the type and reference count of an object.  The
 REM  bottom 5 bits are the type, and the rest are the reference count.
 
@@ -32,7 +35,8 @@ REM  Formats of individual objects are defined below.
 DEF PROCtypes_init
   REM  Arbitrarily use half of BASIC's heap as the mal heap, with a bit
   REM  more for strings.  Each heap entry is sixteen bytes.
-  DIM Z%((HIMEM-LOMEM)/32,3), S$((HIMEM-LOMEM)/64)
+  DIM Z%((HIMEM-LOMEM)/32,3)
+  DIM S$((HIMEM-LOMEM)/64), S%((HIMEM-LOMEM)/64)
   Z%(0,0) = 32: REM nil
   Z%(1,0) = 1+32: REM false
   Z%(2,0) = 1+32: Z%(2,1) = TRUE: REM true
@@ -55,6 +59,7 @@ DEF FNsalloc(s$)
   LOCAL val%
   val% = next_S%
   S$(val%) = s$
+  S%(val%) += 1
   next_S% += 1
 =val%
 
