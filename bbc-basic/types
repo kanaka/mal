@@ -35,7 +35,7 @@ DEF PROCtypes_init
   DIM Z%((HIMEM-LOMEM)/32,3), S$((HIMEM-LOMEM)/64)
   Z%(0,0) = 32: REM nil
   Z%(1,0) = 1+32: REM false
-  Z%(2,0) = 1+32: Z%(2,1) = 1: REM true
+  Z%(2,0) = 1+32: Z%(2,1) = TRUE: REM true
   Z%(3,0) = 6+32: REM empty list
   Z%(5,0) = 8+32: REM empty hashmap
   next_Z% = 6
@@ -68,7 +68,7 @@ DEF FNnil
 
 REM ** Boolean **
 
-REM Z%(x,1) = 0 for FALSE, 1 for TRUE
+REM  Z%(x,1) = TRUE or FALSE
 
 DEF FNis_boolean(val%)
 =FNtype_of(val%) = 1
@@ -79,12 +79,11 @@ DEF FNalloc_boolean(bval%)
 
 DEF FNunbox_boolean(val%)
   IF NOT FNis_boolean(val%) THEN ERROR &40E80911, "Not a boolean"
-  IF Z%(val%,1) THEN =TRUE
-=FALSE
+=Z%(val%,1)
 
 DEF FNis_truish(val%)
   IF FNis_nil(val%) THEN =FALSE
-  IF FNis_boolean(val%) THEN IF NOT FNunbox_boolean(val%) THEN =FALSE
+  IF FNis_boolean(val%) THEN =FNunbox_boolean(val%)
 =TRUE
 
 REM ** Integers **
