@@ -157,6 +157,28 @@ make DOCKERIZE=1 "repl^IMPL^stepX"
 make DOCKERIZE=1 "repl^IMPL"
 ```
 
+## External Implementations
+
+The following implementations are maintained as separate projects:
+
+### HolyC
+
+* [by Alexander Bagnalla](https://github.com/bagnalla/holyc_mal)
+
+### Rust
+
+* [by Tim Morgan](https://github.com/seven1m/mal-rust)
+* [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
+
+
+## Other mal Projects
+
+ * [malc](https://github.com/dubek/malc) - Mal (Make A Lisp) compiler. Compiles a Mal program to LLVM assembly language, then binary.
+ * [malcc](https://git.sr.ht/~tim/malcc) (@seven1m) - malcc is an incremental compiler implementation for the Mal language. It uses the Tiny C Compiler as the compiler backend and has full support for the Mal language, including macros, tail-call elimination, and even run-time eval. ["I Built a Lisp Compiler"](https://mpov.timmorgan.org/i-built-a-lisp-compiler/) post about the process.
+ * [frock](https://github.com/chr15m/frock) - Clojure-flavoured PHP. Uses mal/php to run programs.
+
+
+## Implementation Details
 
 ### Ada
 
@@ -1164,15 +1186,6 @@ make "stats^IMPL"
 make "stats^js"
 ```
 
-* To report line and bytes statistics for general Lisp code (env, core
-  and stepA):
-```
-make "stats-lisp^IMPL"
-
-# e.g.
-make "stats-lisp^js"
-```
-
 ## Dockerized testing
 
 Every implementation directory contains a Dockerfile to create
@@ -1205,26 +1218,6 @@ make "docker-build^IMPL"
   out. These dependencies are downloaded to dot-files in the /mal
   directory so they will persist between runs.
 
-
-## External Implementations
-
-The following implementations are maintained as separate projects:
-
-### HolyC
-
-* [by Alexander Bagnalla](https://github.com/bagnalla/holyc_mal)
-
-### Rust
-
-* [by Tim Morgan](https://github.com/seven1m/mal-rust)
-* [by vi](https://github.com/vi/mal-rust-vi) - using [Pest](https://pest.rs/) grammar, not using typical Mal infrastructure (cargo-ized steps and built-in converted tests).
-
-
-## Other mal Projects
-
- * [malc](https://github.com/dubek/malc) - Mal (Make A Lisp) compiler. Compiles a Mal program to LLVM assembly language, then binary.
- * [malcc](https://git.sr.ht/~tim/malcc) (@seven1m) - malcc is an incremental compiler implementation for the Mal language. It uses the Tiny C Compiler as the compiler backend and has full support for the Mal language, including macros, tail-call elimination, and even run-time eval. ["I Built a Lisp Compiler"](https://mpov.timmorgan.org/i-built-a-lisp-compiler/) post about the process.
- * [frock](https://github.com/chr15m/frock) - Clojure-flavoured PHP. Uses mal/php to run programs.
 
 ## License
 
