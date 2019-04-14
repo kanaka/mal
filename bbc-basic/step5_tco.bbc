@@ -23,12 +23,21 @@ val$ = FNrep("(def! not (fn* (a) (if a false true)))")
 
 REPEAT
   REM  Catch all errors apart from "Escape".
-  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
+  ON ERROR LOCAL PROCrepl_error
   line$ = FNmalio_input("user> ")
   PROCmalio_println(FNrep(line$))
 UNTIL FNmalio_eof
 
 END
+
+DEF PROCrepl_error
+  PRINT REPORT$
+  IF ERR = 17 THEN
+    PROCrelease(repl_env%)
+    PROCcheck_heap
+    END
+  ENDIF
+ENDPROC
 
 DEF FNREAD(a$)
 =FNread_str(a$)

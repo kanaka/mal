@@ -49,6 +49,16 @@ ENDPROC
 DEF FNtype_of(val%)
 =Z%(val%,0) AND 31
 
+DEF FNrefcount(val%)
+=Z%(val%,0) >> 5
+
+DEF PROCcheck_heap
+  LOCAL i%
+  FOR i% = 6 TO next_Z% - 1
+    IF FNrefcount(i%)  > 0 THEN PRINT "Non-zero refcount (";i%;")"
+  NEXT i%
+ENDPROC
+
 DEF FNmalloc
   LOCAL val%
   val% = next_Z%
@@ -62,6 +72,10 @@ DEF FNsalloc(s$)
   S%(val%) += 1
   next_S% += 1
 =val%
+
+DEF PROCrelease(val%)
+  Z%(val%,0) -= 32
+ENDPROC
 
 REM ** Nil **
 
@@ -145,6 +159,11 @@ DEF FNalloc_pair(car%, cdr%)
   Z%(val%,2) = car%
   Z%(val%,1) = cdr%
 =val%
+
+DEF PROCrelease_list(val%)
+  PROCrelease(FNlist_car(val%))
+  PROCrelease(FNlist_cdr(val%))
+ENDPROC
 
 DEF FNis_empty(val%)
 =val% = FNempty
@@ -236,6 +255,12 @@ DEF FNalloc_hashmap_entry(key$, val%, next%)
   Z%(entry%,3) = val%
 =entry%
 
+DEF PROCrelease_hashmap(val%)
+  PROCrelease(Z%(val%,1))
+  PROCsfree(Z%(val%,2))
+  PROCrelease(Z%(val%,3))
+ENDPROC
+
 DEF FNis_hashmap(val%)
 =FNtype_of(val%) = 8
 
@@ -262,6 +287,12 @@ DEF FNalloc_fn(ast%, params%, env%)
   Z%(val%,2) = params%
   Z%(val%,3) = env%
 =val%
+
+DEF PROCrelease_fn(val%)
+  PROCrelease(FNfn_ast(val%))
+  PROCrelease(FNfn_params(val%))
+  PROCrelease(FNfn_env(val%))
+ENDPROC
 
 DEF FNfn_ast(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
@@ -290,6 +321,11 @@ DEF FNalloc_environment(outer%)
   Z%(val%,1) = FNempty_hashmap
   Z%(val%,2) = outer%
 =val%
+
+DEF FNrelease_environment(val%)
+  PROCrelease(FNenvironment_data(val%))
+  PROCrelease(FNenvironment_outer(val%))
+ENDPROC
 
 DEF FNenvironment_data(val%)
   IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
