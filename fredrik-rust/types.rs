@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 pub type Result = std::result::Result<MalType, Box<Error>>;
+use super::env::Env;
 
 #[derive(Clone)]
 pub enum MalType {
@@ -12,13 +13,14 @@ pub enum MalType {
     Boolean(bool),
     Integer(isize),
     String(String),
+    Keyword(String),
     Quote(Box<MalType>),
     QuasiQuote(Box<MalType>),
     UnQuote(Box<MalType>),
     SpliceUnQuote(Box<MalType>),
     WithMeta(Box<MalType>, Box<MalType>),
     Deref(String),
-    Fn(std::sync::Arc<Fn(&[MalType]) -> Result>),
+    Fn(std::sync::Arc<Fn(&[MalType], &mut Env) -> Result>),
 }
 
 impl fmt::Debug for MalType {
@@ -32,6 +34,7 @@ impl fmt::Debug for MalType {
             MalType::Boolean(b) => write!(f, "Boolean({})", b),
             MalType::Integer(i) => write!(f, "Integer({})", i),
             MalType::String(v) => write!(f, "String({})", v),
+            MalType::Keyword(k) => write!(f, "Keyword({})", k),
             MalType::Quote(v) => write!(f, "Quote({:?})", v),
             MalType::QuasiQuote(v) => write!(f, "QuasiQuote({:?})", v),
             MalType::UnQuote(v) => write!(f, "UnQuote({:?})", v),
@@ -53,6 +56,7 @@ impl PartialEq for MalType {
             (MalType::Integer(a), MalType::Integer(b)) => a == b,
             (MalType::String(a), MalType::String(b)) => a == b,
             (MalType::Boolean(a), MalType::Boolean(b)) => a == b,
+            (MalType::Keyword(a), MalType::Keyword(b)) => a == b,
             (MalType::Nil, MalType::Nil) => true,
             _ => false,
         }

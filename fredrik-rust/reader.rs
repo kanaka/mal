@@ -1,6 +1,6 @@
 use super::types::{MalType, Result};
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Captures, Regex};
 use std::error::Error;
 use std::fmt;
 
@@ -110,6 +110,16 @@ fn read_list(rdr: &mut Reader, closer: &str) -> Result {
     }
 }
 
+fn unescape_str(s: &str) -> String {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r#"\\(.)"#).unwrap();
+    }
+    RE.replace_all(&s, |caps: &Captures| {
+        format!("{}", if &caps[1] == "n" { "\n" } else { &caps[1] })
+    })
+    .to_string()
+}
+
 fn read_atom(rdr: &mut Reader) -> Result {
     match rdr.next() {
         "nil" => Ok(MalType::Nil),
@@ -126,10 +136,12 @@ fn read_atom(rdr: &mut Reader) -> Result {
             _ => {
                 if &s[0..1] == "\"" {
                     if &s[s.len() - 1..] == "\"" {
-                        Ok(MalType::String(s[1..(s.len() - 1)].to_string()))
+                        Ok(MalType::String(unescape_str(&s[1..(s.len() - 1)])))
                     } else {
                         ParseError::new("unbalanced \"")
                     }
+                } else if &s[0..1] == ":" {
+                    Ok(MalType::Keyword(s[1..].to_string()))
                 } else {
                     Ok(MalType::Symbol(s.to_string()))
                 }

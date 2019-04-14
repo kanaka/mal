@@ -11,7 +11,7 @@ mod types;
 use env::Env;
 use types::MalType;
 
-fn add(params: &[MalType]) -> types::Result {
+fn add(params: &[MalType], _: &mut Env) -> types::Result {
     let mut sum = 0;
     for p in params {
         match p {
@@ -23,7 +23,7 @@ fn add(params: &[MalType]) -> types::Result {
     Ok(MalType::Integer(sum))
 }
 
-fn sub(params: &[MalType]) -> types::Result {
+fn sub(params: &[MalType], _: &mut Env) -> types::Result {
     if let MalType::Integer(init) = params[0] {
         let mut res = init;
         for p in params[1..].iter() {
@@ -38,7 +38,7 @@ fn sub(params: &[MalType]) -> types::Result {
     }
 }
 
-fn mul(params: &[MalType]) -> types::Result {
+fn mul(params: &[MalType], _: &mut Env) -> types::Result {
     let mut res = 1;
     for p in params {
         match p {
@@ -50,7 +50,7 @@ fn mul(params: &[MalType]) -> types::Result {
     Ok(MalType::Integer(res))
 }
 
-fn div(params: &[MalType]) -> types::Result {
+fn div(params: &[MalType], _: &mut Env) -> types::Result {
     if let MalType::Integer(init) = params[0] {
         let mut res = init;
         for p in params[1..].iter() {
@@ -208,7 +208,7 @@ fn eval(v: &MalType, env: &mut Env) -> types::Result {
                         "let*" => eval_let(&l, env),
                         _ => match eval_ast(v, env) {
                             Ok(MalType::List(elist)) => match &elist[0] {
-                                MalType::Fn(f) => f(&elist[1..]),
+                                MalType::Fn(f) => f(&elist[1..], env),
                                 _ => EvalError::new("Missing function when evaluating list"),
                             },
                             Ok(_) => EvalError::new("Unknown error when evaluating list"),

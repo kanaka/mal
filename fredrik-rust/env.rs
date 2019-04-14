@@ -28,13 +28,14 @@ impl fmt::Display for EnvError {
     }
 }
 
-pub struct Env<'a> {
-    outer: Option<&'a Env<'a>>,
+#[derive(Debug, Clone)]
+pub struct Env {
+    outer: Option<Box<Env>>,
     data: HashMap<String, MalType>,
 }
 
-impl<'a> Env<'a> {
-    pub fn new_with_binds(outer: Option<&'a Env>, binds: &[MalType], exprs: &[MalType]) -> Self {
+impl Env {
+    pub fn new_with_binds(outer: Option<&Env>, binds: &[MalType], exprs: &[MalType]) -> Self {
         let mut data = HashMap::new();
         for (k, v) in binds.iter().zip(exprs.iter()) {
             match &k {
@@ -44,10 +45,21 @@ impl<'a> Env<'a> {
                 _ => {}
             }
         }
-        Env { outer, data }
+        Env {
+            outer: outer.map(|e| Box::new(e.clone())),
+            data,
+        }
     }
 
-    pub fn new(outer: Option<&'a Env>) -> Self {
+    pub fn set_outer(&mut self, env: &Env) {
+        if let Some(ref mut o) = self.outer {
+            o.set_outer(env);
+        } else {
+            self.outer = Some(Box::new(env.clone()));
+        }
+    }
+
+    pub fn new(outer: Option<&Env>) -> Self {
         Self::new_with_binds(outer, &[], &[])
     }
 

@@ -24,22 +24,14 @@ pub fn main() -> Result<(), Box<std::error::Error>> {
         env.set(k, &v);
     }
 
+    rep("(def! not (fn* (a) (if a false true)))", &mut env);
+
     loop {
         let readline = rl.readline("user> ");
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_ref());
-                match read(&line) {
-                    Err(err) => println!("{}", err),
-                    Ok(r) => match eval(&r, &mut env) {
-                        Ok(e) => {
-                            print(&e);
-                        }
-                        Err(err) => {
-                            println!("{}", err);
-                        }
-                    },
-                }
+                rep(&line, &mut env);
             }
             Err(ReadlineError::Eof) => break,
             Err(ReadlineError::Interrupted) => continue,
@@ -51,6 +43,20 @@ pub fn main() -> Result<(), Box<std::error::Error>> {
     }
     rl.save_history("history.txt")?;
     Ok(())
+}
+
+fn rep(line: &str, env: &mut Env) {
+    match read(&line) {
+        Err(err) => println!("{}", err),
+        Ok(r) => match eval(&r, env) {
+            Ok(e) => {
+                print(&e);
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        },
+    }
 }
 
 fn read(str: &str) -> types::Result {
@@ -144,16 +150,10 @@ fn eval_let(l: &[MalType], env: &mut Env) -> types::Result {
 }
 
 fn eval_do(l: &[MalType], env: &mut Env) -> types::Result {
-    // eval all but the last elem
-    for i in 0..(l.len() - 1) {
-        match eval_ast(&l[i], env) {
-            Err(err) => {
-                return Err(err);
-            }
-            _ => {}
-        }
+    match eval_ast(&MalType::List(l.to_vec()), env) {
+        Ok(MalType::List(ref v)) => Ok(v[v.len() - 1].clone()),
+        o => o,
     }
-    eval_ast(&l[l.len() - 1], env)
 }
 
 fn eval_if(l: &[MalType], env: &mut Env) -> types::Result {
@@ -181,18 +181,30 @@ fn eval_if(l: &[MalType], env: &mut Env) -> types::Result {
 }
 
 fn eval_fn(l: &[MalType], env: &mut Env) -> types::Result {
-    // if l.len() < 2 {
-    //     return EvalError::new("fn* requires two parameters");
-    // }
+    if l.len() < 2 {
+        return EvalError::new("fn* requires two parameters");
+    }
 
-    // if let (MalType::Vector(binds), MalType::List(exprs)) = (&l[0], &l[1]) {
-    //     Ok(MalType::Fn(|params| {
-    //         let mut new_env = Env::new_with_binds(Some(env), binds, exprs);
-    //     }))
-    // } else {
-    //     EvalError::new("fn* requires two list parameters")
-    // }
-    return EvalError::new("fn* requires two parameters");
+    let o_binds = match &l[0] {
+        MalType::List(binds) => Some(binds.clone()),
+        MalType::Vector(binds) => Some(binds.clone()),
+        _ => None,
+    };
+
+    let old_env = env.clone();
+
+    let lambda = l[1].clone();
+
+    if let Some(binds) = o_binds {
+        Ok(MalType::Fn(std::sync::Arc::new(move |exprs, env| {
+            let mut new_env = Env::new_with_binds(Some(&old_env), &binds, exprs);
+            // We also need
+            let res = eval(&lambda, &mut new_env);
+            res
+        })))
+    } else {
+        EvalError::new("fn* requires two list parameters")
+    }
 }
 
 fn eval(v: &MalType, env: &mut Env) -> types::Result {
@@ -202,22 +214,19 @@ fn eval(v: &MalType, env: &mut Env) -> types::Result {
                 Ok((*v).clone())
             } else {
                 match &l[0] {
-                    MalType::Symbol(s) => match s.as_str() {
-                        "def!" => eval_def(&l[1..], env),
-                        "let*" => eval_let(&l[1..], env),
-                        "do" => eval_do(&l[1..], env),
-                        "if" => eval_if(&l[1..], env),
-                        "fn*" => eval_fn(&l[1..], env),
-                        _ => match eval_ast(v, env) {
-                            Ok(MalType::List(elist)) => match &elist[0] {
-                                MalType::Fn(f) => f(&elist[1..]),
-                                _ => EvalError::new("Missing function when evaluating list"),
-                            },
-                            Ok(_) => EvalError::new("Unknown error when evaluating list"),
-                            err => err,
+                    MalType::Symbol(ref s) if s == "def!" => eval_def(&l[1..], env),
+                    MalType::Symbol(ref s) if s == "let*" => eval_let(&l[1..], env),
+                    MalType::Symbol(ref s) if s == "do" => eval_do(&l[1..], env),
+                    MalType::Symbol(ref s) if s == "if" => eval_if(&l[1..], env),
+                    MalType::Symbol(ref s) if s == "fn*" => eval_fn(&l[1..], env),
+                    _ => match eval_ast(v, env) {
+                        Ok(MalType::List(elist)) => match &elist[0] {
+                            MalType::Fn(f) => f(&elist[1..], env),
+                            _ => EvalError::new("Missing function when evaluating list"),
                         },
+                        Ok(_) => EvalError::new("Unknown error when evaluating list"),
+                        err => err,
                     },
-                    e => EvalError::new(&format!("Unknow first list elemenet: {:?}", e)),
                 }
             }
         }

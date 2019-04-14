@@ -32,6 +32,7 @@ pub fn pr_str(val: &MalType, print_readably: bool) -> String {
             pr_str(a, print_readably),
             pr_str(b, print_readably)
         ),
+        MalType::Keyword(k) => format!(":{}", k),
         MalType::Deref(a) => format!("(deref {})", a),
         MalType::Nil => "nil".to_owned(),
         MalType::String(s) => print_string(s, print_readably),
@@ -39,15 +40,23 @@ pub fn pr_str(val: &MalType, print_readably: bool) -> String {
     }
 }
 
-fn print_string(s: &str, print_readably: bool) -> String {
-    let res = if print_readably {
-        s.to_string()
-            .replace(r#"\""#, "\"")
-            .replace(r#"\n"#, "\n")
-            .replace(r#"\\"#, "\\")
-    } else {
-        s.to_string()
-    };
+fn escape_str(s: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            '"' => "\\\"".to_string(),
+            '\n' => "\\n".to_string(),
+            '\\' => "\\\\".to_string(),
+            _ => c.to_string(),
+        })
+        .collect::<Vec<String>>()
+        .join("")
+}
 
-    format!(r#""{}""#, res)
+fn print_string(s: &str, print_readably: bool) -> String {
+    if print_readably {
+        format!(r#""{}""#, escape_str(s))
+    } else {
+        // format!(r#"{}"#, s)
+        s.to_string()
+    }
 }

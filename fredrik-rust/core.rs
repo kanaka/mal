@@ -1,3 +1,4 @@
+use super::env::Env;
 use super::types;
 use super::types::MalType;
 use std::collections::HashMap;
@@ -19,7 +20,6 @@ pub fn core() -> HashMap<&'static str, MalType> {
     core_fns.insert("empty?", MalType::Fn(std::sync::Arc::new(is_empty)));
     core_fns.insert("list", MalType::Fn(std::sync::Arc::new(list)));
     core_fns.insert("count", MalType::Fn(std::sync::Arc::new(count)));
-    core_fns.insert("not", MalType::Fn(std::sync::Arc::new(not)));
     core_fns.insert("pr-str", MalType::Fn(std::sync::Arc::new(pr_str)));
     core_fns.insert("str", MalType::Fn(std::sync::Arc::new(str_fn)));
     core_fns.insert("prn", MalType::Fn(std::sync::Arc::new(prn)));
@@ -53,7 +53,7 @@ impl fmt::Display for CoreError {
     }
 }
 
-fn add(params: &[MalType]) -> types::Result {
+fn add(params: &[MalType], _: &mut Env) -> types::Result {
     let mut sum = 0;
     for p in params {
         match p {
@@ -65,7 +65,7 @@ fn add(params: &[MalType]) -> types::Result {
     Ok(MalType::Integer(sum))
 }
 
-fn sub(params: &[MalType]) -> types::Result {
+fn sub(params: &[MalType], _: &mut Env) -> types::Result {
     if let MalType::Integer(init) = params[0] {
         let mut res = init;
         for p in params[1..].iter() {
@@ -80,7 +80,7 @@ fn sub(params: &[MalType]) -> types::Result {
     }
 }
 
-fn mul(params: &[MalType]) -> types::Result {
+fn mul(params: &[MalType], _: &mut Env) -> types::Result {
     let mut res = 1;
     for p in params {
         match p {
@@ -92,7 +92,7 @@ fn mul(params: &[MalType]) -> types::Result {
     Ok(MalType::Integer(res))
 }
 
-fn div(params: &[MalType]) -> types::Result {
+fn div(params: &[MalType], _: &mut Env) -> types::Result {
     if let MalType::Integer(init) = params[0] {
         let mut res = init;
         for p in params[1..].iter() {
@@ -118,34 +118,34 @@ where
     }
 }
 
-fn lt(params: &[MalType]) -> types::Result {
+fn lt(params: &[MalType], _: &mut Env) -> types::Result {
     compare(params, |a, b| a < b)
 }
 
-fn lte(params: &[MalType]) -> types::Result {
+fn lte(params: &[MalType], _: &mut Env) -> types::Result {
     compare(params, |a, b| a <= b)
 }
 
-fn eq(params: &[MalType]) -> types::Result {
+fn eq(params: &[MalType], _: &mut Env) -> types::Result {
     Ok(MalType::Boolean(params[0] == params[1]))
 }
 
-fn gt(params: &[MalType]) -> types::Result {
+fn gt(params: &[MalType], _: &mut Env) -> types::Result {
     compare(params, |a, b| a > b)
 }
 
-fn gte(params: &[MalType]) -> types::Result {
+fn gte(params: &[MalType], _: &mut Env) -> types::Result {
     compare(params, |a, b| a >= b)
 }
 
-fn is_list(params: &[MalType]) -> types::Result {
+fn is_list(params: &[MalType], _: &mut Env) -> types::Result {
     Ok(MalType::Boolean(match &params[0] {
         MalType::List(_) => true,
         _ => false,
     }))
 }
 
-fn is_empty(params: &[MalType]) -> types::Result {
+fn is_empty(params: &[MalType], _: &mut Env) -> types::Result {
     Ok(MalType::Boolean(match &params[0] {
         MalType::List(a) => a.len() == 0,
         MalType::Vector(a) => a.len() == 0,
@@ -153,11 +153,11 @@ fn is_empty(params: &[MalType]) -> types::Result {
     }))
 }
 
-fn list(params: &[MalType]) -> types::Result {
+fn list(params: &[MalType], _: &mut Env) -> types::Result {
     Ok(MalType::List(params.to_vec()))
 }
 
-fn count(params: &[MalType]) -> types::Result {
+fn count(params: &[MalType], _: &mut Env) -> types::Result {
     Ok(MalType::Integer(match &params[0] {
         MalType::List(a) => a.len() as isize,
         MalType::Vector(a) => a.len() as isize,
@@ -165,14 +165,7 @@ fn count(params: &[MalType]) -> types::Result {
     }))
 }
 
-fn not(params: &[MalType]) -> types::Result {
-    Ok(MalType::Boolean(match &params[0] {
-        MalType::Boolean(a) => !a,
-        _ => false,
-    }))
-}
-
-fn pr_str(params: &[MalType]) -> types::Result {
+fn pr_str(params: &[MalType], _: &mut Env) -> types::Result {
     let res = params
         .iter()
         .map(|p| super::printer::pr_str(&p, true))
@@ -181,7 +174,7 @@ fn pr_str(params: &[MalType]) -> types::Result {
     Ok(MalType::String(res))
 }
 
-fn str_fn(params: &[MalType]) -> types::Result {
+fn str_fn(params: &[MalType], _: &mut Env) -> types::Result {
     let res = params
         .iter()
         .map(|p| super::printer::pr_str(&p, false))
@@ -190,12 +183,18 @@ fn str_fn(params: &[MalType]) -> types::Result {
     Ok(MalType::String(res))
 }
 
-fn prn(params: &[MalType]) -> types::Result {
-    print!("{:?}", pr_str(params).unwrap());
+fn prn(params: &[MalType], env: &mut Env) -> types::Result {
+    let str = pr_str(params, env)?;
+    match str {
+        MalType::String(s) => {
+            println!("{}", s);
+        }
+        _ => {}
+    }
     Ok(MalType::Nil)
 }
 
-fn println(params: &[MalType]) -> types::Result {
+fn println(params: &[MalType], _: &mut Env) -> types::Result {
     let res = params
         .iter()
         .map(|p| super::printer::pr_str(&p, false))

@@ -1,6 +1,7 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod env;
 mod printer;
 mod reader;
 mod types;
@@ -45,5 +46,5 @@ fn eval(str: &types::MalType) -> &types::MalType {
 }
 
 fn print(s: &types::MalType) {
-    println!("{}", printer::pr_str(s, false));
+    println!("{}", printer::pr_str(s, true));
 }
