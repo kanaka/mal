@@ -233,7 +233,7 @@
     ($PR_MEMORY -1 -1)
     ($INC_REF (global.get $NIL)))
 
-  (func $main (result i32)
+  (func $main (param $argc i32 $argv i32) (result i32)
     (LET $line (STATIC_ARRAY 201)
          $res 0 $repl_env 0)
 
@@ -277,8 +277,5 @@
     0
   )
 
-
-  (export "_main" (func $main))
-  (export "__post_instantiate" (func $init_memory))
 )
 

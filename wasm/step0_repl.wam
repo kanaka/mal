@@ -19,7 +19,7 @@
     ($PRINT ($EVAL ($READ $line) 0))
   )
 
-  (func $main (result i32)
+  (func $main (param $argc i32 $argv i32) (result i32)
     ;; Constant location/value definitions
     (LET $line (STATIC_ARRAY 201))
 
@@ -40,8 +40,10 @@
     0
   )
 
-
-  (export "_main" (func $main))
-  (export "__post_instantiate" (func $init_printf_mem))
+  ;; init_memory is provided by mem.wam in later steps but we just
+  ;; printf in step0 so provide init_memory that just calls that
+  (func $init_memory
+    ($init_printf_mem)
+  )
 )
 

@@ -426,8 +426,5 @@
     0
   )
 
-
-  (export "_main" (func $main))
-  (export "__post_instantiate" (func $init_memory))
 )
 

@@ -1,8 +1,10 @@
 (module $platform_os
 
+  (import "env" "memory" (memory 256))
+  (import "env" "memoryBase" (global $memoryBase i32))
+
   (import "env" "exit"        (func $lib_exit (param i32)))
-  (import "env" "stdout"      (global $lib_stdout i32))
-  (import "env" "fputs"       (func $lib_fputs (param i32 i32) (result i32)))
+  (import "env" "printline"   (func $lib_printline (param i32) (result i32)))
   (import "env" "readline"    (func $lib_readline (param i32 i32 i32) (result i32)))
   (import "env" "read_file"   (func $lib_read_file (param i32 i32) (result i32)))
   (import "env" "get_time_ms" (func $lib_get_time_ms (result i32)))
@@ -17,7 +19,8 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (func $print (param $addr i32)
-    (drop ($lib_fputs $addr (global.get $lib_stdout))))
+    (drop ($lib_printline $addr))
+  )
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -41,5 +44,14 @@
   (func $get_time_ms (result i32)
     ($lib_get_time_ms)
   )
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (func $entry (param $argc i32 $argv i32)
+    ($init_memory)
+    ($lib_exit ($main $argc $argv))
+  )
+
+  (export "_main" (func $entry))
 
 )
