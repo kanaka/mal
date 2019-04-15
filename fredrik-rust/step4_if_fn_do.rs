@@ -162,14 +162,7 @@ fn eval_if(l: &[MalType], env: &mut Env) -> types::Result {
     }
     let e_res = eval(&l[0], env)?;
     match e_res {
-        MalType::Nil => {
-            if l.len() > 2 {
-                eval(&l[2], env)
-            } else {
-                Ok(MalType::Nil)
-            }
-        }
-        MalType::Boolean(false) => {
+        MalType::Nil | MalType::Boolean(false) => {
             if l.len() > 2 {
                 eval(&l[2], env)
             } else {
@@ -196,10 +189,9 @@ fn eval_fn(l: &[MalType], env: &mut Env) -> types::Result {
     let lambda = l[1].clone();
 
     if let Some(binds) = o_binds {
-        Ok(MalType::Fn(std::sync::Arc::new(move |exprs, _new_env| {
-            let mut new_env = Env::new_with_binds(Some(&old_env), &binds, exprs);
-            // We also need
-            // let tmp
+        Ok(MalType::Fn(std::sync::Arc::new(move |exprs, outer_env| {
+            let mut new_env = Env::new_with_binds(Some(&outer_env), &binds, exprs);
+            new_env.set_inner(&old_env);
             let res = eval(&lambda, &mut new_env);
             res
         })))

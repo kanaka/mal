@@ -58,6 +58,15 @@ impl Env {
         }
     }
 
+    pub fn set_inner(&mut self, outer: &Env) {
+        match self.outer {
+            None => {
+                self.outer = Some(Box::new(outer.clone()));
+            }
+            Some(ref mut i) => i.set_inner(outer),
+        }
+    }
+
     pub fn new(outer: Option<&Env>) -> Self {
         Self::new_with_binds(outer, &[], &[])
     }
