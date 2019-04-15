@@ -196,9 +196,10 @@ fn eval_fn(l: &[MalType], env: &mut Env) -> types::Result {
     let lambda = l[1].clone();
 
     if let Some(binds) = o_binds {
-        Ok(MalType::Fn(std::sync::Arc::new(move |exprs, env| {
+        Ok(MalType::Fn(std::sync::Arc::new(move |exprs, _new_env| {
             let mut new_env = Env::new_with_binds(Some(&old_env), &binds, exprs);
             // We also need
+            // let tmp
             let res = eval(&lambda, &mut new_env);
             res
         })))

@@ -37,25 +37,24 @@ pub struct Env {
 impl Env {
     pub fn new_with_binds(outer: Option<&Env>, binds: &[MalType], exprs: &[MalType]) -> Self {
         let mut data = HashMap::new();
-        for (k, v) in binds.iter().zip(exprs.iter()) {
-            match &k {
+        for i in 0..binds.len() {
+            match &binds[i] {
+                MalType::Symbol(sk) if sk == "&" => {
+                    if let MalType::Symbol(k) = &binds[i + 1] {
+                        data.insert(k.to_string(), MalType::List(exprs[i..].to_vec()));
+                    }
+                    break;
+                }
                 MalType::Symbol(sk) => {
-                    data.insert(sk.to_string(), v.clone());
+                    data.insert(sk.to_string(), exprs[i].clone());
                 }
                 _ => {}
             }
         }
+
         Env {
             outer: outer.map(|e| Box::new(e.clone())),
             data,
-        }
-    }
-
-    pub fn set_outer(&mut self, env: &Env) {
-        if let Some(ref mut o) = self.outer {
-            o.set_outer(env);
-        } else {
-            self.outer = Some(Box::new(env.clone()));
         }
     }
 
