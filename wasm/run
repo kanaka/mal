@@ -1,6 +1,8 @@
 #!/bin/bash
 STEP=${STEP:-stepA_mal}
 case "${wasm_MODE}" in
+wasmtime)
+    exec wasmtime --dir=./ --dir=../ --dir=/ $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
 node|js)
     exec ./run.js $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
 warpy)

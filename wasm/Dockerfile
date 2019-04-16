@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 as base 
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -38,23 +38,41 @@ RUN apt-get -y install nodejs
 ENV NPM_CONFIG_CACHE /mal/.npm
 
 #
-# binaryen
+# wace build and runtime libs
 #
 RUN dpkg --add-architecture i386 && \
     apt-get -y update && \
     apt-get -y install \
-        git-core cmake g++ lib32gcc-8-dev \
-        libsdl2-dev:i386 libsdl2-image-dev:i386 \
+        lib32gcc-8-dev libsdl2-dev:i386 libsdl2-image-dev:i386 \
         libedit-dev:i386 freeglut3-dev:i386 lib32gcc-7-dev \
         libreadline-dev:i386
+
+#
+# binaryen
+#
+RUN apt-get -y install git-core cmake
 
 RUN git clone https://github.com/WebAssembly/binaryen/ && \
     cd binaryen && \
     cmake . && make && \
-    make install
+    make install && \
+    cd .. && \
+    rm -r binaryen
+
+#########################################################################
+FROM base as build_runtimes
 
 #
-# pypy / rpython
+# clang/LLVM and rust (for building wasmtime)
+#
+RUN apt-get -y install llvm-3.9-dev libclang-3.9-dev clang-3.9
+RUN apt-get -y install curl && \
+    curl https://sh.rustup.rs -sSf > /tmp/rustup.sh && \
+    sh /tmp/rustup.sh -y
+ENV PATH $PATH:/root/.cargo/bin
+
+#
+# pypy / rpython (for building warpy)
 #
 
 # rpython deps
@@ -79,6 +97,15 @@ RUN apt-get -y install software-properties-common && \
     ln -sf /opt/pypy/pypy/goal/pypy-c /usr/local/bin/pypy && \
     apt-get -y autoremove pypy
 
+
+#
+# warpy
+#
+RUN git clone https://github.com/kanaka/warpy/ && \
+    cd warpy && \
+    make warpy-nojit && \
+    cp warpy-nojit /usr/bin/warpy
+
 #
 # wac/wace
 #
@@ -88,9 +115,21 @@ RUN git clone https://github.com/kanaka/wac/ && \
     cp wac wace /usr/bin
 
 #
-# warpy
+# wasmtime
 #
-RUN git clone https://github.com/kanaka/warpy/ && \
-    cd warpy &&  \
-    make warpy-nojit && \
-    cp warpy-nojit /usr/bin/warpy
+RUN git clone --recursive https://github.com/CraneStation/wasmtime && \
+    cd wasmtime && \
+    cargo build --release && \
+    cp target/release/wasmtime /usr/bin/ && \
+    cp target/release/wasm2obj /usr/bin/
+
+
+#########################################################################
+FROM base as wasm
+
+COPY --from=build_runtimes /usr/bin/wac /usr/bin/wac
+COPY --from=build_runtimes /usr/bin/wace /usr/bin/wace
+COPY --from=build_runtimes /usr/bin/warpy /usr/bin/warpy
+COPY --from=build_runtimes /usr/bin/wasmtime /usr/bin/wasmtime
+COPY --from=build_runtimes /usr/bin/wasm2obj /usr/bin/wasm2obj
+

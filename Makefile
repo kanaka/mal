@@ -59,8 +59,8 @@ matlab_MODE = octave
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
 scheme_MODE = chibi
-# js wace_libc wace_fooboot
-wasm_MODE = wace_libc
+# wasmtime js node wace_libc wace_fooboot
+wasm_MODE = wasmtime
 
 # Path to loccount for counting LOC stats
 LOCCOUNT = loccount
