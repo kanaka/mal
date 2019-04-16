@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Make a Lisp (mal) language implemented in WebAssembly",
     "dependencies": {
-        "@kanaka/wamp": "1.0.7",
+        "@kanaka/wamp": "1.0.8",
         "ffi-napi": "^2.4.4",
         "text-encoding": "0.6.4"
     }
