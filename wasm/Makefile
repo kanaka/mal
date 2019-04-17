@@ -1,7 +1,7 @@
 MODE ?= $(strip \
-          $(if $(filter wasmtime,$(wasm_MODE)),\
+          $(if $(filter wasi wasmtime,$(wasm_MODE)),\
 	    wasi,\
-	    $(if $(filter node js wace_fooboot warpy,$(wasm_MODE)),\
+	    $(if $(filter direct node js wace_fooboot warpy,$(wasm_MODE)),\
 	      direct,\
 	      libc)))
 

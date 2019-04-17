@@ -1032,13 +1032,26 @@ mono ./stepX_YYY.exe
 
 The WebAssembly implementation is written in
 [Wam](https://github.com/kanaka/wam) (WebAssembly Macro language) and
-runs under the [wac/wace](https://github.com/kanaka/wac) WebAssembly
-runtime.
+runs under several different non-web embeddings (runtimes):
+node,
+[wasmtime](https://github.com/CraneStation/wasmtime),
+[wace](https://github.com/kanaka/wac),
+[warpy](https://github.com/kanaka/warpy).
 
 ```
 cd wasm
-make
+# node
+make wasm_MODE=node
+./run.js ./stepX_YYY.wasm
+# wasmtime
+make wasm_MODE=wasmtime
+wasmtime --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
+# wace
+make wasm_MODE=wace_libc
 wace ./stepX_YYY.wasm
+# warpy
+make wasm_MODE=warpy
+warpy --argv --memory-pages 256 ./stepX_YYY.wasm
 ```
 
 ### Yorick
