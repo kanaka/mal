@@ -35,6 +35,7 @@ REM  8   hash-map (each object is one entry)
 REM  9   core function
 REM  10  mal function
 REM  13  environment
+REM  15  free block
 
 REM  Formats of individual objects are defined below.
 
@@ -52,21 +53,35 @@ DEF PROCtypes_init
   next_S% = 0
   sSP% = 1
   sFP% = 0
+  F% = 0
+  GCtoggle% = 0
 ENDPROC
 
 DEF FNtype_of(val%)
 =Z%(val%,0) AND 31
 
 DEF PROCgc_enter
+  PRINT ;sFP%;
   sS%(sSP%) = sFP%
   sFP% = sSP%
   sSP% += 1
+  PRINT " >>> ";sFP%
 ENDPROC
 
+DEF FNgc_save
+=sFP%
+
 DEF PROCgc_exit
+  PRINT ;sS%(sFP%);" <<< ";sFP%
   sSP% = sFP%
   sFP% = sS%(sFP%)
 ENDPROC
+
+DEF PROCgc_restore(oldFP%)
+  sFP% = oldFP%
+  sSP% = sFP% + 1
+  PRINT "!!! ";sFP%
+ENDPROC  
 
 DEF FNref_local(val%)
   sS%(sSP%) = val%
@@ -75,12 +90,19 @@ DEF FNref_local(val%)
 
 DEF FNgc_exit(val%)
   PROCgc_exit
-=FNref_local(val%)
-  
-DEF FNmalloc
+  val% = FNref_local(val%)
+=val%
+
+DEF FNmalloc(type%)
   LOCAL val%
-  val% = next_Z%
-  next_Z% += 1
+  IF F% <> 0 THEN
+    val% = F%
+    F% = Z%(val%,1)
+  ELSE
+    val% = next_Z%
+    next_Z% += 1
+  ENDIF
+  Z%(val%,0) = type% OR GCtoggle%
 =FNref_local(val%)
 
 DEF FNsalloc(s$)
@@ -90,6 +112,61 @@ DEF FNsalloc(s$)
   S%(val%) += 1
   next_S% += 1
 =val%
+
+DEF PROCfree(val%)
+  Z%(val%,0) = 15
+  Z%(val%,1) = F%
+  Z%(val%,2) = 0
+  Z%(val%,3) = 0
+  F% = val%
+ENDPROC
+
+DEF PROCgc
+  PRINT "** START GC **"
+  GCtoggle% = GCtoggle% EOR &100
+  PROCgc_markall
+  PROCgc_sweep
+  PRINT "** FINISH GC **"
+ENDPROC
+
+DEF PROCgc_markall
+  LOCAL sp%, fp%
+  fp% = sFP%
+  PRINT ">>marking...";
+  FOR sp% = sSP% - 1 TO 0 STEP -1
+    IF sp% = fp% THEN
+      fp% = sS%(sp%)
+      PRINT " / ";
+    ELSE PROCgc_mark(sS%(sp%))
+    ENDIF
+  NEXT sp%
+  PRINT
+ENDPROC
+
+DEF PROCgc_mark(val%)
+  IF (Z%(val%,0) AND &100) <> GCtoggle% THEN
+    PRINT " ";val%;
+    Z%(val%,0) = Z%(val%,0) EOR &100
+    CASE FNtype_of(val%) OF
+      WHEN 6 :  PROCgc_mark_list(val%)
+      WHEN 8 :  PROCgc_mark_hashmap(val%)
+      WHEN 10 : PROCgc_mark_fn(val%)
+      WHEN 13 : PROCgc_mark_environment(val%)
+    ENDCASE
+  ENDIF
+ENDPROC
+
+DEF PROCgc_sweep
+  LOCAL val%
+  PRINT ">>sweeping ...";
+  FOR val% = 6 TO next_Z% - 1
+    IF FNtype_of(val%) <> 15 AND (Z%(val%,0) AND &100) <> GCtoggle% THEN
+      PRINT " ";val%;
+      PROCfree(val%)
+    ENDIF
+  NEXT val%
+  PRINT
+ENDPROC
 
 REM ** Nil **
 
@@ -128,8 +205,7 @@ DEF FNis_int(val%)
 
 DEF FNalloc_int(ival%)
   LOCAL val%
-  val% = FNmalloc
-  Z%(val%,0) = 2+32
+  val% = FNmalloc(2)
   Z%(val%,1) = ival%
 =val%
 
@@ -146,8 +222,7 @@ DEF FNis_symbol(val%)
 
 DEF FNalloc_symbol(sval$)
   LOCAL val%
-  val% = FNmalloc
-  Z%(val%,0) = 5+32
+  val% = FNmalloc(5)
   Z%(val%,1) = FNsalloc(sval$)
 =val%
 
@@ -168,17 +243,7 @@ DEF FNempty
 
 DEF FNalloc_pair(car%, cdr%)
   LOCAL val%
-  val% = FNmalloc
-  Z%(val%,0) = 6+32
-  Z%(val%,2) = car%
-  Z%(val%,1) = cdr%
-=val%
-
-REM  Special version of alloc_pair for use inside FNmalloc
-DEF FNalloc_pair_internal(car%, cdr%)
-  LOCAL val%
-  val% = FNmalloc_internal
-  Z%(val%,0) = 6+32
+  val% = FNmalloc(6)
   Z%(val%,2) = car%
   Z%(val%,1) = cdr%
 =val%
@@ -188,6 +253,13 @@ DEF FNis_empty(val%)
 
 DEF FNis_list(val%)
 =FNtype_of(val%) = 6
+
+DEF PROCgc_mark_list(val%)
+  IF NOT FNis_empty(val%) THEN
+    PROCgc_mark(Z%(val%,1))
+    PROCgc_mark(Z%(val%,2))
+  ENDIF
+ENDPROC
 
 DEF FNlist_car(val%)
   IF NOT FNis_list(val%) THEN ERROR &40E80916, "Can't get car of non-list"
@@ -213,7 +285,7 @@ DEF FNlist_nth(val%, n%)
     IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
     n% -= 1
   ENDWHILE
-=FNref_local(FNlist_car(val%))
+=FNlist_car(val%)
 
 DEF PROClist_to_array(val%, a%())
   REM  a%() must already be correctly dimensioned.
@@ -244,8 +316,7 @@ DEF FNis_corefn(val%)
 
 DEF FNalloc_corefn(fn%)
   LOCAL val%
-  val% = FNmalloc
-  Z%(val%,0) = 32 + 9
+  val% = FNmalloc(9)
   Z%(val%,1) = fn%
 =val%
 
@@ -267,8 +338,7 @@ DEF FNempty_hashmap
 
 DEF FNalloc_hashmap_entry(key$, val%, next%)
   LOCAL entry%
-  entry% = FNmalloc
-  Z%(entry%,0) = 32 + 8
+  entry% = FNmalloc(8)
   Z%(entry%,1) = next%
   Z%(entry%,2) = FNsalloc(key$)
   Z%(entry%,3) = val%
@@ -276,6 +346,11 @@ DEF FNalloc_hashmap_entry(key$, val%, next%)
 
 DEF FNis_hashmap(val%)
 =FNtype_of(val%) = 8
+
+DEF PROCgc_mark_hashmap(val%)
+  PROCgc_mark(Z%(val%,1))
+  PROCgc_mark(Z%(val%,3))
+ENDPROC
 
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
@@ -294,12 +369,17 @@ DEF FNis_fn(val%)
 
 DEF FNalloc_fn(ast%, params%, env%)
   LOCAL val%
-  val% = FNmalloc
-  Z%(val%,0) = 32 + 10
+  val% = FNmalloc(10)
   Z%(val%,1) = ast%
   Z%(val%,2) = params%
   Z%(val%,3) = env%
 =val%
+
+DEF PROCgc_mark_fn(val%)
+  PROCgc_mark(Z%(val%,1))
+  PROCgc_mark(Z%(val%,2))
+  PROCgc_mark(Z%(val%,3))
+ENDPROC
 
 DEF FNfn_ast(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
@@ -323,11 +403,15 @@ DEF FNis_environment(val%)
 
 DEF FNalloc_environment(outer%)
   LOCAL val%
-  val% = FNmalloc
-  Z%(val%,0) = 32 + 13
+  val% = FNmalloc(13)
   Z%(val%,1) = FNempty_hashmap
   Z%(val%,2) = outer%
 =val%
+
+DEF PROCgc_mark_environment(val%)
+  PROCgc_mark(Z%(val%,1))
+  PROCgc_mark(Z%(val%,2))
+ENDPROC
 
 DEF FNenvironment_data(val%)
   IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
