@@ -62,18 +62,18 @@ DEF FNtype_of(val%)
 =Z%(val%,0) AND 31
 
 DEF PROCgc_enter
-  PRINT ;sFP%;
+  REM PRINT ;sFP%;
   sS%(sSP%) = sFP%
   sFP% = sSP%
   sSP% += 1
-  PRINT " >>> ";sFP%
+  REM PRINT " >>> ";sFP%
 ENDPROC
 
 DEF FNgc_save
 =sFP%
 
 DEF PROCgc_exit
-  PRINT ;sS%(sFP%);" <<< ";sFP%
+  REM PRINT ;sS%(sFP%);" <<< ";sFP%
   sSP% = sFP%
   sFP% = sS%(sFP%)
 ENDPROC
@@ -81,7 +81,7 @@ ENDPROC
 DEF PROCgc_restore(oldFP%)
   sFP% = oldFP%
   sSP% = sFP% + 1
-  PRINT "!!! ";sFP%
+  REM PRINT "!!! ";sFP%
 ENDPROC  
 
 DEF FNref_local(val%)
@@ -146,30 +146,30 @@ DEF PROCsfree(val%)
 ENDPROC
 
 DEF PROCgc
-  PRINT "** START GC **"
+  REM PRINT "** START GC **"
   GCtoggle% = GCtoggle% EOR &100
   PROCgc_markall
   PROCgc_sweep
-  PRINT "** FINISH GC **"
+  REM PRINT "** FINISH GC **"
 ENDPROC
 
 DEF PROCgc_markall
   LOCAL sp%, fp%
   fp% = sFP%
-  PRINT ">>marking...";
+  REM PRINT ">>marking...";
   FOR sp% = sSP% - 1 TO 0 STEP -1
     IF sp% = fp% THEN
       fp% = sS%(sp%)
-      PRINT " / ";
+      REM PRINT " / ";
     ELSE PROCgc_mark(sS%(sp%))
     ENDIF
   NEXT sp%
-  PRINT
+  REM PRINT
 ENDPROC
 
 DEF PROCgc_mark(val%)
   IF (Z%(val%,0) AND &100) <> GCtoggle% THEN
-    PRINT " ";val%;
+    REM PRINT " ";val%;
     Z%(val%,0) = Z%(val%,0) EOR &100
     CASE FNtype_of(val%) OF
       WHEN 6 :  PROCgc_mark_list(val%)
@@ -182,14 +182,14 @@ ENDPROC
 
 DEF PROCgc_sweep
   LOCAL val%
-  PRINT ">>sweeping ...";
+  REM PRINT ">>sweeping ...";
   FOR val% = 6 TO next_Z% - 1
     IF FNtype_of(val%) <> 15 AND (Z%(val%,0) AND &100) <> GCtoggle% THEN
-      PRINT " ";val%;
+      REM PRINT " ";val%;
       PROCfree(val%)
     ENDIF
   NEXT val%
-  PRINT
+  REM PRINT
 ENDPROC
 
 REM ** Nil **
