@@ -147,3 +147,7 @@ DEF FNread_atom(tokens$(), RETURN tokptr%)
   IF strval$ = "false" THEN =FNalloc_boolean(FALSE)
   IF FNis_token_numeric(strval$) THEN =FNalloc_int(VAL(strval$))
 =FNalloc_symbol(strval$)
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

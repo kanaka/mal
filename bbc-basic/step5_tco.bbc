@@ -124,3 +124,7 @@ DEF FNeval_ast(ast%, env%)
     =FNalloc_pair(car%, cdr%)
   ENDIF
 =ast%
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

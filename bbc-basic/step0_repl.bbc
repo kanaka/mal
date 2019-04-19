@@ -22,3 +22,7 @@ DEF FNPRINT(a$)
 
 DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$)))
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

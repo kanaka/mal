@@ -19,3 +19,7 @@ DEF FNpr_str(val%)
     =ret$ + ")"
   ENDIF
   ERROR &40E809F0, "Unprintable value"
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

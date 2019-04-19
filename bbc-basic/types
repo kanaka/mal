@@ -457,3 +457,7 @@ ENDPROC
 DEF FNenvironment_outer(val%)
   IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
 =FNref_local(Z%(val%,2))
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

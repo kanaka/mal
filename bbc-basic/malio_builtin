@@ -19,3 +19,7 @@ DEF FNmalio_input(prompt$)
 
 DEF FNmalio_eof
 =FALSE
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

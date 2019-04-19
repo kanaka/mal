@@ -30,3 +30,7 @@ DEF FNenv_get(env%, keysym%)
     ERROR &40E80922, "Symbol '"+FNunbox_symbol(keysym%)+"' not found"
   ENDIF
 =FNhashmap_get(FNenvironment_data(env%), FNunbox_symbol(keysym%))
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:

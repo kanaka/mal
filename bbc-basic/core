@@ -125,3 +125,7 @@ DEF FNcore_equal(a%, b%)
     =FNcore_equal(FNlist_cdr(a%), FNlist_cdr(b%))
   ENDIF
 =FALSE
+
+REM Local Variables:
+REM indent-tabs-mode: nil
+REM End:
