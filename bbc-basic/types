@@ -55,6 +55,7 @@ DEF PROCtypes_init
   sFP% = 0
   F% = 0
   GCtoggle% = 0
+  SF% = 0
 ENDPROC
 
 DEF FNtype_of(val%)
@@ -107,18 +108,32 @@ DEF FNmalloc(type%)
 
 DEF FNsalloc(s$)
   LOCAL val%
-  val% = next_S%
+  IF SF% <> 0 THEN
+    val% = SF%
+    SF% = S%(val%)
+  ELSE
+    val% = next_S%
+    next_S% += 1
+  ENDIF
   S$(val%) = s$
-  S%(val%) += 1
-  next_S% += 1
 =val%
 
 DEF PROCfree(val%)
+  CASE FNtype_of(val%) OF
+    WHEN 5 : PROCfree_symbol(val%)
+    WHEN 8 : PROCfree_hashmap(val%)
+  ENDCASE
   Z%(val%,0) = 15
   Z%(val%,1) = F%
   Z%(val%,2) = 0
   Z%(val%,3) = 0
   F% = val%
+ENDPROC
+
+DEF PROCsfree(val%)
+  S$(val%) = ""
+  S%(val%) = SF%
+  SF% = val%
 ENDPROC
 
 DEF PROCgc
@@ -225,6 +240,10 @@ DEF FNalloc_symbol(sval$)
   val% = FNmalloc(5)
   Z%(val%,1) = FNsalloc(sval$)
 =val%
+
+DEF PROCfree_symbol(val%)
+  PROCsfree(Z%(val%,1))
+ENDPROC
 
 DEF FNunbox_symbol(val%)
   IF NOT FNis_symbol(val%) THEN ERROR &40E80915, "Not a symbol"
@@ -350,6 +369,10 @@ DEF FNis_hashmap(val%)
 DEF PROCgc_mark_hashmap(val%)
   PROCgc_mark(Z%(val%,1))
   PROCgc_mark(Z%(val%,3))
+ENDPROC
+
+DEF PROCfree_hashmap(val%)
+  PROCsfree(Z%(val%,2))
 ENDPROC
 
 DEF FNhashmap_get(map%, key$)
