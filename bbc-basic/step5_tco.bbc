@@ -22,29 +22,28 @@ UNTIL sym$ = ""
 val$ = FNrep("(def! not (fn* (a) (if a false true)))")
 
 REPEAT
+  PROCgc_enter
+  sav% = FNgc_save
   REM  Catch all errors apart from "Escape".
-  ON ERROR LOCAL PROCrepl_error
+  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END ELSE PROCgc_restore(sav%)
   line$ = FNmalio_input("user> ")
   PROCmalio_println(FNrep(line$))
+  PROCgc_exit
 UNTIL FNmalio_eof
 
 END
-
-DEF PROCrepl_error
-  PRINT REPORT$
-  IF ERR = 17 THEN
-    PROCrelease(repl_env%)
-    PROCcheck_heap
-    END
-  ENDIF
-ENDPROC
 
 DEF FNREAD(a$)
 =FNread_str(a$)
 
 DEF FNEVAL(ast%, env%)
+  PROCgc_enter
+=FNgc_exit(FNEVAL_(ast%, env%))
+
+DEF FNEVAL_(ast%, env%)
   LOCAL args%(), car%, specialform%, val%, bindings%
   REPEAT
+    PROCgc_keep_only2(ast%, env%)
     IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
     IF FNis_empty(ast%) THEN =ast%
     car% = FNlist_car(ast%)

@@ -94,6 +94,13 @@ DEF FNgc_exit(val%)
   val% = FNref_local(val%)
 =val%
 
+DEF PROCgc_keep_only2(val1%, val2%)
+  PROCgc_exit
+  PROCgc_enter
+  val1% = FNref_local(val1%)
+  val2% = FNref_local(val2%)
+ENDPROC
+
 DEF FNmalloc(type%)
   LOCAL val%
   REM  If the heap is full, collect garbage first.
