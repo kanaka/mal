@@ -1,5 +1,5 @@
 MODE ?= $(strip \
-          $(if $(filter wasi wasmtime,$(wasm_MODE)),\
+          $(if $(filter wasi wax wasmtime,$(wasm_MODE)),\
 	    wasi,\
 	    $(if $(filter direct node js wace_fooboot warpy,$(wasm_MODE)),\
 	      direct,\

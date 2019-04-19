@@ -115,7 +115,6 @@ async function loadWebAssembly(filename, args) {
   imports.env.read_file = read_file
   imports.env.get_time_ms = get_time_ms
 
-
   imports.env.stdout = 0
   imports.env.fputs = printline
 

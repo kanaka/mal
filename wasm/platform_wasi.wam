@@ -4,15 +4,20 @@
   (export "memory" (memory 0))
   (global $memoryBase i32 0)
 
-  (global $RIGHT_FD_READ i64 (i64.const 2))
+  (global $WASI_RIGHT_FD_READ i64 (i64.const 2))
+  (global $WASI_ESUCCESS i32 0)
+  (global $WASI_EBADF    i32 8)
+  (global $WASI_PREOPENTYPE_DIR i32 0)
 
-  (import "wasi_unstable" "proc_exit"      (func $proc_exit (param i32)))
-  (import "wasi_unstable" "fd_write"       (func $fd_write (param i32 i32 i32 i32) (result i32)))
-  (import "wasi_unstable" "fd_read"        (func $fd_read (param i32 i32 i32 i32) (result i32)))
-  (import "wasi_unstable" "path_open"      (func $path_open (param i32 i32 i32 i32 i32 i64 i64 i32 i32) (result i32)))
-  (import "wasi_unstable" "args_sizes_get" (func $args_sizes_get (param i32 i32) (result i32)))
   (import "wasi_unstable" "args_get"       (func $args_get (param i32 i32) (result i32)))
+  (import "wasi_unstable" "args_sizes_get" (func $args_sizes_get (param i32 i32) (result i32)))
   (import "wasi_unstable" "clock_time_get" (func $clock_time_get (param i32 i64 i32) (result i32)))
+  (import "wasi_unstable" "fd_prestat_get"      (func $fd_prestat_get (param i32 i32) (result i32)))
+  (import "wasi_unstable" "fd_prestat_dir_name" (func $fd_prestat_dir_name (param i32 i32 i32) (result i32)))
+  (import "wasi_unstable" "fd_read"        (func $fd_read (param i32 i32 i32 i32) (result i32)))
+  (import "wasi_unstable" "fd_write"       (func $fd_write (param i32 i32 i32 i32) (result i32)))
+  (import "wasi_unstable" "path_open"      (func $path_open (param i32 i32 i32 i32 i32 i64 i64 i32 i32) (result i32)))
+  (import "wasi_unstable" "proc_exit"      (func $proc_exit (param i32)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,7 +31,7 @@
   (func $print (param $addr i32)
     (LET $ret 0
          $nwritten_ptr (STATIC_ARRAY 4 4)
-         $iovec (STATIC_ARRAY 8 4))
+         $iovec (STATIC_ARRAY 8 8))
     (i32.store $iovec $addr)
     (i32.store offset=4 $iovec ($strlen $addr))
     (local.set $ret ($fd_write 1 $iovec 1 $nwritten_ptr))
@@ -37,7 +42,7 @@
   (func $readline (param $prompt i32 $buf i32) (result i32)
     (LET $ret 0
          $nread_ptr (STATIC_ARRAY 4 4)
-         $iovec (STATIC_ARRAY 8 4))
+         $iovec (STATIC_ARRAY 8 8))
     ($print $prompt)
     (i32.store $iovec $buf)
     (i32.store offset=4 $iovec 200) ;; TODO: not hardcoded length
@@ -51,43 +56,64 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ;; We currently assume that files are mapped:
-  ;;     3: ./
-  ;;     4: ../
-  ;;     5: /
-  ;; In ./run, wasmtime is called like this:
-  ;;      wasmtime --dir=./ --dir=../ --dir=/ ...
-  ;; TODO: we should use the prestat method to find the right
-  ;; directory fd that matches our prefix as implemented at:
-  ;; https://github.com/CraneStation/wasi-sysroot/blob/1cc98f27f5ab8afdc033e16eac8799ee606eb769/libc-bottom-half/crt/crt1.c#L71
   (func $read_file (param $path i32 $buf i32) (result i32)
     (LET $orig_path $path
          $ret 0
+         $prestat_ptr (STATIC_ARRAY 8 4)
+         $pr_type 0
+         $pr_name_len 0
+         $prepath (STATIC_ARRAY 1024)
          $dirfd 3
          $fd_ptr (STATIC_ARRAY 4 4)
          $nread_ptr (STATIC_ARRAY 4 4)
-         $iovec (STATIC_ARRAY 8 4))
-    (if (i32.eqz ($strncmp "/" $path 1))
+         $iovec (STATIC_ARRAY 8 8))
+
+    ;; Find the pre-opened dirfd with the same prefix as the our path
+    ;; following the algorithm at:
+    ;; https://github.com/CraneStation/wasi-sysroot/blob/1cc98f27f5ab8afdc033e16eac8799ee606eb769/libc-bottom-half/crt/crt1.c#L71
+    ;; The matching dirfd is then used to open and read the path.
+    (block $loop_done
+      (loop $loop
+        ;; prestat the dirfd from 3 onward until EBADF is returned
+        (local.set $ret ($fd_prestat_get $dirfd $prestat_ptr))
+        (if (i32.eq (global.get $WASI_EBADF) $ret)
+          (br $loop_done))
+        (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
+          (br $loop))
+        (local.set $pr_type (i32.load $prestat_ptr))
+        (local.set $pr_name_len (i32.load offset=4 $prestat_ptr))
+        ;; Read the pre-opened path name
+        (local.set $ret ($fd_prestat_dir_name $dirfd $prepath $pr_name_len))
+        ;;($printf_4 "dirfd: %d, pr_type: %d, pr_name_len: %d, prepath: %s\n"
+        ;;           $dirfd $pr_type $pr_name_len $prepath)
+        (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
+          (br $loop_done))
+        (if (AND (i32.eq $pr_type (global.get $WASI_PREOPENTYPE_DIR))
+                 (i32.eqz ($strncmp $prepath $path $pr_name_len)))
+          (then
+            ;; $ret was success and the path prefix matches, so break
+            (local.set $path (i32.add $pr_name_len $path))
+            (br $loop_done)))
+        (local.set $dirfd (i32.add 1 $dirfd))
+        (br $loop)
+      )
+    )
+
+    (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
       (then
-        (local.set $dirfd 5)
-        (local.set $path (i32.add $path 1)))
-    (else (if (i32.eqz ($strncmp "../" $path 3))
-      (then
-        (local.set $dirfd 4)
-        (local.set $path (i32.add $path 3)))
-    (else
-        (local.set $dirfd 3)))))
+        ($printf_1 "ERROR: slurp could not find permission for '%s'\n" $orig_path)
+        (return 0)))
 
     (local.set $ret ($path_open $dirfd
                                 1 ;; dirflags (symlink follow)
                                 $path
                                 ($strlen $path)
                                 0 ;; o_flags
-                                (global.get $RIGHT_FD_READ)
-                                (global.get $RIGHT_FD_READ)
+                                (global.get $WASI_RIGHT_FD_READ)
+                                (global.get $WASI_RIGHT_FD_READ)
                                 0 ;; fs_flags
                                 $fd_ptr))
-    (if (i32.ne 0 $ret)
+    (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
       (then
         ($printf_1 "ERROR: slurp failed to open '%s'\n" $orig_path)
         (return 0)))
@@ -96,7 +122,7 @@
     ;; TODO: use stat result instead of not hardcoded length
     (i32.store offset=4 $iovec 16384)
     (local.set $ret ($fd_read (i32.load $fd_ptr) $iovec 1 $nread_ptr))
-    (if (i32.ne 0 $ret)
+    (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
       (then
         ($printf_1 "ERROR: slurp failed to read '%s'\n" $orig_path)
         (return 0)))
@@ -144,8 +170,8 @@
       ($main (i32.wrap_i64 (i64.shr_u $argc_argv (i64.const 32)))
              (i32.wrap_i64 $argc_argv)))
   )
-  (start $entry)
+  ;;(start $entry)
 
-  (export "_main" (func $entry))
+  (export "_start" (func $entry))
 
 )

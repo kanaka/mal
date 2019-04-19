@@ -99,6 +99,13 @@ RUN apt-get -y install software-properties-common && \
 
 
 #
+# wasi-sdk (C/C++ -> wasm+wasi)
+#
+RUN curl -LO https://github.com/CraneStation/wasi-sdk/releases/download/wasi-sdk-3/wasi-sdk_3.0_amd64.deb && \
+    dpkg -i wasi-sdk_3.0_amd64.deb && \
+    rm wasi-sdk_3.0_amd64.deb
+
+#
 # warpy
 #
 RUN git clone https://github.com/kanaka/warpy/ && \
@@ -111,8 +118,8 @@ RUN git clone https://github.com/kanaka/warpy/ && \
 #
 RUN git clone https://github.com/kanaka/wac/ && \
     cd wac  && \
-    make USE_SDL= wac wace && \
-    cp wac wace /usr/bin
+    make USE_SDL= wac wax wace && \
+    cp wac wax wace /usr/bin
 
 #
 # wasmtime
@@ -128,6 +135,7 @@ RUN git clone --recursive https://github.com/CraneStation/wasmtime && \
 FROM base as wasm
 
 COPY --from=build_runtimes /usr/bin/wac /usr/bin/wac
+COPY --from=build_runtimes /usr/bin/wax /usr/bin/wax
 COPY --from=build_runtimes /usr/bin/wace /usr/bin/wace
 COPY --from=build_runtimes /usr/bin/warpy /usr/bin/warpy
 COPY --from=build_runtimes /usr/bin/wasmtime /usr/bin/wasmtime

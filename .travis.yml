@@ -95,6 +95,7 @@ matrix:
     - {env: IMPL=vhdl,      services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=wasmtime,  services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wax,       services: [docker]}
     - {env: IMPL=wasm wasm_MODE=node,      services: [docker]}
     - {env: IMPL=wasm wasm_MODE=wace_libc, services: [docker]}
     - {env: IMPL=wasm wasm_MODE=warpy,     services: [docker]}

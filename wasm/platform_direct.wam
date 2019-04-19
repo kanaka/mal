@@ -1,4 +1,4 @@
-(module $platform_os
+(module $platform_direct
 
   (import "env" "memory" (memory 256))
   (import "env" "memoryBase" (global $memoryBase i32))
@@ -26,8 +26,7 @@
 
   (func $readline (param $prompt i32 $buf i32) (result i32)
     ;; TODO: don't hardcode count to 200
-    (LET $res ($lib_readline $prompt $buf 200))
-    $res
+    ($lib_readline $prompt $buf 200)
   )
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

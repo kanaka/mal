@@ -1035,6 +1035,7 @@ The WebAssembly implementation is written in
 runs under several different non-web embeddings (runtimes):
 node,
 [wasmtime](https://github.com/CraneStation/wasmtime),
+[wax](https://github.com/kanaka/wac),
 [wace](https://github.com/kanaka/wac),
 [warpy](https://github.com/kanaka/warpy).
 
@@ -1046,6 +1047,9 @@ make wasm_MODE=node
 # wasmtime
 make wasm_MODE=wasmtime
 wasmtime --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
+# wax
+make wasm_MODE=wax
+wace ./stepX_YYY.wasm
 # wace
 make wasm_MODE=wace_libc
 wace ./stepX_YYY.wasm

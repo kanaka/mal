@@ -7,6 +7,8 @@ node|js)
     exec ./run.js $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
 warpy)
     exec warpy --argv --memory-pages 256 $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
+wax)
+    exec wax $(dirname $0)/${STEP:-stepA_mal}.wasm "${@}" ;;
 wace_fooboot)
     echo >&2 "wace_fooboot mode not yet supported" ;;
 wace_libc|*)
