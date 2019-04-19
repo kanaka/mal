@@ -51,42 +51,42 @@ DEF FNEVAL_(ast%, env%)
     IF FNis_symbol(car%) THEN
       specialform% = TRUE
       CASE FNunbox_symbol(car%) OF
-	REM  Special forms
-	WHEN "def!"
-	  val% = FNEVAL(FNlist_nth(ast%, 3), env%)
-	  PROCenv_set(env%, FNlist_nth(ast%, 2), val%)
-	  =val%
-	WHEN "let*"
-	  env% = FNalloc_environment(env%)
-	  bindings% = FNlist_nth(ast%, 2)
-	  WHILE NOT FNis_empty(bindings%)
-	    PROCenv_set(env%, FNlist_car(bindings%), FNEVAL(FNlist_nth(bindings%, 2), env%))
-	    bindings% = FNlist_cdr(FNlist_cdr(bindings%))
-	  ENDWHILE
-	  ast% = FNlist_nth(ast%, 3)
-	  REM  Loop round for tail-call optimisation.
-	WHEN "do"
-	  REM  The guide has us call FNeval_ast on the sub-list that excludes
-	  REM  the last element of ast%, but that's a bit painful without
-	  REM  native list slicing, so it's easier to just re-implement the
-	  REM  bit of FNeval_ast that we need.
-	  ast% = FNlist_cdr(ast%)
-	  WHILE NOT FNis_empty(FNlist_cdr(ast%))
-	    val% = FNEVAL(FNlist_car(ast%), env%)
-	    ast% = FNlist_cdr(ast%)
-	  ENDWHILE
-	  ast% = FNlist_car(ast%)
-	WHEN "if"
-	  IF FNis_truish(FNEVAL(FNlist_nth(ast%, 2), env%)) THEN
-	    ast% = FNlist_nth(ast%, 3)
-	  ELSE
-	    IF FNlist_len(ast%) = 3 THEN =FNnil ELSE ast% = FNlist_nth(ast%, 4)
-	  ENDIF
-	  REM  Loop round for tail-call optimisation.
-	WHEN "fn*"
-	  =FNalloc_fn(FNlist_nth(ast%, 3), FNlist_nth(ast%, 2), env%)
-	OTHERWISE
-	  specialform% = FALSE
+        REM  Special forms
+        WHEN "def!"
+          val% = FNEVAL(FNlist_nth(ast%, 3), env%)
+          PROCenv_set(env%, FNlist_nth(ast%, 2), val%)
+          =val%
+        WHEN "let*"
+          env% = FNalloc_environment(env%)
+          bindings% = FNlist_nth(ast%, 2)
+          WHILE NOT FNis_empty(bindings%)
+            PROCenv_set(env%, FNlist_car(bindings%), FNEVAL(FNlist_nth(bindings%, 2), env%))
+            bindings% = FNlist_cdr(FNlist_cdr(bindings%))
+          ENDWHILE
+          ast% = FNlist_nth(ast%, 3)
+          REM  Loop round for tail-call optimisation.
+        WHEN "do"
+          REM  The guide has us call FNeval_ast on the sub-list that excludes
+          REM  the last element of ast%, but that's a bit painful without
+          REM  native list slicing, so it's easier to just re-implement the
+          REM  bit of FNeval_ast that we need.
+          ast% = FNlist_cdr(ast%)
+          WHILE NOT FNis_empty(FNlist_cdr(ast%))
+            val% = FNEVAL(FNlist_car(ast%), env%)
+            ast% = FNlist_cdr(ast%)
+          ENDWHILE
+          ast% = FNlist_car(ast%)
+        WHEN "if"
+          IF FNis_truish(FNEVAL(FNlist_nth(ast%, 2), env%)) THEN
+            ast% = FNlist_nth(ast%, 3)
+          ELSE
+            IF FNlist_len(ast%) = 3 THEN =FNnil ELSE ast% = FNlist_nth(ast%, 4)
+          ENDIF
+          REM  Loop round for tail-call optimisation.
+        WHEN "fn*"
+          =FNalloc_fn(FNlist_nth(ast%, 3), FNlist_nth(ast%, 2), env%)
+        OTHERWISE
+          specialform% = FALSE
       ENDCASE
     ENDIF
     IF NOT specialform% THEN
@@ -94,13 +94,13 @@ DEF FNEVAL_(ast%, env%)
       ast% = FNeval_ast(ast%, env%)
       car% = FNlist_car(ast%)
       IF FNis_corefn(car%) THEN
-	DIM args%(FNlist_len(FNlist_cdr(ast%)))  
-	PROClist_to_array(FNlist_cdr(ast%), args%())
-	=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+        DIM args%(FNlist_len(FNlist_cdr(ast%)))  
+        PROClist_to_array(FNlist_cdr(ast%), args%())
+        =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
       ENDIF
       IF FNis_fn(car%) THEN
-	env% = FNnew_env(FNfn_env(car%), FNfn_params(car%), FNlist_cdr(ast%))
-	ast% = FNfn_ast(car%)
+        env% = FNnew_env(FNfn_env(car%), FNfn_params(car%), FNlist_cdr(ast%))
+        ast% = FNfn_ast(car%)
         REM  Loop round for tail-call optimisation.
       ELSE
         ERROR &40E80918, "Not a function"

@@ -95,16 +95,16 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
     CASE MID$(spec$, i%, 1) OF
       WHEN "i"
         IF NOT FNis_int(args%(i% - 1)) THEN
-	  ERROR &40E80911, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
-	ENDIF
+          ERROR &40E80911, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
+        ENDIF
       WHEN "l"
         IF NOT FNis_list(args%(i% - 1)) THEN
-	  ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
-	ENDIF
+          ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
+        ENDIF
       WHEN "C"
         IF NOT FNis_list(args%(i% - 1)) AND NOT FNis_nil(args%(i% - 1)) THEN
-	  ERROR &40E8091F, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a countable value"
-	ENDIF
+          ERROR &40E8091F, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a countable value"
+        ENDIF
       WHEN "?"
         REM  Nothing to do here
     ENDCASE
