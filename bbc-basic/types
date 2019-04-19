@@ -96,6 +96,8 @@ DEF FNgc_exit(val%)
 
 DEF FNmalloc(type%)
   LOCAL val%
+  REM  If the heap is full, collect garbage first.
+  IF F% = 0 AND next_Z% > DIM(Z%(),1) THEN PROCgc
   IF F% <> 0 THEN
     val% = F%
     F% = Z%(val%,1)
