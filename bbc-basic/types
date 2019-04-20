@@ -1,4 +1,4 @@
-REM Types library for mal in BBC BASIC
+REM > types library for mal in BBC BASIC
 
 REM  This library should be the only thing that understands the
 REM  implementation of mal data types in BBC BASIC.  All other

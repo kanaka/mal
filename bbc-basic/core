@@ -1,4 +1,4 @@
-REM Core function library for mal in BBC BASIC
+REM > core function library for mal in BBC BASIC
 
 REM  BBC BASIC doesn't have function pointers.  There are essentially
 REM  two ways to work around this.  One is to use the BASIC EVAL function,

@@ -1,4 +1,4 @@
-REM Environment library for mal in BBC BASIC
+REM > env library for mal in BBC BASIC
 
 DEF FNnew_env(outer%, binds%, exprs%)
   LOCAL env%

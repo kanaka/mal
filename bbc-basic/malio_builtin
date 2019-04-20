@@ -1,4 +1,4 @@
-REM I/O library for mal using normal BBC BASIC I/O statements
+REM > malio_builtin : I/O library for mal using normal BBC BASIC I/O statements
 
 DEF PROCmalio_init
 ENDPROC

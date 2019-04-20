@@ -1,4 +1,4 @@
-REM Printer library for mal in BBC BASIC
+REM > printer library for mal in BBC BASIC
 
 DEF FNpr_str(val%)
   LOCAL ret$
