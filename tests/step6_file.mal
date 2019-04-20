@@ -36,13 +36,6 @@
 ;=>12
 
 ;;
-;; Testing that *ARGV* exists and is an empty list
-(list? *ARGV*)
-;=>true
-*ARGV*
-;=>()
-
-;;
 ;; Testing atoms
 
 (def! inc3 (fn* (a) (+ 3 a)))
@@ -130,3 +123,10 @@ mymap
 ;=>1
 (let* (a 2) (eval (read-string "a")))
 ;=>1
+
+;;
+;; Testing that *ARGV* exists and is an empty list
+(list? *ARGV*)
+;=>true
+*ARGV*
+;=>()
