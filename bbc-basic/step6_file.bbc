@@ -19,7 +19,15 @@ REPEAT
   ENDIF
 UNTIL sym$ = ""
 
-val$ = FNrep("(def! not (fn* (a) (if a false true)))")
+REM  Initial forms to evaluate
+RESTORE +0
+DATA (def! not (fn* (a) (if a false true)))
+DATA (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))
+DATA ""
+REPEAT
+  READ form$
+  IF form$ <> "" THEN val$ = FNrep(form$)
+UNTIL form$ = ""
 
 REPEAT
   PROCgc_enter
