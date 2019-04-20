@@ -118,6 +118,9 @@ DEF FNcore_equal(a%, b%)
   IF FNis_symbol(a%) AND FNis_symbol(b%) THEN
     =FNunbox_symbol(a%) = FNunbox_symbol(b%)
   ENDIF
+  IF FNis_string(a%) AND FNis_string(b%) THEN
+    =FNunbox_string(a%) = FNunbox_string(b%)
+  ENDIF
   IF FNis_list(a%) AND FNis_list(b%) THEN
     IF FNis_empty(a%) AND FNis_empty(b%) THEN =TRUE
     IF FNis_empty(a%) <> FNis_empty(b%) THEN =FALSE

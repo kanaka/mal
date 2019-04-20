@@ -7,6 +7,13 @@ DEF FNpr_str(val%, print_readably%)
     IF FNunbox_boolean(val%) THEN ="true" ELSE ="false"
   ENDIF
   IF FNis_int(val%) THEN =STR$(FNunbox_int(val%))
+  IF FNis_string(val%) THEN
+    IF print_readably% THEN
+      =FNformat_string(FNunbox_string(val%))
+    ELSE
+      =FNunbox_string(val%)
+    ENDIF
+  ENDIF
   IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
   IF FNis_corefn(val%) OR FNis_fn(val%) THEN ="#<function>"
   IF FNis_list(val%) THEN
@@ -19,6 +26,19 @@ DEF FNpr_str(val%, print_readably%)
     =ret$ + ")"
   ENDIF
   ERROR &40E809F0, "Unprintable value"
+
+DEF FNformat_string(strval$)
+  LOCAL ptr%, c$, out$
+  IF strval$ = "" THEN =""""""
+  FOR ptr% = 1 TO LEN(strval$)
+    c$ = MID$(strval$, ptr%, 1)
+    CASE c$ OF
+      WHEN "\", """": out$ += "\" + c$
+      WHEN CHR$(10): out$ += "\n"
+      OTHERWISE: out$ += c$
+    ENDCASE
+  NEXT ptr%
+="""" + out$ + """"
 
 REM Local Variables:
 REM indent-tabs-mode: nil

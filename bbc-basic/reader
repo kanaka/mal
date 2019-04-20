@@ -145,8 +145,27 @@ DEF FNread_atom(tokens$(), RETURN tokptr%)
   IF strval$ = "nil" THEN =FNnil
   IF strval$ = "true" THEN =FNalloc_boolean(TRUE)
   IF strval$ = "false" THEN =FNalloc_boolean(FALSE)
+  IF LEFT$(strval$, 1) = """" THEN =FNalloc_string(FNunquote_string(strval$))
   IF FNis_token_numeric(strval$) THEN =FNalloc_int(VAL(strval$))
 =FNalloc_symbol(strval$)
+
+DEF FNunquote_string(strval$)
+  LOCAL inptr%, bs%, out$, c$
+  IF RIGHT$(strval$, 1) <> """" THEN ERROR &40E80930, "Unexpected end of input"
+  inptr% = 2
+  REPEAT
+    bs% = INSTR(strval$, "\", inptr%)
+    IF bs% > 0 THEN
+      out$ += MID$(strval$, inptr%, bs% - inptr%)
+      c$ = MID$(strval$, bs% + 1, 1)
+      IF c$ = "n" THEN c$ = CHR$(10)
+      out$ += c$
+      inptr% = bs% + 2
+    ENDIF
+  UNTIL bs% = 0
+  IF inptr% = LEN(strval$) + 1 THEN ERROR &40E80930, "Unexpected end of input"
+  out$ += MID$(strval$, inptr%, LEN(strval$) - inptr%)
+=out$
 
 REM Local Variables:
 REM indent-tabs-mode: nil

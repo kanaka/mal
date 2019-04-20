@@ -29,6 +29,7 @@ REM  Types are:
 REM  0   nil
 REM  1   boolean
 REM  2   integer
+REM  4   string
 REM  5   symbol
 REM  6   list (each object is a cons cell)
 REM  8   hash-map (each object is one entry)
@@ -129,6 +130,7 @@ DEF FNsalloc(s$)
 
 DEF PROCfree(val%)
   CASE FNtype_of(val%) OF
+    WHEN 4 : PROCfree_string(val%)
     WHEN 5 : PROCfree_symbol(val%)
     WHEN 8 : PROCfree_hashmap(val%)
   ENDCASE
@@ -236,6 +238,25 @@ DEF FNalloc_int(ival%)
 DEF FNunbox_int(val%)
   IF NOT FNis_int(val%) THEN ERROR &40E80912, "Not an integer"
 =Z%(val%,1)
+
+REM ** Strings **
+
+DEF FNis_string(val%)
+=FNtype_of(val%) = 4
+
+DEF FNalloc_string(sval$)
+  LOCAL val%
+  val% = FNmalloc(4)
+  Z%(val%,1) = FNsalloc(sval$)
+=val%
+
+DEF PROCfree_string(val%)
+  PROCsfree(Z%(val%,1))
+ENDPROC
+
+DEF FNunbox_string(val%)
+  IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
+=S$(Z%(val%,1))
 
 REM ** Symbols **
 
