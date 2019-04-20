@@ -375,8 +375,8 @@ expression support.
   numbers (integers) and symbols. This will allow you to proceed
   through the next couple of steps before you will need to implement
   the other fundamental mal types: nil, true, false, and string. The
-  remaining mal types: keyword, vector, hash-map, and atom do not
-  need to be implemented until step 9 (but can be implemented at any
+  remaining scalar mal type, keyword does not
+  need to be implemented until step A (but can be implemented at any
   point between this step and that). BTW, symbols types are just an
   object that contains a single string name value (some languages have
   symbol types already).
