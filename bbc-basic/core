@@ -73,6 +73,18 @@ DEF FNcore_call(fn%, args%())
     WHEN 13
       PROCcore_assert_args("ii", ">=", args%())
       =FNalloc_boolean(FNunbox_int(args%(0)) >= FNunbox_int(args%(1)))
+    DATA read-string, 14
+    WHEN 14
+      PROCcore_assert_args("s", "read-string", args%())
+      =FNread_str(FNunbox_string(args%(0)))
+    DATA slurp, 15
+    WHEN 15
+      PROCcore_assert_args("s", "slurp", args%())
+      =FNalloc_string(FNcore_slurp(FNunbox_string(args%(0))))
+    DATA eval, 16
+    WHEN 16
+      PROCcore_assert_args("?", "eval", args%())
+      =FNEVAL(args%(0), repl_env%)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -82,6 +94,7 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
   REM  number and type of arguments.  spec$ is the argument specification
   REM  as a string.  Each character represents an argument:
   REM  "i" - Must be an integer
+  REM  "s" - Must be a string
   REM  "l" - Must be a list
   REM  "C" - Must be 'count'able
   REM  "?" - Any single argument
@@ -96,6 +109,10 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
       WHEN "i"
         IF NOT FNis_int(args%(i% - 1)) THEN
           ERROR &40E80911, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
+        ENDIF
+      WHEN "s"
+        IF NOT FNis_string(args%(i% - 1)) THEN
+          ERROR &40E80914, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
         ENDIF
       WHEN "l"
         IF NOT FNis_list(args%(i% - 1)) THEN
@@ -128,6 +145,19 @@ DEF FNcore_equal(a%, b%)
     =FNcore_equal(FNlist_cdr(a%), FNlist_cdr(b%))
   ENDIF
 =FALSE
+
+REM  Innards of the 'slurp' function.
+DEF FNcore_slurp(file$)
+  LOCAL f%, out$
+  f% = OPENIN(file$)
+  IF f% = 0 THEN ERROR &40E80940, "File '"+file$+"' not found"
+  WHILE NOT EOF#f%
+    out$ += GET$#f%
+    REM  GET$# doesn't include a trailing newline.
+    out$ += CHR$(10)
+  ENDWHILE
+  CLOSE#f%
+=out$
 
 REM Local Variables:
 REM indent-tabs-mode: nil
