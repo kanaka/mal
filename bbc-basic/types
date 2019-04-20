@@ -411,6 +411,12 @@ DEF FNhashmap_get(map%, key$)
   IF S$(Z%(map%,2)) = key$ THEN =FNref_local(Z%(map%,3))
 =FNhashmap_get(Z%(map%,1), key$)
 
+DEF FNhashmap_contains(map%, key$)
+  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
+  IF map% = FNempty_hashmap THEN =FALSE
+  IF S$(Z%(map%,2)) = key$ THEN =TRUE
+=FNhashmap_get(Z%(map%,1), key$)
+
 REM ** Functions **
 
 REM  Z%(x,1) = index in Z%() of ast
