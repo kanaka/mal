@@ -17,18 +17,15 @@ DEF PROCenv_set(env%, keysym%, val%)
 ENDPROC
 
 DEF FNenv_find(env%, keysym%)
-  LOCAL val%, outer%
-  val% = FNhashmap_get(FNenvironment_data(env%), FNunbox_symbol(keysym%))
-  IF NOT FNis_nil(val%) THEN =env%
+  LOCAL val%, outer%, key$
+  key$ = FNunbox_symbol(keysym%)
+  IF FNhashmap_contains(FNenvironment_data(env%), key$) THEN =env%
   outer% = FNenvironment_outer(env%)
-  IF NOT FNis_nil(outer%) THEN =FNenv_find(outer%, keysym%)
-=FNnil
+  IF FNis_nil(outer%) THEN ERROR &40E80922, "Symbol '"+key$+"' not found"
+=FNenv_find(outer%, keysym%)
 
 DEF FNenv_get(env%, keysym%)
   env% = FNenv_find(env%, keysym%)
-  IF FNis_nil(env%) THEN
-    ERROR &40E80922, "Symbol '"+FNunbox_symbol(keysym%)+"' not found"
-  ENDIF
 =FNhashmap_get(FNenvironment_data(env%), FNunbox_symbol(keysym%))
 
 REM Local Variables:
