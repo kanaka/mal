@@ -94,6 +94,23 @@ DEF FNcore_call(fn%, args%())
     WHEN 19
       PROCmalio_println(FNcore_print(FALSE, " ", args%()))
       =FNnil
+    DATA atom, 20
+    WHEN 20
+      PROCcore_assert_args("?", "atom", args%())
+      =FNalloc_atom(args%(0))
+    DATA atom?, 21
+    WHEN 21
+      PROCcore_assert_args("?", "atom?", args%())
+      =FNalloc_boolean(FNis_atom(args%(0)))
+    DATA deref, 22
+    WHEN 22
+      PROCcore_assert_args("a", "deref", args%())
+      =FNatom_deref(args%(0))
+    DATA reset!, 23
+    WHEN 23
+      PROCcore_assert_args("a?", "reset!", args%())
+      PROCatom_reset(args%(0), args%(1))
+      =args%(1)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -105,6 +122,7 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
   REM  "i" - Must be an integer
   REM  "s" - Must be a string
   REM  "l" - Must be a list
+  REM  "a" - Must be an atom
   REM  "C" - Must be 'count'able
   REM  "?" - Any single argument
 
@@ -126,6 +144,10 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
       WHEN "l"
         IF NOT FNis_list(args%(i% - 1)) THEN
           ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
+        ENDIF
+      WHEN "a"
+        IF NOT FNis_atom(args%(i% - 1)) THEN
+          ERROR &40E8091C, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an atom"
         ENDIF
       WHEN "C"
         IF NOT FNis_list(args%(i% - 1)) AND NOT FNis_nil(args%(i% - 1)) THEN

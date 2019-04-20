@@ -177,6 +177,7 @@ DEF PROCgc_mark(val%)
       WHEN 6 :  PROCgc_mark_list(val%)
       WHEN 8 :  PROCgc_mark_hashmap(val%)
       WHEN 10 : PROCgc_mark_fn(val%)
+      WHEN 12 : PROCgc_mark_atom(val%)
       WHEN 13 : PROCgc_mark_environment(val%)
     ENDCASE
   ENDIF
@@ -451,6 +452,30 @@ DEF FNfn_params(val%)
 DEF FNfn_env(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
 =FNref_local(Z%(val%,3))
+
+REM ** Atoms **
+
+REM Z%(x,1) = index in Z% of current referent
+
+DEF FNis_atom(val%)
+=FNtype_of(val%) = 12
+
+DEF FNalloc_atom(contents%)
+  LOCAL val%
+  val% = FNmalloc(12)
+  Z%(val%,1) = contents%
+=val%
+
+DEF PROCgc_mark_atom(val%)
+  PROCgc_mark(Z%(val%,1))
+ENDPROC
+
+DEF FNatom_deref(val%)
+=FNref_local(Z%(val%,1))
+
+DEF PROCatom_reset(val%, contents%)
+  Z%(val%,1) = contents%
+ENDPROC
 
 REM ** Environments **
 
