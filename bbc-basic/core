@@ -32,11 +32,6 @@ DEF FNcore_call(fn%, args%())
     WHEN 3
       PROCcore_assert_args("ii", "/", args%())
       =FNalloc_int(FNunbox_int(args%(0)) DIV FNunbox_int(args%(1)))
-    DATA prn, 4
-    WHEN 4
-      PROCcore_assert_args("?", "prn", args%())
-      PROCmalio_println(FNpr_str(args%(0), TRUE))
-      =FNnil
     DATA list, 5
     WHEN 5
       =FNarray_to_list(args%())
@@ -85,6 +80,20 @@ DEF FNcore_call(fn%, args%())
     WHEN 16
       PROCcore_assert_args("?", "eval", args%())
       =FNEVAL(args%(0), repl_env%)
+    DATA pr-str, 17
+    WHEN 17
+      =FNalloc_string(FNcore_print(TRUE, " ", args%()))
+    DATA str, 18
+    WHEN 18
+      =FNalloc_string(FNcore_print(FALSE, "", args%()))
+    DATA prn, 4
+    WHEN 4
+      PROCmalio_println(FNcore_print(TRUE, " ", args%()))
+      =FNnil
+    DATA println, 19
+    WHEN 19
+      PROCmalio_println(FNcore_print(FALSE, " ", args%()))
+      =FNnil
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -157,6 +166,16 @@ DEF FNcore_slurp(file$)
     out$ += CHR$(10)
   ENDWHILE
   CLOSE#f%
+=out$
+
+REM  General-purpose printing function
+DEF FNcore_print(print_readably%, sep$, args%())
+  LOCAL out$, i%
+  IF DIM(args%(),1) = 0 THEN =""
+  FOR i% = 0 TO DIM(args%(),1) - 1
+    out$ += FNpr_str(args%(i%), print_readably%)
+    IF i% < DIM(args%(),1) - 1 THEN out$ += sep$
+  NEXT i%
 =out$
 
 REM Local Variables:
