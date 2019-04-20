@@ -122,14 +122,23 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
   REM  "i" - Must be an integer
   REM  "s" - Must be a string
   REM  "l" - Must be a list
+  REM  "f" - Must be a function
   REM  "a" - Must be an atom
   REM  "C" - Must be 'count'able
   REM  "?" - Any single argument
+  REM  "*" - Any number of (trailing) arguments
 
   LOCAL i%
 
-  IF DIM(args%(), 1) <> LEN(spec$) THEN
-    ERROR &40E80921, "Core function '"+fn$+"' requires "+STR$(LEN(spec$))+" arguments"
+  IF RIGHT$(spec$) = "*" THEN
+    spec$ = LEFT$(spec$)
+    IF DIM(args%(), 1) < LEN(spec$) THEN
+      ERROR &40E80921, "Core function '"+fn$+"' requires at least "+STR$(LEN(spec$))+" arguments"
+    ENDIF
+  ELSE
+    IF DIM(args%(), 1) <> LEN(spec$) THEN
+      ERROR &40E80921, "Core function '"+fn$+"' requires "+STR$(LEN(spec$))+" arguments"
+    ENDIF
   ENDIF
   FOR i% = 1 TO LEN(spec$)
     CASE MID$(spec$, i%, 1) OF
@@ -144,6 +153,10 @@ DEF PROCcore_assert_args(spec$, fn$, args%())
       WHEN "l"
         IF NOT FNis_list(args%(i% - 1)) THEN
           ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
+        ENDIF
+      WHEN "f"
+        IF NOT FNis_fn(args%(i% - 1)) AND NOT FNis_corefn(args%(i% - 1)) THEN
+          ERROR &40E80919, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a function"
         ENDIF
       WHEN "a"
         IF NOT FNis_atom(args%(i% - 1)) THEN
