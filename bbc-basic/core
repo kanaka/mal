@@ -35,7 +35,7 @@ DEF FNcore_call(fn%, args%())
     DATA prn, 4
     WHEN 4
       PROCcore_assert_args("?", "prn", args%())
-      PROCmalio_println(FNpr_str(args%(0)))
+      PROCmalio_println(FNpr_str(args%(0), TRUE))
       =FNnil
     DATA list, 5
     WHEN 5

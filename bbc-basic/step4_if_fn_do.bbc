@@ -96,7 +96,7 @@ DEF FNEVAL_(ast%, env%)
   ERROR &40E80918, "Not a function"
 
 DEF FNPRINT(a%)
-=FNpr_str(a%)
+=FNpr_str(a%, TRUE)
 
 DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))

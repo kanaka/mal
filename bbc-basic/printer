@@ -1,6 +1,6 @@
 REM > printer library for mal in BBC BASIC
 
-DEF FNpr_str(val%)
+DEF FNpr_str(val%, print_readably%)
   LOCAL ret$
   IF FNis_nil(val%) THEN ="nil"
   IF FNis_boolean(val%) THEN
@@ -13,7 +13,7 @@ DEF FNpr_str(val%)
     ret$ = "("
     WHILE NOT FNis_empty(val%)
       IF LEN(ret$) > 1 THEN ret$ += " "
-      ret$ += FNpr_str(FNlist_car(val%))
+      ret$ += FNpr_str(FNlist_car(val%), print_readably%)
       val% = FNlist_cdr(val%)
     ENDWHILE
     =ret$ + ")"

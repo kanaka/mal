@@ -58,7 +58,7 @@ DEF FNEVAL(ast%, env%)
 =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
 
 DEF FNPRINT(a%)
-=FNpr_str(a%)
+=FNpr_str(a%, TRUE)
 
 DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
