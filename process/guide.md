@@ -375,8 +375,8 @@ expression support.
   numbers (integers) and symbols. This will allow you to proceed
   through the next couple of steps before you will need to implement
   the other fundamental mal types: nil, true, false, and string. The
-  remaining mal types: keyword, vector, hash-map, and atom do not
-  need to be implemented until step 9 (but can be implemented at any
+  remaining scalar mal type, keyword does not
+  need to be implemented until step A (but can be implemented at any
   point between this step and that). BTW, symbols types are just an
   object that contains a single string name value (some languages have
   symbol types already).
@@ -429,8 +429,9 @@ and each step will give progressively more bang for the buck.
 
 
 * Add support for the other basic data type to your reader and printer
-  functions: string, nil, true, and false. These become mandatory at
-  step 4. When a string is read, the following transformations are
+  functions: string, nil, true, and false. Nil, true, and false
+  become mandatory at step 4, strings at step 6. When a string is read,
+  the following transformations are
   applied: a backslash followed by a doublequote is translated into
   a plain doublequote character, a backslash followed by "n" is
   translated into a newline, and a backslash followed by another
@@ -731,7 +732,7 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
   of the binds list to the respective element of the `exprs` list.
 
 * Add support to `printer.qx` to print functions values. A string
-  literal like "#<function>" is sufficient.
+  literal like "#\<function>" is sufficient.
 
 * Add the following special forms to `EVAL`:
 
