@@ -1,12 +1,10 @@
 REM Step 3 of mal in BBC BASIC
 
-LIBRARY "malio_builtin"
 LIBRARY "types"
 LIBRARY "reader"
 LIBRARY "printer"
 LIBRARY "env"
 
-PROCmalio_init
 PROCtypes_init
 
 REM  These correspond with the CASE statement in FNcore_call
@@ -19,9 +17,10 @@ PROCenv_set(repl_env%, FNalloc_symbol("/"), FNalloc_corefn(3))
 REPEAT
   REM  Catch all errors apart from "Escape".
   ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
-  line$ = FNmalio_input("user> ")
-  PROCmalio_println(FNrep(line$))
-UNTIL FNmalio_eof
+  PRINT "user> ";
+  LINE INPUT "" line$
+  PRINT FNrep(line$)
+UNTIL FALSE
 
 END
 

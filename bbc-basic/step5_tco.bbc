@@ -1,13 +1,11 @@
 REM Step 5 of mal in BBC BASIC
 
-LIBRARY "malio_builtin"
 LIBRARY "types"
 LIBRARY "reader"
 LIBRARY "printer"
 LIBRARY "env"
 LIBRARY "core"
 
-PROCmalio_init
 PROCtypes_init
 
 repl_env% = FNalloc_environment(FNnil)
@@ -26,10 +24,11 @@ REPEAT
   sav% = FNgc_save
   REM  Catch all errors apart from "Escape".
   ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END ELSE PROCgc_restore(sav%)
-  line$ = FNmalio_input("user> ")
-  PROCmalio_println(FNrep(line$))
+  PRINT "user> ";
+  LINE INPUT "" line$
+  PRINT FNrep(line$)
   PROCgc_exit
-UNTIL FNmalio_eof
+UNTIL FALSE
 
 END
 

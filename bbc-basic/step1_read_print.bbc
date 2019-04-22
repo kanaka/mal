@@ -1,19 +1,18 @@
 REM Step 1 of mal in BBC BASIC
 
-LIBRARY "malio_builtin"
 LIBRARY "types"
 LIBRARY "reader"
 LIBRARY "printer"
 
-PROCmalio_init
 PROCtypes_init
 
 REPEAT
   REM  Catch all errors apart from "Escape".
   ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
-  line$ = FNmalio_input("user> ")
-  PROCmalio_println(FNrep(line$))
-UNTIL FNmalio_eof
+  PRINT "user> ";
+  LINE INPUT "" line$
+  PRINT FNrep(line$)
+UNTIL FALSE
 
 END
 

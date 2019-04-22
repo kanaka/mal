@@ -90,11 +90,11 @@ DEF FNcore_call(fn%, args%)
       =FNalloc_string(FNcore_print(FALSE, "", args%))
     DATA prn, 4
     WHEN 4
-      PROCmalio_println(FNcore_print(TRUE, " ", args%))
+      PRINT FNcore_print(TRUE, " ", args%)
       =FNnil
     DATA println, 19
     WHEN 19
-      PROCmalio_println(FNcore_print(FALSE, " ", args%))
+      PRINT FNcore_print(FALSE, " ", args%)
       =FNnil
     DATA atom, 20
     WHEN 20

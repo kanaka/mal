@@ -1,13 +1,10 @@
 REM Step 0 of mal in BBC BASIC
 
-LIBRARY "malio_builtin"
-
-PROCmalio_init
-
 REPEAT
-  line$ = FNmalio_input("user> ")
-  PROCmalio_println(FNrep(line$))
-UNTIL FNmalio_eof
+  PRINT "user> ";
+  LINE INPUT "" line$
+  PRINT FNrep(line$)
+UNTIL FALSE
 
 END
 
