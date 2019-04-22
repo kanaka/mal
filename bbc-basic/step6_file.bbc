@@ -49,7 +49,7 @@ DEF FNEVAL(ast%, env%)
 =FNgc_exit(FNEVAL_(ast%, env%))
 
 DEF FNEVAL_(ast%, env%)
-  LOCAL args%(), car%, specialform%, val%, bindings%
+  LOCAL car%, specialform%, val%, bindings%
   REPEAT
     PROCgc_keep_only2(ast%, env%)
     IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
@@ -102,9 +102,7 @@ DEF FNEVAL_(ast%, env%)
       ast% = FNeval_ast(ast%, env%)
       car% = FNlist_car(ast%)
       IF FNis_corefn(car%) THEN
-        DIM args%(FNlist_len(FNlist_cdr(ast%)))  
-        PROClist_to_array(FNlist_cdr(ast%), args%())
-        =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+        =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
       ENDIF
       IF FNis_fn(car%) THEN
         env% = FNnew_env(FNfn_env(car%), FNfn_params(car%), FNlist_cdr(ast%))

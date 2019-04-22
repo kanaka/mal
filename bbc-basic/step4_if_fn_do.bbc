@@ -43,7 +43,7 @@ DEF FNEVAL(ast%, env%)
 =FNgc_exit(FNEVAL_(ast%, env%))
 
 DEF FNEVAL_(ast%, env%)
-  LOCAL args%(), car%
+  LOCAL car%
   IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
   IF FNis_empty(ast%) THEN =ast%
   car% = FNlist_car(ast%)
@@ -89,9 +89,7 @@ DEF FNEVAL_(ast%, env%)
     =FNEVAL(FNfn_ast(car%), env%)
   ENDIF
   IF FNis_corefn(car%) THEN
-    DIM args%(FNlist_len(FNlist_cdr(ast%)))  
-    PROClist_to_array(FNlist_cdr(ast%), args%())
-    =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+    =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
   ENDIF
   ERROR &40E80918, "Not a function"
 

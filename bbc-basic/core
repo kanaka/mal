@@ -12,163 +12,177 @@ DEF PROCcore_ns
   REM  The actual DATA statements are embedded in the dispatch table below.
 ENDPROC
 
-REM  Call a core function, taking the function number and an array of mal
+REM  Call a core function, taking the function number and a mal list of
 REM  objects to pass as arguments.
-DEF FNcore_call(fn%, args%())
+DEF FNcore_call(fn%, args%)
+  LOCAL args%(), arg$
+  DIM args%(1)
   CASE fn% OF
     DATA +, 0
     WHEN 0
-      PROCcore_assert_args("ii", "+", args%())
-      =FNalloc_int(FNunbox_int(args%(0)) + FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", "+")
+      =FNalloc_int(args%(0) + args%(1))
     DATA -, 1
     WHEN 1
-      PROCcore_assert_args("ii", "-", args%())
-      =FNalloc_int(FNunbox_int(args%(0)) - FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", "-")
+      =FNalloc_int(args%(0) - args%(1))
     DATA *, 2
     WHEN 2
-      PROCcore_assert_args("ii", "*", args%())
-      =FNalloc_int(FNunbox_int(args%(0)) * FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", "*")
+      =FNalloc_int(args%(0) * args%(1))
     DATA /, 3
     WHEN 3
-      PROCcore_assert_args("ii", "/", args%())
-      =FNalloc_int(FNunbox_int(args%(0)) DIV FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", "/")
+      =FNalloc_int(args%(0) DIV args%(1))
     DATA list, 5
     WHEN 5
-      =FNarray_to_list(args%())
+      =args%
     DATA list?, 6
     WHEN 6
-      PROCcore_assert_args("?", "list?", args%())
+      PROCcore_prepare_args("?", "list?")
       =FNalloc_boolean(FNis_list(args%(0)))
     DATA empty?, 7
     WHEN 7
-      PROCcore_assert_args("l", "empty?", args%())
+      PROCcore_prepare_args("l", "empty?")
       =FNalloc_boolean(FNis_empty(args%(0)))
     DATA count, 8
     WHEN 8
-      PROCcore_assert_args("C", "count", args%())
+      PROCcore_prepare_args("C", "count")
       IF FNis_nil(args%(0)) THEN =FNalloc_int(0)
       =FNalloc_int(FNlist_len(args%(0)))
     DATA =, 9
     WHEN 9
-      PROCcore_assert_args("??", "=", args%())
+      PROCcore_prepare_args("??", "=")
       =FNalloc_boolean(FNcore_equal(args%(0), args%(1)))
     DATA <, 10
     WHEN 10
-      PROCcore_assert_args("ii", "<", args%())
-      =FNalloc_boolean(FNunbox_int(args%(0)) < FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", "<")
+      =FNalloc_boolean(args%(0) < args%(1))
     DATA <=, 11
     WHEN 11
-      PROCcore_assert_args("ii", "<=", args%())
-      =FNalloc_boolean(FNunbox_int(args%(0)) <= FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", "<=")
+      =FNalloc_boolean(args%(0) <= args%(1))
     DATA >, 12
     WHEN 12
-      PROCcore_assert_args("ii", ">", args%())
-      =FNalloc_boolean(FNunbox_int(args%(0)) > FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", ">")
+      =FNalloc_boolean(args%(0) > args%(1))
     DATA >=, 13
     WHEN 13
-      PROCcore_assert_args("ii", ">=", args%())
-      =FNalloc_boolean(FNunbox_int(args%(0)) >= FNunbox_int(args%(1)))
+      PROCcore_prepare_args("ii", ">=")
+      =FNalloc_boolean(args%(0) >= args%(1))
     DATA read-string, 14
     WHEN 14
-      PROCcore_assert_args("s", "read-string", args%())
-      =FNread_str(FNunbox_string(args%(0)))
+      PROCcore_prepare_args("s", "read-string")
+      =FNread_str(arg$)
     DATA slurp, 15
     WHEN 15
-      PROCcore_assert_args("s", "slurp", args%())
-      =FNalloc_string(FNcore_slurp(FNunbox_string(args%(0))))
+      PROCcore_prepare_args("s", "slurp")
+      =FNalloc_string(FNcore_slurp(arg$))
     DATA eval, 16
     WHEN 16
-      PROCcore_assert_args("?", "eval", args%())
+      PROCcore_prepare_args("?", "eval")
       =FNEVAL(args%(0), repl_env%)
     DATA pr-str, 17
     WHEN 17
-      =FNalloc_string(FNcore_print(TRUE, " ", args%()))
+      =FNalloc_string(FNcore_print(TRUE, " ", args%))
     DATA str, 18
     WHEN 18
-      =FNalloc_string(FNcore_print(FALSE, "", args%()))
+      =FNalloc_string(FNcore_print(FALSE, "", args%))
     DATA prn, 4
     WHEN 4
-      PROCmalio_println(FNcore_print(TRUE, " ", args%()))
+      PROCmalio_println(FNcore_print(TRUE, " ", args%))
       =FNnil
     DATA println, 19
     WHEN 19
-      PROCmalio_println(FNcore_print(FALSE, " ", args%()))
+      PROCmalio_println(FNcore_print(FALSE, " ", args%))
       =FNnil
     DATA atom, 20
     WHEN 20
-      PROCcore_assert_args("?", "atom", args%())
+      PROCcore_prepare_args("?", "atom")
       =FNalloc_atom(args%(0))
     DATA atom?, 21
     WHEN 21
-      PROCcore_assert_args("?", "atom?", args%())
+      PROCcore_prepare_args("?", "atom?")
       =FNalloc_boolean(FNis_atom(args%(0)))
     DATA deref, 22
     WHEN 22
-      PROCcore_assert_args("a", "deref", args%())
+      PROCcore_prepare_args("a", "deref")
       =FNatom_deref(args%(0))
     DATA reset!, 23
     WHEN 23
-      PROCcore_assert_args("a?", "reset!", args%())
+      PROCcore_prepare_args("a?", "reset!")
       PROCatom_reset(args%(0), args%(1))
       =args%(1)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
 
-DEF PROCcore_assert_args(spec$, fn$, args%())
+DEF PROCcore_prepare_args(spec$, fn$)
   REM  Check that a core function is being provided with the correct
-  REM  number and type of arguments.  spec$ is the argument specification
-  REM  as a string.  Each character represents an argument:
-  REM  "i" - Must be an integer
-  REM  "s" - Must be a string
-  REM  "l" - Must be a list
-  REM  "f" - Must be a function
-  REM  "a" - Must be an atom
-  REM  "C" - Must be 'count'able
-  REM  "?" - Any single argument
-  REM  "*" - Any number of (trailing) arguments
+  REM  number and type of arguments and unbox them as appropriate.
+  REM  spec$ is the argument specification as a string.  Each character
+  REM  represents an argument:
 
-  LOCAL i%
+  REM  "i" - Must be an integer;  unbox into args%()
+  REM  "s" - Must be a string;    unbox into arg$
+  REM  "l" - Must be a list;      stuff into args%()
+  REM  "f" - Must be a function;  stuff into args%()
+  REM  "a" - Must be an atom;     stuff into args%()
+  REM  "C" - Must be 'count'able  stuff into args%()
+  REM  "?" - Any single argument  stuff into args%()
+  REM  "*" - Any number of (trailing) arguments; leave in args%
+
+  REM  This function shares some local variables with FNcore_call.
+
+  LOCAL i%, val%
 
   IF RIGHT$(spec$) = "*" THEN
     spec$ = LEFT$(spec$)
-    IF DIM(args%(), 1) < LEN(spec$) THEN
+    IF FNlist_len(args%) < LEN(spec$) THEN
       ERROR &40E80921, "Core function '"+fn$+"' requires at least "+STR$(LEN(spec$))+" arguments"
     ENDIF
   ELSE
-    IF DIM(args%(), 1) <> LEN(spec$) THEN
+    IF FNlist_len(args%) <> LEN(spec$) THEN
       ERROR &40E80921, "Core function '"+fn$+"' requires "+STR$(LEN(spec$))+" arguments"
     ENDIF
   ENDIF
   FOR i% = 1 TO LEN(spec$)
+    val% = FNlist_car(args%)
     CASE MID$(spec$, i%, 1) OF
       WHEN "i"
-        IF NOT FNis_int(args%(i% - 1)) THEN
+        IF NOT FNis_int(val%) THEN
           ERROR &40E80911, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an integer"
         ENDIF
+        args%(i% - 1) = FNunbox_int(val%)
       WHEN "s"
-        IF NOT FNis_string(args%(i% - 1)) THEN
+        IF NOT FNis_string(val%) THEN
           ERROR &40E80914, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
         ENDIF
+        arg$ = FNunbox_string(val%)
       WHEN "l"
-        IF NOT FNis_list(args%(i% - 1)) THEN
+        IF NOT FNis_list(val%) THEN
           ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
         ENDIF
+        args%(i% - 1) = val%
       WHEN "f"
-        IF NOT FNis_fn(args%(i% - 1)) AND NOT FNis_corefn(args%(i% - 1)) THEN
+        IF NOT FNis_fn(val%) AND NOT FNis_corefn(val%) THEN
           ERROR &40E80919, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a function"
         ENDIF
+        args%(i% - 1) = val%
       WHEN "a"
-        IF NOT FNis_atom(args%(i% - 1)) THEN
+        IF NOT FNis_atom(val%) THEN
           ERROR &40E8091C, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an atom"
         ENDIF
+        args%(i% - 1) = val%
       WHEN "C"
-        IF NOT FNis_list(args%(i% - 1)) AND NOT FNis_nil(args%(i% - 1)) THEN
+        IF NOT FNis_list(val%) AND NOT FNis_nil(val%) THEN
           ERROR &40E8091F, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a countable value"
         ENDIF
+        args%(i% - 1) = val%
       WHEN "?"
-        REM  Nothing to do here
+        args%(i% - 1) = val%
     ENDCASE
+    args% = FNlist_cdr(args%)
   NEXT i%
 ENDPROC
 
@@ -204,13 +218,16 @@ DEF FNcore_slurp(file$)
 =out$
 
 REM  General-purpose printing function
-DEF FNcore_print(print_readably%, sep$, args%())
-  LOCAL out$, i%
-  IF DIM(args%(),1) = 0 THEN =""
-  FOR i% = 0 TO DIM(args%(),1) - 1
-    out$ += FNpr_str(args%(i%), print_readably%)
-    IF i% < DIM(args%(),1) - 1 THEN out$ += sep$
-  NEXT i%
+DEF FNcore_print(print_readably%, sep$, args%)
+  LOCAL out$
+  IF FNis_empty(args%) THEN =""
+  out$ = FNpr_str(FNlist_car(args%), print_readably%)
+  args% = FNlist_cdr(args%)
+  WHILE NOT FNis_empty(args%)
+    out$ += sep$
+    out$ += FNpr_str(FNlist_car(args%), print_readably%)
+    args% = FNlist_cdr(args%)
+  ENDWHILE
 =out$
 
 REM Local Variables:

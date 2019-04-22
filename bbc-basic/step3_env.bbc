@@ -29,7 +29,7 @@ DEF FNREAD(a$)
 =FNread_str(a$)
 
 DEF FNEVAL(ast%, env%)
-  LOCAL args%(), car%
+  LOCAL car%
   IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
   IF FNis_empty(ast%) THEN =ast%
   car% = FNlist_car(ast%)
@@ -53,9 +53,7 @@ DEF FNEVAL(ast%, env%)
     ENDCASE
   ENDIF
   ast% = FNeval_ast(ast%, env%)
-  DIM args%(FNlist_len(FNlist_cdr(ast%)))
-  PROClist_to_array(FNlist_cdr(ast%), args%())
-=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), args%())
+=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
 
 DEF FNPRINT(a%)
 =FNpr_str(a%, TRUE)
@@ -74,16 +72,20 @@ DEF FNeval_ast(ast%, env%)
   ENDIF
 =ast%
 
-REM  Call a core function, taking the function number and an array of mal
+REM  Call a core function, taking the function number and a mal list of
 REM  objects to pass as arguments.
-DEF FNcore_call(fn%, args%())
+DEF FNcore_call(fn%, args%)
+  LOCAL x%, y%, z%
+  x% = FNunbox_int(FNlist_car(args%))
+  y% = FNunbox_int(FNlist_car(FNlist_cdr(args%)))
   CASE fn% OF
-    WHEN 0 : =FNalloc_int(FNunbox_int(args%(0))  +  FNunbox_int(args%(1)))
-    WHEN 1 : =FNalloc_int(FNunbox_int(args%(0))  -  FNunbox_int(args%(1)))
-    WHEN 2 : =FNalloc_int(FNunbox_int(args%(0))  *  FNunbox_int(args%(1)))
-    WHEN 3 : =FNalloc_int(FNunbox_int(args%(0)) DIV FNunbox_int(args%(1)))
+    WHEN 0 : z% = x%  +  y%
+    WHEN 1 : z% = x%  -  y%
+    WHEN 2 : z% = x%  *  y%
+    WHEN 3 : z% = x% DIV y%
+    OTHERWISE : ERROR &40E809F1, "Call to non-existent core function"
   ENDCASE
-ERROR &40E809F1, "Call to non-existent core function"
+=FNalloc_int(z%)
 
 REM Local Variables:
 REM indent-tabs-mode: nil
