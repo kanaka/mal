@@ -61,17 +61,17 @@ DEF FNEVAL_(ast%, env%)
       CASE FNunbox_symbol(car%) OF
         REM  Special forms
         WHEN "def!"
-          val% = FNEVAL(FNlist_nth(ast%, 3), env%)
-          PROCenv_set(env%, FNlist_nth(ast%, 2), val%)
+          val% = FNEVAL(FNlist_nth(ast%, 2), env%)
+          PROCenv_set(env%, FNlist_nth(ast%, 1), val%)
           =val%
         WHEN "let*"
           env% = FNalloc_environment(env%)
-          bindings% = FNlist_nth(ast%, 2)
+          bindings% = FNlist_nth(ast%, 1)
           WHILE NOT FNis_empty(bindings%)
-            PROCenv_set(env%, FNlist_car(bindings%), FNEVAL(FNlist_nth(bindings%, 2), env%))
+            PROCenv_set(env%, FNlist_car(bindings%), FNEVAL(FNlist_nth(bindings%, 1), env%))
             bindings% = FNlist_cdr(FNlist_cdr(bindings%))
           ENDWHILE
-          ast% = FNlist_nth(ast%, 3)
+          ast% = FNlist_nth(ast%, 2)
           REM  Loop round for tail-call optimisation.
         WHEN "do"
           REM  The guide has us call FNeval_ast on the sub-list that excludes
@@ -85,14 +85,14 @@ DEF FNEVAL_(ast%, env%)
           ENDWHILE
           ast% = FNlist_car(ast%)
         WHEN "if"
-          IF FNis_truish(FNEVAL(FNlist_nth(ast%, 2), env%)) THEN
-            ast% = FNlist_nth(ast%, 3)
+          IF FNis_truish(FNEVAL(FNlist_nth(ast%, 1), env%)) THEN
+            ast% = FNlist_nth(ast%, 2)
           ELSE
-            IF FNlist_len(ast%) = 3 THEN =FNnil ELSE ast% = FNlist_nth(ast%, 4)
+            IF FNlist_len(ast%) = 3 THEN =FNnil ELSE ast% = FNlist_nth(ast%, 3)
           ENDIF
           REM  Loop round for tail-call optimisation.
         WHEN "fn*"
-          =FNalloc_fn(FNlist_nth(ast%, 3), FNlist_nth(ast%, 2), env%)
+          =FNalloc_fn(FNlist_nth(ast%, 2), FNlist_nth(ast%, 1), env%)
         OTHERWISE
           specialform% = FALSE
       ENDCASE

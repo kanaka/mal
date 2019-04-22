@@ -330,7 +330,7 @@ DEF FNlist_len(val%)
 = i%
 
 DEF FNlist_nth(val%, n%)
-  WHILE n% > 1
+  WHILE n% > 0
     val% = FNlist_cdr(val%)
     IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
     n% -= 1
