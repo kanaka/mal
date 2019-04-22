@@ -1,2 +1,2 @@
 #! /bin/bash
-exec /tmp/brandy-1.20.1/sbrandy $(dirname $0)/${STEP:-stepA_mal}.bbc "${@}"
+exec "${HOME}/brandy-1.20.1/sbrandy" $(dirname $0)/${STEP:-stepA_mal}.bbc "${@}"
