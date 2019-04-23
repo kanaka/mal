@@ -118,6 +118,10 @@ DEF FNcore_call(fn%, args%)
       PROCcore_prepare_args("af*", "swap!")
       PROCatom_reset(args%(0), FNcore_apply(args%(1), FNalloc_pair(FNatom_deref(args%(0)), args%)))
       =FNatom_deref(args%(0))
+    DATA cons, 25
+    WHEN 25
+      PROCcore_prepare_args("?l", "cons")
+      =FNalloc_pair(args%(0), args%(1))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
