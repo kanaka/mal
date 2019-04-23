@@ -88,7 +88,7 @@ DEF FNEVAL_(ast%, env%)
     =FNEVAL(FNfn_ast(car%), env%)
   ENDIF
   IF FNis_corefn(car%) THEN
-    =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
+    =FNcore_call(FNunbox_corefn(car%), FNlist_cdr(ast%))
   ENDIF
   ERROR &40E80918, "Not a function"
 

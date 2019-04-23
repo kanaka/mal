@@ -93,7 +93,7 @@ DEF FNEVAL_(ast%, env%)
       ast% = FNeval_ast(ast%, env%)
       car% = FNlist_car(ast%)
       IF FNis_corefn(car%) THEN
-        =FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
+        =FNcore_call(FNunbox_corefn(car%), FNlist_cdr(ast%))
       ENDIF
       IF FNis_fn(car%) THEN
         env% = FNnew_env(FNfn_env(car%), FNfn_params(car%), FNlist_cdr(ast%))
