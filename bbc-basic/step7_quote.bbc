@@ -92,6 +92,8 @@ DEF FNEVAL_(ast%, env%)
           REM  Loop round for tail-call optimisation.
         WHEN "fn*"
           =FNalloc_fn(FNlist_nth(ast%, 2), FNlist_nth(ast%, 1), env%)
+        WHEN "quote"
+          =FNlist_nth(ast%, 1)
         OTHERWISE
           specialform% = FALSE
       ENDCASE
