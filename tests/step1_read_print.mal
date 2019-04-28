@@ -90,6 +90,10 @@ false
 ;;; These should throw some error with no return value
 "abc
 ;/.*(EOF|end of input|unbalanced).*
+"
+;/.*(EOF|end of input|unbalanced).*
+"\"
+;/.*(EOF|end of input|unbalanced).*
 (1 "abc
 ;/.*(EOF|end of input|unbalanced).*
 (1 "abc"
