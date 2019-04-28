@@ -321,6 +321,12 @@ DEF FNlist_cdr(val%)
   IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get cdr of empty list"
 =FNref_local(Z%(val%,1))
 
+DEF FNalloc_list2(val0%, val1%)
+  =FNalloc_pair(val0%, FNalloc_pair(val1%, FNempty))
+
+DEF FNalloc_list3(val0%, val1%, val2%)
+  =FNalloc_pair(val0%, FNalloc_pair(val1%, FNalloc_pair(val2%, FNempty)))
+
 DEF FNlist_len(val%)
   LOCAL i%
   WHILE NOT FNis_empty(val%)

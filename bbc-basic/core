@@ -122,6 +122,9 @@ DEF FNcore_call(fn%, args%)
     WHEN 25
       PROCcore_prepare_args("?l", "cons")
       =FNalloc_pair(args%(0), args%(1))
+    DATA concat, 26
+    WHEN 26
+      =FNcore_concat(args%)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -249,6 +252,18 @@ DEF FNcore_apply(fn%, args%)
     =FNEVAL(ast%, env%)
   ENDIF
 ERROR &40E80918, "Not a function"
+
+REM  Innards of 'concat' function
+DEF FNcore_concat(args%)
+  LOCAL tail%
+  IF FNis_empty(args%) THEN =FNempty
+  tail% = FNcore_concat(FNlist_cdr(args%))
+=FNcore_concat1(FNlist_car(args%), tail%)
+  
+DEF FNcore_concat1(prefix%, tail%)
+  IF FNis_empty(prefix%) THEN =tail%
+=FNalloc_pair(FNlist_car(prefix%), FNcore_concat1(FNlist_cdr(prefix%), tail%))
+
 
 REM Local Variables:
 REM indent-tabs-mode: nil

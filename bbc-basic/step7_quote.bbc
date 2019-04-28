@@ -43,6 +43,26 @@ END
 DEF FNREAD(a$)
 =FNread_str(a$)
 
+DEF FNis_pair(val%)
+=FNis_list(val%) AND NOT FNis_empty(val%)
+
+DEF FNquasiquote(ast%)
+  LOCAL car%, caar%
+  IF NOT FNis_pair(ast%) THEN =FNalloc_list2(FNalloc_symbol("quote"), ast%)
+  car% = FNlist_car(ast%)
+  IF FNis_symbol(car%) THEN
+    IF FNunbox_symbol(car%) = "unquote" THEN =FNlist_nth(ast%, 1)
+  ENDIF
+  IF FNis_pair(car%) THEN
+    caar% = FNlist_car(car%)
+    IF FNis_symbol(caar%) THEN
+      IF FNunbox_symbol(caar%) = "splice-unquote" THEN
+        =FNalloc_list3(FNalloc_symbol("concat"), FNlist_nth(car%, 1), FNquasiquote(FNlist_cdr(ast%)))
+      ENDIF
+    ENDIF
+  ENDIF
+=FNalloc_list3(FNalloc_symbol("cons"), FNquasiquote(car%), FNquasiquote(FNlist_cdr(ast%)))
+
 DEF FNEVAL(ast%, env%)
   PROCgc_enter
 =FNgc_exit(FNEVAL_(ast%, env%))
@@ -94,6 +114,9 @@ DEF FNEVAL_(ast%, env%)
           =FNalloc_fn(FNlist_nth(ast%, 2), FNlist_nth(ast%, 1), env%)
         WHEN "quote"
           =FNlist_nth(ast%, 1)
+        WHEN "quasiquote"
+          ast% = FNquasiquote(FNlist_nth(ast%, 1))
+          REM  Loop round for tail-call optimisation
         OTHERWISE
           specialform% = FALSE
       ENDCASE
