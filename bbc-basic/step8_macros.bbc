@@ -63,6 +63,27 @@ DEF FNquasiquote(ast%)
   ENDIF
 =FNalloc_list3(FNalloc_symbol("cons"), FNquasiquote(car%), FNquasiquote(FNlist_cdr(ast%)))
 
+DEF FNis_macro_call(ast%, env%)
+  LOCAL car%, val%
+  IF NOT FNis_list(ast%) THEN =FALSE
+  car% = FNlist_car(ast%)
+  IF NOT FNis_symbol(car%) THEN =FALSE
+  IF FNis_nil(FNenv_find(env%, car%)) THEN =FALSE
+  val% = FNenv_get(env%, car%)
+=FNis_macro(val%)
+
+DEF FNmacroexpand(ast%, env%)
+  LOCAL mac%, macenv%, macast%
+  WHILE FNis_macro_call(ast%, env%)
+    REM PRINT "expanded ";FNpr_str(ast%, TRUE);
+    mac% = FNenv_get(env%, FNlist_car(ast%))
+    macenv% = FNnew_env(FNfn_env(mac%), FNfn_params(mac%), FNlist_cdr(ast%))
+    macast% = FNfn_ast(mac%)
+    ast% = FNEVAL(macast%, macenv%)
+    REM PRINT " to ";FNpr_str(ast%, TRUE)
+  ENDWHILE
+=ast%
+
 DEF FNEVAL(ast%, env%)
   PROCgc_enter
 =FNgc_exit(FNEVAL_(ast%, env%))
@@ -73,6 +94,8 @@ DEF FNEVAL_(ast%, env%)
     PROCgc_keep_only2(ast%, env%)
     IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
     IF FNis_empty(ast%) THEN =ast%
+    ast% = FNmacroexpand(ast%, env%)
+    IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
     car% = FNlist_car(ast%)
     specialform% = FALSE
     IF FNis_symbol(car%) THEN
@@ -122,6 +145,8 @@ DEF FNEVAL_(ast%, env%)
         WHEN "quasiquote"
           ast% = FNquasiquote(FNlist_nth(ast%, 1))
           REM  Loop round for tail-call optimisation
+        WHEN "macroexpand"
+          =FNmacroexpand(FNlist_nth(ast%, 1), env%)
         OTHERWISE
           specialform% = FALSE
       ENDCASE
