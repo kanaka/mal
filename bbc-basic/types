@@ -426,12 +426,19 @@ DEF FNhashmap_contains(map%, key$)
 
 REM ** Functions **
 
+REM  Z%(x,0) AND &80 = is_macro flag
 REM  Z%(x,1) = index in Z%() of ast
 REM  Z%(x,2) = index in Z%() of params
 REM  Z%(x,3) = index in Z%() of env
 
 DEF FNis_fn(val%)
 =FNtype_of(val%) = 10
+
+DEF FNis_nonmacro_fn(val%)
+=FNtype_of(val%) = 10 AND (Z%(val%, 0) AND &80) = &00
+
+DEF FNis_macro(val%)
+=FNtype_of(val%) = 10 AND (Z%(val%, 0) AND &80) = &80
 
 DEF FNalloc_fn(ast%, params%, env%)
   LOCAL val%
@@ -440,6 +447,11 @@ DEF FNalloc_fn(ast%, params%, env%)
   Z%(val%,2) = params%
   Z%(val%,3) = env%
 =val%
+
+DEF PROCmake_macro(val%)
+  IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
+  Z%(val%, 0) = Z%(val%, 0) OR &80
+ENDPROC
 
 DEF PROCgc_mark_fn(val%)
   PROCgc_mark(Z%(val%,1))
