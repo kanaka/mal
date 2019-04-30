@@ -21,12 +21,15 @@ DEF FNenv_find(env%, keysym%)
   key$ = FNunbox_symbol(keysym%)
   IF FNhashmap_contains(FNenvironment_data(env%), key$) THEN =env%
   outer% = FNenvironment_outer(env%)
-  IF FNis_nil(outer%) THEN ERROR &40E80922, "Symbol '"+key$+"' not found"
+  IF FNis_nil(outer%) THEN =FNnil
 =FNenv_find(outer%, keysym%)
 
 DEF FNenv_get(env%, keysym%)
+  LOCAL key$
   env% = FNenv_find(env%, keysym%)
-=FNhashmap_get(FNenvironment_data(env%), FNunbox_symbol(keysym%))
+  key$ = FNunbox_symbol(keysym%)
+  IF FNis_nil(env%) THEN ERROR &40E80922, "Symbol '"+key$+"' not found"
+=FNhashmap_get(FNenvironment_data(env%), key$)
 
 REM Local Variables:
 REM indent-tabs-mode: nil
