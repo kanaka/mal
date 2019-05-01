@@ -33,7 +33,7 @@ DEF FNenv_get(env%, keysym%)
   LOCAL key$
   env% = FNenv_find(env%, keysym%)
   key$ = FNunbox_symbol(keysym%)
-  IF FNis_nil(env%) THEN ERROR &40E80922, "Symbol '"+key$+"' not found"
+  IF FNis_nil(env%) THEN ERROR &40E80922, "'"+key$+"' not found"
 =FNhashmap_get(FNenvironment_data(env%), key$)
 
 REM Local Variables:
