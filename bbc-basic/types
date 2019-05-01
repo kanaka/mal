@@ -337,10 +337,11 @@ DEF FNlist_len(val%)
 
 DEF FNlist_nth(val%, n%)
   WHILE n% > 0
-    val% = FNlist_cdr(val%)
     IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
+    val% = FNlist_cdr(val%)
     n% -= 1
   ENDWHILE
+  IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
 =FNlist_car(val%)
 
 DEF PROClist_to_array(val%, a%())
