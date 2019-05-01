@@ -15,7 +15,7 @@
 ;=>nil
 
 ;; Make sure error from core can be caught
-(try* (nth [] 1) (catch* exc (prn "exc is:" exc)))
+(try* (nth () 1) (catch* exc (prn "exc is:" exc)))
 ;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
 
