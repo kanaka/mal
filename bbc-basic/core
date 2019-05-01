@@ -148,6 +148,10 @@ DEF FNcore_call(fn%, args%)
     WHEN 31
       PROCcore_prepare_args("f?*", "apply")
       =FNcore_apply(args%(0), FNcore_apply_args(FNalloc_pair(args%(1), args%)))
+    DATA map, 32
+    WHEN 32
+      PROCcore_prepare_args("fl", "map")
+      =FNcore_map(args%(0), args%(1))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -292,6 +296,13 @@ DEF FNcore_apply_args(args%)
   IF FNis_empty(FNlist_cdr(args%)) THEN =FNlist_car(args%)
 =FNalloc_pair(FNlist_car(args%), FNcore_apply_args(FNlist_cdr(args%)))
 
+REM  Innards of the 'map' function
+DEF FNcore_map(fn%, args%)
+  LOCAL car%, cdr%
+  IF FNis_empty(args%) THEN =args%
+  car% = FNcore_apply(fn%, FNalloc_pair(FNlist_car(args%), FNempty))
+  cdr% = FNcore_map(fn%, FNlist_cdr(args%))
+=FNalloc_pair(car%, cdr%)
 
 REM Local Variables:
 REM indent-tabs-mode: nil
