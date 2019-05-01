@@ -152,6 +152,24 @@ DEF FNcore_call(fn%, args%)
     WHEN 32
       PROCcore_prepare_args("fl", "map")
       =FNcore_map(args%(0), args%(1))
+    DATA nil?, 33
+    WHEN 33
+      PROCcore_prepare_args("?", "nil?")
+      =FNalloc_boolean(FNis_nil(args%(0)))
+    DATA true?, 34
+    WHEN 34
+      PROCcore_prepare_args("?", "true?")
+      IF NOT FNis_boolean(args%(0)) THEN =FNalloc_boolean(FALSE)
+      =args%(0)
+    DATA false?, 35
+    WHEN 35
+      PROCcore_prepare_args("?", "false?")
+      IF NOT FNis_boolean(args%(0)) THEN =FNalloc_boolean(FALSE)
+      =FNalloc_boolean(NOT FNunbox_boolean(args%(0)))
+    DATA symbol?, 36
+    WHEN 36
+      PROCcore_prepare_args("?", "symbol?")
+      =FNalloc_boolean(FNis_symbol(args%(0)))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
