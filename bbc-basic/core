@@ -139,6 +139,11 @@ DEF FNcore_call(fn%, args%)
       PROCcore_prepare_args("l", "rest")
       IF FNis_empty(args%(0)) THEN =FNempty
       =FNlist_cdr(args%(0))
+    DATA throw, 30
+    WHEN 30
+      PROCcore_prepare_args("?", "throw")
+      MAL_ERR% = args%(0)
+      ERROR &40E80900, "Mal exception: " + FNpr_str(args%(0), FALSE)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
