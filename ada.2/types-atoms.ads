@@ -1,24 +1,24 @@
 with Garbage_Collected;
-with Types.Mal;
 
 package Types.Atoms is
 
-   type Instance (<>) is new Garbage_Collected.Instance with private;
+   type Instance (<>) is abstract new Garbage_Collected.Instance with private;
 
    --  Built-in functions.
-   function Atom  (Args : in Mal.T_Array) return Mal.T;
-   function Deref (Args : in Mal.T_Array) return Mal.T;
-   function Reset (Args : in Mal.T_Array) return Mal.T;
-   function Swap  (Args : in Mal.T_Array) return Mal.T;
+   function Atom  (Args : in T_Array) return T;
+   function Deref (Args : in T_Array) return T;
+   function Reset (Args : in T_Array) return T;
+   function Swap  (Args : in T_Array) return T;
 
    --  Helper for print.
-   function Deref (Item : in Instance) return Mal.T with Inline;
+   function Deref (Item : in Instance) return T with Inline;
 
 private
 
    type Instance is new Garbage_Collected.Instance with record
-      Data : Mal.T;
+      Data : T;
    end record;
+
    overriding procedure Keep_References (Object : in out Instance) with Inline;
 
 end Types.Atoms;

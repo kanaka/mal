@@ -1,8 +1,7 @@
 private with Ada.Containers.Hashed_Maps;
 
 with Garbage_Collected;
-with Types.Mal;
-with Types.Symbols;
+with Types.Strings;
 
 package Envs is
 
@@ -10,23 +9,28 @@ package Envs is
    --  parameters to be named like a package dependency, and it seems
    --  that readability inside Eval is more important.
 
-   type Instance (<>) is new Garbage_Collected.Instance with private;
-   type Ptr is access Instance;
+   type Instance (<>) is abstract new Garbage_Collected.Instance with private;
+   type Link is access Instance;
+   subtype Ptr is not null Link;
 
-   No_Binds : Types.Symbols.Symbol_Array renames Types.Symbols.Empty_Array;
-   No_Exprs : constant Types.Mal.T_Array := (1 .. 0 => Types.Mal.Nil);
+   function New_Env (Outer : in Link := null) return Ptr with Inline;
+   --  Set_Binds is provided as distinct subprograms because we some
+   --  time spare the creation of a subenvironment.
 
-   function New_Env (Outer : in Ptr                        := null;
-                     Binds : in Types.Symbols.Symbol_Array := No_Binds;
-                     Exprs : in Types.Mal.T_Array          := No_Exprs)
-                    return Ptr;
+   procedure Set_Binds (Env   : in out Instance;
+                        Binds : in     Types.T_Array;
+                        Exprs : in     Types.T_Array);
+   --  Equivalent to successive calls to Set, except that if Binds
+   --  ends with "&" followed by a symbol, the trailing symbol
+   --  receives all remaining values as a list.
 
    function Get (Env : in Instance;
-                 Key : in Types.Symbols.Ptr) return Types.Mal.T;
+                 Key : in Types.String_Ptr) return Types.T;
 
    procedure Set (Env      : in out Instance;
-                  Key      : in     Types.Symbols.Ptr;
-                  New_Item : in     Types.Mal.T) with Inline;
+                  Key      : in     Types.T;
+                  New_Item : in     Types.T) with Inline;
+   --  Raises an exception if Key is not a symbol.
 
    --  Debug.
    procedure Dump_Stack (Env : in Instance);
@@ -34,14 +38,18 @@ package Envs is
 private
 
    package HM is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Types.Symbols.Ptr,
-      Element_Type    => Types.Mal.T,
-      Hash            => Types.Symbols.Hash,
-      Equivalent_Keys => Types.Symbols."=",
-      "="             => Types.Mal."=");
+     (Key_Type        => Types.String_Ptr,
+      Element_Type    => Types.T,
+      Hash            => Types.Strings.Hash,
+      Equivalent_Keys => Types.Strings.Same_Contents,
+      "="             => Types."=");
+
+   --  It may be tempting to subclass Types.Map, but this would not
+   --  simplify the code much. And adding metadata to a structure that
+   --  is allocated very often has a cost.
 
    type Instance is new Garbage_Collected.Instance with record
-      Outer : Ptr;
+      Outer : Link;
       Data  : HM.Map;
    end record;
    overriding procedure Keep_References (Object : in out Instance) with Inline;

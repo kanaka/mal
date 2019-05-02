@@ -2,61 +2,37 @@ Comparison with the first Ada implementation.
 --
 
 The first implementation was deliberately compatible with all Ada
-compilers, while this one illustrates various Ada 2020 features:
+compilers, while this one illustrates various Ada 2012 features:
 assertions, preconditions, invariants, initial assignment for limited
-types, limited imports, indexing aspects...
+types, limited imports...
 
 The variant MAL type is implemented with a discriminant instead of
 object-style dispatching.  This allows more static and dynamic checks,
 but also two crucial performance improvements:
 * Nil, boolean, integers and pointers to built-in functions are passed
   by value without dynamic allocation.
-* Lists are implemented as C-style arrays, and most of them can be
+* Lists are implemented as C-style arrays, and can often be
   allocated on the stack.
 
 Another difference is that a minimal form of garbage collecting is
 implemented, removing objects not referenced from the main
-environment. Reference counting is convenient for symbols or strings,
-but never deallocates cyclic structures. The implementation collects
+environment. Reference counting does not seem efficient even for symbols,
+and never deallocates cyclic structures. The implementation collects
 garbage after each Read-Eval-Print cycle. It would be much more
 difficult to collect garbage inside scripts. If this is ever done, it
 would be better to reimplement load-file in Ada and run a cycle after
 each root evaluation.
+It is possible to execute the recursion marking references in parallel
+with the recursion printing the result, which does not modify anything
+and ignores the reference marking. This works but is less performant
+than sequential execution even with Linux threads and a single task
+initialized at startup.
+Each pointer type goes on using its own memory pool, enabling better
+performance when the designated subtype has a fixed size.
 
 The eventual performances compete with C-style languages, allthough
 all user input is checked (implicit language-defined checks like array
 bounds and discriminant consistency are only enabled during tests).
-
-Notes for contributors that do not fit in a specific package.
---
-
-* All packages can call Eval back via a reference in the Eval_Cb
-  package, set during startup. I am interested in a prettier solution
-  ensuring a valid value during elaboration.
-  Note that generic packages cannot export access values.
-
-* Symbol pointers are non null, new variables must be assigned
-  immediately. This is usually enforced by a hidden discriminant, but
-  here we want the type to become a field inside Types.Mal.T. So the
-  check happens at run time with a private invariant.
-
-  The finalize procedure may be called twice, so it does nothing when
-  the reference count is zero, meaning that we are reaching Finalize
-  recursively.
-
-* In implementations with reference counting, a consistent object
-  (that will be deallocated automatically) must be built before any
-  exception is raised by user code (for example the 'map' built-in
-  function may run user code).  Garbage collection simplifies a lot
-  this kind of situations.
-
-* Each module encapsulating dynamic allocation counts allocations and
-  deallocations. With debugging options, a failure is reported if
-  - too many deallocation happen (via a numeric range check)
-  - all storage is not freed (via a dedicated call from the step file)
-
-  The main program only checks that the garbage collector removes all
-  allocations at the end of execution.
 
 Debugging
 --

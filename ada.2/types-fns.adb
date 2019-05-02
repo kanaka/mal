@@ -1,20 +1,22 @@
 with Err;
-with Eval_Cb;
+pragma Warnings (Off, "unit ""Types.Sequences"" is not referenced");
+with Types.Sequences;
+pragma Warnings (On, "unit ""Types.Sequences"" is not referenced");
 
 package body Types.Fns is
 
-   use type Envs.Ptr;
-
-   ----------------------------------------------------------------------
-
    function Apply (Item : in Instance;
-                   Args : in Mal.T_Array) return Mal.T
-   is (Eval_Cb.Cb.all (Ast => Item.F_Ast,
-                       Env => Envs.New_Env (Outer => Item.F_Env,
-                                            Binds => Item.F_Params,
-                                            Exprs => Args)));
+                   Args : in T_Array) return T
+   is
+      Env : constant Envs.Ptr := Envs.New_Env (Outer => Item.F_Env);
+   begin
+      Env.all.Set_Binds (Binds => Item.F_Params.all.Data,
+                         Exprs => Args);
+      return Eval_Cb.all (Ast => Item.F_Ast,
+                          Env => Env);
+   end Apply;
 
-   function Ast (Item : in Instance) return Mal.T
+   function Ast (Item : in Instance) return T
    is (Item.F_Ast);
 
    function Env (Item : in Instance) return Envs.Ptr
@@ -22,65 +24,36 @@ package body Types.Fns is
 
    procedure Keep_References (Object : in out Instance) is
    begin
-      Mal.Keep (Object.F_Ast);
-      if Object.F_Env /= null then
-         Object.F_Env.all.Keep;
-      end if;
-      Mal.Keep (Object.F_Meta);
+      Keep (Object.F_Ast);
+      Object.F_Params.all.Keep;
+      Object.F_Env.all.Keep;
+      Keep (Object.F_Meta);
    end Keep_References;
 
-   function Meta (Item : in Instance) return Mal.T
+   function Meta (Item : in Instance) return T
    is (Item.F_Meta);
 
-   function New_Function (Params : in Sequences.Instance;
-                          Ast    : in Mal.T;
-                          Env    : in Envs.Ptr)
-                         return Mal.T
+   function New_Function (Params   : in Sequence_Ptr;
+                          Ast      : in T;
+                          Env      : in Envs.Ptr;
+                          Metadata : in T            := Nil) return T
    is
-      Ref : constant Mal.Fn_Ptr
+      --  Env and Params are not null and require an immediate
+      --  initialization.
+      Ref : constant Fn_Ptr
         := new Instance'(Garbage_Collected.Instance with
-                         Last   => Params.Length,
-                         F_Ast  => Ast,
-                         F_Env  => Env,
-                         others => <>);
+                         F_Ast    => Ast,
+                         F_Env    => Env,
+                         F_Meta   => Metadata,
+                         F_Params => Params);
    begin
       Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
-      for I in Ref.all.F_Params'Range loop
-         Err.Check (Params (I).Kind = Kind_Symbol,
-                    "formal parameters must be symbols");
-         Ref.all.F_Params (I) := Params (I).Symbol;
-      end loop;
+      Err.Check ((for all P of Params.all.Data => P.Kind = Kind_Symbol),
+                 "formal parameters must be symbols");
       return (Kind_Fn, Ref);
    end New_Function;
 
-   function New_Macro (Item : in Instance) return Mal.T is
-      Ref : constant Mal.Fn_Ptr
-        := new Instance'(Garbage_Collected.Instance with
-                         Last     => Item.Last,
-                         F_Params => Item.F_Params,
-                         F_Ast    => Item.F_Ast,
-                         others   => <>);
-   begin
-      Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
-      return (Kind_Macro, Ref);
-   end New_Macro;
-
-   function Params (Item : in Instance) return Symbols.Symbol_Array
+   function Params (Item : in Instance) return Sequence_Ptr
    is (Item.F_Params);
-
-   function With_Meta (Item     : in Instance;
-                       Metadata : in Mal.T) return Mal.T
-   is
-      Ref : constant Mal.Fn_Ptr
-        := new Instance'(Garbage_Collected.Instance with
-                         Last     => Item.Last,
-                         F_Params => Item.F_Params,
-                         F_Ast    => Item.F_Ast,
-                         F_Env    => Item.F_Env,
-                         F_Meta   => Metadata);
-   begin
-      Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
-      return (Kind_Fn, Ref);
-   end With_Meta;
 
 end Types.Fns;
