@@ -87,7 +87,8 @@ DEF FNmacroexpand(ast%, env%)
 
 REM  'try*' is in its own function because it's slightly hairy.
 DEF FNtry(ast%, env%)
-  LOCAL car%, catcher%, catchenv%
+  LOCAL car%, catcher%, catchenv%, catchsp%
+  catchsp% = FNgc_save
   IF FNlist_len(ast%) = 3 THEN
     IF FNunbox_symbol(FNlist_car(FNlist_nth(ast%, 2))) <> "catch*" THEN
       ERROR &40E80924, "Invalid 'catch*' clause"
@@ -95,11 +96,11 @@ DEF FNtry(ast%, env%)
     catcher% = FNlist_nth(ast%, 2)
     catchenv% = env%
     LOCAL ERROR
-    ON ERROR LOCAL RESTORE ERROR : =FNcatch(catcher%, catchenv%)
+    ON ERROR LOCAL RESTORE ERROR:=FNcatch(catcher%, catchenv%, catchsp%)
   ENDIF
-=FNEVAL(FNlist_nth(ast%, 1), env%)
+=FNgc_restore(catchsp%, FNEVAL(FNlist_nth(ast%, 1), env%))
 
-DEF FNcatch(ast%, env%)
+DEF FNcatch(ast%, env%, sp%)
   LOCAL binds%, exprs%
   binds% = FNalloc_pair(FNlist_nth(ast%, 1), FNempty)
   IF ERR = &40E80900 THEN
@@ -110,7 +111,7 @@ DEF FNcatch(ast%, env%)
     exprs% = FNalloc_pair(FNalloc_string(REPORT$), FNempty)
   ENDIF
   env% = FNnew_env(env%, binds%, exprs%)
-=FNEVAL(FNlist_nth(ast%, 2), env%)
+=FNgc_restore(catchsp%, FNEVAL(FNlist_nth(ast%, 2), env%))
 
 DEF FNEVAL(ast%, env%)
   PROCgc_enter
