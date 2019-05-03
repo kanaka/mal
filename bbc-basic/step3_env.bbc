@@ -16,10 +16,12 @@ PROCenv_set(repl_env%, FNalloc_symbol("/"), FNalloc_corefn(3))
 
 REPEAT
   REM  Catch all errors apart from "Escape".
-  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END
+  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END ELSE PROCgc_restore(sav%)
+  sav% = FNgc_save
   PRINT "user> ";
   LINE INPUT "" line$
   PRINT FNrep(line$)
+  PROCgc_restore(sav%)
 UNTIL FALSE
 
 END

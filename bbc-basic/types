@@ -70,7 +70,11 @@ DEF PROCgc_enter
   REM PRINT " >>> ";sFP%
 ENDPROC
 
+REM  FNgc_save is equivalent to PROCgc_enter except that it returns a
+REM  value that can be passed to PROCgc_restore to pop all the stack
+REM  frames back to (and including) the one pushed by FNgc_save.
 DEF FNgc_save
+  PROCgc_enter
 =sFP%
 
 DEF PROCgc_exit
@@ -81,9 +85,9 @@ ENDPROC
 
 DEF PROCgc_restore(oldFP%)
   sFP% = oldFP%
-  sSP% = sFP% + 1
-  REM PRINT "!!! ";sFP%
-ENDPROC  
+  REM PRINT "!!! FP reset"
+  PROCgc_exit
+ENDPROC
 
 DEF FNref_local(val%)
   sS%(sSP%) = val%
@@ -92,8 +96,11 @@ DEF FNref_local(val%)
 
 DEF FNgc_exit(val%)
   PROCgc_exit
-  val% = FNref_local(val%)
-=val%
+=FNref_local(val%)
+
+DEF FNgc_restore(oldFP%, val%)
+  PROCgc_restore(oldFP%)
+=FNref_local(val%)
 
 DEF PROCgc_keep_only2(val1%, val2%)
   PROCgc_exit
