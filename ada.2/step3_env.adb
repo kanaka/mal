@@ -7,39 +7,43 @@ with Garbage_Collected;
 with Printer;
 with Reader;
 with Readline;
-with Types.Mal;
 with Types.Maps;
 with Types.Sequences;
-with Types.Symbols.Names;
+with Types.Strings;
 
 procedure Step3_Env is
 
    Dbgeval : constant Boolean := Ada.Environment_Variables.Exists ("dbgeval");
 
-   use Types;
+   use type Types.T;
+   use all type Types.Kind_Type;
+   use type Types.Strings.Instance;
 
-   function Read return Mal.T_Array with Inline;
+   function Read return Types.T_Array with Inline;
 
-   function Eval (Ast : in Mal.T;
-                  Env : in Envs.Ptr) return Mal.T;
+   function Eval (Ast : in Types.T;
+                  Env : in Envs.Ptr) return Types.T;
 
-   procedure Print (Ast : in Mal.T) with Inline;
+   procedure Print (Ast : in Types.T) with Inline;
 
    procedure Rep (Env : in Envs.Ptr) with Inline;
 
    generic
       with function Ada_Operator (Left, Right : in Integer) return Integer;
-   function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T;
+   function Generic_Mal_Operator (Args : in Types.T_Array) return Types.T;
 
-   function Eval_Map_Elts is new Maps.Generic_Eval (Envs.Ptr, Eval);
+   function Eval_Map (Source : in Types.Maps.Instance;
+                      Env    : in Envs.Ptr) return Types.T;
+   function Eval_Vector (Source : in Types.Sequences.Instance;
+                         Env    : in Envs.Ptr) return Types.T;
+   --  Helpers for the Eval function.
 
    ----------------------------------------------------------------------
 
-   function Eval (Ast : in Mal.T;
-                  Env : in Envs.Ptr) return Mal.T
+   function Eval (Ast : in Types.T;
+                  Env : in Envs.Ptr) return Types.T
    is
-      use type Symbols.Ptr;
-      First          : Mal.T;
+      First          : Types.T;
    begin
       if Dbgeval then
          Ada.Text_IO.New_Line;
@@ -49,23 +53,15 @@ procedure Step3_Env is
       end if;
 
       case Ast.Kind is
-      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Kind_Key
-        | Kind_Macro | Kind_Function =>
+      when Kind_Nil | Kind_Atom | Kind_Boolean | Kind_Number | Types.Kind_Key
+        | Kind_Macro | Types.Kind_Function =>
          return Ast;
       when Kind_Symbol =>
-         return Env.all.Get (Ast.Symbol);
+         return Env.all.Get (Ast.Str);
       when Kind_Map =>
-         return Eval_Map_Elts (Ast.Map.all, Env);
+         return Eval_Map (Ast.Map.all, Env);
       when Kind_Vector =>
-         declare
-            Len  : constant Natural := Ast.Sequence.all.Length;
-            List : constant Mal.Sequence_Ptr := Sequences.Constructor (Len);
-         begin
-            for I in 1 .. Len loop
-               List.all.Replace_Element (I, Eval (Ast.Sequence.all (I), Env));
-            end loop;
-            return (Kind_Vector, List);
-         end;
+         return Eval_Vector (Ast.Sequence.all, Env);
       when Kind_List =>
          null;
       end case;
@@ -74,38 +70,37 @@ procedure Step3_Env is
       if Ast.Sequence.all.Length = 0 then
          return Ast;
       end if;
-      First := Ast.Sequence.all (1);
+      First := Ast.Sequence.all.Data (1);
 
       --  Special forms
       --  Ast is a non-empty list, First is its first element.
       case First.Kind is
       when Kind_Symbol =>
-         if First.Symbol = Symbols.Names.Def then
-            Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
-            Err.Check (Ast.Sequence.all (2).Kind = Kind_Symbol,
-                       "parameter 1 must be a symbol");
-            return R : constant Mal.T := Eval (Ast.Sequence.all (3), Env) do
-               Env.all.Set (Ast.Sequence.all (2).Symbol, R);
-            end return;
-         elsif First.Symbol = Symbols.Names.Let then
-            Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
-            Err.Check (Ast.Sequence.all (2).Kind in Kind_Sequence,
-                       "parameter 1 must be a sequence");
+         if First.Str.all = "let*" then
+            Err.Check (Ast.Sequence.all.Length = 3
+               and then Ast.Sequence.all.Data (2).Kind in Types.Kind_Sequence,
+                       "expected a sequence then a value");
             declare
-               Bindings : constant Mal.Sequence_Ptr
-                 := Ast.Sequence.all (2).Sequence;
-               New_Env  : Envs.Ptr;
+               Bindings : Types.T_Array
+                 renames Ast.Sequence.all.Data (2).Sequence.all.Data;
+               New_Env  : constant Envs.Ptr := Envs.New_Env (Outer => Env);
             begin
-               Err.Check (Bindings.all.Length mod 2 = 0,
-                          "parameter 1 must have an even length");
-               New_Env := Envs.New_Env (Outer => Env);
-               for I in 1 .. Bindings.all.Length / 2 loop
-                  Err.Check (Bindings.all (2 * I - 1).Kind = Kind_Symbol,
-                             "binding keys must be symbols");
-                  New_Env.all.Set (Bindings.all (2 * I - 1).Symbol,
-                                   Eval (Bindings.all (2 * I), New_Env));
+               Err.Check (Bindings'Length mod 2 = 0, "expected even binds");
+               for I in 0 .. Bindings'Length / 2 - 1 loop
+                  New_Env.all.Set (Bindings (Bindings'First + 2 * I),
+                     Eval (Bindings (Bindings'First + 2 * I + 1), New_Env));
+                  --  This call checks key kind.
                end loop;
-               return Eval (Ast.Sequence.all (3), New_Env);
+               return Eval (Ast.Sequence.all.Data (3), New_Env);
+            end;
+         elsif First.Str.all = "def!" then
+            Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
+            declare
+               Key : Types.T renames Ast.Sequence.all.Data (2);
+               Val : constant Types.T := Eval (Ast.Sequence.all.Data (3), Env);
+            begin
+               Env.all.Set (Key, Val); --  Check key kind.
+               return Val;
             end;
          else
             First := Eval (First, Env);
@@ -117,35 +112,61 @@ procedure Step3_Env is
       --  Apply phase.
       --  Ast is a non-empty list,
       --  First is its non-special evaluated first element.
-      case First.Kind is
-         when Kind_Builtin =>
-            declare
-               Args : Mal.T_Array (2 .. Ast.Sequence.all.Length);
-            begin
-               for I in Args'Range loop
-                  Args (I) := Eval (Ast.Sequence.all (I), Env);
-               end loop;
-               return First.Builtin.all (Args);
-            end;
-         when others =>
-            Err.Raise_With ("first element must be a function");
-      end case;
+      Err.Check (First.Kind = Kind_Builtin,
+                 "first element must be a function");
+      --  We are applying a function. Evaluate its arguments.
+      declare
+         Args : Types.T_Array (2 .. Ast.Sequence.all.Length);
+      begin
+         for I in Args'Range loop
+            Args (I) := Eval (Ast.Sequence.all.Data (I), Env);
+         end loop;
+         return First.Builtin.all (Args);
+      end;
    exception
       when Err.Error =>
          Err.Add_Trace_Line ("eval", Ast);
          raise;
    end Eval;
 
-   function Generic_Mal_Operator (Args : in Mal.T_Array) return Mal.T
+   function Eval_Map (Source : in Types.Maps.Instance;
+                      Env    : in Envs.Ptr) return Types.T
+   is
+      use all type Types.Maps.Cursor;
+      --  Copy the whole map so that keys are not hashed again.
+      Result   : constant Types.T  := Types.Maps.New_Map (Source);
+      Position : Types.Maps.Cursor := Result.Map.all.First;
+   begin
+      while Has_Element (Position) loop
+         Result.Map.all.Replace_Element (Position,
+                                         Eval (Element (Position), Env));
+         Next (Position);
+      end loop;
+      return Result;
+   end Eval_Map;
+
+   function Eval_Vector (Source : in Types.Sequences.Instance;
+                         Env    : in Envs.Ptr) return Types.T
+   is
+      Ref : constant Types.Sequence_Ptr
+        := Types.Sequences.Constructor (Source.Length);
+   begin
+      for I in Source.Data'Range loop
+         Ref.all.Data (I) := Eval (Source.Data (I), Env);
+      end loop;
+      return (Kind_Vector, Ref);
+   end Eval_Vector;
+
+   function Generic_Mal_Operator (Args : in Types.T_Array) return Types.T
    is (Kind_Number, Ada_Operator (Args (Args'First).Number,
                                   Args (Args'Last).Number));
 
-   procedure Print (Ast : in Mal.T) is
+   procedure Print (Ast : in Types.T) is
    begin
       Ada.Text_IO.Unbounded_IO.Put_Line (Printer.Pr_Str (Ast));
    end Print;
 
-   function Read return Mal.T_Array
+   function Read return Types.T_Array
    is (Reader.Read_Str (Readline.Input ("user> ")));
 
    procedure Rep (Env : in Envs.Ptr) is
@@ -165,13 +186,13 @@ procedure Step3_Env is
    Repl   : constant Envs.Ptr := Envs.New_Env;
 begin
    --  Add Core functions into the top environment.
-   Repl.all.Set (Symbols.Constructor ("+"),
+   Repl.all.Set ((Kind_Symbol, Types.Strings.Alloc ("+")),
                  (Kind_Builtin, Addition   'Unrestricted_Access));
-   Repl.all.Set (Symbols.Constructor ("-"),
+   Repl.all.Set ((Kind_Symbol, Types.Strings.Alloc ("-")),
                  (Kind_Builtin, Subtraction'Unrestricted_Access));
-   Repl.all.Set (Symbols.Constructor ("*"),
+   Repl.all.Set ((Kind_Symbol, Types.Strings.Alloc ("*")),
                  (Kind_Builtin, Product    'Unrestricted_Access));
-   Repl.all.Set (Symbols.Constructor ("/"),
+   Repl.all.Set ((Kind_Symbol, Types.Strings.Alloc ("/")),
                  (Kind_Builtin, Division   'Unrestricted_Access));
    --  Execute user commands.
    loop
@@ -186,14 +207,15 @@ begin
       --  Other exceptions are really unexpected.
 
       --  Collect garbage.
-      Err.Data := Mal.Nil;
+      Err.Data := Types.Nil;
       Repl.all.Keep;
       Garbage_Collected.Clean;
    end loop;
    Ada.Text_IO.New_Line;
 
    --  If assertions are enabled, check deallocations.
+   --  Normal runs do not need to deallocate before termination.
+   --  Beware that all pointers are now dangling.
    pragma Debug (Garbage_Collected.Clean);
    Garbage_Collected.Check_Allocations;
-   Symbols.Check_Allocations;
 end Step3_Env;

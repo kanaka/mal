@@ -2,34 +2,36 @@ with Ada.Characters.Latin_1;
 
 with Types.Atoms;
 with Types.Fns;
-with Types.Sequences;
-with Types.Symbols;
+with Types.Macros;
 with Types.Maps;
+pragma Warnings (Off, "unit ""Types.Sequences"" is not referenced");
+with Types.Sequences;
+pragma Warnings (On, "unit ""Types.Sequences"" is not referenced");
 
 package body Printer is
 
    use Ada.Strings.Unbounded;
-   use Types;
+   use all type Types.Kind_Type;
 
    procedure Pr_Str (Buffer   : in out Unbounded_String;
-                     Ast      : in     Mal.T;
+                     Ast      : in     Types.T;
                      Readably : in     Boolean          := True)
    is
 
-      procedure Print_Form (Form_Ast : in Mal.T);
+      procedure Print_Form (Form_Ast : in Types.T);
       --  The recursive function traversing Ast for Pr_Str.
       --  Form_Ast is the current node.
 
       --  Helpers for Print_Form.
-      procedure Print_Number   (Number : in Integer)              with Inline;
-      procedure Print_List     (List   : in Sequences.Instance)   with Inline;
-      procedure Print_Map      (Map    : in Maps.Instance)        with Inline;
-      procedure Print_Readably (S      : in Unbounded_String)     with Inline;
-      procedure Print_Function (Fn     : in Fns.Instance)         with Inline;
+      procedure Print_Number   (Number : in Integer);
+      procedure Print_List     (List   : in Types.T_Array);
+      procedure Print_Map      (Map    : in Types.Maps.Instance);
+      procedure Print_Readably (S      : in String);
+      procedure Print_String   (S      : in String);
 
       ----------------------------------------------------------------------
 
-      procedure Print_Form (Form_Ast : in Mal.T) is
+      procedure Print_Form (Form_Ast : in Types.T) is
       begin
          case Form_Ast.Kind is
             when Kind_Nil =>
@@ -41,27 +43,27 @@ package body Printer is
                   Append (Buffer, "false");
                end if;
             when Kind_Symbol =>
-               Append (Buffer, Symbols.To_String (Form_Ast.Symbol));
+               Form_Ast.Str.all.Query_Element (Print_String'Access);
             when Kind_Number =>
                Print_Number (Form_Ast.Number);
             when Kind_Keyword =>
                Append (Buffer, ':');
-               Append (Buffer, Form_Ast.S);
+               Form_Ast.Str.all.Query_Element (Print_String'Access);
             when Kind_String =>
                if Readably then
                   Append (Buffer, '"');
-                  Print_Readably (Form_Ast.S);
+                  Form_Ast.Str.all.Query_Element (Print_Readably'Access);
                   Append (Buffer, '"');
                else
-                  Append (Buffer, Form_Ast.S);
+                  Form_Ast.Str.all.Query_Element (Print_String'Access);
                end if;
             when Kind_List =>
                Append (Buffer, '(');
-               Print_List (Form_Ast.Sequence.all);
+               Print_List (Form_Ast.Sequence.all.Data);
                Append (Buffer, ')');
             when Kind_Vector =>
                Append (Buffer, '[');
-               Print_List (Form_Ast.Sequence.all);
+               Print_List (Form_Ast.Sequence.all.Data);
                Append (Buffer, ']');
             when Kind_Map =>
                Append (Buffer, '{');
@@ -71,11 +73,15 @@ package body Printer is
                Append (Buffer, "#<built-in>");
             when Kind_Fn =>
                Append (Buffer, "#<function (");
-               Print_Function (Form_Ast.Fn.all);
+               Print_List (Form_Ast.Fn.all.Params.all.Data);
+               Append (Buffer, ") -> ");
+               Print_Form (Form_Ast.Fn.all.Ast);
                Append (Buffer, '>');
             when Kind_Macro =>
                Append (Buffer, "#<macro (");
-               Print_Function (Form_Ast.Fn.all);
+               Print_List (Form_Ast.Macro.all.Params.all.Data);
+               Append (Buffer, ") -> ");
+               Print_Form (Form_Ast.Macro.all.Ast);
                Append (Buffer, '>');
             when Kind_Atom =>
                Append (Buffer, "(atom ");
@@ -84,53 +90,31 @@ package body Printer is
          end case;
       end Print_Form;
 
-      procedure Print_Function (Fn : in Fns.Instance) is
-         Started : Boolean := False;
+      procedure Print_List (List : in Types.T_Array) is
       begin
-         Append (Buffer, '(');
-         for Param of Fn.Params loop
-            if Started then
-               Append (Buffer, ' ');
-            else
-               Started := True;
-            end if;
-            Append (Buffer, Symbols.To_String (Param));
-         end loop;
-         Append (Buffer, ") -> ");
-         Print_Form (Fn.Ast);
-      end Print_Function;
-
-      procedure Print_List (List : in Sequences.Instance) is
-      begin
-         if 0 < List.Length then
-            Print_Form (List (1));
-            for I in 2 .. List.Length loop
+         if 0 < List'Length then
+            Print_Form (List (List'First));
+            for I in List'First + 1 .. List'Last loop
                Append (Buffer, ' ');
                Print_Form (List (I));
             end loop;
          end if;
       end Print_List;
 
-      procedure Print_Map (Map : in Maps.Instance) is
-         procedure Process (Key     : in Mal.T;
-                            Element : in Mal.T) with Inline;
-         procedure Iterate is new Maps.Iterate (Process);
-         Started : Boolean := False;
-         procedure Process (Key     : in Mal.T;
-                            Element : in Mal.T)
-         is
-         begin
-            if Started then
-               Append (Buffer, ' ');
-            else
-               Started := True;
-            end if;
-            Print_Form (Key);
-            Append (Buffer, ' ');
-            Print_Form (Element);
-         end Process;
+      procedure Print_Map (Map : in Types.Maps.Instance) is
+         use all type Types.Maps.Cursor;
+         Position : Types.Maps.Cursor := Map.First;
       begin
-         Iterate (Map);
+         if Has_Element (Position) then
+            loop
+               Print_Form (Key (Position));
+               Append (Buffer, ' ');
+               Print_Form (Element (Position));
+               Next (Position);
+               exit when not Has_Element (Position);
+               Append (Buffer, ' ');
+            end loop;
+         end if;
       end Print_Map;
 
       procedure Print_Number (Number : in Integer) is
@@ -143,12 +127,9 @@ package body Printer is
          Append (Buffer, Image (First .. Image'Last));
       end Print_Number;
 
-      procedure Print_Readably (S : in Unbounded_String) is
+      procedure Print_Readably (S : in String) is
       begin
-         for I in 1 .. Length (S) loop
-            declare
-               C : constant Character := Element (S, I);
-            begin
+         for C of S loop
                case C is
                   when '"' | '\' =>
                      Append (Buffer, '\');
@@ -158,9 +139,13 @@ package body Printer is
                   when others =>
                      Append (Buffer, C);
                end case;
-            end;
          end loop;
       end Print_Readably;
+
+      procedure Print_String (S : in String) is
+      begin
+         Append (Buffer, S);
+      end Print_String;
 
       ----------------------------------------------------------------------
 
@@ -168,7 +153,7 @@ package body Printer is
       Print_Form (Ast);
    end Pr_Str;
 
-   function Pr_Str (Ast      : in Mal.T;
+   function Pr_Str (Ast      : in Types.T;
                     Readably : in Boolean := True) return Unbounded_String
    is
    begin

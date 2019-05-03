@@ -2,15 +2,15 @@ with Ada.Unchecked_Deallocation;
 
 package body Garbage_Collected is
 
-   procedure Free is new Ada.Unchecked_Deallocation (Class, Pointer);
+   procedure Free is new Ada.Unchecked_Deallocation (Class, Link);
 
-   Top : Pointer := null;
+   Top : Link := null;
 
    ----------------------------------------------------------------------
 
    procedure Clean is
-      Current  : Pointer := Top;
-      Previous : Pointer;
+      Current  : Link := Top;
+      Previous : Link;
    begin
       while Current /= null and then not Current.all.Kept loop
          Previous := Current;
@@ -30,11 +30,11 @@ package body Garbage_Collected is
       end loop;
    end Clean;
 
-   procedure Keep (Object : in out Instance) is
+   procedure Keep (Object : in out Class) is
    begin
       if not Object.Kept then
          Object.Kept := True;
-         Class (Object).Keep_References; --  dispatching
+         Object.Keep_References;        --  dispatching
       end if;
    end Keep;
 
@@ -43,7 +43,7 @@ package body Garbage_Collected is
       pragma Assert (Top = null);
    end Check_Allocations;
 
-   procedure Register (Ref : in not null Pointer) is
+   procedure Register (Ref : in Pointer) is
    begin
       pragma Assert (Ref.all.Kept = False);
       pragma Assert (Ref.all.Next = null);

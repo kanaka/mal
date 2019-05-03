@@ -1,54 +1,52 @@
 with Err;
-
 with Types.Builtins;
 with Types.Fns;
 
 package body Types.Atoms is
 
-   function Atom (Args : in Mal.T_Array) return Mal.T is
-      Ref : Mal.Atom_Ptr;
+   function Atom (Args : in T_Array) return T is
    begin
       Err.Check (Args'Length = 1, "expected 1 parameter");
-      Ref := new Instance'(Garbage_Collected.Instance with
-                           Data => Args (Args'First));
-      Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
-      return (Kind_Atom, Ref);
+      declare
+         Ref : constant Atom_Ptr := new Instance;
+      begin
+         Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
+         Ref.all.Data := Args (Args'First);
+         return (Kind_Atom, Ref);
+      end;
    end Atom;
 
-   function Deref (Args : in Mal.T_Array) return Mal.T is
+   function Deref (Args : in T_Array) return T is
    begin
-      Err.Check (Args'Length = 1, "expected 1 parameter");
-      Err.Check (Args (Args'First).Kind = Kind_Atom, "expected an atom");
+      Err.Check (Args'Length = 1 and then Args (Args'First).Kind = Kind_Atom,
+                 "expected an atom");
       return Args (Args'First).Atom.all.Data;
    end Deref;
 
-   function Deref (Item : in Instance) return Mal.T
+   function Deref (Item : in Instance) return T
    is (Item.Data);
 
    procedure Keep_References (Object : in out Instance) is
    begin
-      Mal.Keep (Object.Data);
+      Keep (Object.Data);
    end Keep_References;
 
-   function Reset (Args : in Mal.T_Array) return Mal.T is
+   function Reset (Args : in T_Array) return T is
    begin
-      Err.Check (Args'Length = 2, "expected 2 parameters");
-      Err.Check (Args (Args'First).Kind = Kind_Atom,
-                 "parameter 1 must be an atom");
+      Err.Check (Args'Length = 2 and then Args (Args'First).Kind = Kind_Atom,
+                 "expected an atom then a value");
       Args (Args'First).Atom.all.Data := Args (Args'Last);
       return Args (Args'Last);
    end Reset;
 
-   function Swap (Args : in Mal.T_Array) return Mal.T is
+   function Swap (Args : in T_Array) return T is
    begin
-      Err.Check (2 <= Args'Length, "expected at least 2 parameters");
-      Err.Check (Args (Args'First).Kind = Kind_Atom,
-                 "parameter 1 must be an atom");
+      Err.Check (2 <= Args'Length and then Args (Args'First).Kind = Kind_Atom,
+                 "expected an atom, optional arguments then a function");
       declare
-         use type Mal.T_Array;
-         X : Mal.T renames Args (Args'First).Atom.all.Data;
-         F : Mal.T renames Args (Args'First + 1);
-         A : constant Mal.T_Array := X & Args (Args'First + 2 .. Args'Last);
+         X : T renames Args (Args'First).Atom.all.Data;
+         F : T renames Args (Args'First + 1);
+         A : constant T_Array := X & Args (Args'First + 2 .. Args'Last);
       begin
          case F.Kind is
             when Kind_Builtin =>

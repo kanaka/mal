@@ -9,23 +9,23 @@ with Err;
 with Printer;
 with Types.Maps;
 with Types.Sequences;
-with Types.Symbols.Names;
+with Types.Strings;
 
 package body Reader is
 
    Debug : constant Boolean := Ada.Environment_Variables.Exists ("dbgread");
 
-   use Types;
-   use type Ada.Strings.Maps.Character_Set;
+   use all type Types.Kind_Type;
+   use all type Ada.Strings.Maps.Character_Set;
 
    Ignored_Set : constant Ada.Strings.Maps.Character_Set
      := Ada.Strings.Maps.Constants.Control_Set
-     or Ada.Strings.Maps.To_Set (" ,;");
+     or To_Set (" ,;");
 
    Symbol_Set : constant Ada.Strings.Maps.Character_Set
-     := not (Ignored_Set or Ada.Strings.Maps.To_Set ("""'()@[]^`{}~"));
+     := not (Ignored_Set or To_Set ("""'()@[]^`{}~"));
 
-   function Read_Str (Source : in String) return Types.Mal.T_Array is
+   function Read_Str (Source : in String) return Types.T_Array is
 
       I : Positive := Source'First;
       --  Index in Source of the currently read character.
@@ -33,16 +33,16 @@ package body Reader is
       --  Big arrays on the stack are faster than repeated dynamic
       --  reallocations. This single buffer is used by all Read_List
       --  recursive invocations, and by Read_Str.
-      Buffer : Mal.T_Array (1 .. Source'Length);
+      Buffer : Types.T_Array (1 .. Source'Length);
       B_Last : Natural := Buffer'First - 1;
       --  Index in Buffer of the currently written MAL expression.
 
-      function Read_Form return Mal.T;
+      function Read_Form return Types.T;
       --  The recursive part of Read_Str.
 
       --  Helpers for Read_Form:
 
-      procedure Skip_Ignored with Inline;
+      procedure Skip_Ignored;
       --  Check if the current character is ignorable or a comment.
       --  Increment I until it exceeds Source'Last or designates
       --  an interesting character.
@@ -59,15 +59,15 @@ package body Reader is
       --  Read_Atom has been merged into the same case/switch
       --  statement, for clarity and efficiency.
 
-      function Read_List (Ending : in Character) return Natural with Inline;
+      function Read_List (Ending : in Character) return Natural;
       --  Returns the index of the last elements in Buffer.
       --  The elements have been stored in Buffer (B_Last .. result).
 
-      function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T with Inline;
+      function Read_Quote (Symbol : in String) return Types.T;
 
-      function Read_String return Mal.T with Inline;
+      function Read_String return Types.T;
 
-      function Read_With_Meta return Mal.T with Inline;
+      function Read_With_Meta return Types.T;
 
       ----------------------------------------------------------------------
 
@@ -90,23 +90,22 @@ package body Reader is
          return Result;
       end Read_List;
 
-      function Read_Quote (Symbol : in Symbols.Ptr) return Mal.T is
-         R : constant Mal.Sequence_Ptr := Sequences.Constructor (2);
+      function Read_Quote (Symbol : in String) return Types.T is
+         R : constant Types.Sequence_Ptr := Types.Sequences.Constructor (2);
       begin
          I := I + 1;             --  Skip the initial ' or similar.
-         R.Replace_Element (1, (Kind_Symbol, Symbol));
+         R.all.Data (1) := (Kind_Symbol, Types.Strings.Alloc (Symbol));
          Skip_Ignored;
-         Err.Check (I <= Source'Last,
-                    "Incomplete '" & Symbols.To_String (Symbol) & "'");
-         R.Replace_Element (2, Read_Form);
+         Err.Check (I <= Source'Last, "Incomplete '" & Symbol & "'");
+         R.all.Data (2) := Read_Form;
          return (Kind_List, R);
       end Read_Quote;
 
-      function Read_Form return Mal.T is
+      function Read_Form return Types.T is
          --  After I has been increased, current token is be
          --  Source (F .. I - 1).
          F : Positive;
-         R : Mal.T;                   --  The result of this function.
+         R : Types.T;                   --  The result of this function.
       begin
          case Source (I) is
             when ')' | ']' | '}' =>
@@ -117,8 +116,7 @@ package body Reader is
                I := I + 1;
                F := I;
                Skip_Symbol;
-               R := (Kind_Keyword, Ada.Strings.Unbounded.To_Unbounded_String
-                       (Source (F .. I - 1)));
+               R := (Kind_Keyword, Types.Strings.Alloc (Source (F .. I - 1)));
             when '-' =>
                F := I;
                Skip_Digits;
@@ -127,45 +125,48 @@ package body Reader is
                else
                   Skip_Symbol;
                   R := (Kind_Symbol,
-                        Symbols.Constructor (Source (F .. I - 1)));
+                        Types.Strings.Alloc (Source (F .. I - 1)));
                end if;
             when '~' =>
                if I < Source'Last and then Source (I + 1) = '@' then
                   I := I + 1;
-                  R := Read_Quote (Symbols.Names.Splice_Unquote);
+                  R := Read_Quote ("splice-unquote");
                else
-                  R := Read_Quote (Symbols.Names.Unquote);
+                  R := Read_Quote ("unquote");
                end if;
             when '0' .. '9' =>
                F := I;
                Skip_Digits;
                R := (Kind_Number, Integer'Value (Source (F .. I - 1)));
             when ''' =>
-               R := Read_Quote (Symbols.Names.Quote);
+               R := Read_Quote ("quote");
             when '`' =>
-               R := Read_Quote (Symbols.Names.Quasiquote);
+               R := Read_Quote ("quasiquote");
             when '@' =>
-               R := Read_Quote (Symbols.Names.Deref);
+               R := Read_Quote ("deref");
             when '^' =>
                R := Read_With_Meta;
             when '(' =>
-               R := Sequences.List (Buffer (B_Last + 1 .. Read_List (')')));
+               R := Types.Sequences.List
+                 (Buffer (B_Last + 1 .. Read_List (')')));
             when '[' =>
-               R := Sequences.Vector (Buffer (B_Last + 1 .. Read_List (']')));
+               R := Types.Sequences.Vector
+                 (Buffer (B_Last + 1 .. Read_List (']')));
             when '{' =>
-               R := Maps.Hash_Map (Buffer (B_Last + 1 .. Read_List ('}')));
+               R := Types.Maps.Hash_Map
+                 (Buffer (B_Last + 1 .. Read_List ('}')));
             when others =>
                F := I;
                Skip_Symbol;
                if Source (F .. I - 1) = "false" then
                   R := (Kind_Boolean, False);
                elsif Source (F .. I - 1) = "nil" then
-                  R := Mal.Nil;
+                  R := Types.Nil;
                elsif Source (F .. I - 1) = "true" then
                   R := (Kind_Boolean, True);
                else
                   R := (Kind_Symbol,
-                        Symbols.Constructor (Source (F .. I - 1)));
+                        Types.Strings.Alloc (Source (F .. I - 1)));
                end if;
          end case;
          if Debug then
@@ -175,7 +176,7 @@ package body Reader is
          return R;
       end Read_Form;
 
-      function Read_String return Mal.T is
+      function Read_String return Types.T is
          use Ada.Strings.Unbounded;
          Result : Unbounded_String;
       begin
@@ -201,18 +202,18 @@ package body Reader is
             end case;
          end loop;
          I := I + 1;                    --  Skip closing double quote.
-         return (Kind_String, Result);
+         return (Kind_String, Types.Strings.Alloc (To_String (Result)));
       end Read_String;
 
-      function Read_With_Meta return Mal.T is
-         List : constant Mal.Sequence_Ptr := Sequences.Constructor (3);
+      function Read_With_Meta return Types.T is
+         List : constant Types.Sequence_Ptr := Types.Sequences.Constructor (3);
       begin
          I := I + 1;                    --  Skip the initial ^.
-         List.all.Replace_Element (1, (Kind_Symbol, Symbols.Names.With_Meta));
+         List.all.Data (1) := (Kind_Symbol, Types.Strings.Alloc ("with-meta"));
          for I in reverse 2 .. 3 loop
             Skip_Ignored;
             Err.Check (I <= Source'Last, "Incomplete 'with-meta'");
-            List.all.Replace_Element (I, Read_Form);
+            List.all.Data (I) := Read_Form;
          end loop;
          return (Kind_List, List);
       end Read_With_Meta;
@@ -229,7 +230,6 @@ package body Reader is
 
       procedure Skip_Ignored is
          use Ada.Characters.Handling;
-         use Ada.Strings.Maps;
       begin
          Ignored : while I <= Source'Last
                          and then Is_In (Source (I), Ignored_Set)
@@ -246,7 +246,6 @@ package body Reader is
       end Skip_Ignored;
 
       procedure Skip_Symbol is
-         use Ada.Strings.Maps;
       begin
          while I <= Source'Last and then Is_In (Source (I), Symbol_Set) loop
             I := I + 1;

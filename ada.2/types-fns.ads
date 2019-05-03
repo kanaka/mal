@@ -1,47 +1,44 @@
 with Envs;
 with Garbage_Collected;
-with Types.Mal;
-with Types.Sequences;
-with Types.Symbols;
 
 package Types.Fns is
 
-   type Instance (<>) is new Garbage_Collected.Instance with private;
-   --  A pointer to an user-defined function or macro.
+   Eval_Cb : access function (Ast : in T;
+                              Env : in Envs.Ptr) return T;
+   --  The main program must register this global callback to the main
+   --  eval function before Apply is called.
 
-   function New_Function (Params : in Types.Sequences.Instance;
-                          Ast    : in Mal.T;
-                          Env    : in Envs.Ptr) return Mal.T
+   type Instance (<>) is abstract new Garbage_Collected.Instance with private;
+
+   function New_Function (Params   : in Sequence_Ptr;
+                          Ast      : in T;
+                          Env      : in Envs.Ptr;
+                          Metadata : in T            := Nil) return T
      with Inline;
    --  Raise an exception if Params contains something else than symbols.
 
-   function New_Macro (Item : in Instance) return Mal.T with Inline;
-
-   function Params (Item : in Instance) return Symbols.Symbol_Array
+   function Params (Item : in Instance) return Sequence_Ptr
      with Inline;
-   function Ast (Item : in Instance) return Mal.T with Inline;
+   function Ast (Item : in Instance) return T with Inline;
    --  Useful to print.
 
    function Apply (Item : in Instance;
-                   Args : in Mal.T_Array) return Mal.T with Inline;
-   --  Returns null for macros.
+                   Args : in T_Array) return T with Inline;
+   --  Duplicated in the step files because of TCO.
 
    function Env (Item : in Instance) return Envs.Ptr with Inline;
-   --  Returns null for macros.
    --  Required for TCO, instead of Apply.
 
-   function Meta (Item : in Instance) return Mal.T with Inline;
-   function With_Meta (Item     : in Instance;
-                       Metadata : in Mal.T) return Mal.T with Inline;
+   function Meta (Item : in Instance) return T with Inline;
 
 private
 
-   type Instance (Last : Natural) is new Garbage_Collected.Instance
+   type Instance is new Garbage_Collected.Instance
      with record
-        F_Ast    : Mal.T;
+        F_Ast    : T;
         F_Env    : Envs.Ptr;
-        F_Meta   : Mal.T;
-        F_Params : Symbols.Symbol_Array (1 .. Last);
+        F_Meta   : T;
+        F_Params : Sequence_Ptr;
    end record;
    overriding procedure Keep_References (Object : in out Instance) with Inline;
 

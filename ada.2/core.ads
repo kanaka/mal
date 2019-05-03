@@ -1,6 +1,6 @@
 with Envs;
 
-package Core with Elaborate_Body is
+package Core is
 
    procedure NS_Add_To_Repl (Repl : in Envs.Ptr);
    --  Add built-in functions.

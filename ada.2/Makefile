@@ -9,7 +9,7 @@ else
 endif
 
 # Compiler arguments.
-CARGS = -gnat2020 $(OPT) $(ADAFLAGS)
+CARGS = $(ADAFLAGS)
 # Linker arguments.
 LARGS = $(LDFLAGS) -lreadline
 
@@ -33,25 +33,26 @@ clean:
 
 # Tell Make how to detect out-of-date executables, and let gnatmake do
 # the rest when it must be executed.
-TYPES := \
-  envs.ads                 envs.adb                 \
-  err.ads                  err.adb                  \
-  eval_cb.ads                                       \
-  garbage_collected.ads    garbage_collected.adb    \
-  printer.ads              printer.adb              \
-  reader.ads               reader.adb               \
-  readline.ads                                      \
-  types-atoms.ads          types-atoms.adb          \
-  types-builtins.ads       types-builtins.adb       \
-  types-fns.ads            types-fns.adb            \
-  types-sequences.ads      types-sequences.adb      \
-  types-mal.ads            types-mal.adb            \
-  types-maps.ads           types-maps.adb           \
-  types-symbols-names.ads                           \
-  types-symbols.ads        types-symbols.adb        \
-  types.ads
-CORE := \
-  core.ads           core.adb
+sources = $(foreach unit,$1,$(unit).adb $(unit).ads)
+TYPES := $(call sources,\
+  envs \
+  err \
+  garbage_collected \
+  printer \
+  reader \
+  readline \
+  types \
+  types-atoms \
+  types-builtins \
+  types-fns \
+  types-macros \
+  types-maps \
+  types-sequences \
+  types-strings \
+)
+CORE := $(call sources,\
+  core \
+)
 
 $(step0) :      %:      %.adb
 $(step13):      %:      %.adb $(TYPES)

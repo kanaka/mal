@@ -1,4 +1,4 @@
-package Readline with Preelaborate is
+package Readline is
 
    function Input (Prompt : in String) return String;
 

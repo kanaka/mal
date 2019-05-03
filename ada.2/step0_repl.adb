@@ -14,7 +14,8 @@ procedure Step0_Repl is
 
    ----------------------------------------------------------------------
 
-   function Eval (Ast : in String) return String is (Ast);
+   function Eval (Ast : in String) return String
+   is (Ast);
 
    procedure Print (Ast : in String) is
    begin
@@ -38,6 +39,7 @@ begin
          when Readline.End_Of_File =>
             exit;
       end;
+      --  Other exceptions are really unexpected.
    end loop;
    Ada.Text_IO.New_Line;
 end Step0_Repl;
