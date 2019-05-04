@@ -170,6 +170,22 @@ DEF FNcore_call(fn%, args%)
     WHEN 36
       PROCcore_prepare_args("?", "symbol?")
       =FNalloc_boolean(FNis_symbol(args%(0)))
+    DATA symbol, 37
+    WHEN 37
+      PROCcore_prepare_args("s", "symbol")
+      =FNalloc_symbol(arg$)
+    DATA keyword, 38
+    WHEN 38
+      PROCcore_prepare_args("s", "keyword")
+      IF LEFT$(arg$, 1) <> CHR$(127) THEN arg$ = CHR$(127) + arg$
+      =FNalloc_string(arg$)
+    DATA keyword?, 39
+    WHEN 39
+      PROCcore_prepare_args("?", "keyword?")
+      IF FNis_string(args%(0)) THEN
+        =FNalloc_boolean(LEFT$(FNunbox_string(args%(0)), 1) = CHR$(127))
+      ENDIF
+      =FNalloc_boolean(FALSE)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
