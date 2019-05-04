@@ -29,7 +29,7 @@ REM  Types are:
 REM  0   nil
 REM  1   boolean
 REM  2   integer
-REM  4   string
+REM  4   string/keyword
 REM  5   symbol
 REM  6   list (each object is a cons cell)
 REM  8   hash-map (each object is one entry)
@@ -247,7 +247,9 @@ DEF FNunbox_int(val%)
   IF NOT FNis_int(val%) THEN ERROR &40E80912, "Not an integer"
 =Z%(val%,1)
 
-REM ** Strings **
+REM ** Strings and keywords **
+
+REM  A keyword is a string with first character CHR$(127).
 
 DEF FNis_string(val%)
 =FNtype_of(val%) = 4

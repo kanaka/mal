@@ -1,18 +1,16 @@
 REM > printer library for mal in BBC BASIC
 
 DEF FNpr_str(val%, print_readably%)
-  LOCAL ret$
+  LOCAL ret$, val$
   IF FNis_nil(val%) THEN ="nil"
   IF FNis_boolean(val%) THEN
     IF FNunbox_boolean(val%) THEN ="true" ELSE ="false"
   ENDIF
   IF FNis_int(val%) THEN =STR$(FNunbox_int(val%))
   IF FNis_string(val%) THEN
-    IF print_readably% THEN
-      =FNformat_string(FNunbox_string(val%))
-    ELSE
-      =FNunbox_string(val%)
-    ENDIF
+    val$ = FNunbox_string(val%)
+    IF LEFT$(val$, 1) = CHR$(127) THEN =":" + MID$(val$, 2)
+    IF print_readably% THEN =FNformat_string(val$) ELSE =val$
   ENDIF
   IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
   IF FNis_corefn(val%) OR FNis_fn(val%) THEN ="#<function>"

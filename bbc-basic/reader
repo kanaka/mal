@@ -146,6 +146,7 @@ DEF FNread_atom(tokens$(), RETURN tokptr%)
   IF strval$ = "true" THEN =FNalloc_boolean(TRUE)
   IF strval$ = "false" THEN =FNalloc_boolean(FALSE)
   IF LEFT$(strval$, 1) = """" THEN =FNalloc_string(FNunquote_string(strval$))
+  IF LEFT$(strval$, 1) = ":" THEN =FNalloc_string(CHR$(127) + MID$(strval$, 2))
   IF FNis_token_numeric(strval$) THEN =FNalloc_int(VAL(strval$))
 =FNalloc_symbol(strval$)
 
