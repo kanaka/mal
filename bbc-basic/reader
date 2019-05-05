@@ -97,7 +97,8 @@ DEF FNread_form(tokens$(), RETURN tokptr%)
   CASE tok$ OF
     WHEN "" : ERROR &40E80930, "Unexpected end of input"
     WHEN "(": =FNread_list(tokens$(), tokptr%)
-    WHEN ")": ERROR &40E80931, "Unexpected ')'"
+    WHEN "[": =FNread_vector(tokens$(), tokptr%)
+    WHEN ")", "]": ERROR &40E80931, "Unexpected '"+tok$ +"'"
     WHEN "'": =FNreader_macro("quote", tokens$(), tokptr%)
     WHEN "`": =FNreader_macro("quasiquote", tokens$(), tokptr%)
     WHEN "~": =FNreader_macro("unquote", tokens$(), tokptr%)
@@ -109,16 +110,21 @@ DEF FNread_form(tokens$(), RETURN tokptr%)
 DEF FNread_list(tokens$(), RETURN tokptr%)
   LOCAL tok$
   tok$ = FNreader_next(tokens$(), tokptr%) : REM skip over "("
-=FNread_list_tail(tokens$(), tokptr%)
+=FNread_list_tail(tokens$(), tokptr%, ")")
 
-DEF FNread_list_tail(tokens$(), RETURN tokptr%)
+DEF FNread_vector(tokens$(), RETURN tokptr%)
+  LOCAL tok$
+  tok$ = FNreader_next(tokens$(), tokptr%) : REM skip over "["
+=FNas_vector(FNread_list_tail(tokens$(), tokptr%, "]"))
+
+DEF FNread_list_tail(tokens$(), RETURN tokptr%, term$)
   LOCAL tok$, car%, cdr%
-  IF FNreader_peek(tokens$(), tokptr%) = ")" THEN
+  IF FNreader_peek(tokens$(), tokptr%) = term$ THEN
      tok$ = FNreader_next(tokens$(), tokptr%)
     =FNempty
   ENDIF
   car% = FNread_form(tokens$(), tokptr%)
-  cdr% = FNread_list_tail(tokens$(), tokptr%)
+  cdr% = FNread_list_tail(tokens$(), tokptr%, term$)
 =FNalloc_pair(car%, cdr%)
 
 DEF FNreader_macro(quote$, token$(), RETURN tokptr%)

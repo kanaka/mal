@@ -1,7 +1,7 @@
 REM > printer library for mal in BBC BASIC
 
 DEF FNpr_str(val%, print_readably%)
-  LOCAL ret$, val$
+  LOCAL ret$, term$, val$
   IF FNis_nil(val%) THEN ="nil"
   IF FNis_boolean(val%) THEN
     IF FNunbox_boolean(val%) THEN ="true" ELSE ="false"
@@ -15,13 +15,14 @@ DEF FNpr_str(val%, print_readably%)
   IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
   IF FNis_corefn(val%) OR FNis_fn(val%) THEN ="#<function>"
   IF FNis_list(val%) THEN
-    ret$ = "("
+    ret$ = "(" : term$ = ")"
+    IF FNis_vector(val%) THEN ret$ = "[" : term$ = "]"
     WHILE NOT FNis_empty(val%)
       IF LEN(ret$) > 1 THEN ret$ += " "
       ret$ += FNpr_str(FNlist_car(val%), print_readably%)
       val% = FNlist_cdr(val%)
     ENDWHILE
-    =ret$ + ")"
+    =ret$ + term$
   ENDIF
   IF FNis_atom(val%) THEN
     ="(atom "+FNpr_str(FNatom_deref(val%), print_readably%)+")"

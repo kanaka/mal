@@ -49,6 +49,7 @@ DEF PROCtypes_init
   Z%(1,0) = 1: REM false
   Z%(2,0) = 1: Z%(2,1) = TRUE: REM true
   Z%(3,0) = 6: REM empty list
+  Z%(4,0) = &86 : REM empty vector
   Z%(5,0) = 8: REM empty hashmap
   next_Z% = 6
   next_S% = 0
@@ -289,8 +290,15 @@ DEF FNunbox_symbol(val%)
   IF NOT FNis_symbol(val%) THEN ERROR &40E80915, "Not a symbol"
 =S$(Z%(val%,1))
 
-REM ** Lists **
+REM ** Lists and vectors **
 
+REM  Lists and vectors are both represented as linked lists: the only
+REM  difference is in the state of the is_vector flag in the head cell
+REM  of the list.  Note that this means that the tail of a list may be
+REM  a vector, and vice versa.  FNas_list and FNas_vector can be used
+REM  to convert a sequence to a particular type as necessary.
+
+REM  Z%(x,0) AND &80 = is_vector flag
 REM  Z%(x,1) = index in Z%() of next pair
 REM  Z%(x,2) = index in Z%() of first element
 
@@ -300,6 +308,9 @@ REM  both elements nil.
 DEF FNempty
 =3
 
+DEF FNempty_vector
+=4
+
 DEF FNalloc_pair(car%, cdr%)
   LOCAL val%
   val% = FNmalloc(6)
@@ -307,11 +318,30 @@ DEF FNalloc_pair(car%, cdr%)
   Z%(val%,1) = cdr%
 =val%
 
+DEF FNalloc_vector_pair(car%, cdr%)
+  LOCAL val%
+  val% = FNalloc_pair(car%, cdr%)
+  Z%(val%, 0) = &86
+=val%
+
 DEF FNis_empty(val%)
-=val% = FNempty
+=val% = FNempty OR val% = FNempty_vector
 
 DEF FNis_list(val%)
 =FNtype_of(val%) = 6
+
+DEF FNis_vector(val%)
+=FNtype_of(val%) = 6 AND (Z%(val%, 0) AND &80) = &80
+
+DEF FNas_list(val%)
+  IF (Z%(val%, 0) AND &80) = 0 THEN =val%
+  IF FNis_empty(val%) THEN =FNempty
+=FNalloc_pair(FNlist_car(val%), FNlist_cdr(val%))
+
+DEF FNas_vector(val%)
+  IF (Z%(val%, 0) AND &80) = &80 THEN =val%
+  IF FNis_empty(val%) THEN =FNempty_vector
+=FNalloc_vector_pair(FNlist_car(val%), FNlist_cdr(val%))
 
 DEF PROCgc_mark_list(val%)
   IF NOT FNis_empty(val%) THEN
