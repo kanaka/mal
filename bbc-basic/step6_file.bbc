@@ -121,10 +121,11 @@ DEF FNrep(a$)
 DEF FNeval_ast(ast%, env%)
   LOCAL val%, car%, cdr%
   IF FNis_symbol(ast%) THEN =FNenv_get(env%, ast%)
-  IF FNis_list(ast%) THEN
+  IF FNis_seq(ast%) THEN
     IF FNis_empty(ast%) THEN =ast%
     car% = FNEVAL(FNlist_car(ast%), env%)
     cdr% = FNeval_ast(FNlist_cdr(ast%), env%)
+    IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
     =FNalloc_pair(car%, cdr%)
   ENDIF
 =ast%

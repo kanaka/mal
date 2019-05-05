@@ -182,7 +182,7 @@ DEF PROCgc_mark(val%)
     REM PRINT " ";val%;
     Z%(val%,0) = Z%(val%,0) EOR &100
     CASE FNtype_of(val%) OF
-      WHEN 6 :  PROCgc_mark_list(val%)
+      WHEN 6 :  PROCgc_mark_seq(val%)
       WHEN 8 :  PROCgc_mark_hashmap(val%)
       WHEN 10 : PROCgc_mark_fn(val%)
       WHEN 12 : PROCgc_mark_atom(val%)
@@ -321,29 +321,32 @@ DEF FNalloc_pair(car%, cdr%)
 DEF FNalloc_vector_pair(car%, cdr%)
   LOCAL val%
   val% = FNalloc_pair(car%, cdr%)
-  Z%(val%, 0) = &86
+  Z%(val%,0) = Z%(val%,0) OR &80
 =val%
 
 DEF FNis_empty(val%)
 =val% = FNempty OR val% = FNempty_vector
 
-DEF FNis_list(val%)
+DEF FNis_seq(val%)
 =FNtype_of(val%) = 6
+
+DEF FNis_list(val%)
+=FNtype_of(val%) = 6 AND (Z%(val%, 0) AND &80) = &00
 
 DEF FNis_vector(val%)
 =FNtype_of(val%) = 6 AND (Z%(val%, 0) AND &80) = &80
 
 DEF FNas_list(val%)
-  IF (Z%(val%, 0) AND &80) = 0 THEN =val%
+  IF FNis_list(val%) THEN =val%
   IF FNis_empty(val%) THEN =FNempty
 =FNalloc_pair(FNlist_car(val%), FNlist_cdr(val%))
 
 DEF FNas_vector(val%)
-  IF (Z%(val%, 0) AND &80) = &80 THEN =val%
+  IF FNis_vector(val%) = &80 THEN =val%
   IF FNis_empty(val%) THEN =FNempty_vector
 =FNalloc_vector_pair(FNlist_car(val%), FNlist_cdr(val%))
 
-DEF PROCgc_mark_list(val%)
+DEF PROCgc_mark_seq(val%)
   IF NOT FNis_empty(val%) THEN
     PROCgc_mark(Z%(val%,1))
     PROCgc_mark(Z%(val%,2))
@@ -351,13 +354,13 @@ DEF PROCgc_mark_list(val%)
 ENDPROC
 
 DEF FNlist_car(val%)
-  IF NOT FNis_list(val%) THEN ERROR &40E80916, "Can't get car of non-list"
-  IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get car of empty list"
+  IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get car of non-sequence"
+  IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get car of empty sequence"
 =FNref_local(Z%(val%,2))
 
 DEF FNlist_cdr(val%)
-  IF NOT FNis_list(val%) THEN ERROR &40E80916, "Can't get cdr of non-list"
-  IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get cdr of empty list"
+  IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get cdr of non-sequence"
+  IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get cdr of empty sequence"
 =FNref_local(Z%(val%,1))
 
 DEF FNalloc_list2(val0%, val1%)

@@ -14,7 +14,7 @@ DEF FNpr_str(val%, print_readably%)
   ENDIF
   IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
   IF FNis_corefn(val%) OR FNis_fn(val%) THEN ="#<function>"
-  IF FNis_list(val%) THEN
+  IF FNis_seq(val%) THEN
     ret$ = "(" : term$ = ")"
     IF FNis_vector(val%) THEN ret$ = "[" : term$ = "]"
     WHILE NOT FNis_empty(val%)

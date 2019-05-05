@@ -36,7 +36,7 @@ DEF FNcore_call(fn%, args%)
       =FNalloc_int(args%(0) DIV args%(1))
     DATA list, 5
     WHEN 5
-      =args%
+      =FNas_list(args%)
     DATA list?, 6
     WHEN 6
       PROCcore_prepare_args("?", "list?")
@@ -198,7 +198,7 @@ DEF PROCcore_prepare_args(spec$, fn$)
 
   REM  "i" - Must be an integer;  unbox into args%()
   REM  "s" - Must be a string;    unbox into arg$
-  REM  "l" - Must be a list;      stuff into args%()
+  REM  "l" - Must be a sequence;  stuff into args%()
   REM  "f" - Must be a function;  stuff into args%()
   REM  "a" - Must be an atom;     stuff into args%()
   REM  "C" - Must be 'count'able  stuff into args%()
@@ -233,8 +233,8 @@ DEF PROCcore_prepare_args(spec$, fn$)
         ENDIF
         arg$ = FNunbox_string(val%)
       WHEN "l"
-        IF NOT FNis_list(val%) THEN
-          ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
+        IF NOT FNis_seq(val%) THEN
+          ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a sequence"
         ENDIF
         args%(i% - 1) = val%
       WHEN "f"
@@ -248,7 +248,7 @@ DEF PROCcore_prepare_args(spec$, fn$)
         ENDIF
         args%(i% - 1) = val%
       WHEN "C"
-        IF NOT FNis_list(val%) AND NOT FNis_nil(val%) THEN
+        IF NOT FNis_seq(val%) AND NOT FNis_nil(val%) THEN
           ERROR &40E8091F, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a countable value"
         ENDIF
         args%(i% - 1) = val%
@@ -269,7 +269,7 @@ DEF FNcore_equal(a%, b%)
   IF FNis_string(a%) AND FNis_string(b%) THEN
     =FNunbox_string(a%) = FNunbox_string(b%)
   ENDIF
-  IF FNis_list(a%) AND FNis_list(b%) THEN
+  IF FNis_seq(a%) AND FNis_seq(b%) THEN
     IF FNis_empty(a%) AND FNis_empty(b%) THEN =TRUE
     IF FNis_empty(a%) <> FNis_empty(b%) THEN =FALSE
     IF NOT FNcore_equal(FNlist_car(a%), FNlist_car(b%)) THEN =FALSE
