@@ -4,12 +4,12 @@ DEF FNnew_env(outer%, binds%, exprs%)
   LOCAL env%
   env% = FNalloc_environment(outer%)
   WHILE NOT FNis_empty(binds%)
-    IF FNunbox_symbol(FNlist_car(binds%)) = "&" THEN
-      PROCenv_set(env%, FNlist_nth(binds%, 1), exprs%)
+    IF FNunbox_symbol(FNfirst(binds%)) = "&" THEN
+      PROCenv_set(env%, FNnth(binds%, 1), exprs%)
       binds% = FNempty
     ELSE
-      PROCenv_set(env%, FNlist_car(binds%), FNlist_car(exprs%))
-      binds% = FNlist_cdr(binds%) : exprs% = FNlist_cdr(exprs%)
+      PROCenv_set(env%, FNfirst(binds%), FNfirst(exprs%))
+      binds% = FNrest(binds%) : exprs% = FNrest(exprs%)
     ENDIF
   ENDWHILE
 =env%

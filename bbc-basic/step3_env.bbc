@@ -33,28 +33,28 @@ DEF FNEVAL(ast%, env%)
   LOCAL car%
   IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
   IF FNis_empty(ast%) THEN =ast%
-  car% = FNlist_car(ast%)
+  car% = FNfirst(ast%)
   IF FNis_symbol(car%) THEN
     CASE FNunbox_symbol(car%) OF
       REM  Special forms
       WHEN "def!"
         LOCAL val%
-	val% = FNEVAL(FNlist_nth(ast%, 2), env%)
-        PROCenv_set(env%, FNlist_nth(ast%, 1), val%)
+	val% = FNEVAL(FNnth(ast%, 2), env%)
+        PROCenv_set(env%, FNnth(ast%, 1), val%)
 	=val%
       WHEN "let*"
         LOCAL bindings%
 	env% = FNalloc_environment(env%)
-	bindings% = FNlist_nth(ast%, 1)
+	bindings% = FNnth(ast%, 1)
 	WHILE NOT FNis_empty(bindings%)
-	  PROCenv_set(env%, FNlist_car(bindings%), FNEVAL(FNlist_nth(bindings%, 1), env%))
-	  bindings% = FNlist_cdr(FNlist_cdr(bindings%))
+	  PROCenv_set(env%, FNfirst(bindings%), FNEVAL(FNnth(bindings%, 1), env%))
+	  bindings% = FNrest(FNrest(bindings%))
 	ENDWHILE
-	=FNEVAL(FNlist_nth(ast%, 2), env%)
+	=FNEVAL(FNnth(ast%, 2), env%)
     ENDCASE
   ENDIF
   ast% = FNeval_ast(ast%, env%)
-=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
+=FNcore_call(FNunbox_corefn(FNfirst(ast%)), FNrest(ast%))
 
 DEF FNPRINT(a%)
 =FNpr_str(a%, TRUE)
@@ -67,8 +67,8 @@ DEF FNeval_ast(ast%, env%)
   IF FNis_symbol(ast%) THEN =FNenv_get(env%, ast%)
   IF FNis_seq(ast%) THEN
     IF FNis_empty(ast%) THEN =ast%
-    car% = FNEVAL(FNlist_car(ast%), env%)
-    cdr% = FNeval_ast(FNlist_cdr(ast%), env%)
+    car% = FNEVAL(FNfirst(ast%), env%)
+    cdr% = FNeval_ast(FNrest(ast%), env%)
     IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
     =FNalloc_pair(car%, cdr%)
   ENDIF
@@ -78,8 +78,8 @@ REM  Call a core function, taking the function number and a mal list of
 REM  objects to pass as arguments.
 DEF FNcore_call(fn%, args%)
   LOCAL x%, y%, z%
-  x% = FNunbox_int(FNlist_car(args%))
-  y% = FNunbox_int(FNlist_car(FNlist_cdr(args%)))
+  x% = FNunbox_int(FNfirst(args%))
+  y% = FNunbox_int(FNfirst(FNrest(args%)))
   CASE fn% OF
     WHEN 0 : z% = x%  +  y%
     WHEN 1 : z% = x%  -  y%

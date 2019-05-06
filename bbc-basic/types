@@ -339,12 +339,12 @@ DEF FNis_vector(val%)
 DEF FNas_list(val%)
   IF FNis_list(val%) THEN =val%
   IF FNis_empty(val%) THEN =FNempty
-=FNalloc_pair(FNlist_car(val%), FNlist_cdr(val%))
+=FNalloc_pair(FNfirst(val%), FNrest(val%))
 
 DEF FNas_vector(val%)
   IF FNis_vector(val%) = &80 THEN =val%
   IF FNis_empty(val%) THEN =FNempty_vector
-=FNalloc_vector_pair(FNlist_car(val%), FNlist_cdr(val%))
+=FNalloc_vector_pair(FNfirst(val%), FNrest(val%))
 
 DEF PROCgc_mark_seq(val%)
   IF NOT FNis_empty(val%) THEN
@@ -353,12 +353,12 @@ DEF PROCgc_mark_seq(val%)
   ENDIF
 ENDPROC
 
-DEF FNlist_car(val%)
+DEF FNfirst(val%)
   IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get car of non-sequence"
   IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get car of empty sequence"
 =FNref_local(Z%(val%,2))
 
-DEF FNlist_cdr(val%)
+DEF FNrest(val%)
   IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get cdr of non-sequence"
   IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get cdr of empty sequence"
 =FNref_local(Z%(val%,1))
@@ -369,29 +369,29 @@ DEF FNalloc_list2(val0%, val1%)
 DEF FNalloc_list3(val0%, val1%, val2%)
   =FNalloc_pair(val0%, FNalloc_pair(val1%, FNalloc_pair(val2%, FNempty)))
 
-DEF FNlist_len(val%)
+DEF FNcount(val%)
   LOCAL i%
   WHILE NOT FNis_empty(val%)
-    val% = FNlist_cdr(val%)
+    val% = FNrest(val%)
     i% += 1
   ENDWHILE
 = i%
 
-DEF FNlist_nth(val%, n%)
+DEF FNnth(val%, n%)
   WHILE n% > 0
     IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
-    val% = FNlist_cdr(val%)
+    val% = FNrest(val%)
     n% -= 1
   ENDWHILE
   IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
-=FNlist_car(val%)
+=FNfirst(val%)
 
 DEF PROClist_to_array(val%, a%())
   REM  a%() must already be correctly dimensioned.
   LOCAL i%
   WHILE NOT FNis_empty(val%)
-    a%(i%) = FNref_local(FNlist_car(val%))
-    val% = FNlist_cdr(val%)
+    a%(i%) = FNref_local(FNfirst(val%))
+    val% = FNrest(val%)
     i% += 1
   ENDWHILE
 ENDPROC

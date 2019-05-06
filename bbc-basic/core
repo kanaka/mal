@@ -49,7 +49,7 @@ DEF FNcore_call(fn%, args%)
     WHEN 8
       PROCcore_prepare_args("C", "count")
       IF FNis_nil(args%(0)) THEN =FNalloc_int(0)
-      =FNalloc_int(FNlist_len(args%(0)))
+      =FNalloc_int(FNcount(args%(0)))
     DATA =, 9
     WHEN 9
       PROCcore_prepare_args("??", "=")
@@ -128,17 +128,17 @@ DEF FNcore_call(fn%, args%)
     DATA nth, 27
     WHEN 27
       PROCcore_prepare_args("li", "nth")
-      =FNlist_nth(args%(0), args%(1))
+      =FNnth(args%(0), args%(1))
     DATA first, 28
     WHEN 28
       PROCcore_prepare_args("l", "first")
       IF FNis_empty(args%(0)) OR FNis_nil(args%(0)) THEN =FNnil
-      =FNlist_car(args%(0))
+      =FNfirst(args%(0))
     DATA rest, 29
     WHEN 29
       PROCcore_prepare_args("l", "rest")
       IF FNis_empty(args%(0)) THEN =FNempty
-      =FNlist_cdr(args%(0))
+      =FNrest(args%(0))
     DATA throw, 30
     WHEN 30
       PROCcore_prepare_args("?", "throw")
@@ -222,16 +222,16 @@ DEF PROCcore_prepare_args(spec$, fn$)
 
   IF RIGHT$(spec$) = "*" THEN
     spec$ = LEFT$(spec$)
-    IF FNlist_len(args%) < LEN(spec$) THEN
+    IF FNcount(args%) < LEN(spec$) THEN
       ERROR &40E80921, "Core function '"+fn$+"' requires at least "+STR$(LEN(spec$))+" arguments"
     ENDIF
   ELSE
-    IF FNlist_len(args%) <> LEN(spec$) THEN
+    IF FNcount(args%) <> LEN(spec$) THEN
       ERROR &40E80921, "Core function '"+fn$+"' requires "+STR$(LEN(spec$))+" arguments"
     ENDIF
   ENDIF
   FOR i% = 1 TO LEN(spec$)
-    val% = FNlist_car(args%)
+    val% = FNfirst(args%)
     CASE MID$(spec$, i%, 1) OF
       WHEN "i"
         IF NOT FNis_int(val%) THEN
@@ -266,7 +266,7 @@ DEF PROCcore_prepare_args(spec$, fn$)
       WHEN "?"
         args%(i% - 1) = val%
     ENDCASE
-    args% = FNlist_cdr(args%)
+    args% = FNrest(args%)
   NEXT i%
 ENDPROC
 
@@ -283,8 +283,8 @@ DEF FNcore_equal(a%, b%)
   IF FNis_seq(a%) AND FNis_seq(b%) THEN
     IF FNis_empty(a%) AND FNis_empty(b%) THEN =TRUE
     IF FNis_empty(a%) <> FNis_empty(b%) THEN =FALSE
-    IF NOT FNcore_equal(FNlist_car(a%), FNlist_car(b%)) THEN =FALSE
-    =FNcore_equal(FNlist_cdr(a%), FNlist_cdr(b%))
+    IF NOT FNcore_equal(FNfirst(a%), FNfirst(b%)) THEN =FALSE
+    =FNcore_equal(FNrest(a%), FNrest(b%))
   ENDIF
 =FALSE
 
@@ -305,12 +305,12 @@ REM  General-purpose printing function
 DEF FNcore_print(print_readably%, sep$, args%)
   LOCAL out$
   IF FNis_empty(args%) THEN =""
-  out$ = FNpr_str(FNlist_car(args%), print_readably%)
-  args% = FNlist_cdr(args%)
+  out$ = FNpr_str(FNfirst(args%), print_readably%)
+  args% = FNrest(args%)
   WHILE NOT FNis_empty(args%)
     out$ += sep$
-    out$ += FNpr_str(FNlist_car(args%), print_readably%)
-    args% = FNlist_cdr(args%)
+    out$ += FNpr_str(FNfirst(args%), print_readably%)
+    args% = FNrest(args%)
   ENDWHILE
 =out$
 
@@ -329,24 +329,24 @@ REM  Innards of 'concat' function
 DEF FNcore_concat(args%)
   LOCAL tail%
   IF FNis_empty(args%) THEN =FNempty
-  tail% = FNcore_concat(FNlist_cdr(args%))
-=FNcore_concat1(FNlist_car(args%), tail%)
+  tail% = FNcore_concat(FNrest(args%))
+=FNcore_concat1(FNfirst(args%), tail%)
   
 DEF FNcore_concat1(prefix%, tail%)
   IF FNis_empty(prefix%) THEN =tail%
-=FNalloc_pair(FNlist_car(prefix%), FNcore_concat1(FNlist_cdr(prefix%), tail%))
+=FNalloc_pair(FNfirst(prefix%), FNcore_concat1(FNrest(prefix%), tail%))
 
 REM  Recursively assemble the argument list for 'apply'
 DEF FNcore_apply_args(args%)
-  IF FNis_empty(FNlist_cdr(args%)) THEN =FNlist_car(args%)
-=FNalloc_pair(FNlist_car(args%), FNcore_apply_args(FNlist_cdr(args%)))
+  IF FNis_empty(FNrest(args%)) THEN =FNfirst(args%)
+=FNalloc_pair(FNfirst(args%), FNcore_apply_args(FNrest(args%)))
 
 REM  Innards of the 'map' function
 DEF FNcore_map(fn%, args%)
   LOCAL car%, cdr%
   IF FNis_empty(args%) THEN =args%
-  car% = FNcore_apply(fn%, FNalloc_pair(FNlist_car(args%), FNempty))
-  cdr% = FNcore_map(fn%, FNlist_cdr(args%))
+  car% = FNcore_apply(fn%, FNalloc_pair(FNfirst(args%), FNempty))
+  cdr% = FNcore_map(fn%, FNrest(args%))
 =FNalloc_pair(car%, cdr%)
 
 REM Local Variables:

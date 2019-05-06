@@ -19,8 +19,8 @@ DEF FNpr_str(val%, print_readably%)
     IF FNis_vector(val%) THEN ret$ = "[" : term$ = "]"
     WHILE NOT FNis_empty(val%)
       IF LEN(ret$) > 1 THEN ret$ += " "
-      ret$ += FNpr_str(FNlist_car(val%), print_readably%)
-      val% = FNlist_cdr(val%)
+      ret$ += FNpr_str(FNfirst(val%), print_readably%)
+      val% = FNrest(val%)
     ENDWHILE
     =ret$ + term$
   ENDIF

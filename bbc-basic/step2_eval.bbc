@@ -32,7 +32,7 @@ DEF FNEVAL(ast%, env%)
   IF NOT FNis_list(ast%) THEN =FNeval_ast(ast%, env%)
   IF FNis_empty(ast%) THEN =ast%
   ast% = FNeval_ast(ast%, env%)
-=FNcore_call(FNunbox_corefn(FNlist_car(ast%)), FNlist_cdr(ast%))
+=FNcore_call(FNunbox_corefn(FNfirst(ast%)), FNrest(ast%))
 
 DEF FNPRINT(a%)
 =FNpr_str(a%, TRUE)
@@ -49,8 +49,8 @@ DEF FNeval_ast(ast%, env%)
   ENDIF
   IF FNis_seq(ast%) THEN
     IF FNis_empty(ast%) THEN =ast%
-    car% = FNEVAL(FNlist_car(ast%), env%)
-    cdr% = FNeval_ast(FNlist_cdr(ast%), env%)
+    car% = FNEVAL(FNfirst(ast%), env%)
+    cdr% = FNeval_ast(FNrest(ast%), env%)
     IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
     =FNalloc_pair(car%, cdr%)
   ENDIF
@@ -60,8 +60,8 @@ REM  Call a core function, taking the function number and a mal list of
 REM  objects to pass as arguments.
 DEF FNcore_call(fn%, args%)
   LOCAL x%, y%, z%
-  x% = FNunbox_int(FNlist_car(args%))
-  y% = FNunbox_int(FNlist_car(FNlist_cdr(args%)))
+  x% = FNunbox_int(FNfirst(args%))
+  y% = FNunbox_int(FNfirst(FNrest(args%)))
   CASE fn% OF
     WHEN 0 : z% = x%  +  y%
     WHEN 1 : z% = x%  -  y%
