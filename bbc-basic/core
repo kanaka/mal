@@ -138,7 +138,7 @@ DEF FNcore_call(fn%, args%)
     WHEN 29
       PROCcore_prepare_args("C", "rest")
       IF FNis_empty(args%(0)) OR FNis_nil(args%(0)) THEN =FNempty
-      =FNrest(args%(0))
+      =FNas_list(FNrest(args%(0)))
     DATA throw, 30
     WHEN 30
       PROCcore_prepare_args("?", "throw")
