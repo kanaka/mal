@@ -56,7 +56,6 @@ DEF PROCtypes_init
   sSP% = 1
   sFP% = 0
   F% = 0
-  GCtoggle% = 0
   SF% = 0
 ENDPROC
 
@@ -121,7 +120,7 @@ DEF FNmalloc(type%)
     val% = next_Z%
     next_Z% += 1
   ENDIF
-  Z%(val%,0) = type% OR GCtoggle%
+  Z%(val%,0) = type%
 =FNref_local(val%)
 
 DEF FNsalloc(s$)
@@ -157,7 +156,6 @@ ENDPROC
 
 DEF PROCgc
   REM PRINT "** START GC **"
-  GCtoggle% = GCtoggle% EOR &100
   PROCgc_markall
   PROCgc_sweep
   REM PRINT "** FINISH GC **"
@@ -178,9 +176,9 @@ DEF PROCgc_markall
 ENDPROC
 
 DEF PROCgc_mark(val%)
-  IF (Z%(val%,0) AND &100) <> GCtoggle% THEN
+  IF (Z%(val%,0) AND &100) = 0 THEN
     REM PRINT " ";val%;
-    Z%(val%,0) = Z%(val%,0) EOR &100
+    Z%(val%,0) += &100
     CASE FNtype_of(val%) OF
       WHEN 6 :  PROCgc_mark_seq(val%)
       WHEN 8 :  PROCgc_mark_hashmap(val%)
@@ -195,9 +193,11 @@ DEF PROCgc_sweep
   LOCAL val%
   REM PRINT ">>sweeping ...";
   FOR val% = 6 TO next_Z% - 1
-    IF FNtype_of(val%) <> 15 AND (Z%(val%,0) AND &100) <> GCtoggle% THEN
+    IF FNtype_of(val%) <> 15 AND (Z%(val%,0) AND &100) = 0 THEN
       REM PRINT " ";val%;
       PROCfree(val%)
+    ELSE
+      Z%(val%,0) -= &100
     ENDIF
   NEXT val%
   REM PRINT
