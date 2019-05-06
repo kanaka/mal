@@ -164,6 +164,8 @@ b
 ;=>(1 2 3)
 (concat [1 2] (list 3 4) [5 6])
 ;=>(1 2 3 4 5 6)
+(concat [1 2])
+;=>(1 2)
 
 ;; Testing unquote with vectors
 (def! a 8)
