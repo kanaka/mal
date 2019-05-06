@@ -1455,6 +1455,9 @@ self-hosting.
   * `vector?`: takes a single argument and returns true (mal true
     value) if the argument is a vector, otherwise returns false (mal
     false value).
+  * `sequential?`: takes a single arguments and returns true (mal true
+    value) if it is a list or a vector, otherwise returns false (mal
+    false value).
   * `hash-map`: takes a variable but even number of arguments and
     returns a new mal hash-map value with keys from the odd arguments
     and values from the even arguments respectively. This is basically
@@ -1482,9 +1485,6 @@ self-hosting.
     all the keys in the hash-map.
   * `vals`: takes a hash-map and returns a list (mal list value) of
     all the values in the hash-map.
-  * `sequential?`: takes a single arguments and returns true (mal true
-    value) if it is a list or a vector, otherwise returns false (mal
-    false value).
 
 
 <a name="stepA"></a>

@@ -3,8 +3,6 @@
 
 (throw "err1")
 ;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*err1.*
-(throw {:msg "err2"})
-;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
 
 ;;
 ;; Testing try*/catch*
@@ -17,7 +15,7 @@
 ;=>nil
 
 ;; Make sure error from core can be caught
-(try* (nth [] 1) (catch* exc (prn "exc is:" exc)))
+(try* (nth () 1) (catch* exc (prn "exc is:" exc)))
 ;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
 
@@ -91,6 +89,10 @@
 ;;
 ;; ------- Deferrable Functionality ----------
 ;; ------- (Needed for self-hosting) -------
+
+;; Testing throwing a hash-map
+(throw {:msg "err2"})
+;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
 
 ;; Testing symbol and keyword functions
 (symbol? :abc)
