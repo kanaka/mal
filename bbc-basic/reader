@@ -35,11 +35,16 @@ DEF FNtokenize(src$, tokens$())
     REM  DATA statements.  These substitutions are only used for
     REM  matching: the token still contains the original character.
     CASE ASC(c$) OF
-      REM  These are the characters that Perl's "\s" escape matches.
-      WHEN 9, 10, 11, 12, 13: c$ = " "
-      REM  Double quotes are hard to put into data statements, so convert
-      REM  them to "Q", first having hidden any actual "Q"
-      WHEN 81: c$ = "P"
+      REM  Fold some upper-case letters together so that we can re-use
+      REM  them to represent more awkward characters.
+      WHEN 78, 81: c$ = "A"
+      REM  Now convert newlines into "N"
+      WHEN 10: c$ = "N"
+      REM  These are the other characters that Perl's "\s" escape matches.
+      WHEN 9, 11, 12, 13: c$ = " "
+      REM  Brandy has a bug whereby it doesn't correctly parse strings
+      REM  in DATA statements that begin with quotation marks, so convert
+      REM  quotation marks to "Q".
       WHEN 34: c$ = "Q"
     ENDCASE
     REM  The state table consists of a DATA statement for each current
@@ -55,17 +60,17 @@ DEF FNtokenize(src$, tokens$())
 
     RESTORE +state%
     REM  state 1: Initial state, or inside a bare word
-    DATA " ,",5,1,          "~",1,5, "[]{}()'`^@",1,3, "Q",1,7, ";",1,11, "",0,1
+    DATA " N,",5,1,          "~",1,5, "[]{}()'`^@",1,3, Q,1,7, ";",5,11, "",0,1
     REM  state 3: Just seen the end of a token
-    DATA " ,",5,1,          "~",1,5, "[]{}()'`^@",1,3, "Q",1,7, ";",1,11, "",1,1
+    DATA " N,",5,1,          "~",1,5, "[]{}()'`^@",1,3, Q,1,7, ";",5,11, "",1,1
     REM  state 5: Just seen a "~"
-    DATA " ,",5,1, "@",0,3, "~",1,5, "[]{}()'`^@",1,3, "Q",1,7, ";",1,11, "",1,1
+    DATA " N,",5,1, "@",0,3, "~",1,5, "[]{}()'`^@",1,3, Q,1,7, ";",5,11, "",1,1
     REM  state 7: Inside a quoted string
-    DATA "\",0,9, "Q",0,3, "",0,7
+    DATA "\",0,9, Q,0,3, N,5,3, "",0,7
     REM  state 9: After a backslash in a string
     DATA "",0,7
     REM  state 11: Inside a comment
-    DATA "",0,11
+    DATA N,5,3, "",5,11
 
     REM  Find a matching transition from the current state.
     REM PRINT ;state%;"-->";
