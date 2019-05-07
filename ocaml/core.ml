@@ -123,7 +123,8 @@ let init env = begin
     (Types.fn (let rec concat =
                  function
                  | x :: y :: more -> concat ((Types.list ((seq x) @ (seq y))) :: more)
-                 | [x] -> x
+                 | [T.List _ as x] -> x
+                 | [x] -> Types.list (seq x)
                  | [] -> Types.list []
                in concat));
 
