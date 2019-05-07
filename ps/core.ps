@@ -97,7 +97,9 @@ end } def
     dup _count 0 eq { %if just concat
         pop 0 _list
     }{ dup _count 1 eq { %elseif concat of single item
-        0 _nth % noop
+        0 _nth dup _vector? { %if vector
+	    /data get _list_from_array
+	} if
     }{ % else
         [] exch
         /data get {
