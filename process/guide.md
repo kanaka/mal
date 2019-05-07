@@ -1547,6 +1547,28 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   to print a startup header:
   "(println (str \"Mal [\" \*host-language\* \"]\"))".
 
+* Add the following new core functions:
+  * `time-ms`: takes no arguments and returns the number of
+    milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
+    not possible, since another point in time (`time-ms` is usually
+    used relatively to measure time durations).  After `time-ms` is
+    implemented, you can run the performance micro-benchmarks by
+    running `make perf^quux`.
+  * `conj`: takes a collection and one or more elements as arguments
+    and returns a new collection which includes the original
+    collection and the new elements.  If the collection is a list, a
+    new list is returned with the elements inserted at the start of
+    the given list in opposite order; if the collection is a vector, a
+    new vector is returned with the elements added to the end of the
+    given vector.
+  * `number?`: returns true if the parameter is a number.
+  * `string?`: returns true if the parameter is a string.
+  * `seq`: takes a list, vector, string, or nil. If an empty list,
+    empty vector, or empty string ("") is passed in then nil is
+    returned. Otherwise, a list is returned unchanged, a vector is
+    converted into a list, and a string is converted to a list that
+    containing the original string split into single character
+    strings.
 
 Now go to the top level, run the step A tests:
 ```
@@ -1631,30 +1653,9 @@ For extra information read [Peter Seibel's thorough discussion about
 * Add metadata support to other composite data types (lists, vectors
   and hash-maps), and to native functions.
 * Add the following new core functions:
-  * `time-ms`: takes no arguments and returns the number of
-    milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
-    not possible, since another point in time (`time-ms` is usually
-    used relatively to measure time durations).  After `time-ms` is
-    implemented, you can run the performance micro-benchmarks by
-    running `make perf^quux`.
-  * `conj`: takes a collection and one or more elements as arguments
-    and returns a new collection which includes the original
-    collection and the new elements.  If the collection is a list, a
-    new list is returned with the elements inserted at the start of
-    the given list in opposite order; if the collection is a vector, a
-    new vector is returned with the elements added to the end of the
-    given vector.
-  * `string?`: returns true if the parameter is a string.
-  * `number?`: returns true if the parameter is a number.
   * `fn?`: returns true if the parameter is a function (internal or
     user-defined).
   * `macro?`: returns true if the parameter is a macro.
-  * `seq`: takes a list, vector, string, or nil. If an empty list,
-    empty vector, or empty string ("") is passed in then nil is
-    returned. Otherwise, a list is returned unchanged, a vector is
-    converted into a list, and a string is converted to a list that
-    containing the original string split into single character
-    strings.
 * For interop with the target language, add this core function:
   * `quux-eval`: takes a string, evaluates it in the target language,
     and returns the result converted to the relevant Mal type. You
