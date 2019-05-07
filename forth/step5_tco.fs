@@ -209,6 +209,8 @@ drop
 create buff 128 allot
 77777777777 constant stack-leak-detect
 
+s\" (def! not (fn* (x) (if x false true)))" rep 2drop
+
 : read-lines
     begin
       ." user> "

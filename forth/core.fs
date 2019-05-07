@@ -38,17 +38,6 @@ defcore empty? drop @ empty? ;;
 defcore count drop @ mal-count ;;
 
 defcore = drop dup @ swap cell+ @ swap m= mal-bool ;;
-defcore not
-    drop @
-    dup mal-nil = if
-        drop mal-true
-    else
-        mal-false = if
-            mal-true
-        else
-            mal-false
-        endif
-    endif ;;
 
 : pr-str-multi ( readably? argv argc )
     ?dup 0= if drop 0 0
