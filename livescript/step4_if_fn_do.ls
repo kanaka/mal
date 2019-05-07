@@ -185,6 +185,9 @@ rep = (line) ->
     |> (ast) -> pr_str ast, print_readably=true
 
 
+# Define not.
+rep '(def! not (fn* (x) (if x false true)))'
+
 loop
     line = readline.readline 'user> '
     break if not line? or line == ''
