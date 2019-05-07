@@ -1,0 +1,48 @@
+;; These are the answers to the questions in ../docs/exercise.md.
+
+(def! nil?   (fn* [x] (= x nil  )))
+(def! true?  (fn* [x] (= x true )))
+(def! false? (fn* [x] (= x false)))
+
+(def! empty? (fn* [xs] (= 0 (count xs))))
+
+(def! sequential? (fn* [x] (if (list? x) true (if (vector? x) true false))))
+
+(def! >  (fn* [a b]     (< b a)            ))
+(def! <= (fn* [a b] (if (< b a) false true)))
+(def! >= (fn* [a b] (if (< a b) false true)))
+
+(def! hash-map (fn* [& xs] (apply assoc {} xs)))
+(def! list (fn* [& xs] xs))
+(def! prn (fn* [& xs] (println (apply pr-str xs))))
+(def! swap! (fn* [a f & xs] (reset! a (apply f (deref a) xs))))
+
+(def! map
+  (fn* [f xs]
+    (if (empty? xs)
+      ()
+      (cons (f (first xs)) (map f (rest xs))))))
+
+(def! do2 (fn* [& xs] (nth xs (- (count xs) 1))))
+
+(defmacro! let2
+  ;; Must be a macro because the first argument must not be evaluated.
+  (fn* [binds form]
+    (if (empty? binds)
+      form
+      ;;  This let* increases the readability, but the values could
+      ;;  easily be replaced below.
+      (let* [key  (nth binds 0)
+             val  (nth binds 1)
+             more (rest (rest binds))]
+        `((fn* [~key] (let2 ~more ~form)) ~val)))))
+
+(defmacro! apply
+  (fn* [& xs]
+    (;; Rewrite (f a b [c d]) to (f a b c d).
+     (def! rec
+       (fn* [lst]
+         (if (= 1 (count lst))
+           (first lst)              ; last argument must be a sequence
+           (cons (first lst) (rec (rest lst))))))
+     xs)))
