@@ -160,6 +160,7 @@
 ;; initialization
 ((*toplevel* 'set) 'eval (make-func (lambda (ast) (EVAL ast *toplevel*))))
 ((*toplevel* 'set) '*ARGV* '())
+(EVAL-string "(def! not (fn* (x) (if x false true)))")
 (EVAL-string "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (EVAL-string "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 (EVAL-string "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
