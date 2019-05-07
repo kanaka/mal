@@ -97,9 +97,6 @@ export ns = do
     '<=': fn (a, b) -> const-bool a.value <= b.value
     '>=': fn (a, b) -> const-bool a.value >= b.value
 
-    'not': fn ({type, value}) ->
-        const-bool (type == \const and value in [\false \nil])
-
     'pr-str': fn (...params) ->
         params |> map (p) -> pr_str p, print_readably=true
                |> join ' '

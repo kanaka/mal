@@ -358,6 +358,7 @@ defcore map ( argv argc -- list )
     here>MalList ;;
 
 s\" (def! *host-language* \"forth\")" rep 2drop
+s\" (def! not (fn* (x) (if x false true)))" rep 2drop
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
 s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep 2drop
 s\" (def! *gensym-counter* (atom 0))" rep 2drop

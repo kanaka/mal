@@ -100,6 +100,33 @@ BUILTIN("<=")
     return mal::boolean(lhs->value() <= rhs->value());
 }
 
+BUILTIN(">=")
+{
+    CHECK_ARGS_IS(2);
+    ARG(malInteger, lhs);
+    ARG(malInteger, rhs);
+
+    return mal::boolean(lhs->value() >= rhs->value());
+}
+
+BUILTIN("<")
+{
+    CHECK_ARGS_IS(2);
+    ARG(malInteger, lhs);
+    ARG(malInteger, rhs);
+
+    return mal::boolean(lhs->value() < rhs->value());
+}
+
+BUILTIN(">")
+{
+    CHECK_ARGS_IS(2);
+    ARG(malInteger, lhs);
+    ARG(malInteger, rhs);
+
+    return mal::boolean(lhs->value() > rhs->value());
+}
+
 BUILTIN("=")
 {
     CHECK_ARGS_IS(2);
@@ -282,6 +309,11 @@ BUILTIN("keyword")
     CHECK_ARGS_IS(1);
     ARG(malString, token);
     return mal::keyword(":" + token->value());
+}
+
+BUILTIN("list")
+{
+    return mal::list(argsBegin, argsEnd);
 }
 
 BUILTIN("macro?")

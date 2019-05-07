@@ -330,6 +330,9 @@ rep = (line) ->
     |> (ast) -> pr_str ast, print_readably=true
 
 
+# Define not.
+rep '(def! not (fn* (x) (if x false true)))'
+
 # Define load-file.
 rep '
 (def! load-file 

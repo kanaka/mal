@@ -282,6 +282,7 @@ defcore swap! { argv argc -- val }
     new-val atom Atom/val !
     new-val ;;
 
+s\" (def! not (fn* (x) (if x false true)))" rep 2drop
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
 
 : repl ( -- )

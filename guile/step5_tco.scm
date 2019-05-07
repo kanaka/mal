@@ -106,6 +106,9 @@
          (let ((el (map (lambda (x) (EVAL x env)) ast)))
            (callable-apply (car el) (cdr el)))))))
 
+(define (EVAL-string str)
+  (EVAL (read_str str) *toplevel*))
+
 (define (PRINT exp)
   (and (not (eof-object? exp))
        (format #t "~a~%" (pr_str exp #t))))
@@ -124,6 +127,8 @@
                 (lambda () (PRINT (EVAL (READ line) *toplevel*)))
                 (lambda (k . e)
                   (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
+
+(EVAL-string "(def! not (fn* (x) (if x false true)))")
 
 ;; NOTE: we have to reduce stack size to pass step5 test
 ((@ (system vm vm) call-with-stack-overflow-handler)
