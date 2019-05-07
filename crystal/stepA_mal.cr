@@ -143,7 +143,10 @@ module Mal
     # 'next' in 'do...end' has a bug in crystal 0.7.1
     # https://github.com/manastech/crystal/issues/659
     while true
-      return eval_ast(ast, env) unless ast.unwrap.is_a? Mal::List
+      list = ast.unwrap
+
+      return eval_ast(ast, env) unless list.is_a? Mal::List
+      return ast if list.empty?
 
       ast = macroexpand(ast, env)
 

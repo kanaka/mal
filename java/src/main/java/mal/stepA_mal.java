@@ -109,6 +109,7 @@ public class stepA_mal {
         if (!orig_ast.list_Q()) {
             return eval_ast(orig_ast, env);
         }
+        if (((MalList)orig_ast).size() == 0) { return orig_ast; }
 
         // apply list
         MalVal expanded = macroexpand(orig_ast, env);
