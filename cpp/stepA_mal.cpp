@@ -10,12 +10,12 @@
 malValuePtr READ(const String& input);
 String PRINT(malValuePtr ast);
 static void installFunctions(malEnvPtr env);
+//  Installs functions, macros and constants implemented in MAL.
 
 static void makeArgv(malEnvPtr env, int argc, char* argv[]);
 static String safeRep(const String& input, malEnvPtr env);
 static malValuePtr quasiquote(malValuePtr obj);
 static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env);
-static void installMacros(malEnvPtr env);
 
 static ReadLine s_readLine("~/.mal-history");
 
@@ -27,7 +27,6 @@ int main(int argc, char* argv[])
     String input;
     installCore(replEnv);
     installFunctions(replEnv);
-    installMacros(replEnv);
     makeArgv(replEnv, argc - 2, argv + 2);
     if (argc > 1) {
         String filename = escape(argv[1]);
@@ -329,24 +328,12 @@ static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
     return obj;
 }
 
-static const char* macroTable[] = {
+static const char* malFunctionTable[] = {
     "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
     "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))",
-};
-
-static void installMacros(malEnvPtr env)
-{
-    for (auto &macro : macroTable) {
-        rep(macro, env);
-    }
-}
-
-static const char* malFunctionTable[] = {
     "(def! not (fn* (cond) (if cond false true)))",
     "(def! load-file (fn* (filename) \
         (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
-    "(def! map (fn* (f xs) (if (empty? xs) xs \
-        (cons (f (first xs)) (map f (rest xs))))))",
     "(def! *gensym-counter* (atom 0))",
     "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))",
     "(def! *host-language* \"C++\")",
