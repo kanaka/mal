@@ -13,7 +13,7 @@ READ_ATOM () {
     case "${token}" in
         [0-9]*)  _number "${token}" ;;
         -[0-9]*) _number "${token}" ;;
-        \"*)    if [ "${token: -1}" != "\"" ]; then
+        \"*)    if [[ ! "${token}" =~ ^\"(\\.|[^\\\"])*\"$ ]]; then
                     _error "expected '\"', got EOF"
                     return
                 fi
