@@ -544,7 +544,7 @@ eval:
         ; Check type
         mov al, BYTE [rsi]
         cmp al, maltype_empty_list
-        je .return_nil
+        je .empty_list           ; empty list, return unchanged
 
         and al, container_mask
         cmp al, container_list
@@ -1367,7 +1367,10 @@ eval:
         print_str_mac eval_list_not_function
         pop rsi
         jmp error_throw
-        
+
+.empty_list:
+        mov rax, rsi
+        jmp .return
 
 ;; Applies a user-defined function
 ;;
