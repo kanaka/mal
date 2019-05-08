@@ -18,7 +18,7 @@ function reader_read_atom(token)
 	case /^:/:
 		return ":" token
 	case /^"/:
-		if (token ~ /"$/) {
+		if (token ~ /^\"(\\[^\r\n]|[^\\"\r\n])*\"$/) {
 				return reader_read_string(token)
 		} else {
 				return "!\"Expected '\"', got EOF."
