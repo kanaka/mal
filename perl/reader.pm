@@ -31,13 +31,13 @@ sub read_atom {
     my $token = $rdr->next();
     given ($token) {
         when(/^-?[0-9]+$/) { return Integer->new($token) }
-        when(/^".*"$/) {
+        when(/^"(?:\\.|[^\\"])*"$/) {
             my %escaped_chars = ( "\\\\" => "\\", "\\\"" => "\"", "\\n" => "\n" );
             my $str = substr $token, 1, -1;
             $str =~ s/\\./$escaped_chars{$&}/ge;
             return String->new($str)
         }
-        when(/^".*/) {
+        when(/^"/) {
             die "expected '\"', got EOF";
         }
         when(/^:/) { return _keyword(substr($token,1)) }
