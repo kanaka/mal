@@ -134,6 +134,7 @@ fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
 
   ret = match ast.clone() {
     List(l,_) => {
+      if l.len() == 0 { return Ok(ast); }
       match macroexpand(ast.clone(), &env) {
         (true, Ok(new_ast)) => {
           ast = new_ast;

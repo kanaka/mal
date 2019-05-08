@@ -48,6 +48,7 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
     while true {
         switch ast.dataType {
         case .List:
+            if (ast as! [MalData]).isEmpty { return ast }
             ast = try macroexpand(ast, env: env)
             guard let list = ast as? [MalData] else { return try eval_ast(ast, env: env) }
             guard !list.isEmpty else { return list }
@@ -85,7 +86,7 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                         ast = list[2]
                     }
                     continue
-                case "fn*": 
+                case "fn*":
                     let fn = {(params: [MalData]) -> MalData in
                         let newEnv = Env(binds: (list[1].listForm as! [Symbol]), exprs: params, outer: env)
                         return try EVAL(list[2], env: newEnv)
@@ -98,7 +99,6 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                     continue
                 case "macroexpand":
                     return try macroexpand(list[1], env: env)
-//                     (try* A (catch* B C))
                 case "try*":
                     do {
                         return try EVAL(list[1], env: env)

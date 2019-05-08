@@ -27,6 +27,10 @@
 (let* (a 123) (identity a))
 ;=>123
 
+;; Test that macros do not break empty list
+()
+;=>()
+
 
 ;>>> deferrable=True
 ;;

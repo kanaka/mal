@@ -121,6 +121,9 @@ function evalMal(ast: MalType, env: Env): MalType {
         if (ast.type !== Node.List) {
             return evalAST(ast, env);
         }
+        if (ast.list.length === 0) {
+            return ast;
+        }
 
         ast = macroexpand(ast, env);
         if (!isSeq(ast)) {

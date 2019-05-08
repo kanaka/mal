@@ -45,9 +45,9 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
                     let fn = {(params: [MalData]) -> MalData in
                         let newEnv = Env(binds: (list[1].listForm as! [Symbol]), exprs: params, outer: env)
                         return try EVAL(list[2], env: newEnv)
-                    } 
+                    }
                     return Function(ast: list[2], params: (list[1].listForm as! [Symbol]), env:env , fn: fn)
-                    
+
                 default:
                     break
                 }
@@ -90,14 +90,13 @@ fn 的 TCO 实现。
         }
     }
 }
-    
+
 
 func PRINT(_ input: MalData) -> String {
     return pr_str(input, print_readably: true)
 }
 
 @discardableResult func rep(_ input: String, env: Env) throws -> String {
-    
     return try PRINT(EVAL(READ(input), env: env))
 }
 

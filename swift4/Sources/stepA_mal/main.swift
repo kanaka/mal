@@ -48,6 +48,7 @@ func EVAL(_ anAst: MalData, env anEnv: Env) throws -> MalData {
     while true {
         switch ast.dataType {
         case .List:
+            if (ast as! [MalData]).isEmpty { return ast }
             ast = try macroexpand(ast, env: env)
             guard let list = ast as? [MalData] else { return try eval_ast(ast, env: env) }
             guard !list.isEmpty else { return list }
