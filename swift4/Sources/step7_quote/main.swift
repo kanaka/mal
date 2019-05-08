@@ -154,5 +154,7 @@ while true {
         } catch let error as MalError {
             print(error.info())
         }
+    } else {
+        exit(0);
     }
 }

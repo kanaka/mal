@@ -21,5 +21,7 @@ while true {
     print("user> ", terminator: "")
     if let input = readLine(strippingNewline: true) {
         print(rep(input))
+    } else {
+        exit(0);
     }
 }

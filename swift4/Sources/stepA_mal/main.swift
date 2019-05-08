@@ -209,5 +209,7 @@ while true {
         } catch let error as MalError {
             print((pr_str(error.info(), print_readably: false)))
         }
+    } else {
+        exit(0);
     }
 }
