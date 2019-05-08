@@ -28,12 +28,12 @@ def _unescape(s):
 def read_atom(reader):
     int_re = re.compile(r"-?[0-9]+$")
     float_re = re.compile(r"-?[0-9][0-9.]*$")
+    string_re = re.compile(r'"(?:[\\].|[^\\"])*"')
     token = reader.next()
     if re.match(int_re, token):     return int(token)
     elif re.match(float_re, token): return int(token)
-    elif token[0] == '"':
-        if token[-1] == '"':        return _s2u(_unescape(token[1:-1]))
-        else:                       raise Exception("expected '\"', got EOF")
+    elif re.match(string_re, token):return _s2u(_unescape(token[1:-1]))
+    elif token[0] == '"':           raise Exception("expected '\"', got EOF")
     elif token[0] == ':':           return _keyword(token[1:])
     elif token == "nil":            return None
     elif token == "true":           return True

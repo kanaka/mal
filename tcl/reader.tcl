@@ -83,8 +83,9 @@ proc read_atom {reader} {
         ^true$     { return $::mal_true }
         ^false$    { return $::mal_false }
         ^:         { return [keyword_new [parse_keyword $token]] }
-        ^\".*\"$   { return [string_new [parse_string $token]] }
-        ^\".*$     { error "expected '\"', got EOF" }
+        ^\"(\\\\.|[^\\\\\"])*\"$
+	           { return [string_new [parse_string $token]] }
+        ^\"        { error "expected '\"', got EOF" }
         default    { return [symbol_new $token] }
     }
 }
