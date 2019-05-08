@@ -79,7 +79,6 @@ package body Core is
    function Keyword       (Args : in Types.T_Array) return Types.T;
    function Less_Equal    is new Generic_Comparison ("<=");
    function Less_Than     is new Generic_Comparison ("<");
-   function Mal_Do        (Args : in Types.T_Array) return Types.T;
    function Meta          (Args : in Types.T_Array) return Types.T;
    function Pr_Str        (Args : in Types.T_Array) return Types.T;
    function Println       (Args : in Types.T_Array) return Types.T;
@@ -162,12 +161,6 @@ package body Core is
       return (Kind_Keyword, Args (Args'First).Str);
    end Keyword;
 
-   function Mal_Do (Args : in Types.T_Array) return Types.T is
-   begin
-      Err.Check (0 < Args'Length, "expected at least 1 parameter");
-      return Args (Args'Last);
-   end Mal_Do;
-
    function Meta (Args : in Types.T_Array) return Types.T is
    begin
       Err.Check (Args'Length = 1, "expected 1 parameter");
@@ -214,7 +207,6 @@ package body Core is
       P ("deref",       Types.Atoms.Deref'Access);
       P ("dissoc",      Types.Maps.Dissoc'Access);
       P ("/",           Division'Access);
-      P ("do",          Mal_Do'Access);
       P ("=",           Equals'Access);
       P ("first",       Types.Sequences.First'Access);
       P ("get",         Types.Maps.Get'Access);

@@ -163,7 +163,16 @@ procedure Step9_Try is
                Env.all.Set (Key, Val);  --  Check key kind.
                return Val;
             end;
-         --  do is a built-in function, shortening this test cascade.
+         elsif First.Str.all = "do" then
+            Err.Check (1 < Ast.Sequence.all.Length, "do expects arguments");
+            declare
+               Result : Types.T;
+            begin
+               for I in 2 .. Ast.Sequence.all.Length loop
+                  Result := Eval (Ast.Sequence.all.Data (I), Env);
+               end loop;
+               return Result;
+            end;
          elsif First.Str.all = "fn*" then
             Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
             declare
