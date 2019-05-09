@@ -29,6 +29,25 @@ REPEAT
   IF form$ <> "" THEN val$ = FNrep(form$)
 UNTIL form$ = ""
 
+REM  Parse the command-line.
+startfile$ = ""
+argv% = FNempty
+IF !PAGE = &D7C1C7C5 THEN
+  REM  Running under Brandy, so ARGC and ARGV$ are usable.
+  IF ARGC >= 1 THEN startfile$ = ARGV$(1)
+  IF ARGC >= 2 THEN
+    FOR i% = ARGC TO 2 STEP -1
+      argv% = FNalloc_pair(FNalloc_string(ARGV$(i%)), argv%)
+    NEXT i%
+  ENDIF
+ENDIF
+PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), argv%)
+
+IF startfile$ <> "" THEN
+  val$ = FNrep("(load-file """ + startfile$ + """)")
+  END
+ENDIF
+
 REPEAT
   REM  Catch all errors apart from "Escape".
   ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END ELSE PROCgc_restore(sav%)
