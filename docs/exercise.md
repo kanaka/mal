@@ -35,14 +35,28 @@ submit new solutions, or new exercises.
   form will hide your implementation, so in order to test it, you will
   need to give it another name and adapt the test accordingly.
 
-- Implement `let*` as a macro that uses `fn*` and recursionn. The same
-  remark applies.
+- Implement `let*` as a macro that uses `fn*` and recursion.
+  The same remark applies.
 
 - Implement `apply` as a macro.
 
 - Implement maps using lists.
-  FIXME: Is dissoc use anywhere? It makes this implememtation and the
-  process more complex.
+  - Recall how maps must be evaluated.
+  - In the tests, you may want to replace `{...}` with `(hash-map ...)`.
+  - An easy solution relies on lists alterning keys and values, so
+    that the `hash-map` is only a list in reverse order so that the
+    last definition takes precedence during searches.
+  - As a more performant solution will use lists to construct trees,
+    and ideally keep them balanced. You will find examples in most
+    teaching material about functional languages.
+  - Recall that `dissoc` is an optional feature. One you can implement
+    dissoc is by assoc'ing a replacement value that is a magic delete
+    keyword (e.g.: `__..DELETED..__`) which allows you to shadow
+    values in the lower levels of the structure. The hash map
+    functions have to detect that and do the right thing. e.g. `(keys
+    ...)` might have to keep track of deleted values as it is scanning
+    the tree and not add those keys when it finds them further down
+    the tree.
 
 - Implement quoting within MAL.
 

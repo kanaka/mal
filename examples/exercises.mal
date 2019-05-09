@@ -37,12 +37,15 @@
              more (rest (rest binds))]
         `((fn* [~key] (let2 ~more ~form)) ~val)))))
 
-(defmacro! apply
-  (fn* [& xs]
-    (;; Rewrite (f a b [c d]) to (f a b c d).
-     (def! rec
-       (fn* [lst]
-         (if (= 1 (count lst))
-           (first lst)              ; last argument must be a sequence
-           (cons (first lst) (rec (rest lst))))))
-     xs)))
+(def! apply
+  (let* [
+    ;; (a b [c d]) -> (a b c d)
+    flat_end (fn* [xs]
+               (if (= 1 (count xs))
+                 (first xs)        ; [c d] above
+                 (cons (first xs) (flat_end (rest xs)))))
+    ;; x -> 'x to protect the already-evaluated arguments.
+    quote_elt (fn* [x] `(quote ~x))
+    ]
+    (fn* [& xs]
+       (eval (map quote_elt (flat_end xs))))))
