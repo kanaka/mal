@@ -80,6 +80,10 @@ false
 ;;;;=>"abc\ndef"
 ""
 ;=>""
+"\\"
+;=>"\\"
+"\\\\\\\\\\\\\\\\\\"
+;=>"\\\\\\\\\\\\\\\\\\"
 
 ;; Testing reader errors
 (1 2
@@ -93,6 +97,8 @@ false
 "
 ;/.*(EOF|end of input|unbalanced).*
 "\"
+;/.*(EOF|end of input|unbalanced).*
+"\\\\\\\\\\\\\\\\\\\"
 ;/.*(EOF|end of input|unbalanced).*
 (1 "abc
 ;/.*(EOF|end of input|unbalanced).*
