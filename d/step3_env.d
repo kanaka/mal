@@ -18,26 +18,22 @@ MalType READ(string str)
 
 MalType eval_ast(MalType ast, Env env)
 {
-    if (typeid(ast) == typeid(MalSymbol))
+    if (auto sym = cast(MalSymbol)ast)
     {
-        auto sym = verify_cast!MalSymbol(ast);
         return env.get(sym);
     }
-    else if (typeid(ast) == typeid(MalList))
+    else if (auto lst = cast(MalList)ast)
     {
-        auto lst = verify_cast!MalList(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalList(el);
     }
-    else if (typeid(ast) == typeid(MalVector))
+    else if (auto lst = cast(MalVector)ast)
     {
-        auto lst = verify_cast!MalVector(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalVector(el);
     }
-    else if (typeid(ast) == typeid(MalHashmap))
+    else if (auto hm = cast(MalHashmap)ast)
     {
-        auto hm = verify_cast!MalHashmap(ast);
         typeof(hm.data) new_data;
         foreach (string k, MalType v; hm.data)
         {

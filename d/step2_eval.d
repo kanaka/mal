@@ -16,28 +16,24 @@ MalType READ(string str)
 
 MalType eval_ast(MalType ast, Env env)
 {
-    if (typeid(ast) == typeid(MalSymbol))
+    if (MalSymbol sym = cast(MalSymbol)ast)
     {
-        MalSymbol sym = verify_cast!MalSymbol(ast);
         auto v = (sym.name in env);
         if (v is null) throw new Exception("'" ~ sym.name ~ "' not found");
         return *v;
     }
-    else if (typeid(ast) == typeid(MalList))
+    else if (auto lst = cast(MalList)ast)
     {
-        auto lst = verify_cast!MalList(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalList(el);
     }
-    else if (typeid(ast) == typeid(MalVector))
+    else if (auto lst = cast(MalVector)ast)
     {
-        auto lst = verify_cast!MalVector(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalVector(el);
     }
-    else if (typeid(ast) == typeid(MalHashmap))
+    else if (auto hm = cast(MalHashmap)ast)
     {
-        auto hm = verify_cast!MalHashmap(ast);
         typeof(hm.data) new_data;
         foreach (string k, MalType v; hm.data)
         {

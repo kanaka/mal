@@ -1,5 +1,9 @@
 import std.string;
 import std.path;
+import std.file;
+
+import core.stdc.string;
+import core.stdc.stdlib;
 
 // readline/readline.h
 extern (C) char* readline(const char* prompt);

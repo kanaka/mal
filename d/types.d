@@ -425,9 +425,8 @@ class MalException : Exception
 
 T verify_cast(T)(in MalType v)
 {
-    T res = cast(T) v;
-    if (res is null) throw new Exception("Expected " ~ typeid(T).name);
-    return res;
+    if (T res = cast(T) v) return res;
+    throw new Exception("Expected " ~ typeid(T).name);
 }
 
 MalType mal_type_q(T)(in MalType[] a)
