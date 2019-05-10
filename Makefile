@@ -89,7 +89,7 @@ IMPLS = ada ada.2 awk bash basic c chuck clojure coffee common-lisp cpp crystal 
 	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp plpgsql \
 	plsql powershell ps python r racket rexx rpython ruby rust scala scheme skew \
-	swift swift3 swift4 tcl ts vb vhdl vimscript wasm yorick
+	swift swift3 swift4 tcl ts vala vb vhdl vimscript wasm yorick
 
 EXTENSION = .mal
 
@@ -246,6 +246,7 @@ swift3_STEP_TO_PROG =  swift3/$($(1))
 swift4_STEP_TO_PROG =  swift4/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
 ts_STEP_TO_PROG =      ts/$($(1)).js
+vala_STEP_TO_PROG =    vala/$($(1))
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim

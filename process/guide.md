@@ -1133,7 +1133,7 @@ diff -urp ../process/step6_file.txt ../process/step7_quote.txt
 * Copy `step6_file.qx` to `step7_quote.qx`.
 
 * Before implementing the quoting forms, you will need to implement
-* some supporting functions in the core namespace:
+  some supporting functions in the core namespace:
   * `cons`: this function takes a list as its second
     parameter and returns a new list that has the first argument
     prepended to it.
@@ -1182,7 +1182,7 @@ make "test^quux^step7"
 
 Quoting is one of the more mundane functions available in mal, but do
 not let that discourage you. Your mal implementation is almost
-complete, and quoting sets the stage for the next very exiting step:
+complete, and quoting sets the stage for the next very exciting step:
 macros.
 
 
@@ -1455,7 +1455,7 @@ self-hosting.
   * `vector?`: takes a single argument and returns true (mal true
     value) if the argument is a vector, otherwise returns false (mal
     false value).
-  * `sequential?`: takes a single arguments and returns true (mal true
+  * `sequential?`: takes a single argument and returns true (mal true
     value) if it is a list or a vector, otherwise returns false (mal
     false value).
   * `hash-map`: takes a variable but even number of arguments and

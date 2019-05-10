@@ -91,6 +91,7 @@ matrix:
     - {env: IMPL=swift4 NO_DOCKER=1, os: osx, osx_image: xcode10}
     - {env: IMPL=tcl,       services: [docker]}
     - {env: IMPL=ts,        services: [docker]}
+    - {env: IMPL=vala,      services: [docker]}
     - {env: IMPL=vb,        services: [docker]}
     - {env: IMPL=vhdl,      services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}
