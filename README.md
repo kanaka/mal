@@ -81,6 +81,7 @@
 | [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
 | [Tcl](#tcl-86) | [Dov Murik](https://github.com/dubek) |
 | [TypeScript](#typescript) | [Masahiro Wakame](https://github.com/vvakame) |
+| [Vala](#vala) | [Simon Tatham](https://github.com/sgtatham) |
 | [VHDL](#vhdl) | [Dov Murik](https://github.com/dubek) |
 | [Vimscript](#vimscript) | [Dov Murik](https://github.com/dubek) |
 | [Visual Basic.NET](#visual-basicnet) | [Joel Martin](https://github.com/kanaka)  |
@@ -995,6 +996,18 @@ It has been tested with Node.js v6.
 cd ts
 make
 node ./stepX_YYY.js
+```
+
+### Vala
+
+The Vala implementation of mal has been tested with the Vala 0.40.8
+compiler. You will need to install `valac` and `libreadline-dev` or
+equivalent.
+
+```
+cd vala
+make
+./stepX_YYY
 ```
 
 ### VHDL
