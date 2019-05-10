@@ -117,7 +117,7 @@ class Mal.Reader : GLib.Object {
         if (token.has_prefix(":"))
             return new Mal.Keyword(token[1:token.length]);
         if (token.has_prefix("\"")) {
-            if (!token.has_suffix("\""))
+            if (token.length < 2 || !token.has_suffix("\""))
                 throw new Mal.Error.BAD_TOKEN(
                     poserr("end of input in mid-string"));
 
@@ -129,6 +129,9 @@ class Mal.Reader : GLib.Object {
 
             while ((pos = token.index_of ("\\", end)) != -1) {
                 strval += token[end:pos];
+                if (token.length - pos < 2)
+                    throw new Mal.Error.BAD_TOKEN(
+                        poserr("end of input in mid-string"));
                 switch (token[pos:pos+2]) {
                 case "\\\\":
                     strval += "\\"; break;
