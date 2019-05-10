@@ -20,7 +20,9 @@ matrix:
     - {env: IMPL=clojure clojure_MODE=cljs, services: [docker]}
     - {env: IMPL=common-lisp, services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
-    - {env: IMPL=d,         services: [docker]}
+    - {env: IMPL=d d_MODE=gdc,  services: [docker]}
+    - {env: IMPL=d d_MODE=ldc2, services: [docker]}
+    - {env: IMPL=d d_MODE=dmd,  services: [docker]}
     - {env: IMPL=dart,      services: [docker]}
     - {env: IMPL=elisp,     services: [docker]}
     - {env: IMPL=elixir,    services: [docker]}

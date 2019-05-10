@@ -1,4 +1,6 @@
-D ?= gdc
+d_MODE ?= gdc
+
+D ?= $(d_MODE)
 
 ifeq ($(D),gdc)
 CFLAGS += -g -O2 -Wall

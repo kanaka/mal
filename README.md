@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 76 languages (77 implementations total)**
+**2. Mal is implemented in 76 languages (77 different implementations and 98 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |

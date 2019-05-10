@@ -51,6 +51,8 @@ MAL_IMPL = js
 basic_MODE = cbm
 # clj or cljs (Clojure vs ClojureScript/lumo)
 clojure_MODE = clj
+# gdc, ldc2, or dmd
+d_MODE = gdc
 # python, js, cpp, or neko
 haxe_MODE = neko
 # octave or matlab
