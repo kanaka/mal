@@ -1,6 +1,24 @@
 FROM ubuntu:18.04
 
-RUN apt-get -y update
-RUN apt-get -y install git python make valac libreadline-dev
+##########################################################
+# General requirements for testing or common across many
+# implementations
+##########################################################
 
+RUN apt-get -y update
+
+# Required for running tests
+RUN apt-get -y install make python
+
+# Some typical implementation and test requirements
+RUN apt-get -y install curl libreadline-dev libedit-dev
+
+RUN mkdir -p /mal
 WORKDIR /mal
+
+##########################################################
+# Specific implementation requirements
+##########################################################
+
+# Nothing additional needed for vala
+RUN apt-get -y install valac
