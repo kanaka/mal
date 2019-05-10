@@ -7,7 +7,7 @@ class Env {
     this(Env outer_v, MalType[] binds = [], MalType[] exprs = [])
     {
         outer = outer_v;
-        foreach (int i, MalType b; binds)
+        foreach (i, MalType b; binds)
         {
             auto arg_name = verify_cast!MalSymbol(b);
             if (arg_name.name == "&")

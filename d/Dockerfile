@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:bionic
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -6,13 +6,11 @@ MAINTAINER Joel Martin <github@martintribe.org>
 # implementations
 ##########################################################
 
-RUN apt-get -y update
-
 # Required for running tests
-RUN apt-get -y install make python
+RUN apt-get -y update && apt-get -y install make python
 
 # Some typical implementation and test requirements
-RUN apt-get -y install curl libreadline-dev libedit-dev
+RUN apt-get -y update && apt-get -y install curl libreadline-dev libedit-dev
 
 RUN mkdir -p /mal
 WORKDIR /mal
@@ -21,6 +19,8 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN apt-get -y install gdc
+RUN apt-get -y update && apt-get -y install gcc gdc ldc gpg wget
+
+RUN wget https://dlang.org/install.sh -q -O install.sh && bash install.sh -p /usr/local/dlang && chmod 755 /usr/local/dlang/dmd*
 
 ENV HOME /mal

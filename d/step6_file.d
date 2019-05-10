@@ -5,7 +5,7 @@ import std.array;
 import std.range;
 import std.stdio;
 import std.string;
-import std.c.process;
+import core.stdc.stdlib;
 import env;
 import mal_core;
 import readline;
@@ -20,26 +20,22 @@ MalType READ(string str)
 
 MalType eval_ast(MalType ast, Env env)
 {
-    if (typeid(ast) == typeid(MalSymbol))
+    if (auto sym = cast(MalSymbol)ast)
     {
-        auto sym = verify_cast!MalSymbol(ast);
         return env.get(sym);
     }
-    else if (typeid(ast) == typeid(MalList))
+    else if (auto lst = cast(MalList)ast)
     {
-        auto lst = verify_cast!MalList(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalList(el);
     }
-    else if (typeid(ast) == typeid(MalVector))
+    else if (auto lst = cast(MalVector)ast)
     {
-        auto lst = verify_cast!MalVector(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalVector(el);
     }
-    else if (typeid(ast) == typeid(MalHashmap))
+    else if (auto hm = cast(MalHashmap)ast)
     {
-        auto hm = verify_cast!MalHashmap(ast);
         typeof(hm.data) new_data;
         foreach (string k, MalType v; hm.data)
         {
@@ -125,17 +121,15 @@ MalType EVAL(MalType ast, Env env)
                 }
                 auto first = el.elements[0];
                 auto rest = el.elements[1..$];
-                if (typeid(first) == typeid(MalFunc))
+                if (auto funcobj = cast(MalFunc)first)
                 {
-                    auto funcobj = verify_cast!MalFunc(first);
                     auto callenv = new Env(funcobj.def_env, funcobj.arg_names, rest);
                     ast = funcobj.func_body;
                     env = callenv;
                     continue; // TCO
                 }
-                else if (typeid(first) == typeid(MalBuiltinFunc))
+                else if (auto builtinfuncobj = cast(MalBuiltinFunc)first)
                 {
-                    auto builtinfuncobj = verify_cast!MalBuiltinFunc(first);
                     return builtinfuncobj.fn(rest);
                 }
                 else
@@ -196,7 +190,7 @@ void main(string[] args)
         catch (Exception e)
         {
             writeln("Error: ", e.msg);
-            std.c.process.exit(1);
+            exit(1);
         }
     }
 

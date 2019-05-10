@@ -1,11 +1,12 @@
 module main;
 
 import std.algorithm;
+import std.compiler;
 import std.array;
 import std.range;
 import std.stdio;
 import std.string;
-import std.c.process;
+import core.stdc.stdlib;
 import env;
 import mal_core;
 import readline;
@@ -80,26 +81,22 @@ MalType READ(string str)
 
 MalType eval_ast(MalType ast, Env env)
 {
-    if (typeid(ast) == typeid(MalSymbol))
+    if (auto sym = cast(MalSymbol)ast)
     {
-        auto sym = verify_cast!MalSymbol(ast);
         return env.get(sym);
     }
-    else if (typeid(ast) == typeid(MalList))
+    else if (auto lst = cast(MalList)ast)
     {
-        auto lst = verify_cast!MalList(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalList(el);
     }
-    else if (typeid(ast) == typeid(MalVector))
+    else if (auto lst = cast(MalVector)ast)
     {
-        auto lst = verify_cast!MalVector(ast);
         auto el = array(lst.elements.map!(e => EVAL(e, env)));
         return new MalVector(el);
     }
-    else if (typeid(ast) == typeid(MalHashmap))
+    else if (auto hm = cast(MalHashmap)ast)
     {
-        auto hm = verify_cast!MalHashmap(ast);
         typeof(hm.data) new_data;
         foreach (string k, MalType v; hm.data)
         {
@@ -173,13 +170,18 @@ MalType EVAL(MalType ast, Env env)
                 return macroexpand(aste[1], env);
 
             case "try*":
+                if (aste.length < 2) return mal_nil;
                 if (aste.length < 3)
                 {
-                    return EVAL(aste[1], env);
+                    ast = aste[1];
+                    continue; // TCO
                 }
                 MalType exc;
                 try
                 {
+                    // d seems to do erroneous tco all by itself without this
+                    // little distraction
+                    pr_str(aste[1]);
                     return EVAL(aste[1], env);
                 }
                 catch (MalException e)
@@ -190,10 +192,11 @@ MalType EVAL(MalType ast, Env env)
                 {
                     exc = new MalString(e.msg);
                 }
-                if (aste.length < 3) return mal_nil;
                 auto catch_clause = verify_cast!MalList(aste[2]);
                 auto catch_env = new Env(env, [catch_clause.elements[1]], [exc]);
-                return EVAL(catch_clause.elements[2], catch_env);
+                ast = catch_clause.elements[2];
+                env = catch_env;
+                continue; // TCO
 
             case "do":
                 auto all_but_last = new MalList(aste[1..$-1]);
@@ -231,17 +234,15 @@ MalType EVAL(MalType ast, Env env)
                 }
                 auto first = el.elements[0];
                 auto rest = el.elements[1..$];
-                if (typeid(first) == typeid(MalFunc))
+                if (auto funcobj = cast(MalFunc)first)
                 {
-                    auto funcobj = verify_cast!MalFunc(first);
                     auto callenv = new Env(funcobj.def_env, funcobj.arg_names, rest);
                     ast = funcobj.func_body;
                     env = callenv;
                     continue; // TCO
                 }
-                else if (typeid(first) == typeid(MalBuiltinFunc))
+                else if (auto builtinfuncobj = cast(MalBuiltinFunc)first)
                 {
-                    auto builtinfuncobj = verify_cast!MalBuiltinFunc(first);
                     return builtinfuncobj.fn(rest);
                 }
                 else
@@ -289,7 +290,7 @@ void main(string[] args)
     repl_env.set(new MalSymbol("*ARGV*"), create_argv_list(args));
 
     // core.mal: defined using the language itself
-    re("(def! *host-language* \"d\")", repl_env);
+    re("(def! *host-language* \"" ~ std.compiler.name ~ "\")", repl_env);
     re("(def! not (fn* (a) (if a false true)))", repl_env);
     re("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env);
     re("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env);
@@ -307,7 +308,7 @@ void main(string[] args)
         catch (Exception e)
         {
             writeln("Error: ", e.msg);
-            std.c.process.exit(1);
+            exit(1);
         }
     }
 

@@ -319,15 +319,15 @@ static MalType mal_meta(MalType[] a ...)
     return metaobj.meta();
 }
 
-static MalType mal_with_meta(MalType[] a ...)
+static MalType mal_with_meta(return MalType[] a ...)
 {
     verify_args_count(a, 2);
-    auto metaobj = cast(MalMeta) a[0];
-    if (metaobj is null) return a[0];
-    return metaobj.with_meta(a[1]);
+    if (auto metaobj = cast(MalMeta) a[0])
+      return metaobj.with_meta(a[1]);
+    return a[0];
 }
 
-static MalType mal_reset_bang(MalType[] a ...)
+static MalType mal_reset_bang(return MalType[] a ...)
 {
     verify_args_count(a, 2);
     verify_cast!MalAtom(a[0]).val = a[1];
