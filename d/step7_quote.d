@@ -5,7 +5,7 @@ import std.array;
 import std.range;
 import std.stdio;
 import std.string;
-import std.c.process;
+import core.stdc.stdlib;
 import env;
 import mal_core;
 import readline;
@@ -229,7 +229,7 @@ void main(string[] args)
         catch (Exception e)
         {
             writeln("Error: ", e.msg);
-            std.c.process.exit(1);
+            exit(1);
         }
     }
 

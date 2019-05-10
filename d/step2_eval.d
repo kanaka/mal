@@ -16,7 +16,7 @@ MalType READ(string str)
 
 MalType eval_ast(MalType ast, Env env)
 {
-    if (MalSymbol sym = cast(MalSymbol)ast)
+    if (auto sym = cast(MalSymbol)ast)
     {
         auto v = (sym.name in env);
         if (v is null) throw new Exception("'" ~ sym.name ~ "' not found");
