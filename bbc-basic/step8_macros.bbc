@@ -199,7 +199,7 @@ DEF FNeval_ast(ast%, env%)
 
 DEF FNget_argv
   PROCgc_enter
-  LOCAL argv%
+  LOCAL argv%, rargv%, cmdptr%, arg$, len%
   argv% = FNempty
   IF !PAGE = &D7C1C7C5 THEN
     REM  Running under Brandy, so ARGC and ARGV$ are usable.
@@ -207,6 +207,35 @@ DEF FNget_argv
       FOR i% = ARGC TO 1 STEP -1
         argv% = FNalloc_pair(FNalloc_string(ARGV$(i%)), argv%)
       NEXT i%
+    ENDIF
+  ELSE
+    IF (INKEY(-256) AND &F0) = &A0 THEN
+      rargv% = FNempty
+      REM  Running under RISC OS
+      REM  Vexingly, we can only get the command line that was passed to
+      REM  the BASIC interpreter.  This means that we need to extract
+      REM  the arguments from that.  Typically, we will have been started
+      REM  with "BASIC -quit <filename> <args>".
+
+      DIM q% 256
+      SYS "OS_GetEnv" TO cmdptr%
+      WHILE ?cmdptr% >= 32
+        SYS "OS_GSTrans", cmdptr%, q%, &20000000 + 256 TO cmdptr%, , len%
+        q%?len% = 13
+        rargv% = FNalloc_pair(FNalloc_string($q%), rargv%)
+      ENDWHILE
+      REM  Put argv back into the right order.
+      WHILE NOT FNis_empty(rargv%)
+        argv% = FNalloc_pair(FNfirst(rargv%), argv%)
+        rargv% = FNrest(rargv%)
+      ENDWHILE
+      IF FNis_empty(argv%) THEN =FNgc_exit(argv%)
+      argv% = FNrest(argv%) : REM skip "BASIC"
+      IF FNis_empty(argv%) THEN =FNgc_exit(argv%)
+      IF FNunbox_string(FNfirst(argv%)) <> "-quit" THEN =FNgc_exit(argv%)
+      argv% = FNrest(argv%) : REM skip "-quit"
+      IF FNis_empty(argv%) THEN =FNgc_exit(argv%)
+      argv% = FNrest(argv%) : REM skip filename
     ENDIF
   ENDIF
 =FNgc_exit(argv%)
