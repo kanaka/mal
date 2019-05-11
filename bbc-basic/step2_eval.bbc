@@ -41,7 +41,7 @@ DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
 
 DEF FNeval_ast(ast%, env%)
-  LOCAL val%, car%, cdr%
+  LOCAL key$, val%, car%, cdr%
   IF FNis_symbol(ast%) THEN
     val% = FNhashmap_get(env%, FNunbox_symbol(ast%))
     IF val% = FNnil THEN ERROR &40E80922, "Symbol not in environment"
@@ -53,6 +53,13 @@ DEF FNeval_ast(ast%, env%)
     cdr% = FNeval_ast(FNrest(ast%), env%)
     IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
     =FNalloc_pair(car%, cdr%)
+  ENDIF
+  IF FNis_hashmap(ast%) THEN
+    IF FNis_empty_hashmap(ast%) THEN =ast%
+    key$ = FNhashmap_first_key(ast%)
+    val% = FNEVAL(FNhashmap_first_val(ast%), env%)
+    cdr% = FNeval_ast(FNhashmap_rest(ast%), env%)
+    =FNalloc_hashmap_entry(key$, val%, cdr%)
   ENDIF
 =ast%
 
