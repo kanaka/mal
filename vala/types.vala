@@ -57,21 +57,10 @@ abstract class Mal.Iterator : GLib.Object {
 // type you can put metadata on. Value types implementing this class
 // must provide a copy() method, because with-meta has to make a copy
 // of the value with new metadata.
-//
-// The subclass Mal.Listlike (including lists, vectors and nil)
-// descends from ValWithMetadata. This means there's a tricky moment
-// during construction where we initialise the metadata to nil by
-// default, which involves constructing a Mal.Nil, which is also a
-// ValWithMetadata! To avoid an infinite recursion, Mal.Nil has to
-// point to _itself_ as its default metadata, instead of a separately
-// constructed Mal.Nil.
 abstract class Mal.ValWithMetadata : Mal.Val {
-    public Mal.Val metadata;
+    public Mal.Val? metadata;
     construct {
-        if (this is Mal.Nil)
-            metadata = this;
-        else
-            metadata = new Mal.Nil();
+        metadata = null;
     }
     public abstract Mal.ValWithMetadata copy();
 }

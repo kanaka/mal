@@ -995,7 +995,7 @@ class Mal.BuiltinFunctionMeta : Mal.BuiltinFunction {
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected one argument", name());
         var vwm = args.vs.data as Mal.ValWithMetadata;
-        if (vwm == null)
+        if (vwm == null || vwm.metadata == null)
             return new Mal.Nil();
         return vwm.metadata;
     }
