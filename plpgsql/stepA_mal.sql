@@ -315,8 +315,8 @@ SELECT mal.REP('(def! *host-language* "plpqsql")') \g '/dev/null'
 SELECT mal.REP('(def! not (fn* (a) (if a false true)))') \g '/dev/null'
 SELECT mal.REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))') \g '/dev/null'
 SELECT mal.REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))') \g '/dev/null'
-SELECT mal.REP('(def! *gensym-counter* (atom 0))') \g '/dev/null'
-SELECT mal.REP('(def! gensym (fn* [] (symbol (str "G__" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))') \g '/dev/null'
+SELECT mal.REP('(def! inc (fn* [x] (+ x 1)))') \g '/dev/null'
+SELECT mal.REP('(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "G__" (swap! counter inc))))))') \g '/dev/null'
 SELECT mal.REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))') \g '/dev/null'
 
 CREATE FUNCTION mal.MAIN(pwd varchar, argstring varchar DEFAULT NULL)

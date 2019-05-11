@@ -29,11 +29,11 @@ void setupEnv(List<String> argv) {
       "          (nth xs 1) "
       "          (throw \"odd number of forms to cond\")) "
       "      (cons 'cond (rest (rest xs)))))))");
-  rep("(def! *gensym-counter* (atom 0))");
-  rep("(def! gensym "
-      "  (fn* [] "
-      "    (symbol (str \"G__\" (swap! *gensym-counter* "
-      "                                (fn* [x] (+ 1 x)))))))");
+  rep("(def! inc (fn* [x] (+ x 1)))");
+  rep("(def! gensym"
+      "  (let* [counter (atom 0)]"
+      "    (fn* []"
+      "      (symbol (str \"G__\" (swap! counter inc))))))");
   rep("(defmacro! or "
       "  (fn* (& xs) "
       "    (if (empty? xs) "

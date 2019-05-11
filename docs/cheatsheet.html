@@ -247,8 +247,8 @@
 <span class=file>step9_try.EXT</span>:
   <span class=function>EVAL</span>(<span class=var>ast</span>, <span class=var>env</span>):
     - set <span class=malsym>*host-language*</span> in <span class=var>repl_env</span> to host language name
-    - <span class=malsym>*gensym-count*</span>: define (using <span class=function>rep</span>()) an atom type containing an integer
-    - <span class=malsym>gensym</span>: define using <span class=function>rep</span>(), increment <span class=malsym>*gensym-count*</span>, return unique symbol
+    - <span class=malsym>inc</span>: define (using <span class=function>rep</span>()) a function incrementing an integer
+    - <span class=malsym>gensym</span>: define using <span class=function>rep</span>()), return unique symbol
     - <span class=malsym>or</span>: use <span class=malsym>gensym</span> to fix <span class=malsym>or</span> macro
   <span class=function>main</span>(<span class=var>args</span>): <span class=function>rep</span>(<span class=string>"(println (str \"Mal [\" <span class=malsym>*host-language*</span> \"]\"))"</span>)
 </code></pre>

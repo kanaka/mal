@@ -1615,9 +1615,9 @@ definition and use `rep` to define the new counter, `gensym` function
 and the clean `or` macro. Here are the string arguments you need to
 pass to `rep`:
 ```
-"(def! *gensym-counter* (atom 0))"
+"(def! inc (fn* [x] (+ x 1)))"
 
-"(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+"(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
 
 "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 ```

@@ -569,11 +569,11 @@ MAIN:
   A$=A$+" forms to cond"+CHR$(34)+")) (cons 'cond (rest (rest xs)))))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
-  A$="(def! *gensym-counter* (atom 0))"
+  A$="(def! inc (fn* [x] (+ x 1)))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
-  A$="(def! gensym (fn* [] (symbol (str "+CHR$(34)+"G__"+CHR$(34)
-  A$=A$+" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+  A$="(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "+CHR$(34)
+  A$=A$+"G__"+CHR$(34)+" (swap! counter inc))))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
   A$="(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs)"

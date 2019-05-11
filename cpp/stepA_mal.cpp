@@ -334,8 +334,8 @@ static const char* malFunctionTable[] = {
     "(def! not (fn* (cond) (if cond false true)))",
     "(def! load-file (fn* (filename) \
         (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
-    "(def! *gensym-counter* (atom 0))",
-    "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))",
+    "(def! inc (fn* [x] (+ x 1)))",
+    "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))",
     "(def! *host-language* \"C++\")",
 };
 

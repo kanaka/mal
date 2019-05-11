@@ -352,14 +352,13 @@ rep '
           (throw "odd number of forms to cond"))
         (cons \'cond (rest (rest xs)))))))'
 
-rep '(def! *gensym-counter* (atom 0))'
+rep '(def! inc (fn* [x] (+ x 1)))'
 
 rep '
 (def! gensym
-  (fn* []
-    (symbol
-      (str "G__"
-        (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))'
+  (let* [counter (atom 0)]
+    (fn* []
+      (symbol (str "G__" (swap! counter inc))))))'
 
 rep '
 (defmacro! or

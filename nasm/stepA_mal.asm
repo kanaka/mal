@@ -76,7 +76,16 @@ section .data
         static_symbol cons_symbol, 'cons'
         
 ;; Startup string. This is evaluated on startup
-        static mal_startup_string, db "(do  (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ",34,"odd number of forms to cond",34,")) (cons 'cond (rest (rest xs)))))))   (def! *gensym-counter* (atom 0))   (def! gensym (fn* [] (symbol (str ",34,"G__",34," (swap! *gensym-counter* (fn* [x] (+ 1 x))))))) (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))   (def! *host-language* ",34,"nasm",34,") (def! conj nil) )"
+        static mal_startup_string, db "(do \
+(def! not (fn* (a) (if a false true))) \
+(def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) \
+(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ",34,"odd number of forms to cond",34,")) (cons 'cond (rest (rest xs))))))) \
+(def! inc (fn* [x] (+ x 1))) \
+(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str ",34,"G__",34," (swap! counter inc)))))) \
+(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
+(def! *host-language* ",34,"nasm",34,")\
+(def! conj nil)\
+)"
 
 ;; Command to run, appending the name of the script to run
         static run_script_string, db "(load-file ",34

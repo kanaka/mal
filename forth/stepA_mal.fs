@@ -361,8 +361,8 @@ s\" (def! *host-language* \"forth\")" rep 2drop
 s\" (def! not (fn* (x) (if x false true)))" rep 2drop
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
 s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep 2drop
-s\" (def! *gensym-counter* (atom 0))" rep 2drop
-s\" (def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))" rep 2drop
+s\" (def! inc (fn* [x] (+ x 1)))" rep 2drop
+s\" (def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))" rep 2drop
 s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))" rep 2drop
 
 : repl ( -- )

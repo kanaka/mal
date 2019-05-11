@@ -51,11 +51,12 @@ defmodule Mix.Tasks.StepAMal do
       """, env)
 
     # gensym
-    read_eval_print("(def! *gensym-counter* (atom 0))", env)
+    read_eval_print("(def! inc (fn* [x] (+ x 1)))", env)
     read_eval_print("""
       (def! gensym
-        (fn* []
-          (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))
+        (let* [counter (atom 0)]
+          (fn* []
+            (symbol (str \"G__\" (swap! counter inc))))))
       """, env)
 
     # or:
