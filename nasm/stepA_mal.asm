@@ -82,7 +82,7 @@ section .data
 (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ",34,"odd number of forms to cond",34,")) (cons 'cond (rest (rest xs))))))) \
 (def! inc (fn* [x] (+ x 1))) \
 (def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str ",34,"G__",34," (swap! counter inc)))))) \
-(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
+(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs)))))))) \
 (def! *host-language* ",34,"nasm",34,")\
 (def! conj nil)\
 )"
