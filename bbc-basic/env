@@ -24,10 +24,11 @@ ENDPROC
 DEF FNenv_find(env%, keysym%)
   LOCAL val%, outer%, key$
   key$ = FNunbox_symbol(keysym%)
-  IF FNhashmap_contains(FNenvironment_data(env%), key$) THEN =env%
-  outer% = FNenvironment_outer(env%)
-  IF FNis_nil(outer%) THEN =FNnil
-=FNenv_find(outer%, keysym%)
+  WHILE NOT FNis_nil(env%)
+    IF FNhashmap_contains(FNenvironment_data(env%), key$) THEN =env%
+    env% = FNenvironment_outer(env%)
+  ENDWHILE
+=FNnil
 
 DEF FNenv_get(env%, keysym%)
   LOCAL key$

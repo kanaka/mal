@@ -460,15 +460,19 @@ ENDPROC
 
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-  IF map% = FNempty_hashmap THEN =FNnil
-  IF S$(Z%(map%,2)) = key$ THEN =FNref_local(Z%(map%,3))
-=FNhashmap_get(Z%(map%,1), key$)
+  WHILE map% <> FNempty_hashmap
+    IF S$(Z%(map%,2)) = key$ THEN =FNref_local(Z%(map%,3))
+    map% = Z%(map%,1)
+  ENDWHILE
+=FNnil
 
 DEF FNhashmap_contains(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-  IF map% = FNempty_hashmap THEN =FALSE
-  IF S$(Z%(map%,2)) = key$ THEN =TRUE
-=FNhashmap_get(Z%(map%,1), key$)
+  WHILE map% <> FNempty_hashmap
+    IF S$(Z%(map%,2)) = key$ THEN =TRUE
+    map% = Z%(map%,1)
+  ENDWHILE
+=FALSE
 
 DEF FNhashmap_first_key(map%)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
