@@ -152,12 +152,9 @@ DEF FNread_hashmap_tail(tokens$(), RETURN tokptr%)
 =FNalloc_hashmap_entry(FNunbox_string(key%), val%, next%)
 
 DEF FNreader_macro(quote$, token$(), RETURN tokptr%)
-  LOCAL tok$, car%, cdr%, cdar%
+  LOCAL tok$
   tok$ = FNreader_next(tokens$(), tokptr%) : REM skip quoting token
-  car% = FNalloc_symbol(quote$)
-  cdar% = FNread_form(tokens$(), tokptr%)
-  cdr% = FNalloc_pair(cdar%, FNempty)
-=FNalloc_pair(car%, cdr%)
+=FNalloc_list2(FNalloc_symbol(quote$), FNread_form(tokens$(), tokptr%))
 
 DEF FNread_with_meta(token$(), RETURN tokptr%)
   LOCAL tok$, wm%, base%, meta%
