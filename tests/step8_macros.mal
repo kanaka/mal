@@ -197,18 +197,6 @@ x
 (some first [[nil] [1] []])
 ;=>1
 
-;; Testing and macro
-(and)
-;=>true
-(and 1)
-;=>1
-(and 1 2 3 4)
-;=>4
-(and false 2)
-;=>false
-(and true 1 nil false)
-;=>nil
-
 ;; Testing -> macro
 (-> 7)
 ;=>7
