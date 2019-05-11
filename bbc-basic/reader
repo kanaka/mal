@@ -13,7 +13,7 @@ DEF FNreader_next(token$(), RETURN tokptr%)
 
 DEF FNread_str(src$)
   LOCAL ntokens%, tokptr%, tokens$()
-  DIM tokens$(255)
+  DIM tokens$(512)
   ntokens% = FNtokenize(src$, tokens$())
   tokptr% = 0
 =FNread_form(tokens$(), tokptr%)
