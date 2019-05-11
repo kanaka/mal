@@ -28,21 +28,21 @@ REPEAT
 UNTIL form$ = ""
 
 REM  Parse the command-line.
-startfile$ = ""
 argv% = FNempty
 IF !PAGE = &D7C1C7C5 THEN
   REM  Running under Brandy, so ARGC and ARGV$ are usable.
-  IF ARGC >= 1 THEN startfile$ = ARGV$(1)
-  IF ARGC >= 2 THEN
-    FOR i% = ARGC TO 2 STEP -1
+  IF ARGC >= 1 THEN
+    FOR i% = ARGC TO 1 STEP -1
       argv% = FNalloc_pair(FNalloc_string(ARGV$(i%)), argv%)
     NEXT i%
   ENDIF
 ENDIF
-PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), argv%)
 
-IF startfile$ <> "" THEN
-  val$ = FNrep("(load-file """ + startfile$ + """)")
+IF FNis_empty(argv%) THEN
+  PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), FNempty)
+ELSE
+  PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), FNrest(argv%))
+  val$ = FNrep("(load-file " + FNpr_str(FNfirst(argv%), TRUE) + ")")
   END
 ENDIF
 
