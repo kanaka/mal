@@ -1,0 +1,17 @@
+;; Testing basic string
+abcABC123
+;=>abcABC123
+
+;; Testing string containing spaces
+hello mal world
+;=>hello mal world
+
+;; Testing string containing symbols
+[]{}"'* ;:()
+;=>[]{}"'* ;:()
+
+
+;; Test long string
+hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)
+;=>hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)
+

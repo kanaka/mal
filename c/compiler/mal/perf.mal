@@ -1,0 +1,27 @@
+(defmacro! time
+  (fn* (exp)
+    `(let* (start_FIXME (time-ms)
+            ret_FIXME ~exp)
+      (do
+        (prn (str "Elapsed time: " (- (time-ms) start_FIXME) " msecs"))
+        ret_FIXME))))
+
+(def! run-fn-for*
+  (fn* [fn max-ms acc-ms last-iters]
+    (let* [start (time-ms)
+           _ (fn)
+           elapsed (- (time-ms) start)
+           iters (+ 1 last-iters)
+           new-acc-ms (+ acc-ms elapsed)]
+      ;(do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
+      (if (>= new-acc-ms max-ms)
+        last-iters
+        (run-fn-for* fn max-ms new-acc-ms iters)))))
+
+(def! run-fn-for
+  (fn* [fn max-secs]
+    (do
+      ;; Warm it up first
+      (run-fn-for* fn 1000 0 0)
+      ;; Now do the test
+      (run-fn-for* fn (* 1000 max-secs) 0 0))))

@@ -1,0 +1,19 @@
+(def! fib
+  (fn* (n)
+    (if (< n 2)
+        n
+        (+
+          (fib (- n 1))
+          (fib (- n 2))))))
+
+(def! fib2
+  (fn* (n)
+    (let* (f (fn* (n1 n2 c)
+                  (if (= c n)
+                    n2
+                    (f n2 (+ n1 n2) (+ c 1)))))
+      (f 0 1 1))))
+
+(println (fib 10))
+(println (fib2 50))
+

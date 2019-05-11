@@ -1,0 +1,5 @@
+#!/bin/bash
+cd $(dirname $0)
+MAL_FILE=./../mal/${STEP:-stepA_mal}.mal
+export STEP=stepA_mal # force MAL_IMPL to use stepA
+exec ./../${MAL_IMPL:-js}/run ${MAL_FILE} "${@}"

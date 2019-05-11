@@ -1,0 +1,37 @@
+;;;
+;;; Supplemental malcc test for unicode support
+;;;
+
+;; Testing that (seq str) doesn't split 2-byte utf-8 characters in the middle
+(first (seq "ă"))
+;=>"ă"
+
+;; Testing that (seq str) doesn't split 3-byte utf-8 characters in the middle
+(first (seq "€"))
+;=>"€"
+
+;; Testing that (seq str) doesn't split 4-byte utf-8 characters in the middle
+(first (seq "🙅"))
+;=>"🙅"
+
+;; Testing that splitting and re-joining multibyte characters does not change anything
+(apply str (seq "\xf0\x9f\xa4\xb7\xf0\x9f\x99\x8e"))
+;=>"🤷🙎"
+
+;; Testing that escaped hex escape sequences are intepreted
+"\xf0\x9f\xa4\xb7\xf0\x9f\x99\x8e"
+;=>"🤷🙎"
+
+;; Testing that incomplete hex escape sequence produces an error
+"\xf"
+;/.*Invalid escape sequence in string.*
+
+;; Testing that (seq str) splits emoji modifiers apart from emoji base
+(first (seq "\xf0\x9f\xa4\xb7\xf0\x9f\x8f\xbf\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"))
+;=>"🤷"
+(first (rest (seq "\xf0\x9f\xa4\xb7\xf0\x9f\x8f\xbf\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f")))
+;=>"🏿"
+
+;; Testing that splitting on incomplete utf-8 encodings produce an error
+(seq "\xf0\x9f\xa4")
+;/.*Invalid utf-8 encoding in string.*

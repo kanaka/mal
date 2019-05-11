@@ -1,0 +1,3 @@
+#!/bin/bash
+cd $(dirname $0)/mal/mal
+../../malcc ./stepA_mal.mal "${@}"
