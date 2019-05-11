@@ -97,15 +97,11 @@
 ;; equivalent to `-> x (list a)`.
 (defmacro! ->
   (fn* (x & xs)
-    (if (empty? xs)
-      x
-      (let* (form (first xs)
-             more (rest xs))
-        (if (empty? more)
-          (if (list? form)
-            `(~(first form) ~x ~@(rest form))
-            (list form x))
-          `(-> (-> ~x ~form) ~@more))))))
+    (let* [f (fn* [acc form]
+               (if (list? form)
+                 `(~(first form) ~acc ~@(rest form))
+                 (list form acc)))]
+      (reduce f x xs))))
 
 ;; Like `->`, but the arguments describe functions that are partially
 ;; applied with *left* arguments.  The previous result is inserted at
@@ -114,15 +110,11 @@
 ;;   (b b1 b2 (.. (a a1 a2 x) ..)).
 (defmacro! ->>
   (fn* (x & xs)
-    (if (empty? xs)
-      x
-      (let* (form (first xs)
-             more (rest xs))
-        (if (empty? more)
-          (if (list? form)
-            `(~(first form) ~@(rest form) ~x)
-            (list form x))
-          `(->> (->> ~x ~form) ~@more))))))
+    (let* [f (fn* [acc form]
+               (if (list? form)
+                 `(~(first form) ~@(rest form) ~acc)
+                 (list form acc)))]
+      (reduce f x xs))))
 
 ;; This `nil` is intentional so that the result of doing `load-file` is
 ;; `nil` instead of whatever happens to be at the end of `core.mal`.
