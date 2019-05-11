@@ -153,6 +153,46 @@ x
 ;; Loading core.mal
 (load-file "../core.mal")
 
+;; Testing reduce
+(reduce + 7 [])
+;=>7
+(reduce + 7 [1])
+;=>8
+(reduce + 7 [1 2])
+;=>10
+(reduce * 7 [-1 2])
+;=>-14
+(reduce concat [1] [[2] [3]])
+;=>(1 2 3)
+(reduce str "a" ["b" "c"])
+;=>"abc"
+
+;; Testing every?
+(every? first [])
+;=>true
+(every? first [[1] [2]])
+;=>true
+(every? first [[1] [nil] []])
+;=>false
+
+;; Testing some
+(some first [])
+;=>nil
+(some first [[nil] [1] []])
+;=>1
+
+;; Testing and macro
+(and)
+;=>true
+(and 1)
+;=>1
+(and 1 2 3 4)
+;=>4
+(and false 2)
+;=>false
+(and true 1 nil false)
+;=>nil
+
 ;; Testing -> macro
 (-> 7)
 ;=>7
