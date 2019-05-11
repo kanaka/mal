@@ -24,6 +24,17 @@
       init
       (reduce f (f init (first xs)) (rest xs)))))
 
+;; Right fold (f x1 (f x2 (.. (f xn init)) ..))
+(def! foldr
+  (fn* [f init xs]
+    ;; f      : Element Accumulator -> Accumulator
+    ;; init   : Accumulator
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : Accumulator
+    (if (empty? xs)
+      init
+      (f (first xs) (foldr f init (rest xs))))))
+
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
 
