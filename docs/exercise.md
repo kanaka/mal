@@ -15,21 +15,20 @@ pass a command like 'load-file' before running the testsuite.
 Some solutions are given in the `examples` directory. Feel free to
 submit new solutions, or new exercises.
 
-
-- Implement the following functions with other built-in functions.
-  - `nil?`, `true?` and `false?`
-  - `empty?`
-  - `sequential?`
+- Implement `nil?`, `true?`, `false?` and `sequential?` with other
+  built-in functions.
 
 - Implement `>`, `<=` and `>=` with `<`.
 
-- Implement the following non-recursive functions.
-  - `hash-map`
-  - `list`
-  - `prn`
-  - `swap!`
+- Implement `hash-map`, `list`, `prn` and `swap!` as non-recursive
+  functions.
 
-- Implement `map` with a recursion.
+- Implement `count`, `nth`, `map`, `concat` and `conj` with the empty
+  constructor `()`, `empty?`, `cons`, `first` and `rest`.
+
+  Let `count` and `nth` benefit from tail call optimization.
+
+  Try to replace explicit recursions with calls to `reduce` and `foldr`.
 
 - Implement the `do` special as a non-recursive function. The special
   form will hide your implementation, so in order to test it, you will
@@ -38,7 +37,7 @@ submit new solutions, or new exercises.
 - Implement `let*` as a macro that uses `fn*` and recursion.
   The same remark applies.
 
-- Implement `apply` as a macro.
+- Implement `apply`.
 
 - Implement maps using lists.
   - Recall how maps must be evaluated.

@@ -1,10 +1,10 @@
 ;; These are the answers to the questions in ../docs/exercise.md.
 
+(load-file "../core.mal")
+
 (def! nil?   (fn* [x] (= x nil  )))
 (def! true?  (fn* [x] (= x true )))
 (def! false? (fn* [x] (= x false)))
-
-(def! empty? (fn* [xs] (= 0 (count xs))))
 
 (def! sequential? (fn* [x] (if (list? x) true (if (vector? x) true false))))
 
@@ -17,13 +17,33 @@
 (def! prn (fn* [& xs] (println (apply pr-str xs))))
 (def! swap! (fn* [a f & xs] (reset! a (apply f (deref a) xs))))
 
+(def! count
+  (let* [inc_left (fn* [acc _] (inc acc))]
+    (fn* [xs] (if (nil? xs) 0 (reduce inc_left 0 xs)))))
+(def! nth
+  (fn* [xs index]
+    (if (empty? xs)
+      (throw "nth: index out of range")
+      (if (< index 0)
+        (throw "nth: index out of range")
+        (if (zero? index)
+          (first xs)
+          (nth (rest xs) (dec index)))))))
 (def! map
   (fn* [f xs]
-    (if (empty? xs)
-      ()
-      (cons (f (first xs)) (map f (rest xs))))))
+    (let* [iter (fn* [x acc] (cons (f x) acc))]
+      (foldr iter () xs))))
+(def! concat
+  (let* [concat2 (fn* [xs ys] (foldr cons ys xs))]
+    (fn* [& xs] (foldr concat2 () xs))))
+(def! conj
+  (let* [flip_cons (fn* [xs x] (cons x xs))]
+    (fn* [xs & ys]
+      (if (vector? xs)
+        (apply vector (concat xs ys))
+        (reduce flip_cons xs ys)))))
 
-(def! do2 (fn* [& xs] (nth xs (- (count xs) 1))))
+(def! do2 (fn* [& xs] (nth xs (dec (count xs)))))
 
 (defmacro! let2
   ;; Must be a macro because the first argument must not be evaluated.
@@ -32,20 +52,19 @@
       form
       ;;  This let* increases the readability, but the values could
       ;;  easily be replaced below.
-      (let* [key  (nth binds 0)
+      (let* [key  (first 0)
              val  (nth binds 1)
              more (rest (rest binds))]
         `((fn* [~key] (let2 ~more ~form)) ~val)))))
 
 (def! apply
-  (let* [
-    ;; (a b [c d]) -> (a b c d)
-    flat_end (fn* [xs]
-               (if (= 1 (count xs))
-                 (first xs)        ; [c d] above
-                 (cons (first xs) (flat_end (rest xs)))))
-    ;; x -> 'x to protect the already-evaluated arguments.
-    quote_elt (fn* [x] `(quote ~x))
-    ]
-    (fn* [& xs]
-       (eval (map quote_elt (flat_end xs))))))
+  ;; Replace (f a b [c d]) with ('f 'a 'b 'c 'd) then evaluate the
+  ;; resulting function call (the surrounding environment does not
+  ;; matter when evaluating a function call).
+  ;; Use nil as marker to detect deepest recursive call.
+  (let* [q    (fn* [x] (list 'quote x))
+         iter (fn* [x acc]
+                (if (nil? acc) ; x is the last element (a sequence)
+                  (map q x)
+                  (cons (q x) acc)))]
+    (fn* [& xs] (eval (foldr iter nil xs)))))
