@@ -29,16 +29,7 @@ REPEAT
   IF form$ <> "" THEN val$ = FNrep(form$)
 UNTIL form$ = ""
 
-REM  Parse the command-line.
-argv% = FNempty
-IF !PAGE = &D7C1C7C5 THEN
-  REM  Running under Brandy, so ARGC and ARGV$ are usable.
-  IF ARGC >= 1 THEN
-    FOR i% = ARGC TO 1 STEP -1
-      argv% = FNalloc_pair(FNalloc_string(ARGV$(i%)), argv%)
-    NEXT i%
-  ENDIF
-ENDIF
+argv% = FNget_argv
 
 IF FNis_empty(argv%) THEN
   PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), FNempty)
@@ -240,6 +231,21 @@ DEF FNeval_ast(ast%, env%)
     =FNalloc_pair(car%, cdr%)
   ENDIF
 =ast%
+
+DEF FNget_argv
+  PROCgc_enter
+  LOCAL argv%
+  argv% = FNempty
+  IF !PAGE = &D7C1C7C5 THEN
+    REM  Running under Brandy, so ARGC and ARGV$ are usable.
+    IF ARGC >= 1 THEN
+      FOR i% = ARGC TO 1 STEP -1
+        argv% = FNalloc_pair(FNalloc_string(ARGV$(i%)), argv%)
+      NEXT i%
+    ENDIF
+  ENDIF
+=FNgc_exit(argv%)
+
 
 REM Local Variables:
 REM indent-tabs-mode: nil
