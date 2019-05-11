@@ -1,25 +1,56 @@
+;; Kind of standard library for MAL for tests and examples.
+
+;; `not`, `gensym`, `cond` and `or` would make sense here but are
+;; already defined in the step files as part of the process.
+
+;; Integer successor (number -> number)
+(def! inc (fn* (a) (+ a 1)))
+
+;; Integer predecessor (number -> number)
+
 (def! dec (fn* (a) (- a 1)))
 
+;; Integer nullity test (number -> boolean)
 (def! zero? (fn* (n) (= 0 n)))
 
+;; Left fold (f (.. (f (f init x1) x2) ..) xn)
 (def! reduce
   (fn* (f init xs)
+    ;; f      : Accumulator Element -> Accumulator
+    ;; init   : Accumulator
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : Accumulator
     (if (empty? xs)
       init
       (reduce f (f init (first xs)) (rest xs)))))
 
+;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
 
+;; Conjonction of predicate values (pred x1) and .. and (pred xn)
+;; Evaluate `pred x` for each `x` in turn. Return `false` if a result
+;; is `nil` or `false`, without evaluating the predicate for the
+;; remaining elements.  If all test pass, return `true`.
 (def! every?
   (fn* (pred xs)
+    ;; pred   : Element -> interpreted as a logical value
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : boolean
     (if (empty? xs)
       true
       (if (pred (first xs))
         (every? pred (rest xs))
         false))))
 
+;; Disjonction of predicate values (pred x1) or .. (pred xn)
+;; Evaluate `(pred x)` for each `x` in turn. Return the first result
+;; that is neither `nil` nor `false`, without evaluating the predicate
+;; for the remaining elements.  If all tests fail, return nil.
 (def! some
   (fn* (pred xs)
+    ;; pred   : Element -> interpreted as a logical value
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : boolean
     (if (empty? xs)
       nil
       (let* (res (pred (first xs)))
@@ -27,6 +58,16 @@
           res
           (some pred (rest xs)))))))
 
+;; Search for first successful evaluation.
+;; Rewrite `x1 x2 .. xn x` as
+;;   (let* [r1 x1]
+;;     (if r1 test1
+;;       (let* [r2 x2]
+;;         ..
+;;         (if rn
+;;           rn
+;;           x) ..)))
+;; Without arguments, returns `true`.
 (defmacro! and
   (fn* (& xs)
     (if (empty? xs)
@@ -37,6 +78,12 @@
           `(let* (~condvar ~(first xs))
             (if ~condvar (and ~@(rest xs)) ~condvar)))))))
 
+;; Composition of partially applied functions.
+;; Rewrite x (a a1 a2) .. (b b1 b2) as
+;;   (b (.. (a x a1 a2) ..) b1 b2)
+;; If anything else than a list is found were `(a a1 a2)` is expected,
+;; replace it with a list with one element, so that `-> x a` is
+;; equivalent to `-> x (list a)`.
 (defmacro! ->
   (fn* (x & xs)
     (if (empty? xs)
@@ -49,6 +96,11 @@
             (list form x))
           `(-> (-> ~x ~form) ~@more))))))
 
+;; Like `->`, but the arguments describe functions that are partially
+;; applied with *left* arguments.  The previous result is inserted at
+;; the *end* of the new argument list.
+;; Rewrite x ((a a1 a2) .. (b b1 b2)) as
+;;   (b b1 b2 (.. (a a1 a2 x) ..)).
 (defmacro! ->>
   (fn* (x & xs)
     (if (empty? xs)
@@ -61,6 +113,6 @@
             (list form x))
           `(->> (->> ~x ~form) ~@more))))))
 
-; This `nil` is intentional so that the result of doing `load-file` is
-; `nil` instead of whatever happens to be at the end of `core.mal`.
+;; This `nil` is intentional so that the result of doing `load-file` is
+;; `nil` instead of whatever happens to be at the end of `core.mal`.
 nil
