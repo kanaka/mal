@@ -240,7 +240,7 @@ DEF PROCcore_prepare_args(spec$, fn$)
         args%(i% - 1) = FNunbox_int(val%)
       WHEN "s"
         IF NOT FNis_string(val%) THEN
-          ERROR &40E80914, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a list"
+          ERROR &40E80914, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a string"
         ENDIF
         arg$ = FNunbox_string(val%)
       WHEN "l"
