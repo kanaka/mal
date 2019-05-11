@@ -435,6 +435,9 @@ REM  currently BASIC strings rather than arbitrary values.
 DEF FNempty_hashmap
 =5
 
+DEF FNis_empty_hashmap(val%)
+=val% = FNempty_hashmap
+
 DEF FNalloc_hashmap_entry(key$, val%, next%)
   LOCAL entry%
   entry% = FNmalloc(8)
@@ -466,6 +469,18 @@ DEF FNhashmap_contains(map%, key$)
   IF map% = FNempty_hashmap THEN =FALSE
   IF S$(Z%(map%,2)) = key$ THEN =TRUE
 =FNhashmap_get(Z%(map%,1), key$)
+
+DEF FNhashmap_first_key(map%)
+  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
+=S$(Z%(map%,2))
+
+DEF FNhashmap_first_val(map%)
+  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
+=Z%(map%,3)
+
+DEF FNhashmap_rest(map%)
+  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get rest of a non-hashmap"
+=Z%(map%,1)
 
 REM ** Functions **
 

@@ -103,7 +103,8 @@ DEF FNread_form(tokens$(), RETURN tokptr%)
     WHEN "" : ERROR &40E80930, "Unexpected end of input"
     WHEN "(": =FNread_list(tokens$(), tokptr%)
     WHEN "[": =FNread_vector(tokens$(), tokptr%)
-    WHEN ")", "]": ERROR &40E80931, "Unexpected '"+tok$ +"'"
+    WHEN "{": =FNread_hashmap(tokens$(), tokptr%)
+    WHEN ")", "]", "}": ERROR &40E80931, "Unexpected '"+tok$ +"'"
     WHEN "'": =FNreader_macro("quote", tokens$(), tokptr%)
     WHEN "`": =FNreader_macro("quasiquote", tokens$(), tokptr%)
     WHEN "~": =FNreader_macro("unquote", tokens$(), tokptr%)
@@ -131,6 +132,23 @@ DEF FNread_list_tail(tokens$(), RETURN tokptr%, term$)
   car% = FNread_form(tokens$(), tokptr%)
   cdr% = FNread_list_tail(tokens$(), tokptr%, term$)
 =FNalloc_pair(car%, cdr%)
+
+DEF FNread_hashmap(tokens$(), RETURN tokptr%)
+  LOCAL tok$
+  tok$ = FNreader_next(tokens$(), tokptr%) : REM skip over "{"
+=FNread_hashmap_tail(tokens$(), tokptr%)
+
+DEF FNread_hashmap_tail(tokens$(), RETURN tokptr%)
+  LOCAL tok$, key%, val%, next%
+  IF FNreader_peek(tokens$(), tokptr%) = "}" THEN
+    tok$ = FNreader_next(tokens$(), tokptr%)
+    =FNempty_hashmap
+  ENDIF
+  key% = FNread_form(tokens$(), tokptr%)
+  IF NOT FNis_string(key%) THEN ERROR &40E80932, "Hash-map key must be a string"
+  val% = FNread_form(tokens$(), tokptr%)
+  next% = FNread_hashmap_tail(tokens$(), tokptr%)
+=FNalloc_hashmap_entry(FNunbox_string(key%), val%, next%)
 
 DEF FNreader_macro(quote$, token$(), RETURN tokptr%)
   LOCAL tok$, car%, cdr%, cdar%

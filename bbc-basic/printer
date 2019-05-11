@@ -24,6 +24,16 @@ DEF FNpr_str(val%, print_readably%)
     ENDWHILE
     =ret$ + term$
   ENDIF
+  IF FNis_hashmap(val%) THEN
+    ret$ = "{"
+    WHILE NOT FNis_empty_hashmap(val%)
+      IF LEN(ret$) > 1 THEN ret$ += " "
+      ret$ += FNpr_str(FNalloc_string(FNhashmap_first_key(val%)), print_readably%)
+      ret$ += " " + FNpr_str(FNhashmap_first_val(val%), print_readably%)
+      val% = FNhashmap_rest(val%)
+    ENDWHILE
+    =ret$ + "}"
+  ENDIF
   IF FNis_atom(val%) THEN
     ="(atom "+FNpr_str(FNatom_deref(val%), print_readably%)+")"
   ENDIF
