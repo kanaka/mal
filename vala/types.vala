@@ -126,7 +126,16 @@ class Mal.Vector : Mal.Listlike {
     }
     public override Mal.ValWithMetadata copy() {
         return new Mal.Vector.copy_of(this);
-    }        
+    }
+    public uint length { get { return vs.length; } }
+    public new Mal.Val @get(uint pos) {
+        assert(pos < vs.length);
+        return vs[pos];
+    }
+    public new void @set(uint pos, Mal.Val v) {
+        assert(pos < vs.length);
+        vs[pos] = v;
+    }
 }
 
 class Mal.VectorIterator : Mal.Iterator {

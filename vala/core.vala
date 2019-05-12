@@ -368,7 +368,7 @@ class Mal.BuiltinFunctionCount : Mal.BuiltinFunction {
         if (args.vs.data is Mal.List)
             return new Mal.Num((args.vs.data as Mal.List).vs.length());
         if (args.vs.data is Mal.Vector)
-            return new Mal.Num((args.vs.data as Mal.Vector).vs.length);
+            return new Mal.Num((args.vs.data as Mal.Vector).length);
         throw new Mal.Error.BAD_PARAMS(
             "%s: expected a list argument", name());
     }
@@ -408,8 +408,8 @@ class Mal.BuiltinFunctionEQ : Mal.BuiltinFunction {
             return true;
         }
         if (a is Mal.Vector && b is Mal.Vector) {
-            var av = (a as Mal.Vector).vs;
-            var bv = (b as Mal.Vector).vs;
+            var av = a as Mal.Vector;
+            var bv = b as Mal.Vector;
             if (av.length != bv.length)
                 return false;
             for (var i = 0; i < av.length; i++)
@@ -648,8 +648,8 @@ class Mal.BuiltinFunctionNth : Mal.BuiltinFunction {
         Mal.Val? result = null;
         if (list is Mal.Vector) {
             var vec = list as Mal.Vector;
-            if (index.v < vec.vs.length)
-                result = vec.vs[index.v];
+            if (index.v < vec.length)
+                result = vec[(uint)index.v];
         } else {
             var iter = list.iter();
             var i = index.v;
@@ -1052,12 +1052,12 @@ class Mal.BuiltinFunctionConj : Mal.BuiltinFunction {
         if (collection is Mal.Vector) {
             var oldvec = collection as Mal.Vector;
             var n = args.vs.length() - 1;
-            var newvec = new Mal.Vector.with_size(oldvec.vs.length + n);
+            var newvec = new Mal.Vector.with_size(oldvec.length + n);
             int i;
-            for (i = 0; i < oldvec.vs.length; i++)
-                newvec.vs[i] = oldvec.vs[i];
+            for (i = 0; i < oldvec.length; i++)
+                newvec[i] = oldvec[i];
             for (iter.step(); iter.nonempty(); iter.step(), i++)
-                newvec.vs[i] = iter.deref();
+                newvec[i] = iter.deref();
             return newvec;
         } else {
             var newlist = new Mal.List.empty();

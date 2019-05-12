@@ -36,8 +36,9 @@ class Mal.Main: GLib.Object {
         }
         if (ast is Mal.Vector) {
             var results = new GLib.List<Mal.Val>();
-            foreach (var elt in (ast as Mal.Vector).vs)
-                results.append(EVAL(elt, env));
+            for (var iter = (ast as Mal.Vector).iter();
+                 iter.nonempty(); iter.step())
+                results.append(EVAL(iter.deref(), env));
             return new Mal.Vector.from_list(results);
         }
         if (ast is Mal.Hashmap) {
@@ -98,7 +99,7 @@ class Mal.Main: GLib.Object {
                                         newenv, newenv);
                         }
                     } else if (defns is Mal.Vector) {
-                        var vec = (defns as Mal.Vector).vs;
+                        var vec = defns as Mal.Vector;
                         if (vec.length % 2 != 0)
                             throw new Mal.Error.BAD_PARAMS(
                                 "let*: expected an even-length vector" +
