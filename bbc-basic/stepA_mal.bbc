@@ -23,6 +23,7 @@ DATA (def! not (fn* (a) (if a false true)))
 DATA (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))
 DATA (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))
 DATA (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))
+DATA (def! *host-language* "BBC BASIC V")
 DATA ""
 REPEAT
   READ form$
@@ -39,6 +40,7 @@ ELSE
   END
 ENDIF
 
+val$ = FNrep("(println (str ""Mal ["" *host-language* ""]""))")
 REPEAT
   REM  Catch all errors apart from "Escape".
   ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END ELSE PROCgc_restore(sav%)
