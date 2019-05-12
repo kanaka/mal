@@ -51,10 +51,10 @@ REM  &0A  hash-map leaf node
 REM  Formats of individual objects are defined below.
 
 DEF PROCtypes_init
-  REM  Arbitrarily use half of BASIC's heap as the mal heap, with a bit
+  REM  Arbitrarily use a quarter of BASIC's heap as the mal heap, with a bit
   REM  more for strings.  Each heap entry is sixteen bytes.
-  DIM Z%((HIMEM-LOMEM)/32,3)
-  DIM S$((HIMEM-LOMEM)/64), S%((HIMEM-LOMEM)/64)
+  DIM Z%((HIMEM-LOMEM)/64,3)
+  DIM S$((HIMEM-LOMEM)/128), S%((HIMEM-LOMEM)/128)
   DIM sS%((HIMEM-LOMEM)/64)
   Z%(1,0) = &10 : REM false
   Z%(2,0) = &10 : Z%(2,1) = TRUE : REM true
