@@ -437,14 +437,52 @@ DEF FNhashmap_alloc_leaf(key$, val%)
   Z%(entry%,2) = val%
 =entry%  
 
+DEF FNhashmap_alloc_node(bit%, left%, right%)
+  LOCAL entry%
+  entry% = FNmalloc(&23)
+  Z%(entry%,0) += (bit% << 16)
+  Z%(entry%,1) = left%
+  Z%(entry%,2) = right%
+=entry%  
+
 DEF FNis_hashmap(val%)
   LOCAL t%
   t% = FNtype_of(val%)
 =t% = &23 OR t% = &0A OR t% = &40
 
+DEF FNkey_bit(key$, bit%)
+  LOCAL cnum%
+  cnum% = bit% >> 3
+  IF cnum% >= LEN(key$) THEN =FALSE
+=ASC(MID$(key$, cnum% + 1, 1)) AND (1 << (bit% AND 7))  
+
+DEF FNkey_bitdiff(key1$, key2$)
+  LOCAL bit%
+  WHILE FNkey_bit(key1$, bit%) = FNkey_bit(key2$, bit%)
+    bit% += 1
+  ENDWHILE
+=bit%
+
 DEF FNhashmap_set(map%, key$, val%)
+  LOCAL bit%, left%, right%
   IF FNis_empty_hashmap(map%) THEN =FNhashmap_alloc_leaf(key$, val%)
-ERROR &40E809FF, "More that one element in hash-map!"
+  IF FNtype_of(map%) = &0A THEN
+    IF S$(Z%(map%,1)) = key$ THEN =FNhashmap_alloc_leaf(key$, val%)
+    bit% = FNkey_bitdiff(key$, S$(Z%(map%,1)))
+    IF FNkey_bit(key$, bit%) THEN
+      left% = map%
+      right% = FNhashmap_alloc_leaf(key$, val%)
+    ELSE
+      right% = map%
+      left% = FNhashmap_alloc_leaf(key$, val%)
+    ENDIF
+    =FNhashmap_alloc_node(bit%, left%, right%)
+  ENDIF
+  IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
+    =FNhashmap_alloc_node(Z%(map%,0)>>16, Z%(map%,1), FNhashmap_set(Z%(map%,2), key$, val%))
+  ELSE
+    =FNhashmap_alloc_node(Z%(map%,0)>>16, FNhashmap_set(Z%(map%,1), key$, val%), Z%(map%,2))
+  ENDIF
 
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
@@ -452,7 +490,8 @@ DEF FNhashmap_get(map%, key$)
   IF FNtype_of(map%) = &0A THEN
     IF S$(Z%(map%,1)) = key$ THEN =FNref_local(Z%(map%,2)) ELSE =FNnil
   ENDIF
-=FNnil
+  IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN =FNhashmap_get(Z%(map%,2), key$)
+=FNhashmap_get(Z%(map%,1), key$)
 
 DEF FNhashmap_contains(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
@@ -460,11 +499,37 @@ DEF FNhashmap_contains(map%, key$)
   IF FNtype_of(map%) = &0A THEN
     IF S$(Z%(map%,1)) = key$ THEN =TRUE ELSE =FALSE
   ENDIF
-=FALSE
+  IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN =FNhashmap_contains(Z%(map%,2), key$)
+=FNhashmap_contains(Z%(map%,1), key$)
 
 DEF FNhashmap_keys(map%)
-  IF FNis_empty_hashmap(map%) THEN =FNempty
-=FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), FNempty)
+=FNhashmap_keys1(map%, FNempty)
+
+DEF FNhashmap_keys1(map%, acc%)
+  REM PROChashmap_dump(map%)
+  IF FNis_empty_hashmap(map%) THEN =acc%
+  IF FNtype_of(map%) = &0A THEN
+    =FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), acc%)
+  ENDIF
+=FNhashmap_keys1(Z%(map%,2), FNhashmap_keys1(Z%(map%,1), acc%))
+
+DEF PROChashmap_dump(map%)
+  IF FNis_empty_hashmap(map%) THEN
+    PRINT "[empty]"
+  ELSE
+    PRINT "[-----]"
+    PROChashmap_dump_internal(map%, "")
+  ENDIF
+ENDPROC
+
+DEF PROChashmap_dump_internal(map%, prefix$)
+  IF FNtype_of(map%) = &0A PRINT prefix$;S$(Z%(map%,1))
+  IF FNtype_of(map%) = &23 THEN
+    PRINT prefix$;"<";Z%(map%,0) >> 16;">"
+    PROChashmap_dump_internal(Z%(map%,1), prefix$ + "L ")
+    PROChashmap_dump_internal(Z%(map%,2), prefix$ + "R ")
+  ENDIF
+ENDPROC
 
 REM ** Functions **
 

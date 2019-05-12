@@ -17,7 +17,7 @@ DEF FNnew_env(outer%, binds%, exprs%)
 DEF PROCenv_set(env%, keysym%, val%)
   LOCAL data%
   data% = FNenvironment_data(env%)
-  data% = FNalloc_hashmap_entry(FNunbox_symbol(keysym%), val%, data%)
+  data% = FNhashmap_set(data%, FNunbox_symbol(keysym%), val%)
   PROCenvironment_set_data(env%, data%)
 ENDPROC
 

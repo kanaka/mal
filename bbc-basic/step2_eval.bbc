@@ -8,10 +8,10 @@ PROCtypes_init
 
 REM  These correspond with the CASE statement in FNcore_call
 repl_env% = FNempty_hashmap
-repl_env% = FNalloc_hashmap_entry("+", FNalloc_corefn(0), repl_env%)
-repl_env% = FNalloc_hashmap_entry("-", FNalloc_corefn(1), repl_env%)
-repl_env% = FNalloc_hashmap_entry("*", FNalloc_corefn(2), repl_env%)
-repl_env% = FNalloc_hashmap_entry("/", FNalloc_corefn(3), repl_env%)
+repl_env% = FNhashmap_set(repl_env%, "+", FNalloc_corefn(0))
+repl_env% = FNhashmap_set(repl_env%, "-", FNalloc_corefn(1))
+repl_env% = FNhashmap_set(repl_env%, "*", FNalloc_corefn(2))
+repl_env% = FNhashmap_set(repl_env%, "/", FNalloc_corefn(3))
 
 REPEAT
   REM  Catch all errors apart from "Escape".
@@ -41,7 +41,7 @@ DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
 
 DEF FNeval_ast(ast%, env%)
-  LOCAL key$, val%, car%, cdr%
+  LOCAL key$, val%, car%, cdr%, map%, keys%, key$
   IF FNis_symbol(ast%) THEN
     val% = FNhashmap_get(env%, FNunbox_symbol(ast%))
     IF val% = FNnil THEN ERROR &40E80922, "Symbol not in environment"
@@ -55,11 +55,14 @@ DEF FNeval_ast(ast%, env%)
     =FNalloc_pair(car%, cdr%)
   ENDIF
   IF FNis_hashmap(ast%) THEN
-    IF FNis_empty_hashmap(ast%) THEN =ast%
-    key$ = FNhashmap_first_key(ast%)
-    val% = FNEVAL(FNhashmap_first_val(ast%), env%)
-    cdr% = FNeval_ast(FNhashmap_rest(ast%), env%)
-    =FNalloc_hashmap_entry(key$, val%, cdr%)
+    map% = FNempty_hashmap
+    keys% = FNhashmap_keys(ast%)
+    WHILE NOT FNis_empty(keys%)
+      key$ = FNunbox_string(FNfirst(keys%))
+      map% = FNhashmap_set(map%, key$, FNEVAL(FNhashmap_get(ast%, key$), env%))
+      keys% = FNrest(keys%)
+    ENDWHILE
+    =map%
   ENDIF
 =ast%
 
