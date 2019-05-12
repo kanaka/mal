@@ -63,45 +63,57 @@
          $pr_type 0
          $pr_name_len 0
          $prepath (STATIC_ARRAY 1024)
-         $dirfd 3
+         $dirfd -1
+         $fd 3
          $fd_ptr (STATIC_ARRAY 4 4)
          $nread_ptr (STATIC_ARRAY 4 4)
          $iovec (STATIC_ARRAY 8 8))
 
-    ;; Find the pre-opened dirfd with the same prefix as the our path
+    ;; Find the pre-opened dir fd with the same prefix as the our path
     ;; following the algorithm at:
     ;; https://github.com/CraneStation/wasi-sysroot/blob/1cc98f27f5ab8afdc033e16eac8799ee606eb769/libc-bottom-half/crt/crt1.c#L71
-    ;; The matching dirfd is then used to open and read the path.
+    ;; The matching dir fd is then used to open and read the path.
     (block $loop_done
       (loop $loop
-        ;; prestat the dirfd from 3 onward until EBADF is returned
-        (local.set $ret ($fd_prestat_get $dirfd $prestat_ptr))
+        ;; prestat the fd from 3 onward until EBADF is returned
+        (local.set $ret ($fd_prestat_get $fd $prestat_ptr))
         (if (i32.eq (global.get $WASI_EBADF) $ret)
           (br $loop_done))
         (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
-          (br $loop))
+          (then
+            (local.set $fd (i32.add 1 $fd))
+            (br $loop)))
+          ;;(br $loop_done))
         (local.set $pr_type (i32.load $prestat_ptr))
         (local.set $pr_name_len (i32.load offset=4 $prestat_ptr))
         ;; Read the pre-opened path name
-        (local.set $ret ($fd_prestat_dir_name $dirfd $prepath $pr_name_len))
-        ;;($printf_4 "dirfd: %d, pr_type: %d, pr_name_len: %d, prepath: %s\n"
-        ;;           $dirfd $pr_type $pr_name_len $prepath)
+        (local.set $ret ($fd_prestat_dir_name $fd $prepath $pr_name_len))
         (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
           (br $loop_done))
+        ;; if pr_name_len includes a null, exclude it from the compare
+        ;;($printf_2 "here1 pr_name_len: %d, char is %d\n" $pr_name_len (i32.load8_u (i32.add $prepath (i32.sub $pr_name_len 1))))
+        (if (i32.eqz (i32.load8_u (i32.add $prepath (i32.sub $pr_name_len 1))))
+          (then
+            (local.set $pr_name_len (i32.sub $pr_name_len 1))))
+        ;; if it is a dir and the path prefix matches, use it
+        ;;($printf_5 "fd: %d, ret: %d, pr_type: %d, pr_name_len: %d, prepath: %s\n"
+        ;;           $fd $ret $pr_type $pr_name_len $prepath)
         (if (AND (i32.eq $pr_type (global.get $WASI_PREOPENTYPE_DIR))
                  (i32.eqz ($strncmp $prepath $path $pr_name_len)))
           (then
-            ;; $ret was success and the path prefix matches, so break
             (local.set $path (i32.add $pr_name_len $path))
+            (local.set $dirfd $fd)
             (br $loop_done)))
-        (local.set $dirfd (i32.add 1 $dirfd))
+        (local.set $fd (i32.add 1 $fd))
         (br $loop)
       )
     )
 
-    (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
+    ;;($printf_3 "final dirfd: %d, adjusted path: %s (%d)\n" $dirfd $path ($strlen $path))
+
+    (if (i32.eq $dirfd -1)
       (then
-        ($printf_1 "ERROR: slurp could not find permission for '%s'\n" $orig_path)
+        ($printf_1 "ERROR: could not find permission for '%s'\n" $orig_path)
         (return 0)))
 
     (local.set $ret ($path_open $dirfd
@@ -115,7 +127,7 @@
                                 $fd_ptr))
     (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
       (then
-        ($printf_1 "ERROR: slurp failed to open '%s'\n" $orig_path)
+        ($printf_2 "ERROR: failed to open '%s', error %d\n" $orig_path $ret)
         (return 0)))
 
     (i32.store $iovec $buf)
@@ -124,7 +136,7 @@
     (local.set $ret ($fd_read (i32.load $fd_ptr) $iovec 1 $nread_ptr))
     (if (i32.ne (global.get $WASI_ESUCCESS) $ret)
       (then
-        ($printf_1 "ERROR: slurp failed to read '%s'\n" $orig_path)
+        ($printf_2 "ERROR: failed to read '%s', error %d\n" $orig_path $ret)
         (return 0)))
 
     ;; Add null to string
@@ -166,7 +178,7 @@
     (local $argc_argv i64)
     ($init_memory)
     (local.set $argc_argv ($get_argc_argv))
-    ($proc_exit 
+    ($proc_exit
       ($main (i32.wrap_i64 (i64.shr_u $argc_argv (i64.const 32)))
              (i32.wrap_i64 $argc_argv)))
   )
