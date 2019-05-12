@@ -208,6 +208,14 @@ DEF FNcore_call(fn%, args%)
     WHEN 45
       PROCcore_prepare_args("h*", "assoc")
       =FNcore_assoc(args%(0), args%)
+    DATA dissoc, 46
+    WHEN 46
+      PROCcore_prepare_args("h*", "dissoc")
+      WHILE NOT FNis_empty(args%)
+        args%(0) = FNhashmap_remove(args%(0), FNunbox_string(FNfirst(args%)))
+        args% = FNrest(args%)
+      ENDWHILE
+      =args%(0)
     DATA get, 47
     WHEN 47
       IF FNis_nil(FNfirst(args%)) THEN =FNnil
@@ -221,6 +229,10 @@ DEF FNcore_call(fn%, args%)
     WHEN 49
       PROCcore_prepare_args("h", "keys")
       =FNhashmap_keys(args%(0))
+    DATA vals, 50
+    WHEN 50
+      PROCcore_prepare_args("h", "vals")
+      =FNhashmap_vals(args%(0))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"

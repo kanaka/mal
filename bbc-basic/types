@@ -484,6 +484,23 @@ DEF FNhashmap_set(map%, key$, val%)
     =FNhashmap_alloc_node(Z%(map%,0)>>16, FNhashmap_set(Z%(map%,1), key$, val%), Z%(map%,2))
   ENDIF
 
+DEF FNhashmap_remove(map%, key$)
+  LOCAL child%
+  IF FNis_empty_hashmap(map%) THEN =map%
+  IF FNtype_of(map%) = &0A THEN
+    IF S$(Z%(map%,1)) = key$ THEN =FNempty_hashmap
+  ENDIF
+  IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
+    child% = FNhashmap_remove(Z%(map%,2), key$)
+    IF FNis_empty_hashmap(child%) THEN =Z%(map%,1)
+    =FNhashmap_alloc_node(Z%(map%,0)>>16, Z%(map%,1), child%)
+  ELSE
+    child% = FNhashmap_remove(Z%(map%,1), key$)
+    IF FNis_empty_hashmap(child%) THEN =Z%(map%,2)
+    =FNhashmap_alloc_node(Z%(map%,0)>>16, child%, Z%(map%,2))
+  ENDIF
+
+
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
   IF FNis_empty_hashmap(map%) THEN =FNnil
@@ -512,6 +529,17 @@ DEF FNhashmap_keys1(map%, acc%)
     =FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), acc%)
   ENDIF
 =FNhashmap_keys1(Z%(map%,2), FNhashmap_keys1(Z%(map%,1), acc%))
+
+DEF FNhashmap_vals(map%)
+=FNhashmap_vals1(map%, FNempty)
+
+DEF FNhashmap_vals1(map%, acc%)
+  REM PROChashmap_dump(map%)
+  IF FNis_empty_hashmap(map%) THEN =acc%
+  IF FNtype_of(map%) = &0A THEN
+    =FNalloc_pair(Z%(map%,2), acc%)
+  ENDIF
+=FNhashmap_vals1(Z%(map%,2), FNhashmap_vals1(Z%(map%,1), acc%))
 
 DEF PROChashmap_dump(map%)
   IF FNis_empty_hashmap(map%) THEN
