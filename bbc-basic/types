@@ -16,7 +16,14 @@ REM  is inefficient but should make memory management simpler.
 REM  S%() holds reference counts for the strings in S$().  At present
 REM  these are all 0 or 1.
 
-REM  Z%(x,0) holds the type of an object.  High-order bits contain flags.
+REM  Z%(x,0) holds the type of an object and other small amounts of
+REM  information.  The bottom 4 bits indicate the semantics of the other
+REM  fields:
+
+REM  &01 : Z%(x,1) is a pointer into Z%()
+REM  &02 : Z%(x,2) is a pointer into Z%()
+REM  &04 : Z%(x,3) is a pointer into Z%()
+REM  &08 : Z%(x,1) is a pointer into S$()
 
 REM  sS%() is a shadow stack, used to keep track of which mal values might
 REM  be referenced from local variables at a given depth of the BASIC call
@@ -26,17 +33,18 @@ REM  of each shadow stack frame is the saved value of sFP%.  The rest are
 REM  mal values.
 
 REM  Types are:
-REM  0   nil
-REM  1   boolean
-REM  2   integer
-REM  4   string/keyword
-REM  5   symbol
-REM  6   list (each object is a cons cell)
-REM  8   hash-map (each object is one entry)
-REM  9   core function
-REM  10  mal function
-REM  13  environment
-REM  15  free block
+REM  &00  nil
+REM  &10  boolean
+REM  &20  integer
+REM  &30  core function
+REM  &01  atom
+REM  &11  free block
+REM  &03  list (each object is a cons cell)
+REM  &13  environment
+REM  &07  mal function
+REM  &08  string/keyword
+REM  &18  symbol
+REM  &0E  hash-map (each object is one entry)
 
 REM  Formats of individual objects are defined below.
 
@@ -46,11 +54,11 @@ DEF PROCtypes_init
   DIM Z%((HIMEM-LOMEM)/32,3)
   DIM S$((HIMEM-LOMEM)/64), S%((HIMEM-LOMEM)/64)
   DIM sS%((HIMEM-LOMEM)/64)
-  Z%(1,0) = 1: REM false
-  Z%(2,0) = 1: Z%(2,1) = TRUE: REM true
-  Z%(3,0) = 6: REM empty list
-  Z%(4,0) = &86 : REM empty vector
-  Z%(5,0) = 8: REM empty hashmap
+  Z%(1,0) = &10 : REM false
+  Z%(2,0) = &10 : Z%(2,1) = TRUE : REM true
+  Z%(3,0) = &03 : REM empty list
+  Z%(4,0) = &83 : REM empty vector
+  Z%(5,0) = &0E:  REM empty hashmap
   next_Z% = 6
   next_S% = 0
   sSP% = 1
@@ -60,7 +68,7 @@ DEF PROCtypes_init
 ENDPROC
 
 DEF FNtype_of(val%)
-=Z%(val%,0) AND 31
+=Z%(val%,0) AND &3F
 
 DEF PROCgc_enter
   REM PRINT ;sFP%;
@@ -136,12 +144,8 @@ DEF FNsalloc(s$)
 =val%
 
 DEF PROCfree(val%)
-  CASE FNtype_of(val%) OF
-    WHEN 4 : PROCfree_string(val%)
-    WHEN 5 : PROCfree_symbol(val%)
-    WHEN 8 : PROCfree_hashmap(val%)
-  ENDCASE
-  Z%(val%,0) = 15
+  IF (Z%(val%,0) AND &08) THEN PROCsfree(Z%(val%,1))
+  Z%(val%,0) = &11
   Z%(val%,1) = F%
   Z%(val%,2) = 0
   Z%(val%,3) = 0
@@ -179,13 +183,9 @@ DEF PROCgc_mark(val%)
   IF (Z%(val%,0) AND &100) = 0 THEN
     REM PRINT " ";val%;
     Z%(val%,0) += &100
-    CASE FNtype_of(val%) OF
-      WHEN 6 :  PROCgc_mark_seq(val%)
-      WHEN 8 :  PROCgc_mark_hashmap(val%)
-      WHEN 10 : PROCgc_mark_fn(val%)
-      WHEN 12 : PROCgc_mark_atom(val%)
-      WHEN 13 : PROCgc_mark_environment(val%)
-    ENDCASE
+    IF (Z%(val%,0) AND &01) THEN PROCgc_mark(Z%(val%,1))
+    IF (Z%(val%,0) AND &02) THEN PROCgc_mark(Z%(val%,2))
+    IF (Z%(val%,0) AND &04) THEN PROCgc_mark(Z%(val%,3))
   ENDIF
 ENDPROC
 
@@ -193,7 +193,7 @@ DEF PROCgc_sweep
   LOCAL val%
   REM PRINT ">>sweeping ...";
   FOR val% = 6 TO next_Z% - 1
-    IF FNtype_of(val%) <> 15 AND (Z%(val%,0) AND &100) = 0 THEN
+    IF FNtype_of(val%) <> &11 AND (Z%(val%,0) AND &100) = 0 THEN
       REM PRINT " ";val%;
       PROCfree(val%)
     ELSE
@@ -216,7 +216,7 @@ REM ** Boolean **
 REM  Z%(x,1) = TRUE or FALSE
 
 DEF FNis_boolean(val%)
-=FNtype_of(val%) = 1
+=FNtype_of(val%) = &10
 
 DEF FNalloc_boolean(bval%)
   IF bval% THEN =2
@@ -236,11 +236,11 @@ REM ** Integers **
 REM  Z%(x,1) = integer value
 
 DEF FNis_int(val%)
-=FNtype_of(val%) = 2
+=FNtype_of(val%) = &20
 
 DEF FNalloc_int(ival%)
   LOCAL val%
-  val% = FNmalloc(2)
+  val% = FNmalloc(&20)
   Z%(val%,1) = ival%
 =val%
 
@@ -253,17 +253,13 @@ REM ** Strings and keywords **
 REM  A keyword is a string with first character CHR$(127).
 
 DEF FNis_string(val%)
-=FNtype_of(val%) = 4
+=FNtype_of(val%) = &08
 
 DEF FNalloc_string(sval$)
   LOCAL val%
-  val% = FNmalloc(4)
+  val% = FNmalloc(&08)
   Z%(val%,1) = FNsalloc(sval$)
 =val%
-
-DEF PROCfree_string(val%)
-  PROCsfree(Z%(val%,1))
-ENDPROC
 
 DEF FNunbox_string(val%)
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
@@ -274,17 +270,13 @@ REM ** Symbols **
 REM  Z%(x,1) = index in S$() of the value of the symbol
 
 DEF FNis_symbol(val%)
-=FNtype_of(val%) = 5
+=FNtype_of(val%) = &18
 
 DEF FNalloc_symbol(sval$)
   LOCAL val%
-  val% = FNmalloc(5)
+  val% = FNmalloc(&18)
   Z%(val%,1) = FNsalloc(sval$)
 =val%
-
-DEF PROCfree_symbol(val%)
-  PROCsfree(Z%(val%,1))
-ENDPROC
 
 DEF FNunbox_symbol(val%)
   IF NOT FNis_symbol(val%) THEN ERROR &40E80915, "Not a symbol"
@@ -313,7 +305,7 @@ DEF FNempty_vector
 
 DEF FNalloc_pair(car%, cdr%)
   LOCAL val%
-  val% = FNmalloc(6)
+  val% = FNmalloc(&03)
   Z%(val%,2) = car%
   Z%(val%,1) = cdr%
 =val%
@@ -328,13 +320,13 @@ DEF FNis_empty(val%)
 =val% = FNempty OR val% = FNempty_vector
 
 DEF FNis_seq(val%)
-=FNtype_of(val%) = 6
+=FNtype_of(val%) = &03
 
 DEF FNis_list(val%)
-=FNtype_of(val%) = 6 AND (Z%(val%, 0) AND &80) = &00
+=FNtype_of(val%) = &03 AND (Z%(val%, 0) AND &80) = &00
 
 DEF FNis_vector(val%)
-=FNtype_of(val%) = 6 AND (Z%(val%, 0) AND &80) = &80
+=FNtype_of(val%) = &03 AND (Z%(val%, 0) AND &80) = &80
 
 DEF FNas_list(val%)
   IF FNis_list(val%) THEN =val%
@@ -342,16 +334,9 @@ DEF FNas_list(val%)
 =FNalloc_pair(FNfirst(val%), FNrest(val%))
 
 DEF FNas_vector(val%)
-  IF FNis_vector(val%) = &80 THEN =val%
+  IF FNis_vector(val%) THEN =val%
   IF FNis_empty(val%) THEN =FNempty_vector
 =FNalloc_vector_pair(FNfirst(val%), FNrest(val%))
-
-DEF PROCgc_mark_seq(val%)
-  IF NOT FNis_empty(val%) THEN
-    PROCgc_mark(Z%(val%,1))
-    PROCgc_mark(Z%(val%,2))
-  ENDIF
-ENDPROC
 
 DEF FNfirst(val%)
   IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get car of non-sequence"
@@ -411,11 +396,11 @@ REM ** Core functions **
 REM  Z%(x,1) = index of function in FNcore_call
 
 DEF FNis_corefn(val%)
-=FNtype_of(val%) = 9
+=FNtype_of(val%) = &30
 
 DEF FNalloc_corefn(fn%)
   LOCAL val%
-  val% = FNmalloc(9)
+  val% = FNmalloc(&30)
   Z%(val%,1) = fn%
 =val%
 
@@ -425,9 +410,9 @@ DEF FNunbox_corefn(val%)
 
 REM ** Hash-maps **
 
-REM  Z%(x,1) = index in Z%() of next element
-REM  Z%(x,2) = index in S$() of value
-REM  Z%(x,3) = index in Z%() of value
+REM  Z%(x,1) = index in S$() of value
+REM  Z%(x,2) = index in Z%() of value
+REM  Z%(x,3) = index in Z%() of next element
 
 REM  To defer implementing mal strings for a bit, hashmap keys are
 REM  currently BASIC strings rather than arbitrary values.
@@ -440,51 +425,42 @@ DEF FNis_empty_hashmap(val%)
 
 DEF FNalloc_hashmap_entry(key$, val%, next%)
   LOCAL entry%
-  entry% = FNmalloc(8)
-  Z%(entry%,1) = next%
-  Z%(entry%,2) = FNsalloc(key$)
-  Z%(entry%,3) = val%
+  entry% = FNmalloc(&0E)
+  Z%(entry%,1) = FNsalloc(key$)
+  Z%(entry%,2) = val%
+  Z%(entry%,3) = next%
 =entry%
 
 DEF FNis_hashmap(val%)
-=FNtype_of(val%) = 8
-
-DEF PROCgc_mark_hashmap(val%)
-  PROCgc_mark(Z%(val%,1))
-  PROCgc_mark(Z%(val%,3))
-ENDPROC
-
-DEF PROCfree_hashmap(val%)
-  PROCsfree(Z%(val%,2))
-ENDPROC
+=FNtype_of(val%) = &0E
 
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
   WHILE map% <> FNempty_hashmap
-    IF S$(Z%(map%,2)) = key$ THEN =FNref_local(Z%(map%,3))
-    map% = Z%(map%,1)
+    IF S$(Z%(map%,1)) = key$ THEN =FNref_local(Z%(map%,2))
+    map% = Z%(map%,3)
   ENDWHILE
 =FNnil
 
 DEF FNhashmap_contains(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
   WHILE map% <> FNempty_hashmap
-    IF S$(Z%(map%,2)) = key$ THEN =TRUE
-    map% = Z%(map%,1)
+    IF S$(Z%(map%,1)) = key$ THEN =TRUE
+    map% = Z%(map%,3)
   ENDWHILE
 =FALSE
 
 DEF FNhashmap_first_key(map%)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-=S$(Z%(map%,2))
+=S$(Z%(map%,1))
 
 DEF FNhashmap_first_val(map%)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-=Z%(map%,3)
+=Z%(map%,2)
 
 DEF FNhashmap_rest(map%)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get rest of a non-hashmap"
-=Z%(map%,1)
+=Z%(map%,3)
 
 REM ** Functions **
 
@@ -494,17 +470,17 @@ REM  Z%(x,2) = index in Z%() of params
 REM  Z%(x,3) = index in Z%() of env
 
 DEF FNis_fn(val%)
-=FNtype_of(val%) = 10
+=FNtype_of(val%) = &07
 
 DEF FNis_nonmacro_fn(val%)
-=FNtype_of(val%) = 10 AND (Z%(val%, 0) AND &80) = &00
+=FNtype_of(val%) = &07 AND (Z%(val%, 0) AND &80) = &00
 
 DEF FNis_macro(val%)
-=FNtype_of(val%) = 10 AND (Z%(val%, 0) AND &80) = &80
+=FNtype_of(val%) = &07 AND (Z%(val%, 0) AND &80) = &80
 
 DEF FNalloc_fn(ast%, params%, env%)
   LOCAL val%
-  val% = FNmalloc(10)
+  val% = FNmalloc(&07)
   Z%(val%,1) = ast%
   Z%(val%,2) = params%
   Z%(val%,3) = env%
@@ -513,12 +489,6 @@ DEF FNalloc_fn(ast%, params%, env%)
 DEF PROCmake_macro(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
   Z%(val%, 0) = Z%(val%, 0) OR &80
-ENDPROC
-
-DEF PROCgc_mark_fn(val%)
-  PROCgc_mark(Z%(val%,1))
-  PROCgc_mark(Z%(val%,2))
-  PROCgc_mark(Z%(val%,3))
 ENDPROC
 
 DEF FNfn_ast(val%)
@@ -538,17 +508,13 @@ REM ** Atoms **
 REM Z%(x,1) = index in Z% of current referent
 
 DEF FNis_atom(val%)
-=FNtype_of(val%) = 12
+=FNtype_of(val%) = &01
 
 DEF FNalloc_atom(contents%)
   LOCAL val%
-  val% = FNmalloc(12)
+  val% = FNmalloc(&01)
   Z%(val%,1) = contents%
 =val%
-
-DEF PROCgc_mark_atom(val%)
-  PROCgc_mark(Z%(val%,1))
-ENDPROC
 
 DEF FNatom_deref(val%)
 =FNref_local(Z%(val%,1))
@@ -563,19 +529,14 @@ REM  Z%(x,1) = index in Z% of hash-map
 REM  Z%(x,2) = index in Z% of outer environment
 
 DEF FNis_environment(val%)
-=FNtype_of(val%) = 13
+=FNtype_of(val%) = &13
 
 DEF FNalloc_environment(outer%)
   LOCAL val%
-  val% = FNmalloc(13)
+  val% = FNmalloc(&13)
   Z%(val%,1) = FNempty_hashmap
   Z%(val%,2) = outer%
 =val%
-
-DEF PROCgc_mark_environment(val%)
-  PROCgc_mark(Z%(val%,1))
-  PROCgc_mark(Z%(val%,2))
-ENDPROC
 
 DEF FNenvironment_data(val%)
   IF NOT FNis_environment(val%) THEN ERROR &40E8091D, "Not an environment"
