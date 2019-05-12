@@ -5,7 +5,7 @@ DEF FNnew_env(outer%, binds%, exprs%)
   env% = FNalloc_environment(outer%)
   WHILE NOT FNis_empty(binds%)
     IF FNunbox_symbol(FNfirst(binds%)) = "&" THEN
-      PROCenv_set(env%, FNnth(binds%, 1), exprs%)
+      PROCenv_set(env%, FNnth(binds%, 1), FNas_list(exprs%))
       binds% = FNempty
     ELSE
       PROCenv_set(env%, FNfirst(binds%), FNfirst(exprs%))
