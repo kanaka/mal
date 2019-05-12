@@ -204,6 +204,15 @@ DEF FNcore_call(fn%, args%)
     WHEN 44
       PROCcore_prepare_args("?", "map?")
       =FNalloc_boolean(FNis_hashmap(args%(0)))
+    DATA get, 47
+    WHEN 47
+      IF FNis_nil(FNfirst(args%)) THEN =FNnil
+      PROCcore_prepare_args("hs", "get")
+      =FNhashmap_get(args%(0), arg$)
+    DATA contains?, 48
+    WHEN 48
+      PROCcore_prepare_args("hs", "contains?")
+      =FNalloc_boolean(FNhashmap_contains(args%(0), arg$))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -219,6 +228,7 @@ DEF PROCcore_prepare_args(spec$, fn$)
   REM  "l" - Must be a sequence;  stuff into args%()
   REM  "f" - Must be a function;  stuff into args%()
   REM  "a" - Must be an atom;     stuff into args%()
+  REM  "h" - Must be a hash-map;  stuff into args%()
   REM  "C" - Must be 'count'able  stuff into args%()
   REM  "?" - Any single argument  stuff into args%()
   REM  "*" - Any number of (trailing) arguments; leave in args%
@@ -263,6 +273,11 @@ DEF PROCcore_prepare_args(spec$, fn$)
       WHEN "a"
         IF NOT FNis_atom(val%) THEN
           ERROR &40E8091C, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be an atom"
+        ENDIF
+        args%(i% - 1) = val%
+      WHEN "h"
+        IF NOT FNis_hashmap(val%) THEN
+          ERROR &40E8091D, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a hash-map"
         ENDIF
         args%(i% - 1) = val%
       WHEN "C"
@@ -363,7 +378,7 @@ DEF FNcore_hashmap(args%)
   map% = FNempty_hashmap
   WHILE NOT FNis_empty(args%)
     PROCcore_prepare_args("s?*", "hash-map")
-    map% = FNalloc_hashmap_entry(arg$, args%(1), map%)
+    map% = FNhashmap_set(map%, arg$, args%(1))
   ENDWHILE
 =map%
 
