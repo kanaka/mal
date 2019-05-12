@@ -1,5 +1,5 @@
 class Mal.Env : GLib.Object {
-    public GLib.HashTable<Mal.Sym, Mal.Val> data;
+    private GLib.HashTable<Mal.Sym, Mal.Val> data;
     Mal.Env? outer;
 
     construct {
