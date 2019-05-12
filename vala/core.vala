@@ -756,7 +756,9 @@ class Mal.BuiltinFunctionApply : Mal.BuiltinFunction {
         if (list == null)
             throw new Mal.Error.BAD_PARAMS(
                 "%s: expected final argument to be a list", name());
-        var fnargs = list.as_glib_list();
+        var fnargs = new GLib.List<Mal.Val>();
+        for (var iter = list.iter(); iter.nonempty(); iter.step())
+            fnargs.append(iter.deref());
         for (unowned GLib.List<Mal.Val> link = lastlink.prev;
              link != args.vs; link = link.prev)
             fnargs.prepend(link.data);

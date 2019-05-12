@@ -38,12 +38,6 @@ class Mal.Bool : Mal.Hashable {
 // make that easy, Mal.Nil also derives from Mal.Listlike.
 abstract class Mal.Listlike : Mal.ValWithMetadata {
     public abstract Mal.Iterator iter();
-    public GLib.List<Mal.Val> as_glib_list() {
-        var newlist = new GLib.List<Mal.Val>();
-        for (var it = iter(); it.nonempty(); it.step())
-            newlist.append(it.deref());
-        return newlist;
-    }
 }
 
 abstract class Mal.Iterator : GLib.Object {
