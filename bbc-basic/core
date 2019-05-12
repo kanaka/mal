@@ -233,6 +233,12 @@ DEF FNcore_call(fn%, args%)
     WHEN 50
       PROCcore_prepare_args("h", "vals")
       =FNhashmap_vals(args%(0))
+    DATA readline, 51
+    WHEN 51
+      PROCcore_prepare_args("s", "readline")
+      PRINT arg$;
+      LINE INPUT "" arg$
+      =FNalloc_string(arg$)
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
