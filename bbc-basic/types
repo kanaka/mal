@@ -22,7 +22,6 @@ REM  fields:
 
 REM  &01 : Z%(x,1) is a pointer into Z%()
 REM  &02 : Z%(x,2) is a pointer into Z%()
-REM  &04 : Z%(x,3) is a pointer into Z%()
 REM  &08 : Z%(x,1) is a pointer into S$()
 
 REM  sS%() is a shadow stack, used to keep track of which mal values might
@@ -188,7 +187,7 @@ DEF PROCgc_mark(val%)
     Z%(val%,0) += &100
     IF (Z%(val%,0) AND &01) THEN PROCgc_mark(Z%(val%,1))
     IF (Z%(val%,0) AND &02) THEN PROCgc_mark(Z%(val%,2))
-    IF (Z%(val%,0) AND &04) THEN PROCgc_mark(Z%(val%,3))
+    PROCgc_mark(Z%(val%,3))
   ENDIF
 ENDPROC
 
@@ -205,6 +204,17 @@ DEF PROCgc_sweep
   NEXT val%
   REM PRINT
 ENDPROC
+
+DEF FNmeta(val%)
+=Z%(val%,3)
+
+DEF FNwith_meta(val%, meta%)
+  LOCAL newval%
+  newval% = FNmalloc(Z%(val%,0))
+  Z%(newval%,1) = Z%(val%,1)
+  Z%(newval%,2) = Z%(val%,2)
+  Z%(newval%,3) = meta%
+=newval%
 
 REM ** Nil **
 

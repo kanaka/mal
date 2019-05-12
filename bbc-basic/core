@@ -239,6 +239,14 @@ DEF FNcore_call(fn%, args%)
       PRINT arg$;
       LINE INPUT "" arg$
       =FNalloc_string(arg$)
+    DATA meta, 52
+    WHEN 52
+      PROCcore_prepare_args("f", "meta")
+      =FNmeta(args%(0))
+    DATA with-meta, 53
+    WHEN 53
+      PROCcore_prepare_args("f?", "with-meta")
+      =FNwith_meta(args%(0), args%(1))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
