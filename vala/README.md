@@ -20,11 +20,6 @@ Notes on building:
 
 Design notes on the implementation:
 
-* Vala has a reference counting system built in to the language.
-  Garbage collection of mal objects is delegated to that system. So
-  you can almost certainly contrive an un-GC-able cycle of objects by
-  using atoms, and I haven't done anything about that.
-
 * Vala has exceptions (which it calls 'error domains'), but they don't
   let you store an arbitrary data type: every exception subclass you
   make stores the same data, namely a string. So mal exceptions are
@@ -48,3 +43,18 @@ Design notes on the implementation:
   never mutated again, which means it's safe for the copying operation
   in `with-meta` to make a second `Mal.List` sharing the reference to
   the same `GLib.List`.
+
+* Vala has a reference counting system built in to the language, but
+  that's not enough to implement mal sensibly, because the common
+  construction `(def! FUNC (fn* [ARGS] BODY))` causes a length-2 cycle
+  of references: the environment captured in `FUNC`'s function object
+  is the same one where `def!` inserts the definition of `FUNC`, so
+  the function and environment both link to each other. And either
+  element of the cycle could end up being the last one referred to
+  from elsewhere, so you can't break the link by just making the right
+  one of those references weak. So instead there's a small garbage
+  collector in `gc.vala`, which works by being the only part of the
+  program that keeps a non-weak reference to any `Mal.Val` or
+  `Mal.Env`: it links all GCable objects together into a list, and
+  when the collector runs, it unlinks dead objects from that list and
+  allows Vala's normal reference counting to free them.

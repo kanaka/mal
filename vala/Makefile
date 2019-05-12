@@ -1,6 +1,6 @@
 PROGRAMS = step0_repl step1_read_print step2_eval step3_env step4_if_fn_do \
            step5_tco step6_file step7_quote step8_macros step9_try stepA_mal
-AUX1 = types.vala reader.vala printer.vala
+AUX1 = gc.vala types.vala reader.vala printer.vala
 AUX3 = $(AUX1) env.vala
 AUX4 = $(AUX3) core.vala
 
@@ -20,6 +20,13 @@ all: $(PROGRAMS)
 #  -X -fsanitize=address    link the output program against Address Sanitizer
 #
 #  --save-temps    don't automatically delete the C files after compiling
+#
+#  -D GC_STATS     print statistics every time the garbage collector runs
+#
+#  -D GC_DEBUG     print full diagnostics from the garbage collector
+#
+#  -D GC_ALWAYS    make the garbage collector run at every opportunity
+#                  (good for making occasional GC errors show up sooner)
 
 $(PROGRAMS): %: %.vala
 	valac $(VFLAGS) -o $@ $^ $(DEFINES) --pkg readline -X -lreadline

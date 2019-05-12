@@ -9,7 +9,7 @@ public errordomain Mal.Error {
     NOT_IMPLEMENTED_IN_THIS_STEP,
 }
 
-abstract class Mal.Val : GLib.Object {
+abstract class Mal.Val : GC.Object {
     public abstract bool truth_value();
 }
 
@@ -28,6 +28,7 @@ class Mal.Bool : Mal.Hashable {
         hashkey = value ? "bt" : "bf";
     }
     public override bool truth_value() { return v; }
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 // Mal.Listlike is a subclass of Mal.Val which includes both lists and
@@ -57,12 +58,18 @@ abstract class Mal.ValWithMetadata : Mal.Val {
         metadata = null;
     }
     public abstract Mal.ValWithMetadata copy();
+    public abstract void gc_traverse_m(GC.Object.VisitorFunc visit);
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {
+        visit(metadata);
+        gc_traverse_m(visit);
+    }
 }
 
 class Mal.Nil : Mal.Listlike {
     public override bool truth_value() { return false; }
     public override Mal.Iterator iter() { return new Mal.NilIterator(); }
     public override Mal.ValWithMetadata copy() { return new Mal.Nil(); }
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.NilIterator : Mal.Iterator {
@@ -71,7 +78,7 @@ class Mal.NilIterator : Mal.Iterator {
 }
 
 class Mal.List : Mal.Listlike {
-    public GLib.List<Val> vs;
+    public GLib.List<weak Val> vs;
     public List(GLib.List<Val> values) {
         foreach (var value in values) {
             vs.append(value);
@@ -88,6 +95,10 @@ class Mal.List : Mal.Listlike {
     public override Mal.ValWithMetadata copy() {
         return new Mal.List(vs);
     }        
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+        foreach (var v in vs)
+            visit(v);
+    }
 }
 
 class Mal.ListIterator : Mal.Iterator {
@@ -103,19 +114,20 @@ class Mal.ListIterator : Mal.Iterator {
 }
 
 class Mal.Vector : Mal.Listlike {
-    public Val[] vs;
+    struct Ref { weak Mal.Val v; }
+    private Ref[] rs;
     public Vector.from_list(GLib.List<Val> values) {
-        vs = new Val[values.length()];
+        rs = new Ref[values.length()];
         int i = 0;
         foreach (var value in values) {
-            vs[i++] = value;
+            rs[i++] = { value };
         }
     }
     public Vector.with_size(uint size) {
-        vs = new Val[size];
+        rs = new Ref[size];
     }
     private Vector.copy_of(Vector v) {
-        vs = v.vs;
+        rs = v.rs;
     }
     public override bool truth_value() { return true; }
     public override Mal.Iterator iter() {
@@ -127,14 +139,18 @@ class Mal.Vector : Mal.Listlike {
     public override Mal.ValWithMetadata copy() {
         return new Mal.Vector.copy_of(this);
     }
-    public uint length { get { return vs.length; } }
+    public uint length { get { return rs.length; } }
     public new Mal.Val @get(uint pos) {
-        assert(pos < vs.length);
-        return vs[pos];
+        assert(pos < rs.length);
+        return rs[pos].v;
     }
     public new void @set(uint pos, Mal.Val v) {
-        assert(pos < vs.length);
-        vs[pos] = v;
+        assert(pos < rs.length);
+        rs[pos].v = v;
+    }
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+        foreach (var r in rs)
+            visit(r.v);
     }
 }
 
@@ -142,10 +158,10 @@ class Mal.VectorIterator : Mal.Iterator {
     public Mal.Vector vec;
     public int pos;
     public override Mal.Val? deref() {
-        return pos >= vec.vs.length ? null : vec.vs[pos];
+        return pos >= vec.length ? null : vec[pos];
     }
     public override Mal.Iterator step() {
-        if (pos < vec.vs.length) pos++;
+        if (pos < vec.length) pos++;
         return this;
     }
 }
@@ -157,11 +173,13 @@ class Mal.Num : Mal.Hashable {
         hashkey = "N" + v.to_string();
     }
     public override bool truth_value() { return true; }
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 abstract class Mal.SymBase : Mal.Hashable {
     public string v;
     public override bool truth_value() { return true; }
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.Sym : Mal.SymBase {
@@ -185,12 +203,13 @@ class Mal.String : Mal.Hashable {
         hashkey = "\"" + v;
     }
     public override bool truth_value() { return true; }
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.Hashmap : Mal.ValWithMetadata {
-    public GLib.HashTable<Mal.Hashable, Mal.Val> vs;
+    public GLib.HashTable<weak Mal.Hashable, weak Mal.Val> vs;
     construct {
-        vs = new GLib.HashTable<Mal.Hashable, Mal.Val>(
+        vs = new GLib.HashTable<weak Mal.Hashable, weak Mal.Val>(
             Mal.Hashable.hash, Mal.Hashable.equal);
     }
     public void insert(Mal.Val key, Mal.Val value) throws Mal.Error {
@@ -211,20 +230,27 @@ class Mal.Hashmap : Mal.ValWithMetadata {
         toret.vs = vs;
         return toret;
     }        
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+        foreach (var key in vs.get_keys()) {
+            visit(key);
+            visit(vs[key]);
+        }
+    }
 }
 
 abstract class Mal.BuiltinFunction : Mal.ValWithMetadata {
     public abstract string name();
     public abstract Mal.Val call(Mal.List args) throws Mal.Error;
     public override bool truth_value() { return true; }
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {}
 }
 
 class Mal.Function : Mal.ValWithMetadata {
     public bool is_macro;
 #if !NO_ENV
-    public Mal.Listlike parameters;
-    public Mal.Val body;
-    public Mal.Env env;
+    public weak Mal.Listlike parameters;
+    public weak Mal.Val body;
+    public weak Mal.Env env;
     public Function(Mal.Listlike parameters_, Mal.Val body_, Mal.Env env_) {
         parameters = parameters_;
         body = body_;
@@ -243,12 +269,22 @@ class Mal.Function : Mal.ValWithMetadata {
 #endif
     }
     public override bool truth_value() { return true; }
+    public override void gc_traverse_m(GC.Object.VisitorFunc visit) {
+#if !NO_ENV
+        visit(parameters);
+        visit(body);
+        visit(env);
+#endif
+    }
 }
 
 class Mal.Atom : Mal.Val {
-    public Mal.Val v;
+    public weak Mal.Val v;
     public Atom(Mal.Val v_) { v = v_; }
     public override bool truth_value() { return true; }
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {
+        visit(v);
+    }
 }
 
 bool is_pair(Mal.Val v) {

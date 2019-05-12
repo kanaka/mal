@@ -37,6 +37,7 @@ class Mal.Main : GLib.Object {
         if (val != null) {
             val = EVAL(val);
             PRINT(val);
+            GC.Core.maybe_collect();
         }
     }
 
