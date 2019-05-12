@@ -1,7 +1,7 @@
 REM > printer library for mal in BBC BASIC
 
 DEF FNpr_str(val%, print_readably%)
-  LOCAL ret$, term$, val$
+  LOCAL ret$, term$, val$, keys%
   IF FNis_nil(val%) THEN ="nil"
   IF FNis_boolean(val%) THEN
     IF FNunbox_boolean(val%) THEN ="true" ELSE ="false"
@@ -26,11 +26,12 @@ DEF FNpr_str(val%, print_readably%)
   ENDIF
   IF FNis_hashmap(val%) THEN
     ret$ = "{"
-    WHILE NOT FNis_empty_hashmap(val%)
+    keys% = FNhashmap_keys(val%)
+    WHILE NOT FNis_empty(keys%)
       IF LEN(ret$) > 1 THEN ret$ += " "
-      ret$ += FNpr_str(FNalloc_string(FNhashmap_first_key(val%)), print_readably%)
-      ret$ += " " + FNpr_str(FNhashmap_first_val(val%), print_readably%)
-      val% = FNhashmap_rest(val%)
+      ret$ += FNpr_str(FNfirst(keys%), print_readably%) + " "
+      ret$ += FNpr_str(FNhashmap_get(val%, FNunbox_string(FNfirst(keys%))), print_readably%)
+      keys% = FNrest(keys%)
     ENDWHILE
     =ret$ + "}"
   ENDIF

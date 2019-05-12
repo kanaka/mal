@@ -37,14 +37,16 @@ REM  &00  nil
 REM  &10  boolean
 REM  &20  integer
 REM  &30  core function
+REM  &40  empty hash-map
 REM  &01  atom
 REM  &11  free block
 REM  &03  list (each object is a cons cell)
 REM  &13  environment
+REM  &23  hash-map internal node
 REM  &07  mal function
 REM  &08  string/keyword
 REM  &18  symbol
-REM  &0E  hash-map (each object is one entry)
+REM  &0A  hash-map leaf node
 
 REM  Formats of individual objects are defined below.
 
@@ -58,7 +60,7 @@ DEF PROCtypes_init
   Z%(2,0) = &10 : Z%(2,1) = TRUE : REM true
   Z%(3,0) = &03 : REM empty list
   Z%(4,0) = &83 : REM empty vector
-  Z%(5,0) = &0E:  REM empty hashmap
+  Z%(5,0) = &40:  REM empty hashmap
   next_Z% = 6
   next_S% = 0
   sSP% = 1
@@ -410,12 +412,17 @@ DEF FNunbox_corefn(val%)
 
 REM ** Hash-maps **
 
-REM  Z%(x,1) = index in S$() of value
-REM  Z%(x,2) = index in Z%() of value
-REM  Z%(x,3) = index in Z%() of next element
+REM  Hash-maps are represented as a PATRICIA tree.
+REM  An internal node has:
+REM  Z%(x,0) >> 16 = next bit of key to check
+REM  Z%(x,1) = index in Z%() of left child (if next bit of key is 0)
+REM  Z%(x,2) = index in Z%() of right child (if next bit of key is 1)
 
-REM  To defer implementing mal strings for a bit, hashmap keys are
-REM  currently BASIC strings rather than arbitrary values.
+REM  A leaf node has
+REM  Z%(x,1) = index in S$() of key
+REM  Z%(x,2) = index in Z%() of value
+
+REM  The empty hash-map is a special value containing no data.
 
 DEF FNempty_hashmap
 =5
@@ -423,44 +430,41 @@ DEF FNempty_hashmap
 DEF FNis_empty_hashmap(val%)
 =val% = FNempty_hashmap
 
-DEF FNalloc_hashmap_entry(key$, val%, next%)
+DEF FNhashmap_alloc_leaf(key$, val%)
   LOCAL entry%
-  entry% = FNmalloc(&0E)
+  entry% = FNmalloc(&0A)
   Z%(entry%,1) = FNsalloc(key$)
   Z%(entry%,2) = val%
-  Z%(entry%,3) = next%
-=entry%
+=entry%  
 
 DEF FNis_hashmap(val%)
-=FNtype_of(val%) = &0E
+  LOCAL t%
+  t% = FNtype_of(val%)
+=t% = &23 OR t% = &0A OR t% = &40
+
+DEF FNhashmap_set(map%, key$, val%)
+  IF FNis_empty_hashmap(map%) THEN =FNhashmap_alloc_leaf(key$, val%)
+ERROR &40E809FF, "More that one element in hash-map!"
 
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-  WHILE map% <> FNempty_hashmap
-    IF S$(Z%(map%,1)) = key$ THEN =FNref_local(Z%(map%,2))
-    map% = Z%(map%,3)
-  ENDWHILE
+  IF FNis_empty_hashmap(map%) THEN =FNnil
+  IF FNtype_of(map%) = &0A THEN
+    IF S$(Z%(map%,1)) = key$ THEN =FNref_local(Z%(map%,2)) ELSE =FNnil
+  ENDIF
 =FNnil
 
 DEF FNhashmap_contains(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-  WHILE map% <> FNempty_hashmap
-    IF S$(Z%(map%,1)) = key$ THEN =TRUE
-    map% = Z%(map%,3)
-  ENDWHILE
+  IF FNis_empty_hashmap(map%) THEN =FALSE
+  IF FNtype_of(map%) = &0A THEN
+    IF S$(Z%(map%,1)) = key$ THEN =TRUE ELSE =FALSE
+  ENDIF
 =FALSE
 
-DEF FNhashmap_first_key(map%)
-  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-=S$(Z%(map%,1))
-
-DEF FNhashmap_first_val(map%)
-  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-=Z%(map%,2)
-
-DEF FNhashmap_rest(map%)
-  IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get rest of a non-hashmap"
-=Z%(map%,3)
+DEF FNhashmap_keys(map%)
+  IF FNis_empty_hashmap(map%) THEN =FNempty
+=FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), FNempty)
 
 REM ** Functions **
 
