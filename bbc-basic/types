@@ -43,7 +43,8 @@ REM  &11  free block
 REM  &03  list (each object is a cons cell)
 REM  &13  environment
 REM  &23  hash-map internal node
-REM  &07  mal function
+REM  &33  mal function (first part)
+REM  &43  mal function (second part)
 REM  &08  string/keyword
 REM  &18  symbol
 REM  &0A  hash-map leaf node
@@ -561,27 +562,32 @@ ENDPROC
 
 REM ** Functions **
 
+REM  A function is represented by two cells:
 REM  Z%(x,0) AND &80 = is_macro flag
 REM  Z%(x,1) = index in Z%() of ast
-REM  Z%(x,2) = index in Z%() of params
-REM  Z%(x,3) = index in Z%() of env
+REM  Z%(x,2) = y
+
+REM  Z%(y,1) = index in Z%() of params
+REM  Z%(y,2) = index in Z%() of env
 
 DEF FNis_fn(val%)
-=FNtype_of(val%) = &07
+=FNtype_of(val%) = &33
 
 DEF FNis_nonmacro_fn(val%)
-=FNtype_of(val%) = &07 AND (Z%(val%, 0) AND &80) = &00
+=FNtype_of(val%) = &33 AND (Z%(val%, 0) AND &80) = &00
 
 DEF FNis_macro(val%)
-=FNtype_of(val%) = &07 AND (Z%(val%, 0) AND &80) = &80
+=FNtype_of(val%) = &33 AND (Z%(val%, 0) AND &80) = &80
 
 DEF FNalloc_fn(ast%, params%, env%)
-  LOCAL val%
-  val% = FNmalloc(&07)
-  Z%(val%,1) = ast%
-  Z%(val%,2) = params%
-  Z%(val%,3) = env%
-=val%
+  LOCAL val1%, val2%
+  val1% = FNmalloc(&33)
+  Z%(val1%,1) = ast%
+  val2% = FNmalloc(&43)
+  Z%(val1%,2) = val2%
+  Z%(val2%,1) = params%
+  Z%(val2%,2) = env%
+=val1%
 
 DEF PROCmake_macro(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
@@ -594,11 +600,11 @@ DEF FNfn_ast(val%)
 
 DEF FNfn_params(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
-=FNref_local(Z%(val%,2))
+=FNref_local(Z%(Z%(val%,2),1))
 
 DEF FNfn_env(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
-=FNref_local(Z%(val%,3))
+=FNref_local(Z%(Z%(val%,2),2))
 
 REM ** Atoms **
 
