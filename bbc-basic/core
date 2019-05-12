@@ -199,11 +199,15 @@ DEF FNcore_call(fn%, args%)
       =FNalloc_boolean(FNis_seq(args%(0)))
     DATA hash-map, 43
     WHEN 43
-      =FNcore_hashmap(args%)
+      =FNcore_assoc(FNempty_hashmap, args%)
     DATA map?, 44
     WHEN 44
       PROCcore_prepare_args("?", "map?")
       =FNalloc_boolean(FNis_hashmap(args%(0)))
+    DATA assoc, 45
+    WHEN 45
+      PROCcore_prepare_args("h*", "assoc")
+      =FNcore_assoc(args%(0), args%)
     DATA get, 47
     WHEN 47
       IF FNis_nil(FNfirst(args%)) THEN =FNnil
@@ -213,6 +217,10 @@ DEF FNcore_call(fn%, args%)
     WHEN 48
       PROCcore_prepare_args("hs", "contains?")
       =FNalloc_boolean(FNhashmap_contains(args%(0), arg$))
+    DATA keys, 49
+    WHEN 49
+      PROCcore_prepare_args("h", "keys")
+      =FNhashmap_keys(args%(0))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -372,10 +380,9 @@ DEF FNcore_map(fn%, args%)
 =FNalloc_pair(car%, cdr%)
 
 REM  Innards of the 'hash-map' function
-DEF FNcore_hashmap(args%)
-  LOCAL map%, args%()
+DEF FNcore_assoc(map%, args%)
+  LOCAL args%()
   DIM args%(1)
-  map% = FNempty_hashmap
   WHILE NOT FNis_empty(args%)
     PROCcore_prepare_args("s?*", "hash-map")
     map% = FNhashmap_set(map%, arg$, args%(1))
