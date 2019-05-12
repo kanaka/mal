@@ -221,7 +221,7 @@ DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))
 
 DEF FNeval_ast(ast%, env%)
-  LOCAL val%, car%, cdr%
+  LOCAL val%, car%, cdr%, map%, keys%, key$
   IF FNis_symbol(ast%) THEN =FNenv_get(env%, ast%)
   IF FNis_seq(ast%) THEN
     IF FNis_empty(ast%) THEN =ast%
@@ -229,6 +229,16 @@ DEF FNeval_ast(ast%, env%)
     cdr% = FNeval_ast(FNrest(ast%), env%)
     IF FNis_vector(ast%) THEN =FNalloc_vector_pair(car%, cdr%)
     =FNalloc_pair(car%, cdr%)
+  ENDIF
+  IF FNis_hashmap(ast%) THEN
+    map% = FNempty_hashmap
+    keys% = FNhashmap_keys(ast%)
+    WHILE NOT FNis_empty(keys%)
+      key$ = FNunbox_string(FNfirst(keys%))
+      map% = FNhashmap_set(map%, key$, FNEVAL(FNhashmap_get(ast%, key$), env%))
+      keys% = FNrest(keys%)
+    ENDWHILE
+    =map%
   ENDIF
 =ast%
 

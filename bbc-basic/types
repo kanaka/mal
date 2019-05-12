@@ -70,7 +70,7 @@ DEF PROCtypes_init
 ENDPROC
 
 DEF FNtype_of(val%)
-=Z%(val%,0) AND &3F
+=Z%(val%,0) AND &7F
 
 DEF PROCgc_enter
   REM PRINT ;sFP%;
