@@ -4,6 +4,9 @@ AUX1 = types.vala reader.vala printer.vala
 AUX3 = $(AUX1) env.vala
 AUX4 = $(AUX3) core.vala
 
+# Inhibit default make rules, in case they try to build from leftover .c files
+.SUFFIXES:
+
 all: $(PROGRAMS)
 
 $(PROGRAMS): %: %.vala
