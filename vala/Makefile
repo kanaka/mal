@@ -9,8 +9,20 @@ AUX4 = $(AUX3) core.vala
 
 all: $(PROGRAMS)
 
+# You can define VFLAGS on the command line to add flags to the vala compiler.
+# Some useful ones:
+#
+#  -g        annotate the output C with #line directives so that backtraces
+#            from gdb, sanitisers and valgrind will list Vala source locations
+#
+#  -X -g -X -O0    compile the output C for sensible debugging
+#
+#  -X -fsanitize=address    link the output program against Address Sanitizer
+#
+#  --save-temps    don't automatically delete the C files after compiling
+
 $(PROGRAMS): %: %.vala
-	valac -o $@ $^ $(DEFINES) --pkg readline -X -lreadline
+	valac $(VFLAGS) -o $@ $^ $(DEFINES) --pkg readline -X -lreadline
 
 step1_read_print step2_eval: override DEFINES += -D NO_ENV
 
