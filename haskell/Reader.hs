@@ -76,6 +76,7 @@ read_atom =  read_number
 read_list :: Parser MalVal
 read_list = do
     char '('
+    ignored
     x <- sepEndBy read_form ignored
     char ')'
     return $ MalList x Nil
@@ -83,6 +84,7 @@ read_list = do
 read_vector :: Parser MalVal
 read_vector = do
     char '['
+    ignored
     x <- sepEndBy read_form ignored
     char ']'
     return $ MalVector x Nil
@@ -95,6 +97,7 @@ _pairs (MalString x:y:xs) = (x,y):_pairs xs
 read_hash_map :: Parser MalVal
 read_hash_map = do
     char '{'
+    ignored
     x <- sepEndBy read_form ignored
     char '}'
     return $ MalHashMap (Map.fromList $ _pairs x) Nil
