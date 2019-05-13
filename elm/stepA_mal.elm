@@ -81,12 +81,11 @@ malInit =
                             (nth xs 1)
                             (throw "odd number of forms to cond"))
                         (cons 'cond (rest (rest xs)))))))"""
-    , """(def! *gensym-counter* (atom 0))"""
+    , """(def! inc (fn* [x] (+ x 1)))"""
     , """(def! gensym
-            (fn* [] (symbol
-                (str "G__"
-                    (swap! *gensym-counter*
-                        (fn* [x] (+ 1 x)))))))"""
+            (let* [counter (atom 0)]
+              (fn* []
+                (symbol (str "G__" (swap! counter inc))))))"""
     , """(defmacro! or
             (fn* (& xs)
                 (if (empty? xs)

@@ -188,8 +188,8 @@ $_ = REP('(def! *host-language* "powershell")')
 $_ = REP('(def! not (fn* (a) (if a false true)))')
 $_ = REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
 $_ = REP("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw `"odd number of forms to cond`")) (cons 'cond (rest (rest xs)))))))")
-$_ = REP('(def! *gensym-counter* (atom 0))')
-$_ = REP('(def! gensym (fn* [] (symbol (str "G__" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))')
+$_ = REP('(def! inc (fn* [x] (+ x 1)))')
+$_ = REP('(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "G__" (swap! counter inc))))))')
 $_ = REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))')
 
 

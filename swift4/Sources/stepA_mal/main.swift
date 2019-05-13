@@ -180,9 +180,8 @@ repl_env.set("Swift4", forKey: Symbol("*host-language*"))
 try rep("(def! not (fn* (a) (if a false true)))", env: repl_env)
 try rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", env: repl_env)
 try rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", env: repl_env)
-try rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))", env: repl_env)
-try rep("(def! *gensym-counter* (atom 0))", env: repl_env)
-try rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))", env: repl_env)
+try rep("(def! inc (fn* [x] (+ x 1)))", env: repl_env)
+try rep("(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))", env: repl_env)
 try rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))", env: repl_env)
 
 if CommandLine.argc > 1 {

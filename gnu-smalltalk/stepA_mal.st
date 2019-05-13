@@ -294,8 +294,8 @@ MAL rep: '(def! not (fn* (a) (if a false true)))' env: replEnv.
 MAL rep: '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))' env: replEnv.
 
 MAL rep: '(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))' env: replEnv.
-MAL rep: '(def! *gensym-counter* (atom 0))' env: replEnv.
-MAL rep: '(def! gensym (fn* [] (symbol (str "G__" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))' env: replEnv.
+MAL rep: '(def! inc (fn* [x] (+ x 1)))' env: replEnv.
+MAL rep: '(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "G__" (swap! counter inc))))))' env: replEnv.
 MAL rep: '(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))' env: replEnv.
 
 Smalltalk arguments notEmpty ifTrue: [

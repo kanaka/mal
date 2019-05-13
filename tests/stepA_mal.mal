@@ -259,6 +259,11 @@
 ;=>nil
 
 ;;
+;; Testing inc
+(inc 12)
+;=>13
+
+;;
 ;; Testing gensym and clean or macro
 (= (gensym) (gensym))
 ;=>false

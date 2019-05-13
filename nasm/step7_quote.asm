@@ -66,7 +66,10 @@ section .data
         static_symbol cons_symbol, 'cons'
         
 ;; Startup string. This is evaluated on startup
-        static mal_startup_string, db "(do (def! not (fn* (a) (if a false true))) (def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) )"
+        static mal_startup_string, db "(do \
+(def! not (fn* (a) (if a false true))) \
+(def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) \
+)"
 
 ;; Command to run, appending the name of the script to run
         static run_script_string, db "(load-file ",34

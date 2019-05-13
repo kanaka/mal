@@ -1,5 +1,3 @@
-(def! inc (fn* (a) (+ a 1)))
-
 (def! dec (fn* (a) (- a 1)))
 
 (def! zero? (fn* (n) (= 0 n)))

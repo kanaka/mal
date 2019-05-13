@@ -541,8 +541,8 @@
     ($RELEASE ($RE "(def! not (fn* (a) (if a false true)))" $repl_env))
     ($RELEASE ($RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" $repl_env))
     ($RELEASE ($RE "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" $repl_env))
-    ($RELEASE ($RE "(def! *gensym-counter* (atom 0))" $repl_env))
-    ($RELEASE ($RE "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))" $repl_env))
+    ($RELEASE ($RE "(def! inc (fn* [x] (+ x 1)))" $repl_env))
+    ($RELEASE ($RE "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))" $repl_env))
     ($RELEASE ($RE "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (c (gensym)) `(let* (~c ~(first xs)) (if ~c ~c (or ~@(rest xs)))))))))" $repl_env))
 
     ;; Command line arguments
