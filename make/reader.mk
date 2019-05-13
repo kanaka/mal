@@ -75,6 +75,7 @@ $(foreach ch,$(word 1,$($(1))),\
 endef
 
 define READ_ATOM
+$(and $(READER_DEBUG),$(info READ_ATOM: $($(1))))
 $(foreach ch,$(word 1,$($(1))),\
   $(if $(and $(filter $(MINUS),$(ch)),$(filter $(NUMBERS),$(word 2,$($(1))))),\
     $(call _number,$(call READ_NUMBER,$(1))),\
@@ -159,6 +160,7 @@ $(foreach ch,$(word 1,$($(1))),\
     $(call _error,Unexpected '$(RCURLY)'),\
   $(if $(filter $(_LC),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
+    $(call READ_SPACES,$(1))\
     $(foreach thm,$(call _hash_map),\
       $(call do,$(call _assoc_seq!,$(thm),$(strip $(call READ_UNTIL,$(1),$(_RC),$(RCURLY)))))\
       $(eval $(if $(filter $(_RC),$(word 1,$($(1)))),\
@@ -169,6 +171,7 @@ $(foreach ch,$(word 1,$($(1))),\
     $(call _error,Unexpected '$(RPAREN)'),\
   $(if $(filter $(_LP),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
+    $(call READ_SPACES,$(1))\
     $(foreach tlist,$(call _list),\
       $(eval $(foreach item,$(strip $(call READ_UNTIL,$(1),$(_RP),$(RPAREN))),\
                $(call do,$(call _conj!,$(tlist),$(item)))))\
@@ -180,6 +183,7 @@ $(foreach ch,$(word 1,$($(1))),\
     $(call _error,Unexpected '$(RBRACKET)'),\
   $(if $(filter $(LBRACKET),$(ch)),\
     $(eval $(1) := $(wordlist 2,$(words $($(1))),$($(1))))\
+    $(call READ_SPACES,$(1))\
     $(foreach tvec,$(call _vector),\
       $(eval $(foreach item,$(strip $(call READ_UNTIL,$(1),$(RBRACKET),$(RBRACKET))),\
                $(call do,$(call _conj!,$(tvec),$(item)))))\

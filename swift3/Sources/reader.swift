@@ -132,6 +132,7 @@ func read_list(_ rdr: Reader, start: Character = "(", end: Character = ")") thro
         throw MalError.Reader(msg: "expected '\(start)'")
     }
     rdr.next()
+    skip_whitespace_and_comments(rdr)
     var lst: [MalVal] = []
     while rdr.pos < rdr.str.endIndex {
         if (rdr.str[rdr.pos] == end) { break }
