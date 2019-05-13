@@ -26,22 +26,27 @@ class Mal.Main : GLib.Object {
 
     public static Mal.Val eval_ast(Mal.Val ast, Mal.Env env)
     throws Mal.Error {
+        var roota = new GC.Root(ast); (void)roota;
+        var roote = new GC.Root(env); (void)roote;
         if (ast is Mal.Sym)
             return env.get(ast as Mal.Sym);
         if (ast is Mal.List) {
-            var results = new GLib.List<Mal.Val>();
+            var result = new Mal.List.empty();
+            var root = new GC.Root(result); (void)root;
             foreach (var elt in (ast as Mal.List).vs)
-                results.append(EVAL(elt, env));
-            return new Mal.List(results);
+                result.vs.append(EVAL(elt, env));
+            return result;
         }
         if (ast is Mal.Vector) {
             var results = new GLib.List<Mal.Val>();
-            foreach (var elt in (ast as Mal.Vector).vs)
-                results.append(EVAL(elt, env));
+            for (var iter = (ast as Mal.Vector).iter();
+                 iter.nonempty(); iter.step())
+                results.append(EVAL(iter.deref(), env));
             return new Mal.Vector.from_list(results);
         }
         if (ast is Mal.Hashmap) {
             var result = new Mal.Hashmap();
+            var root = new GC.Root(result); (void)root;
             var map = (ast as Mal.Hashmap).vs;
             foreach (var key in map.get_keys())
                 result.insert(key, EVAL(map[key], env));
@@ -53,6 +58,8 @@ class Mal.Main : GLib.Object {
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
                                        Mal.Env eval_env, Mal.Env def_env)
     throws Mal.Error {
+        var rootk = new GC.Root(key); (void)rootk;
+        var roote = new GC.Root(def_env); (void)roote;
         var symkey = key as Mal.Sym;
         if (symkey == null)
             throw new Mal.Error.BAD_PARAMS(
@@ -71,7 +78,12 @@ class Mal.Main : GLib.Object {
         // into them don't immediately get garbage-collected.
         Mal.Val ast = ast_;
         Mal.Env env = env_;
+        var ast_root = new GC.Root(ast); (void)ast_root;
+        var env_root = new GC.Root(env); (void)env_root;
         while (true) {
+            ast_root.obj = ast;
+            env_root.obj = env;
+            GC.Core.maybe_collect();
             if (ast is Mal.List) {
                 unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
                 if (list.first() == null)
@@ -106,7 +118,7 @@ class Mal.Main : GLib.Object {
                                             env, env);
                             }
                         } else if (defns is Mal.Vector) {
-                            var vec = (defns as Mal.Vector).vs;
+                            var vec = defns as Mal.Vector;
                             if (vec.length % 2 != 0)
                                 throw new Mal.Error.BAD_PARAMS(
                                     "let*: expected an even-length vector" +
@@ -196,6 +208,7 @@ class Mal.Main : GLib.Object {
 
     public static int main(string[] args) {
         var env = new Mal.Env();
+        var root = new GC.Root(env); (void)root;
 
         Mal.Core.make_ns();
         foreach (var key in Mal.Core.ns.get_keys())

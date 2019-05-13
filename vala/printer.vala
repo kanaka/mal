@@ -19,24 +19,16 @@ namespace Mal {
                                     replace("\"", "\\\""));
             return s;
         }
-        if (val is Mal.List) {
-            string toret = "(";
+        if (val is Mal.Listlike) {
+            bool vec = val is Mal.Vector;
+            string toret = vec ? "[" : "(";
             string sep = "";
-            foreach (var elt in (val as Mal.List).vs) {
-                toret += sep + pr_str(elt, print_readably);
+            for (var iter = (val as Mal.Listlike).iter();
+                 iter.nonempty(); iter.step()) {
+                toret += sep + pr_str(iter.deref(), print_readably);
                 sep = " ";
             }
-            toret += ")";
-            return toret;
-        }
-        if (val is Mal.Vector) {
-            string toret = "[";
-            string sep = "";
-            foreach (var elt in (val as Mal.Vector).vs) {
-                toret += sep + pr_str(elt, print_readably);
-                sep = " ";
-            }
-            toret += "]";
+            toret += vec ? "]" : ")";
             return toret;
         }
         if (val is Mal.Hashmap) {

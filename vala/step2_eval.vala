@@ -90,22 +90,26 @@ class Mal.Main : GLib.Object {
 
     public static Mal.Val eval_ast(Mal.Val ast, Mal.Env env)
     throws Mal.Error {
+        var roota = new GC.Root(ast); (void)roota;
         if (ast is Mal.Sym)
             return env.get(ast as Mal.Sym);
         if (ast is Mal.List) {
-            var results = new GLib.List<Mal.Val>();
+            var result = new Mal.List.empty();
+            var root = new GC.Root(result); (void)root;
             foreach (var elt in (ast as Mal.List).vs)
-                results.append(EVAL(elt, env));
-            return new Mal.List(results);
+                result.vs.append(EVAL(elt, env));
+            return result;
         }
         if (ast is Mal.Vector) {
             var results = new GLib.List<Mal.Val>();
-            foreach (var elt in (ast as Mal.Vector).vs)
-                results.append(EVAL(elt, env));
+            for (var iter = (ast as Mal.Vector).iter();
+                 iter.nonempty(); iter.step())
+                results.append(EVAL(iter.deref(), env));
             return new Mal.Vector.from_list(results);
         }
         if (ast is Mal.Hashmap) {
             var result = new Mal.Hashmap();
+            var root = new GC.Root(result); (void)root;
             var map = (ast as Mal.Hashmap).vs;
             foreach (var key in map.get_keys())
                 result.insert(key, EVAL(map[key], env));
@@ -116,6 +120,9 @@ class Mal.Main : GLib.Object {
 
     public static Mal.Val EVAL(Mal.Val ast, Mal.Env env)
     throws Mal.Error {
+        var ast_root = new GC.Root(ast); (void)ast_root;
+        GC.Core.maybe_collect();
+
         if (ast is Mal.List) {
             unowned GLib.List<Mal.Val> list = (ast as Mal.List).vs;
             if (list.first() == null)

@@ -1,9 +1,9 @@
-class Mal.Env : GLib.Object {
-    public GLib.HashTable<Mal.Sym, Mal.Val> data;
-    Mal.Env? outer;
+class Mal.Env : GC.Object {
+    private GLib.HashTable<weak Mal.Sym, weak Mal.Val> data;
+    weak Mal.Env? outer;
 
     construct {
-        data = new GLib.HashTable<Mal.Sym, Mal.Val>(
+        data = new GLib.HashTable<weak Mal.Sym, weak Mal.Val>(
             Mal.Hashable.hash, Mal.Hashable.equal);
     }
 
@@ -13,6 +13,14 @@ class Mal.Env : GLib.Object {
 
     public Env() {
         outer = null;
+    }
+
+    public override void gc_traverse(GC.Object.VisitorFunc visit) {
+        visit(outer);
+        foreach (var key in data.get_keys()) {
+            visit(key);
+            visit(data[key]);
+        }
     }
 
     public Env.funcall(Mal.Env outer_, Mal.Listlike binds, Mal.List exprs)
