@@ -58,8 +58,8 @@ DEF PROCtypes_init
   DIM sS%((HIMEM-LOMEM)/64)
   Z%(1,0) = &10 : REM false
   Z%(2,0) = &10 : Z%(2,1) = TRUE : REM true
-  Z%(3,0) = &03 : REM empty list
-  Z%(4,0) = &83 : REM empty vector
+  Z%(3,0) = &03 : Z%(3,1) = 3 : REM empty list
+  Z%(4,0) = &83 : Z%(4,1) = 4 : REM empty vector
   Z%(5,0) = &40:  REM empty hashmap
   next_Z% = 6
   next_S% = 0
@@ -307,8 +307,8 @@ REM  Z%(x,0) AND &80 = is_vector flag
 REM  Z%(x,1) = index in Z%() of next pair
 REM  Z%(x,2) = index in Z%() of first element
 
-REM  The empty list is a distinguished value, which happens to have
-REM  both elements nil.
+REM  The empty list is a distinguished value, with elements that match
+REM  the spec of 'first' and 'rest'.
 
 DEF FNempty
 =3
@@ -353,12 +353,10 @@ DEF FNas_vector(val%)
 
 DEF FNfirst(val%)
   IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get car of non-sequence"
-  IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get car of empty sequence"
 =FNref_local(Z%(val%,2))
 
 DEF FNrest(val%)
   IF NOT FNis_seq(val%) THEN ERROR &40E80916, "Can't get cdr of non-sequence"
-  IF Z%(val%,1) = 0 THEN ERROR &40E80920, "Can't get cdr of empty sequence"
 =FNref_local(Z%(val%,1))
 
 DEF FNalloc_list2(val0%, val1%)
