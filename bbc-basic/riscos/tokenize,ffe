@@ -30,5 +30,7 @@ TEXTLOAD "^.step8_macros/bbc"
 SAVE "step8_macros"
 TEXTLOAD "^.step9_try/bbc"
 SAVE "step9_try"
+TEXTLOAD "^.stepA_mal/bbc"
+SAVE "stepA_mal"
 REM All done.
 QUIT
