@@ -241,11 +241,11 @@ DEF FNcore_call(fn%, args%)
       =FNalloc_string(arg$)
     DATA meta, 52
     WHEN 52
-      PROCcore_prepare_args("f", "meta")
+      PROCcore_prepare_args("?", "meta")
       =FNmeta(args%(0))
     DATA with-meta, 53
     WHEN 53
-      PROCcore_prepare_args("f?", "with-meta")
+      PROCcore_prepare_args("??", "with-meta")
       =FNwith_meta(args%(0), args%(1))
     DATA time-ms, 54
     WHEN 54
