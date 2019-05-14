@@ -96,6 +96,10 @@
 (get @e "bar")
 ;=>(1 2 3)
 
+;; Testing for presence of optional functions
+(do (list time-ms string? number? seq conj) nil)
+;=>nil
+
 ;; ------------------------------------------------------------------
 
 ;>>> soft=True
