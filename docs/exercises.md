@@ -52,6 +52,10 @@ make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' te
 
   Try to replace explicit recursions with calls to `reduce` and `foldr`.
 
+  Once you have tested your solution, you should comment at least
+  `nth`.  Many implementations, for example `foldr` in `core.mal`,
+  rely on an efficient `nth` built-in function.
+
 - Implement the `do` special as a non-recursive function. The special
   form will hide your implementation, so in order to test it, you will
   need to give it another name and adapt the test accordingly.

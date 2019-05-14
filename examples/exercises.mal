@@ -23,13 +23,13 @@
 (def! count
   (let* [inc_left (fn* [acc _] (inc acc))]
     (fn* [xs] (if (nil? xs) 0 (reduce inc_left 0 xs)))))
-(def! nth
-  (fn* [xs index]
-    (if (or (empty? xs) (< index 0))
-      (throw "nth: index out of range")
-      (if (zero? index)
-        (first xs)
-        (nth (rest xs) (dec index))))))
+;; (def! nth
+;;   (fn* [xs index]
+;;     (if (or (empty? xs) (< index 0))
+;;       (throw "nth: index out of range")
+;;       (if (zero? index)
+;;         (first xs)
+;;         (nth (rest xs) (dec index))))))
 (def! map
   (fn* [f xs]
     (let* [iter (fn* [x acc] (cons (f x) acc))]
