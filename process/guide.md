@@ -1547,6 +1547,11 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   to print a startup header:
   "(println (str \"Mal [\" \*host-language\* \"]\"))".
 
+* Ensure that the REPL environment contains definitions for `time-ms`,
+  `string?`, `number?`, `seq`, and `conj`.  It doesn't really matter
+  what they do at this stage: they just need to be defined.  Making
+  them functions that raise a "not implemented" exception would be
+  fine.
 
 Now go to the top level, run the step A tests:
 ```
@@ -1630,7 +1635,7 @@ For extra information read [Peter Seibel's thorough discussion about
 
 * Add metadata support to other composite data types (lists, vectors
   and hash-maps), and to native functions.
-* Add the following new core functions:
+* Add the following new core functions (and remove any stub versions):
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
     not possible, since another point in time (`time-ms` is usually
