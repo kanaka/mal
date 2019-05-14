@@ -5,12 +5,15 @@
 (def! nil?   (fn* [x] (= x nil  )))
 (def! true?  (fn* [x] (= x true )))
 (def! false? (fn* [x] (= x false)))
+(def! empty? (fn* [x] (= x []   )))
 
-(def! sequential? (fn* [x] (if (list? x) true (if (vector? x) true false))))
+(def! sequential?
+  (fn* [x]
+    (or (list? x) (vector? x))))
 
-(def! >  (fn* [a b]     (< b a)            ))
-(def! <= (fn* [a b] (if (< b a) false true)))
-(def! >= (fn* [a b] (if (< a b) false true)))
+(def! >  (fn* [a b]      (< b a) ))
+(def! <= (fn* [a b] (not (< b a))))
+(def! >= (fn* [a b] (not (< a b))))
 
 (def! hash-map (fn* [& xs] (apply assoc {} xs)))
 (def! list (fn* [& xs] xs))
@@ -22,13 +25,11 @@
     (fn* [xs] (if (nil? xs) 0 (reduce inc_left 0 xs)))))
 (def! nth
   (fn* [xs index]
-    (if (empty? xs)
+    (if (or (empty? xs) (< index 0))
       (throw "nth: index out of range")
-      (if (< index 0)
-        (throw "nth: index out of range")
-        (if (zero? index)
-          (first xs)
-          (nth (rest xs) (dec index)))))))
+      (if (zero? index)
+        (first xs)
+        (nth (rest xs) (dec index))))))
 (def! map
   (fn* [f xs]
     (let* [iter (fn* [x acc] (cons (f x) acc))]
@@ -44,15 +45,21 @@
         (reduce flip_cons xs ys)))))
 
 (def! do2 (fn* [& xs] (nth xs (dec (count xs)))))
+(def! do3 (fn* [& xs] (reduce (fn* [acc x] x) nil xs)))
+;; do2 will probably be more efficient when lists are implemented as
+;; arrays with direct indexing, but when they are implemented as
+;; linked lists, do3 may win because it only does one traversal.
 
 (defmacro! let2
-  ;; Must be a macro because the first argument must not be evaluated.
   (fn* [binds form]
+    ;;  Each expression may refer to previous definitions, so a single
+    ;;  function with many parameters would not have the same effect
+    ;;  than a composition of functions with one parameter each.
     (if (empty? binds)
       form
       ;;  This let* increases the readability, but the values could
       ;;  easily be replaced below.
-      (let* [key  (first 0)
+      (let* [key  (first binds)
              val  (nth binds 1)
              more (rest (rest binds))]
         `((fn* [~key] (let2 ~more ~form)) ~val)))))
@@ -68,3 +75,53 @@
                   (map q x)
                   (cons (q x) acc)))]
     (fn* [& xs] (eval (foldr iter nil xs)))))
+
+(def! sum     (fn* [xs] (reduce + 0 xs)))
+(def! product (fn* [xs] (reduce * 1 xs)))
+
+(def! conjunction
+  (let* [and2 (fn* [acc x] (if acc x false))]
+    (fn* [xs]
+      (reduce and2 true xs))))
+(def! disjunction
+  (let* [or2 (fn* [acc x] (if acc true x))]
+    (fn* [xs]
+      (reduce or2 false xs))))
+;; It would be faster to stop the iteration on first failure
+;; (conjunction) or success (disjunction). Even better, `or` in the
+;; stepA and `and` in `core.mal` stop evaluating their arguments.
+
+;; Yes, -2-3-4 means (((0-2)-3)-4).
+
+;; `(reduce str "" xs)` is equivalent to `apply str xs`
+;; and `(reduce concat () xs)` is equivalent to `apply concat xs`.
+;; The built-in iterations are probably faster.
+
+;; `(reduce (fn* [acc _] acc) nil xs)` is equivalent to `nil`.
+
+;; For (reduce (fn* [acc x] x) nil xs))), see do3 above.
+
+;; `(reduce (fn* [acc x] (if (< acc x) x acc)) 0 xs)` computes the
+;; maximum of a list of non-negative integers. It is hard to find an
+;; initial value fitting all purposes.
+
+(def! sum_len
+  (let* [add_len (fn* [acc x] (+ acc (count x)))]
+    (fn* [xs]
+      (reduce add_len  0 xs))))
+(def! max_len
+  (let* [update_max (fn* [acc x] (let* [l (count x)] (if (< acc l) l acc)))]
+    (fn* [xs]
+      (reduce update_max 0 xs))))
+
+(def! compose
+  (let* [compose2 (fn* [f acc] (fn* [x] (f (acc x))))]
+    (fn* [& fs]
+      (foldr compose2 identity fs))))
+;; ((compose f1 f2) x) is equivalent to (f1 (f2 x))
+;; This is the mathematical composition. For practical purposes, `->`
+;; and `->>` defined in `core.mal` are more efficient and general.
+
+;; This `nil` is intentional so that the result of doing `load-file` is
+;; `nil` instead of whatever happens to be the last definiton.
+nil

@@ -1,3 +1,22 @@
+# Exercises to learn MAL
+
+The process introduces LISP by describing the internals of selected
+low-level constructs. As a complementary and more traditional
+approach, you may want to solve the following exercises in the MAL
+language itself, using any of the existing implementations.
+
+You are encouraged to use the shortcuts defined in the step files
+(`not`...) and ``core.mal`` (`reduce`...) whenever you find that they
+increase the readability.
+
+The difficulty is progressive in each section, but they focus on
+related topics and it is recommended to start them in parallel.
+
+Some solutions are given in the `examples` directory. Feel free to
+submit new solutions, or new exercises.
+
+## Replace parts of the process with native constructs
+
 Once you have a working implementation, you may want to implement
 parts of the process inside the MAL language itself. This has no other
 purpose than learning the MAL language. Once it exists, a built-in
@@ -11,12 +30,12 @@ interpreter. They will hide the built-in functions carrying the same
 names, and the usual tests (with REGRESS=1) will check them. The
 `runtest.py` script provide a convenient command-line parameter to
 pass a command like 'load-file' before running the testsuite.
+```
+make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' test^IMPL^stepA
+```
 
-Some solutions are given in the `examples` directory. Feel free to
-submit new solutions, or new exercises.
-
-- Implement `nil?`, `true?`, `false?` and `sequential?` with other
-  built-in functions.
+- Implement `nil?`, `true?`, `false?`, `empty?` and `sequential` with
+  another built-in function.
 
 - Implement `>`, `<=` and `>=` with `<`.
 
@@ -25,6 +44,9 @@ submit new solutions, or new exercises.
 
 - Implement `count`, `nth`, `map`, `concat` and `conj` with the empty
   constructor `()`, `empty?`, `cons`, `first` and `rest`.
+
+  You may use `or` to make the definition of `nth` a bit less ugly,
+  but avoid `cond` because its definition refers to `nth`.
 
   Let `count` and `nth` benefit from tail call optimization.
 
@@ -36,6 +58,8 @@ submit new solutions, or new exercises.
 
 - Implement `let*` as a macro that uses `fn*` and recursion.
   The same remark applies.
+  A macro is necessary because a function would attempt to evaluate
+  the first argument.
 
 - Implement `apply`.
 
@@ -60,3 +84,39 @@ submit new solutions, or new exercises.
 - Implement quoting within MAL.
 
 - Implement macros within MAL.
+
+## More folds
+
+- Compute the sum of a sequence of numbers.
+- Compute the product of a sequence of numbers.
+
+- Compute the logical conjunction ("and") and disjunction ("or") of a
+  sequence of MAL values interpreted as boolean values.  For example,
+  `(conjunction [true 1 0 "" "a" nil true {}])`
+  should evaluate to `false` or `nil` because of the `nil` element.
+
+  Why are folds not the best solution here, in terms of average
+  performances?
+
+- Does "-2-3-4" translate to `(reduce - 0 [2 3 4])`?
+
+- Suggest better solutions for
+  `(reduce str "" xs)` and
+  `(reduce concat [] xs)`.
+
+- What does `(reduce (fn* [acc _] acc) xs)` nil answer?
+
+- The answer is `(fn* [xs] (reduce (fn* [_ x] x) nil xs))`.
+  What was the question?
+
+- What is the intent of
+ `(reduce (fn* [acc x] (if (< acc x) x acc)) 0 xs)`?
+
+  Why is it the wrong answer?
+
+- Though `(sum (map count xs))` or `(count (apply concat xs))` can be
+  considered more readable, implement the same effect with a single loop.
+- Compute the maximal length in a list of lists.
+
+- How would you name
+  `(fn* [& fs] (foldr (fn* [f acc] (fn* [x] (f (acc x)))) identity fs))`?
