@@ -268,8 +268,8 @@ except:
 # Send the pre-eval code if any
 if args.pre_eval:
     sys.stdout.write("RUNNING pre-eval: %s" % args.pre_eval)
-    p.write(args.pre_eval)
-    assert_prompt(args.test_timeout)
+    r.writeline(args.pre_eval)
+    assert_prompt(r, ['[^\s()<>]+> '], args.test_timeout)
 
 test_cnt = 0
 pass_cnt = 0
