@@ -21,16 +21,19 @@
       (reduce f (f init (first xs)) (rest xs)))))
 
 ;; Right fold (f x1 (f x2 (.. (f xn init)) ..))
-;; `foldr` is not tail-recursive. `reduce` must be preferred for big lists.
+;; The natural implementation for `foldr` is not tail-recursive, so we
+;; rely on efficient `nth` and `count`.
 (def! foldr
   (fn* [f init xs]
     ;; f      : Element Accumulator -> Accumulator
     ;; init   : Accumulator
     ;; xs     : sequence of Elements x1 x2 .. xn
     ;; return : Accumulator
-    (if (empty? xs)
-      init
-      (f (first xs) (foldr f init (rest xs))))))
+    (let* [rec (fn* [acc index]
+                 (if (< index 0)
+                   acc
+                   (rec (f (nth xs index) acc) (dec index))))]
+      (rec init (dec (count xs))))))
 
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
