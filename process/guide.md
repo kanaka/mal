@@ -1635,7 +1635,7 @@ For extra information read [Peter Seibel's thorough discussion about
 
 * Add metadata support to other composite data types (lists, vectors
   and hash-maps), and to native functions.
-* Add the following new core functions:
+* Add the following new core functions (and remove any stub versions):
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
     not possible, since another point in time (`time-ms` is usually
