@@ -282,6 +282,10 @@ DEF FNcore_call(fn%, args%)
     WHEN 59
       PROCcore_prepare_args("?", "macro?")
       =FNalloc_boolean(FNis_macro(args%(0)))
+    DATA seq, 60
+    WHEN 60
+      PROCcore_prepare_args("?", "seq")
+      =FNcore_seq(args%(0))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
@@ -449,6 +453,23 @@ DEF FNcore_assoc(map%, args%)
     map% = FNhashmap_set(map%, arg$, args%(1))
   ENDWHILE
 =map%
+
+REM  Innards of the 'seq' function
+DEF FNcore_seq(val%)
+  LOCAL s$, i%
+  IF FNis_empty(val%) OR FNis_nil(val%) THEN =FNnil
+  IF FNis_list(val%) THEN =val%
+  IF FNis_vector(val%) THEN =FNas_list(val%)
+  IF FNis_string(val%) THEN
+    s$ = FNunbox_string(val%)
+    IF s$ = "" THEN =FNnil
+    val% = FNempty
+    FOR i% = LEN(s$) TO 1 STEP -1
+      val% = FNalloc_pair(FNalloc_string(MID$(s$, i%, 1)), val%)
+    NEXT i%
+    =val%
+  ENDIF
+ERROR &40E8091F, "Argument to 'seq' must be list, vector, string, or nil"
 
 REM Local Variables:
 REM indent-tabs-mode: nil
