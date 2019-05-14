@@ -1,13 +1,9 @@
 ;; Kind of standard library for MAL for tests and examples.
 
-;; `not`, `gensym`, `cond` and `or` would make sense here but are
+;; `cond` `gensym` `inc` `not` `or` would make sense here but are
 ;; already defined in the step files as part of the process.
 
-;; Integer successor (number -> number)
-(def! inc (fn* (a) (+ a 1)))
-
 ;; Integer predecessor (number -> number)
-
 (def! dec (fn* (a) (- a 1)))
 
 ;; Integer nullity test (number -> boolean)
