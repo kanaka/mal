@@ -263,6 +263,25 @@ DEF FNcore_call(fn%, args%)
       ELSE : REM args%(0) is a vector
         =FNas_vector(FNcore_concat1(args%(0), args%))
       ENDIF
+    DATA string?, 56
+    WHEN 56
+      PROCcore_prepare_args("?", "string?")
+      IF FNis_string(args%(0)) THEN
+        =FNalloc_boolean(LEFT$(FNunbox_string(args%(0)), 1) <> CHR$(127))
+      ENDIF
+      =FNalloc_boolean(FALSE)
+    DATA number?, 57
+    WHEN 57
+      PROCcore_prepare_args("?", "number?")
+      =FNalloc_boolean(FNis_int(args%(0)))
+    DATA fn?, 58
+    WHEN 58
+      PROCcore_prepare_args("?", "fn?")
+      =FNalloc_boolean(FNis_nonmacro_fn(args%(0)) OR FNis_corefn(args%(0)))
+    DATA macro?, 59
+    WHEN 59
+      PROCcore_prepare_args("?", "macro?")
+      =FNalloc_boolean(FNis_macro(args%(0)))
     DATA "", -1
   ENDCASE
 ERROR &40E809F1, "Call to non-existent core function"
