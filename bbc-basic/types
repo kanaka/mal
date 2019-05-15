@@ -25,6 +25,9 @@ REM  &02 : Z%(x,1) is a pointer into S$()
 REM  Z%(x,2) and Z%(x,3) are always pointers into Z%(), to 'nil' if nothing
 REM  else.
 
+REM  The &40 bit is used to distinguish empty lists, vectors and hash-maps.
+REM  The &80 bit distinguishes vectors from lists and macros from functions.
+
 REM  sS%() is a shadow stack, used to keep track of which mal values might
 REM  be referenced from local variables at a given depth of the BASIC call
 REM  stack.  It grows upwards.  sSP% points to the first unused word.  sFP%
@@ -37,7 +40,6 @@ REM  &00  nil
 REM  &04  boolean
 REM  &08  integer
 REM  &0C  core function
-REM  &10  empty hash-map
 REM  &01  atom
 REM  &05  free block
 REM  &09  list/vector (each object is a cons cell)
@@ -59,9 +61,9 @@ DEF PROCtypes_init
   DIM sS%((HIMEM-LOMEM)/64)
   Z%(1,0) = &04 : REM false
   Z%(2,0) = &04 : Z%(2,1) = TRUE : REM true
-  Z%(3,0) = &09 : Z%(3,1) = 3 : REM empty list
-  Z%(4,0) = &89 : Z%(4,1) = 4 : REM empty vector
-  Z%(5,0) = &10:  REM empty hashmap
+  Z%(3,0) = &49 : Z%(3,1) = 3 : REM empty list
+  Z%(4,0) = &C9 : Z%(4,1) = 4 : REM empty vector
+  Z%(5,0) = &51 : REM empty hashmap
   next_Z% = 6
   next_S% = 0
   sSP% = 1
@@ -71,7 +73,7 @@ DEF PROCtypes_init
 ENDPROC
 
 DEF FNtype_of(val%)
-=Z%(val%,0) AND &7F
+=Z%(val%,0) AND &1F
 
 DEF PROCgc_enter
   REM PRINT ;sFP%;
@@ -331,7 +333,7 @@ DEF FNalloc_vector_pair(car%, cdr%)
 =val%
 
 DEF FNis_empty(val%)
-=val% = FNempty OR val% = FNempty_vector
+=(Z%(val%,0) AND &40) = &40
 
 DEF FNis_seq(val%)
 =FNtype_of(val%) = &09
@@ -417,9 +419,6 @@ REM  The empty hash-map is a special value containing no data.
 DEF FNempty_hashmap
 =5
 
-DEF FNis_empty_hashmap(val%)
-=val% = FNempty_hashmap
-
 DEF FNhashmap_alloc_leaf(key$, val%)
   LOCAL entry%
   entry% = FNmalloc(&0A)
@@ -438,7 +437,7 @@ DEF FNhashmap_alloc_node(bit%, left%, right%)
 DEF FNis_hashmap(val%)
   LOCAL t%
   t% = FNtype_of(val%)
-=t% = &11 OR t% = &0A OR t% = &10
+=t% = &11 OR t% = &0A
 
 DEF FNkey_bit(key$, bit%)
   LOCAL cnum%
@@ -455,7 +454,7 @@ DEF FNkey_bitdiff(key1$, key2$)
 
 DEF FNhashmap_set(map%, key$, val%)
   LOCAL bit%, left%, right%
-  IF FNis_empty_hashmap(map%) THEN =FNhashmap_alloc_leaf(key$, val%)
+  IF FNis_empty(map%) THEN =FNhashmap_alloc_leaf(key$, val%)
   IF FNtype_of(map%) = &0A THEN
     IF S$(Z%(map%,1)) = key$ THEN =FNhashmap_alloc_leaf(key$, val%)
     bit% = FNkey_bitdiff(key$, S$(Z%(map%,1)))
@@ -476,24 +475,24 @@ DEF FNhashmap_set(map%, key$, val%)
 
 DEF FNhashmap_remove(map%, key$)
   LOCAL child%
-  IF FNis_empty_hashmap(map%) THEN =map%
+  IF FNis_empty(map%) THEN =map%
   IF FNtype_of(map%) = &0A THEN
     IF S$(Z%(map%,1)) = key$ THEN =FNempty_hashmap
   ENDIF
   IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
     child% = FNhashmap_remove(Z%(map%,2), key$)
-    IF FNis_empty_hashmap(child%) THEN =Z%(map%,1)
+    IF FNis_empty(child%) THEN =Z%(map%,1)
     =FNhashmap_alloc_node(Z%(map%,0)>>16, Z%(map%,1), child%)
   ELSE
     child% = FNhashmap_remove(Z%(map%,1), key$)
-    IF FNis_empty_hashmap(child%) THEN =Z%(map%,2)
+    IF FNis_empty(child%) THEN =Z%(map%,2)
     =FNhashmap_alloc_node(Z%(map%,0)>>16, child%, Z%(map%,2))
   ENDIF
 
 
 DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-  IF FNis_empty_hashmap(map%) THEN =FNnil
+  IF FNis_empty(map%) THEN =FNnil
   IF FNtype_of(map%) = &0A THEN
     IF S$(Z%(map%,1)) = key$ THEN =FNref_local(Z%(map%,2)) ELSE =FNnil
   ENDIF
@@ -502,7 +501,7 @@ DEF FNhashmap_get(map%, key$)
 
 DEF FNhashmap_contains(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
-  IF FNis_empty_hashmap(map%) THEN =FALSE
+  IF FNis_empty(map%) THEN =FALSE
   IF FNtype_of(map%) = &0A THEN
     IF S$(Z%(map%,1)) = key$ THEN =TRUE ELSE =FALSE
   ENDIF
@@ -514,7 +513,7 @@ DEF FNhashmap_keys(map%)
 
 DEF FNhashmap_keys1(map%, acc%)
   REM PROChashmap_dump(map%)
-  IF FNis_empty_hashmap(map%) THEN =acc%
+  IF FNis_empty(map%) THEN =acc%
   IF FNtype_of(map%) = &0A THEN
     =FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), acc%)
   ENDIF
@@ -525,14 +524,14 @@ DEF FNhashmap_vals(map%)
 
 DEF FNhashmap_vals1(map%, acc%)
   REM PROChashmap_dump(map%)
-  IF FNis_empty_hashmap(map%) THEN =acc%
+  IF FNis_empty(map%) THEN =acc%
   IF FNtype_of(map%) = &0A THEN
     =FNalloc_pair(Z%(map%,2), acc%)
   ENDIF
 =FNhashmap_vals1(Z%(map%,2), FNhashmap_vals1(Z%(map%,1), acc%))
 
 DEF PROChashmap_dump(map%)
-  IF FNis_empty_hashmap(map%) THEN
+  IF FNis_empty(map%) THEN
     PRINT "[empty]"
   ELSE
     PRINT "[-----]"
