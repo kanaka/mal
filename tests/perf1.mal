@@ -1,5 +1,5 @@
-(load-file "../core.mal")
-(load-file "../perf.mal")
+(load-file "../lib/core.mal")           ; or ->
+(load-file "../lib/perf.mal")           ; time
 
 ;;(prn "Start: basic macros performance test")
 

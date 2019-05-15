@@ -1,3 +1,7 @@
+;; FIXME lib/pprint.mal
+;; Pretty printer a MAL object.
+
+;; FIXME: hide these private routines in a private environment.
 
 (def! spaces- (fn* [indent]
   (if (> indent 0)
@@ -35,6 +39,11 @@
 (def! pprint (fn* [obj]
   (println (pp- obj 0))))
 
+nil
+
+;; Examples of the pretty printer.
+
+;; FIXME (load-file "../lib/pprint.mal") and uncomment
 
 ;;(pprint '(7 8 9 "ten" [11 12 [13 14]] 15 16))
 ;;(pprint '{:abc 123 :def {:ghi 456 :jkl [789 "ten eleven twelve"]}})

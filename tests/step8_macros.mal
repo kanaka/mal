@@ -150,8 +150,7 @@ x
 ;=>"yes"
 
 ;;
-;; Loading core.mal
-(load-file "../core.mal")
+(load-file "../lib/core.mal")
 
 ;; Testing reduce
 (reduce + 7 [])

@@ -1,21 +1,29 @@
-;;
 ;; equality.mal
-;;
+
 ;; This file checks whether the `=` function correctly implements equality of
 ;; hash-maps and sequences (lists and vectors).  If not, it redefines the `=`
 ;; function with a pure mal (recursive) implementation that only relies on the
 ;; native original `=` function for comparing scalars (integers, booleans,
 ;; symbols, strings).
-;;
 
 ;; Save the original (native) `=` as scalar-equal?
 (def! scalar-equal? =)
 
+;; FIXME: test this
+;; A faster `and` macro which doesn't use `=` internally.
+;; (defmacro! and2                        ; `true` or `nil`
+;;   (fn* [& xs]                          ; interpreted as logical values
+;;     (if (empty? xs)
+;;       true
+;;       `(if ~(first xs) (and2 ~(rest xs))))))
 ;; A simple `and` macro for two argument which doesn't use `=` internally
 (defmacro! and2
   (fn* [a b]
     `(let* (and2_FIXME ~a)
       (if and2_FIXME ~b and2_FIXME))))
+
+;; FIXME: in the following, replace (and2 a (and2 b c)) with (and2 a b c),
+;; replace (if a b false) with (and2 a b).
 
 ;; Implement `=` for two sequential arguments
 (def! sequential-equal?
@@ -76,3 +84,5 @@
   (do
     (def! = mal-equal?)
     (println "equality.mal: Replaced = with pure mal implementation")))
+
+nil

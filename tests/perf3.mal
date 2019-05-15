@@ -1,5 +1,5 @@
-(load-file "../core.mal")
-(load-file "../perf.mal")
+(load-file "../lib/core.mal")           ; or ->
+(load-file "../lib/perf.mal")           ; run-fn-for
 
 ;;(prn "Start: basic macros/atom test")
 

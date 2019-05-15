@@ -1,3 +1,6 @@
+;; Mesure performances.
+
+;; Evaluate an expression, but report the time spent
 (defmacro! time
   (fn* (exp)
     `(let* (start_FIXME (time-ms)
@@ -6,6 +9,7 @@
         (prn (str "Elapsed time: " (- (time-ms) start_FIXME) " msecs"))
         ret_FIXME))))
 
+;; FIXME: hide this private routine in a private environment
 (def! run-fn-for*
   (fn* [fn max-ms acc-ms last-iters]
     (let* [start (time-ms)
@@ -18,6 +22,8 @@
         last-iters
         (run-fn-for* fn max-ms new-acc-ms iters)))))
 
+;; Count evaluations of a function during a given time frame.
+;; FIXME: max-secs is a number.
 (def! run-fn-for
   (fn* [fn max-secs]
     (do
@@ -25,3 +31,5 @@
       (run-fn-for* fn 1000 0 0)
       ;; Now do the test
       (run-fn-for* fn (* 1000 max-secs) 0 0))))
+
+nil

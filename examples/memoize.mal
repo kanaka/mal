@@ -1,16 +1,14 @@
-;;
-;; memoize.mal
-;;
+;; FIXME lib/memoize.mal
+;; Memoize any function.
+
 ;; Implement `memoize` using an atom (`mem`) which holds the memoized results
 ;; (hash-map from the arguments to the result). When the function is called,
 ;; the hash-map is checked to see if the result for the given argument was already
 ;; calculated and stored. If this is the case, it is returned immediately;
 ;; otherwise, it is calculated and stored in `mem`.
-;;
-;; Adapted from http://clojure.org/atoms
-;;
 
-;; Memoize any function
+;; Adapted from http://clojure.org/atoms
+
 (def! memoize
   (fn* [f]
     (let* [mem (atom {})]
@@ -23,18 +21,14 @@
                 (swap! mem assoc key ret)
                 ret))))))))
 
-;; Naive (non-memoized) Fibonacci function
-(def! fib
-  (fn* [n]
-    (if (<= n 1)
-      n
-      (+ (fib (- n 1)) (fib (- n 2))))))
+nil
 
+;; Benchmarks for memoize.mal
 
-;; -----------------------------------------------
-;; Benchmarks
+(load-file "../lib/heavy_computations.mal") ; fib
+;; FIXME (load-file "../lib/memoize.mal")
+(load-file "../lib/perf.mal")           ; time
 
-(load-file "../perf.mal")  ; for the 'time' macro
 (def! N 32)
 
 ;; Benchmark naive 'fib'

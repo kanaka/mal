@@ -1,10 +1,7 @@
-(load-file "../core.mal")
-(load-file "../perf.mal")
+(load-file "../lib/heavy_computations.mal") ; fib sumdown
+(load-file "../lib/perf.mal")               ; time
 
 ;;(prn "Start: basic math/recursion test")
-
-(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
-(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
 
 (time (do
   (sumdown 10)

@@ -1,13 +1,14 @@
-;; Kind of standard library for MAL for tests and examples.
-
-;; `cond` `gensym` `inc` `not` `or` would make sense here but are
-;; already defined in the step files as part of the process.
+;; FIXME: trivial.mal
+;; Trivial but convenient functions.
 
 ;; Integer predecessor (number -> number)
 (def! dec (fn* (a) (- a 1)))
 
 ;; Integer nullity test (number -> boolean)
 (def! zero? (fn* (n) (= 0 n)))
+
+;; FIXME: folds.mal
+;; Left and right folds.
 
 ;; Left fold (f (.. (f (f init x1) x2) ..) xn)
 (def! reduce
@@ -29,14 +30,22 @@
     ;; init   : Accumulator
     ;; xs     : sequence of Elements x1 x2 .. xn
     ;; return : Accumulator
+    ;; FIXME: pass f and xs and build this only once in a private env
     (let* [rec (fn* [acc index]
                  (if (< index 0)
                    acc
                    (rec (f (nth xs index) acc) (dec index))))]
+      ;; FIXME stop using dec or load trivial.mal
       (rec init (dec (count xs))))))
 
+nil
+
+;; FIXME: lib/trivial.mal
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
+
+;; FIXME: test_cascade.mal
+;; Iteration on evaluations interpreted as boolean values.
 
 ;; Conjonction of predicate values (pred x1) and .. and (pred xn)
 ;; Evaluate `pred x` for each `x` in turn. Return `false` if a result
@@ -47,6 +56,7 @@
     ;; pred   : Element -> interpreted as a logical value
     ;; xs     : sequence of Elements x1 x2 .. xn
     ;; return : boolean
+    ;; FIXME: use cond
     (if (empty? xs)
       true
       (if (pred (first xs))
@@ -64,23 +74,27 @@
     ;; return : boolean
     (if (empty? xs)
       nil
+      ;; FIXME use or
       (let* (res (pred (first xs)))
         (if res
           res
           (some pred (rest xs)))))))
 
-;; Search for first successful evaluation.
+;; Search for first evaluation returning `nil` or `false`.
 ;; Rewrite `x1 x2 .. xn x` as
 ;;   (let* [r1 x1]
 ;;     (if r1 test1
 ;;       (let* [r2 x2]
 ;;         ..
 ;;         (if rn
-;;           rn
-;;           x) ..)))
+;;           x
+;;           rn) ..)
+;;       r1))
 ;; Without arguments, returns `true`.
 (defmacro! and
   (fn* (& xs)
+    ;; Arguments and the result are interpreted as boolean values.
+    ;; FIXME: use cond
     (if (empty? xs)
       true
       (if (= 1 (count xs))
@@ -89,7 +103,11 @@
           `(let* (~condvar ~(first xs))
             (if ~condvar (and ~@(rest xs)) ~condvar)))))))
 
+;; FIXME: composition.mal
 ;; Composition of partially applied functions.
+
+;; FIXME (load-file "../lib/folds.mal")          ; reduce
+
 ;; Rewrite x (a a1 a2) .. (b b1 b2) as
 ;;   (b (.. (a x a1 a2) ..) b1 b2)
 ;; If anything else than a list is found were `(a a1 a2)` is expected,
@@ -97,6 +115,7 @@
 ;; equivalent to `-> x (list a)`.
 (defmacro! ->
   (fn* (x & xs)
+    ;; FIXME define this only once
     (let* [f (fn* [acc form]
                (if (list? form)
                  `(~(first form) ~acc ~@(rest form))
@@ -110,12 +129,11 @@
 ;;   (b b1 b2 (.. (a a1 a2 x) ..)).
 (defmacro! ->>
   (fn* (x & xs)
+    ;; FIXME define this only once
     (let* [f (fn* [acc form]
                (if (list? form)
                  `(~(first form) ~@(rest form) ~acc)
                  (list form acc)))]
       (reduce f x xs))))
 
-;; This `nil` is intentional so that the result of doing `load-file` is
-;; `nil` instead of whatever happens to be at the end of `core.mal`.
 nil

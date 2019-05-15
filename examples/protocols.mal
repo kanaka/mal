@@ -1,3 +1,4 @@
+;; FIXME lib/memoize.mal
 ;; A sketch of Clojure-like protocols, implemented in Mal
 ;; By chouser (Chris Houser)
 ;; Original: https://gist.github.com/Chouser/6081ea66d144d13e56fc
@@ -40,8 +41,11 @@
     (if (first more)
       (apply extend type more)))))
 
-;;----
-;; Example:
+nil
+
+;; Examples for protocols.
+
+;; FIXME (load-file "../lib/protocols.mal")
 
 (def! make-triangle (fn* [o a]
   ^{:type :shape/triangle} {:opposite o, :adjacent a}))
