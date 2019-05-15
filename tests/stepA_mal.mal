@@ -279,3 +279,12 @@
 ;=>55
 (> (time-ms) start-time)
 ;=>true
+
+;;
+;; Test that defining a macro does not mutate an existing function.
+(def! f (fn* [x] (number? x)))
+(defmacro! m f)
+(f (+ 1 1))
+;=>true
+(m (+ 1 1))
+;=>false
