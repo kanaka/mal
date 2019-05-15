@@ -14,14 +14,19 @@ of BBC BASIC V and porting it to older versions would be difficult.
 
 Mal is intended to run on all versions of BBC BASIC V and BBC BASIC
 VI, as well as on Brandy 1.20.1.  For compatibility with Brandy, it
-only uses features exposed in the BASIC language and does not make any
-operating system calls.
+avoids operating system calls where possible.  The only exception
+is that is has separate mechanisms for reading command-line arguments
+under Brandy and RISC OS.
 
 # Interesting features
 
-This appears to be the first mal implementation that uses an explicit
+This appears to be the first mal implementation that uses an table-driven
 deterministic finite automoton (a state machine) to implement its
 tokenizer.
+
+The mal heap is represented as a large array of fixed-size objects.
+Lists and vectors are linked lists of these objects, while hash-maps
+are crit-bit trees.
 
 Mal exceptions are implemented as BBC BASIC errors.  Errors generated
 by mal are numbered from &40E80900.
