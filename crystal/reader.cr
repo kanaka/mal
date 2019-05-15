@@ -81,11 +81,11 @@ class Reader
     when token == "true"    then true
     when token == "false"   then false
     when token == "nil"     then nil
-    when token[0] == '"'
-      parse_error "expected '\"', got EOF" if token[-1] != '"'
+    when token =~ /^"(?:\\.|[^\\"])*"$/
       token[1..-2].gsub(/\\(.)/, {"\\\"" => "\"",
                                   "\\n"  => "\n",
                                   "\\\\" => "\\"})
+    when token[0] == '"' then parse_error "expected '\"', got EOF"
     when token[0] == ':' then "\u029e#{token[1..-1]}"
     else                      Mal::Symbol.new token
     end
