@@ -1,5 +1,3 @@
-;; Examples for protocols.
-
 (load-file "../lib/protocols.mal")      ; defprotocol extend satisfies
 
 (def! make-triangle (fn* [o a]
@@ -12,7 +10,8 @@
   (area [this])
   (draw [this]))
 
-(prn :false-> (satisfies? IDraw (make-triangle 5 5))) ;=> false
+(prn :false-> (satisfies? IDraw (make-triangle 5 5)))
+;=>false
 
 (extend :shape/rectangle
   IDraw
@@ -24,6 +23,8 @@
     {:area (fn* [obj] (/ (* (get obj :opposite) (get obj :adjacent)) 2))
      :draw (fn* [obj] (println " .\n.."))})
 
-(prn :true-> (satisfies? IDraw (make-triangle 5 5))) ;=> true
+(prn :true-> (satisfies? IDraw (make-triangle 5 5)))
+;=>true
 
-(prn :area-> (area (make-triangle 5 4))) ;=> 10
+(prn :area-> (area (make-triangle 5 4)))
+;=>10

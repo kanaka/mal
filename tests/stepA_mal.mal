@@ -286,11 +286,11 @@
 (let* [or_FIXME 23] (or false (+ or_FIXME 100)))
 ;=>123
 
+;; Loading sumdown from lib/heavy_computations.mal
+(load-file "../lib/heavy_computations.mal")
 
 ;;
 ;; Testing time-ms function
-(load-file "../lib/heavy_computations.mal")
-;=>nil
 (def! start-time (time-ms))
 (= start-time 0)
 ;=>false

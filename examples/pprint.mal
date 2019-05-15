@@ -1,7 +1,0 @@
-;; Examples of the pretty printer.
-
-(load-file "../lib/pprint.mal")         ; pprint
-
-(pprint '(7 8 9 "ten" [11 12 [13 14]] 15 16))
-(pprint '{:abc 123 :def {:ghi 456 :jkl [789 "ten eleven twelve"]}})
-(pprint '(7 8 {:abc 123 :def {:ghi 456 :jkl 789}} 9 10 [11 12 [13 14]] 15 16))
