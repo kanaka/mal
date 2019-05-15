@@ -1,5 +1,6 @@
-(load-file "../lib/core.mal")           ; or ->
+(load-file "../lib/composition.mal")    ; ->
 (load-file "../lib/perf.mal")           ; run-fn-for
+(load-file "../lib/test_cascade.mal")   ; or
 
 ;;(prn "Start: basic macros/atom test")
 
