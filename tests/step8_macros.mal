@@ -175,9 +175,7 @@ x
 
 ;; Test that defining a macro does not mutate an existing function.
 (def! f (fn* [x] (number? x)))
-;=>#<function (x) -> (number? x)>
 (defmacro! m f)
-;=>#<macro (x) -> (number? x)>
 (f (+ 1 1))
 ;=>true
 (m (+ 1 1))
