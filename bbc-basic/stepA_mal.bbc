@@ -156,7 +156,7 @@ DEF FNEVAL_(ast%, env%)
           =val%
         WHEN "defmacro!"
           val% = FNEVAL(FNnth(ast%, 2), env%)
-          IF FNis_fn(val%) THEN PROCmake_macro(val%)
+          IF FNis_fn(val%) THEN val% = FNas_macro(val%)
           PROCenv_set(env%, FNnth(ast%, 1), val%)
           =val%
         WHEN "let*"

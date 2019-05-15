@@ -577,10 +577,14 @@ DEF FNalloc_fn(ast%, params%, env%)
   Z%(val2%,2) = env%
 =val1%
 
-DEF PROCmake_macro(val%)
+DEF FNas_macro(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
-  Z%(val%, 0) = Z%(val%, 0) OR &80
-ENDPROC
+  LOCAL newval%
+  newval% = FNmalloc(Z%(val%,0) OR &80)
+  Z%(newval%,1) = Z%(val%,1)
+  Z%(newval%,2) = Z%(val%,2)
+  Z%(newval%,3) = Z%(val%,3)
+=newval%
 
 DEF FNfn_ast(val%)
   IF NOT FNis_fn(val%) THEN ERROR &40E8091A, "Not a function"
