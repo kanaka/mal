@@ -1537,6 +1537,10 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
     result of reading the next next form (2nd argument) (`read_form`) and the
     next form (1st argument) in that order
     (metadata comes first with the ^ macro and the function second).
+  * If you implemented as `defmacro!` to mutate an existing function
+    without copying it, you can now use the function copying mechanism
+    used for metadata to make functions immutable even in the
+    defmacro! case...
 
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
