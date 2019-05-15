@@ -1,6 +1,7 @@
 ;; These are the answers to the questions in ../docs/exercise.md.
 
-(load-file "../core.mal")
+(load-file "../lib/folds.mal")          ; foldr reduce
+(load-file "../lib/trivial.mal")        ; dec identity
 
 (def! nil?   (fn* [x] (= x nil  )))
 (def! true?  (fn* [x] (= x true )))

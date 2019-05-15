@@ -6,8 +6,8 @@ approach, you may want to solve the following exercises in the MAL
 language itself, using any of the existing implementations.
 
 You are encouraged to use the shortcuts defined in the step files
-(`not`...) and ``core.mal`` (`reduce`...) whenever you find that they
-increase the readability.
+(`not`...) and `the `lib/` subdirectory (`reduce`...) whenever you
+find that they increase the readability.
 
 The difficulty is progressive in each section, but they focus on
 related topics and it is recommended to start them in parallel.
