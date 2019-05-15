@@ -404,7 +404,8 @@ DEF FNunbox_corefn(val%)
 
 REM ** Hash-maps **
 
-REM  Hash-maps are represented as a PATRICIA tree.
+REM  Hash-maps are represented as a crit-bit tree.
+
 REM  An internal node has:
 REM  Z%(x,0) >> 16 = next bit of key to check
 REM  Z%(x,1) = index in Z%() of left child (if next bit of key is 0)
