@@ -383,26 +383,6 @@ DEF FNnth(val%, n%)
   IF FNis_empty(val%) THEN ERROR &40E80923, "Subscript out of range"
 =FNfirst(val%)
 
-DEF PROClist_to_array(val%, a%())
-  REM  a%() must already be correctly dimensioned.
-  LOCAL i%
-  WHILE NOT FNis_empty(val%)
-    a%(i%) = FNref_local(FNfirst(val%))
-    val% = FNrest(val%)
-    i% += 1
-  ENDWHILE
-ENDPROC
-
-DEF FNarray_to_list(a%())
-  LOCAL i%, val%
-  PROCgc_enter
-  val% = FNempty
-  IF DIM(a%(), 1) = 0 THEN =val%
-  FOR i% = DIM(a%(), 1) - 1 TO 0 STEP -1
-    val% = FNalloc_pair(a%(i%), val%)
-  NEXT i%
-=FNgc_exit(val%)
-
 REM ** Core functions **
 
 REM  Z%(x,1) = index of function in FNcore_call
