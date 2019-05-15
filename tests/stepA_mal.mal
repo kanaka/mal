@@ -226,10 +226,19 @@
 (meta (with-meta [1 2 3] "abc"))
 ;=>"abc"
 
+(with-meta [] "abc")
+;=>[]
+
 (meta (with-meta (list 1 2 3) {"a" 1}))
 ;=>{"a" 1}
 
 (list? (with-meta (list 1 2 3) {"a" 1}))
+;=>true
+
+(with-meta (list) {"a" 1})
+;=>()
+
+(empty? (with-meta (list) {"a" 1}))
 ;=>true
 
 (meta (with-meta {"abc" 123} {"a" 1}))
@@ -237,6 +246,9 @@
 
 (map? (with-meta {"abc" 123} {"a" 1}))
 ;=>true
+
+(with-meta {} {"a" 1})
+;=>{}
 
 ;;; Not actually supported by Clojure
 ;;;(meta (with-meta (atom 7) {"a" 1}))
