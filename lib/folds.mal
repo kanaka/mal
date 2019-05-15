@@ -1,0 +1,31 @@
+;; Left and right folds.
+
+;; Left fold (f (.. (f (f init x1) x2) ..) xn)
+(def! reduce
+  (fn* (f init xs)
+    ;; f      : Accumulator Element -> Accumulator
+    ;; init   : Accumulator
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : Accumulator
+    (if (empty? xs)
+      init
+      (reduce f (f init (first xs)) (rest xs)))))
+
+;; Right fold (f x1 (f x2 (.. (f xn init)) ..))
+;; The natural implementation for `foldr` is not tail-recursive, so we
+;; rely on efficient `nth` and `count`.
+(def! foldr
+  (fn* [f init xs]
+    ;; f      : Element Accumulator -> Accumulator
+    ;; init   : Accumulator
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : Accumulator
+    ;; FIXME: pass f and xs and build this only once in a private env
+    (let* [rec (fn* [acc index]
+                 (if (< index 0)
+                   acc
+                   (rec (f (nth xs index) acc) (dec index))))]
+      ;; FIXME stop using dec or load trivial.mal
+      (rec init (dec (count xs))))))
+
+nil
