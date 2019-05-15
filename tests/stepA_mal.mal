@@ -290,6 +290,7 @@
 ;;
 ;; Testing time-ms function
 (load-file "../lib/heavy_computations.mal")
+;=>nil
 (def! start-time (time-ms))
 (= start-time 0)
 ;=>false

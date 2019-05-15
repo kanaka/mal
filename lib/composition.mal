@@ -9,12 +9,13 @@
 ;; equivalent to `-> x (list a)`.
 (defmacro! ->
   (fn* (x & xs)
-    ;; FIXME define this only once
-    (let* [f (fn* [acc form]
-               (if (list? form)
-                 `(~(first form) ~acc ~@(rest form))
-                 (list form acc)))]
-      (reduce f x xs))))
+    (reduce _iter-> x xs)))
+
+(def! _iter->
+  (fn* [acc form]
+    (if (list? form)
+      `(~(first form) ~acc ~@(rest form))
+      (list form acc))))
 
 ;; Like `->`, but the arguments describe functions that are partially
 ;; applied with *left* arguments.  The previous result is inserted at
@@ -23,11 +24,12 @@
 ;;   (b b1 b2 (.. (a a1 a2 x) ..)).
 (defmacro! ->>
   (fn* (x & xs)
-    ;; FIXME define this only once
-    (let* [f (fn* [acc form]
-               (if (list? form)
-                 `(~(first form) ~@(rest form) ~acc)
-                 (list form acc)))]
-      (reduce f x xs))))
+     (reduce _iter->> x xs)))
+
+(def! _iter->>
+  (fn* [acc form]
+    (if (list? form)
+      `(~(first form) ~@(rest form) ~acc)
+      (list form acc))))
 
 nil

@@ -3,33 +3,38 @@
 ;; Evaluate an expression, but report the time spent
 (defmacro! time
   (fn* (exp)
-    `(let* (start_FIXME (time-ms)
-            ret_FIXME ~exp)
-      (do
-        (prn (str "Elapsed time: " (- (time-ms) start_FIXME) " msecs"))
-        ret_FIXME))))
-
-;; FIXME: hide this private routine in a private environment
-(def! run-fn-for*
-  (fn* [fn max-ms acc-ms last-iters]
-    (let* [start (time-ms)
-           _ (fn)
-           elapsed (- (time-ms) start)
-           iters (+ 1 last-iters)
-           new-acc-ms (+ acc-ms elapsed)]
-      ;(do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
-      (if (>= new-acc-ms max-ms)
-        last-iters
-        (run-fn-for* fn max-ms new-acc-ms iters)))))
+    (let* [start (gensym)
+           ret   (gensym)]
+      `(let* [~start (time-ms)
+              ~ret    ~exp]
+        (do
+          (prn (str "Elapsed time: " (- (time-ms) ~start) " msecs"))
+          ~ret)))))
 
 ;; Count evaluations of a function during a given time frame.
-;; FIXME: max-secs is a number.
 (def! run-fn-for
-  (fn* [fn max-secs]
-    (do
-      ;; Warm it up first
-      (run-fn-for* fn 1000 0 0)
-      ;; Now do the test
-      (run-fn-for* fn (* 1000 max-secs) 0 0))))
+
+  (let* [
+    run-fn-for* (fn* [fn max-ms acc-ms last-iters]
+      (let* [start (time-ms)
+             _ (fn)
+             elapsed (- (time-ms) start)
+             iters (+ 1 last-iters)
+             new-acc-ms (+ acc-ms elapsed)]
+        ;; (do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
+        (if (>= new-acc-ms max-ms)
+          last-iters
+          (run-fn-for* fn max-ms new-acc-ms iters))))
+    ]
+
+    (fn* [fn max-secs]
+      ;; fn       : function without parameters
+      ;; max-secs : number (seconds)
+      ;; return   : number (iterations)
+      (do
+        ;; Warm it up first
+        (run-fn-for* fn 1000 0 0)
+        ;; Now do the test
+        (run-fn-for* fn (* 1000 max-secs) 0 0)))))
 
 nil

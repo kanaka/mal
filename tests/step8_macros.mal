@@ -150,7 +150,8 @@ x
 ;=>"yes"
 
 ;;
-(load-file "../lib/core.mal")
+(load-file "../lib/folds.mal")
+;=>nil
 
 ;; Testing reduce
 (reduce + 7 [])
@@ -182,6 +183,10 @@ x
 (foldr cons [4 5] [2 3])
 ;=>(2 3 4 5)
 
+;;
+(load-file "../lib/test_cascade.mal")
+;=>nil
+
 ;; Testing every?
 (every? first [])
 ;=>true
@@ -195,6 +200,10 @@ x
 ;=>nil
 (some first [[nil] [1] []])
 ;=>1
+
+;;
+(load-file "../lib/composition.mal")
+;=>nil
 
 ;; Testing -> macro
 (-> 7)

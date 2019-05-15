@@ -15,17 +15,19 @@
 ;; The natural implementation for `foldr` is not tail-recursive, so we
 ;; rely on efficient `nth` and `count`.
 (def! foldr
-  (fn* [f init xs]
-    ;; f      : Element Accumulator -> Accumulator
-    ;; init   : Accumulator
-    ;; xs     : sequence of Elements x1 x2 .. xn
-    ;; return : Accumulator
-    ;; FIXME: pass f and xs and build this only once in a private env
-    (let* [rec (fn* [acc index]
-                 (if (< index 0)
-                   acc
-                   (rec (f (nth xs index) acc) (dec index))))]
-      ;; FIXME stop using dec or load trivial.mal
-      (rec init (dec (count xs))))))
+
+  (let* [
+    rec (fn* [f xs acc index]
+      (if (< index 0)
+        acc
+        (rec f xs (f (nth xs index) acc) (- index 1))))
+    ]
+
+    (fn* [f init xs]
+      ;; f      : Element Accumulator -> Accumulator
+      ;; init   : Accumulator
+      ;; xs     : sequence of Elements x1 x2 .. xn
+      ;; return : Accumulator
+      (rec f xs init (- (count xs) 1)))))
 
 nil

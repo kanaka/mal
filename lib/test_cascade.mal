@@ -9,12 +9,9 @@
     ;; pred   : Element -> interpreted as a logical value
     ;; xs     : sequence of Elements x1 x2 .. xn
     ;; return : boolean
-    ;; FIXME: use cond
-    (if (empty? xs)
-      true
-      (if (pred (first xs))
-        (every? pred (rest xs))
-        false))))
+    (cond (empty? xs)       true
+          (pred (first xs)) (every? pred (rest xs))
+          true              false)))
 
 ;; Disjonction of predicate values (pred x1) or .. (pred xn)
 ;; Evaluate `(pred x)` for each `x` in turn. Return the first result
@@ -27,11 +24,8 @@
     ;; return : boolean
     (if (empty? xs)
       nil
-      ;; FIXME use or
-      (let* (res (pred (first xs)))
-        (if res
-          res
-          (some pred (rest xs)))))))
+      (or (pred (first xs))
+          (some pred (rest xs))))))
 
 ;; Search for first evaluation returning `nil` or `false`.
 ;; Rewrite `x1 x2 .. xn x` as
@@ -47,13 +41,10 @@
 (defmacro! and
   (fn* (& xs)
     ;; Arguments and the result are interpreted as boolean values.
-    ;; FIXME: use cond
-    (if (empty? xs)
-      true
-      (if (= 1 (count xs))
-        (first xs)
-        (let* (condvar (gensym))
-          `(let* (~condvar ~(first xs))
-            (if ~condvar (and ~@(rest xs)) ~condvar)))))))
+    (cond (empty? xs)      true
+          (= 1 (count xs)) (first xs)
+          true             (let* (condvar (gensym))
+                             `(let* (~condvar ~(first xs))
+                               (if ~condvar (and ~@(rest xs)) ~condvar))))))
 
 nil
