@@ -47,6 +47,7 @@ No.| Description
 &31| Unexpected ')'
 &32| Hash-map key mush be a string
 &40| File not found
+&50| Out of memory
 &Fx| Internal errors (indicating a bug in mal)
 &F0| Unprintable value
 &F1| Call to non-existent core function
