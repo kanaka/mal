@@ -53,7 +53,7 @@ namespace Mal {
 
         public static MalVal read_atom(Reader rdr) {
             string token = rdr.next();
-            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*)|:(.*)|(^[^""]*$)";
+            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|(^""(?:[\\].|[^\\""])*""$)|(^"".*$)|:(.*)|(^[^""]*$)";
             Regex regex = new Regex(pattern);
             Match match = regex.Match(token);
             //Console.WriteLine("token: ^" + token + "$");
@@ -70,9 +70,6 @@ namespace Mal {
                 return Mal.types.False;
             } else if (match.Groups[6].Value != String.Empty) {
                 string str = match.Groups[6].Value;
-                if (str[str.Length-1] != '"') {
-                    throw new ParseError("expected '\"', got EOF");
-                }
                 str = str.Substring(1, str.Length-2)
                     .Replace("\\\\",   "\u029e")
                     .Replace("\\\"",   "\"")
@@ -80,9 +77,11 @@ namespace Mal {
                     .Replace("\u029e", "\\");
                 return new Mal.types.MalString(str);
             } else if (match.Groups[7].Value != String.Empty) {
-                return new Mal.types.MalString("\u029e" + match.Groups[7].Value);
+                throw new ParseError("expected '\"', got EOF");
             } else if (match.Groups[8].Value != String.Empty) {
-                return new Mal.types.MalSymbol(match.Groups[8].Value);
+                return new Mal.types.MalString("\u029e" + match.Groups[8].Value);
+            } else if (match.Groups[9].Value != String.Empty) {
+                return new Mal.types.MalSymbol(match.Groups[9].Value);
             } else {
                 throw new ParseError("unrecognized '" + match.Groups[0] + "'");
             }

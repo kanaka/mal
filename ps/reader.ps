@@ -197,7 +197,7 @@ end } def
             /ch str idx get def  % current character
         } if
         % if not whitespace then exit
-        ch 32 ne ch 10 ne ch 44 ne and and { exit } if
+        ch 32 ne ch 10 ne ch 44 ne ch 59 ne and and and { exit } if
         /idx idx 1 add def % increment idx
     } loop
 
