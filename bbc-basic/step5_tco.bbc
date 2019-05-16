@@ -19,14 +19,15 @@ UNTIL sym$ = ""
 
 val$ = FNrep("(def! not (fn* (a) (if a false true)))")
 
+sav% = FNgc_save
 REPEAT
   REM  Catch all errors apart from "Escape".
-  ON ERROR LOCAL PRINT REPORT$:IF ERR = 17 THEN END ELSE PROCgc_restore(sav%)
+  ON ERROR LOCAL IF ERR = 17 ON ERROR OFF: ERROR ERR, REPORT$ ELSE PRINT REPORT$
+  PROCgc_restore(sav%)
   sav% = FNgc_save
   PRINT "user> ";
   LINE INPUT "" line$
   PRINT FNrep(line$)
-  PROCgc_restore(sav%)
 UNTIL FALSE
 
 END
