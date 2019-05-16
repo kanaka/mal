@@ -33,18 +33,24 @@
                    (link
                       (pack
                          (make
-                            (link Char)
-                            (let (Char (car Chars) Done NIL)
-                               (while (and (not Done) Chars)
-                                  (link (pop 'Chars))
-                                  (cond
-                                     ((= Char "\\")
-                                      (link (pop 'Chars)) # add char after \
-                                      (setq Char (car Chars)) )
-                                     ((<> Char "\"")
-                                      (setq Char (car Chars)) )
-                                     ((= Char "\"")
-                                      (setq Done T) ) ) ) ) ) ) ) )
+                            (link Char) # HACK
+                            (use Done
+                               (while (and Chars (not Done))
+                                  (let Char (pop 'Chars)
+                                     (cond
+                                        ((= Char "\\")
+                                         (if Chars
+                                            (let Char (pop 'Chars)
+                                               (if (= Char "n")
+                                                  (link "\n")
+                                                  (link Char) ) )
+                                            (throw 'err (MAL-error (MAL-string "expected '\"', got EOF"))) ) )
+                                        ((<> Char "\"")
+                                         (link Char) )
+                                        ((= Char "\"")
+                                         (setq Done T) ) ) ) )
+                               (unless Done
+                                  (throw 'err (MAL-error (MAL-string "expected '\"', got EOF"))) ) ) ) ) ) )
                   ((= Char ";")
                    (while (and Chars (<> Char "\n"))
                       (setq Char (pop 'Chars)) ) )
@@ -112,9 +118,7 @@
          ((format Token)
           (MAL-number @) )
          ((= (car Chars) "\"")
-          (if (= (last Chars) "\"")
-             (MAL-string (any Token))
-             (throw 'err (MAL-error (MAL-string "expected '\"', got EOF"))) ) )
+          (MAL-string (pack (cdr Chars))) )
          ((= (car Chars) ":")
           (MAL-keyword (intern (pack (cdr Chars)))) )
          ((not Token)
