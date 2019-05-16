@@ -48,6 +48,7 @@ fn unescape_str(s: &str) -> String {
 fn read_atom(rdr: &mut Reader) -> MalRet {
   lazy_static! {
     static ref INT_RE: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
+    static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
   }
   let token = rdr.next()?;
   match &token[..] {
@@ -57,12 +58,10 @@ fn read_atom(rdr: &mut Reader) -> MalRet {
     _       => {
       if INT_RE.is_match(&token) {
         Ok(Int(token.parse().unwrap()))
+      } else if STR_RE.is_match(&token) {
+        Ok(Str(unescape_str(&token[1..token.len()-1])))
       } else if token.starts_with("\"") {
-        if token.ends_with("\"") {
-          Ok(Str(unescape_str(&token[1..token.len()-1])))
-        } else {
-          error("expected '\"', got EOF")
-        }
+        error("expected '\"', got EOF")
       } else if token.starts_with(":") {
         Ok(Str(format!("\u{29e}{}", &token[1..])))
       } else {
