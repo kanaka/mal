@@ -20,9 +20,11 @@ WORKDIR /mal
 # Specific implementation requirements
 ##########################################################
 
-RUN sed 's/^deb/deb-src/' \
-    < /etc/apt/sources.list > /etc/apt/sources.list.d/deb-src.list
-RUN apt-get update
+# These may be necessary for some base Ubuntu containers.
+# RUN sed 's/^deb/deb-src/' \
+#     < /etc/apt/sources.list > /etc/apt/sources.list.d/deb-src.list
+# RUN apt-get update
+
 RUN apt-get build-dep -y brandy
 RUN cd /tmp && apt-get source brandy && cd brandy-* && \
     make -f makefile.text && cp sbrandy /usr/bin/sbrandy && \
