@@ -36,16 +36,15 @@ function read_atom($reader) {
     $token = $reader->next();
     if (preg_match("/^-?[0-9]+$/", $token)) {
         return intval($token, 10);
-    } elseif ($token[0] === "\"") {
-        if (substr($token, -1) !== "\"") {
-            throw new Exception("expected '\"', got EOF");
-        }
+    } elseif (preg_match("/^\"(?:\\\\.|[^\\\\\"])*\"$/", $token)) {
         $str = substr($token, 1, -1);
         $str = str_replace('\\\\', chr(0x7f), $str);
         $str = str_replace('\\"', '"', $str);
         $str = str_replace('\\n', "\n", $str);
         $str = str_replace(chr(0x7f), "\\", $str);
         return $str;
+    } elseif ($token[0] === "\"") {
+        throw new Exception("expected '\"', got EOF");
     } elseif ($token[0] === ":") {
         return _keyword(substr($token,1));
     } elseif ($token === "nil") {

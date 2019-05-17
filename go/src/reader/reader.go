@@ -65,10 +65,8 @@ func read_atom(rdr Reader) (MalType, error) {
 			return nil, errors.New("number parse error")
 		}
 		return i, nil
-	} else if (*token)[0] == '"' {
-		if (*token)[len(*token)-1] != '"' {
-			return nil, errors.New("expected '\"', got EOF")
-		}
+	} else if match, _ :=
+		  regexp.MatchString(`^"(?:\\.|[^\\"])*"$`, *token); match {
 		str := (*token)[1 : len(*token)-1]
 		return strings.Replace(
 			strings.Replace(
@@ -77,6 +75,8 @@ func read_atom(rdr Reader) (MalType, error) {
 			  `\"`, `"`, -1),
 			 `\n`, "\n", -1),
 			"\u029e", "\\", -1), nil
+	} else if (*token)[0] == '"' {
+		return nil, errors.New("expected '\"', got EOF")
 	} else if (*token)[0] == ':' {
 		return NewKeyword((*token)[1:len(*token)])
 	} else if *token == "nil" {

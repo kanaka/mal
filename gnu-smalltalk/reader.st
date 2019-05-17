@@ -4,6 +4,7 @@ Object subclass: Reader [
     TokenRegex := '[\s,]*(~@|[\[\]{}()''`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}(''"`,;)]*)'.
     CommentRegex := ';.*'.
     NumberRegex := '-?[0-9]+(?:\.[0-9]+)?'.
+    StringRegex := '"(?:\\.|[^\\"])*"'.
 
     Reader class >> tokenizer: input [
         | tokens token hit pos done |
@@ -106,12 +107,11 @@ Object subclass: Reader [
         token = 'false' ifTrue: [ ^MALObject False ].
         token = 'nil' ifTrue: [ ^MALObject Nil ].
 
+        (token matchRegex: StringRegex) ifTrue: [
+            ^MALString new: token parse
+        ].
         (token first = $") ifTrue: [
-            (token last = $") ifTrue: [
-                ^MALString new: token parse
-            ] ifFalse: [
-                ^MALUnterminatedSequence new signal: '"'
-            ]
+            ^MALUnterminatedSequence new signal: '"'
         ].
 
         (token matchRegex: NumberRegex) ifTrue: [
