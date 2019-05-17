@@ -286,8 +286,8 @@
 (let* [or_FIXME 23] (or false (+ or_FIXME 100)))
 ;=>123
 
-;; Loading sumdown from lib/heavy_computations.mal
-(load-file "../lib/heavy_computations.mal")
+;; Loading sumdown from computations.mal
+(load-file "../tests/computations.mal")
 
 ;;
 ;; Testing time-ms function

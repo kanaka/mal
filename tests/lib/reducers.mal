@@ -1,4 +1,4 @@
-(load-file "../lib/folds.mal")
+(load-file "../lib/reducers.mal")
 
 ;; Testing reduce
 (reduce + 7 [])

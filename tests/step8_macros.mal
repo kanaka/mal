@@ -150,8 +150,8 @@ x
 ;=>"yes"
 
 ;;
-;; Loading -> and ->> from lib/composition.mal
-(load-file "../lib/composition.mal")
+;; Loading -> and ->> from lib/threading.mal
+(load-file "../lib/threading.mal")
 
 ;; Testing -> macro
 (-> 7)

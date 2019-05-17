@@ -1,4 +1,4 @@
-(load-file "../lib/composition.mal")    ; ->
+(load-file "../lib/threading.mal")      ; ->
 (load-file "../lib/perf.mal")           ; time
 (load-file "../lib/test_cascade.mal")   ; or
 

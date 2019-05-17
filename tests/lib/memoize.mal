@@ -1,5 +1,5 @@
-(load-file "../lib/heavy_computations.mal") ; fib
-(load-file "../lib/memoize.mal")            ; memoize
+(load-file "../tests/computations.mal")      ; fib
+(load-file "../lib/memoize.mal")             ; memoize
 
 (def! N 32)
 
@@ -9,8 +9,7 @@
 
 ;; Benchmark memoized 'fib'
 
-(def! fib ((memoize fib)))
-
+(def! fib (memoize fib))
 (def! r2 (fib N))                       ; Should be quick
 
 (= r1 r2)

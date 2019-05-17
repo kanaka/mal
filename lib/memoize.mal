@@ -6,6 +6,10 @@
 ;; calculated and stored. If this is the case, it is returned immediately;
 ;; otherwise, it is calculated and stored in `mem`.
 
+;; For recursive functions, take care to store the wrapper under the
+;; same name than the original computation with an assignment like
+;; `(def! f (memoize f))`, so that intermediate results are memorized.
+
 ;; Adapted from http://clojure.org/atoms
 
 (def! memoize

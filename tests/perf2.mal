@@ -1,4 +1,4 @@
-(load-file "../lib/heavy_computations.mal") ; fib sumdown
+(load-file "../tests/computations.mal")     ; fib sumdown
 (load-file "../lib/perf.mal")               ; time
 
 ;;(prn "Start: basic math/recursion test")

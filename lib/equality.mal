@@ -4,55 +4,55 @@
 ;; hash-maps and sequences (lists and vectors).  If not, it redefines the `=`
 ;; function with a pure mal (recursive) implementation that only relies on the
 ;; native original `=` function for comparing scalars (integers, booleans,
-;; symbols, strings).
+;; symbols, strings, keywords, atoms, nil).
 
 ;; Save the original (native) `=` as scalar-equal?
 (def! scalar-equal? =)
 
 ;; A faster `and` macro which doesn't use `=` internally.
-(defmacro! and2                        ; `true` or `nil`
+(defmacro! and2                        ; boolean
   (fn* [& xs]                          ; interpreted as logical values
     (if (empty? xs)
       true
-      `(if ~(first xs) (and2 ~(rest xs))))))
-(defmacro! ord2                        ; `true` or `false`
+      `(if ~(first xs) (and2 ~@(rest xs)) false))))
+(defmacro! or2                         ; boolean
   (fn* [& xs]                          ; interpreted as logical values
     (if (empty? xs)
       false
-      `(if ~(first xs) true (ord2 ~(rest xs))))))
+      `(if ~(first xs) true (or2 ~@(rest xs))))))
 
-;; Implement `=` for two sequential arguments
-(def! sequential-equal?
+(def! starts-with?
   (fn* [a b]
-    (and2 (scalar-equal? (count a) (count b))
-          (or2 (empty? a)
-               (and2 (mal-equal? (first a) (first b))
-                     (sequential-equal? (rest a) (rest b)))))))
+    (or2 (empty? a)
+         (and2 (mal-equal? (first a) (first b))
+               (starts-with? (rest a) (rest b))))))
 
-;; Helper function
 (def! hash-map-vals-equal?
   (fn* [a b map-keys]
-    (or2 (scalar-equal? 0 (count map-keys))
+    (or2 (empty? map-keys)
          (let* [key (first map-keys)]
-           (and2 (contains? a key)
-                 (contains? b key)
+           (and2 (contains? b key)
                  (mal-equal? (get a key) (get b key))
                  (hash-map-vals-equal? a b (rest map-keys)))))))
-
-;; Implement `=` for two hash-maps
-(def! hash-map-equal?
-  (fn* [a b]
-    (let* [keys-a (keys a)]
-      (and2 (scalar-equal? (count keys-a) (count (keys b)))
-            (hash-map-vals-equal? a b keys-a)))))
 
 ;; This implements = in pure mal (using only scalar-equal? as native impl)
 (def! mal-equal?
   (fn* [a b]
     (cond
-      (and2 (sequential? a) (sequential? b)) (sequential-equal? a b)
-      (and2 (map? a) (map? b)) (hash-map-equal? a b)
-      true (scalar-equal? a b))))
+
+      (sequential? a)
+      (and2 (sequential? b)
+            (scalar-equal? (count a) (count b))
+            (starts-with? a b))
+
+      (map? a)
+      (let* [keys-a (keys a)]
+        (and2 (map? b)
+              (scalar-equal? (count keys-a) (count (keys b)))
+              (hash-map-vals-equal? a b keys-a)))
+
+      true
+      (scalar-equal? a b))))
 
 (def! hash-map-equality-correct?
   (fn* []
