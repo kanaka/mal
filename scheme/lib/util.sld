@@ -9,7 +9,7 @@
         identity readline
 
         ;; HACK: cyclone doesn't have those
-        error-object? error-object-message error-object-irritants)
+        error-object? read-error? error-object-message error-object-irritants)
 
 (import (scheme base))
 (import (scheme write))
@@ -20,6 +20,7 @@
 (cond-expand
  (cyclone
   (define (error-object? x) (and (pair? x) (string? (car x))))
+  (define read-error? error-object?)
   (define error-object-message car)
   (define error-object-irritants cdr))
  (else))
