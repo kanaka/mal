@@ -26,9 +26,9 @@ MalReader := Object clone do (
     )
 
     numberRegex := Regex with("^-?[0-9]+$")
+    stringRegex := Regex with("^\"(?:[\\\\].|[^\\\\\"])*\"$")
 
     read_string := method(token,
-        (token endsWithSeq("\"")) ifFalse(Exception raise("expected '\"', got EOF"))
         placeholder := 127 asCharacter
         token exSlice(1, -1) replaceSeq("\\\\", placeholder) replaceSeq("\\\"", "\"") replaceSeq("\\n", "\n") replaceSeq(placeholder, "\\")
     )
@@ -40,7 +40,8 @@ MalReader := Object clone do (
         (token == "false") ifTrue(return(false))
         (token == "nil") ifTrue(return(nil))
         (token beginsWithSeq(":")) ifTrue(return(MalKeyword with(token exSlice(1))))
-        (token beginsWithSeq("\"")) ifTrue(return(read_string(token)))
+        (token hasMatchOfRegex(stringRegex)) ifTrue(return(read_string(token)))
+        (token beginsWithSeq("\"")) ifTrue(Exception raise("expected '\"', got EOF"))
         MalSymbol with(token)
     )
 
