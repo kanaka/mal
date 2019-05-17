@@ -51,7 +51,7 @@ public class reader {
     public static MalVal read_atom(Reader rdr)
             throws ParseError {
         String token = rdr.next();
-        Pattern pattern = Pattern.compile("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)");
+        Pattern pattern = Pattern.compile("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"((?:[\\\\].|[^\\\\\"])*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)");
         Matcher matcher = pattern.matcher(token);
         if (!matcher.find()) {
             throw new ParseError("unrecognized token '" + token + "'");

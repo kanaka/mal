@@ -44,7 +44,7 @@ class reader {
 
     def static read_atom(Reader rdr) {
         def token = rdr.next()
-        def m = token =~ /(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^"(.*)"$|^"(.*)$|:(.*)|(^[^"]*$)/
+        def m = token =~ /(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^"((?:\\.|[^\\"])*)"$|^"(.*)$|:(.*)|(^[^"]*$)/
         if (!m.find()) {
             throw new MalException("unrecognized token '$token'")
         }
