@@ -91,7 +91,7 @@ var
     Str    : string;
 begin
     RE := TRegExpr.Create;
-    RE.Expression := '(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^(\".*\")$|^(\".*)$|:(.*)|(^[^\"]*$)';
+    RE.Expression := '(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("([\\].|[^\\"])*)"$|^(\".*)$|:(.*)|(^[^\"]*$)';
     Token := Reader.Next();
     //WriteLn('token: ' + Token);
     if RE.Exec(Token) then
@@ -116,11 +116,11 @@ begin
             Str := StringReplace(Str, #127, '\',  [rfReplaceAll]);
             read_atom := TMalString.Create(Str)
         end
-        else if RE.Match[7] <> '' then
-            raise Exception.Create('expected ''"'', got EOF')
         else if RE.Match[8] <> '' then
-            read_atom := TMalString.Create(#127 + RE.Match[8])
+            raise Exception.Create('expected ''"'', got EOF')
         else if RE.Match[9] <> '' then
+            read_atom := TMalString.Create(#127 + RE.Match[9])
+        else if RE.Match[10] <> '' then
             read_atom := TMalSymbol.Create(Token);
     end
     else

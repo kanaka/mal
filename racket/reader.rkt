@@ -31,7 +31,7 @@
            (string->number token)]
           [(regexp-match #px"^-?[0-9][0-9.]*$" token)
            (string->number token)]
-          [(regexp-match #px"^\".*\"$" token)
+          [(regexp-match #px"^\"(?:\\\\.|[^\\\\\"])*\"$" token)
            (with-input-from-string token read)]
           [(regexp-match #px"^\".*$" token)
            (raise "expected '\"', got EOF")]
