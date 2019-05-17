@@ -37,7 +37,7 @@ function read_atom(rdr)
         parse(Int,token)
     elseif ismatch(r"^-?[0-9][0-9.]*$", token)
         float(token)
-    elseif ismatch(r"^\".*\"$", token)
+    elseif ismatch(r"^\"(?:\\.|[^\\\"])*\"$", token)
         replace(token[2:end-1], r"\\.", (r) -> get(Dict("\\n"=>"\n",
                                                         "\\\""=>"\"",
                                                         "\\\\"=>"\\"), r, r))
