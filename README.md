@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 76 languages (77 different implementations and 98 runtime modes)**
+**2. Mal is implemented in 77 languages (78 different implementations and 99 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -15,6 +15,7 @@
 | [GNU Awk](#gnu-awk) | [Miutsuru Kariya](https://github.com/kariya-mitsuru) |
 | [Bash 4](#bash-4) | [Joel Martin](https://github.com/kanaka)  |
 | [BASIC](#basic-c64-and-qbasic) (C64 &amp; QBasic) | [Joel Martin](https://github.com/kanaka) |
+| [BBC BASIC V](#bbc-basic-v) | [Ben Harris](https://github.com/bjh21) |
 | [C](#c) | [Joel Martin](https://github.com/kanaka)  |
 | [C++](#c-1) | [Stephen Thirlwall](https://github.com/sdt) |
 | [C#](#c-2) | [Joel Martin](https://github.com/kanaka)  |
@@ -249,6 +250,22 @@ make MODE=qbasic stepX_YYY.bas
 Thanks to [Steven Syrek](https://github.com/sjsyrek) for the original
 inspiration for this implementation.
 
+### BBC BASIC V
+
+The BBC BASIC V implementation can run in the Brandy interpreter:
+
+```
+cd bbc-basic
+brandy -quit stepX_YYY.bbc
+```
+
+Or in ARM BBC BASIC V under RISC OS 3 or later:
+
+```
+*Dir bbc-basic.riscos
+*Run setup
+*Run stepX_YYY
+```
 
 ### C
 
