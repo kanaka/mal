@@ -6,17 +6,57 @@ directory), it's targeted at much more primitive versions of BASIC and
 relies on a pre-processor, both of which make it fairly un-idiomatic
 as a BBC BASIC V program.
 
-BBC BASIC V is the version of BBC BASIC supplied with the first
-ARM-based computers.  It has substantial enhancements from the
-6502-based versions of BBC BASIC, which were themselves at the
-advanced end of 8-bit BASICs.  Mal uses many of the advanced features
-of BBC BASIC V and porting it to older versions would be difficult.
+BBC BASIC V is the version of BBC BASIC supplied with Acorn's
+ARM-based computers from the mid-1980s.  It has substantial
+enhancements from the 6502-based versions of BBC BASIC, which were
+themselves at the advanced end of 8-bit BASICs.  Mal uses many of the
+advanced features of BBC BASIC V and porting it to older versions
+would be difficult.
 
 Mal is intended to run on all versions of BBC BASIC V and BBC BASIC
 VI, as well as on Brandy 1.20.1.  For compatibility with Brandy, it
 avoids operating system calls where possible.  The only exception
 is that is has separate mechanisms for reading command-line arguments
 under Brandy and RISC OS.
+
+# Running under Unix
+
+On Unix systems, this mal implementation can run on the Brandy
+interpreter.  The tests require the "simple text" build, but mal will
+work interactively in graphical builds as well.  You can invoke mal
+like this:
+
+```
+cd bbc-basic
+brandy stepA_mal.bbc
+```
+
+# Running under RISC OS
+
+To run mal under RISC OS, you obviously need to get the files onto
+your RISC OS system, and you also need to arrange to tokenize the
+BASIC source files.  There are scripts to do the latter in the
+`riscos` directory, but they do require that the mal source tree be
+available under RISC OS without its filenames' being truncated, which
+may restrict with filing systems can be used.  The HostFS supplied
+with ArcEm works fine.
+
+Once you have the files in RISC OS, you can set things up by running:
+
+```
+*Dir bbc-basic.riscos
+*Run setup
+```
+
+Then you can invoke the interpreter directly:
+
+```
+*Run stepA_mal
+```
+
+At present, there's no filename translation in the `slurp` function,
+so many of the example mal programs will fail because they can't load
+`core.mal`.
 
 # Interesting features
 
