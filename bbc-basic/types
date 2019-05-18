@@ -13,8 +13,8 @@ REM  (referenced from Z%()).  Unlike that implementation, we use a
 REM  two-dimensional array where each object is a whole row.  This
 REM  is inefficient but should make memory management simpler.
 
-REM  S%() holds reference counts for the strings in S$().  At present
-REM  these are all 0 or 1.
+REM  S%() holds an integer for each string in S$().  At present
+REM  these are only used to chain together the free list.
 
 REM  Z%(x,0) holds the type of an object and other small amounts of
 REM  information.  The bottom 2 bits indicate the semantics of Z%(x,1):
