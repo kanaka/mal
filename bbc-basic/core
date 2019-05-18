@@ -381,6 +381,12 @@ DEF FNcore_equal(a%, b%)
     IF NOT FNcore_equal(FNfirst(a%), FNfirst(b%)) THEN =FALSE
     =FNcore_equal(FNrest(a%), FNrest(b%))
   ENDIF
+  IF FNis_hashmap(a%) AND FNis_hashmap(b%) THEN
+    REM Take advantage of the sorted keys in our hash-maps.
+    IF FNcore_equal(FNhashmap_keys(a%), FNhashmap_keys(b%)) THEN
+      IF FNcore_equal(FNhashmap_vals(a%), FNhashmap_vals(b%)) THEN =TRUE
+    ENDIF
+  ENDIF
 =FALSE
 
 REM  Innards of the 'slurp' function.
