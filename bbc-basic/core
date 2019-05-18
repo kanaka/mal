@@ -72,29 +72,29 @@ DEF FNcore_call(fn%, args%)
       =FNalloc_boolean(args%(0) >= args%(1))
     DATA read-string, 14
     WHEN 14
-      PROCcore_prepare_args("s", "read-string")
-      =FNread_str(arg$)
+      PROCcore_prepare_args("t", "read-string")
+      =FNread_str(args%(0))
     DATA slurp, 15
     WHEN 15
       PROCcore_prepare_args("s", "slurp")
-      =FNalloc_string(FNcore_slurp(arg$))
+      =FNcore_slurp(arg$)
     DATA eval, 16
     WHEN 16
       PROCcore_prepare_args("?", "eval")
       =FNEVAL(args%(0), repl_env%)
     DATA pr-str, 17
     WHEN 17
-      =FNalloc_string(FNcore_print(TRUE, " ", args%))
+      =FNcore_print(TRUE, " ", args%)
     DATA str, 18
     WHEN 18
-      =FNalloc_string(FNcore_print(FALSE, "", args%))
+      =FNcore_print(FALSE, "", args%)
     DATA prn, 4
     WHEN 4
-      PRINT FNcore_print(TRUE, " ", args%)
+      PRINT FNunbox_string(FNcore_print(TRUE, " ", args%))
       =FNnil
     DATA println, 19
     WHEN 19
-      PRINT FNcore_print(FALSE, " ", args%)
+      PRINT FNunbox_string(FNcore_print(FALSE, " ", args%))
       =FNnil
     DATA atom, 20
     WHEN 20
@@ -143,7 +143,7 @@ DEF FNcore_call(fn%, args%)
     WHEN 30
       PROCcore_prepare_args("?", "throw")
       MAL_ERR% = args%(0)
-      ERROR &40E80900, "Mal exception: " + FNpr_str(args%(0), FALSE)
+      ERROR &40E80900, "Mal exception: " + FNunbox_string(FNpr_str(args%(0), FALSE))
     DATA apply, 31
     WHEN 31
       PROCcore_prepare_args("f?*", "apply")
@@ -298,6 +298,7 @@ DEF PROCcore_prepare_args(spec$, fn$)
 
   REM  "i" - Must be an integer;  unbox into args%()
   REM  "s" - Must be a string;    unbox into arg$
+  REM  "t" - Must be a string;    stuff into args%()
   REM  "l" - Must be a sequence;  stuff into args%()
   REM  "f" - Must be a function;  stuff into args%()
   REM  "a" - Must be an atom;     stuff into args%()
@@ -333,6 +334,11 @@ DEF PROCcore_prepare_args(spec$, fn$)
           ERROR &40E80914, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a string"
         ENDIF
         arg$ = FNunbox_string(val%)
+      WHEN "t"
+        IF NOT FNis_string(val%) THEN
+          ERROR &40E80914, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a string"
+        ENDIF
+        args%(i% - 1) = val%
       WHEN "l"
         IF NOT FNis_seq(val%) THEN
           ERROR &40E80916, "Argument "+STR$(i%)+" to core function '"+fn$+"' must be a sequence"
@@ -391,29 +397,30 @@ DEF FNcore_equal(a%, b%)
 
 REM  Innards of the 'slurp' function.
 DEF FNcore_slurp(file$)
-  LOCAL f%, out$
+  LOCAL f%, out%
   f% = OPENIN(file$)
   IF f% = 0 THEN ERROR &40E80940, "File '"+file$+"' not found"
+  out% = FNalloc_string("")
   WHILE NOT EOF#f%
-    out$ += GET$#f%
     REM  GET$# doesn't include a trailing newline.
-    out$ += CHR$(10)
+    PROCstring_append(out%, GET$#f% + CHR$(10))
   ENDWHILE
   CLOSE#f%
-=out$
+=out%
 
 REM  General-purpose printing function
 DEF FNcore_print(print_readably%, sep$, args%)
-  LOCAL out$
-  IF FNis_empty(args%) THEN =""
-  out$ = FNpr_str(FNfirst(args%), print_readably%)
+  LOCAL out%
+  IF FNis_empty(args%) THEN =FNalloc_string("")
+  out% = FNalloc_string("")
+  PROCstring_concat(out%, FNpr_str(FNfirst(args%), print_readably%))
   args% = FNrest(args%)
   WHILE NOT FNis_empty(args%)
-    out$ += sep$
-    out$ += FNpr_str(FNfirst(args%), print_readably%)
+    PROCstring_append(out%, sep$)
+    PROCstring_concat(out%, FNpr_str(FNfirst(args%), print_readably%))
     args% = FNrest(args%)
   ENDWHILE
-=out$
+=out%
 
 REM  Innards of the 'apply' function, also used by 'swap!'
 DEF FNcore_apply(fn%, args%)

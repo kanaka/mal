@@ -1,42 +1,50 @@
 REM > printer library for mal in BBC BASIC
 
 DEF FNpr_str(val%, print_readably%)
-  LOCAL ret$, term$, val$, keys%
-  IF FNis_nil(val%) THEN ="nil"
+  LOCAL ret%, term$, val$, keys%, vals%
+  IF FNis_nil(val%) THEN =FNalloc_string("nil")
   IF FNis_boolean(val%) THEN
-    IF FNunbox_boolean(val%) THEN ="true" ELSE ="false"
+    IF FNunbox_boolean(val%) THEN =FNalloc_string("true")
+    =FNalloc_string("false")
   ENDIF
-  IF FNis_int(val%) THEN =STR$(FNunbox_int(val%))
+  IF FNis_int(val%) THEN =FNalloc_string(STR$(FNunbox_int(val%)))
   IF FNis_string(val%) THEN
-    val$ = FNunbox_string(val%)
-    IF LEFT$(val$, 1) = CHR$(127) THEN =":" + MID$(val$, 2)
-    IF print_readably% THEN =FNformat_string(val$) ELSE =val$
+    IF FNstring_chr(val%, 1) = CHR$(127) THEN =FNalloc_string(":" + MID$(FNunbox_string(val%), 2))
+    IF print_readably% THEN =FNalloc_string(FNformat_string(FNunbox_string(val%))) ELSE =val%
   ENDIF
-  IF FNis_symbol(val%) THEN =FNunbox_symbol(val%)
-  IF FNis_corefn(val%) OR FNis_fn(val%) THEN ="#<function>"
+  IF FNis_symbol(val%) THEN =FNalloc_string(FNunbox_symbol(val%))
+  IF FNis_corefn(val%) OR FNis_fn(val%) THEN =FNalloc_string("#<function>")
   IF FNis_seq(val%) THEN
-    ret$ = "(" : term$ = ")"
-    IF FNis_vector(val%) THEN ret$ = "[" : term$ = "]"
+    ret% = FNalloc_string("(") : term$ = ")"
+    IF FNis_vector(val%) THEN ret% = FNalloc_string("[") : term$ = "]"
     WHILE NOT FNis_empty(val%)
-      IF LEN(ret$) > 1 THEN ret$ += " "
-      ret$ += FNpr_str(FNfirst(val%), print_readably%)
+      IF FNstring_len(ret%) > 1 THEN PROCstring_append(ret%, " ")
+      PROCstring_concat(ret%, FNpr_str(FNfirst(val%), print_readably%))
       val% = FNrest(val%)
     ENDWHILE
-    =ret$ + term$
+    PROCstring_append(ret%, term$)
+    =ret%
   ENDIF
   IF FNis_hashmap(val%) THEN
-    ret$ = "{"
+    ret% = FNalloc_string("{")
     keys% = FNhashmap_keys(val%)
+    vals% = FNhashmap_vals(val%)
     WHILE NOT FNis_empty(keys%)
-      IF LEN(ret$) > 1 THEN ret$ += " "
-      ret$ += FNpr_str(FNfirst(keys%), print_readably%) + " "
-      ret$ += FNpr_str(FNhashmap_get(val%, FNunbox_string(FNfirst(keys%))), print_readably%)
+      IF FNstring_len(ret%) > 1 THEN PROCstring_append(ret%, " ")
+      PROCstring_concat(ret%, FNpr_str(FNfirst(keys%), print_readably%))
+      PROCstring_append(ret%, " ")
+      PROCstring_concat(ret%, FNpr_str(FNfirst(vals%), print_readably%))
       keys% = FNrest(keys%)
+      vals% = FNrest(vals%)
     ENDWHILE
-    =ret$ + "}"
+    PROCstring_append(ret%, "}")
+    =ret%
   ENDIF
   IF FNis_atom(val%) THEN
-    ="(atom "+FNpr_str(FNatom_deref(val%), print_readably%)+")"
+    ret% = FNalloc_string("(atom ")
+    PROCstring_concat(ret%, FNpr_str(FNatom_deref(val%), print_readably%))
+    PROCstring_append(ret%, ")")
+    =ret%
   ENDIF
   ERROR &40E809F0, "Unprintable value"
 

@@ -33,7 +33,7 @@ UNTIL FALSE
 END
 
 DEF FNREAD(a$)
-=FNread_str(a$)
+=FNread_str(FNalloc_string(a$))
 
 DEF FNEVAL(ast%, env%)
   PROCgc
@@ -92,7 +92,7 @@ DEF FNEVAL_(ast%, env%)
   ERROR &40E80918, "Not a function"
 
 DEF FNPRINT(a%)
-=FNpr_str(a%, TRUE)
+=FNunbox_string(FNpr_str(a%, TRUE))
 
 DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))

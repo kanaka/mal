@@ -13,8 +13,11 @@ REM  (referenced from Z%()).  Unlike that implementation, we use a
 REM  two-dimensional array where each object is a whole row.  This
 REM  is inefficient but should make memory management simpler.
 
-REM  S%() holds an integer for each string in S$().  At present
-REM  these are only used to chain together the free list.
+REM  S%() holds an integer for each string in S$().  These are used
+REM  to link strings together so that a mal string can be longer than
+REM  is allowed by the 255 characters allowed by the Acorn interpreter.
+REM  These integers are also used to chain unused entries in S$() into
+REM  a free list.
 
 REM  Z%(x,0) holds the type of an object and other small amounts of
 REM  information.  The bottom 2 bits indicate the semantics of Z%(x,1):
@@ -65,7 +68,7 @@ DEF PROCtypes_init
   Z%(4,0) = &C9 : Z%(4,1) = 4 : REM empty vector
   Z%(5,0) = &51 : REM empty hashmap
   next_Z% = 6
-  next_S% = 0
+  next_S% = 1
   sSP% = 1
   sFP% = 0
   F% = 0
@@ -144,6 +147,7 @@ DEF FNsalloc(s$)
   IF SF% <> 0 THEN
     val% = SF%
     SF% = S%(val%)
+    S%(val%) = 0
   ELSE
     val% = next_S%
     next_S% += 1
@@ -161,9 +165,14 @@ DEF PROCfree(val%)
 ENDPROC
 
 DEF PROCsfree(val%)
-  S$(val%) = ""
-  S%(val%) = SF%
-  SF% = val%
+  LOCAL next%
+  WHILE val% <> 0
+    S$(val%) = ""
+    next% = S%(val%)
+    S%(val%) = SF%
+    SF% = val%
+    val% = next%
+  ENDWHILE
 ENDPROC
 
 DEF PROCgc
@@ -283,7 +292,54 @@ DEF FNalloc_string(sval$)
 
 DEF FNunbox_string(val%)
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
+  IF S%(Z%(val%,1)) ERROR &40E80914, "Cannot unbox a long string"
 =S$(Z%(val%,1))
+
+REM  Note that this mutates an existing value.  Use with care!
+DEF PROCstring_append(val%, add$)
+  LOCAL s%
+  IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
+  s% = (Z%(val%,1))
+  WHILE S%(s%) <> 0
+    s% = S%(s%)
+  ENDWHILE
+  IF LEN(S$(s%)) + LEN(add$) <= 255 THEN
+    S$(s%) += add$
+  ELSE
+    S%(s%) = FNsalloc(add$)
+  ENDIF
+ENDPROC
+
+REM  So does this.
+DEF PROCstring_concat(val%, add%)
+  LOCAL s%
+  IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
+  IF NOT FNis_string(add%) THEN ERROR &40E80914, "Not a string"
+  s% = (Z%(add%,1))
+  WHILE s% <> 0
+    PROCstring_append(val%, S$(s%))
+    s% = S%(s%)
+  ENDWHILE
+ENDPROC
+
+DEF FNstring_len(val%)
+  LOCAL s%, len%
+  s% = Z%(val%,1)
+  WHILE s% <> 0
+    len% += LEN(S$(s%))
+    s% = S%(s%)
+  ENDWHILE
+=len%
+
+DEF FNstring_chr(val%, pos%)
+  LOCAL s%
+  s% = Z%(val%,1)
+  WHILE pos% > LEN(S$(s%))
+    pos% -= LEN(S$(s%))
+    s% = S%(s%)
+    IF s% = 0 THEN =""
+  ENDWHILE
+=MID$(S$(s%), pos%, 1)
 
 REM ** Symbols **
 

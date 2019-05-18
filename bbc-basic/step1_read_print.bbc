@@ -20,13 +20,13 @@ UNTIL FALSE
 END
 
 DEF FNREAD(a$)
-=FNread_str(a$)
+=FNread_str(FNalloc_string(a$))
 
 DEF FNEVAL(a%)
 =a%
 
 DEF FNPRINT(a%)
-=FNpr_str(a%, TRUE)
+=FNunbox_string(FNpr_str(a%, TRUE))
 
 DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$)))

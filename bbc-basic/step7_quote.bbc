@@ -33,7 +33,7 @@ IF FNis_empty(argv%) THEN
   PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), FNempty)
 ELSE
   PROCenv_set(repl_env%, FNalloc_symbol("*ARGV*"), FNrest(argv%))
-  val$ = FNrep("(load-file " + FNpr_str(FNfirst(argv%), TRUE) + ")")
+  val$ = FNrep("(load-file " + FNunbox_string(FNpr_str(FNfirst(argv%), TRUE)) + ")")
   END
 ENDIF
 
@@ -51,7 +51,7 @@ UNTIL FALSE
 END
 
 DEF FNREAD(a$)
-=FNread_str(a$)
+=FNread_str(FNalloc_string(a$))
 
 DEF FNis_pair(val%)
 =FNis_seq(val%) AND NOT FNis_empty(val%)
@@ -149,7 +149,7 @@ DEF FNEVAL_(ast%, env%)
   UNTIL FALSE
 
 DEF FNPRINT(a%)
-=FNpr_str(a%, TRUE)
+=FNunbox_string(FNpr_str(a%, TRUE))
 
 DEF FNrep(a$)
 =FNPRINT(FNEVAL(FNREAD(a$), repl_env%))

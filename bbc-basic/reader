@@ -11,26 +11,27 @@ DEF FNreader_next(token$(), RETURN tokptr%)
   tokptr% += 1
 =tokens$(tokptr% - 1)
 
-DEF FNread_str(src$)
+DEF FNread_str(src%)
   LOCAL ntokens%, tokptr%, tokens$()
   DIM tokens$(2048)
-  ntokens% = FNtokenize(src$, tokens$())
+  ntokens% = FNtokenize(src%, tokens$())
   tokptr% = 0
 =FNread_form(tokens$(), tokptr%)
 
 REM  ** Tokenizer **
 
-DEF FNtokenize(src$, tokens$())
+DEF FNtokenize(src%, tokens$())
   REM  The tokenizer is implemented explicitly as a deterministic
   REM  finite automaton.
-  LOCAL p%, state%, tokstart%, tokptr%, c$, match$, action%
+  LOCAL p%, state%, tok$, tokptr%, c$, rc$, match$, action%
   LOCAL DATA
 
   state% = 1
   tokptr% = 0
-  tokstart% = 1
-  FOR p% = 1 TO LEN(src$)
-    c$ = MID$(src$, p%, 1)
+  tok$ = ""
+  FOR p% = 1 TO FNstring_len(src%)
+    c$ = FNstring_chr(src%, p%)
+    rc$ = c$
     REM  Convert some characters to ones that are easier to put into
     REM  DATA statements.  These substitutions are only used for
     REM  matching: the token still contains the original character.
@@ -81,23 +82,16 @@ DEF FNtokenize(src$, tokens$())
     REM PRINT ;"-->";state%
 
     REM  Execute any actions.
-    IF action% AND 1 AND p% > tokstart% THEN
-      tokens$(tokptr%) = MID$(src$, tokstart%, p% - tokstart%)
-      tokptr% += 1
-      tokstart% = p%
-    ENDIF
-    IF action% AND 4 THEN tokstart% = p% + 1
+    IF action% AND 1 AND tokens$(tokptr%) <> "" THEN tokptr% += 1
+    IF (action% AND 4) = 0 THEN tokens$(tokptr%) += rc$
   NEXT p%
-  IF p% > tokstart% THEN
-    tokens$(tokptr%) = MID$(src$, tokstart%, p% - tokstart%)
-    tokptr% += 1
-  ENDIF
+  IF tokens$(tokptr%) <> "" THEN tokptr% += 1
 =tokptr%        
 
 REM  ** More Reader **
 
 DEF FNread_form(tokens$(), RETURN tokptr%)
-  LOCAL tok$
+  LOCAL tok$, x%
   tok$ = FNreader_peek(tokens$(), tokptr%)
   CASE tok$ OF
     WHEN "" : ERROR &40E80930, "Unexpected end of input"
