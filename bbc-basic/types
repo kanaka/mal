@@ -448,7 +448,7 @@ DEF FNkey_bit(key$, bit%)
   LOCAL cnum%
   cnum% = bit% >> 3
   IF cnum% >= LEN(key$) THEN =FALSE
-=ASC(MID$(key$, cnum% + 1, 1)) AND (1 << (bit% AND 7))  
+=ASC(MID$(key$, cnum% + 1, 1)) AND (&80 >> (bit% AND 7))  
 
 DEF FNkey_bitdiff(key1$, key2$)
   LOCAL bit%
@@ -458,25 +458,47 @@ DEF FNkey_bitdiff(key1$, key2$)
 =bit%
 
 DEF FNhashmap_set(map%, key$, val%)
-  LOCAL bit%, left%, right%
+  LOCAL bit%, nearest%
   IF FNis_empty(map%) THEN =FNhashmap_alloc_leaf(key$, val%)
-  IF FNtype_of(map%) = &0A THEN
-    IF S$(Z%(map%,1)) = key$ THEN =FNhashmap_alloc_leaf(key$, val%)
-    bit% = FNkey_bitdiff(key$, S$(Z%(map%,1)))
-    IF FNkey_bit(key$, bit%) THEN
-      left% = map%
-      right% = FNhashmap_alloc_leaf(key$, val%)
+  nearest% = FNhashmap_find(map%, key$)
+  IF S$(Z%(nearest%,1)) = key$ THEN =FNhashmap_replace(map%, key$, val%)
+  bit% = FNkey_bitdiff(key$, S$(Z%(nearest%,1)))
+=FNhashmap_insert(map%, bit%, key$, val%)
+
+DEF FNhashmap_insert(map%, bit%, key$, val%)
+  LOCAL left%, right%
+  IF FNtype_of(map%) = &11 AND (Z%(map%,0) >> 16) < bit% THEN
+    IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
+      left% = Z%(map%,1)
+      right% = FNhashmap_insert(Z%(map%,2), bit%, key$, val%)
     ELSE
-      right% = map%
-      left% = FNhashmap_alloc_leaf(key$, val%)
+      left% = FNhashmap_insert(Z%(map%,1), bit%, key$, val%)
+      right% = Z%(map%,2)
     ENDIF
-    =FNhashmap_alloc_node(bit%, left%, right%)
+    =FNhashmap_alloc_node(Z%(map%,0)>>16, left%, right%)
   ENDIF
-  IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
-    =FNhashmap_alloc_node(Z%(map%,0)>>16, Z%(map%,1), FNhashmap_set(Z%(map%,2), key$, val%))
+  IF FNkey_bit(key$, bit%) THEN
+    left% = map%
+    right% = FNhashmap_alloc_leaf(key$, val%)
   ELSE
-    =FNhashmap_alloc_node(Z%(map%,0)>>16, FNhashmap_set(Z%(map%,1), key$, val%), Z%(map%,2))
+    left% = FNhashmap_alloc_leaf(key$, val%)
+    right% = map%
   ENDIF
+=FNhashmap_alloc_node(bit%, left%, right%)
+
+
+REM  Replace a known-present key in a non-empty hashmap.
+DEF FNhashmap_replace(map%, key$, val%)
+  LOCAL left%, right%
+  IF FNtype_of(map%) = &0A THEN =FNhashmap_alloc_leaf(key$, val%)
+  IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
+    left% = Z%(map%,1)
+    right% = FNhashmap_replace(Z%(map%,2), key$, val%)
+  ELSE
+    left% = FNhashmap_replace(Z%(map%,1), key$, val%)
+    right% = Z%(map%,2)
+  ENDIF
+=FNhashmap_alloc_node(Z%(map%,0)>>16, left%, right%)
 
 DEF FNhashmap_remove(map%, key$)
   LOCAL child%
@@ -518,23 +540,21 @@ DEF FNhashmap_keys(map%)
 =FNhashmap_keys1(map%, FNempty)
 
 DEF FNhashmap_keys1(map%, acc%)
-  REM PROChashmap_dump(map%)
   IF FNis_empty(map%) THEN =acc%
   IF FNtype_of(map%) = &0A THEN
     =FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), acc%)
   ENDIF
-=FNhashmap_keys1(Z%(map%,2), FNhashmap_keys1(Z%(map%,1), acc%))
+=FNhashmap_keys1(Z%(map%,1), FNhashmap_keys1(Z%(map%,2), acc%))
 
 DEF FNhashmap_vals(map%)
 =FNhashmap_vals1(map%, FNempty)
 
 DEF FNhashmap_vals1(map%, acc%)
-  REM PROChashmap_dump(map%)
   IF FNis_empty(map%) THEN =acc%
   IF FNtype_of(map%) = &0A THEN
     =FNalloc_pair(Z%(map%,2), acc%)
   ENDIF
-=FNhashmap_vals1(Z%(map%,2), FNhashmap_vals1(Z%(map%,1), acc%))
+=FNhashmap_vals1(Z%(map%,1), FNhashmap_vals1(Z%(map%,2), acc%))
 
 DEF PROChashmap_dump(map%)
   IF FNis_empty(map%) THEN
