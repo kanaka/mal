@@ -821,10 +821,10 @@ cd plsql
 ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
 ```
 
-### Postscript Level 2/3
+### PostScript Level 2/3
 
-The Postscript implementation of mal requires ghostscript to run. It
-has been tested with ghostscript 9.10.
+The PostScript implementation of mal requires Ghostscript to run. It
+has been tested with Ghostscript 9.10.
 
 ```
 cd ps
