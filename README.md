@@ -807,10 +807,10 @@ The PL/pgSQL implementation of mal requires a running Oracle DB
 server (the "kanaka/mal-test-plsql" docker image automatically
 starts an Oracle Express server). The implementation connects to the
 Oracle server to create types, tables and stored procedures. The
-default SQL*Plus logon value (username/password@connect_identifier) is
+default SQL\*Plus logon value (username/password@connect_identifier) is
 "system/oracle" but this can be overridden with the ORACLE_LOGON
 environment variable. The implementation has been tested with Oracle
-Express Edition 11g Release 2. Note that any SQL*Plus connection
+Express Edition 11g Release 2. Note that any SQL\*Plus connection
 warnings (user password expiration, etc) will interfere with the
 ability of the wrapper script to communicate with the DB.
 
