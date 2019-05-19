@@ -14,15 +14,14 @@ classdef reader
             %fprintf('in read_atom: %s\n', token);
             if not(isempty(regexp(token, '^-?[0-9]+$', 'match')))
                 atm = str2double(token);
-            elseif strcmp(token(1), '"')
-                if not(token(end) == '"')
-                    error('expected ''"'', got EOF');
-                end
+            elseif not(isempty(regexp(token, '^"(?:\\.|[^\\"])*"$', 'match')))
                 atm = token(2:length(token)-1);
                 atm = strrep(atm, '\\', char(255));
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
                 atm = strrep(atm, char(255), '\');
+            elseif strcmp(token(1), '"')
+                error('expected ''"'', got EOF');
             elseif strcmp(token(1), ':')
                 s = token(2:end);
                 atm = type_utils.keyword(s);
