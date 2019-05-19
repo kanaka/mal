@@ -1,4 +1,5 @@
 (load-file "../lib/test_cascade.mal")
+;=>nil
 
 ;; Testing every?
 (every? first [])

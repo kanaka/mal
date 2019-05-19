@@ -1,0 +1,11 @@
+(load-file "../lib/trivial.mal")
+;=>nil
+
+(dec 12)
+;=>11
+(zero? 12)
+;=>false
+(zero? 0)
+;=>true
+(identity 12)
+;=>12

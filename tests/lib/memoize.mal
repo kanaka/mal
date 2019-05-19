@@ -1,5 +1,7 @@
-(load-file "../tests/computations.mal")      ; fib
-(load-file "../lib/memoize.mal")             ; memoize
+(load-file "../tests/computations.mal")
+;=>nil
+(load-file "../lib/memoize.mal")
+;=>nil
 
 (def! N 32)
 

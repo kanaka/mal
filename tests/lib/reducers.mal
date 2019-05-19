@@ -1,4 +1,5 @@
 (load-file "../lib/reducers.mal")
+;=>nil
 
 ;; Testing reduce
 (reduce + 7 [])

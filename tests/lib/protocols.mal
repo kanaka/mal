@@ -1,4 +1,5 @@
 (load-file "../lib/protocols.mal")
+;=>nil
 
 ;; Testing find-type for normal objects.
 (find-type 'a)
