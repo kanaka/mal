@@ -36,7 +36,7 @@ BEGIN
         INSERT INTO types.value (type_id, val_int)
             VALUES (3, CAST(token AS integer))
             RETURNING value_id INTO result;
-    ELSIF token ~ '^".*"' THEN  -- string
+    ELSIF token ~ '^"(?:[\\\\].|[^\\\\"])*"' THEN  -- string
         -- string
         str := substring(token FROM 2 FOR (char_length(token)-2));
         str := replace(str, '\\', chr(CAST(x'7f' AS integer)));

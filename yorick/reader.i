@@ -45,7 +45,7 @@ func reader_next(rdr)
 }
 
 NUMBER_REGEXP = regcomp("^-?[0-9]+$")
-STR_REGEXP = regcomp("^\".*\"$")
+STR_REGEXP = regcomp("^\"([\\].|[^\\\"])*\"$")
 STR_BAD_REGEXP = regcomp("^\".*$")
 
 func unescape(s)

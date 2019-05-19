@@ -37,7 +37,7 @@ object reader {
     val token = rdr.next()
     val re_int = """^(-?[0-9]+)$""".r
     val re_flt = """^(-?[0-9][0-9.]*)$""".r
-    val re_str =  """^"(.*)"$""".r
+    val re_str =  """^"((?:\\.|[^\\"])*)"$""".r
     val re_str_bad =  """^"(.*)$""".r
     val re_key = """^:(.*)$""".r
     return token match {
