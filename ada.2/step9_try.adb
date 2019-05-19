@@ -168,11 +168,12 @@ procedure Step9_Try is
             declare
                Result : Types.T;
             begin
-               for I in 2 .. Ast.Sequence.all.Length loop
+               for I in 2 .. Ast.Sequence.all.Length - 1 loop
                   Result := Eval (Ast.Sequence.all.Data (I), Env);
                end loop;
-               return Result;
             end;
+            Ast := Ast.Sequence.all.Data (Ast.Sequence.all.Length);
+            goto Restart;
          elsif First.Str.all = "fn*" then
             Err.Check (Ast.Sequence.all.Length = 3, "expected 2 parameters");
             declare
