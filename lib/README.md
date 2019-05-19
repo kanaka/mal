@@ -1,5 +1,5 @@
 This directory contains general-purpose reusable code that does not
-fit in the process like `cond`, `gensym`, `inc`, `not` and `or`.
+fit in the process.
 
 The split in small files is motivated by implementations too limited
 to load a single big file, but MAL has no proper module management.
