@@ -64,7 +64,7 @@ Namespace Mal
 
         Shared Function read_atom(rdr As Reader) As MalVal
             Dim token As String = rdr.get_next()
-            Dim pattern As String = "(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*)|^:(.*)|(^[^""]*$)"
+            Dim pattern As String = "(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|(^""(?:[\\].|[^\\""])*""$)|^("".*)|^:(.*)|(^[^""]*$)"
             Dim regex As Regex = New Regex(pattern)
             Dim match As Match = regex.Match(token)
             'Console.WriteLine("token: ^" + token + "$")
@@ -81,9 +81,6 @@ Namespace Mal
                 return Mal.types.MalFalse
             Else If match.Groups(6).Value <> String.Empty Then
                 Dim str As String = match.Groups(6).Value
-                If str(str.Length-1) <> """" Then
-                    throw New ParseError("expected '""', got EOF")
-                End If
                 return New Mal.types.MalString(
                         str.Substring(1, str.Length-2) _
                         .Replace("\\",         ChrW(&H029e)) _
@@ -91,9 +88,11 @@ Namespace Mal
                         .Replace("\n",         Environment.NewLine) _
                         .Replace(ChrW(&H029e), "\"))
             Else If match.Groups(7).Value <> String.Empty Then
-                return New Mal.types.MalString(ChrW(&H029e) & match.Groups(7).Value)
+                throw New ParseError("expected '""', got EOF")
             Else If match.Groups(8).Value <> String.Empty Then
-                return New Mal.types.MalSymbol(match.Groups(8).Value)
+                return New Mal.types.MalString(ChrW(&H029e) & match.Groups(8).Value)
+            Else If match.Groups(9).Value <> String.Empty Then
+                return New Mal.types.MalSymbol(match.Groups(9).Value)
             Else
                 throw New ParseError("unrecognized '" & match.Groups(0).Value & "'")
             End If
