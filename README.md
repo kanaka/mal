@@ -63,7 +63,7 @@
 | [Perl 6](#perl-6) | [Hinrik Örn Sigurðsson](https://github.com/hinrik) |
 | [PHP](#php-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Picolisp](#picolisp) | [Vasilij Schneidermann](https://github.com/wasamasa) |
-| [PL/pgSQL](#plpgsql-postgres-sql-procedural-language) (Postgres) | [Joel Martin](https://github.com/kanaka) |
+| [PL/pgSQL](#plpgsql-postgresql-sql-procedural-language) (PostgreSQL) | [Joel Martin](https://github.com/kanaka) |
 | [PL/SQL](#plsql-oracle-sql-procedural-language) (Oracle) | [Joel Martin](https://github.com/kanaka) |
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
@@ -782,17 +782,17 @@ cd picolisp
 ./run
 ```
 
-### PL/pgSQL (Postgres SQL Procedural Language)
+### PL/pgSQL (PostgreSQL SQL Procedural Language)
 
-The PL/pgSQL implementation of mal requires a running Postgres server
+The PL/pgSQL implementation of mal requires a running PostgreSQL server
 (the "kanaka/mal-test-plpgsql" docker image automatically starts
-a Postgres server). The implementation connects to the Postgres server
+a PostgreSQL server). The implementation connects to the PostgreSQL server
 and create a database named "mal" to store tables and stored
 procedures. The wrapper script uses the psql command to connect to the
 server and defaults to the user "postgres" but this can be overridden
 with the PSQL_USER environment variable. A password can be specified
 using the PGPASSWORD environment variable. The implementation has been
-tested with Postgres 9.4.
+tested with PostgreSQL 9.4.
 
 ```
 cd plpgsql
