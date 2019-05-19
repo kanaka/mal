@@ -803,7 +803,7 @@ PSQL_USER=myuser PGPASSWORD=mypass ./wrap.sh stepX_YYY.sql
 
 ### PL/SQL (Oracle SQL Procedural Language)
 
-The PL/pgSQL implementation of mal requires a running Oracle DB
+The PL/SQL implementation of mal requires a running Oracle DB
 server (the "kanaka/mal-test-plsql" docker image automatically
 starts an Oracle Express server). The implementation connects to the
 Oracle server to create types, tables and stored procedures. The
