@@ -17,7 +17,7 @@
 
 (def tok-re (.compile re "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:[\\\\].|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}()'\"`@,;]+)"))
 (def int-re (.compile re "-?[0-9]+$"))
-(def str-re (.compile re "^\".*\"$"))
+(def str-re (.compile re "^\"(?:[\\\\].|[^\\\\\"])*\"$"))
 (def str-bad-re (.compile re "^\".*$"))
 
 (defn tokenize [str]

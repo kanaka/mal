@@ -165,7 +165,12 @@
       => mal-number)
      ((char=? (string-ref token 0) #\")
       (guard
-       (ex ((read-error? ex)
+       (ex ((cond-expand
+             ;; HACK: https://github.com/ashinn/chibi-scheme/pull/540
+             (chibi
+              (error-object? ex))
+             (else
+              (read-error? ex)))
             (error (str "expected '" #\" "', got EOF"))))
        (mal-string (call-with-input-string token read))))
      ((char=? (string-ref token 0) #\:)

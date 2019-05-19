@@ -1,0 +1,10 @@
+LIBRARY "reader"
+
+DIM tok$(255)
+WHILE TRUE
+  LINE INPUT src$
+  ntok% = FNtokenize(src$, tok$())
+  FOR i% = 0 TO ntok% - 1
+    PRINT tok$(i%)
+  NEXT i%
+ENDWHILE

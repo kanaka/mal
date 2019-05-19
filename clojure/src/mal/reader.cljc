@@ -17,8 +17,8 @@
 
 (def tok-re #"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:[\\].|[^\\\"])*\"?|;.*|[^\s\[\]{}()'\"`@,;]+)")
 (def int-re #"^-?[0-9]+$")
-(def badstr-re #"^\"(.*)[^\"]$")
-(def str-re #"^\"(.*)\"$")
+(def str-re #"^\"((?:[\\].|[^\\\"])*)\"$")
+(def badstr-re #"^\"")
 
 (defn tokenize [s]
   (filter #(not= \; (first %))
@@ -35,8 +35,8 @@
     (cond
      (re-seq int-re token)    #?(:cljs (js/parseInt token)
                                  :clj (Integer/parseInt token))
-     (re-seq badstr-re token) (throw-str (str "expected '\"', got EOF"))
      (re-seq str-re token)    (unescape (second (re-find str-re token)))
+     (re-seq badstr-re token) (throw-str (str "expected '\"', got EOF"))
      (= \: (get token 0))     (keyword (subs token 1))
      (= "nil" token)          nil
      (= "true" token)         true
