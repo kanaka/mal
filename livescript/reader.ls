@@ -111,10 +111,10 @@ read_atom = (reader) ->
     token = reader.peek!
     if token in constants
         {type: \const, value: reader.next!}
-    else if token[0] == '"'
-        if not token.endsWith '"'
-            parse-error "expected '\"', got EOF"
+    else if token.match /^"(?:\\.|[^\\"])*"$/
         {type: \string, value: decode-string reader.next!}
+    else if token[0] == '"'
+        parse-error "expected '\"', got EOF"
     else if token.match /^-?\d+$/
         {type: \int, value: parseInt reader.next!}
     else if token != '~@' and token not in special_chars

@@ -65,7 +65,7 @@ function ReadAtom(rdr)
     return IntegerNew(str2nr(token))
   elseif token =~ "^-\\?[0-9][0-9.]*$"
     return FloatNew(str2float(token))
-  elseif token =~ "^\".*\"$"
+  elseif token =~ "^\"\\%(\\\\.\\|[^\\\\\"]\\)*\"$"
     return StringNew(ParseString(token))
   elseif token =~ "^\".*$"
     throw "expected '\"', got EOF"

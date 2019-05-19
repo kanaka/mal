@@ -3,7 +3,7 @@ package mal
 import kotlin.text.Regex
 
 val TOKEN_REGEX = Regex("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)")
-val ATOM_REGEX = Regex("(^-?[0-9]+$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)")
+val ATOM_REGEX = Regex("(^-?[0-9]+$)|(^nil$)|(^true$)|(^false$)|^\"((?:\\\\.|[^\\\\\"])*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)")
 
 class Reader(sequence: Sequence<String>) {
     val tokens = sequence.iterator()

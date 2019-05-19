@@ -70,7 +70,7 @@ NSArray * tokenize(NSString *str) {
 
 NSObject * read_atom(Reader * rdr) {
     NSRegularExpression *regex = [NSRegularExpression
-        regularExpressionWithPattern:@"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)"
+        regularExpressionWithPattern:@"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"((?:[\\\\].|[^\\\\\"])*)\"$|^\"(.*)$|:(.*)|(^[^\"]*$)"
         options:0
         error:NULL];
     NSNumberFormatter *numf = [[NSNumberFormatter alloc] init];

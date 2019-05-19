@@ -39,7 +39,7 @@ class Reader
   {
     token := reader.next
     intRegex := Regex <|^-?\d+$|>
-    strRegex := Regex <|^".*"|>
+    strRegex := Regex <|^"(?:\\.|[^\\"])*"|>
     strBadRegex := Regex <|^".*|>
     if (token == "nil") return MalNil.INSTANCE
     if (token == "true") return MalTrue.INSTANCE
