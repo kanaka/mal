@@ -65,6 +65,23 @@
              more (rest (rest binds))]
         `((fn* [~key] (let2 ~more ~form)) ~val)))))
 
+(defmacro! quote2 (fn* [ast] (list (fn* [] ast))))
+(defmacro! quasiquote2
+  (fn* [ast]
+    (let* [
+      is-pair (fn* [x] (if (sequential? x) (not (empty? x))))
+      f (fn* [ast]                      ; evaluating its arguments
+        (if (is-pair ast)
+          (let* [a0 (first ast)]
+            (if (= 'unquote a0)
+              (nth ast 1)
+              (if (if (is-pair a0) (= 'splice-unquote (first a0)))
+                (list 'concat (nth a0 1) (f (rest ast)))
+                (list 'cons (f a0) (f (rest ast))))))
+          (list 'quote ast)))
+      ]
+      (f ast))))
+
 (def! apply
   ;; Replace (f a b [c d]) with ('f 'a 'b 'c 'd) then evaluate the
   ;; resulting function call (the surrounding environment does not

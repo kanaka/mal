@@ -65,6 +65,9 @@ make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' te
   A macro is necessary because a function would attempt to evaluate
   the first argument.
 
+- Implement quoting with macros.
+  The same remark applies.
+
 - Implement `apply`.
 
 - Implement maps using lists.
@@ -84,8 +87,6 @@ make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' te
     ...)` might have to keep track of deleted values as it is scanning
     the tree and not add those keys when it finds them further down
     the tree.
-
-- Implement quoting within MAL.
 
 - Implement macros within MAL.
 
