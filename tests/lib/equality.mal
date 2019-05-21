@@ -1,0 +1,61 @@
+(def! orig= =)
+
+;; Testing equality.mal does not fix built-in equality.
+(load-file "../lib/equality.mal")
+;=>nil
+
+;; Testing and2
+(and2)
+;=>true
+(and2 true)
+;=>true
+(and2 false)
+;=>false
+(and2 nil)
+;=>false
+(and2 1)
+;=>true
+(and2 1 2)
+;=>true
+(and2 nil (nth () 1))
+;=>false
+
+;; Testing or2
+(or2)
+;=>false
+(or2 true)
+;=>true
+(or2 false)
+;=>false
+(or2 nil)
+;=>false
+(or2 1)
+;=>true
+(or2 1 (nth () 1))
+;=>true
+(or2 1 2)
+;=>true
+(or2 false nil)
+;=>false
+
+;; Breaking equality.
+(def! = (fn* [a b] (and2 (orig= a b) (cond (list? a) (list? b) (vector? a) (vector? b) true true))))
+(= [] ())
+;=>false
+
+;; Testing that equality.mal detects the problem.
+(load-file "../lib/equality.mal")
+;/equality.mal: Replaced = with pure mal implementation
+;=>nil
+
+;; Testing fixed equality.
+(= [] ())
+;=>true
+(= [:a :b] (list :a :b))
+;=>true
+(= [:a :b] [:a :b :c])
+;=>false
+(= {:a 1} {:a 1})
+;=>true
+(= {:a 1} {:a 1 :b 2})
+;=>false
