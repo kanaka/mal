@@ -431,12 +431,7 @@ procedure Step9_Try is
      & "    (list 'if (first xs)"
      & "      (if (> (count xs) 1) (nth xs 1)"
      & "        (throw ""odd number of forms to cond""))"
-     & "      (cons 'cond (rest (rest xs)))))))"
-     & "(defmacro! or (fn* (& xs)"
-     & "  (if (empty? xs) nil"
-     & "  (if (= 1 (count xs)) (first xs)"
-     & "  `(let* (or_FIXME ~(first xs))"
-     & "      (if or_FIXME or_FIXME (or ~@(rest xs))))))))";
+     & "      (cons 'cond (rest (rest xs)))))))";
    Repl : constant Envs.Ptr := Envs.New_Env;
    function Eval_Builtin (Args : in Types.T_Array) return Types.T is
    begin

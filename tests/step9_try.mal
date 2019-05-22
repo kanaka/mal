@@ -294,11 +294,11 @@
 ;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
 
 (def! s (str {:abc "val1" :def "val2"}))
-(or (= s "{:abc val1 :def val2}") (= s "{:def val2 :abc val1}"))
+(cond (= s "{:abc val1 :def val2}") true (= s "{:def val2 :abc val1}") true)
 ;=>true
 
 (def! p (pr-str {:abc "val1" :def "val2"}))
-(or (= p "{:abc \"val1\" :def \"val2\"}") (= p "{:def \"val2\" :abc \"val1\"}"))
+(cond (= p "{:abc \"val1\" :def \"val2\"}") true (= p "{:def \"val2\" :abc \"val1\"}") true)
 ;=>true
 
 ;;

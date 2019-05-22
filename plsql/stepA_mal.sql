@@ -412,9 +412,6 @@ BEGIN
     line := REP('(def! not (fn* (a) (if a false true)))');
     line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
     line := REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))');
-    line := REP('(def! inc (fn* [x] (+ x 1)))');
-    line := REP('(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "G__" (swap! counter inc))))))');
-    line := REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))');
 
     IF argv.COUNT() > 0 THEN
         BEGIN

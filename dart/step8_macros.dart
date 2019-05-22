@@ -27,12 +27,6 @@ void setupEnv(List<String> argv) {
       "          (nth xs 1) "
       "          (throw \"odd number of forms to cond\")) "
       "      (cons 'cond (rest (rest xs)))))))");
-  rep("(defmacro! or "
-      "  (fn* (& xs) (if (empty? xs) nil "
-      "    (if (= 1 (count xs)) "
-      "      (first xs) "
-      "      `(let* (or_FIXME ~(first xs)) "
-      "         (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 }
 
 /// Returns `true` if [ast] is a macro call.
