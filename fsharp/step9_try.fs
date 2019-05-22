@@ -206,7 +206,6 @@ module REPL
         RE env """
             (def! not (fn* (a) (if a false true)))
             (def! load-file (fn* (f) (eval (read-string (slurp f)))))
-            (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_ ~(first xs)) (if or_ or_ (or ~@(rest xs))))))))
             (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))
             """ |> Seq.iter ignore
 

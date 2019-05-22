@@ -218,9 +218,6 @@ module REPL
             (def! not (fn* (a) (if a false true)))
             (def! load-file (fn* (f) (eval (read-string (slurp f)))))
             (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))
-            (def! inc (fn* [x] (+ x 1)))
-            (def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "G__" (swap! counter inc))))))
-            (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))
             """ |> Seq.iter ignore
 
         env

@@ -352,17 +352,6 @@ rep '
           (throw "odd number of forms to cond"))
         (cons \'cond (rest (rest xs)))))))'
 
-# Define or.
-rep '
-(defmacro! or
-  (fn* (& xs)
-    (if (empty? xs)
-      nil
-      (if (= 1 (count xs))
-        (first xs)
-        `(let* (or_FIXME ~(first xs))
-          (if or_FIXME or_FIXME (or ~@(rest xs))))))))'
-
 # Parse program arguments.
 # The first two (exe and core-file) are, respectively,
 # the interpreter executable (nodejs or lsc) and the

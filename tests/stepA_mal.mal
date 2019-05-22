@@ -274,18 +274,6 @@
 (meta +)
 ;=>nil
 
-;;
-;; Testing inc
-(inc 12)
-;=>13
-
-;;
-;; Testing gensym and clean or macro
-(= (gensym) (gensym))
-;=>false
-(let* [or_FIXME 23] (or false (+ or_FIXME 100)))
-;=>123
-
 ;; Loading sumdown from computations.mal
 (load-file "../tests/computations.mal")
 

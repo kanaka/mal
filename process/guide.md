@@ -1331,15 +1331,15 @@ implementation. Let us continue!
   * `rest`: this function takes a list (or vector) as its argument and
     returns a new list containing all the elements except the first.
 
-* In the main program, use the `rep` function to define two new
-  control structures macros. Here are the string arguments for `rep`
-  to define these macros:
-  * `cond`: "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+* In the main program, call the `rep` function with the following
+  string argument  to define a new control structure.
+```
+"(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+```
     * Note that `cond` calls the `throw` function when `cond` is
       called with an odd number of args. The `throw` function is
       implemented in the next step, but it will still serve it's
       purpose here by causing an undefined symbol error.
-  * `or`: "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 
 
 <a name="step9"></a>
@@ -1606,33 +1606,6 @@ mal program which is itself an implementation of the mal language. You
 might even be asking if you can continue the "inception" by using your
 implementation to run a mal implementation which itself runs the mal
 implementation.
-
-
-#### Optional: gensym
-
-The `or` macro we introduced at step 8 has a bug. It defines a
-variable called `or_FIXME`, which "shadows" such a binding from the
-user's code (which uses the macro). If a user has a variable called
-`or_FIXME`, it cannot be used as an `or` macro argument. In order to
-fix that, we'll introduce `gensym`: a function which returns a symbol
-which was never used before anywhere in the program. This is also an
-example for the use of mal atoms to keep state (the state here being
-the number of symbols produced by `gensym` so far).
-
-Previously you used `rep` to define the `or` macro. Remove that
-definition and use `rep` to define the new counter, `gensym` function
-and the clean `or` macro. Here are the string arguments you need to
-pass to `rep`:
-```
-"(def! inc (fn* [x] (+ x 1)))"
-
-"(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
-
-"(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
-```
-
-For extra information read [Peter Seibel's thorough discussion about
-`gensym` and leaking macros in Common Lisp](http://www.gigamonkeys.com/book/macros-defining-your-own.html#plugging-the-leaks).
 
 
 #### Optional additions

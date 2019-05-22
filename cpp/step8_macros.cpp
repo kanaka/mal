@@ -280,7 +280,6 @@ static malValuePtr macroExpand(malValuePtr obj, malEnvPtr env)
 
 static const char* malFunctionTable[] = {
     "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
-    "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))",
     "(def! not (fn* (cond) (if cond false true)))",
     "(def! load-file (fn* (filename) \
         (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
