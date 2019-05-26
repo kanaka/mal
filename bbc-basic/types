@@ -190,11 +190,11 @@ DEF FNmeta(val%)
 
 DEF FNwith_meta(val%, meta%)
   LOCAL newval%
-  IF Z%(val%,0) AND &02 ERROR &40E8091F, "Can't apply metadata to a string-like type"
   newval% = FNmalloc(Z%(val%,0))
   Z%(newval%,1) = Z%(val%,1)
   Z%(newval%,2) = Z%(val%,2)
   Z%(newval%,3) = meta%
+  Z$(newval%) = Z$(val%)
 =newval%
 
 REM ** Nil **
