@@ -1,6 +1,6 @@
 # Introduction
 
-This is a (partial) implementation of mal in BBC BASIC V.  While there
+This is an implementation of mal in BBC BASIC V.  While there
 is already an implementation of mal in BASIC (in the "basic"
 directory), it's targeted at much more primitive versions of BASIC and
 relies on a pre-processor, both of which make it fairly un-idiomatic
