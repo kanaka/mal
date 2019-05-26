@@ -7,23 +7,14 @@ REM  code should use routines in this library to access them.
 REM  As far as other code is concerned, a mal object is just an
 REM  opaque 32-bit integer, which might be a pointer, or might not.
 
-REM  Following the 8-bit BASIC implementation, we currently have two
-REM  arrays, Z%() containing most objects and S$() containing strings
-REM  (referenced from Z%()).  Unlike that implementation, we use a
-REM  two-dimensional array where each object is a whole row.  This
-REM  is inefficient but should make memory management simpler.
-
-REM  S%() holds an integer for each string in S$().  These are used
-REM  to link strings together so that a mal string can be longer than
-REM  is allowed by the 255 characters allowed by the Acorn interpreter.
-REM  These integers are also used to chain unused entries in S$() into
-REM  a free list.
+REM  All mal objects live in an array, Z%(), with string values held
+REM  in a parallel array, Z$().  There's one row in Z%(), and one
+REM  entry in Z$(), for each mal object.
 
 REM  Z%(x,0) holds the type of an object and other small amounts of
-REM  information.  The bottom 2 bits indicate the semantics of Z%(x,1):
+REM  information.  The bottom bit indicates the semantics of Z%(x,1):
 
 REM  &01 : Z%(x,1) is a pointer into Z%()
-REM  &02 : Z%(x,1) is a pointer into S$()
 
 REM  Z%(x,2) and Z%(x,3) are always pointers into Z%(), to 'nil' if nothing
 REM  else.
@@ -57,10 +48,10 @@ REM  &0A  hash-map leaf node
 REM  Formats of individual objects are defined below.
 
 DEF PROCtypes_init
-  REM  Arbitrarily use a quarter of BASIC's heap as the mal heap, with a bit
-  REM  more for strings.  Each heap entry is sixteen bytes.
-  DIM Z%((HIMEM-LOMEM)/64,3)
-  DIM S$((HIMEM-LOMEM)/128), S%((HIMEM-LOMEM)/128)
+  REM  Arbitrarily use a quarter of BASIC's heap as the mal heap.
+  REM  Each Z%() entry is sixteen bytes.  Each Z$() entry is about
+  REM  five bytes.
+  DIM Z%((HIMEM-LOMEM)/64,3), Z$((HIMEM-LOMEM)/64)
   DIM sS%((HIMEM-LOMEM)/64)
   Z%(1,0) = &04 : REM false
   Z%(2,0) = &04 : Z%(2,1) = TRUE : REM true
@@ -68,11 +59,9 @@ DEF PROCtypes_init
   Z%(4,0) = &C9 : Z%(4,1) = 4 : REM empty vector
   Z%(5,0) = &51 : REM empty hashmap
   next_Z% = 6
-  next_S% = 1
   sSP% = 1
   sFP% = 0
   F% = 0
-  SF% = 0
 ENDPROC
 
 DEF FNtype_of(val%)
@@ -142,37 +131,13 @@ DEF FNmalloc(type%)
   Z%(val%,0) = type%
 =FNref_local(val%)
 
-DEF FNsalloc(s$)
-  LOCAL val%
-  IF SF% <> 0 THEN
-    val% = SF%
-    SF% = S%(val%)
-    S%(val%) = 0
-  ELSE
-    val% = next_S%
-    next_S% += 1
-  ENDIF
-  S$(val%) = s$
-=val%
-
 DEF PROCfree(val%)
-  IF (Z%(val%,0) AND &02) THEN PROCsfree(Z%(val%,1))
   Z%(val%,0) = &05
   Z%(val%,1) = F%
   Z%(val%,2) = 0
   Z%(val%,3) = 0
+  Z$(val%) = ""
   F% = val%
-ENDPROC
-
-DEF PROCsfree(val%)
-  LOCAL next%
-  WHILE val% <> 0
-    S$(val%) = ""
-    next% = S%(val%)
-    S%(val%) = SF%
-    SF% = val%
-    val% = next%
-  ENDWHILE
 ENDPROC
 
 DEF PROCgc
@@ -279,6 +244,8 @@ DEF FNunbox_int(val%)
 
 REM ** Strings and keywords **
 
+REM  Z$(x) is the string value
+REM  Z%(x,2) points to the next part of the string
 REM  A keyword is a string with first character CHR$(127).
 
 DEF FNis_string(val%)
@@ -287,63 +254,56 @@ DEF FNis_string(val%)
 DEF FNalloc_string(sval$)
   LOCAL val%
   val% = FNmalloc(&02)
-  Z%(val%,1) = FNsalloc(sval$)
+  Z$(val%) = sval$
 =val%
 
 DEF FNunbox_string(val%)
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
-  IF S%(Z%(val%,1)) ERROR &40E80914, "Cannot unbox a long string"
-=S$(Z%(val%,1))
+  IF NOT FNis_nil(Z%(val%,2)) ERROR &40E80914, "Cannot unbox a long string"
+=Z$(val%)
 
 REM  Note that this mutates an existing value.  Use with care!
 DEF PROCstring_append(val%, add$)
-  LOCAL s%
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
-  s% = (Z%(val%,1))
-  WHILE S%(s%) <> 0
-    s% = S%(s%)
+  WHILE NOT FNis_nil(Z%(val%,2))
+    val% = Z%(val%,2)
   ENDWHILE
-  IF LEN(S$(s%)) + LEN(add$) <= 255 THEN
-    S$(s%) += add$
+  IF LEN(Z$(val%)) + LEN(add$) <= 255 THEN
+    Z$(val%) += add$
   ELSE
-    S%(s%) = FNsalloc(add$)
+    Z%(val%,2) = FNalloc_string(add$)
   ENDIF
 ENDPROC
 
 REM  So does this.
 DEF PROCstring_concat(val%, add%)
-  LOCAL s%
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
   IF NOT FNis_string(add%) THEN ERROR &40E80914, "Not a string"
-  s% = (Z%(add%,1))
-  WHILE s% <> 0
-    PROCstring_append(val%, S$(s%))
-    s% = S%(s%)
-  ENDWHILE
+  REPEAT
+    PROCstring_append(val%, Z$(add%))
+    add% = Z%(add%,2)
+  UNTIL FNis_nil(add%)
 ENDPROC
 
 DEF FNstring_len(val%)
-  LOCAL s%, len%
-  s% = Z%(val%,1)
-  WHILE s% <> 0
-    len% += LEN(S$(s%))
-    s% = S%(s%)
+  LOCAL len%
+  WHILE NOT FNis_nil(val%)
+    len% += LEN(Z$(val%))
+    val% = Z%(val%,2)
   ENDWHILE
 =len%
 
 DEF FNstring_chr(val%, pos%)
-  LOCAL s%
-  s% = Z%(val%,1)
-  WHILE pos% > LEN(S$(s%))
-    pos% -= LEN(S$(s%))
-    s% = S%(s%)
-    IF s% = 0 THEN =""
+  WHILE pos% > LEN(Z$(val%))
+    pos% -= LEN(Z$(val%))
+    val% = Z%(val%,2)
+    IF FNis_nil(val%) THEN =""
   ENDWHILE
-=MID$(S$(s%), pos%, 1)
+=MID$(Z$(val%), pos%, 1)
 
 REM ** Symbols **
 
-REM  Z%(x,1) = index in S$() of the value of the symbol
+REM  Z$(x) = value of the symbol
 
 DEF FNis_symbol(val%)
 =FNtype_of(val%) = &06
@@ -351,12 +311,12 @@ DEF FNis_symbol(val%)
 DEF FNalloc_symbol(sval$)
   LOCAL val%
   val% = FNmalloc(&06)
-  Z%(val%,1) = FNsalloc(sval$)
+  Z$(val%) = sval$
 =val%
 
 DEF FNunbox_symbol(val%)
   IF NOT FNis_symbol(val%) THEN ERROR &40E80915, "Not a symbol"
-=S$(Z%(val%,1))
+=Z$(val%)
 
 REM ** Lists and vectors **
 
@@ -472,7 +432,7 @@ REM  Z%(x,1) = index in Z%() of left child (if next bit of key is 0)
 REM  Z%(x,2) = index in Z%() of right child (if next bit of key is 1)
 
 REM  A leaf node has
-REM  Z%(x,1) = index in S$() of key
+REM  Z$(x) = key
 REM  Z%(x,2) = index in Z%() of value
 
 REM  The empty hash-map is a special value containing no data.
@@ -483,7 +443,7 @@ DEF FNempty_hashmap
 DEF FNhashmap_alloc_leaf(key$, val%)
   LOCAL entry%
   entry% = FNmalloc(&0A)
-  Z%(entry%,1) = FNsalloc(key$)
+  Z$(entry%) = key$
   Z%(entry%,2) = val%
 =entry%  
 
@@ -517,8 +477,8 @@ DEF FNhashmap_set(map%, key$, val%)
   LOCAL bit%, nearest%
   IF FNis_empty(map%) THEN =FNhashmap_alloc_leaf(key$, val%)
   nearest% = FNhashmap_find(map%, key$)
-  IF S$(Z%(nearest%,1)) = key$ THEN =FNhashmap_replace(map%, key$, val%)
-  bit% = FNkey_bitdiff(key$, S$(Z%(nearest%,1)))
+  IF Z$(nearest%) = key$ THEN =FNhashmap_replace(map%, key$, val%)
+  bit% = FNkey_bitdiff(key$, Z$(nearest%))
 =FNhashmap_insert(map%, bit%, key$, val%)
 
 DEF FNhashmap_insert(map%, bit%, key$, val%)
@@ -560,7 +520,7 @@ DEF FNhashmap_remove(map%, key$)
   LOCAL child%
   IF FNis_empty(map%) THEN =map%
   IF FNtype_of(map%) = &0A THEN
-    IF S$(Z%(map%,1)) = key$ THEN =FNempty_hashmap
+    IF Z$(map%) = key$ THEN =FNempty_hashmap
   ENDIF
   IF FNkey_bit(key$, Z%(map%,0) >> 16) THEN
     child% = FNhashmap_remove(Z%(map%,2), key$)
@@ -584,13 +544,13 @@ DEF FNhashmap_get(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
   IF FNis_empty(map%) THEN =FNnil
   map% = FNhashmap_find(map%, key$)
-IF S$(Z%(map%,1)) = key$ THEN =FNref_local(Z%(map%,2)) ELSE =FNnil
+IF Z$(map%) = key$ THEN =FNref_local(Z%(map%,2)) ELSE =FNnil
 
 DEF FNhashmap_contains(map%, key$)
   IF NOT FNis_hashmap(map%) THEN ERROR &40E80918, "Can't get item from a non-hashmap"
   IF FNis_empty(map%) THEN =FALSE
   map% = FNhashmap_find(map%, key$)
-=S$(Z%(map%,1)) = key$
+=Z$(map%) = key$
 
 DEF FNhashmap_keys(map%)
 =FNhashmap_keys1(map%, FNempty)
@@ -598,7 +558,7 @@ DEF FNhashmap_keys(map%)
 DEF FNhashmap_keys1(map%, acc%)
   IF FNis_empty(map%) THEN =acc%
   IF FNtype_of(map%) = &0A THEN
-    =FNalloc_pair(FNalloc_string(S$(Z%(map%,1))), acc%)
+    =FNalloc_pair(FNalloc_string(Z$(map%)), acc%)
   ENDIF
 =FNhashmap_keys1(Z%(map%,1), FNhashmap_keys1(Z%(map%,2), acc%))
 
@@ -622,7 +582,7 @@ DEF PROChashmap_dump(map%)
 ENDPROC
 
 DEF PROChashmap_dump_internal(map%, prefix$)
-  IF FNtype_of(map%) = &0A PRINT prefix$;S$(Z%(map%,1))
+  IF FNtype_of(map%) = &0A PRINT prefix$;Z$(map%)
   IF FNtype_of(map%) = &11 THEN
     PRINT prefix$;"<";Z%(map%,0) >> 16;">"
     PROChashmap_dump_internal(Z%(map%,1), prefix$ + "L ")
