@@ -15,8 +15,11 @@ DEF FNpr_str(val%, print_readably%)
   IF FNis_symbol(val%) THEN =FNalloc_string(FNunbox_symbol(val%))
   IF FNis_corefn(val%) OR FNis_fn(val%) THEN =FNalloc_string("#<function>")
   IF FNis_seq(val%) THEN
-    ret% = FNalloc_string("(") : term$ = ")"
-    IF FNis_vector(val%) THEN ret% = FNalloc_string("[") : term$ = "]"
+    IF FNis_vector(val%) THEN
+      ret% = FNalloc_string("[") : term$ = "]"
+    ELSE
+      ret% = FNalloc_string("(") : term$ = ")"
+    ENDIF
     WHILE NOT FNis_empty(val%)
       IF FNstring_len(ret%) > 1 THEN PROCstring_append(ret%, " ")
       PROCstring_concat(ret%, FNpr_str(FNfirst(val%), print_readably%))
