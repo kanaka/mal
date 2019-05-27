@@ -5,9 +5,7 @@ Then refresh the .png files.
 
 General:
     - add chat bot for #mal
-    - move tokenizer.mal and reader.mal from malc along with
-      ./examples/{equality,memoize,pprint,protocols}.mal and
-      ./core.mal to ./lib directory
+    - move tokenizer.mal and reader.mal from malc to ./lib directory
 
     - Finish guide.md
         - mention that identifier names are suggested. some have run

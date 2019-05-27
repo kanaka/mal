@@ -1,0 +1,12 @@
+;; Trivial but convenient functions.
+
+;; Integer predecessor (number -> number)
+(def! dec (fn* (a) (- a 1)))
+
+;; Integer nullity test (number -> boolean)
+(def! zero? (fn* (n) (= 0 n)))
+
+;; Returns the unchanged argument.
+(def! identity (fn* (x) x))
+
+nil

@@ -70,8 +70,8 @@ package body Reader is
                Append (Res, S (I+1));
                I := I + 2;
             else
-               Append (Res, S (I));
-               I := I + 1;
+               Append (Res, S (I .. I+1));
+               I := I + 2;
             end if;
          else
             Append (Res, S (I));
