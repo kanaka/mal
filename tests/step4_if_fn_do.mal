@@ -200,6 +200,11 @@ a
 ;;;;=>89
 
 
+;; Testing recursive function in environment.
+(let* [cst (fn* [n] (if (= n 0) nil (cst (- n 1))))] (cst 1))
+;=>nil
+
+
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
