@@ -86,9 +86,20 @@
 ;=>9
 
 ;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing reading of large files
+(load-file "../tests/computations.mal")
+;=>nil
+(sumdown 2)
+;=>3
+(fib 2)
+;=>1
+
 ;>>> optional=True
 ;;
-;; -------- Deferrable/Optional Functionality --------
+;; -------- Optional Functionality --------
 
 ;; Testing comments in a file
 (load-file "../tests/incB.mal")
