@@ -400,13 +400,16 @@ DEF FNcore_slurp(file$)
   LOCAL f%, out%
   f% = OPENIN(file$)
   IF f% = 0 THEN ERROR &40E80940, "File '"+file$+"' not found"
-  out% = FNalloc_string("")
-  WHILE NOT EOF#f%
-    REM  GET$# doesn't include a trailing newline.
-    out% = FNstring_append(out%, GET$#f% + CHR$(10))
-  ENDWHILE
+  out% = FNcore_slurp_channel(f%)
   CLOSE#f%
 =out%
+
+DEF FNcore_slurp_channel(f%)
+  LOCAL this%
+  IF EOF#f% THEN =FNalloc_string("")
+  REM  GET$# doesn't include a trailing newline.
+  this% = FNalloc_string(GET$#f% + CHR$(10))
+=FNstring_concat(this%, FNcore_slurp_channel(f%))
 
 REM  General-purpose printing function
 DEF FNcore_print(print_readably%, sep$, args%)

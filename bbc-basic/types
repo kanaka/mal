@@ -278,13 +278,21 @@ DEF FNstring_append(val%, add$)
 =newval%
 
 DEF FNstring_concat(val%, add%)
+  LOCAL newval%
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
   IF NOT FNis_string(add%) THEN ERROR &40E80914, "Not a string"
-  REPEAT
-    val% = FNstring_append(val%, Z$(add%))
-    add% = Z%(add%,2)
-  UNTIL FNis_nil(add%)
-=val%
+  newval% = FNalloc_string(Z$(val%))
+  IF FNis_nil(Z%(val%,2)) THEN
+    IF LEN(Z$(newval%)) + LEN(Z$(add%)) <= 255 THEN
+      Z$(newval%) += Z$(add%)
+      Z%(newval%,2) = Z%(add%,2)
+    ELSE
+      Z%(newval%,2) = add%
+    ENDIF
+  ELSE
+    Z%(newval%,2) = FNstring_concat(Z%(val%,2), add%)
+  ENDIF
+=newval%
 
 DEF FNstring_len(val%)
   LOCAL len%
