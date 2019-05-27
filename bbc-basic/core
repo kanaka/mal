@@ -403,7 +403,7 @@ DEF FNcore_slurp(file$)
   out% = FNalloc_string("")
   WHILE NOT EOF#f%
     REM  GET$# doesn't include a trailing newline.
-    PROCstring_append(out%, GET$#f% + CHR$(10))
+    out% = FNstring_append(out%, GET$#f% + CHR$(10))
   ENDWHILE
   CLOSE#f%
 =out%
@@ -412,12 +412,11 @@ REM  General-purpose printing function
 DEF FNcore_print(print_readably%, sep$, args%)
   LOCAL out%
   IF FNis_empty(args%) THEN =FNalloc_string("")
-  out% = FNalloc_string("")
-  PROCstring_concat(out%, FNpr_str(FNfirst(args%), print_readably%))
+  out% = FNpr_str(FNfirst(args%), print_readably%)
   args% = FNrest(args%)
   WHILE NOT FNis_empty(args%)
-    PROCstring_append(out%, sep$)
-    PROCstring_concat(out%, FNpr_str(FNfirst(args%), print_readably%))
+    out% = FNstring_append(out%, sep$)
+    out% = FNstring_concat(out%, FNpr_str(FNfirst(args%), print_readably%))
     args% = FNrest(args%)
   ENDWHILE
 =out%

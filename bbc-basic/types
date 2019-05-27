@@ -262,28 +262,29 @@ DEF FNunbox_string(val%)
   IF NOT FNis_nil(Z%(val%,2)) ERROR &40E80914, "Cannot unbox a long string"
 =Z$(val%)
 
-REM  Note that this mutates an existing value.  Use with care!
-DEF PROCstring_append(val%, add$)
+DEF FNstring_append(val%, add$)
+  LOCAL newval%
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
-  WHILE NOT FNis_nil(Z%(val%,2))
-    val% = Z%(val%,2)
-  ENDWHILE
-  IF LEN(Z$(val%)) + LEN(add$) <= 255 THEN
-    Z$(val%) += add$
+  newval% = FNalloc_string(Z$(val%))
+  IF FNis_nil(Z%(val%,2)) THEN
+    IF LEN(Z$(newval%)) + LEN(add$) <= 255 THEN
+      Z$(newval%) += add$
+    ELSE
+      Z%(newval%,2) = FNalloc_string(add$)
+    ENDIF
   ELSE
-    Z%(val%,2) = FNalloc_string(add$)
+    Z%(newval%,2) = FNstring_append(Z%(val%,2), add$)
   ENDIF
-ENDPROC
+=newval%
 
-REM  So does this.
-DEF PROCstring_concat(val%, add%)
+DEF FNstring_concat(val%, add%)
   IF NOT FNis_string(val%) THEN ERROR &40E80914, "Not a string"
   IF NOT FNis_string(add%) THEN ERROR &40E80914, "Not a string"
   REPEAT
-    PROCstring_append(val%, Z$(add%))
+    val% = FNstring_append(val%, Z$(add%))
     add% = Z%(add%,2)
   UNTIL FNis_nil(add%)
-ENDPROC
+=val%
 
 DEF FNstring_len(val%)
   LOCAL len%
