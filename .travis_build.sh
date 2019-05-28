@@ -7,16 +7,23 @@ BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
 mode_var=${IMPL}_MODE
 mode_val=${!mode_var}
 
+# Special tags/branches
+case "${TRAVIS_BRANCH}" in
+self-host-test)
+    if [ "${NO_SELF_HOST}" ]; then
+        echo "Skipping ${MAL_IMPL} self-host build"
+        exit 0
+    fi
+    ;;
+esac
+
+
 # If NO_DOCKER is blank then launch use a docker image, otherwise
 # use the Travis image/tools directly.
 if [ -z "${NO_DOCKER}" ]; then
-    impl=$(echo "${IMPL}" | tr '[:upper:]' '[:lower:]')
     img_impl=$(echo "${BUILD_IMPL}" | tr '[:upper:]' '[:lower:]')
 
-    docker pull kanaka/mal-test-${impl}
-    if [ "${impl}" != "${img_impl}" ]; then
-        docker pull kanaka/mal-test-${img_impl}
-    fi
+    docker pull kanaka/mal-test-${img_impl}
     if [ "${BUILD_IMPL}" = "rpython" ]; then
         # rpython often fails on step9 in compute_vars_longevity
         # so build step9, then continue wit the full build
