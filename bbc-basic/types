@@ -48,11 +48,18 @@ REM  &0A  hash-map leaf node
 REM  Formats of individual objects are defined below.
 
 DEF PROCtypes_init
-  REM  Arbitrarily use a quarter of BASIC's heap as the mal heap.
-  REM  Each Z%() entry is sixteen bytes.  Each Z$() entry is about
-  REM  five bytes.
+  REM  Mal's heap has to be statically dimensioned, but we also
+  REM  need to leave enough space for BASIC's stack and heap.
+  REM  The BASIC heap is where all strings live.
+  REM
+  REM  Each row of Z%() consumes 16 bytes.  The size of each entry
+  REM  in Z$() varies by platform: 5 bytes in ARM BBC BASIC V,
+  REM  8 bytes in Brandy on a 32-bit system, 16 bytes in Brandy on
+  REM  a 64-bit system.
+
   DIM Z%((HIMEM-LOMEM)/64,3), Z$((HIMEM-LOMEM)/64)
   DIM sS%((HIMEM-LOMEM)/64)
+
   Z%(1,0) = &04 : REM false
   Z%(2,0) = &04 : Z%(2,1) = TRUE : REM true
   Z%(3,0) = &49 : Z%(3,1) = 3 : REM empty list
