@@ -6,9 +6,11 @@ CLASSSTEPS = out/step0_repl.class out/step1_read_print.class \
              out/step3_env.class out/step4_if_fn_do.class out/step5_tco.class \
              out/step6_file.class out/step7_quote.class out/step8_macros.class \
              out/step9_try.class out/stepA_mal.class
+GXCSTEPS = gxc.out
 STEPS = $(if $(filter kawa,$(scheme_MODE)),$(CLASSSTEPS),\
         $(if $(filter chicken,$(scheme_MODE)),$(BINS),\
-        $(if $(filter cyclone,$(scheme_MODE)),$(BINS))))
+        $(if $(filter cyclone,$(scheme_MODE)),$(BINS),\
+		$(if $(filter gerbil,$(scheme_MODE)),$(GXCSTEPS)))))
 
 KAWA_STEP1_DEPS = out/lib/util.class out/lib/reader.class \
                   out/lib/printer.class out/lib/types.class
@@ -66,6 +68,9 @@ eggs/r7rs.so:
 	chicken-install -init eggs
 	CHICKEN_REPOSITORY=$(CURDIR)/eggs chicken-install r7rs
 
+gxc.out:
+	./gerbil-build.sh
+
 lib/%.scm: lib/%.sld
 	$(SYMLINK) $< $@
 
@@ -101,4 +106,5 @@ clean:
 	$(RM) lib/*.scm lib/*.so lib/*.c lib/*.o lib/*.meta
 	$(RM) lib.*.scm *.so *.c *.o $(BINS)
 	$(RM) eggs/*
+	$(RM) -rf gxc.out
 	$(RMR) out

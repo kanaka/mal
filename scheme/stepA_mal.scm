@@ -198,7 +198,7 @@
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 
-(define (main)
+(define (interactive-main)
   (rep "(println (str \"Mal [\" *host-language* \"]\"))")
   (let loop ()
     (let ((input (readline "user> ")))
@@ -218,6 +218,14 @@
         (loop))))
   (newline))
 
-(if (null? args)
-    (main)
-    (rep (string-append "(load-file \"" (car args) "\")")))
+(cond-expand
+  (gerbil
+   (export main)
+   (define (main . args)
+     (if (null? args)
+       (interactive-main)
+       (rep (string-append "(load-file \"" (car args) "\")")))))
+  (else
+   (if (null? args)
+     (interactive-main)
+     (rep (string-append "(load-file \"" (car args) "\")")))))

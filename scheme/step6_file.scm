@@ -107,7 +107,7 @@
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 
-(define (main)
+(define (interactive-main)
   (let loop ()
     (let ((input (readline "user> ")))
       (when input
@@ -126,6 +126,14 @@
         (loop))))
   (newline))
 
-(if (null? args)
-    (main)
-    (rep (string-append "(load-file \"" (car args) "\")")))
+(cond-expand
+  (gerbil
+   (export main)
+   (define (main . args)
+     (if (null? args)
+       (interactive-main)
+       (rep (string-append "(load-file \"" (car args) "\")")))))
+  (else
+   (if (null? args)
+     (interactive-main)
+     (rep (string-append "(load-file \"" (car args) "\")")))))

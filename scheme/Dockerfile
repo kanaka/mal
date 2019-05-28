@@ -56,4 +56,17 @@ RUN cd /tmp && git clone https://github.com/leftmike/foment \
     && cd foment/unix && make && cp release/foment /usr/bin/foment \
     && rm -rf /tmp/foment
 
+# Gerbil
+RUN apt-get -y install openssl libssl-dev sqlite3 libsqlite3-dev
+RUN cd /tmp && git clone https://github.com/gambit/gambit && cd gambit \
+    && ./configure --prefix=/opt/gambit --enable-single-host && make && make install \
+    && rm -rf /tmp/gambit
+ENV PATH "$PATH:/opt/gambit/bin"
+RUN cd /tmp && git clone https://github.com/vyzo/gerbil \
+    && cd gerbil/src && ./build.sh \
+    && mkdir /opt/gerbil && mv /tmp/gerbil/bin /opt/gerbil && mv /tmp/gerbil/lib /opt/gerbil \
+    && rm -rf /tmp/gerbil
+ENV PATH "$PATH:/opt/gerbil/bin"
+ENV GERBIL_HOME /opt/gerbil
+
 ENV HOME /mal
