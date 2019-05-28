@@ -1,14 +1,22 @@
 GET "libhdr"
 GET "malhdr"
 
-LET readline(prompt, buf) BE
-{ LET p = 1
+MANIFEST
+{ buflen = (1 << bitsperbyte) - 1 }
+
+// readline returns a newly-allocated mal string.
+// 'prompt' is a mal string,
+LET readline(prompt) = VALOF
+{ LET buf = VEC 1 + buflen / bytesperword
+  LET p = 1
   LET ch = 0
-  writes(prompt)
+  writes(@prompt!str_data)
   deplete(cos)
-  { ch := rdch()
+  { IF p > buflen THEN { writes("Input line too long"); FINISH }
+    ch := rdch()
     buf%p := ch
     p := p + 1
   } REPEATUNTIL ch = '*n'
   buf%0 := p - 1
+  RESULTIS str_bcpl2mal(buf)
 }

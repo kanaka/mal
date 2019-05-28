@@ -2,6 +2,7 @@ GET "libhdr"
 GET "malhdr"
 
 GET "readline.b"
+GET "types.b"
 
 LET READ(x) = x
 
@@ -12,9 +13,9 @@ LET PRINT(x) = x
 LET rep(x) = PRINT(EVAL(READ(x)))
 
 LET repl() BE
-{ LET line = VEC 256 / bytesperword
-  { readline("user> ", line)
-    writes(rep(line))
+{ LET prompt = str_bcpl2mal("user> ")
+  { LET line = readline(prompt)
+    writes(@rep(line)!str_data)
   } REPEAT
 }
 
