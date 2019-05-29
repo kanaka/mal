@@ -1,6 +1,9 @@
 GET "libhdr"
 GET "malhdr"
 
+LET init_types() BE
+  nil := TABLE 0
+
 LET alloc_str(len) = VALOF
 { LET result = getvec(str_data + 1 + len / bytesperword)
   !result := 0

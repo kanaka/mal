@@ -14,6 +14,7 @@ LET readline(prompt) = VALOF
   deplete(cos)
   { IF p > buflen THEN { writes("Input line too long"); FINISH }
     ch := rdch()
+    IF ch = endstreamch THEN RESULTIS nil
     buf%p := ch
     p := p + 1
   } REPEATUNTIL ch = '*n'
