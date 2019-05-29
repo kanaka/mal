@@ -8,7 +8,7 @@ matrix:
     - {env: IMPL=ada,                         services: [docker]}
     - {env: IMPL=ada.2,                       services: [docker]}
     - {env: IMPL=awk,                         services: [docker]}
-    - {env: IMPL=bash NO_SELF_HOST_PERF=1,    services: [docker]} # perf timeout
+    - {env: IMPL=bash NO_SELF_HOST=1,         services: [docker]} # step8 timeout
     - {env: IMPL=basic basic_MODE=cbm NO_SELF_HOST=1,    services: [docker]} # step4 OOM
     - {env: IMPL=basic basic_MODE=qbasic NO_SELF_HOST=1, services: [docker]} # step4 OOM
     - {env: IMPL=bbc-basic,                   services: [docker]}
@@ -98,11 +98,11 @@ matrix:
     - {env: IMPL=vb,                          services: [docker]}
     - {env: IMPL=vhdl NO_SELF_HOST_PERF=1,    services: [docker]} # perf timeout
     - {env: IMPL=vimscript,                   services: [docker]}
-    - {env: IMPL=wasm wasm_MODE=wasmtime,     services: [docker]}
-    - {env: IMPL=wasm wasm_MODE=wax,          services: [docker]}
-    - {env: IMPL=wasm wasm_MODE=node,         services: [docker]}
-    - {env: IMPL=wasm wasm_MODE=wace_libc,    services: [docker]}
-    - {env: IMPL=wasm wasm_MODE=warpy,        services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wasmtime NO_SELF_HOST_PERF=1,  services: [docker]} # mac stack overflow
+    - {env: IMPL=wasm wasm_MODE=wax NO_SELF_HOST_PERF=1,       services: [docker]} # mac stack overflow
+    - {env: IMPL=wasm wasm_MODE=node NO_SELF_HOST_PERF=1,      services: [docker]} # mac stack overflow
+    - {env: IMPL=wasm wasm_MODE=wace_libc NO_SELF_HOST_PERF=1, services: [docker]} # mac stack overflow
+    - {env: IMPL=wasm wasm_MODE=warpy NO_SELF_HOST_PERF=1,     services: [docker]} # mac stack overflow
     - {env: IMPL=yorick,                      services: [docker]}
 
 script:

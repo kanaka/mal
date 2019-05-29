@@ -40,7 +40,9 @@
 (defn macroexpand [ast env]
   (loop [ast ast]
     (if (is-macro-call ast env)
-      (let [mac (env/env-get env (first ast))]
+      ;; Get original unadorned function because ClojureScript (1.10)
+      ;; limits functions with meta on them to arity 20
+      (let [mac (:orig (meta (env/env-get env (first ast))))]
         (recur (apply mac (rest ast))))
       ast)))
 
@@ -90,9 +92,12 @@
               (recur (quasiquote a1) env)
 
               'defmacro!
-              (let [func (with-meta (EVAL a2 env)
-                                    {:ismacro true})]
-                (env/env-set env a1 func))
+              (let [func (EVAL a2 env)
+                    ;; Preserve unadorned function to workaround
+                    ;; ClojureScript function-with-meta arity limit
+                    mac (with-meta func {:orig (:orig (meta func))
+                                         :ismacro true})]
+                (env/env-set env a1 mac))
 
               'macroexpand
               (macroexpand a1 env)
@@ -110,12 +115,16 @@
                   (recur a2 env)))
 
               'fn*
-              (with-meta
-                (fn [& args]
-                  (EVAL a2 (env/env env a1 (or args '()))))
-                {:expression a2
-                 :environment env
-                 :parameters a1})
+              (let [func (fn [& args]
+                           (EVAL a2 (env/env env a1 (or args '()))))]
+                (with-meta
+                  func
+                  ;; Preserve unadorned function to workaround
+                  ;; ClojureScript function-with-meta arity limit
+                  {:orig func
+                   :expression a2
+                   :environment env
+                   :parameters a1}))
 
               ;; apply
               (let [el (eval-ast ast env)

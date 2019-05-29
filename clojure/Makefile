@@ -7,7 +7,7 @@ SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
 DEPS = $(if $(filter cljs,$(clojure_MODE)),node_modules,deps)
 
-dist: $(if $(filter cljs,$(clojure_MODE)),,mal.jar mal)
+dist: $(if $(filter cljs,$(clojure_MODE)),node_modules,mal.jar mal)
 
 deps:
 	lein deps

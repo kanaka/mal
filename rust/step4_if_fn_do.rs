@@ -143,7 +143,7 @@ fn main() {
   // `()` can be used when no completer is required
   let mut rl = Editor::<()>::new();
   if rl.load_history(".mal-history").is_err() {
-      println!("No previous history.");
+      eprintln!("No previous history.");
   }
 
   // core.rs: defined using rust

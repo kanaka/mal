@@ -97,7 +97,7 @@ Defaults to `error'."
     (when message (put name 'error-message message)))))
 
 (define-error 'mal "MAL error")
-(define-error 'unterminated-sequence "Unterminated token sequence" 'mal)
+(define-error 'unterminated-sequence "Unexpected end of input during token sequence" 'mal)
 (define-error 'end-of-token-stream "End of token stream" 'mal)
 (define-error 'mal-custom "Custom error" 'mal)
 

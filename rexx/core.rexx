@@ -89,7 +89,7 @@ mal_println: procedure expose values. /* mal_println(...) */
   say res
   return new_nil()
 
-mal_read_string: procedure expose values. /* mal_read_string(str) */
+mal_read_string: procedure expose values. err /* mal_read_string(str) */
   return read_str(obj_val(arg(1)))
 
 mal_readline: procedure expose values. /* mal_readline(prompt) */

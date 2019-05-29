@@ -183,7 +183,7 @@ Namespace Mal
                             If TypeOf e Is Mal.types.MalException Then
                                 exc = DirectCast(e,Mal.types.MalException).getValue()
                             Else
-                                exc = New MalString(e.StackTrace)
+                                exc = New MalString(e.Message)
                             End If
                             return EVAL(
                                 DirectCast(a2,MalList)(2),

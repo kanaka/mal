@@ -325,7 +325,7 @@ get_run_prefix = $(strip $(foreach mode,$(call actual_impl,$(1))_MODE, \
 
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
-get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb,$(1)),RAW=1,)) \
+get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp mal tcl vb,$(1)),RAW=1,)) \
 		    ../runtest.py $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS) $(TEST_OPTS)
 
 # Takes impl and step
