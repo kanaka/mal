@@ -2,7 +2,10 @@ GET "libhdr"
 GET "malhdr"
 
 LET init_types() BE
-  nil := TABLE 0
+{ nil := TABLE t_nil
+  empty := TABLE t_lst, ?, ?
+  empty!lst_first, empty!lst_rest := nil, empty
+}
 
 LET alloc_str(len) = VALOF
 { LET result = getvec(str_data + 1 + len / bytesperword)

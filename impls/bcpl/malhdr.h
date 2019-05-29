@@ -1,5 +1,5 @@
 GLOBAL { readline: ug
-         init_types; nil; alloc_str; str_bcpl2mal }
+         init_types; nil; empty; alloc_str; str_bcpl2mal }
 
 MANIFEST
 {
@@ -13,8 +13,12 @@ MANIFEST
   // it's a valid pointer so it can safely be dereferenced.
   t_nil = #x00
 
+  // Lists.  These are implemented as a linked list.  The empty list,
+  // like nil, is a special value.
+  t_lst = #x01; lst_first = 1; lst_rest = 2
+
   // Strings.  Unlike conventional BCPL strings, these have an entire word
   // to store the length.  For compatibility with library routines, the
   // first byte of the string is also the length if it will fit.
-  t_str = #x01; str_len = 1; str_data = 2
+  t_str = #x02; str_len = 1; str_data = 2
 }
