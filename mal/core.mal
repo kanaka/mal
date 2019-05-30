@@ -3,7 +3,7 @@
     (not (get (meta x) "ismacro"))
     false)))
 
-(def! macro? (fn* [x]
+(def! _macro? (fn* [x]
   (if (fn? x)
     (if (get (meta x) "ismacro")
       true
@@ -23,7 +23,7 @@
    ['keyword keyword]
    ['keyword? keyword?]
    ['fn? _fn?]
-   ['macro? macro?]
+   ['macro? _macro?]
 
    ['pr-str pr-str]
    ['str str]
