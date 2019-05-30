@@ -6,7 +6,9 @@ all help:
 	@echo 'Rules/Targets:'
 	@echo
 	@echo 'make "IMPL"                       # build all steps of IMPL'
+	@echo 'make "build^IMPL"                 # build all steps of IMPL'
 	@echo 'make "IMPL^STEP"                  # build STEP of IMPL'
+	@echo 'make "build^IMPL^STEP"            # build STEP of IMPL'
 	@echo
 	@echo 'make "test"                       # test all implementations'
 	@echo 'make "test^IMPL"                  # test all steps of IMPL'
@@ -341,6 +343,9 @@ ALL_TESTS = $(filter-out $(foreach e,$(step5_EXCLUDES),test^$(e)^step5),\
               $(strip $(sort \
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
+ALL_BUILDS = $(strip $(sort \
+               $(foreach impl,$(DO_IMPLS),\
+                 $(foreach step,$(STEPS),build^$(impl)^$(step)))))
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
@@ -373,10 +378,15 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	    $(call get_build_command,$(impl)) $(patsubst $(impl)/%,%,$(@)), \
 	    $(call get_build_command,$(impl)) $(subst $(impl)/,,$(@))))
 
-# Allow IMPL, and IMPL^STEP
+# Allow IMPL, build^IMPL, IMPL^STEP, and build^IMPL^STEP
 $(DO_IMPLS): $$(foreach s,$$(STEPS),$$(call $$(@)_STEP_TO_PROG,$$(s)))
 
+$(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),build^$(i))): $$(foreach s,$$(STEPS),$$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(s)))
+
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 2,$$(subst ^, ,$$(@))))
+
+$(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),build^$(i)^$(s))): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
+
 
 
 #

@@ -106,13 +106,7 @@ matrix:
     - {env: IMPL=yorick,                      services: [docker]}
 
 script:
-  # Build
-  - ./.travis_build.sh
-
-  # Normal tests
+  # Build, test, perf
+  - ./.travis_test.sh build ${IMPL}
   - ./.travis_test.sh test ${IMPL}
-  - cat test.err || true
-
-  # Performance tests
   - ./.travis_test.sh perf ${IMPL}
-  - cat perf.err || true
