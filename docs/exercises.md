@@ -27,9 +27,7 @@ implementations does not matter much.
 
 You may easily check your answers by passing them directly to the
 interpreter. They will hide the built-in functions carrying the same
-names, and the usual tests (with REGRESS=1) will check them. The
-`runtest.py` script provide a convenient command-line parameter to
-pass a command like 'load-file' before running the testsuite.
+names, and the usual tests will check them.
 ```
 make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' test^IMPL^stepA
 ```
@@ -60,13 +58,17 @@ make REGRESS=1 TEST_OPTS='--hard --pre-eval=\(load-file\ \"../answer.mal\"\)' te
   form will hide your implementation, so in order to test it, you will
   need to give it another name and adapt the test accordingly.
 
-- Implement `let*` as a macro that uses `fn*` and recursion.
+- Implement quoting with macros.
+  The same remark applies.
+
+- Implement most of `let*` as a macro that uses `fn*` and recursion.
   The same remark applies.
   A macro is necessary because a function would attempt to evaluate
   the first argument.
 
-- Implement quoting with macros.
-  The same remark applies.
+  Once your answer passes most tests and you understand which part is
+  tricky, you should search for black magic recipes on the web. Few of
+  us mortals are known to have invented a full solution on their own.
 
 - Implement `apply`.
 

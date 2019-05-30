@@ -1,7 +1,14 @@
 ;; These are the answers to the questions in ../docs/exercise.md.
 
-(load-file "../lib/folds.mal")          ; foldr reduce
-(load-file "../lib/trivial.mal")        ; dec identity
+;; In order to avoid unexpected circular dependencies among solutions,
+;; this files attempts to be self-contained.
+(def! identity (fn* [x] x))
+(def! reduce (fn* (f init xs)
+  (if (empty? xs) init (reduce f (f init (first xs)) (rest xs)))))
+(def! foldr (fn* [f init xs]
+  (if (empty? xs) init (f (first xs) (foldr f init (rest xs))))))
+
+;; Reimplementations.
 
 (def! nil?   (fn* [x] (= x nil  )))
 (def! true?  (fn* [x] (= x true )))
@@ -10,7 +17,7 @@
 
 (def! sequential?
   (fn* [x]
-    (or (list? x) (vector? x))))
+    (if (list? x) true (vector? x))))
 
 (def! >  (fn* [a b]      (< b a) ))
 (def! <= (fn* [a b] (not (< b a))))
@@ -22,65 +29,62 @@
 (def! swap! (fn* [a f & xs] (reset! a (apply f (deref a) xs))))
 
 (def! count
-  (let* [inc_left (fn* [acc _] (inc acc))]
-    (fn* [xs] (if (nil? xs) 0 (reduce inc_left 0 xs)))))
-;; (def! nth
-;;   (fn* [xs index]
-;;     (if (or (empty? xs) (< index 0))
-;;       (throw "nth: index out of range")
-;;       (if (zero? index)
-;;         (first xs)
-;;         (nth (rest xs) (dec index))))))
+  (fn* [xs]
+    (if (nil? xs)
+      0
+      (reduce (fn* [acc _] (+ 1 acc)) 0 xs))))
+(def! nth
+  (fn* [xs index]
+    (if (if (<= 0 index) (not (empty? xs))) ; logical and
+      (if (= 0 index)
+        (first xs)
+        (nth (rest xs) (- index 1)))
+      (throw "nth: index out of range"))))
 (def! map
   (fn* [f xs]
-    (let* [iter (fn* [x acc] (cons (f x) acc))]
-      (foldr iter () xs))))
+    (foldr (fn* [x acc] (cons (f x) acc)) () xs)))
 (def! concat
-  (let* [concat2 (fn* [xs ys] (foldr cons ys xs))]
-    (fn* [& xs] (foldr concat2 () xs))))
+   (fn* [& xs]
+    (foldr (fn* [xs ys] (foldr cons ys xs)) () xs)))
 (def! conj
-  (let* [flip_cons (fn* [xs x] (cons x xs))]
-    (fn* [xs & ys]
-      (if (vector? xs)
-        (apply vector (concat xs ys))
-        (reduce flip_cons xs ys)))))
+  (fn* [xs & ys]
+    (if (vector? xs)
+      (apply vector (concat xs ys))
+      (reduce (fn* [xs x] (cons x xs)) xs ys))))
 
-(def! do2 (fn* [& xs] (nth xs (dec (count xs)))))
+(def! do2 (fn* [& xs] (nth xs (- (count xs) 1))))
 (def! do3 (fn* [& xs] (reduce (fn* [acc x] x) nil xs)))
 ;; do2 will probably be more efficient when lists are implemented as
 ;; arrays with direct indexing, but when they are implemented as
 ;; linked lists, do3 may win because it only does one traversal.
 
-(defmacro! let2
+(defmacro! quote (fn* [ast] (list (fn* [] ast))))
+(def! _quasiquote_iter (fn* [x acc]
+  (if (if (list? x) (= (first x) 'splice-unquote)) ; logical and
+    (list 'concat (first (rest x)) acc)
+    (list 'cons (list 'quasiquote x) acc))))
+(defmacro! quasiquote (fn* [ast]
+  (if (list? ast)
+    (if (= (first ast) 'unquote)
+      (first (rest ast))
+      (foldr _quasiquote_iter () ast))
+    (if (vector? ast)
+      ;; TODO: once tests are fixed, replace 'list with 'vector.
+      (list 'apply 'list (foldr _quasiquote_iter () ast))
+      (list 'quote ast)))))
+
+;; FIXME: mutual recursion.
+;; http://okmij.org/ftp/Computation/fixed-point-combinators.html
+(def! _c_combinator (fn* [x] (x x)))
+(def! _d_combinator (fn* [f] (fn* [x] (f (fn* [v] ((x x) v))))))
+(defmacro! let*
   (fn* [binds form]
-    ;;  Each expression may refer to previous definitions, so a single
-    ;;  function with many parameters would not have the same effect
-    ;;  than a composition of functions with one parameter each.
     (if (empty? binds)
       form
-      ;;  This let* increases the readability, but the values could
-      ;;  easily be replaced below.
-      (let* [key  (first binds)
-             val  (nth binds 1)
-             more (rest (rest binds))]
-        `((fn* [~key] (let2 ~more ~form)) ~val)))))
-
-(defmacro! quote2 (fn* [ast] (list (fn* [] ast))))
-(defmacro! quasiquote2
-  (fn* [ast]
-    (let* [
-      is-pair (fn* [x] (if (sequential? x) (not (empty? x))))
-      f (fn* [ast]                      ; evaluating its arguments
-        (if (is-pair ast)
-          (let* [a0 (first ast)]
-            (if (= 'unquote a0)
-              (nth ast 1)
-              (if (if (is-pair a0) (= 'splice-unquote (first a0)))
-                (list 'concat (nth a0 1) (f (rest ast)))
-                (list 'cons (f a0) (f (rest ast))))))
-          (list 'quote ast)))
-      ]
-      (f ast))))
+      (list (list 'fn* [(first binds)] (list 'let* (rest (rest binds)) form))
+            (list '_c_combinator
+                  (list '_d_combinator
+                       (list 'fn* [(first binds)] (first (rest binds)))))))))
 
 (def! apply
   ;; Replace (f a b [c d]) with ('f 'a 'b 'c 'd) then evaluate the
@@ -93,6 +97,8 @@
                   (map q x)
                   (cons (q x) acc)))]
     (fn* [& xs] (eval (foldr iter nil xs)))))
+
+;; Folds
 
 (def! sum     (fn* [xs] (reduce + 0 xs)))
 (def! product (fn* [xs] (reduce * 1 xs)))
@@ -126,7 +132,7 @@
 (def! sum_len
   (let* [add_len (fn* [acc x] (+ acc (count x)))]
     (fn* [xs]
-      (reduce add_len  0 xs))))
+      (reduce add_len 0 xs))))
 (def! max_len
   (let* [update_max (fn* [acc x] (let* [l (count x)] (if (< acc l) l acc)))]
     (fn* [xs]
