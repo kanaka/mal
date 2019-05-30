@@ -73,6 +73,7 @@ MalString parse_string(string token)
 }
 
 auto integer_ctr = ctRegex!(r"^-?[0-9]+$");
+auto string_ctr = ctRegex!(`^"(?:\\.|[^\\"])*"$`);
 
 MalType read_atom(Reader reader)
 {
@@ -87,7 +88,8 @@ MalType read_atom(Reader reader)
                 case ':':
                     return new MalString("\u029e" ~ token[1..$]);
                 case '"':
-                    if (token[$-1] != '"')
+                    auto captures = matchFirst(token, string_ctr);
+                    if (captures.empty())
                     {
                         throw new Exception("expected '\"', got EOF");
                     }
