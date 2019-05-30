@@ -29,7 +29,7 @@
     (let* [a0 (first ast)]
       (if (symbol? a0)
         (if (env-find env a0)
-          (macro? (env-get env a0))))))))
+          (_macro? (env-get env a0))))))))
 
 (def! MACROEXPAND (fn* [ast env]
   (if (is-macro-call ast env)
