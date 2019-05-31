@@ -57,7 +57,7 @@ DEF PROCtypes_init
   REM  8 bytes in Brandy on a 32-bit system, 16 bytes in Brandy on
   REM  a 64-bit system.
 
-  DIM Z%((HIMEM-LOMEM)/100,3), Z$((HIMEM-LOMEM)/100)
+  DIM Z%((HIMEM-LOMEM)/110,3), Z$((HIMEM-LOMEM)/110)
   DIM sS%((HIMEM-LOMEM)/64)
 
   Z%(1,0) = &04 : REM false
