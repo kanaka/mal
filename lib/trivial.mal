@@ -12,8 +12,8 @@
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
 
-;; Generate a hopefully unique symbol.
-;; http://www.gigamonkeys.com/book/macros-defining-your-own.html#plugging-the-leaks
+;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
+;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
 (def! gensym
   (let* [counter (atom 0)]
     (fn* []

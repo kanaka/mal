@@ -16,7 +16,7 @@
   (if (< (count xs) 2)
     (first xs)
     (let* [r (gensym)]
-      `(let* [~r ~(first xs)] (if ~r ~r (or ~@(rest xs))))))))
+      `(let* (~r ~(first xs)) (if ~r ~r (or ~@(rest xs))))))))
 
 ;; Conjonction of predicate values (pred x1) and .. and (pred xn)
 ;; Evaluate `pred x` for each `x` in turn. Return `false` if a result

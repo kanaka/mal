@@ -7,8 +7,8 @@
   (fn* (exp)
     (let* [start (gensym)
            ret   (gensym)]
-      `(let* [~start (time-ms)
-              ~ret    ~exp]
+      `(let* (~start (time-ms)
+              ~ret   ~exp)
         (do
           (prn (str "Elapsed time: " (- (time-ms) ~start) " msecs"))
           ~ret)))))
