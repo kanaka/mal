@@ -5,25 +5,24 @@ set -ex
 ACTION=${1}
 IMPL=${2}
 
+# Environment variable configuration
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
+TEST_OPTS="${TEST_OPTS} --debug-file ../${ACTION}.err"
 
-# Special tags/branches
-case "${TRAVIS_BRANCH}" in
-self-host-test)
+if [ "${DO_SELF_HOST}" ]; then
     MAL_IMPL=${IMPL}
     IMPL=mal
-    ;;
-esac
-
-mode_var=${MAL_IMPL:-${IMPL}}_MODE
-mode_val=${!mode_var}
+fi
+if [ "${DO_HARD}" ]; then
+    TEST_OPTS="${TEST_OPTS} --hard"
+fi
 
 echo "ACTION: ${ACTION}"
 echo "IMPL: ${IMPL}"
 echo "BUILD_IMPL: ${BUILD_IMPL}"
 echo "MAL_IMPL: ${MAL_IMPL}"
 
-if [ "${MAL_IMPL}" ]; then
+if [ "${DO_SELF_HOST}" ]; then
     if [ "${NO_SELF_HOST}" ]; then
         echo "Skipping ${ACTION} of ${MAL_IMPL} self-host"
         exit 0
@@ -33,6 +32,9 @@ if [ "${MAL_IMPL}" ]; then
         exit 0
     fi
 fi
+
+mode_var=${MAL_IMPL:-${IMPL}}_MODE
+mode_val=${!mode_var}
 
 MAKE="make ${mode_val:+${mode_var}=${mode_val}}"
 
@@ -55,14 +57,14 @@ build)
     ${MAKE} -C ${BUILD_IMPL}
     ;;
 test|perf)
-    if ! ${MAKE} TEST_OPTS="--debug-file ../${ACTION}.err" \
+    [ "${ACTION}" = "perf" ] && STEP=
+    if ! ${MAKE} TEST_OPTS="${TEST_OPTS}" \
             ${MAL_IMPL:+MAL_IMPL=${MAL_IMPL}} \
-            ${ACTION}^${IMPL}; then
+            ${REGRESS:+REGRESS=${REGRESS}} \
+            ${ACTION}^${IMPL}${STEP:+^${STEP}}; then
         # print debug-file on error
         cat ${ACTION}.err
         false
     fi
     ;;
 esac
-
-
