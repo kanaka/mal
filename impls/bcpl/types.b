@@ -30,6 +30,16 @@ LET alloc_str(len) = VALOF
   RESULTIS result
 }
 
+LET as_sym(val) = VALOF
+{ LET sym = ?
+  IF type OF val = t_sym THEN RESULTIS val
+  sym := alloc_str(val!str_len)
+  type OF sym := t_sym
+  FOR i = 1 TO str_data + val!str_len / bytesperword DO
+    sym!i := val!i
+  RESULTIS sym
+}
+
 LET str_bcpl2mal(bcplstr) = VALOF
 { LET result = alloc_str(bcplstr%0)
   result!str_len := bcplstr%0

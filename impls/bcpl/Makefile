@@ -6,7 +6,7 @@ all: step0_repl step1_read_print
 .DELETE_ON_ERROR:
 
 step0_repl: readline.b types.b
-step1_read_print: reader.b readline.b types.b
+step1_read_print: printer.b reader.b readline.b types.b
 
 clean:
 	rm step0_repl step1_read_print

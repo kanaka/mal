@@ -1,7 +1,8 @@
 GLOBAL { readline: ug
          pr_str
          read_str
-         init_types; nil; empty; cons; str_setlen; alloc_str; str_bcpl2mal
+         init_types; nil; empty; cons
+	 str_setlen; alloc_str; str_bcpl2mal; as_sym
 }
 
 MANIFEST
@@ -24,5 +25,9 @@ MANIFEST
   // to store the length.  For compatibility with library routines, the
   // first byte of the string is also the length if it will fit.
   t_str = #x02; str_len = 1; str_data = 2
+
+  // Symbols.  Symbols are like strings, but with a different type.
+  t_sym = #x12
+
   maxbcplstrlen = (1 << (BITSPERBCPLWORD / bytesperword)) - 1
 }

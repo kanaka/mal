@@ -1,11 +1,14 @@
 GET "libhdr"
 GET "malhdr"
 
-LET reader_peek(toklistp) = (!toklistp)!lst_first
+// A Reader is just a pointer to a (variable) pointer to the head of
+// a list of strings.
 
-LET reader_next(toklistp) = VALOF
-{ LET tok = reader_peek(toklistp)
-  !toklistp := (!toklistp)!lst_rest
+LET reader_peek(rdr) = (!rdr)!lst_first
+
+LET reader_next(rdr) = VALOF
+{ LET tok = reader_peek(rdr)
+  !rdr := (!rdr)!lst_rest
   RESULTIS tok
 }
 
@@ -41,7 +44,7 @@ LET tokenize(s) = VALOF
       CASE '*"': // String
         tokstart := p
         p := p + 1
-        UNTIL  p > s!str_len | sd%p = '*"' DO
+        UNTIL p > s!str_len | sd%p = '*"' DO
           p := p + (sd%p = '\' -> 2, 1)
         ENDCASE     
       DEFAULT: // Symbol or number
@@ -72,5 +75,31 @@ LET tokenize(s) = VALOF
   RESULTIS tokens
 }
 
-// LET read_str(s) = read_form(tokenize(s))
-LET read_str(s) = tokenize(s)
+LET read_atom(rdr) = as_sym(reader_next(rdr))
+
+LET read_list(rdr) = VALOF
+{ reader_next(rdr) // Skip leading '('
+  RESULTIS read_list_tail(rdr)
+}
+
+AND read_list_tail(rdr) = VALOF
+  TEST (reader_peek(rdr) + str_data)%1 = ')' THEN
+  { reader_next(rdr)
+    RESULTIS empty
+  } ELSE {
+    LET first = read_form(rdr)
+    LET rest = read_list_tail(rdr)
+    RESULTIS cons(first, rest)
+  }
+
+AND read_form(rdr) = VALOF
+  SWITCHON (reader_peek(rdr) + str_data)%1 INTO
+  { CASE '(': RESULTIS read_list(rdr)
+    DEFAULT: RESULTIS read_atom(rdr)
+  }
+
+LET read_str(s) = VALOF
+{ LET tokens = tokenize(s)
+  LET rdr = @tokens
+  RESULTIS read_form(rdr)
+}
