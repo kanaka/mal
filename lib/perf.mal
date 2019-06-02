@@ -1,6 +1,7 @@
 ;; Mesure performances.
 
-(load-file "../lib/trivial.mal")        ; gensym inc
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")   ; gensym inc
 
 ;; Evaluate an expression, but report the time spent
 (defmacro! time

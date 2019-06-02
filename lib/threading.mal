@@ -1,6 +1,7 @@
 ;; Composition of partially applied functions.
 
-(load-file "../lib/reducers.mal")       ; reduce
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/reducers.mal")  ; reduce
 
 ;; Rewrite x (a a1 a2) .. (b b1 b2) as
 ;;   (b (.. (a x a1 a2) ..) b1 b2)
