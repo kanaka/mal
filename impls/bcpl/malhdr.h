@@ -1,5 +1,8 @@
 GLOBAL { readline: ug
-         init_types; nil; empty; alloc_str; str_bcpl2mal }
+         pr_str
+         read_str
+         init_types; nil; empty; cons; str_setlen; alloc_str; str_bcpl2mal
+}
 
 MANIFEST
 {
@@ -15,10 +18,11 @@ MANIFEST
 
   // Lists.  These are implemented as a linked list.  The empty list,
   // like nil, is a special value.
-  t_lst = #x01; lst_first = 1; lst_rest = 2
+  t_lst = #x01; lst_first = 1; lst_rest = 2; lst_sz = 3
 
   // Strings.  Unlike conventional BCPL strings, these have an entire word
   // to store the length.  For compatibility with library routines, the
   // first byte of the string is also the length if it will fit.
   t_str = #x02; str_len = 1; str_data = 2
+  maxbcplstrlen = (1 << (BITSPERBCPLWORD / bytesperword)) - 1
 }

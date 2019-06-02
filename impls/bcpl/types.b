@@ -7,6 +7,20 @@ LET init_types() BE
   empty!lst_first, empty!lst_rest := nil, empty
 }
 
+LET cons(first, rest) = VALOF {
+  LET result = getvec(lst_sz)
+  !result := 0
+  type OF result := t_lst
+  result!lst_first := first
+  result!lst_rest := rest
+  RESULTIS result
+}
+
+LET str_setlen(str, len) BE
+{ str!str_len := len
+  (str + str_data) % 0 := len <= maxbcplstrlen -> len, maxbcplstrlen
+}
+
 LET alloc_str(len) = VALOF
 { LET result = getvec(str_data + 1 + len / bytesperword)
   !result := 0
