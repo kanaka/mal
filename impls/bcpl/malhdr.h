@@ -10,7 +10,7 @@ MANIFEST
   // The "supertype" indicates the meaning of the other words of the
   // value.  The "type" distinguishes mal types with the same supertype
   // (for instance functions and macros).
-  type = SLCT 8; supertype = SLCT 4
+  type = SLCT 8:0:0; supertype = SLCT 4:0:0
 
   // Nil. There is a single nil value initialised by init_types(), but
   // it's a valid pointer so it can safely be dereferenced.
