@@ -29,12 +29,7 @@ def log(data, end='\n'):
     sys.stdout.flush()
 
 # TODO: do we need to support '\n' too
-import platform
-if platform.system().find("CYGWIN_NT") >= 0:
-    # TODO: this is weird, is this really right on Cygwin?
-    sep = "\n\r\n"
-else:
-    sep = "\r\n"
+sep = "\r\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
