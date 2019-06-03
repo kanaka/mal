@@ -75,7 +75,66 @@ LET tokenize(s) = VALOF
   RESULTIS tokens
 }
 
-LET read_atom(rdr) = as_sym(reader_next(rdr))
+// This is for reading into a string, as opposed to read_str, which is
+// for reading from a string.
+LET read_string(token) = VALOF
+{ LET i, o, out = 2, 0, ?
+  WHILE i < token!str_len DO
+  { IF (token + str_data)%i = '\' THEN i := i + 1
+    i, o := i + 1, o + 1
+  }
+  // UNLESS i = token!str_len & (token + str_data)%i = '*"' DO
+  //   throw(str_bcpl2mal("unbalanced quotes"))
+  out := alloc_str(o)
+  i, o := 2,  1
+  WHILE i < token!str_len DO
+  { LET ch = (token + str_data)%i
+    IF ch = '\' THEN
+    { i := i + 1
+      ch := (token + str_data)%i
+      IF ch = 'n' THEN ch := '*n'
+    }
+    (out + str_data)%o := ch
+    i, o := i + 1, o + 1
+  }
+  str_setlen(out, o - 1)
+  RESULTIS out
+}
+
+LET read_number_maybe(token) = VALOF
+{ LET sd, start, negative, acc = token + str_data, 1, FALSE, 0
+  IF sd%1 = '-' THEN
+  { IF token!str_len = 1 THEN RESULTIS nil
+    negative := TRUE
+    start := 2
+  }
+  FOR i = start TO token!str_len DO
+  { acc := acc * 10
+    SWITCHON sd%i INTO
+    { CASE '0': ENDCASE
+      CASE '1': acc := acc + 1; ENDCASE
+      CASE '2': acc := acc + 2; ENDCASE
+      CASE '3': acc := acc + 3; ENDCASE
+      CASE '4': acc := acc + 4; ENDCASE
+      CASE '5': acc := acc + 5; ENDCASE
+      CASE '6': acc := acc + 6; ENDCASE
+      CASE '7': acc := acc + 7; ENDCASE
+      CASE '8': acc := acc + 8; ENDCASE
+      CASE '9': acc := acc + 9; ENDCASE
+      DEFAULT: RESULTIS nil
+    }
+  }
+  IF negative THEN acc := -acc
+  RESULTIS alloc_int(acc)
+}
+
+LET read_atom(rdr) = VALOF
+{ LET token, maybenum = reader_next(rdr), ?
+  IF (token + str_data)%1 = '*"' THEN RESULTIS read_string(token)
+  maybenum := read_number_maybe(token)
+  UNLESS maybenum = nil RESULTIS maybenum
+  RESULTIS as_sym(token)
+}
 
 LET read_list(rdr) = VALOF
 { reader_next(rdr) // Skip leading '('

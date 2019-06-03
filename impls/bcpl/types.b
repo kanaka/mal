@@ -7,12 +7,20 @@ LET init_types() BE
   empty!lst_first, empty!lst_rest := nil, empty
 }
 
-LET cons(first, rest) = VALOF {
-  LET result = getvec(lst_sz)
+LET cons(first, rest) = VALOF
+{ LET result = getvec(lst_sz)
   !result := 0
   type OF result := t_lst
   result!lst_first := first
   result!lst_rest := rest
+  RESULTIS result
+}
+
+LET alloc_int(value) = VALOF
+{ LET result = getvec(int_sz)
+  !result := 0
+  type OF result := t_int
+  result!int_value := value
   RESULTIS result
 }
 
