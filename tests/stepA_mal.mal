@@ -64,6 +64,19 @@
 (meta +)
 ;=>nil
 
+;; Testing fn? function
+(fn? +)
+;=>true
+(fn? (fn* () 0))
+;=>true
+(fn? cond)
+;=>false
+(fn? "+")
+;=>false
+(fn? :+)
+;=>false
+(fn? ^{"ismacro" true} (fn* () 0))
+;=>true
 
 ;;
 ;; Make sure closures and metadata co-exist
@@ -138,18 +151,6 @@
 ;=>false
 
 (def! add1 (fn* (x) (+ x 1)))
-
-;; Testing fn? function
-(fn? +)
-;=>true
-(fn? add1)
-;=>true
-(fn? cond)
-;=>false
-(fn? "+")
-;=>false
-(fn? :+)
-;=>false
 
 ;; Testing macro? function
 (macro? cond)
