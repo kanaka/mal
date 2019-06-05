@@ -26,29 +26,23 @@ LET tokenize(s) = VALOF
   LET sd = s + str_data
   LET tokstart, token = ?, ?
   FOR p = 1 TO s!str_len DO
-  { SWITCHON sd%p INTO
+  { tokstart := p
+    SWITCHON sd%p INTO
     { CASE ' ': CASE '*t': CASE '*n': CASE ',': LOOP // Inter-token whitespace
       CASE '~': // Maybe ~@
-        IF p < s!str_len & sd%(p+1) = '@' THEN
-	{ tokstart := p
-	  p := p + 1
-	  ENDCASE
-	}
+        IF p < s!str_len & sd%(p+1) = '@' THEN p := p + 1 // FALLTHROUGH
       CASE '[': CASE ']': CASE '{': CASE '}': CASE '(': CASE ')': CASE '*'':
       CASE '`': CASE '^': CASE '@': // Single-character token
-        tokstart := p
         ENDCASE
       CASE ';': // Comment
         p := p + 1 REPEATUNTIL p > s!str_len | sd%p = '*n'
         LOOP
       CASE '*"': // String
-        tokstart := p
         p := p + 1
         UNTIL p > s!str_len | sd%p = '*"' DO
           p := p + (sd%p = '\' -> 2, 1)
         ENDCASE     
       DEFAULT: // Symbol or number
-        tokstart := p
         UNTIL p > s!str_len DO
         { SWITCHON sd%p INTO
           { CASE ' ': CASE '*t': CASE '*n': CASE ',':
