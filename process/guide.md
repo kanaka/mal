@@ -990,7 +990,7 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
 
 * Define a `load-file` function using mal itself. In your main
   program call the `rep` function with this string:
-  "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))".
+  "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\n)\")))))".
 
 Try out `load-file`:
   * `(load-file "../tests/incA.mal")` -> `9`
