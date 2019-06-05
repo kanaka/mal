@@ -27,6 +27,8 @@ LET tokenize(s) = VALOF
   LET tokstart, token = ?, ?
   FOR p = 1 TO s!str_len DO
   { tokstart := p
+    // Within this SWITCHON command, use LOOP to ignore input, or ENDCASE to
+    // emit a token.
     SWITCHON sd%p INTO
     { CASE ' ': CASE '*t': CASE '*n': CASE ',': LOOP // Inter-token whitespace
       CASE '~': // Maybe ~@
