@@ -40,9 +40,7 @@ LET tokenize(s) = VALOF
         p := p + 1 REPEATUNTIL p > s!str_len | sd%p = '*n'
         LOOP
       CASE '*"': // String
-        p := p + 1
-        UNTIL p > s!str_len | sd%p = '*"' DO
-          p := p + (sd%p = '\' -> 2, 1)
+        p := p + (sd%p = '\' -> 2, 1) REPEATUNTIL p > s!str_len | sd%p = '*"'
         ENDCASE     
       DEFAULT: // Symbol or number
         UNTIL p > s!str_len DO
