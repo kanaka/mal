@@ -55,3 +55,8 @@ LET str_bcpl2mal(bcplstr) = VALOF
     result!(str_data + i) := bcplstr!i
   RESULTIS result
 }
+
+LET throw(val) BE
+{ last_exception := val
+  longjump(catch_level, catch_label)
+}

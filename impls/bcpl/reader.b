@@ -77,8 +77,8 @@ LET read_string(token) = VALOF
   { IF (token + str_data)%i = '\' THEN i := i + 1
     i, o := i + 1, o + 1
   }
-  // UNLESS i = token!str_len & (token + str_data)%i = '*"' DO
-  //   throw(str_bcpl2mal("unbalanced quotes"))
+  UNLESS i = token!str_len & (token + str_data)%i = '*"' DO
+    throw(str_bcpl2mal("unbalanced quotes"))
   out := alloc_str(o)
   i, o := 2,  1
   WHILE i < token!str_len DO
@@ -148,6 +148,7 @@ AND read_list_tail(rdr) = VALOF
 AND read_form(rdr) = VALOF
   SWITCHON (reader_peek(rdr) + str_data)%1 INTO
   { CASE '(': RESULTIS read_list(rdr)
+    CASE ')': throw(str_bcpl2mal("unbalanced parentheses"))
     DEFAULT: RESULTIS read_atom(rdr)
   }
 

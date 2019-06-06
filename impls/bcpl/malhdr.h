@@ -4,6 +4,8 @@ GLOBAL { readline: ug
          init_types; nil; empty; cons
 	 alloc_int
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym
+	 throw
+	 catch_level; catch_label; last_exception
 }
 
 MANIFEST
