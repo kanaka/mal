@@ -146,11 +146,15 @@ AND read_list_tail(rdr) = VALOF
   }
 
 AND read_form(rdr) = VALOF
-  SWITCHON (reader_peek(rdr) + str_data)%1 INTO
+{ LET token = reader_peek(rdr)
+  UNLESS type OF token = t_str DO
+    throw(str_bcpl2mal("unexpected end of input"))
+  SWITCHON (token + str_data)%1 INTO
   { CASE '(': RESULTIS read_list(rdr)
     CASE ')': throw(str_bcpl2mal("unbalanced parentheses"))
     DEFAULT: RESULTIS read_atom(rdr)
   }
+}
 
 LET read_str(s) = VALOF
 { LET tokens = tokenize(s)
