@@ -161,6 +161,13 @@ AND read_vec_tail(rdr, len) = VALOF
     RESULTIS vec
   }
 
+AND read_macro(rdr, name) = VALOF
+{ LET first, rest = as_sym(str_bcpl2mal(name)), ?
+  reader_next(rdr) // skip macro character
+  rest := cons(read_form(rdr), empty)
+  RESULTIS cons(first, rest)
+}
+
 AND read_form(rdr) = VALOF
 { LET token = reader_peek(rdr)
   UNLESS type OF token = t_str DO
@@ -170,6 +177,12 @@ AND read_form(rdr) = VALOF
     CASE ')': throw(str_bcpl2mal("unbalanced parentheses"))
     CASE '[': RESULTIS read_vec(rdr)
     CASE ']': throw(str_bcpl2mal("unbalanced brackets"))
+    CASE '*'': RESULTIS read_macro(rdr, "quote")
+    CASE '`': RESULTIS read_macro(rdr, "quasiquote")
+    CASE '~':
+      IF token!str_len = 2 THEN RESULTIS read_macro(rdr, "splice-unquote")
+      RESULTIS read_macro(rdr, "unquote")
+    CASE '@': RESULTIS read_macro(rdr, "deref")
     DEFAULT: RESULTIS read_atom(rdr)
   }
 }
