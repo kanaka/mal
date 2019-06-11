@@ -16,6 +16,12 @@ LET cons(first, rest) = VALOF
   RESULTIS result
 }
 
+LET nth(lst, n) = VALOF
+{ UNTIL n = 0 DO lst, n := lst!lst_rest, n - 1
+  IF lst = empty THEN throw(str_bcpl2mal("subscript out of range"))
+  RESULTIS lst!lst_first
+}
+
 LET alloc_int(value) = VALOF
 { LET result = getvec(int_sz)
   !result := 0
@@ -61,6 +67,14 @@ LET alloc_vec(len) = VALOF
   !result := 0
   type OF result := t_vec
   result!vec_len := len
+  RESULTIS result
+}
+
+LET alloc_cfn(fn) = VALOF
+{ LET result = getvec(cfn_sz)
+  !result := 0
+  type OF result := t_cfn
+  result!cfn_fn := fn
   RESULTIS result
 }
 
