@@ -84,11 +84,21 @@ LET print_lst(lst, buf, pos, count_only) = VALOF
   RESULTIS print_char(')', buf, pos, count_only)
 }
 
+AND print_vec(vec, buf, pos, count_only) = VALOF
+{ pos := print_char('[', buf, pos, count_only)
+  FOR i = vec_data TO vec_data + vec!vec_len - 1 DO
+  { UNLESS i = vec_data DO pos := print_char(' ', buf, pos, count_only)
+    pos := print_form(vec!i, buf, pos, count_only)
+  }
+  RESULTIS print_char(']', buf, pos, count_only)
+}
+
 AND print_form(val, buf, pos, count_only) = VALOF
   SWITCHON type OF val INTO
   {
     CASE t_nil: RESULTIS print_const("nil", buf, pos, count_only)
     CASE t_lst: RESULTIS print_lst(val, buf, pos, count_only)
+    CASE t_vec: RESULTIS print_vec(val, buf, pos, count_only)
     CASE t_int: RESULTIS print_int(val, buf, pos, count_only)
     CASE t_str: RESULTIS print_str(val, buf, pos, count_only)
     CASE t_sym: RESULTIS print_sym(val, buf, pos, count_only)

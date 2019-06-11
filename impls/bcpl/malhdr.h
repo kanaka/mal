@@ -4,6 +4,7 @@ GLOBAL { readline: ug
          init_types; nil; empty; cons
 	 alloc_int
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym
+	 alloc_vec
 	 throw
 	 catch_level; catch_label; last_exception
 }
@@ -36,4 +37,8 @@ MANIFEST
   t_sym = #x13
 
   maxbcplstrlen = (1 << (BITSPERBCPLWORD / bytesperword)) - 1
+
+  // Vectors.  Structured like strings except that the data consists of
+  // pointers rather than packed characters.
+  t_vec = #x04; vec_len = 1; vec_data = 2
 }

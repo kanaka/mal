@@ -56,6 +56,14 @@ LET str_bcpl2mal(bcplstr) = VALOF
   RESULTIS result
 }
 
+LET alloc_vec(len) = VALOF
+{ LET result = getvec(vec_data + len)
+  !result := 0
+  type OF result := t_vec
+  result!vec_len := len
+  RESULTIS result
+}
+
 LET throw(val) BE
 { last_exception := val
   longjump(catch_level, catch_label)

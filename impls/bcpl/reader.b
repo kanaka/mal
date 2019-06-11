@@ -145,6 +145,22 @@ AND read_list_tail(rdr) = VALOF
     RESULTIS cons(first, rest)
   }
 
+AND read_vec(rdr) = VALOF
+{ reader_next(rdr) // Skip leading '['
+  RESULTIS read_vec_tail(rdr, 0)
+}
+
+AND read_vec_tail(rdr, len) = VALOF
+  TEST (reader_peek(rdr) + str_data)%1 = ']' THEN
+  { reader_next(rdr)
+    RESULTIS alloc_vec(len)
+  } ELSE {
+    LET first = read_form(rdr)
+    LET vec = read_vec_tail(rdr, len + 1)
+    (vec + vec_data)!len := first
+    RESULTIS vec
+  }
+
 AND read_form(rdr) = VALOF
 { LET token = reader_peek(rdr)
   UNLESS type OF token = t_str DO
@@ -152,6 +168,8 @@ AND read_form(rdr) = VALOF
   SWITCHON (token + str_data)%1 INTO
   { CASE '(': RESULTIS read_list(rdr)
     CASE ')': throw(str_bcpl2mal("unbalanced parentheses"))
+    CASE '[': RESULTIS read_vec(rdr)
+    CASE ']': throw(str_bcpl2mal("unbalanced brackets"))
     DEFAULT: RESULTIS read_atom(rdr)
   }
 }
