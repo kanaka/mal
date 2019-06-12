@@ -29,12 +29,7 @@ def log(data, end='\n'):
     sys.stdout.flush()
 
 # TODO: do we need to support '\n' too
-import platform
-if platform.system().find("CYGWIN_NT") >= 0:
-    # TODO: this is weird, is this really right on Cygwin?
-    sep = "\n\r\n"
-else:
-    sep = "\r\n"
+sep = "\r\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
@@ -54,7 +49,7 @@ parser.add_argument('--log-file', type=str,
 parser.add_argument('--debug-file', type=str,
         help="Write all test interaction the named file")
 parser.add_argument('--hard', action='store_true',
-        help="Turn soft tests following a ';>>> soft=True' into hard failures")
+        help="Turn soft tests (soft, deferrable, optional) into hard failures")
 
 # Control whether deferrable and optional tests are executed
 parser.add_argument('--deferrable', dest='deferrable', action='store_true',

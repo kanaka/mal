@@ -65,7 +65,7 @@
     (local $mac_env i64)
     (LET $ast $orig_ast
          $mac 0)
-    (global.set $mac_stack (STATIC_ARRAY 1024)) ;; 256 * 4, TODO: move to init
+    (global.set $mac_stack (STATIC_ARRAY 2048)) ;; 512 * 4, TODO: move to init
     (block $done
       (loop $loop
         (br_if $done
@@ -87,7 +87,7 @@
           (then
             (global.set $mac_stack_top
                         (i32.add (global.get $mac_stack_top) 1))
-            (if (i32.ge_s (i32.mul (global.get $mac_stack_top) 4) 1024) ;; 256 * 4
+            (if (i32.ge_s (i32.mul (global.get $mac_stack_top) 4) 2048) ;; 512 * 4
               ($fatal 7 "Exhausted mac_stack!\n"))
             (i32.store (i32.add
                          (global.get $mac_stack)

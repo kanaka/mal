@@ -105,7 +105,7 @@ parse_keyword: procedure /* parse_keyword(token) */
   token = arg(1)
   return substr(token, 2)  /* Remove initial ":" */
 
-read_atom: procedure expose values. tokens. pos /* read_atom() */
+read_atom: procedure expose values. tokens. pos err /* read_atom() */
   token = tokens.pos
   pos = pos + 1
   select
@@ -116,6 +116,7 @@ read_atom: procedure expose values. tokens. pos /* read_atom() */
     when substr(token, 1, 1) == ':' then return new_keyword(parse_keyword(token))
     when substr(token, 1, 1) == '"' then do
       if substr(token, length(token), 1) \== '"' then do
+        end_char = '"'
         err = "expected '" || end_char || "', got EOF"
         return "ERR"
       end

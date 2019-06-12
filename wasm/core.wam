@@ -473,7 +473,7 @@
 
     (block $done
       (loop $loop
-        (br_if $done (i32.eqz ($VAL1 $rest_args)))
+        (br_if $done (i32.eqz ($VAL0 $rest_args)))
 
         ;; create argument list for apply
         (local.set $f_args ($ALLOC (global.get $LIST_T)

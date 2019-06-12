@@ -15,36 +15,36 @@ DEF FNpr_str(val%, print_readably%)
   IF FNis_symbol(val%) THEN =FNalloc_string(FNunbox_symbol(val%))
   IF FNis_corefn(val%) OR FNis_fn(val%) THEN =FNalloc_string("#<function>")
   IF FNis_seq(val%) THEN
-    ret% = FNalloc_string("(") : term$ = ")"
-    IF FNis_vector(val%) THEN ret% = FNalloc_string("[") : term$ = "]"
+    IF FNis_vector(val%) THEN
+      ret% = FNalloc_string("[") : term$ = "]"
+    ELSE
+      ret% = FNalloc_string("(") : term$ = ")"
+    ENDIF
     WHILE NOT FNis_empty(val%)
-      IF FNstring_len(ret%) > 1 THEN PROCstring_append(ret%, " ")
-      PROCstring_concat(ret%, FNpr_str(FNfirst(val%), print_readably%))
+      IF FNstring_len(ret%) > 1 THEN ret% = FNstring_append(ret%, " ")
+      ret% = FNstring_concat(ret%, FNpr_str(FNfirst(val%), print_readably%))
       val% = FNrest(val%)
     ENDWHILE
-    PROCstring_append(ret%, term$)
-    =ret%
+    =FNstring_append(ret%, term$)
   ENDIF
   IF FNis_hashmap(val%) THEN
     ret% = FNalloc_string("{")
     keys% = FNhashmap_keys(val%)
     vals% = FNhashmap_vals(val%)
     WHILE NOT FNis_empty(keys%)
-      IF FNstring_len(ret%) > 1 THEN PROCstring_append(ret%, " ")
-      PROCstring_concat(ret%, FNpr_str(FNfirst(keys%), print_readably%))
-      PROCstring_append(ret%, " ")
-      PROCstring_concat(ret%, FNpr_str(FNfirst(vals%), print_readably%))
+      IF FNstring_len(ret%) > 1 THEN ret% = FNstring_append(ret%, " ")
+      ret% = FNstring_concat(ret%, FNpr_str(FNfirst(keys%), print_readably%))
+      ret% = FNstring_append(ret%, " ")
+      ret% = FNstring_concat(ret%, FNpr_str(FNfirst(vals%), print_readably%))
       keys% = FNrest(keys%)
       vals% = FNrest(vals%)
     ENDWHILE
-    PROCstring_append(ret%, "}")
-    =ret%
+    =FNstring_append(ret%, "}")
   ENDIF
   IF FNis_atom(val%) THEN
     ret% = FNalloc_string("(atom ")
-    PROCstring_concat(ret%, FNpr_str(FNatom_deref(val%), print_readably%))
-    PROCstring_append(ret%, ")")
-    =ret%
+    ret% = FNstring_concat(ret%, FNpr_str(FNatom_deref(val%), print_readably%))
+    =FNstring_append(ret%, ")")
   ENDIF
   ERROR &40E809F0, "Unprintable value"
 

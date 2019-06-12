@@ -37,7 +37,7 @@
   (if
     (.match re int-re token) (int token)
     (.match re str-re token) (Str (unescape (cut token 1 -1)))
-    (.match re str-bad-re token) (raise (Exception (+ "expected '\"', got EOF")))
+    (.match re str-bad-re token) (raise (Exception "expected '\"', got EOF"))
     (= ":" (get token 0))    (Keyword token)
     (= "nil" token)          None
     (= "true" token)         True

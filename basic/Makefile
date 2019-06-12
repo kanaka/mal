@@ -9,13 +9,14 @@ STEPS3_A = step3_env.bas $(STEPS4_A)
 STEPS1_A = step1_read_print.bas step2_eval.bas $(STEPS3_A)
 STEPS0_A = step0_repl.bas $(STEPS1_A)
 
+all: $(if $(filter qbasic,$(basic_MODE)),$(subst .bas,,$(STEPS0_A)),$(STEPS0_A))
+
 $(STEPS0_A): readline.in.bas readline_line.in.bas readline_char.in.bas
 $(STEPS1_A): debug.in.bas mem.in.bas types.in.bas reader.in.bas printer.in.bas
 $(STEPS3_A): env.in.bas
 $(STEPS4_A): core.in.bas
 
 
-all: $(STEPS0_A)
 
 step%.bas: step%.in.bas
 	./basicpp.py $(BASICPP_OPTS) $< > $@

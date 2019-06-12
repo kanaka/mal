@@ -89,7 +89,7 @@ MalVal *read_atom(Reader *reader) {
     token = reader_next(reader);
     //g_print("read_atom token: %s\n", token);
     
-    regex = g_regex_new ("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"(.*)\"?$|:(.*)|(^[^\"]*$)", 0, 0, &err);
+    regex = g_regex_new ("(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^\"((?:[\\\\].|[^\\\\\"])*)\"$|^\"(.*)\"?$|:(.*)|(^[^\"]*$)", 0, 0, &err);
     g_regex_match (regex, token, 0, &matchInfo);
 
     if (g_match_info_fetch_pos(matchInfo, 1, &pos, NULL) && pos != -1) {
@@ -110,15 +110,16 @@ MalVal *read_atom(Reader *reader) {
     } else if (g_match_info_fetch_pos(matchInfo, 6, &pos, NULL) && pos != -1) {
         //g_print("read_atom string: %s\n", token);
         int end = strlen(token)-1;
-        if (token[end] != '"') { abort("expected '\"', got EOF"); }
         token[end] = '\0';
         atom = malval_new_string(g_strcompress(g_match_info_fetch(matchInfo, 6)));
     } else if (g_match_info_fetch_pos(matchInfo, 7, &pos, NULL) && pos != -1) {
-        //g_print("read_atom keyword\n");
-        atom = malval_new_keyword(MAL_GC_STRDUP(g_match_info_fetch(matchInfo, 7)));
+        abort("expected '\"', got EOF");
     } else if (g_match_info_fetch_pos(matchInfo, 8, &pos, NULL) && pos != -1) {
+        //g_print("read_atom keyword\n");
+        atom = malval_new_keyword(MAL_GC_STRDUP(g_match_info_fetch(matchInfo, 8)));
+    } else if (g_match_info_fetch_pos(matchInfo, 9, &pos, NULL) && pos != -1) {
         //g_print("read_atom symbol\n");
-        atom = malval_new_symbol(MAL_GC_STRDUP(g_match_info_fetch(matchInfo, 8)));
+        atom = malval_new_symbol(MAL_GC_STRDUP(g_match_info_fetch(matchInfo, 9)));
     } else {
         malval_free(atom);
         atom = NULL;

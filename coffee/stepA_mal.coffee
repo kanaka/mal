@@ -76,7 +76,7 @@ EVAL = (ast, env) ->
       catch exc
         if a2 && a2[0].name == "catch*"
           if exc.object? then exc = exc.object
-          else exc = exc.message
+          else exc = exc.message || exc.toString()
           return EVAL a2[2], new Env(env, [a2[1]], [exc])
         else
           throw exc

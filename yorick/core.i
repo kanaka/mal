@@ -38,6 +38,7 @@ func mal_read_string(a) { return read_str(a(1)->val); }
 func mal_readline(a)
 {
   extern stdin_file
+  stdin_file = open("/dev/stdin", "r")
   write, format="%s", a(1)->val
   line = rdline(stdin_file, prompt="")
   return line ? MalString(val=line) : MAL_NIL

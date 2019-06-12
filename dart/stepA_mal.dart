@@ -222,6 +222,8 @@ MalType EVAL(MalType ast, Env env) {
               MalType exceptionValue;
               if (e is MalException) {
                 exceptionValue = e.value;
+              } else if (e is reader.ParseException) {
+                exceptionValue = new MalString(e.message);
               } else {
                 exceptionValue = new MalString(e.toString());
               }

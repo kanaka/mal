@@ -167,7 +167,7 @@ namespace Mal {
                             if (e is Mal.types.MalException) {
                                 exc = ((Mal.types.MalException)e).getValue();
                             } else {
-                                exc = new MalString(e.StackTrace);
+                                exc = new MalString(e.Message);
                             }
                             return EVAL(((MalList)a2)[2],
                                         new Env(env, ((MalList)a2).slice(1,2),

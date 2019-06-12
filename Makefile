@@ -6,7 +6,9 @@ all help:
 	@echo 'Rules/Targets:'
 	@echo
 	@echo 'make "IMPL"                       # build all steps of IMPL'
+	@echo 'make "build^IMPL"                 # build all steps of IMPL'
 	@echo 'make "IMPL^STEP"                  # build STEP of IMPL'
+	@echo 'make "build^IMPL^STEP"            # build STEP of IMPL'
 	@echo
 	@echo 'make "test"                       # test all implementations'
 	@echo 'make "test^IMPL"                  # test all steps of IMPL'
@@ -291,39 +293,41 @@ actual_impl = $(if $(filter mal,$(1)),$(MAL_IMPL),$(1))
 # Returns nothing if DOCKERIZE is not set, otherwise returns the
 # docker prefix necessary to run make within the docker environment
 # for this impl
-get_build_command = $(strip $(if $(strip $(DOCKERIZE)),\
-    docker run \
-    -it --rm -u $(shell id -u) \
-    -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
-    -w /mal/$(1) \
-    $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
-    $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
-    $(call impl_to_image,$(1)) \
-    $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),) \
-    ,\
-    $(MAKE) $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),)))
+get_build_command = $(strip $(foreach mode,$(1)_MODE, \
+    $(if $(strip $(DOCKERIZE)),\
+      docker run \
+      -it --rm -u $(shell id -u) \
+      -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
+      -w /mal/$(1) \
+      $(if $(strip $($(mode))),-e $(mode)=$($(mode)),) \
+      $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
+      $(call impl_to_image,$(1)) \
+      $(MAKE) $(if $(strip $($(mode))),$(mode)=$($(mode)),) \
+      ,\
+      $(MAKE) $(if $(strip $($(mode))),$(mode)=$($(mode)),) -C $(impl))))
 
 # Takes impl and step args. Optional env vars and dockerize args
 # Returns a command prefix (docker command and environment variables)
 # necessary to launch the given impl and step
-get_run_prefix = $(strip $(if $(strip $(DOCKERIZE) $(4)),\
-    docker run -e STEP=$($2) -e MAL_IMPL=$(MAL_IMPL) \
-    -it --rm -u $(shell id -u) \
-    -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
-    -w /mal/$(call actual_impl,$(1)) \
-    $(if $(strip $($(1)_MODE)),-e $(1)_MODE=$($(1)_MODE),) \
-    $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
-    $(foreach env,$(3),-e $(env)) \
-    $(call impl_to_image,$(call actual_impl,$(1))) \
-    ,\
-    env STEP=$($2) MAL_IMPL=$(MAL_IMPL) \
-    $(if $(strip $($(1)_MODE)),$(1)_MODE=$($(1)_MODE),) \
-    $(if $(filter factor,$(1)),FACTOR_ROOTS=$(FACTOR_ROOTS),) \
-    $(3)))
+get_run_prefix = $(strip $(foreach mode,$(call actual_impl,$(1))_MODE, \
+    $(if $(strip $(DOCKERIZE) $(4)),\
+      docker run -e STEP=$($2) -e MAL_IMPL=$(MAL_IMPL) \
+      -it --rm -u $(shell id -u) \
+      -v $(dir $(abspath $(lastword $(MAKEFILE_LIST)))):/mal \
+      -w /mal/$(call actual_impl,$(1)) \
+      $(if $(strip $($(mode))),-e $(mode)=$($(mode)),) \
+      $(if $(filter factor,$(1)),-e FACTOR_ROOTS=$(FACTOR_ROOTS),) \
+      $(foreach env,$(3),-e $(env)) \
+      $(call impl_to_image,$(call actual_impl,$(1))) \
+      ,\
+      env STEP=$($2) MAL_IMPL=$(MAL_IMPL) \
+      $(if $(strip $($(mode))),$(mode)=$($(mode)),) \
+      $(if $(filter factor,$(1)),FACTOR_ROOTS=$(FACTOR_ROOTS),) \
+      $(3))))
 
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
-get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb,$(1)),RAW=1,)) \
+get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp mal tcl vb,$(1)),RAW=1,)) \
 		    ../runtest.py $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS) $(TEST_OPTS)
 
 # Takes impl and step
@@ -339,6 +343,9 @@ ALL_TESTS = $(filter-out $(foreach e,$(step5_EXCLUDES),test^$(e)^step5),\
               $(strip $(sort \
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
+ALL_BUILDS = $(strip $(sort \
+               $(foreach impl,$(DO_IMPLS),\
+                 $(foreach step,$(STEPS),build^$(impl)^$(step)))))
 
 DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 
@@ -369,12 +376,17 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(call $(i)_STEP_TO_PROG,$(s)))):
 	$(foreach impl,$(word 1,$(subst /, ,$(@))),\
 	  $(if $(DOCKERIZE), \
 	    $(call get_build_command,$(impl)) $(patsubst $(impl)/%,%,$(@)), \
-	    $(call get_build_command,$(impl)) -C $(impl) $(subst $(impl)/,,$(@))))
+	    $(call get_build_command,$(impl)) $(subst $(impl)/,,$(@))))
 
-# Allow IMPL, and IMPL^STEP
+# Allow IMPL, build^IMPL, IMPL^STEP, and build^IMPL^STEP
 $(DO_IMPLS): $$(foreach s,$$(STEPS),$$(call $$(@)_STEP_TO_PROG,$$(s)))
 
+$(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),build^$(i))): $$(foreach s,$$(STEPS),$$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(s)))
+
 $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),$(i)^$(s))): $$(call $$(word 1,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 2,$$(subst ^, ,$$(@))))
+
+$(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),build^$(i)^$(s))): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
+
 
 
 #
@@ -493,11 +505,8 @@ $(1): $(2)
 $(2):
 	@echo "----------------------------------------------"; \
 	$$(foreach impl,$$(word 2,$$(subst ^, ,$$(@))),\
-	  $$(if $$(DOCKERIZE), \
-	    echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory $(1)"; \
-	    $$(call get_build_command,$$(impl)) --no-print-directory $(1), \
-	    echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory -C $$(impl) $(1)"; \
-	    $$(call get_build_command,$$(impl)) --no-print-directory -C $$(impl) $(1)))
+	  echo "Running: $$(call get_build_command,$$(impl)) --no-print-directory $(1)"; \
+	  $$(call get_build_command,$$(impl)) --no-print-directory $(1))
 endef
 
 recur_impls_ = $(filter-out $(foreach impl,$($(1)_EXCLUDES),$(1)^$(impl)),$(foreach impl,$(IMPLS),$(1)^$(impl)))
