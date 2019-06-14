@@ -6,6 +6,7 @@ GLOBAL { readline: ug
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym
 	 alloc_vec
 	 alloc_cfn
+	 empty_hashmap
 	 throw
 	 catch_level; catch_label; last_exception
 	 init_core
@@ -47,4 +48,13 @@ MANIFEST
 
   // Core functions.  Assumed to take two integer arguments.
   t_cfn = #x30; cfn_fn = 1; cfn_sz = 2
+
+  // Hash-maps.  These are implemented as crit-bit trees.  There are three
+  // types of node: internal nodes point to two other nodes and encode a
+  // bit offset in the spare bits of the first word.  External nodes
+  // point to a key and a value.  Empty nodes describe an empty hash-map.
+  t_hmi = #xa0; hmi_left = 1; hmi_right = 2; hmi_sz = 3
+  hmi_critbit = SLCT 0:8:0; hmi_maxcritbit = (1 << BITSPERBCPLWORD - 8) - 1
+  t_hmx = #xa1; hmx_key = 1; hmx_value = 2; hmx_sz = 3
+  t_hm0 = #xb0; hm0_sz = 1
 }
