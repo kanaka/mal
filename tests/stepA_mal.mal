@@ -24,6 +24,33 @@
 ;; ------- (Needed for self-hosting) -------
 
 ;;
+;;
+;; Testing hash-map evaluation and atoms (i.e. an env)
+(def! e (atom {"+" +}))
+(swap! e assoc "-" -)
+( (get @e "+") 7 8)
+;=>15
+( (get @e "-") 11 8)
+;=>3
+(swap! e assoc "foo" (list))
+(get @e "foo")
+;=>()
+(swap! e assoc "bar" '(1 2 3))
+(get @e "bar")
+;=>(1 2 3)
+
+;; Testing for presence of optional functions
+(do (list time-ms string? number? seq conj meta with-meta fn?) nil)
+;=>nil
+
+;; ------------------------------------------------------------------
+
+;>>> soft=True
+;>>> optional=True
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
 ;; Testing metadata on functions
 
 ;;
@@ -64,20 +91,6 @@
 (meta +)
 ;=>nil
 
-;; Testing fn? function
-(fn? +)
-;=>true
-(fn? (fn* () 0))
-;=>true
-(fn? cond)
-;=>false
-(fn? "+")
-;=>false
-(fn? :+)
-;=>false
-(fn? ^{"ismacro" true} (fn* () 0))
-;=>true
-
 ;;
 ;; Make sure closures and metadata co-exist
 (def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
@@ -93,33 +106,6 @@
 ;=>{"meta" 2}
 (meta plus8)
 ;=>{"meta" 1}
-
-;;
-;; Testing hash-map evaluation and atoms (i.e. an env)
-(def! e (atom {"+" +}))
-(swap! e assoc "-" -)
-( (get @e "+") 7 8)
-;=>15
-( (get @e "-") 11 8)
-;=>3
-(swap! e assoc "foo" (list))
-(get @e "foo")
-;=>()
-(swap! e assoc "bar" '(1 2 3))
-(get @e "bar")
-;=>(1 2 3)
-
-;; Testing for presence of optional functions
-(do (list time-ms string? number? seq conj) nil)
-;=>nil
-
-;; ------------------------------------------------------------------
-
-;>>> soft=True
-;>>> optional=True
-;;
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
 
 ;;
 ;; Testing string? function
@@ -151,6 +137,20 @@
 ;=>false
 
 (def! add1 (fn* (x) (+ x 1)))
+
+;; Testing fn? function
+(fn? +)
+;=>true
+(fn? add1)
+;=>true
+(fn? cond)
+;=>false
+(fn? "+")
+;=>false
+(fn? :+)
+;=>false
+(fn? ^{"ismacro" true} (fn* () 0))
+;=>true
 
 ;; Testing macro? function
 (macro? cond)

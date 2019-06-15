@@ -1521,27 +1521,6 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   entered by the user is returned as a string. If the user sends an
   end-of-file (usually Ctrl-D), then nil is returned.
 
-* Add meta-data support to mal functions by adding a new metadata
-  attribute on mal functions that refers to another mal value/type
-  (nil by default). Add the following metadata related core functions:
-  * `meta`: this takes a single mal function argument and returns the
-    value of the metadata attribute.
-  * `with-meta`: this function takes two arguments. The first argument
-    is a mal function and the second argument is another mal
-    value/type to set as metadata. A copy of the mal function is
-    returned that has its `meta` attribute set to the second argument.
-    Note that it is important that the environment and macro attribute
-    of mal function are retained when it is copied.
-  * Add a reader-macro that expands the token "^" to
-    return a new list that contains the symbol "with-meta" and the
-    result of reading the next next form (2nd argument) (`read_form`) and the
-    next form (1st argument) in that order
-    (metadata comes first with the ^ macro and the function second).
-  * If you implemented as `defmacro!` to mutate an existing function
-    without copying it, you can now use the function copying mechanism
-    used for metadata to make functions immutable even in the
-    defmacro! case...
-
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
   containing the name of the current implementation.
@@ -1552,6 +1531,7 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   "(println (str \"Mal [\" \*host-language\* \"]\"))".
 
 * Ensure that the REPL environment contains definitions for `time-ms`,
+  `meta`, `with-meta`, `fn?`
   `string?`, `number?`, `seq`, and `conj`.  It doesn't really matter
   what they do at this stage: they just need to be defined.  Making
   them functions that raise a "not implemented" exception would be
@@ -1610,8 +1590,29 @@ implementation.
 
 #### Optional additions
 
-* Add metadata support to other composite data types (lists, vectors
-  and hash-maps), and to native functions.
+* Add meta-data support to composite data types (lists, vectors
+  and hash-maps), and to functions (native or not), by adding a new
+  metadata attribute that refers to another mal value/type
+  (nil by default). Add the following metadata related core functions
+  (and remove any stub versions):
+  * `meta`: this takes a single mal function argument and returns the
+    value of the metadata attribute.
+  * `with-meta`: this function takes two arguments. The first argument
+    is a mal function and the second argument is another mal
+    value/type to set as metadata. A copy of the mal function is
+    returned that has its `meta` attribute set to the second argument.
+    Note that it is important that the environment and macro attribute
+    of mal function are retained when it is copied.
+  * Add a reader-macro that expands the token "^" to
+    return a new list that contains the symbol "with-meta" and the
+    result of reading the next next form (2nd argument) (`read_form`) and the
+    next form (1st argument) in that order
+    (metadata comes first with the ^ macro and the function second).
+  * If you implemented as `defmacro!` to mutate an existing function
+    without copying it, you can now use the function copying mechanism
+    used for metadata to make functions immutable even in the
+    defmacro! case...
+
 * Add the following new core functions (and remove any stub versions):
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if

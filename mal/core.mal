@@ -1,13 +1,17 @@
-(def! _fn? (fn* [x]
-  (if (fn? x)
-    (not (get (meta x) "ismacro"))
-    false)))
+(def! _macro_magic
+  :_I_tell_ya_this_is_a_MAL_macro_mark_my_words)
+
+(def! _macro_wrap (fn* [f]
+  [_macro_magic f]))
+
+(def! _macro_unwrap (fn* [x]
+  (if (vector? x)
+    (if (= (first x) _macro_magic)
+      (nth x 1)))))
 
 (def! _macro? (fn* [x]
-  (if (fn? x)
-    (if (get (meta x) "ismacro")
-      true
-      false)
+  (if (_macro_unwrap x)
+    true
     false)))
 
 (def! core_ns
@@ -22,7 +26,7 @@
    ['symbol? symbol?]
    ['keyword keyword]
    ['keyword? keyword?]
-   ['fn? _fn?]
+   ['fn? fn?]
    ['macro? _macro?]
 
    ['pr-str pr-str]

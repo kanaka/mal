@@ -29,12 +29,13 @@
     (let* [a0 (first ast)]
       (if (symbol? a0)
         (if (env-find env a0)
-          (_macro? (env-get env a0))))))))
+          (_macro_unwrap (env-get env a0))))))))
 
 (def! MACROEXPAND (fn* [ast env]
-  (if (is-macro-call ast env)
-    (MACROEXPAND (apply (env-get env (first ast)) (rest ast)) env)
-    ast)))
+  (let* [m (is-macro-call ast env)]
+    (if m
+      (MACROEXPAND (apply m (rest ast)) env)
+      ast))))
 
 (def! eval-ast (fn* [ast env]
   ;; (do (prn "eval-ast" ast "/" (keys env)) )
@@ -84,10 +85,7 @@
           (EVAL (QUASIQUOTE (nth ast 1)) env)
 
           (= 'defmacro! a0)
-          (let* [f (EVAL (nth ast 2) env)
-                 m (meta f)
-                 mac (with-meta f (assoc (if m m {}) "ismacro" true))]
-            (env-set env (nth ast 1) mac))
+          (env-set env (nth ast 1) (_macro_wrap (EVAL (nth ast 2) env)))
 
           (= 'macroexpand a0)
           (MACROEXPAND (nth ast 1) env)
