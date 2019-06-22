@@ -167,12 +167,27 @@ SUB READ_FORM
     REM PRINT "READ_STRING"
     C=ASC(MID$(T$,LEN(T$),1))
     IF C<>34 THEN R=-1:ER=-1:E$="expected '"+CHR$(34)+"', got EOF":GOTO READ_FORM_RETURN
-    R$=MID$(T$,2,LEN(T$)-2)
-    S1$=CHR$(92)+CHR$(92):S2$=CHR$(127):GOSUB REPLACE: REM protect backslashes
-    S1$=CHR$(92)+CHR$(34):S2$=CHR$(34):GOSUB REPLACE: REM unescape quotes
-    #cbm S1$=CHR$(92)+"n":S2$=CHR$(13):GOSUB REPLACE: REM unescape newlines
-    #qbasic S1$=CHR$(92)+"n":S2$=CHR$(10):GOSUB REPLACE: REM unescape newlines
-    S1$=CHR$(127):S2$=CHR$(92):GOSUB REPLACE: REM unescape backslashes
+    J=2:R$=""
+    READ_STRING_LOOP:
+    #qbasic I=INSTR(J,T$,CHR$(92))
+    #cbm I=J
+    #cbm INSTR_LOOP:
+    #cbm IF I>LEN(T$) THEN I=0:GOTO INSTR_DONE
+    #cbm IF MID$(T$,I,1)=CHR$(92) THEN GOTO INSTR_DONE
+    #cbm I=I+1
+    #cbm GOTO INSTR_LOOP
+    #cbm INSTR_DONE:
+    IF I=0 THEN GOTO READ_STRING_DONE
+    R$=R$+MID$(T$,J,I-J)
+    C$=MID$(T$,I+1,1)
+    #qbasic IF C$="n" THEN R$=R$+CHR$(10) ELSE R$=R$+C$
+    #cbm IF C$="n" THEN R$=R$+CHR$(13)
+    #cbm IF C$<>"n" THEN R$=R$+C$
+    J=I+2
+    GOTO READ_STRING_LOOP
+    READ_STRING_DONE:
+    IF J=LEN(T$)+1 THEN R=-1:ER=-1:E$="expected '"+CHR$(34)+"', got EOF":GOTO READ_FORM_RETURN
+    R$=R$+MID$(T$,J,LEN(T$)-J)
     REM intern string value
     B$=R$:T=4:GOSUB STRING
     GOTO READ_FORM_RETURN
