@@ -80,10 +80,54 @@ false
 ;=>"abc (with parens)"
 "abc\"def"
 ;=>"abc\"def"
-;;;"abc\ndef"
-;;;;=>"abc\ndef"
 ""
 ;=>""
+"&"
+;=>"&"
+"'"
+;=>"'"
+"("
+;=>"("
+")"
+;=>")"
+"*"
+;=>"*"
+"+"
+;=>"+"
+","
+;=>","
+"-"
+;=>"-"
+":"
+;=>":"
+";"
+;=>";"
+"<"
+;=>"<"
+"="
+;=>"="
+">"
+;=>">"
+"?"
+;=>"?"
+"@"
+;=>"@"
+"["
+;=>"["
+"]"
+;=>"]"
+"^"
+;=>"^"
+"_"
+;=>"_"
+"`"
+;=>"`"
+"{"
+;=>"{"
+"}"
+;=>"}"
+"~"
+;=>"~"
 
 ;; Testing reader errors
 (1 2
@@ -183,3 +227,54 @@ false
 ;; Testing read of @/deref
 @a
 ;=>(deref a)
+
+;>>> soft=True
+
+;; Non alphanumerice characters in strings
+;;; \t is not specified enough to be tested
+"\n"
+;=>"\n"
+"#"
+;=>"#"
+"$"
+;=>"$"
+"%"
+;=>"%"
+"."
+;=>"."
+"\\"
+;=>"\\"
+"|"
+;=>"|"
+
+;; Non alphanumeric characters in comments
+1;!
+;=>1
+1;"
+;=>1
+1;#
+;=>1
+1;$
+;=>1
+1;%
+;=>1
+1;'
+;=>1
+1;\
+;=>1
+1;\\
+;=>1
+1;\\\
+;=>1
+1;`
+;=>1
+;;; Hopefully less problematic characters
+1; &()*+,-./:;<=>?@[]^_{|}~
+
+;; FIXME: These tests have no reasons to be optional, but...
+;; fantom fails this one
+"!"
+;=>"!"
+;; io fails this one
+"/"
+;=>"/"
