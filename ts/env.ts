@@ -1,10 +1,10 @@
 import { MalType, MalSymbol, MalList } from "./types";
 
 export class Env {
-    data: Map<MalSymbol, MalType>;
+    data:{ [index:string] : MalType };
 
     constructor(public outer?: Env, binds: MalSymbol[] = [], exprts: MalType[] = []) {
-        this.data = new Map();
+        this.data = {};
 
         for (let i = 0; i < binds.length; i++) {
             const bind = binds[i];
@@ -17,12 +17,12 @@ export class Env {
     }
 
     set(key: MalSymbol, value: MalType): MalType {
-        this.data.set(key, value);
+        this.data[key.v] = value;
         return value;
     }
 
     find(key: MalSymbol): Env | undefined {
-        if (this.data.has(key)) {
+        if (key.v in this.data) {
             return this;
         }
         if (this.outer) {
@@ -38,7 +38,8 @@ export class Env {
             throw new Error(`'${key.v}' not found`);
         }
 
-        const v = env.data.get(key);
+        const v = env.data[key.v];
+        
         if (!v) {
             throw new Error(`'${key.v}' not found`);
         }
