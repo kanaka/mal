@@ -11,28 +11,30 @@ import qualified System.Console.Readline as RL
 import Control.Monad (when)
 import System.Directory (getHomeDirectory, doesFileExist)
 
-import System.IO (hGetLine, hFlush, hIsEOF, stdin, stdout)
 import System.IO.Error (tryIOError)
 
+history_file :: IO String
 history_file = do
     home <- getHomeDirectory
     return $ home ++ "/.mal-history"
 
+load_history :: IO ()
 load_history = do
     hfile <- history_file
     fileExists <- doesFileExist hfile
     when fileExists $ do
         content <- readFile hfile
-        mapM RL.addHistory (lines content)
+        mapM_ RL.addHistory (lines content)
         return ()
     return ()
 
+readline :: String -> IO (Maybe String)
 readline prompt = do
     hfile <- history_file
     maybeLine <- RL.readline prompt
-    case maybeLine of 
+    case maybeLine of
          Just line -> do
              RL.addHistory line
-             res <- tryIOError (appendFile hfile (line ++ "\n"))
+             _ <- tryIOError (appendFile hfile (line ++ "\n"))
              return maybeLine
          _ -> return maybeLine

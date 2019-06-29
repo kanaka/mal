@@ -14,13 +14,15 @@ import Types
 
 
 _pr_list :: Bool -> String -> [MalVal] -> String
-_pr_list pr sep [] = []
-_pr_list pr sep (x:[]) = (_pr_str pr x)
+_pr_list _  _ [] = []
+_pr_list pr _ [x] = _pr_str pr x
 _pr_list pr sep (x:xs) = (_pr_str pr x) ++ sep ++ (_pr_list pr sep xs)
 
+_flatTuples :: [(String, MalVal)] -> [MalVal]
 _flatTuples ((a,b):xs) = MalString a : b : _flatTuples xs
 _flatTuples _          = []
 
+unescape :: Char -> String
 unescape chr = case chr of
     '\n' -> "\\n"
     '\\' -> "\\\\"
@@ -40,8 +42,5 @@ _pr_str pr    (MalList items _) = "(" ++ (_pr_list pr " " items) ++ ")"
 _pr_str pr    (MalVector items _) = "[" ++ (_pr_list pr " " items) ++ "]"
 _pr_str pr    (MalHashMap m _) = "{" ++ (_pr_list pr " " (_flatTuples $ Map.assocs m)) ++ "}"
 _pr_str pr    (MalAtom r _) = "(atom " ++ (_pr_str pr (unsafePerformIO (readIORef r))) ++ ")"
-_pr_str _     (Func f _) = "#<function>"
-_pr_str _     (MalFunc {ast=ast, env=fn_env, params=params}) = "(fn* " ++ (show params) ++ " " ++ (show ast) ++ ")"
-
-instance Show MalVal where show = _pr_str True
-
+_pr_str _     (Func _ _) = "#<function>"
+_pr_str _     (MalFunc {f_ast=a, f_params=p}) = "(fn* " ++ show p ++ " " ++ _pr_str True a ++ ")"

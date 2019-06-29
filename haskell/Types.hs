@@ -1,14 +1,13 @@
 module Types
-(MalVal (..), MalError (..), IOThrows (..), Fn (..), EnvData (..), Env,
+(MalVal (..), MalError (..), IOThrows, Fn (..), EnvData (..), Env,
  throwStr, throwMalVal, _get_call, _to_list,
- _func, _malfunc, _fn_Q, _macro_Q,
+ _func, _fn_Q, _macro_Q,
  _nil_Q, _true_Q, _false_Q, _string_Q, _symbol_Q, _keyword_Q, _number_Q,
  _list_Q, _vector_Q, _hash_map_Q, _atom_Q)
 where
 
 import Data.IORef (IORef)
 import qualified Data.Map as Map
-import Control.Exception as CE
 import Control.Monad.Except
 
 
@@ -26,12 +25,12 @@ data MalVal = Nil
             | MalAtom     (IORef MalVal) MalVal
             | Func        Fn MalVal
             | MalFunc     {fn :: Fn,
-                           ast :: MalVal,
-                           env :: Env,
-                           params :: MalVal,
+                           f_ast :: MalVal,
+                           f_params :: [String],
                            macro :: Bool,
                            meta :: MalVal}
 
+_equal_Q :: MalVal -> MalVal -> Bool
 _equal_Q Nil Nil = True
 _equal_Q MalFalse MalFalse = True
 _equal_Q MalTrue MalTrue = True
@@ -73,10 +72,12 @@ type Env = IORef EnvData
 
 -- General functions --
 
+_get_call :: [MalVal] -> IOThrows ([MalVal] -> IOThrows MalVal)
 _get_call ((Func (Fn f) _) : _) = return f
 _get_call (MalFunc {fn=(Fn f)} : _) = return f
 _get_call _ = throwStr "_get_call first parameter is not a function "
 
+_to_list :: MalVal -> IOThrows [MalVal]
 _to_list (MalList lst _) = return lst
 _to_list (MalVector lst _) = return lst
 _to_list _ = throwStr "_to_list expected a MalList or MalVector"
@@ -88,63 +89,69 @@ _to_list _ = throwStr "_to_list expected a MalList or MalVector"
 
 -- Functions
 
-_func fn = Func (Fn fn) Nil
-_func_meta fn meta = Func (Fn fn) meta
+_func :: ([MalVal] -> IOThrows MalVal) -> MalVal
+_func f = Func (Fn f) Nil
 
-_malfunc ast env params fn = MalFunc {fn=(Fn fn), ast=ast,
-                                      env=env, params=params,
-                                      macro=False, meta=Nil}
-_malfunc_meta ast env params fn meta = MalFunc {fn=(Fn fn), ast=ast,
-                                                env=env, params=params,
-                                                macro=False, meta=meta}
-
+_fn_Q :: MalVal -> MalVal
 _fn_Q (MalFunc {macro=False}) = MalTrue
 _fn_Q (Func _ _)              = MalTrue
 _fn_Q _                       = MalFalse
 
+_macro_Q :: MalVal -> MalVal
 _macro_Q (MalFunc {macro=True}) = MalTrue
 _macro_Q _                      = MalFalse
 
 
 -- Scalars
+_nil_Q :: MalVal -> MalVal
 _nil_Q Nil = MalTrue
 _nil_Q _   = MalFalse
 
+_true_Q :: MalVal -> MalVal
 _true_Q MalTrue = MalTrue
 _true_Q _       = MalFalse
 
+_false_Q :: MalVal -> MalVal
 _false_Q MalFalse = MalTrue
 _false_Q _        = MalFalse
 
+_symbol_Q :: MalVal -> MalVal
 _symbol_Q (MalSymbol _) = MalTrue
 _symbol_Q _             = MalFalse
 
+_string_Q :: MalVal -> MalVal
 _string_Q (MalString ('\x029e':_)) = MalFalse
 _string_Q (MalString _)            = MalTrue
 _string_Q _                        = MalFalse
 
+_keyword_Q :: MalVal -> MalVal
 _keyword_Q (MalString ('\x029e':_)) = MalTrue
 _keyword_Q _                        = MalFalse
 
+_number_Q :: MalVal -> MalVal
 _number_Q (MalNumber _) = MalTrue
 _number_Q _             = MalFalse
 
 -- Lists
 
+_list_Q :: MalVal -> MalVal
 _list_Q (MalList _ _) = MalTrue
 _list_Q _             = MalFalse
 
 -- Vectors
 
+_vector_Q :: MalVal -> MalVal
 _vector_Q (MalVector _ _) = MalTrue
 _vector_Q _               = MalFalse
 
 -- Hash Maps
 
+_hash_map_Q :: MalVal -> MalVal
 _hash_map_Q (MalHashMap _ _) = MalTrue
 _hash_map_Q _                = MalFalse
 
 -- Atoms
 
+_atom_Q :: MalVal -> MalVal
 _atom_Q (MalAtom _ _) = MalTrue
 _atom_Q _             = MalFalse

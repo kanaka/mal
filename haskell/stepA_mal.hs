@@ -3,7 +3,6 @@ import System.Environment (getArgs)
 import Control.Monad (mapM)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
-import qualified Data.Map as Map
 import qualified Data.Traversable as DT
 
 import Readline (readline, load_history)
@@ -39,9 +38,9 @@ quasiquote ast =
          _ -> MalList [(MalSymbol "quote"), ast] Nil
 
 is_macro_call :: MalVal -> Env -> IOThrows Bool
-is_macro_call (MalList (a0@(MalSymbol _) : rest) _) env = do
-    e <- liftIO $ env_find env a0
-    case e of
+is_macro_call (MalList ((MalSymbol a0) : _) _) env = do
+    maybeE <- liftIO $ env_find env a0
+    case maybeE of
          Just e -> do
             f <- env_get e a0
             case f of
@@ -51,7 +50,7 @@ is_macro_call (MalList (a0@(MalSymbol _) : rest) _) env = do
 is_macro_call _ _ = return False
 
 macroexpand :: MalVal -> Env -> IOThrows MalVal
-macroexpand ast@(MalList (a0 : args) _) env = do
+macroexpand ast@(MalList (MalSymbol a0 : args) _) env = do
     mc <- is_macro_call ast env
     if mc then do
         mac <- env_get env a0
@@ -66,71 +65,76 @@ macroexpand ast@(MalList (a0 : args) _) env = do
 macroexpand ast _ = return ast
 
 eval_ast :: MalVal -> Env -> IOThrows MalVal
-eval_ast sym@(MalSymbol _) env = env_get env sym
-eval_ast ast@(MalList lst m) env = do
+eval_ast (MalSymbol s) env = env_get env s
+eval_ast (MalList lst m) env = do
     new_lst <- mapM (\x -> (eval x env)) lst
     return $ MalList new_lst m
-eval_ast ast@(MalVector lst m) env = do
+eval_ast (MalVector lst m) env = do
     new_lst <- mapM (\x -> (eval x env)) lst
     return $ MalVector new_lst m
-eval_ast ast@(MalHashMap lst m) env = do
+eval_ast (MalHashMap lst m) env = do
     new_hm <- DT.mapM (\x -> (eval x env)) lst
     return $ MalHashMap new_hm m
-eval_ast ast env = return ast
+eval_ast ast _ = return ast
 
-let_bind :: Env -> [MalVal] -> IOThrows Env
-let_bind env [] = return env
-let_bind env (b:e:xs) = do
+let_bind :: Env -> [MalVal] -> IOThrows ()
+let_bind _ [] = return ()
+let_bind env (MalSymbol b : e : xs) = do
     evaled <- eval e env
-    x <- liftIO $ env_set env b evaled
+    liftIO $ env_set env b evaled
     let_bind env xs
+let_bind _ _ = throwStr "invalid let*"
+
+unwrapSymbol :: MalVal -> IOThrows String
+unwrapSymbol (MalSymbol s) = return s
+unwrapSymbol _ = throwStr "fn* expects a sequence of symbols"
 
 apply_ast :: MalVal -> Env -> IOThrows MalVal
-apply_ast ast@(MalList [] _) env = do
+apply_ast ast@(MalList [] _) _ = do
     return ast
-apply_ast ast@(MalList (MalSymbol "def!" : args) _) env = do
+apply_ast (MalList (MalSymbol "def!" : args) _) env = do
     case args of
-         (a1@(MalSymbol _): a2 : []) -> do
+         [MalSymbol a1, a2] -> do
             evaled <- eval a2 env
             liftIO $ env_set env a1 evaled
+            return evaled
          _ -> throwStr "invalid def!"
-apply_ast ast@(MalList (MalSymbol "let*" : args) _) env = do
+apply_ast (MalList (MalSymbol "let*" : args) _) env = do
     case args of
          (a1 : a2 : []) -> do
-            params <- (_to_list a1)
+            params <- _to_list a1
             let_env <- liftIO $ env_new $ Just env
             let_bind let_env params
             eval a2 let_env
          _ -> throwStr "invalid let*"
-apply_ast ast@(MalList (MalSymbol "quote" : args) _) env = do
+apply_ast (MalList (MalSymbol "quote" : args) _) _ = do
     case args of
          a1 : [] -> return a1
          _ -> throwStr "invalid quote"
-apply_ast ast@(MalList (MalSymbol "quasiquote" : args) _) env = do
+apply_ast (MalList (MalSymbol "quasiquote" : args) _) env = do
     case args of
          a1 : [] -> eval (quasiquote a1) env
          _ -> throwStr "invalid quasiquote"
 
-apply_ast ast@(MalList (MalSymbol "defmacro!" : args) _) env = do
+apply_ast (MalList (MalSymbol "defmacro!" : args) _) env =
     case args of
-         (a1 : a2 : []) -> do
+         (MalSymbol a1 : a2 : []) -> do
             func <- eval a2 env
             case func of
-                MalFunc {fn=f, ast=a, env=e, params=p} -> do
-                    let new_func = MalFunc {fn=f, ast=a, env=e,
-                                            params=p, macro=True,
-                                            meta=Nil} in
-                        liftIO $ env_set env a1 new_func
+                MalFunc {} -> do
+                    let new_func = func {macro=True, meta=Nil}
+                    liftIO $ env_set env a1 new_func
+                    return new_func
                 _ -> throwStr "defmacro! on non-function"
          _ -> throwStr "invalid defmacro!"
-apply_ast ast@(MalList (MalSymbol "macroexpand" : args) _) env = do
+apply_ast (MalList (MalSymbol "macroexpand" : args) _) env = do
     case args of
          (a1 : []) -> macroexpand a1 env
          _ -> throwStr "invalid macroexpand"
-apply_ast ast@(MalList (MalSymbol "try*" : args) _) env = do
+apply_ast (MalList (MalSymbol "try*" : args) _) env = do
     case args of
          (a1 : []) -> eval a1 env
-         (a1 : (MalList ((MalSymbol "catch*") : a21 : a22 : []) _) : []) -> do
+         [a1, MalList [MalSymbol "catch*", MalSymbol a21, a22] _] -> do
             res <- liftIO $ runExceptT $ eval a1 env
             case res of
                 Right val -> return val
@@ -142,15 +146,16 @@ apply_ast ast@(MalList (MalSymbol "try*" : args) _) env = do
                     liftIO $ env_set try_env a21 exc
                     eval a22 try_env
          _ -> throwStr "invalid try*"
-apply_ast ast@(MalList (MalSymbol "do" : args) _) env = do
+apply_ast (MalList (MalSymbol "do" : args) _) env = do
     case args of
          ([]) -> return Nil
          _  -> do
             el <- eval_ast (MalList args Nil) env
             case el of
                  (MalList lst _) -> return $ last lst
+                 _               -> throwStr "invalid do"
 
-apply_ast ast@(MalList (MalSymbol "if" : args) _) env = do
+apply_ast (MalList (MalSymbol "if" : args) _) env = do
     case args of
          (a1 : a2 : a3 : []) -> do
             cond <- eval a1 env
@@ -163,15 +168,16 @@ apply_ast ast@(MalList (MalSymbol "if" : args) _) env = do
                 then return Nil
                 else eval a2 env
          _ -> throwStr "invalid if"
-apply_ast ast@(MalList (MalSymbol "fn*" : args) _) env = do
+apply_ast (MalList (MalSymbol "fn*" : args) _) env = do
     case args of
          (a1 : a2 : []) -> do
             params <- (_to_list a1)
-            return $ (_malfunc a2 env (MalList params Nil)
-                      (\args -> do
-                        fn_env1 <- liftIO $ env_new $ Just env
-                        fn_env2 <- liftIO $ env_bind fn_env1 params args
-                        eval a2 fn_env2))
+            symbols <- mapM unwrapSymbol params
+            let f xs = do
+                fn_env <- liftIO $ env_new $ Just env
+                liftIO $ env_bind fn_env symbols xs
+                eval a2 fn_env
+            return $ MalFunc {f_ast=a2, f_params=symbols, meta=Nil, macro=False, fn=Fn f}
          _ -> throwStr "invalid fn*"
 apply_ast ast@(MalList _ _) env = do
     mc <- is_macro_call ast env
@@ -185,15 +191,13 @@ apply_ast ast@(MalList _ _) env = do
                 case el of
                     (MalList ((Func (Fn f) _) : rest) _) ->
                         f $ rest
-                    (MalList ((MalFunc {ast=ast,
-                                        env=fn_env,
-                                        params=(MalList params Nil)} : rest)) _) -> do
-                        fn_env1 <- liftIO $ env_new $ Just fn_env
-                        fn_env2 <- liftIO $ env_bind fn_env1 params rest
-                        eval ast fn_env2
-                    el ->
-                        throwStr $ "invalid apply: " ++ (show el)
+                    (MalList (MalFunc {fn=Fn f} : rest) _) ->
+                        f rest
+                    _ ->
+                        throwStr $ "invalid apply: " ++ Printer._pr_str True el
             _ -> return ast
+apply_ast _ _ = throwStr "internal error in apply_ast"
+
 
 eval :: MalVal -> Env -> IOThrows MalVal
 eval ast env = do
@@ -204,15 +208,15 @@ eval ast env = do
 
 -- print
 mal_print :: MalVal -> String
-mal_print exp = show exp
+mal_print = Printer._pr_str True
 
 -- repl
 
 rep :: Env -> String -> IOThrows String
 rep env line = do
     ast <- mal_read line
-    exp <- eval ast env
-    return $ mal_print exp
+    e <- eval ast env
+    return $ mal_print e
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -223,13 +227,18 @@ repl_loop env = do
         Just str -> do
             res <- runExceptT $ rep env str
             out <- case res of
-                Left (StringError str) -> return $ "Error: " ++ str
-                Left (MalValError mv) -> return $ "Error: " ++ (show mv)
+                Left (StringError s) -> return $ "Error: " ++ s
+                Left (MalValError mv)  -> return $ "Error: " ++ _pr_str True mv
                 Right val -> return val
             putStrLn out
             hFlush stdout
             repl_loop env
 
+evalBuiltIn :: Env -> [MalVal] -> IOThrows MalVal
+evalBuiltIn repl_env [ast] = eval ast repl_env
+evalBuiltIn _ _ = throwStr "invalid eval"
+
+main :: IO ()
 main = do
     args <- getArgs
     load_history
@@ -237,23 +246,23 @@ main = do
     repl_env <- env_new Nothing
 
     -- core.hs: defined using Haskell
-    (mapM (\(k,v) -> (env_set repl_env (MalSymbol k) v)) Core.ns)
-    env_set repl_env (MalSymbol "eval") (_func (\[ast] -> eval ast repl_env))
-    env_set repl_env (MalSymbol "*ARGV*") (MalList [] Nil)
+    mapM_ (uncurry $ env_set repl_env) Core.ns
+    env_set repl_env "eval" (_func (evalBuiltIn repl_env))
+    env_set repl_env "*ARGV*" (MalList [] Nil)
 
     -- core.mal: defined using the language itself
-    runExceptT $ rep repl_env "(def! *host-language* \"haskell\")"
-    runExceptT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
-    runExceptT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
-    runExceptT $ rep repl_env "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
-    runExceptT $ rep repl_env "(def! inc (fn* [x] (+ x 1)))"
-    runExceptT $ rep repl_env "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
-    runExceptT $ rep repl_env "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
+    _ <- runExceptT $ rep repl_env "(def! *host-language* \"haskell\")"
+    _ <- runExceptT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
+    _ <- runExceptT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+    _ <- runExceptT $ rep repl_env "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+    _ <- runExceptT $ rep repl_env "(def! inc (fn* [x] (+ x 1)))"
+    _ <- runExceptT $ rep repl_env "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
+    _ <- runExceptT $ rep repl_env "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 
     if length args > 0 then do
-        env_set repl_env (MalSymbol "*ARGV*") (MalList (map MalString (drop 1 args)) Nil)
-        runExceptT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")"
+        env_set repl_env "*ARGV*" (MalList (map MalString (drop 1 args)) Nil)
+        _ <- runExceptT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")"
         return ()
     else do
-        runExceptT $ rep repl_env "(println (str \"Mal [\" *host-language* \"]\"))"
+        _ <- runExceptT $ rep repl_env "(println (str \"Mal [\" *host-language* \"]\"))"
         repl_loop repl_env
