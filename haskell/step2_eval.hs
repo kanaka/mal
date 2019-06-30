@@ -2,7 +2,6 @@ import System.IO (hFlush, stdout)
 import Control.Monad (mapM)
 import Control.Monad.Except (runExceptT)
 import qualified Data.Map as Map
-import qualified Data.Traversable as DT
 
 import Readline (readline, load_history)
 import Types
@@ -10,55 +9,54 @@ import Reader (read_str)
 import Printer (_pr_str)
 
 -- read
+
 mal_read :: String -> IOThrows MalVal
-mal_read str = read_str str
+mal_read = read_str
 
 -- eval
-eval_ast :: MalVal -> (Map.Map String MalVal) -> IOThrows MalVal
-eval_ast (MalSymbol sym) env = do
-    case Map.lookup sym env of
-         Nothing -> throwStr $ "'" ++ sym ++ "' not found"
-         Just v  -> return v
-eval_ast ast@(MalList lst m) env = do
-    new_lst <- mapM (\x -> (eval x env)) lst
-    return $ MalList new_lst m
-eval_ast ast@(MalVector lst m) env = do
-    new_lst <- mapM (\x -> (eval x env)) lst
-    return $ MalVector new_lst m
-eval_ast ast@(MalHashMap lst m) env = do
-    new_hm <- DT.mapM (\x -> (eval x env)) lst
-    return $ MalHashMap new_hm m
-eval_ast ast env = return ast
 
-apply_ast :: MalVal -> (Map.Map String MalVal) -> IOThrows MalVal
-apply_ast ast@(MalList [] _) env = do
-    return ast
-apply_ast ast@(MalList _ _) env = do
-    el <- eval_ast ast env
-    case el of
-         (MalList ((Func (Fn f) _) : rest) _) ->
-            f $ rest
-         el ->
-            throwStr $ "invalid apply: " ++ (show el)
+-- eval_ast is replaced with pattern matching.
 
-eval :: MalVal -> (Map.Map String MalVal) -> IOThrows MalVal
-eval ast env = do
-    case ast of
-         (MalList _ _) -> apply_ast ast env
-         _             -> eval_ast ast env
+apply_ast :: [MalVal] -> IOThrows MalVal
 
+apply_ast [] = return $ toList []
+
+apply_ast ast = do
+    evd <- mapM eval ast
+    case evd of
+        MalFunction {fn=f} : args -> f args
+        _ -> throwStr $ "invalid apply: " ++ Printer._pr_str True (toList ast)
+
+eval :: MalVal -> IOThrows MalVal
+eval (MalSymbol sym)            = do
+    case Map.lookup sym repl_env of
+        Nothing  -> throwStr $ "'" ++ sym ++ "' not found"
+        Just val -> return val
+eval (MalSeq _ (Vect False) xs) = apply_ast xs
+eval (MalSeq m (Vect True)  xs) = MalSeq m (Vect True) <$> mapM eval xs
+eval (MalHashMap m xs)          = MalHashMap m         <$> mapM eval xs
+eval ast                        = return ast
 
 -- print
+
 mal_print :: MalVal -> String
-mal_print exp = show exp
+mal_print = Printer._pr_str True
 
 -- repl
+
+add :: Fn
 add [MalNumber a, MalNumber b] = return $ MalNumber $ a + b
 add _ = throwStr $ "illegal arguments to +"
+
+sub :: Fn
 sub [MalNumber a, MalNumber b] = return $ MalNumber $ a - b
 sub _ = throwStr $ "illegal arguments to -"
+
+mult :: Fn
 mult [MalNumber a, MalNumber b] = return $ MalNumber $ a * b
 mult _ = throwStr $ "illegal arguments to *"
+
+divd :: Fn
 divd [MalNumber a, MalNumber b] = return $ MalNumber $ a `div` b
 divd _ = throwStr $ "illegal arguments to /"
 
@@ -69,10 +67,7 @@ repl_env = Map.fromList [("+", _func add),
                          ("/", _func divd)]
 
 rep :: String -> IOThrows String
-rep line = do
-    ast <- mal_read line
-    exp <- eval ast repl_env
-    return $ mal_print exp
+rep line = mal_print <$> (eval =<< mal_read line)
 
 repl_loop :: IO ()
 repl_loop = do
@@ -83,13 +78,17 @@ repl_loop = do
         Just str -> do
             res <- runExceptT $ rep str
             out <- case res of
-                Left (StringError str) -> return $ "Error: " ++ str
-                Left (MalValError mv) -> return $ "Error: " ++ (show mv)
+                Left mv -> return $ "Error: " ++ Printer._pr_str True mv
                 Right val -> return val
             putStrLn out
             hFlush stdout
             repl_loop
 
+_func :: Fn -> MalVal
+_func f = MalFunction {fn=f, f_ast=Nil, f_params=[], macro=False, meta=Nil}
+
+main :: IO ()
 main = do
     load_history
+
     repl_loop

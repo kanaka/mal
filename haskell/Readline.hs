@@ -10,7 +10,6 @@ import qualified System.Console.Readline as RL
 
 import Control.Monad (when)
 import System.Directory (getHomeDirectory, doesFileExist)
-
 import System.IO.Error (tryIOError)
 
 history_file :: IO String
@@ -25,16 +24,15 @@ load_history = do
     when fileExists $ do
         content <- readFile hfile
         mapM_ RL.addHistory (lines content)
-        return ()
-    return ()
 
 readline :: String -> IO (Maybe String)
 readline prompt = do
-    hfile <- history_file
     maybeLine <- RL.readline prompt
     case maybeLine of
-         Just line -> do
-             RL.addHistory line
-             _ <- tryIOError (appendFile hfile (line ++ "\n"))
-             return maybeLine
-         _ -> return maybeLine
+        Nothing -> return ()
+        Just "" -> return ()
+        Just line@(_:_) -> do
+            hfile <- history_file
+            _ <- tryIOError (appendFile hfile (line ++ "\n"))
+            RL.addHistory line
+    return maybeLine

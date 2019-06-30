@@ -55,8 +55,8 @@ read_symbol = do
     rest <- many (letter <|> digit <|> symbol)
     let str = first:rest
     return $ case str of
-        "true"  -> MalTrue
-        "false" -> MalFalse
+        "true"  -> MalBoolean True
+        "false" -> MalBoolean False
         "nil"   -> Nil
         _       -> MalSymbol str
 
@@ -64,7 +64,7 @@ read_keyword :: Parser MalVal
 read_keyword = do
     _ <- char ':'
     x <- many (letter <|> digit <|> symbol)
-    return $ MalString $ "\x029e" ++ x
+    return $ MalString $ keywordMagic : x
 
 read_atom :: Parser MalVal
 read_atom =  read_number
@@ -79,7 +79,7 @@ read_list = do
     ignored
     x <- sepEndBy read_form ignored
     _ <- char ')'
-    return $ MalList x Nil
+    return $ toList x
 
 read_vector :: Parser MalVal
 read_vector = do
@@ -87,13 +87,7 @@ read_vector = do
     ignored
     x <- sepEndBy read_form ignored
     _ <- char ']'
-    return $ MalVector x Nil
-
--- TODO: propagate error properly
-_pairs :: [MalVal] -> [(String, MalVal)]
-_pairs [] = []
-_pairs (MalString x:y:xs) = (x,y):_pairs xs
-_pairs _ = error "Invalid  {..} hash map definition"
+    return $ MalSeq (MetaData Nil) (Vect True) x
 
 read_hash_map :: Parser MalVal
 read_hash_map = do
@@ -101,46 +95,48 @@ read_hash_map = do
     ignored
     x <- sepEndBy read_form ignored
     _ <- char '}'
-    return $ MalHashMap (Map.fromList $ _pairs x) Nil
+    case keyValuePairs x of
+        Just pairs -> return $ MalHashMap (MetaData Nil) (Map.fromList pairs)
+        Nothing    -> fail "invalid contents inside map braces"
 
 -- reader macros
 read_quote :: Parser MalVal
 read_quote = do
     _ <- char '\''
     x <- read_form
-    return $ MalList [MalSymbol "quote", x] Nil
+    return $ toList [MalSymbol "quote", x]
 
 read_quasiquote :: Parser MalVal
 read_quasiquote = do
     _ <- char '`'
     x <- read_form
-    return $ MalList [MalSymbol "quasiquote", x] Nil
+    return $ toList [MalSymbol "quasiquote", x]
 
 read_splice_unquote :: Parser MalVal
 read_splice_unquote = do
     _ <- char '~'
     _ <- char '@'
     x <- read_form
-    return $ MalList [MalSymbol "splice-unquote", x] Nil
+    return $ toList [MalSymbol "splice-unquote", x]
 
 read_unquote :: Parser MalVal
 read_unquote = do
     _ <- char '~'
     x <- read_form
-    return $ MalList [MalSymbol "unquote", x] Nil
+    return $ toList [MalSymbol "unquote", x]
 
 read_deref :: Parser MalVal
 read_deref = do
     _ <- char '@'
     x <- read_form
-    return $ MalList [MalSymbol "deref", x] Nil
+    return $ toList [MalSymbol "deref", x]
 
 read_with_meta :: Parser MalVal
 read_with_meta = do
     _ <- char '^'
     m <- read_form
     x <- read_form
-    return $ MalList [MalSymbol "with-meta", x, m] Nil
+    return $ toList [MalSymbol "with-meta", x, m]
 
 read_macro :: Parser MalVal
 read_macro = read_quote
