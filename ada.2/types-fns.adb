@@ -36,7 +36,7 @@ package body Types.Fns is
    function New_Function (Params   : in Sequence_Ptr;
                           Ast      : in T;
                           Env      : in Envs.Ptr;
-                          Metadata : in T            := Nil) return T
+                          Metadata : in T            := Nil) return Fn_Ptr
    is
       --  Env and Params are not null and require an immediate
       --  initialization.
@@ -50,7 +50,7 @@ package body Types.Fns is
       Garbage_Collected.Register (Garbage_Collected.Pointer (Ref));
       Err.Check ((for all P of Params.all.Data => P.Kind = Kind_Symbol),
                  "formal parameters must be symbols");
-      return (Kind_Fn, Ref);
+      return Ref;
    end New_Function;
 
    function Params (Item : in Instance) return Sequence_Ptr

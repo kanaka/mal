@@ -45,7 +45,6 @@ TYPES := $(call sources,\
   types-atoms \
   types-builtins \
   types-fns \
-  types-macros \
   types-maps \
   types-sequences \
   types-strings \
