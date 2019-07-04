@@ -100,21 +100,21 @@ keyword _ = throwStr "keyword called with non-string"
 -- String functions
 
 pr_str :: Fn
-pr_str = return . MalString . _pr_list True " "
+pr_str args = liftIO $ MalString <$> _pr_list True " " args
 
 str :: Fn
-str = return . MalString . _pr_list False ""
+str args = liftIO $ MalString <$> _pr_list False "" args
 
 prn :: Fn
-prn args = do
-    liftIO $ putStrLn $ _pr_list True " " args
-    liftIO $ hFlush stdout
+prn args = liftIO $ do
+    putStrLn =<< _pr_list True " " args
+    hFlush stdout
     return Nil
 
 println :: Fn
-println args = do
-    liftIO $ putStrLn $ _pr_list False " " args
-    liftIO $ hFlush stdout
+println args = liftIO $ do
+    putStrLn =<< _pr_list False " " args
+    hFlush stdout
     return Nil
 
 slurp :: Fn

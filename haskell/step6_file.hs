@@ -1,5 +1,6 @@
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
+import Control.Monad ((<=<))
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
 import Data.Foldable (foldlM)
@@ -79,7 +80,7 @@ apply_ast ast env = do
     evd <- mapM (eval env) ast
     case evd of
         MalFunction {fn=f} : args -> f args
-        _ -> throwStr $ "invalid apply: " ++ Printer._pr_str True (toList ast)
+        _ -> throwStr . (++) "invalid apply: " =<< liftIO (Printer._pr_str True (toList ast))
 
 eval :: Env -> MalVal -> IOThrows MalVal
 eval env (MalSymbol sym)            = do
@@ -94,13 +95,13 @@ eval _   ast                        = return ast
 
 -- print
 
-mal_print :: MalVal -> String
-mal_print = Printer._pr_str True
+mal_print :: MalVal -> IOThrows String
+mal_print = liftIO. Printer._pr_str True
 
 -- repl
 
 rep :: Env -> String -> IOThrows String
-rep env line = mal_print <$> (eval env =<< mal_read line)
+rep env = mal_print <=< eval env <=< mal_read
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -112,7 +113,7 @@ repl_loop env = do
             addHistory str
             res <- runExceptT $ rep env str
             out <- case res of
-                Left mv -> return $ "Error: " ++ Printer._pr_str True mv
+                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
             hFlush stdout
@@ -124,7 +125,7 @@ re :: Env -> String -> IO ()
 re repl_env line = do
     res <- runExceptT $ eval repl_env =<< mal_read line
     case res of
-        Left mv -> error $ "Startup failed: " ++ Printer._pr_str True mv
+        Left mv -> error . (++) "Startup failed: " <$> Printer._pr_str True mv
         Right _ -> return ()
 
 defBuiltIn :: Env -> (String, Fn) -> IO ()

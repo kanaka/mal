@@ -1,5 +1,6 @@
 import System.IO (hFlush, stdout)
 import Control.Monad.Except (runExceptT)
+import Control.Monad.Trans (liftIO)
 
 import Readline (addHistory, readline, load_history)
 import Types
@@ -18,13 +19,13 @@ eval = id
 
 -- print
 
-mal_print :: MalVal -> String
-mal_print = Printer._pr_str True
+mal_print :: MalVal -> IOThrows String
+mal_print = liftIO. Printer._pr_str True
 
 -- repl
 
 rep :: String -> IOThrows String
-rep line = mal_print <$> eval <$> mal_read line
+rep line = mal_print =<< (eval <$> mal_read line)
 
 repl_loop :: IO ()
 repl_loop = do
@@ -36,7 +37,7 @@ repl_loop = do
             addHistory str
             res <- runExceptT $ rep str
             out <- case res of
-                Left mv -> return $ "Error: " ++ Printer._pr_str True mv
+                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
             hFlush stdout

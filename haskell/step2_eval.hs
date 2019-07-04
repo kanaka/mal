@@ -1,5 +1,7 @@
 import System.IO (hFlush, stdout)
+import Control.Monad ((<=<))
 import Control.Monad.Except (runExceptT)
+import Control.Monad.Trans (liftIO)
 import qualified Data.Map as Map
 
 import Readline (addHistory, readline, load_history)
@@ -24,7 +26,7 @@ apply_ast ast = do
     evd <- mapM eval ast
     case evd of
         MalFunction {fn=f} : args -> f args
-        _ -> throwStr $ "invalid apply: " ++ Printer._pr_str True (toList ast)
+        _ -> throwStr . (++) "invalid apply: " =<< liftIO (Printer._pr_str True (toList ast))
 
 eval :: MalVal -> IOThrows MalVal
 eval (MalSymbol sym)            = do
@@ -38,8 +40,8 @@ eval ast                        = return ast
 
 -- print
 
-mal_print :: MalVal -> String
-mal_print = Printer._pr_str True
+mal_print :: MalVal -> IOThrows String
+mal_print = liftIO. Printer._pr_str True
 
 -- repl
 
@@ -66,7 +68,7 @@ repl_env = Map.fromList [("+", _func add),
                          ("/", _func divd)]
 
 rep :: String -> IOThrows String
-rep line = mal_print <$> (eval =<< mal_read line)
+rep = mal_print <=< eval <=< mal_read
 
 repl_loop :: IO ()
 repl_loop = do
@@ -78,7 +80,7 @@ repl_loop = do
             addHistory str
             res <- runExceptT $ rep str
             out <- case res of
-                Left mv -> return $ "Error: " ++ Printer._pr_str True mv
+                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
             hFlush stdout
