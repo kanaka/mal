@@ -1,5 +1,5 @@
 module Readline
-( readline, load_history )
+( addHistory, readline, load_history )
 where
 
 -- Pick one of these:
@@ -26,13 +26,10 @@ load_history = do
         mapM_ RL.addHistory (lines content)
 
 readline :: String -> IO (Maybe String)
-readline prompt = do
-    maybeLine <- RL.readline prompt
-    case maybeLine of
-        Nothing -> return ()
-        Just "" -> return ()
-        Just line@(_:_) -> do
-            hfile <- history_file
-            _ <- tryIOError (appendFile hfile (line ++ "\n"))
-            RL.addHistory line
-    return maybeLine
+readline = RL.readline
+
+addHistory :: String -> IO ()
+addHistory line = do
+    hfile <- history_file
+    _ <- tryIOError (appendFile hfile (line ++ "\n"))
+    RL.addHistory line

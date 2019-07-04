@@ -1,11 +1,10 @@
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
-import Control.Monad (mapM)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
 import Data.Foldable (foldlM, foldrM)
 
-import Readline (readline, load_history)
+import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
@@ -135,6 +134,7 @@ repl_loop env = do
         Nothing -> return ()
         Just "" -> repl_loop env
         Just str -> do
+            addHistory str
             res <- runExceptT $ rep env str
             out <- case res of
                 Left mv -> return $ "Error: " ++ Printer._pr_str True mv

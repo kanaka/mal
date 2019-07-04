@@ -1,6 +1,6 @@
 import System.IO (hFlush, stdout)
 
-import Readline (readline, load_history)
+import Readline (addHistory, readline, load_history)
 
 type MalVal = String
 
@@ -31,6 +31,7 @@ repl_loop = do
         Nothing -> return ()
         Just "" -> repl_loop
         Just str -> do
+            addHistory str
             putStrLn $ rep str
             hFlush stdout
             repl_loop

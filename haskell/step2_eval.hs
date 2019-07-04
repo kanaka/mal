@@ -1,9 +1,8 @@
 import System.IO (hFlush, stdout)
-import Control.Monad (mapM)
 import Control.Monad.Except (runExceptT)
 import qualified Data.Map as Map
 
-import Readline (readline, load_history)
+import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
@@ -76,6 +75,7 @@ repl_loop = do
         Nothing -> return ()
         Just "" -> repl_loop
         Just str -> do
+            addHistory str
             res <- runExceptT $ rep str
             out <- case res of
                 Left mv -> return $ "Error: " ++ Printer._pr_str True mv
