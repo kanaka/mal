@@ -221,8 +221,12 @@ do_concat :: Fn
 do_concat args = toList . concat <$> mapM unwrapSeq args
 
 nth :: Fn
-nth [MalSeq _ _ lst, MalNumber idx] | idx < length lst = return $ lst !! idx
-nth _ = throwStr "nth: invalid call or index out of range"
+nth [MalSeq _ _ lst, MalNumber idx] =
+    case drop idx lst of
+        x : _ -> return x
+        []    -> throwStr "nth: index out of range"
+--  See https://wiki.haskell.org/Avoiding_partial_functions
+nth _ = throwStr "invalid call to nth"
 
 first :: Fn
 first [Nil               ] = return Nil
