@@ -37,8 +37,10 @@ LET str_setlen(str, len) BE
 }
 
 LET alloc_str(len) = VALOF
-{ LET result = getvec(str_data + 1 + len / bytesperword)
+{ LET words = str_data + 1 + len / bytesperword
+  LET result = getvec(words)
   !result := 0
+  result!(words - 1) := 0 // Make sure the unused part word at the end is 0.
   type OF result := t_str
   result!str_len := 0
   (result+str_data)%0 := 0
@@ -175,8 +177,8 @@ LET hm_set(map, key, value) = VALOF
 { LET bit, nearest = ?, ?
   IF map = empty_hashmap RESULTIS alloc_hmx(key, value)
   nearest := hm_find(map, key)
-  IF equal(nearest, key) THEN RESULTIS hm_replace(map, key, value)
-  bit := key_bitdiff(key, nearest)
+  IF equal(nearest!hmx_key, key) THEN RESULTIS hm_replace(map, key, value)
+  bit := key_bitdiff(key, nearest!hmx_key)
   RESULTIS hm_insert(map, bit, key, value)
 }
 
