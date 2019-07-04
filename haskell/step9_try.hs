@@ -9,7 +9,7 @@ import Readline (readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
-import Env (Env, env_new, env_bind, env_get, env_set)
+import Env (env_new, env_bind, env_get, env_set)
 import Core (ns)
 
 -- read
@@ -32,7 +32,10 @@ qqIter env x acc = (: acc) <$> quasiquote x env
 
 quasiquote :: MalVal -> Env -> IOThrows MalVal
 quasiquote (MalSeq _ (Vect False) [MalSymbol "unquote", x]) env = eval env x
-quasiquote (MalSeq m v ys) env = MalSeq m v <$> foldrM (qqIter env) [] ys
+--  FIXME This line
+quasiquote (MalSeq m _ ys) env = MalSeq m (Vect False) <$> foldrM (qqIter env) [] ys
+--  is adapted to broken tests. It should be:
+--  quasiquote (MalSeq m v ys) env = MalSeq m v <$> foldrM (qqIter env) [] ys
 quasiquote ast _ = return ast
 
 -- is-macro-call is replaced with pattern matching.

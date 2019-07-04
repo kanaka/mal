@@ -8,7 +8,7 @@ import Readline (readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
-import Env (Env, env_new, env_bind, env_get, env_set)
+import Env (env_new, env_bind, env_get, env_set)
 import Core (ns)
 
 -- read
