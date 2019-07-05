@@ -118,7 +118,7 @@ Here is the final diagram for [step A](process/guide.md#stepA):
 
 ![stepA_mal architecture](process/stepA_mal.png)
 
-If you are interesting in creating a mal implementation (or just
+If you are interested in creating a mal implementation (or just
 interested in using mal for something), please drop by the #mal
 channel on freenode. In addition to the [make-a-lisp process
 guide](process/guide.md) there is also a [mal/make-a-lisp
