@@ -23,6 +23,19 @@ LET nth(lst, n) = VALOF
   RESULTIS lst!lst_first
 }
 
+LET as_lst(x) = VALOF SWITCHON type OF x INTO
+{ CASE t_lst: RESULTIS x
+  CASE t_vec:
+    { LET l = empty
+      FOR i = x!vec_len - 1 TO 0 BY -1 DO
+        l := cons((x+vec_data)!i, l)
+      RESULTIS l
+    }
+  DEFAULT:
+    throw(str_bcpl2mal("cannot convert to list"))
+}
+  
+
 LET alloc_int(value) = VALOF
 { LET result = getvec(int_sz)
   !result := 0

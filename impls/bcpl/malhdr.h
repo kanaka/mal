@@ -1,7 +1,7 @@
 GLOBAL { readline: ug
          pr_str
          read_str
-         init_types; nil; empty; cons; nth
+         init_types; nil; empty; cons; nth; as_lst
 	 alloc_int
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym
 	 hm_set; hm_contains; hm_get
