@@ -233,6 +233,9 @@
 (keys hm2)
 ;=>("a")
 
+(keys {"1" 1})
+;=>("1")
+
 ;;; TODO: fix. Clojure returns nil but this breaks mal impl
 (vals hm1)
 ;=>()
