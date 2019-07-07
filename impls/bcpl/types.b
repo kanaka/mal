@@ -131,7 +131,7 @@ LET alloc_hmi(critbit, left, right) = VALOF
 
 LET key_bit(key, bit) = VALOF
 { LET offset, shift = bit / BITSPERBCPLWORD, bit REM BITSPERBCPLWORD
-  RESULTIS key!offset >> shift & 1
+  RESULTIS key!offset >> (BITSPERBCPLWORD - 1 - shift) & 1
 }
 
 LET key_bitdiff(key1, key2) = VALOF
