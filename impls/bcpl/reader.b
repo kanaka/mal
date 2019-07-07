@@ -161,6 +161,20 @@ AND read_vec_tail(rdr, len) = VALOF
     RESULTIS vec
   }
 
+AND read_hm(rdr) = VALOF
+{ LET map = empty_hashmap
+  reader_next(rdr) // Skip leading '{'
+  { LET key, value = ?, ?
+    IF (reader_peek(rdr) + str_data)%1 = '}' THEN { reader_next(rdr); BREAK }
+    key := read_form(rdr)
+    IF (reader_peek(rdr) + str_data)%1 = '}' THEN
+      throw(str_bcpl2mal("odd number of elements in literal hash-map"))
+    value := read_form(rdr)
+    map := hm_set(map, key, value)
+  } REPEAT
+  RESULTIS map
+}
+
 AND read_macro(rdr, name) = VALOF
 { LET first, rest = as_sym(str_bcpl2mal(name)), ?
   reader_next(rdr) // skip macro character
@@ -177,6 +191,8 @@ AND read_form(rdr) = VALOF
     CASE ')': throw(str_bcpl2mal("unbalanced parentheses"))
     CASE '[': RESULTIS read_vec(rdr)
     CASE ']': throw(str_bcpl2mal("unbalanced brackets"))
+    CASE '{': RESULTIS read_hm(rdr)
+    CASE '}': throw(str_bcpl2mal("unbalanced braces"))
     CASE '*'': RESULTIS read_macro(rdr, "quote")
     CASE '`': RESULTIS read_macro(rdr, "quasiquote")
     CASE '~':

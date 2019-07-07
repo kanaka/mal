@@ -93,12 +93,37 @@ AND print_vec(vec, buf, pos, count_only) = VALOF
   RESULTIS print_char(']', buf, pos, count_only)
 }
 
+AND print_hmx_internal(map, buf, pos, count_only) = VALOF
+{ pos := print_form(map!hmx_key, buf, pos, count_only)
+  pos := print_char(' ', buf, pos, count_only)
+  RESULTIS print_form(map!hmx_value, buf, pos, count_only)
+}
+
+AND print_hmi_internal(map, buf, pos, count_only) = VALOF
+{ pos := print_hm_internal(map!hmi_left, buf, pos, count_only)
+  pos := print_char(' ', buf, pos, count_only)
+  RESULTIS print_hm_internal(map!hmi_right, buf, pos, count_only)
+}
+
+AND print_hm_internal(map, buf, pos, count_only) =
+  type OF map = t_hmi -> print_hmi_internal(map, buf, pos, count_only),
+                         print_hmx_internal(map, buf, pos, count_only)
+
+AND print_hm(map, buf, pos, count_only) = VALOF
+{ pos := print_char('{', buf, pos, count_only)
+  pos := print_hm_internal(map, buf, pos, count_only)
+  RESULTIS print_char('}', buf, pos, count_only)
+}
+
 AND print_form(val, buf, pos, count_only) = VALOF
   SWITCHON type OF val INTO
   {
     CASE t_nil: RESULTIS print_const("nil", buf, pos, count_only)
     CASE t_lst: RESULTIS print_lst(val, buf, pos, count_only)
     CASE t_vec: RESULTIS print_vec(val, buf, pos, count_only)
+    CASE t_hm0: RESULTIS print_const("{}", buf, pos, count_only)
+    CASE t_hmi:
+    CASE t_hmx: RESULTIS print_hm (val, buf, pos, count_only)
     CASE t_int: RESULTIS print_int(val, buf, pos, count_only)
     CASE t_str: RESULTIS print_str(val, buf, pos, count_only)
     CASE t_sym: RESULTIS print_sym(val, buf, pos, count_only)
