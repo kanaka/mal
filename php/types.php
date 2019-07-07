@@ -118,7 +118,7 @@ function _function_Q($obj) { return $obj instanceof FunctionClass; }
 function _fn_Q($obj) { return $obj instanceof Closure; }
 
 
-// Parent class of list, vector, hash-map
+// Parent class of list, vector
 // http://www.php.net/manual/en/class.arrayobject.php
 class SeqClass extends ArrayObject {
     public function slice($start, $length=NULL) {
