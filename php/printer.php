@@ -18,7 +18,7 @@ function _pr_str($obj, $print_readably=True) {
     } elseif (_hash_map_Q($obj)) {
         $ret = array();
         foreach (array_keys($obj->getArrayCopy()) as $k) {
-            $ret[] = _pr_str($k, $print_readably);
+            $ret[] = _pr_str("$k", $print_readably);
             $ret[] = _pr_str($obj[$k], $print_readably);
         }
         return "{" . implode(" ", $ret) . "}";
