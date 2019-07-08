@@ -93,25 +93,25 @@ AND print_vec(vec, buf, pos, count_only) = VALOF
   RESULTIS print_char(']', buf, pos, count_only)
 }
 
-AND print_hmx_internal(map, buf, pos, count_only) = VALOF
+AND print_hmx_contents(map, buf, pos, count_only) = VALOF
 { pos := print_form(map!hmx_key, buf, pos, count_only)
   pos := print_char(' ', buf, pos, count_only)
   RESULTIS print_form(map!hmx_value, buf, pos, count_only)
 }
 
-AND print_hmi_internal(map, buf, pos, count_only) = VALOF
-{ pos := print_hm_internal(map!hmi_left, buf, pos, count_only)
+AND print_hmi_contents(map, buf, pos, count_only) = VALOF
+{ pos := print_hm_contents(map!hmi_left, buf, pos, count_only)
   pos := print_char(' ', buf, pos, count_only)
-  RESULTIS print_hm_internal(map!hmi_right, buf, pos, count_only)
+  RESULTIS print_hm_contents(map!hmi_right, buf, pos, count_only)
 }
 
-AND print_hm_internal(map, buf, pos, count_only) =
-  type OF map = t_hmi -> print_hmi_internal(map, buf, pos, count_only),
-                         print_hmx_internal(map, buf, pos, count_only)
+AND print_hm_contents(map, buf, pos, count_only) =
+  type OF map = t_hmi -> print_hmi_contents(map, buf, pos, count_only),
+                         print_hmx_contents(map, buf, pos, count_only)
 
 AND print_hm(map, buf, pos, count_only) = VALOF
 { pos := print_char('{', buf, pos, count_only)
-  pos := print_hm_internal(map, buf, pos, count_only)
+  pos := print_hm_contents(map, buf, pos, count_only)
   RESULTIS print_char('}', buf, pos, count_only)
 }
 
