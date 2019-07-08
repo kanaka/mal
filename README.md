@@ -63,7 +63,7 @@
 | [Perl 6](#perl-6) | [Hinrik Örn Sigurðsson](https://github.com/hinrik) |
 | [PHP](#php-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Picolisp](#picolisp) | [Vasilij Schneidermann](https://github.com/wasamasa) |
-| [PL/pgSQL](#plpgsql-postgres-sql-procedural-language) (Postgres) | [Joel Martin](https://github.com/kanaka) |
+| [PL/pgSQL](#plpgsql-postgresql-sql-procedural-language) (PostgreSQL) | [Joel Martin](https://github.com/kanaka) |
 | [PL/SQL](#plsql-oracle-sql-procedural-language) (Oracle) | [Joel Martin](https://github.com/kanaka) |
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
@@ -782,17 +782,17 @@ cd picolisp
 ./run
 ```
 
-### PL/pgSQL (Postgres SQL Procedural Language)
+### PL/pgSQL (PostgreSQL SQL Procedural Language)
 
-The PL/pgSQL implementation of mal requires a running Postgres server
+The PL/pgSQL implementation of mal requires a running PostgreSQL server
 (the "kanaka/mal-test-plpgsql" docker image automatically starts
-a Postgres server). The implementation connects to the Postgres server
+a PostgreSQL server). The implementation connects to the PostgreSQL server
 and create a database named "mal" to store tables and stored
 procedures. The wrapper script uses the psql command to connect to the
 server and defaults to the user "postgres" but this can be overridden
 with the PSQL_USER environment variable. A password can be specified
 using the PGPASSWORD environment variable. The implementation has been
-tested with Postgres 9.4.
+tested with PostgreSQL 9.4.
 
 ```
 cd plpgsql
@@ -803,14 +803,14 @@ PSQL_USER=myuser PGPASSWORD=mypass ./wrap.sh stepX_YYY.sql
 
 ### PL/SQL (Oracle SQL Procedural Language)
 
-The PL/pgSQL implementation of mal requires a running Oracle DB
+The PL/SQL implementation of mal requires a running Oracle DB
 server (the "kanaka/mal-test-plsql" docker image automatically
 starts an Oracle Express server). The implementation connects to the
 Oracle server to create types, tables and stored procedures. The
-default SQL*Plus logon value (username/password@connect_identifier) is
+default SQL\*Plus logon value (username/password@connect_identifier) is
 "system/oracle" but this can be overridden with the ORACLE_LOGON
 environment variable. The implementation has been tested with Oracle
-Express Edition 11g Release 2. Note that any SQL*Plus connection
+Express Edition 11g Release 2. Note that any SQL\*Plus connection
 warnings (user password expiration, etc) will interfere with the
 ability of the wrapper script to communicate with the DB.
 
@@ -821,10 +821,10 @@ cd plsql
 ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
 ```
 
-### Postscript Level 2/3
+### PostScript Level 2/3
 
-The Postscript implementation of mal requires ghostscript to run. It
-has been tested with ghostscript 9.10.
+The PostScript implementation of mal requires Ghostscript to run. It
+has been tested with Ghostscript 9.10.
 
 ```
 cd ps
