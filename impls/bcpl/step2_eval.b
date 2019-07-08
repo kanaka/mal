@@ -20,6 +20,11 @@ LET eval_ast(ast, env) = VALOF
 	  (new + vec_data)!i := EVAL((ast + vec_data)!i, env)
 	RESULTIS new
       }
+    CASE t_hmx:
+      RESULTIS alloc_hmx(ast!hmx_key, EVAL(ast!hmx_value, env))
+    CASE t_hmi:
+      RESULTIS alloc_hmi(hmi_critbit OF ast, eval_ast(ast!hmi_left, env),
+                                             eval_ast(ast!hmi_right, env))
     DEFAULT: RESULTIS ast
   }
 
