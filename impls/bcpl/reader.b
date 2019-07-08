@@ -182,6 +182,14 @@ AND read_macro(rdr, name) = VALOF
   RESULTIS cons(first, rest)
 }
 
+AND read_with_meta(rdr) = VALOF
+{ LET rest = ?
+  reader_next(rdr) // skip '^'
+  rest := cons(read_form(rdr), empty)
+  rest := cons(read_form(rdr), rest)
+  RESULTIS cons(as_sym(str_bcpl2mal("with-meta")), rest)
+}
+
 AND read_form(rdr) = VALOF
 { LET token = reader_peek(rdr)
   UNLESS type OF token = t_str DO
@@ -199,6 +207,7 @@ AND read_form(rdr) = VALOF
       IF token!str_len = 2 THEN RESULTIS read_macro(rdr, "splice-unquote")
       RESULTIS read_macro(rdr, "unquote")
     CASE '@': RESULTIS read_macro(rdr, "deref")
+    CASE '^': RESULTIS read_with_meta(rdr)
     DEFAULT: RESULTIS read_atom(rdr)
   }
 }
