@@ -2,7 +2,6 @@ pragma Warnings (Off, "no entities of ""Types.*"" are referenced");
 with Types.Atoms;
 with Types.Builtins;
 with Types.Fns;
-with Types.Macros;
 with Types.Maps;
 with Types.Sequences;
 pragma Warnings (On, "no entities of ""Types.*"" are referenced");
@@ -51,10 +50,8 @@ package body Types is
          Object.Map.all.Keep;
       when Kind_Builtin_With_Meta =>
          Object.Builtin_With_Meta.all.Keep;
-      when Kind_Fn =>
+      when Kind_Fn | Kind_Macro =>
          Object.Fn.all.Keep;
-      when Kind_Macro =>
-         Object.Macro.all.Keep;
       end case;
    end Keep;
 

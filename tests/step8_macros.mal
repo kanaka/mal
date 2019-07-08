@@ -148,3 +148,13 @@ x
 
 (let* [x (or nil "yes")] x)
 ;=>"yes"
+
+;>>> soft=True
+
+;; Test that macros use closures
+(def! x 2)
+(defmacro! a (fn* [] x))
+(a)
+;=>2
+(let* (x 3) (a))
+;=>2

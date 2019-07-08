@@ -2,7 +2,6 @@ with Ada.Characters.Latin_1;
 
 with Types.Atoms;
 with Types.Fns;
-with Types.Macros;
 with Types.Maps;
 pragma Warnings (Off, "unit ""Types.Sequences"" is not referenced");
 with Types.Sequences;
@@ -79,9 +78,9 @@ package body Printer is
                Append (Buffer, '>');
             when Kind_Macro =>
                Append (Buffer, "#<macro (");
-               Print_List (Form_Ast.Macro.all.Params.all.Data);
+               Print_List (Form_Ast.Fn.all.Params.all.Data);
                Append (Buffer, ") -> ");
-               Print_Form (Form_Ast.Macro.all.Ast);
+               Print_Form (Form_Ast.Fn.all.Ast);
                Append (Buffer, '>');
             when Kind_Atom =>
                Append (Buffer, "(atom ");

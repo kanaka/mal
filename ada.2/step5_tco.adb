@@ -141,6 +141,7 @@ procedure Step5_Tco is
                for I in 2 .. Ast.Sequence.all.Length - 1 loop
                   Result := Eval (Ast.Sequence.all.Data (I), Env);
                end loop;
+               pragma Unreferenced (Result);
             end;
             Ast := Ast.Sequence.all.Data (Ast.Sequence.all.Length);
             goto Restart;
@@ -152,10 +153,10 @@ procedure Step5_Tco is
                Err.Check (Params.Kind in Types.Kind_Sequence,
                           "first argument of fn* must be a sequence");
                Env_Reusable := False;
-               return Types.Fns.New_Function
+               return (Kind_Fn, Types.Fns.New_Function
                  (Params => Params.Sequence,
                   Ast    => Ast.Sequence.all.Data (3),
-                  Env    => Env);
+                  Env    => Env));
             end;
          else
             --  Equivalent to First := Eval (First, Env)

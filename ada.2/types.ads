@@ -1,7 +1,6 @@
 limited with Types.Atoms;
 limited with Types.Builtins;
 limited with Types.Fns;
-limited with Types.Macros;
 limited with Types.Maps;
 limited with Types.Sequences;
 limited with Types.Strings;
@@ -49,7 +48,6 @@ package Types is
    type Builtin_Ptr is not null access function (Args : in T_Array) return T;
    type Builtin_With_Meta_Ptr is not null access Builtins.Instance;
    type Fn_Ptr is not null access Fns.Instance;
-   type Macro_Ptr is not null access Macros.Instance;
    type Map_Ptr is not null access Maps.Instance;
    type Sequence_Ptr is not null access Sequences.Instance;
    type String_Ptr is not null access Strings.Instance;
@@ -74,10 +72,8 @@ package Types is
          Builtin                     : Builtin_Ptr;
       when Kind_Builtin_With_Meta =>
          Builtin_With_Meta           : Builtin_With_Meta_Ptr;
-      when Kind_Fn =>
+      when Kind_Fn | Kind_Macro =>
          Fn                          : Fn_Ptr;
-      when Kind_Macro =>
-         Macro                       : Macro_Ptr;
       end case;
    end record;
 

@@ -135,10 +135,10 @@ procedure Step4_If_Fn_Do is
             begin
                Err.Check (Params.Kind in Types.Kind_Sequence,
                           "first argument of fn* must be a sequence");
-               return Types.Fns.New_Function
+               return (Kind_Fn, Types.Fns.New_Function
                  (Params => Params.Sequence,
                   Ast    => Ast.Sequence.all.Data (3),
-                  Env    => Env);
+                  Env    => Env));
             end;
          else
             First := Eval (First, Env);
