@@ -50,6 +50,8 @@ abc-def
 ;=>(** 1 2)
 (* -3 6)
 ;=>(* -3 6)
+(()())
+;=>(() ())
 
 ;; Test commas as whitespace
 (1 2, 3,,,,),,
@@ -139,6 +141,8 @@ false
 ;=>[+ 1 [+ 2 3]]
   [ +   1   [+   2 3   ]   ]  
 ;=>[+ 1 [+ 2 3]]
+([])
+;=>([])
 
 ;; Testing read of hash maps
 {}
@@ -155,6 +159,8 @@ false
 ;=>{"a" {"b" {"cde" 3}}}
 {  :a  {:b   {  :cde     3   }  }}
 ;=>{:a {:b {:cde 3}}}
+({})
+;=>({})
 
 ;; Testing read of comments
  ;; whole line comment (not an exception)
