@@ -1,6 +1,6 @@
 ;; Testing Python interop
 
-;; Testing Python experesions
+;; Testing Python expressions
 (py* "7")
 ;=>7
 (py* "'7'")

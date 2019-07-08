@@ -13,7 +13,7 @@ package Types.Fns is
    function New_Function (Params   : in Sequence_Ptr;
                           Ast      : in T;
                           Env      : in Envs.Ptr;
-                          Metadata : in T            := Nil) return T
+                          Metadata : in T            := Nil) return Fn_Ptr
      with Inline;
    --  Raise an exception if Params contains something else than symbols.
 
