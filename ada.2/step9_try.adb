@@ -11,7 +11,6 @@ with Printer;
 with Reader;
 with Readline;
 with Types.Fns;
-with Types.Macros;
 with Types.Maps;
 with Types.Sequences;
 with Types.Strings;
@@ -159,7 +158,10 @@ procedure Step9_Try is
                Val : Types.T;
             begin
                Err.Check (Fun.Kind = Kind_Fn, "expected a function");
-               Val := Types.Macros.New_Macro (Fun.Fn.all);
+               Val := (Kind_Macro, Types.Fns.New_Function
+                         (Params   => Fun.Fn.all.Params,
+                          Ast      => Fun.Fn.all.Ast,
+                          Env      => Fun.Fn.all.Env));
                Env.all.Set (Key, Val);  --  Check key kind.
                return Val;
             end;
@@ -171,6 +173,7 @@ procedure Step9_Try is
                for I in 2 .. Ast.Sequence.all.Length - 1 loop
                   Result := Eval (Ast.Sequence.all.Data (I), Env);
                end loop;
+               pragma Unreferenced (Result);
             end;
             Ast := Ast.Sequence.all.Data (Ast.Sequence.all.Length);
             goto Restart;
@@ -182,10 +185,10 @@ procedure Step9_Try is
                Err.Check (Params.Kind in Types.Kind_Sequence,
                           "first argument of fn* must be a sequence");
                Env_Reusable := False;
-               return Types.Fns.New_Function
+               return (Kind_Fn, Types.Fns.New_Function
                  (Params => Params.Sequence,
                   Ast    => Ast.Sequence.all.Data (3),
-                  Env    => Env);
+                  Env    => Env));
             end;
          elsif First.Str.all = "macroexpand" then
             Err.Check (Ast.Sequence.all.Length = 2, "expected 1 parameter");
@@ -250,27 +253,20 @@ procedure Step9_Try is
          if Macroexpanding then
             --  Evaluate the macro with tail call optimization.
             if not Env_Reusable then
-               Env := Envs.New_Env (Outer => Env);
+               Env := Envs.New_Env (Outer => First.Fn.all.Env);
                Env_Reusable := True;
             end if;
             Env.all.Set_Binds
-              (Binds => First.Macro.all.Params.all.Data,
+              (Binds => First.Fn.all.Params.all.Data,
                Exprs => Ast.Sequence.all.Data (2 .. Ast.Sequence.all.Length));
-            Ast := First.Macro.all.Ast;
+            Ast := First.Fn.all.Ast;
             goto Restart;
          else
             --  Evaluate the macro normally.
-            declare
-               New_Env : constant Envs.Ptr := Envs.New_Env (Outer => Env);
-            begin
-               New_Env.all.Set_Binds
-                 (Binds => First.Macro.all.Params.all.Data,
-                  Exprs => Ast.Sequence.all.Data
-                    (2 .. Ast.Sequence.all.Length));
-               Ast := Eval (First.Macro.all.Ast, New_Env);
-               --  Then evaluate the result with TCO.
-               goto Restart;
-            end;
+            Ast := First.Fn.all.Apply
+              (Ast.Sequence.all.Data (2 .. Ast.Sequence.all.Length));
+            --  Then evaluate the result with TCO.
+            goto Restart;
          end if;
       when Types.Kind_Function =>
          null;

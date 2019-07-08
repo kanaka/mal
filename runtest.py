@@ -246,7 +246,7 @@ def assert_prompt(runner, prompts, timeout):
         if header:
             log("Started with:\n%s" % header)
     else:
-        log("Did not one of following prompt(s): %s" % repr(prompts))
+        log("Did not receive one of following prompt(s): %s" % repr(prompts))
         log("    Got      : %s" % repr(r.buf))
         sys.exit(1)
 
