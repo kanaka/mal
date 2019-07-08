@@ -144,10 +144,7 @@ LET key_bitdiff(key1, key2) = VALOF
 // the key requested, and returns the entire entry.
 LET hm_find(map, key) = VALOF
 { WHILE type OF map = t_hmi DO
-    TEST key_bit(key, hmi_critbit OF map) THEN
-      map := map!hmi_right
-    ELSE
-      map := map!hmi_left
+    map := key_bit(key, hmi_critbit OF map) -> map!hmi_right, map!hmi_left
   RESULTIS map
 }
 
@@ -155,13 +152,11 @@ LET hm_find(map, key) = VALOF
 LET hm_replace(map, key, value) = VALOF
 { LET left, right = ?, ?
   IF type OF map = t_hmx RESULTIS alloc_hmx(key, value)
+  left, right := map!hmi_left, map!hmi_right
   TEST key_bit(key, hmi_critbit OF map) THEN
-  { left := map!hmi_left
     right := hm_replace(map!hmi_right, key, value)
-  } ELSE
-  { left := hm_replace(map!hmi_left, key, value)
-    right := map!hmi_right
-  }
+  ELSE
+    left := hm_replace(map!hmi_left, key, value)
   RESULTIS alloc_hmi(hmi_critbit OF map, left, right)
 }
 
@@ -170,19 +165,15 @@ LET hm_replace(map, key, value) = VALOF
 LET hm_insert(map, bit, key, value) = VALOF
 { LET left, right = ?, ?
   IF type OF map = t_hmi & hmi_critbit OF map < bit THEN
-  { TEST key_bit(key,  hmi_critbit OF map) THEN
-    { left  := hmi_left OF map
-      right := hm_insert(hmi_right OF map, bit, key, value)
-    } ELSE
-    { left  := hm_insert(hmi_left OF map, bit, key, value)
-      right := hmi_right OF map
-    }
+  { left, right := map!hmi_left, map!hmi_right
+    TEST key_bit(key,  hmi_critbit OF map) THEN
+      right := hm_insert(map!hmi_right, bit, key, value)
+    ELSE
+      left  := hm_insert(map!hmi_left, bit, key, value)
     RESULTIS alloc_hmi(hmi_critbit OF map, left, right)
   }
-  TEST key_bit(key, bit) THEN
-    left, right := map, alloc_hmx(key, value)
-  ELSE
-    right, left := map, alloc_hmx(key, value)
+  TEST key_bit(key, bit) THEN left, right := map, alloc_hmx(key, value)
+                         ELSE right, left := map, alloc_hmx(key, value)
   RESULTIS alloc_hmi(bit, left, right)
 }
 
@@ -213,15 +204,13 @@ LET hm_remove(map, key) = VALOF
 LET hm_get(map, key) = VALOF
 { IF map = empty_hashmap RESULTIS nil
   map := hm_find(map, key)
-  IF equal(map!hmx_key, key) RESULTIS map!hmx_value
-  RESULTIS nil
+  RESULTIS equal(map!hmx_key, key) -> map!hmx_value, nil
 }
 
 LET hm_contains(map, key) = VALOF
 { IF map = empty_hashmap RESULTIS FALSE
   map := hm_find(map, key)
-  IF equal(map!hmx_key, key) RESULTIS TRUE
-  RESULTIS FALSE
+  RESULTIS equal(map!hmx_key, key)
 }
 
 LET throw(val) BE
