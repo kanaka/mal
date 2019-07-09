@@ -48,7 +48,7 @@ AND EVAL(ast, env) = VALOF
       RESULTIS val
     }
     IF is_sym(fn, "let**") THEN
-    { LET newenv, bindings = env_new(env), as_lst(nth(ast, 1))
+    { LET newenv, bindings = env_new(env, empty, empty), as_lst(nth(ast, 1))
       UNTIL bindings = empty DO
       { env_set(newenv, bindings!lst_first, EVAL(nth(bindings, 1), newenv))
         bindings := bindings!lst_rest!lst_rest
@@ -83,7 +83,7 @@ LET rep(x, env) = PRINT(EVAL(READ(x), env))
 
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
-  LET repl_env = env_new(nil)
+  LET repl_env = env_new(nil, empty, empty)
   env_set(repl_env, as_sym(str_bcpl2mal("+")), add)
   env_set(repl_env, as_sym(str_bcpl2mal("-")), subtract)
   env_set(repl_env, as_sym(str_bcpl2mal("**")), multiply)

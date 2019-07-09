@@ -4,15 +4,19 @@ GET "malhdr"
 MANIFEST
 { env_outer = 0; env_data; env_sz }
 
-LET env_new(outer) = VALOF
+LET env_set(env, key, value) BE
+  env!env_data := hm_set(env!env_data, key, value)
+
+LET env_new(outer, binds, exprs) = VALOF
 { LET env = getvec(env_sz)
   env!env_outer := outer
   env!env_data := empty_hashmap
+  UNTIL binds = empty | exprs = empty DO
+  { env_set(env, binds!lst_first, exprs!lst_first)
+    binds, exprs := binds!lst_rest, exprs!lst_rest
+  }
   RESULTIS env
 }
-
-LET env_set(env, key, value) BE
-  env!env_data := hm_set(env!env_data, key, value)
 
 LET env_find(env, key) = VALOF
 { IF hm_contains(env!env_data, key) THEN RESULTIS env
