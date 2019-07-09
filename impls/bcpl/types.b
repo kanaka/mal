@@ -19,7 +19,7 @@ LET cons(first, rest) = VALOF
 
 LET nth(lst, n) = VALOF
 { UNTIL n = 0 DO lst, n := lst!lst_rest, n - 1
-  IF lst = empty THEN throw(str_bcpl2mal("subscript out of range"))
+  IF lst = empty THEN throwf("subscript out of range")
   RESULTIS lst!lst_first
 }
 
@@ -32,7 +32,7 @@ LET as_lst(x) = VALOF SWITCHON type OF x INTO
       RESULTIS l
     }
   DEFAULT:
-    throw(str_bcpl2mal("cannot convert to list"))
+    throwf("cannot convert to list")
 }
   
 
@@ -86,7 +86,7 @@ LET equal(a, b) = VALOF
     CASE t_int: RESULTIS int_sz
     CASE t_str: RESULTIS str_data + 1 + a!str_len / bytesperword
     CASE t_cfn: RESULTIS cfn_sz
-    DEFAULT: throw(str_bcpl2mal("incomparable value"))
+    DEFAULT: throwf("incomparable value")
   }
   // This is guaranteed not to walk off the end of b because any two mal
   // values with different lengths will differ before the point where

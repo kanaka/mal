@@ -28,3 +28,6 @@ LET start() = VALOF
   repl()
   RESULTIS 0
 }
+
+// Dummy version of throwf() because step 0 doesn't include printer.b
+LET throwf(msg, A) BE throw(str_bcpl2mal(msg))

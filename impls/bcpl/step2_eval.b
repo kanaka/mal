@@ -33,7 +33,7 @@ AND EVAL(ast, env) = VALOF
   IF ast = empty RESULTIS ast
   ast := eval_ast(ast, env)
   { LET fn, a, b = ast!lst_first, nth(ast, 1), nth(ast, 2)
-    UNLESS type OF fn = t_cfn DO throw(str_bcpl2mal("not a function"))
+    UNLESS type OF fn = t_cfn DO throwf("not a function")
     RESULTIS (fn!cfn_fn)(a, b)
   }
 }
