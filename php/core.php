@@ -69,7 +69,8 @@ function get($hm, $k) {
 function contains_Q($hm, $k) { return array_key_exists($k, $hm); }
 
 function keys($hm) {
-    return call_user_func_array('_list', array_keys($hm->getArrayCopy()));
+    return call_user_func_array('_list',
+        array_map('strval', array_keys($hm->getArrayCopy())));
 }
 function vals($hm) {
     return call_user_func_array('_list', array_values($hm->getArrayCopy()));
