@@ -1,5 +1,5 @@
 GLOBAL { readline: ug
-         pr_str
+         pr_str; throwf
          read_str
          init_types; nil; empty; cons; nth; as_lst
 	 alloc_int

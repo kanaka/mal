@@ -22,6 +22,6 @@ LET env_find(env, key) = VALOF
 
 LET env_get(env, key) = VALOF
 { env := env_find(env, key)
-  IF env = nil THEN throw(str_bcpl2mal("not found"))
+  IF env = nil THEN throwf("symbol %v not found", key)
   RESULTIS hm_get(env!env_data, key)
 }

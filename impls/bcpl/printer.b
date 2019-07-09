@@ -137,3 +137,23 @@ LET pr_str(x) = VALOF
   str_setlen(out, count)
   RESULTIS out
 }
+
+LET print_f(msg, buf, pos, count_only, A) = VALOF
+{ FOR i = 1 TO msg%0 DO
+  { IF msg%i = '%' & i < msg%0 THEN SWITCHON msg%(i + 1) INTO
+      { CASE 'v':
+          pos := print_form(A, buf, pos, count_only)
+	  i := i + 1; LOOP
+      }
+    pos := print_char(msg%i, buf, pos, count_only)
+  }
+  RESULTIS pos
+}
+
+LET throwf(msg, A) BE
+{ LET count = print_f(msg, 0, 0, TRUE, A)
+  LET out = alloc_str(count)
+  print_f(msg, out+str_data, 1, FALSE, A)
+  str_setlen(out, count)
+  throw(out)
+}
