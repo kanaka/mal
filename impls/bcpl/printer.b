@@ -127,6 +127,7 @@ AND print_form(val, buf, pos, count_only) = VALOF
     CASE t_int: RESULTIS print_int(val, buf, pos, count_only)
     CASE t_str: RESULTIS print_str(val, buf, pos, count_only)
     CASE t_sym: RESULTIS print_sym(val, buf, pos, count_only)
+    CASE t_cfn: RESULTIS print_const("#<function>", buf, pos, count_only)
     DEFAULT: RESULTIS print_const("<unprintable>", buf, pos, count_only)
   }
 
