@@ -44,7 +44,7 @@
 
     (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
 
-    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+    (_vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
 
     (map? ast)    (apply hash-map
                       (apply concat
@@ -118,7 +118,8 @@
 
 
 ;; print
-(def! PRINT pr-str)
+(def! PRINT (fn* [x]
+  (pr-str (let* [m (_macro_unwrap x)] (if m m x)))))
 
 ;; repl
 (def! repl-env (new-env))

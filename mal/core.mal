@@ -14,6 +14,14 @@
     true
     false)))
 
+(def! false_on_macro (fn* [f]
+  (fn* [x]
+    (if (_macro_unwrap x)
+      false
+      (f x)))))
+(def! _sequential? (false_on_macro sequential?))
+(def! _vector? (false_on_macro vector?))
+
 (def! core_ns
   [['= =]
    ['throw throw]
@@ -49,7 +57,7 @@
    ['list list]
    ['list? list?]
    ['vector vector]
-   ['vector? vector?]
+   ['vector? _vector?]
    ['hash-map hash-map]
    ['map? map?]
    ['assoc assoc]
@@ -59,7 +67,7 @@
    ['keys keys]
    ['vals vals]
 
-   ['sequential? sequential?]
+   ['sequential? _sequential?]
    ['cons cons]
    ['concat concat]
    ['nth nth]
