@@ -52,6 +52,17 @@ AND EVAL(ast, env) = VALOF
       }
       RESULTIS EVAL(nth(ast, 2), newenv)
     }
+    IF is_sym(fn, "do") THEN
+    { LET tail = ast!lst_rest
+      tail := eval_ast(tail, env)
+      UNTIL tail!lst_rest = empty DO tail := tail!lst_rest
+      RESULTIS tail!lst_first
+    }
+    IF is_sym(fn, "if") THEN
+    { LET cond, tail = EVAL(nth(ast, 1), env), ast!lst_rest!lst_rest
+      IF cond = nil | cond = mfalse THEN tail := tail!lst_rest
+      RESULTIS EVAL(tail!lst_first, env)
+    }
   }
   ast := eval_ast(ast, env)
   { LET fn, a, b = ast!lst_first, nth(ast, 1), nth(ast, 2)
