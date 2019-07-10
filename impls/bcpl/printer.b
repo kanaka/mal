@@ -119,6 +119,8 @@ AND print_form(val, buf, pos, count_only) = VALOF
   SWITCHON type OF val INTO
   {
     CASE t_nil: RESULTIS print_const("nil", buf, pos, count_only)
+    CASE t_boo: RESULTIS print_const(val!int_value -> "true", "false",
+                                     buf, pos, count_only)
     CASE t_lst: RESULTIS print_lst(val, buf, pos, count_only)
     CASE t_vec: RESULTIS print_vec(val, buf, pos, count_only)
     CASE t_hm0: RESULTIS print_const("{}", buf, pos, count_only)

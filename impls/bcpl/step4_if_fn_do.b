@@ -12,10 +12,7 @@ LET READ(x) = read_str(x)
 // Helper function for EVAL.
 LET is_sym(a, b) = VALOF
 { UNLESS type OF a = t_sym RESULTIS FALSE
-  UNLESS a!str_len = b%0 RESULTIS FALSE
-  FOR i = 0 TO a!str_len / bytesperword DO
-    UNLESS (a+str_data)!i = b!i RESULTIS FALSE
-  RESULTIS TRUE
+  RESULTIS str_eq_const(a, b)
 }
 
 LET eval_ast(ast, env) = VALOF

@@ -1,13 +1,13 @@
 GLOBAL { readline: ug
          pr_str; throwf
          read_str
-         init_types; nil; empty; cons; nth; as_lst
+         init_types; nil; empty; empty_hashmap; mtrue; mfalse
+	 cons; nth; as_lst
 	 alloc_int
-	 str_setlen; alloc_str; str_bcpl2mal; as_sym
+	 str_setlen; alloc_str; str_bcpl2mal; as_sym; str_eq_const
 	 hm_set; hm_contains; hm_get
 	 alloc_vec
 	 alloc_cfn
-	 empty_hashmap
 	 throw
 	 catch_level; catch_label; last_exception
 	 init_core
@@ -32,7 +32,10 @@ MANIFEST
 
   // Integers.
   t_int = #x01; int_value = 1; int_sz = 2
-					       
+
+  // Booleans.
+  t_boo = #x11
+
   // Strings.  Unlike conventional BCPL strings, these have an entire word
   // to store the length.  For compatibility with library routines, the
   // first byte of the string is also the length if it will fit.

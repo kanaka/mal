@@ -127,6 +127,9 @@ LET read_atom(rdr) = VALOF
   IF (token + str_data)%1 = '*"' THEN RESULTIS read_string(token)
   maybenum := read_number_maybe(token)
   UNLESS maybenum = nil RESULTIS maybenum
+  IF str_eq_const(token, "nil")   RESULTIS nil
+  IF str_eq_const(token, "true")  RESULTIS mtrue
+  IF str_eq_const(token, "false") RESULTIS mfalse
   RESULTIS as_sym(token)
 }
 

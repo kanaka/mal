@@ -6,6 +6,8 @@ LET init_types() BE
   empty := TABLE t_lst, ?, ?
   empty!lst_first, empty!lst_rest := nil, empty
   empty_hashmap := TABLE t_hm0
+  mtrue  := TABLE t_boo, TRUE
+  mfalse := TABLE t_boo, FALSE
 }
 
 LET cons(first, rest) = VALOF
@@ -76,6 +78,13 @@ LET str_bcpl2mal(bcplstr) = VALOF
   FOR i = 0 TO bcplstr%0 / bytesperword DO
     result!(str_data + i) := bcplstr!i
   RESULTIS result
+}
+
+LET str_eq_const(val, bcplstr) = VALOF
+{ UNLESS val!str_len = bcplstr%0 RESULTIS FALSE
+  FOR i = 0 TO bcplstr%0 / bytesperword DO
+    UNLESS val!(str_data + i) = bcplstr!i RESULTIS FALSE
+  RESULTIS TRUE
 }
 
 LET equal(a, b) = VALOF
