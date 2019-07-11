@@ -7,7 +7,7 @@ GLOBAL { readline: ug
 	 str_setlen; alloc_str; str_bcpl2mal; as_sym; str_eq_const
 	 hm_set; hm_contains; hm_get
 	 alloc_vec
-	 alloc_cfn
+	 alloc_fun
 	 throw
 	 catch_level; catch_label; last_exception
 	 init_core
@@ -50,8 +50,11 @@ MANIFEST
   // pointers rather than packed characters.
   t_vec = #x09; vec_len = 1; vec_data = 2
 
-  // Core functions.  Assumed to take two integer arguments.
-  t_cfn = #x03; cfn_fn = 1; cfn_sz = 2
+  // Functions.  Contains a function which gets passed a pointer to
+  // this structure and can do what it likes with it.
+  t_fun = #x03; fun_code = 1
+  // arith() expects the next word to be a function.
+  fun_wrapped = 2
 
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a

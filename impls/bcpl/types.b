@@ -94,7 +94,6 @@ LET equal(a, b) = VALOF
   { CASE t_nil: RESULTIS 1
     CASE t_int: RESULTIS int_sz
     CASE t_str: RESULTIS str_data + 1 + a!str_len / bytesperword
-    CASE t_cfn: RESULTIS cfn_sz
     DEFAULT: throwf("incomparable value")
   }
   // This is guaranteed not to walk off the end of b because any two mal
@@ -113,11 +112,12 @@ LET alloc_vec(len) = VALOF
   RESULTIS result
 }
 
-LET alloc_cfn(fn) = VALOF
-{ LET result = getvec(cfn_sz)
+LET alloc_fun(fn, wrapped) = VALOF
+{ LET result = getvec(3)
   !result := 0
-  type OF result := t_cfn
-  result!cfn_fn := fn
+  type OF result := t_fun
+  result!fun_code := fn
+  result!fun_wrapped := wrapped
   RESULTIS result
 }
 

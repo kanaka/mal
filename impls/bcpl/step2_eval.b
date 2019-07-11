@@ -32,26 +32,33 @@ AND EVAL(ast, env) = VALOF
 { UNLESS type OF ast = t_lst RESULTIS eval_ast(ast, env)
   IF ast = empty RESULTIS ast
   ast := eval_ast(ast, env)
-  { LET fn, a, b = ast!lst_first, nth(ast, 1), nth(ast, 2)
-    UNLESS type OF fn = t_cfn DO throwf("not a function")
-    RESULTIS (fn!cfn_fn)(a, b)
+  { LET fn, args = ast!lst_first, ast!lst_rest
+    UNLESS type OF fn = t_fun DO throwf("not a function")
+    RESULTIS (fn!fun_code)(fn, args)
   }
 }
 
 LET PRINT(x) = pr_str(x)
 
-LET add_fn(a, b)      = alloc_int(a!int_value + b!int_value)
-LET subtract_fn(a, b) = alloc_int(a!int_value - b!int_value)
-LET multiply_fn(a, b) = alloc_int(a!int_value * b!int_value)
-LET divide_fn(a, b)   = alloc_int(a!int_value / b!int_value)
+LET arith(fn, args) = VALOF
+{ LET a, b = args!lst_first, args!lst_rest!lst_first
+  UNLESS type OF a = type OF b = t_int DO
+    throwf("bad arguments for arithmetic function")
+  RESULTIS alloc_int((fn!fun_wrapped)(a!int_value, b!int_value))
+}
+
+LET add_fn(a, b)      = a + b
+LET subtract_fn(a, b) = a - b
+LET multiply_fn(a, b) = a * b
+LET divide_fn(a, b)   = a / b
 
 STATIC { add; subtract; multiply; divide }
 
 LET init_core() BE
-{ add      := alloc_cfn(add_fn)
-  subtract := alloc_cfn(subtract_fn)
-  multiply := alloc_cfn(multiply_fn)
-  divide   := alloc_cfn(divide_fn)
+{ add      := alloc_fun(arith, add_fn)
+  subtract := alloc_fun(arith, subtract_fn)
+  multiply := alloc_fun(arith, multiply_fn)
+  divide   := alloc_fun(arith, divide_fn)
 }
 
 LET repl_env(key) = VALOF
