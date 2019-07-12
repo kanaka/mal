@@ -94,7 +94,7 @@ LET equal(a, b) = VALOF
   { CASE t_nil: RESULTIS 1
     CASE t_int: RESULTIS int_sz
     CASE t_str: RESULTIS str_data + 1 + a!str_len / bytesperword
-    DEFAULT: throwf("incomparable value")
+    DEFAULT: throwf("incomparable value: %v", a)
   }
   // This is guaranteed not to walk off the end of b because any two mal
   // values with different lengths will differ before the point where
