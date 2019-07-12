@@ -63,6 +63,19 @@ AND EVAL(ast, env) = VALOF
       IF cond = nil | cond = mfalse THEN tail := tail!lst_rest
       RESULTIS EVAL(tail!lst_first, env)
     }
+    IF is_sym(fn, "fn**") THEN
+    { MANIFEST { fun_binds = 2; fun_body = 3; fun_env = 4; fun_sz = 5 }
+      LET call(fun, args) =
+          EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args))
+      LET result = getvec(fun_sz)
+      !result := 0
+      type OF result := t_fun
+      result!fun_code := call
+      result!fun_binds := nth(ast, 1)
+      result!fun_body := nth(ast, 2)
+      result!fun_env := env
+      RESULTIS result
+    }
   }
   ast := eval_ast(ast, env)
   { LET fn, args = ast!lst_first, ast!lst_rest
