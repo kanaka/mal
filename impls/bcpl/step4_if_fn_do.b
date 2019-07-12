@@ -1,6 +1,7 @@
 GET "libhdr"
 GET "malhdr"
 
+GET "core.b"
 GET "env.b"
 GET "printer.b"
 GET "reader.b"
@@ -64,13 +65,10 @@ AND EVAL(ast, env) = VALOF
       RESULTIS EVAL(tail!lst_first, env)
     }
     IF is_sym(fn, "fn**") THEN
-    { MANIFEST { fun_binds = 2; fun_body = 3; fun_env = 4; fun_sz = 5 }
+    { MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
       LET call(fun, args) =
           EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args))
-      LET result = alloc_fun(call, fun_sz)
-      result!fun_binds := nth(ast, 1)
-      result!fun_body := nth(ast, 2)
-      result!fun_env := env
+      LET result = alloc_fun(call, fun_sz, nth(ast, 1), nth(ast, 2), env)
       RESULTIS result
     }
   }
@@ -83,36 +81,13 @@ AND EVAL(ast, env) = VALOF
 
 LET PRINT(x) = pr_str(x)
 
-STATIC { add; subtract; multiply; divide }
-
-LET init_core() BE
-{ MANIFEST { fun_wrapped = 2; fun_sz = 3 }
-  LET arith(fn, args) = VALOF
-  { LET a, b = args!lst_first, args!lst_rest!lst_first
-    UNLESS type OF a = type OF b = t_int DO
-      throwf("bad arguments for arithmetic function")
-    RESULTIS alloc_int((fn!fun_wrapped)(a!int_value, b!int_value))
-  }
-  LET add_fn(a, b)      = a + b
-  LET subtract_fn(a, b) = a - b
-  LET multiply_fn(a, b) = a * b
-  LET divide_fn(a, b)   = a / b
-  add      := alloc_fun(arith, fun_sz); add!fun_wrapped := add_fn
-  subtract := alloc_fun(arith, fun_sz); subtract!fun_wrapped := subtract_fn
-  multiply := alloc_fun(arith, fun_sz); multiply!fun_wrapped := multiply_fn
-  divide   := alloc_fun(arith, fun_sz); divide!fun_wrapped := divide_fn
-}
-
 LET rep(x, env) = PRINT(EVAL(READ(x), env))
 
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
-  LET repl_env = env_new(nil, empty, empty)
-  env_set(repl_env, as_sym(str_bcpl2mal("+")), add)
-  env_set(repl_env, as_sym(str_bcpl2mal("-")), subtract)
-  env_set(repl_env, as_sym(str_bcpl2mal("**")), multiply)
-  env_set(repl_env, as_sym(str_bcpl2mal("/")), divide)
+  LET repl_env = ?
   catch_level, catch_label := level(), uncaught
+  repl_env := core_env()
   IF FALSE THEN
   { uncaught:
     writes("Uncaught exception: ")
@@ -129,7 +104,6 @@ LET repl() BE
 LET start() = VALOF
 { LET ch = 0
   init_types()
-  init_core()
   ch := rdch() REPEATUNTIL ch = '*n' // Consume command-line args
   wrch('*n') // Terminate prompt printed by Cintsys
   repl()

@@ -76,10 +76,10 @@ LET init_core() BE
   LET subtract_fn(a, b) = a - b
   LET multiply_fn(a, b) = a * b
   LET divide_fn(a, b)   = a / b
-  add      := alloc_fun(arith, fun_sz); add!fun_wrapped := add_fn
-  subtract := alloc_fun(arith, fun_sz); subtract!fun_wrapped := subtract_fn
-  multiply := alloc_fun(arith, fun_sz); multiply!fun_wrapped := multiply_fn
-  divide   := alloc_fun(arith, fun_sz); divide!fun_wrapped := divide_fn
+  add      := alloc_fun(arith, fun_sz, add_fn)
+  subtract := alloc_fun(arith, fun_sz, subtract_fn)
+  multiply := alloc_fun(arith, fun_sz, multiply_fn)
+  divide   := alloc_fun(arith, fun_sz, divide_fn)
 }
 
 LET rep(x, env) = PRINT(EVAL(READ(x), env))

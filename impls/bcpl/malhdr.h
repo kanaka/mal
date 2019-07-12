@@ -9,8 +9,9 @@ GLOBAL { readline: ug
 	 alloc_vec
 	 alloc_fun
 	 throw
+	 env_new; env_set
 	 catch_level; catch_label; last_exception
-	 init_core
+	 core_env
 }
 
 MANIFEST
@@ -52,7 +53,7 @@ MANIFEST
 
   // Functions.  Contains a function which gets passed a pointer to
   // this structure and can do what it likes with it.
-  t_fun = #x03; fun_code = 1
+  t_fun = #x03; fun_code = 1; fun_data = 2
 
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a

@@ -112,11 +112,14 @@ LET alloc_vec(len) = VALOF
   RESULTIS result
 }
 
-LET alloc_fun(fn, sz) = VALOF
+LET alloc_fun(fn, sz, A, B, C) = VALOF
 { LET result = getvec(sz)
+  LET p = @A
   !result := 0
   type OF result := t_fun
   result!fun_code := fn
+  FOR i = 0 TO sz - fun_data - 1
+    result!(fun_data + i) := p!i
   RESULTIS result
 }
 
