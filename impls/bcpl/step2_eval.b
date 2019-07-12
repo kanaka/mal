@@ -53,7 +53,10 @@ LET init_core() BE
   LET add_fn(a, b)      = a + b
   LET subtract_fn(a, b) = a - b
   LET multiply_fn(a, b) = a * b
-  LET divide_fn(a, b)   = a / b
+  LET divide_fn(a, b)   = VALOF
+  { IF b = 0 THEN throwf("division by zero")
+    RESULTIS a / b
+  }
   add      := alloc_fun(arith, fun_sz, add_fn)
   subtract := alloc_fun(arith, fun_sz, subtract_fn)
   multiply := alloc_fun(arith, fun_sz, multiply_fn)
