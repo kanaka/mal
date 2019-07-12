@@ -67,10 +67,7 @@ AND EVAL(ast, env) = VALOF
     { MANIFEST { fun_binds = 2; fun_body = 3; fun_env = 4; fun_sz = 5 }
       LET call(fun, args) =
           EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args))
-      LET result = getvec(fun_sz)
-      !result := 0
-      type OF result := t_fun
-      result!fun_code := call
+      LET result = alloc_fun(call, fun_sz)
       result!fun_binds := nth(ast, 1)
       result!fun_body := nth(ast, 2)
       result!fun_env := env
@@ -86,25 +83,24 @@ AND EVAL(ast, env) = VALOF
 
 LET PRINT(x) = pr_str(x)
 
-LET arith(fn, args) = VALOF
-{ LET a, b = args!lst_first, args!lst_rest!lst_first
-  UNLESS type OF a = type OF b = t_int DO
-    throwf("bad arguments for arithmetic function")
-  RESULTIS alloc_int((fn!fun_wrapped)(a!int_value, b!int_value))
-}
-
-LET add_fn(a, b)      = a + b
-LET subtract_fn(a, b) = a - b
-LET multiply_fn(a, b) = a * b
-LET divide_fn(a, b)   = a / b
-
 STATIC { add; subtract; multiply; divide }
 
 LET init_core() BE
-{ add      := alloc_fun(arith, add_fn)
-  subtract := alloc_fun(arith, subtract_fn)
-  multiply := alloc_fun(arith, multiply_fn)
-  divide   := alloc_fun(arith, divide_fn)
+{ MANIFEST { fun_wrapped = 2; fun_sz = 3 }
+  LET arith(fn, args) = VALOF
+  { LET a, b = args!lst_first, args!lst_rest!lst_first
+    UNLESS type OF a = type OF b = t_int DO
+      throwf("bad arguments for arithmetic function")
+    RESULTIS alloc_int((fn!fun_wrapped)(a!int_value, b!int_value))
+  }
+  LET add_fn(a, b)      = a + b
+  LET subtract_fn(a, b) = a - b
+  LET multiply_fn(a, b) = a * b
+  LET divide_fn(a, b)   = a / b
+  add      := alloc_fun(arith, fun_sz); add!fun_wrapped := add_fn
+  subtract := alloc_fun(arith, fun_sz); subtract!fun_wrapped := subtract_fn
+  multiply := alloc_fun(arith, fun_sz); multiply!fun_wrapped := multiply_fn
+  divide   := alloc_fun(arith, fun_sz); divide!fun_wrapped := divide_fn
 }
 
 LET rep(x, env) = PRINT(EVAL(READ(x), env))

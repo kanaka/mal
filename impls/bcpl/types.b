@@ -112,12 +112,11 @@ LET alloc_vec(len) = VALOF
   RESULTIS result
 }
 
-LET alloc_fun(fn, wrapped) = VALOF
-{ LET result = getvec(3)
+LET alloc_fun(fn, sz) = VALOF
+{ LET result = getvec(sz)
   !result := 0
   type OF result := t_fun
   result!fun_code := fn
-  result!fun_wrapped := wrapped
   RESULTIS result
 }
 

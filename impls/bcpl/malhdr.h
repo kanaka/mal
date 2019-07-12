@@ -53,8 +53,6 @@ MANIFEST
   // Functions.  Contains a function which gets passed a pointer to
   // this structure and can do what it likes with it.
   t_fun = #x03; fun_code = 1
-  // arith() expects the next word to be a function.
-  fun_wrapped = 2
 
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a
