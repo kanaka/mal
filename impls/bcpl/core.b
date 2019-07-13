@@ -46,5 +46,15 @@ LET core_env() = VALOF
     def(env, "/",  arith_fun(div))
   }
 
+  // Printing functions
+  { LET bare_fun(fn) = alloc_fun(fn, fun_data)
+    LET prn(fn, args) = VALOF
+    { writes(@(pr_str(args!lst_first)!str_data))
+      newline()
+      RESULTIS nil
+    }
+    def(env, "prn", bare_fun(prn))
+  }
+
   RESULTIS env
 }
