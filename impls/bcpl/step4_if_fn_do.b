@@ -88,6 +88,7 @@ LET repl() BE
   LET repl_env = ?
   catch_level, catch_label := level(), uncaught
   repl_env := core_env()
+  rep(str_bcpl2mal("(def! not (fn** (a) (if a false true)))"), repl_env)
   IF FALSE THEN
   { uncaught:
     writes("Uncaught exception: ")
