@@ -58,6 +58,15 @@ LET core_env() = VALOF
     def(env, "empty?", pred_fun(emptyp))
   }
 
+  // Comparisons
+  { LET equalp(fn, args) = VALOF
+    { LET a, b = args!lst_first, args!lst_rest!lst_first
+      RESULTIS equal(a, b) -> mtrue, mfalse
+    }
+
+    def(env, "=", bare_fun(equalp))
+  }
+
   // Miscellaneous list functions
   { LET count(fn, args) = VALOF
     { LET list, n = args!lst_first, 0

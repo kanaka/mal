@@ -90,6 +90,9 @@ LET str_eq_const(val, bcplstr) = VALOF
 LET equal(a, b) = VALOF
 { LET len = ?
   UNLESS type OF a = type OF b RESULTIS FALSE
+  SWITCHON supertype OF a INTO
+  { CASE t_lst: RESULTIS equal_lst(a, b)
+  }
   len := VALOF SWITCHON supertype OF a INTO
   { CASE t_nil: RESULTIS 1
     CASE t_int: RESULTIS int_sz
@@ -102,6 +105,13 @@ LET equal(a, b) = VALOF
   FOR i = 0 TO len - 1 DO
     UNLESS a!i = b!i RESULTIS FALSE
   RESULTIS TRUE
+}
+
+AND equal_lst(a, b) = VALOF
+{ IF a = b = empty RESULTIS TRUE
+  IF a = empty | b = empty RESULTIS FALSE
+  UNLESS equal(a!lst_first, b!lst_first) RESULTIS FALSE
+  RESULTIS equal_lst(a!lst_rest, b!lst_rest)
 }
 
 LET alloc_vec(len) = VALOF
