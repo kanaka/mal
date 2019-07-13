@@ -62,27 +62,29 @@ AND EVAL(ast, env) = VALOF
 
 LET PRINT(x) = pr_str(x)
 
-STATIC { add; subtract; multiply; divide }
+STATIC { add_fun; sub_fun; mul_fun; div_fun }
 
 LET init_core() BE
-{ MANIFEST { fun_wrapped = 2; fun_sz = 3 }
+{ MANIFEST { wf_wrapped = 2; wf_sz = 3 }
   LET arith(fn, args) = VALOF
   { LET a, b = args!lst_first, args!lst_rest!lst_first
     UNLESS type OF a = type OF b = t_int DO
-      throwf("bad arguments for arithmetic function")
-    RESULTIS alloc_int((fn!fun_wrapped)(a!int_value, b!int_value))
+      throwf("bad arguments for arithmetic function: %v", args)
+    RESULTIS alloc_int((fn!wf_wrapped)(a!int_value, b!int_value))
   }
-  LET add_fn(a, b)      = a + b
-  LET subtract_fn(a, b) = a - b
-  LET multiply_fn(a, b) = a * b
-  LET divide_fn(a, b)   = VALOF
+  LET arith_fun(fn) = alloc_fun(arith, wf_sz, fn)
+
+  LET add(a, b) = a + b
+  LET sub(a, b) = a - b
+  LET mul(a, b) = a * b
+  LET div(a, b) = VALOF
   { IF b = 0 THEN throwf("division by zero")
     RESULTIS a / b
   }
-  add      := alloc_fun(arith, fun_sz, add_fn)
-  subtract := alloc_fun(arith, fun_sz, subtract_fn)
-  multiply := alloc_fun(arith, fun_sz, multiply_fn)
-  divide   := alloc_fun(arith, fun_sz, divide_fn)
+  add_fun := arith_fun(add)
+  sub_fun := arith_fun(sub)
+  mul_fun := arith_fun(mul)
+  div_fun := arith_fun(div)
 }
 
 LET rep(x, env) = PRINT(EVAL(READ(x), env))
@@ -90,10 +92,11 @@ LET rep(x, env) = PRINT(EVAL(READ(x), env))
 LET repl() BE
 { LET prompt = str_bcpl2mal("user> ")
   LET repl_env = env_new(nil, empty, empty)
-  env_set(repl_env, as_sym(str_bcpl2mal("+")), add)
-  env_set(repl_env, as_sym(str_bcpl2mal("-")), subtract)
-  env_set(repl_env, as_sym(str_bcpl2mal("**")), multiply)
-  env_set(repl_env, as_sym(str_bcpl2mal("/")), divide)
+  LET def(env, name, value) BE env_set(env, as_sym(str_bcpl2mal(name)), value)
+  def(repl_env, "+",  add_fun)
+  def(repl_env, "-",  sub_fun)
+  def(repl_env, "**", mul_fun)
+  def(repl_env, "/",  div_fun)
   catch_level, catch_label := level(), uncaught
   IF FALSE THEN
   { uncaught:
