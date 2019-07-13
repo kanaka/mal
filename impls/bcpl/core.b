@@ -63,8 +63,24 @@ LET core_env() = VALOF
     { LET a, b = args!lst_first, args!lst_rest!lst_first
       RESULTIS equal(a, b) -> mtrue, mfalse
     }
+    LET cmp(fn, args) = VALOF
+    { LET a, b = args!lst_first, args!lst_rest!lst_first
+      UNLESS type OF a = type OF b = t_int DO
+        throwf("bad arguments for arithmetic function: %v", args)
+      RESULTIS  (fn!wf_wrapped)(a!int_value, b!int_value) -> mtrue, mfalse
+    }
+    LET cmp_fun(fn) = alloc_fun(cmp, wf_sz, fn)
 
-    def(env, "=", bare_fun(equalp))
+    LET lt(a, b) = a < b
+    LET le(a, b) = a <= b
+    LET gt(a, b) = a > b
+    LET ge(a, b) = a >= b
+    
+    def(env, "=",  bare_fun(equalp))
+    def(env, "<",  cmp_fun(lt))
+    def(env, "<=", cmp_fun(le))
+    def(env, ">",  cmp_fun(gt))
+    def(env, ">=", cmp_fun(ge))
   }
 
   // Miscellaneous list functions
