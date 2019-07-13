@@ -47,6 +47,17 @@ LET core_env() = VALOF
     def(env, "/",  arith_fun(div))
   }
 
+  // Predicates
+  { LET pred(fn, args) = (fn!wf_wrapped)(args!lst_first) -> mtrue, mfalse
+    LET pred_fun(fn) = alloc_fun(pred, wf_sz, fn)
+
+    LET listp(val) = type OF val = t_lst
+    LET emptyp(val) = val = empty
+
+    def(env, "list?", pred_fun(listp))
+    def(env, "empty?", pred_fun(emptyp))
+  }
+
   // Printing functions
   { LET prn(fn, args) = VALOF
     { writes(@(pr_str(args!lst_first)!str_data))
