@@ -15,7 +15,8 @@ GET "malhdr"
 LET core_env() = VALOF
 { LET env = env_new(nil, empty, empty)
   LET def(env, name, value) BE env_set(env, as_sym(str_bcpl2mal(name)), value)
-
+  LET bare_fun(fn) = alloc_fun(fn, fun_data)
+   
   // A common form of core function is a wrapped function, where one
   // function does the actual work while another (the wrapper) handles
   // conversion between mal and BCPL conventions.  The wrapper
@@ -47,8 +48,7 @@ LET core_env() = VALOF
   }
 
   // Printing functions
-  { LET bare_fun(fn) = alloc_fun(fn, fun_data)
-    LET prn(fn, args) = VALOF
+  { LET prn(fn, args) = VALOF
     { writes(@(pr_str(args!lst_first)!str_data))
       newline()
       RESULTIS nil
@@ -56,5 +56,9 @@ LET core_env() = VALOF
     def(env, "prn", bare_fun(prn))
   }
 
+  // Constructors
+  { LET list(fn, args) = args
+    def (env, "list", bare_fun(list))
+  }
   RESULTIS env
 }
