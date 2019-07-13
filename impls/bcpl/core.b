@@ -58,6 +58,21 @@ LET core_env() = VALOF
     def(env, "empty?", pred_fun(emptyp))
   }
 
+  // Miscellaneous list functions
+  { LET count(fn, args) = VALOF
+    { LET list, n = args!lst_first, 0
+      IF list = nil RESULTIS alloc_int(0)
+      UNLESS type OF list = t_lst DO
+        throwf("invalid argument to count: %v", list)
+      UNTIL list = empty DO
+      { n := n + 1
+        list := list!lst_rest
+      }
+      RESULTIS alloc_int(n)
+    }
+    def(env, "count", bare_fun(count))
+  }
+
   // Printing functions
   { LET prn(fn, args) = VALOF
     { writes(@(pr_str(args!lst_first)!str_data))
