@@ -22,7 +22,7 @@ MANIFEST
   // value.  The "type" distinguishes mal types with the same supertype
   // (for instance functions and macros).  The compoundflag is set on
   // compund types (ones containing references to other values).
-  compoundflag = SLCT 1:7:0; supertype = SLCT 4:0:0; type = SLCT 8:0:0
+  compoundflag = SLCT 1:3:0; supertype = SLCT 4:0:0; type = SLCT 8:0:0
 
   // Nil. There is a single nil value initialised by init_types(), but
   // it's a valid pointer so it can safely be dereferenced.
@@ -54,7 +54,7 @@ MANIFEST
 
   // Functions.  Contains a function which gets passed a pointer to
   // this structure and can do what it likes with it.
-  t_fun = #x03; fun_code = 1; fun_data = 2
+  t_fun = #x0f; fun_code = 1; fun_data = 2
 
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a
