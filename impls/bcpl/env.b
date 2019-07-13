@@ -11,8 +11,12 @@ LET env_new(outer, binds, exprs) = VALOF
 { LET env = getvec(env_sz)
   env!env_outer := outer
   env!env_data := empty_hashmap
-  UNTIL binds = empty | exprs = empty DO
-  { env_set(env, binds!lst_first, exprs!lst_first)
+  UNTIL binds = empty DO
+  { IF str_eq_const(binds!lst_first, "&") THEN
+    { env_set(env, nth(binds, 1), exprs)
+      BREAK
+    }
+    env_set(env, binds!lst_first, exprs!lst_first)
     binds, exprs := binds!lst_rest, exprs!lst_rest
   }
   RESULTIS env
