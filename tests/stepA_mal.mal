@@ -163,6 +163,8 @@
 ;=>false
 (macro? :+)
 ;=>false
+(macro? {})
+;=>false
 
 
 ;;

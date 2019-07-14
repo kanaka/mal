@@ -29,7 +29,9 @@
     (let* [a0 (first ast)]
       (if (symbol? a0)
         (if (env-find env a0)
-          (_macro_unwrap (env-get env a0))))))))
+          (let* [m (env-get env a0)]
+            (if (_macro? m)
+              (get m :__MAL_MACRO__)))))))))
 
 (def! MACROEXPAND (fn* [ast env]
   (let* [m (is-macro-call ast env)]
@@ -44,9 +46,9 @@
 
     (list? ast)   (map (fn* [exp] (EVAL exp env)) ast)
 
-    (_vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
+    (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
 
-    (map? ast)    (apply hash-map
+    (_map? ast)   (apply hash-map
                       (apply concat
                         (map (fn* [k] [k (EVAL (get ast k) env)])
                              (keys ast))))
@@ -85,7 +87,7 @@
           (EVAL (QUASIQUOTE (nth ast 1)) env)
 
           (= 'defmacro! a0)
-          (env-set env (nth ast 1) (_macro_wrap (EVAL (nth ast 2) env)))
+          (env-set env (nth ast 1) {:__MAL_MACRO__ (EVAL (nth ast 2) env)})
 
           (= 'macroexpand a0)
           (MACROEXPAND (nth ast 1) env)
@@ -109,8 +111,7 @@
 
 
 ;; print
-(def! PRINT (fn* [x]
-  (pr-str (let* [m (_macro_unwrap x)] (if m m x)))))
+(def! PRINT pr-str)
 
 ;; repl
 (def! repl-env (new-env))

@@ -177,6 +177,7 @@
 (map? :abc)
 ;=>false
 
+
 ;;
 ;; Testing hash-maps
 (hash-map "a" 1)
@@ -377,3 +378,5 @@
 (= [] {})
 ;=>false
 
+(map? cond)
+;=>false
