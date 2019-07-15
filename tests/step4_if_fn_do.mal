@@ -127,6 +127,8 @@
 ;=>false
 (= (list) 0)
 ;=>false
+(= (list nil) (list))
+;=>false
 
 
 ;; Testing builtin and user defined functions
