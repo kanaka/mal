@@ -81,7 +81,7 @@ repl_env set(MalSymbol with("*ARGV*"), MalList with(System args slice(2)))
 
 // core.mal: defined using the language itself
 RE("(def! not (fn* (a) (if a false true)))")
-RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 if(System args size > 1,
     REP("(load-file \"" .. (System args at(1)) .. "\")")

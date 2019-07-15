@@ -425,7 +425,7 @@ procedure Step9_Try is
    Startup : constant String
      := "(def! not (fn* (a) (if a false true)))"
      & "(def! load-file (fn* (f)"
-     & "  (eval (read-string (str ""(do "" (slurp f) "")"")))))"
+     & "  (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))"
      & "(defmacro! cond (fn* (& xs)"
      & "  (if (> (count xs) 0)"
      & "    (list 'if (first xs)"

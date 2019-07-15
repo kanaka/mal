@@ -93,5 +93,3 @@
 ;; then `(method1 obj)` and `(method2 obj 1 2)`
 ;; dispatch to the concrete implementation provided by the exact type.
 ;; Should the type evolve, the calling code needs not change.
-
-nil

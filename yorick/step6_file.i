@@ -166,7 +166,7 @@ func main(void)
 
   // core.mal: defined using the language itself
   RE, "(def! not (fn* (a) (if a false true)))", repl_env
-  RE, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env
+  RE, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))", repl_env
 
   if (numberof(command_line_args) > 0) {
     RE, "(load-file \"" + command_line_args(1) + "\")", repl_env

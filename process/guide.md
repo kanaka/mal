@@ -990,7 +990,7 @@ diff -urp ../process/step5_tco.txt ../process/step6_file.txt
 
 * Define a `load-file` function using mal itself. In your main
   program call the `rep` function with this string:
-  "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))".
+  "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))".
 
 Try out `load-file`:
   * `(load-file "../tests/incA.mal")` -> `9`
@@ -999,7 +999,9 @@ Try out `load-file`:
 The `load-file` function does the following:
   * Call `slurp` to read in a file by name. Surround the contents with
     "(do ...)" so that the whole file will be treated as a single
-    program AST (abstract syntax tree).
+    program AST (abstract syntax tree). Add a new line in case the files
+    ends with a comment. The `nil` ensures a short and predictable result,
+    instead of what happens to be the last function defined in the loaded file.
   * Call `read-string` on the string returned from `slurp`. This uses
     the reader to read/convert the file contents into mal data/AST.
   * Call `eval` (the one in the REPL environment) on the AST returned

@@ -114,7 +114,7 @@ REPL_ENV := $(call ENV_SET,$(REPL_ENV),*ARGV*,$(_argv))
 
 # core.mal: defined in terms of the language itself
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
-$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
+$(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)"))))) ))
 
 # Load and eval any files specified on the command line
 $(if $(MAKECMDGOALS),\

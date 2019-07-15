@@ -8,9 +8,6 @@ However, here are some guidelines.
 
 - Begin with an one-line ;; short description
 
-- End with `nil`, so that the result of `load-file` is conveniently
-  short when loading manually and predictilbe for automatic testing
-
 - Describe the restrictions on each parameter in comments.
 
 - Define private symbols in hidden environments when possible. If this

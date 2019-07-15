@@ -120,4 +120,3 @@
         (present (rest slides))))))
 
 (present slides)
-

@@ -129,7 +129,7 @@
 
 ;; core.mal: defined using the language itself
 (REP "(def! not (fn* [a] (if a false true)))")
-(REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+(REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 (defmain [&rest args]
   (if (>= (len args) 2)

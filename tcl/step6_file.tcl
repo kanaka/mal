@@ -148,7 +148,7 @@ $repl_env set "*ARGV*" [list_new $argv_list]
 
 # core.mal: defined using the language itself
 RE "(def! not (fn* (a) (if a false true)))" $repl_env
-RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" $repl_env
+RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))" $repl_env
 
 fconfigure stdout -translation binary
 

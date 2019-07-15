@@ -3,8 +3,4 @@
 (def! inc5 (fn* (a)  ;; a comment after code
   (+ 5 a)))
 
-(prn "incB.mal finished")
-"incB.mal return string"
-
-;; ending comment
-
+;; ending comment without final new line

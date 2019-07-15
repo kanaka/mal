@@ -20,7 +20,7 @@ void setupEnv(List<String> argv) {
 
   rep('(def! not (fn* (a) (if a false true)))');
   rep("(def! load-file "
-      "(fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+      "(fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
 }
 
 MalType quasiquote(MalType ast) {

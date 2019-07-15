@@ -275,6 +275,7 @@
 
 ;; Loading sumdown from computations.mal
 (load-file "../tests/computations.mal")
+;=>nil
 
 ;;
 ;; Testing time-ms function

@@ -136,7 +136,7 @@ repl_env set(MalSymbol with("*ARGV*"), MalList with(System args slice(2)))
 // core.mal: defined using the language itself
 RE("(def! *host-language* \"io\")")
 RE("(def! not (fn* (a) (if a false true)))")
-RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 RE("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 
 if(System args size > 1,

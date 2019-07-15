@@ -539,7 +539,7 @@
     ;; core.mal: defined using the language itself
     ($RELEASE ($RE "(def! *host-language* \"WebAssembly\")" $repl_env))
     ($RELEASE ($RE "(def! not (fn* (a) (if a false true)))" $repl_env))
-    ($RELEASE ($RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" $repl_env))
+    ($RELEASE ($RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))" $repl_env))
     ($RELEASE ($RE "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" $repl_env))
 
     ;; Command line arguments

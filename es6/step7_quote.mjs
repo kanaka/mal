@@ -107,7 +107,7 @@ env_set(repl_env, Symbol.for('*ARGV*'), [])
 
 // core.mal: defined using language itself
 REP('(def! not (fn* (a) (if a false true)))')
-REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
+REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))')
 
 if (process.argv.length > 2) {
     env_set(repl_env, Symbol.for('*ARGV*'), process.argv.slice(3))

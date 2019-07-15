@@ -154,7 +154,7 @@ class Step7_quote {
 
         // core.mal: defined using the language itself
         rep("(def! not (fn* (a) (if a false true)))");
-        rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+        rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
 
         if (cmdargs.length > 0) {
             rep('(load-file "${cmdargs[0]}")');

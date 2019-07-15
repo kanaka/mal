@@ -30,5 +30,3 @@
       ;; xs     : sequence of Elements x1 x2 .. xn
       ;; return : Accumulator
       (rec f xs init (- (count xs) 1)))))
-
-nil

@@ -113,7 +113,7 @@ repl_env.set(Function(fn: { try EVAL($0[0], env: repl_env) }), forKey: Symbol("e
 repl_env.set([], forKey: Symbol("*ARGV*"))
 
 try rep("(def! not (fn* (a) (if a false true)))", env: repl_env)
-try rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", env: repl_env)
+try rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", env: repl_env)
 
 if CommandLine.argc > 1 {
     let fileName = CommandLine.arguments[1],

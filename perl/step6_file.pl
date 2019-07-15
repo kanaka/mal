@@ -125,7 +125,7 @@ $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 
 # core.mal: defined using the language itself
 REP(q[(def! not (fn* (a) (if a false true)))]);
-REP(q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))]);
+REP(q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))]);
 
 if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");

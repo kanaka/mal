@@ -206,7 +206,7 @@ ENV_SET "${REPL_ENV}" "${r}" "${argv}";
 
 # core.mal: defined using the language itself
 REP "(def! not (fn* (a) (if a false true)))"
-REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
 
 # load/run file from command line (then exit)
 if [[ "${1}" ]]; then

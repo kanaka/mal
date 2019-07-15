@@ -122,7 +122,7 @@ function main(args)
 
     % core.mal: defined using the langauge itself
     rep('(def! not (fn* (a) (if a false true)))', repl_env);
-    rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))"', repl_env);
+    rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))"', repl_env);
 
     if ~isempty(args)
         rep(sprintf('(load-file "%s")', args{1}), repl_env);

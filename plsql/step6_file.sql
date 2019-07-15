@@ -231,7 +231,7 @@ BEGIN
 
     -- core.mal: defined using the language itself
     line := REP('(def! not (fn* (a) (if a false true)))');
-    line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+    line := REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))');
 
     IF argv.COUNT() > 0 THEN
         BEGIN

@@ -23,5 +23,3 @@
               (do
                 (swap! mem assoc key ret)
                 ret))))))))
-
-nil

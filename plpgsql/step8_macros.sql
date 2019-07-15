@@ -293,7 +293,7 @@ SELECT envs.vset(0, '*ARGV*', mal.READ('()')) \g '/dev/null'
 
 -- core.mal: defined using the language itself
 SELECT mal.REP('(def! not (fn* (a) (if a false true)))') \g '/dev/null'
-SELECT mal.REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))') \g '/dev/null'
+SELECT mal.REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))') \g '/dev/null'
 SELECT mal.REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))') \g '/dev/null'
 
 CREATE FUNCTION mal.MAIN(pwd varchar, argstring varchar DEFAULT NULL)

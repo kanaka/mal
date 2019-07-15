@@ -111,7 +111,7 @@ proc rep(str: string): string {.discardable.} =
 
 # core.mal: defined using mal itself
 rep "(def! not (fn* (a) (if a false true)))"
-rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
 
 if paramCount() >= 1:
   rep "(load-file \"" & paramStr(1) & "\")"

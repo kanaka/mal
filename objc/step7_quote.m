@@ -171,7 +171,7 @@ int main () {
 
     // core.mal: defined using the language itself
     REP(@"(def! not (fn* (a) (if a false true)))", repl_env);
-    REP(@"(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env);
+    REP(@"(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", repl_env);
 
     if ([args count] > 1) {
         @try {

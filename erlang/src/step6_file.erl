@@ -19,7 +19,7 @@ init() ->
     Env = core:ns(),
     % define the load-file and not functions using mal itself
     eval(read("(def! not (fn* (a) (if a false true)))"), Env),
-    eval(read("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"), Env),
+    eval(read("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"), Env),
     Env.
 
 loop(Env) ->

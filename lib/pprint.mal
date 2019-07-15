@@ -41,5 +41,3 @@
 
     (fn* [obj]
          (println (pp- obj 0)))))
-
-nil

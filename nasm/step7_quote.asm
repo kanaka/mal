@@ -68,7 +68,7 @@ section .data
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do \
 (def! not (fn* (a) (if a false true))) \
-(def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) \
+(def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,10,"nil)",34," ))))) \
 )"
 
 ;; Command to run, appending the name of the script to run

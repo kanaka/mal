@@ -163,8 +163,3 @@
 ;; ((compose f1 f2) x) is equivalent to (f1 (f2 x))
 ;; This is the mathematical composition. For practical purposes, `->`
 ;; and `->>` defined in `core.mal` are more efficient and general.
-
-;; This `nil` is intentional so that the result of doing `load-file` is
-;; `nil` instead of whatever happens to be the last definiton.
-;; FIXME: can be removed after merge of load-file-trailing-new-line-nil
-nil

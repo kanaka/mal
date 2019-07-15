@@ -207,7 +207,7 @@ replEnv.set(MalSymbol.get("*ARGV*"), new MalList([]));
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
-rep(`(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))`);
+rep(`(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`);
 
 if (typeof process !== "undefined" && 2 < process.argv.length) {
     replEnv.set(MalSymbol.get("*ARGV*"), new MalList(process.argv.slice(3).map(s => new MalString(s))));

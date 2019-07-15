@@ -157,7 +157,7 @@ REPL_ENV = Mal::Env.new nil
 Mal::NS.each { |k, v| REPL_ENV.set(k, Mal::Type.new(v)) }
 REPL_ENV.set("eval", Mal::Type.new ->(args : Array(Mal::Type)) { Mal.eval(args[0], REPL_ENV) })
 Mal.rep "(def! not (fn* (a) (if a false true)))"
-Mal.rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+Mal.rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
 argv = Mal::List.new
 REPL_ENV.set("*ARGV*", Mal::Type.new argv)
 

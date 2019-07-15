@@ -121,7 +121,7 @@ $repl_env->set(_symbol('*ARGV*'), $_argv);
 
 // core.mal: defined using the language itself
 rep("(def! not (fn* (a) (if a false true)))");
-rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
 
 if (count($argv) > 1) {
     rep('(load-file "' . $argv[1] . '")');

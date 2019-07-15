@@ -505,7 +505,7 @@ function main(str, ret, i, idx)
 	env_set(repl_env, "'eval", "&eval")
 
 	rep("(def! not (fn* (a) (if a false true)))")
-	rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+	rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))")
 	rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 
 	idx = types_allocate()

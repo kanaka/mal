@@ -108,7 +108,7 @@ object step6_file {
 
     // core.mal: defined using the language itself
     REP("(def! not (fn* (a) (if a false true)))")
-    REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+    REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
     if (args.length > 0) {
       REP("(load-file \"" + args(0) + "\")")

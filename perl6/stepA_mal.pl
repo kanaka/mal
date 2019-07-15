@@ -136,7 +136,7 @@ sub MAIN ($source_file?, *@args) {
   $repl_env.set('*ARGV*', MalList([@args.map({ MalString($_) })]));
   $repl_env.set('*host-language*', MalString('perl6'));
   rep(q{(def! not (fn* (a) (if a false true)))});
-  rep(q{(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))});
+  rep(q{(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))});
   rep(q{(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))});
 
   if ($source_file.defined) {

@@ -415,7 +415,7 @@ function main(str, ret, i, idx)
 	env_set(repl_env, "'eval", "&eval")
 
 	rep("(def! not (fn* (a) (if a false true)))")
-	rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+	rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))")
 
 	idx = types_allocate()
 	env_set(repl_env, "'*ARGV*", "(" idx)
