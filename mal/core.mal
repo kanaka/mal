@@ -1,11 +1,11 @@
 (def! _map? (fn* [x]
   (if (map? x)
-    (not (= (keys x) '(:__MAL_MACRO__)))
+    (not (contains? x :__MAL_MACRO__))
     false)))
 
 (def! _macro? (fn* [x]
   (if (map? x)
-    (= (keys x) '(:__MAL_MACRO__))
+    (contains? x :__MAL_MACRO__)
     false)))
 
 (def! core_ns
