@@ -156,7 +156,6 @@ REPL_ENV := $(call ENV_SET,$(REPL_ENV),*ARGV*,$(_argv))
 $(call do,$(call REP, (def! not (fn* (a) (if a false true))) ))
 $(call do,$(call REP, (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))) ))
 $(call do,$(call REP, (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs))))))) ))
-$(call do,$(call REP, (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs)))))))) ))
 
 # Load and eval any files specified on the command line
 $(if $(MAKECMDGOALS),\

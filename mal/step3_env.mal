@@ -1,13 +1,12 @@
 (load-file "../mal/env.mal")
 
 ;; read
-(def! READ (fn* [strng]
-  (read-string strng)))
+(def! READ read-string)
 
 
 ;; eval
-(def! eval-ast (fn* [ast env] (do
-  ;;(do (prn "eval-ast" ast "/" (keys env)) )
+(def! eval-ast (fn* [ast env]
+  ;; (do (prn "eval-ast" ast "/" (keys env)) )
   (cond
     (symbol? ast) (env-get env ast)
 
@@ -20,43 +19,39 @@
                         (map (fn* [k] [k (EVAL (get ast k) env)])
                              (keys ast))))
 
-    "else"        ast))))
+    "else"        ast)))
 
-(def! LET (fn* [env args]
-  (if (> (count args) 0)
+(def! LET (fn* [env binds form]
+  (if (empty? binds)
+    (EVAL form env)
     (do
-      (env-set env (nth args 0) (EVAL (nth args 1) env))
-      (LET env (rest (rest args)))))))
+      (env-set env (first binds) (EVAL (nth binds 1) env))
+      (LET env (rest (rest binds)) form)))))
 
-(def! EVAL (fn* [ast env] (do
-  ;;(do (prn "EVAL" ast "/" (keys @env)) )
+(def! EVAL (fn* [ast env]
+  ;; (do (prn "EVAL" ast "/" (keys @env)) )
   (if (not (list? ast))
     (eval-ast ast env)
 
     ;; apply list
     (let* [a0 (first ast)]
       (cond
-        (nil? a0)
+        (empty? ast)
         ast
 
         (= 'def! a0)
         (env-set env (nth ast 1) (EVAL (nth ast 2) env))
 
         (= 'let* a0)
-        (let* [let-env (new-env env)]
-          (do
-            (LET let-env (nth ast 1))
-            (EVAL (nth ast 2) let-env)))
+        (LET (new-env env) (nth ast 1) (nth ast 2))
 
         "else"
-        (let* [el (eval-ast ast env)
-              f (first el)
-              args (rest el)]
-          (apply f args))))))))
+        (let* [el (eval-ast ast env)]
+          (apply (first el) (rest el))))))))
 
 
 ;; print
-(def! PRINT (fn* [exp] (pr-str exp)))
+(def! PRINT pr-str)
 
 ;; repl
 (def! repl-env (new-env))
@@ -69,17 +64,15 @@
 (env-set repl-env "/" /)
 
 ;; repl loop
-(def! repl-loop (fn* []
-  (let* [line (readline "mal-user> ")]
-    (if line
-      (do
-        (if (not (= "" line))
-          (try*
-            (println (rep line))
-            (catch* exc
-              (println "Uncaught exception:" exc))))
-        (repl-loop))))))
+(def! repl-loop (fn* [line]
+  (if line
+    (do
+      (if (not (= "" line))
+        (try*
+          (println (rep line))
+          (catch* exc
+            (println "Uncaught exception:" exc))))
+      (repl-loop (readline "mal-user> "))))))
 
-(def! -main (fn* [& args] 
-  (repl-loop)))
-(-main)
+;; main
+(repl-loop "")

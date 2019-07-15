@@ -193,7 +193,6 @@ call repl_env.set("*ARGV*", GetArgvList())
 call RE("(def! not (fn* (a) (if a false true)))", repl_env)
 call RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env)
 call RE("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env)
-call RE("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))", repl_env)
 
 if !empty(argv())
   call RE('(load-file "' . argv(0) . '")', repl_env)

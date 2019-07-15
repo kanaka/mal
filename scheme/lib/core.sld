@@ -275,7 +275,7 @@
                      ((func? x)
                       (let ((func (make-func (func-ast x) (func-params x)
                                              (func-env x) (func-fn x))))
-                        (func-macro?-set! func (func-macro? x))
+                        (func-macro?-set! func #f)
                         (func-meta-set! func meta)
                         func))
                      (else

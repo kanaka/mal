@@ -150,7 +150,7 @@
    ((callable? c)
     (let ((cc (make-callable ht
                              (callable-unbox c)
-                             (and (hash-table? ht) (hash-ref ht "ismacro"))
+                             #f
                              (callable-closure c))))
       cc))
    (else

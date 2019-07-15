@@ -1,12 +1,14 @@
 ;; Mesure performances.
 
+(load-file "../lib/trivial.mal")        ; gensym inc
+
 ;; Evaluate an expression, but report the time spent
 (defmacro! time
   (fn* (exp)
     (let* [start (gensym)
            ret   (gensym)]
-      `(let* [~start (time-ms)
-              ~ret    ~exp]
+      `(let* (~start (time-ms)
+              ~ret   ~exp)
         (do
           (prn (str "Elapsed time: " (- (time-ms) ~start) " msecs"))
           ~ret)))))
@@ -19,7 +21,7 @@
       (let* [start (time-ms)
              _ (fn)
              elapsed (- (time-ms) start)
-             iters (+ 1 last-iters)
+             iters (inc last-iters)
              new-acc-ms (+ acc-ms elapsed)]
         ;; (do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
         (if (>= new-acc-ms max-ms)
