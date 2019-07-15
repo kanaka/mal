@@ -25,6 +25,10 @@
 (slurp "../tests/test.txt")
 ;=>"A line of text\n"
 
+;;; Load the same file twice.
+(slurp "../tests/test.txt")
+;=>"A line of text\n"
+
 ;; Testing load-file
 
 (load-file "../tests/inc.mal")
