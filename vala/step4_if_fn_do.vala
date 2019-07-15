@@ -56,16 +56,16 @@ class Mal.Main: GLib.Object {
     }
 
     private static Mal.Val define_eval(Mal.Val key, Mal.Val value,
-                                       Mal.Env eval_env, Mal.Env def_env)
+                                       Mal.Env env)
     throws Mal.Error {
         var rootk = new GC.Root(key); (void)rootk;
-        var roote = new GC.Root(def_env); (void)roote;
+        var roote = new GC.Root(env); (void)roote;
         var symkey = key as Mal.Sym;
         if (symkey == null)
             throw new Mal.Error.BAD_PARAMS(
                 "let*: expected a symbol to define");
-        var val = EVAL(value, eval_env);
-        def_env.set(symkey, val);
+        var val = EVAL(value, env);
+        env.set(symkey, val);
         return val;
     }
 
@@ -89,7 +89,7 @@ class Mal.Main: GLib.Object {
                         throw new Mal.Error.BAD_PARAMS(
                             "def!: expected two values");
                     return define_eval(list.next.data, list.next.next.data,
-                                       env, env);
+                                       env);
                 case "let*":
                     if (list.length() != 3)
                         throw new Mal.Error.BAD_PARAMS(
@@ -105,8 +105,7 @@ class Mal.Main: GLib.Object {
                                 throw new Mal.Error.BAD_PARAMS(
                                     "let*: expected an even-length list" +
                                     " of definitions");
-                            define_eval(iter.data, iter.next.data,
-                                        newenv, newenv);
+                            define_eval(iter.data, iter.next.data, newenv);
                         }
                     } else if (defns is Mal.Vector) {
                         var vec = defns as Mal.Vector;
@@ -115,7 +114,7 @@ class Mal.Main: GLib.Object {
                                 "let*: expected an even-length vector" +
                                 " of definitions");
                         for (var i = 0; i < vec.length; i += 2)
-                            define_eval(vec[i], vec[i+1], newenv, newenv);
+                            define_eval(vec[i], vec[i+1], newenv);
                     } else {
                         throw new Mal.Error.BAD_PARAMS(
                             "let*: expected a list or vector of definitions");
