@@ -92,6 +92,7 @@ LET equal(a, b) = VALOF
   UNLESS type OF a = type OF b RESULTIS FALSE
   SWITCHON supertype OF a INTO
   { CASE t_lst: RESULTIS equal_lst(a, b)
+    CASE t_vec: RESULTIS equal_vec(a, b)
   }
   len := VALOF SWITCHON supertype OF a INTO
   { CASE t_nil: RESULTIS 1
@@ -112,6 +113,13 @@ AND equal_lst(a, b) = VALOF
   IF a = empty | b = empty RESULTIS FALSE
   UNLESS equal(a!lst_first, b!lst_first) RESULTIS FALSE
   RESULTIS equal_lst(a!lst_rest, b!lst_rest)
+}
+
+AND equal_vec(a, b) = VALOF
+{ UNLESS a!vec_len = b!vec_len RESULTIS FALSE
+  FOR i = 0 TO a!vec_len - 1 DO
+    UNLESS equal((a + vec_data)!i, (b + vec_data)!i) RESULTIS FALSE
+  RESULTIS TRUE
 }
 
 LET alloc_vec(len) = VALOF
