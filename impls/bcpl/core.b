@@ -85,15 +85,17 @@ LET core_env() = VALOF
 
   // Miscellaneous list functions
   { LET count(fn, args) = VALOF
-    { LET list, n = args!lst_first, 0
-      IF list = nil RESULTIS alloc_int(0)
-      UNLESS type OF list = t_lst DO
-        throwf("invalid argument to count: %v", list)
-      UNTIL list = empty DO
-      { n := n + 1
-        list := list!lst_rest
+    { LET arg = args!lst_first
+      SWITCHON supertype OF arg INTO
+      { CASE t_nil: RESULTIS alloc_int(0)
+        CASE t_lst:
+        { LET n = 0
+          UNTIL arg = empty DO n, arg := n + 1, arg!lst_rest
+	  RESULTIS alloc_int(n)
+	}
+        CASE t_vec: RESULTIS alloc_int(arg!vec_len)
+	DEFAULT: throwf("invalid argument to count: %v", arg)
       }
-      RESULTIS alloc_int(n)
     }
     def(env, "count", bare_fun(count))
   }
