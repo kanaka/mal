@@ -68,7 +68,8 @@ AND EVAL(ast, env) = VALOF
     { MANIFEST { fun_binds = fun_data; fun_body; fun_env; fun_sz }
       LET call(fun, args) =
           EVAL(fun!fun_body, env_new(fun!fun_env, fun!fun_binds, args))
-      LET result = alloc_fun(call, fun_sz, nth(ast, 1), nth(ast, 2), env)
+      LET result = alloc_fun(call, fun_sz,
+                             as_lst(nth(ast, 1)), nth(ast, 2), env)
       RESULTIS result
     }
   }
