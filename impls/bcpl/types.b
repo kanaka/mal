@@ -87,13 +87,9 @@ LET str_eq_const(val, bcplstr) = VALOF
   RESULTIS TRUE
 }
 
-LET equal(a, b) = VALOF
+LET equal_scalar(a, b) = VALOF
 { LET len = ?
   UNLESS type OF a = type OF b RESULTIS FALSE
-  SWITCHON supertype OF a INTO
-  { CASE t_lst: RESULTIS equal_lst(a, b)
-    CASE t_vec: RESULTIS equal_vec(a, b)
-  }
   len := VALOF SWITCHON supertype OF a INTO
   { CASE t_nil: RESULTIS 1
     CASE t_int: RESULTIS int_sz
@@ -108,6 +104,19 @@ LET equal(a, b) = VALOF
   RESULTIS TRUE
 }
 
+LET equal(a, b) = VALOF SWITCHON supertype OF a INTO
+  { CASE t_lst:
+      IF supertype OF b = t_lst | supertype OF b = t_vec THEN
+        RESULTIS equal_lst(a, as_lst(b))
+      RESULTIS FALSE
+    CASE t_vec:
+      IF supertype OF b = t_lst RESULTIS equal_lst(as_lst(a), b)
+      IF supertype OF b = t_vec RESULTIS equal_vec(a, b)
+      RESULTIS FALSE
+    DEFAULT:
+      RESULTIS equal_scalar(a, b)
+  }
+  
 AND equal_lst(a, b) = VALOF
 { IF a = b = empty RESULTIS TRUE
   IF a = empty | b = empty RESULTIS FALSE
