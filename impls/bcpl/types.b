@@ -126,8 +126,8 @@ AND equal_lst(a, b) = VALOF
 { IF a = b = empty RESULTIS TRUE
   IF a = empty | b = empty RESULTIS FALSE
   UNLESS equal(a!lst_first, b!lst_first) RESULTIS FALSE
-  RESULTIS equal_lst(a!lst_rest, b!lst_rest)
-}
+  a, b := a!lst_rest, b!lst_rest
+} REPEAT
 
 AND equal_vec(a, b) = VALOF
 { UNLESS a!vec_len = b!vec_len RESULTIS FALSE
