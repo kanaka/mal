@@ -1,6 +1,7 @@
 ;; Iteration on evaluations interpreted as boolean values.
 
-(load-file "../lib/trivial.mal")        ; gensym
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")   ; gensym
 
 ;; `(cond test1 result1 test2 result2 .. testn resultn)`
 ;; is rewritten (in the step files) as

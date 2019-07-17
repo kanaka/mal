@@ -1,4 +1,5 @@
-(load-file "../lib/reducers.mal")
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/reducers.mal")
 ;=>nil
 
 ;; Testing reduce

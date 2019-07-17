@@ -1,6 +1,6 @@
-(load-file "../tests/computations.mal")
-;=>nil
-(load-file "../lib/memoize.mal")
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../tests/computations.mal")
+(load-file-once "../lib/memoize.mal")
 ;=>nil
 
 (def! N 32)

@@ -1,6 +1,7 @@
-(load-file "../lib/threading.mal")      ; ->
-(load-file "../lib/perf.mal")           ; run-fn-for
-(load-file "../lib/test_cascade.mal")   ; or
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/threading.mal")    ; ->
+(load-file-once "../lib/perf.mal")         ; run-fn-for
+(load-file-once "../lib/test_cascade.mal") ; or
 
 ;;(prn "Start: basic macros/atom test")
 

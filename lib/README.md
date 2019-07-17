@@ -17,13 +17,19 @@ However, here are some guidelines.
   is not possible, for example for macros, give them a name starting
   with an underscore.
 
-- Support successive imports safely by giving the same definitions
-  again.
-
 If a module provides tests, you may run against an implementation IMPL
 with these commands.
 ```
 make IMPL^stepA
 cd tests
 python ../runtest.py lib/MODULE.mal ../IMPL/run
+```
+
+Users and implementors should use the following syntax in order to
+ensure that the same file is only loaded once.
+
+```
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/foo.mal")
+(load-file-once "../lib/bar.mal")
 ```

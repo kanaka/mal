@@ -1,4 +1,5 @@
-(load-file "../lib/trivial.mal")
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/trivial.mal")
 ;=>nil
 
 (inc 12)
