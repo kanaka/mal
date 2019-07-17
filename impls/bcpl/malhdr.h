@@ -5,7 +5,7 @@ GLOBAL { readline: ug
 	 equal
 	 cons; nth; as_lst
 	 alloc_int
-	 str_setlen; alloc_str; str_bcpl2mal; as_sym; str_eq_const
+	 str_setlen; alloc_str; str_bcpl2mal; as_sym; as_kwd; str_eq_const
 	 hm_set; hm_contains; hm_get
 	 alloc_vec
 	 alloc_fun
@@ -43,8 +43,9 @@ MANIFEST
   // first byte of the string is also the length if it will fit.
   t_str = #x02; str_len = 1; str_data = 2
 
-  // Symbols.  Symbols are like strings, but with a different type.
+  // Symbols and keywords.  Like strings, but with different types.
   t_sym = #x12
+  t_kwd = #x22
 
   maxbcplstrlen = (1 << (BITSPERBCPLWORD / bytesperword)) - 1
 

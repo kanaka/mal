@@ -41,8 +41,8 @@ LET tokenize(s) = VALOF
         LOOP
       CASE '*"': // String
         p := p + (sd%p = '\' -> 2, 1) REPEATUNTIL p > s!str_len | sd%p = '*"'
-        ENDCASE     
-      DEFAULT: // Symbol or number
+        ENDCASE
+      DEFAULT: // Symbol, keyword, or number
         UNTIL p > s!str_len DO
         { SWITCHON sd%p INTO
           { CASE ' ': CASE '*t': CASE '*n': CASE ',':
@@ -95,6 +95,8 @@ LET read_string(token) = VALOF
   RESULTIS out
 }
 
+LET read_keyword(token) = as_kwd(newsubstr(token, 2, token!str_len + 1))
+
 LET read_number_maybe(token) = VALOF
 { LET sd, start, negative, acc = token + str_data, 1, FALSE, 0
   IF sd%1 = '-' THEN
@@ -125,6 +127,7 @@ LET read_number_maybe(token) = VALOF
 LET read_atom(rdr) = VALOF
 { LET token, maybenum = reader_next(rdr), ?
   IF (token + str_data)%1 = '*"' THEN RESULTIS read_string(token)
+  IF (token + str_data)%1 = ':' THEN RESULTIS read_keyword(token)
   maybenum := read_number_maybe(token)
   UNLESS maybenum = nil RESULTIS maybenum
   IF str_eq_const(token, "nil")   RESULTIS nil

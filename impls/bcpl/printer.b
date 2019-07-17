@@ -73,6 +73,11 @@ LET print_sym(sym, buf, pos, count_only) = VALOF
   RESULTIS pos + sym!str_len
 }
 
+LET print_kwd(kwd, buf, pos, count_only) = VALOF
+{ pos := print_char(':', buf, pos, count_only)
+  RESULTIS print_sym(kwd, buf, pos, count_only)
+}
+
 LET print_lst(lst, buf, pos, count_only) = VALOF
 { pos := print_char('(', buf, pos, count_only)
   UNLESS lst = empty DO
@@ -129,6 +134,7 @@ AND print_form(val, buf, pos, count_only) = VALOF
     CASE t_int: RESULTIS print_int(val, buf, pos, count_only)
     CASE t_str: RESULTIS print_str(val, buf, pos, count_only)
     CASE t_sym: RESULTIS print_sym(val, buf, pos, count_only)
+    CASE t_kwd: RESULTIS print_kwd(val, buf, pos, count_only)
     CASE t_fun: RESULTIS print_const("#<function>", buf, pos, count_only)
     DEFAULT: RESULTIS print_const("<unprintable>", buf, pos, count_only)
   }

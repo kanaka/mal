@@ -62,14 +62,27 @@ LET alloc_str(len) = VALOF
   RESULTIS result
 }
 
+LET str_dup(val) = VALOF
+{ LET new = alloc_str(val!str_len)
+  FOR i = 1 TO str_data + val!str_len / bytesperword DO
+    new!i := val!i
+  RESULTIS new
+}
+
 LET as_sym(val) = VALOF
 { LET sym = ?
   IF type OF val = t_sym THEN RESULTIS val
-  sym := alloc_str(val!str_len)
+  sym := str_dup(val)
   type OF sym := t_sym
-  FOR i = 1 TO str_data + val!str_len / bytesperword DO
-    sym!i := val!i
   RESULTIS sym
+}
+
+LET as_kwd(val) = VALOF
+{ LET kwd = ?
+  IF type OF val = t_kwd THEN RESULTIS val
+  kwd := str_dup(val)
+  type OF kwd := t_kwd
+  RESULTIS kwd
 }
 
 LET str_bcpl2mal(bcplstr) = VALOF
