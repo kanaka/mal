@@ -104,19 +104,24 @@ LET equal_scalar(a, b) = VALOF
   RESULTIS TRUE
 }
 
-LET equal(a, b) = VALOF SWITCHON supertype OF a INTO
-  { CASE t_lst:
-      IF supertype OF b = t_lst | supertype OF b = t_vec THEN
-        RESULTIS equal_lst(a, as_lst(b))
-      RESULTIS FALSE
-    CASE t_vec:
-      IF supertype OF b = t_lst RESULTIS equal_lst(as_lst(a), b)
-      IF supertype OF b = t_vec RESULTIS equal_vec(a, b)
-      RESULTIS FALSE
-    DEFAULT:
-      RESULTIS equal_scalar(a, b)
+LET equal(a, b) = VALOF
+{ UNLESS type OF a = type OF b RESULTIS equal_mixed(a, b)
+  SWITCHON type OF a INTO
+  { CASE t_lst: RESULTIS equal_lst(a, b)
+    CASE t_vec: RESULTIS equal_vec(a, b)
+    DEFAULT:    RESULTIS equal_scalar(a, b)
   }
-  
+}
+
+AND equal_mixed(a, b) = VALOF
+{ // Mostly, values of different types are unequal.  However mal has a
+  // special rule that a vector and a list are equal if they have the same
+  // contents.
+  IF type OF a = t_lst & type OF b = t_vec RESULTIS equal_lst(a, as_lst(b))
+  IF type OF a = t_vec & type OF b = t_lst RESULTIS equal_lst(as_lst(a), b)
+  RESULTIS FALSE
+}
+
 AND equal_lst(a, b) = VALOF
 { IF a = b = empty RESULTIS TRUE
   IF a = empty | b = empty RESULTIS FALSE
