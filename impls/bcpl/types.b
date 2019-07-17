@@ -117,8 +117,8 @@ AND equal_mixed(a, b) = VALOF
 { // Mostly, values of different types are unequal.  However mal has a
   // special rule that a vector and a list are equal if they have the same
   // contents.
-  IF type OF a = t_lst & type OF b = t_vec RESULTIS equal_lst(a, as_lst(b))
-  IF type OF a = t_vec & type OF b = t_lst RESULTIS equal_lst(as_lst(a), b)
+  IF type OF a = t_lst & type OF b = t_vec RESULTIS equal_lstvec(a, b)
+  IF type OF a = t_vec & type OF b = t_lst RESULTIS equal_lstvec(b, a)
   RESULTIS FALSE
 }
 
@@ -134,6 +134,15 @@ AND equal_vec(a, b) = VALOF
   FOR i = 0 TO a!vec_len - 1 DO
     UNLESS equal((a + vec_data)!i, (b + vec_data)!i) RESULTIS FALSE
   RESULTIS TRUE
+}
+
+AND equal_lstvec(l, v) = VALOF
+{ FOR i = 0 TO v!vec_len - 1 DO
+  { IF l = empty RESULTIS FALSE
+    UNLESS equal(l!lst_first, (v + vec_data)!i) RESULTIS FALSE
+    l := l!lst_rest
+  }
+  RESULTIS l = empty
 }
 
 LET alloc_vec(len) = VALOF
