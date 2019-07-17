@@ -745,6 +745,10 @@ string_append_string:
         ; Source end address
         mov r11d, DWORD [rbx + Array.length] ; Length of the array
         add r11, r10
+
+        ;  Check if the next array is empty
+        cmp r10, r11
+        je .finished
         
 .source_ok:
 
