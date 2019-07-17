@@ -73,18 +73,36 @@
       (list 'apply 'list (foldr _quasiquote_iter () ast))
       (list 'quote ast)))))
 
-;; FIXME: mutual recursion.
-;; http://okmij.org/ftp/Computation/fixed-point-combinators.html
+(def! _letA_keys (fn* [binds]
+  (if (empty? binds)
+    ()
+    (cons (first binds) (_letA_keys (rest (rest binds)))))))
+(def! _letA_values (fn* [binds]
+  (if (empty? binds)
+    ()
+    (_letA_keys (rest binds)))))
+(def! _letA (fn* [binds form]
+  (cons (list 'fn* (_letA_keys binds) form) (_letA_values binds))))
+;; Fails for (let* [a 1 b (+ 1 a)] b)
+(def! _letB (fn* [binds form]
+  (if (empty? binds)
+    form
+    (list (list 'fn* [(first binds)] (_letB (rest (rest binds)) form))
+          (first (rest binds))))))
+;; Fails for (let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))
 (def! _c_combinator (fn* [x] (x x)))
 (def! _d_combinator (fn* [f] (fn* [x] (f (fn* [v] ((x x) v))))))
-(defmacro! let*
+(def! _Y_combinator (fn* [x] (_c_combinator (_d_combinator x))))
+(def! _letC
   (fn* [binds form]
     (if (empty? binds)
       form
-      (list (list 'fn* [(first binds)] (list 'let* (rest (rest binds)) form))
-            (list '_c_combinator
-                  (list '_d_combinator
-                       (list 'fn* [(first binds)] (first (rest binds)))))))))
+      (list (list 'fn* [(first binds)] (_letC (rest (rest binds)) form))
+            (list '_Y_combinator (list 'fn* [(first binds)] (first (rest binds))))))))
+;; Fails for mutual recursion.
+;; See http://okmij.org/ftp/Computation/fixed-point-combinators.html
+;; if you are motivated to implement solution D.
+(defmacro! let* _letC)
 
 (def! apply
   ;; Replace (f a b [c d]) with ('f 'a 'b 'c 'd) then evaluate the
@@ -148,4 +166,5 @@
 
 ;; This `nil` is intentional so that the result of doing `load-file` is
 ;; `nil` instead of whatever happens to be the last definiton.
+;; FIXME: can be removed after merge of load-file-trailing-new-line-nil
 nil
