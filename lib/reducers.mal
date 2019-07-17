@@ -12,7 +12,8 @@
       (reduce f (f init (first xs)) (rest xs)))))
 
 ;; Right fold (f x1 (f x2 (.. (f xn init)) ..))
-;; The natural implementation for `foldr` is not tail-recursive, so we
+;; The natural implementation for `foldr` is not tail-recursive, and
+;; the one based on `reduce` constructs many intermediate functions, so we
 ;; rely on efficient `nth` and `count`.
 (def! foldr
 
