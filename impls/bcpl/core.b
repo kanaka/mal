@@ -52,7 +52,10 @@ LET core_env() = VALOF
     LET pred_fun(fn) = alloc_fun(pred, wf_sz, fn)
 
     LET listp(val) = type OF val = t_lst
-    LET emptyp(val) = val = empty
+    // The '->' here is to make sure that | and & are in truth-value
+    // context.
+    LET emptyp(val) = val =
+      empty | supertype OF val = t_vec & val!vec_len = 0 -> TRUE, FALSE
 
     def(env, "list?", pred_fun(listp))
     def(env, "empty?", pred_fun(emptyp))
