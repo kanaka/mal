@@ -253,10 +253,6 @@
 (with-meta {} {"a" 1})
 ;=>{}
 
-;;; Not actually supported by Clojure
-;;;(meta (with-meta (atom 7) {"a" 1}))
-;;;;=>{"a" 1}
-
 (def! l-wm (with-meta [4 5 6] {"b" 2}))
 ;=>[4 5 6]
 (meta l-wm)
@@ -298,3 +294,6 @@
 ;=>true
 (m (+ 1 1))
 ;=>false
+
+(meta (with-meta (atom 7) {"a" 1}))
+;=>{"a" 1}

@@ -145,3 +145,30 @@ mymap
 ;=>true
 *ARGV*
 ;=>()
+
+;>>> soft=True
+
+;; Non alphanumeric characters in comments in read-string
+(read-string "1;!")
+;=>1
+(read-string "1;\"")
+;=>1
+(read-string "1;#")
+;=>1
+(read-string "1;$")
+;=>1
+(read-string "1;%")
+;=>1
+(read-string "1;'")
+;=>1
+(read-string "1;\\")
+;=>1
+(read-string "1;\\\\")
+;=>1
+(read-string "1;\\\\\\")
+;=>1
+(read-string "1;`")
+;=>1
+;;; Hopefully less problematic characters can be checked together
+(read-string "1; &()*+,-./:;<=>?@[]^_{|}~")
+;=>1

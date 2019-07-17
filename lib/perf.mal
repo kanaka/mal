@@ -11,7 +11,7 @@
       `(let* (~start (time-ms)
               ~ret   ~exp)
         (do
-          (prn (str "Elapsed time: " (- (time-ms) ~start) " msecs"))
+          (println "Elapsed time:" (- (time-ms) ~start) "msecs")
           ~ret)))))
 
 ;; Count evaluations of a function during a given time frame.

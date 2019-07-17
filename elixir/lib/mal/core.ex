@@ -203,6 +203,7 @@ defmodule Mal.Core do
 
   defp with_meta([{type, ast, _old_meta}, meta]), do: {type, ast, meta}
   defp with_meta([%Function{} = func, meta]), do: %{func | meta: meta}
+  defp with_meta(_), do: nil
 
   defp deref(args) do
     apply(&Mal.Atom.deref/1, args)
