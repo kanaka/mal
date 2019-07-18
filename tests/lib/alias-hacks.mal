@@ -1,5 +1,6 @@
 ;; Testing alias-hacks.mal
-(load-file "../../lib/alias-hacks.mal")
+(load-file      "../lib/load-file-once.mal")
+(load-file-once "../lib/alias-hacks.mal")
 ;=>nil
 
 ;; Testing let
@@ -52,4 +53,3 @@ x
 ;=>3
 ((partial str 1 2) 3 4)
 ;=>"1234"
-
