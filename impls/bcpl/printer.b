@@ -139,13 +139,27 @@ AND print_form(val, buf, pos, count_only) = VALOF
     DEFAULT: RESULTIS print_const("<unprintable>", buf, pos, count_only)
   }
 
-LET pr_str(x) = VALOF
-{ LET count = print_form(x, 0, 0, TRUE)
+LET print_multi(lst, buf, pos, count_only) = VALOF
+{ UNLESS lst = empty DO
+  { pos := print_form(lst!lst_first, buf, pos, count_only)
+    lst := lst!lst_rest
+    IF lst = empty BREAK
+    pos := print_char(' ', buf, pos, count_only)
+  } REPEAT
+  RESULTIS pos
+}
+
+LET pr(x, printer) = VALOF
+{ LET count = printer(x, 0, 0, TRUE)
   LET out = alloc_str(count)
-  print_form(x, out + str_data, 1, FALSE)
+  printer(x, out + str_data, 1, FALSE)
   str_setlen(out, count)
   RESULTIS out
 }
+
+LET pr_str(x) = pr(x, print_form)
+
+LET pr_multi(x) = pr(x, print_multi)
 
 LET print_f(msg, buf, pos, count_only, A) = VALOF
 { FOR i = 1 TO msg%0 DO

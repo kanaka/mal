@@ -104,11 +104,13 @@ LET core_env() = VALOF
   }
 
   // Printing functions
-  { LET prn(fn, args) = VALOF
-    { writes(@(pr_str(args!lst_first)!str_data))
+  { LET prstr(fn, args) = pr_multi(args)
+    LET prn(fn, args) = VALOF
+    { writes(@(pr_multi(args)!str_data))
       newline()
       RESULTIS nil
     }
+    def(env, "pr-str", bare_fun(prstr))
     def(env, "prn", bare_fun(prn))
   }
 

@@ -1,5 +1,5 @@
 GLOBAL { readline: ug
-         pr_str; throwf
+         pr_str; pr_multi; throwf
          read_str
          init_types; nil; empty; empty_hashmap; mtrue; mfalse
 	 equal
