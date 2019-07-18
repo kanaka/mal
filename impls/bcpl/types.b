@@ -244,7 +244,7 @@ LET hm_insert(map, bit, key, value) = VALOF
 
 LET hm_set(map, key, value) = VALOF
 { LET bit, nearest = ?, ?
-  IF compoundflag OF key THEN throwf("invalid hash-map key: %v", key)
+  IF compoundflag OF key = 1 THEN throwf("invalid hash-map key: %v", key)
   IF map = empty_hashmap RESULTIS alloc_hmx(key, value)
   nearest := hm_find(map, key)
   IF equal(nearest!hmx_key, key) THEN RESULTIS hm_replace(map, key, value)
@@ -253,7 +253,7 @@ LET hm_set(map, key, value) = VALOF
 }
 
 LET hm_remove(map, key) = VALOF
-{ IF compoundflag OF key THEN throwf("invalid hash-map key: %v", key)
+{ IF compoundflag OF key = 1 THEN throwf("invalid hash-map key: %v", key)
   IF map = empty_hashmap RESULTIS map
   IF type OF map = t_hmx THEN
     RESULTIS equal(map!hmx_key, key) -> empty_hashmap, map
@@ -269,14 +269,14 @@ LET hm_remove(map, key) = VALOF
 }
 
 LET hm_get(map, key) = VALOF
-{ IF compoundflag OF key THEN throwf("invalid hash-map key: %v", key)
+{ IF compoundflag OF key = 1 THEN throwf("invalid hash-map key: %v", key)
   IF map = empty_hashmap RESULTIS nil
   map := hm_find(map, key)
   RESULTIS equal(map!hmx_key, key) -> map!hmx_value, nil
 }
 
 LET hm_contains(map, key) = VALOF
-{ IF compoundflag OF key THEN throwf("invalid hash-map key: %v", key)
+{ IF compoundflag OF key = 1 THEN throwf("invalid hash-map key: %v", key)
   IF map = empty_hashmap RESULTIS FALSE
   map := hm_find(map, key)
   RESULTIS equal(map!hmx_key, key)
