@@ -30,6 +30,14 @@ MalKeyword := Object clone do (
 
 MalSequential := Object clone do(
     isSequential := method(true)
+    equalSequence := method(other,
+        if((other ?isSequential) not, return false)
+        if(self size != other size, return false)
+        unequalElement := self detect(i, valA,
+            (valA == (other at(i))) not
+        )
+        if(unequalElement, false, true)
+    )
 )
 
 MalList := List clone appendProto(MalSequential) appendProto(MalMeta) do (
@@ -39,6 +47,7 @@ MalList := List clone appendProto(MalSequential) appendProto(MalMeta) do (
     )
     rest := method(MalList with(resend))
     slice := method(MalList with(resend))
+    == := method(other, equalSequence(other))
 )
 
 MalVector := List clone appendProto(MalSequential) appendProto(MalMeta) do (
@@ -48,6 +57,7 @@ MalVector := List clone appendProto(MalSequential) appendProto(MalMeta) do (
     )
     rest := method(MalList with(resend))
     slice := method(MalList with(resend))
+    == := method(other, equalSequence(other))
 )
 
 MalMap := Map clone appendProto(MalMeta) do (
