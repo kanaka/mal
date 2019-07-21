@@ -431,6 +431,8 @@ nil
 ;=>false
 (= :abc ":abc")
 ;=>false
+(= (list :abc) (list :abc))
+;=>true
 
 ;; Testing vector truthiness
 (if [] 7 8)
@@ -464,6 +466,8 @@ nil
 (= [] (list))
 ;=>true
 (= [7 8] [7 8])
+;=>true
+(= [:abc] [:abc])
 ;=>true
 (= (list 1 2) [1 2])
 ;=>true
