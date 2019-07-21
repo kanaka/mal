@@ -16,14 +16,14 @@ MalMeta := Object clone do(
 
 MalSymbol := Object clone appendProto(MalMeta) do (
     val ::= nil
-    with := method(str, self clone setVal(str))
+    with := method(str, self clone setVal(if(str ?val, str val, str)))
     malPrint := method(readable, val)
     == := method(other, (self type == other type) and (val == other val))
 )
 
 MalKeyword := Object clone do (
     val ::= nil
-    with := method(str, self clone setVal(str))
+    with := method(str, self clone setVal(if(str ?val, str val, str)))
     malPrint := method(readable, ":" .. val)
     == := method(other, (self type == other type) and (val == other val))
 )
