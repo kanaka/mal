@@ -119,7 +119,7 @@ MalFunc := Object clone appendProto(MalMeta) do (
     call := method(args, blk call(args))
 )
 
-MalAtom := Object clone do (
+MalAtom := Object clone appendProto(MalMeta) do (
     val ::= nil
     with := method(str, self clone setVal(str))
     malPrint := method(readable, "(atom " .. (val malPrint(true)) .. ")")
