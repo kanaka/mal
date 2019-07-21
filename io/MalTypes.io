@@ -16,20 +16,28 @@ MalMeta := Object clone do(
 
 MalSymbol := Object clone appendProto(MalMeta) do (
     val ::= nil
-    with := method(str, self clone setVal(str))
+    with := method(str, self clone setVal(if(str ?val, str val, str)))
     malPrint := method(readable, val)
     == := method(other, (self type == other type) and (val == other val))
 )
 
 MalKeyword := Object clone do (
     val ::= nil
-    with := method(str, self clone setVal(str))
+    with := method(str, self clone setVal(if(str ?val, str val, str)))
     malPrint := method(readable, ":" .. val)
     == := method(other, (self type == other type) and (val == other val))
 )
 
 MalSequential := Object clone do(
     isSequential := method(true)
+    equalSequence := method(other,
+        if((other ?isSequential) not, return false)
+        if(self size != other size, return false)
+        unequalElement := self detect(i, valA,
+            (valA == (other at(i))) not
+        )
+        if(unequalElement, false, true)
+    )
 )
 
 MalList := List clone appendProto(MalSequential) appendProto(MalMeta) do (
@@ -39,6 +47,7 @@ MalList := List clone appendProto(MalSequential) appendProto(MalMeta) do (
     )
     rest := method(MalList with(resend))
     slice := method(MalList with(resend))
+    == := method(other, equalSequence(other))
 )
 
 MalVector := List clone appendProto(MalSequential) appendProto(MalMeta) do (
@@ -48,6 +57,7 @@ MalVector := List clone appendProto(MalSequential) appendProto(MalMeta) do (
     )
     rest := method(MalList with(resend))
     slice := method(MalList with(resend))
+    == := method(other, equalSequence(other))
 )
 
 MalMap := Map clone appendProto(MalMeta) do (
@@ -109,7 +119,7 @@ MalFunc := Object clone appendProto(MalMeta) do (
     call := method(args, blk call(args))
 )
 
-MalAtom := Object clone do (
+MalAtom := Object clone appendProto(MalMeta) do (
     val ::= nil
     with := method(str, self clone setVal(str))
     malPrint := method(readable, "(atom " .. (val malPrint(true)) .. ")")
