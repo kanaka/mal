@@ -8,7 +8,7 @@ GET "malhdr"
 // if count_only is FALSE, then routine will write result to buf
 // in any case, pos is new output offset.
 
-MANIFEST { pc_pos = 0; pc_buf; pc_count_only; pc_sz }
+MANIFEST { pc_pos = 0; pc_buf; pc_count_only; pc_print_readably; pc_sz }
 
 // Print a BCPL-format (constant) string.
 LET print_const(pc, str) BE
@@ -133,27 +133,28 @@ AND print_form(pc, val) BE
     CASE t_hmi:
     CASE t_hmx: print_hm (pc, val); ENDCASE
     CASE t_int: print_int(pc, val); ENDCASE
-    CASE t_str: print_str(pc, val); ENDCASE
+    CASE t_str: IF pc!pc_print_readably THEN { print_str(pc, val); ENDCASE }
     CASE t_sym: print_sym(pc, val); ENDCASE
     CASE t_kwd: print_kwd(pc, val); ENDCASE
     CASE t_fun: print_const(pc, "#<function>"); ENDCASE
     DEFAULT: print_const(pc, "<unprintable>"); ENDCASE
   }
 
-LET print_multi(pc, lst) BE
+LET print_multi(pc, lst, space) BE
 { UNLESS lst = empty DO
   { print_form(pc, lst!lst_first)
     lst := lst!lst_rest
     IF lst = empty BREAK
-    print_char(pc, ' ')
+    IF space THEN print_char(pc, ' ')
   } REPEAT
 }
 
-LET pr(printer, x, A) = VALOF
+LET pr(printer, x, print_readably, A) = VALOF
 { LET pc = VEC pc_sz
   LET out = ?
   pc!pc_pos := 0
   pc!pc_count_only := TRUE
+  pc!pc_print_readably := print_readably
   printer(pc, x, A)
 
   out := alloc_str(pc!pc_pos)
@@ -165,9 +166,10 @@ LET pr(printer, x, A) = VALOF
   RESULTIS out
 }
 
-LET pr_str(x) = pr(print_form, x)
+LET pr_str(x) = pr(print_form, x, TRUE)
 
-LET pr_multi(x) = pr(print_multi, x)
+LET pr_multi(x, print_readably, space) =
+  pr(print_multi, x, print_readably, space)
 
 LET print_f(pc, msg, A) BE
 { FOR i = 1 TO msg%0 DO

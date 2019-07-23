@@ -104,14 +104,22 @@ LET core_env() = VALOF
   }
 
   // Printing functions
-  { LET prstr(fn, args) = pr_multi(args)
+  { LET prstr(fn, args) = pr_multi(args, TRUE, TRUE)
+    LET str(fn, args) = pr_multi(args, FALSE, FALSE)
     LET prn(fn, args) = VALOF
-    { writes(@(pr_multi(args)!str_data))
+    { writes(@(pr_multi(args, TRUE, TRUE)!str_data))
+      newline()
+      RESULTIS nil
+    }
+    LET println(fn, args) = VALOF
+    { writes(@(pr_multi(args, FALSE, TRUE)!str_data))
       newline()
       RESULTIS nil
     }
     def(env, "pr-str", bare_fun(prstr))
+    def(env, "str", bare_fun(str))
     def(env, "prn", bare_fun(prn))
+    def(env, "println", bare_fun(println))
   }
 
   // Constructors
