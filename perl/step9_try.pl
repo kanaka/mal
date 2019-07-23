@@ -103,6 +103,7 @@ sub EVAL {
     if (! _list_Q($ast)) {
         return eval_ast($ast, $env);
     }
+    @$ast or return $ast;
 
     # apply list
     $ast = macroexpand($ast, $env);
