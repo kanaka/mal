@@ -8,25 +8,27 @@ GET "malhdr"
 // if count_only is FALSE, then routine will write result to buf
 // in any case, pos is new output offset.
 
+MANIFEST { pc_pos = 0; pc_buf; pc_count_only; pc_sz }
+
 // Print a BCPL-format (constant) string.
-LET print_const(str, buf, pos, count_only) = VALOF
-{ UNLESS count_only DO
+LET print_const(pc, str) BE
+{ UNLESS pc!pc_count_only DO
     FOR i = 1 TO str%0 DO
-      buf%(pos + i - 1) := str%i
-  RESULTIS pos + str%0
+      pc!pc_buf%(pc!pc_pos + i - 1) := str%i
+  pc!pc_pos := pc!pc_pos + str%0
 }
 
 // Print a single character
-LET print_char(chr, buf, pos, count_only) = VALOF
-{ UNLESS count_only DO buf%pos := chr
-  RESULTIS pos + 1
+LET print_char(pc, chr) BE
+{ UNLESS pc!pc_count_only DO pc!pc_buf%(pc!pc_pos) := chr
+  pc!pc_pos := pc!pc_pos + 1
 }
 
 // Print a mal integer
-LET print_int(int, buf, pos, count_only) = VALOF
+LET print_int(pc, int) BE
 { LET val = int!int_value
   LET len, negative = 0, FALSE
-  IF val = 0 RESULTIS print_char('0', buf, pos, count_only)
+  IF val = 0 THEN { print_char(pc, '0'); RETURN }
   IF val < 0 THEN
   { val := -val // XXX This doesnt work for the most negative integer
     len := len + 1
@@ -36,147 +38,146 @@ LET print_int(int, buf, pos, count_only) = VALOF
   { val := val / 10
     len := len + 1
   }
-  IF count_only RESULTIS pos + len
+  IF pc!pc_count_only THEN { pc!pc_pos := pc!pc_pos + len; RETURN }
   val := negative -> -int!int_value, int!int_value
-  pos := pos + len - 1
+  pc!pc_pos := pc!pc_pos + len - 1
   WHILE val > 0 DO
-  { buf%pos :=
+  { pc!pc_buf%(pc!pc_pos) :=
         (TABLE '0', '1', '2', '3', '4', '5', '6', '7', '8', '9')!(val REM 10)
     val := val / 10
-    pos := pos - 1
+    pc!pc_pos := pc!pc_pos - 1
   }
   IF negative THEN
-  { buf%pos := '-'
-    pos := pos - 1
+  { pc!pc_buf%(pc!pc_pos) := '-'
+    pc!pc_pos := pc!pc_pos - 1
   }
-  RESULTIS pos + len + 1
+  pc!pc_pos := pc!pc_pos + len + 1
 }
 
 // Print a mal string
-LET print_str(str, buf, pos, count_only) = VALOF
-{ pos := print_char('*"', buf, pos, count_only)
+LET print_str(pc, str) BE
+{ print_char(pc, '*"')
   FOR i = 1 TO str!str_len DO
   { LET ch = (str + str_data)%i
     SWITCHON ch INTO
     { CASE '*n': ch := 'n'
-      CASE '\': CASE '*"': pos := print_char('\', buf, pos, count_only)
+      CASE '\': CASE '*"': print_char(pc, '\')
     }
-    pos := print_char(ch, buf, pos, count_only)
+    print_char(pc, ch)
   }
-  RESULTIS print_char('*"', buf, pos, count_only)
+  print_char(pc, '*"')
 }
 
-LET print_sym(sym, buf, pos, count_only) = VALOF
-{ UNLESS count_only DO
+LET print_sym(pc, sym) BE
+{ UNLESS pc!pc_count_only DO
     FOR i = 1 TO sym!str_len DO
-      buf%(pos + i - 1) := (sym + str_data)%i
-  RESULTIS pos + sym!str_len
+      pc!pc_buf%(pc!pc_pos + i - 1) := (sym + str_data)%i
+  pc!pc_pos := pc!pc_pos + sym!str_len
 }
 
-LET print_kwd(kwd, buf, pos, count_only) = VALOF
-{ pos := print_char(':', buf, pos, count_only)
-  RESULTIS print_sym(kwd, buf, pos, count_only)
+LET print_kwd(pc, kwd) BE
+{ print_char(pc, ':')
+  print_sym(pc, kwd)
 }
 
-LET print_lst(lst, buf, pos, count_only) = VALOF
-{ pos := print_char('(', buf, pos, count_only)
+LET print_lst(pc, lst) BE
+{ print_char(pc, '(')
   UNLESS lst = empty DO
-  { pos := print_form(lst!lst_first, buf, pos, count_only)
+  { print_form(pc, lst!lst_first)
     lst := lst!lst_rest
     IF lst = empty BREAK
-    pos := print_char(' ', buf, pos, count_only)
+    print_char(pc, ' ')
   } REPEAT
-  RESULTIS print_char(')', buf, pos, count_only)
+  print_char(pc, ')')
 }
 
-AND print_vec(vec, buf, pos, count_only) = VALOF
-{ pos := print_char('[', buf, pos, count_only)
+AND print_vec(pc, vec) BE
+{ print_char(pc, '[')
   FOR i = vec_data TO vec_data + vec!vec_len - 1 DO
-  { UNLESS i = vec_data DO pos := print_char(' ', buf, pos, count_only)
-    pos := print_form(vec!i, buf, pos, count_only)
+  { UNLESS i = vec_data DO print_char(pc, ' ')
+    print_form(pc, vec!i)
   }
-  RESULTIS print_char(']', buf, pos, count_only)
+  print_char(pc, ']')
 }
 
-AND print_hmx_contents(map, buf, pos, count_only) = VALOF
-{ pos := print_form(map!hmx_key, buf, pos, count_only)
-  pos := print_char(' ', buf, pos, count_only)
-  RESULTIS print_form(map!hmx_value, buf, pos, count_only)
+AND print_hmx_contents(pc, map) BE
+{ print_form(pc, map!hmx_key)
+  print_char(pc, ' ')
+  print_form(pc, map!hmx_value)
 }
 
-AND print_hmi_contents(map, buf, pos, count_only) = VALOF
-{ pos := print_hm_contents(map!hmi_left, buf, pos, count_only)
-  pos := print_char(' ', buf, pos, count_only)
-  RESULTIS print_hm_contents(map!hmi_right, buf, pos, count_only)
+AND print_hmi_contents(pc, map) BE
+{ print_hm_contents(pc, map!hmi_left)
+  print_char(pc, ' ')
+  print_hm_contents(pc, map!hmi_right)
 }
 
-AND print_hm_contents(map, buf, pos, count_only) =
-  type OF map = t_hmi -> print_hmi_contents(map, buf, pos, count_only),
-                         print_hmx_contents(map, buf, pos, count_only)
+AND print_hm_contents(pc, map) BE
+  TEST type OF map = t_hmi THEN print_hmi_contents(pc, map)
+                           ELSE print_hmx_contents(pc, map)
 
-AND print_hm(map, buf, pos, count_only) = VALOF
-{ pos := print_char('{', buf, pos, count_only)
-  pos := print_hm_contents(map, buf, pos, count_only)
-  RESULTIS print_char('}', buf, pos, count_only)
+AND print_hm(pc, map) BE
+{ print_char(pc, '{')
+  print_hm_contents(pc, map)
+  print_char(pc, '}')
 }
 
-AND print_form(val, buf, pos, count_only) = VALOF
+AND print_form(pc, val) BE
   SWITCHON type OF val INTO
   {
-    CASE t_nil: RESULTIS print_const("nil", buf, pos, count_only)
-    CASE t_boo: RESULTIS print_const(val!int_value -> "true", "false",
-                                     buf, pos, count_only)
-    CASE t_lst: RESULTIS print_lst(val, buf, pos, count_only)
-    CASE t_vec: RESULTIS print_vec(val, buf, pos, count_only)
-    CASE t_hm0: RESULTIS print_const("{}", buf, pos, count_only)
+    CASE t_nil: print_const(pc, "nil"); ENDCASE
+    CASE t_boo: print_const(pc, val!int_value -> "true", "false"); ENDCASE
+    CASE t_lst: print_lst(pc, val); ENDCASE
+    CASE t_vec: print_vec(pc, val); ENDCASE
+    CASE t_hm0: print_const(pc, "{}"); ENDCASE
     CASE t_hmi:
-    CASE t_hmx: RESULTIS print_hm (val, buf, pos, count_only)
-    CASE t_int: RESULTIS print_int(val, buf, pos, count_only)
-    CASE t_str: RESULTIS print_str(val, buf, pos, count_only)
-    CASE t_sym: RESULTIS print_sym(val, buf, pos, count_only)
-    CASE t_kwd: RESULTIS print_kwd(val, buf, pos, count_only)
-    CASE t_fun: RESULTIS print_const("#<function>", buf, pos, count_only)
-    DEFAULT: RESULTIS print_const("<unprintable>", buf, pos, count_only)
+    CASE t_hmx: print_hm (pc, val); ENDCASE
+    CASE t_int: print_int(pc, val); ENDCASE
+    CASE t_str: print_str(pc, val); ENDCASE
+    CASE t_sym: print_sym(pc, val); ENDCASE
+    CASE t_kwd: print_kwd(pc, val); ENDCASE
+    CASE t_fun: print_const(pc, "#<function>"); ENDCASE
+    DEFAULT: print_const(pc, "<unprintable>"); ENDCASE
   }
 
-LET print_multi(lst, buf, pos, count_only) = VALOF
+LET print_multi(pc, lst) BE
 { UNLESS lst = empty DO
-  { pos := print_form(lst!lst_first, buf, pos, count_only)
+  { print_form(pc, lst!lst_first)
     lst := lst!lst_rest
     IF lst = empty BREAK
-    pos := print_char(' ', buf, pos, count_only)
+    print_char(pc, ' ')
   } REPEAT
-  RESULTIS pos
 }
 
-LET pr(x, printer) = VALOF
-{ LET count = printer(x, 0, 0, TRUE)
-  LET out = alloc_str(count)
-  printer(x, out + str_data, 1, FALSE)
-  str_setlen(out, count)
+LET pr(printer, x, A) = VALOF
+{ LET pc = VEC pc_sz
+  LET out = ?
+  pc!pc_pos := 0
+  pc!pc_count_only := TRUE
+  printer(pc, x, A)
+
+  out := alloc_str(pc!pc_pos)
+  pc!pc_buf := out + str_data
+  pc!pc_pos := 1
+  pc!pc_count_only := FALSE
+  printer(pc, x, A)
+  str_setlen(out, pc!pc_pos - 1)
   RESULTIS out
 }
 
-LET pr_str(x) = pr(x, print_form)
+LET pr_str(x) = pr(print_form, x)
 
-LET pr_multi(x) = pr(x, print_multi)
+LET pr_multi(x) = pr(print_multi, x)
 
-LET print_f(msg, buf, pos, count_only, A) = VALOF
+LET print_f(pc, msg, A) BE
 { FOR i = 1 TO msg%0 DO
   { IF msg%i = '%' & i < msg%0 THEN SWITCHON msg%(i + 1) INTO
       { CASE 'v':
-          pos := print_form(A, buf, pos, count_only)
+          print_form(pc, A)
 	  i := i + 1; LOOP
       }
-    pos := print_char(msg%i, buf, pos, count_only)
+    print_char(pc, msg%i)
   }
-  RESULTIS pos
 }
 
-LET throwf(msg, A) BE
-{ LET count = print_f(msg, 0, 0, TRUE, A)
-  LET out = alloc_str(count)
-  print_f(msg, out+str_data, 1, FALSE, A)
-  str_setlen(out, count)
-  throw(out)
-}
+LET throwf(msg, A) BE throw(pr(print_f, msg, A))
