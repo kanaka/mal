@@ -20,32 +20,26 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    given (ref $ast) {
-        when (/^Symbol/) {
-            if (exists $env->{$$ast}) {
-                return $env->{$$ast};
-            } else {
-                die "'" . $$ast . "' not found";
-            }
-        }
-        when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @$ast;
-            return List->new(\@lst);
-        }
-        when (/^Vector/) {
-            my @lst = map {EVAL($_, $env)} @$ast;
-            return Vector->new(\@lst);
-        }
-        when (/^HashMap/) {
-            my $new_hm = {};
-            foreach my $k (keys( %{ $ast->{val} })) {
-                $new_hm->{$k} = EVAL($ast->get($k), $env);
-            }
-            return HashMap->new($new_hm);
-        }
-        default {
-            return $ast;
-        }
+    if ($ast->isa('Symbol')) {
+	if (exists $env->{$$ast}) {
+	    return $env->{$$ast};
+	} else {
+	    die "'" . $$ast . "' not found";
+	}
+    } elsif ($ast->isa('List')) {
+	my @lst = map {EVAL($_, $env)} @$ast;
+	return List->new(\@lst);
+    } elsif ($ast->isa('Vector')) {
+	my @lst = map {EVAL($_, $env)} @$ast;
+	return Vector->new(\@lst);
+    } elsif ($ast->isa('HashMap')) {
+	my $new_hm = {};
+	foreach my $k (keys( %{ $ast->{val} })) {
+	    $new_hm->{$k} = EVAL($ast->get($k), $env);
+	}
+	return HashMap->new($new_hm);
+    } else {
+	return $ast;
     }
 }
 

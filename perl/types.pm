@@ -23,35 +23,30 @@ sub _equal_Q {
     if (!(($ota eq $otb) || (_sequential_Q($a) && _sequential_Q($b)))) {
         return 0;
     }
-    given (ref $a) {
-        when (/^Symbol/) {
-            return $$a eq $$b;
-        }
-        when (/^List/ || /^Vector/) {
-            if (! (scalar(@$a) == scalar(@$b))) {
-                return 0;
-            }
-            for (my $i=0; $i<scalar(@$a); $i++) {
-                if (! _equal_Q($a->[$i], $b->[$i])) {
-                    return 0;
-                }
-            }
-            return 1;
-        }
-        when (/^HashMap/) {
-            if (! (scalar(keys %{ $a->{val} }) == scalar(keys %{ $b->{val} }))) {
-                return 0;
-            }
-            foreach my $k (keys %{ $a->{val} }) {
-                if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
-                    return 0;
-                }
-            }
-            return 1;
-        }
-        default {
-            return $$a eq $$b;
-        }
+    if ($a->isa('Symbol')) {
+	return $$a eq $$b;
+    } elsif ($a->isa('Sequence')) {
+	if (! (scalar(@$a) == scalar(@$b))) {
+	    return 0;
+	}
+	for (my $i=0; $i<scalar(@$a); $i++) {
+	    if (! _equal_Q($a->[$i], $b->[$i])) {
+		return 0;
+	    }
+	}
+	return 1;
+    } elsif ($a->isa('HashMap')) {
+	if (! (scalar(keys %{ $a->{val} }) == scalar(keys %{ $b->{val} }))) {
+	    return 0;
+	}
+	foreach my $k (keys %{ $a->{val} }) {
+	    if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
+		return 0;
+	    }
+	}
+	return 1;
+    } else {
+	return $$a eq $$b;
     }
     return 0;
 }
@@ -103,21 +98,21 @@ sub _false_Q { return $_[0] eq $false }
     package Integer;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
-sub _number_Q { (ref $_[0]) =~ /^Integer/ }
+sub _number_Q { $_[0]->isa('Integer') }
 
 
 {
     package Symbol;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
-sub _symbol_Q { (ref $_[0]) =~ /^Symbol/ }
+sub _symbol_Q { $_[0]->isa('Symbol') }
 
 
-sub _string_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} !~ /^\x{029e}/; }
+sub _string_Q { $_[0]->isa('String') && ${$_[0]} !~ /^\x{029e}/; }
 
 
 sub _keyword { return String->new(("\x{029e}".$_[0])); }
-sub _keyword_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} =~ /^\x{029e}/; }
+sub _keyword_Q { $_[0]->isa('String') && ${$_[0]} =~ /^\x{029e}/; }
 
 
 {
@@ -144,7 +139,7 @@ sub _keyword_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} =~ /^\x{029e}/; }
     use parent -norequire, 'Sequence';
 }
 
-sub _list_Q { (ref $_[0]) =~ /^List/ }
+sub _list_Q { $_[0]->isa('List') }
 
 
 # Vectors
@@ -154,7 +149,7 @@ sub _list_Q { (ref $_[0]) =~ /^List/ }
     use parent -norequire, 'Sequence';
 }
 
-sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
+sub _vector_Q { $_[0]->isa('Vector') }
 
 
 # Hash Maps
@@ -190,7 +185,7 @@ sub _dissoc_BANG {
     return HashMap->new($hsh);
 }
 
-sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
+sub _hash_map_Q { $_[0]->isa('HashMap') }
 
 
 # Functions
@@ -244,6 +239,6 @@ sub _function_Q { (ref $_[0]) =~ /^Function/ }
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
 }
 
-sub _atom_Q { (ref $_[0]) =~ /^Atom/ }
+sub _atom_Q { $_[0]->isa('Atom') }
 
 1;

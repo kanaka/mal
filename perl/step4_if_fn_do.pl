@@ -22,28 +22,22 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    given (ref $ast) {
-        when (/^Symbol/) {
-            $env->get($ast);
-        }
-        when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @$ast;
-            return List->new(\@lst);
-        }
-        when (/^Vector/) {
-            my @lst = map {EVAL($_, $env)} @$ast;
-            return Vector->new(\@lst);
-        }
-        when (/^HashMap/) {
-            my $new_hm = {};
-            foreach my $k (keys( %{ $ast->{val} })) {
-                $new_hm->{$k} = EVAL($ast->get($k), $env);
-            }
-            return HashMap->new($new_hm);
-        }
-        default {
-            return $ast;
-        }
+    if ($ast->isa('Symbol')) {
+	return $env->get($ast);
+    } elsif ($ast->isa('List')) {
+	my @lst = map {EVAL($_, $env)} @$ast;
+	return List->new(\@lst);
+    } elsif ($ast->isa('Vector')) {
+	my @lst = map {EVAL($_, $env)} @$ast;
+	return Vector->new(\@lst);
+    } elsif ($ast->isa('HashMap')) {
+	my $new_hm = {};
+	foreach my $k (keys( %{ $ast->{val} })) {
+	    $new_hm->{$k} = EVAL($ast->get($k), $env);
+	}
+	return HashMap->new($new_hm);
+    } else {
+	return $ast;
     }
 }
 
@@ -57,7 +51,7 @@ sub EVAL {
     # apply list
     my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
-    given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
+    given ($a0->isa('Symbol') ? $$a0 : $a0) {
         when (/^def!$/) {
             my $res = EVAL($a2, $env);
             return $env->set($a1, $res);
