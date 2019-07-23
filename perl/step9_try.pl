@@ -30,16 +30,16 @@ sub quasiquote {
     my ($ast) = @_;
     if (!is_pair($ast)) {
         return List->new([Symbol->new("quote"), $ast]);
-    } elsif (_symbol_Q($ast->nth(0)) && ${$ast->nth(0)} eq 'unquote') {
-        return $ast->nth(1);
-    } elsif (is_pair($ast->nth(0)) && _symbol_Q($ast->nth(0)->nth(0)) &&
-             ${$ast->nth(0)->nth(0)} eq 'splice-unquote') {
+    } elsif (_symbol_Q($ast->[0]) && ${$ast->[0]} eq 'unquote') {
+        return $ast->[1];
+    } elsif (is_pair($ast->[0]) && _symbol_Q($ast->[0]->[0]) &&
+             ${$ast->[0]->[0]} eq 'splice-unquote') {
         return List->new([Symbol->new("concat"),
-                          $ast->nth(0)->nth(1),
+                          $ast->[0]->[1],
                           quasiquote($ast->rest())]);
     } else {
         return List->new([Symbol->new("cons"),
-                          quasiquote($ast->nth(0)),
+                          quasiquote($ast->[0]),
                           quasiquote($ast->rest())]);
     }
 }
@@ -47,9 +47,9 @@ sub quasiquote {
 sub is_macro_call {
     my ($ast, $env) = @_;
     if (_list_Q($ast) &&
-        _symbol_Q($ast->nth(0)) &&
-        $env->find($ast->nth(0))) {
-        my ($f) = $env->get($ast->nth(0));
+        _symbol_Q($ast->[0]) &&
+        $env->find($ast->[0])) {
+        my ($f) = $env->get($ast->[0]);
         if ((ref $f) =~ /^Function/) {
             return $f->{ismacro};
         }
@@ -60,7 +60,7 @@ sub is_macro_call {
 sub macroexpand {
     my ($ast, $env) = @_;
     while (is_macro_call($ast, $env)) {
-        my $mac = $env->get($ast->nth(0));
+        my $mac = $env->get($ast->[0]);
         $ast = $mac->apply($ast->rest());
     }
     return $ast;
@@ -120,7 +120,7 @@ sub EVAL {
         when (/^let\*$/) {
             my $let_env = Env->new($env);
             for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
-                $let_env->set($a1->nth($i), EVAL($a1->nth($i+1), $let_env));
+                $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
             }
             $ast = $a2;
             $env = $let_env;
@@ -151,15 +151,15 @@ sub EVAL {
                      1;
                 } or do {
                     my $err = $@;
-                    if ($a2 && ${$a2->nth(0)} eq "catch\*") {
+                    if ($a2 && ${$a2->[0]} eq "catch\*") {
                         my $exc;
                         if (ref $err) {
                             $exc = $err;
                         } else {
                             $exc = String->new(substr $err, 0, -1);
                         }
-                        return EVAL($a2->nth(2), Env->new($env,
-                                                        List->new([$a2->nth(1)]), 
+                        return EVAL($a2->[2], Env->new($env,
+                                                        List->new([$a2->[1]]), 
                                                         List->new([$exc])));
                     } else {
                         die $err;
@@ -170,7 +170,7 @@ sub EVAL {
         }
         when (/^do$/) {
             eval_ast($ast->slice(1, $#{$ast->{val}}-1), $env);
-            $ast = $ast->nth($#{$ast->{val}});
+            $ast = $ast->[$#{$ast->{val}}];
             # Continue loop (TCO)
         }
         when (/^if$/) {
@@ -187,7 +187,7 @@ sub EVAL {
         }
         default {
             my $el = eval_ast($ast, $env);
-            my $f = $el->nth(0);
+            my $f = $el->[0];
             if ((ref $f) =~ /^Function/) {
                 $ast = $f->{ast};
                 $env = $f->gen_env($el->rest());
@@ -218,7 +218,7 @@ sub REP {
 foreach my $n (%$core_ns) {
     $repl_env->set(Symbol->new($n), $core_ns->{$n});
 }
-$repl_env->set(Symbol->new('eval'), sub { EVAL($_[0]->nth(0), $repl_env); });
+$repl_env->set(Symbol->new('eval'), sub { EVAL($_[0]->[0], $repl_env); });
 my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 

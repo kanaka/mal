@@ -65,13 +65,13 @@ sub EVAL {
         when (/^let\*$/) {
             my $let_env = Env->new($env);
             for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
-                $let_env->set($a1->nth($i), EVAL($a1->nth($i+1), $let_env));
+                $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
             }
             return EVAL($a2, $let_env);
         }
         when (/^do$/) {
             my $el = eval_ast($ast->rest(), $env);
-            return $el->nth($#{$el->{val}});
+            return $el->[$#{$el->{val}}];
         }
         when (/^if$/) {
             my $cond = EVAL($a1, $env);
@@ -90,7 +90,7 @@ sub EVAL {
         }
         default {
             my $el = eval_ast($ast, $env);
-            my $f = $el->nth(0);
+            my $f = $el->[0];
             return &{ $f }($el->rest());
         }
     }

@@ -32,7 +32,7 @@ sub _equal_Q {
                 return 0;
             }
             for (my $i=0; $i<scalar(@{$a->{val}}); $i++) {
-                if (! _equal_Q($a->nth($i), $b->nth($i))) {
+                if (! _equal_Q($a->[$i], $b->[$i])) {
                     return 0;
                 }
             }
@@ -130,8 +130,8 @@ sub _keyword_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} =~ /^\x{029e}/; }
 
 {
     package Sequence;
+    use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub nth { $_[0]->{val}->[$_[1]]; }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
     sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
     sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
