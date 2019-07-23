@@ -126,15 +126,22 @@ sub _keyword_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} =~ /^\x{029e}/; }
 }
 
 
-# Lists
+# Sequences
 
 {
-    package List;
+    package Sequence;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub nth { $_[0]->{val}->[$_[1]]; }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
     sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
     sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
+}
+
+# Lists
+
+{
+    package List;
+    use parent -norequire, 'Sequence';
 }
 
 sub _list_Q { (ref $_[0]) =~ /^List/ }
@@ -144,11 +151,7 @@ sub _list_Q { (ref $_[0]) =~ /^List/ }
 
 {
     package Vector;
-    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub nth { $_[0]->{val}->[$_[1]]; }
-    #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
-    sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
+    use parent -norequire, 'Sequence';
 }
 
 sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
