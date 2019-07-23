@@ -18,20 +18,20 @@ use Data::Dumper;
 # String functions
 
 sub pr_str {
-    return String->new(join(" ", map {_pr_str($_, 1)} @{$_[0]->{val}}));
+    return String->new(join(" ", map {_pr_str($_, 1)} @{$_[0]}));
 }
 
 sub str {
-    return String->new(join("", map {_pr_str($_, 0)} @{$_[0]->{val}}));
+    return String->new(join("", map {_pr_str($_, 0)} @{$_[0]}));
 }
 
 sub prn {
-    print join(" ", map {_pr_str($_, 1)} @{$_[0]->{val}}) . "\n";
+    print join(" ", map {_pr_str($_, 1)} @{$_[0]}) . "\n";
     return $nil
 }
 
 sub println {
-    print join(" ", map {_pr_str($_, 0)} @{$_[0]->{val}}) . "\n";
+    print join(" ", map {_pr_str($_, 0)} @{$_[0]}) . "\n";
     return $nil
 }
 
@@ -90,21 +90,21 @@ sub mal_vals {
 sub cons {
     my ($a, $b) = @_;
     my @new_arr = @{[$a]};
-    push @new_arr, @{$b->{val}};
+    push @new_arr, @$b;
     List->new(\@new_arr);
 }
 
 sub concat {
     if (scalar(@_) == 0) { return List->new([]); }
     my ($a) = shift;
-    my @new_arr = @{$a->{val}};
-    map { push @new_arr, @{$_->{val}} } @_;
+    my @new_arr = @$a;
+    map { push @new_arr, @$_ } @_;
     List->new(\@new_arr);
 }
 
 sub nth {
     my ($seq,$i) = @_;
-    if (@{$seq->{val}} > $i) {
+    if (@$seq > $i) {
         return scalar($seq->[$i]);
     } else {
         die "nth: index out of bounds";
@@ -114,7 +114,7 @@ sub nth {
 sub first {
     my ($seq) = @_;
     return $nil if (_nil_Q($seq));
-    return scalar(@{$seq->{val}}) > 0 ? $seq->[0] : $nil;
+    return scalar(@$seq) > 0 ? $seq->[0] : $nil;
 }
 
 sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
@@ -123,16 +123,16 @@ sub count {
     if (_nil_Q($_[0])) {
         return Integer->new(0);
     } else {
-        return Integer->new(scalar(@{$_[0]->{val}}))
+        return Integer->new(scalar(@{$_[0]}))
     }
 }
 
 sub apply {
-    my @all_args = @{$_[0]->{val}};
+    my @all_args = @{$_[0]};
     my $f = $all_args[0];
     my @apply_args = @all_args[1..$#all_args];
     my @args = @apply_args[0..$#apply_args-1];
-    push @args, @{$apply_args[$#apply_args]->{val}};
+    push @args, @{$apply_args[$#apply_args]};
     if ((ref $f) =~ /^Function/) {
         return $f->apply(List->new(\@args));
     } else {
@@ -144,20 +144,20 @@ sub mal_map {
     my $f = shift;
     my @arr;
     if ((ref $f) =~ /^Function/) {
-        @arr = map { $f->apply(List->new([$_])) } @{$_[0]->{val}};
+        @arr = map { $f->apply(List->new([$_])) } @{$_[0]};
     } else {
-        @arr = map { &{ $f}(List->new([$_])) } @{$_[0]->{val}};
+        @arr = map { &{ $f}(List->new([$_])) } @{$_[0]};
     }
     return List->new(\@arr);
 }
 
 sub conj {
-    my ($lst, @args) = @{$_[0]->{val}};
+    my ($lst, @args) = @{$_[0]};
     my $new_lst = _clone($lst);
     if (_list_Q($new_lst)) {
-        unshift @{$new_lst->{val}}, reverse @args;
+        unshift @$new_lst, reverse @args;
     } else {
-        push @{$new_lst->{val}}, @args;
+        push @$new_lst, @args;
     }
     return $new_lst;
 }
@@ -167,11 +167,11 @@ sub seq {
     if (_nil_Q($arg)) {
         return $nil;
     } elsif (_list_Q($arg)) {
-        return $nil if scalar(@{$arg->{val}}) == 0;
+        return $nil if scalar(@$arg) == 0;
         return $arg;
-        # return scalar(@{$arg->{val}}) > 0 ? $arg : $nil;
+        # return scalar(@$arg) > 0 ? $arg : $nil;
     } elsif (_vector_Q($arg)) {
-        return $nil if scalar(@{$arg->{val}}) == 0;
+        return $nil if scalar(@$arg) == 0;
         return List->new($arg->{val});
     } elsif (_string_Q($arg)) {
         return $nil if length($$arg) == 0;
@@ -247,10 +247,10 @@ our $core_ns = {
     'list?' => sub { _list_Q($_[0]->[0]) ? $true : $false },
     'vector'  => sub { Vector->new($_[0]->{val}) },
     'vector?' => sub { _vector_Q($_[0]->[0]) ? $true : $false },
-    'hash-map' => sub { _hash_map(@{$_[0]->{val}}) },
+    'hash-map' => sub { _hash_map(@{$_[0]}) },
     'map?' => sub { _hash_map_Q($_[0]->[0]) ? $true : $false },
-    'assoc' => sub { assoc(@{$_[0]->{val}}) },
-    'dissoc' => sub { dissoc(@{$_[0]->{val}}) },
+    'assoc' => sub { assoc(@{$_[0]}) },
+    'dissoc' => sub { dissoc(@{$_[0]}) },
     'get' => sub { get($_[0]->[0],$_[0]->[1]) },
     'contains?' => sub { contains_Q($_[0]->[0],$_[0]->[1]) },
     'keys' => sub { mal_keys(@{$_[0]->{val}}) },
@@ -261,8 +261,8 @@ our $core_ns = {
     'first' => sub { first($_[0]->[0]) },
     'rest' => sub { rest($_[0]->[0]) },
     'cons' => sub { cons($_[0]->[0], $_[0]->[1]) },
-    'concat' => sub { concat(@{$_[0]->{val}}) },
-    'empty?' => sub { scalar(@{$_[0]->[0]->{val}}) == 0 ? $true : $false },
+    'concat' => sub { concat(@{$_[0]}) },
+    'empty?' => sub { scalar(@{$_[0]->[0]}) == 0 ? $true : $false },
     'count' => sub { count($_[0]->[0]) },
     'apply' => sub { apply($_[0]) },
     'map' => sub { mal_map($_[0]->[0], $_[0]->[1]) },

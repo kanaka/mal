@@ -27,11 +27,11 @@ sub eval_ast {
             $env->get($ast);
         }
         when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            my @lst = map {EVAL($_, $env)} @$ast;
             return List->new(\@lst);
         }
         when (/^Vector/) {
-            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            my @lst = map {EVAL($_, $env)} @$ast;
             return Vector->new(\@lst);
         }
         when (/^HashMap/) {
@@ -55,7 +55,7 @@ sub EVAL {
     }
 
     # apply list
-    my ($a0, $a1, $a2, $a3) = @{$ast->{val}};
+    my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
         when (/^def!$/) {
@@ -64,14 +64,14 @@ sub EVAL {
         }
         when (/^let\*$/) {
             my $let_env = Env->new($env);
-            for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
+            for(my $i=0; $i < scalar(@$a1); $i+=2) {
                 $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
             }
             return EVAL($a2, $let_env);
         }
         when (/^do$/) {
             my $el = eval_ast($ast->rest(), $env);
-            return $el->[$#{$el->{val}}];
+            return $el->[$#$el];
         }
         when (/^if$/) {
             my $cond = EVAL($a1, $env);

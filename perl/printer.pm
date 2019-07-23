@@ -15,10 +15,10 @@ sub _pr_str {
     my($_r) = (defined $print_readably) ? $print_readably : 1;
     given (ref $obj) {
         when(/^List/) {
-            return '(' . join(' ', map {_pr_str($_, $_r)} @{$obj->{val}}) . ')';
+            return '(' . join(' ', map {_pr_str($_, $_r)} @{$obj}) . ')';
         }
         when(/^Vector/) {
-            return '[' . join(' ', map {_pr_str($_, $_r)} @{$obj->{val}}) . ']';
+            return '[' . join(' ', map {_pr_str($_, $_r)} @{$obj}) . ']';
         }
         when(/^HashMap/) {
             my @elems = ();

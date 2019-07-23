@@ -28,10 +28,10 @@ sub _equal_Q {
             return $$a eq $$b;
         }
         when (/^List/ || /^Vector/) {
-            if (! (scalar(@{$a->{val}}) == scalar(@{$b->{val}}))) {
+            if (! (scalar(@$a) == scalar(@$b))) {
                 return 0;
             }
-            for (my $i=0; $i<scalar(@{$a->{val}}); $i++) {
+            for (my $i=0; $i<scalar(@$a); $i++) {
                 if (! _equal_Q($a->[$i], $b->[$i])) {
                     return 0;
                 }

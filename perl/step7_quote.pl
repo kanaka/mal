@@ -22,7 +22,7 @@ sub READ {
 # eval
 sub is_pair {
     my ($x) = @_;
-    return _sequential_Q($x) && scalar(@{$x->{val}}) > 0;
+    return _sequential_Q($x) && scalar(@$x) > 0;
 }
 
 sub quasiquote {
@@ -50,11 +50,11 @@ sub eval_ast {
             $env->get($ast);
         }
         when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            my @lst = map {EVAL($_, $env)} @$ast;
             return List->new(\@lst);
         }
         when (/^Vector/) {
-            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            my @lst = map {EVAL($_, $env)} @$ast;
             return Vector->new(\@lst);
         }
         when (/^HashMap/) {
@@ -81,7 +81,7 @@ sub EVAL {
     }
 
     # apply list
-    my ($a0, $a1, $a2, $a3) = @{$ast->{val}};
+    my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
     given ((ref $a0) =~ /^Symbol/ ? $$a0 : $a0) {
         when (/^def!$/) {
@@ -90,7 +90,7 @@ sub EVAL {
         }
         when (/^let\*$/) {
             my $let_env = Env->new($env);
-            for(my $i=0; $i < scalar(@{$a1->{val}}); $i+=2) {
+            for(my $i=0; $i < scalar(@$a1); $i+=2) {
                 $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
             }
             $ast = $a2;
@@ -105,8 +105,8 @@ sub EVAL {
             # Continue loop (TCO)
         }
         when (/^do$/) {
-            eval_ast($ast->slice(1, $#{$ast->{val}}-1), $env);
-            $ast = $ast->[$#{$ast->{val}}];
+            eval_ast($ast->slice(1, $#$ast-1), $env);
+            $ast = $ast->[$#$ast];
             # Continue loop (TCO)
         }
         when (/^if$/) {

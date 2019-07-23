@@ -29,11 +29,11 @@ sub eval_ast {
             }
         }
         when (/^List/) {
-            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            my @lst = map {EVAL($_, $env)} @$ast;
             return List->new(\@lst);
         }
         when (/^Vector/) {
-            my @lst = map {EVAL($_, $env)} @{$ast->{val}};
+            my @lst = map {EVAL($_, $env)} @$ast;
             return Vector->new(\@lst);
         }
         when (/^HashMap/) {
@@ -57,7 +57,7 @@ sub EVAL {
     }
 
     # apply list
-    if (scalar(@{$ast->{val}}) == 0) { return $ast; }
+    if (scalar(@$ast) == 0) { return $ast; }
     my $el = eval_ast($ast, $env);
     my $f = $el->[0];
     return &{ $f }($el->rest());

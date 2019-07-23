@@ -12,10 +12,10 @@ use Exporter 'import';
         my ($class,$outer,$binds,$exprs) = @_;
         my $data = { __outer__ => $outer };
         if ($binds) {
-            for (my $i=0; $i<scalar(@{$binds->{val}}); $i++) {
+            for (my $i=0; $i<scalar(@$binds); $i++) {
                 if (${$binds->[$i]} eq "&") {
                     # variable length arguments
-                    my @earr = @{$exprs->{val}}; # get the array
+                    my @earr = @$exprs; # get the array
                     my @new_arr = @earr[$i..$#earr]; # slice it
                     $data->{${$binds->[$i+1]}} = List->new(\@new_arr);
                     last;
