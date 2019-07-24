@@ -157,7 +157,7 @@ sub seq {
         # return scalar(@$arg) > 0 ? $arg : $nil;
     } elsif (_vector_Q($arg)) {
         return $nil if scalar(@$arg) == 0;
-        return List->new($arg->{val});
+        return List->new([@$arg]);
     } elsif (_string_Q($arg)) {
         return $nil if length($$arg) == 0;
         my @chars = map { String->new($_) } split(//, $$arg);
@@ -220,9 +220,9 @@ our $core_ns = {
     '/' =>  sub { Integer->new(${$_[0]->[0]} / ${$_[0]->[1]}) },
     'time-ms' => sub { Integer->new(int(time()*1000)) },
 
-    'list'  => sub { List->new($_[0]->{val}) },
+    'list'  => sub { List->new($_[0]) },
     'list?' => sub { _list_Q($_[0]->[0]) ? $true : $false },
-    'vector'  => sub { Vector->new($_[0]->{val}) },
+    'vector'  => sub { Vector->new($_[0]) },
     'vector?' => sub { _vector_Q($_[0]->[0]) ? $true : $false },
     'hash-map' => sub { _hash_map(@{$_[0]}) },
     'map?' => sub { _hash_map_Q($_[0]->[0]) ? $true : $false },
