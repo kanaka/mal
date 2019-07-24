@@ -127,21 +127,12 @@ sub apply {
     my @apply_args = @all_args[1..$#all_args];
     my @args = @apply_args[0..$#apply_args-1];
     push @args, @{$apply_args[$#apply_args]};
-    if ((ref $f) =~ /^Function/) {
-        return $f->apply(List->new(\@args));
-    } else {
-        return &{ $f }(List->new(\@args));
-    }
+    return &{ $f }(List->new(\@args));
 }
 
 sub mal_map {
     my $f = shift;
-    my @arr;
-    if ((ref $f) =~ /^Function/) {
-        @arr = map { $f->apply(List->new([$_])) } @{$_[0]};
-    } else {
-        @arr = map { &{ $f}(List->new([$_])) } @{$_[0]};
-    }
+    my @arr = map { &{ $f}(List->new([$_])) } @{$_[0]};
     return List->new(\@arr);
 }
 
@@ -196,11 +187,7 @@ sub meta {
 sub swap_BANG {
     my ($atm,$f,@args) = @_;
     unshift @args, $atm->{val};
-    if ((ref $f) =~ /^Function/) {
-        return $atm->{val} = $f->apply(List->new(\@args));
-    } else {
-        return $atm->{val} = &{ $f }(List->new(\@args));
-    }
+    return $atm->{val} = &{ $f }(List->new(\@args));
 }
 
 

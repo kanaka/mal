@@ -192,6 +192,7 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
 
 {
     package Function;
+    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } };
     sub new  {
         my $class = shift;
         my ($eval, $ast, $env, $params) = @_;
@@ -220,6 +221,7 @@ sub _function_Q { (ref $_[0]) =~ /^Function/ }
 
 {
     package FunctionRef;
+    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } };
     sub new {
         my ($class, $code) = @_;
         bless {'meta'=>$nil,

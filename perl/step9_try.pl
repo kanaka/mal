@@ -61,7 +61,7 @@ sub macroexpand {
     my ($ast, $env) = @_;
     while (is_macro_call($ast, $env)) {
         my $mac = $env->get($ast->[0]);
-        $ast = $mac->apply($ast->rest());
+        $ast = $mac->($ast->rest());
     }
     return $ast;
 }
