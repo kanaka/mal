@@ -120,7 +120,7 @@ foreach my $n (%$core_ns) {
 }
 
 # core.mal: defined using the language itself
-REP("(def! not (fn* (a) (if a false true)))");
+REP(q[(def! not (fn* (a) (if a false true)))]);
 
 if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");

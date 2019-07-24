@@ -153,15 +153,15 @@ my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 
 # core.mal: defined using the language itself
-REP("(def! not (fn* (a) (if a false true)))");
-REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+REP(q[(def! not (fn* (a) (if a false true)))]);
+REP(q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))]);
 
 if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
     shift @ARGV;
 }
 if (scalar(@ARGV) > 0) {
-    REP("(load-file \"" . $ARGV[0] . "\")");
+    REP(qq[(load-file "$ARGV[0]")]);
     exit 0;
 }
 while (1) {
