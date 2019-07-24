@@ -108,11 +108,11 @@ sub EVAL {
     my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
     given ($a0->isa('Symbol') ? $$a0 : $a0) {
-        when (/^def!$/) {
+        when ('def!') {
             my $res = EVAL($a2, $env);
             return $env->set($a1, $res);
         }
-        when (/^let\*$/) {
+        when ('let*') {
             my $let_env = Env->new($env);
             for(my $i=0; $i < scalar(@$a1); $i+=2) {
                 $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
@@ -121,25 +121,25 @@ sub EVAL {
             $env = $let_env;
             # Continue loop (TCO)
         }
-        when (/^quote$/) {
+        when ('quote') {
             return $a1;
         }
-        when (/^quasiquote$/) {
+        when ('quasiquote') {
             $ast = quasiquote($a1);
             # Continue loop (TCO)
         }
-        when (/^defmacro!$/) {
+        when ('defmacro!') {
             my $func = EVAL($a2, $env);
             $func->{ismacro} = 1;
             return $env->set($a1, $func);
         }
-        when (/^macroexpand$/) {
+        when ('macroexpand') {
             return macroexpand($a1, $env);
         }
-        when (/^pl\*$/) {
+        when ('pl*') {
             return pl_to_mal(eval(${$a1}));
         }
-        when (/^try\*$/) {
+        when ('try*') {
             do {
                 local $@;
                 my $ret;
@@ -149,7 +149,7 @@ sub EVAL {
                      1;
                 } or do {
                     my $err = $@;
-                    if ($a2 && ${$a2->[0]} eq "catch\*") {
+                    if ($a2 && ${$a2->[0]} eq 'catch*') {
                         my $exc;
                         if (ref $err) {
                             $exc = $err;
@@ -166,12 +166,12 @@ sub EVAL {
                 return $ret;
             };
         }
-        when (/^do$/) {
+        when ('do') {
             eval_ast($ast->slice(1, $#$ast-1), $env);
             $ast = $ast->[$#$ast];
             # Continue loop (TCO)
         }
-        when (/^if$/) {
+        when ('if') {
             my $cond = EVAL($a1, $env);
             if ($cond eq $nil || $cond eq $false) {
                 $ast = $a3 ? $a3 : $nil;
@@ -180,7 +180,7 @@ sub EVAL {
             }
             # Continue loop (TCO)
         }
-        when (/^fn\*$/) {
+        when ('fn*') {
             return Function->new(\&EVAL, $a2, $env, $a1);
         }
         default {

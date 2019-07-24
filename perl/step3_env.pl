@@ -51,11 +51,11 @@ sub EVAL {
     my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
     given ($$a0) {
-        when (/^def!$/) {
+        when ('def!') {
             my $res = EVAL($a2, $env);
             return $env->set($a1, $res);
         }
-        when (/^let\*$/) {
+        when ('let*') {
             my $let_env = Env->new($env);
             for(my $i=0; $i < scalar(@$a1); $i+=2) {
                 $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
