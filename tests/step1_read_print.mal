@@ -98,6 +98,8 @@ false
 ;=>","
 "-"
 ;=>"-"
+"/"
+;=>"/"
 ":"
 ;=>":"
 ";"
@@ -275,6 +277,3 @@ false
 ;; fantom fails this one
 "!"
 ;=>"!"
-;; io fails this one
-"/"
-;=>"/"

@@ -7,7 +7,9 @@ Number malPrint := method(readable, self asString)
 
 // Io strings are of type Sequence
 Sequence malPrint := method(readable,
-    if(readable, self asString asJson, self asString)
+    if(readable,
+       "\"" .. (self asString asMutable replaceSeq("\\", "\\\\") replaceSeq("\"", "\\\"") replaceSeq("\n", "\\n")) .. "\"",
+       self asString)
 )
 
 MalMeta := Object clone do(
