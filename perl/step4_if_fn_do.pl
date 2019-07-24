@@ -76,11 +76,11 @@ sub EVAL {
             }
         }
         when (/^fn\*$/) {
-            return sub {
+            return bless sub {
                 #print "running fn*\n";
                 my $args = $_[0];
                 return EVAL($a2, Env->new($env, $a1, $args));
-            };
+            }, 'CoreFunction';
         }
         default {
             my $el = eval_ast($ast, $env);

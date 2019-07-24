@@ -53,13 +53,10 @@ sub _equal_Q {
 
 sub _clone {
     my ($obj) = @_;
-    given (ref $obj) {
-        when (/^CODE/) {
-            return FunctionRef->new( $obj );
-        }
-        default {
-            return bless {%{$obj}}, ref $obj;
-        }
+    if ($obj->isa('CoreFunction')) {
+	return FunctionRef->new( $obj );
+    } else {
+	return bless {%{$obj}}, ref $obj;
     }
 }
 
@@ -216,7 +213,7 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
     }
 }
 
-sub _sub_Q { (ref $_[0]) =~ /^CODE/ }
+sub _sub_Q { $_[0]->isa('CoreFunction') }
 sub _function_Q { (ref $_[0]) =~ /^Function/ }
 
 
@@ -235,6 +232,13 @@ sub _function_Q { (ref $_[0]) =~ /^Function/ }
         my $self = $_[0];
         return &{ $self->{code} }($_[1]);
     }
+}
+
+# Core Functions
+
+{
+    package CoreFunction;
+    sub meta { $nil }
 }
 
 

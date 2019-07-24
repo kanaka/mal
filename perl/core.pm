@@ -175,11 +175,7 @@ sub with_meta {
 }
 
 sub meta {
-    if ((ref $_[0]) && !((ref $_[0]) =~ /^CODE/)) {
-        return $_[0]->meta;
-    } else {
-        return $nil;
-    }
+    return $_[0]->meta;
 }
 
 
@@ -258,5 +254,9 @@ our $core_ns = {
     'reset!' => sub { $_[0]->[0]->{val} = $_[0]->[1] },
     'swap!' => sub { swap_BANG(@{$_[0]->{val}}) },
 };
+
+foreach my $f (values %$core_ns) {
+    bless $f, 'CoreFunction';
+}
 
 1;

@@ -50,7 +50,7 @@ sub _pr_str {
         when(/^Atom/) {
             return '(atom ' . _pr_str($obj->{val}) . ")";
         }
-        when(/^CODE/)   { return '<builtin_fn* ' . $obj . '>'; }
+        when(/^CoreFunction/)   { return '<builtin_fn* ' . $obj . '>'; }
         default         { return $$obj; }
     }
 }

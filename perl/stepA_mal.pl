@@ -216,7 +216,8 @@ sub REP {
 foreach my $n (%$core_ns) {
     $repl_env->set(Symbol->new($n), $core_ns->{$n});
 }
-$repl_env->set(Symbol->new('eval'), sub { EVAL($_[0]->[0], $repl_env); });
+$repl_env->set(Symbol->new('eval'),
+	       bless sub { EVAL($_[0]->[0], $repl_env); }, 'CoreFunction');
 my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 
