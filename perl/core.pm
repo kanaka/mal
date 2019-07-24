@@ -89,17 +89,11 @@ sub mal_vals {
 
 sub cons {
     my ($a, $b) = @_;
-    my @new_arr = @{[$a]};
-    push @new_arr, @$b;
-    List->new(\@new_arr);
+    List->new([$a, @$b]);
 }
 
 sub concat {
-    if (scalar(@_) == 0) { return List->new([]); }
-    my ($a) = shift;
-    my @new_arr = @$a;
-    map { push @new_arr, @$_ } @_;
-    List->new(\@new_arr);
+    List->new([map @$_, @_]);
 }
 
 sub nth {
