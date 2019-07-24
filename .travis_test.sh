@@ -61,6 +61,9 @@ test|perf)
     if ! ${MAKE} TEST_OPTS="${TEST_OPTS}" \
             ${MAL_IMPL:+MAL_IMPL=${MAL_IMPL}} \
             ${REGRESS:+REGRESS=${REGRESS}} \
+            ${HARD:+HARD=${HARD}} \
+            ${DEFERRABLE:+DEFERRABLE=${DEFERRABLE}} \
+            ${OPTIONAL:+OPTIONAL=${OPTIONAL}} \
             ${ACTION}^${IMPL}${STEP:+^${STEP}}; then
         # print debug-file on error
         cat ${ACTION}.err

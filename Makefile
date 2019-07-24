@@ -77,6 +77,7 @@ TEST_OPTS =
 # later steps.
 REGRESS =
 
+HARD=
 DEFERRABLE=1
 OPTIONAL=1
 
@@ -142,6 +143,8 @@ dist_EXCLUDES += guile io julia matlab swift
 
 # Extra options to pass to runtest.py
 bbc-basic_TEST_OPTS = --test-timeout 60
+guile_TEST_OPTS = --test-timeout 120
+io_TEST_OPTS = --test-timeout 120
 logo_TEST_OPTS = --start-timeout 60 --test-timeout 120
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 120
 miniMAL_TEST_OPTS = --start-timeout 60 --test-timeout 120
@@ -270,6 +273,7 @@ noop =
 SPACE = $(noop) $(noop)
 export FACTOR_ROOTS := .
 
+opt_HARD            = $(if $(strip $(HARD)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(HARD)),--hard,),)
 opt_DEFERRABLE      = $(if $(strip $(DEFERRABLE)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(DEFERRABLE)),--deferrable,--no-deferrable),--no-deferrable)
 opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE 1 y yes Yes YES,$(OPTIONAL)),--optional,--no-optional),--no-optional)
 
@@ -328,7 +332,7 @@ get_run_prefix = $(strip $(foreach mode,$(call actual_impl,$(1))_MODE, \
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
 get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp mal tcl vb,$(1)),RAW=1,)) \
-		    ../runtest.py $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS) $(TEST_OPTS)
+		    ../runtest.py $(opt_HARD) $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS) $(TEST_OPTS)
 
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step

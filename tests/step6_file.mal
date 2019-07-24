@@ -101,6 +101,28 @@
 (fib 2)
 ;=>1
 
+;; Testing `@` reader macro (short for `deref`)
+(def! atm (atom 9))
+@atm
+;=>9
+
+;;; TODO: really a step5 test
+;; Testing that vector params not broken by TCO
+(def! g (fn* [] 78))
+(g)
+;=>78
+(def! g (fn* [a] (+ a 78)))
+(g 3)
+;=>81
+
+;;
+;; Testing that *ARGV* exists and is an empty list
+(list? *ARGV*)
+;=>true
+*ARGV*
+;=>()
+
+;>>> soft=True
 ;>>> optional=True
 ;;
 ;; -------- Optional Functionality --------
@@ -119,34 +141,11 @@
 mymap
 ;=>{"a" 1}
 
-;; Testing `@` reader macro (short for `deref`)
-(def! atm (atom 9))
-@atm
-;=>9
-
-;;; TODO: really a step5 test
-;; Testing that vector params not broken by TCO
-(def! g (fn* [] 78))
-(g)
-;=>78
-(def! g (fn* [a] (+ a 78)))
-(g 3)
-;=>81
-
 ;; Checking that eval does not use local environments.
 (def! a 1)
 ;=>1
 (let* (a 2) (eval (read-string "a")))
 ;=>1
-
-;;
-;; Testing that *ARGV* exists and is an empty list
-(list? *ARGV*)
-;=>true
-*ARGV*
-;=>()
-
-;>>> soft=True
 
 ;; Non alphanumeric characters in comments in read-string
 (read-string "1;!")

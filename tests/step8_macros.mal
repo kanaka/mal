@@ -92,10 +92,6 @@ x
 ;=>"yes"
 
 
-;>>> optional=True
-;;
-;; -------- Optional Functionality --------
-
 ;; Testing nth, first, rest with vectors
 
 (nth [1] 0)
@@ -132,6 +128,10 @@ x
 ;=>"yes"
 
 ;>>> soft=True
+;>>> optional=True
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
 
 ;; Test that macros use closures
 (def! x 2)

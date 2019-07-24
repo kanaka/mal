@@ -164,10 +164,6 @@ false
 ;=>(splice-unquote (1 2 3))
 
 
-;>>> optional=True
-;;
-;; -------- Optional Functionality --------
-
 ;; Testing keywords
 :kw
 ;=>:kw
@@ -221,16 +217,19 @@ false
 1; comment after expression
 ;=>1
 
-;; Testing read of ^/metadata
-^{"a" 1} [1 2 3]
-;=>(with-meta [1 2 3] {"a" 1})
-
-
 ;; Testing read of @/deref
 @a
 ;=>(deref a)
 
 ;>>> soft=True
+;>>> optional=True
+;;
+;; -------- Optional Functionality --------
+
+;; Testing read of ^/metadata
+^{"a" 1} [1 2 3]
+;=>(with-meta [1 2 3] {"a" 1})
+
 
 ;; Non alphanumerice characters in strings
 ;;; \t is not specified enough to be tested

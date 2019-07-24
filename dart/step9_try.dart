@@ -188,8 +188,7 @@ MalType EVAL(MalType ast, Env env) {
             ast = quasiquote(args.first);
             continue;
           } else if (symbol.value == 'macroexpand') {
-            ast = macroexpand(args.first, env);
-            continue;
+            return macroexpand(args.first, env);
           } else if (symbol.value == 'try*') {
             var body = args.first;
             if (args.length < 2) {

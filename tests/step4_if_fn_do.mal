@@ -420,9 +420,6 @@ nil
 ;/\(1 2 abc "\) def
 ;=>nil
 
-;>>> optional=True
-;;
-;; -------- Optional Functionality --------
 
 ;; Testing keywords
 (= :abc :abc)

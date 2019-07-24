@@ -29,9 +29,8 @@
 ;=>()
 
 ;>>> deferrable=True
-;>>> optional=True
 ;;
-;; -------- Deferrable/Optional Functionality --------
+;; -------- Deferrable Functionality --------
 
 ;; Testing evaluation within collection literals
 [1 2 (+ 1 2)]
