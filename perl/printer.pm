@@ -1,8 +1,6 @@
 package printer;
 use strict;
 use warnings FATAL => qw(all);
-no if $] >= 5.018, warnings => "experimental::smartmatch";
-use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw( _pr_str );
 

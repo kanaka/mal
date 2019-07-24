@@ -1,10 +1,8 @@
 use strict;
 use warnings FATAL => qw(all);
-no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
 use readline qw(mal_readline set_rl_mode);
-use feature qw(switch);
 use Data::Dumper;
 
 use types qw(_list_Q);
