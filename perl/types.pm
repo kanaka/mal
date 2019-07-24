@@ -223,18 +223,13 @@ sub _function_Q { $_[0]->isa('Function') }
 
 {
     package FunctionRef;
-    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } },
-	         fallback => 1;
+    use overload '&{}' => sub { $_[0]->{code} }, fallback => 1;
     sub new {
         my ($class, $code) = @_;
         bless {'meta'=>$nil,
                'code'=>$code}, $class
     }
     sub meta { $_[0]->{meta} }
-    sub apply {
-        my $self = $_[0];
-        return &{ $self->{code} }($_[1]);
-    }
 }
 
 # Core Functions
