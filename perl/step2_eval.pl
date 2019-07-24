@@ -91,14 +91,11 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            given (ref $err) {
-                when (/^BlankException/) {
-                    # ignore and continue
-                }
-                default {
-                    chomp $err;
-                    print "Error: $err\n";
-                }
+            if ($err->isa('BlankException')) {
+		# ignore and continue
+	    } else {
+		chomp $err;
+		print "Error: $err\n";
             }
         };
     };

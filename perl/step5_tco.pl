@@ -88,7 +88,7 @@ sub EVAL {
         default {
             my $el = eval_ast($ast, $env);
             my $f = $el->[0];
-            if ((ref $f) =~ /^Function/) {
+            if ($f->isa('Function')) {
                 $ast = $f->{ast};
                 $env = $f->gen_env($el->rest());
                 # Continue loop (TCO)
@@ -137,14 +137,11 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            given (ref $err) {
-                when (/^BlankException/) {
-                    # ignore and continue
-                }
-                default {
-                    chomp $err;
-                    print "Error: $err\n";
-                }
+            if ($err->isa('BlankException')) {
+		# ignore and continue
+	    } else {
+		chomp $err;
+		print "Error: $err\n";
             }
         };
     };

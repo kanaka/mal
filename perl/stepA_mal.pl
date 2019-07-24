@@ -50,7 +50,7 @@ sub is_macro_call {
         _symbol_Q($ast->[0]) &&
         $env->find($ast->[0])) {
         my ($f) = $env->get($ast->[0]);
-        if ((ref $f) =~ /^Function/) {
+        if ($f->isa('Function')) {
             return $f->{ismacro};
         }
     }
@@ -186,7 +186,7 @@ sub EVAL {
         default {
             my $el = eval_ast($ast, $env);
             my $f = $el->[0];
-            if ((ref $f) =~ /^Function/) {
+            if ($f->isa('Function')) {
                 $ast = $f->{ast};
                 $env = $f->gen_env($el->rest());
                 # Continue loop (TCO)
@@ -248,19 +248,16 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            given (ref $err) {
-                when (/^BlankException/) {
-                    # ignore and continue
-                }
-                default {
-                    if (ref $err) {
-                        print "Error: ".printer::_pr_str($err)."\n";
-                    } else {
-                        chomp $err;
-                        print "Error: $err\n";
-                    }
-                }
-            }
+	    if ($err->isa('BlankException')) {
+		# ignore and continue
+	    } else {
+		if (ref $err) {
+		    print "Error: ".printer::_pr_str($err)."\n";
+		} else {
+		    chomp $err;
+		    print "Error: $err\n";
+		}
+	    }
         };
     };
 }
