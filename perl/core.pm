@@ -176,7 +176,7 @@ sub with_meta {
 
 sub meta {
     if ((ref $_[0]) && !((ref $_[0]) =~ /^CODE/)) {
-        return $_[0]->{meta};
+        return $_[0]->meta;
     } else {
         return $nil;
     }

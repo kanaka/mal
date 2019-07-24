@@ -127,6 +127,7 @@ sub _keyword_Q { $_[0]->isa('String') && ${$_[0]} =~ /^\x{029e}/; }
     package Sequence;
     use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub meta { $_[0]->{meta} }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
     sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
     sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
@@ -157,6 +158,7 @@ sub _vector_Q { $_[0]->isa('Vector') }
 {
     package HashMap;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub meta { $_[0]->{meta} }
     sub get { $_[0]->{val}->{$_[1]}; }
 }
 
@@ -203,6 +205,7 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
                'params'=>$params,
                'ismacro'=>0}, $class
     }
+    sub meta { $_[0]->{meta} }
     sub gen_env {
         my $self = $_[0];
         return Env->new($self->{env}, $self->{params}, $_[1]);
@@ -227,6 +230,7 @@ sub _function_Q { (ref $_[0]) =~ /^Function/ }
         bless {'meta'=>$nil,
                'code'=>$code}, $class
     }
+    sub meta { $_[0]->{meta} }
     sub apply {
         my $self = $_[0];
         return &{ $self->{code} }($_[1]);
@@ -239,6 +243,7 @@ sub _function_Q { (ref $_[0]) =~ /^Function/ }
 {
     package Atom;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub meta { $_[0]->{meta} }
 }
 
 sub _atom_Q { $_[0]->isa('Atom') }
