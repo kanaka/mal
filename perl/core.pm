@@ -182,8 +182,8 @@ sub meta {
 # Atom functions
 sub swap_BANG {
     my ($atm,$f,@args) = @_;
-    unshift @args, $atm->{val};
-    return $atm->{val} = &{ $f }(List->new(\@args));
+    unshift @args, $$atm;
+    return $$atm = &{ $f }(List->new(\@args));
 }
 
 
@@ -250,9 +250,9 @@ our $core_ns = {
     'meta' => sub { meta($_[0]->[0]) },
     'atom' => sub { Atom->new($_[0]->[0]) },
     'atom?' => sub { _atom_Q($_[0]->[0]) ? $true : $false },
-    'deref' => sub { $_[0]->[0]->{val} },
-    'reset!' => sub { $_[0]->[0]->{val} = $_[0]->[1] },
-    'swap!' => sub { swap_BANG(@{$_[0]->{val}}) },
+    'deref' => sub { ${$_[0]->[0]} },
+    'reset!' => sub { ${$_[0]->[0]} = $_[0]->[1] },
+    'swap!' => sub { swap_BANG(@{$_[0]}) },
 };
 
 foreach my $f (values %$core_ns) {

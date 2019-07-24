@@ -40,7 +40,7 @@ sub _pr_str {
 	return '<fn* ' . _pr_str($obj->{params}) .
 	    ' ' . _pr_str($obj->{ast}) . '>';
     } elsif ($obj->isa('Atom')) {
-	return '(atom ' . _pr_str($obj->{val}) . ")";
+	return '(atom ' . _pr_str($$obj) . ")";
     } elsif ($obj->isa('CoreFunction')) {
         return '<builtin_fn* ' . $obj . '>';
     } else {

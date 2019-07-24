@@ -244,6 +244,7 @@ sub _function_Q { $_[0]->isa('Function') }
 
 {
     package Atom;
+    use overload '${}' => sub { \($_[0]->{val}) };
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { $_[0]->{meta} }
 }
