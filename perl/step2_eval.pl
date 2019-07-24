@@ -64,16 +64,17 @@ sub PRINT {
 }
 
 # repl
-my $repl_env = {};
+my $repl_env = {
+    '+' => sub { Integer->new(${$_[0]->[0]} + ${$_[0]->[1]}) },
+    '-' => sub { Integer->new(${$_[0]->[0]} - ${$_[0]->[1]}) },
+    '*' => sub { Integer->new(${$_[0]->[0]} * ${$_[0]->[1]}) },
+    '/' => sub { Integer->new(${$_[0]->[0]} / ${$_[0]->[1]}) },
+};
+
 sub REP {
     my $str = shift;
     return PRINT(EVAL(READ($str), $repl_env));
 }
-
-$repl_env->{'+'} = sub { Integer->new(${$_[0]->[0]} + ${$_[0]->[1]}) };
-$repl_env->{'-'} = sub { Integer->new(${$_[0]->[0]} - ${$_[0]->[1]}) };
-$repl_env->{'*'} = sub { Integer->new(${$_[0]->[0]} * ${$_[0]->[1]}) };
-$repl_env->{'/'} = sub { Integer->new(${$_[0]->[0]} / ${$_[0]->[1]}) };
 
 if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
