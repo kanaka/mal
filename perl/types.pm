@@ -34,11 +34,11 @@ sub _equal_Q {
 	}
 	return 1;
     } elsif ($a->isa('HashMap')) {
-	if (! (scalar(keys %{ $a->{val} }) == scalar(keys %{ $b->{val} }))) {
+	if (! (scalar(keys %$a) == scalar(keys %$b))) {
 	    return 0;
 	}
-	foreach my $k (keys %{ $a->{val} }) {
-	    if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
+	foreach my $k (keys %$a) {
+	    if (!_equal_Q($a->{$k}, $b->{$k})) {
 		return 0;
 	    }
 	}
@@ -50,6 +50,7 @@ sub _equal_Q {
 }
 
 sub _clone {
+    no overloading '%{}';
     my ($obj) = @_;
     if ($obj->isa('CoreFunction')) {
 	return FunctionRef->new( $obj );
@@ -152,9 +153,11 @@ sub _vector_Q { $_[0]->isa('Vector') }
 
 {
     package HashMap;
+    use overload '%{}' => sub { no overloading '%{}'; $_[0]->{val} },
+	         fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub meta { $_[0]->{meta} }
-    sub get { $_[0]->{val}->{$_[1]}; }
+    sub meta { no overloading '%{}'; $_[0]->{meta} }
+    sub get { no overloading '%{}'; $_[0]->{val}->{$_[1]}; }
 }
 
 sub _hash_map {
@@ -189,7 +192,8 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
 
 {
     package Function;
-    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } };
+    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } },
+                 fallback => 1;
     sub new  {
         my $class = shift;
         my ($eval, $ast, $env, $params) = @_;
@@ -219,7 +223,8 @@ sub _function_Q { $_[0]->isa('Function') }
 
 {
     package FunctionRef;
-    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } };
+    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } },
+	         fallback => 1;
     sub new {
         my ($class, $code) = @_;
         bless {'meta'=>$nil,
@@ -244,7 +249,7 @@ sub _function_Q { $_[0]->isa('Function') }
 
 {
     package Atom;
-    use overload '${}' => sub { \($_[0]->{val}) };
+    use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { $_[0]->{meta} }
 }

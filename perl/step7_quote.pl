@@ -55,7 +55,7 @@ sub eval_ast {
 	return Vector->new(\@lst);
     } elsif ($ast->isa('HashMap')) {
 	my $new_hm = {};
-	foreach my $k (keys( %{ $ast->{val} })) {
+	foreach my $k (keys %$ast) {
 	    $new_hm->{$k} = EVAL($ast->get($k), $env);
 	}
 	return HashMap->new($new_hm);

@@ -51,13 +51,13 @@ sub slurp {
 
 sub assoc {
     my $src_hsh = shift;
-    my $new_hsh = { %{$src_hsh->{val}} };
+    my $new_hsh = { %$src_hsh };
     return _assoc_BANG($new_hsh, @_);
 }
 
 sub dissoc {
     my $src_hsh = shift;
-    my $new_hsh = { %{$src_hsh->{val}} };
+    my $new_hsh = { %$src_hsh };
     return _dissoc_BANG($new_hsh, @_);
 }
 
@@ -65,22 +65,22 @@ sub dissoc {
 sub get {
     my ($hsh, $key) = @_;
     return $nil if $hsh eq $nil;
-    return exists $hsh->{val}->{$$key} ? $hsh->{val}->{$$key} : $nil;
+    return exists $hsh->{$$key} ? $hsh->{$$key} : $nil;
 }
 
 sub contains_Q {
     my ($hsh, $key) = @_;
     return $nil if $hsh eq $false;
-    return (exists $hsh->{val}->{$$key}) ? $true : $false;
+    return (exists $hsh->{$$key}) ? $true : $false;
 }
 
 sub mal_keys {
-    my @ks = map { String->new($_) } keys %{$_[0]->{val}};
+    my @ks = map { String->new($_) } keys %{$_[0]};
     return List->new(\@ks);
 }
 
 sub mal_vals {
-    my @vs = values %{$_[0]->{val}};
+    my @vs = values %{$_[0]};
     return List->new(\@vs);
 }
 
@@ -169,6 +169,7 @@ sub seq {
 
 # Metadata functions
 sub with_meta {
+    no overloading '%{}';
     my $new_obj = _clone($_[0]);
     $new_obj->{meta} = $_[1];
     return $new_obj;
@@ -230,8 +231,8 @@ our $core_ns = {
     'dissoc' => sub { dissoc(@{$_[0]}) },
     'get' => sub { get($_[0]->[0],$_[0]->[1]) },
     'contains?' => sub { contains_Q($_[0]->[0],$_[0]->[1]) },
-    'keys' => sub { mal_keys(@{$_[0]->{val}}) },
-    'vals' => sub { mal_vals(@{$_[0]->{val}}) },
+    'keys' => sub { mal_keys(@{$_[0]}) },
+    'vals' => sub { mal_vals(@{$_[0]}) },
 
     'sequential?' => sub { _sequential_Q($_[0]->[0]) ? $true : $false },
     'nth' => sub { nth($_[0]->[0], ${$_[0]->[1]}) },

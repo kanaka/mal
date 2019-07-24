@@ -18,9 +18,9 @@ sub _pr_str {
     } elsif ($obj->isa('HashMap')) {
 	my @elems = ();
 
-	foreach my $key (keys %{ $obj->{val} }) {
+	foreach my $key (keys %$obj) {
 	    push(@elems, _pr_str(String->new($key), $_r));
-	    push(@elems, _pr_str($obj->{val}->{$key}, $_r));
+	    push(@elems, _pr_str($obj->{$key}, $_r));
 	}
 
 	return '{' . join(' ', @elems) . '}';
