@@ -41,9 +41,9 @@ sub read_atom {
             die "expected '\"', got EOF";
         }
         when(/^:/) { return _keyword(substr($token,1)) }
-        when(/^nil$/) { return $nil }
-        when(/^true$/) { return $true }
-        when(/^false$/) { return $false }
+        when('nil') { return $nil }
+        when('true') { return $true }
+        when('false') { return $false }
         default { return Symbol->new($token) }
     }
 }
