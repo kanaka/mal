@@ -134,14 +134,14 @@ sub mal_map {
 }
 
 sub conj {
-    my ($lst, @args) = @_;
-    my $new_lst = _clone($lst);
-    if (_list_Q($new_lst)) {
-        unshift @$new_lst, reverse @args;
+    my $seq = shift;
+    my $new_seq = _clone($seq);
+    if (_list_Q($new_seq)) {
+        unshift @$new_seq, reverse @_;
     } else {
-        push @$new_lst, @args;
+        push @$new_seq, @_;
     }
-    return $new_lst;
+    return $new_seq;
 }
 
 sub seq {
