@@ -78,14 +78,14 @@ sub EVAL {
         when ('fn*') {
             return bless sub {
                 #print "running fn*\n";
-                my $args = $_[0];
+                my $args = \@_;
                 return EVAL($a2, Env->new($env, $a1, $args));
             }, 'CoreFunction';
         }
         default {
             my $el = eval_ast($ast, $env);
             my $f = $el->[0];
-            return &{ $f }($el->rest());
+            return &{ $f }(@{$el->rest()});
         }
     }
 }

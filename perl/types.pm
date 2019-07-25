@@ -192,7 +192,7 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
 
 {
     package Function;
-    use overload '&{}' => sub { my $f = shift; sub { $f->apply($_[0]) } },
+    use overload '&{}' => sub { my $f = shift; sub { $f->apply(\@_) } },
                  fallback => 1;
     sub new  {
         my $class = shift;

@@ -18,20 +18,20 @@ use Data::Dumper;
 # String functions
 
 sub pr_str {
-    return String->new(join(" ", map {_pr_str($_, 1)} @{$_[0]}));
+    return String->new(join(" ", map {_pr_str($_, 1)} @_));
 }
 
 sub str {
-    return String->new(join("", map {_pr_str($_, 0)} @{$_[0]}));
+    return String->new(join("", map {_pr_str($_, 0)} @_));
 }
 
 sub prn {
-    print join(" ", map {_pr_str($_, 1)} @{$_[0]}) . "\n";
+    print join(" ", map {_pr_str($_, 1)} @_) . "\n";
     return $nil
 }
 
 sub println {
-    print join(" ", map {_pr_str($_, 0)} @{$_[0]}) . "\n";
+    print join(" ", map {_pr_str($_, 0)} @_) . "\n";
     return $nil
 }
 
@@ -122,22 +122,22 @@ sub count {
 }
 
 sub apply {
-    my @all_args = @{$_[0]};
+    my @all_args = @_;
     my $f = $all_args[0];
     my @apply_args = @all_args[1..$#all_args];
     my @args = @apply_args[0..$#apply_args-1];
     push @args, @{$apply_args[$#apply_args]};
-    return &{ $f }(List->new(\@args));
+    return &{ $f }(@args);
 }
 
 sub mal_map {
     my $f = shift;
-    my @arr = map { &{ $f}(List->new([$_])) } @{$_[0]};
+    my @arr = map { &{ $f}($_) } @{$_[0]};
     return List->new(\@arr);
 }
 
 sub conj {
-    my ($lst, @args) = @{$_[0]};
+    my ($lst, @args) = @_;
     my $new_lst = _clone($lst);
     if (_list_Q($new_lst)) {
         unshift @$new_lst, reverse @args;
@@ -184,76 +184,76 @@ sub meta {
 sub swap_BANG {
     my ($atm,$f,@args) = @_;
     unshift @args, $$atm;
-    return $$atm = &{ $f }(List->new(\@args));
+    return $$atm = &{ $f }(@args);
 }
 
 
 
 our $core_ns = {
-    '=' =>  sub { _equal_Q($_[0]->[0], $_[0]->[1]) ? $true : $false },
-    'throw' => sub { die $_[0]->[0] },
-    'nil?' => sub { _nil_Q($_[0]->[0]) ? $true : $false },
-    'true?' => sub { _true_Q($_[0]->[0]) ? $true : $false },
-    'false?' => sub { _false_Q($_[0]->[0]) ? $true : $false },
-    'number?' => sub { _number_Q($_[0]->[0]) ? $true : $false },
-    'symbol'  => sub { Symbol->new(${$_[0]->[0]}) },
-    'symbol?' => sub { _symbol_Q($_[0]->[0]) ? $true : $false },
-    'string?' => sub { _string_Q($_[0]->[0]) ? $true : $false },
-    'keyword'  => sub { _keyword(${$_[0]->[0]}) },
-    'keyword?' => sub { _keyword_Q($_[0]->[0]) ? $true : $false },
-    'fn?' => sub { (_sub_Q($_[0]->[0]) || (_function_Q($_[0]->[0]) && !$_[0]->[0]->{ismacro})) ? $true : $false },
-    'macro?' => sub { (_function_Q($_[0]->[0]) && $_[0]->[0]->{ismacro}) ? $true : $false },
+    '=' =>  sub { _equal_Q($_[0], $_[1]) ? $true : $false },
+    'throw' => sub { die $_[0] },
+    'nil?' => sub { _nil_Q($_[0]) ? $true : $false },
+    'true?' => sub { _true_Q($_[0]) ? $true : $false },
+    'false?' => sub { _false_Q($_[0]) ? $true : $false },
+    'number?' => sub { _number_Q($_[0]) ? $true : $false },
+    'symbol'  => sub { Symbol->new(${$_[0]}) },
+    'symbol?' => sub { _symbol_Q($_[0]) ? $true : $false },
+    'string?' => sub { _string_Q($_[0]) ? $true : $false },
+    'keyword'  => sub { _keyword(${$_[0]}) },
+    'keyword?' => sub { _keyword_Q($_[0]) ? $true : $false },
+    'fn?' => sub { (_sub_Q($_[0]) || (_function_Q($_[0]) && !$_[0]->{ismacro})) ? $true : $false },
+    'macro?' => sub { (_function_Q($_[0]) && $_[0]->{ismacro}) ? $true : $false },
 
-    'pr-str' =>  sub { pr_str($_[0]) },
-    'str' =>     sub { str($_[0]) },
-    'prn' =>     sub { prn($_[0]) },
-    'println' => sub { println($_[0]) },
-    'readline' =>    sub { mal_readline($_[0]->[0]) },
-    'read-string' => sub { read_str(${$_[0]->[0]}) },
-    'slurp' =>       sub { slurp($_[0]->[0]) },
-    '<' =>  sub { ${$_[0]->[0]} <  ${$_[0]->[1]} ? $true : $false },
-    '<=' => sub { ${$_[0]->[0]} <= ${$_[0]->[1]} ? $true : $false },
-    '>' =>  sub { ${$_[0]->[0]} >  ${$_[0]->[1]} ? $true : $false },
-    '>=' => sub { ${$_[0]->[0]} >= ${$_[0]->[1]} ? $true : $false },
-    '+' =>  sub { Integer->new(${$_[0]->[0]} + ${$_[0]->[1]}) },
-    '-' =>  sub { Integer->new(${$_[0]->[0]} - ${$_[0]->[1]}) },
-    '*' =>  sub { Integer->new(${$_[0]->[0]} * ${$_[0]->[1]}) },
-    '/' =>  sub { Integer->new(${$_[0]->[0]} / ${$_[0]->[1]}) },
+    'pr-str' =>  sub { pr_str(@_) },
+    'str' =>     sub { str(@_) },
+    'prn' =>     sub { prn(@_) },
+    'println' => sub { println(@_) },
+    'readline' =>    sub { mal_readline($_[0]) },
+    'read-string' => sub { read_str(${$_[0]}) },
+    'slurp' =>       sub { slurp($_[0]) },
+    '<' =>  sub { ${$_[0]} <  ${$_[1]} ? $true : $false },
+    '<=' => sub { ${$_[0]} <= ${$_[1]} ? $true : $false },
+    '>' =>  sub { ${$_[0]} >  ${$_[1]} ? $true : $false },
+    '>=' => sub { ${$_[0]} >= ${$_[1]} ? $true : $false },
+    '+' =>  sub { Integer->new(${$_[0]} + ${$_[1]}) },
+    '-' =>  sub { Integer->new(${$_[0]} - ${$_[1]}) },
+    '*' =>  sub { Integer->new(${$_[0]} * ${$_[1]}) },
+    '/' =>  sub { Integer->new(${$_[0]} / ${$_[1]}) },
     'time-ms' => sub { Integer->new(int(time()*1000)) },
 
-    'list'  => sub { List->new($_[0]) },
-    'list?' => sub { _list_Q($_[0]->[0]) ? $true : $false },
-    'vector'  => sub { Vector->new($_[0]) },
-    'vector?' => sub { _vector_Q($_[0]->[0]) ? $true : $false },
-    'hash-map' => sub { _hash_map(@{$_[0]}) },
-    'map?' => sub { _hash_map_Q($_[0]->[0]) ? $true : $false },
-    'assoc' => sub { assoc(@{$_[0]}) },
-    'dissoc' => sub { dissoc(@{$_[0]}) },
-    'get' => sub { get($_[0]->[0],$_[0]->[1]) },
-    'contains?' => sub { contains_Q($_[0]->[0],$_[0]->[1]) },
-    'keys' => sub { mal_keys(@{$_[0]}) },
-    'vals' => sub { mal_vals(@{$_[0]}) },
+    'list'  => sub { List->new(\@_) },
+    'list?' => sub { _list_Q($_[0]) ? $true : $false },
+    'vector'  => sub { Vector->new(\@_) },
+    'vector?' => sub { _vector_Q($_[0]) ? $true : $false },
+    'hash-map' => sub { _hash_map(@_) },
+    'map?' => sub { _hash_map_Q($_[0]) ? $true : $false },
+    'assoc' => sub { assoc(@_) },
+    'dissoc' => sub { dissoc(@_) },
+    'get' => sub { get($_[0],$_[1]) },
+    'contains?' => sub { contains_Q($_[0],$_[1]) },
+    'keys' => sub { mal_keys(@_) },
+    'vals' => sub { mal_vals(@_) },
 
-    'sequential?' => sub { _sequential_Q($_[0]->[0]) ? $true : $false },
-    'nth' => sub { nth($_[0]->[0], ${$_[0]->[1]}) },
-    'first' => sub { first($_[0]->[0]) },
-    'rest' => sub { rest($_[0]->[0]) },
-    'cons' => sub { cons($_[0]->[0], $_[0]->[1]) },
-    'concat' => sub { concat(@{$_[0]}) },
-    'empty?' => sub { scalar(@{$_[0]->[0]}) == 0 ? $true : $false },
-    'count' => sub { count($_[0]->[0]) },
-    'apply' => sub { apply($_[0]) },
-    'map' => sub { mal_map($_[0]->[0], $_[0]->[1]) },
+    'sequential?' => sub { _sequential_Q($_[0]) ? $true : $false },
+    'nth' => sub { nth($_[0], ${$_[1]}) },
+    'first' => sub { first($_[0]) },
+    'rest' => sub { rest($_[0]) },
+    'cons' => sub { cons($_[0], $_[1]) },
+    'concat' => sub { concat(@_) },
+    'empty?' => sub { scalar(@{$_[0]}) == 0 ? $true : $false },
+    'count' => sub { count($_[0]) },
+    'apply' => sub { apply(@_) },
+    'map' => sub { mal_map($_[0], $_[1]) },
     'conj' => \&conj,
-    'seq' => sub { seq($_[0]->[0]) },
+    'seq' => sub { seq($_[0]) },
 
-    'with-meta' => sub { with_meta($_[0]->[0], $_[0]->[1]) },
-    'meta' => sub { meta($_[0]->[0]) },
-    'atom' => sub { Atom->new($_[0]->[0]) },
-    'atom?' => sub { _atom_Q($_[0]->[0]) ? $true : $false },
-    'deref' => sub { ${$_[0]->[0]} },
-    'reset!' => sub { ${$_[0]->[0]} = $_[0]->[1] },
-    'swap!' => sub { swap_BANG(@{$_[0]}) },
+    'with-meta' => sub { with_meta($_[0], $_[1]) },
+    'meta' => sub { meta($_[0]) },
+    'atom' => sub { Atom->new($_[0]) },
+    'atom?' => sub { _atom_Q($_[0]) ? $true : $false },
+    'deref' => sub { ${$_[0]} },
+    'reset!' => sub { ${$_[0]} = $_[1] },
+    'swap!' => sub { swap_BANG(@_) },
 };
 
 foreach my $f (values %$core_ns) {

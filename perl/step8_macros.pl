@@ -60,7 +60,7 @@ sub macroexpand {
     my ($ast, $env) = @_;
     while (is_macro_call($ast, $env)) {
         my $mac = $env->get($ast->[0]);
-        $ast = $mac->($ast->rest());
+        $ast = &{ $mac }(@{$ast->rest()});
     }
     return $ast;
 }
@@ -160,7 +160,7 @@ sub EVAL {
                 $env = $f->gen_env($el->rest());
                 # Continue loop (TCO)
             } else {
-                return &{ $f }($el->rest());
+                return &{ $f }(@{$el->rest()});
             }
         }
     }
@@ -186,7 +186,7 @@ foreach my $n (%$core_ns) {
     $repl_env->set(Symbol->new($n), $core_ns->{$n});
 }
 $repl_env->set(Symbol->new('eval'),
-	       bless sub { EVAL($_[0]->[0], $repl_env); }, 'CoreFunction');
+	       bless sub { EVAL($_[0], $repl_env); }, 'CoreFunction');
 my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 

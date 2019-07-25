@@ -52,7 +52,7 @@ sub EVAL {
     if (scalar(@$ast) == 0) { return $ast; }
     my $el = eval_ast($ast, $env);
     my $f = $el->[0];
-    return &{ $f }($el->rest());
+    return &{ $f }(@{$el->rest()});
 }
 
 # print
@@ -63,10 +63,10 @@ sub PRINT {
 
 # repl
 my $repl_env = {
-    '+' => sub { Integer->new(${$_[0]->[0]} + ${$_[0]->[1]}) },
-    '-' => sub { Integer->new(${$_[0]->[0]} - ${$_[0]->[1]}) },
-    '*' => sub { Integer->new(${$_[0]->[0]} * ${$_[0]->[1]}) },
-    '/' => sub { Integer->new(${$_[0]->[0]} / ${$_[0]->[1]}) },
+    '+' => sub { Integer->new(${$_[0]} + ${$_[1]}) },
+    '-' => sub { Integer->new(${$_[0]} - ${$_[1]}) },
+    '*' => sub { Integer->new(${$_[0]} * ${$_[1]}) },
+    '/' => sub { Integer->new(${$_[0]} / ${$_[1]}) },
 };
 
 sub REP {

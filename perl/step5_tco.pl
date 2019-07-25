@@ -93,7 +93,7 @@ sub EVAL {
                 $env = $f->gen_env($el->rest());
                 # Continue loop (TCO)
             } else {
-                return &{ $f }($el->rest());
+                return &{ $f }(@{$el->rest()});
             }
         }
     }

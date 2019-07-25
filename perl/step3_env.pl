@@ -65,7 +65,7 @@ sub EVAL {
         default {
             my $el = eval_ast($ast, $env);
             my $f = $el->[0];
-            return &{ $f }($el->rest());
+            return &{ $f }(@{$el->rest()});
         }
     }
 }
@@ -83,10 +83,10 @@ sub REP {
     return PRINT(EVAL(READ($str), $repl_env));
 }
 
-$repl_env->set(Symbol->new('+'), sub { Integer->new(${$_[0]->[0]} + ${$_[0]->[1]}) } );
-$repl_env->set(Symbol->new('-'), sub { Integer->new(${$_[0]->[0]} - ${$_[0]->[1]}) } );
-$repl_env->set(Symbol->new('*'), sub { Integer->new(${$_[0]->[0]} * ${$_[0]->[1]}) } );
-$repl_env->set(Symbol->new('/'), sub { Integer->new(${$_[0]->[0]} / ${$_[0]->[1]}) } );
+$repl_env->set(Symbol->new('+'), sub { Integer->new(${$_[0]} + ${$_[1]}) } );
+$repl_env->set(Symbol->new('-'), sub { Integer->new(${$_[0]} - ${$_[1]}) } );
+$repl_env->set(Symbol->new('*'), sub { Integer->new(${$_[0]} * ${$_[1]}) } );
+$repl_env->set(Symbol->new('/'), sub { Integer->new(${$_[0]} / ${$_[1]}) } );
 
 if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
