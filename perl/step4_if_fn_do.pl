@@ -111,7 +111,7 @@ foreach my $n (keys %core::ns) {
 # core.mal: defined using the language itself
 REP(q[(def! not (fn* (a) (if a false true)))]);
 
-if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
 }
 while (1) {

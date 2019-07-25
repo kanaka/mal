@@ -88,7 +88,7 @@ $repl_env->set(Symbol->new('-'), sub { Integer->new(${$_[0]} - ${$_[1]}) } );
 $repl_env->set(Symbol->new('*'), sub { Integer->new(${$_[0]} * ${$_[1]}) } );
 $repl_env->set(Symbol->new('/'), sub { Integer->new(${$_[0]} / ${$_[1]}) } );
 
-if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
 }
 while (1) {

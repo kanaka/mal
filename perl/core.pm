@@ -106,7 +106,7 @@ sub nth {
 sub first {
     my ($seq) = @_;
     return $nil if (_nil_Q($seq));
-    return scalar(@$seq) > 0 ? $seq->[0] : $nil;
+    return @$seq ? $seq->[0] : $nil;
 }
 
 sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
@@ -147,11 +147,10 @@ sub seq {
     if (_nil_Q($arg)) {
         return $nil;
     } elsif (_list_Q($arg)) {
-        return $nil if scalar(@$arg) == 0;
+        return $nil unless @$arg;
         return $arg;
-        # return scalar(@$arg) > 0 ? $arg : $nil;
     } elsif (_vector_Q($arg)) {
-        return $nil if scalar(@$arg) == 0;
+        return $nil unless @$arg;
         return List->new([@$arg]);
     } elsif (_string_Q($arg)) {
         return $nil if length($$arg) == 0;
@@ -235,7 +234,7 @@ sub swap_BANG {
     'rest' => \&rest,
     'cons' => \&cons,
     'concat' => \&concat,
-    'empty?' => sub { scalar(@{$_[0]}) == 0 ? $true : $false },
+    'empty?' => sub { @{$_[0]} ? $false : $true },
     'count' => \&count,
     'apply' => \&apply,
     'map' => \&mal_map,

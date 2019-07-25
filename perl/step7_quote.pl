@@ -22,7 +22,7 @@ sub READ {
 # eval
 sub is_pair {
     my ($x) = @_;
-    return _sequential_Q($x) && scalar(@$x) > 0;
+    return _sequential_Q($x) && @$x;
 }
 
 sub quasiquote {
@@ -157,11 +157,11 @@ $repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
 REP(q[(def! not (fn* (a) (if a false true)))]);
 REP(q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))]);
 
-if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
     shift @ARGV;
 }
-if (scalar(@ARGV) > 0) {
+if (@ARGV) {
     REP(qq[(load-file "$ARGV[0]")]);
     exit 0;
 }

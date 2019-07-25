@@ -49,7 +49,7 @@ sub EVAL {
     }
 
     # apply list
-    if (scalar(@$ast) == 0) { return $ast; }
+    unless (@$ast) { return $ast; }
     my @el = @{eval_ast($ast, $env)};
     my $f = shift @el;
     return &$f(@el);
@@ -74,7 +74,7 @@ sub REP {
     return PRINT(EVAL(READ($str), $repl_env));
 }
 
-if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
 }
 while (1) {

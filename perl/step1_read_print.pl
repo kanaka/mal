@@ -31,7 +31,7 @@ sub REP {
     return PRINT(EVAL(READ($str), {}));
 }
 
-if (scalar(@ARGV) > 0 && $ARGV[0] eq "--raw") {
+if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
 }
 while (1) {
