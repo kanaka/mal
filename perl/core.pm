@@ -122,12 +122,9 @@ sub count {
 }
 
 sub apply {
-    my @all_args = @_;
-    my $f = $all_args[0];
-    my @apply_args = @all_args[1..$#all_args];
-    my @args = @apply_args[0..$#apply_args-1];
-    push @args, @{$apply_args[$#apply_args]};
-    return &{ $f }(@args);
+    my $f = shift;
+    my $more_args = pop;
+    return &{ $f }(@_, @$more_args);
 }
 
 sub mal_map {
