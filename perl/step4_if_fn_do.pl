@@ -104,7 +104,7 @@ sub REP {
 }
 
 # core.pl: defined using perl
-foreach my $n (%$core_ns) {
+foreach my $n (keys %$core_ns) {
     $repl_env->set(Symbol->new($n), $core_ns->{$n});
 }
 
