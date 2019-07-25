@@ -7,7 +7,7 @@ use readline qw(mal_readline set_rl_mode);
 use feature qw(switch);
 use Data::Dumper;
 
-use types qw($nil $true $false _sequential_Q _symbol_Q _list_Q);
+use types qw($nil $true $false _sequential_Q _symbol_Q _list_Q _clone);
 use reader;
 use printer;
 use env;
@@ -130,7 +130,7 @@ sub EVAL {
             # Continue loop (TCO)
         }
         when ('defmacro!') {
-            my $func = EVAL($a2, $env);
+            my $func = _clone(EVAL($a2, $env));
             $func->{ismacro} = 1;
             return $env->set($a1, $func);
         }
