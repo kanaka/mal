@@ -83,9 +83,9 @@ sub EVAL {
             }, 'CoreFunction';
         }
         default {
-            my $el = eval_ast($ast, $env);
-            my $f = $el->[0];
-            return &{ $f }(@{$el->rest()});
+            my @el = @{eval_ast($ast, $env)};
+            my $f = shift @el;
+            return &$f(@el);
         }
     }
 }

@@ -124,12 +124,12 @@ sub count {
 sub apply {
     my $f = shift;
     my $more_args = pop;
-    return &{ $f }(@_, @$more_args);
+    return &$f(@_, @$more_args);
 }
 
 sub mal_map {
     my $f = shift;
-    my @arr = map { &{ $f}($_) } @{$_[0]};
+    my @arr = map { &$f($_) } @{$_[0]};
     return List->new(\@arr);
 }
 
@@ -181,7 +181,7 @@ sub meta {
 sub swap_BANG {
     my ($atm,$f,@args) = @_;
     unshift @args, $$atm;
-    return $$atm = &{ $f }(@args);
+    return $$atm = &$f(@args);
 }
 
 

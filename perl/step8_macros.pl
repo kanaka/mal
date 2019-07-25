@@ -59,8 +59,9 @@ sub is_macro_call {
 sub macroexpand {
     my ($ast, $env) = @_;
     while (is_macro_call($ast, $env)) {
-        my $mac = $env->get($ast->[0]);
-        $ast = &{ $mac }(@{$ast->rest()});
+        my @args = @$ast;
+        my $mac = $env->get(shift @args);
+        $ast = &$mac(@args);
     }
     return $ast;
 }
@@ -153,14 +154,14 @@ sub EVAL {
             return Function->new(\&EVAL, $a2, $env, $a1);
         }
         default {
-            my $el = eval_ast($ast, $env);
-            my $f = $el->[0];
+            my @el = @{eval_ast($ast, $env)};
+            my $f = shift @el;
             if ($f->isa('Function')) {
                 $ast = $f->{ast};
-                $env = $f->gen_env($el->rest());
+                $env = $f->gen_env(\@el);
                 # Continue loop (TCO)
             } else {
-                return &{ $f }(@{$el->rest()});
+                return &$f(@el);
             }
         }
     }
