@@ -2,7 +2,7 @@ package core;
 use strict;
 use warnings FATAL => qw(all);
 use Exporter 'import';
-our @EXPORT_OK = qw($core_ns);
+our @EXPORT_OK = qw(%core_ns);
 use Time::HiRes qw(time);
 
 use readline;
@@ -186,7 +186,7 @@ sub swap_BANG {
 
 
 
-our $core_ns = {
+our %core_ns = (
     '=' =>  sub { _equal_Q($_[0], $_[1]) ? $true : $false },
     'throw' => sub { die $_[0] },
     'nil?' => sub { _nil_Q($_[0]) ? $true : $false },
@@ -251,9 +251,9 @@ our $core_ns = {
     'deref' => sub { ${$_[0]} },
     'reset!' => sub { ${$_[0]} = $_[1] },
     'swap!' => \&swap_BANG,
-};
+);
 
-foreach my $f (values %$core_ns) {
+foreach my $f (values %core_ns) {
     bless $f, 'CoreFunction';
 }
 

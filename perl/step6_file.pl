@@ -11,7 +11,7 @@ use types qw($nil $true $false _list_Q);
 use reader;
 use printer;
 use env;
-use core qw($core_ns);
+use core qw(%core_ns);
 
 # read
 sub READ {
@@ -115,8 +115,8 @@ sub REP {
 }
 
 # core.pl: defined using perl
-foreach my $n (keys %$core_ns) {
-    $repl_env->set(Symbol->new($n), $core_ns->{$n});
+foreach my $n (keys %core_ns) {
+    $repl_env->set(Symbol->new($n), $core_ns{$n});
 }
 $repl_env->set(Symbol->new('eval'),
 	       bless sub { EVAL($_[0], $repl_env); }, 'CoreFunction');
