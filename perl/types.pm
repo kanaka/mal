@@ -213,8 +213,8 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
     }
 }
 
-sub _sub_Q { $_[0]->isa('CoreFunction') }
-sub _function_Q { (ref $_[0]) =~ /^Function/ }
+sub _sub_Q { $_[0]->isa('CoreFunction') ||  $_[0]->isa('FunctionRef') }
+sub _function_Q { $_[0]->isa('Function') }
 
 
 # FunctionRef
