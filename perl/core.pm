@@ -63,7 +63,7 @@ sub dissoc {
 sub get {
     my ($hsh, $key) = @_;
     return $nil if $hsh eq $nil;
-    return exists $hsh->{$$key} ? $hsh->{$$key} : $nil;
+    return $hsh->{$$key} || $nil;
 }
 
 sub contains_Q {
@@ -96,17 +96,13 @@ sub concat {
 
 sub nth {
     my ($seq,$i) = @_;
-    if (@$seq > $i) {
-        return $seq->[$i];
-    } else {
-        die "nth: index out of bounds";
-    }
+    return $seq->[$i] || die "nth: index out of bounds";
 }
 
 sub first {
     my ($seq) = @_;
     return $nil if (_nil_Q($seq));
-    return @$seq ? $seq->[0] : $nil;
+    return $seq->[0] || $nil;
 }
 
 sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
