@@ -156,8 +156,9 @@ package body Core is
 
    function Keyword (Args : in Types.T_Array) return Types.T is
    begin
-      Err.Check (Args'Length = 1 and then Args (Args'First).Kind = Kind_String,
-                 "expected a string");
+      Err.Check (Args'Length = 1
+                   and then Args (Args'First).Kind in Types.Kind_Key,
+                 "expected a keyword or a string");
       return (Kind_Keyword, Args (Args'First).Str);
    end Keyword;
 

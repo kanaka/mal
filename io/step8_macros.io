@@ -88,7 +88,7 @@ EVAL := method(ast, env,
                     ast = quasiquote(ast at(1))
                     continue, // TCO
                 "defmacro!",
-                    return(env set(ast at(1), EVAL(ast at(2), env) setIsMacro(true))),
+                    return(env set(ast at(1), EVAL(ast at(2), env) clone setIsMacro(true))),
                 "macroexpand",
                     return(macroexpand(ast at(1), env))
             )
@@ -126,7 +126,6 @@ repl_env set(MalSymbol with("*ARGV*"), MalList with(System args slice(2)))
 RE("(def! not (fn* (a) (if a false true)))")
 RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 RE("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-RE("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))")
 
 if(System args size > 1,
     REP("(load-file \"" .. (System args at(1)) .. "\")")

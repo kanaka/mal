@@ -24,6 +24,33 @@
 ;; ------- (Needed for self-hosting) -------
 
 ;;
+;;
+;; Testing hash-map evaluation and atoms (i.e. an env)
+(def! e (atom {"+" +}))
+(swap! e assoc "-" -)
+( (get @e "+") 7 8)
+;=>15
+( (get @e "-") 11 8)
+;=>3
+(swap! e assoc "foo" (list))
+(get @e "foo")
+;=>()
+(swap! e assoc "bar" '(1 2 3))
+(get @e "bar")
+;=>(1 2 3)
+
+;; Testing for presence of optional functions
+(do (list time-ms string? number? seq conj meta with-meta fn?) nil)
+;=>nil
+
+;; ------------------------------------------------------------------
+
+;>>> soft=True
+;>>> optional=True
+;;
+;; ------- Optional Functionality --------------
+;; ------- (Not needed for self-hosting) -------
+
 ;; Testing metadata on functions
 
 ;;
@@ -64,7 +91,6 @@
 (meta +)
 ;=>nil
 
-
 ;;
 ;; Make sure closures and metadata co-exist
 (def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
@@ -80,33 +106,6 @@
 ;=>{"meta" 2}
 (meta plus8)
 ;=>{"meta" 1}
-
-;;
-;; Testing hash-map evaluation and atoms (i.e. an env)
-(def! e (atom {"+" +}))
-(swap! e assoc "-" -)
-( (get @e "+") 7 8)
-;=>15
-( (get @e "-") 11 8)
-;=>3
-(swap! e assoc "foo" (list))
-(get @e "foo")
-;=>()
-(swap! e assoc "bar" '(1 2 3))
-(get @e "bar")
-;=>(1 2 3)
-
-;; Testing for presence of optional functions
-(do (list time-ms string? number? seq conj) nil)
-;=>nil
-
-;; ------------------------------------------------------------------
-
-;>>> soft=True
-;>>> optional=True
-;;
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
 
 ;;
 ;; Testing string? function
@@ -150,6 +149,8 @@
 ;=>false
 (fn? :+)
 ;=>false
+(fn? ^{"ismacro" true} (fn* () 0))
+;=>true
 
 ;; Testing macro? function
 (macro? cond)
@@ -161,6 +162,8 @@
 (macro? "+")
 ;=>false
 (macro? :+)
+;=>false
+(macro? {})
 ;=>false
 
 
@@ -250,10 +253,6 @@
 (with-meta {} {"a" 1})
 ;=>{}
 
-;;; Not actually supported by Clojure
-;;;(meta (with-meta (atom 7) {"a" 1}))
-;;;;=>{"a" 1}
-
 (def! l-wm (with-meta [4 5 6] {"b" 2}))
 ;=>[4 5 6]
 (meta l-wm)
@@ -273,18 +272,6 @@
 ;=>{"def" 2}
 (meta +)
 ;=>nil
-
-;;
-;; Testing inc
-(inc 12)
-;=>13
-
-;;
-;; Testing gensym and clean or macro
-(= (gensym) (gensym))
-;=>false
-(let* [or_FIXME 23] (or false (+ or_FIXME 100)))
-;=>123
 
 ;; Loading sumdown from computations.mal
 (load-file "../tests/computations.mal")
@@ -307,3 +294,6 @@
 ;=>true
 (m (+ 1 1))
 ;=>false
+
+(meta (with-meta (atom 7) {"a" 1}))
+;=>{"a" 1}

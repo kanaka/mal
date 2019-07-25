@@ -1,150 +1,132 @@
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
-import Control.Monad (mapM)
+import Control.Monad ((<=<))
 import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans (liftIO)
-import qualified Data.Map as Map
-import qualified Data.Traversable as DT
+import Data.Foldable (foldlM, foldrM)
 
-import Readline (readline, load_history)
+import Readline (addHistory, readline, load_history)
 import Types
 import Reader (read_str)
 import Printer (_pr_str)
-import Env (Env, env_new, env_bind, env_get, env_set)
-import Core as Core
+import Env (env_new, env_bind, env_get, env_set)
+import Core (ns)
 
 -- read
+
 mal_read :: String -> IOThrows MalVal
-mal_read str = read_str str
+mal_read = read_str
 
 -- eval
-is_pair (MalList x _:xs) = True
-is_pair (MalVector x _:xs) = True
-is_pair _ = False
 
-quasiquote :: MalVal -> MalVal
-quasiquote ast =
-    case ast of
-         (MalList (MalSymbol "unquote" : a1 : []) _) -> a1
-         (MalList (MalList (MalSymbol "splice-unquote" : a01 : []) _ : rest) _) ->
-            MalList [(MalSymbol "concat"), a01, quasiquote (MalList rest Nil)] Nil
-         (MalVector (MalList (MalSymbol "splice-unquote" : a01 : []) _ : rest) _) ->
-            MalList [(MalSymbol "concat"), a01, quasiquote (MalVector rest Nil)] Nil
-         (MalList (a0 : rest) _) -> MalList [(MalSymbol "cons"),
-                                             quasiquote a0,
-                                             quasiquote (MalList rest Nil)] Nil
-         (MalVector (a0 : rest) _) -> MalList [(MalSymbol "cons"),
-                                               quasiquote a0,
-                                               quasiquote (MalVector rest Nil)] Nil
-         _ -> MalList [(MalSymbol "quote"), ast] Nil
+-- starts-with is replaced with pattern matching.
 
+qqIter :: Env -> MalVal -> [MalVal] -> IOThrows [MalVal]
+qqIter env (MalSeq _ (Vect False) [MalSymbol "splice-unquote", x]) acc = do
+    evaluated <- eval env x
+    case evaluated of
+        MalSeq _ (Vect False) xs -> return $ xs ++ acc
+        _ -> throwStr "invalid splice-unquote argument"
+qqIter _ (MalSeq _ (Vect False) (MalSymbol "splice-unquote" : _)) _ = throwStr "invalid splice-unquote"
+qqIter env x acc = (: acc) <$> quasiquote x env
 
-eval_ast :: MalVal -> Env -> IOThrows MalVal
-eval_ast sym@(MalSymbol _) env = env_get env sym
-eval_ast ast@(MalList lst m) env = do
-    new_lst <- mapM (\x -> (eval x env)) lst
-    return $ MalList new_lst m
-eval_ast ast@(MalVector lst m) env = do
-    new_lst <- mapM (\x -> (eval x env)) lst
-    return $ MalVector new_lst m
-eval_ast ast@(MalHashMap lst m) env = do
-    new_hm <- DT.mapM (\x -> (eval x env)) lst
-    return $ MalHashMap new_hm m
-eval_ast ast env = return ast
+quasiquote :: MalVal -> Env -> IOThrows MalVal
+quasiquote (MalSeq _ (Vect False) [MalSymbol "unquote", x]) env = eval env x
+--  FIXME This line
+quasiquote (MalSeq m _ ys) env = MalSeq m (Vect False) <$> foldrM (qqIter env) [] ys
+--  is adapted to broken tests. It should be:
+--  quasiquote (MalSeq m v ys) env = MalSeq m v <$> foldrM (qqIter env) [] ys
+quasiquote ast _ = return ast
 
-let_bind :: Env -> [MalVal] -> IOThrows Env
-let_bind env [] = return env
-let_bind env (b:e:xs) = do
-    evaled <- eval e env
-    x <- liftIO $ env_set env b evaled
+-- eval_ast is replaced with pattern matching.
+
+let_bind :: Env -> [MalVal] -> IOThrows ()
+let_bind _ [] = return ()
+let_bind env (MalSymbol b : e : xs) = do
+    liftIO . env_set env b =<< eval env e
     let_bind env xs
+let_bind _ _ = throwStr "invalid let*"
 
-apply_ast :: MalVal -> Env -> IOThrows MalVal
-apply_ast ast@(MalList [] _) env = do
-    return ast
-apply_ast ast@(MalList (MalSymbol "def!" : args) _) env = do
-    case args of
-         (a1@(MalSymbol _): a2 : []) -> do
-            evaled <- eval a2 env
-            liftIO $ env_set env a1 evaled
-         _ -> throwStr "invalid def!"
-apply_ast ast@(MalList (MalSymbol "let*" : args) _) env = do
-    case args of
-         (a1 : a2 : []) -> do
-            params <- (_to_list a1)
-            let_env <- liftIO $ env_new $ Just env
-            let_bind let_env params
-            eval a2 let_env
-         _ -> throwStr "invalid let*"
-apply_ast ast@(MalList (MalSymbol "quote" : args) _) env = do
-    case args of
-         a1 : [] -> return a1
-         _ -> throwStr "invalid quote"
-apply_ast ast@(MalList (MalSymbol "quasiquote" : args) _) env = do
-    case args of
-         a1 : [] -> eval (quasiquote a1) env
-         _ -> throwStr "invalid quasiquote"
-apply_ast ast@(MalList (MalSymbol "do" : args) _) env = do
-    case args of
-         ([]) -> return Nil
-         _  -> do
-            el <- eval_ast (MalList args Nil) env
-            case el of
-                 (MalList lst _) -> return $ last lst
+unWrapSymbol :: MalVal -> IOThrows String
+unWrapSymbol (MalSymbol s) = return s
+unWrapSymbol _ = throwStr "fn* parameter must be symbols"
 
-apply_ast ast@(MalList (MalSymbol "if" : args) _) env = do
-    case args of
-         (a1 : a2 : a3 : []) -> do
-            cond <- eval a1 env
-            if cond == MalFalse || cond == Nil
-                then eval a3 env
-                else eval a2 env
-         (a1 : a2 : []) -> do
-            cond <- eval a1 env
-            if cond == MalFalse || cond == Nil
-                then return Nil
-                else eval a2 env
-         _ -> throwStr "invalid if"
-apply_ast ast@(MalList (MalSymbol "fn*" : args) _) env = do
-    case args of
-         (a1 : a2 : []) -> do
-            params <- (_to_list a1)
-            return $ (_malfunc a2 env (MalList params Nil)
-                      (\args -> do
-                        fn_env1 <- liftIO $ env_new $ Just env
-                        fn_env2 <- liftIO $ env_bind fn_env1 params args
-                        eval a2 fn_env2))
-         _ -> throwStr "invalid fn*"
-apply_ast ast@(MalList _ _) env = do
-    el <- eval_ast ast env
-    case el of
-         (MalList ((Func (Fn f) _) : rest) _) ->
-            f $ rest
-         (MalList ((MalFunc {ast=ast, env=fn_env, params=(MalList params Nil)}) : rest) _) -> do
-            fn_env1 <- liftIO $ env_new $ Just fn_env
-            fn_env2 <- liftIO $ env_bind fn_env1 params rest
-            eval ast fn_env2
-         el ->
-            throwStr $ "invalid apply: " ++ (show el)
+newFunction :: MalVal -> Env -> [String] -> MalVal
+newFunction a env p = MalFunction {f_ast=a, f_params=p, macro=False, meta=Nil,
+    fn=(\args -> do
+        fn_env <- liftIO $ env_new env
+        ok <- liftIO $ env_bind fn_env p args
+        case ok of
+            True  -> eval fn_env a
+            False -> throwStr $ "actual parameters do not match signature " ++ show p)}
 
-eval :: MalVal -> Env -> IOThrows MalVal
-eval ast env = do
-    case ast of
-         (MalList _ _) -> apply_ast ast env
-         _             -> eval_ast ast env
+apply_ast :: [MalVal] -> Env -> IOThrows MalVal
 
+apply_ast [] _ = return $ toList []
+
+apply_ast [MalSymbol "def!", MalSymbol a1, a2] env = do
+    evd <- eval env a2
+    liftIO $ env_set env a1 evd
+    return evd
+apply_ast (MalSymbol "def!" : _) _ = throwStr "invalid def!"
+
+apply_ast [MalSymbol "let*", MalSeq _ _ params, a2] env = do
+    let_env <- liftIO $ env_new env
+    let_bind let_env params
+    eval let_env a2
+apply_ast (MalSymbol "let*" : _) _ = throwStr "invalid let*"
+
+apply_ast [MalSymbol "quote", a1] _ = return a1
+apply_ast (MalSymbol "quote" : _) _ = throwStr "invalid quote"
+
+apply_ast [MalSymbol "quasiquote", a1] env = quasiquote a1 env
+apply_ast (MalSymbol "quasiquote" : _) _ = throwStr "invalid quasiquote"
+
+apply_ast (MalSymbol "do" : args) env = foldlM (const $ eval env) Nil args
+
+apply_ast [MalSymbol "if", a1, a2, a3] env = do
+    cond <- eval env a1
+    eval env $ case cond of
+        Nil              -> a3
+        MalBoolean False -> a3
+        _                -> a2
+apply_ast [MalSymbol "if", a1, a2] env = do
+    cond <- eval env a1
+    case cond of
+        Nil              -> return Nil
+        MalBoolean False -> return Nil
+        _                -> eval env a2
+apply_ast (MalSymbol "if" : _) _ = throwStr "invalid if"
+
+apply_ast [MalSymbol "fn*", MalSeq _ _ params, ast] env = newFunction ast env <$> mapM unWrapSymbol params
+apply_ast (MalSymbol "fn*" : _) _ = throwStr "invalid fn*"
+
+apply_ast ast env = do
+    evd <- mapM (eval env) ast
+    case evd of
+        MalFunction {fn=f} : args -> f args
+        _ -> throwStr . (++) "invalid apply: " =<< liftIO (Printer._pr_str True (toList ast))
+
+eval :: Env -> MalVal -> IOThrows MalVal
+eval env (MalSymbol sym)            = do
+    maybeVal <- liftIO $ env_get env sym
+    case maybeVal of
+        Nothing  -> throwStr $ "'" ++ sym ++ "' not found"
+        Just val -> return val
+eval env (MalSeq _ (Vect False) xs) = apply_ast xs env
+eval env (MalSeq m (Vect True)  xs) = MalSeq m (Vect True) <$> mapM (eval env) xs
+eval env (MalHashMap m xs)          = MalHashMap m         <$> mapM (eval env) xs
+eval _   ast                        = return ast
 
 -- print
-mal_print :: MalVal -> String
-mal_print exp = show exp
+
+mal_print :: MalVal -> IOThrows String
+mal_print = liftIO. Printer._pr_str True
 
 -- repl
 
 rep :: Env -> String -> IOThrows String
-rep env line = do
-    ast <- mal_read line
-    exp <- eval ast env
-    return $ mal_print exp
+rep env = mal_print <=< eval env <=< mal_read
 
 repl_loop :: Env -> IO ()
 repl_loop env = do
@@ -153,33 +135,51 @@ repl_loop env = do
         Nothing -> return ()
         Just "" -> repl_loop env
         Just str -> do
+            addHistory str
             res <- runExceptT $ rep env str
             out <- case res of
-                Left (StringError str) -> return $ "Error: " ++ str
-                Left (MalValError mv) -> return $ "Error: " ++ (show mv)
+                Left mv -> (++) "Error: " <$> liftIO (Printer._pr_str True mv)
                 Right val -> return val
             putStrLn out
             hFlush stdout
             repl_loop env
 
+--  Read and evaluate a line. Ignore successful results, but crash in
+--  case of error. This is intended for the startup procedure.
+re :: Env -> String -> IO ()
+re repl_env line = do
+    res <- runExceptT $ eval repl_env =<< mal_read line
+    case res of
+        Left mv -> error . (++) "Startup failed: " <$> Printer._pr_str True mv
+        Right _ -> return ()
+
+defBuiltIn :: Env -> (String, Fn) -> IO ()
+defBuiltIn env (sym, f) =
+    env_set env sym $ MalFunction {fn=f, f_ast=Nil, f_params=[], macro=False, meta=Nil}
+
+evalFn :: Env -> Fn
+evalFn env [ast] = eval env ast
+evalFn _ _ = throwStr "illegal call of eval"
+
+main :: IO ()
 main = do
     args <- getArgs
     load_history
 
-    repl_env <- env_new Nothing
+    repl_env <- env_new []
 
     -- core.hs: defined using Haskell
-    (mapM (\(k,v) -> (env_set repl_env (MalSymbol k) v)) Core.ns)
-    env_set repl_env (MalSymbol "eval") (_func (\[ast] -> eval ast repl_env))
-    env_set repl_env (MalSymbol "*ARGV*") (MalList [] Nil)
+    mapM_ (defBuiltIn repl_env) Core.ns
+    defBuiltIn repl_env ("eval", evalFn repl_env)
 
     -- core.mal: defined using the language itself
-    runExceptT $ rep repl_env "(def! not (fn* (a) (if a false true)))"
-    runExceptT $ rep repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+    re repl_env "(def! not (fn* (a) (if a false true)))"
+    re repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 
-    if length args > 0 then do
-        env_set repl_env (MalSymbol "*ARGV*") (MalList (map MalString (drop 1 args)) Nil)
-        runExceptT $ rep repl_env $ "(load-file \"" ++ (args !! 0) ++ "\")"
-        return ()
-    else
-        repl_loop repl_env
+    case args of
+        script : scriptArgs -> do
+            env_set repl_env "*ARGV*" $ toList $ MalString <$> scriptArgs
+            re repl_env $ "(load-file \"" ++ script ++ "\")"
+        [] -> do
+            env_set repl_env "*ARGV*" $ toList []
+            repl_loop repl_env

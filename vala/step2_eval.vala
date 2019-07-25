@@ -101,11 +101,12 @@ class Mal.Main : GLib.Object {
             return result;
         }
         if (ast is Mal.Vector) {
-            var results = new GLib.List<Mal.Val>();
-            for (var iter = (ast as Mal.Vector).iter();
-                 iter.nonempty(); iter.step())
-                results.append(EVAL(iter.deref(), env));
-            return new Mal.Vector.from_list(results);
+            var vec = ast as Mal.Vector;
+            var result = new Mal.Vector.with_size(vec.length);
+            var root = new GC.Root(result); (void)root;
+            for (var i = 0; i < vec.length; i++)
+                result[i] = EVAL(vec[i], env);
+            return result;
         }
         if (ast is Mal.Hashmap) {
             var result = new Mal.Hashmap();

@@ -1,28 +1,43 @@
 import System.IO (hFlush, stdout)
 
-import Readline (readline, load_history)
+import Readline (addHistory, readline, load_history)
+
+type MalVal = String
 
 -- read
-mal_read str = str
+
+mal_read :: String -> MalVal
+mal_read = id
 
 -- eval
-eval ast env = ast
+
+eval :: MalVal -> MalVal
+eval = id
 
 -- print
-mal_print exp = exp
+
+mal_print :: MalVal -> String
+mal_print = id
 
 -- repl
-rep line = mal_print $ eval (mal_read line) ""
 
+rep :: String -> String
+rep = mal_print . eval . mal_read
+
+repl_loop :: IO ()
 repl_loop = do
     line <- readline "user> "
     case line of
         Nothing -> return ()
         Just "" -> repl_loop
         Just str -> do
+            addHistory str
             putStrLn $ rep str
+            hFlush stdout
             repl_loop
 
+main :: IO ()
 main = do
     load_history
+
     repl_loop

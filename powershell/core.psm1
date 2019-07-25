@@ -115,8 +115,8 @@ $core_ns = @{
 
     "pr-str"      = { pr_seq $args $true  " " };
     "str"         = { pr_seq $args $false "" };
-    "prn"         = { Write-Host (pr_seq $args $true  " ") };
-    "println"     = { Write-Host (pr_seq $args $false " ") };
+    "prn"         = { Write-Host (pr_seq $args $true  " "); $null };
+    "println"     = { Write-Host (pr_seq $args $false " "); $null };
     "read-string" = { read_str $args[0] };
     "readline"    = { Write-Host $args[0] -NoNewline; [Console]::Readline() };
     "slurp"       = { Get-Content -Path $args[0] -Raw };

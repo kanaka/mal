@@ -1331,15 +1331,15 @@ implementation. Let us continue!
   * `rest`: this function takes a list (or vector) as its argument and
     returns a new list containing all the elements except the first.
 
-* In the main program, use the `rep` function to define two new
-  control structures macros. Here are the string arguments for `rep`
-  to define these macros:
-  * `cond`: "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+* In the main program, call the `rep` function with the following
+  string argument  to define a new control structure.
+```
+"(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
+```
     * Note that `cond` calls the `throw` function when `cond` is
       called with an odd number of args. The `throw` function is
       implemented in the next step, but it will still serve it's
       purpose here by causing an undefined symbol error.
-  * `or`: "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))"
 
 
 <a name="step9"></a>
@@ -1521,27 +1521,6 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   entered by the user is returned as a string. If the user sends an
   end-of-file (usually Ctrl-D), then nil is returned.
 
-* Add meta-data support to mal functions by adding a new metadata
-  attribute on mal functions that refers to another mal value/type
-  (nil by default). Add the following metadata related core functions:
-  * `meta`: this takes a single mal function argument and returns the
-    value of the metadata attribute.
-  * `with-meta`: this function takes two arguments. The first argument
-    is a mal function and the second argument is another mal
-    value/type to set as metadata. A copy of the mal function is
-    returned that has its `meta` attribute set to the second argument.
-    Note that it is important that the environment and macro attribute
-    of mal function are retained when it is copied.
-  * Add a reader-macro that expands the token "^" to
-    return a new list that contains the symbol "with-meta" and the
-    result of reading the next next form (2nd argument) (`read_form`) and the
-    next form (1st argument) in that order
-    (metadata comes first with the ^ macro and the function second).
-  * If you implemented as `defmacro!` to mutate an existing function
-    without copying it, you can now use the function copying mechanism
-    used for metadata to make functions immutable even in the
-    defmacro! case...
-
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
   containing the name of the current implementation.
@@ -1552,6 +1531,7 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   "(println (str \"Mal [\" \*host-language\* \"]\"))".
 
 * Ensure that the REPL environment contains definitions for `time-ms`,
+  `meta`, `with-meta`, `fn?`
   `string?`, `number?`, `seq`, and `conj`.  It doesn't really matter
   what they do at this stage: they just need to be defined.  Making
   them functions that raise a "not implemented" exception would be
@@ -1608,37 +1588,31 @@ implementation to run a mal implementation which itself runs the mal
 implementation.
 
 
-#### Optional: gensym
-
-The `or` macro we introduced at step 8 has a bug. It defines a
-variable called `or_FIXME`, which "shadows" such a binding from the
-user's code (which uses the macro). If a user has a variable called
-`or_FIXME`, it cannot be used as an `or` macro argument. In order to
-fix that, we'll introduce `gensym`: a function which returns a symbol
-which was never used before anywhere in the program. This is also an
-example for the use of mal atoms to keep state (the state here being
-the number of symbols produced by `gensym` so far).
-
-Previously you used `rep` to define the `or` macro. Remove that
-definition and use `rep` to define the new counter, `gensym` function
-and the clean `or` macro. Here are the string arguments you need to
-pass to `rep`:
-```
-"(def! inc (fn* [x] (+ x 1)))"
-
-"(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
-
-"(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
-```
-
-For extra information read [Peter Seibel's thorough discussion about
-`gensym` and leaking macros in Common Lisp](http://www.gigamonkeys.com/book/macros-defining-your-own.html#plugging-the-leaks).
-
-
 #### Optional additions
 
-* Add metadata support to other composite data types (lists, vectors
-  and hash-maps), and to native functions.
+* Add meta-data support to composite data types (lists, vectors
+  and hash-maps), and to functions (native or not), by adding a new
+  metadata attribute that refers to another mal value/type
+  (nil by default). Add the following metadata related core functions
+  (and remove any stub versions):
+  * `meta`: this takes a single mal function argument and returns the
+    value of the metadata attribute.
+  * `with-meta`: this function takes two arguments. The first argument
+    is a mal function and the second argument is another mal
+    value/type to set as metadata. A copy of the mal function is
+    returned that has its `meta` attribute set to the second argument.
+    Note that it is important that the environment and macro attribute
+    of mal function are retained when it is copied.
+  * Add a reader-macro that expands the token "^" to
+    return a new list that contains the symbol "with-meta" and the
+    result of reading the next next form (2nd argument) (`read_form`) and the
+    next form (1st argument) in that order
+    (metadata comes first with the ^ macro and the function second).
+  * If you implemented as `defmacro!` to mutate an existing function
+    without copying it, you can now use the function copying mechanism
+    used for metadata to make functions immutable even in the
+    defmacro! case...
+
 * Add the following new core functions (and remove any stub versions):
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if

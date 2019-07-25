@@ -109,4 +109,5 @@ script:
   # Build, test, perf
   - ./.travis_test.sh build ${IMPL}
   - ./.travis_test.sh test ${IMPL}
+  - STEP=stepA REGRESS=1 HARD=1 OPTIONAL=0 ./.travis_test.sh test ${IMPL}
   - ./.travis_test.sh perf ${IMPL}

@@ -130,9 +130,4 @@
 
 (EVAL-string "(def! not (fn* (x) (if x false true)))")
 
-;; NOTE: we have to reduce stack size to pass step5 test
-((@ (system vm vm) call-with-stack-overflow-handler)
- 1024
- (lambda () (REPL))
- (lambda k (throw 'mal-error "stack overflow")))
-
+(REPL)

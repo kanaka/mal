@@ -50,8 +50,12 @@ DEFER: EVAL
 :: eval-try* ( params env -- maltype )
     [ params first env EVAL ]
     [
-        params second second env new-env [ env-set ] keep
-        params second third swap EVAL
+        params length 1 > [
+            params second second env new-env [ env-set ] keep
+            params second third swap EVAL
+        ] [
+            throw
+        ] if
     ] recover ;
 
 : args-split ( bindlist -- bindlist restbinding/f )
@@ -121,7 +125,11 @@ M: callable apply call( x -- y ) f ;
 : PRINT ( maltype -- str ) pr-str ;
 
 : REP ( str -- str )
-    [ READ repl-env get EVAL ] [ nip ] recover PRINT ;
+    [
+        READ repl-env get EVAL PRINT
+    ] [
+        nip pr-str "Error: " swap append
+    ] recover ;
 
 : REPL ( -- )
     "(println (str \"Mal [\" *host-language* \"]\"))" REP drop
@@ -147,9 +155,6 @@ command-line get dup empty? [ rest ] unless "*ARGV*" pick set-at
 (def! not (fn* (a) (if a false true)))
 (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))
 (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))
-(def! inc (fn* [x] (+ x 1)))
-(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))
-(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))
 " string-lines harvest [ READ repl-env get EVAL drop ] each
 
 MAIN: main

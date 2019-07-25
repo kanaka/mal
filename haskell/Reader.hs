@@ -3,8 +3,8 @@ module Reader
 where
 
 import Text.ParserCombinators.Parsec (
-    Parser, parse, space, char, digit, letter, try,
-    (<|>), oneOf, noneOf, many, many1, skipMany, skipMany1, sepEndBy)
+    Parser, parse, char, digit, letter, try,
+    (<|>), oneOf, noneOf, many, many1, skipMany, skipMany1, sepEndBy, string)
 import qualified Data.Map as Map
 
 import Types
@@ -13,9 +13,7 @@ spaces :: Parser ()
 spaces = skipMany1 (oneOf ", \n")
 
 comment :: Parser ()
-comment = do
-    char ';'
-    skipMany (noneOf "\r\n")
+comment = char ';' *> skipMany (noneOf "\r\n")
 
 ignored :: Parser ()
 ignored = skipMany (spaces <|> comment)
@@ -24,47 +22,30 @@ symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
 escaped :: Parser Char
-escaped = do
-    char '\\'
-    x <- oneOf "\\\"n"
-    case x of
-        'n' -> return '\n'
-        _   -> return x
+escaped = f <$> (char '\\' *> oneOf "\\\"n")
+    where f 'n' = '\n'
+          f x   = x
 
 read_number :: Parser MalVal
-read_number = do
-    x <- many1 digit
-    return $ MalNumber $ read x
+read_number = MalNumber . read <$> many1 digit
 
 read_negative_number :: Parser MalVal
-read_negative_number = do
-    sign <- char '-'
-    rest <- many1 digit
-    return $ MalNumber $ read $ sign:rest
+read_negative_number = f <$> char '-' <*> many1 digit
+    where f sign rest = MalNumber $ read $ sign : rest
 
 read_string :: Parser MalVal
-read_string = do
-    char '"'
-    x <- many (escaped <|> noneOf "\\\"")
-    char '"'
-    return $ MalString x
+read_string = MalString <$> (char '"' *> many (escaped <|> noneOf "\\\"") <* char '"')
 
 read_symbol :: Parser MalVal
-read_symbol = do
-    first <- letter <|> symbol
-    rest <- many (letter <|> digit <|> symbol)
-    let str = first:rest
-    return $ case str of
-        "true"  -> MalTrue
-        "false" -> MalFalse
-        "nil"   -> Nil
-        _       -> MalSymbol str
+read_symbol = f <$> (letter <|> symbol) <*> many (letter <|> digit <|> symbol)
+    where f first rest = g (first : rest)
+          g "true"     = MalBoolean True
+          g "false"    = MalBoolean False
+          g "nil"      = Nil
+          g s          = MalSymbol s
 
 read_keyword :: Parser MalVal
-read_keyword = do
-    char ':'
-    x <- many (letter <|> digit <|> symbol)
-    return $ MalString $ "\x029e" ++ x
+read_keyword = MalString . (:) keywordMagic <$> (char ':' *> many (letter <|> digit <|> symbol))
 
 read_atom :: Parser MalVal
 read_atom =  read_number
@@ -74,72 +55,38 @@ read_atom =  read_number
          <|> read_symbol
 
 read_list :: Parser MalVal
-read_list = do
-    char '('
-    ignored
-    x <- sepEndBy read_form ignored
-    char ')'
-    return $ MalList x Nil
+read_list = toList <$> (char '(' *> ignored *> sepEndBy read_form ignored <* char ')')
 
 read_vector :: Parser MalVal
-read_vector = do
-    char '['
-    ignored
-    x <- sepEndBy read_form ignored
-    char ']'
-    return $ MalVector x Nil
-
--- TODO: propagate error properly
-_pairs [x] = error "Odd number of elements to _pairs"
-_pairs [] = []
-_pairs (MalString x:y:xs) = (x,y):_pairs xs
+read_vector = MalSeq (MetaData Nil) (Vect True) <$> (char '[' *> ignored *> sepEndBy read_form ignored <* char ']')
 
 read_hash_map :: Parser MalVal
-read_hash_map = do
-    char '{'
-    ignored
-    x <- sepEndBy read_form ignored
-    char '}'
-    return $ MalHashMap (Map.fromList $ _pairs x) Nil
+read_hash_map = g . keyValuePairs =<< (char '{' *> ignored *> sepEndBy read_form ignored <* char '}')
+    where g (Just pairs) = return $ MalHashMap (MetaData Nil) (Map.fromList pairs)
+          g Nothing      = fail "invalid contents inside map braces"
 
 -- reader macros
+addPrefix :: String -> MalVal -> MalVal
+addPrefix s x = toList [MalSymbol s, x]
+
 read_quote :: Parser MalVal
-read_quote = do
-    char '\''
-    x <- read_form
-    return $ MalList [MalSymbol "quote", x] Nil
+read_quote = addPrefix "quote" <$> (char '\'' *> read_form)
 
 read_quasiquote :: Parser MalVal
-read_quasiquote = do
-    char '`'
-    x <- read_form
-    return $ MalList [MalSymbol "quasiquote", x] Nil
+read_quasiquote = addPrefix "quasiquote" <$> (char '`' *> read_form)
 
 read_splice_unquote :: Parser MalVal
-read_splice_unquote = do
-    char '~'
-    char '@'
-    x <- read_form
-    return $ MalList [MalSymbol "splice-unquote", x] Nil
+read_splice_unquote = addPrefix "splice-unquote" <$> (string "~@" *> read_form)
 
 read_unquote :: Parser MalVal
-read_unquote = do
-    char '~'
-    x <- read_form
-    return $ MalList [MalSymbol "unquote", x] Nil
+read_unquote = addPrefix "unquote" <$> (char '~' *> read_form)
 
 read_deref :: Parser MalVal
-read_deref = do
-    char '@'
-    x <- read_form
-    return $ MalList [MalSymbol "deref", x] Nil
+read_deref = addPrefix "deref" <$> (char '@' *> read_form)
 
 read_with_meta :: Parser MalVal
-read_with_meta = do
-    char '^'
-    m <- read_form
-    x <- read_form
-    return $ MalList [MalSymbol "with-meta", x, m] Nil
+read_with_meta = f <$> (char '^' *> read_form) <*> read_form
+    where f m x = toList [MalSymbol "with-meta", x, m]
 
 read_macro :: Parser MalVal
 read_macro = read_quote
@@ -151,14 +98,12 @@ read_macro = read_quote
 --
 
 read_form :: Parser MalVal
-read_form =  do
-    ignored
-    x <- read_macro
+read_form = ignored *> (
+         read_macro
      <|> read_list
      <|> read_vector
      <|> read_hash_map
-     <|> read_atom
-    return $ x
+     <|> read_atom)
 
 read_str :: String -> IOThrows MalVal
 read_str str = case parse read_form "Mal" str of

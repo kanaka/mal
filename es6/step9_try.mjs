@@ -139,7 +139,6 @@ env_set(repl_env, Symbol.for('*ARGV*'), [])
 REP('(def! not (fn* (a) (if a false true)))')
 REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
 REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))')
-REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))')
 
 if (process.argv.length > 2) {
     env_set(repl_env, Symbol.for('*ARGV*'), process.argv.slice(3))

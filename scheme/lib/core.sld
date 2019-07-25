@@ -249,7 +249,9 @@
     (symbol? . ,(lambda (x) (coerce (mal-instance-of? x 'symbol))))
     (symbol . ,(lambda (x) (mal-symbol (string->symbol (mal-value x)))))
     (keyword? . ,(lambda (x) (coerce (mal-instance-of? x 'keyword))))
-    (keyword . ,(lambda (x) (mal-keyword (string->symbol (mal-value x)))))
+    (keyword . ,(lambda (x) (if (mal-instance-of? x 'keyword)
+                                x
+                                (mal-keyword (string->symbol (mal-value x))))))
     (vector? . ,(lambda (x) (coerce (mal-instance-of? x 'vector))))
     (vector . ,(lambda args (mal-vector (list->vector args))))
     (map? . ,(lambda (x) (coerce (mal-instance-of? x 'map))))
@@ -275,7 +277,7 @@
                      ((func? x)
                       (let ((func (make-func (func-ast x) (func-params x)
                                              (func-env x) (func-fn x))))
-                        (func-macro?-set! func (func-macro? x))
+                        (func-macro?-set! func #f)
                         (func-meta-set! func meta)
                         func))
                      (else

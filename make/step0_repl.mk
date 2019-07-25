@@ -11,8 +11,7 @@ $(call READLINE)
 endef
 
 define EVAL
-$(if $(READLINE_EOF),,\
-  $(if $(findstring =,$(1)),$(eval $(1))$($(word 1,$(1))),$(eval __return := $(1))$(__return)))
+$(if $(READLINE_EOF),,$(1))
 endef
 
 define PRINT

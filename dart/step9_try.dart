@@ -27,12 +27,6 @@ void setupEnv(List<String> argv) {
       "          (nth xs 1) "
       "          (throw \"odd number of forms to cond\")) "
       "      (cons 'cond (rest (rest xs)))))))");
-  rep("(defmacro! or "
-      "  (fn* (& xs) (if (empty? xs) nil "
-      "    (if (= 1 (count xs)) "
-      "      (first xs) "
-      "      `(let* (or_FIXME ~(first xs)) "
-      "         (if or_FIXME or_FIXME (or ~@(rest xs))))))))");
 }
 
 /// Returns `true` if [ast] is a macro call.
@@ -194,8 +188,7 @@ MalType EVAL(MalType ast, Env env) {
             ast = quasiquote(args.first);
             continue;
           } else if (symbol.value == 'macroexpand') {
-            ast = macroexpand(args.first, env);
-            continue;
+            return macroexpand(args.first, env);
           } else if (symbol.value == 'try*') {
             var body = args.first;
             if (args.length < 2) {

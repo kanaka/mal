@@ -19,6 +19,7 @@ let gsub re f str =
                  (Str.full_split re str))
 
 let token_re = (Str.regexp "~@\\|[][{}()'`~^@]\\|\"\\(\\\\.\\|[^\"]\\)*\"?\\|;.*\\|[^][  \n{}('\"`,;)]*")
+let string_re = (Str.regexp "\"\\(\\\\.\\|[^\\\\\"]\\)*\"")
 
 type reader = {
   form : Types.mal_type;
@@ -29,6 +30,18 @@ type list_reader = {
   list_form : Types.mal_type list;
   tokens : string list;
 }
+
+let unescape_string token =
+  if Str.string_match string_re token 0
+  then
+    let without_quotes = String.sub token 1 ((String.length token) - 2) in
+    gsub (Str.regexp "\\\\.")
+         (function | "\\n" -> "\n" | x -> String.sub x 1 1)
+         without_quotes
+  else
+    (output_string stderr ("expected '\"', got EOF\n");
+     flush stderr;
+     raise End_of_file)
 
 let read_atom token =
   match token with
@@ -43,15 +56,7 @@ let read_atom token =
                   | _ -> (match token.[1] with
                             | '0'..'9' -> T.Int (int_of_string token)
                             | _ -> Types.symbol token))
-      | '"' -> (match token.[String.length token - 1] with
-                  | '"' -> T.String (gsub (Str.regexp "\\\\.")
-                                          (function
-                                            | "\\n" -> "\n"
-                                            | x -> String.sub x 1 1)
-                                          (String.sub token 1 ((String.length token) - 2)))
-                  | _ -> output_string stderr ("expected '\"', got EOF\n");
-                          flush stderr;
-                          raise End_of_file)
+      | '"' -> T.String (unescape_string token)
       | ':' -> T.Keyword (Str.replace_first (Str.regexp "^:") "" token)
       | _ -> Types.symbol token
 

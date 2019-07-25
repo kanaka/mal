@@ -208,7 +208,6 @@ function main(args)
     rep('(def! not (fn* (a) (if a false true)))', repl_env);
     rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))"', repl_env);
     rep('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))', repl_env);
-    rep('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))', repl_env);
 
     if ~isempty(args)
         rep(sprintf('(load-file "%s")', args{1}), repl_env);

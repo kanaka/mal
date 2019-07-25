@@ -64,9 +64,8 @@ y
 ;=>4
 
 ;>>> deferrable=True
-;>>> optional=True
 ;;
-;; -------- Deferrable/Optional Functionality --------
+;; -------- Deferrable Functionality --------
 
 ;; Testing let* with vector bindings
 (let* [z 9] z)

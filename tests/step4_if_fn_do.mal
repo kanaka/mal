@@ -127,6 +127,8 @@
 ;=>false
 (= (list) 0)
 ;=>false
+(= (list nil) (list))
+;=>false
 
 
 ;; Testing builtin and user defined functions
@@ -195,9 +197,6 @@ a
 ;=>2
 (fib 4)
 ;=>5
-;;; Too slow for bash, erlang, make and miniMAL
-;;;(fib 10)
-;;;;=>89
 
 
 ;; Testing recursive function in environment.
@@ -421,9 +420,6 @@ nil
 ;/\(1 2 abc "\) def
 ;=>nil
 
-;>>> optional=True
-;;
-;; -------- Optional Functionality --------
 
 ;; Testing keywords
 (= :abc :abc)
@@ -432,6 +428,8 @@ nil
 ;=>false
 (= :abc ":abc")
 ;=>false
+(= (list :abc) (list :abc))
+;=>true
 
 ;; Testing vector truthiness
 (if [] 7 8)
@@ -465,6 +463,8 @@ nil
 (= [] (list))
 ;=>true
 (= [7 8] [7 8])
+;=>true
+(= [:abc] [:abc])
 ;=>true
 (= (list 1 2) [1 2])
 ;=>true

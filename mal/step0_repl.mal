@@ -3,7 +3,7 @@
   strng))
 
 ;; eval
-(def! EVAL (fn* [ast env]
+(def! EVAL (fn* [ast]
   ast))
 
 ;; print
@@ -11,20 +11,18 @@
 
 ;; repl
 (def! rep (fn* [strng]
-  (PRINT (EVAL (READ strng) {}))))
+  (PRINT (EVAL (READ strng)))))
 
 ;; repl loop
-(def! repl-loop (fn* []
-  (let* [line (readline "mal-user> ")]
-    (if line
-      (do
-        (if (not (= "" line))
-          (try*
-            (println (rep line))
-            (catch* exc
-              (println "Uncaught exception:" exc))))
-        (repl-loop))))))
+(def! repl-loop (fn* [line]
+  (if line
+    (do
+      (if (not (= "" line))
+        (try*
+          (println (rep line))
+          (catch* exc
+            (println "Uncaught exception:" exc))))
+      (repl-loop (readline "mal-user> "))))))
 
-(def! -main (fn* [& args] 
-  (repl-loop)))
-(-main)
+;; main
+(repl-loop "")
