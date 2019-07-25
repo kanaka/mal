@@ -97,7 +97,7 @@ sub concat {
 sub nth {
     my ($seq,$i) = @_;
     if (@$seq > $i) {
-        return scalar($seq->[$i]);
+        return $seq->[$i];
     } else {
         die "nth: index out of bounds";
     }
