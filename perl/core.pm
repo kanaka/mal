@@ -62,13 +62,11 @@ sub dissoc {
 
 sub get {
     my ($hsh, $key) = @_;
-    return $nil if $hsh eq $nil;
     return $hsh->{$$key} || $nil;
 }
 
 sub contains_Q {
     my ($hsh, $key) = @_;
-    return $nil if $hsh eq $false;
     return (exists $hsh->{$$key}) ? $true : $false;
 }
 
@@ -101,18 +99,13 @@ sub nth {
 
 sub first {
     my ($seq) = @_;
-    return $nil if (_nil_Q($seq));
     return $seq->[0] || $nil;
 }
 
-sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
+sub rest { return $_[0]->rest(); }
 
 sub count {
-    if (_nil_Q($_[0])) {
-        return Integer->new(0);
-    } else {
-        return Integer->new(scalar(@{$_[0]}))
-    }
+    return Integer->new(scalar(@{$_[0]}))
 }
 
 sub apply {

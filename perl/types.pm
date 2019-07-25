@@ -70,7 +70,10 @@ sub _clone {
 
 {
     package Nil;
+    # Allow nil to be treated as an empty list or hash-map.
+    use overload '@{}' => sub { [] }, '%{}' => sub { {} }, fallback => 1;
     sub new { my $class = shift; my $s = 'nil'; bless \$s => $class }
+    sub rest { List->new([]) }
 }
 {
     package True;
