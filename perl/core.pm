@@ -3,6 +3,7 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Hash::Util qw(fieldhash);
 use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
@@ -140,11 +141,12 @@ sub seq {
     }
 }
 
+fieldhash my %meta;
+
 # Metadata functions
 sub with_meta {
-    no overloading '%{}';
     my $new_obj = _clone($_[0]);
-    $new_obj->{meta} = $_[1];
+    $meta{$new_obj} = $_[1];
     return $new_obj;
 }
 
@@ -226,7 +228,7 @@ sub pl_STAR {
     'seq'         => \&seq,
 
     'with-meta'   => \&with_meta,
-    'meta'        => sub { $_[0]->meta },
+    'meta'        => sub { $meta{$_[0]} // $nil },
     'atom'        => sub { Mal::Atom->new($_[0]) },
     'atom?'       => sub { _atom_Q($_[0]) ? $true : $false },
     'deref'       => sub { ${$_[0]} },
