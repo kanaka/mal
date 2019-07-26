@@ -1,8 +1,6 @@
 package core;
 use strict;
 use warnings FATAL => qw(all);
-use Exporter 'import';
-our @EXPORT_OK = qw($core_ns);
 use Time::HiRes qw(time);
 
 use readline;
@@ -18,20 +16,20 @@ use Data::Dumper;
 # String functions
 
 sub pr_str {
-    return String->new(join(" ", map {_pr_str($_, 1)} @{$_[0]->{val}}));
+    return String->new(join(" ", map {_pr_str($_, 1)} @_));
 }
 
 sub str {
-    return String->new(join("", map {_pr_str($_, 0)} @{$_[0]->{val}}));
+    return String->new(join("", map {_pr_str($_, 0)} @_));
 }
 
 sub prn {
-    print join(" ", map {_pr_str($_, 1)} @{$_[0]->{val}}) . "\n";
+    print join(" ", map {_pr_str($_, 1)} @_) . "\n";
     return $nil
 }
 
 sub println {
-    print join(" ", map {_pr_str($_, 0)} @{$_[0]->{val}}) . "\n";
+    print join(" ", map {_pr_str($_, 0)} @_) . "\n";
     return $nil
 }
 
@@ -51,36 +49,34 @@ sub slurp {
 
 sub assoc {
     my $src_hsh = shift;
-    my $new_hsh = { %{$src_hsh->{val}} };
+    my $new_hsh = { %$src_hsh };
     return _assoc_BANG($new_hsh, @_);
 }
 
 sub dissoc {
     my $src_hsh = shift;
-    my $new_hsh = { %{$src_hsh->{val}} };
+    my $new_hsh = { %$src_hsh };
     return _dissoc_BANG($new_hsh, @_);
 }
 
 
 sub get {
     my ($hsh, $key) = @_;
-    return $nil if $hsh eq $nil;
-    return exists $hsh->{val}->{$$key} ? $hsh->{val}->{$$key} : $nil;
+    return $hsh->{$$key} || $nil;
 }
 
 sub contains_Q {
     my ($hsh, $key) = @_;
-    return $nil if $hsh eq $false;
-    return (exists $hsh->{val}->{$$key}) ? $true : $false;
+    return (exists $hsh->{$$key}) ? $true : $false;
 }
 
 sub mal_keys {
-    my @ks = map { String->new($_) } keys %{$_[0]->{val}};
+    my @ks = map { String->new($_) } keys %{$_[0]};
     return List->new(\@ks);
 }
 
 sub mal_vals {
-    my @vs = values %{$_[0]->{val}};
+    my @vs = values %{$_[0]};
     return List->new(\@vs);
 }
 
@@ -89,77 +85,50 @@ sub mal_vals {
 
 sub cons {
     my ($a, $b) = @_;
-    my @new_arr = @{[$a]};
-    push @new_arr, @{$b->{val}};
-    List->new(\@new_arr);
+    List->new([$a, @$b]);
 }
 
 sub concat {
-    if (scalar(@_) == 0) { return List->new([]); }
-    my ($a) = shift;
-    my @new_arr = @{$a->{val}};
-    map { push @new_arr, @{$_->{val}} } @_;
-    List->new(\@new_arr);
+    List->new([map @$_, @_]);
 }
 
 sub nth {
     my ($seq,$i) = @_;
-    if (@{$seq->{val}} > $i) {
-        return scalar($seq->nth($i));
-    } else {
-        die "nth: index out of bounds";
-    }
+    return $seq->[$i] || die "nth: index out of bounds";
 }
 
 sub first {
     my ($seq) = @_;
-    return $nil if (_nil_Q($seq));
-    return scalar(@{$seq->{val}}) > 0 ? $seq->nth(0) : $nil;
+    return $seq->[0] || $nil;
 }
 
-sub rest { return _nil_Q($_[0]) ? List->new([]) : $_[0]->rest(); }
+sub rest { return $_[0]->rest(); }
 
 sub count {
-    if (_nil_Q($_[0])) {
-        return Integer->new(0);
-    } else {
-        return Integer->new(scalar(@{$_[0]->{val}}))
-    }
+    return Integer->new(scalar(@{$_[0]}))
 }
 
 sub apply {
-    my @all_args = @{$_[0]->{val}};
-    my $f = $all_args[0];
-    my @apply_args = @all_args[1..$#all_args];
-    my @args = @apply_args[0..$#apply_args-1];
-    push @args, @{$apply_args[$#apply_args]->{val}};
-    if ((ref $f) =~ /^Function/) {
-        return $f->apply(List->new(\@args));
-    } else {
-        return &{ $f }(List->new(\@args));
-    }
+    my $f = shift;
+    my $more_args = pop;
+    return &$f(@_, @$more_args);
 }
 
 sub mal_map {
     my $f = shift;
-    my @arr;
-    if ((ref $f) =~ /^Function/) {
-        @arr = map { $f->apply(List->new([$_])) } @{$_[0]->{val}};
-    } else {
-        @arr = map { &{ $f}(List->new([$_])) } @{$_[0]->{val}};
-    }
+    my @arr = map { &$f($_) } @{$_[0]};
     return List->new(\@arr);
 }
 
 sub conj {
-    my ($lst, @args) = @{$_[0]->{val}};
-    my $new_lst = _clone($lst);
-    if (_list_Q($new_lst)) {
-        unshift @{$new_lst->{val}}, reverse @args;
+    my $seq = shift;
+    my $new_seq = _clone($seq);
+    if (_list_Q($new_seq)) {
+        unshift @$new_seq, reverse @_;
     } else {
-        push @{$new_lst->{val}}, @args;
+        push @$new_seq, @_;
     }
-    return $new_lst;
+    return $new_seq;
 }
 
 sub seq {
@@ -167,12 +136,11 @@ sub seq {
     if (_nil_Q($arg)) {
         return $nil;
     } elsif (_list_Q($arg)) {
-        return $nil if scalar(@{$arg->{val}}) == 0;
+        return $nil unless @$arg;
         return $arg;
-        # return scalar(@{$arg->{val}}) > 0 ? $arg : $nil;
     } elsif (_vector_Q($arg)) {
-        return $nil if scalar(@{$arg->{val}}) == 0;
-        return List->new($arg->{val});
+        return $nil unless @$arg;
+        return List->new([@$arg]);
     } elsif (_string_Q($arg)) {
         return $nil if length($$arg) == 0;
         my @chars = map { String->new($_) } split(//, $$arg);
@@ -184,98 +152,95 @@ sub seq {
 
 # Metadata functions
 sub with_meta {
+    no overloading '%{}';
     my $new_obj = _clone($_[0]);
     $new_obj->{meta} = $_[1];
     return $new_obj;
 }
 
 sub meta {
-    if ((ref $_[0]) && !((ref $_[0]) =~ /^CODE/)) {
-        return $_[0]->{meta};
-    } else {
-        return $nil;
-    }
+    return $_[0]->meta;
 }
 
 
 # Atom functions
 sub swap_BANG {
     my ($atm,$f,@args) = @_;
-    unshift @args, $atm->{val};
-    if ((ref $f) =~ /^Function/) {
-        return $atm->{val} = $f->apply(List->new(\@args));
-    } else {
-        return $atm->{val} = &{ $f }(List->new(\@args));
-    }
+    unshift @args, $$atm;
+    return $$atm = &$f(@args);
 }
 
 
 
-our $core_ns = {
-    '=' =>  sub { _equal_Q($_[0]->nth(0), $_[0]->nth(1)) ? $true : $false },
-    'throw' => sub { die $_[0]->nth(0) },
-    'nil?' => sub { _nil_Q($_[0]->nth(0)) ? $true : $false },
-    'true?' => sub { _true_Q($_[0]->nth(0)) ? $true : $false },
-    'false?' => sub { _false_Q($_[0]->nth(0)) ? $true : $false },
-    'number?' => sub { _number_Q($_[0]->nth(0)) ? $true : $false },
-    'symbol'  => sub { Symbol->new(${$_[0]->nth(0)}) },
-    'symbol?' => sub { _symbol_Q($_[0]->nth(0)) ? $true : $false },
-    'string?' => sub { _string_Q($_[0]->nth(0)) ? $true : $false },
-    'keyword'  => sub { _keyword(${$_[0]->nth(0)}) },
-    'keyword?' => sub { _keyword_Q($_[0]->nth(0)) ? $true : $false },
-    'fn?' => sub { (_sub_Q($_[0]->nth(0)) || (_function_Q($_[0]->nth(0)) && !$_[0]->nth(0)->{ismacro})) ? $true : $false },
-    'macro?' => sub { (_function_Q($_[0]->nth(0)) && $_[0]->nth(0)->{ismacro}) ? $true : $false },
+%core::ns = (
+    '=' =>  sub { _equal_Q($_[0], $_[1]) ? $true : $false },
+    'throw' => sub { die $_[0] },
+    'nil?' => sub { _nil_Q($_[0]) ? $true : $false },
+    'true?' => sub { _true_Q($_[0]) ? $true : $false },
+    'false?' => sub { _false_Q($_[0]) ? $true : $false },
+    'number?' => sub { _number_Q($_[0]) ? $true : $false },
+    'symbol'  => sub { Symbol->new(${$_[0]}) },
+    'symbol?' => sub { _symbol_Q($_[0]) ? $true : $false },
+    'string?' => sub { _string_Q($_[0]) ? $true : $false },
+    'keyword'  => sub { _keyword(${$_[0]}) },
+    'keyword?' => sub { _keyword_Q($_[0]) ? $true : $false },
+    'fn?' => sub { (_sub_Q($_[0]) || (_function_Q($_[0]) && !$_[0]->{ismacro})) ? $true : $false },
+    'macro?' => sub { (_function_Q($_[0]) && $_[0]->{ismacro}) ? $true : $false },
 
-    'pr-str' =>  sub { pr_str($_[0]) },
-    'str' =>     sub { str($_[0]) },
-    'prn' =>     sub { prn($_[0]) },
-    'println' => sub { println($_[0]) },
-    'readline' =>    sub { mal_readline($_[0]->nth(0)) },
-    'read-string' => sub { read_str(${$_[0]->nth(0)}) },
-    'slurp' =>       sub { slurp($_[0]->nth(0)) },
-    '<' =>  sub { ${$_[0]->nth(0)} <  ${$_[0]->nth(1)} ? $true : $false },
-    '<=' => sub { ${$_[0]->nth(0)} <= ${$_[0]->nth(1)} ? $true : $false },
-    '>' =>  sub { ${$_[0]->nth(0)} >  ${$_[0]->nth(1)} ? $true : $false },
-    '>=' => sub { ${$_[0]->nth(0)} >= ${$_[0]->nth(1)} ? $true : $false },
-    '+' =>  sub { Integer->new(${$_[0]->nth(0)} + ${$_[0]->nth(1)}) },
-    '-' =>  sub { Integer->new(${$_[0]->nth(0)} - ${$_[0]->nth(1)}) },
-    '*' =>  sub { Integer->new(${$_[0]->nth(0)} * ${$_[0]->nth(1)}) },
-    '/' =>  sub { Integer->new(${$_[0]->nth(0)} / ${$_[0]->nth(1)}) },
+    'pr-str' =>  \&pr_str,
+    'str' =>     \&str,
+    'prn' =>     \&prn,
+    'println' => \&println,
+    'readline' =>    \&mal_readline,
+    'read-string' => sub { read_str(${$_[0]}) },
+    'slurp' =>       \&slurp,
+    '<' =>  sub { ${$_[0]} <  ${$_[1]} ? $true : $false },
+    '<=' => sub { ${$_[0]} <= ${$_[1]} ? $true : $false },
+    '>' =>  sub { ${$_[0]} >  ${$_[1]} ? $true : $false },
+    '>=' => sub { ${$_[0]} >= ${$_[1]} ? $true : $false },
+    '+' =>  sub { Integer->new(${$_[0]} + ${$_[1]}) },
+    '-' =>  sub { Integer->new(${$_[0]} - ${$_[1]}) },
+    '*' =>  sub { Integer->new(${$_[0]} * ${$_[1]}) },
+    '/' =>  sub { Integer->new(${$_[0]} / ${$_[1]}) },
     'time-ms' => sub { Integer->new(int(time()*1000)) },
 
-    'list'  => sub { List->new($_[0]->{val}) },
-    'list?' => sub { _list_Q($_[0]->nth(0)) ? $true : $false },
-    'vector'  => sub { Vector->new($_[0]->{val}) },
-    'vector?' => sub { _vector_Q($_[0]->nth(0)) ? $true : $false },
-    'hash-map' => sub { _hash_map(@{$_[0]->{val}}) },
-    'map?' => sub { _hash_map_Q($_[0]->nth(0)) ? $true : $false },
-    'assoc' => sub { assoc(@{$_[0]->{val}}) },
-    'dissoc' => sub { dissoc(@{$_[0]->{val}}) },
-    'get' => sub { get($_[0]->nth(0),$_[0]->nth(1)) },
-    'contains?' => sub { contains_Q($_[0]->nth(0),$_[0]->nth(1)) },
-    'keys' => sub { mal_keys(@{$_[0]->{val}}) },
-    'vals' => sub { mal_vals(@{$_[0]->{val}}) },
+    'list'  => sub { List->new(\@_) },
+    'list?' => sub { _list_Q($_[0]) ? $true : $false },
+    'vector'  => sub { Vector->new(\@_) },
+    'vector?' => sub { _vector_Q($_[0]) ? $true : $false },
+    'hash-map' => \&_hash_map,
+    'map?' => sub { _hash_map_Q($_[0]) ? $true : $false },
+    'assoc' => \&assoc,
+    'dissoc' => \&dissoc,
+    'get' => \&get,
+    'contains?' => \&contains_Q,
+    'keys' => \&mal_keys,
+    'vals' => \&mal_vals,
 
-    'sequential?' => sub { _sequential_Q($_[0]->nth(0)) ? $true : $false },
-    'nth' => sub { nth($_[0]->nth(0), ${$_[0]->nth(1)}) },
-    'first' => sub { first($_[0]->nth(0)) },
-    'rest' => sub { rest($_[0]->nth(0)) },
-    'cons' => sub { cons($_[0]->nth(0), $_[0]->nth(1)) },
-    'concat' => sub { concat(@{$_[0]->{val}}) },
-    'empty?' => sub { scalar(@{$_[0]->nth(0)->{val}}) == 0 ? $true : $false },
-    'count' => sub { count($_[0]->nth(0)) },
-    'apply' => sub { apply($_[0]) },
-    'map' => sub { mal_map($_[0]->nth(0), $_[0]->nth(1)) },
+    'sequential?' => sub { _sequential_Q($_[0]) ? $true : $false },
+    'nth' => sub { nth($_[0], ${$_[1]}) },
+    'first' => \&first,
+    'rest' => \&rest,
+    'cons' => \&cons,
+    'concat' => \&concat,
+    'empty?' => sub { @{$_[0]} ? $false : $true },
+    'count' => \&count,
+    'apply' => \&apply,
+    'map' => \&mal_map,
     'conj' => \&conj,
-    'seq' => sub { seq($_[0]->nth(0)) },
+    'seq' => \&seq,
 
-    'with-meta' => sub { with_meta($_[0]->nth(0), $_[0]->nth(1)) },
-    'meta' => sub { meta($_[0]->nth(0)) },
-    'atom' => sub { Atom->new($_[0]->nth(0)) },
-    'atom?' => sub { _atom_Q($_[0]->nth(0)) ? $true : $false },
-    'deref' => sub { $_[0]->nth(0)->{val} },
-    'reset!' => sub { $_[0]->nth(0)->{val} = $_[0]->nth(1) },
-    'swap!' => sub { swap_BANG(@{$_[0]->{val}}) },
-};
+    'with-meta' => \&with_meta,
+    'meta' => \&meta,
+    'atom' => sub { Atom->new($_[0]) },
+    'atom?' => sub { _atom_Q($_[0]) ? $true : $false },
+    'deref' => sub { ${$_[0]} },
+    'reset!' => sub { ${$_[0]} = $_[1] },
+    'swap!' => \&swap_BANG,
+);
+
+foreach my $f (values %core::ns) {
+    bless $f, 'CoreFunction';
+}
 
 1;

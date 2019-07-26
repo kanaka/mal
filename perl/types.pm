@@ -1,8 +1,6 @@
 package types;
 use strict;
 use warnings FATAL => qw(all);
-no if $] >= 5.018, warnings => "experimental::smartmatch";
-use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
                     $nil $true $false _nil_Q _true_Q _false_Q
@@ -23,48 +21,41 @@ sub _equal_Q {
     if (!(($ota eq $otb) || (_sequential_Q($a) && _sequential_Q($b)))) {
         return 0;
     }
-    given (ref $a) {
-        when (/^Symbol/) {
-            return $$a eq $$b;
-        }
-        when (/^List/ || /^Vector/) {
-            if (! (scalar(@{$a->{val}}) == scalar(@{$b->{val}}))) {
-                return 0;
-            }
-            for (my $i=0; $i<scalar(@{$a->{val}}); $i++) {
-                if (! _equal_Q($a->nth($i), $b->nth($i))) {
-                    return 0;
-                }
-            }
-            return 1;
-        }
-        when (/^HashMap/) {
-            if (! (scalar(keys %{ $a->{val} }) == scalar(keys %{ $b->{val} }))) {
-                return 0;
-            }
-            foreach my $k (keys %{ $a->{val} }) {
-                if (!_equal_Q($a->{val}->{$k}, $b->{val}->{$k})) {
-                    return 0;
-                }
-            }
-            return 1;
-        }
-        default {
-            return $$a eq $$b;
-        }
+    if ($a->isa('Symbol')) {
+	return $$a eq $$b;
+    } elsif ($a->isa('Sequence')) {
+	if (! (scalar(@$a) == scalar(@$b))) {
+	    return 0;
+	}
+	for (my $i=0; $i<scalar(@$a); $i++) {
+	    if (! _equal_Q($a->[$i], $b->[$i])) {
+		return 0;
+	    }
+	}
+	return 1;
+    } elsif ($a->isa('HashMap')) {
+	if (! (scalar(keys %$a) == scalar(keys %$b))) {
+	    return 0;
+	}
+	foreach my $k (keys %$a) {
+	    if (!_equal_Q($a->{$k}, $b->{$k})) {
+		return 0;
+	    }
+	}
+	return 1;
+    } else {
+	return $$a eq $$b;
     }
     return 0;
 }
 
 sub _clone {
+    no overloading '%{}';
     my ($obj) = @_;
-    given (ref $obj) {
-        when (/^CODE/) {
-            return FunctionRef->new( $obj );
-        }
-        default {
-            return bless {%{$obj}}, ref $obj;
-        }
+    if ($obj->isa('CoreFunction')) {
+	return FunctionRef->new( $obj );
+    } else {
+	return bless {%{$obj}}, ref $obj;
     }
 }
 
@@ -79,7 +70,10 @@ sub _clone {
 
 {
     package Nil;
+    # Allow nil to be treated as an empty list or hash-map.
+    use overload '@{}' => sub { [] }, '%{}' => sub { {} }, fallback => 1;
     sub new { my $class = shift; my $s = 'nil'; bless \$s => $class }
+    sub rest { List->new([]) }
 }
 {
     package True;
@@ -103,21 +97,21 @@ sub _false_Q { return $_[0] eq $false }
     package Integer;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
-sub _number_Q { (ref $_[0]) =~ /^Integer/ }
+sub _number_Q { $_[0]->isa('Integer') }
 
 
 {
     package Symbol;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
-sub _symbol_Q { (ref $_[0]) =~ /^Symbol/ }
+sub _symbol_Q { $_[0]->isa('Symbol') }
 
 
-sub _string_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} !~ /^\x{029e}/; }
+sub _string_Q { $_[0]->isa('String') && ${$_[0]} !~ /^\x{029e}/; }
 
 
 sub _keyword { return String->new(("\x{029e}".$_[0])); }
-sub _keyword_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} =~ /^\x{029e}/; }
+sub _keyword_Q { $_[0]->isa('String') && ${$_[0]} =~ /^\x{029e}/; }
 
 
 {
@@ -126,40 +120,47 @@ sub _keyword_Q { ((ref $_[0]) =~ /^String/) && ${$_[0]} =~ /^\x{029e}/; }
 }
 
 
-# Lists
+# Sequences
 
 {
-    package List;
+    package Sequence;
+    use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub nth { $_[0]->{val}->[$_[1]]; }
+    sub meta { $_[0]->{meta} }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
     sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
     sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
 }
 
-sub _list_Q { (ref $_[0]) =~ /^List/ }
+# Lists
+
+{
+    package List;
+    use parent -norequire, 'Sequence';
+}
+
+sub _list_Q { $_[0]->isa('List') }
 
 
 # Vectors
 
 {
     package Vector;
-    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub nth { $_[0]->{val}->[$_[1]]; }
-    #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
-    sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
+    use parent -norequire, 'Sequence';
 }
 
-sub _vector_Q { (ref $_[0]) =~ /^Vector/ }
+sub _vector_Q { $_[0]->isa('Vector') }
 
 
 # Hash Maps
 
 {
     package HashMap;
+    use overload '%{}' => sub { no overloading '%{}'; $_[0]->{val} },
+	         fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub get { $_[0]->{val}->{$_[1]}; }
+    sub meta { no overloading '%{}'; $_[0]->{meta} }
+    sub get { no overloading '%{}'; $_[0]->{val}->{$_[1]}; }
 }
 
 sub _hash_map {
@@ -187,13 +188,15 @@ sub _dissoc_BANG {
     return HashMap->new($hsh);
 }
 
-sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
+sub _hash_map_Q { $_[0]->isa('HashMap') }
 
 
 # Functions
 
 {
     package Function;
+    use overload '&{}' => sub { my $f = shift; sub { $f->apply(\@_) } },
+                 fallback => 1;
     sub new  {
         my $class = shift;
         my ($eval, $ast, $env, $params) = @_;
@@ -204,6 +207,7 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
                'params'=>$params,
                'ismacro'=>0}, $class
     }
+    sub meta { $_[0]->{meta} }
     sub gen_env {
         my $self = $_[0];
         return Env->new($self->{env}, $self->{params}, $_[1]);
@@ -214,23 +218,28 @@ sub _hash_map_Q { (ref $_[0]) =~ /^HashMap/ }
     }
 }
 
-sub _sub_Q { (ref $_[0]) =~ /^CODE/ }
-sub _function_Q { (ref $_[0]) =~ /^Function/ }
+sub _sub_Q { $_[0]->isa('CoreFunction') ||  $_[0]->isa('FunctionRef') }
+sub _function_Q { $_[0]->isa('Function') }
 
 
 # FunctionRef
 
 {
     package FunctionRef;
+    use overload '&{}' => sub { $_[0]->{code} }, fallback => 1;
     sub new {
         my ($class, $code) = @_;
         bless {'meta'=>$nil,
                'code'=>$code}, $class
     }
-    sub apply {
-        my $self = $_[0];
-        return &{ $self->{code} }($_[1]);
-    }
+    sub meta { $_[0]->{meta} }
+}
+
+# Core Functions
+
+{
+    package CoreFunction;
+    sub meta { $nil }
 }
 
 
@@ -238,9 +247,11 @@ sub _function_Q { (ref $_[0]) =~ /^Function/ }
 
 {
     package Atom;
+    use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
+    sub meta { $_[0]->{meta} }
 }
 
-sub _atom_Q { (ref $_[0]) =~ /^Atom/ }
+sub _atom_Q { $_[0]->isa('Atom') }
 
 1;
