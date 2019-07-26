@@ -20,11 +20,7 @@ sub READ {
 sub eval_ast {
     my($ast, $env) = @_;
     if ($ast->isa('Symbol')) {
-	if (exists $env->{$$ast}) {
-	    return $env->{$$ast};
-	} else {
-	    die "'" . $$ast . "' not found";
-	}
+	return $env->{$$ast} || die "'$$ast' not found\n";
     } elsif ($ast->isa('Sequence')) {
 	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
     } elsif ($ast->isa('HashMap')) {
