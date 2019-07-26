@@ -133,8 +133,7 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
     package Mal::Sequence;
     use parent -norequire, 'Mal::Type';
     use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
-    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub meta { $_[0]->{meta} }
+    sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
     sub rest { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[1..$#arr]]); }
     sub slice { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[$_[1]..$_[2]]]); }
@@ -167,8 +166,7 @@ sub _vector_Q { $_[0]->isa('Mal::Vector') }
     use parent -norequire, 'Mal::Type';
     use overload '%{}' => sub { no overloading '%{}'; $_[0]->{val} },
 	         fallback => 1;
-    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub meta { no overloading '%{}'; $_[0]->{meta} }
+    sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
 }
 
 sub _hash_map { Mal::HashMap->new( { pairmap { $$a => $b } @_ } ) }
@@ -186,14 +184,12 @@ sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
     sub new  {
         my $class = shift;
         my ($eval, $ast, $env, $params) = @_;
-        bless {'meta'=>$nil,
-               'eval'=>$eval,
+        bless {'eval'=>$eval,
                'ast'=>$ast,
                'env'=>$env,
                'params'=>$params,
                'ismacro'=>0}, $class
     }
-    sub meta { $_[0]->{meta} }
     sub gen_env {
         my $self = $_[0];
         return Mal::Env->new($self->{env}, $self->{params}, $_[1]);
@@ -216,18 +212,14 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
     use overload '&{}' => sub { $_[0]->{code} }, fallback => 1;
     sub new {
         my ($class, $code) = @_;
-        bless {'meta'=>$nil,
-               'code'=>$code}, $class
+        bless {'code'=>$code}, $class
     }
-    sub meta { $_[0]->{meta} }
 }
 
 # Core Functions
 
 {
     package Mal::CoreFunction;
-    use parent -norequire, 'Mal::Type';
-    sub meta { $nil }
 }
 
 
@@ -237,8 +229,7 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
     package Mal::Atom;
     use parent -norequire, 'Mal::Type';
     use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
-    sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
-    sub meta { $_[0]->{meta} }
+    sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
 }
 
 sub _atom_Q { $_[0]->isa('Mal::Atom') }
