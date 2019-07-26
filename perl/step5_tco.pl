@@ -3,6 +3,7 @@ use warnings FATAL => qw(all);
 no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
+use List::Util qw(pairs);
 use readline qw(mal_readline set_rl_mode);
 use feature qw(switch);
 use Data::Dumper;
@@ -61,8 +62,9 @@ sub EVAL {
         }
         when ('let*') {
             my $let_env = Env->new($env);
-            for(my $i=0; $i < scalar(@$a1); $i+=2) {
-                $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
+	    foreach my $pair (pairs @$a1) {
+		my ($k, $v) = @$pair;
+                $let_env->set($k, EVAL($v, $let_env));
             }
             $ast = $a2;
             $env = $let_env;

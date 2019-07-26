@@ -6,6 +6,7 @@ our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
                     $nil $true $false _nil_Q _true_Q _false_Q
                     _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
                     _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
+use List::Util qw(pairs);
 
 use Data::Dumper;
 
@@ -170,20 +171,17 @@ sub _hash_map {
 
 sub _assoc_BANG {
     my $hsh = shift;
-    my @lst = @_;
-    for(my $i=0; $i<scalar(@lst); $i+=2) {
-        my $str = $lst[$i];
-        $hsh->{$$str} = $lst[$i+1];
+    foreach my $pair (pairs @_) {
+	my ($k, $v) = @$pair;
+        $hsh->{$$k} = $v;
     }
     return HashMap->new($hsh);
 }
 
 sub _dissoc_BANG {
     my $hsh = shift;
-    my @lst = @_;
-    for(my $i=0; $i<scalar(@lst); $i++) {
-        my $str = $lst[$i];
-        delete $hsh->{$$str};
+    foreach my $k (@_) {
+        delete $hsh->{$$k};
     }
     return HashMap->new($hsh);
 }
