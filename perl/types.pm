@@ -5,8 +5,8 @@ use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
                     $nil $true $false _nil_Q _true_Q _false_Q
                     _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
-                    _hash_map _hash_map_Q _assoc_BANG _atom_Q);
-use List::Util qw(pairs);
+                    _hash_map _hash_map_Q _atom_Q);
+use List::Util qw(pairs pairmap);
 
 use Data::Dumper;
 
@@ -164,19 +164,7 @@ sub _vector_Q { $_[0]->isa('Vector') }
     sub get { no overloading '%{}'; $_[0]->{val}->{$_[1]}; }
 }
 
-sub _hash_map {
-    my $hsh = {};
-    return _assoc_BANG($hsh, @_);
-}
-
-sub _assoc_BANG {
-    my $hsh = shift;
-    foreach my $pair (pairs @_) {
-	my ($k, $v) = @$pair;
-        $hsh->{$$k} = $v;
-    }
-    return HashMap->new($hsh);
-}
+sub _hash_map { HashMap->new( { pairmap { $$a => $b } @_ } ) }
 
 sub _hash_map_Q { $_[0]->isa('HashMap') }
 

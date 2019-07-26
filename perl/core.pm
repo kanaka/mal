@@ -1,13 +1,14 @@
 package core;
 use strict;
 use warnings FATAL => qw(all);
+use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
 use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
              _nil_Q _true_Q _false_Q
              _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
-             _hash_map _hash_map_Q _assoc_BANG _atom_Q);
+             _hash_map _hash_map_Q _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
 
@@ -49,8 +50,7 @@ sub slurp {
 
 sub assoc {
     my $src_hsh = shift;
-    my $new_hsh = { %$src_hsh };
-    return _assoc_BANG($new_hsh, @_);
+    return HashMap->new( { %$src_hsh, pairmap { $$a => $b } @_ } );
 }
 
 sub dissoc {
