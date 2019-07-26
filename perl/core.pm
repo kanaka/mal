@@ -88,10 +88,6 @@ sub cons {
     List->new([$a, @$b]);
 }
 
-sub concat {
-    List->new([map @$_, @_]);
-}
-
 sub nth {
     my ($seq,$i) = @_;
     return $seq->[$i] || die "nth: index out of bounds";
@@ -100,12 +96,6 @@ sub nth {
 sub first {
     my ($seq) = @_;
     return $seq->[0] || $nil;
-}
-
-sub rest { return $_[0]->rest(); }
-
-sub count {
-    return Integer->new(scalar(@{$_[0]}))
 }
 
 sub apply {
@@ -156,10 +146,6 @@ sub with_meta {
     my $new_obj = _clone($_[0]);
     $new_obj->{meta} = $_[1];
     return $new_obj;
-}
-
-sub meta {
-    return $_[0]->meta;
 }
 
 
@@ -220,18 +206,18 @@ sub swap_BANG {
     'sequential?' => sub { _sequential_Q($_[0]) ? $true : $false },
     'nth'         => sub { nth($_[0], ${$_[1]}) },
     'first'       => \&first,
-    'rest'        => \&rest,
+    'rest'        => sub { $_[0]->rest() },
     'cons'        => \&cons,
-    'concat'      => \&concat,
+    'concat'      => sub { List->new([map @$_, @_]) },
     'empty?'      => sub { @{$_[0]} ? $false : $true },
-    'count'       => \&count,
+    'count'       => sub { Integer->new(scalar(@{$_[0]})) },
     'apply'       => \&apply,
     'map'         => \&mal_map,
     'conj'        => \&conj,
     'seq'         => \&seq,
 
     'with-meta'   => \&with_meta,
-    'meta'        => \&meta,
+    'meta'        => sub { $_[0]->meta },
     'atom'        => sub { Atom->new($_[0]) },
     'atom?'       => sub { _atom_Q($_[0]) ? $true : $false },
     'deref'       => sub { ${$_[0]} },
