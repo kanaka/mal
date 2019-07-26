@@ -40,7 +40,7 @@ use Exporter 'import';
     sub get {
         my ($self, $key) = @_;
         my $env = $self->find($key);
-        die "'" . $$key . "' not found\n" unless $env;
+        die "'$$key' not found\n" unless $env;
         return $env->{$$key};
     }
 }
