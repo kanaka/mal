@@ -7,7 +7,7 @@ use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
              _nil_Q _true_Q _false_Q
              _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
-             _hash_map _hash_map_Q _assoc_BANG _dissoc_BANG _atom_Q);
+             _hash_map _hash_map_Q _assoc_BANG _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
 
@@ -54,9 +54,9 @@ sub assoc {
 }
 
 sub dissoc {
-    my $src_hsh = shift;
-    my $new_hsh = { %$src_hsh };
-    return _dissoc_BANG($new_hsh, @_);
+    my $new_hsh = { %{shift @_} };
+    delete @{$new_hsh}{map $$_, @_};
+    return HashMap->new($new_hsh);
 }
 
 
