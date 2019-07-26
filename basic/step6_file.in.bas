@@ -376,7 +376,7 @@ MAIN:
   GOSUB RE:AY=R:GOSUB RELEASE
 
   REM load the args file
-  A$="(def! -*ARGS*- (load-file "+CHR$(34)+".args.mal"+CHR$(34)+"))"
+  A$="(load-file "+CHR$(34)+".args.mal"+CHR$(34)+")"
   GOSUB RE:AY=R:GOSUB RELEASE
 
   IF ER>-2 THEN GOSUB PRINT_ERROR:END
