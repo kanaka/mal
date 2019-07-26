@@ -62,7 +62,7 @@ sub dissoc {
 
 sub get {
     my ($hsh, $key) = @_;
-    return $hsh->{$$key} || $nil;
+    return $hsh->{$$key} // $nil;
 }
 
 sub contains_Q {
@@ -90,12 +90,12 @@ sub cons {
 
 sub nth {
     my ($seq,$i) = @_;
-    return $seq->[$i] || die "nth: index out of bounds";
+    return $seq->[$i] // die "nth: index out of bounds";
 }
 
 sub first {
     my ($seq) = @_;
-    return $seq->[0] || $nil;
+    return $seq->[0] // $nil;
 }
 
 sub apply {

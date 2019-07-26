@@ -50,8 +50,8 @@ sub read_atom {
 
 sub read_list {
     my($rdr,$class,$start,$end) = @_;
-    $start = $start || '(';
-    $end = $end || ')';
+    $start = $start // '(';
+    $end = $end // ')';
 
     my $token = $rdr->next();
     my @lst = ();
