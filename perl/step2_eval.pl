@@ -2,6 +2,7 @@ use strict;
 use warnings FATAL => qw(all);
 use File::Basename;
 use lib dirname (__FILE__);
+use List::Util qw(pairmap);
 use readline qw(mal_readline set_rl_mode);
 use Data::Dumper;
 
@@ -24,18 +25,10 @@ sub eval_ast {
 	} else {
 	    die "'" . $$ast . "' not found";
 	}
-    } elsif ($ast->isa('List')) {
-	my @lst = map {EVAL($_, $env)} @$ast;
-	return List->new(\@lst);
-    } elsif ($ast->isa('Vector')) {
-	my @lst = map {EVAL($_, $env)} @$ast;
-	return Vector->new(\@lst);
+    } elsif ($ast->isa('Sequence')) {
+	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
     } elsif ($ast->isa('HashMap')) {
-	my $new_hm = {};
-	foreach my $k (keys %$ast) {
-	    $new_hm->{$k} = EVAL($ast->get($k), $env);
-	}
-	return HashMap->new($new_hm);
+	return HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
