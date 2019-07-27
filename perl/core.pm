@@ -13,6 +13,7 @@ use types qw(_sequential_Q _equal_Q _clone $nil $true $false
              _hash_map _hash_map_Q _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
+use interop qw(pl_to_mal);
 
 # String functions
 
@@ -157,6 +158,15 @@ sub swap_BANG {
 }
 
 
+# Interop
+
+sub pl_STAR {
+    my $result = eval(${$_[0]});
+    die $@ if $@;
+    return pl_to_mal($result);
+}
+
+
 
 %core::ns = (
     '='           => sub { _equal_Q($_[0], $_[1]) ? $true : $false },
@@ -223,6 +233,8 @@ sub swap_BANG {
     'deref'       => sub { ${$_[0]} },
     'reset!'      => sub { ${$_[0]} = $_[1] },
     'swap!'       => \&swap_BANG,
+
+    'pl*'         => \&pl_STAR,
 );
 
 foreach my $f (values %core::ns) {

@@ -15,7 +15,6 @@ use reader;
 use printer;
 use env;
 use core;
-use interop qw(pl_to_mal);
 
 # read
 sub READ {
@@ -132,11 +131,6 @@ sub EVAL {
         }
         when ('macroexpand') {
             return macroexpand($a1, $env);
-        }
-        when ('pl*') {
-            my $result = eval(${$a1});
-            die $@ if $@;
-            return pl_to_mal($result);
         }
         when ('try*') {
             do {
