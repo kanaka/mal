@@ -222,8 +222,7 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
 {
     package Mal::Atom;
     use parent -norequire, 'Mal::Type';
-    use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
-    sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
+    sub new  { my ($class, $val) = @_; bless \$val, $class }
     sub clone { my $self = shift; ref($self)->new($$self) }
 }
 
