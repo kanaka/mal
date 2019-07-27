@@ -40,8 +40,8 @@ sub mal_readline {
 }
 
 sub slurp {
-    my $fname = ${$_[0]}; 
-    open(my $fh, '<', $fname) or die "error opening '$fname'";
+    use autodie;
+    open(my $fh, '<', ${$_[0]});
     my $data = do { local $/; <$fh> };
     Mal::String->new($data)
 }
