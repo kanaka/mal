@@ -19,12 +19,12 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    if ($ast->isa('Symbol')) {
+    if ($ast->isa('Mal::Symbol')) {
 	return $env->{$$ast} // die "'$$ast' not found\n";
-    } elsif ($ast->isa('Sequence')) {
+    } elsif ($ast->isa('Mal::Sequence')) {
 	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
-    } elsif ($ast->isa('HashMap')) {
-	return HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
@@ -52,10 +52,10 @@ sub PRINT {
 
 # repl
 my $repl_env = {
-    '+' => sub { Integer->new(${$_[0]} + ${$_[1]}) },
-    '-' => sub { Integer->new(${$_[0]} - ${$_[1]}) },
-    '*' => sub { Integer->new(${$_[0]} * ${$_[1]}) },
-    '/' => sub { Integer->new(${$_[0]} / ${$_[1]}) },
+    '+' => sub { Mal::Integer->new(${$_[0]} + ${$_[1]}) },
+    '-' => sub { Mal::Integer->new(${$_[0]} - ${$_[1]}) },
+    '*' => sub { Mal::Integer->new(${$_[0]} * ${$_[1]}) },
+    '/' => sub { Mal::Integer->new(${$_[0]} / ${$_[1]}) },
 };
 
 sub REP {
@@ -78,7 +78,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if ($err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

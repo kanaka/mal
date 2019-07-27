@@ -22,12 +22,12 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    if ($ast->isa('Symbol')) {
+    if ($ast->isa('Mal::Symbol')) {
 	return $env->get($ast);
-    } elsif ($ast->isa('Sequence')) {
+    } elsif ($ast->isa('Mal::Sequence')) {
 	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
-    } elsif ($ast->isa('HashMap')) {
-	return HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
@@ -49,7 +49,7 @@ sub EVAL {
             return $env->set($a1, $res);
         }
         when ('let*') {
-            my $let_env = Env->new($env);
+            my $let_env = Mal::Env->new($env);
 	    foreach my $pair (pairs @$a1) {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
@@ -71,16 +71,20 @@ sub PRINT {
 }
 
 # repl
-my $repl_env = Env->new();
+my $repl_env = Mal::Env->new();
 sub REP {
     my $str = shift;
     return PRINT(EVAL(READ($str), $repl_env));
 }
 
-$repl_env->set(Symbol->new('+'), sub { Integer->new(${$_[0]} + ${$_[1]}) } );
-$repl_env->set(Symbol->new('-'), sub { Integer->new(${$_[0]} - ${$_[1]}) } );
-$repl_env->set(Symbol->new('*'), sub { Integer->new(${$_[0]} * ${$_[1]}) } );
-$repl_env->set(Symbol->new('/'), sub { Integer->new(${$_[0]} / ${$_[1]}) } );
+$repl_env->set(Mal::Symbol->new('+'),
+	       sub { Mal::Integer->new(${$_[0]} + ${$_[1]}) } );
+$repl_env->set(Mal::Symbol->new('-'),
+	       sub { Mal::Integer->new(${$_[0]} - ${$_[1]}) } );
+$repl_env->set(Mal::Symbol->new('*'),
+	       sub { Mal::Integer->new(${$_[0]} * ${$_[1]}) } );
+$repl_env->set(Mal::Symbol->new('/'),
+	       sub { Mal::Integer->new(${$_[0]} / ${$_[1]}) } );
 
 if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");
@@ -97,7 +101,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if ($err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

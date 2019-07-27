@@ -46,7 +46,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if ($err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

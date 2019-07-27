@@ -22,9 +22,9 @@ sub _equal_Q {
     if (!(($ota eq $otb) || (_sequential_Q($a) && _sequential_Q($b)))) {
         return 0;
     }
-    if ($a->isa('Symbol')) {
+    if ($a->isa('Mal::Symbol')) {
 	return $$a eq $$b;
-    } elsif ($a->isa('Sequence')) {
+    } elsif ($a->isa('Mal::Sequence')) {
 	if (! (scalar(@$a) == scalar(@$b))) {
 	    return 0;
 	}
@@ -34,7 +34,7 @@ sub _equal_Q {
 	    }
 	}
 	return 1;
-    } elsif ($a->isa('HashMap')) {
+    } elsif ($a->isa('Mal::HashMap')) {
 	if (! (scalar(keys %$a) == scalar(keys %$b))) {
 	    return 0;
 	}
@@ -53,8 +53,8 @@ sub _equal_Q {
 sub _clone {
     no overloading '%{}';
     my ($obj) = @_;
-    if ($obj->isa('CoreFunction')) {
-	return FunctionRef->new( $obj );
+    if ($obj->isa('Mal::CoreFunction')) {
+	return Mal::FunctionRef->new( $obj );
     } else {
 	return bless {%{$obj}}, ref $obj;
     }
@@ -63,31 +63,31 @@ sub _clone {
 # Errors/Exceptions
 
 {
-    package BlankException;
-    sub new { my $class = shift; bless String->new("Blank Line") => $class }
+    package Mal::BlankException;
+    sub new { my $class = shift; bless Mal::String->new("Blank Line") => $class }
 }
 
 # Scalars
 
 {
-    package Nil;
+    package Mal::Nil;
     # Allow nil to be treated as an empty list or hash-map.
     use overload '@{}' => sub { [] }, '%{}' => sub { {} }, fallback => 1;
     sub new { my $class = shift; my $s = 'nil'; bless \$s => $class }
-    sub rest { List->new([]) }
+    sub rest { Mal::List->new([]) }
 }
 {
-    package True;
+    package Mal::True;
     sub new { my $class = shift; my $s = 'true'; bless \$s => $class }
 }
 {
-    package False;
+    package Mal::False;
     sub new { my $class = shift; my $s = 'false'; bless \$s => $class }
 }
 
-our $nil =   Nil->new();
-our $true =  True->new();
-our $false = False->new();
+our $nil =   Mal::Nil->new();
+our $true =  Mal::True->new();
+our $false = Mal::False->new();
 
 sub _nil_Q   { return $_[0] eq $nil }
 sub _true_Q  { return $_[0] eq $true }
@@ -95,28 +95,28 @@ sub _false_Q { return $_[0] eq $false }
 
 
 {
-    package Integer;
+    package Mal::Integer;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
-sub _number_Q { $_[0]->isa('Integer') }
+sub _number_Q { $_[0]->isa('Mal::Integer') }
 
 
 {
-    package Symbol;
+    package Mal::Symbol;
     sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
 }
-sub _symbol_Q { $_[0]->isa('Symbol') }
+sub _symbol_Q { $_[0]->isa('Mal::Symbol') }
 
 
-sub _string_Q { $_[0]->isa('String') && ${$_[0]} !~ /^\x{029e}/; }
+sub _string_Q { $_[0]->isa('Mal::String') && ${$_[0]} !~ /^\x{029e}/; }
 
 
-sub _keyword { return String->new(("\x{029e}".$_[0])); }
-sub _keyword_Q { $_[0]->isa('String') && ${$_[0]} =~ /^\x{029e}/; }
+sub _keyword { return Mal::String->new(("\x{029e}".$_[0])); }
+sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
 
 
 {
-    package String;
+    package Mal::String;
     sub new  { my $class = shift; bless \$_[0] => $class }
 }
 
@@ -124,54 +124,54 @@ sub _keyword_Q { $_[0]->isa('String') && ${$_[0]} =~ /^\x{029e}/; }
 # Sequences
 
 {
-    package Sequence;
+    package Mal::Sequence;
     use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { $_[0]->{meta} }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
-    sub rest { my @arr = @{$_[0]->{val}}; List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]->{val}}; List->new([@arr[$_[1]..$_[2]]]); }
+    sub rest { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[1..$#arr]]); }
+    sub slice { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[$_[1]..$_[2]]]); }
 }
 
 # Lists
 
 {
-    package List;
-    use parent -norequire, 'Sequence';
+    package Mal::List;
+    use parent -norequire, 'Mal::Sequence';
 }
 
-sub _list_Q { $_[0]->isa('List') }
+sub _list_Q { $_[0]->isa('Mal::List') }
 
 
 # Vectors
 
 {
-    package Vector;
-    use parent -norequire, 'Sequence';
+    package Mal::Vector;
+    use parent -norequire, 'Mal::Sequence';
 }
 
-sub _vector_Q { $_[0]->isa('Vector') }
+sub _vector_Q { $_[0]->isa('Mal::Vector') }
 
 
 # Hash Maps
 
 {
-    package HashMap;
+    package Mal::HashMap;
     use overload '%{}' => sub { no overloading '%{}'; $_[0]->{val} },
 	         fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { no overloading '%{}'; $_[0]->{meta} }
 }
 
-sub _hash_map { HashMap->new( { pairmap { $$a => $b } @_ } ) }
+sub _hash_map { Mal::HashMap->new( { pairmap { $$a => $b } @_ } ) }
 
-sub _hash_map_Q { $_[0]->isa('HashMap') }
+sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
 
 
 # Functions
 
 {
-    package Function;
+    package Mal::Function;
     use overload '&{}' => sub { my $f = shift; sub { $f->apply(\@_) } },
                  fallback => 1;
     sub new  {
@@ -187,7 +187,7 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
     sub meta { $_[0]->{meta} }
     sub gen_env {
         my $self = $_[0];
-        return Env->new($self->{env}, $self->{params}, $_[1]);
+        return Mal::Env->new($self->{env}, $self->{params}, $_[1]);
     }
     sub apply {
         my $self = $_[0];
@@ -195,14 +195,14 @@ sub _hash_map_Q { $_[0]->isa('HashMap') }
     }
 }
 
-sub _sub_Q { $_[0]->isa('CoreFunction') ||  $_[0]->isa('FunctionRef') }
-sub _function_Q { $_[0]->isa('Function') }
+sub _sub_Q { $_[0]->isa('Mal::CoreFunction') ||  $_[0]->isa('Mal::FunctionRef') }
+sub _function_Q { $_[0]->isa('Mal::Function') }
 
 
 # FunctionRef
 
 {
-    package FunctionRef;
+    package Mal::FunctionRef;
     use overload '&{}' => sub { $_[0]->{code} }, fallback => 1;
     sub new {
         my ($class, $code) = @_;
@@ -215,7 +215,7 @@ sub _function_Q { $_[0]->isa('Function') }
 # Core Functions
 
 {
-    package CoreFunction;
+    package Mal::CoreFunction;
     sub meta { $nil }
 }
 
@@ -223,12 +223,12 @@ sub _function_Q { $_[0]->isa('Function') }
 # Atoms
 
 {
-    package Atom;
+    package Mal::Atom;
     use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { $_[0]->{meta} }
 }
 
-sub _atom_Q { $_[0]->isa('Atom') }
+sub _atom_Q { $_[0]->isa('Mal::Atom') }
 
 1;

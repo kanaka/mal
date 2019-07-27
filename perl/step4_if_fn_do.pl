@@ -23,12 +23,12 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    if ($ast->isa('Symbol')) {
+    if ($ast->isa('Mal::Symbol')) {
 	return $env->get($ast);
-    } elsif ($ast->isa('Sequence')) {
+    } elsif ($ast->isa('Mal::Sequence')) {
 	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
-    } elsif ($ast->isa('HashMap')) {
-	return HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
@@ -44,13 +44,13 @@ sub EVAL {
     # apply list
     my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
-    given ($a0->isa('Symbol') ? $$a0 : $a0) {
+    given ($a0->isa('Mal::Symbol') ? $$a0 : $a0) {
         when ('def!') {
             my $res = EVAL($a2, $env);
             return $env->set($a1, $res);
         }
         when ('let*') {
-            my $let_env = Env->new($env);
+            my $let_env = Mal::Env->new($env);
 	    foreach my $pair (pairs @$a1) {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
@@ -73,8 +73,8 @@ sub EVAL {
             return bless sub {
                 #print "running fn*\n";
                 my $args = \@_;
-                return EVAL($a2, Env->new($env, $a1, $args));
-            }, 'CoreFunction';
+                return EVAL($a2, Mal::Env->new($env, $a1, $args));
+            }, 'Mal::CoreFunction';
         }
         default {
             my @el = @{eval_ast($ast, $env)};
@@ -91,7 +91,7 @@ sub PRINT {
 }
 
 # repl
-my $repl_env = Env->new();
+my $repl_env = Mal::Env->new();
 sub REP {
     my $str = shift;
     return PRINT(EVAL(READ($str), $repl_env));
@@ -99,7 +99,7 @@ sub REP {
 
 # core.pl: defined using perl
 foreach my $n (keys %core::ns) {
-    $repl_env->set(Symbol->new($n), $core::ns{$n});
+    $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
 }
 
 # core.mal: defined using the language itself
@@ -120,7 +120,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if ($err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

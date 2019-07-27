@@ -6,7 +6,7 @@ use Exporter 'import';
 
 
 {
-    package Env;
+    package Mal::Env;
     use Data::Dumper;
     sub new  {
         my ($class,$outer,$binds,$exprs) = @_;
@@ -17,7 +17,7 @@ use Exporter 'import';
                     # variable length arguments
                     my @earr = @$exprs; # get the array
                     my @new_arr = @earr[$i..$#earr]; # slice it
-                    $data->{${$binds->[$i+1]}} = List->new(\@new_arr);
+                    $data->{${$binds->[$i+1]}} = Mal::List->new(\@new_arr);
                     last;
                 } else {
                     $data->{${$binds->[$i]}} = $exprs->[$i];
@@ -45,15 +45,15 @@ use Exporter 'import';
     }
 }
 
-#my $e1 = Env->new();
+#my $e1 = Mal::Env->new();
 #print Dumper($e1);
 #
-#my $e2 = Env->new();
+#my $e2 = Mal::Env->new();
 #$e2->set('abc', 123);
 #$e2->set('def', 456);
 #print Dumper($e2);
 #
-#my $e3 = Env->new($e2);
+#my $e3 = Mal::Env->new($e2);
 #$e3->set('abc', 789);
 #$e3->set('ghi', 1024);
 #print Dumper($e3);

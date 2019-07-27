@@ -14,20 +14,20 @@ sub pl_to_mal {
     given (ref $obj) {
         when(/^ARRAY/) {
             my @arr = map {pl_to_mal($_)} @$obj;
-            return List->new(\@arr);
+            return Mal::List->new(\@arr);
         }
         when(/^HASH/) {
             my $hsh = {};
             foreach my $key (keys %$obj) {
                 $hsh->{$key} = pl_to_mal($obj->{$key});
             }
-            return HashMap->new($hsh)
+            return Mal::HashMap->new($hsh)
         }
         default {
             if (looks_like_number($obj)) {
-                return Integer->new($obj);
+                return Mal::Integer->new($obj);
             } else {
-                return String->new($obj);
+                return Mal::String->new($obj);
             }
         }
     }

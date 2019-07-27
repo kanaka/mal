@@ -11,20 +11,20 @@ use Data::Dumper;
 sub _pr_str {
     my($obj, $print_readably) = @_;
     my($_r) = (defined $print_readably) ? $print_readably : 1;
-    if ($obj->isa('List')) {
+    if ($obj->isa('Mal::List')) {
 	return '(' . join(' ', map {_pr_str($_, $_r)} @{$obj}) . ')';
-    } elsif ($obj->isa('Vector')) {
+    } elsif ($obj->isa('Mal::Vector')) {
 	return '[' . join(' ', map {_pr_str($_, $_r)} @{$obj}) . ']';
-    } elsif ($obj->isa('HashMap')) {
+    } elsif ($obj->isa('Mal::HashMap')) {
 	my @elems = ();
 
 	foreach my $key (keys %$obj) {
-	    push(@elems, _pr_str(String->new($key), $_r));
+	    push(@elems, _pr_str(Mal::String->new($key), $_r));
 	    push(@elems, _pr_str($obj->{$key}, $_r));
 	}
 
 	return '{' . join(' ', @elems) . '}';
-    } elsif ($obj->isa('String')) {
+    } elsif ($obj->isa('Mal::String')) {
 	if ($$obj =~ /^\x{029e}/) {
 	    return ':' . substr($$obj,1);
 	} elsif ($_r) {
@@ -36,12 +36,12 @@ sub _pr_str {
 	} else {
 	    return $$obj;
 	}
-    } elsif ($obj->isa('Function') || $obj->isa('FunctionRef')) {
+    } elsif ($obj->isa('Mal::Function') || $obj->isa('Mal::FunctionRef')) {
 	return '<fn* ' . _pr_str($obj->{params}) .
 	    ' ' . _pr_str($obj->{ast}) . '>';
-    } elsif ($obj->isa('Atom')) {
+    } elsif ($obj->isa('Mal::Atom')) {
 	return '(atom ' . _pr_str($$obj) . ")";
-    } elsif ($obj->isa('CoreFunction')) {
+    } elsif ($obj->isa('Mal::CoreFunction')) {
         return '<builtin_fn* ' . $obj . '>';
     } else {
         return $$obj;

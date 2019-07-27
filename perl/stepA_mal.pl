@@ -30,16 +30,16 @@ sub is_pair {
 sub quasiquote {
     my ($ast) = @_;
     if (!is_pair($ast)) {
-        return List->new([Symbol->new("quote"), $ast]);
+        return Mal::List->new([Mal::Symbol->new("quote"), $ast]);
     } elsif (_symbol_Q($ast->[0]) && ${$ast->[0]} eq 'unquote') {
         return $ast->[1];
     } elsif (is_pair($ast->[0]) && _symbol_Q($ast->[0]->[0]) &&
              ${$ast->[0]->[0]} eq 'splice-unquote') {
-        return List->new([Symbol->new("concat"),
+        return Mal::List->new([Mal::Symbol->new("concat"),
                           $ast->[0]->[1],
                           quasiquote($ast->rest())]);
     } else {
-        return List->new([Symbol->new("cons"),
+        return Mal::List->new([Mal::Symbol->new("cons"),
                           quasiquote($ast->[0]),
                           quasiquote($ast->rest())]);
     }
@@ -51,7 +51,7 @@ sub is_macro_call {
         _symbol_Q($ast->[0]) &&
         $env->find($ast->[0])) {
         my ($f) = $env->get($ast->[0]);
-        if ($f->isa('Function')) {
+        if ($f->isa('Mal::Function')) {
             return $f->{ismacro};
         }
     }
@@ -71,12 +71,12 @@ sub macroexpand {
 
 sub eval_ast {
     my($ast, $env) = @_;
-    if ($ast->isa('Symbol')) {
+    if ($ast->isa('Mal::Symbol')) {
 	return $env->get($ast);
-    } elsif ($ast->isa('Sequence')) {
+    } elsif ($ast->isa('Mal::Sequence')) {
 	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
-    } elsif ($ast->isa('HashMap')) {
-	return HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
@@ -101,13 +101,13 @@ sub EVAL {
 
     my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
-    given ($a0->isa('Symbol') ? $$a0 : $a0) {
+    given ($a0->isa('Mal::Symbol') ? $$a0 : $a0) {
         when ('def!') {
             my $res = EVAL($a2, $env);
             return $env->set($a1, $res);
         }
         when ('let*') {
-            my $let_env = Env->new($env);
+            my $let_env = Mal::Env->new($env);
 	    foreach my $pair (pairs @$a1) {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
@@ -149,11 +149,12 @@ sub EVAL {
                         if (ref $err) {
                             $exc = $err;
                         } else {
-                            $exc = String->new(substr $err, 0, -1);
+                            $exc = Mal::String->new(substr $err, 0, -1);
                         }
-                        return EVAL($a2->[2], Env->new($env,
-                                                        List->new([$a2->[1]]), 
-                                                        List->new([$exc])));
+			my $catch_env =
+			    Mal::Env->new($env, Mal::List->new([$a2->[1]]), 
+					        Mal::List->new([$exc]));
+                        return EVAL($a2->[2], $catch_env);
                     } else {
                         die $err;
                     }
@@ -176,12 +177,12 @@ sub EVAL {
             # Continue loop (TCO)
         }
         when ('fn*') {
-            return Function->new(\&EVAL, $a2, $env, $a1);
+            return Mal::Function->new(\&EVAL, $a2, $env, $a1);
         }
         default {
             my @el = @{eval_ast($ast, $env)};
             my $f = shift @el;
-            if ($f->isa('Function')) {
+            if ($f->isa('Mal::Function')) {
                 $ast = $f->{ast};
                 $env = $f->gen_env(\@el);
                 # Continue loop (TCO)
@@ -201,7 +202,7 @@ sub PRINT {
 }
 
 # repl
-my $repl_env = Env->new();
+my $repl_env = Mal::Env->new();
 sub REP {
     my $str = shift;
     return PRINT(EVAL(READ($str), $repl_env));
@@ -209,12 +210,12 @@ sub REP {
 
 # core.pl: defined using perl
 foreach my $n (keys %core::ns) {
-    $repl_env->set(Symbol->new($n), $core::ns{$n});
+    $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
 }
-$repl_env->set(Symbol->new('eval'),
-	       bless sub { EVAL($_[0], $repl_env); }, 'CoreFunction');
-my @_argv = map {String->new($_)}  @ARGV[1..$#ARGV];
-$repl_env->set(Symbol->new('*ARGV*'), List->new(\@_argv));
+$repl_env->set(Mal::Symbol->new('eval'),
+	       bless sub { EVAL($_[0], $repl_env); }, 'Mal::CoreFunction');
+my @_argv = map {Mal::String->new($_)}  @ARGV[1..$#ARGV];
+$repl_env->set(Mal::Symbol->new('*ARGV*'), Mal::List->new(\@_argv));
 
 # core.mal: defined using the language itself
 REP(q[(def! *host-language* "perl")]);
@@ -243,7 +244,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-	    if ($err->isa('BlankException')) {
+	    if ($err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		if (ref $err) {
