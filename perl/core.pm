@@ -8,7 +8,7 @@ use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
 use readline;
-use types qw(_sequential_Q _equal_Q _clone $nil $true $false
+use types qw(_sequential_Q _equal_Q $nil $true $false
              _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
              _hash_map _hash_map_Q _atom_Q);
 use reader qw(read_str);
@@ -113,7 +113,7 @@ sub mal_map {
 
 sub conj {
     my $seq = shift;
-    my $new_seq = _clone($seq);
+    my $new_seq = $seq->clone;
     if (_list_Q($new_seq)) {
         unshift @$new_seq, reverse @_;
     } else {
@@ -145,7 +145,7 @@ fieldhash my %meta;
 
 # Metadata functions
 sub with_meta {
-    my $new_obj = _clone($_[0]);
+    my $new_obj = $_[0]->clone;
     $meta{$new_obj} = $_[1];
     return $new_obj;
 }

@@ -4,7 +4,7 @@ use warnings;
 
 use Data::Dumper;
 use Exporter 'import';
-our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
+our @EXPORT_OK = qw(_sequential_Q _equal_Q
                     $nil $true $false
                     _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
                     _hash_map _hash_map_Q _atom_Q);
@@ -48,15 +48,6 @@ sub _equal_Q {
     return 0;
 }
 
-sub _clone {
-    no overloading '%{}';
-    my ($obj) = @_;
-    if ($obj->isa('Mal::CoreFunction')) {
-	return Mal::FunctionRef->new( $obj );
-    } else {
-	return bless {%{$obj}}, ref $obj;
-    }
-}
 
 # Errors/Exceptions
 
@@ -137,6 +128,7 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
     #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
     sub rest { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[1..$#arr]]); }
     sub slice { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[$_[1]..$_[2]]]); }
+    sub clone { my $self = shift; ref($self)->new([@$self]) }
 }
 
 # Lists
@@ -165,6 +157,7 @@ sub _vector_Q { $_[0]->isa('Mal::Vector') }
     package Mal::HashMap;
     use parent -norequire, 'Mal::Type';
     sub new  { my $class = shift; bless $_[0], $class }
+    sub clone { my $self = shift; ref($self)->new({%$self}) }
 }
 
 sub _hash_map { Mal::HashMap->new( { pairmap { $$a => $b } @_ } ) }
@@ -196,6 +189,7 @@ sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
         my $self = $_[0];
         return &{ $self->{eval} }($self->{ast}, gen_env($self, $_[1]));
     }
+    sub clone {	my $self = shift; bless { %$self }, ref($self) }
 }
 
 sub _sub_Q { $_[0]->isa('Mal::CoreFunction') ||  $_[0]->isa('Mal::FunctionRef') }
@@ -212,12 +206,14 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
         my ($class, $code) = @_;
         bless {'code'=>$code}, $class
     }
+    sub clone { my $self = shift; ref($self)->new($self->{code}) }
 }
 
 # Core Functions
 
 {
     package Mal::CoreFunction;
+    sub clone { my $self = shift; FunctionRef->new($self) }
 }
 
 
@@ -228,6 +224,7 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
     use parent -norequire, 'Mal::Type';
     use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
     sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
+    sub clone { my $self = shift; ref($self)->new($$self) }
 }
 
 sub _atom_Q { $_[0]->isa('Mal::Atom') }

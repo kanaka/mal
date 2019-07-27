@@ -10,7 +10,7 @@ use List::Util qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types qw($nil $true $false _symbol_Q _list_Q _clone);
+use types qw($nil $true $false _symbol_Q _list_Q);
 use reader;
 use printer;
 use env;
@@ -125,7 +125,7 @@ sub EVAL {
             # Continue loop (TCO)
         }
         when ('defmacro!') {
-            my $func = _clone(EVAL($a2, $env));
+            my $func = EVAL($a2, $env)->clone;
             $func->{ismacro} = 1;
             return $env->set($a1, $func);
         }
