@@ -196,24 +196,11 @@ sub _sub_Q { $_[0]->isa('Mal::CoreFunction') ||  $_[0]->isa('Mal::FunctionRef') 
 sub _function_Q { $_[0]->isa('Mal::Function') }
 
 
-# FunctionRef
-
-{
-    package Mal::FunctionRef;
-    use parent -norequire, 'Mal::Type';
-    use overload '&{}' => sub { $_[0]->{code} }, fallback => 1;
-    sub new {
-        my ($class, $code) = @_;
-        bless {'code'=>$code}, $class
-    }
-    sub clone { my $self = shift; ref($self)->new($self->{code}) }
-}
-
 # Core Functions
 
 {
     package Mal::CoreFunction;
-    sub clone { my $self = shift; FunctionRef->new($self) }
+    sub clone { my $self = shift; bless sub { goto &$self }, ref($self) }
 }
 
 
