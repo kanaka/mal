@@ -101,8 +101,8 @@ sub first {
 
 sub apply {
     my $f = shift;
-    my $more_args = pop;
-    return &$f(@_, @$more_args);
+    push @_, @{pop @_};
+    goto &$f;
 }
 
 sub mal_map {

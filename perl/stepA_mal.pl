@@ -86,18 +86,17 @@ sub eval_ast {
 sub EVAL {
     my($ast, $env) = @_;
 
-    while (1) {
-
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
     if (! _list_Q($ast)) {
-        return eval_ast($ast, $env);
+        goto &eval_ast;
     }
     @$ast or return $ast;
 
     # apply list
     $ast = macroexpand($ast, $env);
     if (! _list_Q($ast)) {
-        return eval_ast($ast, $env);
+	@_ = ($ast, $env);
+        goto &eval_ast;
     }
 
     my ($a0, $a1, $a2, $a3) = @$ast;
@@ -113,16 +112,15 @@ sub EVAL {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
             }
-            $ast = $a2;
-            $env = $let_env;
-            # Continue loop (TCO)
+	    @_ = ($a2, $let_env);
+	    goto &EVAL;
         }
         when ('quote') {
             return $a1;
         }
         when ('quasiquote') {
-            $ast = quasiquote($a1);
-            # Continue loop (TCO)
+            @_ = (quasiquote($a1), $env);
+	    goto &EVAL;
         }
         when ('defmacro!') {
             my $func = EVAL($a2, $env)->clone;
@@ -145,42 +143,40 @@ sub EVAL {
 		    $exc = Mal::String->new($msg);
 		}
 		my $catch_env = Mal::Env->new($env, [$a2->[1]], [$exc]);
-		return EVAL($a2->[2], $catch_env)
+		@_ = ($a2->[2], $catch_env);
+		goto &EVAL;
 	    } else {
 		die $@;
 	    }
         }
         when ('do') {
             eval_ast($ast->slice(1, $#$ast-1), $env);
-            $ast = $ast->[$#$ast];
-            # Continue loop (TCO)
+            @_ = ($ast->[$#$ast], $env);
+            goto &EVAL;
         }
         when ('if') {
             my $cond = EVAL($a1, $env);
             if ($cond eq $nil || $cond eq $false) {
-                $ast = $a3 ? $a3 : $nil;
+                @_ = ($a3 ? $a3 : $nil, $env);
             } else {
-                $ast = $a2;
+                @_ = ($a2, $env);
             }
-            # Continue loop (TCO)
+	    goto &EVAL;
         }
         when ('fn*') {
-            return Mal::Function->new(\&EVAL, $a2, $env, $a1);
+            return bless sub {
+                #print "running fn*\n";
+                my $args = \@_;
+		@_ = ($a2, Mal::Env->new($env, $a1, $args));
+                goto &EVAL;
+            }, 'Mal::CoreFunction';
         }
         default {
-            my @el = @{eval_ast($ast, $env)};
-            my $f = shift @el;
-            if ($f->isa('Mal::Function')) {
-                $ast = $f->{ast};
-                $env = $f->gen_env(\@el);
-                # Continue loop (TCO)
-            } else {
-                return &$f(@el);
-            }
+            @_ = @{eval_ast($ast, $env)};
+            my $f = shift;
+	    goto &$f;
         }
     }
-
-    } # TCO while loop
 }
 
 # print
