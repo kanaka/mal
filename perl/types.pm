@@ -67,10 +67,17 @@ sub _clone {
     sub new { my $class = shift; bless Mal::String->new("Blank Line") => $class }
 }
 
+# Superclass for all kinds of mal value
+
+{
+    package Mal::Type;
+}
+
 # Scalars
 
 {
     package Mal::Scalar;
+    use parent -norequire, 'Mal::Type';
     sub new { my ($class, $value) = @_; bless \$value, $class }
 }
 
@@ -130,6 +137,7 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
 
 {
     package Mal::Sequence;
+    use parent -norequire, 'Mal::Type';
     use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { $_[0]->{meta} }
@@ -162,6 +170,7 @@ sub _vector_Q { $_[0]->isa('Mal::Vector') }
 
 {
     package Mal::HashMap;
+    use parent -norequire, 'Mal::Type';
     use overload '%{}' => sub { no overloading '%{}'; $_[0]->{val} },
 	         fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
@@ -177,6 +186,7 @@ sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
 
 {
     package Mal::Function;
+    use parent -norequire, 'Mal::Type';
     use overload '&{}' => sub { my $f = shift; sub { $f->apply(\@_) } },
                  fallback => 1;
     sub new  {
@@ -208,6 +218,7 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
 
 {
     package Mal::FunctionRef;
+    use parent -norequire, 'Mal::Type';
     use overload '&{}' => sub { $_[0]->{code} }, fallback => 1;
     sub new {
         my ($class, $code) = @_;
@@ -221,6 +232,7 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
 
 {
     package Mal::CoreFunction;
+    use parent -norequire, 'Mal::Type';
     sub meta { $nil }
 }
 
@@ -229,6 +241,7 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
 
 {
     package Mal::Atom;
+    use parent -norequire, 'Mal::Type';
     use overload '${}' => sub { \($_[0]->{val}) }, fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { $_[0]->{meta} }
