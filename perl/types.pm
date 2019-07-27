@@ -164,9 +164,7 @@ sub _vector_Q { $_[0]->isa('Mal::Vector') }
 {
     package Mal::HashMap;
     use parent -norequire, 'Mal::Type';
-    use overload '%{}' => sub { no overloading '%{}'; $_[0]->{val} },
-	         fallback => 1;
-    sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
+    sub new  { my $class = shift; bless $_[0], $class }
 }
 
 sub _hash_map { Mal::HashMap->new( { pairmap { $$a => $b } @_ } ) }
