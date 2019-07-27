@@ -149,9 +149,7 @@ sub EVAL {
                         } else {
                             $exc = Mal::String->new(substr $err, 0, -1);
                         }
-			my $catch_env =
-			    Mal::Env->new($env, Mal::List->new([$a2->[1]]),
-					        Mal::List->new([$exc]));
+			my $catch_env = Mal::Env->new($env, [$a2->[1]], [$exc]);
                         return EVAL($a2->[2], $catch_env)
                     } else {
                         die $err;
