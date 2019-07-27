@@ -4,6 +4,7 @@ no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
 use List::Util qw(pairs pairmap);
+use Scalar::Util qw(blessed);
 use readline qw(mal_readline set_rl_mode);
 use feature qw(switch);
 use Data::Dumper;
@@ -210,7 +211,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('Mal::BlankException')) {
+            if (defined(blessed $err) && $err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

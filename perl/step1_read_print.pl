@@ -2,6 +2,7 @@ use strict;
 use warnings FATAL => qw(all);
 use File::Basename;
 use lib dirname (__FILE__);
+use Scalar::Util qw(blessed);
 use readline qw(mal_readline set_rl_mode);
 
 use reader;
@@ -45,7 +46,7 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('Mal::BlankException')) {
+            if (defined(blessed $err) && $err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

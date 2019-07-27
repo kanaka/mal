@@ -4,6 +4,7 @@ no if $] >= 5.018, warnings => "experimental::smartmatch";
 use File::Basename;
 use lib dirname (__FILE__);
 use List::Util qw(pairs pairmap);
+use Scalar::Util qw(blessed);
 use readline qw(mal_readline set_rl_mode);
 use feature qw(switch);
 use Data::Dumper;
@@ -143,7 +144,7 @@ sub EVAL {
                     my $err = $@;
                     if ($a2 && ${$a2->[0]} eq 'catch*') {
                         my $exc;
-                        if (ref $err) {
+                        if (defined(blessed $err) && $err->isa('Mal::Type')) {
                             $exc = $err;
                         } else {
                             $exc = Mal::String->new(substr $err, 0, -1);
@@ -239,15 +240,13 @@ while (1) {
             1;
         } or do {
             my $err = $@;
-	    if ($err->isa('Mal::BlankException')) {
+	    if (defined(blessed $err) && $err->isa('Mal::BlankException')) {
 		# ignore and continue
+	    } elsif (defined(blessed $err) && $err->isa('Mal::Type')) {
+		print "Error: ".printer::_pr_str($err)."\n";
 	    } else {
-		if (ref $err) {
-		    print "Error: ".printer::_pr_str($err)."\n";
-		} else {
-		    chomp $err;
-		    print "Error: $err\n";
-		}
+		chomp $err;
+		print "Error: $err\n";
 	    }
         };
     };
