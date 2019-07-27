@@ -161,7 +161,6 @@ sub _vector_Q { $_[0]->isa('Vector') }
 	         fallback => 1;
     sub new  { my $class = shift; bless {'meta'=>$nil, 'val'=>$_[0]}, $class }
     sub meta { no overloading '%{}'; $_[0]->{meta} }
-    sub get { no overloading '%{}'; $_[0]->{val}->{$_[1]}; }
 }
 
 sub _hash_map { HashMap->new( { pairmap { $$a => $b } @_ } ) }
