@@ -123,11 +123,9 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
 {
     package Mal::Sequence;
     use parent -norequire, 'Mal::Type';
-    use overload '@{}' => sub { $_[0]->{val} }, fallback => 1;
-    sub new  { my $class = shift; bless {'val'=>$_[0]}, $class }
-    #sub _val { $_[0]->{val}->[$_[1]]->{val}; } # return value of nth item
-    sub rest { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]->{val}}; Mal::List->new([@arr[$_[1]..$_[2]]]); }
+    sub new  { my $class = shift; bless $_[0], $class }
+    sub rest { my @arr = @{$_[0]}; Mal::List->new([@arr[1..$#arr]]); }
+    sub slice { my @arr = @{$_[0]}; Mal::List->new([@arr[$_[1]..$_[2]]]); }
     sub clone { my $self = shift; ref($self)->new([@$self]) }
 }
 
