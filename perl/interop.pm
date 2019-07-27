@@ -7,7 +7,7 @@ use Exporter 'import';
 our @EXPORT_OK = qw( pl_to_mal );
 use Scalar::Util qw(looks_like_number);
 
-use types;
+use types qw($nil);
 
 sub pl_to_mal {
     my($obj) = @_;
@@ -24,7 +24,9 @@ sub pl_to_mal {
             return Mal::HashMap->new($hsh)
         }
         default {
-            if (looks_like_number($obj)) {
+	    if (!defined($obj)) {
+		return $nil;
+            } elsif (looks_like_number($obj)) {
                 return Mal::Integer->new($obj);
             } else {
                 return Mal::String->new($obj);

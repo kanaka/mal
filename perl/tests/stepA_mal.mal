@@ -15,6 +15,9 @@
 (pl* "2+3")
 ;=>5
 
+(pl* "undef")
+;=>nil
+
 ;; Testing eval of print statement
 
 (pl* "print 'hello\n';")
