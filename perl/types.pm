@@ -1,6 +1,6 @@
 package types;
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 
 use Data::Dumper;
 use Exporter 'import';

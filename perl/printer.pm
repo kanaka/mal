@@ -1,6 +1,6 @@
 package printer;
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 
 use Exporter 'import';
 our @EXPORT_OK = qw( _pr_str );

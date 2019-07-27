@@ -1,5 +1,5 @@
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 no if $] >= 5.018, warnings => "experimental::smartmatch";
 use feature qw(switch);
 use File::Basename;

@@ -1,6 +1,6 @@
 package core;
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 
 use Data::Dumper;
 use List::Util qw(pairmap);

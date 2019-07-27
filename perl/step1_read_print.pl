@@ -1,5 +1,5 @@
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 use File::Basename;
 use lib dirname (__FILE__);
 
