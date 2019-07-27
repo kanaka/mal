@@ -1,6 +1,8 @@
 package core;
 use strict;
 use warnings FATAL => qw(all);
+
+use Data::Dumper;
 use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
@@ -11,8 +13,6 @@ use types qw(_sequential_Q _equal_Q _clone $nil $true $false
              _hash_map _hash_map_Q _atom_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
-
-use Data::Dumper;
 
 # String functions
 

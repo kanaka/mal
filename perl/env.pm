@@ -1,7 +1,6 @@
-package reader;
-use feature qw(switch);
 use strict;
 use warnings;
+
 use Exporter 'import';
 
 

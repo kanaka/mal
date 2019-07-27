@@ -2,11 +2,12 @@ use strict;
 use warnings FATAL => qw(all);
 use File::Basename;
 use lib dirname (__FILE__);
+
+use Data::Dumper;
 use List::Util qw(pairmap);
 use Scalar::Util qw(blessed);
-use readline qw(mal_readline set_rl_mode);
-use Data::Dumper;
 
+use readline qw(mal_readline set_rl_mode);
 use types qw(_list_Q);
 use reader;
 use printer;
