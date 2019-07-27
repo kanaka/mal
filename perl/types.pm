@@ -70,24 +70,29 @@ sub _clone {
 # Scalars
 
 {
+    package Mal::Scalar;
+    sub new { my ($class, $value) = @_; bless \$value, $class }
+}
+
+{
     package Mal::Nil;
+    use parent -norequire, 'Mal::Scalar';
     # Allow nil to be treated as an empty list or hash-map.
     use overload '@{}' => sub { [] }, '%{}' => sub { {} }, fallback => 1;
-    sub new { my $class = shift; my $s = 'nil'; bless \$s => $class }
     sub rest { Mal::List->new([]) }
 }
 {
     package Mal::True;
-    sub new { my $class = shift; my $s = 'true'; bless \$s => $class }
+    use parent -norequire, 'Mal::Scalar';
 }
 {
     package Mal::False;
-    sub new { my $class = shift; my $s = 'false'; bless \$s => $class }
+    use parent -norequire, 'Mal::Scalar';
 }
 
-our $nil =   Mal::Nil->new();
-our $true =  Mal::True->new();
-our $false = Mal::False->new();
+our $nil =   Mal::Nil->new('nil');
+our $true =  Mal::True->new('true');
+our $false = Mal::False->new('false');
 
 sub _nil_Q   { return $_[0] eq $nil }
 sub _true_Q  { return $_[0] eq $true }
@@ -96,14 +101,14 @@ sub _false_Q { return $_[0] eq $false }
 
 {
     package Mal::Integer;
-    sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
+    use parent -norequire, 'Mal::Scalar';
 }
 sub _number_Q { $_[0]->isa('Mal::Integer') }
 
 
 {
     package Mal::Symbol;
-    sub new  { my $class = shift; bless \do { my $x=$_[0] }, $class }
+    use parent -norequire, 'Mal::Scalar';
 }
 sub _symbol_Q { $_[0]->isa('Mal::Symbol') }
 
@@ -117,7 +122,7 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
 
 {
     package Mal::String;
-    sub new  { my $class = shift; bless \$_[0] => $class }
+    use parent -norequire, 'Mal::Scalar';
 }
 
 
