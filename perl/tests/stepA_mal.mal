@@ -23,3 +23,8 @@
 (pl* "print 'hello\n';")
 ;/hello
 ;=>1
+
+;; Testing exceptions passing through pl*
+
+(try* (pl* "die \"pop!\\n\"") (catch* e e))
+;=>"pop!"

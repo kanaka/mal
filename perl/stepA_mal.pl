@@ -133,7 +133,9 @@ sub EVAL {
             return macroexpand($a1, $env);
         }
         when ('pl*') {
-            return pl_to_mal(eval(${$a1}));
+            my $result = eval(${$a1});
+            die $@ if $@;
+            return pl_to_mal($result);
         }
         when ('try*') {
             do {
