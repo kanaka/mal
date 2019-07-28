@@ -134,30 +134,22 @@ sub EVAL {
             return macroexpand($a1, $env);
         }
         when ('try*') {
-            do {
-                local $@;
-                my $ret;
-                eval {
-                    use autodie; # always "throw" errors
-                    $ret = EVAL($a1, $env);
-                     1;
-                } or do {
-                    my $err = $@;
-                    if ($a2 && ${$a2->[0]} eq 'catch*') {
-                        my $exc;
-                        if (defined(blessed $err) && $err->isa('Mal::Type')) {
-                            $exc = $err;
-                        } else {
-                            $exc = Mal::String->new(substr $err, 0, -1);
-                        }
-			my $catch_env = Mal::Env->new($env, [$a2->[1]], [$exc]);
-                        return EVAL($a2->[2], $catch_env)
-                    } else {
-                        die $err;
-                    }
-                };
-                return $ret;
-            };
+	    local $@;
+	    my $ret = eval { EVAL($a1, $env) };
+	    return $ret unless $@;
+	    if ($a2 && ${$a2->[0]} eq 'catch*') {
+		my $exc;
+		if (defined(blessed $@) && $@->isa('Mal::Type')) {
+		    $exc = $@;
+		} else {
+		    chomp(my $msg = $@);
+		    $exc = Mal::String->new($msg);
+		}
+		my $catch_env = Mal::Env->new($env, [$a2->[1]], [$exc]);
+		return EVAL($a2->[2], $catch_env)
+	    } else {
+		die $@;
+	    }
         }
         when ('do') {
             eval_ast($ast->slice(1, $#$ast-1), $env);
