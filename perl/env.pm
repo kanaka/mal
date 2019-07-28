@@ -11,16 +11,14 @@ use Exporter 'import';
         my ($class,$outer,$binds,$exprs) = @_;
         my $data = { __outer__ => $outer };
         if ($binds) {
-            for (my $i=0; $i<scalar(@$binds); $i++) {
-                if (${$binds->[$i]} eq "&") {
+	    my @expr = @$exprs;
+            foreach my $bind (@$binds) {
+                if ($$bind eq "&") {
                     # variable length arguments
-                    my @earr = @$exprs; # get the array
-                    my @new_arr = @earr[$i..$#earr]; # slice it
-                    $data->{${$binds->[$i+1]}} = Mal::List->new(\@new_arr);
-                    last;
-                } else {
-                    $data->{${$binds->[$i]}} = $exprs->[$i];
+		    @expr = (Mal::List->new([@expr]));
+		    next;
                 }
+		$data->{$$bind} = shift @expr;
             }
         }
         bless $data => $class
