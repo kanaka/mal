@@ -10,7 +10,7 @@ use List::Util qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types qw($nil $true $false _sequential_Q _symbol_Q _list_Q);
+use types qw($nil $true $false _symbol_Q _list_Q);
 use reader;
 use printer;
 use env;
@@ -25,7 +25,7 @@ sub READ {
 # eval
 sub is_pair {
     my ($x) = @_;
-    return _sequential_Q($x) && @$x;
+    return $x->isa('Mal::Sequence') && @$x;
 }
 
 sub quasiquote {
