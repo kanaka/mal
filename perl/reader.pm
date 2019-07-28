@@ -7,7 +7,7 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
-use types qw($nil $true $false _keyword _hash_map);
+use types qw($nil $true $false _keyword);
 
 use Data::Dumper;
 
@@ -68,13 +68,7 @@ sub read_list {
         push(@lst, read_form($rdr));
     }
     $rdr->next();
-    if ($class eq 'Mal::List') {
-        return Mal::List->new(\@lst);
-    } elsif ($class eq 'Mal::Vector') {
-        return Mal::Vector->new(\@lst);
-    } else {
-        return _hash_map(@lst);
-    }
+    return $class->new(\@lst);
 }
 
 sub read_form {

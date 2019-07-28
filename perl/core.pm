@@ -9,8 +9,7 @@ use Time::HiRes qw(time);
 
 use readline;
 use types qw(_equal_Q $nil $true $false
-             _string_Q _keyword _keyword_Q
-             _hash_map);
+             _string_Q _keyword _keyword_Q);
 use reader qw(read_str);
 use printer qw(_pr_str);
 use interop qw(pl_to_mal);
@@ -205,7 +204,7 @@ sub pl_STAR {
     'list?'       => sub { $_[0]->isa('Mal::List') ? $true : $false },
     'vector'      => sub { Mal::Vector->new(\@_) },
     'vector?'     => sub { $_[0]->isa('Mal::Vector') ? $true : $false },
-    'hash-map'    => \&_hash_map,
+    'hash-map'    => sub { Mal::HashMap->new(\@_) },
     'map?'        => sub { $_[0]->isa('Mal::HashMap') ? $true : $false },
     'assoc'       => \&assoc,
     'dissoc'      => \&dissoc,

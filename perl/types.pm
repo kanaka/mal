@@ -6,9 +6,7 @@ use Data::Dumper;
 use Exporter 'import';
 our @EXPORT_OK = qw(_equal_Q
                     $nil $true $false
-                    _string_Q _keyword _keyword_Q
-                    _hash_map);
-use List::Util qw(pairs pairmap);
+                    _string_Q _keyword _keyword_Q);
 
 # General functions
 
@@ -139,16 +137,22 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
 }
 
 
-# Hash Maps
+# Hash-maps
 
 {
     package Mal::HashMap;
     use parent -norequire, 'Mal::Type';
-    sub new  { my $class = shift; bless $_[0], $class }
+    use List::Util qw(pairmap);
+    use Scalar::Util qw(reftype);
+    sub new  {
+        my ($class, $src) = @_;
+        if (reftype($src) eq 'ARRAY') {
+            $src = {pairmap { $$a => $b } @$src};
+	}
+        return bless $src, $class;
+    }
     sub clone { my $self = shift; ref($self)->new({%$self}) }
 }
-
-sub _hash_map { Mal::HashMap->new( { pairmap { $$a => $b } @_ } ) }
 
 
 # Functions
