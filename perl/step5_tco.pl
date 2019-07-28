@@ -76,12 +76,12 @@ sub EVAL {
 	    goto &EVAL;
         }
         when ('fn*') {
-            return bless sub {
+            return Mal::Function->new(sub {
                 #print "running fn*\n";
                 my $args = \@_;
 		@_ = ($a2, Mal::Env->new($env, $a1, $args));
                 goto &EVAL;
-            }, 'Mal::CoreFunction';
+            });
         }
         default {
             @_ = @{eval_ast($ast, $env)};

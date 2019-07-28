@@ -181,8 +181,8 @@ sub pl_STAR {
     'string?'     => sub { _string_Q($_[0]) ? $true : $false },
     'keyword'     => sub { _keyword(${$_[0]}) },
     'keyword?'    => sub { _keyword_Q($_[0]) ? $true : $false },
-    'fn?'         => sub { (_sub_Q($_[0]) || (_function_Q($_[0]) && !$_[0]->{ismacro})) ? $true : $false },
-    'macro?'      => sub { (_function_Q($_[0]) && $_[0]->{ismacro}) ? $true : $false },
+    'fn?'         => sub { $_[0]->isa('Mal::Function') ? $true : $false },
+    'macro?'      => sub { $_[0]->isa('Mal::Macro') ? $true : $false },
 
     'pr-str'      => \&pr_str,
     'str'         => \&str,
@@ -239,7 +239,7 @@ sub pl_STAR {
 );
 
 foreach my $f (values %core::ns) {
-    bless $f, 'Mal::CoreFunction';
+    $f = Mal::Function->new($f);
 }
 
 1;

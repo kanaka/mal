@@ -52,9 +52,7 @@ sub is_macro_call {
         _symbol_Q($ast->[0]) &&
         $env->find($ast->[0])) {
         my ($f) = $env->get($ast->[0]);
-        if ($f->isa('Mal::Function')) {
-            return $f->{ismacro};
-        }
+        return $f->isa('Mal::Macro');
     }
     return 0;
 }
@@ -124,7 +122,7 @@ sub EVAL {
         }
         when ('defmacro!') {
             my $func = EVAL($a2, $env)->clone;
-            $func->{ismacro} = 1;
+            $func = Mal::Macro->new($func);
             return $env->set($a1, $func);
         }
         when ('macroexpand') {
@@ -146,12 +144,12 @@ sub EVAL {
 	    goto &EVAL;
         }
         when ('fn*') {
-            return bless sub {
+            return Mal::Function->new(sub {
                 #print "running fn*\n";
                 my $args = \@_;
 		@_ = ($a2, Mal::Env->new($env, $a1, $args));
                 goto &EVAL;
-            }, 'Mal::CoreFunction';
+            });
         }
         default {
             @_ = @{eval_ast($ast, $env)};
@@ -179,7 +177,7 @@ foreach my $n (keys %core::ns) {
     $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
 }
 $repl_env->set(Mal::Symbol->new('eval'),
-	       bless sub { EVAL($_[0], $repl_env); }, 'Mal::CoreFunction');
+	       Mal::Function->new(sub { EVAL($_[0], $repl_env) }));
 my @_argv = map {Mal::String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Mal::Symbol->new('*ARGV*'), Mal::List->new(\@_argv));
 

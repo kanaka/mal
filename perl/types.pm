@@ -166,39 +166,22 @@ sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
 # Functions
 
 {
-    package Mal::Function;
+    package Mal::Callable;
     use parent -norequire, 'Mal::Type';
-    use overload '&{}' => sub { my $f = shift; sub { $f->apply(\@_) } },
-                 fallback => 1;
-    sub new  {
-        my $class = shift;
-        my ($eval, $ast, $env, $params) = @_;
-        bless {'eval'=>$eval,
-               'ast'=>$ast,
-               'env'=>$env,
-               'params'=>$params,
-               'ismacro'=>0}, $class
-    }
-    sub gen_env {
-        my $self = $_[0];
-        return Mal::Env->new($self->{env}, $self->{params}, $_[1]);
-    }
-    sub apply {
-        my $self = $_[0];
-        return &{ $self->{eval} }($self->{ast}, gen_env($self, $_[1]));
-    }
-    sub clone {	my $self = shift; bless { %$self }, ref($self) }
+    sub new  { my $class = shift; bless $_[0], $class }
+    sub clone { my $self = shift; bless sub { goto &$self }, ref($self) }
 }
 
-sub _sub_Q { $_[0]->isa('Mal::CoreFunction') ||  $_[0]->isa('Mal::FunctionRef') }
+{
+    package Mal::Function;
+    use parent -norequire, 'Mal::Callable';
+}
+
 sub _function_Q { $_[0]->isa('Mal::Function') }
 
-
-# Core Functions
-
 {
-    package Mal::CoreFunction;
-    sub clone { my $self = shift; bless sub { goto &$self }, ref($self) }
+    package Mal::Macro;
+    use parent -norequire, 'Mal::Callable';
 }
 
 

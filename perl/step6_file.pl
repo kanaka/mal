@@ -76,12 +76,12 @@ sub EVAL {
 	    goto &EVAL;
         }
         when ('fn*') {
-            return bless sub {
+            return Mal::Function->new(sub {
                 #print "running fn*\n";
                 my $args = \@_;
 		@_ = ($a2, Mal::Env->new($env, $a1, $args));
                 goto &EVAL;
-            }, 'Mal::CoreFunction';
+            });
         }
         default {
             @_ = @{eval_ast($ast, $env)};
@@ -109,7 +109,7 @@ foreach my $n (keys %core::ns) {
     $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
 }
 $repl_env->set(Mal::Symbol->new('eval'),
-	       bless sub { EVAL($_[0], $repl_env); }, 'Mal::CoreFunction');
+	       Mal::Function->new(sub { EVAL($_[0], $repl_env) }));
 my @_argv = map {Mal::String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Mal::Symbol->new('*ARGV*'), Mal::List->new(\@_argv));
 

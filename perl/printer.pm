@@ -37,13 +37,12 @@ sub _pr_str {
 	} else {
 	    return $$obj;
 	}
-    } elsif ($obj->isa('Mal::Function') || $obj->isa('Mal::FunctionRef')) {
-	return '<fn* ' . _pr_str($obj->{params}) .
-	    ' ' . _pr_str($obj->{ast}) . '>';
     } elsif ($obj->isa('Mal::Atom')) {
 	return '(atom ' . _pr_str($$obj) . ")";
-    } elsif ($obj->isa('Mal::CoreFunction')) {
-        return '<builtin_fn* ' . $obj . '>';
+    } elsif ($obj->isa('Mal::Function')) {
+        return '<fn* ' . $obj . '>';
+    } elsif ($obj->isa('Mal::Macro')) {
+        return '<macro* ' . $obj . '>';
     } else {
         return $$obj;
     }
