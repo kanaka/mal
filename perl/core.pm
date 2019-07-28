@@ -8,7 +8,6 @@ use Time::HiRes qw(time);
 
 use readline;
 use types qw(_sequential_Q _equal_Q _clone $nil $true $false
-             _nil_Q _true_Q _false_Q
              _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
              _hash_map _hash_map_Q _atom_Q);
 use reader qw(read_str);
@@ -124,7 +123,7 @@ sub conj {
 
 sub seq {
     my ($arg) = @_;
-    if (_nil_Q($arg)) {
+    if ($arg eq $nil) {
         return $nil;
     } elsif (_list_Q($arg)) {
         return $nil unless @$arg;
@@ -171,9 +170,9 @@ sub pl_STAR {
 %core::ns = (
     '='           => sub { _equal_Q($_[0], $_[1]) ? $true : $false },
     'throw'       => sub { die $_[0] },
-    'nil?'        => sub { _nil_Q($_[0]) ? $true : $false },
-    'true?'       => sub { _true_Q($_[0]) ? $true : $false },
-    'false?'      => sub { _false_Q($_[0]) ? $true : $false },
+    'nil?'        => sub { $_[0] eq $nil ? $true : $false },
+    'true?'       => sub { $_[0] eq $true ? $true : $false },
+    'false?'      => sub { $_[0] eq $false ? $true : $false },
     'number?'     => sub { _number_Q($_[0]) ? $true : $false },
     'symbol'      => sub { Mal::Symbol->new(${$_[0]}) },
     'symbol?'     => sub { _symbol_Q($_[0]) ? $true : $false },

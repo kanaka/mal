@@ -5,7 +5,7 @@ use warnings;
 use Data::Dumper;
 use Exporter 'import';
 our @EXPORT_OK = qw(_sequential_Q _equal_Q _clone
-                    $nil $true $false _nil_Q _true_Q _false_Q
+                    $nil $true $false
                     _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
                     _hash_map _hash_map_Q _atom_Q);
 use List::Util qw(pairs pairmap);
@@ -98,10 +98,6 @@ sub _clone {
 our $nil =   Mal::Nil->new('nil');
 our $true =  Mal::True->new('true');
 our $false = Mal::False->new('false');
-
-sub _nil_Q   { return $_[0] eq $nil }
-sub _true_Q  { return $_[0] eq $true }
-sub _false_Q { return $_[0] eq $false }
 
 
 {
