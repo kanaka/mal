@@ -4,17 +4,13 @@ use warnings;
 
 use Data::Dumper;
 use Exporter 'import';
-our @EXPORT_OK = qw(_sequential_Q _equal_Q
+our @EXPORT_OK = qw(_equal_Q
                     $nil $true $false
-                    _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
-                    _hash_map _hash_map_Q _atom_Q);
+                    _string_Q _keyword _keyword_Q
+                    _hash_map);
 use List::Util qw(pairs pairmap);
 
 # General functions
-
-sub _sequential_Q {
-    return _list_Q($_[0]) || _vector_Q($_[0])
-}
 
 sub _equal_Q {
     my ($a, $b) = @_;
@@ -95,14 +91,12 @@ our $false = Mal::False->new('false');
     package Mal::Integer;
     use parent -norequire, 'Mal::Scalar';
 }
-sub _number_Q { $_[0]->isa('Mal::Integer') }
 
 
 {
     package Mal::Symbol;
     use parent -norequire, 'Mal::Scalar';
 }
-sub _symbol_Q { $_[0]->isa('Mal::Symbol') }
 
 
 sub _string_Q { $_[0]->isa('Mal::String') && ${$_[0]} !~ /^\x{029e}/; }
@@ -136,8 +130,6 @@ sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
     use parent -norequire, 'Mal::Sequence';
 }
 
-sub _list_Q { $_[0]->isa('Mal::List') }
-
 
 # Vectors
 
@@ -145,8 +137,6 @@ sub _list_Q { $_[0]->isa('Mal::List') }
     package Mal::Vector;
     use parent -norequire, 'Mal::Sequence';
 }
-
-sub _vector_Q { $_[0]->isa('Mal::Vector') }
 
 
 # Hash Maps
@@ -159,8 +149,6 @@ sub _vector_Q { $_[0]->isa('Mal::Vector') }
 }
 
 sub _hash_map { Mal::HashMap->new( { pairmap { $$a => $b } @_ } ) }
-
-sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
 
 
 # Functions
@@ -177,8 +165,6 @@ sub _hash_map_Q { $_[0]->isa('Mal::HashMap') }
     use parent -norequire, 'Mal::Callable';
 }
 
-sub _function_Q { $_[0]->isa('Mal::Function') }
-
 {
     package Mal::Macro;
     use parent -norequire, 'Mal::Callable';
@@ -193,7 +179,5 @@ sub _function_Q { $_[0]->isa('Mal::Function') }
     sub new  { my ($class, $val) = @_; bless \$val, $class }
     sub clone { my $self = shift; ref($self)->new($$self) }
 }
-
-sub _atom_Q { $_[0]->isa('Mal::Atom') }
 
 1;

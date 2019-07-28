@@ -8,9 +8,9 @@ use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
 use readline;
-use types qw(_sequential_Q _equal_Q $nil $true $false
-             _number_Q _symbol _symbol_Q _string_Q _keyword _keyword_Q _list_Q _vector_Q _sub_Q _function_Q
-             _hash_map _hash_map_Q _atom_Q);
+use types qw(_equal_Q $nil $true $false
+             _string_Q _keyword _keyword_Q
+             _hash_map);
 use reader qw(read_str);
 use printer qw(_pr_str);
 use interop qw(pl_to_mal);
@@ -114,7 +114,7 @@ sub mal_map {
 sub conj {
     my $seq = shift;
     my $new_seq = $seq->clone;
-    if (_list_Q($new_seq)) {
+    if ($new_seq->isa('Mal::List')) {
         unshift @$new_seq, reverse @_;
     } else {
         push @$new_seq, @_;
@@ -126,10 +126,10 @@ sub seq {
     my ($arg) = @_;
     if ($arg eq $nil) {
         return $nil;
-    } elsif (_list_Q($arg)) {
+    } elsif ($arg->isa('Mal::List')) {
         return $nil unless @$arg;
         return $arg;
-    } elsif (_vector_Q($arg)) {
+    } elsif ($arg->isa('Mal::Vector')) {
         return $nil unless @$arg;
         return Mal::List->new([@$arg]);
     } elsif (_string_Q($arg)) {
@@ -175,9 +175,9 @@ sub pl_STAR {
     'nil?'        => sub { $_[0] eq $nil ? $true : $false },
     'true?'       => sub { $_[0] eq $true ? $true : $false },
     'false?'      => sub { $_[0] eq $false ? $true : $false },
-    'number?'     => sub { _number_Q($_[0]) ? $true : $false },
+    'number?'     => sub { $_[0]->isa('Mal::Integer') ? $true : $false },
     'symbol'      => sub { Mal::Symbol->new(${$_[0]}) },
-    'symbol?'     => sub { _symbol_Q($_[0]) ? $true : $false },
+    'symbol?'     => sub { $_[0]->isa('Mal::Symbol') ? $true : $false },
     'string?'     => sub { _string_Q($_[0]) ? $true : $false },
     'keyword'     => sub { _keyword(${$_[0]}) },
     'keyword?'    => sub { _keyword_Q($_[0]) ? $true : $false },
@@ -202,11 +202,11 @@ sub pl_STAR {
     'time-ms'     => sub { Mal::Integer->new(int(time()*1000)) },
 
     'list'        => sub { Mal::List->new(\@_) },
-    'list?'       => sub { _list_Q($_[0]) ? $true : $false },
+    'list?'       => sub { $_[0]->isa('Mal::List') ? $true : $false },
     'vector'      => sub { Mal::Vector->new(\@_) },
-    'vector?'     => sub { _vector_Q($_[0]) ? $true : $false },
+    'vector?'     => sub { $_[0]->isa('Mal::Vector') ? $true : $false },
     'hash-map'    => \&_hash_map,
-    'map?'        => sub { _hash_map_Q($_[0]) ? $true : $false },
+    'map?'        => sub { $_[0]->isa('Mal::HashMap') ? $true : $false },
     'assoc'       => \&assoc,
     'dissoc'      => \&dissoc,
     'get'         => \&get,
@@ -214,7 +214,7 @@ sub pl_STAR {
     'keys'        => \&mal_keys,
     'vals'        => \&mal_vals,
 
-    'sequential?' => sub { _sequential_Q($_[0]) ? $true : $false },
+    'sequential?' => sub { $_[0]->isa('Mal::Sequence') ? $true : $false },
     'nth'         => sub { nth($_[0], ${$_[1]}) },
     'first'       => \&first,
     'rest'        => sub { $_[0]->rest() },
@@ -230,7 +230,7 @@ sub pl_STAR {
     'with-meta'   => \&with_meta,
     'meta'        => sub { $meta{$_[0]} // $nil },
     'atom'        => sub { Mal::Atom->new($_[0]) },
-    'atom?'       => sub { _atom_Q($_[0]) ? $true : $false },
+    'atom?'       => sub { $_[0]->isa('Mal::Atom') ? $true : $false },
     'deref'       => sub { ${$_[0]} },
     'reset!'      => sub { ${$_[0]} = $_[1] },
     'swap!'       => \&swap_BANG,

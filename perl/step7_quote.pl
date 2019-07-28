@@ -10,7 +10,7 @@ use List::Util qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types qw($nil $true $false _symbol_Q _list_Q);
+use types qw($nil $true $false);
 use reader;
 use printer;
 use env;
@@ -32,9 +32,9 @@ sub quasiquote {
     my ($ast) = @_;
     if (!is_pair($ast)) {
         return Mal::List->new([Mal::Symbol->new("quote"), $ast]);
-    } elsif (_symbol_Q($ast->[0]) && ${$ast->[0]} eq 'unquote') {
+    } elsif ($ast->[0]->isa('Mal::Symbol') && ${$ast->[0]} eq 'unquote') {
         return $ast->[1];
-    } elsif (is_pair($ast->[0]) && _symbol_Q($ast->[0]->[0]) &&
+    } elsif (is_pair($ast->[0]) && $ast->[0]->[0]->isa('Mal::Symbol') &&
              ${$ast->[0]->[0]} eq 'splice-unquote') {
         return Mal::List->new([Mal::Symbol->new("concat"),
                           $ast->[0]->[1],
@@ -63,7 +63,7 @@ sub EVAL {
     my($ast, $env) = @_;
 
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! _list_Q($ast)) {
+    if (! $ast->isa('Mal::List')) {
         goto &eval_ast;
     }
 
