@@ -18,28 +18,26 @@ sub _sequential_Q {
 
 sub _equal_Q {
     my ($a, $b) = @_;
-    my ($ota, $otb) = (ref $a, ref $b);
-    if (!(($ota eq $otb) || (_sequential_Q($a) && _sequential_Q($b)))) {
+    unless ((ref $a eq ref $b) ||
+	    ($a->isa('Mal::Sequence') && $b->isa('Mal::Sequence'))) {
         return 0;
     }
-    if ($a->isa('Mal::Symbol')) {
-	return $$a eq $$b;
-    } elsif ($a->isa('Mal::Sequence')) {
-	if (! (scalar(@$a) == scalar(@$b))) {
+    if ($a->isa('Mal::Sequence')) {
+	unless (scalar(@$a) == scalar(@$b)) {
 	    return 0;
 	}
 	for (my $i=0; $i<scalar(@$a); $i++) {
-	    if (! _equal_Q($a->[$i], $b->[$i])) {
+	    unless (_equal_Q($a->[$i], $b->[$i])) {
 		return 0;
 	    }
 	}
 	return 1;
     } elsif ($a->isa('Mal::HashMap')) {
-	if (! (scalar(keys %$a) == scalar(keys %$b))) {
+	unless (scalar(keys %$a) == scalar(keys %$b)) {
 	    return 0;
 	}
 	foreach my $k (keys %$a) {
-	    if (!_equal_Q($a->{$k}, $b->{$k})) {
+	    unless (_equal_Q($a->{$k}, $b->{$k})) {
 		return 0;
 	    }
 	}
