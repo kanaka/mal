@@ -22,15 +22,17 @@ echo "IMPL: ${IMPL}"
 echo "BUILD_IMPL: ${BUILD_IMPL}"
 echo "MAL_IMPL: ${MAL_IMPL}"
 
-if [ "${DO_SELF_HOST}" ]; then
-    if [ "${NO_SELF_HOST}" ]; then
-        echo "Skipping ${ACTION} of ${MAL_IMPL} self-host"
-        exit 0
-    fi
-    if [ "${ACTION}" = "perf" -a "${NO_SELF_HOST_PERF}" ]; then
-        echo "Skipping only perf test for ${MAL_IMPL} self-host"
-        exit 0
-    fi
+if [ "${NO_PERF}" -a "${ACTION}" = "perf" ]; then
+    echo "Skipping perf test"
+    exit 0
+fi
+if [ "${NO_SELF_HOST}" -a "${DO_SELF_HOST}" ]; then
+    echo "Skipping ${ACTION} of ${MAL_IMPL} self-host"
+    exit 0
+fi
+if [ "${NO_SELF_HOST_PERF}" -a "${DO_SELF_HOST}" -a "${ACTION}" = "perf" ]; then
+    echo "Skipping only perf test for ${MAL_IMPL} self-host"
+    exit 0
 fi
 
 mode_var=${MAL_IMPL:-${IMPL}}_MODE
