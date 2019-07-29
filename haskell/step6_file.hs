@@ -149,7 +149,7 @@ main = do
 
     -- core.mal: defined using the language itself
     re repl_env "(def! not (fn* (a) (if a false true)))"
-    re repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+    re repl_env "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
 
     case args of
         script : scriptArgs -> do

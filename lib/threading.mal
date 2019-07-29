@@ -32,5 +32,3 @@
     (if (list? form)
       `(~(first form) ~@(rest form) ~acc)
       (list form acc))))
-
-nil

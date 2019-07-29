@@ -72,7 +72,7 @@ section .data
 ;; Startup string. This is evaluated on startup
         static mal_startup_string, db "(do \
 (def! not (fn* (a) (if a false true))) \
-(def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,")",34," ))))) \
+(def! load-file (fn* (f) (eval (read-string (str ",34,"(do",34,"  (slurp f) ",34,10,"nil)",34," ))))) \
 (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw ",34,"odd number of forms to cond",34,")) (cons 'cond (rest (rest xs))))))) \
 )"
 

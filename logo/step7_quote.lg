@@ -166,7 +166,7 @@ ignore env_set :repl_env [symbol *ARGV*] argv_list
 
 ; core.mal: defined using the language itself
 ignore re "|(def! not (fn* (a) (if a false true)))|
-ignore re "|(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))|
+ignore re "|(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))|
 
 if not emptyp :command.line [
   catch "error [ignore re (word "\(load-file :space_char "\" first :command.line "\"\) )]

@@ -211,7 +211,7 @@ core_ns { _function _ref } forall
 
 % core.mal: defined using the language itself
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
-(\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
+(\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\nnil\)"\)\)\)\)\)) RE pop
 (\(defmacro! cond \(fn* \(& xs\) \(if \(> \(count xs\) 0\) \(list 'if \(first xs\) \(if \(> \(count xs\) 1\) \(nth xs 1\) \(throw "odd number of forms to cond"\)\) \(cons 'cond \(rest \(rest xs\)\)\)\)\)\)\)) RE pop
 
 userdict /ARGUMENTS known { %if command line arguments

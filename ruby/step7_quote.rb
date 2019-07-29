@@ -118,7 +118,7 @@ repl_env.set(:"*ARGV*", List.new(ARGV.slice(1,ARGV.length) || []))
 
 # core.mal: defined using the language itself
 RE["(def! not (fn* (a) (if a false true)))"]
-RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"]
+RE["(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"]
 
 if ARGV.size > 0
     RE["(load-file \"" + ARGV[0] + "\")"]

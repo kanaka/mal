@@ -190,7 +190,7 @@ public class step7_quote {
 
         // core.mal: defined using the language itself
         RE(repl_env, "(def! not (fn* (a) (if a false true)))");
-        RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+        RE(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
         
         Integer fileIdx = 0;
         if (args.length > 0 && args[0].equals("--raw")) {

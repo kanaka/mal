@@ -238,7 +238,7 @@ class Mal.Main : GLib.Object {
         env.set(new Mal.Sym("eval"), new Mal.BuiltinFunctionEval(env));
 
         setup("(def! not (fn* (a) (if a false true)))", env);
-        setup("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", env);
+        setup("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", env);
 
         var ARGV = new GLib.List<Mal.Val>();
         if (args.length > 1) {

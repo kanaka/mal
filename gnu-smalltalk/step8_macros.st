@@ -269,7 +269,7 @@ replEnv set: #eval value: (Fn new: [ :args | MAL EVAL: args first env: replEnv ]
 replEnv set: #'*ARGV*' value: (MALList new: argv).
 
 MAL rep: '(def! not (fn* (a) (if a false true)))' env: replEnv.
-MAL rep: '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))' env: replEnv.
+MAL rep: '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))' env: replEnv.
 MAL rep: '(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list ''if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons ''cond (rest (rest xs)))))))' env: replEnv.
 
 Smalltalk arguments notEmpty ifTrue: [

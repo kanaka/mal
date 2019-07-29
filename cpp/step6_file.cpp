@@ -177,7 +177,7 @@ malValuePtr APPLY(malValuePtr op, malValueIter argsBegin, malValueIter argsEnd)
 static const char* malFunctionTable[] = {
     "(def! not (fn* (cond) (if cond false true)))",
     "(def! load-file (fn* (filename) \
-        (eval (read-string (str \"(do \" (slurp filename) \")\")))))",
+        (eval (read-string (str \"(do \" (slurp filename) \"\nnil)\")))))",
 };
 
 static void installFunctions(malEnvPtr env) {

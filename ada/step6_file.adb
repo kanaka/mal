@@ -358,7 +358,7 @@ begin
    Envs.Set (Repl_Env, "eval", New_Func_Mal_Type ("eval", Do_Eval'Unrestricted_Access));
 
    RE ("(def! not (fn* (a) (if a false true)))");
-   RE ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))");
+   RE ("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))");
 
    -- Command line processing.
 

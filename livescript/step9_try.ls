@@ -339,7 +339,7 @@ rep '
   (fn* (f)
     (eval
       (read-string
-        (str "(do " (slurp f) ")")))))'
+        (str "(do " (slurp f) "\nnil)")))))'
 
 # Define cond.
 rep '

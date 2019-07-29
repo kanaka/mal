@@ -14,5 +14,3 @@
           (do
             (swap! seen assoc filename nil)
             (load-file filename))))))))
-
-nil

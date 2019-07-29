@@ -75,5 +75,3 @@
   (do
     (def! = mal-equal?)
     (println "equality.mal: Replaced = with pure mal implementation")))
-
-nil

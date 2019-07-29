@@ -210,7 +210,7 @@ void init_repl_env(int argc, char *argv[]) {
     // core.mal: defined using the language itself
     RE(repl_env, "", "(def! not (fn* (a) (if a false true)))");
     RE(repl_env, "",
-       "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+       "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
 }
 
 int main(int argc, char *argv[])

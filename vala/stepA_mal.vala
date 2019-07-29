@@ -374,7 +374,7 @@ class Mal.Main : GLib.Object {
         env.set(new Mal.Sym("*host-language*"), new Mal.String("vala"));
 
         setup("(def! not (fn* (a) (if a false true)))", env);
-        setup("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", env);
+        setup("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", env);
         setup("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", env);
 
         var ARGV = new GLib.List<Mal.Val>();

@@ -89,7 +89,7 @@ fun main(args: Array<String>) {
     repl_env.set(MalSymbol("eval"), MalFunction({ a: ISeq -> eval(a.first(), repl_env) }))
 
     rep("(def! not (fn* (a) (if a false true)))", repl_env)
-    rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env)
+    rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", repl_env)
 
     if (args.any()) {
         rep("(load-file \"${args[0]}\")", repl_env)

@@ -270,7 +270,7 @@ ENV_SET "${REPL_ENV}" "${r}" "${argv}";
 # core.mal: defined using the language itself
 REP "(def! *host-language* \"bash\")"
 REP "(def! not (fn* (a) (if a false true)))"
-REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
+REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"
 REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
 
 # load/run file from command line (then exit)

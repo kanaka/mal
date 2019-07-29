@@ -208,9 +208,8 @@ $repl_env->set(Mal::Symbol->new('*ARGV*'), Mal::List->new(\@_argv));
 
 # core.mal: defined using the language itself
 REP(q[(def! not (fn* (a) (if a false true)))]);
-REP(q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))]);
+REP(q[(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))]);
 REP(q[(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))]);
-
 
 if (@ARGV && $ARGV[0] eq "--raw") {
     set_rl_mode("raw");

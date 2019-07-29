@@ -96,7 +96,7 @@ env_set(repl_env, symbol("*ARGV*"), ARGS[2:end])
 
 # core.mal: defined using the language itself
 REP("(def! not (fn* (a) (if a false true)))")
-REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+REP("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 if length(ARGS) > 0
     REP("(load-file \"$(ARGS[1])\")")

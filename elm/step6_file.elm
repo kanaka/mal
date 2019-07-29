@@ -71,7 +71,7 @@ malInit =
     , """(def! load-file
             (fn* (f)
                 (eval (read-string
-                    (str "(do " (slurp f) ")")))))"""
+                    (str "(do " (slurp f) "\nnil)")))))"""
     ]
 
 

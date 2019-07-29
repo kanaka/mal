@@ -562,7 +562,7 @@ MAIN:
   A$="(def! not (fn* (a) (if a false true)))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
-  A$="(def! load-file (fn* (f) (eval (read-file f))))"
+  A$="(def! load-file (fn* (f) (do (eval (read-file f)) nil)))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
   A$="(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs)"

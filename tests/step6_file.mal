@@ -32,6 +32,7 @@
 ;; Testing load-file
 
 (load-file "../tests/inc.mal")
+;=>nil
 (inc1 7)
 ;=>8
 (inc2 7)
@@ -129,8 +130,7 @@
 
 ;; Testing comments in a file
 (load-file "../tests/incB.mal")
-;/"incB.mal finished"
-;=>"incB.mal return string"
+;=>nil
 (inc4 7)
 ;=>11
 (inc5 7)
@@ -138,6 +138,7 @@
 
 ;; Testing map literal across multiple lines in a file
 (load-file "../tests/incC.mal")
+;=>nil
 mymap
 ;=>{"a" 1}
 

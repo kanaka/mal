@@ -150,7 +150,7 @@
   (PRINT (EVAL (READ input) repl-env)))
 
 (rep "(def! not (fn* (a) (if a false true)))")
-(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 (defun readln (prompt)
   ;; C-d throws an error

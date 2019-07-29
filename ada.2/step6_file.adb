@@ -266,7 +266,7 @@ procedure Step6_File is
    Startup : constant String
      := "(def! not (fn* (a) (if a false true)))"
      & "(def! load-file (fn* (f)"
-     & "  (eval (read-string (str ""(do "" (slurp f) "")"")))))";
+     & "  (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))";
    Repl : constant Envs.Ptr := Envs.New_Env;
    function Eval_Builtin (Args : in Types.T_Array) return Types.T is
    begin

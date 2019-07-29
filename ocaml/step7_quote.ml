@@ -91,7 +91,7 @@ let rec main =
                          else []));
     Env.set repl_env (Types.symbol "eval")
             (Types.fn (function [ast] -> eval ast repl_env | _ -> T.Nil));
-    ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" repl_env);
+    ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))" repl_env);
     ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
 
     if Array.length Sys.argv > 1 then

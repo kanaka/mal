@@ -154,7 +154,7 @@ namespace Mal {
 
             // core.mal: defined using the language itself
             RE("(def! not (fn* (a) (if a false true)))");
-            RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+            RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))");
 
             if (args.Length > fileIdx) {
                 RE("(load-file \"" + args[fileIdx] + "\")");

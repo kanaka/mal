@@ -133,7 +133,7 @@
 (env-set repl-env '*ARGV* (mal-list (map mal-string (cdr-safe args))))
 
 (rep "(def! not (fn* (a) (if a false true)))")
-(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
+(rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))")
 
 (define (main)
   (let loop ()

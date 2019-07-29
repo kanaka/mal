@@ -169,7 +169,7 @@ core_ns { _function _ref } forall
 
 % core.mal: defined using the language itself
 (\(def! not \(fn* \(a\) \(if a false true\)\)\)) RE pop
-(\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\)"\)\)\)\)\)) RE pop
+(\(def! load-file \(fn* \(f\) \(eval \(read-string \(str "\(do " \(slurp f\) "\nnil\)"\)\)\)\)\)) RE pop
 
 userdict /ARGUMENTS known { %if command line arguments
     ARGUMENTS length 0 gt { %if more than 0 arguments

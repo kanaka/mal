@@ -259,7 +259,7 @@ main:
 
   /* core.mal: defined using the language itself */
   x = re("(def! not (fn* (a) (if a false true)))")
-  x = re('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
+  x = re('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))')
   x = re("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw " || '"' || "odd number of forms to cond" || '"' || ")) (cons 'cond (rest (rest xs)))))))");
 
   err = ""

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Step8Macros do
     read_eval_print("""
       (def! load-file
         (fn* (f)
-          (eval (read-string (str "(do " (slurp f) ")")))))
+          (eval (read-string (str "(do " (slurp f) "\nnil)")))))
       """, env)
 
     # cond

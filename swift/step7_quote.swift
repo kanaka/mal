@@ -528,7 +528,7 @@ func main() {
     load_builtins(env)
 
     RE("(def! not (fn* (a) (if a false true)))", env)
-    RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", env)
+    RE("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))", env)
 
     env.set(kSymbolEval, make_builtin({
          try! unwrap_args($0) {

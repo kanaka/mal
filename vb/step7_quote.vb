@@ -214,7 +214,7 @@ Namespace Mal
 
             ' core.mal: defined using the language itself
             REP("(def! not (fn* (a) (if a false true)))")
-            REP("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) "")"")))))")
+            REP("(def! load-file (fn* (f) (eval (read-string (str ""(do "" (slurp f) ""\nnil)"")))))")
 
             If args.Length > fileIdx Then
                 REP("(load-file """ & args(fileIdx) & """)")

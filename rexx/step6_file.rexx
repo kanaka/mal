@@ -194,7 +194,7 @@ main:
 
   /* core.mal: defined using the language itself */
   x = re("(def! not (fn* (a) (if a false true)))")
-  x = re('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
+  x = re('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))')
 
   err = ""
   if command_line_args.0 > 0 then do

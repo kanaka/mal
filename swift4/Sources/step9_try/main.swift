@@ -176,7 +176,7 @@ repl_env.set(Function(fn: { try EVAL($0[0], env: repl_env) }), forKey: Symbol("e
 repl_env.set([], forKey: Symbol("*ARGV*"))
 
 try rep("(def! not (fn* (a) (if a false true)))", env: repl_env)
-try rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", env: repl_env)
+try rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", env: repl_env)
 try rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", env: repl_env)
 
 if CommandLine.argc > 1 {

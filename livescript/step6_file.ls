@@ -218,7 +218,7 @@ rep '
   (fn* (f)
     (eval
       (read-string
-        (str "(do " (slurp f) ")")))))'
+        (str "(do " (slurp f) "\nnil)")))))'
 
 # Parse program arguments.
 # The first two (exe and core-file) are, respectively,

@@ -106,7 +106,7 @@ command-line get dup empty? [ rest ] unless "*ARGV*" pick set-at
 
 "
 (def! not (fn* (a) (if a false true)))
-(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))
+(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))
 " string-lines harvest [ REP drop ] each
 
 MAIN: main
