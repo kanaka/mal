@@ -7,7 +7,7 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
-use types qw($nil $true $false _keyword);
+use types qw($nil $true $false);
 
 use Data::Dumper;
 
@@ -41,7 +41,7 @@ sub read_atom {
         when(/^"/) {
             die "expected '\"', got EOF";
         }
-        when(/^:/) { return _keyword(substr($token,1)) }
+        when(/^:/) { return Mal::Keyword->new(substr($token,1)) }
         when('nil') { return $nil }
         when('true') { return $true }
         when('false') { return $false }

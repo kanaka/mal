@@ -6,7 +6,7 @@ use Data::Dumper;
 use Exporter 'import';
 our @EXPORT_OK = qw(_equal_Q
                     $nil $true $false
-                    _string_Q _keyword);
+                    _string_Q);
 
 # General functions
 
@@ -99,10 +99,6 @@ our $false = Mal::False->new('false');
 
 sub _string_Q { $_[0]->isa('Mal::String') && ${$_[0]} !~ /^\x{029e}/; }
 
-
-sub _keyword { return Mal::String->new(("\x{029e}".$_[0])); }
-
-
 {
     package Mal::String;
     use parent -norequire, 'Mal::Scalar';
@@ -112,6 +108,8 @@ sub _keyword { return Mal::String->new(("\x{029e}".$_[0])); }
 	return 1 if ($_[0] eq 'Mal::Keyword' && $$self =~ /^\x{029e}/);
 	return $self->SUPER::isa(@_);
     }
+    # Pseudo-constructor for making keywords.
+    sub Mal::Keyword::new { shift; Mal::String->new("\x{029e}" . $_[0]) }
 }
 
 
