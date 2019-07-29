@@ -8,23 +8,18 @@ our @EXPORT_OK = qw( _pr_str );
 use types qw($nil $true $false);
 
 use Data::Dumper;
+use List::Util qw(pairmap);
 
 sub _pr_str {
     my($obj, $print_readably) = @_;
     my($_r) = (defined $print_readably) ? $print_readably : 1;
     if ($obj->isa('Mal::List')) {
-	return '(' . join(' ', map {_pr_str($_, $_r)} @{$obj}) . ')';
+	return '(' . join(' ', map { _pr_str($_, $_r) } @$obj) . ')';
     } elsif ($obj->isa('Mal::Vector')) {
-	return '[' . join(' ', map {_pr_str($_, $_r)} @{$obj}) . ']';
+	return '[' . join(' ', map { _pr_str($_, $_r) } @$obj) . ']';
     } elsif ($obj->isa('Mal::HashMap')) {
-	my @elems = ();
-
-	foreach my $key (keys %$obj) {
-	    push(@elems, _pr_str(Mal::String->new($key), $_r));
-	    push(@elems, _pr_str($obj->{$key}, $_r));
-	}
-
-	return '{' . join(' ', @elems) . '}';
+	return '{' . join(' ', pairmap { _pr_str(Mal::String->new($a), $_r) =>
+				         _pr_str($b, $_r) } %$obj) . '}';
     } elsif ($obj->isa('Mal::String')) {
 	if ($$obj =~ /^\x{029e}/) {
 	    return ":$'";
