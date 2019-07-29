@@ -372,9 +372,6 @@
 (= [] {})
 ;=>false
 
-(map? cond)
-;=>false
-
 (keyword :abc)
 ;=>:abc
 (keyword? (first (keys {":abc" 123 ":def" 456})))

@@ -291,7 +291,7 @@ STEP_TEST_FILES = $(strip $(wildcard \
 lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
 impl_to_image = kanaka/mal-test-$(call lc,$(1))
 
-actual_impl = $(if $(filter mal,$(1)),$(MAL_IMPL),$(1))
+actual_impl = $(if $(filter mal,$(1)),$(patsubst %-mal,%,$(MAL_IMPL)),$(1))
 
 # Takes impl
 # Returns nothing if DOCKERIZE is not set, otherwise returns the
@@ -400,7 +400,7 @@ $(foreach i,$(DO_IMPLS),$(foreach s,$(STEPS),build^$(i)^$(s))): $$(call $$(word 
 $(ALL_TESTS): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
-	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)) && \
+	    cd $(call actual_impl,$(impl)) && \
 	    $(foreach test,$(call STEP_TEST_FILES,$(impl),$(step)),\
 	      echo '----------------------------------------------' && \
 	      echo 'Testing $@; step file: $+, test file: $(test)' && \
@@ -455,7 +455,7 @@ perf: $(IMPL_PERF)
 $(IMPL_PERF):
 	@echo "----------------------------------------------"; \
 	$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
-	  cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)); \
+	  cd $(call actual_impl,$(impl)); \
 	  echo "Performance test for $(impl):"; \
 	  echo 'Running: $(call get_run_prefix,$(impl),stepA) ../$(impl)/run ../tests/perf1.mal'; \
 	  $(call get_run_prefix,$(impl),stepA) ../$(impl)/run ../tests/perf1.mal; \
@@ -472,7 +472,7 @@ $(IMPL_PERF):
 $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(subst ^, ,$$(@))))
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  $(foreach step,$(word 3,$(subst ^, ,$(@))),\
-	    cd $(if $(filter mal,$(impl)),$(MAL_IMPL),$(impl)); \
+	    cd $(call actual_impl,$(impl)); \
 	    echo 'REPL implementation $(impl), step file: $+'; \
 	    echo 'Running: $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run $(RUN_ARGS)'; \
 	    $(call get_run_prefix,$(impl),$(step)) ../$(impl)/run $(RUN_ARGS);))

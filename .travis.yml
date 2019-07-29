@@ -53,7 +53,10 @@ matrix:
     - {env: IMPL=logo NO_SELF_HOST=1,         services: [docker]} # step4 timeout
     - {env: IMPL=lua,                         services: [docker]}
     - {env: IMPL=make NO_SELF_HOST=1,         services: [docker]} # step4 timeout
-    - {env: IMPL=mal BUILD_IMPL=js NO_SELF_HOST=1, services: [docker]}
+    - {env: IMPL=mal MAL_IMPL=js      BUILD_IMPL=js  NO_SELF_HOST=1, services: [docker]}
+    - {env: IMPL=mal MAL_IMPL=js-mal  BUILD_IMPL=js  NO_SELF_HOST=1, services: [docker]}
+    - {env: IMPL=mal MAL_IMPL=nim     BUILD_IMPL=nim NO_SELF_HOST=1, services: [docker]}
+    - {env: IMPL=mal MAL_IMPL=nim-mal BUILD_IMPL=nim NO_SELF_HOST=1, services: [docker]}
     - {env: IMPL=matlab NO_SELF_HOST_PERF=1,  services: [docker]} # Octave, perf timeout
     - {env: IMPL=miniMAL NO_SELF_HOST_PERF=1, services: [docker]} # perf timeout
     - {env: IMPL=nasm NO_SELF_HOST_PERF=1,    services: [docker]} # perf OOM

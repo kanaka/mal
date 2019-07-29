@@ -48,10 +48,10 @@
 
     (vector? ast) (apply vector (map (fn* [exp] (EVAL exp env)) ast))
 
-    (_map? ast)   (apply hash-map
-                      (apply concat
-                        (map (fn* [k] [k (EVAL (get ast k) env)])
-                             (keys ast))))
+    (map? ast)    (apply hash-map
+                    (apply concat
+                      (map (fn* [k] [k (EVAL (get ast k) env)])
+                           (keys ast))))
 
     "else"        ast)))
 
@@ -87,7 +87,8 @@
           (EVAL (QUASIQUOTE (nth ast 1)) env)
 
           (= 'defmacro! a0)
-          (env-set env (nth ast 1) {:__MAL_MACRO__ (EVAL (nth ast 2) env)})
+          (env-set env (nth ast 1) (hash-map :__MAL_MACRO__
+                                             (EVAL (nth ast 2) env)))
 
           (= 'macroexpand a0)
           (MACROEXPAND (nth ast 1) env)
