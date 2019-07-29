@@ -152,8 +152,7 @@ sub with_meta {
 # Atom functions
 sub swap_BANG {
     my ($atm,$f,@args) = @_;
-    unshift @args, $$atm;
-    return $$atm = &$f(@args);
+    return $$atm = &$f($$atm, @args);
 }
 
 
