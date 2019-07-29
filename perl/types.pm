@@ -116,8 +116,8 @@ our $false = Mal::False->new('false');
     package Mal::Sequence;
     use parent -norequire, 'Mal::Type';
     sub new  { my $class = shift; bless $_[0], $class }
-    sub rest { my @arr = @{$_[0]}; Mal::List->new([@arr[1..$#arr]]); }
-    sub slice { my @arr = @{$_[0]}; Mal::List->new([@arr[$_[1]..$_[2]]]); }
+    sub rest { my $arr = $_[0]; Mal::List->new([@$arr[1..$#$arr]]); }
+    sub slice { my $arr = $_[0]; Mal::List->new([@$arr[$_[1]..$_[2]]]); }
     sub clone { my $self = shift; ref($self)->new([@$self]) }
 }
 
