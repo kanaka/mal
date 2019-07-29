@@ -33,8 +33,7 @@ sub read_atom {
     given ($token) {
         when(/^-?[0-9]+$/) { return Mal::Integer->new($token) }
         when(/^"((?:\\.|[^\\"])*)"$/) {
-            my %escaped_chars = ( "\\\\" => "\\", "\\\"" => "\"", "\\n" => "\n" );
-            return Mal::String->new($1 =~ s/\\./$escaped_chars{$&}/ger);
+            return Mal::String->new($1 =~ s/\\(.)/$1 =~ tr|n|\n|r/ger);
         }
         when(/^"/) {
             die "expected '\"', got EOF";
