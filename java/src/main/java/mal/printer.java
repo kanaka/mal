@@ -48,6 +48,6 @@ public class printer {
     }
 
     public static String escapeString(String value) {
-        return StringEscapeUtils.escapeJson(value);
+        return StringEscapeUtils.escapeJava(value);
     }
 }

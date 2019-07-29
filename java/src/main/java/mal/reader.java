@@ -65,7 +65,7 @@ public class reader {
         } else if (matcher.group(5) != null) {
             return types.False;
         } else if (matcher.group(6) != null) {
-            return new MalString(StringEscapeUtils.unescapeJson(matcher.group(6)));
+            return new MalString(StringEscapeUtils.unescapeJava(matcher.group(6)));
         } else if (matcher.group(7) != null) {
             throw new ParseError("expected '\"', got EOF");
         } else if (matcher.group(8) != null) {
