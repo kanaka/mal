@@ -5,8 +5,7 @@ use warnings;
 use Data::Dumper;
 use Exporter 'import';
 our @EXPORT_OK = qw(_equal_Q
-                    $nil $true $false
-                    _string_Q);
+                    $nil $true $false);
 
 # General functions
 
@@ -96,8 +95,6 @@ our $false = Mal::False->new('false');
     use parent -norequire, 'Mal::Scalar';
 }
 
-
-sub _string_Q { $_[0]->isa('Mal::String') && ${$_[0]} !~ /^\x{029e}/; }
 
 {
     package Mal::String;

@@ -8,8 +8,7 @@ use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
 use readline;
-use types qw(_equal_Q $nil $true $false
-             _string_Q);
+use types qw(_equal_Q $nil $true $false);
 use reader qw(read_str);
 use printer qw(_pr_str);
 use interop qw(pl_to_mal);
@@ -131,7 +130,7 @@ sub seq {
     } elsif ($arg->isa('Mal::Vector')) {
         return $nil unless @$arg;
         return Mal::List->new([@$arg]);
-    } elsif (_string_Q($arg)) {
+    } elsif ($arg->isa('Mal::String') && !$arg->isa('Mal::Keyword')) {
         return $nil if length($$arg) == 0;
         my @chars = map { Mal::String->new($_) } split(//, $$arg);
         return Mal::List->new(\@chars);
@@ -177,7 +176,7 @@ sub pl_STAR {
     'number?'     => sub { $_[0]->isa('Mal::Integer') ? $true : $false },
     'symbol'      => sub { Mal::Symbol->new(${$_[0]}) },
     'symbol?'     => sub { $_[0]->isa('Mal::Symbol') ? $true : $false },
-    'string?'     => sub { _string_Q($_[0]) ? $true : $false },
+    'string?'     => sub { $_[0]->isa('Mal::String') && !$_[0]->isa('Mal::Keyword') ? $true : $false },
     'keyword'     => sub { Mal::Keyword->new(${$_[0]}) },
     'keyword?'    => sub { $_[0]->isa('Mal::Keyword') ? $true : $false },
     'fn?'         => sub { $_[0]->isa('Mal::Function') ? $true : $false },
