@@ -33,16 +33,16 @@ sub _pr_str {
 	    $str =~ s/\\/\\\\/g;
 	    $str =~ s/"/\\"/g;
 	    $str =~ s/\n/\\n/g;
-	    return '"' . $str . '"';
+	    return qq'"$str"';
 	} else {
 	    return $$obj;
 	}
     } elsif ($obj->isa('Mal::Atom')) {
 	return '(atom ' . _pr_str($$obj) . ")";
     } elsif ($obj->isa('Mal::Function')) {
-        return '<fn* ' . $obj . '>';
+        return "<fn* $obj>";
     } elsif ($obj->isa('Mal::Macro')) {
-        return '<macro* ' . $obj . '>';
+        return "<macro* $obj>";
     } else {
         return $$obj;
     }
