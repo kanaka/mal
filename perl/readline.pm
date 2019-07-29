@@ -5,9 +5,9 @@
 package readline;
 use strict;
 use warnings;
+
 use Exporter 'import';
 our @EXPORT_OK = qw( mal_readline set_rl_mode );
-
 use Term::ReadLine;
 
 my $_rl = Term::ReadLine->new('Mal');

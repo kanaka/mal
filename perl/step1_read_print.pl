@@ -1,9 +1,11 @@
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 use File::Basename;
 use lib dirname (__FILE__);
-use readline qw(mal_readline set_rl_mode);
 
+use Scalar::Util qw(blessed);
+
+use readline qw(mal_readline set_rl_mode);
 use reader;
 use printer;
 
@@ -41,12 +43,11 @@ while (1) {
         local $@;
         my $ret;
         eval {
-            use autodie; # always "throw" errors
             print(REP($line), "\n");
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if (defined(blessed $err) && $err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

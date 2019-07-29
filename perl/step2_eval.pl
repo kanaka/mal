@@ -1,10 +1,13 @@
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 use File::Basename;
 use lib dirname (__FILE__);
-use readline qw(mal_readline set_rl_mode);
-use Data::Dumper;
 
+use Data::Dumper;
+use List::Util qw(pairmap);
+use Scalar::Util qw(blessed);
+
+use readline qw(mal_readline set_rl_mode);
 use types qw(_list_Q);
 use reader;
 use printer;
@@ -18,24 +21,12 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    if ($ast->isa('Symbol')) {
-	if (exists $env->{$$ast}) {
-	    return $env->{$$ast};
-	} else {
-	    die "'" . $$ast . "' not found";
-	}
-    } elsif ($ast->isa('List')) {
-	my @lst = map {EVAL($_, $env)} @$ast;
-	return List->new(\@lst);
-    } elsif ($ast->isa('Vector')) {
-	my @lst = map {EVAL($_, $env)} @$ast;
-	return Vector->new(\@lst);
-    } elsif ($ast->isa('HashMap')) {
-	my $new_hm = {};
-	foreach my $k (keys %$ast) {
-	    $new_hm->{$k} = EVAL($ast->get($k), $env);
-	}
-	return HashMap->new($new_hm);
+    if ($ast->isa('Mal::Symbol')) {
+	return $env->{$$ast} // die "'$$ast' not found\n";
+    } elsif ($ast->isa('Mal::Sequence')) {
+	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
@@ -63,10 +54,10 @@ sub PRINT {
 
 # repl
 my $repl_env = {
-    '+' => sub { Integer->new(${$_[0]} + ${$_[1]}) },
-    '-' => sub { Integer->new(${$_[0]} - ${$_[1]}) },
-    '*' => sub { Integer->new(${$_[0]} * ${$_[1]}) },
-    '/' => sub { Integer->new(${$_[0]} / ${$_[1]}) },
+    '+' => sub { Mal::Integer->new(${$_[0]} + ${$_[1]}) },
+    '-' => sub { Mal::Integer->new(${$_[0]} - ${$_[1]}) },
+    '*' => sub { Mal::Integer->new(${$_[0]} * ${$_[1]}) },
+    '/' => sub { Mal::Integer->new(${$_[0]} / ${$_[1]}) },
 };
 
 sub REP {
@@ -84,12 +75,11 @@ while (1) {
         local $@;
         my $ret;
         eval {
-            use autodie; # always "throw" errors
             print(REP($line), "\n");
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if (defined(blessed $err) && $err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

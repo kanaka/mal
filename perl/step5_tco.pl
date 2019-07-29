@@ -1,12 +1,15 @@
 use strict;
-use warnings FATAL => qw(all);
+use warnings FATAL => "recursion";
 no if $] >= 5.018, warnings => "experimental::smartmatch";
+use feature qw(switch);
 use File::Basename;
 use lib dirname (__FILE__);
-use readline qw(mal_readline set_rl_mode);
-use feature qw(switch);
-use Data::Dumper;
 
+use Data::Dumper;
+use List::Util qw(pairs pairmap);
+use Scalar::Util qw(blessed);
+
+use readline qw(mal_readline set_rl_mode);
 use types qw($nil $true $false _list_Q);
 use reader;
 use printer;
@@ -22,20 +25,12 @@ sub READ {
 # eval
 sub eval_ast {
     my($ast, $env) = @_;
-    if ($ast->isa('Symbol')) {
+    if ($ast->isa('Mal::Symbol')) {
 	return $env->get($ast);
-    } elsif ($ast->isa('List')) {
-	my @lst = map {EVAL($_, $env)} @$ast;
-	return List->new(\@lst);
-    } elsif ($ast->isa('Vector')) {
-	my @lst = map {EVAL($_, $env)} @$ast;
-	return Vector->new(\@lst);
-    } elsif ($ast->isa('HashMap')) {
-	my $new_hm = {};
-	foreach my $k (keys %$ast) {
-	    $new_hm->{$k} = EVAL($ast->get($k), $env);
-	}
-	return HashMap->new($new_hm);
+    } elsif ($ast->isa('Mal::Sequence')) {
+	return ref($ast)->new([ map { EVAL($_, $env) } @$ast ]);
+    } elsif ($ast->isa('Mal::HashMap')) {
+	return Mal::HashMap->new({ pairmap { $a => EVAL($b, $env) } %$ast });
     } else {
 	return $ast;
     }
@@ -54,15 +49,16 @@ sub EVAL {
     # apply list
     my ($a0, $a1, $a2, $a3) = @$ast;
     if (!$a0) { return $ast; }
-    given ($a0->isa('Symbol') ? $$a0 : $a0) {
+    given ($a0->isa('Mal::Symbol') ? $$a0 : $a0) {
         when ('def!') {
             my $res = EVAL($a2, $env);
             return $env->set($a1, $res);
         }
         when ('let*') {
-            my $let_env = Env->new($env);
-            for(my $i=0; $i < scalar(@$a1); $i+=2) {
-                $let_env->set($a1->[$i], EVAL($a1->[$i+1], $let_env));
+            my $let_env = Mal::Env->new($env);
+	    foreach my $pair (pairs @$a1) {
+		my ($k, $v) = @$pair;
+                $let_env->set($k, EVAL($v, $let_env));
             }
             $ast = $a2;
             $env = $let_env;
@@ -83,12 +79,12 @@ sub EVAL {
             # Continue loop (TCO)
         }
         when ('fn*') {
-            return Function->new(\&EVAL, $a2, $env, $a1);
+            return Mal::Function->new(\&EVAL, $a2, $env, $a1);
         }
         default {
             my @el = @{eval_ast($ast, $env)};
             my $f = shift @el;
-            if ($f->isa('Function')) {
+            if ($f->isa('Mal::Function')) {
                 $ast = $f->{ast};
                 $env = $f->gen_env(\@el);
                 # Continue loop (TCO)
@@ -108,7 +104,7 @@ sub PRINT {
 }
 
 # repl
-my $repl_env = Env->new();
+my $repl_env = Mal::Env->new();
 sub REP {
     my $str = shift;
     return PRINT(EVAL(READ($str), $repl_env));
@@ -116,7 +112,7 @@ sub REP {
 
 # core.pl: defined using perl
 foreach my $n (keys %core::ns) {
-    $repl_env->set(Symbol->new($n), $core::ns{$n});
+    $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
 }
 
 # core.mal: defined using the language itself
@@ -132,12 +128,11 @@ while (1) {
         local $@;
         my $ret;
         eval {
-            use autodie; # always "throw" errors
             print(REP($line), "\n");
             1;
         } or do {
             my $err = $@;
-            if ($err->isa('BlankException')) {
+            if (defined(blessed $err) && $err->isa('Mal::BlankException')) {
 		# ignore and continue
 	    } else {
 		chomp $err;

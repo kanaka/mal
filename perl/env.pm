@@ -1,27 +1,24 @@
-package reader;
-use feature qw(switch);
 use strict;
 use warnings;
+
 use Exporter 'import';
 
 
 {
-    package Env;
+    package Mal::Env;
     use Data::Dumper;
     sub new  {
         my ($class,$outer,$binds,$exprs) = @_;
         my $data = { __outer__ => $outer };
         if ($binds) {
-            for (my $i=0; $i<scalar(@$binds); $i++) {
-                if (${$binds->[$i]} eq "&") {
+	    my @expr = @$exprs;
+            foreach my $bind (@$binds) {
+                if ($$bind eq "&") {
                     # variable length arguments
-                    my @earr = @$exprs; # get the array
-                    my @new_arr = @earr[$i..$#earr]; # slice it
-                    $data->{${$binds->[$i+1]}} = List->new(\@new_arr);
-                    last;
-                } else {
-                    $data->{${$binds->[$i]}} = $exprs->[$i];
+		    @expr = (Mal::List->new([@expr]));
+		    next;
                 }
+		$data->{$$bind} = shift @expr;
             }
         }
         bless $data => $class
@@ -40,20 +37,20 @@ use Exporter 'import';
     sub get {
         my ($self, $key) = @_;
         my $env = $self->find($key);
-        die "'" . $$key . "' not found\n" unless $env;
+        die "'$$key' not found\n" unless $env;
         return $env->{$$key};
     }
 }
 
-#my $e1 = Env->new();
+#my $e1 = Mal::Env->new();
 #print Dumper($e1);
 #
-#my $e2 = Env->new();
+#my $e2 = Mal::Env->new();
 #$e2->set('abc', 123);
 #$e2->set('def', 456);
 #print Dumper($e2);
 #
-#my $e3 = Env->new($e2);
+#my $e3 = Mal::Env->new($e2);
 #$e3->set('abc', 789);
 #$e3->set('ghi', 1024);
 #print Dumper($e3);

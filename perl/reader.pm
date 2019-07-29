@@ -1,8 +1,9 @@
 package reader;
-use feature qw(switch);
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 no if $] >= 5.018, warnings => "experimental::smartmatch";
+use feature qw(switch);
+
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
@@ -11,7 +12,7 @@ use types qw($nil $true $false _keyword _hash_map);
 use Data::Dumper;
 
 {
-    package Reader;
+    package Mal::Reader;
     sub new  {
         my $class = shift;
         bless { position => 0, tokens => shift } => $class
@@ -30,12 +31,12 @@ sub read_atom {
     my($rdr) = @_;
     my $token = $rdr->next();
     given ($token) {
-        when(/^-?[0-9]+$/) { return Integer->new($token) }
+        when(/^-?[0-9]+$/) { return Mal::Integer->new($token) }
         when(/^"(?:\\.|[^\\"])*"$/) {
             my %escaped_chars = ( "\\\\" => "\\", "\\\"" => "\"", "\\n" => "\n" );
             my $str = substr $token, 1, -1;
             $str =~ s/\\./$escaped_chars{$&}/ge;
-            return String->new($str)
+            return Mal::String->new($str)
         }
         when(/^"/) {
             die "expected '\"', got EOF";
@@ -44,14 +45,14 @@ sub read_atom {
         when('nil') { return $nil }
         when('true') { return $true }
         when('false') { return $false }
-        default { return Symbol->new($token) }
+        default { return Mal::Symbol->new($token) }
     }
 }
 
 sub read_list {
     my($rdr,$class,$start,$end) = @_;
-    $start = $start || '(';
-    $end = $end || ')';
+    $start = $start // '(';
+    $end = $end // ')';
 
     my $token = $rdr->next();
     my @lst = ();
@@ -67,10 +68,10 @@ sub read_list {
         push(@lst, read_form($rdr));
     }
     $rdr->next();
-    if ($class eq 'List') {
-        return List->new(\@lst);
-    } elsif ($class eq 'Vector') {
-        return Vector->new(\@lst);
+    if ($class eq 'Mal::List') {
+        return Mal::List->new(\@lst);
+    } elsif ($class eq 'Mal::Vector') {
+        return Mal::Vector->new(\@lst);
     } else {
         return _hash_map(@lst);
     }
@@ -80,26 +81,28 @@ sub read_form {
     my($rdr) = @_;
     my $token = $rdr->peek();
     given ($token) {
-        when("'") { $rdr->next(); List->new([Symbol->new('quote'),
-                                             read_form($rdr)]) }
-        when('`') { $rdr->next(); List->new([Symbol->new('quasiquote'),
-                                             read_form($rdr)]) }
-        when('~') { $rdr->next(); List->new([Symbol->new('unquote'),
-                                             read_form($rdr)]) }
-        when('~@') { $rdr->next(); List->new([Symbol->new('splice-unquote'),
-                                              read_form($rdr)]) }
+        when("'") { $rdr->next(); Mal::List->new([Mal::Symbol->new('quote'),
+						  read_form($rdr)]) }
+        when('`') { $rdr->next();
+		    Mal::List->new([Mal::Symbol->new('quasiquote'),
+				    read_form($rdr)]) }
+        when('~') { $rdr->next(); Mal::List->new([Mal::Symbol->new('unquote'),
+						  read_form($rdr)]) }
+        when('~@') { $rdr->next();
+		     Mal::List->new([Mal::Symbol->new('splice-unquote'),
+				     read_form($rdr)]) }
         when('^') { $rdr->next(); my $meta = read_form($rdr);
-                    List->new([Symbol->new('with-meta'),
-                               read_form($rdr), $meta]) }
-        when('@') { $rdr->next(); List->new([Symbol->new('deref'),
-                                              read_form($rdr)]) }
+                    Mal::List->new([Mal::Symbol->new('with-meta'),
+				    read_form($rdr), $meta]) }
+        when('@') { $rdr->next(); Mal::List->new([Mal::Symbol->new('deref'),
+						  read_form($rdr)]) }
 
         when(')') { die "unexpected ')'" }
-        when('(') { return read_list($rdr, 'List') }
+        when('(') { return read_list($rdr, 'Mal::List') }
         when(']') { die "unexpected ']'" }
-        when('[') { return read_list($rdr, 'Vector', '[', ']') }
+        when('[') { return read_list($rdr, 'Mal::Vector', '[', ']') }
         when('}') { die "unexpected '}'" }
-        when('{') { return read_list($rdr, 'HashMap', '{', '}') }
+        when('{') { return read_list($rdr, 'Mal::HashMap', '{', '}') }
         default  { return read_atom($rdr) }
     }
 }
@@ -108,8 +111,8 @@ sub read_str {
     my($str) = @_;
     my @tokens = tokenize($str);
     #print "tokens: " . Dumper(\@tokens);
-    if (scalar(@tokens) == 0) { die BlankException->new(); }
-    return read_form(Reader->new(\@tokens));
+    if (scalar(@tokens) == 0) { die Mal::BlankException->new(); }
+    return read_form(Mal::Reader->new(\@tokens));
 }
 
 #print Dumper(read_str("123"));

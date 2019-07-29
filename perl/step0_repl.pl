@@ -1,7 +1,8 @@
 use strict;
-use warnings FATAL => qw(all);
+use warnings;
 use File::Basename;
 use lib dirname (__FILE__);
+
 use readline qw(mal_readline set_rl_mode);
 
 # read
