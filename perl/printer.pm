@@ -12,7 +12,7 @@ use List::Util qw(pairmap);
 
 sub _pr_str {
     my($obj, $print_readably) = @_;
-    my($_r) = (defined $print_readably) ? $print_readably : 1;
+    my($_r) = $print_readably // 1;
     if ($obj->isa('Mal::List')) {
 	return '(' . join(' ', map { _pr_str($_, $_r) } @$obj) . ')';
     } elsif ($obj->isa('Mal::Vector')) {
