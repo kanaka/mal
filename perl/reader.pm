@@ -32,16 +32,14 @@ sub read_atom {
     my $token = $rdr->next();
     given ($token) {
         when(/^-?[0-9]+$/) { return Mal::Integer->new($token) }
-        when(/^"(?:\\.|[^\\"])*"$/) {
+        when(/^"((?:\\.|[^\\"])*)"$/) {
             my %escaped_chars = ( "\\\\" => "\\", "\\\"" => "\"", "\\n" => "\n" );
-            my $str = substr $token, 1, -1;
-            $str =~ s/\\./$escaped_chars{$&}/ge;
-            return Mal::String->new($str)
+            return Mal::String->new($1 =~ s/\\./$escaped_chars{$&}/ger);
         }
         when(/^"/) {
             die "expected '\"', got EOF";
         }
-        when(/^:/) { return Mal::Keyword->new(substr($token,1)) }
+        when(/^:/) { return Mal::Keyword->new($') }
         when('nil') { return $nil }
         when('true') { return $true }
         when('false') { return $false }

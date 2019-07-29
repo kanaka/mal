@@ -27,7 +27,7 @@ sub _pr_str {
 	return '{' . join(' ', @elems) . '}';
     } elsif ($obj->isa('Mal::String')) {
 	if ($$obj =~ /^\x{029e}/) {
-	    return ':' . substr($$obj,1);
+	    return ":$'";
 	} elsif ($_r) {
 	    my $str = $$obj;
 	    $str =~ s/\\/\\\\/g;
