@@ -6,7 +6,7 @@ use Data::Dumper;
 use Exporter 'import';
 our @EXPORT_OK = qw(_equal_Q
                     $nil $true $false
-                    _string_Q _keyword _keyword_Q);
+                    _string_Q _keyword);
 
 # General functions
 
@@ -101,12 +101,17 @@ sub _string_Q { $_[0]->isa('Mal::String') && ${$_[0]} !~ /^\x{029e}/; }
 
 
 sub _keyword { return Mal::String->new(("\x{029e}".$_[0])); }
-sub _keyword_Q { $_[0]->isa('Mal::String') && ${$_[0]} =~ /^\x{029e}/; }
 
 
 {
     package Mal::String;
     use parent -norequire, 'Mal::Scalar';
+    # "isa" can distinguish keywords from other strings.
+    sub isa {
+	my $self = shift;
+	return 1 if ($_[0] eq 'Mal::Keyword' && $$self =~ /^\x{029e}/);
+	return $self->SUPER::isa(@_);
+    }
 }
 
 

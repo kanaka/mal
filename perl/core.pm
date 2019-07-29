@@ -9,7 +9,7 @@ use Time::HiRes qw(time);
 
 use readline;
 use types qw(_equal_Q $nil $true $false
-             _string_Q _keyword _keyword_Q);
+             _string_Q _keyword);
 use reader qw(read_str);
 use printer qw(_pr_str);
 use interop qw(pl_to_mal);
@@ -179,7 +179,7 @@ sub pl_STAR {
     'symbol?'     => sub { $_[0]->isa('Mal::Symbol') ? $true : $false },
     'string?'     => sub { _string_Q($_[0]) ? $true : $false },
     'keyword'     => sub { _keyword(${$_[0]}) },
-    'keyword?'    => sub { _keyword_Q($_[0]) ? $true : $false },
+    'keyword?'    => sub { $_[0]->isa('Mal::Keyword') ? $true : $false },
     'fn?'         => sub { $_[0]->isa('Mal::Function') ? $true : $false },
     'macro?'      => sub { $_[0]->isa('Mal::Macro') ? $true : $false },
 
