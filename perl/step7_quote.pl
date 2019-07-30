@@ -10,7 +10,7 @@ use List::Util qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types qw($nil $true $false _sequential_Q _symbol_Q _list_Q);
+use types qw($nil $true $false);
 use reader;
 use printer;
 use env;
@@ -25,16 +25,16 @@ sub READ {
 # eval
 sub is_pair {
     my ($x) = @_;
-    return _sequential_Q($x) && @$x;
+    return $x->isa('Mal::Sequence') && @$x;
 }
 
 sub quasiquote {
     my ($ast) = @_;
     if (!is_pair($ast)) {
         return Mal::List->new([Mal::Symbol->new("quote"), $ast]);
-    } elsif (_symbol_Q($ast->[0]) && ${$ast->[0]} eq 'unquote') {
+    } elsif ($ast->[0]->isa('Mal::Symbol') && ${$ast->[0]} eq 'unquote') {
         return $ast->[1];
-    } elsif (is_pair($ast->[0]) && _symbol_Q($ast->[0]->[0]) &&
+    } elsif (is_pair($ast->[0]) && $ast->[0]->[0]->isa('Mal::Symbol') &&
              ${$ast->[0]->[0]} eq 'splice-unquote') {
         return Mal::List->new([Mal::Symbol->new("concat"),
                           $ast->[0]->[1],
@@ -62,11 +62,9 @@ sub eval_ast {
 sub EVAL {
     my($ast, $env) = @_;
 
-    while (1) {
-
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! _list_Q($ast)) {
-        return eval_ast($ast, $env);
+    if (! $ast->isa('Mal::List')) {
+        goto &eval_ast;
     }
 
     # apply list
@@ -83,48 +81,43 @@ sub EVAL {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
             }
-            $ast = $a2;
-            $env = $let_env;
-            # Continue loop (TCO)
+	    @_ = ($a2, $let_env);
+	    goto &EVAL;
         }
         when ('quote') {
             return $a1;
         }
         when ('quasiquote') {
-            $ast = quasiquote($a1);
-            # Continue loop (TCO)
+            @_ = (quasiquote($a1), $env);
+	    goto &EVAL;
         }
         when ('do') {
             eval_ast($ast->slice(1, $#$ast-1), $env);
-            $ast = $ast->[$#$ast];
-            # Continue loop (TCO)
+            @_ = ($ast->[$#$ast], $env);
+            goto &EVAL;
         }
         when ('if') {
             my $cond = EVAL($a1, $env);
             if ($cond eq $nil || $cond eq $false) {
-                $ast = $a3 ? $a3 : $nil;
+                @_ = ($a3 // $nil, $env);
             } else {
-                $ast = $a2;
+                @_ = ($a2, $env);
             }
-            # Continue loop (TCO)
+	    goto &EVAL;
         }
         when ('fn*') {
-            return Mal::Function->new(\&EVAL, $a2, $env, $a1);
+            return Mal::Function->new(sub {
+                #print "running fn*\n";
+		@_ = ($a2, Mal::Env->new($env, $a1, \@_));
+                goto &EVAL;
+            });
         }
         default {
-            my @el = @{eval_ast($ast, $env)};
-            my $f = shift @el;
-            if ($f->isa('Mal::Function')) {
-                $ast = $f->{ast};
-                $env = $f->gen_env(\@el);
-                # Continue loop (TCO)
-            } else {
-                return &$f(@el);
-            }
+            @_ = @{eval_ast($ast, $env)};
+            my $f = shift;
+	    goto &$f;
         }
     }
-
-    } # TCO while loop
 }
 
 # print
@@ -145,7 +138,7 @@ foreach my $n (keys %core::ns) {
     $repl_env->set(Mal::Symbol->new($n), $core::ns{$n});
 }
 $repl_env->set(Mal::Symbol->new('eval'),
-	       bless sub { EVAL($_[0], $repl_env); }, 'Mal::CoreFunction');
+	       Mal::Function->new(sub { EVAL($_[0], $repl_env) }));
 my @_argv = map {Mal::String->new($_)}  @ARGV[1..$#ARGV];
 $repl_env->set(Mal::Symbol->new('*ARGV*'), Mal::List->new(\@_argv));
 

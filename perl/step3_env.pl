@@ -10,7 +10,7 @@ use List::Util qw(pairs pairmap);
 use Scalar::Util qw(blessed);
 
 use readline qw(mal_readline set_rl_mode);
-use types qw(_list_Q);
+use types;
 use reader;
 use printer;
 use env;
@@ -38,7 +38,7 @@ sub eval_ast {
 sub EVAL {
     my($ast, $env) = @_;
     #print "EVAL: " . printer::_pr_str($ast) . "\n";
-    if (! _list_Q($ast)) {
+    if (! $ast->isa('Mal::List')) {
         return eval_ast($ast, $env);
     }
 

@@ -7,7 +7,7 @@ use feature qw(switch);
 use Exporter 'import';
 our @EXPORT_OK = qw( read_str );
 
-use types qw($nil $true $false _keyword _hash_map);
+use types qw($nil $true $false);
 
 use Data::Dumper;
 
@@ -32,16 +32,13 @@ sub read_atom {
     my $token = $rdr->next();
     given ($token) {
         when(/^-?[0-9]+$/) { return Mal::Integer->new($token) }
-        when(/^"(?:\\.|[^\\"])*"$/) {
-            my %escaped_chars = ( "\\\\" => "\\", "\\\"" => "\"", "\\n" => "\n" );
-            my $str = substr $token, 1, -1;
-            $str =~ s/\\./$escaped_chars{$&}/ge;
-            return Mal::String->new($str)
+        when(/^"((?:\\.|[^\\"])*)"$/) {
+            return Mal::String->new($1 =~ s/\\(.)/$1 =~ tr|n|\n|r/ger);
         }
         when(/^"/) {
             die "expected '\"', got EOF";
         }
-        when(/^:/) { return _keyword(substr($token,1)) }
+        when(/^:/) { return Mal::Keyword->new($') }
         when('nil') { return $nil }
         when('true') { return $true }
         when('false') { return $false }
@@ -68,13 +65,7 @@ sub read_list {
         push(@lst, read_form($rdr));
     }
     $rdr->next();
-    if ($class eq 'Mal::List') {
-        return Mal::List->new(\@lst);
-    } elsif ($class eq 'Mal::Vector') {
-        return Mal::Vector->new(\@lst);
-    } else {
-        return _hash_map(@lst);
-    }
+    return $class->new(\@lst);
 }
 
 sub read_form {
