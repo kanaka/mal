@@ -4,7 +4,7 @@ use warnings;
 
 use Data::Dumper;
 use Exporter 'import';
-our @EXPORT_OK = qw(_equal_Q
+our @EXPORT_OK = qw(_equal_Q thaw_key
                     $nil $true $false);
 
 # General functions
@@ -60,7 +60,20 @@ sub _equal_Q {
 {
     package Mal::Scalar;
     use parent -norequire, 'Mal::Type';
+    # Overload stringification so that its result is something
+    # suitable for use as a hash-map key.  The important thing here is
+    # that strings and keywords are distinct: support for other kinds
+    # of scalar is a bonus.
+    use overload '""' => sub { my $self = shift; ref($self) . " " . $$self },
+	fallback => 1;
     sub new { my ($class, $value) = @_; bless \$value, $class }
+}
+
+# This function converts hash-map keys back into full objects
+
+sub thaw_key ($) {
+    my ($class, $value) = split(/ /, $_[0], 2);
+    return $class->new($value);
 }
 
 {
@@ -99,14 +112,12 @@ our $false = Mal::False->new('false');
 {
     package Mal::String;
     use parent -norequire, 'Mal::Scalar';
-    # "isa" can distinguish keywords from other strings.
-    sub isa {
-	my $self = shift;
-	return 1 if ($_[0] eq 'Mal::Keyword' && $$self =~ /^\x{029e}/);
-	return $self->SUPER::isa(@_);
-    }
-    # Pseudo-constructor for making keywords.
-    sub Mal::Keyword::new { shift; Mal::String->new("\x{029e}" . $_[0]) }
+}
+
+
+{
+    package Mal::Keyword;
+    use parent -norequire, 'Mal::Scalar';
 }
 
 
@@ -147,7 +158,7 @@ our $false = Mal::False->new('false');
     sub new  {
         my ($class, $src) = @_;
         if (reftype($src) eq 'ARRAY') {
-            $src = {pairmap { $$a => $b } @$src};
+            $src = {@$src};
 	}
         return bless $src, $class;
     }

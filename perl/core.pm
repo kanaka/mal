@@ -8,7 +8,7 @@ use List::Util qw(pairmap);
 use Time::HiRes qw(time);
 
 use readline;
-use types qw(_equal_Q $nil $true $false);
+use types qw(_equal_Q thaw_key $nil $true $false);
 use reader qw(read_str);
 use printer qw(_pr_str);
 use interop qw(pl_to_mal);
@@ -49,28 +49,28 @@ sub slurp {
 
 sub assoc {
     my $src_hsh = shift;
-    return Mal::HashMap->new( { %$src_hsh, pairmap { $$a => $b } @_ } );
+    return Mal::HashMap->new( { %$src_hsh, @_ } );
 }
 
 sub dissoc {
     my $new_hsh = { %{shift @_} };
-    delete @{$new_hsh}{map $$_, @_};
+    delete @{$new_hsh}{@_};
     return Mal::HashMap->new($new_hsh);
 }
 
 
 sub get {
     my ($hsh, $key) = @_;
-    return $hsh->{$$key} // $nil;
+    return $hsh->{$key} // $nil;
 }
 
 sub contains_Q {
     my ($hsh, $key) = @_;
-    return (exists $hsh->{$$key}) ? $true : $false;
+    return (exists $hsh->{$key}) ? $true : $false;
 }
 
 sub mal_keys {
-    my @ks = map { Mal::String->new($_) } keys %{$_[0]};
+    my @ks = map { thaw_key($_) } keys %{$_[0]};
     return Mal::List->new(\@ks);
 }
 
@@ -130,7 +130,7 @@ sub seq {
     } elsif ($arg->isa('Mal::Vector')) {
         return $nil unless @$arg;
         return Mal::List->new([@$arg]);
-    } elsif ($arg->isa('Mal::String') && !$arg->isa('Mal::Keyword')) {
+    } elsif ($arg->isa('Mal::String')) {
         return $nil if length($$arg) == 0;
         my @chars = map { Mal::String->new($_) } split(//, $$arg);
         return Mal::List->new(\@chars);
@@ -175,7 +175,7 @@ sub pl_STAR {
     'number?'     => sub { $_[0]->isa('Mal::Integer') ? $true : $false },
     'symbol'      => sub { Mal::Symbol->new(${$_[0]}) },
     'symbol?'     => sub { $_[0]->isa('Mal::Symbol') ? $true : $false },
-    'string?'     => sub { $_[0]->isa('Mal::String') && !$_[0]->isa('Mal::Keyword') ? $true : $false },
+    'string?'     => sub { $_[0]->isa('Mal::String') ? $true : $false },
     'keyword'     => sub { Mal::Keyword->new(${$_[0]}) },
     'keyword?'    => sub { $_[0]->isa('Mal::Keyword') ? $true : $false },
     'fn?'         => sub { $_[0]->isa('Mal::Function') ? $true : $false },
