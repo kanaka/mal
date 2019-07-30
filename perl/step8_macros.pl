@@ -146,8 +146,7 @@ sub EVAL {
         when ('fn*') {
             return Mal::Function->new(sub {
                 #print "running fn*\n";
-                my $args = \@_;
-		@_ = ($a2, Mal::Env->new($env, $a1, $args));
+		@_ = ($a2, Mal::Env->new($env, $a1, \@_));
                 goto &EVAL;
             });
         }
