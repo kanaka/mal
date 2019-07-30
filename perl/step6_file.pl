@@ -69,7 +69,7 @@ sub EVAL {
         when ('if') {
             my $cond = EVAL($a1, $env);
             if ($cond eq $nil || $cond eq $false) {
-                @_ = ($a3 ? $a3 : $nil, $env);
+                @_ = ($a3 // $nil, $env);
             } else {
                 @_ = ($a2, $env);
             }
