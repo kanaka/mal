@@ -68,27 +68,28 @@ sub EVAL {
     }
 
     # apply list
-    my ($a0, $a1, $a2, $a3) = @$ast;
-    if (!$a0) { return $ast; }
+    unless (@$ast) { return $ast; }
+    my ($a0) = @$ast;
     given ($a0->isa('Mal::Symbol') ? $$a0 : $a0) {
         when ('def!') {
-            my $res = EVAL($a2, $env);
-            return $env->set($a1, $res);
+	    my (undef, $sym, $val) = @$ast;
+            return $env->set($sym, EVAL($val, $env));
         }
         when ('let*') {
+	    my (undef, $bindings, $body) = @$ast;
             my $let_env = Mal::Env->new($env);
-	    foreach my $pair (pairs @$a1) {
+	    foreach my $pair (pairs @$bindings) {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
             }
-	    @_ = ($a2, $let_env);
+	    @_ = ($body, $let_env);
 	    goto &EVAL;
         }
         when ('quote') {
-            return $a1;
+            return $ast->[1];
         }
         when ('quasiquote') {
-            @_ = (quasiquote($a1), $env);
+            @_ = (quasiquote($ast->[1]), $env);
 	    goto &EVAL;
         }
         when ('do') {
@@ -97,18 +98,20 @@ sub EVAL {
             goto &EVAL;
         }
         when ('if') {
-            my $cond = EVAL($a1, $env);
+	    my (undef, $if, $then, $else) = @$ast;
+            my $cond = EVAL($if, $env);
             if ($cond eq $nil || $cond eq $false) {
-                @_ = ($a3 // $nil, $env);
+                @_ = ($else // $nil, $env);
             } else {
-                @_ = ($a2, $env);
+                @_ = ($then, $env);
             }
 	    goto &EVAL;
         }
         when ('fn*') {
+	    my (undef, $params, $body) = @$ast;
             return Mal::Function->new(sub {
                 #print "running fn*\n";
-		@_ = ($a2, Mal::Env->new($env, $a1, \@_));
+		@_ = ($body, Mal::Env->new($env, $params, \@_));
                 goto &EVAL;
             });
         }
