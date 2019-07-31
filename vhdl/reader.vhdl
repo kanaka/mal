@@ -84,6 +84,9 @@ package body reader is
             tmppos := tmppos + 1;
           end if;
         end loop;
+        if tmppos > str'length then
+          tmppos := tmppos - 1; -- unterminated string, will be caught in unescape_string_token
+        end if;
         token := new string(1 to (tmppos - pos + 1));
         token(1 to (tmppos - pos + 1)) := str(pos to tmppos);
         next_start_pos := tmppos + 1;
@@ -187,7 +190,11 @@ package body reader is
         src_i := src_i + 1;
       end if;
     end loop;
-    result := new string'(s(1 to dst_i));
+    if src_i <= token'length then
+      result := new string'(s(1 to dst_i));
+    else
+      result := null;
+    end if;
     deallocate(s);
   end procedure unescape_string_token;
 
@@ -227,6 +234,11 @@ package body reader is
             return;
           end if;
           unescape_string_token(token, s);
+          if s = null then
+            new_string("expected '""', got EOF", err);
+            result := null;
+            return;
+          end if;
           new_string(s, result);
         when others =>
           new_symbol(token, result);
