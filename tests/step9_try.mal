@@ -10,6 +10,10 @@
 (try* 123 (catch* e 456))
 ;=>123
 
+(try* abc (catch* exc (prn "exc is:" exc)))
+;/"exc is:" "'abc' not found"
+;=>nil
+
 (try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
 ;/"exc is:" "'abc' not found"
 ;=>nil
