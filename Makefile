@@ -491,7 +491,7 @@ stats: $(IMPL_STATS)
 $(IMPL_STATS):
 	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
 	  echo "Stats for $(impl):"; \
-	  $(LOCCOUNT) -x "Makefile|node_modules" $(impl))
+	  $(LOCCOUNT) -x "[sS]tep[0-9]_.*|tests|examples|Makefile|node_modules|getline.cs|terminal.cs|project.clj|elm-stuff|objpascal/regexpr|rdyncall|swift/templates" $(impl))
 
 #
 # Utility functions
