@@ -56,6 +56,7 @@
 
   (func $read_token (param $str i32) (result i32)
     (LET $token_index 0
+         $isstring    0
          $instring    0
          $escaped     0
          $c           0)
@@ -88,8 +89,9 @@
         ;; continue
         (nop))
       (else
-        ;;; if (c == '"') instring = true
-        (local.set $instring (i32.eq $c (CHR "\"")))
+        ;;; if (c == '"') isstring = true
+        (local.set $isstring (i32.eq $c (CHR "\"")))
+        (local.set $instring 1)
         (block $done
           (loop $loop
             ;; peek at next character
@@ -98,8 +100,8 @@
                             (i32.add $str (global.get $read_index))))
             ;;; if (c == '\0') break
             (br_if $done (i32.eq $c 0))
-            ;;; if (!instring)
-            (if (i32.eqz $instring)
+            ;;; if (!isstring)
+            (if (i32.eqz $isstring)
               (then
                 ;; next character is token delimiter
                 (br_if $done (OR (i32.eq $c (CHR "("))
@@ -126,17 +128,25 @@
                                         (i32.add (global.get $token_buf) 1))
                                       (CHR "@"))))
 
-            ;;; if ((!instring) || escaped)
-            (if (OR (i32.eqz $instring) $escaped)
+            ;;; if ((!isstring) || escaped)
+            (if (OR (i32.eqz $isstring) $escaped)
               (then
                 (local.set $escaped 0)
                 (br $loop)))
             (if (i32.eq $c (CHR "\\"))
               (local.set $escaped 1))
-            (br_if $done (i32.eq $c (CHR "\"")))
+            (if (i32.eq $c (CHR "\""))
+              (then
+                (local.set $instring 0)
+                (br $done)))
             (br $loop)
           )
-        )))
+        )
+
+        (if (AND $isstring $instring)
+          (then
+            ($THROW_STR_0 "expected '\"', got EOF")
+            (return 0)))))
 
     ;;; token[token_index] = '\0'
     (i32.store8 (i32.add (global.get $token_buf) $token_index) 0)

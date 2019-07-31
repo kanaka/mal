@@ -39,18 +39,18 @@ def read_atom(reader):
     if IS_RPYTHON:
         int_re = '-?[0-9]+$'
         float_re = '-?[0-9][0-9.]*$'
+        str_re = '"(?:[\\\\].|[^\\\\"])*"'
     else:
         int_re = re.compile('-?[0-9]+$')
         float_re = re.compile('-?[0-9][0-9.]*$')
+        str_re = re.compile('"(?:[\\\\].|[^\\\\"])*"')
     token = reader.next()
     if re.match(int_re, token):     return MalInt(int(token))
 ##    elif re.match(float_re, token): return int(token)
-    elif token[0] == '"':
+    elif re.match(str_re, token):
         end = len(token)-1
-        if end == 1:
+        if end <= 1:
             return MalStr(u"")
-        elif end < 1 or token[end] != '"':
-            types.throw_str("expected '\"', got EOF")
         else:
             s = unicode(token[1:end])
             s = types._replace(u'\\\\',   u"\u029e", s)
@@ -58,6 +58,8 @@ def read_atom(reader):
             s = types._replace(u'\\n',    u"\n", s)
             s = types._replace(u"\u029e", u"\\", s)
             return MalStr(s)
+    elif token[0] == '"':
+        types.throw_str("expected '\"', got EOF")
     elif token[0] == ':':           return _keywordu(unicode(token[1:]))
     elif token == "nil":            return types.nil
     elif token == "true":           return types.true

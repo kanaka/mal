@@ -74,7 +74,7 @@ func read_string(_ rdr: Reader) throws -> MalVal {
         if rdr.str[cidx] == "\"" { break }
         cidx = rdr.pos
     }
-    if rdr.str[rdr.str.index(before: rdr.pos)] != "\"" {
+    if cidx >= rdr.str.endIndex || rdr.str[rdr.str.index(before: rdr.pos)] != "\"" {
         throw MalError.Reader(msg: "Expected '\"', got EOF")
     }
     let matchStr = rdr.str.substring(with: 
