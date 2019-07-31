@@ -83,7 +83,7 @@ defmodule Mal.Reader do
   defp read_atom(":" <> rest), do: String.to_atom(rest)
   defp read_atom(token) do
     cond do
-      String.starts_with?(token, "\"") and String.ends_with?(token, "\"") ->
+      String.match?(token, ~r/^"(?:\\.|[^\\"])*"$/) ->
         token
           |> Code.string_to_quoted
           |> elem(1)

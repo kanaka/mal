@@ -22,10 +22,11 @@ read_atom = (rdr) ->
   token = rdr.next()
   if token.match /^-?[0-9]+$/ then parseInt token,10
   else if token.match /^-?[0-9][0-9.]*$/ then parseFloat token,10
-  else if token[0] == '"'
-    throw new Error "expected '\"', got EOF" if token[-1..-1] != '"'
+  else if token.match /^"(?:\\.|[^\\"])*"$/
     token.slice(1, token.length-1)
       .replace(/\\(.)/g, (_, c) -> if c == 'n' then '\n' else c)
+  else if token[0] == '"'
+    throw new Error "expected '\"', got EOF"
   else if token[0] == ':' then types._keyword(token[1..])
   else if token == "nil" then null
   else if token == "true" then true

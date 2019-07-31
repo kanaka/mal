@@ -198,4 +198,4 @@ that's why it's down below. :)
 -}
 strString : Parser s String
 strString =
-    regex "\"(\\\\\"|[^\"])*\"" <?> "string"
+    regex "\"(\\\\.|[^\\\\\"])*\"" <?> "string"
