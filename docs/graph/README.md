@@ -16,15 +16,21 @@ sudo gem install travis --no-rdoc --no-ri
 ```
 cd docs/graph
 
-BUILD=983
+BUILD=1328
 
-for x in $(seq 1 90); do echo ${BUILD}/${x}; mkdir -p logs/${BUILD}; while ! travis logs ${BUILD}.${x} > logs/${BUILD}/${x}; do true; done; done
+for x in $(seq 1 100); do echo ${BUILD}/${x}; mkdir -p logs/${BUILD}; while ! travis logs ${BUILD}.${x} > logs/${BUILD}/${x}; do true; done; done
 ```
 
 * Run the [StackOverflow tags query](https://data.stackexchange.com/stackoverflow/query/edit/1013465) and update the CSV link:
 
 ```
 export SO_TAG_CSV_URL=... # from the query page
+```
+
+* Remove/clean all generated files:
+
+```
+make -C ../.. clean
 ```
 
 * Download GitHub and StackOverflow data and generate the final

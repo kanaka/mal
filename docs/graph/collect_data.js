@@ -47,6 +47,7 @@ const githutToNames = {
 }
 const dirToSOTags = {
     'ada.2':     ['ada'],
+    'bbc-basic': ['bbc-micro'],
     'cpp':       ['c++', 'c++98', 'c++11', 'c++14', 'c++17'],
     'coffee':    ['coffeescript'],
     'crystal':   ['crystal-lang'],
