@@ -46,10 +46,12 @@ sub read_list ($rdr, $end) {
 sub read_atom ($rdr) {
   my $atom = $rdr.next;
   given $atom {
-    when /^\"/ {
-      die X::MalIncomplete.new(end => '"') if $atom !~~ /\"$/;
+    when /^'"' [ \\. || <-[\"\\]> ]* '"'$/ {
       s:g/^\"|\"$//;
       MalString(.trans(/\\\"/ => '"', /\\n/ => "\n", /\\\\/ => '\\'));
+    }
+    when /^\"/ {
+      die X::MalIncomplete.new(end => '"');
     }
     when /^\:(.*)/ { MalString("\x29E$0") }
     when /^'-'? <[0..9]>+$/ { MalNumber($_) }

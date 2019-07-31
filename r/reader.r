@@ -42,15 +42,14 @@ read_atom <- function(rdr) {
         as.integer(token)
     } else if (re_match("^-?[0-9][0-9.]*$", token)) {
         as.double(token)
-    } else if (substr(token,1,1) == "\"") {
-        if (substr(token, nchar(token), nchar(token)) != "\"") {
-            throw("expected '\"', got EOF")
-        }
+    } else if (re_match("^\"(?:\\\\.|[^\\\\\"])*\"$", token)) {
         gsub("\x7f", "\\\\",
             gsub("\\\\n", "\n",
                  gsub("\\\\\"", "\"",
                       gsub("\\\\\\\\", "\x7f",
                            substr(token, 2, nchar(token)-1)))))
+    } else if (substr(token,1,1) == "\"") {
+        throw("expected '\"', got EOF")
     } else if (substr(token,1,1) == ":") {
         new.keyword(substring(token,2))
     } else if (token == "nil") {

@@ -34,6 +34,7 @@ def unescape(s string) string {
 }
 
 def read_atom(rdr Reader) MalVal {
+  var sre = RegExp.new("^\"(?:\\\\.|[^\\\\\"])*\"$")
   const token = rdr.peek
   if token == "nil" {
     rdr.next
@@ -58,7 +59,7 @@ def read_atom(rdr Reader) MalVal {
     }
     case '"' {
       const s = rdr.next
-      if s[s.count - 1] == '"' {
+      if sre.exec(s) {
         return MalString.new(unescape(s.slice(1, s.count - 1)))
       } else {
         throw MalError.new("expected '\"', got EOF")
