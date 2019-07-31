@@ -9,7 +9,8 @@ CONSTANT: token-regex R/ (~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('
 DEFER: read-form
 
 : (read-string) ( str -- maltype )
-    dup last CHAR: " = [
+!    dup last CHAR: " = [
+    dup R/ ^"(?:\\.|[^\\"])*"$/ matches? [
         rest but-last R/ \\./ [
             {
                 { [ dup >string "\\\\" = ] [ drop "\\" ] }
