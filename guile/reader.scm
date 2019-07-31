@@ -31,6 +31,9 @@
 (define *token-re*
   (new-pcre "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"|;[^\n]*|[^\\s\\[\\]{}('\"`,;)]*)"))
 
+(define *str-re*
+  (new-pcre "^(\"(?:\\\\.|[^\\\\\"])*\")$"))
+
 (define (tokenizer str)
   (filter (lambda (s) (and (not (string-null? s)) (not (string=? (substring s 0 1) ";"))))
           (pcre-search *token-re* str)))
@@ -82,10 +85,10 @@
     (cond
      ((string-match "^-?[0-9][0-9.]*$" token)
       => (lambda (m) (string->number (match:substring m 0))))
+     ((> (length (pcre-search *str-re* token)) 0)
+      (with-input-from-string token read))
      ((eqv? (string-ref token 0) #\")
-      (if (eqv? (string-ref token (- (string-length token) 1)) #\")
-          (with-input-from-string token read)
-          (throw 'mal-error "expected '\"', got EOF")))
+      (throw 'mal-error "expected '\"', got EOF"))
      ((string-match "^:(.*)" token)
       => (lambda (m) (string->keyword (match:substring m 1))))
      ((string=? "nil" token) nil)

@@ -93,10 +93,8 @@ end } def
         /ch str idx get def  % current character
         /idx idx 1 add def
         ch 92 eq { % if \
-            str idx get 34 eq { %if \"
-                /idx idx 1 add def
-                /cnt cnt 1 add def % 1 more below
-            } if
+            /idx idx 1 add def
+            /cnt cnt 1 add def % 1 more below
         } if
         ch 34 eq { exit } if % '"' is end of string
         /cnt cnt 1 add def

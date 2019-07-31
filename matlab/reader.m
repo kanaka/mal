@@ -16,7 +16,10 @@ classdef reader
                 atm = str2double(token);
             elseif not(isempty(regexp(token, '^"(?:\\.|[^\\"])*"$', 'match')))
                 atm = token(2:length(token)-1);
-                atm = strrep(atm, '\\', char(255));
+                % If overlaps is enabled here then only the first '\\'
+                % is replaced. Probably an GNU Octave bug since the
+                % other repeated pairs are substituted correctly.
+                atm = strrep(atm, '\\', char(255), 'overlaps', false);
                 atm = strrep(atm, '\"', '"');
                 atm = strrep(atm, '\n', char(10));
                 atm = strrep(atm, char(255), '\');
