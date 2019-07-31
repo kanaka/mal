@@ -91,7 +91,7 @@
       (else
         ;;; if (c == '"') isstring = true
         (local.set $isstring (i32.eq $c (CHR "\"")))
-        (local.set $instring 1)
+        (local.set $instring $isstring)
         (block $done
           (loop $loop
             ;; peek at next character
@@ -239,6 +239,8 @@
     (if (global.get $error_type) (return 0))
 
     (local.set $tok ($read_token $str))
+
+    (if (global.get $error_type) (return 0))
     ;;($printf_1 ">>> read_form 1: %s\n" $tok)
     ;;; c0 = token[0]
     (local.set $c0 (i32.load8_u $tok))
