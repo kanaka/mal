@@ -34,9 +34,9 @@ private let atom_pattern =
     "|" +
     "(^false$)" +               // false
     "|" +
-    "(^\".*\"$)" +              // String
+    "(^\"(?:\\\\.|[^\\\\\"])*\"$)" +  // String
     "|" +
-    "(^\".*$)" +              // Invalid/unclosed string
+    "(^\".*$)" +                // Invalid/unclosed string
     "|" +
     "(:.*)" +                   // Keyword
     "|" +
