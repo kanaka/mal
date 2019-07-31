@@ -95,7 +95,7 @@
     "dir": "basic",
     "name": "BASIC",
     "syntax": "OTHER",
-    "type_check": "Dynamic",
+    "type_check": "Static",
     "modes": [
       "cbm",
       "qbasic"
@@ -121,7 +121,7 @@
     "dir": "bbc-basic",
     "name": "BBC BASIC V",
     "syntax": "OTHER",
-    "type_check": "Dynamic",
+    "type_check": "Static",
     "modes": [],
     "perf1": 50,
     "perf2": 210,
@@ -138,7 +138,7 @@
     "author_url": "https://github.com/bjh21",
     "so_count": 7,
     "so_rank": 74,
-    "lloc": 243
+    "lloc": 241
   },
   "c": {
     "dir": "c",
@@ -1715,7 +1715,7 @@
     "push_rank": 53,
     "star_count": 5409,
     "star_rank": 54,
-    "sloc": 1908,
+    "sloc": 1920,
     "files": 9,
     "author_name": "Dov Murik",
     "author_url": "https://github.com/dubek",
