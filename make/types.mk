@@ -68,16 +68,16 @@ __var_print = $(foreach v,$(1),\
 _visualize_memory = $(foreach var,$(sort $(foreach vv,$(filter $(__obj_magic)_%,$(.VARIABLES)),$(call __var_name,$(vv)))),$(call __var_print,$(__obj_magic)_$(var)))
 
 
+# Errors/Exceptions
+__ERROR :=
+_error = $(strip $(eval __ERROR := $(call _string,$(1))))
+
+
 # Constant atomic values
 __undefined = $(__obj_magic)_undf_0
 __nil = $(__obj_magic)__nil_0
 __true = $(__obj_magic)_true_0
 __false = $(__obj_magic)_fals_0
-
-
-# Errors/Exceptions
-__ERROR :=
-_error = $(eval __ERROR := $(call _string,$(1)))$(__nil)
 
 
 # General functions

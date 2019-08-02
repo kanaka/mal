@@ -43,7 +43,7 @@ ENV_FIND = $(strip \
                  ,\
                  $(call ENV_FIND,$(call _get,$(1),__outer__),$(2)))))
 
-ENV_GET = $(foreach env,|$(call ENV_FIND,$(1),$(2))|,$(if $(call _EQ,||,$(env)),$(call _error,'$(2)' not found),$(call _get,$(strip $(subst |,,$(env))),$(subst =,$(__equal),$(2)))))
+ENV_GET = $(foreach env,|$(call ENV_FIND,$(1),$(2))|,$(if $(call _EQ,||,$(env)),$(call _error,'$(2)' not found)$(__nil),$(call _get,$(strip $(subst |,,$(env))),$(subst =,$(__equal),$(2)))))
 
 ENV_SET = $(if $(call _assoc!,$(1),$(subst =,$(__equal),$(2)),$(3)),$(1),)
 
