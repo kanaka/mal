@@ -151,8 +151,10 @@ sub EVAL {
 	    }
         }
         when ('do') {
-            eval_ast($ast->slice(1, $#$ast-1), $env);
-            @_ = ($ast->[$#$ast], $env);
+	    my (undef, @todo) = @$ast;
+	    my $last = pop @todo;
+            eval_ast(Mal::List->new(\@todo), $env);
+            @_ = ($last, $env);
             goto &EVAL;
         }
         when ('if') {

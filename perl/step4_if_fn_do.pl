@@ -61,8 +61,9 @@ sub EVAL {
             return EVAL($body, $let_env);
         }
         when ('do') {
-            my $el = eval_ast($ast->rest(), $env);
-            return $el->[$#$el];
+	    my (undef, @todo) = @$ast;
+            my $el = eval_ast(Mal::List->new(\@todo), $env);
+            return pop @$el;
         }
         when ('if') {
 	    my (undef, $if, $then, $else) = @$ast;
