@@ -59,7 +59,7 @@
 | [Object Pascal](#object-pascal) | [Joel Martin](https://github.com/kanaka)  |
 | [Objective C](#objective-c) | [Joel Martin](https://github.com/kanaka)  |
 | [OCaml](#ocaml-4010) | [Chris Houser](https://github.com/chouser) |
-| [Perl](#perl-58) | [Joel Martin](https://github.com/kanaka)  |
+| [Perl](#perl-5) | [Joel Martin](https://github.com/kanaka)  |
 | [Perl 6](#perl-6) | [Hinrik Örn Sigurðsson](https://github.com/hinrik) |
 | [PHP](#php-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Picolisp](#picolisp) | [Vasilij Schneidermann](https://github.com/wasamasa) |
@@ -743,7 +743,9 @@ export PATH=`pwd`/node_modules/minimal-lisp/:$PATH
 miniMAL ./stepX_YYY
 ```
 
-### Perl 5.8
+### Perl 5
+
+The Perl 5 implementation should work with perl 5.19.3 and later.
 
 For readline line editing support, install Term::ReadLine::Perl or
 Term::ReadLine::Gnu from CPAN.
