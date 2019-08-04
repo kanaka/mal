@@ -43,20 +43,20 @@ sub EVAL {
     }
 
     # apply list
-    my ($a0, $a1, $a2, $a3) = @$ast;
-    if (!$a0) { return $ast; }
-    given ($$a0) {
+    unless (@$ast) { return $ast; }
+    given (${$ast->[0]}) {
         when ('def!') {
-            my $res = EVAL($a2, $env);
-            return $env->set($a1, $res);
+	    my (undef, $sym, $val) = @$ast;
+            return $env->set($sym, EVAL($val, $env));
         }
         when ('let*') {
+	    my (undef, $bindings, $body) = @$ast;
             my $let_env = Mal::Env->new($env);
-	    foreach my $pair (pairs @$a1) {
+	    foreach my $pair (pairs @$bindings) {
 		my ($k, $v) = @$pair;
                 $let_env->set($k, EVAL($v, $let_env));
             }
-            return EVAL($a2, $let_env);
+            return EVAL($body, $let_env);
         }
         default {
             my @el = @{eval_ast($ast, $env)};

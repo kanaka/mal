@@ -5,7 +5,7 @@ use warnings;
 use Exporter 'import';
 our @EXPORT_OK = qw( _pr_str );
 
-use types qw($nil $true $false);
+use types qw(thaw_key $nil $true $false);
 
 use Data::Dumper;
 use List::Util qw(pairmap);
@@ -18,12 +18,12 @@ sub _pr_str {
     } elsif ($obj->isa('Mal::Vector')) {
 	return '[' . join(' ', map { _pr_str($_, $_r) } @$obj) . ']';
     } elsif ($obj->isa('Mal::HashMap')) {
-	return '{' . join(' ', pairmap { _pr_str(Mal::String->new($a), $_r) =>
+	return '{' . join(' ', pairmap { _pr_str(thaw_key($a), $_r) =>
 				         _pr_str($b, $_r) } %$obj) . '}';
+    } elsif ($obj->isa('Mal::Keyword')) {
+	return ":$$obj";
     } elsif ($obj->isa('Mal::String')) {
-	if ($$obj =~ /^\x{029e}/) {
-	    return ":$'";
-	} elsif ($_r) {
+	if ($_r) {
 	    my $str = $$obj;
 	    $str =~ s/\\/\\\\/g;
 	    $str =~ s/"/\\"/g;

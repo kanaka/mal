@@ -4,6 +4,7 @@ use warnings;
 
 use Exporter 'import';
 our @EXPORT_OK = qw( pl_to_mal );
+use List::Util qw(pairmap);
 use Scalar::Util qw(looks_like_number);
 
 use types qw($nil);
@@ -15,11 +16,8 @@ sub pl_to_mal {
             my @arr = map {pl_to_mal($_)} @$obj;
             return Mal::List->new(\@arr);
         } elsif (/^HASH/) {
-            my $hsh = {};
-            foreach my $key (keys %$obj) {
-                $hsh->{$key} = pl_to_mal($obj->{$key});
-            }
-            return Mal::HashMap->new($hsh)
+            my %hsh = map { pl_to_mal($_) } %$obj;
+            return Mal::HashMap->new(\%hsh)
         } else {
 	    if (!defined($obj)) {
 		return $nil;
