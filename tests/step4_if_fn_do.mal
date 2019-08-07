@@ -50,6 +50,8 @@
 ;; Testing 1-way if form
 (if false (+ 1 7))
 ;=>nil
+(if nil 8)
+;=>nil
 (if nil 8 7)
 ;=>7
 (if true (+ 1 7))
