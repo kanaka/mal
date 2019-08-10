@@ -52,7 +52,7 @@ fi
 case "${ACTION}" in
 build)
     # rpython often fails on step9 in compute_vars_longevity
-    # so build step9, then continue wit the full build
+    # so build step9, then continue with the full build
     if [ "${BUILD_IMPL}" = "rpython" ]; then
         ${MAKE} -C "${BUILD_IMPL}" step9_try || true
     fi

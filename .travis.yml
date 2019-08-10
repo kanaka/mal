@@ -101,11 +101,14 @@ matrix:
     - {env: IMPL=vb,                          services: [docker]}
     - {env: IMPL=vhdl NO_SELF_HOST_PERF=1,    services: [docker]} # perf timeout
     - {env: IMPL=vimscript,                   services: [docker]}
-    - {env: IMPL=wasm wasm_MODE=wasmtime NO_SELF_HOST_PERF=1,  services: [docker]} # mac stack overflow
-    - {env: IMPL=wasm wasm_MODE=wax NO_SELF_HOST_PERF=1,       services: [docker]} # mac stack overflow
-    - {env: IMPL=wasm wasm_MODE=node NO_SELF_HOST_PERF=1,      services: [docker]} # mac stack overflow
-    - {env: IMPL=wasm wasm_MODE=wace_libc NO_SELF_HOST_PERF=1, services: [docker]} # mac stack overflow
-    - {env: IMPL=wasm wasm_MODE=warpy NO_SELF_HOST_PERF=1,     services: [docker]} # mac stack overflow
+      # no self-host perf for wasm due to mac stack overflow
+    - {env: IMPL=wasm wasm_MODE=wasmtime  NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wasmer    NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=lucet     NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wax       NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=node      NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=warpy     NO_SELF_HOST_PERF=1, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wace_libc NO_SELF_HOST_PERF=1, services: [docker]}
     - {env: IMPL=yorick,                      services: [docker]}
 
 script:

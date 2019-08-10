@@ -59,14 +59,15 @@ RUN git clone https://github.com/WebAssembly/binaryen/ && \
     cd .. && \
     rm -r binaryen
 
-#########################################################################
-FROM base as build_runtimes
+###########################################################################
+FROM base as build_tools
+###########################################################################
 
 #
 # clang/LLVM and rust (for building wasmtime)
 #
 RUN apt-get -y install llvm-3.9-dev libclang-3.9-dev clang-3.9
-RUN apt-get -y install curl && \
+RUN apt-get -y install curl &&  \
     curl https://sh.rustup.rs -sSf > /tmp/rustup.sh && \
     sh /tmp/rustup.sh -y
 ENV PATH $PATH:/root/.cargo/bin
@@ -101,14 +102,32 @@ RUN apt-get -y install software-properties-common && \
 #
 # wasi-sdk (C/C++ -> wasm+wasi)
 #
-RUN curl -LO https://github.com/CraneStation/wasi-sdk/releases/download/wasi-sdk-3/wasi-sdk_3.0_amd64.deb && \
-    dpkg -i wasi-sdk_3.0_amd64.deb && \
-    rm wasi-sdk_3.0_amd64.deb
+RUN curl -LO https://github.com/CraneStation/wasi-sdk/releases/download/wasi-sdk-5/wasi-sdk_5.0_amd64.deb && \
+    dpkg -i wasi-sdk_5.0_amd64.deb && \
+    rm wasi-sdk_5.0_amd64.deb
+
+##
+## Rust wasm support
+##
+#RUN rustup default nightly
+#RUN rustup target add wasm32-unknown-wasi --toolchain nightly
+##RUN cargo +nightly build --target wasm32-unknown-wasi
+#
+## TODO: Do this when we install rust instead
+#RUN mv /root/.cargo /opt/cargo && mv /root/.rustup /opt/rustup
+#RUN chmod -R a+r /opt/cargo && chmod -R a+rw /opt/rustup
+#ENV CARGO_HOME /opt/cargo
+#ENV RUSTUP_HOME /opt/rustup
+#ENV PATH $PATH:/opt/cargo/bin
+
+###########################################################################
+FROM build_tools as runtimes
+###########################################################################
 
 #
 # warpy
 #
-RUN git clone https://github.com/kanaka/warpy/ && \
+RUN git clone https://github.com/kanaka/warpy/  && \
     cd warpy && \
     make warpy-nojit && \
     cp warpy-nojit /usr/bin/warpy
@@ -122,22 +141,58 @@ RUN git clone https://github.com/kanaka/wac/ && \
     cp wac wax wace /usr/bin
 
 #
+# wasmer
+#
+
+RUN curl https://get.wasmer.io -sSfL | sh && \
+    cp /root/.wasmer/bin/wasmer /usr/bin/wasmer && \
+    cp /root/.wasmer/bin/wapm /usr/bin/wapm
+
+#RUN git clone --recursive https://github.com/wasmerio/wasmer  && \
+#    cd wasmer && \
+#    cargo build --release && \
+#    cp target/release/wasmer /usr/bin/
+
+#
+# lucet
+#
+
+RUN git clone --recursive https://github.com/fastly/lucet && \
+    cd lucet && \
+    make install
+
+#
 # wasmtime
 #
-RUN git clone --recursive https://github.com/CraneStation/wasmtime && \
-    cd wasmtime && \
-    cargo build --release && \
-    cp target/release/wasmtime /usr/bin/ && \
-    cp target/release/wasm2obj /usr/bin/
+
+RUN curl -L https://github.com/CraneStation/wasmtime/releases/download/dev/wasmtime-dev-x86_64-linux.tar.xz | tar xvJf - && \
+    cp wasmtime-dev-x86_64-linux/wasmtime /usr/bin/wasmtime && \
+    cp wasmtime-dev-x86_64-linux/wasm2obj /usr/bin/wasm2obj
+
+#RUN git clone --recursive https://github.com/CraneStation/wasmtime &&  \
+#    cd wasmtime && \
+#    sed -i 's/c3994bf57b5d2f1f973b0e4e37bc385695aa4ed2/8ea7a983d8b1364e5f62d2adf0e74b3b8db1c9b3/' Cargo.toml && \
+#    cargo build --release && \
+#    cp target/release/wasmtime /usr/bin/ && \
+#    cp target/release/wasm2obj /usr/bin/
 
 
-#########################################################################
+###########################################################################
 FROM base as wasm
+###########################################################################
 
-COPY --from=build_runtimes /usr/bin/wac /usr/bin/wac
-COPY --from=build_runtimes /usr/bin/wax /usr/bin/wax
-COPY --from=build_runtimes /usr/bin/wace /usr/bin/wace
-COPY --from=build_runtimes /usr/bin/warpy /usr/bin/warpy
-COPY --from=build_runtimes /usr/bin/wasmtime /usr/bin/wasmtime
-COPY --from=build_runtimes /usr/bin/wasm2obj /usr/bin/wasm2obj
+COPY --from=runtimes /usr/bin/wac /usr/bin/wac
+COPY --from=runtimes /usr/bin/wax /usr/bin/wax
+COPY --from=runtimes /usr/bin/wace /usr/bin/wace
+COPY --from=runtimes /usr/bin/warpy /usr/bin/warpy
+COPY --from=runtimes /usr/bin/wasmtime /usr/bin/wasmtime
+COPY --from=runtimes /usr/bin/wasm2obj /usr/bin/wasm2obj
+
+RUN mkdir -p /opt/lucet/bin
+COPY --from=runtimes /opt/lucet/ /opt/lucet
+RUN ln -sf /opt/lucet/bin/lucetc-wasi /usr/bin/lucetc-wasi
+RUN ln -sf /opt/lucet/bin/lucet-wasi /usr/bin/lucet-wasi
+
+COPY --from=runtimes /usr/bin/wasmer /usr/bin/wasmer
+COPY --from=runtimes /usr/bin/wapm /usr/bin/wapm
 

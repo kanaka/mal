@@ -63,7 +63,7 @@ matlab_MODE = octave
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
 scheme_MODE = chibi
-# wasmtime js node wace_libc wace_fooboot
+# wasmtime wasmer lucet wax  node js wace_fooboot warpy  wace_libc
 wasm_MODE = wasmtime
 
 # Path to loccount for counting LOC stats
@@ -259,7 +259,7 @@ vala_STEP_TO_PROG =    vala/$($(1))
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
-wasm_STEP_TO_PROG =    wasm/$($(1)).wasm
+wasm_STEP_TO_PROG =    wasm/$($(1)).$(if $(filter lucet,$(wasm_MODE)),so,wasm)
 yorick_STEP_TO_PROG =  yorick/$($(1)).i
 
 

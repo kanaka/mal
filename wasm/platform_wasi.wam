@@ -2,7 +2,6 @@
 
   (memory 256)
   (export "memory" (memory 0))
-  (global $memoryBase i32 0)
 
   (global $WASI_RIGHT_FD_READ i64 (i64.const 2))
   (global $WASI_ESUCCESS i32 0)
