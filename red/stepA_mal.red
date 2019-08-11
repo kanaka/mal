@@ -308,7 +308,7 @@ repl-env/.set "*ARGV*" argv
 
 re {(def! *host-language* "Red")} repl-env
 re "(def! not (fn* (a) (if a false true)))" repl-env
-re {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))} repl-env
+re {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\n)")))))} repl-env
 re {(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))} repl-env
 re "(def! inc (fn* (x) (+ x 1)))" repl-env
 re {(def! gensym (let* (counter (atom 0)) (fn* () (symbol (str "G__" (swap! counter inc))))))} repl-env

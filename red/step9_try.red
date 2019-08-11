@@ -300,7 +300,7 @@ repl-env/.set "eval" func [args][
 repl-env/.set "*ARGV*" argv
 
 rep "(def! not (fn* (a) (if a false true)))" repl-env
-rep {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))} repl-env
+rep {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\n)")))))} repl-env
 rep {(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))} repl-env
 rep "(defmacro! or (fn* (& xs) (eval (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs)))))))))" repl-env
 

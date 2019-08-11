@@ -38,7 +38,7 @@ tokenize: func [
 	str     [string!]
 	return: [block!]
 	/local
-		tokens
+		tokens t out
 		r=ws r=ws+cm r=sym r=sp_sym r=dq+bs r=!dq+bs r=!nl "Rule variables"
 ][
 	r=ws:     charset reduce [space tab newline lf cr]
@@ -52,7 +52,7 @@ tokenize: func [
 	tokens: copy parse str [
 		collect [
 			some [
-				any [r=ws+cm]
+				any r=ws+cm
 				keep [
 					  "~@"
 					| r=sp_sym
@@ -64,9 +64,13 @@ tokenize: func [
 		]
 	]
 	
-	remove-each t tokens [#";" = first to-string t]
-	
-	return tokens
+	return copy collect [
+		foreach t tokens [
+			unless #";" = first to-string t [
+				keep/only t
+			]
+		]
+	]
 ]
 
 read-atom: func [
@@ -138,6 +142,7 @@ read-list: func [
 	
 	while [(token: rdr/.peek) <> stop][
 		if none? token [
+			probe ast
 			throw rejoin ["expected '" stop "', got EOF"]
 		]
 		

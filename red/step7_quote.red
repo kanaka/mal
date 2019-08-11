@@ -229,7 +229,7 @@ repl-env/.set "eval" func [args][
 repl-env/.set "*ARGV*" argv
 
 rep "(def! not (fn* (a) (if a false true)))" repl-env
-rep {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))} repl-env
+rep {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\n)")))))} repl-env
 
 unless empty? argv [
 	rep rejoin [{(load-file "} argv/1 {")}] repl-env
