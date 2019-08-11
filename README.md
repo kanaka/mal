@@ -71,6 +71,7 @@
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
 | [R](#r) | [Joel Martin](https://github.com/kanaka)  |
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
+| [Red](#red-064) | [Alan Forshaw](https://github.com/ALANVF) |
 | [Rexx](#rexx) | [Dov Murik](https://github.com/dubek) |
 | [Ruby](#ruby-19) | [Joel Martin](https://github.com/kanaka)  |
 | [Rust](#rust-100-nightly) | [Joel Martin](https://github.com/kanaka)  |
@@ -879,6 +880,16 @@ compiler/interpreter to run.
 ```
 cd racket
 ./stepX_YYY.rkt
+```
+
+### Red (0.6.4)
+
+THe Red implementation of mal has been tested with Red 0.6.4.
+
+```
+cd red
+make
+./stepX_YYY
 ```
 
 ### Rexx
