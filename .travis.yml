@@ -77,6 +77,7 @@ matrix:
     - {env: IMPL=python python_MODE=python3,  services: [docker]}
     - {env: IMPL=r,                           services: [docker]}
     - {env: IMPL=racket,                      services: [docker]}
+    - {env: IMPL=red,                         services: [docker]}
     - {env: IMPL=rexx,                        services: [docker]}
     - {env: IMPL=rpython,                     services: [docker]}
     - {env: IMPL=ruby,                        services: [docker]}
