@@ -278,6 +278,7 @@ rep {(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (
 
 unless empty? argv [
 	rep rejoin [{(load-file "} argv/1 {")}] repl-env
+	quit
 ]
 
 forever [

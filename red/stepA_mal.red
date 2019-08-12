@@ -314,6 +314,7 @@ re "(def! inc (fn* (x) (+ x 1)))" repl-env
 
 unless empty? argv [
 	rep rejoin [{(load-file "} argv/1 {")}] repl-env
+	quit
 ]
 
 forever [

@@ -233,6 +233,7 @@ rep {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\n)"))))
 
 unless empty? argv [
 	rep rejoin [{(load-file "} argv/1 {")}] repl-env
+	quit
 ]
 
 forever [
