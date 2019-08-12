@@ -311,9 +311,6 @@ re "(def! not (fn* (a) (if a false true)))" repl-env
 re {(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\n)")))))} repl-env
 re {(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))} repl-env
 re "(def! inc (fn* (x) (+ x 1)))" repl-env
-re {(def! gensym (let* (counter (atom 0)) (fn* () (symbol (str "G__" (swap! counter inc))))))} repl-env
-re "(def! and (fn* (& e) (if (empty? e) false (= (map e (fn* (i) (not (not i)))) (map e (fn* (i) (true)))))))" repl-env
-re "(def! or (fn* (& e) (if (empty? e) false (if (first e) true (apply or (rest e))))))" repl-env
 
 unless empty? argv [
 	rep rejoin [{(load-file "} argv/1 {")}] repl-env
