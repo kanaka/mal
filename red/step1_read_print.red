@@ -35,9 +35,7 @@ rep: func [
 ]
 
 forever [
-	either not none? ui: ask "user> " [
-		if ui = "" [continue]
-		
+	either not empty? ui: ask "user> " [
 		print read-str ui
 	][
 		quit/return 0

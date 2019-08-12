@@ -118,9 +118,7 @@ repl-env/.set "*" func [args][args/1 * args/2]
 repl-env/.set "/" func [args][args/1 / args/2]
 
 forever [
-	either not none? ui: ask "user> " [
-		if ui = "" [continue]
-		
+	either not empty? ui: ask "user> " [
 		print rep ui repl-env
 	][
 		quit/return 0

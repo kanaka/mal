@@ -33,7 +33,7 @@ rep: func [
 ]
 
 forever [
-	either not none? ui: ask "user> " [
+	either not empty? ui: ask "user> " [
 		print rep ui
 	][
 		quit/return 0

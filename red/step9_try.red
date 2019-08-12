@@ -309,9 +309,7 @@ unless empty? argv [
 ]
 
 forever [
-	either not none? ui: ask "user> " [
-		if ui = "" [continue]
-		
+	either not empty? ui: ask "user> " [
 		e: catch [
 			try [
 				print rep ui repl-env
