@@ -1065,8 +1065,10 @@ mono ./stepX_YYY.exe
 The WebAssembly implementation is written in
 [Wam](https://github.com/kanaka/wam) (WebAssembly Macro language) and
 runs under several different non-web embeddings (runtimes):
-node,
+[node](https://nodejs.org),
 [wasmtime](https://github.com/CraneStation/wasmtime),
+[wasmer](https://wasmer.io),
+[lucet](https://github.com/fastly/lucet),
 [wax](https://github.com/kanaka/wac),
 [wace](https://github.com/kanaka/wac),
 [warpy](https://github.com/kanaka/warpy).
@@ -1079,9 +1081,15 @@ make wasm_MODE=node
 # wasmtime
 make wasm_MODE=wasmtime
 wasmtime --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
+# wasmer
+make wasm_MODE=wasmer
+wasmer run --dir=./ --dir=../ --dir=/ ./stepX_YYY.wasm
+# lucet
+make wasm_MODE=lucet
+lucet-wasi --dir=./:./ --dir=../:../ --dir=/:/ ./stepX_YYY.so
 # wax
 make wasm_MODE=wax
-wace ./stepX_YYY.wasm
+wax ./stepX_YYY.wasm
 # wace
 make wasm_MODE=wace_libc
 wace ./stepX_YYY.wasm
@@ -1113,7 +1121,7 @@ make help
 
 ### Functional tests
 
-The are over 600 generic functional tests (for all implementations)
+The are almost 800 generic functional tests (for all implementations)
 in the `tests/` directory. Each step has a corresponding test file
 containing tests specific to that step. The `runtest.py` test harness
 launches a Mal step implementation and then feeds the tests one at
