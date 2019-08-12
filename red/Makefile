@@ -8,4 +8,4 @@ step%: step%.red
 	red-064 -c $<
 
 clean:
-	rm -f $(STEPS:%.red=%) *.red mal
+	rm -f $(STEPS:%.red=%) mal
