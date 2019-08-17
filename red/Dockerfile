@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu
 
 ##########################################################
 # General requirements for testing or common across many
@@ -26,7 +26,7 @@ RUN apt-get install -y \
 	libc6:i386 \
 	libcurl3:i386 \
 	wget
-RUN wget http://static.red-lang.org/dl/linux/red-064 -O /usr/bin/red-064
-RUN chmod +x /usr/bin/red-064
+RUN wget http://static.red-lang.org/dl/linux/red-064
+RUN chmod +x red-064
 
 ENV HOME /mal

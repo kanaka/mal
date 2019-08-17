@@ -4,6 +4,8 @@ Red [
 	Tabs:  4
 ]
 
+#include %readline.red
+
 mal.read: func [
 	str     [string!]
 	return: [string!]
@@ -33,9 +35,6 @@ rep: func [
 ]
 
 forever [
-	either not empty? ui: ask "user> " [
-		print rep ui
-	][
-		quit/return 0
-	]
+	ui: readline "user> "
+	print rep ui
 ]

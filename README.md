@@ -888,8 +888,7 @@ THe Red implementation of mal has been tested with Red 0.6.4.
 
 ```
 cd red
-make
-./stepX_YYY
+red-064 --cli ./stepX_YYY.red
 ```
 
 ### Rexx

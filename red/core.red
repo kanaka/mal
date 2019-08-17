@@ -10,6 +10,8 @@ Red [
 #include %printer.red
 #include %malfunc.red
 
+#include %readline.red
+
 wrap-tf: func [val][either val [mal-true!][mal-false!]]
 
 mal-core: object [
@@ -32,7 +34,7 @@ mal-core: object [
 		_prn:         func [args][print map args func[i][_pr_str :i true] none]
 		_println:     func [args][print map args func[i][_pr_str :i false] none]
 		_read-string: func [args][read-str args/1]
-		_readline:    func [args][ask args/1]
+		_readline:    func [args][readline args/1]
 		_slurp:       func [args][read to-file args/1]
 		lt:           func [args][wrap-tf args/1 < args/2]
 		le:           func [args][wrap-tf args/1 <= args/2]

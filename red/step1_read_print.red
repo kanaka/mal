@@ -8,6 +8,8 @@ Red [
 #include %reader.red
 #include %printer.red
 
+#include %readline.red
+
 mal.read: func [
 	str [string!]
 ][
@@ -35,9 +37,6 @@ rep: func [
 ]
 
 forever [
-	either not empty? ui: ask "user> " [
-		print read-str ui
-	][
-		quit/return 0
-	]
+	ui: readline "user> "
+	print read-str ui
 ]

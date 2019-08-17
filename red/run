@@ -1,2 +1,2 @@
 #!/bin/bash
-red-064 $(dirname $0)/${STEP:-stepA_mal}.red "${@}"
+red-064 --cli $(dirname $0)/${STEP:-stepA_mal}.red "${@}"

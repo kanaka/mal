@@ -9,6 +9,8 @@ Red [
 #include %reader.red
 #include %printer.red
 
+#include %readline.red
+
 mal.read: func [
 	str [string!]
 ][
@@ -104,9 +106,6 @@ repl-env: make map! reduce [
 ]
 
 forever [
-	either not empty? ui: ask "user> " [
-		print rep ui repl-env
-	][
-		quit/return 0
-	]
+	ui: readline "user> "
+	print rep ui repl-env
 ]

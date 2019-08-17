@@ -12,6 +12,8 @@ Red [
 #include %malfunc.red
 #include %core.red
 
+#include %readline.red
+
 mal.read: func [
 	str [string!]
 ][
@@ -158,9 +160,6 @@ foreach [k v] to-block core-ns [
 rep "(def! not (fn* (a) (if a false true)))" repl-env
 
 forever [
-	either not empty? ui: ask "user> " [
-		print rep ui repl-env
-	][
-		quit/return 0
-	]
+	ui: readline "user> "
+	print rep ui repl-env
 ]

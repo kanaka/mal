@@ -12,6 +12,8 @@ Red [
 #include %malfunc.red
 #include %core.red
 
+#include %readline.red
+
 mal.read: func [
 	str [string!]
 ][
@@ -282,9 +284,6 @@ unless empty? argv [
 ]
 
 forever [
-	either not empty? ui: ask "user> " [
-		print rep ui repl-env
-	][
-		quit/return 0
-	]
+	ui: readline "user> "
+	print rep ui repl-env
 ]
