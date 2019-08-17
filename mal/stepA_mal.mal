@@ -28,10 +28,11 @@
   (if (list? ast)
     (let* [a0 (first ast)]
       (if (symbol? a0)
-        (if (env-find env a0)
-          (let* [m (env-get env a0)]
-            (if (_macro? m)
-              (get m :__MAL_MACRO__)))))))))
+        (let* [e (env-find env a0)]
+          (if e
+            (let* [m (env-get e a0)]
+              (if (_macro? m)
+                (get m :__MAL_MACRO__))))))))))
 
 (def! MACROEXPAND (fn* [ast env]
   (let* [m (is-macro-call ast env)]
