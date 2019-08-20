@@ -200,6 +200,13 @@ bit bad about it.
 
 ## The Make-A-Lisp Process
 
+Feel free to follow the guide as literally or as loosely as you
+like. You are here to learn; wandering off the beaten path may be the
+way you learn best. However, each step builds on the previous steps,
+so if you are new to Lisp or new to your implementation language then
+you may want to stick more closely to the guide your first time
+through to avoid frustration at later steps.
+
 In the steps that follow the name of the target language is "quux" and
 the file extension for that language is "qx".
 
