@@ -24,19 +24,12 @@
        "else"
        (list 'cons (QUASIQUOTE a0) (QUASIQUOTE (rest ast))))))))
 
-(def! is-macro-call (fn* [ast env]
-  (if (list? ast)
-    (let* [a0 (first ast)]
-      (if (symbol? a0)
-        (if (env-find env a0)
-          (let* [m (env-get env a0)]
-            (if (_macro? m)
-              (get m :__MAL_MACRO__)))))))))
-
 (def! MACROEXPAND (fn* [ast env]
-  (let* [m (is-macro-call ast env)]
-    (if m
-      (MACROEXPAND (apply m (rest ast)) env)
+  (let* [a0 (if (list? ast) (first ast))
+         e  (if (symbol? a0) (env-find env a0))
+         m  (if e (env-get e a0))]
+    (if (_macro? m)
+      (MACROEXPAND (apply (get m :__MAL_MACRO__) (rest ast)) env)
       ast))))
 
 (def! eval-ast (fn* [ast env]
