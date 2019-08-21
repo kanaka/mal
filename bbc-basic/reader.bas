@@ -67,7 +67,7 @@ DEF FNtokenize(src%, tokens$())
     REM  state 5: Just seen a "~"
     DATA " N,",5,1, "@",0,3, "~",1,5, "[]{}()'`^@",1,3, Q,1,7, ";",5,11, "",1,1
     REM  state 7: Inside a quoted string
-    DATA "\",0,9, Q,0,3, N,5,3, "",0,7
+    DATA "\",0,9, Q,0,3, "",0,7
     REM  state 9: After a backslash in a string
     DATA "",0,7
     REM  state 11: Inside a comment
