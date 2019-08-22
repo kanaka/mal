@@ -18,7 +18,7 @@ function reader_read_atom(token)
 	case /^:/:
 		return ":" token
 	case /^"/:
-		if (token ~ /^\"(\\[^\r\n]|[^\\"\r\n])*\"$/) {
+		if (token ~ /^\"(\\.|[^\\"])*\"$/) {
 				return reader_read_string(token)
 		} else {
 				return "!\"Expected '\"', got EOF."
@@ -151,7 +151,7 @@ function reader_read_from(reader,    current)
 
 function reader_tokenizer(str,    reader,    len, r)
 {
-	for (len = 0; match(str, /^[ \t\r\n,]*(~@|[\[\]{}()'`~^@]|\"(\\[^\r\n]|[^\\"\r\n])*\"?|;[^\r\n]*|[^ \t\r\n\[\]{}('"`,;)^~@][^ \t\r\n\[\]{}('"`,;)]*)/, r); ) {
+	for (len = 0; match(str, /^[ \t\r\n,]*(~@|[\[\]{}()'`~^@]|\"(\\.|[^\\"])*\"?|;[^\r\n]*|[^ \t\r\n\[\]{}('"`,;)^~@][^ \t\r\n\[\]{}('"`,;)]*)/, r); ) {
 		if (substr(r[1], 1, 1) != ";") {
 			reader[len++] = r[1]
 		}

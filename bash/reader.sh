@@ -110,7 +110,6 @@ TOKENIZE () {
     local idx=0
     local chunk=0
     local chunksz=500
-    local match=
     local token=
     local str=
 
@@ -122,16 +121,16 @@ TOKENIZE () {
             chunk=$(( chunk + ${chunksz} ))
         fi
         (( ${#str} == 0 )) && break
-        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|(\"(\\.|[^\\\"])*\"?)|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@\,]+)|^[,]|^[[:space:]]+ ]]
-        match=${BASH_REMATCH[0]}
-        str="${str:${#match}}"
-        token="${match//$'\n'/}"
+        [[ "${str}" =~ ^^([][{}\(\)^@])|^(~@)|^(\"(\\.|[^\\\"])*\"?)|^(;[^$'\n']*)|^([~\'\`])|^([^][ ~\`\'\";{}\(\)^@\,$'\n']+)|^(,)|^([[:space:]]+) ]]
+        token=${BASH_REMATCH[0]}
+        str="${str:${#token}}"
+        token="${token}"
         #echo "MATCH: '${token}' / [${str}]"
         if ! [[ "${token}" =~ (^[,]$|^[[:space:]]*;.*$|^[[:space:]]*$) ]]; then 
             __reader_tokens[${idx}]="${token}"
             idx=$(( idx + 1 ))
         fi
-        if [ -z "${match}" ]; then
+        if [ -z "${token}" ]; then
             _error "Tokenizing error at: ${str:0:50}"
             return 1
         fi
