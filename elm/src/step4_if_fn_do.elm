@@ -4,7 +4,7 @@ import Array
 import Dict exposing (Dict)
 import IO exposing (..)
 import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
+import Platform exposing (worker)
 import Types exposing (..)
 import Reader exposing (readString)
 import Printer exposing (printString)
@@ -16,7 +16,7 @@ import Eval
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -74,7 +74,7 @@ update msg model =
                     runInit env (cont io)
 
                 Input (Err msg) ->
-                    Debug.crash msg
+                    Debug.todo msg
 
         ReplActive env ->
             case msg of
@@ -94,10 +94,10 @@ update msg model =
                     ( model, Cmd.none )
 
                 Input (Ok io) ->
-                    Debug.crash "unexpected IO received: " io
+                    Debug.todo "unexpected IO received: " io
 
                 Input (Err msg) ->
-                    Debug.crash msg
+                    Debug.todo msg
 
         ReplIO env cont ->
             case msg of
@@ -105,7 +105,7 @@ update msg model =
                     run env (cont io)
 
                 Input (Err msg) ->
-                    Debug.crash msg ( model, Cmd.none )
+                    Debug.todo msg ( model, Cmd.none )
 
 
 runInit : Env -> Eval MalExpr -> ( Model, Cmd Msg )

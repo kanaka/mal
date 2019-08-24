@@ -150,3 +150,12 @@ printEnv env =
             ++ (toString env.currentFrameId)
             ++ "\n\n"
             ++ String.join "\n\n" (Dict.foldr printFrameAcc [] env.frames)
+
+-- to string function
+toString : a -> String
+toString str = 
+    Debug.toString str
+
+uncurry : (a -> b -> c) -> (a,b) -> c
+uncurry f (a,b) =
+  f a b

@@ -2,7 +2,7 @@ port module Main exposing (..)
 
 import IO exposing (..)
 import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
+import Platform exposing (worker)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
 import Printer exposing (printStr)
@@ -10,11 +10,11 @@ import Printer exposing (printStr)
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
         , subscriptions =
-            \model -> input (decodeValue decodeIO >> Input)
+            \model -> input (\val -> Input (decodeValue decodeIO val))
         }
 
 
@@ -55,10 +55,10 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Ok io) ->
-            Debug.crash "unexpected IO received: " io
+            Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err msg_) ->
+            Debug.todo msg_ ( model, Cmd.none )
 
 
 prompt : String

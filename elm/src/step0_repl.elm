@@ -2,12 +2,12 @@ port module Main exposing (..)
 
 import IO exposing (..)
 import Json.Decode exposing (decodeValue)
-import Platform exposing (programWithFlags)
+import Platform exposing (worker)
 
 
 main : Program Flags Model Msg
 main =
-    programWithFlags
+    worker
         { init = init
         , update = update
         , subscriptions =
@@ -49,8 +49,8 @@ update msg model =
         Input (Ok _) ->
             ( model, Cmd.none )
 
-        Input (Err msg) ->
-            Debug.crash msg ( model, Cmd.none )
+        Input (Err msg_) ->
+            Debug.todo msg_ ( model, Cmd.none )
 
 
 prompt : String

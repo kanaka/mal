@@ -64,7 +64,7 @@ getFrame env frameId =
             frame
 
         Nothing ->
-            Debug.crash <| "frame #" ++ (toString frameId) ++ " not found"
+            Debug.todo <| "frame #" ++ (Debug.toString frameId) ++ " not found"
 
 
 emptyFrame : Maybe Int -> Maybe Int -> Frame
@@ -136,7 +136,7 @@ getAtom atomId env =
             value
 
         Nothing ->
-            Debug.crash <| "atom " ++ (toString atomId) ++ " not found"
+            Debug.todo <| "atom " ++ (Debug.toString atomId) ++ " not found"
 
 
 setAtom : Int -> MalExpr -> Env -> Env
@@ -185,7 +185,7 @@ pop env =
                 }
 
             _ ->
-                Debug.crash "tried to pop global frame"
+                Debug.todo "tried to pop global frame"
 
 
 setBinds : List ( String, MalExpr ) -> Frame -> Frame
@@ -231,13 +231,13 @@ leave env =
 
         exitId =
             case frame.exitId of
-                Just exitId ->
-                    exitId
+                Just exitid ->
+                    exitid
 
                 Nothing ->
-                    Debug.crash <|
+                    Debug.todo <|
                         "frame #"
-                            ++ (toString frameId)
+                            ++ (Debug.toString frameId)
                             ++ " doesn't have an exitId"
     in
         { env
@@ -255,23 +255,23 @@ and all it's parent frames.
 ref : Env -> Env
 ref env =
     let
-        go frameId env =
+        go frameId envarg =
             let
                 frame =
-                    getFrame env frameId
+                    getFrame envarg frameId
 
                 newFrame =
                     { frame | refCnt = frame.refCnt + 1 }
 
-                newEnv =
-                    { env | frames = Dict.insert frameId newFrame env.frames }
+                newEnvi =
+                    { envarg | frames = Dict.insert frameId newFrame envarg.frames }
             in
                 case frame.outerId of
                     Just outerId ->
-                        go outerId newEnv
+                        go outerId newEnvi
 
                     Nothing ->
-                        newEnv
+                        newEnvi
 
         newEnv =
             go env.currentFrameId env
@@ -291,8 +291,8 @@ free =
 
 
 pushRef : MalExpr -> Env -> Env
-pushRef ref env =
-    { env | stack = ref :: env.stack }
+pushRef ref_arg env =
+    { env | stack = ref_arg :: env.stack }
 
 
 restoreRefs : List MalExpr -> Env -> Env
@@ -333,8 +333,8 @@ gc expr env =
                 |> List.map Tuple.second
                 |> countList acc
 
-        countExpr expr acc =
-            case expr of
+        countExpr expr_arg acc =
+            case expr_arg of
                 MalFunction (UserFunc { frameId }) ->
                     recur frameId acc
 
@@ -422,3 +422,9 @@ gc expr env =
             |> loop
             |> filterFrames env.frames
             |> makeNewEnv
+
+
+-- flip from the elm 0.18
+flip : (a -> b -> c) -> (b -> a -> c)
+flip f b a =
+  f a b

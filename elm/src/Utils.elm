@@ -10,7 +10,7 @@ module Utils
         , justValues
         )
 
-import Regex exposing (replace, regex, HowMany(All))
+import Regex
 import Types exposing (MalExpr(..))
 
 
@@ -32,8 +32,13 @@ decodeString =
                     other
     in
         String.slice 1 -1
-            >> replace All (regex "\\\\[\\\"\\\\n]") unescape
+            >> Regex.replace (regex "\\\\[\\\"\\\\n]") unescape
 
+-- helps replace all the encodes found into a string
+regex : String -> Regex.Regex
+regex str = 
+    Maybe.withDefault Regex.never 
+        <| Regex.fromString str
 
 encodeString : String -> String
 encodeString =
@@ -53,7 +58,7 @@ encodeString =
                     other
     in
         wrap "\"" "\""
-            << replace All (regex "[\\n\\\"\\\\]") escape
+            << Regex.replace (regex "[\\n\\\"\\\\]") escape
 
 
 makeCall : String -> List MalExpr -> MalExpr
@@ -113,3 +118,8 @@ justValues list =
 
         Nothing :: rest ->
             justValues rest
+
+-- flip from the elm 0.18
+flip : (a -> b -> c) -> (b -> a -> c)
+flip f b a =
+  f a b
