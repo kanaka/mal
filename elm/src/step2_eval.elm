@@ -19,7 +19,7 @@ main =
         { init = init
         , update = update
         , subscriptions =
-            \model -> input (\val -> Input (decodeValue decodeIO val))
+            \model -> input (decodeValue decodeIO >> Input)
         }
 
 

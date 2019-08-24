@@ -119,7 +119,7 @@ justValues list =
         Nothing :: rest ->
             justValues rest
 
--- flip from the elm 0.18
+
 flip : (a -> b -> c) -> (b -> a -> c)
 flip f b a =
   f a b
