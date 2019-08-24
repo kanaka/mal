@@ -1,7 +1,7 @@
 port module Main exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
+import Json.Decode exposing (decodeValue, errorToString, Error)
 import Platform exposing (worker)
 import Types exposing (..)
 import Reader exposing (readString)
@@ -19,7 +19,8 @@ main =
     worker
         { init = init
         , update = update
-        , subscriptions = \model -> input (decodeValue decodeIO >> Input)
+        , subscriptions =
+            \model -> input (\val -> Input (decodeValue decodeIO val))
         }
 
 
@@ -35,7 +36,7 @@ type alias Model =
 
 
 type Msg
-    = Input (Result String IO)
+    = Input (Result Error IO)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -84,8 +85,8 @@ update msg model =
         Input (Ok io) ->
             Debug.todo "unexpected IO received: " io
 
-        Input (Err msg) ->
-            Debug.todo msg ( model, Cmd.none )
+        Input (Err error) ->
+            Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 makeOutput : Result String String -> String
@@ -220,19 +221,19 @@ evalDef env args =
 evalLet : Env -> List MalExpr -> ( Result String MalExpr, Env )
 evalLet env args =
     let
-        evalBinds env binds =
+        evalBinds env_ binds =
             case binds of
                 (MalSymbol name) :: expr :: rest ->
-                    case eval env expr of
+                    case eval env_ expr of
                         ( Ok value, newEnv ) ->
                             let
-                                newEnv =
-                                    Env.set name value env
+                                newEnv_ =
+                                    Env.set name value env_
                             in
                                 if List.isEmpty rest then
-                                    Ok newEnv
+                                    Ok newEnv_
                                 else
-                                    evalBinds newEnv rest
+                                    evalBinds newEnv_ rest
 
                         ( Err msg, _ ) ->
                             Err msg

@@ -1,7 +1,7 @@
 port module Main exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
+import Json.Decode exposing (decodeValue, Error, errorToString)
 import Platform exposing (worker)
 import Types exposing (MalExpr(..))
 import Reader exposing (readString)
@@ -29,7 +29,7 @@ type alias Model =
 
 
 type Msg
-    = Input (Result String IO)
+    = Input (Result Error IO)
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -57,8 +57,8 @@ update msg model =
         Input (Ok io) ->
             Debug.todo "unexpected IO received: " io
 
-        Input (Err msg_) ->
-            Debug.todo msg_ ( model, Cmd.none )
+        Input (Err error) ->
+            Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 prompt : String

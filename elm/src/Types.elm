@@ -3,6 +3,7 @@ module Types exposing (..)
 import Array exposing (Array)
 import Dict exposing (Dict)
 import IO exposing (IO)
+import Json.Decode exposing (Error)
 
 
 type Either a b
@@ -11,7 +12,7 @@ type Either a b
 
 
 type Msg
-    = Input (Result String IO)
+    = Input (Result Error IO)
 
 
 type alias Frame =

@@ -3,7 +3,7 @@ port module Main exposing (..)
 import Array
 import Dict exposing (Dict)
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
+import Json.Decode exposing (decodeValue, Error, errorToString)
 import Platform exposing (worker)
 import Types exposing (..)
 import Reader exposing (readString)
@@ -20,7 +20,7 @@ main =
         { init = init
         , update = update
         , subscriptions =
-            \model -> input (decodeValue decodeIO >> Input)
+            \model -> input (\val -> Input (decodeValue decodeIO val))
         }
 
 
@@ -86,16 +86,16 @@ update msg model =
                 Input (Ok io) ->
                     runInit args env (cont io)
 
-                Input (Err msg) ->
-                    Debug.todo msg
+                Input (Err error) ->
+                    Debug.todo (errorToString error)
 
         ScriptIO env cont ->
             case msg of
                 Input (Ok io) ->
                     runScriptLoop env (cont io)
 
-                Input (Err msg) ->
-                    Debug.todo msg
+                Input (Err error) ->
+                    Debug.todo (errorToString error)
 
         ReplActive env ->
             case msg of
@@ -117,40 +117,40 @@ update msg model =
                 Input (Ok io) ->
                     Debug.todo "unexpected IO received: " io
 
-                Input (Err msg) ->
-                    Debug.todo msg
+                Input (Err error) ->
+                    Debug.todo (errorToString error)
 
         ReplIO env cont ->
             case msg of
                 Input (Ok io) ->
                     run env (cont io)
 
-                Input (Err msg) ->
-                    Debug.todo msg ( model, Cmd.none )
+                Input (Err error) ->
+                    Debug.todo (errorToString error)
 
 
 runInit : Args -> Env -> Eval MalExpr -> ( Model, Cmd Msg )
 runInit args env expr =
     case Eval.run env expr of
-        ( env, EvalOk expr ) ->
+        ( env_, EvalOk expr_ ) ->
             -- Init went okay.
             case args of
                 -- If we got no args: start REPL.
                 [] ->
-                    ( ReplActive env, readLine prompt )
+                    ( ReplActive env_, readLine prompt )
 
                 -- Run the script in the first argument.
                 -- Put the rest of the arguments as *ARGV*.
                 filename :: argv ->
-                    runScript filename argv env
+                    runScript filename argv env_
 
-        ( env, EvalErr msg ) ->
+        ( env_, EvalErr msg ) ->
             -- Init failed, don't start REPL.
-            ( Stopped, writeLine (printError env msg) )
+            ( Stopped, writeLine (printError env_ msg) )
 
-        ( env, EvalIO cmd cont ) ->
+        ( env_, EvalIO cmd cont ) ->
             -- IO in init.
-            ( InitIO args env cont, cmd )
+            ( InitIO args env_ cont, cmd )
 
 
 runScript : String -> List String -> Env -> ( Model, Cmd Msg )
@@ -174,27 +174,27 @@ runScript filename argv env =
 runScriptLoop : Env -> Eval MalExpr -> ( Model, Cmd Msg )
 runScriptLoop env expr =
     case Eval.run env expr of
-        ( env, EvalOk expr ) ->
+        ( env_, EvalOk expr_ ) ->
             ( Stopped, Cmd.none )
 
-        ( env, EvalErr msg ) ->
-            ( Stopped, writeLine (printError env msg) )
+        ( env_, EvalErr msg ) ->
+            ( Stopped, writeLine (printError env_ msg) )
 
-        ( env, EvalIO cmd cont ) ->
-            ( ScriptIO env cont, cmd )
+        ( env_, EvalIO cmd cont ) ->
+            ( ScriptIO env_ cont, cmd )
 
 
 run : Env -> Eval MalExpr -> ( Model, Cmd Msg )
 run env expr =
     case Eval.run env expr of
-        ( env, EvalOk expr ) ->
-            ( ReplActive env, writeLine (print env expr) )
+        ( env_, EvalOk expr_ ) ->
+            ( ReplActive env_, writeLine (print env_ expr_) )
 
-        ( env, EvalErr msg ) ->
-            ( ReplActive env, writeLine (printError env msg) )
+        ( env_, EvalErr msg ) ->
+            ( ReplActive env_, writeLine (printError env_ msg) )
 
-        ( env, EvalIO cmd cont ) ->
-            ( ReplIO env cont, cmd )
+        ( env_, EvalIO cmd cont ) ->
+            ( ReplIO env_ cont, cmd )
 
 
 prompt : String
@@ -231,7 +231,7 @@ eval ast =
                 MalApply app ->
                     Left
                         (debug "evalApply"
-                            (\env -> printString env True expr)
+                            (\env_ -> printString env_ True expr)
                             (evalApply app)
                         )
 
@@ -355,8 +355,8 @@ evalAst ast =
 evalList : List MalExpr -> Eval (List MalExpr)
 evalList list =
     let
-        go list acc =
-            case list of
+        go list_ acc =
+            case list_ of
                 [] ->
                     Eval.succeed (List.reverse acc)
 
@@ -497,34 +497,34 @@ evalFn args =
         extractAndParse =
             extractSymbols [] >> Result.andThen parseBinds
 
-        bindArgs binds args =
+        bindArgs binds args_ =
             let
                 numBinds =
                     List.length binds
             in
-                if List.length args /= numBinds then
+                if List.length args_ /= numBinds then
                     Err <|
                         "function expected "
-                            ++ (toString numBinds)
+                            ++ (Debug.toString numBinds)
                             ++ " arguments"
                 else
-                    Ok <| zip binds args
+                    Ok <| zip binds args_
 
-        bindVarArgs binds var args =
+        bindVarArgs binds var args_ =
             let
                 minArgs =
                     List.length binds
 
                 varArgs =
-                    MalList (List.drop minArgs args)
+                    MalList (List.drop minArgs args_)
             in
-                if List.length args < minArgs then
+                if List.length args_ < minArgs then
                     Err <|
                         "function expected at least "
-                            ++ (toString minArgs)
+                            ++ (Debug.toString minArgs)
                             ++ " arguments"
                 else
-                    Ok <| zip binds args ++ [ ( var, varArgs ) ]
+                    Ok <| zip binds args_ ++ [ ( var, varArgs ) ]
 
         makeFn frameId binder body =
             MalFunction <|

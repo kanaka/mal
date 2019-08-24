@@ -3,7 +3,7 @@ port module Main exposing (..)
 import Array
 import Dict exposing (Dict)
 import IO exposing (..)
-import Json.Decode exposing (decodeValue)
+import Json.Decode exposing (decodeValue, Error, errorToString)
 import Platform exposing (worker)
 import Types exposing (..)
 import Reader exposing (readString)
@@ -20,7 +20,7 @@ main =
         { init = init
         , update = update
         , subscriptions =
-            \model -> input (decodeValue decodeIO >> Input)
+            \model -> input (\val -> Input (decodeValue decodeIO val))
         }
 
 
@@ -96,7 +96,7 @@ update msg model =
                     runInit args env (cont io)
 
                 Input (Err error) ->
-                    Debug.todo error
+                    Debug.todo (errorToString error)
 
         ScriptIO env cont ->
             case msg of
@@ -104,7 +104,7 @@ update msg model =
                     runScriptLoop env (cont io)
 
                 Input (Err error) ->
-                    Debug.todo error
+                    Debug.todo (errorToString error)
 
         ReplActive env ->
             case msg of
@@ -127,7 +127,7 @@ update msg model =
                     Debug.todo "unexpected IO received: " io
 
                 Input (Err error) ->
-                    Debug.todo error
+                    Debug.todo (errorToString error)
 
         ReplIO env cont ->
             case msg of
@@ -135,7 +135,7 @@ update msg model =
                     run env (cont io)
 
                 Input (Err error) ->
-                    Debug.todo error ( model, Cmd.none )
+                    Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 runInit : Args -> Env -> Eval MalExpr -> ( Model, Cmd Msg )
