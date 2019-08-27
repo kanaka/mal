@@ -12,6 +12,9 @@
 (read-string "(+ 2 3)")
 ;=>(+ 2 3)
 
+(read-string "\"\n\"")
+;=>"\n"
+
 (read-string "7 ;; comment")
 ;=>7
 
