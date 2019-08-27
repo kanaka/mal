@@ -1,7 +1,7 @@
 #include "yeti_regex.i"
 require, "types.i"
 
-TOKENIZER_REGEXP = regcomp("[[:space:],]*(~@|[][{}()'`~@]|\"([\\].|[^\\\"])*\"?|;.*|[^][[:space:]{}()'\"`~@,;]*)", newline=1)
+TOKENIZER_REGEXP = regcomp("[[:space:],]*(~@|[][{}()'`~@]|\"([\\].|[^\\\"])*\"?|;[^\n]*|[^][[:space:]{}()'\"`~@,;]*)")
 
 func tokenize(str)
 {

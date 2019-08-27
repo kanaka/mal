@@ -18,9 +18,9 @@ oo::class create Reader {
 }
 
 proc tokenize str {
-    set re {[\s,]*(~@|[\[\]\{\}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;.*|[^\s\[\]\{\}('\"`~^@,;)]*)}
+    set re {[\s,]*(~@|[\[\]\{\}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;[^\n]*|[^\s\[\]\{\}('\"`~^@,;)]*)}
     set tokens {}
-    foreach {_ capture} [regexp -line -all -inline $re $str] {
+    foreach {_ capture} [regexp -all -inline $re $str] {
         if {[string length $capture] > 0 && [string range $capture 0 0] != ";"} {
             lappend tokens $capture
         }
