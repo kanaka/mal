@@ -460,7 +460,7 @@ evalFn args =
                         ++ " arguments"
 
             else
-                Ok <| zip binds args ++ [ ( var, varArgs ) ]
+                Ok <| zip binds args_ ++ [ ( var, varArgs ) ]
 
         makeFn frameId binder body =
             MalFunction <|

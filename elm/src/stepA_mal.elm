@@ -558,36 +558,36 @@ evalFn args =
         extractAndParse =
             extractSymbols [] >> Result.andThen parseBinds
 
-        bindArgs binds arguments =
+        bindArgs binds args_ =
             let
                 numBinds =
                     List.length binds
             in
-            if List.length arguments /= numBinds then
+            if List.length args_ /= numBinds then
                 Err <|
                     "function expected "
                         ++ Debug.toString numBinds
                         ++ " arguments"
 
             else
-                Ok <| zip binds arguments
+                Ok <| zip binds args_
 
-        bindVarArgs binds var arguments =
+        bindVarArgs binds var args_ =
             let
                 minArgs =
                     List.length binds
 
                 varArgs =
-                    MalList (List.drop minArgs arguments)
+                    MalList (List.drop minArgs args_)
             in
-            if List.length arguments < minArgs then
+            if List.length args_ < minArgs then
                 Err <|
                     "function expected at least "
                         ++ Debug.toString minArgs
                         ++ " arguments"
 
             else
-                Ok <| zip binds arguments ++ [ ( var, varArgs ) ]
+                Ok <| zip binds args_ ++ [ ( var, varArgs ) ]
 
         makeFn frameId binder body =
             MalFunction <|
