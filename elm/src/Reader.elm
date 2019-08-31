@@ -5,7 +5,7 @@ import Combine exposing (..)
 import Combine.Num
 import Dict
 import Types exposing (MalExpr(..), keywordPrefix)
-import Utils exposing (decodeString, makeCall)
+import Utils exposing (decodeString, makeCall, flip)
 
 
 comment : Parser s String
@@ -204,11 +204,3 @@ infixAndMap : Parser s (a -> b) -> Parser s a -> Parser s b
 infixAndMap =
     flip andMap
 
-
-
--- flip from the elm 0.18
-
-
-flip : (a -> b -> c) -> (b -> a -> c)
-flip f b a =
-    f a b

@@ -1,6 +1,7 @@
 module Utils exposing
     ( decodeString
     , encodeString
+    , flip
     , justValues
     , last
     , makeCall

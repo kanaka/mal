@@ -21,6 +21,7 @@ import Array
 import Dict
 import Set
 import Types exposing (Env, Frame, MalExpr(..), MalFunction(..))
+import Utils exposing (flip)
 
 
 debug : Env -> String -> a -> a
@@ -427,10 +428,3 @@ gc expr env =
         |> makeNewEnv
 
 
-
--- flip from the elm 0.18
-
-
-flip : (a -> b -> c) -> (b -> a -> c)
-flip f b a =
-    f a b
