@@ -1,17 +1,17 @@
 port module Main exposing (..)
 
-import IO exposing (..)
-import Json.Decode exposing (decodeValue, errorToString, Error)
-import Platform exposing (worker)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printString)
-import Utils exposing (maybeToList, zip)
-import Dict exposing (Dict)
-import Tuple exposing (mapFirst, mapSecond, second)
 import Array
+import Dict exposing (Dict)
 import Env
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (Error, decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printString)
+import Reader exposing (readString)
+import Tuple exposing (mapFirst, mapSecond, second)
+import Types exposing (..)
+import Utils exposing (maybeToList, zip)
 
 
 main : Program Flags Model Msg
@@ -58,11 +58,11 @@ initReplEnv =
                 _ ->
                     Eval.fail "unsupported arguments"
     in
-        Env.global
-            |> Env.set "+" (makeFn <| binaryOp (+))
-            |> Env.set "-" (makeFn <| binaryOp (-))
-            |> Env.set "*" (makeFn <| binaryOp (*))
-            |> Env.set "/" (makeFn <| binaryOp (//))
+    Env.global
+        |> Env.set "+" (makeFn <| binaryOp (+))
+        |> Env.set "-" (makeFn <| binaryOp (-))
+        |> Env.set "*" (makeFn <| binaryOp (*))
+        |> Env.set "/" (makeFn <| binaryOp (//))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -144,7 +144,7 @@ eval env ast =
                                     ( Err (print msg), newEnv )
 
                         fn :: _ ->
-                            ( Err ((print fn) ++ " is not a function"), newEnv )
+                            ( Err (print fn ++ " is not a function"), newEnv )
 
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
@@ -230,10 +230,11 @@ evalLet env args =
                                 newEnv_ =
                                     Env.set name value env_
                             in
-                                if List.isEmpty rest then
-                                    Ok newEnv_
-                                else
-                                    evalBinds newEnv_ rest
+                            if List.isEmpty rest then
+                                Ok newEnv_
+
+                            else
+                                evalBinds newEnv_ rest
 
                         ( Err msg, _ ) ->
                             Err msg
@@ -250,15 +251,15 @@ evalLet env args =
                 Err msg ->
                     ( Err msg, env )
     in
-        case args of
-            [ MalList binds, body ] ->
-                go binds body
+    case args of
+        [ MalList binds, body ] ->
+            go binds body
 
-            [ MalVector bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                ( Err "let* expected two args: binds and a body", env )
+        _ ->
+            ( Err "let* expected two args: binds and a body", env )
 
 
 {-| Try to map a list with a fn that can return a Err.
@@ -282,8 +283,8 @@ tryMapList fn list =
                             Err msg
                 )
     in
-        List.foldl go (Ok []) list
-            |> Result.map List.reverse
+    List.foldl go (Ok []) list
+        |> Result.map List.reverse
 
 
 print : MalExpr -> String
@@ -304,12 +305,12 @@ rep env input =
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
-        case readString input of
-            Ok Nothing ->
-                Nothing
+    case readString input of
+        Ok Nothing ->
+            Nothing
 
-            Err msg ->
-                Just ( Err msg, env )
+        Err msg ->
+            Just ( Err msg, env )
 
-            Ok (Just ast) ->
-                Just (evalPrint ast)
+        Ok (Just ast) ->
+            Just (evalPrint ast)

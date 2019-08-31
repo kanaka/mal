@@ -1,9 +1,9 @@
 module Reader exposing (..)
 
 import Array
-import Dict
 import Combine exposing (..)
 import Combine.Num
+import Dict
 import Types exposing (MalExpr(..), keywordPrefix)
 import Utils exposing (decodeString, makeCall)
 
@@ -15,9 +15,11 @@ comment =
 
 ws : Parser s (List String)
 ws =
-    many (comment
-        |> or (string ",")
-        |> or whitespace)
+    many
+        (comment
+            |> or (string ",")
+            |> or whitespace
+        )
 
 
 int : Parser s MalExpr
@@ -48,8 +50,8 @@ symbolOrConst =
                 _ ->
                     MalSymbol sym
     in
-        Combine.map make symbolString
-            |> onerror "symbol"
+    Combine.map make symbolString
+        |> onerror "symbol"
 
 
 keywordString : Parser s String
@@ -73,23 +75,25 @@ vector : Parser s MalExpr
 vector =
     Combine.map (MalVector << Array.fromList)
         (string "["
-             |> keep (many form)
-             |> ignore ws
-             |> ignore (string "]"))
+            |> keep (many form)
+            |> ignore ws
+            |> ignore (string "]")
+        )
         |> onerror "vector"
 
 
 mapKey : Parser s String
 mapKey =
     choice
-        [ (Combine.map (String.cons keywordPrefix) keywordString)
+        [ Combine.map (String.cons keywordPrefix) keywordString
         , Combine.map decodeString strString
         ]
 
 
 mapEntry : Parser s ( String, MalExpr )
 mapEntry =
-    Combine.map Tuple.pair mapKey |> andMap form
+    Combine.map Tuple.pair mapKey
+        |> andMap form
         |> onerror "map entry"
 
 
@@ -97,12 +101,12 @@ map : Parser s MalExpr
 map =
     lazy <|
         \() ->
-
-                Combine.map (MalMap << Dict.fromList)
-                    (string "{"
-                         |> keep (many (ws |> keep mapEntry))
-                         |> ignore ws
-                         |> ignore (string "}"))
+            Combine.map (MalMap << Dict.fromList)
+                (string "{"
+                    |> keep (many (ws |> keep mapEntry))
+                    |> ignore ws
+                    |> ignore (string "}")
+                )
                 |> onerror "map"
 
 
@@ -126,6 +130,7 @@ form =
                     [ list
                     , vector
                     , map
+
                     -- , simpleMacro "'" "quote"
                     -- , simpleMacro "`" "quasiquote"
                     -- , simpleMacro "~@" "splice-unquote"
@@ -135,13 +140,13 @@ form =
                     , atom
                     ]
             in
-                ws |> keep (choice parsers) |> onerror "form"
+            ws |> keep (choice parsers) |> onerror "form"
 
 
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
     Combine.map (makeCall symbol << List.singleton) (ignore (string token) form)
-            |> onerror symbol
+        |> onerror symbol
 
 
 withMeta : Parser s MalExpr
@@ -152,8 +157,8 @@ withMeta =
                 make meta expr =
                     makeCall "with-meta" [ expr, meta ]
             in
-                infixAndMap (Combine.map make (ignore (string "^") form)) form
-                        |> onerror "with-meta"
+            infixAndMap (Combine.map make (ignore (string "^") form)) form
+                |> onerror "with-meta"
 
 
 readString : String -> Result String (Maybe MalExpr)
@@ -172,14 +177,14 @@ formatError ms stream =
         location =
             currentLocation stream
     in
-        "Parse error: "
-            ++ String.join ", " ms
-            ++ " "
-            ++ "(at "
-            ++ Debug.toString location.line
-            ++ ":"
-            ++ Debug.toString location.column
-            ++ ")"
+    "Parse error: "
+        ++ String.join ", " ms
+        ++ " "
+        ++ "(at "
+        ++ Debug.toString location.line
+        ++ ":"
+        ++ Debug.toString location.column
+        ++ ")"
 
 
 str : Parser s MalExpr
@@ -199,7 +204,11 @@ infixAndMap : Parser s (a -> b) -> Parser s a -> Parser s b
 infixAndMap =
     flip andMap
 
+
+
 -- flip from the elm 0.18
+
+
 flip : (a -> b -> c) -> (b -> a -> c)
 flip f b a =
     f a b

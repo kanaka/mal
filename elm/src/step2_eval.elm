@@ -1,16 +1,16 @@
 port module Main exposing (..)
 
-import IO exposing (..)
-import Json.Decode exposing (decodeValue, errorToString, Error)
-import Platform exposing (worker)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printStr)
-import Utils exposing (maybeToList, zip)
-import Dict exposing (Dict)
-import Tuple exposing (mapFirst, second)
 import Array
+import Dict exposing (Dict)
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (Error, decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printStr)
+import Reader exposing (readString)
+import Tuple exposing (mapFirst, second)
+import Types exposing (..)
+import Utils exposing (maybeToList, zip)
 
 
 main : Program Flags Model Msg
@@ -61,12 +61,12 @@ initReplEnv =
                 _ ->
                     Eval.fail "unsupported arguments"
     in
-        Dict.fromList
-            [ ( "+", makeFn <| binaryOp (+) )
-            , ( "-", makeFn <| binaryOp (-) )
-            , ( "*", makeFn <| binaryOp (*) )
-            , ( "/", makeFn <| binaryOp (//) )
-            ]
+    Dict.fromList
+        [ ( "+", makeFn <| binaryOp (+) )
+        , ( "-", makeFn <| binaryOp (-) )
+        , ( "*", makeFn <| binaryOp (*) )
+        , ( "/", makeFn <| binaryOp (//) )
+        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -142,7 +142,7 @@ eval env ast =
                                     ( Err (print msg), newEnv )
 
                         fn :: _ ->
-                            ( Err ((print fn) ++ " is not a function"), newEnv )
+                            ( Err (print fn ++ " is not a function"), newEnv )
 
                 ( Err msg, newEnv ) ->
                     ( Err msg, newEnv )
@@ -222,8 +222,8 @@ tryMapList fn list =
                             Err msg
                 )
     in
-        List.foldl go (Ok []) list
-            |> Result.map List.reverse
+    List.foldl go (Ok []) list
+        |> Result.map List.reverse
 
 
 print : MalExpr -> String
@@ -244,12 +244,12 @@ rep env input =
         evalPrint =
             eval env >> mapFirst (Result.map print)
     in
-        case readString input of
-            Ok Nothing ->
-                Nothing
+    case readString input of
+        Ok Nothing ->
+            Nothing
 
-            Err msg ->
-                Just ( Err msg, env )
+        Err msg ->
+            Just ( Err msg, env )
 
-            Ok (Just ast) ->
-                Just (evalPrint ast)
+        Ok (Just ast) ->
+            Just (evalPrint ast)

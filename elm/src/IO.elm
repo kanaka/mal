@@ -1,12 +1,11 @@
-port module IO
-    exposing
-        ( IO(..)
-        , writeLine
-        , readLine
-        , readFile
-        , input
-        , decodeIO
-        )
+port module IO exposing
+    ( IO(..)
+    , decodeIO
+    , input
+    , readFile
+    , readLine
+    , writeLine
+    )
 
 import Json.Decode exposing (..)
 import Time exposing (Posix)

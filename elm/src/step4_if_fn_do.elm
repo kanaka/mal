@@ -1,17 +1,17 @@
 port module Main exposing (..)
 
 import Array
-import Dict exposing (Dict)
-import IO exposing (..)
-import Json.Decode exposing (decodeValue, Error, errorToString)
-import Platform exposing (worker)
-import Types exposing (..)
-import Reader exposing (readString)
-import Printer exposing (printString)
-import Utils exposing (maybeToList, zip, last, justValues)
-import Env
 import Core
+import Dict exposing (Dict)
+import Env
 import Eval
+import IO exposing (..)
+import Json.Decode exposing (Error, decodeValue, errorToString)
+import Platform exposing (worker)
+import Printer exposing (printString)
+import Reader exposing (readString)
+import Types exposing (..)
+import Utils exposing (justValues, last, maybeToList, zip)
 
 
 main : Program Flags Model Msg
@@ -50,7 +50,7 @@ init { args } =
                     (\b a -> a |> Eval.andThen (\_ -> b))
                     (Eval.succeed MalNil)
     in
-        runInit initEnv evalMalInit
+    runInit initEnv evalMalInit
 
 
 malInit : List String
@@ -97,7 +97,7 @@ update msg model =
                     Debug.todo "unexpected IO received: " io
 
                 Input (Err error) ->
-                    Debug.todo (errorToString error) (model, Cmd.none)
+                    Debug.todo (errorToString error) ( model, Cmd.none )
 
         ReplIO env cont ->
             case msg of
@@ -192,7 +192,7 @@ eval ast =
                             fn :: _ ->
                                 Eval.withEnv
                                     (\env ->
-                                        Eval.fail ((printString env True fn) ++ " is not a function")
+                                        Eval.fail (printString env True fn ++ " is not a function")
                                     )
                     )
 
@@ -251,7 +251,7 @@ evalList list =
                                 go rest (val :: acc)
                             )
     in
-        go list []
+    go list []
 
 
 evalDef : List MalExpr -> Eval MalExpr
@@ -283,6 +283,7 @@ evalLet args =
                                         (\_ ->
                                             if List.isEmpty rest then
                                                 Eval.succeed ()
+
                                             else
                                                 evalBinds rest
                                         )
@@ -301,15 +302,15 @@ evalLet args =
                             |> Eval.map (\_ -> res)
                     )
     in
-        case args of
-            [ MalList binds, body ] ->
-                go binds body
+    case args of
+        [ MalList binds, body ] ->
+            go binds body
 
-            [ MalVector bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                Eval.fail "let* expected two args: binds and a body"
+        _ ->
+            Eval.fail "let* expected two args: binds and a body"
 
 
 evalDo : List MalExpr -> Eval MalExpr
@@ -323,15 +324,15 @@ evalDo args =
                 Nothing ->
                     Eval.fail "do expected at least one arg"
     in
-        evalList args
-            |> Eval.andThen returnLast
+    evalList args
+        |> Eval.andThen returnLast
 
 
 evalIf : List MalExpr -> Eval MalExpr
 evalIf args =
     let
         isThruthy expr =
-            expr /= MalNil && expr /= (MalBool False)
+            expr /= MalNil && expr /= MalBool False
 
         go condition trueExpr falseExpr =
             eval condition
@@ -341,20 +342,21 @@ evalIf args =
                         eval
                             (if cond then
                                 trueExpr
+
                              else
                                 falseExpr
                             )
                     )
     in
-        case args of
-            [ condition, trueExpr ] ->
-                go condition trueExpr MalNil
+    case args of
+        [ condition, trueExpr ] ->
+            go condition trueExpr MalNil
 
-            [ condition, trueExpr, falseExpr ] ->
-                go condition trueExpr falseExpr
+        [ condition, trueExpr, falseExpr ] ->
+            go condition trueExpr falseExpr
 
-            _ ->
-                Eval.fail "if expected at least two args"
+        _ ->
+            Eval.fail "if expected at least two args"
 
 
 evalFn : List MalExpr -> Eval MalExpr
@@ -369,6 +371,7 @@ evalFn args =
                 (MalSymbol name) :: rest ->
                     if List.member name acc then
                         Err "all binds must have unique names"
+
                     else
                         extractSymbols (name :: acc) rest
 
@@ -383,6 +386,7 @@ evalFn args =
                 _ ->
                     if List.member "&" list then
                         Err "varargs separator '&' is used incorrectly"
+
                     else
                         Ok <| bindArgs list
 
@@ -394,13 +398,14 @@ evalFn args =
                 numBinds =
                     List.length binds
             in
-                if List.length args_ /= numBinds then
-                    Err <|
-                        "function expected "
-                            ++ (Debug.toString numBinds)
-                            ++ " arguments"
-                else
-                    Ok <| zip binds args_
+            if List.length args_ /= numBinds then
+                Err <|
+                    "function expected "
+                        ++ Debug.toString numBinds
+                        ++ " arguments"
+
+            else
+                Ok <| zip binds args_
 
         bindVarArgs binds var args_ =
             let
@@ -410,13 +415,14 @@ evalFn args =
                 varArgs =
                     MalList (List.drop minArgs args_)
             in
-                if List.length args_ < minArgs then
-                    Err <|
-                        "function expected at least "
-                            ++ (Debug.toString minArgs)
-                            ++ " arguments"
-                else
-                    Ok <| zip binds args_ ++ [ ( var, varArgs ) ]
+            if List.length args_ < minArgs then
+                Err <|
+                    "function expected at least "
+                        ++ Debug.toString minArgs
+                        ++ " arguments"
+
+            else
+                Ok <| zip binds args_ ++ [ ( var, varArgs ) ]
 
         makeFn frameId binder body =
             let
@@ -433,14 +439,14 @@ evalFn args =
                         Err msg ->
                             Eval.fail msg
             in
-                MalFunction <|
-                    UserFunc
-                        { frameId = frameId
-                        , lazyFn = fn
-                        , eagerFn = fn
-                        , isMacro = False
-                        , meta = Nothing
-                        }
+            MalFunction <|
+                UserFunc
+                    { frameId = frameId
+                    , lazyFn = fn
+                    , eagerFn = fn
+                    , isMacro = False
+                    , meta = Nothing
+                    }
 
         go bindsList body =
             case extractAndParse bindsList of
@@ -459,15 +465,15 @@ evalFn args =
                 Err msg ->
                     Eval.fail msg
     in
-        case args of
-            [ MalList bindsList, body ] ->
-                go bindsList body
+    case args of
+        [ MalList bindsList, body ] ->
+            go bindsList body
 
-            [ MalVector bindsVec, body ] ->
-                go (Array.toList bindsVec) body
+        [ MalVector bindsVec, body ] ->
+            go (Array.toList bindsVec) body
 
-            _ ->
-                Eval.fail "fn* expected two args: binds list and body"
+        _ ->
+            Eval.fail "fn* expected two args: binds list and body"
 
 
 print : Env -> MalExpr -> String
@@ -477,7 +483,7 @@ print env =
 
 printError : Env -> MalExpr -> String
 printError env expr =
-    "Error: " ++ (printString env False expr)
+    "Error: " ++ printString env False expr
 
 
 {-| Read-Eval-Print.

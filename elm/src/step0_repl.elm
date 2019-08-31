@@ -1,7 +1,7 @@
 port module Main exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue, Error, errorToString)
+import Json.Decode exposing (Error, decodeValue, errorToString)
 import Platform exposing (worker)
 
 
@@ -50,7 +50,7 @@ update msg model =
             ( model, Cmd.none )
 
         Input (Err error) ->
-            Debug.todo (errorToString error)( model, Cmd.none )
+            Debug.todo (errorToString error) ( model, Cmd.none )
 
 
 prompt : String

@@ -1,8 +1,8 @@
 module Eval exposing (..)
 
-import Types exposing (..)
-import IO exposing (IO)
 import Env
+import IO exposing (IO)
+import Types exposing (..)
 
 
 apply : Eval a -> Env -> EvalContext a
@@ -27,7 +27,7 @@ setEnv env _ =
 
 modifyEnv : (Env -> Env) -> Eval ()
 modifyEnv f env =
-    apply (succeed ()) (f env) 
+    apply (succeed ()) (f env)
 
 
 succeed : a -> Eval a
@@ -97,18 +97,19 @@ gcPass e env =
                 --    ""
                 --    |> always ( Env.gc env, t expr )
                 ( Env.gc expr env_arg, t expr )
+
             else
                 ( env_arg, t expr )
     in
-        case apply e env of
-            ( env_, EvalOk res ) ->
-                go env_ EvalOk res
+    case apply e env of
+        ( env_, EvalOk res ) ->
+            go env_ EvalOk res
 
-            ( env_, EvalErr msg ) ->
-                go env_ EvalErr msg
+        ( env_, EvalErr msg ) ->
+            go env_ EvalErr msg
 
-            ( env_, EvalIO cmd cont ) ->
-                ( env_, EvalIO cmd (cont >> gcPass) )
+        ( env_, EvalIO cmd cont ) ->
+            ( env_, EvalIO cmd (cont >> gcPass) )
 
 
 catchError : (MalExpr -> Eval a) -> Eval a -> Eval a
@@ -215,15 +216,16 @@ inGlobal body =
                 , currentFrameId = oldEnv.currentFrameId
             }
     in
-        withEnv
-            (\env ->
-                if env.currentFrameId /= Env.globalFrameId then
-                    enter env
-                        |> andThen (always body)
-                        |> finally (leave env)
-                else
-                    body
-            )
+    withEnv
+        (\env ->
+            if env.currentFrameId /= Env.globalFrameId then
+                enter env
+                    |> andThen (always body)
+                    |> finally (leave env)
+
+            else
+                body
+        )
 
 
 runSimple : Eval a -> Result MalExpr a

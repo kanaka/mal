@@ -1,14 +1,13 @@
-module Utils
-    exposing
-        ( decodeString
-        , encodeString
-        , makeCall
-        , wrap
-        , maybeToList
-        , zip
-        , last
-        , justValues
-        )
+module Utils exposing
+    ( decodeString
+    , encodeString
+    , justValues
+    , last
+    , makeCall
+    , maybeToList
+    , wrap
+    , zip
+    )
 
 import Regex
 import Types exposing (MalExpr(..))
@@ -31,14 +30,19 @@ decodeString =
                 other ->
                     other
     in
-        String.slice 1 -1
-            >> Regex.replace (regex "\\\\[\\\"\\\\n]") unescape
+    String.slice 1 -1
+        >> Regex.replace (regex "\\\\[\\\"\\\\n]") unescape
+
+
 
 -- helps replace all the encodes found into a string
+
+
 regex : String -> Regex.Regex
-regex str = 
-    Maybe.withDefault Regex.never 
-        <| Regex.fromString str
+regex str =
+    Maybe.withDefault Regex.never <|
+        Regex.fromString str
+
 
 encodeString : String -> String
 encodeString =
@@ -57,13 +61,13 @@ encodeString =
                 other ->
                     other
     in
-        wrap "\"" "\""
-            << Regex.replace (regex "[\\n\\\"\\\\]") escape
+    wrap "\"" "\""
+        << Regex.replace (regex "[\\n\\\"\\\\]") escape
 
 
 makeCall : String -> List MalExpr -> MalExpr
 makeCall symbol args =
-    MalList <| (MalSymbol symbol) :: args
+    MalList <| MalSymbol symbol :: args
 
 
 wrap : String -> String -> String -> String
@@ -114,7 +118,7 @@ justValues list =
             []
 
         (Just x) :: rest ->
-            x :: (justValues rest)
+            x :: justValues rest
 
         Nothing :: rest ->
             justValues rest
@@ -122,4 +126,4 @@ justValues list =
 
 flip : (a -> b -> c) -> (b -> a -> c)
 flip f b a =
-  f a b
+    f a b

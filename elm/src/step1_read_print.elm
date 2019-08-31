@@ -1,11 +1,11 @@
 port module Main exposing (..)
 
 import IO exposing (..)
-import Json.Decode exposing (decodeValue, Error, errorToString)
+import Json.Decode exposing (Error, decodeValue, errorToString)
 import Platform exposing (worker)
-import Types exposing (MalExpr(..))
-import Reader exposing (readString)
 import Printer exposing (printStr)
+import Reader exposing (readString)
+import Types exposing (MalExpr(..))
 
 
 main : Program Flags Model Msg
@@ -101,6 +101,6 @@ rep =
                 Err msg ->
                     Just msg
     in
-        readString
-            >> Result.map (Maybe.map (eval >> print))
-            >> formatResult
+    readString
+        >> Result.map (Maybe.map (eval >> print))
+        >> formatResult
