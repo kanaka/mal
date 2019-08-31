@@ -15,8 +15,9 @@ comment =
 
 ws : Parser s (List String)
 ws =
-    -- many (comment (or) string "," or whitespace)
-    many ((or comment <| (or (string ",") whitespace)))
+    many (comment
+        |> or (string ",")
+        |> or whitespace)
 
 
 int : Parser s MalExpr
@@ -54,26 +55,27 @@ symbolOrConst =
 keywordString : Parser s String
 keywordString =
     Combine.map (++) (string ":")
-        |> andMap symbolString 
+        |> andMap symbolString
 
 
 keyword : Parser s MalExpr
 keyword =
-    Combine.map MalKeyword keywordString  
+    Combine.map MalKeyword keywordString
 
 
 list : Parser s MalExpr
 list =
-    Combine.map MalList (parens (many (keep form ws)))
+    Combine.map MalList (parens (many (form |> ignore ws)))
         |> onerror "list"
 
 
 vector : Parser s MalExpr
 vector =
-    Combine.map (MalVector << Array.fromList) (
-                keep (ignore (string "[") (many form))
-                (keep ws (string "]"))
-            )
+    Combine.map (MalVector << Array.fromList)
+        (string "["
+             |> keep (many form)
+             |> ignore ws
+             |> ignore (string "]"))
         |> onerror "vector"
 
 
@@ -81,13 +83,13 @@ mapKey : Parser s String
 mapKey =
     choice
         [ (Combine.map (String.cons keywordPrefix) keywordString)
-        , Combine.map decodeString strString 
+        , Combine.map decodeString strString
         ]
 
 
 mapEntry : Parser s ( String, MalExpr )
 mapEntry =
-    Combine.map Tuple.pair mapKey |> andMap form 
+    Combine.map Tuple.pair mapKey |> andMap form
         |> onerror "map entry"
 
 
@@ -95,11 +97,12 @@ map : Parser s MalExpr
 map =
     lazy <|
         \() ->
-            
-                Combine.map (MalMap << Dict.fromList) (
-                        keep (ignore (string "{") (many (ignore ws mapEntry)))
-                        (keep ws (string "}"))
-                    )
+
+                Combine.map (MalMap << Dict.fromList)
+                    (string "{"
+                         |> keep (many (ws |> keep mapEntry))
+                         |> ignore ws
+                         |> ignore (string "}"))
                 |> onerror "map"
 
 
@@ -123,16 +126,16 @@ form =
                     [ list
                     , vector
                     , map
-                    , simpleMacro "'" "quote"
-                    , simpleMacro "`" "quasiquote"
-                    , simpleMacro "~@" "splice-unquote"
-                    , simpleMacro "~" "unquote"
-                    , simpleMacro "@" "deref"
-                    , withMeta
+                    -- , simpleMacro "'" "quote"
+                    -- , simpleMacro "`" "quasiquote"
+                    -- , simpleMacro "~@" "splice-unquote"
+                    -- , simpleMacro "~" "unquote"
+                    -- , simpleMacro "@" "deref"
+                    -- , withMeta
                     , atom
                     ]
             in
-                ignore ws (choice parsers) |> onerror "form"
+                ws |> keep (choice parsers) |> onerror "form"
 
 
 simpleMacro : String -> String -> Parser s MalExpr
@@ -155,7 +158,7 @@ withMeta =
 
 readString : String -> Result String (Maybe MalExpr)
 readString stri =
-    case parse (keep (keep (maybe form) ws) end) stri of
+    case parse (maybe form |> ignore whitespace |> ignore end) stri of
         Ok ( _, _, ast ) ->
             Ok ast
 
@@ -193,11 +196,10 @@ strString =
 
 
 infixAndMap : Parser s (a -> b) -> Parser s a -> Parser s b
-infixAndMap = 
+infixAndMap =
     flip andMap
 
 -- flip from the elm 0.18
 flip : (a -> b -> c) -> (b -> a -> c)
 flip f b a =
-  f a b
-    
+    f a b
