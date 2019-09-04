@@ -131,12 +131,12 @@ form =
                     , vector
                     , map
 
-                    -- , simpleMacro "'" "quote"
-                    -- , simpleMacro "`" "quasiquote"
-                    -- , simpleMacro "~@" "splice-unquote"
-                    -- , simpleMacro "~" "unquote"
-                    -- , simpleMacro "@" "deref"
-                    -- , withMeta
+                    , simpleMacro "'" "quote"
+                    , simpleMacro "`" "quasiquote"
+                    , simpleMacro "~@" "splice-unquote"
+                    , simpleMacro "~" "unquote"
+                    , simpleMacro "@" "deref"
+                    , withMeta
                     , atom
                     ]
             in
@@ -145,19 +145,25 @@ form =
 
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
-    Combine.map (makeCall symbol << List.singleton) (ignore (string token) form)
+    let
+        lForm = ws |> keep (choice [list, vector, atom, map]) |> onerror "form"
+    in
+    Combine.map (makeCall symbol << List.singleton) (ignore (string token) lForm)
         |> onerror symbol
 
 
 withMeta : Parser s MalExpr
 withMeta =
+    let
+        lForm = ws |> keep (choice [list, vector, atom, map]) |> onerror "form"
+    in
     lazy <|
         \() ->
             let
                 make meta expr =
                     makeCall "with-meta" [ expr, meta ]
             in
-            infixAndMap (Combine.map make (ignore (string "^") form)) form
+            infixAndMap (Combine.map make (ignore (string "^") lForm)) lForm
                 |> onerror "with-meta"
 
 
