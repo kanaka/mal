@@ -426,5 +426,3 @@ gc expr env =
         |> loop
         |> filterFrames env.frames
         |> makeNewEnv
-
-

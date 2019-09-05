@@ -5,7 +5,7 @@ import Combine exposing (..)
 import Combine.Num
 import Dict
 import Types exposing (MalExpr(..), keywordPrefix)
-import Utils exposing (decodeString, makeCall, flip)
+import Utils exposing (decodeString, flip, makeCall)
 
 
 comment : Parser s String
@@ -130,7 +130,6 @@ form =
                     [ list
                     , vector
                     , map
-
                     , simpleMacro "'" "quote"
                     , simpleMacro "`" "quasiquote"
                     , simpleMacro "~@" "splice-unquote"
@@ -146,7 +145,8 @@ form =
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
     let
-        lForm = ws |> keep (choice [list, vector, atom, map]) |> onerror "form"
+        lForm =
+            ws |> keep (choice [ list, vector, atom, map ]) |> onerror "form"
     in
     Combine.map (makeCall symbol << List.singleton) (ignore (string token) lForm)
         |> onerror symbol
@@ -155,7 +155,8 @@ simpleMacro token symbol =
 withMeta : Parser s MalExpr
 withMeta =
     let
-        lForm = ws |> keep (choice [list, vector, atom, map]) |> onerror "form"
+        lForm =
+            ws |> keep (choice [ list, vector, atom, map ]) |> onerror "form"
     in
     lazy <|
         \() ->
@@ -209,4 +210,3 @@ strString =
 infixAndMap : Parser s (a -> b) -> Parser s a -> Parser s b
 infixAndMap =
     flip andMap
-
