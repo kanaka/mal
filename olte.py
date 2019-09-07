@@ -7,9 +7,11 @@
 class OneLineTerminalEmulator(object):
     def __init__(self):
         self.line = []
+        self.acc = ""
         self.pos = 0
     def process(self, data):
-        for char in data:
+        self.acc += data
+        for char in self.acc:
             if char == "\r":
                 self.pos = 0
             elif char == "\b":
@@ -22,6 +24,7 @@ class OneLineTerminalEmulator(object):
                     self.line.extend([" "] * (self.pos - len(self.line) + 1))
                 self.line[self.pos] = char
                 self.pos += 1
+        self.acc = ""
     def emit(self, line):
         """
         This method is called whenever a line is scrolled off the top
