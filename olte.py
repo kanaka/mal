@@ -19,7 +19,7 @@ class OneLineTerminalEmulator(object):
             elif char == "\n":
                 self.emit(''.join(self.line))
                 self.line.clear()
-            else:
+            elif char.isprintable():
                 if len(self.line) <= self.pos:
                     self.line.extend([" "] * (self.pos - len(self.line) + 1))
                 self.line[self.pos] = char

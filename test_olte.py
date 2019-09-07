@@ -20,6 +20,12 @@ class TestOLTE(unittest.TestCase):
         o = OneLineTerminalEmulator()
         o.process("Hello\bWorld")
         self.assertEqual(''.join(o.line), "HellWorld")
+    def test_bel(self):
+        # BEL should have no effect (and not appear in the output).
+        o = OneLineTerminalEmulator()
+        o.process("Hello\aWorld")
+        self.assertEqual(''.join(o.line), "HelloWorld")
+        
 
 class AccumulatingOLTE(OneLineTerminalEmulator):
     def __init__(self):
