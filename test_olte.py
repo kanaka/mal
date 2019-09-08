@@ -24,6 +24,10 @@ class TestOLTE(unittest.TestCase):
         self.assertProduces("Hello\aWorld", [], "HelloWorld")
     def test_lf(self):
         self.assertProduces("Hello\r\nWorld\r\n", ["Hello", "World"], "")
+    def test_escseq(self):
+        self.assertProduces("Hello\x1bpWorld", [], "HelloWorld")        
+    def test_csi(self):
+        self.assertProduces("Hello\x1b[1mWorld", [], "HelloWorld")
 
 class TestRegexps(unittest.TestCase):
     def multi_test(self, specs):

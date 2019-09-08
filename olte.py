@@ -20,6 +20,8 @@ class OneLineTerminalEmulator(object):
     invalid_escape_sequence = re.compile(r"\x1b[\x20-\x2f]*")
     # Two-byte representations of C1 controls:
     sevenbit_c1 = re.compile(r"\x1b([\x40-\x5f])")
+    # Characters to strip out everywhere:
+    strip_chars = re.compile(r"[\x00\x7f]")
     # Control sequences (ECMA-48 clause 5.4):
     control_sequence = re.compile(r"\x9b[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]")
     partial_control_sequence = re.compile(r"\x9b[\x30-\x3f]*[\x20-\x2f]*$")
@@ -41,7 +43,36 @@ class OneLineTerminalEmulator(object):
         self.pos = 0
     def process(self, data):
         self.acc += data
-        for char in self.acc:
+        # ECMA-35 says that DEL should be ignored everywhere.  ECMA-48
+        # says the same about NUL.
+        self.acc = self.strip_chars.sub("", self.acc)
+        # Convert 7-bit C1 controls to 8-bit form.
+        def c1_convert(match): return chr(ord(match.group(1)) + 0x40)
+        self.acc = self.sevenbit_c1.sub(c1_convert, self.acc)
+        while self.acc != '':
+            if (self.partial_escape_sequence.match(self.acc) or
+                self.partial_control_sequence.match(self.acc) or
+                self.partial_command_string.match(self.acc) or
+                self.partial_character_string.match(self.acc)):
+                # We can't make sense of the input yet.
+                return
+            match = (self.escape_sequence.match(self.acc) or
+                     self.control_sequence.match(self.acc) or
+                     self.command_string.match(self.acc) or
+                     self.character_string.match(self.acc))
+            if match:
+                # For now, ignore valid sequences.
+                self.acc = self.acc[match.end():]
+                continue
+            match = (self.invalid_escape_sequence.match(self.acc) or
+                     self.invalid_control_sequence.match(self.acc) or
+                     self.invalid_command_string.match(self.acc) or
+                     self.invalid_character_string.match(self.acc))
+            if match:
+                # Ignore an invalid sequence.
+                self.acc = self.acc[match.end():]
+                continue
+            char = self.acc[0]
             if char == "\r":
                 self.pos = 0
             elif char == "\b":
@@ -54,7 +85,7 @@ class OneLineTerminalEmulator(object):
                     self.line.extend([" "] * (self.pos - len(self.line) + 1))
                 self.line[self.pos] = char
                 self.pos += 1
-        self.acc = ""
+            self.acc = self.acc[1:]
     @property
     def current_line(self):
         return "".join(self.line)
