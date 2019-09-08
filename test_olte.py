@@ -12,7 +12,7 @@ class TestOLTE(unittest.TestCase):
         self.assertEqual(o.current_line, current)
     def test_empty(self):
         o = OneLineTerminalEmulator()
-        self.assertEqual(o.current_line, "")       
+        self.assertEqual(o.current_line, "")
     def test_trivial(self):
         self.assertProduces("Hello", [], "Hello")
     def test_cr(self):
@@ -24,6 +24,34 @@ class TestOLTE(unittest.TestCase):
         self.assertProduces("Hello\aWorld", [], "HelloWorld")
     def test_lf(self):
         self.assertProduces("Hello\r\nWorld\r\n", ["Hello", "World"], "")
+
+class TestRegexps(unittest.TestCase):
+    def multi_test(self, specs):
+        for spec in specs:
+            for x in spec["matches"]:
+                with self.subTest(input=x):
+                    self.assertTrue(spec["regex"].match(x))
+            for x in spec["matches_not"]:
+                with self.subTest(input=x):
+                    self.assertFalse(spec["regex"].match(x))
+    def test_regexps(self):
+        self.multi_test([
+            { "regex": OneLineTerminalEmulator.escape_sequence,
+              "matches": ["\x1b0", "\x1b~", "\x1b !A"],
+              "matches_not": ["\x1b\x7f", "\x1b\x1b", "\x1b", "Hello\x1bA"] },
+            { "regex": OneLineTerminalEmulator.partial_escape_sequence,
+              "matches": ["\x1b", "\x1b "],
+              "matches_not": ["\x1b0", "Hello"] },
+            { "regex": OneLineTerminalEmulator.invalid_escape_sequence,
+              "matches": ["\x1b\x1b", "\x1b\n"],
+              "matches_not": ["Hello"] },
+            { "regex": OneLineTerminalEmulator.control_sequence,
+              "matches": ["\x9b12;34H", "\x9b z"],
+              "matches_not": ["Hello"] },
+            { "regex": OneLineTerminalEmulator.partial_control_sequence,
+              "matches": ["\x9b12;3", "\x9b "],
+              "matches_not": ["Hello"] },
+            ])
 
 if __name__ == '__main__':
     unittest.main()
