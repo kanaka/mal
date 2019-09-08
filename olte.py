@@ -7,6 +7,7 @@
 class OneLineTerminalEmulator(object):
     def __init__(self):
         self.line = []
+        self.past_lines = []
         self.acc = ""
         self.pos = 0
     def process(self, data):
@@ -25,10 +26,8 @@ class OneLineTerminalEmulator(object):
                 self.line[self.pos] = char
                 self.pos += 1
         self.acc = ""
+    @property
+    def current_line(self):
+        return "".join(self.line)
     def emit(self, line):
-        """
-        This method is called whenever a line is scrolled off the top
-        of the terminal (by LF or similar).  Override it to actually do
-        something with complete lines.
-        """
-        pass
+        self.past_lines.append(self.current_line)
