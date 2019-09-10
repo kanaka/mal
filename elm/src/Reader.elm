@@ -144,27 +144,19 @@ form =
 
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
-    let
-        lForm =
-            ws |> keep (choice [ list, vector, atom, map ]) |> onerror "form"
-    in
-    Combine.map (makeCall symbol << List.singleton) (ignore (string token) lForm)
+    Combine.map (makeCall symbol << List.singleton) (ignore (string token) form)
         |> onerror symbol
 
 
 withMeta : Parser s MalExpr
 withMeta =
-    let
-        lForm =
-            ws |> keep (choice [ list, vector, atom, map ]) |> onerror "form"
-    in
     lazy <|
         \() ->
             let
                 make meta expr =
                     makeCall "with-meta" [ expr, meta ]
             in
-            infixAndMap (Combine.map make (ignore (string "^") lForm)) lForm
+            infixAndMap (Combine.map make (ignore (string "^") form)) form
                 |> onerror "with-meta"
 
 
