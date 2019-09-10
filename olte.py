@@ -36,11 +36,20 @@ class OneLineTerminalEmulator(object):
     character_string = re.compile(r"\x98[^\x98\x9c]*\x9c")
     partial_character_string = re.compile(r"\x98[^\x98\x9c]*\x1b?$")
     invalid_character_string = re.compile(r"\x98[^\x98\x9c]*")
+    # Single characters
+    one_char = re.compile('(?s).')
     def __init__(self):
         self.line = []
         self.past_lines = []
         self.acc = ""
         self.pos = 0
+    def match(self, pattern, consume=True):
+        # A silly little method to provide something equivalent to Perl's
+        # $1, $&, etc.
+        self.last_match = pattern.match(self.acc)
+        if self.last_match and consume:
+            self.acc = self.acc[self.last_match.end():]
+        return self.last_match
     def process(self, data):
         self.acc += data
         # ECMA-35 says that DEL should be ignored everywhere.  ECMA-48
@@ -50,29 +59,25 @@ class OneLineTerminalEmulator(object):
         def c1_convert(match): return chr(ord(match.group(1)) + 0x40)
         self.acc = self.sevenbit_c1.sub(c1_convert, self.acc)
         while self.acc != '':
-            if (self.partial_escape_sequence.match(self.acc) or
-                self.partial_control_sequence.match(self.acc) or
-                self.partial_command_string.match(self.acc) or
-                self.partial_character_string.match(self.acc)):
+            if (self.match(self.partial_escape_sequence,  consume=False) or
+                self.match(self.partial_control_sequence, consume=False) or
+                self.match(self.partial_command_string,   consume=False) or
+                self.match(self.partial_character_string, consume=False)):
                 # We can't make sense of the input yet.
                 return
-            match = (self.escape_sequence.match(self.acc) or
-                     self.control_sequence.match(self.acc) or
-                     self.command_string.match(self.acc) or
-                     self.character_string.match(self.acc))
-            if match:
+            if (self.match(self.escape_sequence) or
+                self.match(self.control_sequence) or
+                self.match(self.command_string) or
+                self.match(self.character_string)):
                 # For now, ignore valid sequences.
-                self.acc = self.acc[match.end():]
                 continue
-            match = (self.invalid_escape_sequence.match(self.acc) or
-                     self.invalid_control_sequence.match(self.acc) or
-                     self.invalid_command_string.match(self.acc) or
-                     self.invalid_character_string.match(self.acc))
-            if match:
+            if (self.match(self.invalid_escape_sequence) or
+                self.match(self.invalid_control_sequence) or
+                self.match(self.invalid_command_string) or
+                self.match(self.invalid_character_string)):
                 # Ignore an invalid sequence.
-                self.acc = self.acc[match.end():]
                 continue
-            char = self.acc[0]
+            char = self.match(self.one_char).group(0)
             if char == "\r":
                 self.pos = 0
             elif char == "\b":
@@ -85,7 +90,6 @@ class OneLineTerminalEmulator(object):
                     self.line.extend([" "] * (self.pos - len(self.line) + 1))
                 self.line[self.pos] = char
                 self.pos += 1
-            self.acc = self.acc[1:]
     @property
     def current_line(self):
         return "".join(self.line)
