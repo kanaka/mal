@@ -36,6 +36,9 @@ class OneLineTerminalEmulator(object):
     character_string = re.compile(r"\x98[^\x98\x9c]*\x9c")
     partial_character_string = re.compile(r"\x98[^\x98\x9c]*\x1b?$")
     invalid_character_string = re.compile(r"\x98[^\x98\x9c]*")
+    # Specific command sequences:
+    CUF = re.compile(r"\x9b([0-9]*)C")
+    EL  = re.compile(r"\x9b([0-9]*)K")
     # Single characters
     one_char = re.compile('(?s).')
     def __init__(self):
@@ -65,6 +68,16 @@ class OneLineTerminalEmulator(object):
                 self.match(self.partial_character_string, consume=False)):
                 # We can't make sense of the input yet.
                 return
+            if (self.match(self.CUF)):
+                param = int(self.last_match.group(1) or '1')
+                self.pos += param
+                continue
+            if (self.match(self.EL)):
+                param = int(self.last_match.group(1) or '0')
+                if param == 0: del self.line[self.pos:]
+                if param == 1: self.line[:self.pos + 1] = [' '] * (self.pos + 1)
+                if param == 2: self.line.clear()
+                continue
             if (self.match(self.escape_sequence) or
                 self.match(self.control_sequence) or
                 self.match(self.command_string) or

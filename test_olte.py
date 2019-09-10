@@ -28,6 +28,15 @@ class TestOLTE(unittest.TestCase):
         self.assertProduces("Hello\x1bpWorld", [], "HelloWorld")        
     def test_csi(self):
         self.assertProduces("Hello\x1b[1mWorld", [], "HelloWorld")
+    def test_cuf(self):
+        self.assertProduces("Hello\r\x1b[2CWorld", [], "HeWorld")
+    def test_el0(self):
+        self.assertProduces("Hello World\b\b\b\b\b\b\x9bK", [], "Hello")
+    def test_el1(self):
+        self.assertProduces("Hello World\b\b\b\b\b\b\b\x1b[1K", [],
+                            "      World")
+    def test_el2(self):
+        self.assertProduces("Hello World\b\b\b\b\b\b\x1b[2K", [], "")
 
 class TestRegexps(unittest.TestCase):
     def multi_test(self, specs):
