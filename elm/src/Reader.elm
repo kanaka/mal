@@ -126,6 +126,7 @@ form =
                     [ list
                     , vector
                     , map
+
                     -- , simpleMacro "'" "quote"
                     -- , simpleMacro "`" "quasiquote"
                     -- , simpleMacro "~@" "splice-unquote"
@@ -158,7 +159,7 @@ withMeta =
 
 readString : String -> Result String (Maybe MalExpr)
 readString stri =
-    case parse ((maybe form) |> ignore ws |> ignore end) stri of
+    case parse (maybe form |> ignore ws |> ignore end) stri of
         Ok ( _, _, ast ) ->
             Ok ast
 
