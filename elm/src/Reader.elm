@@ -15,11 +15,7 @@ comment =
 
 ws : Parser s (List String)
 ws =
-    many
-        (comment
-            |> or (string ",")
-            |> or whitespace
-        )
+    many (whitespace |> or (string ",") |> or comment)
 
 
 int : Parser s MalExpr
@@ -130,12 +126,12 @@ form =
                     [ list
                     , vector
                     , map
-                    , simpleMacro "'" "quote"
-                    , simpleMacro "`" "quasiquote"
-                    , simpleMacro "~@" "splice-unquote"
-                    , simpleMacro "~" "unquote"
-                    , simpleMacro "@" "deref"
-                    , withMeta
+                    -- , simpleMacro "'" "quote"
+                    -- , simpleMacro "`" "quasiquote"
+                    -- , simpleMacro "~@" "splice-unquote"
+                    -- , simpleMacro "~" "unquote"
+                    -- , simpleMacro "@" "deref"
+                    -- , withMeta
                     , atom
                     ]
             in
@@ -162,7 +158,7 @@ withMeta =
 
 readString : String -> Result String (Maybe MalExpr)
 readString stri =
-    case parse (maybe form |> ignore whitespace |> ignore end) stri of
+    case parse ((maybe form) |> ignore ws |> ignore end) stri of
         Ok ( _, _, ast ) ->
             Ok ast
 
