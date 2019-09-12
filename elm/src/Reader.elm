@@ -95,15 +95,12 @@ mapEntry =
 
 map : Parser s MalExpr
 map =
-    lazy <|
-        \() ->
-            Combine.map (MalMap << Dict.fromList)
-                (string "{"
-                    |> keep (many (ws |> keep mapEntry))
-                    |> ignore ws
-                    |> ignore (string "}")
-                )
-                |> onerror "map"
+    Combine.map (MalMap << Dict.fromList)
+        (string "{"
+             |> keep (many (ws |> keep mapEntry))
+             |> ignore ws
+             |> ignore (string "}"))
+        |> onerror "map"
 
 
 atom : Parser s MalExpr
@@ -126,13 +123,12 @@ form =
                     [ list
                     , vector
                     , map
-
-                    -- , simpleMacro "'" "quote"
-                    -- , simpleMacro "`" "quasiquote"
-                    -- , simpleMacro "~@" "splice-unquote"
-                    -- , simpleMacro "~" "unquote"
-                    -- , simpleMacro "@" "deref"
-                    -- , withMeta
+                    , simpleMacro "'" "quote"
+                    , simpleMacro "`" "quasiquote"
+                    , simpleMacro "~@" "splice-unquote"
+                    , simpleMacro "~" "unquote"
+                    , simpleMacro "@" "deref"
+                    , withMeta
                     , atom
                     ]
             in
@@ -141,20 +137,20 @@ form =
 
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
-    Combine.map (makeCall symbol << List.singleton) (ignore (string token) form)
-        |> onerror symbol
+    string token
+    |> andThen (\_ -> Combine.map (makeCall symbol << List.singleton) form)
+    |> onerror symbol
 
 
 withMeta : Parser s MalExpr
 withMeta =
-    lazy <|
-        \() ->
-            let
-                make meta expr =
-                    makeCall "with-meta" [ expr, meta ]
-            in
-            infixAndMap (Combine.map make (ignore (string "^") form)) form
-                |> onerror "with-meta"
+    let
+        make meta expr =
+            makeCall "with-meta" [ expr, meta ]
+    in
+        string "^"
+            |> andThen (\_ -> infixAndMap (Combine.map make form) form)
+            |> onerror "with-meta"
 
 
 readString : String -> Result String (Maybe MalExpr)
