@@ -97,9 +97,10 @@ map : Parser s MalExpr
 map =
     Combine.map (MalMap << Dict.fromList)
         (string "{"
-             |> keep (many (ws |> keep mapEntry))
-             |> ignore ws
-             |> ignore (string "}"))
+            |> keep (many (ws |> keep mapEntry))
+            |> ignore ws
+            |> ignore (string "}")
+        )
         |> onerror "map"
 
 
@@ -138,8 +139,8 @@ form =
 simpleMacro : String -> String -> Parser s MalExpr
 simpleMacro token symbol =
     string token
-    |> andThen (\_ -> Combine.map (makeCall symbol << List.singleton) form)
-    |> onerror symbol
+        |> andThen (\_ -> Combine.map (makeCall symbol << List.singleton) form)
+        |> onerror symbol
 
 
 withMeta : Parser s MalExpr
@@ -148,9 +149,9 @@ withMeta =
         make meta expr =
             makeCall "with-meta" [ expr, meta ]
     in
-        string "^"
-            |> andThen (\_ -> infixAndMap (Combine.map make form) form)
-            |> onerror "with-meta"
+    string "^"
+        |> andThen (\_ -> infixAndMap (Combine.map make form) form)
+        |> onerror "with-meta"
 
 
 readString : String -> Result String (Maybe MalExpr)
