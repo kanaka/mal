@@ -5,9 +5,9 @@ use itertools::Itertools;
 
 #[macro_use]
 extern crate lazy_static;
-extern crate regex;
-extern crate itertools;
 extern crate fnv;
+extern crate itertools;
+extern crate regex;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
@@ -15,195 +15,206 @@ use rustyline::Editor;
 
 #[macro_use]
 mod types;
-use types::{MalVal,MalArgs,MalRet,MalErr,error,format_error};
-use types::MalVal::{Nil,Bool,Sym,List,Vector,Hash,Func,MalFunc};
-mod reader;
-mod printer;
+use types::MalVal::{Bool, Func, Hash, List, MalFunc, Nil, Sym, Vector};
+use types::{error, format_error, MalArgs, MalErr, MalRet, MalVal};
 mod env;
-use env::{Env,env_new,env_bind,env_get,env_set,env_sets};
+mod printer;
+mod reader;
+use env::{env_bind, env_get, env_new, env_set, env_sets, Env};
 #[macro_use]
 mod core;
 
 // read
 fn read(str: &str) -> MalRet {
-  reader::read_str(str.to_string())
+    reader::read_str(str.to_string())
 }
 
 // eval
 fn eval_ast(ast: &MalVal, env: &Env) -> MalRet {
-  match ast {
-    Sym(_)  => Ok(env_get(&env, &ast)?),
-    List(v,_) => {
-      let mut lst: MalArgs = vec![];
-      for a in v.iter() { lst.push(eval(a.clone(), env.clone())?) }
-      Ok(list!(lst))
-    },
-    Vector(v,_) => {
-      let mut lst: MalArgs = vec![];
-      for a in v.iter() { lst.push(eval(a.clone(), env.clone())?) }
-      Ok(vector!(lst))
-    },
-    Hash(hm,_) => {
-      let mut new_hm: FnvHashMap<String,MalVal> = FnvHashMap::default();
-      for (k,v) in hm.iter() {
-        new_hm.insert(k.to_string(), eval(v.clone(), env.clone())?);
-      }
-      Ok(Hash(Rc::new(new_hm),Rc::new(Nil)))
-    },
-    _ => Ok(ast.clone()),
-  }
+    match ast {
+        Sym(_) => Ok(env_get(&env, &ast)?),
+        List(v, _) => {
+            let mut lst: MalArgs = vec![];
+            for a in v.iter() {
+                lst.push(eval(a.clone(), env.clone())?)
+            }
+            Ok(list!(lst))
+        }
+        Vector(v, _) => {
+            let mut lst: MalArgs = vec![];
+            for a in v.iter() {
+                lst.push(eval(a.clone(), env.clone())?)
+            }
+            Ok(vector!(lst))
+        }
+        Hash(hm, _) => {
+            let mut new_hm: FnvHashMap<String, MalVal> = FnvHashMap::default();
+            for (k, v) in hm.iter() {
+                new_hm.insert(k.to_string(), eval(v.clone(), env.clone())?);
+            }
+            Ok(Hash(Rc::new(new_hm), Rc::new(Nil)))
+        }
+        _ => Ok(ast.clone()),
+    }
 }
 
 fn eval(mut ast: MalVal, mut env: Env) -> MalRet {
-  let ret: MalRet;
+    let ret: MalRet;
 
-  'tco: loop {
-
-  ret = match ast.clone() {
-    List(l,_) => {
-      if l.len() == 0 { return Ok(ast); }
-      let a0 = &l[0];
-      match a0 {
-        Sym(ref a0sym) if a0sym == "def!" => {
-          env_set(&env, l[1].clone(), eval(l[2].clone(), env.clone())?)
-        },
-        Sym(ref a0sym) if a0sym == "let*" => {
-          env = env_new(Some(env.clone()));
-          let (a1, a2) = (l[1].clone(), l[2].clone());
-          match a1 {
-            List(ref binds,_) | Vector(ref binds,_) => {
-              for (b, e) in binds.iter().tuples() {
-                match b {
-                  Sym(_) => {
-                    let _ = env_set(&env, b.clone(),
-                                    eval(e.clone(), env.clone())?);
-                  },
-                  _ => { 
-                    return error("let* with non-Sym binding");
-                  }
+    'tco: loop {
+        ret = match ast.clone() {
+            List(l, _) => {
+                if l.len() == 0 {
+                    return Ok(ast);
                 }
-              }
-            },
-            _ => {
-              return error("let* with non-List bindings");
+                let a0 = &l[0];
+                match a0 {
+                    Sym(ref a0sym) if a0sym == "def!" => {
+                        env_set(&env, l[1].clone(), eval(l[2].clone(), env.clone())?)
+                    }
+                    Sym(ref a0sym) if a0sym == "let*" => {
+                        env = env_new(Some(env.clone()));
+                        let (a1, a2) = (l[1].clone(), l[2].clone());
+                        match a1 {
+                            List(ref binds, _) | Vector(ref binds, _) => {
+                                for (b, e) in binds.iter().tuples() {
+                                    match b {
+                                        Sym(_) => {
+                                            let _ = env_set(
+                                                &env,
+                                                b.clone(),
+                                                eval(e.clone(), env.clone())?,
+                                            );
+                                        }
+                                        _ => {
+                                            return error("let* with non-Sym binding");
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {
+                                return error("let* with non-List bindings");
+                            }
+                        };
+                        ast = a2;
+                        continue 'tco;
+                    }
+                    Sym(ref a0sym) if a0sym == "do" => {
+                        match eval_ast(&list!(l[1..l.len() - 1].to_vec()), &env)? {
+                            List(_, _) => {
+                                ast = l.last().unwrap_or(&Nil).clone();
+                                continue 'tco;
+                            }
+                            _ => error("invalid do form"),
+                        }
+                    }
+                    Sym(ref a0sym) if a0sym == "if" => {
+                        let cond = eval(l[1].clone(), env.clone())?;
+                        match cond {
+                            Bool(false) | Nil if l.len() >= 4 => {
+                                ast = l[3].clone();
+                                continue 'tco;
+                            }
+                            Bool(false) | Nil => Ok(Nil),
+                            _ if l.len() >= 3 => {
+                                ast = l[2].clone();
+                                continue 'tco;
+                            }
+                            _ => Ok(Nil),
+                        }
+                    }
+                    Sym(ref a0sym) if a0sym == "fn*" => {
+                        let (a1, a2) = (l[1].clone(), l[2].clone());
+                        Ok(MalFunc {
+                            eval: eval,
+                            ast: Rc::new(a2),
+                            env: env,
+                            params: Rc::new(a1),
+                            is_macro: false,
+                            meta: Rc::new(Nil),
+                        })
+                    }
+                    _ => match eval_ast(&ast, &env)? {
+                        List(ref el, _) => {
+                            let ref f = el[0].clone();
+                            let args = el[1..].to_vec();
+                            match f {
+                                Func(_, _) => f.apply(args),
+                                MalFunc {
+                                    ast: mast,
+                                    env: menv,
+                                    params,
+                                    ..
+                                } => {
+                                    let a = &**mast;
+                                    let p = &**params;
+                                    env = env_bind(Some(menv.clone()), p.clone(), args)?;
+                                    ast = a.clone();
+                                    continue 'tco;
+                                }
+                                _ => error("attempt to call non-function"),
+                            }
+                        }
+                        _ => error("expected a list"),
+                    },
+                }
             }
-          };
-          ast = a2;
-          continue 'tco;
-        },
-        Sym(ref a0sym) if a0sym == "do" => {
-          match eval_ast(&list!(l[1..l.len()-1].to_vec()), &env)? {
-            List(_,_) => {
-              ast = l.last().unwrap_or(&Nil).clone();
-              continue 'tco;
-            },
-            _ => error("invalid do form"),
-          }
-        },
-        Sym(ref a0sym) if a0sym == "if" => {
-          let cond = eval(l[1].clone(), env.clone())?;
-          match cond {
-            Bool(false) | Nil if l.len() >= 4 => {
-              ast = l[3].clone();
-              continue 'tco;
-            },
-            Bool(false) | Nil => Ok(Nil),
-            _ if l.len() >= 3 => {
-              ast = l[2].clone();
-              continue 'tco;
-            },
-            _ => Ok(Nil)
-          }
-        },
-        Sym(ref a0sym) if a0sym == "fn*" => {
-          let (a1, a2) = (l[1].clone(), l[2].clone());
-          Ok(MalFunc{eval: eval, ast: Rc::new(a2), env: env,
-                     params: Rc::new(a1), is_macro: false,
-                     meta: Rc::new(Nil)})
-        },
-        _ => {
-          match eval_ast(&ast, &env)? {
-            List(ref el,_) => {
-              let ref f = el[0].clone();
-              let args = el[1..].to_vec();
-              match f {
-                Func(_,_) => f.apply(args),
-                MalFunc{ast: mast, env: menv, params, ..} => {
-                  let a = &**mast;
-                  let p = &**params;
-                  env = env_bind(Some(menv.clone()), p.clone(), args)?;
-                  ast = a.clone();
-                  continue 'tco;
-                },
-                _ => error("attempt to call non-function"),
-              }
-            },
-            _ => {
-              error("expected a list")
-            }
-          }
-        }
-      }
-    },
-    _ => eval_ast(&ast, &env),
-  };
+            _ => eval_ast(&ast, &env),
+        };
 
-  break;
+        break;
+    } // end 'tco loop
 
-  } // end 'tco loop
-
-  ret
+    ret
 }
 
 // print
 fn print(ast: &MalVal) -> String {
-  ast.pr_str(true)
+    ast.pr_str(true)
 }
 
-fn rep(str: &str, env: &Env) -> Result<String,MalErr> {
-  let ast = read(str)?;
-  let exp = eval(ast, env.clone())?;
-  Ok(print(&exp))
+fn rep(str: &str, env: &Env) -> Result<String, MalErr> {
+    let ast = read(str)?;
+    let exp = eval(ast, env.clone())?;
+    Ok(print(&exp))
 }
 
 fn main() {
-  // `()` can be used when no completer is required
-  let mut rl = Editor::<()>::new();
-  if rl.load_history(".mal-history").is_err() {
-      eprintln!("No previous history.");
-  }
-
-  // core.rs: defined using rust
-  let repl_env = env_new(None);
-  for (k, v) in core::ns() {
-    env_sets(&repl_env, k, v);
-  }
-
-  // core.mal: defined using the language itself
-  let _ = rep("(def! not (fn* (a) (if a false true)))", &repl_env);
-
-  // main repl loop
-  loop {
-    let readline = rl.readline("user> ");
-    match readline {
-      Ok(line) => {
-        rl.add_history_entry(&line);
-        rl.save_history(".mal-history").unwrap();
-        if line.len() > 0 {
-          match rep(&line, &repl_env) {
-            Ok(out) => println!("{}", out),
-            Err(e)  => println!("Error: {}", format_error(e)),
-          }
-        }
-      },
-      Err(ReadlineError::Interrupted) => continue,
-      Err(ReadlineError::Eof) => break,
-      Err(err) => {
-        println!("Error: {:?}", err);
-        break
-      }
+    // `()` can be used when no completer is required
+    let mut rl = Editor::<()>::new();
+    if rl.load_history(".mal-history").is_err() {
+        eprintln!("No previous history.");
     }
-  }
-}
 
-// vim: ts=2:sw=2:expandtab
+    // core.rs: defined using rust
+    let repl_env = env_new(None);
+    for (k, v) in core::ns() {
+        env_sets(&repl_env, k, v);
+    }
+
+    // core.mal: defined using the language itself
+    let _ = rep("(def! not (fn* (a) (if a false true)))", &repl_env);
+
+    // main repl loop
+    loop {
+        let readline = rl.readline("user> ");
+        match readline {
+            Ok(line) => {
+                rl.add_history_entry(&line);
+                rl.save_history(".mal-history").unwrap();
+                if line.len() > 0 {
+                    match rep(&line, &repl_env) {
+                        Ok(out) => println!("{}", out),
+                        Err(e) => println!("Error: {}", format_error(e)),
+                    }
+                }
+            }
+            Err(ReadlineError::Interrupted) => continue,
+            Err(ReadlineError::Eof) => break,
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break;
+            }
+        }
+    }
+}
