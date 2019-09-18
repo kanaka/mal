@@ -1,0 +1,36 @@
+;; Testing basic Pike interop
+
+;;; pike-eval compiles the given string inside a temporary function after a
+;;; "return " keyword. To evaluate complex statements, you may use an anonymous
+;;; lambda and call it immediately (see the last example).
+
+(pike-eval "7")
+;=>7
+
+(pike-eval "'A'")
+;=>65
+
+(pike-eval "\"7\"")
+;=>"7"
+
+(pike-eval "({ 7,8,9 })")
+;=>(7 8 9)
+
+(pike-eval "([ \"abc\": 789 ])")
+;=>{"abc" 789}
+
+(pike-eval "write(\"hello\\n\")")
+;/hello
+;=>6
+
+(pike-eval "map(({ \"a\", \"b\", \"c\" }), lambda(string x) { return \"X\" + x + \"Y\"; }) * \" \"")
+;=>"XaY XbY XcY"
+
+(pike-eval "map(({ 1,2,3 }), lambda(int x) { return 1 + x; })")
+;=>(2 3 4)
+
+(pike-eval "throw(upper_case(\"aaa\" + \"bbb\"))")
+;/Error: AAABBB
+
+(pike-eval "(lambda() { int a = 5; int b = a * 3; return a + b; })()")
+;=>20
