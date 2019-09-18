@@ -1,0 +1,34 @@
+;; Testing basic Wren interop
+
+;;; wren-eval evaluates the given string as an expression.
+
+(wren-eval "7")
+;=>7
+
+(wren-eval "0x41")
+;=>65
+
+(wren-eval "\"7\"")
+;=>"7"
+
+(wren-eval "[ 7,8,9 ]")
+;=>(7 8 9)
+
+(wren-eval "{ \"abc\": 789 }")
+;=>{"abc" 789}
+
+(wren-eval "System.print(\"hello\")")
+;/hello
+;=>"hello"
+
+(wren-eval "[\"a\", \"b\", \"c\"].map { |x| \"X%(x)Y\" }.join(\" \")")
+;=>"XaY XbY XcY"
+
+(wren-eval "[1,2,3].map { |x| 1 + x }")
+;=>(2 3 4)
+
+(wren-eval "[null, (1 == 1), (1 == 2)]")
+;=>(nil true false)
+
+(wren-eval "Fiber.abort(\"AAA\" + \"BBB\")")
+;/Error: AAABBB
