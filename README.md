@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 77 languages (78 different implementations and 99 runtime modes)**
+**2. Mal is implemented in 78 languages (79 different implementations and 100 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -63,6 +63,7 @@
 | [Perl 6](#perl-6) | [Hinrik Örn Sigurðsson](https://github.com/hinrik) |
 | [PHP](#php-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Picolisp](#picolisp) | [Vasilij Schneidermann](https://github.com/wasamasa) |
+| [Pike](#pike) | [Dov Murik](https://github.com/dubek) |
 | [PL/pgSQL](#plpgsql-postgresql-sql-procedural-language) (PostgreSQL) | [Joel Martin](https://github.com/kanaka) |
 | [PL/SQL](#plsql-oracle-sql-procedural-language) (Oracle) | [Joel Martin](https://github.com/kanaka) |
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
@@ -782,6 +783,15 @@ or later.
 ```
 cd picolisp
 ./run
+```
+
+### Pike
+
+The Pike implementation was tested on Pike 8.0.
+
+```
+cd pike
+pike stepX_YYY.pike
 ```
 
 ### PL/pgSQL (PostgreSQL SQL Procedural Language)
