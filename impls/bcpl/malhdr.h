@@ -23,17 +23,23 @@ MANIFEST
   // (for instance functions and macros).  The compoundflag is set on
   // compund types (ones containing references to other values).
   compoundflag = SLCT 1:3:0; supertype = SLCT 4:0:0; type = SLCT 8:0:0
+  gc_marked = SLCT 9:0:0
+
+  // The second work of each value is a pointer to the next element
+  // of the global object list.
+  nextptr = 1
 
   // Nil. There is a single nil value initialised by init_types(), but
   // it's a valid pointer so it can safely be dereferenced.
   t_nil = #x00
+  nil_sz = 2
 
   // Lists.  These are implemented as a linked list.  The empty list,
   // like nil, is a special value.
-  t_lst = #x08; lst_first = 1; lst_rest = 2; lst_sz = 3
+  t_lst = #x08; lst_first = 2; lst_rest = 3; lst_sz = 4
 
   // Integers.
-  t_int = #x01; int_value = 1; int_sz = 2
+  t_int = #x01; int_value = 2; int_sz = 3
 
   // Booleans.
   t_boo = #x11
@@ -41,7 +47,7 @@ MANIFEST
   // Strings.  Unlike conventional BCPL strings, these have an entire word
   // to store the length.  For compatibility with library routines, the
   // first byte of the string is also the length if it will fit.
-  t_str = #x02; str_len = 1; str_data = 2
+  t_str = #x02; str_len = 2; str_data = 3
 
   // Symbols and keywords.  Like strings, but with different types.
   t_sym = #x12
@@ -51,18 +57,18 @@ MANIFEST
 
   // Vectors.  Structured like strings except that the data consists of
   // pointers rather than packed characters.
-  t_vec = #x09; vec_len = 1; vec_data = 2
+  t_vec = #x09; vec_len = 2; vec_data = 3
 
   // Functions.  Contains a function which gets passed a pointer to
   // this structure and can do what it likes with it.
-  t_fun = #x0f; fun_code = 1; fun_data = 2
+  t_fun = #x0f; fun_code = 2; fun_data = 3
 
   // Hash-maps.  These are implemented as crit-bit trees.  There are three
   // types of node: internal nodes point to two other nodes and encode a
   // bit offset in the spare bits of the first word.  External nodes
   // point to a key and a value.  Empty nodes describe an empty hash-map.
-  t_hmi = #x0a; hmi_left = 1; hmi_right = 2; hmi_sz = 3
+  t_hmi = #x0a; hmi_left = 2; hmi_right = 3; hmi_sz = 4
   hmi_critbit = SLCT 0:8:0; hmi_maxcritbit = (1 << BITSPERBCPLWORD - 8) - 1
-  t_hmx = #x1a; hmx_key = 1; hmx_value = 2; hmx_sz = 3
-  t_hm0 = #x0b; hm0_sz = 1
+  t_hmx = #x1a; hmx_key = 2; hmx_value = 3; hmx_sz = 4
+  t_hm0 = #x0b; hm0_sz = 2
 }

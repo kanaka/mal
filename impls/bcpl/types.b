@@ -2,16 +2,26 @@ GET "libhdr"
 GET "malhdr"
 
 LET init_types() BE
-{ nil := TABLE t_nil
-  empty := TABLE t_lst, ?, ?
+{ // These objects are statically-allocated and hence special.
+  // nil acts as the head and tail of the global object list.
+  nil := TABLE t_nil, ?
+  nil!nextptr := nil
+  empty := TABLE t_lst, ?, ?, ?
   empty!lst_first, empty!lst_rest := nil, empty
-  empty_hashmap := TABLE t_hm0
-  mtrue  := TABLE t_boo, TRUE
-  mfalse := TABLE t_boo, FALSE
+  empty_hashmap := TABLE t_hm0, ?
+  mtrue  := TABLE t_boo, ?, TRUE
+  mfalse := TABLE t_boo, ?, FALSE
+}
+
+LET alloc_val(size) = VALOF
+{ LET result = getvec(size)
+  result!nextptr := nil!nextptr
+  nil!nextptr := result
+  RESULTIS result
 }
 
 LET cons(first, rest) = VALOF
-{ LET result = getvec(lst_sz)
+{ LET result = alloc_val(lst_sz)
   !result := 0
   type OF result := t_lst
   result!lst_first := first
@@ -39,7 +49,7 @@ LET as_lst(x) = VALOF SWITCHON type OF x INTO
   
 
 LET alloc_int(value) = VALOF
-{ LET result = getvec(int_sz)
+{ LET result = alloc_val(int_sz)
   !result := 0
   type OF result := t_int
   result!int_value := value
@@ -53,7 +63,7 @@ LET str_setlen(str, len) BE
 
 LET alloc_str(len) = VALOF
 { LET words = str_data + 1 + len / bytesperword
-  LET result = getvec(words)
+  LET result = alloc_val(words)
   !result := 0
   result!(words - 1) := 0 // Make sure the unused part word at the end is 0.
   type OF result := t_str
@@ -159,7 +169,7 @@ AND equal_lstvec(l, v) = VALOF
 }
 
 LET alloc_vec(len) = VALOF
-{ LET result = getvec(vec_data + len)
+{ LET result = alloc_val(vec_data + len)
   !result := 0
   type OF result := t_vec
   result!vec_len := len
@@ -167,7 +177,7 @@ LET alloc_vec(len) = VALOF
 }
 
 LET alloc_fun(fn, sz, A, B, C) = VALOF
-{ LET result = getvec(sz)
+{ LET result = alloc_val(sz)
   LET p = @A
   !result := 0
   type OF result := t_fun
@@ -178,7 +188,7 @@ LET alloc_fun(fn, sz, A, B, C) = VALOF
 }
 
 LET alloc_hmx(key, value) = VALOF
-{ LET result = getvec(hmx_sz)
+{ LET result = alloc_val(hmx_sz)
   !result := 0
   type OF result := t_hmx
   result!hmx_key, result!hmx_value := key, value
@@ -186,7 +196,7 @@ LET alloc_hmx(key, value) = VALOF
 }
 
 LET alloc_hmi(critbit, left, right) = VALOF
-{ LET result = getvec(hmi_sz)
+{ LET result = alloc_val(hmi_sz)
   !result := 0
   type OF result := t_hmi
   hmi_critbit OF result := critbit

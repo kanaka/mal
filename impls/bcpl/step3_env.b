@@ -65,7 +65,7 @@ LET PRINT(x) = pr_str(x)
 STATIC { add_fun; sub_fun; mul_fun; div_fun }
 
 LET init_core() BE
-{ MANIFEST { wf_wrapped = 2; wf_sz = 3 }
+{ MANIFEST { wf_wrapped = fun_data; wf_sz = fun_data + 1 }
   LET arith(fn, args) = VALOF
   { LET a, b = args!lst_first, args!lst_rest!lst_first
     UNLESS type OF a = type OF b = t_int DO
