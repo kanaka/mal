@@ -37,6 +37,10 @@ class TestOLTE(unittest.TestCase):
                             "      World")
     def test_el2(self):
         self.assertProduces("Hello World\b\b\b\b\b\b\x1b[2K", [], "")
+    def test_prompt(self):
+        o = OneLineTerminalEmulator()
+        o.process("1234567890\r> ")
+        self.assertEqual(o.current_prompt, "> ")
 
 class TestRegexps(unittest.TestCase):
     def multi_test(self, specs):

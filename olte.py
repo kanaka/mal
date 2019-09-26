@@ -106,5 +106,8 @@ class OneLineTerminalEmulator(object):
     @property
     def current_line(self):
         return "".join(self.line)
+    @property
+    def current_prompt(self):
+        return "".join(self.line[:self.pos])
     def emit(self, line):
         self.past_lines.append(self.current_line)
