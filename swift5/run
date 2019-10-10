@@ -1,3 +1,4 @@
 #!/bin/bash
-exec $(dirname $0)/${STEP:-stepA_mal} "${@}"
+swift run ${STEP:-stepA_mal} "${@}"
+#exec $(dirname $0)/.build/debug/${STEP:-stepA_mal} "${@}"
 
