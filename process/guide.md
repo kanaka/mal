@@ -916,15 +916,16 @@ diff -urp ../process/step4_if_fn_do.txt ../process/step5_tco.txt
 
 * The default "apply"/invoke case of `EVAL` must now be changed to
   account for the new object/structure returned by the `fn*` form.
-  Continue to call `eval_ast` on `ast`. The first element is `f`.
+  Continue to call `eval_ast` on `ast`. The first element of the 
+  result of `eval_ast` is `f` and the remaining elements are in `args`.
   Switch on the type of `f`:
   * regular function (not one defined by `fn*`): apply/invoke it as
     before (in step 4).
   * a `fn*` value: set `ast` to the `ast` attribute of `f`. Generate
     a new environment using the `env` and `params` attributes of `f`
-    as the `outer` and `binds` arguments and rest `ast` arguments
-    (list elements 2 through the end) as the `exprs` argument. Set
-    `env` to the new environment. Continue at the beginning of the loop.
+    as the `outer` and `binds` arguments and `args` as the `exprs` 
+    argument. Set `env` to the new environment. Continue at the 
+    beginning of the loop.
 
 Run some manual tests from previous steps to make sure you have not
 broken anything by adding TCO.
