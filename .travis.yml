@@ -76,6 +76,7 @@ matrix:
     - {env: IMPL=powershell NO_SELF_HOST_PERF=1, services: [docker]} # perf timeout
     - {env: IMPL=python python_MODE=python2,  services: [docker]}
     - {env: IMPL=python python_MODE=python3,  services: [docker]}
+    - {env: IMPL=python.2,                    services: [docker]}
     - {env: IMPL=r,                           services: [docker]}
     - {env: IMPL=racket,                      services: [docker]}
     - {env: IMPL=rexx,                        services: [docker]}

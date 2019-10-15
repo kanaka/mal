@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 78 languages (79 different implementations and 100 runtime modes)**
+**2. Mal is implemented in 78 languages (80 different implementations and 101 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -858,6 +858,16 @@ powershell ./stepX_YYY.ps1
 ```
 cd python
 python stepX_YYY.py
+```
+
+### Python.2 (3.X)
+
+The second Python implementation makes heavy use of type annotations and uses the Arpeggio parser library.
+
+```
+# Recommended: do these steps in a Python virtual environment.
+pip3 install Arpeggio==1.9.0
+python3 stepX_YYY.py
 ```
 
 ### RPython
