@@ -35,7 +35,8 @@ if [ "${NO_SELF_HOST_PERF}" -a "${DO_SELF_HOST}" -a "${ACTION}" = "perf" ]; then
     exit 0
 fi
 
-mode_var=${MAL_IMPL:-${IMPL}}_MODE
+raw_mode_var=${MAL_IMPL:-${IMPL}}_MODE
+mode_var=${raw_mode_var/./__}
 mode_val=${!mode_var}
 
 MAKE="make ${mode_val:+${mode_var}=${mode_val}}"
