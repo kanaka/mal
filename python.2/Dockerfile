@@ -1,9 +1,31 @@
-FROM alpine:3.10
+FROM ubuntu:bionic
 MAINTAINER Joel Martin <github@martintribe.org>
 
-RUN apk add --no-cache python3 python2 make readline-dev zip bash
-RUN python3 -m ensurepip && pip3 install --no-cache --upgrade pip setuptools wheel Arpeggio==1.9.0
-RUN rm -f /usr/bin/python && ln -sf python3 /usr/bin/python
+##########################################################
+# General requirements for testing or common across many
+# implementations
+##########################################################
+
+RUN apt-get -y update
+
+# Required for running tests
+RUN apt-get -y install make python
+
+# Some typical implementation and test requirements
+RUN apt-get -y install curl libreadline-dev libedit-dev
 
 RUN mkdir -p /mal
 WORKDIR /mal
+
+##########################################################
+# Specific implementation requirements
+##########################################################
+
+# Nothing additional needed for python
+RUN apt-get -y install python3
+
+# For dist packaging
+RUN apt-get -y install zip
+
+# Pypi modules
+RUN apt-get -y install python3-pip && pip3 install Arpeggio==1.9.0
