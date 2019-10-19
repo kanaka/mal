@@ -1,12 +1,10 @@
-from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Any
 
 
-class MalExpression(ABC):
+class MalExpression(object):
     def __init__(self):
         assert False  # cannot instantiate
 
-    @abstractmethod
     def native(self) -> Any:
         """Return a shallow native Python equivalent for the expression.
 
@@ -16,7 +14,6 @@ class MalExpression(ABC):
     def __str__(self) -> str:
         return self.readable_str()
 
-    @abstractmethod
     def readable_str(self) -> str:
         """Return a human-readable (preferably Mal input format) form of the expression."""
         pass
