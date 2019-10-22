@@ -69,6 +69,7 @@
 | [PostScript](#postscript-level-23) | [Joel Martin](https://github.com/kanaka)  |
 | [PowerShell](#powershell) | [Joel Martin](https://github.com/kanaka)  |
 | [Python](#python-2x-and-3x) (2.X &amp; 3.X) | [Joel Martin](https://github.com/kanaka) |
+| [Python #2](#python2-3x) (3.X) | [Gavin Lewis](https://github.com/epylar) |
 | [RPython](#rpython) | [Joel Martin](https://github.com/kanaka)  |
 | [R](#r) | [Joel Martin](https://github.com/kanaka)  |
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
