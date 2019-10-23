@@ -19,7 +19,7 @@ x
 y
 ;=>8
 (def!)
-;/.*(syntax|Syntax).*
+;=>nil
 
 
 ;; Verifying symbols are case-sensitive
