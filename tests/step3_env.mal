@@ -18,6 +18,9 @@ x
 ;=>8
 y
 ;=>8
+(def!)
+;/.*(syntax|Syntax).*
+
 
 ;; Verifying symbols are case-sensitive
 (def! mynum 111)
