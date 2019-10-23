@@ -6,12 +6,6 @@
 
 import Foundation
 
-// A simple parser combinators implementation. "Combinators" mean higher-order
-// functions that take one or more parsers as input and produce new parsers like
-// output.
-//
-// See Grammar.swift for the actual regex grammar.
-
 // MARK: - Parser
 
 struct Parser<A> {
@@ -23,18 +17,6 @@ struct Parser<A> {
 extension Parser {
     func parse(_ string: String) throws -> A? {
         try parse(string[...])?.0
-    }
-}
-
-struct ParserError: Error, LocalizedError {
-    let message: String
-
-    init(_ message: String) {
-        self.message = message
-    }
-
-    public var errorDescription: String? {
-        "\(message)"
     }
 }
 
@@ -69,12 +51,6 @@ extension Parsers {
     static func string(excluding string: String) -> Parser<String> {
         char(excluding: string).oneOrMore.map { String($0) }
     }
-
-//    /// Parsers a natural number or zero. Valid inputs: "0", "1", "10".
-//    static let number = digit.oneOrMore.map { Int(String($0)) }
-//
-//    /// Matches a single digit.
-//    static let digit = char.filter(CharacterSet.decimalDigits.contains)
 }
 
 extension Parser: ExpressibleByStringLiteral, ExpressibleByUnicodeScalarLiteral, ExpressibleByExtendedGraphemeClusterLiteral where A == Void {
@@ -94,18 +70,6 @@ extension Parser: ExpressibleByStringLiteral, ExpressibleByUnicodeScalarLiteral,
 /// Matches only if both of the given parsers produced a result.
 func zip<A, B>(_ a: Parser<A>, _ b: Parser<B>) -> Parser<(A, B)> {
     a.flatMap { matchA in b.map { matchB in (matchA, matchB) } }
-}
-
-func zip<A, B, C>(_ a: Parser<A>, _ b: Parser<B>, _ c: Parser<C>) -> Parser<(A, B, C)> {
-    zip(a, zip(b, c)).map { a, bc in (a, bc.0, bc.1) }
-}
-
-func zip<A, B, C, D>(_ a: Parser<A>, _ b: Parser<B>, _ c: Parser<C>, _ d: Parser<D>) -> Parser<(A, B, C, D)> {
-    zip(a, zip(b, c, d)).map { a, bcd in (a, bcd.0, bcd.1, bcd.2) }
-}
-
-func zip<A, B, C, D, E>(_ a: Parser<A>, _ b: Parser<B>, _ c: Parser<C>, _ d: Parser<D>, _ e: Parser<E>) -> Parser<(A, B, C, D, E)> {
-    zip(a, zip(b, c, d, e)).map { a, bcde in (a, bcde.0, bcde.1, bcde.2, bcde.3) }
 }
 
 /// Returns the first match or `nil` if no matches are found.
@@ -193,19 +157,19 @@ func optional(_ parser: Parser<Void>) -> Parser<Bool> {
 
 extension Parser {
 
-    /// Throws an error with the given message if the parser fails to produce a match.
-    func orThrow(_ message: String) -> Parser {
+    /// Throws an error if the parser fails to produce a match.
+    func orThrow(_ error: MalError) -> Parser {
         Parser { str -> (A, Substring)? in
             guard let match = try self.parse(str) else {
-                throw ParserError(message)
+                throw error
             }
             return match
         }
     }
 
     /// Matches if the parser produces no matches. Throws an error otherwise.
-    func zeroOrThrow<B>(_ message: String) -> Parser<B> {  // automatically cast
-        map { _ in throw ParserError(message) }
+    func zeroOrThrow<B>(_ error: MalError) -> Parser<B> {  // automatically cast
+        map { _ in throw error }
     }
 }
 

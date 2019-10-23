@@ -3,11 +3,11 @@ import Foundation
 public enum Reader {
 
     public static func read(_ str: String) throws -> Expr {
-        return try Parsers.expr.orThrow("Can't parse").parse(str)!
+        return try Parsers.expr.orThrow(MalError("Can't parse")).parse(str)!
     }
 }
 
-extension Parsers {
+private extension Parsers {
 
     static let expr = form <* endPattern
 
@@ -25,7 +25,9 @@ extension Parsers {
 
     static let endPattern = oneOf(
         end,
-        char(from: ")]}").zeroOrThrow("unbalanced: unexpected close parentheses")
+        char(from: ")").zeroOrThrow(.unbalanced(unexpected: ")")),
+        char(from: "]").zeroOrThrow(.unbalanced(unexpected: "]")),
+        char(from: "}").zeroOrThrow(.unbalanced(unexpected: "}"))
     )
 
     static let digit = char(from: "0123456789")
@@ -36,17 +38,20 @@ extension Parsers {
         return .number(value * factor)
     }
 
-    static let list = ("(" *> _form.zeroOrMore.spacesAround() <* string(")").orThrow("unbalanced: expected )")).map(Expr.list)
-    static let vector = ("[" *> _form.zeroOrMore.spacesAround() <* string("]").orThrow("unbalanced: expected ]")).map(Expr.vector)
+    static let list = ("(" *> _form.zeroOrMore.spacesAround() <* string(")").orThrow(.unbalanced(expected: ")"))).map(Expr.list)
+    static let vector = ("[" *> _form.zeroOrMore.spacesAround() <* string("]").orThrow(.unbalanced(expected: "]"))).map(Expr.vector)
 
-    static let hashmap = ("{" *> (_form <*> _form).zeroOrMore.spacesAround() <* string("}").orThrow("unbalanced: expected }")).map(makeExprHashmap)
+    static let hashmap = ("{" *> (hashmapKey <*> _form).zeroOrMore.spacesAround() <* string("}").orThrow(.unbalanced(expected: "}"))).map(makeExprHashmap)
     static func makeExprHashmap(_ xs: [(Expr, Expr)]) -> Expr {
-        var dict: [Expr: Expr] = [:]
+        var dict: [String: Expr] = [:]
         for x in xs {
-            dict[x.0] = x.1
+            guard case let .string(key) = x.0 else { fatalError() }
+            dict[key] = x.1
         }
         return .hashmap(dict)
     }
+
+    static let hashmapKey = oneOf(eString, keyword)
 
     static let stringContent = oneOf(
         string(excluding: "\\\""),
@@ -57,19 +62,19 @@ extension Parsers {
     )
 
     static let eString = (
-        "\"" *> stringContent.zeroOrMore <* string("\"").orThrow("unbalanced: expected \"")
+        "\"" *> stringContent.zeroOrMore <* string("\"").orThrow(.unbalanced(expected: "\""))
     ).map(makeExprString)
 
     static func makeExprString(_ xs: [String]) -> Expr {
         return .string(xs.joined())
     }
 
-    static let symbolHead = char(excluding: "0123456789^`'\"#~@:/%()[]{} \n\r\t,")
+    static let symbolHead = char(excluding: "0123456789^`'\"#~@:%()[]{} \n\r\t,")
     static let symbolRest = oneOf(symbolHead, char(from: "0123456789."))
     static let symbol = name.map(Expr.symbol)
 
     static let name = (symbolHead <*> symbolRest.zeroOrMore).map { String($0) + String($1) }
-    static let keyword = (":" *> name).map(Expr.keyword)
+    static let keyword = (":" *> name).map { Expr.string(String(keywordMagic) + $0) }
 
     static let quote = ("'" *> _form).map { Expr.list([.symbol("quote"), $0]) }
     static let quasiquote = ("`" *> _form).map { Expr.list([.symbol("quasiquote"), $0]) }

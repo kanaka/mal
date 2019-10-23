@@ -15,23 +15,30 @@ extension Expr {
             let inner: String = arr.map(print).joined(separator: " ")
             return "[" + inner + "]"
         case let .hashmap(m):
-            let inner = m.map { print($0.key) + " " + print($0.value) }.joined(separator: " ")
+            let inner = m.map { printString($0.key, readable: readable) + " " + print($0.value) }.joined(separator: " ")
             return "{" + inner + "}"
         case let .string(s):
-            var inner = s
-            if readable {
-                inner = s
-                    .replacingOccurrences(of: "\\", with: "\\\\")
-                    .replacingOccurrences(of: "\n", with: "\\n")
-                    .replacingOccurrences(of: "\"", with: "\\\"")
-            }
-            return "\"" + inner + "\""
+            return printString(s, readable: readable)
         case let .symbol(s):
             return s
-        case let .keyword(s):
-            return ":" + s
+        case .function:
+            return "#function"
         }
     }
+}
+
+private func printString(_ s: String, readable: Bool) -> String {
+    if s.first == keywordMagic {
+        return ":" + s.dropFirst()
+    }
+    return "\"" + (readable ? unescape(s) : s) + "\""
+}
+
+private func unescape(_ s: String) -> String {
+    return s
+        .replacingOccurrences(of: "\\", with: "\\\\")
+        .replacingOccurrences(of: "\n", with: "\\n")
+        .replacingOccurrences(of: "\"", with: "\\\"")
 }
 
 extension Expr: CustomDebugStringConvertible {

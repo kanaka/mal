@@ -9,6 +9,7 @@ let package = Package(
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .executable(name: "step0_repl", targets: ["step0_repl"]),
         .executable(name: "step1_read_print", targets: ["step1_read_print"]),
+        .executable(name: "step2_eval", targets: ["step2_eval"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -19,6 +20,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(name: "core", dependencies: []),
         .target(name: "step0_repl", dependencies: ["core"]),
-        .target(name: "step1_read_print", dependencies: ["core"])
+        .target(name: "step1_read_print", dependencies: ["core"]),
+        .target(name: "step2_eval", dependencies: ["core"])
     ]
 )
