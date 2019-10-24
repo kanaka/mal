@@ -16,12 +16,12 @@ use rustyline::Editor;
 #[macro_use]
 #[allow(dead_code)]
 mod types;
-use types::MalVal::{Hash, Int, List, Nil, Sym, Vector};
-use types::{error, format_error, func, MalArgs, MalErr, MalRet, MalVal};
+use crate::types::MalVal::{Hash, Int, List, Nil, Sym, Vector};
+use crate::types::{error, format_error, func, MalArgs, MalErr, MalRet, MalVal};
 mod env;
 mod printer;
 mod reader;
-use env::{env_get, env_new, env_set, env_sets, Env};
+use crate::env::{env_get, env_new, env_set, env_sets, Env};
 
 // read
 fn read(str: &str) -> MalRet {

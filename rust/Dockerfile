@@ -1,4 +1,4 @@
-FROM rust:1.27.1
+FROM rust:1.38.0
 
 ENV CARGO_HOME /mal
 

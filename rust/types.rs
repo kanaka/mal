@@ -4,9 +4,9 @@ use std::rc::Rc;
 use fnv::FnvHashMap;
 use itertools::Itertools;
 
-use env::{env_bind, Env};
-use types::MalErr::{ErrMalVal, ErrString};
-use types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
+use crate::env::{env_bind, Env};
+use crate::types::MalErr::{ErrMalVal, ErrString};
+use crate::types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
 
 #[derive(Debug, Clone)]
 pub enum MalVal {

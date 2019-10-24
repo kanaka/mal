@@ -15,9 +15,9 @@ use rustyline::Editor;
 #[macro_use]
 #[allow(dead_code)]
 mod types;
-use types::MalErr::ErrString;
-use types::MalVal::{Hash, Int, List, Nil, Sym, Vector};
-use types::{error, format_error, func, MalArgs, MalErr, MalRet, MalVal};
+use crate::types::MalErr::ErrString;
+use crate::types::MalVal::{Hash, Int, List, Nil, Sym, Vector};
+use crate::types::{error, format_error, func, MalArgs, MalErr, MalRet, MalVal};
 mod printer;
 mod reader;
 // TODO: figure out a way to avoid including env

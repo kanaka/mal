@@ -8,11 +8,11 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-use printer::pr_seq;
-use reader::read_str;
-use types::MalErr::ErrMalVal;
-use types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
-use types::{MalArgs, MalRet, MalVal, _assoc, _dissoc, atom, error, func, hash_map};
+use crate::printer::pr_seq;
+use crate::reader::read_str;
+use crate::types::MalErr::ErrMalVal;
+use crate::types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
+use crate::types::{MalArgs, MalRet, MalVal, _assoc, _dissoc, atom, error, func, hash_map};
 
 macro_rules! fn_t_int_int {
     ($ret:ident, $fn:expr) => {{

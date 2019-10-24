@@ -1,5 +1,5 @@
-use types::MalVal;
-use types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
+use crate::types::MalVal;
+use crate::types::MalVal::{Atom, Bool, Func, Hash, Int, List, MalFunc, Nil, Str, Sym, Vector};
 
 fn escape_str(s: &str) -> String {
     s.chars()
