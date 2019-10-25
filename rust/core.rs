@@ -61,7 +61,16 @@ fn readline(a: MalArgs) -> MalRet {
         Str(ref p) => {
             //match rl.readline(p) {
             match RL.lock().unwrap().readline(p) {
-                Ok(line) => Ok(Str(line)),
+                Ok(mut line) => {
+                    // Remove any trailing \n or \r\n
+                    if line.ends_with('\n') {
+                        line.pop();
+                        if line.ends_with('\r') {
+                            line.pop();
+                        }
+                    }
+                    Ok(Str(line))
+                }
                 Err(ReadlineError::Eof) => Ok(Nil),
                 Err(e) => error(&format!("{:?}", e)),
             }
