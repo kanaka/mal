@@ -3,9 +3,9 @@ use std::rc::Rc;
 //use std::collections::HashMap;
 use fnv::FnvHashMap;
 
-use types::MalErr::ErrString;
-use types::MalVal::{List, Nil, Sym, Vector};
-use types::{error, MalErr, MalRet, MalVal};
+use crate::types::MalErr::ErrString;
+use crate::types::MalVal::{List, Nil, Sym, Vector};
+use crate::types::{error, MalErr, MalRet, MalVal};
 
 #[derive(Debug)]
 pub struct EnvStruct {

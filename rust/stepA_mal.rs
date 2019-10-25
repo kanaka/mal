@@ -17,13 +17,13 @@ use rustyline::Editor;
 
 #[macro_use]
 mod types;
-use types::MalErr::{ErrMalVal, ErrString};
-use types::MalVal::{Bool, Func, Hash, List, MalFunc, Nil, Str, Sym, Vector};
-use types::{error, format_error, MalArgs, MalErr, MalRet, MalVal};
+use crate::types::MalErr::{ErrMalVal, ErrString};
+use crate::types::MalVal::{Bool, Func, Hash, List, MalFunc, Nil, Str, Sym, Vector};
+use crate::types::{error, format_error, MalArgs, MalErr, MalRet, MalVal};
 mod env;
 mod printer;
 mod reader;
-use env::{env_bind, env_find, env_get, env_new, env_set, env_sets, Env};
+use crate::env::{env_bind, env_find, env_get, env_new, env_set, env_sets, Env};
 #[macro_use]
 mod core;
 

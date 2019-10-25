@@ -1,9 +1,9 @@
 use regex::{Captures, Regex};
 use std::rc::Rc;
 
-use types::MalErr::ErrString;
-use types::MalVal::{Bool, Int, List, Nil, Str, Sym, Vector};
-use types::{error, hash_map, MalErr, MalRet, MalVal};
+use crate::types::MalErr::ErrString;
+use crate::types::MalVal::{Bool, Int, List, Nil, Str, Sym, Vector};
+use crate::types::{error, hash_map, MalErr, MalRet, MalVal};
 
 #[derive(Debug, Clone)]
 struct Reader {

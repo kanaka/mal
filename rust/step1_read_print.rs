@@ -11,7 +11,7 @@ use rustyline::Editor;
 #[macro_use]
 #[allow(dead_code)]
 mod types;
-use types::format_error;
+use crate::types::format_error;
 mod printer;
 mod reader;
 // TODO: figure out a way to avoid including env
