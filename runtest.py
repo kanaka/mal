@@ -11,6 +11,8 @@ from select import select
 # Pseudo-TTY and terminal manipulation
 import pty, array, fcntl, termios
 
+import olte
+
 IS_PY_3 = sys.version_info[0] == 3
 
 debug_file = None
@@ -110,7 +112,7 @@ class Runner():
             self.stdout = self.stdin
 
         #print "started"
-        self.buf = ""
+        self.olte = olte.OneLineTerminalEmulator()
         self.last_prompt = ""
 
     def read_to_prompt(self, prompts, timeout):
@@ -124,25 +126,26 @@ class Runner():
                 debug(new_data)
                 # Perform newline cleanup
                 if self.no_pty:
-                    self.buf += new_data.replace("\n", "\r\n")
+                    self.olte.process(new_data.replace("\n", "\r\n"))
                 else:
-                    self.buf += new_data
-                self.buf = self.buf.replace("\r\r", "\r")
-                # Remove ANSI codes generally
-                #ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-                # Remove rustyline ANSI CSI codes:
-                #  - [6C - CR + cursor forward
-                #  - [6K - CR + erase in line
-                ansi_escape = re.compile(r'\r\x1B\[[0-9]*[CK]')
-                self.buf = ansi_escape.sub('', self.buf)
+                    self.olte.process(new_data)
+                searchee = "\n"+self.olte.current_line
+                if (len(self.olte.past_lines) == 0 and
+                    searchee.startswith("\n"+self.last_prompt)):
+                    searchee = searchee[len("\n"+self.last_prompt):]
                 for prompt in prompts:
                     regexp = re.compile(prompt)
-                    match = regexp.search(self.buf)
+                    match = regexp.search(searchee)
                     if match:
                         end = match.end()
-                        buf = self.buf[0:match.start()]
-                        self.buf = self.buf[end:]
-                        self.last_prompt = prompt
+                        buf = "\r\n".join(
+                            self.olte.past_lines +
+                            [searchee[0:match.start()]])
+                        if buf.startswith(self.last_prompt):
+                            buf = buf[len(self.last_prompt):]
+                        self.olte.past_lines = []
+                        self.last_prompt = (
+                            self.olte.current_line[0:match.end()])
                         return buf.replace("^M", "\r")
         return None
 
