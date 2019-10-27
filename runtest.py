@@ -113,7 +113,6 @@ class Runner():
 
         #print "started"
         self.olte = olte.OneLineTerminalEmulator()
-        self.last_prompt = ""
 
     def read_to_prompt(self, prompt, timeout):
         """
@@ -142,13 +141,8 @@ class Runner():
                 if check_first_line or len(self.olte.past_lines) > 0:
                     match = re.match(prompt, self.olte.current_line)
                     if match:
-                        end = match.end()
                         buf = "".join([x + "\n" for x in self.olte.past_lines])
-                        if buf.startswith(self.last_prompt):
-                            buf = buf[len(self.last_prompt):]
                         self.olte.past_lines = []
-                        self.last_prompt = (
-                            self.olte.current_line[0:match.end()])
                         return buf.replace("^M", "")
         return None
 
