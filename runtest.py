@@ -115,7 +115,17 @@ class Runner():
         self.last_prompt = ""
 
     def read_to_prompt(self, prompt, timeout):
+        """
+        Read from the child process until it emits a prompt matching
+        the "prompt" regexp.  The prompt must be emitted at the start
+        of a new line.  The timeout indicates how long to wait before
+        giving up and returning None.
+        """
         end_time = time.time() + timeout
+        # If the current line is empty then it might end up having the new
+        # prompt.  Otherwise ignore this line even if it already contains
+        # a prompt.
+        check_first_line = self.olte.current_line == ""
         while time.time() < end_time:
             [outs,_,_] = select([self.stdout], [], [], 1)
             if self.stdout in outs:
@@ -128,18 +138,12 @@ class Runner():
                     self.olte.process(new_data.replace("\n", "\r\n"))
                 else:
                     self.olte.process(new_data)
-                searchee = "\n"+self.olte.current_line
-                if (len(self.olte.past_lines) == 0 and
-                    searchee.startswith("\n"+self.last_prompt)):
-                    searchee = searchee[len("\n"+self.last_prompt):]
-                for prompt in [prompt]:
+                if check_first_line or len(self.olte.past_lines) > 0:
                     regexp = re.compile(prompt)
-                    match = regexp.search(searchee)
+                    match = regexp.match(self.olte.current_line)
                     if match:
                         end = match.end()
-                        buf = "\n".join(
-                            self.olte.past_lines +
-                            [searchee[0:match.start()]])
+                        buf = "".join([x + "\n" for x in self.olte.past_lines])
                         if buf.startswith(self.last_prompt):
                             buf = buf[len(self.last_prompt):]
                         self.olte.past_lines = []
@@ -303,7 +307,7 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt('\n[^\s()<>]+> ',
+        res = r.read_to_prompt('[^\s()<>]+> ',
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (t.ret == "" and t.out == ""):
