@@ -114,7 +114,7 @@ class Runner():
         self.olte = olte.OneLineTerminalEmulator()
         self.last_prompt = ""
 
-    def read_to_prompt(self, prompts, timeout):
+    def read_to_prompt(self, prompt, timeout):
         end_time = time.time() + timeout
         while time.time() < end_time:
             [outs,_,_] = select([self.stdout], [], [], 1)
@@ -132,7 +132,7 @@ class Runner():
                 if (len(self.olte.past_lines) == 0 and
                     searchee.startswith("\n"+self.last_prompt)):
                     searchee = searchee[len("\n"+self.last_prompt):]
-                for prompt in prompts:
+                for prompt in [prompt]:
                     regexp = re.compile(prompt)
                     match = regexp.search(searchee)
                     if match:
@@ -241,21 +241,21 @@ r = Runner(args.mal_cmd, no_pty=args.no_pty)
 t = TestReader(args.test_file)
 
 
-def assert_prompt(runner, prompts, timeout):
+def assert_prompt(runner, prompt, timeout):
     # Wait for the initial prompt
-    header = runner.read_to_prompt(prompts, timeout=timeout)
+    header = runner.read_to_prompt(prompt, timeout=timeout)
     if not header == None:
         if header:
             log("Started with:\n%s" % header)
     else:
-        log("Did not receive one of following prompt(s): %s" % repr(prompts))
+        log("Did not receive the following prompt: %s" % repr(prompt))
         log("    Got      : %s" % repr(r.buf))
         sys.exit(1)
 
 
 # Wait for the initial prompt
 try:
-    assert_prompt(r, ['[^\s()<>]+> '], args.start_timeout)
+    assert_prompt(r, '[^\s()<>]+> ', args.start_timeout)
 except:
     _, exc, _ = sys.exc_info()
     log("\nException: %s" % repr(exc))
@@ -266,7 +266,7 @@ except:
 if args.pre_eval:
     sys.stdout.write("RUNNING pre-eval: %s" % args.pre_eval)
     r.writeline(args.pre_eval)
-    assert_prompt(r, ['[^\s()<>]+> '], args.test_timeout)
+    assert_prompt(r, '[^\s()<>]+> ', args.test_timeout)
 
 test_cnt = 0
 pass_cnt = 0
@@ -303,7 +303,7 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt(['\n[^\s()<>]+> '],
+        res = r.read_to_prompt('\n[^\s()<>]+> ',
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (t.ret == "" and t.out == ""):
