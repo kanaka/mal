@@ -30,8 +30,7 @@ def log(data, end='\n'):
     print(data, end=end)
     sys.stdout.flush()
 
-# TODO: do we need to support '\n' too
-sep = "\r\n"
+sep = "\n"
 rundir = None
 
 parser = argparse.ArgumentParser(
@@ -138,7 +137,7 @@ class Runner():
                     match = regexp.search(searchee)
                     if match:
                         end = match.end()
-                        buf = "\r\n".join(
+                        buf = "\n".join(
                             self.olte.past_lines +
                             [searchee[0:match.start()]])
                         if buf.startswith(self.last_prompt):
@@ -146,7 +145,7 @@ class Runner():
                         self.olte.past_lines = []
                         self.last_prompt = (
                             self.olte.current_line[0:match.end()])
-                        return buf.replace("^M", "\r")
+                        return buf.replace("^M", "")
         return None
 
     def writeline(self, str):
@@ -222,10 +221,10 @@ class TestReader:
                     break
             if self.ret != None: break
 
-        if self.out[-2:] == sep and not self.ret:
+        if self.out.endswith(sep) and not self.ret:
             # If there is no return value, output should not end in
             # separator
-            self.out = self.out[0:-2]
+            self.out = self.out[0:-len(sep)]
         return self.form
 
 args = parser.parse_args(sys.argv[1:])
@@ -304,7 +303,7 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt(['\r\n[^\s()<>]+> ', '\n[^\s()<>]+> '],
+        res = r.read_to_prompt(['\n[^\s()<>]+> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (t.ret == "" and t.out == ""):
