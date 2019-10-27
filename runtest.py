@@ -32,6 +32,7 @@ def log(data, end='\n'):
 
 sep = "\n"
 rundir = None
+prompt_re = re.compile('[^\s()<>]+> ')
 
 parser = argparse.ArgumentParser(
         description="Run a test file against a Mal implementation")
@@ -139,8 +140,7 @@ class Runner():
                 else:
                     self.olte.process(new_data)
                 if check_first_line or len(self.olte.past_lines) > 0:
-                    regexp = re.compile(prompt)
-                    match = regexp.match(self.olte.current_line)
+                    match = re.match(prompt, self.olte.current_line)
                     if match:
                         end = match.end()
                         buf = "".join([x + "\n" for x in self.olte.past_lines])
@@ -259,7 +259,7 @@ def assert_prompt(runner, prompt, timeout):
 
 # Wait for the initial prompt
 try:
-    assert_prompt(r, '[^\s()<>]+> ', args.start_timeout)
+    assert_prompt(r, prompt_re, args.start_timeout)
 except:
     _, exc, _ = sys.exc_info()
     log("\nException: %s" % repr(exc))
@@ -270,7 +270,7 @@ except:
 if args.pre_eval:
     sys.stdout.write("RUNNING pre-eval: %s" % args.pre_eval)
     r.writeline(args.pre_eval)
-    assert_prompt(r, '[^\s()<>]+> ', args.test_timeout)
+    assert_prompt(r, prompt_re, args.test_timeout)
 
 test_cnt = 0
 pass_cnt = 0
@@ -307,8 +307,7 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt('[^\s()<>]+> ',
-                                timeout=args.test_timeout)
+        res = r.read_to_prompt(prompt_re, timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))
         if (t.ret == "" and t.out == ""):
             log(" -> SUCCESS (result ignored)")
