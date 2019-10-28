@@ -14,21 +14,20 @@ extension Func {
     }
 }
 
-let replEnv: Environment = [
-    "+": .function(.infixOperation(+)),
-    "-": .function(.infixOperation(-)),
-    "*": .function(.infixOperation(*)),
-    "/": .function(.infixOperation(/))
-]
+var replEnv: Env = Env()
+replEnv.set(forKey: "+", val: .function(.infixOperation(+)))
+replEnv.set(forKey: "-", val: .function(.infixOperation(-)))
+replEnv.set(forKey: "*", val: .function(.infixOperation(*)))
+replEnv.set(forKey: "/", val: .function(.infixOperation(/)))
 
 func read(_ s: String) throws -> Expr {
     return try Reader.read(s)
 }
 
-func eval(_ expr: Expr, env: Environment) throws -> Expr {
+func eval(_ expr: Expr, env: Env) throws -> Expr {
     switch expr {
     case let .symbol(name):
-        guard let value = env[name] else { throw MalError("unknown symbol \(name)") }
+        let value = try env.get(name)
         return value
     case let .vector(values):
         return .vector(try values.map { try eval($0, env: env) })
@@ -41,7 +40,7 @@ func eval(_ expr: Expr, env: Environment) throws -> Expr {
     }
 }
 
-func eval_list(_ expr: Expr, env: Environment) throws -> Expr {
+func eval_list(_ expr: Expr, env: Env) throws -> Expr {
     guard case let .list(values) = expr else { fatalError() }
 
     if values.isEmpty {
@@ -57,7 +56,7 @@ func print(_ expr: Expr) -> String {
     return Expr.print(expr)
 }
 
-func rep(_ s: String, env: Environment) -> String {
+func rep(_ s: String, env: Env) -> String {
     do {
         let expr = try read(s)
         let resExpr = try eval(expr, env: env)
