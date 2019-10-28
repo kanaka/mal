@@ -292,11 +292,8 @@ while t.next():
     # The repeated form is to get around an occasional OS X issue
     # where the form is repeated.
     # https://github.com/kanaka/mal/issues/30
-    expects = ["%s%s%s%s" % (re.escape(t.form), sep,
-                              t.out, re.escape(t.ret)),
-               "%s%s%s%s%s%s" % (re.escape(t.form), sep,
-                                  re.escape(t.form), sep,
-                                  t.out, re.escape(t.ret))]
+    expect = "(?:%s%s){1,2}%s%s" % (re.escape(t.form), sep,
+                                    t.out, re.escape(t.ret))
 
     r.writeline(t.form)
     try:
@@ -306,8 +303,7 @@ while t.next():
         if (t.ret == "" and t.out == ""):
             log(" -> SUCCESS (result ignored)")
             pass_cnt += 1
-        elif (re.search(expects[0], res, re.S) or
-                re.search(expects[1], res, re.S)):
+        elif (re.search(expect, res, re.S)):
             log(" -> SUCCESS")
             pass_cnt += 1
         else:
@@ -319,12 +315,12 @@ while t.next():
                 log(" -> FAIL (line %d):" % t.line_num)
                 fail_cnt += 1
                 fail_type = ""
-            log("    Expected : %s" % repr(expects[0]))
+            log("    Expected : %s" % repr(expect))
             log("    Got      : %s" % repr(res))
             failed_test = """%sFAILED TEST (line %d): %s -> [%s,%s]:
     Expected : %s
     Got      : %s""" % (fail_type, t.line_num, t.form, repr(t.out),
-                        t.ret, repr(expects[0]), repr(res))
+                        t.ret, repr(expect), repr(res))
             failures.append(failed_test)
     except:
         _, exc, _ = sys.exc_info()
