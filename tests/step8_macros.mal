@@ -49,6 +49,8 @@
 ;=>1
 (nth (list 1 2) 1)
 ;=>2
+(nth (list 1 2 nil) 2)
+;=>nil
 (def! x "x")
 (def! x (nth (list 1 2) 2))
 x
@@ -98,6 +100,8 @@ x
 ;=>1
 (nth [1 2] 1)
 ;=>2
+(nth [1 2 nil] 2)
+;=>nil
 (def! x "x")
 (def! x (nth [1 2] 2))
 x
