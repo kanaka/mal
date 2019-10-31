@@ -17,6 +17,8 @@ private extension Parsers {
         hashmap,
         eString,
         number,
+        null,
+        bool,
         symbol,
         keyword,
         sugar
@@ -72,6 +74,23 @@ private extension Parsers {
     static let symbolHead = char(excluding: "0123456789^`'\"#~@:%()[]{} \n\r\t,")
     static let symbolRest = oneOf(symbolHead, char(from: "0123456789."))
     static let symbol = name.map(Expr.symbol)
+
+    static let bool = name.map(makeBool)
+    static func makeBool(_ s: String) -> Expr? {
+        switch s {
+        case "true": return .bool(true)
+        case "false": return .bool(false)
+        default: return nil
+        }
+    }
+
+    static let null = name.map(makeNull)
+    static func makeNull(_ s: String) -> Expr? {
+        if s == "nil" {
+            return .null
+        }
+        return nil
+    }
 
     static let name = (symbolHead <*> symbolRest.zeroOrMore).map { String($0) + String($1) }
     static let keyword = (":" *> name).map { Expr.string(String(keywordMagic) + $0) }

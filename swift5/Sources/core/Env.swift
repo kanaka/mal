@@ -1,19 +1,31 @@
 import Foundation
 
-public struct Env {
-    private var _outer: [Env]
-    private var outer: Env? {
-        return _outer.first
-    }
-
-    private var data: [String: Expr]
+public class Env {
+    private var outer: Env?
+    public private(set) var data: [String: Expr]
 
     public init(data: [String: Expr] = [:], outer: Env? = nil) {
-        self._outer = outer != nil ? [outer!] : []
+        self.outer = outer
         self.data = data
     }
 
-    public mutating func set(forKey key: String, val: Expr) {
+    public init(binds: [String], exprs: [Expr], outer: Env? = nil) throws {
+        self.outer = outer
+        self.data = [:]
+
+        for i in 0..<binds.count {
+            let bindName = binds[i]
+            if bindName == "&" {
+                guard let key = binds[safe: i + 1] else { throw MalError("invalid variadic function definition") }
+                data[key] = .list(Array(exprs[i...]))
+                break
+            }
+            guard let exp = exprs[safe: i] else { throw MalError("function call: invalid arguments") }
+            data[bindName] = exp
+        }
+    }
+
+    public func set(forKey key: String, val: Expr) {
         data[key] = val
     }
 

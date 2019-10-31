@@ -10,7 +10,8 @@ let package = Package(
         .executable(name: "step0_repl", targets: ["step0_repl"]),
         .executable(name: "step1_read_print", targets: ["step1_read_print"]),
         .executable(name: "step2_eval", targets: ["step2_eval"]),
-        .executable(name: "step3_env", targets: ["step3_env"])
+        .executable(name: "step3_env", targets: ["step3_env"]),
+        .executable(name: "step4_if_fn_do", targets: ["step4_if_fn_do"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -23,6 +24,7 @@ let package = Package(
         .target(name: "step0_repl", dependencies: ["core"]),
         .target(name: "step1_read_print", dependencies: ["core"]),
         .target(name: "step2_eval", dependencies: ["core"]),
-        .target(name: "step3_env", dependencies: ["core"])
+        .target(name: "step3_env", dependencies: ["core"]),
+        .target(name: "step4_if_fn_do", dependencies: ["core"])
     ]
 )
