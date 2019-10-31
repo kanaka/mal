@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 78 languages (80 different implementations and 101 runtime modes)**
+**2. Mal is implemented in 79 languages (81 different implementations and 102 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -89,6 +89,7 @@
 | [Vimscript](#vimscript) | [Dov Murik](https://github.com/dubek) |
 | [Visual Basic.NET](#visual-basicnet) | [Joel Martin](https://github.com/kanaka)  |
 | [WebAssembly](#webassembly-wasm) (wasm) | [Joel Martin](https://github.com/kanaka) |
+| [Wren](#wren) | [Dov Murik](https://github.com/dubek) |
 | [Yorick](#yorick) | [Dov Murik](https://github.com/dubek) |
 
 
@@ -1117,6 +1118,15 @@ wace ./stepX_YYY.wasm
 # warpy
 make wasm_MODE=warpy
 warpy --argv --memory-pages 256 ./stepX_YYY.wasm
+```
+
+### Wren
+
+The Wren implementation of mal was tested on Wren 0.2.0.
+
+```
+cd wren
+wren ./stepX_YYY.wren
 ```
 
 ### Yorick
