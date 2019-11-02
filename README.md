@@ -75,7 +75,7 @@
 | [Racket](#racket-53) | [Joel Martin](https://github.com/kanaka)  |
 | [Rexx](#rexx) | [Dov Murik](https://github.com/dubek) |
 | [Ruby](#ruby-19) | [Joel Martin](https://github.com/kanaka)  |
-| [Rust](#rust-100-nightly) | [Joel Martin](https://github.com/kanaka)  |
+| [Rust](#rust-138) | [Joel Martin](https://github.com/kanaka)  |
 | [Scala](#scala) | [Joel Martin](https://github.com/kanaka)  |
 | [Scheme (R7RS)](#scheme-r7rs) | [Vasilij Schneidermann](https://github.com/wasamasa) |
 | [Skew](#skew) | [Dov Murik](https://github.com/dubek) |
@@ -920,7 +920,7 @@ cd ruby
 ruby stepX_YYY.rb
 ```
 
-### Rust (1.0.0 nightly)
+### Rust (1.38+)
 
 The rust implementation of mal requires the rust compiler and build
 tool (cargo) to build.
