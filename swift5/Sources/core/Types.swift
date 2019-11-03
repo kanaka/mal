@@ -43,16 +43,27 @@ extension Expr: Equatable {
     }
 }
 
-public struct Func {
+public class Func {
     public let run: ([Expr]) throws -> Expr
+    public let ast: Expr?
+    public let params: [String]
+    public let env: Env?
 
-    public init(run: @escaping ([Expr]) throws -> Expr) {
+    public init(
+        ast: Expr? = nil,
+        params: [String] = [],
+        env: Env? = nil,
+        run: @escaping ([Expr]) throws -> Expr
+    ) {
         self.run = run
+        self.ast = ast
+        self.params = params
+        self.env = env
     }
 }
 
 extension Func: Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        return false
+    public static func == (lhs: Func, rhs: Func) -> Bool {
+        return lhs === rhs
     }
 }

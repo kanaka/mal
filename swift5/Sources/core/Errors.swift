@@ -29,4 +29,8 @@ extension MalError {
     public static func unbalanced(unexpected: String) -> MalError {
         return MalError("unbalanced: unexpected \(unexpected)")
     }
+
+    public static func invalidArguments(_ name: String) -> MalError {
+        return MalError("\(name): invalid arguments")
+    }
 }

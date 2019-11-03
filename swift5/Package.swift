@@ -11,7 +11,8 @@ let package = Package(
         .executable(name: "step1_read_print", targets: ["step1_read_print"]),
         .executable(name: "step2_eval", targets: ["step2_eval"]),
         .executable(name: "step3_env", targets: ["step3_env"]),
-        .executable(name: "step4_if_fn_do", targets: ["step4_if_fn_do"])
+        .executable(name: "step4_if_fn_do", targets: ["step4_if_fn_do"]),
+        .executable(name: "step5_tco", targets: ["step5_tco"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -25,6 +26,7 @@ let package = Package(
         .target(name: "step1_read_print", dependencies: ["core"]),
         .target(name: "step2_eval", dependencies: ["core"]),
         .target(name: "step3_env", dependencies: ["core"]),
-        .target(name: "step4_if_fn_do", dependencies: ["core"])
+        .target(name: "step4_if_fn_do", dependencies: ["core"]),
+        .target(name: "step5_tco", dependencies: ["core"])
     ]
 )
