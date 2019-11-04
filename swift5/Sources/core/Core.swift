@@ -126,6 +126,28 @@ private extension Func {
         atom.val = try fn.run([atom.val] + otherArgs)
         return atom.val
     }
+
+    static let cons = Func { args in
+        guard args.count == 2 else { throw MalError.invalidArguments("cons") }
+        switch args[1] {
+        case let .list(values), let .vector(values):
+            return .list([args[0]] + values)
+        default:
+            throw MalError.invalidArguments("cons")
+        }
+    }
+
+    static let concat = Func { args in
+        let values = try args.flatMap { el throws -> [Expr] in
+            switch el {
+            case let .list(values), let .vector(values):
+                return values
+            default:
+                throw MalError.invalidArguments("concat")
+            }
+        }
+        return .list(values)
+    }
 }
 
 private let data: [String: Expr] = [
@@ -152,7 +174,9 @@ private let data: [String: Expr] = [
     "atom?": .function(.isAtom),
     "deref": .function(.deref),
     "reset!": .function(.reset),
-    "swap!": .function(.swap)
+    "swap!": .function(.swap),
+    "cons": .function(.cons),
+    "concat": .function(.concat)
 ]
 
 public enum Core {
