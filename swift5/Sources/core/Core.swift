@@ -75,8 +75,56 @@ private extension Func {
     }
 
     static let eq = Func { args in
-        guard args.count == 2 else { throw MalError("eq: invalid arguments") }
+        guard args.count == 2 else { throw MalError.invalidArguments("eq") }
         return args[0] == args[1] ? .bool(true) : .bool(false)
+    }
+
+    static let readString = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("read-string") }
+        guard case let .string(s) = args[0] else { throw MalError.invalidArguments("read-string") }
+        return try Reader.read(s)
+    }
+
+    static let slurp = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("slurp") }
+        guard case let .string(filename) = args[0] else { throw MalError.invalidArguments("slurp") }
+        return .string(try String(contentsOfFile: filename))
+    }
+
+    static let atom = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("atom") }
+        return .atom(Atom(args[0]))
+    }
+
+    static let isAtom = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("atom?") }
+        if case .atom = args[0] {
+            return .bool(true)
+        } else {
+            return .bool(false)
+        }
+    }
+
+    static let deref = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("deref") }
+        guard case let .atom(atom) = args[0] else { throw MalError.invalidArguments("deref") }
+        return atom.val
+    }
+
+    static let reset = Func { args in
+        guard args.count == 2 else { throw MalError.invalidArguments("reset!") }
+        guard case let .atom(atom) = args[0] else { throw MalError.invalidArguments("reset!") }
+        atom.val = args[1]
+        return args[1]
+    }
+
+    static let swap = Func { args in
+        guard args.count >= 2 else { throw MalError.invalidArguments("reset!") }
+        guard case let .atom(atom) = args[0] else { throw MalError.invalidArguments("swap!") }
+        guard case let .function(fn) = args[1] else { throw MalError.invalidArguments("swap!") }
+        let otherArgs = args.dropFirst(2)
+        atom.val = try fn.run([atom.val] + otherArgs)
+        return atom.val
     }
 }
 
@@ -97,7 +145,14 @@ private let data: [String: Expr] = [
     "<": .function(.comparisonOperation(<)),
     "<=": .function(.comparisonOperation(<=)),
     ">": .function(.comparisonOperation(>)),
-    ">=": .function(.comparisonOperation(>=))
+    ">=": .function(.comparisonOperation(>=)),
+    "read-string": .function(.readString),
+    "slurp": .function(.slurp),
+    "atom": .function(.atom),
+    "atom?": .function(.isAtom),
+    "deref": .function(.deref),
+    "reset!": .function(.reset),
+    "swap!": .function(.swap)
 ]
 
 public enum Core {

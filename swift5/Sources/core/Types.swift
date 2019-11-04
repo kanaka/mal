@@ -12,6 +12,7 @@ public enum Expr {
     case vector([Expr])
     case hashmap([String: Expr])
     case function(Func)
+    case atom(Atom)
 }
 
 extension Expr: Equatable {
@@ -36,6 +37,8 @@ extension Expr: Equatable {
             return a == b
         case let (.function(a), .function(b)):
             return a == b
+        case let (.atom(a), .atom(b)):
+            return a == b
 
         default:
             return false
@@ -43,7 +46,7 @@ extension Expr: Equatable {
     }
 }
 
-public class Func {
+final public class Func {
     public let run: ([Expr]) throws -> Expr
     public let ast: Expr?
     public let params: [String]
@@ -65,5 +68,19 @@ public class Func {
 extension Func: Equatable {
     public static func == (lhs: Func, rhs: Func) -> Bool {
         return lhs === rhs
+    }
+}
+
+final public class Atom {
+    public var val: Expr
+
+    public init(_ val: Expr) {
+        self.val = val
+    }
+}
+
+extension Atom: Equatable {
+    public static func == (lhs: Atom, rhs: Atom) -> Bool {
+        return lhs.val == rhs.val
     }
 }

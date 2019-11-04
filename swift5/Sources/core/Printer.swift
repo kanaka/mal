@@ -27,6 +27,8 @@ extension Expr {
             return "nil"
         case .function:
             return "#<function>"
+        case let .atom(expr):
+            return "(atom \(print(expr.val)))"
         }
     }
 }

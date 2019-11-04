@@ -115,7 +115,7 @@ private extension Parsers {
 extension Parsers {
 
     static let whitespace = char(from: " \n\r\t,")
-    static let comment = char(from: ";") <* char(excluding: "\r\n").zeroOrMore
+    static let comment = char(from: ";") <* char(excluding: "\n\r").zeroOrMore
     static let trash = oneOf(whitespace, comment)
 }
 
