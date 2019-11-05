@@ -33,4 +33,8 @@ extension MalError {
     public static func invalidArguments(_ name: String) -> MalError {
         return MalError("\(name): invalid arguments")
     }
+
+    public static func outOfRange() -> MalError {
+        return MalError("index out of range")
+    }
 }

@@ -25,8 +25,8 @@ extension Expr {
             return b ? "true" : "false"
         case .null:
             return "nil"
-        case .function:
-            return "#<function>"
+        case let .function(fn):
+            return fn.isMacro ? "#<macro-function>" : "#<function>"
         case let .atom(expr):
             return "(atom \(print(expr.val)))"
         }

@@ -148,6 +148,41 @@ private extension Func {
         }
         return .list(values)
     }
+
+    static let nth = Func { args in
+        guard args.count == 2 else { throw MalError.invalidArguments("nth") }
+        guard case let .number(index) = args[1] else { throw MalError.invalidArguments("nth") }
+
+        switch args.first {
+        case let .list(values), let .vector(values):
+            guard values.indices ~= index else { throw MalError.outOfRange() }
+            return values[index]
+        default:
+            throw MalError.invalidArguments("nth")
+        }
+    }
+
+    static let first = Func { args in
+        switch args.first {
+        case let .list(values), let .vector(values):
+            return values.first ?? .null
+        case .null:
+            return .null
+        default:
+            throw MalError.invalidArguments("first")
+        }
+    }
+
+    static let rest = Func { args in
+        switch args.first {
+        case let .list(values), let .vector(values):
+            return .list(Array(values.dropFirst()))
+        case .null:
+            return .list([])
+        default:
+            throw MalError.invalidArguments("rest")
+        }
+    }
 }
 
 private let data: [String: Expr] = [
@@ -176,7 +211,10 @@ private let data: [String: Expr] = [
     "reset!": .function(.reset),
     "swap!": .function(.swap),
     "cons": .function(.cons),
-    "concat": .function(.concat)
+    "concat": .function(.concat),
+    "nth": .function(.nth),
+    "first": .function(.first),
+    "rest": .function(.rest),
 ]
 
 public enum Core {

@@ -15,6 +15,7 @@ let package = Package(
         .executable(name: "step5_tco", targets: ["step5_tco"]),
         .executable(name: "step6_file", targets: ["step6_file"]),
         .executable(name: "step7_quote", targets: ["step7_quote"]),
+        .executable(name: "step8_macros", targets: ["step8_macros"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -31,6 +32,7 @@ let package = Package(
         .target(name: "step4_if_fn_do", dependencies: ["core"]),
         .target(name: "step5_tco", dependencies: ["core"]),
         .target(name: "step6_file", dependencies: ["core"]),
-        .target(name: "step7_quote", dependencies: ["core"])
+        .target(name: "step7_quote", dependencies: ["core"]),
+        .target(name: "step8_macros", dependencies: ["core"])
     ]
 )

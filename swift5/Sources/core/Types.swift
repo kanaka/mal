@@ -51,17 +51,20 @@ final public class Func {
     public let ast: Expr?
     public let params: [String]
     public let env: Env?
+    public var isMacro: Bool
 
     public init(
         ast: Expr? = nil,
         params: [String] = [],
         env: Env? = nil,
+        isMacro: Bool = false,
         run: @escaping ([Expr]) throws -> Expr
     ) {
         self.run = run
         self.ast = ast
         self.params = params
         self.env = env
+        self.isMacro = isMacro
     }
 }
 
