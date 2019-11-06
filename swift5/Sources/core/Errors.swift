@@ -38,3 +38,9 @@ extension MalError {
         return MalError("index out of range")
     }
 }
+
+extension Expr: Error, LocalizedError {
+    public var errorDescription: String? {
+        return "Error: \(self)"
+    }
+}

@@ -30,7 +30,7 @@ public class Env {
     }
 
     public func get(_ key: String) throws -> Expr {
-        guard let val = find(key) else { throw MalError("\(key) not found") }
+        guard let val = find(key) else { throw MalError("'\(key)' not found") }
         return val
     }
 
