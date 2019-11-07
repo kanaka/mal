@@ -8,11 +8,25 @@ public enum Expr {
     case null
     case string(String)
     case symbol(String)
-    case list([Expr])
-    case vector([Expr])
-    case hashmap([String: Expr])
+    indirect case list([Expr], Expr)
+    indirect case vector([Expr], Expr)
+    indirect case hashmap([String: Expr], Expr)
     case function(Func)
     case atom(Atom)
+}
+
+public extension Expr {
+    static func list(_ arr: [Expr]) -> Expr {
+        return .list(arr, .null)
+    }
+
+    static func vector(_ arr: [Expr]) -> Expr {
+        return .vector(arr, .null)
+    }
+
+    static func hashmap(_ data: [String: Expr]) -> Expr {
+        return .hashmap(data, .null)
+    }
 }
 
 extension Expr: Equatable {
@@ -51,13 +65,15 @@ final public class Func {
     public let ast: Expr?
     public let params: [String]
     public let env: Env?
-    public var isMacro: Bool
+    public let isMacro: Bool
+    public let meta: Expr
 
     public init(
         ast: Expr? = nil,
         params: [String] = [],
         env: Env? = nil,
         isMacro: Bool = false,
+        meta: Expr = .null,
         run: @escaping ([Expr]) throws -> Expr
     ) {
         self.run = run
@@ -65,6 +81,15 @@ final public class Func {
         self.params = params
         self.env = env
         self.isMacro = isMacro
+        self.meta = meta
+    }
+
+    public func asMacros() -> Func {
+        return Func(ast: ast, params: params, env: env, isMacro: true, meta: meta, run: run)
+    }
+
+    public func withMeta(_ meta: Expr) -> Func {
+        return Func(ast: ast, params: params, env: env, isMacro: isMacro, meta: meta, run: run)
     }
 }
 
@@ -76,9 +101,15 @@ extension Func: Equatable {
 
 final public class Atom {
     public var val: Expr
+    public let meta: Expr
 
-    public init(_ val: Expr) {
+    public init(_ val: Expr, meta: Expr = .null) {
         self.val = val
+        self.meta = meta
+    }
+
+    public func withMeta(_ meta: Expr) -> Atom {
+        return Atom(val, meta: meta)
     }
 }
 

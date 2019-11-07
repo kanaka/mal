@@ -13,6 +13,10 @@ private extension Func {
         return data
     }
 
+    static let notImplemented = Func { args in
+        throw MalError("not implemented")
+    }
+
     static func infixOperation(_ op: @escaping (Int, Int) -> Int) -> Func {
         return Func { args in
             guard args.count == 2,
@@ -70,7 +74,7 @@ private extension Func {
 
     static let isEmpty = Func { args in
         switch args.first {
-        case let .list(xs), let .vector(xs):
+        case let .list(xs, _), let .vector(xs, _):
             return .bool(xs.isEmpty)
         default:
             return .bool(false)
@@ -79,7 +83,7 @@ private extension Func {
 
     static let count = Func { args in
         switch args.first {
-        case let .list(xs), let .vector(xs):
+        case let .list(xs, _), let .vector(xs, _):
             return .number(xs.count)
         default:
             return .number(0)
@@ -142,7 +146,7 @@ private extension Func {
     static let cons = Func { args in
         guard args.count == 2 else { throw MalError.invalidArguments("cons") }
         switch args[1] {
-        case let .list(values), let .vector(values):
+        case let .list(values, _), let .vector(values, _):
             return .list([args[0]] + values)
         default:
             throw MalError.invalidArguments("cons")
@@ -152,7 +156,7 @@ private extension Func {
     static let concat = Func { args in
         let values = try args.flatMap { el throws -> [Expr] in
             switch el {
-            case let .list(values), let .vector(values):
+            case let .list(values, _), let .vector(values, _):
                 return values
             default:
                 throw MalError.invalidArguments("concat")
@@ -166,7 +170,7 @@ private extension Func {
         guard case let .number(index) = args[1] else { throw MalError.invalidArguments("nth") }
 
         switch args.first {
-        case let .list(values), let .vector(values):
+        case let .list(values, _), let .vector(values, _):
             guard values.indices ~= index else { throw MalError.outOfRange() }
             return values[index]
         default:
@@ -176,7 +180,7 @@ private extension Func {
 
     static let first = Func { args in
         switch args.first {
-        case let .list(values), let .vector(values):
+        case let .list(values, _), let .vector(values, _):
             return values.first ?? .null
         case .null:
             return .null
@@ -187,7 +191,7 @@ private extension Func {
 
     static let rest = Func { args in
         switch args.first {
-        case let .list(values), let .vector(values):
+        case let .list(values, _), let .vector(values, _):
             return .list(Array(values.dropFirst()))
         case .null:
             return .list([])
@@ -207,7 +211,7 @@ private extension Func {
 
         let lastArgs: [Expr]
         switch args.last! {
-        case let .list(values), let .vector(values):
+        case let .list(values, _), let .vector(values, _):
             lastArgs = values
         default:
             throw MalError.invalidArguments("apply")
@@ -223,7 +227,7 @@ private extension Func {
         guard case let .function(fn) = args[0] else { throw MalError.invalidArguments("map") }
 
         switch args[1] {
-        case let .list(values), let .vector(values):
+        case let .list(values, _), let .vector(values, _):
             return .list(try values.map { try fn.run([$0]) })
         default:
             throw MalError.invalidArguments("map")
@@ -320,7 +324,7 @@ private extension Func {
 
     static let assoc = Func { args in
         guard args.count > 0 else { throw MalError.invalidArguments("assoc") }
-        guard case let .hashmap(data) = args[0] else { throw MalError.invalidArguments("assoc") }
+        guard case let .hashmap(data, _) = args[0] else { throw MalError.invalidArguments("assoc") }
 
         let newData = try hashMapDataFrom(Array(args.dropFirst()))
         return .hashmap(data.merging(newData, uniquingKeysWith: { _, new in new }))
@@ -328,7 +332,7 @@ private extension Func {
 
     static let dissoc = Func { args in
         guard args.count > 0 else { throw MalError.invalidArguments("dissoc") }
-        guard case var .hashmap(data) = args[0] else { throw MalError.invalidArguments("dissoc") }
+        guard case var .hashmap(data, _) = args[0] else { throw MalError.invalidArguments("dissoc") }
 
         for key in args.dropFirst() {
             guard case let .string(name) = key else { throw MalError.invalidArguments("dissoc") }
@@ -342,7 +346,7 @@ private extension Func {
         guard case let .string(key) = args[1] else { throw MalError.invalidArguments("get") }
 
         switch args[0] {
-        case let .hashmap(data):
+        case let .hashmap(data, _):
             return data[key] ?? .null
         case .null:
             return .null
@@ -353,21 +357,136 @@ private extension Func {
 
     static let contains = Func { args in
         guard args.count == 2 else { throw MalError.invalidArguments("contains?") }
-        guard case let .hashmap(data) = args[0] else { throw MalError.invalidArguments("contains?") }
+        guard case let .hashmap(data, _) = args[0] else { throw MalError.invalidArguments("contains?") }
         guard case let .string(key) = args[1] else { throw MalError.invalidArguments("contains?") }
         return data.keys.contains(key) ? .bool(true) : .bool(false)
     }
 
     static let keys = Func { args in
         guard args.count == 1 else { throw MalError.invalidArguments("keys") }
-        guard case let .hashmap(data) = args[0] else { throw MalError.invalidArguments("keys") }
+        guard case let .hashmap(data, _) = args[0] else { throw MalError.invalidArguments("keys") }
         return .list(data.keys.map(Expr.string))
     }
 
     static let vals = Func { args in
         guard args.count == 1 else { throw MalError.invalidArguments("vals") }
-        guard case let .hashmap(data) = args[0] else { throw MalError.invalidArguments("vals") }
+        guard case let .hashmap(data, _) = args[0] else { throw MalError.invalidArguments("vals") }
         return .list(Array(data.values))
+    }
+
+    static let readline = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("readline") }
+        guard case let .string(promt) = args[0] else { throw MalError.invalidArguments("readline") }
+        print(promt, terminator: "")
+        if let s = readLine() {
+            return .string(s)
+        }
+        return .null
+    }
+
+    static let timeMs = Func { args in
+        guard args.count == 0 else { throw MalError.invalidArguments("time-ms") }
+        return .number(Int(Date().timeIntervalSince1970 * 1000))
+    }
+
+    static let isFunction = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("fn?") }
+        if case let .function(fn) = args[0] {
+            return .bool(!fn.isMacro)
+        }
+        return .bool(false)
+    }
+
+    static let isMacro = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("macro?") }
+        if case let .function(fn) = args[0] {
+            return .bool(fn.isMacro)
+        }
+        return .bool(false)
+    }
+
+    static let isString = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("string?") }
+        if case let .string(s) = args[0] {
+            return s.first == keywordMagic ? .bool(false) : .bool(true)
+        }
+        return .bool(false)
+    }
+
+    static let isNumber = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("number?") }
+        if case .number = args[0] {
+            return .bool(true)
+        }
+        return .bool(false)
+    }
+
+    static let seq = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("seq") }
+
+        switch args[0] {
+        case .list([], _), .vector([], _), .string(""), .null:
+            return .null
+        case .list:
+            return args[0]
+        case let .vector(values, _):
+            return .list(values)
+        case let .string(s):
+            if s.first == keywordMagic {
+                throw MalError.invalidArguments("seq")
+            }
+            return .list(Array(s.map { .string(String($0)) }))
+        default:
+            throw MalError.invalidArguments("seq")
+        }
+    }
+
+    static let conj = Func { args in
+        guard args.count > 0 else { throw MalError.invalidArguments("conj") }
+        switch args[0] {
+        case let .list(values, _):
+            return .list(Array(args.dropFirst()).reversed() + values)
+        case let .vector(values, _):
+            return .vector(values + Array(args.dropFirst()))
+        default:
+            throw MalError.invalidArguments("conj")
+        }
+    }
+
+    static let meta = Func { args in
+        guard args.count == 1 else { throw MalError.invalidArguments("meta") }
+        switch args[0] {
+        case let .function(fn):
+            return fn.meta
+        case let .list(_, meta):
+            return meta
+        case let .vector(_, meta):
+            return meta
+        case let .hashmap(_, meta):
+            return meta
+        case let .atom(atom):
+            return atom.meta
+        default:
+            throw MalError.invalidArguments("meta")
+        }
+    }
+
+    static let withMeta = Func { args in
+        guard args.count == 2 else { throw MalError.invalidArguments("with-meta") }
+        switch args[0] {
+        case let .function(fn):
+            return .function(fn.withMeta(args[1]))
+        case let .list(values, _):
+            return .list(values, args[1])
+        case let .vector(values, _):
+            return .vector(values, args[1])
+        case let .hashmap(data, _):
+            return .hashmap(data, args[1])
+        case let .atom(atom):
+            return .atom(atom.withMeta(args[1]))
+        default:
+            throw MalError.invalidArguments("with-meta")
+        }
     }
 }
 
@@ -421,7 +540,17 @@ private let data: [String: Expr] = [
     "get": .function(.get),
     "contains?": .function(.contains),
     "keys": .function(.keys),
-    "vals": .function(.vals)
+    "vals": .function(.vals),
+    "readline": .function(.readline),
+    "time-ms": .function(.timeMs),
+    "meta": .function(.meta),
+    "with-meta": .function(.withMeta),
+    "fn?": .function(.isFunction),
+    "macro?": .function(.isMacro),
+    "string?": .function(.isString),
+    "number?": .function(.isNumber),
+    "seq": .function(.seq),
+    "conj": .function(.conj)
 ]
 
 public enum Core {

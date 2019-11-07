@@ -29,9 +29,9 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
     case let .symbol(name):
         let value = try env.get(name)
         return value
-    case let .vector(values):
+    case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
-    case let .hashmap(values):
+    case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
     case .list:
         return try eval_list(expr, env: env)
@@ -69,7 +69,7 @@ private func evalLetForm(_ values: [Expr], env: Env) throws -> Expr {
     guard values.count == 3 else { throw MalError("let*: invalid arguments") }
 
     switch values[1] {
-    case let .list(bindable), let .vector(bindable):
+    case let .list(bindable, _), let .vector(bindable, _):
         let letEnv = Env(outer: env)
 
         for i in stride(from: 0, to: bindable.count - 1, by: 2) {
@@ -86,7 +86,7 @@ private func evalLetForm(_ values: [Expr], env: Env) throws -> Expr {
 }
 
 func eval_list(_ expr: Expr, env: Env) throws -> Expr {
-    guard case let .list(values) = expr else { fatalError() }
+    guard case let .list(values, _) = expr else { fatalError() }
 
     if values.isEmpty {
         return expr

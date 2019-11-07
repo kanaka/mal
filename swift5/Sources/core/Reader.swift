@@ -40,8 +40,8 @@ private extension Parsers {
         return .number(value * factor)
     }
 
-    static let list = ("(" *> _form.zeroOrMore.spacesAround() <* string(")").orThrow(.unbalanced(expected: ")"))).map(Expr.list)
-    static let vector = ("[" *> _form.zeroOrMore.spacesAround() <* string("]").orThrow(.unbalanced(expected: "]"))).map(Expr.vector)
+    static let list = ("(" *> _form.zeroOrMore.spacesAround() <* string(")").orThrow(.unbalanced(expected: ")"))).map { Expr.list($0) }
+    static let vector = ("[" *> _form.zeroOrMore.spacesAround() <* string("]").orThrow(.unbalanced(expected: "]"))).map { Expr.vector($0) }
 
     static let hashmap = ("{" *> (hashmapKey <*> _form).zeroOrMore.spacesAround() <* string("}").orThrow(.unbalanced(expected: "}"))).map(makeExprHashmap)
     static func makeExprHashmap(_ xs: [(Expr, Expr)]) -> Expr {
@@ -95,12 +95,16 @@ private extension Parsers {
     static let name = (symbolHead <*> symbolRest.zeroOrMore).map { String($0) + String($1) }
     static let keyword = (":" *> name).map { Expr.string(String(keywordMagic) + $0) }
 
-    static let quote = ("'" *> _form).map { Expr.list([.symbol("quote"), $0]) }
-    static let quasiquote = ("`" *> _form).map { Expr.list([.symbol("quasiquote"), $0]) }
-    static let spliceUnquote = ("~@" *> _form).map { Expr.list([.symbol("splice-unquote"), $0]) }
-    static let unquote = ("~" *> _form).map { Expr.list([.symbol("unquote"), $0]) }
-    static let deref = ("@" *> _form).map { Expr.list([.symbol("deref"), $0]) }
-    static let meta = ("^" *> hashmap <*> _form).map { Expr.list([.symbol("with-meta"), $1, $0]) }
+    private static func expandMacros(_ symbolName: String, _ rest: Expr...) -> Expr {
+        return Expr.list([.symbol(symbolName)] + rest)
+    }
+
+    static let quote = ("'" *> _form).map { expandMacros("quote", $0) }
+    static let quasiquote = ("`" *> _form).map { expandMacros("quasiquote", $0) }
+    static let spliceUnquote = ("~@" *> _form).map { expandMacros("splice-unquote", $0) }
+    static let unquote = ("~" *> _form).map { expandMacros("unquote", $0) }
+    static let deref = ("@" *> _form).map { expandMacros("deref", $0) }
+    static let meta = ("^" *> hashmap <*> _form).map { expandMacros("with-meta", $1, $0) }
 
     static let sugar = oneOf(
         quote,

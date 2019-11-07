@@ -9,11 +9,11 @@ private func evalAst(_ expr: Expr, env: Env) throws -> Expr {
     switch expr {
     case let .symbol(name):
         return try env.get(name)
-    case let .vector(values):
+    case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
-    case let .hashmap(values):
+    case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
-    case let .list(ast):
+    case let .list(ast, _):
         return .list(try ast.map { try eval($0, env: env) })
     default:
         return expr
@@ -27,7 +27,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
 
     while true {
 
-        guard case let .list(ast) = expr else {
+        guard case let .list(ast, _) = expr else {
             return try evalAst(expr, env: env)
         }
         if ast.isEmpty {
@@ -48,7 +48,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             guard ast.count == 3 else { throw MalError.invalidArguments("let*") }
 
             switch ast[1] {
-            case let .list(bindable), let .vector(bindable):
+            case let .list(bindable, _), let .vector(bindable, _):
                 let letEnv = Env(outer: env)
 
                 for i in stride(from: 0, to: bindable.count - 1, by: 2) {
@@ -88,7 +88,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             let binds: [String]
 
             switch ast[1] {
-            case let .list(xs), let .vector(xs):
+            case let .list(xs, _), let .vector(xs, _):
                 binds = try xs.map {
                     guard case let .symbol(name) = $0 else { throw MalError.invalidArguments("fn*") }
                     return name
@@ -106,7 +106,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             return .function(f)
 
         default:
-            guard case let .list(evaluatedList) = try evalAst(expr, env: env) else { fatalError() }
+            guard case let .list(evaluatedList, _) = try evalAst(expr, env: env) else { fatalError() }
             guard case let .function(fn) = evaluatedList[0] else { throw MalError("not a function: \(evaluatedList[0])") }
 
             let args = Array(evaluatedList.dropFirst())

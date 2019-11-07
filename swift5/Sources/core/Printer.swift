@@ -8,13 +8,13 @@ extension Expr {
         switch expr {
         case let .number(value):
             return "\(value)"
-        case let .list(arr):
+        case let .list(arr, _):
             let inner: String = arr.map(print).joined(separator: " ")
             return "(" + inner + ")"
-        case let .vector(arr):
+        case let .vector(arr, _):
             let inner: String = arr.map(print).joined(separator: " ")
             return "[" + inner + "]"
-        case let .hashmap(m):
+        case let .hashmap(m, _):
             let inner = m.map { printString($0.key, readable: readable) + " " + print($0.value) }.joined(separator: " ")
             return "{" + inner + "}"
         case let .string(s):

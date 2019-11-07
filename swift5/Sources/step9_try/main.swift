@@ -7,7 +7,7 @@ func read(_ s: String) throws -> Expr {
 
 private func isPair(_ expr: Expr) -> Bool {
     switch expr {
-    case let .list(values), let .vector(values):
+    case let .list(values, _), let .vector(values, _):
         return !values.isEmpty
     default:
         return false
@@ -16,7 +16,7 @@ private func isPair(_ expr: Expr) -> Bool {
 
 private func asListOrVector(_ expr: Expr) -> [Expr]? {
     switch expr {
-    case let .list(values), let .vector(values):
+    case let .list(values, _), let .vector(values, _):
         return values
     default:
         return nil
@@ -51,7 +51,7 @@ private func quasiquote(_ expr: Expr) throws -> Expr {
 private func macroExpand(_ expr: Expr, env: Env) throws -> Expr {
     var expr = expr
     while true {
-        guard case let .list(ast) = expr,
+        guard case let .list(ast, _) = expr,
             case let .symbol(name) = ast.first,
             case let .function(fn) = try? env.get(name),
             fn.isMacro else {
@@ -67,11 +67,11 @@ private func evalAst(_ expr: Expr, env: Env) throws -> Expr {
     switch expr {
     case let .symbol(name):
         return try env.get(name)
-    case let .vector(values):
+    case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
-    case let .hashmap(values):
+    case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
-    case let .list(ast):
+    case let .list(ast, _):
         return .list(try ast.map { try eval($0, env: env) })
     default:
         return expr
@@ -87,7 +87,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
 
         expr = try macroExpand(expr, env: env)
 
-        guard case let .list(ast) = expr else {
+        guard case let .list(ast, _) = expr else {
             return try evalAst(expr, env: env)
         }
 
@@ -109,7 +109,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             guard ast.count == 3 else { throw MalError.invalidArguments("let*") }
 
             switch ast[1] {
-            case let .list(bindable), let .vector(bindable):
+            case let .list(bindable, _), let .vector(bindable, _):
                 let letEnv = Env(outer: env)
 
                 for i in stride(from: 0, to: bindable.count - 1, by: 2) {
@@ -136,10 +136,10 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             guard ast.count == 3 else { throw MalError.invalidArguments("defmacro!") }
             guard case let .symbol(name) = ast[1] else { throw MalError.invalidArguments("defmacro!") }
 
-            guard case let .function(val) = try eval(ast[2], env: env) else { throw MalError.invalidArguments("defmacro!") }
-            val.isMacro = true
-            env.set(forKey: name, val: .function(val))
-            return .function(val)
+            guard case let .function(fn) = try eval(ast[2], env: env) else { throw MalError.invalidArguments("defmacro!") }
+            let macros = fn.asMacros()
+            env.set(forKey: name, val: .function(macros))
+            return .function(macros)
 
         case .symbol("macroexpand"):
             guard ast.count == 2 else { throw MalError.invalidArguments("macroexpand") }
@@ -151,7 +151,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
                 continue
             }
             guard ast.count == 3 else { throw MalError.invalidArguments("try*") }
-            guard case let .list(values) = ast[2], values.count == 3 else { throw MalError.invalidArguments("try*") }
+            guard case let .list(values, _) = ast[2], values.count == 3 else { throw MalError.invalidArguments("try*") }
             guard case .symbol("catch*") = values[0] else { throw MalError.invalidArguments("try*") }
             guard case let .symbol(bind) = values[1] else { throw MalError.invalidArguments("catch*") }
 
@@ -189,7 +189,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             let binds: [String]
 
             switch ast[1] {
-            case let .list(xs), let .vector(xs):
+            case let .list(xs, _), let .vector(xs, _):
                 binds = try xs.map {
                     guard case let .symbol(name) = $0 else { throw MalError.invalidArguments("fn*") }
                     return name
@@ -207,7 +207,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             return .function(f)
 
         default:
-            guard case let .list(evaluatedList) = try evalAst(expr, env: env) else { fatalError() }
+            guard case let .list(evaluatedList, _) = try evalAst(expr, env: env) else { fatalError() }
             guard case let .function(fn) = evaluatedList[0] else { throw MalError("not a function: \(evaluatedList[0])") }
 
             let args = Array(evaluatedList.dropFirst())

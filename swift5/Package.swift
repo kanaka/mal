@@ -16,7 +16,8 @@ let package = Package(
         .executable(name: "step6_file", targets: ["step6_file"]),
         .executable(name: "step7_quote", targets: ["step7_quote"]),
         .executable(name: "step8_macros", targets: ["step8_macros"]),
-        .executable(name: "step9_try", targets: ["step9_try"])
+        .executable(name: "step9_try", targets: ["step9_try"]),
+        .executable(name: "stepA_mal", targets: ["stepA_mal"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -35,6 +36,7 @@ let package = Package(
         .target(name: "step6_file", dependencies: ["core"]),
         .target(name: "step7_quote", dependencies: ["core"]),
         .target(name: "step8_macros", dependencies: ["core"]),
-        .target(name: "step9_try", dependencies: ["core"])
+        .target(name: "step9_try", dependencies: ["core"]),
+        .target(name: "stepA_mal", dependencies: ["core"])
     ]
 )

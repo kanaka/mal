@@ -48,15 +48,6 @@ private func quasiquote(_ expr: Expr) throws -> Expr {
     return .list([.symbol("cons"), try quasiquote(ast[0]), rest])
 }
 
-private func isMacroCall(_ expr: Expr, env: Env) -> Bool {
-    if case let .list(ast, _) = expr,
-        case let .symbol(name) = ast.first,
-        case let .function(fn) = try? env.get(name) {
-            return fn.isMacro
-    }
-    return false
-}
-
 private func macroExpand(_ expr: Expr, env: Env) throws -> Expr {
     var expr = expr
     while true {
@@ -154,6 +145,25 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             guard ast.count == 2 else { throw MalError.invalidArguments("macroexpand") }
             return try macroExpand(ast[1], env: env)
 
+        case .symbol("try*"):
+            if ast.count == 2 {
+                expr = ast[1]
+                continue
+            }
+            guard ast.count == 3 else { throw MalError.invalidArguments("try*") }
+            guard case let .list(values, _) = ast[2], values.count == 3 else { throw MalError.invalidArguments("try*") }
+            guard case .symbol("catch*") = values[0] else { throw MalError.invalidArguments("try*") }
+            guard case let .symbol(bind) = values[1] else { throw MalError.invalidArguments("catch*") }
+
+            do {
+                expr = try eval(ast[1], env: env)
+            } catch {
+                let malErr = (error as? Expr) ?? .string(error.localizedDescription)
+                let newEnv = try Env(binds: [bind], exprs: [malErr], outer: env)
+                env = newEnv
+                expr = values[2]
+            }
+
         case .symbol("do"):
             let exprsToEval = ast.dropFirst()
             guard !exprsToEval.isEmpty else { throw MalError.invalidArguments("do") }
@@ -216,6 +226,7 @@ func print(_ expr: Expr) -> String {
     return Expr.print(expr)
 }
 
+@discardableResult
 func rep(_ s: String, env: Env) -> String {
     do {
         let expr = try read(s)
@@ -234,15 +245,18 @@ replEnv.set(forKey: "eval", val: .function(Func { args in
     return try eval(expr, env: replEnv)
 }))
 replEnv.set(forKey: "*ARGV*", val: .list(CommandLine.arguments.dropFirst(2).map(Expr.string)))
+replEnv.set(forKey: "*host-language*", val: .string("swift5"))
 
-_ = rep("(def! not (fn* (a) (if a false true)))", env: replEnv)
-_ = rep(#"(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))"#, env: replEnv)
-_ = rep(#"(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))"#, env: replEnv)
+rep("(def! not (fn* (a) (if a false true)))", env: replEnv)
+rep(#"(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))"#, env: replEnv)
+rep(#"(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))"#, env: replEnv)
 
 if CommandLine.arguments.count > 1 {
-    _ = rep("(load-file \"" + CommandLine.arguments[1] + "\")", env: replEnv)
+    rep("(load-file \"" + CommandLine.arguments[1] + "\")", env: replEnv)
     exit(0)
 }
+
+rep(#"(println (str "Mal [" *host-language* "]"))"#, env: replEnv)
 
 while true {
     print("user> ", terminator: "")
