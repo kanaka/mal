@@ -1026,8 +1026,7 @@ has been tested with Swift 5.1.1 release.
 
 ```
 cd swift5
-make
-./stepX_YYY
+swift run stepX_YYY
 ```
 
 ### Tcl 8.6

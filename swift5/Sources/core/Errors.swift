@@ -13,15 +13,6 @@ public struct MalError: Error, LocalizedError {
 }
 
 extension MalError {
-    public static func arityMismath(name: String, expected: String, given: Int) -> MalError {
-        let message = """
-            \(name): arity mismatch
-            expected: \(expected)
-            given: \(given)
-        """
-        return MalError(message)
-    }
-
     public static func unbalanced(expected: String) -> MalError {
         return MalError("unbalanced: expected \(expected)")
     }
@@ -34,8 +25,28 @@ extension MalError {
         return MalError("\(name): invalid arguments")
     }
 
+    public static func invalidArguments() -> MalError {
+        return MalError("invalid arguments")
+    }
+
     public static func outOfRange() -> MalError {
         return MalError("index out of range")
+    }
+
+    public static func invalidFunctionCall(_ expr: Expr) -> MalError {
+        return MalError("not a function: \(expr)")
+    }
+
+    public static func symbolNotFound(_ s: String) -> MalError {
+        return MalError("'\(s)' not found")
+    }
+
+    public static func invalidVariadicFunction() -> MalError {
+        return MalError("invalid variadic function definition")
+    }
+
+    public static func reader() -> MalError {
+        return MalError("can't parse")
     }
 }
 

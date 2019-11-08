@@ -7,7 +7,7 @@ extension Func {
         return Func { args in
             guard args.count == 2,
                 case let .number(a) = args[0],
-                case let .number(b) = args[1] else { throw MalError("invalid arguments") }
+                case let .number(b) = args[1] else { throw MalError.invalidArguments() }
 
             return .number(op(a, b))
         }
@@ -24,85 +24,64 @@ func read(_ s: String) throws -> Expr {
     return try Reader.read(s)
 }
 
-func eval(_ expr: Expr, env: Env) throws -> Expr {
+private func evalAst(_ expr: Expr, env: Env) throws -> Expr {
     switch expr {
     case let .symbol(name):
-        let value = try env.get(name)
-        return value
+        return try env.get(name)
     case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
     case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
-    case .list:
-        return try eval_list(expr, env: env)
+    case let .list(ast, _):
+        return .list(try ast.map { try eval($0, env: env) })
     default:
         return expr
     }
 }
 
-private func isTaggedList(_ values: [Expr], tagName: String) -> Bool {
-    if case let .symbol(name) = values.first, name == tagName {
-        return true
+func eval(_ expr: Expr, env: Env) throws -> Expr {
+
+    guard case let .list(ast, _) = expr else {
+        return try evalAst(expr, env: env)
     }
-    return false
-}
+    if ast.isEmpty {
+        return expr
+    }
 
-private func isDefinition(_ values: [Expr]) -> Bool {
-    return isTaggedList(values, tagName: "def!")
-}
+    switch ast[0] {
 
-private func evalDefinition(_ values: [Expr], env: Env) throws -> Expr {
-    guard values.count == 3 else { throw MalError("def!: invalid arguments") }
-    guard case let .symbol(name) = values[1] else { throw MalError("def!: invalid arguments") }
+    case .symbol("def!"):
+        guard ast.count == 3 else { throw MalError.invalidArguments("def!") }
+        guard case let .symbol(name) = ast[1] else { throw MalError.invalidArguments("def!") }
 
-    let expToEval = values[2]
-    let val = try eval(expToEval, env: env)
-    env.set(forKey: name, val: val)
-    return val
-}
+        let val = try eval(ast[2], env: env)
+        env.set(forKey: name, val: val)
+        return val
 
-private func isLetForm(_ values: [Expr]) -> Bool {
-    return isTaggedList(values, tagName: "let*")
-}
+    case .symbol("let*"):
+        guard ast.count == 3 else { throw MalError.invalidArguments("let*") }
 
-private func evalLetForm(_ values: [Expr], env: Env) throws -> Expr {
-    guard values.count == 3 else { throw MalError("let*: invalid arguments") }
+        switch ast[1] {
+        case let .list(bindable, _), let .vector(bindable, _):
+            let letEnv = Env(outer: env)
 
-    switch values[1] {
-    case let .list(bindable, _), let .vector(bindable, _):
-        let letEnv = Env(outer: env)
+            for i in stride(from: 0, to: bindable.count - 1, by: 2) {
+                guard case let .symbol(key) = bindable[i] else { throw MalError.invalidArguments("let*") }
+                let value = bindable[i + 1]
+                letEnv.set(forKey: key, val: try eval(value, env: letEnv))
+            }
 
-        for i in stride(from: 0, to: bindable.count - 1, by: 2) {
-            guard case let .symbol(key) = bindable[i] else { throw MalError("let*: invalid arguments") }
-            let value = bindable[i + 1]
-            letEnv.set(forKey: key, val: try eval(value, env: letEnv))
+            let expToEval = ast[2]
+            return try eval(expToEval, env: letEnv)
+        default:
+            throw MalError.invalidArguments("let*")
         }
 
-        let expToEval = values[2]
-        return try eval(expToEval, env: letEnv)
     default:
-        throw MalError("let*: invalid arguments")
+        guard case let .list(ast, _) = try evalAst(expr, env: env) else { fatalError() }
+        guard case let .function(fn) = ast[0] else { throw MalError.invalidFunctionCall(ast[0]) }
+        return try fn.run(Array(ast.dropFirst()))
     }
-}
-
-func eval_list(_ expr: Expr, env: Env) throws -> Expr {
-    guard case let .list(values, _) = expr else { fatalError() }
-
-    if values.isEmpty {
-        return expr
-    }
-
-    if isDefinition(values) {
-        return try evalDefinition(values, env: env)
-    }
-
-    if isLetForm(values) {
-        return try evalLetForm(values, env: env)
-    }
-
-    let evaluated = try values.map { try eval($0, env: env) }
-    guard case let .function(fn) = evaluated.first else { throw MalError("not a function: \(evaluated.first!)") }
-    return try fn.run(Array(evaluated.dropFirst()))
 }
 
 func print(_ expr: Expr) -> String {

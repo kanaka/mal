@@ -16,11 +16,11 @@ public class Env {
         for i in 0..<binds.count {
             let bindName = binds[i]
             if bindName == "&" {
-                guard let key = binds[safe: i + 1] else { throw MalError("invalid variadic function definition") }
+                guard let key = binds[safe: i + 1] else { throw MalError.invalidVariadicFunction() }
                 data[key] = .list(Array(exprs[i...]))
                 break
             }
-            guard let exp = exprs[safe: i] else { throw MalError("function call: invalid arguments") }
+            guard let exp = exprs[safe: i] else { throw MalError.invalidArguments() }
             data[bindName] = exp
         }
     }
@@ -30,7 +30,7 @@ public class Env {
     }
 
     public func get(_ key: String) throws -> Expr {
-        guard let val = find(key) else { throw MalError("'\(key)' not found") }
+        guard let val = find(key) else { throw MalError.symbolNotFound(key) }
         return val
     }
 

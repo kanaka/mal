@@ -7,7 +7,7 @@ extension Func {
         return Func { args in
             guard args.count == 2,
                 case let .number(a) = args[0],
-                case let .number(b) = args[1] else { throw MalError("invalid arguments") }
+                case let .number(b) = args[1] else { throw MalError.invalidArguments() }
 
             return .number(op(a, b))
         }
@@ -24,32 +24,33 @@ func read(_ s: String) throws -> Expr {
     return try Reader.read(s)
 }
 
-func eval(_ expr: Expr, env: Env) throws -> Expr {
+private func evalAst(_ expr: Expr, env: Env) throws -> Expr {
     switch expr {
     case let .symbol(name):
-        let value = try env.get(name)
-        return value
+        return try env.get(name)
     case let .vector(values, _):
         return .vector(try values.map { try eval($0, env: env) })
     case let .hashmap(values, _):
         return .hashmap(try values.mapValues { try eval($0, env: env) })
-    case .list:
-        return try eval_list(expr, env: env)
+    case let .list(ast, _):
+        return .list(try ast.map { try eval($0, env: env) })
     default:
         return expr
     }
 }
 
-func eval_list(_ expr: Expr, env: Env) throws -> Expr {
-    guard case let .list(values, _) = expr else { fatalError() }
+func eval(_ expr: Expr, env: Env) throws -> Expr {
+    guard case let .list(values, _) = expr else {
+        return try evalAst(expr, env: env)
+    }
 
     if values.isEmpty {
         return expr
     }
 
-    let evaluated = try values.map { try eval($0, env: env) }
-    guard case let .function(fn) = evaluated.first else { throw MalError("not a function: \(evaluated.first!)") }
-    return try fn.run(Array(evaluated.dropFirst()))
+    let ast = try values.map { try eval($0, env: env) }
+    guard case let .function(fn) = ast.first else { throw MalError.invalidFunctionCall(ast[0]) }
+    return try fn.run(Array(ast.dropFirst()))
 }
 
 func print(_ expr: Expr) -> String {

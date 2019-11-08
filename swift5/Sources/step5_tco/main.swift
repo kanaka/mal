@@ -84,7 +84,7 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             }
 
         case .symbol("fn*"):
-            guard ast.count == 3 else { throw MalError("fn*") }
+            guard ast.count == 3 else { throw MalError.invalidArguments("fn*") }
             let binds: [String]
 
             switch ast[1] {
@@ -106,10 +106,10 @@ func eval(_ expr: Expr, env: Env) throws -> Expr {
             return .function(f)
 
         default:
-            guard case let .list(evaluatedList, _) = try evalAst(expr, env: env) else { fatalError() }
-            guard case let .function(fn) = evaluatedList[0] else { throw MalError("not a function: \(evaluatedList[0])") }
+            guard case let .list(ast, _) = try evalAst(expr, env: env) else { fatalError() }
+            guard case let .function(fn) = ast[0] else { throw MalError.invalidFunctionCall(ast[0]) }
 
-            let args = Array(evaluatedList.dropFirst())
+            let args = Array(ast.dropFirst())
             if let ast = fn.ast, let fnEnv = fn.env {
                 let newEnv = try Env(binds: fn.params, exprs: args, outer: fnEnv)
                 env = newEnv

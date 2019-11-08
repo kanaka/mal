@@ -1,6 +1,7 @@
 import Foundation
 
 extension Expr {
+
     public static func print(readable: Bool = true, _ expr: Expr) -> String {
 
         let print = curry(Self.print)(readable)

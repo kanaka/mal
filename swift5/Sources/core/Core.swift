@@ -2,26 +2,22 @@ import Foundation
 
 private extension Func {
     private static func hashMapDataFrom(_ args: [Expr]) throws -> [String: Expr] {
-        guard args.count.isMultiple(of: 2) else { throw MalError("invalid arguments") }
+        guard args.count.isMultiple(of: 2) else { throw MalError.invalidArguments() }
 
         var data: [String: Expr] = [:]
         for i in stride(from: 0, to: args.count - 1, by: 2) {
-            guard case let .string(key) = args[i] else { throw MalError("invalid arguments") }
+            guard case let .string(key) = args[i] else { throw MalError.invalidArguments() }
             let value = args[i + 1]
             data[key] = value
         }
         return data
     }
 
-    static let notImplemented = Func { args in
-        throw MalError("not implemented")
-    }
-
-    static func infixOperation(_ op: @escaping (Int, Int) -> Int) -> Func {
+    static func intOperation(_ op: @escaping (Int, Int) -> Int) -> Func {
         return Func { args in
             guard args.count == 2,
                 case let .number(a) = args[0],
-                case let .number(b) = args[1] else { throw MalError("invalid arguments") }
+                case let .number(b) = args[1] else { throw MalError.invalidArguments() }
 
             return .number(op(a, b))
         }
@@ -31,7 +27,7 @@ private extension Func {
         return Func { args in
             guard args.count == 2,
                 case let .number(a) = args[0],
-                case let .number(b) = args[1] else { throw MalError("invalid arguments") }
+                case let .number(b) = args[1] else { throw MalError.invalidArguments() }
 
             return .bool(op(a, b))
         }
@@ -135,7 +131,7 @@ private extension Func {
     }
 
     static let swap = Func { args in
-        guard args.count >= 2 else { throw MalError.invalidArguments("reset!") }
+        guard args.count >= 2 else { throw MalError.invalidArguments("swap!") }
         guard case let .atom(atom) = args[0] else { throw MalError.invalidArguments("swap!") }
         guard case let .function(fn) = args[1] else { throw MalError.invalidArguments("swap!") }
         let otherArgs = args.dropFirst(2)
@@ -491,10 +487,10 @@ private extension Func {
 }
 
 private let data: [String: Expr] = [
-    "+": .function(.infixOperation(+)),
-    "-": .function(.infixOperation(-)),
-    "*": .function(.infixOperation(*)),
-    "/": .function(.infixOperation(/)),
+    "+": .function(.intOperation(+)),
+    "-": .function(.intOperation(-)),
+    "*": .function(.intOperation(*)),
+    "/": .function(.intOperation(/)),
     "prn": .function(.prn),
     "println": .function(.println),
     "pr-str": .function(.prStr),

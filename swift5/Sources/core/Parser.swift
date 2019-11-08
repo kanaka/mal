@@ -51,6 +51,9 @@ extension Parsers {
     static func string(excluding string: String) -> Parser<String> {
         char(excluding: string).oneOrMore.map { String($0) }
     }
+
+    static let digit = char(from: "0123456789")
+    static let naturalNumber = digit.oneOrMore.map { Int(String($0)) }
 }
 
 extension Parser: ExpressibleByStringLiteral, ExpressibleByUnicodeScalarLiteral, ExpressibleByExtendedGraphemeClusterLiteral where A == Void {
@@ -126,11 +129,6 @@ extension Parser {
     var oneOrMore: Parser<[A]> {
         zeroOrMore.map { $0.isEmpty ? nil : $0 }
     }
-
-    /// Matches of the parser produces no matches (inverts the parser).
-    var zero: Parser<Void> {
-        map { _ in nil }
-    }
 }
 
 // MARK: - Parser (Optional)
@@ -141,15 +139,6 @@ func optional<A>(_ parser: Parser<A>) -> Parser<A?> {
             return (nil, str) // Return empty match without consuming any characters
         }
         return match
-    }
-}
-
-func optional(_ parser: Parser<Void>) -> Parser<Bool> {
-    Parser<Bool> { str -> (Bool, Substring)? in
-        guard let match = try parser.parse(str) else {
-            return (false, str) // Return empty match without consuming any characters
-        }
-        return (true, match.1)
     }
 }
 

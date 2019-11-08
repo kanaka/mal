@@ -60,6 +60,8 @@ extension Expr: Equatable {
     }
 }
 
+// MARK: - Func
+
 final public class Func {
     public let run: ([Expr]) throws -> Expr
     public let ast: Expr?
@@ -98,6 +100,8 @@ extension Func: Equatable {
         return lhs === rhs
     }
 }
+
+// MARK: - Atom
 
 final public class Atom {
     public var val: Expr
