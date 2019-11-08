@@ -1,4 +1,3 @@
 #!/bin/bash
 swift run ${STEP:-stepA_mal} "${@}"
-#exec $(dirname $0)/.build/debug/${STEP:-stepA_mal} "${@}"
 
