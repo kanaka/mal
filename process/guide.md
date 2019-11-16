@@ -1339,7 +1339,9 @@ implementation. Let us continue!
     and return the first element. If the list (or vector) is empty or
     is `nil` then `nil` is returned.
   * `rest`: this function takes a list (or vector) as its argument and
-    returns a new list containing all the elements except the first.
+    returns a new list containing all the elements except the first. If
+    the list (or vector) is empty or is `nil` then `()` (empty list) 
+    is returned.
 
 * In the main program, call the `rep` function with the following
   string argument  to define a new control structure.
