@@ -2,8 +2,8 @@ all:
 	swift build
 
 step%: 
-	swift build --target $@
+	swift build --product $@
 
 clean:
-	rm -rf ./build
+	rm -rf ./.build
 
