@@ -63,7 +63,7 @@ keyword =
 
 list : Parser s MalExpr
 list =
-    Combine.map MalList (parens (many form |> (ignore whitespace)))
+    Combine.map MalList (parens (many form |> (ignore ws)))
         |> onerror "list"
 
 
