@@ -4,7 +4,19 @@
 # one line high and infinitely wide.  It's intended for test suites
 # that want to drive programs with command-line editing and the like.
 
+from __future__ import unicode_literals
+
 import re
+import sys
+
+IS_PY_3 = sys.version_info[0] == 3
+
+if not IS_PY_3:
+    chr = unichr
+
+def isprintable(s):
+    if IS_PY_3: return s.isprintable()
+    return 32 <= ord(s) < 127 or 160 <= ord(s)
 
 class OneLineTerminalEmulator(object):
     # There are three regular expressions here for each kind of magic
@@ -76,7 +88,7 @@ class OneLineTerminalEmulator(object):
                 param = int(self.last_match.group(1) or '0')
                 if param == 0: del self.line[self.pos:]
                 if param == 1: self.line[:self.pos + 1] = [' '] * (self.pos + 1)
-                if param == 2: self.line.clear()
+                if param == 2: del self.line[:]
                 continue
             if (self.match(self.escape_sequence) or
                 self.match(self.control_sequence) or
@@ -97,8 +109,8 @@ class OneLineTerminalEmulator(object):
                 self.pos -= 1
             elif char == "\n":
                 self.emit(''.join(self.line))
-                self.line.clear()
-            elif char.isprintable():
+                del self.line[:]
+            elif isprintable(char):
                 if len(self.line) <= self.pos:
                     self.line.extend([" "] * (self.pos - len(self.line) + 1))
                 self.line[self.pos] = char

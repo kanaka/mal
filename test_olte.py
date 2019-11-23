@@ -1,4 +1,6 @@
-#! /usr/bin/python3
+#! /usr/bin/python
+
+from __future__ import unicode_literals
 
 import unittest
 
@@ -46,10 +48,10 @@ class TestRegexps(unittest.TestCase):
     def multi_test(self, specs):
         for spec in specs:
             for x in spec["matches"]:
-                with self.subTest(input=x):
+#               with self.subTest(input=x):
                     self.assertTrue(spec["regex"].match(x))
             for x in spec["matches_not"]:
-                with self.subTest(input=x):
+#               with self.subTest(input=x):
                     self.assertFalse(spec["regex"].match(x))
     def test_regexps(self):
         self.multi_test([
