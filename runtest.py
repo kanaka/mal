@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import os, sys, re
+import codecs, os, sys, re
 import argparse, time
 import signal, atexit
 
@@ -112,6 +112,7 @@ class Runner():
             self.stdout = self.stdin
 
         #print "started"
+        self.decoder = codecs.getincrementaldecoder('utf-8')(errors='replace')
         self.olte = olte.OneLineTerminalEmulator()
 
     def read_to_prompt(self, prompt, timeout):
@@ -130,7 +131,7 @@ class Runner():
             [outs,_,_] = select([self.stdout], [], [], 1)
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
-                new_data = new_data.decode("utf-8") if IS_PY_3 else new_data
+                new_data = self.decoder.decode(new_data)
                 #print("new_data: '%s'" % new_data)
                 debug(new_data)
                 # Perform newline cleanup
