@@ -131,9 +131,9 @@ class Runner():
             [outs,_,_] = select([self.stdout], [], [], 1)
             if self.stdout in outs:
                 new_data = self.stdout.read(1)
+                debug(new_data)
                 new_data = self.decoder.decode(new_data)
                 #print("new_data: '%s'" % new_data)
-                debug(new_data)
                 # Perform newline cleanup
                 if self.no_pty:
                     self.olte.process(new_data.replace("\n", "\r\n"))
@@ -234,7 +234,7 @@ if sys.argv.count('--') > 0:
 if args.rundir: os.chdir(args.rundir)
 
 if args.log_file:   log_file   = open(args.log_file, "a")
-if args.debug_file: debug_file = open(args.debug_file, "a")
+if args.debug_file: debug_file = open(args.debug_file, "ab")
 
 r = Runner(args.mal_cmd, no_pty=args.no_pty)
 t = TestReader(args.test_file)
@@ -344,7 +344,7 @@ TEST RESULTS (for %s):
         pass_cnt, test_cnt)
 log(results)
 
-debug("\n") # add some separate to debug log
+debug(b"\n") # add some separate to debug log
 
 if fail_cnt > 0:
     sys.exit(1)
