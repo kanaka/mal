@@ -167,7 +167,7 @@ _number? () { [[ ${1} =~ ^numb_ ]]; }
 _string () {
     __new_obj_hash_code
     r="strn_${r}"
-    ANON["${r}"]="${1//\*/__STAR__}"
+    ANON["${r}"]="${1}"
 }
 _string? () { [[ ${1} =~ ^strn_ ]]; }
 
