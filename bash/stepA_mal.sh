@@ -166,7 +166,7 @@ EVAL () {
               local output=""
               local line=""
               while read line; do
-                  output="${output}${line}\n"
+                  output="${output}${line}"$'\n'
               done < <(eval ${ANON["${r}"]})
               _string "${output%\\n}"
               return ;;
