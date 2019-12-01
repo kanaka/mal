@@ -165,8 +165,8 @@ EVAL () {
         sh__STAR__)  EVAL "${a1}" "${env}"
               local output=""
               local line=""
-              while read line; do
-                  output="${output}${line}"$'\n'
+              while read -r line || [ -n "${line}" ]; do
+                output="${output}${line}"$'\n'
               done < <(eval ${ANON["${r}"]})
               _string "${output%$'\n'}"
               return ;;
