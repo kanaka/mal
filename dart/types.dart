@@ -21,7 +21,7 @@ abstract class MalIterable extends MalType
   }
 
   int get length => elements.length;
-  void set length(int newLength) {
+  set length(int newLength) {
     elements.length = newLength;
   }
 
@@ -47,7 +47,7 @@ class MalList extends MalIterable {
 
   @override
   MalList clone() {
-    return new MalList(elements.toList());
+    return MalList(elements.toList());
   }
 }
 
@@ -56,7 +56,7 @@ class MalVector extends MalIterable {
 
   @override
   MalVector clone() {
-    return new MalVector(elements.toList());
+    return MalVector(elements.toList());
   }
 }
 
@@ -78,7 +78,7 @@ class MalHashMap extends MalType {
         if (malType is MalString || malType is MalKeyword) {
           pendingKey = malType;
         } else {
-          throw new ArgumentError('hash-map keys must be strings or keywords');
+          throw ArgumentError('hash-map keys must be strings or keywords');
         }
       } else {
         result[pendingKey] = malType;
@@ -102,7 +102,7 @@ class MalHashMap extends MalType {
 
   @override
   MalHashMap clone() {
-    return new MalHashMap(new Map.from(value));
+    return MalHashMap(Map.from(value));
   }
 }
 
@@ -118,7 +118,7 @@ class MalInt extends MalType {
 
   @override
   MalInt clone() {
-    return new MalInt(value);
+    return MalInt(value);
   }
 }
 
@@ -136,7 +136,7 @@ class MalSymbol extends MalType {
 
   @override
   MalSymbol clone() {
-    return new MalSymbol(value);
+    return MalSymbol(value);
   }
 }
 
@@ -154,7 +154,7 @@ class MalKeyword extends MalType {
 
   @override
   MalKeyword clone() {
-    return new MalKeyword(value);
+    return MalKeyword(value);
   }
 }
 
@@ -172,7 +172,7 @@ class MalString extends MalType {
 
   @override
   MalString clone() {
-    return new MalString(value);
+    return MalString(value);
   }
 }
 
@@ -188,7 +188,7 @@ class MalBool extends MalType {
 
   @override
   MalBool clone() {
-    return new MalBool(value);
+    return MalBool(value);
   }
 }
 
@@ -199,7 +199,7 @@ class MalNil extends MalIterable {
 
   @override
   MalNil clone() {
-    return new MalNil();
+    return MalNil();
   }
 }
 
@@ -210,7 +210,7 @@ class MalAtom extends MalType {
 
   @override
   MalAtom clone() {
-    return new MalAtom(value);
+    return MalAtom(value);
   }
 }
 
@@ -220,7 +220,7 @@ abstract class MalCallable extends MalType {
   bool get isMacro => false;
 }
 
-typedef MalType BuiltinFunc(List<MalType> args);
+typedef BuiltinFunc = MalType Function(List<MalType> args);
 
 class MalBuiltin extends MalCallable {
   final BuiltinFunc func;
@@ -233,11 +233,11 @@ class MalBuiltin extends MalCallable {
 
   @override
   MalBuiltin clone() {
-    return new MalBuiltin(func);
+    return MalBuiltin(func);
   }
 }
 
-typedef MalType EvalFun(MalType ast, Env env);
+typedef EvalFun = MalType Function(MalType ast, Env env);
 
 class MalClosure extends MalCallable {
   final List<MalSymbol> params;
@@ -257,7 +257,7 @@ class MalClosure extends MalCallable {
   @override
   MalClosure clone() {
     var closure =
-        new MalClosure(this.params.toList(), this.ast, this.env, this.func);
+        MalClosure(this.params.toList(), this.ast, this.env, this.func);
     closure.isMacro = this.isMacro;
     return closure;
   }

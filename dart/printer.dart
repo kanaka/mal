@@ -1,6 +1,6 @@
 import 'types.dart';
 
-String pr_str(MalType data, {bool print_readably: true}) {
+String pr_str(MalType data, {bool print_readably = true}) {
   if (data is MalSymbol) {
     return data.value;
   } else if (data is MalInt) {
@@ -43,5 +43,5 @@ String pr_str(MalType data, {bool print_readably: true}) {
   } else if (data is MalAtom) {
     return "(atom ${pr_str(data.value, print_readably: print_readably)})";
   }
-  throw new ArgumentError("Unrecognized type: ${data.runtimeType}");
+  throw ArgumentError("Unrecognized type: ${data.runtimeType}");
 }

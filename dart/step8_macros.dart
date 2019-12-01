@@ -6,16 +6,16 @@ import 'printer.dart' as printer;
 import 'reader.dart' as reader;
 import 'types.dart';
 
-final Env replEnv = new Env();
+final Env replEnv = Env();
 
 void setupEnv(List<String> argv) {
   ns.forEach((sym, fun) => replEnv.set(sym, fun));
 
-  replEnv.set(new MalSymbol('eval'),
-      new MalBuiltin((List<MalType> args) => EVAL(args.single, replEnv)));
+  replEnv.set(MalSymbol('eval'),
+      MalBuiltin((List<MalType> args) => EVAL(args.single, replEnv)));
 
-  replEnv.set(new MalSymbol('*ARGV*'),
-      new MalList(argv.map((s) => new MalString(s)).toList()));
+  replEnv.set(
+      MalSymbol('*ARGV*'), MalList(argv.map((s) => MalString(s)).toList()));
 
   rep('(def! not (fn* (a) (if a false true)))');
   rep("(def! load-file "
@@ -64,23 +64,23 @@ MalType quasiquote(MalType ast) {
   }
 
   if (!isPair(ast)) {
-    return new MalList([new MalSymbol("quote"), ast]);
+    return MalList([MalSymbol("quote"), ast]);
   } else {
     var list = ast as MalIterable;
-    if (list.first == new MalSymbol("unquote")) {
+    if (list.first == MalSymbol("unquote")) {
       return list[1];
     } else if (isPair(list.first) &&
-        (list.first as MalIterable).first == new MalSymbol("splice-unquote")) {
-      return new MalList([
-        new MalSymbol("concat"),
+        (list.first as MalIterable).first == MalSymbol("splice-unquote")) {
+      return MalList([
+        MalSymbol("concat"),
         (list.first as MalIterable)[1],
-        quasiquote(new MalList(list.sublist(1)))
+        quasiquote(MalList(list.sublist(1)))
       ]);
     } else {
-      return new MalList([
-        new MalSymbol("cons"),
+      return MalList([
+        MalSymbol("cons"),
         quasiquote(list[0]),
-        quasiquote(new MalList(list.sublist(1)))
+        quasiquote(MalList(list.sublist(1)))
       ]);
     }
   }
@@ -92,15 +92,15 @@ MalType eval_ast(MalType ast, Env env) {
   if (ast is MalSymbol) {
     return env.get(ast);
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalList(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalVector) {
-    return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map<MalType, MalType>.from(ast.value);
+    var newMap = Map<MalType, MalType>.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
-    return new MalHashMap(newMap);
+    return MalHashMap(newMap);
   } else {
     return ast;
   }
@@ -142,7 +142,7 @@ MalType EVAL(MalType ast, Env env) {
               }
             }
 
-            var newEnv = new Env(env);
+            var newEnv = Env(env);
             MalIterable bindings = args.first;
             for (var pair in pairs(bindings.elements)) {
               MalSymbol key = pair[0];
@@ -153,7 +153,7 @@ MalType EVAL(MalType ast, Env env) {
             env = newEnv;
             continue;
           } else if (symbol.value == "do") {
-            eval_ast(new MalList(args.sublist(0, args.length - 1)), env);
+            eval_ast(MalList(args.sublist(0, args.length - 1)), env);
             ast = args.last;
             continue;
           } else if (symbol.value == "if") {
@@ -162,7 +162,7 @@ MalType EVAL(MalType ast, Env env) {
                 condition is MalBool && condition.value == false) {
               // False side of branch
               if (args.length < 3) {
-                return new MalNil();
+                return MalNil();
               }
               ast = args[2];
               continue;
@@ -176,12 +176,12 @@ MalType EVAL(MalType ast, Env env) {
                 .elements
                 .map((e) => e as MalSymbol)
                 .toList();
-            return new MalClosure(
+            return MalClosure(
                 params,
                 args[1],
                 env,
                 (List<MalType> funcArgs) =>
-                    EVAL(args[1], new Env(env, params, funcArgs)));
+                    EVAL(args[1], Env(env, params, funcArgs)));
           } else if (symbol.value == "quote") {
             return args.single;
           } else if (symbol.value == "quasiquote") {
@@ -198,7 +198,7 @@ MalType EVAL(MalType ast, Env env) {
           return f.call(args);
         } else if (f is MalClosure) {
           ast = f.ast;
-          env = new Env(f.env, f.params, args);
+          env = Env(f.env, f.params, args);
           continue;
         } else {
           throw 'bad!';

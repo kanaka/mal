@@ -6,17 +6,17 @@ import 'printer.dart' as printer;
 import 'reader.dart' as reader;
 import 'types.dart';
 
-final Env replEnv = new Env();
+final Env replEnv = Env();
 
 void setupEnv(List<String> argv) {
   // TODO(het): use replEnv#set once generalized tearoffs are implemented
   ns.forEach((sym, fun) => replEnv.set(sym, fun));
 
-  replEnv.set(new MalSymbol('eval'),
-      new MalBuiltin((List<MalType> args) => EVAL(args.single, replEnv)));
+  replEnv.set(MalSymbol('eval'),
+      MalBuiltin((List<MalType> args) => EVAL(args.single, replEnv)));
 
-  replEnv.set(new MalSymbol('*ARGV*'),
-      new MalList(argv.map((s) => new MalString(s)).toList()));
+  replEnv.set(
+      MalSymbol('*ARGV*'), MalList(argv.map((s) => MalString(s)).toList()));
 
   rep('(def! not (fn* (a) (if a false true)))');
   rep("(def! load-file "
@@ -29,19 +29,19 @@ MalType eval_ast(MalType ast, Env env) {
   if (ast is MalSymbol) {
     var result = env.get(ast);
     if (result == null) {
-      throw new NotFoundException(ast.value);
+      throw NotFoundException(ast.value);
     }
     return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalList(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalVector) {
-    return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map<MalType, MalType>.from(ast.value);
+    var newMap = Map<MalType, MalType>.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
-    return new MalHashMap(newMap);
+    return MalHashMap(newMap);
   } else {
     return ast;
   }
@@ -72,7 +72,7 @@ MalType EVAL(MalType ast, Env env) {
               }
             }
 
-            var newEnv = new Env(env);
+            var newEnv = Env(env);
             MalIterable bindings = args.first;
             for (var pair in pairs(bindings.elements)) {
               MalSymbol key = pair[0];
@@ -83,7 +83,7 @@ MalType EVAL(MalType ast, Env env) {
             env = newEnv;
             continue;
           } else if (symbol.value == "do") {
-            eval_ast(new MalList(args.sublist(0, args.length - 1)), env);
+            eval_ast(MalList(args.sublist(0, args.length - 1)), env);
             ast = args.last;
             continue;
           } else if (symbol.value == "if") {
@@ -92,7 +92,7 @@ MalType EVAL(MalType ast, Env env) {
                 condition is MalBool && condition.value == false) {
               // False side of branch
               if (args.length < 3) {
-                return new MalNil();
+                return MalNil();
               }
               ast = args[2];
               continue;
@@ -106,12 +106,12 @@ MalType EVAL(MalType ast, Env env) {
                 .elements
                 .map((e) => e as MalSymbol)
                 .toList();
-            return new MalClosure(
+            return MalClosure(
                 params,
                 args[1],
                 env,
                 (List<MalType> funcArgs) =>
-                    EVAL(args[1], new Env(env, params, funcArgs)));
+                    EVAL(args[1], Env(env, params, funcArgs)));
           }
         }
         var newAst = eval_ast(ast, env) as MalList;
@@ -121,7 +121,7 @@ MalType EVAL(MalType ast, Env env) {
           return f.call(args);
         } else if (f is MalClosure) {
           ast = f.ast;
-          env = new Env(f.env, f.params, args);
+          env = Env(f.env, f.params, args);
           continue;
         } else {
           throw 'bad!';

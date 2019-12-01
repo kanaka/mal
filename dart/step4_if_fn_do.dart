@@ -6,7 +6,7 @@ import 'printer.dart' as printer;
 import 'reader.dart' as reader;
 import 'types.dart';
 
-final Env replEnv = new Env();
+final Env replEnv = Env();
 
 void setupEnv() {
   ns.forEach((sym, fun) => replEnv.set(sym, fun));
@@ -20,19 +20,19 @@ MalType eval_ast(MalType ast, Env env) {
   if (ast is MalSymbol) {
     var result = env.get(ast);
     if (result == null) {
-      throw new NotFoundException(ast.value);
+      throw NotFoundException(ast.value);
     }
     return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalList(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalVector) {
-    return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map<MalSymbol, MalType>.from(ast.value);
+    var newMap = Map<MalSymbol, MalType>.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
-    return new MalHashMap(newMap);
+    return MalHashMap(newMap);
   } else {
     return ast;
   }
@@ -62,7 +62,7 @@ MalType EVAL(MalType ast, Env env) {
             }
           }
 
-          var newEnv = new Env(env);
+          var newEnv = Env(env);
           MalIterable bindings = args.first;
           for (var pair in pairs(bindings.elements)) {
             MalSymbol key = pair[0];
@@ -78,7 +78,7 @@ MalType EVAL(MalType ast, Env env) {
               condition is MalBool && condition.value == false) {
             // False side of branch
             if (args.length < 3) {
-              return new MalNil();
+              return MalNil();
             }
             return EVAL(args[2], env);
           } else {
@@ -90,12 +90,12 @@ MalType EVAL(MalType ast, Env env) {
               .elements
               .map((e) => e as MalSymbol)
               .toList();
-          return new MalClosure(
+          return MalClosure(
               params,
               args[1],
               env,
               (List<MalType> funcArgs) =>
-                  EVAL(args[1], new Env(env, params, funcArgs)));
+                  EVAL(args[1], Env(env, params, funcArgs)));
         }
       }
       var newAst = eval_ast(ast, env) as MalList;

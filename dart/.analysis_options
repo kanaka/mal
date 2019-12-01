@@ -1,7 +1,0 @@
-analyzer:
-  strong-mode: true
-  exclude:
-    - step2_eval.dart
-    - step3_env.dart
-    - step4_if_fn_do.dart
-    - step5_tco.dart

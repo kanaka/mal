@@ -5,28 +5,28 @@ import 'printer.dart' as printer;
 import 'reader.dart' as reader;
 import 'types.dart';
 
-final Env replEnv = new Env();
+final Env replEnv = Env();
 
 void setupEnv() {
-  replEnv.set(new MalSymbol('+'), new MalBuiltin((List<MalType> args) {
+  replEnv.set(MalSymbol('+'), MalBuiltin((List<MalType> args) {
     var a = args[0] as MalInt;
     var b = args[1] as MalInt;
-    return new MalInt(a.value + b.value);
+    return MalInt(a.value + b.value);
   }));
-  replEnv.set(new MalSymbol('-'), new MalBuiltin((List<MalType> args) {
+  replEnv.set(MalSymbol('-'), MalBuiltin((List<MalType> args) {
     var a = args[0] as MalInt;
     var b = args[1] as MalInt;
-    return new MalInt(a.value - b.value);
+    return MalInt(a.value - b.value);
   }));
-  replEnv.set(new MalSymbol('*'), new MalBuiltin((List<MalType> args) {
+  replEnv.set(MalSymbol('*'), MalBuiltin((List<MalType> args) {
     var a = args[0] as MalInt;
     var b = args[1] as MalInt;
-    return new MalInt(a.value * b.value);
+    return MalInt(a.value * b.value);
   }));
-  replEnv.set(new MalSymbol('/'), new MalBuiltin((List<MalType> args) {
+  replEnv.set(MalSymbol('/'), MalBuiltin((List<MalType> args) {
     var a = args[0] as MalInt;
     var b = args[1] as MalInt;
-    return new MalInt(a.value ~/ b.value);
+    return MalInt(a.value ~/ b.value);
   }));
 }
 
@@ -36,19 +36,19 @@ MalType eval_ast(MalType ast, Env env) {
   if (ast is MalSymbol) {
     var result = env.get(ast);
     if (result == null) {
-      throw new NotFoundException(ast.value);
+      throw NotFoundException(ast.value);
     }
     return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalList(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalVector) {
-    return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map<MalSymbol, MalType>.from(ast.value);
+    var newMap = Map<MalSymbol, MalType>.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
-    return new MalHashMap(newMap);
+    return MalHashMap(newMap);
   } else {
     return ast;
   }
@@ -78,7 +78,7 @@ MalType EVAL(MalType ast, Env env) {
             }
           }
 
-          var newEnv = new Env(env);
+          var newEnv = Env(env);
           MalIterable bindings = args.first;
           for (var pair in pairs(bindings.elements)) {
             MalSymbol key = pair[0];

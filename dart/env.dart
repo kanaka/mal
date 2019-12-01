@@ -10,10 +10,10 @@ class Env {
       assert(exprs == null);
     } else {
       assert(exprs != null &&
-          (binds.length == exprs.length || binds.contains(new MalSymbol('&'))));
+          (binds.length == exprs.length || binds.contains(MalSymbol('&'))));
       for (var i = 0; i < binds.length; i++) {
-        if (binds[i] == new MalSymbol('&')) {
-          set(binds[i + 1], new MalList(exprs.sublist(i)));
+        if (binds[i] == MalSymbol('&')) {
+          set(binds[i + 1], MalList(exprs.sublist(i)));
           break;
         }
         set(binds[i], exprs[i]);
@@ -40,7 +40,7 @@ class Env {
     if (env != null) {
       return env.data[key];
     }
-    throw new NotFoundException(key.value);
+    throw NotFoundException(key.value);
   }
 }
 

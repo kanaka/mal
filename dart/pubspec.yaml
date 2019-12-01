@@ -1,3 +1,10 @@
 name: mal
 author: Harry Terkelsen <harry@terkelsen.io>
 version: 0.0.1
+
+environment:
+  sdk: ^2.6.0
+
+dev_dependencies:
+  pedantic: ^1.8.0
+  tuneup: ^0.3.6

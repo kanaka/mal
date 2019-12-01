@@ -5,10 +5,10 @@ import 'reader.dart' as reader;
 import 'types.dart';
 
 final Map<MalSymbol, Function> replEnv = <MalSymbol, Function>{
-  new MalSymbol('+'): (MalInt a, MalInt b) => new MalInt(a.value + b.value),
-  new MalSymbol('-'): (MalInt a, MalInt b) => new MalInt(a.value - b.value),
-  new MalSymbol('*'): (MalInt a, MalInt b) => new MalInt(a.value * b.value),
-  new MalSymbol('/'): (MalInt a, MalInt b) => new MalInt(a.value ~/ b.value),
+  MalSymbol('+'): (MalInt a, MalInt b) => MalInt(a.value + b.value),
+  MalSymbol('-'): (MalInt a, MalInt b) => MalInt(a.value - b.value),
+  MalSymbol('*'): (MalInt a, MalInt b) => MalInt(a.value * b.value),
+  MalSymbol('/'): (MalInt a, MalInt b) => MalInt(a.value ~/ b.value),
 };
 
 MalType READ(String x) => reader.read_str(x);
@@ -24,19 +24,19 @@ eval_ast(MalType ast, Map<MalSymbol, Function> env) {
   if (ast is MalSymbol) {
     var result = env[ast];
     if (result == null) {
-      throw new NotFoundException(ast.value);
+      throw NotFoundException(ast.value);
     }
     return result;
   } else if (ast is MalList) {
-    return new MalList(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalList(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalVector) {
-    return new MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
+    return MalVector(ast.elements.map((x) => EVAL(x, env)).toList());
   } else if (ast is MalHashMap) {
-    var newMap = new Map.from(ast.value);
+    var newMap = Map.from(ast.value);
     for (var key in newMap.keys) {
       newMap[key] = EVAL(newMap[key], env);
     }
-    return new MalHashMap(newMap);
+    return MalHashMap(newMap);
   } else {
     return ast;
   }
@@ -50,7 +50,7 @@ EVAL(MalType ast, Map<MalSymbol, Function> env) {
       return ast;
     } else {
       var newAst = eval_ast(ast, env) as MalList;
-      Function f = newAst.elements.first;
+      Function f = newAst.elements.first as MalCallable;
       var args = newAst.elements.sublist(1);
       return Function.apply(f, args);
     }

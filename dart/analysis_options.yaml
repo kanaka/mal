@@ -1,0 +1,11 @@
+# Defines a default set of lint rules enforced for
+# projects at Google. For details and rationale,
+# see https://github.com/dart-lang/pedantic#enabled-lints.
+include: package:pedantic/analysis_options.yaml
+
+analyzer:
+  exclude:
+    # - step2_eval.dart
+    # - step3_env.dart
+    # - step4_if_fn_do.dart
+    # - step5_tco.dart
