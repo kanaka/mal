@@ -168,7 +168,7 @@ EVAL () {
               while read line; do
                   output="${output}${line}"$'\n'
               done < <(eval ${ANON["${r}"]})
-              _string "${output%\\n}"
+              _string "${output%$'\n'}"
               return ;;
         try__STAR__) EVAL "${a1}" "${env}"
               [[ -z "${__ERROR}" ]] && return
