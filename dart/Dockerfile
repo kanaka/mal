@@ -1,5 +1,5 @@
 FROM ubuntu:latest
-MAINTAINER Harry Terkelsen <harry@terkelsen.io>
+LABEL maintainer="Harry Terkelsen <harry@terkelsen.io>"
 
 ##########################################################
 # General requirements for testing or common across many
