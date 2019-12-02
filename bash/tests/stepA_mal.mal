@@ -24,3 +24,9 @@
 
 (sh* "echo hello; echo foo; echo yes;")
 ;=>"hello\nfoo\nyes"
+
+(sh* "grep -oE '\[.*!\]' core.sh")
+;=>"[reset!]\n[swap!]"
+
+(sh* "ls cor*.sh")
+;=>"core.sh"
