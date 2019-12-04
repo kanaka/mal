@@ -590,7 +590,7 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 
 ```
 cd js
-npm update
+npm install
 node stepX_YYY.js
 ```
 
