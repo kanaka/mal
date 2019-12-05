@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 79 languages (81 different implementations and 102 runtime modes)**
+**2. Mal is implemented in 79 languages (82 different implementations and 102 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -82,6 +82,7 @@
 | [Swift 2](#swift) | [Keith Rollin](https://github.com/keith-rollin) |
 | [Swift 3](#swift-3) | [Joel Martin](https://github.com/kanaka)  |
 | [Swift 4](#swift-4) | [陆遥](https://github.com/LispLY)  |
+| [Swift 5](#swift-5) | [Oleg Montak](https://github.com/MontakOleg)  |
 | [Tcl](#tcl-86) | [Dov Murik](https://github.com/dubek) |
 | [TypeScript](#typescript) | [Masahiro Wakame](https://github.com/vvakame) |
 | [Vala](#vala) | [Simon Tatham](https://github.com/sgtatham) |
@@ -181,6 +182,7 @@ The following implementations are maintained as separate projects:
  * [malc](https://github.com/dubek/malc) - Mal (Make A Lisp) compiler. Compiles a Mal program to LLVM assembly language, then binary.
  * [malcc](https://github.com/seven1m/malcc) - malcc is an incremental compiler implementation for the Mal language. It uses the Tiny C Compiler as the compiler backend and has full support for the Mal language, including macros, tail-call elimination, and even run-time eval. ["I Built a Lisp Compiler"](https://mpov.timmorgan.org/i-built-a-lisp-compiler/) post about the process.
  * [frock](https://github.com/chr15m/frock) - Clojure-flavoured PHP. Uses mal/php to run programs.
+ * [flk](https://github.com/chr15m/flk) - A LISP that runs wherever Bash is
 
 
 ## Implementation Details
@@ -588,7 +590,7 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 
 ```
 cd js
-npm update
+npm install
 node stepX_YYY.js
 ```
 
@@ -1016,6 +1018,16 @@ has been tested with Swift 4.2.3 release.
 cd swift4
 make
 ./stepX_YYY
+```
+
+### Swift 5
+
+The Swift 5 implementation of mal requires the Swift 5.0 compiler. It
+has been tested with Swift 5.1.1 release.
+
+```
+cd swift5
+swift run stepX_YYY
 ```
 
 ### Tcl 8.6
