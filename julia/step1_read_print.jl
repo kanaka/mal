@@ -37,7 +37,7 @@ while true
             println("Error: $(string(e))")
         end
         bt = catch_backtrace()
-        Base.show_backtrace(STDERR, bt)
+        Base.show_backtrace(stderr, bt)
         println()
     end
 end

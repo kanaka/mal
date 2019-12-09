@@ -4,7 +4,7 @@ export read_str
 
 import types
 
-type Reader
+mutable struct Reader
     tokens
     position::Int64
 end
@@ -33,15 +33,15 @@ end
 
 function read_atom(rdr)
     token = next(rdr)
-    if ismatch(r"^-?[0-9]+$", token)
+    if occursin(r"^-?[0-9]+$", token)
         parse(Int,token)
-    elseif ismatch(r"^-?[0-9][0-9.]*$", token)
+    elseif occursin(r"^-?[0-9][0-9.]*$", token)
         float(token)
-    elseif ismatch(r"^\"(?:\\.|[^\\\"])*\"$", token)
+    elseif occursin(r"^\"(?:\\.|[^\\\"])*\"$", token)
         replace(token[2:end-1], r"\\.", (r) -> get(Dict("\\n"=>"\n",
                                                         "\\\""=>"\"",
                                                         "\\\\"=>"\\"), r, r))
-    elseif ismatch(r"^\".*$", token)
+    elseif occursin(r"^\".*$", token)
         error("expected '\"', got EOF")
     elseif token[1] == ':'
         "\u029e$(token[2:end])"
@@ -52,7 +52,7 @@ function read_atom(rdr)
     elseif token == "false"
         false
     else
-        symbol(token)
+        Symbol(token)
     end
 end
 

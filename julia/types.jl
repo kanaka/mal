@@ -4,11 +4,11 @@ export MalException, MalFunc, sequential_Q, equal_Q, hash_map, Atom
 
 import Base.copy
 
-type MalException <: Exception
+struct MalException <: Exception
     malval
 end
 
-type MalFunc
+struct MalFunc
     fn::Function
     ast
     env
@@ -72,7 +72,7 @@ function hash_map(lst...)
     hm
 end
 
-type Atom
+struct Atom
     val
 end
 
