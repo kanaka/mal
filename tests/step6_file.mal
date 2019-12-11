@@ -126,6 +126,11 @@
 *ARGV*
 ;=>()
 
+;;
+;; Testing that eval sets aa in root scope, and that it is found in nested scope
+(let* (b 12) (do (eval (read-string "(def! aa 7)")) aa ))
+;=>7
+
 ;>>> soft=True
 ;>>> optional=True
 ;;
@@ -175,3 +180,4 @@ mymap
 ;;; Hopefully less problematic characters can be checked together
 (read-string "1; &()*+,-./:;<=>?@[]^_{|}~")
 ;=>1
+
