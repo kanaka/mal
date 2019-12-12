@@ -12,10 +12,8 @@ class Env(object):
         binds: Optional[List[MalExpression]] = None,
         exprs: Optional[List[MalExpression]] = None,
     ) -> None:
-        if outer:
-            self._data: Dict[str, MalExpression] = outer._data.copy()
-        else:
-            self._data = {}
+        self._outer = outer
+        self._data: Dict[str, MalExpression] = {}
         if binds is not None and exprs is not None:
             for x in range(0, len(binds)):
                 assert isinstance(binds[x], MalSymbol)
@@ -32,6 +30,8 @@ class Env(object):
     def find(self, key: MalExpression) -> Optional["Env"]:
         if str(key) in self._data:
             return self
+        if self._outer is not None:
+            return self._outer.find(key)
         return None
 
     def get(self, key: MalExpression) -> MalExpression:
@@ -49,4 +49,4 @@ class Env(object):
         for d in self._data:
             env_str += str(d) + ": " + str(self._data[d]) + ", "
         env_str += "}"
-        return "environment: (data: " + env_str + ")"
+        return f"environment: (data: {env_str} outer: {repr(self._outer) if self._outer is not None else 'None'})"
