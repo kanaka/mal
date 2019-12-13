@@ -265,7 +265,7 @@ vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
 wasm_STEP_TO_PROG =    wasm/$($(1)).$(if $(filter lucet,$(wasm_MODE)),so,wasm)
 wren_STEP_TO_PROG =    wren/$($(1)).wren
 yorick_STEP_TO_PROG =  yorick/$($(1)).i
-zig_STEP_TO_PROG =     zig/$($(1)).zig
+zig_STEP_TO_PROG =     zig/$($(1))
 
 #
 # General settings and utility functions
