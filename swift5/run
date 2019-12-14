@@ -1,3 +1,2 @@
 #!/bin/bash
-swift run --skip-build ${STEP:-stepA_mal} "${@}"
-
+exec $(dirname $0)/out/${STEP:-stepA_mal} "${@}"
