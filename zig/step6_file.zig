@@ -25,7 +25,7 @@ const Env = @import("env.zig").Env;
 
 var repl_environment: *Env = undefined;
 
-fn READ(a: []const u8) MalError!*MalType {
+fn READ(a: []const u8) MalError!?*MalType {
     var read = try reader.read_str(a);
     var optional_mal = reader.read_form(&read);
     return optional_mal;
@@ -194,8 +194,8 @@ fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
     return printer.print_str(optional_mal);
 }
 
-fn rep(environment: *Env, input: [] const u8) MalError![] u8 {
-    var read_input = try READ(input);
+fn rep(environment: *Env, input: [] const u8) MalError!?[] u8 {
+    var read_input = (try READ(input)) orelse return null;
     var eval_input = try EVAL(read_input, try environment.copy(Allocator));
     var print_input = try PRINT(eval_input);
     eval_input.delete(Allocator);
@@ -294,15 +294,19 @@ fn make_environment() MalError!*Env {
     const def_not_string: [] const u8 =
         \\(def! not (fn* (a) (if a false true)))
     ;
-    var output = try rep(environment, def_not_string);
-    Allocator.free(output);
+    var optional_output = try rep(environment, def_not_string);
+    if(optional_output) |output| {
+        Allocator.free(output);
+    }
 
     const load_file_string: [] const u8 =
         \\(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
     ;
-    output = try rep(environment, load_file_string);
-    Allocator.free(output);
-    
+    optional_output = try rep(environment, load_file_string);
+    if(optional_output) |output| {
+        Allocator.free(output);
+    }
+
     return environment;
 }
 
@@ -350,16 +354,18 @@ pub fn main() !void {
     
     while(true) {
         var line = (try getline(Allocator)) orelse break;
-        var output = rep(environment, line) catch |err| {
+        var optional_output = rep(environment, line) catch |err| {
             if(err == MalError.KeyError) {
                 continue;
             } else {
                 return err;
             }
         };
-        try stdout_file.write(output);
-        Allocator.free(output);
-        Allocator.free(line);
-        try stdout_file.write("\n");        
+        if(optional_output) |output| {
+            try stdout_file.write(output);
+            Allocator.free(output);
+            Allocator.free(line);
+            try stdout_file.write("\n");
+        }
     }
 }

@@ -17,8 +17,6 @@ pub const Env = struct {
     data: *MalHashMap,
     allocator: *Allocator,
     refcount: *i32,
-    pointless1: *i32,
-    pointless2: *i32,
 
     pub fn new(allocator: *Allocator, optional_outer: ?*Env) MalError!*Env {
         const env = allocator.create(Env) catch return MalError.SystemError;

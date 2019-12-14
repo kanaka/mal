@@ -7,7 +7,7 @@ const getline = @import("readline.zig").getline;
 const string_eql = @import("utils.zig").string_eql;
 const string_copy = @import("utils.zig").string_copy;
 const string_concat = @import("utils.zig").string_concat;
-const apply_function_unsafe = @import("types.zig").apply_function; //hack
+const apply_function_unsafe = @import("types.zig").apply_function;
 const linked_list = @import("linked_list.zig");
 const hash_map = @import("hmap.zig");
 const core = @import("core.zig");
@@ -16,7 +16,6 @@ const error_string_repr = @import("error.zig").error_string_repr;
 const CAllocator = @import("std").heap.c_allocator;
 const AllocatorType = @import("std").mem.Allocator;
 pub var Allocator: *AllocatorType = undefined;
-const logging_alloc = @import("logging_alloc.zig");
 
 const MalType = @import("types.zig").MalType;
 const MalTypeValue = @import("types.zig").MalTypeValue;
@@ -28,7 +27,7 @@ const Env = @import("env.zig").Env;
 
 var repl_environment: *Env = undefined;
 
-fn READ(a: []const u8) MalError!*MalType {
+fn READ(a: []const u8) MalError!?*MalType {
     var read = try reader.read_str(a);
     var optional_mal = reader.read_form(&read);
     return optional_mal;
@@ -371,8 +370,8 @@ fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
     return printer.print_str(optional_mal);
 }
 
-fn rep(environment: *Env, input: [] const u8) MalError![] u8 {
-    var read_input = try READ(input);
+fn rep(environment: *Env, input: [] const u8) MalError!?[] u8 {
+    var read_input = (try READ(input)) orelse return null;
     var eval_input = try EVAL(read_input, try environment.copy(Allocator));
     var print_input = try PRINT(eval_input);
     eval_input.delete(Allocator);
@@ -492,6 +491,8 @@ fn make_environment() MalError!*Env {
             core.CorePairType.Fn0 => |func| MalData{.Fn0 = func},
             core.CorePairType.Fn1 => |func| MalData{.Fn1 = func},
             core.CorePairType.Fn2 => |func| MalData{.Fn2 = func},
+            core.CorePairType.Fn3 => |func| MalData{.Fn3 = func},
+            core.CorePairType.Fn4 => |func| MalData{.Fn4 = func},
             core.CorePairType.FVar => |func| MalData{.FVar = func},
             else => return MalError.TypeError,
         };
@@ -509,20 +510,26 @@ fn make_environment() MalError!*Env {
     const def_not_string: [] const u8 =
         \\(def! not (fn* (a) (if a false true)))
     ;
-    var output = try rep(environment, def_not_string);
-    Allocator.free(output);
+    var optional_output = try rep(environment, def_not_string);
+    if(optional_output) |output| {
+        Allocator.free(output);
+    }
 
     const load_file_string: [] const u8 =
         \\(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
     ;
-    output = try rep(environment, load_file_string);
-    Allocator.free(output);
+    optional_output = try rep(environment, load_file_string);
+    if(optional_output) |output| {
+        Allocator.free(output);
+    }
 
     const def_cond_macro_string: [] const u8 =
         \\(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))
     ;
-    output = try rep(environment, def_cond_macro_string);
-    Allocator.free(output);
+    optional_output = try rep(environment, def_cond_macro_string);
+    if(optional_output) |output| {
+        Allocator.free(output);
+    }
 
     try environment.set("*host-language*", try MalType.new_string(Allocator, "Zig"));
 
@@ -533,8 +540,10 @@ fn do_print_header(environment: *Env) MalError!void {
     const welcome_msg_cmd: [] const u8 =
         \\(println (str "Mal [" *host-language* "]"))
     ;
-    var output = try rep(environment, welcome_msg_cmd);
-    Allocator.free(output);
+    var optional_output = try rep(environment, welcome_msg_cmd);
+    if(optional_output) |output| {
+        Allocator.free(output);
+    }
 }
 
 fn do_user_func(args: *MalLinkedList, mal_ptr: **MalType, env_ptr: **Env) MalError!void {
@@ -574,8 +583,6 @@ fn apply_function(args: MalLinkedList) MalError!*MalType {
 
 pub fn main() !void {
     const stdout_file = try std.io.getStdOut();
-    //var la = logging_alloc.LoggingAllocator.init(CAllocator);
-    //Allocator = &la.allocator;
     Allocator = CAllocator;
     core.set_allocator(Allocator);
     

@@ -1,9 +1,6 @@
 const std = @import("std");
 const warn = @import("std").debug.warn;
 
-//TODO: do we really want to import the allocator here?
-//const Allocator = @import("std").heap.c_allocator;
-
 const AllocatorType = @import("std").mem.Allocator;
 var Allocator: *AllocatorType = undefined;
 
@@ -740,7 +737,7 @@ pub fn conj(args: MalLinkedList) MalError!*MalType {
 fn read_string(a1: *MalType) MalError!*MalType {
     const str_to_eval = try a1.as_string();
     var read = try reader.read_str(str_to_eval);
-    return reader.read_form(&read);
+    return (try reader.read_form(&read)) orelse return MalType.new_nil(Allocator);
 }
 
 pub fn do_apply(args: MalLinkedList) MalError!*MalType {
@@ -764,10 +761,8 @@ pub const CorePairType = enum {
     Fn0,
     Fn1,
     Fn2,
-    //Fn3,
-    //Fn4,
-    //Fn5,
-    //Fn6,
+    Fn3,
+    Fn4,
     FVar,
 };
 
@@ -775,10 +770,8 @@ pub const CorePairData = union(CorePairType) {
     Fn0: *const fn() MalError!*MalType,
     Fn1: *const fn(a1: *MalType) MalError!*MalType,
     Fn2: *const fn(a1: *MalType, a2: *MalType) MalError!*MalType,
-    //Fn3: *const fn(a1: *MalType, a2: *MalType, a3: *MalType) ?*MalType,
-    //Fn4: *const fn(a1: *MalType, a2: *MalType, a3: *MalType, a4: *MalType) ?*MalType,    
-    //Fn5: *const fn(a1: *MalType, a2: *MalType, a3: *MalType, a4: *MalType, a5: *MalType) ?*MalType,    
-    //Fn6: *const fn(a1: *MalType, a2: *MalType, a3: *MalType, a4: *MalType, a5: *MalType, a6: *MalType) ?*MalType,
+    Fn3: *const fn(a1: *MalType, a2: *MalType, a3: *MalType) MalError!*MalType,
+    Fn4: *const fn(a1: *MalType, a2: *MalType, a3: *MalType, a4: *MalType) MalError!*MalType,    
     FVar: *const fn(args: MalLinkedList) MalError!*MalType,
 };
 

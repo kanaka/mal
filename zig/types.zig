@@ -1,5 +1,3 @@
-//TODO: remove the "value" mal field, make for Generic only
-
 const string_copy = @import("utils.zig").string_copy;
 const string_concat = @import("utils.zig").string_concat;
 const Allocator = @import("std").mem.Allocator;
@@ -39,8 +37,6 @@ pub const MalFuncData = struct {
     environment: *Env,
     eval_func: ?(*const fn(o_mal: *MalType, env: *Env) MalError!*MalType),
     is_macro: bool,
-
-    // TODO: free
 };
 
 pub const MalData = union(MalTypeValue) {
@@ -397,14 +393,12 @@ pub const MalType = struct {
                 new_mal.data = MalData { .Vector = try linked_list.deepcopy(allocator, v) };
             },
             .Func => |func_data| {
-                //const al = func_data.arg_list;
                 const al = try func_data.arg_list.copy(allocator);
-                //const b = func_data.body;
                 const b = try func_data.body.copy(allocator);
                 const new_func_data = MalFuncData {
                     .arg_list = al,
                     .body = b,
-                    .environment = try func_data.environment.copy(allocator), //TODO: should this be a copy?
+                    .environment = try func_data.environment.copy(allocator),
                     .eval_func = func_data.eval_func,
                     .is_macro = func_data.is_macro,
                 };
@@ -437,7 +431,6 @@ pub fn apply_function(allocator: *Allocator, args: MalLinkedList) MalError!*MalT
         const func_env = func_data.environment;
         const eval_func = func_data.eval_func orelse return MalError.TypeError;
         var new_env = try Env.new(allocator, func_env);
-        //defer new_env.delete(); // TODO: work out when to free...
         // TODO: make sure that set_list checks that first_arg and first_arg_value have same len
         try new_env.set_slice(args_ll.toSlice(), args_arr[1..args_arr.len]);
         
@@ -469,9 +462,9 @@ pub fn apply_function(allocator: *Allocator, args: MalLinkedList) MalError!*MalT
         0 => (mal_func.data.Fn0.*)(),
         1 => (mal_func.data.Fn1.*)(arg[0]),
         2 => (mal_func.data.Fn2.*)(arg[0], arg[1]),
-        //1 => (*mal_head.f1)(args[1]),
-        //2 => (*mal_head.f2)(args[2]),
-        else => MalError.ArgError, // TODO: add more num args...
+        3 => (mal_func.data.Fn3.*)(arg[0], arg[1], arg[2]),
+        4 => (mal_func.data.Fn4.*)(arg[0], arg[1], arg[2], arg[3]),
+        else => MalError.ArgError,
     };
     linked_list.destroy(allocator, &args_copy, false);
     return ret;

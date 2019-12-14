@@ -27,7 +27,7 @@ RUN wget https://ziglang.org/download/0.5.0/zig-linux-x86_64-0.5.0.tar.xz && \
     echo `pwd`  && \
     tar -xf zig-linux-x86_64-0.5.0.tar.xz && \
     cp -r zig-linux-x86_64-0.5.0 /usr/local/bin && \
-    ln -sf /usr/local/bin/zig-linux-x86_64-0.5.0/zig /usr/local/bin/nzig2 && \
-    chmod +x /usr/local/bin/nzig2
+    ln -sf /usr/local/bin/zig-linux-x86_64-0.5.0/zig /usr/local/bin/zig && \
+    chmod +x /usr/local/bin/zig
 
 ENV HOME /mal

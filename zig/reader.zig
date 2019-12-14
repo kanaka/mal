@@ -75,9 +75,9 @@ const alias_pairs = [_] AliasPair {
     AliasPair {.name="^", .value="with-meta", .count=2},
 };
 
-pub fn read_form(reader: *Reader) MalError!*MalType {
+pub fn read_form(reader: *Reader) MalError!?*MalType {
     if(reader.eol()) {
-        return MalType.new_nil(Allocator);
+        return null;
     }
     const token = reader.peek();
     if(token.len == 0) {
@@ -109,7 +109,7 @@ pub fn read_form(reader: *Reader) MalError!*MalType {
         const tmp = reader.next();
         var num_read: u8 = 0;
         while(num_read < count) {
-            const next_read = try read_form(reader);
+            const next_read = (try read_form(reader)) orelse return MalError.ArgError;
             try linked_list.prepend_mal(Allocator, &new_ll, next_read);
             num_read += 1;
         }
@@ -138,7 +138,7 @@ pub fn read_list(reader: *Reader) MalError!*MalType {
             mal_list.data = MalData{.List = new_ll};
             return mal_list;
         }
-        const mal = try read_form(reader);
+        const mal = (try read_form(reader)) orelse return MalError.ArgError;
         try linked_list.append_mal(Allocator, &new_ll, mal);
     }
     return MalError.ReaderUnmatchedParen;
@@ -160,7 +160,7 @@ pub fn read_vector(reader: *Reader) MalError!*MalType {
             mal_list.data = MalData{.Vector = new_ll};
             return mal_list;
         }
-        const mal = try read_form(reader);
+        const mal = (try read_form(reader)) orelse return MalError.ArgError;
         try linked_list.append_mal(Allocator, &new_ll, mal);
     }
     return MalError.ReaderUnmatchedParen;
@@ -180,7 +180,7 @@ pub fn read_hashmap(reader: *Reader) MalError!*MalType {
             const right_paren = reader.next();
             return new_hashmap;
         }
-        const mal = try read_form(reader);
+        const mal = (try read_form(reader)) orelse return MalError.ArgError;
         const key = switch(mal.data) {
             .String => |s| s,
             .Keyword => |kwd| kwd,
@@ -189,7 +189,7 @@ pub fn read_hashmap(reader: *Reader) MalError!*MalType {
         if(next_token.len == 0 or next_token[0] == '}') {
             return MalError.ReaderBadHashmap;
         }
-        const val = try read_form(reader);
+        const val = (try read_form(reader)) orelse return MalError.ArgError;
         try new_hashmap.hashmap_insert(key, val);
     }
     return MalError.ReaderUnmatchedParen;
