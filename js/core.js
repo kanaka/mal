@@ -156,9 +156,9 @@ function with_meta(obj, m) {
 }
 
 function meta(obj) {
-    // TODO: support symbols and atoms
     if ((!types._sequential_Q(obj)) &&
         (!(types._hash_map_Q(obj))) &&
+        (!(types._atom_Q(obj))) &&
         (!(types._function_Q(obj)))) {
         throw new Error("attempt to get metadata from: " + types._obj_type(obj));
     }

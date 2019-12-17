@@ -73,6 +73,9 @@ function _clone (obj) {
     case 'function':
         new_obj = obj.clone();
         break;
+    case 'atom':
+        new_obj = _atom(obj.val);
+        break;
     default:
         throw new Error("clone of non-collection: " + _obj_type(obj));
     }
