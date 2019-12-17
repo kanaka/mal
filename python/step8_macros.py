@@ -87,7 +87,7 @@ def EVAL(ast, env):
             ast = quasiquote(ast[1]);
             # Continue loop (TCO)
         elif 'defmacro!' == a0:
-            func = EVAL(ast[2], env)
+            func = types._clone(EVAL(ast[2], env))
             func._ismacro_ = True
             return env.set(ast[1], func)
         elif 'macroexpand' == a0:
