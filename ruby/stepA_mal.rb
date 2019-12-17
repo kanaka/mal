@@ -94,7 +94,7 @@ def EVAL(ast, env)
     when :quasiquote
         ast = quasiquote(a1); # Continue loop (TCO)
     when :defmacro!
-        func = EVAL(a2, env)
+        func = EVAL(a2, env).clone
         func.is_macro = true
         return env.set(a1, func)
     when :macroexpand

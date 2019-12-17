@@ -1,6 +1,6 @@
 import rl from './node_readline.js'
 const readline = rl.readline
-import { _list_Q, _malfunc, _malfunc_Q } from './types'
+import { _clone, _list_Q, _malfunc, _malfunc_Q } from './types'
 import { BlankException, read_str } from './reader'
 import { pr_str } from './printer'
 import { new_env, env_set, env_get } from './env'
@@ -79,7 +79,7 @@ const EVAL = (ast, env) => {
             ast = quasiquote(a1)
             break // continue TCO loop
         case 'defmacro!':
-            let func = EVAL(a2, env)
+            let func = _clone(EVAL(a2, env))
             func.ismacro = true
             return env_set(env, a1, func)
         case 'macroexpand':
