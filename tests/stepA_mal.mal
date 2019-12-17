@@ -295,6 +295,3 @@
 ;=>true
 (m (+ 1 1))
 ;=>false
-
-(meta (with-meta (atom 7) {"a" 1}))
-;=>{"a" 1}
