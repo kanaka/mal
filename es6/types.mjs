@@ -28,6 +28,8 @@ export function _clone(obj, new_meta) {
     } else if (obj instanceof Function) {
         let f = (...a) => obj.apply(f, a)  // new function instance
         new_obj = Object.assign(f, obj)    // copy original properties
+    } else if (obj instanceof Atom) {
+        new_obj = new Atom(obj.val)
     } else {
         throw Error('Unsupported type for clone')
     }
