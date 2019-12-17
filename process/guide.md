@@ -1602,8 +1602,8 @@ implementation.
 
 #### Optional additions
 
-* Add meta-data support to composite data types (lists, vectors
-  and hash-maps), and to functions (native or not), by adding a new
+* Add meta-data support to composite data types (lists, vectors, hash-maps
+  and atoms), and to functions (native or not), by adding a new
   metadata attribute that refers to another mal value/type
   (nil by default). Add the following metadata related core functions
   (and remove any stub versions):
