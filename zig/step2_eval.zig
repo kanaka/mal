@@ -17,9 +17,9 @@ const MalType = @import("types.zig").MalType;
 const MalData = @import("types.zig").MalData;
 const MalError = @import("error.zig").MalError;
 const MalLinkedList = @import("linked_list.zig").MalLinkedList;
-const Env = @import("env.zig").Env;
+const MalHashMap = hash_map.MalHashMap;
 
-var repl_environment: *Env = undefined;
+var repl_environment: *MalHashMap = undefined;
 
 fn READ(a: [] u8) MalError!?*MalType {
     var read = try reader.read_str(a);
@@ -27,17 +27,17 @@ fn READ(a: [] u8) MalError!?*MalType {
     return optional_mal;
 }
 
-fn EVAL(mal: *MalType, env: *Env) MalError!*MalType {
+fn EVAL(mal: *MalType) MalError!*MalType {
     switch(mal.data) {
         .List => |ll| {
             if(ll.len == 0) {
                 return mal;
             }
-            var new_list = try eval_ast(mal, env);
+            var new_list = try eval_ast(mal);
             return apply_function(Allocator, (try new_list.sequence_linked_list()).*);
         },
         else => {
-            return eval_ast(mal, env);
+            return eval_ast(mal);
         },
     }
 }
@@ -46,40 +46,40 @@ fn PRINT(optional_mal: ?*MalType) MalError![] u8 {
     return printer.print_str(optional_mal);
 }
 
-fn rep(environment: *Env, input: [] u8) MalError!?[] u8 {
+fn rep(input: [] u8) MalError!?[] u8 {
     var read_input = (try READ(input)) orelse return null;
-    var eval_input = try EVAL(read_input, environment);
+    var eval_input = try EVAL(read_input);
     var print_input = try PRINT(eval_input);
     eval_input.delete(Allocator);
     return print_input;
 }
 
-fn lookup(environment: *Env, symbol: []const u8, do_warn: bool) MalError!*MalType {
-     var mal = environment.get(symbol) catch |err| {
-        if(do_warn) {
-            const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
-            const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
-            defer Allocator.free(s1);
-            defer Allocator.free(s2);
-            warn("'{}' not found.\n", symbol);
-        }
-        return MalError.KeyError;
-    };
-    var new_mal = try mal.copy(Allocator);
-    return new_mal;
+fn lookup(symbol: []const u8, do_warn: bool) MalError!*MalType {
+    var optional_mal = repl_environment.getValue(symbol);
+    if(optional_mal) |mal| {
+        return mal.copy(Allocator);
+    }
+    if(do_warn) {
+        const s1 = string_concat(Allocator, "'", symbol) catch return MalError.SystemError;
+        const s2 = string_concat(Allocator, s1, "' not found") catch return MalError.SystemError;
+        defer Allocator.free(s1);
+        defer Allocator.free(s2);
+        warn("'{}' not found.\n", symbol);
+    }
+    return MalError.KeyError;
 }
 
-fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
+fn eval_ast(mal: *MalType) MalError!*MalType {
     switch(mal.data) {
         .Generic => |symbol| {
             defer mal.delete(Allocator);
-            return lookup(env, symbol, true);
+            return lookup(symbol, true);
         },
         .List => |*ll| {
             var new_ll = MalLinkedList.init(Allocator);
             var iterator = ll.iterator();
             while(iterator.next()) |next_mal| {
-                const new_mal = try EVAL(next_mal, try env.copy(Allocator));
+                const new_mal = try EVAL(next_mal);
                 try linked_list.append_mal(Allocator, &new_ll, new_mal);
             }
             linked_list.destroy(Allocator, ll, true);
@@ -91,7 +91,7 @@ fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
             var new_ll = MalLinkedList.init(Allocator);
             var iterator = ll.iterator();
             while(iterator.next()) |next_mal| {
-                const new_mal = try EVAL(next_mal, try env.copy(Allocator));
+                const new_mal = try EVAL(next_mal);
                 try linked_list.append_mal(Allocator, &new_ll, new_mal);
             }
             linked_list.destroy(Allocator, ll, true);
@@ -107,7 +107,7 @@ fn eval_ast(mal: *MalType, env: *Env) MalError!*MalType {
                 const pair = optional_pair orelse break;
                 const key = pair.key;
                 const value = pair.value;
-                const evaled_value = try EVAL(value, try env.copy(Allocator));
+                const evaled_value = try EVAL(value);
                 try new_hashmap.hashmap_insert(key, evaled_value);
                 optional_pair = iterator.next();
             }
@@ -157,32 +157,30 @@ fn int_div(a1: *MalType, a2: *MalType) MalError!*MalType {
     return MalType.new_int(Allocator, res);
 }
 
-fn make_environment() MalError!*Env {
-    repl_environment = try Env.new(Allocator, null);
-    var environment = repl_environment;
+fn make_environment() MalError!void {
+    repl_environment = Allocator.create(MalHashMap) catch return MalError.SystemError;
+    repl_environment.* = MalHashMap.init(Allocator);
 
     const plus_mal = try MalType.new_nil(Allocator);
     plus_mal.data = MalData{.Fn2 = &int_plus};
-    try environment.set("+", plus_mal);
+    _ = repl_environment.put("+", plus_mal) catch return MalError.SystemError;
     const minus_mal = try MalType.new_nil(Allocator);
     minus_mal.data = MalData{.Fn2 = &int_minus};
-    try environment.set("-", minus_mal);
+    _ = repl_environment.put("-", minus_mal) catch return MalError.SystemError;
     const mult_mal = try MalType.new_nil(Allocator);
     mult_mal.data = MalData{.Fn2 = &int_mult};
-    try environment.set("*", mult_mal);
+    _ = repl_environment.put("*", mult_mal) catch return MalError.SystemError;
     const div_mal = try MalType.new_nil(Allocator);
     div_mal.data = MalData{.Fn2 = &int_div};
-    try environment.set("/", div_mal);
-
-    return environment;
+    _ = repl_environment.put("/", div_mal) catch return MalError.SystemError;
 }
 
 pub fn main() !void {
     const stdout_file = try std.io.getStdOut();
-    var environment = try make_environment();
+    try make_environment();
     while(true) {
         var line = (try getline(Allocator)) orelse break;
-        var optional_output = rep(environment, line) catch |err| {
+        var optional_output = rep(line) catch |err| {
             if(err == MalError.KeyError) {
                 continue;
             } else {
