@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 79 languages (82 different implementations and 102 runtime modes)**
+**2. Mal is implemented in 80 languages (83 different implementations and 103 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -92,6 +92,7 @@
 | [WebAssembly](#webassembly-wasm) (wasm) | [Joel Martin](https://github.com/kanaka) |
 | [Wren](#wren) | [Dov Murik](https://github.com/dubek) |
 | [Yorick](#yorick) | [Dov Murik](https://github.com/dubek) |
+| [Zig](#zig) | [Josh Tobin](https://github.com/rjtobin) |
 
 
 **3. Mal is a learning tool**
@@ -1148,6 +1149,15 @@ The Yorick implementation of mal was tested on Yorick 2.2.04.
 ```
 cd yorick
 yorick -batch ./stepX_YYY.i
+```
+
+### Zig
+
+The Zig implementation of mal was tested on Zig 0.5.
+
+```
+cd zig
+zig build stepX_YYY
 ```
 
 
