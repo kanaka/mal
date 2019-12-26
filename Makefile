@@ -134,6 +134,7 @@ step5_EXCLUDES += matlab      # never completes at 10,000
 step5_EXCLUDES += plpgsql     # too slow for 10,000
 step5_EXCLUDES += plsql       # too slow for 10,000
 step5_EXCLUDES += powershell  # too slow for 10,000
+step5_EXCLUDES += citron      # tends to segfault
 step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
 
 dist_EXCLUDES += mal

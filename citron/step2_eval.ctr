@@ -43,7 +43,6 @@ var MAL is Object cnew: {
         var forms is evalAst: sexp env: env, val.
         var function is forms head.
         var args is forms tail.
-        { thisBlock error: (MALNotAFunction new: function ty). } unless: ([\func, \fn ] contains: function ty).
         ^function applyAll: args.
     }.
     on: 'PRINT:' do: {:sexp
@@ -76,8 +75,8 @@ var replEnv is Map new
             var res is MAL rep: input env: replEnv.
             Pen writeln: res.
         } catch: {:e
-            Pen writeln: e.
-        } type: MALError,
+            Pen writeln: (e isA: MALError, either: '' or: 'Internal Error: ') + e.
+        },
         run.
     }.
 } forever.

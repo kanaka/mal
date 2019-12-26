@@ -13,7 +13,7 @@ var MALObject is Object cnew: {
          meta: meta.
       }.
      on: 'withMeta:' do: {:meta
-        ^new: my ty val: my val meta: meta.
+        ^new: my ty value: my val meta: meta.
       }.
      on: 'isPair' do: {:self
         ^(me ty = \list) | (me ty = \vector) either: {
@@ -141,6 +141,15 @@ var MALFunction is MALObject cnew: {
 var MALClosureFunction is MALObject cnew: {
     on: 'type' do: {\ 'MALClosureFunction'}.
     genAccessors: ['ast', 'params', 'env', 'isMacro'].
+    on: 'copy' do: {
+        var fun is MALClosureFunction new: \func value: my val meta: my meta.
+        fun 
+            ast: my ast,
+            params: my params,
+            env: my env,
+            isMacro: my isMacro.
+        ^fun.
+    }.
     on: 'new:params:env:fn:' do: {:ast:binds:env:fn
         var fun is MALClosureFunction new: \func value: fn meta: nil.
         fun 

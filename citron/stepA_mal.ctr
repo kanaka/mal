@@ -131,7 +131,7 @@ var MAL is Object cnew: {
           a0_ = \defmacro! ifTrue: {
               var a1_ is ast at: 1, val.
               var a2 is ast @ 2.
-              var result is self EVAL: a2 env: env.
+              var result is self EVAL: a2 env: env, copy.
               result isMacro: True.
               env set: a1_ to: result.
               generator finish.
@@ -287,8 +287,8 @@ argv empty? ifTrue: {
                 var res is MAL rep: input env: replEnv.
                 Pen writeln: res.
             } catch: {:e
-                Pen writeln: e.
-            } type: MALError,
+                Pen writeln: (e isA: MALError, either: '' or: 'Internal Error: ') + e.
+            },
             run.
         }.
     } forever.

@@ -199,7 +199,7 @@ Core namespace put: (
     MALFunction new: {:args
         ^MALList new: (
             args fmap: \:x x val,
-             foldl: (((\:acc:x acc + x accumulator: [])))).
+             foldl: {\:acc:x acc + x} accumulator: []).
       }) 
     at: \concat.
 Core namespace put: (
@@ -246,10 +246,10 @@ Core namespace put: (
         var result is args head val.
         var items is args tail.
         kind = \list ifTrue: {
-            ^MALList new: items reverse + [result].
+            ^MALList new: items reverse + result.
           } 
             ifFalse: {
-            ^MALList new: [result] + items.
+            ^args head new: result + items.
           }.
       }) 
     at: \conj.

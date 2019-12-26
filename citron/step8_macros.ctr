@@ -257,8 +257,8 @@ argv empty? ifTrue: {
                 var res is MAL rep: input env: replEnv.
                 Pen writeln: res.
             } catch: {:e
-                Pen writeln: e.
-            } type: MALError,
+                Pen writeln: (e isA: MALError, either: '' or: 'Internal Error: ') + e.
+            },
             run.
         }.
     } forever.
