@@ -1,0 +1,270 @@
+import 
+    linenoise: { LineNoise. }
+    util: \*
+    types: \*
+    reader: \*
+    printer: \*
+    env: \*.
+import
+    core: \*.
+
+
+var MAL is Object cnew: {
+    on: 'READ:' do: {:input
+        ^Reader readStr: input.
+    }.
+    on: 'evalAst:env:' do: {:sexp:env
+        sexp ty = \symbol ifTrue: {
+            ^env get: sexp val.
+        }.
+        sexp ty = \list ifTrue: {
+            ^evalList: sexp env: env class: MALList.
+        }.
+        sexp ty = \vector ifTrue: {
+            ^evalList: sexp env: env class: MALVector.
+        }.
+        sexp ty = \map ifTrue: {
+            ^evalList: sexp env: env class: MALMap.
+        }.
+        ^sexp.
+    }.
+    on: 'evalList:env:class:' do: {:self:sexp:env:class
+        sexp ty = \map ifTrue: {
+            ^class new: (sexp val toArray fmap: (\:x x fmap: \:x self EVAL: x env: env), sum toMap).
+        }.
+        ^class new: (sexp val fmap: \:x self EVAL: x env: env).
+    }.
+    on: 'quasiquote:' do: {:self:ast
+        ast isPair ifFalse: {
+            var result is [(MALSymbol new: \quote ), ast].
+            ^MALList new: result.
+        }.
+        var a is ast val.
+        var a0 is a @ 0.
+
+        (a0 ty = \symbol ) & (a0 val = \unquote ) ifTrue: { ^a @ 1. }.
+        a0 isPair ifTrue: {
+            var a0_ is a0 val.
+            var a0_0 is a0_ @ 0.
+
+            (a0_0 ty = \symbol ) & (a0_0 val = \splice-unquote ) ifTrue: {
+                var rest is MALList new: a tail.
+                var result is [(MALSymbol new: \concat ), a0_ @ 1, self quasiquote: rest].
+                ^MALList new: result.
+            }.
+        }.
+        var rest is MALList new: a tail.
+        var result is [(MALSymbol new: \cons ), (self quasiquote: a0), (self quasiquote: rest)].
+        ^MALList new: result.
+    }.
+    on: 'isMacroCall:env:' do: {:ast:env
+        ast ty = \list ifTrue: {
+            var a0 is ast val head.
+            var a0_ is a0 val.
+            a0 ty = \symbol ifTrue: {
+                var f is env find: a0_.
+                (f isNil not) ifTrue: {
+                    f ty = \func ifTrue: {
+                        ^f isMacro.
+                    }.
+                }.
+            }.
+        }.
+        ^False.
+    }.
+    on: 'macroexpand:env:' do: {:self:sexp:env
+        # var gen is Generator repeat: Nil.
+        # ^gen foldl: {:sexp
+        #     self isMacroCall: sexp env: env, ifFalse: {
+        #         gen finish.
+        #         ^sexp.
+        #     }.
+        #     
+        #     var ast is sexp val.
+        #     var a0_ is ast head val.
+        #     var macro is env find: a0_.
+        #     var rest is ast tail.
+        #     ^macro fn applyTo: rest.
+        # } accumulator: sexp.
+        { ^self isMacroCall: sexp env: env. } whileTrue: {
+            var ast is sexp val.
+            var a0_ is ast head val.
+            var macro is env find: a0_.
+            var rest is ast tail.
+            sexp is macro fn applyTo: rest.
+        }.
+        ^sexp.
+    }.
+    on: 'EVAL:env:' do: {:self:sexp:env
+        var generator is Generator repeat: Nil.
+        ^generator foldl: {:acc
+          var sexp is acc head.
+          var env is acc last.
+          sexp ty = \list ifFalse: {
+              generator finish.
+              ^self evalAst: sexp env: env.
+          }.
+          sexp val empty? ifTrue: {
+              generator finish.
+              ^sexp.
+          }.
+
+          sexp is self macroexpand: sexp env: env.
+          sexp ty = \list ifFalse: {
+              generator finish.
+              ^self evalAst: sexp env: env.
+          }.
+
+          var ast is sexp val.
+          var a0_ is ast head val.
+          a0_ = \def! ifTrue: {
+              var a1_ is ast at: 1, val.
+              var a2 is ast @ 2.
+              var result is self EVAL: a2 env: env.
+              env set: a1_ to: result.
+              generator finish.
+              ^result.
+          }.
+
+          a0_ = \defmacro! ifTrue: {
+              var a1_ is ast at: 1, val.
+              var a2 is ast @ 2.
+              var result is self EVAL: a2 env: env.
+              result isMacro: True.
+              env set: a1_ to: result.
+              generator finish.
+              ^result.
+          }.
+
+          a0_ = \macroexpand ifTrue: {
+              var a1 is ast @ 1.
+              generator finish.
+              ^self macroexpand: a1 env: env.
+          }.
+
+          a0_ = \let* ifTrue: {
+              var env_ is Env new: env.
+              var a1_ is ast at: 1, val.
+              var a2 is ast @ 2.
+              0 to: a1_ count step: 2 do: {:i
+                  env_ set: (a1_ at: i) val to: (self EVAL: (a1_ at: i + 1) env: env_).
+              }.
+              ^[a2, env_].
+          }.
+
+          a0_ = \do ifTrue: {
+              var forms is Nil.
+              var last is Nil.
+              ast count < 2 ifTrue: {
+                forms is Array new.
+                last is MALObject nil.
+              } ifFalse: {
+                forms is ast from: 1 length: ast count - 2.
+                last is ast last.
+              }.
+
+              forms each_v: {:form self EVAL: form env: env. }.
+              ^[last, env].
+          }.
+
+          a0_ = \if ifTrue: {
+              var a1 is ast @ 1.
+              var a2 is ast @ 2.
+              var a3 is ast count > 3 either: { ^ast @ 3. } or: { ^MALObject nil. }.
+              var cond is self EVAL: a1 env: env.
+
+              (cond ty = \false ) | (cond ty = \nil ) ifTrue: {
+                  sexp is a3.
+              } ifFalse: {
+                  sexp is a2.
+              }.
+              ^[sexp, env].
+          }.
+
+          a0_ = \quote ifTrue: {
+              var a1 is ast @ 1.
+              generator finish.
+              ^a1.
+          }.
+
+          a0_ = \quasiquote ifTrue: {
+              var a1 is ast @ 1.
+              sexp is self quasiquote: a1.
+              ^[sexp, env].
+          }.
+
+          a0_ = \fn* ifTrue: {
+              var a1_ is ast at: 1, val.
+              var binds is a1_ fmap: \:x x val.
+              var a2 is ast @ 2.
+              var fn is {\:args
+                  ^self EVAL: a2 env: (Env new: env binds: binds exprs: args).
+              }.
+              generator finish.
+              ^MALClosureFunction new: a2 params: binds env: env fn: fn.
+          }.
+
+          var forms is (self evalAst: sexp env: env) val.
+          var function is forms head.
+          var args is forms tail.
+
+          function ty = \fn ifTrue: {
+              generator finish.
+              ^function fn applyTo: args.
+          }.
+          function ty = \func ifTrue: {
+              ^[function ast, Env new: function env binds: function params exprs: args].
+          }.
+          thisBlock error: (MALNotAFunction new: function ty).
+      } accumulator: [sexp, env].
+    }.
+    on: 'PRINT:' do: {:sexp
+        ^Printer prStr: sexp readably: True.
+    }.
+    on: 'rep:env:' do: {:input:env
+        ^PRINT: (EVAL: (READ: input) env: env).
+    }.
+}.
+
+var historyFile is '.mal_history'.
+var line is LineNoise new.
+
+line loadHistory: historyFile.
+
+var argv is Array new fill: Program argCount - 2 with: \:x MALString new: (Program argument: x + 2).
+
+var replEnv is Env new: Nil.
+Core namespace each: {:k:v
+    replEnv set: k to: v.
+}.
+
+replEnv set: \eval to: (MALFunction new: {:args ^MAL EVAL: args head env: replEnv.}).
+replEnv set: \*ARGV* to: (MALList new: argv).
+
+MAL rep: '(def! not (fn* (a) (if a false true)))' env: replEnv.
+MAL rep: '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\\nnil)")))))' env: replEnv.
+MAL rep: '(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))' env: replEnv.
+
+argv empty? ifTrue: {
+    {
+        var input is line noise: 'user> '.
+        input isNil break.
+    
+        input empty? ifFalse: {
+            line addHistory: input.
+            line saveHistory: historyFile.
+            { 
+                var res is MAL rep: input env: replEnv.
+                Pen writeln: res.
+            } catch: {:e
+                Pen writeln: e.
+            } type: MALError,
+            run.
+        }.
+    } forever.
+    Pen brk.
+} ifFalse: {
+    # head is used as a filename
+    replEnv set: \*ARGV* to: (MALList new: argv tail).
+    MAL rep: '(load-file "' + argv head val + '")' env: replEnv.
+}.

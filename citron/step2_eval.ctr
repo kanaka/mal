@@ -1,0 +1,85 @@
+import 
+    linenoise: { LineNoise. }
+    util: \*
+    types: \*
+    reader: \*
+    printer: \*.
+
+
+var MAL is Object cnew: {
+    on: 'READ:' do: {:input
+        ^Reader readStr: input.
+    }.
+    on: 'evalAst:env:' do: {:sexp:env
+        sexp ty = \symbol ifTrue: {
+            ^env at: sexp val, or: {
+                thisBlock error: (MALUnknownSymbol new: sexp val).
+            }.
+        }.
+        sexp ty = \list ifTrue: {
+            ^evalList: sexp env: env class: MALList.
+        }.
+        sexp ty = \vector ifTrue: {
+            ^evalList: sexp env: env class: MALVector.
+        }.
+        sexp ty = \map ifTrue: {
+            ^evalList: sexp env: env class: MALMap.
+        }.
+        ^sexp.
+    }.
+    on: 'evalList:env:class:' do: {:self:sexp:env:class
+        sexp ty = \map ifTrue: {
+            ^class new: (sexp val toArray fmap: (\:x x fmap: \:x self EVAL: x env: env), sum toMap).
+        }.
+        ^class new: (sexp val fmap: \:x self EVAL: x env: env).
+    }.
+    on: 'EVAL:env:' do: {:self:sexp:env
+        sexp ty = \list ifFalse: {
+            ^self evalAst: sexp env: env.
+        }.
+        sexp val empty? ifTrue: {
+            ^sexp.
+        }.
+        var forms is evalAst: sexp env: env, val.
+        var function is forms head.
+        var args is forms tail.
+        { thisBlock error: (MALNotAFunction new: function ty). } unless: ([\func, \fn ] contains: function ty).
+        ^function applyAll: args.
+    }.
+    on: 'PRINT:' do: {:sexp
+        ^Printer prStr: sexp readably: True.
+    }.
+    on: 'rep:env:' do: {:input:env
+        ^PRINT: (EVAL: (READ: input) env: env).
+    }.
+}.
+
+var historyFile is '.mal_history'.
+var line is LineNoise new.
+
+line loadHistory: historyFile.
+
+var replEnv is Map new
+    put: {:a:b ^MALNumber new: a val + b val.} at: \+,
+    put: {:a:b ^MALNumber new: a val - b val.} at: \-,
+    put: {:a:b ^MALNumber new: a val * b val.} at: \*,
+    put: {:a:b ^MALNumber new: a val / b val.} at: \/.
+
+{
+    var input is line noise: 'user> '.
+    input isNil break.
+
+    input empty? ifFalse: {
+        line addHistory: input.
+        line saveHistory: historyFile.
+        { 
+            var res is MAL rep: input env: replEnv.
+            Pen writeln: res.
+        } catch: {:e
+            Pen writeln: e.
+        } type: MALError,
+        run.
+    }.
+} forever.
+
+Pen brk.

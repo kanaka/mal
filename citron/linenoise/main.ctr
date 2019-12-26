@@ -1,0 +1,74 @@
+import Library/Foreign/Interop/C.
+import Library/Data/Set/HashSet: { HashSet. }.
+
+var root is Program env: 'CTRROOT', or: '..'.
+
+Inject addLibraryPath: '.'.
+Inject addIncludePath: '.'.
+
+Inject importFunctionsOrTypes: [
+    'linenoise', 'linenoiseFree', 'linenoiseSetMultiLine',
+    'linenoiseHistoryAdd', 'linenoiseHistorySetMaxLen',
+    'linenoiseHistorySave', 'linenoiseHistoryLoad',
+    'linenoiseSetCompletionCallback', 'linenoiseAddCompletion',
+    'linenoiseSetHintsCallback', 'linenoiseSetFreeHintsCallback',
+    'linenoiseClearScreen'
+] fromHeaders: ['linenoise.h'] andLibraries: ['linenoise'].
+
+var LineNoise is Object cnew: {
+    var hcallback_cif is CIF newByInferringTypes: ['', CTypes pointer, CTypes pointer, ''].
+    var ccallback_cif is CIF newByInferringTypes: ['', CTypes pointer, Nil].
+
+    on: 'init' do: {
+        linenoiseHistorySetMaxLen[1024].
+    }.
+    on: 'new' do: { ^cnew: { me init. }. }.
+
+    on: 'noise:' do: {:pr
+        var st is linenoise[pr].
+        { ^Nil. } if: st get = 0.
+        var str is st readCString.
+        linenoiseFree[st].
+        ^str.
+    }.
+    on: 'loadHistory:' do: {:file
+        linenoiseHistoryLoad[file].
+    }.
+    on: 'saveHistory:' do: {:file
+        linenoiseHistorySave[file].
+    }.
+    on: 'addHistory:' do: {:line
+        linenoiseHistoryAdd[line].
+    }.
+    on: 'setHintsCallback:' do: {:callback
+        var pcallback is {:buf:col:bold
+            var str is buf readCString.
+            var scol is {:vcol
+                const col derefSet: (CTypes sint set: vcol).
+            }.
+            var sbold is {:vbold
+                const bold derefSet: (CTypes sint set: (vbold either: 1 or: 0)).
+            }.
+            var res is const callback[str, scol, sbold].
+            res isNil ifTrue: {
+                ^CTypes pointer set: 0.
+            }.
+            ^CTypes fromString: res.
+        }.
+        linenoiseSetHintsCallback[CTypes closureOf: pcallback withCIF: const hcallback_cif].
+    }.
+    on: 'setCompletionCallback:' do: {:callback
+        var pcallback is {:buf:lc
+            var str is buf readCString.
+            var comp is HashSet new.
+            var add is {:completion
+                const comp contains: completion, ifTrue: { ^Nil. }.
+                comp add: completion.
+                linenoiseAddCompletion[lc, completion].
+            }.
+            const callback[str, add].
+            ^Nil.
+        }.
+        linenoiseSetCompletionCallback[CTypes closureOf: pcallback withCIF: const ccallback_cif].
+    }.
+}.

@@ -1,0 +1,158 @@
+# File reader.ctr
+var Reader is Object cnew: {
+    var TokenRegex is '[\\s,]*(~@|[\\[\\]{}()\'\'`~^@]|"(?:\\\\.|[^\\\\"])*"|;.*|[^\\s\\[\\]{}(\'\'"`,;)]*)'.
+    var CommentRegex is ('^;.' +
+        '*$').
+    var NumberRegex is '^-?[0-9]+(?:\\.[0-9]+)?$'.
+    var StringRegex is '^"(?:\\\\.|[^\\\\"])*"$'.
+     on: 'tokeniser:' do: {:input
+        var tokens is Array new.
+        var pos is 0.
+        var done is False.
+        {
+          var hit is input searchPattern: const TokenRegex startingAt: pos.
+          var token is hit @ 1.
+          token empty? ifTrue: {
+              tokens push: (input from: pos to: input length) trim.
+              done is True.
+              done break.
+            }.
+          (token length = 0) | (token containsPattern: const CommentRegex) ifFalse: {
+              tokens push: token.
+            }.
+          pos is pos + (hit @ 0) length.
+          pos > input length ifTrue: {
+              done is True.
+            }.
+        } forever.
+        ^tokens.
+      }.
+     on: 'readStr:' do: {:input
+        var tokens is  tokeniser: input,
+         filter_v: \:x x empty? not.
+        var reader is  new: tokens.
+        tokens empty? ifTrue: {
+            thisBlock error: MALEmptyInput new.
+          }.
+        ^ readForm: reader.
+      }.
+     on: 'readForm:' do: {:self:reader
+        var token is reader peek.
+        {
+          ^self readList: reader class: MALList ender: ')'.
+        } if: token = '('.
+        {
+          ^self readList: reader class: MALVector ender: ']'.
+        } if: token = '['.
+        {
+          ^self readList: reader class: MALMap ender: '}'.
+        } if: token = '{'.
+        '])}' contains: token,
+         ifTrue: {
+            thisBlock error: (MALUnexpectedToken new: token).
+          }.
+        token = '\'' ifTrue: {
+            ^self readSimpleMacro: reader name: \quote.
+          }.
+        token = '`' ifTrue: {
+            ^self readSimpleMacro: reader name: \quasiquote.
+          }.
+        token = '~' ifTrue: {
+            ^self readSimpleMacro: reader name: \unquote.
+          }.
+        token = '~@' ifTrue: {
+            ^self readSimpleMacro: reader name: \splice-unquote.
+          }.
+        token = '@' ifTrue: {
+            ^self readSimpleMacro: reader name: \deref.
+          }.
+        token = '^' ifTrue: {
+            ^self readWithMetaMacro: reader.
+          }.
+        ^self readAtom: reader.
+      }.
+     on: 'readList:class:ender:' do: {:self:reader:class:ender
+        var storage is Array new.
+        var done is False.
+        reader next.
+        {
+          var token is reader peek.
+          token isNil break.
+          token = ender ifTrue: {
+              ender = '}' ifTrue: {
+                  storage is storage toMap.
+                }.
+              reader next.
+              done is True.
+              storage is class new: storage.
+              done break.
+            }.
+          storage push: (self readForm: reader).
+        } forever.
+        {
+          ^storage.
+        } if: done.
+        thisBlock error: (MALUnterminatedSequence new: ender).
+      }.
+     on: 'readAtom:' do: {:self:reader
+        var token is reader next.
+        {
+          ^MALObject true.
+        } if: token = 'true'.
+        {
+          ^MALObject false.
+        } if: token = 'false'.
+        {
+          ^MALObject nil.
+        } if: token = 'nil'.
+        token containsPattern: const StringRegex,
+         ifTrue: {
+            ^MALString new: token parse.
+          }.
+        token @ 0 = '"' ifTrue: {
+            thisBlock error: (MALUnterminatedSequence new: '"').
+          }.
+        token containsPattern: const NumberRegex,
+         ifTrue: {
+            ^MALNumber new: token toNumber.
+          }.
+        token startsWith: ':',
+         ifTrue: {
+            ^MALKeyword new: (token skip: 1, toSymbol).
+          }.
+        ^MALSymbol new: token toSymbol.
+      }.
+     on: 'readSimpleMacro:name:' do: {:reader:name
+        reader next.
+        var form is  readForm: reader.
+        var list is Array < (MALSymbol new: name) ; form.
+        ^MALList new: list.
+      }.
+     on: 'readWithMetaMacro:' do: {:reader
+        reader next.
+        var meta is  readForm: reader.
+        var form is  readForm: reader.
+        var list is Array < (MALSymbol new: \with-meta) ; form ; meta.
+        ^MALList new: list.
+      }.
+     on: 'new:' do: {:tokens
+        var reader is me new.
+        reader init: tokens.
+        ^reader.
+      }.
+     on: 'init:' do: {:tokens
+        my storage is tokens.
+        my index is 0.
+      }.
+     on: 'peek' do: (
+        {
+          ^my storage @ my index.
+        } catch: {
+            ^Nil.
+          }).
+     on: 'next' do: {
+        var token is me peek.
+        my index +=: 1.
+        ^token.
+      }.
+  }.

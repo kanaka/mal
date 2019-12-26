@@ -1,0 +1,2 @@
+#!/bin/bash
+CTRROOT=$(dirname $0) exec ctr $(dirname $0)/${STEP:-stepA_mal}.ctr "${@}"

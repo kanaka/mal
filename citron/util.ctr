@@ -1,0 +1,47 @@
+Array on: 'toMap' do: {:self
+    var dict is Map new.
+    0 to: self count step: 2 do: {:i
+        dict put: self @ (i + 1) at: self @ i.
+    }.
+    ^dict.
+}.
+
+String on: 'parse' do: {
+    var canary is '\x1ff'.
+    ^from: 1 length: me length - 2, replace: '\\\\' with: canary,  replace: '\\"' with: '"', replace: '\\n' with: '\n', replace: canary with: '\\'.
+}.
+
+String on: 'searchPattern:startingAt:' do: {:pat:pos
+    var subject is skip: pos.
+    var res is Nil.
+    subject findPattern: pat do: {:groups
+        res is groups.
+    } options: 'o'.
+    ^res.
+}.
+
+String on: 'repr' do: {
+    var text is replace: '\\' with: '\\\\', replace: '\n' with: '\\n', replace: '"' with: '\\"'.
+    ^'"%s"' % [text].
+}.
+
+CodeBlock on: 'valueWithExit' do: { ^applyTo: { ^Nil. }. }.
+
+Object on: 'toMALValue' do: {:self
+    { ^MALObject true. } if: self = True.
+    { ^MALObject false. } if: self = False.
+    { ^MALObject nil. } if: self isNil.
+    { ^MALNumber new: self. } if: (self isA: Number).
+    { ^MALString new: self. } if: (self isA: String).
+    { ^MALSymbol new: self. } if: (self isA: Symbol).
+    { ^MALVector new: (self fmap: \:x x toMALValue). } if: (self isA: Array).
+    { 
+        var result is Map new.
+        self each: {:k:v
+            result put: v toMALValue at: k toMALValue.
+        }.
+        ^MALMap new: result.
+    } if: (self isA: Map) | (self isA: HashMap).
+    thisBlock error: 'dunno how to convert a ${{self type}}$ to a MAL value'.
+}.
+

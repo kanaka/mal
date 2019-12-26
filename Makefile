@@ -94,7 +94,7 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cp
 	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
-	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick zig
+	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick zig citron
 
 EXTENSION = .mal
 
@@ -197,6 +197,7 @@ common-lisp_STEP_TO_PROG =  common-lisp/$($(1))
 cpp_STEP_TO_PROG =     cpp/$($(1))
 crystal_STEP_TO_PROG = crystal/$($(1))
 cs_STEP_TO_PROG =      cs/$($(1)).exe
+citron_STOP_TO_PROG = citron/$($(1)).ctr
 d_STEP_TO_PROG =       d/$($(1))
 dart_STEP_TO_PROG =    dart/$($(1)).dart
 elisp_STEP_TO_PROG =   elisp/$($(1)).el

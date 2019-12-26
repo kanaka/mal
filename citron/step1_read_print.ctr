@@ -1,0 +1,46 @@
+import 
+    linenoise: { LineNoise. }
+    util: \*
+    types: \*
+    reader: \*
+    printer: \*.
+
+
+var MAL is Object cnew: {
+    on: 'READ:' do: {:input
+        ^Reader readStr: input.
+    }.
+    on: 'EVAL:' do: {:sexp
+        ^sexp.
+    }.
+    on: 'PRINT:' do: {:sexp
+        ^Printer prStr: sexp readably: True.
+    }.
+    on: 'rep:' do: {:input
+        ^PRINT: (EVAL: (READ: input)).
+    }.
+}.
+
+var historyFile is '.mal_history'.
+var line is LineNoise new.
+
+line loadHistory: historyFile.
+
+{
+    var input is line noise: 'user> '.
+    input isNil break.
+
+    input empty? ifFalse: {
+        line addHistory: input.
+        line saveHistory: historyFile.
+        { 
+            var res is MAL rep: input.
+            Pen writeln: res.
+        } catch: {:e
+            Pen writeln: e.
+        } type: MALError,
+        run.
+    }.
+} forever.
+
+Pen brk.

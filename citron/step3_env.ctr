@@ -1,0 +1,105 @@
+import 
+    linenoise: { LineNoise. }
+    util: \*
+    types: \*
+    reader: \*
+    printer: \*
+    env: \*.
+
+
+var MAL is Object cnew: {
+    on: 'READ:' do: {:input
+        ^Reader readStr: input.
+    }.
+    on: 'evalAst:env:' do: {:sexp:env
+        sexp ty = \symbol ifTrue: {
+            ^env get: sexp val.
+        }.
+        sexp ty = \list ifTrue: {
+            ^evalList: sexp env: env class: MALList.
+        }.
+        sexp ty = \vector ifTrue: {
+            ^evalList: sexp env: env class: MALVector.
+        }.
+        sexp ty = \map ifTrue: {
+            ^evalList: sexp env: env class: MALMap.
+        }.
+        ^sexp.
+    }.
+    on: 'evalList:env:class:' do: {:self:sexp:env:class
+        sexp ty = \map ifTrue: {
+            ^class new: (sexp val toArray fmap: (\:x x fmap: \:x self EVAL: x env: env), sum toMap).
+        }.
+        ^class new: (sexp val fmap: \:x self EVAL: x env: env).
+    }.
+    on: 'EVAL:env:' do: {:self:sexp:env
+        sexp ty = \list ifFalse: {
+            ^self evalAst: sexp env: env.
+        }.
+        sexp val empty? ifTrue: {
+            ^sexp.
+        }.
+
+        var a1_ is Nil.
+        var a2 is Nil.
+
+        var ast is sexp val.
+        var a0_ is ast head val.
+        a0_ = \def! ifTrue: {
+            a1_ is ast at: 1, val.
+            a2 is ast @ 2.
+            var result is self EVAL: a2 env: env.
+            env set: a1_ to: result.
+            ^result.
+        }.
+
+        a0_ = \let* ifTrue: {
+            var env_ is Env new: env.
+            a1_ is ast at: 1, val.
+            a2 is ast @ 2.
+            0 to: a1_ count step: 2 do: {:i
+                env_ set: (a1_ at: i) val to: (self EVAL: (a1_ at: i + 1) env: env_).
+            }.
+            ^self EVAL: a2 env: env_.
+        }.
+
+        var forms is (self evalAst: sexp env: env) val.
+        ^forms head applyAll: forms tail.
+    }.
+    on: 'PRINT:' do: {:sexp
+        ^Printer prStr: sexp readably: True.
+    }.
+    on: 'rep:env:' do: {:input:env
+        ^PRINT: (EVAL: (READ: input) env: env).
+    }.
+}.
+
+var historyFile is '.mal_history'.
+var line is LineNoise new.
+
+line loadHistory: historyFile.
+
+var replEnv is Env new: Nil,
+    set: \+ to: {:a:b ^MALNumber new: a val + b val.},
+    set: \- to: {:a:b ^MALNumber new: a val - b val.},
+    set: \* to: {:a:b ^MALNumber new: a val * b val.},
+    set: \/ to: {:a:b ^MALNumber new: a val / b val.}.
+
+{
+    var input is line noise: 'user> '.
+    input isNil break.
+
+    input empty? ifFalse: {
+        line addHistory: input.
+        line saveHistory: historyFile.
+        { 
+            var res is MAL rep: input env: replEnv.
+            Pen writeln: res.
+        } catch: {:e
+            Pen writeln: e.
+        } type: MALError,
+        run.
+    }.
+} forever.
+
+Pen brk.

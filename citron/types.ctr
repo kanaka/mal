@@ -1,0 +1,214 @@
+# File types.ctr
+var MALObject is Object cnew: {
+     on: 'type' do: {\ 'MALObject'}.
+     genAccessors: ['ty', 'val', 'meta'].
+     on: 'new:value:meta:' do: {:ty:val:meta
+        var obj is me cnew: {}.
+        obj init: ty value: val meta: meta.
+        ^obj.
+      }.
+     on: 'init:value:meta:' do: {:ty:val:meta
+         ty: ty,
+         val: val,
+         meta: meta.
+      }.
+     on: 'withMeta:' do: {:meta
+        ^new: my ty val: my val meta: meta.
+      }.
+     on: 'isPair' do: {:self
+        ^(me ty = \list) | (me ty = \vector) either: {
+            ^self val empty? not.
+          } or: {
+            ^False.
+          }.
+      }.
+     on: 'toString' do: {:self
+        ^'<%s: %s%s>' % [me type, my val toString, my meta isNil either: {
+            ^' | ' + self meta toString.
+          } or: {
+            ^''.
+          }].
+      }.
+     on: '=' do: {:x
+        {
+            ^me val = x val.
+        } if: ([\list, \vector ] contains: x ty) & ([\list, \vector] contains: me ty).
+        {
+          ^False.
+        } unless: my ty = x ty.
+        ^my val = x val.
+      }.
+     on: 'iHash' do: {
+        ^my val iHash.
+      }.
+  }.
+var MALTrue is MALObject cnew: {
+     on: 'type' do: {\ 'MALTrue'}.
+     on: 'new' do: {
+        ^new: \true value: True meta: Nil.
+      }.
+  }.
+var MALFalse is MALObject cnew: {
+     on: 'type' do: {\ 'MALFalse'}.
+     on: 'new' do: {
+        ^new: \false value: False meta: Nil.
+      }.
+  }.
+var MALNil is MALObject cnew: {
+     on: 'type' do: {\ 'MALNil'}.
+     on: 'new' do: {
+        ^new: \nil value: Nil meta: Nil.
+      }.
+  }.
+var true is MALTrue new.
+var false is MALFalse new.
+var nil is MALNil new.
+MALObject on: 'true' do: {
+    ^const true.
+  }.
+MALObject on: 'false' do: {
+    ^const false.
+  }.
+MALObject on: 'nil' do: {
+    ^const nil.
+  }.
+var MALNumber is MALObject cnew: {
+     on: 'type' do: {\ 'MALNumber'}.
+     on: 'new:' do: {:value
+        ^new: \number value: value meta: Nil.
+      }.
+  }.
+var MALString is MALObject cnew: {
+     on: 'type' do: {\ 'MALString'}.
+     on: 'new:' do: {:value
+        ^new: \string value: value meta: Nil.
+      }.
+  }.
+var MALSymbol is MALObject cnew: {
+     on: 'type' do: {\ 'MALSymbol'}.
+     on: 'new:' do: {:value
+        ^new: \symbol value: value meta: Nil.
+      }.
+  }.
+var MALKeyword is MALObject cnew: {
+     on: 'type' do: {\ 'MALKeyword'}.
+     on: 'new:' do: {:value
+        ^new: \keyword value: value meta: Nil.
+      }.
+  }.
+var MALList is MALObject cnew: {
+     on: 'type' do: {\ 'MALList'}.
+     on: 'new:' do: {:value
+        ^new: \list value: value meta: Nil.
+      }.
+     on: 'at:' do: {:idx
+        ^my val at: idx.
+      }.
+  }.
+var MALVector is MALObject cnew: {
+     on: 'type' do: {\ 'MALVector'}.
+     on: 'new:' do: {:value
+        ^new: \vector value: value meta: Nil.
+      }.
+  }.
+var MALMap is MALObject cnew: {
+     on: 'type' do: {\ 'MALMap'}.
+     on: 'new:' do: {:value
+        ^new: \map value: value meta: Nil.
+      }.
+  }.
+var MALAtom is MALObject cnew: {
+     on: 'type' do: {\ 'MALAtom'}.
+     on: 'new:' do: {:value
+        ^new: \atom value: value meta: Nil.
+      }.
+  }.
+var MALFunction is MALObject cnew: {
+     on: 'type' do: {\ 'MALFunction'}.
+     on: 'new:' do: {:fn
+        var f is MALFunction new: \fn value: fn meta: Nil.
+        f init: fn.
+        ^f.
+      }.
+     on: 'init:' do: {:f
+        my fn is f.
+      }.
+      on: 'fn' do: { ^my fn. }.
+    on: 'withMeta:' do: {:meta
+       ^new: \fn value: me val meta: meta, init: my fn.
+    }.
+  }.
+var MALClosureFunction is MALObject cnew: {
+    on: 'type' do: {\ 'MALClosureFunction'}.
+    genAccessors: ['ast', 'params', 'env', 'isMacro'].
+    on: 'new:params:env:fn:' do: {:ast:binds:env:fn
+        var fun is MALClosureFunction new: \func value: fn meta: nil.
+        fun 
+            ast: ast,
+            params: binds,
+            env: env,
+            isMacro: False.
+        ^fun.
+    }.
+    on: 'fn' do: { ^me val. }.
+    on: 'withMeta:' do: {:meta
+       ^new: my ast params: my params env: my env fn: my val, isMacro: my isMacro, meta: meta.
+    }.
+}.
+var MALError is Object cnew: {
+     on: 'type' do: {\ 'MALError'}.
+     genAccessors: ['basicMessageText'].
+     on: 'new:' do: {:x
+        ^cnew: {
+            my basicMessageText is x.
+        }.
+      }.
+     on: 'toString' do: {
+        ^'MAL Error: ' + me data.
+      }.
+     on: 'data' do: {
+        ^'(base)'.
+      }.
+  }.
+var MALUnterminatedSequence is MALError cnew: {
+     on: 'type' do: {\ 'MALUnterminatedSequence'}.
+     on: 'data' do: {
+        ^'expected \'' + my basicMessageText + '\', got EOF'.
+      }.
+  }.
+var MALUnexpectedToken is MALError cnew: {
+     on: 'type' do: {\ 'MALUnexpectedToken'}.
+     on: 'data' do: {
+        ^'unexpected token: \'' + my basicMessageText + '\''.
+      }.
+  }.
+var MALEmptyInput is MALError cnew: {
+     on: 'type' do: {\ 'MALEmptyInput'}.
+     on: 'data' do: {
+        ^'Empty input'.
+      }.
+  }.
+var MALUnknownSymbol is MALError cnew: {
+     on: 'type' do: {\ 'MALUnknownSymbol'}.
+     on: 'data' do: {
+        ^'\'' + my basicMessageText + '\' not found'.
+      }.
+  }.
+var MALNotAFunction is MALError cnew: {
+     on: 'type' do: {\ 'MALNotAFunction'}.
+     on: 'data' do: {
+        ^'\'' + my basicMessageText + '\' is not a function'.
+      }.
+  }.
+var MALOutOfBounds is MALError cnew: {
+     on: 'type' do: {\ 'MALOutOfBounds'}.
+     on: 'data' do: {
+        ^'Out of bounds'.
+      }.
+  }.
+var MALCustomError is MALError cnew: {
+     on: 'type' do: {\ 'MALCustomError'}.
+     on: 'data' do: {
+         ^Printer prStr: my basicMessageText readably: True.
+     }.
+  }.

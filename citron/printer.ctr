@@ -1,0 +1,63 @@
+# File printer.ctr
+var Printer is Object cnew: {
+     on: 'prStr:readably:' do: {:sexp:readably
+        {
+          ^'#<fn>'.
+        } if: sexp ty = \fn.
+        {
+          ^'#<func>'.
+        } if: sexp ty = \func.
+        {
+          ^'true'.
+        } if: sexp ty = \true.
+        {
+          ^'false'.
+        } if: sexp ty = \false.
+        {
+          ^'nil'.
+        } if: sexp ty = \nil.
+        {
+          ^sexp val toString.
+        } if: sexp ty = \number.
+        {
+          ^('' + sexp val) skip: 1.
+        } if: sexp ty = \symbol.
+        {
+          ^':' + (sexp val toString skip: 1).
+        } if: sexp ty = \keyword.
+        sexp ty = \string ifTrue: {
+            readably ifTrue: {
+                ^sexp val repr.
+              } ifFalse: {
+                ^sexp val.
+              }.
+          }.
+        sexp ty = \list ifTrue: {
+            ^ prList: sexp readably: readably starter: '(' ender: ')'.
+          }.
+        sexp ty = \vector ifTrue: {
+            ^ prList: sexp readably: readably starter: '[' ender: ']'.
+          }.
+        sexp ty = \map ifTrue: {
+            ^ prMap: sexp readably: readably starter: '{' ender: '}'.
+          }.
+        sexp ty = \atom ifTrue: {
+            ^'(atom ' + ( prStr: sexp val readably: readably) + ')'.
+          }.
+        thisBlock error: 'unimplemented type ' + sexp ty.
+      }.
+     on: 'prList:readably:starter:ender:' 
+        do: {:self:sexp:readably:starter:ender
+        ^starter + (
+          sexp val
+           fmap: (((\:item const self prStr: item readably: const readably))),
+           join: ' ') + ender.
+      }.
+     on: 'prMap:readably:starter:ender:' do: {:self:sexp:readably:starter:ender
+        ^starter + (
+          sexp val
+           toArray
+           fmap: (((\:item (const self prStr: item head readably: const readably) + ' ' + (const self prStr: item last readably: const readably)))),
+           join: ' ') + ender.
+      }.
+  }.
