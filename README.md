@@ -40,7 +40,7 @@
 | [Go](#go) | [Joel Martin](https://github.com/kanaka)  |
 | [Groovy](#groovy) | [Joel Martin](https://github.com/kanaka)  |
 | [Haskell](#haskell) | [Joel Martin](https://github.com/kanaka)  |
-| [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++, &amp; JS) | [Joel Martin](https://github.com/kanaka) |
+| [Haxe](#haxe-neko-python-c-and-javascript) (Neko, Python, C++ &amp; JS) | [Joel Martin](https://github.com/kanaka) |
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
