@@ -43,6 +43,13 @@
 extern "C" {
 #endif
 
+#ifndef CTR_INJECT
+struct linenoiseCompletions {
+    size_t len;
+    char **cvec;
+};
+#endif
+
 typedef struct linenoiseCompletions linenoiseCompletions;
 
 typedef void(linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
