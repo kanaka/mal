@@ -1,4 +1,4 @@
-import 
+import
     linenoise: { LineNoise. }
     util: \*
     types: \*
@@ -36,25 +36,25 @@ var MAL is Object cnew: {
     }.
     on: 'quasiquote:' do: {:self:ast
         ast isPair ifFalse: {
-            var result is [(MALSymbol new: \quote ), ast].
+            var result is [(MALSymbol new: 'quote' ), ast].
             ^MALList new: result.
         }.
         var a is ast val.
         var a0 is a @ 0.
 
-        (a0 ty = \symbol ) & (a0 val = \unquote ) ifTrue: { ^a @ 1. }.
+        (a0 ty = \symbol ) & (a0 val = 'unquote' ) ifTrue: { ^a @ 1. }.
         a0 isPair ifTrue: {
             var a0_ is a0 val.
             var a0_0 is a0_ @ 0.
 
-            (a0_0 ty = \symbol ) & (a0_0 val = \splice-unquote ) ifTrue: {
+            (a0_0 ty = \symbol ) & (a0_0 val = 'splice-unquote' ) ifTrue: {
                 var rest is MALList new: a tail.
-                var result is [(MALSymbol new: \concat ), a0_ @ 1, self quasiquote: rest].
+                var result is [(MALSymbol new: 'concat' ), a0_ @ 1, self quasiquote: rest].
                 ^MALList new: result.
             }.
         }.
         var rest is MALList new: a tail.
-        var result is [(MALSymbol new: \cons ), (self quasiquote: a0), (self quasiquote: rest)].
+        var result is [(MALSymbol new: 'cons' ), (self quasiquote: a0), (self quasiquote: rest)].
         ^MALList new: result.
     }.
     on: 'isMacroCall:env:' do: {:ast:env
@@ -79,7 +79,7 @@ var MAL is Object cnew: {
         #         gen finish.
         #         ^sexp.
         #     }.
-        #     
+        #
         #     var ast is sexp val.
         #     var a0_ is ast head val.
         #     var macro is env find: a0_.
@@ -117,7 +117,7 @@ var MAL is Object cnew: {
 
           var ast is sexp val.
           var a0_ is ast head val.
-          a0_ = \def! ifTrue: {
+          a0_ = 'def!' ifTrue: {
               var a1_ is ast at: 1, val.
               var a2 is ast @ 2.
               var result is self EVAL: a2 env: env.
@@ -126,7 +126,7 @@ var MAL is Object cnew: {
               ^result.
           }.
 
-          a0_ = \defmacro! ifTrue: {
+          a0_ = 'defmacro!' ifTrue: {
               var a1_ is ast at: 1, val.
               var a2 is ast @ 2.
               var result is self EVAL: a2 env: env.
@@ -136,13 +136,13 @@ var MAL is Object cnew: {
               ^result.
           }.
 
-          a0_ = \macroexpand ifTrue: {
+          a0_ = 'macroexpand' ifTrue: {
               var a1 is ast @ 1.
               generator finish.
               ^self macroexpand: a1 env: env.
           }.
 
-          a0_ = \let* ifTrue: {
+          a0_ = 'let*' ifTrue: {
               var env_ is Env new: env.
               var a1_ is ast at: 1, val.
               var a2 is ast @ 2.
@@ -152,7 +152,7 @@ var MAL is Object cnew: {
               ^[a2, env_].
           }.
 
-          a0_ = \do ifTrue: {
+          a0_ = 'do' ifTrue: {
               var forms is Nil.
               var last is Nil.
               ast count < 2 ifTrue: {
@@ -167,7 +167,7 @@ var MAL is Object cnew: {
               ^[last, env].
           }.
 
-          a0_ = \if ifTrue: {
+          a0_ = 'if' ifTrue: {
               var a1 is ast @ 1.
               var a2 is ast @ 2.
               var a3 is ast count > 3 either: { ^ast @ 3. } or: { ^MALObject nil. }.
@@ -181,19 +181,19 @@ var MAL is Object cnew: {
               ^[sexp, env].
           }.
 
-          a0_ = \quote ifTrue: {
+          a0_ = 'quote' ifTrue: {
               var a1 is ast @ 1.
               generator finish.
               ^a1.
           }.
 
-          a0_ = \quasiquote ifTrue: {
+          a0_ = 'quasiquote' ifTrue: {
               var a1 is ast @ 1.
               sexp is self quasiquote: a1.
               ^[sexp, env].
           }.
 
-          a0_ = \try* ifTrue: {
+          a0_ = 'try*' ifTrue: {
               var A is ast @ 1.
               ast count < 3 ifTrue: {
                 generator finish.
@@ -219,7 +219,7 @@ var MAL is Object cnew: {
               } type: MALError, run.
           }.
 
-          a0_ = \fn* ifTrue: {
+          a0_ = 'fn*' ifTrue: {
               var a1_ is ast at: 1, val.
               var binds is a1_ fmap: \:x x val.
               var a2 is ast @ 2.
@@ -264,8 +264,8 @@ Core namespace each: {:k:v
     replEnv set: k to: v.
 }.
 
-replEnv set: \eval to: (MALFunction new: {:args ^MAL EVAL: args head env: replEnv.}).
-replEnv set: \*ARGV* to: (MALList new: argv).
+replEnv set: 'eval' to: (MALFunction new: {:args ^MAL EVAL: args head env: replEnv.}).
+replEnv set: '*ARGV*' to: (MALList new: argv).
 
 MAL rep: '(def! not (fn* (a) (if a false true)))' env: replEnv.
 MAL rep: '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\\nnil)")))))' env: replEnv.
@@ -275,11 +275,11 @@ argv empty? ifTrue: {
     {
         var input is line noise: 'user> '.
         input isNil break.
-    
+
         input empty? ifFalse: {
             line addHistory: input.
             line saveHistory: historyFile.
-            { 
+            {
                 var res is MAL rep: input env: replEnv.
                 Pen writeln: res.
             } catch: {:e
@@ -291,6 +291,6 @@ argv empty? ifTrue: {
     Pen brk.
 } ifFalse: {
     # head is used as a filename
-    replEnv set: \*ARGV* to: (MALList new: argv tail).
+    replEnv set: '*ARGV*' to: (MALList new: argv tail).
     MAL rep: '(load-file "' + argv head val + '")' env: replEnv.
 }.

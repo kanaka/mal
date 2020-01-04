@@ -20,10 +20,10 @@ var Printer is Object cnew: {
           ^sexp val toString.
         } if: sexp ty = \number.
         {
-          ^('' + sexp val) skip: 1.
+          ^sexp val toString.
         } if: sexp ty = \symbol.
         {
-          ^':' + (sexp val toString skip: 1).
+          ^':' + sexp val.
         } if: sexp ty = \keyword.
         sexp ty = \string ifTrue: {
             readably ifTrue: {
@@ -46,7 +46,7 @@ var Printer is Object cnew: {
           }.
         thisBlock error: 'unimplemented type ' + sexp ty.
       }.
-     on: 'prList:readably:starter:ender:' 
+     on: 'prList:readably:starter:ender:'
         do: {:self:sexp:readably:starter:ender
         ^starter + (
           sexp val

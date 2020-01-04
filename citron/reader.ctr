@@ -52,19 +52,19 @@ var Reader is Object cnew: {
             thisBlock error: (MALUnexpectedToken new: token).
           }.
         token = '\'' ifTrue: {
-            ^self readSimpleMacro: reader name: \quote.
+            ^self readSimpleMacro: reader name: 'quote'.
           }.
         token = '`' ifTrue: {
-            ^self readSimpleMacro: reader name: \quasiquote.
+            ^self readSimpleMacro: reader name: 'quasiquote'.
           }.
         token = '~' ifTrue: {
-            ^self readSimpleMacro: reader name: \unquote.
+            ^self readSimpleMacro: reader name: 'unquote'.
           }.
         token = '~@' ifTrue: {
-            ^self readSimpleMacro: reader name: \splice-unquote.
+            ^self readSimpleMacro: reader name: 'splice-unquote'.
           }.
         token = '@' ifTrue: {
-            ^self readSimpleMacro: reader name: \deref.
+            ^self readSimpleMacro: reader name: 'deref'.
           }.
         token = '^' ifTrue: {
             ^self readWithMetaMacro: reader.
@@ -118,9 +118,9 @@ var Reader is Object cnew: {
           }.
         token startsWith: ':',
          ifTrue: {
-            ^MALKeyword new: (token skip: 1, toSymbol).
+            ^MALKeyword new: (token skip: 1).
           }.
-        ^MALSymbol new: token toSymbol.
+        ^MALSymbol new: token.
       }.
      on: 'readSimpleMacro:name:' do: {:reader:name
         reader next.
@@ -132,7 +132,7 @@ var Reader is Object cnew: {
         reader next.
         var meta is  readForm: reader.
         var form is  readForm: reader.
-        var list is Array < (MALSymbol new: \with-meta) ; form ; meta.
+        var list is Array < (MALSymbol new: 'with-meta') ; form ; meta.
         ^MALList new: list.
       }.
      on: 'new:' do: {:tokens

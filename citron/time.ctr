@@ -1,0 +1,22 @@
+# File time.ctr
+import Library/Foreign/Interop/C.
+import Library/Foreign/C/C_Types: {
+    c_ptr_null.
+  }.
+
+#:language XFrozen
+
+Inject
+    importFunctionsOrTypes: ['gettimeofday', 'timeval']
+    fromHeaders: ['sys/time.h'] 
+    andLibraries: [].
+
+var timems is {
+  var mtime is (frozen _ is
+    'tv' letEqual: timeval newIns in: {
+        tv struct allocate.
+        ^tv.
+      }).
+  gettimeofday [mtime struct, c_ptr_null].
+  ^mtime memberTvSec * 1000 + (mtime memberTvUsec / 1000).
+}.

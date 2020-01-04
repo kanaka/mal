@@ -1,4 +1,4 @@
-import 
+import
     linenoise: { LineNoise. }
     util: \*
     types: \*
@@ -59,10 +59,10 @@ var line is LineNoise new.
 line loadHistory: historyFile.
 
 var replEnv is Map new
-    put: {:a:b ^MALNumber new: a val + b val.} at: \+,
-    put: {:a:b ^MALNumber new: a val - b val.} at: \-,
-    put: {:a:b ^MALNumber new: a val * b val.} at: \*,
-    put: {:a:b ^MALNumber new: a val / b val.} at: \/.
+    put: {:a:b ^MALNumber new: a val + b val.} at: '+',
+    put: {:a:b ^MALNumber new: a val - b val.} at: '-',
+    put: {:a:b ^MALNumber new: a val * b val.} at: '*',
+    put: {:a:b ^MALNumber new: a val / b val.} at: '/'.
 
 {
     var input is line noise: 'user> '.
@@ -71,7 +71,7 @@ var replEnv is Map new
     input empty? ifFalse: {
         line addHistory: input.
         line saveHistory: historyFile.
-        { 
+        {
             var res is MAL rep: input env: replEnv.
             Pen writeln: res.
         } catch: {:e

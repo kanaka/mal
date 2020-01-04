@@ -1,5 +1,7 @@
 # File core.ctr
 import Library/Data/Map.
+import time: { timems. }.
+
 var Core is Object cnew: {
     var namespace is Map new.
      on: 'namespace' do: {
@@ -8,7 +10,7 @@ var Core is Object cnew: {
      on: 'coerce:' do: {:value
         value ifTrue: {
             ^MALObject true.
-          } 
+          }
             ifFalse: {
             ^MALObject false.
           }.
@@ -16,10 +18,10 @@ var Core is Object cnew: {
      on: 'nilable:else:' do: {:args:block
         args head ty = \nil ifTrue: {
             ^MALObject nil.
-          } 
+          }
             ifFalse: block.
       }.
-     on: 'printedArgs:readable:sep:' 
+     on: 'printedArgs:readable:sep:'
         do: {:args:readable:sep
         var items is args fmap: ((((\:arg const Printer prStr: arg readably: const readable)))).
         ^items join: sep.
@@ -28,108 +30,108 @@ var Core is Object cnew: {
 Core namespace put: (
     MALFunction new: {:args
         ^MALNumber new: (args at: 0, val) + (args at: 1, val).
-      }) 
-    at: \+.
+      })
+    at: '+'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALNumber new: (args at: 0, val) - (args at: 1, val).
-      }) 
-    at: \-.
+      })
+    at: '-'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALNumber new: (args at: 0, val) * (args at: 1, val).
-      }) 
-    at: \*.
+      })
+    at: '*'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALNumber new: (args at: 0, val) / (args at: 1, val).
-      }) 
-    at: \/.
+      })
+    at: '/'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALString new: (Core printedArgs: args readable: True sep: ' ').
-      }) 
-    at: \pr-str.
+      })
+    at: 'pr-str'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALString new: (Core printedArgs: args readable: False sep: '').
-      }) 
-    at: \str.
+      })
+    at: 'str'.
 Core namespace put: (
     MALFunction new: {:args
         Pen writeln: (Core printedArgs: args readable: True sep: ' ').
         ^MALObject nil.
-      }) 
-    at: \prn.
+      })
+    at: 'prn'.
 Core namespace put: (
     MALFunction new: {:args
         Pen writeln: (Core printedArgs: args readable: False sep: ' ').
         ^MALObject nil.
-      }) 
-    at: \println.
+      })
+    at: 'println'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALList new: args.
-      }) 
-    at: \list.
+      })
+    at: 'list'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \list.
-      }) 
-    at: \list?.
+      })
+    at: 'list?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head val empty?.
-      }) 
-    at: \empty?.
+      })
+    at: 'empty?'.
 Core namespace put: (
     MALFunction new: {:args
         args head ty = \nil ifTrue: {
             ^MALNumber new: 0.
           }.
         ^MALNumber new: args head val count.
-      }) 
-    at: \count.
+      })
+    at: 'count'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (args at: 0) = (args at: 1).
-      }) 
-    at: \=.
+      })
+    at: '='.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (args at: 0, val) < (args at: 1, val).
-      }) 
-    at: \<.
+      })
+    at: '<'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (args at: 0, val) > (args at: 1, val).
-      }) 
-    at: \>.
+      })
+    at: '>'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: ((args at: 0, val) <=: (args at: 1, val)).
-      }) 
-    at: \<=.
+      })
+    at: '<='.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: ((args at: 0, val) >= (args at: 1, val)).
-      }) 
-    at: \>=.
+      })
+    at: '>='.
 Core namespace put: (
     MALFunction new: {:args
         ^Reader readStr: args head val.
-      }) 
-    at: \read-string.
+      })
+    at: 'read-string'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALString new: (File new: args head val) read.
-      }) 
-    at: \slurp.
+      })
+    at: 'slurp'.
 Core namespace put: (
     MALFunction new: {:args
         thisBlock error: (MALCustomError new: args head).
-      }) 
-    at: \throw.
+      })
+    at: 'throw'.
 Core namespace put: (
     MALFunction new: {:args
         var result is LineNoise new noise: args head val.
@@ -137,13 +139,13 @@ Core namespace put: (
             ^MALObject nil.
           }.
         ^MALString new: result.
-      }) 
-    at: \readline.
+      })
+    at: 'readline'.
 Core namespace put: (
     MALFunction new: {:args
-        ^MALNumber new: Clock new time.
-      }) 
-    at: \time-ms.
+        ^MALNumber new: timems[].
+      })
+    at: 'time-ms'.
 Core namespace put: (
     MALFunction new: {:args
         ^AST parse: '{\n' + args head val + '\n}',
@@ -152,29 +154,29 @@ Core namespace put: (
          at: 0,
          evaluate
          toMALValue.
-      }) 
-    at: \citron-eval.
+      })
+    at: 'citron-eval'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALAtom new: args head.
-      }) 
-    at: \atom.
+      })
+    at: 'atom'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \atom.
-      }) 
-    at: \atom?.
+      })
+    at: 'atom?'.
 Core namespace put: (
     MALFunction new: {:args
         ^args head val.
-      }) 
-    at: \deref.
+      })
+    at: 'deref'.
 Core namespace put: (
     MALFunction new: {:args
         args head val: args @ 1.
         ^args @ 1.
-      }) 
-    at: \reset!.
+      })
+    at: 'reset!'.
 Core namespace put: (
     MALFunction new: {:args
         var a is args head.
@@ -188,20 +190,20 @@ Core namespace put: (
         var result is f applyTo: [x] + xs.
         a val: result.
         ^result.
-      }) 
-    at: \swap!.
+      })
+    at: 'swap!'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALList new: [args head] + (args at: 1, val).
-      }) 
-    at: \cons.
+      })
+    at: 'cons'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALList new: (
             args fmap: \:x x val,
              foldl: {\:acc:x acc + x} accumulator: []).
-      }) 
-    at: \concat.
+      })
+    at: 'concat'.
 Core namespace put: (
     MALFunction new: {:args
         var items is args head val.
@@ -211,8 +213,8 @@ Core namespace put: (
             thisBlock error: MALOutOfBounds new.
           }.
         ^items @ index.
-      }) 
-    at: \nth.
+      })
+    at: 'nth'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core nilable: args else: {
@@ -222,8 +224,8 @@ Core namespace put: (
               }.
             ^items @ 0.
           }.
-      }) 
-    at: \first.
+      })
+    at: 'first'.
 Core namespace put: (
     MALFunction new: {:args
         var items is args head val.
@@ -233,13 +235,13 @@ Core namespace put: (
           },
          ifTrue: {
             rest is Array new.
-          } 
+          }
             ifFalse: {
             rest is items tail.
           }.
         ^MALList new: rest.
-      }) 
-    at: \rest.
+      })
+    at: 'rest'.
 Core namespace put: (
     MALFunction new: {:args
         var kind is args head ty.
@@ -247,12 +249,12 @@ Core namespace put: (
         var items is args tail.
         kind = \list ifTrue: {
             ^MALList new: items reverse + result.
-          } 
+          }
             ifFalse: {
             ^args head new: result + items.
           }.
-      }) 
-    at: \conj.
+      })
+    at: 'conj'.
 Core namespace put: (
     MALFunction new: {:args
         var kind is args head ty.
@@ -260,19 +262,19 @@ Core namespace put: (
         ^Core nilable: args else: {
             storage empty? ifTrue: {
                 ^MALObject nil.
-              } 
+              }
                 ifFalse: {
                 kind = \string ifTrue: {
                     var result is storage characters fmap: ((((\:x const MALString new: x)))).
                     ^MALList new: result.
-                  } 
+                  }
                     ifFalse: {
                     ^MALList new: storage.
                   }.
               }.
           }.
-      }) 
-    at: \seq.
+      })
+    at: 'seq'.
 Core namespace put: (
     MALFunction new: {:args
         var f is args head.
@@ -283,14 +285,14 @@ Core namespace put: (
         var rest is Nil.
         args count < 3 ifTrue: {
             rest is [].
-          } 
+          }
             ifFalse: {
             rest is args viewFrom: 1 length: args count - 2.
           }.
         rest is rest + args last val.
         ^f applyTo: rest.
-      }) 
-    at: \apply.
+      })
+    at: 'apply'.
 Core namespace put: (
     MALFunction new: {:args
         var f is args head.
@@ -301,74 +303,74 @@ Core namespace put: (
         var items is args at: 1, val.
         var result is items fmap: ((((\:x const f applyTo: [x])))).
         ^MALList new: result.
-      }) 
-    at: \map.
+      })
+    at: 'map'.
 Core namespace put: (
     MALFunction new: {:args
         var meta is args head meta.
         meta isNil ifTrue: {
             ^MALObject nil.
-          } 
+          }
             ifFalse: {
             ^meta.
           }.
-      }) 
-    at: \meta.
+      })
+    at: 'meta'.
 Core namespace put: (
     MALFunction new: {:args
         ^args head withMeta: args @ 1.
-      }) 
-    at: \with-meta.
+      })
+    at: 'with-meta'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \nil.
-      }) 
-    at: \nil?.
+      })
+    at: 'nil?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \true.
-      }) 
-    at: \true?.
+      })
+    at: 'true?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \false.
-      }) 
-    at: \false?.
+      })
+    at: 'false?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \number.
-      }) 
-    at: \number?.
+      })
+    at: 'number?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \symbol.
-      }) 
-    at: \symbol?.
+      })
+    at: 'symbol?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \keyword.
-      }) 
-    at: \keyword?.
+      })
+    at: 'keyword?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \string.
-      }) 
-    at: \string?.
+      })
+    at: 'string?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \vector.
-      }) 
-    at: \vector?.
+      })
+    at: 'vector?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: args head ty = \map.
-      }) 
-    at: \map?.
+      })
+    at: 'map?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (args head ty = \list) | (args head ty = \vector).
-      }) 
-    at: \sequential?.
+      })
+    at: 'sequential?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (
@@ -377,37 +379,37 @@ Core namespace put: (
                     ^args head isMacro not.
                 } or: False.
             }).
-      }) 
-    at: \fn?.
+      })
+    at: 'fn?'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (
             args head ty = \func either: {
                 ^args head isMacro.
-              } 
+              }
                 or: False).
-      }) 
-    at: \macro?.
+      })
+    at: 'macro?'.
 Core namespace put: (
     MALFunction new: {:args
-        ^MALSymbol new: args head val toSymbol.
-      }) 
-    at: \symbol.
+        ^MALSymbol new: args head val.
+      })
+    at: 'symbol'.
 Core namespace put: (
     MALFunction new: {:args
-        ^MALKeyword new: args head val toSymbol.
-      }) 
-    at: \keyword.
+        ^MALKeyword new: args head val.
+      })
+    at: 'keyword'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALVector new: args.
-      }) 
-    at: \vector.
+      })
+    at: 'vector'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALMap new: args toMap.
-      }) 
-    at: \hash-map.
+      })
+    at: 'hash-map'.
 Core namespace put: (
     MALFunction new: {:args
         var result is args head val copy.
@@ -416,8 +418,8 @@ Core namespace put: (
             result put: (keyvals at: i + 1) at: (keyvals at: i).
           }.
         ^MALMap new: result.
-      }) 
-    at: \assoc.
+      })
+    at: 'assoc'.
 Core namespace put: (
     MALFunction new: {:args
         var result is args head val copy.
@@ -426,8 +428,8 @@ Core namespace put: (
             result deleteAt: key.
           }.
         ^MALMap new: result.
-      }) 
-    at: \dissoc.
+      })
+    at: 'dissoc'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core nilable: args else: {
@@ -436,20 +438,20 @@ Core namespace put: (
              at: args @ 1,
              or: MALObject nil.
           }.
-      }) 
-    at: \get.
+      })
+    at: 'get'.
 Core namespace put: (
     MALFunction new: {:args
         ^Core coerce: (args head val contains: args @ 1).
-      }) 
-    at: \contains?.
+      })
+    at: 'contains?'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALList new: args head val keys.
-      }) 
-    at: \keys.
+      })
+    at: 'keys'.
 Core namespace put: (
     MALFunction new: {:args
         ^MALList new: args head val values.
-      }) 
-    at: \vals.
+      })
+    at: 'vals'.

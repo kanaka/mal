@@ -1,4 +1,4 @@
-import 
+import
     linenoise: { LineNoise. }
     util: \*
     types: \*
@@ -45,7 +45,7 @@ var MAL is Object cnew: {
 
         var ast is sexp val.
         var a0_ is ast head val.
-        a0_ = \def! ifTrue: {
+        a0_ = 'def!' ifTrue: {
             a1_ is ast at: 1, val.
             a2 is ast @ 2.
             var result is self EVAL: a2 env: env.
@@ -53,7 +53,7 @@ var MAL is Object cnew: {
             ^result.
         }.
 
-        a0_ = \let* ifTrue: {
+        a0_ = 'let*' ifTrue: {
             var env_ is Env new: env.
             a1_ is ast at: 1, val.
             a2 is ast @ 2.
@@ -80,10 +80,10 @@ var line is LineNoise new.
 line loadHistory: historyFile.
 
 var replEnv is Env new: Nil,
-    set: \+ to: {:a:b ^MALNumber new: a val + b val.},
-    set: \- to: {:a:b ^MALNumber new: a val - b val.},
-    set: \* to: {:a:b ^MALNumber new: a val * b val.},
-    set: \/ to: {:a:b ^MALNumber new: a val / b val.}.
+    set: '+' to: {:a:b ^MALNumber new: a val + b val.},
+    set: '-' to: {:a:b ^MALNumber new: a val - b val.},
+    set: '*' to: {:a:b ^MALNumber new: a val * b val.},
+    set: '/' to: {:a:b ^MALNumber new: a val / b val.}.
 
 {
     var input is line noise: 'user> '.
@@ -92,7 +92,7 @@ var replEnv is Env new: Nil,
     input empty? ifFalse: {
         line addHistory: input.
         line saveHistory: historyFile.
-        { 
+        {
             var res is MAL rep: input env: replEnv.
             Pen writeln: res.
         } catch: {:e

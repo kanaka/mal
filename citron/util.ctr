@@ -33,9 +33,9 @@ Object on: 'toMALValue' do: {:self
     { ^MALObject nil. } if: self isNil.
     { ^MALNumber new: self. } if: (self isA: Number).
     { ^MALString new: self. } if: (self isA: String).
-    { ^MALSymbol new: self. } if: (self isA: Symbol).
+    # { ^MALSymbol new: self. } if: (self isA: Symbol).
     { ^MALVector new: (self fmap: \:x x toMALValue). } if: (self isA: Array).
-    { 
+    {
         var result is Map new.
         self each: {:k:v
             result put: v toMALValue at: k toMALValue.
@@ -44,4 +44,3 @@ Object on: 'toMALValue' do: {:self
     } if: (self isA: Map) | (self isA: HashMap).
     thisBlock error: 'dunno how to convert a ${{self type}}$ to a MAL value'.
 }.
-

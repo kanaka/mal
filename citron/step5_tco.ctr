@@ -59,7 +59,7 @@ var MAL is Object cnew: {
 
           var ast is sexp val.
           var a0_ is ast head val.
-          a0_ = \def! ifTrue: {
+          a0_ = 'def!' ifTrue: {
               a1_ is ast at: 1, val.
               a2 is ast @ 2.
               var result is self EVAL: a2 env: env.
@@ -68,7 +68,7 @@ var MAL is Object cnew: {
               ^result.
           }.
 
-          a0_ = \let* ifTrue: {
+          a0_ = 'let*' ifTrue: {
               var env_ is Env new: env.
               a1_ is ast at: 1, val.
               a2 is ast @ 2.
@@ -78,7 +78,7 @@ var MAL is Object cnew: {
               ^[a2, env_].
           }.
 
-          a0_ = \do ifTrue: {
+          a0_ = 'do' ifTrue: {
               var forms is Nil.
               var last is Nil.
               ast count < 2 ifTrue: {
@@ -93,7 +93,7 @@ var MAL is Object cnew: {
               ^[last, env].
           }.
 
-          a0_ = \if ifTrue: {
+          a0_ = 'if' ifTrue: {
               var a1 is ast @ 1.
               var a2 is ast @ 2.
               var a3 is ast count > 3 either: { ^ast @ 3. } or: { ^MALObject nil. }.
@@ -107,7 +107,7 @@ var MAL is Object cnew: {
               ^[sexp, env].
           }.
 
-          a0_ = \fn* ifTrue: {
+          a0_ = 'fn*' ifTrue: {
               var a1_ is ast at: 1, val.
               var binds is a1_ fmap: \:x x val.
               var a2 is ast @ 2.
