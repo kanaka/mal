@@ -1,7 +1,7 @@
 Broom memoryLimit: 1024 * 1024 * 1024 * 4.
 
 import
-    linenoise: { LineNoise. }
+    linenoise: 'LineNoise'
     util: \*
     types: \*
     reader: \*

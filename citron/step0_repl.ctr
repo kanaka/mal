@@ -1,6 +1,4 @@
-import linenoise: {
-    LineNoise.
-}.
+import linenoise: 'LineNoise'.
 
 var MAL is Object cnew: {
     on: 'READ:' do: {:input
