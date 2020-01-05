@@ -70,11 +70,21 @@ def core_identify:
         },
     };
 
+def vec2list(obj):
+    if obj.kind == "list" then
+        obj.value | map(vec2list(.)) | wrap("list")
+    else 
+    if obj.kind == "vector" then
+        obj.value | map(vec2list(.)) | wrap("list")
+    else 
+        obj
+    end end;
+
 def core_interp(arguments; env):
     (
         select(.function == "number_add") |
         arguments | map(.value) | .[0] + .[1] | wrap("number")
-    ) /(
+    ) // (
         select(.function == "number_sub") |
         arguments | map(.value) | .[0] - .[1] | wrap("number")
     ) // (
@@ -106,7 +116,7 @@ def core_interp(arguments; env):
     ) // (
         select(.function == "count") | arguments|first.value | length | wrap("number")
     ) // (
-        select(.function == "=") | null | wrap(arguments[0] == arguments[1] | tostring)
+        select(.function == "=") | null | wrap(vec2list(arguments[0]) == vec2list(arguments[1]) | tostring)
     ) // (
         select(.function == "<") | null | wrap(arguments[0].value < arguments[1].value | tostring)
     ) // (

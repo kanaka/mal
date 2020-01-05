@@ -28,7 +28,15 @@ def childEnv(binds; exprs):
                             }
                         end
                     end | (.idx |= .idx + 1)
-                else . end
+                else
+                    if $item[0] == "&" then
+                            $dot[.idx+1][0] as $name | {
+                                value: (.value + [[$name, {kind:"list", value: []}]]),
+                                seen: true,
+                                name: $name
+                            }
+                    else . end
+                end
             )
         ) | .value | map({(.[0]): .[1]}) | add 
     };
