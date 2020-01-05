@@ -12,12 +12,8 @@ def READ:
     read_str | read_form | .value;
 
 def lookup(env):
-    env.environment[.] //
-        if env.parent then
-            lookup(env.parent)
-        else
-            jqmal_error("Symbol \(.) not found")
-        end;
+    env[.] //
+            jqmal_error("Symbol \(.) not found");
 
 def EVAL(env):
     def eval_ast:
@@ -61,38 +57,29 @@ def repl_(env):
     ("user> " | stderr) |
     (read_line | rep(env));
 
-def childEnv(binds; value):
-    {
-        parent: .,
-        environment: [binds, value] | transpose | map({(.[0]): .[1]}) | from_entries
-    };
-
 # we don't have no indirect functions, so we'll have to interpret the old way
 def replEnv:
     {
-        parent: null,
-        environment: {
-            "+": {
-                kind: "fn", # native function
-                inputs: 2,
-                function: "number_add"
-            },
-            "-": {
-                kind: "fn", # native function
-                inputs: 2,
-                function: "number_sub"
-            },
-            "*": {
-                kind: "fn", # native function
-                inputs: 2,
-                function: "number_mul"
-            },
-            "/": {
-                kind: "fn", # native function
-                inputs: 2,
-                function: "number_div"
-            },
-        }
+        "+": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_add"
+        },
+        "-": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_sub"
+        },
+        "*": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_mul"
+        },
+        "/": {
+            kind: "fn", # native function
+            inputs: 2,
+            function: "number_div"
+        },
     };
 
 def repl(env):
