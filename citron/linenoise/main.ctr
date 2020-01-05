@@ -1,5 +1,5 @@
 import Library/Foreign/Interop/C.
-import Library/Data/Set/HashSet.
+import Library/Data/Set/HashSet: 'HashSet'.
 
 var root is Program env: 'CTRROOT', or: '..'.
 

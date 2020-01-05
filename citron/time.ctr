@@ -6,6 +6,20 @@ import Library/Foreign/C/C_Types: {
 
 #:language XFrozen
 
+# Discover all the current default include paths
+var includes is Shell
+  call: 'cpp -v /dev/null -o /dev/null 2>&1 | sed -n -e \'/^#include <...>/,$p\' | sed -n -e "1d;/^End/Q;p"',
+  split: '\n',
+  fmap: \:x x trim.
+
+Shell
+  call: 'cc -v 2>&1',
+  findPattern: '--libdir=([^ ]+)' do: {:gs
+    Inject addLibraryPath: gs @ 1.
+  }.
+
+includes each_v: {:inc Inject addIncludePath: inc. }.
+
 Inject
     importFunctionsOrTypes: ['gettimeofday', 'timeval']
     fromHeaders: ['sys/time.h'] 
