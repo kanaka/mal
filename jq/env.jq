@@ -1,9 +1,36 @@
 include "utils";
 
-def childEnv(binds; value):
+def childEnv(binds; exprs):
     {
         parent: .,
-        environment: [binds, value] | transpose | map({(.[0]): .[1]}) | from_entries
+        environment: [binds, exprs] | transpose | (
+            . as $dot | reduce .[] as $item (
+                { value: [], seen: false, name: null, idx: 0 };
+                if $item[1] != null then
+                    if .seen then
+                        {
+                            value: (.value[1:-1] + (.value|last[1].value += [$item[1]])),
+                            seen: true,
+                            name: .name
+                        }
+                    else
+                        if $item[0] == "&" then
+                            $dot[.idx+1][0] as $name | {
+                                value: (.value + [[$name, {kind:"list", value: [$item[1]]}]]),
+                                seen: true,
+                                name: $name
+                            }
+                        else
+                            {
+                                value: (.value + [$item]),
+                                seen: false,
+                                name: null
+                            }
+                        end
+                    end | (.idx |= .idx + 1)
+                else . end
+            )
+        ) | .value | map({(.[0]): .[1]}) | add 
     };
 
 def pureChildEnv:
