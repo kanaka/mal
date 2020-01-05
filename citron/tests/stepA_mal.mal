@@ -1,0 +1,21 @@
+;; Test Citron interop
+
+(citron-eval "1 + 2")
+;=>3
+
+(citron-eval "'string'")
+;=>"string"
+
+(citron-eval "[1, 2, 3]")
+;=>[1 2 3]
+
+(citron-eval "Map new")
+;=>{}
+
+(citron-eval "[1, 2, 3] fmap: \\:x x + 1, filter_v: {:x ^x > 2.}")
+;=>[3 4]
+
+;;; Test Citron Interop weird cases
+
+(citron-eval "{ Inject importFunctionsOrTypes: ['puts'] fromHeaders: ['stdio.h'] andLibraries: []. puts['Hello there']. ^Nil.} run")
+;/.*Hello there\r\nnil
