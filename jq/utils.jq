@@ -18,3 +18,6 @@ def wrap(kind):
         kind: kind,
         value: .
     };
+
+def _print:
+    debug;

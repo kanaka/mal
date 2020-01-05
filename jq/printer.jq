@@ -18,7 +18,7 @@ def pr_str(opt):
     (select(.kind == "true")    | "true") //
     (select(.kind == "false")   | "false") //
     (select(.kind == "fn")      | "#<fn>") //
-    (select(.kind == "function")| "#<function>") //
+    (select(.kind == "function")| "#<function \([":anon"] + .names | join(", "))>") //
     "#<Unknown \(.kind) in \(.)>";
 
 def pr_str:

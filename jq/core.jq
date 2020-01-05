@@ -3,6 +3,11 @@ include "printer";
 
 def core_identify:
     {
+        "env": {
+            kind: "fn",
+            function: "env",
+            inputs: 0
+        },
         "prn": {
             kind: "fn",
             function: "prn",
@@ -94,9 +99,11 @@ def core_interp(arguments; env):
         select(.function == "number_div") |
         arguments | map(.value) | .[0] / .[1] | wrap("number")
     ) // (
+        select(.function == "env") |
+        env | tojson | wrap("string")
+    ) // (
         select(.function == "prn") |
-        arguments | map(pr_str({readable: true})) | join(" ") |
-            stderr | null | wrap("nil")
+        arguments | map(pr_str({readable: true})) | join(" ") | _print | null | wrap("nil")
     ) // (
         select(.function == "pr-str") |
         arguments | map(pr_str({readable: true})) | join(" ") |  wrap("string")
@@ -105,7 +112,7 @@ def core_interp(arguments; env):
         arguments | map(pr_str({readable: false})) | join("") |  wrap("string")
     ) // (
         select(.function == "println") |
-        arguments | map(pr_str({readable: false})) | join(" ") | stderr | null | wrap("nil")
+        arguments | map(pr_str({readable: false})) | join(" ") | _print | null | wrap("nil")
     ) // (
         select(.function == "list") |
         arguments | wrap("list")

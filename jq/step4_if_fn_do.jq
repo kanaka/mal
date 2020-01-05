@@ -23,6 +23,16 @@ def READ:
 #                     env: $eval_env.env
 #                 }
 #         ) | { expr: .value, env: .env }) // (addEnv(env));
+# (let* (f (fn* (n) (if (= n 0) 0 (g (- n 1)))) g (fn* (n) (f n))) (f 2))
+
+def patch_with_env(env):
+    . as $dot | (reduce .[] as $fnv (
+        [];
+        . + [$fnv | setpath([1, "corecursives"]; ($fnv[1].corecursives + $dot) | unique)]
+    )) as $functions | reduce $functions[] as $function (
+        env;
+        env_set(.; $function[0]; $function[1])
+    ) | { functions: $functions, env: . };
 
 def EVAL(env):
     def _eval_here:
@@ -64,9 +74,14 @@ def EVAL(env):
                     .value | select(.[0].value == "let*") as $value |
                         (env | pureChildEnv) as $subenv |
                             (reduce ($value[1].value | nwise(2)) as $xvalue (
-                                $subenv;
-                                . as $env | $xvalue[1] | EVAL($env) as $expenv |
-                                    env_set($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
+                                { functions: [], env: $subenv };
+                                . as $dot | .env as $env | $xvalue[1] | EVAL($env) as $expenv |
+                                    env_set($expenv.env; $xvalue[0].value; $expenv.expr) as $newenv |
+                                    ($dot.functions + [if $expenv.expr.kind == "function" then [($xvalue[0].value), ($xvalue[0].value | env_get($newenv))] else empty end]) | patch_with_env($newenv) as $funcenv |
+                                    {
+                                        functions: $funcenv.functions,
+                                        env: $funcenv.env
+                                    }) | .env) as $env
                                         | $value[2] | { expr: EVAL($env).expr, env: env }
                 ) //
                 (
@@ -94,7 +109,9 @@ def EVAL(env):
                             kind: "function",
                             binds: $value[1].value | map(.value),
                             env: env,
-                            body: $value[2]
+                            body: $value[2],
+                            names: [], # we can't do that circular reference this
+                            corecursives: [] # for equirecursive functions defined in let*
                         } | addEnv(env)
                 ) //
                 (
@@ -153,7 +170,7 @@ def rep(env):
         end | addEnv($expenv.env);
 
 def repl_(env):
-    ("user> " | stderr) |
+    ("user> " | _print) |
     (read_line | rep(env));
 
 # we don't have no indirect functions, so we'll have to interpret the old way
@@ -192,7 +209,7 @@ def repl(env):
                 stop: false,
                 env: ($expenv.env // .env)
             } | ., xrepl;
-    {stop: false, env: env} | xrepl | if .value then .value else empty end;
+    {stop: false, env: env} | xrepl | if .value then (.value | _print) else empty end;
 
 repl(
     "(def! not (fn* (a) (if a false true)))" | rep(replEnv) | .env

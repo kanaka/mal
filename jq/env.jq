@@ -53,16 +53,50 @@ def rootEnv:
         environment: {}
     };
 
-def env_set(key; value):
-    {
+def inform_function(name):
+    (.names += [name]) | (.names |= unique);
+
+def inform_function_multi(names):
+    . as $dot | reduce names[] as $name(
+        $dot;
+        inform_function($name)
+    );
+
+def env_multiset(keys; value):
+    (if value.kind == "function" then
+        value | inform_function_multi(keys)
+    else
+        value
+    end) as $value | {
         parent: .parent,
-        environment: (.environment + (.environment | .[key] |= value)) # merge together, as .environment[key] |= value does not work
+        environment: (
+            .environment + (reduce keys[] as $key(.environment; .[$key] |= value))
+        )
     };
 
-def env_set(env; key; value):
-    {
+def env_multiset(env; keys; value):
+    env | env_multiset(keys; value);
+
+def env_set($key; $value):
+    (if $value.kind == "function" then
+        # inform the function of its names
+        $value | inform_function($key)
+    else 
+        $value
+    end) as $value | {
+        parent: .parent,
+        environment: (.environment + (.environment | .[$key] |= $value)) # merge together, as .environment[key] |= value does not work
+    };
+
+def env_set(env; $key; $value):
+    (if $value.kind == "function" then
+        # inform the function of its names
+        $value | (.names += [$key])
+    else 
+        $value
+    end) as $value | {
         parent: env.parent,
-        environment: (env.environment + (env.environment | .[key] |= value)) # merge together, as env.environment[key] |= value does not work
+        environment: (env.environment + (env.environment | .[$key] |= $value)) # merge together, as env.environment[key] |= value does not work
     };
 
 def env_find(env):

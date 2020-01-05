@@ -24,8 +24,14 @@ def interpret(arguments; env; _eval):
     )) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
-        .env | childEnv($fn.binds; arguments) as $fnEnv |
-            { env: $fnEnv, expr: $fn.body } | _eval | { expr: .expr, env: env }
+        .env as $oenv | .env | childEnv($fn.binds; arguments) as $fnEnv |
+            # tell it about its surroundings
+            (reduce $fn.corecursives[] as $name (
+                $fnEnv;
+                env_set(.; $name[0]; $name[1] | setpath(["corecursives"]; $fn.corecursives)))) as $fnEnv |
+            # tell it about itself
+            env_multiset($fnEnv; $fn.names; $fn) as $fnEnv |
+            { env: env_multiset($fnEnv; $fn.names; $fn), expr: $fn.body } | _eval | { expr: .expr, env: env }
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
-        
+
