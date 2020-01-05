@@ -17,6 +17,7 @@ matrix:
     - {env: IMPL=coffee,                      services: [docker]}
     - {env: IMPL=cs,                          services: [docker]}
     - {env: IMPL=chuck NO_SELF_HOST_PERF=1,   services: [docker]} # perf OOM
+    - {env: IMPL=citron                       services: [docker]} # step4 random crash?
     - {env: IMPL=clojure clojure_MODE=clj,    services: [docker]}
     - {env: IMPL=clojure clojure_MODE=cljs,   services: [docker]}
     - {env: IMPL=common-lisp,                 services: [docker]}
