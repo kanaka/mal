@@ -73,18 +73,22 @@ def replEnv:
         parent: null,
         environment: {
             "+": {
+                kind: "fn", # native function
                 inputs: 2,
                 function: "number_add"
             },
             "-": {
+                kind: "fn", # native function
                 inputs: 2,
                 function: "number_sub"
             },
             "*": {
+                kind: "fn", # native function
                 inputs: 2,
                 function: "number_mul"
             },
             "/": {
+                kind: "fn", # native function
                 inputs: 2,
                 function: "number_div"
             },
