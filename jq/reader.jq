@@ -4,17 +4,16 @@ def tokenize:
     [ . | scan("[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)") | select(.|length > 0)[0] | select(.[0:1] != ";") ];
 
 def read_str:
-    . | tokenize;
+    tokenize;
 
-# TODO
 def read_string:
-    . | fromjson;
+    fromjson;
 
 def extract_string:
     . as $val | if ["keyword", "symbol", "string"] | contains([$val.kind]) then
         $val.value
     else
-        error("assoc called with non-string key of type \($val.kind)")
+        jqmal_error("assoc called with non-string key of type \($val.kind)")
     end;
 
 # stuff comes in as {tokens: [...], <stuff unrelated to us>}
@@ -51,7 +50,7 @@ def read_atom:
                     }
                 }
             else
-                error("EOF while reading string")
+                jqmal_error("EOF while reading string")
             end
         else if $lookahead | test("^:") then
             {
@@ -85,7 +84,7 @@ def read_atom:
 def read_form_(depth):
     (.tokens | first) as $lookahead | . | (
         if $lookahead == null then
-            empty
+            null
             # read_list
         else
             if $lookahead | test("^\\(") then
@@ -100,7 +99,7 @@ def read_form_(depth):
                         }
                     end)) ] | map(select(.tokens)) | last as $result |
                 if $result.tokens | first != ")" then
-                    error("unbalanced parentheses in \($result.tokens)")
+                    jqmal_error("unbalanced parentheses in \($result.tokens)")
                 else
                     {
                         tokens: $result.tokens[1:],
@@ -123,7 +122,7 @@ def read_form_(depth):
                         }
                     end)) ] | map(select(.tokens)) | last as $result |
                 if $result.tokens | first != "]" then
-                    error("unbalanced brackets in \($result.tokens)")
+                    jqmal_error("unbalanced brackets in \($result.tokens)")
                 else
                     {
                         tokens: $result.tokens[1:],
@@ -146,11 +145,11 @@ def read_form_(depth):
                         }
                     end)) ] | map(select(.tokens)) | last as $result |
                 if $result.tokens | first != "}" then
-                    error("unbalanced braces in \($result.tokens)")
+                    jqmal_error("unbalanced braces in \($result.tokens)")
                 else
                     if $result.values | length % 2 == 1 then
                         # odd number of elements not allowed
-                        error("Odd number of parameters to assoc")
+                        jqmal_error("Odd number of parameters to assoc")
                     else
                         {
                             tokens: $result.tokens[1:],
@@ -251,9 +250,26 @@ def read_form_(depth):
                         ]
                     }
                 })
+        # with-meta
+        else if $lookahead == "^" then
+            (.tokens |= .[1:]) | read_form_(depth+1) as $meta | $meta | read_form_(depth+1) as $value | (
+                {
+                    tokens: $value.tokens,
+                    value: {
+                        kind: "list",
+                        values: [
+                            {
+                                kind: "symbol",
+                                value: "with-meta"
+                            },
+                            $value.value,
+                            $meta.value
+                        ]
+                    }
+                })
         else
             . as $prev |  read_atom
-        end end end end end end end end end);
+        end end end end end end end end end end);
 
 def read_form:
     {tokens: .} | read_form_(0);

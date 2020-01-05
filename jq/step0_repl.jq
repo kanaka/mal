@@ -14,13 +14,11 @@ def PRINT:
     .;
 
 def rep:
-    . | READ | EVAL | PRINT;
+    READ | EVAL | PRINT;
 
 def repl_:
-    [
-        ("user> " | stderr),
-        (input | rep)
-    ] | last;
+    ("user> " | stderr) |
+    (read_line | rep);
 
 def repl:
     while(true; repl_);
