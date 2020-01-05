@@ -88,13 +88,13 @@ def read_form_(depth):
             # read_list
         else
             if $lookahead | test("^\\(") then
-                [ (.tokens |= .[1:]) | {tokens: .tokens, values: [], finish: false} | (until(.finish;
+                [ (.tokens |= .[1:]) | {tokens: .tokens, value: [], finish: false} | (until(.finish;
                     if try (.tokens | first | test("^\\)")) catch true then
                         .finish |= true
                     else 
                         . as $orig | read_form_(depth+1) as $res | {
                             tokens: $res.tokens,
-                            values: ($orig.values + [$res.value]),
+                            value: ($orig.value + [$res.value]),
                             finish: $orig.finish
                         }
                     end)) ] | map(select(.tokens)) | last as $result |
@@ -105,19 +105,19 @@ def read_form_(depth):
                         tokens: $result.tokens[1:],
                         value: {
                             kind: "list",
-                            values: $result.values
+                            value: $result.value
                         },
                     }
                 end
             # read_list '['
             else if $lookahead | test("^\\[") then
-                [ (.tokens |= .[1:]) | {tokens: .tokens, values: [], finish: false} | (until(.finish;
+                [ (.tokens |= .[1:]) | {tokens: .tokens, value: [], finish: false} | (until(.finish;
                     if try (.tokens | first | test("^\\]")) catch true then
                         .finish |= true
                     else 
                         . as $orig | read_form_(depth+1) as $res | {
                             tokens: $res.tokens,
-                            values: ($orig.values + [$res.value]),
+                            value: ($orig.value + [$res.value]),
                             finish: $orig.finish
                         }
                     end)) ] | map(select(.tokens)) | last as $result |
@@ -128,26 +128,26 @@ def read_form_(depth):
                         tokens: $result.tokens[1:],
                         value: {
                             kind: "vector",
-                            values: $result.values
+                            value: $result.value
                         },
                     }
                 end
             # read_list '{'
             else if $lookahead | test("^\\{") then
-                [ (.tokens |= .[1:]) | {tokens: .tokens, values: [], finish: false} | (until(.finish;
+                [ (.tokens |= .[1:]) | {tokens: .tokens, value: [], finish: false} | (until(.finish;
                     if try (.tokens | first | test("^\\}")) catch true then
                         .finish |= true
                     else 
                         . as $orig | read_form_(depth+1) as $res | {
                             tokens: $res.tokens,
-                            values: ($orig.values + [$res.value]),
+                            value: ($orig.value + [$res.value]),
                             finish: $orig.finish
                         }
                     end)) ] | map(select(.tokens)) | last as $result |
                 if $result.tokens | first != "}" then
                     jqmal_error("unbalanced braces in \($result.tokens)")
                 else
-                    if $result.values | length % 2 == 1 then
+                    if $result.value | length % 2 == 1 then
                         # odd number of elements not allowed
                         jqmal_error("Odd number of parameters to assoc")
                     else
@@ -155,8 +155,8 @@ def read_form_(depth):
                             tokens: $result.tokens[1:],
                             value: {
                                 kind: "hashmap",
-                                values:
-                                    [ $result.values | 
+                                value:
+                                    [ $result.value | 
                                         nwise(2) | 
                                         try {
                                             key: (.[0] | extract_string),
@@ -177,7 +177,7 @@ def read_form_(depth):
                     tokens: .tokens,
                     value: {
                         kind: "list",
-                        values: [
+                        value: [
                             {
                                 kind: "symbol",
                                 value: "quote"
@@ -193,7 +193,7 @@ def read_form_(depth):
                     tokens: .tokens,
                     value: {
                         kind: "list",
-                        values: [
+                        value: [
                             {
                                 kind: "symbol",
                                 value: "quasiquote"
@@ -209,7 +209,7 @@ def read_form_(depth):
                     tokens: .tokens,
                     value: {
                         kind: "list",
-                        values: [
+                        value: [
                             {
                                 kind: "symbol",
                                 value: "unquote"
@@ -225,7 +225,7 @@ def read_form_(depth):
                     tokens: .tokens,
                     value: {
                         kind: "list",
-                        values: [
+                        value: [
                             {
                                 kind: "symbol",
                                 value: "splice-unquote"
@@ -241,7 +241,7 @@ def read_form_(depth):
                     tokens: .tokens,
                     value: {
                         kind: "list",
-                        values: [
+                        value: [
                             {
                                 kind: "symbol",
                                 value: "deref"
@@ -257,7 +257,7 @@ def read_form_(depth):
                     tokens: $value.tokens,
                     value: {
                         kind: "list",
-                        values: [
+                        value: [
                             {
                                 kind: "symbol",
                                 value: "with-meta"

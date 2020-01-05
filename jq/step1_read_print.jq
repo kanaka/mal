@@ -8,10 +8,10 @@ def read_line:
     | input;
 
 def READ:
-    read_str;
+    read_str | read_form | .value;
 
 def EVAL:
-    read_form | .value;
+    .;
 
 def PRINT:
     pr_str;
