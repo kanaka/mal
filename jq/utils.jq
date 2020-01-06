@@ -19,6 +19,12 @@ def wrap(kind):
         value: .
     };
 
+def wrap2(kind; opts):
+    opts + {
+        kind: kind,
+        value: .
+    };
+
 def _extern(options):
     {command: .} 
     | debug
@@ -41,6 +47,15 @@ def _print:
 
 def _write_to_file(name):
     . as $value
-    | [name, .|tojson]
+    | [(name|tojson), (.|tojson), (false|tojson)]
     | issue_extern("fwrite"; {nowait: true})
     | $value;
+
+def _append_to_file(name):
+    . as $value
+    | [(name|tojson), (.|tojson), (true|tojson)]
+    | issue_extern("fwrite"; {nowait: true})
+    | $value;
+
+def trap:
+    _write_to_file("trap_reason.json") | jqmal_error("trap");

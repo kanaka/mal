@@ -30,10 +30,17 @@ runjq() {
                     rm $tmp
                 ;;
                 fwrite)
-                    filename=$(echo "$command" | jq -Mrc ".args[0]|fromjson")
-                    content=$(echo "$command" | jq -Mrc ".args[1]|fromjson")
-                    echo "Writing stuff to $filename"
-                    echo "$content" > "$filename"
+                    tmp=$(mktemp)
+                    echo "$command" > $tmp
+                    filename=$(cat $tmp | jq -Mrc ".args[0]|fromjson")
+                    content=$(cat $tmp | jq -Mrc ".args[1]|fromjson")
+                    app=$(cat $tmp | jq -Mrc ".args[2]|fromjson")
+                    echo "'$app': Writing stuff to $filename"
+                    if [[ $res == false ]]; then
+                        echo "$content" > "$filename"
+                    else
+                        echo "$content" >> "$filename"
+                    fi
                 ;;
                 *)
                     echo $cmd

@@ -74,6 +74,14 @@ def cWithReplEnv(renv; cond):
         .
     end;
 
+def updateAtoms(newEnv):
+    . as $env
+    | reduce (newEnv | env_dump_keys | map(env_get(newEnv) as $value | select($value.kind == "atom") | $value))[] as $atom (
+        $env;
+        . as $e | reduce $atom.names[] as $name (
+            $e;
+            env_set_(.; $name; $atom)));
+
 def interpret(arguments; env; _eval):
     extractReplEnv(env) as $replEnv |
     hasReplEnv(env) as $hasReplEnv |
@@ -89,6 +97,31 @@ def interpret(arguments; env; _eval):
                     ["env", "currentEnv"];
                     extractEnv(env) | cUpdateReplEnv($xreplenv; $hasReplEnv))
             ) //
+            (select(.function == "reset!") | 
+                # env modifying function
+                arguments[0].names as $names |
+                arguments[1]|wrap2("atom"; {names: $names}) as $value |
+                (reduce $names[] as $name (
+                    env;
+                    . as $env | env_set_($env; $name; $value)
+                )) as $env |
+                $value.value | addEnv($env)
+            ) //
+            (select(.function == "swap!") | 
+                # env modifying function
+                arguments[0].names as $names |
+                arguments[0].value as $initValue |
+                arguments[1] as $function |
+                ([$initValue] + arguments[2:]) as $args |
+                ($function | interpret($args; env; _eval)) as $newEnvValue |
+                $newEnvValue.expr|wrap2("atom"; {names: $names}) as $newValue |
+                $newEnvValue.env as $newEnv |
+                (reduce $names[] as $name (
+                    $newEnv;
+                    . as $env | env_set_($env; $name; $newValue)
+                )) as $newEnv |
+                $newValue.value | addEnv($newEnv)
+            ) //
                 (core_interp(arguments; env) | addEnv(env))
     ) //
     (select(.kind == "function") as $fn |
@@ -97,7 +130,7 @@ def interpret(arguments; env; _eval):
             # tell it about its surroundings
             (reduce $fn.free_referencess[] as $name (
                 $fnEnv;
-                . as $env | try env_set(
+                . as $env | try env_set_(
                     .;
                     $name;
                     $name | env_get(env) | . as $xvalue
@@ -114,15 +147,16 @@ def interpret(arguments; env; _eval):
                      | cWrapEnv($replEnv; $hasReplEnv),
                 expr: $fn.body
             }
-            | _eval
+            | _eval 
             | . as $envexp
-            | extractReplEnv($envexp.env) as $xreplenv
+            | (extractReplEnv($envexp.env)) as $xreplenv
             |
             {
                 expr: .expr,
                 env: extractEnv(env)
                     | cUpdateReplEnv($xreplenv; $hasReplEnv)
                     | cWrapEnv($xreplenv; $hasReplEnv)
+                    | updateAtoms(extractEnv($envexp.env))
             }
     ) //
         jqmal_error("Unsupported function kind \(.kind)");

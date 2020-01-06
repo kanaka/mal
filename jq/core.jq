@@ -83,6 +83,31 @@ def core_identify:
             kind: "fn",
             function: "slurp",
             inputs: 1
+        },
+        "atom": {
+            kind: "fn",
+            function: "atom",
+            inputs: 1
+        },
+        "atom?": {
+            kind: "fn",
+            function: "atom?",
+            inputs: 1
+        },
+        "deref": {
+            kind: "fn",
+            function: "deref",
+            inputs: 1
+        },
+        "reset!": { # defined in interp
+            kind: "fn",
+            function: "reset!",
+            inputs: 2
+        },
+        "swap!": { # defined in interp
+            kind: "fn",
+            function: "swap!",
+            inputs: -1
         }
     };
 
@@ -147,4 +172,10 @@ def core_interp(arguments; env):
         select(.function == "slurp") | arguments | map(.value) | issue_extern("read") | wrap("string")
     ) // (
         select(.function == "read-string") | arguments | first.value | read_str | read_form.value
+    ) // (
+        select(.function == "atom") | arguments | first | wrap2("atom"; {names: []})
+    ) // (
+        select(.function == "atom?") | null | wrap(arguments | first.kind == "atom" | tostring)
+    ) // (
+        select(.function == "deref") | arguments | first.value
     ) // jqmal_error("Unknown native function \(.function)");

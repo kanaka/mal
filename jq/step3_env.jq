@@ -58,13 +58,10 @@ def EVAL(env):
                 ) //
                 (
                     reduce .value[] as $elem (
-                        {value: [], env: env};
-                        . as $dot | $elem | EVAL($dot.env) as $eval_env |
-                            {
-                                value: ($dot.value + [$eval_env.expr]),
-                                env: $eval_env.env
-                            }
-                    ) | { expr: .value, env: .env } as $ev
+                        [];
+                        . as $dot | $elem | EVAL(env) as $eval_env |
+                            ($dot + [$eval_env.expr])
+                    ) | { expr: ., env: env } as $ev
                         | $ev.expr | first |
                             interpret($ev.expr[1:]; $ev.env; _eval_here)
                 ) //

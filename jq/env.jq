@@ -81,7 +81,7 @@ def env_multiset(env; keys; value):
     env | env_multiset(keys; value);
 
 def env_set($key; $value):
-    (if $value.kind == "function" then
+    (if $value.kind == "function" or $value.kind == "atom" then
         # inform the function of its names
         $value | inform_function($key)
     else 
@@ -93,23 +93,23 @@ def env_set($key; $value):
 
 def env_dump_keys:
     def _dump:
-        .environment | keys;
+        .environment // {} | keys;
 
     if .parent == null then
         _dump
     else
-        .parent | env_dump_keys + _dump
+        (.parent | env_dump_keys + _dump) | unique
     end;
 
 def env_set(env; $key; $value):
-    (if $value.kind == "function" then
-        # inform the function of its names
+    (if $value.kind == "function" or $value.kind == "atom" then
+        # inform the function/atom of its names
         $value | (.names += [$key]) | (.names |= unique)
     else 
         $value
     end) as $value | {
         parent: env.parent,
-        environment: (env.environment + (env.environment | .[$key] |= $value)) # merge together, as env.environment[key] |= value does not work
+        environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)) # merge together, as env.environment[key] |= value does not work
     };
 
 def env_find(env):
@@ -173,13 +173,20 @@ def env_set6(env; key; value):
         env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv)
     end;
 
+def env_set_(env; key; value):
+    if env.currentEnv != null then
+        env_set6(env; key; value)
+    else
+        env_set(env; key; value)
+    end;
+
 def addToEnv6(envexp; name):
     envexp.expr as $value
     | envexp.env as $rawEnv
     | (if $rawEnv.isReplEnv then
-        env_set($rawEnv.currentEnv; name; $value) | wrapEnv
+        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv
     else
-        env_set($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv)
+        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv)
     end) as $newEnv
     | {
         expr: $value,
@@ -191,7 +198,7 @@ def addToEnv(envexp; name):
         addToEnv6(envexp; name)
     else {
         expr: envexp.expr,
-        env: env_set(envexp.env; name; envexp.expr)
+        env: env_set_(envexp.env; name; envexp.expr)
     } end;
 
 # for step2

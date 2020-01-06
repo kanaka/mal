@@ -58,8 +58,14 @@ def EVAL(env):
             else
                 $list[0] as $elem |
                 $list[1:] as $rest |
-                    $elem[1] | EVAL($env) as $resv |
-                        { value: [$elem[0], $resv.expr], env: env },
+                    $elem.value.value | EVAL($env) as $resv |
+                        {
+                            value: {
+                                key: $elem.key,
+                                value: { kkind: $elem.value.kkind, value: $resv.expr }
+                            },
+                            env: env
+                        },
                         ({env: $resv.env, list: $rest} | hmap_with_env)
             end;
     def map_with_env:
@@ -93,7 +99,7 @@ def EVAL(env):
                             (reduce ($value[1].value | nwise(2)) as $xvalue (
                                 $subenv;
                                 . as $env | $xvalue[1] | EVAL($env) as $expenv |
-                                    env_set6($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
+                                    env_set_($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
                                         | $value[2] | { expr: EVAL($env).expr, env: env }
                 ) //
                 (
@@ -128,13 +134,10 @@ def EVAL(env):
                 ) //
                 (
                     reduce .value[] as $elem (
-                        {value: [], env: env};
-                        . as $dot | $elem | EVAL($dot.env) as $eval_env |
-                            {
-                                value: ($dot.value + [$eval_env.expr]),
-                                env: $eval_env.env
-                            }
-                    ) | { expr: .value, env: .env } as $ev
+                        [];
+                        . as $dot | $elem | EVAL(env) as $eval_env |
+                            ($dot + [$eval_env.expr])
+                    ) | { expr: ., env: env } as $ev
                         | $ev.expr | first |
                             interpret($ev.expr[1:]; $ev.env; _eval_here)
                 ) //
@@ -157,7 +160,7 @@ def EVAL(env):
         end
     ) //
     (select(.kind == "hashmap") |
-        [ { env: env, list: .value | to_entries } | hmap_with_env ] as $res |
+        [ { env: env, list: (.value | to_entries) } | hmap_with_env ] as $res |
         {
             kind: "hashmap",
             value: $res | map(.value) | from_entries
@@ -236,4 +239,6 @@ repl(
     | wrapEnv
     | eval_ign("(def! not (fn* (a) (if a false true)))")
     | eval_ign("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))))")
+    | . as $env 
+    | env_set_($env; "*ARGV*"; $ARGS.positional | wrap("list"))
 )
