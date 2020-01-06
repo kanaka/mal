@@ -1,5 +1,6 @@
 include "utils";
 include "printer";
+include "reader";
 
 def core_identify:
     {
@@ -73,6 +74,16 @@ def core_identify:
             function: ">=",
             inputs: 2
         },
+        "read-string": {
+            kind: "fn",
+            function: "read-string",
+            inputs: 1
+        },
+        "slurp": {
+            kind: "fn",
+            function: "slurp",
+            inputs: 1
+        }
     };
 
 def vec2list(obj):
@@ -132,4 +143,8 @@ def core_interp(arguments; env):
         select(.function == ">") | null | wrap(arguments[0].value > arguments[1].value | tostring)
     ) // (
         select(.function == ">=") | null | wrap(arguments[0].value >= arguments[1].value | tostring)
+    ) // (
+        select(.function == "slurp") | arguments | map(.value) | issue_extern("read") | wrap("string")
+    ) // (
+        select(.function == "read-string") | arguments | first.value | read_str | read_form.value
     ) // jqmal_error("Unknown native function \(.function)");

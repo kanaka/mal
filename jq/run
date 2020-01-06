@@ -1,2 +1,45 @@
 #!/bin/bash
-exec jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" "${@}" |& jq -Rr 'try fromjson[1]'
+
+# let's do some sorcery to bestow IO upon jq
+runjq() {
+    mkfifo jqmal-si.pipe || true
+    trap "rm -f jqmal-si.pipe" EXIT
+    (
+        while true; do cat jqmal-si.pipe; done&
+        pid=$!
+        trap "kill $pid" EXIT
+        cat -
+    ) |\
+    jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
+    tee \
+        >(jq -Rr 'try fromjson[1]|if type == "string" then . else empty end') \
+        >(while read -r line; do
+            command=$(echo $line | jq -c 'try if .[1] | has("command") then .[1].command else empty end' 2>/dev/null)
+            if [[ $command ]]; then
+                # echo ">>> " $command
+                cmd=$(echo "$command" | jq -rMc 'try .cmd catch "ignore"')
+                case "$cmd" in
+                read)
+                    filename=$(echo "$command" | jq -Mrc '.args[0]')
+                    tmp=$(mktemp)
+                    # echo "Read $filename into $tmp"
+                    jq -rRnc --rawfile content "$filename" '$content|tojson' > $tmp
+                    # echo "dump $tmp to pipe"
+                    size=$(du -k $tmp)
+                    cat $tmp | pv -q -B $size > jqmal-si.pipe #>/dev/null 2>&1
+                    rm $tmp
+                ;;
+                fwrite)
+                    filename=$(echo "$command" | jq -Mrc ".args[0]|fromjson")
+                    content=$(echo "$command" | jq -Mrc ".args[1]|fromjson")
+                    echo "Writing stuff to $filename"
+                    echo "$content" > "$filename"
+                ;;
+                *)
+                    echo $cmd
+                ;;
+                esac
+            fi
+        done) > /dev/null
+}
+runjq "${@}"

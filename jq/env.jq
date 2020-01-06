@@ -145,11 +145,54 @@ def addToEnv(env; name; expr):
         env: env_set(env; name; expr)
     };
 
-def addToEnv(envexp; name):
+
+def wrapEnv:
     {
+        replEnv: .,
+        currentEnv: .,
+        isReplEnv: true
+    };
+
+def wrapEnv(replEnv):
+    {
+        replEnv: replEnv,
+        currentEnv: .,
+        isReplEnv: (replEnv == .) # should we allow separate copies?
+    };
+
+def unwrapReplEnv:
+    .replEnv;
+
+def unwrapCurrentEnv:
+    .currentEnv;
+
+def env_set6(env; key; value):
+    if env.isReplEnv then
+        env_set(env.currentEnv; key; value) | wrapEnv
+    else
+        env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv)
+    end;
+
+def addToEnv6(envexp; name):
+    envexp.expr as $value
+    | envexp.env as $rawEnv
+    | (if $rawEnv.isReplEnv then
+        env_set($rawEnv.currentEnv; name; $value) | wrapEnv
+    else
+        env_set($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv)
+    end) as $newEnv
+    | {
+        expr: $value,
+        env: $newEnv
+    };
+
+def addToEnv(envexp; name):
+    if envexp.env.replEnv != null then
+        addToEnv6(envexp; name)
+    else {
         expr: envexp.expr,
         env: env_set(envexp.env; name; envexp.expr)
-    };
+    } end;
 
 # for step2
 def lookup(env):
