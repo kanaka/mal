@@ -1,3 +1,4 @@
+include "utils";
 
 def read_line:
     . as $in
@@ -14,10 +15,10 @@ def PRINT:
     .;
 
 def rep:
-    READ | EVAL | PRINT;
+    READ | EVAL | PRINT | _print;
 
 def repl_:
-    ("user> " | stderr) |
+    ("user> " | _print) |
     (read_line | rep);
 
 def repl:

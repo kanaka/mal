@@ -54,7 +54,7 @@ def rep(env):
         end;
 
 def repl_(env):
-    ("user> " | stderr) |
+    ("user> " | _print) |
     (read_line | rep(env));
 
 # we don't have no indirect functions, so we'll have to interpret the old way
@@ -91,6 +91,6 @@ def repl(env):
                 {value: "Error: \(.)", continue: true}
             else
                 {value: ., continue: false}
-            end) | if .value then .value else empty end;
+            end) | if .value then .value|_print else empty end;
 
 repl(replEnv)

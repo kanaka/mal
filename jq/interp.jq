@@ -16,7 +16,7 @@ def interpret(arguments; env):
     ((select(.kind == "fn") | (
         arg_check(arguments) | core_interp(arguments; env) 
     )) //
-        jqmal_error("Unsupported native function kind \(.kind)")) | addEnv(env);
+        jqmal_error("Unsupported native function kind \(.kind)"));
         
 def interpret(arguments; env; _eval):
     (select(.kind == "fn") | (
@@ -24,14 +24,22 @@ def interpret(arguments; env; _eval):
     )) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
-        .env as $oenv | .env | childEnv($fn.binds; arguments) as $fnEnv |
+        .env as $oenv | env_setfallback(.env; env) | childEnv($fn.binds; arguments) as $fnEnv |
             # tell it about its surroundings
-            (reduce $fn.corecursives[] as $name (
+            (reduce $fn.free_referencess[] as $name (
                 $fnEnv;
-                env_set(.; $name[0]; $name[1] | setpath(["corecursives"]; $fn.corecursives)))) as $fnEnv |
+                . as $env | try env_set(
+                    .;
+                    $name;
+                    $name | env_get(env) | . as $xvalue
+                    | if $xvalue.kind == "function" then
+                        setpath(["free_referencess"]; $fn.free_referencess)
+                    else
+                        $xvalue
+                    end
+                ) catch $env)) as $fnEnv |
             # tell it about itself
             env_multiset($fnEnv; $fn.names; $fn) as $fnEnv |
             { env: env_multiset($fnEnv; $fn.names; $fn), expr: $fn.body } | _eval | { expr: .expr, env: env }
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
-

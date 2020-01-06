@@ -13,6 +13,8 @@ def READ:
     read_str | read_form | .value;
 
 def EVAL(env):
+    def _eval_here:
+        .env as $env | .expr | EVAL($env);
     def hmap_with_env:
         .env as $env | .list as $list |
             if $list|length == 0 then
@@ -64,7 +66,7 @@ def EVAL(env):
                             }
                     ) | { expr: .value, env: .env } as $ev
                         | $ev.expr | first |
-                            interpret($ev.expr[1:]; $ev.env) | addEnv($ev.env)
+                            interpret($ev.expr[1:]; $ev.env; _eval_here)
                 ) //
                     addEnv(env)
             )
@@ -100,7 +102,7 @@ def rep(env):
         end | addEnv($expenv.env);
 
 def repl_(env):
-    ("user> " | stderr) |
+    ("user> " | _print) |
     (read_line | rep(env));
 
 def childEnv(binds; value):
@@ -145,6 +147,6 @@ def repl(env):
                 stop: false,
                 env: ($expenv.env // .env)
             } | ., xrepl;
-    {stop: false, env: env} | xrepl | if .value then .value else empty end;
+    {stop: false, env: env} | xrepl | if .value then (.value | _print) else empty end;
 
 repl(replEnv)

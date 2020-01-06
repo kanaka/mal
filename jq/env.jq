@@ -3,6 +3,7 @@ include "utils";
 def childEnv(binds; exprs):
     {
         parent: .,
+        fallback: null,
         environment: [binds, exprs] | transpose | (
             . as $dot | reduce .[] as $item (
                 { value: [], seen: false, name: null, idx: 0 };
@@ -44,12 +45,14 @@ def childEnv(binds; exprs):
 def pureChildEnv:
     {
         parent: .,
-        environment: {}
+        environment: {},
+        fallback: null
     };
 
 def rootEnv:
     {
         parent: null,
+        fallback: null,
         environment: {}
     };
 
@@ -88,10 +91,20 @@ def env_set($key; $value):
         environment: (.environment + (.environment | .[$key] |= $value)) # merge together, as .environment[key] |= value does not work
     };
 
+def env_dump_keys:
+    def _dump:
+        .environment | keys;
+
+    if .parent == null then
+        _dump
+    else
+        .parent | env_dump_keys + _dump
+    end;
+
 def env_set(env; $key; $value):
     (if $value.kind == "function" then
         # inform the function of its names
-        $value | (.names += [$key])
+        $value | (.names += [$key]) | (.names |= unique)
     else 
         $value
     end) as $value | {
@@ -102,13 +115,20 @@ def env_set(env; $key; $value):
 def env_find(env):
     if env.environment[.] == null then
         if env.parent then
-            env_find(env.parent)
+            env_find(env.parent) // if env.fallback then env_find(env.fallback) else null end
         else
             null
         end
     else
         env
     end;
+
+def env_setfallback(env; fallback):
+    {
+        parent: env.parent,
+        fallback: fallback,
+        environment: env.environment
+    };
 
 def env_get(env):
     . as $key | env_find(env).environment[$key] // jqmal_error("Symbol \($key) not found");

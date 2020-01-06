@@ -1,2 +1,2 @@
 #!/bin/bash
-exec jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" "${@}" |& jq -RrM -c 'try fromjson[1]'
+exec jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" "${@}" |& jq -Rr 'try fromjson[1]'
