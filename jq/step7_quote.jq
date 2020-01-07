@@ -13,25 +13,8 @@ def read_line:
 def READ:
     read_str | read_form | .value;
 
-# def eval_ast(env):
-#         (select(.kind == "symbol") | .value | env_get(env) | addEnv(env)) //
-#         (select(.kind == "list") | reduce .value[] as $elem (
-#             {value: [], env: env};
-#             . as $dot | $elem | EVAL($dot.env) as $eval_env |
-#                 {
-#                     value: ($dot.value + [$eval_env.expr]),
-#                     env: $eval_env.env
-#                 }
-#         ) | { expr: .value, env: .env }) // (addEnv(env));
-
-# def patch_with_env(env):
-#     . as $dot | (reduce .[] as $fnv (
-#         [];
-#         . + [$fnv | setpath([1, "free_referencess"]; ($fnv[1].free_referencess + $dot) | unique)]
-#     )) as $functions | reduce $functions[] as $function (
-#         env;
-#         env_set(.; $function[0]; $function[1])
-#     ) | { functions: $functions, env: . };
+def special_forms:
+    [ "if", "def!", "let*", "fn*", "do" ];
 
 def find_free_references(keys):
     def _refs:
@@ -39,13 +22,13 @@ def find_free_references(keys):
         | if .kind == "symbol" then
             if keys | contains([$dot.value]) then [] else [$dot.value] end
         else if "list" == $dot.kind then
-            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + ["if", "def!", "let*", "fn*"]))
+            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + special_forms))
         else if "vector" == $dot.kind then
-            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + ["if", "def!", "let*", "fn*"]))
+            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + special_forms))
         else
             []
         end end end;
-    _refs | unique;
+    _refs | unique; 
 
 def recurseflip(x; y):
     recurse(y; x);
@@ -59,6 +42,40 @@ def TCOWrap(env; retenv; continue):
         cont: true # set inside
     };
 
+def _symbol(name):
+    {
+        kind: "symbol",
+        value: name
+    };
+
+def _symbol_v(name):
+    if .kind == "symbol" then
+        .value == name
+    else
+        false
+    end;
+
+def quasiquote:
+    if isPair then
+        .value as $value | null |
+        if ($value[0] | _symbol_v("unquote")) then
+            $value[1]
+        else
+            if isPair($value[0]) and ($value[0].value[0] | _symbol_v("splice-unquote")) then
+                    [_symbol("concat")] +
+                    [$value[0].value[1]] + 
+                    [($value[1:] | wrap("list") | quasiquote)] | wrap("list")
+            else
+                    [_symbol("cons")] + 
+                    [($value[0] | quasiquote)] +
+                    [($value[1:] | wrap("list") | quasiquote)] | wrap("list")
+            end
+        end
+    else
+            [_symbol("quote")] + 
+            [.] | wrap("list")
+    end;
+
 def EVAL(env):
     def _eval_here:
         .env as $env | .expr | EVAL($env);
@@ -70,8 +87,14 @@ def EVAL(env):
             else
                 $list[0] as $elem |
                 $list[1:] as $rest |
-                    $elem[1] | EVAL($env) as $resv |
-                        { value: [$elem[0], $resv.expr], env: env },
+                    $elem.value.value | EVAL($env) as $resv |
+                        {
+                            value: {
+                                key: $elem.key,
+                                value: { kkind: $elem.value.kkind, value: $resv.expr }
+                            },
+                            env: env
+                        },
                         ({env: $resv.env, list: $rest} | hmap_with_env)
             end;
     def map_with_env:
@@ -92,10 +115,14 @@ def EVAL(env):
         | if .finish then
             .cont |= false
         else
-            (.ret_env//.env) as $_retenv
+            (.ret_env//.env) as  $_retenv
             | .ret_env as $_orig_retenv
             | .ast
-            |
+            | . as $init
+            | $_menv | unwrapCurrentEnv as $currentEnv # unwrap env "package"
+            | $_menv | unwrapReplEnv    as $replEnv    # -
+            | $init
+            | 
             (select(.kind == "list") |
                 if .value | length == 0 then 
                     . | TCOWrap($_menv; $_orig_retenv; false)
@@ -109,11 +136,11 @@ def EVAL(env):
                         ) //
                         (
                             .value | select(.[0].value == "let*") as $value |
-                                ($_menv | pureChildEnv) as $subenv |
+                                ($currentEnv | pureChildEnv | wrapEnv($replEnv)) as $subenv |
                                     (reduce ($value[1].value | nwise(2)) as $xvalue (
                                         $subenv;
                                         . as $env | $xvalue[1] | EVAL($env) as $expenv |
-                                            env_set($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
+                                            env_set_($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
                                                 | $value[2] | TCOWrap($env; $_retenv; true)
                         ) //
                         (
@@ -125,7 +152,7 @@ def EVAL(env):
                         ) //
                         (
                             .value | select(.[0].value == "if") as $value |
-                                $value[1] | EVAL(env) as $condenv |
+                                $value[1] | EVAL($_menv) as $condenv |
                                     (if (["false", "nil"] | contains([$condenv.expr.kind])) then
                                         ($value[3] // {kind:"nil"})
                                     else
@@ -140,11 +167,19 @@ def EVAL(env):
                                 $value[1].value | map(.value) as $binds | {
                                     kind: "function",
                                     binds: $binds,
-                                    env: $_menv,
+                                    env: env,
                                     body: $value[2],
                                     names: [], # we can't do that circular reference this
-                                    free_referencess: $value[2] | find_free_references($_menv | env_dump_keys + $binds) # for dynamically scoped variables
+                                    free_referencess: $value[2] | find_free_references($currentEnv | env_dump_keys + $binds) # for dynamically scoped variables
                                 } | TCOWrap($_menv; $_orig_retenv; false)
+                        ) //
+                        (
+                            .value | select(.[0].value == "quote") as $value |
+                                $value[1] | TCOWrap($_menv; $_orig_retenv; false)
+                        ) //
+                        (
+                            .value | select(.[0].value == "quasiquote") as $value |
+                                $value[1] | quasiquote | TCOWrap($_menv; $_orig_retenv; true)
                         ) //
                         (
                             reduce .value[] as $elem (
@@ -166,7 +201,7 @@ def EVAL(env):
                         value: []
                     } | TCOWrap($_menv; $_orig_retenv; false)
                 else
-                    [ { env: $_menv, list: .value } | map_with_env ] as $res |
+                    [ { env: env, list: .value } | map_with_env ] as $res |
                     {
                         kind: "vector",
                         value: $res | map(.value)
@@ -174,7 +209,7 @@ def EVAL(env):
                 end
             ) //
             (select(.kind == "hashmap") |
-                [ { env: $_menv, list: .value | to_entries } | hmap_with_env ] as $res |
+                [ { env: env, list: (.value | to_entries) } | hmap_with_env ] as $res |
                 {
                     kind: "hashmap",
                     value: $res | map(.value) | from_entries
@@ -184,10 +219,10 @@ def EVAL(env):
                 . | TCOWrap($_menv; $_orig_retenv; false) # return this unchanged, since it can only be applied to
             ) //
             (select(.kind == "symbol") |
-                .value | env_get($_menv) | TCOWrap($_menv; null; false)
+                .value | env_get($currentEnv) | TCOWrap($_menv; null; false)
             ) // TCOWrap($_menv; $_orig_retenv; false)
         end
-    ) ]
+    ) ] 
     | last as $result
     | ($result.ret_env // $result.env) as $env
     | $result.ast
@@ -233,6 +268,11 @@ def replEnv:
                 inputs: 2,
                 function: "number_div"
             },
+            "eval": {
+                kind: "fn",
+                inputs: 1,
+                function: "eval"
+            }
         } + core_identify)
     };
 
@@ -246,6 +286,25 @@ def repl(env):
             } | ., xrepl;
     {stop: false, env: env} | xrepl | if .value then (.value | _print) else empty end;
 
-repl(
-    "(def! not (fn* (a) (if a false true)))" | rep(replEnv) | .env
-)
+def eval_ign(expr):
+    . as $env | expr | rep($env) | .env;
+
+def eval_val(expr):
+    . as $env | expr | rep($env) | .expr;
+
+def getEnv:
+    replEnv
+    | wrapEnv
+    | eval_ign("(def! not (fn* (a) (if a false true)))")
+    | eval_ign("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))))");
+
+def main:
+    if $ARGS.positional|length > 0 then
+        getEnv as $env |
+        env_set_($env; "*ARGV*"; $ARGS.positional[1:] | wrap("list")) |
+        eval_val("(load-file \($ARGS.positional[0] | tojson))")
+    else
+        repl( getEnv as $env | env_set_($env; "*ARGV*"; [] | wrap("list")) )
+    end;
+
+main

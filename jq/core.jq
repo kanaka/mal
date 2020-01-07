@@ -108,6 +108,16 @@ def core_identify:
             kind: "fn",
             function: "swap!",
             inputs: -1
+        },
+        "cons": {
+            kind: "fn",
+            function: "cons",
+            inputs: 2
+        },
+        "concat": {
+            kind: "fn",
+            function: "concat",
+            inputs: -1
         }
     };
 
@@ -178,4 +188,8 @@ def core_interp(arguments; env):
         select(.function == "atom?") | null | wrap(arguments | first.kind == "atom" | tostring)
     ) // (
         select(.function == "deref") | arguments | first.value
+    ) // (
+        select(.function == "cons") | ([arguments[0]] + arguments[1].value) | wrap("list")
+    ) // (
+        select(.function == "concat") | arguments | map(.value) | (add//[]) | wrap("list")
     ) // jqmal_error("Unknown native function \(.function)");

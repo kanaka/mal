@@ -46,6 +46,18 @@ def find_free_references(keys):
             []
         end end end;
     _refs | unique;
+    
+def recurseflip(x; y):
+    recurse(y; x);
+
+def TCOWrap(env; retenv; continue):
+    {
+        ast: .,
+        env: env,
+        ret_env: retenv,
+        finish: (continue | not),
+        cont: true # set inside
+    };
 
 def EVAL(env):
     def _eval_here:

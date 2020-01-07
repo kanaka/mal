@@ -25,6 +25,35 @@ def wrap2(kind; opts):
         value: .
     };
 
+def isPair:
+    if (.kind == "list" or .kind == "vector") then
+        .value | length > 0
+    else
+        false
+    end;
+
+def isPair(x):
+    x | isPair;
+
+def tomal:
+    (
+        select(type == "array") | (
+            map(tomal) | wrap("list")
+        )
+    ) // (
+        select(type == "string") | (
+            if startswith("sym/") then
+                .[4:] | wrap("symbol")
+            else
+                wrap("string")
+            end
+        )
+    ) // (
+        select(type == "number") | (
+            wrap("number")
+        )
+    );
+
 def _extern(options):
     {command: .} 
     | debug
@@ -41,6 +70,12 @@ def issue_extern(cmd; options):
 
 def issue_extern(cmd):
     issue_extern(cmd; {});
+
+def _debug(ex):
+    . as $top
+    | ex
+    | debug
+    | $top;
 
 def _print:
     debug;
