@@ -133,6 +133,12 @@ def env_setfallback(env; fallback):
 def env_get(env):
     . as $key | env_find(env).environment[$key] // jqmal_error("Symbol \($key) not found");
 
+def env_get(env; key):
+    key | env_get(env);
+
+def env_req(env; key):
+    key as $key | key | env_find(env).environment[$key] // null;
+    
 def addEnv(env):
     {
         expr: .,

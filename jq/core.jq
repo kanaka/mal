@@ -118,6 +118,21 @@ def core_identify:
             kind: "fn",
             function: "concat",
             inputs: -1
+        },
+        "nth": {
+            kind: "fn",
+            function: "nth",
+            inputs: 2
+        },
+        "first": {
+            kind: "fn",
+            function: "first",
+            inputs: 1
+        },
+        "rest": {
+            kind: "fn",
+            function: "rest",
+            inputs: 1
         }
     };
 
@@ -192,4 +207,17 @@ def core_interp(arguments; env):
         select(.function == "cons") | ([arguments[0]] + arguments[1].value) | wrap("list")
     ) // (
         select(.function == "concat") | arguments | map(.value) | (add//[]) | wrap("list")
+    ) // (
+        select(.function == "nth")
+            | arguments[0].value as $lst
+            | arguments[1].value as $idx
+            | if ($lst|length < $idx) or ($idx < 0) then
+                jqmal_error("index out of range")
+              else
+                $lst[$idx]
+              end
+    ) // (
+        select(.function == "first") | arguments[0].value | first // {kind:"nil"}
+    ) // (
+        select(.function == "rest") | arguments[0]?.value?[1:]? // [] | wrap("list")
     ) // jqmal_error("Unknown native function \(.function)");
