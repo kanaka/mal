@@ -94,11 +94,7 @@ IMPLS = ada ada.2 awk bash basic bbc-basic c chuck clojure coffee common-lisp cp
 	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
 	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp pike plpgsql \
 	plsql powershell ps python python.2 r racket rexx rpython ruby rust scala scheme skew \
-<<<<<<< HEAD
-	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick zig
-=======
 	swift swift3 swift4 swift5 tcl ts vala vb vhdl vimscript wasm wren yorick zig jq
->>>>>>> basic...? impl
 
 EXTENSION = .mal
 
