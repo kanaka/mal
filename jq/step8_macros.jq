@@ -8,27 +8,10 @@ include "core";
 def read_line:
     . as $in
     | label $top
-    | input;
+    | _readline;
 
 def READ:
     read_str | read_form | .value;
-
-def special_forms:
-    [ "if", "def!", "defmacro!", "let*", "fn*", "do", "quote", "unquote", "splice-unquote", "macroexpand" ];
-
-def find_free_references(keys):
-    def _refs:
-        . as $dot
-        | if .kind == "symbol" then
-            if keys | contains([$dot.value]) then [] else [$dot.value] end
-        else if "list" == $dot.kind then
-            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + special_forms))
-        else if "vector" == $dot.kind then
-            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + special_forms))
-        else
-            []
-        end end end;
-    _refs | unique; 
 
 def recurseflip(x; y):
     recurse(y; x);
@@ -244,15 +227,16 @@ def EVAL(env):
                                     # we can't do what the guide says, so we'll skip over this
                                     # and ues the later implementation
                                     # (fn* args body)
-                                    $value[1].value | map(.value) as $binds | {
-                                        kind: "function",
-                                        binds: $binds,
-                                        env: env,
-                                        body: $value[2],
-                                        names: [], # we can't do that circular reference this
-                                        free_referencess: $value[2] | find_free_references($currentEnv | env_dump_keys + $binds), # for dynamically scoped variables
-                                        is_macro: false
-                                    } | TCOWrap($_menv; $_orig_retenv; false)
+                                    $value[1].value | map(.value) as $binds | 
+                                ($value[2] | find_free_references($currentEnv | env_dump_keys + $binds)) as $free_referencess | {
+                                    kind: "function",
+                                    binds: $binds,
+                                    env: (env | env_remove_references($free_referencess)),
+                                    body: $value[2],
+                                    names: [], # we can't do that circular reference this
+                                    free_referencess: $free_referencess,  # for dynamically scoped variables
+                                    is_macro: false
+                                } | TCOWrap($_menv; $_orig_retenv; false)
                             ) //
                             (
                                 .value | select(.[0].value == "quote") as $value |
@@ -328,7 +312,9 @@ def replEnv:
                 inputs: 1,
                 function: "eval"
             }
-        } + core_identify)
+        } + core_identify),
+        dirty_atoms: [],
+        fallback: null
     };
 
 def repl(env):
@@ -358,7 +344,7 @@ def getEnv:
 def main:
     if $ARGS.positional|length > 0 then
         getEnv as $env |
-        env_set_($env; "*ARGV*"; $ARGS.positional[1:] | wrap("list")) |
+        env_set_($env; "*ARGV*"; $ARGS.positional[1:] | map(wrap("string")) | wrap("list")) |
         eval_val("(load-file \($ARGS.positional[0] | tojson))")
     else
         repl( getEnv as $env | env_set_($env; "*ARGV*"; [] | wrap("list")) )

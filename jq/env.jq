@@ -4,6 +4,7 @@ def childEnv(binds; exprs):
     {
         parent: .,
         fallback: null,
+        dirty_atoms: .dirty_atoms,
         environment: [binds, exprs] | transpose | (
             . as $dot | reduce .[] as $item (
                 { value: [], seen: false, name: null, idx: 0 };
@@ -46,14 +47,16 @@ def pureChildEnv:
     {
         parent: .,
         environment: {},
-        fallback: null
+        fallback: null,
+        dirty_atoms: .dirty_atoms
     };
 
 def rootEnv:
     {
         parent: null,
         fallback: null,
-        environment: {}
+        environment: {},
+        dirty_atoms: []
     };
 
 def inform_function(name):
@@ -74,7 +77,9 @@ def env_multiset(keys; value):
         parent: .parent,
         environment: (
             .environment + (reduce keys[] as $key(.environment; .[$key] |= value))
-        )
+        ),
+        fallback: .fallback,
+        dirty_atoms: .dirty_atoms
     };
 
 def env_multiset(env; keys; value):
@@ -88,18 +93,26 @@ def env_set($key; $value):
         $value
     end) as $value | {
         parent: .parent,
-        environment: (.environment + (.environment | .[$key] |= $value)) # merge together, as .environment[key] |= value does not work
+        environment: (.environment + (.environment | .[$key] |= $value)), # merge together, as .environment[key] |= value does not work
+        fallback: .fallback,
+        dirty_atoms: .dirty_atoms
     };
 
-def env_dump_keys:
-    def _dump:
+def env_dump_keys(atoms):
+    def _dump0:
+        [ .environment // {} | to_entries[] | select(.value.kind != "atom") | .key ];
+    def _dump1:
         .environment // {} | keys;
-
-    if .parent == null then
-        _dump
-    else
-        (.parent | env_dump_keys + _dump) | unique
+    if . == null then [] else
+        if .parent == null then
+            (if atoms then _dump1 else _dump0 end + (.fallback | env_dump_keys(atoms))) | unique
+        else
+            (.parent | env_dump_keys(atoms) + (if atoms then _dump1 else _dump0 end) + (.fallback | env_dump_keys(atoms))) | unique
+        end
     end;
+
+def env_dump_keys:
+    env_dump_keys(false);
 
 def env_set(env; $key; $value):
     (if $value.kind == "function" or $value.kind == "atom" then
@@ -109,7 +122,9 @@ def env_set(env; $key; $value):
         $value
     end) as $value | {
         parent: env.parent,
-        environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)) # merge together, as env.environment[key] |= value does not work
+        environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)), # merge together, as env.environment[key] |= value does not work
+        fallback: env.fallback,
+        dirty_atoms: env.dirty_atoms
     };
 
 def env_find(env):
@@ -127,7 +142,8 @@ def env_setfallback(env; fallback):
     {
         parent: env.parent,
         fallback: fallback,
-        environment: env.environment
+        environment: env.environment,
+        dirty_atoms: env.dirty_atoms
     };
 
 def env_get(env):
@@ -206,6 +222,24 @@ def addToEnv(envexp; name):
         expr: envexp.expr,
         env: env_set_(envexp.env; name; envexp.expr)
     } end;
+
+def _env_remove_references(refs):
+    if . != null then
+        {
+            environment: (.environment | to_entries | map(select(.key as $key | refs | contains([$key]) | not)) | from_entries),
+            parent: (.parent | _env_remove_references(refs)),
+            fallback: (.fallback | _env_remove_references(refs)),
+            dirty_atoms: (.dirty_atoms | map(select(. as $dot | refs | contains([$dot]) | not)))
+        }
+    else . end;
+
+def env_remove_references(refs):
+    . as $env 
+    | if has("replEnv") then
+        .currentEnv |= _env_remove_references(refs)
+      else
+        _env_remove_references(refs)
+      end;
 
 # for step2
 def lookup(env):

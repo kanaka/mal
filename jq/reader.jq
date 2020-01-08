@@ -6,8 +6,44 @@ def tokenize:
 def read_str:
     tokenize;
 
+def escape_control:
+    (select(. == "\u0000") | "\\u0000") //
+    (select(. == "\u0001") | "\\u0001") //
+    (select(. == "\u0002") | "\\u0002") //
+    (select(. == "\u0003") | "\\u0003") //
+    (select(. == "\u0004") | "\\u0004") //
+    (select(. == "\u0005") | "\\u0005") //
+    (select(. == "\u0006") | "\\u0006") //
+    (select(. == "\u0007") | "\\u0007") //
+    (select(. == "\u0008") | "\\u0008") //
+    (select(. == "\u0009") | "\\u0009") //
+    (select(. == "\u0010") | "\\u0010") //
+    (select(. == "\u0011") | "\\u0011") //
+    (select(. == "\u0012") | "\\u0012") //
+    (select(. == "\u0013") | "\\u0013") //
+    (select(. == "\u0014") | "\\u0014") //
+    (select(. == "\u0015") | "\\u0015") //
+    (select(. == "\u0016") | "\\u0016") //
+    (select(. == "\u0017") | "\\u0017") //
+    (select(. == "\u0018") | "\\u0018") //
+    (select(. == "\u0019") | "\\u0019") //
+    (select(. == "\u0020") | "\\u0020") //
+    (select(. == "\u0021") | "\\u0021") //
+    (select(. == "\u0022") | "\\u0022") //
+    (select(. == "\u0023") | "\\u0023") //
+    (select(. == "\u0024") | "\\u0024") //
+    (select(. == "\u0025") | "\\u0025") //
+    (select(. == "\u0026") | "\\u0026") //
+    (select(. == "\u0027") | "\\u0027") //
+    (select(. == "\u0028") | "\\u0028") //
+    (select(. == "\u0029") | "\\u0029") //
+    (select(. == "\u0030") | "\\u0030") //
+    (select(. == "\u0031") | "\\u0031") //
+    (select(. == "\n") | "\\n") //
+    .;
+
 def read_string:
-    fromjson;
+    gsub("(?<z>[\u0000-\u001f])"; "\(.z | escape_control)") | fromjson;
 
 def extract_string:
     . as $val | if ["keyword", "symbol", "string"] | contains([$val.kind]) then

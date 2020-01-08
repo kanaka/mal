@@ -8,44 +8,10 @@ include "core";
 def read_line:
     . as $in
     | label $top
-    | input;
+    | _readline;
 
 def READ:
     read_str | read_form | .value;
-
-# def eval_ast(env):
-#         (select(.kind == "symbol") | .value | env_get(env) | addEnv(env)) //
-#         (select(.kind == "list") | reduce .value[] as $elem (
-#             {value: [], env: env};
-#             . as $dot | $elem | EVAL($dot.env) as $eval_env |
-#                 {
-#                     value: ($dot.value + [$eval_env.expr]),
-#                     env: $eval_env.env
-#                 }
-#         ) | { expr: .value, env: .env }) // (addEnv(env));
-
-# def patch_with_env(env):
-#     . as $dot | (reduce .[] as $fnv (
-#         [];
-#         . + [$fnv | setpath([1, "free_referencess"]; ($fnv[1].free_referencess + $dot) | unique)]
-#     )) as $functions | reduce $functions[] as $function (
-#         env;
-#         env_set(.; $function[0]; $function[1])
-#     ) | { functions: $functions, env: . };
-
-def find_free_references(keys):
-    def _refs:
-        . as $dot
-        | if .kind == "symbol" then
-            if keys | contains([$dot.value]) then [] else [$dot.value] end
-        else if "list" == $dot.kind then
-            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + ["if", "def!", "let*", "fn*"]))
-        else if "vector" == $dot.kind then
-            ($dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)) + ($dot.value[0] | find_free_references(keys + ["if", "def!", "let*", "fn*"]))
-        else
-            []
-        end end end;
-    _refs | unique;
 
 def recurseflip(x; y):
     recurse(y; x);
@@ -233,7 +199,9 @@ def replEnv:
                 inputs: 2,
                 function: "number_div"
             },
-        } + core_identify)
+        } + core_identify),
+        dirty_atoms: [],
+        fallback: null
     };
 
 def repl(env):

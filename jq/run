@@ -2,15 +2,17 @@
 
 # let's do some sorcery to bestow IO upon jq
 runjq() {
-    mkfifo jqmal-si.pipe || true
-    trap "rm -f jqmal-si.pipe" EXIT
+    pipe_name=$(mktemp)
+    rm -f $pipe_name $ipipe_name
+    mkfifo $pipe_name || true
+    xstdout=$(readlink /proc/self/fd/1)
+    stdin=$(readlink /proc/self/fd/0)
+    trap "rm -f $pipe_name" EXIT SIGINT SIGHUP
     (
-        while true; do cat jqmal-si.pipe; done&
-        pid=$!
-        trap "kill $pid" EXIT
-        cat -
-    ) |\
-    jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
+        while [[ -e $pipe_name ]]; do
+            timeout 1 cat $pipe_name
+        done&
+    ) | jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
     tee \
         >(jq -Rr 'try fromjson[1]|if type == "string" then . else empty end') \
         >(while read -r line; do
@@ -19,6 +21,12 @@ runjq() {
                 # echo ">>> " $command
                 cmd=$(echo "$command" | jq -rMc 'try .cmd catch "ignore"')
                 case "$cmd" in
+                readline)
+                    data=$(jq -nR input < $stdin)
+                    size=${#data}
+                    # echo "read $size bytes '$data'"
+                    echo "$data" | pv -q -B $size > $pipe_name
+                ;;
                 read)
                     filename=$(echo "$command" | jq -Mrc '.args[0]')
                     tmp=$(mktemp)
@@ -26,7 +34,7 @@ runjq() {
                     jq -rRnc --rawfile content "$filename" '$content|tojson' > $tmp
                     # echo "dump $tmp to pipe"
                     size=$(du -k $tmp)
-                    cat $tmp | pv -q -B $size > jqmal-si.pipe #>/dev/null 2>&1
+                    cat $tmp | pv -q -B $size > $pipe_name #>/dev/null 2>&1
                     rm $tmp
                 ;;
                 fwrite)
@@ -48,5 +56,8 @@ runjq() {
                 esac
             fi
         done) > /dev/null
+    rm -f $pipe_name
 }
+my_pid=$$
+trap 'kill -INT $my_pid' EXIT SIGINT
 runjq "${@}"

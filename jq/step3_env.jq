@@ -7,7 +7,7 @@ include "env";
 def read_line:
     . as $in
     | label $top
-    | input;
+    | _readline;
 
 def READ:
     read_str | read_form | .value;

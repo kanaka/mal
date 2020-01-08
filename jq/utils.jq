@@ -35,6 +35,47 @@ def isPair:
 def isPair(x):
     x | isPair;
 
+def find_free_references(keys):
+    def _refs:
+      if . == null then [] else
+        . as $dot
+        | if .kind == "symbol" then
+            if keys | contains([$dot.value]) then [] else [$dot.value] end
+        else if "list" == $dot.kind then
+            # if - scan args
+            # def! - scan body
+            # let* - add keys sequentially, scan body
+            # fn* - add keys, scan body
+            # quote - []
+            # quasiquote - ???
+            $dot.value[0] as $head
+            | if $head.kind == "symbol" then 
+                (
+                    select($head.value == "if") | $dot.value[1:] | map(_refs) | reduce .[] as $x ([]; . + $x)
+                ) // (
+                    select($head.value == "def!") | $dot.value[2] | _refs
+                ) // (
+                    select($head.value == "let*") | $dot.value[2] | find_free_references(($dot.value[1].value | map(.value[0].value)) + keys)
+                ) // (
+                    select($head.value == "fn*") | $dot.value[2] | find_free_references(($dot.value[1].value | map(.value)) + keys) 
+                ) // (
+                    select($head.value == "quote") | []
+                ) // (
+                    select($head.value == "quasiquote") | []
+                ) // ($dot.value | map(_refs) | reduce .[] as $x ([]; . + $x))
+              else
+                [ $dot.values[1:][] | _refs ]
+              end
+        else if "vector" == $dot.kind then
+            ($dot.value | map(_refs) | reduce .[] as $x ([]; . + $x))
+        else if "hashmap" == $dot.kind then
+            ([$dot.value | from_entries | map({kind: .value.kkind, value: .key}, .value.value)] | map(_refs) | reduce .[] as $x ([]; . + $x))
+        else
+            []
+        end end end end
+      end;
+    _refs | unique;
+
 def tomal:
     (
         select(type == "array") | (
@@ -79,6 +120,11 @@ def _debug(ex):
 
 def _print:
     debug;
+
+def _readline:
+      []
+    | issue_extern("readline"; {nowait: false})
+    ;
 
 def _write_to_file(name):
     . as $value

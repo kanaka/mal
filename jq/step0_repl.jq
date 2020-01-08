@@ -3,7 +3,7 @@ include "utils";
 def read_line:
     . as $in
     | label $top
-    | input;
+    | _readline;
 
 def READ:
     .;

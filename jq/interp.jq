@@ -1,6 +1,7 @@
 include "utils";
 include "core";
 include "env";
+include "printer";
 
 def arg_check(args):
     if .inputs == -1 then
@@ -74,13 +75,30 @@ def cWithReplEnv(renv; cond):
         .
     end;
 
-def updateAtoms(newEnv):
+def cUpdateAtoms(newEnv; cond):
     . as $env
-    | reduce (newEnv | env_dump_keys | map(env_get(newEnv) as $value | select($value.kind == "atom") | $value))[] as $atom (
+    | (reduce (extractEnv(newEnv)|.dirty_atoms)[] as $atom (
         $env;
         . as $e | reduce $atom.names[] as $name (
             $e;
-            env_set_(.; $name; $atom)));
+            . as $env | env_set_($env; $name; $atom)))) as $resEnv
+    | $resEnv | if cond then setpath(["currentEnv", "dirty_atoms"]; []) else . end
+    ;
+
+def addFrees(newEnv; frees):
+    . as $env
+    | reduce frees[] as $free (
+        $env;
+        . as $dot
+        | extractEnv(newEnv) as $env
+        | env_req($env; $free) as $lookup
+        | if $lookup != null then
+            env_set_(.; $free; $lookup)
+          else
+            .
+          end)
+    | . as $env
+    | $env;
 
 def interpret(arguments; env; _eval):
     extractReplEnv(env) as $replEnv |
@@ -105,7 +123,7 @@ def interpret(arguments; env; _eval):
                     env;
                     . as $env | env_set_($env; $name; $value)
                 )) as $env |
-                $value.value | addEnv($env)
+                $value.value | addEnv($env | setpath(["currentEnv", "dirty_atoms"]; ($env.currentEnv.dirty_atoms + [$value])|unique))
             ) //
             (select(.function == "swap!") | 
                 # env modifying function
@@ -120,13 +138,16 @@ def interpret(arguments; env; _eval):
                     $newEnv;
                     . as $env | env_set_($env; $name; $newValue)
                 )) as $newEnv |
-                $newValue.value | addEnv($newEnv)
-            ) //
+                $newValue.value | addEnv($newEnv | setpath(["currentEnv", "dirty_atoms"]; ($newEnv.currentEnv.dirty_atoms + [$newValue])|unique))
+            )//
                 (core_interp(arguments; env) | addEnv(env))
     ) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
-        env_setfallback(extractEnv(.env); extractEnv(env)) | childEnv($fn.binds; arguments) as $fnEnv |
+        (.body | pr_str) as $src |
+        # _debug("INTERP " + $src) |
+        # _debug("FREES " + ($fn.free_referencess | tostring)) | 
+        env_setfallback(extractEnv(.env | addFrees(env; $fn.free_referencess)); extractEnv(env)) | childEnv($fn.binds; arguments) as $fnEnv |
             # tell it about its surroundings
             (reduce $fn.free_referencess[] as $name (
                 $fnEnv;
@@ -147,6 +168,8 @@ def interpret(arguments; env; _eval):
                      | cWrapEnv($replEnv; $hasReplEnv),
                 expr: $fn.body
             }
+            | . as $dot
+            # | _debug("FNEXEC " + (.expr | pr_str) + " " + (env_req($dot.env; $fn.binds[0]) | pr_str))
             | _eval 
             | . as $envexp
             | (extractReplEnv($envexp.env)) as $xreplenv
@@ -156,8 +179,11 @@ def interpret(arguments; env; _eval):
                 env: extractEnv(env)
                     | cUpdateReplEnv($xreplenv; $hasReplEnv)
                     | cWrapEnv($xreplenv; $hasReplEnv)
-                    | updateAtoms(extractEnv($envexp.env))
+                    | cUpdateAtoms(extractEnv($envexp.env); $hasReplEnv)
             }
+            # | . as $dot
+            # | _debug("FNPOST " + (.expr | pr_str) + " " + (env_req($dot.expr.env; $fn.binds[0]) | pr_str))
+            # | _debug("INTERP " + $src + " = " + (.expr|pr_str))
     ) //
         jqmal_error("Unsupported function kind \(.kind)");
         
