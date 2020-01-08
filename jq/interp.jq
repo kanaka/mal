@@ -4,10 +4,14 @@ include "env";
 include "printer";
 
 def arg_check(args):
-    if .inputs == -1 then
-        .
+    if .inputs < 0 then
+        if (abs(.inputs) - 1) > (args | length) then
+            jqmal_error("Invalid number of arguments (expected at least \(abs(.inputs) - 1), got \(args|length): \(args | wrap("vector") | pr_str))")
+        else
+            .
+        end
     else if .inputs != (args|length) then
-        jqmal_error("Invalid number of arguments (expected \(.inputs) got \(args|length): \(args))")
+        jqmal_error("Invalid number of arguments (expected \(.inputs), got \(args|length): \(args | wrap("vector") | pr_str))")
     else
         .
     end end;
@@ -139,7 +143,25 @@ def interpret(arguments; env; _eval):
                     . as $env | env_set_($env; $name; $newValue)
                 )) as $newEnv |
                 $newValue.value | addEnv($newEnv | setpath(["currentEnv", "dirty_atoms"]; ($newEnv.currentEnv.dirty_atoms + [$newValue])|unique))
-            )//
+            ) //
+            (select(.function  == "apply") |
+                # (apply F ...T A) -> (F ...T ...A)
+                arguments as $args
+                | ($args|first) as $F
+                | ($args|last.value) as $A
+                | $args[1:-1] as $T
+                | $F | interpret([$T[], $A[]]; env; _eval)
+            ) //
+            (select(.function  == "map") |
+                arguments
+                | first as $F
+                | last.value as $L
+                | (reduce $L[] as $elem (
+                    [];
+                    . + [($F | interpret([$elem]; env; _eval).expr)]
+                  )) as $ex
+                | $ex | wrap("list") | addEnv(env)
+            ) //
                 (core_interp(arguments; env) | addEnv(env))
     ) //
     (select(.kind == "function") as $fn |

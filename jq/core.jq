@@ -107,7 +107,7 @@ def core_identify:
         "swap!": { # defined in interp
             kind: "fn",
             function: "swap!",
-            inputs: -1
+            inputs: -3
         },
         "cons": {
             kind: "fn",
@@ -133,6 +133,111 @@ def core_identify:
             kind: "fn",
             function: "rest",
             inputs: 1
+        },
+        "throw": {
+            kind: "fn",
+            function: "throw",
+            inputs: 1
+        },
+        "apply": { # defined in interp
+            kind: "fn",
+            function: "apply",
+            inputs: -3
+        },
+        "map": { # defined in interp
+            kind: "fn",
+            function: "map",
+            inputs: 2
+        },
+        "nil?": {
+            kind: "fn",
+            function: "nil?",
+            inputs: 1
+        },
+        "true?": {
+            kind: "fn",
+            function: "true?",
+            inputs: 1
+        },
+        "false?": {
+            kind: "fn",
+            function: "false?",
+            inputs: 1
+        },
+        "symbol": {
+            kind: "fn",
+            function: "symbol",
+            inputs: 1
+        },
+        "symbol?": {
+            kind: "fn",
+            function: "symbol?",
+            inputs: 1
+        },
+        "keyword": {
+            kind: "fn",
+            function: "keyword",
+            inputs: 1
+        },
+        "keyword?": {
+            kind: "fn",
+            function: "keyword?",
+            inputs: 1
+        },
+        "vector": {
+            kind: "fn",
+            function: "vector",
+            inputs: -1
+        },
+        "vector?": {
+            kind: "fn",
+            function: "vector?",
+            inputs: 1
+        },
+        "sequential?": {
+            kind: "fn",
+            function: "sequential?",
+            inputs: 1
+        },
+        "hash-map": {
+            kind: "fn",
+            function: "hash-map",
+            inputs: -1
+        },
+        "map?": {
+            kind: "fn",
+            function: "map?",
+            inputs: 1
+        },
+        "assoc": {
+            kind: "fn",
+            function: "assoc",
+            inputs: -2
+        },
+        "dissoc": {
+            kind: "fn",
+            function: "dissoc",
+            inputs: -2
+        },
+        "get": {
+            kind: "fn",
+            function: "get",
+            inputs: 2
+        },
+        "contains?": {
+            kind: "fn",
+            function: "contains?",
+            inputs: 2
+        },
+        "keys": {
+            kind: "fn",
+            function: "keys",
+            inputs: 1
+        },
+        "vals": {
+            kind: "fn",
+            function: "vals",
+            inputs: 1
         }
     };
 
@@ -140,11 +245,16 @@ def vec2list(obj):
     if obj.kind == "list" then
         obj.value | map(vec2list(.)) | wrap("list")
     else 
-    if obj.kind == "vector" then
-        obj.value | map(vec2list(.)) | wrap("list")
-    else 
-        obj
-    end end;
+        if obj.kind == "vector" then
+            obj.value | map(vec2list(.)) | wrap("list")
+        else
+            if obj.kind == "hashmap" then
+                obj.value | map_values(.value |= vec2list(.)) | wrap("hashmap")
+            else
+                obj
+            end
+        end
+    end;
 
 def core_interp(arguments; env):
     (
@@ -220,4 +330,72 @@ def core_interp(arguments; env):
         select(.function == "first") | arguments[0].value | first // {kind:"nil"}
     ) // (
         select(.function == "rest") | arguments[0]?.value?[1:]? // [] | wrap("list")
+    ) // (
+        select(.function == "throw") | jqmal_error(arguments[0] | tojson)
+    ) // (
+        select(.function == "nil?") | null | wrap((arguments[0].kind == "nil") | tostring)
+    ) // (
+        select(.function == "true?") | null | wrap((arguments[0].kind == "true") | tostring)
+    ) // (
+        select(.function == "false?") | null | wrap((arguments[0].kind == "false") | tostring)
+    ) // (
+        select(.function == "symbol?") | null | wrap((arguments[0].kind == "symbol") | tostring)
+    ) // (
+        select(.function == "symbol") | arguments[0].value | wrap("symbol")
+    ) // (
+        select(.function == "keyword") | arguments[0].value | wrap("keyword")
+    ) // (
+        select(.function == "keyword?") | null | wrap((arguments[0].kind == "keyword") | tostring)
+    ) // (
+        select(.function == "vector") | arguments | wrap("vector")
+    ) // (
+        select(.function == "vector?") | null | wrap((arguments[0].kind == "vector") | tostring)
+    ) // (
+        select(.function == "sequential?") | null | wrap((arguments[0].kind == "vector" or arguments[0].kind == "list") | tostring)
+    ) // (
+        select(.function == "hash-map") |
+            if (arguments|length) % 2 == 1 then
+                jqmal_error("Odd number of arguments to hash-map")
+            else
+                [ arguments | 
+                    nwise(2) | 
+                    try {
+                        key: (.[0] | extract_string),
+                        value: {
+                            kkind: .[0].kind,
+                            value: .[1]
+                        }
+                    }
+                ] | from_entries | wrap("hashmap")
+            end
+    ) // (
+        select(.function == "map?") | null | wrap((arguments[0].kind == "hashmap") | tostring)
+    ) // (
+        select(.function == "assoc") |
+            if (arguments|length) % 2 == 0 then
+                jqmal_error("Odd number of key-values to assoc")
+            else
+                arguments[0].value + ([ arguments[1:] | 
+                    nwise(2) | 
+                    try {
+                        key: (.[0] | extract_string),
+                        value: {
+                            kkind: .[0].kind,
+                            value: .[1]
+                        }
+                    }
+                ] | from_entries) | wrap("hashmap")
+            end
+    ) // (
+        select(.function == "dissoc") | 
+            arguments[1:] | map(.value) as $keynames |
+            arguments[0].value | with_entries(select(.key as $k | $keynames | contains([$k]) | not)) | wrap("hashmap")
+    ) // (
+        select(.function == "get") | arguments[0].value[arguments[1].value].value // {kind:"nil"}
+    ) // (
+        select(.function == "contains?") | null | wrap((arguments[0].value | has(arguments[1].value)) | tostring)
+    ) // (
+        select(.function == "keys") | arguments[0].value | with_entries(.value as $v | .key as $k | {key: $k, value: {value: $k, kind: $v.kkind}}) | to_entries | map(.value) | wrap("list")
+    ) // (
+        select(.function == "vals") | arguments[0].value | map(.value) | to_entries | map(.value) | wrap("list")
     ) // jqmal_error("Unknown native function \(.function)");

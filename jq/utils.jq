@@ -7,11 +7,14 @@ def nwise(n):
         end;
     _nwise;
 
+def abs(x):
+    if x < 0 then 0 - x else x end;
+
 def jqmal_error(e):
-    error("JqMAL :: " + e);
+    error("JqMAL Exception :: " + e);
 
 def is_jqmal_error:
-    startswith("JqMAL :: ");
+    startswith("JqMAL Exception :: ");
 
 def wrap(kind):
     {

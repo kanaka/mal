@@ -13,7 +13,7 @@ def READ:
 
 def lookup(env):
     env[.] //
-            jqmal_error("Symbol \(.) not found");
+            jqmal_error("'\(.)' not found");
 
 def EVAL(env):
     def eval_ast:

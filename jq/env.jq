@@ -147,7 +147,7 @@ def env_setfallback(env; fallback):
     };
 
 def env_get(env):
-    . as $key | env_find(env).environment[$key] // jqmal_error("Symbol \($key) not found");
+    . as $key | env_find(env).environment[$key] // jqmal_error("'\($key)' not found");
 
 def env_get(env; key):
     key | env_get(env);
@@ -247,5 +247,5 @@ def lookup(env):
         if env.parent then
             lookup(env.parent)
         else
-            jqmal_error("Symbol \(.) not found")
+            jqmal_error("'\(.)' not found")
         end;
