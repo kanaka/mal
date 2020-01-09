@@ -69,7 +69,7 @@ def inform_function_multi(names):
     );
 
 def env_multiset(keys; value):
-    (if value.kind == "function" then
+    (if value.kind == "function" then # multiset not allowed on atoms
         value | inform_function_multi(keys)
     else
         value
@@ -87,8 +87,20 @@ def env_multiset(env; keys; value):
 
 def env_set($key; $value):
     (if $value.kind == "function" or $value.kind == "atom" then
-        # inform the function of its names
-        $value | inform_function($key)
+        # inform the function/atom of its names
+        ($value |
+        if $value.kind == "atom" then
+            # check if the one we have is newer
+            env_req(env; key) as $ours |
+            if $ours.last_modified > $value.last_modified then
+                $ours
+            else
+                # update modification timestamp
+                $value | .last_modified |= now
+            end
+        else
+            .
+        end) | inform_function($key)
     else 
         $value
     end) as $value | {
@@ -98,34 +110,23 @@ def env_set($key; $value):
         dirty_atoms: .dirty_atoms
     };
 
-def env_dump_keys(atoms):
-    def _dump0:
-        [ .environment // {} | to_entries[] | select(.value.kind != "atom") | .key ];
+def env_dump_keys:
     def _dump1:
         .environment // {} | keys;
     if . == null then [] else
         if .parent == null then
-            (if atoms then _dump1 else _dump0 end + (.fallback | env_dump_keys(atoms))) | unique
+            (
+                _dump1 +
+                (.fallback | env_dump_keys)
+            )
         else
-            (.parent | env_dump_keys(atoms) + (if atoms then _dump1 else _dump0 end) + (.fallback | env_dump_keys(atoms))) | unique
-        end
+            (
+                _dump1 +
+                (.parent | env_dump_keys) +
+                (.fallback | env_dump_keys)
+            )
+        end | unique
     end;
-
-def env_dump_keys:
-    env_dump_keys(false);
-
-def env_set(env; $key; $value):
-    (if $value.kind == "function" or $value.kind == "atom" then
-        # inform the function/atom of its names
-        $value | (.names += [$key]) | (.names |= unique)
-    else 
-        $value
-    end) as $value | {
-        parent: env.parent,
-        environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)), # merge together, as env.environment[key] |= value does not work
-        fallback: env.fallback,
-        dirty_atoms: env.dirty_atoms
-    };
 
 def env_find(env):
     if env.environment[.] == null then
@@ -138,6 +139,70 @@ def env_find(env):
         env
     end;
 
+def env_get(env):
+    . as $key | $key | env_find(env).environment[$key] as $value |
+    if $value == null then
+        jqmal_error("'\($key)' not found")
+    else
+        if $value.kind == "atom" then
+            $value.identity as $id |
+            $key | env_find(env.parent).environment[$key] as $possibly_newer |
+            if $possibly_newer.identity == $id and $possibly_newer.last_modified > $value.last_modified then
+                $possibly_newer
+            else
+                $value
+            end
+        else
+            $value
+        end
+    end;
+
+def env_get(env; key):
+    key | env_get(env);
+
+def env_req(env; key):
+    key as $key | key | env_find(env).environment[$key] as $value |
+    if $value == null then
+        null
+    else
+        if $value.kind == "atom" then
+            $value.identity as $id |
+            $key | env_find(env.parent).environment[$key] as $possibly_newer |
+            if $possibly_newer.identity == $id and $possibly_newer.last_modified > $value.last_modified then
+                $possibly_newer
+            else
+                $value
+            end
+        else
+            $value
+        end
+    end;
+
+def env_set(env; $key; $value):
+    (if $value.kind == "function" or $value.kind == "atom" then
+        # inform the function/atom of its names
+        $value | (.names += [$key]) | (.names |= unique) |
+        if $value.kind == "atom" then
+            # check if the one we have is newer
+            env_req(env; $key) as $ours |
+            if $ours.last_modified > $value.last_modified then
+                $ours
+            else
+                # update modification timestamp
+                $value | .last_modified |= now
+            end
+        else
+            .
+        end
+    else 
+        $value
+    end) as $value | {
+        parent: env.parent,
+        environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)), # merge together, as env.environment[key] |= value does not work
+        fallback: env.fallback,
+        dirty_atoms: env.dirty_atoms
+    };
+
 def env_setfallback(env; fallback):
     {
         parent: env.parent,
@@ -145,15 +210,6 @@ def env_setfallback(env; fallback):
         environment: env.environment,
         dirty_atoms: env.dirty_atoms
     };
-
-def env_get(env):
-    . as $key | env_find(env).environment[$key] // jqmal_error("'\($key)' not found");
-
-def env_get(env; key):
-    key | env_get(env);
-
-def env_req(env; key):
-    key as $key | key | env_find(env).environment[$key] // null;
     
 def addEnv(env):
     {

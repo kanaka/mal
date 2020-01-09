@@ -238,6 +238,56 @@ def core_identify:
             kind: "fn",
             function: "vals",
             inputs: 1
+        },
+        "string?": {
+            kind: "fn",
+            function: "string?",
+            inputs: 1
+        },
+        "fn?": {
+            kind: "fn",
+            function: "fn?",
+            inputs: 1
+        },
+        "number?": {
+            kind: "fn",
+            function: "number?",
+            inputs: 1
+        },
+        "macro?": {
+            kind: "fn",
+            function: "macro?",
+            inputs: 1
+        },
+        "readline": {
+            kind: "fn",
+            function: "readline",
+            inputs: 1
+        },
+        "time-ms": {
+            kind: "fn",
+            function: "time-ms",
+            inputs: 0
+        },
+        "meta": {
+            kind: "fn",
+            function: "meta",
+            inputs: 1
+        },
+        "with-meta": {
+            kind: "fn",
+            function: "with-meta",
+            inputs: 2
+        },
+        "seq": {
+            kind: "fn",
+            function: "seq",
+            inputs: 1
+        },
+        "conj": {
+            kind: "fn",
+            function: "conj",
+            inputs: -3
         }
     };
 
@@ -308,7 +358,7 @@ def core_interp(arguments; env):
     ) // (
         select(.function == "read-string") | arguments | first.value | read_str | read_form.value
     ) // (
-        select(.function == "atom") | arguments | first | wrap2("atom"; {names: []})
+        select(.function == "atom") | arguments | first | wrap2("atom"; {names: [], identity: now, last_modified: now})
     ) // (
         select(.function == "atom?") | null | wrap(arguments | first.kind == "atom" | tostring)
     ) // (
@@ -319,6 +369,7 @@ def core_interp(arguments; env):
         select(.function == "concat") | arguments | map(.value) | (add//[]) | wrap("list")
     ) // (
         select(.function == "nth")
+            | _debug(arguments)
             | arguments[0].value as $lst
             | arguments[1].value as $idx
             | if ($lst|length < $idx) or ($idx < 0) then
@@ -398,4 +449,20 @@ def core_interp(arguments; env):
         select(.function == "keys") | arguments[0].value | with_entries(.value as $v | .key as $k | {key: $k, value: {value: $k, kind: $v.kkind}}) | to_entries | map(.value) | wrap("list")
     ) // (
         select(.function == "vals") | arguments[0].value | map(.value) | to_entries | map(.value) | wrap("list")
+    ) // (
+        select(.function == "string?") | null | wrap((arguments[0].kind == "string") | tostring)
+    ) // (
+        select(.function == "fn?") | null | wrap((arguments[0].kind == "fn" or arguments[0].kind == "function") | tostring)
+    ) // (
+        select(.function == "number?") | null | wrap((arguments[0].kind == "number") | tostring)
+    ) // (
+        select(.function == "macro?") | null | wrap((arguments[0].is_macro == true) | tostring)
+    ) // (
+        select(.function == "readline") | arguments[0].value | __readline | wrap("string")
+    ) // (
+        select(.function == "time-ms") | now * 1000 | wrap("number")
+    ) // (
+        select(.function == "meta") | arguments[0].meta // {kind:"nil"}
+    ) // (
+        select(.function == "with-meta") | arguments[0] | .meta |= arguments[1]
     ) // jqmal_error("Unknown native function \(.function)");

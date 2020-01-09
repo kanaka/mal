@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # let's do some sorcery to bestow IO upon jq
+XDEBUG=${DEBUG:-false}
+SELFDEBUG=${RUNDEBUG:-false}
 runjq() {
     pipe_name=$(mktemp)
     rm -f $pipe_name $ipipe_name
@@ -12,9 +14,10 @@ runjq() {
         while [[ -e $pipe_name ]]; do
             timeout 1 cat $pipe_name
         done&
-    ) | jq -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
+    ) | jq --argjson DEBUG $XDEBUG -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
     tee \
         >(jq -Rr 'try fromjson[1]|if type == "string" then . else empty end') \
+        >(jq -Rr "if $SELFDEBUG then . else empty end") \
         >(while read -r line; do
             command=$(echo $line | jq -c 'try if .[1] | has("command") then .[1].command else empty end' 2>/dev/null)
             if [[ $command ]]; then

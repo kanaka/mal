@@ -1,3 +1,12 @@
+def _debug(ex):
+    . as $top
+    | ex
+    | debug
+    | $top;
+
+def _print:
+    debug;
+
 def nwise(n):
     def _nwise:
         if length <= n then 
@@ -72,7 +81,7 @@ def find_free_references(keys):
         else if "vector" == $dot.kind then
             ($dot.value | map(_refs) | reduce .[] as $x ([]; . + $x))
         else if "hashmap" == $dot.kind then
-            ([$dot.value | from_entries | map({kind: .value.kkind, value: .key}, .value.value)] | map(_refs) | reduce .[] as $x ([]; . + $x))
+            ([$dot.value | to_entries[] | ({kind: .value.kkind, value: .key}, .value.value) ] | map(_refs) | reduce .[] as $x ([]; . + $x))
         else
             []
         end end end end
@@ -115,19 +124,19 @@ def issue_extern(cmd; options):
 def issue_extern(cmd):
     issue_extern(cmd; {});
 
-def _debug(ex):
-    . as $top
-    | ex
-    | debug
-    | $top;
-
-def _print:
-    debug;
-
 def _readline:
       []
     | issue_extern("readline"; {nowait: false})
     ;
+
+def __readline(prompt):
+    . as $top 
+    | prompt
+    | _print
+    | _readline;
+
+def __readline:
+    __readline(.);
 
 def _write_to_file(name):
     . as $value

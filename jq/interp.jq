@@ -6,7 +6,7 @@ include "printer";
 def arg_check(args):
     if .inputs < 0 then
         if (abs(.inputs) - 1) > (args | length) then
-            jqmal_error("Invalid number of arguments (expected at least \(abs(.inputs) - 1), got \(args|length): \(args | wrap("vector") | pr_str))")
+            jqmal_error("Invalid number of arguments (expected at least \(abs(.inputs) - 1), got \(args|length))")
         else
             .
         end
@@ -107,6 +107,7 @@ def addFrees(newEnv; frees):
 def interpret(arguments; env; _eval):
     extractReplEnv(env) as $replEnv |
     hasReplEnv(env) as $hasReplEnv |
+    (if $DEBUG then _debug("INTERP: \(. | pr_str)") else . end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
             (select(.function == "eval") | 
@@ -122,7 +123,11 @@ def interpret(arguments; env; _eval):
             (select(.function == "reset!") | 
                 # env modifying function
                 arguments[0].names as $names |
-                arguments[1]|wrap2("atom"; {names: $names}) as $value |
+                arguments[1]|wrap2("atom"; {
+                    names: $names,
+                    identity: arguments[0].identity,
+                    last_modified: now
+                }) as $value |
                 (reduce $names[] as $name (
                     env;
                     . as $env | env_set_($env; $name; $value)
@@ -136,7 +141,11 @@ def interpret(arguments; env; _eval):
                 arguments[1] as $function |
                 ([$initValue] + arguments[2:]) as $args |
                 ($function | interpret($args; env; _eval)) as $newEnvValue |
-                $newEnvValue.expr|wrap2("atom"; {names: $names}) as $newValue |
+                $newEnvValue.expr | wrap2("atom"; {
+                    names: $names,
+                    identity: arguments[0].identity,
+                    last_modified: now
+                }) as $newValue |
                 $newEnvValue.env as $newEnv |
                 (reduce $names[] as $name (
                     $newEnv;
