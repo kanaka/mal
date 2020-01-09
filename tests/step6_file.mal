@@ -93,6 +93,12 @@
 (f)
 ;=>9
 
+;; Test interaction of local atoms from let* that shadow parent scope
+(def! g (let* (aaa (atom 0)) (fn* () (deref aaa))))
+(def! aaa (atom 1))
+(g)
+;=>0
+
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
