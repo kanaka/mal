@@ -15,7 +15,7 @@ def PRINT:
     .;
 
 def rep:
-    READ | EVAL | PRINT | _print;
+    READ | EVAL | PRINT | _display;
 
 def repl_:
     ("user> " | _print) |

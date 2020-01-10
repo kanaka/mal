@@ -37,6 +37,6 @@ def repl:
                 {value: "Error: \(.)", continue: true}
             else
                 {value: ., continue: false}
-            end) | if .value then .value|_print else empty end;
+            end) | if .value then .value|_display else empty end;
 
 repl

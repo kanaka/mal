@@ -269,7 +269,7 @@ def repl(env):
                 stop: false,
                 env: ($expenv.env // .env)
             } | ., xrepl;
-    {stop: false, env: env} | xrepl | if .value then (.value | _print) else empty end;
+    {stop: false, env: env} | xrepl | if .value then (.value | _display) else empty end;
 
 def eval_ign(expr):
     . as $env | expr | rep($env) | .env;
@@ -287,11 +287,12 @@ def main:
     if $ARGS.positional|length > 0 then
         getEnv as $env |
         env_set_($env; "*ARGV*"; $ARGS.positional[1:] | map(wrap("string")) | wrap("list")) |
-        eval_val("(load-file \($ARGS.positional[0] | tojson))")
+        eval_val("(load-file \($ARGS.positional[0] | tojson))") |
+        ""
     else
         repl( getEnv as $env | env_set_($env; "*ARGV*"; [] | wrap("list")) )
     end;
 
-main
+[ main ] | _halt
 
 # ( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)

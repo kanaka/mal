@@ -5,7 +5,7 @@ def _debug(ex):
     | $top;
 
 def _print:
-    debug;
+    tostring;
 
 def nwise(n):
     def _nwise:
@@ -110,7 +110,7 @@ def tomal:
 def _extern(options):
     {command: .} 
     | debug
-    | if options.nowait | not then
+    | if (options.nowait | not) then
         input | fromjson
       else
         null
@@ -125,18 +125,20 @@ def issue_extern(cmd):
     issue_extern(cmd; {});
 
 def _readline:
-      []
+      [.]
     | issue_extern("readline"; {nowait: false})
     ;
 
 def __readline(prompt):
     . as $top 
     | prompt
-    | _print
     | _readline;
 
 def __readline:
     __readline(.);
+
+def _display:
+    tostring | .+"\n" | debug;
 
 def _write_to_file(name):
     . as $value
@@ -150,5 +152,10 @@ def _append_to_file(name):
     | issue_extern("fwrite"; {nowait: true})
     | $value;
 
+def _halt:
+    []
+    | issue_extern("halt"; {nowait: true})
+    | halt;
+    
 def trap:
     _write_to_file("trap_reason.json") | jqmal_error("trap");

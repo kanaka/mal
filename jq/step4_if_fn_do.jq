@@ -213,7 +213,7 @@ def repl(env):
                 stop: false,
                 env: ($expenv.env // .env)
             } | ., xrepl;
-    {stop: false, env: env} | xrepl | if .value then (.value | _print) else empty end;
+    {stop: false, env: env} | xrepl | if .value then (.value | _display) else empty end;
 
 repl(
     "(def! not (fn* (a) (if a false true)))" | rep(replEnv) | .env

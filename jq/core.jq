@@ -334,7 +334,7 @@ def core_interp(arguments; env):
         env | tojson | wrap("string")
     ) // (
         select(.function == "prn") |
-        arguments | map(pr_str(env; {readable: true})) | join(" ") | _print | null | wrap("nil")
+        arguments | map(pr_str(env; {readable: true})) | join(" ") | _display | null | wrap("nil")
     ) // (
         select(.function == "pr-str") |
         arguments | map(pr_str(env; {readable: true})) | join(" ") |  wrap("string")
@@ -343,7 +343,7 @@ def core_interp(arguments; env):
         arguments | map(pr_str(env; {readable: false})) | join("") |  wrap("string")
     ) // (
         select(.function == "println") |
-        arguments | map(pr_str(env; {readable: false})) | join(" ") | _print | null | wrap("nil")
+        arguments | map(pr_str(env; {readable: false})) | join(" ") | _display | null | wrap("nil")
     ) // (
         select(.function == "list") |
         arguments | wrap("list")
