@@ -5,16 +5,13 @@ XDEBUG=${DEBUG:-false}
 SELFDEBUG=${RUNDEBUG:-false}
 runjq() {
     pipe_name=$(mktemp)
-    rm -f $pipe_name $ipipe_name
-    mkfifo $pipe_name || true
+    rm -f $pipe_name
+    echo -n "" > $pipe_name
     xstdout=$(readlink /proc/self/fd/1)
     stdin=$(readlink /proc/self/fd/0)
     trap "rm -f $pipe_name" EXIT SIGINT SIGHUP
-    (
-        while [[ -e $pipe_name ]]; do
-            timeout 1 cat $pipe_name
-        done&
-    ) | jq --argjson DEBUG $XDEBUG -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
+    tail -f $pipe_name 2>/dev/null |\
+    jq --argjson DEBUG $XDEBUG -nrRM -f "$(dirname "$0")/${STEP:-stepA_mal}.jq" --args "${@}" |&\
     tee \
         >(jq -Rr 'try fromjson[1]|if type == "string" then . else empty end') \
         >(jq -Rr "if $SELFDEBUG then . else empty end") \
