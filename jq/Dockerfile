@@ -10,4 +10,4 @@ RUN mkdir -p /mal
 WORKDIR /mal
 
 # test requirements
-RUN apk add jq bash pv timeout
+RUN apk add jq bash pv
