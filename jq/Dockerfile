@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:xenial
 MAINTAINER Ali MohammadPur <devanothertest@gmail.com>
 
 # General test requirements
