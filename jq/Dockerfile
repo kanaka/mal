@@ -10,4 +10,4 @@ RUN mkdir -p /mal
 WORKDIR /mal
 
 # test requirements
-RUN apt-get -y install jq pv
+RUN apt-get -y install jq pv coreutils
