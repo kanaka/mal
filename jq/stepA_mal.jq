@@ -95,14 +95,25 @@ def EVAL(env):
                 interpret($expr[1:]; $_menv; _eval_here);
 
     def macroexpand(env):
+        . as $dot |
+        $dot |
         [ while(is_macro_call(env | unwrapCurrentEnv);
-            _interpret(env).expr) // . ]
-        | first
+            . as $dot
+            | ($dot.value[0] | EVAL(env).expr) as $fn
+            | $dot.value[1:] as $args
+            | $fn 
+            | interpret($args; env; _eval_here).expr) // . ]
+        | last
         | if is_macro_call(env | unwrapCurrentEnv) then
-            _interpret(env).expr
+            . as $dot
+            | ($dot.value[0] | EVAL(env).expr) as $fn
+            | $dot.value[1:] as $args
+            | $fn 
+            | interpret($args; env; _eval_here).expr
           else
             .
-          end;
+          end
+        ;
 
     def hmap_with_env:
         .env as $env | .list as $list |
@@ -278,7 +289,7 @@ def EVAL(env):
                             ) //
                             (
                                 .value | select(.[0].value == "macroexpand") as $value |
-                                    $value[1] | macroexpand(env) | TCOWrap($_menv; $_orig_retenv; false)
+                                    $value[1] | macroexpand($_menv) | TCOWrap($_menv; $_orig_retenv; false)
                             ) //
                             (
                                 . as $dot | _interpret($_menv) as $exprenv |
@@ -291,6 +302,7 @@ def EVAL(env):
             ) //
                 (eval_ast($_menv) | TCOWrap($_menv; $_orig_retenv; false))
         end
+        | (if $DEBUG then _debug("POSTEVAL: \($ast | pr_str($_menv)) = \(.ast | pr_str($_menv))") else . end)
     ) ] 
     | last as $result
     | ($result.ret_env // $result.env) as $env

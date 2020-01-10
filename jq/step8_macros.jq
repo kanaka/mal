@@ -95,14 +95,25 @@ def EVAL(env):
                 interpret($expr[1:]; $_menv; _eval_here);
 
     def macroexpand(env):
+        . as $dot |
+        $dot |
         [ while(is_macro_call(env | unwrapCurrentEnv);
-            _interpret(env).expr) // . ]
-        | first
+            . as $dot
+            | ($dot.value[0] | EVAL(env).expr) as $fn
+            | $dot.value[1:] as $args
+            | $fn 
+            | interpret($args; env; _eval_here).expr) // . ]
+        | last
         | if is_macro_call(env | unwrapCurrentEnv) then
-            _interpret(env).expr
+            . as $dot
+            | ($dot.value[0] | EVAL(env).expr) as $fn
+            | $dot.value[1:] as $args
+            | $fn 
+            | interpret($args; env; _eval_here).expr
           else
             .
-          end;
+          end
+        ;
 
     def hmap_with_env:
         .env as $env | .list as $list |
