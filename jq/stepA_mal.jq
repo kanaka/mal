@@ -217,6 +217,7 @@ def EVAL(env):
                             ) //
                             (
                                 .value | select(.[0].value == "let*") as $value |
+                                        ($currentEnv | pureChildEnv | wrapEnv($replEnv; $_menv.atoms)) as $_menv |
                                         (reduce ($value[1].value | nwise(2)) as $xvalue (
                                             $_menv;
                                             . as $env | $xvalue[1] | EVAL($env) as $expenv |
