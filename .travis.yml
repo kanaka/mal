@@ -46,6 +46,7 @@ matrix:
     - {env: IMPL=hy,                          services: [docker]}
     - {env: IMPL=io NO_SELF_HOST_PERF=1,      services: [docker]} # perf OOM
     - {env: IMPL=java,                        services: [docker]}
+    - {env: IMPL=jq,                          services: [docker]}
     - {env: IMPL=js,                          services: [docker]}
     - {env: IMPL=julia,                       services: [docker]}
     - {env: IMPL=kotlin,                      services: [docker]}
