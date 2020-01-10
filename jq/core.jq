@@ -306,6 +306,16 @@ def vec2list(obj):
         end
     end;
 
+def make_sequence:
+    . as $dot
+    | if .value|length == 0 then null | wrap("nil") else
+        (
+            select(.kind == "string") | .value | split("") | map(wrap("string"))
+        ) // (
+            select(.kind == "list" or .kind == "vector") | .value
+        ) // jqmal_error("cannot make sequence from \(.kind)") | wrap("list")
+    end;
+
 def core_interp(arguments; env):
     (
         select(.function == "number_add") |
@@ -324,16 +334,16 @@ def core_interp(arguments; env):
         env | tojson | wrap("string")
     ) // (
         select(.function == "prn") |
-        arguments | map(pr_str({readable: true})) | join(" ") | _print | null | wrap("nil")
+        arguments | map(pr_str(env; {readable: true})) | join(" ") | _print | null | wrap("nil")
     ) // (
         select(.function == "pr-str") |
-        arguments | map(pr_str({readable: true})) | join(" ") |  wrap("string")
+        arguments | map(pr_str(env; {readable: true})) | join(" ") |  wrap("string")
     ) // (
         select(.function == "str") |
-        arguments | map(pr_str({readable: false})) | join("") |  wrap("string")
+        arguments | map(pr_str(env; {readable: false})) | join("") |  wrap("string")
     ) // (
         select(.function == "println") |
-        arguments | map(pr_str({readable: false})) | join(" ") | _print | null | wrap("nil")
+        arguments | map(pr_str(env; {readable: false})) | join(" ") | _print | null | wrap("nil")
     ) // (
         select(.function == "list") |
         arguments | wrap("list")
@@ -358,11 +368,7 @@ def core_interp(arguments; env):
     ) // (
         select(.function == "read-string") | arguments | first.value | read_str | read_form.value
     ) // (
-        select(.function == "atom") | arguments | first | wrap2("atom"; {names: [], identity: now, last_modified: now})
-    ) // (
         select(.function == "atom?") | null | wrap(arguments | first.kind == "atom" | tostring)
-    ) // (
-        select(.function == "deref") | arguments | first.value
     ) // (
         select(.function == "cons") | ([arguments[0]] + arguments[1].value) | wrap("list")
     ) // (
@@ -452,7 +458,7 @@ def core_interp(arguments; env):
     ) // (
         select(.function == "string?") | null | wrap((arguments[0].kind == "string") | tostring)
     ) // (
-        select(.function == "fn?") | null | wrap((arguments[0].kind == "fn" or arguments[0].kind == "function") | tostring)
+        select(.function == "fn?") | null | wrap((arguments[0].kind == "fn" or (arguments[0].kind == "function" and (arguments[0].is_macro|not))) | tostring)
     ) // (
         select(.function == "number?") | null | wrap((arguments[0].kind == "number") | tostring)
     ) // (
@@ -465,4 +471,15 @@ def core_interp(arguments; env):
         select(.function == "meta") | arguments[0].meta // {kind:"nil"}
     ) // (
         select(.function == "with-meta") | arguments[0] | .meta |= arguments[1]
+    ) // (
+        select(.function == "seq") | arguments[0] | make_sequence
+    ) // (
+        select(.function == "conj")
+            | arguments[0] as $orig
+            | arguments[1:] as $stuff
+            | if $orig.kind == "list" then
+                [ $stuff|reverse[], $orig.value[] ] | wrap("list")
+              else
+                [ $orig.value[], $stuff[] ] | wrap("vector")
+              end
     ) // jqmal_error("Unknown native function \(.function)");

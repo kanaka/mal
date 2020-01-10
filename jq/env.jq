@@ -4,7 +4,6 @@ def childEnv(binds; exprs):
     {
         parent: .,
         fallback: null,
-        dirty_atoms: .dirty_atoms,
         environment: [binds, exprs] | transpose | (
             . as $dot | reduce .[] as $item (
                 { value: [], seen: false, name: null, idx: 0 };
@@ -47,16 +46,14 @@ def pureChildEnv:
     {
         parent: .,
         environment: {},
-        fallback: null,
-        dirty_atoms: .dirty_atoms
+        fallback: null
     };
 
 def rootEnv:
     {
         parent: null,
         fallback: null,
-        environment: {},
-        dirty_atoms: []
+        environment: {}
     };
 
 def inform_function(name):
@@ -78,8 +75,7 @@ def env_multiset(keys; value):
         environment: (
             .environment + (reduce keys[] as $key(.environment; .[$key] |= value))
         ),
-        fallback: .fallback,
-        dirty_atoms: .dirty_atoms
+        fallback: .fallback
     };
 
 def env_multiset(env; keys; value):
@@ -106,8 +102,7 @@ def env_set($key; $value):
     end) as $value | {
         parent: .parent,
         environment: (.environment + (.environment | .[$key] |= $value)), # merge together, as .environment[key] |= value does not work
-        fallback: .fallback,
-        dirty_atoms: .dirty_atoms
+        fallback: .fallback
     };
 
 def env_dump_keys:
@@ -199,16 +194,14 @@ def env_set(env; $key; $value):
     end) as $value | {
         parent: env.parent,
         environment: ((env.environment // jqmal_error("Environment empty in \(env | keys)")) + (env.environment | .[$key] |= $value)), # merge together, as env.environment[key] |= value does not work
-        fallback: env.fallback,
-        dirty_atoms: env.dirty_atoms
+        fallback: env.fallback
     };
 
 def env_setfallback(env; fallback):
     {
         parent: env.parent,
         fallback: fallback,
-        environment: env.environment,
-        dirty_atoms: env.dirty_atoms
+        environment: env.environment
     };
     
 def addEnv(env):
@@ -224,17 +217,19 @@ def addToEnv(env; name; expr):
     };
 
 
-def wrapEnv:
+def wrapEnv(atoms):
     {
         replEnv: .,
         currentEnv: .,
+        atoms: atoms,
         isReplEnv: true
     };
 
-def wrapEnv(replEnv):
+def wrapEnv(replEnv; atoms):
     {
         replEnv: replEnv,
         currentEnv: .,
+        atoms: atoms, # id -> value
         isReplEnv: (replEnv == .) # should we allow separate copies?
     };
 
@@ -246,9 +241,9 @@ def unwrapCurrentEnv:
 
 def env_set6(env; key; value):
     if env.isReplEnv then
-        env_set(env.currentEnv; key; value) | wrapEnv
+        env_set(env.currentEnv; key; value) | wrapEnv(env.atoms)
     else
-        env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv)
+        env_set(env.currentEnv; key; value) | wrapEnv(env.replEnv; env.atoms)
     end;
 
 def env_set_(env; key; value):
@@ -262,9 +257,9 @@ def addToEnv6(envexp; name):
     envexp.expr as $value
     | envexp.env as $rawEnv
     | (if $rawEnv.isReplEnv then
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv
+        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.atoms)
     else
-        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv)
+        env_set_($rawEnv.currentEnv; name; $value) | wrapEnv($rawEnv.replEnv; $rawEnv.atoms)
     end) as $newEnv
     | {
         expr: $value,
@@ -284,8 +279,7 @@ def _env_remove_references(refs):
         {
             environment: (.environment | to_entries | map(select(.key as $key | refs | contains([$key]) | not)) | from_entries),
             parent: (.parent | _env_remove_references(refs)),
-            fallback: (.fallback | _env_remove_references(refs)),
-            dirty_atoms: (.dirty_atoms | map(select(. as $dot | refs | contains([$dot]) | not)))
+            fallback: (.fallback | _env_remove_references(refs))
         }
     else . end;
 

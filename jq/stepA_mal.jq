@@ -20,7 +20,7 @@ def TCOWrap(env; retenv; continue):
     {
         ast: .,
         env: env,
-        ret_env: retenv,
+        ret_env: (if retenv != null then (retenv | setpath(["atoms"]; env.atoms)) else retenv end),
         finish: (continue | not),
         cont: true # set inside
     };
@@ -88,11 +88,12 @@ def EVAL(env):
 
     def _interpret($_menv):
         reduce .value[] as $elem (
-            [];
-            . as $dot | $elem | EVAL($_menv) as $eval_env |
-                ($dot + [$eval_env.expr])
-        ) | . as $expr | first |
-                interpret($expr[1:]; $_menv; _eval_here);
+            {env: $_menv, val: []};
+            . as $dot | $elem | EVAL($dot.env) as $eval_env |
+                ($dot.env | setpath(["atoms"]; $eval_env.env.atoms)) as $_menv |
+                {env: $_menv, val: ($dot.val + [$eval_env.expr])}
+        ) | . as $expr | $expr.val | first |
+                interpret($expr.val[1:]; $expr.env; _eval_here);
 
     def macroexpand(env):
         . as $dot |
@@ -177,6 +178,7 @@ def EVAL(env):
     | [ recurseflip(.cont;
         .env as $_menv
         | (if $DEBUG then _debug("EVAL: \($ast | pr_str($_menv))") else . end)
+        | (if $DEBUG then _debug("ATOMS: \($_menv.atoms)") else . end)
         | if .finish then
             .cont |= false
         else
@@ -198,6 +200,10 @@ def EVAL(env):
                     else
                         (
                             (
+                                .value | select(.[0].value == "atoms??") as $value |
+                                    $_menv.atoms | keys | map(wrap("string")) | wrap("list") | TCOWrap($_menv; $_orig_retenv; false)
+                            ) //
+                            (
                                 .value | select(.[0].value == "def!") as $value |
                                     ($value[2] | EVAL($_menv)) as $evval |
                                         addToEnv($evval; $value[1].value) as $val |
@@ -211,9 +217,8 @@ def EVAL(env):
                             ) //
                             (
                                 .value | select(.[0].value == "let*") as $value |
-                                    ($currentEnv | pureChildEnv | wrapEnv($replEnv)) as $subenv |
                                         (reduce ($value[1].value | nwise(2)) as $xvalue (
-                                            $subenv;
+                                            $_menv;
                                             . as $env | $xvalue[1] | EVAL($env) as $expenv |
                                                 env_set_($expenv.env; $xvalue[0].value; $expenv.expr))) as $env
                                                     | $value[2] | TCOWrap($env; $_retenv; true)
@@ -244,7 +249,7 @@ def EVAL(env):
                                                 else 
                                                     $exc|wrap("string")
                                                 end) as $exc |
-                                                $value[2].value[2] | EVAL($currentEnv | childEnv([$value[2].value[1].value]; [$exc]) | wrapEnv($replEnv)) as $ex |
+                                                $value[2].value[2] | EVAL($currentEnv | childEnv([$value[2].value[1].value]; [$exc]) | wrapEnv($replEnv; $_menv.atoms)) as $ex |
                                                 $ex.expr | TCOWrap($ex.env; $_retenv; false)
                                             else
                                                 error($exc)
@@ -355,7 +360,6 @@ def replEnv:
                 function: "eval"
             }
         } + core_identify),
-        dirty_atoms: [],
         fallback: null
     };
 
@@ -377,7 +381,7 @@ def eval_val(expr):
 
 def getEnv:
     replEnv
-    | wrapEnv
+    | wrapEnv({})
     | eval_ign("(def! *host-language* \"jq\")")
     | eval_ign("(def! not (fn* (a) (if a false true)))")
     | eval_ign("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))))")

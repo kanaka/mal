@@ -67,7 +67,7 @@ def find_free_references(keys):
                 ) // (
                     select($head.value == "def!") | $dot.value[2] | _refs
                 ) // (
-                    select($head.value == "let*") | $dot.value[2] | find_free_references(($dot.value[1].value | map(.value[0].value)) + keys)
+                    select($head.value == "let*") | $dot.value[2] | find_free_references(($dot.value[1].value as $value | ([ range(0; $value|length; 2) ] | map(select(. % 2 == 0) | $value[.].value))) + keys)
                 ) // (
                     select($head.value == "fn*") | $dot.value[2] | find_free_references(($dot.value[1].value | map(.value)) + keys) 
                 ) // (

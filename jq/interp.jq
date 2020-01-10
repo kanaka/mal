@@ -11,7 +11,7 @@ def arg_check(args):
             .
         end
     else if .inputs != (args|length) then
-        jqmal_error("Invalid number of arguments (expected \(.inputs), got \(args|length): \(args | wrap("vector") | pr_str))")
+        jqmal_error("Invalid number of arguments (expected \(.inputs), got \(args|length))")
     else
         .
     end end;
@@ -33,9 +33,9 @@ def extractEnv(env):
 def hasReplEnv(env):
     env | has("replEnv");
 
-def cWrapEnv(renv; cond):
+def cWrapEnv(renv; atoms; cond):
     if cond then
-        wrapEnv(renv)
+        wrapEnv(renv; atoms)
     else
         .
     end;
@@ -72,22 +72,8 @@ def extractCurrentReplEnv(env):
         env
     end;
 
-def cWithReplEnv(renv; cond):
-    if cond then
-        extractEnv(.) | wrapEnv(renv)
-    else
-        .
-    end;
-
-def cUpdateAtoms(newEnv; cond):
-    . as $env
-    | (reduce (extractEnv(newEnv)|.dirty_atoms)[] as $atom (
-        $env;
-        . as $e | reduce $atom.names[] as $name (
-            $e;
-            . as $env | env_set_($env; $name; $atom)))) as $resEnv
-    | $resEnv | if cond then setpath(["currentEnv", "dirty_atoms"]; []) else . end
-    ;
+def extractAtoms(env):
+    env.atoms // {};
 
 def addFrees(newEnv; frees):
     . as $env
@@ -106,13 +92,14 @@ def addFrees(newEnv; frees):
 
 def interpret(arguments; env; _eval):
     extractReplEnv(env) as $replEnv |
+    extractAtoms(env) as $envAtoms |
     hasReplEnv(env) as $hasReplEnv |
-    (if $DEBUG then _debug("INTERP: \(. | pr_str)") else . end) |
+    (if $DEBUG then _debug("INTERP: \(. | pr_str(env))") else . end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
             (select(.function == "eval") | 
                 # special function
-                { expr: arguments[0], env: $replEnv|cWrapEnv($replEnv; $hasReplEnv) }
+                { expr: arguments[0], env: $replEnv|cWrapEnv($replEnv; $envAtoms; $hasReplEnv) }
                 | _eval
                 | .env as $xenv
                 | extractReplEnv($xenv) as $xreplenv
@@ -122,37 +109,27 @@ def interpret(arguments; env; _eval):
             ) //
             (select(.function == "reset!") | 
                 # env modifying function
-                arguments[0].names as $names |
-                arguments[1]|wrap2("atom"; {
-                    names: $names,
-                    identity: arguments[0].identity,
-                    last_modified: now
-                }) as $value |
-                (reduce $names[] as $name (
-                    env;
-                    . as $env | env_set_($env; $name; $value)
-                )) as $env |
-                $value.value | addEnv($env | setpath(["currentEnv", "dirty_atoms"]; ($env.currentEnv.dirty_atoms + [$value])|unique))
+                arguments[0].identity as $id |
+                ($envAtoms | setpath([$id]; arguments[1])) as $envAtoms |
+                arguments[1] | addEnv(env | setpath(["atoms"]; $envAtoms))
             ) //
             (select(.function == "swap!") | 
                 # env modifying function
-                arguments[0].names as $names |
-                arguments[0].value as $initValue |
+                arguments[0].identity as $id |
+                $envAtoms[$id] as $initValue |
                 arguments[1] as $function |
                 ([$initValue] + arguments[2:]) as $args |
                 ($function | interpret($args; env; _eval)) as $newEnvValue |
-                $newEnvValue.expr | wrap2("atom"; {
-                    names: $names,
-                    identity: arguments[0].identity,
-                    last_modified: now
-                }) as $newValue |
-                $newEnvValue.env as $newEnv |
-                (reduce $names[] as $name (
-                    $newEnv;
-                    . as $env | env_set_($env; $name; $newValue)
-                )) as $newEnv |
-                $newValue.value | addEnv($newEnv | setpath(["currentEnv", "dirty_atoms"]; ($newEnv.currentEnv.dirty_atoms + [$newValue])|unique))
-            ) //
+                ($envAtoms | setpath([$id]; $newEnvValue.expr)) as $envAtoms |
+                $newEnvValue.expr | addEnv(env | setpath(["atoms"]; $envAtoms))
+            ) // (select(.function == "atom") |
+                (now|tostring) as $id |
+                {kind: "atom", identity: $id} as $value |
+                ($envAtoms | setpath([$id]; arguments[0])) as $envAtoms |
+                $value | addEnv(env | setpath(["atoms"]; $envAtoms))
+            ) // (select(.function == "deref") |
+                $envAtoms[arguments[0].identity] | addEnv(env)
+            ) // 
             (select(.function  == "apply") |
                 # (apply F ...T A) -> (F ...T ...A)
                 arguments as $args
@@ -166,16 +143,21 @@ def interpret(arguments; env; _eval):
                 | first as $F
                 | last.value as $L
                 | (reduce $L[] as $elem (
-                    [];
-                    . + [($F | interpret([$elem]; env; _eval).expr)]
+                    {env: env, val: []};
+                    . as $dot |
+                    ($F | interpret([$elem]; $dot.env; _eval)) as $val |
+                    {
+                        val: (.val + [$val.expr]),
+                        env: (.env | setpath(["atoms"]; $val.env.atoms))
+                    }
                   )) as $ex
-                | $ex | wrap("list") | addEnv(env)
+                | $ex.val | wrap("list") | addEnv($ex.env)
             ) //
                 (core_interp(arguments; env) | addEnv(env))
     ) //
     (select(.kind == "function") as $fn |
         # todo: arg_check
-        (.body | pr_str) as $src |
+        (.body | pr_str(env)) as $src |
         # _debug("INTERP " + $src) |
         # _debug("FREES " + ($fn.free_referencess | tostring)) | 
         env_setfallback(extractEnv(.env | addFrees(env; $fn.free_referencess)); extractEnv(env)) | childEnv($fn.binds; arguments) as $fnEnv |
@@ -196,7 +178,7 @@ def interpret(arguments; env; _eval):
             env_multiset($fnEnv; $fn.names; $fn) as $fnEnv |
             {
                 env: env_multiset($fnEnv; $fn.names; $fn)
-                     | cWrapEnv($replEnv; $hasReplEnv),
+                     | cWrapEnv($replEnv; $envAtoms; $hasReplEnv),
                 expr: $fn.body
             }
             | . as $dot
@@ -209,8 +191,7 @@ def interpret(arguments; env; _eval):
                 expr: .expr,
                 env: extractEnv(env)
                     | cUpdateReplEnv($xreplenv; $hasReplEnv)
-                    | cWrapEnv($xreplenv; $hasReplEnv)
-                    | cUpdateAtoms(extractEnv($envexp.env); $hasReplEnv)
+                    | cWrapEnv($xreplenv; $envexp.env.atoms; $hasReplEnv)
             }
             # | . as $dot
             # | _debug("FNPOST " + (.expr | pr_str) + " " + (env_req($dot.expr.env; $fn.binds[0]) | pr_str))

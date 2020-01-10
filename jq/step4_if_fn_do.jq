@@ -202,7 +202,6 @@ def replEnv:
                 function: "number_div"
             },
         } + core_identify),
-        dirty_atoms: [],
         fallback: null
     };
 
