@@ -44,6 +44,7 @@
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
+| [Jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
 | [Kotlin](#kotlin) | [Javier Fernandez-Ivern](https://github.com/ivern) |
@@ -585,6 +586,17 @@ mvn compile
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
     # OR
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
+```
+
+### Jq
+
+Tested against version 1.6, with a lot of cheating in the IO department
+
+```
+cd jq
+STEP=stepA_YYY ./run
+    # with Debug
+DEBUG=true STEP=stepA_YYY ./run
 ```
 
 ### JavaScript/Node
