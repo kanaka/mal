@@ -8,7 +8,7 @@ def _reconstruct_hash:
 
 def pr_str(opt):
     (select(.kind == "symbol")  | .value) //
-    (select(.kind == "string")  | .value | if opt.readable then tojson else . end) //
+    (select(.kind == "string")  | .value | if opt.readable then tojson|tojson else tojson end) //
     (select(.kind == "keyword") | ":\(.value)")  //
     (select(.kind == "number")  | .value | tostring) //
     (select(.kind == "list")    | .value | map(pr_str(opt))  | join(" ") | "(\(.))") //
