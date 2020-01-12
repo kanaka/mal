@@ -13,26 +13,6 @@ def read_line:
 def READ:
     read_str | read_form | .value;
 
-# def eval_ast(env):
-#         (select(.kind == "symbol") | .value | env_get(env) | addEnv(env)) //
-#         (select(.kind == "list") | reduce .value[] as $elem (
-#             {value: [], env: env};
-#             . as $dot | $elem | EVAL($dot.env) as $eval_env |
-#                 {
-#                     value: ($dot.value + [$eval_env.expr]),
-#                     env: $eval_env.env
-#                 }
-#         ) | { expr: .value, env: .env }) // (addEnv(env));
-
-# def patch_with_env(env):
-#     . as $dot | (reduce .[] as $fnv (
-#         [];
-#         . + [$fnv | setpath([1, "free_referencess"]; ($fnv[1].free_referencess + $dot) | unique)]
-#     )) as $functions | reduce $functions[] as $function (
-#         env;
-#         env_set(.; $function[0]; $function[1])
-#     ) | { functions: $functions, env: . };
-    
 def recurseflip(x; y):
     recurse(y; x);
 
@@ -116,7 +96,7 @@ def EVAL(env):
                             binds: $binds,
                             env: env,
                             body: $value[2],
-                            names: [], # we can't do that circular reference this
+                            names: [], # we can't do that circular reference thing
                             free_referencess: $value[2] | find_free_references(env | env_dump_keys + $binds) # for dynamically scoped variables
                         } | addEnv(env)
                 ) //

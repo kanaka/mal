@@ -114,11 +114,10 @@ def _extern(options):
         input | fromjson
       else
         null
-      end; # oof
+      end;
 
 def issue_extern(cmd; options):
     {cmd: cmd, args: .}
-    # | (tostring | debug) as $ignore
     | _extern(options);
 
 def issue_extern(cmd):

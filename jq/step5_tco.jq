@@ -100,15 +100,13 @@ def EVAL(env):
                         ) //
                         (
                             .value | select(.[0].value == "fn*") as $value |
-                                # we can't do what the guide says, so we'll skip over this
-                                # and ues the later implementation
                                 # (fn* args body)
                                 $value[1].value | map(.value) as $binds | {
                                     kind: "function",
                                     binds: $binds,
                                     env: $_menv,
                                     body: $value[2],
-                                    names: [], # we can't do that circular reference this
+                                    names: [], # we can't do that circular reference thing
                                     free_referencess: $value[2] | find_free_references($_menv | env_dump_keys + $binds) # for dynamically scoped variables
                                 } | TCOWrap($_menv; $_orig_retenv; false)
                         ) //
