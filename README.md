@@ -6,7 +6,7 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 80 languages (83 different implementations and 103 runtime modes)**
+**2. Mal is implemented in 81 languages (84 different implementations and 104 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -44,8 +44,8 @@
 | [Hy](#hy) | [Joel Martin](https://github.com/kanaka)  |
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
-| [Jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
+| [Jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
 | [Kotlin](#kotlin) | [Javier Fernandez-Ivern](https://github.com/ivern) |
 | [LiveScript](#livescript) | [Jos van Bakel](https://github.com/c0deaddict) |
@@ -588,17 +588,6 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 ```
 
-### Jq
-
-Tested against version 1.6, with a lot of cheating in the IO department
-
-```
-cd jq
-STEP=stepA_YYY ./run
-    # with Debug
-DEBUG=true STEP=stepA_YYY ./run
-```
-
 ### JavaScript/Node
 
 ```
@@ -614,6 +603,17 @@ The Julia implementation of mal requires Julia 0.4.
 ```
 cd julia
 julia stepX_YYY.jl
+```
+
+### Jq
+
+Tested against version 1.6, with a lot of cheating in the IO department
+
+```
+cd jq
+STEP=stepA_YYY ./run
+    # with Debug
+DEBUG=true STEP=stepA_YYY ./run
 ```
 
 ### Kotlin
