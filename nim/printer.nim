@@ -17,8 +17,8 @@ proc pr_str*(m: MalType, pr = true): string =
   of Symbol:  result = m.str
   of String:  result = m.str.str_handle(pr)
   of Number:  result = $m.number
-  of List:    result = "(" & m.list.mapIt(string, it.pr_str(pr)).join(" ") & ")"
-  of Vector:  result = "[" & m.list.mapIt(string, it.pr_str(pr)).join(" ") & "]"
+  of List:    result = "(" & m.list.mapIt(it.pr_str(pr)).join(" ") & ")"
+  of Vector:  result = "[" & m.list.mapIt(it.pr_str(pr)).join(" ") & "]"
   of HashMap:
     result = "{"
     for key, val in m.hash_map.pairs:

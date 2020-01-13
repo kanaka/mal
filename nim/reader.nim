@@ -1,4 +1,4 @@
-import re, strutils, sequtils, types
+import options, re, strutils, types
 
 let
   tokenRE = re"""[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"""
@@ -12,16 +12,13 @@ type
     tokens: seq[string]
     position: int
 
-proc next(r: var Reader): string =
-  if r.position >= r.tokens.len:
-    result = nil
-  else:
-    result = r.tokens[r.position]
+proc next(r: var Reader): Option[string] =
+  if r.position < r.tokens.len:
+    result = r.tokens[r.position].some
     inc r.position
 
-proc peek(r: Reader): string =
-  if r.position >= r.tokens.len: nil
-  else: r.tokens[r.position]
+proc peek(r: Reader): Option[string] =
+  if r.position < r.tokens.len: return r.tokens[r.position].some
 
 proc tokenize(str: string): seq[string] =
   result = @[]
@@ -31,7 +28,7 @@ proc tokenize(str: string): seq[string] =
     var len = str.findBounds(tokenRE, matches, pos)
     if len.first != -1 and len.last != -1 and len.last >= len.first:
       pos = len.last + 1
-      if matches[0][0] != ';':
+      if matches[0].len > 0 and matches[0][0] != ';':
         result.add matches[0]
     else:
       inc pos
@@ -41,11 +38,11 @@ proc read_form(r: var Reader): MalType
 proc read_seq(r: var Reader, fr, to: string): seq[MalType] =
   result = @[]
   var t = r.next
-  if t != fr: raise newException(ValueError, "expected '" & fr & "'")
+  if t.get("") != fr: raise newException(ValueError, "expected '" & fr & "'")
 
   t = r.peek
-  while t != to:
-    if t == nil: raise newException(ValueError, "expected '" & to & "', got EOF")
+  while t.get("") != to:
+    if t.get("") == "": raise newException(ValueError, "expected '" & to & "', got EOF")
     result.add r.read_form
     t = r.peek
   discard r.next
@@ -60,12 +57,12 @@ proc read_hash_map(r: var Reader): MalType =
   result = hash_map r.read_seq("{", "}")
 
 proc read_atom(r: var Reader): MalType =
-  let t = r.next
+  let t = r.next.get("")
   if t.match(intRE): number t.parseInt
   elif t[0] == '"':
     if not t.match(strRE):
       raise newException(ValueError, "expected '\"', got EOF")
-    str t[1 .. <t.high].multiReplace(("\\\"", "\""), ("\\n", "\n"), ("\\\\", "\\"))
+    str t[1 ..< t.high].multiReplace(("\\\"", "\""), ("\\n", "\n"), ("\\\\", "\\"))
   elif t[0] == ':':  keyword t[1 .. t.high]
   elif t == "nil":   nilObj
   elif t == "true":  trueObj
@@ -73,10 +70,10 @@ proc read_atom(r: var Reader): MalType =
   else:              symbol t
 
 proc read_form(r: var Reader): MalType =
-  if r.peek[0] == ';':
+  if r.peek.get("")[0] == ';':
     discard r.next
     return nilObj
-  case r.peek
+  case r.peek.get("")
   of "'":
     discard r.next
     result = list(symbol "quote", r.read_form)

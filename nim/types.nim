@@ -1,4 +1,4 @@
-import tables, strutils
+import tables
 
 type
   MalTypeKind* = enum Nil, True, False, Number, Symbol, String,
@@ -110,7 +110,7 @@ proc false_q*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0].kind == False
 
 proc string_q*(xs: varargs[MalType]): MalType {.procvar.} =
-  boolObj(xs[0].kind == String and xs[0].str[0] != '\xff')
+  boolObj(xs[0].kind == String and xs[0].str.len > 0 and xs[0].str[0] != '\xff')
 
 proc symbol*(xs: varargs[MalType]): MalType {.procvar.} =
   symbol(xs[0].str)
@@ -122,7 +122,7 @@ proc keyword*(xs: varargs[MalType]): MalType {.procvar.} =
   keyword(xs[0].str)
 
 proc keyword_q*(xs: varargs[MalType]): MalType {.procvar.} =
-  boolObj(xs[0].kind == String and xs[0].str[0] == '\xff')
+  boolObj(xs[0].kind == String and xs[0].str.len > 0 and xs[0].str[0] == '\xff')
 
 proc number_q*(xs: varargs[MalType]): MalType {.procvar.} =
   boolObj xs[0].kind == Number

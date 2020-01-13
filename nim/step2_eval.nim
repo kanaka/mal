@@ -11,9 +11,9 @@ proc eval_ast(ast: MalType, env: Table[string, MalType]): MalType =
       raise newException(ValueError, "'" & ast.str & "' not found")
     result = env[ast.str]
   of List:
-    result = list ast.list.mapIt(MalType, it.eval(env))
+    result = list ast.list.mapIt(it.eval(env))
   of Vector:
-    result = vector ast.list.mapIt(MalType, it.eval(env))
+    result = vector ast.list.mapIt(it.eval(env))
   of HashMap:
     result = hash_map()
     for k, v in ast.hash_map.pairs:

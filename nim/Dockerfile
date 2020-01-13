@@ -1,4 +1,4 @@
-FROM ubuntu:vivid
+FROM ubuntu:bionic
 MAINTAINER Joel Martin <github@martintribe.org>
 
 ##########################################################
@@ -26,10 +26,10 @@ RUN apt-get -y install g++
 
 # Nim
 RUN apt-get -y install xz-utils
-RUN cd /tmp && curl -O https://nim-lang.org/download/nim-0.17.2.tar.xz \
-    && tar xvJf /tmp/nim-0.17.2.tar.xz && cd nim-0.17.2 \
+RUN cd /tmp && curl -O https://nim-lang.org/download/nim-1.0.4.tar.xz \
+    && tar xvJf /tmp/nim-1.0.4.tar.xz && cd nim-1.0.4 \
     && make && sh install.sh /usr/local/bin \
     && cp bin/nim /usr/local/bin/ \
-    && rm -r /tmp/nim-0.17.2
+    && rm -r /tmp/nim-1.0.4
 
 ENV HOME /mal
