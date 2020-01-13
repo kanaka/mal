@@ -22,17 +22,7 @@ def extractReplEnv(env):
 def extractEnv(env):
     env | .currentEnv // .;
 
-def hasReplEnv(env):
-    env | has("replEnv");
-
-def cWrapEnv(renv; atoms; cond):
-    if cond then
-        wrapEnv(renv; atoms)
-    else
-        .
-    end;
-
-def cUpdateReplEnv(renv; cond):
+def updateReplEnv(renv):
     def findpath:
         if .env.parent then
             .path += ["parent"] |
@@ -41,12 +31,8 @@ def cUpdateReplEnv(renv; cond):
         else
             .path
         end;
-    if cond then
-        ({ env: ., path: [] } | findpath) as $path |
-        setpath($path; renv)
-    else
-        .
-    end;
+    ({ env: ., path: [] } | findpath) as $path |
+    setpath($path; renv);
 
 def extractCurrentReplEnv(env):
     def findpath:
@@ -85,19 +71,18 @@ def addFrees(newEnv; frees):
 def interpret(arguments; env; _eval):
     extractReplEnv(env) as $replEnv |
     extractAtoms(env) as $envAtoms |
-    hasReplEnv(env) as $hasReplEnv |
     (if $DEBUG then _debug("INTERP: \(. | pr_str(env))") else . end) |
     (select(.kind == "fn") |
         arg_check(arguments) | 
             (select(.function == "eval") | 
                 # special function
-                { expr: arguments[0], env: $replEnv|cWrapEnv($replEnv; $envAtoms; $hasReplEnv) }
+                { expr: arguments[0], env: $replEnv|wrapEnv($replEnv; $envAtoms) }
                 | _eval
                 | .env as $xenv
                 | extractReplEnv($xenv) as $xreplenv
                 | setpath(
                     ["env", "currentEnv"];
-                    extractEnv(env) | cUpdateReplEnv($xreplenv; $hasReplEnv))
+                    extractEnv(env) | updateReplEnv($xreplenv))
             ) //
             (select(.function == "reset!") | 
                 # env modifying function
@@ -170,7 +155,7 @@ def interpret(arguments; env; _eval):
             env_multiset($fnEnv; $fn.names; $fn) as $fnEnv |
             {
                 env: env_multiset($fnEnv; $fn.names; $fn)
-                     | cWrapEnv($replEnv; $envAtoms; $hasReplEnv),
+                     | wrapEnv($replEnv; $envAtoms),
                 expr: $fn.body
             }
             | . as $dot
@@ -182,8 +167,8 @@ def interpret(arguments; env; _eval):
             {
                 expr: .expr,
                 env: extractEnv(env)
-                    | cUpdateReplEnv($xreplenv; $hasReplEnv)
-                    | cWrapEnv($xreplenv; $envexp.env.atoms; $hasReplEnv)
+                    | updateReplEnv($xreplenv)
+                    | wrapEnv($xreplenv; $envexp.env.atoms)
             }
             # | . as $dot
             # | _debug("FNPOST " + (.expr | pr_str) + " " + (env_req($dot.expr.env; $fn.binds[0]) | pr_str))

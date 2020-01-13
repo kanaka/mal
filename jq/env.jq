@@ -253,7 +253,7 @@ def env_set_(env; key; value):
         env_set(env; key; value)
     end;
 
-def addToEnv6(envexp; name):
+def addToEnv(envexp; name):
     envexp.expr as $value
     | envexp.env as $rawEnv
     | (if $rawEnv.isReplEnv then
@@ -265,14 +265,6 @@ def addToEnv6(envexp; name):
         expr: $value,
         env: $newEnv
     };
-
-def addToEnv(envexp; name):
-    if envexp.env.replEnv != null then
-        addToEnv6(envexp; name)
-    else {
-        expr: envexp.expr,
-        env: env_set_(envexp.env; name; envexp.expr)
-    } end;
 
 def _env_remove_references(refs):
     if . != null then
