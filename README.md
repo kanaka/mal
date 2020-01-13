@@ -55,7 +55,7 @@
 | [MATLAB](#matlab-gnu-octave-and-matlab) (GNU Octave &amp; MATLAB) | [Joel Martin](https://github.com/kanaka) |
 | [miniMAL](#minimal) ([Repo](https://github.com/kanaka/miniMAL), [Demo](https://kanaka.github.io/miniMAL/)) | [Joel Martin](https://github.com/kanaka) |
 | [NASM](#nasm) | [Ben Dudson](https://github.com/bendudson) |
-| [Nim](#nim-0170) | [Dennis Felsing](https://github.com/def-) |
+| [Nim](#nim-104) | [Dennis Felsing](https://github.com/def-) |
 | [Object Pascal](#object-pascal) | [Joel Martin](https://github.com/kanaka)  |
 | [Objective C](#objective-c) | [Joel Martin](https://github.com/kanaka)  |
 | [OCaml](#ocaml-4010) | [Chris Houser](https://github.com/chouser) |
@@ -675,9 +675,9 @@ make
 ./stepX_YYY
 ```
 
-### Nim 0.17.0
+### Nim 1.0.4
 
-The Nim implementation of mal has been tested with Nim 0.17.0.
+The Nim implementation of mal has been tested with Nim 1.0.4.
 
 ```
 cd nim

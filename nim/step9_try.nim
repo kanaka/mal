@@ -33,9 +33,9 @@ proc eval_ast(ast: MalType, env: var Env): MalType =
   of Symbol:
     result = env.get(ast.str)
   of List:
-    result = list ast.list.mapIt(MalType, it.eval(env))
+    result = list ast.list.mapIt(it.eval(env))
   of Vector:
-    result = vector ast.list.mapIt(MalType, it.eval(env))
+    result = vector ast.list.mapIt(it.eval(env))
   of HashMap:
     result = hash_map()
     for k, v in ast.hash_map.pairs:
@@ -105,11 +105,10 @@ proc eval(ast: MalType, env: Env): MalType =
         return ast.list[1].macroexpand(env)
 
       of "try*":
-        let
-          a1 = ast.list[1]
-          a2 = ast.list[2]
+        let a1 = ast.list[1]
         if ast.list.len <= 2:
             return a1.eval(env)
+        let a2 = ast.list[2]
         if a2.list[0].str == "catch*":
           try:
             return a1.eval(env)
@@ -126,7 +125,7 @@ proc eval(ast: MalType, env: Env): MalType =
 
       of "do":
         let last = ast.list.high
-        discard (list ast.list[1 .. <last]).eval_ast(env)
+        discard (list ast.list[1 ..< last]).eval_ast(env)
         ast = ast.list[last]
         # Continue loop (TCO)
 
