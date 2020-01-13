@@ -290,12 +290,3 @@ def env_remove_references(refs):
       else
         _env_remove_references(refs)
       end;
-
-# for step2
-def lookup(env):
-    env.environment[.] //
-        if env.parent then
-            lookup(env.parent)
-        else
-            jqmal_error("'\(.)' not found")
-        end;

@@ -16,14 +16,6 @@ def arg_check(args):
         .
     end end;
 
-
-def interpret(arguments; env):
-    (select(.kind == "fn") |
-        arg_check(arguments) | core_interp(arguments; env) 
-    ) //
-        jqmal_error("Unsupported native function kind \(.kind)");
-        
-
 def extractReplEnv(env):
     env | .replEnv // .;
 

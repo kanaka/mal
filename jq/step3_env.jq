@@ -1,8 +1,6 @@
 include "reader";
 include "printer";
 include "utils";
-include "interp";
-include "env";
 
 def read_line:
     . as $in
@@ -12,9 +10,80 @@ def read_line:
 def READ:
     read_str | read_form | .value;
 
+# Environment functions
+
+def pureChildEnv:
+    {
+        parent: .,
+        environment: {}
+    };
+
+def env_set(env; $key; $value):
+    {
+        parent: env.parent,
+        environment: (env.environment + (env.environment | .[$key] |= $value)) # merge together, as .environment[key] |= value does not work
+    };
+
+def env_find(env):
+    if env.environment[.] == null then
+        if env.parent then
+            env_find(env.parent)
+        else
+            null
+        end
+    else
+        env
+    end;
+
+def addToEnv(envexp; name):
+    {
+        expr: envexp.expr,
+        env: env_set(envexp.env; name; envexp.expr)
+    };
+
+def env_get(env):
+    . as $key | $key | env_find(env).environment[$key] as $value |
+    if $value == null then
+        jqmal_error("'\($key)' not found")
+    else
+        $value
+    end;
+
+def addEnv(env):
+    {
+        expr: .,
+        env: env
+    };
+    
+# Evaluation
+
+def arg_check(args):
+    if .inputs != (args|length) then
+        jqmal_error("Invalid number of arguments (expected \(.inputs), got \(args|length))")
+    else
+        .
+    end;
+
+def interpret(arguments; env):
+    (select(.kind == "fn") |
+        arg_check(arguments) |
+        (
+            select(.function == "number_add") |
+            arguments | map(.value) | .[0] + .[1] | wrap("number")
+        ) // (
+            select(.function == "number_sub") |
+            arguments | map(.value) | .[0] - .[1] | wrap("number")
+        ) // (
+            select(.function == "number_mul") |
+            arguments | map(.value) | .[0] * .[1] | wrap("number")
+        ) // (
+            select(.function == "number_div") |
+            arguments | map(.value) | .[0] / .[1] | wrap("number")
+        )
+    ) | addEnv(env) //
+        jqmal_error("Unsupported native function kind \(.kind)");
+
 def EVAL(env):
-    def _eval_here:
-        .env as $env | .expr | EVAL($env);
     def hmap_with_env:
         .env as $env | .list as $list |
             if $list|length == 0 then
@@ -63,7 +132,7 @@ def EVAL(env):
                             ($dot + [$eval_env.expr])
                     ) | { expr: ., env: env } as $ev
                         | $ev.expr | first |
-                            interpret($ev.expr[1:]; $ev.env; _eval_here)
+                            interpret($ev.expr[1:]; $ev.env)
                 ) //
                     addEnv(env)
             )

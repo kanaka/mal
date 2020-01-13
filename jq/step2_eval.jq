@@ -1,7 +1,6 @@
 include "reader";
 include "printer";
 include "utils";
-include "interp";
 
 def read_line:
     . as $in
@@ -14,6 +13,32 @@ def READ:
 def lookup(env):
     env[.] //
             jqmal_error("'\(.)' not found");
+
+def arg_check(args):
+    if .inputs != (args|length) then
+        jqmal_error("Invalid number of arguments (expected \(.inputs), got \(args|length))")
+    else
+        .
+    end;
+
+def interpret(arguments; env):
+    (select(.kind == "fn") |
+        arg_check(arguments) |
+        (
+            select(.function == "number_add") |
+            arguments | map(.value) | .[0] + .[1] | wrap("number")
+        ) // (
+            select(.function == "number_sub") |
+            arguments | map(.value) | .[0] - .[1] | wrap("number")
+        ) // (
+            select(.function == "number_mul") |
+            arguments | map(.value) | .[0] * .[1] | wrap("number")
+        ) // (
+            select(.function == "number_div") |
+            arguments | map(.value) | .[0] / .[1] | wrap("number")
+        )
+    ) //
+        jqmal_error("Unsupported native function kind \(.kind)");
 
 def EVAL(env):
     def eval_ast:
