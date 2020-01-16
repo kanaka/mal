@@ -93,6 +93,12 @@
 (f)
 ;=>9
 
+;; Testing whether closures can retain atoms
+(def! g (let* (atm (atom 0)) (fn* () (deref atm))))
+(def! atm (atom 1))
+(g)
+;=>0
+
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
