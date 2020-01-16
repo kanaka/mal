@@ -276,7 +276,7 @@ def EVAL(env):
                                     ($value[2] | find_free_references($currentEnv | env_dump_keys + $binds)) as $free_referencess | {
                                         kind: "function",
                                         binds: $binds,
-                                        env: $_menv,
+                                        env: ($_menv | env_remove_references($free_referencess)),
                                         body: $value[2],
                                         names: [], # we can't do that circular reference thing
                                         free_referencess: $free_referencess,  # for dynamically scoped variables

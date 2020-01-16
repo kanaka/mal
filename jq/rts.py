@@ -9,7 +9,7 @@ from sys import argv
 import fcntl
 
 DEBUG = False
-HALT = False 
+HALT = False
 
 # Bestow IO upon jq
 
@@ -63,7 +63,7 @@ def get_one(fd):
     if s == "":
         return None
     return s.decode('utf-8')
-    
+
 
 def main(args):
     args = [
