@@ -174,7 +174,7 @@ def env_req(env; key):
     end;
 
 def env_set(env; $key; $value):
-    (if $value.kind == "function" or $value.kind == "atom" then
+    (if $value.kind == "function" then
         # inform the function/atom of its names
         $value | (.names += [$key]) | (.names |= unique)
     else 
@@ -256,17 +256,26 @@ def addToEnv(envexp; name):
 
 def _env_remove_references(refs):
     if . != null then
-        {
-            environment: (.environment | to_entries | map(select(.key as $key | refs | contains([$key]) | not)) | from_entries),
-            parent: (.parent | _env_remove_references(refs)),
-            fallback: (.fallback | _env_remove_references(refs))
-        }
+        if .environment == null then
+            _debug("This one broke the rules, officer: \(.)")
+        else
+            {
+                environment: (.environment | to_entries | map(select(.key as $key | refs | contains([$key]) | not)) | from_entries),
+                parent: (.parent | _env_remove_references(refs)),
+                fallback: (.fallback | _env_remove_references(refs))
+            }
+        end
     else . end;
 
 def env_remove_references(refs):
     . as $env 
-    | if has("replEnv") then
-        .currentEnv |= _env_remove_references(refs)
-      else
-        _env_remove_references(refs)
-      end;
+    | if (refs|length == 0) then
+        # optimisation: most functions are purely lexical
+        $env
+    else 
+        if has("replEnv") then
+            .currentEnv |= _env_remove_references(refs)
+        else
+            _env_remove_references(refs)
+        end
+    end;
