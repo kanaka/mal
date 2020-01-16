@@ -45,7 +45,7 @@
 | [Io](#io) | [Dov Murik](https://github.com/dubek) |
 | [Java](#java-17) | [Joel Martin](https://github.com/kanaka)  |
 | [JavaScript](#javascriptnode) ([Demo](http://kanaka.github.io/mal)) | [Joel Martin](https://github.com/kanaka) |
-| [Jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
+| [jq](#jq) | [Ali MohammadPur](https://github.com/alimpfard) |
 | [Julia](#julia) | [Joel Martin](https://github.com/kanaka)  |
 | [Kotlin](#kotlin) | [Javier Fernandez-Ivern](https://github.com/ivern) |
 | [LiveScript](#livescript) | [Jos van Bakel](https://github.com/c0deaddict) |
@@ -605,7 +605,7 @@ cd julia
 julia stepX_YYY.jl
 ```
 
-### Jq
+### jq
 
 Tested against version 1.6, with a lot of cheating in the IO department
 
