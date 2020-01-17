@@ -12,3 +12,8 @@ mal: mal.wren
 	echo "#!/usr/bin/env wren" > $@
 	cat $< >> $@
 	chmod +x $@
+
+.PHONY: clean
+
+clean:
+	rm -f mal.wren mal

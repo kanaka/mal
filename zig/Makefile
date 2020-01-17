@@ -9,3 +9,8 @@ dist: mal
 %: %.zig
 	zig build -Drelease-fast=true
 	ln -sf zig-cache/bin/$* .
+
+.PHONY: clean
+
+clean:
+	rm -f $(STEPS)
