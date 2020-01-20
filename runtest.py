@@ -88,7 +88,7 @@ class Runner():
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                            preexec_fn=os.setsid,
-                           env=env)
+                           env=env, close_fds=True)
             self.stdin = self.p.stdin
             self.stdout = self.p.stdout
         else:
@@ -103,7 +103,7 @@ class Runner():
             self.p = Popen(args, bufsize=0,
                            stdin=slave, stdout=slave, stderr=STDOUT,
                            preexec_fn=os.setsid,
-                           env=env)
+                           env=env, close_fds=True)
             # Now close slave so that we will get an exception from
             # read when the child exits early
             # http://stackoverflow.com/questions/11165521
