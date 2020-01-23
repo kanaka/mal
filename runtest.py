@@ -71,6 +71,26 @@ parser.add_argument('mal_cmd', nargs="*",
 parser.add_argument('--crlf', dest='crlf', action='store_true',
         help="Write \\r\\n instead of \\n to the input")
 
+import errno
+def list_fds():
+    """List process currently open FDs and their target """
+    if sys.platform != 'linux2':
+        raise NotImplementedError('Unsupported platform: %s' % sys.platform)
+
+    ret = {}
+    base = '/proc/self/fd'
+    for num in os.listdir(base):
+        path = None
+        try:
+            path = os.readlink(os.path.join(base, num))
+        except OSError as err:
+            # Last FD is always the "listdir" one (which may be closed)
+            if err.errno != errno.ENOENT:
+                raise
+        ret[int(num)] = path
+
+    return ret
+
 class Runner():
     def __init__(self, args, no_pty=False, line_break="\n"):
         #print "args: %s" % repr(args)
@@ -84,6 +104,7 @@ class Runner():
         env['TERM'] = 'dumb'
         env['INPUTRC'] = '/dev/null'
         env['PERL_RL'] = 'false'
+        print("FDS before: %s" % list_fds())
         if no_pty:
             self.p = Popen(args, bufsize=0,
                            stdin=PIPE, stdout=PIPE, stderr=STDOUT,
@@ -110,6 +131,8 @@ class Runner():
             os.close(slave)
             self.stdin = os.fdopen(master, 'r+b', 0)
             self.stdout = self.stdin
+
+        print("FDS after: %s" % list_fds())
 
         #print "started"
         self.buf = ""
