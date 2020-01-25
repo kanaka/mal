@@ -4,8 +4,8 @@ export do_readline
 
 function do_readline(prompt)
     print(prompt)
-    flush(STDOUT)
-    line = readline(STDIN)
+    flush(stdout)
+    line = readline(stdin)
     if line == ""
         return nothing
     end
