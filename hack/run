@@ -1,0 +1,2 @@
+#!/bin/bash
+exec hhvm -c .hhvmconfig.hdf $(dirname $0)/bin/${STEP:-stepA_mal}.hack "${@}"

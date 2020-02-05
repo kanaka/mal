@@ -11,6 +11,7 @@
 .sbt
 .npm
 .node-gyp
+*.hhast.parser-cache
 package-lock.json
 .elm
 */experiments
@@ -63,6 +64,7 @@ fsharp/*.mdb
 go/step*
 groovy/*.class
 groovy/mal.jar
+hack/vendor
 haskell/*.hi
 haskell/*.o
 haxe/*.n
@@ -139,8 +141,6 @@ common-lisp/images/*
 common-lisp/hist/*
 livescript/*.js
 !livescript/node_readline.js
-livescript/node_modules
-elm/node_modules
 elm/elm-stuff
 elm/*.js
 !elm/node_readline.js
