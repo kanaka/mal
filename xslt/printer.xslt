@@ -8,9 +8,23 @@
         </xsl:variable> 
         <xsl:for-each select="$value">
             <xsl:choose>
+            <xsl:when test="malval/@kind = 'true'">
+                <value>true</value>
+            </xsl:when>
+            <xsl:when test="malval/@kind = 'false'">
+                <value>false</value>
+            </xsl:when>
+            <xsl:when test="malval/@kind = 'nil'">
+                <value>nil</value>
+            </xsl:when>
             <xsl:when test="malval/@kind = 'string'">
                 <value>
                     <xsl:value-of select="concat('&quot;', malval/@value, '&quot;')" />
+                </value>
+            </xsl:when>
+            <xsl:when test="malval/@kind = 'keyword'">
+                <value>
+                    <xsl:value-of select="concat(':', malval/@value)" />
                 </value>
             </xsl:when>
             <xsl:when test="malval/@kind = 'symbol'">

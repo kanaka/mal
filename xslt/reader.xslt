@@ -84,6 +84,9 @@
                                 </xsl:otherwise>
                             </xsl:choose>
                         </xsl:when>
+                        <xsl:when test="starts-with($match, ':')">
+                            <token type="keyword" text="{replace($match, ':(.*)', '$1')}"/>
+                        </xsl:when>
                         <xsl:when test="starts-with($match, ';')">
                           <!-- ignore comments -->
                         </xsl:when>
@@ -222,6 +225,26 @@
                 <xsl:when test="value/token/@type = 'string'">
                     <value>
                         <malval kind="string" value="{value/token/@text}" />
+                    </value>
+                </xsl:when>
+                <xsl:when test="value/token/@type = 'keyword'">
+                    <value>
+                        <malval kind="keyword" value="{value/token/@text}" />
+                    </value>
+                </xsl:when>
+                <xsl:when test="value/token/@type = 'true'">
+                    <value>
+                        <malval kind="true"/>
+                    </value>
+                </xsl:when>
+                <xsl:when test="value/token/@type = 'false'">
+                    <value>
+                        <malval kind="false"/>
+                    </value>
+                </xsl:when>
+                <xsl:when test="value/token/@type = 'nil'">
+                    <value>
+                        <malval kind="nil"/>
                     </value>
                 </xsl:when>
                 <xsl:otherwise>
