@@ -2,49 +2,49 @@
 <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <!-- Expects a "tokens" in current scope -->
     <xsl:template name="malreader-peek">
-        <!-- <xsl:message>PEEK <xsl:copy-of select=".">
+        <!-- <xsl:message>PEEK <xsl:sequence select=".">
               
-            </xsl:copy-of>
+            </xsl:sequence>
         
         ;</xsl:message> -->
       <xsl:variable name="context">
         <tokens>
-            <xsl:copy-of select="tokens/*" />
+            <xsl:sequence select="tokens/*" />
         </tokens>
         <value>
             <xsl:for-each select="tokens/token[1]">
-                <xsl:copy-of select="."></xsl:copy-of>
+                <xsl:sequence select="."></xsl:sequence>
             </xsl:for-each>
         </value>
-        <xsl:copy-of select="lvalue"></xsl:copy-of>
-        <xsl:copy-of select="error"></xsl:copy-of>
+        <xsl:sequence select="lvalue"></xsl:sequence>
+        <xsl:sequence select="error"></xsl:sequence>
       </xsl:variable>
-      <xsl:for-each select="$context"><xsl:copy-of select="." /></xsl:for-each>
+      <xsl:for-each select="$context"><xsl:sequence select="." /></xsl:for-each>
     </xsl:template>
 
 
     <xsl:template name="malreader-next">
-        <!-- <xsl:message>NEXT <xsl:copy-of select=".">
+        <!-- <xsl:message>NEXT <xsl:sequence select=".">
               
-            </xsl:copy-of>
+            </xsl:sequence>
         
         ;
         </xsl:message> -->
       <xsl:variable name="context">
         <tokens>
             <xsl:for-each select="tokens/token[position() != 1]">
-                <xsl:copy-of select="." />
+                <xsl:sequence select="." />
             </xsl:for-each>
         </tokens>
         <value>
             <xsl:for-each select="tokens/token[1]">
-                <xsl:copy-of select="."></xsl:copy-of>
+                <xsl:sequence select="."></xsl:sequence>
             </xsl:for-each>
         </value>
-        <xsl:copy-of select="lvalue"></xsl:copy-of>
-        <xsl:copy-of select="error"></xsl:copy-of>
+        <xsl:sequence select="lvalue"></xsl:sequence>
+        <xsl:sequence select="error"></xsl:sequence>
       </xsl:variable>
-      <xsl:for-each select="$context"><xsl:copy-of select="./*" /></xsl:for-each>
+      <xsl:for-each select="$context"><xsl:sequence select="./*" /></xsl:for-each>
     </xsl:template>
 
     <xsl:template name="malreader-read_str">
@@ -57,14 +57,14 @@
         <xsl:for-each select="$context">
             <xsl:call-template name="malreader-read_form"></xsl:call-template>
         </xsl:for-each>
-        <!-- <xsl:copy-of select="$context" /> -->
+        <!-- <xsl:sequence select="$context" /> -->
     </xsl:template>
 
     <xsl:template name="malreader-tokenize">
         <xsl:analyze-string select="str" regex="[\s,]*(~@|[\[\]{{}}()'`~^@]|&quot;(?:\\.|[^\\&quot;])*&quot;?|;.*|[^\s\[\]{{}}('&quot;`,;)]+)" flags=";j">
             <xsl:matching-substring>
                 <xsl:variable name="match">
-                  <xsl:copy-of select="regex-group(1)" />
+                  <xsl:sequence select="regex-group(1)" />
                 </xsl:variable>
                 <xsl:if test="string-length($match) > 0">
                     <xsl:choose>
@@ -80,7 +80,7 @@
                                     <token type="string" text="{replace($match, '&quot;(.*)&quot;', '$1')}"> </token>
                                 </xsl:when>
                                 <xsl:otherwise>
-                                    <token type="error" text="Unbalanced quotes"></token>
+                                    <token type="error" text="EOF while reading string"></token>
                                 </xsl:otherwise>
                             </xsl:choose>
                         </xsl:when>
@@ -119,9 +119,12 @@
         <xsl:variable name="peek">
             <xsl:call-template name="malreader-peek"></xsl:call-template>
         </xsl:variable>
+        <xsl:variable name="next">
+            <xsl:call-template name="malreader-next"></xsl:call-template>
+        </xsl:variable>
         <xsl:for-each select="$peek">
             <xsl:choose>
-                <xsl:when test="value/token/@text = '('">
+                <xsl:when test="value/token/@text = '(' and value/token/@type = 'special'">
                     <xsl:variable name="next">
                         <xsl:call-template name="malreader-next"></xsl:call-template>
                     </xsl:variable>
@@ -130,6 +133,169 @@
                             <xsl:value-of select="value/token/@text" /> <!-- listkind [/(/{ -->
                         </xsl:variable>
                         <xsl:call-template name="malreader-read_list" />
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:when test="value/token/@text = &quot;'&quot; and value/token/@type = 'special'">
+                    <xsl:for-each select="$next">
+                        <xsl:variable name="inner">
+                            <xsl:variable name="ctx">
+                                <xsl:sequence select="tokens"/>
+                            </xsl:variable>
+                            <xsl:for-each select="$ctx">
+                                <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:for-each select="$inner">
+                            <value>
+                                <malval kind="list">
+                                    <lvalue>
+                                        <malval kind="symbol" value="quote"></malval>
+                                        <xsl:sequence select="/value/malval" />
+                                    </lvalue>
+                                </malval>
+                            </value>
+                            <xsl:sequence select="tokens"/>
+                            <xsl:sequence select="error"/>
+                        </xsl:for-each>
+                        <xsl:sequence select="lvalue"/> <!-- preserve previous list (if any) -->
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:when test="value/token/@text = '`' and value/token/@type = 'special'">
+                    <xsl:for-each select="$next">
+                        <xsl:variable name="inner">
+                            <xsl:variable name="ctx">
+                                <xsl:sequence select="tokens"/>
+                            </xsl:variable>
+                            <xsl:for-each select="$ctx">
+                                <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:for-each select="$inner">
+                            <value>
+                                <malval kind="list">
+                                    <lvalue>
+                                        <malval kind="symbol" value="quasiquote"></malval>
+                                        <xsl:sequence select="/value/malval" />
+                                    </lvalue>
+                                </malval>
+                            </value>
+                            <xsl:sequence select="tokens"/>
+                            <xsl:sequence select="error"/>
+                        </xsl:for-each>
+                        <xsl:sequence select="lvalue"/> <!-- preserve previous list (if any) -->
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:when test="value/token/@text = '~' and value/token/@type = 'special'">
+                    <xsl:for-each select="$next">
+                        <xsl:variable name="inner">
+                            <xsl:variable name="ctx">
+                                <xsl:sequence select="tokens"/>
+                            </xsl:variable>
+                            <xsl:for-each select="$ctx">
+                                <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:for-each select="$inner">
+                            <value>
+                                <malval kind="list">
+                                    <lvalue>
+                                        <malval kind="symbol" value="unquote"></malval>
+                                        <xsl:sequence select="/value/malval" />
+                                    </lvalue>
+                                </malval>
+                            </value>
+                            <xsl:sequence select="tokens"/>
+                            <xsl:sequence select="error"/>
+                        </xsl:for-each>
+                        <xsl:sequence select="lvalue"/> <!-- preserve previous list (if any) -->
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:when test="value/token/@text = '~@' and value/token/@type = 'special'">
+                    <xsl:for-each select="$next">
+                        <xsl:variable name="inner">
+                            <xsl:variable name="ctx">
+                                <xsl:sequence select="tokens"/>
+                            </xsl:variable>
+                            <xsl:for-each select="$ctx">
+                                <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:for-each select="$inner">
+                            <value>
+                                <malval kind="list">
+                                    <lvalue>
+                                        <malval kind="symbol" value="splice-unquote"></malval>
+                                        <xsl:sequence select="/value/malval" />
+                                    </lvalue>
+                                </malval>
+                            </value>
+                            <xsl:sequence select="tokens"/>
+                            <xsl:sequence select="error"/>
+                        </xsl:for-each>
+                        <xsl:sequence select="lvalue"/> <!-- preserve previous list (if any) -->
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:when test="value/token/@text = '@' and value/token/@type = 'special'">
+                    <xsl:for-each select="$next">
+                        <xsl:variable name="inner">
+                            <xsl:variable name="ctx">
+                                <xsl:sequence select="tokens"/>
+                            </xsl:variable>
+                            <xsl:for-each select="$ctx">
+                                <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:for-each select="$inner">
+                            <value>
+                                <malval kind="list">
+                                    <lvalue>
+                                        <malval kind="symbol" value="deref"></malval>
+                                        <xsl:sequence select="/value/malval" />
+                                    </lvalue>
+                                </malval>
+                            </value>
+                            <xsl:sequence select="tokens"/>
+                            <xsl:sequence select="error"/>
+                        </xsl:for-each>
+                        <xsl:sequence select="lvalue"/> <!-- preserve previous list (if any) -->
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:when test="value/token/@text = '^' and value/token/@type = 'special'">
+                    <xsl:for-each select="$next">
+                        <xsl:variable name="meta">
+                            <xsl:variable name="ctx">
+                                <xsl:sequence select="tokens"/>
+                            </xsl:variable>
+                            <xsl:for-each select="$ctx">
+                                <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:variable name="form">
+                            <xsl:for-each select="$meta">
+                                <xsl:variable name="ctx">
+                                    <xsl:sequence select="tokens"/>
+                                </xsl:variable>
+                                <xsl:for-each select="$ctx">
+                                    <xsl:call-template name="malreader-read_form"></xsl:call-template>
+                                </xsl:for-each>
+                            </xsl:for-each>
+                        </xsl:variable>
+                        <xsl:for-each select="$form">
+                            <value>
+                                <malval kind="list">
+                                    <lvalue>
+                                        <malval kind="symbol" value="with-meta"></malval>
+                                        <xsl:sequence select="/value/malval" />
+                                        <xsl:for-each select="$meta">
+                                            <xsl:sequence select="/value/malval"/>
+                                        </xsl:for-each>
+                                    </lvalue>
+                                </malval>
+                            </value>
+                            <xsl:sequence select="tokens"/>
+                            <xsl:sequence select="error"/>
+                        </xsl:for-each>
+                        <xsl:sequence select="lvalue"/> <!-- preserve previous list (if any) -->
                     </xsl:for-each>
                 </xsl:when>
                 <xsl:otherwise>
@@ -144,11 +310,11 @@
         <xsl:call-template name="malreader-read_list_helper"></xsl:call-template>
       </xsl:variable>
       <xsl:for-each select="$value">
-        <xsl:copy-of select="tokens" />
-        <xsl:copy-of select="error" />
+        <xsl:sequence select="tokens" />
+        <xsl:sequence select="error" />
         <value>
             <malval kind="list">
-                <xsl:copy-of select="lvalue[1]"/>
+                <xsl:sequence select="lvalue[1]"/>
             </malval>
         </value>
       </xsl:for-each>
@@ -167,9 +333,9 @@
                         <xsl:variable name="next">
                             <xsl:call-template name="malreader-next"></xsl:call-template>
                         </xsl:variable>
-                        <xsl:copy-of select="lvalue" />
-                        <xsl:copy-of select="$next/tokens" />
-                        <xsl:copy-of select="error" />
+                        <xsl:sequence select="lvalue" />
+                        <xsl:sequence select="$next/tokens" />
+                        <xsl:sequence select="error" />
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:variable name="form">
@@ -177,15 +343,15 @@
                         </xsl:variable>
                         <xsl:variable name="context">
                             <xsl:for-each select="$form">
-                            <!-- <xsl:message>READ_FORM <xsl:copy-of select=".">
+                            <!-- <xsl:message>READ_FORM <xsl:sequence select=".">
                                   
-                                </xsl:copy-of>
+                                </xsl:sequence>
                             
                             ;</xsl:message> -->
-                                <xsl:copy-of select="tokens" />
+                                <xsl:sequence select="tokens" />
                                 <lvalue>
-                                    <xsl:for-each select="lvalue/malval"><xsl:copy-of select="." /></xsl:for-each>
-                                    <xsl:for-each select="value/malval"><xsl:copy-of select="."/></xsl:for-each>
+                                    <xsl:for-each select="lvalue/malval"><xsl:sequence select="." /></xsl:for-each>
+                                    <xsl:for-each select="value/malval"><xsl:sequence select="."/></xsl:for-each>
                                 </lvalue>
                             </xsl:for-each>
                         </xsl:variable>
@@ -194,11 +360,11 @@
                         </xsl:for-each>
                     </xsl:otherwise>
                 </xsl:choose>
-                <xsl:copy-of select="lvalue"/>
+                <xsl:sequence select="lvalue"/>
             </xsl:for-each>
           </xsl:when>
           <xsl:otherwise>
-              <error><malval kind="error">Unbalanced input</malval></error>
+              <error><malval kind="error">EOF while reading list</malval></error>
           </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -208,9 +374,9 @@
           <xsl:call-template name="malreader-next"></xsl:call-template>
         </xsl:variable>
         <xsl:for-each select="$next">
-            <xsl:copy-of select="tokens"/>
-            <xsl:copy-of select="lvalue"/>
-            <xsl:copy-of select="error"/>
+            <xsl:sequence select="tokens"/>
+            <xsl:sequence select="lvalue"/>
+            <xsl:sequence select="error"/>
             <xsl:choose>
                 <xsl:when test="value/token/@type = 'number'">
                     <value>

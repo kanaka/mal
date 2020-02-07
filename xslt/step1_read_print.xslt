@@ -29,7 +29,7 @@
         </xsl:variable>
         <xsl:for-each select="$ctx">
           <xsl:variable name="str">
-            <xsl:call-template name="malprinter-pr_str"></xsl:call-template>
+            <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="true()"/></xsl:call-template>
           </xsl:variable>
           <xsl:value-of select="$str" />
         </xsl:for-each>
