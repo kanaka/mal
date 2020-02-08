@@ -56,6 +56,40 @@
                     </value>
                 </xsl:for-each>
             </xsl:when>
+            <xsl:when test="malval/@kind = 'vector'">
+                <xsl:variable name="val">
+                    <xsl:for-each select="malval/lvalue/malval">
+                        <xsl:variable name="ctx">
+                            <value><xsl:copy-of select="." /></value>
+                        </xsl:variable>
+                        <xsl:for-each select="$ctx">
+                            <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="$readably"/></xsl:call-template>
+                        </xsl:for-each>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:for-each select="$val">
+                    <value>
+                        <xsl:value-of select="concat('[', string-join(/value, ' '), ']')" />
+                    </value>
+                </xsl:for-each>
+            </xsl:when>
+            <xsl:when test="malval/@kind = 'hash'">
+                <xsl:variable name="val">
+                    <xsl:for-each select="malval/lvalue/malval">
+                        <xsl:variable name="ctx">
+                            <value><xsl:copy-of select="." /></value>
+                        </xsl:variable>
+                        <xsl:for-each select="$ctx">
+                            <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="$readably"/></xsl:call-template>
+                        </xsl:for-each>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:for-each select="$val">
+                    <value>
+                        <xsl:value-of select="concat('{', string-join(/value, ' '), '}')" />
+                    </value>
+                </xsl:for-each>
+            </xsl:when>
             <xsl:otherwise>
                 <value>Unknown <xsl:copy-of select="." /></value>
             </xsl:otherwise>
@@ -67,7 +101,7 @@
         <xsl:param name="str" as="xs:string" />
         <xsl:param name="readable" as="xs:boolean" />
         <xsl:choose>
-          <xsl:when test="$readable">
+          <xsl:when test="not($readable)">
             <xsl:variable name="sx">
                 <xsl:analyze-string select="$str" regex="\\(n|&quot;|\\)">
                     <xsl:matching-substring>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
     <!-- Expects a "tokens" in current scope -->
     <xsl:template name="malreader-peek">
         <!-- <xsl:message>PEEK <xsl:sequence select=".">
@@ -59,7 +59,7 @@
         </xsl:for-each>
         <!-- <xsl:sequence select="$context" /> -->
     </xsl:template>
-
+    
     <xsl:template name="malreader-tokenize">
         <xsl:analyze-string select="str" regex="[\s,]*(~@|[\[\]{{}}()'`~^@]|&quot;(?:\\.|[^\\&quot;])*&quot;?|;.*|[^\s\[\]{{}}('&quot;`,;)]+)" flags=";j">
             <xsl:matching-substring>
@@ -68,14 +68,11 @@
                 </xsl:variable>
                 <xsl:if test="string-length($match) > 0">
                     <xsl:choose>
-                        <xsl:when test="starts-with($match, '~@')">
-                            <token type="special" text="~@" />
-                        </xsl:when>
-                        <xsl:when test="matches($match, '[\[\]\{\}()''`~^@]')">
-                            <token type="special" text="{$match}"></token>
-                        </xsl:when>
                         <xsl:when test="starts-with($match, '&quot;')">
                             <xsl:choose>
+                                <xsl:when test="fn:check_string($match)">
+                                    <token type="error" text="EOF while reading string or invalid escape in string"></token>
+                                </xsl:when>
                                 <xsl:when test="ends-with($match, '&quot;')">
                                     <token type="string" text="{replace($match, '&quot;(.*)&quot;', '$1')}"> </token>
                                 </xsl:when>
@@ -90,6 +87,12 @@
                         <xsl:when test="starts-with($match, ';')">
                           <!-- ignore comments -->
                         </xsl:when>
+                        <xsl:when test="starts-with($match, '~@')">
+                            <token type="special" text="~@" />
+                        </xsl:when>
+                        <xsl:when test="matches($match, '[\[\]\{\}()''`~^@]')">
+                            <token type="special" text="{$match}"></token>
+                        </xsl:when>
                         <xsl:otherwise>
                             <xsl:choose>
                                 <xsl:when test="$match = 'false'">
@@ -101,7 +104,7 @@
                                 <xsl:when test="$match = 'nil'">
                                     <token type="nil"></token>
                                 </xsl:when>
-                                <xsl:when test="matches($match, '^\d+$')">
+                                <xsl:when test="matches($match, '^-?\d+$')">
                                     <token type="number" text="{$match}"></token>
                                 </xsl:when>
                                 <xsl:otherwise>
@@ -124,7 +127,10 @@
         </xsl:variable>
         <xsl:for-each select="$peek">
             <xsl:choose>
-                <xsl:when test="value/token/@text = '(' and value/token/@type = 'special'">
+                <xsl:when test="value/token/@type = 'error'">
+                  <error><malval kind="error"><xsl:value-of select="value/token/@text"/></malval></error>
+                </xsl:when>
+                <xsl:when test="contains('([{', value/token/@text) and value/token/@type = 'special'">
                     <xsl:variable name="next">
                         <xsl:call-template name="malreader-next"></xsl:call-template>
                     </xsl:variable>
@@ -132,7 +138,7 @@
                         <xsl:variable name="listkind">
                             <xsl:value-of select="value/token/@text" /> <!-- listkind [/(/{ -->
                         </xsl:variable>
-                        <xsl:call-template name="malreader-read_list" />
+                        <xsl:call-template name="malreader-read_list"><xsl:with-param name="listkind" select="$listkind"/></xsl:call-template>
                     </xsl:for-each>
                 </xsl:when>
                 <xsl:when test="value/token/@text = &quot;'&quot; and value/token/@type = 'special'">
@@ -306,21 +312,49 @@
     </xsl:template>
 
     <xsl:template name="malreader-read_list">
+      <xsl:param name="listkind" as="xs:string" />
+      <xsl:variable name="prev_lvalue">
+        <xsl:copy-of select="lvalue"/>
+      </xsl:variable>
       <xsl:variable name="value">
-        <xsl:call-template name="malreader-read_list_helper"></xsl:call-template>
+        <xsl:variable name="ctx">
+          <xsl:sequence select="tokens"/>
+        </xsl:variable>
+        <xsl:for-each select="$ctx">
+            <xsl:call-template name="malreader-read_list_helper"><xsl:with-param name="listkind" select="$listkind"/></xsl:call-template>
+        </xsl:for-each>
       </xsl:variable>
       <xsl:for-each select="$value">
         <xsl:sequence select="tokens" />
-        <xsl:sequence select="error" />
-        <value>
-            <malval kind="list">
-                <xsl:sequence select="lvalue[1]"/>
-            </malval>
-        </value>
+        <xsl:variable name="value">
+            <value>
+                <malval kind="{fn:list-kind($listkind)}">
+                    <xsl:sequence select="lvalue[1]"/>
+                </malval>
+            </value>
+        </xsl:variable>
+        <xsl:choose>
+            <xsl:when test="$listkind = '{'">
+                <xsl:choose>
+                    <xsl:when test="count($value/value/malval/lvalue/malval) mod 2 = 1">
+                        <error><malval kind="error">Odd number of values to hash</malval></error>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:sequence select="$value"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:sequence select="$value"/>
+                <xsl:sequence select="error" />
+            </xsl:otherwise>
+        </xsl:choose>
+        <xsl:sequence select="$prev_lvalue"/>
       </xsl:for-each>
     </xsl:template>
 
     <xsl:template name="malreader-read_list_helper">
+        <xsl:param name="listkind" as="xs:string" />
         <xsl:choose>
           <xsl:when test="count(tokens/*) > 0">
             <xsl:variable name="peek">
@@ -328,7 +362,7 @@
             </xsl:variable>
             <xsl:for-each select="$peek">
                 <xsl:choose>
-                    <xsl:when test="value/token/@text = ')' and value/token/@type = 'special'">
+                    <xsl:when test="value/token/@text = fn:list-ender($listkind) and value/token/@type = 'special'">
                         <!-- ok -->
                         <xsl:variable name="next">
                             <xsl:call-template name="malreader-next"></xsl:call-template>
@@ -356,7 +390,7 @@
                             </xsl:for-each>
                         </xsl:variable>
                         <xsl:for-each select="$context">
-                            <xsl:call-template name="malreader-read_list_helper"/>
+                            <xsl:call-template name="malreader-read_list_helper"><xsl:with-param name="listkind" select="$listkind"/></xsl:call-template>
                         </xsl:for-each>
                     </xsl:otherwise>
                 </xsl:choose>
@@ -414,11 +448,35 @@
                     </value>
                 </xsl:when>
                 <xsl:otherwise>
-                    <value>
-                        <malval kind="error" value="{value/token}" />
-                    </value>
+                    <error>
+                        <malval kind="error"><xsl:sequence select="value"/></malval>
+                    </error>
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:for-each>
     </xsl:template>
+
+    <xsl:function name="fn:check_string" as="xs:boolean">
+        <xsl:param name="str" as="xs:string" />
+        <xsl:sequence select="$str = '&quot;' or matches($str, '\\[^\\n&quot;]|[^\\]\\(\\\\)*&quot;$')" />
+    </xsl:function>
+
+    <xsl:function name="fn:list-ender" as="xs:string">
+        <xsl:param name="str" as="xs:string" />
+        <xsl:choose>
+            <xsl:when test="$str = '('"><xsl:sequence select="')'" /></xsl:when>
+            <xsl:when test="$str = '['"><xsl:sequence select="']'" /></xsl:when>
+            <xsl:otherwise><xsl:sequence select="'}'" /></xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
+    <xsl:function name="fn:list-kind" as="xs:string">
+        <xsl:param name="str" as="xs:string" />
+        <xsl:choose>
+            <xsl:when test="$str = '('"><xsl:sequence select="'list'" /></xsl:when>
+            <xsl:when test="$str = '['"><xsl:sequence select="'vector'" /></xsl:when>
+            <xsl:otherwise><xsl:sequence select="'hash'" /></xsl:otherwise>
+        </xsl:choose>
+    </xsl:function>
+
 </xsl:stylesheet>
