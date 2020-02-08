@@ -90,6 +90,11 @@
                     </value>
                 </xsl:for-each>
             </xsl:when>
+            <xsl:when test="malval/@kind = 'nfunction'">
+                <value>
+                    <xsl:value-of select="concat('#/fn ', malval/@name, '/')" />
+                </value>
+            </xsl:when>
             <xsl:otherwise>
                 <value>Unknown <xsl:copy-of select="." /></value>
             </xsl:otherwise>

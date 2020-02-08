@@ -18,7 +18,7 @@
       <mal>
         <stdin></stdin> <!-- clear stdin -->
         <xsl:copy-of select="state" /> <!-- preserve state -->
-        <stdout><xsl:call-template name="PRINT" /></stdout> <!-- copy stdin to stdout -->
+        <stdout><xsl:call-template name="PRINT" /></stdout>
       </mal>
     </xsl:template>
 
