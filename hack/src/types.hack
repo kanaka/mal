@@ -26,6 +26,12 @@ final class Keyword implements Key {
   public function __construct(public string $name) {}
 }
 
+final class BoolAtom implements Atom {
+  public function __construct(public bool $value) {}
+}
+
 final class Symbol implements Atom {
   public function __construct(public string $name) {}
 }
+
+final class GlobalNil implements Atom {}

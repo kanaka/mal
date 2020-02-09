@@ -107,12 +107,22 @@ function read_children_form<TForm>(
 
 function read_atom(Reader $token_reader): (Atom, Reader) {
   $token = $token_reader->peekx('Expected an atom');
+  return tuple(atom_node($token), $token_reader);
+}
+
+function atom_node(string $token): Atom {
   if (Regex\matches($token, re"/^-?\d/")) {
-    return tuple(new Number((int)$token), $token_reader);
+    return new Number((int)$token);
   } else if (Str\starts_with($token, ':')) {
-    return tuple(new Keyword(Str\slice($token, 1)), $token_reader);
+    return new Keyword(Str\slice($token, 1));
+  } else if ($token === 'nil') {
+    return new GlobalNil();
+  } else if ($token === 'false') {
+    return new BoolAtom(false);
+  } else if ($token === 'true') {
+    return new BoolAtom(true);
   } else {
-    return tuple(new Symbol($token), $token_reader);
+    return new Symbol($token);
   }
 }
 

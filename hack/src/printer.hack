@@ -7,6 +7,10 @@ function pr_str(Form $mal_ast): string {
     return ':'.$mal_ast->name;
   } else if ($mal_ast is Symbol) {
     return $mal_ast->name;
+  } else if ($mal_ast is GlobalNil) {
+    return "nil";
+  } else if ($mal_ast is BoolAtom) {
+    return $mal_ast->value ? 'true' : 'false';
   } else if ($mal_ast is ListForm) {
     return print_children_form('(', $mal_ast->children, ')');
   } else if ($mal_ast is VectorForm) {
