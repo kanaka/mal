@@ -43,5 +43,5 @@ function evaluate(Mal\Form $ast): Mal\Form {
 
 // PRINT
 function print_out(Mal\Form $ast): string {
-  return Mal\pr_str($ast);
+  return Mal\pr_str($ast, true);
 }

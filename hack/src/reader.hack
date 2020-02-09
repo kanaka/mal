@@ -36,10 +36,10 @@ final class Reader {
 }
 
 function tokenize(string $mal_code): vec<Token> {
-  $matches = \HH\Lib\Regex\every_match(
+  $matches = Regex\every_match(
     $mal_code,
     // Matches all mal tokens
-    re"/[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;.*|[^\s\[\]{}('\"`,;)]*)/",
+    re"/[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\s\[\]{}('\"`,;)]*)/",
   );
   return $matches
     |> Vec\map($$, $match ==> $match[1])
@@ -115,6 +115,8 @@ function atom_node(string $token): Atom {
     return new Number((int)$token);
   } else if (Str\starts_with($token, ':')) {
     return new Keyword(Str\slice($token, 1));
+  } else if (Str\starts_with($token, '"')) {
+    return new StringAtom(read_string($token));
   } else if ($token === 'nil') {
     return new GlobalNil();
   } else if ($token === 'false') {
@@ -126,6 +128,21 @@ function atom_node(string $token): Atom {
   }
 }
 
+function read_string(string $code_string): string {
+  return $code_string
+    |> Str\slice($$, 1, Str\length($code_string) - 2)
+    |> Regex\replace_with($$, re"/\\\\\\\\|\\\\n|\\\\\"/", $match ==> {
+      switch ($match[0]) {
+        case '\\\\':
+          return '\\';
+        case '\n':
+          return "\n";
+        case '\"':
+        default: // exhaustive
+          return "\"";
+      }
+    });
+}
 
 function read_pairs(vec<Form> $list, Reader $token_reader): vec<(Key, Form)> {
   $num_items = C\count($list);
@@ -164,6 +181,9 @@ function key_to_string(Key $key): string {
   if ($key is Keyword) {
     return "\u{29e}".$key->name;
   }
+  if ($key is StringAtom) {
+    return $key->value;
+  }
   invariant(false, 'Unsupported Key subtype');
 }
 
@@ -171,5 +191,5 @@ function string_to_key(string $key): Key {
   if (Str\starts_with($key, "\u{29e}")) {
     return new Keyword(Str\slice($key, 2));
   }
-  invariant(false, 'Unsupported Key subtype');
+  return new StringAtom($key);
 }
