@@ -18,30 +18,34 @@
       <mal>
         <stdin></stdin> <!-- clear stdin -->
         <xsl:copy-of select="state" /> <!-- preserve state -->
-        <stdout><xsl:call-template name="PRINT" /></stdout>
+        <xsl:variable name="_read">
+          <xsl:call-template name="READ" />
+        </xsl:variable>
+        <xsl:variable name="_eval">
+          <xsl:for-each select="$_read">
+            <xsl:call-template name="EVAL"></xsl:call-template>
+          </xsl:for-each>
+        </xsl:variable>
+        <stdout>
+          <xsl:for-each select="$_eval">
+            <xsl:call-template name="PRINT"></xsl:call-template>
+          </xsl:for-each>
+        </stdout>
       </mal>
     </xsl:template>
 
     <xsl:template name="PRINT">
       <xsl:variable name="context">
-        <xsl:variable name="ctx">
-          <xsl:call-template name="EVAL" />
-        </xsl:variable>
-        <xsl:for-each select="$ctx">
           <xsl:variable name="str">
             <xsl:call-template name="malprinter-pr_str"><xsl:with-param name="readably" select="true()"/></xsl:call-template>
           </xsl:variable>
           <xsl:value-of select="$str" />
-        </xsl:for-each>
       </xsl:variable>
       <xsl:for-each select="$context"><xsl:copy-of select="." /></xsl:for-each>
     </xsl:template>
 
     <xsl:template name="EVAL">
-      <xsl:variable name="context">
-        <xsl:call-template name="READ" />
-      </xsl:variable>
-      <xsl:for-each select="$context"><xsl:copy-of select="." /></xsl:for-each>
+      <xsl:copy-of select="." />
     </xsl:template>
 
     <xsl:template name="READ">

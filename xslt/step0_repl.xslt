@@ -16,16 +16,28 @@
       <mal>
         <stdin></stdin> <!-- clear stdin -->
         <xsl:copy-of select="state" /> <!-- preserve state -->
-        <stdout><xsl:call-template name="PRINT" /></stdout> <!-- copy stdin to stdout -->
+        <xsl:variable name="_read">
+          <xsl:call-template name="READ" />
+        </xsl:variable>
+        <xsl:variable name="_eval">
+          <xsl:for-each select="$_read">
+            <xsl:call-template name="EVAL"></xsl:call-template>
+          </xsl:for-each>
+        </xsl:variable>
+        <stdout>
+          <xsl:for-each select="$_eval">
+            <xsl:call-template name="PRINT"></xsl:call-template>
+          </xsl:for-each>
+        </stdout>
       </mal>
     </xsl:template>
     <xsl:template name="PRINT">
-        <xsl:call-template name="EVAL" />
+      <xsl:sequence select="."/>
     </xsl:template>
     <xsl:template name="EVAL">
-      <xsl:call-template name="READ" />
+      <xsl:sequence select="."/>
     </xsl:template>
     <xsl:template name="READ">
-        <xsl:copy-of select="stdin/text()" />
+      <xsl:copy-of select="stdin/text()" />
     </xsl:template>
 </xsl:stylesheet>
