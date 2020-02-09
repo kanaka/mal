@@ -78,6 +78,48 @@
             </malval>
           </value>
         </xsl:when>
+        <xsl:when test="value/malval/@kind = 'vector'">
+          <value>
+            <malval kind="vector">
+              <lvalue>
+                <xsl:for-each select="value/malval/lvalue/malval">
+                  <xsl:variable name="ctx">
+                    <value>
+                      <xsl:sequence select="."/>
+                    </value>
+                  </xsl:variable>
+                  <xsl:variable name="xctx">
+                    <xsl:for-each select="$ctx">
+                      <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                    </xsl:for-each>
+                  </xsl:variable>
+                  <xsl:sequence select="$xctx/value/malval"/>
+                </xsl:for-each>
+              </lvalue>
+            </malval>
+          </value>
+        </xsl:when>
+        <xsl:when test="value/malval/@kind = 'hash'">
+          <value>
+            <malval kind="hash">
+              <lvalue>
+                <xsl:for-each select="value/malval/lvalue/malval">
+                  <xsl:variable name="ctx">
+                    <value>
+                      <xsl:sequence select="."/>
+                    </value>
+                  </xsl:variable>
+                  <xsl:variable name="xctx">
+                    <xsl:for-each select="$ctx">
+                      <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                    </xsl:for-each>
+                  </xsl:variable>
+                  <xsl:sequence select="$xctx/value/malval"/>
+                </xsl:for-each>
+              </lvalue>
+            </malval>
+          </value>
+        </xsl:when>
         <xsl:otherwise>
           <xsl:sequence select="." />
         </xsl:otherwise>
