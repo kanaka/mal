@@ -87,16 +87,19 @@ function read_children_form<TForm>(
   Token $end_token,
   (function(vec<Form>, Reader): TForm) $create_node,
 ): ?(TForm, Reader) {
-  $first_token = $token_reader->peekx('Expected a form');
+  $first_token = $token_reader->peekx(
+    'Unexpected end of input, expected a form',
+  );
   if ($first_token !== $start_token) {
     return null;
   }
   $children = vec[];
   while (true) {
     $token_reader = $token_reader->next();
-    if (
-      $token_reader->peekx("Expected a form or `$end_token`") === $end_token
-    ) {
+    $next_token = $token_reader->peekx(
+      "Unexpected unbalanced $start_token, expected a form or `$end_token`",
+    );
+    if ($next_token === $end_token) {
       return tuple($create_node($children, $token_reader), $token_reader);
     } else {
       list($child, $token_reader) = read_form($token_reader);
@@ -107,15 +110,18 @@ function read_children_form<TForm>(
 
 function read_atom(Reader $token_reader): (Atom, Reader) {
   $token = $token_reader->peekx('Expected an atom');
-  return tuple(atom_node($token), $token_reader);
+  return tuple(atom_node($token, $token_reader), $token_reader);
 }
 
-function atom_node(string $token): Atom {
+function atom_node(string $token, Reader $token_reader): Atom {
   if (Regex\matches($token, re"/^-?\d/")) {
     return new Number((int)$token);
   } else if (Str\starts_with($token, ':')) {
     return new Keyword(Str\slice($token, 1));
   } else if (Str\starts_with($token, '"')) {
+    if (!Str\ends_with($token, '"')) {
+      throw $token_reader->exception('Unexpected end of input, expected `"`');
+    }
     return new StringAtom(read_string($token));
   } else if ($token === 'nil') {
     return new GlobalNil();
