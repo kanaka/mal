@@ -6,10 +6,24 @@ final class ListForm implements Form {
   public function __construct(public vec<Form> $children) {}
 }
 
+final class VectorForm implements Form {
+  public function __construct(public vec<Form> $children) {}
+}
+
+final class HashMapForm implements Form {
+  public function __construct(public dict<string, Form> $map) {}
+}
+
 interface Atom extends Form {}
 
 final class Number implements Atom {
   public function __construct(public int $value) {}
+}
+
+interface Key extends Atom {}
+
+final class Keyword implements Key {
+  public function __construct(public string $name) {}
 }
 
 final class Symbol implements Atom {
