@@ -7,7 +7,7 @@ IMPL=${2}
 
 # Environment variable configuration
 BUILD_IMPL=${BUILD_IMPL:-${IMPL}}
-TEST_OPTS="${TEST_OPTS} --debug-file ../${ACTION}.err"
+TEST_OPTS="${TEST_OPTS} --debug-file ../../${ACTION}.err"
 
 if [ "${DO_SELF_HOST}" ]; then
     MAL_IMPL=${IMPL}
@@ -55,9 +55,9 @@ build)
     # rpython often fails on step9 in compute_vars_longevity
     # so build step9, then continue with the full build
     if [ "${BUILD_IMPL}" = "rpython" ]; then
-        ${MAKE} -C "${BUILD_IMPL}" step9_try || true
+        ${MAKE} -C "impls/${BUILD_IMPL}" step9_try || true
     fi
-    ${MAKE} -C ${BUILD_IMPL}
+    ${MAKE} -C "impls/${BUILD_IMPL}"
     ;;
 test|perf)
     [ "${ACTION}" = "perf" ] && STEP=

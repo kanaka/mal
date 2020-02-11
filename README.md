@@ -6,7 +6,42 @@
 
 **1. Mal is a Clojure inspired Lisp interpreter**
 
-**2. Mal is implemented in 81 languages (84 different implementations and 104 runtime modes)**
+**2. Mal is a learning tool**
+
+Each implementation of mal is separated into
+11 incremental, self-contained (and testable) steps that demonstrate
+core concepts of Lisp. The last step is capable of self-hosting
+(running the mal implementation of mal). See the [make-a-lisp process
+guide](process/guide.md). 
+
+The make-a-lisp steps are:
+
+* [step0_repl](process/guide.md#step0)
+* [step1_read_print](process/guide.md#step1)
+* [step2_eval](process/guide.md#step2)
+* [step3_env](process/guide.md#step3)
+* [step4_if_fn_do](process/guide.md#step4)
+* [step5_tco](process/guide.md#step5)
+* [step6_file](process/guide.md#step6)
+* [step7_quote](process/guide.md#step7)
+* [step8_macros](process/guide.md#step8)
+* [step9_try](process/guide.md#step9)
+* [stepA_mal](process/guide.md#stepA)
+
+Each make-a-lisp step has an associated architectural diagram. That elements
+that are new for that step are highlighted in red.
+Here is the final diagram for [step A](process/guide.md#stepA):
+
+![stepA_mal architecture](process/stepA_mal.png)
+
+If you are interested in creating a mal implementation (or just
+interested in using mal for something), please drop by the #mal
+channel on freenode. In addition to the [make-a-lisp process
+guide](process/guide.md) there is also a [mal/make-a-lisp
+FAQ](docs/FAQ.md) where I attempt to answer some common questions.
+
+
+**3. Mal is implemented in 81 languages (84 different implementations and 104 runtime modes)**
 
 | Language | Creator |
 | -------- | ------- |
@@ -96,41 +131,6 @@
 | [Zig](#zig) | [Josh Tobin](https://github.com/rjtobin) |
 
 
-**3. Mal is a learning tool**
-
-Each implementation of mal is separated into
-11 incremental, self-contained (and testable) steps that demonstrate
-core concepts of Lisp. The last step is capable of self-hosting
-(running the mal implementation of mal). See the [make-a-lisp process
-guide](process/guide.md). 
-
-The make-a-lisp steps are:
-
-* [step0_repl](process/guide.md#step0)
-* [step1_read_print](process/guide.md#step1)
-* [step2_eval](process/guide.md#step2)
-* [step3_env](process/guide.md#step3)
-* [step4_if_fn_do](process/guide.md#step4)
-* [step5_tco](process/guide.md#step5)
-* [step6_file](process/guide.md#step6)
-* [step7_quote](process/guide.md#step7)
-* [step8_macros](process/guide.md#step8)
-* [step9_try](process/guide.md#step9)
-* [stepA_mal](process/guide.md#stepA)
-
-Each make-a-lisp step has an associated architectural diagram. That elements
-that are new for that step are highlighted in red.
-Here is the final diagram for [step A](process/guide.md#stepA):
-
-![stepA_mal architecture](process/stepA_mal.png)
-
-If you are interested in creating a mal implementation (or just
-interested in using mal for something), please drop by the #mal
-channel on freenode. In addition to the [make-a-lisp process
-guide](process/guide.md) there is also a [mal/make-a-lisp
-FAQ](docs/FAQ.md) where I attempt to answer some common questions.
-
-
 ## Presentations
 
 Mal was presented publicly for the first time in a lightning talk at
@@ -197,7 +197,7 @@ GNAT and (optionally) make.  There are no external dependencies
 (readline not implemented).
 
 ```
-cd ada
+cd impls/ada
 make
 ./stepX_YYY
 ```
@@ -208,7 +208,7 @@ The second Ada implementation was developed with GNAT 8 and links with
 the GNU readline library.
 
 ```
-cd ada
+cd impls/ada
 make
 ./stepX_YYY
 ```
@@ -218,14 +218,14 @@ make
 The GNU awk implementation of mal has been tested with GNU awk 4.1.1.
 
 ```
-cd gawk
+cd impls/gawk
 gawk -O -f stepX_YYY.awk
 ```
 
 ### Bash 4
 
 ```
-cd bash
+cd impls/bash
 bash stepX_YYY.sh
 ```
 
@@ -241,7 +241,7 @@ has been tested with [qb64](http://www.qb64.net/).
 Generate C64 code and run it using cbmbasic:
 
 ```
-cd basic
+cd impls/basic
 make stepX_YYY.bas
 STEP=stepX_YYY ./run
 ```
@@ -249,7 +249,7 @@ STEP=stepX_YYY ./run
 Generate QBasic code and load it into qb64:
 
 ```
-cd basic
+cd impls/basic
 make MODE=qbasic stepX_YYY.bas
 ./qb64 stepX_YYY.bas
 ```
@@ -262,7 +262,7 @@ inspiration for this implementation.
 The BBC BASIC V implementation can run in the Brandy interpreter:
 
 ```
-cd bbc-basic
+cd impls/bbc-basic
 brandy -quit stepX_YYY.bbc
 ```
 
@@ -281,7 +281,7 @@ header packages): glib, libffi6, libgc, and either the libedit or GNU readline
 library.
 
 ```
-cd c
+cd impls/c
 make
 ./stepX_YYY
 ```
@@ -293,7 +293,7 @@ a readline compatible library to build. See the `cpp/README.md` for
 more details:
 
 ```
-cd cpp
+cd impls/cpp
 make
     # OR
 make CXX=clang++-3.5
@@ -308,7 +308,7 @@ C# compiler (mcs) and the Mono runtime (version 2.10.8.1). Both are
 required to build and run the C# implementation.
 
 ```
-cd cs
+cd impls/cs
 make
 mono ./stepX_YYY.exe
 ```
@@ -318,7 +318,7 @@ mono ./stepX_YYY.exe
 The ChucK implementation has been tested with ChucK 1.3.5.2.
 
 ```
-cd chuck
+cd impls/chuck
 ./run
 ```
 
@@ -328,7 +328,7 @@ For the most part the Clojure implementation requires Clojure 1.5,
 however, to pass all tests, Clojure 1.8.0-RC4 is required.
 
 ```
-cd clojure
+cd impls/clojure
 lein with-profile +stepX trampoline run
 ```
 
@@ -336,7 +336,7 @@ lein with-profile +stepX trampoline run
 
 ```
 sudo npm install -g coffee-script
-cd coffee
+cd impls/coffee
 coffee ./stepX_YYY
 ```
 
@@ -348,7 +348,7 @@ the [README](common-lisp/README.org) for more details. Provided you have the
 dependencies mentioned installed, do the following to run the implementation
 
 ```
-cd common-lisp
+cd impls/common-lisp
 make
 ./run
 ```
@@ -358,7 +358,7 @@ make
 The Crystal implementation of mal has been tested with Crystal 0.26.1.
 
 ```
-cd crystal
+cd impls/crystal
 crystal run ./stepX_YYY.cr
     # OR
 make   # needed to run tests
@@ -371,7 +371,7 @@ The D implementation of mal was tested with GDC 4.8.  It requires the GNU
 readline library.
 
 ```
-cd d
+cd impls/d
 make
 ./stepX_YYY
 ```
@@ -381,7 +381,7 @@ make
 The Dart implementation has been tested with Dart 1.20.
 
 ```
-cd dart
+cd impls/dart
 dart ./stepX_YYY
 ```
 
@@ -393,7 +393,7 @@ and `C-d` work, `C-c` cancels the process), it is recommended to use
 `rlwrap`.
 
 ```
-cd elisp
+cd impls/elisp
 emacs -Q --batch --load stepX_YYY.el
 # with full readline support
 rlwrap emacs -Q --batch --load stepX_YYY.el
@@ -404,7 +404,7 @@ rlwrap emacs -Q --batch --load stepX_YYY.el
 The Elixir implementation of mal has been tested with Elixir 1.0.5.
 
 ```
-cd elixir
+cd impls/elixir
 mix stepX_YYY
 # Or with readline/line editing functionality:
 iex -S mix stepX_YYY
@@ -415,7 +415,7 @@ iex -S mix stepX_YYY
 The Elm implementation of mal has been tested with Elm 0.18.0
 
 ```
-cd elm
+cd impls/elm
 make stepX_YYY.js
 STEP=stepX_YYY ./run
 ```
@@ -426,7 +426,7 @@ The Erlang implementation of mal requires [Erlang/OTP R17](http://www.erlang.org
 and [rebar](https://github.com/rebar/rebar) to build.
 
 ```
-cd erlang
+cd impls/erlang
 make
     # OR
 MAL_STEP=stepX_YYY rebar compile escriptize # build individual step
@@ -440,7 +440,7 @@ The ES6 / ECMAScript 2015 implementation uses the
 JavaScript. The generated code has been tested with Node 0.12.4.
 
 ```
-cd es6
+cd impls/es6
 make
 node build/stepX_YYY.js
 ```
@@ -454,7 +454,7 @@ compiler (mcs) is also necessary to compile the readline dependency. All are
 required to build and run the F# implementation.
 
 ```
-cd fsharp
+cd impls/fsharp
 make
 mono ./stepX_YYY.exe
 ```
@@ -465,7 +465,7 @@ The Factor implementation of mal has been tested with Factor 0.97
 ([factorcode.org](http://factorcode.org)).
 
 ```
-cd factor
+cd impls/factor
 FACTOR_ROOTS=. factor -run=stepX_YYY
 ```
 
@@ -474,7 +474,7 @@ FACTOR_ROOTS=. factor -run=stepX_YYY
 The Fantom implementation of mal has been tested with Fantom 1.0.70.
 
 ```
-cd fantom
+cd impls/fantom
 make lib/fan/stepX_YYY.pod
 STEP=stepX_YYY ./run
 ```
@@ -482,14 +482,14 @@ STEP=stepX_YYY ./run
 ### Forth
 
 ```
-cd forth
+cd impls/forth
 gforth stepX_YYY.fs
 ```
 
 ### GNU Guile 2.1+
 
 ```
-cd guile
+cd impls/guile
 guile -L ./ stepX_YYY.scm
 ```
 
@@ -498,7 +498,7 @@ guile -L ./ stepX_YYY.scm
 The Smalltalk implementation of mal has been tested with GNU Smalltalk 3.2.91.
 
 ```
-cd gnu-smalltalk
+cd impls/gnu-smalltalk
 ./run
 ```
 
@@ -508,7 +508,7 @@ The Go implementation of mal requires that go is installed on on the
 path. The implementation has been tested with Go 1.3.1.
 
 ```
-cd go
+cd impls/go
 make
 ./stepX_YYY
 ```
@@ -520,7 +520,7 @@ The Groovy implementation of mal requires Groovy to run and has been
 tested with Groovy 1.8.6.
 
 ```
-cd groovy
+cd impls/groovy
 make
 groovy ./stepX_YYY.groovy
 ```
@@ -531,7 +531,7 @@ The Haskell implementation requires the ghc compiler version 7.10.1 or
 later and also the Haskell parsec and readline (or editline) packages.
 
 ```
-cd haskell
+cd impls/haskell
 make
 ./stepX_YYY
 ```
@@ -543,7 +543,7 @@ Four different Haxe targets are supported: Neko, Python, C++, and
 JavaScript.
 
 ```
-cd haxe
+cd impls/haxe
 # Neko
 make all-neko
 neko ./stepX_YYY.n
@@ -563,7 +563,7 @@ node ./stepX_YYY.js
 The Hy implementation of mal has been tested with Hy 0.13.0.
 
 ```
-cd hy
+cd impls/hy
 ./stepX_YYY.hy
 ```
 
@@ -572,7 +572,7 @@ cd hy
 The Io implementation of mal has been tested with Io version 20110905.
 
 ```
-cd io
+cd impls/io
 io ./stepX_YYY.io
 ```
 
@@ -581,7 +581,7 @@ io ./stepX_YYY.io
 The Java implementation of mal requires maven2 to build.
 
 ```
-cd java
+cd impls/java
 mvn compile
 mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY
     # OR
@@ -591,7 +591,7 @@ mvn -quiet exec:java -Dexec.mainClass=mal.stepX_YYY -Dexec.args="CMDLINE_ARGS"
 ### JavaScript/Node
 
 ```
-cd js
+cd impls/js
 npm install
 node stepX_YYY.js
 ```
@@ -601,7 +601,7 @@ node stepX_YYY.js
 The Julia implementation of mal requires Julia 0.4.
 
 ```
-cd julia
+cd impls/julia
 julia stepX_YYY.jl
 ```
 
@@ -610,7 +610,7 @@ julia stepX_YYY.jl
 Tested against version 1.6, with a lot of cheating in the IO department
 
 ```
-cd jq
+cd impls/jq
 STEP=stepA_YYY ./run
     # with Debug
 DEBUG=true STEP=stepA_YYY ./run
@@ -621,7 +621,7 @@ DEBUG=true STEP=stepA_YYY ./run
 The Kotlin implementation of mal has been tested with Kotlin 1.0.
 
 ```
-cd kotlin
+cd impls/kotlin
 make
 java -jar stepX_YYY.jar
 ```
@@ -631,7 +631,7 @@ java -jar stepX_YYY.jar
 The LiveScript implementation of mal has been tested with LiveScript 1.5.
 
 ```
-cd livescript
+cd impls/livescript
 make
 node_modules/.bin/lsc stepX_YYY.ls
 ```
@@ -641,7 +641,7 @@ node_modules/.bin/lsc stepX_YYY.ls
 The Logo implementation of mal has been tested with UCBLogo 6.0.
 
 ```
-cd logo
+cd impls/logo
 logo stepX_YYY.lg
 ```
 
@@ -652,7 +652,7 @@ implementation requires that luarocks and the lua-rex-pcre library
 are installed.
 
 ```
-cd lua
+cd impls/lua
 make  # to build and link linenoise.so
 ./stepX_YYY.lua
 ```
@@ -664,7 +664,7 @@ the other implementations and passing the mal step to run as a command
 line argument.
 
 ```
-cd IMPL
+cd impls/IMPL
 IMPL_STEPA_CMD ../mal/stepX_YYY.mal
 
 ```
@@ -672,7 +672,7 @@ IMPL_STEPA_CMD ../mal/stepX_YYY.mal
 ### GNU Make 3.81
 
 ```
-cd make
+cd impls/make
 make -f stepX_YYY.mk
 ```
 
@@ -682,7 +682,7 @@ The NASM implementation of mal is written for x86-64 Linux, and has been tested
 with Linux 3.16.0-4-amd64 and NASM version 2.11.05.
 
 ```
-cd nasm
+cd impls/nasm
 make
 ./stepX_YYY
 ```
@@ -692,7 +692,7 @@ make
 The Nim implementation of mal has been tested with Nim 1.0.4.
 
 ```
-cd nim
+cd impls/nim
 make
   # OR
 nimble build
@@ -705,7 +705,7 @@ The Object Pascal implementation of mal has been built and tested on
 Linux using the Free Pascal compiler version 2.6.2 and 2.6.4.
 
 ```
-cd objpascal
+cd impls/objpascal
 make
 ./stepX_YYY
 ```
@@ -717,7 +717,7 @@ Linux using clang/LLVM 3.6. It has also been built and tested on OS
 X using XCode 7.
 
 ```
-cd objc
+cd impls/objc
 make
 ./stepX_YYY
 ```
@@ -725,7 +725,7 @@ make
 ### OCaml 4.01.0
 
 ```
-cd ocaml
+cd impls/ocaml
 make
 ./stepX_YYY
 ```
@@ -737,7 +737,7 @@ It has also been tested with MATLAB version R2014a on Linux. Note that
 MATLAB is a commercial product.
 
 ```
-cd matlab
+cd impls/matlab
 ./stepX_YYY
 octave -q --no-gui --no-history --eval "stepX_YYY();quit;"
 matlab -nodisplay -nosplash -nodesktop -nojvm -r "stepX_YYY();quit;"
@@ -753,7 +753,7 @@ implemented in less than 1024 bytes of JavaScript. To run the miniMAL
 implementation of mal you need to download/install the miniMAL
 interpreter (which requires Node.js).
 ```
-cd miniMAL
+cd impls/miniMAL
 # Download miniMAL and dependencies
 npm install
 export PATH=`pwd`/node_modules/minimal-lisp/:$PATH
@@ -769,7 +769,7 @@ For readline line editing support, install Term::ReadLine::Perl or
 Term::ReadLine::Gnu from CPAN.
 
 ```
-cd perl
+cd impls/perl
 perl stepX_YYY.pl
 ```
 
@@ -778,7 +778,7 @@ perl stepX_YYY.pl
 The Perl 6 implementation was tested on Rakudo Perl 6 2016.04.
 
 ```
-cd perl6
+cd impls/perl6
 perl6 stepX_YYY.pl
 ```
 
@@ -788,7 +788,7 @@ The PHP implementation of mal requires the php command line interface
 to run.
 
 ```
-cd php
+cd impls/php
 php stepX_YYY.php
 ```
 
@@ -798,7 +798,7 @@ The Picolisp implementation requires libreadline and Picolisp 3.1.11
 or later.
 
 ```
-cd picolisp
+cd impls/picolisp
 ./run
 ```
 
@@ -807,7 +807,7 @@ cd picolisp
 The Pike implementation was tested on Pike 8.0.
 
 ```
-cd pike
+cd impls/pike
 pike stepX_YYY.pike
 ```
 
@@ -824,7 +824,7 @@ using the PGPASSWORD environment variable. The implementation has been
 tested with PostgreSQL 9.4.
 
 ```
-cd plpgsql
+cd impls/plpgsql
 ./wrap.sh stepX_YYY.sql
     # OR
 PSQL_USER=myuser PGPASSWORD=mypass ./wrap.sh stepX_YYY.sql
@@ -844,7 +844,7 @@ warnings (user password expiration, etc) will interfere with the
 ability of the wrapper script to communicate with the DB.
 
 ```
-cd plsql
+cd impls/plsql
 ./wrap.sh stepX_YYY.sql
     # OR
 ORACLE_LOGON=myuser/mypass@ORCL ./wrap.sh stepX_YYY.sql
@@ -856,7 +856,7 @@ The PostScript implementation of mal requires Ghostscript to run. It
 has been tested with Ghostscript 9.10.
 
 ```
-cd ps
+cd impls/ps
 gs -q -dNODISPLAY -I./ stepX_YYY.ps
 ```
 
@@ -866,14 +866,14 @@ The PowerShell implementation of mal requires the PowerShell script
 language. It has been tested with PowerShell 6.0.0 Alpha 9 on Linux.
 
 ```
-cd powershell
+cd impls/powershell
 powershell ./stepX_YYY.ps1
 ```
 
 ### Python (2.X and 3.X)
 
 ```
-cd python
+cd impls/python
 python stepX_YYY.py
 ```
 
@@ -893,7 +893,7 @@ You must have [rpython](https://rpython.readthedocs.org/) on your path
 (included with [pypy](https://bitbucket.org/pypy/pypy/)).
 
 ```
-cd rpython
+cd impls/rpython
 make        # this takes a very long time
 ./stepX_YYY
 ```
@@ -903,7 +903,7 @@ make        # this takes a very long time
 The R implementation of mal requires R (r-base-core) to run.
 
 ```
-cd r
+cd impls/r
 make libs  # to download and build rdyncall
 Rscript stepX_YYY.r
 ```
@@ -914,7 +914,7 @@ The Racket implementation of mal requires the Racket
 compiler/interpreter to run.
 
 ```
-cd racket
+cd impls/racket
 ./stepX_YYY.rkt
 ```
 
@@ -923,7 +923,7 @@ cd racket
 The Rexx implementation of mal has been tested with Regina Rexx 3.6.
 
 ```
-cd rexx
+cd impls/rexx
 make
 rexx -a ./stepX_YYY.rexxpp
 ```
@@ -931,7 +931,7 @@ rexx -a ./stepX_YYY.rexxpp
 ### Ruby (1.9+)
 
 ```
-cd ruby
+cd impls/ruby
 ruby stepX_YYY.rb
 ```
 
@@ -941,7 +941,7 @@ The rust implementation of mal requires the rust compiler and build
 tool (cargo) to build.
 
 ```
-cd rust
+cd impls/rust
 cargo run --release --bin stepX_YYY
 ```
 
@@ -950,7 +950,7 @@ cargo run --release --bin stepX_YYY
 Install scala and sbt (http://www.scala-sbt.org/0.13/tutorial/Installing-sbt-on-Linux.html):
 
 ```
-cd scala
+cd impls/scala
 sbt 'run-main stepX_YYY'
     # OR
 sbt compile
@@ -967,7 +967,7 @@ after figuring out how libraries are loaded and adjusting the
 `Makefile` and `run` script accordingly.
 
 ```
-cd scheme
+cd impls/scheme
 make symlinks
 # chibi
 scheme_MODE=chibi ./run
@@ -993,7 +993,7 @@ scheme_MODE=foment ./run
 The Skew implementation of mal has been tested with Skew 0.7.42.
 
 ```
-cd skew
+cd impls/skew
 make
 node stepX_YYY.js
 ```
@@ -1006,7 +1006,7 @@ The Swift implementation of mal requires the Swift 2.0 compiler (XCode
 language and standard library.
 
 ```
-cd swift
+cd impls/swift
 make
 ./stepX_YYY
 ```
@@ -1017,7 +1017,7 @@ The Swift 3 implementation of mal requires the Swift 3.0 compiler. It
 has been tested with Swift 3 Preview 3.
 
 ```
-cd swift3
+cd impls/swift3
 make
 ./stepX_YYY
 ```
@@ -1028,7 +1028,7 @@ The Swift 4 implementation of mal requires the Swift 4.0 compiler. It
 has been tested with Swift 4.2.3 release.
 
 ```
-cd swift4
+cd impls/swift4
 make
 ./stepX_YYY
 ```
@@ -1039,7 +1039,7 @@ The Swift 5 implementation of mal requires the Swift 5.0 compiler. It
 has been tested with Swift 5.1.1 release.
 
 ```
-cd swift5
+cd impls/swift5
 swift run stepX_YYY
 ```
 
@@ -1049,7 +1049,7 @@ The Tcl implementation of mal requires Tcl 8.6 to run.  For readline line
 editing support, install tclreadline.
 
 ```
-cd tcl
+cd impls/tcl
 tclsh ./stepX_YYY.tcl
 ```
 
@@ -1059,7 +1059,7 @@ The TypeScript implementation of mal requires the TypeScript 2.2 compiler.
 It has been tested with Node.js v6.
 
 ```
-cd ts
+cd impls/ts
 make
 node ./stepX_YYY.js
 ```
@@ -1071,7 +1071,7 @@ compiler. You will need to install `valac` and `libreadline-dev` or
 equivalent.
 
 ```
-cd vala
+cd impls/vala
 make
 ./stepX_YYY
 ```
@@ -1081,7 +1081,7 @@ make
 The VHDL implementation of mal has been tested with GHDL 0.29.
 
 ```
-cd vhdl
+cd impls/vhdl
 make
 ./run_vhdl.sh ./stepX_YYY
 ```
@@ -1091,7 +1091,7 @@ make
 The Vimscript implementation of mal requires Vim 8.0 to run.
 
 ```
-cd vimscript
+cd impls/vimscript
 ./run_vimscript.sh ./stepX_YYY.vim
 ```
 
@@ -1102,7 +1102,7 @@ VB compiler (vbnc) and the Mono runtime (version 2.10.8.1). Both are
 required to build and run the VB.NET implementation.
 
 ```
-cd vb
+cd impls/vb
 make
 mono ./stepX_YYY.exe
 ```
@@ -1121,7 +1121,7 @@ runs under several different non-web embeddings (runtimes):
 [warpy](https://github.com/kanaka/warpy).
 
 ```
-cd wasm
+cd impls/wasm
 # node
 make wasm_MODE=node
 ./run.js ./stepX_YYY.wasm
@@ -1150,7 +1150,7 @@ warpy --argv --memory-pages 256 ./stepX_YYY.wasm
 The Wren implementation of mal was tested on Wren 0.2.0.
 
 ```
-cd wren
+cd impls/wren
 wren ./stepX_YYY.wren
 ```
 
@@ -1159,7 +1159,7 @@ wren ./stepX_YYY.wren
 The Yorick implementation of mal was tested on Yorick 2.2.04.
 
 ```
-cd yorick
+cd impls/yorick
 yorick -batch ./stepX_YYY.i
 ```
 
@@ -1168,7 +1168,7 @@ yorick -batch ./stepX_YYY.i
 The Zig implementation of mal was tested on Zig 0.5.
 
 ```
-cd zig
+cd impls/zig
 zig build stepX_YYY
 ```
 
