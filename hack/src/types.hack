@@ -39,3 +39,7 @@ final class Symbol implements Atom {
 }
 
 final class GlobalNil implements Atom {}
+
+final class FunctionDefinition implements Atom {
+  public function __construct(public (function(vec<Form>): Form) $function) {}
+}
