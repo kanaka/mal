@@ -18,7 +18,7 @@ final class EvalTypeException extends \Error {
       Str\format(
         "Runtime type exception: Expected a %s, but got `%s`",
         Regex\replace($type, re"/\w+\\\\/", ''),
-        pr_str($got),
+        pr_str($got, true),
       ),
     );
   }

@@ -76,8 +76,20 @@ function read_hash_map(Reader $token_reader): ?(HashMapForm, Reader) {
     $token_reader,
     '{',
     '}',
-    ($children, $token_reader) ==>
-      pairs_to_map(read_pairs($children, $token_reader)),
+    ($children, $token_reader) ==> pairs_to_map(read_pairs(
+      $children,
+      $key ==> {
+        if (!$key is Key) {
+          throw $token_reader->exception(
+            "Expected a key atom, got `".pr_str($key)."`",
+          );
+        }
+        return $key;
+      },
+      $key ==> $token_reader->exception(
+        "Expected a value atom for key `".pr_str($key, true)."`",
+      ),
+    )),
   );
 }
 
@@ -150,16 +162,17 @@ function read_string(string $code_string): string {
     });
 }
 
-function read_pairs(vec<Form> $list, Reader $token_reader): vec<(Key, Form)> {
+function read_pairs<TKey>(
+  vec<Form> $list,
+  (function(Form): TKey) $check_key,
+  (function(TKey): \Throwable) $get_uneven_exception,
+): vec<(TKey, Form)> {
   $num_items = C\count($list);
   $pairs = vec[];
   for ($i = 0; $i < $num_items; $i += 2) {
-    $key = $list[$i];
-    if (!$key is Key) {
-      throw $token_reader->exception("Expected a key atom");
-    }
+    $key = $check_key($list[$i]);
     if ($i + 1 >= $num_items) {
-      throw $token_reader->exception("Expected a value atom");
+      throw $get_uneven_exception($key);
     }
     $pairs[] = tuple($key, $list[$i + 1]);
   }
