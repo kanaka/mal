@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" exclude-result-prefixes="xsl xs fn">
     <!-- expects input as a single <value><malval .../></value> -->
     <!-- output of form <value>literal string</value> -->
     <xsl:template name="malprinter-pr_str">
@@ -21,7 +21,7 @@
             </xsl:when>
             <xsl:when test="malval/@kind = 'string'">
                 <value>
-                    <xsl:value-of select="concat('&quot;', fn:desc_string(malval/@value, $readably), '&quot;')" />
+                    <xsl:value-of select="concat(if ($readably) then '&quot;' else '', fn:desc_string(malval/@value, $readably), if ($readably) then '&quot;' else '')" />
                 </value>
             </xsl:when>
             <xsl:when test="malval/@kind = 'keyword'">
@@ -97,6 +97,13 @@
                     <xsl:value-of select="concat('#', $lt, 'fn ', malval/@name, $gt)" />
                 </value>
             </xsl:when>
+            <xsl:when test="malval/@kind = 'userfunction'">
+                <value>
+                    <xsl:variable name="gt">&gt;</xsl:variable>
+                    <xsl:variable name="lt">&lt;</xsl:variable>
+                    <xsl:value-of select="concat('#', $lt, 'function', $gt)" />
+                </value>
+            </xsl:when>
             <xsl:otherwise>
                 <value>Unknown <xsl:copy-of select="." /></value>
             </xsl:otherwise>
@@ -108,17 +115,20 @@
         <xsl:param name="str" as="xs:string" />
         <xsl:param name="readable" as="xs:boolean" />
         <xsl:choose>
-          <xsl:when test="not($readable)">
+          <xsl:when test="($readable)">
             <xsl:variable name="sx">
-                <xsl:analyze-string select="$str" regex="\\(n|&quot;|\\)">
+                <xsl:analyze-string select="$str" regex="(\\|&quot;|&#10;)">
                     <xsl:matching-substring>
                         <x>
                             <xsl:choose>
-                              <xsl:when test="regex-group(1) = 'n'">
-                                <xsl:value-of select="'&#10;'" />
+                              <xsl:when test="regex-group(1) = '\'">
+                                <xsl:value-of select="'\\'" />
+                              </xsl:when>
+                              <xsl:when test="regex-group(1) = '&quot;'">
+                                <xsl:value-of select="'\&quot;'" />
                               </xsl:when>
                               <xsl:otherwise>
-                                <xsl:value-of select="regex-group(1)" />
+                                <xsl:value-of select="'\n'" />
                               </xsl:otherwise>
                             </xsl:choose>
                         </x>

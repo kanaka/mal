@@ -30,6 +30,10 @@ while True:
         with open('xsl_error.xml', 'r') as f:
             print(f.readlines()[0])
         continue
+    else:
+        with open('xsl_error.xml', 'r') as f:
+            print(f.read(), end='')
+
     tree = ET.parse('xslt_output.xml')
     stdout = ''
     for a in tree.iter('mal'):

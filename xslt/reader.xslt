@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" exclude-result-prefixes="xsl xs fn">
     <!-- Expects a "tokens" in current scope -->
     <xsl:template name="malreader-peek">
         <!-- <xsl:message>PEEK <xsl:sequence select=".">
@@ -74,7 +74,7 @@
                                     <token type="error" text="EOF while reading string or invalid escape in string"></token>
                                 </xsl:when>
                                 <xsl:when test="ends-with($match, '&quot;')">
-                                    <token type="string" text="{replace($match, '&quot;(.*)&quot;', '$1')}"> </token>
+                                    <token type="string" text="{fn:process-string(replace($match, '&quot;(.*)&quot;', '$1'))}"> </token>
                                 </xsl:when>
                                 <xsl:otherwise>
                                     <token type="error" text="EOF while reading string"></token>
@@ -458,7 +458,12 @@
 
     <xsl:function name="fn:check_string" as="xs:boolean">
         <xsl:param name="str" as="xs:string" />
-        <xsl:sequence select="$str = '&quot;' or matches($str, '\\[^\\n&quot;]|[^\\]\\(\\\\)*&quot;$')" />
+        <xsl:sequence select="$str = '&quot;' or matches($str, '[^\\](\\[^n\\&quot;]|\\(\\\\)*&quot;$)')" />
+    </xsl:function>
+
+    <xsl:function name="fn:process-string" as="xs:string">
+        <xsl:param name="str" as="xs:string" />
+        <xsl:sequence select="replace(replace($str, '([^\\]|^)\\n', '$1&#10;'), '\\([\\&quot;])', '$1')" />
     </xsl:function>
 
     <xsl:function name="fn:list-ender" as="xs:string">

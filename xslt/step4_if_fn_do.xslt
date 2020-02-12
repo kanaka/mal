@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Step 3: Environment -->
+<!-- Step 4: If Fn Do -->
 <!-- input document must be in the following format -->
 <!--
 <mal>
@@ -10,36 +10,62 @@
 -->
 <xsl:stylesheet
     version="3.0"
-    xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" xmlns:env="ENV" xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:map="http://www.w3.org/2005/xpath-functions/map" exclude-result-prefixes="fn xs map env">
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fn="http://www.w3.org/2005/02/xpath-functions" xmlns:env="ENV" xmlns:core="CORE" xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:map="http://www.w3.org/2005/xpath-functions/map" exclude-result-prefixes="fn xs map env core">
     <xsl:import href="reader.xslt" />
     <xsl:import href="printer.xslt" />
     <xsl:import href="env.xslt" />
+    <xsl:import href="core.xslt" />
+    
     <xsl:output method='xml' encoding='utf-8' indent='yes'/>
     <xsl:template match="mal" name="rep">
-      <mal>
-        <xsl:variable name="env" as="map(*)">
-          <xsl:sequence select="env:deserialise((state/env/@data, env:base())[1])"/>
-        </xsl:variable>
-        <xsl:sequence select="stdin"/>
-        <xsl:variable name="_read">
-          <xsl:call-template name="READ" />
-        </xsl:variable>
-        <xsl:variable name="_eval">
-          <xsl:for-each select="$_read">
-            <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
-          </xsl:for-each>
-        </xsl:variable>
-        <xsl:for-each select="$_eval">
-          <stdout>
-            <xsl:for-each select="data">
-              <xsl:call-template name="PRINT"></xsl:call-template>
+      <xsl:choose>
+        <xsl:when test="string(state/env/@data) = ''">
+          <xsl:variable name="vstate">
+            <mal>
+              <state><env data="{env:serialise(env:empty() => env:bind-all(core:ns()/@name, core:ns()))}"></env></state>
+              <stdin>(def! not (fn* (a) (if a false true)))</stdin>
+            </mal>
+          </xsl:variable>
+          <xsl:variable name="new-state">
+            <xsl:for-each select="$vstate/mal">
+              <xsl:call-template name="rep"></xsl:call-template>
             </xsl:for-each>
-          </stdout>
-          <state>
-            <env data="{env/@data}"/>
-          </state>
-        </xsl:for-each>
-      </mal>
+          </xsl:variable>
+          <xsl:variable name="state-v">
+            <xsl:sequence select="$new-state/mal/state"/>
+            <xsl:sequence select="stdin"/>
+          </xsl:variable>
+          <xsl:for-each select="$state-v">
+            <xsl:call-template name="rep"></xsl:call-template>
+          </xsl:for-each>
+        </xsl:when>
+        <xsl:otherwise>
+          <mal>
+            <xsl:variable name="env" as="map(*)">
+              <xsl:sequence select="env:deserialise(state/env/@data)"/>
+            </xsl:variable>
+            <xsl:sequence select="stdin"/>
+            <xsl:variable name="_read">
+              <xsl:call-template name="READ" />
+            </xsl:variable>
+            <xsl:variable name="_eval">
+              <xsl:for-each select="$_read">
+                <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+              </xsl:for-each>
+            </xsl:variable>
+            <xsl:for-each select="$_eval">
+              <stdout>
+                <xsl:for-each select="data">
+                  <xsl:call-template name="PRINT"></xsl:call-template>
+                </xsl:for-each>
+              </stdout>
+              <state>
+                <env data="{env/@data}"/>
+              </state>
+            </xsl:for-each>
+          </mal>
+        </xsl:otherwise>
+      </xsl:choose>
     </xsl:template>
 
     <xsl:template name="PRINT">
@@ -138,36 +164,24 @@
       </xsl:choose>
     </xsl:template>
 
-    <!-- vapply[fn, args] :: fn/value/text() -->
-    <xsl:template name="vapply">
+    <!-- uapply[env, fn, args] -->
+    <xsl:template name="uapply">
       <xsl:param name="func" />
       <xsl:param name="args" />
-      <xsl:choose>
-        <xsl:when test="$func/malval/@kind = 'function'">
-          <xsl:choose>
-            <xsl:when test="$func/malval/@name = '+'">
-              <xsl:variable name="result" select="number($args/value/malval/lvalue/malval[1]/@value) + number($args/value/malval/lvalue/malval[2]/@value)"></xsl:variable>
-              <xsl:sequence select="fn:makeMALType($result, 'number')"/>
-            </xsl:when>
-            <xsl:when test="$func/malval/@name = '-'">
-              <xsl:variable name="result" select="number($args/value/malval/lvalue/malval[1]/@value) - number($args/value/malval/lvalue/malval[2]/@value)"></xsl:variable>
-              <xsl:sequence select="fn:makeMALType($result, 'number')"/>
-            </xsl:when>
-            <xsl:when test="$func/malval/@name = '*'">
-              <xsl:variable name="result" select="number($args/value/malval/lvalue/malval[1]/@value) * number($args/value/malval/lvalue/malval[2]/@value)"></xsl:variable>
-              <xsl:sequence select="fn:makeMALType($result, 'number')"/>
-            </xsl:when>
-            <xsl:when test="$func/malval/@name = '/'">
-              <xsl:variable name="result" select="number($args/value/malval/lvalue/malval[1]/@value) div number($args/value/malval/lvalue/malval[2]/@value)"></xsl:variable>
-              <xsl:sequence select="fn:makeMALType($result, 'number')"/>
-            </xsl:when>
-            <xsl:otherwise>
-              <xsl:message terminate="yes">Invalid function <xsl:sequence select="$func"/> </xsl:message>
-            </xsl:otherwise>
-          </xsl:choose>
-        </xsl:when>
-        <xsl:otherwise></xsl:otherwise>
-      </xsl:choose>
+      <xsl:param name="env" />
+
+      <xsl:variable name="nenv" select="$env => env:hier(env:deserialise($func/malval/env/@data)) => env:close-with-binds($func/malval/binds/malval/@value, $args/value/malval/lvalue/malval)" />
+      <xsl:variable name="body">
+        <value>
+          <xsl:sequence select="$func/malval/body/malval"/>
+        </value>
+      </xsl:variable>
+      <xsl:variable name="result">
+        <xsl:for-each select="$body">
+          <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$nenv"/></xsl:call-template>
+        </xsl:for-each>
+      </xsl:variable>
+      <xsl:sequence select="$result/data/value"/>
     </xsl:template>
 
     <xsl:template name="EVAL">
@@ -241,6 +255,100 @@
                       </xsl:next-iteration>
                     </xsl:iterate>
                   </xsl:when>
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'do'">
+                    <xsl:iterate select="value/malval/lvalue/malval[position() > 1]">
+                      <xsl:param name="new_env" select="$env"/>
+                      <xsl:param name="previous_res" select="()"/>
+                      <xsl:on-completion>
+                        <xsl:sequence select="$previous_res"/>
+                        <env data="{env:serialise($new_env)}" />
+                      </xsl:on-completion>
+                      <xsl:variable name="xvalue">
+                        <value>
+                          <xsl:sequence select="."/>
+                        </value>
+                      </xsl:variable>
+                      <xsl:variable name="value">
+                        <xsl:for-each select="$xvalue">
+                          <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$new_env"/></xsl:call-template>
+                        </xsl:for-each>
+                      </xsl:variable>
+                      <xsl:next-iteration>
+                        <xsl:with-param name="new_env" select="env:deserialise($value/env/@data)"/>
+                        <xsl:with-param name="previous_res" select="$value/data/value"/>
+                      </xsl:next-iteration>
+                    </xsl:iterate>
+                  </xsl:when>
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'if'">
+                    <xsl:variable name="cond">
+                      <xsl:for-each select="value/malval/lvalue/malval[2]">
+                        <xsl:variable name="context">
+                          <value>
+                            <xsl:sequence select="."/>
+                          </value>
+                        </xsl:variable>
+                        <xsl:for-each select="$context">
+                          <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                        </xsl:for-each>
+                      </xsl:for-each>
+                    </xsl:variable>
+                    <xsl:variable name="ptrue">
+                      <xsl:for-each select="value/malval/lvalue/malval[3]">
+                        <value>
+                          <xsl:sequence select="."/>
+                        </value>
+                      </xsl:for-each>
+                    </xsl:variable>
+                    <xsl:variable name="pfalse">
+                      <xsl:for-each select="value/malval/lvalue/malval[4]">
+                        <value>
+                          <xsl:sequence select="."/>
+                        </value>
+                      </xsl:for-each>
+                    </xsl:variable>
+                    <xsl:variable name="xfalse">
+                      <xsl:choose>
+                        <xsl:when test="empty($pfalse/value)">
+                          <value>
+                            <malval kind='nil' />
+                          </value>
+                        </xsl:when>
+                        <xsl:otherwise>
+                          <xsl:sequence select="$pfalse/value"/>
+                        </xsl:otherwise>
+                      </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="res">
+                      <xsl:choose>
+                        <xsl:when test="let $kind := $cond/data/value/malval/@kind return $kind = 'nil' or $kind = 'false'">
+                          <xsl:for-each select="$xfalse">
+                            <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                          </xsl:for-each>
+                        </xsl:when>
+                        <xsl:otherwise>
+                          <xsl:for-each select="$ptrue">
+                            <xsl:call-template name="EVAL"><xsl:with-param name="env" select="$env"/></xsl:call-template>
+                          </xsl:for-each>
+                        </xsl:otherwise>
+                      </xsl:choose>
+                    </xsl:variable>
+                    <xsl:sequence select="$res/data/value"/>
+                    <env data="{env:serialise($env)}" />
+                  </xsl:when>
+                  <xsl:when test="let $fn := value/malval/lvalue/malval[1] return $fn/@kind = 'symbol' and $fn/@value = 'fn*'">
+                    <value>
+                      <malval kind="userfunction">
+                        <binds>
+                         <xsl:sequence select="value/malval/lvalue/malval[2]/lvalue/malval" />
+                        </binds>
+                        <body>
+                          <xsl:sequence select="value/malval/lvalue/malval[3]"/>
+                        </body>
+                        <env data="{env:serialise($env)}"/> <!-- capture current env -->
+                      </malval>
+                    </value>
+                    <env data="{env:serialise($env)}" />
+                  </xsl:when>
                   <xsl:otherwise>
                     <xsl:variable name="new_list">
                       <xsl:call-template name="eval_ast"><xsl:with-param name="env" select="$env"/></xsl:call-template>
@@ -263,7 +371,14 @@
                         </value>
                       </xsl:for-each>
                     </xsl:variable>
-                    <xsl:call-template name="vapply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+                    <xsl:choose>
+                      <xsl:when test="$func/malval/@kind = 'userfunction'">
+                        <xsl:call-template name="uapply"><xsl:with-param name="env" select="$env"/><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+                      </xsl:when>
+                      <xsl:otherwise>
+                        <xsl:call-template name="core-apply"><xsl:with-param name="func" select="$func"/><xsl:with-param name="args" select="$args"/></xsl:call-template>
+                      </xsl:otherwise>
+                    </xsl:choose>
                     <env data="{env:serialise($env)}" />
                   </xsl:otherwise>
                 </xsl:choose>
@@ -301,13 +416,6 @@
       </xsl:for-each>
     </xsl:template>
 
-    <xsl:function name="fn:makeMALType">
-      <xsl:param name="value" />
-      <xsl:param name="kind" />
-      <value>
-        <malval kind="{$kind}" value="{$value}"/>
-      </value>
-    </xsl:function>
     <xsl:function name="fn:group_consec">
       <xsl:param name="nodes" />
       <xsl:variable name="groups">

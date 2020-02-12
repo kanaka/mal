@@ -157,6 +157,7 @@ mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 else ifeq ($(MAL_IMPL),powershell)
 mal_TEST_OPTS = --start-timeout 60 --test-timeout 180
 endif
+xslt_TEST_OPTS = --test-timeout=60
 
 
 #
