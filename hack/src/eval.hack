@@ -1,24 +1,20 @@
 namespace Mal;
 
 function repl_environment(): Environment {
-  return new Environment(
-    null,
-    dict[
-      '+' => binary_numerical_function(($a, $b) ==> $a + $b),
-      '-' => binary_numerical_function(($a, $b) ==> $a - $b),
-      '*' => binary_numerical_function(($a, $b) ==> $a * $b),
-      '/' => binary_numerical_function(($a, $b) ==> (int)($a / $b)),
-    ],
-  );
+  return ns(new Environment());
 }
 
 function evaluate(Form $ast, Environment $environment): Form {
-  $macro_result = define($ast, $environment) ?? let($ast, $environment);
+  $macro_result = define($ast, $environment) ??
+    let($ast, $environment) ??
+    do_all($ast, $environment) ??
+    if_then_else($ast, $environment) ??
+    fn($ast, $environment);
   if ($macro_result is nonnull) {
     return $macro_result;
   }
   $evaluated = eval_ast($ast, $environment);
-  return function_call($evaluated) ?? $evaluated;
+  return function_call($ast, $evaluated) ?? $evaluated;
 }
 
 function eval_ast(Form $ast, Environment $environment): Form {
@@ -47,8 +43,9 @@ function evaluate_all(vec<Form> $forms, Environment $environment): vec<Form> {
   return Vec\map($forms, $child ==> evaluate($child, $environment));
 }
 
-function function_call(Form $evaluated): ?Form {
-  if ($evaluated is ListForm && C\count($evaluated->children) > 0) {
+function function_call(Form $ast, Form $evaluated): ?Form {
+  if ($ast is ListForm && C\count($ast->children) > 0) {
+    $evaluated = $evaluated as ListForm;
     $function = C\firstx($evaluated->children);
     if (!$function is FunctionDefinition) {
       throw new EvalTypeException(FunctionDefinition::class, $function);
@@ -111,6 +108,94 @@ function let(Form $ast, Environment $parent_environment): ?Form {
   return evaluate($value, $let_environment);
 }
 
+function do_all(Form $ast, Environment $environment): ?Form {
+  $arguments = arguments_if_macro_call($ast, 'do');
+  if ($arguments is null) {
+    return null;
+  }
+  if (C\count($arguments) < 2) {
+    throw new EvalException('Expected at least one form as argument to `do`');
+  }
+  return C\lastx(evaluate_all(Vec\drop($arguments, 1), $environment));
+}
+
+function if_then_else(Form $ast, Environment $environment): ?Form {
+  $arguments = arguments_if_macro_call($ast, 'if');
+  if ($arguments is null) {
+    return null;
+  }
+  $condition = idx($arguments, 1);
+  if ($condition is null) {
+    throw new EvalException('Expected a condition form for `if`');
+  }
+  $if_value = idx($arguments, 2);
+  if ($if_value is null) {
+    throw new EvalException('Expected an if branch form for `if`');
+  }
+  if (C\count($arguments) > 4) {
+    throw new EvalException(
+      'Unexpected form, only condition, if branch and else branch forms are '.
+      'expected for `if`',
+    );
+  }
+  $condition_result = evaluate($condition, $environment);
+  if (
+    $condition_result is GlobalNil ||
+    $condition_result is BoolAtom && !$condition_result->value
+  ) {
+    $else_value = idx($arguments, 3);
+    if ($else_value is null) {
+      return new GlobalNil();
+    } else {
+      return evaluate($else_value, $environment);
+    }
+  }
+  return evaluate($if_value, $environment);
+}
+
+function fn(Form $ast, Environment $closed_over_environment): ?Form {
+  $arguments = arguments_if_macro_call($ast, 'fn*');
+  if ($arguments is null) {
+    return null;
+  }
+  $parameter_list = idx($arguments, 1);
+  if ($parameter_list is null || !$parameter_list is ListLikeForm) {
+    throw new EvalException('Expected a list of parameters for `fn`');
+  }
+  $parameter_names = Vec\map(
+    $parameter_list->children,
+    $parameter ==> {
+      if (!$parameter is Symbol) {
+        throw new EvalTypeException(Symbol::class, $parameter);
+      }
+      return $parameter;
+    },
+  );
+  $body = idx($arguments, 2);
+  if ($body is null) {
+    throw new EvalException('Expected a body form for `fn`');
+  }
+  if (C\count($arguments) > 3) {
+    throw new EvalException(
+      'Unexpected form, only a parameter list and body form are '.
+      'expected for `fn`',
+    );
+  }
+  return new FunctionDefinition($function_arguments ==> {
+    $fn_environment = new Environment($closed_over_environment);
+    foreach ($parameter_names as $index => $parameter) {
+      $value = idx($function_arguments, $index + 1);
+      if ($value is null) {
+        throw new EvalException(
+          'Expected a value form for parameter '.$parameter->name,
+        );
+      }
+      $fn_environment->set($parameter, $value);
+    }
+    return evaluate($body, $fn_environment);
+  });
+}
+
 function arguments_if_macro_call(Form $ast, string $macro_name): ?vec<Form> {
   if ($ast is ListForm && C\count($ast->children) > 0) {
     $macro = C\firstx($ast->children);
@@ -119,22 +204,4 @@ function arguments_if_macro_call(Form $ast, string $macro_name): ?vec<Form> {
     }
   }
   return null;
-}
-
-function binary_numerical_function(
-  (function(int, int): int) $operation,
-): FunctionDefinition {
-  return new FunctionDefinition(
-    $arguments ==> {
-      $a = $arguments[1];
-      if (!$a is Number) {
-        throw new EvalTypeException(Number::class, $a);
-      }
-      $b = $arguments[2];
-      if (!$b is Number) {
-        throw new EvalTypeException(Number::class, $b);
-      }
-      return new Number($operation($a->value, $b->value));
-    },
-  );
 }

@@ -2,13 +2,13 @@ namespace Mal;
 
 interface Form {}
 
-final class ListForm implements Form {
+class ListLikeForm implements Form {
   public function __construct(public vec<Form> $children) {}
 }
 
-final class VectorForm implements Form {
-  public function __construct(public vec<Form> $children) {}
-}
+final class ListForm extends ListLikeForm {}
+
+final class VectorForm extends ListLikeForm {}
 
 final class HashMapForm implements Form {
   public function __construct(public dict<string, Form> $map) {}
