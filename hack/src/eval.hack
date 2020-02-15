@@ -162,11 +162,19 @@ function fn(Form $ast, Environment $closed_over_environment): ?Form {
   if ($parameter_list is null || !$parameter_list is ListLikeForm) {
     throw new EvalException('Expected a list of parameters for `fn`');
   }
-  $parameter_names = Vec\map(
+  $parameter_names = Vec\map_with_key(
     $parameter_list->children,
-    $parameter ==> {
+    ($index, $parameter) ==> {
       if (!$parameter is Symbol) {
         throw new EvalTypeException(Symbol::class, $parameter);
+      }
+      if (
+        $parameter->name === '&' &&
+        C\count($parameter_list->children) > $index + 2
+      ) {
+        throw new EvalException(
+          'Expected only one variadic parameter after `&` for `fn`',
+        );
       }
       return $parameter;
     },
@@ -184,6 +192,13 @@ function fn(Form $ast, Environment $closed_over_environment): ?Form {
   return new FunctionDefinition($function_arguments ==> {
     $fn_environment = new Environment($closed_over_environment);
     foreach ($parameter_names as $index => $parameter) {
+      if ($parameter->name === '&') {
+        $fn_environment->set(
+          $parameter_names[$index + 1],
+          new ListForm(Vec\drop($function_arguments, $index + 1)),
+        );
+        break;
+      }
       $value = idx($function_arguments, $index + 1);
       if ($value is null) {
         throw new EvalException(
