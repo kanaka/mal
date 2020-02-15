@@ -11,6 +11,10 @@ async function main_async(): Awaitable<void> {
   AutoloadMap\initialize();
 
   $environment = Mal\repl_environment();
+
+  $prelude = "(def! not (fn* (a) (if a false true)))";
+  rep($prelude, $environment);
+
   $cli_input = IO\request_input();
   while (true) {
     // Handles CTRL+D
