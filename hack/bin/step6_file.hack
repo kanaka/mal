@@ -20,6 +20,18 @@ async function main_async(): Awaitable<void> {
     ')';
   rep($prelude, $environment);
 
+  /* HH_IGNORE_ERROR[2050] */
+  $argv = $GLOBALS['argv'];
+  $argv_list = Vec\drop($argv, 2)
+    |> Vec\map($$, $arg ==> '"'.$arg.'"')
+    |> Str\join($$, ' ');
+  rep('(def! *ARGV* (list '.$argv_list.'))', $environment);
+  if (C\count($argv) > 1) {
+    $file_name = $argv[1];
+    rep('(load-file "'.$file_name.'")', $environment);
+    return;
+  }
+
   $cli_input = IO\request_input();
   while (true) {
     // Handles CTRL+D
