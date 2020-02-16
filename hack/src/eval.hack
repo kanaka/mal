@@ -13,7 +13,9 @@ function evaluate(Form $ast, Environment $environment): Form {
       let($ast, $environment) ??
       do_all($ast, $environment) ??
       if_then_else($ast, $environment) ??
-      fn($ast, $environment);
+      fn($ast, $environment) ??
+      quote($ast, $environment) ??
+      quasiquote($ast, $environment);
     if ($eval_result is null) {
       $evaluated = eval_ast($ast, $environment);
       $eval_result = function_call($ast, $evaluated, $environment) ??
@@ -314,6 +316,86 @@ function function_call_bind(
     $fn_environment->set($parameter, $value);
   }
   return $fn_environment;
+}
+
+function quote(Form $ast, Environment $environment): ?EvalResult {
+  $macro_name = 'quote';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
+  if ($arguments is null) {
+    return null;
+  }
+  $value = idx($arguments, 1);
+  if ($value is null) {
+    throw new EvalUntypedArgumentException($macro_name, 1);
+  }
+  return eval_done($value, $environment);
+}
+
+function quasiquote(Form $ast, Environment $environment): ?EvalResult {
+  $quasiquote_name = 'quasiquote';
+  $unquote_name = 'unquote';
+  $splice_unquote_name = 'splice-unquote';
+  $arguments = arguments_if_macro_call($ast, $quasiquote_name);
+  if ($arguments is null) {
+    return null;
+  }
+  $value = idx($arguments, 1);
+  if ($value is null) {
+    throw new EvalUntypedArgumentException($quasiquote_name, 1);
+  }
+  if (!$value is ListForm || C\is_empty($value->children)) {
+    return eval_tco(new_function_call('quote', vec[$value]), $environment);
+  } else {
+    $first_item = C\firstx($value->children);
+    if ($first_item is Symbol && $first_item->name === $unquote_name) {
+      $unqouted = idx($value->children, 1);
+      if ($unqouted is null) {
+        throw new EvalUntypedArgumentException($unquote_name, 1);
+      }
+      return eval_tco($unqouted, $environment);
+    } else {
+      $rest_items = Vec\drop($value->children, 1);
+      if ($first_item is ListForm && !C\is_empty($first_item->children)) {
+        $nested_first_item = C\firstx($first_item->children);
+        if (
+          $nested_first_item is Symbol &&
+          $nested_first_item->name === $splice_unquote_name
+        ) {
+          $splice_unqouted = idx($first_item->children, 1);
+          if ($splice_unqouted is null) {
+            throw new EvalUntypedArgumentException($splice_unquote_name, 1);
+          }
+          return eval_tco(
+            new_function_call(
+              'concat',
+              vec[
+                $splice_unqouted,
+                new_function_call(
+                  $quasiquote_name,
+                  vec[new ListForm($rest_items)],
+                ),
+              ],
+            ),
+            $environment,
+          );
+        }
+      }
+      return eval_tco(
+        new_function_call(
+          'cons',
+          vec[
+            new_function_call($quasiquote_name, vec[$first_item]),
+            new_function_call($quasiquote_name, vec[new ListForm($rest_items)]),
+          ],
+        ),
+        $environment,
+      );
+    }
+  }
+}
+
+function new_function_call(string $name, vec<Form> $arguments): Form {
+  return new ListForm(Vec\concat(vec[new Symbol($name)], $arguments));
 }
 
 function arguments_if_macro_call(Form $ast, string $macro_name): ?vec<Form> {

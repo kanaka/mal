@@ -27,6 +27,8 @@ function ns(Environment $environment): Environment {
     is_atom_function(),
     deref_function(),
     reset_function(),
+    cons_function(),
+    concat_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -380,6 +382,54 @@ function reset_function(): (Symbol, FunctionDefinition) {
         throw new EvalUntypedArgumentException($name, 2);
       }
       return $atom->reset($new_value);
+    },
+  );
+}
+
+function cons_function(): (Symbol, FunctionDefinition) {
+  $name = 'cons';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $prepended_item = idx($arguments, 1);
+      if ($prepended_item is null) {
+        throw new EvalUntypedArgumentException($name, 1);
+      }
+      $list = idx($arguments, 2);
+      if (!$list is ListLikeForm) {
+        throw new EvalTypedArgumentException(
+          $name,
+          2,
+          ListLikeForm::class,
+          $list,
+        );
+      }
+      return new ListForm(Vec\concat(vec[$prepended_item], $list->children));
+    },
+  );
+}
+
+function concat_function(): (Symbol, FunctionDefinition) {
+  $name = 'concat';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $concatted = Vec\flatten(Vec\map_with_key(
+        Vec\drop($arguments, 1),
+        ($index, $list) ==> {
+          if (!$list is ListLikeForm) {
+            throw new EvalTypedArgumentException(
+              $name,
+              $index + 1,
+              ListLikeForm::class,
+              $list,
+            );
+          }
+          return $list->children;
+        },
+      ));
+      $list = idx($arguments, 2);
+      return new ListForm($concatted);
     },
   );
 }
