@@ -40,6 +40,17 @@ final class Symbol implements Atom {
 
 final class GlobalNil implements Atom {}
 
-final class FunctionDefinition implements Atom {
+interface FunctionLike extends Atom {}
+
+final class FunctionDefinition implements FunctionLike {
   public function __construct(public (function(vec<Form>): Form) $function) {}
+}
+
+final class FunctionWithTCODefinition implements FunctionLike {
+  public function __construct(
+    public Form $body,
+    public vec<Symbol> $parameters,
+    public Environment $closed_over_environment,
+    public FunctionDefinition $unoptimized,
+  ) {}
 }

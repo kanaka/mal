@@ -26,7 +26,7 @@ function pr_str(Form $mal_ast, bool $print_readably = false): string {
       '}',
       $print_readably,
     );
-  } else if ($mal_ast is FunctionDefinition) {
+  } else if ($mal_ast is FunctionLike) {
     return "#<function>";
   } else {
     invariant(false, 'Unhandled mal AST node type');

@@ -4,17 +4,25 @@ function repl_environment(): Environment {
   return ns(new Environment());
 }
 
+type EvalResult = (bool, Form, Environment);
+
 function evaluate(Form $ast, Environment $environment): Form {
-  $macro_result = define($ast, $environment) ??
-    let($ast, $environment) ??
-    do_all($ast, $environment) ??
-    if_then_else($ast, $environment) ??
-    fn($ast, $environment);
-  if ($macro_result is nonnull) {
-    return $macro_result;
+  while (true) {
+    $eval_result = define($ast, $environment) ??
+      let($ast, $environment) ??
+      do_all($ast, $environment) ??
+      if_then_else($ast, $environment) ??
+      fn($ast, $environment);
+    if ($eval_result is null) {
+      $evaluated = eval_ast($ast, $environment);
+      $eval_result = function_call($ast, $evaluated, $environment) ??
+        eval_done($evaluated, $environment);
+    }
+    list($should_continue, $ast, $environment) = $eval_result;
+    if (!$should_continue) {
+      return $ast;
+    }
   }
-  $evaluated = eval_ast($ast, $environment);
-  return function_call($ast, $evaluated) ?? $evaluated;
 }
 
 function eval_ast(Form $ast, Environment $environment): Form {
@@ -43,20 +51,34 @@ function evaluate_all(vec<Form> $forms, Environment $environment): vec<Form> {
   return Vec\map($forms, $child ==> evaluate($child, $environment));
 }
 
-function function_call(Form $ast, Form $evaluated): ?Form {
+function function_call(
+  Form $ast,
+  Form $evaluated,
+  Environment $environment,
+): ?EvalResult {
   if ($ast is ListForm && C\count($ast->children) > 0) {
     $evaluated = $evaluated as ListForm;
     $function = C\firstx($evaluated->children);
-    if (!$function is FunctionDefinition) {
-      throw new EvalTypeException(FunctionDefinition::class, $function);
+    if ($function is FunctionDefinition) {
+      $callable = $function->function;
+      return eval_done($callable($evaluated->children), $environment);
     }
-    $callable = $function->function;
-    return $callable($evaluated->children);
+    if ($function is FunctionWithTCODefinition) {
+      return eval_tco(
+        $function->body,
+        function_call_bind(
+          $function->parameters,
+          $evaluated->children,
+          $function->closed_over_environment,
+        ),
+      );
+    }
+    throw new EvalTypeException(FunctionDefinition::class, $function);
   }
   return null;
 }
 
-function define(Form $ast, Environment $environment): ?Form {
+function define(Form $ast, Environment $environment): ?EvalResult {
   $arguments = arguments_if_macro_call($ast, 'def!');
   if ($arguments is null) {
     return null;
@@ -69,10 +91,13 @@ function define(Form $ast, Environment $environment): ?Form {
   if ($value is null) {
     throw new EvalException('Expected a form as second argument to `def!`');
   }
-  return $environment->set($name, evaluate($value, $environment));
+  return eval_done(
+    $environment->set($name, evaluate($value, $environment)),
+    $environment,
+  );
 }
 
-function let(Form $ast, Environment $parent_environment): ?Form {
+function let(Form $ast, Environment $parent_environment): ?EvalResult {
   $arguments = arguments_if_macro_call($ast, 'let*');
   if ($arguments is null) {
     return null;
@@ -105,10 +130,10 @@ function let(Form $ast, Environment $parent_environment): ?Form {
   if ($value is null) {
     throw new EvalException('Expected a form as second argument to `let*`');
   }
-  return evaluate($value, $let_environment);
+  return eval_tco($value, $let_environment);
 }
 
-function do_all(Form $ast, Environment $environment): ?Form {
+function do_all(Form $ast, Environment $environment): ?EvalResult {
   $arguments = arguments_if_macro_call($ast, 'do');
   if ($arguments is null) {
     return null;
@@ -116,10 +141,11 @@ function do_all(Form $ast, Environment $environment): ?Form {
   if (C\count($arguments) < 2) {
     throw new EvalException('Expected at least one form as argument to `do`');
   }
-  return C\lastx(evaluate_all(Vec\drop($arguments, 1), $environment));
+  evaluate_all(Vec\slice($arguments, 1, C\count($arguments) - 2), $environment);
+  return eval_tco(C\lastx($arguments), $environment);
 }
 
-function if_then_else(Form $ast, Environment $environment): ?Form {
+function if_then_else(Form $ast, Environment $environment): ?EvalResult {
   $arguments = arguments_if_macro_call($ast, 'if');
   if ($arguments is null) {
     return null;
@@ -145,15 +171,15 @@ function if_then_else(Form $ast, Environment $environment): ?Form {
   ) {
     $else_value = idx($arguments, 3);
     if ($else_value is null) {
-      return new GlobalNil();
+      return eval_done(new GlobalNil(), $environment);
     } else {
-      return evaluate($else_value, $environment);
+      return eval_tco($else_value, $environment);
     }
   }
-  return evaluate($if_value, $environment);
+  return eval_tco($if_value, $environment);
 }
 
-function fn(Form $ast, Environment $closed_over_environment): ?Form {
+function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
   $arguments = arguments_if_macro_call($ast, 'fn*');
   if ($arguments is null) {
     return null;
@@ -189,26 +215,46 @@ function fn(Form $ast, Environment $closed_over_environment): ?Form {
       'expected for `fn`',
     );
   }
-  return new FunctionDefinition($function_arguments ==> {
-    $fn_environment = new Environment($closed_over_environment);
-    foreach ($parameter_names as $index => $parameter) {
-      if ($parameter->name === '&') {
-        $fn_environment->set(
-          $parameter_names[$index + 1],
-          new ListForm(Vec\drop($function_arguments, $index + 1)),
-        );
-        break;
-      }
-      $value = idx($function_arguments, $index + 1);
-      if ($value is null) {
-        throw new EvalException(
-          'Expected a value form for parameter '.$parameter->name,
-        );
-      }
-      $fn_environment->set($parameter, $value);
+  return eval_done(
+    new FunctionWithTCODefinition(
+      $body,
+      $parameter_names,
+      $closed_over_environment,
+      new FunctionDefinition($function_arguments ==> {
+        return evaluate($body, function_call_bind(
+          $parameter_names,
+          $function_arguments,
+          $closed_over_environment,
+        ));
+      }),
+    ),
+    $closed_over_environment,
+  );
+}
+
+function function_call_bind(
+  vec<Symbol> $parameters,
+  vec<Form> $arguments,
+  Environment $closed_over_environment,
+): Environment {
+  $fn_environment = new Environment($closed_over_environment);
+  foreach ($parameters as $index => $parameter) {
+    if ($parameter->name === '&') {
+      $fn_environment->set(
+        $parameters[$index + 1],
+        new ListForm(Vec\drop($arguments, $index + 1)),
+      );
+      break;
     }
-    return evaluate($body, $fn_environment);
-  });
+    $value = idx($arguments, $index + 1);
+    if ($value is null) {
+      throw new EvalException(
+        'Expected a value form for parameter '.$parameter->name,
+      );
+    }
+    $fn_environment->set($parameter, $value);
+  }
+  return $fn_environment;
 }
 
 function arguments_if_macro_call(Form $ast, string $macro_name): ?vec<Form> {
@@ -219,4 +265,18 @@ function arguments_if_macro_call(Form $ast, string $macro_name): ?vec<Form> {
     }
   }
   return null;
+}
+
+function eval_done(
+  Form $ast,
+  Environment $environment,
+): (bool, Form, Environment) {
+  return tuple(false, $ast, $environment);
+}
+
+function eval_tco(
+  Form $ast,
+  Environment $environment,
+): (bool, Form, Environment) {
+  return tuple(true, $ast, $environment);
 }
