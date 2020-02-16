@@ -4,6 +4,9 @@ type Token = string;
 
 function read_str(string $mal_code): Form {
   $tokens = tokenize($mal_code);
+  if (C\is_empty($tokens)) {
+    return new GlobalNil();
+  }
   list($ast, $_reader) = read_form(new Reader($tokens));
   return $ast;
 }
@@ -43,7 +46,8 @@ function tokenize(string $mal_code): vec<Token> {
   );
   return $matches
     |> Vec\map($$, $match ==> $match[1])
-    |> Vec\filter($$, $token ==> !Str\is_empty($token));
+    |> Vec\filter($$, $token ==> !Str\is_empty($token))
+    |> Vec\filter($$, $token ==> !Str\starts_with($token, ';'));
 }
 
 function read_form(Reader $token_reader): (Form, Reader) {
