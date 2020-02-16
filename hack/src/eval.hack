@@ -79,17 +79,18 @@ function function_call(
 }
 
 function define(Form $ast, Environment $environment): ?EvalResult {
-  $arguments = arguments_if_macro_call($ast, 'def!');
+  $macro_name = 'def!';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
   if ($arguments is null) {
     return null;
   }
   $name = idx($arguments, 1);
-  if ($name is null || !$name is Symbol) {
-    throw new EvalException('Expected a symbol after `def!`');
+  if (!$name is Symbol) {
+    throw new EvalTypedArgumentException($macro_name, 1, Symbol::class, $name);
   }
   $value = idx($arguments, 2);
   if ($value is null) {
-    throw new EvalException('Expected a form as second argument to `def!`');
+    throw new EvalUntypedArgumentException($macro_name, 2);
   }
   return eval_done(
     $environment->set($name, evaluate($value, $environment)),
@@ -98,16 +99,20 @@ function define(Form $ast, Environment $environment): ?EvalResult {
 }
 
 function let(Form $ast, Environment $parent_environment): ?EvalResult {
-  $arguments = arguments_if_macro_call($ast, 'let*');
+  $macro_name = 'let*';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
   if ($arguments is null) {
     return null;
   }
   $definitions = idx($arguments, 1);
-  if (
-    $definitions is null ||
-    !($definitions is ListForm || $definitions is VectorForm)
-  ) {
-    throw new EvalException('Expected a list of definitions for `let*`');
+  if (!($definitions is ListLikeForm)) {
+    throw new EvalTypedArgumentException(
+      $macro_name,
+      1,
+      ListLikeForm::class,
+      $definitions,
+      'a list of definitions',
+    );
   }
   $definition_pairs = read_pairs(
     $definitions->children,
@@ -118,17 +123,21 @@ function let(Form $ast, Environment $parent_environment): ?EvalResult {
       return $name;
     },
     $name ==> new EvalException(
-      Str\format('Expected a value for a name `%s`', pr_str($name, true)),
+      Str\format(
+        'Expected a value for a `%s` binding of `%s`',
+        $macro_name,
+        pr_str($name, true),
+      ),
     ),
   );
   $let_environment = new Environment($parent_environment);
-  foreach ($definition_pairs as $key_value_pair) {
-    list($key, $value) = $key_value_pair;
-    $let_environment->set($key, evaluate($value, $let_environment));
+  foreach ($definition_pairs as $name_value_pair) {
+    list($name, $value) = $name_value_pair;
+    $let_environment->set($name, evaluate($value, $let_environment));
   }
   $value = idx($arguments, 2);
   if ($value is null) {
-    throw new EvalException('Expected a form as second argument to `let*`');
+    throw new EvalUntypedArgumentException($macro_name, 2);
   }
   return eval_tco($value, $let_environment);
 }
@@ -146,24 +155,20 @@ function do_all(Form $ast, Environment $environment): ?EvalResult {
 }
 
 function if_then_else(Form $ast, Environment $environment): ?EvalResult {
-  $arguments = arguments_if_macro_call($ast, 'if');
+  $macro_name = 'if';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
   if ($arguments is null) {
     return null;
   }
   $condition = idx($arguments, 1);
   if ($condition is null) {
-    throw new EvalException('Expected a condition form for `if`');
+    throw new EvalUntypedArgumentException($macro_name, 1, 'a condition form');
   }
   $if_value = idx($arguments, 2);
   if ($if_value is null) {
-    throw new EvalException('Expected an if branch form for `if`');
+    throw new EvalUntypedArgumentException($macro_name, 2, 'an if branch form');
   }
-  if (C\count($arguments) > 4) {
-    throw new EvalException(
-      'Unexpected form, only condition, if branch and else branch forms are '.
-      'expected for `if`',
-    );
-  }
+  enforce_arity($macro_name, 3, $arguments);
   $condition_result = evaluate($condition, $environment);
   if (
     $condition_result is GlobalNil ||
@@ -180,13 +185,20 @@ function if_then_else(Form $ast, Environment $environment): ?EvalResult {
 }
 
 function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
-  $arguments = arguments_if_macro_call($ast, 'fn*');
+  $macro_name = 'fn*';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
   if ($arguments is null) {
     return null;
   }
   $parameter_list = idx($arguments, 1);
-  if ($parameter_list is null || !$parameter_list is ListLikeForm) {
-    throw new EvalException('Expected a list of parameters for `fn`');
+  if (!$parameter_list is ListLikeForm) {
+    throw new EvalTypedArgumentException(
+      $macro_name,
+      1,
+      ListLikeForm::class,
+      $parameter_list,
+      'a list of parameters',
+    );
   }
   $parameter_names = Vec\map_with_key(
     $parameter_list->children,
@@ -207,14 +219,9 @@ function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
   );
   $body = idx($arguments, 2);
   if ($body is null) {
-    throw new EvalException('Expected a body form for `fn`');
+    throw new EvalUntypedArgumentException($macro_name, 2, 'a body form');
   }
-  if (C\count($arguments) > 3) {
-    throw new EvalException(
-      'Unexpected form, only a parameter list and body form are '.
-      'expected for `fn`',
-    );
-  }
+  enforce_arity($macro_name, 2, $arguments);
   return eval_done(
     new FunctionWithTCODefinition(
       $body,
@@ -249,7 +256,9 @@ function function_call_bind(
     $value = idx($arguments, $index + 1);
     if ($value is null) {
       throw new EvalException(
-        'Expected a value form for parameter '.$parameter->name,
+        'In function call expected a value form for parameter `'.
+        $parameter->name.
+        '`',
       );
     }
     $fn_environment->set($parameter, $value);

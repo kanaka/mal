@@ -50,14 +50,15 @@ function binary_function<T>(
   return named_function(
     $name,
     $arguments ==> {
-      $a = $arguments[1];
+      $a = idx($arguments, 1);
       if (!$a is Number) {
-        throw new EvalTypeException(Number::class, $a);
+        throw new EvalTypedArgumentException($name, 1, Number::class, $a);
       }
-      $b = $arguments[2];
+      $b = idx($arguments, 2);
       if (!$b is Number) {
-        throw new EvalTypeException(Number::class, $b);
+        throw new EvalTypedArgumentException($name, 2, Number::class, $b);
       }
+      enforce_arity($name, 2, $arguments);
       return $result_type($operation($a->value, $b->value));
     },
   );
@@ -120,15 +121,11 @@ function is_list_function(): (Symbol, FunctionDefinition) {
   return named_function(
     $name,
     $arguments ==> {
-      if (C\count($arguments) > 2) {
-        throw new EvalException(
-          "Unexpected form, expected only one argument to `$name`",
-        );
-      }
       $maybe_list = idx($arguments, 1);
       if ($maybe_list is null) {
         throw new EvalException("Expected one argument to `$name`");
       }
+      enforce_arity($name, 1, $arguments);
       return new BoolAtom($maybe_list is ListForm);
     },
   );
@@ -140,17 +137,15 @@ function is_empty_function(): (Symbol, FunctionDefinition) {
     $name,
     $arguments ==> {
       $list = idx($arguments, 1);
-      if ($list is null) {
-        throw new EvalException("Expected one argument to `$name`");
-      }
       if (!$list is ListLikeForm) {
-        throw new EvalTypeException(ListLikeForm::class, $list);
-      }
-      if (C\count($arguments) > 2) {
-        throw new EvalException(
-          "Unexpected form, expected only one list form argument to `$name`",
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          ListLikeForm::class,
+          $list,
         );
       }
+      enforce_arity($name, 1, $arguments);
       return new BoolAtom(C\is_empty($list->children));
     },
   );
@@ -165,17 +160,15 @@ function count_function(): (Symbol, FunctionDefinition) {
       if ($list is nonnull && $list is GlobalNil) {
         return new Number(0);
       }
-      if ($list is null) {
-        throw new EvalException("Expected one argument to `$name`");
-      }
       if (!$list is ListLikeForm) {
-        throw new EvalTypeException(ListLikeForm::class, $list);
-      }
-      if (C\count($arguments) > 2) {
-        throw new EvalException(
-          "Unexpected form, expected only one list form argument to `$name`",
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          ListLikeForm::class,
+          $list,
         );
       }
+      enforce_arity($name, 1, $arguments);
       return new Number(C\count($list->children));
     },
   );
@@ -191,11 +184,7 @@ function equals_function(): (Symbol, FunctionDefinition) {
       if ($a is null || $b is null) {
         throw new EvalException("Expected two arguments to `$name`");
       }
-      if (C\count($arguments) > 3) {
-        throw new EvalException(
-          "Unexpected form, expected only one two arguments to `$name`",
-        );
-      }
+      enforce_arity($name, 2, $arguments);
       return new BoolAtom(equals_impl($a, $b));
     },
   );
@@ -274,4 +263,14 @@ function zip_map<Ta, Tb, Tc>(
     $result[] = $map($a, $list_b[$i]);
   }
   return $result;
+}
+
+function enforce_arity(
+  string $name,
+  int $max_num_arguments,
+  vec<Form> $arguments,
+): void {
+  if (C\count($arguments) - 1 > $max_num_arguments) {
+    throw new EvalArityException($name, $max_num_arguments, $arguments);
+  }
 }
