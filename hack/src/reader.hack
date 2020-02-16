@@ -54,6 +54,7 @@ function read_form(Reader $token_reader): (Form, Reader) {
   return read_list($token_reader) ??
     read_vector($token_reader) ??
     read_hash_map($token_reader) ??
+    read_deref($token_reader) ??
     read_atom($token_reader);
 }
 
@@ -122,6 +123,22 @@ function read_children_form<TForm>(
       $children[] = $child;
     }
   }
+}
+
+function read_deref(Reader $token_reader): ?(ListForm, Reader) {
+  $first_token = $token_reader->peekx(
+    'Unexpected end of input, expected a form',
+  );
+  if ($first_token !== '@') {
+    return null;
+  }
+  $token_reader = $token_reader->next();
+  $token_reader->peekx("Expected a form following @");
+  list($name_symbol, $token_reader) = read_form($token_reader);
+  return tuple(
+    new ListForm(vec[new Symbol('deref'), $name_symbol]),
+    $token_reader,
+  );
 }
 
 function read_atom(Reader $token_reader): (Atom, Reader) {
