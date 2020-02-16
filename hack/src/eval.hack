@@ -343,7 +343,7 @@ function quasiquote(Form $ast, Environment $environment): ?EvalResult {
   if ($value is null) {
     throw new EvalUntypedArgumentException($quasiquote_name, 1);
   }
-  if (!$value is ListForm || C\is_empty($value->children)) {
+  if (!$value is ListLikeForm || C\is_empty($value->children)) {
     return eval_tco(new_function_call('quote', vec[$value]), $environment);
   } else {
     $first_item = C\firstx($value->children);
@@ -394,7 +394,7 @@ function quasiquote(Form $ast, Environment $environment): ?EvalResult {
   }
 }
 
-function new_function_call(string $name, vec<Form> $arguments): Form {
+function new_function_call(string $name, vec<Form> $arguments): ListForm {
   return new ListForm(Vec\concat(vec[new Symbol($name)], $arguments));
 }
 

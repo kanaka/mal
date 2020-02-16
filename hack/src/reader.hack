@@ -55,6 +55,10 @@ function read_form(Reader $token_reader): (Form, Reader) {
     read_vector($token_reader) ??
     read_hash_map($token_reader) ??
     read_deref($token_reader) ??
+    read_quote($token_reader) ??
+    read_quasiquote($token_reader) ??
+    read_unquote($token_reader) ??
+    read_splice_unquote($token_reader) ??
     read_atom($token_reader);
 }
 
@@ -126,19 +130,40 @@ function read_children_form<TForm>(
 }
 
 function read_deref(Reader $token_reader): ?(ListForm, Reader) {
+  return read_macro('@', 'deref', $token_reader);
+}
+
+function read_quote(Reader $token_reader): ?(ListForm, Reader) {
+  return read_macro("'", 'quote', $token_reader);
+}
+
+function read_quasiquote(Reader $token_reader): ?(ListForm, Reader) {
+  return read_macro("`", 'quasiquote', $token_reader);
+}
+
+function read_unquote(Reader $token_reader): ?(ListForm, Reader) {
+  return read_macro("~", 'unquote', $token_reader);
+}
+
+function read_splice_unquote(Reader $token_reader): ?(ListForm, Reader) {
+  return read_macro("~@", 'splice-unquote', $token_reader);
+}
+
+function read_macro(
+  string $reader_name,
+  string $eval_name,
+  Reader $token_reader,
+): ?(ListForm, Reader) {
   $first_token = $token_reader->peekx(
     'Unexpected end of input, expected a form',
   );
-  if ($first_token !== '@') {
+  if ($first_token !== $reader_name) {
     return null;
   }
   $token_reader = $token_reader->next();
-  $token_reader->peekx("Expected a form following @");
-  list($name_symbol, $token_reader) = read_form($token_reader);
-  return tuple(
-    new ListForm(vec[new Symbol('deref'), $name_symbol]),
-    $token_reader,
-  );
+  $token_reader->peekx("Expected a form following ".$reader_name);
+  list($argument, $token_reader) = read_form($token_reader);
+  return tuple(new_function_call($eval_name, vec[$argument]), $token_reader);
 }
 
 function read_atom(Reader $token_reader): (Atom, Reader) {
