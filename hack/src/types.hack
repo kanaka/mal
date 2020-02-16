@@ -54,3 +54,12 @@ final class FunctionWithTCODefinition implements FunctionLike {
     public FunctionDefinition $unoptimized,
   ) {}
 }
+
+final class MutableAtom implements Atom {
+  public function __construct(public Form $value) {}
+
+  public function reset(Form $new_value): Form {
+    $this->value = $new_value;
+    return $new_value;
+  }
+}

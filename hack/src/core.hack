@@ -20,6 +20,13 @@ function ns(Environment $environment): Environment {
     is_empty_function(),
     count_function(),
     equals_function(),
+    read_string_function(),
+    slurp(),
+    eval_function($environment),
+    atom_function(),
+    is_atom_function(),
+    deref_function(),
+    reset_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -244,6 +251,137 @@ function equals_children(vec<Form> $children_a, vec<Form> $children_b): bool {
     $children_b,
     ($a_child, $b_child) ==> equals_impl($a_child, $b_child),
   ));
+}
+
+function read_string_function(): (Symbol, FunctionDefinition) {
+  $name = 'read-string';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $string = idx($arguments, 1);
+      if (!$string is StringAtom) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          StringAtom::class,
+          $string,
+        );
+      }
+      return read_str($string->value);
+    },
+  );
+}
+
+function slurp(): (Symbol, FunctionDefinition) {
+  $name = 'slurp';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $string = idx($arguments, 1);
+      if (!$string is StringAtom) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          StringAtom::class,
+          $string,
+        );
+      }
+      try {
+        return \HH\Asio\join(
+          async {
+            await using $file_handle = File\open_read_only($string->value);
+            return new StringAtom(await $file_handle->readAsync());
+          },
+        );
+      } catch (OS\NotFoundException $e) {
+        throw new EvalException('File `'.$string->value.'` not found');
+      }
+    },
+  );
+}
+
+function eval_function(Environment $environment): (Symbol, FunctionDefinition) {
+  $name = 'eval';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $ast = idx($arguments, 1);
+      if ($ast is null) {
+        throw new EvalUntypedArgumentException($name, 1);
+      }
+      return evaluate($ast, $environment);
+    },
+  );
+}
+
+function atom_function(): (Symbol, FunctionDefinition) {
+  $name = 'atom';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $value = idx($arguments, 1);
+      if ($value is null) {
+        throw new EvalUntypedArgumentException($name, 1);
+      }
+      return new MutableAtom($value);
+    },
+  );
+}
+
+function is_atom_function(): (Symbol, FunctionDefinition) {
+  $name = 'atom?';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $maybe_atom = idx($arguments, 1);
+      if ($maybe_atom is null) {
+        throw new EvalUntypedArgumentException($name, 1);
+      }
+      return new BoolAtom($maybe_atom is MutableAtom);
+    },
+  );
+}
+
+function deref_function(): (Symbol, FunctionDefinition) {
+  $name = 'deref';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $atom = idx($arguments, 1);
+      if (!$atom is MutableAtom) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          MutableAtom::class,
+          $atom,
+        );
+      }
+      return $atom->value;
+    },
+  );
+}
+
+function reset_function(): (Symbol, FunctionDefinition) {
+  $name = 'reset!';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $atom = idx($arguments, 1);
+      if (!$atom is MutableAtom) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          MutableAtom::class,
+          $atom,
+        );
+      }
+      $new_value = idx($arguments, 2);
+      if ($new_value is null) {
+        throw new EvalUntypedArgumentException($name, 2);
+      }
+      return $atom->reset($new_value);
+    },
+  );
 }
 
 function named_function(

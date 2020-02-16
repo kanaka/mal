@@ -8,7 +8,8 @@ type EvalResult = (bool, Form, Environment);
 
 function evaluate(Form $ast, Environment $environment): Form {
   while (true) {
-    $eval_result = define($ast, $environment) ??
+    $eval_result = apply($ast, $environment) ??
+      define($ast, $environment) ??
       let($ast, $environment) ??
       do_all($ast, $environment) ??
       if_then_else($ast, $environment) ??
@@ -59,23 +60,72 @@ function function_call(
   if ($ast is ListForm && C\count($ast->children) > 0) {
     $evaluated = $evaluated as ListForm;
     $function = C\firstx($evaluated->children);
-    if ($function is FunctionDefinition) {
-      $callable = $function->function;
-      return eval_done($callable($evaluated->children), $environment);
+    if (!$function is FunctionLike) {
+      throw new EvalTypeException(FunctionLike::class, $function);
     }
-    if ($function is FunctionWithTCODefinition) {
-      return eval_tco(
-        $function->body,
-        function_call_bind(
-          $function->parameters,
-          $evaluated->children,
-          $function->closed_over_environment,
-        ),
-      );
-    }
-    throw new EvalTypeException(FunctionDefinition::class, $function);
+    return function_call_impl($function, $evaluated->children, $environment);
   }
   return null;
+}
+
+function apply(Form $ast, Environment $environment): ?EvalResult {
+  $macro_name = 'apply';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
+  if ($arguments is null) {
+    return null;
+  }
+  $evaluated = Vec\concat(
+    vec[$arguments[0]],
+    evaluate_all(Vec\drop($arguments, 1), $environment),
+  );
+
+  $function = idx($evaluated, 1);
+  if (!$function is FunctionLike) {
+    throw new EvalTypedArgumentException(
+      $macro_name,
+      1,
+      FunctionLike::class,
+      $function,
+    );
+  }
+  $last_index = C\count($evaluated) - 1;
+  $list_argument = idx($evaluated, $last_index);
+  if (!$list_argument is ListLikeForm) {
+    throw new EvalTypedArgumentException(
+      $macro_name,
+      $last_index,
+      ListLikeForm::class,
+      $list_argument,
+    );
+  }
+  $prepend_arguments = Vec\slice($evaluated, 1, C\count($evaluated) - 2);
+  return function_call_impl(
+    $function,
+    Vec\concat($prepend_arguments, $list_argument->children),
+    $environment,
+  );
+}
+
+function function_call_impl(
+  FunctionLike $function,
+  vec<Form> $arguments,
+  Environment $environment,
+): ?EvalResult {
+  if ($function is FunctionDefinition) {
+    $callable = $function->function;
+    return eval_done($callable($arguments), $environment);
+  }
+  if ($function is FunctionWithTCODefinition) {
+    return eval_tco(
+      $function->body,
+      function_call_bind(
+        $function->parameters,
+        $arguments,
+        $function->closed_over_environment,
+      ),
+    );
+  }
+  invariant(false, 'Unsupported subtype of FunctionLike');
 }
 
 function define(Form $ast, Environment $environment): ?EvalResult {

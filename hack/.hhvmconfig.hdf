@@ -2,9 +2,11 @@ AliasedNamespaces {
   AutoloadMap = Facebook\AutoloadMap
   C = HH\Lib\C
   Dict = HH\Lib\Dict
-  IO = HH\Lib\Experimental\IO
+  File = HH\Lib\Experimental\File
   Keyset = HH\Lib\Keyset
+  IO = HH\Lib\Experimental\IO
   Math = HH\Lib\Math
+  OS = HH\Lib\Experimental\OS
   PHP = HH\Lib\PHP
   PseudoRandom = HH\Lib\PseudoRandom
   Regex = HH\Lib\Regex

@@ -15,6 +15,8 @@ function pr_str(Form $mal_ast, bool $print_readably = false): string {
     return "nil";
   } else if ($mal_ast is BoolAtom) {
     return $mal_ast->value ? 'true' : 'false';
+  } else if ($mal_ast is MutableAtom) {
+    return '(atom '.pr_str($mal_ast->value, $print_readably).')';
   } else if ($mal_ast is ListForm) {
     return print_children_form('(', $mal_ast->children, ')', $print_readably);
   } else if ($mal_ast is VectorForm) {
