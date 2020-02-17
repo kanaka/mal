@@ -17,6 +17,7 @@ function ns(Environment $environment): Environment {
     println_function(),
     list_function(),
     is_list_function(),
+    is_sequential_function(),
     is_empty_function(),
     count_function(),
     equals_function(),
@@ -29,6 +30,8 @@ function ns(Environment $environment): Environment {
     reset_function(),
     cons_function(),
     concat_function(),
+    nth_function(),
+    rest_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -136,6 +139,21 @@ function is_list_function(): (Symbol, FunctionDefinition) {
       }
       enforce_arity($name, 1, $arguments);
       return new BoolAtom($maybe_list is ListForm);
+    },
+  );
+}
+
+function is_sequential_function(): (Symbol, FunctionDefinition) {
+  $name = 'sequential?';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $maybe_list = idx($arguments, 1);
+      if ($maybe_list is null) {
+        throw new EvalException("Expected one argument to `$name`");
+      }
+      enforce_arity($name, 1, $arguments);
+      return new BoolAtom($maybe_list is ListLikeForm);
     },
   );
 }
@@ -430,6 +448,57 @@ function concat_function(): (Symbol, FunctionDefinition) {
       ));
       $list = idx($arguments, 2);
       return new ListForm($concatted);
+    },
+  );
+}
+
+function nth_function(): (Symbol, FunctionDefinition) {
+  $name = 'nth';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $list = idx($arguments, 1);
+      if (!$list is ListLikeForm) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          ListLikeForm::class,
+          $list,
+        );
+      }
+      $index = idx($arguments, 2);
+      if (!$index is Number) {
+        throw new EvalTypedArgumentException($name, 2, Number::class, $index);
+      }
+      $value = idx($list->children, $index->value);
+      if ($value is null) {
+        throw new EvalException(
+          "No value at index `$index->value` in list ".pr_str($list, true),
+        );
+      }
+      return $value;
+    },
+  );
+}
+
+function rest_function(): (Symbol, FunctionDefinition) {
+  $name = 'rest';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $list = idx($arguments, 1);
+      if ($list is GlobalNil) {
+        return new ListForm(vec[]);
+      }
+      if (!$list is ListLikeForm) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          ListLikeForm::class,
+          $list,
+        );
+      }
+      return new ListForm(Vec\drop($list->children, 1));
     },
   );
 }

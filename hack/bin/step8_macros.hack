@@ -17,6 +17,14 @@ async function main_async(): Awaitable<void> {
     '  (def! load-file (fn* (f) '.
     '    (eval (read-string (str "(do " (slurp f) "\nnil)")))))'.
     '  (def! swap! (fn* (a f & rest) (reset! a (apply f (deref a) rest))))'.
+    '  (def! first (fn* (l) (if (sequential? l) (if (empty? l) nil (nth l 0)) nil)))'.
+    '  (defmacro! cond (fn* (& xs)'.
+    '    (if (> (count xs) 0)'.
+    "      (list 'if (first xs)".
+    "        (if (> (count xs) 1)".
+    "          (nth xs 1)".
+    "          (throw \"odd number of forms to cond\"))".
+    "        (cons 'cond (rest (rest xs)))))))".
     ')';
   rep($prelude, $environment);
 
