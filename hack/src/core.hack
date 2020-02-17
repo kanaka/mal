@@ -70,11 +70,11 @@ function binary_function<T>(
     $arguments ==> {
       $a = idx($arguments, 1);
       if (!$a is Number) {
-        throw new EvalTypedArgumentException($name, 1, Number::class, $a);
+        throw new TypedArgumentException($name, 1, Number::class, $a);
       }
       $b = idx($arguments, 2);
       if (!$b is Number) {
-        throw new EvalTypedArgumentException($name, 2, Number::class, $b);
+        throw new TypedArgumentException($name, 2, Number::class, $b);
       }
       enforce_arity($name, 2, $arguments);
       return $result_type($operation($a->value, $b->value));
@@ -171,12 +171,7 @@ function is_empty_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $list = idx($arguments, 1);
       if (!$list is ListLikeForm) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          ListLikeForm::class,
-          $list,
-        );
+        throw new TypedArgumentException($name, 1, ListLikeForm::class, $list);
       }
       enforce_arity($name, 1, $arguments);
       return new BoolAtom(C\is_empty($list->children));
@@ -194,12 +189,7 @@ function count_function(): (Symbol, FunctionDefinition) {
         return new Number(0);
       }
       if (!$list is ListLikeForm) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          ListLikeForm::class,
-          $list,
-        );
+        throw new TypedArgumentException($name, 1, ListLikeForm::class, $list);
       }
       enforce_arity($name, 1, $arguments);
       return new Number(C\count($list->children));
@@ -286,12 +276,7 @@ function read_string_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $string = idx($arguments, 1);
       if (!$string is StringAtom) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          StringAtom::class,
-          $string,
-        );
+        throw new TypedArgumentException($name, 1, StringAtom::class, $string);
       }
       return read_str($string->value);
     },
@@ -305,12 +290,7 @@ function slurp(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $string = idx($arguments, 1);
       if (!$string is StringAtom) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          StringAtom::class,
-          $string,
-        );
+        throw new TypedArgumentException($name, 1, StringAtom::class, $string);
       }
       try {
         return \HH\Asio\join(
@@ -333,7 +313,7 @@ function eval_function(Environment $environment): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $ast = idx($arguments, 1);
       if ($ast is null) {
-        throw new EvalUntypedArgumentException($name, 1);
+        throw new MissingArgumentException($name, 1);
       }
       return evaluate($ast, $environment);
     },
@@ -347,7 +327,7 @@ function atom_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $value = idx($arguments, 1);
       if ($value is null) {
-        throw new EvalUntypedArgumentException($name, 1);
+        throw new MissingArgumentException($name, 1);
       }
       return new MutableAtom($value);
     },
@@ -361,7 +341,7 @@ function is_atom_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $maybe_atom = idx($arguments, 1);
       if ($maybe_atom is null) {
-        throw new EvalUntypedArgumentException($name, 1);
+        throw new MissingArgumentException($name, 1);
       }
       return new BoolAtom($maybe_atom is MutableAtom);
     },
@@ -375,12 +355,7 @@ function deref_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $atom = idx($arguments, 1);
       if (!$atom is MutableAtom) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          MutableAtom::class,
-          $atom,
-        );
+        throw new TypedArgumentException($name, 1, MutableAtom::class, $atom);
       }
       return $atom->value;
     },
@@ -394,16 +369,11 @@ function reset_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $atom = idx($arguments, 1);
       if (!$atom is MutableAtom) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          MutableAtom::class,
-          $atom,
-        );
+        throw new TypedArgumentException($name, 1, MutableAtom::class, $atom);
       }
       $new_value = idx($arguments, 2);
       if ($new_value is null) {
-        throw new EvalUntypedArgumentException($name, 2);
+        throw new MissingArgumentException($name, 2);
       }
       return $atom->reset($new_value);
     },
@@ -417,16 +387,11 @@ function cons_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $prepended_item = idx($arguments, 1);
       if ($prepended_item is null) {
-        throw new EvalUntypedArgumentException($name, 1);
+        throw new MissingArgumentException($name, 1);
       }
       $list = idx($arguments, 2);
       if (!$list is ListLikeForm) {
-        throw new EvalTypedArgumentException(
-          $name,
-          2,
-          ListLikeForm::class,
-          $list,
-        );
+        throw new TypedArgumentException($name, 2, ListLikeForm::class, $list);
       }
       return new ListForm(Vec\concat(vec[$prepended_item], $list->children));
     },
@@ -442,7 +407,7 @@ function concat_function(): (Symbol, FunctionDefinition) {
         Vec\drop($arguments, 1),
         ($index, $list) ==> {
           if (!$list is ListLikeForm) {
-            throw new EvalTypedArgumentException(
+            throw new TypedArgumentException(
               $name,
               $index + 1,
               ListLikeForm::class,
@@ -465,16 +430,11 @@ function nth_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $list = idx($arguments, 1);
       if (!$list is ListLikeForm) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          ListLikeForm::class,
-          $list,
-        );
+        throw new TypedArgumentException($name, 1, ListLikeForm::class, $list);
       }
       $index = idx($arguments, 2);
       if (!$index is Number) {
-        throw new EvalTypedArgumentException($name, 2, Number::class, $index);
+        throw new TypedArgumentException($name, 2, Number::class, $index);
       }
       $value = idx($list->children, $index->value);
       if ($value is null) {
@@ -497,12 +457,7 @@ function rest_function(): (Symbol, FunctionDefinition) {
         return new ListForm(vec[]);
       }
       if (!$list is ListLikeForm) {
-        throw new EvalTypedArgumentException(
-          $name,
-          1,
-          ListLikeForm::class,
-          $list,
-        );
+        throw new TypedArgumentException($name, 1, ListLikeForm::class, $list);
       }
       return new ListForm(Vec\drop($list->children, 1));
     },
@@ -516,7 +471,7 @@ function throw_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $thrown = idx($arguments, 1);
       if ($thrown is null) {
-        throw new EvalUntypedArgumentException($name, 1);
+        throw new MissingArgumentException($name, 1);
       }
       throw new ThrownException($thrown);
     },
@@ -530,7 +485,7 @@ function map_function(): (Symbol, FunctionDefinition) {
     $arguments ==> {
       $function = idx($arguments, 1);
       if (!$function is FunctionLike) {
-        throw new EvalTypedArgumentException(
+        throw new TypedArgumentException(
           $name,
           1,
           FunctionLike::class,
@@ -539,12 +494,7 @@ function map_function(): (Symbol, FunctionDefinition) {
       }
       $list = idx($arguments, 2);
       if (!$list is ListLikeForm) {
-        throw new EvalTypedArgumentException(
-          $name,
-          2,
-          ListLikeForm::class,
-          $list,
-        );
+        throw new TypedArgumentException($name, 2, ListLikeForm::class, $list);
       }
       $callable = unwrap_tco($function)->function;
       return new ListForm(
@@ -583,7 +533,7 @@ function type_predicate_function(
     $arguments ==> {
       $value = idx($arguments, 1);
       if ($value is null) {
-        throw new EvalUntypedArgumentException($name, 1);
+        throw new MissingArgumentException($name, 1);
       }
       return new BoolAtom($check($value));
     },
@@ -625,6 +575,6 @@ function enforce_arity(
   vec<Form> $arguments,
 ): void {
   if (C\count($arguments) - 1 > $max_num_arguments) {
-    throw new EvalArityException($name, $max_num_arguments, $arguments);
+    throw new ArityException($name, $max_num_arguments, $arguments);
   }
 }

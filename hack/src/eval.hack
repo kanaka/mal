@@ -67,7 +67,7 @@ function function_call(
     $evaluated = $evaluated as ListForm;
     $function = C\firstx($evaluated->children);
     if (!$function is FunctionLike) {
-      throw new EvalTypeException(FunctionLike::class, $function);
+      throw new TypeException('(', FunctionLike::class, $function);
     }
     return function_call_impl($function, $evaluated->children, $environment);
   }
@@ -96,11 +96,11 @@ function macroexpand(Form $ast, Environment $environment): ?EvalResult {
   }
   $macro_call = idx($arguments, 1);
   if ($macro_call is null) {
-    throw new EvalUntypedArgumentException($macro_name, 1);
+    throw new MissingArgumentException($macro_name, 1);
   }
   $result = expand_macro($macro_call, $environment);
   if ($result is null) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $macro_name,
       1,
       ListForm::class,
@@ -125,7 +125,7 @@ function apply(Form $ast, Environment $environment): ?EvalResult {
 
   $function = idx($evaluated, 1);
   if (!$function is FunctionLike) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $macro_name,
       1,
       FunctionLike::class,
@@ -135,7 +135,7 @@ function apply(Form $ast, Environment $environment): ?EvalResult {
   $last_index = C\count($evaluated) - 1;
   $list_argument = idx($evaluated, $last_index);
   if (!$list_argument is ListLikeForm) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $macro_name,
       $last_index,
       ListLikeForm::class,
@@ -184,7 +184,7 @@ function define_macro(Form $ast, Environment $environment): ?EvalResult {
     $environment,
     $function ==> {
       if (!$function is FunctionWithTCODefinition) {
-        throw new EvalTypedArgumentException(
+        throw new TypedArgumentException(
           $macro_name,
           2,
           FunctionLike::class,
@@ -214,11 +214,11 @@ function define_impl(
   }
   $name = idx($arguments, 1);
   if (!$name is Symbol) {
-    throw new EvalTypedArgumentException($macro_name, 1, Symbol::class, $name);
+    throw new TypedArgumentException($macro_name, 1, Symbol::class, $name);
   }
   $value = idx($arguments, 2);
   if ($value is null) {
-    throw new EvalUntypedArgumentException($macro_name, 2);
+    throw new MissingArgumentException($macro_name, 2);
   }
   return eval_done(
     $environment->set($name, $tranform_result(evaluate($value, $environment))),
@@ -234,7 +234,7 @@ function let(Form $ast, Environment $parent_environment): ?EvalResult {
   }
   $definitions = idx($arguments, 1);
   if (!($definitions is ListLikeForm)) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $macro_name,
       1,
       ListLikeForm::class,
@@ -246,7 +246,7 @@ function let(Form $ast, Environment $parent_environment): ?EvalResult {
     $definitions->children,
     $name ==> {
       if (!$name is Symbol) {
-        throw new EvalTypeException(Symbol::class, $name);
+        throw new TypeException($macro_name, Symbol::class, $name, 'a name');
       }
       return $name;
     },
@@ -265,7 +265,7 @@ function let(Form $ast, Environment $parent_environment): ?EvalResult {
   }
   $value = idx($arguments, 2);
   if ($value is null) {
-    throw new EvalUntypedArgumentException($macro_name, 2);
+    throw new MissingArgumentException($macro_name, 2);
   }
   return eval_tco($value, $let_environment);
 }
@@ -290,11 +290,11 @@ function if_then_else(Form $ast, Environment $environment): ?EvalResult {
   }
   $condition = idx($arguments, 1);
   if ($condition is null) {
-    throw new EvalUntypedArgumentException($macro_name, 1, 'a condition form');
+    throw new MissingArgumentException($macro_name, 1, 'a condition form');
   }
   $if_value = idx($arguments, 2);
   if ($if_value is null) {
-    throw new EvalUntypedArgumentException($macro_name, 2, 'an if branch form');
+    throw new MissingArgumentException($macro_name, 2, 'an if branch form');
   }
   enforce_arity($macro_name, 3, $arguments);
   $condition_result = evaluate($condition, $environment);
@@ -320,7 +320,7 @@ function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
   }
   $parameter_list = idx($arguments, 1);
   if (!$parameter_list is ListLikeForm) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $macro_name,
       1,
       ListLikeForm::class,
@@ -332,7 +332,7 @@ function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
     $parameter_list->children,
     ($index, $parameter) ==> {
       if (!$parameter is Symbol) {
-        throw new EvalTypeException(Symbol::class, $parameter);
+        throw new TypeException($macro_name, Symbol::class, $parameter);
       }
       if (
         $parameter->name === '&' &&
@@ -347,7 +347,7 @@ function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
   );
   $body = idx($arguments, 2);
   if ($body is null) {
-    throw new EvalUntypedArgumentException($macro_name, 2, 'a body form');
+    throw new MissingArgumentException($macro_name, 2, 'a body form');
   }
   enforce_arity($macro_name, 2, $arguments);
   return eval_done(
@@ -403,7 +403,7 @@ function quote(Form $ast, Environment $environment): ?EvalResult {
   }
   $value = idx($arguments, 1);
   if ($value is null) {
-    throw new EvalUntypedArgumentException($macro_name, 1);
+    throw new MissingArgumentException($macro_name, 1);
   }
   return eval_done($value, $environment);
 }
@@ -418,7 +418,7 @@ function quasiquote(Form $ast, Environment $environment): ?EvalResult {
   }
   $value = idx($arguments, 1);
   if ($value is null) {
-    throw new EvalUntypedArgumentException($quasiquote_name, 1);
+    throw new MissingArgumentException($quasiquote_name, 1);
   }
   if (!$value is ListLikeForm || C\is_empty($value->children)) {
     return eval_tco(new_function_call('quote', vec[$value]), $environment);
@@ -427,7 +427,7 @@ function quasiquote(Form $ast, Environment $environment): ?EvalResult {
     if ($first_item is Symbol && $first_item->name === $unquote_name) {
       $unqouted = idx($value->children, 1);
       if ($unqouted is null) {
-        throw new EvalUntypedArgumentException($unquote_name, 1);
+        throw new MissingArgumentException($unquote_name, 1);
       }
       return eval_tco($unqouted, $environment);
     } else {
@@ -440,7 +440,7 @@ function quasiquote(Form $ast, Environment $environment): ?EvalResult {
         ) {
           $splice_unqouted = idx($first_item->children, 1);
           if ($splice_unqouted is null) {
-            throw new EvalUntypedArgumentException($splice_unquote_name, 1);
+            throw new MissingArgumentException($splice_unquote_name, 1);
           }
           return eval_tco(
             new_function_call(
@@ -480,11 +480,11 @@ function try_catch(Form $ast, Environment $environment): ?EvalResult {
   }
   $tried = idx($arguments, 1);
   if ($tried is null) {
-    throw new EvalUntypedArgumentException($try_name, 1);
+    throw new MissingArgumentException($try_name, 1);
   }
   $catch = idx($arguments, 2);
   if (!$catch is ListForm) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $try_name,
       2,
       ListForm::class,
@@ -494,7 +494,7 @@ function try_catch(Form $ast, Environment $environment): ?EvalResult {
   }
   $catch_symbol = idx($catch->children, 0);
   if (!($catch_symbol is Symbol && $catch_symbol->name === $catch_name)) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $try_name,
       2,
       ListForm::class,
@@ -504,7 +504,7 @@ function try_catch(Form $ast, Environment $environment): ?EvalResult {
   }
   $exception_name = idx($catch->children, 1);
   if (!$exception_name is Symbol) {
-    throw new EvalTypedArgumentException(
+    throw new TypedArgumentException(
       $catch_name,
       1,
       Symbol::class,
@@ -514,7 +514,7 @@ function try_catch(Form $ast, Environment $environment): ?EvalResult {
   }
   $result_on_exception = idx($catch->children, 2);
   if ($result_on_exception is null) {
-    throw new EvalUntypedArgumentException($catch_name, 2);
+    throw new MissingArgumentException($catch_name, 2);
   }
   try {
     return eval_done(evaluate($tried, $environment), $environment);
