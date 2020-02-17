@@ -10,12 +10,15 @@ function evaluate(Form $ast, Environment $environment): Form {
   while (true) {
     $eval_result = apply($ast, $environment) ??
       define($ast, $environment) ??
+      define_macro($ast, $environment) ??
       let($ast, $environment) ??
       do_all($ast, $environment) ??
       if_then_else($ast, $environment) ??
       fn($ast, $environment) ??
       quote($ast, $environment) ??
-      quasiquote($ast, $environment);
+      quasiquote($ast, $environment) ??
+      macroexpand($ast, $environment);
+    $eval_result = $eval_result ?? expand_macro($ast, $environment);
     if ($eval_result is null) {
       $evaluated = eval_ast($ast, $environment);
       $eval_result = function_call($ast, $evaluated, $environment) ??
@@ -68,6 +71,44 @@ function function_call(
     return function_call_impl($function, $evaluated->children, $environment);
   }
   return null;
+}
+
+function expand_macro(Form $ast, Environment $environment): ?EvalResult {
+  if ($ast is ListForm) {
+    $maybe_macro_name = C\first($ast->children);
+    if ($maybe_macro_name is Symbol) {
+      $maybe_macro = $environment->get($maybe_macro_name);
+      if ($maybe_macro is FunctionWithTCODefinition && $maybe_macro->is_macro) {
+        $callable = $maybe_macro->unoptimized->function;
+        return eval_tco($callable($ast->children), $environment);
+      }
+    }
+  }
+  return null;
+}
+
+function macroexpand(Form $ast, Environment $environment): ?EvalResult {
+  $macro_name = 'macroexpand';
+  $arguments = arguments_if_macro_call($ast, $macro_name);
+  if ($arguments is null) {
+    return null;
+  }
+  $macro_call = idx($arguments, 1);
+  if ($macro_call is null) {
+    throw new EvalUntypedArgumentException($macro_name, 1);
+  }
+  $result = expand_macro($macro_call, $environment);
+  if ($result is null) {
+    throw new EvalTypedArgumentException(
+      $macro_name,
+      1,
+      ListForm::class,
+      $macro_call,
+      'a macro call',
+    );
+  }
+  list($_, $expanded, $environment) = $result;
+  return eval_done($expanded, $environment);
 }
 
 function apply(Form $ast, Environment $environment): ?EvalResult {
@@ -131,7 +172,41 @@ function function_call_impl(
 }
 
 function define(Form $ast, Environment $environment): ?EvalResult {
-  $macro_name = 'def!';
+  return define_impl('def!', $ast, $environment, $value ==> $value);
+}
+
+function define_macro(Form $ast, Environment $environment): ?EvalResult {
+  $macro_name = 'defmacro!';
+  return define_impl(
+    $macro_name,
+    $ast,
+    $environment,
+    $function ==> {
+      if (!$function is FunctionWithTCODefinition) {
+        throw new EvalTypedArgumentException(
+          $macro_name,
+          2,
+          FunctionLike::class,
+          $function,
+        );
+      }
+      return new FunctionWithTCODefinition(
+        true,
+        $function->body,
+        $function->parameters,
+        $function->closed_over_environment,
+        $function->unoptimized,
+      );
+    },
+  );
+}
+
+function define_impl(
+  string $macro_name,
+  Form $ast,
+  Environment $environment,
+  (function(Form): Form) $tranform_result,
+): ?EvalResult {
   $arguments = arguments_if_macro_call($ast, $macro_name);
   if ($arguments is null) {
     return null;
@@ -145,7 +220,7 @@ function define(Form $ast, Environment $environment): ?EvalResult {
     throw new EvalUntypedArgumentException($macro_name, 2);
   }
   return eval_done(
-    $environment->set($name, evaluate($value, $environment)),
+    $environment->set($name, $tranform_result(evaluate($value, $environment))),
     $environment,
   );
 }
@@ -276,6 +351,7 @@ function fn(Form $ast, Environment $closed_over_environment): ?EvalResult {
   enforce_arity($macro_name, 2, $arguments);
   return eval_done(
     new FunctionWithTCODefinition(
+      false,
       $body,
       $parameter_names,
       $closed_over_environment,

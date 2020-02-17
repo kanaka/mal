@@ -29,6 +29,9 @@ function pr_str(Form $mal_ast, bool $print_readably = false): string {
       $print_readably,
     );
   } else if ($mal_ast is FunctionLike) {
+    if ($mal_ast is FunctionWithTCODefinition && $mal_ast->is_macro) {
+      return "#<macro>";
+    }
     return "#<function>";
   } else {
     invariant(false, 'Unhandled mal AST node type');

@@ -48,6 +48,7 @@ final class FunctionDefinition implements FunctionLike {
 
 final class FunctionWithTCODefinition implements FunctionLike {
   public function __construct(
+    public bool $is_macro,
     public Form $body,
     public vec<Symbol> $parameters,
     public Environment $closed_over_environment,
