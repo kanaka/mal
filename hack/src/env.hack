@@ -22,9 +22,7 @@ final class Environment {
   public function get(Symbol $symbol): Form {
     $environment = $this->find($symbol);
     if ($environment is null) {
-      throw new EvalException(
-        'Definition for symbol \''.$symbol->name.'\' not found in scope',
-      );
+      throw new EvalException("'".$symbol->name."' not found");
     }
     return $environment->data[$symbol->name];
   }

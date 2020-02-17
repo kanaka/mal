@@ -32,6 +32,12 @@ function ns(Environment $environment): Environment {
     concat_function(),
     nth_function(),
     rest_function(),
+    throw_function(),
+    map_function(),
+    is_nil_function(),
+    is_true_function(),
+    is_false_function(),
+    is_symbol_function(),
   ];
   foreach ($functions as $name_function_pair) {
     list($name, $function) = $name_function_pair;
@@ -473,7 +479,7 @@ function nth_function(): (Symbol, FunctionDefinition) {
       $value = idx($list->children, $index->value);
       if ($value is null) {
         throw new EvalException(
-          "No value at index `$index->value` in list ".pr_str($list, true),
+          "Index `$index->value` out of bounds in list ".pr_str($list, true),
         );
       }
       return $value;
@@ -501,6 +507,97 @@ function rest_function(): (Symbol, FunctionDefinition) {
       return new ListForm(Vec\drop($list->children, 1));
     },
   );
+}
+
+function throw_function(): (Symbol, FunctionDefinition) {
+  $name = 'throw';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $thrown = idx($arguments, 1);
+      if ($thrown is null) {
+        throw new EvalUntypedArgumentException($name, 1);
+      }
+      throw new ThrownException($thrown);
+    },
+  );
+}
+
+function map_function(): (Symbol, FunctionDefinition) {
+  $name = 'map';
+  return named_function(
+    $name,
+    $arguments ==> {
+      $function = idx($arguments, 1);
+      if (!$function is FunctionLike) {
+        throw new EvalTypedArgumentException(
+          $name,
+          1,
+          FunctionLike::class,
+          $function,
+        );
+      }
+      $list = idx($arguments, 2);
+      if (!$list is ListLikeForm) {
+        throw new EvalTypedArgumentException(
+          $name,
+          2,
+          ListLikeForm::class,
+          $list,
+        );
+      }
+      $callable = unwrap_tco($function)->function;
+      return new ListForm(
+        Vec\map($list->children, $item ==> $callable(vec[$function, $item])),
+      );
+    },
+  );
+}
+
+
+function is_nil_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('nil?', $value ==> $value is GlobalNil);
+}
+function is_true_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function(
+    'true?',
+    $value ==> $value is BoolAtom && $value->value,
+  );
+}
+function is_false_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function(
+    'false?',
+    $value ==> $value is BoolAtom && !$value->value,
+  );
+}
+function is_symbol_function(): (Symbol, FunctionDefinition) {
+  return type_predicate_function('symbol?', $value ==> $value is Symbol);
+}
+
+function type_predicate_function(
+  string $name,
+  (function(Form): bool) $check,
+): (Symbol, FunctionDefinition) {
+  return named_function(
+    $name,
+    $arguments ==> {
+      $value = idx($arguments, 1);
+      if ($value is null) {
+        throw new EvalUntypedArgumentException($name, 1);
+      }
+      return new BoolAtom($check($value));
+    },
+  );
+}
+
+function unwrap_tco(FunctionLike $function): FunctionDefinition {
+  if ($function is FunctionWithTCODefinition) {
+    return $function->unoptimized;
+  }
+  if ($function is FunctionDefinition) {
+    return $function;
+  }
+  invariant(false, 'Unsupported subtype of FunctionLike');
 }
 
 function named_function(

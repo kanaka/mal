@@ -1,5 +1,13 @@
 namespace Mal;
 
+final class ThrownException extends \Error {
+  public function __construct(public Form $thrown) {
+    parent::__construct(
+      Str\format("Throw exception with `%s`", pr_str($thrown, true)),
+    );
+  }
+}
+
 final class ReaderException extends \Error {
   public function __construct(string $message, public int $index) {
     parent::__construct($message);
@@ -34,7 +42,7 @@ final class EvalTypedArgumentException extends \Error {
   ) {
     parent::__construct(
       Str\format(
-        "`%s` expected %s%s argument of type %s, but got `%s`",
+        "`%s` expected %s%s argument of type %s, but got %s",
         $function_name,
         $argument_description is null ? '' : $argument_description.' as ',
         index_to_adjective($index),

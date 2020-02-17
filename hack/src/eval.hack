@@ -17,6 +17,7 @@ function evaluate(Form $ast, Environment $environment): Form {
       fn($ast, $environment) ??
       quote($ast, $environment) ??
       quasiquote($ast, $environment) ??
+      try_catch($ast, $environment) ??
       macroexpand($ast, $environment);
     $eval_result = $eval_result ?? expand_macro($ast, $environment);
     if ($eval_result is null) {
@@ -467,6 +468,65 @@ function quasiquote(Form $ast, Environment $environment): ?EvalResult {
         $environment,
       );
     }
+  }
+}
+
+function try_catch(Form $ast, Environment $environment): ?EvalResult {
+  $try_name = 'try*';
+  $catch_name = 'catch*';
+  $arguments = arguments_if_macro_call($ast, $try_name);
+  if ($arguments is null) {
+    return null;
+  }
+  $tried = idx($arguments, 1);
+  if ($tried is null) {
+    throw new EvalUntypedArgumentException($try_name, 1);
+  }
+  $catch = idx($arguments, 2);
+  if (!$catch is ListForm) {
+    throw new EvalTypedArgumentException(
+      $try_name,
+      2,
+      ListForm::class,
+      $catch,
+      'a catch form',
+    );
+  }
+  $catch_symbol = idx($catch->children, 0);
+  if (!($catch_symbol is Symbol && $catch_symbol->name === $catch_name)) {
+    throw new EvalTypedArgumentException(
+      $try_name,
+      2,
+      ListForm::class,
+      $catch,
+      "a call to `$catch_name`",
+    );
+  }
+  $exception_name = idx($catch->children, 1);
+  if (!$exception_name is Symbol) {
+    throw new EvalTypedArgumentException(
+      $catch_name,
+      1,
+      Symbol::class,
+      $catch,
+      'catch form',
+    );
+  }
+  $result_on_exception = idx($catch->children, 2);
+  if ($result_on_exception is null) {
+    throw new EvalUntypedArgumentException($catch_name, 2);
+  }
+  try {
+    return eval_done(evaluate($tried, $environment), $environment);
+  } catch (\Throwable $e) {
+    $thrown = $e is ThrownException
+      ? $e->thrown
+      : new StringAtom($e->getMessage());
+    $catch_environment = new Environment(
+      $environment,
+      dict[$exception_name->name => $thrown],
+    );
+    return eval_tco($result_on_exception, $catch_environment);
   }
 }
 
